@@ -708,7 +708,7 @@ static PyObject *createModuleSpec(PyThreadState *tstate, PyObject *module_name, 
 #endif
 
 static void _fillExtensionModuleDllEntryFunctionName(PyThreadState *tstate, char *buffer, size_t buffer_size,
-                                                     char const *name) {
+                                                     char const *name, bool is_export_hook) {
 
 #if PYTHON_VERSION >= 0x350
     PyObject *name_bytes_obj = PyBytes_FromString(name);
@@ -724,17 +724,26 @@ static void _fillExtensionModuleDllEntryFunctionName(PyThreadState *tstate, char
 
         CHECK_OBJECT(name_punycode);
 
-        snprintf(buffer, buffer_size, "PyInitU_%s", Nuitka_Bytes_AsString(name_punycode));
+        if (is_export_hook) {
+            snprintf(buffer, buffer_size, "PyModExportU_%s", Nuitka_Bytes_AsString(name_punycode));
+        } else {
+            snprintf(buffer, buffer_size, "PyInitU_%s", Nuitka_Bytes_AsString(name_punycode));
+        }
 
         Py_DECREF(name_punycode);
     } else {
         Py_DECREF(name_ascii);
 
-        snprintf(buffer, buffer_size, "PyInit_%s", name);
+        if (is_export_hook) {
+            snprintf(buffer, buffer_size, "PyModExport_%s", name);
+        } else {
+            snprintf(buffer, buffer_size, "PyInit_%s", name);
+        }
     }
     Py_DECREF(name_obj);
 #else
-
+    // Module export hooks do not exist before Python 3.15, and the "PyInit"
+    // naming is used for all earlier versions.
     snprintf(buffer, buffer_size,
 #if PYTHON_VERSION < 0x300
              "init%s",
@@ -828,7 +837,7 @@ linking, e.g. with '-static', does not allow dynamic loading of extension module
 #endif
 
 static entrypoint_t _loadExtensionModuleInitAddress(PyThreadState *tstate, char const *full_name,
-                                                    const filename_char_t *filename) {
+                                                    const filename_char_t *filename, bool *is_export_hook) {
     // Determine the basename of the module to load.
     char const *dot = strrchr(full_name, '.');
     char const *name;
@@ -839,8 +848,16 @@ static entrypoint_t _loadExtensionModuleInitAddress(PyThreadState *tstate, char 
         name = dot + 1;
     }
 
+#if PYTHON_VERSION >= 0x3f0
+    assert(is_export_hook != NULL);
+    *is_export_hook = false;
+
+    char export_function_name[1024];
+    _fillExtensionModuleDllEntryFunctionName(tstate, export_function_name, sizeof(export_function_name), name, true);
+#endif
+
     char entry_function_name[1024];
-    _fillExtensionModuleDllEntryFunctionName(tstate, entry_function_name, sizeof(entry_function_name), name);
+    _fillExtensionModuleDllEntryFunctionName(tstate, entry_function_name, sizeof(entry_function_name), name, false);
 
 #ifdef _WIN32
     if (isVerbose()) {
@@ -903,7 +920,17 @@ static entrypoint_t _loadExtensionModuleInitAddress(PyThreadState *tstate, char 
         return NULL;
     }
 
+#if PYTHON_VERSION >= 0x3f0
+    entrypoint_t entrypoint = (entrypoint_t)GetProcAddress(hDLL, export_function_name);
+
+    if (entrypoint != NULL) {
+        *is_export_hook = true;
+    } else {
+        entrypoint = (entrypoint_t)GetProcAddress(hDLL, entry_function_name);
+    }
+#else
     entrypoint_t entrypoint = (entrypoint_t)GetProcAddress(hDLL, entry_function_name);
+#endif
 #else
     // This code would work for all versions, we are avoiding access to interpreter
     // structure internals of 3.8 or higher.
@@ -949,9 +976,29 @@ static entrypoint_t _loadExtensionModuleInitAddress(PyThreadState *tstate, char 
         return NULL;
     }
 
+#if PYTHON_VERSION >= 0x3f0
+    entrypoint_t entrypoint = (entrypoint_t)dlsym(handle, export_function_name);
+
+    if (entrypoint != NULL) {
+        *is_export_hook = true;
+    } else {
+        entrypoint = (entrypoint_t)dlsym(handle, entry_function_name);
+    }
+#else
     entrypoint_t entrypoint = (entrypoint_t)dlsym(handle, entry_function_name);
+#endif
 #endif // __wasi__
 #endif
+
+    if (unlikely(entrypoint == NULL) && !HAS_ERROR_OCCURRED(tstate)) {
+#if PYTHON_VERSION >= 0x3f0
+        PyErr_Format(PyExc_ImportError, "dynamic module '%s' does not define module export function (%s or %s)",
+                     full_name, export_function_name, entry_function_name);
+#else
+        PyErr_Format(PyExc_ImportError, "dynamic module '%s' does not define module export function (%s)", full_name,
+                     entry_function_name);
+#endif
+    }
 
     return entrypoint;
 }
@@ -985,7 +1032,8 @@ static PyObject *callIntoExtensionModule(PyThreadState *tstate, char const *full
 #if PYTHON_VERSION >= 0x3f0
     // For single-phase modules, this will return the fully constructed module
     // object, and for multi-phase this returns the moduledef.
-    entrypoint_t entrypoint = _loadExtensionModuleInitAddress(tstate, full_name, filename);
+    bool is_export_hook = false;
+    entrypoint_t entrypoint = _loadExtensionModuleInitAddress(tstate, full_name, filename, &is_export_hook);
 
     if (entrypoint == NULL) {
         return NULL;
@@ -1005,7 +1053,33 @@ static PyObject *callIntoExtensionModule(PyThreadState *tstate, char const *full
 
     Nuitka_DelModuleString(tstate, full_name);
 
-    PyObject *module = PyImport_CreateModuleFromInitfunc(spec_value, entrypoint);
+    PyObject *module;
+
+    if (is_export_hook) {
+        // The module export hook returns a slots array rather than a module def
+        // or module, and the module is created and run from these slots.
+        PySlot *slots = (PySlot *)entrypoint();
+
+        if (unlikely(slots == NULL)) {
+            if (unlikely(!HAS_ERROR_OCCURRED(tstate))) {
+                PyErr_Format(PyExc_SystemError,
+                             "module export hook for module '%s' failed without setting an exception", full_name);
+            }
+
+            goto error;
+        }
+
+        if (unlikely(HAS_ERROR_OCCURRED(tstate))) {
+            PyErr_Format(PyExc_SystemError, "module export hook for module '%s' raised unreported exception",
+                         full_name);
+
+            goto error;
+        }
+
+        module = PyModule_FromSlotsAndSpec(slots, spec_value);
+    } else {
+        module = PyImport_CreateModuleFromInitfunc(spec_value, entrypoint);
+    }
 
     if (isVerbose()) {
         PySys_WriteStderr("import %s # return from entrypoint\n", full_name);
@@ -1055,7 +1129,7 @@ error:
         package = (char *)full_name;
     }
 
-    entrypoint_t entrypoint = _loadExtensionModuleInitAddress(tstate, full_name, filename);
+    entrypoint_t entrypoint = _loadExtensionModuleInitAddress(tstate, full_name, filename, NULL);
 
     if (entrypoint == NULL) {
         return NULL;
