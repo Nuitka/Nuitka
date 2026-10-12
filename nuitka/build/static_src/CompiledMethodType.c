@@ -120,15 +120,15 @@ static PyObject *Nuitka_Method_deepcopy(struct Nuitka_MethodObject *method, PyOb
         CHECK_OBJECT(deepcopy_function);
     }
 
-    PyObject *object = PyObject_CallFunctionObjArgs(deepcopy_function, method->m_object, memo, NULL);
+    PyObject *obj = PyObject_CallFunctionObjArgs(deepcopy_function, method->m_object, memo, NULL);
 
-    if (unlikely(object == NULL)) {
+    if (unlikely(obj == NULL)) {
         return NULL;
     }
 
-    PyObject *result = Nuitka_Method_New(method->m_function, object, method->m_class);
+    PyObject *result = Nuitka_Method_New(method->m_function, obj, method->m_class);
     // Nuitka_Method_New took a reference to the object.
-    Py_DECREF(object);
+    Py_DECREF(obj);
     return result;
 }
 
@@ -279,8 +279,7 @@ static PyObject *Nuitka_Method_tp_call(struct Nuitka_MethodObject *method, PyObj
 }
 
 #if PYTHON_VERSION < 0x3a0 || PYTHON_VERSION >= 0x3d0
-static PyObject *Nuitka_Method_tp_descr_get(struct Nuitka_MethodObject *method, PyObject *object,
-                                            PyObject *class_object) {
+static PyObject *Nuitka_Method_tp_descr_get(struct Nuitka_MethodObject *method, PyObject *obj, PyObject *class_object) {
     // Don't rebind already bound methods.
     if (method->m_object != NULL) {
         Py_INCREF(method);
@@ -299,7 +298,7 @@ static PyObject *Nuitka_Method_tp_descr_get(struct Nuitka_MethodObject *method, 
         }
     }
 
-    return Nuitka_Method_New(method->m_function, object, class_object);
+    return Nuitka_Method_New(method->m_function, obj, class_object);
 }
 #endif
 
@@ -615,7 +614,7 @@ void _initCompiledMethodType(void) {
     );
 }
 
-PyObject *Nuitka_Method_New(struct Nuitka_FunctionObject *function, PyObject *object, PyObject *class_object) {
+PyObject *Nuitka_Method_New(struct Nuitka_FunctionObject *function, PyObject *obj, PyObject *class_object) {
     struct Nuitka_MethodObject *result;
 
 #if _DEBUG_REFCOUNTS
@@ -638,8 +637,8 @@ PyObject *Nuitka_Method_New(struct Nuitka_FunctionObject *function, PyObject *ob
     Py_INCREF(function);
     result->m_function = function;
 
-    result->m_object = object;
-    Py_XINCREF(object);
+    result->m_object = obj;
+    Py_XINCREF(obj);
     result->m_class = class_object;
     Py_XINCREF(class_object);
 

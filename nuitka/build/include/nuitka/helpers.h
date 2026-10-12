@@ -59,11 +59,11 @@ extern void stopProfiling(void);
 #include "nuitka/helper/richcomparisons.h"
 #include "nuitka/helper/sequences.h"
 
-static inline bool Nuitka_Function_Check(PyObject *object);
-static inline PyObject *Nuitka_Function_GetName(PyObject *object);
+static inline bool Nuitka_Function_Check(PyObject *obj);
+static inline PyObject *Nuitka_Function_GetName(PyObject *obj);
 
-static inline bool Nuitka_Generator_Check(PyObject *object);
-static inline PyObject *Nuitka_Generator_GetName(PyObject *object);
+static inline bool Nuitka_Generator_Check(PyObject *obj);
+static inline PyObject *Nuitka_Generator_GetName(PyObject *obj);
 
 #include "nuitka/calling.h"
 #include "nuitka/helper/bytes.h"
@@ -207,21 +207,21 @@ extern PyObject *BUILTIN_LEN(PyThreadState *tstate, PyObject *boundary);
 extern PyObject *BUILTIN_ANY(PyThreadState *tstate, PyObject *value);
 
 // For built-in built-in super() no args and 2 user args functionality.
-extern PyObject *BUILTIN_SUPER2(PyThreadState *tstate, PyDictObject *module_dict, PyObject *type, PyObject *object);
-extern PyObject *BUILTIN_SUPER0(PyThreadState *tstate, PyDictObject *module_dict, PyObject *type, PyObject *object);
+extern PyObject *BUILTIN_SUPER2(PyThreadState *tstate, PyDictObject *module_dict, PyObject *type, PyObject *obj);
+extern PyObject *BUILTIN_SUPER0(PyThreadState *tstate, PyDictObject *module_dict, PyObject *type, PyObject *obj);
 
 // For built-in built-in all() functionality.
 extern PyObject *BUILTIN_ALL(PyThreadState *tstate, PyObject *value);
 
 // For built-in getattr() functionality.
-extern PyObject *BUILTIN_GETATTR(PyThreadState *tstate, PyObject *object, PyObject *attribute, PyObject *default_value);
+extern PyObject *BUILTIN_GETATTR(PyThreadState *tstate, PyObject *obj, PyObject *attribute, PyObject *default_value);
 
 // For built-in setattr() functionality.
-extern PyObject *BUILTIN_SETATTR(PyObject *object, PyObject *attribute, PyObject *value);
+extern PyObject *BUILTIN_SETATTR(PyObject *obj, PyObject *attribute, PyObject *value);
 
 // For built-in bytearray() functionality.
 extern PyObject *BUILTIN_BYTEARRAY1(PyObject *value);
-extern PyObject *BUILTIN_BYTEARRAY3(PyThreadState *tstate, PyObject *string, PyObject *encoding, PyObject *errors);
+extern PyObject *BUILTIN_BYTEARRAY3(PyThreadState *tstate, PyObject *string_arg, PyObject *encoding, PyObject *errors);
 
 // For built-in hash() functionality.
 extern PyObject *BUILTIN_HASH(PyThreadState *tstate, PyObject *value);

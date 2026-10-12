@@ -745,7 +745,7 @@ bool PRINT_NEW_LINE_TO(PyObject *file) {
 #endif
 }
 
-bool PRINT_ITEM_TO(PyObject *file, PyObject *object) {
+bool PRINT_ITEM_TO(PyObject *file, PyObject *obj) {
     PyThreadState *tstate = PyThreadState_GET();
 
 // The print built-in function cannot replace "softspace" behavior of CPython
@@ -761,7 +761,7 @@ bool PRINT_ITEM_TO(PyObject *file, PyObject *object) {
     }
 
     CHECK_OBJECT(file);
-    CHECK_OBJECT(object);
+    CHECK_OBJECT(obj);
 
     // need to hold a reference to the file or else "__getattr__" code may
     // release "file" in the mean time.
@@ -775,27 +775,27 @@ bool PRINT_ITEM_TO(PyObject *file, PyObject *object) {
         }
     }
 
-    if (unlikely(PyFile_WriteObject(object, file, Py_PRINT_RAW) == -1)) {
+    if (unlikely(PyFile_WriteObject(obj, file, Py_PRINT_RAW) == -1)) {
         Py_DECREF(file);
         return false;
     }
 
-    if (PyString_Check(object)) {
+    if (PyString_Check(obj)) {
         char *buffer;
         Py_ssize_t length;
 
 #ifndef __NUITKA_NO_ASSERT__
         int status =
 #endif
-            PyString_AsStringAndSize(object, &buffer, &length);
+            PyString_AsStringAndSize(obj, &buffer, &length);
         assert(status != -1);
 
         if (length == 0 || !isspace(Py_CHARMASK(buffer[length - 1])) || buffer[length - 1] == ' ') {
             PyFile_SoftSpace(file, 1);
         }
-    } else if (PyUnicode_Check(object)) {
-        Py_UNICODE *buffer = PyUnicode_AS_UNICODE(object);
-        Py_ssize_t length = PyUnicode_GET_SIZE(object);
+    } else if (PyUnicode_Check(obj)) {
+        Py_UNICODE *buffer = PyUnicode_AS_UNICODE(obj);
+        Py_ssize_t length = PyUnicode_GET_SIZE(obj);
 
         if (length == 0 || !Py_UNICODE_ISSPACE(buffer[length - 1]) || buffer[length - 1] == ' ') {
             PyFile_SoftSpace(file, 1);
@@ -825,7 +825,7 @@ bool PRINT_ITEM_TO(PyObject *file, PyObject *object) {
         DICT_SET_ITEM(print_kw, const_str_plain_file, file);
     }
 
-    PyObject *print_args = MAKE_TUPLE1(tstate, object);
+    PyObject *print_args = MAKE_TUPLE1(tstate, obj);
 
     PyObject *result = CALL_FUNCTION(tstate, NUITKA_ACCESS_BUILTIN(print), print_args, print_kw);
 
@@ -840,16 +840,16 @@ bool PRINT_ITEM_TO(PyObject *file, PyObject *object) {
 #endif
 }
 
-void PRINT_REFCOUNT(PyObject *object) {
-    if (object) {
+void PRINT_REFCOUNT(PyObject *obj) {
+    if (obj) {
 #if PYTHON_VERSION >= 0x3c0
-        if (_Py_IsImmortal(object)) {
+        if (_Py_IsImmortal(obj)) {
             PRINT_STRING(" refcnt IMMORTAL");
             return;
         }
 #endif
         char buffer[1024];
-        snprintf(buffer, sizeof(buffer) - 1, " refcnt %" PY_FORMAT_SIZE_T "d ", Py_REFCNT(object));
+        snprintf(buffer, sizeof(buffer) - 1, " refcnt %" PY_FORMAT_SIZE_T "d ", Py_REFCNT(obj));
 
         PRINT_STRING(buffer);
     } else {
@@ -892,7 +892,7 @@ bool PRINT_FORMAT(char const *fmt, ...) {
     return PRINT_STRING(buffer);
 }
 
-bool PRINT_REPR(PyObject *object) {
+bool PRINT_REPR(PyObject *obj) {
     PyThreadState *tstate = PyThreadState_GET();
 
     struct Nuitka_ExceptionPreservationItem saved_exception_state;
@@ -901,12 +901,12 @@ bool PRINT_REPR(PyObject *object) {
 
     bool res;
 
-    if (object != NULL) {
-        CHECK_OBJECT(object);
+    if (obj != NULL) {
+        CHECK_OBJECT(obj);
 
         // Cannot have error set for this function, it asserts against that
         // in debug builds.
-        PyObject *repr = PyObject_Repr(object);
+        PyObject *repr = PyObject_Repr(obj);
 
         res = PRINT_ITEM(repr);
         Py_DECREF(repr);
@@ -921,7 +921,7 @@ bool PRINT_REPR(PyObject *object) {
 
 bool PRINT_NULL(void) { return PRINT_STRING("<NULL>"); }
 
-bool PRINT_TYPE(PyObject *object) { return PRINT_ITEM((PyObject *)Py_TYPE(object)); }
+bool PRINT_TYPE(PyObject *obj) { return PRINT_ITEM((PyObject *)Py_TYPE(obj)); }
 
 void _PRINT_EXCEPTION3(PyObject *exception_type, PyObject *exception_value, PyTracebackObject *exception_tb) {
     PRINT_REPR(exception_type);
@@ -1066,15 +1066,15 @@ void FLUSH_STDERR(void) {
 
 bool PRINT_NEW_LINE(void) { return PRINT_NEW_LINE_TO(NULL); }
 
-bool PRINT_ITEM(PyObject *object) {
-    if (object == NULL) {
+bool PRINT_ITEM(PyObject *obj) {
+    if (obj == NULL) {
         return PRINT_NULL();
     } else {
-        return PRINT_ITEM_TO(NULL, object);
+        return PRINT_ITEM_TO(NULL, obj);
     }
 }
 
-bool PRINT_ITEM_LINE(PyObject *object) { return PRINT_ITEM(object) && PRINT_NEW_LINE(); }
+bool PRINT_ITEM_LINE(PyObject *obj) { return PRINT_ITEM(obj) && PRINT_NEW_LINE(); }
 
 #if PYTHON_VERSION < 0x300
 

@@ -101,7 +101,7 @@ extern PyObject *Nuitka_Coroutine_New(PyThreadState *tstate, coroutine_code code
                                       PyObject *qualname, PyCodeObject *code_object, struct Nuitka_CellObject **closure,
                                       Py_ssize_t closure_given, Py_ssize_t heap_storage_size);
 
-static inline bool Nuitka_Coroutine_Check(PyObject *object) { return Py_TYPE(object) == &Nuitka_Coroutine_Type; }
+static inline bool Nuitka_Coroutine_Check(PyObject *obj) { return Py_TYPE(obj) == &Nuitka_Coroutine_Type; }
 
 struct Nuitka_CoroutineWrapperObject {
     /* Python object folklore: */
@@ -112,8 +112,8 @@ struct Nuitka_CoroutineWrapperObject {
 
 extern PyTypeObject Nuitka_CoroutineWrapper_Type;
 
-static inline bool Nuitka_CoroutineWrapper_Check(PyObject *object) {
-    return Py_TYPE(object) == &Nuitka_CoroutineWrapper_Type;
+static inline bool Nuitka_CoroutineWrapper_Check(PyObject *obj) {
+    return Py_TYPE(obj) == &Nuitka_CoroutineWrapper_Type;
 }
 
 static inline void SAVE_COROUTINE_EXCEPTION(PyThreadState *tstate, struct Nuitka_CoroutineObject *coroutine) {

@@ -15,22 +15,22 @@
 #define nb_nonzero nb_bool
 #endif
 
-NUITKA_MAY_BE_UNUSED static int CHECK_IF_TRUE(PyObject *object) {
-    CHECK_OBJECT(object);
+NUITKA_MAY_BE_UNUSED static int CHECK_IF_TRUE(PyObject *obj) {
+    CHECK_OBJECT(obj);
 
-    if (object == Py_True) {
+    if (obj == Py_True) {
         return 1;
-    } else if (object == Py_False || object == Py_None) {
+    } else if (obj == Py_False || obj == Py_None) {
         return 0;
     } else {
         Py_ssize_t result;
 
-        if (Py_TYPE(object)->tp_as_number != NULL && Py_TYPE(object)->tp_as_number->nb_nonzero != NULL) {
-            result = (*Py_TYPE(object)->tp_as_number->nb_nonzero)(object);
-        } else if (Py_TYPE(object)->tp_as_mapping != NULL && Py_TYPE(object)->tp_as_mapping->mp_length != NULL) {
-            result = (*Py_TYPE(object)->tp_as_mapping->mp_length)(object);
-        } else if (Py_TYPE(object)->tp_as_sequence != NULL && Py_TYPE(object)->tp_as_sequence->sq_length != NULL) {
-            result = (*Py_TYPE(object)->tp_as_sequence->sq_length)(object);
+        if (Py_TYPE(obj)->tp_as_number != NULL && Py_TYPE(obj)->tp_as_number->nb_nonzero != NULL) {
+            result = (*Py_TYPE(obj)->tp_as_number->nb_nonzero)(obj);
+        } else if (Py_TYPE(obj)->tp_as_mapping != NULL && Py_TYPE(obj)->tp_as_mapping->mp_length != NULL) {
+            result = (*Py_TYPE(obj)->tp_as_mapping->mp_length)(obj);
+        } else if (Py_TYPE(obj)->tp_as_sequence != NULL && Py_TYPE(obj)->tp_as_sequence->sq_length != NULL) {
+            result = (*Py_TYPE(obj)->tp_as_sequence->sq_length)(obj);
         } else {
             return 1;
         }
@@ -45,8 +45,8 @@ NUITKA_MAY_BE_UNUSED static int CHECK_IF_TRUE(PyObject *object) {
     }
 }
 
-NUITKA_MAY_BE_UNUSED static int CHECK_IF_FALSE(PyObject *object) {
-    int result = CHECK_IF_TRUE(object);
+NUITKA_MAY_BE_UNUSED static int CHECK_IF_FALSE(PyObject *obj) {
+    int result = CHECK_IF_TRUE(obj);
 
     if (result == 0) {
         return 1;

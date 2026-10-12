@@ -1756,7 +1756,7 @@ static PyTypeObject Nuitka_AsyncgenAsend_Type = {
     0,                                                               // tp_new
 };
 
-static bool Nuitka_AsyncgenAsend_Check(PyObject *object) { return Py_TYPE(object) == &Nuitka_AsyncgenAsend_Type; }
+static bool Nuitka_AsyncgenAsend_Check(PyObject *obj) { return Py_TYPE(obj) == &Nuitka_AsyncgenAsend_Type; }
 
 static PyObject *Nuitka_AsyncgenAsend_New(struct Nuitka_AsyncgenObject *asyncgen, PyObject *send_value) {
     CHECK_OBJECT(asyncgen);

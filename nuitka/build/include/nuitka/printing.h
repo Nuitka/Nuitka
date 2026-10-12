@@ -12,12 +12,12 @@
 // behavior.
 
 extern bool PRINT_NEW_LINE(void);
-extern bool PRINT_ITEM(PyObject *object);
-extern bool PRINT_ITEM_LINE(PyObject *object);
+extern bool PRINT_ITEM(PyObject *obj);
+extern bool PRINT_ITEM_LINE(PyObject *obj);
 extern bool PRINT_STRING(char const *str);
 extern bool PRINT_STRING_W(wchar_t const *str);
 extern bool PRINT_FORMAT(char const *fmt, ...);
-extern bool PRINT_ITEM_TO(PyObject *file, PyObject *object);
+extern bool PRINT_ITEM_TO(PyObject *file, PyObject *obj);
 extern bool PRINT_NEW_LINE_TO(PyObject *file);
 
 extern PyObject *GET_STDOUT(void);
@@ -32,7 +32,7 @@ extern void FLUSH_STDERR(void);
 // manually or in debug modes.
 
 // Print the reference count of the object.
-extern void PRINT_REFCOUNT(PyObject *object);
+extern void PRINT_REFCOUNT(PyObject *obj);
 
 // Print the full traceback stack.
 // TODO: Could be ported, the "printf" stuff would need to be split. On Python3
@@ -63,13 +63,13 @@ extern void PRINT_CURRENT_EXCEPTION(void);
 extern void PRINT_PUBLISHED_EXCEPTION(void);
 
 // Print the representation of the object, or "<NULL>" if it's not set.
-extern bool PRINT_REPR(PyObject *object);
+extern bool PRINT_REPR(PyObject *obj);
 
 // Print the word <NULL>, as an alternative to pointers.
 extern bool PRINT_NULL(void);
 
 // Print the type of an object.
-extern bool PRINT_TYPE(PyObject *object);
+extern bool PRINT_TYPE(PyObject *obj);
 
 #endif
 

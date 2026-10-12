@@ -26,19 +26,19 @@ int count_released_Nuitka_Function_Type;
 #endif
 
 // tp_descr_get slot, bind a function to an object.
-static PyObject *Nuitka_Function_descr_get(PyObject *function, PyObject *object, PyObject *class_object) {
+static PyObject *Nuitka_Function_descr_get(PyObject *function, PyObject *obj, PyObject *class_object) {
     assert(Nuitka_Function_Check(function));
     CHECK_OBJECT((PyObject *)function);
     assert(_PyObject_GC_IS_TRACKED(function));
 
 #if PYTHON_VERSION >= 0x300
-    if (object == NULL || object == Py_None) {
+    if (obj == NULL || obj == Py_None) {
         Py_INCREF(function);
         return function;
     }
 #endif
 
-    return Nuitka_Method_New((struct Nuitka_FunctionObject *)function, object == Py_None ? NULL : object, class_object);
+    return Nuitka_Method_New((struct Nuitka_FunctionObject *)function, obj == Py_None ? NULL : obj, class_object);
 }
 
 // tp_repr slot, decide how compiled function shall be output to "repr" built-in
@@ -2588,21 +2588,21 @@ static bool _handleArgumentsPlainOnly(PyThreadState *tstate, struct Nuitka_Funct
 }
 
 static bool handleMethodArgumentsPlainOnly(PyThreadState *tstate, struct Nuitka_FunctionObject const *function,
-                                           PyObject **python_pars, PyObject *object, PyObject *const *args,
+                                           PyObject **python_pars, PyObject *obj, PyObject *const *args,
                                            Py_ssize_t args_size) {
     Py_ssize_t arg_count = function->m_args_positional_count;
 
     // There may be no self, otherwise we can directly assign it.
     if (arg_count >= 1) {
-        python_pars[0] = object;
-        Py_INCREF(object);
+        python_pars[0] = obj;
+        Py_INCREF(obj);
     } else {
         // Without self, there can only be star list to get the object as its
         // first element. Or we complain about illegal arguments. The star list
         // argument is then the one right after the keyword only arguments.
         if (function->m_args_star_list_index == function->m_args_keywords_count) {
             python_pars[function->m_args_keywords_count] = MAKE_TUPLE_EMPTY(tstate, args_size + 1);
-            PyTuple_SET_ITEM0(python_pars[function->m_args_keywords_count], 0, object);
+            PyTuple_SET_ITEM0(python_pars[function->m_args_keywords_count], 0, obj);
 
             for (Py_ssize_t i = 0; i < args_size; i++) {
                 PyTuple_SET_ITEM0(python_pars[function->m_args_keywords_count], i + 1, args[i]);
@@ -2892,11 +2892,11 @@ static bool parseArgumentsEmpty(PyThreadState *tstate, struct Nuitka_FunctionObj
 }
 
 static bool parseArgumentsMethodPos(PyThreadState *tstate, struct Nuitka_FunctionObject const *function,
-                                    PyObject **python_pars, PyObject *object, PyObject *const *args,
+                                    PyObject **python_pars, PyObject *obj, PyObject *const *args,
                                     Py_ssize_t args_size) {
     bool result;
 
-    result = handleMethodArgumentsPlainOnly(tstate, function, python_pars, object, args, args_size);
+    result = handleMethodArgumentsPlainOnly(tstate, function, python_pars, obj, args, args_size);
 
     if (result == false) {
         releaseParameters(function, python_pars);
@@ -3166,11 +3166,11 @@ PyObject *Nuitka_CallFunctionPosArgsKwSplit(PyThreadState *tstate, struct Nuitka
 }
 
 PyObject *Nuitka_CallMethodFunctionNoArgs(PyThreadState *tstate, struct Nuitka_FunctionObject const *function,
-                                          PyObject *object) {
+                                          PyObject *obj) {
     NUITKA_DYNAMIC_ARRAY_DECL(python_pars, PyObject *, function->m_args_overall_count);
     memset(python_pars, 0, function->m_args_overall_count * sizeof(PyObject *));
 
-    if (unlikely(!parseArgumentsMethodPos(tstate, function, python_pars, object, NULL, 0))) {
+    if (unlikely(!parseArgumentsMethodPos(tstate, function, python_pars, obj, NULL, 0))) {
         return NULL;
     }
 
@@ -3178,11 +3178,11 @@ PyObject *Nuitka_CallMethodFunctionNoArgs(PyThreadState *tstate, struct Nuitka_F
 }
 
 PyObject *Nuitka_CallMethodFunctionPosArgs(PyThreadState *tstate, struct Nuitka_FunctionObject const *function,
-                                           PyObject *object, PyObject *const *args, Py_ssize_t args_size) {
+                                           PyObject *obj, PyObject *const *args, Py_ssize_t args_size) {
     NUITKA_DYNAMIC_ARRAY_DECL(python_pars, PyObject *, function->m_args_overall_count);
     memset(python_pars, 0, function->m_args_overall_count * sizeof(PyObject *));
 
-    if (unlikely(!parseArgumentsMethodPos(tstate, function, python_pars, object, args, args_size))) {
+    if (unlikely(!parseArgumentsMethodPos(tstate, function, python_pars, obj, args, args_size))) {
         return NULL;
     }
 
@@ -3190,11 +3190,11 @@ PyObject *Nuitka_CallMethodFunctionPosArgs(PyThreadState *tstate, struct Nuitka_
 }
 
 PyObject *Nuitka_CallMethodFunctionPosArgsKwArgs(PyThreadState *tstate, struct Nuitka_FunctionObject const *function,
-                                                 PyObject *object, PyObject *const *args, Py_ssize_t args_size,
+                                                 PyObject *obj, PyObject *const *args, Py_ssize_t args_size,
                                                  PyObject *kw) {
     NUITKA_DYNAMIC_ARRAY_DECL(new_args, PyObject *, args_size + 1);
 
-    new_args[0] = object;
+    new_args[0] = obj;
     memcpy(new_args + 1, args, args_size * sizeof(PyObject *));
 
     // TODO: Specialize implementation for massive gains.

@@ -95,7 +95,7 @@ extern PyObject *Nuitka_Asyncgen_New(asyncgen_code code, PyObject *module, PyObj
                                      PyCodeObject *code_object, struct Nuitka_CellObject **closure,
                                      Py_ssize_t closure_given, Py_ssize_t heap_storage_size);
 
-static inline bool Nuitka_Asyncgen_Check(PyObject *object) { return Py_TYPE(object) == &Nuitka_Asyncgen_Type; }
+static inline bool Nuitka_Asyncgen_Check(PyObject *obj) { return Py_TYPE(obj) == &Nuitka_Asyncgen_Type; }
 
 static inline void SAVE_ASYNCGEN_EXCEPTION(PyThreadState *tstate, struct Nuitka_AsyncgenObject *asyncgen) {
     /* Before Python3.7: When yielding from an exception handler in Python3,

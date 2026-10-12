@@ -123,10 +123,10 @@ extern PyObject *Nuitka_Generator_NewEmpty(PyObject *module, PyObject *name,
 extern PyObject *Nuitka_Generator_qiter(PyThreadState *tstate, struct Nuitka_GeneratorObject *generator,
                                         bool *finished);
 
-static inline bool Nuitka_Generator_Check(PyObject *object) { return Py_TYPE(object) == &Nuitka_Generator_Type; }
+static inline bool Nuitka_Generator_Check(PyObject *obj) { return Py_TYPE(obj) == &Nuitka_Generator_Type; }
 
-static inline PyObject *Nuitka_Generator_GetName(PyObject *object) {
-    return ((struct Nuitka_GeneratorObject *)object)->m_name;
+static inline PyObject *Nuitka_Generator_GetName(PyObject *obj) {
+    return ((struct Nuitka_GeneratorObject *)obj)->m_name;
 }
 
 static inline void SAVE_GENERATOR_EXCEPTION(PyThreadState *tstate, struct Nuitka_GeneratorObject *generator) {

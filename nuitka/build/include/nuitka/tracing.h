@@ -33,13 +33,13 @@
 #if defined(_WIN32)
 
 #include <windows.h>
-static void inline PRINT_TIME_STAMP(void) {
+static inline void PRINT_TIME_STAMP(void) {
     SYSTEMTIME t;
     GetSystemTime(&t); // or GetLocalTime(&t)
     printf("%02d:%02d:%02d.%03d:", t.wHour, t.wMinute, t.wSecond, t.wMilliseconds);
 }
 #else
-static void inline PRINT_TIME_STAMP(void) {
+static inline void PRINT_TIME_STAMP(void) {
     struct timeval tv;
     gettimeofday(&tv, NULL);
 

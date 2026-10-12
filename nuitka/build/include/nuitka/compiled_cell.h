@@ -15,10 +15,8 @@
 
 extern PyTypeObject Nuitka_Cell_Type;
 
-static inline bool Nuitka_Cell_Check(PyObject *object) { return Py_TYPE(object) == &Nuitka_Cell_Type; }
-static inline bool Nuitka_CellOrPyCell_Check(PyObject *object) {
-    return Nuitka_Cell_Check(object) || PyCell_Check(object);
-}
+static inline bool Nuitka_Cell_Check(PyObject *obj) { return Py_TYPE(obj) == &Nuitka_Cell_Type; }
+static inline bool Nuitka_CellOrPyCell_Check(PyObject *obj) { return Nuitka_Cell_Check(obj) || PyCell_Check(obj); }
 
 struct Nuitka_CellObject {
     /* Python object folklore: */

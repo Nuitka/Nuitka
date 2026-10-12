@@ -85,7 +85,7 @@ static void SET_CURRENT_EXCEPTION_STOP_ASYNC_ITERATION(PyThreadState *tstate);
 static bool _Nuitka_Asyncgen_close(PyThreadState *tstate, struct Nuitka_AsyncgenObject *asyncgen);
 static PyObject *_Nuitka_AsyncgenAsend_throw2(PyThreadState *tstate, struct Nuitka_AsyncgenAsendObject *asyncgen_asend,
                                               struct Nuitka_ExceptionPreservationItem *exception_state);
-static bool Nuitka_AsyncgenAsend_Check(PyObject *object);
+static bool Nuitka_AsyncgenAsend_Check(PyObject *obj);
 static void _initCompiledAsyncgenTypes(void);
 #endif
 

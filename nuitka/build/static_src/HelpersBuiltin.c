@@ -542,10 +542,10 @@ PyObject *BUILTIN_BYTEARRAY1(PyObject *value) {
 
 NUITKA_DEFINE_BUILTIN(bytearray)
 
-PyObject *BUILTIN_BYTEARRAY3(PyThreadState *tstate, PyObject *string, PyObject *encoding, PyObject *errors) {
+PyObject *BUILTIN_BYTEARRAY3(PyThreadState *tstate, PyObject *string_arg, PyObject *encoding, PyObject *errors) {
     NUITKA_ASSIGN_BUILTIN(bytearray);
 
-    PyObject *args[] = {string, encoding, errors};
+    PyObject *args[] = {string_arg, encoding, errors};
     char const *arg_names[] = {"source", "encoding", "errors"};
 
     return CALL_BUILTIN_KW_ARGS(tstate, NUITKA_ACCESS_BUILTIN(bytearray), args, arg_names, 3, 0);
@@ -760,9 +760,9 @@ PyObject *BUILTIN_TYPE3(PyThreadState *tstate, PyObject *module_name, PyObject *
 
 NUITKA_DEFINE_BUILTIN(super);
 
-PyObject *BUILTIN_SUPER2(PyThreadState *tstate, PyDictObject *module_dict, PyObject *type, PyObject *object) {
+PyObject *BUILTIN_SUPER2(PyThreadState *tstate, PyDictObject *module_dict, PyObject *type, PyObject *obj) {
     CHECK_OBJECT(type);
-    CHECK_OBJECT_X(object);
+    CHECK_OBJECT_X(obj);
 
     PyObject *super_value = GET_STRING_DICT_VALUE(module_dict, (Nuitka_StringObject *)const_str_plain_super);
 
@@ -772,8 +772,8 @@ PyObject *BUILTIN_SUPER2(PyThreadState *tstate, PyDictObject *module_dict, PyObj
         super_value = NUITKA_ACCESS_BUILTIN(super);
     }
 
-    if (object != NULL) {
-        PyObject *args[] = {type, object};
+    if (obj != NULL) {
+        PyObject *args[] = {type, obj};
 
         return CALL_FUNCTION_WITH_ARGS2(tstate, super_value, args);
     } else {
@@ -781,12 +781,12 @@ PyObject *BUILTIN_SUPER2(PyThreadState *tstate, PyDictObject *module_dict, PyObj
     }
 }
 
-PyObject *BUILTIN_SUPER0(PyThreadState *tstate, PyDictObject *module_dict, PyObject *type, PyObject *object) {
-    if (object == Py_None) {
-        object = NULL;
+PyObject *BUILTIN_SUPER0(PyThreadState *tstate, PyDictObject *module_dict, PyObject *type, PyObject *obj) {
+    if (obj == Py_None) {
+        obj = NULL;
     }
 
-    return BUILTIN_SUPER2(tstate, module_dict, type, object);
+    return BUILTIN_SUPER2(tstate, module_dict, type, obj);
 }
 
 /** The "callable" built-in.
@@ -806,8 +806,8 @@ PyObject *BUILTIN_CALLABLE(PyObject *value) {
  *
  **/
 
-PyObject *BUILTIN_GETATTR(PyThreadState *tstate, PyObject *object, PyObject *attribute, PyObject *default_value) {
-    CHECK_OBJECT(object);
+PyObject *BUILTIN_GETATTR(PyThreadState *tstate, PyObject *obj, PyObject *attribute, PyObject *default_value) {
+    CHECK_OBJECT(obj);
     CHECK_OBJECT(attribute);
     CHECK_OBJECT_X(default_value);
 
@@ -833,7 +833,7 @@ PyObject *BUILTIN_GETATTR(PyThreadState *tstate, PyObject *object, PyObject *att
 
     // TODO: Once we can easily generate a variant that avoids the creation of
     // the exception as best as it can, we can switch to our own code helper.
-    PyObject *result = PyObject_GetAttr(object, attribute);
+    PyObject *result = PyObject_GetAttr(obj, attribute);
 
     if (result == NULL) {
         if (default_value != NULL) {
@@ -858,8 +858,8 @@ PyObject *BUILTIN_GETATTR(PyThreadState *tstate, PyObject *object, PyObject *att
  *
  **/
 
-PyObject *BUILTIN_SETATTR(PyObject *object, PyObject *attribute, PyObject *value) {
-    int res = PyObject_SetAttr(object, attribute, value);
+PyObject *BUILTIN_SETATTR(PyObject *obj, PyObject *attribute, PyObject *value) {
+    int res = PyObject_SetAttr(obj, attribute, value);
 
     if (unlikely(res < 0)) {
         return NULL;

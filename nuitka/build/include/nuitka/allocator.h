@@ -871,22 +871,20 @@ NUITKA_MAY_BE_UNUSED static void *Nuitka_GC_New(PyTypeObject *type) {
     return op;
 }
 
-static bool inline Nuitka_GC_IS_TRACKED_X(PyObject *object) {
-    return object == NULL || _PyObject_GC_IS_TRACKED(object);
-}
+static inline bool Nuitka_GC_IS_TRACKED_X(PyObject *obj) { return obj == NULL || _PyObject_GC_IS_TRACKED(obj); }
 
 // To allow us marking some of our own values as immortal.
 #if PYTHON_VERSION >= 0x3c0
-static void inline Py_SET_REFCNT_IMMORTAL(PyObject *object) {
-    assert(object != NULL);
+static inline void Py_SET_REFCNT_IMMORTAL(PyObject *obj) {
+    assert(obj != NULL);
 
     // Normally done only with 3.13, but it makes sense to do this.
 #if defined(__GNUC__) && __GNUC__ >= 11
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Warray-bounds"
 #endif
-    if (_PyObject_IS_GC(object) && _PyObject_GC_IS_TRACKED(object)) {
-        Nuitka_GC_UnTrack(object);
+    if (_PyObject_IS_GC(obj) && _PyObject_GC_IS_TRACKED(obj)) {
+        Nuitka_GC_UnTrack(obj);
     }
 #if defined(__GNUC__) && __GNUC__ >= 11
 #pragma GCC diagnostic pop
@@ -894,14 +892,14 @@ static void inline Py_SET_REFCNT_IMMORTAL(PyObject *object) {
 
     // Check if already immortal to avoid degrading from static immortal to
     // plain immortal, which would e.g. change the "sys.getrefcount" value.
-    if (_Py_IsImmortal(object)) {
+    if (_Py_IsImmortal(obj)) {
         return;
     }
 
 #ifdef Py_GIL_DISABLED
-    object->ob_tid = _Py_UNOWNED_TID;
-    object->ob_ref_local = _Py_IMMORTAL_INITIAL_REFCNT;
-    object->ob_ref_shared = 0;
+    obj->ob_tid = _Py_UNOWNED_TID;
+    obj->ob_ref_local = _Py_IMMORTAL_INITIAL_REFCNT;
+    obj->ob_ref_shared = 0;
 #if PYTHON_VERSION >= 0x3e0
     _Py_atomic_or_uint8(&op->ob_gc_bits, _PyGC_BITS_DEFERRED);
 #endif
@@ -909,10 +907,10 @@ static void inline Py_SET_REFCNT_IMMORTAL(PyObject *object) {
 #else
 
 #if (PYTHON_VERSION >= 0x3e0) && (SIZEOF_VOID_P > 4)
-    object->ob_flags = _Py_IMMORTAL_FLAGS;
-    object->ob_refcnt = _Py_IMMORTAL_INITIAL_REFCNT;
+    obj->ob_flags = _Py_IMMORTAL_FLAGS;
+    obj->ob_refcnt = _Py_IMMORTAL_INITIAL_REFCNT;
 #else
-    object->ob_refcnt = _Py_IMMORTAL_INITIAL_REFCNT;
+    obj->ob_refcnt = _Py_IMMORTAL_INITIAL_REFCNT;
 #endif
 
 #endif

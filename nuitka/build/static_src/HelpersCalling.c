@@ -246,39 +246,39 @@ PyObject *CALL_METHOD_WITH_POS_ARGS(PyThreadState *tstate, PyObject *source, PyO
     }
 }
 
-char const *GET_CALLABLE_NAME(PyObject *object) {
-    if (Nuitka_Function_Check(object)) {
-        return Nuitka_String_AsString(Nuitka_Function_GetName(object));
-    } else if (Nuitka_Generator_Check(object)) {
-        return Nuitka_String_AsString(Nuitka_Generator_GetName(object));
-    } else if (PyMethod_Check(object)) {
-        return PyEval_GetFuncName(PyMethod_GET_FUNCTION(object));
-    } else if (PyFunction_Check(object)) {
-        return Nuitka_String_AsString(((PyFunctionObject *)object)->func_name);
+char const *GET_CALLABLE_NAME(PyObject *obj) {
+    if (Nuitka_Function_Check(obj)) {
+        return Nuitka_String_AsString(Nuitka_Function_GetName(obj));
+    } else if (Nuitka_Generator_Check(obj)) {
+        return Nuitka_String_AsString(Nuitka_Generator_GetName(obj));
+    } else if (PyMethod_Check(obj)) {
+        return PyEval_GetFuncName(PyMethod_GET_FUNCTION(obj));
+    } else if (PyFunction_Check(obj)) {
+        return Nuitka_String_AsString(((PyFunctionObject *)obj)->func_name);
     }
 #if PYTHON_VERSION < 0x300
-    else if (PyInstance_Check(object)) {
-        return Nuitka_String_AsString(((PyInstanceObject *)object)->in_class->cl_name);
-    } else if (PyClass_Check(object)) {
-        return Nuitka_String_AsString(((PyClassObject *)object)->cl_name);
+    else if (PyInstance_Check(obj)) {
+        return Nuitka_String_AsString(((PyInstanceObject *)obj)->in_class->cl_name);
+    } else if (PyClass_Check(obj)) {
+        return Nuitka_String_AsString(((PyClassObject *)obj)->cl_name);
     }
 #endif
-    else if (PyCFunction_Check(object)) {
-        return ((PyCFunctionObject *)object)->m_ml->ml_name;
+    else if (PyCFunction_Check(obj)) {
+        return ((PyCFunctionObject *)obj)->m_ml->ml_name;
     } else {
-        return Py_TYPE(object)->tp_name;
+        return Py_TYPE(obj)->tp_name;
     }
 }
 
-char const *GET_CALLABLE_DESC(PyObject *object) {
-    if (Nuitka_Function_Check(object) || Nuitka_Generator_Check(object) || PyMethod_Check(object) ||
-        PyFunction_Check(object) || PyCFunction_Check(object)) {
+char const *GET_CALLABLE_DESC(PyObject *obj) {
+    if (Nuitka_Function_Check(obj) || Nuitka_Generator_Check(obj) || PyMethod_Check(obj) || PyFunction_Check(obj) ||
+        PyCFunction_Check(obj)) {
         return "()";
     }
 #if PYTHON_VERSION < 0x300
-    else if (PyClass_Check(object)) {
+    else if (PyClass_Check(obj)) {
         return " constructor";
-    } else if (PyInstance_Check(object)) {
+    } else if (PyInstance_Check(obj)) {
         return " instance";
     }
 #endif

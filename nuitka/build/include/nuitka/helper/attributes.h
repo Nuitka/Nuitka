@@ -72,7 +72,7 @@ static inline bool hasTypeGenericSetAttr(PyTypeObject *type) {
 }
 
 #if PYTHON_VERSION >= 0x3a0
-static inline bool Nuitka_Descr_IsData(PyObject *object) { return Py_TYPE(object)->tp_descr_set != NULL; }
+static inline bool Nuitka_Descr_IsData(PyObject *obj) { return Py_TYPE(obj)->tp_descr_set != NULL; }
 #else
 #define Nuitka_Descr_IsData(object) PyDescr_IsData(object)
 #endif

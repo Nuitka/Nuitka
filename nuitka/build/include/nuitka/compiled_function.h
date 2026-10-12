@@ -123,11 +123,9 @@ extern PyObject *Nuitka_Function_ExtractCodeObjectDescription(PyThreadState *tst
                                                               struct Nuitka_FunctionObject *function);
 #endif
 
-static inline bool Nuitka_Function_Check(PyObject *object) { return Py_TYPE(object) == &Nuitka_Function_Type; }
+static inline bool Nuitka_Function_Check(PyObject *obj) { return Py_TYPE(obj) == &Nuitka_Function_Type; }
 
-static inline PyObject *Nuitka_Function_GetName(PyObject *object) {
-    return ((struct Nuitka_FunctionObject *)object)->m_name;
-}
+static inline PyObject *Nuitka_Function_GetName(PyObject *obj) { return ((struct Nuitka_FunctionObject *)obj)->m_name; }
 
 PyObject *Nuitka_CallFunctionNoArgs(PyThreadState *tstate, struct Nuitka_FunctionObject const *function);
 
@@ -144,11 +142,11 @@ PyObject *Nuitka_CallFunctionPosArgsKwSplit(PyThreadState *tstate, struct Nuitka
                                             PyObject *kw_names);
 
 PyObject *Nuitka_CallMethodFunctionNoArgs(PyThreadState *tstate, struct Nuitka_FunctionObject const *function,
-                                          PyObject *object);
+                                          PyObject *obj);
 PyObject *Nuitka_CallMethodFunctionPosArgs(PyThreadState *tstate, struct Nuitka_FunctionObject const *function,
-                                           PyObject *object, PyObject *const *args, Py_ssize_t args_size);
+                                           PyObject *obj, PyObject *const *args, Py_ssize_t args_size);
 PyObject *Nuitka_CallMethodFunctionPosArgsKwArgs(PyThreadState *tstate, struct Nuitka_FunctionObject const *function,
-                                                 PyObject *object, PyObject *const *args, Py_ssize_t args_size,
+                                                 PyObject *obj, PyObject *const *args, Py_ssize_t args_size,
                                                  PyObject *kw);
 
 #if _DEBUG_REFCOUNTS

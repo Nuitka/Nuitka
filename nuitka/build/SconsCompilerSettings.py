@@ -1616,6 +1616,7 @@ def setupCCompiler(env, pgo_mode, exe_target, onefile_compile):
                 CCFLAGS=[
                     "-Wall",
                     "-Werror",  # spell-checker: ignore Werror
+                    "-Wshadow",
                 ]
             )
 

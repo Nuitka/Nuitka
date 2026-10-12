@@ -23,16 +23,16 @@ static char *kw_list_object[] = {(char *)"object", NULL};
 static PyObject *old_getgeneratorstate = NULL;
 
 static PyObject *_inspect_getgeneratorstate_replacement(PyObject *self, PyObject *args, PyObject *kwds) {
-    PyObject *object;
+    PyObject *obj;
 
-    if (!PyArg_ParseTupleAndKeywords(args, kwds, "O:getgeneratorstate", kw_list_object, &object, NULL)) {
+    if (!PyArg_ParseTupleAndKeywords(args, kwds, "O:getgeneratorstate", kw_list_object, &obj, NULL)) {
         return NULL;
     }
 
-    CHECK_OBJECT(object);
+    CHECK_OBJECT(obj);
 
-    if (Nuitka_Generator_Check(object)) {
-        struct Nuitka_GeneratorObject *generator = (struct Nuitka_GeneratorObject *)object;
+    if (Nuitka_Generator_Check(obj)) {
+        struct Nuitka_GeneratorObject *generator = (struct Nuitka_GeneratorObject *)obj;
 
         if (generator->m_running) {
             return PyObject_GetAttrString(module_inspect, "GEN_RUNNING");
@@ -52,14 +52,14 @@ static PyObject *_inspect_getgeneratorstate_replacement(PyObject *self, PyObject
 static PyObject *old_getcoroutinestate = NULL;
 
 static PyObject *_inspect_getcoroutinestate_replacement(PyObject *self, PyObject *args, PyObject *kwds) {
-    PyObject *object;
+    PyObject *obj;
 
-    if (!PyArg_ParseTupleAndKeywords(args, kwds, "O:getcoroutinestate", kw_list_object, &object, NULL)) {
+    if (!PyArg_ParseTupleAndKeywords(args, kwds, "O:getcoroutinestate", kw_list_object, &obj, NULL)) {
         return NULL;
     }
 
-    if (Nuitka_Coroutine_Check(object)) {
-        struct Nuitka_CoroutineObject *coroutine = (struct Nuitka_CoroutineObject *)object;
+    if (Nuitka_Coroutine_Check(obj)) {
+        struct Nuitka_CoroutineObject *coroutine = (struct Nuitka_CoroutineObject *)obj;
 
         if (coroutine->m_running) {
             return PyObject_GetAttrString(module_inspect, "CORO_RUNNING");

@@ -1526,9 +1526,9 @@ static inline PyCodeObject *_Nuitka_PyGen_GetCode(PyGenObject *gen) {
 #endif
 }
 
-static int gen_is_coroutine(PyObject *object) {
-    if (PyGen_CheckExact(object)) {
-        PyCodeObject *code = _Nuitka_PyGen_GetCode((PyGenObject *)object);
+static int gen_is_coroutine(PyObject *obj) {
+    if (PyGen_CheckExact(obj)) {
+        PyCodeObject *code = _Nuitka_PyGen_GetCode((PyGenObject *)obj);
 
         if (code->co_flags & CO_ITERABLE_COROUTINE) {
             return 1;
@@ -1547,7 +1547,7 @@ static PyObject *Nuitka_GetAwaitableIter(PyThreadState *tstate, PyObject *value)
     PRINT_NEW_LINE();
 #endif
 
-    unaryfunc getter = NULL;
+    unaryfunc getter_func = NULL;
 
     if (PyCoro_CheckExact(value) || gen_is_coroutine(value)) {
         Py_INCREF(value);
@@ -1555,11 +1555,11 @@ static PyObject *Nuitka_GetAwaitableIter(PyThreadState *tstate, PyObject *value)
     }
 
     if (Py_TYPE(value)->tp_as_async != NULL) {
-        getter = Py_TYPE(value)->tp_as_async->am_await;
+        getter_func = Py_TYPE(value)->tp_as_async->am_await;
     }
 
-    if (getter != NULL) {
-        PyObject *result = (*getter)(value);
+    if (getter_func != NULL) {
+        PyObject *result = (*getter_func)(value);
 
         if (result != NULL) {
             if (unlikely(PyCoro_CheckExact(result) || gen_is_coroutine(result) || Nuitka_Coroutine_Check(result))) {
@@ -1804,20 +1804,20 @@ PyObject *ASYNC_MAKE_ITERATOR(PyThreadState *tstate, PyObject *value) {
     PRINT_NEW_LINE();
 #endif
 
-    unaryfunc getter = NULL;
+    unaryfunc getter_func = NULL;
 
     if (Py_TYPE(value)->tp_as_async) {
-        getter = Py_TYPE(value)->tp_as_async->am_aiter;
+        getter_func = Py_TYPE(value)->tp_as_async->am_aiter;
     }
 
-    if (unlikely(getter == NULL)) {
+    if (unlikely(getter_func == NULL)) {
         PyErr_Format(PyExc_TypeError, "'async for' requires an object with __aiter__ method, got %s",
                      Py_TYPE(value)->tp_name);
 
         return NULL;
     }
 
-    PyObject *iter = (*getter)(value);
+    PyObject *iter = (*getter_func)(value);
 
     if (unlikely(iter == NULL)) {
         return NULL;
@@ -1876,19 +1876,19 @@ PyObject *ASYNC_ITERATOR_NEXT(PyThreadState *tstate, PyObject *value) {
     PRINT_NEW_LINE();
 #endif
 
-    unaryfunc getter = NULL;
+    unaryfunc getter_func = NULL;
 
     if (Py_TYPE(value)->tp_as_async) {
-        getter = Py_TYPE(value)->tp_as_async->am_anext;
+        getter_func = Py_TYPE(value)->tp_as_async->am_anext;
     }
 
-    if (unlikely(getter == NULL)) {
+    if (unlikely(getter_func == NULL)) {
         SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("'async for' requires an iterator with __anext__ method, got %s", value);
 
         return NULL;
     }
 
-    PyObject *next_value = (*getter)(value);
+    PyObject *next_value = (*getter_func)(value);
 
     if (unlikely(next_value == NULL)) {
         return NULL;

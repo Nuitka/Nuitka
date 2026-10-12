@@ -180,10 +180,10 @@ static void patchCodeObjectPaths(PyCodeObject *code_object, PyObject *module_pat
     Py_ssize_t consts_count = PyTuple_GET_SIZE(code_object->co_consts);
 
     for (Py_ssize_t i = 0; i < consts_count; i++) {
-        PyObject *constant = PyTuple_GET_ITEM(code_object->co_consts, i);
+        PyObject *constant_value = PyTuple_GET_ITEM(code_object->co_consts, i);
 
-        if (PyCode_Check(constant)) {
-            patchCodeObjectPaths((PyCodeObject *)constant, module_path);
+        if (PyCode_Check(constant_value)) {
+            patchCodeObjectPaths((PyCodeObject *)constant_value, module_path);
         }
     }
 }

@@ -370,15 +370,15 @@ static void Nuitka_finalize_garbage(PyThreadState *tstate, PyGC_Head *collectabl
 
     while (Nuitka_gc_list_is_empty(collectable) == false) {
         PyGC_Head *gc = GC_NEXT(collectable);
-        PyObject *object = FROM_GC(gc);
+        PyObject *obj = FROM_GC(gc);
         Nuitka_gc_list_move(gc, &seen);
 
-        if (!_PyGCHead_FINALIZED(gc) && (finalize = Py_TYPE(object)->tp_finalize) != NULL) {
+        if (!_PyGCHead_FINALIZED(gc) && (finalize = Py_TYPE(obj)->tp_finalize) != NULL) {
             _PyGCHead_SET_FINALIZED(gc);
-            Py_INCREF(object);
-            finalize(object);
+            Py_INCREF(obj);
+            finalize(obj);
             assert(!HAS_ERROR_OCCURRED(tstate));
-            Py_DECREF(object);
+            Py_DECREF(obj);
         }
     }
     Nuitka_gc_list_merge(&seen, collectable);
@@ -386,7 +386,7 @@ static void Nuitka_finalize_garbage(PyThreadState *tstate, PyGC_Head *collectabl
 
 static int Nuitka_handle_weakrefs(PyThreadState *tstate, PyGC_Head *unreachable, PyGC_Head *old) {
     PyGC_Head *gc;
-    PyObject *object;
+    PyObject *obj;
     PyWeakReference *wr;
     PyGC_Head wrcb_to_call;
     PyGC_Head *next;
@@ -397,17 +397,17 @@ static int Nuitka_handle_weakrefs(PyThreadState *tstate, PyGC_Head *unreachable,
     for (gc = GC_NEXT(unreachable); gc != unreachable; gc = next) {
         PyWeakReference **wrlist;
 
-        object = FROM_GC(gc);
+        obj = FROM_GC(gc);
         next = GC_NEXT(gc);
 
-        if (PyWeakref_Check(object)) {
-            _PyWeakref_ClearRef((PyWeakReference *)object);
+        if (PyWeakref_Check(obj)) {
+            _PyWeakref_ClearRef((PyWeakReference *)obj);
         }
 
-        if (!_PyType_SUPPORTS_WEAKREFS(Py_TYPE(object)))
+        if (!_PyType_SUPPORTS_WEAKREFS(Py_TYPE(obj)))
             continue;
 
-        wrlist = (PyWeakReference **)_PyObject_GET_WEAKREFS_LISTPTR(object);
+        wrlist = (PyWeakReference **)_PyObject_GET_WEAKREFS_LISTPTR(obj);
 
         for (wr = *wrlist; wr != NULL; wr = *wrlist) {
             PyGC_Head *wrasgc;
@@ -434,8 +434,8 @@ static int Nuitka_handle_weakrefs(PyThreadState *tstate, PyGC_Head *unreachable,
         PyObject *callback;
 
         gc = (PyGC_Head *)wrcb_to_call._gc_next;
-        object = FROM_GC(gc);
-        wr = (PyWeakReference *)object;
+        obj = FROM_GC(gc);
+        wr = (PyWeakReference *)obj;
         callback = wr->wr_callback;
 
         temp = CALL_FUNCTION_WITH_SINGLE_ARG(tstate, callback, (PyObject *)wr);
@@ -444,7 +444,7 @@ static int Nuitka_handle_weakrefs(PyThreadState *tstate, PyGC_Head *unreachable,
         else
             Py_DECREF(temp);
 
-        Py_DECREF(object);
+        Py_DECREF(obj);
         if (wrcb_to_call._gc_next == (uintptr_t)gc) {
             Nuitka_gc_list_move(gc, old);
         } else {
@@ -486,19 +486,19 @@ static void Nuitka_delete_garbage(PyThreadState *tstate, GCState *gcstate, PyGC_
 
     while (Nuitka_gc_list_is_empty(collectable) == false) {
         PyGC_Head *gc = GC_NEXT(collectable);
-        PyObject *object = FROM_GC(gc);
+        PyObject *obj = FROM_GC(gc);
 
-        _PyObject_ASSERT_WITH_MSG(object, Py_REFCNT(object) > 0, "refcount is too small");
+        _PyObject_ASSERT_WITH_MSG(obj, Py_REFCNT(obj) > 0, "refcount is too small");
 
         {
             inquiry clear;
-            if ((clear = Py_TYPE(object)->tp_clear) != NULL) {
-                Py_INCREF(object);
-                (void)clear(object);
+            if ((clear = Py_TYPE(obj)->tp_clear) != NULL) {
+                Py_INCREF(obj);
+                (void)clear(obj);
                 if (HAS_ERROR_OCCURRED(tstate)) {
-                    _PyErr_WriteUnraisableMsg("in tp_clear of", (PyObject *)Py_TYPE(object));
+                    _PyErr_WriteUnraisableMsg("in tp_clear of", (PyObject *)Py_TYPE(obj));
                 }
-                Py_DECREF(object);
+                Py_DECREF(obj);
             }
         }
         if (GC_NEXT(collectable) == gc) {

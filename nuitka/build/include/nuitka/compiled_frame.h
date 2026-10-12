@@ -121,25 +121,25 @@ extern PyCodeObject *USE_CODE_OBJECT(PyThreadState *tstate, PyObject *code_objec
 
 extern PyTypeObject Nuitka_Frame_Type;
 
-static inline bool Nuitka_Frame_CheckExact(PyObject *object) {
-    CHECK_OBJECT(object);
-    return Py_TYPE(object) == &Nuitka_Frame_Type;
+static inline bool Nuitka_Frame_CheckExact(PyObject *obj) {
+    CHECK_OBJECT(obj);
+    return Py_TYPE(obj) == &Nuitka_Frame_Type;
 }
 
-static inline bool Nuitka_Frame_Check(PyObject *object) {
-    assert(object);
+static inline bool Nuitka_Frame_Check(PyObject *obj) {
+    assert(obj);
 
-    if (!_PyObject_GC_IS_TRACKED(object)) {
+    if (!_PyObject_GC_IS_TRACKED(obj)) {
         return false;
     }
 
-    CHECK_OBJECT(object);
+    CHECK_OBJECT(obj);
 
-    if (Nuitka_Frame_CheckExact(object)) {
+    if (Nuitka_Frame_CheckExact(obj)) {
         return true;
     }
 
-    return strcmp(Py_TYPE(object)->tp_name, "compiled_frame") == 0;
+    return strcmp(Py_TYPE(obj)->tp_name, "compiled_frame") == 0;
 }
 
 struct Nuitka_FrameObject {
