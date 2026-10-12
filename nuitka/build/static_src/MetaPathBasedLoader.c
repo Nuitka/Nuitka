@@ -1946,12 +1946,21 @@ PyObject *IMPORT_EMBEDDED_MODULE_STATE(PyThreadState *tstate, struct Nuitka_Meta
             _EXECUTE_EMBEDDED_MODULE_ENTRY(tstate, entry, created_module, module_name, module_name_buffer);
 
         if (unlikely(result == NULL)) {
-            *module_state = NULL;
-            *owner_state = NULL;
+            if (unlikely((entry->flags & NUITKA_MAIN_MODULE_FLAG) != 0)) {
+                // The main module is executed like a script. Its code objects
+                // and functions may still be used after failed execution, e.g.
+                // by "__del__" methods making frames during interpreter
+                // finalization, so it must stay registered and referenced.
+                *owner_state = NULL;
+            } else {
+                *module_state = NULL;
+                *owner_state = NULL;
 
-            Nuitka_DelModule(tstate, module_name);
+                Nuitka_DelModule(tstate, module_name);
 
-            Py_DECREF(created_module);
+                Py_DECREF(created_module);
+            }
+
             releaseModuleLock(tstate, entry, module_lock);
             Py_DECREF(module_name);
 
