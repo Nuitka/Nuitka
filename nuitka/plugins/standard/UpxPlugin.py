@@ -38,7 +38,7 @@ class NuitkaPluginUpx(NuitkaPluginBase):
             self.sysexit("""\
 No UPX binary found, please use '--upx-binary' option to specify it.""")
 
-        if isOnefileMode and not shallNotCompressOnefile() and not isLinux():
+        if isOnefileMode() and not shallNotCompressOnefile() and not isLinux():
             self.warning("""\
 For best results, disable onefile compression with '--onefile-no-compression' \
 as double compression going to give larger and slower results.""")
