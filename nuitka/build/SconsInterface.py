@@ -660,6 +660,20 @@ def runScons(
                     makeContainingPath(orig_result_exe)
                     renameFile(scons_created_exe, orig_result_exe)
 
+                    # When debug symbols were requested, the PDB file of the
+                    # target is also moved along, as it is otherwise left in
+                    # the build directory and lost.
+                    if isWin32Windows() and isUnstripped():
+                        scons_created_pdb = changeFilenameExtension(
+                            scons_created_exe, ".pdb"
+                        )
+
+                        if os.path.exists(scons_created_pdb):
+                            renameFile(
+                                scons_created_pdb,
+                                changeFilenameExtension(orig_result_exe, ".pdb"),
+                            )
+
             checkCachingSuccess(source_dir)
 
     return result == 0
@@ -686,6 +700,7 @@ def cleanSconsDirectory(source_dir):
         ".o",
         ".obj",
         ".os",
+        ".pdb",
         ".rc",
         ".res",
         ".S",
