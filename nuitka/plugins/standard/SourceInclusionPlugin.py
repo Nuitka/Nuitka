@@ -17,11 +17,15 @@ from nuitka.options.Options import (
 )
 from nuitka.plugins.PluginBase import NuitkaPluginBase
 from nuitka.PythonVersions import getSystemPrefixPath
-from nuitka.utils.Execution import executeProcess
+from nuitka.utils.Execution import executeProcess, getEnvironmentPathAdded
 from nuitka.utils.FileOperations import (
+    getFileContents,
     getNormalizedPath,
     getNormalizedPathJoin,
+    putTextFileContents,
     relpath,
+    resolveShellPatternToFilenames,
+    withTemporaryDirectory,
 )
 from nuitka.utils.Json import loadJsonFromContents
 from nuitka.utils.ModuleNames import ModuleName
@@ -109,6 +113,64 @@ def _formatDictLiteralCode(value):
 
 
 _probe_result_prefix = "NUITKA_SOURCE_INCLUSION_JSON:"
+
+_probe_records_environment = "NUITKA_SOURCE_INCLUSION_RECORDS"
+
+_probe_records_directory_prefix = "nuitka-source-inclusion-"
+
+
+def _getSiteCustomizeCode():
+    """Return the code of the 'sitecustomize' module used by probe executions.
+
+    Notes:
+        The probe execution itself and all child processes that are spawned
+        while it runs import this module automatically, since its directory
+        is prepended to 'PYTHONPATH'. It records source files the way the
+        runtime support module serves them, but writes them to per-process
+        files immediately, so records survive child processes being killed.
+    """
+    return r"""
+import json
+import linecache
+import os
+
+_record_directory = os.environ.get("NUITKA_SOURCE_INCLUSION_RECORDS")
+
+if _record_directory:
+    _recorded_modules = {}
+    _original_getlines = linecache.getlines
+
+    def _recording_getlines(filename, module_globals=None):
+        lines = _original_getlines(filename, module_globals)
+
+        if lines and module_globals is not None:
+            module_name = module_globals.get("__name__")
+            module_filename = module_globals.get("__file__")
+
+            if (
+                module_name is not None
+                and module_filename is not None
+                and module_name not in _recorded_modules
+                and os.path.normcase(os.path.abspath(module_filename))
+                == os.path.normcase(os.path.abspath(filename))
+            ):
+                _recorded_modules[module_name] = True
+
+                record_filename = os.path.join(
+                    _record_directory, "records-%d.jsonl" % os.getpid()
+                )
+
+                record_file = open(record_filename, "a")
+                try:
+                    record_file.write(json.dumps([module_name, lines]))
+                    record_file.write("\n")
+                finally:
+                    record_file.close()
+
+        return lines
+
+    linecache.getlines = _recording_getlines
+"""
 
 
 class NuitkaPluginSourceInclusion(NuitkaPluginBase):
@@ -289,25 +351,45 @@ time.""")
     def _runProbeExecution(self, main_filename, probe_args):
         probe_code = self._getProbeCode()
 
-        command = [sys.executable, "-c", probe_code, main_filename]
-        command += list(probe_args)
+        with withTemporaryDirectory(
+            logger=self,
+            prefix=_probe_records_directory_prefix,
+            ignore_errors=True,
+        ) as record_dir:
+            putTextFileContents(
+                filename=os.path.join(record_dir, "sitecustomize.py"),
+                contents=_getSiteCustomizeCode(),
+            )
 
-        env = dict(os.environ)
-        env["PYTHONIOENCODING"] = "utf8"
+            command = [sys.executable, "-c", probe_code, main_filename]
+            command += list(probe_args)
 
-        process_result = executeProcess(
-            command=command,
-            env=env,
-            stdin=False,
-            timeout=self.source_inclusion_timeout,
-        )
+            env = dict(os.environ)
+            env["PYTHONIOENCODING"] = "utf8"
+            env[_probe_records_environment] = record_dir
+            env["PYTHONPATH"] = getEnvironmentPathAdded(
+                "PYTHONPATH", record_dir, prefix=True
+            )
 
-        stdout = _decodeCommandOutput(process_result.stdout).strip()
-        stderr = _decodeCommandOutput(process_result.stderr).strip()
+            process_result = executeProcess(
+                command=command,
+                env=env,
+                stdin=False,
+                timeout=self.source_inclusion_timeout,
+            )
 
-        probe_result, probe_error = self._decodeProbeResult(
-            main_filename=main_filename, stdout=stdout
-        )
+            stdout = _decodeCommandOutput(process_result.stdout).strip()
+            stderr = _decodeCommandOutput(process_result.stderr).strip()
+
+            probe_result = self._decodeProbeResult(
+                main_filename=main_filename, stdout=stdout
+            )
+
+            source_data = self._getRecordedSourceData(
+                main_filename=main_filename, record_dir=record_dir
+            )
+
+        probe_error = probe_result.get("error")
 
         if process_result.exit_code != 0 or probe_error is not None:
             return self.sysexit(
@@ -321,7 +403,45 @@ time.""")
                 )
             )
 
-        return probe_result
+        return source_data
+
+    def _getRecordedSourceData(self, main_filename, record_dir):
+        source_data = OrderedDict()
+
+        for record_filename in resolveShellPatternToFilenames(
+            os.path.join(record_dir, "records-*.jsonl")
+        ):
+            for record_line in getFileContents(
+                record_filename, mode="r", encoding="utf8"
+            ).splitlines():
+                if not record_line:
+                    continue
+
+                if str is not bytes:
+                    record_line = record_line.encode("utf8")
+
+                record = loadJsonFromContents(record_line)
+
+                if type(record) not in (list, tuple) or len(record) != 2:
+                    return self.sysexit(
+                        "Error, probe execution for '%s' recorded invalid data in '%s'."
+                        % (main_filename, record_filename)
+                    )
+
+                module_name, lines = record
+
+                previous_lines = source_data.get(module_name)
+
+                if previous_lines is not None:
+                    if previous_lines != lines:
+                        return self.sysexit(
+                            "Error, probe execution for '%s' recorded conflicting source code for module '%s'."
+                            % (main_filename, module_name)
+                        )
+                else:
+                    source_data[module_name] = lines
+
+        return source_data
 
     def _decodeProbeResult(self, main_filename, stdout):
         stdout_lines = [line for line in stdout.splitlines() if line.strip()]
@@ -353,20 +473,7 @@ time.""")
                 % (main_filename, probe_result_text)
             )
 
-        source_data = probe_result.get("sources", {})
-
-        if type(source_data) is not dict:
-            return self.sysexit(
-                "Error, probe execution for '%s' returned invalid source data."
-                % main_filename
-            )
-
-        ordered_source_data = OrderedDict()
-
-        for key in sorted(source_data):
-            ordered_source_data[key] = source_data[key]
-
-        return ordered_source_data, probe_result.get("error")
+        return probe_result
 
     @staticmethod
     def _getProbeCode():
@@ -376,7 +483,6 @@ from __future__ import print_function
 
 import io
 import json
-import linecache
 import os
 import runpy
 import sys
@@ -385,36 +491,6 @@ import sys
 def _main():
     main_filename = os.path.abspath(sys.argv[1])
     probe_args = sys.argv[2:]
-
-    source_data = {}
-
-    original_getlines = linecache.getlines
-
-    def _recording_getlines(filename, module_globals=None):
-        lines = original_getlines(filename, module_globals)
-
-        if lines and module_globals is not None:
-            module_name = module_globals.get("__name__")
-            module_filename = module_globals.get("__file__")
-
-            if (
-                module_name is not None
-                and module_filename is not None
-                and os.path.normcase(os.path.abspath(module_filename))
-                == os.path.normcase(os.path.abspath(filename))
-            ):
-                previous_lines = source_data.get(module_name)
-
-                if previous_lines is not None and previous_lines != lines:
-                    raise AssertionError(
-                        "Conflicting source recorded for module '%s'." % module_name
-                    )
-
-                source_data[module_name] = lines
-
-        return lines
-
-    linecache.getlines = _recording_getlines
 
     null_output = io.open(os.devnull, "w", encoding="utf8", errors="ignore")
     old_stdout = sys.stdout
@@ -449,16 +525,14 @@ def _main():
 
     print(
         "NUITKA_SOURCE_INCLUSION_JSON:%s"
-        % json.dumps(
-            {"sources": source_data, "error": probe_error}, sort_keys=True
-        )
+        % json.dumps({"error": probe_error}, sort_keys=True)
     )
 
     if probe_error is not None:
         sys.exit(1)
 
 _main()
-""".strip()
+"""
 
     def createFakeModuleDependency(self, module):
         if module.getFullName() == "linecache" and self.source_data:

@@ -302,8 +302,20 @@ def callProcessChunked(command, chunks, **kwargs):
     return result
 
 
-@contextmanager
-def withEnvironmentPathAdded(env_var_name, *paths, **kw):
+def getEnvironmentPathAdded(env_var_name, *paths, **kw):
+    """Get environment variable path value with additional paths.
+
+    Args:
+        env_var_name: str with the name of the environment variable, e.g. "PATH".
+        paths: Paths to add to the environment variable value.
+
+    Kwargs:
+        prefix: bool, when True the paths are prepended, otherwise appended.
+
+    Returns:
+        None if no paths are given, otherwise the resulting value.
+    """
+
     # Workaround star args with keyword args on older Python
     prefix = kw.pop("prefix", False)
     assert not kw, kw
@@ -311,28 +323,36 @@ def withEnvironmentPathAdded(env_var_name, *paths, **kw):
     assert os.path.sep not in env_var_name
 
     paths = [path for path in paths if path]
+
+    if not paths:
+        return None
+
     path = os.pathsep.join(paths)
 
-    if path:
-        if str is not bytes and type(path) is bytes:
-            path = path.decode("utf8")
+    if str is not bytes and type(path) is bytes:
+        path = path.decode("utf8")
 
-        if env_var_name in os.environ:
-            old_path = os.environ[env_var_name]
+    old_path = os.environ.get(env_var_name)
 
-            if not old_path:
-                os.environ[env_var_name] = path
-            elif prefix:
-                os.environ[env_var_name] = path + os.pathsep + os.environ[env_var_name]
-            else:
-                os.environ[env_var_name] += os.pathsep + path
-        else:
-            old_path = None
-            os.environ[env_var_name] = path
+    if not old_path:
+        return path
+    elif prefix:
+        return path + os.pathsep + old_path
+    else:
+        return old_path + os.pathsep + path
+
+
+@contextmanager
+def withEnvironmentPathAdded(env_var_name, *paths, **kw):
+    old_path = os.environ.get(env_var_name)
+    new_path = getEnvironmentPathAdded(env_var_name, *paths, **kw)
+
+    if new_path is not None:
+        os.environ[env_var_name] = new_path
 
     yield
 
-    if path:
+    if new_path is not None:
         if old_path is None:
             del os.environ[env_var_name]
         else:
