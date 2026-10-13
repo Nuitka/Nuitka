@@ -187,11 +187,6 @@ def main():
             # For the warnings.
             extra_flags.append("ignore_warnings")
 
-        if filename.startswith("Win"):
-            if os.name != "nt":
-                reportSkip("Windows only test", ".", filename)
-                continue
-
         if filename == "TkInterUsing.py":
             if isMacOS():
                 reportSkip("Not working macOS yet", ".", filename)

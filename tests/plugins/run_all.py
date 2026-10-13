@@ -33,7 +33,6 @@ from nuitka.tools.testing.Common import (
     setup,
     withPythonPathChange,
 )
-from nuitka.utils.Utils import isWin32Windows
 
 
 def main():
@@ -63,11 +62,6 @@ def main():
             continue
 
         my_print("Consider output of recursively compiled program:", filename)
-
-        if filename in ("code_signing_commercial",):
-            if not isWin32Windows():
-                reportSkip("Plugin only works on Windows", ".", filename)
-                continue
 
         filename_main = getMainProgramFilename(filename)
 

@@ -1446,6 +1446,13 @@ def someGeneratorRaising():
 #       OR
 #     "# nuitka-skip-unless-imports: module1,module2,..."
 def checkTestRequirements(filename):
+    # Windows only tests are identified by their name prefix.
+    if (
+        os.path.basename(filename).startswith(("Win", "windows_"))
+        and not isWin32Windows()
+    ):
+        return (False, "Windows only test")
+
     if os.path.isdir(filename):
         candidate = os.path.join(filename, "__main__.py")
 
