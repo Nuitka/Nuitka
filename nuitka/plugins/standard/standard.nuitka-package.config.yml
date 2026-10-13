@@ -943,6 +943,11 @@
         - 'ctypes._layout'
       when: 'has_builtin_module("_ctypes")'
 
+- module-name: 'cuda.tile' # checksum: 49521496
+  data-files:
+    - patterns:
+        - 'VERSION'
+
 - module-name: 'cupy' # checksum: 8c7aadcc
   anti-bloat:
     - description: 'remove setuptools usage'
@@ -8391,6 +8396,12 @@
     - depends:
         - 'tiktoken_ext.*'
 
+- module-name: 'tilelang' # checksum: 4e14835e
+  anti-bloat:
+    - description: 'z3 comes without its library, tilelang only checks that it is installed'
+      no-follow:
+        'z3': 'ignore'
+
 - module-name: 'time_machine' # checksum: b038bd8
   anti-bloat:
     - description: 'remove pytest reference'
@@ -8809,6 +8820,16 @@
         'from torch._inductor.codegen.wrapper import CppWrapperCodeGen': 'raise ImportError'
       when: 'not use_setuptools'
 
+- module-name: 'torch._inductor.kernel' # checksum: 2e123618
+  data-files:
+    - dirs:
+        - 'templates'
+
+- module-name: 'torch._inductor.kernel.flex' # checksum: 2e123618
+  data-files:
+    - dirs:
+        - 'templates'
+
 - module-name: 'torch._inductor.scheduler' # checksum: 78900add
   anti-bloat:
     - description: 'remove setuptools usage'
@@ -8879,6 +8900,12 @@
       replacements_plain:
         "f.f_code.co_name != '<module>'": "not f.f_code.co_name.startswith('<module')"
         'f.f_code.co_name != "<module>"': "not f.f_code.co_name.startswith('<module')"
+
+- module-name: 'torch.fx.experimental' # checksum: a9532c02
+  anti-bloat:
+    - description: 'z3 comes without its library, torch only uses it for debug translation validation'
+      no-follow:
+        'z3': 'translation validation of Dynamo guards is not used when serving'
 
 - module-name: 'torch.jit._check' # checksum: 9362fefc
   anti-bloat:
@@ -9448,10 +9475,15 @@
       bloat-mode-overrides:
         'setuptools': 'allow'
 
-- module-name: 'tvm_ffi' # checksum: 2f2c1c6c
+- module-name: 'tvm_ffi' # checksum: 42a4c653
   data-files:
     - dirs:
         - 'include'
+  dlls:
+    - from_filenames:
+        relative_path: 'lib'
+        prefixes:
+          - 'libtvm_ffi'
 
 - module-name: 'twofish' # checksum: c8ae9b1e
   implicit-imports:
@@ -10248,6 +10280,13 @@
   implicit-imports:
     - depends:
         - 'zmq.backend.cython'
+
+- module-name: 'zmq.backend.cython._zmq' # checksum: 24822113
+  anti-bloat:
+    - description: 'remove cython usage'
+      no-auto-follow:
+        'cython': 'ignore'
+      when: 'not use_setuptools'
 
 - module-name: 'zodbpickle.pickle_3' # checksum: 54ef2ab9
   anti-bloat:
