@@ -3366,10 +3366,7 @@
     - patterns:
         - 'usage.txt'
 
-- module-name: 'numba' # checksum: 95f3f759
-  parameters:
-    - 'name': 'disable-jit'
-      'values': 'value in ("yes", "no")'
+- module-name: 'numba' # checksum: e7be040c
   variables:
     # TODO: Limit this to the versions of numba doing it, eventually it will go
     # away.
@@ -3389,22 +3386,30 @@
         '(_RedirectSubpackage\s*\(\s*.*?\s*"(numba.*?)"\s*\))': '\1; import \2'
   options:
     checks:
-      - description: "Numba is not yet fully working with Nuitka standalone, try to use '--noinclude-numba-mode=nofollow', but it may fail."
+      - description: 'Numba support is incomplete, JIT compilation of functions without decorators and on-disk caching are not supported in standalone mode.'
         support_info: 'warning'
         when: 'not use_numba and standalone'
-      - description: "Numba JIT is disabled by default in standalone mode, make a choice explicit with '--module-parameter=numba-disable-jit=yes|no'"
-        support_info: 'parameter'
-        when: 'standalone and get_parameter("disable-jit", None) is None'
   import-hacks:
-    - force-environment-variables:
-        'NUMBA_DISABLE_JIT': '1'
-      when: 'get_parameter("disable-jit", "yes" if standalone else "no") == "yes"'
     # This is for "numba.np.ufunc.omppool".
     - acceptable-missing-dlls:
         - 'libomp'
 
-- module-name: 'numba.core.caching' # checksum: dce4aaa0
+- module-name: 'numba.core.caching' # checksum: e98d7428
   anti-bloat:
+    # The source files of the compiled program are not available at run time,
+    # so the on-disk cache of Numba cannot be located, and the compiled
+    # functions only exist as bytecode without a file backing them anyway.
+    - description: 'disable numba caching in standalone mode'
+      append_plain: |
+        class _NuitkaFunctionCache(NullCache):
+            def __init__(self, *args, **kwargs):
+                pass
+
+        FunctionCache = _NuitkaFunctionCache
+
+        def make_library_cache(prefix):
+            return _NuitkaFunctionCache
+      when: 'standalone'
     - description: 'remove IPython reference'
       replacements_plain:
         'from IPython.paths import get_ipython_cache_dir': 'raise ImportError'

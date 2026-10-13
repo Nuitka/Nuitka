@@ -156,16 +156,23 @@ def _injectDecorator(decorators, inject, acceptable, source_ref):
         )
 
 
-def _isUncompiledDecorator(decorator):
+def _getDecoratorName(decorator):
+    # Attribute lookups are considered too, so that e.g. "@numba.njit" or
+    # "@numba.jit(nopython=True)" can be recognized by their attribute name.
     if decorator.isExpressionVariableNameRef():
-        decorator_name = decorator.getVariableName()
-    elif decorator.isExpressionCall():
-        if decorator.subnode_called.isExpressionVariableNameRef():
-            decorator_name = decorator.subnode_called.getVariableName()
-        else:
-            return False
-    else:
-        return False
+        return decorator.getVariableName()
+
+    if decorator.isExpressionAttributeLookup():
+        return decorator.getAttributeName()
+
+    if decorator.isExpressionCall():
+        return _getDecoratorName(decorator.subnode_called)
+
+    return None
+
+
+def _isUncompiledDecorator(decorator):
+    decorator_name = _getDecoratorName(decorator)
 
     # Hard coded name.
     if decorator_name == "nuitka_ignore":

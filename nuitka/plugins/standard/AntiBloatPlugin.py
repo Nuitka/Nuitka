@@ -376,8 +376,7 @@ dependencies, and should definitely be avoided.""",
             default=None,
             help="""\
 What to do if a 'numba' import is encountered. This package can be big with
-dependencies, and is currently not working for standalone. This package is
-big with dependencies, and should definitely be avoided.""",
+dependencies, and should definitely be avoided.""",
         )
 
         group.add_option(
