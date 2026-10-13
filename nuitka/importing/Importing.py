@@ -691,11 +691,18 @@ def findModule(module_name, parent_package, level, logger):
     assert module_name != "*"
 
     if level > 1:
-        # TODO: Should give a warning and return not found if the levels
-        # exceed the package name.
-        if parent_package is not None:
-            parent_package = parent_package.getRelativePackageName(level - 1)
-        else:
+        if parent_package is None:
+            return _find_module_not_found
+
+        parent_package = parent_package.getRelativePackageName(level - 1)
+
+        # When the level exceeds the package name, this is a relative import
+        # beyond the top-level package. At run time that is an error, and we
+        # must not try to locate such a module. This can however legitimately
+        # occur when compiling a package as module, where the run time parent
+        # package is not known at compile time, and the import needs to be
+        # resolved at run time, so this is not reported as an error.
+        if parent_package is None or not parent_package:
             return _find_module_not_found
 
     if level == 1 and not module_name:
