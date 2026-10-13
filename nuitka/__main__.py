@@ -244,10 +244,14 @@ def main():
     Options.parseArgs()
 
     from nuitka.OutputDirectories import getSourceDirectoryPath
+    from nuitka.utils.FileOperations import (
+        getNormalizedPathJoin,
+        putTextFileContents,
+    )
 
     for binary_name, module_name, function_name in Options.getMainEntryPointSpecs():
         source_dir = getSourceDirectoryPath(onefile=False, create=True)
-        runner_filename = os.path.join(source_dir, binary_name + ".py")
+        runner_filename = getNormalizedPathJoin(source_dir, binary_name + ".py")
 
         code = """\
 import sys
@@ -257,8 +261,6 @@ sys.exit(user_main.%s())
             module_name,
             function_name,
         )
-
-        from nuitka.utils.FileOperations import putTextFileContents
 
         putTextFileContents(runner_filename, code)
 
