@@ -982,7 +982,7 @@
       # Not necessary on Windows
       when: 'not win32'
 
-- module-name: 'cv2' # checksum: 12151595
+- module-name: 'cv2' # checksum: 536d0e49
   variables:
     setup_code:
       - 'import cv2'
@@ -992,12 +992,13 @@
   data-files:
     - dirs:
         - 'qt/fonts'
+      when: 'not (use_pyqt5 or use_pyqt6 or use_pyside2 or use_pyside6)'
   dlls:
     - from_filenames:
         relative_path: 'qt/plugins/platforms'
         prefixes:
           - 'lib'
-      when: 'linux'
+      when: 'linux and not (use_pyqt5 or use_pyqt6 or use_pyside2 or use_pyside6)'
     - from_filenames:
         prefixes:
           - 'opencv_videoio'
@@ -1046,12 +1047,15 @@
           import os
           os.environ['QT_QPA_PLATFORM_PLUGIN_PATH'] = os.path.join(os.path.dirname(__file__), 'qt/plugins')
           os.environ['QT_QPA_FONTDIR'] = os.path.join(os.path.dirname(__file__), 'qt/fonts')
-      when: 'linux and standalone'
+      when: 'linux and standalone and not (use_pyqt5 or use_pyqt6 or use_pyside2 or use_pyside6)'
   options:
     checks:
       - description: 'OpenCV2 is best supported with 4.6 or later (earlier versions may lack support for implicit import of cv2 extra submodules)'
         support_info: 'warning'
         when: 'version(get_dist_name("cv2")) < (4,6)'
+      - description: 'Non-headless "opencv-python" bundles its own Qt plugins that conflict with the enabled Qt binding. Uninstall "opencv-python" and install "opencv-python-headless" instead, or do not enable the Qt binding plugin.'
+        support_info: 'plugin-warning'
+        when: 'get_dist_name("cv2") == "opencv-python" and (use_pyqt5 or use_pyqt6 or use_pyside2 or use_pyside6)'
 
 - module-name: 'cvxpy.utilities.key_utils' # checksum: fc2bb323
   anti-bloat:
