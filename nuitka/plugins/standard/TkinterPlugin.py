@@ -14,7 +14,8 @@ from nuitka.PythonFlavors import (
     isHomebrewPython,
     isPyenvHomebrewPython,
 )
-from nuitka.PythonVersions import getSystemPrefixPath, getTkInterVersion
+from nuitka.PythonPrefixes import getSystemPrefixPath
+from nuitka.PythonVersions import getTkInterVersion
 from nuitka.utils.FileOperations import listDir
 from nuitka.utils.Utils import isMacOS, isWin32Windows
 from nuitka.utils.Zipfiles import createZipFile, doesZipFileMatch, getZipFile

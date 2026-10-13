@@ -66,9 +66,11 @@ from nuitka.OutputDirectories import (
 )
 from nuitka.plugins.Plugins import getActivePlugins, redactCommandLineArg
 from nuitka.PythonFlavors import getPythonFlavorName
-from nuitka.PythonVersions import (
+from nuitka.PythonPrefixes import (
     getLaunchingSystemPrefixPath,
     getSystemPrefixPath,
+)
+from nuitka.PythonVersions import (
     isPythonWithGil,
     python_version,
     python_version_full_str,

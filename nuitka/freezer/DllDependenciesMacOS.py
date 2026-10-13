@@ -14,7 +14,6 @@ from nuitka.plugins.Hooks import isAcceptableMissingDLL
 from nuitka.PythonFlavors import (
     getHomebrewInstallPath,
     getMacPortsInstallPath,
-    getSystemPrefixPath,
     isAnacondaPython,
     isCPythonOfficialPackage,
     isHomebrewPython,
@@ -23,6 +22,7 @@ from nuitka.PythonFlavors import (
     isPyenvHomebrewPython,
     isPythonBuildStandalonePython,
 )
+from nuitka.PythonPrefixes import getSystemPrefixPath
 from nuitka.PythonVersions import python_version
 from nuitka.Tracing import inclusion_logger
 from nuitka.utils.FileOperations import (

@@ -21,7 +21,10 @@ from nuitka.options.Options import (
 )
 from nuitka.plugins.Hooks import getPluginsCacheContributionValues
 from nuitka.PythonFlavors import isAnacondaPython, isMSYS2MingwPython
-from nuitka.PythonVersions import getSystemPrefixPath
+from nuitka.PythonPrefixes import (
+    getSystemPrefixExecutable,
+    getSystemPrefixPath,
+)
 from nuitka.Tracing import inclusion_logger
 from nuitka.utils.AppDirs import getCacheDir
 from nuitka.utils.Execution import executeToolChecked

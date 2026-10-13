@@ -16,8 +16,8 @@ from nuitka.options.Options import (
     shallUsePythonDebug,
 )
 from nuitka.PythonFlavors import isSelfCompiledPythonUninstalled
+from nuitka.PythonPrefixes import getTargetPythonIncludePath
 from nuitka.PythonVersions import (
-    getTargetPythonIncludePath,
     isPythonWithGil,
     python_version,
     python_version_str,

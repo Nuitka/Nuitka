@@ -15,9 +15,9 @@ from nuitka.PythonFlavors import (
     isRyePython,
     isSelfCompiledPythonUninstalled,
 )
+from nuitka.PythonPrefixes import getSystemPrefixPath
 from nuitka.PythonVersions import (
     getPythonABI,
-    getSystemPrefixPath,
     python_version,
     python_version_str,
 )

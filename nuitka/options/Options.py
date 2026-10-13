@@ -41,8 +41,8 @@ from nuitka.PythonFlavors import (
     isTermuxPython,
     isUninstalledPython,
 )
+from nuitka.PythonPrefixes import getLaunchingSystemPrefixPath
 from nuitka.PythonVersions import (
-    getLaunchingSystemPrefixPath,
     getNotYetSupportedPythonVersions,
     getSupportedPythonVersions,
     isDebugPython,

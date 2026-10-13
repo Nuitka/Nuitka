@@ -47,7 +47,7 @@ from nuitka.PythonFlavors import (
     isPyenvHomebrewPython,
     isPythonBuildStandalonePython,
 )
-from nuitka.PythonVersions import getSystemPrefixPath
+from nuitka.PythonPrefixes import getSystemPrefixPath
 from nuitka.Tracing import general, inclusion_logger
 from nuitka.utils.Execution import executeToolChecked
 from nuitka.utils.FileOperations import (

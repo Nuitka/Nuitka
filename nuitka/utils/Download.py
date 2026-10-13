@@ -11,11 +11,8 @@ import os
 
 from nuitka.Progress import withNuitkaDownloadProgressBar
 from nuitka.PythonFlavors import isPythonBuildStandalonePython
-from nuitka.PythonVersions import (
-    getSystemPrefixPath,
-    python_version,
-    python_version_full_str,
-)
+from nuitka.PythonPrefixes import getSystemPrefixPath
+from nuitka.PythonVersions import python_version, python_version_full_str
 from nuitka.Tracing import general
 from nuitka.Version import getNuitkaVersion
 

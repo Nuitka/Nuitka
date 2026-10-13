@@ -70,10 +70,12 @@ from nuitka.PythonFlavors import (
     isMSYS2MingwPython,
     isSelfCompiledPythonUninstalled,
 )
-from nuitka.PythonVersions import (
-    getSconsSupportingVersions,
+from nuitka.PythonPrefixes import (
     getSystemPrefixPath,
     getTargetPythonIncludePath,
+)
+from nuitka.PythonVersions import (
+    getSconsSupportingVersions,
     isPythonWithGil,
     isRunningInInterpreter,
     python_version,

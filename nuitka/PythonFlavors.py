@@ -13,6 +13,7 @@ DLL presence, link paths, etc.
 import os
 import sys
 
+from nuitka.PythonPrefixes import getSystemPrefixPath
 from nuitka.utils.FileOperations import (
     areSamePaths,
     isFilenameBelowPath,
@@ -34,7 +35,6 @@ from nuitka.utils.Utils import (
 from .PythonVersions import (
     getInstalledPythonRegistryPaths,
     getRunningPythonDLLPath,
-    getSystemPrefixPath,
     isStaticallyLinkedPython,
     python_version,
     python_version_str,

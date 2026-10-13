@@ -16,7 +16,7 @@ from nuitka.options.Options import (
     shallMakeModule,
 )
 from nuitka.plugins.PluginBase import NuitkaPluginBase
-from nuitka.PythonVersions import getSystemPrefixPath
+from nuitka.PythonPrefixes import getSystemPrefixPath
 from nuitka.utils.Execution import executeProcess, getEnvironmentPathAdded
 from nuitka.utils.FileOperations import (
     getFileContents,
