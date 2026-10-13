@@ -656,7 +656,13 @@ _supported_resource_modes = (
     "xcoff_obj",
     "mac_section",
     "code",
+    "overlay",
 )
+
+# The Windows PE file format limits the image size to 2 GB, and attaching
+# the onefile payload to the executable file instead of embedding it as a
+# constant blob must happen safely below that.
+_windows_image_size_limit = 1900 * 1024 * 1024
 
 
 def _checkBlobResourceMode(env, resource_mode):
@@ -677,6 +683,7 @@ def _checkBlobResourceMode(env, resource_mode):
         "mac_section": (isMacOS(), "macOS"),
         "coff_obj": (isWin32Windows(), "Windows"),
         "xcoff_obj": (isAIX(), "AIX"),
+        "overlay": (isWin32Windows(), "Windows"),
     }
 
     if resource_mode in mode_platform_names:
@@ -690,14 +697,22 @@ def _checkBlobResourceMode(env, resource_mode):
             )
 
 
-def _decideBlobResourceMode(env, blob_count):
+def _decideBlobResourceMode(env):
     # This is a complicated decision with a lot of cases, as there are many
     # compiler, mode, OS and their versions related decisions.
     # pylint: disable=too-many-branches
 
-    if "NUITKA_RESOURCE_MODE" in os.environ:
-        resource_mode = os.environ["NUITKA_RESOURCE_MODE"]
+    resource_mode = env.requested_resource_mode
+
+    if resource_mode is not None:
         reason = "user provided"
+    elif (
+        env.onefile_compile
+        and isWin32Windows()
+        and env.total_blob_size >= _windows_image_size_limit
+    ):
+        resource_mode = "overlay"
+        reason = "onefile payload attached to the executable"
     elif env.zig_mode:
         resource_mode = "c23_embed"
         reason = "default for zig"
@@ -716,7 +731,7 @@ def _decideBlobResourceMode(env, blob_count):
             resource_mode = "c23_embed"
             reason = "default for macOS with clang 19 or later"
         else:
-            if blob_count > 1:
+            if env.blob_count > 1:
                 resource_mode = "code"
                 reason = "default for macOS with multiple blobs"
             else:
@@ -1078,6 +1093,15 @@ def _addConstantBlobFileMacSection(env, blob_filename):
     return "_NUITKA_CONSTANTS_FROM_MACOS_SECTION"
 
 
+def _addConstantBlobFileOverlay(env, blob_filename):
+    # The payload is attached to the executable file instead of being
+    # embedded as a constant blob, which the bootstrap binary reads from
+    # its own executing file.
+    #
+    # Signature needed for the blob mode dispatch, pylint: disable=unused-argument
+    return "_NUITKA_ONEFILE_PAYLOAD_OVERLAY_BOOL"
+
+
 _constant_blob_mode_functions = {
     "coff_obj": _addConstantBlobFileCoffObj,
     "xcoff_obj": _addConstantBlobFileXcoffObj,
@@ -1086,18 +1110,12 @@ _constant_blob_mode_functions = {
     "linker": _addConstantBlobFileLinker,
     "code": _addConstantBlobFileCode,
     "c23_embed": _addConstantBlobFileCode,
+    "overlay": _addConstantBlobFileOverlay,
 }
 
 
 def _addConstantBlobFile(env, blob_filename):
     assert blob_filename.endswith(".bin"), blob_filename
-
-    if env.resource_mode == "absent":
-        env.resource_mode, reason = _decideBlobResourceMode(env, blob_count=1)
-
-        scons_details_logger.info(
-            "Using resource mode: '%s' (%s)." % (env.resource_mode, reason)
-        )
 
     if env.resource_mode in _constant_blob_mode_functions:
         return _constant_blob_mode_functions[env.resource_mode](env, blob_filename)
@@ -1120,14 +1138,12 @@ def _addConstantBlobFiles(env, source_dir):
     Args:
         env: The Scons environment.
         source_dir: The source directory containing the blobs/ subdirectory.
-
-    Returns:
-        int: Total size of all blob .bin files in bytes.
     """
     env.resource_mode = "absent"
     env.large_data_model = False
+    env.total_blob_size = 0
+    env.blob_count = 0
 
-    total_blob_size = 0
     blobs_dir = os.path.join(source_dir, "blobs")
     if os.path.exists(blobs_dir):
         blob_filenames = []
@@ -1135,12 +1151,13 @@ def _addConstantBlobFiles(env, source_dir):
         for filename_full, filename in listDir(blobs_dir):
             if filename.endswith(".bin"):
                 blob_filenames.append(filename_full)
-                total_blob_size += getFileSize(filename_full)
+                env.total_blob_size += getFileSize(filename_full)
 
         blob_filenames = sorted(blob_filenames)
+        env.blob_count = len(blob_filenames)
 
         if (
-            total_blob_size >= 1600 * 1024 * 1024
+            env.total_blob_size >= 1600 * 1024 * 1024
             and env.target_arch == "x86_64"
             and isLinux()
             and (env.gcc_mode or env.clang_mode or env.zig_mode)
@@ -1148,19 +1165,21 @@ def _addConstantBlobFiles(env, source_dir):
             env.large_data_model = True
 
         if env.resource_mode == "absent" and blob_filenames:
-            env.resource_mode, reason = _decideBlobResourceMode(
-                env, blob_count=len(blob_filenames)
-            )
+            env.resource_mode, reason = _decideBlobResourceMode(env)
+
+            if env.resource_mode == "overlay":
+                # TODO: Support attaching multiple payloads in the future,
+                # then this restriction can be lifted.
+                assert env.blob_count == 1, blob_filenames
 
             scons_details_logger.info(
                 "Using resource mode: '%s' (%s)." % (env.resource_mode, reason)
             )
 
         if env.large_data_model:
-            scons_details_logger.info(
-                "Total data blob size is %.2f GB, using medium code model and "
-                "large data sections." % (total_blob_size / (1024.0 * 1024.0 * 1024.0))
-            )
+            scons_details_logger.info("""\
+Total data blob size is %.2f GB, using medium code model and large data \
+sections.""" % (env.total_blob_size / (1024.0 * 1024.0 * 1024.0)))
             env.Append(CCFLAGS=["-mcmodel=medium"])
 
         blob_define = None
@@ -1179,8 +1198,6 @@ def _addConstantBlobFiles(env, source_dir):
 
         if blob_define is not None:
             env.Append(CPPDEFINES=[blob_define])
-
-    return total_blob_size
 
 
 def _enableMacOSTargetSettings(env):

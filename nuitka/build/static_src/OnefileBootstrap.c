@@ -181,7 +181,102 @@ static unsigned char const *payload_data = NULL;
 static unsigned char const *payload_current = NULL;
 static unsigned long long payload_size = 0;
 
-#if defined(_NUITKA_CONSTANTS_FROM_LINKER) || defined(_NUITKA_CONSTANTS_FROM_COFF_OBJ) ||                              \
+#if defined(_NUITKA_ONEFILE_PAYLOAD_OVERLAY_BOOL)
+
+// The payload is attached to the executable file instead of being embedded
+// as a constant blob, which is done when the embedded data would exceed the
+// size limits of the executable file format. The payload size is stored in
+// the 8 bytes at the end of the payload.
+static struct MapFileToMemoryInfo exe_file_mapped;
+
+static uint32_t readFileUint32(unsigned char const *data) {
+    uint32_t result;
+
+    memcpy(&result, data, sizeof(result));
+
+    return result;
+}
+
+// Determine the offset where the attached payload ends. This is at the end
+// of the file, unless the executable is code signed, in which case the
+// certificate table follows the attached data, and the PE header has to
+// tell us where that starts.
+static unsigned long long getAttachedPayloadEndOffset(void) {
+    unsigned long long file_size = (unsigned long long)exe_file_mapped.file_size;
+
+#if defined(_WIN32)
+    if (file_size >= 0x40) {
+        uint32_t pe_offset = readFileUint32(exe_file_mapped.data + 0x3C);
+        uint16_t optional_magic;
+        uint32_t security_directory_offset;
+
+        if (pe_offset <= file_size - 24 && memcmp(exe_file_mapped.data + pe_offset, "PE\0\0", 4) == 0) {
+            memcpy(&optional_magic, exe_file_mapped.data + pe_offset + 24, sizeof(optional_magic));
+
+            // The PE32 and PE32+ optional headers have the security entry
+            // (certificate table) of the data directory at different places.
+            if (optional_magic == 0x10b) {
+                security_directory_offset = pe_offset + 24 + 96 + 4 * 8;
+            } else if (optional_magic == 0x20b) {
+                security_directory_offset = pe_offset + 24 + 112 + 4 * 8;
+            } else {
+                return file_size;
+            }
+
+            if ((unsigned long long)security_directory_offset + 8 <= file_size) {
+                uint32_t certificate_table_offset = readFileUint32(exe_file_mapped.data + security_directory_offset);
+                uint32_t certificate_table_size = readFileUint32(exe_file_mapped.data + security_directory_offset + 4);
+
+                if (certificate_table_size != 0 && certificate_table_offset >= 8 &&
+                    (unsigned long long)certificate_table_offset <= file_size) {
+                    return certificate_table_offset;
+                }
+            }
+        }
+    }
+#endif
+
+    return file_size;
+}
+
+static void initPayloadData2(void) {
+    unsigned long long attached_payload_end;
+    unsigned long long attached_payload_size;
+    unsigned long long attached_payload_start;
+
+    exe_file_mapped = mapFileToMemory(getBinaryPath());
+
+    if (unlikely(exe_file_mapped.error)) {
+        printOSErrorMessage("Error, failed to map the executable for its attached payload.",
+                            exe_file_mapped.error_code);
+        exit(2);
+    }
+
+    attached_payload_end = getAttachedPayloadEndOffset();
+
+    if (unlikely(attached_payload_end < sizeof(attached_payload_size))) {
+        fatalErrorHeaderAttachedData();
+    }
+
+    // Note: This is little endian data, which is what all platforms that use
+    // this mode have in common.
+    memcpy(&attached_payload_size, exe_file_mapped.data + attached_payload_end - sizeof(attached_payload_size),
+           sizeof(attached_payload_size));
+
+    if (unlikely(attached_payload_size >= attached_payload_end)) {
+        fatalErrorHeaderAttachedData();
+    }
+
+    attached_payload_start = attached_payload_end - sizeof(attached_payload_size) - attached_payload_size;
+
+    payload_data = exe_file_mapped.data + attached_payload_start;
+    payload_current = payload_data;
+    payload_size = attached_payload_size;
+}
+
+static void closePayloadData(void) { unmapFileFromMemory(&exe_file_mapped); }
+
+#elif defined(_NUITKA_CONSTANTS_FROM_LINKER) || defined(_NUITKA_CONSTANTS_FROM_COFF_OBJ) ||                            \
     defined(_NUITKA_CONSTANTS_FROM_XCOFF_OBJ) || defined(_NUITKA_CONSTANTS_FROM_CODE) ||                               \
     defined(_NUITKA_CONSTANTS_FROM_INCBIN) || defined(_NUITKA_CONSTANTS_FROM_C23_EMBED) ||                             \
     defined(_NUITKA_CONSTANTS_FROM_MACOS_SECTION)
@@ -198,7 +293,9 @@ static void initPayloadData2(void) {
 static void closePayloadData(void) {}
 
 #elif _NUITKA_ONEFILE_HAS_PAYLOAD_BOOL == 0
-// Note: External payload is used.
+// Note: There is no payload to unpack, either because there is none at all,
+// or because the payload is in a separate file, the latter not implemented
+// yet.
 static void initPayloadData2(void) {}
 
 static void closePayloadData(void) {}

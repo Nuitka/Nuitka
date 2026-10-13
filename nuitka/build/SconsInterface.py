@@ -33,6 +33,7 @@ from nuitka.options.Options import (
     getProductVersion,
     getProgressBar,
     getPythonPathForScons,
+    getResourceMode,
     getTargetArch,
     getWindowsConsoleMode,
     getWindowsSplashScreen,
@@ -760,6 +761,9 @@ def getCommonSconsOptions():
     scons_options["gil_mode"] = asBoolStr(isPythonWithGil())
 
     scons_options["devel_modes"] = ",".join(getDevelModeIndications())
+
+    if getResourceMode(onefile=False) is not None:
+        scons_options["resource_mode"] = getResourceMode(onefile=False)
 
     scons_options["frame_locals_proxy"] = asBoolStr(hasFrameLocalsProxy())
 

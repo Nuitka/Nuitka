@@ -2437,6 +2437,26 @@ def shallUseDirectConstantBlobs():
     return isExperimental("direct-constant-blobs")
 
 
+def getResourceMode(onefile):
+    """Resource mode requested for the constants blobs.
+
+    Args:
+        onefile: Whether the onefile bootstrap build is asking, for which the
+            '--onefile-resource-mode' option overrides the general
+            '--resource-mode' option.
+
+    Returns:
+        str or None - the requested resource mode.
+    """
+    if onefile:
+        result = options.onefile_resource_mode
+
+        if result is not None:
+            return result
+
+    return options.resource_mode
+
+
 def shallNotFallbackBytecodeToCompiled(module_name, function_qualname, source_ref):
     """Decide if falling back from bytecode-backed functions to compiled C code is forbidden.
 

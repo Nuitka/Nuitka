@@ -576,6 +576,15 @@ for the Python code. This makes it use an executable in the unpacked
 files as well. Default is off.""",
 )
 
+onefile_group.add_option(
+    "--onefile-resource-mode",
+    dest="onefile_resource_mode",
+    metavar="MODE",
+    default=None,
+    environment_variable_name="NUITKA_ONEFILE_RESOURCE_MODE",
+    help=SUPPRESS_HELP,
+)
+
 del onefile_group
 
 data_group = parser.add_option_group("Data files")
@@ -1449,6 +1458,15 @@ c_compiler_group.add_option(
 Use link time optimizations (MSVC, gcc, clang). Allowed values are
 "yes", "no", and "auto" (when it's known to work). Defaults to
 "auto".""",
+)
+
+c_compiler_group.add_option(
+    "--resource-mode",
+    dest="resource_mode",
+    metavar="MODE",
+    default=None,
+    environment_variable_name="NUITKA_RESOURCE_MODE",
+    help=SUPPRESS_HELP,
 )
 
 c_compiler_group.add_option(

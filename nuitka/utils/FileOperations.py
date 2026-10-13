@@ -1525,6 +1525,19 @@ def copyFile(source_path, dest_path):
         break
 
 
+def appendFileToFile(source_path, dest_path):
+    """Append a file to another file.
+
+    Args:
+        source_path: Source file to append.
+        dest_path: Destination file to append to.
+    """
+
+    with openTextFile(source_path, "rb") as source_file:
+        with openTextFile(dest_path, "ab") as dest_file:
+            shutil.copyfileobj(source_file, dest_file)
+
+
 def getWindowsDrive(path):
     """Windows drive for a given path.
 

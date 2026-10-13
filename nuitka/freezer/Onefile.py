@@ -20,6 +20,7 @@ from nuitka.options.Options import (
     getJobLimit,
     getOnefileTempDirSpec,
     getProgressBar,
+    getResourceMode,
     getWindowsSplashScreen,
     isLowMemory,
     isOnefileTempDirMode,
@@ -50,6 +51,7 @@ from nuitka.States import states
 from nuitka.Tracing import onefile_logger
 from nuitka.utils.Execution import withEnvironmentVarsOverridden
 from nuitka.utils.FileOperations import (
+    appendFileToFile,
     areSamePaths,
     getExternalUsePath,
     getFileSize,
@@ -90,9 +92,7 @@ def packDistFolderToOnefile(dist_dir):
     onOnefileFinished(onefile_output_filename)
 
 
-def _runOnefileScons(
-    onefile_compression, onefile_archive, backend_resource_mode, onefile_payload_size
-):
+def _runOnefileScons(onefile_compression, onefile_archive, onefile_payload_size):
     scons_options, env_values = getCommonSconsOptions()
 
     source_dir = getSourceDirectoryPath(onefile=True, create=False)
@@ -124,9 +124,10 @@ def _runOnefileScons(
             getStandaloneMainEntryPoint().dest_path
         )
 
-    # TODO: The None check can go away once all platforms are supported.
-    if backend_resource_mode is not None:
-        scons_options["backend_resource_mode"] = backend_resource_mode
+    resource_mode = getResourceMode(onefile=True)
+
+    if resource_mode is not None:
+        scons_options["resource_mode"] = resource_mode
 
     # Allow plugins to build definitions.
     env_values.update(getBuildDefinitions())
@@ -275,9 +276,6 @@ def packDistFolderToOnefileBootstrap(onefile_output_filename, dist_dir, start_bi
     # Now need to append to payload it, potentially compressing it.
     compressor_python = getCompressorPython()
 
-    backend_source_dir = getSourceDirectoryPath(onefile=False, create=False)
-    backend_resource_mode = getSconsReportValue(backend_source_dir, "resource_mode")
-
     # The payload is optional, there might be none at all.
     has_payload = hasOnefilePayload()
     onefile_payload_size = 0
@@ -308,7 +306,6 @@ def packDistFolderToOnefileBootstrap(onefile_output_filename, dist_dir, start_bi
     _runOnefileScons(
         onefile_compression=compressor_python is not None,
         onefile_archive=shallOnefileAsArchive(),
-        backend_resource_mode=backend_resource_mode,
         onefile_payload_size=onefile_payload_size,
     )
 
@@ -321,6 +318,17 @@ def packDistFolderToOnefileBootstrap(onefile_output_filename, dist_dir, start_bi
         cleanupHeaderForAndroid(onefile_output_filename)
 
     onBootstrapBinary(onefile_output_filename)
+
+    # The payload may have to be attached to the executable instead of being
+    # embedded, due to limits of the executable file format, as decided on
+    # during the Scons build.
+    if getSconsReportValue(source_dir, "resource_mode", default="absent") == "overlay":
+        onefile_logger.info("Attaching payload to the onefile executable.")
+
+        appendFileToFile(
+            source_path=onefile_payload_filename,
+            dest_path=onefile_output_filename,
+        )
 
     if isMacOS():
         addMacOSCodeSignature(

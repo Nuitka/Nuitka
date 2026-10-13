@@ -443,6 +443,9 @@ def createEnvironment(
     if env.onefile_temp_mode:
         env.Append(CPPDEFINES=["_NUITKA_ONEFILE_TEMP_BOOL"])
 
+    # Requested resource mode for the constants blob, if any.
+    env.requested_resource_mode = getArgumentDefaulted("resource_mode", None)
+
     # Module (or package) mode: Create a Python extension module
     env.module_mode = getArgumentBool("module_mode", False)
     if env.module_mode:
@@ -645,6 +648,8 @@ def writeSconsReport(env, target):
         print("TARGET=%s" % getNormalizedPath(target[0].abspath), file=report_file)
 
         print("resource_mode=%s" % env.resource_mode, file=report_file)
+        print("blob_count=%s" % env.blob_count, file=report_file)
+        print("total_blob_size=%s" % env.total_blob_size, file=report_file)
         print("reproducible=%s" % env.reproducible_mode, file=report_file)
 
 
