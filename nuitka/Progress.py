@@ -794,7 +794,7 @@ def withNuitkaDownloadProgressBar(*args, **kwargs):
             bf_disable = True
 
         barflow_progress = _barflow.Progress(
-            total=total_size_bytes or None,
+            total=total_size_bytes or 0,
             desc=description,
             disable=bf_disable,
             leave=False,
