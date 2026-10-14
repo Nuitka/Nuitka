@@ -300,16 +300,6 @@ class TempMixin(object):
         del self.deferred_release_names[-1]
 
 
-class CodeObjectsMixin(object):
-    __slots__ = ()
-
-    def getCodeObjectHandle(self, code_object):
-        return (
-            "USE_CODE_OBJECT(tstate, %s, module_filename_obj)"
-            % self.getConstantCode(code_object)
-        )
-
-
 class PythonContextBase(getMetaClassBase("Context", require_slots=True)):
     __slots__ = ("source_ref", "current_source_ref")
 
@@ -703,7 +693,6 @@ class ReturnValueNameMixin(object):
 class PythonModuleContext(
     FrameDeclarationsMixin,
     TempMixin,
-    CodeObjectsMixin,
     ReturnReleaseModeMixin,
     ReturnValueNameMixin,
     PythonContextBase,
@@ -985,9 +974,6 @@ class PythonFunctionContext(
     def mayRecurse(self):
         # TODO: Determine this at compile time for enhanced optimizations.
         return True
-
-    def getCodeObjectHandle(self, code_object):
-        return self.parent.getCodeObjectHandle(code_object)
 
 
 class PythonFunctionDirectContext(PythonFunctionContext):

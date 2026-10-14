@@ -188,8 +188,8 @@ def generateMakeGeneratorObjectCode(to_name, expression, emit, context):
                 "generator_qualname_obj": getFunctionQualnameObj(
                     generator_object_body, context
                 ),
-                "code_identifier": context.getCodeObjectHandle(
-                    code_object=generator_object_body.getCodeObject()
+                "code_identifier": getCodeObjectAccessCode(
+                    code_object=generator_object_body.getCodeObject(), context=context
                 ),
                 "closure_name": closure_name if closure_name is not None else "NULL",
                 "closure_count": len(closure_variables),
