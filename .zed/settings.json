@@ -1,4 +1,75 @@
 {
+  "file_scan_exclusions": [
+    "...",
+    "**/*~",
+    "**/*.pyc",
+    "**/__pycache__",
+    "**/*.pyo",
+    "**/*.swp",
+    "**/*.swo",
+    "**/*.o",
+    "**/*.os",
+    "**/*.so",
+    "**/*.pyd",
+    "**/*.pyi",
+    "**/*.exe",
+    "**/*.dll",
+    "**/*.pt",
+    "**/*.xml",
+    "**/*.build",
+    "**/*.onefile-build",
+    "**/*.installer-build",
+    "**/*.dist",
+    "**/*.secrets",
+    "**/*.app",
+    "**/registration-hash.txt",
+    "tests/distutils/*_pyproject_*/pyproject.toml",
+    "**/*.optimization.log",
+    "**/*.inclusion.log",
+    "**/*.strace",
+    "**/*.dtruss",
+    "**/*.nuitka-pgo",
+    "**/*.nuitka-pgo.json",
+    "**/.mypy_cache",
+    "**/Nuitka.egg-info",
+    "tests/basics/BigConstants.py",
+    "tests/generated/*Test*.py",
+    "tests/PyPI-pytest/venv_*",
+    "**/*.dblite",
+    "**/*.pdb",
+    "**/releases",
+    "**/htmlcov",
+    "Mini.py",
+    "build",
+    "dist",
+    "**/osc",
+    "**/MANIFEST",
+    "**/venv_cpython",
+    "**/venv_nuitka",
+    "**/.pytest_cache",
+    "**/.coverage*",
+    "**/*.tmp",
+    "**/*.isorted",
+    "**/*.away",
+    "**/*.dat",
+    ".vscode/ipch",
+    ".vscode/tags",
+    ".vscode/.ropeproject",
+    "check_nuitka",
+    "**/*.new",
+    "**/*.old",
+    "**/.vs",
+    "external-data",
+    "misc/.fl*",
+    "**/*.prof",
+    "**/*.dmg",
+    "**/*.AppImage",
+    ".vscode/c_cpp_properties.json",
+    "**/.clangd",
+    "Python-*",
+    "tests/scratch",
+    "**/.zcompdump"
+  ],
   "languages": {
     "Python": {
       "format_on_save": "on",
@@ -43,6 +114,13 @@
               "*.nuitka-package.config.yml"
             ]
           }
+        }
+      }
+    },
+    "basedpyright": {
+      "settings": {
+        "basedpyright.analysis": {
+          "diagnosticMode": "openFilesOnly"
         }
       }
     }
