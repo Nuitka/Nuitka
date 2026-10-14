@@ -874,6 +874,112 @@ Choose the debugger to use.""",
 del execute_group
 
 
+container_group = parser.add_option_group("Container options")
+
+container_group.add_option(
+    "--container",
+    action="store",
+    dest="container",
+    metavar="CONTAINER_NAME",
+    default=None,
+    help="""\
+Run the compilation inside the named container, building or updating the container if necessary.
+The name selects the container file, e.g. "CentOS8". Container files can be provided by plugins.
+Only an alternative command is run if '--container-command' is given. Defaults to off.""",
+)
+
+container_group.add_option(
+    "--container-command",
+    action="store",
+    dest="container_command",
+    metavar="COMMAND",
+    default=None,
+    require_compiling=False,
+    help="""\
+Command to execute inside the container selected with '--container' instead of compiling the
+program. Defaults to compiling the program inside the container.""",
+)
+
+container_group.add_option(
+    "--container-no-build",
+    action="store_true",
+    dest="container_no_build",
+    default=False,
+    help="""\
+Do not update the container before using it, use it as it is. Defaults to off.""",
+)
+
+container_group.add_option(
+    "--container-podman-path",
+    action="store",
+    dest="container_podman_path",
+    metavar="PODMAN_PATH",
+    default=None,
+    help="""\
+Podman binary in case you do not have it in "PATH". Defaults to automatic detection.""",
+)
+
+container_group.add_option(
+    "--container-podman-verbose",
+    action="store_true",
+    dest="container_podman_verbose",
+    default=False,
+    help="""\
+Do not use podman quietly, giving more messages during the container build. Defaults to off.""",
+)
+
+container_group.add_option(
+    "--container-shared-path",
+    action="append",
+    dest="container_shared_paths",
+    metavar="PATH_SPEC",
+    default=[],
+    help="""\
+Path to share with the container, use "--container-shared-path=src=dst" format for directory
+names. Can be given multiple times. Defaults to nothing.""",
+)
+
+container_group.add_option(
+    "--container-network",
+    action="store_true",
+    dest="container_network",
+    default=False,
+    help="""\
+Allow the container run to use the network. Defaults to off.""",
+)
+
+container_group.add_option(
+    "--container-isolated",
+    action="store_true",
+    dest="container_isolated",
+    default=None,
+    help="""\
+Do not provide host access of any kind to the container run. Defaults to on for containers
+whose name contains "isolated" and off otherwise.""",
+)
+
+container_group.add_option(
+    "--container-no-isolated",
+    action="store_false",
+    dest="container_isolated",
+    default=None,
+    help="""\
+Provide host access even if the container name suggests otherwise. Defaults to off.""",
+)
+
+container_group.add_option(
+    "--container-privileged",
+    action="store_true",
+    dest="container_privileged",
+    default=False,
+    help="""\
+Allow the container run to create device nodes, e.g. for pbuilder, making the container
+insecure. Defaults to off.""",
+)
+
+del container_group
+
+
 compilation_group = parser.add_option_group("Compilation choices")
 
 compilation_group.add_option(
@@ -3061,6 +3167,9 @@ def parseOptions(logger):
 
     options, positional_args = parser.parse_args()
 
+    # Make sure the list of given options is present even if none were given.
+    options.ensure_value("given_options", [])
+
     if (
         not positional_args
         and not options.mains
@@ -3096,6 +3205,14 @@ pass them to the compiled program execution.""")
 
 
 def runSpecialCommandsFromOptions(options):
+    if options.container is not None:
+        from nuitka.tools.podman.Container import runNuitkaInContainer
+
+        runNuitkaInContainer(
+            container_name=options.container,
+            container_command=options.container_command,
+        )
+
     if options.recommended_python_version_kind is not None:
         displayRecommendedVersion(options.recommended_python_version_kind)
         sys.exit(0)

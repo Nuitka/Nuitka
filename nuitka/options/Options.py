@@ -372,6 +372,13 @@ def parseArgs():
 
     states.report_missing_trust = options.report_missing_trust
 
+    if options.container is None:
+        for option_name, _dest in options.given_options:
+            if option_name.startswith("--container-"):
+                return options_logger.sysexit(
+                    "Error, using '%s' requires '--container' too." % option_name
+                )
+
     if options.zig:
         if options.clang:
             return options_logger.sysexit(
@@ -2327,6 +2334,51 @@ def getLinuxAppConsoleMode():
 def getLinuxAppLicense():
     """*str* SPDX license expression derived from ``--linux-app-license``"""
     return options.linux_app_license or "Proprietary"
+
+
+def getContainer():
+    """*str* or *None*, container name selected with ``--container``"""
+    return options.container if options is not None else None
+
+
+def getContainerCommand():
+    """*str* or *None*, command to run inside the container instead of compiling"""
+    return options.container_command if options is not None else None
+
+
+def getContainerNoBuild():
+    """*bool*, shall the container be used as is, from ``--container-no-build``"""
+    return options.container_no_build if options is not None else False
+
+
+def getContainerPodmanPath():
+    """*str* or *None*, podman binary path from ``--container-podman-path``"""
+    return options.container_podman_path if options is not None else None
+
+
+def getContainerPodmanVerbose():
+    """*bool*, shall podman be verbose, from ``--container-podman-verbose``"""
+    return options.container_podman_verbose if options is not None else False
+
+
+def getContainerSharedPaths():
+    """*tuple*, paths to share with the container from ``--container-shared-path``"""
+    return tuple(options.container_shared_paths) if options is not None else ()
+
+
+def getContainerNetwork():
+    """*bool*, shall the container run use the network, from ``--container-network``"""
+    return options.container_network if options is not None else False
+
+
+def getContainerIsolated():
+    """*bool* or *None*, isolation choice from ``--container-isolated``/``--container-no-isolated``"""
+    return options.container_isolated if options is not None else None
+
+
+def getContainerPrivileged():
+    """*bool*, shall the container run be privileged, from ``--container-privileged``"""
+    return options.container_privileged if options is not None else False
 
 
 def isLinuxAppMode():

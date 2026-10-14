@@ -28,6 +28,12 @@ from .Utils import (
     isWin32Windows,
 )
 
+if str is bytes:
+    from pipes import quote as _shellQuote  # Python2 code
+else:
+    from shlex import quote as _shellQuote
+
+
 # Cache, so we avoid repeated command lookups.
 _executable_command_cache = {}
 
@@ -85,6 +91,18 @@ def getExecutablePath(filename, extra_dir=None):
 
 def isExecutableCommand(command):
     return getExecutablePath(command) is not None
+
+
+def quoteForShell(value):
+    """Quote a value for use in a shell command line.
+
+    Args:
+        value: (str) value to quote
+
+    Returns:
+        str, quoted value
+    """
+    return _shellQuote(value)
 
 
 class NuitkaCalledProcessError(subprocess.CalledProcessError):

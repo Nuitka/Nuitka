@@ -566,6 +566,44 @@ class NuitkaPluginBase(getMetaClassBase("Plugin", require_slots=False)):
         # Call group.add_option() here.
         pass
 
+    def getContainerNamesAvailable(self):
+        """Announce container files offered by this plugin.
+
+        Notes:
+            These names are usable with '--container=<name>' when no container
+            file of that name is found in the built-in containers directory.
+            This must not create any files, the actual container file is asked
+            for with 'getContainerFileContents' only when it is selected.
+
+        Returns:
+            Iterable of container names offered by this plugin.
+        """
+        # Virtual method, pylint: disable=no-self-use
+        return ()
+
+    def getContainerFileContents(self, container_name):
+        """Create the contents of a container file for an announced name.
+
+        Args:
+            container_name: name announced by 'getContainerNamesAvailable'.
+
+        Returns:
+            str, contents of the container file, or None if not provided.
+        """
+        # Virtual method, pylint: disable=no-self-use,unused-argument
+        return None
+
+    def onContainerSelection(self, container_name):
+        """React to a container being selected for the compilation.
+
+        Args:
+            container_name: name of the container selected with '--container'.
+
+        Notes:
+            This can be used to warn about non-commercial containers, or to
+            check for requirements of commercial container images.
+        """
+
     def isRequiredImplicitImport(self, module, full_name):
         """Indicate whether an implicitly imported module should be accepted.
 

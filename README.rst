@@ -1147,12 +1147,16 @@ login, and keeping it secure, as it's something you put your source code
 on.
 
 To aid that, Nuitka commercial has container based builds, that you can
-use. This uses dedicated optimized Python builds, targets CentOS 7 and
-supports even newest Pythons and very old OSes that way using recent C
-compiler chains all turn key solution. The effort needs to be
+use. This uses dedicated optimized Python builds, targets CentOS 7, 8
+and 9 and supports even newest Pythons and very old OSes that way using
+recent C compiler chains all turn key solution. The effort needs to be
 compensated to support Nuitka development for Linux, there you need to
 purchase it https://nuitka.net/doc/commercial.html but even a sponsor
 license will be cheaper than doing it yourself.
+
+Nuitka itself can also compile inside a container with
+``--container=CentOS8``, and plugins can provide additional containers.
+See ``--help`` for the container options.
 
 Program crashes system (fork bombs)
 ===================================

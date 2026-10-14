@@ -215,6 +215,11 @@ package_data = {
     "nuitka.reports": ["*.j2"],
     "nuitka.installer.backends": ["*.nsi"],
     "nuitka.plugins.standard": ["*/*.c", "*/*.py"],
+    "nuitka.tools.podman": [
+        "containers/*.containerfile",
+        "containers/*.containerfile.in",
+        "containers/*.containerfile.j2",
+    ],
     "nuitka.utils": ["requirements-private.txt"],
     "nuitka.format": ["biome.json"],
     "nuitka.package_config": ["nuitka-package-config-schema.json"],

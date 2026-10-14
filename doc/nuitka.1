@@ -158,6 +158,38 @@ Execute inside a debugger, e.g. "gdb" or "lldb" to automatically get a stack tra
 \fB\-\-debugger\-choice\fR=\fI\,DEBUGGER_CHOICE\/\fR
 Choose the debugger to use.
 .IP
+Container options:
+.TP
+\fB\-\-container\fR=\fI\,CONTAINER_NAME\/\fR
+Run the compilation inside the named container, building or updating the container if necessary. The name selects the container file, e.g. "CentOS8". Container files can be provided by plugins. Only an alternative command is run if '\-\-container\-command' is given. Defaults to off.
+.TP
+\fB\-\-container\-command\fR=\fI\,COMMAND\/\fR
+Command to execute inside the container selected with '\-\-container' instead of compiling the program. Defaults to compiling the program inside the container.
+.TP
+\fB\-\-container\-no\-build\fR
+Do not update the container before using it, use it as it is. Defaults to off.
+.TP
+\fB\-\-container\-podman\-path\fR=\fI\,PODMAN_PATH\/\fR
+Podman binary in case you do not have it in "PATH". Defaults to automatic detection.
+.TP
+\fB\-\-container\-podman\-verbose\fR
+Do not use podman quietly, giving more messages during the container build. Defaults to off.
+.TP
+\fB\-\-container\-shared\-path\fR=\fI\,PATH_SPEC\/\fR
+Path to share with the container, use "\-\-container\-shared\-path=src=dst" format for directory names. Can be given multiple times. Defaults to nothing.
+.TP
+\fB\-\-container\-network\fR
+Allow the container run to use the network. Defaults to off.
+.TP
+\fB\-\-container\-isolated\fR
+Do not provide host access of any kind to the container run. Defaults to on for containers whose name contains "isolated" and off otherwise.
+.TP
+\fB\-\-container\-no\-isolated\fR
+Provide host access even if the container name suggests otherwise. Defaults to off.
+.TP
+\fB\-\-container\-privileged\fR
+Allow the container run to create device nodes, e.g. for pbuilder, making the container insecure. Defaults to off.
+.IP
 Compilation choices:
 .TP
 \fB\-\-user\-package\-configuration\-file\fR=\fI\,YAML_FILENAME\/\fR

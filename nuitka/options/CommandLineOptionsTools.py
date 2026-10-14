@@ -50,6 +50,9 @@ class OurOption(Option):
         Option.__init__(self, *args, **kwargs)
 
     def take_action(self, action, dest, opt, value, values, parser):
+        # Record given options, so that checks can tell values from defaults.
+        values.ensure_value("given_options", []).append((opt, dest))
+
         if action == "append_comma":
             values.ensure_value(dest, []).extend(value.split(","))
         elif action == "append_shell_pattern":

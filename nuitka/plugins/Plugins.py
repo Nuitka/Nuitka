@@ -222,6 +222,54 @@ def getActivePlugins():
     return active_plugins.values()
 
 
+def getContainerNamesAvailable():
+    """Get container files announced by active plugins.
+
+    Returns:
+        dict of container name to plugin offering it
+
+    """
+    result = {}
+
+    for plugin in getActivePlugins():
+        for container_name in plugin.getContainerNamesAvailable():
+            result[container_name] = plugin
+
+    return result
+
+
+def getContainerFileContents(container_name):
+    """Ask the providing plugin for a container file's contents.
+
+    Args:
+        container_name: name of the container to create the file for
+
+    Returns:
+        str or None, contents of the container file
+
+    """
+    plugin = getContainerNamesAvailable().get(container_name, None)
+
+    if plugin is None:
+        return None
+
+    return plugin.getContainerFileContents(container_name)
+
+
+def onContainerSelection(container_name):
+    """Notify active plugins about the container that was selected.
+
+    Args:
+        container_name: name of the container to be used
+
+    Returns:
+        None
+
+    """
+    for plugin in getActivePlugins():
+        plugin.onContainerSelection(container_name)
+
+
 def getActiveQtPlugin():
     """Get active Qt plugin name."""
     for plugin_name in getQtPluginNames():
