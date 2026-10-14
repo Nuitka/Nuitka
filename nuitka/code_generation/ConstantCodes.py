@@ -91,8 +91,8 @@ def generateConstantGenericAliasCode(to_name, expression, emit, context):
         context.addCleanupTempName(value_name)
 
 
-def getTypeDescriptionDeclarationCodes(type_description_values):
-    """Return (header lines, body lines) for all used type descriptions.
+def getTypeDescriptionDefinitionCodes(type_description_values):
+    """Return definition lines for all used type descriptions.
 
     This is about sharing the type description arrays of compiled frames by
     their contents, so that descriptions occurring within others do not need
@@ -102,6 +102,12 @@ def getTypeDescriptionDeclarationCodes(type_description_values):
     get a trailing NUL that the assertions rely on, and sharing is limited to
     suffixes of the host array then.
 
+    All descriptions are exported as pointer variables, so that generated
+    modules can declare the ones they use uniformly, whether they are a host
+    array or an alias to one. Each definition is preceded by an "extern"
+    declaration, because a namespace scope const object would otherwise have
+    internal linkage in C++ and not be visible to the modules there.
+
     The description contents are indicator tokens, while the emitted arrays
     use the "NUITKA_FRAME_LOCALS_TYPE_*" macros of the active spec header, so
     their actual byte values do not matter here.
@@ -110,7 +116,7 @@ def getTypeDescriptionDeclarationCodes(type_description_values):
         type_description_values: set of all type descriptions used program wide.
 
     Returns:
-        Tuple of list of header lines, and list of body lines.
+        List of definition lines.
     """
     # Type description indicators to macros of "constants_blob_spec.h".
     indicator_codes = {
@@ -158,8 +164,7 @@ def getTypeDescriptionDeclarationCodes(type_description_values):
         else:
             hosts.append((content, "type_description_%s" % content))
 
-    header_lines = []
-    body_lines = []
+    definition_lines = []
 
     for content, name in hosts:
         initializer = ",".join(
@@ -169,19 +174,23 @@ def getTypeDescriptionDeclarationCodes(type_description_values):
         if states.is_debug:
             initializer += ",0"
 
-        header_lines.append("extern char const %s[];" % name)
-        body_lines.append("char const %s[] = {%s};" % (name, initializer))
+        definition_lines.append(
+            "static char const %s_data[] = {%s};" % (name, initializer)
+        )
+        # Prior extern declaration for external linkage as const object.
+        definition_lines.append("extern char const * const %s;" % name)
+        definition_lines.append("char const * const %s = %s_data;" % (name, name))
 
     for content, host_content, offset in aliases:
         name = "type_description_%s" % content
-        host_name = "type_description_%s" % host_content
+        host_data_name = "type_description_%s_data" % host_content
 
-        header_lines.append("extern char const * const %s;" % name)
-        body_lines.append(
-            "char const * const %s = &%s[%d];" % (name, host_name, offset)
+        definition_lines.append("extern char const * const %s;" % name)
+        definition_lines.append(
+            "char const * const %s = &%s[%d];" % (name, host_data_name, offset)
         )
 
-    return header_lines, body_lines
+    return definition_lines
 
 
 def getConstantsDefinitionCode():
@@ -256,20 +265,15 @@ def getConstantsDefinitionCode():
         % constant_accessor.getConstantsCount(),
     )
 
-    (
-        type_description_header_lines,
-        type_description_body_lines,
-    ) = getTypeDescriptionDeclarationCodes(constant_accessor.getTypeDescriptionValues())
+    type_description_definition_lines = getTypeDescriptionDefinitionCodes(
+        constant_accessor.getTypeDescriptionValues()
+    )
 
-    lines.extend(type_description_header_lines)
-
-    if type_description_body_lines:
+    if type_description_definition_lines:
         type_description_body_code = (
             "// Type descriptions shared by the whole program.\n"
             '#include "nuitka/constants_blob_spec.h"\n'
-            + "\n".join(type_description_header_lines)
-            + "\n"
-            + "\n".join(type_description_body_lines)
+            + "\n".join(type_description_definition_lines)
             + "\n\n"
         )
     else:

@@ -31,10 +31,12 @@
 #include <patchlevel.h>
 
 /* Use a hex version of our own to compare for versions. We do not care about pre-releases */
+#ifndef __IDE_ONLY__
 #if PY_MICRO_VERSION < 16
 #define PYTHON_VERSION (PY_MAJOR_VERSION * 256 + PY_MINOR_VERSION * 16 + PY_MICRO_VERSION)
 #else
 #define PYTHON_VERSION (PY_MAJOR_VERSION * 256 + PY_MINOR_VERSION * 16 + 15)
+#endif
 #endif
 
 #include "nuitka/cpython_api_compat.h"

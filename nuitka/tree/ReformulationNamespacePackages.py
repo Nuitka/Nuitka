@@ -22,7 +22,10 @@ from nuitka.nodes.ImportNodes import (
     makeExpressionImportModuleFixed,
     makeExpressionImportModuleNameHard,
 )
-from nuitka.nodes.ModuleAttributeNodes import ExpressionModuleAttributeFileRef
+from nuitka.nodes.ModuleAttributeNodes import (
+    ExpressionModuleAttributeFileRef,
+    ExpressionModuleAttributeNameRef,
+)
 from nuitka.nodes.ModuleNodes import CompiledPythonNamespacePackage
 from nuitka.nodes.VariableNameNodes import StatementAssignmentVariableName
 from nuitka.options.Options import getFileReferenceMode
@@ -186,9 +189,8 @@ def createPython3NamespacePath(package, source_ref):
             ),
             args=makeExpressionMakeTupleOrConstant(
                 elements=(
-                    makeConstantRefNode(
-                        constant=package.getFullName().asString(),
-                        user_provided=True,
+                    ExpressionModuleAttributeNameRef(
+                        variable=package.getVariableForReference("__name__"),
                         source_ref=source_ref,
                     ),
                     _getNameSpacePathExpression(package=package, source_ref=source_ref),

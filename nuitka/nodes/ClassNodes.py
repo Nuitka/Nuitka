@@ -7,7 +7,6 @@ The classes are are at the core of the language and have their complexities.
 
 """
 
-from nuitka.containers.OrderedDicts import OrderedDict
 from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.PythonVersions import python_version
 
@@ -34,7 +33,12 @@ from .shapes.StandardShapes import tshape_unknown
 class ExpressionClassBodyBase(ExpressionOutlineFunctionBase):
     kind = "EXPRESSION_CLASS_BODY"
 
-    __slots__ = ("doc", "locals_scope")
+    __slots__ = (
+        "doc",
+        "locals_scope",
+        "conditional_annotation_indices",
+        "conditional_annotations_variable",
+    )
 
     def __init__(self, provider, name, doc, source_ref):
         ExpressionOutlineFunctionBase.__init__(
@@ -47,6 +51,10 @@ class ExpressionClassBodyBase(ExpressionOutlineFunctionBase):
         )
 
         self.doc = doc
+
+        # Conditional annotations, set during tree building on 3.14 or higher.
+        self.conditional_annotation_indices = None
+        self.conditional_annotations_variable = None
 
         self.locals_scope = getLocalsDictHandle(
             "locals_%s_%d" % (self.getCodeName(), source_ref.getLineNumber()),
@@ -93,14 +101,15 @@ class ExpressionClassBodyBase(ExpressionOutlineFunctionBase):
         # print( "getVariableForClosure", self, variable_name )
 
         # The class bodies provide no closure, except under CPython3.x, there
-        # they provide "__class__" but nothing else.
+        # they provide "__class__" and the "__conditional_annotations__" for 3.14
+        # but nothing else.
 
-        if variable_name == "__class__":
+        if variable_name in ("__class__", "__conditional_annotations__"):
             if python_version < 0x300:
-                return self.provider.getVariableForClosure("__class__")
+                return self.provider.getVariableForClosure(variable_name)
             else:
                 return ExpressionOutlineFunctionBase.getVariableForClosure(
-                    self, variable_name="__class__"
+                    self, variable_name=variable_name
                 )
         else:
             result = self.provider.getVariableForClosure(variable_name)
@@ -156,7 +165,7 @@ class ExpressionClassMappingBody(MarkNeedsAnnotationsMixin, ExpressionClassBodyB
 
         self.qualname_setup = None
         self.static_attributes = OrderedSet() if python_version >= 0x3D0 else None
-        self.deferred_annotations = OrderedDict() if python_version >= 0x3E0 else None
+        self.deferred_annotations = []
 
     def addStaticAttribute(self, static_attribute):
         self.static_attributes.add(static_attribute)

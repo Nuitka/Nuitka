@@ -844,7 +844,19 @@ class PythonModuleContext(
         return key in self.declaration_codes
 
     def getTypeDescriptionCode(self, type_description_value):
-        return self.constant_accessor.getTypeDescriptionCode(type_description_value)
+        type_description_code = self.constant_accessor.getTypeDescriptionCode(
+            type_description_value
+        )
+
+        # Declare the type description locally, so that the program wide set
+        # of descriptions only affects the modules that use them.
+        if not self.hasDeclaration(type_description_code):
+            self.addDeclaration(
+                type_description_code,
+                "extern char const * const %s;" % type_description_code,
+            )
+
+        return type_description_code
 
     def getDeclarations(self):
         return self.declaration_codes

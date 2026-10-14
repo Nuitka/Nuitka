@@ -221,6 +221,16 @@ def optimizableTargets():
     print("Optimizable slice operation, results in", a)
 
 
+def localsUnpacking():
+    x = 5
+
+    a, b = 0, locals()
+    print("Assignment from locals() in tuple:", a, sorted(b))
+
+    c, d = locals(), 0
+    print("Assignment from tuple with locals():", sorted(c), d)
+
+
 def complexDel():
     a = b = c = d = 1
 
@@ -269,6 +279,7 @@ swapVariables()
 InterruptedUnpack()
 multiTargetInterrupt()
 optimizableTargets()
+localsUnpacking()
 complexDel()
 sliceDel()
 globalErrors()

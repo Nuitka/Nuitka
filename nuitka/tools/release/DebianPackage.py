@@ -11,8 +11,10 @@ from nuitka.utils.FileOperations import (
     copyFile,
     getFileContentByLine,
     getFileContents,
+    getFileList,
     listDir,
     openTextFile,
+    removeFileExecutablePermission,
 )
 
 
@@ -125,6 +127,21 @@ def cleanupTarfileForDebian(codename, filename, new_name):
     check_call(["gzip", "-9", "-n", new_name[:-3]])
 
 
+def _fixupPy2dscDebianPermissions(debian_dir):
+    """Remove executable permissions from copied Debian config files.
+
+    Notes:
+        On mounts that report all files as executable, e.g. container builds
+        using Windows shares, the copied Debian config files inherit the
+        executable bit. The debhelper tooling then runs 'nuitka.install' as an
+        executable config file instead of reading it, which fails. Keep 'rules'
+        executable, but remove the executable permission from the rest.
+    """
+
+    for filename in getFileList(debian_dir, ignore_filenames=("rules",)):
+        removeFileExecutablePermission(filename)
+
+
 def runPy2dsc(filename, new_name):
     check_call(["py2dsc", new_name])
 
@@ -172,6 +189,8 @@ def runPy2dsc(filename, new_name):
             "deb_dist/%s/debian/" % entry,
         ]
     )
+
+    _fixupPy2dscDebianPermissions("deb_dist/%s/debian" % entry)
 
     check_call("rm deb_dist/*.dsc deb_dist/*.debian.tar.xz", shell=True)
 
