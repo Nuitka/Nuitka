@@ -381,7 +381,11 @@ class NuitkaProgressBarBarflow(object):
         ]
 
         self.barflow_progress = _barflow.Progress(
-            *columns, total=effective_total, desc=stage, disable=disable, leave=False
+            *columns,
+            total=effective_total or 0,
+            desc=stage,
+            disable=disable,
+            leave=False
         )
         self.barflow_progress.__enter__()
 
@@ -403,9 +407,11 @@ class NuitkaProgressBarBarflow(object):
     def updateTotal(self, total):
         if total != self.total:
             self.total = total
-            self.barflow_progress.set_total(
-                0, self._effectiveTotal(total, self.min_total)
-            )
+
+            effective_total = self._effectiveTotal(total, self.min_total)
+
+            if effective_total is not None:
+                self.barflow_progress.set_total(0, effective_total)
 
     def setCurrent(self, item):
         # Update only the trailing postfix (rendered by the postfix column),
