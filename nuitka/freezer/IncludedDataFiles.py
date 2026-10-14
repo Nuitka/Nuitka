@@ -18,6 +18,7 @@ from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.importing.Importing import locateModule
 from nuitka.options.BuildPackageCommon import getProjectExpectedDataFiles
 from nuitka.options.Options import (
+    getCompilationMode,
     getOutputPath,
     getShallIncludeDataDirs,
     getShallIncludeDataFiles,
@@ -1121,11 +1122,12 @@ def _handleDataFile(included_datafile, standalone_entry_points):
     tracer = included_datafile.tracer
 
     if not isinstance(included_datafile, IncludedDataFile):
-        tracer.sysexit("Error, can only accept 'IncludedData*' objects from ")
+        return tracer.sysexit("Error, can only accept 'IncludedData*' objects from ")
 
     if not isStandaloneMode():
-        tracer.sysexit(
-            "Error, package data files are only included in standalone or onefile mode."
+        return tracer.sysexit(
+            "Error, package data files are only included in standalone or onefile mode, not '%s' mode."
+            % getCompilationMode()
         )
 
     key = tracer, included_datafile.reason

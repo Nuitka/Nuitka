@@ -235,14 +235,19 @@ need to use --mode=app if you want that.""" % option_name)
 
 def _warnOnefileOnlyOption(option_name):
     if not options.is_onefile:
-        if options.github_workflow_options or (isMacOS() and shallCreateAppBundle()):
+        if isMacOS() and shallCreateAppBundle():
             options_logger.info("""\
 Note: Using onefile mode specific option '%s' has no effect \
 with macOS app bundles.""" % option_name)
         else:
-            options_logger.warning("""\
+            message = """\
 Using onefile mode specific option '%s' has no effect \
-when '--mode=onefile' is not specified.""" % option_name)
+when '--mode=onefile' is not specified.""" % option_name
+
+            if options.github_workflow_options:
+                options_logger.info(message)
+            else:
+                options_logger.warning(message)
 
 
 def _warningModuleModeOnlyOption(option_name):
@@ -702,11 +707,13 @@ Error, '--nofollow-import-to' takes only module names or patterns, not directory
     if output_filename is not None:
         if shallMakeModule():
             return options_logger.sysexit("""\
-Error, may not module mode where filenames and modules matching are
-mandatory.""")
+Error, may not use '%s' mode where output filename and module name matching are
+mandatory.""" % getCompilationMode())
         elif isStandaloneMode() and not isOnefileMode():
             _checkFilenameOnlyArgument(
-                "--output-filename", output_filename, " for standalone mode"
+                "--output-filename",
+                output_filename,
+                " for '%s' mode" % getCompilationMode(),
             )
 
         output_filename_dir = os.path.dirname(output_filename) or "."
@@ -942,11 +949,14 @@ want to install it."""
 
     if isApplePython():
         if isStandaloneMode():
-            return options_logger.sysexit("""\
-Error, on macOS, for standalone mode, Apple Python is not supported \
+            return options_logger.sysexit(
+                """\
+Error, on macOS, for '%s' mode, Apple Python is not supported \
 due to being tied to specific OS releases, use e.g. CPython instead \
 which is available from https://www.python.org/downloads/macos/ for \
-download. With that, your program will work on macOS 10.9 or higher.""")
+download. With that, your program will work on macOS 10.9 or higher."""
+                % getCompilationMode()
+            )
 
         if str is bytes:
             return options_logger.sysexit(
@@ -1156,7 +1166,8 @@ library. Please upgrade/downgrade to a supported micro version.""")
 
         if not isStandaloneMode():
             return options_logger.sysexit(
-                "Error, Windows installer creation requires standalone or onefile mode."
+                "Error, Windows installer creation requires standalone or onefile mode, not '%s' mode."
+                % getCompilationMode()
             )
 
         if not getProductName():
@@ -1190,7 +1201,8 @@ library. Please upgrade/downgrade to a supported micro version.""")
 
         if not isStandaloneMode():
             return options_logger.sysexit(
-                "Error, Linux installer creation requires standalone or onefile mode."
+                "Error, Linux installer creation requires standalone or onefile mode, not '%s' mode."
+                % getCompilationMode()
             )
 
         if not getProductName():
@@ -1275,16 +1287,16 @@ require '--company-name' and '--product-name' to be given.""",
 
     if standalone_mode and not hasStandaloneSupportedOS():
         options_logger.warning(
-            "Standalone mode on %s is not known to be supported, might fail to work."
-            % getOS()
+            "'%s' mode on %s is not known to be supported, might fail to work."
+            % (getCompilationMode(), getOS())
         )
 
     if options.follow_all is True and shallMakeModule():
         return optimization_logger.sysexit("""\
-In module mode you must follow modules more selectively, and e.g. should \
+In '%s' mode you must follow modules more selectively, and e.g. should \
 not include standard library or all foreign modules or else it will fail \
 to work. You need to instead selectively add them with \
-'--follow-import-to=name' though.""")
+'--follow-import-to=name' though.""" % getCompilationMode())
 
     if options.follow_all is True and standalone_mode:
         options_logger.info(
@@ -1301,7 +1313,8 @@ to work. You need to instead selectively add them with \
     if options.follow_stdlib:
         if standalone_mode:
             options_logger.warning(
-                "Following imports to stdlib is the default in standalone mode.."
+                "Following imports to stdlib is the default in %s mode."
+                % standalone_mode
             )
         else:
             options_logger.warning(
@@ -1333,7 +1346,8 @@ make sure that is intended."""
 
     if shallMakeModule() and options.static_libpython == "yes":
         options_logger.warning(
-            "In module mode, providing '--static-libpython' has no effect, it's not used."
+            "In '%s' mode, providing '--static-libpython' has no effect, it's not used."
+            % getCompilationMode()
         )
 
         options.static_libpython = "no"
@@ -1347,16 +1361,10 @@ make sure that is intended."""
             "Providing PGO arguments without enabling PGO mode has no effect."
         )
 
-    if isCPgoMode():
-        if isStandaloneMode():
-            optimization_logger.warning("""\
-Using C level PGO with standalone/onefile mode is not \
-currently working. Expect errors.""")
-
-        if shallMakeModule():
-            optimization_logger.warning("""\
-Using C level PGO with module mode is not currently \
-working. Expect errors.""")
+    if isCPgoMode() and not isAcceleratedMode():
+        optimization_logger.warning("""\
+Using C level PGO with '%s' mode is not currently \
+working. Expect errors.""" % getCompilationMode())
 
     if (
         options.static_libpython == "auto"
@@ -2127,7 +2135,7 @@ added to provide the static link library.""",
 
 def _shallUseStaticLibPython():
     if shallMakeModule():
-        return False, "not used in module mode"
+        return False, "not used in '%s' mode" % getCompilationMode()
 
     if options.static_libpython == "auto":
         result = _couldUseStaticLibPython()

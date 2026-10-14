@@ -119,6 +119,7 @@ from nuitka.nodes.VariableNameNodes import (
 )
 from nuitka.optimizations.BytecodeDemotion import demoteSourceCodeToBytecode
 from nuitka.options.Options import (
+    getCompilationMode,
     getMainEntryPointFilenames,
     getMainModuleName,
     hasPythonFlagNoSite,
@@ -127,6 +128,7 @@ from nuitka.options.Options import (
     isShowMemory,
     isStandaloneMode,
     shallDisableBytecodeCacheUsage,
+    shallMakeExe,
     shallMakeModule,
     shallWarnUnusualCode,
 )
@@ -1412,9 +1414,10 @@ def buildModule(
     )
 
     if hasPythonFlagPackageMode():
-        if is_top and shallMakeModule():
+        if is_top and not shallMakeExe():
             optimization_logger.warning(
-                "Python flag -m (package_mode) has no effect in module mode, it's only for executables."
+                "Python flag -m (package_mode) has no effect in '%s' mode, it's only for executables."
+                % getCompilationMode()
             )
         elif is_main and not main_added:
             optimization_logger.warning(
