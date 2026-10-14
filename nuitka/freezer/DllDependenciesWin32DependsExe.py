@@ -8,6 +8,7 @@ We use "depends.exe" to investigate needed DLLs of Python DLLs.
 """
 
 import os
+import re
 
 # pylint: disable=I0021,import-error,redefined-builtin
 from nuitka.__past__ import WindowsError
@@ -150,6 +151,41 @@ def _parseDependsExeOutput2(lines):
 
 def parseDependsExeOutput(filename):
     return _parseDependsExeOutput2(getFileContentByLine(filename, encoding="latin1"))
+
+
+_re_loaded_file_line = re.compile(
+    r'^(?:\d\d:\d\d:\d\d\.\d\d\d: )?Loaded "(?P<filename>[^"]+)" at address 0x[0-9A-Fa-f]+'
+)
+
+
+def parseDependsExeLoadedFiles(filename):
+    """Parse the profiling log of a "depends.exe" output for loaded files.
+
+    Notes:
+        Only files that were actually loaded while profiling are in the log,
+        e.g. delay loaded DLLs appear only if they are really used. The
+        module tree however resolves names of dependencies using its search
+        order, and is not used here for that reason.
+
+    Args:
+        filename: The name of the "depends.exe" text output file.
+
+    Returns:
+        Tuple of filenames loaded at runtime.
+    """
+
+    result = OrderedSet()
+
+    for line in getFileContentByLine(filename, encoding="latin1"):
+        # Lines have a format like this:
+        # 00:00:00.531: Loaded "c:\...\ICUUC77.DLL" at address 0x... by
+        # thread 1.  Successfully hooked module.
+        match = _re_loaded_file_line.match(line)
+
+        if match is not None:
+            result.add(match.group("filename"))
+
+    return result
 
 
 def isDependsExePathSupported(path, encoding):

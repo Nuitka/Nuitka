@@ -16,7 +16,7 @@ import sys
 
 from nuitka.freezer.DllDependenciesWin32DependsExe import (
     getDependsExePath,
-    parseDependsExeOutput,
+    parseDependsExeLoadedFiles,
 )
 from nuitka.utils.Execution import (
     callProcess,
@@ -24,7 +24,7 @@ from nuitka.utils.Execution import (
     isExecutableCommand,
     withEnvironmentVarOverridden,
 )
-from nuitka.utils.FileOperations import deleteFile
+from nuitka.utils.FileOperations import deleteFile, putTextFileContents
 from nuitka.utils.Utils import (
     getArchitecture,
     isFreeBSD,
@@ -39,6 +39,25 @@ def _getRuntimeTraceOfLoadedFilesWin32(logger, command, required):
     path = command[0]
 
     output_filename = path + ".depends"
+
+    # Otherwise Dependency Walker will resolve module names through the PATH
+    # environment variable, e.g. versioned ICU DLLs of a PHP installation,
+    # and get slowed down badly by doing that, while we only care about
+    # actually loaded modules, which the profiling log provides.
+    dwp_filename = path + ".dwp"
+
+    putTextFileContents(
+        dwp_filename,
+        contents="""\
+SxS
+KnownDLLs
+AppDir
+32BitSysDir
+16BitSysDir
+OSDir
+AppPath
+""",
+    )
 
     command = (
         getDependsExePath(),
@@ -57,6 +76,7 @@ def _getRuntimeTraceOfLoadedFilesWin32(logger, command, required):
         "-pg1",  # Log GetProcAddress calls.
         "-pf1",  # Use full paths.
         "-pc1",  # Profile child processes.
+        "-d%s" % dwp_filename,
     ) + tuple(command)
 
     # TODO: Move the handling of this into nuitka.tools.Execution module methods.
@@ -71,8 +91,10 @@ def _getRuntimeTraceOfLoadedFilesWin32(logger, command, required):
             return []
         else:
             raise
+    finally:
+        deleteFile(dwp_filename, must_exist=False)
 
-    result = parseDependsExeOutput(output_filename)
+    result = parseDependsExeLoadedFiles(output_filename)
 
     deleteFile(output_filename, must_exist=False)
 
