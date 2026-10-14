@@ -1559,17 +1559,6 @@ def checkLoadedFileAccesses(loaded_filenames, current_dir, python_flavor):
             if r"windows\winsxs" in loaded_filename:
                 continue
 
-            # GitHub actions have these in PATH overriding SYSTEMROOT,
-            # spell-checker: ignore tortoisesvn
-            if r"windows performance toolkit" in loaded_filename:
-                continue
-            if r"powershell" in loaded_filename:
-                continue
-            if r"azure dev spaces cli" in loaded_filename:
-                continue
-            if r"tortoisesvn" in loaded_filename:
-                continue
-
         if loaded_filename.startswith(current_dir):
             continue
 
