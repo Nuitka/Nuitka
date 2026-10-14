@@ -51,10 +51,11 @@ def signalChange(tags, source_ref, message):
 
         if states.is_verbose:
             optimization_logger.info(
-                "{source_ref} : {tags} : {message}".format(
-                    source_ref=source_ref.getAsString(),
-                    tags=tags,
-                    message=message() if inspect.isfunction(message) else message,
+                "%s : %s : %s"
+                % (
+                    source_ref.getAsString(),
+                    tags,
+                    message() if inspect.isfunction(message) else message,
                 )
             )
 
@@ -67,9 +68,7 @@ def optimizeCompiledPythonModule(module):
     module_name = module.getFullName()
 
     optimization_logger.info_if_file(
-        "Doing module local optimizations for '{module_name}'.".format(
-            module_name=module_name
-        ),
+        "Doing module local optimizations for '%s'." % module_name,
         other_logger=progress_logger,
     )
 
@@ -167,9 +166,7 @@ def optimizeUncompiledPythonModule(module):
     module_name = module.getFullName()
 
     progress_logger.info(
-        "Doing module dependency considerations for '{module_name}':".format(
-            module_name=module_name
-        )
+        "Doing module dependency considerations for '%s':" % module_name
     )
 
     # Pick up parent package if any.
@@ -232,10 +229,11 @@ def _restartProgress():
 def _traceProgressModuleStart(current_module):
     optimization_logger.info_if_file(
         """\
-Optimizing module '{module_name}', {remaining:d} more modules to go \
-after that.""".format(
-            module_name=current_module.getFullName(),
-            remaining=ModuleRegistry.getRemainingModulesCount(),
+Optimizing module '%s', %d more modules to go \
+after that."""
+        % (
+            current_module.getFullName(),
+            ModuleRegistry.getRemainingModulesCount(),
         ),
         other_logger=progress_logger,
     )

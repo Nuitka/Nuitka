@@ -58,9 +58,9 @@ class TempMixin(object):
 
     def _formatTempName(self, base_name, number):
         if number is None:
-            return "tmp_{name}".format(name=base_name)
+            return "tmp_%s" % base_name
         else:
-            return "tmp_{name}_{number:d}".format(name=base_name, number=number)
+            return "tmp_%s_%d" % (base_name, number)
 
     def allocateTempNumber(self, base_name):
         number = self.tmp_names.get(base_name, 0)
@@ -169,7 +169,7 @@ class TempMixin(object):
         result += 1
         self.labels[label] = result
 
-        return "{name}_{number:d}".format(name=label, number=result)
+        return "%s_%d" % (label, result)
 
     def getLabelCount(self, label):
         return self.labels.get(label, 0)

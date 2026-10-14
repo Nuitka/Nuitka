@@ -1090,7 +1090,7 @@ class ValueTraceMerge(ValueTraceMergeBase):
         self.merge_usage_count = 0
 
     def __repr__(self):
-        return "<ValueTraceMerge of {previous}>".format(previous=self.previous)
+        return "<ValueTraceMerge of %s>" % (self.previous,)
 
     def emitShapeAlternativesForLoop(self, emit, loop_node):
         # TODO: Need to consider loop_node by asking for emission from

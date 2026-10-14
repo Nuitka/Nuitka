@@ -284,9 +284,7 @@ def formatYaml(logger, path, assume_yes_for_downloads, ignore_diff=False):
                 raise ConstructorError(
                     None,
                     None,
-                    "expected a scalar node, but found {node_id!s}".format(
-                        node_id=node.id
-                    ),
+                    "expected a scalar node, but found %s" % node.id,
                     node.start_mark,
                 )
 

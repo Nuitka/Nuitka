@@ -936,9 +936,8 @@ Stderr was:
 
             if exit_code_return and trace_result:
                 my_print(
-                    """Exit codes {exit_cpython:d} (CPython) != {exit_nuitka:d} (Nuitka)""".format(
-                        exit_cpython=exit_cpython, exit_nuitka=exit_nuitka
-                    )
+                    """Exit codes %d (CPython) != %d (Nuitka)"""
+                    % (exit_cpython, exit_nuitka)
                 )
 
             return exit_code_stdout, exit_code_stderr, exit_code_return
