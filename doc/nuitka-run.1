@@ -854,6 +854,9 @@ Timeout in seconds for each probe run. Defaults to no timeout, so a probe run th
 .TP
 \fB\-\-show\-source\-inclusion\-trace\fR
 Display the recorded source inclusion modules from the probe run.
+.TP
+\fB\-\-source\-inclusion\-main\fR=\fI\,SOURCE_INCLUSION_MAIN\/\fR
+Filename of a program to execute during compilation for recording source files, instead of the program being compiled. Use this in module mode, where there is no main program, to exercise the compiled module, e.g. a script that imports the package and runs typical operations.
 .IP
 Plugin options of 'upx' (categories: integration):
 .TP

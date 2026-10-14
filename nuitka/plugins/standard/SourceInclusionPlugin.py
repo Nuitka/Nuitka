@@ -10,9 +10,10 @@ import sys
 from nuitka.containers.OrderedDicts import OrderedDict
 from nuitka.importing.FakeModules import makeFakeModuleDescription
 from nuitka.options.Options import (
+    getCompilationMode,
     getMainEntryPointFilenames,
     isStandaloneMode,
-    shallMakeDll,
+    shallMakeExe,
     shallMakeModule,
 )
 from nuitka.plugins.PluginBase import NuitkaPluginBase
@@ -22,6 +23,7 @@ from nuitka.utils.FileOperations import (
     getFileContents,
     getNormalizedPath,
     getNormalizedPathJoin,
+    getUserInputNormalizedPath,
     putTextFileContents,
     relpath,
     resolveShellPatternToFilenames,
@@ -210,10 +212,17 @@ run that hangs is seen rather than silently cut short.""",
             help="""\
 Display the recorded source inclusion modules from the probe run.""",
         )
-
-    @classmethod
-    def isRelevant(cls):
-        return not (shallMakeModule() or shallMakeDll())
+        group.add_option(
+            "--source-inclusion-main",
+            action="store",
+            dest="source_inclusion_main",
+            default=None,
+            help="""\
+Filename of a program to execute during compilation for recording source \
+files, instead of the program being compiled. Use this in module mode, where \
+there is no main program, to exercise the compiled module, e.g. a script that \
+imports the package and runs typical operations.""",
+        )
 
     def _normalizeSourceInclusionArgSets(self, source_inclusion_arg_sets):
         result = []
@@ -237,6 +246,7 @@ Display the recorded source inclusion modules from the probe run.""",
         source_inclusion_arg_sets,
         source_inclusion_timeout,
         show_source_inclusion_trace,
+        source_inclusion_main,
     ):
         if source_inclusion_timeout is not None and source_inclusion_timeout <= 0:
             self.sysexit(
@@ -249,20 +259,38 @@ Display the recorded source inclusion modules from the probe run.""",
 
         self.source_inclusion_timeout = source_inclusion_timeout
         self.show_source_inclusion_trace = show_source_inclusion_trace
+        self.source_inclusion_main = source_inclusion_main
 
         self.main_filename = None
         self.source_data = OrderedDict()
         self.python_headers_included = False
 
     def onCompilationStartChecks(self):
-        main_filenames = getMainEntryPointFilenames()
+        if self.source_inclusion_main is not None:
+            self.main_filename = getUserInputNormalizedPath(self.source_inclusion_main)
 
-        if len(main_filenames) != 1:
-            return self.sysexit(
-                "Error, '--enable-plugin=source-inclusion' does not support multiple main programs yet."
-            )
+            if not os.path.isfile(self.main_filename):
+                return self.sysexit(
+                    "Error, '--source-inclusion-main' must be an existing filename, '%s' is not."
+                    % self.main_filename
+                )
+        else:
+            main_filenames = getMainEntryPointFilenames()
 
-        self.main_filename = main_filenames[0]
+            if len(main_filenames) != 1:
+                if not shallMakeExe():
+                    return self.sysexit(
+                        """\
+Error, in '%s' mode, '--enable-plugin=source-inclusion' requires \
+'--source-inclusion-main=<filename>' of a program that exercises the compiled module."""
+                        % getCompilationMode()
+                    )
+
+                return self.sysexit(
+                    "Error, '--enable-plugin=source-inclusion' does not support multiple main programs yet."
+                )
+
+            self.main_filename = main_filenames[0]
 
         source_data = self._runProbeExecutions(main_filename=self.main_filename)
 
@@ -534,8 +562,21 @@ def _main():
 _main()
 """
 
+    def _isSourceInclusionTrigger(self, module, pre_load):
+        if not self.source_data:
+            return False
+
+        if pre_load:
+            # In module mode there is no compiled "linecache" to hook, the
+            # hook has to be in place before the compiled module body runs.
+            return shallMakeModule() and module.isTopModule()
+
+        return not shallMakeModule() and module.getFullName() == "linecache"
+
     def createFakeModuleDependency(self, module):
-        if module.getFullName() == "linecache" and self.source_data:
+        if self._isSourceInclusionTrigger(
+            module, pre_load=True
+        ) or self._isSourceInclusionTrigger(module, pre_load=False):
             return (
                 makeFakeModuleDescription(
                     module_name=ModuleName("_nuitka_source_inclusion"),
@@ -545,16 +586,33 @@ _main()
                 ),
             )
 
-    def createPostModuleLoadCode(self, module):
-        if module.getFullName() == "linecache" and self.source_data:
-            return (
-                """\
+        return None
+
+    @staticmethod
+    def _getInstallCode():
+        return """\
 import linecache
 import _nuitka_source_inclusion
 _nuitka_source_inclusion.install(linecache)
-""",
+"""
+
+    def createPreModuleLoadCode(self, module):
+        if self._isSourceInclusionTrigger(module, pre_load=True):
+            return (
+                self._getInstallCode(),
                 "Install recorded source inclusion into 'linecache'.",
             )
+
+        return None
+
+    def createPostModuleLoadCode(self, module):
+        if self._isSourceInclusionTrigger(module, pre_load=False):
+            return (
+                self._getInstallCode(),
+                "Install recorded source inclusion into 'linecache'.",
+            )
+
+        return None
 
     def _getSupportModuleCode(self):
         source_data_code = _formatDictLiteralCode(self.source_data)

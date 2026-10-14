@@ -1082,10 +1082,15 @@
     - depends:
         - 'cytoolz.utils'
 
-- module-name: 'dash' # checksum: 26b9c88c
+- module-name: 'dash' # checksum: a5144a01
   data-files:
     - dirs:
         - '.'
+  options:
+    checks:
+      - description: "The 'dash.long_callback' managers use 'inspect.getsource()' for callback caching, which fails for callbacks defined in compiled modules. Consider '--enable-plugin=source-inclusion'; in module mode also give '--source-inclusion-main=<program that registers the callbacks>'."
+        support_info: 'plugin-warning'
+        when: '(standalone or module_mode) and not plugin("source-inclusion")'
 
 - module-name: 'dash._jupyter' # checksum: 681007fe
   anti-bloat:
