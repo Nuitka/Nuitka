@@ -76,6 +76,13 @@ def main():
         default=True,
         help="Do not install the pre-push hook.",
     )
+    parser.add_option(
+        "--no-codespell",
+        action="store_false",
+        dest="codespell",
+        default=True,
+        help="Do not check spelling from the pre-push hook.",
+    )
     options, _args = parser.parse_args()
 
     goHome()
@@ -111,12 +118,18 @@ def main():
             for tool_name in (
                 "autoformat-nuitka-source",
                 "check-nuitka-with-pylint",
+                "check-nuitka-with-codespell",
                 "generate-specialized-c-code",
                 "generate-specialized-python-code",
             ):
                 hook_contents = hook_contents.replace(
                     "./bin/%s" % tool_name,
                     "'%s' ./bin/%s" % (sys.executable, tool_name),
+                )
+
+            if hook == "pre-push" and not options.codespell:
+                hook_contents = hook_contents.replace(
+                    "has_codespell_check=1", "has_codespell_check=0"
                 )
         else:
             sys.exit("Error, unknown hook contents.")

@@ -11,6 +11,10 @@ then
     exit 0
 fi
 
+# Set to 0 by the hook installer for repositories that cannot be code spell
+# checked, e.g. Nuitka-Website.
+has_codespell_check=1
+
 has_errors=0
 
 while read local_ref local_oid remote_ref remote_oid
@@ -57,6 +61,7 @@ do
     python_files=""
     c_j2_files=""
     py_j2_files=""
+    spell_files=""
     all_files=""
     has_specialize_tool=0
 
@@ -86,6 +91,12 @@ do
                 has_specialize_tool=1
                 ;;
         esac
+
+        case "$file" in
+            *.py | *.scons | *.rst | *.txt | *.j2 | *.md | *.c | *.h)
+                spell_files="$spell_files $file"
+                ;;
+        esac
     done
 
     if [ -n "$all_files" ]
@@ -110,6 +121,18 @@ do
             if [ $? -ne 0 ]; then has_errors=1; fi
         else
             python -m pipenv run python Nuitka-develop/bin/check-nuitka-with-pylint --assume-yes-for-downloads $python_files
+            if [ $? -ne 0 ]; then has_errors=1; fi
+        fi
+    fi
+
+    if [ "$has_codespell_check" = "1" ] && [ -n "$spell_files" ]
+    then
+        if [ -f "bin/check-nuitka-with-codespell" ]
+        then
+            ./bin/check-nuitka-with-codespell --assume-yes-for-downloads $spell_files
+            if [ $? -ne 0 ]; then has_errors=1; fi
+        else
+            python -m pipenv run python Nuitka-develop/bin/check-nuitka-with-codespell --assume-yes-for-downloads $spell_files
             if [ $? -ne 0 ]; then has_errors=1; fi
         fi
     fi

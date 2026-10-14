@@ -6,6 +6,8 @@
 import os
 import sys
 
+from nuitka.utils.Execution import getEnvironmentPathAdded
+
 
 def goHome():
     """Go its own directory, to have it easy with path knowledge."""
@@ -33,8 +35,10 @@ def setupPATH():
 
 
 def addPYTHONPATH(path):
-    python_path = os.getenv("PYTHONPATH", "")
-    os.environ["PYTHONPATH"] = os.pathsep.join(python_path.split(os.pathsep) + [path])
+    python_path = getEnvironmentPathAdded("PYTHONPATH", path)
+
+    if python_path is not None:
+        os.environ["PYTHONPATH"] = python_path
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
