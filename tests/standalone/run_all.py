@@ -51,7 +51,7 @@ from nuitka.tools.testing.RuntimeTracing import (
 )
 from nuitka.utils.FileOperations import removeDirectory
 from nuitka.utils.Timing import TimerReport
-from nuitka.utils.Utils import isBSD, isLinux, isMacOS, isWin32Windows
+from nuitka.utils.Utils import isBSD, isLinux, isMacOS
 
 
 def displayError(dirname, filename):
@@ -190,10 +190,6 @@ def main():
         if filename == "TkInterUsing.py":
             if isMacOS():
                 reportSkip("Not working macOS yet", ".", filename)
-                continue
-
-            if isWin32Windows() == "Windows":
-                reportSkip("Can hang on Windows CI.", ".", filename)
                 continue
 
         if filename == "FlaskUsing.py":
