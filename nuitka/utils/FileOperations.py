@@ -859,6 +859,29 @@ def _isMacOSFramework(path):
     return isMacOS() and os.path.isdir(path) and path.endswith(".framework")
 
 
+_win32_get_file_attributes = None
+
+
+def _getWin32FileAttributes():
+    """Get the Win32 'GetFileAttributesW' function, cached.
+
+    Returns:
+        Function of the Windows API returning file attributes as int.
+    """
+    global _win32_get_file_attributes  # singleton, pylint: disable=global-statement
+
+    if _win32_get_file_attributes is None:
+        import ctypes.wintypes
+
+        result = ctypes.windll.kernel32.GetFileAttributesW
+        result.restype = ctypes.wintypes.DWORD
+        result.argtypes = (ctypes.wintypes.LPCWSTR,)
+
+        _win32_get_file_attributes = result
+
+    return _win32_get_file_attributes
+
+
 def isLink(path):
     """Check if a path is a symbolic link (or junction on Windows).
 
@@ -870,21 +893,18 @@ def isLink(path):
     """
     result = os.path.islink(path)
 
-    # Special handling for Junctions.
+    # Special handling for Junctions, which "os.path.islink" does not detect,
+    # and for Python2, where it detects nothing at all on Windows.
     if not result and isWin32Windows():
-        import ctypes.wintypes
-
-        GetFileAttributesW = ctypes.windll.kernel32.GetFileAttributesW
-        GetFileAttributesW.restype = ctypes.wintypes.DWORD
-        GetFileAttributesW.argtypes = (ctypes.wintypes.LPCWSTR,)
-
         INVALID_FILE_ATTRIBUTES = 0xFFFFFFFF
         FILE_ATTRIBUTE_REPARSE_POINT = 0x00400
 
-        result = GetFileAttributesW(path)
+        attributes = _getWin32FileAttributes()(path)
 
-        if result != INVALID_FILE_ATTRIBUTES:
-            result = bool(result & FILE_ATTRIBUTE_REPARSE_POINT)
+        if attributes == INVALID_FILE_ATTRIBUTES:
+            result = False
+        else:
+            result = bool(attributes & FILE_ATTRIBUTE_REPARSE_POINT)
 
     return result
 
@@ -1016,6 +1036,97 @@ def addFilenameExtension(path, extension):
     return path
 
 
+def _onErrorRaise(func, path, exc_info):
+    """Error handler that raises the error.
+
+    Args:
+        func: Function that failed, passed to it.
+        path: Path that failed.
+        exc_info: Exception info tuple.
+    """
+    raise exc_info[1]
+
+
+def _onErrorIgnore(func, path, exc_info):  # pylint: disable=unused-argument
+    """Error handler that ignores the error.
+
+    Args:
+        func: Function that failed, passed to it.
+        path: Path that failed.
+        exc_info: Exception info tuple.
+    """
+
+
+def _needsLinkSafeRemoval():
+    """Decide if the link safe directory removal must be used.
+
+    Notes:
+        Python2 on Windows does not detect symlinks and junctions at all,
+        and until Python3.8, "shutil.rmtree" follows junctions there and
+        deletes the contents of the directories they point to instead of
+        only the junction, which loses unrelated files, e.g. of the Python
+        installation.
+
+    Returns:
+        bool: True if 'removeDirectory' must use its own removal.
+    """
+    return isWin32Windows() and python_version < 0x380
+
+
+def _removeDirectoryTree(path, on_error):
+    """Remove a directory tree, never following links.
+
+    Args:
+        path: Directory to remove.
+        on_error: Error handler, same calling convention as the "onerror"
+            argument of 'shutil.rmtree'.
+    """
+    if isLink(path):
+        # Never remove what a link points to, remove only the link itself.
+        try:
+            os.unlink(path)
+        except OSError:
+            # Directory links and junctions must use the directory API.
+            try:
+                os.rmdir(path)
+            except OSError:
+                on_error(os.rmdir, path, sys.exc_info())
+
+        return
+
+    try:
+        entry_names = os.listdir(path)
+    except OSError:
+        on_error(os.listdir, path, sys.exc_info())
+        entry_names = ()
+
+    for entry_name in entry_names:
+        entry_path = getNormalizedPathJoin(path, entry_name)
+
+        if isLink(entry_path):
+            try:
+                os.unlink(entry_path)
+            except OSError:
+                # Directory links and junctions must use the directory API.
+                try:
+                    os.rmdir(entry_path)
+                except OSError:
+                    on_error(os.rmdir, entry_path, sys.exc_info())
+        elif os.path.isdir(entry_path):
+            # Recursion intentionally uses this function, not "shutil.rmtree".
+            _removeDirectoryTree(path=entry_path, on_error=on_error)
+        else:
+            try:
+                os.unlink(entry_path)
+            except OSError:
+                on_error(os.unlink, entry_path, sys.exc_info())
+
+    try:
+        os.rmdir(path)
+    except OSError:
+        on_error(os.rmdir, path, sys.exc_info())
+
+
 def removeDirectory(path, logger, ignore_errors, extra_recommendation):
     """Remove a directory recursively.
 
@@ -1028,7 +1139,16 @@ def removeDirectory(path, logger, ignore_errors, extra_recommendation):
     """
 
     with withFileLock("removing directory %s" % path):
-        if os.path.exists(path):
+        if isWin32Windows() and isLink(path):
+            # On Windows, a link must not reach "shutil.rmtree", which would
+            # either delete the contents of the linked to directory, or
+            # refuse with an error, while removing the link is the safe and
+            # presumably wanted thing to do.
+            _removeDirectoryTree(
+                path=path,
+                on_error=_onErrorIgnore if ignore_errors else _onErrorRaise,
+            )
+        elif os.path.exists(path):
 
             @decoratorRetries(
                 logger=logger,
@@ -1046,7 +1166,10 @@ def removeDirectory(path, logger, ignore_errors, extra_recommendation):
                 # Try deleting while ignoring errors first.
                 while True:
                     last_error = []
-                    shutil.rmtree(path, ignore_errors=False, onerror=onError)
+                    if _needsLinkSafeRemoval():
+                        _removeDirectoryTree(path=path, on_error=onError)
+                    else:
+                        shutil.rmtree(path, ignore_errors=False, onerror=onError)
 
                     # onError as a side effect, modifies last_error
                     if previous_error == last_error:
@@ -1057,11 +1180,17 @@ def removeDirectory(path, logger, ignore_errors, extra_recommendation):
 
                 # If it still exists, try one more time, this time not ignoring errors.
                 if os.path.exists(path):
-                    try:
-                        shutil.rmtree(path, ignore_errors=ignore_errors)
-                    except OSError:
-                        if not ignore_errors:
-                            raise
+                    if _needsLinkSafeRemoval():
+                        _removeDirectoryTree(
+                            path=path,
+                            on_error=_onErrorIgnore if ignore_errors else _onErrorRaise,
+                        )
+                    else:
+                        try:
+                            shutil.rmtree(path, ignore_errors=ignore_errors)
+                        except OSError:
+                            if not ignore_errors:
+                                raise
 
             _removeDirectory()
 
