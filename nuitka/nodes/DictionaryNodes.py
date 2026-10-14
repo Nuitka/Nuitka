@@ -1446,8 +1446,9 @@ class ExpressionDictOperationFromkeys2(ExpressionDictOperationFromkeys2Base):
         if self.subnode_iterable.isCompileTimeConstant():
             # TODO: Could be assert against it being None with a compile time constant,
             # we will usually be able to tell?
-            # This is actually OK to use like this, pylint: disable=bad-chained-comparison
-            if None is not self.subnode_iterable.getIterationLength() < 256:
+            iteration_length = self.subnode_iterable.getIterationLength()
+
+            if iteration_length is not None and iteration_length < 256:
                 return trace_collection.getCompileTimeComputationResult(
                     node=self,
                     computation=lambda: dict.fromkeys(
@@ -1464,9 +1465,12 @@ class ExpressionDictOperationFromkeys2(ExpressionDictOperationFromkeys2Base):
             or self.mayRaiseExceptionOperation()
         )
 
-    def mayRaiseExceptionOperation(self):
-        # This is actually OK to use like this, pylint: disable=bad-chained-comparison
-        return None is not self.subnode_iterable.getIterationLength() < 256
+    @staticmethod
+    def mayRaiseExceptionOperation():
+        # Hashing of the keys may raise for unhashable values, and the
+        # iteration itself may raise for arbitrary iterables, so this is
+        # always considered possible for the run time call.
+        return True
 
 
 class ExpressionDictOperationFromkeys3(ExpressionDictOperationFromkeys3Base):
@@ -1482,8 +1486,9 @@ class ExpressionDictOperationFromkeys3(ExpressionDictOperationFromkeys3Base):
         ):
             # TODO: Could be assert against it being None with a compile time constant,
             # we will usually be able to tell?
-            # This is actually OK to use like this, pylint: disable=bad-chained-comparison
-            if None is not self.subnode_iterable.getIterationLength() < 256:
+            iteration_length = self.subnode_iterable.getIterationLength()
+
+            if iteration_length is not None and iteration_length < 256:
                 return trace_collection.getCompileTimeComputationResult(
                     node=self,
                     computation=lambda: dict.fromkeys(
@@ -1502,9 +1507,12 @@ class ExpressionDictOperationFromkeys3(ExpressionDictOperationFromkeys3Base):
             or self.mayRaiseExceptionOperation()
         )
 
-    def mayRaiseExceptionOperation(self):
-        # This is actually OK to use like this, pylint: disable=bad-chained-comparison
-        return None is not self.subnode_iterable.getIterationLength() < 256
+    @staticmethod
+    def mayRaiseExceptionOperation():
+        # Hashing of the keys may raise for unhashable values, and the
+        # iteration itself may raise for arbitrary iterables, so this is
+        # always considered possible for the run time call.
+        return True
 
 
 class ExpressionDictOperationFromkeysRef(ExpressionNoSideEffectsMixin, ExpressionBase):
