@@ -3,7 +3,11 @@ name: create-planning-document
 description: Create a Nuitka planning document under `.planning/` from the standard template. Use when the user asks to create, draft, or start a planning document, and wait for explicit user authorization before implementation.
 ---
 
-This workflow is used to create a new planning document in `.planning/`.
+# Create a Planning Document
+
+This workflow is used to create a new planning document in `.planning/` (see
+[`.planning/README.md`](../../../.planning/README.md) for the lifecycle states: `Drafting`,
+`Review`, `Frozen`, `Execution`).
 
 1. Ask the user for the name and the topic of the planning document if not provided.
 2. Formulate the filename (all lowercase with underscores, e.g., `feature_name.md`), determine the
@@ -25,7 +29,7 @@ This workflow is used to create a new planning document in `.planning/`.
 
 ## Status
 
-**Current State**: DRAFTING (Planning Phase)
+**Current State**: Drafting
 
 - [ ] Initial research
 - [ ] Requirements gathering

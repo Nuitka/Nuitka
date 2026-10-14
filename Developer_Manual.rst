@@ -186,10 +186,10 @@ For complex bugs such as compiler crashes, it is often necessary to
 reduce the source code to a Minimal Reproducible Example (MRE) to
 isolate the cause.
 
-Nuitka includes an agent workflow to assist with this process. You can
-refer to the workflow definition at ``.agent/workflows/create-mre.md``
-for the recommended strategy, or if using a compatible agent, trigger it
-directly.
+Nuitka includes an agent skill to assist with this process. You can
+refer to the workflow definition at
+``.agents/skills/create-mre/SKILL.md`` for the recommended strategy, or
+if using a compatible agent, trigger it directly.
 
 .. important::
 

@@ -1,6 +1,6 @@
 # Coding Standards
 
-## 2. Python Coding Rules & Standards
+## Python Coding Rules & Standards
 
 - **Naming Conventions:**
 
@@ -42,21 +42,21 @@
     across lines or using backslashes between string fragments. Use triple-quoted strings
     (`"""..."""`) for long strings, using `\` escapes inside them if lines become too long.
 
-  - **List Contractions:** PREFERRED over `map`, `filter`, `apply`.
+  - **List Comprehensions:** PREFERRED over `map`, `filter`, `apply`.
 
   - **Properties:** Avoid using properties for internal APIs; use explicit getters/setters.
 
   - **Imports:** Sort imports using `isort` (handled by auto-format).
 
   - **Local imports:** Avoid `import` inside functions or methods. Local imports are only acceptable
-    when the alternative would cause a circular import."
+    when the alternative would cause a circular import.
 
   - **Avoid default arguments for internal APIs:** When adding a new argument to a function or
     method, do **not** provide a default value. Callers must explicitly supply the argument unless
-    the case is a well-defined exception (e.g., a optional flag that is very unlikely to be used).
+    the case is a well-defined exception (e.g., an optional flag that is very unlikely to be used).
     This ensures clarity and prevents hidden behavior.
 
-## 3. C Coding Standards
+## C Coding Standards
 
 - **Standard:** Code must adhere to C11 (or C++03 where applicable).
 - **Control Structures:**

@@ -1,6 +1,6 @@
 # Code Quality & Workflow
 
-## 4. Code Quality & Verification
+## Code Quality & Verification
 
 Before marking a task as complete, you must verify the changes using the project's custom tools in
 this order:
@@ -51,7 +51,7 @@ the changed area:
     verification MUST be placed in `tests/scratch/`.
   - This directory is git-ignored and ensures the repository remains clean.
 
-## 5. Workflow
+## Workflow
 
 - **Bugs & Implementation:**
 
@@ -80,8 +80,7 @@ the changed area:
 
   - Use `bin/nuitka` to execute Nuitka, avoiding the need to manually set `PYTHONPATH`.
 
-## 6. Documentation & Conduct
+## Documentation & Conduct
 
-- Refer to the [Nuitka Developer Manual](https://nuitka.net/doc/developer-manual.html) for detailed
-  coding standards.
-- Refer to the [Nuitka User Manual](https://nuitka.net/doc/user-manual.html) for usage context.
+- Refer to [`Developer_Manual.rst`](../../Developer_Manual.rst) for detailed coding standards.
+- Refer to [`README.rst`](../../README.rst) for user manual and usage context.

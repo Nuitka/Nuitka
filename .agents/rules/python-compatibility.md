@@ -1,7 +1,5 @@
 # Python Compatibility (STRICT)
 
-## 1. Python Compatibility (STRICT)
-
 - **Python 2.6/2.7 Compatibility:** The Nuitka codebase must remain strictly compatible with Python
   2.6 and 2.7.
   - **Exception:** For Windows, Python 2.7 support is desirable but not mandatory. Use your judgment
@@ -14,8 +12,8 @@
   - Do NOT use type hints in the source code (use comments if necessary).
   - Do NOT use function annotations or variable annotations.
   - Do NOT use `yield from` or `async/await`.
-  - DO NOT use `return` in a generator function (Python3-only feature).
-  - DO NOT use set literals (use `set()` instead) - *required for Python 2.6 compatibility*.
+  - Do NOT use `return` in a generator function (Python3-only feature).
+  - Do NOT use set literals (use `set()` instead) - *required for Python 2.6 compatibility*.
   - Do NOT use dict comprehensions or set comprehensions - *required for Python 2.6 compatibility*.
   - Do NOT use assignment expressions (`:=`).
   - Do NOT use structural pattern matching (`match`/`case`).

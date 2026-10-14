@@ -20,8 +20,3 @@ your task; do not maintain a manual list here.
   requests.
 - [`.github/PULL_REQUEST_TEMPLATE.md`](./.github/PULL_REQUEST_TEMPLATE.md): AI-generated code policy
   checklist; preserve prompts, manual verification notes, and test evidence when preparing PR text.
-
-## Historical AI Artifacts
-
-- `Claude-TODO.md`: historical AI-generated analysis. Treat it as non-authoritative until each item
-  is independently verified against the current tree.

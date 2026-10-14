@@ -242,10 +242,7 @@ def formatText(
         assume_yes_for_downloads: bool - if tools should be downloaded automatically
     """
     is_rst = effective_filename.endswith((".rst", ".inc"))
-    is_md = (
-        effective_filename.endswith(".md")
-        or os.path.basename(effective_filename) == ".cursorrules"
-    )
+    is_md = effective_filename.endswith(".md")
     is_package_config_yaml = effective_filename.endswith(".nuitka-package.config.yml")
 
     cleanupWindowsNewlines(filename, effective_filename)
@@ -409,7 +406,6 @@ def autoFormatFile(
                 "control",
                 "copyright",
                 "lintian-overrides",
-                ".cursorrules",
             )
         else:
             is_txt = False

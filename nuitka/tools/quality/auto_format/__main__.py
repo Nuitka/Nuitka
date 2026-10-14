@@ -4,8 +4,6 @@
 
 """Main program for auto format tool."""
 
-import os
-
 from nuitka.options.CommandLineOptionsTools import makeOptionsParser
 from nuitka.Progress import enableProgressBar, wrapWithProgressBar
 from nuitka.tools.quality.auto_format.AutoFormat import autoFormatFile
@@ -191,9 +189,7 @@ def _filenameMatchesLimits(filename, options):
         return True
     if options.rst and (filename.endswith(".rst") or filename.endswith(".inc")):
         return True
-    if options.md and (
-        filename.endswith(".md") or os.path.basename(filename) == ".cursorrules"
-    ):
+    if options.md and filename.endswith(".md"):
         return True
     if options.json and filename.endswith(".json"):
         return True
@@ -223,6 +219,9 @@ def _formatFromGitPaths(options, positional_args):
             "setup.py",
             "tests",
             ".github",
+            ".agents",
+            "AGENTS.md",
+            "opencode.json",
         ),
     )
 
@@ -256,7 +255,6 @@ def _formatFromGitPaths(options, positional_args):
                 ".h",
                 ".yml",
                 ".json",
-                ".cursorrules",
             ),
         )
     )
