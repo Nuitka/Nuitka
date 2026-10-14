@@ -56,6 +56,9 @@ class ExpressionBuiltinLocalsBase(ExpressionNoSideEffectsMixin, ExpressionBase):
         del self.locals_scope
         del self.variable_traces
 
+    def getDetails(self):
+        return {"locals_scope": self.locals_scope}
+
     def getVariableTraces(self):
         return self.variable_traces
 

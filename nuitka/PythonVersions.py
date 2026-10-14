@@ -399,6 +399,8 @@ def _getTargetPythonIncludePath(
             os.path.join(
                 python_prefix_external, "include", "python" + python_abi_version
             ),
+            # For Anaconda and conda-forge Python, since Python 3.15.
+            os.path.join(python_prefix_external, "include", "python"),
             # For self-built Python on Windows, need to also add the "PC" directory,
             # that a normal install won't have.
             os.path.join(python_prefix_external, "PC"),

@@ -306,9 +306,9 @@ def _decideRecursion(
         hasPythonFlagPackageMode()
         and not shallMakeModule()
         and module_name.getBasename() == "__main__"
+        and module_name.getPackageName() == getRootTopModule().getRuntimePackageValue()
     ):
-        if module_name.getPackageName() == getRootTopModule().getRuntimePackageValue():
-            return False, "Main program is already included in package mode."
+        return False, "Main program is already included in package mode."
 
     plugin_decision, deciding_plugins = onModuleEncounter(
         using_module_name=using_module_name,
@@ -351,9 +351,10 @@ def _decideRecursion(
     if plugin_decision is not None:
         return plugin_decision
 
-    if shallMakePackage():
-        if module_name.hasNamespace(getRootTopModule().getFullName()):
-            return True, "Submodule of compiled package."
+    if shallMakePackage() and module_name.hasNamespace(
+        getRootTopModule().getFullName()
+    ):
+        return True, "Submodule of compiled package."
 
     if extra_recursion:
         return True, "Lives in user provided directory."
@@ -478,9 +479,10 @@ def _addIncludedModule(module, package_only):
                         package_only=False,
                     )
                 elif sub_filename.endswith(".py"):
-                    if os.path.isdir(sub_path[:-3]):
-                        if hasPackageDirFilename(sub_path[:-3]):
-                            continue
+                    if os.path.isdir(sub_path[:-3]) and hasPackageDirFilename(
+                        sub_path[:-3]
+                    ):
+                        continue
 
                     scanPluginSinglePath(
                         sub_path,

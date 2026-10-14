@@ -159,6 +159,50 @@ os.environ["TK_LIBRARY"] = os.path.join(nuitka_info.python_runtime_dir, "%(tk_ta
 
             return code, "Need to make sure we set environment variables for TCL."
 
+    def createPostModuleLoadCode(self, module):
+        """This method is called with a module that was imported.
+
+        Notes:
+            Starting with Tk version 9, it loads ICU DLLs dynamically, and
+            on Windows it prefers versioned DLLs found in the PATH over the
+            ICU included with Windows. For standalone mode, we do not want
+            to depend on third party software, so we temporarily remove the
+            PATH variable while the Tk interpreter is created.
+
+        Args:
+            module: the module object
+        Returns:
+            Code to insert and None (tuple)
+        """
+        if (
+            isWin32Windows()
+            and self.tk_inter_version.startswith("9.")
+            and _isTkInterModule(module)
+        ):
+            # The following code will be executed after importing the module. The
+            # Tk initialization happens in "_tkinter.create" and that is where
+            # the ICU DLLs are being loaded from PATH, if not found in the
+            # Windows directory.
+            code = r"""
+import os
+import _tkinter
+
+if not getattr(_tkinter.create, "_nuitka_clean_path", False):
+    _original_create = _tkinter.create
+
+    def _create_clean_path(*args, **kwargs):
+        _path = os.environ.pop("PATH", None)
+        try:
+            return _original_create(*args, **kwargs)
+        finally:
+            if _path is not None:
+                os.environ["PATH"] = _path
+
+    _create_clean_path._nuitka_clean_path = True
+    _tkinter.create = _create_clean_path"""
+
+            return code, "Need to avoid Tk loading ICU DLLs from PATH."
+
     @classmethod
     def addPluginCommandLineOptions(cls, group):
         group.add_option(
