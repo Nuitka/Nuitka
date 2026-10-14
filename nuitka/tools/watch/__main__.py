@@ -191,6 +191,7 @@ def _compileCase(case_data, case_dir, installed_python, lock_filename, jobs):
             nuitka_binary,
             relpath(os.path.join(case_dir, case_data["filename"])),
             "--assume-yes-for-downloads",
+            "--update-check=never",
             "--report=%s" % report_filename,
             "--report-diffable",
             "--report-user-provided=pipenv_hash=%s"
