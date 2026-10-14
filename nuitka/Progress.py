@@ -641,9 +641,12 @@ def _checkTqdmModule():
     return "tqdm"
 
 
-# Try progress bars in this order. barflow is preferred when installed: it
-# is a C++-cored drop-in that is faster than tqdm/rich on the hot path.
-_default_progress_bars = ("barflow", "tqdm", "rich")
+# Try progress bars in this order for "auto". "barflow" is not used
+# automatically and has to be requested explicitly.
+_default_progress_bars = ("tqdm", "rich")
+
+# Progress bars that can be requested explicitly.
+_available_progress_bars = ("barflow", "tqdm", "rich")
 
 
 def enableProgressBar(progress_bar):
@@ -654,7 +657,7 @@ def enableProgressBar(progress_bar):
 
         if progress_bar == "auto":
             check_progress_bars = _default_progress_bars
-        elif progress_bar in _default_progress_bars:
+        elif progress_bar in _available_progress_bars:
             check_progress_bars = (progress_bar,)
         else:
             check_progress_bars = ()
