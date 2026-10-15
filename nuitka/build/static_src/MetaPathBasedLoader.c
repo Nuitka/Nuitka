@@ -3089,6 +3089,8 @@ static PyObject *_nuitka_loader_find_distributions(PyObject *self, PyObject *arg
     return result;
 }
 
+#if !_NUITKA_FLAG_ISOLATED
+
 static char const *_kw_list_sys_path_hook[] = {"path", NULL};
 
 static PyObject *_nuitka_loader_sys_path_hook(PyObject *self, PyObject *args, PyObject *kwds) {
@@ -3101,11 +3103,6 @@ static PyObject *_nuitka_loader_sys_path_hook(PyObject *self, PyObject *args, Py
     }
 
     PyThreadState *tstate = PyThreadState_GET();
-
-#if defined(_NUITKA_FLAG_ISOLATED)
-    SET_CURRENT_EXCEPTION_TYPE0(tstate, PyExc_ImportError);
-    return NULL;
-#else
 
 #if 0
     PRINT_STRING("CONSIDER PATH:");
@@ -3158,8 +3155,9 @@ static PyObject *_nuitka_loader_sys_path_hook(PyObject *self, PyObject *args, Py
 
     SET_CURRENT_EXCEPTION_TYPE0(tstate, PyExc_ImportError);
     return NULL;
-#endif
 }
+
+#endif
 
 static PyMethodDef Nuitka_Loader_methods[] = {
 #ifndef _NUITKA_DISABLE_ITER_MODULES
@@ -3185,7 +3183,9 @@ static PyMethodDef Nuitka_Loader_methods[] = {
     {"find_distributions", CAST_METHOD_KW(_nuitka_loader_find_distributions),
      METH_STATIC | METH_VARARGS | METH_KEYWORDS, NULL},
 
+#if !_NUITKA_FLAG_ISOLATED
     {"sys_path_hook", CAST_METHOD_KW(_nuitka_loader_sys_path_hook), METH_STATIC | METH_VARARGS | METH_KEYWORDS, NULL},
+#endif
 
     {NULL, NULL} // terminator
 };
@@ -3386,6 +3386,7 @@ void registerMetaPathBasedLoader(struct Nuitka_MetaPathBasedLoaderEntry **_loade
 
                       global_loader);
 
+#if !_NUITKA_FLAG_ISOLATED
     // Our "sys.path_hooks" entry uses "os.path" to compare filenames, so we need
     // to load it without.
     PyThreadState *tstate = PyThreadState_GET();
@@ -3399,6 +3400,7 @@ void registerMetaPathBasedLoader(struct Nuitka_MetaPathBasedLoaderEntry **_loade
     // to handle "site-packages" on its own yet, and therefore we
     // cannot have it take precedence.
     LIST_APPEND1(Nuitka_SysGetObject("path_hooks"), PyObject_GetAttrString(global_loader, "sys_path_hook"));
+#endif
 #endif
 }
 
