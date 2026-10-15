@@ -108,6 +108,29 @@ NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_SUBSCRIPT_CONST(PyThreadState *tsta
 
             Py_INCREF(result);
             return result;
+        } else if (PyTuple_Check(source) && tp_as_mapping->mp_subscript == PyTuple_Type.tp_as_mapping->mp_subscript) {
+            // Tuples, and subclasses that inherit tuple's subscript, e.g. named
+            // tuples, which are indexed by constants a lot.
+            Py_ssize_t tuple_size = PyTuple_GET_SIZE(source);
+
+            if (int_subscript < 0) {
+                if (-int_subscript > tuple_size) {
+                    SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_IndexError, "tuple index out of range");
+                    return NULL;
+                }
+
+                int_subscript += tuple_size;
+            } else {
+                if (int_subscript >= tuple_size) {
+                    SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_IndexError, "tuple index out of range");
+                    return NULL;
+                }
+            }
+
+            result = PyTuple_GET_ITEM(source, int_subscript);
+
+            Py_INCREF(result);
+            return result;
         }
 #if PYTHON_VERSION < 0x300
         else if (PyString_CheckExact(source)) {
