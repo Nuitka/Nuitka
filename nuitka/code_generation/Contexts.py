@@ -998,7 +998,11 @@ class PythonFunctionContext(
         return self.function
 
     def mayRecurse(self):
-        # TODO: Determine this at compile time for enhanced optimizations.
+        # A class body can only run again, if the scope that creates it can,
+        # e.g. it is inside a function, unlike a module body.
+        if self.function.isExpressionClassBodyBase():
+            return self.parent.mayRecurse()
+
         return True
 
 
