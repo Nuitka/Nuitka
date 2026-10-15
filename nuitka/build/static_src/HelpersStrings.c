@@ -800,6 +800,63 @@ PyObject *STR_JOIN(PyThreadState *tstate, PyObject *str, PyObject *iterable) {
     return _PyString_Join(str, iterable);
 }
 
+PyObject *STR_CONCAT(PyThreadState *tstate, PyObject *left, PyObject *right) {
+    if (unlikely(!PyString_Check(left) || !PyString_Check(right))) {
+        if (PyUnicode_Check(left) || PyUnicode_Check(right)) {
+            return UNICODE_CONCAT(tstate, left, right);
+        }
+
+        if (PyByteArray_Check(left) || PyByteArray_Check(right)) {
+            return PyByteArray_Concat(left, right);
+        }
+
+        SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("cannot concatenate 'str' and '%s' objects",
+                                             PyString_Check(right) ? left : right);
+        return NULL;
+    }
+
+    // Optimize cases with empty left or right operand.
+    if ((PyString_GET_SIZE(left) == 0 || PyString_GET_SIZE(right) == 0) && PyString_CheckExact(left) &&
+        PyString_CheckExact(right)) {
+        if (PyString_GET_SIZE(left) == 0) {
+            Py_INCREF(right);
+            return right;
+        }
+
+        Py_INCREF(left);
+        return left;
+    }
+
+    // Check that string sizes are not negative, to prevent an overflow in
+    // cases where we are passed incorrectly created strings with negative
+    // lengths (due to a bug in other code).
+    if (PyString_GET_SIZE(left) < 0 || PyString_GET_SIZE(right) < 0 ||
+        PyString_GET_SIZE(left) > PY_SSIZE_T_MAX - PyString_GET_SIZE(right)) {
+        SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_OverflowError, "strings are too large to concat");
+        return NULL;
+    }
+
+    Py_ssize_t size = PyString_GET_SIZE(left) + PyString_GET_SIZE(right);
+
+    if (size > PY_SSIZE_T_MAX - (Py_ssize_t)sizeof(PyStringObject)) {
+        SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_OverflowError, "strings are too large to concat");
+        return NULL;
+    }
+
+    PyObject *result = Nuitka_String_FromStringAndSize(NULL, size);
+
+    if (unlikely(result == NULL)) {
+        return NULL;
+    }
+
+    memcpy(PyString_AS_STRING(result), PyString_AS_STRING(left), PyString_GET_SIZE(left));
+    memcpy(PyString_AS_STRING(result) + PyString_GET_SIZE(left), PyString_AS_STRING(right), PyString_GET_SIZE(right));
+
+    CHECK_OBJECT(result);
+
+    return result;
+}
+
 #endif
 
 PyObject *NuitkaUnicode_FromWideChar(wchar_t const *str, Py_ssize_t size) {

@@ -11,7 +11,8 @@
 #endif
 
 static struct Nuitka_MetaPathBasedLoaderEntry *findEntry(char const *name, bool internal);
-static PyObject *getModuleDirectory(PyThreadState *tstate, struct Nuitka_MetaPathBasedLoaderEntry const *entry);
+static PyObject *getModuleDirectory(PyThreadState *tstate, struct Nuitka_MetaPathBasedLoaderEntry const *entry,
+                                    PyObject *module_name);
 
 static PyObject *metadata_values_dict = NULL;
 
@@ -108,7 +109,7 @@ class nuitka_distribution(Distribution):\n\
             return NULL;
         }
 
-        PyObject *args[4] = {package_name, getModuleDirectory(tstate, entry), metadata, entry_points};
+        PyObject *args[4] = {package_name, getModuleDirectory(tstate, entry, package_name), metadata, entry_points};
         PyObject *result = CALL_FUNCTION_WITH_ARGS4(tstate, nuitka_distribution_type, args);
         CHECK_OBJECT(result);
         return result;

@@ -53,7 +53,7 @@ from .templates.CodeTemplatesLoader import (
     template_metapath_loader_module_state,
 )
 from .templates.CodeTemplatesModules import (
-    template_module_importer,
+    template_module_compiled_importer,
     template_module_loader_entry,
 )
 
@@ -185,7 +185,7 @@ def getModuleLoaderEntryCode(module):
     template_args["entry_name"] = getModuleEntryCodeName(module.getFullName())
     template_args["module_identifier"] = module_identifier
     template_args["module_loader_entry_body"] = ""
-    template_args["module_importer_wrapper"] = template_module_importer % {
+    template_args["module_importer_wrapper"] = template_module_compiled_importer % {
         "module_identifier": module_identifier
     }
     template_args["template"] = template_module_loader_entry
