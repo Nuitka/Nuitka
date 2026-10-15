@@ -573,6 +573,11 @@
         - 'Grammar.txt'
         - 'PatternGrammar.txt'
 
+- module-name: 'blobfile' # checksum: 49521496
+  data-files:
+    - patterns:
+        - 'VERSION'
+
 - module-name: 'bokeh' # checksum: 20c33794
   data-files:
     - dirs:
@@ -943,10 +948,88 @@
         - 'ctypes._layout'
       when: 'has_builtin_module("_ctypes")'
 
+- module-name: 'cuda.bindings._internal.driver' # checksum: 9f6ea96d
+  implicit-imports:
+    - depends:
+        - '.utils'
+
+- module-name: 'cuda.bindings._internal.nvrtc' # checksum: 9f6ea96d
+  implicit-imports:
+    - depends:
+        - '.utils'
+
+- module-name: 'cuda.bindings._internal.nvvm' # checksum: 9f6ea96d
+  implicit-imports:
+    - depends:
+        - '.utils'
+
+- module-name: 'cuda.bindings._internal.runtime' # checksum: 9c8ca5b2
+  implicit-imports:
+    - depends:
+        - '.driver'
+        - '.runtime_ptds'
+        - '.utils'
+
+- module-name: 'cuda.bindings.cydriver' # checksum: 6e9d6c83
+  implicit-imports:
+    - depends:
+        - '._internal.driver'
+
+- module-name: 'cuda.bindings.cynvrtc' # checksum: f7f41013
+  implicit-imports:
+    - depends:
+        - '._internal.nvrtc'
+
+- module-name: 'cuda.bindings.cynvvm' # checksum: 992a5315
+  implicit-imports:
+    - depends:
+        - '._internal.nvvm'
+
+- module-name: 'cuda.bindings.cyruntime' # checksum: 5e674f81
+  implicit-imports:
+    - depends:
+        - '._internal.runtime'
+
+- module-name: 'cuda.bindings.driver' # checksum: 476c1dac
+  implicit-imports:
+    - depends:
+        - '.cydriver'
+        - '._internal._fast_enum'
+
+- module-name: 'cuda.bindings.nvrtc' # checksum: bccbeb4
+  implicit-imports:
+    - depends:
+        - '.cynvrtc'
+        - '.driver'
+
+- module-name: 'cuda.bindings.nvvm' # checksum: 8228b619
+  implicit-imports:
+    - depends:
+        - '.cynvvm'
+        - '._internal._fast_enum'
+
+- module-name: 'cuda.bindings.runtime' # checksum: 6f948c28
+  implicit-imports:
+    - depends:
+        - '.cyruntime'
+        - '.driver'
+
 - module-name: 'cuda.tile' # checksum: 49521496
   data-files:
     - patterns:
         - 'VERSION'
+
+- module-name: 'cuda.tile._cext' # checksum: 871c4ab0
+  implicit-imports:
+    - depends:
+        - '._load_libcuda'
+
+- module-name: 'cuda.tile._stub' # checksum: 62291b99
+  anti-bloat:
+    - description: 'tolerate docstrings being removed from the build'
+      replacements_plain:
+        'f.__doc__ += f"""': 'f.__doc__ = (f.__doc__ or "") + f"""'
+      when: 'no_docstrings'
 
 - module-name: 'cupy' # checksum: 8c7aadcc
   anti-bloat:
@@ -981,6 +1064,29 @@
         'script_directory, "../../../assets"': 'os.path.normpath(os.path.join(script_directory, "../../../assets"))'
       # Not necessary on Windows
       when: 'not win32'
+
+- module-name: 'cutlass._mlir._mlir_libs' # checksum: d40deb7b
+  dlls:
+    - from_filenames:
+        prefixes:
+          - '_cutlass_ir'
+    - from_filenames:
+        relative_to: 'nvidia_cutlass_dsl'
+        relative_path: 'cu12/lib'
+        prefixes:
+          - 'libcute_dsl_runtime'
+      dest_path: 'cutlass/_mlir/_mlir_libs/cu12/lib'
+    - from_filenames:
+        relative_to: 'nvidia_cutlass_dsl'
+        relative_path: 'cu13/lib'
+        prefixes:
+          - 'libcute_dsl_runtime'
+      dest_path: 'cutlass/_mlir/_mlir_libs/cu13/lib'
+
+  anti-bloat:
+    - description: 'look for the CTK flavor lib dirs next to the module'
+      replacements_plain:
+        'nvidia_root = None': 'nvidia_root = this_dir'
 
 - module-name: 'cv2' # checksum: 536d0e49
   variables:
@@ -1194,6 +1300,29 @@
   data-files:
     - include-metadata:
         - 'debian'
+
+- module-name: 'deep_ep' # checksum: fea95c32
+  data-files:
+    - dirs:
+        - 'include'
+        - '../nvidia/nccl/include'
+  implicit-imports:
+    - pre-import-code:
+        - |
+          import os
+          _nuitka_here = os.path.dirname(os.path.abspath(__file__))
+          for _nuitka_nccl_root in (
+              os.path.join(_nuitka_here, "nvidia", "nccl"),
+              os.path.join(os.path.dirname(_nuitka_here), "nvidia", "nccl"),
+          ):
+              if os.path.isdir(os.path.join(_nuitka_nccl_root, "lib")):
+                  os.environ.setdefault("EP_NCCL_ROOT_DIR", _nuitka_nccl_root)
+                  break
+
+- module-name: 'deep_gemm' # checksum: 49521496
+  data-files:
+    - patterns:
+        - 'VERSION'
 
 - module-name: 'deepspeed' # checksum: 5af29274
   anti-bloat:
@@ -1682,10 +1811,20 @@
     - depends:
         - 'fitz._fitz'
 
-- module-name: 'flashinfer' # checksum: 6aaa99cc
+- module-name: 'flash_attn' # checksum: d9ced954
+  anti-bloat:
+    - description: 'flash-attn optionally imports the triton disassembler'
+      bloat-mode-overrides:
+        'setuptools': 'allow'
+
+- module-name: 'flashinfer' # checksum: b785f925
   data-files:
     - dirs:
         - 'data'
+  anti-bloat:
+    - description: 'flashinfer builds its kernels with triton and in place'
+      bloat-mode-overrides:
+        'setuptools': 'allow'
 
 - module-name: 'flask.app' # checksum: f5f4a7d
   implicit-imports:
@@ -2206,6 +2345,12 @@
       no-auto-follow:
         'httpx._main': 'ignore'
 
+- module-name: 'huggingface_hub' # checksum: 21fda2b4
+  implicit-imports:
+    - depends:
+        - 'huggingface_hub.*'
+        - 'huggingface_hub.utils.*'
+
 - module-name: 'huggingface_hub._login' # checksum: 3c12cb9a
   anti-bloat:
     - description: 'remove IPython reference'
@@ -2525,6 +2670,11 @@
       replacements_plain:
         'from IPython import display': 'raise ImportError'
       when: 'not use_ipython'
+
+- module-name: 'kernels' # checksum: a5eb50b5
+  data-files:
+    - patterns:
+        - 'python_depends.json'
 
 - module-name: 'keyring' # checksum: 582ae7a2
   data-files:
@@ -2988,6 +3138,11 @@
         - 'mercurial.charencode'
         - 'mercurial.cext.parsers'
 
+- module-name: 'mistral_common.guidance.grammar_factory' # checksum: 6aaa99cc
+  data-files:
+    - dirs:
+        - 'data'
+
 - module-name: 'mitmproxy' # checksum: 467c5986
   implicit-imports:
     - depends:
@@ -3324,6 +3479,21 @@
   data-files:
     - patterns:
         - 'dist.*'
+
+- module-name: 'nccl.bindings._internal.nccl' # checksum: 9f6ea96d
+  implicit-imports:
+    - depends:
+        - '.utils'
+
+- module-name: 'nccl.bindings.cynccl' # checksum: c375e40c
+  implicit-imports:
+    - depends:
+        - '._internal.nccl'
+
+- module-name: 'nccl.bindings.nccl' # checksum: 54ccf950
+  implicit-imports:
+    - depends:
+        - '.cynccl'
 
 - module-name: 'nes_py' # checksum: 1f3cc2b5
   dlls:
@@ -3812,6 +3982,16 @@
         prefixes:
           - 'lib'
       when: 'linux'
+
+- module-name: 'nvshmem.bindings.cynvshmem' # checksum: 3b39da67
+  implicit-imports:
+    - depends:
+        - '._internal.nvshmem'
+
+- module-name: 'nvshmem.bindings.nvshmem' # checksum: 134e6a10
+  implicit-imports:
+    - depends:
+        - '.cynvshmem'
 
 - module-name: 'objc' # checksum: 5c6f45a7
   options:
@@ -5954,6 +6134,12 @@
     - dirs:
         - 'fonts'
 
+- module-name: 'quack' # checksum: 33be2650
+  anti-bloat:
+    - description: 'quack autotuner imports triton at module level, no fallback'
+      bloat-mode-overrides:
+        'setuptools': 'allow'
+
 - module-name: 'randomname' # checksum: 1caca7c5
   data-files:
     - dirs:
@@ -6590,6 +6776,71 @@
     - description: 'workaround for metadata version of setuptools'
       replacements:
         "pkg_resources.get_distribution('setuptools').version": "repr(__import__('setuptools.version').version.__version__)"
+
+- module-name: 'sgl_kernel' # checksum: 190e05be
+  dlls:
+    - from_filenames:
+        relative_path: 'sm90'
+        prefixes:
+          - 'common_ops'
+    - from_filenames:
+        relative_path: 'sm100'
+        prefixes:
+          - 'common_ops'
+
+- module-name: 'sglang' # checksum: 6fe969ce
+  data-files:
+    - include-metadata:
+        - 'sglang-kernel'
+        - 'triton'
+        - 'hf_xet'
+  anti-bloat:
+    - description: 'drop HF datasets, only training and benchmark code uses it'
+      no-follow:
+        'datasets': 'HF datasets is not used when serving a model'
+        'datasets.*': 'HF datasets is not used when serving a model'
+    - description: 'drop tilelang, it cannot load TVM in the compiled build'
+      no-follow:
+        'tilelang': 'tilelang loads TVM from a path at run time, which the build does not have'
+        'tilelang.*': 'tilelang loads TVM from a path at run time, which the build does not have'
+    - description: 'triton kernels and in-place extension builds are hard dependencies'
+      bloat-mode-overrides:
+        'setuptools': 'allow'
+  import-hacks:
+    - force-environment-variables:
+        'SGLANG_SKIP_SGL_KERNEL_VERSION_CHECK': '1'
+
+- module-name: 'sglang.kernels.jit' # checksum: 61fe3e36
+  data-files:
+    - dirs:
+        - 'include'
+        - 'csrc'
+
+- module-name: 'sglang.kernels.ops' # checksum: c91a7512
+  implicit-imports:
+    - depends:
+        - 'sglang.kernels.ops.*'
+        - 'sglang.kernels.ops.*.*'
+
+- module-name: 'sglang.srt.dllm.algorithm' # checksum: 96708553
+  implicit-imports:
+    - depends:
+        - 'sglang.srt.dllm.algorithm.*'
+
+- module-name: 'sglang.srt.mem_cache.cpp_utils.native_hash' # checksum: e9ba9f8b
+  data-files:
+    - patterns:
+        - 'hash_binding.cpp'
+
+- module-name: 'sglang.srt.models.registry' # checksum: 8ce5c642
+  implicit-imports:
+    - depends:
+        - 'sglang.srt.models.*'
+
+- module-name: 'sglang.srt.multimodal.processors' # checksum: 5d636fe2
+  implicit-imports:
+    - depends:
+        - 'sglang.srt.multimodal.processors.*'
 
 - module-name: 'sgmllib' # checksum: 820d21fd
   anti-bloat:
@@ -9020,6 +9271,18 @@
         '_has_triton': "'(lambda: False)'"
       when: 'not use_setuptools'
 
+- module-name: 'torch.testing._internal' # checksum: b2eb8518
+  anti-bloat:
+    - description: 'drop the heaviest torch test-only modules'
+      no-follow:
+        'torch.testing._internal.common_methods_invocations': 'torch test infrastructure, not used when serving'
+        'torch.testing._internal.common_modules': 'torch test infrastructure, not used when serving'
+        'torch.testing._internal.common_nn': 'torch test infrastructure, not used when serving'
+        'torch.testing._internal.common_quantization': 'torch test infrastructure, not used when serving'
+        'torch.testing._internal.distributed.distributed_test': 'torch test infrastructure, not used when serving'
+        'torch.testing._internal.distributed.rpc.rpc_test': 'torch test infrastructure, not used when serving'
+      when: 'not use_pytest'
+
 - module-name: 'torch.testing._internal.common_utils' # checksum: c0669cf
   anti-bloat:
     - description: 'remove pytest reference'
@@ -9357,6 +9620,13 @@
         'is_in_notebook()': 'False'
       when: 'not use_ipython'
 
+- module-name: 'transformers.utils.auto_docstring' # checksum: 3caa7d9b
+  anti-bloat:
+    - description: 'remove docstring dependency'
+      change_function:
+        'auto_docstring': "'(lambda: obj if obj is not None else (lambda o: o))'"
+      when: 'no_docstrings'
+
 - module-name: 'transformers.utils.doc' # checksum: e7a27fa2
   anti-bloat:
     - description: 'add support for compiled functions'
@@ -9519,6 +9789,12 @@
     - description: 'replace triton key computation with the value of the build environment'
       change_function:
         'triton_key': "'(lambda: %r)' % (get_variable('triton_key_value'),)"
+
+- module-name: 'triton_kernels' # checksum: 734f3c9b
+  anti-bloat:
+    - description: 'the package is a collection of triton kernels by definition'
+      bloat-mode-overrides:
+        'setuptools': 'allow'
 
 - module-name: 'tsdownsample._rust' # checksum: d072aa03
   implicit-imports:
@@ -9826,7 +10102,7 @@
     - depends:
         - 'vibora.router.parser'
 
-- module-name: 'vllm' # checksum: 87570df9
+- module-name: 'vllm' # checksum: 62ff02c0
   data-files:
     - include-metadata:
         - 'gguf'
@@ -9838,6 +10114,8 @@
   implicit-imports:
     - depends:
         - 'vllm.logging_utils'
+    - depends:
+        - '[m for m in iterate_modules("vllm") if not m.startswith(("vllm.benchmarks", "vllm.entrypoints.cli", "vllm.scripts"))]'
 
 - module-name: 'vllm.attention.backends.mla.common' # checksum: 73ff1d01
   anti-bloat:
@@ -9853,6 +10131,132 @@
         'if f.name not in attr_docs:': 'if False:'
       change_function:
         'get_attr_docs': "'(lambda cls: {})'"
+
+- module-name: 'vllm.config.vllm' # checksum: 62bec7b8
+  anti-bloat:
+    - description: 'workaround: Nuitka folds the truth value of an empty compile time entry_points() result to True'
+      replacements_plain:
+        'bool(entry_points(group="vllm.logits_processors"))': 'len(entry_points(group="vllm.logits_processors")) > 0'
+  import-hacks:
+    - force-environment-variables:
+        'TORCH_COMPILE_DISABLE': '1'
+
+- module-name: 'vllm.distributed' # checksum: cbd6551a
+  anti-bloat:
+    - description: 'triton kernels and in-place extension builds are hard dependencies'
+      bloat-mode-overrides:
+        'setuptools': 'allow'
+
+- module-name: 'vllm.model_executor' # checksum: cbd6551a
+  anti-bloat:
+    - description: 'triton kernels and in-place extension builds are hard dependencies'
+      bloat-mode-overrides:
+        'setuptools': 'allow'
+
+- module-name: 'vllm.model_executor.models.registry' # checksum: 950603b7
+  anti-bloat:
+    - description: 'inspect model classes in a forked process, there is no interpreter to start'
+      change_function:
+        '_run_in_subprocess': |
+          '''if True:
+              import multiprocessing
+              import traceback
+
+              ctx = multiprocessing.get_context("fork")
+              reader, writer = ctx.Pipe(duplex=False)
+
+              def _nuitka_child():
+                  try:
+                      writer.send((True, fn()))
+                  except BaseException:
+                      writer.send((False, traceback.format_exc()))
+                  finally:
+                      writer.close()
+
+              process = ctx.Process(target=_nuitka_child, daemon=True)
+              process.start()
+              writer.close()
+              try:
+                  ok, value = reader.recv()
+              except EOFError:
+                  process.join()
+                  raise RuntimeError(
+                      "Error raised in subprocess: it exited with code %s without a result"
+                      % process.exitcode
+                  )
+              finally:
+                  reader.close()
+              process.join()
+              if not ok:
+                  raise RuntimeError("Error raised in subprocess:\\n%s" % value)
+              return value
+          '''
+
+- module-name: 'vllm.models' # checksum: cbd6551a
+  anti-bloat:
+    - description: 'triton kernels and in-place extension builds are hard dependencies'
+      bloat-mode-overrides:
+        'setuptools': 'allow'
+
+- module-name: 'vllm.profiler' # checksum: cbd6551a
+  anti-bloat:
+    - description: 'triton kernels and in-place extension builds are hard dependencies'
+      bloat-mode-overrides:
+        'setuptools': 'allow'
+
+- module-name: 'vllm.third_party' # checksum: cbd6551a
+  anti-bloat:
+    - description: 'triton kernels and in-place extension builds are hard dependencies'
+      bloat-mode-overrides:
+        'setuptools': 'allow'
+
+- module-name: 'vllm.tilelang_utils' # checksum: 4455880b
+  anti-bloat:
+    - description: 'drop tilelang, it cannot load TVM in the compiled build'
+      no-follow:
+        'tilelang': 'tilelang loads TVM from a path at run time, which the build does not have'
+        'tilelang.*': 'tilelang loads TVM from a path at run time, which the build does not have'
+
+- module-name: 'vllm.transformers_utils.chat_templates' # checksum: 704e0709
+  data-files:
+    - patterns:
+        - '*.jinja'
+
+- module-name: 'vllm.triton_utils' # checksum: cbd6551a
+  anti-bloat:
+    - description: 'triton kernels and in-place extension builds are hard dependencies'
+      bloat-mode-overrides:
+        'setuptools': 'allow'
+
+- module-name: 'vllm.utils' # checksum: 9622294a
+  anti-bloat:
+    - description: 'triton kernels and in-place extension builds are hard dependencies'
+      bloat-mode-overrides:
+        'setuptools': 'allow'
+    - description: 'drop tilelang, it cannot load TVM in the compiled build'
+      no-follow:
+        'tilelang': 'tilelang loads TVM from a path at run time, which the build does not have'
+        'tilelang.*': 'tilelang loads TVM from a path at run time, which the build does not have'
+
+- module-name: 'vllm.utils.import_utils' # checksum: b78c5db6
+  data-files:
+    - include-metadata:
+        - 'vllm'
+        - 'fastsafetensors'
+        - 'hf_xet'
+        - 'triton'
+
+- module-name: 'vllm.v1' # checksum: cbd6551a
+  anti-bloat:
+    - description: 'triton kernels and in-place extension builds are hard dependencies'
+      bloat-mode-overrides:
+        'setuptools': 'allow'
+
+- module-name: 'vllm.vllm_flash_attn' # checksum: cbd6551a
+  anti-bloat:
+    - description: 'triton kernels and in-place extension builds are hard dependencies'
+      bloat-mode-overrides:
+        'setuptools': 'allow'
 
 - module-name: 'vosk' # checksum: 77da6060
   dlls:
@@ -10242,6 +10646,18 @@
         'fit.__doc__ = XGBModel.fit.__doc__.replace(': 'fit.__doc__ = "Fit gradient boosting model".replace('
         'assert XGBModel.fit.__doc__ is not None': ''
       when: 'no_docstrings'
+
+- module-name: 'xgrammar' # checksum: 8d1f6f8e
+  dlls:
+    - from_filenames:
+        prefixes:
+          - 'libxgrammar_bindings'
+
+- module-name: 'xgrammar.load_binding' # checksum: a5d9027b
+  anti-bloat:
+    - description: 'point the tvm_ffi library search at the package directory'
+      replacements_plain:
+        'load_lib_module("xgrammar", "xgrammar_bindings")': 'load_lib_module("xgrammar", "xgrammar_bindings", extra_lib_paths=[__import__("pathlib").Path(__file__).parent])'
 
 - module-name: 'Xlib.display' # checksum: 3b1d6e64
   implicit-imports:
