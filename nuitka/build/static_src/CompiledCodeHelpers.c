@@ -1750,18 +1750,61 @@ PyObject *JOIN_PATH2(PyObject *dirname, PyObject *filename) {
     CHECK_OBJECT(dirname);
     CHECK_OBJECT(filename);
 
-    // Avoid string APIs, so str, unicode doesn't matter for input.
-    PyObject *result = dirname;
+#if PYTHON_VERSION < 0x300
+    PyThreadState *tstate = PyThreadState_GET();
 
-    if (dirname != const_str_empty) {
-        result = PyNumber_InPlaceAdd(result, getPathSeparatorStringObject());
-        CHECK_OBJECT(result);
+    if (dirname == const_str_empty) {
+        Py_INCREF(filename);
+
+        return filename;
     }
 
-    result = PyNumber_InPlaceAdd(result, filename);
-    CHECK_OBJECT(result);
+    PyObject *result = STR_CONCAT(tstate, dirname, getPathSeparatorStringObject());
 
+    if (unlikely(result == NULL)) {
+        return NULL;
+    }
+
+    {
+        PyObject *old = result;
+        result = STR_CONCAT(tstate, old, filename);
+        Py_DECREF(old);
+
+        if (unlikely(result == NULL)) {
+            return NULL;
+        }
+    }
+
+    CHECK_OBJECT(result);
     return result;
+#else
+    PyThreadState *tstate = PyThreadState_GET();
+
+    if (dirname == const_str_empty) {
+        Py_INCREF(filename);
+
+        return filename;
+    }
+
+    PyObject *result = UNICODE_CONCAT(tstate, dirname, getPathSeparatorStringObject());
+
+    if (unlikely(result == NULL)) {
+        return NULL;
+    }
+
+    {
+        PyObject *old = result;
+        result = UNICODE_CONCAT(tstate, old, filename);
+        Py_DECREF(old);
+
+        if (unlikely(result == NULL)) {
+            return NULL;
+        }
+    }
+
+    CHECK_OBJECT(result);
+    return result;
+#endif
 }
 
 #if _NUITKA_EXE_MODE || _NUITKA_DLL_MODE

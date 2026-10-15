@@ -652,7 +652,7 @@ template_module_exception_exit = """\
 template_module_no_exception_exit = """\
 }"""
 
-template_module_importer = """\
+template_module_compiled_importer = """\
 static PyThreadState *module_owner_%(module_identifier)s = NULL;
 
 static PyObject *module_import_%(module_identifier)s(PyThreadState *tstate, struct Nuitka_MetaPathBasedLoaderEntry const *entry, PyObject *module) {

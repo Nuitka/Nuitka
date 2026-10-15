@@ -10,6 +10,7 @@
 
 #if PYTHON_VERSION < 0x300
 extern PyObject *STR_JOIN(PyThreadState *tstate, PyObject *str, PyObject *iterable);
+extern PyObject *STR_CONCAT(PyThreadState *tstate, PyObject *left, PyObject *right);
 #endif
 
 extern PyObject *UNICODE_JOIN(PyThreadState *tstate, PyObject *str, PyObject *iterable);
