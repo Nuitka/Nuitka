@@ -1364,7 +1364,8 @@ def createNuitkaSconsEnvironment(needs_source_dir=True):
     # MinGW compiler mode, optional and interesting to Windows only.
     mingw_mode = getArgumentBool("mingw_mode", False)
 
-    # Clang compiler mode, forced on macOS and FreeBSD (excluding PowerPC), optional on Linux.
+    # Clang compiler mode, forced on macOS, FreeBSD (excluding PowerPC), and OpenBSD,
+    # optional on Linux.
     clang_mode = getArgumentBool("clang_mode", False)
 
     # Clang on Windows with no requirement to use MinGW64 or using MSYS2 MinGW flavor,
