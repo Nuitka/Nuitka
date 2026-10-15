@@ -376,7 +376,7 @@ def isFreeBSD():
 
 
 def isOpenBSD():
-    """The FreeBSD OS."""
+    """The OpenBSD OS."""
     return getOS() == "OpenBSD"
 
 
