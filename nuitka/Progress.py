@@ -381,11 +381,7 @@ class NuitkaProgressBarBarflow(object):
         ]
 
         self.barflow_progress = _barflow.Progress(
-            *columns,
-            total=effective_total or 0,
-            desc=stage,
-            disable=disable,
-            leave=False
+            *columns, total=effective_total, desc=stage, disable=disable, leave=False
         )
         self.barflow_progress.__enter__()
 
@@ -562,12 +558,13 @@ def _getBarflowModule():
 
         # PostfixColumn and leave= landed in 0.5.0, and 0.6.0 anchors the
         # erase done by pause() and shrinks bars to fit narrow terminals
-        # instead of wrapping. Treat older releases as unavailable and fall
-        # back to tqdm/rich.
+        # instead of wrapping. 0.6.1 lets a bar created with total=None get
+        # its total later via set_total. Treat older releases as
+        # unavailable and fall back to tqdm/rich.
         version = tuple(
             int(part) for part in barflow_installed.__version__.split(".")[:3]
         )
-        if version < (0, 6, 0):
+        if version < (0, 6, 1):
             _barflow = False
             return None
 
@@ -803,7 +800,7 @@ def withNuitkaDownloadProgressBar(*args, **kwargs):
             bf_disable = True
 
         barflow_progress = _barflow.Progress(
-            total=total_size_bytes or 0,
+            total=total_size_bytes or None,
             desc=description,
             disable=bf_disable,
             leave=False,
