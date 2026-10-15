@@ -148,6 +148,44 @@ def selectOS(os_values):
     return None
 
 
+def _runCompiledCase(report_filename):
+    compilation_report = parseCompilationReport(report_filename)
+
+    binary_filename = getCompilationOutputBinary(
+        compilation_report=compilation_report,
+        prefixes=(("${cwd}", os.getcwd()),),
+    )
+
+    env = {
+        "NUITKA_LAUNCH_TOKEN": "1",
+        "NUITKA_TEST_INTERACTIVE": "0",
+    }
+
+    with withEnvironmentVarsOverridden(env):
+        process_result = executeProcess(
+            [binary_filename],
+            timeout=5 * 60,
+        )
+
+    with open("compiled-stdout.txt", "wb") as output:
+        output.write(process_result.stdout)
+    with open("compiled-stderr.txt", "wb") as output:
+        output.write(process_result.stderr)
+
+    if process_result.exit_code == 0:
+        deleteFile("compiled-exit.txt", must_exist=False)
+    else:
+        putTextFileContents(
+            filename="compiled-exit.txt",
+            contents=str(process_result.exit_code),
+        )
+
+        watch_logger.sysexit(
+            "Error, failed to execute %s with code %d."
+            % (binary_filename, process_result.exit_code)
+        )
+
+
 def _compileCase(case_data, case_dir, installed_python, lock_filename, jobs):
     preferred_package_type = installed_python.getPreferredPackageType()
 
@@ -185,6 +223,17 @@ def _compileCase(case_data, case_dir, installed_python, lock_filename, jobs):
 
     report_filename = "compilation-report.xml"
 
+    report_user_options = [
+        "--report-user-provided=pipenv_hash=%s" % getFileContentsHash(lock_filename),
+        "--report-user-provided=case_hash=%s"
+        % getFileContentsHash(os.path.join(case_dir, case_data["filename"])),
+    ]
+
+    if case_data.get("version") is not None:
+        report_user_options.append(
+            "--report-user-provided=case_version=%s" % case_data["version"]
+        )
+
     check_call(
         run_command
         + [
@@ -194,50 +243,14 @@ def _compileCase(case_data, case_dir, installed_python, lock_filename, jobs):
             "--update-check=never",
             "--report=%s" % report_filename,
             "--report-diffable",
-            "--report-user-provided=pipenv_hash=%s"
-            % getFileContentsHash(lock_filename),
         ]
+        + report_user_options
         + extra_options,
         logger=watch_logger,
     )
 
     if case_data["interactive"] == "no":
-        compilation_report = parseCompilationReport(report_filename)
-
-        binary_filename = getCompilationOutputBinary(
-            compilation_report=compilation_report,
-            prefixes=(("${cwd}", os.getcwd()),),
-        )
-
-        env = {
-            "NUITKA_LAUNCH_TOKEN": "1",
-            "NUITKA_TEST_INTERACTIVE": "0",
-        }
-
-        with withEnvironmentVarsOverridden(env):
-            process_result = executeProcess(
-                [binary_filename],
-                timeout=5 * 60,
-            )
-
-        with open("compiled-stdout.txt", "wb") as output:
-            output.write(process_result.stdout)
-        with open("compiled-stderr.txt", "wb") as output:
-            output.write(process_result.stderr)
-
-        if process_result.exit_code == 0:
-            deleteFile("compiled-exit.txt", must_exist=False)
-        else:
-            putTextFileContents(
-                filename="compiled-exit.txt",
-                contents=str(process_result.exit_code),
-            )
-
-        if process_result.exit_code != 0:
-            return watch_logger.sysexit(
-                "Error, failed to execute %s with code %d."
-                % (binary_filename, process_result.exit_code)
-            )
+        _runCompiledCase(report_filename)
 
 
 def _updateCaseLock(
@@ -303,13 +316,80 @@ def _updateCaseLock(
     return lock_filename
 
 
-def _getPipenvHashFromReport(report_root):
+def _getReportUserDataValue(report_root, key):
     user_data = report_root.find("user-data")
     if user_data is not None:
-        pipenv_hash = user_data.find("pipenv_hash")
-        if pipenv_hash is not None:
-            return pipenv_hash.text
+        value = user_data.find(key)
+        if value is not None:
+            return value.text
     return None
+
+
+def _isCompilationNeeded(
+    case_data, case_dir, lock_filename, old_report_root, nuitka_update_mode
+):
+    if old_report_root is None:
+        return True
+
+    existing_hash = getFileContentsHash(lock_filename)
+    old_report_root_hash = _getReportUserDataValue(old_report_root, "pipenv_hash")
+
+    case_filename = os.path.join(case_dir, case_data["filename"])
+    existing_case_hash = getFileContentsHash(case_filename)
+    old_case_hash = _getReportUserDataValue(old_report_root, "case_hash")
+
+    existing_case_version = case_data.get("version")
+    old_case_version = _getReportUserDataValue(old_report_root, "case_version")
+
+    old_nuitka_version = old_report_root.attrib["nuitka_version"]
+
+    if nuitka_update_mode == "force":
+        need_compile = True
+    elif nuitka_update_mode != "newer":
+        need_compile = False
+    elif _compareNuitkaVersions(old_nuitka_version, nuitka_version, consider_rc=True):
+        need_compile = True
+    elif existing_hash != old_report_root_hash:
+        watch_logger.info(
+            "Recompilation with identical Nuitka for '%s' due to changed pipfile."
+            % lock_filename
+        )
+
+        need_compile = True
+    elif existing_case_hash != old_case_hash:
+        watch_logger.info(
+            "Recompilation with identical Nuitka for '%s' due to changed case program."
+            % case_filename
+        )
+
+        need_compile = True
+    elif (
+        existing_case_version is not None
+        and str(existing_case_version) != old_case_version
+    ):
+        watch_logger.info(
+            "Recompilation with identical Nuitka for '%s' due to changed case version."
+            % case_filename
+        )
+
+        need_compile = True
+    elif old_nuitka_version != nuitka_version:
+        watch_logger.info(
+            "Skipping compilation of old Nuitka %s result with Nuitka %s for '%s'."
+            % (old_nuitka_version, nuitka_version, lock_filename)
+        )
+
+        need_compile = False
+    elif old_report_root.attrib["completion"] != "yes":
+        need_compile = True
+    else:
+        watch_logger.info(
+            "Skipping compilation with identical Nuitka for '%s'." % lock_filename
+        )
+
+        need_compile = False
+
+    return need_compile
 
 
 def _updateCase(
@@ -322,9 +402,6 @@ def _updateCase(
     result_path,
     jobs,
 ):
-    # Many details and cases due to package method being handled here.
-    # pylint: disable=too-many-branches,too-many-locals
-
     # We trust the case yaml files, pylint: disable=eval-used
     wait_for_req = case_data.get("wait_for", "False")
     if eval(
@@ -385,52 +462,13 @@ def _updateCase(
     with withDirectoryChange(result_path):
         old_report_root = convertFileToXML("compilation-report.xml")
 
-        if old_report_root is not None:
-            existing_hash = getFileContentsHash(lock_filename)
-            old_report_root_hash = _getPipenvHashFromReport(old_report_root)
-
-            old_nuitka_version = old_report_root.attrib["nuitka_version"]
-
-            if nuitka_update_mode == "force":
-                need_compile = True
-            elif nuitka_update_mode == "newer":
-                if _compareNuitkaVersions(
-                    old_nuitka_version, nuitka_version, consider_rc=True
-                ):
-                    need_compile = True
-                else:
-                    if existing_hash != old_report_root_hash:
-                        watch_logger.info(
-                            "Recompilation with identical Nuitka for '%s' due to changed pipfile."
-                            % lock_filename
-                        )
-
-                        need_compile = True
-                    elif old_nuitka_version == nuitka_version:
-                        if old_report_root.attrib["completion"] != "yes":
-                            need_compile = True
-                        else:
-                            watch_logger.info(
-                                "Skipping compilation with identical Nuitka for '%s'."
-                                % lock_filename
-                            )
-
-                            need_compile = False
-                    else:
-                        watch_logger.info(
-                            "Skipping compilation of old Nuitka %s result with Nuitka %s for '%s'."
-                            % (
-                                old_nuitka_version,
-                                nuitka_version,
-                                lock_filename,
-                            )
-                        )
-
-                        need_compile = False
-            else:
-                need_compile = False
-        else:
-            need_compile = True
+        need_compile = _isCompilationNeeded(
+            case_data=case_data,
+            case_dir=case_dir,
+            lock_filename=lock_filename,
+            old_report_root=old_report_root,
+            nuitka_update_mode=nuitka_update_mode,
+        )
 
         if not need_compile:
             if os.path.exists("compiled-exit.txt"):
