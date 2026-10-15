@@ -93,6 +93,60 @@ def _getClosureSetupCode(closure_variables):
     )
 
 
+def _getCodeObjectCreationCode(context, marshalled, function_identifier):
+    """Get the C code to create the annotate code object, and to release it.
+
+    A definition that can be executed repeatedly, e.g. a nested function on
+    every call, unmarshals the immutable code object once and shares it
+    between every function created from it, as CPython does, and must then
+    not release it, while one that is executed once creates and releases it.
+
+    Args:
+        context: Code generation context to get the blob constant with.
+        marshalled: Marshalled data of the code object.
+        function_identifier: Name of the function, for error messages.
+
+    Returns:
+        Tuple of the C code providing the "code" variable, and the C code
+        releasing it, which is empty when it is cached.
+    """
+    marshalled_code = context.getBlobConstantCode(
+        marshalled,
+        "annotate marshalled code for '%s'" % function_identifier,
+    )
+
+    if context.mayRecurse():
+        # Racing threads can at worst each unmarshal it, and keep one.
+        code_object_setup = """\
+    static PyObject *code_cache = NULL;
+    PyObject *code = code_cache;
+    if (code == NULL) {
+        code = PyMarshal_ReadObjectFromString(
+            %(marshalled)s,
+            %(marshalled_size)d);
+        assert(code != NULL);
+        code_cache = code;
+    }
+""" % {
+            "marshalled": marshalled_code,
+            "marshalled_size": len(marshalled),
+        }
+        code_object_release = ""
+    else:
+        code_object_setup = """\
+    PyObject *code = PyMarshal_ReadObjectFromString(
+        %(marshalled)s,
+        %(marshalled_size)d);
+    assert(code != NULL);
+""" % {
+            "marshalled": marshalled_code,
+            "marshalled_size": len(marshalled),
+        }
+        code_object_release = "    Py_DECREF(code);\n"
+
+    return code_object_setup, code_object_release
+
+
 def _generateAnnotateFunctionMaker(function_body, function_identifier, context):
     """Generate a C maker function that creates a PyFunctionObject from bytecode."""
     maker_identifier = getFunctionMakerIdentifier(function_identifier)
@@ -121,33 +175,32 @@ def _generateAnnotateFunctionMaker(function_body, function_identifier, context):
 
     closure_parameter, closure_setup = _getClosureSetupCode(closure_variables)
 
+    code_object_setup, code_object_release = _getCodeObjectCreationCode(
+        context=context,
+        marshalled=marshalled,
+        function_identifier=function_identifier,
+    )
+
     maker_code = """\
 static PyObject *%(maker)s(PyThreadState *tstate%(closure_parameter)s) {
     PyObject *result;
-    PyObject *code = PyMarshal_ReadObjectFromString(
-        %(marshalled)s,
-        %(marshalled_size)d);
-    assert(code != NULL);
-
+%(code_object_setup)s
     result = PyFunction_NewWithQualName(code, %(module_dict)s, %(qualname)s);
-    Py_DECREF(code);
     assert(result != NULL);
+%(code_object_release)s
 %(closure_setup)s
     return result;
 }
 """ % {
         "maker": maker_identifier,
-        "marshalled": context.getBlobConstantCode(
-            marshalled,
-            "annotate marshalled code for '%s'" % function_identifier,
-        ),
-        "marshalled_size": len(marshalled),
         "module_dict": "(PyObject *)moduledict_%s" % context.getModuleCodeName(),
         "qualname": context.getConstantCode(
             constant=function_body.getFunctionQualname()
         ),
         "closure_parameter": closure_parameter,
         "closure_setup": closure_setup,
+        "code_object_setup": code_object_setup,
+        "code_object_release": code_object_release,
     }
 
     context.addHelperCode(function_identifier, maker_code)
