@@ -127,6 +127,12 @@ static inline bool _INPLACE_OPERATION_POW_FLOAT_FLOAT(PyObject **operand1, PyObj
             errno = 0;
             double r = pow(a, b);
 
+            // Underflow is not an error, CPython resets errno for it in
+            // '_Py_ADJUST_ERANGE1'.
+            if (errno == ERANGE && r == 0.0) {
+                errno = 0;
+            }
+
             if (unlikely(errno != 0)) {
                 PyErr_SetFromErrno(errno == ERANGE ? PyExc_OverflowError : PyExc_ValueError);
                 goto exit_result_exception;
@@ -465,6 +471,12 @@ static inline bool _INPLACE_OPERATION_POW_OBJECT_FLOAT(PyObject **operand1, PyOb
             } else {
                 errno = 0;
                 double r = pow(a, b);
+
+                // Underflow is not an error, CPython resets errno for it in
+                // '_Py_ADJUST_ERANGE1'.
+                if (errno == ERANGE && r == 0.0) {
+                    errno = 0;
+                }
 
                 if (unlikely(errno != 0)) {
                     PyErr_SetFromErrno(errno == ERANGE ? PyExc_OverflowError : PyExc_ValueError);
@@ -809,6 +821,12 @@ static inline bool _INPLACE_OPERATION_POW_FLOAT_OBJECT(PyObject **operand1, PyOb
             } else {
                 errno = 0;
                 double r = pow(a, b);
+
+                // Underflow is not an error, CPython resets errno for it in
+                // '_Py_ADJUST_ERANGE1'.
+                if (errno == ERANGE && r == 0.0) {
+                    errno = 0;
+                }
 
                 if (unlikely(errno != 0)) {
                     PyErr_SetFromErrno(errno == ERANGE ? PyExc_OverflowError : PyExc_ValueError);

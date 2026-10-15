@@ -77,6 +77,10 @@ try:
 except Exception as e:
     print("Indexing None gives", repr(e))
 
+base = 2.0
+exp = -1100.0
+print("Power operator underflow gives", base**exp)
+
 #     Python tests originally created or extracted from other peoples work. The
 #     parts were too small to be protected.
 #
