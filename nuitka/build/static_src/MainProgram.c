@@ -75,6 +75,19 @@
 #include "HelpersDialogs.c"
 #endif
 
+// No longer in header files, but still usable.
+#if PYTHON_VERSION >= 0x3d0
+PyAPI_FUNC(void) PySys_AddWarnOption(const wchar_t *s);
+#endif
+#if PYTHON_VERSION >= 0x3f0
+PyAPI_FUNC(void) PySys_ResetWarnOptions(void);
+PyAPI_FUNC(wchar_t *) Py_GetPath(void);
+#endif
+
+#if NO_PYTHON_WARNINGS
+#include "HelpersWarnings.c"
+#endif
+
 // We are open to having this defined otherwise, this is a default only.
 #if defined(_WIN32) && defined(NUITKA_COMPANY_NAME) && defined(NUITKA_PRODUCT_NAME) &&                                 \
     !defined(NUITKA_APP_MODEL_USER_ID)
@@ -1477,15 +1490,6 @@ extern wchar_t const *getBinaryFilenameWideChars(bool resolve_symlinks);
 extern char const *getBinaryFilenameHostEncoded(bool resolve_symlinks);
 #endif
 
-// No longer in header files, but still usable.
-#if PYTHON_VERSION >= 0x3d0
-PyAPI_FUNC(void) PySys_AddWarnOption(const wchar_t *s);
-#endif
-#if PYTHON_VERSION >= 0x3f0
-PyAPI_FUNC(void) PySys_ResetWarnOptions(void);
-PyAPI_FUNC(wchar_t *) Py_GetPath(void);
-#endif
-
 // Preserve and provide the original argv[0] as recorded by the bootstrap stage.
 static native_command_line_argument_t const *original_argv0 = NULL;
 
@@ -1897,17 +1901,7 @@ static int Nuitka_Main(int argc, native_command_line_argument_t **argv) {
 
     /* Disable CPython warnings if requested to. */
 #if NO_PYTHON_WARNINGS
-    NUITKA_PRINT_TRACE("main(): Disabling Python warnings.");
-    {
-
-#if PYTHON_VERSION >= 0x300
-        wchar_t ignore[] = L"ignore";
-#else
-        char ignore[] = "ignore";
-#endif
-        PySys_ResetWarnOptions();
-        PySys_AddWarnOption(ignore);
-    }
+    setupWarningsEarly();
 #endif
 
 // Workaround older Python not handling stream setup on redirected files properly.
@@ -2147,17 +2141,8 @@ static int Nuitka_Main(int argc, native_command_line_argument_t **argv) {
     _PyWarnings_Init();
 #endif
 
-#if NO_PYTHON_WARNINGS && PYTHON_VERSION >= 0x342 && PYTHON_VERSION < 0x3a0 && defined(_NUITKA_FULL_COMPAT)
-    // For full compatibility bump the warnings registry version,
-    // otherwise modules "__warningregistry__" will mismatch.
-    PyObject *warnings_module = PyImport_ImportModule("warnings");
-    PyObject *meth = PyObject_GetAttrString(warnings_module, "_filters_mutated");
-
-    CALL_FUNCTION_NO_ARGS(tstate, meth);
-#if PYTHON_VERSION < 0x380
-    // Two times, so "__warningregistry__" version matches.
-    CALL_FUNCTION_NO_ARGS(tstate, meth);
-#endif
+#if NO_PYTHON_WARNINGS
+    setupWarningsLate(tstate);
 #endif
 
 #if PYTHON_VERSION >= 0x300
