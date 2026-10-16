@@ -109,6 +109,12 @@ extern PyObject *IMPORT_EMBEDDED_MODULE_STATE(PyThreadState *tstate,
                                               struct Nuitka_MetaPathBasedLoaderEntry const *entry,
                                               PyObject **module_state, PyThreadState **owner_state, PyObject *module);
 
+// Import a compiled module through its loader entry with explicit load state
+// slots. A NULL module means the module is created and run, a provided module
+// is run and tracked. Returns a new reference, or NULL with an exception set.
+extern PyObject *IMPORT_COMPILED_MODULE(PyThreadState *tstate, struct Nuitka_MetaPathBasedLoaderEntry const *entry,
+                                        PyObject **module_state, PyThreadState **owner_state, PyObject *module);
+
 /* Import a module through its loader entry, using the load state slots of the
  * entry. A NULL module means the module is created and run, a provided module
  * is run and tracked. Returns a new reference, or NULL with an exception set.
@@ -121,7 +127,6 @@ extern PyObject *IMPORT_EMBEDDED_MODULE_ENTRY(PyThreadState *tstate,
  */
 extern PyObject *Nuitka_ImportHardModuleEntry(PyThreadState *tstate,
                                               struct Nuitka_MetaPathBasedLoaderEntry const *entry);
-
 /* Load the pre- or post-load trigger module of an entry, if any. */
 extern void Nuitka_LoadTriggeredModule(PyThreadState *tstate,
                                        struct Nuitka_MetaPathBasedLoaderEntry const *trigger_entry);
