@@ -929,6 +929,11 @@ static bool _Nuitka_Generator_close(PyThreadState *tstate, struct Nuitka_Generat
         }
     }
 
+    // CPython marks never-started generators closed on close() (GEN_CLOSED).
+    if (generator->m_status == status_Unused) {
+        Nuitka_MarkGeneratorAsFinished(generator);
+    }
+
     return true;
 }
 

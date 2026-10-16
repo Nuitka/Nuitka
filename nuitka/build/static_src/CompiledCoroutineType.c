@@ -675,6 +675,11 @@ static bool _Nuitka_Coroutine_close(PyThreadState *tstate, struct Nuitka_Corouti
         }
     }
 
+    // CPython marks never-started coroutines closed on close() (CORO_CLOSED).
+    if (coroutine->m_status == status_Unused) {
+        Nuitka_MarkCoroutineAsFinished(coroutine);
+    }
+
     return true;
 }
 

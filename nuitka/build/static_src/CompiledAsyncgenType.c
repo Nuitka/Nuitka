@@ -517,6 +517,11 @@ static bool _Nuitka_Asyncgen_close(PyThreadState *tstate, struct Nuitka_Asyncgen
         }
     }
 
+    // Match CPython: never-started async generators become closed on close().
+    if (asyncgen->m_status == status_Unused) {
+        Nuitka_MarkAsyncgenAsFinished(asyncgen);
+    }
+
     return true;
 }
 
