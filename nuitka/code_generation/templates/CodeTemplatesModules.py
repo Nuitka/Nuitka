@@ -656,7 +656,7 @@ template_module_compiled_importer = """\
 static PyThreadState *module_owner_%(module_identifier)s = NULL;
 
 static PyObject *module_import_%(module_identifier)s(PyThreadState *tstate, struct Nuitka_MetaPathBasedLoaderEntry const *entry, PyObject *module) {
-    return IMPORT_EMBEDDED_MODULE_STATE(tstate, &entry_%(module_identifier)s, &module_%(module_identifier)s, &module_owner_%(module_identifier)s, module);
+    return IMPORT_COMPILED_MODULE(tstate, &entry_%(module_identifier)s, &module_%(module_identifier)s, &module_owner_%(module_identifier)s, module);
 }"""
 
 template_module_loader_entry = """\

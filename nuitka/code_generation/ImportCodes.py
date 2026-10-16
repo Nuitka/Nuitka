@@ -356,7 +356,10 @@ def generateImportModuleHardCode(to_name, expression, emit, context):
             )
 
             emit("""%s = %s;""" % (value_name, module_getter_code))
-        elif not isHardModule(module_value_name):
+        elif (
+            not isHardModule(module_value_name)
+            and _getIncludedModule(module_value_name) is None
+        ):
             # The imported module can be hard-imported while the value bound by
             # "import package.submodule" is still only the top level package.
             # In that case, use a normal fixed import to obtain that binding.
