@@ -4888,6 +4888,11 @@
     - depends:
         - '._uuid'
 
+- module-name: 'psycopg_c._psycopg' # checksum: 473bd23b
+  implicit-imports:
+    - depends:
+        - '._uuid'
+
 - module-name: 'puremagic' # checksum: 8e1484eb
   data-files:
     - patterns:
