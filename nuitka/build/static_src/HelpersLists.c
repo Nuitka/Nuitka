@@ -640,8 +640,11 @@ static PyObject *_LIST_INDEX_COMMON(PyThreadState *tstate, PyListObject *list, P
 
     SET_CURRENT_EXCEPTION_TYPE0_VALUE1(tstate, PyExc_ValueError, err_string);
     return NULL;
-#else
+#elif PYTHON_VERSION < 0x3e0
     PyErr_Format(PyExc_ValueError, "%R is not in list", item);
+    return NULL;
+#else
+    SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_ValueError, "list.index(x): x not in list");
     return NULL;
 #endif
 }
