@@ -41,8 +41,8 @@ PyObject *DICT_COPY(PyThreadState *tstate, PyObject *dict_value) {
 
                 PyObject *value = entry->me_value;
 
-                NUITKA_MAY_BE_UNUSED int res = PyDict_SetItem(result, key, value);
-                assert(res == 0);
+                NUITKA_MAY_BE_UNUSED bool res = DICT_SET_ITEM(result, key, value);
+                assert(res != false);
             }
         }
 #else
@@ -188,8 +188,8 @@ PyObject *DICT_COPY(PyThreadState *tstate, PyObject *dict_value) {
 
                         CHECK_OBJECT(value);
 
-                        NUITKA_MAY_BE_UNUSED int res = PyDict_SetItem(result, key, value);
-                        assert(res == 0);
+                        NUITKA_MAY_BE_UNUSED bool res = DICT_SET_ITEM(result, key, value);
+                        assert(res != false);
                     }
                 }
 #else
@@ -202,8 +202,8 @@ PyObject *DICT_COPY(PyThreadState *tstate, PyObject *dict_value) {
 
                 CHECK_OBJECT(value);
 
-                NUITKA_MAY_BE_UNUSED int res = PyDict_SetItem(result, key, value);
-                assert(res == 0);
+                NUITKA_MAY_BE_UNUSED bool res = DICT_SET_ITEM(result, key, value);
+                assert(res != false);
             }
 #endif
             }
@@ -232,7 +232,7 @@ PyObject *DEEP_COPY_DICT(PyThreadState *tstate, PyObject *dict_value) {
 
         if (dict_value_copy != value) {
             NUITKA_MAY_BE_UNUSED bool res = DICT_SET_ITEM(result, key, dict_value_copy);
-            assert(res);
+            assert(res != false);
         }
 
         Py_DECREF(dict_value_copy);
@@ -262,8 +262,8 @@ PyObject *DEEP_COPY_DICT(PyThreadState *tstate, PyObject *dict_value) {
                 PyObject *value = entry->me_value;
                 value = DEEP_COPY(tstate, value);
 
-                NUITKA_MAY_BE_UNUSED int res = PyDict_SetItem(result, key, value);
-                assert(res == 0);
+                NUITKA_MAY_BE_UNUSED bool res = DICT_SET_ITEM(result, key, value);
+                assert(res != false);
 
                 Py_DECREF(value);
             }
@@ -415,8 +415,8 @@ PyObject *DEEP_COPY_DICT(PyThreadState *tstate, PyObject *dict_value) {
 
                         value = DEEP_COPY(tstate, value);
 
-                        NUITKA_MAY_BE_UNUSED int res = PyDict_SetItem(result, key, value);
-                        assert(res == 0);
+                        NUITKA_MAY_BE_UNUSED bool res = DICT_SET_ITEM(result, key, value);
+                        assert(res != false);
 
                         Py_DECREF(value);
                     }
@@ -433,8 +433,8 @@ PyObject *DEEP_COPY_DICT(PyThreadState *tstate, PyObject *dict_value) {
 
                 value = DEEP_COPY(tstate, value);
 
-                NUITKA_MAY_BE_UNUSED int res = PyDict_SetItem(result, key, value);
-                assert(res == 0);
+                NUITKA_MAY_BE_UNUSED bool res = DICT_SET_ITEM(result, key, value);
+                assert(res != false);
 
                 Py_DECREF(value);
             }

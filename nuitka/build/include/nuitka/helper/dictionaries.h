@@ -259,31 +259,34 @@ NUITKA_MAY_BE_UNUSED static PyObject *GET_STRING_DICT_VALUE(PyDictObject *dict, 
 
 #endif
 
-NUITKA_MAY_BE_UNUSED static bool DICT_SET_ITEM(PyObject *dict, PyObject *key, PyObject *value) {
-    CHECK_OBJECT(dict);
-    assert(PyDict_Check(dict));
-    CHECK_OBJECT(key);
-    CHECK_OBJECT(value);
+// Set a key in a dictionary, semantically identical to "PyDict_SetItem". On
+// success, true is returned, otherwise false with an exception set.
+extern bool DICT_SET_ITEM(PyObject *dict, PyObject *key, PyObject *value);
 
-    int status = PyDict_SetItem(dict, key, value);
+// Set a string key in a dictionary, semantically identical to
+// "PyDict_SetItemString". On success, true is returned, otherwise false with
+// an exception set.
+extern bool DICT_SET_ITEM_STRING(PyObject *dict, char const *key, PyObject *value);
 
-    if (unlikely(status != 0)) {
-        return false;
-    }
+// Remove a key from a dictionary, semantically identical to "PyDict_DelItem",
+// including the "KeyError" for missing keys. On success, true is returned.
+extern bool DICT_REMOVE_ITEM(PyObject *dict, PyObject *key);
 
-    return true;
-}
+// Remove a string key from a dictionary, semantically identical to
+// "PyDict_DelItemString". On success, true is returned.
+extern bool DICT_REMOVE_ITEM_STRING(PyObject *dict, char const *key);
 
-NUITKA_MAY_BE_UNUSED static bool DICT_REMOVE_ITEM(PyObject *dict, PyObject *key) {
-    int status = PyDict_DelItem(dict, key);
+// Get a borrowed reference for a string key, similar to "PyDict_GetItemString".
+// Hash errors are suppressed, but errors from key comparisons during the lookup
+// are not cleared.
+extern PyObject *DICT_GET_ITEM_STRING(PyObject *dict, char const *key);
 
-    if (unlikely(status == -1)) {
-        return false;
-    }
+// Update a dictionary from a mapping, semantically identical to "PyDict_Update".
+extern int DICT_UPDATE_FROM(PyThreadState *tstate, PyObject *dict, PyObject *other);
 
-    return true;
-}
-
+// Update a dictionary from an iterable of key/value pairs, semantically
+// identical to "PyDict_MergeFromSeq2" with override enabled.
+extern int DICT_UPDATE_FROM_SEQ(PyThreadState *tstate, PyObject *dict, PyObject *seq);
 // Set a KeyError for the given key, handling tuple keys and normalization.
 extern void SET_CURRENT_EXCEPTION_KEY_ERROR(PyThreadState *tstate, PyObject *key);
 
@@ -303,13 +306,30 @@ extern PyObject *DICT_GET_ITEM0(PyThreadState *tstate, PyObject *dict, PyObject 
 // Get dict lookup for a key, similar to PyDict_Contains
 extern int DICT_HAS_ITEM(PyThreadState *tstate, PyObject *dict, PyObject *key);
 
+#if PYTHON_VERSION >= 0x3c0 && !defined(Py_GIL_DISABLED)
+// Check if a dictionary has CPython watchers attached. Such dictionaries must
+// go through CPython for mutations to send watcher events and preserve the
+// version tag bits used by the watcher machinery.
+static inline bool NUITKA_DICT_IS_WATCHED(PyDictObject *dict) {
+#if PYTHON_VERSION < 0x3d0
+    return (dict->ma_version_tag & DICT_VERSION_MASK) != 0;
+#elif PYTHON_VERSION < 0x3e0
+    return (dict->ma_version_tag & DICT_WATCHER_MASK) != 0;
+#else
+    return (dict->_ma_watcher_tag & DICT_WATCHER_MASK) != 0;
+#endif
+}
+#else
+#define NUITKA_DICT_IS_WATCHED(dict) 0
+#endif
+
 // Convert to dictionary, helper for built-in "dict" mainly.
 extern PyObject *TO_DICT(PyThreadState *tstate, PyObject *seq_obj, PyObject *dict_obj);
 
-// For 3.6 to 3.10, the dictionary version tag is used for caching purposes, so
+// For 3.6 to 3.12, the dictionary version tag is used for caching purposes, so
 // we need to maintain it. However it's private value so we have to play a game
 // of having our own number space inside of their 64 bit numbers.
-#if PYTHON_VERSION >= 0x360 && PYTHON_VERSION <= 0x3c0
+#if PYTHON_VERSION >= 0x360 && PYTHON_VERSION < 0x3d0
 #define _NUITKA_MAINTAIN_DICT_VERSION_TAG 1
 #endif
 
@@ -319,6 +339,13 @@ extern uint64_t nuitka_dict_version_tag_counter;
 
 NUITKA_MAY_BE_UNUSED static void UPDATE_STRING_DICT0(PyDictObject *dict, Nuitka_StringObject *key, PyObject *value) {
     CHECK_OBJECT(value);
+
+#if PYTHON_VERSION >= 0x3c0 && !defined(Py_GIL_DISABLED)
+    if (unlikely(NUITKA_DICT_IS_WATCHED(dict))) {
+        DICT_SET_ITEM((PyObject *)dict, (PyObject *)key, value);
+        return;
+    }
+#endif
 
     Nuitka_DictEntryHandle entry = GET_STRING_DICT_ENTRY(dict, key);
 
@@ -355,6 +382,15 @@ NUITKA_MAY_BE_UNUSED static void UPDATE_STRING_DICT0(PyDictObject *dict, Nuitka_
 NUITKA_MAY_BE_UNUSED static void UPDATE_STRING_DICT_INPLACE(PyDictObject *dict, Nuitka_StringObject *key,
                                                             PyObject *value) {
     CHECK_OBJECT(value);
+
+#if PYTHON_VERSION >= 0x3c0 && !defined(Py_GIL_DISABLED)
+    if (unlikely(NUITKA_DICT_IS_WATCHED(dict))) {
+        DICT_SET_ITEM((PyObject *)dict, (PyObject *)key, value);
+        Py_DECREF(value);
+        CHECK_OBJECT(value);
+        return;
+    }
+#endif
 
     Nuitka_DictEntryHandle entry = GET_STRING_DICT_ENTRY(dict, key);
 
@@ -396,6 +432,15 @@ NUITKA_MAY_BE_UNUSED static void UPDATE_STRING_DICT_INPLACE(PyDictObject *dict, 
 NUITKA_MAY_BE_UNUSED static void UPDATE_STRING_DICT1(PyDictObject *dict, Nuitka_StringObject *key, PyObject *value) {
     CHECK_OBJECT(key);
     CHECK_OBJECT(value);
+
+#if PYTHON_VERSION >= 0x3c0 && !defined(Py_GIL_DISABLED)
+    if (unlikely(NUITKA_DICT_IS_WATCHED(dict))) {
+        DICT_SET_ITEM((PyObject *)dict, (PyObject *)key, value);
+        Py_DECREF(value);
+        CHECK_OBJECT(value);
+        return;
+    }
+#endif
 
     Nuitka_DictEntryHandle entry = GET_STRING_DICT_ENTRY(dict, key);
 
@@ -464,6 +509,11 @@ extern PyObject *DICT_VIEWITEMS(PyObject *dict);
 
 // Python dictionary copy, return a shallow copy of a dictionary.
 extern PyObject *DICT_COPY(PyThreadState *tstate, PyObject *dict);
+
+#if !_NUITKA_EXPERIMENTAL_DISABLE_DICT_OPT && PYTHON_VERSION >= 0x3a0 && !defined(Py_GIL_DISABLED)
+// Clone a clean, compact combined dictionary into an empty target dictionary.
+extern bool DICT_CLONE_INTO(PyThreadState *tstate, PyObject *target, PyObject *dict_value);
+#endif
 
 // Python dictionary clear, empties the dictionary.
 extern void DICT_CLEAR(PyObject *dict);

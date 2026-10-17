@@ -2409,7 +2409,7 @@ static int Nuitka_Main(int argc, native_command_line_argument_t **argv) {
             }
         }
 #endif
-        PyDict_DelItemString(Nuitka_GetSysModules(), NUITKA_MAIN_MODULE_NAME);
+        DICT_REMOVE_ITEM_STRING(Nuitka_GetSysModules(), NUITKA_MAIN_MODULE_NAME);
         DROP_ERROR_OCCURRED(tstate);
 
 #if _NUITKA_PLUGIN_WINDOWS_SERVICE_ENABLED

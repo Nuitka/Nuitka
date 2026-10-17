@@ -1887,17 +1887,58 @@ call of the functions below is a hint that it should be replaced.
       -  Exact ``dict`` only. Missing keys return ``NULL`` without an
          exception; hash errors still propagate.
 
+   -  -  ``PyDict_GetItemString``
+
+      -  ``DICT_GET_ITEM_STRING``
+
+      -  ``helper/dictionaries.h``
+
+      -  Borrowed result; creates the string key internally. Hash errors
+         are suppressed, but comparison errors during lookup are not
+         cleared.
+
    -  -  ``PyDict_SetItem``
       -  ``DICT_SET_ITEM``
       -  ``helper/dictionaries.h``
       -  Returns ``bool``; accepts a ``dict`` or subtype, and watched
          dictionaries are routed through CPython.
 
+   -  -  ``PyDict_SetItemString``
+      -  ``DICT_SET_ITEM_STRING``
+      -  ``helper/dictionaries.h``
+      -  Returns ``bool``; creates the string key internally.
+
    -  -  ``PyDict_DelItem``
       -  ``DICT_REMOVE_ITEM``
       -  ``helper/dictionaries.h``
       -  Returns ``bool`` and accepts a ``dict`` or subtype; the
          ``KeyError`` is the same.
+
+   -  -  ``PyDict_DelItemString``
+      -  ``DICT_REMOVE_ITEM_STRING``
+      -  ``helper/dictionaries.h``
+      -  Returns ``bool``; creates the string key internally.
+
+   -  -  ``PyDict_Merge``
+      -  ``DICT_UPDATE_FROM``
+      -  ``helper/dictionaries.h``
+      -  Unconditional mapping update semantics.
+
+   -  -  ``PyDict_MergeFromSeq2``
+      -  ``DICT_UPDATE_FROM_SEQ``
+      -  ``helper/dictionaries.h``
+      -  Same unconditional key/value sequence update semantics.
+
+   -  -  ``PyDict_Update``
+      -  ``DICT_UPDATE_FROM``
+      -  ``helper/dictionaries.h``
+      -  Same helper and unconditional override as ``PyDict_Merge``.
+
+   -  -  ``PyDict_Copy``
+      -  ``DICT_COPY``
+      -  ``helper/dictionaries.h``
+      -  Exact ``dict`` only; direct table copy that shares split-table
+         keys where CPython does.
 
    -  -  ``PyDict_Contains``
       -  ``DICT_HAS_ITEM``

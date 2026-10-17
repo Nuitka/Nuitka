@@ -36,7 +36,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_BUILTIN(PyObject *name) {
 NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_BUILTIN_STR(char const *name) {
     CHECK_OBJECT(dict_builtin);
 
-    PyObject *result = PyDict_GetItemString((PyObject *)dict_builtin, name);
+    PyObject *result = DICT_GET_ITEM_STRING((PyObject *)dict_builtin, name);
 
     // This is assumed to not fail, abort if it does.
     if (unlikely(result == NULL)) {

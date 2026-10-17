@@ -2123,20 +2123,20 @@ void _initBuiltinModule(PyThreadState *tstate) {
 #else
         PyObject *nuitka_binary_dir = getDllDirectoryObject();
 #endif
-        NUITKA_MAY_BE_UNUSED int res =
-            PyDict_SetItemString((PyObject *)dict_builtin, "__nuitka_binary_dir", nuitka_binary_dir);
-        assert(res == 0);
+        NUITKA_MAY_BE_UNUSED bool res =
+            DICT_SET_ITEM_STRING((PyObject *)dict_builtin, "__nuitka_binary_dir", nuitka_binary_dir);
+        assert(res != false);
 
 #if _NUITKA_EXE_MODE || _NUITKA_ONEFILE_DLL_MODE
 #if _NUITKA_ONEFILE_DLL_MODE
         // In onefile DLL mode, the outer EXE is the one to use for child
         // process spawning, not the loaded DLL.
-        res = PyDict_SetItemString((PyObject *)dict_builtin, "__nuitka_binary_exe",
+        res = DICT_SET_ITEM_STRING((PyObject *)dict_builtin, "__nuitka_binary_exe",
                                    Nuitka_String_FromFilename(getBinaryPath()));
 #else
-        res = PyDict_SetItemString((PyObject *)dict_builtin, "__nuitka_binary_exe", getBinaryFilenameObject(true));
+        res = DICT_SET_ITEM_STRING((PyObject *)dict_builtin, "__nuitka_binary_exe", getBinaryFilenameObject(true));
 #endif
-        assert(res == 0);
+        assert(res != false);
 #endif
     }
 #endif
@@ -2226,7 +2226,7 @@ void _initSlotIterNext(void) {
 
     // Note: Not using MAKE_DICT_EMPTY on purpose, this is called early on.
     PyObject *kw_args = PyDict_New();
-    PyDict_SetItem(kw_args, const_str_plain___iter__, Py_True);
+    DICT_SET_ITEM(kw_args, (PyObject *)const_str_plain___iter__, Py_True);
 
     PyObject *c =
         PyObject_CallFunctionObjArgs((PyObject *)&PyType_Type, const_str_plain___iter__, pos_args, kw_args, NULL);

@@ -11,9 +11,11 @@
 #if PYTHON_VERSION >= 0x3a0
 #define NUITKA_BYTES_HAS_FREELIST 1
 extern PyObject *Nuitka_Bytes_FromStringAndSize(const char *data, Py_ssize_t size);
+extern PyObject *Nuitka_Bytes_New(Py_ssize_t size);
 #else
 #define NUITKA_BYTES_HAS_FREELIST 0
 #define Nuitka_Bytes_FromStringAndSize PyBytes_FromStringAndSize
+#define Nuitka_Bytes_New(size) PyBytes_FromStringAndSize(NULL, (size))
 #endif
 
 extern void Nuitka_Bytes_AsStringAndSize(PyObject *obj, char **s, Py_ssize_t *len);

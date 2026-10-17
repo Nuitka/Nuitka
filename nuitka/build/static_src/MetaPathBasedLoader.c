@@ -464,7 +464,7 @@ static PyObject *installed_extension_modules = NULL;
 static bool scanModuleInPackagePath(PyThreadState *tstate, PyObject *module_name, char const *parent_module_name) {
     PyObject *sys_modules = Nuitka_GetSysModules();
 
-    PyObject *parent_module = PyDict_GetItemString(sys_modules, parent_module_name);
+    PyObject *parent_module = DICT_GET_ITEM_STRING(sys_modules, parent_module_name);
     CHECK_OBJECT(parent_module);
 
     PyObject *parent_path = LOOKUP_ATTRIBUTE(tstate, parent_module, const_str_plain___path__);

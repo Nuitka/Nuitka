@@ -21,7 +21,7 @@ void setDistributionsMetadata(PyThreadState *tstate, PyObject *metadata_values) 
     metadata_values_dict = MAKE_DICT_EMPTY(tstate);
 
     // We get the items passed, and need to add it to the dictionary.
-    int res = PyDict_MergeFromSeq2(metadata_values_dict, metadata_values, 1);
+    int res = DICT_UPDATE_FROM_SEQ(tstate, metadata_values_dict, metadata_values);
 
     if (res != 0) {
         NUITKA_CANNOT_GET_HERE("Failed to setup distributions metadata");

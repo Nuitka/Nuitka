@@ -56,9 +56,10 @@ static int _Nuitka_FrameLocalsProxy_clear(PyObject *self) {
 // Build a plain dict snapshot of the locals (storage + f_extra_locals).
 // No recursion: it walks the type description directly.
 static PyObject *_Nuitka_FrameLocalsProxy_to_dict(Nuitka_FrameLocalsProxyObject *proxy) {
+    PyThreadState *tstate = PyThreadState_GET();
     struct Nuitka_FrameObject *frame = proxy->frame;
     PyCodeObject *co = Nuitka_GetFrameCodeObject(frame);
-    PyObject *result = MAKE_DICT_EMPTY(PyThreadState_GET());
+    PyObject *result = MAKE_DICT_EMPTY(tstate);
     if (result == NULL) {
         return NULL;
     }
@@ -107,7 +108,7 @@ static PyObject *_Nuitka_FrameLocalsProxy_to_dict(Nuitka_FrameLocalsProxyObject 
             }
             if (value != NULL) {
                 PyObject *name = *var_names;
-                if (!DICT_SET_ITEM(result, name, value)) {
+                if (DICT_SET_ITEM(result, name, value) == false) {
                     Py_DECREF(result);
                     return NULL;
                 }
@@ -118,7 +119,7 @@ static PyObject *_Nuitka_FrameLocalsProxy_to_dict(Nuitka_FrameLocalsProxyObject 
     }
 
     if (frame->m_frame.f_extra_locals != NULL) {
-        if (PyDict_Update(result, frame->m_frame.f_extra_locals) < 0) {
+        if (DICT_UPDATE_FROM(tstate, result, frame->m_frame.f_extra_locals) < 0) {
             Py_DECREF(result);
             return NULL;
         }
@@ -649,23 +650,25 @@ static PyObject *_Nuitka_FrameLocalsProxy_richcompare(PyObject *self, PyObject *
 }
 
 static PyObject *_Nuitka_FrameLocalsProxy_or(PyObject *self, PyObject *other) {
+    PyThreadState *tstate = PyThreadState_GET();
+
     if (!PyDict_Check(other) && !Nuitka_PyObject_TypeCheck(other, &Nuitka_FrameLocalsProxy_Type)) {
         Py_RETURN_NOTIMPLEMENTED;
     }
 
     // For '__ror__' the arguments arrive swapped, so 'self' may be the other
     // mapping, and these have to handle both generic mapping and proxy.
-    PyObject *result = MAKE_DICT_EMPTY(PyThreadState_GET());
+    PyObject *result = MAKE_DICT_EMPTY(tstate);
     if (result == NULL) {
         return NULL;
     }
 
-    if (PyDict_Update(result, self) < 0) {
+    if (DICT_UPDATE_FROM(tstate, result, (PyObject *)self) < 0) {
         Py_DECREF(result);
         return NULL;
     }
 
-    if (PyDict_Update(result, other) < 0) {
+    if (DICT_UPDATE_FROM(tstate, result, other) < 0) {
         Py_DECREF(result);
         return NULL;
     }
