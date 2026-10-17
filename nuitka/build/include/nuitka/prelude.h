@@ -557,6 +557,11 @@ static inline PyObject *_Py_XNewRef(PyObject *obj) {
 #endif
 
 #include "nuitka/allocator.h"
+
+// Forward declaration for the canonical dictionary insertion helper, used by
+// exception handling before the full dictionary helpers are available.
+extern bool DICT_SET_ITEM(PyObject *dict, PyObject *key, PyObject *value);
+
 #include "nuitka/exceptions.h"
 
 // The digit types

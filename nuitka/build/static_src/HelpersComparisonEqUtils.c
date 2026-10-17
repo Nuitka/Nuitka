@@ -36,9 +36,9 @@ void _initSlotCompare(void) {
     // Note: Not using MAKE_DICT_EMPTY on purpose, this is called early on.
     PyObject *kw_args = PyDict_New();
 #if PYTHON_VERSION < 0x0300
-    PyDict_SetItem(kw_args, const_str_plain___cmp__, Py_True);
+    DICT_SET_ITEM(kw_args, (PyObject *)const_str_plain___cmp__, Py_True);
 #endif
-    PyDict_SetItem(kw_args, const_str_plain___init__, (PyObject *)Py_TYPE(Py_None));
+    DICT_SET_ITEM(kw_args, (PyObject *)const_str_plain___init__, (PyObject *)Py_TYPE(Py_None));
 
     // Create the type.
     CHECK_OBJECT(const_str_plain___cmp__);

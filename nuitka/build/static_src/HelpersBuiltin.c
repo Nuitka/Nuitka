@@ -41,8 +41,8 @@ PyObject *CALL_BUILTIN_KW_ARGS(PyThreadState *tstate, PyObject *callable, PyObje
                 kw_dict = MAKE_DICT_EMPTY(tstate);
             }
 
-            NUITKA_MAY_BE_UNUSED int res = PyDict_SetItemString(kw_dict, arg_names[i], args[i]);
-            assert(res == 0);
+            NUITKA_MAY_BE_UNUSED bool res = DICT_SET_ITEM_STRING(kw_dict, arg_names[i], args[i]);
+            assert(res != false);
         }
 
         i++;
@@ -172,7 +172,7 @@ PyObject *EVAL_CODE(PyThreadState *tstate, PyObject *code, PyObject *globals, Py
         const int res = DICT_HAS_ITEM(tstate, globals, const_str_plain___builtins__);
 
         if (res == 0) {
-            if (PyDict_SetItem(globals, const_str_plain___builtins__, (PyObject *)builtin_module) != 0) {
+            if (DICT_SET_ITEM(globals, (PyObject *)const_str_plain___builtins__, (PyObject *)builtin_module) == false) {
                 // Not really allowed to happen, so far this was seen only with
                 // C compilers getting the value of "res" wrong.
                 assert(false);

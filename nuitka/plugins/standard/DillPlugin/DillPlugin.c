@@ -18,7 +18,7 @@ void registerDillPluginTables(PyThreadState *tstate, char const *module_name, Py
     PyObject *funcs = MAKE_TUPLE2_0(tstate, PyCFunction_New(reduce_compiled_function, NULL),
                                     PyCFunction_New(create_compiled_function, NULL));
 
-    PyDict_SetItemString(function_tables, module_name, funcs);
+    DICT_SET_ITEM_STRING(function_tables, module_name, funcs);
 }
 
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and

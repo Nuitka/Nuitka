@@ -26,8 +26,8 @@ else
             PyObject *value = entry->me_value;
             {{ per_value_code }}
 
-            NUITKA_MAY_BE_UNUSED int res = PyDict_SetItem({{ result }}, key, value);
-            assert(res == 0);
+            NUITKA_MAY_BE_UNUSED bool res = DICT_SET_ITEM({{ result }}, key, value);
+            assert(res != false);
 
 {% if value_ref == 1 %}
             Py_DECREF(value);
@@ -226,8 +226,8 @@ else
 
                 {{ per_value_code }}
 
-                NUITKA_MAY_BE_UNUSED int res = PyDict_SetItem({{ result }}, key, value);
-                assert(res == 0);
+                NUITKA_MAY_BE_UNUSED bool res = DICT_SET_ITEM({{ result }}, key, value);
+                assert(res != false);
 
 {% if value_ref == 1 %}
                 Py_DECREF(value);
@@ -248,8 +248,8 @@ else
 
             {{ per_value_code }}
 
-            NUITKA_MAY_BE_UNUSED int res = PyDict_SetItem({{ result }}, key, value);
-            assert(res == 0);
+            NUITKA_MAY_BE_UNUSED bool res = DICT_SET_ITEM({{ result }}, key, value);
+            assert(res != false);
 
 {% if value_ref == 1 %}
             Py_DECREF(value);
@@ -295,7 +295,7 @@ PyObject *DEEP_COPY_DICT(PyThreadState *tstate, PyObject *dict_value) {
 
         if (dict_value_copy != value) {
             NUITKA_MAY_BE_UNUSED bool res = DICT_SET_ITEM(result, key, dict_value_copy);
-            assert(res);
+            assert(res != false);
         }
 
         Py_DECREF(dict_value_copy);

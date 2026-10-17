@@ -32,6 +32,22 @@ static struct _Py_bytes_state *Nuitka_Py_get_bytes_state(void) {
 #define BYTES_EMPTY (&Nuitka_PyRuntime__static_objects->singletons.bytes_empty)
 #endif
 
+PyObject *Nuitka_Bytes_New(Py_ssize_t size) {
+    assert(size >= 0);
+
+    PyBytesObject *op = (PyBytesObject *)NuitkaObject_Malloc(PyBytesObject_SIZE + size);
+
+    Py_SET_TYPE(op, &PyBytes_Type);
+    Py_SET_SIZE(op, size);
+
+    Nuitka_Py_NewReference((PyObject *)op);
+
+    op->ob_shash = -1;
+    op->ob_sval[size] = '\0';
+
+    return (PyObject *)op;
+}
+
 PyObject *Nuitka_Bytes_FromStringAndSize(const char *data, Py_ssize_t size) {
     assert(size >= 0);
     PyBytesObject *op;

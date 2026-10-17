@@ -246,7 +246,10 @@ def generateDictOperationUpdateCode(statement, emit, context):
         res_name = context.getIntResName()
 
         emit("assert(PyDict_Check(%s));" % dict_arg_name)
-        emit("%s = PyDict_Update(%s, %s);" % (res_name, dict_arg_name, value_arg_name))
+        emit(
+            "%s = DICT_UPDATE_FROM(tstate, %s, %s);"
+            % (res_name, dict_arg_name, value_arg_name)
+        )
 
         getErrorExitBoolCode(
             condition="%s != 0" % res_name,
@@ -449,14 +452,14 @@ def _generateDictOperationUpdateCommonCode(
             r"""
 {% if has_keys_attribute == None %}
 if (HAS_ATTR_BOOL(tstate, %(iterable_name)s, const_str_plain_keys)){
-    %(res_name)s = PyDict_Merge(%(dict_name)s, %(iterable_name)s, 1);
+    %(res_name)s = DICT_UPDATE_FROM(tstate, %(dict_name)s, %(iterable_name)s);
 } else {
-    %(res_name)s = PyDict_MergeFromSeq2(%(dict_name)s, %(iterable_name)s, 1);
+    %(res_name)s = DICT_UPDATE_FROM_SEQ(tstate, %(dict_name)s, %(iterable_name)s);
 }
 {% elif has_keys_attribute == True %}
-    %(res_name)s = PyDict_Merge(%(dict_name)s, %(iterable_name)s, 1);
+    %(res_name)s = DICT_UPDATE_FROM(tstate, %(dict_name)s, %(iterable_name)s);
 {% else %}
-    %(res_name)s = PyDict_MergeFromSeq2(%(dict_name)s, %(iterable_name)s, 1);
+    %(res_name)s = DICT_UPDATE_FROM_SEQ(tstate, %(dict_name)s, %(iterable_name)s);
 {% endif %}
 """,
             has_keys_attribute=expression.subnode_iterable.isKnownToHaveAttribute(
