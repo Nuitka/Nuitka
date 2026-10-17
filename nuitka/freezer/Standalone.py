@@ -267,7 +267,14 @@ def copyDllsUsed(dist_dir, standalone_entry_points):
         total=len(copy_standalone_entry_points),
     )
 
-    for standalone_entry_point in copy_standalone_entry_points:
+    # Copy symlinks last, so their targets are present in the distribution, and
+    # the symlinks can be preserved, rather than being dereferenced.
+    for standalone_entry_point in sorted(
+        copy_standalone_entry_points,
+        key=lambda standalone_entry_point: os.path.islink(
+            standalone_entry_point.source_path
+        ),
+    ):
         reportProgressBar(standalone_entry_point.dest_path)
 
         copyDllFile(
@@ -279,15 +286,18 @@ def copyDllsUsed(dist_dir, standalone_entry_points):
         )
 
         if isMacOS():
-            fixupBinaryDLLPathsMacOS(
-                binary_filename=getNormalizedPathJoin(
-                    dist_dir, standalone_entry_point.dest_path
-                ),
-                package_name=standalone_entry_point.package_name,
-                original_location=standalone_entry_point.source_path,
-                standalone_entry_points=standalone_entry_points,
-                removed_dll_paths=getRemovedUsedDllPaths(standalone_entry_point),
+            binary_filename = getNormalizedPathJoin(
+                dist_dir, standalone_entry_point.dest_path
             )
+
+            if not isLink(binary_filename):
+                fixupBinaryDLLPathsMacOS(
+                    binary_filename=binary_filename,
+                    package_name=standalone_entry_point.package_name,
+                    original_location=standalone_entry_point.source_path,
+                    standalone_entry_points=standalone_entry_points,
+                    removed_dll_paths=getRemovedUsedDllPaths(standalone_entry_point),
+                )
 
     closeProgressBar()
 
