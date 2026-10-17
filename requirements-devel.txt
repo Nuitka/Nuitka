@@ -1,7 +1,6 @@
 # This requirement is optional to use and for development purposes mainly.
-# spell-checker: ignore Pygments,deepdiff,mdformat,frontmatter
-# spell-checker: ignore orderedset,rstcheck,rstfmt,ruamel,tqdm,pytest
-# spell-checker: ignore pyyaml
+# spell-checker: ignore Pygments,deepdiff,frontmatter,mdformat,orderedset,pytest,pyyaml
+# spell-checker: ignore rstcheck,rstfmt,ruamel,tqdm
 
 
 # Make testing more reliable on Python2 with timeout features added.
