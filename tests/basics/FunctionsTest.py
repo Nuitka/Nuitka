@@ -470,6 +470,17 @@ gen3 = someGeneratorFunction()
 print("Fresh Generator Function close gives", end="")
 print(gen3.close())
 
+try:
+    generator_state = inspect.getgeneratorstate(gen3)
+except AttributeError:
+    pass
+else:
+    print("Fresh Generator Function state after close is", generator_state)
+
+print("Fresh Generator Function next after close gives", next(gen3, "exhausted"))
+
+print("Fresh Generator Function close again gives", gen3.close())
+
 gen4 = someGeneratorFunction()
 
 print("Used Generator Function that mis-catches close gives", end="")
