@@ -368,7 +368,7 @@ class NuitkaProgressBarBarflow(object):
         pct_style = " ".join(_progress_percentage_style)
         unit_label = (" " + unit + "s") if unit else ""
 
-        columns = [
+        columns = (
             _bfcols.DescriptionColumn(style=info_style),
             _bfcols.TextColumn(" "),
             _bfcols.BarColumn(width=25),
@@ -378,7 +378,7 @@ class NuitkaProgressBarBarflow(object):
             _bfcols.CountColumn(),
             _bfcols.TextColumn(unit_label),
             _bfcols.PostfixColumn(style=info_style),
-        ]
+        )
 
         self.barflow_progress = _barflow.Progress(
             *columns, total=effective_total, desc=stage, disable=disable, leave=False
@@ -775,117 +775,127 @@ def wrapWithProgressBar(iterable, stage, unit):
 
 
 @contextmanager
+def _withBarflowDownloadProgressBar(**kwargs):
+    description = kwargs.get("desc", "Downloading")
+    total_size_bytes = kwargs.get("total", 0)
+
+    # barflow renders to stderr, so base disable on stderr's TTY status
+    # (unwrapping our redirector), not the stdout-derived TTY status.
+    bf_stream = sys.stderr
+    if hasattr(bf_stream, "original_stream"):
+        bf_stream = bf_stream.original_stream
+    try:
+        bf_disable = not bf_stream.isatty()
+    except Exception:  # Catch all the things, pylint: disable=broad-except
+        bf_disable = True
+
+    barflow_progress = _barflow.Progress(
+        total=total_size_bytes or None,
+        desc=description,
+        disable=bf_disable,
+        leave=False,
+        # Same unit rendering as the tqdm branch, which forwards these
+        # from kwargs and otherwise uses tqdm's defaults.
+        unit=kwargs.get("unit", "it"),
+        unit_scale=kwargs.get("unit_scale", False),
+        unit_divisor=kwargs.get("unit_divisor", 1000),
+    )
+    barflow_progress.__enter__()
+
+    seen = {"n": 0}
+
+    def onProgressBarflow(block_num=1, block_size=1, total_size=None):
+        if total_size is not None and total_size > 0:
+            barflow_progress.set_total(0, total_size)
+
+        current = block_num * block_size
+        delta = current - seen["n"]
+        if delta > 0:
+            barflow_progress.advance(delta)
+            seen["n"] = current
+
+    try:
+        yield onProgressBarflow
+    finally:
+        with withNoExceptions():
+            barflow_progress.close()
+
+
+@contextmanager
+def _withRichDownloadProgressBar(**kwargs):
+    description = kwargs.get("desc", "Downloading")
+    total_size_bytes = kwargs.get("total", 0)
+
+    # Unwrap our own redirection if we are active during SCons or similar.
+    rich_file = sys.stdout
+    if hasattr(rich_file, "original_stream"):
+        rich_file = rich_file.original_stream
+
+    console = _rich_console.Console(file=rich_file)
+
+    _rich_progress_cm = _rich_progress.Progress(
+        _rich_progress.TextColumn("[bold blue]{task.description}", justify="right"),
+        _rich_progress.BarColumn(bar_width=None),
+        "[progress.percentage]{task.percentage:>3.1f}%",
+        "\u2022",
+        _rich_progress.DownloadColumn(),
+        "\u2022",
+        _rich_progress.TransferSpeedColumn(),
+        "\u2022",
+        _rich_progress.TimeRemainingColumn(),
+        transient=True,
+        disable=not sys.stdout.isatty(),
+        console=console,
+    )
+
+    with _rich_progress_cm as rich_p_instance:
+        task_id = rich_p_instance.add_task(description, total=total_size_bytes or None)
+
+        def onProgressRich(block_num=1, block_size=1, total_size=None):
+            # pylint: disable=unused-argument
+
+            if total_size is not None:
+                rich_p_instance.update(task_id, total=total_size)
+
+        yield onProgressRich
+
+
+@contextmanager
+def _withTqdmDownloadProgressBar(*args, **kwargs):
+    class NuitkaDownloadProgressBarTqdm(_tqdm):
+        # spell-checker: ignore bsize,tsize
+        def onProgress(self, b=1, bsize=1, tsize=None):
+            if tsize is not None:
+                self.total = tsize  # false alarm, pylint: disable=I0021,attribute-defined-outside-init
+            self.update(b * bsize - self.n)
+
+    tqdm_kwargs = kwargs.copy()
+    tqdm_kwargs.update(
+        disable=None,
+        leave=False,
+        dynamic_ncols=True,
+        bar_format="{desc} {percentage:3.1f}%|{bar:25}| {n_fmt}/{total_fmt}{postfix}"
+        + getDisableStylesCode(),
+    )
+    with NuitkaDownloadProgressBarTqdm(*args, **tqdm_kwargs) as pb_tqdm:
+        yield pb_tqdm.onProgress
+
+
+@contextmanager
 def withNuitkaDownloadProgressBar(*args, **kwargs):
-    # Three backend branches (barflow/rich/tqdm), pylint: disable=too-many-locals
     if use_progress_bar in (None, "none"):
         yield None
         return
 
-    # Check if stdout is a TTY for Rich
-    is_tty = sys.stdout.isatty()
-
     if use_progress_bar == "barflow":
-        description = kwargs.get("desc", "Downloading")
-        total_size_bytes = kwargs.get("total", 0)
-
-        # barflow renders to stderr, so base disable on stderr's TTY status
-        # (unwrapping our redirector), not the stdout-derived is_tty used by
-        # the rich branch.
-        bf_stream = sys.stderr
-        if hasattr(bf_stream, "original_stream"):
-            bf_stream = bf_stream.original_stream
-        try:
-            bf_disable = not bf_stream.isatty()
-        except Exception:  # Catch all the things, pylint: disable=broad-except
-            bf_disable = True
-
-        barflow_progress = _barflow.Progress(
-            total=total_size_bytes or None,
-            desc=description,
-            disable=bf_disable,
-            leave=False,
-            # Same unit rendering as the tqdm branch, which forwards these
-            # from kwargs and otherwise uses tqdm's defaults.
-            unit=kwargs.get("unit", "it"),
-            unit_scale=kwargs.get("unit_scale", False),
-            unit_divisor=kwargs.get("unit_divisor", 1000),
-        )
-        barflow_progress.__enter__()
-
-        seen = {"n": 0}
-
-        def onProgressBarflow(block_num=1, block_size=1, total_size=None):
-            if total_size is not None and total_size > 0:
-                barflow_progress.set_total(0, total_size)
-
-            current = block_num * block_size
-            delta = current - seen["n"]
-            if delta > 0:
-                barflow_progress.advance(delta)
-                seen["n"] = current
-
-        try:
-            yield onProgressBarflow
-        finally:
-            with withNoExceptions():
-                barflow_progress.close()
+        with _withBarflowDownloadProgressBar(**kwargs) as report_hook:
+            yield report_hook
     elif use_progress_bar == "rich":
-        description = kwargs.get("desc", "Downloading")
-        total_size_bytes = kwargs.get("total", 0)
-
-        # Unwrap our own redirection if we are active during SCons or similar.
-        rich_file = sys.stdout
-        if hasattr(rich_file, "original_stream"):
-            rich_file = rich_file.original_stream
-
-        console = _rich_console.Console(file=rich_file)
-
-        _rich_progress_cm = _rich_progress.Progress(
-            _rich_progress.TextColumn("[bold blue]{task.description}", justify="right"),
-            _rich_progress.BarColumn(bar_width=None),
-            "[progress.percentage]{task.percentage:>3.1f}%",
-            "\u2022",
-            _rich_progress.DownloadColumn(),
-            "\u2022",
-            _rich_progress.TransferSpeedColumn(),
-            "\u2022",
-            _rich_progress.TimeRemainingColumn(),
-            transient=True,
-            disable=not is_tty,
-            console=console,
-        )
-
-        with _rich_progress_cm as rich_p_instance:
-            task_id = rich_p_instance.add_task(
-                description, total=total_size_bytes or None
-            )
-
-            def onProgressRich(block_num=1, block_size=1, total_size=None):
-                # pylint: disable=unused-argument
-
-                if total_size is not None:
-                    rich_p_instance.update(task_id, total=total_size)
-
-            yield onProgressRich
+        with _withRichDownloadProgressBar(**kwargs) as report_hook:
+            yield report_hook
     else:
-
-        class NuitkaDownloadProgressBarTqdm(_tqdm):
-            # spell-checker: ignore bsize,tsize
-            def onProgress(self, b=1, bsize=1, tsize=None):
-                if tsize is not None:
-                    self.total = tsize  # false alarm, pylint: disable=I0021,attribute-defined-outside-init
-                self.update(b * bsize - self.n)
-
-        tqdm_kwargs = kwargs.copy()
-        tqdm_kwargs.update(
-            disable=None,
-            leave=False,
-            dynamic_ncols=True,
-            bar_format="{desc} {percentage:3.1f}%|{bar:25}| {n_fmt}/{total_fmt}{postfix}"
-            + getDisableStylesCode(),
-        )
-        with NuitkaDownloadProgressBarTqdm(*args, **tqdm_kwargs) as pb_tqdm:
-            yield pb_tqdm.onProgress
+        with _withTqdmDownloadProgressBar(*args, **kwargs) as report_hook:
+            yield report_hook
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
