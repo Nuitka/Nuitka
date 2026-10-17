@@ -77,6 +77,27 @@ try:
 except Exception as e:
     print("Indexing None gives", repr(e))
 
+base = 2.0
+exp = -1100.0
+print("Power operator underflow gives", base**exp)
+
+big = 1e200
+inf_value = float("inf")
+
+try:
+    print("Power operator infinity overflow gives", big**3.0)
+except OverflowError as e:
+    print("Power operator infinity overflow gives", repr(e))
+
+try:
+    print("Power operator negative infinity overflow gives", (-big) ** 3.0)
+except OverflowError as e:
+    print("Power operator negative infinity overflow gives", repr(e))
+
+print("Power operator infinity gives", inf_value**2.0)
+print("Power operator infinity underflow gives", inf_value**-1.0)
+print("Power operator negative infinity underflow gives", (-inf_value) ** -3.0)
+
 #     Python tests originally created or extracted from other peoples work. The
 #     parts were too small to be protected.
 #
