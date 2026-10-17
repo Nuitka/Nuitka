@@ -12,7 +12,8 @@
 
 #define _CRT_SECURE_NO_WARNINGS
 
-#if !defined(_WIN32)
+#if !defined(_WIN32) && !defined(__APPLE__) && !defined(__FreeBSD__) && !defined(__NetBSD__) &&                        \
+    !defined(__OpenBSD__) && !defined(__DragonFly__)
 #define _POSIX_C_SOURCE 200809L
 #ifndef _GNU_SOURCE
 #define _GNU_SOURCE
