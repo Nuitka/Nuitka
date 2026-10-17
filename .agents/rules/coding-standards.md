@@ -67,3 +67,5 @@
     - **Correct:** `if (condition) { return; }`
 - **Formatting:**
   - C code is formatted using `clang-format` as part of `bin/autoformat-nuitka-source`.
+- **Comments:**
+  - Prefer `//` line comments over `/* ... */` block comments.
