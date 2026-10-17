@@ -127,9 +127,11 @@ static inline bool _INPLACE_OPERATION_POW_FLOAT_FLOAT(PyObject **operand1, PyObj
             errno = 0;
             double r = pow(a, b);
 
-            // Underflow is not an error, CPython resets errno for it in
-            // '_Py_ADJUST_ERANGE1'.
-            if (errno == ERANGE && r == 0.0) {
+            // Match CPython's '_Py_ADJUST_ERANGE1': Underflow is not an
+            // error, but infinity without errno is an overflow.
+            if (errno == 0 && Py_IS_INFINITY(r)) {
+                errno = ERANGE;
+            } else if (errno == ERANGE && r == 0.0) {
                 errno = 0;
             }
 
@@ -472,9 +474,11 @@ static inline bool _INPLACE_OPERATION_POW_OBJECT_FLOAT(PyObject **operand1, PyOb
                 errno = 0;
                 double r = pow(a, b);
 
-                // Underflow is not an error, CPython resets errno for it in
-                // '_Py_ADJUST_ERANGE1'.
-                if (errno == ERANGE && r == 0.0) {
+                // Match CPython's '_Py_ADJUST_ERANGE1': Underflow is not an
+                // error, but infinity without errno is an overflow.
+                if (errno == 0 && Py_IS_INFINITY(r)) {
+                    errno = ERANGE;
+                } else if (errno == ERANGE && r == 0.0) {
                     errno = 0;
                 }
 
@@ -822,9 +826,11 @@ static inline bool _INPLACE_OPERATION_POW_FLOAT_OBJECT(PyObject **operand1, PyOb
                 errno = 0;
                 double r = pow(a, b);
 
-                // Underflow is not an error, CPython resets errno for it in
-                // '_Py_ADJUST_ERANGE1'.
-                if (errno == ERANGE && r == 0.0) {
+                // Match CPython's '_Py_ADJUST_ERANGE1': Underflow is not an
+                // error, but infinity without errno is an overflow.
+                if (errno == 0 && Py_IS_INFINITY(r)) {
+                    errno = ERANGE;
+                } else if (errno == ERANGE && r == 0.0) {
                     errno = 0;
                 }
 
