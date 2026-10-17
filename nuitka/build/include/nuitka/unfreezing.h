@@ -101,6 +101,18 @@ struct Nuitka_MetaPathBasedLoaderEntry {
 #endif
 };
 
+// Direct entries for modules executed by the startup code. They are NULL if
+// the module is not included, which standalone rejects, while accelerated mode
+// falls back to a name based import.
+extern struct Nuitka_MetaPathBasedLoaderEntry const *const Nuitka_MainModuleEntry;
+extern struct Nuitka_MetaPathBasedLoaderEntry const *const Nuitka_ParentsMainModuleEntry;
+extern struct Nuitka_MetaPathBasedLoaderEntry const *const Nuitka_ForkserverModuleEntry;
+extern struct Nuitka_MetaPathBasedLoaderEntry const *const Nuitka_ResourceTrackerModuleEntry;
+extern struct Nuitka_MetaPathBasedLoaderEntry const *const Nuitka_JoblibPopenLokyWin32ModuleEntry;
+extern struct Nuitka_MetaPathBasedLoaderEntry const *const Nuitka_JoblibPopenLokyPosixModuleEntry;
+extern struct Nuitka_MetaPathBasedLoaderEntry const *const Nuitka_JoblibResourceTrackerModuleEntry;
+extern struct Nuitka_MetaPathBasedLoaderEntry const *const Nuitka_AnyioToProcessModuleEntry;
+
 /* Import a module with explicit load state slots. A NULL module means the
  * module is created and run, a provided module is run and tracked. Returns a
  * new reference, or NULL with an exception set.

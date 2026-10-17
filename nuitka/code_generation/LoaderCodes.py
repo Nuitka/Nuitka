@@ -24,6 +24,7 @@ from nuitka.importing.Recursion import getExcludedModuleNames
 from nuitka.ModuleRegistry import getDoneModules, getUncompiledTechnicalModules
 from nuitka.options.Options import (
     getFileReferenceMode,
+    getMainModuleName,
     hasNonDeploymentIndicator,
     isShowInclusion,
     isStandaloneMode,
@@ -38,6 +39,7 @@ from nuitka.utils.CStrings import (
     encodePythonUnicodeToC,
 )
 from nuitka.utils.ModuleNames import (
+    ModuleName,
     makeTriggerModuleName,
     post_module_load_trigger_name,
     pre_module_load_trigger_name,
@@ -255,6 +257,7 @@ def getMetaPathLoaderBodyCode(bytecode_accessor):
     metapath_loader_inittab = []
     metapath_loader_decls = []
     metapath_loader_refs = []
+    entry_name_by_module_name = {}
 
     # We need the entry names up front, so that pre/post load and parent entries
     # can reference each other by name rather than relying on name based lookups
@@ -262,7 +265,9 @@ def getMetaPathLoaderBodyCode(bytecode_accessor):
     ordered_modules = _getLoaderModuleOrder()
 
     for module in ordered_modules:
-        entry_name = getModuleEntryCodeName(module.getFullName())
+        module_name = module.getFullName()
+        entry_name = getModuleEntryCodeName(module_name)
+        entry_name_by_module_name[module_name] = entry_name
 
         # Bytecode and extension entries need external linkage, as compiled
         # modules may reference them.
@@ -284,6 +289,56 @@ def getMetaPathLoaderBodyCode(bytecode_accessor):
         # Keep every entry in the loader table for name based and dynamic
         # imports. Direct imports reach their entry symbol without the table.
         metapath_loader_refs.append("    &%s," % entry_name)
+
+    # Modules executed directly by the startup code get an entry pointer, so
+    # they do not have to be found by name. Missing optional modules are NULL,
+    # which standalone rejects, while accelerated mode falls back to a name
+    # based import.
+    startup_modules = (
+        ("Nuitka_MainModuleEntry", getMainModuleName()),
+        (
+            "Nuitka_ParentsMainModuleEntry",
+            ModuleName.makeModuleNameInPackage("__parents_main__", None),
+        ),
+        (
+            "Nuitka_ForkserverModuleEntry",
+            ModuleName.makeModuleNameInPackage("forkserver", "multiprocessing"),
+        ),
+        (
+            "Nuitka_ResourceTrackerModuleEntry",
+            ModuleName.makeModuleNameInPackage("resource_tracker", "multiprocessing"),
+        ),
+        (
+            "Nuitka_JoblibPopenLokyWin32ModuleEntry",
+            ModuleName.makeModuleNameInPackage(
+                "popen_loky_win32", "joblib.externals.loky.backend"
+            ),
+        ),
+        (
+            "Nuitka_JoblibPopenLokyPosixModuleEntry",
+            ModuleName.makeModuleNameInPackage(
+                "popen_loky_posix", "joblib.externals.loky.backend"
+            ),
+        ),
+        (
+            "Nuitka_JoblibResourceTrackerModuleEntry",
+            ModuleName.makeModuleNameInPackage(
+                "resource_tracker", "joblib.externals.loky.backend"
+            ),
+        ),
+        (
+            "Nuitka_AnyioToProcessModuleEntry",
+            ModuleName.makeModuleNameInPackage("to_process", "anyio"),
+        ),
+    )
+
+    for entry_pointer_name, module_name in startup_modules:
+        entry_name = entry_name_by_module_name.get(module_name)
+
+        metapath_loader_inittab.append(
+            "struct Nuitka_MetaPathBasedLoaderEntry const *const %s = %s;"
+            % (entry_pointer_name, "NULL" if entry_name is None else "&" + entry_name)
+        )
 
     frozen_defs = []
 

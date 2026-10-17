@@ -21,6 +21,7 @@
 #endif
 
 #include "nuitka/prelude.h"
+#include "nuitka/unfreezing.h"
 
 #if !defined(_WIN32)
 #include <signal.h>
@@ -516,8 +517,41 @@ included by default",
     return exit_code;
 }
 
-static PyObject *EXECUTE_MAIN_MODULE(PyThreadState *tstate, char const *module_name, bool is_package) {
+#if _NUITKA_STANDALONE_MODE
+static PyObject *EXECUTE_MAIN_MODULE_ENTRY(PyThreadState *tstate, struct Nuitka_MetaPathBasedLoaderEntry const *entry) {
+    if (entry == NULL || entry->m_import_module == NULL) {
+        PyErr_SetString(PyExc_ImportError, "startup module is not included");
+        return NULL;
+    }
+
+    PyObject *result = entry->m_import_module(tstate, entry, NULL);
+
+    if (result != NULL) {
+        // The module is kept alive by its load state, return a borrowed
+        // reference like the name based path does.
+        Py_DECREF(result);
+    }
+
+    return result;
+}
+
+#define EXECUTE_MAIN_MODULE(tstate, entry, module_name, is_package) EXECUTE_MAIN_MODULE_ENTRY(tstate, entry)
+#else
+static PyObject *EXECUTE_MAIN_MODULE_BY_NAME(PyThreadState *tstate, struct Nuitka_MetaPathBasedLoaderEntry const *entry,
+                                             char const *module_name, bool is_package) {
     // NUITKA_INIT_PROGRAM_LATE(module_name);
+
+    if (entry != NULL && entry->m_import_module != NULL) {
+        PyObject *result = entry->m_import_module(tstate, entry, NULL);
+
+        if (result != NULL) {
+            // The module is kept alive by its load state, return a borrowed
+            // reference like the startup by name paths below.
+            Py_DECREF(result);
+        }
+
+        return result;
+    }
 
     if (is_package) {
         char const *w = module_name;
@@ -546,6 +580,10 @@ static PyObject *EXECUTE_MAIN_MODULE(PyThreadState *tstate, char const *module_n
     return IMPORT_EMBEDDED_MODULE(tstate, module_name, false);
 }
 
+#define EXECUTE_MAIN_MODULE(tstate, entry, module_name, is_package)                                                    \
+    EXECUTE_MAIN_MODULE_BY_NAME(tstate, entry, module_name, is_package)
+#endif
+
 #if _NUITKA_PLUGIN_WINDOWS_SERVICE_ENABLED
 #include "nuitka_windows_service.h"
 
@@ -553,7 +591,7 @@ static PyObject *EXECUTE_MAIN_MODULE(PyThreadState *tstate, char const *module_n
 void SvcStartPython(void) {
     PyThreadState *tstate = PyThreadState_GET();
 
-    EXECUTE_MAIN_MODULE(tstate, NUITKA_MAIN_MODULE_NAME, NUITKA_MAIN_IS_PACKAGE_BOOL);
+    EXECUTE_MAIN_MODULE(tstate, Nuitka_MainModuleEntry, NUITKA_MAIN_MODULE_NAME, NUITKA_MAIN_IS_PACKAGE_BOOL);
 
     NUITKA_PRINT_TIMING("SvcStartPython() Python exited.")
 
@@ -2217,7 +2255,7 @@ static int Nuitka_Main(int argc, native_command_line_argument_t **argv) {
 #ifdef _NUITKA_PLUGIN_MULTIPROCESSING_ENABLED
     if (unlikely(is_multiprocessing_fork)) {
         NUITKA_PRINT_TRACE("main(): Calling __parents_main__.");
-        EXECUTE_MAIN_MODULE(tstate, "__parents_main__", false);
+        EXECUTE_MAIN_MODULE(tstate, Nuitka_ParentsMainModuleEntry, "__parents_main__", false);
 
         int exit_code = HANDLE_PROGRAM_EXIT(tstate);
 
@@ -2225,7 +2263,8 @@ static int Nuitka_Main(int argc, native_command_line_argument_t **argv) {
         Py_Exit(exit_code);
     } else if (unlikely(is_multiprocessing_forkserver)) {
         NUITKA_PRINT_TRACE("main(): Calling multiprocessing.forkserver.");
-        PyObject *forkserver_module = EXECUTE_MAIN_MODULE(tstate, "multiprocessing.forkserver", true);
+        PyObject *forkserver_module =
+            EXECUTE_MAIN_MODULE(tstate, Nuitka_ForkserverModuleEntry, "multiprocessing.forkserver", true);
 
         PyObject *main_function = PyObject_GetAttrString(forkserver_module, "main");
         CHECK_OBJECT(main_function);
@@ -2260,8 +2299,8 @@ static int Nuitka_Main(int argc, native_command_line_argument_t **argv) {
 #if defined(_WIN32)
     } else if (unlikely(is_joblib_popen_loky_win32)) {
         NUITKA_PRINT_TRACE("main(): Calling joblib.externals.loky.backend.popen_loky_win32.");
-        PyObject *joblib_popen_loky_win32_module =
-            EXECUTE_MAIN_MODULE(tstate, "joblib.externals.loky.backend.popen_loky_win32", true);
+        PyObject *joblib_popen_loky_win32_module = EXECUTE_MAIN_MODULE(
+            tstate, Nuitka_JoblibPopenLokyWin32ModuleEntry, "joblib.externals.loky.backend.popen_loky_win32", true);
 
         // Remove the "-c" and options part like CPython would do as well.
         PyObject *argv_list = Nuitka_SysGetObject("argv");
@@ -2295,8 +2334,8 @@ static int Nuitka_Main(int argc, native_command_line_argument_t **argv) {
 #else
     } else if (unlikely(is_joblib_popen_loky_posix)) {
         NUITKA_PRINT_TRACE("main(): Calling joblib.externals.loky.backend.popen_loky_posix.");
-        PyObject *joblib_popen_loky_posix_module =
-            EXECUTE_MAIN_MODULE(tstate, "joblib.externals.loky.backend.popen_loky_posix", true);
+        PyObject *joblib_popen_loky_posix_module = EXECUTE_MAIN_MODULE(
+            tstate, Nuitka_JoblibPopenLokyPosixModuleEntry, "joblib.externals.loky.backend.popen_loky_posix", true);
 
         // Remove the "-m" like CPython would do as well.
         NUITKA_MAY_BE_UNUSED int res = PyList_SetSlice(Nuitka_SysGetObject("argv"), 0, 2, const_tuple_empty);
@@ -2313,14 +2352,16 @@ static int Nuitka_Main(int argc, native_command_line_argument_t **argv) {
         Py_Exit(exit_code);
 #endif
     } else if (unlikely(multiprocessing_resource_tracker_arg != -1)) {
+        struct Nuitka_MetaPathBasedLoaderEntry const *tracker_entry = NULL;
         char const *tracker_module_name = multiprocessing_tracker_module_name;
 
         if (tracker_module_name == NULL) {
             tracker_module_name = "multiprocessing.resource_tracker";
+            tracker_entry = Nuitka_ResourceTrackerModuleEntry;
         }
 
         NUITKA_PRINTF_TRACE("main(): Launching as '%s'.\n", tracker_module_name);
-        PyObject *resource_tracker_module = EXECUTE_MAIN_MODULE(tstate, tracker_module_name, true);
+        PyObject *resource_tracker_module = EXECUTE_MAIN_MODULE(tstate, tracker_entry, tracker_module_name, true);
 
         PyObject *main_function = PyObject_GetAttrString(resource_tracker_module, "main");
         CHECK_OBJECT(main_function);
@@ -2334,8 +2375,8 @@ static int Nuitka_Main(int argc, native_command_line_argument_t **argv) {
         Py_Exit(exit_code);
     } else if (unlikely(loky_resource_tracker_arg != -1)) {
         NUITKA_PRINT_TRACE("main(): Launching as 'joblib.externals.loky.backend.resource_tracker'.");
-        PyObject *resource_tracker_module =
-            EXECUTE_MAIN_MODULE(tstate, "joblib.externals.loky.backend.resource_tracker", true);
+        PyObject *resource_tracker_module = EXECUTE_MAIN_MODULE(tstate, Nuitka_JoblibResourceTrackerModuleEntry,
+                                                                "joblib.externals.loky.backend.resource_tracker", true);
         CHECK_OBJECT(resource_tracker_module);
 
         PyObject *main_function = PyObject_GetAttrString(resource_tracker_module, "main");
@@ -2348,7 +2389,8 @@ static int Nuitka_Main(int argc, native_command_line_argument_t **argv) {
         NUITKA_PRINT_TRACE("main(): Calling 'joblib.externals.loky.backend.resource_tracker' Py_Exit.");
         Py_Exit(exit_code);
     } else if (unlikely(is_anyio_to_process)) {
-        PyObject *anyio_module = EXECUTE_MAIN_MODULE(tstate, "anyio.to_process", false);
+        PyObject *anyio_module =
+            EXECUTE_MAIN_MODULE(tstate, Nuitka_AnyioToProcessModuleEntry, "anyio.to_process", false);
 
         PyObject *main_function = PyObject_GetAttrString(anyio_module, "process_worker");
         CHECK_OBJECT(main_function);
@@ -2388,7 +2430,7 @@ static int Nuitka_Main(int argc, native_command_line_argument_t **argv) {
 #else
     /* Execute the "__main__" module. */
     NUITKA_PRINT_TIMING("main(): Calling " NUITKA_MAIN_MODULE_NAME ".");
-    EXECUTE_MAIN_MODULE(tstate, NUITKA_MAIN_MODULE_NAME, NUITKA_MAIN_IS_PACKAGE_BOOL);
+    EXECUTE_MAIN_MODULE(tstate, Nuitka_MainModuleEntry, NUITKA_MAIN_MODULE_NAME, NUITKA_MAIN_IS_PACKAGE_BOOL);
     NUITKA_PRINT_TIMING("main(): Exited from " NUITKA_MAIN_MODULE_NAME ".");
 
 #endif
