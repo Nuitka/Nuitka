@@ -22,12 +22,15 @@ from nuitka.Tracing import inclusion_logger, postprocessing_logger
 from .Execution import executeToolChecked, filterOutputByLine
 from .FileOperations import (
     addFileExecutablePermission,
+    areSamePaths,
     copyFile,
+    copyFileWithPermissions,
     getFileList,
     getNormalizedPath,
     getNormalizedPathJoin,
     makeContainingPath,
     putBinaryFileContents,
+    resolveSymlink,
     withMadeWritableFileMode,
     withTemporaryDirectory,
 )
@@ -1244,41 +1247,97 @@ def makeMacOSThinBinary(dest_path, original_path):
         )
 
 
+def _isSymlinkTargetEntryPoint(
+    source_path, target_filename, dist_dir, other_entry_points
+):
+    """Check if the target of a symlink is another entry point being copied.
+
+    Args:
+        source_path: Path of the symlink.
+        target_filename: Destination filename of the symlink.
+        dist_dir: Distribution directory.
+        other_entry_points: Entry points being copied.
+
+    Returns:
+        bool: True if the symlink target is among the entry points.
+    """
+    link_target_rel = resolveSymlink(source_path)
+
+    resolved_target_path = getNormalizedPathJoin(
+        os.path.dirname(target_filename), link_target_rel
+    )
+
+    return any(
+        areSamePaths(
+            resolved_target_path,
+            getNormalizedPathJoin(dist_dir, other_entry_point.dest_path),
+        )
+        for other_entry_point in other_entry_points
+    )
+
+
 def copyDllFile(source_path, dist_dir, dest_path, executable, other_entry_points):
     """Copy an extension/DLL file making some adjustments on the way."""
 
-    target_filename = os.path.join(dist_dir, dest_path)
+    target_filename = getNormalizedPathJoin(dist_dir, dest_path)
     makeContainingPath(target_filename)
 
-    copyFile(source_path=source_path, dest_path=target_filename)
-
-    if isWin32Windows() and python_version < 0x300:
-        _removeSxsFromDLL(target_filename)
-
-    if isMacOS():
-        makeMacOSThinBinary(dest_path=target_filename, original_path=source_path)
-
-    if isElfUsingPlatform():
-        rpaths = getStandaloneEntryPointRPATHs(
-            dest_path=dest_path,
+    if (
+        not isWin32Windows()
+        and os.path.islink(source_path)
+        and _isSymlinkTargetEntryPoint(
+            source_path=source_path,
+            target_filename=target_filename,
+            dist_dir=dist_dir,
             other_entry_points=other_entry_points,
-            rpath_mode="parents",
+        )
+    ):
+        # Preserve symlinks to libraries, e.g. versioned aliases instead of
+        # copying the target as a second regular file, which can cause duplicate
+        # library state to be loaded. Symlinks are copied last, so their targets
+        # are already in the distribution or not.
+        copyFileWithPermissions(
+            source_path=source_path,
+            dest_path=target_filename,
+            target_dir=dist_dir,
         )
 
-        # Make sure, sub-folders use by the original DLL are actually still
-        # included.
-        #
-        # TODO: Actually it would be nice if these were trimmed to what actually
-        # exists and is used, but that's pretty complex and maybe not worth the
-        # effort. This would look like "fixupBinaryDLLPathsMacOS" somewhat, and
-        # actually this code is indeed kind of misplaced here.
-        rpaths.update(
-            rpath
-            for rpath in getSharedLibraryRPATHs(source_path, elements=True)
-            if rpath.startswith("$ORIGIN")
-        )
+        is_symlink_copy = os.path.islink(target_filename)
+    else:
+        copyFile(source_path=source_path, dest_path=target_filename)
 
-        setSharedLibraryRPATH(target_filename, ":".join(rpaths))
+        is_symlink_copy = False
+
+    # The target of a preserved symlink is an entry point of its own, and was
+    # therefore already adjusted when it was copied before the symlink.
+    if not is_symlink_copy:
+        if isWin32Windows() and python_version < 0x300:
+            _removeSxsFromDLL(target_filename)
+
+        if isMacOS():
+            makeMacOSThinBinary(dest_path=target_filename, original_path=source_path)
+
+        if isElfUsingPlatform():
+            rpaths = getStandaloneEntryPointRPATHs(
+                dest_path=dest_path,
+                other_entry_points=other_entry_points,
+                rpath_mode="parents",
+            )
+
+            # Make sure, sub-folders use by the original DLL are actually still
+            # included.
+            #
+            # TODO: Actually it would be nice if these were trimmed to what actually
+            # exists and is used, but that's pretty complex and maybe not worth the
+            # effort. This would look like "fixupBinaryDLLPathsMacOS" somewhat, and
+            # actually this code is indeed kind of misplaced here.
+            rpaths.update(
+                rpath
+                for rpath in getSharedLibraryRPATHs(source_path, elements=True)
+                if rpath.startswith("$ORIGIN")
+            )
+
+            setSharedLibraryRPATH(target_filename, ":".join(rpaths))
 
     if executable:
         addFileExecutablePermission(target_filename)
