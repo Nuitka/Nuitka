@@ -38,6 +38,7 @@ class ExpressionClassBodyBase(ExpressionOutlineFunctionBase):
         "locals_scope",
         "conditional_annotation_indices",
         "conditional_annotations_variable",
+        "declared_class_variable",
     )
 
     def __init__(self, provider, name, doc, source_ref):
@@ -61,6 +62,8 @@ class ExpressionClassBodyBase(ExpressionOutlineFunctionBase):
             self.locals_kind,
             self,
         )
+
+        self.declared_class_variable = None
 
     @staticmethod
     def isExpressionClassBodyBase():
@@ -96,6 +99,31 @@ class ExpressionClassBodyBase(ExpressionOutlineFunctionBase):
     @staticmethod
     def isEarlyClosure():
         return True
+
+    def getVariableForReference(self, variable_name):
+        # __class__ is special since it's only available for methods;
+        # the class body needs to look it up from the enclosing scope.
+        if variable_name == "__class__" and python_version >= 0x300:
+            if self.declared_class_variable is not None:
+                return self.declared_class_variable
+
+            result = self.provider.getVariableForReference(variable_name=variable_name)
+
+            self.taken.add(result)
+
+            return result
+
+        return ExpressionOutlineFunctionBase.getVariableForReference(
+            self, variable_name=variable_name
+        )
+
+    def getVariableForAssignment(self, variable_name):
+        if variable_name == "__class__" and self.declared_class_variable is not None:
+            return self.declared_class_variable
+
+        return ExpressionOutlineFunctionBase.getVariableForAssignment(
+            self, variable_name=variable_name
+        )
 
     def getVariableForClosure(self, variable_name):
         # print( "getVariableForClosure", self, variable_name )

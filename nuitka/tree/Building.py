@@ -462,6 +462,8 @@ def handleGlobalDeclarationNode(provider, node, source_ref):
                 SyntaxErrors.raiseSyntaxError(
                     "cannot make __class__ global", source_ref
                 )
+            else:
+                provider.declared_class_variable = closure_variable
         else:
             provider.getLocalsScope().registerClosureVariable(
                 variable=closure_variable,

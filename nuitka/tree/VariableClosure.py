@@ -80,7 +80,7 @@ class VariableClosureLookupVisitorPhase1(VisitorNoopMixin):
                     )
 
                 if node.isExpressionClassBodyBase() and non_local_name == "__class__":
-                    pass
+                    node.declared_class_variable = variable
                 else:
                     node.getLocalsScope().registerClosureVariable(variable)
 
@@ -131,7 +131,16 @@ class VariableClosureLookupVisitorPhase1(VisitorNoopMixin):
 
     @staticmethod
     def _shouldUseLocalsDict(provider, variable_name):
-        return provider.isExpressionClassBodyBase() and (
+        if not provider.isExpressionClassBodyBase():
+            return False
+
+        if (
+            variable_name == "__class__"
+            and provider.getDeclaredClassVariable() is not None
+        ):
+            return False
+
+        return (
             not provider.hasProvidedVariable(variable_name)
             or provider.getProvidedVariable(variable_name).getOwner() is provider
         )
