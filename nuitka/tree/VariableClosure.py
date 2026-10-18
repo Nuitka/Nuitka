@@ -136,7 +136,7 @@ class VariableClosureLookupVisitorPhase1(VisitorNoopMixin):
 
         if (
             variable_name == "__class__"
-            and provider.getDeclaredClassVariable() is not None
+            and provider.declared_class_variable is not None
         ):
             return False
 
