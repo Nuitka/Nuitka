@@ -402,7 +402,7 @@ int64_t getFileSize(FILE_HANDLE file_handle) {
 #include <copyfile.h>
 #else
 #if defined(__MSYS__) || defined(__HAIKU__) || defined(__OpenBSD__) || defined(_AIX) || defined(__wasi__)
-static bool sendfile(int output_file, int input_file, off_t *bytesCopied, size_t count) {
+static ssize_t sendfile(int output_file, int input_file, off_t *bytesCopied, size_t count) {
     char buffer[32768];
 
     *bytesCopied = 0;
@@ -410,8 +410,8 @@ static bool sendfile(int output_file, int input_file, off_t *bytesCopied, size_t
     while (count > 0) {
         ssize_t read_bytes = read(input_file, buffer, Py_MIN(sizeof(buffer), count));
 
-        if (unlikely(read <= 0)) {
-            return false;
+        if (unlikely(read_bytes <= 0)) {
+            return -1;
         }
 
         count -= read_bytes;
@@ -419,13 +419,13 @@ static bool sendfile(int output_file, int input_file, off_t *bytesCopied, size_t
         ssize_t written_bytes = write(output_file, buffer, read_bytes);
 
         if (unlikely(written_bytes != read_bytes)) {
-            return false;
+            return -1;
         }
 
         *bytesCopied += written_bytes;
     }
 
-    return true;
+    return *bytesCopied;
 }
 #elif !defined(__FreeBSD__)
 #include <sys/sendfile.h>
