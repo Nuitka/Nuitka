@@ -42,6 +42,7 @@ copyright_holder = {
     "tests/distutils/nested_namespaces/a/b/pkg/__init__.py": "Jan Teske, mailto:<jteske@posteo.net>",
     "tests/distutils/nested_namespaces/setup.py": "Jan Teske, mailto:<jteske@posteo.net>",
     "nuitka/tools/quality/auto_format/YamlFormatter.py": "Fire-Cube <ben7@gmx.ch>",
+    "tests/standalone/PySide6SignalReceivers.py": "XiaoYouChR, mailto:<XiaoYouChR@qq.com>",
 }
 
 copyright_holder_year = {
