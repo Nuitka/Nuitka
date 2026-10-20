@@ -94,7 +94,6 @@ The following optional standard plugins are available in Nuitka:
 
    anti-bloat            Patch stupid imports out of widely used library modules source codes.
    data-files
-   data-hiding           Commercial: Hide program constant Python data from offline inspection of created binaries.
    datafile-inclusion-ng Commercial: Load file trusted file contents at compile time.
    dill-compat
    enum-compat
@@ -109,6 +108,7 @@ The following optional standard plugins are available in Nuitka:
    pbr-compat
    pkg-resources         Resolve version numbers at compile time.
    pmw-freezer           Required by the Pmw package
+   protection            Commercial: Protect binaries from inspection (data hiding, traceback encryption, private modules).
    pylint-warnings       Support PyLint / PyDev linting source markers
    pyqt5                 Required by the PyQt5 package.
    pyside2               Required by the PySide2 package.
@@ -117,7 +117,6 @@ The following optional standard plugins are available in Nuitka:
    tensorflow            Required by the tensorflow package
    tk-inter              Required by Python's Tk modules
    torch                 Required by the torch / torchvision packages
-   traceback-encryption  Commercial: Encrypt tracebacks (de-Jong-Stacks).
    windows-service       Commercial: Create Windows Service files
 
 .. note::

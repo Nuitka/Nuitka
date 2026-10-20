@@ -367,12 +367,9 @@ def main():
 
         decryption_project_options.append(project_option)
 
-    traceback_encryption = (
-        "--enable-plugin=traceback-encryption" in project_options
-        and any(
-            project_option.startswith("--encryption-key=")
-            for project_option in decryption_project_options
-        )
+    traceback_encryption = "--enable-plugin=protection" in project_options and any(
+        project_option.startswith("--encryption-key=")
+        for project_option in decryption_project_options
     )
 
     if "--standalone" in project_options or "--mode=standalone" in project_options:

@@ -388,7 +388,7 @@ Disable all information outputs, but show warnings. Defaults to off.
 Run the C building backend Scons with verbose information, showing the executed commands, detected compilers. Defaults to off.
 .TP
 \fB\-\-progress\-bar\fR=\fI\,PROGRESS_BAR_MODE\/\fR
-Select the progress bar mode. The 'auto' selects 'tqdm' if available, otherwise 'rich'. The values 'tqdm' and 'rich' force a specific library. Use 'none' to disables progress bars. Defaults to 'auto'.
+Select the progress bar mode. The 'auto' selects 'tqdm' if available, otherwise 'rich'. The values 'barflow', 'tqdm' and 'rich' force a specific library. Use 'none' to disable progress bars. Defaults to 'auto'.
 .TP
 \fB\-\-show\-progress\fR
 Obsolete: Provide progress information and statistics. Disables normal progress bar. Defaults to off.
@@ -800,11 +800,6 @@ Extra command\-line arguments passed to the CodeMeter protection tool. These may
 \fB\-\-codemeter\-keep\-unprotected\fR
 Keep the unprotected version of the Nuitka compiled binary.
 .IP
-Plugin options of 'data\-hiding' (categories: commercial, protection):
-.TP
-\fB\-\-data\-hiding\-salt\-value\fR=\fI\,SALT_VALUE\/\fR
-Salt value to make encryption result unique.
-.IP
 Plugin options of 'datafile\-inclusion\-ng' (categories: commercial, protection):
 .TP
 \fB\-\-embed\-data\-files\-compile\-time\-pattern\fR=\fI\,EMBED_COMPILE_TIME_PATTERN\/\fR
@@ -813,8 +808,14 @@ Pattern of data files to embed for use during compile time. These should match t
 \fB\-\-embed\-data\-files\-run\-time\-pattern\fR=\fI\,EMBED_RUN_TIME_PATTERN\/\fR
 Pattern of data files to embed for use during run time. These should match target filenames.
 .TP
+\fB\-\-embed\-data\-files\-strong\-pattern\fR=\fI\,EMBED_STRONG_PATTERN\/\fR
+Pattern of data files to embed as protected data in module constants. These should match target filenames. Strong embedding loses to compile time and run time embedding patterns.
+.TP
 \fB\-\-embed\-data\-files\-qt\-resource\-pattern\fR=\fI\,EMBED_QT_RESOURCE_PATTERN\/\fR
 Pattern of data files to embed for use with Qt at run time. These should match target filenames.
+.TP
+\fB\-\-noembed\-data\-files\-pattern\fR=\fI\,NOEMBED_PATTERN\/\fR
+Pattern of data files to exclude from all embedding options. These should match target filenames.
 .TP
 \fB\-\-embed\-debug\-qt\-resources\fR
 For debugging purposes, print out information for Qt resources not found.
@@ -824,7 +825,10 @@ Plugin options of 'dll\-embedding' (categories: commercial, protection):
 \fB\-\-embed\-dll\-pattern\fR=\fI\,EMBED_DLL_PATTERN\/\fR
 Pattern of DLLs to embed (glob style). Matches against the destination path (e.g. package/ext.pyd or library.dll).
 .IP
-Plugin options of 'traceback\-encryption' (categories: commercial, protection):
+Plugin options of 'protection' (categories: commercial, protection):
+.TP
+\fB\-\-data\-hiding\-salt\-value\fR=\fI\,SALT_VALUE\/\fR
+Salt value to make encryption result unique.
 .TP
 \fB\-\-encryption\-key\fR=\fI\,KEY\/\fR
 The encryption key to use.
@@ -834,6 +838,9 @@ Apply encryption to standard output.
 .TP
 \fB\-\-encrypt\-stderr\fR
 Apply encryption to standard error.
+.TP
+\fB\-\-no\-encrypt\-tracebacks\fR
+Disable encryption of tracebacks.
 .TP
 \fB\-\-encrypt\-debug\-init\fR
 In case the encryption fails to install, do not abort, but run normally and trace error unencrypted.

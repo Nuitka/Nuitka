@@ -161,9 +161,8 @@ class IncludedDataFile(object):
 
         tags_set.update(decodeDataFileTags(tags))
 
-        # Copy, unless specified otherwise.
-        if not any(tag.startswith("embed-") for tag in tags_set):
-            tags_set.add("copy")
+        # Copy, unless a plugin embedding it says otherwise.
+        tags_set.add("copy")
 
         self.kind = kind
         self.source_path = source_path

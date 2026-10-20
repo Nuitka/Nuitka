@@ -3360,6 +3360,10 @@ def getPluginNameConsideringRenames(plugin_name):
         return "delvewheel"
     if plugin_name == "signing":
         return "signtool"
+    if plugin_name == "data-hiding":
+        return "protection"
+    if plugin_name == "traceback-encryption":
+        return "protection"
 
     return plugin_name
 
