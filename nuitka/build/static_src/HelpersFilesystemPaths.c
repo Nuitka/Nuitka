@@ -397,12 +397,17 @@ int64_t getFileSize(FILE_HANDLE file_handle) {
     return (int64_t)file_size;
 }
 
+#if defined(__MSYS__) || defined(__HAIKU__) || defined(__OpenBSD__) || defined(__FreeBSD__) || defined(_AIX) ||        \
+    defined(__wasi__)
+#define NUITKA_SENDFILE_FALLBACK
+#endif
+
 #if !defined(_WIN32)
 #if defined(__APPLE__)
 #include <copyfile.h>
 #else
-#if defined(__MSYS__) || defined(__HAIKU__) || defined(__OpenBSD__) || defined(_AIX) || defined(__wasi__)
-static ssize_t sendfile(int output_file, int input_file, off_t *bytesCopied, size_t count) {
+#if defined(NUITKA_SENDFILE_FALLBACK)
+static ssize_t sendfileFallback(int output_file, int input_file, off_t *bytesCopied, size_t count) {
     char buffer[32768];
 
     *bytesCopied = 0;
@@ -427,7 +432,7 @@ static ssize_t sendfile(int output_file, int input_file, off_t *bytesCopied, siz
 
     return *bytesCopied;
 }
-#elif !defined(__FreeBSD__)
+#else
 #include <sys/sendfile.h>
 #endif
 #endif
@@ -474,21 +479,19 @@ bool copyFile(filename_char_t const *source, filename_char_t const *dest, int mo
     }
 
 #if defined(__APPLE__)
-    // Use fcopyfile works on FreeBSD and macOS
+    // Use fcopyfile works on macOS
     bool result = fcopyfile(input_file, output_file, 0, COPYFILE_ALL) == 0;
-#elif defined(__FreeBSD__)
-    struct stat input_fileinfo = {0};
-    fstat(input_file, &input_fileinfo);
-    off_t bytesCopied = 0;
-
-    bool result = sendfile(output_file, input_file, 0, input_fileinfo.st_size, 0, &bytesCopied, 0);
 #else
-    // sendfile will work with on Linux 2.6.33+
     struct stat fileinfo = {0};
     fstat(input_file, &fileinfo);
 
     off_t bytesCopied = 0;
+#if defined(NUITKA_SENDFILE_FALLBACK)
+    bool result = sendfileFallback(output_file, input_file, &bytesCopied, fileinfo.st_size) != -1;
+#else
+    // sendfile will work with on Linux 2.6.33+
     bool result = sendfile(output_file, input_file, &bytesCopied, fileinfo.st_size) != -1;
+#endif
 #endif
 
     close(input_file);
