@@ -79,9 +79,6 @@ When stopping the child, e.g. due to CTRL\-C or shutdown, etc. the Python code g
 \fB\-\-onefile\-no\-compression\fR
 When creating the onefile, disable compression of the payload. This is mostly for debug purposes, or to save time. Default is off.
 .TP
-\fB\-\-onefile\-as\-archive\fR
-When creating the onefile, use an archive format, that can be unpacked with "nuitka\-onefile\-unpack" rather than a stream that only the onefile program itself unpacks. Default is off.
-.TP
 \fB\-\-onefile\-no\-dll\fR
 When creating the onefile, some platforms (Windows currently, if not using a cached location) default to using DLL rather than an executable for the Python code. This makes it use an executable in the unpacked files as well. Default is off.
 .IP
@@ -345,10 +342,10 @@ What minimum CPU instruction set to compile for. This is NOT about cross\-compil
 Cache Control:
 .TP
 \fB\-\-disable\-cache\fR=\fI\,DISABLED_CACHES\/\fR
-Disable selected caches, specify "all" for all cached. Currently allowed values are: "all","ccache","bytecode","compression". can be given multiple times or with comma separated values. Default none.
+Disable selected caches, specify "all" for all cached. Currently allowed values are: "all","ccache","bytecode". can be given multiple times or with comma separated values. Default none.
 .TP
 \fB\-\-clean\-cache\fR=\fI\,CLEAN_CACHES\/\fR
-Clean the given caches before executing, specify "all" for all cached. Currently allowed values are: "all","ccache","bytecode","compression". can be given multiple times or with comma separated values. Default none.
+Clean the given caches before executing, specify "all" for all cached. Currently allowed values are: "all","ccache","bytecode". can be given multiple times or with comma separated values. Default none.
 .IP
 PGO compilation choices:
 .TP

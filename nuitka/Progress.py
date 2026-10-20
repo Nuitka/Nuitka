@@ -751,6 +751,17 @@ def closeProgressBar():
         return result
 
 
+@contextmanager
+def withProgressBar(stage, unit, total, min_total=0):
+    """Context manager for a progress bar, ensuring it is closed."""
+    setupProgressBar(stage=stage, unit=unit, total=total, min_total=min_total)
+
+    try:
+        yield
+    finally:
+        closeProgressBar()
+
+
 def wrapWithProgressBar(iterable, stage, unit):
     if use_progress_bar == "barflow":
         result = NuitkaProgressBarBarflow(

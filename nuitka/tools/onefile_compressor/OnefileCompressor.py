@@ -7,27 +7,67 @@ import os
 import shutil
 import struct
 import sys
+from collections import namedtuple
 from contextlib import contextmanager
 
-from nuitka.__past__ import to_byte
 from nuitka.Progress import (
-    closeProgressBar,
     enableProgressBar,
     reportProgressBar,
-    setupProgressBar,
+    withProgressBar,
 )
 from nuitka.PythonVersions import is32BitPython
 from nuitka.Tracing import onefile_logger
-from nuitka.utils.AppDirs import getCacheDir
 from nuitka.utils.FileOperations import areSamePaths, getFileList, getFileSize
-from nuitka.utils.Hashing import Hash, HashCRC32
+from nuitka.utils.Hashing import HashCRC32
 from nuitka.utils.Json import loadJsonFromFilename
 from nuitka.utils.Utils import (
     decoratorRetries,
     isWin32OrPosixWindows,
     isWin32Windows,
 )
-from nuitka.Version import version_string
+
+# The payload starts with a table of contents, so that unpacked files can be
+# validated without decompressing the payload, and without a separate cache
+# manifest file.
+_PAYLOAD_MAGIC = b"KAYKAY!"
+
+_PAYLOAD_ENTRY_FLAG_EXECUTABLE = 1
+_PAYLOAD_ENTRY_FLAG_SYMLINK = 2
+_PAYLOAD_ENTRY_FLAG_LAST = 4
+
+# The magic is only present in debug builds, it is a development aid only.
+# The "=" prefix keeps native endianness with standard sizes and no padding.
+_PAYLOAD_HEADER_STRUCT_DEBUG = struct.Struct("=7sQQ")
+_PAYLOAD_HEADER_STRUCT_RELEASE = struct.Struct("=QQ")
+
+# Temporary mode has no checksums, so the CRC field is omitted there.
+_PAYLOAD_ENTRY_STRUCT_CHECKSUMS = struct.Struct("=IIQ")
+_PAYLOAD_ENTRY_STRUCT_NO_CHECKSUMS = struct.Struct("=IQ")
+
+_PayloadEntry = namedtuple(
+    "_PayloadEntry",
+    (
+        "encoded_name",
+        "encoded_link_target",
+        "flags",
+        "crc32",
+        "size",
+        "source_filename",
+    ),
+)
+
+_PayloadDesc = namedtuple(
+    "_PayloadDesc",
+    (
+        "onefile_output_filename",
+        "dist_dir",
+        "file_checksums",
+        "win_path_sep",
+        "compressor",
+        "is_compressing",
+        "debug_mode",
+    ),
+)
 
 
 def getCompressorLevel(low_memory):
@@ -58,17 +98,15 @@ def getCompressorFunction(expect_compression, low_memory, job_limit):
 
             @contextmanager
             def useCompressedFile(output_file):
-                options = {
-                    zstd.CompressionParameter.nb_workers: effective_threads,
-                    zstd.CompressionParameter.compression_level: getCompressorLevel(
-                        low_memory
-                    ),
-                }
-
                 with zstd.open(
                     output_file,
                     mode="wb",
-                    options=options,
+                    options={
+                        zstd.CompressionParameter.nb_workers: effective_threads,
+                        zstd.CompressionParameter.compression_level: getCompressorLevel(
+                            low_memory
+                        ),
+                    },
                 ) as compressed_file:
                     yield compressed_file
 
@@ -111,33 +149,14 @@ def getCompressorFunction(expect_compression, low_memory, job_limit):
         return b"X", useSameFile
 
 
-def _attachOnefilePayloadFile(
-    output_file,
-    is_archive,
-    is_compressing,
-    use_compression_cache,
-    low_memory,
-    file_compressor,
+def _getPayloadEntry(
     filename_full,
-    count,
     dist_dir,
     filename_encoding,
     file_checksums,
     win_path_sep,
 ):
-    # Somewhat detail rich, at least unless we make more things mandatory, and
-    # we also need to pass all modes, since this can be run in a separate process
-    # that has no access to options.
-    # pylint: disable=too-many-arguments,too-many-locals,too-many-statements
-
-    payload_item_size = 0
-
     filename_relative = os.path.relpath(filename_full, dist_dir)
-
-    reportProgressBar(
-        item=filename_relative,
-        update=False,
-    )
 
     # Might be changing from POSIX to Win32 Python on Windows.
     if win_path_sep:
@@ -147,117 +166,221 @@ def _attachOnefilePayloadFile(
 
     filename_encoded = (filename_relative + "\0").encode(filename_encoding)
 
-    output_file.write(filename_encoded)
-    payload_item_size += len(filename_encoded)
+    if not isWin32OrPosixWindows() and os.path.islink(filename_full):
+        link_target_encoded = (os.readlink(filename_full) + "\0").encode(
+            filename_encoding
+        )
+
+        return _PayloadEntry(
+            encoded_name=filename_encoded,
+            encoded_link_target=link_target_encoded,
+            flags=_PAYLOAD_ENTRY_FLAG_SYMLINK,
+            crc32=None,
+            size=0,
+            source_filename=None,
+        )
 
     file_flags = 0
-    if not isWin32OrPosixWindows() and os.path.islink(filename_full):
-        link_target = os.readlink(filename_full)
 
-        file_flags |= 2
-        file_header = to_byte(file_flags)
+    # This flag is only relevant for non-links.
+    if not isWin32OrPosixWindows() and os.access(filename_full, os.X_OK):
+        file_flags |= _PAYLOAD_ENTRY_FLAG_EXECUTABLE
 
-        output_file.write(file_header)
-        payload_item_size += len(file_header)
+    input_size = getFileSize(filename_full)
 
-        link_target_encoded = (link_target + "\0").encode(filename_encoding)
-
-        output_file.write(link_target_encoded)
-        payload_item_size += len(link_target_encoded)
+    if file_checksums:
+        # The on-wire format uses 0 to indicate no checksum, so a real CRC32
+        # of 0 is stored as 1 instead.
+        crc32 = HashCRC32().updateFromFile(filename=filename_full).asDigest() or 1
     else:
-        # This flag is only relevant for non-links.
-        if not isWin32OrPosixWindows() and os.access(filename_full, os.X_OK):
-            file_flags |= 1
+        crc32 = None
 
-        with open(filename_full, "rb") as input_file:
-            input_file.seek(0, 2)
-            input_size = input_file.tell()
-            input_file.seek(0, 0)
-
-            file_header = b""
-
-            if not isWin32OrPosixWindows():
-                file_header += to_byte(file_flags)
-
-            file_header += struct.pack("Q", input_size)
-
-            if file_checksums:
-                hash_crc32 = HashCRC32()
-                hash_crc32.updateFromFileHandle(input_file)
-                input_file.seek(0, 0)
-
-                # CRC32 value 0 is avoided, used as error indicator in C code.
-                file_header += struct.pack("I", hash_crc32.asDigest() or 1)
-
-            if is_archive and is_compressing:
-                compression_cache_filename = _getCacheFilename(
-                    binary_filename=filename_full, low_memory=low_memory
-                )
-
-                if not os.path.exists(compression_cache_filename):
-                    with open(compression_cache_filename, "wb") as archive_entry_file:
-                        with file_compressor(
-                            archive_entry_file
-                        ) as compressed_file_tmp2:
-                            shutil.copyfileobj(input_file, compressed_file_tmp2)
-
-                compressed_size = getFileSize(compression_cache_filename)
-
-                file_header += struct.pack("I", compressed_size)
-
-            output_file.write(file_header)
-            payload_item_size += len(file_header)
-
-            if is_archive and is_compressing:
-                with open(compression_cache_filename, "rb") as archive_entry_file:
-                    pos1 = output_file.tell()
-                    shutil.copyfileobj(archive_entry_file, output_file)
-                    pos2 = output_file.tell()
-                    assert pos2 - pos1 == compressed_size
-
-                if count == 0 or not use_compression_cache:
-                    os.unlink(compression_cache_filename)
-
-                payload_item_size += compressed_size
-
-            else:
-                shutil.copyfileobj(input_file, output_file)
-                payload_item_size += input_size
-
-    reportProgressBar(
-        item=filename_relative,
-        update=True,
+    return _PayloadEntry(
+        encoded_name=filename_encoded,
+        encoded_link_target=None,
+        flags=file_flags,
+        crc32=crc32,
+        size=input_size,
+        source_filename=filename_full,
     )
 
-    return payload_item_size
+
+def _getPayloadToc(entries, file_checksums):
+    toc_chunks = []
+
+    for entry_index, entry in enumerate(entries):
+        flags = entry.flags
+
+        if entry_index == len(entries) - 1:
+            flags |= _PAYLOAD_ENTRY_FLAG_LAST
+
+        if file_checksums:
+            toc_chunks.append(
+                _PAYLOAD_ENTRY_STRUCT_CHECKSUMS.pack(
+                    flags,
+                    entry.crc32 if entry.crc32 is not None else 0,
+                    entry.size,
+                )
+            )
+        else:
+            toc_chunks.append(
+                _PAYLOAD_ENTRY_STRUCT_NO_CHECKSUMS.pack(flags, entry.size)
+            )
+
+        toc_chunks.append(entry.encoded_name)
+
+        if entry.encoded_link_target is not None:
+            toc_chunks.append(entry.encoded_link_target)
+
+    return b"".join(toc_chunks)
 
 
-def _getCacheFilename(binary_filename, low_memory):
-    hash_value = Hash()
+def _getPayloadEntries(file_list, payload_desc):
+    if isWin32Windows():
+        filename_encoding = "utf-16le"
+    else:
+        filename_encoding = "utf8"
 
-    hash_value.updateFromFile(filename=binary_filename)
+    entries = []
 
-    # Have different values for different Python major versions.
-    hash_value.updateFromValues(sys.version, sys.executable)
+    with withProgressBar(
+        stage="Onefile Packing",
+        unit="module",
+        total=len(file_list),
+    ):
+        for filename_full in file_list:
+            entries.append(
+                _getPayloadEntry(
+                    filename_full=filename_full,
+                    dist_dir=payload_desc.dist_dir,
+                    filename_encoding=filename_encoding,
+                    file_checksums=payload_desc.file_checksums,
+                    win_path_sep=payload_desc.win_path_sep,
+                )
+            )
 
-    # Take Nuitka version into account as well, ought to catch code changes.
-    hash_value.updateFromValues(version_string)
+            reportProgressBar(
+                item=os.path.relpath(filename_full, payload_desc.dist_dir),
+                update=True,
+            )
 
-    # Take zstandard version and compression level into account.
-    try:
-        from compression.zstd import zstd_version_info
+    return tuple(entries)
 
-        version = str(zstd_version_info)
-    except ImportError:
-        from zstandard import (
-            __version__ as version,
-        )  # pylint: disable=I0021,import-error
 
-    hash_value.updateFromValues(version, getCompressorLevel(low_memory))
+def _writePayloadToc(output_file, entries, debug_mode, file_checksums):
+    toc_data = _getPayloadToc(entries=entries, file_checksums=file_checksums)
 
-    cache_dir = getCacheDir("onefile-compression", create=True)
+    if debug_mode:
+        output_file.write(
+            _PAYLOAD_HEADER_STRUCT_DEBUG.pack(
+                _PAYLOAD_MAGIC,
+                len(toc_data),
+                0,  # body size, patched later once known
+            )
+        )
+        body_size_offset = 15
+    else:
+        output_file.write(
+            _PAYLOAD_HEADER_STRUCT_RELEASE.pack(
+                len(toc_data),
+                0,  # body size, patched later once known
+            )
+        )
+        body_size_offset = 8
 
-    return os.path.join(cache_dir, hash_value.asHexDigest())
+    output_file.write(toc_data)
+
+    return body_size_offset
+
+
+def _writePayloadBody(output_file, file_list, entries, payload_desc):
+    @contextmanager
+    def useBodyFile(body_file):
+        yield body_file
+
+    with withProgressBar(
+        stage="Onefile Contents",
+        unit="module",
+        total=len(file_list),
+    ):
+        if payload_desc.is_compressing:
+            body_context = payload_desc.compressor(output_file)
+        else:
+            body_context = useBodyFile(output_file)
+
+        with body_context as body_file:
+            for filename_full, entry in zip(file_list, entries):
+                if entry.source_filename is not None:
+                    with open(entry.source_filename, "rb") as input_file:
+                        shutil.copyfileobj(input_file, body_file)
+
+                reportProgressBar(
+                    item=os.path.relpath(filename_full, payload_desc.dist_dir),
+                    update=True,
+                )
+
+        return output_file.tell()
+
+
+def _writeOnefilePayload(file_list, payload_desc):
+    entries = _getPayloadEntries(file_list, payload_desc)
+
+    with open(payload_desc.onefile_output_filename, "ab") as output_file:
+        # Seeking to end of file seems necessary on Python2 at least, maybe it's
+        # just that tell reports wrong value initially.
+        output_file.seek(0, 2)
+        start_pos = output_file.tell()
+
+        body_size_offset = _writePayloadToc(
+            output_file=output_file,
+            entries=entries,
+            debug_mode=payload_desc.debug_mode,
+            file_checksums=payload_desc.file_checksums,
+        )
+
+        body_start = output_file.tell()
+        payload_size = sum(entry.size for entry in entries)
+
+        body_end = _writePayloadBody(
+            output_file=output_file,
+            file_list=file_list,
+            entries=entries,
+            payload_desc=payload_desc,
+        )
+
+        # TODO: If put into a resource, this is not really needed anymore.
+        if isWin32Windows():
+            # add padding to have the start position at a double word boundary
+            # this is needed on windows so that a possible certificate immediately
+            # follows the start position
+            pad = output_file.tell() % 8
+            if pad != 0:
+                output_file.write(bytes(8 - pad))
+
+        output_file.seek(0, 2)
+        end_pos = output_file.tell()
+
+        if payload_desc.is_compressing and payload_size != 0:
+            stored_size = end_pos - start_pos
+
+            onefile_logger.info(
+                "Onefile payload compression ratio (%.2f%%) size %d to %d."
+                % (
+                    (float(stored_size) / payload_size) * 100,
+                    payload_size,
+                    stored_size,
+                )
+            )
+
+        # Size of the payload data plus the size of that size storage, so C code can
+        # jump directly to it.
+        output_file.write(struct.pack("=Q", end_pos - start_pos))
+
+    # The body size is only known after compressing it, patch the header that
+    # was already written.
+    with open(payload_desc.onefile_output_filename, "rb+") as patch_file:
+        patch_file.seek(start_pos + body_size_offset)
+        patch_file.write(struct.pack("<Q", body_end - body_start))
 
 
 def _getInputFileList(dist_dir, start_binary, include_start_binary, expected_files):
@@ -309,15 +432,14 @@ Distribution folder is missing expected file '%s'. This might cause issues."""
     return tuple(file_list)
 
 
-def attachOnefilePayload(  # pylint: disable=too-many-arguments
+def attachOnefilePayload(
     dist_dir,
     onefile_output_filename,
     start_binary,
     include_start_binary,
     expect_compression,
-    as_archive,
-    use_compression_cache,
     file_checksums,
+    debug_mode,
     win_path_sep,
     low_memory,
     job_limit,
@@ -335,103 +457,25 @@ def attachOnefilePayload(  # pylint: disable=too-many-arguments
         consequence="the result is unusable",
     )
     def _attachOnefilePayload():
-        with open(onefile_output_filename, "ab") as output_file:
-            # Seeking to end of file seems necessary on Python2 at least, maybe it's
-            # just that tell reports wrong value initially.
-            output_file.seek(0, 2)
-            start_pos = output_file.tell()
-            output_file.write(b"KA" + compression_indicator)
+        file_list = _getInputFileList(
+            dist_dir=dist_dir,
+            start_binary=start_binary,
+            include_start_binary=include_start_binary,
+            expected_files=expected_files,
+        )
 
-            # Move the binary to start immediately to the start position
-            file_list = _getInputFileList(
+        _writeOnefilePayload(
+            file_list=file_list,
+            payload_desc=_PayloadDesc(
+                onefile_output_filename=onefile_output_filename,
                 dist_dir=dist_dir,
-                start_binary=start_binary,
-                include_start_binary=include_start_binary,
-                expected_files=expected_files,
-            )
-
-            if isWin32Windows():
-                filename_encoding = "utf-16le"
-            else:
-                filename_encoding = "utf8"
-
-            payload_size = 0
-
-            setupProgressBar(
-                stage="Onefile Payload",
-                unit="module",
-                total=len(file_list),
-            )
-
-            # Abstract the differences here for the time being.
-            if as_archive:
-                # Fake compressor then
-                @contextmanager
-                def overall_compressor(f):
-                    yield f
-
-                file_compressor = compressor
-                is_archive = True
-            else:
-                overall_compressor = compressor
-
-                @contextmanager
-                def file_compressor(f):
-                    yield f
-
-                is_archive = False
-
-            with overall_compressor(output_file) as compressed_file:
-                for count, filename_full in enumerate(file_list, start=1):
-                    payload_size += _attachOnefilePayloadFile(
-                        output_file=compressed_file,
-                        is_archive=is_archive,
-                        file_compressor=file_compressor,
-                        is_compressing=compression_indicator == b"Y",
-                        use_compression_cache=use_compression_cache,
-                        low_memory=low_memory,
-                        filename_full=filename_full,
-                        count=count,
-                        dist_dir=dist_dir,
-                        filename_encoding=filename_encoding,
-                        file_checksums=file_checksums,
-                        win_path_sep=win_path_sep,
-                    )
-
-                # Using empty filename as a terminator.
-                filename_encoded = "\0".encode(filename_encoding)
-                compressed_file.write(filename_encoded)
-                payload_size += len(filename_encoded)
-
-            # TODO: If put into a resource, this is not really needed anymore.
-            if isWin32Windows():
-                # add padding to have the start position at a double world boundary
-                # this is needed on windows so that a possible certificate immediately
-                # follows the start position
-                pad = output_file.tell() % 8
-                if pad != 0:
-                    output_file.write(bytes(8 - pad))
-
-            output_file.seek(0, 2)
-            end_pos = output_file.tell()
-
-            compressed_size = end_pos - start_pos
-
-            if compression_indicator == b"Y":
-                onefile_logger.info(
-                    "Onefile payload compression ratio (%.2f%%) size %d to %d."
-                    % (
-                        (float(compressed_size) / payload_size) * 100,
-                        payload_size,
-                        compressed_size,
-                    )
-                )
-
-            # Size of the payload data plus the size of that size storage, so C code can
-            # jump directly to it.
-            output_file.write(struct.pack("Q", end_pos - start_pos))
-
-        closeProgressBar()
+                file_checksums=file_checksums,
+                win_path_sep=win_path_sep,
+                compressor=compressor,
+                is_compressing=compression_indicator == b"Y",
+                debug_mode=debug_mode,
+            ),
+        )
 
     _attachOnefilePayload()
 
@@ -444,12 +488,11 @@ def main():
     start_binary = os.path.normpath(sys.argv[3])  # Might switch from MSYS2 to CPython
     include_start_binary = sys.argv[4] == "True"
     file_checksums = sys.argv[5] == "True"
-    win_path_sep = sys.argv[6] == "True"
-    low_memory = sys.argv[7] == "True"
-    as_archive = sys.argv[8] == "True"
-    use_compression_cache = sys.argv[9] == "True"
-    job_limit = int(sys.argv[10])
-    expected_files_filename = sys.argv[11]
+    debug_mode = sys.argv[6] == "True"
+    win_path_sep = sys.argv[7] == "True"
+    low_memory = sys.argv[8] == "True"
+    job_limit = int(sys.argv[9])
+    expected_files_filename = sys.argv[10]
 
     expected_files = tuple(loadJsonFromFilename(expected_files_filename))
 
@@ -462,9 +505,8 @@ def main():
         include_start_binary=include_start_binary,
         # We wouldn't be here, if that was not the case.
         expect_compression=True,
-        as_archive=as_archive,
-        use_compression_cache=use_compression_cache,
         file_checksums=file_checksums,
+        debug_mode=debug_mode,
         win_path_sep=win_path_sep,
         low_memory=low_memory,
         job_limit=job_limit,

@@ -224,8 +224,14 @@ def createBuildDefinitionsFile():
         1 if onefile_compression else 0
     )
 
-    if env.onefile_dll_mode and os.name == "nt":
-        env.Append(LIBS=["PsApi"])
+    if env.onefile_dll_mode:
+        # Zig cannot strip the export name, so the ordinal is absent there and
+        # the bootstrap looks 'run_code' up by name.
+        if not env.zig_mode:
+            onefile_definitions["_NUITKA_ONEFILE_DLL_RUN_CODE_ORDINAL_INT"] = 1
+
+        if os.name == "nt":
+            env.Append(LIBS=["PsApi"])
 
     createDefinitionsFile(env.source_dir, "onefile_definitions.h", onefile_definitions)
 

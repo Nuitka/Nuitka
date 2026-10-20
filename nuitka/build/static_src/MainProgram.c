@@ -2475,7 +2475,15 @@ int main(int argc, char **argv) {
 
 #if _NUITKA_DLL_MODE
 
-#if defined(_WIN32)
+#if defined(_WIN32) && defined(_NUITKA_ONEFILE_DLL_MODE)
+#if defined(__ZIG__)
+#define NUITKA_DLL_FUNCTION __declspec(dllexport)
+#elif defined(__GNUC__)
+#define NUITKA_DLL_FUNCTION __attribute__((used, visibility("default")))
+#else
+#define NUITKA_DLL_FUNCTION
+#endif
+#elif defined(_WIN32)
 #define NUITKA_DLL_FUNCTION __declspec(dllexport)
 #else
 #define NUITKA_DLL_FUNCTION __attribute__((visibility("default")))

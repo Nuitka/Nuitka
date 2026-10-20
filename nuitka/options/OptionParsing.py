@@ -558,10 +558,7 @@ onefile_group.add_option(
     action="store_true",
     dest="onefile_as_archive",
     default=False,
-    help="""\
-When creating the onefile, use an archive format, that can be unpacked
-with "nuitka-onefile-unpack" rather than a stream that only the onefile
-program itself unpacks. Default is off.""",
+    help=SUPPRESS_HELP,
 )
 
 onefile_group.add_option(
@@ -1624,7 +1621,7 @@ del c_compiler_group
 
 caching_group = parser.add_option_group("Cache Control")
 
-_cache_names = ("all", "ccache", "bytecode", "compression")
+_cache_names = ("all", "ccache", "bytecode")
 
 if isWin32Windows():
     _cache_names += ("dll-dependencies",)

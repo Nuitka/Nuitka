@@ -5,7 +5,7 @@
  * It needs to unpack the attached files and and then loads and executes
  * the compiled program as a separate process.
  *
- * spell-checker: ignore FOF_NOCONFIRMATION,FOF_NOERRORUI,HINSTANCE,SHFILEOPSTRUCTW
+ * spell-checker: ignore HINSTANCE
  *
  */
 
@@ -16,6 +16,12 @@
 #define _POSIX_C_SOURCE 200809L
 #ifndef _GNU_SOURCE
 #define _GNU_SOURCE
+#endif
+#endif
+
+#if defined(__APPLE__)
+#ifndef _DARWIN_C_SOURCE
+#define _DARWIN_C_SOURCE
 #endif
 #endif
 
@@ -52,6 +58,7 @@
 #include <dirent.h>
 #include <signal.h>
 #include <sys/stat.h>
+#include <sys/time.h>
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <unistd.h>
@@ -68,6 +75,8 @@
 #define _NUITKA_ONEFILE_TEMP_SPEC "{TEMP}/onefile_{PID}_{TIME_US}_{RANDOM}"
 
 #define _NUITKA_ONEFILE_PAYLOAD_SIZE_INT 27272
+
+#define _NUITKA_ONEFILE_DLL_RUN_CODE_ORDINAL_INT 1
 
 #define _NUITKA_ATTACH_CONSOLE_WINDOW 1
 
@@ -179,8 +188,9 @@ static FILE_HANDLE createFileForWritingChecked(filename_char_t const *filename) 
 }
 
 static unsigned char const *payload_data = NULL;
-static unsigned char const *payload_current = NULL;
 static unsigned long long payload_size = 0;
+
+static filename_char_t payload_path[4096] = {0};
 
 #if defined(_NUITKA_ONEFILE_PAYLOAD_OVERLAY_BOOL)
 
@@ -271,7 +281,7 @@ static void initPayloadData2(void) {
     attached_payload_start = attached_payload_end - sizeof(attached_payload_size) - attached_payload_size;
 
     payload_data = exe_file_mapped.data + attached_payload_start;
-    payload_current = payload_data;
+
     payload_size = attached_payload_size;
 }
 
@@ -287,7 +297,7 @@ NUITKA_DECLARE_CONSTANT_BLOB(payload_bin, payload_bin, const)
 // The payload blob size is a generated onefile build definition.
 static void initPayloadData2(void) {
     payload_data = getpayload_binData();
-    payload_current = payload_data;
+
     payload_size = (unsigned long long)_NUITKA_ONEFILE_PAYLOAD_SIZE_INT;
 }
 
@@ -336,22 +346,289 @@ static void releaseZSTD(void) {
 
 #endif
 
-static void readChunk(void *buffer, size_t size) {
-    // printf("Reading %d\n", size);
+#if _NUITKA_ONEFILE_HAS_PAYLOAD_BOOL == 1
 
-    memcpy(buffer, payload_current, size);
-    payload_current += size;
+// The payload starts with a table of contents. It is kept uncompressed, so
+// cache validation and locating files does not require decompressing the
+// payload body.
+// The magic is only present in debug builds, it is a development aid only.
+#if defined(_NUITKA_DEBUG)
+#define ONEFILE_PAYLOAD_MAGIC "KAYKAY!"
+#define ONEFILE_PAYLOAD_MAGIC_SIZE (sizeof(ONEFILE_PAYLOAD_MAGIC) - 1)
+#else
+#define ONEFILE_PAYLOAD_MAGIC_SIZE 0
+#endif
+
+#define ONEFILE_PAYLOAD_HEADER_SIZE (16 + ONEFILE_PAYLOAD_MAGIC_SIZE)
+
+// Temporary mode has no checksums, so the CRC field is omitted there.
+#if _NUITKA_ONEFILE_TEMP_BOOL == 0
+#define ONEFILE_PAYLOAD_ENTRY_SIZE 16
+#else
+#define ONEFILE_PAYLOAD_ENTRY_SIZE 12
+#endif
+
+#define ONEFILE_PAYLOAD_ENTRY_FLAG_EXECUTABLE 1
+#define ONEFILE_PAYLOAD_ENTRY_FLAG_SYMLINK 2
+#define ONEFILE_PAYLOAD_ENTRY_FLAG_LAST 4
+
+struct OnefilePayloadHeader {
+    uint64_t toc_size;
+    uint64_t body_size;
+};
+
+struct OnefilePayloadEntry {
+    uint32_t flags;
+    uint32_t crc32;
+    uint64_t size;
+
+    // Computed while parsing, not part of the serialized TOC.
+    uint32_t name_length;
+    uint32_t link_target_length;
+};
+
+static struct OnefilePayloadHeader payload_header;
+
+static char const *payload_toc_start = NULL;
+static char const *payload_toc_current = NULL;
+static char const *payload_toc_end = NULL;
+static char const *payload_body_start = NULL;
+static char const *payload_body_current = NULL;
+static char const *payload_body_end = NULL;
+
+static uint32_t readPayloadUInt32(char const *data) {
+    uint32_t result;
+
+    memcpy(&result, data, sizeof(result));
+
+    return result;
+}
+
+static uint64_t readPayloadUInt64(char const *data) {
+    uint64_t result;
+
+    memcpy(&result, data, sizeof(result));
+
+    return result;
+}
+
+static void initPayloadHeader(void) {
+    if (payload_size < ONEFILE_PAYLOAD_HEADER_SIZE) {
+        fatalErrorHeaderAttachedData();
+    }
+
+    char const *header = (char const *)payload_data;
+
+#if defined(_NUITKA_DEBUG)
+    static char const magic[] = ONEFILE_PAYLOAD_MAGIC;
+
+    if (memcmp(header, magic, ONEFILE_PAYLOAD_MAGIC_SIZE) != 0) {
+        fatalErrorHeaderAttachedData();
+    }
+
+    header += ONEFILE_PAYLOAD_MAGIC_SIZE;
+#endif
+
+    payload_header.toc_size = readPayloadUInt64(header);
+    payload_header.body_size = readPayloadUInt64(header + 8);
+
+    if (payload_header.toc_size > payload_size - ONEFILE_PAYLOAD_HEADER_SIZE) {
+        fatalErrorHeaderAttachedData();
+    }
+
+    if (payload_header.toc_size > 256 * 1024 * 1024) {
+        fatalErrorHeaderAttachedData();
+    }
+
+    if (payload_header.body_size > payload_size - ONEFILE_PAYLOAD_HEADER_SIZE - payload_header.toc_size) {
+        fatalErrorHeaderAttachedData();
+    }
+
+    payload_toc_start = (char const *)payload_data + ONEFILE_PAYLOAD_HEADER_SIZE;
+    payload_toc_current = payload_toc_start;
+    payload_toc_end = payload_toc_start + payload_header.toc_size;
+    payload_body_start = payload_toc_end;
+    payload_body_current = payload_body_start;
+    payload_body_end = payload_body_start + payload_header.body_size;
+}
+
+static bool readPayloadEntry(struct OnefilePayloadEntry *entry, char const **name, char const **link_target,
+                             bool *is_last) {
+    if ((uint64_t)(payload_toc_end - payload_toc_current) < ONEFILE_PAYLOAD_ENTRY_SIZE) {
+        return false;
+    }
+
+    entry->flags = readPayloadUInt32(payload_toc_current);
+
+#if _NUITKA_ONEFILE_TEMP_BOOL == 0
+    entry->crc32 = readPayloadUInt32(payload_toc_current + 4);
+    entry->size = readPayloadUInt64(payload_toc_current + 8);
+#else
+    entry->crc32 = 0;
+    entry->size = readPayloadUInt64(payload_toc_current + 4);
+#endif
+
+    if ((entry->flags & ~(ONEFILE_PAYLOAD_ENTRY_FLAG_EXECUTABLE | ONEFILE_PAYLOAD_ENTRY_FLAG_SYMLINK |
+                          ONEFILE_PAYLOAD_ENTRY_FLAG_LAST)) != 0) {
+        return false;
+    }
+
+    char const *cursor = payload_toc_current + ONEFILE_PAYLOAD_ENTRY_SIZE;
+    size_t name_characters = 0;
+
+    for (;;) {
+        if (name_characters >= 4096) {
+            return false;
+        }
+
+        if ((uint64_t)(payload_toc_end - cursor) < (name_characters + 1) * sizeof(filename_char_t)) {
+            return false;
+        }
+
+        filename_char_t character;
+        memcpy(&character, cursor + name_characters * sizeof(filename_char_t), sizeof(character));
+
+        if (character == 0) {
+            break;
+        }
+
+        name_characters += 1;
+    }
+
+    if (name_characters == 0) {
+        return false;
+    }
+
+    entry->name_length = (uint32_t)(name_characters * sizeof(filename_char_t));
+    *name = cursor;
+    cursor += entry->name_length + sizeof(filename_char_t);
+
+    if ((entry->flags & ONEFILE_PAYLOAD_ENTRY_FLAG_SYMLINK) != 0) {
+        size_t link_characters = 0;
+
+        for (;;) {
+            if (link_characters >= 4096) {
+                return false;
+            }
+
+            if ((uint64_t)(payload_toc_end - cursor) < (link_characters + 1) * sizeof(filename_char_t)) {
+                return false;
+            }
+
+            filename_char_t character;
+            memcpy(&character, cursor + link_characters * sizeof(filename_char_t), sizeof(character));
+
+            if (character == 0) {
+                break;
+            }
+
+            link_characters += 1;
+        }
+
+        if (link_characters == 0) {
+            return false;
+        }
+
+        entry->link_target_length = (uint32_t)(link_characters * sizeof(filename_char_t));
+        *link_target = cursor;
+        cursor += entry->link_target_length + sizeof(filename_char_t);
+    } else {
+        entry->link_target_length = 0;
+        *link_target = NULL;
+    }
+
+    payload_toc_current = cursor;
+
+    *is_last = (entry->flags & ONEFILE_PAYLOAD_ENTRY_FLAG_LAST) != 0;
+
+    return true;
+}
+
+#if defined(_NUITKA_DEBUG)
+// Reject names that could escape the payload directory. The payload is
+// produced by the packer, but the attached data may be corrupted.
+static bool isSafePayloadName(filename_char_t const *name, size_t name_length) {
+    if (name_length == 0) {
+        return false;
+    }
+
+    size_t component_start = 0;
+
+    for (size_t i = 0; i <= name_length; i++) {
+        bool is_separator = false;
+
+        if (i == name_length) {
+            is_separator = true;
+        } else if (name[i] == FILENAME_SEP_CHAR) {
+            is_separator = true;
+        }
+#if defined(_WIN32)
+        else if (name[i] == '/') {
+            is_separator = true;
+        }
+#endif
+
+        if (is_separator) {
+            size_t component_length = i - component_start;
+
+            if (component_length == 0) {
+                return false;
+            }
+
+            if (component_length == 1 && name[component_start] == '.') {
+                return false;
+            }
+
+            if (component_length == 2 && name[component_start] == '.' && name[component_start + 1] == '.') {
+                return false;
+            }
+
+#if defined(_WIN32)
+            for (size_t j = component_start; j < i; j++) {
+                if (name[j] == ':') {
+                    return false;
+                }
+            }
+#endif
+
+            component_start = i + 1;
+        }
+    }
+
+    return true;
+}
+#endif
+
+static bool getPayloadTargetPath(char const *name, uint32_t name_length, filename_char_t *buffer, size_t buffer_size) {
+    buffer[0] = 0;
+
+    appendStringSafeFilename(buffer, payload_path, buffer_size);
+    appendCharSafeFilename(buffer, FILENAME_SEP_CHAR, buffer_size);
+
+    size_t offset = strlenFilename(buffer);
+    size_t name_characters = name_length / sizeof(filename_char_t);
+
+    if (offset + name_characters + 1 > buffer_size) {
+        return false;
+    }
+
+    memcpy(buffer + offset, name, name_length);
+    buffer[offset + name_characters] = 0;
+
+#if defined(_NUITKA_DEBUG)
+    return isSafePayloadName(buffer + offset, name_characters);
+#else
+    return true;
+#endif
 }
 
 static void readPayloadChunk(void *buffer, size_t size) {
-#if _NUITKA_ONEFILE_COMPRESSION_BOOL == 1 && _NUITKA_ONEFILE_ARCHIVE_BOOL == 0
+#if _NUITKA_ONEFILE_COMPRESSION_BOOL == 1
     bool end_of_buffer = false;
 
     // Loop until finished with asked chunk.
     while (size > 0) {
         size_t available = output.size - output.pos;
-
-        // printf("already available %d asking for %d\n", available, size);
 
         // Consider available data.
         if (available != 0) {
@@ -366,7 +643,6 @@ static void readPayloadChunk(void *buffer, size_t size) {
 
             output.pos += use;
 
-            // Loop end check may exist when "size" is "use".
             continue;
         }
 
@@ -376,7 +652,6 @@ static void readPayloadChunk(void *buffer, size_t size) {
             output.size = ZSTD_DStreamOutSize();
 
             size_t const ret = ZSTD_decompressStream(dest_ctx, &output, &input);
-            // printf("return output %d %d\n", output.pos, output.size);
             end_of_buffer = (output.pos == output.size);
 
             if (ZSTD_isError(ret)) {
@@ -386,130 +661,30 @@ static void readPayloadChunk(void *buffer, size_t size) {
             output.size = output.pos;
             output.pos = 0;
 
-            // printf("made output %d %d\n", output.pos, output.size);
-
-            // Above code gets a turn.
             continue;
         }
 
-        if (input.size != input.pos) {
-            fatalErrorAttachedData();
-        }
+        fatalErrorAttachedData();
     }
 #else
-    readChunk(buffer, size);
-#endif
-}
-
-#if _NUITKA_ONEFILE_TEMP_BOOL == 0
-static uint32_t readPayloadChecksumValue(void) {
-    unsigned int result;
-    readPayloadChunk(&result, sizeof(unsigned int));
-
-    return (uint32_t)result;
-}
-#endif
-
-#if !defined(_WIN32) && !defined(__MSYS__)
-static unsigned char readPayloadFileFlagsValue(void) {
-    unsigned char result;
-    readPayloadChunk(&result, 1);
-
-    return result;
-}
-#endif
-
-static unsigned long long readPayloadSizeValue(void) {
-    unsigned long long result;
-    readPayloadChunk(&result, sizeof(unsigned long long));
-
-    return result;
-}
-
-#if _NUITKA_ONEFILE_ARCHIVE_BOOL == 1 && _NUITKA_ONEFILE_COMPRESSION_BOOL == 1
-static unsigned long long readArchiveFileSizeValue(void) {
-    unsigned long long result;
-    readPayloadChunk(&result, sizeof(unsigned int));
-
-    return result;
-}
-#endif
-
-static filename_char_t readPayloadFilenameCharacter(void) {
-    filename_char_t result;
-
-    readPayloadChunk(&result, sizeof(filename_char_t));
-
-    return result;
-}
-
-static filename_char_t *readPayloadFilename(void) {
-    static filename_char_t buffer[1024];
-
-    filename_char_t *w = buffer;
-
-    for (;;) {
-        *w = readPayloadFilenameCharacter();
-
-        if (*w == 0) {
-            break;
-        }
-
-        w += 1;
+    if (size > (size_t)(payload_body_end - payload_body_current)) {
+        fatalErrorHeaderAttachedData();
     }
 
-    return buffer;
+    memcpy(buffer, payload_body_current, size);
+    payload_body_current += size;
+#endif
 }
 
-static void writeContainedFile(FILE_HANDLE target_file, unsigned long long file_size) {
-#if _NUITKA_ONEFILE_ARCHIVE_BOOL == 1
-
-#if _NUITKA_ONEFILE_COMPRESSION_BOOL == 0
-    if (target_file != FILE_HANDLE_NULL) {
-        if (writeFileChunk(target_file, payload_current, file_size) == false) {
-            fatalErrorTempFiles();
-        }
-    }
-
-    payload_current += file_size;
-#else
-    if (target_file != FILE_HANDLE_NULL) {
-
-        // Nothing available, make sure to make it available from existing input.
-        while (input.pos < input.size) {
-            // printf("available input %ld %ld\n", input.pos, input.size);
-
-            output.pos = 0;
-            output.size = ZSTD_DStreamOutSize();
-
-            size_t const ret = ZSTD_decompressStream(dest_ctx, &output, &input);
-            if (ZSTD_isError(ret)) {
-                fatalErrorAttachedData();
-            }
-
-            // printf("available output %ld %ld\n", output.pos, output.size);
-
-            if (writeFileChunk(target_file, (char const *)output.dst, output.pos) == false) {
-                fatalErrorTempFiles();
-            }
-
-            // printf("made output %ld %lld\n", output.pos, file_size);
-            file_size -= output.pos;
-            assert(file_size >= 0);
-        }
-
-        assert(file_size == 0);
-    }
-#endif
-#else
+static void writeSequentialPayloadFile(FILE_HANDLE target_file, unsigned long long file_size) {
     while (file_size > 0) {
         static char chunk[32768];
 
-        long chunk_size;
+        size_t chunk_size;
 
         // Doing min manually, as otherwise the compiler is confused from types.
         if (file_size <= sizeof(chunk)) {
-            chunk_size = (long)file_size;
+            chunk_size = (size_t)file_size;
         } else {
             chunk_size = sizeof(chunk);
         }
@@ -524,10 +699,197 @@ static void writeContainedFile(FILE_HANDLE target_file, unsigned long long file_
 
         file_size -= chunk_size;
     }
+}
 
-    assert(file_size == 0);
+#if _NUITKA_ONEFILE_TEMP_BOOL == 0
+static void makeProcessTemporaryFilename(filename_char_t *buffer, filename_char_t const *filename, size_t buffer_size) {
+    copyStringSafeFilename(buffer, filename, buffer_size);
+    appendCharSafeFilename(buffer, '.', buffer_size);
+#if defined(_WIN32)
+    {
+        wchar_t pid_buffer[32];
+        _snwprintf(pid_buffer, sizeof(pid_buffer) / sizeof(wchar_t), L"tmp%lu", (unsigned long)GetCurrentProcessId());
+        pid_buffer[31] = 0;
+        appendWStringSafeW(buffer, pid_buffer, buffer_size);
+    }
+#else
+    {
+        char pid_buffer[32];
+        snprintf(pid_buffer, sizeof(pid_buffer), "tmp%ld", (long)getpid());
+        appendStringSafe(buffer, pid_buffer, buffer_size);
+    }
 #endif
 }
+
+static bool replaceFileAtomically(filename_char_t const *source, filename_char_t const *dest) {
+#if defined(_WIN32)
+    return MoveFileExW(source, dest, MOVEFILE_REPLACE_EXISTING) != 0;
+#else
+    return renameFile(source, dest);
+#endif
+}
+
+// Unpacked files get the current time with the CRC32 in the sub-second part,
+// which allows cached mode to validate them without reading or decompressing
+// them.
+#define ONEFILE_PAYLOAD_MTIME_WINDOWS_MODULO 10000000ULL
+#define ONEFILE_PAYLOAD_MTIME_POSIX_MODULO 1000000ULL
+
+struct OnefilePayloadFileIdentity {
+    uint64_t size;
+    uint64_t subsecond;
+    bool is_regular;
+};
+
+static bool getPayloadFileIdentity(filename_char_t const *filename, struct OnefilePayloadFileIdentity *identity) {
+#if defined(_WIN32)
+    WIN32_FILE_ATTRIBUTE_DATA data;
+
+    if (GetFileAttributesExW(filename, GetFileExInfoStandard, &data) == 0) {
+        return false;
+    }
+
+    if ((data.dwFileAttributes & (FILE_ATTRIBUTE_DIRECTORY | FILE_ATTRIBUTE_REPARSE_POINT)) != 0) {
+        return false;
+    }
+
+    uint64_t mtime = ((uint64_t)data.ftLastWriteTime.dwHighDateTime << 32) | data.ftLastWriteTime.dwLowDateTime;
+
+    identity->size = ((uint64_t)data.nFileSizeHigh << 32) | data.nFileSizeLow;
+    identity->subsecond = mtime % ONEFILE_PAYLOAD_MTIME_WINDOWS_MODULO;
+    identity->is_regular = true;
+#else
+    struct stat stat_buffer;
+
+    if (lstat(filename, &stat_buffer) != 0) {
+        return false;
+    }
+
+    identity->size = (uint64_t)stat_buffer.st_size;
+
+#if defined(__APPLE__)
+    identity->subsecond = (uint64_t)stat_buffer.st_mtimespec.tv_nsec;
+#elif defined(__linux__) || defined(__FreeBSD__) || defined(__NetBSD__) || defined(__OpenBSD__) ||                     \
+    defined(__DragonFly__)
+    identity->subsecond = (uint64_t)stat_buffer.st_mtim.tv_nsec;
+#else
+    identity->subsecond = 0;
+#endif
+
+    identity->is_regular = S_ISREG(stat_buffer.st_mode);
+#endif
+
+    return true;
+}
+
+static void setPayloadFileTimeFromCrc(filename_char_t const *filename, uint32_t crc32) {
+#if defined(_WIN32)
+    HANDLE handle = CreateFileW(filename, FILE_WRITE_ATTRIBUTES, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+                                NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+
+    if (handle != INVALID_HANDLE_VALUE) {
+        FILETIME now;
+        GetSystemTimeAsFileTime(&now);
+
+        uint64_t file_time = ((uint64_t)now.dwHighDateTime << 32) | now.dwLowDateTime;
+        file_time -= file_time % ONEFILE_PAYLOAD_MTIME_WINDOWS_MODULO;
+        file_time += crc32 % ONEFILE_PAYLOAD_MTIME_WINDOWS_MODULO;
+
+        FILETIME last_write_time;
+        last_write_time.dwLowDateTime = (DWORD)file_time;
+        last_write_time.dwHighDateTime = (DWORD)(file_time >> 32);
+
+        SetFileTime(handle, NULL, NULL, &last_write_time);
+        CloseHandle(handle);
+    }
+#else
+    time_t now = time(NULL);
+
+    if (unlikely(now == (time_t)-1)) {
+        return;
+    }
+
+    struct timeval times[2];
+    times[0].tv_sec = now;
+    times[0].tv_usec = (long)(crc32 % ONEFILE_PAYLOAD_MTIME_POSIX_MODULO);
+    times[1] = times[0];
+
+    utimes(filename, times);
+#endif
+}
+
+// Check if the unpacked files still match the payload table of contents. Only
+// metadata is examined, no payload data is decompressed or read.
+static bool checkPayloadCache(filename_char_t *first_filename, size_t first_filename_size) {
+    static filename_char_t target_path[4096];
+
+    bool first = true;
+
+    payload_toc_current = payload_toc_start;
+
+    bool is_last = false;
+
+    while (is_last == false && payload_header.toc_size != 0) {
+        struct OnefilePayloadEntry entry;
+        char const *name;
+        char const *link_target;
+
+        if (readPayloadEntry(&entry, &name, &link_target, &is_last) == false) {
+            return false;
+        }
+
+        if (getPayloadTargetPath(name, entry.name_length, target_path, sizeof(target_path) / sizeof(filename_char_t)) ==
+            false) {
+            return false;
+        }
+
+        if ((entry.flags & ONEFILE_PAYLOAD_ENTRY_FLAG_SYMLINK) != 0) {
+#if !defined(_WIN32) && !defined(__MSYS__)
+            char link_buffer[4096];
+
+            ssize_t link_length = readlink(target_path, link_buffer, sizeof(link_buffer));
+
+            if (link_length < 0 || (uint64_t)link_length != entry.link_target_length ||
+                memcmp(link_buffer, link_target, entry.link_target_length) != 0) {
+                return false;
+            }
+#else
+            return false;
+#endif
+        } else {
+            struct OnefilePayloadFileIdentity identity;
+
+            if (entry.crc32 == 0) {
+                return false;
+            }
+
+            if (getPayloadFileIdentity(target_path, &identity) == false || identity.is_regular == false ||
+                identity.size != entry.size) {
+                return false;
+            }
+
+#if defined(_WIN32)
+            if (identity.subsecond != entry.crc32 % ONEFILE_PAYLOAD_MTIME_WINDOWS_MODULO) {
+                return false;
+            }
+#else
+            if (identity.subsecond / 1000 != entry.crc32 % ONEFILE_PAYLOAD_MTIME_POSIX_MODULO) {
+                return false;
+            }
+#endif
+        }
+
+        if (first && first_filename[0] == 0) {
+            copyStringSafeFilename(first_filename, target_path, first_filename_size);
+        }
+
+        first = false;
+    }
+
+    return first == false && payload_toc_current == payload_toc_end;
+}
+#endif
+#endif
 
 // Zero means, not yet created, created unsuccessfully, terminated already.
 #if defined(_WIN32)
@@ -535,8 +897,6 @@ HANDLE handle_process = 0;
 #else
 pid_t handle_process = 0;
 #endif
-
-static filename_char_t payload_path[4096] = {0};
 
 #if _NUITKA_ONEFILE_TEMP_BOOL
 static bool payload_created = false;
@@ -572,7 +932,7 @@ static bool createDirectory(filename_char_t const *path) {
     }
 
 #if defined(_WIN32)
-    // On Windows, lets ignore drive letters.
+    // On Windows, lets not try to create drive letters.
     if (strlenFilename(path) == 2 && path[1] == L':') {
         return true;
     }
@@ -630,30 +990,73 @@ static bool createContainingDirectory(filename_char_t const *path) {
 #if _NUITKA_ONEFILE_TEMP_BOOL
 #if defined(_WIN32)
 
-static bool isDirectory(wchar_t const *path) {
-    DWORD dwAttrib = GetFileAttributesW(path);
+static bool _removeDirectoryOnce(wchar_t const *path) {
+    DWORD attributes = GetFileAttributesW(path);
 
-    return (dwAttrib != INVALID_FILE_ATTRIBUTES && (dwAttrib & FILE_ATTRIBUTE_DIRECTORY) != 0);
-}
+    if (attributes == INVALID_FILE_ATTRIBUTES) {
+        return true;
+    }
 
-static void _removeDirectory(wchar_t const *path) {
-    SHFILEOPSTRUCTW file_op_struct = {
-        NULL, FO_DELETE, payload_path, L"", FOF_NOCONFIRMATION | FOF_NOERRORUI | FOF_SILENT, false, 0, L""};
-    SHFileOperationW(&file_op_struct);
+    // Never follow reparse points, remove the link itself instead.
+    if ((attributes & FILE_ATTRIBUTE_REPARSE_POINT) != 0) {
+        if ((attributes & FILE_ATTRIBUTE_DIRECTORY) != 0) {
+            return RemoveDirectoryW(path) != 0;
+        } else {
+            return DeleteFileW(path) != 0;
+        }
+    }
+
+    if ((attributes & FILE_ATTRIBUTE_DIRECTORY) == 0) {
+        return DeleteFileW(path) != 0;
+    }
+
+    wchar_t pattern[4096];
+    pattern[0] = 0;
+    appendWStringSafeW(pattern, path, sizeof(pattern) / sizeof(wchar_t));
+    appendWStringSafeW(pattern, L"\\*", sizeof(pattern) / sizeof(wchar_t));
+
+    WIN32_FIND_DATAW find_data;
+    HANDLE find_handle = FindFirstFileW(pattern, &find_data);
+
+    if (find_handle == INVALID_HANDLE_VALUE) {
+        return false;
+    }
+
+    bool success = true;
+
+    do {
+        if (wcscmp(find_data.cFileName, L".") == 0 || wcscmp(find_data.cFileName, L"..") == 0) {
+            continue;
+        }
+
+        wchar_t child_path[4096];
+        child_path[0] = 0;
+        appendWStringSafeW(child_path, path, sizeof(child_path) / sizeof(wchar_t));
+        appendWStringSafeW(child_path, L"\\", sizeof(child_path) / sizeof(wchar_t));
+        appendWStringSafeW(child_path, find_data.cFileName, sizeof(child_path) / sizeof(wchar_t));
+
+        if (_removeDirectoryOnce(child_path) == false) {
+            success = false;
+        }
+    } while (FindNextFileW(find_handle, &find_data));
+
+    FindClose(find_handle);
+
+    if (RemoveDirectoryW(path) == 0) {
+        success = false;
+    }
+
+    return success;
 }
 
 static void removeDirectory(wchar_t const *path) {
-    _removeDirectory(path);
-
     for (int i = 0; i < 20; i++) {
-        if (!isDirectory(path)) {
+        if (_removeDirectoryOnce(path)) {
             break;
         }
 
         // Delay 0.1s before trying again.
         Sleep(100);
-
-        _removeDirectory(path);
     }
 }
 
@@ -689,7 +1092,7 @@ static int removeDirectory(char const *path) {
 
             snprintf(buf, len, "%s/%s", path, p->d_name);
 
-            if (!stat(buf, &statbuf)) {
+            if (!lstat(buf, &statbuf)) {
                 if (S_ISDIR(statbuf.st_mode))
                     r2 = removeDirectory(buf);
                 else
@@ -1072,7 +1475,12 @@ static int runPythonCodeDLL(filename_char_t const *dll_filename, int argc, nativ
 
     typedef int(__stdcall * nuitka_dll_function_ptr)(int, wchar_t **, wchar_t const *);
 
+#if defined(_NUITKA_ONEFILE_DLL_RUN_CODE_ORDINAL_INT)
+    nuitka_dll_function_ptr nuitka_dll_function = (nuitka_dll_function_ptr)GetProcAddress(
+        hGetProcIDDLL, MAKEINTRESOURCEA(_NUITKA_ONEFILE_DLL_RUN_CODE_ORDINAL_INT));
+#else
     nuitka_dll_function_ptr nuitka_dll_function = (nuitka_dll_function_ptr)GetProcAddress(hGetProcIDDLL, "run_code");
+#endif
 
     if (nuitka_dll_function == NULL) {
         fatalError("Error, DLL entry point not found.");
@@ -1296,176 +1704,210 @@ int main(int argc, char **argv) {
     // The onefile bootstrap is setup now.
 
 #if _NUITKA_ONEFILE_HAS_PAYLOAD_BOOL == 1
-    NUITKA_PRINT_TIMING("ONEFILE: Checking header for compression.");
+    NUITKA_PRINT_TIMING("ONEFILE: Reading payload header.");
 
-    char header[3];
-    readChunk(&header, sizeof(header));
+    initPayloadHeader();
 
-    if (header[0] != 'K' || header[1] != 'A') {
-        fatalErrorHeaderAttachedData();
-    }
-
-    NUITKA_PRINT_TIMING("ONEFILE: Header is OK.");
-
-// The 'X' stands for no compression, 'Y' is compressed, handle that.
-#if _NUITKA_ONEFILE_COMPRESSION_BOOL == 1
-    if (header[2] != 'Y') {
-        fatalErrorHeaderAttachedData();
-    }
-    initZSTD();
-
-    input.src = payload_current;
-    input.pos = 0;
-
-    // TODO: Ought to assert that this doesn't truncate anything.
-    input.size = (size_t)payload_size;
-
-    assert(payload_size > 0);
-#else
-    if (header[2] != 'X') {
-        fatalErrorHeaderAttachedData();
-    }
-#endif
-
-    NUITKA_PRINT_TIMING("ONEFILE: Entering decompression.");
-
-#if _NUITKA_ONEFILE_TEMP_BOOL
-    payload_created = true;
-#endif
-
-    for (;;) {
-        filename_char_t *filename = readPayloadFilename();
-
-        // printf("Filename: " FILENAME_FORMAT_STR "\n", filename);
-
-        // Detect EOF from empty filename.
-        if (filename[0] == 0) {
-            break;
-        }
-
-        static filename_char_t target_path[4096] = {0};
-        target_path[0] = 0;
-
-        appendStringSafeFilename(target_path, payload_path, sizeof(target_path) / sizeof(filename_char_t));
-        appendCharSafeFilename(target_path, FILENAME_SEP_CHAR, sizeof(target_path) / sizeof(filename_char_t));
-        appendStringSafeFilename(target_path, filename, sizeof(target_path) / sizeof(filename_char_t));
-
-        if (first_filename[0] == 0) {
-            appendStringSafeFilename(first_filename, target_path, sizeof(target_path) / sizeof(filename_char_t));
-
-            // Run the Python code DLL if it's already unpacked.
-#if _NUITKA_ONEFILE_DLL_MODE
-            if (process_role != NULL) {
-                return runPythonCodeDLL(first_filename, argc, argv);
-            }
-#endif
-        }
-
-#if !defined(_WIN32) && !defined(__MSYS__)
-        unsigned char file_flags = readPayloadFileFlagsValue();
-#endif
-
-#if !defined(_WIN32) && !defined(__MSYS__)
-        if (file_flags & 2) {
-            filename_char_t *link_target_path = readPayloadFilename();
-
-            // printf("Filename: " FILENAME_FORMAT_STR " symlink to " FILENAME_FORMAT_STR "\n", target_path,
-            // link_target_path);
-
-            createContainingDirectory(target_path);
-
-            unlink(target_path);
-            if (symlink(link_target_path, target_path) != 0) {
-                fatalErrorTempFileCreate(target_path);
-            }
-
-            continue;
-        }
-#endif
-        // _putws(target_path);
-        unsigned long long file_size = readPayloadSizeValue();
-
-        bool needs_write = true;
+    bool payload_cached = false;
 
 #if _NUITKA_ONEFILE_TEMP_BOOL == 0
-        uint32_t contained_file_checksum = readPayloadChecksumValue();
-        uint32_t existing_file_checksum = getFileCRC32(target_path);
+    NUITKA_PRINT_TIMING("ONEFILE: Checking payload cache.");
 
-        if (contained_file_checksum == existing_file_checksum) {
-            needs_write = false;
+    payload_cached = checkPayloadCache(first_filename, sizeof(first_filename) / sizeof(filename_char_t));
 
-#ifdef _NUITKA_EXPERIMENTAL_DEBUG_ONEFILE_CACHING
-            fprintf(stderr, "CACHE HIT for '" FILENAME_FORMAT_STR "'.\n", target_path);
-#endif
-        } else {
-#ifdef _NUITKA_EXPERIMENTAL_DEBUG_ONEFILE_CACHING
-            fprintf(stderr, "CACHE MISS for '" FILENAME_FORMAT_STR "'.\n", target_path);
-#endif
-        }
+    if (payload_cached) {
+        NUITKA_PRINT_TIMING("ONEFILE: Cached payload is unchanged.");
+    }
 #endif
 
-#if _NUITKA_ONEFILE_ARCHIVE_BOOL == 1
+    if (payload_cached == false) {
+        NUITKA_PRINT_TIMING("ONEFILE: Unpacking payload.");
+
+#if _NUITKA_ONEFILE_TEMP_BOOL
+        payload_created = true;
+#endif
+
 #if _NUITKA_ONEFILE_COMPRESSION_BOOL == 1
-        uint32_t contained_archive_file_size = readArchiveFileSizeValue();
+        initZSTD();
 
-        input.src = payload_current;
+        input.src = payload_body_start;
         input.pos = 0;
-        input.size = contained_archive_file_size;
 
-        output.pos = 0;
-        output.size = 0;
-
-        payload_current += contained_archive_file_size;
+        // TODO: Ought to assert that this doesn't truncate anything.
+        input.size = (size_t)payload_header.body_size;
 #endif
+
+        payload_toc_current = payload_toc_start;
+
+        bool is_last = false;
+
+        while (is_last == false && payload_header.toc_size != 0) {
+            struct OnefilePayloadEntry entry;
+            char const *name;
+            char const *link_target;
+
+            if (readPayloadEntry(&entry, &name, &link_target, &is_last) == false) {
+                fatalErrorHeaderAttachedData();
+            }
+
+            static filename_char_t target_path[4096] = {0};
+#if _NUITKA_ONEFILE_TEMP_BOOL == 0
+            static filename_char_t target_path_tmp[4096] = {0};
 #endif
-        FILE_HANDLE target_file = FILE_HANDLE_NULL;
 
-        if (needs_write) {
-            createContainingDirectory(target_path);
-            target_file = createFileForWritingChecked(target_path);
-        }
+            if (getPayloadTargetPath(name, entry.name_length, target_path,
+                                     sizeof(target_path) / sizeof(filename_char_t)) == false) {
+                fatalErrorHeaderAttachedData();
+            }
 
-        writeContainedFile(target_file, file_size);
+            if (first_filename[0] == 0) {
+                appendStringSafeFilename(first_filename, target_path, sizeof(first_filename) / sizeof(filename_char_t));
+
+                // Run the Python code DLL if it's already unpacked.
+#if _NUITKA_ONEFILE_DLL_MODE
+                if (process_role != NULL) {
+                    return runPythonCodeDLL(first_filename, argc, argv);
+                }
+#endif
+            }
+
+            if ((entry.flags & ONEFILE_PAYLOAD_ENTRY_FLAG_SYMLINK) != 0) {
+#if !defined(_WIN32) && !defined(__MSYS__)
+                char link_target_path[4096];
+
+                if (entry.link_target_length + 1 > sizeof(link_target_path)) {
+                    fatalErrorHeaderAttachedData();
+                }
+
+                memcpy(link_target_path, link_target, entry.link_target_length);
+                link_target_path[entry.link_target_length] = 0;
+
+                createContainingDirectory(target_path);
+
+#if _NUITKA_ONEFILE_TEMP_BOOL == 0
+                makeProcessTemporaryFilename(target_path_tmp, target_path,
+                                             sizeof(target_path_tmp) / sizeof(filename_char_t));
+
+                unlink(target_path_tmp);
+                if (symlink(link_target_path, target_path_tmp) != 0) {
+                    fatalErrorTempFileCreate(target_path_tmp);
+                }
+                if (replaceFileAtomically(target_path_tmp, target_path) == false) {
+                    unlink(target_path_tmp);
+                    fatalErrorTempFileCreate(target_path);
+                }
+#else
+                unlink(target_path);
+                if (symlink(link_target_path, target_path) != 0) {
+                    fatalErrorTempFileCreate(target_path);
+                }
+#endif
+#else
+                fatalErrorHeaderAttachedData();
+#endif
+
+                continue;
+            }
+
+            bool needs_write = true;
+
+#if _NUITKA_ONEFILE_TEMP_BOOL == 0
+            if (entry.crc32 != 0 && getFileCRC32(target_path) == entry.crc32) {
+                needs_write = false;
+
+#ifdef _NUITKA_EXPERIMENTAL_DEBUG_ONEFILE_CACHING
+                fprintf(stderr, "CACHE HIT for '" FILENAME_FORMAT_STR "'.\n", target_path);
+#endif
+            } else {
+#ifdef _NUITKA_EXPERIMENTAL_DEBUG_ONEFILE_CACHING
+                fprintf(stderr, "CACHE MISS for '" FILENAME_FORMAT_STR "'.\n", target_path);
+#endif
+            }
+#endif
+
+            FILE_HANDLE target_file = FILE_HANDLE_NULL;
+
+            if (needs_write) {
+                createContainingDirectory(target_path);
+
+#if _NUITKA_ONEFILE_TEMP_BOOL == 0
+                makeProcessTemporaryFilename(target_path_tmp, target_path,
+                                             sizeof(target_path_tmp) / sizeof(filename_char_t));
+                target_file = createFileForWritingChecked(target_path_tmp);
+#else
+                target_file = createFileForWritingChecked(target_path);
+#endif
+            }
+
+            writeSequentialPayloadFile(target_file, entry.size);
 
 #if !defined(_WIN32) && !defined(__MSYS__)
-        if ((file_flags & 1) && (target_file != FILE_HANDLE_NULL)) {
-            int fd = fileno(target_file);
+            if ((entry.flags & ONEFILE_PAYLOAD_ENTRY_FLAG_EXECUTABLE) && (target_file != FILE_HANDLE_NULL)) {
+                int fd = fileno(target_file);
 
-            struct stat stat_buffer;
-            int res = fstat(fd, &stat_buffer);
+                struct stat stat_buffer;
+                int res = fstat(fd, &stat_buffer);
 
-            if (res == -1) {
-                printOSErrorMessage("fstat", errno);
+                if (res == -1) {
+                    printOSErrorMessage("fstat", errno);
+                }
+
+                // User shall be able to execute if at least.
+                stat_buffer.st_mode |= S_IXUSR;
+
+                // Follow read flags for group, others according to umask.
+                if ((stat_buffer.st_mode & S_IRGRP) != 0) {
+                    stat_buffer.st_mode |= S_IXGRP;
+                }
+
+                if ((stat_buffer.st_mode & S_IROTH) != 0) {
+                    stat_buffer.st_mode |= S_IXOTH;
+                }
+
+                res = fchmod(fd, stat_buffer.st_mode);
+
+                if (res == -1) {
+                    printOSErrorMessage("fchmod", errno);
+                }
             }
-
-            // User shall be able to execute if at least.
-            stat_buffer.st_mode |= S_IXUSR;
-
-            // Follow read flags for group, others according to umask.
-            if ((stat_buffer.st_mode & S_IRGRP) != 0) {
-                stat_buffer.st_mode |= S_IXOTH;
-            }
-
-            if ((stat_buffer.st_mode & S_IRGRP) != 0) {
-                stat_buffer.st_mode |= S_IXOTH;
-            }
-
-            res = fchmod(fd, stat_buffer.st_mode);
-
-            if (res == -1) {
-                printOSErrorMessage("fchmod", errno);
-            }
-        }
 #endif
 
-        if (target_file != FILE_HANDLE_NULL) {
-            if (closeFile(target_file) == false) {
-                fatalErrorTempFiles();
+            if (target_file != FILE_HANDLE_NULL) {
+                if (closeFile(target_file) == false) {
+                    fatalErrorTempFiles();
+                }
+
+#if _NUITKA_ONEFILE_TEMP_BOOL == 0
+                if (replaceFileAtomically(target_path_tmp, target_path) == false) {
+                    deleteFile(target_path_tmp);
+
+                    // A concurrent start may have put the same file in place and
+                    // already be running it, which on Windows prevents replacing
+                    // it. That is only an error if what is there is not the file.
+                    if (entry.crc32 == 0 || getFileCRC32(target_path) != entry.crc32) {
+                        fatalErrorTempFileCreate(target_path);
+                    }
+                }
+#endif
             }
+
+#if _NUITKA_ONEFILE_TEMP_BOOL == 0
+            setPayloadFileTimeFromCrc(target_path, entry.crc32);
+#endif
         }
+
+        if (payload_toc_current != payload_toc_end) {
+            fatalErrorHeaderAttachedData();
+        }
+
+#if _NUITKA_ONEFILE_COMPRESSION_BOOL == 0
+        if (payload_body_current != payload_body_end) {
+            fatalErrorHeaderAttachedData();
+        }
+#endif
     }
 
-    NUITKA_PRINT_TIMING("ONEFILE: Finishing decompression, cleanup payload.");
+    NUITKA_PRINT_TIMING("ONEFILE: Finishing unpacking, cleanup payload.");
 
     closePayloadData();
 #endif

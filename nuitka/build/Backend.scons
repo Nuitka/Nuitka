@@ -29,9 +29,11 @@ __package__ = "nuitka.build"  # pylint: disable=redefined-builtin
 from nuitka.Tracing import scons_logger
 from nuitka.utils.FileOperations import (
     changeFilenameExtension,
+    getExternalUsePath,
     getFilenameExtension,
     getNormalizedPath,
     getNormalizedPathJoin,
+    putTextFileContents,
 )
 from nuitka.utils.Json import loadJsonFromFilename
 from nuitka.utils.Utils import (
@@ -42,6 +44,7 @@ from nuitka.utils.Utils import (
     isFreeBSD,
     isLinux,
     isMacOS,
+    isWin32OrPosixWindows,
 )
 
 from .SconsCompilerSettings import (
@@ -150,7 +153,6 @@ setupCCompiler(
     exe_target=not env.module_mode and not env.dll_mode,
     onefile_compile=False,
 )
-
 
 if full_compat_mode:
     env.Append(CPPDEFINES=["_NUITKA_FULL_COMPAT"])
@@ -372,6 +374,37 @@ source_filenames = discoverSourceFiles()
 # then lingers from previous builds, and also workaround for MinGW64 not
 # supporting unicode result paths for "-o" basename.
 result_exe = makeResultPathFileSystemEncodable(env=env, result_exe=result_exe)
+
+# On Windows onefile DLL mode, we try to avoid the overhead of entry point
+# name, but Zig's linker rejects .def files as input, so Zig builds keep
+# the named export and the bootstrap looks 'run_code' up by name instead.
+if env.onefile_dll_mode and isWin32OrPosixWindows() and not env.zig_mode:
+    # Export 'run_code' by ordinal only. The ordinal must match
+    # '_NUITKA_ONEFILE_DLL_RUN_CODE_ORDINAL_INT' used by the bootstrap.
+    run_code_exports_filename = getNormalizedPathJoin(
+        env.source_dir, "run_code_exports.def"
+    )
+
+    putTextFileContents(
+        run_code_exports_filename,
+        """\
+EXPORTS
+    run_code @1 NONAME
+""",
+        encoding="ascii",
+    )
+
+    run_code_exports_filename = getExternalUsePath(run_code_exports_filename)
+
+    if env.msvc_mode:
+        env.Append(LINKFLAGS=["/DEF:%s" % run_code_exports_filename])
+    else:
+        env.Append(LINKFLAGS=["-Wl,--exclude-all-symbols"])
+
+        # Add the exports file after the object files, where GNU ld can
+        # resolve the exported symbol.
+        env.Append(_LIBFLAGS=[run_code_exports_filename])
+
 
 if env.module_mode:
     # For Python modules, the standard shared library extension is not what gets

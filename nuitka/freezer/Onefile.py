@@ -25,9 +25,7 @@ from nuitka.options.Options import (
     isLowMemory,
     isOnefileTempDirMode,
     isRemoveBuildDir,
-    shallDisableCompressionCacheUsage,
     shallNotCompressOnefile,
-    shallOnefileAsArchive,
     shallTraceExecution,
 )
 from nuitka.OutputDirectories import (
@@ -92,7 +90,7 @@ def packDistFolderToOnefile(dist_dir):
     onOnefileFinished(onefile_output_filename)
 
 
-def _runOnefileScons(onefile_compression, onefile_archive, onefile_payload_size):
+def _runOnefileScons(onefile_compression, onefile_payload_size):
     scons_options, env_values = getCommonSconsOptions()
 
     source_dir = getSourceDirectoryPath(onefile=True, create=False)
@@ -113,7 +111,6 @@ def _runOnefileScons(onefile_compression, onefile_archive, onefile_payload_size)
         scons_options["onefile_windows_static_runtime"] = asBoolStr(True)
 
     env_values["_NUITKA_ONEFILE_TEMP_SPEC"] = getOnefileTempDirSpec()
-    env_values["_NUITKA_ONEFILE_ARCHIVE_BOOL"] = "1" if onefile_archive else "0"
     env_values["_NUITKA_ONEFILE_HAS_PAYLOAD_BOOL"] = "1" if hasOnefilePayload() else "0"
     env_values["_NUITKA_ONEFILE_PAYLOAD_SIZE_INT"] = str(onefile_payload_size)
 
@@ -208,9 +205,8 @@ def runOnefileCompressor(
             start_binary=start_binary,
             include_start_binary=hasOnefilePayloadMainEntry(),
             expect_compression=compressor_python is not None,
-            as_archive=shallOnefileAsArchive(),
-            use_compression_cache=not shallDisableCompressionCacheUsage(),
             file_checksums=file_checksums,
+            debug_mode=states.is_debug,
             win_path_sep=win_path_sep,
             low_memory=isLowMemory(),
             job_limit=getJobLimit(),
@@ -249,10 +245,9 @@ def runOnefileCompressor(
                     start_binary,
                     str(hasOnefilePayloadMainEntry()),
                     str(file_checksums),
+                    str(states.is_debug),
                     str(win_path_sep),
                     str(isLowMemory()),
-                    str(shallOnefileAsArchive()),
-                    str(not shallDisableCompressionCacheUsage()),
                     str(getJobLimit()),
                     expected_files_filename,
                 ],
@@ -305,7 +300,6 @@ def packDistFolderToOnefileBootstrap(onefile_output_filename, dist_dir, start_bi
     # Create the bootstrap binary for unpacking.
     _runOnefileScons(
         onefile_compression=compressor_python is not None,
-        onefile_archive=shallOnefileAsArchive(),
         onefile_payload_size=onefile_payload_size,
     )
 

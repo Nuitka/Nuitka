@@ -1344,6 +1344,11 @@ make sure that is intended."""
             "Using removed option '--windows-dependency-tool' is deprecated and has no impact anymore."
         )
 
+    if options.onefile_as_archive:
+        options_logger.warning(
+            "Using removed option '--onefile-as-archive' is deprecated and has no effect anymore."
+        )
+
     if shallMakeModule() and options.static_libpython == "yes":
         options_logger.warning(
             "In '%s' mode, providing '--static-libpython' has no effect, it's not used."
@@ -2315,11 +2320,6 @@ def shallDisableBytecodeCacheUsage():
     return shallDisableCacheUsage("bytecode")
 
 
-def shallDisableCompressionCacheUsage():
-    """:returns: bool derived from ``--disable-cache=compression``"""
-    return shallDisableCacheUsage("compression")
-
-
 def getWindowsConsoleMode():
     """:returns: str from ``--windows-console-mode``"""
     if options.disable_console is True:
@@ -2738,11 +2738,6 @@ def getOnefileChildGraceTime():
 def shallNotCompressOnefile():
     """*bool* = ``--onefile-no-compression``"""
     return options.onefile_no_compression
-
-
-def shallOnefileAsArchive():
-    """*bool* = ``--onefile-as-archive``"""
-    return options.onefile_as_archive
 
 
 def _checkedIconPaths(icon_paths):
