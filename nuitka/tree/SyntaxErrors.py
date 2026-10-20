@@ -7,7 +7,13 @@ Format SyntaxError/IndentationError exception for output, as well as
 raise it for the given source code reference.
 """
 
-from nuitka.PythonVersions import python_version
+import ast
+
+from nuitka.PythonVersions import (
+    getErrorMessageDebugAssignment,
+    getErrorMessageDebugDeletion,
+    python_version,
+)
 
 
 def formatOutput(e):
@@ -78,6 +84,39 @@ def formatOutput(e):
             e.__class__.__name__,
             reason,
         )
+
+
+def checkDebugNameAssignment(name, source_ref):
+    """Raise a SyntaxError if the given name is '__debug__'."""
+
+    if name == "__debug__":
+        raiseSyntaxError(getErrorMessageDebugAssignment(), source_ref)
+
+
+def checkDebugNameTarget(node, source_ref):
+    """Raise a SyntaxError if the given assignment target is '__debug__'."""
+
+    if type(node) is str:
+        checkDebugNameAssignment(name=node, source_ref=source_ref)
+        return
+
+    if node.__class__ is ast.Name:
+        name = node.id
+    elif node.__class__ is ast.Attribute:
+        if python_version < 0x270:
+            return
+
+        name = node.attr
+    else:
+        return
+
+    if node.ctx.__class__ is ast.Store:
+        checkDebugNameAssignment(name=name, source_ref=source_ref)
+    elif node.ctx.__class__ is ast.Del and name == "__debug__":
+        deletion_reason = getErrorMessageDebugDeletion()
+
+        if deletion_reason is not None:
+            raiseSyntaxError(deletion_reason, source_ref)
 
 
 def raiseSyntaxError(reason, source_ref, display_file=True, display_line=True):

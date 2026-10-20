@@ -123,6 +123,7 @@ from .ReformulationTryFinallyStatements import (
     makeTryFinallyReleaseStatement,
     makeTryFinallyStatement,
 )
+from .SyntaxErrors import checkDebugNameAssignment
 from .TreeHelpers import (
     buildAnnotationNode,
     buildFrameNode,
@@ -703,6 +704,9 @@ def buildClassNode3(provider, node, source_ref):
                     variable=tmp_bases, source=bases_conversion, source_ref=source_ref
                 )
             )
+
+    for keyword in node.keywords:
+        checkDebugNameAssignment(name=keyword.arg, source_ref=source_ref)
 
     # TODO: It's not really clear, since when those in the middle keywords are accepted
     # and not a SyntaxError, and if then we might have to raise it.

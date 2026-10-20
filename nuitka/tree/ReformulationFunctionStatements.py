@@ -90,7 +90,7 @@ from .ReformulationTryFinallyStatements import (
     makeTryFinallyReleaseStatement,
     makeTryFinallyStatement,
 )
-from .SyntaxErrors import raiseSyntaxError
+from .SyntaxErrors import checkDebugNameAssignment, raiseSyntaxError
 from .TreeHelpers import (
     buildAnnotationNode,
     buildFrameNode,
@@ -1148,16 +1148,21 @@ def buildFunctionWithParsing(
         if arg is None:
             return None
         elif type(arg) is str:
-            return mangleName(arg, provider)
+            arg_name = arg
         elif getKind(arg) == "Name":
-            return mangleName(arg.id, provider)
+            arg_name = arg.id
         elif getKind(arg) == "arg":
-            return mangleName(arg.arg, provider)
+            arg_name = arg.arg
         elif getKind(arg) == "Tuple":
             # These are to be re-formulated on the outside.
             assert False
         else:
             assert False, getKind(arg)
+
+        if python_version >= 0x270:
+            checkDebugNameAssignment(name=arg_name, source_ref=source_ref)
+
+        return mangleName(arg_name, provider)
 
     special_args = {}
 

@@ -37,6 +37,8 @@ from nuitka.PythonVersions import python_version
 from nuitka.States import states
 from nuitka.Tracing import optimization_logger, printLine
 
+from .SyntaxErrors import checkDebugNameAssignment
+
 
 def dump(node):
     printLine(ast.dump(node))
@@ -272,6 +274,16 @@ def buildNode(provider, node, source_ref, allow_none=False):
 
         if hasattr(node, "lineno"):
             source_ref = source_ref.atLineNumber(node.lineno)
+
+        if kind in (
+            "FunctionDef",
+            "AsyncFunctionDef",
+            "ClassDef",
+            "TypeVar",
+            "ParamSpec",
+            "TypeVarTuple",
+        ):
+            checkDebugNameAssignment(name=node.name, source_ref=source_ref)
 
         if kind in build_nodes_args3:
             result = build_nodes_args3[kind](

@@ -129,6 +129,44 @@ def is32BitPython():
 
 
 # TODO: Move error construction helpers to separate node making helpers module.
+def getErrorMessageDebugAssignment():
+    """Error message of the concrete Python for assignment to '__debug__'."""
+
+    if not hasattr(getErrorMessageDebugAssignment, "result"):
+        try:
+            # We are doing this on purpose, to get the exception.
+            # pylint: disable=exec-used
+            exec("__debug__ = 1", {})
+        except SyntaxError as e:
+            getErrorMessageDebugAssignment.result = e.msg
+        else:
+            return sys.exit("Error, cannot detect expected error message.")
+
+    return getErrorMessageDebugAssignment.result
+
+
+def getErrorMessageDebugDeletion():
+    """Error message of the concrete Python for deletion of '__debug__'.
+
+    Returns:
+        The error message, or None if the deletion is allowed.
+    """
+
+    if not hasattr(getErrorMessageDebugDeletion, "result"):
+        result = None
+
+        try:
+            # We are doing this on purpose, to get the exception.
+            # pylint: disable=exec-used
+            exec("del __debug__", {"__debug__": None})
+        except SyntaxError as e:
+            result = e.msg
+        #
+        getErrorMessageDebugDeletion.result = result
+
+    return getErrorMessageDebugDeletion.result
+
+
 def getErrorMessageExecWithNestedFunction():
     """Error message of the concrete Python in case an exec occurs in a
     function that takes a closure variable.

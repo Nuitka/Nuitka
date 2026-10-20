@@ -45,6 +45,7 @@ from .ComplexCallHelperFunctions import (
 from .ReformulationDictionaryCreation import buildDictionaryUnpackingArgs
 from .ReformulationSequenceCreation import buildListUnpacking
 from .ReformulationTryFinallyStatements import makeTryFinallyReleaseStatement
+from .SyntaxErrors import checkDebugNameAssignment
 from .TreeHelpers import (
     buildNode,
     buildNodeTuple,
@@ -53,7 +54,17 @@ from .TreeHelpers import (
 )
 
 
+def _checkDebugKeywordArguments(keywords, source_ref):
+    if python_version < 0x270:
+        return
+
+    for keyword in keywords:
+        checkDebugNameAssignment(name=keyword.arg, source_ref=source_ref)
+
+
 def buildCallNode(provider, node, source_ref):
+    _checkDebugKeywordArguments(keywords=node.keywords, source_ref=source_ref)
+
     called = buildNode(provider, node.func, source_ref)
 
     if python_version >= 0x350:

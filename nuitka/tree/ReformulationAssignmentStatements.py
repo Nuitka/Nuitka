@@ -84,7 +84,11 @@ from nuitka.specs.ParameterSpecs import ParameterSpec
 
 from .FutureSpecState import getFutureSpec
 from .ReformulationTryFinallyStatements import makeTryFinallyReleaseStatement
-from .SyntaxErrors import raiseSyntaxError
+from .SyntaxErrors import (
+    checkDebugNameAssignment,
+    checkDebugNameTarget,
+    raiseSyntaxError,
+)
 from .TreeHelpers import (
     buildAnnotationNode,
     buildNode,
@@ -424,6 +428,8 @@ def decodeAssignTarget(provider, node, source_ref, allow_none=False):
 
     if node is None and allow_none:
         return None
+
+    checkDebugNameTarget(node=node, source_ref=source_ref)
 
     if type(node) is str:
         return "Name", mangleName(node, provider)
@@ -1239,6 +1245,8 @@ def buildNamedExprNode(provider, node, source_ref):
     while locals_owner.isExpressionOutlineFunction():
         locals_owner = locals_owner.getParentVariableProvider()
 
+    checkDebugNameTarget(node=node.target, source_ref=source_ref)
+
     variable_name = mangleName(node.target.id, provider)
 
     if _isGeneratorExpressionBody(locals_owner):
@@ -1455,6 +1463,8 @@ def _createTypeExpression(provider, node, source_ref):
 
 def buildTypeAliasNode(provider, node, source_ref):
     """Python3.12 or higher, type alias statements."""
+
+    checkDebugNameAssignment(name=node.name.id, source_ref=source_ref)
 
     type_alias_name = mangleName(node.name.id, provider)
     type_alias_node = ExpressionTypeAlias(

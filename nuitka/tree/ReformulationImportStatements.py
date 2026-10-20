@@ -29,7 +29,7 @@ from nuitka.utils.ModuleNames import ModuleName
 
 from .FutureSpecState import enableFutureFeature, getFutureSpec
 from .ReformulationTryFinallyStatements import makeTryFinallyReleaseStatement
-from .SyntaxErrors import raiseSyntaxError
+from .SyntaxErrors import checkDebugNameAssignment, raiseSyntaxError
 from .TreeHelpers import makeStatementsSequenceOrStatement, mangleName
 
 # For checking afterwards, if __future__ imports really were at the beginning
@@ -120,7 +120,11 @@ def buildImportFromNode(provider, node, source_ref):
             target_names.append(None)
             assert local_name is None
         else:
-            target_names.append(local_name if local_name is not None else object_name)
+            target_name = local_name if local_name is not None else object_name
+
+            checkDebugNameAssignment(name=target_name, source_ref=source_ref)
+
+            target_names.append(target_name)
 
         import_names.append(object_name)
 
@@ -260,6 +264,15 @@ def buildImportModulesNode(provider, node, source_ref):
         module_name, local_name = import_desc
 
         module_top_name = module_name.split(".")[0]
+
+        if local_name is not None:
+            check_name = local_name
+        elif 0x270 <= python_version < 0x390:
+            check_name = module_name
+        else:
+            check_name = module_top_name
+
+        checkDebugNameAssignment(name=check_name, source_ref=source_ref)
 
         # Note: The "level" of import is influenced by the future absolute
         # imports.

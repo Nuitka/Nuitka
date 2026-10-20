@@ -50,7 +50,7 @@ from nuitka.nodes.VariableReleaseNodes import makeStatementReleaseVariable
 
 from .ReformulationBooleanExpressions import makeAndNode, makeOrNode
 from .ReformulationTryFinallyStatements import makeTryFinallyReleaseStatement
-from .SyntaxErrors import raiseSyntaxError
+from .SyntaxErrors import checkDebugNameAssignment, raiseSyntaxError
 from .TreeHelpers import (
     buildNode,
     buildStatementsNode,
@@ -103,6 +103,8 @@ def _buildMatchAs(provider, pattern, make_against, source_ref):
     else:
         assert "." not in variable_name, variable_name
         assert "!" not in variable_name, variable_name
+
+        checkDebugNameAssignment(name=variable_name, source_ref=source_ref)
 
         if pattern.pattern is not None:
             conditions, assignments = _buildMatch(
@@ -210,6 +212,8 @@ def _buildMatchSequence(provider, pattern, make_against, source_ref):
             if variable_name is not None:
                 assert "." not in variable_name, variable_name
                 assert "!" not in variable_name, variable_name
+
+                checkDebugNameAssignment(name=variable_name, source_ref=source_ref)
 
                 # Last one
                 if star_pos == len(pattern.patterns) - 1:
@@ -394,6 +398,8 @@ def _buildMatchMapping(provider, pattern, make_against, source_ref):
     if pattern.rest:
         assert type(pattern.rest) is str, pattern.rest
 
+        checkDebugNameAssignment(name=pattern.rest, source_ref=source_ref)
+
         assignments.append(
             StatementAssignmentVariableName(
                 provider=provider,
@@ -433,6 +439,9 @@ def _buildMatchClass(provider, pattern, make_against, source_ref):
         source_ref,
         ast.dump(pattern),
     )
+
+    for kwd_attr in pattern.kwd_attrs:
+        checkDebugNameAssignment(name=kwd_attr, source_ref=source_ref)
 
     if len(pattern.kwd_attrs) + len(pattern.patterns) == 0:
         conditions = [
