@@ -488,40 +488,13 @@ PyObject *makeParentModuleName(PyObject *module_name) {
 }
 
 PyObject *IMPORT_MODULE_FIXED(PyThreadState *tstate, PyObject *module_name, PyObject *value_name) {
-    // Load parent packages first to ensure their __init__.py is executed.
-    PyObject *current = module_name;
-    Py_INCREF(current);
-    for (;;) {
-        PyObject *parent_name = makeParentModuleName(current);
-        Py_DECREF(current);
-        if (parent_name == NULL) {
-            break;
-        }
-
-        if (IMPORT_EMBEDDED_MODULE(tstate, Nuitka_String_AsString(parent_name), true) == NULL) {
-            Py_DECREF(parent_name);
-            return NULL;
-        }
-
-        current = parent_name;
-    }
-
-    // Try our own embedded module loader first, including internal modules.
-    PyObject *result = IMPORT_EMBEDDED_MODULE(tstate, Nuitka_String_AsString(module_name), true);
-
-    // If the embedded load failed with an error, propagate it.
-    if (HAS_ERROR_OCCURRED(tstate)) {
-        return NULL;
-    }
-
-    // Not found in our loader, fall through to normal __import__.
     PyObject *import_result = IMPORT_MODULE1(tstate, module_name);
 
     if (unlikely(import_result == NULL)) {
         return import_result;
     }
 
-    result = Nuitka_GetModule(tstate, value_name);
+    PyObject *result = Nuitka_GetModule(tstate, value_name);
 
     Py_DECREF(import_result);
 

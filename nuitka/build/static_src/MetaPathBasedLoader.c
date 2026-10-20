@@ -54,6 +54,7 @@ static char const *module_root_leaf = NULL;
 #endif
 
 extern PyTypeObject Nuitka_Loader_Type;
+PyObject *Nuitka_Loader_New(struct Nuitka_MetaPathBasedLoaderEntry const *entry);
 
 struct Nuitka_LoaderObject {
     /* Python object folklore: */
@@ -707,7 +708,8 @@ typedef PyObject *(*entrypoint_t)(void);
 #endif
 
 #if PYTHON_VERSION >= 0x350
-static PyObject *createModuleSpec(PyThreadState *tstate, PyObject *module_name, PyObject *origin, bool is_package);
+static PyObject *createModuleSpec(PyThreadState *tstate, PyObject *module_name, PyObject *origin, bool is_package,
+                                  struct Nuitka_MetaPathBasedLoaderEntry const *entry);
 #endif
 
 static void _fillExtensionModuleDllEntryFunctionName(PyThreadState *tstate, char *buffer, size_t buffer_size,
@@ -1045,7 +1047,7 @@ static PyObject *callIntoExtensionModule(PyThreadState *tstate, char const *full
     PyObject *full_name_obj = Nuitka_String_FromString(full_name);
     PyObject *origin = Nuitka_String_FromFilename(filename);
 
-    PyObject *spec_value = createModuleSpec(tstate, full_name_obj, origin, is_package);
+    PyObject *spec_value = createModuleSpec(tstate, full_name_obj, origin, is_package, NULL);
     CHECK_OBJECT(spec_value);
 
     PGO_onModuleEntered(full_name);
@@ -1241,7 +1243,7 @@ error:
 
         PyObject *origin = Nuitka_String_FromFilename(filename);
 
-        PyObject *spec_value = createModuleSpec(tstate, full_name_obj, origin, is_package);
+        PyObject *spec_value = createModuleSpec(tstate, full_name_obj, origin, is_package, NULL);
         CHECK_OBJECT(spec_value);
 
         module = PyModule_FromDefAndSpec(def, spec_value);
@@ -1303,8 +1305,8 @@ error:
         setModuleFileValue(tstate, module, filename);
         PyObject *full_name_obj = Nuitka_String_FromString(full_name);
         SET_ATTRIBUTE(tstate, module, const_str_plain___name__, full_name_obj);
-        PyObject *spec_value =
-            createModuleSpec(tstate, full_name_obj, LOOKUP_ATTRIBUTE(tstate, module, const_str_plain___file__), false);
+        PyObject *spec_value = createModuleSpec(
+            tstate, full_name_obj, LOOKUP_ATTRIBUTE(tstate, module, const_str_plain___file__), false, NULL);
 
         SET_ATTRIBUTE(tstate, module, const_str_plain___spec__, spec_value);
 
@@ -2827,7 +2829,8 @@ static PyObject *getModuleSpecClass(PyObject *importlib_module) {
     return module_spec_class;
 }
 
-static PyObject *createModuleSpec(PyThreadState *tstate, PyObject *module_name, PyObject *origin, bool is_package) {
+static PyObject *createModuleSpec(PyThreadState *tstate, PyObject *module_name, PyObject *origin, bool is_package,
+                                  struct Nuitka_MetaPathBasedLoaderEntry const *entry) {
     CHECK_OBJECT(module_name);
     assert(Nuitka_String_Check(module_name));
     CHECK_OBJECT_X(origin);
@@ -2844,7 +2847,10 @@ static PyObject *createModuleSpec(PyThreadState *tstate, PyObject *module_name, 
         return NULL;
     }
 
-    PyObject *args = MAKE_TUPLE2(tstate, module_name, (PyObject *)&Nuitka_Loader_Type);
+    PyObject *spec_loader = Nuitka_Loader_New(entry);
+
+    PyObject *args = MAKE_TUPLE2(tstate, module_name, spec_loader);
+    Py_DECREF(spec_loader);
 
     PyObject *kw_values[] = {is_package ? Py_True : Py_False, origin};
 
@@ -2865,7 +2871,7 @@ static PyObject *createModuleSpec(PyThreadState *tstate, PyObject *module_name, 
 static PyObject *createModuleSpecViaPathFinder(PyThreadState *tstate, PyObject *module_name,
                                                char const *parent_module_name) {
     if (scanModuleInPackagePath(tstate, module_name, parent_module_name)) {
-        return createModuleSpec(tstate, module_name, NULL, false);
+        return createModuleSpec(tstate, module_name, NULL, false, NULL);
     } else {
         // Without error this means we didn't make it.
         return NULL;
@@ -3055,7 +3061,7 @@ static PyObject *_nuitka_loader_find_spec(PyObject *self, PyObject *args, PyObje
 #endif
 
     return createModuleSpec(tstate, module_name, getModuleFileValue(tstate, entry, module_name),
-                            (entry->flags & NUITKA_PACKAGE_FLAG) != 0);
+                            (entry->flags & NUITKA_PACKAGE_FLAG) != 0, entry);
 }
 
 #if PYTHON_VERSION >= 0x350
@@ -3261,7 +3267,14 @@ static PyObject *_nuitka_loader_get_resource_reader(PyObject *self, PyObject *ar
 
     char const *name = Nuitka_String_AsString(module_name);
 
-    struct Nuitka_MetaPathBasedLoaderEntry *entry = findEntry(name, false);
+    struct Nuitka_LoaderObject *loader = (struct Nuitka_LoaderObject *)self;
+    struct Nuitka_MetaPathBasedLoaderEntry const *entry = NULL;
+
+    if (loader->m_loader_entry != NULL && compareToEntryName(name, loader->m_loader_entry)) {
+        entry = loader->m_loader_entry;
+    } else {
+        entry = findEntry(name, false);
+    }
 
     if (entry) {
         if (isVerbose()) {
@@ -3271,7 +3284,7 @@ static PyObject *_nuitka_loader_get_resource_reader(PyObject *self, PyObject *ar
         return Nuitka_ResourceReader_New(entry, module_name);
     }
 
-    PyErr_Format(PyExc_RuntimeError, "Requested resource reader for unhandled module %s", module_name);
+    PyErr_Format(PyExc_RuntimeError, "Requested resource reader for unhandled module '%s'", name);
     return NULL;
 }
 
@@ -3441,8 +3454,7 @@ static PyMethodDef Nuitka_Loader_methods[] = {
     {"exec_module", CAST_METHOD_KW(_nuitka_loader_exec_module), METH_STATIC | METH_VARARGS | METH_KEYWORDS, NULL},
 #endif
 #if PYTHON_VERSION >= 0x370
-    {"get_resource_reader", CAST_METHOD_KW(_nuitka_loader_get_resource_reader),
-     METH_STATIC | METH_VARARGS | METH_KEYWORDS, NULL},
+    {"get_resource_reader", CAST_METHOD_KW(_nuitka_loader_get_resource_reader), METH_VARARGS | METH_KEYWORDS, NULL},
 #endif
 
     {"find_distributions", CAST_METHOD_KW(_nuitka_loader_find_distributions),
@@ -3506,12 +3518,21 @@ static PyObject *Nuitka_Loader_get_name(PyObject *self, void *closure) {
 }
 
 static PyObject *Nuitka_Loader_get_path(PyObject *self, void *closure) {
+#if _NUITKA_FLAG_ISOLATED
+    PyErr_SetString(PyExc_RuntimeError, "loader.path is not supported in isolated mode");
+    return NULL;
+#else
     struct Nuitka_LoaderObject *loader = (struct Nuitka_LoaderObject *)self;
+
+    if (loader->m_loader_entry == NULL) {
+        Py_RETURN_NONE;
+    }
 
     PyThreadState *tstate = PyThreadState_GET();
     PyObject *result = getModuleFileValue(tstate, loader->m_loader_entry, NULL);
 
     return result;
+#endif
 }
 
 static PyObject *Nuitka_Loader_get__module__(PyObject *self, void *closure) {

@@ -524,15 +524,7 @@ static PyObject *EXECUTE_MAIN_MODULE_ENTRY(PyThreadState *tstate, struct Nuitka_
         return NULL;
     }
 
-    PyObject *result = entry->m_import_module(tstate, entry, NULL);
-
-    if (result != NULL) {
-        // The module is kept alive by its load state, return a borrowed
-        // reference like the name based path does.
-        Py_DECREF(result);
-    }
-
-    return result;
+    return entry->m_import_module(tstate, entry, NULL);
 }
 
 #define EXECUTE_MAIN_MODULE(tstate, entry, module_name, is_package) EXECUTE_MAIN_MODULE_ENTRY(tstate, entry)
@@ -542,15 +534,7 @@ static PyObject *EXECUTE_MAIN_MODULE_BY_NAME(PyThreadState *tstate, struct Nuitk
     // NUITKA_INIT_PROGRAM_LATE(module_name);
 
     if (entry != NULL && entry->m_import_module != NULL) {
-        PyObject *result = entry->m_import_module(tstate, entry, NULL);
-
-        if (result != NULL) {
-            // The module is kept alive by its load state, return a borrowed
-            // reference like the startup by name paths below.
-            Py_DECREF(result);
-        }
-
-        return result;
+        return entry->m_import_module(tstate, entry, NULL);
     }
 
     if (is_package) {
