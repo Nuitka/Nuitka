@@ -1487,6 +1487,8 @@ int main(int argc, char **argv) {
 
         if (res == -1 && errno != ECHILD) {
             exit_code = 2;
+        } else if (WIFSIGNALED(status)) {
+            exit_code = 128 + WTERMSIG(status);
         } else {
             exit_code = WEXITSTATUS(status);
         }
