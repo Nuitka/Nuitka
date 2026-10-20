@@ -20,6 +20,7 @@
 
 #if !defined(_WIN32)
 #include <dlfcn.h>
+#include <errno.h>
 #include <fcntl.h>
 #include <libgen.h>
 #if !defined(__wasi__)
@@ -397,12 +398,17 @@ int64_t getFileSize(FILE_HANDLE file_handle) {
     return (int64_t)file_size;
 }
 
+#if defined(__MSYS__) || defined(__HAIKU__) || defined(__OpenBSD__) || defined(__FreeBSD__) || defined(_AIX) ||        \
+    defined(__wasi__)
+#define NUITKA_SENDFILE_FALLBACK
+#endif
+
 #if !defined(_WIN32)
 #if defined(__APPLE__)
 #include <copyfile.h>
 #else
-#if defined(__MSYS__) || defined(__HAIKU__) || defined(__OpenBSD__) || defined(_AIX) || defined(__wasi__)
-static bool sendfile(int output_file, int input_file, off_t *bytesCopied, size_t count) {
+#if defined(NUITKA_SENDFILE_FALLBACK)
+static ssize_t sendfileFallback(int output_file, int input_file, off_t *bytesCopied, size_t count) {
     char buffer[32768];
 
     *bytesCopied = 0;
@@ -410,24 +416,46 @@ static bool sendfile(int output_file, int input_file, off_t *bytesCopied, size_t
     while (count > 0) {
         ssize_t read_bytes = read(input_file, buffer, Py_MIN(sizeof(buffer), count));
 
-        if (unlikely(read <= 0)) {
-            return false;
+        if (unlikely(read_bytes < 0)) {
+            if (errno == EINTR) {
+                continue;
+            }
+
+            return -1;
+        }
+
+        if (unlikely(read_bytes == 0)) {
+            return -1;
         }
 
         count -= read_bytes;
 
-        ssize_t written_bytes = write(output_file, buffer, read_bytes);
+        ssize_t written_total = 0;
 
-        if (unlikely(written_bytes != read_bytes)) {
-            return false;
+        while (written_total < read_bytes) {
+            ssize_t written_bytes = write(output_file, buffer + written_total, read_bytes - written_total);
+
+            if (unlikely(written_bytes < 0)) {
+                if (errno == EINTR) {
+                    continue;
+                }
+
+                return -1;
+            }
+
+            if (unlikely(written_bytes == 0)) {
+                return -1;
+            }
+
+            written_total += written_bytes;
         }
 
-        *bytesCopied += written_bytes;
+        *bytesCopied += written_total;
     }
 
-    return true;
+    return *bytesCopied;
 }
-#elif !defined(__FreeBSD__)
+#else
 #include <sys/sendfile.h>
 #endif
 #endif
@@ -474,21 +502,19 @@ bool copyFile(filename_char_t const *source, filename_char_t const *dest, int mo
     }
 
 #if defined(__APPLE__)
-    // Use fcopyfile works on FreeBSD and macOS
+    // Use fcopyfile works on macOS
     bool result = fcopyfile(input_file, output_file, 0, COPYFILE_ALL) == 0;
-#elif defined(__FreeBSD__)
-    struct stat input_fileinfo = {0};
-    fstat(input_file, &input_fileinfo);
-    off_t bytesCopied = 0;
-
-    bool result = sendfile(output_file, input_file, 0, input_fileinfo.st_size, 0, &bytesCopied, 0);
 #else
-    // sendfile will work with on Linux 2.6.33+
     struct stat fileinfo = {0};
     fstat(input_file, &fileinfo);
 
     off_t bytesCopied = 0;
+#if defined(NUITKA_SENDFILE_FALLBACK)
+    bool result = sendfileFallback(output_file, input_file, &bytesCopied, fileinfo.st_size) != -1;
+#else
+    // sendfile will work with on Linux 2.6.33+
     bool result = sendfile(output_file, input_file, &bytesCopied, fileinfo.st_size) != -1;
+#endif
 #endif
 
     close(input_file);
