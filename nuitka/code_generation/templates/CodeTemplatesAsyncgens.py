@@ -80,6 +80,7 @@ template_asyncgen_no_exception_exit = """\
 template_asyncgen_return_exit = """\
     function_return_exit:;
 
+%(function_cleanup)s
     return NULL;
 """
 

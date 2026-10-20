@@ -102,7 +102,9 @@ def getAsyncgenObjectCode(
         }
 
     if needs_generator_return:
-        generator_exit += template_asyncgen_return_exit % {}
+        generator_exit += template_asyncgen_return_exit % {
+            "function_cleanup": indented(function_cleanup)
+        }
 
     function_locals = context.variable_storage.makeCFunctionLevelDeclarations()
 
