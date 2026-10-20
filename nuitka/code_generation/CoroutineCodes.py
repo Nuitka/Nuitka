@@ -109,7 +109,8 @@ def getCoroutineObjectCode(
 
     if needs_generator_return:
         generator_exit += template_coroutine_return_exit % {
-            "return_value": context.getReturnValueName()
+            "return_value": context.getReturnValueName(),
+            "function_cleanup": indented(function_cleanup),
         }
 
     function_locals = context.variable_storage.makeCFunctionLevelDeclarations()
