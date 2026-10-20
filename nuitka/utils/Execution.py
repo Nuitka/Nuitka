@@ -1036,7 +1036,11 @@ def _communicateWithRusage(proc, process_input):
 
         try:
             _pid, status, raw_rusage = os.wait4(proc.pid, 0)
-            exit_code = os.WEXITSTATUS(status)
+
+            if os.WIFSIGNALED(status):
+                exit_code = -os.WTERMSIG(status)
+            else:
+                exit_code = os.WEXITSTATUS(status)
 
             rusage = makeProcessResourceUsage(raw_rusage)
         except OSError as e:
@@ -1106,7 +1110,11 @@ def _communicateWithRusage(proc, process_input):
         # spell-checker: ignore ECHILD,WEXITSTATUS
         try:
             _pid, status, raw_rusage = os.wait4(proc.pid, 0)
-            exit_code = os.WEXITSTATUS(status)
+
+            if os.WIFSIGNALED(status):
+                exit_code = -os.WTERMSIG(status)
+            else:
+                exit_code = os.WEXITSTATUS(status)
 
             rusage = makeProcessResourceUsage(raw_rusage)
         except OSError as e:
