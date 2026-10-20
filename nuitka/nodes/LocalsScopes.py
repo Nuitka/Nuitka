@@ -408,6 +408,7 @@ class LocalsMappingHandle(LocalsDictHandle):
 
         self.complete = True
 
+        self._considerUnusedUserLocalVariables(trace_collection)
         return self._considerPropagation(trace_collection)
 
     def preventLocalsDictPropagation(self):
