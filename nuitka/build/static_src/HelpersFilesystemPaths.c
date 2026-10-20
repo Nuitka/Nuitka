@@ -20,6 +20,7 @@
 
 #if !defined(_WIN32)
 #include <dlfcn.h>
+#include <errno.h>
 #include <fcntl.h>
 #include <libgen.h>
 #if !defined(__wasi__)
@@ -415,19 +416,41 @@ static ssize_t sendfileFallback(int output_file, int input_file, off_t *bytesCop
     while (count > 0) {
         ssize_t read_bytes = read(input_file, buffer, Py_MIN(sizeof(buffer), count));
 
-        if (unlikely(read_bytes <= 0)) {
+        if (unlikely(read_bytes < 0)) {
+            if (errno == EINTR) {
+                continue;
+            }
+
+            return -1;
+        }
+
+        if (unlikely(read_bytes == 0)) {
             return -1;
         }
 
         count -= read_bytes;
 
-        ssize_t written_bytes = write(output_file, buffer, read_bytes);
+        ssize_t written_total = 0;
 
-        if (unlikely(written_bytes != read_bytes)) {
-            return -1;
+        while (written_total < read_bytes) {
+            ssize_t written_bytes = write(output_file, buffer + written_total, read_bytes - written_total);
+
+            if (unlikely(written_bytes < 0)) {
+                if (errno == EINTR) {
+                    continue;
+                }
+
+                return -1;
+            }
+
+            if (unlikely(written_bytes == 0)) {
+                return -1;
+            }
+
+            written_total += written_bytes;
         }
 
-        *bytesCopied += written_bytes;
+        *bytesCopied += written_total;
     }
 
     return *bytesCopied;
