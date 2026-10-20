@@ -18,10 +18,14 @@ from .ExpressionShapeMixins import (
 )
 from .HardImportNodesGenerated import (
     ExpressionImportlibResourcesBackportFilesCallBase,
+    ExpressionImportlibResourcesBackportOpenBinaryCallBase,
+    ExpressionImportlibResourcesBackportOpenTextCallBase,
     ExpressionImportlibResourcesBackportReadBinaryCallBase,
     ExpressionImportlibResourcesBackportReadTextCallBase,
     ExpressionImportlibResourcesFilesCallBase,
     ExpressionImportlibResourcesFilesSince312CallBase,
+    ExpressionImportlibResourcesOpenBinaryCallBase,
+    ExpressionImportlibResourcesOpenTextCallBase,
     ExpressionImportlibResourcesReadBinaryCallBase,
     ExpressionImportlibResourcesReadTextBefore313CallBase,
     ExpressionImportlibResourcesReadTextSince313CallBase,
@@ -104,6 +108,112 @@ class ExpressionImportlibResourcesReadBinaryCall(
             resource=resource,
             source_ref=source_ref,
         )
+
+    def replaceWithCompileTimeValue(self, trace_collection):
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        return self, None, None
+
+
+class ExpressionImportlibResourcesOpenBinaryCall(
+    SideEffectsFromChildrenMixin,
+    ExpressionImportlibResourcesOpenBinaryCallBase,
+):
+    """Call to "importlib.resources.open_binary" """
+
+    kind = "EXPRESSION_IMPORTLIB_RESOURCES_OPEN_BINARY_CALL"
+
+    def __init__(self, package, resource, source_ref):
+        ExpressionImportlibResourcesOpenBinaryCallBase.__init__(
+            self,
+            package=package,
+            resource=resource,
+            source_ref=source_ref,
+        )
+
+    def replaceWithCompileTimeValue(self, trace_collection):
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        return self, None, None
+
+
+class ExpressionImportlibResourcesBackportOpenBinaryCall(
+    SideEffectsFromChildrenMixin,
+    ExpressionImportlibResourcesBackportOpenBinaryCallBase,
+):
+    """Call to "importlib_resources.open_binary" """
+
+    kind = "EXPRESSION_IMPORTLIB_RESOURCES_BACKPORT_OPEN_BINARY_CALL"
+
+    def __init__(self, package, resource, source_ref):
+        ExpressionImportlibResourcesBackportOpenBinaryCallBase.__init__(
+            self,
+            package=package,
+            resource=resource,
+            source_ref=source_ref,
+        )
+
+    def replaceWithCompileTimeValue(self, trace_collection):
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        return self, None, None
+
+
+def makeExpressionImportlibResourcesOpenTextCall(
+    package, resource, encoding, errors, source_ref
+):
+    if encoding is None:
+        encoding = makeConstantRefNode(constant="utf-8", source_ref=source_ref)
+    if errors is None:
+        errors = makeConstantRefNode(constant="strict", source_ref=source_ref)
+
+    return ExpressionImportlibResourcesOpenTextCall(
+        package=package,
+        resource=resource,
+        encoding=encoding,
+        errors=errors,
+        source_ref=source_ref,
+    )
+
+
+class ExpressionImportlibResourcesOpenTextCall(
+    SideEffectsFromChildrenMixin,
+    ExpressionImportlibResourcesOpenTextCallBase,
+):
+    """Call to "importlib.resources.open_text" """
+
+    kind = "EXPRESSION_IMPORTLIB_RESOURCES_OPEN_TEXT_CALL"
+
+    def replaceWithCompileTimeValue(self, trace_collection):
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        return self, None, None
+
+
+def makeExpressionImportlibResourcesBackportOpenTextCall(
+    package, resource, encoding, errors, source_ref
+):
+    if encoding is None:
+        encoding = makeConstantRefNode(constant="utf-8", source_ref=source_ref)
+    if errors is None:
+        errors = makeConstantRefNode(constant="strict", source_ref=source_ref)
+
+    return ExpressionImportlibResourcesBackportOpenTextCall(
+        package=package,
+        resource=resource,
+        encoding=encoding,
+        errors=errors,
+        source_ref=source_ref,
+    )
+
+
+class ExpressionImportlibResourcesBackportOpenTextCall(
+    SideEffectsFromChildrenMixin,
+    ExpressionImportlibResourcesBackportOpenTextCallBase,
+):
+    """Call to "importlib_resources.open_text" """
+
+    kind = "EXPRESSION_IMPORTLIB_RESOURCES_BACKPORT_OPEN_TEXT_CALL"
 
     def replaceWithCompileTimeValue(self, trace_collection):
         trace_collection.onExceptionRaiseExit(BaseException)

@@ -999,14 +999,7 @@ PyObject *BUILTIN_LONG2(PyThreadState *tstate, PyObject *value, PyObject *base) 
 PyObject *BUILTIN_PRINT1(PyThreadState *tstate, PyObject **values, int count) {
     CHECK_OBJECTS(values, count);
 
-    // TODO: We need a CALL_FUNCTION_WITH_POS_ARGS variant that does not create
-    // a tuple, but instead uses the values directly.
-    PyObject *args_tuple = MAKE_TUPLE_VAR(tstate, values, count);
-
-    PyObject *result = CALL_FUNCTION_WITH_POS_ARGS(tstate, LOOKUP_BUILTIN(const_str_plain_print), args_tuple);
-    Py_DECREF(args_tuple);
-
-    return result;
+    return CALL_FUNCTION_WITH_ARGS(tstate, LOOKUP_BUILTIN(const_str_plain_print), values, count);
 }
 
 PyObject *BUILTIN_PRINT1_NO_ARGS(PyThreadState *tstate) { return BUILTIN_PRINT1(tstate, NULL, 0); }

@@ -13,10 +13,13 @@ quickly, in others they will present boundaries for optimization.
 
 """
 
+import os
+
 from nuitka.options.Options import getFileReferenceMode, getModuleNameMode
 
 from .ConstantRefNodes import makeConstantRefNode
 from .ExpressionBases import ExpressionBase
+from .RuntimePathNodes import ExpressionRuntimePath
 
 
 class ExpressionModuleAttributeBase(ExpressionBase):
@@ -79,15 +82,24 @@ class ExpressionModuleAttributeFileRef(ExpressionModuleAttributeBase):
     def computeExpressionRaw(self, trace_collection):
         # There is not a whole lot to do here, the path will change at run
         # time, but options may disable that and make it predictable.
-        if getFileReferenceMode() != "runtime":
+        run_time_filename = self.variable.getModule().getRunTimeFilename()
+
+        if getFileReferenceMode() != "runtime" or os.path.isabs(run_time_filename):
             result = makeConstantRefNode(
-                constant=self.variable.getModule().getRunTimeFilename(),
+                constant=run_time_filename,
                 source_ref=self.source_ref,
             )
 
             return result, "new_expression", "Using original '__file__' value."
 
-        return self, None, None
+        return (
+            ExpressionRuntimePath(
+                relative_path=run_time_filename,
+                source_ref=self.source_ref,
+            ),
+            "new_expression",
+            "Using runtime relative '__file__' value.",
+        )
 
 
 class ExpressionModuleAttributeNameRef(ExpressionModuleAttributeBase):

@@ -15473,8 +15473,12 @@ class ChildrenHavingPackageResourceMixin(object):
     __slots__ = ()
 
     # This is generated for use in
+    #   ExpressionImportlibResourcesBackportOpenBinary
+    #   ExpressionImportlibResourcesBackportOpenBinaryCall
     #   ExpressionImportlibResourcesBackportReadBinary
     #   ExpressionImportlibResourcesBackportReadBinaryCall
+    #   ExpressionImportlibResourcesOpenBinary
+    #   ExpressionImportlibResourcesOpenBinaryCall
     #   ExpressionImportlibResourcesReadBinary
     #   ExpressionImportlibResourcesReadBinaryCall
     #   ExpressionPkgutilGetData
@@ -15605,10 +15609,20 @@ class ChildrenHavingPackageResourceMixin(object):
 
 
 # Assign the names that are easier to import with a stable name.
+ChildrenExpressionImportlibResourcesBackportOpenBinaryMixin = (
+    ChildrenHavingPackageResourceMixin
+)
+ChildrenExpressionImportlibResourcesBackportOpenBinaryCallMixin = (
+    ChildrenHavingPackageResourceMixin
+)
 ChildrenExpressionImportlibResourcesBackportReadBinaryMixin = (
     ChildrenHavingPackageResourceMixin
 )
 ChildrenExpressionImportlibResourcesBackportReadBinaryCallMixin = (
+    ChildrenHavingPackageResourceMixin
+)
+ChildrenExpressionImportlibResourcesOpenBinaryMixin = ChildrenHavingPackageResourceMixin
+ChildrenExpressionImportlibResourcesOpenBinaryCallMixin = (
     ChildrenHavingPackageResourceMixin
 )
 ChildrenExpressionImportlibResourcesReadBinaryMixin = ChildrenHavingPackageResourceMixin
@@ -15624,8 +15638,12 @@ class ChildrenHavingPackageResourceEncodingOptionalErrorsOptionalMixin(object):
     __slots__ = ()
 
     # This is generated for use in
+    #   ExpressionImportlibResourcesBackportOpenText
+    #   ExpressionImportlibResourcesBackportOpenTextCall
     #   ExpressionImportlibResourcesBackportReadText
     #   ExpressionImportlibResourcesBackportReadTextCall
+    #   ExpressionImportlibResourcesOpenText
+    #   ExpressionImportlibResourcesOpenTextCall
     #   ExpressionImportlibResourcesReadText
     #   ExpressionImportlibResourcesReadTextBefore313Call
 
@@ -15815,10 +15833,22 @@ class ChildrenHavingPackageResourceEncodingOptionalErrorsOptionalMixin(object):
 
 
 # Assign the names that are easier to import with a stable name.
+ChildrenExpressionImportlibResourcesBackportOpenTextMixin = (
+    ChildrenHavingPackageResourceEncodingOptionalErrorsOptionalMixin
+)
+ChildrenExpressionImportlibResourcesBackportOpenTextCallMixin = (
+    ChildrenHavingPackageResourceEncodingOptionalErrorsOptionalMixin
+)
 ChildrenExpressionImportlibResourcesBackportReadTextMixin = (
     ChildrenHavingPackageResourceEncodingOptionalErrorsOptionalMixin
 )
 ChildrenExpressionImportlibResourcesBackportReadTextCallMixin = (
+    ChildrenHavingPackageResourceEncodingOptionalErrorsOptionalMixin
+)
+ChildrenExpressionImportlibResourcesOpenTextMixin = (
+    ChildrenHavingPackageResourceEncodingOptionalErrorsOptionalMixin
+)
+ChildrenExpressionImportlibResourcesOpenTextCallMixin = (
     ChildrenHavingPackageResourceEncodingOptionalErrorsOptionalMixin
 )
 ChildrenExpressionImportlibResourcesReadTextMixin = (
@@ -17030,6 +17060,130 @@ class ChildrenHavingPathOptionalDirFdOptionalFollowSymlinksOptionalMixin(object)
 ChildrenExpressionOsStatMixin = (
     ChildrenHavingPathOptionalDirFdOptionalFollowSymlinksOptionalMixin
 )
+
+
+class ChildHavingPathsTupleMixin(object):
+    # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
+    __slots__ = ()
+
+    # This is generated for use in
+    #   ExpressionOsPathJoin
+
+    def __init__(
+        self,
+        paths,
+    ):
+        assert type(paths) is tuple
+
+        for val in paths:
+            val.parent = self
+
+        self.subnode_paths = paths
+
+    def getVisitableNodes(self):
+        """The visitable nodes, with tuple values flattened."""
+
+        return self.subnode_paths
+
+    def getVisitableNodesNamed(self):
+        """Named children dictionary.
+
+        For use in cloning nodes, debugging and XML output.
+        """
+
+        return (("paths", self.subnode_paths),)
+
+    def replaceChild(self, old_node, new_node):
+        value = self.subnode_paths
+        if old_node in value:
+            if new_node is not None:
+                new_node.parent = self
+
+                self.subnode_paths = tuple(
+                    (val if val is not old_node else new_node) for val in value
+                )
+            else:
+                self.subnode_paths = tuple(val for val in value if val is not old_node)
+
+            return
+
+        raise AssertionError("Didn't find child", old_node, "in", self)
+
+    def getCloneArgs(self):
+        """Get clones of all children to pass for a new node.
+
+        Needs to make clones of child nodes too.
+        """
+
+        values = {
+            "paths": tuple(v.makeClone() for v in self.subnode_paths),
+        }
+
+        values.update(self.getDetails())
+
+        return values
+
+    def finalize(self):
+        del self.parent
+
+        for c in self.subnode_paths:
+            c.finalize()
+        del self.subnode_paths
+
+    def computeExpressionRaw(self, trace_collection):
+        """Compute an expression.
+
+        Default behavior is to just visit the child expressions first, and
+        then the node "computeExpression". For a few cases this needs to
+        be overloaded, e.g. conditional expressions.
+        """
+
+        # First apply the sub-expressions, as they are evaluated before
+        # the actual operation.
+        old_subnode_paths = self.subnode_paths
+
+        for sub_expression in old_subnode_paths:
+            expression = trace_collection.onExpression(sub_expression)
+
+            if expression.willRaiseAnyException():
+                wrapped_expression = wrapExpressionWithSideEffects(
+                    side_effects=self.subnode_paths[
+                        : old_subnode_paths.index(sub_expression)
+                    ],
+                    old_node=sub_expression,
+                    new_node=expression,
+                )
+
+                return (
+                    wrapped_expression,
+                    "new_raise",
+                    lambda: "For '%s' the child expression '%s' will raise."
+                    % (self.getChildNameNice(), expression.getChildNameNice()),
+                )
+
+        # Then ask ourselves to work on it.
+        return self.computeExpression(trace_collection)
+
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
+
+        self.undoVariableTracing()
+
+    # For overload only
+    @staticmethod
+    def undoVariableTracing():
+        pass
+
+    def collectVariableAccesses(self, emit_variable):
+        """Collect variable reads and writes of child nodes."""
+
+        for element in self.subnode_paths:
+            element.collectVariableAccesses(emit_variable)
+
+
+# Assign the names that are easier to import with a stable name.
+ChildrenExpressionOsPathJoinMixin = ChildHavingPathsTupleMixin
 
 
 class ChildrenHavingPosArgOptionalPairsTupleMixin(object):

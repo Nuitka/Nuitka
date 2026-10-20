@@ -101,6 +101,26 @@ importlib_resources_backport_read_binary_spec = BuiltinParameterSpec(
     default_count=0,
     type_shape=tshape_bytes,
 )
+importlib_resources_open_binary_spec = BuiltinParameterSpec(
+    "importlib.resources.open_binary",
+    ("package", "resource"),
+    default_count=0,
+)
+importlib_resources_backport_open_binary_spec = BuiltinParameterSpec(
+    "importlib_resources.open_binary",
+    ("package", "resource"),
+    default_count=0,
+)
+importlib_resources_open_text_spec = BuiltinParameterSpec(
+    "importlib.resources.open_text",
+    ("package", "resource", "encoding", "errors"),
+    default_count=2,
+)
+importlib_resources_backport_open_text_spec = BuiltinParameterSpec(
+    "importlib_resources.open_text",
+    ("package", "resource", "encoding", "errors"),
+    default_count=2,
+)
 importlib_resources_read_text_since_313_spec = BuiltinParameterSpec(
     "importlib.resources.read_text",
     ("package",),
@@ -152,6 +172,9 @@ os_path_basename_spec = BuiltinParameterSpec(
     "os.path.basename", ("p",), default_count=0
 )
 os_path_dirname_spec = BuiltinParameterSpec("os.path.dirname", ("p",), default_count=0)
+os_path_join_spec = BuiltinParameterSpecNoKeywords(
+    "os.path.join", (), default_count=0, list_star_arg="paths"
+)
 os_path_normpath_spec = BuiltinParameterSpec(
     "os.path.normpath", ("path",), default_count=0
 )

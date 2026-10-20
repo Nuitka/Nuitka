@@ -3,6 +3,8 @@
 
 """Code generation for package resources access."""
 
+import os
+
 from nuitka.options.Options import isStandaloneMode, shallMakeModule
 
 from .BuiltinCodes import getBuiltinCallViaSpecCode
@@ -700,6 +702,62 @@ def generateImportlibResourcesReadBinaryCallCode(to_name, expression, emit, cont
         )
 
 
+def generateImportlibResourcesOpenBinaryCallCode(to_name, expression, emit, context):
+    package_name, resource_name = generateChildExpressionsCode(
+        expression=expression, emit=emit, context=context
+    )
+
+    with withObjectCodeTemporaryAssignment(
+        to_name, "open_binary_value", expression, emit, context
+    ) as result_name:
+        open_binary_function = context.allocateTempName(
+            "open_binary_function", unique=True
+        )
+
+        getImportModuleNameHardCode(
+            to_name=open_binary_function,
+            module_name="importlib.resources",
+            import_name="open_binary",
+            needs_check=False,
+            emit=emit,
+            context=context,
+        )
+
+        getCallCodePosArgsQuick(
+            to_name=result_name,
+            called_name=open_binary_function,
+            expression=expression,
+            arg_names=(package_name, resource_name),
+            emit=emit,
+            context=context,
+        )
+
+
+def generateImportlibResourcesOpenTextCallCode(to_name, expression, emit, context):
+    with withObjectCodeTemporaryAssignment(
+        to_name, "open_text_value", expression, emit, context
+    ) as result_name:
+        open_text_function = context.allocateTempName("open_text_function", unique=True)
+
+        getImportModuleNameHardCode(
+            to_name=open_text_function,
+            module_name="importlib.resources",
+            import_name="open_text",
+            needs_check=False,
+            emit=emit,
+            context=context,
+        )
+
+        getBuiltinCallViaSpecCode(
+            spec=expression.spec,
+            to_name=result_name,
+            called_name=open_text_function,
+            expression=expression,
+            emit=emit,
+            context=context,
+        )
+
+
 def generateImportlibResourcesReadTextCallCode(to_name, expression, emit, context):
     with withObjectCodeTemporaryAssignment(
         to_name, "read_text_value", expression, emit, context
@@ -891,6 +949,71 @@ def generateOsPathDirnameCallCode(to_name, expression, emit, context):
         emit=emit,
         context=context,
     )
+
+
+def generateOsPathJoinCallCode(to_name, expression, emit, context):
+    with withObjectCodeTemporaryAssignment(
+        to_name, "os_path_join_result", expression, emit, context
+    ) as result_name:
+        (path_names,) = generateChildExpressionsCode(
+            expression=expression, emit=emit, context=context
+        )
+
+        if path_names and len(path_names) <= 10:
+            join_func = context.allocateTempName("os_path_join_func", unique=True)
+
+            getImportModuleNameHardCode(
+                to_name=join_func,
+                module_name=os.path.__name__,
+                import_name="join",
+                needs_check=False,
+                emit=emit,
+                context=context,
+            )
+
+            getCallCodePosArgsQuick(
+                to_name=result_name,
+                called_name=join_func,
+                arg_names=path_names,
+                expression=expression,
+                emit=emit,
+                context=context,
+            )
+        elif path_names:
+            emit(
+                "PyObject *os_path_join_paths[] = {%s};"
+                % ", ".join(str(name) for name in path_names)
+            )
+            emit(
+                "%s = OS_PATH_JOIN(tstate, os_path_join_paths, %d);"
+                % (result_name, len(path_names))
+            )
+
+            getErrorExitCode(
+                check_name=result_name,
+                release_names=path_names,
+                emit=emit,
+                context=context,
+            )
+        else:
+            join_func = context.allocateTempName("os_path_join_func", unique=True)
+
+            getImportModuleNameHardCode(
+                to_name=join_func,
+                module_name=os.path.__name__,
+                import_name="join",
+                needs_check=False,
+                emit=emit,
+                context=context,
+            )
+
+            getCallCodeNoArgs(
+                to_name=result_name,
+                called_name=join_func,
+                expression=expression,
+                emit=emit,
+                context=context,
+            )
 
 
 def generateOsPathNormpathCallCode(to_name, expression, emit, context):

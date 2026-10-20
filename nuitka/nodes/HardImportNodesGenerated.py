@@ -58,10 +58,14 @@ from nuitka.specs.HardImportSpecs import (
     importlib_metadata_metadata_spec,
     importlib_metadata_version_spec,
     importlib_resources_backport_files_spec,
+    importlib_resources_backport_open_binary_spec,
+    importlib_resources_backport_open_text_spec,
     importlib_resources_backport_read_binary_spec,
     importlib_resources_backport_read_text_spec,
     importlib_resources_files_since_312_spec,
     importlib_resources_files_spec,
+    importlib_resources_open_binary_spec,
+    importlib_resources_open_text_spec,
     importlib_resources_read_binary_spec,
     importlib_resources_read_text_before_313_spec,
     importlib_resources_read_text_since_313_spec,
@@ -74,6 +78,7 @@ from nuitka.specs.HardImportSpecs import (
     os_path_isabs_spec,
     os_path_isdir_spec,
     os_path_isfile_spec,
+    os_path_join_spec,
     os_path_normpath_spec,
     os_stat_spec,
     os_uname_spec,
@@ -100,6 +105,7 @@ from .ChildrenHavingMixins import (
     ChildHavingParamsTupleMixin,
     ChildHavingPathMixin,
     ChildHavingPathOptionalMixin,
+    ChildHavingPathsTupleMixin,
     ChildHavingPMixin,
     ChildHavingRequirementsTupleMixin,
     ChildHavingSMixin,
@@ -2086,6 +2092,216 @@ class ExpressionImportlibResourcesBackportFilesCallBase(
         return True
 
 
+class ExpressionImportlibResourcesBackportOpenBinaryRef(
+    ExpressionImportModuleNameHardExistsSpecificBase
+):
+    """Function reference importlib_resources.open_binary"""
+
+    kind = "EXPRESSION_IMPORTLIB_RESOURCES_BACKPORT_OPEN_BINARY_REF"
+
+    def __init__(self, source_ref):
+        ExpressionImportModuleNameHardExistsSpecificBase.__init__(
+            self,
+            module_name="importlib_resources",
+            import_name="open_binary",
+            module_guaranteed=not shallMakeModule(),
+            source_ref=source_ref,
+        )
+
+    def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
+        # Anything may happen on call trace before this. On next pass, if
+        # replaced, we might be better but not now.
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        from .PackageResourceNodes import (
+            ExpressionImportlibResourcesBackportOpenBinaryCall,
+        )
+
+        result = extractBuiltinArgs(
+            node=call_node,
+            builtin_class=ExpressionImportlibResourcesBackportOpenBinaryCall,
+            builtin_spec=importlib_resources_backport_open_binary_spec,
+        )
+
+        return (
+            result,
+            "new_expression",
+            "Call to 'importlib_resources.open_binary' recognized.",
+        )
+
+
+addHardImportNodeClass(
+    ExpressionImportlibResourcesBackportOpenBinaryRef,
+    importlib_resources_backport_open_binary_spec,
+)
+
+
+class ExpressionImportlibResourcesBackportOpenBinaryCallBase(
+    ChildrenHavingPackageResourceMixin, ExpressionBase
+):
+    """Base class for ImportlibResourcesBackportOpenBinaryCall
+
+    Generated boiler plate code from 'HardImportCallNode.py.j2' template.
+    """
+
+    named_children = (
+        "package",
+        "resource",
+    )
+
+    __slots__ = ("attempted",)
+
+    spec = importlib_resources_backport_open_binary_spec
+
+    def __init__(self, package, resource, source_ref):
+
+        ChildrenHavingPackageResourceMixin.__init__(
+            self,
+            package=package,
+            resource=resource,
+        )
+
+        ExpressionBase.__init__(self, source_ref)
+
+        # In module mode, we expect a changing environment, cannot optimize this
+        self.attempted = shallMakeModule()
+
+    def computeExpression(self, trace_collection):
+        if (
+            self.attempted
+            or not importlib_resources_backport_open_binary_spec.isCompileTimeComputable(
+                (
+                    self.subnode_package,
+                    self.subnode_resource,
+                )
+            )
+        ):
+            trace_collection.onExceptionRaiseExit(BaseException)
+
+            return self, None, None
+
+        try:
+            return self.replaceWithCompileTimeValue(trace_collection)
+        finally:
+            self.attempted = True
+
+    @abstractmethod
+    def replaceWithCompileTimeValue(self, trace_collection):
+        pass
+
+    @staticmethod
+    def mayRaiseExceptionOperation():
+        return True
+
+
+class ExpressionImportlibResourcesBackportOpenTextRef(
+    ExpressionImportModuleNameHardExistsSpecificBase
+):
+    """Function reference importlib_resources.open_text"""
+
+    kind = "EXPRESSION_IMPORTLIB_RESOURCES_BACKPORT_OPEN_TEXT_REF"
+
+    def __init__(self, source_ref):
+        ExpressionImportModuleNameHardExistsSpecificBase.__init__(
+            self,
+            module_name="importlib_resources",
+            import_name="open_text",
+            module_guaranteed=not shallMakeModule(),
+            source_ref=source_ref,
+        )
+
+    def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
+        # Anything may happen on call trace before this. On next pass, if
+        # replaced, we might be better but not now.
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        from .PackageResourceNodes import (
+            makeExpressionImportlibResourcesBackportOpenTextCall,
+        )
+
+        result = extractBuiltinArgs(
+            node=call_node,
+            builtin_class=makeExpressionImportlibResourcesBackportOpenTextCall,
+            builtin_spec=importlib_resources_backport_open_text_spec,
+        )
+
+        return (
+            result,
+            "new_expression",
+            "Call to 'importlib_resources.open_text' recognized.",
+        )
+
+
+addHardImportNodeClass(
+    ExpressionImportlibResourcesBackportOpenTextRef,
+    importlib_resources_backport_open_text_spec,
+)
+
+
+class ExpressionImportlibResourcesBackportOpenTextCallBase(
+    ChildrenHavingPackageResourceEncodingOptionalErrorsOptionalMixin, ExpressionBase
+):
+    """Base class for ImportlibResourcesBackportOpenTextCall
+
+    Generated boiler plate code from 'HardImportCallNode.py.j2' template.
+    """
+
+    named_children = (
+        "package",
+        "resource",
+        "encoding|optional",
+        "errors|optional",
+    )
+
+    __slots__ = ("attempted",)
+
+    spec = importlib_resources_backport_open_text_spec
+
+    def __init__(self, package, resource, encoding, errors, source_ref):
+
+        ChildrenHavingPackageResourceEncodingOptionalErrorsOptionalMixin.__init__(
+            self,
+            package=package,
+            resource=resource,
+            encoding=encoding,
+            errors=errors,
+        )
+
+        ExpressionBase.__init__(self, source_ref)
+
+        # In module mode, we expect a changing environment, cannot optimize this
+        self.attempted = shallMakeModule()
+
+    def computeExpression(self, trace_collection):
+        if (
+            self.attempted
+            or not importlib_resources_backport_open_text_spec.isCompileTimeComputable(
+                (
+                    self.subnode_package,
+                    self.subnode_resource,
+                    self.subnode_encoding,
+                    self.subnode_errors,
+                )
+            )
+        ):
+            trace_collection.onExceptionRaiseExit(BaseException)
+
+            return self, None, None
+
+        try:
+            return self.replaceWithCompileTimeValue(trace_collection)
+        finally:
+            self.attempted = True
+
+    @abstractmethod
+    def replaceWithCompileTimeValue(self, trace_collection):
+        pass
+
+    @staticmethod
+    def mayRaiseExceptionOperation():
+        return True
+
+
 class ExpressionImportlibResourcesBackportReadBinaryRef(
     ExpressionImportModuleNameHardExistsSpecificBase
 ):
@@ -2438,6 +2654,212 @@ class ExpressionImportlibResourcesFilesCallBase(
             self.attempted
             or not importlib_resources_files_spec.isCompileTimeComputable(
                 (self.subnode_package,)
+            )
+        ):
+            trace_collection.onExceptionRaiseExit(BaseException)
+
+            return self, None, None
+
+        try:
+            return self.replaceWithCompileTimeValue(trace_collection)
+        finally:
+            self.attempted = True
+
+    @abstractmethod
+    def replaceWithCompileTimeValue(self, trace_collection):
+        pass
+
+    @staticmethod
+    def mayRaiseExceptionOperation():
+        return True
+
+
+class ExpressionImportlibResourcesOpenBinaryRef(
+    ExpressionImportModuleNameHardExistsSpecificBase
+):
+    """Function reference importlib.resources.open_binary"""
+
+    kind = "EXPRESSION_IMPORTLIB_RESOURCES_OPEN_BINARY_REF"
+
+    def __init__(self, source_ref):
+        ExpressionImportModuleNameHardExistsSpecificBase.__init__(
+            self,
+            module_name="importlib.resources",
+            import_name="open_binary",
+            module_guaranteed=True,
+            source_ref=source_ref,
+        )
+
+    def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
+        # Anything may happen on call trace before this. On next pass, if
+        # replaced, we might be better but not now.
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        from .PackageResourceNodes import (
+            ExpressionImportlibResourcesOpenBinaryCall,
+        )
+
+        result = extractBuiltinArgs(
+            node=call_node,
+            builtin_class=ExpressionImportlibResourcesOpenBinaryCall,
+            builtin_spec=importlib_resources_open_binary_spec,
+        )
+
+        return (
+            result,
+            "new_expression",
+            "Call to 'importlib.resources.open_binary' recognized.",
+        )
+
+
+addHardImportNodeClass(
+    ExpressionImportlibResourcesOpenBinaryRef, importlib_resources_open_binary_spec
+)
+
+
+class ExpressionImportlibResourcesOpenBinaryCallBase(
+    ChildrenHavingPackageResourceMixin, ExpressionBase
+):
+    """Base class for ImportlibResourcesOpenBinaryCall
+
+    Generated boiler plate code from 'HardImportCallNode.py.j2' template.
+    """
+
+    named_children = (
+        "package",
+        "resource",
+    )
+
+    __slots__ = ("attempted",)
+
+    spec = importlib_resources_open_binary_spec
+
+    def __init__(self, package, resource, source_ref):
+
+        ChildrenHavingPackageResourceMixin.__init__(
+            self,
+            package=package,
+            resource=resource,
+        )
+
+        ExpressionBase.__init__(self, source_ref)
+
+        self.attempted = False
+
+    def computeExpression(self, trace_collection):
+        if (
+            self.attempted
+            or not importlib_resources_open_binary_spec.isCompileTimeComputable(
+                (
+                    self.subnode_package,
+                    self.subnode_resource,
+                )
+            )
+        ):
+            trace_collection.onExceptionRaiseExit(BaseException)
+
+            return self, None, None
+
+        try:
+            return self.replaceWithCompileTimeValue(trace_collection)
+        finally:
+            self.attempted = True
+
+    @abstractmethod
+    def replaceWithCompileTimeValue(self, trace_collection):
+        pass
+
+    @staticmethod
+    def mayRaiseExceptionOperation():
+        return True
+
+
+class ExpressionImportlibResourcesOpenTextRef(
+    ExpressionImportModuleNameHardExistsSpecificBase
+):
+    """Function reference importlib.resources.open_text"""
+
+    kind = "EXPRESSION_IMPORTLIB_RESOURCES_OPEN_TEXT_REF"
+
+    def __init__(self, source_ref):
+        ExpressionImportModuleNameHardExistsSpecificBase.__init__(
+            self,
+            module_name="importlib.resources",
+            import_name="open_text",
+            module_guaranteed=True,
+            source_ref=source_ref,
+        )
+
+    def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
+        # Anything may happen on call trace before this. On next pass, if
+        # replaced, we might be better but not now.
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        from .PackageResourceNodes import (
+            makeExpressionImportlibResourcesOpenTextCall,
+        )
+
+        result = extractBuiltinArgs(
+            node=call_node,
+            builtin_class=makeExpressionImportlibResourcesOpenTextCall,
+            builtin_spec=importlib_resources_open_text_spec,
+        )
+
+        return (
+            result,
+            "new_expression",
+            "Call to 'importlib.resources.open_text' recognized.",
+        )
+
+
+addHardImportNodeClass(
+    ExpressionImportlibResourcesOpenTextRef, importlib_resources_open_text_spec
+)
+
+
+class ExpressionImportlibResourcesOpenTextCallBase(
+    ChildrenHavingPackageResourceEncodingOptionalErrorsOptionalMixin, ExpressionBase
+):
+    """Base class for ImportlibResourcesOpenTextCall
+
+    Generated boiler plate code from 'HardImportCallNode.py.j2' template.
+    """
+
+    named_children = (
+        "package",
+        "resource",
+        "encoding|optional",
+        "errors|optional",
+    )
+
+    __slots__ = ("attempted",)
+
+    spec = importlib_resources_open_text_spec
+
+    def __init__(self, package, resource, encoding, errors, source_ref):
+
+        ChildrenHavingPackageResourceEncodingOptionalErrorsOptionalMixin.__init__(
+            self,
+            package=package,
+            resource=resource,
+            encoding=encoding,
+            errors=errors,
+        )
+
+        ExpressionBase.__init__(self, source_ref)
+
+        self.attempted = False
+
+    def computeExpression(self, trace_collection):
+        if (
+            self.attempted
+            or not importlib_resources_open_text_spec.isCompileTimeComputable(
+                (
+                    self.subnode_package,
+                    self.subnode_resource,
+                    self.subnode_encoding,
+                    self.subnode_errors,
+                )
             )
         ):
             trace_collection.onExceptionRaiseExit(BaseException)
@@ -3476,6 +3898,88 @@ class ExpressionOsPathIsfileCallBase(ChildHavingPathMixin, ExpressionBase):
     def computeExpression(self, trace_collection):
         if self.attempted or not os_path_isfile_spec.isCompileTimeComputable(
             (self.subnode_path,)
+        ):
+            trace_collection.onExceptionRaiseExit(BaseException)
+
+            return self, None, None
+
+        try:
+            return self.replaceWithCompileTimeValue(trace_collection)
+        finally:
+            self.attempted = True
+
+    @abstractmethod
+    def replaceWithCompileTimeValue(self, trace_collection):
+        pass
+
+    @staticmethod
+    def mayRaiseExceptionOperation():
+        return True
+
+
+class ExpressionOsPathJoinRef(ExpressionImportModuleNameHardExistsSpecificBase):
+    """Function reference os.path.join"""
+
+    kind = "EXPRESSION_OS_PATH_JOIN_REF"
+
+    def __init__(self, source_ref):
+        ExpressionImportModuleNameHardExistsSpecificBase.__init__(
+            self,
+            module_name=os.path.__name__,
+            import_name="join",
+            module_guaranteed=True,
+            source_ref=source_ref,
+        )
+
+    def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
+        # Anything may happen on call trace before this. On next pass, if
+        # replaced, we might be better but not now.
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        from .OsSysNodes import ExpressionOsPathJoinCall
+
+        result = extractBuiltinArgs(
+            node=call_node,
+            builtin_class=ExpressionOsPathJoinCall,
+            builtin_spec=os_path_join_spec,
+        )
+
+        return (
+            result,
+            "new_expression",
+            "Call to 'os.path.join' recognized.",
+        )
+
+
+addHardImportNodeClass(ExpressionOsPathJoinRef, os_path_join_spec)
+
+
+class ExpressionOsPathJoinCallBase(ChildHavingPathsTupleMixin, ExpressionBase):
+    """Base class for OsPathJoinCall
+
+    Generated boiler plate code from 'HardImportCallNode.py.j2' template.
+    """
+
+    named_children = ("paths|tuple",)
+
+    __slots__ = ("attempted",)
+
+    spec = os_path_join_spec
+
+    def __init__(self, paths, source_ref):
+
+        ChildHavingPathsTupleMixin.__init__(
+            self,
+            paths=paths,
+        )
+
+        ExpressionBase.__init__(self, source_ref)
+
+        self.attempted = False
+
+    def computeExpression(self, trace_collection):
+        if self.attempted or not os_path_join_spec.isCompileTimeComputable(
+            () + self.subnode_paths
         ):
             trace_collection.onExceptionRaiseExit(BaseException)
 

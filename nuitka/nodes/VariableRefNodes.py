@@ -26,6 +26,7 @@ from .DictionaryNodes import (
 )
 from .ExpressionBases import ExpressionBase, ExpressionNoSideEffectsMixin
 from .ModuleAttributeNodes import (
+    ExpressionModuleAttributeFileRef,
     ExpressionModuleAttributeLoaderRef,
     ExpressionModuleAttributeNameRef,
     ExpressionModuleAttributePackageRef,
@@ -477,8 +478,10 @@ class ExpressionVariableRef(ExpressionVariableRefBase):
             # could be decided from context.
             trace_collection.onExceptionRaiseExit(BaseException)
 
+        # TODO: Change '__file__' handling so that it does not need this exception.
         if variable.isModuleVariable() and (
-            variable.hasDefiniteWrites() is False or variable.getName() == "super"
+            variable.hasDefiniteWrites() is False
+            or variable.getName() in ("super", "__file__")
         ):
             variable_name = self.variable.getName()
 
@@ -539,6 +542,14 @@ Replaced read-only module attribute '__name__' with module attribute reference."
                 change_tags = "new_expression"
                 change_desc = """\
 Replaced read-only module attribute '__package__' with module attribute reference."""
+            elif variable_name == "__file__":
+                new_node = ExpressionModuleAttributeFileRef(
+                    variable=variable, source_ref=self.source_ref
+                )
+
+                change_tags = "new_expression"
+                change_desc = """\
+Replaced module attribute '__file__' with module attribute reference."""
             elif variable_name == "__loader__" and python_version >= 0x300:
                 new_node = ExpressionModuleAttributeLoaderRef(
                     variable=variable, source_ref=self.source_ref

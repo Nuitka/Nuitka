@@ -93,6 +93,33 @@ NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_VARS(PyThreadState *tstate, PyObjec
 #include "nuitka/helper/subscripts.h"
 #include "nuitka/helper/tuples.h"
 
+/* Call a function with an array of positional arguments. */
+NUITKA_MAY_BE_UNUSED static PyObject *CALL_FUNCTION_WITH_ARGS(PyThreadState *tstate, PyObject *function_object,
+                                                              PyObject *const *args, Py_ssize_t count) {
+#if PYTHON_VERSION >= 0x380 && !defined(_NUITKA_EXPERIMENTAL_DISABLE_VECTORCALL_USAGE)
+    if (PyType_HasFeature(Py_TYPE(function_object), _Py_TPFLAGS_HAVE_VECTORCALL)) {
+        vectorcallfunc func =
+            *((vectorcallfunc *)(((char *)function_object) + Py_TYPE(function_object)->tp_vectorcall_offset));
+
+        if (likely(func != NULL)) {
+            PyObject *result = func(function_object, args, count, NULL);
+
+            CHECK_OBJECT_X(result);
+
+            return Nuitka_CheckFunctionResult(tstate, function_object, result);
+        }
+    }
+#endif
+
+    PyObject *args_tuple = MAKE_TUPLE_VAR(tstate, args, count);
+
+    PyObject *result = CALL_FUNCTION(tstate, function_object, args_tuple, NULL);
+
+    Py_DECREF(args_tuple);
+
+    return result;
+}
+
 #include "nuitka/builtins.h"
 
 #include "helper/operations.h"
@@ -156,6 +183,7 @@ extern PyObject *OS_LSTAT(PyThreadState *tstate, PyObject *path, PyObject *dir_f
 // Small helpers to work with filenames from "os.path" module
 extern PyObject *OS_PATH_BASENAME(PyThreadState *tstate, PyObject *filename);
 extern PyObject *OS_PATH_DIRNAME(PyThreadState *tstate, PyObject *filename);
+extern PyObject *OS_PATH_JOIN(PyThreadState *tstate, PyObject *const *paths, Py_ssize_t count);
 extern PyObject *OS_PATH_ABSPATH(PyThreadState *tstate, PyObject *filename);
 extern PyObject *OS_PATH_ISABS(PyThreadState *tstate, PyObject *filename);
 extern PyObject *OS_PATH_NORMPATH(PyThreadState *tstate, PyObject *filename);
@@ -187,7 +215,7 @@ extern PyObject *BUILTIN_ITER2(PyObject *callable, PyObject *sentinel);
 // For quicker enumerate() functionality.
 extern PyObject *BUILTIN_ENUMERATE1(PyThreadState *tstate, PyObject *sequence);
 extern PyObject *BUILTIN_ENUMERATE2(PyThreadState *tstate, PyObject *sequence, PyObject *start);
-extern PyObject *BUILTIN_ZIP(PyThreadState *tstate, PyObject *iterables);
+extern PyObject *BUILTIN_ZIP(PyThreadState *tstate, PyObject *const *iterables, Py_ssize_t count);
 #if PYTHON_VERSION >= 0x3a0
 extern PyObject *BUILTIN_ZIP310(PyThreadState *tstate, PyObject *iterables, PyObject *strict);
 #endif

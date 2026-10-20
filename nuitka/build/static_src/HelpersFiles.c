@@ -289,6 +289,16 @@ PyObject *OS_PATH_DIRNAME(PyThreadState *tstate, PyObject *filename) {
     return result;
 }
 
+PyObject *OS_PATH_JOIN(PyThreadState *tstate, PyObject *const *paths, Py_ssize_t count) {
+    PyObject *join_func = LOOKUP_ATTRIBUTE(tstate, IMPORT_HARD_OS_PATH(tstate), const_str_plain_join);
+
+    PyObject *result = CALL_FUNCTION_WITH_ARGS(tstate, join_func, paths, count);
+
+    Py_DECREF(join_func);
+
+    return result;
+}
+
 PyObject *OS_PATH_ABSPATH(PyThreadState *tstate, PyObject *filename) {
     CHECK_OBJECT(filename);
 

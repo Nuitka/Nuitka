@@ -16,13 +16,16 @@ from .HardImportNodesGenerated import (
     ExpressionOsLstatCallBase,
     ExpressionOsPathAbspathCallBase,
     ExpressionOsPathBasenameCallBase,
+    ExpressionOsPathDirnameCallBase,
     ExpressionOsPathExistsCallBase,
     ExpressionOsPathIsabsCallBase,
     ExpressionOsPathIsdirCallBase,
     ExpressionOsPathIsfileCallBase,
+    ExpressionOsPathJoinCallBase,
     ExpressionOsStatCallBase,
     ExpressionOsUnameCallBase,
 )
+from .RuntimePathNodes import ExpressionRuntimePath
 
 
 class ExpressionOsUnameCall(
@@ -117,8 +120,26 @@ class ExpressionOsPathBasenameCall(ExpressionOsPathBasenameCallBase):
         )
 
 
-class ExpressionOsPathDirnameCall(ExpressionOsPathBasenameCallBase):
+class ExpressionOsPathDirnameCall(ExpressionOsPathDirnameCallBase):
     kind = "EXPRESSION_OS_PATH_DIRNAME_CALL"
+
+    def computeExpression(self, trace_collection):
+        path = self.subnode_p
+
+        if path.isExpressionRuntimePath():
+            relative_path = path.getRelativePath()
+
+            if relative_path:
+                return (
+                    ExpressionRuntimePath(
+                        relative_path=os.path.dirname(relative_path),
+                        source_ref=self.source_ref,
+                    ),
+                    "new_expression",
+                    "Compile time resolved 'os.path.dirname' of runtime path.",
+                )
+
+        return ExpressionOsPathDirnameCallBase.computeExpression(self, trace_collection)
 
     def replaceWithCompileTimeValue(self, trace_collection):
         result = makeConstantRefNode(
@@ -130,6 +151,83 @@ class ExpressionOsPathDirnameCall(ExpressionOsPathBasenameCallBase):
             result,
             "new_expression",
             "Compile time resolved 'os.path.dirname' call.",
+        )
+
+
+class ExpressionOsPathJoinCall(ExpressionOsPathJoinCallBase):
+    kind = "EXPRESSION_OS_PATH_JOIN_CALL"
+
+    def computeExpression(self, trace_collection):
+        current = None
+        current_is_runtime_path = False
+
+        for path in self.subnode_paths:
+            if path.isExpressionRuntimePath():
+                current = path
+                current_is_runtime_path = True
+            elif path.isCompileTimeConstant() and path.hasShapeStrOrUnicodeExact():
+                value = path.getCompileTimeConstant()
+
+                if current is None:
+                    current = value
+                    current_is_runtime_path = False
+                elif current_is_runtime_path:
+                    if os.path.isabs(value):
+                        current = value
+                        current_is_runtime_path = False
+                    else:
+                        current = ExpressionRuntimePath(
+                            relative_path=os.path.join(
+                                current.getRelativePath(), value
+                            ),
+                            source_ref=self.source_ref,
+                        )
+                else:
+                    current = os.path.join(current, value)
+            else:
+                trace_collection.onExceptionRaiseExit(BaseException)
+
+                return self, None, None
+
+        if current is None:
+            trace_collection.onExceptionRaiseExit(BaseException)
+
+            return self, None, None
+
+        if current_is_runtime_path:
+            result = ExpressionRuntimePath(
+                relative_path=current.getRelativePath(),
+                source_ref=self.source_ref,
+            )
+        else:
+            result = makeConstantRefNode(
+                constant=current,
+                source_ref=self.source_ref,
+            )
+
+        return (
+            result,
+            "new_expression",
+            "Compile time resolved 'os.path.join' of runtime path.",
+        )
+
+    def replaceWithCompileTimeValue(self, trace_collection):
+        if not self.subnode_paths:
+            trace_collection.onExceptionRaiseExit(BaseException)
+
+            return self, None, None
+
+        result = makeConstantRefNode(
+            constant=os.path.join(
+                *[path.getCompileTimeConstant() for path in self.subnode_paths]
+            ),
+            source_ref=self.source_ref,
+        )
+
+        return (
+            result,
+            "new_expression",
+            "Compile time resolved 'os.path.join' call.",
         )
 
 

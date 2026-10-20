@@ -749,6 +749,47 @@ def getIncludedDataFiles():
     return _included_data_files
 
 
+def getIncludedDataFile(dest_path):
+    """Get an included data file by destination path.
+
+    Args:
+        dest_path: The destination path to look for.
+
+    Returns:
+        IncludedDataFile or None: The matching data file.
+    """
+    dest_path = os.path.normpath(dest_path)
+
+    for included_data_file in _included_data_files:
+        if included_data_file.dest_path == dest_path:
+            return included_data_file
+
+    return None
+
+
+def getIncludedDataFilesBelow(path):
+    """Get included data files below a destination directory.
+
+    Args:
+        path: The destination directory to look below.
+
+    Returns:
+        list: List of IncludedDataFile objects below the path.
+    """
+    path = os.path.normpath(path)
+
+    if path:
+        prefix = path + os.path.sep
+    else:
+        prefix = ""
+
+    return [
+        included_data_file
+        for included_data_file in _included_data_files
+        if not prefix or included_data_file.dest_path.startswith(prefix)
+    ]
+
+
 def getIncludedFrameworkDistPathFromSourcePath(source_path):
     """Get destination path of an included framework file from source path.
 

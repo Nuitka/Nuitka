@@ -80,6 +80,7 @@ def isConstantExpression(expression):
         "ModuleAttributeDunderCompiledRef",
         "ModuleAttributeFileRef",
         "ModuleLoaderRef",
+        "RuntimePath",
     )
 
 

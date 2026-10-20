@@ -285,6 +285,7 @@ from .ModuleCodes import (
     generateModuleAttributeCode,
     generateModuleAttributeDunderCompiledCode,
     generateModuleAttributeFileCode,
+    generateRuntimePathCode,
     getModuleCode,
 )
 from .NetworkxCodes import generateNetworkxUtilsDecoratorsArgmapCallCode
@@ -307,6 +308,8 @@ from .PackageResourceCodes import (
     generateImportlibMetadataSelectableGroupsValueCode,
     generateImportlibMetadataVersionCallCode,
     generateImportlibResourcesFilesCallCode,
+    generateImportlibResourcesOpenBinaryCallCode,
+    generateImportlibResourcesOpenTextCallCode,
     generateImportlibResourcesReadBinaryCallCode,
     generateImportlibResourcesReadTextCallCode,
     generateOsListdirCallCode,
@@ -318,6 +321,7 @@ from .PackageResourceCodes import (
     generateOsPathIsabsCallCode,
     generateOsPathIsdirCallCode,
     generateOsPathIsfileCallCode,
+    generateOsPathJoinCallCode,
     generateOsPathNormpathCallCode,
     generateOsStatCallCode,
     generateOsUnameCallCode,
@@ -931,6 +935,7 @@ addExpressionDispatchDict(
         "EXPRESSION_LIST_OPERATION_SORT3": generateListOperationSort3Code,
         "EXPRESSION_MODULE_ATTRIBUTE_DUNDER_COMPILED_REF": generateModuleAttributeDunderCompiledCode,
         "EXPRESSION_MODULE_ATTRIBUTE_FILE_REF": generateModuleAttributeFileCode,
+        "EXPRESSION_RUNTIME_PATH": generateRuntimePathCode,
         "EXPRESSION_MODULE_ATTRIBUTE_NAME_REF": generateModuleAttributeCode,
         "EXPRESSION_MODULE_ATTRIBUTE_PACKAGE_REF": generateModuleAttributeCode,
         "EXPRESSION_MODULE_ATTRIBUTE_LOADER_REF": generateModuleAttributeCode,
@@ -1047,6 +1052,7 @@ addExpressionDispatchDict(
         "EXPRESSION_OS_PATH_ISFILE_REF": generateImportModuleNameHardCode,
         "EXPRESSION_OS_PATH_ISDIR_REF": generateImportModuleNameHardCode,
         "EXPRESSION_OS_PATH_DIRNAME_REF": generateImportModuleNameHardCode,
+        "EXPRESSION_OS_PATH_JOIN_REF": generateImportModuleNameHardCode,
         "EXPRESSION_OS_PATH_BASENAME_REF": generateImportModuleNameHardCode,
         "EXPRESSION_OS_PATH_ABSPATH_REF": generateImportModuleNameHardCode,
         "EXPRESSION_OS_PATH_NORMPATH_REF": generateImportModuleNameHardCode,
@@ -1059,6 +1065,8 @@ addExpressionDispatchDict(
         "EXPRESSION_PKG_RESOURCES_ITER_ENTRY_POINTS_CALL": generatePkgResourcesIterEntryPointsCallCode,
         "EXPRESSION_PKG_RESOURCES_RESOURCE_STRING_CALL": generatePkgResourcesResourceStringCallCode,
         "EXPRESSION_PKG_RESOURCES_RESOURCE_STREAM_CALL": generatePkgResourcesResourceStreamCallCode,
+        "EXPRESSION_IMPORTLIB_RESOURCES_OPEN_BINARY_CALL": generateImportlibResourcesOpenBinaryCallCode,
+        "EXPRESSION_IMPORTLIB_RESOURCES_OPEN_TEXT_CALL": generateImportlibResourcesOpenTextCallCode,
         "EXPRESSION_IMPORTLIB_RESOURCES_READ_BINARY_CALL": generateImportlibResourcesReadBinaryCallCode,
         "EXPRESSION_IMPORTLIB_RESOURCES_READ_TEXT_BEFORE_313_CALL": generateImportlibResourcesReadTextCallCode,
         "EXPRESSION_IMPORTLIB_RESOURCES_READ_TEXT_SINCE_313_CALL": generateImportlibResourcesReadTextCallCode,
@@ -1079,6 +1087,7 @@ addExpressionDispatchDict(
         "EXPRESSION_OS_PATH_ISDIR_CALL": generateOsPathIsdirCallCode,
         "EXPRESSION_OS_PATH_BASENAME_CALL": generateOsPathBasenameCallCode,
         "EXPRESSION_OS_PATH_DIRNAME_CALL": generateOsPathDirnameCallCode,
+        "EXPRESSION_OS_PATH_JOIN_CALL": generateOsPathJoinCallCode,
         "EXPRESSION_OS_PATH_ABSPATH_CALL": generateOsPathAbspathCallCode,
         "EXPRESSION_OS_PATH_NORMPATH_CALL": generateOsPathNormpathCallCode,
         "EXPRESSION_OS_PATH_ISABS_CALL": generateOsPathIsabsCallCode,
@@ -1117,7 +1126,11 @@ addExpressionDispatchDict(
 
 # Add code generation for the EXPRESSION_STR_OPERATION_* nodes.
 addExpressionDispatchDict(
-    dict((cls.kind, generateStrOperationCode) for cls in getStrOperationClasses())
+    dict(
+        (cls.kind, generateStrOperationCode)
+        for cls in getStrOperationClasses()
+        if cls.kind != "EXPRESSION_STR_OPERATION_FORMAT"
+    )
 )
 
 # Add code generation for the EXPRESSION_BYTES_OPERATION_* nodes.

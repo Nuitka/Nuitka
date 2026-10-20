@@ -20,20 +20,15 @@ from .LabelCodes import getGotoCode, getLabelCode, getStatementTrace
 
 _expression_dispatch_dict = {}
 
-_ignore_list_overrides = set(("EXPRESSION_STR_OPERATION_FORMAT",))
-
 
 def getExpressionDispatchDict():
     return _expression_dispatch_dict
 
 
-def addExpressionDispatchDict(dispatch_dict):
+def addExpressionDispatchDict(dispatch_dict, update=False):
     for key, value in dispatch_dict.items():
-        if key in _expression_dispatch_dict:
-            if key not in _ignore_list_overrides:
-                assert False, key
-
-            continue
+        if key in _expression_dispatch_dict and not update:
+            assert False, key
 
         _expression_dispatch_dict[key] = value
 

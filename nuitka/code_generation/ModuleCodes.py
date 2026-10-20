@@ -22,6 +22,7 @@ from .CodeHelpers import (
     withObjectCodeTemporaryAssignment,
 )
 from .ConstantCodes import getModuleConstantsDeclAndChecks
+from .ErrorCodes import getErrorExitCode
 from .Indentation import indented
 from .LoaderCodes import getModuleLoaderEntryCode
 from .PgoCodes import getPGOProbeModuleEnterCode, getPGOProbeModuleExitCode
@@ -237,6 +238,33 @@ def getModuleCode(
             module.getFullName(), had_error=False
         ),
     }
+
+
+def generateRuntimePathCode(to_name, expression, emit, context):
+    relative_path = expression.getRelativePath()
+
+    with withObjectCodeTemporaryAssignment(
+        to_name, "runtime_path_value", expression, emit, context
+    ) as result_name:
+        if relative_path:
+            emit(
+                "%s = MAKE_RELATIVE_PATH(%s);"
+                % (
+                    result_name,
+                    context.getConstantCode(relative_path),
+                )
+            )
+        else:
+            emit("%s = getPythonRuntimeDirObject();" % result_name)
+
+        getErrorExitCode(
+            check_name=result_name,
+            needs_check=expression.mayRaiseException(BaseException),
+            emit=emit,
+            context=context,
+        )
+
+        context.addCleanupTempName(result_name)
 
 
 def generateModuleAttributeFileCode(to_name, expression, emit, context):

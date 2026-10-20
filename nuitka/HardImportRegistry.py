@@ -305,6 +305,7 @@ module_os_path_trust = {
     "isdir": trust_node,
     "basename": trust_node,
     "dirname": trust_node,
+    "join": trust_node,
     "abspath": trust_node,
     "normpath": trust_node,
 }
@@ -364,11 +365,15 @@ hard_modules_trust = {
     "importlib.resources": {
         "read_binary": trust_node,
         "read_text": trust_node,
+        "open_binary": trust_node,
+        "open_text": trust_node,
         "files": trust_node,
     },
     "importlib_resources": {
         "read_binary": trust_node,
         "read_text": trust_node,
+        "open_binary": trust_node,
+        "open_text": trust_node,
         "files": trust_node,
     },
     "ctypes": module_ctypes_trust,

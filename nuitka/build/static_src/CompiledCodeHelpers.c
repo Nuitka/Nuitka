@@ -1308,16 +1308,13 @@ PyObject *BUILTIN_ENUMERATE2(PyThreadState *tstate, PyObject *sequence, PyObject
 NUITKA_DEFINE_BUILTIN(zip);
 #endif
 
-// TODO: Accept PyObject ** with a count to avoid the intermediate tuple object.
-PyObject *BUILTIN_ZIP(PyThreadState *tstate, PyObject *iterables) {
-    CHECK_OBJECT(iterables);
-
+PyObject *BUILTIN_ZIP(PyThreadState *tstate, PyObject *const *iterables, Py_ssize_t count) {
 #if PYTHON_VERSION >= 0x300
-    return CALL_FUNCTION_WITH_POS_ARGS(tstate, (PyObject *)&PyZip_Type, iterables);
+    return CALL_FUNCTION_WITH_ARGS(tstate, (PyObject *)&PyZip_Type, iterables, count);
 #else
     NUITKA_ASSIGN_BUILTIN(zip);
 
-    return CALL_FUNCTION_WITH_POS_ARGS(tstate, NUITKA_ACCESS_BUILTIN(zip), iterables);
+    return CALL_FUNCTION_WITH_ARGS(tstate, NUITKA_ACCESS_BUILTIN(zip), iterables, count);
 #endif
 }
 
@@ -1761,18 +1758,12 @@ PyObject *JOIN_PATH2(PyObject *dirname, PyObject *filename) {
 
     PyObject *result = STR_CONCAT(tstate, dirname, getPathSeparatorStringObject());
 
-    if (unlikely(result == NULL)) {
-        return NULL;
-    }
+    CHECK_OBJECT(result);
 
     {
         PyObject *old = result;
         result = STR_CONCAT(tstate, old, filename);
         Py_DECREF(old);
-
-        if (unlikely(result == NULL)) {
-            return NULL;
-        }
     }
 
     CHECK_OBJECT(result);
@@ -1788,18 +1779,12 @@ PyObject *JOIN_PATH2(PyObject *dirname, PyObject *filename) {
 
     PyObject *result = UNICODE_CONCAT(tstate, dirname, getPathSeparatorStringObject());
 
-    if (unlikely(result == NULL)) {
-        return NULL;
-    }
+    CHECK_OBJECT(result);
 
     {
         PyObject *old = result;
         result = UNICODE_CONCAT(tstate, old, filename);
         Py_DECREF(old);
-
-        if (unlikely(result == NULL)) {
-            return NULL;
-        }
     }
 
     CHECK_OBJECT(result);
