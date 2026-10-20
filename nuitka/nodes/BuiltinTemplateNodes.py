@@ -42,8 +42,6 @@ class ExpressionTemplateInterpolation(ExpressionTemplateInterpolationBase):
     )
 
     def __init__(self, value, format_spec, str_value, conversion, source_ref):
-        assert conversion == -1, conversion
-
         ExpressionTemplateInterpolationBase.__init__(
             self,
             value=value,

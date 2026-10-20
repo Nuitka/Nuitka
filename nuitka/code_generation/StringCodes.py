@@ -16,6 +16,31 @@ from .ErrorCodes import getErrorExitCode
 from .PythonAPICodes import generateCAPIObjectCode, makeArgDescFromExpression
 from .TupleCodes import getTupleCreationCode
 
+_template_string_conversion_codes = {
+    ord("a"): 3,
+    ord("r"): 2,
+    ord("s"): 1,
+}
+
+
+def _getTemplateInterpolationConversionCode(conversion):
+    """Get the conversion code for a template interpolation.
+
+    Notes:
+        The '_PyInterpolation_Build' API uses the FVC values rather than the
+        conversion characters from the AST.
+
+    Args:
+        conversion: The conversion character from the AST, or -1 for none.
+
+    Returns:
+        The FVC conversion code.
+    """
+    if conversion == -1:
+        return 0
+
+    return _template_string_conversion_codes[conversion]
+
 
 def generateBuiltinBytes1Code(to_name, expression, emit, context):
     generateCAPIObjectCode(
@@ -318,6 +343,8 @@ def generateTemplateInterpolationCode(to_name, expression, emit, context):
         expression, emit, context
     )
 
+    conversion = _getTemplateInterpolationConversionCode(expression.conversion)
+
     emit(
         """\
 %(to_name)s = _PyInterpolation_Build(%(value_name)s, %(str_value_name)s, %(conversion)s, %(format_spec_name)s);
@@ -326,7 +353,7 @@ def generateTemplateInterpolationCode(to_name, expression, emit, context):
             "to_name": to_name,
             "value_name": value_name,
             "str_value_name": context.getConstantCode(constant=expression.str_value),
-            "conversion": expression.conversion if expression.conversion != -1 else 0,
+            "conversion": conversion,
             "format_spec_name": (
                 format_spec_name
                 if format_spec_name is not None
