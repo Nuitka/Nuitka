@@ -36,6 +36,9 @@ class Sender(QObject):
 
 
 class Receiver(object):
+    def __del__(self):
+        print("Receiver destroyed")
+
     def onFired(self):
         print("Receiver called")
 
