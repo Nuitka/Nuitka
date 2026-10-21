@@ -2,7 +2,8 @@
 
 
 """This test is using signals and will only work if PySide properly accepts
-compiled functions as callables.
+compiled functions as callables, and it checks that their receivers are
+released.
 """
 
 # nuitka-project: --mode=standalone
@@ -30,6 +31,15 @@ class Speaker(QObject):
         print(stuff)
 
 
+class Sender(QObject):
+    fired = Signal()
+
+
+class Receiver(object):
+    def onFired(self):
+        print("Receiver called")
+
+
 speaker = Speaker()
 someone = Communicate(name="communicator", parent=speaker)
 
@@ -39,6 +49,16 @@ print("The answer is:", end="")
 # emit  'speak' signal
 someone.speak.emit(42)
 print("Slot should have made output by now.")
+
+sender = Sender()
+
+# Released receivers are disconnected, and each of these disconnects releases
+# the method function once, so it has to survive many of them.
+for _ in range(10):
+    sender.fired.connect(Receiver().onFired)
+
+sender.fired.emit()
+Receiver().onFired()
 
 #     Python test originally created or extracted from other peoples work. The
 #     parts from me are licensed as below. It is at least Free Software where
