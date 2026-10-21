@@ -137,11 +137,7 @@ from nuitka.plugins.Hooks import (
 )
 from nuitka.plugins.PluginsUsage import printPluginUsageStats
 from nuitka.PostProcessing import executePostProcessing
-from nuitka.Progress import (
-    closeProgressBar,
-    reportProgressBar,
-    setupProgressBar,
-)
+from nuitka.Progress import reportProgressBar, withProgressBar
 from nuitka.PythonFlavors import (
     getPythonFlavorName,
     isApplePython,
@@ -550,37 +546,34 @@ def makeSourceDirectory():
         modules=compiled_modules,
     )
 
-    setupProgressBar(
+    with withProgressBar(
         stage="C Source Generation",
         unit="module",
         total=len(compiled_modules),
-    )
+    ):
+        # Generate code for compiled modules, this can be slow, so do it
+        # separately with a progress bar.
+        for current_module in compiled_modules:
+            module_name = current_module.getFullName()
+            c_filename = module_filenames[current_module]
 
-    # Generate code for compiled modules, this can be slow, so do it separately
-    # with a progress bar.
-    for current_module in compiled_modules:
-        module_name = current_module.getFullName()
-        c_filename = module_filenames[current_module]
+            reportProgressBar(
+                item=module_name,
+            )
 
-        reportProgressBar(
-            item=module_name,
-        )
+            source_code = generateModuleCode(
+                module=current_module,
+                data_filename=changeFilenameExtension(
+                    os.path.basename(c_filename), ".const"
+                ),
+            )
 
-        source_code = generateModuleCode(
-            module=current_module,
-            data_filename=changeFilenameExtension(
-                os.path.basename(c_filename), ".const"
-            ),
-        )
-
-        writeSourceCode(
-            filename=c_filename,
-            source_code=source_code,
-            logger=code_generation_logger,
-            assume_yes_for_downloads=assumeYesForDownloads(),
-        )
-
-    closeProgressBar()
+            writeSourceCode(
+                filename=c_filename,
+                source_code=source_code,
+                logger=code_generation_logger,
+                assume_yes_for_downloads=assumeYesForDownloads(),
+            )
 
     (
         helper_decl_code,

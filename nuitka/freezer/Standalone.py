@@ -30,11 +30,7 @@ from nuitka.plugins.Hooks import (
     onCopiedDLLs,
     removeDllDependencies,
 )
-from nuitka.Progress import (
-    closeProgressBar,
-    reportProgressBar,
-    setupProgressBar,
-)
+from nuitka.Progress import reportProgressBar, withProgressBar
 from nuitka.PythonFlavors import (
     getHomebrewInstallPath,
     getMacPortsInstallPath,
@@ -261,45 +257,44 @@ def copyDllsUsed(dist_dir, standalone_entry_points):
             main_binary_rpath,
         )
 
-    setupProgressBar(
+    with withProgressBar(
         stage="Copying used DLLs",
         unit="DLL",
         total=len(copy_standalone_entry_points),
-    )
-
-    # Copy symlinks last, so their targets are present in the distribution, and
-    # the symlinks can be preserved, rather than being dereferenced.
-    for standalone_entry_point in sorted(
-        copy_standalone_entry_points,
-        key=lambda standalone_entry_point: os.path.islink(
-            standalone_entry_point.source_path
-        ),
     ):
-        reportProgressBar(standalone_entry_point.dest_path)
+        # Copy symlinks last, so their targets are present in the distribution,
+        # and the symlinks can be preserved, rather than being dereferenced.
+        for standalone_entry_point in sorted(
+            copy_standalone_entry_points,
+            key=lambda standalone_entry_point: os.path.islink(
+                standalone_entry_point.source_path
+            ),
+        ):
+            reportProgressBar(standalone_entry_point.dest_path)
 
-        copyDllFile(
-            source_path=standalone_entry_point.source_path,
-            dist_dir=dist_dir,
-            dest_path=standalone_entry_point.dest_path,
-            executable=standalone_entry_point.executable,
-            other_entry_points=copy_standalone_entry_points,
-        )
-
-        if isMacOS():
-            binary_filename = getNormalizedPathJoin(
-                dist_dir, standalone_entry_point.dest_path
+            copyDllFile(
+                source_path=standalone_entry_point.source_path,
+                dist_dir=dist_dir,
+                dest_path=standalone_entry_point.dest_path,
+                executable=standalone_entry_point.executable,
+                other_entry_points=copy_standalone_entry_points,
             )
 
-            if not isLink(binary_filename):
-                fixupBinaryDLLPathsMacOS(
-                    binary_filename=binary_filename,
-                    package_name=standalone_entry_point.package_name,
-                    original_location=standalone_entry_point.source_path,
-                    standalone_entry_points=standalone_entry_points,
-                    removed_dll_paths=getRemovedUsedDllPaths(standalone_entry_point),
+            if isMacOS():
+                binary_filename = getNormalizedPathJoin(
+                    dist_dir, standalone_entry_point.dest_path
                 )
 
-    closeProgressBar()
+                if not isLink(binary_filename):
+                    fixupBinaryDLLPathsMacOS(
+                        binary_filename=binary_filename,
+                        package_name=standalone_entry_point.package_name,
+                        original_location=standalone_entry_point.source_path,
+                        standalone_entry_points=standalone_entry_points,
+                        removed_dll_paths=getRemovedUsedDllPaths(
+                            standalone_entry_point
+                        ),
+                    )
 
     if isMacOS():
         # Some dependencies, e.g. copied libpython variants, are only fully
@@ -819,20 +814,17 @@ Error, cannot detect used DLLs for DLL '%s' in package '%s' due to: %s"""
 
 
 def detectUsedDLLs(standalone_entry_points, source_dir):
-    setupProgressBar(
+    with withProgressBar(
         stage="Detecting used DLLs",
         unit="DLL",
         total=len(standalone_entry_points),
-    )
+    ):
+        for standalone_entry_point in standalone_entry_points:
+            reportProgressBar(standalone_entry_point.dest_path)
 
-    for standalone_entry_point in standalone_entry_points:
-        reportProgressBar(standalone_entry_point.dest_path)
-
-        _detectUsedDLLs(
-            standalone_entry_point=standalone_entry_point, source_dir=source_dir
-        )
-
-    closeProgressBar()
+            _detectUsedDLLs(
+                standalone_entry_point=standalone_entry_point, source_dir=source_dir
+            )
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
