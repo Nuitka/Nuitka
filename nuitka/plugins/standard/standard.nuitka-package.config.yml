@@ -5515,7 +5515,7 @@
         - 'libqsqlmimer'
         - 'libqtvkbplugin'
 
-- module-name: 'PySide6' # checksum: b5757f61
+- module-name: 'PySide6' # checksum: a8e4ac2b
   implicit-imports:
     # Non-limited API builds of Shiboken call "PyFunction_GetDefaults" on
     # compiled functions in its signal argument counting and leak the
@@ -5527,6 +5527,9 @@
     # detection is done lazily with a probing connection, since frozen
     # extension module filenames hide the API flavor, and imports are not
     # safe while PySide6 itself is still being imported.
+    #
+    # PySide6 releases "im_func" of compiled methods once too often, so a
+    # reference to it is kept. Keeping the method would also keep its receiver.
     - post-import-code:
         - |
           import functools
@@ -5547,7 +5550,7 @@
               try:
                 for _ in range(2):
                   probing_method = handler.probeMethod
-                  _protected.append(probing_method)
+                  _protected.append(probing_method.im_func)
 
                   orig_connect(sender.destroyed, probing_method)
               except SystemError:
@@ -5570,7 +5573,7 @@
                 if _wrap_compiled_methods is None:
                   _wrap_compiled_methods = doesCompiledMethodLeak()
 
-                _protected.append(func)
+                _protected.append(func.im_func)
 
                 protected_name = func.im_func.__name__
 
