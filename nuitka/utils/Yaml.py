@@ -385,16 +385,17 @@ def checkDataChecksums(file_data, data):
 
 
 def validateSchema(logger, name, data, assume_yes_for_downloads, reject_message):
-    if not getJsonschemaPackage(
+    jsonschema = getJsonschemaPackage(
         logger,
         assume_yes_for_downloads=assume_yes_for_downloads,
         reject_message=reject_message,
-    ):
-        logger.warning("Cannot validate schema due to lack of 'jsonschema' package.")
-        return
+    )
 
-    # pylint: disable=I0021,import-error
-    from jsonschema import validators
+    if jsonschema is None:
+        logger.warning(
+            "Cannot validate schema due to lack of usable 'jsonschema' package."
+        )
+        return
 
     schema_filename = getYamlPackageConfigurationSchemaFilename()
 
@@ -405,7 +406,7 @@ def validateSchema(logger, name, data, assume_yes_for_downloads, reject_message)
 
     schema = json.loads(getFileContents(schema_filename))
 
-    validator = validators.Draft202012Validator(schema=schema)
+    validator = jsonschema.validators.Draft202012Validator(schema=schema)
 
     error_messages = []
 

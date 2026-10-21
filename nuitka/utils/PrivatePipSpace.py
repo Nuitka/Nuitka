@@ -721,28 +721,30 @@ def getPrivatePackage(
                 __import__(module_name + "." + submodule_name)
 
         return module
-    except ImportError:
-        site_packages_folder, _assume_yes_for_downloads = tryDownloadPackageName(
-            logger=logger,
-            package_name=package_name,
-            module_name=module_name.split(".")[0],
-            package_version=package_version,
-            force_update=False,
-            assume_yes_for_downloads=assume_yes_for_downloads,
-            reject_message=reject_message,
-        )
+    except Exception:  # Catch all the things, pylint: disable=broad-except
+        pass
 
-        if site_packages_folder:
-            with withTemporarySysPathExtension([site_packages_folder]):
-                module = __import__(module_name, fromlist=["*"])
+    site_packages_folder, _assume_yes_for_downloads = tryDownloadPackageName(
+        logger=logger,
+        package_name=package_name,
+        module_name=module_name.split(".")[0],
+        package_version=package_version,
+        force_update=False,
+        assume_yes_for_downloads=assume_yes_for_downloads,
+        reject_message=reject_message,
+    )
 
-                if submodule_names:
-                    for submodule_name in submodule_names:
-                        __import__(module_name + "." + submodule_name)
+    if site_packages_folder:
+        with withTemporarySysPathExtension([site_packages_folder], prepend=True):
+            module = __import__(module_name, fromlist=["*"])
 
-            return module
+            if submodule_names:
+                for submodule_name in submodule_names:
+                    __import__(module_name + "." + submodule_name)
 
-        return None
+        return module
+
+    return None
 
 
 def getZigBinaryPath(logger, assume_yes_for_downloads, reject_message):
