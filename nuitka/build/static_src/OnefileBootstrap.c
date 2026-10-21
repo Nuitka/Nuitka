@@ -816,9 +816,15 @@ BOOL WINAPI ourConsoleCtrlHandler(DWORD fdwCtrlType) {
 void ourConsoleCtrlHandler(int sig, siginfo_t *info, void *ucontext) {
 #if defined(SI_KERNEL)
     bool signal_from_terminal = (info->si_code == SI_KERNEL);
+#elif defined(__APPLE__)
+    // On macOS, both terminal-originated signals and kill(2) deliver
+    // si_code == 0, so they cannot be told apart. Always forward and
+    // let the child suppress the duplicate SIGINT it already received
+    // from the terminal process group.
+    bool signal_from_terminal = false;
 #else
-    // On BSD/macOS, terminal-originated signals have si_code == 0,
-    // while kill(2) sends with si_code == SI_USER.
+    // On BSD, terminal-originated signals have si_code == 0, while
+    // kill(2) sends with si_code == SI_USER.
     bool signal_from_terminal = (info->si_code == 0);
 #endif
 

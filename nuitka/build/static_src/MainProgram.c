@@ -1586,7 +1586,12 @@ static volatile struct timeval _last_sigint_timeval = {0, 0};
 static volatile sig_atomic_t _last_sigint_from_parent = 0;
 
 static void _ourSigintDeduplicationHandler(int sig, siginfo_t *info, void *ucontext) {
+#if defined(__APPLE__)
+    // On macOS, kill(2) delivers si_code == 0 rather than SI_USER.
+    bool from_parent = (info != NULL && info->si_pid == getppid());
+#else
     bool from_parent = (info != NULL && info->si_code == SI_USER && info->si_pid == getppid());
+#endif
     struct timeval now;
 
     if (gettimeofday(&now, NULL) == 0) {
