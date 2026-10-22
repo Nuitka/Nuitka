@@ -10,6 +10,11 @@
 
 #include "internal/pycore_frame.h"
 #include "internal/pycore_object.h"
+
+#if PYTHON_VERSION >= 0x3e0
+#include "internal/pycore_interpframe.h"
+#endif
+
 #include "nuitka/checkers.h"
 #include "nuitka/defines.h"
 #include "nuitka/helper/boolean.h"

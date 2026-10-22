@@ -8,6 +8,10 @@
 /* This file is included from another C file, help IDEs to still parse it on its own. */
 #ifdef __IDE_ONLY__
 #include "nuitka/prelude.h"
+
+#if PYTHON_VERSION >= 0x3d0 && _NUITKA_FRAME_LOCALS_PROXY
+static PyTypeObject Nuitka_FrameLocalsProxy_Type;
+#endif
 #endif
 
 #if PYTHON_VERSION >= 0x300

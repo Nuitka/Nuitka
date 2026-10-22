@@ -25,6 +25,14 @@ Diagnostics:
   Suppress:
     - unused-includes
 
+---
+If:
+  PathMatch: .*\.(c|h)
+CompileFlags:
+  Add:
+    - -x
+    - c
+
 {#-  Part of "Nuitka", an optimizing Python compiler that is compatible and           -#}
 {#-  integrates with CPython, but also works on its own.                              -#}
 {#-                                                                                   -#}

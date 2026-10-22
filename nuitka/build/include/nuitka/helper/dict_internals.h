@@ -46,6 +46,9 @@ static PyDictKeysObject *_Nuitka_AllocatePyDictKeysObject(PyThreadState *tstate,
 static Py_ssize_t _Nuitka_Py_PyDict_KeysSize(PyDictKeysObject *keys);
 #endif
 static PyDictValues *_Nuitka_PyDict_new_values(Py_ssize_t size);
+#if PYTHON_VERSION >= 0x3d0
+static PyDictValues *_Nuitka_PyDict_copy_values(PyDictValues *values);
+#endif
 
 #endif
 

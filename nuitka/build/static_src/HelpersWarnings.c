@@ -9,6 +9,14 @@
 
 #include "nuitka/tracing.h"
 
+// No longer in header files, but still usable.
+#if PYTHON_VERSION >= 0x3d0
+PyAPI_FUNC(void) PySys_AddWarnOption(const wchar_t *s);
+#endif
+#if PYTHON_VERSION >= 0x3f0
+PyAPI_FUNC(void) PySys_ResetWarnOptions(void);
+#endif
+
 #if NO_PYTHON_WARNINGS
 
 // Setup the disabling of Python warnings early, before the interpreter is
