@@ -81,6 +81,14 @@ base = 2.0
 exp = -1100.0
 print("Power operator underflow gives", base**exp)
 
+
+def literal_base_power(exponent):
+    return 2.0**exponent
+
+
+print("Power operator literal base underflow gives", literal_base_power(-1100.0))
+print("Power operator literal base subnormal gives", literal_base_power(-1074.0))
+
 big = 1e200
 inf_value = float("inf")
 
