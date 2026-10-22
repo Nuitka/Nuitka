@@ -615,6 +615,11 @@ static int removeDirectory(char const *path) {
 #endif
 
 #if !defined(_WIN32)
+// When the child is reaped while handling a signal, the main waitpid no
+// longer sees its status, so it is recorded here for the exit code.
+static volatile sig_atomic_t reaped_child_status = 0;
+static volatile sig_atomic_t reaped_child_status_valid = 0;
+
 static int waitpid_retried(pid_t pid, int *status, bool async) {
     int res;
 
@@ -636,7 +641,8 @@ static int waitpid_retried(pid_t pid, int *status, bool async) {
 }
 
 static int waitpid_timeout(pid_t pid) {
-    int res = waitpid_retried(pid, NULL, true);
+    int status;
+    int res = waitpid_retried(pid, &status, true);
 
     // Child can already be gone when cleanup is entered from signal handling or
     // when an earlier wait has already collected it for us.
@@ -651,17 +657,25 @@ static int waitpid_timeout(pid_t pid) {
     }
 
     if (res != 0) {
+        reaped_child_status = status;
+        reaped_child_status_valid = 1;
+
         return 0;
     }
 
     // A value of -1 means wait indefinitely.
     if (_NUITKA_ONEFILE_CHILD_GRACE_TIME_INT == -1) {
-        res = waitpid_retried(pid, NULL, false);
+        res = waitpid_retried(pid, &status, false);
 
         if (res == -1 && errno != ECHILD) {
             perror("waitpid");
 
             return -1;
+        }
+
+        if (res > 0) {
+            reaped_child_status = status;
+            reaped_child_status_valid = 1;
         }
 
         return 0;
@@ -681,7 +695,7 @@ static int waitpid_timeout(pid_t pid) {
 
     do {
         // Only want to care about SIGCHLD here.
-        res = waitpid_retried(pid, NULL, true);
+        res = waitpid_retried(pid, &status, true);
 
         if (unlikely(res < 0)) {
             if (errno == ECHILD) {
@@ -694,6 +708,9 @@ static int waitpid_timeout(pid_t pid) {
         }
 
         if (res != 0) {
+            reaped_child_status = status;
+            reaped_child_status_valid = 1;
+
             break;
         }
 
@@ -1490,6 +1507,12 @@ int main(int argc, char **argv) {
 
         int status;
         int res = waitpid_retried(handle_process, &status, false);
+
+        // Signal handling may have reaped the child already, in which case
+        // use the recorded status to report how it ended.
+        if ((res == -1) && (errno == ECHILD) && reaped_child_status_valid) {
+            status = reaped_child_status;
+        }
 
         if (res == -1 && errno != ECHILD) {
             exit_code = 2;
