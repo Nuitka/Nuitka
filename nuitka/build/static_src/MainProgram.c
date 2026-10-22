@@ -1620,11 +1620,25 @@ static void _ourSigintDeduplicationHandler(int sig, siginfo_t *info, void *ucont
 
             if (elapsed_ms >= 0 && elapsed_ms < 100) {
                 if (from_parent || _last_sigint_from_parent) {
-                    // Duplicate detected, suppress.s
+                    // Duplicate detected, suppress.
                     return;
                 }
             }
         }
+
+#if defined(__APPLE__)
+        // The parent bootstrap forwards SIGINT to us, but it can run after
+        // us already received the same signal from the process group. Give
+        // that forwarding a chance to arrive while SIGINT is blocked, so it
+        // is suppressed as a duplicate rather than interrupting shutdown.
+        if (from_parent == false) {
+            struct timespec duplicate_delay = {0, 100000000L};
+
+            nanosleep(&duplicate_delay, NULL);
+            gettimeofday(&now, NULL);
+        }
+#endif
+
         _last_sigint_timeval.tv_sec = now.tv_sec;
         _last_sigint_timeval.tv_usec = now.tv_usec;
         _last_sigint_from_parent = from_parent;
