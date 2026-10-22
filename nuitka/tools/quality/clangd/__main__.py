@@ -180,10 +180,7 @@ def _filterClangdDiagnostics(stderr):
         ):
             continue
 
-        if (
-            "ExtractVariable" in stripped
-            and "The new replacement overlaps with an existing replacement" in stripped
-        ):
+        if "The new replacement overlaps with an existing replacement" in stripped:
             continue
 
         if "Class body in wrong file" in stripped:
