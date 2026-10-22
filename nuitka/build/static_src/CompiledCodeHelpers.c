@@ -1159,7 +1159,8 @@ static bool set_name(PyClassObject *class_object, PyObject *value) {
     return true;
 }
 
-static int nuitka_class_setattr(PyClassObject *class_object, PyObject *attr_name, PyObject *value) {
+static int nuitka_class_setattr(PyObject *self, PyObject *attr_name, PyObject *value) {
+    PyClassObject *class_object = (PyClassObject *)self;
     char const *sattr_name = PyString_AsString(attr_name);
 
     if (sattr_name[0] == '_' && sattr_name[1] == '_') {
@@ -1208,7 +1209,8 @@ static int nuitka_class_setattr(PyClassObject *class_object, PyObject *attr_name
     }
 }
 
-static PyObject *nuitka_class_getattr(PyClassObject *class_object, PyObject *attr_name) {
+static PyObject *nuitka_class_getattr(PyObject *self, PyObject *attr_name) {
+    PyClassObject *class_object = (PyClassObject *)self;
     char const *sattr_name = PyString_AsString(attr_name);
 
     if (sattr_name[0] == '_' && sattr_name[1] == '_') {
@@ -1255,8 +1257,8 @@ void enhancePythonTypes(void) {
 #if PYTHON_VERSION < 0x300
     // Our own variant won't call PyEval_GetRestricted, saving quite some cycles
     // not doing that.
-    PyClass_Type.tp_setattro = (setattrofunc)nuitka_class_setattr;
-    PyClass_Type.tp_getattro = (getattrofunc)nuitka_class_getattr;
+    PyClass_Type.tp_setattro = nuitka_class_setattr;
+    PyClass_Type.tp_getattro = nuitka_class_getattr;
 #endif
 }
 

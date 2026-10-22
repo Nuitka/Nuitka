@@ -100,12 +100,17 @@ PyAPI_FUNC(wchar_t *) Py_GetPath(void);
 typedef HRESULT(WINAPI *pfnSetCurrentProcessExplicitAppUserModelID)(PCWSTR AppID);
 
 static void setCurrentProcessExplicitAppUserModelID(wchar_t const *app_user_model_id) {
-    pfnSetCurrentProcessExplicitAppUserModelID fnSetCurrentProcessExplicitAppUserModelID =
-        (pfnSetCurrentProcessExplicitAppUserModelID)GetProcAddress(GetModuleHandleA("Shell32.dll"),
-                                                                   "SetCurrentProcessExplicitAppUserModelID");
+    // Avoid a cast between incompatible function types, which newer compilers
+    // warn about.
+    union {
+        FARPROC as_proc;
+        pfnSetCurrentProcessExplicitAppUserModelID as_function;
+    } function;
 
-    if (fnSetCurrentProcessExplicitAppUserModelID != NULL) {
-        fnSetCurrentProcessExplicitAppUserModelID(app_user_model_id);
+    function.as_proc = GetProcAddress(GetModuleHandleA("Shell32.dll"), "SetCurrentProcessExplicitAppUserModelID");
+
+    if (function.as_function != NULL) {
+        function.as_function(app_user_model_id);
     }
 }
 #endif

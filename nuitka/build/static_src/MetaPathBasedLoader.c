@@ -925,17 +925,26 @@ static entrypoint_t _loadExtensionModuleInitAddress(PyThreadState *tstate, char 
         return NULL;
     }
 
-#if PYTHON_VERSION >= 0x3f0
-    entrypoint_t entrypoint = (entrypoint_t)GetProcAddress(hDLL, export_function_name);
+    // Avoid a cast between incompatible function types, which newer compilers
+    // warn about.
+    union {
+        FARPROC as_proc;
+        entrypoint_t as_function;
+    } entrypoint_union;
 
-    if (entrypoint != NULL) {
+#if PYTHON_VERSION >= 0x3f0
+    entrypoint_union.as_proc = GetProcAddress(hDLL, export_function_name);
+
+    if (entrypoint_union.as_function != NULL) {
         *is_export_hook = true;
     } else {
-        entrypoint = (entrypoint_t)GetProcAddress(hDLL, entry_function_name);
+        entrypoint_union.as_proc = GetProcAddress(hDLL, entry_function_name);
     }
 #else
-    entrypoint_t entrypoint = (entrypoint_t)GetProcAddress(hDLL, entry_function_name);
+    entrypoint_union.as_proc = GetProcAddress(hDLL, entry_function_name);
 #endif
+
+    entrypoint_t entrypoint = entrypoint_union.as_function;
 #else
     // This code would work for all versions, we are avoiding access to interpreter
     // structure internals of 3.8 or higher.

@@ -1837,9 +1837,19 @@ def setupCCompiler(env, pgo_mode, exe_target, onefile_compile):
     if env.mingw_mode and not env.clang_mode:
         env.Append(LINKFLAGS=["-static-libgcc"])
 
-    # MinGW64 for 64 bits needs this due to CPython bugs.
-    if env.mingw_mode and env.target_arch == "x86_64" and env.python_version < (3, 12):
-        env.Append(CPPDEFINES=["MS_WIN64"])
+    # MinGW64 and Zig for 64 bits need MSVC ABI compatibility for older
+    # CPython versions.
+    if (
+        (env.mingw_mode or env.zig_mode)
+        and isWin32Windows()
+        and env.target_arch == "x86_64"
+    ):
+        if env.python_version < (3, 8):
+            # Match the 64-bit 'long double' used by MSVC in the GC header.
+            env.Append(CCFLAGS=["-mlong-double-64"])
+
+        if env.python_version < (3, 12):
+            env.Append(CPPDEFINES=["MS_WIN64"])
 
     if env.msvc_mode:
         # For shell API usage to lookup app folders we need this.

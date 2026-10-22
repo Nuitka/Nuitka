@@ -1475,20 +1475,26 @@ static int runPythonCodeDLL(filename_char_t const *dll_filename, int argc, nativ
 
     typedef int(__stdcall * nuitka_dll_function_ptr)(int, wchar_t **, wchar_t const *);
 
+    // Avoid a cast between incompatible function types, which newer compilers
+    // warn about.
+    union {
+        FARPROC as_proc;
+        nuitka_dll_function_ptr as_function;
+    } dll_function;
+
 #if defined(_NUITKA_ONEFILE_DLL_RUN_CODE_ORDINAL_INT)
-    nuitka_dll_function_ptr nuitka_dll_function = (nuitka_dll_function_ptr)GetProcAddress(
-        hGetProcIDDLL, MAKEINTRESOURCEA(_NUITKA_ONEFILE_DLL_RUN_CODE_ORDINAL_INT));
+    dll_function.as_proc = GetProcAddress(hGetProcIDDLL, MAKEINTRESOURCEA(_NUITKA_ONEFILE_DLL_RUN_CODE_ORDINAL_INT));
 #else
-    nuitka_dll_function_ptr nuitka_dll_function = (nuitka_dll_function_ptr)GetProcAddress(hGetProcIDDLL, "run_code");
+    dll_function.as_proc = GetProcAddress(hGetProcIDDLL, "run_code");
 #endif
 
-    if (nuitka_dll_function == NULL) {
+    if (dll_function.as_function == NULL) {
         fatalError("Error, DLL entry point not found.");
 
         return EXIT_FAILURE;
     }
 
-    return (*nuitka_dll_function)(argc, argv, dll_filename);
+    return (*dll_function.as_function)(argc, argv, dll_filename);
 #else
     typedef int (*nuitka_dll_function_ptr)(int, native_command_line_argument_t **, filename_char_t const *);
 

@@ -722,11 +722,17 @@ static DWORD Nuitka_GetFinalPathNameByHandleW(HANDLE hFile, LPWSTR FilePath, DWO
     typedef DWORD(WINAPI * pfnGetFinalPathNameByHandleW)(HANDLE hFile, LPWSTR FilePath, DWORD cchFilePath,
                                                          DWORD dwFlags);
 
-    pfnGetFinalPathNameByHandleW fnGetFinalPathNameByHandleW =
-        (pfnGetFinalPathNameByHandleW)GetProcAddress(GetModuleHandleA("Kernel32.dll"), "GetFinalPathNameByHandleW");
+    // Avoid a cast between incompatible function types, which newer compilers
+    // warn about.
+    union {
+        FARPROC as_proc;
+        pfnGetFinalPathNameByHandleW as_function;
+    } function;
 
-    if (fnGetFinalPathNameByHandleW != NULL) {
-        return fnGetFinalPathNameByHandleW(hFile, FilePath, cchFilePath, dwFlags);
+    function.as_proc = GetProcAddress(GetModuleHandleA("Kernel32.dll"), "GetFinalPathNameByHandleW");
+
+    if (function.as_function != NULL) {
+        return function.as_function(hFile, FilePath, cchFilePath, dwFlags);
     } else {
         // There are no symlinks before Windows Vista.
         return 0;
