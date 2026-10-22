@@ -10,6 +10,7 @@
 // This file is included from another C file, help IDEs to still parse it on
 // its own.
 #ifdef __IDE_ONLY__
+#include "nuitka/compiled_types_common.h"
 #include "nuitka/prelude.h"
 #endif
 
@@ -2508,7 +2509,7 @@ static PyObject *Nuitka_UncompiledGenerator_throw(PyThreadState *tstate, PyGenOb
             PyObject *meth = LOOKUP_ATTRIBUTE(tstate, yf, const_str_plain_throw);
 
             if (meth == NULL) {
-                if (!PyErr_ExceptionMatches(PyExc_AttributeError)) {
+                if (!CHECK_AND_CLEAR_ATTRIBUTE_ERROR_OCCURRED(tstate)) {
                     Py_DECREF(yf);
 
                     // Releasing exception, we are done with it.
@@ -2517,7 +2518,6 @@ static PyObject *Nuitka_UncompiledGenerator_throw(PyThreadState *tstate, PyGenOb
                     return NULL;
                 }
 
-                CLEAR_ERROR_OCCURRED(tstate);
                 Py_DECREF(yf);
 
                 // Handing exception ownership to this code.
@@ -2680,9 +2680,7 @@ static PyObject *Nuitka_PyGen_gen_close(PyThreadState *tstate, PyGenObject *gen,
         return NULL;
     }
 
-    if (PyErr_ExceptionMatches(PyExc_StopIteration) || PyErr_ExceptionMatches(PyExc_GeneratorExit)) {
-        CLEAR_ERROR_OCCURRED(tstate);
-
+    if (DROP_ERROR_OCCURRED_GENERATOR_EXIT_OR_STOP_ITERATION(tstate)) {
         Py_INCREF_IMMORTAL(Py_None);
         return Py_None;
     }

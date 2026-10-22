@@ -888,11 +888,9 @@ PyObject *MAKE_LIST(PyThreadState *tstate, PyObject *iterable) {
         Py_ssize_t iter_len = Nuitka_PyObject_Size(iterable);
 
         if (unlikely(iter_len == -1)) {
-            if (!PyErr_ExceptionMatches(PyExc_TypeError)) {
+            if (!CHECK_AND_CLEAR_TYPE_ERROR_OCCURRED(tstate)) {
                 return NULL;
             }
-
-            CLEAR_ERROR_OCCURRED(tstate);
         }
 
         if (iter_len > 0) {

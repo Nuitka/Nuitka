@@ -705,6 +705,10 @@ NUITKA_MAY_BE_UNUSED static bool CHECK_AND_CLEAR_ATTRIBUTE_ERROR_OCCURRED(PyThre
     return _CHECK_AND_CLEAR_EXCEPTION_OCCURRED(tstate, PyExc_AttributeError);
 }
 
+NUITKA_MAY_BE_UNUSED static bool CHECK_AND_CLEAR_TYPE_ERROR_OCCURRED(PyThreadState *tstate) {
+    return _CHECK_AND_CLEAR_EXCEPTION_OCCURRED(tstate, PyExc_TypeError);
+}
+
 #if PYTHON_VERSION >= 0x3c0
 NUITKA_MAY_BE_UNUSED static PyObject *MAKE_TUPLE1(PyThreadState *tstate, PyObject *element1);
 

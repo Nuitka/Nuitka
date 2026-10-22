@@ -612,14 +612,12 @@ static PyObject *_Nuitka_Asyncgen_throw2(PyThreadState *tstate, struct Nuitka_As
             PyObject *meth = LOOKUP_ATTRIBUTE(tstate, asyncgen->m_yield_from, const_str_plain_throw);
 
             if (unlikely(meth == NULL)) {
-                if (!PyErr_ExceptionMatches(PyExc_AttributeError)) {
+                if (!CHECK_AND_CLEAR_ATTRIBUTE_ERROR_OCCURRED(tstate)) {
                     // Release exception, we are done with it now.
                     RELEASE_ERROR_OCCURRED_STATE(exception_state);
 
                     return NULL;
                 }
-
-                CLEAR_ERROR_OCCURRED(tstate);
 
                 // Passing exception ownership to that code.
                 goto throw_here;

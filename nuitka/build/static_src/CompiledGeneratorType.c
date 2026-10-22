@@ -889,7 +889,7 @@ PyObject *Nuitka_Generator_qiter(PyThreadState *tstate, struct Nuitka_GeneratorO
 static bool DROP_ERROR_OCCURRED_GENERATOR_EXIT_OR_STOP_ITERATION(PyThreadState *tstate) {
     PyObject *error = GET_ERROR_OCCURRED(tstate);
 
-    if (EXCEPTION_MATCH_GENERATOR(tstate, error)) {
+    if (error != NULL && EXCEPTION_MATCH_GENERATOR(tstate, error)) {
         CLEAR_ERROR_OCCURRED(tstate);
 
         return true;
@@ -1285,14 +1285,12 @@ static PyObject *_Nuitka_Generator_throw2(PyThreadState *tstate, struct Nuitka_G
         } else {
             PyObject *meth = LOOKUP_ATTRIBUTE(tstate, generator->m_yield_from, const_str_plain_throw);
             if (unlikely(meth == NULL)) {
-                if (!PyErr_ExceptionMatches(PyExc_AttributeError)) {
+                if (!CHECK_AND_CLEAR_ATTRIBUTE_ERROR_OCCURRED(tstate)) {
                     // Release exception, we are done with it now.
                     RELEASE_ERROR_OCCURRED_STATE(exception_state);
 
                     return NULL;
                 }
-
-                CLEAR_ERROR_OCCURRED(tstate);
 
                 // Passing exception ownership to that code.
                 goto throw_here;

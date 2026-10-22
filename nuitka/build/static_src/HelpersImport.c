@@ -146,9 +146,7 @@ bool IMPORT_MODULE_STAR(PyThreadState *tstate, PyObject *target, bool is_module,
     } else {
         assert(HAS_ERROR_OCCURRED(tstate));
 
-        if (EXCEPTION_MATCH_BOOL_SINGLE(tstate, GET_ERROR_OCCURRED(tstate), PyExc_AttributeError)) {
-            CLEAR_ERROR_OCCURRED(tstate);
-
+        if (CHECK_AND_CLEAR_ATTRIBUTE_ERROR_OCCURRED(tstate)) {
             iter = MAKE_ITERATOR(tstate, PyModule_GetDict(module));
             CHECK_OBJECT(iter);
 
@@ -410,9 +408,7 @@ PyObject *IMPORT_NAME_OR_MODULE(PyThreadState *tstate, PyObject *module, PyObjec
     PyObject *result = PyObject_GetAttr(module, import_name);
 
     if (unlikely(result == NULL)) {
-        if (EXCEPTION_MATCH_BOOL_SINGLE(tstate, GET_ERROR_OCCURRED(tstate), PyExc_AttributeError)) {
-            CLEAR_ERROR_OCCURRED(tstate);
-
+        if (CHECK_AND_CLEAR_ATTRIBUTE_ERROR_OCCURRED(tstate)) {
             long level_int = PyLong_AsLong(level);
 
             if (unlikely(level_int == -1 && HAS_ERROR_OCCURRED(tstate))) {
