@@ -662,6 +662,9 @@ class ReturnReleaseModeMixin(object):
     def __init__(self):
         self.return_release_mode = False
 
+        self.return_release_loop_break = None
+        self.return_release_loop_continue = None
+
         self.return_exit = None
 
     def setReturnReleaseMode(self, value):
@@ -671,6 +674,25 @@ class ReturnReleaseModeMixin(object):
 
     def getReturnReleaseMode(self):
         return self.return_release_mode
+
+    def setReturnReleaseLoopTargets(self, break_target, continue_target):
+        result = (
+            self.return_release_loop_break,
+            self.return_release_loop_continue,
+        )
+        self.return_release_loop_break = break_target
+        self.return_release_loop_continue = continue_target
+        return result
+
+    def isReturnReleaseLoopBreakTarget(self, target):
+        # Only a "break" that leaves the "finally" block abandons a pending
+        # return. A loop created inside it has a different target than the
+        # one active when the return handler was entered.
+        return self.return_release_mode and self.return_release_loop_break == target
+
+    def isReturnReleaseLoopContinueTarget(self, target):
+        # Same as for "break", but with the "continue" target of the loop.
+        return self.return_release_mode and self.return_release_loop_continue == target
 
     def setReturnTarget(self, label):
         result = self.return_exit
@@ -744,6 +766,8 @@ class PythonModuleContext(
         "deferred_release_names",
         # ReturnReleaseModeMixin
         "return_release_mode",
+        "return_release_loop_break",
+        "return_release_loop_continue",
         "return_exit",
         # ReturnValueNameMixin
         "return_name",
@@ -937,6 +961,8 @@ class PythonFunctionContext(
         "deferred_release_names",
         # ReturnReleaseModeMixin
         "return_release_mode",
+        "return_release_loop_break",
+        "return_release_loop_continue",
         "return_exit",
         # ReturnValueNameMixin
         "return_name",
@@ -1076,6 +1102,8 @@ class PythonFunctionOutlineContext(
         "exception_variables",
         # ReturnReleaseModeMixin
         "return_release_mode",
+        "return_release_loop_break",
+        "return_release_loop_continue",
         "return_exit",
         # ReturnValueNameMixin
         "return_name",
