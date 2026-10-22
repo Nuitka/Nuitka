@@ -65,24 +65,6 @@ void SET_CURRENT_EXCEPTION_TYPE_COMPLAINT_NICE(char const *format, PyObject *mis
     SET_CURRENT_EXCEPTION_TYPE0_FORMAT1(PyExc_TypeError, format, TYPE_NAME_DESC(mistyped));
 }
 
-void FORMAT_UNBOUND_LOCAL_ERROR(PyThreadState *tstate, struct Nuitka_ExceptionPreservationItem *exception_state,
-                                PyObject *variable_name) {
-#if PYTHON_VERSION < 0x300
-    char const *message = "local variable '%s' referenced before assignment";
-    PyObject *exception_value = Nuitka_String_FromFormat(message, Nuitka_String_AsString_Unchecked(variable_name));
-#elif PYTHON_VERSION < 0x3b0
-    char const *message = "local variable '%U' referenced before assignment";
-    PyObject *exception_value = Nuitka_String_FromFormat(message, variable_name);
-#else
-    char const *message = "cannot access local variable '%U' where it is not associated with a value";
-    PyObject *exception_value = Nuitka_String_FromFormat(message, variable_name);
-#endif
-
-    CHECK_OBJECT(exception_value);
-    SET_EXCEPTION_PRESERVATION_STATE_FROM_TYPE0_VALUE1(tstate, exception_state, PyExc_UnboundLocalError,
-                                                       exception_value);
-}
-
 static PyObject *_Nuitka_Err_CreateException(PyThreadState *tstate, PyObject *exception_type, PyObject *value) {
     PyObject *exc;
 

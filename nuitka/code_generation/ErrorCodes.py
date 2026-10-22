@@ -209,26 +209,6 @@ def getErrorExitCode(
     )
 
 
-def _getExceptionChainingCode(context):
-    (
-        exception_state_name,
-        _exception_lineno,
-    ) = context.getExceptionVariableDescriptions()
-
-    (
-        keeper_exception_state_name,
-        _keeper_lineno,
-    ) = context.getExceptionKeeperVariables()
-
-    if keeper_exception_state_name is not None:
-        yield "ADD_EXCEPTION_CONTEXT(tstate, &%s);" % keeper_exception_state_name
-    else:
-        if python_version < 0x3C0:
-            yield "NORMALIZE_EXCEPTION_STATE(tstate, &%s);" % exception_state_name
-
-        yield "CHAIN_EXCEPTION(tstate, %s.exception_value);" % exception_state_name
-
-
 def getTakeReferenceCode(value_name, emit):
     value_name.getCType().getTakeReferenceCode(value_name=value_name, emit=emit)
 
@@ -317,8 +297,6 @@ def _getFrameVariableErrorCode(
 
 
 def getLocalVariableReferenceErrorCode(variable, condition, emit, context):
-    variable_name = variable.getName()
-
     (
         exception_state_name,
         _exception_lineno,
@@ -344,25 +322,13 @@ def getLocalVariableReferenceErrorCode(variable, condition, emit, context):
         context=context,
     )
 
-    if frame_error_code is not None:
-        set_exception = [frame_error_code]
-    else:
-        # Without a frame or frame variables, only the spurious local variable
-        # checks that should not exist can occur. Closures always have a frame.
-        set_exception = [
-            "FORMAT_UNBOUND_LOCAL_ERROR(tstate, &%s, %s);"
-            % (
-                exception_state_name,
-                context.getConstantCode(variable_name),
-            ),
-        ]
-
-        if python_version >= 0x300:
-            set_exception.extend(_getExceptionChainingCode(context))
+    # Without a frame or frame variables, only spurious local variable checks
+    # would remain, and those must not exist anymore.
+    assert frame_error_code is not None, variable
 
     getErrorExitRaiseCode(
         condition=condition,
-        set_exception="\n".join(set_exception),
+        set_exception=frame_error_code,
         emit=emit,
         context=context,
     )
