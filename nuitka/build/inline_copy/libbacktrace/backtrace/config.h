@@ -32,7 +32,7 @@
 #define HAVE_DLFCN_H 1
 
 /* Define if dl_iterate_phdr is available. */
-#if !defined(_WIN32)
+#if !defined(_WIN32) && !defined(__APPLE__)
 #define HAVE_DL_ITERATE_PHDR 1
 #endif
 
@@ -61,7 +61,9 @@
 #define HAVE_LIBLZMA 1
 
 /* Define to 1 if you have the <link.h> header file. */
+#if !defined(__APPLE__)
 #define HAVE_LINK_H 1
+#endif
 
 /* Define if AIX loadquery is available. */
 /* #undef HAVE_LOADQUERY */
@@ -70,7 +72,11 @@
 #define HAVE_LSTAT 1
 
 /* Define to 1 if you have the <mach-o/dyld.h> header file. */
+#if defined(__APPLE__)
+#define HAVE_MACH_O_DYLD_H 1
+#else
 /* #undef HAVE_MACH_O_DYLD_H */
+#endif
 
 /* Define to 1 if you have the <memory.h> header file. */
 #define HAVE_MEMORY_H 1

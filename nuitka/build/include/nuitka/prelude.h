@@ -664,7 +664,11 @@ extern void INIT_C_BACKTRACES(void);
 extern void DUMP_C_BACKTRACE(void);
 
 // For signal handlers, we can do this.
+#if defined(__APPLE__)
+#include <sys/ucontext.h>
+#else
 #include <ucontext.h>
+#endif
 extern void DUMP_C_BACKTRACE_FROM_CONTEXT(void *ucontext);
 #endif
 

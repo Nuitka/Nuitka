@@ -8,7 +8,11 @@
 #include "nuitka/prelude.h"
 
 #if !defined(_WIN32)
+#if defined(__APPLE__)
+#include <sys/ucontext.h>
+#else
 #include <ucontext.h>
+#endif
 #endif
 #endif
 
@@ -16,8 +20,24 @@
 
 static struct backtrace_state *our_backtrace_state = NULL;
 
+static void ourBacktraceErrorCallback(void *data, const char *msg, int errnum) {
+    (void)data;
+
+    // The Mach-O backend scans all dyld images, including ones that are not
+    // executables, and reports those as errors.
+    if (strcmp(msg, "executable file is not an executable") == 0) {
+        return;
+    }
+
+    if (errnum > 0) {
+        fprintf(stderr, "  (backtrace error: %s: %s)\n", msg, strerror(errnum));
+    } else {
+        fprintf(stderr, "  (backtrace error: %s)\n", msg);
+    }
+}
+
 void INIT_C_BACKTRACES(void) {
-    our_backtrace_state = backtrace_create_state(NULL, 1, NULL, NULL);
+    our_backtrace_state = backtrace_create_state(NULL, 1, ourBacktraceErrorCallback, NULL);
     assert(our_backtrace_state != NULL);
 }
 
@@ -42,7 +62,7 @@ void DUMP_C_BACKTRACE(void) {
 
     bt_frame_count = 0;
     // Skip 1 frame, which is DUMP_C_BACKTRACE itself.
-    backtrace_full(our_backtrace_state, 1, ourBacktraceFullCallback, NULL, NULL);
+    backtrace_full(our_backtrace_state, 1, ourBacktraceFullCallback, ourBacktraceErrorCallback, NULL);
 }
 
 // Dumps the C stack from a ucontext_t, which is provided by a signal handler.
@@ -52,14 +72,29 @@ void DUMP_C_BACKTRACE_FROM_CONTEXT(void *ucontext) {
     ucontext_t *uc = (ucontext_t *)ucontext;
 
 #if defined(__x86_64__)
+#if defined(__APPLE__)
+    uintptr_t pc = uc->uc_mcontext->__ss.__rip;
+    uintptr_t fp = uc->uc_mcontext->__ss.__rbp;
+#else
     uintptr_t pc = uc->uc_mcontext.gregs[REG_RIP];
     uintptr_t fp = uc->uc_mcontext.gregs[REG_RBP];
+#endif
 #elif defined(__i386__)
+#if defined(__APPLE__)
+    uintptr_t pc = uc->uc_mcontext->__ss.__eip;
+    uintptr_t fp = uc->uc_mcontext->__ss.__ebp;
+#else
     uintptr_t pc = uc->uc_mcontext.gregs[REG_EIP];
     uintptr_t fp = uc->uc_mcontext.gregs[REG_EBP];
+#endif
 #elif defined(__aarch64__)
+#if defined(__APPLE__)
+    uintptr_t pc = uc->uc_mcontext->__ss.__pc;
+    uintptr_t fp = uc->uc_mcontext->__ss.__fp;
+#else
     uintptr_t pc = uc->uc_mcontext.pc;
     uintptr_t fp = uc->uc_mcontext.regs[29]; // FP is x29
+#endif
 #else
 #warning "Cannot get backtrace from ucontext on this architecture, falling back to current stack."
     // Fallback to current stack, which is better than nothing.
@@ -72,7 +107,7 @@ void DUMP_C_BACKTRACE_FROM_CONTEXT(void *ucontext) {
     // Unwind the stack using frame pointers. This requires the program to be
     // compiled with -fno-omit-frame-pointer for reliable results.
     while (fp != 0 && pc != 0) {
-        backtrace_pcinfo(our_backtrace_state, pc, ourBacktraceFullCallback, NULL, NULL);
+        backtrace_pcinfo(our_backtrace_state, pc, ourBacktraceFullCallback, ourBacktraceErrorCallback, NULL);
 
         // Basic sanity check for the frame pointer to avoid infinite loops.
         if (*(uintptr_t *)fp <= fp) {
@@ -87,12 +122,15 @@ void DUMP_C_BACKTRACE_FROM_CONTEXT(void *ucontext) {
 
 #include "backtrace/backtrace.c"
 #include "backtrace/dwarf.c"
-#if !defined(_WIN32)
-#include "backtrace/elf.c"
-#include "backtrace/mmap.c"
-#else
+#if defined(_WIN32)
 #include "backtrace/alloc.c"
 #include "backtrace/pecoff.c"
+#elif defined(__APPLE__)
+#include "backtrace/macho.c"
+#include "backtrace/mmap.c"
+#else
+#include "backtrace/elf.c"
+#include "backtrace/mmap.c"
 #endif
 #include "backtrace/fileline.c"
 #include "backtrace/posix.c"
