@@ -22,6 +22,10 @@
 
 #include "nuitka/prelude.h"
 
+#if !defined(_WIN32)
+#include <signal.h>
+#endif
+
 #if _NUITKA_ONEFILE_MODE && !defined(_WIN32)
 #include <errno.h>
 #include <pthread.h>
@@ -415,6 +419,13 @@ static int HANDLE_PROGRAM_EXIT(PyThreadState *tstate) {
     int exit_code;
 
     if (HAS_ERROR_OCCURRED(tstate)) {
+#if PYTHON_VERSION >= 0x380
+        // Since Python 3.8, CPython reports an unhandled KeyboardInterrupt
+        // like a SIGINT driven exit, or "STATUS_CONTROL_C_EXIT" on Windows.
+        bool is_keyboard_interrupt =
+            EXCEPTION_MATCH_BOOL_SINGLE(tstate, GET_ERROR_OCCURRED(tstate), PyExc_KeyboardInterrupt);
+#endif
+
         // TODO: Clarify which versions this applies to still
 #if PYTHON_VERSION >= 0x300 && PYTHON_VERSION < 0x3c0
         /* Remove the frozen importlib traceback part, which would not be compatible. */
@@ -489,7 +500,15 @@ included by default",
 
         PyErr_PrintEx(0);
 
+#if PYTHON_VERSION >= 0x380
+#if defined(_WIN32)
+        exit_code = is_keyboard_interrupt ? (int)0xC000013A : 1;
+#else
+        exit_code = is_keyboard_interrupt ? 128 + SIGINT : 1;
+#endif
+#else
         exit_code = 1;
+#endif
     } else {
         exit_code = 0;
     }
