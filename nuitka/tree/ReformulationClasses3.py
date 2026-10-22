@@ -282,13 +282,11 @@ def buildClassNode3(provider, node, source_ref):
 
     class_locals_scope = class_dict_creation_function.getLocalsScope()
 
-    # Only local variable, for provision to methods.
+    # The implicit method cell is separate from name bindings in the class body.
     class_variable = class_locals_scope.getLocalVariable(
         owner=class_dict_creation_function,
         variable_name="__class__",
     )
-
-    class_locals_scope.registerProvidedVariable(class_variable)
 
     class_variable_ref = ExpressionVariableRef(
         variable=class_variable, source_ref=source_ref

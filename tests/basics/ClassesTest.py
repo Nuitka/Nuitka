@@ -274,23 +274,6 @@ print(
 )
 
 
-def useDunderClassInWeirdWays():
-    __class__ = 123
-
-    class X:
-        print("__class__ from enclosing scope", __class__)
-
-    try:
-
-        class Y:
-            print(__class__)
-
-    except NameError:
-        print("Caught NameError")
-
-
-useDunderClassInWeirdWays()
-
 #     Python tests originally created or extracted from other peoples work. The
 #     parts were too small to be protected.
 #

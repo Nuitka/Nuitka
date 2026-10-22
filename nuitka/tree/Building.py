@@ -451,9 +451,8 @@ def handleGlobalDeclarationNode(provider, node, source_ref):
 
         assert closure_variable.isModuleVariable()
 
-        # Special case, since Python 3.5 it is allowed to use global on the "__class__"
-        # variable as well, but it's not changing visibility of implicit "__class__" of
-        # functions, and as such it will just not be registered.
+        # The implicit class cell provided to methods is separate from the
+        # class body's global binding.
         if (
             provider.isExpressionClassBodyBase()
             and closure_variable.getName() == "__class__"
@@ -462,12 +461,10 @@ def handleGlobalDeclarationNode(provider, node, source_ref):
                 SyntaxErrors.raiseSyntaxError(
                     "cannot make __class__ global", source_ref
                 )
-            else:
-                provider.declared_class_variable = closure_variable
-        else:
-            provider.getLocalsScope().registerClosureVariable(
-                variable=closure_variable,
-            )
+
+        provider.getLocalsScope().registerClosureVariable(
+            variable=closure_variable,
+        )
 
     # Drop this, not really part of our tree.
     return None

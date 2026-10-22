@@ -38,7 +38,6 @@ class ExpressionClassBodyBase(ExpressionOutlineFunctionBase):
         "locals_scope",
         "conditional_annotation_indices",
         "conditional_annotations_variable",
-        "declared_class_variable",
     )
 
     def __init__(self, provider, name, doc, source_ref):
@@ -62,8 +61,6 @@ class ExpressionClassBodyBase(ExpressionOutlineFunctionBase):
             self.locals_kind,
             self,
         )
-
-        self.declared_class_variable = None
 
     @staticmethod
     def isExpressionClassBodyBase():
@@ -101,15 +98,20 @@ class ExpressionClassBodyBase(ExpressionOutlineFunctionBase):
         return True
 
     def getVariableForReference(self, variable_name):
-        # __class__ is special since it's only available for methods;
-        # the class body needs to look it up from the enclosing scope.
         if variable_name == "__class__" and python_version >= 0x300:
-            if self.declared_class_variable is not None:
-                return self.declared_class_variable
+            if self.hasProvidedVariable(variable_name):
+                result = self.getProvidedVariable(variable_name)
 
-            result = self.provider.getVariableForReference(variable_name=variable_name)
+                if result.getOwner() is self:
+                    # A class-local binding prevents taking the enclosing closure,
+                    # even for references before the assignment.
+                    result = self.getParentModule().getVariableForReference(
+                        variable_name
+                    )
+            else:
+                result = self.provider.getVariableForClosure(variable_name)
 
-            self.taken.add(result)
+            self.addClosureVariable(result)
 
             return result
 
@@ -117,13 +119,11 @@ class ExpressionClassBodyBase(ExpressionOutlineFunctionBase):
             self, variable_name=variable_name
         )
 
-    def getVariableForAssignment(self, variable_name):
-        if variable_name == "__class__" and self.declared_class_variable is not None:
-            return self.declared_class_variable
+    def getLocalVariables(self):
+        return list(self.locals_scope.local_variables.values())
 
-        return ExpressionOutlineFunctionBase.getVariableForAssignment(
-            self, variable_name=variable_name
-        )
+    def getUserLocalVariables(self):
+        return self.getLocalVariables()
 
     def getVariableForClosure(self, variable_name):
         # print( "getVariableForClosure", self, variable_name )
@@ -132,7 +132,11 @@ class ExpressionClassBodyBase(ExpressionOutlineFunctionBase):
         # they provide "__class__" and the "__conditional_annotations__" for 3.14
         # but nothing else.
 
-        if variable_name in ("__class__", "__conditional_annotations__"):
+        if variable_name == "__class__" and python_version >= 0x300:
+            return self.locals_scope.getLocalVariable(
+                owner=self, variable_name=variable_name
+            )
+        elif variable_name in ("__class__", "__conditional_annotations__"):
             if python_version < 0x300:
                 return self.provider.getVariableForClosure(variable_name)
             else:

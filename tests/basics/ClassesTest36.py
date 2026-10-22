@@ -30,6 +30,22 @@ class ClassWithInitSubclassSuperChild(
         super().__init__()
 
 
+def testClassLocalAnnotation():
+    __class__ = 100
+
+    try:
+
+        class Annotated:
+            value = __class__
+            __class__: int
+
+    except NameError:
+        print("Caught NameError")
+
+
+testClassLocalAnnotation()
+
+
 #     Python tests originally created or extracted from other peoples work. The
 #     parts were too small to be protected.
 #

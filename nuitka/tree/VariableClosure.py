@@ -50,6 +50,13 @@ from .SyntaxErrors import raiseSyntaxError
 # basically class vs. function scope handling.
 
 
+def _shouldUseLocalsDict(provider, variable_name):
+    return provider.isExpressionClassBodyBase() and (
+        not provider.hasProvidedVariable(variable_name)
+        or provider.getProvidedVariable(variable_name).getOwner() is provider
+    )
+
+
 class VariableClosureLookupVisitorPhase1(VisitorNoopMixin):
     """Variable closure phase 1: Find assignments and early closure references.
 
@@ -79,10 +86,7 @@ class VariableClosureLookupVisitorPhase1(VisitorNoopMixin):
                         source_ref,
                     )
 
-                if node.isExpressionClassBodyBase() and non_local_name == "__class__":
-                    node.declared_class_variable = variable
-                else:
-                    node.getLocalsScope().registerClosureVariable(variable)
+                node.getLocalsScope().registerClosureVariable(variable)
 
                 variable.addVariableUser(node)
 
@@ -129,30 +133,25 @@ class VariableClosureLookupVisitorPhase1(VisitorNoopMixin):
 
             node.qualname_setup = None
 
-    @staticmethod
-    def _shouldUseLocalsDict(provider, variable_name):
-        if not provider.isExpressionClassBodyBase():
-            return False
-
-        if (
-            variable_name == "__class__"
-            and provider.declared_class_variable is not None
-        ):
-            return False
-
-        return (
-            not provider.hasProvidedVariable(variable_name)
-            or provider.getProvidedVariable(variable_name).getOwner() is provider
-        )
-
     def onLeaveNode(self, node):
+        if (
+            node.isStatementAssignmentVariableName()
+            or node.isStatementDelVariableName()
+        ):
+            if (
+                python_version >= 0x300
+                and node.provider.isExpressionClassBodyBase()
+                and node.getVariableName() == "__class__"
+            ):
+                node.provider.getProvidedVariable("__class__")
+
         if node.isStatementAssignmentVariableName():
             variable_name = node.getVariableName()
             provider = node.provider
 
             # Classes always assign to locals dictionary except for closure
             # variables taken.
-            if self._shouldUseLocalsDict(provider, variable_name):
+            if _shouldUseLocalsDict(provider, variable_name):
                 if node.subnode_source.isExpressionOperationInplace():
                     temp_scope = provider.allocateTempScope("class_inplace")
 
@@ -236,7 +235,7 @@ class VariableClosureLookupVisitorPhase1(VisitorNoopMixin):
 
             provider = node.provider
 
-            if self._shouldUseLocalsDict(provider, variable_name):
+            if _shouldUseLocalsDict(provider, variable_name):
                 # Classes always assign to locals dictionary except for closure
                 # variables taken.
                 new_node = StatementLocalsDictOperationDel(
@@ -290,7 +289,9 @@ class VariableClosureLookupVisitorPhase1(VisitorNoopMixin):
 
             provider = node.provider
 
-            if provider.isExpressionClassBodyBase():
+            if provider.isExpressionClassBodyBase() and (
+                python_version < 0x300 or node.getVariableName() != "__class__"
+            ):
                 if node.needsFallback():
                     variable = provider.getVariableForReference(
                         variable_name=node.getVariableName()
@@ -442,6 +443,17 @@ class VariableClosureLookupVisitorPhase2(VisitorNoopMixin):
                     locals_scope=provider.getLocalsScope(),
                     source_ref=node.source_ref,
                 )
+
+                if provider.isExpressionClassBodyBase() and (
+                    not variable.isModuleVariable()
+                    or _shouldUseLocalsDict(provider, node.getVariableName())
+                ):
+                    new_node = ExpressionLocalsVariableRefOrFallback(
+                        locals_scope=provider.getLocalsScope(),
+                        variable_name=node.getVariableName(),
+                        fallback=new_node,
+                        source_ref=node.source_ref,
+                    )
 
                 variable.addVariableUser(provider)
 
