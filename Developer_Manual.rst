@@ -1821,6 +1821,11 @@ call of the functions below is a hint that it should be replaced.
    :header-rows: 1
    :widths: auto
 
+   -  -  CPython API or behavior
+      -  Nuitka helper
+      -  Header
+      -  Notes
+
    -  -  ``PyObject_GetItem``
       -  ``LOOKUP_SUBSCRIPT``, ``..._CONST``
       -  ``helper/subscripts.h``
@@ -1856,26 +1861,49 @@ call of the functions below is a hint that it should be replaced.
          result.
 
    -  -  ``PyDict_GetItem``
+
       -  ``DICT_GET_ITEM0`` (borrowed), ``DICT_GET_ITEM1`` (new ref)
+
       -  ``helper/dictionaries.h``
-      -  Reference ownership is explicit in the name; only hash errors
-         are propagated.
+
+      -  Accepts a ``dict`` or subtype and uses raw table lookup;
+         reference ownership is explicit in the name. Hash errors are
+         suppressed and a miss returns ``NULL``.
+
+   -  -  ``PyDict_GetItemWithError``
+
+      -  ``DICT_GET_ITEM_WITH_ERROR``
+
+      -  ``helper/dictionaries.h``
+
+      -  Exact ``dict`` only; returns a new reference and raises
+         ``KeyError`` on a miss. This is not a silent
+         ``PyDict_GetItemWithError`` replacement.
+
+   -  -  ``PyDict_GetItemWithError`` (silent miss)
+      -  ``DICT_GET_ITEM_WITH_HASH_ERROR0`` (borrowed),
+         ``DICT_GET_ITEM_WITH_HASH_ERROR1`` (new ref)
+      -  ``helper/dictionaries.h``
+      -  Exact ``dict`` only. Missing keys return ``NULL`` without an
+         exception; hash errors still propagate.
 
    -  -  ``PyDict_SetItem``
       -  ``DICT_SET_ITEM``
       -  ``helper/dictionaries.h``
-      -  Returns ``bool`` and asserts the exact dict kind; stored result
-         is the same.
+      -  Returns ``bool``; accepts a ``dict`` or subtype, and watched
+         dictionaries are routed through CPython.
 
    -  -  ``PyDict_DelItem``
       -  ``DICT_REMOVE_ITEM``
       -  ``helper/dictionaries.h``
-      -  Returns ``bool``; the ``KeyError`` is the same.
+      -  Returns ``bool`` and accepts a ``dict`` or subtype; the
+         ``KeyError`` is the same.
 
    -  -  ``PyDict_Contains``
       -  ``DICT_HAS_ITEM``
       -  ``helper/dictionaries.h``
-      -  Same 1/0/-1 contract, no exception suppression.
+      -  Accepts a ``dict`` or subtype and uses raw table lookup; same
+         1/0/-1 contract, no exception suppression.
 
    -  -  ``PyDict_New``
       -  ``MAKE_DICT_EMPTY``, ``MAKE_DICT``
@@ -1883,10 +1911,48 @@ call of the functions below is a hint that it should be replaced.
       -  ``MAKE_DICT`` fills from a C array, no per-item C-API calls.
 
    -  -  string dict keys
-      -  ``UPDATE_STRING_DICT0``, ``..._1``
+
+      -  ``UPDATE_STRING_DICT0``, ``..._1``, ``..._INPLACE``
+
       -  ``helper/dictionaries.h``
-      -  Interns the string key and updates the dict entry in place, so
-         key identity can change.
+
+      -  Require an exact ``dict`` and a Nuitka string key, update
+         existing entries in place, and maintain ``ma_version_tag`` on
+         3.6-3.12. The suffix controls ownership.
+
+   -  -  ``PyDict_Clear``
+      -  ``DICT_CLEAR``
+      -  ``helper/dictionaries.h``
+      -  Exact ``dict`` only; delegates to ``PyDict_Clear``.
+
+   -  -  ``PyDict_Next``
+      -  ``Nuitka_DictNext``
+      -  ``helper/dictionaries.h``
+      -  Accepts a ``dict`` or subtype and walks the table directly; the
+         returned key and value are borrowed.
+
+   -  -  ``dict.keys()``, ``dict.values()``, ``dict.items()``
+
+      -  ``DICT_ITERKEYS``, ``DICT_ITERVALUES``, ``DICT_ITERITEMS`` and
+         ``DICT_VIEWKEYS``, ``DICT_VIEWVALUES``, ``DICT_VIEWITEMS``
+
+      -  ``helper/dictionaries.h``
+
+      -  Exact ``dict`` only. The ``ITER`` helpers return Python 3 view
+         objects (Python 2 iterators); the ``VIEW`` helpers construct
+         the internal view objects directly. These are not replacements
+         for the list-returning ``PyDict_Keys`` family.
+
+   -  -  ``dict.pop``, ``dict.popitem``, ``dict.setdefault``
+
+      -  ``DICT_POP2``, ``DICT_POP3``, ``DICT_POPITEM``,
+         ``DICT_SETDEFAULT2``, ``DICT_SETDEFAULT3``
+
+      -  ``helper/dictionaries.h``
+
+      -  Exact ``dict`` only; dispatch through cached method
+         descriptors. ``DICT_POPITEM`` asserts an exact ``tuple``
+         result.
 
    -  -  ``PyObject_GetAttr``
 
@@ -1909,6 +1975,34 @@ call of the functions below is a hint that it should be replaced.
       -  ``helper/attributes.h``
       -  Currently a raw C-API call at use sites.
 
+   -  -  ``PyObject_HasAttr`` / ``hasattr``
+
+      -  ``BUILTIN_HASATTR_BOOL``, ``HAS_ATTR_BOOL``, ``HAS_ATTR_BOOL2``
+
+      -  ``helper/attributes.h``
+
+      -  Existence-only helpers. The
+         ``_NUITKA_EXPERIMENTAL_DISABLE_ATTR_OPT`` fallback in
+         ``HAS_ATTR_BOOL2`` is currently broken: it returns -1 and leaks
+         the result for existing attributes. Do not rely on that
+         experimental path.
+
+   -  -  ``_PyObject_LookupSpecial`` / special-method lookup
+
+      -  ``LOOKUP_SPECIAL``
+
+      -  ``helper/attributes.h``
+
+      -  Binds descriptors manually; on a miss raises ``AttributeError``
+         or the context-manager protocol complaint instead of a silent
+         not-found.
+
+   -  -  module/global lookup
+      -  ``LOOKUP_MODULE_VALUE``
+      -  ``helper/attributes.h``
+      -  Assumes an exact string-key module dict fast path and falls
+         back to the builtins dict; returns a borrowed reference.
+
    -  -  ``PySequence_Contains``
       -  no enhanced form yet, see the TODO
       -  ``helper/sequences.h``
@@ -1921,11 +2015,33 @@ call of the functions below is a hint that it should be replaced.
       -  Fast paths for ``True``/``False``/``None`` and direct
          number/sequence slots; same truthiness.
 
+   -  -  ``PyBool_FromLong``
+
+      -  ``BOOL_FROM``
+
+      -  ``helper/boolean.h``
+
+      -  Returns the ``Py_True``/``Py_False`` singleton without
+         incrementing the reference count; callers needing a new
+         reference must incref.
+
    -  -  ``PyObject_Hash``
       -  ``BUILTIN_HASH``
       -  ``helpers.h``
       -  Calls ``tp_hash`` directly and returns a Python ``int``; same
          value and errors.
+
+   -  -  ``PyByteArray_FromObject`` (copy constructor)
+      -  ``BYTEARRAY_COPY``
+      -  ``helper/bytearrays.h``
+      -  Asserts exact ``bytearray`` input; narrower than CPython's
+         generic object-accepting constructor.
+
+   -  -  ``PyBytes_AsStringAndSize``, ``PyBytes_AsString``
+      -  ``Nuitka_Bytes_AsStringAndSize``, ``Nuitka_Bytes_AsString``
+      -  ``helper/bytes.h``
+      -  Assert bytes compatibility and return ``void``/the internal
+         buffer; they cannot report a normal type error through ``-1``.
 
    -  -  ``PyObject_IsInstance``
       -  ``Nuitka_Object_IsInstance``
@@ -1950,6 +2066,46 @@ call of the functions below is a hint that it should be replaced.
       -  ``bool`` result; the suffix selects borrowed (``0``) versus
          owned (``1``) item reference transfer.
 
+   -  -  ``list.extend``
+
+      -  ``LIST_EXTEND_FROM_LIST``, ``LIST_EXTEND_FROM_ITERABLE``,
+         ``LIST_EXTEND_FOR_UNPACK``
+
+      -  ``helper/lists.h``
+
+      -  Exact ``list`` target; ``FROM_LIST`` also requires an exact
+         list source. ``FOR_UNPACK`` rewrites the non-iterable
+         ``TypeError`` to the starred-unpack message.
+
+   -  -  ``PyList_Insert``
+
+      -  ``LIST_INSERT``, ``LIST_INSERT_CONST``
+
+      -  ``helper/lists.h``
+
+      -  Exact ``list`` only. ``LIST_INSERT`` normalizes the index via
+         ``Nuitka_Number_IndexAsLong``; ``LIST_INSERT_CONST`` returns
+         ``void`` and aborts on resize failure.
+
+   -  -  ``list.pop``
+      -  ``LIST_POP1``, ``LIST_POP2``
+      -  ``helper/lists.h``
+      -  Exact ``list`` only; dispatch through a cached ``list.pop``
+         method descriptor.
+
+   -  -  ``list.copy``, ``list.count``, ``list.index``, ``list.remove``,
+         ``list.clear``, ``list.reverse``
+      -  ``LIST_COPY``, ``LIST_COUNT``, ``LIST_INDEX2/3/4``,
+         ``LIST_REMOVE``, ``LIST_CLEAR``, ``LIST_REVERSE``
+      -  ``helper/lists.h``
+      -  Exact ``list`` only; the main difference is the stricter
+         precondition, not the result.
+
+   -  -  ``PyList_SET_ITEM``
+      -  ``PyList_SET_ITEM0``
+      -  ``helper/lists.h``
+      -  Increments the incoming reference instead of stealing it.
+
    -  -  ``PyList_New``
       -  ``MAKE_LIST``, ``MAKE_LIST_REPEATED``
       -  ``helper/lists.h``
@@ -1962,16 +2118,71 @@ call of the functions below is a hint that it should be replaced.
       -  Items are filled inline; the ``_0`` suffix variants take
          borrowed references.
 
+   -  -  ``PyTuple_New`` (freelist path)
+
+      -  ``MAKE_TUPLE_EMPTY``, ``MAKE_TUPLE_EMPTY_VAR``
+
+      -  ``helper/tuples.h``
+
+      -  Exact-tuple freelist allocator. ``MAKE_TUPLE_EMPTY`` requires
+         ``size > 0``; ``_VAR`` permits zero and returns the shared
+         empty tuple. On 3.14 the hash cache is reset for recycled
+         tuples.
+
+   -  -  ``PyTuple_SET_ITEM``
+      -  ``PyTuple_SET_ITEM0``
+      -  ``helper/tuples.h``
+      -  Increments the incoming reference instead of stealing it.
+
    -  -  ``PyObject_GetIter``
       -  ``MAKE_ITERATOR``, ``..._INFALLIBLE``
       -  ``helper/iterators.h``
       -  Exact-type fast paths and an infallible variant for known
          iterables.
 
+   -  -  ``PyIter_Check``
+
+      -  ``HAS_ITERNEXT``
+
+      -  ``helper/iterators.h``
+
+      -  Equivalent check that avoids the CPython shared-library
+         function-pointer issue by comparing against a cached
+         ``default_iternext``.
+
+   -  -  iterable unpacking runtime
+
+      -  ``MAKE_UNPACK_ITERATOR``, ``UNPACK_NEXT``,
+         ``UNPACK_NEXT_STARRED``, ``UNPACK_ITERATOR_CHECK``
+
+      -  ``helper/iterators.h``
+
+      -  Unpack-specific helpers, not generic iteration; they format
+         unpack ``ValueError``/``TypeError`` messages. On 3.14+
+         ``UNPACK_ITERATOR_CHECK`` can report ``got N`` for exact
+         tuple/list/dict iterators.
+
    -  -  ``PyIter_Next``
       -  ``ITERATOR_NEXT``, ``BUILTIN_NEXT2``
       -  ``helper/iterators.h``
       -  Same semantics with optimized slots and error normalization.
+
+   -  -  ``PyUnicode_Join``, ``PyUnicode_Partition``,
+         ``PyUnicode_RPartition``
+      -  ``UNICODE_JOIN``, ``UNICODE_PARTITION``, ``UNICODE_RPARTITION``
+      -  ``helper/strings.h``
+      -  Assert an exact ``unicode`` receiver; narrower than the
+         subtype-friendly CPython API.
+
+   -  -  ``PyObject_Str`` / ``str()``
+
+      -  ``BUILTIN_UNICODE1``
+
+      -  ``helpers.h``
+
+      -  Returns exact ``unicode`` unchanged, calls ``tp_str`` directly,
+         falls back to ``repr`` when ``tp_str`` is absent, and rejects
+         non-unicode ``__str__`` results.
 
    -  -  ``PyMapping_HasKey``
 
@@ -1988,18 +2199,49 @@ call of the functions below is a hint that it should be replaced.
       -  ``helper/mappings.h``
       -  Mapping sizes only, not sequences.
 
+   -  -  ``PyNumber_Index``
+
+      -  ``Nuitka_Number_Index``, ``Nuitka_Number_IndexAsLong``
+
+      -  ``helper/indexes.h``
+
+      -  ``Nuitka_Number_Index`` accepts int subtypes from
+         ``__index__``; ``_IndexAsLong`` returns an exact
+         ``PyLongObject`` copy on 3.10+.
+
    -  -  ``PyNumber_Add`` etc.
+
       -  ``BINARY_OPERATION_*``, ``INPLACE_OPERATION_*``,
          ``UNARY_OPERATION_*``
+
       -  ``helper/operations_*.h``
-      -  Same results; specialized per operand type and C types, some
-         operations inlined, error formatting can differ.
+
+      -  Same results when preconditions hold; specialized per operand
+         type and C types, some operations inlined, error formatting can
+         differ. Many variants require exact builtin operands and are
+         not generic ``PyNumber_*`` replacements.
 
    -  -  ``PyObject_RichCompare``
       -  ``RICH_COMPARE_*`` families
       -  ``helper/comparisons_*.h``
       -  The ``BOOL`` variants return a tri-state with an exception
          sentinel instead of ``-1``; comparison semantics are the same.
+
+   -  -  ``PyImport_ImportModule``
+
+      -  ``IMPORT_HARD_*``
+
+      -  ``helper/import_hard.h``
+
+      -  Generated helpers cache the module in a static variable, return
+         it without ``Py_INCREF``, and turn import failure into
+         ``NUITKA_ERROR_EXIT`` instead of propagating ``ImportError``.
+
+   -  -  ``PyModule_GetFilenameObject``
+      -  ``Nuitka_GetFilenameObject``
+      -  ``importing.h``
+      -  Clears errors and returns ``"unknown location"`` instead of
+         propagating failure.
 
    -  -  ``PyErr_Fetch``
       -  ``FETCH_ERROR_OCCURRED_STATE``
@@ -2022,6 +2264,79 @@ call of the functions below is a hint that it should be replaced.
       -  ``exceptions.h``
       -  Sets into Nuitka's error state without creating a temporary
          exception object.
+
+Generated helper families
+^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The generated arithmetic, comparison, container-constructor and
+hard-import helpers follow uniform patterns, so they are summarized by
+family instead of listing every variant:
+
+-  ``BINARY_OPERATION_*``, ``INPLACE_OPERATION_*`` and
+   ``UNARY_OPERATION_*`` bake operand specialization into the helper
+   name. Many variants require exact builtin operands and are not
+   generic ``PyNumber_*`` replacements.
+
+-  ``RICH_COMPARE_*_OBJECT_*`` is the object-returning comparison
+   family; the ``*_CBOOL_*`` and ``*_NBOOL_*`` variants return a C
+   boolean or ``nuitka_bool`` tri-state instead of CPython's ``int``
+   shape.
+
+-  ``MAKE_LISTn``, ``MAKE_DICT*`` and ``MAKE_TUPLEn`` encode ownership
+   (``_0`` versus non-``_0``) and "skip ``NULL``" behavior in the name.
+
+-  ``IMPORT_HARD_*`` helpers cache the imported module statically and
+   abort via ``NUITKA_ERROR_EXIT`` on failure.
+
+Version-specific internals (3.13 / 3.14)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Nuitka reaches into CPython internals in several places. These helpers
+exist because the raw layout is not stable across micro versions:
+
+-  ``Nuitka_GC_Track``/``Nuitka_GC_UnTrack`` reimplement GC list
+   bookkeeping and young-generation accounting. Accounting is owned by
+   Nuitka for runtime versions 3.14.1 through 3.14.4.
+
+-  ``MAKE_TUPLE_EMPTY`` resets the cached tuple hash on recycled 3.14
+   tuples and re-tracks them where the GC accounting moved.
+
+-  ``MAKE_DICT_EMPTY`` mirrors 3.14's tracking of even empty dicts;
+   older versions leave empty dicts untracked.
+
+-  The ``Nuitka_PyRuntime_GetOffset__PyRuntimeState_*`` helpers hide
+   ``_PyRuntimeState`` layout drift. The perf-trampoline layout changes
+   at runtime versions 3.13.12 and 3.14.3.
+
+-  ``Nuitka_PyInterpreterState_GetCachedObjects`` and related accessors
+   adjust post-QSBR pointers for the ``_qsbr_shared.array_raw`` shift in
+   3.14.4. ``Nuitka_Py_freelists_GET`` applies the same shift, and
+   ``Nuitka_PyFreeList_Pop`` deliberately does not set the reference
+   itself, pairing with ``Nuitka_Py_NewReference``.
+
+-  In ``Py_GIL_DISABLED`` builds (currently only 3.13t) the dictionary
+   helpers use threadsafe lookup, locking and delayed-free/QSBR handling
+   instead of simple GIL-protected structure access.
+
+Practical caveats
+^^^^^^^^^^^^^^^^^
+
+-  A helper name that bakes in a container or operand type is usually
+   narrower than the similarly named CPython API. Check the
+   precondition; do not assume subtype-friendly behavior.
+
+-  Ownership is encoded in suffixes such as ``0`` (borrowed/preserve),
+   ``1`` (new reference) and ``_INPLACE`` (consume/replace).
+
+-  ``DICT_GET_ITEM_WITH_ERROR`` is a notable dictionary trap: it
+   requires an exact ``dict``, raises ``KeyError`` on a miss, and
+   returns a new reference. ``PyDict_GetItemWithError`` accepts ``dict``
+   subclasses, returns a borrowed reference, and leaves a missing key
+   silent.
+
+-  ``Nuitka_Bytes_AsString``/``Nuitka_Bytes_AsStringAndSize`` assert
+   bytes compatibility instead of reporting a type error; use them only
+   after establishing the type.
 
 Constant Preparation
 ====================
@@ -2967,9 +3282,9 @@ dictionary arguments, are merged with the positional and named
 arguments.
 
 What's peculiar, is that if both the star list and dictionary arguments
-are present, the merging is first done for star dictionary, and only
-after that for the star list argument. This makes a difference, because
-in case of an error, the star argument raises first.
+are present, the merging is first done for the star dictionary argument,
+and only after that for the star list argument. This makes a difference,
+because in case of an error, the star dictionary argument raises first.
 
 .. code:: python
 
@@ -2977,7 +3292,7 @@ in case of an error, the star argument raises first.
 
 This raises "TypeError: something() argument after ** must be a mapping,
 not int" as opposed to a possibly more expected "TypeError: something()
-argument after * must be a sequence, not int."
+argument after * must be an iterable, not int."
 
 That doesn't matter much though, because the value is to be evaluated
 first anyway, and the check is only performed afterwards. If the star
@@ -3196,7 +3511,7 @@ Builtin ``zip`` for Python2
       return tmp_result
 
 Builtin ``zip`` for Python3
-^^^^^^^^^^^^^^^^^^^^^^^^^^^
+---------------------------
 
 .. code:: python
 
