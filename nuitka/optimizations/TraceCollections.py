@@ -63,6 +63,8 @@ def fetchMergeCounts():
 
 signalChange = None
 
+_change_epoch = 0
+
 
 @contextmanager
 def withChangeIndicationsTo(signal_change):
@@ -70,8 +72,15 @@ def withChangeIndicationsTo(signal_change):
 
     global signalChange  # Singleton, pylint: disable=global-statement
 
+    def change_indication(tags, source_ref, message):
+        global _change_epoch  # Singleton, pylint: disable=global-statement
+
+        _change_epoch += 1
+
+        signal_change(tags, source_ref, message)
+
     old = signalChange
-    signalChange = signal_change
+    signalChange = change_indication
     yield
     signalChange = old
 
@@ -326,6 +335,15 @@ class TraceCollectionBase(object):
 
     def __repr__(self):
         return "<%s for %s at 0x%x>" % (self.__class__.__name__, self.name, id(self))
+
+    @staticmethod
+    def getChangeEpoch():
+        """Number of changes signalled so far during optimization.
+
+        Returns:
+            int
+        """
+        return _change_epoch
 
     def getOwner(self):
         return self.owner

@@ -183,6 +183,8 @@ class StatementsFrameBase(StatementsSequenceMixin, StatementsSequenceBase):
 
         statements = self.subnode_statements
 
+        change_epoch = trace_collection.getChangeEpoch()
+
         for count, statement in enumerate(statements):
             # May be frames embedded.
             if statement.isStatementsFrame():
@@ -228,9 +230,14 @@ class StatementsFrameBase(StatementsSequenceMixin, StatementsSequenceBase):
 
         # If our statements changed just now, they are not immediately usable,
         # so do this in two steps. Next time we can reduce the frame scope just
-        # as well.
+        # as well. The same applies if any node changes were signalled, as
+        # replacements are only traced in the next micro pass, and the frame
+        # decision must not be based on their untraced state.
         new_statements_tuple = tuple(new_statements)
-        if statements != new_statements_tuple:
+        if (
+            statements != new_statements_tuple
+            or change_epoch != trace_collection.getChangeEpoch()
+        ):
             self.setChildStatements(new_statements_tuple)
             return self
 
