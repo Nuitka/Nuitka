@@ -179,6 +179,7 @@ from nuitka.utils.FileOperations import (
     getNormalizedPathJoin,
     getReportPath,
     isFilesystemEncodable,
+    makeFilesystemEncodable,
     openTextFile,
     removeDirectory,
 )
@@ -984,6 +985,17 @@ def callExecPython(args, add_path, uac):
 
 
 def _executeMain(binary_filename):
+    if (
+        isWin32Windows()
+        and not isStandaloneMode()
+        and not shallCreateScriptFileForExecution()
+    ):
+        # No launcher script is created, but extension modules still have to
+        # be found through the exact sys.path of the running Python.
+        os.environ["NUITKA_PYTHONPATH"] = os.pathsep.join(
+            makeFilesystemEncodable(path) for path in sys.path
+        )
+
     # Wrap in debugger, unless the CMD file contains that call already.
     if shallRunInDebugger() and not shallCreateScriptFileForExecution():
         args = wrapCommandForDebuggerForExec(
