@@ -30,6 +30,8 @@ class CTypeModuleDictVariable(CTypeBase):
                 """\
 if (%(orig_name)s != %(tmp_name)s) {
     UPDATE_STRING_DICT_INPLACE(moduledict_%(module_identifier)s, (Nuitka_StringObject *)%(variable_name_str)s, %(tmp_name)s);
+} else {
+    Py_DECREF(%(tmp_name)s);
 }"""
                 % {
                     "orig_name": orig_name,

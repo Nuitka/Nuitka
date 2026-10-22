@@ -230,7 +230,10 @@ def _getBinaryOperationCode(
 
         # For module variable C type to reference later.
         if left.isExpressionVariableRef() and left.getVariable().isModuleVariable():
-            emit("%s = %s;" % (context.getInplaceLeftName(), left_name))
+            emit(
+                "%s = %s = Py_NewRef(%s);"
+                % (context.getInplaceLeftName(), left_name, left_name)
+            )
 
         if not left.isExpressionVariableRefOrTempVariableRef():
             if not context.needsCleanup(left_name):

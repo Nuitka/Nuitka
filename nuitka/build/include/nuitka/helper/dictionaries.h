@@ -378,6 +378,7 @@ NUITKA_MAY_BE_UNUSED static void UPDATE_STRING_DICT_INPLACE(PyDictObject *dict, 
 #if _NUITKA_MAINTAIN_DICT_VERSION_TAG
             dict->ma_version_tag = nuitka_dict_version_tag_counter++;
 #endif
+            Py_DECREF(old);
         } else {
             DICT_SET_ITEM((PyObject *)dict, (PyObject *)key, value);
             Py_DECREF(value);
