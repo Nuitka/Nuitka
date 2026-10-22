@@ -24,6 +24,7 @@ static PyObject *IMPORT_HARD_OS_PATH(PyThreadState *tstate);
 
 #if _NUITKA_MODULE_MODE
 static char const *module_root_prefix = NULL;
+static char const *module_root_leaf = NULL;
 #endif
 
 #ifdef _WIN32
@@ -3301,11 +3302,19 @@ char const *getMetaPathBasedLoaderModuleRoot(void) { return module_root_prefix; 
 
 void getModuleNameWithPackageLoadedPrefix(char *buffer, size_t buffer_size, char const *name) {
     if (module_root_prefix != NULL) {
-        copyStringSafe(buffer, module_root_prefix, buffer_size);
-        appendStringSafe(buffer, name, buffer_size);
-    } else {
-        copyStringSafe(buffer, name, buffer_size);
+        // The compiled unit may itself have been compiled under a dotted name,
+        // in which case its entry names already include the package prefix.
+        size_t leaf_len = strlen(module_root_leaf);
+
+        if (strncmp(name, module_root_leaf, leaf_len) == 0 && (name[leaf_len] == '.' || name[leaf_len] == 0)) {
+            copyStringSafe(buffer, module_root_prefix, buffer_size);
+            appendStringSafe(buffer, name, buffer_size);
+
+            return;
+        }
     }
+
+    copyStringSafe(buffer, name, buffer_size);
 }
 
 void updateMetaPathBasedLoaderModuleRoot(char const *module_root_name) {
@@ -3324,6 +3333,7 @@ void updateMetaPathBasedLoaderModuleRoot(char const *module_root_name) {
             free(new_prefix);
         } else {
             module_root_prefix = new_prefix;
+            module_root_leaf = duplicateStringPointer(last_dot + 1);
         }
     }
 }
