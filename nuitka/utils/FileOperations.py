@@ -166,6 +166,42 @@ def areSamePaths(path1, path2):
     return path1 == path2
 
 
+def isCaseInsensitiveFileSystem(path):
+    """Check if the file system of a path is case insensitive.
+
+    Notes:
+        On macOS and Windows, the file systems are typically case insensitive
+        by default, so this is assumed. On other platforms, a temporary file
+        is used to detect the case sensitivity.
+
+    Args:
+        path: The directory to check.
+
+    Returns:
+        bool: True if the file system is case insensitive.
+    """
+    if isMacOS() or isWin32OrPosixWindows():
+        return True
+
+    file_descriptor, filename = tempfile.mkstemp(prefix=".nuitka_case_check_", dir=path)
+
+    try:
+        os.close(file_descriptor)
+
+        dirname, basename = os.path.split(filename)
+        other_filename = os.path.join(dirname, basename.upper())
+
+        try:
+            return os.stat(filename) == os.stat(other_filename)
+        except OSError as exception:
+            if exception.errno != errno.ENOENT:
+                raise
+
+            return False
+    finally:
+        deleteFile(filename, must_exist=False)
+
+
 def areInSamePaths(path1, path2):
     """Decide if two paths are in the same directory
 

@@ -46,6 +46,7 @@ from nuitka.utils.FileOperations import (
     getFilenameExtension,
     getFileSize,
     getNormalizedPath,
+    isCaseInsensitiveFileSystem,
     isFilenameBelowPath,
     isLegalPath,
     isLink,
@@ -1102,15 +1103,7 @@ def _reportDataFiles():
             tracer.info("Included %d data files due to %s." % (count, reason))
         else:
             for kind, dest_path in _data_file_traces[key]:
-                if kind == "data_blob":
-                    tracer.info(
-                        "Included data file '%s' due to %s."
-                        % (
-                            dest_path,
-                            reason,
-                        )
-                    )
-                elif kind in ("data_file", "data_file_generated"):
+                if kind in ("data_blob", "data_file", "data_file_generated"):
                     tracer.info(
                         "Included data file '%s' due to %s."
                         % (
@@ -1125,36 +1118,73 @@ def _reportDataFiles():
     _data_file_traces.clear()
 
 
-def _checkPathConflict(dest_path, standalone_entry_points):
+def _decidePathsConflict(path1, path2, case_insensitive):
+    """Decide if two paths conflict.
+
+    Args:
+        path1: First path to compare.
+        path2: Second path to compare.
+        case_insensitive: Whether the paths are on a case insensitive file
+        system.
+
+    Returns:
+        tuple: (decision, reason) where decision is a boolean, and reason is a
+        string explaining the decision if the paths conflict, and None
+        otherwise.
+    """
+    if path1 == path2:
+        return True, "the paths are identical"
+
+    if case_insensitive and path1.lower() == path2.lower():
+        return (
+            True,
+            "the paths differ only in case on a case insensitive file system",
+        )
+
+    return False, None
+
+
+def _checkPathConflict(dest_path, standalone_entry_points, case_insensitive):
     """Check for conflicts with standalone entry points.
 
     Args:
         dest_path: The destination path to check.
         standalone_entry_points: List of standalone entry points.
+        case_insensitive: Whether the paths are on a case insensitive file
+        system.
     """
     assert getNormalizedPath(dest_path) == dest_path
 
     while dest_path:
         for standalone_entry_point in standalone_entry_points:
-            if dest_path == standalone_entry_point.dest_path:
-                options_logger.sysexit(
+            decision, reason = _decidePathsConflict(
+                dest_path,
+                standalone_entry_point.dest_path,
+                case_insensitive=case_insensitive,
+            )
+
+            if decision:
+                return options_logger.sysexit(
                     """\
-Error, data file to be placed in distribution as '%s' conflicts with %s '%s'."""
+Error, data file to be placed in distribution as '%s' conflicts with %s '%s' because %s."""
                     % (
                         dest_path,
                         standalone_entry_point.kind,
                         standalone_entry_point.dest_path,
+                        reason,
                     )
                 )
         dest_path = os.path.dirname(dest_path)
 
 
-def _handleDataFile(included_datafile, standalone_entry_points):
+def _handleDataFile(included_datafile, standalone_entry_points, case_insensitive):
     """Handle a single data file, writing or copying it.
 
     Args:
         included_datafile: The IncludedDataFile object.
         standalone_entry_points: List of standalone entry points to check conflicts against.
+        case_insensitive: Whether the paths are on a case insensitive file
+        system.
 
     Returns:
         tuple: (external, dest_path) where external is bool.
@@ -1182,7 +1212,11 @@ def _handleDataFile(included_datafile, standalone_entry_points):
         dest_path = getOutputPath(included_datafile.dest_path)
         external = True
     else:
-        _checkPathConflict(included_datafile.dest_path, standalone_entry_points)
+        _checkPathConflict(
+            included_datafile.dest_path,
+            standalone_entry_points,
+            case_insensitive=case_insensitive,
+        )
         dest_path = os.path.join(dist_dir, included_datafile.dest_path)
         external = False
 
@@ -1228,6 +1262,10 @@ def copyDataFiles(standalone_entry_points):
 
     data_file_paths = []
 
+    case_insensitive = isCaseInsensitiveFileSystem(
+        getStandaloneDirectoryPath(bundle=True, real=False)
+    )
+
     # Copy symlinks last, so their targets are present in the distribution, and
     # the symlinks can be preserved, rather than being dereferenced.
     included_datafiles = sorted(
@@ -1251,6 +1289,7 @@ plugins '--embed-*' options. Not done for '%s'.""" % included_datafile.dest_path
             external, data_file_path = _handleDataFile(
                 included_datafile=included_datafile,
                 standalone_entry_points=standalone_entry_points,
+                case_insensitive=case_insensitive,
             )
 
             if not external:
