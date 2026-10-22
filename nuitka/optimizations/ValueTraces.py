@@ -1166,7 +1166,7 @@ class ValueTraceMerge(ValueTraceMergeBase):
 
     def mustHaveValue(self):
         for previous in self.previous:
-            if not previous.isInitTrace() and not previous.isAssignTrace():
+            if not previous.mustHaveValue():
                 return False
 
         return True
