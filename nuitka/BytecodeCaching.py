@@ -57,7 +57,7 @@ def hasCachedImportedModuleUsageAttempts(module_name, source_code, source_ref):
 
 
 # Bump this is format is changed or enhanced implementation might different ones.
-_cache_format_version = 8
+_cache_format_version = 9
 
 
 def getCachedImportedModuleUsageAttempts(module_name, source_code, source_ref):
@@ -106,6 +106,12 @@ def getCachedImportedModuleUsageAttempts(module_name, source_code, source_ref):
 
             return None
 
+        # We store only the line number and class, so the source
+        # reference is rebuilt from those.
+        used_source_ref = source_ref.atLineNumber(module_used["source_ref_line"])
+        if module_used["source_ref_internal"]:
+            used_source_ref = used_source_ref.atInternal()
+
         result.add(
             makeModuleUsageAttempt(
                 module_name=used_module_name,
@@ -114,8 +120,7 @@ def getCachedImportedModuleUsageAttempts(module_name, source_code, source_ref):
                 module_kind=module_used["module_kind"],
                 # TODO: Level might have to be dropped.
                 level=0,
-                # We store only the line number, so this cheats it to at full one.
-                source_ref=source_ref.atLineNumber(module_used["source_ref_line"]),
+                source_ref=used_source_ref,
                 reason=module_used["reason"],
             )
         )
@@ -153,8 +158,9 @@ def writeImportedModulesNamesToCache(
     ]
 
     for module_usage in used_modules:
-        module_usage["source_ref_line"] = module_usage["source_ref"].getLineNumber()
-        del module_usage["source_ref"]
+        source_ref = module_usage.pop("source_ref")
+        module_usage["source_ref_line"] = source_ref.getLineNumber()
+        module_usage["source_ref_internal"] = source_ref.isInternal()
 
     data = {
         "file_format_version": _cache_format_version,
