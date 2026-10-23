@@ -50,7 +50,7 @@ from .SconsUtils import (
     scanSourceDir,
 )
 
-# spell-checker: ignore ccflags,cppdefines,cpppath
+# spell-checker: ignore cppdefines,cpppath
 
 # Set up the basic stuff.
 env = createNuitkaSconsEnvironment()
@@ -107,25 +107,6 @@ setupCCompiler(
     onefile_compile=True,
 )
 
-
-if debug_mode:
-    if env.msvc_mode:
-        # Disable warnings that system headers already show.
-        env.Append(
-            CCFLAGS=[
-                "/W4",
-                "/wd4505",
-                "/wd4127",
-                "/wd4100",
-                "/wd4702",
-                "/wd4189",
-                "/wd4211",
-                "/WX",
-            ]
-        )
-
-        # Disable warnings, the first 3 are for Python headers, maybe not needed.
-        env.Append(CCFLAGS=["/wd4512", "/wd4510", "/wd4610", "/wd4996"])
 
 if debug_mode:
     env.Append(CPPDEFINES=["_NUITKA_DEBUG"])

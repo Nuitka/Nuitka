@@ -1654,15 +1654,15 @@ def setupCCompiler(env, pgo_mode, exe_target, onefile_compile):
                 env.Append(CCFLAGS=["-Wunused-but-set-variable"])
 
         if env.msvc_mode:
-            env.Append(CCFLAGS=["/WX"])
-    else:
-        if env.gcc_mode or env.zig_mode:
-            if (
-                isZigName(env.the_cc_name)
-                or (isClangName(env.the_cc_name) and env.clang_version >= (13,))
-                or (isGccName(env.the_cc_name) and env.gcc_version >= (4, 6))
-            ):
-                env.Append(CCFLAGS=["-Wno-unused-but-set-variable"])
+            # Disable warnings about constant conditions and deprecated
+            # declarations, these are often intentional.
+            env.Append(CCFLAGS=["/W4", "/wd4127", "/wd4996", "/WX"])
+    elif (
+        env.zig_mode
+        or (env.clang_mode and env.clang_version >= (13,))
+        or (env.gcc_mode and isGccName(env.the_cc_name) and env.gcc_version >= (4, 6))
+    ):
+        env.Append(CCFLAGS=["-Wno-unused-but-set-variable"])
 
     # Support for macOS standalone to run on older OS versions.
     if isMacOS():
