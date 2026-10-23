@@ -583,7 +583,7 @@ def getRecommendedWorkingVersion():
 
 
 def getRecommendedCommercialVersion():
-    return "3.12"
+    return "3.13"
 
 
 def displayRecommendedVersion(kind):
