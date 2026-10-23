@@ -781,6 +781,43 @@ def _checkPackageConstraint(logger, package_name):
     return False
 
 
+def _getInstalledPackageVersion(package_name):
+    """Get the version of an installed package, if it can be determined.
+
+    Notes:
+        This uses the standard library 'importlib.metadata' when available,
+        and falls back to 'pkg_resources' for older Python versions.
+
+    Args:
+        package_name: name of the package to check
+
+    Returns:
+        str or None: installed version, or None if it cannot be determined
+    """
+    try:
+        # Available from Python 3.8 onwards.
+        from importlib.metadata import PackageNotFoundError
+        from importlib.metadata import version as get_version
+    except ImportError:
+        try:
+            from pkg_resources import (
+                DistributionNotFound as PackageNotFoundError,
+            )
+            from pkg_resources import get_distribution
+        except ImportError:
+            return None
+
+        try:
+            return get_distribution(package_name).version
+        except PackageNotFoundError:
+            return None
+
+    try:
+        return get_version(package_name)
+    except PackageNotFoundError:
+        return None
+
+
 def getPrivatePackage(
     logger,
     package_name,
@@ -802,16 +839,19 @@ def getPrivatePackage(
     Returns:
         module: the imported module or None if not found
     """
-    try:
-        module = __import__(module_name, fromlist=["*"])
+    installed_version = _getInstalledPackageVersion(package_name)
 
-        if submodule_names:
-            for submodule_name in submodule_names:
-                __import__(module_name + "." + submodule_name)
+    if package_version is None or installed_version == package_version:
+        try:
+            module = __import__(module_name, fromlist=["*"])
 
-        return module
-    except Exception:  # Catch all the things, pylint: disable=broad-except
-        pass
+            if submodule_names:
+                for submodule_name in submodule_names:
+                    __import__(module_name + "." + submodule_name)
+
+            return module
+        except Exception:  # Catch all the things, pylint: disable=broad-except
+            pass
 
     site_packages_folder, _assume_yes_for_downloads = tryDownloadPackageName(
         logger=logger,
@@ -1192,14 +1232,11 @@ def _checkRequiredVersion(logger, tool, tool_call, dependencies):
         line = line.strip()
 
         if line.startswith(
-            ("black, ", "python -m black,", "__main__.py, ", "mdformat ")
+            ("black, ", "python -m black,", "__main__.py, ", "mdformat ", "VERSION ")
         ):
             if "(" in line:
                 line = line[: line.rfind("(")].strip()
 
-            actual_version = line.split()[-1]
-            break
-        if line.startswith("VERSION "):
             actual_version = line.split()[-1]
             break
         # spell-checker: ignore rstfmt

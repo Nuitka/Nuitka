@@ -7,8 +7,10 @@ import os
 import re
 import sys
 
-from nuitka.__past__ import WindowsError  # pylint: disable=I0021,redefined-builtin
-from nuitka.__past__ import unicode
+from nuitka.__past__ import (  # pylint: disable=I0021,redefined-builtin
+    WindowsError,
+    unicode,
+)
 from nuitka.containers.OrderedDicts import OrderedDict
 from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.options.Options import (

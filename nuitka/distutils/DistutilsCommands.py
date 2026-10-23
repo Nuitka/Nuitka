@@ -67,12 +67,12 @@ class build(distutils.command.build.build):
         if self.distribution.entry_points is not None:
             for group, script_specs in self.distribution.entry_points.items():
                 for script_spec in script_specs:
+                    # Catch all the things.
                     try:
                         script_module_name = (
                             script_spec.split("=", 1)[1].strip().split(":")[0]
                         )
-                        # Catch all the things, pylint: disable=broad-except
-                    except Exception as e:
+                    except Exception as e:  # pylint: disable=broad-exception-caught
                         wheel_logger.warning(
                             "Problem parsing '%s' script specification in '%s' due to %s"
                             % (script_spec, group, e)

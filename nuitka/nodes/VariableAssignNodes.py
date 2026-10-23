@@ -275,8 +275,6 @@ class StatementAssignmentVariableGeneric(
         "inplace_suspect",
     )
 
-    # False alarm due to post_init, pylint: disable=attribute-defined-outside-init
-
     # TODO: Add parsing of node_attributes for init values, so we can avoid these too
     def postInitNode(self):
         self.variable_trace = None
@@ -441,8 +439,6 @@ class StatementAssignmentVariableIterator(
         "tmp_iterated_variable",
         "is_indexable",
     )
-
-    # False alarm due to post_init, pylint: disable=attribute-defined-outside-init
 
     # TODO: Add parsing of node_attributes for init values, so we can avoid these too
     def postInitNode(self):
@@ -654,8 +650,6 @@ class StatementAssignmentVariableConstantMutable(
         "inplace_suspect",
     )
 
-    # False alarm due to post_init, pylint: disable=attribute-defined-outside-init
-
     # TODO: Add parsing of node_attributes for init values, so we can avoid these too
     def postInitNode(self):
         self.variable_trace = None
@@ -746,8 +740,6 @@ class StatementAssignmentVariableConstantImmutable(
         # TODO: Does every variant have to care here
         "inplace_suspect",
     )
-
-    # False alarm due to post_init, pylint: disable=attribute-defined-outside-init
 
     # TODO: Add parsing of node_attributes for init values, so we can avoid these too
     def postInitNode(self):
@@ -884,8 +876,6 @@ class StatementAssignmentVariableHardValue(
         "inplace_suspect",
     )
 
-    # False alarm due to post_init, pylint: disable=attribute-defined-outside-init
-
     # TODO: Add parsing of node_attributes for init values, so we can avoid these too
     def postInitNode(self):
         self.variable_trace = None
@@ -984,8 +974,6 @@ class StatementAssignmentVariableFromVariable(
         # TODO: Does every variant have to care here
         "inplace_suspect",
     )
-
-    # False alarm due to post_init, pylint: disable=attribute-defined-outside-init
 
     # TODO: Add parsing of node_attributes for init values, so we can avoid these too
     def postInitNode(self):
@@ -1101,8 +1089,6 @@ class StatementAssignmentVariableFromTempVariable(
         # TODO: Does every variant have to care here
         "inplace_suspect",
     )
-
-    # False alarm due to post_init, pylint: disable=attribute-defined-outside-init
 
     # TODO: Add parsing of node_attributes for init values, so we can avoid these too
     def postInitNode(self):

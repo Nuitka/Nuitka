@@ -359,7 +359,9 @@ class NuitkaProgressBarBarflow(object):
         # then the bar, then percentage/count/unit, and finally the current
         # item via a postfix column at the very end (the only part that
         # changes width). Mirrors tqdm's "{desc}|{bar}| n/total unit postfix".
-        from barflow import columns as _bfcols  # pylint: disable=I0021,import-error
+        from barflow import (  # pylint: disable=I0021,import-error
+            columns as _bfcols,
+        )
 
         # Match Nuitka's tqdm/rich styling: bold-blue description + postfix
         # (info style), bold-green percentage. barflow.style speaks the same
