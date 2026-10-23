@@ -1,10 +1,25 @@
 {
   "$schema": "https://opencode.ai/config.json",
-  "lsp": true,
   "instructions": [
-    "AGENTS.md",
-    ".agents/rules/python-compatibility.md",
-    ".agents/rules/coding-standards.md",
-    ".agents/rules/verification.md"
-  ]
+    ".agents/rules/*.md"
+  ],
+  "watcher": {
+    "ignore": [
+      "tests/scratch/**",
+      "**/*.build",
+      "**/*.build/**",
+      "**/*.dist",
+      "**/*.dist/**",
+      "**/*.onefile-build",
+      "**/*.onefile-build/**",
+      "**/*.bin",
+      "**/__pycache__/**",
+      "**/.pytest_cache/**",
+      "**/.ruff_cache/**",
+      "**/.mypy_cache/**"
+    ]
+  },
+  "experimental": {
+    "todo": true
+  }
 }
