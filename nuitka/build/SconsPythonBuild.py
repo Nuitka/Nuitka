@@ -77,9 +77,7 @@ def _addPythonWarningSettings(env):
             # Disable warnings that system headers already show.
             env.Append(
                 CCFLAGS=[
-                    "/W4",
                     "/wd4505",
-                    "/wd4127",
                     "/wd4100",
                     "/wd4702",
                     "/wd4189",
@@ -98,10 +96,6 @@ def _addPythonWarningSettings(env):
             # We use null arrays in our structure Python declarations, which C11 does
             # not really allow, but should work.
             env.Append(CCFLAGS=["/wd4200"])
-
-            # Do not show deprecation warnings, we will use methods for as long
-            # as they work.
-            env.Append(CCFLAGS=["/wd4996"])
 
     # Disable warnings, that Python 2.6 headers show with MSVC, where they
     # declare 'acosh', 'asinh', 'atanh', and 'log1p' differently from the
