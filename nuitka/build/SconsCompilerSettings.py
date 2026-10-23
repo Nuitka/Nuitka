@@ -573,10 +573,9 @@ def createEnvironmentAndCheckCompiler(
     # be compatible.
     env.zig_mode = isZigName(env.the_cc_name)
     env.gcc_mode = (
-        isGccName(env.the_cc_name)
-        or clang_mode
-        or (env.zig_mode and not os.name == "nt")
+        isGccName(env.the_cc_name) or clang_mode or (env.zig_mode and os.name != "nt")
     )
+
     env.clang_mode = clang_mode
 
     # Only use MSVC if not already clear, we are using MinGW.

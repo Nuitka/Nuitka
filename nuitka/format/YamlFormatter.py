@@ -124,10 +124,10 @@ def _decideStrFormat(string_value):
         double_quote_left_pos = string_value.find('"')
         double_quote_right_pos = string_value.rfind('"')
 
-        if single_quote_left_pos == -1 and not double_quote_left_pos == -1:
+        if single_quote_left_pos == -1 and double_quote_left_pos != -1:
             return SINGLE_QUOTE
 
-        elif double_quote_left_pos == -1 and not single_quote_left_pos == -1:
+        elif double_quote_left_pos == -1 and single_quote_left_pos != -1:
             return DOUBLE_QUOTE
 
         elif (
@@ -427,7 +427,7 @@ def formatYaml(logger, path, assume_yes_for_downloads, ignore_diff=False):
                 if (
                     last_line != ""
                     and not last_line.startswith("#")
-                    and not last_line == "---"
+                    and last_line != "---"
                 ):
                     output_file.write("\n")
 

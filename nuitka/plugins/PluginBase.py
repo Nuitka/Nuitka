@@ -1661,7 +1661,7 @@ except Exception as e:
         # Ignore Windows newlines difference.
         feedback = [line.strip() for line in feedback.splitlines()]
 
-        while feedback and not feedback[0] != "-*-" * 15:
+        while feedback and feedback[0] == "-*-" * 15:
             feedback.pop(0)
 
         if feedback.count("-" * 27) != len(keys):

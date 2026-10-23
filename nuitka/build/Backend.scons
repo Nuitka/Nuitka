@@ -170,7 +170,7 @@ if adapted_python_header_files_dir:
     env.Prepend(CPPPATH=[adapted_python_header_files_dir])
 
 # TODO: This ought to be decided outside of scons and per flavor maybe.
-if env.static_libpython and ((not os.name == "nt" and not isMacOS()) or env.monolithpy):
+if env.static_libpython and ((os.name != "nt" and not isMacOS()) or env.monolithpy):
     env.Append(CPPDEFINES=["_NUITKA_USE_UNEXPOSED_API"])
 
 link_module_libs = addPythonHaclLib(env, link_module_libs=link_module_libs)
@@ -323,7 +323,7 @@ if (
     env.gcc_mode
     and not isMacOS()
     and not isAIX()
-    and not os.name == "nt"
+    and os.name != "nt"
     and (env.exe_mode or env.dll_mode)
 ):
     # TODO: It would appear that this should be merged with above code that does
