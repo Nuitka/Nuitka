@@ -442,51 +442,6 @@ def isDebugPython():
     return hasattr(sys, "gettotalrefcount")
 
 
-def _getFloatDigitBoundaryValue():
-    if python_version < 0x270:
-        bits_per_digit = 15
-    elif python_version < 0x300:
-        bits_per_digit = sys.long_info.bits_per_digit
-    else:
-        bits_per_digit = sys.int_info.bits_per_digit
-
-    return (2**bits_per_digit) - 1
-
-
-_float_digit_boundary = _getFloatDigitBoundaryValue()
-
-
-def isPythonValidDigitValue(value):
-    """Does the given value fit into a float digit.
-
-    Note: Digits in long objects do not use 2-complement, but a boolean sign.
-    """
-
-    return -_float_digit_boundary <= value <= _float_digit_boundary
-
-
-sizeof_clong = ctypes.sizeof(ctypes.c_long)
-
-# TODO: We could be more aggressive here, there are issues with using full
-# values, in some contexts, but that can probably be sorted out.
-_max_signed_long = 2 ** (sizeof_clong * 7) - 1
-_min_signed_long = -(2 ** (sizeof_clong * 7))
-
-# Used by data composer to write Python long values.
-sizeof_clonglong = ctypes.sizeof(ctypes.c_longlong)
-
-_max_signed_longlong = 2 ** (sizeof_clonglong * 8 - 1) - 1
-_min_signed_longlong = -(2 ** (sizeof_clonglong * 8 - 1))
-
-
-def isPythonValidCLongValue(value):
-    return _min_signed_long <= value <= _max_signed_long
-
-
-def isPythonValidCLongLongValue(value):
-    return _min_signed_longlong <= value <= _max_signed_longlong
-
-
 def getInstalledPythonRegistryPaths(version):
     """Yield all Pythons as found in the Windows registry."""
     # Windows only code,

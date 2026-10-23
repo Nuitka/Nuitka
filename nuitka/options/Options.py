@@ -53,6 +53,10 @@ from nuitka.PythonVersions import (
     python_version_str,
 )
 from nuitka.States import states
+from nuitka.targets.Targets import (
+    getTargetSpecification,
+    setTargetSpecification,
+)
 from nuitka.Tracing import (
     doNotBreakSpaces,
     general,
@@ -340,6 +344,33 @@ Error, '%s' value '%s' is not a legal filename: %s%s."""
         )
 
 
+def _applyTargetSpecification(target_desc):
+    """Normalize the given '--target' value and install the target specification."""
+    target_aliases = (
+        ("native", "native"),
+        ("wasi", "wasm32-wasi"),
+        ("wasm32-wasi", "wasm32-wasi"),
+        ("wasm32-wasip1", "wasm32-wasi"),
+        ("win32", "i686-w64-mingw32"),
+        ("windows-x86", "i686-w64-mingw32"),
+        ("i686-w64-mingw32", "i686-w64-mingw32"),
+    )
+
+    target_spec = dict(target_aliases).get(target_desc)
+
+    if target_spec is None:
+        supported_targets = OrderedSet(
+            canonical_target for _alias, canonical_target in target_aliases
+        )
+
+        return options_logger.sysexit(
+            "Error, unsupported cross compilation target '%s'. Supported targets are: %s."
+            % (target_desc, ", ".join(supported_targets))
+        )
+
+    setTargetSpecification(target_spec)
+
+
 def parseArgs():
     """Parse the command line arguments
 
@@ -352,6 +383,13 @@ def parseArgs():
     is_nuitka_run, options, positional_args, extra_args = parseOptions(
         logger=options_logger
     )
+
+    _applyTargetSpecification(options.target_desc)
+
+    if getTargetSpecification().isWasiTarget() and not isZig():
+        return options_logger.sysexit("""\
+Error, '--target=wasm32-wasi' is currently only supported together with \
+'--zig'.""")
 
     states.is_debug = _isDebug()
     states.is_non_debug = not states.is_debug
@@ -3580,11 +3618,10 @@ def shallShowExecutedCommands():
 
 def getTargetPythonDescription():
     """:returns: tuple(python_version,OS/arch) string derived from ``--target``"""
-    if options.target_spec is not None:
-        # TODO: Only one we are working on right now.
-        assert options.target_spec == "wasi"
+    target_description = getTargetSpecification().getDescription()
 
-        return python_version, "wasi"
+    if target_description != "native":
+        return python_version, target_description
 
     return None
 

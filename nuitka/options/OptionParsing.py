@@ -2657,11 +2657,11 @@ target_group.add_option(
     action="store",
     dest="target_desc",
     metavar="TARGET_DESC",
-    default=None,
+    default="native",
     help="""\
 Cross compilation target. Highly experimental and in development, not
-supposed to work yet. We are working on '--target=wasi' and nothing
-else yet.""",
+supposed to work yet. The default is 'native'; the cross targets
+are 'wasm32-wasi' and 'i686-w64-mingw32'.""",
 )
 
 del target_group
