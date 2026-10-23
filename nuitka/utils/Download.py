@@ -26,7 +26,7 @@ from .FileOperations import (
     openTextFile,
     queryUser,
 )
-from .Zipfiles import getZipFile
+from .Zipfiles import extractZipFile
 
 
 def getCertifiModule():
@@ -198,7 +198,7 @@ def getCachedDownload(
     download_ok,
 ):
     # Many branches to deal with.
-    # pylint: disable=too-many-branches,too-many-locals,too-many-return-statements
+    # pylint: disable=too-many-locals,too-many-return-statements
 
     nuitka_download_dir = getDownloadCacheDir()
 
@@ -246,18 +246,23 @@ def getCachedDownload(
         if not os.path.isfile(exe_path) and os.path.isfile(download_path):
             general.info("Extracting to '%s'" % exe_path)
 
+            def get_target_filename(member_name):
+                if not member_name or member_name.endswith("/"):
+                    return None
+
+                if flatten:
+                    return os.path.basename(member_name)
+
+                return member_name
+
             try:
-                with getZipFile(
-                    zip_path=download_path, error_exit=False, logger=general
-                ) as zip_file:
-                    for zip_info in zip_file.infolist():
-                        if zip_info.filename[-1] == "/":
-                            continue
-
-                        if flatten:
-                            zip_info.filename = os.path.basename(zip_info.filename)
-
-                        zip_file.extract(zip_info, nuitka_download_dir)
+                extractZipFile(
+                    zip_path=download_path,
+                    target_dir=nuitka_download_dir,
+                    get_target_filename=get_target_filename,
+                    error_exit=False,
+                    logger=general,
+                )
 
             except (
                 # Catching anything zip throws, pylint: disable=broad-except

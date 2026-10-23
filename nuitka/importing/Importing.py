@@ -24,7 +24,6 @@ it's from the standard library, one can abuse the attribute ``__file__`` of the
 import collections
 import os
 import sys
-import zipfile
 
 from nuitka.__past__ import iter_modules
 from nuitka.containers.Namedtuples import makeNamedtupleClass
@@ -1123,9 +1122,6 @@ def _unpackPathElement(path_entry):
                             error_exit=False,
                             logger=recursion_logger,
                         ) as zip_ref:
-                            if zip_ref is None:
-                                raise zipfile.BadZipFile("Bad zip file.")
-
                             zip_ref.extractall(target_dir)
                     except BaseException:
                         removeDirectory(

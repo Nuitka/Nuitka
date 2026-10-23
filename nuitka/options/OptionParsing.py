@@ -2664,6 +2664,18 @@ supposed to work yet. The default is 'native'; the cross targets
 are 'wasm32-wasi' and 'i686-w64-mingw32'.""",
 )
 
+target_group.add_option(
+    "--wasi-python-prefix",
+    action="store",
+    dest="wasi_python_prefix",
+    metavar="DIRECTORY",
+    default=None,
+    help="""\
+Directory of a WASI CPython installation to use with '--target=wasm32-wasi'.
+When not given, Nuitka downloads and caches a matching prebuilt WASI Python.
+Default empty.""",
+)
+
 del target_group
 
 
