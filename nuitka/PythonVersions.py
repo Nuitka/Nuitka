@@ -114,6 +114,8 @@ def _getPythonVersion():
 
 python_version = _getPythonVersion()
 
+python_version_short = tuple(sys.version_info[:2])
+python_version_full = tuple(sys.version_info[:3])
 python_version_full_str = ".".join(str(s) for s in sys.version_info[0:3])
 python_version_str = ".".join(str(s) for s in sys.version_info[0:2])
 

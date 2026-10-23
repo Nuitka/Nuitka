@@ -1551,6 +1551,16 @@ def addFileExecutablePermission(filename):
         os.chmod(filename, mode)
 
 
+def renameDirectory(source_path, dest_path):
+    """Rename a directory.
+
+    Args:
+        source_path: Source path.
+        dest_path: Destination path.
+    """
+    os.rename(source_path, dest_path)
+
+
 def renameFile(source_filename, dest_filename):
     """Rename a file, with failover to copy+delete on Windows.
 

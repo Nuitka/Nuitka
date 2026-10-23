@@ -106,6 +106,7 @@ from nuitka.utils.Utils import (
     isWin32OrPosixWindows,
     isWin32Windows,
 )
+from nuitka.utils.WasiPython import checkWasiPreconditions
 from nuitka.Version import getCommercialVersion, getNuitkaVersion
 from nuitka.VersionCheck import getNuitkaUpdateStatusValue
 
@@ -254,6 +255,18 @@ when '--mode=onefile' is not specified.""" % option_name
                 options_logger.warning(message)
 
 
+def _warnWasiOnlyOption(option_name):
+    if not getTargetSpecification().isWasiTarget():
+        message = """\
+Using WASI specific option '%s' has no effect \
+when '--target=wasm32-wasi' is not specified.""" % option_name
+
+        if options.github_workflow_options:
+            options_logger.info(message)
+        else:
+            options_logger.warning(message)
+
+
 def _warningModuleModeOnlyOption(option_name):
     if options.compilation_mode not in ("module", "package"):
         if options.github_workflow_options:
@@ -386,10 +399,13 @@ def parseArgs():
 
     _applyTargetSpecification(options.target_desc)
 
-    if getTargetSpecification().isWasiTarget() and not isZig():
-        return options_logger.sysexit("""\
-Error, '--target=wasm32-wasi' is currently only supported together with \
-'--zig'.""")
+    if getTargetSpecification().isWasiTarget():
+        checkWasiPreconditions(
+            is_zig=isZig(),
+            wasi_python_prefix=getWasiPythonPrefixPath(),
+        )
+    elif options.wasi_python_prefix is not None:
+        _warnWasiOnlyOption("--wasi-python-prefix")
 
     states.is_debug = _isDebug()
     states.is_non_debug = not states.is_debug
@@ -3624,6 +3640,14 @@ def getTargetPythonDescription():
         return python_version, target_description
 
     return None
+
+
+def getWasiPythonPrefixPath():
+    """*str* or *None*, value of ``--wasi-python-prefix``"""
+    if options.wasi_python_prefix is None:
+        return None
+
+    return getUserInputNormalizedPath(options.wasi_python_prefix)
 
 
 def getFcfProtectionMode():
