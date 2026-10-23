@@ -117,7 +117,6 @@
 #endif
 #endif
 
-// Some handy macro definitions, e.g. unlikely and NUITKA_MAY_BE_UNUSED
 #include "nuitka/defines.h"
 
 #if _NUITKA_EXPERIMENTAL_EXTRA_ONEFILE_INCLUDES_BOOL
@@ -1469,8 +1468,6 @@ static int runPythonCodeDLL(filename_char_t const *dll_filename, int argc, nativ
 
     if (!hGetProcIDDLL) {
         fatalIOError("Error, load DLL.", getLastErrorCode());
-
-        return EXIT_FAILURE;
     }
 
     typedef int(__stdcall * nuitka_dll_function_ptr)(int, wchar_t **, wchar_t const *);
@@ -1490,8 +1487,6 @@ static int runPythonCodeDLL(filename_char_t const *dll_filename, int argc, nativ
 
     if (dll_function.as_function == NULL) {
         fatalError("Error, DLL entry point not found.");
-
-        return EXIT_FAILURE;
     }
 
     return (*dll_function.as_function)(argc, argv, dll_filename);
@@ -1508,7 +1503,6 @@ static int runPythonCodeDLL(filename_char_t const *dll_filename, int argc, nativ
         }
 
         fatalError(error);
-        return EXIT_FAILURE;
     }
 
     nuitka_dll_function_ptr nuitka_dll_function = (nuitka_dll_function_ptr)dlsym(handle, "run_code");
@@ -1536,9 +1530,12 @@ native_command_line_argument_t const *getOriginalArgv0(void) {
 int __stdcall wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, wchar_t *lpCmdLine, int nCmdShow) {
     int argc = __argc;
     wchar_t **argv = __wargv;
+
+    NUITKA_UNREFERENCED_PARAMETER(argc);
 #else
 #if defined(_WIN32)
 int wmain(int argc, wchar_t **argv) {
+    NUITKA_UNREFERENCED_PARAMETER(argc);
 #else
 int main(int argc, char **argv) {
 #endif

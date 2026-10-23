@@ -14,6 +14,11 @@
 #define NUITKA_MAY_BE_UNUSED
 #endif
 
+/* A way to mark parameters as intentionally unused, avoiding warnings about
+ * them not being referenced.
+ */
+#define NUITKA_UNREFERENCED_PARAMETER(parameter) ((void)(parameter))
+
 /* A way to make a struct type alias any other type, disabling strict-aliasing
  * optimizations for accesses through it.
  */

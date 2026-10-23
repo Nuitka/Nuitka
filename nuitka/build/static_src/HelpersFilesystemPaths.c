@@ -526,6 +526,9 @@ bool copyFile(filename_char_t const *source, filename_char_t const *dest, int mo
 
     return result;
 #else
+    // No mode to copy on Windows.
+    NUITKA_UNREFERENCED_PARAMETER(mode);
+
     return CopyFileW(source, dest, 0) != 0;
 #endif
 }
