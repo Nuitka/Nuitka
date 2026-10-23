@@ -107,6 +107,10 @@ def generateTryCode(statement, emit, context):
         # and therefore needs to be released before being updated with a new
         # return value.
         old_return_value_release = context.setReturnReleaseMode(True)
+        old_return_release_loop_targets = context.setReturnReleaseLoopTargets(
+            break_target=context.getLoopBreakTarget(),
+            continue_target=context.getLoopContinueTarget(),
+        )
 
         # If the return value is abandoned by the handler, e.g. because a
         # "finally" block raises, the return value must be released, or it
@@ -141,6 +145,7 @@ def generateTryCode(statement, emit, context):
             emit("%s = NULL;" % return_value_name)
             getGotoCode(old_return_handler_exception_escape, emit)
 
+        context.setReturnReleaseLoopTargets(*old_return_release_loop_targets)
         context.setReturnReleaseMode(old_return_value_release)
 
         assert return_handler.isStatementAborting()

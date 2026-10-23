@@ -103,6 +103,13 @@ def _addPythonWarningSettings(env):
             # as they work.
             env.Append(CCFLAGS=["/wd4996"])
 
+    # Disable warnings, that Python 2.6 headers show with MSVC, where they
+    # declare 'acosh', 'asinh', 'atanh', and 'log1p' differently from the
+    # UCRT headers, causing C4273 warnings, which is enabled even outside
+    # of debug mode.
+    if env.msvc_mode and env.python_version < (2, 7):
+        env.Append(CCFLAGS=["/wd4273"])
+
 
 def applyPythonBuildSettings(env):
     _addPythonIncludePaths(env)

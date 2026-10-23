@@ -22,10 +22,14 @@ static struct _Py_bytes_state *Nuitka_Py_get_bytes_state(void) {
     PyInterpreterState *interp = _PyInterpreterState_GET();
     return &interp->bytes;
 }
-#else
+#elif PYTHON_VERSION < 0x3c0
 #define BYTES_CHARACTERS _Py_SINGLETON(bytes_characters)
 #define BYTES_CHARACTER(ch) ((PyBytesObject *)&(BYTES_CHARACTERS[ch]));
 #define BYTES_EMPTY (&_Py_SINGLETON(bytes_empty))
+#else
+#define BYTES_CHARACTERS (Nuitka_PyRuntime__static_objects->singletons.bytes_characters)
+#define BYTES_CHARACTER(ch) ((PyBytesObject *)&(BYTES_CHARACTERS[ch]));
+#define BYTES_EMPTY (&Nuitka_PyRuntime__static_objects->singletons.bytes_empty)
 #endif
 
 PyObject *Nuitka_Bytes_FromStringAndSize(const char *data, Py_ssize_t size) {

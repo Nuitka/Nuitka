@@ -22,6 +22,10 @@
 
 #include "nuitka/prelude.h"
 
+#if !defined(_WIN32)
+#include <signal.h>
+#endif
+
 #if _NUITKA_ONEFILE_MODE && !defined(_WIN32)
 #include <errno.h>
 #include <pthread.h>
@@ -73,6 +77,19 @@
 
 #if defined(_WIN32) && (defined(_NUITKA_ATTACH_CONSOLE_WINDOW) || defined(_NUITKA_DISABLE_CONSOLE_WINDOW))
 #include "HelpersDialogs.c"
+#endif
+
+// No longer in header files, but still usable.
+#if PYTHON_VERSION >= 0x3d0
+PyAPI_FUNC(void) PySys_AddWarnOption(const wchar_t *s);
+#endif
+#if PYTHON_VERSION >= 0x3f0
+PyAPI_FUNC(void) PySys_ResetWarnOptions(void);
+PyAPI_FUNC(wchar_t *) Py_GetPath(void);
+#endif
+
+#if NO_PYTHON_WARNINGS
+#include "HelpersWarnings.c"
 #endif
 
 // We are open to having this defined otherwise, this is a default only.
@@ -402,6 +419,13 @@ static int HANDLE_PROGRAM_EXIT(PyThreadState *tstate) {
     int exit_code;
 
     if (HAS_ERROR_OCCURRED(tstate)) {
+#if PYTHON_VERSION >= 0x380
+        // Since Python 3.8, CPython reports an unhandled KeyboardInterrupt
+        // like a SIGINT driven exit, or "STATUS_CONTROL_C_EXIT" on Windows.
+        bool is_keyboard_interrupt =
+            EXCEPTION_MATCH_BOOL_SINGLE(tstate, GET_ERROR_OCCURRED(tstate), PyExc_KeyboardInterrupt);
+#endif
+
         // TODO: Clarify which versions this applies to still
 #if PYTHON_VERSION >= 0x300 && PYTHON_VERSION < 0x3c0
         /* Remove the frozen importlib traceback part, which would not be compatible. */
@@ -476,7 +500,15 @@ included by default",
 
         PyErr_PrintEx(0);
 
+#if PYTHON_VERSION >= 0x380
+#if defined(_WIN32)
+        exit_code = is_keyboard_interrupt ? (int)0xC000013A : 1;
+#else
+        exit_code = is_keyboard_interrupt ? 128 + SIGINT : 1;
+#endif
+#else
         exit_code = 1;
+#endif
     } else {
         exit_code = 0;
     }
@@ -1477,15 +1509,6 @@ extern wchar_t const *getBinaryFilenameWideChars(bool resolve_symlinks);
 extern char const *getBinaryFilenameHostEncoded(bool resolve_symlinks);
 #endif
 
-// No longer in header files, but still usable.
-#if PYTHON_VERSION >= 0x3d0
-PyAPI_FUNC(void) PySys_AddWarnOption(const wchar_t *s);
-#endif
-#if PYTHON_VERSION >= 0x3f0
-PyAPI_FUNC(void) PySys_ResetWarnOptions(void);
-PyAPI_FUNC(wchar_t *) Py_GetPath(void);
-#endif
-
 // Preserve and provide the original argv[0] as recorded by the bootstrap stage.
 static native_command_line_argument_t const *original_argv0 = NULL;
 
@@ -1582,7 +1605,12 @@ static volatile struct timeval _last_sigint_timeval = {0, 0};
 static volatile sig_atomic_t _last_sigint_from_parent = 0;
 
 static void _ourSigintDeduplicationHandler(int sig, siginfo_t *info, void *ucontext) {
+#if defined(__APPLE__)
+    // On macOS, kill(2) delivers si_code == 0 rather than SI_USER.
+    bool from_parent = (info != NULL && info->si_pid == getppid());
+#else
     bool from_parent = (info != NULL && info->si_code == SI_USER && info->si_pid == getppid());
+#endif
     struct timeval now;
 
     if (gettimeofday(&now, NULL) == 0) {
@@ -1592,11 +1620,25 @@ static void _ourSigintDeduplicationHandler(int sig, siginfo_t *info, void *ucont
 
             if (elapsed_ms >= 0 && elapsed_ms < 100) {
                 if (from_parent || _last_sigint_from_parent) {
-                    // Duplicate detected, suppress.s
+                    // Duplicate detected, suppress.
                     return;
                 }
             }
         }
+
+#if defined(__APPLE__)
+        // The parent bootstrap forwards SIGINT to us, but it can run after
+        // us already received the same signal from the process group. Give
+        // that forwarding a chance to arrive while SIGINT is blocked, so it
+        // is suppressed as a duplicate rather than interrupting shutdown.
+        if (from_parent == false) {
+            struct timespec duplicate_delay = {0, 100000000L};
+
+            nanosleep(&duplicate_delay, NULL);
+            gettimeofday(&now, NULL);
+        }
+#endif
+
         _last_sigint_timeval.tv_sec = now.tv_sec;
         _last_sigint_timeval.tv_usec = now.tv_usec;
         _last_sigint_from_parent = from_parent;
@@ -1897,17 +1939,7 @@ static int Nuitka_Main(int argc, native_command_line_argument_t **argv) {
 
     /* Disable CPython warnings if requested to. */
 #if NO_PYTHON_WARNINGS
-    NUITKA_PRINT_TRACE("main(): Disabling Python warnings.");
-    {
-
-#if PYTHON_VERSION >= 0x300
-        wchar_t ignore[] = L"ignore";
-#else
-        char ignore[] = "ignore";
-#endif
-        PySys_ResetWarnOptions();
-        PySys_AddWarnOption(ignore);
-    }
+    setupWarningsEarly();
 #endif
 
 // Workaround older Python not handling stream setup on redirected files properly.
@@ -2147,17 +2179,8 @@ static int Nuitka_Main(int argc, native_command_line_argument_t **argv) {
     _PyWarnings_Init();
 #endif
 
-#if NO_PYTHON_WARNINGS && PYTHON_VERSION >= 0x342 && PYTHON_VERSION < 0x3a0 && defined(_NUITKA_FULL_COMPAT)
-    // For full compatibility bump the warnings registry version,
-    // otherwise modules "__warningregistry__" will mismatch.
-    PyObject *warnings_module = PyImport_ImportModule("warnings");
-    PyObject *meth = PyObject_GetAttrString(warnings_module, "_filters_mutated");
-
-    CALL_FUNCTION_NO_ARGS(tstate, meth);
-#if PYTHON_VERSION < 0x380
-    // Two times, so "__warningregistry__" version matches.
-    CALL_FUNCTION_NO_ARGS(tstate, meth);
-#endif
+#if NO_PYTHON_WARNINGS
+    setupWarningsLate(tstate);
 #endif
 
 #if PYTHON_VERSION >= 0x300

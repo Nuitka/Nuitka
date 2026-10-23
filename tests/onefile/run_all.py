@@ -72,7 +72,6 @@ def main():
         report_filename = "test-compilation-report.xml"
 
         extra_flags = [
-            "expect_success",
             "remove_output",
             # Keep the binary, normally "remove_output" includes that.
             "--keep-binary",
@@ -103,7 +102,11 @@ def main():
                 )
                 continue
 
+            # The test exits non-zero to check the exit code is passed on.
+            extra_flags.append("expect_failure")
             extra_flags.append("--send-ctrl-c")
+        else:
+            extra_flags.append("expect_success")
 
         if filename == "ExternalDataTest.py":
             extra_flags.append("--output-dir=%s" % getTempDir())

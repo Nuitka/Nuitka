@@ -869,6 +869,24 @@ print(
     getattr(AttributeRaisingAttributeError(), "attr", "default"),
 )
 
+
+def listIndexMissing(value):
+    try:
+        return [1, 9].index(value)
+    except ValueError as e:
+        return repr(e)
+
+
+def listIndexMissingInRange(value, start, stop):
+    try:
+        return [1, 9].index(value, start, stop)
+    except ValueError as e:
+        return repr(e)
+
+
+print("list.index of missing value:", listIndexMissing(7))
+print("list.index of value outside of range:", listIndexMissingInRange(9, 0, 1))
+
 #     Python tests originally created or extracted from other peoples work. The
 #     parts were too small to be protected.
 #

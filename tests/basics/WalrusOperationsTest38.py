@@ -112,6 +112,27 @@ print("case5-caught", case5_pop3_in_try([], x=1))
 print("case6", case6_shadows_outer_function())
 print("case7", runCoroutine(case7_asynchronous_generator_expression()))
 
+
+# TODO: This is not a walrus operation, it should be a separate test case, but
+# currently this avoids the overhead of another test run.
+def returnInFinallyWithContinue():
+    """Return in tried block with continue in final block."""
+
+    for i in range(2):
+        try:
+            return "abandoned"
+        finally:
+            print("continue in final block", i)
+
+            if i == 0:
+                continue
+            break
+
+    return "done"
+
+
+print("return-in-finally-with-continue", returnInFinallyWithContinue())
+
 #     Python tests originally created or extracted from other peoples work. The
 #     parts were too small to be protected.
 #

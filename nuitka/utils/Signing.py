@@ -36,6 +36,8 @@ _macos_find_identity_pattern = re.compile(
     r'^\s*\d+\)\s+([0-9A-F]+)\s+"(.*)"(?:\s+\(.*\))?$'
 )
 
+_macos_identity_hash_pattern = re.compile(r"^[0-9A-Fa-f]{40}$")
+
 
 def _filterCodesignErrorOutput(stderr, signing_identity, signing_keychain_filename):
     stderr = b"\n".join(
@@ -172,6 +174,94 @@ def _unlockMacIdentityKeychain(signing_keychain_filename):
     )
 
 
+def _getMacOSKeychainSearchList():
+    """Get the list of keychains 'codesign' searches for signing identities.
+
+    Returns:
+        list of str - Keychain filenames in the user's search list.
+    """
+    output = executeToolChecked(
+        logger=postprocessing_logger,
+        command=["security", "list-keychains", "-d", "user"],
+        absence_message=_macos_security_usage,
+        stderr_filter=_filterSecurityErrorOutput,
+        decoding=str is not bytes,
+    )
+
+    result = []
+
+    for line in output.splitlines():
+        line = line.strip()
+
+        if line.startswith('"') and line.endswith('"'):
+            line = line[1:-1]
+
+        if line:
+            result.append(line)
+
+    return result
+
+
+def _setMacOSKeychainSearchList(keychain_filenames):
+    """Set the list of keychains 'codesign' searches for signing identities.
+
+    Args:
+        keychain_filenames - list of str - Keychain filenames to use.
+
+    Returns:
+        None
+    """
+    executeToolChecked(
+        logger=postprocessing_logger,
+        command=["security", "list-keychains", "-d", "user", "-s"]
+        + list(keychain_filenames),
+        absence_message=_macos_security_usage,
+        stderr_filter=_filterSecurityErrorOutput,
+    )
+
+
+@contextmanager
+def _withMacOSKeychainInSearchList(signing_keychain_filename):
+    """Make a keychain visible to 'codesign' for the duration of the context.
+
+    'codesign' only searches the user's keychain search list for signing
+    identities. The '--keychain' option alone does not make a keychain that is
+    not in that list usable, so a temporary copy used for signing has to be
+    added to the search list temporarily and the previous list restored
+    afterwards.
+
+    Args:
+        signing_keychain_filename - Filename of the keychain to add.
+
+    Yields:
+        None
+    """
+    old_search_list = _getMacOSKeychainSearchList()
+
+    _setMacOSKeychainSearchList(
+        [signing_keychain_filename]
+        + [
+            keychain_filename
+            for keychain_filename in old_search_list
+            if keychain_filename != signing_keychain_filename
+            if os.path.exists(keychain_filename)
+        ]
+    )
+
+    try:
+        yield
+    finally:
+        # Only remove our own entry, so that concurrent signings that added
+        # theirs meanwhile keep working.
+        _setMacOSKeychainSearchList(
+            [
+                keychain_filename
+                for keychain_filename in _getMacOSKeychainSearchList()
+                if keychain_filename != signing_keychain_filename
+            ]
+        )
+
+
 @contextmanager
 def withUnlockedMacIdentityKeychain(signing_keychain_filename):
     """Unlock a macOS keychain for codesign without dirtying the original.
@@ -189,7 +279,8 @@ def withUnlockedMacIdentityKeychain(signing_keychain_filename):
         ``set-key-partition-list`` modify the keychain file in place
         (timestamps / ACL). When the keychain is the checked-in
         this would dirty the git worktree, so we operate on a git-ignored
-        temporary copy.
+        temporary copy. Since ``codesign`` only searches the keychain search
+        list, the temporary copy is added to it while signatures are made.
     """
     if signing_keychain_filename is None:
         yield None
@@ -204,9 +295,10 @@ def withUnlockedMacIdentityKeychain(signing_keychain_filename):
     ) as tmp_filename:
         copyFile(signing_keychain_filename, tmp_filename)
 
-        _unlockMacIdentityKeychain(tmp_filename)
+        with _withMacOSKeychainInSearchList(tmp_filename):
+            _unlockMacIdentityKeychain(tmp_filename)
 
-        yield tmp_filename
+            yield tmp_filename
 
 
 def _detectMacOSCodeSigningIdentity(signing_keychain_filename=None):
@@ -253,10 +345,56 @@ def _detectMacOSCodeSigningIdentity(signing_keychain_filename=None):
             % (signing_name, signing_keychain_filename)
         )
 
-    if signing_keychain_filename is not None:
-        return signing_name
-    else:
-        return identity_hash
+    # Use the hash rather than the name, because other keychains in the
+    # search list may contain an identity with the same name, which codesign
+    # would consider ambiguous.
+    return identity_hash
+
+
+def _resolveMacOSCodeSigningIdentity(signing_identity, signing_keychain_filename):
+    """Resolve a signing identity name to its hash in the given keychain.
+
+    Args:
+        signing_identity - The identity name requested by the user.
+        signing_keychain_filename - The keychain to look the identity up in.
+
+    Returns:
+        str - Unique hash of the identity.
+
+    Notes:
+        This is macOS specific.
+    """
+    if _macos_identity_hash_pattern.match(signing_identity):
+        return signing_identity
+
+    identities = _getMacOSCodeSigningIdentities(
+        signing_keychain_filename=signing_keychain_filename
+    )
+
+    matching_identities = tuple(
+        (identity_hash, signing_name)
+        for identity_hash, signing_name in identities
+        if signing_name == signing_identity
+    )
+
+    if not matching_identities:
+        return postprocessing_logger.sysexit(
+            "Failed to detect code signing identity '%s' in keychain '%s'."
+            % (signing_identity, signing_keychain_filename)
+        )
+
+    if len(matching_identities) > 1:
+        return postprocessing_logger.sysexit(
+            "More than one code signing identity named '%s' in keychain '%s', cannot be used."
+            % (signing_identity, signing_keychain_filename)
+        )
+
+    identity_hash, _signing_name = matching_identities[0]
+
+    # Use the hash rather than the name, because other keychains in the
+    # search list may contain an identity with the same name, which codesign
+    # would consider ambiguous.
+    return identity_hash
 
 
 def addMacOSCodeSignature(filenames, entitlements_filename):
@@ -280,15 +418,25 @@ def addMacOSCodeSignature(filenames, entitlements_filename):
         getMacOSSigningCertificateFilename()
     ) as signing_keychain_filename:
         if identity == "auto":
-            identity = _detectMacOSCodeSigningIdentity(
+            signing_identity = _detectMacOSCodeSigningIdentity(
                 signing_keychain_filename=signing_keychain_filename
             )
+            signing_identity_display = signing_identity
+        elif signing_keychain_filename is not None:
+            signing_identity = _resolveMacOSCodeSigningIdentity(
+                signing_identity=identity,
+                signing_keychain_filename=signing_keychain_filename,
+            )
+            signing_identity_display = identity
+        else:
+            signing_identity = identity
+            signing_identity_display = identity
 
         command = [
             # Need to avoid Anaconda codesign.
             "/usr/bin/codesign",
             "-s",
-            identity,
+            signing_identity,
             "--force",
             "--deep",
             "--preserve-metadata=entitlements",
@@ -327,7 +475,7 @@ def addMacOSCodeSignature(filenames, entitlements_filename):
                 absence_message=_macos_codesign_usage,
                 stderr_filter=_filterCodesignErrorOutput,
                 context={
-                    "signing_identity": identity,
+                    "signing_identity": signing_identity_display,
                     "signing_keychain_filename": signing_keychain_filename,
                 },
             )

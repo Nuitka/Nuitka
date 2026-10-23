@@ -1,7 +1,12 @@
 #     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-"""In this test, we get killed after some time has passed, and want to see the KeyboardInterrupt exit."""
+"""In this test, we get killed after some time has passed, and want to see the KeyboardInterrupt exit.
+
+Notes:
+    The exit code of the child is deliberately non-zero, so that the onefile
+    bootstrap is checked to report the child exit code, rather than 0.
+"""
 
 # nuitka-project: --mode=onefile
 
@@ -17,7 +22,7 @@ try:
     time.sleep(10)
 except KeyboardInterrupt:
     print("Received KeyboardInterrupt.")
-    sys.exit(0)
+    sys.exit(42)
 else:
     print("Received no KeyboardInterrupt.")
     sys.exit(1)

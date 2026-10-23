@@ -83,6 +83,7 @@ template_coroutine_return_exit = """\
 
     coroutine->m_returned = %(return_value)s;
 
+%(function_cleanup)s
     return NULL;
 """
 

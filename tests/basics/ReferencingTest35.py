@@ -228,6 +228,19 @@ def simpleFunction13():
     return local_function(**host_params, pool_kwargs=pool_kwargs)
 
 
+def simpleFunction14():
+    @types.coroutine
+    def suspend():
+        yield
+
+    async def someCoroutine(value):
+        parameters = locals()
+        await suspend()
+        return parameters
+
+    run_async(someCoroutine([]))
+
+
 # These need stderr to be wrapped.
 tests_stderr = ()
 
