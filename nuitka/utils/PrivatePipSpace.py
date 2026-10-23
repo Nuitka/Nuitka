@@ -55,26 +55,26 @@ def _getCandidateBinPaths(site_packages):
     else:
         site_packages_folders = (site_packages,)
 
+    preferred_bin_paths = []
+
     for site_packages_folder in site_packages_folders:
         if isWin32Windows():
-            candidate_bin_paths.insert(
-                0,
+            preferred_bin_paths.append(
                 os.path.join(
                     os.path.dirname(os.path.dirname(site_packages_folder)), "Scripts"
-                ),
+                )
             )
         else:
-            candidate_bin_paths.insert(
-                0,
+            preferred_bin_paths.append(
                 os.path.join(
                     os.path.dirname(
                         os.path.dirname(os.path.dirname(site_packages_folder))
                     ),
                     "bin",
-                ),
+                )
             )
 
-    return candidate_bin_paths
+    return preferred_bin_paths + candidate_bin_paths
 
 
 def _normalizePrivatePipPackageName(package_name):
@@ -251,7 +251,7 @@ def _checkPrivatePipBinaryPath(
 ):
     """Check if a binary path is version compatible and usable."""
 
-    with withPrivatePipSitePackagesPathAdded():
+    with withPrivatePipSitePackagesPathAdded(binary_path=binary_path):
         if version is None:
             ok = True
             message = None
@@ -420,6 +420,46 @@ def getPrivatePipBaseFolder():
 _private_pip_site_packages_dirs = None
 
 
+def _getPreferredPrivatePipSitePackagesDir():
+    """Get the site-packages folder that pip installs into for this Python.
+
+    Notes:
+        The private pip space can contain the layouts of different Python
+        distributions with the same version, e.g. the system Python using
+        'dist-packages' and a standalone Python using 'site-packages'. The
+        layout of the Python that runs pip has to be preferred, because mixing
+        the layouts on the 'PYTHONPATH' can cause incompatible package files to
+        be loaded, e.g. compiled extensions from a different package version.
+    """
+    try:
+        # Python 2.6 does not provide it, and the layouts that need to be
+        # distinguished are all much newer.
+        import sysconfig
+    except ImportError:
+        return None
+
+    # Pip is called with "--root" and "--prefix .", so the paths have to be
+    # calculated relative to the download folder.
+    paths = sysconfig.get_paths(
+        vars={
+            "base": ".",
+            "platbase": ".",
+            "installed_base": ".",
+            "installed_platbase": ".",
+        }
+    )
+
+    for key in ("purelib", "platlib"):
+        relative_path = paths.get(key)
+
+        if relative_path:
+            return os.path.normpath(
+                os.path.join(getPrivatePipBaseFolder(), relative_path)
+            )
+
+    return None
+
+
 def _getPrivatePipSitePackagesDirs():
     """Get the site-packages directories of the private pip space.
 
@@ -428,7 +468,7 @@ def _getPrivatePipSitePackagesDirs():
         been used by different Python installations, which install into
         different locations, or when an older Nuitka version used a different
         pip layout. All of them are considered, to be robust against stale
-        layouts.
+        layouts, but the one of the current Python is used first.
     """
     # We use the global statement to cache the result across calls.
     # pylint: disable=global-statement
@@ -448,6 +488,14 @@ def _getPrivatePipSitePackagesDirs():
                     # folders themselves are of interest.
                     dirnames.remove(candidate)
 
+        preferred_site_packages_dir = _getPreferredPrivatePipSitePackagesDir()
+
+        if preferred_site_packages_dir is not None:
+            site_packages_dirs.sort(
+                key=lambda site_packages_dir: os.path.normpath(site_packages_dir)
+                != preferred_site_packages_dir
+            )
+
         _private_pip_site_packages_dirs = site_packages_dirs
 
     return _private_pip_site_packages_dirs
@@ -462,9 +510,50 @@ def _invalidatePrivatePipSitePackagesDirs():
     _private_pip_site_packages_dirs = None
 
 
-def withPrivatePipSitePackagesPathAdded():
-    """Context manager to add private pip site-packages to PYTHONPATH."""
+def _getPrivatePipSitePackagesDirForBinary(binary_path):
+    """Get the site-packages folder that a private pip binary belongs to.
+
+    Notes:
+        The binary can come from any of the layouts in the private pip space,
+        not necessarily the one that pip of the current Python uses, e.g. when
+        a tool was downloaded by a different Python distribution before.
+    """
+    binary_dir = os.path.normpath(os.path.dirname(binary_path))
+
+    for site_packages_folder in _getPrivatePipSitePackagesDirs():
+        if isWin32Windows():
+            scripts_dir = os.path.join(
+                os.path.dirname(os.path.dirname(site_packages_folder)), "Scripts"
+            )
+        else:
+            scripts_dir = os.path.join(
+                os.path.dirname(os.path.dirname(os.path.dirname(site_packages_folder))),
+                "bin",
+            )
+
+        if os.path.normpath(scripts_dir) == binary_dir:
+            return site_packages_folder
+
+    return None
+
+
+def withPrivatePipSitePackagesPathAdded(binary_path):
+    """Context manager to add private pip site-packages to PYTHONPATH.
+
+    Args:
+        binary_path: path to the binary that is going to be executed, used to
+            prefer the site-packages folder it was installed into.
+    """
     site_packages_dirs = _getPrivatePipSitePackagesDirs()
+
+    preferred_site_packages_dir = _getPrivatePipSitePackagesDirForBinary(binary_path)
+
+    if preferred_site_packages_dir is not None:
+        site_packages_dirs = [preferred_site_packages_dir] + [
+            site_packages_dir
+            for site_packages_dir in site_packages_dirs
+            if site_packages_dir != preferred_site_packages_dir
+        ]
 
     return withEnvironmentPathAdded("PYTHONPATH", *site_packages_dirs, prefix=True)
 
