@@ -2343,6 +2343,10 @@ static int Nuitka_Main(int argc, native_command_line_argument_t **argv) {
         if (tracker_module_name == NULL) {
             tracker_module_name = "multiprocessing.resource_tracker";
             tracker_entry = Nuitka_ResourceTrackerModuleEntry;
+        } else if (strcmp(tracker_module_name, "multiprocessing.semaphore_tracker") == 0) {
+            tracker_entry = Nuitka_SemaphoreTrackerModuleEntry;
+        } else {
+            tracker_entry = Nuitka_ResourceTrackerModuleEntry;
         }
 
         NUITKA_PRINTF_TRACE("main(): Launching as '%s'.\n", tracker_module_name);

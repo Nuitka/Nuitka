@@ -309,6 +309,10 @@ def getMetaPathLoaderBodyCode(bytecode_accessor):
             ModuleName.makeModuleNameInPackage("resource_tracker", "multiprocessing"),
         ),
         (
+            "Nuitka_SemaphoreTrackerModuleEntry",
+            ModuleName.makeModuleNameInPackage("semaphore_tracker", "multiprocessing"),
+        ),
+        (
             "Nuitka_JoblibPopenLokyWin32ModuleEntry",
             ModuleName.makeModuleNameInPackage(
                 "popen_loky_win32", "joblib.externals.loky.backend"

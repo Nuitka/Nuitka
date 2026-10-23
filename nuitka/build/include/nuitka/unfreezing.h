@@ -108,6 +108,7 @@ extern struct Nuitka_MetaPathBasedLoaderEntry const *const Nuitka_MainModuleEntr
 extern struct Nuitka_MetaPathBasedLoaderEntry const *const Nuitka_ParentsMainModuleEntry;
 extern struct Nuitka_MetaPathBasedLoaderEntry const *const Nuitka_ForkserverModuleEntry;
 extern struct Nuitka_MetaPathBasedLoaderEntry const *const Nuitka_ResourceTrackerModuleEntry;
+extern struct Nuitka_MetaPathBasedLoaderEntry const *const Nuitka_SemaphoreTrackerModuleEntry;
 extern struct Nuitka_MetaPathBasedLoaderEntry const *const Nuitka_JoblibPopenLokyWin32ModuleEntry;
 extern struct Nuitka_MetaPathBasedLoaderEntry const *const Nuitka_JoblibPopenLokyPosixModuleEntry;
 extern struct Nuitka_MetaPathBasedLoaderEntry const *const Nuitka_JoblibResourceTrackerModuleEntry;
