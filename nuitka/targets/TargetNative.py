@@ -1,0 +1,55 @@
+#     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+
+
+"""Target specification for the local Python ABI."""
+
+import ctypes
+import sys
+
+from nuitka.utils.Utils import getArchitecture
+
+from .Targets import TargetBase
+
+
+def _getPythonDigitBits():
+    if sys.version_info < (2, 7):
+        return 15
+    elif sys.version_info < (3, 0):
+        return sys.long_info.bits_per_digit
+    else:
+        return sys.int_info.bits_per_digit
+
+
+class TargetNative(TargetBase):
+    """Target specification derived from the running Python."""
+
+    def __init__(self):
+        TargetBase.__init__(
+            self,
+            name="native",
+            c_long_size=ctypes.sizeof(ctypes.c_long),
+            c_longlong_size=ctypes.sizeof(ctypes.c_longlong),
+            c_pointer_size=ctypes.sizeof(ctypes.c_void_p),
+            target_os="win32" if sys.platform == "win32" else sys.platform,
+            target_arch=getArchitecture(),
+            python_digit_bits=_getPythonDigitBits(),
+        )
+
+
+#     Part of "Nuitka", an optimizing Python compiler that is compatible and
+#     integrates with CPython, but also works on its own.
+#
+#     Licensed under the GNU Affero General Public License, Version 3 (the "License");
+#     you may not use this file except in compliance with the License.
+#     You may obtain a copy of the License at
+#
+#        https://www.gnu.org/licenses/agpl-3.0.txt
+#
+#     See also: "Nuitka Runtime Library Exception, Version 1.0" in file
+#     "LICENSE-RUNTIME.txt" for additional permissions granted under Section 7.
+#
+#     Unless required by applicable law or agreed to in writing, software
+#     distributed under the License is distributed on an "AS IS" BASIS,
+#     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#     See the License for the specific language governing permissions and
+#     limitations under the License.

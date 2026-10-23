@@ -17,9 +17,9 @@ from nuitka.nodes.shapes.BuiltinTypeShapes import (
     tshape_str,
     tshape_unicode,
 )
-from nuitka.PythonVersions import (
-    isPythonValidCLongValue,
-    isPythonValidDigitValue,
+from nuitka.targets.Targets import (
+    isTargetValidCLongValue,
+    isTargetValidDigitValue,
 )
 
 from .c_types.CTypeCFloats import CTypeCFloat
@@ -31,9 +31,9 @@ from .VariableCodes import getLocalVariableDeclaration
 
 def _pickIntFamilyType(expression, context):
     if expression.isCompileTimeConstant():
-        if isPythonValidDigitValue(expression.getCompileTimeConstant()):
+        if isTargetValidDigitValue(expression.getCompileTimeConstant()):
             c_type = CTypeCLongDigit
-        elif isPythonValidCLongValue(expression.getCompileTimeConstant()):
+        elif isTargetValidCLongValue(expression.getCompileTimeConstant()):
             c_type = CTypeCLong
         else:
             c_type = CTypePyObjectPtr
