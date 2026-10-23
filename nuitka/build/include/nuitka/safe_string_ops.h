@@ -4,6 +4,12 @@
 #ifndef __NUITKA_SAFE_STRING_OPS_H__
 #define __NUITKA_SAFE_STRING_OPS_H__
 
+#ifdef __IDE_ONLY__
+#if defined(_WIN32)
+#include <windows.h>
+#endif
+#endif
+
 #include <errno.h>
 #include <stdbool.h>
 #include <stddef.h>

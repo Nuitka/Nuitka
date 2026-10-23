@@ -114,8 +114,8 @@ def _enableC11Settings(env):
         bool - c11_mode flag
     """
 
-    # Lots of cases to deal with
-
+    # The branch structure is intentional for readability.
+    # ruff: disable[SIM114]
     if "force-c11-mode" in env.experimental_flags:
         c11_mode = True
     elif "force-cpp-mode" in env.experimental_flags:
@@ -134,6 +134,7 @@ def _enableC11Settings(env):
         c11_mode = True
     else:
         c11_mode = False
+    # ruff: enable[SIM114]
 
     if c11_mode:
         if env.gcc_mode or env.zig_mode:
@@ -441,16 +442,18 @@ For Python version %s MSVC %s or later is required, not %s which is too old."""
     if compiler_path is not None:
         the_cc_name = os.path.basename(compiler_path)
 
-        if isGccName(the_cc_name):
-            if "force-accept-windows-gcc" not in env.experimental_flags:
-                scons_logger.info(
-                    "Non downloaded winlibs-gcc '%s' is being ignored, Nuitka is very dependent on the precise one."
-                    % (compiler_path,)
-                )
+        if (
+            isGccName(the_cc_name)
+            and "force-accept-windows-gcc" not in env.experimental_flags
+        ):
+            scons_logger.info(
+                "Non downloaded winlibs-gcc '%s' is being ignored, Nuitka is very dependent on the precise one."
+                % (compiler_path,)
+            )
 
-                # This also will trigger using it to use our own gcc in branch below.
-                compiler_path = None
-                env["CC"] = None
+            # This also will trigger using it to use our own gcc in branch below.
+            compiler_path = None
+            env["CC"] = None
 
     # This will download "gcc.exe" (or "zig.exe") when all others have been
     # rejected and MSVC is not enforced.
@@ -1546,16 +1549,15 @@ def setupCCompiler(env, pgo_mode, exe_target, onefile_compile):
     if env.zig_mode:
         env.Append(CPPDEFINES=["__ZIG__"])
 
-    if env.gcc_mode or env.clang_mode or env.zig_mode:
-        # Zig defaults to native CPU features (SSE4.1, AVX2, etc.) which
-        # may not be available on older or more generic machines.
-        if env.c_target_arch is None and env.zig_mode and not isMacOS():
-            if env.target_arch == "x86_64":
-                env.c_target_arch = "x86_64"
-            elif env.target_arch == "arm64":
-                env.c_target_arch = "armv8-a"
-            elif env.target_arch == "x86":
-                env.c_target_arch = "i586"
+    # Zig defaults to native CPU features (SSE4.1, AVX2, etc.) which
+    # may not be available on older or more generic machines.
+    if env.zig_mode and env.c_target_arch is None and not isMacOS():
+        if env.target_arch == "x86_64":
+            env.c_target_arch = "x86_64"
+        elif env.target_arch == "arm64":
+            env.c_target_arch = "armv8-a"
+        elif env.target_arch == "x86":
+            env.c_target_arch = "i586"
 
     if env.c_target_arch is not None:
         if env.msvc_mode or env.clangcl_mode:
@@ -1806,9 +1808,8 @@ def setupCCompiler(env, pgo_mode, exe_target, onefile_compile):
 
     # For MinGW64 we need to tell the subsystem to target as well as to
     # automatically import everything used.
-    if env.mingw_mode:
-        if not env.clang_mode:
-            env.Append(LINKFLAGS=["-Wl,--enable-auto-import"])
+    if env.mingw_mode and not env.clang_mode:
+        env.Append(LINKFLAGS=["-Wl,--enable-auto-import"])
 
     # Even if console is forced, for Win32 it means to specify Windows
     # subsystem, we can still attach or create.
