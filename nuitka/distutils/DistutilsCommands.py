@@ -67,12 +67,12 @@ class build(distutils.command.build.build):
         if self.distribution.entry_points is not None:
             for group, script_specs in self.distribution.entry_points.items():
                 for script_spec in script_specs:
+                    # Catch all the things.
                     try:
                         script_module_name = (
                             script_spec.split("=", 1)[1].strip().split(":")[0]
                         )
-                        # Catch all the things, pylint: disable=broad-except
-                    except Exception as e:
+                    except Exception as e:  # pylint: disable=broad-exception-caught
                         wheel_logger.warning(
                             "Problem parsing '%s' script specification in '%s' due to %s"
                             % (script_spec, group, e)
@@ -459,7 +459,8 @@ class build(distutils.command.build.build):
 
 # Required by distutils, used as command name, pylint: disable=invalid-name
 class install(distutils.command.install.install):
-    # pylint: disable=attribute-defined-outside-init
+    # False alarm on Python 3.11, needed on Python 3.12+ where distutils is no
+    # longer stdlib, pylint: disable=I0021,attribute-defined-outside-init
     def finalize_options(self):
         distutils.command.install.install.finalize_options(self)
         # Ensure the "purelib" folder is not used

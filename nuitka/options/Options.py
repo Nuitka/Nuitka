@@ -760,18 +760,18 @@ it before using it: '%s' (from --output-filename='%s')."""
             "Error, icon path executable '%s' does not exist." % icon_exe_path
         )
 
+    # Catch all the things, don't want any interface.
     try:
         file_version = getFileVersionTuple()
-    # Catch all the things, don't want any interface, pylint: disable=broad-except
-    except Exception:
+    except Exception:  # pylint: disable=broad-exception-caught
         return options_logger.sysexit(
             "Error, file version must be a tuple of up to 4 integer values."
         )
 
+    # Catch all the things, don't want any interface.
     try:
         product_version = getProductVersionTuple()
-    # Catch all the things, don't want any interface, pylint: disable=broad-except
-    except Exception:
+    except Exception:  # pylint: disable=broad-exception-caught
         return options_logger.sysexit(
             "Error, product version must be a tuple of up to 4 integer values."
         )

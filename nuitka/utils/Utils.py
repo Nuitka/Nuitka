@@ -14,7 +14,9 @@ import sys
 import time
 from contextlib import contextmanager
 
-from nuitka.__past__ import WindowsError  # pylint: disable=I0021,redefined-builtin
+from nuitka.__past__ import (  # pylint: disable=I0021,redefined-builtin
+    WindowsError,
+)
 
 
 def getOS():
@@ -477,7 +479,9 @@ def withWarningRemoved(category):
         # are not to care about.
         if "pkg_resources" in sys.modules and category is DeprecationWarning:
             try:
-                from pkg_resources import PkgResourcesDeprecationWarning  # type: ignore
+                from pkg_resources import (  # type: ignore
+                    PkgResourcesDeprecationWarning,
+                )
             except ImportError:
                 pass
             else:

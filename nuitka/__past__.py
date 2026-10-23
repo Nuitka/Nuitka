@@ -59,7 +59,9 @@ else:
 
 
 if str is bytes:
-    from cStringIO import StringIO  # Python2 code, pylint: disable=import-error
+    from cStringIO import (  # Python2 code, pylint: disable=import-error
+        StringIO,
+    )
 else:
     from io import StringIO
 

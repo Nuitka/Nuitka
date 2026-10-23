@@ -161,8 +161,6 @@ class StatementLocalsDictSync(StatementLocalsDictSyncBase):
 
     __slots__ = ("previous_traces", "variable_traces")
 
-    # False alarm due to post_init, pylint: disable=attribute-defined-outside-init
-
     def postInitNode(self):
         self.previous_traces = None
         self.variable_traces = None

@@ -367,8 +367,6 @@ class StatementLocalsDictOperationSet(StatementLocalsDictOperationSetBase):
 
     __slots__ = ("variable", "variable_version", "variable_trace")
 
-    # False alarm due to post_init, pylint: disable=attribute-defined-outside-init
-
     def postInitNode(self):
         self.variable = self.locals_scope.getLocalsDictVariable(
             variable_name=self.variable_name

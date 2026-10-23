@@ -16,7 +16,7 @@ from .ParameterSpecs import ParameterSpec, TooManyArguments, matchCall
 class BuiltinParameterSpec(ParameterSpec):
     __slots__ = ("builtin", "variations", "example_arguments")
 
-    def __init__(  # pylint: disable=too-many-arguments
+    def __init__(
         self,
         name,
         arg_names,

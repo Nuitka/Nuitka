@@ -29,8 +29,6 @@ class StatementTry(StatementTryBase):
 
     __slots__ = ("tried_may_raise",)
 
-    # False alarm due to post_init, pylint: disable=attribute-defined-outside-init
-
     def postInitNode(self):
         self.tried_may_raise = None
 

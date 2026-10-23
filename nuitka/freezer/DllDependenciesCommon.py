@@ -5,7 +5,9 @@
 
 import os
 
-from nuitka.__past__ import PermissionError  # pylint: disable=redefined-builtin
+from nuitka.__past__ import (  # pylint: disable=redefined-builtin
+    PermissionError,
+)
 from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.importing.Importing import locateModule
 from nuitka.plugins.Hooks import getModuleSpecificDllPaths
