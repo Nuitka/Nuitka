@@ -627,6 +627,14 @@ def buildAnnAssignNode(provider, node, source_ref):
     # Only annotations for modules and classes are really made, for functions
     # they are ignored like comments.
     if variable_name is not None:
+        if (
+            node.simple
+            and variable_name == "__class__"
+            and provider.isExpressionClassBodyBase()
+        ):
+            # An annotation without a value still makes the name class-local.
+            provider.getProvidedVariable(variable_name)
+
         if use_annotations and (
             provider.isExpressionClassBodyBase() or provider.isCompiledPythonModule()
         ):
