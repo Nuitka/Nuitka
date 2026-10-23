@@ -376,7 +376,7 @@ def isFreeBSD():
 
 
 def isOpenBSD():
-    """The FreeBSD OS."""
+    """The OpenBSD OS."""
     return getOS() == "OpenBSD"
 
 
@@ -440,8 +440,7 @@ def getCPUCoreCount():
 
 def hasOnefileSupportedOS():
     """Is onefile supported on this OS. Please help to add more."""
-    # List the exceptions where standalone works, but onefile does not.
-    return hasStandaloneSupportedOS() and getOS not in ("OpenBSD",)
+    return hasStandaloneSupportedOS()
 
 
 def hasStandaloneSupportedOS():

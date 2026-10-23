@@ -46,6 +46,16 @@ def getCompressorFunction(expect_compression, low_memory, job_limit):
         try:
             from compression import zstd
 
+            # Some libzstd builds lack multithreading support, in which case the
+            # valid range for 'nb_workers' is (0, 0), and passing a larger value
+            # is an error.
+            nb_workers_min, nb_workers_max = (
+                zstd.CompressionParameter.nb_workers.bounds()
+            )
+            effective_threads = min(
+                max(effective_threads, nb_workers_min), nb_workers_max
+            )
+
             @contextmanager
             def useCompressedFile(output_file):
                 options = {
@@ -63,11 +73,24 @@ def getCompressorFunction(expect_compression, low_memory, job_limit):
                     yield compressed_file
 
         except ImportError:
-            from zstandard import ZstdCompressor  # pylint: disable=I0021,import-error
-
-            compressor_context = ZstdCompressor(
-                level=getCompressorLevel(low_memory), threads=effective_threads
+            from zstandard import (  # pylint: disable=I0021,import-error
+                ZstdCompressor,
+                ZstdError,
             )
+
+            compression_level = getCompressorLevel(low_memory)
+
+            try:
+                compressor_context = ZstdCompressor(
+                    level=compression_level, threads=effective_threads
+                )
+            except ZstdError:
+                if not effective_threads:
+                    raise
+
+                # Some libzstd builds lack multithreading support, and reject
+                # any positive 'threads' value.
+                compressor_context = ZstdCompressor(level=compression_level, threads=0)
 
             @contextmanager
             def useCompressedFile(output_file):

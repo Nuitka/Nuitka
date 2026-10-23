@@ -127,6 +127,14 @@ static inline bool _INPLACE_OPERATION_POW_FLOAT_FLOAT(PyObject **operand1, PyObj
             errno = 0;
             double r = pow(a, b);
 
+            // Match CPython's '_Py_ADJUST_ERANGE1': Underflow is not an
+            // error, but infinity without errno is an overflow.
+            if (errno == 0 && Py_IS_INFINITY(r)) {
+                errno = ERANGE;
+            } else if (errno == ERANGE && r == 0.0) {
+                errno = 0;
+            }
+
             if (unlikely(errno != 0)) {
                 PyErr_SetFromErrno(errno == ERANGE ? PyExc_OverflowError : PyExc_ValueError);
                 goto exit_result_exception;
@@ -465,6 +473,14 @@ static inline bool _INPLACE_OPERATION_POW_OBJECT_FLOAT(PyObject **operand1, PyOb
             } else {
                 errno = 0;
                 double r = pow(a, b);
+
+                // Match CPython's '_Py_ADJUST_ERANGE1': Underflow is not an
+                // error, but infinity without errno is an overflow.
+                if (errno == 0 && Py_IS_INFINITY(r)) {
+                    errno = ERANGE;
+                } else if (errno == ERANGE && r == 0.0) {
+                    errno = 0;
+                }
 
                 if (unlikely(errno != 0)) {
                     PyErr_SetFromErrno(errno == ERANGE ? PyExc_OverflowError : PyExc_ValueError);
@@ -809,6 +825,14 @@ static inline bool _INPLACE_OPERATION_POW_FLOAT_OBJECT(PyObject **operand1, PyOb
             } else {
                 errno = 0;
                 double r = pow(a, b);
+
+                // Match CPython's '_Py_ADJUST_ERANGE1': Underflow is not an
+                // error, but infinity without errno is an overflow.
+                if (errno == 0 && Py_IS_INFINITY(r)) {
+                    errno = ERANGE;
+                } else if (errno == ERANGE && r == 0.0) {
+                    errno = 0;
+                }
 
                 if (unlikely(errno != 0)) {
                     PyErr_SetFromErrno(errno == ERANGE ? PyExc_OverflowError : PyExc_ValueError);

@@ -4912,6 +4912,11 @@
     - depends:
         - '._uuid'
 
+- module-name: 'psycopg_c._psycopg' # checksum: 473bd23b
+  implicit-imports:
+    - depends:
+        - '._uuid'
+
 - module-name: 'puremagic' # checksum: 8e1484eb
   data-files:
     - patterns:
@@ -5534,21 +5539,22 @@
         - 'libqsqlmimer'
         - 'libqtvkbplugin'
 
-- module-name: 'PySide6' # checksum: b5757f61
+- module-name: 'PySide6' # checksum: df84aca7
   implicit-imports:
-    # Non-limited API builds of Shiboken call "PyFunction_GetDefaults" on
-    # compiled functions in its signal argument counting and leak the
-    # resulting SystemError. Passing a "functools.partial" avoids that, but
-    # it has to be the same object for "connect" and "disconnect", therefore
-    # cached wrappers are used. Limited API builds use an attribute based
-    # fallback and are not affected, and only for them the compiled method is
-    # kept, preserving the receiver life time tracking of PySide6. The
-    # detection is done lazily with a probing connection, since frozen
-    # extension module filenames hide the API flavor, and imports are not
-    # safe while PySide6 itself is still being imported.
+    # Non-limited API Shiboken builds call "PyFunction_GetDefaults" on
+    # compiled functions and leak the resulting SystemError, so they get a
+    # cached non-function wrapper instead, also needed for "disconnect"
+    # identity. Limited API builds are unaffected and keep the compiled
+    # method, preserving PySide6 receiver tracking. Detection is lazy with a
+    # probing connection, because frozen filenames hide the API flavor and
+    # imports are unsafe during PySide6 import.
+    #
+    # PySide6 also over-releases "im_func", so function references are leaked
+    # into the Nuitka runtime to survive shutdown. Wrappers weakly reference
+    # receivers and are dropped on disconnect or receiver release.
     - post-import-code:
         - |
-          import functools
+          import weakref
 
           from PySide6 import QtCore
 
@@ -5566,7 +5572,7 @@
               try:
                 for _ in range(2):
                   probing_method = handler.probeMethod
-                  _protected.append(probing_method)
+                  probing_method.im_func.__nuitka_keep_alive__()
 
                   orig_connect(sender.destroyed, probing_method)
               except SystemError:
@@ -5579,8 +5585,50 @@
               return False
 
           _wrap_compiled_methods = None
-          _protected = []
           _wrapped = {}
+
+          class _CompiledMethodWrapper(object):
+            def __init__(self, func):
+              self.key = (id(func.im_self), func.im_func)
+              self.function = func.im_func
+              self.connections = []
+
+              try:
+                self.receiver_ref = weakref.ref(func.im_self, self._receiverGone)
+              except TypeError:
+                self.receiver_ref = None
+                self.strong_method = func
+
+            def _receiverGone(self, receiver_ref):
+              wrapper = _wrapped.pop(self.key, None)
+
+              if wrapper is not None:
+                wrapper.disconnectAll()
+
+            def addConnection(self, connection):
+              self.connections = [item for item in self.connections if item]
+              self.connections.append(connection)
+
+            def disconnectAll(self):
+              connections = self.connections
+              self.connections = []
+
+              for connection in connections:
+                try:
+                  QtCore.QObject.disconnect(connection)
+                except Exception:
+                  pass
+
+            def __call__(self, *args, **kwargs):
+              if self.receiver_ref is None:
+                return self.strong_method(*args, **kwargs)
+
+              receiver = self.receiver_ref()
+
+              if receiver is None:
+                return None
+
+              return self.function(receiver, *args, **kwargs)
 
           def protect(func):
             global _wrap_compiled_methods
@@ -5589,7 +5637,7 @@
                 if _wrap_compiled_methods is None:
                   _wrap_compiled_methods = doesCompiledMethodLeak()
 
-                _protected.append(func)
+                func.im_func.__nuitka_keep_alive__()
 
                 protected_name = func.im_func.__name__
 
@@ -5612,7 +5660,7 @@
                   wrapper = _wrapped.get(key)
 
                   if wrapper is None:
-                    wrapper = functools.partial(func)
+                    wrapper = _CompiledMethodWrapper(func)
                     _wrapped[key] = wrapper
 
                   return wrapper
@@ -5620,12 +5668,28 @@
             return func
 
           def patched_disconnect(self, slot=None):
-              return orig_disconnect(self, protect(slot))
+              slot = protect(slot)
+
+              result = orig_disconnect(self, slot)
+
+              if isinstance(slot, _CompiledMethodWrapper):
+                slot.connections = [item for item in slot.connections if item]
+
+                if not slot.connections:
+                  _wrapped.pop(slot.key, None)
+
+              return result
 
           def patched_connect(self, slot, type=None):
               type = type or QtCore.Qt.ConnectionType.AutoConnection
+              slot = protect(slot)
 
-              return orig_connect(self, protect(slot), type)
+              result = orig_connect(self, slot, type)
+
+              if isinstance(slot, _CompiledMethodWrapper):
+                slot.addConnection(result)
+
+              return result
 
           orig_disconnect = QtCore.SignalInstance.disconnect
           QtCore.SignalInstance.disconnect = patched_disconnect

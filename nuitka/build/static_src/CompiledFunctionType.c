@@ -974,9 +974,27 @@ static void Nuitka_Function_tp_dealloc(PyObject *self) {
 #endif
 }
 
-static PyMethodDef Nuitka_Function_methods[] = {{"__reduce__", (PyCFunction)Nuitka_Function_reduce, METH_NOARGS, NULL},
-                                                {"clone", (PyCFunction)Nuitka_Function_clone, METH_NOARGS, NULL},
-                                                {NULL}};
+static PyObject *Nuitka_Function_keep_alive(PyObject *self, PyObject *unused) {
+    // These are codified cases, pylint: disable=unused-argument
+    (void)unused;
+
+    CHECK_OBJECT(self);
+    assert(Nuitka_Function_Check(self));
+
+    // Deliberately leak a reference. External C code, e.g. PySide6 signal
+    // connections, may hold a borrowed pointer to compiled methods and release
+    // it after interpreter finalization, which would be a use after free
+    // otherwise.
+    Py_INCREF(self);
+
+    Py_RETURN_NONE;
+}
+
+static PyMethodDef Nuitka_Function_methods[] = {
+    {"__reduce__", (PyCFunction)Nuitka_Function_reduce, METH_NOARGS, NULL},
+    {"clone", (PyCFunction)Nuitka_Function_clone, METH_NOARGS, NULL},
+    {"__nuitka_keep_alive__", (PyCFunction)Nuitka_Function_keep_alive, METH_NOARGS, NULL},
+    {NULL}};
 
 static PyObject *Nuitka_Function_tp_call(PyObject *self, PyObject *tuple_args, PyObject *kw);
 

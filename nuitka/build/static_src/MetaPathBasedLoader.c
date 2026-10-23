@@ -24,6 +24,7 @@ static PyObject *IMPORT_HARD_OS_PATH(PyThreadState *tstate);
 
 #if _NUITKA_MODULE_MODE
 static char const *module_root_prefix = NULL;
+static char const *module_root_leaf = NULL;
 #endif
 
 #ifdef _WIN32
@@ -3089,6 +3090,8 @@ static PyObject *_nuitka_loader_find_distributions(PyObject *self, PyObject *arg
     return result;
 }
 
+#if !_NUITKA_FLAG_ISOLATED
+
 static char const *_kw_list_sys_path_hook[] = {"path", NULL};
 
 static PyObject *_nuitka_loader_sys_path_hook(PyObject *self, PyObject *args, PyObject *kwds) {
@@ -3101,11 +3104,6 @@ static PyObject *_nuitka_loader_sys_path_hook(PyObject *self, PyObject *args, Py
     }
 
     PyThreadState *tstate = PyThreadState_GET();
-
-#if defined(_NUITKA_FLAG_ISOLATED)
-    SET_CURRENT_EXCEPTION_TYPE0(tstate, PyExc_ImportError);
-    return NULL;
-#else
 
 #if 0
     PRINT_STRING("CONSIDER PATH:");
@@ -3158,8 +3156,9 @@ static PyObject *_nuitka_loader_sys_path_hook(PyObject *self, PyObject *args, Py
 
     SET_CURRENT_EXCEPTION_TYPE0(tstate, PyExc_ImportError);
     return NULL;
-#endif
 }
+
+#endif
 
 static PyMethodDef Nuitka_Loader_methods[] = {
 #ifndef _NUITKA_DISABLE_ITER_MODULES
@@ -3185,7 +3184,9 @@ static PyMethodDef Nuitka_Loader_methods[] = {
     {"find_distributions", CAST_METHOD_KW(_nuitka_loader_find_distributions),
      METH_STATIC | METH_VARARGS | METH_KEYWORDS, NULL},
 
+#if !_NUITKA_FLAG_ISOLATED
     {"sys_path_hook", CAST_METHOD_KW(_nuitka_loader_sys_path_hook), METH_STATIC | METH_VARARGS | METH_KEYWORDS, NULL},
+#endif
 
     {NULL, NULL} // terminator
 };
@@ -3309,11 +3310,19 @@ char const *getMetaPathBasedLoaderModuleRoot(void) { return module_root_prefix; 
 
 void getModuleNameWithPackageLoadedPrefix(char *buffer, size_t buffer_size, char const *name) {
     if (module_root_prefix != NULL) {
-        copyStringSafe(buffer, module_root_prefix, buffer_size);
-        appendStringSafe(buffer, name, buffer_size);
-    } else {
-        copyStringSafe(buffer, name, buffer_size);
+        // The compiled unit may itself have been compiled under a dotted name,
+        // in which case its entry names already include the package prefix.
+        size_t leaf_len = strlen(module_root_leaf);
+
+        if (strncmp(name, module_root_leaf, leaf_len) == 0 && (name[leaf_len] == '.' || name[leaf_len] == 0)) {
+            copyStringSafe(buffer, module_root_prefix, buffer_size);
+            appendStringSafe(buffer, name, buffer_size);
+
+            return;
+        }
     }
+
+    copyStringSafe(buffer, name, buffer_size);
 }
 
 void updateMetaPathBasedLoaderModuleRoot(char const *module_root_name) {
@@ -3332,6 +3341,7 @@ void updateMetaPathBasedLoaderModuleRoot(char const *module_root_name) {
             free(new_prefix);
         } else {
             module_root_prefix = new_prefix;
+            module_root_leaf = duplicateStringPointer(last_dot + 1);
         }
     }
 }
@@ -3394,6 +3404,7 @@ void registerMetaPathBasedLoader(struct Nuitka_MetaPathBasedLoaderEntry **_loade
 
                       global_loader);
 
+#if !_NUITKA_FLAG_ISOLATED
     // Our "sys.path_hooks" entry uses "os.path" to compare filenames, so we need
     // to load it without.
     PyThreadState *tstate = PyThreadState_GET();
@@ -3407,6 +3418,7 @@ void registerMetaPathBasedLoader(struct Nuitka_MetaPathBasedLoaderEntry **_loade
     // to handle "site-packages" on its own yet, and therefore we
     // cannot have it take precedence.
     LIST_APPEND1(Nuitka_SysGetObject("path_hooks"), PyObject_GetAttrString(global_loader, "sys_path_hook"));
+#endif
 #endif
 }
 

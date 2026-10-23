@@ -99,6 +99,59 @@ except Exception as outer_e:
 
 print("*" * 80)
 
+
+def returnInFinallyWithWhileLoop(clean):
+    try:
+        return "Hello, world!"
+    finally:
+        while not clean:
+            clean = True
+
+
+def returnInFinallyWithForLoop(count):
+    try:
+        return "Hello, world!"
+    finally:
+        for _ in range(count):
+            pass
+
+
+def returnInFinallyWithBreak():
+    for _ in range(1):
+        try:
+            return "abandoned"
+        finally:
+            print("break in final block")
+            break
+
+    return "done"
+
+
+print("Return in tried block with while loop in final block, not entered:")
+print("result", returnInFinallyWithWhileLoop(True))
+
+print("*" * 80)
+
+print("Return in tried block with while loop in final block, entered:")
+print("result", returnInFinallyWithWhileLoop(False))
+
+print("*" * 80)
+
+print("Return in tried block with for loop in final block, not entered:")
+print("result", returnInFinallyWithForLoop(0))
+
+print("*" * 80)
+
+print("Return in tried block with for loop in final block, entered:")
+print("result", returnInFinallyWithForLoop(3))
+
+print("*" * 80)
+
+print("Return in tried block with break in final block:")
+print("result", returnInFinallyWithBreak())
+
+print("*" * 80)
+
 #     Python tests originally created or extracted from other peoples work. The
 #     parts were too small to be protected.
 #

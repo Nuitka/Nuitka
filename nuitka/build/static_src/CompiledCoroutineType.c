@@ -659,6 +659,12 @@ static bool _Nuitka_Coroutine_close(PyThreadState *tstate, struct Nuitka_Corouti
 #endif
     CHECK_OBJECT(coroutine);
 
+    if (coroutine->m_status == status_Unused) {
+        Nuitka_MarkCoroutineAsFinished(coroutine);
+
+        return true;
+    }
+
     if (coroutine->m_status == status_Running) {
         struct Nuitka_ExceptionPreservationItem exception_state;
         SET_EXCEPTION_PRESERVATION_STATE_FROM_ARGS(tstate, &exception_state, PyExc_GeneratorExit, NULL, NULL);

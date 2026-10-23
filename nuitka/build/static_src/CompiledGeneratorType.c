@@ -905,6 +905,12 @@ static bool _Nuitka_Generator_close(PyThreadState *tstate, struct Nuitka_Generat
 #endif
     CHECK_OBJECT(generator);
 
+    if (generator->m_status == status_Unused) {
+        Nuitka_MarkGeneratorAsFinished(generator);
+
+        return true;
+    }
+
     if (generator->m_status == status_Running) {
         struct Nuitka_ExceptionPreservationItem exception_state;
         SET_EXCEPTION_PRESERVATION_STATE_FROM_ARGS(tstate, &exception_state, PyExc_GeneratorExit, NULL, NULL);

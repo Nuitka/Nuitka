@@ -1057,8 +1057,8 @@ processes:
 
 -  ``clang_mode``
 
-   Clang compiler mode, default on macOS X and FreeBSD, optional on
-   Linux.
+   Clang compiler mode, default on macOS X, FreeBSD and OpenBSD,
+   optional on Linux.
 
 -  ``mingw_mode``
 

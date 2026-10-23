@@ -23,9 +23,11 @@ def generateLoopBreakCode(statement, emit, context):
 
     getExceptionUnpublishedReleaseCode(emit, context)
 
-    releasePendingReturnValueCode(emit, context)
-
     break_target = context.getLoopBreakTarget()
+
+    if context.isReturnReleaseLoopBreakTarget(break_target):
+        _releasePendingReturnValueCode(emit=emit, context=context)
+
     getGotoCode(break_target, emit)
 
 
@@ -35,18 +37,19 @@ def generateLoopContinueCode(statement, emit, context):
 
     getExceptionUnpublishedReleaseCode(emit, context)
 
-    releasePendingReturnValueCode(emit, context)
-
     continue_target = context.getLoopContinueTarget()
+
+    if context.isReturnReleaseLoopContinueTarget(continue_target):
+        _releasePendingReturnValueCode(emit=emit, context=context)
+
     getGotoCode(continue_target, emit)
 
 
-def releasePendingReturnValueCode(emit, context):
+def _releasePendingReturnValueCode(emit, context):
     # A "break" or "continue" inside a "finally" block can abandon a "return"
     # that is being handled, and then the return value must be released, as it
-    # is only passed to the caller when the "return" completes. The return
-    # release mode tells us that we are inside such a return handler.
-    if context.getReturnReleaseMode() and context.hasTempName("return_value"):
+    # is only passed to the caller when the "return" completes.
+    if context.hasTempName("return_value"):
         return_value_name = context.getReturnValueName()
 
         # TODO: Can we not have Py_XCLEAR or something like that.

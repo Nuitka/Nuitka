@@ -11,7 +11,8 @@
 
 #define _CRT_SECURE_NO_WARNINGS
 
-#if !defined(_WIN32)
+#if !defined(_WIN32) && !defined(__APPLE__) && !defined(__FreeBSD__) && !defined(__NetBSD__) &&                        \
+    !defined(__OpenBSD__) && !defined(__DragonFly__)
 #define _POSIX_C_SOURCE 200809L
 #ifndef _GNU_SOURCE
 #define _GNU_SOURCE
@@ -710,6 +711,11 @@ static int removeDirectory(char const *path) {
 #endif
 
 #if !defined(_WIN32)
+// When the child is reaped while handling a signal, the main waitpid no
+// longer sees its status, so it is recorded here for the exit code.
+static volatile sig_atomic_t reaped_child_status = 0;
+static volatile sig_atomic_t reaped_child_status_valid = 0;
+
 static int waitpid_retried(pid_t pid, int *status, bool async) {
     int res;
 
@@ -731,7 +737,8 @@ static int waitpid_retried(pid_t pid, int *status, bool async) {
 }
 
 static int waitpid_timeout(pid_t pid) {
-    int res = waitpid_retried(pid, NULL, true);
+    int status;
+    int res = waitpid_retried(pid, &status, true);
 
     // Child can already be gone when cleanup is entered from signal handling or
     // when an earlier wait has already collected it for us.
@@ -746,17 +753,25 @@ static int waitpid_timeout(pid_t pid) {
     }
 
     if (res != 0) {
+        reaped_child_status = status;
+        reaped_child_status_valid = 1;
+
         return 0;
     }
 
     // A value of -1 means wait indefinitely.
     if (_NUITKA_ONEFILE_CHILD_GRACE_TIME_INT == -1) {
-        res = waitpid_retried(pid, NULL, false);
+        res = waitpid_retried(pid, &status, false);
 
         if (res == -1 && errno != ECHILD) {
             perror("waitpid");
 
             return -1;
+        }
+
+        if (res > 0) {
+            reaped_child_status = status;
+            reaped_child_status_valid = 1;
         }
 
         return 0;
@@ -776,7 +791,7 @@ static int waitpid_timeout(pid_t pid) {
 
     do {
         // Only want to care about SIGCHLD here.
-        res = waitpid_retried(pid, NULL, true);
+        res = waitpid_retried(pid, &status, true);
 
         if (unlikely(res < 0)) {
             if (errno == ECHILD) {
@@ -789,6 +804,9 @@ static int waitpid_timeout(pid_t pid) {
         }
 
         if (res != 0) {
+            reaped_child_status = status;
+            reaped_child_status_valid = 1;
+
             break;
         }
 
@@ -911,9 +929,15 @@ BOOL WINAPI ourConsoleCtrlHandler(DWORD fdwCtrlType) {
 void ourConsoleCtrlHandler(int sig, siginfo_t *info, void *ucontext) {
 #if defined(SI_KERNEL)
     bool signal_from_terminal = (info->si_code == SI_KERNEL);
+#elif defined(__APPLE__)
+    // On macOS, both terminal-originated signals and kill(2) deliver
+    // si_code == 0, so they cannot be told apart. Always forward and
+    // let the child suppress the duplicate SIGINT it already received
+    // from the terminal process group.
+    bool signal_from_terminal = false;
 #else
-    // On BSD/macOS, terminal-originated signals have si_code == 0,
-    // while kill(2) sends with si_code == SI_USER.
+    // On BSD, terminal-originated signals have si_code == 0, while
+    // kill(2) sends with si_code == SI_USER.
     bool signal_from_terminal = (info->si_code == 0);
 #endif
 
@@ -1580,8 +1604,16 @@ int main(int argc, char **argv) {
         int status;
         int res = waitpid_retried(handle_process, &status, false);
 
+        // Signal handling may have reaped the child already, in which case
+        // use the recorded status to report how it ended.
+        if ((res == -1) && (errno == ECHILD) && reaped_child_status_valid) {
+            status = reaped_child_status;
+        }
+
         if (res == -1 && errno != ECHILD) {
             exit_code = 2;
+        } else if (WIFSIGNALED(status)) {
+            exit_code = 128 + WTERMSIG(status);
         } else {
             exit_code = WEXITSTATUS(status);
         }

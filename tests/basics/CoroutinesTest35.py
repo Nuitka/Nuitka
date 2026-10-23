@@ -4,6 +4,7 @@
 """Tests for coroutine throw() and cancel/await bridge handling."""
 
 import asyncio
+import inspect
 import sys
 
 
@@ -178,6 +179,20 @@ def run_async(coro):
 
 
 run_async(top_cancel_await_bridge())
+
+print("Closing coroutine before start:")
+
+
+async def close_before_start():
+    return 1
+
+
+coro = close_before_start()
+coro.close()
+print("Coroutine state after close is", inspect.getcoroutinestate(coro))
+
+coro.close()
+print("Closed again without trouble")
 
 #     Python tests originally created or extracted from other peoples work. The
 #     parts were too small to be protected.

@@ -36,6 +36,7 @@ from nuitka.utils.FileOperations import (
 from nuitka.utils.Json import loadJsonFromFilename
 from nuitka.utils.Utils import (
     isAIX,
+    isBSD,
     isDebianBasedLinux,
     isFedoraBasedLinux,
     isFreeBSD,
@@ -267,7 +268,7 @@ elif env.exe_mode or env.dll_mode:
             else:
                 env.Append(LINKFLAGS=["-export-dynamic"])
 
-    if env.onefile_mode and isLinux():
+    if env.onefile_mode and (isLinux() or isBSD()):
         env.Append(LIBS=["pthread"])
 
     # For NetBSD the rpath is required, on FreeBSD it's warned as unused, macOS

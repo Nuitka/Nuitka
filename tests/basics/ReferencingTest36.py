@@ -266,6 +266,15 @@ def simpleFunction10():
     loop.close()
 
 
+def simpleFunction11():
+    async def someAsyncgen(value):
+        parameters = locals()
+        yield parameters
+        return
+
+    async_iterate(someAsyncgen([]))
+
+
 # These need stderr to be wrapped.
 tests_stderr = ()
 
