@@ -29,6 +29,15 @@ def typeLessThanType(left, right):
         print("type < type: no exception")
 
 
+def typeLessThanTypeValue(left, right):
+    try:
+        result = type(left) < type(right)
+    except TypeError as e:
+        print("type < type value:", repr(e))
+    else:
+        print("type < type value:", result)
+
+
 class OrderedMeta(type):
     def __lt__(cls, other):
         return cls.__name__ < other.__name__
@@ -63,6 +72,9 @@ def noneOrType(value):
 bytesAddBytearray("12")
 typeLessThanType(1, 2)
 typeLessThanType(OrderedA(), OrderedB())
+typeLessThanTypeValue(1, 2)
+typeLessThanTypeValue(OrderedA(), OrderedB())
+typeLessThanTypeValue(OrderedB(), OrderedA())
 numberFromBytearray("12")
 noneOrType(1)
 
