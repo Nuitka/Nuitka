@@ -650,6 +650,25 @@ static PyObject *_LIST_INDEX_COMMON(PyThreadState *tstate, PyListObject *list, P
 #endif
 }
 
+// Convert an index for use like a slice index, values that do not fit are
+// clamped, as done by CPython for "list.index" start and stop values.
+static Py_ssize_t _CONVERT_LONG_TO_CLAMPED_INDEX(PyThreadState *tstate, PyObject *index_long) {
+#if PYTHON_VERSION < 0x300
+    if (PyInt_CheckExact(index_long)) {
+        return PyInt_AS_LONG(index_long);
+    }
+#endif
+    Py_ssize_t result = PyLong_AsSsize_t(index_long);
+
+    if (unlikely(result == -1 && HAS_ERROR_OCCURRED(tstate))) {
+        CLEAR_ERROR_OCCURRED(tstate);
+
+        result = Nuitka_LongIsNegative(index_long) ? PY_SSIZE_T_MIN : PY_SSIZE_T_MAX;
+    }
+
+    return result;
+}
+
 PyObject *LIST_INDEX2(PyThreadState *tstate, PyObject *list, PyObject *item) {
     CHECK_OBJECT(list);
     assert(PyList_CheckExact(list));
@@ -672,16 +691,7 @@ PyObject *LIST_INDEX3(PyThreadState *tstate, PyObject *list, PyObject *item, PyO
         return NULL;
     }
 
-    Py_ssize_t start_ssize;
-#if PYTHON_VERSION < 0x300
-    if (PyInt_CheckExact(start_index)) {
-        start_ssize = PyInt_AS_LONG(start_index);
-    } else {
-        start_ssize = PyLong_AsSsize_t(start_index);
-    }
-#else
-    start_ssize = PyLong_AsSsize_t(start_index);
-#endif
+    Py_ssize_t start_ssize = _CONVERT_LONG_TO_CLAMPED_INDEX(tstate, start_index);
 
     Py_DECREF(start_index);
 
@@ -702,24 +712,13 @@ PyObject *LIST_INDEX4(PyThreadState *tstate, PyObject *list, PyObject *item, PyO
         return NULL;
     }
 
-    Py_ssize_t start_ssize;
-#if PYTHON_VERSION < 0x300
-    if (PyInt_CheckExact(start_index)) {
-        start_ssize = PyInt_AS_LONG(start_index);
-    } else {
-        start_ssize = PyLong_AsSsize_t(start_index);
-    }
-#else
-    start_ssize = PyLong_AsSsize_t(start_index);
-#endif
+    Py_ssize_t start_ssize = _CONVERT_LONG_TO_CLAMPED_INDEX(tstate, start_index);
 
     Py_DECREF(start_index);
 
     PyObject *stop_index = Nuitka_Number_IndexAsLong(stop);
 
     if (unlikely(stop_index == NULL)) {
-        Py_DECREF(start_index);
-
         CLEAR_ERROR_OCCURRED(tstate);
 
         SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_TypeError,
@@ -727,16 +726,7 @@ PyObject *LIST_INDEX4(PyThreadState *tstate, PyObject *list, PyObject *item, PyO
         return NULL;
     }
 
-    Py_ssize_t stop_ssize;
-#if PYTHON_VERSION < 0x300
-    if (PyInt_CheckExact(stop_index)) {
-        stop_ssize = PyInt_AS_LONG(stop_index);
-    } else {
-        stop_ssize = PyLong_AsSsize_t(stop_index);
-    }
-#else
-    stop_ssize = PyLong_AsSsize_t(stop_index);
-#endif
+    Py_ssize_t stop_ssize = _CONVERT_LONG_TO_CLAMPED_INDEX(tstate, stop_index);
 
     Py_DECREF(stop_index);
 
@@ -756,7 +746,7 @@ bool LIST_INSERT(PyThreadState *tstate, PyObject *list, PyObject *index, PyObjec
     if (unlikely(index_long == NULL)) {
         CLEAR_ERROR_OCCURRED(tstate);
 
-        SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("'%s' cannot be interpreted as an integer", index);
+        SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("'%s' object cannot be interpreted as an integer", index);
         return false;
     }
 
@@ -770,6 +760,12 @@ bool LIST_INSERT(PyThreadState *tstate, PyObject *list, PyObject *index, PyObjec
 #else
     index_ssize = PyLong_AsSsize_t(index_long);
 #endif
+
+    // Values that do not fit raise "OverflowError", unlike for slice indexes.
+    if (unlikely(index_ssize == -1 && HAS_ERROR_OCCURRED(tstate))) {
+        Py_DECREF(index_long);
+        return false;
+    }
 
     Py_DECREF(index_long);
 

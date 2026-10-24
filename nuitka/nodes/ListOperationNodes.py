@@ -293,11 +293,15 @@ class ExpressionListOperationInsert(
 
     def mayRaiseExceptionOperation(self):
         # TODO: We do not yet have isIndexable from the type shape.
-        # Note that any index value will do for insert, it just has
-        # to be an integer.
-        return (
-            self.subnode_index.isExpressionConstantRef()
-            and self.subnode_index.isIndexConstant()
+        # Any integer index value will do for insert, but only constant
+        # ones small enough are used directly, others are converted and
+        # that may raise "TypeError" or "OverflowError".
+        index = self.subnode_index
+
+        return not (
+            index.isExpressionConstantRef()
+            and index.isIndexConstant()
+            and abs(index.getIndexValue()) < 2**31
         )
 
 
