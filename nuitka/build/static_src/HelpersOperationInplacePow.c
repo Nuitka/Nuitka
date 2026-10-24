@@ -62,7 +62,7 @@ static inline bool _INPLACE_OPERATION_POW_FLOAT_FLOAT(PyObject **operand1, PyObj
         if (a == 1.0) {
             goto exit_result_ok_const_float_1_0;
         } else if ((b > 0.0) == (a > 1.0)) {
-            long r = (long)fabs(b);
+            double r = fabs(b);
 
             cfloat_result = r;
             goto exit_result_ok_cfloat;
@@ -106,11 +106,28 @@ static inline bool _INPLACE_OPERATION_POW_FLOAT_FLOAT(PyObject **operand1, PyObj
 
         if (a < 0.0) {
             if (unlikely(b != floor(b))) {
+                PyObject *r = NULL;
+
+#if PYTHON_VERSION < 0x300
                 PyThreadState *tstate = PyThreadState_GET();
 
                 SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_ValueError,
                                                 "negative number cannot be raised to a fractional power");
-                goto exit_result_exception;
+#else
+                // Python3 gives a complex number, like "float_pow" does.
+                PyObject *complex_a = PyComplex_FromDoubles(a, 0.0);
+                PyObject *complex_b = PyComplex_FromDoubles(b, 0.0);
+
+                if (likely(complex_a != NULL && complex_b != NULL)) {
+                    r = PyComplex_Type.tp_as_number->nb_power(complex_a, complex_b, Py_None);
+                }
+
+                Py_XDECREF(complex_a);
+                Py_XDECREF(complex_b);
+#endif
+
+                obj_result = r;
+                goto exit_result_object;
             }
 
             a = -a;
@@ -158,6 +175,16 @@ exit_result_ok_cfloat:
     }
     goto exit_result_ok;
 
+exit_result_object:
+    if (unlikely(obj_result == NULL)) {
+        goto exit_result_exception;
+    }
+    // We got an object handed, that we have to release.
+    Py_DECREF(*operand1);
+
+    *operand1 = obj_result;
+    goto exit_result_ok;
+
 exit_result_ok_left:
     goto exit_result_ok;
 
@@ -165,6 +192,7 @@ exit_result_ok_right:
     // We got an object handed, that we have to release.
     Py_DECREF(*operand1);
     *operand1 = operand2;
+    Py_INCREF(*operand1);
     goto exit_result_ok;
 
 exit_result_ok_const_float_0_0:
@@ -409,7 +437,7 @@ static inline bool _INPLACE_OPERATION_POW_OBJECT_FLOAT(PyObject **operand1, PyOb
             if (a == 1.0) {
                 goto exit_result_ok_const_float_1_0;
             } else if ((b > 0.0) == (a > 1.0)) {
-                long r = (long)fabs(b);
+                double r = fabs(b);
 
                 cfloat_result = r;
                 goto exit_result_ok_cfloat;
@@ -453,11 +481,28 @@ static inline bool _INPLACE_OPERATION_POW_OBJECT_FLOAT(PyObject **operand1, PyOb
 
             if (a < 0.0) {
                 if (unlikely(b != floor(b))) {
+                    PyObject *r = NULL;
+
+#if PYTHON_VERSION < 0x300
                     PyThreadState *tstate = PyThreadState_GET();
 
                     SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_ValueError,
                                                     "negative number cannot be raised to a fractional power");
-                    goto exit_result_exception;
+#else
+                    // Python3 gives a complex number, like "float_pow" does.
+                    PyObject *complex_a = PyComplex_FromDoubles(a, 0.0);
+                    PyObject *complex_b = PyComplex_FromDoubles(b, 0.0);
+
+                    if (likely(complex_a != NULL && complex_b != NULL)) {
+                        r = PyComplex_Type.tp_as_number->nb_power(complex_a, complex_b, Py_None);
+                    }
+
+                    Py_XDECREF(complex_a);
+                    Py_XDECREF(complex_b);
+#endif
+
+                    obj_result = r;
+                    goto exit_result_object;
                 }
 
                 a = -a;
@@ -505,6 +550,16 @@ static inline bool _INPLACE_OPERATION_POW_OBJECT_FLOAT(PyObject **operand1, PyOb
         }
         goto exit_result_ok;
 
+    exit_result_object:
+        if (unlikely(obj_result == NULL)) {
+            goto exit_result_exception;
+        }
+        // We got an object handed, that we have to release.
+        Py_DECREF(*operand1);
+
+        *operand1 = obj_result;
+        goto exit_result_ok;
+
     exit_result_ok_left:
         goto exit_result_ok;
 
@@ -512,6 +567,7 @@ static inline bool _INPLACE_OPERATION_POW_OBJECT_FLOAT(PyObject **operand1, PyOb
         // We got an object handed, that we have to release.
         Py_DECREF(*operand1);
         *operand1 = operand2;
+        Py_INCREF(*operand1);
         goto exit_result_ok;
 
     exit_result_ok_const_float_0_0:
@@ -761,7 +817,7 @@ static inline bool _INPLACE_OPERATION_POW_FLOAT_OBJECT(PyObject **operand1, PyOb
             if (a == 1.0) {
                 goto exit_result_ok_const_float_1_0;
             } else if ((b > 0.0) == (a > 1.0)) {
-                long r = (long)fabs(b);
+                double r = fabs(b);
 
                 cfloat_result = r;
                 goto exit_result_ok_cfloat;
@@ -805,11 +861,28 @@ static inline bool _INPLACE_OPERATION_POW_FLOAT_OBJECT(PyObject **operand1, PyOb
 
             if (a < 0.0) {
                 if (unlikely(b != floor(b))) {
+                    PyObject *r = NULL;
+
+#if PYTHON_VERSION < 0x300
                     PyThreadState *tstate = PyThreadState_GET();
 
                     SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_ValueError,
                                                     "negative number cannot be raised to a fractional power");
-                    goto exit_result_exception;
+#else
+                    // Python3 gives a complex number, like "float_pow" does.
+                    PyObject *complex_a = PyComplex_FromDoubles(a, 0.0);
+                    PyObject *complex_b = PyComplex_FromDoubles(b, 0.0);
+
+                    if (likely(complex_a != NULL && complex_b != NULL)) {
+                        r = PyComplex_Type.tp_as_number->nb_power(complex_a, complex_b, Py_None);
+                    }
+
+                    Py_XDECREF(complex_a);
+                    Py_XDECREF(complex_b);
+#endif
+
+                    obj_result = r;
+                    goto exit_result_object;
                 }
 
                 a = -a;
@@ -857,6 +930,16 @@ static inline bool _INPLACE_OPERATION_POW_FLOAT_OBJECT(PyObject **operand1, PyOb
         }
         goto exit_result_ok;
 
+    exit_result_object:
+        if (unlikely(obj_result == NULL)) {
+            goto exit_result_exception;
+        }
+        // We got an object handed, that we have to release.
+        Py_DECREF(*operand1);
+
+        *operand1 = obj_result;
+        goto exit_result_ok;
+
     exit_result_ok_left:
         goto exit_result_ok;
 
@@ -864,6 +947,7 @@ static inline bool _INPLACE_OPERATION_POW_FLOAT_OBJECT(PyObject **operand1, PyOb
         // We got an object handed, that we have to release.
         Py_DECREF(*operand1);
         *operand1 = operand2;
+        Py_INCREF(*operand1);
         goto exit_result_ok;
 
     exit_result_ok_const_float_0_0:
