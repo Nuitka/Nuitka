@@ -203,6 +203,9 @@ def _isWasiPythonPrefixComplete(prefix_dir, abi_version):
         and os.path.isdir(
             getNormalizedPathJoin(prefix_dir, "lib", "python" + abi_version)
         )
+        and os.path.isfile(
+            getNormalizedPathJoin(prefix_dir, "hacl", "Hacl_Hash_SHA2.c")
+        )
     )
 
 
@@ -214,8 +217,8 @@ def _checkWasiPythonPrefix(prefix_dir):
         return general.sysexit(
             """\
 Error, '%(prefix_dir)s' is not a complete WASI Python %(abi_version)s prefix. Need \
-'include/python%(abi_version)s/Python.h', 'lib/libpython%(abi_version)s.a', and \
-'lib/python%(abi_version)s'."""
+'include/python%(abi_version)s/Python.h', 'lib/libpython%(abi_version)s.a', \
+'lib/python%(abi_version)s', and 'hacl/Hacl_Hash_SHA2.c'."""
             % {
                 "prefix_dir": prefix_dir,
                 "abi_version": abi_version,
@@ -252,25 +255,29 @@ def _extractBuildZip(build_zip, prefix_dir, abi_version):
     )
 
 
-def _extractSourceHeaders(source_tar, prefix_dir, abi_version):
+def _extractSourceFiles(source_tar, prefix_dir, abi_version):
     with contextlib.closing(tarfile.open(source_tar, "r:gz")) as tar:
         for member in tar.getmembers():
             if not member.isfile():
                 continue
 
-            marker = "/Include/"
-
-            if marker not in member.name:
+            if "/Include/" in member.name:
+                target_name = getNormalizedPathJoin(
+                    "include",
+                    "python" + abi_version,
+                    member.name.split("/Include/", 1)[1],
+                )
+            elif "/Modules/_hacl/" in member.name:
+                target_name = getNormalizedPathJoin(
+                    "hacl", member.name.split("/Modules/_hacl/", 1)[1]
+                )
+            else:
                 continue
 
-            relative_name = member.name.split(marker, 1)[1]
-
-            if not relative_name or ".." in relative_name.split("/"):
+            if ".." in target_name.split("/"):
                 continue
 
-            target_path = getNormalizedPathJoin(
-                prefix_dir, "include", "python" + abi_version, relative_name
-            )
+            target_path = getNormalizedPathJoin(prefix_dir, target_name)
             makeContainingPath(target_path)
 
             source = tar.extractfile(member)
@@ -298,6 +305,14 @@ def _finalizePythonWasm(prefix_dir, abi_version):
 
 def getWasiPythonPrefix(assume_yes_for_downloads):
     """Return the WASI CPython prefix for the running Python version."""
+    # Local import to avoid a circular dependency on Options.
+    from nuitka.options.Options import getWasiPythonPrefixPath
+
+    wasi_python_prefix = getWasiPythonPrefixPath()
+
+    if wasi_python_prefix is not None:
+        return wasi_python_prefix
+
     release = _getWasiPythonRelease()
     abi_version = python_version_str
     version_cache_dir = getNormalizedPathJoin(
@@ -353,7 +368,7 @@ def getWasiPythonPrefix(assume_yes_for_downloads):
 
     _extractRuntimeZip(runtime_zip, tmp_prefix_dir)
     _extractBuildZip(build_zip, tmp_prefix_dir, abi_version)
-    _extractSourceHeaders(source_tar, tmp_prefix_dir, abi_version)
+    _extractSourceFiles(source_tar, tmp_prefix_dir, abi_version)
     _finalizePythonWasm(tmp_prefix_dir, abi_version)
 
     if not _isWasiPythonPrefixComplete(tmp_prefix_dir, abi_version):
@@ -376,17 +391,12 @@ def getWasiPythonPrefix(assume_yes_for_downloads):
     return prefix_dir
 
 
-def checkWasiPreconditions(is_zig, wasi_python_prefix):
+def checkWasiPreconditions(wasi_python_prefix):
     """Exit if the requested WASI compilation is not usable."""
     _checkWasiPythonVersion(python_version_full)
 
     if wasi_python_prefix is not None:
         _checkWasiPythonPrefix(wasi_python_prefix)
-
-    if not is_zig:
-        return general.sysexit("""\
-Error, '--target=wasm32-wasi' is currently only supported together with \
-'--zig'.""")
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and

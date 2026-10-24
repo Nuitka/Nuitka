@@ -16,8 +16,10 @@ class TargetWin32(TargetBase):
             c_long_size=4,
             c_longlong_size=8,
             c_pointer_size=4,
-            target_os="win32",
+            target_os="Windows",
             target_arch="x86",
+            binary_format="coff",
+            rpath_using=False,
             python_digit_bits=15,
         )
 

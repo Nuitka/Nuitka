@@ -55,6 +55,10 @@ from nuitka.PythonVersions import (
 from nuitka.States import states
 from nuitka.targets.Targets import (
     getTargetSpecification,
+    isOnefileSupportedTarget,
+    isRPathUsingTarget,
+    isStandaloneSupportedTarget,
+    isWasiTarget,
     setTargetSpecification,
 )
 from nuitka.Tracing import (
@@ -93,8 +97,6 @@ from nuitka.utils.Utils import (
     getMacOSRelease,
     getOS,
     getWindowsRelease,
-    hasOnefileSupportedOS,
-    hasStandaloneSupportedOS,
     isAIX,
     isDebianBasedLinux,
     isFreeBSD,
@@ -102,11 +104,11 @@ from nuitka.utils.Utils import (
     isMacOS,
     isOpenBSD,
     isPosixWindows,
-    isRPathUsingPlatform,
     isWin32OrPosixWindows,
     isWin32Windows,
 )
 from nuitka.utils.WasiPython import checkWasiPreconditions
+from nuitka.utils.WasiSDK import checkWasiSDKPath
 from nuitka.Version import getCommercialVersion, getNuitkaVersion
 from nuitka.VersionCheck import getNuitkaUpdateStatusValue
 
@@ -256,7 +258,7 @@ when '--mode=onefile' is not specified.""" % option_name
 
 
 def _warnWasiOnlyOption(option_name):
-    if not getTargetSpecification().isWasiTarget():
+    if not isWasiTarget():
         message = """\
 Using WASI specific option '%s' has no effect \
 when '--target=wasm32-wasi' is not specified.""" % option_name
@@ -399,13 +401,21 @@ def parseArgs():
 
     _applyTargetSpecification(options.target_desc)
 
-    if getTargetSpecification().isWasiTarget():
+    if isWasiTarget():
         checkWasiPreconditions(
-            is_zig=isZig(),
             wasi_python_prefix=getWasiPythonPrefixPath(),
         )
-    elif options.wasi_python_prefix is not None:
-        _warnWasiOnlyOption("--wasi-python-prefix")
+
+        wasi_sdk = getWasiSDKPath()
+
+        if wasi_sdk is not None:
+            checkWasiSDKPath(wasi_sdk)
+    else:
+        if options.wasi_python_prefix is not None:
+            _warnWasiOnlyOption("--wasi-python-prefix")
+
+        if options.wasi_sdk_path is not None:
+            _warnWasiOnlyOption("--wasi-sdk-path")
 
     states.is_debug = _isDebug()
     states.is_non_debug = not states.is_debug
@@ -888,9 +898,10 @@ Error, the Python flag 'isolated' cannot be used in accelerated mode, since \
 Nuitka empties 'sys.path' for it, and accelerated mode loads the standard \
 library from there.""")
 
-    if isOnefileMode() and not hasOnefileSupportedOS():
+    if isOnefileMode() and not isOnefileSupportedTarget():
         return options_logger.sysexit(
-            "Error, unsupported OS for onefile '%s'." % getOS()
+            "Error, unsupported OS for onefile '%s'."
+            % getTargetSpecification().getTargetOS()
         )
 
     for module_pattern in getShallFollowModules():
@@ -972,34 +983,7 @@ Error, directory '%s' given to '--include-plugin-directory' must not be a \
 standard library path. Use '--include-module' or '--include-package' \
 options instead.""" % pattern)
 
-    static_libpython_path = getSystemStaticLibPythonPath(
-        python_debug=shallUsePythonDebug()
-    )
-
-    if options.static_libpython == "yes":
-        usable, reason = _couldUseStaticLibPython()
-
-        if static_libpython_path is None or usable is False:
-            message = """\
-Error, a static libpython is either not found or not supported for \
-this Python (%s) installation: %s""" % (
-                getPythonFlavorName(),
-                (reason or "unknown reason"),
-            )
-
-            full_build_hint = getPythonBuildStandaloneFullBuildHint()
-
-            if full_build_hint is not None:
-                message += "\n\n" + full_build_hint
-
-            return options_logger.sysexit(message)
-
-    if shallUseStaticLibPython() and static_libpython_path is None:
-        return options_logger.sysexit(
-            """Error, usable static libpython is not found for this Python installation. You \
-might be missing required packages. Disable with --static-libpython=no" if you don't \
-want to install it."""
-        )
+    _checkStaticLibPython()
 
     if isApplePython():
         if isStandaloneMode():
@@ -1017,7 +1001,7 @@ download. With that, your program will work on macOS 10.9 or higher."""
                 "Error, Apple Python 2.7 from macOS is not usable as per Apple decision, use e.g. CPython 2.7 instead."
             )
 
-    if isStandaloneMode() and isRPathUsingPlatform() and not isMacOS():
+    if isStandaloneMode() and isRPathUsingTarget() and not isMacOS():
         # Cyclic dependency
         from nuitka.utils.SharedLibraries import (
             checkPatchElfPresenceAndUsability,
@@ -1339,10 +1323,10 @@ require '--company-name' and '--product-name' to be given.""",
     else:
         standalone_mode = None
 
-    if standalone_mode and not hasStandaloneSupportedOS():
+    if standalone_mode and not isStandaloneSupportedTarget():
         options_logger.warning(
             "'%s' mode on %s is not known to be supported, might fail to work."
-            % (getCompilationMode(), getOS())
+            % (getCompilationMode(), getTargetSpecification().getTargetOS())
         )
 
     if options.follow_all is True and shallMakeModule():
@@ -2073,9 +2057,43 @@ def shallOptimizeStringExec():
 _shall_use_static_lib_python = None
 
 
+def _checkStaticLibPython():
+    static_libpython_path = getSystemStaticLibPythonPath(
+        python_debug=shallUsePythonDebug()
+    )
+
+    if options.static_libpython == "yes":
+        usable, reason = _couldUseStaticLibPython()
+
+        if static_libpython_path is None or usable is False:
+            message = """\
+Error, a static libpython is either not found or not supported for \
+this Python (%s) installation: %s""" % (
+                getPythonFlavorName(),
+                (reason or "unknown reason"),
+            )
+
+            full_build_hint = getPythonBuildStandaloneFullBuildHint()
+
+            if full_build_hint is not None:
+                message += "\n\n" + full_build_hint
+
+            return options_logger.sysexit(message)
+
+    if shallUseStaticLibPython() and static_libpython_path is None:
+        return options_logger.sysexit(
+            """Error, usable static libpython is not found for this Python installation. You \
+might be missing required packages. Disable with --static-libpython=no" if you don't \
+want to install it."""
+        )
+
+
 def _couldUseStaticLibPython():
     # many cases and return driven,
     # pylint: disable=too-many-branches,too-many-return-statements
+
+    if isWasiTarget():
+        return True, None
 
     static_lib_path = getSystemStaticLibPythonPath(python_debug=shallUsePythonDebug())
 
@@ -2258,12 +2276,16 @@ def shallCreateScriptFileForExecution():
     mode too.
     """
 
-    # Accelerated mode
-    if shallTreatUninstalledPython():
-        return True
+    # WASI binaries are executed by a WASI runtime, not a shell script.
+    if isWasiTarget():
+        return False
 
     # AIX standalone, but not onefile mode.
     if isAIX() and not isOnefileMode() and isStandaloneMode():
+        return True
+
+    # Accelerated mode
+    if shallTreatUninstalledPython():
         return True
 
     return False
@@ -2308,7 +2330,7 @@ def getLtoMode():
 
 
 def isClang():
-    """:returns: bool derived from ``--clang`` or auto-enabled by platform when no other compiler was selected."""
+    """:returns: bool derived from ``--clang`` or auto-enabled by target or platform when no other compiler was selected."""
 
     if options.clang:
         return True
@@ -2321,6 +2343,7 @@ def isClang():
         or isOpenBSD()
         or (isFreeBSD() and getArchitecture() != "powerpc")
         or isTermuxPython()
+        or isWasiTarget()
     )
 
 
@@ -3648,6 +3671,14 @@ def getWasiPythonPrefixPath():
         return None
 
     return getUserInputNormalizedPath(options.wasi_python_prefix)
+
+
+def getWasiSDKPath():
+    """*str* or *None*, value of ``--wasi-sdk-path``"""
+    if options.wasi_sdk_path is None:
+        return None
+
+    return getUserInputNormalizedPath(options.wasi_sdk_path)
 
 
 def getFcfProtectionMode():

@@ -38,11 +38,8 @@ from nuitka.utils.FileOperations import (
 from nuitka.utils.Json import loadJsonFromFilename
 from nuitka.utils.Utils import (
     isAIX,
-    isBSD,
     isDebianBasedLinux,
     isFedoraBasedLinux,
-    isFreeBSD,
-    isLinux,
     isMacOS,
     isWin32OrPosixWindows,
 )
@@ -237,6 +234,16 @@ elif env.exe_mode or env.dll_mode:
     elif env.static_libpython:
         env.Append(LIBS=[env.File(env.static_libpython)])
 
+        # WASI Python keeps these as separate archives that must follow libpython.
+        if env.target_os == "WASI":
+            for wasi_lib_name in ("libmpdec.a", "libexpat.a"):
+                wasi_lib_path = getNormalizedPathJoin(
+                    env.python_prefix_external, "lib", wasi_lib_name
+                )
+
+                if os.path.exists(wasi_lib_path):
+                    env.Append(LIBS=[env.File(wasi_lib_path)])
+
         # The linker won't succeed in searching for those for system Python of Debian
         # compiled Pythons. Help that. spell-checker: ignore Xlinker,pthread,rdynamic
         if env.python_prefix_external == "/usr" and isDebianBasedLinux():
@@ -261,7 +268,7 @@ elif env.exe_mode or env.dll_mode:
         else:
             env.Append(LIBS=["python" + env.python_abi_version])
 
-    if env.python_prefix_external != "/usr" and isLinux():
+    if env.python_prefix_external != "/usr" and env.target_os == "Linux":
         env.Append(LIBS=["dl", "pthread", "util", "rt", "m"])
 
         if env.gcc_mode:
@@ -270,14 +277,18 @@ elif env.exe_mode or env.dll_mode:
             else:
                 env.Append(LINKFLAGS=["-export-dynamic"])
 
-    if env.onefile_mode and (isLinux() or isBSD()):
+    if env.onefile_mode and (env.target_os == "Linux" or "BSD" in env.target_os):
         env.Append(LIBS=["pthread"])
 
     # For NetBSD the rpath is required, on FreeBSD it's warned as unused, macOS
     # and AIX don't have it, but some Python flavors like Standalone Python
     # won't find it unless provided like this, so lets try to add this by
     # default and remove OSes that give errors one by one.
-    if not isFreeBSD() and not isMacOS() and not isAIX():
+    if (
+        env.rpath_using_platform
+        and env.binary_format == "elf"
+        and env.target_os != "FreeBSD"
+    ):
         env.Append(LINKFLAGS=["-Wl,-rpath=" + python_lib_path])
 
 if isMacOS():
@@ -319,6 +330,7 @@ env.Append(
 # Set load libpython from binary directory default
 if (
     env.gcc_mode
+    and env.rpath_using_platform
     and not isMacOS()
     and not isAIX()
     and os.name != "nt"
@@ -338,7 +350,7 @@ if (
     # option name is not very revealing, but basically without this, the
     # rpath in the binary will be ignored by the loader.
     # spell-checker: ignore dtags
-    if isLinux():
+    if env.target_os == "Linux":
         env.Append(LINKFLAGS=["-Wl,--disable-new-dtags"])
 
 

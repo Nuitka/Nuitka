@@ -169,6 +169,9 @@ def _enableLtoSettings(
     elif lto_mode == "yes":
         lto_mode = True
         reason = "enabled"
+    elif env.target_os == "WASI" and env.clang_mode:
+        lto_mode = True
+        reason = "known to be supported (WASI clang)"
     elif pgo_mode in ("use", "generate"):
         lto_mode = True
         reason = "PGO implies LTO"
@@ -681,6 +684,12 @@ def _checkBlobResourceMode(env, resource_mode):
             env=env,
         )
 
+    if env.binary_format == "wasm" and resource_mode in ("linker", "incbin"):
+        return scons_logger.sysexit(
+            "Resource mode '%s' is not supported for WASI." % resource_mode,
+            env=env,
+        )
+
     mode_platform_names = {
         "mac_section": (isMacOS(), "macOS"),
         "coff_obj": (isWin32Windows(), "Windows"),
@@ -702,7 +711,7 @@ def _checkBlobResourceMode(env, resource_mode):
 def _decideBlobResourceMode(env):
     # This is a complicated decision with a lot of cases, as there are many
     # compiler, mode, OS and their versions related decisions.
-    # pylint: disable=too-many-branches
+    # pylint: disable=too-many-branches,too-many-statements
 
     resource_mode = env.requested_resource_mode
 
@@ -715,6 +724,9 @@ def _decideBlobResourceMode(env):
     ):
         resource_mode = "overlay"
         reason = "onefile payload attached to the executable"
+    elif env.binary_format == "wasm":
+        resource_mode = "code"
+        reason = "default for WASI"
     elif env.zig_mode:
         resource_mode = "c23_embed"
         reason = "default for zig"
@@ -1229,6 +1241,51 @@ def _enableAIXTargetSettings(env):
         env.Append(LINKFLAGS=["-m%s" % env.target_arch])
 
 
+def _enableWasiTargetSettings(env):
+    """Set up environment for WASI target settings."""
+    assert env.target_os == "WASI"
+
+    if env.zig_mode:
+        env.Append(CCFLAGS=["-target", "wasm32-wasi"])
+        env.Append(LINKFLAGS=["-target", "wasm32-wasi", "-mexec-model=command"])
+    elif env.clang_mode:
+        assert env.wasi_sdk_path is not None
+
+        wasi_sysroot = getNormalizedPathJoin(env.wasi_sdk_path, "share", "wasi-sysroot")
+        env.Append(CCFLAGS=["--target=wasm32-wasi", "--sysroot=%s" % wasi_sysroot])
+        env.Append(
+            LINKFLAGS=[
+                "--target=wasm32-wasi",
+                "--sysroot=%s" % wasi_sysroot,
+                "-mexec-model=command",
+            ]
+        )
+    else:
+        assert False
+
+    # HACL's lowstar endianness header redefines macros provided by endian.h.
+    env.Append(CCFLAGS=["-Wno-macro-redefined"])
+
+    env.Append(
+        CPPDEFINES=[
+            "_WASI_EMULATED_MMAN",
+            "_WASI_EMULATED_GETPID",
+            "_WASI_EMULATED_SIGNAL",
+            "_WASI_EMULATED_PROCESS_CLOCKS",
+            "_NUITKA_NO_DEPLOYMENT_SEGFAULT",
+        ]
+    )
+    env.Append(
+        LIBS=[
+            "wasi-emulated-mman",
+            "wasi-emulated-getpid",
+            "wasi-emulated-signal",
+            "wasi-emulated-process-clocks",
+            "dl",
+        ]
+    )
+
+
 def _enableWin32TargetSettings(env):
     """Set up environment for Windows target settings."""
     assert isWin32Windows()
@@ -1236,6 +1293,10 @@ def _enableWin32TargetSettings(env):
     # help it. For zig, it is hard coded.
     if not env.zig_mode:
         env.Append(CPPDEFINES=["_WIN32_WINNT=0x0601"])
+
+    # Unicode entry points for programs.
+    if env.mingw_mode or (env.zig_mode and isWin32Windows()):
+        env.Append(LINKFLAGS=["-municode"])
 
 
 def _enableWindowsStackSize(env, target_arch):
@@ -1684,6 +1745,9 @@ def setupCCompiler(env, pgo_mode, exe_target, onefile_compile):
     if isWin32Windows():
         _enableWin32TargetSettings(env)
 
+    if env.target_os == "WASI":
+        _enableWasiTargetSettings(env)
+
     # Unicode entry points for programs.
     if env.mingw_mode or (env.zig_mode and isWin32Windows()):
         env.Append(LINKFLAGS=["-municode"])
@@ -1806,7 +1870,7 @@ def setupCCompiler(env, pgo_mode, exe_target, onefile_compile):
 
     _enableDebugSystemSettings(env)
 
-    if (env.gcc_mode or env.zig_mode) and not env.noelf_mode:
+    if (env.gcc_mode or env.zig_mode) and env.binary_format == "elf":
         env.Append(LINKFLAGS=["-z", "noexecstack"])
 
     # For MinGW64 we need to tell the subsystem to target as well as to
