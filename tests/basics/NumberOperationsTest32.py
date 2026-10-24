@@ -17,7 +17,10 @@ values = {
     "-2.5": "-2.5",
     "0.5": "0.5",
     "-8": "-8",
-    "min_ssize": str(-(2**63) if sys.maxsize > 2**32 else -(2**31)),
+    "min_ssize": str(-sys.maxsize - 1),
+    "below_min_ssize": str(-sys.maxsize - 2),
+    "above_max_ssize": str(sys.maxsize + 1),
+    "-1": "-1",
 }
 
 
@@ -86,6 +89,13 @@ check("0.0 ** -inf", constantZeroBasePow, values["-inf"])
 check("1.0 //= -2.5", floatFloorDivInplace, values["1.0"], values["-2.5"])
 check("2.0 // -2.5", constantFloatFloorDiv, values["-2.5"])
 check("sequence * minimum index", sequenceRepeatMinimum, values["min_ssize"])
+check(
+    "sequence * below minimum index", sequenceRepeatMinimum, values["below_min_ssize"]
+)
+check(
+    "sequence * above maximum index", sequenceRepeatMinimum, values["above_max_ssize"]
+)
+check("sequence * -1", sequenceRepeatMinimum, values["-1"])
 check("complex(inf) **= True", complexPowBoolInplace, values["inf"])
 check("-1.0 **= 0.5", floatPowFractionalInplace, values["-1.0"], values["0.5"])
 check("-8 ** 0.5", intPowFractional, values["-8"], values["0.5"])

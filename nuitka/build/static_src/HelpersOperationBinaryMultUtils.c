@@ -16,52 +16,28 @@
 #endif
 
 static Py_ssize_t CONVERT_LONG_TO_REPEAT_FACTOR(PyObject *value) {
-    /* Inline PyLong_AsSsize_t here for our special purpose. */
     assert(PyLong_Check(value));
 
-    Py_ssize_t digits_count = Nuitka_LongGetDigitSize(value);
+    // Values not fitting "Py_ssize_t" are an error indicated as -1, negative
+    // values repeat zero times, as done by CPython.
+    Py_ssize_t result = PyLong_AsSsize_t(value);
 
-    if (digits_count == 0) {
-        return 0;
-    }
+    if (unlikely(result < 0)) {
+        if (result == -1) {
+            PyThreadState *tstate = PyThreadState_GET();
 
-    bool is_negative = Nuitka_LongIsNegative(value);
+            if (HAS_ERROR_OCCURRED(tstate)) {
+                // The caller gives the error with the CPython message.
+                CLEAR_ERROR_OCCURRED(tstate);
 
-    PyLongObject *long_value = (PyLongObject *)value;
-
-    digit *digits = Nuitka_LongGetDigitPointer(long_value);
-
-    if ((digits_count == 1) && (is_negative == false)) {
-        return digits[0];
-    }
-
-    size_t result = 0;
-
-    while (--digits_count >= 0) {
-        size_t prev = result;
-        result = (result << PyLong_SHIFT) | digits[digits_count];
-
-        // Overflow detection.
-        if ((result >> PyLong_SHIFT) != prev) {
-            return (Py_ssize_t)-1;
-        }
-    }
-
-    // Negative values repeat zero times, but must fit into "Py_ssize_t" still,
-    // which allows one more in magnitude than positive values.
-    if (is_negative) {
-        if (result > (size_t)PY_SSIZE_T_MAX + 1) {
-            return (Py_ssize_t)-1;
+                return -1;
+            }
         }
 
         return 0;
     }
 
-    if (result > (size_t)PY_SSIZE_T_MAX) {
-        return (Py_ssize_t)-1;
-    }
-
-    return (Py_ssize_t)result;
+    return result;
 }
 
 static Py_ssize_t CONVERT_TO_REPEAT_FACTOR(PyObject *value) {
