@@ -1167,7 +1167,7 @@ static inline bool _INPLACE_OPERATION_FLOORDIV_FLOAT_FLOAT(PyObject **operand1, 
         double div = (a - mod) / b;
 
         if (mod) {
-            if ((a < 0) != (mod < 0)) {
+            if ((b < 0) != (mod < 0)) {
                 div -= 1.0;
             }
         }
@@ -1413,7 +1413,7 @@ static inline bool _INPLACE_OPERATION_FLOORDIV_OBJECT_FLOAT(PyObject **operand1,
             double div = (a - mod) / b;
 
             if (mod) {
-                if ((a < 0) != (mod < 0)) {
+                if ((b < 0) != (mod < 0)) {
                     div -= 1.0;
                 }
             }
@@ -1663,7 +1663,7 @@ static inline bool _INPLACE_OPERATION_FLOORDIV_FLOAT_OBJECT(PyObject **operand1,
             double div = (a - mod) / b;
 
             if (mod) {
-                if ((a < 0) != (mod < 0)) {
+                if ((b < 0) != (mod < 0)) {
                     div -= 1.0;
                 }
             }
@@ -2260,7 +2260,7 @@ static inline bool _INPLACE_OPERATION_FLOORDIV_FLOAT_CFLOAT(PyObject **operand1,
         double div = (a - mod) / b;
 
         if (mod) {
-            if ((a < 0) != (mod < 0)) {
+            if ((b < 0) != (mod < 0)) {
                 div -= 1.0;
             }
         }
