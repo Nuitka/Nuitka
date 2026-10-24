@@ -154,15 +154,12 @@ class ExpressionBuiltinIter1(ExpressionBuiltinSingleArgBase):
         if value.mayRaiseException(exception_type):
             return True
 
-        if value.isKnownToBeIterable(None):
-            return False
-
-        return True
+        return value.mayRaiseExceptionIter(exception_type)
 
     def mayRaiseExceptionOperation(self):
         value = self.subnode_value
 
-        return value.isKnownToBeIterable(None) is not True
+        return value.mayRaiseExceptionIter(BaseException)
 
     def onRelease(self, trace_collection):
         # print "onRelease", self
@@ -175,6 +172,12 @@ class ExpressionBuiltinEnumerateMixin(object):
     @staticmethod
     def getTypeShape():
         return tshape_iterator
+
+    @staticmethod
+    def mayRaiseExceptionIter(exception_type):
+        # The resulting enumerate object is an iterator itself.
+        # pylint: disable=unused-argument
+        return False
 
     def computeExpression(self, trace_collection):
         self.onContentEscapes(trace_collection)
@@ -202,7 +205,7 @@ class ExpressionBuiltinEnumerateMixin(object):
         if sequence.mayRaiseException(exception_type):
             return True
 
-        if not sequence.getTypeShape().hasShapeSlotIter():
+        if sequence.mayRaiseExceptionIter(exception_type):
             return True
 
         return False
@@ -281,6 +284,12 @@ class ExpressionBuiltinZipMixin(object):
         def getTypeShape():
             return tshape_iterator
 
+    @staticmethod
+    def mayRaiseExceptionIter(exception_type):
+        # The resulting list (Python2) or zip object (Python3) is safely iterable.
+        # pylint: disable=unused-argument
+        return False
+
     def computeExpression(self, trace_collection):
         self.onContentEscapes(trace_collection)
 
@@ -330,7 +339,7 @@ class ExpressionBuiltinZipMixin(object):
             if value.mayRaiseException(exception_type):
                 return True
 
-            if value.getTypeShape().hasShapeSlotIter() is not True:
+            if value.mayRaiseExceptionIter(exception_type):
                 return True
 
         return False
@@ -584,6 +593,11 @@ class ExpressionBuiltinIter2(ExpressionBuiltinIter2Base):
     def getTypeShape():
         # TODO: This could be more specific, this one is a fixed well known thing!
         return tshape_iterator
+
+    @staticmethod
+    def mayRaiseExceptionIter(exception_type):
+        # The resulting callable iterator is an iterator itself.
+        return False
 
     def computeExpressionIter1(self, iter_node, trace_collection):
         return self, "new_builtin", "Eliminated useless iterator creation."

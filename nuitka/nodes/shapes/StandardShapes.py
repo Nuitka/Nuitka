@@ -86,6 +86,10 @@ class ShapeBase(getMetaClassBase("Shape", require_slots=True)):
         return None
 
     @staticmethod
+    def hasShapeSlotIterCode():
+        return None
+
+    @staticmethod
     def hasShapeSlotNext():
         return None
 
@@ -1347,6 +1351,9 @@ class ShapeLoopCompleteAlternative(ShapeBase):
 
     def hasShapeSlotIter(self):
         return self._delegatedCheck(lambda x: x.hasShapeSlotIter())
+
+    def hasShapeSlotIterCode(self):
+        return self._delegatedCheck(lambda x: x.hasShapeSlotIterCode())
 
     def hasShapeSlotNext(self):
         return self._delegatedCheck(lambda x: x.hasShapeSlotNext())

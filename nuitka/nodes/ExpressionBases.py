@@ -738,6 +738,16 @@ class ExpressionBase(NodeBase):
         # Virtual method, pylint: disable=unused-argument
         return True
 
+    def mayRaiseExceptionIter(self, exception_type):
+        """May creating an iterator from this value raise?"""
+        # Virtual method, pylint: disable=unused-argument
+        shape = self.getTypeShape()
+
+        return (
+            shape.hasShapeSlotIter() is not True
+            or shape.hasShapeSlotIterCode() is not False
+        )
+
     @staticmethod
     def mayRaiseExceptionAbs(exception_type):
         """Unless we are told otherwise, everything may raise in 'abs'."""
