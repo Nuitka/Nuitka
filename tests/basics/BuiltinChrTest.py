@@ -1,7 +1,7 @@
 #     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-"""The "chr" built-in with values out of range and not usable as an index."""
+"""The 'chr' built-in with values out of range and not usable as an index."""
 
 from __future__ import print_function
 
