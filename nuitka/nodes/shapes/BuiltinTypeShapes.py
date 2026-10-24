@@ -1598,6 +1598,19 @@ class ShapeTypeBytearray(ShapeContainerMutableMixin, ShapeNotNumberMixin, ShapeB
     def hasShapeIndexLookup():
         return True
 
+    # Not a number, but has these.
+    @staticmethod
+    def hasShapeSlotInt():
+        return True
+
+    @staticmethod
+    def hasShapeSlotLong():
+        return True
+
+    @staticmethod
+    def hasShapeSlotFloat():
+        return True
+
     add_shapes = add_shapes_bytearray
     sub_shapes = sub_shapes_bytearray
     mult_shapes = mult_shapes_bytearray
@@ -1796,7 +1809,11 @@ class ShapeTypeTypeBase(ShapeNotNumberMixin, ShapeBase):
             return operation_result_unknown
 
         if right_shape is tshape_type:
-            return tshape_unknown, ControlFlowDescriptionNoEscape
+            # Python3 types are unorderable, unless a metaclass makes them so.
+            if python_version < 0x300:
+                return tshape_unknown, ControlFlowDescriptionNoEscape
+            else:
+                return operation_result_unknown
 
         return _getComparisonLtShapeGeneric(self, right_shape)
 
@@ -2107,6 +2124,12 @@ _rejectEverything(bitxor_shapes_none, operation_result_unsupported_bitxor)
 _rejectEverything(lshift_shapes_none, operation_result_unsupported_lshift)
 _rejectEverything(rshift_shapes_none, operation_result_unsupported_rshift)
 _rejectEverything(matmult_shapes_none, operation_result_unsupported_rshift)
+
+# Other shapes share "bitor_shapes_none", but only "None | type" creates a
+# "types.UnionType" value.
+if python_version >= 0x3A0:
+    ShapeTypeNoneType.bitor_shapes = dict(bitor_shapes_none)
+    ShapeTypeNoneType.bitor_shapes[tshape_type] = operation_result_unknown
 
 
 def cloneWithUnsupportedChange(op_shapes, operation_result_unsupported):
@@ -3938,7 +3961,7 @@ add_shapes_bytes.update(
         # Sequence repeat is not allowed
         tshape_str: operation_result_unsupported_add,
         tshape_bytes: operation_result_bytes_noescape,
-        tshape_bytearray: operation_result_bytearray_noescape,
+        tshape_bytearray: operation_result_bytes_noescape,
         tshape_unicode: operation_result_unsupported_add,
         tshape_tuple: operation_result_unsupported_add,
         tshape_list: operation_result_unsupported_add,
