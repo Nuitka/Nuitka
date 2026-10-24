@@ -221,41 +221,57 @@ def _watchPylint(options, positional_args):
 
 
 def _ensurePylintInstalled(options):
-    site_packages_folder = None
+    """Ensure that PyLint is available for checking source code.
 
-    if options.assume_yes_for_downloads:
-        # Try private pip space first. If the correct version is already
-        # installed there, this returns it without any prompt or download.
-        site_packages_folder, _assume_yes_for_downloads = tryDownloadPackageName(
+    Notes:
+        The private pip space is always consulted, so that a previously
+        downloaded PyLint is used without asking for permission to download
+        anything. Downloads only happen with '--assume-yes-for-downloads' or
+        when the user confirms the prompt.
+
+    Returns:
+        bool: True if PyLint is available, False if it is missing, but skipping
+        it was requested.
+    """
+    # Try private pip space first. If the correct version is already
+    # installed there, this returns it without any prompt or download.
+    site_packages_folder, _assume_yes_for_downloads = tryDownloadPackageName(
+        logger=tools_logger,
+        package_name="pylint",
+        module_name="pylint",
+        package_version=getRequiredVersion(tools_logger, "pylint"),
+        force_update=False,
+        assume_yes_for_downloads=options.assume_yes_for_downloads,
+        reject_message=(
+            "PyLint is needed for checking source code."
+            if options.assume_yes_for_downloads
+            else None
+        ),
+    )
+
+    if site_packages_folder is not None:
+        addPYTHONPATH(site_packages_folder)
+
+        # Also ensure astroid in the private pip space.
+        tryDownloadPackageName(
             logger=tools_logger,
-            package_name="pylint",
-            module_name="pylint",
-            package_version=getRequiredVersion(tools_logger, "pylint"),
+            package_name="astroid",
+            module_name="astroid",
+            package_version=getRequiredVersion(
+                tools_logger,
+                "astroid",
+            ),
             force_update=False,
-            assume_yes_for_downloads=True,
-            reject_message="PyLint is needed for checking source code.",
+            assume_yes_for_downloads=options.assume_yes_for_downloads,
+            reject_message=None,
         )
 
-        if site_packages_folder is not None:
-            addPYTHONPATH(site_packages_folder)
-
-            # Also ensure astroid in the private pip space.
-            tryDownloadPackageName(
-                logger=tools_logger,
-                package_name="astroid",
-                module_name="astroid",
-                package_version=getRequiredVersion(
-                    tools_logger,
-                    "astroid",
-                ),
-                force_update=False,
-                assume_yes_for_downloads=True,
-                reject_message=None,
-            )
-
-            return True
+        return True
 
     # Private pip space not available, fall back to global.
+    if hasModule("pylint"):
+        return True
+
     if options.not_installed_is_no_error:
         tools_logger.warning(
             "PyLint is not installed for this interpreter version: SKIPPED",
@@ -264,7 +280,10 @@ def _ensurePylintInstalled(options):
 
         return False
 
-    return hasModule("pylint")
+    return tools_logger.sysexit(
+        "Error, pylint is not installed for this interpreter '%s' version."
+        % os.environ["PYTHON"]
+    )
 
 
 def main():
