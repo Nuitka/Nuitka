@@ -217,6 +217,28 @@ NUITKA_MAY_BE_UNUSED static PyObject *ITERATOR_NEXT(PyObject *iterator) {
 #endif
 }
 
+NUITKA_MAY_BE_UNUSED static PyObject *_BUILTIN_NEXT2_COMMON(PyThreadState *tstate, PyObject *iterator,
+                                                            PyObject *default_value) {
+    CHECK_OBJECT(iterator);
+    CHECK_OBJECT(default_value);
+
+    PyObject *result = (*Py_TYPE(iterator)->tp_iternext)(iterator);
+
+    if (unlikely(result == NULL)) {
+        bool stop_iteration_error = CHECK_AND_CLEAR_STOP_ITERATION_OCCURRED(tstate);
+
+        if (unlikely(stop_iteration_error == false)) {
+            return NULL;
+        }
+
+        Py_INCREF(default_value);
+        return default_value;
+    }
+
+    CHECK_OBJECT(result);
+    return result;
+}
+
 NUITKA_MAY_BE_UNUSED static PyObject *BUILTIN_NEXT2(PyThreadState *tstate, PyObject *iterator,
                                                     PyObject *default_value) {
     CHECK_OBJECT(iterator);
@@ -234,21 +256,16 @@ NUITKA_MAY_BE_UNUSED static PyObject *BUILTIN_NEXT2(PyThreadState *tstate, PyObj
         return NULL;
     }
 
-    PyObject *result = (*Py_TYPE(iterator)->tp_iternext)(iterator);
+    return _BUILTIN_NEXT2_COMMON(tstate, iterator, default_value);
+}
 
-    if (unlikely(result == NULL)) {
-        bool stop_iteration_error = CHECK_AND_CLEAR_STOP_ITERATION_OCCURRED(tstate);
+NUITKA_MAY_BE_UNUSED static PyObject *BUILTIN_NEXT2_ITERATOR(PyThreadState *tstate, PyObject *iterator,
+                                                             PyObject *default_value) {
+    CHECK_OBJECT(iterator);
+    CHECK_OBJECT(default_value);
+    assert(HAS_ITERNEXT(iterator));
 
-        if (unlikely(stop_iteration_error == false)) {
-            return NULL;
-        }
-
-        Py_INCREF(default_value);
-        return default_value;
-    }
-
-    CHECK_OBJECT(result);
-    return result;
+    return _BUILTIN_NEXT2_COMMON(tstate, iterator, default_value);
 }
 
 // For cases, where no exception raising is needed, because we know it at compile time.

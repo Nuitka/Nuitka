@@ -748,6 +748,16 @@ class ExpressionBase(NodeBase):
             or shape.hasShapeSlotIterCode() is not False
         )
 
+    def mayRaiseExceptionIndex(self, exception_type):
+        """May converting this value with PyNumber_Index() raise?"""
+        # Virtual method, pylint: disable=unused-argument
+        shape = self.getTypeShape()
+
+        return (
+            shape.hasShapeSlotIndex() is not True
+            or shape.hasShapeSlotIndexCode() is not False
+        )
+
     @staticmethod
     def mayRaiseExceptionAbs(exception_type):
         """Unless we are told otherwise, everything may raise in 'abs'."""

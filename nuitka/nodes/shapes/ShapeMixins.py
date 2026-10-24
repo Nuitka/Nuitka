@@ -125,6 +125,10 @@ class ShapeNotNumberMixin(object):
         return False
 
     @staticmethod
+    def hasShapeSlotIndex():
+        return False
+
+    @staticmethod
     def hasShapeSlotLong():
         return False
 
@@ -167,6 +171,10 @@ class ShapeNumberMixin(object):
     @staticmethod
     def hasShapeSlotInt():
         return True
+
+    @staticmethod
+    def hasShapeSlotIndex():
+        return False
 
     @staticmethod
     def hasShapeSlotLong():

@@ -29,6 +29,13 @@ from .templates.CodeTemplatesIterators import template_loop_break_next
 from .TupleCodes import getTupleCreationCode
 
 
+def _emitIteratorNextCode(expression, to_name, value, emit):
+    if expression.getTypeShape().isShapeIterator():
+        emit("%s = ITERATOR_NEXT_ITERATOR(%s);" % (to_name, value))
+    else:
+        emit("%s = ITERATOR_NEXT(%s);" % (to_name, value))
+
+
 def generateBuiltinNext1Code(to_name, expression, emit, context):
     (value_name,) = generateChildExpressionsCode(
         expression=expression, emit=emit, context=context
@@ -42,11 +49,15 @@ def generateBuiltinNext1Code(to_name, expression, emit, context):
     with withObjectCodeTemporaryAssignment(
         to_name, "next_value", expression, emit, context
     ) as result_name:
-        # TODO: Make use of "ITERATOR_NEXT_ITERATOR" in case of known type shape
-        # iterator.
+        _emitIteratorNextCode(
+            expression=expression.subnode_value,
+            to_name=result_name,
+            value=value_name,
+            emit=emit,
+        )
+
         emit(
             """\
-%(to_name)s = ITERATOR_NEXT(%(iterator_name)s);
 if (%(to_name)s == NULL) {
     FETCH_ERROR_OCCURRED_STATE(tstate, &%(exception_state_name)s);
 
@@ -57,7 +68,6 @@ if (%(to_name)s == NULL) {
 """
             % {
                 "to_name": result_name,
-                "iterator_name": value_name,
                 "exception_state_name": exception_state_name,
             }
         )
@@ -188,10 +198,12 @@ def generateBuiltinZip310Code(to_name, expression, emit, context):
 
 
 def getBuiltinLoopBreakNextCode(expression, to_name, value, emit, context):
-    if expression.getTypeShape().isShapeIterator():
-        emit("%s = %s;" % (to_name, "ITERATOR_NEXT_ITERATOR(%s)" % value))
-    else:
-        emit("%s = %s;" % (to_name, "ITERATOR_NEXT(%s)" % value))
+    _emitIteratorNextCode(
+        expression=expression,
+        to_name=to_name,
+        value=value,
+        emit=emit,
+    )
 
     getReleaseCode(release_name=value, emit=emit, context=context)
 
@@ -440,9 +452,14 @@ if (%(res_name)s) {
 
 
 def generateBuiltinNext2Code(to_name, expression, emit, context):
+    if expression.subnode_iterator.getTypeShape().isShapeIterator():
+        capi = "BUILTIN_NEXT2_ITERATOR"
+    else:
+        capi = "BUILTIN_NEXT2"
+
     generateCAPIObjectCode(
         to_name=to_name,
-        capi="BUILTIN_NEXT2",
+        capi=capi,
         tstate=True,
         arg_desc=(
             ("next_arg", expression.subnode_iterator),

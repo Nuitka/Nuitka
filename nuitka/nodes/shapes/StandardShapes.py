@@ -74,6 +74,14 @@ class ShapeBase(getMetaClassBase("Shape", require_slots=True)):
         return None
 
     @staticmethod
+    def hasShapeSlotIndex():
+        return None
+
+    @staticmethod
+    def hasShapeSlotIndexCode():
+        return None
+
+    @staticmethod
     def hasShapeSlotLong():
         return None
 
@@ -1363,6 +1371,12 @@ class ShapeLoopCompleteAlternative(ShapeBase):
 
     def hasShapeSlotInt(self):
         return self._delegatedCheck(lambda x: x.hasShapeSlotInt())
+
+    def hasShapeSlotIndex(self):
+        return self._delegatedCheck(lambda x: x.hasShapeSlotIndex())
+
+    def hasShapeSlotIndexCode(self):
+        return self._delegatedCheck(lambda x: x.hasShapeSlotIndexCode())
 
     def hasShapeSlotLong(self):
         return self._delegatedCheck(lambda x: x.hasShapeSlotLong())

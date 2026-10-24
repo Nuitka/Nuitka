@@ -34,13 +34,7 @@ from .NodeMakingHelpers import (
     makeRaiseTypeErrorExceptionReplacementFromTemplateAndValue,
     wrapExpressionWithSideEffects,
 )
-from .shapes.BuiltinTypeShapes import (
-    tshape_bool,
-    tshape_int,
-    tshape_int_or_long,
-    tshape_list,
-    tshape_long,
-)
+from .shapes.BuiltinTypeShapes import tshape_list
 from .shapes.IteratorShapes import tshape_iterator
 from .StatementBasesGenerated import (
     StatementSpecialUnpackCheckBase,
@@ -258,12 +252,7 @@ class ExpressionBuiltinEnumerate2(
             return True
 
         # The start value must be usable as an index.
-        if start.getTypeShape() not in (
-            tshape_int,
-            tshape_long,
-            tshape_int_or_long,
-            tshape_bool,
-        ):
+        if start.mayRaiseExceptionIndex(exception_type):
             return True
 
         return False
