@@ -10,6 +10,7 @@ from nuitka.nodes.shapes.BuiltinTypeShapes import (
     tshape_str,
     tshape_tuple,
 )
+from nuitka.PythonVersions import python_version
 
 from .BuiltinParameterSpecs import (
     BuiltinMethodParameterSpecBase,
@@ -80,9 +81,21 @@ str_endswith_spec = StrMethodSpecNoKeywords(
     type_shape=tshape_bool,
 )
 
-str_replace_spec = StrMethodSpecNoKeywords(
-    "replace", arg_names=("old", "new", "count"), default_count=1, type_shape=tshape_str
-)
+if python_version < 0x3D0:
+    str_replace_spec = StrMethodSpecNoKeywords(
+        "replace",
+        arg_names=("old", "new", "count"),
+        default_count=1,
+        type_shape=tshape_str,
+    )
+else:
+    str_replace_spec = StrMethodSpec(
+        "replace",
+        pos_only_args=("old", "new"),
+        arg_names=("count",),
+        default_count=1,
+        type_shape=tshape_str,
+    )
 
 str_count_spec = StrMethodSpecNoKeywords(
     "count", arg_names=("sub", "start", "end"), default_count=2, type_shape=tshape_int

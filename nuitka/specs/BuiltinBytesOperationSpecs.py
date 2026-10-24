@@ -14,6 +14,7 @@ from nuitka.nodes.shapes.BuiltinTypeShapes import (
     tshape_str,
     tshape_tuple,
 )
+from nuitka.PythonVersions import python_version
 
 from .BuiltinParameterSpecs import (
     BuiltinMethodParameterSpecBase,
@@ -157,9 +158,21 @@ bytes_rjust_spec = BytesMethodSpecNoKeywords(
 bytes_zfill_spec = BytesMethodSpecNoKeywords(
     "zfill", arg_names=("width",), type_shape=tshape_bytes
 )
-bytes_translate_spec = BytesMethodSpecNoKeywords(
-    "translate", arg_names=("table", "delete"), default_count=1, type_shape=tshape_bytes
-)
+if python_version < 0x360:
+    bytes_translate_spec = BytesMethodSpecNoKeywords(
+        "translate",
+        arg_names=("table", "delete"),
+        default_count=1,
+        type_shape=tshape_bytes,
+    )
+else:
+    bytes_translate_spec = BytesMethodSpec(
+        "translate",
+        pos_only_args=("table",),
+        arg_names=("delete",),
+        default_count=1,
+        type_shape=tshape_bytes,
+    )
 bytes_splitlines_spec = BytesMethodSpec(
     "splitlines", arg_names=("keepends"), default_count=1, type_shape=tshape_list
 )
