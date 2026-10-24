@@ -1004,13 +1004,6 @@ def _addConstantBlobFileCode(env, blob_filename):
 // Constant data for the program.
 """)
 
-            if env.clang_mode or env.clangcl_mode:
-                output.write("""
-#if defined(__clang__)
-#pragma clang diagnostic ignored "-Wc23-extensions"
-#endif
-""")
-
             output.write("""
 #ifdef __cplusplus
 extern "C"
@@ -1022,7 +1015,19 @@ unsigned char %s_data[] =
 {
 """ % _getSymbolName(blob_filename))
 
-            if env.resource_mode == "code":
+            if env.resource_mode == "c23_embed":
+                # The '#embed' directive is a C23 extension, and only Clang 19
+                # and later support it, older versions do not know the warning
+                # group either.
+                if env.clang_mode or env.clangcl_mode:
+                    output.write("""
+#if defined(__clang__) && __clang_major__ >= 19
+#pragma clang diagnostic ignored "-Wc23-extensions"
+#endif
+""")
+
+                output.write('#embed "%s"\n' % blob_filename)
+            else:
                 with open(blob_filename, "rb") as f:
                     content = f.read()
                 for count, stream_byte in enumerate(content):
@@ -1036,8 +1041,6 @@ unsigned char %s_data[] =
                         stream_byte = ord(stream_byte)
 
                     output.write(" 0x%02x," % stream_byte)
-            else:
-                output.write('#embed "%s"\n' % blob_filename)
 
             output.write("""\
 \n};
