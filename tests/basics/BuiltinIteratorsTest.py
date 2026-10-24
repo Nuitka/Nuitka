@@ -47,6 +47,26 @@ def nextIterator(value):
     return next(iter(value), "default")
 
 
+def nextKnownIterator():
+    return next(iter("ab"))
+
+
+def nextKnownEmptyIterator():
+    return next(iter(()))
+
+
+def nextKnownIteratorWithDefault():
+    return next(iter("ab"), "default")
+
+
+def nextKnownEmptyIteratorWithDefault():
+    return next(iter(()), "default")
+
+
+def nextNotIteratorNoDefault(value):
+    return next(value)
+
+
 def check(description, func, *args):
     try:
         result = func(*args)
@@ -67,6 +87,11 @@ if sys.version_info >= (3, 10):
 check("next of int with default", nextNotIterator, int("5"))
 check("next of list with default", nextNotIterator, list("ab"))
 check("next of empty iterator with default", nextIterator, ())
+check("next of known iterator", nextKnownIterator)
+check("next of empty known iterator", nextKnownEmptyIterator)
+check("next of known iterator with default", nextKnownIteratorWithDefault)
+check("next of empty known iterator with default", nextKnownEmptyIteratorWithDefault)
+check("next of int", nextNotIteratorNoDefault, int("5"))
 
 #     Python tests originally created or extracted from other peoples work. The
 #     parts were too small to be protected.
