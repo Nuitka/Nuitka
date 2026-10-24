@@ -650,25 +650,6 @@ static PyObject *_LIST_INDEX_COMMON(PyThreadState *tstate, PyListObject *list, P
 #endif
 }
 
-// Convert an index for use like a slice index, values that do not fit are
-// clamped, as done by CPython for "list.index" start and stop values.
-static Py_ssize_t _CONVERT_LONG_TO_CLAMPED_INDEX(PyThreadState *tstate, PyObject *index_long) {
-#if PYTHON_VERSION < 0x300
-    if (PyInt_CheckExact(index_long)) {
-        return PyInt_AS_LONG(index_long);
-    }
-#endif
-    Py_ssize_t result = PyLong_AsSsize_t(index_long);
-
-    if (unlikely(result == -1 && HAS_ERROR_OCCURRED(tstate))) {
-        CLEAR_ERROR_OCCURRED(tstate);
-
-        result = Nuitka_LongIsNegative(index_long) ? PY_SSIZE_T_MIN : PY_SSIZE_T_MAX;
-    }
-
-    return result;
-}
-
 PyObject *LIST_INDEX2(PyThreadState *tstate, PyObject *list, PyObject *item) {
     CHECK_OBJECT(list);
     assert(PyList_CheckExact(list));
@@ -691,7 +672,7 @@ PyObject *LIST_INDEX3(PyThreadState *tstate, PyObject *list, PyObject *item, PyO
         return NULL;
     }
 
-    Py_ssize_t start_ssize = _CONVERT_LONG_TO_CLAMPED_INDEX(tstate, start_index);
+    Py_ssize_t start_ssize = PyNumber_AsSsize_t(start_index, NULL);
 
     Py_DECREF(start_index);
 
@@ -712,7 +693,7 @@ PyObject *LIST_INDEX4(PyThreadState *tstate, PyObject *list, PyObject *item, PyO
         return NULL;
     }
 
-    Py_ssize_t start_ssize = _CONVERT_LONG_TO_CLAMPED_INDEX(tstate, start_index);
+    Py_ssize_t start_ssize = PyNumber_AsSsize_t(start_index, NULL);
 
     Py_DECREF(start_index);
 
@@ -726,7 +707,7 @@ PyObject *LIST_INDEX4(PyThreadState *tstate, PyObject *list, PyObject *item, PyO
         return NULL;
     }
 
-    Py_ssize_t stop_ssize = _CONVERT_LONG_TO_CLAMPED_INDEX(tstate, stop_index);
+    Py_ssize_t stop_ssize = PyNumber_AsSsize_t(stop_index, NULL);
 
     Py_DECREF(stop_index);
 
