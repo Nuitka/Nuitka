@@ -222,6 +222,18 @@ NUITKA_MAY_BE_UNUSED static PyObject *BUILTIN_NEXT2(PyThreadState *tstate, PyObj
     CHECK_OBJECT(iterator);
     CHECK_OBJECT(default_value);
 
+    if (unlikely(!HAS_ITERNEXT(iterator))) {
+        SET_CURRENT_EXCEPTION_TYPE_COMPLAINT(
+#if PYTHON_VERSION < 0x300 && defined(_NUITKA_FULL_COMPAT)
+            "%s object is not an iterator",
+#else
+            "'%s' object is not an iterator",
+#endif
+            iterator);
+
+        return NULL;
+    }
+
     PyObject *result = (*Py_TYPE(iterator)->tp_iternext)(iterator);
 
     if (unlikely(result == NULL)) {

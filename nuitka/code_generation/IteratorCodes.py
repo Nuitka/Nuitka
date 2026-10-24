@@ -88,6 +88,7 @@ def generateBuiltinEnumerate1Code(to_name, expression, emit, context):
             release_name=sequence_name,
             emit=emit,
             context=context,
+            needs_check=expression.mayRaiseException(BaseException),
         )
 
         context.addCleanupTempName(result_name)
@@ -111,6 +112,7 @@ def generateBuiltinEnumerate2Code(to_name, expression, emit, context):
             release_names=(sequence_name, start_name),
             emit=emit,
             context=context,
+            needs_check=expression.mayRaiseException(BaseException),
         )
 
         context.addCleanupTempName(result_name)
@@ -146,6 +148,7 @@ def generateBuiltinZipCode(to_name, expression, emit, context):
             release_names=iterable_names,
             emit=emit,
             context=context,
+            needs_check=expression.mayRaiseException(BaseException),
         )
 
         context.addCleanupTempName(result_name)
@@ -183,6 +186,7 @@ def generateBuiltinZip310Code(to_name, expression, emit, context):
             release_names=(values_name, strict_name),
             emit=emit,
             context=context,
+            needs_check=expression.mayRaiseException(BaseException),
         )
 
         context.addCleanupTempName(result_name)

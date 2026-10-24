@@ -34,7 +34,13 @@ from .NodeMakingHelpers import (
     makeRaiseTypeErrorExceptionReplacementFromTemplateAndValue,
     wrapExpressionWithSideEffects,
 )
-from .shapes.BuiltinTypeShapes import tshape_list
+from .shapes.BuiltinTypeShapes import (
+    tshape_bool,
+    tshape_int,
+    tshape_int_or_long,
+    tshape_list,
+    tshape_long,
+)
 from .shapes.IteratorShapes import tshape_iterator
 from .StatementBasesGenerated import (
     StatementSpecialUnpackCheckBase,
@@ -243,7 +249,18 @@ class ExpressionBuiltinEnumerate2(
         if ExpressionBuiltinEnumerateMixin.mayRaiseException(self, exception_type):
             return True
 
-        if self.subnode_start.mayRaiseException(exception_type):
+        start = self.subnode_start
+
+        if start.mayRaiseException(exception_type):
+            return True
+
+        # The start value must be usable as an index.
+        if start.getTypeShape() not in (
+            tshape_int,
+            tshape_long,
+            tshape_int_or_long,
+            tshape_bool,
+        ):
             return True
 
         return False
@@ -367,7 +384,11 @@ class ExpressionBuiltinZip310(
     def mayRaiseException(self, exception_type):
         strict = self.subnode_strict
 
-        if strict is not None and strict.mayRaiseException(exception_type):
+        # The strict value is checked for truth, which may raise too.
+        if strict is not None and (
+            strict.mayRaiseException(exception_type)
+            or strict.mayRaiseExceptionBool(exception_type)
+        ):
             return True
 
         return ExpressionBuiltinZipMixin.mayRaiseException(self, exception_type)
