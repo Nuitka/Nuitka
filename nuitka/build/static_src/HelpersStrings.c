@@ -28,6 +28,30 @@ PyObject *STRING_FROM_CHAR(unsigned char c) {
 */
 
 PyObject *BUILTIN_CHR(PyThreadState *tstate, PyObject *value) {
+#if PYTHON_VERSION >= 0x3a0
+    // Same conversion as CPython, which gives the "TypeError" for values that
+    // are not usable as an index.
+    int overflow;
+    long x = PyLong_AsLongAndOverflow(value, &overflow);
+
+    if (unlikely(x == -1 && HAS_ERROR_OCCURRED(tstate))) {
+        return NULL;
+    }
+
+#if PYTHON_VERSION >= 0x3d0
+    // Values too large are simply not in the allowed range, also those that
+    // do not fit the C "int" taken by "PyUnicode_FromOrdinal".
+    if (unlikely(overflow != 0 || x > INT_MAX || x < INT_MIN)) {
+        x = -1;
+    }
+#else
+    // Older CPython requires a C "int" value first.
+    if (unlikely(overflow != 0 || x > INT_MAX || x < INT_MIN)) {
+        SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_OverflowError, "Python int too large to convert to C int");
+        return NULL;
+    }
+#endif
+#else
     long x = PyInt_AsLong(value);
 
     if (unlikely(x == -1 && HAS_ERROR_OCCURRED(tstate))) {
@@ -38,6 +62,7 @@ PyObject *BUILTIN_CHR(PyThreadState *tstate, PyObject *value) {
 #endif
         return NULL;
     }
+#endif
 
 #if PYTHON_VERSION < 0x300
     if (unlikely(x < 0 || x >= 256)) {
