@@ -276,9 +276,10 @@ class ExpressionListOperationInsert(
         # This lets the value added to the list escape.
         self.subnode_item.onContentEscapes(trace_collection)
 
-        # Could raise TypeError from wrong index type.
+        # Could raise TypeError from wrong index type, or OverflowError for
+        # index values that do not fit Py_ssize_t.
         if self.mayRaiseExceptionOperation():
-            trace_collection.onExceptionRaiseExit(TypeError)
+            trace_collection.onExceptionRaiseExit((TypeError, OverflowError))
 
         # it raises no index error, just appends
         return self, None, None
@@ -292,10 +293,6 @@ class ExpressionListOperationInsert(
         )
 
     def mayRaiseExceptionOperation(self):
-        # TODO: We do not yet have isIndexable from the type shape.
-        # Any integer index value will do for insert, but only constant
-        # ones small enough are used directly, others are converted and
-        # that may raise "TypeError" or "OverflowError".
         return not self.subnode_index.isExpressionIntegerSubscript()
 
 
