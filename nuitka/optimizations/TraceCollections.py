@@ -159,8 +159,9 @@ class CollectionStartPointMixin(CollectionUpdateMixin):
         """Indicate to the trace collection what exceptions may have occurred.
 
         Args:
-            raisable_exception: Currently ignored, one or more exceptions that
-            could occur, e.g. "BaseException".
+            raisable_exceptions: Currently ignored, one exception class or a
+            tuple of exception classes that could occur, e.g. "BaseException"
+            or "(TypeError, OverflowError)".
             collection: To pass the collection that will be the parent
         Notes:
             Currently this is unused. Passing "collection" as an argument, so
