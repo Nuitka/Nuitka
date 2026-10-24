@@ -1,7 +1,7 @@
 #     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-"""List methods "insert" and "index" with bad and extreme index values."""
+"""List methods 'insert' and 'index' with bad and extreme index values."""
 
 from __future__ import print_function
 
