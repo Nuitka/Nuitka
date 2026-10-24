@@ -1481,7 +1481,7 @@ bool expandTemplatePath(char *target, char const *source, size_t buffer_size) {
 
                     struct timeval current_time;
                     gettimeofday(&current_time, NULL);
-                    snprintf(time_buffer, sizeof(time_buffer), "%ld_%ld", current_time.tv_sec,
+                    snprintf(time_buffer, sizeof(time_buffer), "%lld_%ld", (long long)current_time.tv_sec,
                              (long)current_time.tv_usec);
 
 #if _NUITKA_ONEFILE_MODE
