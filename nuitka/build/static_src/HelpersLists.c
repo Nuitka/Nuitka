@@ -720,6 +720,14 @@ bool LIST_INSERT(PyThreadState *tstate, PyObject *list, PyObject *index, PyObjec
     CHECK_OBJECT(index);
     CHECK_OBJECT(item);
 
+#if PYTHON_VERSION >= 0x300 && PYTHON_VERSION < 0x3a0
+    // Older CPython argument parsing rejects float values before converting.
+    if (unlikely(PyFloat_Check(index))) {
+        SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_TypeError, "integer argument expected, got float");
+        return false;
+    }
+#endif
+
     // TODO: Avoid the clear, by having this as a variant that doesn't set the
     // exception to begin with
     PyObject *index_long = Nuitka_Number_IndexAsLong(index);
