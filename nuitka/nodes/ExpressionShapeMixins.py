@@ -212,9 +212,15 @@ class ExpressionNonIterableTypeShapeMixin(object):
 
 
 class ExpressionIterableTypeShapeMixin(object):
-    """Mixin for nodes known to not be iterable."""
+    """Mixin for nodes known to be iterable."""
 
     __slots__ = ()
+
+    @staticmethod
+    def mayRaiseExceptionIter(exception_type):
+        # All users of this mixin have exact built-in iterable shapes.
+        # pylint: disable=unused-argument
+        return False
 
     # Bad Implementation that the node can use, based on getIterationLength, which
     def isKnownToBeIterable(self, count):
