@@ -2676,6 +2676,18 @@ When not given, Nuitka downloads and caches a matching prebuilt WASI Python.
 Default empty.""",
 )
 
+target_group.add_option(
+    "--wasi-sdk-path",
+    action="store",
+    dest="wasi_sdk_path",
+    metavar="DIRECTORY",
+    default=None,
+    help="""\
+Directory of a WASI SDK installation to use with '--target=wasm32-wasi'.
+When not given, Nuitka downloads and caches WASI SDK 20.
+Default empty.""",
+)
+
 del target_group
 
 

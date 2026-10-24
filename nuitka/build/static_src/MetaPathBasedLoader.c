@@ -702,7 +702,7 @@ typedef void (*entrypoint_t)(void);
 typedef PyObject *(*entrypoint_t)(void);
 #endif
 
-#ifndef _WIN32
+#if !defined(_WIN32) && !defined(__wasi__)
 // Shared libraries loading.
 #include <dlfcn.h>
 #endif

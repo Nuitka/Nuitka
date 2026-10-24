@@ -44,6 +44,7 @@ from nuitka.PythonFlavors import (
     isPythonBuildStandalonePython,
 )
 from nuitka.PythonPrefixes import getSystemPrefixPath
+from nuitka.targets.Targets import isElfTarget, isRPathUsingTarget
 from nuitka.Tracing import general, inclusion_logger
 from nuitka.utils.Execution import executeToolChecked
 from nuitka.utils.FileOperations import (
@@ -73,10 +74,8 @@ from nuitka.utils.Utils import (
     getOS,
     isCoffUsingPlatform,
     isDebianBasedLinux,
-    isElfUsingPlatform,
     isMacOS,
     isPosixWindows,
-    isRPathUsingPlatform,
     isWin32Windows,
 )
 
@@ -238,10 +237,10 @@ def copyDllsUsed(dist_dir, standalone_entry_points):
         )
 
     # After dependency detection, we can change the RPATH for main binary.
-    if isRPathUsingPlatform():
+    if isRPathUsingTarget():
         main_binary_rpath = "$ORIGIN"
 
-        if isElfUsingPlatform():
+        if isElfTarget():
             # Allow basename based "dlopen()" calls from the program to find
             # copied shared libraries below the distribution root.
             main_binary_rpath = ":".join(

@@ -222,6 +222,14 @@ def createEnvironment(
 
     zig_mode = zig_mode_env or bool(zig_exe_path)
 
+    wasi_sdk_path = getArgumentDefaulted("wasi_sdk_path", None)
+    if wasi_sdk_path is not None:
+        addToPATH(
+            None,
+            getNormalizedPathJoin(wasi_sdk_path, "bin"),
+            prefix=True,
+        )
+
     if isMacOS() and "auto-homebrew-clang" in experimental_flags:
         if target_arch == "arm64":
             _candidate = "/opt/homebrew/opt/llvm/bin"
@@ -373,7 +381,9 @@ def createEnvironment(
     env.android_termux_python = isTermuxPython()
 
     # Non-elf binary, important for linker settings.
-    env.noelf_mode = getArgumentBool("noelf_mode", False)
+    env.binary_format = getArgumentRequired("binary_format")
+    env.target_os = getArgumentRequired("target_os")
+    env.rpath_using_platform = getArgumentBool("rpath_using_platform", False)
 
     # Python specific modes have to influence some decisions.
     env.static_libpython = getArgumentDefaulted("static_libpython", "")
@@ -420,6 +430,8 @@ def createEnvironment(
 
     # Modules count, determines if this is a large compilation.
     env.compiled_module_count = getArgumentInt("compiled_module_count", 0)
+
+    env.wasi_sdk_path = getArgumentDefaulted("wasi_sdk_path", None)
 
     # Target arch for some decisions
     env.target_arch = target_arch

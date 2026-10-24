@@ -100,7 +100,7 @@ python_prefix_external = getExternalUsePath(python_prefix)
 # From statically compiled modules of the Python
 link_module_libs = getArgumentList("link_module_libs", "")
 
-if not env.msvc_mode:
+if env.target_os != "WASI" and not env.msvc_mode:
     env.Append(LIBS=["m"])
 
 if env.python_debug:

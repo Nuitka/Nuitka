@@ -21,6 +21,7 @@ from nuitka.PythonVersions import (
     python_version,
     python_version_str,
 )
+from nuitka.targets.Targets import isWasiTarget
 from nuitka.Tracing import general
 
 from .Execution import (
@@ -30,7 +31,11 @@ from .Execution import (
     getExecutablePath,
     isExecutableCommand,
 )
-from .FileOperations import getFileContentByLine, getFileList
+from .FileOperations import (
+    getFileContentByLine,
+    getFileList,
+    getNormalizedPathJoin,
+)
 from .Utils import (
     getLinuxDistribution,
     isAIX,
@@ -38,6 +43,7 @@ from .Utils import (
     isMacOS,
     isWin32Windows,
 )
+from .WasiPython import getWasiPythonPrefix
 
 _ldconf_paths = None
 
@@ -235,6 +241,21 @@ def _getSystemStaticLibPythonPath(python_debug):
 
 def getSystemStaticLibPythonPath(python_debug):
     global _static_lib_python_path  # singleton, pylint: disable=global-statement
+
+    if isWasiTarget():
+        if _static_lib_python_path is False:
+            # Local import to avoid a circular dependency on Options.
+            from nuitka.options.Options import assumeYesForDownloads
+
+            wasi_python_prefix = getWasiPythonPrefix(
+                assume_yes_for_downloads=assumeYesForDownloads()
+            )
+
+            _static_lib_python_path = getNormalizedPathJoin(
+                wasi_python_prefix, "lib", "libpython" + python_version_str + ".a"
+            )
+
+        return _static_lib_python_path
 
     if _static_lib_python_path is False:
         _static_lib_python_path = _getSystemStaticLibPythonPath(

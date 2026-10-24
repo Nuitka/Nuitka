@@ -6,9 +6,29 @@
 import ctypes
 import sys
 
-from nuitka.utils.Utils import getArchitecture
+from nuitka.utils.Utils import (
+    getArchitecture,
+    getOS,
+    isAIX,
+    isMacOS,
+    isRPathUsingPlatform,
+    isWin32OrPosixWindows,
+)
 
 from .Targets import TargetBase
+
+
+def _getBinaryFormat():
+    if isWin32OrPosixWindows():
+        return "coff"
+
+    if isMacOS():
+        return "macho"
+
+    if isAIX():
+        return "xcoff"
+
+    return "elf"
 
 
 def _getPythonDigitBits():
@@ -30,8 +50,10 @@ class TargetNative(TargetBase):
             c_long_size=ctypes.sizeof(ctypes.c_long),
             c_longlong_size=ctypes.sizeof(ctypes.c_longlong),
             c_pointer_size=ctypes.sizeof(ctypes.c_void_p),
-            target_os="win32" if sys.platform == "win32" else sys.platform,
+            target_os=getOS(),
             target_arch=getArchitecture(),
+            binary_format=_getBinaryFormat(),
+            rpath_using=isRPathUsingPlatform(),
             python_digit_bits=_getPythonDigitBits(),
         )
 

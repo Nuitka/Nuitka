@@ -157,6 +157,7 @@ from nuitka.PythonVersions import (
     python_version_str,
 )
 from nuitka.Serialization import ConstantAccessor
+from nuitka.targets.Targets import isWasiTarget, isWin32Target
 from nuitka.Tracing import (
     code_generation_logger,
     doNotBreakSpaces,
@@ -170,6 +171,7 @@ from nuitka.utils.Distributions import getDistribution, getDistributionName
 from nuitka.utils.Execution import (
     executeCompiledBinary,
     getEnvironmentPathAdded,
+    getExecutablePath,
     withEnvironmentVarOverridden,
     wrapCommandForDebuggerForExec,
 )
@@ -190,7 +192,14 @@ from nuitka.utils.MemoryUsage import reportMemoryUsage, showMemoryTrace
 from nuitka.utils.ReExecute import callExecProcess, reExecuteNuitka
 from nuitka.utils.StaticLibraries import getSystemStaticLibPythonPath
 from nuitka.utils.Timing import withProfiling
-from nuitka.utils.Utils import getArchitecture, isMacOS, isWin32Windows
+from nuitka.utils.Utils import (
+    getArchitecture,
+    isMacOS,
+    isWin32OrPosixWindows,
+    isWin32Windows,
+)
+from nuitka.utils.WasiPython import getWasiPythonPrefix
+from nuitka.utils.Wasmtime import getWasmtimePath
 from nuitka.Version import getCommercialVersion, getNuitkaVersion
 from nuitka.VersionCheck import checkNuitkaUpdate
 
@@ -747,6 +756,16 @@ def runSconsBackend():
     # pylint: disable=too-many-branches,too-many-statements
     scons_options, env_values = getCommonSconsOptions()
 
+    if isWasiTarget():
+        wasi_python_prefix = getWasiPythonPrefix(
+            assume_yes_for_downloads=assumeYesForDownloads()
+        )
+
+        scons_options["python_prefix"] = wasi_python_prefix
+        scons_options["python_include_path"] = getNormalizedPathJoin(
+            wasi_python_prefix, "include", "python" + python_version_str
+        )
+
     source_dir = OutputDirectories.getSourceDirectoryPath(
         onefile=False,
         create=False,
@@ -983,6 +1002,31 @@ def callExecPython(args, add_path, uac):
 
 
 def _executeMain(binary_filename):
+    if isWasiTarget():
+        args = (
+            getWasmtimePath(assumeYesForDownloads()),
+            "run",
+            binary_filename,
+        )
+    elif isWin32Target() and not isWin32OrPosixWindows():
+        wine_path = getExecutablePath("wine")
+
+        if wine_path is None:
+            return general.sysexit(
+                "Error, running the Win32 target requires 'wine' on non-Windows platforms."
+            )
+
+        args = (wine_path, binary_filename)
+    else:
+        args = None
+
+    if args is not None:
+        return callExecPython(
+            args=args,
+            add_path=False,
+            uac=False,
+        )
+
     if (
         isWin32Windows()
         and not isStandaloneMode()
@@ -1003,7 +1047,7 @@ def _executeMain(binary_filename):
     else:
         args = (binary_filename, binary_filename)
 
-    callExecPython(
+    return callExecPython(
         args=args,
         add_path=False,
         uac=isWin32Windows() and shallAskForWindowsAdminRights(),

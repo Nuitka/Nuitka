@@ -84,6 +84,11 @@ from nuitka.PythonVersions import (
     python_version_str,
 )
 from nuitka.reports.Reports import getCompilationReportFilename
+from nuitka.targets.Targets import (
+    getTargetSpecification,
+    isRPathUsingTarget,
+    isWasiTarget,
+)
 from nuitka.Tracing import flushStandardOutputs, general, isQuiet, scons_logger
 from nuitka.utils.AppDirs import (
     getCacheDir,
@@ -117,13 +122,8 @@ from nuitka.utils.InstalledPythons import findInstalledPython
 from nuitka.utils.Json import loadJsonFromFilename
 from nuitka.utils.PrivatePipSpace import getZigBinaryPath
 from nuitka.utils.SharedLibraries import detectBinaryMinMacOS
-from nuitka.utils.Utils import (
-    getArchitecture,
-    isElfUsingPlatform,
-    isMacOS,
-    isWin32OrPosixWindows,
-    isWin32Windows,
-)
+from nuitka.utils.Utils import isMacOS, isWin32OrPosixWindows, isWin32Windows
+from nuitka.utils.WasiSDK import getWasiSDKPath
 
 from .SconsCaching import checkCachingSuccess
 from .SconsUtils import flushSconsReports, getSconsReportValue
@@ -831,8 +831,9 @@ def getCommonSconsOptions():
 
     scons_options["reproducible_mode"] = asBoolStr(isReproducibleBuild())
 
-    if not isElfUsingPlatform():
-        scons_options["noelf_mode"] = asBoolStr(True)
+    scons_options["binary_format"] = getTargetSpecification().getBinaryFormat()
+    scons_options["target_os"] = getTargetSpecification().getTargetOS()
+    scons_options["rpath_using_platform"] = asBoolStr(isRPathUsingTarget())
 
     if isUnstripped():
         scons_options["unstripped_mode"] = asBoolStr(True)
@@ -870,7 +871,7 @@ def getCommonSconsOptions():
 
         scons_options["macos_target_arch"] = getMacOSTargetArch()
 
-    scons_options["target_arch"] = getArchitecture()
+    scons_options["target_arch"] = getTargetSpecification().getTargetArch()
     c_target_arch = getTargetArch()
     if c_target_arch is not None:
         scons_options["c_target_arch"] = c_target_arch
@@ -912,6 +913,11 @@ def getCommonSconsOptions():
 
     if file_version:
         env_values["NUITKA_FILE_VERSION"] = file_version
+
+    if isWasiTarget() and not isZig():
+        scons_options["wasi_sdk_path"] = getWasiSDKPath(
+            assume_yes_for_downloads=assumeYesForDownloads()
+        )
 
     if isMonolithPy() and not isWin32OrPosixWindows():
         # Override environment CC and CXX to match build compiler.

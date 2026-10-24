@@ -25,6 +25,7 @@ from nuitka.options.Options import (
     shallMakeDll,
     shallMakeModule,
 )
+from nuitka.targets.Targets import isWasiTarget, isWin32OrPosixWindowsTarget
 from nuitka.utils.FileOperations import (
     addFilenameExtension,
     changeFilenameExtension,
@@ -40,7 +41,7 @@ from nuitka.utils.FileOperations import (
 )
 from nuitka.utils.Importing import getExtensionModuleSuffix
 from nuitka.utils.SharedLibraries import getDllSuffix
-from nuitka.utils.Utils import isWin32OrPosixWindows, isWin32Windows
+from nuitka.utils.Utils import isWin32Windows
 
 _main_module = None
 
@@ -251,13 +252,20 @@ def getResultFullpath(onefile, real):
             )
         elif output_filename is not None:
             result = getOutputPath(path=output_filename)
-        elif not isWin32OrPosixWindows() and not shallCreateAppBundle():
+        elif isWasiTarget():
+            result = addFilenameExtension(path=result, extension=".wasm")
+        elif not isWin32OrPosixWindowsTarget() and not shallCreateAppBundle():
             result = addFilenameExtension(path=result, extension=".bin")
 
-        if isWin32OrPosixWindows():
+        if isWin32OrPosixWindowsTarget():
             result = addFilenameExtension(path=result, extension=".exe")
 
-        if not isWin32OrPosixWindows() and isOnefileMode() and not onefile:
+        if (
+            not isWin32OrPosixWindowsTarget()
+            and isOnefileMode()
+            and not onefile
+            and not isWasiTarget()
+        ):
             result = addFilenameExtension(path=result, extension=".bin")
 
     return getNormalizedPath(path=result)

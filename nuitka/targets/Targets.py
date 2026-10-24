@@ -14,6 +14,9 @@ class TargetBase(object):
         subclasses only describe the selected target; they do not parse options.
     """
 
+    # The target specification is going to gain more attributes over time.
+    # pylint: disable=too-many-instance-attributes
+
     def __init__(
         self,
         name,
@@ -22,11 +25,15 @@ class TargetBase(object):
         c_pointer_size,
         target_os,
         target_arch,
+        binary_format,
+        rpath_using,
         python_digit_bits,
     ):
         self.name = name
         self.target_os = target_os
         self.target_arch = target_arch
+        self.binary_format = binary_format
+        self.rpath_using = rpath_using
 
         self.c_long_size = c_long_size
         self.c_longlong_size = c_longlong_size
@@ -47,6 +54,14 @@ class TargetBase(object):
         """Return the target description."""
         return self.name
 
+    def getTargetArch(self):
+        """Return the target architecture."""
+        return self.target_arch
+
+    def getTargetOS(self):
+        """Return the target operating system."""
+        return self.target_os
+
     def getCLongSize(self):
         """Return the size of C 'long' for this target."""
         return self.c_long_size
@@ -59,13 +74,25 @@ class TargetBase(object):
         """Return the size of a C pointer for this target."""
         return self.c_pointer_size
 
+    def getBinaryFormat(self):
+        """Return the target binary format, e.g. 'elf', 'coff', or 'wasm'."""
+        return self.binary_format
+
     def isWasiTarget(self):
         """Return whether this target uses the WASI ABI."""
-        return self.target_os == "wasi"
+        return self.target_os == "WASI"
 
     def isWin32Target(self):
         """Return whether this target uses the Windows ABI."""
-        return self.target_os == "win32"
+        return self.target_os == "Windows"
+
+    def isElfTarget(self):
+        """Return whether this target uses the ELF file format."""
+        return self.binary_format == "elf"
+
+    def isRPathUsingTarget(self):
+        """Return whether this target uses RPATH or an equivalent."""
+        return self.rpath_using
 
     def isValidCLongValue(self, value):
         """Return whether a Python value fits the target C 'long'."""
@@ -114,6 +141,54 @@ def setTargetSpecification(target_name):
 def getTargetSpecification():
     """Return the installed target specification."""
     return _target_specification
+
+
+def isWasiTarget():
+    """Return whether the installed target uses the WASI ABI."""
+    return _target_specification.isWasiTarget()
+
+
+def isWin32Target():
+    """Return whether the installed target uses the Windows ABI."""
+    return _target_specification.isWin32Target()
+
+
+def isElfTarget():
+    """Return whether the installed target uses the ELF file format."""
+    return _target_specification.isElfTarget()
+
+
+def isWin32OrPosixWindowsTarget():
+    """Return whether the installed target is Windows-like."""
+    return _target_specification.isWin32Target()
+
+
+def isRPathUsingTarget():
+    """Return whether the installed target uses RPATH or an equivalent."""
+    return _target_specification.isRPathUsingTarget()
+
+
+_onefile_supported_target_os = (
+    "Linux",
+    "Windows",
+    "Darwin",
+    "FreeBSD",
+    "OpenBSD",
+    "AIX",
+)
+
+# WASI supports standalone builds, but not onefile.
+_standalone_supported_target_os = _onefile_supported_target_os + ("WASI",)
+
+
+def isStandaloneSupportedTarget():
+    """Return whether standalone mode is supported for the installed target."""
+    return _target_specification.getTargetOS() in _standalone_supported_target_os
+
+
+def isOnefileSupportedTarget():
+    """Return whether onefile mode is supported for the installed target."""
+    return _target_specification.getTargetOS() in _onefile_supported_target_os
 
 
 def getTargetCLongSize():

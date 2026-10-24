@@ -6,7 +6,7 @@
 import os
 
 from nuitka.Tracing import scons_logger
-from nuitka.utils.Utils import isLinux, isMacOS, isWin32Windows
+from nuitka.utils.Utils import isMacOS, isWin32Windows
 
 from .SconsUtils import getArgumentDefaulted, getArgumentRequired, isGccName
 
@@ -122,10 +122,10 @@ def applyPythonBuildSettings(env):
         env.Append(CPPDEFINES="Py_GIL_DISABLED")
 
     # We need "dl" in accelerated mode.
-    if isLinux():
+    if env.target_os == "Linux":
         env.Append(LIBS=["dl"])
 
-    if not env.msvc_mode:
+    if env.target_os != "WASI" and not env.msvc_mode:
         env.Append(LIBS=["m"])
 
     if env.static_libpython:
@@ -192,21 +192,24 @@ def addPythonHaclLib(env, link_module_libs):
             hacl_version = None
 
         if hacl_version is not None:
+            if env.binary_format == "wasm":
+                hacl_path = os.path.join(env.python_prefix_external, "hacl")
+            else:
+                hacl_path = os.path.join(
+                    env.nuitka_src,
+                    "inline_copy",
+                    "python_hacl",
+                    hacl_version,
+                )
+
+            assert os.path.exists(os.path.join(hacl_path, "Hacl_Hash_SHA2.c")), (
+                "Missing HACL sources in '%s'." % hacl_path
+            )
+
             env.Append(
                 CPPPATH=[
-                    os.path.join(
-                        env.nuitka_src,
-                        "inline_copy",
-                        "python_hacl",
-                        hacl_version,
-                    ),
-                    os.path.join(
-                        env.nuitka_src,
-                        "inline_copy",
-                        "python_hacl",
-                        hacl_version,
-                        "include",
-                    ),
+                    hacl_path,
+                    os.path.join(hacl_path, "include"),
                 ]
             )
 

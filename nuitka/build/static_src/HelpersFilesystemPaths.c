@@ -19,7 +19,9 @@
 #endif
 
 #if !defined(_WIN32)
+#if !defined(__wasi__)
 #include <dlfcn.h>
+#endif
 #include <errno.h>
 #include <fcntl.h>
 #include <libgen.h>

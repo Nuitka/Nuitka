@@ -16,8 +16,10 @@ class TargetWASI(TargetBase):
             c_long_size=4,
             c_longlong_size=8,
             c_pointer_size=4,
-            target_os="wasi",
+            target_os="WASI",
             target_arch="wasm32",
+            binary_format="wasm",
+            rpath_using=False,
             python_digit_bits=15,
         )
 
