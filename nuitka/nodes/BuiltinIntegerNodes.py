@@ -51,6 +51,11 @@ class ExpressionBuiltinInt1(ChildHavingValueMixin, ExpressionBase):
         # TODO: Depending on input type shape and value, we should improve this.
         return tshape_int_or_long_derived
 
+    @staticmethod
+    def mayRaiseExceptionIndex(exception_type):
+        # The result is an exact int or long, both usable as an index.
+        return False
+
     def computeExpression(self, trace_collection):
         return self.subnode_value.computeExpressionInt(
             int_node=self, trace_collection=trace_collection
@@ -146,6 +151,11 @@ class ExpressionBuiltinLong1(ChildHavingValueMixin, ExpressionBase):
     def getTypeShape():
         # TODO: Depending on input type shape and value, we should improve this.
         return tshape_long_derived
+
+    @staticmethod
+    def mayRaiseExceptionIndex(exception_type):
+        # The result is an exact long, usable as an index.
+        return False
 
     def computeExpression(self, trace_collection):
         return self.subnode_value.computeExpressionLong(

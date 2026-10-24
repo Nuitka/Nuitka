@@ -35,6 +35,10 @@ class ShapeContainerMixin(object):
         return True
 
     @staticmethod
+    def hasShapeSlotIterCode():
+        return False
+
+    @staticmethod
     def hasShapeSlotNext():
         return False
 
@@ -121,6 +125,10 @@ class ShapeNotNumberMixin(object):
         return False
 
     @staticmethod
+    def hasShapeSlotIndex():
+        return False
+
+    @staticmethod
     def hasShapeSlotLong():
         return False
 
@@ -163,6 +171,10 @@ class ShapeNumberMixin(object):
     @staticmethod
     def hasShapeSlotInt():
         return True
+
+    @staticmethod
+    def hasShapeSlotIndex():
+        return False
 
     @staticmethod
     def hasShapeSlotLong():
@@ -214,6 +226,10 @@ class ShapeIteratorMixin(ShapeNotContainerMixin):
     @staticmethod
     def hasShapeSlotIter():
         return True
+
+    @staticmethod
+    def hasShapeSlotIterCode():
+        return False
 
     @staticmethod
     def hasShapeSlotNext():

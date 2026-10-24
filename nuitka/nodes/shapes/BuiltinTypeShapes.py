@@ -440,6 +440,14 @@ class ShapeTypeBool(ShapeNotContainerMixin, ShapeNumberMixin, ShapeBase):
     def getCType():
         return CTypeNuitkaBoolEnum
 
+    @staticmethod
+    def hasShapeSlotIndex():
+        return True
+
+    @staticmethod
+    def hasShapeSlotIndexCode():
+        return False
+
     add_shapes = add_shapes_bool
     sub_shapes = sub_shapes_bool
     mult_shapes = mult_shapes_bool
@@ -505,6 +513,14 @@ class ShapeTypeInt(ShapeNotContainerMixin, ShapeNumberMixin, ShapeBase):
 
     helper_code = "INT" if python_version < 0x300 else "LONG"
 
+    @staticmethod
+    def hasShapeSlotIndex():
+        return True
+
+    @staticmethod
+    def hasShapeSlotIndexCode():
+        return False
+
     add_shapes = add_shapes_int
     sub_shapes = sub_shapes_int
     mult_shapes = mult_shapes_int
@@ -567,6 +583,14 @@ if python_version < 0x300:
         @staticmethod
         def getTypeName():
             return "long"
+
+        @staticmethod
+        def hasShapeSlotIndex():
+            return True
+
+        @staticmethod
+        def hasShapeSlotIndexCode():
+            return False
 
         helper_code = "LONG" if python_version < 0x300 else "INVALID"
 
@@ -632,6 +656,14 @@ if python_version < 0x300:
         def emitAlternatives(emit):
             emit(tshape_int)
             emit(tshape_long)
+
+        @staticmethod
+        def hasShapeSlotIndex():
+            return True
+
+        @staticmethod
+        def hasShapeSlotIndexCode():
+            return False
 
         add_shapes = add_shapes_intorlong
         sub_shapes = sub_shapes_intorlong
@@ -1165,6 +1197,10 @@ class ShapeTypeStr(ShapeNotContainerMixin, ShapeNotNumberMixin, ShapeBase):
         return True
 
     @staticmethod
+    def hasShapeSlotIterCode():
+        return False
+
+    @staticmethod
     def hasShapeSlotLen():
         return True
 
@@ -1290,6 +1326,10 @@ if python_version < 0x300:
             return True
 
         @staticmethod
+        def hasShapeSlotIterCode():
+            return False
+
+        @staticmethod
         def hasShapeSlotLen():
             return True
 
@@ -1404,6 +1444,10 @@ if python_version < 0x300:
             return True
 
         @staticmethod
+        def hasShapeSlotIterCode():
+            return False
+
+        @staticmethod
         def hasShapeSlotLen():
             return True
 
@@ -1484,6 +1528,10 @@ if python_version >= 0x300:
         @staticmethod
         def hasShapeSlotIter():
             return True
+
+        @staticmethod
+        def hasShapeSlotIterCode():
+            return False
 
         @staticmethod
         def hasShapeSlotLen():
@@ -1884,6 +1932,10 @@ class ShapeTypeFile(ShapeNotContainerMixin, ShapeNotNumberMixin, ShapeBase):
     @staticmethod
     def hasShapeSlotIter():
         return True
+
+    @staticmethod
+    def hasShapeSlotIterCode():
+        return False
 
     @staticmethod
     def hasShapeSlotNext():
