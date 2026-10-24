@@ -296,13 +296,7 @@ class ExpressionListOperationInsert(
         # Any integer index value will do for insert, but only constant
         # ones small enough are used directly, others are converted and
         # that may raise "TypeError" or "OverflowError".
-        index = self.subnode_index
-
-        return not (
-            index.isExpressionConstantRef()
-            and index.isIndexConstant()
-            and abs(index.getIndexValue()) < 2**31
-        )
+        return not self.subnode_index.isExpressionIntegerSubscript()
 
 
 class ExpressionListOperationPop1(ChildHavingListArgMixin, ExpressionBase):
