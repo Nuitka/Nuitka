@@ -169,6 +169,7 @@ from nuitka.tree.ReformulationMultidist import createMultidistMainSourceCode
 from nuitka.utils.Distributions import getDistribution, getDistributionName
 from nuitka.utils.Execution import (
     executeCompiledBinary,
+    getEnvironmentPathAdded,
     withEnvironmentVarOverridden,
     wrapCommandForDebuggerForExec,
 )
@@ -969,10 +970,7 @@ def runSconsBackend():
 
 def callExecPython(args, add_path, uac):
     if add_path:
-        if "PYTHONPATH" in os.environ:
-            os.environ["PYTHONPATH"] += ":" + getOutputDir()
-        else:
-            os.environ["PYTHONPATH"] = getOutputDir()
+        os.environ["PYTHONPATH"] = getEnvironmentPathAdded("PYTHONPATH", getOutputDir())
 
     # Add the main arguments, previous separated.
     args += getPositionalArgs()[1:] + getMainArgs()
