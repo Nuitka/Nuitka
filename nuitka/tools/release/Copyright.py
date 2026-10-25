@@ -11,6 +11,7 @@ from nuitka.utils.FileOperations import (
     addFileContentsBOM,
     getFileContentByLine,
     getFileContents,
+    getPathWithForwardSlashes,
     openTextFile,
     stripFileContentsBOM,
 )
@@ -97,13 +98,9 @@ def isPlainFileWithCopyright(filename):
     return os.path.basename(filename) in _plain_files
 
 
-def _normalizeCopyrightFilename(filename):
-    return filename.replace("\\", "/")
-
-
 def getCopyrightHolder(filename):
     return copyright_holder.get(
-        _normalizeCopyrightFilename(filename),
+        getPathWithForwardSlashes(filename),
         _default_copyright_holder,
     )
 

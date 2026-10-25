@@ -2371,6 +2371,21 @@ def getNormalizedPathSep():
     return getNormalizedPath(os.path.sep)
 
 
+def getPathWithForwardSlashes(path):
+    """Convert the path separators to forward slashes.
+
+    Args:
+        path: Path as a string.
+
+    Returns:
+        str: Path with forward slashes.
+    """
+    if os.path.sep != "/":
+        path = path.replace(os.path.sep, "/")
+
+    return path
+
+
 def doesFileContainBytes(filename, search):
     """Check if a file contains a specific byte sequence.
 

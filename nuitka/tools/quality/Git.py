@@ -24,7 +24,7 @@ from nuitka.utils.Execution import (
     check_output,
     executeProcess,
 )
-from nuitka.utils.FileOperations import openTextFile
+from nuitka.utils.FileOperations import getPathWithForwardSlashes, openTextFile
 from nuitka.utils.Utils import decoratorRetries
 
 
@@ -273,7 +273,7 @@ def updateGitFile(path, orig_object_hash, new_object_hash, staged):
         ["git", "diff", "--no-color", orig_object_hash, new_object_hash]
     )
 
-    git_path = path.replace(os.path.sep, "/").encode("utf8")
+    git_path = getPathWithForwardSlashes(path).encode("utf8")
 
     def updateLine(line):
         if line.startswith(b"diff --git"):

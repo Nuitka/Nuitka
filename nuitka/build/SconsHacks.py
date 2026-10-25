@@ -23,6 +23,7 @@ from nuitka.utils.Execution import executeProcess
 from nuitka.utils.FileOperations import (
     changeFilenameExtension,
     getNormalizedPathJoin,
+    getPathWithForwardSlashes,
     openTextFile,
 )
 from nuitka.utils.Utils import getArchCommandPrefix, isLinux, isMacOS
@@ -234,7 +235,7 @@ def makeLinkerUseResponseFile(env, source_filenames):
             object_filename = changeFilenameExtension(source_filename, object_suffix)
 
             if os.name == "nt":
-                object_filename = object_filename.replace(os.path.sep, "/")
+                object_filename = getPathWithForwardSlashes(object_filename)
 
             linker_response_file.write('"%s"\n' % object_filename)
 

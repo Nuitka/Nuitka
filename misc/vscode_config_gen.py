@@ -21,7 +21,11 @@ sys.path.insert(0, repo_root)
 
 import sysconfig
 
-from nuitka.utils.FileOperations import getFileContents, putTextFileContents
+from nuitka.utils.FileOperations import (
+    getFileContents,
+    getPathWithForwardSlashes,
+    putTextFileContents,
+)
 from nuitka.utils.Jinja2 import getTemplateFromString
 from nuitka.utils.Utils import isMacOS
 
@@ -218,7 +222,8 @@ def main():
 
     # VSCode expects paths relative to the workspace folder.
     vscode_plugin_include_paths = [
-        "${workspaceFolder}/" + os.path.relpath(path, repo_root).replace(os.sep, "/")
+        "${workspaceFolder}/"
+        + getPathWithForwardSlashes(os.path.relpath(path, repo_root))
         for path in plugin_include_paths
     ]
 

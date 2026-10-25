@@ -13,7 +13,10 @@ from nuitka.tools.quality.Git import addGitArguments, getGitPaths
 from nuitka.tools.quality.ScanSources import scanTargets
 from nuitka.Tracing import my_print, tools_logger
 from nuitka.utils.Execution import executeProcess, getExecutablePath
-from nuitka.utils.FileOperations import resolveShellPatternToFilenames
+from nuitka.utils.FileOperations import (
+    getPathWithForwardSlashes,
+    resolveShellPatternToFilenames,
+)
 from nuitka.utils.Utils import isWin32Windows
 
 
@@ -26,7 +29,7 @@ def _isIgnoredCFile(filename):
     Returns:
         bool - True if the file should be ignored.
     """
-    path_parts = os.path.normpath(filename).replace("\\", "/").split("/")
+    path_parts = getPathWithForwardSlashes(os.path.normpath(filename)).split("/")
 
     if "inline_copy" in path_parts:
         return True

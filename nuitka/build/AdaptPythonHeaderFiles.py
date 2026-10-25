@@ -30,6 +30,7 @@ from nuitka.utils.FileOperations import (
     getFileContents,
     getFileList,
     getNormalizedPathJoin,
+    getPathWithForwardSlashes,
     makeContainingPath,
     makePath,
     putTextFileContents,
@@ -452,7 +453,9 @@ def createAdaptedPythonHeaderFiles(source_dir):
         item = os.path.basename(header_filename)
         if item.startswith("pycore_"):
             content = getFileContents(header_filename, mode="r", encoding="utf-8")
-            adapted = adaptPythonHeaderFile(content, rel_path.replace(os.path.sep, "/"))
+            adapted = adaptPythonHeaderFile(
+                content, getPathWithForwardSlashes(rel_path)
+            )
             putTextFileContents(d, adapted, encoding="utf-8")
 
             if content != adapted:
@@ -461,8 +464,10 @@ def createAdaptedPythonHeaderFiles(source_dir):
                     getUnifiedDiff(
                         old_lines=content.splitlines(True),
                         new_lines=adapted.splitlines(True),
-                        old_filename="a/internal/" + rel_path.replace(os.path.sep, "/"),
-                        new_filename="b/internal/" + rel_path.replace(os.path.sep, "/"),
+                        old_filename="a/internal/"
+                        + getPathWithForwardSlashes(rel_path),
+                        new_filename="b/internal/"
+                        + getPathWithForwardSlashes(rel_path),
                     )
                 )
                 if adapt_lines and not adapt_lines[-1].endswith("\n"):

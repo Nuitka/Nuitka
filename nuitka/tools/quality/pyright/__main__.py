@@ -19,6 +19,7 @@ from nuitka.tools.testing.Common import setup
 from nuitka.Tracing import my_print, tools_logger
 from nuitka.utils.FileOperations import (
     getFileModificationTime,
+    getPathWithForwardSlashes,
     resolveShellPatternToFilenames,
 )
 
@@ -34,7 +35,7 @@ def _getPathParts(filename):
     except ValueError:
         pass
 
-    return filename.replace("\\", "/").split("/")
+    return getPathWithForwardSlashes(filename).split("/")
 
 
 def isIgnoredFile(filename):

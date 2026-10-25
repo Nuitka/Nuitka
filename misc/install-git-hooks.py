@@ -22,6 +22,7 @@ from nuitka.Tracing import tools_logger
 from nuitka.utils.Execution import getExecutablePath
 from nuitka.utils.FileOperations import (
     getFileContents,
+    getPathWithForwardSlashes,
     getWindowsShortPathName,
 )
 
@@ -110,7 +111,7 @@ def main():
                 sh_path = _getWindowsShPath()
                 # Correct shebang for Windows git to work.
                 hook_contents = "#!%s\n%s" % (
-                    sh_path.replace("\\", "/").replace(" ", r"\ "),
+                    getPathWithForwardSlashes(sh_path).replace(" ", r"\ "),
                     hook_contents[10:],
                 )
 
