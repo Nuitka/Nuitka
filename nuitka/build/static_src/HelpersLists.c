@@ -661,7 +661,7 @@ PyObject *LIST_INDEX3(PyThreadState *tstate, PyObject *list, PyObject *item, PyO
     CHECK_OBJECT(list);
     assert(PyList_CheckExact(list));
 
-    PyObject *start_index = Nuitka_Number_IndexAsLong(start);
+    PyObject *start_index = Nuitka_Number_Index(start);
 
     if (unlikely(start_index == NULL)) {
         // TODO: Clearing should be useless here.
@@ -683,7 +683,7 @@ PyObject *LIST_INDEX4(PyThreadState *tstate, PyObject *list, PyObject *item, PyO
     CHECK_OBJECT(list);
     assert(PyList_CheckExact(list));
 
-    PyObject *start_index = Nuitka_Number_IndexAsLong(start);
+    PyObject *start_index = Nuitka_Number_Index(start);
 
     if (unlikely(start_index == NULL)) {
         CLEAR_ERROR_OCCURRED(tstate);
@@ -697,7 +697,7 @@ PyObject *LIST_INDEX4(PyThreadState *tstate, PyObject *list, PyObject *item, PyO
 
     Py_DECREF(start_index);
 
-    PyObject *stop_index = Nuitka_Number_IndexAsLong(stop);
+    PyObject *stop_index = Nuitka_Number_Index(stop);
 
     if (unlikely(stop_index == NULL)) {
         CLEAR_ERROR_OCCURRED(tstate);
@@ -728,14 +728,9 @@ bool LIST_INSERT(PyThreadState *tstate, PyObject *list, PyObject *index, PyObjec
     }
 #endif
 
-    // TODO: Avoid the clear, by having this as a variant that doesn't set the
-    // exception to begin with
-    PyObject *index_long = Nuitka_Number_IndexAsLong(index);
+    PyObject *index_long = Nuitka_Number_Index(index);
 
     if (unlikely(index_long == NULL)) {
-        CLEAR_ERROR_OCCURRED(tstate);
-
-        SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("'%s' object cannot be interpreted as an integer", index);
         return false;
     }
 
