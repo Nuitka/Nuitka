@@ -629,7 +629,10 @@ static PyObject *_LIST_INDEX_COMMON(PyThreadState *tstate, PyListObject *list, P
         }
     }
 
-#if PYTHON_VERSION < 0x300
+#if PYTHON_VERSION < 0x270
+    SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_ValueError, "list.index(x): x not in list");
+    return NULL;
+#elif PYTHON_VERSION < 0x300
     PyObject *err_format = PyString_FromString("%r is not in list");
     PyObject *format_tuple = MAKE_TUPLE1_0(tstate, item);
     PyObject *err_string = PyString_Format(err_format, format_tuple);
@@ -657,31 +660,35 @@ PyObject *LIST_INDEX2(PyThreadState *tstate, PyObject *list, PyObject *item) {
     return _LIST_INDEX_COMMON(tstate, (PyListObject *)list, item, 0, Py_SIZE(list));
 }
 
+static void SET_SLICE_INDICES_ERROR(PyThreadState *tstate) {
+    // The message changed in CPython 2.7.14, 3.5.4, and 3.6.2, when 'list.index' switched to
+    // '_PyEval_SliceIndexNotNone'.
+#if PYTHON_VERSION < 0x27e || (PYTHON_VERSION >= 0x300 && PYTHON_VERSION < 0x354) ||                                   \
+    (PYTHON_VERSION >= 0x360 && PYTHON_VERSION < 0x362)
+    SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_TypeError,
+                                    "slice indices must be integers or None or have an __index__ method");
+#else
+    SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_TypeError,
+                                    "slice indices must be integers or have an __index__ method");
+#endif
+}
+
 PyObject *LIST_INDEX3(PyThreadState *tstate, PyObject *list, PyObject *item, PyObject *start) {
     CHECK_OBJECT(list);
     assert(PyList_CheckExact(list));
 
-    PyObject *start_index = Nuitka_Number_IndexAsLong(start);
-
-    if (unlikely(start_index == NULL)) {
-        // TODO: Clearing should be useless here.
-        CLEAR_ERROR_OCCURRED(tstate);
-
-        SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_TypeError,
-                                        "slice indices must be integers or have an __index__ method");
+    if (unlikely(!Nuitka_Index_Check(start))) {
+        SET_SLICE_INDICES_ERROR(tstate);
         return NULL;
     }
 
-    Py_ssize_t start_ssize;
-#if PYTHON_VERSION < 0x300
-    if (PyInt_CheckExact(start_index)) {
-        start_ssize = PyInt_AS_LONG(start_index);
-    } else {
-        start_ssize = PyLong_AsSsize_t(start_index);
+    PyObject *start_index = Nuitka_Number_Index(start);
+
+    if (unlikely(start_index == NULL)) {
+        return NULL;
     }
-#else
-    start_ssize = PyLong_AsSsize_t(start_index);
-#endif
+
+    Py_ssize_t start_ssize = PyNumber_AsSsize_t(start_index, NULL);
 
     Py_DECREF(start_index);
 
@@ -692,49 +699,33 @@ PyObject *LIST_INDEX4(PyThreadState *tstate, PyObject *list, PyObject *item, PyO
     CHECK_OBJECT(list);
     assert(PyList_CheckExact(list));
 
-    PyObject *start_index = Nuitka_Number_IndexAsLong(start);
-
-    if (unlikely(start_index == NULL)) {
-        CLEAR_ERROR_OCCURRED(tstate);
-
-        SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_TypeError,
-                                        "slice indices must be integers or have an __index__ method");
+    if (unlikely(!Nuitka_Index_Check(start))) {
+        SET_SLICE_INDICES_ERROR(tstate);
         return NULL;
     }
 
-    Py_ssize_t start_ssize;
-#if PYTHON_VERSION < 0x300
-    if (PyInt_CheckExact(start_index)) {
-        start_ssize = PyInt_AS_LONG(start_index);
-    } else {
-        start_ssize = PyLong_AsSsize_t(start_index);
+    PyObject *start_index = Nuitka_Number_Index(start);
+
+    if (unlikely(start_index == NULL)) {
+        return NULL;
     }
-#else
-    start_ssize = PyLong_AsSsize_t(start_index);
-#endif
+
+    Py_ssize_t start_ssize = PyNumber_AsSsize_t(start_index, NULL);
 
     Py_DECREF(start_index);
 
-    PyObject *stop_index = Nuitka_Number_IndexAsLong(stop);
-
-    if (unlikely(stop_index == NULL)) {
-        CLEAR_ERROR_OCCURRED(tstate);
-
-        SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_TypeError,
-                                        "slice indices must be integers or have an __index__ method");
+    if (unlikely(!Nuitka_Index_Check(stop))) {
+        SET_SLICE_INDICES_ERROR(tstate);
         return NULL;
     }
 
-    Py_ssize_t stop_ssize;
-#if PYTHON_VERSION < 0x300
-    if (PyInt_CheckExact(stop_index)) {
-        stop_ssize = PyInt_AS_LONG(stop_index);
-    } else {
-        stop_ssize = PyLong_AsSsize_t(stop_index);
+    PyObject *stop_index = Nuitka_Number_Index(stop);
+
+    if (unlikely(stop_index == NULL)) {
+        return NULL;
     }
-#else
-    stop_ssize = PyLong_AsSsize_t(stop_index);
-#endif
+
+    Py_ssize_t stop_ssize = PyNumber_AsSsize_t(stop_index, NULL);
 
     Py_DECREF(stop_index);
 
@@ -747,29 +738,62 @@ bool LIST_INSERT(PyThreadState *tstate, PyObject *list, PyObject *index, PyObjec
     CHECK_OBJECT(index);
     CHECK_OBJECT(item);
 
-    // TODO: Avoid the clear, by having this as a variant that doesn't set the
-    // exception to begin with
-    PyObject *index_long = Nuitka_Number_IndexAsLong(index);
+    Py_ssize_t index_ssize;
+
+#if PYTHON_VERSION < 0x300
+    // CPython2 list.insert uses its integer argument parsing, which does not
+    // use "__index__". Python2.6 only warns about float values, while Python2.7
+    // rejects them.
+#if PYTHON_VERSION < 0x270
+    if (unlikely(PyFloat_Check(index))) {
+        if (unlikely(PyErr_WarnEx(PyExc_DeprecationWarning, "integer argument expected, got float", 1) < 0)) {
+            return false;
+        }
+    }
+#else
+    if (unlikely(PyFloat_Check(index))) {
+        SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_TypeError, "integer argument expected, got float");
+        return false;
+    }
+#endif
+
+#if SIZEOF_SIZE_T == SIZEOF_LONG
+    // Where "Py_ssize_t" and "long" have the same size, the CPython "n"
+    // argument conversion falls through to the "l" one, which uses
+    // "PyInt_AsLong" and reports overflow with a different message.
+    index_ssize = (Py_ssize_t)PyInt_AsLong(index);
+#else
+    index_ssize = PyInt_AsSsize_t(index);
+#endif
+
+    if (unlikely(index_ssize == -1 && HAS_ERROR_OCCURRED(tstate))) {
+        return false;
+    }
+#else
+#if PYTHON_VERSION < 0x3a0
+    // Older CPython argument parsing rejects float values before converting.
+    if (unlikely(PyFloat_Check(index))) {
+        SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_TypeError, "integer argument expected, got float");
+        return false;
+    }
+#endif
+
+    PyObject *index_long = Nuitka_Number_Index(index);
 
     if (unlikely(index_long == NULL)) {
-        CLEAR_ERROR_OCCURRED(tstate);
-
-        SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("'%s' cannot be interpreted as an integer", index);
         return false;
     }
 
-    Py_ssize_t index_ssize;
-#if PYTHON_VERSION < 0x300
-    if (PyInt_CheckExact(index_long)) {
-        index_ssize = PyInt_AS_LONG(index_long);
-    } else {
-        index_ssize = PyLong_AsSsize_t(index_long);
-    }
-#else
     index_ssize = PyLong_AsSsize_t(index_long);
-#endif
+
+    // Values that do not fit raise "OverflowError", unlike for slice indexes.
+    if (unlikely(index_ssize == -1 && HAS_ERROR_OCCURRED(tstate))) {
+        Py_DECREF(index_long);
+        return false;
+    }
 
     Py_DECREF(index_long);
+#endif
 
     LIST_INSERT_CONST(list, index_ssize, item);
     return true;

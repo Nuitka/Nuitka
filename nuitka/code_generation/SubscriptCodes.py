@@ -18,23 +18,12 @@ from .CodeHelpers import (
 from .ErrorCodes import getErrorExitBoolCode, getErrorExitCode, getReleaseCodes
 
 
-def decideIntegerSubscript(subscript):
-    if subscript.isExpressionConstantRef():
-        if subscript.isIndexConstant():
-            constant_value = subscript.getIndexValue()
-
-            if abs(constant_value) < 2**31:
-                return constant_value, True
-
-    return None, False
-
-
 def generateAssignmentSubscriptCode(statement, emit, context):
     subscribed = statement.subnode_subscribed
     subscript = statement.subnode_subscript
     value = statement.subnode_source
 
-    subscript_constant, integer_subscript = decideIntegerSubscript(subscript)
+    integer_subscript = subscript.isExpressionIntegerSubscript()
 
     value_name = context.allocateTempName("ass_subvalue")
 
@@ -61,7 +50,7 @@ def generateAssignmentSubscriptCode(statement, emit, context):
             _getIntegerSubscriptAssignmentCode(
                 subscribed_name=subscribed_name,
                 subscript_name=subscript_name,
-                subscript_value=subscript_constant,
+                subscript_value=subscript.getIndexValue(),
                 value_name=value_name,
                 emit=emit,
                 context=context,
@@ -112,7 +101,7 @@ def generateSubscriptLookupCode(to_name, expression, emit, context):
         expression=subscript, emit=emit, context=context
     )
 
-    subscript_constant, integer_subscript = decideIntegerSubscript(subscript)
+    integer_subscript = subscript.isExpressionIntegerSubscript()
 
     with withObjectCodeTemporaryAssignment(
         to_name, "subscript_result", expression, emit, context
@@ -122,7 +111,7 @@ def generateSubscriptLookupCode(to_name, expression, emit, context):
                 to_name=value_name,
                 subscribed_name=subscribed_name,
                 subscript_name=subscript_name,
-                subscript_value=subscript_constant,
+                subscript_value=subscript.getIndexValue(),
                 emit=emit,
                 context=context,
             )
