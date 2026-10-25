@@ -661,14 +661,15 @@ PyObject *LIST_INDEX3(PyThreadState *tstate, PyObject *list, PyObject *item, PyO
     CHECK_OBJECT(list);
     assert(PyList_CheckExact(list));
 
+    if (unlikely(!Nuitka_Index_Check(start))) {
+        SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_TypeError,
+                                        "slice indices must be integers or have an __index__ method");
+        return NULL;
+    }
+
     PyObject *start_index = Nuitka_Number_Index(start);
 
     if (unlikely(start_index == NULL)) {
-        // TODO: Clearing should be useless here.
-        CLEAR_ERROR_OCCURRED(tstate);
-
-        SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_TypeError,
-                                        "slice indices must be integers or have an __index__ method");
         return NULL;
     }
 
@@ -683,13 +684,15 @@ PyObject *LIST_INDEX4(PyThreadState *tstate, PyObject *list, PyObject *item, PyO
     CHECK_OBJECT(list);
     assert(PyList_CheckExact(list));
 
+    if (unlikely(!Nuitka_Index_Check(start))) {
+        SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_TypeError,
+                                        "slice indices must be integers or have an __index__ method");
+        return NULL;
+    }
+
     PyObject *start_index = Nuitka_Number_Index(start);
 
     if (unlikely(start_index == NULL)) {
-        CLEAR_ERROR_OCCURRED(tstate);
-
-        SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_TypeError,
-                                        "slice indices must be integers or have an __index__ method");
         return NULL;
     }
 
@@ -697,13 +700,15 @@ PyObject *LIST_INDEX4(PyThreadState *tstate, PyObject *list, PyObject *item, PyO
 
     Py_DECREF(start_index);
 
+    if (unlikely(!Nuitka_Index_Check(stop))) {
+        SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_TypeError,
+                                        "slice indices must be integers or have an __index__ method");
+        return NULL;
+    }
+
     PyObject *stop_index = Nuitka_Number_Index(stop);
 
     if (unlikely(stop_index == NULL)) {
-        CLEAR_ERROR_OCCURRED(tstate);
-
-        SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_TypeError,
-                                        "slice indices must be integers or have an __index__ method");
         return NULL;
     }
 
