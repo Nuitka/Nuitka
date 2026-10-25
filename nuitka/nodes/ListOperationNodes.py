@@ -276,10 +276,10 @@ class ExpressionListOperationInsert(
         # This lets the value added to the list escape.
         self.subnode_item.onContentEscapes(trace_collection)
 
-        # Could raise TypeError from wrong index type, or OverflowError for
-        # index values that do not fit Py_ssize_t.
+        # The index can be an arbitrary object, whose "__index__" may raise
+        # any exception, and conversion may also raise "OverflowError".
         if self.mayRaiseExceptionOperation():
-            trace_collection.onExceptionRaiseExit((TypeError, OverflowError))
+            trace_collection.onExceptionRaiseExit(BaseException)
 
         # it raises no index error, just appends
         return self, None, None

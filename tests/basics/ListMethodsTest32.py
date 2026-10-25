@@ -8,6 +8,11 @@ from __future__ import print_function
 import sys
 
 
+class BadIndex(object):
+    def __index__(self):
+        raise ValueError("bad index")
+
+
 def check(description, func, *args):
     try:
         result = func(*args)
@@ -38,6 +43,22 @@ def indexStartStop(values, start, stop):
     return a.index(2, start, stop)
 
 
+def insertBadIndex():
+    a = [1, 2]
+    a.insert(BadIndex(), "x")
+    return a
+
+
+def indexBadStart(values):
+    a = list(values)
+    return a.index(2, BadIndex())
+
+
+def indexBadStopValue(values):
+    a = list(values)
+    return a.index(2, 0, BadIndex())
+
+
 def indexBadStop(values, start, stop):
     a = list(values)
     for _i in range(3):
@@ -59,6 +80,9 @@ check("index(2, big)", indexStart, [1, 2], big)
 check("index(2, -big)", indexStart, [1, 2], -big)
 check("index(2, -big, big)", indexStartStop, [1, 2], -big, big)
 check("index(2, 0, None)", indexStartStop, [1, 2], 0, None)
+check("insert bad __index__", insertBadIndex)
+check("index bad __index__ start", indexBadStart, [1, 2])
+check("index bad __index__ stop", indexBadStopValue, [1, 2])
 check("index bad stop", indexBadStop, [1, 2], big, None)
 
 #     Python tests originally created or extracted from other peoples work. The
