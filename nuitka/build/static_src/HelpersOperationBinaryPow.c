@@ -46,6 +46,7 @@ static PyObject *_BINARY_OPERATION_POW_OBJECT_FLOAT_FLOAT(PyObject *operand1, Py
         goto exit_result_ok_const_float_1_0;
     }
 
+#if PYTHON_VERSION >= 0x270
     if (Py_IS_NAN(a)) {
         goto exit_result_ok_left;
     }
@@ -85,6 +86,7 @@ static PyObject *_BINARY_OPERATION_POW_OBJECT_FLOAT_FLOAT(PyObject *operand1, Py
         cfloat_result = r;
         goto exit_result_ok_cfloat;
     }
+#endif
 
     if (a == 0.0) {
         if (unlikely(b < 0.0)) {
@@ -95,8 +97,12 @@ static PyObject *_BINARY_OPERATION_POW_OBJECT_FLOAT_FLOAT(PyObject *operand1, Py
             goto exit_result_exception;
         }
 
+#if PYTHON_VERSION >= 0x270
         bool b_is_odd = DOUBLE_IS_ODD_INTEGER(b);
         double r = b_is_odd ? a : 0.0;
+#else
+        double r = 0.0;
+#endif
 
         cfloat_result = r;
         goto exit_result_ok_cfloat;
@@ -142,6 +148,16 @@ static PyObject *_BINARY_OPERATION_POW_OBJECT_FLOAT_FLOAT(PyObject *operand1, Py
                 goto exit_result_ok_const_float_1_0;
             }
         } else {
+#if PYTHON_VERSION < 0x270
+            // CPython2.6 has no NaN exponent special case, and "pow" does
+            // not reliably set errno for it.
+            if (unlikely(Py_IS_NAN(b))) {
+                errno = EDOM;
+                PyErr_SetFromErrno(PyExc_ValueError);
+                goto exit_result_exception;
+            }
+#endif
+
             errno = 0;
             double r = pow(a, b);
 
@@ -382,6 +398,7 @@ static PyObject *_BINARY_OPERATION_POW_OBJECT_OBJECT_FLOAT(PyObject *operand1, P
             goto exit_result_ok_const_float_1_0;
         }
 
+#if PYTHON_VERSION >= 0x270
         if (Py_IS_NAN(a)) {
             goto exit_result_ok_left;
         }
@@ -421,6 +438,7 @@ static PyObject *_BINARY_OPERATION_POW_OBJECT_OBJECT_FLOAT(PyObject *operand1, P
             cfloat_result = r;
             goto exit_result_ok_cfloat;
         }
+#endif
 
         if (a == 0.0) {
             if (unlikely(b < 0.0)) {
@@ -431,8 +449,12 @@ static PyObject *_BINARY_OPERATION_POW_OBJECT_OBJECT_FLOAT(PyObject *operand1, P
                 goto exit_result_exception;
             }
 
+#if PYTHON_VERSION >= 0x270
             bool b_is_odd = DOUBLE_IS_ODD_INTEGER(b);
             double r = b_is_odd ? a : 0.0;
+#else
+            double r = 0.0;
+#endif
 
             cfloat_result = r;
             goto exit_result_ok_cfloat;
@@ -478,6 +500,16 @@ static PyObject *_BINARY_OPERATION_POW_OBJECT_OBJECT_FLOAT(PyObject *operand1, P
                     goto exit_result_ok_const_float_1_0;
                 }
             } else {
+#if PYTHON_VERSION < 0x270
+                // CPython2.6 has no NaN exponent special case, and "pow" does
+                // not reliably set errno for it.
+                if (unlikely(Py_IS_NAN(b))) {
+                    errno = EDOM;
+                    PyErr_SetFromErrno(PyExc_ValueError);
+                    goto exit_result_exception;
+                }
+#endif
+
                 errno = 0;
                 double r = pow(a, b);
 
@@ -734,6 +766,7 @@ static PyObject *_BINARY_OPERATION_POW_OBJECT_FLOAT_OBJECT(PyObject *operand1, P
             goto exit_result_ok_const_float_1_0;
         }
 
+#if PYTHON_VERSION >= 0x270
         if (Py_IS_NAN(a)) {
             goto exit_result_ok_left;
         }
@@ -773,6 +806,7 @@ static PyObject *_BINARY_OPERATION_POW_OBJECT_FLOAT_OBJECT(PyObject *operand1, P
             cfloat_result = r;
             goto exit_result_ok_cfloat;
         }
+#endif
 
         if (a == 0.0) {
             if (unlikely(b < 0.0)) {
@@ -783,8 +817,12 @@ static PyObject *_BINARY_OPERATION_POW_OBJECT_FLOAT_OBJECT(PyObject *operand1, P
                 goto exit_result_exception;
             }
 
+#if PYTHON_VERSION >= 0x270
             bool b_is_odd = DOUBLE_IS_ODD_INTEGER(b);
             double r = b_is_odd ? a : 0.0;
+#else
+            double r = 0.0;
+#endif
 
             cfloat_result = r;
             goto exit_result_ok_cfloat;
@@ -830,6 +868,16 @@ static PyObject *_BINARY_OPERATION_POW_OBJECT_FLOAT_OBJECT(PyObject *operand1, P
                     goto exit_result_ok_const_float_1_0;
                 }
             } else {
+#if PYTHON_VERSION < 0x270
+                // CPython2.6 has no NaN exponent special case, and "pow" does
+                // not reliably set errno for it.
+                if (unlikely(Py_IS_NAN(b))) {
+                    errno = EDOM;
+                    PyErr_SetFromErrno(PyExc_ValueError);
+                    goto exit_result_exception;
+                }
+#endif
+
                 errno = 0;
                 double r = pow(a, b);
 

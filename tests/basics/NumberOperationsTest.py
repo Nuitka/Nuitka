@@ -28,9 +28,8 @@ def check(description, func, *args):
     try:
         result = func(*args)
     except Exception as e:  # pylint: disable=broad-except
-        print(description, type(e).__name__)
-    else:
-        print(description, "->", type(result).__name__, repr(result))
+        result = type(e).__name__
+    print(description, "->", result)
 
 
 def floatPowInplaceNanRefcount(value):

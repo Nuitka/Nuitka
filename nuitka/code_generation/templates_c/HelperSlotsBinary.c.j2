@@ -130,6 +130,24 @@
     }
 {% endmacro %}
 {% macro binary_operation(props, operator, inplace, nb_slot, left, right, type1, type2, operand1, operand2, exit_result_object, exit_result_cbool_ok, exit_result_nbool, exit_result_exception) %}
+{% if operator == "**" and inplace and left == object_desc %}
+#if PYTHON_VERSION < 0x300
+    // Complex in-place power is handled by CPython, as the generic code below
+    // does not support its coercion.
+    if (PyComplex_CheckExact({{ operand1 }})) {
+        PyObject *result = PyNumber_InPlacePower({{ operand1 }}, {{ operand2 }}, Py_None);
+
+        if (unlikely(result == NULL)) {
+            {{ goto_exit(props, exit_result_exception) }}
+        }
+
+        Py_DECREF({{ operand1 }});
+        {{ operand1 }} = result;
+
+        return true;
+    }
+#endif
+{% endif %}
 {% set slot1_relevant = left == object_desc or left.hasSlot(nb_slot) %}
 {% set slot2_relevant = right == object_desc or (left != right and right.hasSlot(nb_slot)) %}
 {% set error_needed = 1 %}

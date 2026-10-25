@@ -45,6 +45,7 @@ static inline bool _INPLACE_OPERATION_POW_FLOAT_FLOAT(PyObject **operand1, PyObj
         goto exit_result_ok_const_float_1_0;
     }
 
+#if PYTHON_VERSION >= 0x270
     if (Py_IS_NAN(a)) {
         goto exit_result_ok_left;
     }
@@ -84,6 +85,7 @@ static inline bool _INPLACE_OPERATION_POW_FLOAT_FLOAT(PyObject **operand1, PyObj
         cfloat_result = r;
         goto exit_result_ok_cfloat;
     }
+#endif
 
     if (a == 0.0) {
         if (unlikely(b < 0.0)) {
@@ -94,8 +96,12 @@ static inline bool _INPLACE_OPERATION_POW_FLOAT_FLOAT(PyObject **operand1, PyObj
             goto exit_result_exception;
         }
 
+#if PYTHON_VERSION >= 0x270
         bool b_is_odd = DOUBLE_IS_ODD_INTEGER(b);
         double r = b_is_odd ? a : 0.0;
+#else
+        double r = 0.0;
+#endif
 
         cfloat_result = r;
         goto exit_result_ok_cfloat;
@@ -141,6 +147,16 @@ static inline bool _INPLACE_OPERATION_POW_FLOAT_FLOAT(PyObject **operand1, PyObj
                 goto exit_result_ok_const_float_1_0;
             }
         } else {
+#if PYTHON_VERSION < 0x270
+            // CPython2.6 has no NaN exponent special case, and "pow" does
+            // not reliably set errno for it.
+            if (unlikely(Py_IS_NAN(b))) {
+                errno = EDOM;
+                PyErr_SetFromErrno(PyExc_ValueError);
+                goto exit_result_exception;
+            }
+#endif
+
             errno = 0;
             double r = pow(a, b);
 
@@ -253,6 +269,22 @@ static HEDLEY_NEVER_INLINE bool __INPLACE_OPERATION_POW_OBJECT_FLOAT(PyObject **
     }
 
     {
+#if PYTHON_VERSION < 0x300
+        // Complex in-place power is handled by CPython, as the generic code below
+        // does not support its coercion.
+        if (PyComplex_CheckExact(*operand1)) {
+            PyObject *result = PyNumber_InPlacePower(*operand1, operand2, Py_None);
+
+            if (unlikely(result == NULL)) {
+                goto exit_inplace_exception;
+            }
+
+            Py_DECREF(*operand1);
+            *operand1 = result;
+
+            return true;
+        }
+#endif
         ternaryfunc slot1 =
             (type1->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type1)) ? type1->tp_as_number->nb_power : NULL;
         ternaryfunc slot2 = NULL;
@@ -420,6 +452,7 @@ static inline bool _INPLACE_OPERATION_POW_OBJECT_FLOAT(PyObject **operand1, PyOb
             goto exit_result_ok_const_float_1_0;
         }
 
+#if PYTHON_VERSION >= 0x270
         if (Py_IS_NAN(a)) {
             goto exit_result_ok_left;
         }
@@ -459,6 +492,7 @@ static inline bool _INPLACE_OPERATION_POW_OBJECT_FLOAT(PyObject **operand1, PyOb
             cfloat_result = r;
             goto exit_result_ok_cfloat;
         }
+#endif
 
         if (a == 0.0) {
             if (unlikely(b < 0.0)) {
@@ -469,8 +503,12 @@ static inline bool _INPLACE_OPERATION_POW_OBJECT_FLOAT(PyObject **operand1, PyOb
                 goto exit_result_exception;
             }
 
+#if PYTHON_VERSION >= 0x270
             bool b_is_odd = DOUBLE_IS_ODD_INTEGER(b);
             double r = b_is_odd ? a : 0.0;
+#else
+            double r = 0.0;
+#endif
 
             cfloat_result = r;
             goto exit_result_ok_cfloat;
@@ -516,6 +554,16 @@ static inline bool _INPLACE_OPERATION_POW_OBJECT_FLOAT(PyObject **operand1, PyOb
                     goto exit_result_ok_const_float_1_0;
                 }
             } else {
+#if PYTHON_VERSION < 0x270
+                // CPython2.6 has no NaN exponent special case, and "pow" does
+                // not reliably set errno for it.
+                if (unlikely(Py_IS_NAN(b))) {
+                    errno = EDOM;
+                    PyErr_SetFromErrno(PyExc_ValueError);
+                    goto exit_result_exception;
+                }
+#endif
+
                 errno = 0;
                 double r = pow(a, b);
 
@@ -800,6 +848,7 @@ static inline bool _INPLACE_OPERATION_POW_FLOAT_OBJECT(PyObject **operand1, PyOb
             goto exit_result_ok_const_float_1_0;
         }
 
+#if PYTHON_VERSION >= 0x270
         if (Py_IS_NAN(a)) {
             goto exit_result_ok_left;
         }
@@ -839,6 +888,7 @@ static inline bool _INPLACE_OPERATION_POW_FLOAT_OBJECT(PyObject **operand1, PyOb
             cfloat_result = r;
             goto exit_result_ok_cfloat;
         }
+#endif
 
         if (a == 0.0) {
             if (unlikely(b < 0.0)) {
@@ -849,8 +899,12 @@ static inline bool _INPLACE_OPERATION_POW_FLOAT_OBJECT(PyObject **operand1, PyOb
                 goto exit_result_exception;
             }
 
+#if PYTHON_VERSION >= 0x270
             bool b_is_odd = DOUBLE_IS_ODD_INTEGER(b);
             double r = b_is_odd ? a : 0.0;
+#else
+            double r = 0.0;
+#endif
 
             cfloat_result = r;
             goto exit_result_ok_cfloat;
@@ -896,6 +950,16 @@ static inline bool _INPLACE_OPERATION_POW_FLOAT_OBJECT(PyObject **operand1, PyOb
                     goto exit_result_ok_const_float_1_0;
                 }
             } else {
+#if PYTHON_VERSION < 0x270
+                // CPython2.6 has no NaN exponent special case, and "pow" does
+                // not reliably set errno for it.
+                if (unlikely(Py_IS_NAN(b))) {
+                    errno = EDOM;
+                    PyErr_SetFromErrno(PyExc_ValueError);
+                    goto exit_result_exception;
+                }
+#endif
+
                 errno = 0;
                 double r = pow(a, b);
 
@@ -1057,6 +1121,22 @@ static HEDLEY_NEVER_INLINE bool __INPLACE_OPERATION_POW_OBJECT_LONG(PyObject **o
     }
 
     {
+#if PYTHON_VERSION < 0x300
+        // Complex in-place power is handled by CPython, as the generic code below
+        // does not support its coercion.
+        if (PyComplex_CheckExact(*operand1)) {
+            PyObject *result = PyNumber_InPlacePower(*operand1, operand2, Py_None);
+
+            if (unlikely(result == NULL)) {
+                goto exit_inplace_exception;
+            }
+
+            Py_DECREF(*operand1);
+            *operand1 = result;
+
+            return true;
+        }
+#endif
         ternaryfunc slot1 =
             (type1->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type1)) ? type1->tp_as_number->nb_power : NULL;
         ternaryfunc slot2 = NULL;
@@ -1617,6 +1697,22 @@ static HEDLEY_NEVER_INLINE bool __INPLACE_OPERATION_POW_OBJECT_INT(PyObject **op
     }
 
     {
+#if PYTHON_VERSION < 0x300
+        // Complex in-place power is handled by CPython, as the generic code below
+        // does not support its coercion.
+        if (PyComplex_CheckExact(*operand1)) {
+            PyObject *result = PyNumber_InPlacePower(*operand1, operand2, Py_None);
+
+            if (unlikely(result == NULL)) {
+                goto exit_inplace_exception;
+            }
+
+            Py_DECREF(*operand1);
+            *operand1 = result;
+
+            return true;
+        }
+#endif
         ternaryfunc slot1 =
             (type1->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type1)) ? type1->tp_as_number->nb_power : NULL;
         ternaryfunc slot2 = NULL;
@@ -2749,6 +2845,22 @@ static inline bool _INPLACE_OPERATION_POW_OBJECT_OBJECT(PyObject **operand1, PyO
     }
 
     {
+#if PYTHON_VERSION < 0x300
+        // Complex in-place power is handled by CPython, as the generic code below
+        // does not support its coercion.
+        if (PyComplex_CheckExact(*operand1)) {
+            PyObject *result = PyNumber_InPlacePower(*operand1, operand2, Py_None);
+
+            if (unlikely(result == NULL)) {
+                goto exit_inplace_exception;
+            }
+
+            Py_DECREF(*operand1);
+            *operand1 = result;
+
+            return true;
+        }
+#endif
         ternaryfunc slot1 =
             (type1->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type1)) ? type1->tp_as_number->nb_power : NULL;
         ternaryfunc slot2 = NULL;
