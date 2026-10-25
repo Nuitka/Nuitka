@@ -38,6 +38,25 @@ PyObject *BUILTIN_CHR(PyThreadState *tstate, PyObject *value) {
     }
 #endif
 
+#if PYTHON_VERSION < 0x380
+    // Older CPython argument parsing converts to a C long, and then checks the
+    // C int range with its own messages.
+    long x = PyLong_AsLong(value);
+
+    if (unlikely(x == -1 && HAS_ERROR_OCCURRED(tstate))) {
+        return NULL;
+    }
+
+    if (unlikely(x > INT_MAX)) {
+        SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_OverflowError, "signed integer is greater than maximum");
+        return NULL;
+    }
+
+    if (unlikely(x < INT_MIN)) {
+        SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_OverflowError, "signed integer is less than minimum");
+        return NULL;
+    }
+#else
     // Same conversion as CPython, so non-integer values get the "TypeError"
     // message of the Python version, and errors of "__index__" propagate.
     int overflow;
@@ -59,6 +78,7 @@ PyObject *BUILTIN_CHR(PyThreadState *tstate, PyObject *value) {
         SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_OverflowError, "Python int too large to convert to C int");
         return NULL;
     }
+#endif
 #endif
 #else
     if (unlikely(PyFloat_Check(value))) {
