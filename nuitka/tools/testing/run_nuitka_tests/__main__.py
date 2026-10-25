@@ -21,14 +21,8 @@ from nuitka.tools.testing.Common import (
     test_logger,
     withExtendedExtraOptions,
 )
-from nuitka.utils.Execution import check_output, getNullOutput
-from nuitka.utils.FileOperations import (
-    copyFile,
-    getFileContents,
-    openTextFile,
-    putTextFileContents,
-    withDirectoryChange,
-)
+from nuitka.tools.testing.Coverage import publishCoverageData
+from nuitka.utils.Execution import getNullOutput
 from nuitka.utils.Timing import TimerReport
 from nuitka.utils.Utils import hasOnefileSupportedOS, hasStandaloneSupportedOS
 
@@ -593,57 +587,6 @@ not being passed.""",
         os.unlink(".coverage")
 
     return options
-
-
-def publishCoverageData():
-    def copyToGlobalCoverageData(source, target):
-        coverage_dir = os.getenv("COVERAGE_DIR")
-
-        if coverage_dir is None:
-            return
-
-        copyFile(source, os.path.join(coverage_dir, target))
-
-    if os.name == "nt":
-        suffix = "win"
-    else:
-        import platform
-
-        suffix = platform.uname()[0] + "." + platform.uname()[4]
-
-    with openTextFile("data.coverage", "w") as data_file:
-        source_dir = os.path.abspath(os.path.dirname(os.path.dirname(__file__)))
-
-        with withDirectoryChange(source_dir):
-            nuitka_id = check_output("git rev-parse HEAD".split())
-        nuitka_id = nuitka_id.strip()
-
-        if sys.version_info > (3,):
-            nuitka_id = nuitka_id.decode()
-
-        data_file.write("NUITKA_SOURCE_DIR='%s'\n" % source_dir)
-        data_file.write("NUITKA_COMMIT='%s'\n" % nuitka_id)
-
-    copyToGlobalCoverageData("data.coverage", "meta.coverage." + suffix)
-
-    def makeCoverageRelative(filename):
-        """Normalize coverage data."""
-
-        data = getFileContents(filename)
-
-        data = data.replace(
-            (os.path.abspath(".") + os.path.sep).replace("\\", "\\\\"), ""
-        )
-
-        if os.path.sep != "/":
-            data.replace(os.path.sep, "/")
-
-        putTextFileContents(filename, contents=data)
-
-    coverage_file = os.getenv("COVERAGE_FILE", ".coverage")
-
-    makeCoverageRelative(coverage_file)
-    copyToGlobalCoverageData(coverage_file, "data.coverage." + suffix)
 
 
 def main():

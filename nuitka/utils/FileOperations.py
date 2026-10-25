@@ -2386,6 +2386,20 @@ def getPathWithForwardSlashes(path):
     return path
 
 
+def doesFileStartWithBytes(filename, search):
+    """Check if a file starts with a specific byte sequence.
+
+    Args:
+        filename: Path to the file.
+        search: Bytes to check for at the start.
+
+    Returns:
+        bool: True if the file starts with the byte sequence.
+    """
+    with open(filename, "rb") as f:
+        return f.read(len(search)) == search
+
+
 def doesFileContainBytes(filename, search):
     """Check if a file contains a specific byte sequence.
 

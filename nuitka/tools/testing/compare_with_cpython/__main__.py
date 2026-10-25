@@ -24,6 +24,7 @@ from nuitka.tools.testing.Common import (
     traceExecutedCommand,
     withPythonPathChange,
 )
+from nuitka.tools.testing.Coverage import getCoverageRunCommand
 from nuitka.tools.testing.OutputComparison import compareOutput
 from nuitka.Tracing import my_print
 from nuitka.utils.Execution import (
@@ -521,29 +522,14 @@ Taking coverage of '{filename}' using '{python}' with flags {args} ...""".format
 
         nuitka_call = [os.environ["PYTHON"], os.environ["NUITKA"]]
     else:
-        if comparison_mode:
-            nuitka_call = [
-                os.environ["PYTHON"],
-                "-m",
-                "nuitka.__main__",  # Note: Needed for Python2.6
-            ]
-        else:
-            assert coverage_mode
+        nuitka_call = [
+            os.environ["PYTHON"],
+            "-m",
+            "nuitka.__main__",  # Note: Needed for Python2.6
+        ]
 
-            # spell-checker: ignore rcfile
-
-            nuitka_call = [
-                os.environ["PYTHON"],
-                "-S",
-                "-m",
-                "coverage",
-                "run",
-                "--rcfile",
-                os.devnull,
-                "-a",
-                "-m",
-                "nuitka.__main__",  # Note: Needed for Python2.6
-            ]
+        if coverage_mode:
+            nuitka_call = getCoverageRunCommand(nuitka_call)
 
     if python_debug:
         extra_options.append("--python-debug")

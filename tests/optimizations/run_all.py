@@ -40,6 +40,7 @@ from nuitka.tools.testing.Common import (
     setup,
     withPythonPathChange,
 )
+from nuitka.tools.testing.Coverage import getCoverageRunCommand
 from nuitka.TreeXML import convertXmlToString
 from nuitka.utils.Execution import check_call
 from nuitka.utils.FileOperations import getFileContents
@@ -200,12 +201,7 @@ def main():
 
                 command.insert(2, "--must-not-re-execute")
 
-                # spell-checker: ignore --rcfile
-                command = (
-                    command[0:1]
-                    + ["-S", "-m", "coverage", "run", "--rcfile", os.devnull, "-a"]
-                    + command[1:]
-                )
+                command = getCoverageRunCommand(command)
 
                 # Coverage modules hates Nuitka to re-execute, and so we must avoid
                 # that.

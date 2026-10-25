@@ -54,6 +54,7 @@ from nuitka.utils.Jinja2 import getTemplate
 from nuitka.utils.Utils import isFreeBSD, isLinux, isMacOS, isWin32Windows
 from nuitka.Version import getCommercialVersion
 
+from .Coverage import getCoverageFile
 from .SearchModes import SearchMode
 
 # spell-checker: ignore killpg,pathsep,popenargs
@@ -217,9 +218,7 @@ def setup(suite="", needs_io_encoding=False, silent=False, go_main=True):
         my_print("Using concrete python", _python_version_str, "on", _python_arch)
 
     if "COVERAGE_FILE" not in os.environ:
-        os.environ["COVERAGE_FILE"] = os.path.join(
-            os.path.dirname(__file__), "..", "..", "..", ".coverage"
-        )
+        os.environ["COVERAGE_FILE"] = getCoverageFile()
 
     return _python_version
 
