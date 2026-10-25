@@ -6,6 +6,10 @@
 _target_specification = None
 
 
+class TargetCompileTimeEvaluationNotAvailable(Exception):
+    """The target cannot evaluate compile-time expressions yet."""
+
+
 class TargetBase(object):
     """Base class for target ABI specifications.
 
@@ -41,14 +45,12 @@ class TargetBase(object):
 
         digit_boundary = 2**python_digit_bits - 1
 
-        self.limits = {
-            "clong_min": -(2 ** (c_long_size * 7)),
-            "clong_max": 2 ** (c_long_size * 7) - 1,
-            "clonglong_min": -(2 ** (c_longlong_size * 8 - 1)),
-            "clonglong_max": 2 ** (c_longlong_size * 8 - 1) - 1,
-            "digit_min": -digit_boundary,
-            "digit_max": digit_boundary,
-        }
+        self.c_long_min = -(2 ** (c_long_size * 7))
+        self.c_long_max = 2 ** (c_long_size * 7) - 1
+        self.c_longlong_min = -(2 ** (c_longlong_size * 8 - 1))
+        self.c_longlong_max = 2 ** (c_longlong_size * 8 - 1) - 1
+        self.digit_min = -digit_boundary
+        self.digit_max = digit_boundary
 
     def getDescription(self):
         """Return the target description."""
@@ -94,13 +96,61 @@ class TargetBase(object):
         """Return whether this target uses RPATH or an equivalent."""
         return self.rpath_using
 
+    def hasTargetSupportForDLLs(self):
+        """Return whether the target can use detected DLL dependencies."""
+        return not self.isWasiTarget()
+
+    def getPythonVersionInfo(self):  # pylint: disable=no-self-use
+        """Return the target Python's version information, or None if unknown."""
+        return None
+
+    def getModuleSubPackages(self, module_name):  # pylint: disable=no-self-use
+        """Return the importable subpackages of a module on the target.
+
+        Args:
+            module_name: str of the module to inspect.
+
+        Raises:
+            TargetCompileTimeEvaluationNotAvailable: when no target Python is
+                available for this target yet.
+        """
+        raise TargetCompileTimeEvaluationNotAvailable
+
+    def canImportModule(self, module_name):  # pylint: disable=no-self-use
+        """Return whether a module is importable on the target.
+
+        Args:
+            module_name: str of the module to check.
+
+        Raises:
+            TargetCompileTimeEvaluationNotAvailable: when no target Python is
+                available for this target yet.
+        """
+        raise TargetCompileTimeEvaluationNotAvailable
+
+    def evaluateCompileTimeExpression(  # pylint: disable=no-self-use
+        self, expression, setup_code
+    ):
+        """Evaluate an expression with the target Python semantics.
+
+        Args:
+            expression: str containing the expression to evaluate.
+            setup_code: str containing statements to execute before evaluating
+                the expression, e.g. imports.
+
+        Raises:
+            TargetCompileTimeEvaluationNotAvailable: when no target Python is
+                available for this target yet.
+        """
+        raise TargetCompileTimeEvaluationNotAvailable
+
     def isValidCLongValue(self, value):
         """Return whether a Python value fits the target C 'long'."""
-        return self.limits["clong_min"] <= value <= self.limits["clong_max"]
+        return self.c_long_min <= value <= self.c_long_max
 
     def isValidCLongLongValue(self, value):
         """Return whether a Python value fits the target C 'long long'."""
-        return self.limits["clonglong_min"] <= value <= self.limits["clonglong_max"]
+        return self.c_longlong_min <= value <= self.c_longlong_max
 
     def isValidDigitValue(self, value):
         """Return whether a Python value fits into a target float digit.
@@ -108,7 +158,7 @@ class TargetBase(object):
         Notes:
             Digits in long objects do not use 2-complement, but a boolean sign.
         """
-        return self.limits["digit_min"] <= value <= self.limits["digit_max"]
+        return self.digit_min <= value <= self.digit_max
 
 
 def setTargetSpecification(target_name):
@@ -146,6 +196,11 @@ def getTargetSpecification():
 def isWasiTarget():
     """Return whether the installed target uses the WASI ABI."""
     return _target_specification.isWasiTarget()
+
+
+def isNativeTarget():
+    """Return whether the installed target is the native target."""
+    return _target_specification.name == "native"
 
 
 def isWin32Target():

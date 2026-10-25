@@ -41,6 +41,8 @@ _wasi_python_releases_url = (
     "https://api.github.com/repos/brettcannon/cpython-wasi-build/releases?per_page=100"
 )
 
+_wasi_python_prefix = None
+
 
 def _getVersionString(version):
     return ".".join(str(value) for value in version)
@@ -305,12 +307,18 @@ def _finalizePythonWasm(prefix_dir, abi_version):
 
 def getWasiPythonPrefix(assume_yes_for_downloads):
     """Return the WASI CPython prefix for the running Python version."""
+    global _wasi_python_prefix  # singleton, pylint: disable=global-statement
+
+    if _wasi_python_prefix is not None:
+        return _wasi_python_prefix
+
     # Local import to avoid a circular dependency on Options.
     from nuitka.options.Options import getWasiPythonPrefixPath
 
     wasi_python_prefix = getWasiPythonPrefixPath()
 
     if wasi_python_prefix is not None:
+        _wasi_python_prefix = wasi_python_prefix
         return wasi_python_prefix
 
     release = _getWasiPythonRelease()
@@ -322,6 +330,7 @@ def getWasiPythonPrefix(assume_yes_for_downloads):
     prefix_dir = getNormalizedPathJoin(version_cache_dir, "prefix")
 
     if _isWasiPythonPrefixComplete(prefix_dir, abi_version):
+        _wasi_python_prefix = prefix_dir
         return prefix_dir
 
     runtime_zip = getNormalizedPathJoin(
@@ -388,6 +397,7 @@ def getWasiPythonPrefix(assume_yes_for_downloads):
         dest_path=prefix_dir,
     )
 
+    _wasi_python_prefix = prefix_dir
     return prefix_dir
 
 

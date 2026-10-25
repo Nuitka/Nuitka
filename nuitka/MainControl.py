@@ -51,6 +51,7 @@ from nuitka.freezer.IncludedEntryPoints import (
 )
 from nuitka.freezer.LinuxApp import createLinuxAppFiles
 from nuitka.freezer.MacOSApp import addIncludedDataFilesFromMacOSAppOptions
+from nuitka.HardImportRegistry import setupHardImportsForTarget
 from nuitka.importing.Importing import (
     getRecompileDecisionReason,
     setupImportingFromOptions,
@@ -157,7 +158,11 @@ from nuitka.PythonVersions import (
     python_version_str,
 )
 from nuitka.Serialization import ConstantAccessor
-from nuitka.targets.Targets import isWasiTarget, isWin32Target
+from nuitka.targets.Targets import (
+    getTargetSpecification,
+    isWasiTarget,
+    isWin32Target,
+)
 from nuitka.Tracing import (
     code_generation_logger,
     doNotBreakSpaces,
@@ -1227,32 +1232,37 @@ def _considerPgoInput():
 
 def _detectEarlyDLLs():
     assert isStandaloneMode()
-    modules = ModuleRegistry.getDoneModules()
 
-    for module in modules:
-        if module.isPythonExtensionModule():
-            addExtensionModuleEntryPoint(module)
+    if getTargetSpecification().hasTargetSupportForDLLs():
+        modules = ModuleRegistry.getDoneModules()
 
-        addIncludedEntryPoints(considerExtraDlls(module))
+        for module in modules:
+            if module.isPythonExtensionModule():
+                addExtensionModuleEntryPoint(module)
 
-    detectUsedDLLs(
-        standalone_entry_points=getStandaloneEntryPoints(),
-        source_dir=OutputDirectories.getSourceDirectoryPath(
-            onefile=False, create=False
-        ),
-    )
+            addIncludedEntryPoints(considerExtraDlls(module))
+
+        detectUsedDLLs(
+            standalone_entry_points=getStandaloneEntryPoints(),
+            source_dir=OutputDirectories.getSourceDirectoryPath(
+                onefile=False, create=False
+            ),
+        )
 
 
 def _detectLateDLLs(scons_options):
     assert isStandaloneMode()
-    binary_filename = scons_options["result_exe"]
 
-    detectUsedDLLs(
-        standalone_entry_points=(addMainEntryPoint(binary_filename),),
-        source_dir=OutputDirectories.getSourceDirectoryPath(
-            onefile=False, create=False
-        ),
-    )
+    binary_filename = scons_options["result_exe"]
+    main_entry_point = addMainEntryPoint(binary_filename)
+
+    if getTargetSpecification().hasTargetSupportForDLLs():
+        detectUsedDLLs(
+            standalone_entry_points=(main_entry_point,),
+            source_dir=OutputDirectories.getSourceDirectoryPath(
+                onefile=False, create=False
+            ),
+        )
 
 
 def _main():
@@ -1308,6 +1318,9 @@ def _main():
 
     # Let the plugins know we are starting compilation and they should make their checks.
     onCompilationStartChecks()
+
+    # Hard imports are target-specific, so prune the registry once before tracing.
+    setupHardImportsForTarget(getTargetSpecification())
 
     addIncludedDataFilesFromFlavor()
     addIncludedDataFilesFromFileOptions()

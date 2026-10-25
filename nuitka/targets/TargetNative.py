@@ -6,6 +6,7 @@
 import ctypes
 import sys
 
+from nuitka.PythonVersions import getImportlibSubPackages
 from nuitka.utils.Utils import (
     getArchitecture,
     getOS,
@@ -56,6 +57,43 @@ class TargetNative(TargetBase):
             rpath_using=isRPathUsingPlatform(),
             python_digit_bits=_getPythonDigitBits(),
         )
+
+    def evaluateCompileTimeExpression(self, expression, setup_code):
+        """Evaluate an expression with the running Python."""
+        # The code is generated internally from hard module names.
+        namespace = {"__builtins__": __builtins__}
+        if setup_code:
+            exec(setup_code, namespace)  # pylint: disable=exec-used
+        return eval(expression, namespace, {})  # pylint: disable=eval-used
+
+    def getPythonVersionInfo(self):
+        """Return the target Python's version information."""
+        return sys.version_info
+
+    def getModuleSubPackages(self, module_name):
+        """Return importable subpackages for a module on the target."""
+        assert module_name == "importlib", module_name
+        return getImportlibSubPackages()
+
+    def canImportModule(self, module_name):
+        """Return whether a module is importable on the target."""
+        try:
+            from importlib.util import find_spec
+        except ImportError:
+            from pkgutil import get_loader
+
+            return get_loader(module_name) is not None
+
+        try:
+            return find_spec(module_name) is not None
+        except ImportError:
+            return False
+
+    @staticmethod
+    def isHardModuleSupported(module_name):
+        """Return whether a hard module is available for this target."""
+        # pylint: disable=unused-argument
+        return True
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and

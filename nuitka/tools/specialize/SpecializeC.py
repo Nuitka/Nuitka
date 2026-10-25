@@ -44,6 +44,7 @@ from nuitka.HardImportRegistry import (
     hard_modules,
     hard_modules_non_stdlib,
     hard_modules_version,
+    setupHardImportsForTarget,
 )
 from nuitka.nodes.shapes.BuiltinTypeShapes import (
     tshape_bool,
@@ -56,6 +57,7 @@ from nuitka.nodes.shapes.BuiltinTypeShapes import (
     tshape_str,
     tshape_tuple,
 )
+from nuitka.targets.TargetNative import TargetNative
 from nuitka.Tracing import tools_logger
 from nuitka.utils.FileOperations import (
     getFileList,
@@ -898,6 +900,8 @@ def makeHelpersBinaryDualOperation(operand, op_code):
 
 
 def makeHelpersImportHard():
+    setupHardImportsForTarget(TargetNative())
+
     filename_c = getNormalizedPath("nuitka/build/static_src/HelpersImportHard.c")
     filename_h = getNormalizedPath("nuitka/build/include/nuitka/helper/import_hard.h")
 

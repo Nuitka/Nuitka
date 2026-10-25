@@ -24,6 +24,7 @@ from nuitka.__past__ import (
     xrange,
 )
 from nuitka.Builtins import builtin_anon_values, builtin_named_values_list
+from nuitka.Constants import TargetVersionInfo
 from nuitka.nodes.CodeObjectSpecs import (
     CodeObjectSpec,
     CodeObjectSpecClass,
@@ -198,7 +199,7 @@ def namifyConstant(constant):
         )
     elif constant_type is UnionType:
         return "uniontype_%s" % namifyConstant(constant.__args__)
-    elif constant is sys.version_info:
+    elif constant_type is TargetVersionInfo or constant is sys.version_info:
         return "sys_version_info"
     elif constant_type is BlobData:
         return "blob_" + _namifyString(constant.getData())

@@ -31,6 +31,7 @@ from nuitka.code_generation.SpecialConstantData import (
     SpecialConstantBase,
     getConstantCType,
 )
+from nuitka.Constants import TargetVersionInfo
 from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.OutputDirectories import getSourceDirectoryPath
 from nuitka.PythonVersions import python_version
@@ -96,6 +97,8 @@ def _pickleAnonValues(pickler, value):
         pickler.save(BuiltinSpecialValue("NotImplemented"))
     elif value is sys.version_info:
         pickler.save(BuiltinSpecialValue("Py_SysVersionInfo"))
+    elif type(value) is TargetVersionInfo:
+        pickler.save(BuiltinSpecialValue("Py_SysVersionInfo"))
     else:
         pickler.save_global(value)
 
@@ -127,6 +130,8 @@ class ConstantStreamWriter(object):
 
         if type(sys.version_info) is not tuple:
             self.pickle.dispatch[type(sys.version_info)] = _pickleAnonValues
+
+        self.pickle.dispatch[TargetVersionInfo] = _pickleAnonValues
 
         # Standard pickling doesn't work with our necessary wrappers.
         if python_version >= 0x390:
@@ -208,9 +213,10 @@ class GlobalConstantAccessor(object):
             return "Py_Ellipsis"
         elif constant is NotImplemented:
             return "Py_NotImplemented"
-        elif constant is sys.version_info:
-            return "Py_SysVersionInfo"
-        elif type(constant) is type:
+
+        constant_type = type(constant)
+
+        if constant_type is type:
             # TODO: Maybe make this a mapping in nuitka.Builtins
 
             if constant is None:
@@ -254,6 +260,8 @@ class GlobalConstantAccessor(object):
                     type_name = "string" if python_version < 0x300 else "unicode"
 
                 return "(PyObject *)&Py%s_Type" % type_name.capitalize()
+        elif constant is sys.version_info or constant_type is TargetVersionInfo:
+            return "Py_SysVersionInfo"
         else:
             return self._getConstantCode(constant)
 

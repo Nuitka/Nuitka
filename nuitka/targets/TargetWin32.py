@@ -23,6 +23,11 @@ class TargetWin32(TargetBase):
             python_digit_bits=15,
         )
 
+    def isHardModuleSupported(self, module_name):  # pylint: disable=no-self-use
+        """Return whether a hard module is available for this target."""
+        # pylint: disable=unused-argument
+        return True
+
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.

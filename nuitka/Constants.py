@@ -11,6 +11,7 @@ import sys
 from types import BuiltinFunctionType
 
 from nuitka.Builtins import builtin_type_names
+from nuitka.containers.Namedtuples import makeNamedtupleClass
 from nuitka.PythonVersions import python_version
 
 from .__past__ import (
@@ -32,6 +33,18 @@ from .Builtins import (
 NoneType = type(None)
 
 EllipsisType = type(Ellipsis)
+
+
+TargetVersionInfo = makeNamedtupleClass(
+    "TargetVersionInfo",
+    ("major", "minor", "micro", "releaselevel", "serial"),
+)
+TargetVersionInfo.__module__ = __name__
+
+# Match the struct sequence attributes exposed by "sys.version_info".
+TargetVersionInfo.n_fields = property(len)
+TargetVersionInfo.n_sequence_fields = property(len)
+TargetVersionInfo.n_unnamed_fields = property(lambda self: 0)
 
 
 def compareConstants(a, b):
@@ -174,6 +187,7 @@ def isConstant(constant):
         xrange,
         bytearray,
         EllipsisType,
+        TargetVersionInfo,
     ):
         return True
     elif constant in (NoneType, NotImplemented):
@@ -229,6 +243,7 @@ def isMutable(constant):
         frozenset,
         BuiltinFunctionType,
         EllipsisType,
+        TargetVersionInfo,
     ):
         return False
     elif constant_type in (dict, list, set, bytearray):
@@ -283,6 +298,7 @@ def isHashable(constant):
         frozenset,
         BuiltinFunctionType,
         EllipsisType,
+        TargetVersionInfo,
     ):
         return True
     elif constant_type in (dict, list, set, slice, bytearray):

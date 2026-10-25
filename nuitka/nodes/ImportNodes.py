@@ -18,11 +18,12 @@ from nuitka.__past__ import long, unicode, xrange
 from nuitka.code_generation.Reports import onMissingTrust
 from nuitka.HardImportRegistry import (
     addModuleSingleAttributeNodeFactory,
+    getHardModuleConstant,
+    getHardModuleTrust,
     hard_modules_aliases,
     hard_modules_limited,
     hard_modules_non_stdlib,
     hard_modules_stdlib,
-    hard_modules_trust,
     isHardModule,
     isHardModuleWithoutSideEffect,
     trust_constant,
@@ -88,7 +89,7 @@ from .StatementBasesGenerated import StatementImportStarBase
 def makeExpressionImportModuleNameHard(
     module_name, import_name, module_guaranteed, source_ref
 ):
-    if hard_modules_trust[module_name].get(import_name) is None:
+    if getHardModuleTrust(module_name, import_name) is trust_undefined:
         return ExpressionImportModuleNameHardMaybeExists(
             module_name=module_name,
             import_name=import_name,
@@ -632,12 +633,17 @@ class ExpressionImportModuleHard(
                     % (self.value_name, attribute_name),
                 )
 
-            if self.value_name in hard_modules_trust:
-                trust = hard_modules_trust[self.value_name].get(
-                    attribute_name, trust_undefined
+            trust = getHardModuleTrust(self.value_name, attribute_name)
+            constant_value = None
+
+            if trust is trust_constant:
+                constant_available, constant_value = getHardModuleConstant(
+                    module_name=self.value_name,
+                    attribute_name=attribute_name,
                 )
-            else:
-                trust = trust_undefined
+
+                if not constant_available:
+                    trust = trust_undefined
 
             if trust is trust_importable:
                 # TODO: Change this is a hard module import itself, currently these are not all trusted
@@ -710,13 +716,10 @@ class ExpressionImportModuleHard(
                         self.value_name,
                         attribute_name,
                     )
-                elif trust is trust_constant and self.module is not None:
-                    # Make sure it's actually there, and not becoming the getattr default by accident.
-                    assert hasattr(self.module, attribute_name), self
-
+                elif trust is trust_constant:
                     return (
                         makeConstantReplacementNode(
-                            constant=getattr(self.module, attribute_name),
+                            constant=constant_value,
                             node=lookup_node,
                             user_provided=True,
                         ),

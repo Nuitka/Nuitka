@@ -21,6 +21,7 @@ from nuitka.Builtins import (
     builtin_named_values,
 )
 from nuitka.Constants import (
+    TargetVersionInfo,
     getUnhashableConstant,
     isConstant,
     isHashable,
@@ -1776,8 +1777,10 @@ def makeConstantRefNode(constant, source_ref, user_provided=False):
         from .BuiltinTypeNodes import ExpressionConstantUnionType
 
         return ExpressionConstantUnionType(union_type=constant, source_ref=source_ref)
-    elif constant is sys.version_info:
-        return ExpressionConstantSysVersionInfoRef(source_ref=source_ref)
+    elif constant_type is TargetVersionInfo or constant is sys.version_info:
+        return ExpressionConstantSysVersionInfoRef(
+            constant=constant, source_ref=source_ref
+        )
     elif constant in builtin_anon_values:
         from .BuiltinRefNodes import ExpressionBuiltinAnonymousRef
 
@@ -1817,14 +1820,10 @@ class ExpressionConstantSysVersionInfoRef(ExpressionConstantUntrackedRefBase):
 
     __slots__ = ()
 
-    def __init__(self, source_ref):
+    def __init__(self, constant, source_ref):
         ExpressionConstantUntrackedRefBase.__init__(
-            self, constant=sys.version_info, source_ref=source_ref
+            self, constant=constant, source_ref=source_ref
         )
-
-    @staticmethod
-    def getDetails():
-        return {}
 
     @staticmethod
     def getTypeShape():
@@ -1868,6 +1867,12 @@ class ExpressionConstantSysVersionInfoRef(ExpressionConstantUntrackedRefBase):
     @staticmethod
     def getTruthValue():
         return True
+
+
+def makeExpressionConstantSysVersionInfoRef(source_ref):
+    return ExpressionConstantSysVersionInfoRef(
+        constant=sys.version_info, source_ref=source_ref
+    )
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and

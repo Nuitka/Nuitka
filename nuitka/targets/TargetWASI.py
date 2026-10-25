@@ -3,6 +3,13 @@
 
 """Target specification for WASI on wasm32."""
 
+from nuitka.options.Options import (
+    assumeYesForDownloads,
+    shallDisableCacheUsage,
+)
+from nuitka.utils.WasiPython import getWasiPythonPrefix
+
+from .TargetPython import TargetPython
 from .Targets import TargetBase
 
 
@@ -22,6 +29,38 @@ class TargetWASI(TargetBase):
             rpath_using=False,
             python_digit_bits=15,
         )
+
+        assume_yes_for_downloads = assumeYesForDownloads()
+
+        self._target_python = TargetPython(
+            target_spec=self,
+            python_prefix=getWasiPythonPrefix(
+                assume_yes_for_downloads=assume_yes_for_downloads
+            ),
+            assume_yes_for_downloads=assume_yes_for_downloads,
+            use_cache=not shallDisableCacheUsage("all"),
+        )
+
+    def evaluateCompileTimeExpression(self, expression, setup_code):
+        """Evaluate an expression with the WASI target Python."""
+        return self._target_python.evaluate(expression, setup_code)
+
+    def getPythonVersionInfo(self):
+        """Return the target Python's version information."""
+        return self._target_python.getPythonVersionInfo()
+
+    def getModuleSubPackages(self, module_name):
+        """Return importable subpackages for a module on WASI."""
+        return self._target_python.getModuleSubPackages(module_name)
+
+    def canImportModule(self, module_name):
+        """Return whether a module is importable on WASI."""
+        return self._target_python.canImportModule(module_name)
+
+    @staticmethod
+    def isHardModuleSupported(module_name):
+        """Return whether a hard module is available for WASI."""
+        return module_name != "ctypes"
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
