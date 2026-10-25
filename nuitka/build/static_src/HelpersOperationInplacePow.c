@@ -45,6 +45,7 @@ static inline bool _INPLACE_OPERATION_POW_FLOAT_FLOAT(PyObject **operand1, PyObj
         goto exit_result_ok_const_float_1_0;
     }
 
+#if PYTHON_VERSION >= 0x270
     if (Py_IS_NAN(a)) {
         goto exit_result_ok_left;
     }
@@ -62,7 +63,7 @@ static inline bool _INPLACE_OPERATION_POW_FLOAT_FLOAT(PyObject **operand1, PyObj
         if (a == 1.0) {
             goto exit_result_ok_const_float_1_0;
         } else if ((b > 0.0) == (a > 1.0)) {
-            long r = (long)fabs(b);
+            double r = fabs(b);
 
             cfloat_result = r;
             goto exit_result_ok_cfloat;
@@ -84,6 +85,7 @@ static inline bool _INPLACE_OPERATION_POW_FLOAT_FLOAT(PyObject **operand1, PyObj
         cfloat_result = r;
         goto exit_result_ok_cfloat;
     }
+#endif
 
     if (a == 0.0) {
         if (unlikely(b < 0.0)) {
@@ -94,8 +96,12 @@ static inline bool _INPLACE_OPERATION_POW_FLOAT_FLOAT(PyObject **operand1, PyObj
             goto exit_result_exception;
         }
 
+#if PYTHON_VERSION >= 0x270
         bool b_is_odd = DOUBLE_IS_ODD_INTEGER(b);
         double r = b_is_odd ? a : 0.0;
+#else
+        double r = 0.0;
+#endif
 
         cfloat_result = r;
         goto exit_result_ok_cfloat;
@@ -106,11 +112,28 @@ static inline bool _INPLACE_OPERATION_POW_FLOAT_FLOAT(PyObject **operand1, PyObj
 
         if (a < 0.0) {
             if (unlikely(b != floor(b))) {
+                PyObject *r = NULL;
+
+#if PYTHON_VERSION < 0x300
                 PyThreadState *tstate = PyThreadState_GET();
 
                 SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_ValueError,
                                                 "negative number cannot be raised to a fractional power");
-                goto exit_result_exception;
+#else
+                // Python3 gives a complex number, like "float_pow" does.
+                PyObject *complex_a = PyComplex_FromDoubles(a, 0.0);
+                PyObject *complex_b = PyComplex_FromDoubles(b, 0.0);
+
+                if (likely(complex_a != NULL && complex_b != NULL)) {
+                    r = PyComplex_Type.tp_as_number->nb_power(complex_a, complex_b, Py_None);
+                }
+
+                Py_XDECREF(complex_a);
+                Py_XDECREF(complex_b);
+#endif
+
+                obj_result = r;
+                goto exit_result_object;
             }
 
             a = -a;
@@ -124,6 +147,19 @@ static inline bool _INPLACE_OPERATION_POW_FLOAT_FLOAT(PyObject **operand1, PyObj
                 goto exit_result_ok_const_float_1_0;
             }
         } else {
+#if PYTHON_VERSION < 0x270
+#if defined(_WIN32)
+            // CPython2.6 on Windows uses a "pow" that sets "EDOM" for NaN
+            // operands, and turns that into a "ValueError". Other platforms
+            // use a "pow" that returns NaN without an error.
+            if (unlikely(Py_IS_NAN(a) || Py_IS_NAN(b))) {
+                errno = EDOM;
+                PyErr_SetFromErrno(PyExc_ValueError);
+                goto exit_result_exception;
+            }
+#endif
+#endif
+
             errno = 0;
             double r = pow(a, b);
 
@@ -158,20 +194,38 @@ exit_result_ok_cfloat:
     }
     goto exit_result_ok;
 
-exit_result_ok_left:
+exit_result_object:
+    if (unlikely(obj_result == NULL)) {
+        goto exit_result_exception;
+    }
+    // We got an object handed, that we have to release.
+    Py_DECREF(*operand1);
+
+    *operand1 = obj_result;
     goto exit_result_ok;
 
+#if PYTHON_VERSION >= 0x270
+exit_result_ok_left:
+    goto exit_result_ok;
+#endif
+
+#if PYTHON_VERSION >= 0x270
 exit_result_ok_right:
     // We got an object handed, that we have to release.
     Py_DECREF(*operand1);
     *operand1 = operand2;
+    Py_INCREF(*operand1);
     goto exit_result_ok;
+#endif
 
+#if PYTHON_VERSION >= 0x270
 exit_result_ok_const_float_0_0:
     // We got an object handed, that we have to release.
     Py_DECREF(*operand1);
     *operand1 = MAKE_FLOAT_FROM_DOUBLE(0.0);
     goto exit_result_ok;
+
+#endif
 
 exit_result_ok_const_float_1_0:
     // We got an object handed, that we have to release.
@@ -225,6 +279,22 @@ static HEDLEY_NEVER_INLINE bool __INPLACE_OPERATION_POW_OBJECT_FLOAT(PyObject **
     }
 
     {
+#if PYTHON_VERSION < 0x300
+        // Complex in-place power is handled by CPython, as the generic code below
+        // does not support its coercion.
+        if (PyComplex_CheckExact(*operand1)) {
+            PyObject *result = PyNumber_InPlacePower(*operand1, operand2, Py_None);
+
+            if (unlikely(result == NULL)) {
+                goto exit_inplace_exception;
+            }
+
+            Py_DECREF(*operand1);
+            *operand1 = result;
+
+            return true;
+        }
+#endif
         ternaryfunc slot1 =
             (type1->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type1)) ? type1->tp_as_number->nb_power : NULL;
         ternaryfunc slot2 = NULL;
@@ -392,6 +462,7 @@ static inline bool _INPLACE_OPERATION_POW_OBJECT_FLOAT(PyObject **operand1, PyOb
             goto exit_result_ok_const_float_1_0;
         }
 
+#if PYTHON_VERSION >= 0x270
         if (Py_IS_NAN(a)) {
             goto exit_result_ok_left;
         }
@@ -409,7 +480,7 @@ static inline bool _INPLACE_OPERATION_POW_OBJECT_FLOAT(PyObject **operand1, PyOb
             if (a == 1.0) {
                 goto exit_result_ok_const_float_1_0;
             } else if ((b > 0.0) == (a > 1.0)) {
-                long r = (long)fabs(b);
+                double r = fabs(b);
 
                 cfloat_result = r;
                 goto exit_result_ok_cfloat;
@@ -431,6 +502,7 @@ static inline bool _INPLACE_OPERATION_POW_OBJECT_FLOAT(PyObject **operand1, PyOb
             cfloat_result = r;
             goto exit_result_ok_cfloat;
         }
+#endif
 
         if (a == 0.0) {
             if (unlikely(b < 0.0)) {
@@ -441,8 +513,12 @@ static inline bool _INPLACE_OPERATION_POW_OBJECT_FLOAT(PyObject **operand1, PyOb
                 goto exit_result_exception;
             }
 
+#if PYTHON_VERSION >= 0x270
             bool b_is_odd = DOUBLE_IS_ODD_INTEGER(b);
             double r = b_is_odd ? a : 0.0;
+#else
+            double r = 0.0;
+#endif
 
             cfloat_result = r;
             goto exit_result_ok_cfloat;
@@ -453,11 +529,28 @@ static inline bool _INPLACE_OPERATION_POW_OBJECT_FLOAT(PyObject **operand1, PyOb
 
             if (a < 0.0) {
                 if (unlikely(b != floor(b))) {
+                    PyObject *r = NULL;
+
+#if PYTHON_VERSION < 0x300
                     PyThreadState *tstate = PyThreadState_GET();
 
                     SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_ValueError,
                                                     "negative number cannot be raised to a fractional power");
-                    goto exit_result_exception;
+#else
+                    // Python3 gives a complex number, like "float_pow" does.
+                    PyObject *complex_a = PyComplex_FromDoubles(a, 0.0);
+                    PyObject *complex_b = PyComplex_FromDoubles(b, 0.0);
+
+                    if (likely(complex_a != NULL && complex_b != NULL)) {
+                        r = PyComplex_Type.tp_as_number->nb_power(complex_a, complex_b, Py_None);
+                    }
+
+                    Py_XDECREF(complex_a);
+                    Py_XDECREF(complex_b);
+#endif
+
+                    obj_result = r;
+                    goto exit_result_object;
                 }
 
                 a = -a;
@@ -471,6 +564,19 @@ static inline bool _INPLACE_OPERATION_POW_OBJECT_FLOAT(PyObject **operand1, PyOb
                     goto exit_result_ok_const_float_1_0;
                 }
             } else {
+#if PYTHON_VERSION < 0x270
+#if defined(_WIN32)
+                // CPython2.6 on Windows uses a "pow" that sets "EDOM" for NaN
+                // operands, and turns that into a "ValueError". Other platforms
+                // use a "pow" that returns NaN without an error.
+                if (unlikely(Py_IS_NAN(a) || Py_IS_NAN(b))) {
+                    errno = EDOM;
+                    PyErr_SetFromErrno(PyExc_ValueError);
+                    goto exit_result_exception;
+                }
+#endif
+#endif
+
                 errno = 0;
                 double r = pow(a, b);
 
@@ -505,20 +611,38 @@ static inline bool _INPLACE_OPERATION_POW_OBJECT_FLOAT(PyObject **operand1, PyOb
         }
         goto exit_result_ok;
 
-    exit_result_ok_left:
+    exit_result_object:
+        if (unlikely(obj_result == NULL)) {
+            goto exit_result_exception;
+        }
+        // We got an object handed, that we have to release.
+        Py_DECREF(*operand1);
+
+        *operand1 = obj_result;
         goto exit_result_ok;
 
+#if PYTHON_VERSION >= 0x270
+    exit_result_ok_left:
+        goto exit_result_ok;
+#endif
+
+#if PYTHON_VERSION >= 0x270
     exit_result_ok_right:
         // We got an object handed, that we have to release.
         Py_DECREF(*operand1);
         *operand1 = operand2;
+        Py_INCREF(*operand1);
         goto exit_result_ok;
+#endif
 
+#if PYTHON_VERSION >= 0x270
     exit_result_ok_const_float_0_0:
         // We got an object handed, that we have to release.
         Py_DECREF(*operand1);
         *operand1 = MAKE_FLOAT_FROM_DOUBLE(0.0);
         goto exit_result_ok;
+
+#endif
 
     exit_result_ok_const_float_1_0:
         // We got an object handed, that we have to release.
@@ -744,6 +868,7 @@ static inline bool _INPLACE_OPERATION_POW_FLOAT_OBJECT(PyObject **operand1, PyOb
             goto exit_result_ok_const_float_1_0;
         }
 
+#if PYTHON_VERSION >= 0x270
         if (Py_IS_NAN(a)) {
             goto exit_result_ok_left;
         }
@@ -761,7 +886,7 @@ static inline bool _INPLACE_OPERATION_POW_FLOAT_OBJECT(PyObject **operand1, PyOb
             if (a == 1.0) {
                 goto exit_result_ok_const_float_1_0;
             } else if ((b > 0.0) == (a > 1.0)) {
-                long r = (long)fabs(b);
+                double r = fabs(b);
 
                 cfloat_result = r;
                 goto exit_result_ok_cfloat;
@@ -783,6 +908,7 @@ static inline bool _INPLACE_OPERATION_POW_FLOAT_OBJECT(PyObject **operand1, PyOb
             cfloat_result = r;
             goto exit_result_ok_cfloat;
         }
+#endif
 
         if (a == 0.0) {
             if (unlikely(b < 0.0)) {
@@ -793,8 +919,12 @@ static inline bool _INPLACE_OPERATION_POW_FLOAT_OBJECT(PyObject **operand1, PyOb
                 goto exit_result_exception;
             }
 
+#if PYTHON_VERSION >= 0x270
             bool b_is_odd = DOUBLE_IS_ODD_INTEGER(b);
             double r = b_is_odd ? a : 0.0;
+#else
+            double r = 0.0;
+#endif
 
             cfloat_result = r;
             goto exit_result_ok_cfloat;
@@ -805,11 +935,28 @@ static inline bool _INPLACE_OPERATION_POW_FLOAT_OBJECT(PyObject **operand1, PyOb
 
             if (a < 0.0) {
                 if (unlikely(b != floor(b))) {
+                    PyObject *r = NULL;
+
+#if PYTHON_VERSION < 0x300
                     PyThreadState *tstate = PyThreadState_GET();
 
                     SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_ValueError,
                                                     "negative number cannot be raised to a fractional power");
-                    goto exit_result_exception;
+#else
+                    // Python3 gives a complex number, like "float_pow" does.
+                    PyObject *complex_a = PyComplex_FromDoubles(a, 0.0);
+                    PyObject *complex_b = PyComplex_FromDoubles(b, 0.0);
+
+                    if (likely(complex_a != NULL && complex_b != NULL)) {
+                        r = PyComplex_Type.tp_as_number->nb_power(complex_a, complex_b, Py_None);
+                    }
+
+                    Py_XDECREF(complex_a);
+                    Py_XDECREF(complex_b);
+#endif
+
+                    obj_result = r;
+                    goto exit_result_object;
                 }
 
                 a = -a;
@@ -823,6 +970,19 @@ static inline bool _INPLACE_OPERATION_POW_FLOAT_OBJECT(PyObject **operand1, PyOb
                     goto exit_result_ok_const_float_1_0;
                 }
             } else {
+#if PYTHON_VERSION < 0x270
+#if defined(_WIN32)
+                // CPython2.6 on Windows uses a "pow" that sets "EDOM" for NaN
+                // operands, and turns that into a "ValueError". Other platforms
+                // use a "pow" that returns NaN without an error.
+                if (unlikely(Py_IS_NAN(a) || Py_IS_NAN(b))) {
+                    errno = EDOM;
+                    PyErr_SetFromErrno(PyExc_ValueError);
+                    goto exit_result_exception;
+                }
+#endif
+#endif
+
                 errno = 0;
                 double r = pow(a, b);
 
@@ -857,20 +1017,38 @@ static inline bool _INPLACE_OPERATION_POW_FLOAT_OBJECT(PyObject **operand1, PyOb
         }
         goto exit_result_ok;
 
-    exit_result_ok_left:
+    exit_result_object:
+        if (unlikely(obj_result == NULL)) {
+            goto exit_result_exception;
+        }
+        // We got an object handed, that we have to release.
+        Py_DECREF(*operand1);
+
+        *operand1 = obj_result;
         goto exit_result_ok;
 
+#if PYTHON_VERSION >= 0x270
+    exit_result_ok_left:
+        goto exit_result_ok;
+#endif
+
+#if PYTHON_VERSION >= 0x270
     exit_result_ok_right:
         // We got an object handed, that we have to release.
         Py_DECREF(*operand1);
         *operand1 = operand2;
+        Py_INCREF(*operand1);
         goto exit_result_ok;
+#endif
 
+#if PYTHON_VERSION >= 0x270
     exit_result_ok_const_float_0_0:
         // We got an object handed, that we have to release.
         Py_DECREF(*operand1);
         *operand1 = MAKE_FLOAT_FROM_DOUBLE(0.0);
         goto exit_result_ok;
+
+#endif
 
     exit_result_ok_const_float_1_0:
         // We got an object handed, that we have to release.
@@ -973,6 +1151,22 @@ static HEDLEY_NEVER_INLINE bool __INPLACE_OPERATION_POW_OBJECT_LONG(PyObject **o
     }
 
     {
+#if PYTHON_VERSION < 0x300
+        // Complex in-place power is handled by CPython, as the generic code below
+        // does not support its coercion.
+        if (PyComplex_CheckExact(*operand1)) {
+            PyObject *result = PyNumber_InPlacePower(*operand1, operand2, Py_None);
+
+            if (unlikely(result == NULL)) {
+                goto exit_inplace_exception;
+            }
+
+            Py_DECREF(*operand1);
+            *operand1 = result;
+
+            return true;
+        }
+#endif
         ternaryfunc slot1 =
             (type1->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type1)) ? type1->tp_as_number->nb_power : NULL;
         ternaryfunc slot2 = NULL;
@@ -1533,6 +1727,22 @@ static HEDLEY_NEVER_INLINE bool __INPLACE_OPERATION_POW_OBJECT_INT(PyObject **op
     }
 
     {
+#if PYTHON_VERSION < 0x300
+        // Complex in-place power is handled by CPython, as the generic code below
+        // does not support its coercion.
+        if (PyComplex_CheckExact(*operand1)) {
+            PyObject *result = PyNumber_InPlacePower(*operand1, operand2, Py_None);
+
+            if (unlikely(result == NULL)) {
+                goto exit_inplace_exception;
+            }
+
+            Py_DECREF(*operand1);
+            *operand1 = result;
+
+            return true;
+        }
+#endif
         ternaryfunc slot1 =
             (type1->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type1)) ? type1->tp_as_number->nb_power : NULL;
         ternaryfunc slot2 = NULL;
@@ -2665,6 +2875,22 @@ static inline bool _INPLACE_OPERATION_POW_OBJECT_OBJECT(PyObject **operand1, PyO
     }
 
     {
+#if PYTHON_VERSION < 0x300
+        // Complex in-place power is handled by CPython, as the generic code below
+        // does not support its coercion.
+        if (PyComplex_CheckExact(*operand1)) {
+            PyObject *result = PyNumber_InPlacePower(*operand1, operand2, Py_None);
+
+            if (unlikely(result == NULL)) {
+                goto exit_inplace_exception;
+            }
+
+            Py_DECREF(*operand1);
+            *operand1 = result;
+
+            return true;
+        }
+#endif
         ternaryfunc slot1 =
             (type1->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type1)) ? type1->tp_as_number->nb_power : NULL;
         ternaryfunc slot2 = NULL;

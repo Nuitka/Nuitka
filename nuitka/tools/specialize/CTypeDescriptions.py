@@ -916,8 +916,10 @@ Py_INCREF(%(result)s);""" % {
     @classmethod
     def getAssignConversionCode(cls, result, left, value):
         def _getObjectObject():
+            # Concrete types do not take references by default, but this
+            # assigns one object to another, which always needs one.
             code = "%s = %s;" % (result, value)
-            code += cls.getTakeReferenceStatement(result, immortal=False)
+            code += "Py_INCREF(%s);" % result
 
             return code
 
