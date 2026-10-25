@@ -167,6 +167,13 @@ try:
 except TypeError as e:
     print("Gives exception:", repr(e))
 
+if str is bytes:
+    try:
+        print("Range with object step:", end=" ")
+        print(range(1, 2, object()))
+    except TypeError as e:
+        print("Gives exception:", repr(e))
+
 try:
     print("Empty range call", end=" ")
     print(range())
