@@ -1649,7 +1649,6 @@ static void _ourSigintDeduplicationHandler(int sig, siginfo_t *info, void *ucont
             }
         }
 
-#if defined(__APPLE__)
         // The parent bootstrap forwards SIGINT to us, but it can run after
         // us already received the same signal from the process group. Give
         // that forwarding a chance to arrive while SIGINT is blocked, so it
@@ -1660,7 +1659,6 @@ static void _ourSigintDeduplicationHandler(int sig, siginfo_t *info, void *ucont
             nanosleep(&duplicate_delay, NULL);
             gettimeofday(&now, NULL);
         }
-#endif
 
         _last_sigint_timeval.tv_sec = now.tv_sec;
         _last_sigint_timeval.tv_usec = now.tv_usec;
