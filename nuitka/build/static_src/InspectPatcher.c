@@ -163,11 +163,24 @@ static PyObject *_sys_getframemodulename_replacement(PyObject *self, PyObject *a
         return NULL;
     }
 
-    Py_ssize_t depth_ssize = PyLong_AsSsize_t(index_value);
+    int overflow;
+    long depth_long = PyLong_AsLongAndOverflow(index_value, &overflow);
 
     Py_DECREF(index_value);
 
-    PyThreadState *tstate = _PyThreadState_GET();
+    PyThreadState *tstate = PyThreadState_GET();
+
+    if (unlikely(depth_long == -1 && HAS_ERROR_OCCURRED(tstate))) {
+        return NULL;
+    }
+
+    if (unlikely(overflow != 0 || depth_long > INT_MAX || depth_long < INT_MIN)) {
+        SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_OverflowError, "Python int too large to convert to C int");
+
+        return NULL;
+    }
+
+    Py_ssize_t depth_ssize = (Py_ssize_t)depth_long;
 
     _PyInterpreterFrame *frame = CURRENT_TSTATE_INTERPRETER_FRAME(tstate);
     while ((frame != NULL) && ((Nuitka_FrameIsIncomplete(frame)) || depth_ssize-- > 0)) {
