@@ -1634,6 +1634,18 @@ static void _ourSigintDeduplicationHandler(int sig, siginfo_t *info, void *ucont
 #else
     bool from_parent = (info != NULL && info->si_code == SI_USER && info->si_pid == getppid());
 #endif
+
+    // Same decision as the onefile bootstrap makes about forwarding, signals
+    // from the terminal are not forwarded, so no duplicate is to be expected.
+#if defined(SI_KERNEL)
+    bool from_terminal = (info != NULL && info->si_code == SI_KERNEL);
+#elif defined(__APPLE__)
+    bool from_terminal = false;
+#else
+    bool from_terminal = (info != NULL && info->si_code == 0);
+#endif
+
+    int saved_errno = errno;
     struct timeval now;
 
     if (gettimeofday(&now, NULL) == 0) {
@@ -1649,23 +1661,34 @@ static void _ourSigintDeduplicationHandler(int sig, siginfo_t *info, void *ucont
             }
         }
 
-#if defined(__APPLE__)
         // The parent bootstrap forwards SIGINT to us, but it can run after
         // us already received the same signal from the process group. Give
         // that forwarding a chance to arrive while SIGINT is blocked, so it
         // is suppressed as a duplicate rather than interrupting shutdown.
-        if (from_parent == false) {
+        if (from_parent == false && from_terminal == false) {
+            // Let handlers running in other threads meanwhile know about it.
+            _last_sigint_timeval.tv_sec = now.tv_sec;
+            _last_sigint_timeval.tv_usec = now.tv_usec;
+            _last_sigint_from_parent = from_parent;
+
             struct timespec duplicate_delay = {0, 100000000L};
 
-            nanosleep(&duplicate_delay, NULL);
+            // Other signals must not cut the delay short.
+            for (;;) {
+                if (nanosleep(&duplicate_delay, &duplicate_delay) == 0 || errno != EINTR) {
+                    break;
+                }
+            }
+
             gettimeofday(&now, NULL);
         }
-#endif
 
         _last_sigint_timeval.tv_sec = now.tv_sec;
         _last_sigint_timeval.tv_usec = now.tv_usec;
         _last_sigint_from_parent = from_parent;
     }
+
+    errno = saved_errno;
 
     if (_python_saved_sigint_handler != NULL) {
         _python_saved_sigint_handler(sig);
