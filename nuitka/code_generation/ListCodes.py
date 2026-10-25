@@ -26,7 +26,6 @@ from .PythonAPICodes import (
     generateCAPIObjectCode0,
     makeArgDescFromExpression,
 )
-from .SubscriptCodes import decideIntegerSubscript
 
 
 def generateListCreationCode(to_name, expression, emit, context):
@@ -299,7 +298,7 @@ def generateListOperationIndex4Code(to_name, expression, emit, context):
 
 
 def generateListOperationInsertCode(to_name, expression, emit, context):
-    index_constant, is_integer_index = decideIntegerSubscript(expression.subnode_index)
+    is_integer_index = expression.subnode_index.isExpressionIntegerSubscript()
 
     if is_integer_index:
         list_arg_name = generateChildExpressionCode(
@@ -315,6 +314,8 @@ def generateListOperationInsertCode(to_name, expression, emit, context):
         )
 
     if is_integer_index:
+        index_constant = expression.subnode_index.getIndexValue()
+
         emit(
             "LIST_INSERT_CONST(%s, %s, %s);"
             % (

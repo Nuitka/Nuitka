@@ -869,6 +869,11 @@ class ExpressionBase(NodeBase):
         return None
 
     @staticmethod
+    def isExpressionIntegerSubscript():
+        """Can this be used directly as an integer subscript?"""
+        return False
+
+    @staticmethod
     def getIntValue():
         """Value that "int" or "PyNumber_Int" (sp) would give, if known.
 
