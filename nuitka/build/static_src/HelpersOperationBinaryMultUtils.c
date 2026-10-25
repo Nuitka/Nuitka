@@ -35,10 +35,10 @@ static Py_ssize_t CONVERT_LONG_TO_REPEAT_FACTOR(PyObject *value) {
         return digits[0];
     }
 
-    Py_ssize_t result = 0;
+    size_t result = 0;
 
     while (--digits_count >= 0) {
-        Py_ssize_t prev = result;
+        size_t prev = result;
         result = (result << PyLong_SHIFT) | digits[digits_count];
 
         // Overflow detection.
@@ -47,11 +47,21 @@ static Py_ssize_t CONVERT_LONG_TO_REPEAT_FACTOR(PyObject *value) {
         }
     }
 
+    // Negative values repeat zero times, but must fit into "Py_ssize_t" still,
+    // which allows one more in magnitude than positive values.
     if (is_negative) {
+        if (result > (size_t)PY_SSIZE_T_MAX + 1) {
+            return (Py_ssize_t)-1;
+        }
+
         return 0;
     }
 
-    return result;
+    if (result > (size_t)PY_SSIZE_T_MAX) {
+        return (Py_ssize_t)-1;
+    }
+
+    return (Py_ssize_t)result;
 }
 
 static Py_ssize_t CONVERT_TO_REPEAT_FACTOR(PyObject *value) {

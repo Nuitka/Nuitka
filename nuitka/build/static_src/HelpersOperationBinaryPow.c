@@ -46,6 +46,7 @@ static PyObject *_BINARY_OPERATION_POW_OBJECT_FLOAT_FLOAT(PyObject *operand1, Py
         goto exit_result_ok_const_float_1_0;
     }
 
+#if PYTHON_VERSION >= 0x270
     if (Py_IS_NAN(a)) {
         goto exit_result_ok_left;
     }
@@ -63,7 +64,7 @@ static PyObject *_BINARY_OPERATION_POW_OBJECT_FLOAT_FLOAT(PyObject *operand1, Py
         if (a == 1.0) {
             goto exit_result_ok_const_float_1_0;
         } else if ((b > 0.0) == (a > 1.0)) {
-            long r = (long)fabs(b);
+            double r = fabs(b);
 
             cfloat_result = r;
             goto exit_result_ok_cfloat;
@@ -85,6 +86,7 @@ static PyObject *_BINARY_OPERATION_POW_OBJECT_FLOAT_FLOAT(PyObject *operand1, Py
         cfloat_result = r;
         goto exit_result_ok_cfloat;
     }
+#endif
 
     if (a == 0.0) {
         if (unlikely(b < 0.0)) {
@@ -95,8 +97,12 @@ static PyObject *_BINARY_OPERATION_POW_OBJECT_FLOAT_FLOAT(PyObject *operand1, Py
             goto exit_result_exception;
         }
 
+#if PYTHON_VERSION >= 0x270
         bool b_is_odd = DOUBLE_IS_ODD_INTEGER(b);
         double r = b_is_odd ? a : 0.0;
+#else
+        double r = 0.0;
+#endif
 
         cfloat_result = r;
         goto exit_result_ok_cfloat;
@@ -107,11 +113,28 @@ static PyObject *_BINARY_OPERATION_POW_OBJECT_FLOAT_FLOAT(PyObject *operand1, Py
 
         if (a < 0.0) {
             if (unlikely(b != floor(b))) {
+                PyObject *r = NULL;
+
+#if PYTHON_VERSION < 0x300
                 PyThreadState *tstate = PyThreadState_GET();
 
                 SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_ValueError,
                                                 "negative number cannot be raised to a fractional power");
-                goto exit_result_exception;
+#else
+                // Python3 gives a complex number, like "float_pow" does.
+                PyObject *complex_a = PyComplex_FromDoubles(a, 0.0);
+                PyObject *complex_b = PyComplex_FromDoubles(b, 0.0);
+
+                if (likely(complex_a != NULL && complex_b != NULL)) {
+                    r = PyComplex_Type.tp_as_number->nb_power(complex_a, complex_b, Py_None);
+                }
+
+                Py_XDECREF(complex_a);
+                Py_XDECREF(complex_b);
+#endif
+
+                obj_result = r;
+                goto exit_result_object;
             }
 
             a = -a;
@@ -125,6 +148,16 @@ static PyObject *_BINARY_OPERATION_POW_OBJECT_FLOAT_FLOAT(PyObject *operand1, Py
                 goto exit_result_ok_const_float_1_0;
             }
         } else {
+#if PYTHON_VERSION < 0x270
+            // CPython2.6 has no NaN exponent special case, and "pow" does
+            // not reliably set errno for it.
+            if (unlikely(Py_IS_NAN(b))) {
+                errno = EDOM;
+                PyErr_SetFromErrno(PyExc_ValueError);
+                goto exit_result_exception;
+            }
+#endif
+
             errno = 0;
             double r = pow(a, b);
 
@@ -150,6 +183,13 @@ static PyObject *_BINARY_OPERATION_POW_OBJECT_FLOAT_FLOAT(PyObject *operand1, Py
 
 exit_result_ok_cfloat:
     result = MAKE_FLOAT_FROM_DOUBLE(cfloat_result);
+    goto exit_result_ok;
+
+exit_result_object:
+    if (unlikely(obj_result == NULL)) {
+        goto exit_result_exception;
+    }
+    result = obj_result;
     goto exit_result_ok;
 
 exit_result_ok_left:
@@ -358,6 +398,7 @@ static PyObject *_BINARY_OPERATION_POW_OBJECT_OBJECT_FLOAT(PyObject *operand1, P
             goto exit_result_ok_const_float_1_0;
         }
 
+#if PYTHON_VERSION >= 0x270
         if (Py_IS_NAN(a)) {
             goto exit_result_ok_left;
         }
@@ -375,7 +416,7 @@ static PyObject *_BINARY_OPERATION_POW_OBJECT_OBJECT_FLOAT(PyObject *operand1, P
             if (a == 1.0) {
                 goto exit_result_ok_const_float_1_0;
             } else if ((b > 0.0) == (a > 1.0)) {
-                long r = (long)fabs(b);
+                double r = fabs(b);
 
                 cfloat_result = r;
                 goto exit_result_ok_cfloat;
@@ -397,6 +438,7 @@ static PyObject *_BINARY_OPERATION_POW_OBJECT_OBJECT_FLOAT(PyObject *operand1, P
             cfloat_result = r;
             goto exit_result_ok_cfloat;
         }
+#endif
 
         if (a == 0.0) {
             if (unlikely(b < 0.0)) {
@@ -407,8 +449,12 @@ static PyObject *_BINARY_OPERATION_POW_OBJECT_OBJECT_FLOAT(PyObject *operand1, P
                 goto exit_result_exception;
             }
 
+#if PYTHON_VERSION >= 0x270
             bool b_is_odd = DOUBLE_IS_ODD_INTEGER(b);
             double r = b_is_odd ? a : 0.0;
+#else
+            double r = 0.0;
+#endif
 
             cfloat_result = r;
             goto exit_result_ok_cfloat;
@@ -419,11 +465,28 @@ static PyObject *_BINARY_OPERATION_POW_OBJECT_OBJECT_FLOAT(PyObject *operand1, P
 
             if (a < 0.0) {
                 if (unlikely(b != floor(b))) {
+                    PyObject *r = NULL;
+
+#if PYTHON_VERSION < 0x300
                     PyThreadState *tstate = PyThreadState_GET();
 
                     SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_ValueError,
                                                     "negative number cannot be raised to a fractional power");
-                    goto exit_result_exception;
+#else
+                    // Python3 gives a complex number, like "float_pow" does.
+                    PyObject *complex_a = PyComplex_FromDoubles(a, 0.0);
+                    PyObject *complex_b = PyComplex_FromDoubles(b, 0.0);
+
+                    if (likely(complex_a != NULL && complex_b != NULL)) {
+                        r = PyComplex_Type.tp_as_number->nb_power(complex_a, complex_b, Py_None);
+                    }
+
+                    Py_XDECREF(complex_a);
+                    Py_XDECREF(complex_b);
+#endif
+
+                    obj_result = r;
+                    goto exit_result_object;
                 }
 
                 a = -a;
@@ -437,6 +500,16 @@ static PyObject *_BINARY_OPERATION_POW_OBJECT_OBJECT_FLOAT(PyObject *operand1, P
                     goto exit_result_ok_const_float_1_0;
                 }
             } else {
+#if PYTHON_VERSION < 0x270
+                // CPython2.6 has no NaN exponent special case, and "pow" does
+                // not reliably set errno for it.
+                if (unlikely(Py_IS_NAN(b))) {
+                    errno = EDOM;
+                    PyErr_SetFromErrno(PyExc_ValueError);
+                    goto exit_result_exception;
+                }
+#endif
+
                 errno = 0;
                 double r = pow(a, b);
 
@@ -462,6 +535,13 @@ static PyObject *_BINARY_OPERATION_POW_OBJECT_OBJECT_FLOAT(PyObject *operand1, P
 
     exit_result_ok_cfloat:
         result = MAKE_FLOAT_FROM_DOUBLE(cfloat_result);
+        goto exit_result_ok;
+
+    exit_result_object:
+        if (unlikely(obj_result == NULL)) {
+            goto exit_result_exception;
+        }
+        result = obj_result;
         goto exit_result_ok;
 
     exit_result_ok_left:
@@ -686,6 +766,7 @@ static PyObject *_BINARY_OPERATION_POW_OBJECT_FLOAT_OBJECT(PyObject *operand1, P
             goto exit_result_ok_const_float_1_0;
         }
 
+#if PYTHON_VERSION >= 0x270
         if (Py_IS_NAN(a)) {
             goto exit_result_ok_left;
         }
@@ -703,7 +784,7 @@ static PyObject *_BINARY_OPERATION_POW_OBJECT_FLOAT_OBJECT(PyObject *operand1, P
             if (a == 1.0) {
                 goto exit_result_ok_const_float_1_0;
             } else if ((b > 0.0) == (a > 1.0)) {
-                long r = (long)fabs(b);
+                double r = fabs(b);
 
                 cfloat_result = r;
                 goto exit_result_ok_cfloat;
@@ -725,6 +806,7 @@ static PyObject *_BINARY_OPERATION_POW_OBJECT_FLOAT_OBJECT(PyObject *operand1, P
             cfloat_result = r;
             goto exit_result_ok_cfloat;
         }
+#endif
 
         if (a == 0.0) {
             if (unlikely(b < 0.0)) {
@@ -735,8 +817,12 @@ static PyObject *_BINARY_OPERATION_POW_OBJECT_FLOAT_OBJECT(PyObject *operand1, P
                 goto exit_result_exception;
             }
 
+#if PYTHON_VERSION >= 0x270
             bool b_is_odd = DOUBLE_IS_ODD_INTEGER(b);
             double r = b_is_odd ? a : 0.0;
+#else
+            double r = 0.0;
+#endif
 
             cfloat_result = r;
             goto exit_result_ok_cfloat;
@@ -747,11 +833,28 @@ static PyObject *_BINARY_OPERATION_POW_OBJECT_FLOAT_OBJECT(PyObject *operand1, P
 
             if (a < 0.0) {
                 if (unlikely(b != floor(b))) {
+                    PyObject *r = NULL;
+
+#if PYTHON_VERSION < 0x300
                     PyThreadState *tstate = PyThreadState_GET();
 
                     SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_ValueError,
                                                     "negative number cannot be raised to a fractional power");
-                    goto exit_result_exception;
+#else
+                    // Python3 gives a complex number, like "float_pow" does.
+                    PyObject *complex_a = PyComplex_FromDoubles(a, 0.0);
+                    PyObject *complex_b = PyComplex_FromDoubles(b, 0.0);
+
+                    if (likely(complex_a != NULL && complex_b != NULL)) {
+                        r = PyComplex_Type.tp_as_number->nb_power(complex_a, complex_b, Py_None);
+                    }
+
+                    Py_XDECREF(complex_a);
+                    Py_XDECREF(complex_b);
+#endif
+
+                    obj_result = r;
+                    goto exit_result_object;
                 }
 
                 a = -a;
@@ -765,6 +868,16 @@ static PyObject *_BINARY_OPERATION_POW_OBJECT_FLOAT_OBJECT(PyObject *operand1, P
                     goto exit_result_ok_const_float_1_0;
                 }
             } else {
+#if PYTHON_VERSION < 0x270
+                // CPython2.6 has no NaN exponent special case, and "pow" does
+                // not reliably set errno for it.
+                if (unlikely(Py_IS_NAN(b))) {
+                    errno = EDOM;
+                    PyErr_SetFromErrno(PyExc_ValueError);
+                    goto exit_result_exception;
+                }
+#endif
+
                 errno = 0;
                 double r = pow(a, b);
 
@@ -790,6 +903,13 @@ static PyObject *_BINARY_OPERATION_POW_OBJECT_FLOAT_OBJECT(PyObject *operand1, P
 
     exit_result_ok_cfloat:
         result = MAKE_FLOAT_FROM_DOUBLE(cfloat_result);
+        goto exit_result_ok;
+
+    exit_result_object:
+        if (unlikely(obj_result == NULL)) {
+            goto exit_result_exception;
+        }
+        result = obj_result;
         goto exit_result_ok;
 
     exit_result_ok_left:
