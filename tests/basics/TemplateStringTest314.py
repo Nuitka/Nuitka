@@ -26,6 +26,16 @@ dump(t"{'x'!s:>10}")
 dump(t"{'x'!a:{width}}")
 dump(t"before {'value'!r} after")
 
+# Unused t-strings must still be built and discarded safely.
+t"unused {'world'}"
+t"unused {'world'!r:>10}"
+
+# T-strings in boolean context require conversion to a boolean.
+if t"{'world'!r}":
+    print("t-string is truthy")
+
+assert t"", "Template objects are truthy"
+
 #     Python tests originally created or extracted from other peoples work. The
 #     parts were too small to be protected.
 #

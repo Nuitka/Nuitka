@@ -313,29 +313,39 @@ def generateStrFormatMethodCode(to_name, expression, emit, context):
 
 
 def generateTemplateStringCode(to_name, expression, emit, context):
-    interpolations_name = context.allocateTempName("template_values")
+    with withObjectCodeTemporaryAssignment(
+        to_name, "template_result", expression, emit, context
+    ) as result_name:
+        interpolations_name = context.allocateTempName("template_values")
 
-    getTupleCreationCode(
-        to_name=interpolations_name,
-        elements=expression.subnode_interpolations,
-        emit=emit,
-        context=context,
-    )
+        getTupleCreationCode(
+            to_name=interpolations_name,
+            elements=expression.subnode_interpolations,
+            emit=emit,
+            context=context,
+        )
 
-    emit(
-        """\
+        emit(
+            """\
 %(to_name)s = _PyTemplate_Build(%(str_values_name)s, %(interpolations_name)s);
 """
-        % {
-            "to_name": to_name,
-            "str_values_name": context.getConstantCode(constant=expression.str_values),
-            "interpolations_name": interpolations_name,
-        }
-    )
+            % {
+                "to_name": result_name,
+                "str_values_name": context.getConstantCode(
+                    constant=expression.str_values
+                ),
+                "interpolations_name": interpolations_name,
+            }
+        )
 
-    getErrorExitCode(
-        check_name=to_name, release_name=interpolations_name, emit=emit, context=context
-    )
+        getErrorExitCode(
+            check_name=result_name,
+            release_name=interpolations_name,
+            emit=emit,
+            context=context,
+        )
+
+        context.addCleanupTempName(result_name)
 
 
 def generateTemplateInterpolationCode(to_name, expression, emit, context):
@@ -345,29 +355,36 @@ def generateTemplateInterpolationCode(to_name, expression, emit, context):
 
     conversion = _getTemplateInterpolationConversionCode(expression.conversion)
 
-    emit(
-        """\
+    with withObjectCodeTemporaryAssignment(
+        to_name, "interpolation_result", expression, emit, context
+    ) as result_name:
+        emit(
+            """\
 %(to_name)s = _PyInterpolation_Build(%(value_name)s, %(str_value_name)s, %(conversion)s, %(format_spec_name)s);
 """
-        % {
-            "to_name": to_name,
-            "value_name": value_name,
-            "str_value_name": context.getConstantCode(constant=expression.str_value),
-            "conversion": conversion,
-            "format_spec_name": (
-                format_spec_name
-                if format_spec_name is not None
-                else context.getConstantCode("")
-            ),
-        }
-    )
+            % {
+                "to_name": result_name,
+                "value_name": value_name,
+                "str_value_name": context.getConstantCode(
+                    constant=expression.str_value
+                ),
+                "conversion": conversion,
+                "format_spec_name": (
+                    format_spec_name
+                    if format_spec_name is not None
+                    else context.getConstantCode("")
+                ),
+            }
+        )
 
-    getErrorExitCode(
-        check_name=to_name,
-        release_names=(value_name, format_spec_name),
-        emit=emit,
-        context=context,
-    )
+        getErrorExitCode(
+            check_name=result_name,
+            release_names=(value_name, format_spec_name),
+            emit=emit,
+            context=context,
+        )
+
+        context.addCleanupTempName(result_name)
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
