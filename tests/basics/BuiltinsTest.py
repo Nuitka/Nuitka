@@ -894,6 +894,86 @@ def listIndexMissingInRange(value, start, stop):
 print("list.index of missing value:", listIndexMissing(7))
 print("list.index of value outside of range:", listIndexMissingInRange(9, 0, 1))
 
+
+class BadListIndex(object):
+    def __index__(self):
+        raise ValueError("bad index")
+
+
+def listMethodCheck(description, func, *args):
+    try:
+        result = func(*args)
+    except Exception as e:
+        result = "%s: %s" % (type(e).__name__, e)
+    print(description, "->", result)
+
+
+def listInsertFloatConstant():
+    a = [1, 2]
+    a.insert(1.5, "x")
+    return a
+
+
+def listInsertVariable(index):
+    a = [1, 2]
+    a.insert(index, "x")
+    return a
+
+
+def listIndexStart(values, start):
+    a = list(values)
+    return a.index(2, start)
+
+
+def listIndexStartStop(values, start, stop):
+    a = list(values)
+    return a.index(2, start, stop)
+
+
+def listInsertBadIndex():
+    a = [1, 2]
+    a.insert(BadListIndex(), "x")
+    return a
+
+
+def listIndexBadStart(values):
+    a = list(values)
+    return a.index(2, BadListIndex())
+
+
+def listIndexBadStopValue(values):
+    a = list(values)
+    return a.index(2, 0, BadListIndex())
+
+
+def listIndexBadStop(values, start, stop):
+    a = list(values)
+    for _i in range(3):
+        try:
+            a.index(2, start, stop)
+        except TypeError:
+            pass
+    return sys.getrefcount(start) > 0
+
+
+# Values not known at compile time.
+list_method_big = int(str(len(sys.argv)) + "0" * 20)
+
+listMethodCheck("insert(1.5) constant", listInsertFloatConstant)
+listMethodCheck("insert(None)", listInsertVariable, None)
+listMethodCheck("insert(1.5)", listInsertVariable, 1.5)
+listMethodCheck("insert(-big)", listInsertVariable, -list_method_big)
+listMethodCheck("index(2, big)", listIndexStart, [1, 2], list_method_big)
+listMethodCheck("index(2, -big)", listIndexStart, [1, 2], -list_method_big)
+listMethodCheck(
+    "index(2, -big, big)", listIndexStartStop, [1, 2], -list_method_big, list_method_big
+)
+listMethodCheck("index(2, 0, None)", listIndexStartStop, [1, 2], 0, None)
+listMethodCheck("insert bad __index__", listInsertBadIndex)
+listMethodCheck("index bad __index__ start", listIndexBadStart, [1, 2])
+listMethodCheck("index bad __index__ stop", listIndexBadStopValue, [1, 2])
+listMethodCheck("index bad stop", listIndexBadStop, [1, 2], list_method_big, None)
+
 #     Python tests originally created or extracted from other peoples work. The
 #     parts were too small to be protected.
 #
