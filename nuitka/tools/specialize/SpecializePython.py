@@ -85,6 +85,12 @@ attribute_shape_operations_mixin_classes = {}
 # Version specific tests for attributes.
 attribute_shape_versions = {}
 
+# Minimum Python3 versions for methods that are not available in all supported
+# Python3 versions.
+python3_method_version_requirements = {
+    "isascii": "python_version >= 0x370",
+}
+
 # Argument count specific operation nodes if used.
 attribute_shape_variations = {}
 
@@ -173,7 +179,9 @@ def processTypeShapeAttribute(
         key = method_name, shape_name
 
         if method_name not in python2_methods:
-            attribute_shape_versions[key] = "str is not bytes"
+            attribute_shape_versions[key] = python3_method_version_requirements.get(
+                method_name, "str is not bytes"
+            )
 
         (
             present,
@@ -381,7 +389,9 @@ from nuitka.nodes.NodeMakingHelpers import (
 
         emit("from nuitka.nodes.AttributeNodes import makeExpressionAttributeLookup")
 
-        emit("from nuitka.PythonVersions import getDictFromkeysNoArgErrorMessage")
+        emit(
+            "from nuitka.PythonVersions import getDictFromkeysNoArgErrorMessage, python_version"
+        )
 
         # TODO: Maybe generate its effect instead of using a base class.
         emit("from .NodeBases import SideEffectsFromChildrenMixin")

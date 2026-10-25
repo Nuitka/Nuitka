@@ -19350,7 +19350,7 @@ class ChildHavingStrArgMixin(object):
     # This is generated for use in
     #   ExpressionStrOperationCapitalize
     #   ExpressionStrOperationCapitalizeBase
-    #   ExpressionStrOperationCasefoldBase
+    #   ExpressionStrOperationCasefold
     #   ExpressionStrOperationDecode1
     #   ExpressionStrOperationEncode1
     #   ExpressionStrOperationExpandtabs1
@@ -19358,12 +19358,13 @@ class ChildHavingStrArgMixin(object):
     #   ExpressionStrOperationIsalnum
     #   ExpressionStrOperationIsalpha
     #   ExpressionStrOperationIsalphaBase
-    #   ExpressionStrOperationIsasciiBase
-    #   ExpressionStrOperationIsdecimalBase
+    #   ExpressionStrOperationIsascii
+    #   ExpressionStrOperationIsdecimal
     #   ExpressionStrOperationIsdigit
-    #   ExpressionStrOperationIsidentifierBase
+    #   ExpressionStrOperationIsidentifier
     #   ExpressionStrOperationIslower
-    #   ExpressionStrOperationIsnumericBase
+    #   ExpressionStrOperationIsnumeric
+    #   ExpressionStrOperationIsprintable
     #   ExpressionStrOperationIsprintableBase
     #   ExpressionStrOperationIsspace
     #   ExpressionStrOperationIsspaceBase
@@ -19478,7 +19479,7 @@ class ChildHavingStrArgMixin(object):
 # Assign the names that are easier to import with a stable name.
 ChildrenExpressionStrOperationCapitalizeMixin = ChildHavingStrArgMixin
 ChildrenExpressionStrOperationCapitalizeBaseMixin = ChildHavingStrArgMixin
-ChildrenExpressionStrOperationCasefoldBaseMixin = ChildHavingStrArgMixin
+ChildrenExpressionStrOperationCasefoldMixin = ChildHavingStrArgMixin
 ChildrenExpressionStrOperationDecode1Mixin = ChildHavingStrArgMixin
 ChildrenExpressionStrOperationEncode1Mixin = ChildHavingStrArgMixin
 ChildrenExpressionStrOperationExpandtabs1Mixin = ChildHavingStrArgMixin
@@ -19486,12 +19487,13 @@ ChildrenExpressionStrOperationFormatmapBaseMixin = ChildHavingStrArgMixin
 ChildrenExpressionStrOperationIsalnumMixin = ChildHavingStrArgMixin
 ChildrenExpressionStrOperationIsalphaMixin = ChildHavingStrArgMixin
 ChildrenExpressionStrOperationIsalphaBaseMixin = ChildHavingStrArgMixin
-ChildrenExpressionStrOperationIsasciiBaseMixin = ChildHavingStrArgMixin
-ChildrenExpressionStrOperationIsdecimalBaseMixin = ChildHavingStrArgMixin
+ChildrenExpressionStrOperationIsasciiMixin = ChildHavingStrArgMixin
+ChildrenExpressionStrOperationIsdecimalMixin = ChildHavingStrArgMixin
 ChildrenExpressionStrOperationIsdigitMixin = ChildHavingStrArgMixin
-ChildrenExpressionStrOperationIsidentifierBaseMixin = ChildHavingStrArgMixin
+ChildrenExpressionStrOperationIsidentifierMixin = ChildHavingStrArgMixin
 ChildrenExpressionStrOperationIslowerMixin = ChildHavingStrArgMixin
-ChildrenExpressionStrOperationIsnumericBaseMixin = ChildHavingStrArgMixin
+ChildrenExpressionStrOperationIsnumericMixin = ChildHavingStrArgMixin
+ChildrenExpressionStrOperationIsprintableMixin = ChildHavingStrArgMixin
 ChildrenExpressionStrOperationIsprintableBaseMixin = ChildHavingStrArgMixin
 ChildrenExpressionStrOperationIsspaceMixin = ChildHavingStrArgMixin
 ChildrenExpressionStrOperationIsspaceBaseMixin = ChildHavingStrArgMixin

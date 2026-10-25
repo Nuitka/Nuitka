@@ -94,6 +94,9 @@ extern PyObject *STR_UPPER(PyThreadState *tstate, PyObject *str);
 extern PyObject *STR_ZFILL(PyThreadState *tstate, PyObject *str, PyObject *width);
 #endif
 extern PyObject *UNICODE_CAPITALIZE(PyThreadState *tstate, PyObject *unicode);
+#if PYTHON_VERSION >= 0x300
+extern PyObject *UNICODE_CASEFOLD(PyThreadState *tstate, PyObject *unicode);
+#endif
 extern PyObject *UNICODE_CENTER2(PyThreadState *tstate, PyObject *unicode, PyObject *width);
 extern PyObject *UNICODE_CENTER3(PyThreadState *tstate, PyObject *unicode, PyObject *width, PyObject *fillchar);
 extern PyObject *UNICODE_COUNT2(PyThreadState *tstate, PyObject *unicode, PyObject *sub);
@@ -118,8 +121,19 @@ extern PyObject *UNICODE_INDEX4(PyThreadState *tstate, PyObject *unicode, PyObje
                                 PyObject *end);
 extern PyObject *UNICODE_ISALNUM(PyThreadState *tstate, PyObject *unicode);
 extern PyObject *UNICODE_ISALPHA(PyThreadState *tstate, PyObject *unicode);
+#if PYTHON_VERSION >= 0x370
+extern PyObject *UNICODE_ISASCII(PyThreadState *tstate, PyObject *unicode);
+#endif
+extern PyObject *UNICODE_ISDECIMAL(PyThreadState *tstate, PyObject *unicode);
 extern PyObject *UNICODE_ISDIGIT(PyThreadState *tstate, PyObject *unicode);
+#if PYTHON_VERSION >= 0x300
+extern PyObject *UNICODE_ISIDENTIFIER(PyThreadState *tstate, PyObject *unicode);
+#endif
 extern PyObject *UNICODE_ISLOWER(PyThreadState *tstate, PyObject *unicode);
+extern PyObject *UNICODE_ISNUMERIC(PyThreadState *tstate, PyObject *unicode);
+#if PYTHON_VERSION >= 0x300
+extern PyObject *UNICODE_ISPRINTABLE(PyThreadState *tstate, PyObject *unicode);
+#endif
 extern PyObject *UNICODE_ISSPACE(PyThreadState *tstate, PyObject *unicode);
 extern PyObject *UNICODE_ISTITLE(PyThreadState *tstate, PyObject *unicode);
 extern PyObject *UNICODE_ISUPPER(PyThreadState *tstate, PyObject *unicode);
