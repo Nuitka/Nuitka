@@ -172,7 +172,7 @@ if env.static_libpython and ((os.name != "nt" and not isMacOS()) or env.monolith
 
 link_module_libs = addPythonHaclLib(env, link_module_libs=link_module_libs)
 
-if os.name == "nt":
+if env.target_os == "Windows" and not env.msys2_posix_python:
     if env.monolithpy:
         link_data = loadJsonFromFilename(
             os.path.join(env.python_prefix_external, "link.json")

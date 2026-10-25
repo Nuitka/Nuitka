@@ -26,18 +26,10 @@ from nuitka.Progress import enableProgressBar
 from nuitka.PythonFlavors import (
     getPythonFlavorName,
     hasAcceleratedSupportedFlavor,
-    isAnacondaPython,
     isApplePython,
-    isArchPackagePython,
     isCPythonOfficialPackage,
-    isDebianPackagePython,
-    isHomebrewPython,
-    isManyLinuxPython,
     isMonolithPy,
     isMSYS2MingwPython,
-    isPyenvHomebrewPython,
-    isPyenvPython,
-    isPythonBuildStandalonePython,
     isTermuxPython,
     isUninstalledPython,
 )
@@ -47,18 +39,21 @@ from nuitka.PythonVersions import (
     getSupportedPythonVersions,
     isDebugPython,
     isPythonWithGil,
-    isStaticallyLinkedPython,
     python_release_level,
     python_version,
     python_version_str,
 )
 from nuitka.States import states
 from nuitka.targets.Targets import (
+    checkTargetPreconditions,
+    getTargetCouldUseStaticLibPython,
     getTargetSpecification,
+    getTargetSystemStaticLibPythonPath,
     isOnefileSupportedTarget,
     isRPathUsingTarget,
     isStandaloneSupportedTarget,
     isWasiTarget,
+    isWin32Target,
     setTargetSpecification,
 )
 from nuitka.Tracing import (
@@ -83,12 +78,7 @@ from nuitka.utils.FileOperations import (
     resolveShellPatternToFilenames,
 )
 from nuitka.utils.Images import checkIconUsage
-from nuitka.utils.InlineCopies import getInlineCopyFolder
 from nuitka.utils.ModuleNames import ModuleName, checkModuleName
-from nuitka.utils.StaticLibraries import (
-    getStaticLinkLibraryProblem,
-    getSystemStaticLibPythonPath,
-)
 from nuitka.utils.Utils import (
     getArchitecture,
     getCPUCoreCount,
@@ -98,7 +88,6 @@ from nuitka.utils.Utils import (
     getOS,
     getWindowsRelease,
     isAIX,
-    isDebianBasedLinux,
     isFreeBSD,
     isLinux,
     isMacOS,
@@ -107,8 +96,6 @@ from nuitka.utils.Utils import (
     isWin32OrPosixWindows,
     isWin32Windows,
 )
-from nuitka.utils.WasiPython import checkWasiPreconditions
-from nuitka.utils.WasiSDK import checkWasiSDKPath
 from nuitka.Version import getCommercialVersion, getNuitkaVersion
 from nuitka.VersionCheck import getNuitkaUpdateStatusValue
 
@@ -269,6 +256,18 @@ when '--target=wasm32-wasi' is not specified.""" % option_name
             options_logger.warning(message)
 
 
+def _warnWin32OnlyOption(option_name):
+    if not isWin32Target():
+        message = """\
+Using Win32 specific option '%s' has no effect \
+when '--target=i686-w64-mingw32' is not specified.""" % option_name
+
+        if options.github_workflow_options:
+            options_logger.info(message)
+        else:
+            options_logger.warning(message)
+
+
 def _warningModuleModeOnlyOption(option_name):
     if options.compilation_mode not in ("module", "package"):
         if options.github_workflow_options:
@@ -401,21 +400,16 @@ def parseArgs():
 
     _applyTargetSpecification(options.target_desc)
 
-    if isWasiTarget():
-        checkWasiPreconditions(
-            wasi_python_prefix=getWasiPythonPrefixPath(),
-        )
+    checkTargetPreconditions()
 
-        wasi_sdk = getWasiSDKPath()
+    if options.wasi_python_prefix is not None:
+        _warnWasiOnlyOption("--wasi-python-prefix")
 
-        if wasi_sdk is not None:
-            checkWasiSDKPath(wasi_sdk)
-    else:
-        if options.wasi_python_prefix is not None:
-            _warnWasiOnlyOption("--wasi-python-prefix")
+    if options.wasi_sdk_path is not None:
+        _warnWasiOnlyOption("--wasi-sdk-path")
 
-        if options.wasi_sdk_path is not None:
-            _warnWasiOnlyOption("--wasi-sdk-path")
+    if options.win32_python_exe is not None:
+        _warnWin32OnlyOption("--win32-python-exe")
 
     states.is_debug = _isDebug()
     states.is_non_debug = not states.is_debug
@@ -1413,7 +1407,8 @@ working. Expect errors.""" % getCompilationMode())
         options.static_libpython == "auto"
         and not shallMakeModule()
         and not shallUseStaticLibPython()
-        and getSystemStaticLibPythonPath(python_debug=shallUsePythonDebug()) is not None
+        and getTargetSystemStaticLibPythonPath(python_debug=shallUsePythonDebug())
+        is not None
         and _couldUseStaticLibPython()[0] is not False
         and not shallUsePythonDebug()
     ):
@@ -2058,7 +2053,7 @@ _shall_use_static_lib_python = None
 
 
 def _checkStaticLibPython():
-    static_libpython_path = getSystemStaticLibPythonPath(
+    static_libpython_path = getTargetSystemStaticLibPythonPath(
         python_debug=shallUsePythonDebug()
     )
 
@@ -2089,125 +2084,10 @@ want to install it."""
 
 
 def _couldUseStaticLibPython():
-    # many cases and return driven,
-    # pylint: disable=too-many-branches,too-many-return-statements
-
-    if isWasiTarget():
-        return True, None
-
-    static_lib_path = getSystemStaticLibPythonPath(python_debug=shallUsePythonDebug())
-
-    if (
-        shallMakeDll()
-        and not isWin32Windows()
-        and getArchitecture() in ("x86_64", "aarch64")
-    ):
-        if static_lib_path is not None and not static_lib_path.endswith("-pic.a"):
-            try:
-                import sysconfig
-            except ImportError:
-                pass
-            else:
-                py_core_cflags = sysconfig.get_config_var("PY_CORE_CFLAGS") or ""
-
-                if "-fPIC" not in py_core_cflags and "-fPIE" not in py_core_cflags:
-                    return (
-                        False,
-                        "Not used in dll mode on %s since Python static library lacks PIC."
-                        % getArchitecture(),
-                    )
-
-    static_link_library_problem = getStaticLinkLibraryProblem(static_lib_path)
-
-    if static_link_library_problem is not None:
-        return False, static_link_library_problem
-
-    # MonolithPy is good to to static linking.
-    if isMonolithPy():
-        return True, "MonolithPy is unexpectedly broken."
-
-    if isHomebrewPython() or isPyenvHomebrewPython():
-        return True, "Homebrew Python is unexpectedly broken."
-
-    # Debian packages with are usable if the OS is new enough
-    from nuitka.utils.StaticLibraries import isDebianSuitableForStaticLinking
-
-    if (
-        isDebianBasedLinux()
-        and isDebianPackagePython()
-        and isDebianSuitableForStaticLinking()
-        and not shallUsePythonDebug()
-    ):
-        if python_version >= 0x3E0:
-            return False, "Not yet supporting 3.14+ static linking"
-
-        if python_version >= 0x3C0 and not os.path.exists(
-            getInlineCopyFolder("python_hacl")
-        ):
-            return (
-                False,
-                "Nuitka on Debian-Python needs inline copy of hacl not included.",
-            )
-
-        return True, "Nuitka on Debian-Python needs package '%s' installed." % (
-            "python2-dev" if str is bytes else "python3-dev"
-        )
-
-    if isMSYS2MingwPython():
-        return True, "Nuitka on MSYS2 needs package 'python-devel' installed."
-
-    # For Anaconda default to trying static lib python library, which
-    # normally is just not available or if it is even unusable.
-    if isAnacondaPython():
-        if isMacOS():
-            # TODO: Maybe some linker options can make it happen.
-            return (
-                False,
-                "Anaconda on macOS exports not all symbols when using it.",
-            )
-        elif not isWin32Windows():
-            return (
-                True,
-                """\
-Nuitka on Anaconda needs package for static libpython installed. \
-Execute 'conda install libpython-static'.""",
-            )
-
-    if isPythonBuildStandalonePython():
-        return (
-            False,
-            """\
-Static link library of '%s' is currently using dependent on libraries \
-such as tcl that are not included, but would be needed. Please help them \
-improve it for best performance of the result.""" % getPythonFlavorName(),
-        )
-
-    if isPyenvPython():
-        return True, "Nuitka on pyenv should not use '--enable-shared'."
-
-    if isManyLinuxPython():
-        return (
-            True,
-            """\
-Nuitka on 'manylinux' has no shared libraries. Use container with \
-the command 'RUN cd /opt/_internal && tar xf static-libs-for-embedding-only.tar.xz' \
-added to provide the static link library.""",
-        )
-
-    if isMacOS() and isCPythonOfficialPackage():
-        if python_version >= 0x3E0:
-            return False, "Not yet supporting 3.14+ static linking"
-        return True, None
-
-    if isArchPackagePython():
-        return True, None
-
-    # If not dynamic link library is available, the static link library will
-    # have to do it.
-    if isStaticallyLinkedPython():
-        return True, None
-
-    return None, None
+    return getTargetCouldUseStaticLibPython(
+        python_debug=shallUsePythonDebug(),
+        dll_mode=shallMakeDll(),
+    )
 
 
 def _shallUseStaticLibPython():
@@ -2236,7 +2116,7 @@ def shallUseStaticLibPython():
         _shall_use_static_lib_python, reason = _shallUseStaticLibPython()
 
         if _shall_use_static_lib_python and reason:
-            static_libpython = getSystemStaticLibPythonPath(
+            static_libpython = getTargetSystemStaticLibPythonPath(
                 python_debug=shallUsePythonDebug()
             )
 
@@ -3671,6 +3551,14 @@ def getWasiPythonPrefixPath():
         return None
 
     return getUserInputNormalizedPath(options.wasi_python_prefix)
+
+
+def getWin32PythonExePath():
+    """*str* or *None*, value of ``--win32-python-exe``"""
+    if options.win32_python_exe is None:
+        return None
+
+    return getUserInputNormalizedPath(options.win32_python_exe)
 
 
 def getWasiSDKPath():

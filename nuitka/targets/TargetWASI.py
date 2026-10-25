@@ -5,9 +5,13 @@
 
 from nuitka.options.Options import (
     assumeYesForDownloads,
+    getWasiSDKPath,
     shallDisableCacheUsage,
 )
-from nuitka.utils.WasiPython import getWasiPythonPrefix
+from nuitka.PythonVersions import python_version_str
+from nuitka.utils.FileOperations import getNormalizedPathJoin
+from nuitka.utils.WasiPython import checkWasiPreconditions, getWasiPythonPrefix
+from nuitka.utils.WasiSDK import checkWasiSDKPath
 
 from .TargetPython import TargetPython
 from .Targets import TargetBase
@@ -37,17 +41,55 @@ class TargetWASI(TargetBase):
             python_prefix=getWasiPythonPrefix(
                 assume_yes_for_downloads=assume_yes_for_downloads
             ),
+            python_executable=None,
             assume_yes_for_downloads=assume_yes_for_downloads,
             use_cache=not shallDisableCacheUsage("all"),
         )
 
+    def getPythonSconsOptions(self):
+        """Return the WASI Python paths for Scons."""
+        python_prefix = self._target_python.python_prefix
+
+        return {
+            "python_prefix": python_prefix,
+            "python_include_path": getNormalizedPathJoin(
+                python_prefix, "include", "python" + python_version_str
+            ),
+        }
+
+    def checkPreconditions(self):
+        """Check the WASI Python prefix and optional SDK path."""
+        checkWasiPreconditions(
+            wasi_python_prefix=self._target_python.python_prefix,
+        )
+
+        wasi_sdk = getWasiSDKPath()
+
+        if wasi_sdk is not None:
+            checkWasiSDKPath(wasi_sdk)
+
     def evaluateCompileTimeExpression(self, expression, setup_code):
         """Evaluate an expression with the WASI target Python."""
-        return self._target_python.evaluate(expression, setup_code)
+        return self._target_python.evaluate(
+            expression=expression,
+            setup_code=setup_code,
+        )
 
     def getPythonVersionInfo(self):
         """Return the target Python's version information."""
         return self._target_python.getPythonVersionInfo()
+
+    def getSystemStaticLibPythonPath(self, python_debug):
+        """Return the WASI Python static library path."""
+        return getNormalizedPathJoin(
+            self._target_python.python_prefix,
+            "lib",
+            "libpython" + python_version_str + ".a",
+        )
+
+    def couldUseStaticLibPython(self, python_debug, dll_mode):
+        """Return whether WASI can use a static libpython."""
+        return True, None
 
     def getModuleSubPackages(self, module_name):
         """Return importable subpackages for a module on WASI."""

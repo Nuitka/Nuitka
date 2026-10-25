@@ -16,6 +16,7 @@ import os
 import types
 
 from nuitka.PythonVersions import getSitePackageCandidateNames, python_version
+from nuitka.targets.Targets import getTargetSpecification
 from nuitka.utils.FileOperations import (
     getFileContents,
     getFilenameRealPath,
@@ -425,15 +426,17 @@ _stdlib_no_auto_inclusion_list = (
     "asynchat",
 )
 
-if not isWin32Windows():
-    _stdlib_no_auto_inclusion_list += ("ntpath",)
-
 # This was removed, but can exist in some circumstances still.
 if python_version >= 0x3D0:
     _stdlib_no_auto_inclusion_list += ("cgi",)
 
 
 def isStandardLibraryNoAutoInclusionModule(module_name):
+    # "ntpath" is only meaningful for Windows targets, and is excluded on
+    # POSIX hosts to avoid auto-including it there.
+    if module_name == "ntpath":
+        return not getTargetSpecification().isWin32Target()
+
     return module_name.hasOneOfNamespaces(*_stdlib_no_auto_inclusion_list)
 
 

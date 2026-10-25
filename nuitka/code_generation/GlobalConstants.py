@@ -7,7 +7,7 @@ from nuitka.__past__ import long
 from nuitka.options.Options import isDeploymentMode, shallMakeModule
 from nuitka.plugins.Hooks import getExtraConstantDefaultPopulation
 from nuitka.PythonVersions import python_version
-from nuitka.utils.Utils import isWin32Windows
+from nuitka.targets.Targets import isWin32Target
 
 # spell-checker: ignore fromlist
 
@@ -254,7 +254,7 @@ def getConstantDefaultPopulation():
         # For exception complaint using __qualname__.
         result.append("__qualname__")
 
-    if isWin32Windows():
+    if isWin32Target():
         result.append("fileno")
 
     if not isDeploymentMode():

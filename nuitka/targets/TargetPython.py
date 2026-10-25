@@ -19,10 +19,8 @@ import time
 
 from nuitka import PythonVersions
 from nuitka.Constants import TargetVersionInfo
-from nuitka.Errors import NuitkaNotYetSupported
 from nuitka.Tracing import cross_compilation_logger
 from nuitka.utils.AppDirs import getCacheDir
-from nuitka.utils.Execution import getExecutablePath
 from nuitka.utils.FileOperations import getNormalizedPathJoin, withFileLock
 from nuitka.utils.Hashing import getHashFromValues
 from nuitka.utils.Json import (
@@ -31,7 +29,6 @@ from nuitka.utils.Json import (
     loadJsonFromFilename,
     writeJsonToFilename,
 )
-from nuitka.utils.Utils import isWin32OrPosixWindows
 from nuitka.utils.WasiPython import getWasiPythonPrefix
 from nuitka.utils.Wasmtime import getWasmtimePath
 
@@ -213,6 +210,11 @@ while True:
     operation = request.get("op")
 
     if operation == "hello":
+        package_dir = request.get("package_dir")
+
+        if package_dir and package_dir not in sys.path:
+            sys.path.insert(0, package_dir)
+
         response = {
             "ok": True,
             "protocol": 3,
@@ -224,6 +226,7 @@ while True:
             "version_info": list(sys.version_info),
             "executable": sys.executable,
             "prefix": sys.prefix,
+            "base_prefix": getattr(sys, "base_prefix", sys.prefix),
             "hash_seed": os.environ.get("PYTHONHASHSEED"),
         }
     elif operation == "eval":
@@ -331,49 +334,8 @@ def _getWasiCommand(python_prefix, assume_yes_for_downloads):
     ]
 
 
-def _findWindowsPython(python_prefix):
-    if os.path.isfile(python_prefix):
-        return python_prefix
-
-    for candidate in (
-        "python.exe",
-        "python3.exe",
-        os.path.join("bin", "python.exe"),
-        os.path.join("bin", "python3.exe"),
-    ):
-        candidate_path = getNormalizedPathJoin(python_prefix, candidate)
-
-        if os.path.isfile(candidate_path):
-            return candidate_path
-
-    raise TargetPythonError(
-        "No Python executable found in Windows Python prefix '%s'." % python_prefix
-    )
-
-
-def _getWin32Command(python_prefix):
-    if python_prefix is None:
-        raise NuitkaNotYetSupported(
-            "Target Python execution for Win32 requires a Windows Python prefix."
-        )
-
-    python_executable = _findWindowsPython(python_prefix)
-
-    if isWin32OrPosixWindows():
-        return [python_executable]
-
-    wine_path = getExecutablePath("wine")
-
-    if wine_path is None:
-        raise TargetPythonError(
-            "Running the Win32 target Python requires 'wine' on this host."
-        )
-
-    return [wine_path, python_executable]
-
-
 def _getBrokerCommand(python_command):
-    return python_command + [
+    return list(python_command) + [
         "-u",
         "-S",
         "-s",
@@ -383,14 +345,17 @@ def _getBrokerCommand(python_command):
     ]
 
 
-def getTargetPythonCommand(target_spec, python_prefix, assume_yes_for_downloads):
+def getTargetPythonCommand(
+    target_spec, python_prefix, python_executable, assume_yes_for_downloads
+):
     """Return the command and environment for the selected target Python.
 
     Args:
         target_spec: TargetBase of the selected target.
         python_prefix: str or None, target Python prefix. For WASI this may be
-            None to use the cached automatic download. Native targets ignore
-            this value.
+            None to use the cached automatic download.
+        python_executable: str or None, target Python executable. For Win32
+            this is the user provided executable path.
         assume_yes_for_downloads: bool, whether missing WASI SDK components may
             be downloaded without asking.
 
@@ -403,7 +368,7 @@ def getTargetPythonCommand(target_spec, python_prefix, assume_yes_for_downloads)
             assume_yes_for_downloads=assume_yes_for_downloads,
         )
     elif target_spec.isWin32Target():
-        python_command = _getWin32Command(python_prefix=python_prefix)
+        python_command = target_spec.getTargetRunCommand(python_executable)
     else:
         python_command = [sys.executable]
 
@@ -501,7 +466,14 @@ class TargetPython(object):
     """A persistent target Python broker using framed JSON over stdio."""
 
     # pylint: disable=too-many-instance-attributes
-    def __init__(self, target_spec, python_prefix, assume_yes_for_downloads, use_cache):
+    def __init__(
+        self,
+        target_spec,
+        python_prefix,
+        python_executable,
+        assume_yes_for_downloads,
+        use_cache,
+    ):
         self.target_spec = target_spec
         self.assume_yes_for_downloads = assume_yes_for_downloads
         self.use_cache = use_cache
@@ -513,15 +485,25 @@ class TargetPython(object):
         self._stderr_thread = None
 
         self.python_prefix = self._getResolvedPythonPrefix(python_prefix)
+        self.python_executable = python_executable
+
+        if self.python_executable is not None:
+            self.python_identity = self.python_executable
+        else:
+            self.python_identity = self.python_prefix
+
+        assert self.python_identity is not None
+
         self.cache_fingerprint = self._getCacheFingerprint()
 
     def _getResolvedPythonPrefix(self, python_prefix):
         if python_prefix is None:
             if self.target_spec.isWasiTarget():
-                python_prefix = getWasiPythonPrefix(
+                return getWasiPythonPrefix(
                     assume_yes_for_downloads=self.assume_yes_for_downloads
                 )
-            else:
+
+            if not self.target_spec.isWin32Target():
                 return cross_compilation_logger.sysexit(
                     "Error, no target Python prefix specified for target '%s'."
                     % self.target_spec.getDescription()
@@ -535,7 +517,7 @@ class TargetPython(object):
             ("target", self.target_spec.getDescription()),
             ("target_os", self.target_spec.getTargetOS()),
             ("python_version", PythonVersions.python_version_str),
-            ("prefix", self.python_prefix or ""),
+            ("python", self.python_identity),
         ]
 
     @staticmethod
@@ -591,6 +573,7 @@ class TargetPython(object):
         command, _environment = getTargetPythonCommand(
             target_spec=self.target_spec,
             python_prefix=self.python_prefix,
+            python_executable=self.python_executable,
             assume_yes_for_downloads=self.assume_yes_for_downloads,
         )
         return command
@@ -603,6 +586,7 @@ class TargetPython(object):
         command, environment = getTargetPythonCommand(
             target_spec=self.target_spec,
             python_prefix=self.python_prefix,
+            python_executable=self.python_executable,
             assume_yes_for_downloads=self.assume_yes_for_downloads,
         )
 
@@ -616,7 +600,13 @@ class TargetPython(object):
         )
 
         self._startStderrReader()
-        self.target_info = self._request({"op": "hello"})
+
+        hello_request = {
+            "op": "hello",
+            "package_dir": self._getTargetNuitkaPackageDir(),
+        }
+
+        self.target_info = self._request(hello_request)
 
         if self.target_info.get("protocol") != _TARGET_PYTHON_PROTOCOL_VERSION:
             raise TargetPythonError(
@@ -628,6 +618,63 @@ class TargetPython(object):
             )
 
         return self.target_info
+
+    def _getTargetNuitkaPackageDir(self):
+        nuitka_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        host_nuitka_dir = os.path.dirname(nuitka_dir)
+
+        return self._provideTargetNuitkaPackageDir(host_nuitka_dir)
+
+    def _provideTargetNuitkaPackageDir(self, host_nuitka_dir):
+        """Provide the Nuitka package directory to the target Python."""
+        return self.target_spec.translateHostPathToTarget(host_nuitka_dir)
+
+    def getTargetExecutablePath(self):
+        """Return the target Python executable path, or None before startup."""
+        if self.target_info is None:
+            return None
+
+        return self.target_info["executable"]
+
+    def getTargetSystemPrefixPath(self):
+        """Return the target's system prefix path on the host."""
+        if self.python_prefix is not None:
+            return self.python_prefix
+
+        target_path = self.evaluate(
+            expression="nuitka.PythonPrefixes.getSystemPrefixPath()",
+            setup_code="import nuitka.PythonPrefixes",
+        )
+
+        return self.target_spec.translateTargetPathToHost(target_path)
+
+    def getTargetPythonIncludePath(self):
+        """Return the target Python include path on the host."""
+        target_path = self.evaluate(
+            expression="""\
+nuitka.PythonPrefixes.getTargetPythonIncludePath(
+    logger=nuitka.Tracing.general,
+    python_debug=nuitka.PythonVersions.isDebugPython(),
+    self_compiled_python_uninstalled=nuitka.PythonFlavors.isSelfCompiledPythonUninstalled(),
+)""",
+            setup_code="""\
+import nuitka.PythonFlavors
+import nuitka.PythonPrefixes
+import nuitka.PythonVersions
+import nuitka.Tracing
+""",
+        )
+
+        return self.target_spec.translateTargetPathToHost(target_path)
+
+    def getTargetPythonDLLPath(self):
+        """Return the target Python DLL path on the host."""
+        target_path = self.evaluate(
+            expression="nuitka.PythonVersions.getRunningPythonDLLPath()",
+            setup_code="import nuitka.PythonVersions",
+        )
+
+        return self.target_spec.translateTargetPathToHost(target_path)
 
     def _startStderrReader(self):
         def readStderr():

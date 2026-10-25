@@ -2677,6 +2677,18 @@ Default empty.""",
 )
 
 target_group.add_option(
+    "--win32-python-exe",
+    action="store",
+    dest="win32_python_exe",
+    metavar="PATH",
+    default=None,
+    help="""\
+Path of the 32-bit Windows Python executable to use with
+'--target=i686-w64-mingw32'. Nuitka starts it to determine the target Python
+prefix and library paths. Default empty.""",
+)
+
+target_group.add_option(
     "--wasi-sdk-path",
     action="store",
     dest="wasi_sdk_path",

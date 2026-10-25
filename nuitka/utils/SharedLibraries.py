@@ -19,6 +19,7 @@ from nuitka.options.Options import (
     isShowInclusion,
 )
 from nuitka.PythonVersions import python_version
+from nuitka.targets.Targets import isElfTarget
 from nuitka.Tracing import inclusion_logger, postprocessing_logger
 
 from .Execution import executeToolChecked, filterOutputByLine
@@ -1319,7 +1320,7 @@ def copyDllFile(source_path, dist_dir, dest_path, executable, other_entry_points
         if isMacOS():
             makeMacOSThinBinary(dest_path=target_filename, original_path=source_path)
 
-        if isElfUsingPlatform():
+        if isElfTarget():
             rpaths = getStandaloneEntryPointRPATHs(
                 dest_path=dest_path,
                 other_entry_points=other_entry_points,

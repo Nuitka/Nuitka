@@ -47,23 +47,28 @@ def detectBinaryPathDLLsPosix(dll_filename, package_name, original_dir):
     # loading the other DLLs too. This happens at least for Python installs
     # on Travis. pylint: disable=global-statement
     global _detected_python_rpaths
-    if _detected_python_rpaths is None and not isPosixWindows():
-        _detected_python_rpaths = getSharedLibraryRPATHs(
-            sys.executable,
-            elements=True,
-        )
-
-        if os.path.islink(sys.executable):
-            sys_executable = os.readlink(sys.executable)
+    if _detected_python_rpaths is None:
+        if isPosixWindows():
+            _detected_python_rpaths = []
         else:
-            sys_executable = sys.executable
+            _detected_python_rpaths = getSharedLibraryRPATHs(
+                sys.executable,
+                elements=True,
+            )
 
-        sys_executable_dir = os.path.dirname(sys_executable)
+            if os.path.islink(sys.executable):
+                sys_executable = os.readlink(sys.executable)
+            else:
+                sys_executable = sys.executable
 
-        _detected_python_rpaths = [
-            _resolveOriginValue(rpath=detected_python_rpath, origin=sys_executable_dir)
-            for detected_python_rpath in _detected_python_rpaths
-        ]
+            sys_executable_dir = os.path.dirname(sys_executable)
+
+            _detected_python_rpaths = [
+                _resolveOriginValue(
+                    rpath=detected_python_rpath, origin=sys_executable_dir
+                )
+                for detected_python_rpath in _detected_python_rpaths
+            ]
 
     python_rpaths = _detected_python_rpaths[:]
 

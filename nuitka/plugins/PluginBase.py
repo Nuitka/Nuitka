@@ -72,6 +72,7 @@ from nuitka.PythonVersions import (
     python_version_str,
 )
 from nuitka.States import states
+from nuitka.targets.Targets import getTargetSystemStaticLibPythonPath
 from nuitka.Tracing import plugins_logger
 from nuitka.utils.AppDirs import getAppdirsModule
 from nuitka.utils.Distributions import (
@@ -105,7 +106,6 @@ from nuitka.utils.ModuleNames import (
 )
 from nuitka.utils.SharedLibraries import locateDLL, locateDLLsInDirectory
 from nuitka.utils.SlotMetaClasses import getMetaClassBase
-from nuitka.utils.StaticLibraries import getSystemStaticLibPythonPath
 from nuitka.utils.Utils import (
     getArchitecture,
     isAndroidBasedLinux,
@@ -214,7 +214,7 @@ def _getEvaluationContext():
             "python_version_str": python_version_str,
             "python_version_full_str": python_version_full_str,
             # Technical requirements
-            "static_libpython": getSystemStaticLibPythonPath(
+            "static_libpython": getTargetSystemStaticLibPythonPath(
                 python_debug=shallUsePythonDebug()
             )
             is not None,

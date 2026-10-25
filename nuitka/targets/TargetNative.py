@@ -7,6 +7,12 @@ import ctypes
 import sys
 
 from nuitka.PythonVersions import getImportlibSubPackages
+from nuitka.utils.StaticLibraries import (
+    couldUseStaticLibPython as couldUseNativeStaticLibPython,
+)
+from nuitka.utils.StaticLibraries import (
+    getSystemStaticLibPythonPath as getNativeSystemStaticLibPythonPath,
+)
 from nuitka.utils.Utils import (
     getArchitecture,
     getOS,
@@ -56,6 +62,17 @@ class TargetNative(TargetBase):
             binary_format=_getBinaryFormat(),
             rpath_using=isRPathUsingPlatform(),
             python_digit_bits=_getPythonDigitBits(),
+        )
+
+    def getSystemStaticLibPythonPath(self, python_debug):
+        """Return the host Python static library path."""
+        return getNativeSystemStaticLibPythonPath(python_debug=python_debug)
+
+    def couldUseStaticLibPython(self, python_debug, dll_mode):
+        """Return whether the host Python can use a static libpython."""
+        return couldUseNativeStaticLibPython(
+            python_debug=python_debug,
+            dll_mode=dll_mode,
         )
 
     def evaluateCompileTimeExpression(self, expression, setup_code):

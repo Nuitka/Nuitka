@@ -159,7 +159,9 @@ from nuitka.PythonVersions import (
 )
 from nuitka.Serialization import ConstantAccessor
 from nuitka.targets.Targets import (
+    getTargetPythonSconsOptions,
     getTargetSpecification,
+    getTargetSystemStaticLibPythonPath,
     isWasiTarget,
     isWin32Target,
 )
@@ -176,7 +178,6 @@ from nuitka.utils.Distributions import getDistribution, getDistributionName
 from nuitka.utils.Execution import (
     executeCompiledBinary,
     getEnvironmentPathAdded,
-    getExecutablePath,
     withEnvironmentVarOverridden,
     wrapCommandForDebuggerForExec,
 )
@@ -195,7 +196,6 @@ from nuitka.utils.Importing import hasPackageDirFilename
 from nuitka.utils.InstanceCounters import printInstanceCounterStats
 from nuitka.utils.MemoryUsage import reportMemoryUsage, showMemoryTrace
 from nuitka.utils.ReExecute import callExecProcess, reExecuteNuitka
-from nuitka.utils.StaticLibraries import getSystemStaticLibPythonPath
 from nuitka.utils.Timing import withProfiling
 from nuitka.utils.Utils import (
     getArchitecture,
@@ -203,7 +203,6 @@ from nuitka.utils.Utils import (
     isWin32OrPosixWindows,
     isWin32Windows,
 )
-from nuitka.utils.WasiPython import getWasiPythonPrefix
 from nuitka.utils.Wasmtime import getWasmtimePath
 from nuitka.Version import getCommercialVersion, getNuitkaVersion
 from nuitka.VersionCheck import checkNuitkaUpdate
@@ -761,15 +760,10 @@ def runSconsBackend():
     # pylint: disable=too-many-branches,too-many-statements
     scons_options, env_values = getCommonSconsOptions()
 
-    if isWasiTarget():
-        wasi_python_prefix = getWasiPythonPrefix(
-            assume_yes_for_downloads=assumeYesForDownloads()
-        )
+    target_python_scons_options = getTargetPythonSconsOptions()
 
-        scons_options["python_prefix"] = wasi_python_prefix
-        scons_options["python_include_path"] = getNormalizedPathJoin(
-            wasi_python_prefix, "include", "python" + python_version_str
-        )
+    if target_python_scons_options is not None:
+        scons_options.update(target_python_scons_options)
 
     source_dir = OutputDirectories.getSourceDirectoryPath(
         onefile=False,
@@ -812,7 +806,7 @@ def runSconsBackend():
             scons_options["main_module_name"] = main_module_name
 
     if shallUseStaticLibPython():
-        scons_options["static_libpython"] = getSystemStaticLibPythonPath(
+        scons_options["static_libpython"] = getTargetSystemStaticLibPythonPath(
             python_debug=shallUsePythonDebug()
         )
 
@@ -1014,14 +1008,7 @@ def _executeMain(binary_filename):
             binary_filename,
         )
     elif isWin32Target() and not isWin32OrPosixWindows():
-        wine_path = getExecutablePath("wine")
-
-        if wine_path is None:
-            return general.sysexit(
-                "Error, running the Win32 target requires 'wine' on non-Windows platforms."
-            )
-
-        args = (wine_path, binary_filename)
+        args = getTargetSpecification().getTargetExecCommand(binary_filename)
     else:
         args = None
 
@@ -1233,15 +1220,16 @@ def _considerPgoInput():
 def _detectEarlyDLLs():
     assert isStandaloneMode()
 
-    if getTargetSpecification().hasTargetSupportForDLLs():
-        modules = ModuleRegistry.getDoneModules()
+    target_spec = getTargetSpecification()
+    modules = ModuleRegistry.getDoneModules()
 
-        for module in modules:
-            if module.isPythonExtensionModule():
-                addExtensionModuleEntryPoint(module)
+    for module in modules:
+        if target_spec.hasTargetSupportForDLLs() and module.isPythonExtensionModule():
+            addExtensionModuleEntryPoint(module)
 
-            addIncludedEntryPoints(considerExtraDlls(module))
+        addIncludedEntryPoints(considerExtraDlls(module))
 
+    if target_spec.hasTargetSupportForDLLs():
         detectUsedDLLs(
             standalone_entry_points=getStandaloneEntryPoints(),
             source_dir=OutputDirectories.getSourceDirectoryPath(

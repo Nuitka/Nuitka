@@ -39,7 +39,7 @@ from nuitka.utils.FileOperations import (
     withFileLock,
 )
 from nuitka.utils.Json import loadJsonFromFilename, writeJsonToFilename
-from nuitka.utils.Utils import isLinux, isMacOS, isPosixWindows, isWin32Windows
+from nuitka.utils.Utils import isLinux, isMacOS, isWin32Windows
 
 
 def initScons(arguments):
@@ -263,7 +263,7 @@ def createEnvironment(
     ):
         args["MSVC_USE_SCRIPT"] = False
 
-    if mingw_mode or zig_mode or isPosixWindows():
+    if mingw_mode or zig_mode:
         # Force usage of MinGW64, not using MSVC tools.
         tools = ["mingw"]
 
@@ -275,10 +275,9 @@ def createEnvironment(
         SCons.Tool.msvc.msvc_exists = SCons.Tool.MSCommon.msvc_exists = (
             SCons.Tool.MSCommon.vc.msvc_exists
         ) = lambda *args: False
-    elif zig_mode:
-        tools = ["gcc"]
     else:
-        # Everything else should use default, that is MSVC tools, but not MinGW64.
+        # Everything else should use the default tools, including MSVC and
+        # the Cygwin tools used by MSYS2 POSIX Python.
         tools = ["default"]
 
     env = Environment(
@@ -368,6 +367,7 @@ def createEnvironment(
     env.fedora_python = getArgumentBool("fedora_python", False)
     env.arch_python = getArgumentBool("arch_python", False)
     env.msys2_mingw_python = getArgumentBool("msys2_mingw_python", False)
+    env.msys2_posix_python = getArgumentBool("msys2_posix_python", False)
     env.anaconda_python = getArgumentBool("anaconda_python", False)
     env.pyenv_python = getArgumentBool("pyenv_python", False)
     env.apple_python = getArgumentBool("apple_python", False)

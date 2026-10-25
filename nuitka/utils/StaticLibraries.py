@@ -7,9 +7,16 @@ import os
 
 from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.PythonFlavors import (
+    getPythonFlavorName,
     isAnacondaPython,
+    isArchPackagePython,
+    isCPythonOfficialPackage,
     isDebianPackagePython,
+    isHomebrewPython,
+    isManyLinuxPython,
     isMonolithPy,
+    isMSYS2MingwPython,
+    isPyenvHomebrewPython,
     isPyenvPython,
     isPythonBuildStandalonePython,
     isRyePython,
@@ -18,10 +25,10 @@ from nuitka.PythonFlavors import (
 from nuitka.PythonPrefixes import getSystemPrefixPath
 from nuitka.PythonVersions import (
     getPythonABI,
+    isStaticallyLinkedPython,
     python_version,
     python_version_str,
 )
-from nuitka.targets.Targets import isWasiTarget
 from nuitka.Tracing import general
 
 from .Execution import (
@@ -31,19 +38,16 @@ from .Execution import (
     getExecutablePath,
     isExecutableCommand,
 )
-from .FileOperations import (
-    getFileContentByLine,
-    getFileList,
-    getNormalizedPathJoin,
-)
+from .FileOperations import getFileContentByLine, getFileList
+from .InlineCopies import getInlineCopyFolder
 from .Utils import (
+    getArchitecture,
     getLinuxDistribution,
     isAIX,
     isDebianBasedLinux,
     isMacOS,
     isWin32Windows,
 )
-from .WasiPython import getWasiPythonPrefix
 
 _ldconf_paths = None
 
@@ -83,7 +87,6 @@ def _locateStaticLinkLibrary(dll_name):
     return None
 
 
-_static_lib_python_path = False
 _static_lib_problem_cache = {}
 
 
@@ -120,7 +123,7 @@ def _getSysConfigVarLIBPL():
         return None
 
 
-def _getSystemStaticLibPythonPath(python_debug):
+def getSystemStaticLibPythonPath(python_debug):
     # Return driven function with many cases, pylint: disable=too-many-branches,too-many-return-statements
 
     sys_prefix = getSystemPrefixPath()
@@ -239,30 +242,119 @@ def _getSystemStaticLibPythonPath(python_debug):
     return None
 
 
-def getSystemStaticLibPythonPath(python_debug):
-    global _static_lib_python_path  # singleton, pylint: disable=global-statement
+def couldUseStaticLibPython(python_debug, dll_mode):
+    """Return whether this Python can use a static libpython."""
+    # many cases and return driven,
+    # pylint: disable=too-many-branches,too-many-return-statements
 
-    if isWasiTarget():
-        if _static_lib_python_path is False:
-            # Local import to avoid a circular dependency on Options.
-            from nuitka.options.Options import assumeYesForDownloads
+    target_arch = getArchitecture()
+    static_lib_path = getSystemStaticLibPythonPath(python_debug=python_debug)
 
-            wasi_python_prefix = getWasiPythonPrefix(
-                assume_yes_for_downloads=assumeYesForDownloads()
+    if dll_mode and not isWin32Windows() and target_arch in ("x86_64", "aarch64"):
+        if static_lib_path is not None and not static_lib_path.endswith("-pic.a"):
+            try:
+                import sysconfig
+            except ImportError:
+                pass
+            else:
+                py_core_cflags = sysconfig.get_config_var("PY_CORE_CFLAGS") or ""
+
+                if "-fPIC" not in py_core_cflags and "-fPIE" not in py_core_cflags:
+                    return (
+                        False,
+                        "Not used in dll mode on %s since Python static library lacks PIC."
+                        % target_arch,
+                    )
+
+    static_link_library_problem = getStaticLinkLibraryProblem(static_lib_path)
+
+    if static_link_library_problem is not None:
+        return False, static_link_library_problem
+
+    # MonolithPy is good to to static linking.
+    if isMonolithPy():
+        return True, "MonolithPy is unexpectedly broken."
+
+    if isHomebrewPython() or isPyenvHomebrewPython():
+        return True, "Homebrew Python is unexpectedly broken."
+
+    # Debian packages with are usable if the OS is new enough
+    if (
+        isDebianBasedLinux()
+        and isDebianPackagePython()
+        and isDebianSuitableForStaticLinking()
+        and not python_debug
+    ):
+        if python_version >= 0x3E0:
+            return False, "Not yet supporting 3.14+ static linking"
+
+        if python_version >= 0x3C0 and not os.path.exists(
+            getInlineCopyFolder("python_hacl")
+        ):
+            return (
+                False,
+                "Nuitka on Debian-Python needs inline copy of hacl not included.",
             )
 
-            _static_lib_python_path = getNormalizedPathJoin(
-                wasi_python_prefix, "lib", "libpython" + python_version_str + ".a"
-            )
-
-        return _static_lib_python_path
-
-    if _static_lib_python_path is False:
-        _static_lib_python_path = _getSystemStaticLibPythonPath(
-            python_debug=python_debug
+        return True, "Nuitka on Debian-Python needs package '%s' installed." % (
+            "python2-dev" if str is bytes else "python3-dev"
         )
 
-    return _static_lib_python_path
+    if isMSYS2MingwPython():
+        return True, "Nuitka on MSYS2 needs package 'python-devel' installed."
+
+    # For Anaconda default to trying static lib python library, which
+    # normally is just not available or if it is even unusable.
+    if isAnacondaPython():
+        if isMacOS():
+            # TODO: Maybe some linker options can make it happen.
+            return (
+                False,
+                "Anaconda on macOS exports not all symbols when using it.",
+            )
+        elif not isWin32Windows():
+            return (
+                True,
+                """\
+Nuitka on Anaconda needs package for static libpython installed. \
+Execute 'conda install libpython-static'.""",
+            )
+
+    if isPythonBuildStandalonePython():
+        return (
+            False,
+            """\
+Static link library of '%s' is currently using dependent on libraries \
+such as tcl that are not included, but would be needed. Please help them \
+improve it for best performance of the result.""" % getPythonFlavorName(),
+        )
+
+    if isPyenvPython():
+        return True, "Nuitka on pyenv should not use '--enable-shared'."
+
+    if isManyLinuxPython():
+        return (
+            True,
+            """\
+Nuitka on 'manylinux' has no shared libraries. Use container with \
+the command 'RUN cd /opt/_internal && tar xf static-libs-for-embedding-only.tar.xz' \
+added to provide the static link library.""",
+        )
+
+    if isMacOS() and isCPythonOfficialPackage():
+        if python_version >= 0x3E0:
+            return False, "Not yet supporting 3.14+ static linking"
+        return True, None
+
+    if isArchPackagePython():
+        return True, None
+
+    # If not dynamic link library is available, the static link library will
+    # have to do it.
+    if isStaticallyLinkedPython():
+        return True, None
+
+    return None, None
 
 
 def _detectStaticLinkLibraryProblem(static_library_path):

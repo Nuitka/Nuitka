@@ -31,7 +31,6 @@ from nuitka.utils.Utils import (
     isFedoraBasedLinux,
     isLinux,
     isMacOS,
-    isPosixWindows,
     isWin32Windows,
 )
 
@@ -692,9 +691,9 @@ def _checkBlobResourceMode(env, resource_mode):
 
     mode_platform_names = {
         "mac_section": (isMacOS(), "macOS"),
-        "coff_obj": (isWin32Windows(), "Windows"),
+        "coff_obj": (env.target_os == "Windows", "Windows"),
         "xcoff_obj": (isAIX(), "AIX"),
-        "overlay": (isWin32Windows(), "Windows"),
+        "overlay": (env.target_os == "Windows", "Windows"),
     }
 
     if resource_mode in mode_platform_names:
@@ -737,7 +736,7 @@ def _decideBlobResourceMode(env):
         else:
             resource_mode = "coff_obj"
             reason = "default for Windows for non-ClangCL"
-    elif isPosixWindows():
+    elif env.msys2_posix_python:
         resource_mode = "linker"
         reason = "default MSYS2 Posix"
     elif isMacOS():
@@ -912,7 +911,7 @@ def _makeLargeDataBlobObject(env, blob_filename, obj_filename):
 
     output_format = getLinkerArch(
         target_arch=env.target_arch,
-        mingw_mode=env.mingw_mode or isPosixWindows(),
+        mingw_mode=env.mingw_mode or env.msys2_posix_python,
     )
 
     if output_format is None:
@@ -979,7 +978,7 @@ def _addConstantBlobFileLinker(env, blob_filename):
                 "-Wl,%s"
                 % getLinkerArch(
                     target_arch=env.target_arch,
-                    mingw_mode=env.mingw_mode or isPosixWindows(),
+                    mingw_mode=env.mingw_mode or env.msys2_posix_python,
                 ),
             ]
         )
@@ -1288,28 +1287,35 @@ def _enableWasiTargetSettings(env):
 
 def _enableWin32TargetSettings(env):
     """Set up environment for Windows target settings."""
-    assert isWin32Windows()
+    assert env.target_os == "Windows"
+
+    if env.zig_mode:
+        target_triple = {
+            "x86": "x86-windows-gnu",
+            "x86_64": "x86_64-windows-gnu",
+            "arm64": "aarch64-windows-gnu",
+        }[env.target_arch]
+
+        env.Append(CCFLAGS=["-target", target_triple])
+        env.Append(LINKFLAGS=["-target", target_triple])
+
     # The MinGW64 and ClangCL do not default for API level properly, so
     # help it. For zig, it is hard coded.
     if not env.zig_mode:
         env.Append(CPPDEFINES=["_WIN32_WINNT=0x0601"])
 
-    # Unicode entry points for programs.
-    if env.mingw_mode or (env.zig_mode and isWin32Windows()):
-        env.Append(LINKFLAGS=["-municode"])
-
 
 def _enableWindowsStackSize(env, target_arch):
     # Stack size 4MB or 8MB, we might need more than the default 1MB.
     if target_arch == "x86_64":
-        stack_size = 1024 * 1204 * 8
+        stack_size = 1024 * 1024 * 8
     else:
-        stack_size = 1024 * 1204 * 4
+        stack_size = 1024 * 1024 * 4
 
     if env.msvc_mode:
         env.Append(LINKFLAGS=["/STACK:%d" % stack_size])
 
-    if env.mingw_mode:
+    if env.mingw_mode or (env.zig_mode and env.target_os == "Windows"):
         env.Append(LINKFLAGS=["-Wl,--stack,%d" % stack_size])
 
 
@@ -1742,14 +1748,14 @@ def setupCCompiler(env, pgo_mode, exe_target, onefile_compile):
         if env.standalone_mode:
             env.Append(LINKFLAGS=["-Wl,-blibpath:/usr/lib:/lib"])
 
-    if isWin32Windows():
+    if env.target_os == "Windows":
         _enableWin32TargetSettings(env)
 
     if env.target_os == "WASI":
         _enableWasiTargetSettings(env)
 
     # Unicode entry points for programs.
-    if env.mingw_mode or (env.zig_mode and isWin32Windows()):
+    if env.target_os == "Windows" and (env.mingw_mode or env.zig_mode):
         env.Append(LINKFLAGS=["-municode"])
 
     # Older g++ complains about aliasing with Py_True and Py_False, but we don't
@@ -1880,7 +1886,7 @@ def setupCCompiler(env, pgo_mode, exe_target, onefile_compile):
 
     # Even if console is forced, for Win32 it means to specify Windows
     # subsystem, we can still attach or create.
-    if env.console_mode in ("attach", "disable") and os.name == "nt":
+    if env.console_mode in ("attach", "disable") and env.target_os == "Windows":
         if env.mingw_mode or env.zig_mode:
             env.Append(LINKFLAGS=["-Wl,--subsystem,windows"])
             env.Append(CPPDEFINES=["_NUITKA_WINMAIN_ENTRY_POINT"])
@@ -1888,15 +1894,15 @@ def setupCCompiler(env, pgo_mode, exe_target, onefile_compile):
             env.Append(LINKFLAGS=["/SUBSYSTEM:windows"])
             env.Append(CPPDEFINES=["_NUITKA_WINMAIN_ENTRY_POINT"])
 
-    if env.console_mode == "attach" and os.name == "nt":
+    if env.console_mode == "attach" and env.target_os == "Windows":
         env.Append(CPPDEFINES=["_NUITKA_ATTACH_CONSOLE_WINDOW"])
         env.Append(LIBS=["User32"])
 
-    if env.console_mode == "disable" and os.name == "nt":
+    if env.console_mode == "disable" and env.target_os == "Windows":
         env.Append(CPPDEFINES=["_NUITKA_DISABLE_CONSOLE_WINDOW"])
         env.Append(LIBS=["User32"])
 
-    if env.console_mode == "hide" and os.name == "nt":
+    if env.console_mode == "hide" and env.target_os == "Windows":
         env.Append(CPPDEFINES=["_NUITKA_HIDE_CONSOLE_WINDOW"])
         env.Append(LIBS=["User32"])
 

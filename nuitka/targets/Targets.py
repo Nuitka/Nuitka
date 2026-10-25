@@ -104,6 +104,64 @@ class TargetBase(object):
         """Return the target Python's version information, or None if unknown."""
         return None
 
+    def getPythonSconsOptions(self):  # pylint: disable=no-self-use
+        """Return target Python paths for Scons, or None for native builds.
+
+        Returns:
+            dict with 'python_prefix' and 'python_include_path', or None
+        """
+        return None
+
+    def getPythonPrefix(self):  # pylint: disable=no-self-use
+        """Return the target Python prefix, or None if not applicable."""
+        return None
+
+    def getPythonDLLPath(self):  # pylint: disable=no-self-use
+        """Return the target Python DLL path, or None if not applicable."""
+        return None
+
+    def getSystemStaticLibPythonPath(self, python_debug):  # pylint: disable=no-self-use
+        """Return the target Python static library path, or None."""
+        # pylint: disable=unused-argument
+        return None
+
+    def couldUseStaticLibPython(  # pylint: disable=no-self-use
+        self, python_debug, dll_mode
+    ):
+        """Return whether the target can use a static libpython."""
+        # pylint: disable=unused-argument
+        return None, None
+
+    def translateHostPathToTarget(self, host_path):  # pylint: disable=no-self-use
+        """Translate a host path to a path usable by the target Python."""
+        return host_path
+
+    def translateTargetPathToHost(self, target_path):  # pylint: disable=no-self-use
+        """Translate a path reported by the target Python to a host path."""
+        return target_path
+
+    def getTargetRunCommand(self, executable_path):  # pylint: disable=no-self-use
+        """Return the command to run a target executable on this host."""
+        return (executable_path,)
+
+    def getTargetExecCommand(self, executable_path):
+        """Return the command with exec-style argv[0] handling."""
+        run_command = self.getTargetRunCommand(executable_path)
+
+        if len(run_command) == 1:
+            return (executable_path, executable_path)
+
+        return tuple(run_command)
+
+    def checkPreconditions(self):  # pylint: disable=no-self-use
+        """Check target-specific requirements after option parsing.
+
+        Notes:
+            Targets may exit the process with a clear error when required
+            options, prefixes, or toolchains are missing.
+        """
+        return None
+
     def getModuleSubPackages(self, module_name):  # pylint: disable=no-self-use
         """Return the importable subpackages of a module on the target.
 
@@ -191,6 +249,31 @@ def setTargetSpecification(target_name):
 def getTargetSpecification():
     """Return the installed target specification."""
     return _target_specification
+
+
+def getTargetPythonSconsOptions():
+    """Return the target Python paths for Scons, or None for native builds."""
+    return _target_specification.getPythonSconsOptions()
+
+
+def getTargetSystemStaticLibPythonPath(python_debug):
+    """Return the target Python static library path, or None."""
+    return _target_specification.getSystemStaticLibPythonPath(python_debug=python_debug)
+
+
+def getTargetCouldUseStaticLibPython(python_debug, dll_mode):
+    """Return whether the target can use a static libpython."""
+    return _target_specification.couldUseStaticLibPython(
+        python_debug=python_debug,
+        dll_mode=dll_mode,
+    )
+
+
+def checkTargetPreconditions():
+    """Check the installed target's preconditions after option parsing."""
+    assert _target_specification is not None, "target specification not installed"
+
+    _target_specification.checkPreconditions()
 
 
 def isWasiTarget():
