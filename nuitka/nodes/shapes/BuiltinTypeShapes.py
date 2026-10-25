@@ -1791,6 +1791,15 @@ class ShapeTypeXrangeIterator(ShapeIteratorMixin, ShapeNotNumberMixin, ShapeBase
 
 tshape_xrange_iterator = ShapeTypeXrangeIterator()
 
+if python_version < 0x300:
+    comparison_lt_type_result = (
+        tshape_unknown,
+        ControlFlowDescriptionNoEscape,
+    )
+else:
+    # Python3 types are unorderable, unless a metaclass makes them so.
+    comparison_lt_type_result = operation_result_unknown
+
 
 class ShapeTypeTypeBase(ShapeNotNumberMixin, ShapeBase):
     # Base classes can be abstract, pylint: disable=abstract-method
@@ -1812,11 +1821,7 @@ class ShapeTypeTypeBase(ShapeNotNumberMixin, ShapeBase):
             return operation_result_unknown
 
         if right_shape is tshape_type:
-            # Python3 types are unorderable, unless a metaclass makes them so.
-            if python_version < 0x300:
-                return tshape_unknown, ControlFlowDescriptionNoEscape
-            else:
-                return operation_result_unknown
+            return comparison_lt_type_result
 
         return _getComparisonLtShapeGeneric(self, right_shape)
 

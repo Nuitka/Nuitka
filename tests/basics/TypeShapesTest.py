@@ -5,9 +5,11 @@
 
 from __future__ import print_function
 
+import sys
+
 
 def bytesAddBytearray(value):
-    b = bytes(value, "ascii")
+    b = value.encode("ascii")
     r = b + bytearray(value, "ascii")
 
     print("bytes + bytearray type:", type(r))
@@ -57,6 +59,9 @@ def numberFromBytearray(value):
     print("int(bytearray):", int(ba))
     print("float(bytearray):", float(ba))
 
+    if sys.version_info[0] < 3:
+        print("long(bytearray):", long(ba))
+
 
 def noneOrType(value):
     n = None
@@ -69,6 +74,15 @@ def noneOrType(value):
         print("None | type:", r)
 
 
+def typeOrNone(value):
+    try:
+        r = type(value) | None
+    except TypeError as e:
+        print("type | None:", repr(e))
+    else:
+        print("type | None:", r)
+
+
 bytesAddBytearray("12")
 typeLessThanType(1, 2)
 typeLessThanType(OrderedA(), OrderedB())
@@ -77,6 +91,7 @@ typeLessThanTypeValue(OrderedA(), OrderedB())
 typeLessThanTypeValue(OrderedB(), OrderedA())
 numberFromBytearray("12")
 noneOrType(1)
+typeOrNone(1)
 
 #     Python tests originally created or extracted from other peoples work. The
 #     parts were too small to be protected.
