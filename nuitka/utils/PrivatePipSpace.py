@@ -818,6 +818,28 @@ def _getInstalledPackageVersion(package_name):
         return None
 
 
+def arePackagesInstalledGlobally(package_versions):
+    """Check if packages are installed globally in the required versions.
+
+    Args:
+        package_versions: Iterable of (package_name, package_version) tuples,
+            with None as version to accept any version.
+
+    Returns:
+        bool: True if all packages are installed in matching versions
+    """
+    for package_name, package_version in package_versions:
+        installed_version = _getInstalledPackageVersion(package_name)
+
+        if installed_version is None:
+            return False
+
+        if package_version is not None and installed_version != package_version:
+            return False
+
+    return True
+
+
 def getPrivatePackage(
     logger,
     package_name,
