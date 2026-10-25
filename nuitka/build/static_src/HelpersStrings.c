@@ -81,10 +81,13 @@ PyObject *BUILTIN_CHR(PyThreadState *tstate, PyObject *value) {
 #endif
 #endif
 #else
+    // Python2.6 truncates float values, while Python2.7 rejects them.
+#if PYTHON_VERSION >= 0x270
     if (unlikely(PyFloat_Check(value))) {
         SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_TypeError, "integer argument expected, got float");
         return NULL;
     }
+#endif
 
     long x = PyInt_AsLong(value);
 
