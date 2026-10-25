@@ -225,7 +225,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_SUBSCRIPT(PyThreadState *tstate, Py
         return tp_as_mapping->mp_subscript(source, subscript);
     } else if (HAS_SEQUENCE_ITEM_SLOT(type)) {
         if (Nuitka_Index_Check(subscript)) {
-            Py_ssize_t index = PyNumber_AsSsize_t(subscript, NULL);
+            Py_ssize_t index = PyNumber_AsSsize_t(subscript, PyExc_IndexError);
 
             if (index == -1 && HAS_ERROR_OCCURRED(tstate)) {
                 return NULL;
