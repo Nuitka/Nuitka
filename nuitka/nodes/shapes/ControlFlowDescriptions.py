@@ -69,6 +69,28 @@ class ControlFlowDescriptionValueErrorNoEscape(ControlFlowDescriptionNoEscape):
         return ValueError
 
 
+class ControlFlowDescriptionOverflowNoEscape(ControlFlowDescriptionNoEscape):
+    @staticmethod
+    def getExceptionExit():
+        return OverflowError
+
+
+class ControlFlowDescriptionZeroDivisionOverflowNoEscape(
+    ControlFlowDescriptionNoEscape
+):
+    @staticmethod
+    def getExceptionExit():
+        return (ZeroDivisionError, OverflowError)
+
+
+class ControlFlowDescriptionZeroDivisionOverflowValueErrorNoEscape(
+    ControlFlowDescriptionNoEscape
+):
+    @staticmethod
+    def getExceptionExit():
+        return (ZeroDivisionError, OverflowError, ValueError)
+
+
 class ControlFlowDescriptionComparisonUnorderable(ControlFlowDescriptionNoEscape):
     @staticmethod
     def getExceptionExit():

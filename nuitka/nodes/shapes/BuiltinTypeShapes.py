@@ -32,12 +32,15 @@ from .ControlFlowDescriptions import (
     ControlFlowDescriptionMulUnsupported,
     ControlFlowDescriptionNoEscape,
     ControlFlowDescriptionOldDivUnsupported,
+    ControlFlowDescriptionOverflowNoEscape,
     ControlFlowDescriptionPowUnsupported,
     ControlFlowDescriptionRshiftUnsupported,
     ControlFlowDescriptionSubUnsupported,
     ControlFlowDescriptionTrueDivUnsupported,
     ControlFlowDescriptionValueErrorNoEscape,
     ControlFlowDescriptionZeroDivisionNoEscape,
+    ControlFlowDescriptionZeroDivisionOverflowNoEscape,
+    ControlFlowDescriptionZeroDivisionOverflowValueErrorNoEscape,
 )
 from .ShapeMixins import (
     ShapeContainerImmutableMixin,
@@ -2026,6 +2029,21 @@ operation_result_zerodiv_float = (
     tshape_float,
     ControlFlowDescriptionZeroDivisionNoEscape,
 )
+# Powers with these may also overflow, and Python3 gives "complex" for negative
+# numbers raised to a fractional power, where Python2 raises "ValueError".
+operation_result_power_float_or_complex = (
+    (tshape_float, ControlFlowDescriptionZeroDivisionOverflowValueErrorNoEscape)
+    if python_version < 0x300
+    else (tshape_unknown, ControlFlowDescriptionZeroDivisionOverflowNoEscape)
+)
+operation_result_power_complex = (
+    tshape_complex,
+    ControlFlowDescriptionZeroDivisionOverflowNoEscape,
+)
+operation_result_power_complex_overflow = (
+    tshape_complex,
+    ControlFlowDescriptionOverflowNoEscape,
+)
 operation_result_zerodiv_complex = (
     tshape_complex,
     ControlFlowDescriptionZeroDivisionNoEscape,
@@ -2677,8 +2695,8 @@ pow_shapes_int.update(
         tshape_long: operation_result_unknown,  # TODO: operation_result_longorfloat,
         tshape_int_or_long: operation_result_unknown,  # TODO: operation_result_intorlongorfloat,
         tshape_bool: operation_result_int_noescape,
-        tshape_float: operation_result_float_noescape,
-        tshape_complex: operation_result_complex_noescape,
+        tshape_float: operation_result_power_float_or_complex,
+        tshape_complex: operation_result_power_complex,
         # Unsupported:
         tshape_str: operation_result_unsupported_pow,
         tshape_bytes: operation_result_unsupported_pow,
@@ -2983,8 +3001,8 @@ pow_shapes_long.update(
         tshape_long: operation_result_unknown,  # TODO: operation_result_longorfloat,
         tshape_int_or_long: operation_result_unknown,  # TODO: operation_result_intorlongorfloat,
         tshape_bool: operation_result_long_noescape,
-        tshape_float: operation_result_float_noescape,
-        tshape_complex: operation_result_complex_noescape,
+        tshape_float: operation_result_power_float_or_complex,
+        tshape_complex: operation_result_power_complex,
         # Unsupported:
         tshape_str: operation_result_unsupported_pow,
         tshape_bytes: operation_result_unsupported_pow,
@@ -3281,7 +3299,7 @@ pow_shapes_float.update(
         tshape_long: operation_result_zerodiv_float,
         tshape_int_or_long: operation_result_zerodiv_float,
         tshape_bool: operation_result_float_noescape,
-        tshape_float: operation_result_zerodiv_float,
+        tshape_float: operation_result_power_float_or_complex,
         tshape_complex: operation_result_zerodiv_complex,
         # Unsupported:
         tshape_str: operation_result_unsupported_pow,
@@ -3486,7 +3504,7 @@ pow_shapes_complex.update(
         tshape_int: operation_result_zerodiv_complex,
         tshape_long: operation_result_zerodiv_complex,
         tshape_int_or_long: operation_result_zerodiv_complex,
-        tshape_bool: operation_result_complex_noescape,
+        tshape_bool: operation_result_power_complex_overflow,
         tshape_float: operation_result_zerodiv_complex,
         tshape_complex: operation_result_zerodiv_complex,
         # Unsupported:
