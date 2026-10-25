@@ -897,9 +897,12 @@ print("list.index of missing value:", listIndexMissing(7))
 print("list.index of value outside of range:", listIndexMissingInRange(9, 0, 1))
 
 
-class BadListIndex(object):
+class BadIndex(object):
     def __index__(self):
         raise ValueError("bad index")
+
+    def __int__(self):
+        raise ValueError("bad int")
 
 
 def listMethodCheck(description, func, *args):
@@ -934,18 +937,18 @@ def listIndexStartStop(values, start, stop):
 
 def listInsertBadIndex():
     a = [1, 2]
-    a.insert(BadListIndex(), "x")
+    a.insert(BadIndex(), "x")
     return a
 
 
 def listIndexBadStart(values):
     a = list(values)
-    return a.index(2, BadListIndex())
+    return a.index(2, BadIndex())
 
 
 def listIndexBadStopValue(values):
     a = list(values)
-    return a.index(2, 0, BadListIndex())
+    return a.index(2, 0, BadIndex())
 
 
 def listIndexBadStop(values, start, stop):
@@ -975,6 +978,39 @@ listMethodCheck("insert bad __index__", listInsertBadIndex)
 listMethodCheck("index bad __index__ start", listIndexBadStart, [1, 2])
 listMethodCheck("index bad __index__ stop", listIndexBadStopValue, [1, 2])
 listMethodCheck("index bad stop", listIndexBadStop, [1, 2], list_method_big, None)
+
+
+class Index(object):
+    def __index__(self):
+        return 65
+
+
+def chrCheck(value):
+    try:
+        result = repr(chr(value))
+    except Exception as e:
+        result = "%s: %s" % (type(e).__name__, e)
+    print(repr(value)[:24], "->", result)
+
+
+# Values not known at compile time.
+chr_base = len(sys.argv)
+
+for chr_value in (
+    65 * chr_base,
+    0x10FFFF * chr_base,
+    0x110000 * chr_base,
+    -chr_base,
+    2**31 * chr_base,
+    2**63 * chr_base,
+    -(2**63) * chr_base,
+    1.5 * chr_base,
+    None,
+    Index(),
+    BadIndex(),
+    True,
+):
+    chrCheck(chr_value)
 
 #     Python tests originally created or extracted from other peoples work. The
 #     parts were too small to be protected.
