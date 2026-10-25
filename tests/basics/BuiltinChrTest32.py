@@ -13,6 +13,14 @@ class Index(object):
         return 65
 
 
+class BadIndex(object):
+    def __index__(self):
+        raise ValueError("bad index")
+
+    def __int__(self):
+        raise ValueError("bad int")
+
+
 def check(value):
     try:
         result = repr(chr(value))
@@ -35,6 +43,7 @@ for value in (
     1.5 * base,
     None,
     Index(),
+    BadIndex(),
     True,
 ):
     check(value)
