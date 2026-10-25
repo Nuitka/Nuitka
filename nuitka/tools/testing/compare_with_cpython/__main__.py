@@ -251,6 +251,24 @@ def main():
     # For output keep it
     arguments = list(args)
 
+    for count, arg in reversed(tuple(enumerate(args))):
+        if arg.startswith("env:"):
+            setting = arg[len("env:") :]
+
+            if "=" not in setting:
+                return sys.exit("Error, malformed environment override '%s'." % arg)
+
+            env_var_name, env_var_value = setting.split("=", 1)
+
+            if not env_var_name:
+                return sys.exit("Error, malformed environment override '%s'." % arg)
+
+            os.environ[env_var_name] = env_var_value
+
+            del args[count]
+
+    extra_options = os.getenv("NUITKA_EXTRA_OPTIONS", "").split()
+
     silent_mode = hasArg("silent")
     ignore_stdout = hasArg("ignore_stdout")
     ignore_stderr = hasArg("ignore_stderr")
@@ -273,9 +291,16 @@ def main():
     remove_binary = not hasArg("--keep-binary")
     app_bundle_mode = hasArg("--mode=app") and isMacOS()
     standalone_mode = (
-        hasArg("--standalone") or hasArg("--mode=standalone") or app_bundle_mode
+        hasArg("--standalone")
+        or hasArg("--mode=standalone")
+        or app_bundle_mode
+        or "--mode=standalone" in extra_options
     )
-    onefile_mode = hasArg("--onefile") or hasArg("--mode=onefile")
+    onefile_mode = (
+        hasArg("--onefile")
+        or hasArg("--mode=onefile")
+        or "--mode=onefile" in extra_options
+    )
     no_site = hasArg("no_site") or coverage_mode
     report = hasArgValue("--report")
     nofollow_imports = hasArg("recurse_none") or hasArg("--nofollow-imports")
@@ -301,22 +326,6 @@ def main():
 
     if python_version:
         python_version = tuple(int(d) for d in python_version.split("."))
-
-    for count, arg in reversed(tuple(enumerate(args))):
-        if arg.startswith("env:"):
-            setting = arg[len("env:") :]
-
-            if "=" not in setting:
-                return sys.exit("Error, malformed environment override '%s'." % arg)
-
-            env_var_name, env_var_value = setting.split("=", 1)
-
-            if not env_var_name:
-                return sys.exit("Error, malformed environment override '%s'." % arg)
-
-            os.environ[env_var_name] = env_var_value
-
-            del args[count]
 
     plugins_enabled = []
     for count, arg in reversed(tuple(enumerate(args))):
@@ -418,7 +427,10 @@ def main():
     if "PYTHON" not in os.environ:
         os.environ["PYTHON"] = sys.executable
 
-    extra_options = os.getenv("NUITKA_EXTRA_OPTIONS", "").split()
+    if "--mode=standalone" in extra_options:
+        extra_options.remove("--mode=standalone")
+    if "--mode=onefile" in extra_options:
+        extra_options.remove("--mode=onefile")
 
     if os.path.normcase(os.environ["PYTHON"]).endswith(
         ("-dbg", "-debug", "d", "_d.exe")
