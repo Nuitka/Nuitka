@@ -157,7 +157,7 @@ static PyObject *_sys_getframemodulename_replacement(PyObject *self, PyObject *a
         return NULL;
     }
 
-    PyObject *index_value = Nuitka_Number_IndexAsLong(depth_arg ? depth_arg : const_int_0);
+    PyObject *index_value = Nuitka_Number_Index(depth_arg ? depth_arg : const_int_0);
 
     if (unlikely(index_value == NULL)) {
         return NULL;
