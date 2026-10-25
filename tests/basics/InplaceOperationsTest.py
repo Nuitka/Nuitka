@@ -44,6 +44,37 @@ h[:] += (5, 5, 5)
 
 print("List 'sclice' in-place [:]", h)
 
+
+class TupleWithRightAdd(tuple):
+    def __radd__(self, other):
+        return "TupleWithRightAdd.__radd__"
+
+
+class StrWithRightAdd(str):
+    def __radd__(self, other):
+        return "StrWithRightAdd.__radd__"
+
+
+def inplaceAddList(value, other):
+    a = list(value)
+    a += other
+    return a
+
+
+def inplaceAddTuple(value, other):
+    a = tuple(value)
+    a += other
+    return a
+
+
+print("List in-place add tuple subclass:", inplaceAddList([1], TupleWithRightAdd((2,))))
+print("List in-place add str subclass:", inplaceAddList([1], StrWithRightAdd("ab")))
+print(
+    "Tuple in-place add tuple subclass:", inplaceAddTuple((1,), TupleWithRightAdd((2,)))
+)
+print("List in-place add plain tuple:", inplaceAddList([1], (2,)))
+print("Tuple in-place add plain tuple:", inplaceAddTuple((1,), (2,)))
+
 #     Python tests originally created or extracted from other peoples work. The
 #     parts were too small to be protected.
 #
