@@ -108,14 +108,14 @@ PyObject *Nuitka_Number_Index(PyObject *item) {
 PyObject *Nuitka_Number_IndexAsLong(PyObject *item) {
     PyObject *result = Nuitka_Number_Index(item);
 
-    if (result != NULL) {
-        PyObject *converted_long = _PyLong_Copy((PyLongObject *)result);
-        Py_DECREF(result);
-
-        return converted_long;
-    } else {
-        return NULL;
+    if (result == NULL || PyLong_CheckExact(result)) {
+        return result;
     }
+
+    PyObject *converted_long = _PyLong_Copy((PyLongObject *)result);
+    Py_DECREF(result);
+
+    return converted_long;
 }
 #endif
 
