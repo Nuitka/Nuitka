@@ -225,7 +225,7 @@ PyObject *BUILTIN_RANGE3(PyThreadState *tstate, PyObject *low, PyObject *high, P
 
     PyObject *step_temp = TO_RANGE_ARG(step, "step");
 
-    if (unlikely(high_temp == NULL)) {
+    if (unlikely(step_temp == NULL)) {
         Py_DECREF(low_temp);
         Py_DECREF(high_temp);
         return NULL;
