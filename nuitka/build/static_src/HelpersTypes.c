@@ -971,7 +971,7 @@ PyObject *MAKE_TYPE_ALIAS(PyObject *name, PyObject *type_params, PyObject *compu
         ta->qualname = Py_NewRef(name);
     }
 #endif
-    ta->type_params = Py_IsNone(type_params) ? NULL : Py_XNewRef(type_params);
+    ta->type_params = type_params == Py_None ? NULL : Py_XNewRef(type_params);
     ta->compute_value = Py_NewRef(compute_value);
     ta->value = NULL;
     ta->module = Py_NewRef(module_name);

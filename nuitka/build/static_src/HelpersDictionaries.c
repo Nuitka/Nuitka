@@ -1394,7 +1394,7 @@ static inline int Nuitka_Py_dictkeys_compare_generic(PyDictObject *mp, PyDictKey
     if (ep->me_hash == hash) {
         PyObject *startkey = ep->me_key;
         Py_INCREF(startkey);
-        int cmp = PyObject_RichCompareBool(startkey, key, Py_EQ);
+        int cmp = RICH_COMPARE_EQ_NBOOL_OBJECT_OBJECT(startkey, key);
         Py_DECREF(startkey);
         if (cmp < 0) {
             return DKIX_ERROR;
@@ -1448,7 +1448,7 @@ Nuitka_Py_dictkeys_compare_unicode_generic_threadsafe(PyDictObject *mp, PyDictKe
         }
 
         if (Nuitka_Py_unicode_get_hash(startkey) == hash) {
-            int cmp = PyObject_RichCompareBool(startkey, key, Py_EQ);
+            int cmp = RICH_COMPARE_EQ_NBOOL_OBJECT_OBJECT(startkey, key);
             Py_DECREF(startkey);
             if (cmp < 0) {
                 return DKIX_ERROR;
@@ -1517,7 +1517,7 @@ static inline Py_ALWAYS_INLINE int Nuitka_Py_dictkeys_compare_generic_threadsafe
         if (startkey == NULL || !_Py_TryIncrefCompare(&ep->me_key, startkey)) {
             return DKIX_KEY_CHANGED;
         }
-        int cmp = PyObject_RichCompareBool(startkey, key, Py_EQ);
+        int cmp = RICH_COMPARE_EQ_NBOOL_OBJECT_OBJECT(startkey, key);
         Py_DECREF(startkey);
         if (cmp < 0) {
             return DKIX_ERROR;

@@ -105,7 +105,7 @@ NUITKA_MAY_BE_UNUSED static inline int EXCEPTION_GROUP_MATCH_BOOL(PyThreadState 
         return -1;
     }
 
-    if (Py_IsNone(exc_value)) {
+    if (exc_value == Py_None) {
         Py_INCREF_IMMORTAL(Py_None);
         *match = Py_None;
 
@@ -492,7 +492,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *EXCEPTION_GROUP_PREPARE_RERAISE(PyThreadSt
         for (Py_ssize_t i = 0; i < numexcs; i++) {
             PyObject *element = PyList_GET_ITEM(excs, i);
 
-            if (!Py_IsNone(element)) {
+            if (element != Py_None) {
                 return Py_NewRef(element);
             }
         }
@@ -537,7 +537,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *EXCEPTION_GROUP_PREPARE_RERAISE(PyThreadSt
     for (Py_ssize_t i = 0; i < numexcs; i++) {
         PyObject *element = PyList_GET_ITEM(excs, i);
 
-        if (Py_IsNone(element)) {
+        if (element == Py_None) {
             continue;
         }
 
@@ -568,7 +568,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *EXCEPTION_GROUP_PREPARE_RERAISE(PyThreadSt
         result = reraised_eg;
         reraised_eg = NULL;
     } else {
-        if (!Py_IsNone(reraised_eg)) {
+        if (reraised_eg != Py_None) {
             if (unlikely(PyList_Append(raised_list, reraised_eg) < 0)) {
                 goto done;
             }

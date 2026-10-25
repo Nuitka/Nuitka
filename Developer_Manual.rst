@@ -2066,6 +2066,16 @@ call of the functions below is a hint that it should be replaced.
          incrementing the reference count; callers needing a new
          reference must incref.
 
+   -  -  ``Py_IsNone``
+
+      -  ``== Py_None`` / ``!= Py_None``
+
+      -  n/a
+
+      -  Identity check. ``Py_IsNone`` is a macro for the same pointer
+         comparison, but only exists on Python 3.10 and newer, so
+         version-independent runtime code uses the plain comparison.
+
    -  -  ``PyObject_Hash``
       -  ``BUILTIN_HASH``
       -  ``helpers.h``
@@ -2267,6 +2277,18 @@ call of the functions below is a hint that it should be replaced.
       -  ``helper/comparisons_*.h``
       -  The ``BOOL`` variants return a tri-state with an exception
          sentinel instead of ``-1``; comparison semantics are the same.
+
+   -  -  ``PyObject_RichCompareBool``
+
+      -  ``RICH_COMPARE_*_NBOOL_*``
+
+      -  ``helper/comparisons_*.h``
+
+      -  Returns ``nuitka_bool`` instead of ``int``. The identity
+         shortcut for ``Py_EQ``/``Py_NE`` only applies to sane builtin
+         types, so other types are compared normally, e.g. a ``NaN``
+         compares unequal to itself, unlike CPython's
+         ``PyObject_RichCompareBool``.
 
    -  -  ``PyImport_ImportModule``
 

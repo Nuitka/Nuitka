@@ -529,14 +529,14 @@ static PyObject *Nuitka_Function_annotateFromMaterialized(PyObject *self, PyObje
     CHECK_OBJECT(format);
 
     PyObject *two = Nuitka_PyLong_FromLong(2);
-    int needs_forward_ref_annotations = PyObject_RichCompareBool(format, two, Py_GT);
+    nuitka_bool needs_forward_ref_annotations = RICH_COMPARE_GT_NBOOL_OBJECT_LONG(format, two);
     Py_DECREF(two);
 
-    if (unlikely(needs_forward_ref_annotations == -1)) {
+    if (unlikely(needs_forward_ref_annotations == NUITKA_BOOL_EXCEPTION)) {
         return NULL;
     }
 
-    if (needs_forward_ref_annotations == 1) {
+    if (needs_forward_ref_annotations == NUITKA_BOOL_TRUE) {
         PyThreadState *tstate = PyThreadState_GET();
 
         SET_CURRENT_EXCEPTION_TYPE0(tstate, PyExc_NotImplementedError);

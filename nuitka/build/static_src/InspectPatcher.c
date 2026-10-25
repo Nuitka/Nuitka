@@ -164,7 +164,7 @@ static PyObject *_sys_getframemodulename_replacement(PyObject *self, PyObject *a
     }
 
     int overflow;
-    long depth_long = PyLong_AsLongAndOverflow(index_value, &overflow);
+    long depth_long = Nuitka_PyLong_AsLongAndOverflow(index_value, &overflow);
 
     Py_DECREF(index_value);
 

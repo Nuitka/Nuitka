@@ -588,7 +588,7 @@ PyObject *BUILTIN_ALL(PyThreadState *tstate, PyObject *value) {
 
         if (unlikely((item == NULL)))
             break;
-        int cmp = PyObject_IsTrue(item);
+        int cmp = CHECK_IF_TRUE(item);
         Py_DECREF(item);
         if (unlikely(cmp < 0)) {
             Py_DECREF(it);
@@ -639,7 +639,7 @@ PyObject *BUILTIN_ANY(PyThreadState *tstate, PyObject *value) {
 
         if (unlikely((item == NULL)))
             break;
-        int cmp = PyObject_IsTrue(item);
+        int cmp = CHECK_IF_TRUE(item);
         Py_DECREF(item);
         if (unlikely(cmp < 0)) {
             Py_DECREF(it);
@@ -1673,24 +1673,24 @@ int Nuitka_BuiltinModule_SetAttr(PyObject *self, PyObject *name, PyObject *value
     // many value to check maybe need create a dict first.
     bool found = false;
 
-    int res = PyObject_RichCompareBool(name, const_str_plain_open, Py_EQ);
+    nuitka_bool res = RICH_COMPARE_EQ_NBOOL_OBJECT_OBJECT(name, const_str_plain_open);
 
-    if (unlikely(res == -1)) {
+    if (unlikely(res == NUITKA_BOOL_EXCEPTION)) {
         return -1;
     }
-    if (res == 1) {
+    if (res == NUITKA_BOOL_TRUE) {
         NUITKA_UPDATE_BUILTIN(open, value);
         found = true;
     }
 
     if (found == false) {
-        res = PyObject_RichCompareBool(name, const_str_plain___import__, Py_EQ);
+        res = RICH_COMPARE_EQ_NBOOL_OBJECT_OBJECT(name, const_str_plain___import__);
 
-        if (unlikely(res == -1)) {
+        if (unlikely(res == NUITKA_BOOL_EXCEPTION)) {
             return -1;
         }
 
-        if (res == 1) {
+        if (res == NUITKA_BOOL_TRUE) {
             NUITKA_UPDATE_BUILTIN(__import__, value);
             found = true;
         }
@@ -1698,13 +1698,13 @@ int Nuitka_BuiltinModule_SetAttr(PyObject *self, PyObject *name, PyObject *value
 
 #if PYTHON_VERSION >= 0x300
     if (found == false) {
-        res = PyObject_RichCompareBool(name, const_str_plain_print, Py_EQ);
+        res = RICH_COMPARE_EQ_NBOOL_OBJECT_OBJECT(name, const_str_plain_print);
 
-        if (unlikely(res == -1)) {
+        if (unlikely(res == NUITKA_BOOL_EXCEPTION)) {
             return -1;
         }
 
-        if (res == 1) {
+        if (res == NUITKA_BOOL_TRUE) {
             NUITKA_UPDATE_BUILTIN(print, value);
             found = true;
         }
@@ -1712,13 +1712,13 @@ int Nuitka_BuiltinModule_SetAttr(PyObject *self, PyObject *name, PyObject *value
 #endif
 
     if (found == false) {
-        res = PyObject_RichCompareBool(name, const_str_plain_super, Py_EQ);
+        res = RICH_COMPARE_EQ_NBOOL_OBJECT_OBJECT(name, const_str_plain_super);
 
-        if (unlikely(res == -1)) {
+        if (unlikely(res == NUITKA_BOOL_EXCEPTION)) {
             return -1;
         }
 
-        if (res == 1) {
+        if (res == NUITKA_BOOL_TRUE) {
             NUITKA_UPDATE_BUILTIN(super, value);
             found = true;
         }

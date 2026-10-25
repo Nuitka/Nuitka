@@ -2967,17 +2967,17 @@ static PyObject *findExternalModuleSpecViaPathFinder(PyThreadState *tstate, PyOb
         return NULL;
     }
 
-    int same_origin = PyObject_RichCompareBool(origin, module_origin, Py_EQ);
+    nuitka_bool same_origin = RICH_COMPARE_EQ_NBOOL_OBJECT_OBJECT(origin, module_origin);
 
     Py_DECREF(origin);
     Py_DECREF(module_origin);
 
-    if (unlikely(same_origin == -1)) {
+    if (unlikely(same_origin == NUITKA_BOOL_EXCEPTION)) {
         Py_DECREF(path_finder_spec);
         return NULL;
     }
 
-    if (same_origin == 1) {
+    if (same_origin == NUITKA_BOOL_TRUE) {
         Py_DECREF(path_finder_spec);
         return NULL;
     }
