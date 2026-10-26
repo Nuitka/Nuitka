@@ -58,6 +58,25 @@ def _searchLocalVariableByName(local_variables, variable_name):
     return None
 
 
+def _getFrameCacheClaimIdentifier(frame_identifier):
+    """The variable name for the cache claim of a frame.
+
+    Notes:
+        Nested frames, e.g. class bodies inside functions, share the C
+        function with their parent, so their claim variable must not shadow
+        the one of the parent frame, which MSVC warns about with C4456. The
+        frame handle names are already unique per C function, so the claim
+        variable name is derived from them.
+
+    Args:
+        frame_identifier: The declaration of the frame handle.
+
+    Returns:
+        The C variable name to use for the claim.
+    """
+    return "cache_claim_%s" % frame_identifier.code_name
+
+
 def generateStatementsFrameCode(statement_sequence, emit, context):
     # This is a wrapper that provides also handling of frames. The standard
     # and generator frame variety ought to be merged once generators are
@@ -252,6 +271,8 @@ def getFrameGuardHeavyCode(
     else:
         frame_cache_identifier = None
 
+    cache_claim_identifier = _getFrameCacheClaimIdentifier(frame_identifier)
+
     frame_init_code = ""
     frame_exit_code = ""
 
@@ -381,6 +402,7 @@ Nuitka_Frame_ClearLocals(%(frame_identifier)s);
             template_frame_guard_normal_main_block,
             frame_identifier=frame_identifier,
             frame_cache_identifier=frame_cache_identifier,
+            cache_claim_identifier=cache_claim_identifier,
             codes=indented(codes),
             no_exception_exit=no_exception_exit,
             needs_preserve=needs_preserve,
@@ -397,6 +419,7 @@ Nuitka_Frame_ClearLocals(%(frame_identifier)s);
             renderTemplateFromString(
                 template_frame_guard_normal_return_handler,
                 frame_identifier=frame_identifier,
+                frame_cache_identifier=frame_cache_identifier,
                 return_exit=parent_return_exit,
                 frame_return_exit=frame_return_exit,
                 needs_preserve=needs_preserve,
@@ -457,6 +480,8 @@ def getFrameGuardGeneratorCode(
         frame_identifier.code_name
     )
 
+    cache_claim_identifier = _getFrameCacheClaimIdentifier(frame_identifier)
+
     # TODO: Wire the FrameLocalsProxy to generator/coroutine/asyncgen frames by
     # emitting a type description and pointing m_locals_ptr at the generator
     # object's m_heap_storage. That storage is owned by the generator object, so
@@ -480,6 +505,7 @@ def getFrameGuardGeneratorCode(
             template_frame_guard_normal_main_block,
             frame_identifier=frame_identifier,
             frame_cache_identifier=frame_cache_identifier,
+            cache_claim_identifier=cache_claim_identifier,
             context_identifier=context_identifier,
             codes=indented(codes),
             no_exception_exit=no_exception_exit,

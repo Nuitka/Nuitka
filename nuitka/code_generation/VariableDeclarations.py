@@ -245,7 +245,9 @@ class VariableStorage(object):
 
     def addFrameCacheDeclaration(self, frame_identifier):
         return self.addVariableDeclarationFunction(
-            "static struct Nuitka_FrameObject *", "cache_%s" % frame_identifier, "NULL"
+            "static struct Nuitka_FrameCacheHandle",
+            "cache_%s" % frame_identifier,
+            "{NULL, 0}",
         )
 
     def makeCStructLevelDeclarations(self):

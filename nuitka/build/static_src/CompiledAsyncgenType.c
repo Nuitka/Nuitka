@@ -430,9 +430,11 @@ static PySendResult _Nuitka_Asyncgen_sendR(PyThreadState *tstate, struct Nuitka_
             Nuitka_MarkAsyncgenAsFinished(asyncgen);
 
             if (asyncgen->m_frame != NULL) {
-                Nuitka_SetFrameGenerator(asyncgen->m_frame, NULL);
-                Py_DECREF(asyncgen->m_frame);
+                struct Nuitka_FrameObject *release_frame = asyncgen->m_frame;
                 asyncgen->m_frame = NULL;
+
+                Nuitka_SetFrameGenerator(release_frame, NULL);
+                Nuitka_FrameCache_ReleaseGeneratorFrame(release_frame);
             }
 
             Nuitka_Asyncgen_release_closure(asyncgen);
@@ -996,8 +998,11 @@ static void Nuitka_Asyncgen_tp_dealloc(PyObject *self) {
     Nuitka_Asyncgen_release_closure(asyncgen);
 
     if (asyncgen->m_frame) {
-        Nuitka_SetFrameGenerator(asyncgen->m_frame, NULL);
-        Py_DECREF(asyncgen->m_frame);
+        struct Nuitka_FrameObject *release_frame = asyncgen->m_frame;
+        asyncgen->m_frame = NULL;
+
+        Nuitka_SetFrameGenerator(release_frame, NULL);
+        Nuitka_FrameCache_ReleaseGeneratorFrame(release_frame);
     }
 
     // Now it is safe to release references and memory for it.

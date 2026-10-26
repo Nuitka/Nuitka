@@ -691,11 +691,13 @@ static PyObject *_Nuitka_Generator_send(PyThreadState *tstate, struct Nuitka_Gen
             Nuitka_MarkGeneratorAsFinished(generator);
 
             if (generator->m_frame != NULL) {
-#if PYTHON_VERSION >= 0x300
-                Nuitka_SetFrameGenerator(generator->m_frame, NULL);
-#endif
-                Py_DECREF(generator->m_frame);
+                struct Nuitka_FrameObject *release_frame = generator->m_frame;
                 generator->m_frame = NULL;
+
+#if PYTHON_VERSION >= 0x300
+                Nuitka_SetFrameGenerator(release_frame, NULL);
+#endif
+                Nuitka_FrameCache_ReleaseGeneratorFrame(release_frame);
             }
 
             Nuitka_Generator_release_closure(generator);
@@ -1584,10 +1586,13 @@ static void Nuitka_Generator_tp_dealloc(PyObject *self) {
     Nuitka_Generator_release_closure(generator);
 
     if (generator->m_frame != NULL) {
+        struct Nuitka_FrameObject *release_frame = generator->m_frame;
+        generator->m_frame = NULL;
+
 #if PYTHON_VERSION >= 0x300
-        Nuitka_SetFrameGenerator(generator->m_frame, NULL);
+        Nuitka_SetFrameGenerator(release_frame, NULL);
 #endif
-        Py_DECREF(generator->m_frame);
+        Nuitka_FrameCache_ReleaseGeneratorFrame(release_frame);
     }
 
     Py_DECREF(generator->m_name);

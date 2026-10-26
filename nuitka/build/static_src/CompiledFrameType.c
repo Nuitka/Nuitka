@@ -535,7 +535,9 @@ static void Nuitka_Frame_tp_dealloc(PyObject *self) {
     RESTORE_ERROR_OCCURRED_STATE(tstate, &saved_exception_state1);
 #endif
 
-    Nuitka_GC_UnTrack(nuitka_frame);
+    if (_PyObject_GC_IS_TRACKED(nuitka_frame)) {
+        Nuitka_GC_UnTrack(nuitka_frame);
+    }
 
     PyFrameObject *frame = &nuitka_frame->m_frame;
 #if PYTHON_VERSION < 0x3b0
@@ -576,6 +578,8 @@ static void Nuitka_Frame_tp_dealloc(PyObject *self) {
     // it.
     Py_SET_SIZE(nuitka_frame, nuitka_frame->m_ob_size);
 #endif
+
+    assert(nuitka_frame->m_frame_cache == NULL);
 
     releaseToFreeList(free_list_frames, nuitka_frame, MAX_FRAME_FREE_LIST_COUNT);
 
@@ -922,6 +926,7 @@ static struct Nuitka_FrameObject *_MAKE_COMPILED_FRAME(PyCodeObject *code, PyObj
     allocateFromFreeList(free_list_frames, struct Nuitka_FrameObject, Nuitka_Frame_Type, total_locals_size);
 
     result->m_type_description = type_description;
+    result->m_frame_cache = NULL;
 #if PYTHON_VERSION >= 0x3b0
     result->m_locals_ptr = &result->m_interpreter_frame.localsplus[code->co_nlocalsplus];
 #else
@@ -1668,6 +1673,20 @@ static void PRINT_UNCOMPILED_FRAME(char const *prefix, PyFrameObject *frame) {
 }
 
 void PRINT_COMPILED_FRAME(char const *prefix, struct Nuitka_FrameObject *frame) {
+    if (frame == NULL) {
+        PRINT_STRING(prefix);
+        PRINT_STRING(" <NULL> no frame");
+        PRINT_NEW_LINE();
+        return;
+    }
+
+    if (!_PyObject_GC_IS_TRACKED(frame)) {
+        PRINT_STRING(prefix);
+        PRINT_STRING(" <untracked compiled_frame>");
+        PRINT_NEW_LINE();
+        return;
+    }
+
     return PRINT_UNCOMPILED_FRAME(prefix, &frame->m_frame);
 }
 

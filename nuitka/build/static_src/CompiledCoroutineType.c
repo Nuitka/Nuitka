@@ -519,9 +519,11 @@ static PySendResult _Nuitka_Coroutine_sendR(PyThreadState *tstate, struct Nuitka
             Nuitka_MarkCoroutineAsFinished(coroutine);
 
             if (coroutine->m_frame != NULL) {
-                Nuitka_SetFrameGenerator(coroutine->m_frame, NULL);
-                Py_DECREF(coroutine->m_frame);
+                struct Nuitka_FrameObject *release_frame = coroutine->m_frame;
                 coroutine->m_frame = NULL;
+
+                Nuitka_SetFrameGenerator(release_frame, NULL);
+                Nuitka_FrameCache_ReleaseGeneratorFrame(release_frame);
             }
 
             Nuitka_Coroutine_release_closure(coroutine);
@@ -1155,8 +1157,11 @@ static void Nuitka_Coroutine_tp_dealloc(PyObject *self) {
 #endif
 
     if (coroutine->m_frame) {
-        Nuitka_SetFrameGenerator(coroutine->m_frame, NULL);
-        Py_DECREF(coroutine->m_frame);
+        struct Nuitka_FrameObject *release_frame = coroutine->m_frame;
+        coroutine->m_frame = NULL;
+
+        Nuitka_SetFrameGenerator(release_frame, NULL);
+        Nuitka_FrameCache_ReleaseGeneratorFrame(release_frame);
     }
 
     Py_DECREF(coroutine->m_name);
