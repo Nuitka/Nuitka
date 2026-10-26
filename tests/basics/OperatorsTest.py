@@ -102,7 +102,12 @@ try:
 except OverflowError as e:
     print("Power operator negative infinity overflow gives", repr(e))
 
-print("Power operator infinity gives", inf_value**2.0)
+# Python 2.6 raises OverflowError for inf ** positive, unlike 2.7+.
+try:
+    print("Power operator infinity gives", inf_value**2.0)
+except OverflowError as e:
+    print("Power operator infinity gives", repr(e))
+
 print("Power operator infinity underflow gives", inf_value**-1.0)
 print("Power operator negative infinity underflow gives", (-inf_value) ** -3.0)
 
