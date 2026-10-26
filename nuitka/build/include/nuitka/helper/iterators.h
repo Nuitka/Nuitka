@@ -217,8 +217,8 @@ NUITKA_MAY_BE_UNUSED static PyObject *ITERATOR_NEXT(PyObject *iterator) {
 #endif
 }
 
-NUITKA_MAY_BE_UNUSED static PyObject *BUILTIN_NEXT2(PyThreadState *tstate, PyObject *iterator,
-                                                    PyObject *default_value) {
+NUITKA_MAY_BE_UNUSED static PyObject *_BUILTIN_NEXT2_COMMON(PyThreadState *tstate, PyObject *iterator,
+                                                            PyObject *default_value) {
     CHECK_OBJECT(iterator);
     CHECK_OBJECT(default_value);
 
@@ -237,6 +237,35 @@ NUITKA_MAY_BE_UNUSED static PyObject *BUILTIN_NEXT2(PyThreadState *tstate, PyObj
 
     CHECK_OBJECT(result);
     return result;
+}
+
+NUITKA_MAY_BE_UNUSED static PyObject *BUILTIN_NEXT2(PyThreadState *tstate, PyObject *iterator,
+                                                    PyObject *default_value) {
+    CHECK_OBJECT(iterator);
+    CHECK_OBJECT(default_value);
+
+    if (unlikely(!HAS_ITERNEXT(iterator))) {
+        SET_CURRENT_EXCEPTION_TYPE_COMPLAINT(
+#if PYTHON_VERSION < 0x300 && defined(_NUITKA_FULL_COMPAT)
+            "%s object is not an iterator",
+#else
+            "'%s' object is not an iterator",
+#endif
+            iterator);
+
+        return NULL;
+    }
+
+    return _BUILTIN_NEXT2_COMMON(tstate, iterator, default_value);
+}
+
+NUITKA_MAY_BE_UNUSED static PyObject *BUILTIN_NEXT2_ITERATOR(PyThreadState *tstate, PyObject *iterator,
+                                                             PyObject *default_value) {
+    CHECK_OBJECT(iterator);
+    CHECK_OBJECT(default_value);
+    assert(HAS_ITERNEXT(iterator));
+
+    return _BUILTIN_NEXT2_COMMON(tstate, iterator, default_value);
 }
 
 // For cases, where no exception raising is needed, because we know it at compile time.
