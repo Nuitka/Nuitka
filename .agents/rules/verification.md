@@ -79,8 +79,12 @@ the changed area:
 - **Execution:**
 
   - Use `bin/nuitka` to execute Nuitka, avoiding the need to manually set `PYTHONPATH`.
+  - Do not disable ccache or clache by default; they are expected to invalidate correctly, and
+    bypassing them is not a general-purpose fix.
+  - If a ccache or clache issue is suspected, stop and prompt the user before disabling or clearing
+    the cache, including the observed evidence and exact command.
 
 ## Documentation & Conduct
 
 - Refer to [`Developer_Manual.rst`](../../Developer_Manual.rst) for detailed coding standards.
-- Refer to [`README.rst`](../../README.rst) for user manual and usage context.
+- Refer to [`README.rst`](../../README.rst) for User Manual and usage context.
