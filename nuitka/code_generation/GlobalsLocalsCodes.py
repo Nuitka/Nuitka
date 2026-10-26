@@ -45,10 +45,13 @@ def generateBuiltinLocalsCode(to_name, expression, emit, context):
 
     # Locals is sorted of course.
     def _sorted(variables):
-        variable_order = tuple(locals_scope.getProvidedVariables())
+        variable_order = dict(
+            (variable, count)
+            for count, variable in enumerate(locals_scope.getProvidedVariables())
+        )
 
         return sorted(
-            variables, key=lambda variable_desc: variable_order.index(variable_desc[0])
+            variables, key=lambda variable_desc: variable_order[variable_desc[0]]
         )
 
     with withObjectCodeTemporaryAssignment(

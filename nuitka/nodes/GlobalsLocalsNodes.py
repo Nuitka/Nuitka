@@ -166,15 +166,17 @@ class ExpressionBuiltinLocalsCopy(ExpressionBuiltinLocalsBase):
 
         # Locals is sorted of course.
         def _sorted(pairs):
-            names = [
-                variable.getName()
-                for variable in self.locals_scope.getProvidedVariables()
-            ]
+            name_order = dict(
+                (variable.getName(), count)
+                for count, variable in enumerate(
+                    self.locals_scope.getProvidedVariables()
+                )
+            )
 
             return tuple(
                 sorted(
                     pairs,
-                    key=lambda pair: names.index(pair.getKeyCompileTimeConstant()),
+                    key=lambda pair: name_order[pair.getKeyCompileTimeConstant()],
                 )
             )
 
