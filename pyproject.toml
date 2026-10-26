@@ -44,7 +44,7 @@ exclude = [
     "**/__pycache__",
     "**/.*",
     "**/inline_copy/**",
-    "tests/CPython*",
+    "tests",
     "*Mini*",
 ]
 
