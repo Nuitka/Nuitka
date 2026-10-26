@@ -1,5 +1,7 @@
 #     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
+import sys
+
 
 def functionNoParameters():
     pass
@@ -277,6 +279,57 @@ try:
     functionwithTwoArgsOneDefaulted(b=12)
 except TypeError as e:
     print(repr(e))
+
+
+print("Call built-in methods with keyword arguments:")
+
+
+def checkBuiltinMethodCall(description, func):
+    try:
+        result = func()
+    except (AttributeError, TypeError) as e:
+        print("%s: %s: %s" % (description, type(e).__name__, e))
+    else:
+        print("%s -> %r" % (description, result))
+
+
+def checkBuiltinMethodRejected(description, func):
+    # Only the exception type, method names in messages are not exact.
+    try:
+        func()
+    except TypeError:
+        print("%s: TypeError" % description)
+
+
+checkBuiltinMethodCall("dict.get key=", lambda: {"a": 1}.get(key="a"))
+checkBuiltinMethodCall("dict.get default=", lambda: {"a": 1}.get("z", default=3))
+checkBuiltinMethodCall("dict.pop key=", lambda: {"a": 1}.pop(key="a"))
+checkBuiltinMethodCall("dict.pop default=", lambda: {"a": 1}.pop("z", default=3))
+checkBuiltinMethodCall("dict.setdefault key=", lambda: {"a": 1}.setdefault(key="b"))
+checkBuiltinMethodCall("dict.fromkeys iterable=", lambda: dict.fromkeys(iterable="ab"))
+checkBuiltinMethodCall("dict.fromkeys positional", lambda: dict.fromkeys("ab", 1))
+checkBuiltinMethodCall("dict.has_key key=", lambda: {"a": 1}.has_key(key="a"))
+checkBuiltinMethodCall("dict.has_key positional", lambda: {"a": 1}.has_key("a"))
+
+checkBuiltinMethodCall("str.replace count=", lambda: "aaa".replace("a", "x", count=1))
+checkBuiltinMethodRejected("str.replace old=", lambda: "aaa".replace(old="a", new="x"))
+checkBuiltinMethodCall("str.replace positional", lambda: "aaa".replace("a", "x", 2))
+
+checkBuiltinMethodCall(
+    "bytes.translate delete=", lambda: b"abc".translate(None, delete=b"a")
+)
+checkBuiltinMethodRejected(
+    "bytes.translate table=", lambda: b"abc".translate(table=None)
+)
+
+if sys.version_info[0] < 3:
+    # Python2 "str.translate" has an optional second "deletechars" argument,
+    # which the specialized node does not support yet.
+    checkBuiltinMethodCall("bytes.translate positional", lambda: b"abc".translate(None))
+else:
+    checkBuiltinMethodCall(
+        "bytes.translate positional", lambda: b"abc".translate(None, b"b")
+    )
 
 #     Python tests originally created or extracted from other peoples work. The
 #     parts were too small to be protected.
