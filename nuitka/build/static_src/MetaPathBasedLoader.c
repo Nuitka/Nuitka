@@ -2189,8 +2189,17 @@ PyObject *IMPORT_EMBEDDED_MODULE_STATE(PyThreadState *tstate, struct Nuitka_Meta
 
 // Execute a compiled module through its init function, with the pre- and
 // post-load handling around it, and register it in "sys.modules".
+//
+// The executed module is returned as a new reference, and "replaced_module" is
+// set to a new reference of what "sys.modules" holds instead, if the module
+// code replaced itself there while executing, and to NULL otherwise. The
+// replacement must not become the module of the compiled code, since it does
+// not provide its globals, only the importer should receive it.
 static PyObject *executeCompiledModule(PyThreadState *tstate, struct Nuitka_MetaPathBasedLoaderEntry const *entry,
-                                       PyObject *module, PyObject *module_name, char const *name) {
+                                       PyObject *module, PyObject *module_name, char const *name,
+                                       PyObject **replaced_module) {
+    *replaced_module = NULL;
+
     Nuitka_LoadTriggeredModule(tstate, entry->m_pre_load);
 
 #ifdef _NUITKA_EXPERIMENTAL_FORCE_GC_COLLECT_ON_IMPORT
@@ -2202,12 +2211,12 @@ static PyObject *executeCompiledModule(PyThreadState *tstate, struct Nuitka_Meta
         assert(res != false);
     }
 
-    PyObject *result = entry->python_init_func(tstate, module);
-    CHECK_OBJECT_X(result);
+    PyObject *init_result = entry->python_init_func(tstate, module);
+    CHECK_OBJECT_X(init_result);
 
 #if PYTHON_VERSION >= 0x300
-    if (likely(result != NULL)) {
-        _fixupSpecAttribute(tstate, result);
+    if (likely(init_result != NULL)) {
+        _fixupSpecAttribute(tstate, init_result);
     }
 #endif
 
@@ -2228,21 +2237,24 @@ static PyObject *executeCompiledModule(PyThreadState *tstate, struct Nuitka_Meta
 
     if (unlikely((entry->flags & NUITKA_INTERNAL_MODULE_FLAG) != 0)) {
         assert(Nuitka_GetModule(tstate, module_name) == NULL);
-
-        result = module;
     } else {
-        result = Nuitka_GetModule(tstate, module_name);
+        PyObject *registered_module = Nuitka_GetModule(tstate, module_name);
 
-        if (unlikely(result == NULL)) {
+        if (unlikely(registered_module == NULL)) {
             return NULL;
+        }
+
+        if (registered_module != module) {
+            Py_INCREF(registered_module);
+            *replaced_module = registered_module;
         }
     }
 
-    loadPostLoadCode(tstate, module_name, name, result, entry);
+    loadPostLoadCode(tstate, module_name, name, module, entry);
 
-    Py_INCREF(result);
+    Py_INCREF(module);
 
-    return result;
+    return module;
 }
 
 // Import a compiled module with explicit load state slots. The slots are three
@@ -2319,9 +2331,11 @@ static PyObject *IMPORT_COMPILED_MODULE_DIRECT(PyThreadState *tstate,
     *module_state = created_module;
     *owner_state = tstate;
 
-    PyObject *result = executeCompiledModule(tstate, entry, created_module, module_name, module_name_buffer);
+    PyObject *replaced_module = NULL;
+    PyObject *executed_module =
+        executeCompiledModule(tstate, entry, created_module, module_name, module_name_buffer, &replaced_module);
 
-    if (unlikely(result == NULL)) {
+    if (unlikely(executed_module == NULL)) {
         if (unlikely((entry->flags & NUITKA_MAIN_MODULE_FLAG) != 0)) {
             // The main module is executed like a script. Its code objects
             // and functions may still be used after failed execution, e.g.
@@ -2343,19 +2357,23 @@ static PyObject *IMPORT_COMPILED_MODULE_DIRECT(PyThreadState *tstate,
         return NULL;
     }
 
-    if (result != created_module) {
-        // The module replaced itself in "sys.modules" while executing.
-        Py_DECREF(created_module);
-        Py_INCREF(result);
-    }
+    Py_DECREF(executed_module);
 
-    *module_state = result;
+    // The load state keeps the module that was executed, since it provides the
+    // globals of all compiled code of the module. Only the importer is given
+    // what the module code may have replaced it with in "sys.modules".
     *owner_state = NULL;
 
     releaseModuleLock(tstate, entry, module_lock);
     Py_DECREF(module_name);
 
-    return result;
+    if (replaced_module != NULL) {
+        return replaced_module;
+    }
+
+    Py_INCREF(created_module);
+
+    return created_module;
 }
 
 // Import a compiled module provided by the import machinery, with explicit
@@ -2400,9 +2418,10 @@ static PyObject *IMPORT_COMPILED_MODULE_PROVIDED(PyThreadState *tstate,
 
     *owner_state = tstate;
 
-    PyObject *result = executeCompiledModule(tstate, entry, module, module_name, name);
+    PyObject *replaced_module = NULL;
+    PyObject *executed_module = executeCompiledModule(tstate, entry, module, module_name, name, &replaced_module);
 
-    if (unlikely(result == NULL)) {
+    if (unlikely(executed_module == NULL)) {
         if (was_loaded) {
             // Failed reload keeps the previously loaded module.
             *owner_state = NULL;
@@ -2417,13 +2436,22 @@ static PyObject *IMPORT_COMPILED_MODULE_PROVIDED(PyThreadState *tstate,
         return NULL;
     }
 
-    Py_INCREF(result);
-    *module_state = result;
+    Py_DECREF(executed_module);
+
+    // The load state keeps the module that was executed, since it provides the
+    // globals of all compiled code of the module. Only the importer is given
+    // what the module code may have replaced it with in "sys.modules".
     *owner_state = NULL;
 
     Py_DECREF(module_name);
 
-    return result;
+    if (replaced_module != NULL) {
+        return replaced_module;
+    }
+
+    Py_INCREF(module);
+
+    return module;
 }
 
 // Import a compiled module with explicit load state slots. The slots are three

@@ -16,8 +16,11 @@ class OurModule(types.ModuleType):
     if "__loader__" in globals():
         attribute_dict["__loader__"] = __loader__
 
-    def __init__(self, name):
+    def __init__(self, name, module):
         super(OurModule, self).__init__(name)
+        # Keep the original module alive, on Python2 its dictionary is cleared
+        # when it is deallocated, and real world wrappers do keep it too.
+        self.__dict__["_module"] = module
 
     def __getattr__(self, attr):
         try:
@@ -26,7 +29,33 @@ class OurModule(types.ModuleType):
             raise AttributeError(attr)
 
 
-sys.modules[__name__] = OurModule(__name__)
+MARKER = "marker"
+
+
+def get_frame_globals():
+    return sys._getframe(0).f_globals
+
+
+def own_globals_used():
+    # Compiled functions must keep using the module dictionary they were
+    # compiled against, even after the module replaced itself in
+    # "sys.modules", i.e. the replacement must not become their globals.
+    return get_frame_globals() is globals()
+
+
+def marker_found():
+    return get_frame_globals().get("MARKER")
+
+
+def builtins_found():
+    return "__builtins__" in get_frame_globals()
+
+
+OurModule.attribute_dict["own_globals_used"] = own_globals_used
+OurModule.attribute_dict["marker_found"] = marker_found
+OurModule.attribute_dict["builtins_found"] = builtins_found
+
+sys.modules[__name__] = OurModule(__name__, sys.modules[__name__])
 
 #     Python tests originally created or extracted from other peoples work. The
 #     parts were too small to be protected.
