@@ -167,6 +167,10 @@ static inline void split_keys_entry_added(PyDictKeysObject *keys) {
 
 Py_ssize_t Nuitka_Py_dict_lookup_threadsafe(PyDictObject *mp, PyObject *key, Py_hash_t hash, PyObject **value_addr);
 
+#ifdef Py_GIL_DISABLED
+static PyObject *Nuitka_Py_dict_lookup_threadsafe_borrowed(PyDictObject *mp, PyObject *key, Py_hash_t hash);
+#endif
+
 PyObject *DICT_GET_ITEM0(PyThreadState *tstate, PyObject *dict, PyObject *key) {
     CHECK_OBJECT(dict);
     assert(PyDict_Check(dict));
@@ -214,6 +218,17 @@ PyObject *DICT_GET_ITEM0(PyThreadState *tstate, PyObject *dict, PyObject *key) {
     }
 
     PyDictObject *dict_object = (PyDictObject *)dict;
+
+#if defined(Py_GIL_DISABLED)
+    PyObject *borrowed_result = Nuitka_Py_dict_lookup_threadsafe_borrowed(dict_object, key, hash);
+
+    if (unlikely(HAS_ERROR_OCCURRED(tstate))) {
+        CLEAR_ERROR_OCCURRED(tstate);
+        return NULL;
+    }
+
+    return borrowed_result;
+#endif
 
 #if PYTHON_VERSION < 0x360
     PyObject **value_addr;
@@ -340,8 +355,13 @@ PyObject *DICT_GET_ITEM1(PyThreadState *tstate, PyObject *dict, PyObject *key) {
     }
 
     CHECK_OBJECT(result);
+
+#if defined(Py_GIL_DISABLED)
+    return result;
+#else
     Py_INCREF(result);
     return result;
+#endif
 #endif
 }
 
@@ -746,6 +766,15 @@ int DICT_HAS_ITEM(PyThreadState *tstate, PyObject *dict, PyObject *key) {
 
         return 0;
     }
+
+#if defined(Py_GIL_DISABLED)
+    if (result == NULL) {
+        return 0;
+    }
+
+    Py_DECREF(result);
+    return 1;
+#endif
 
 #if PYTHON_VERSION < 0x370 || (PYTHON_VERSION >= 0x3b0 && !defined(Py_GIL_DISABLED))
     assert(value_addr != NULL);
@@ -1642,6 +1671,28 @@ read_failed:
     }
     Py_END_CRITICAL_SECTION();
     return ix;
+}
+
+// Borrowed lookup with the same lifetime rules as CPython's PyDict_GetItem in
+// free-threaded builds. Callers must provide external synchronization if the
+// dictionary can be mutated concurrently.
+static PyObject *Nuitka_Py_dict_lookup_threadsafe_borrowed(PyDictObject *mp, PyObject *key, Py_hash_t hash) {
+    Nuitka_Py_dict_ensure_shared_on_read(mp);
+
+    PyObject *result;
+
+    Py_BEGIN_CRITICAL_SECTION(mp);
+    PyObject **value_addr = NULL;
+    Py_ssize_t ix = Nuitka_PyDictLookup(mp, key, hash, &value_addr);
+
+    if (ix >= 0 && value_addr != NULL) {
+        result = *value_addr;
+    } else {
+        result = NULL;
+    }
+    Py_END_CRITICAL_SECTION();
+
+    return result;
 }
 
 #else // Py_GIL_DISABLED
