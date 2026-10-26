@@ -41,6 +41,13 @@ static PyObject *_inspect_getgeneratorstate_replacement(PyObject *self, PyObject
         if (generator->m_running) {
             return PyObject_GetAttrString(module_inspect, "GEN_RUNNING");
         } else if (generator->m_status == status_Finished) {
+#if PYTHON_VERSION == 0x3c0
+            // CPython 3.12.0 fails to clear the frame of a generator that is
+            // closed before it started, and therefore reports it as created.
+            if (generator->m_closed_before_start) {
+                return PyObject_GetAttrString(module_inspect, "GEN_CREATED");
+            }
+#endif
             return PyObject_GetAttrString(module_inspect, "GEN_CLOSED");
         } else if (generator->m_status == status_Unused) {
             return PyObject_GetAttrString(module_inspect, "GEN_CREATED");
@@ -68,6 +75,13 @@ static PyObject *_inspect_getcoroutinestate_replacement(PyObject *self, PyObject
         if (coroutine->m_running) {
             return PyObject_GetAttrString(module_inspect, "CORO_RUNNING");
         } else if (coroutine->m_status == status_Finished) {
+#if PYTHON_VERSION == 0x3c0
+            // CPython 3.12.0 fails to clear the frame of a coroutine that is
+            // closed before it started, and therefore reports it as created.
+            if (coroutine->m_closed_before_start) {
+                return PyObject_GetAttrString(module_inspect, "CORO_CREATED");
+            }
+#endif
             return PyObject_GetAttrString(module_inspect, "CORO_CLOSED");
         } else if (coroutine->m_status == status_Unused) {
             return PyObject_GetAttrString(module_inspect, "CORO_CREATED");

@@ -660,6 +660,9 @@ static bool _Nuitka_Coroutine_close(PyThreadState *tstate, struct Nuitka_Corouti
     CHECK_OBJECT(coroutine);
 
     if (coroutine->m_status == status_Unused) {
+#if PYTHON_VERSION == 0x3c0
+        coroutine->m_closed_before_start = true;
+#endif
         Nuitka_MarkCoroutineAsFinished(coroutine);
 
         return true;
@@ -1508,6 +1511,10 @@ PyObject *Nuitka_Coroutine_New(PyThreadState *tstate, coroutine_code code, PyObj
     result->m_status = status_Unused;
     result->m_running = 0;
     result->m_awaiting = false;
+
+#if PYTHON_VERSION == 0x3c0
+    result->m_closed_before_start = false;
+#endif
 
     result->m_yield_return_index = 0;
 

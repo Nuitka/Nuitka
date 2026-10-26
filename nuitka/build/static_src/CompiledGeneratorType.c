@@ -906,6 +906,9 @@ static bool _Nuitka_Generator_close(PyThreadState *tstate, struct Nuitka_Generat
     CHECK_OBJECT(generator);
 
     if (generator->m_status == status_Unused) {
+#if PYTHON_VERSION == 0x3c0
+        generator->m_closed_before_start = true;
+#endif
         Nuitka_MarkGeneratorAsFinished(generator);
 
         return true;
@@ -1978,6 +1981,10 @@ PyObject *Nuitka_Generator_New(generator_code code, PyObject *module, PyObject *
 
     result->m_status = status_Unused;
     result->m_running = 0;
+
+#if PYTHON_VERSION == 0x3c0
+    result->m_closed_before_start = false;
+#endif
 
     result->m_yield_return_index = 0;
 

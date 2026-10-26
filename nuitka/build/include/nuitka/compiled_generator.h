@@ -71,6 +71,13 @@ struct Nuitka_GeneratorObject {
     // Was it ever used, is it still running, or already finished.
     Generator_Status m_status;
 
+#if PYTHON_VERSION == 0x3c0
+    // CPython 3.12.0 fails to clear the frame of a generator that is closed
+    // before it started, and therefore reports it as created, and we mimic
+    // that for compatibility.
+    int m_closed_before_start;
+#endif
+
 #if PYTHON_VERSION >= 0x370
     struct Nuitka_ExceptionStackItem m_exc_state;
 #endif
