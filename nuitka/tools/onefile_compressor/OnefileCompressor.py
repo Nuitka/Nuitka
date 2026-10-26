@@ -380,7 +380,7 @@ def _writeOnefilePayload(file_list, payload_desc):
     # was already written.
     with open(payload_desc.onefile_output_filename, "rb+") as patch_file:
         patch_file.seek(start_pos + body_size_offset)
-        patch_file.write(struct.pack("<Q", body_end - body_start))
+        patch_file.write(struct.pack("=Q", body_end - body_start))
 
 
 def _getInputFileList(dist_dir, start_binary, include_start_binary, expected_files):
