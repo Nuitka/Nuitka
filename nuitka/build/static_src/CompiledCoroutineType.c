@@ -1027,6 +1027,7 @@ static int Nuitka_Coroutine_tp_traverse(PyObject *self, visitproc visit, void *a
 
 static struct Nuitka_CoroutineWrapperObject *free_list_coro_wrappers = NULL;
 static int free_list_coro_wrappers_count = 0;
+NUITKA_FREELIST_DECLARE_LOCK(free_list_coro_wrappers)
 
 static PyObject *Nuitka_Coroutine_await(PyObject *self) {
     struct Nuitka_CoroutineObject *coroutine = (struct Nuitka_CoroutineObject *)self;
@@ -1113,6 +1114,7 @@ static void Nuitka_Coroutine_tp_finalize(PyObject *self) {
 #define MAX_COROUTINE_FREE_LIST_COUNT 100
 static struct Nuitka_CoroutineObject *free_list_coroutines = NULL;
 static int free_list_coroutines_count = 0;
+NUITKA_FREELIST_DECLARE_LOCK(free_list_coroutines)
 
 static void Nuitka_Coroutine_tp_dealloc(PyObject *self) {
     struct Nuitka_CoroutineObject *coroutine = (struct Nuitka_CoroutineObject *)self;
@@ -1749,6 +1751,7 @@ static int Nuitka_AIterWrapper_traverse(PyObject *self, visitproc visit, void *a
 
 static struct Nuitka_AIterWrapper *free_list_coroutine_aiter_wrappers = NULL;
 static int free_list_coroutine_aiter_wrappers_count = 0;
+NUITKA_FREELIST_DECLARE_LOCK(free_list_coroutine_aiter_wrappers)
 
 static void Nuitka_AIterWrapper_dealloc(PyObject *self) {
     struct Nuitka_AIterWrapper *aw = (struct Nuitka_AIterWrapper *)self;

@@ -1523,6 +1523,7 @@ static void Nuitka_Generator_tp_finalizer(PyObject *self) {
 #define MAX_GENERATOR_FREE_LIST_COUNT 100
 static struct Nuitka_GeneratorObject *free_list_generators = NULL;
 static int free_list_generators_count = 0;
+NUITKA_FREELIST_DECLARE_LOCK(free_list_generators)
 
 static void Nuitka_Generator_tp_dealloc(PyObject *self) {
     struct Nuitka_GeneratorObject *generator = (struct Nuitka_GeneratorObject *)self;

@@ -516,6 +516,7 @@ static int Nuitka_Frame_tp_clear(PyObject *frame_obj) {
 #define MAX_FRAME_FREE_LIST_COUNT 100
 static struct Nuitka_FrameObject *free_list_frames = NULL;
 static int free_list_frames_count = 0;
+NUITKA_FREELIST_DECLARE_LOCK(free_list_frames)
 
 static void Nuitka_Frame_tp_dealloc(PyObject *self) {
     struct Nuitka_FrameObject *nuitka_frame = (struct Nuitka_FrameObject *)self;

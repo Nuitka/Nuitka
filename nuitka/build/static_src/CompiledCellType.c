@@ -28,6 +28,7 @@ int count_released_Nuitka_Cell_Type;
 #define MAX_CELL_FREE_LIST_COUNT 1000
 static struct Nuitka_CellObject *free_list_cells = NULL;
 static int free_list_cells_count = 0;
+NUITKA_FREELIST_DECLARE_LOCK(free_list_cells)
 
 static void Nuitka_Cell_tp_dealloc(PyObject *self) {
     struct Nuitka_CellObject *cell = (struct Nuitka_CellObject *)self;

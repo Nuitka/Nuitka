@@ -3543,6 +3543,7 @@ static PyObject *Nuitka_Loader_tp_repr(PyObject *self) {
 #define MAX_LOADER_FREE_LIST_COUNT 10
 static struct Nuitka_LoaderObject *free_list_loaders = NULL;
 static int free_list_loaders_count = 0;
+NUITKA_FREELIST_DECLARE_LOCK(free_list_loaders)
 
 static void Nuitka_Loader_tp_dealloc(PyObject *self) {
     struct Nuitka_LoaderObject *loader = (struct Nuitka_LoaderObject *)self;

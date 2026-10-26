@@ -962,6 +962,7 @@ static void Nuitka_Asyncgen_tp_finalize(PyObject *self) {
 #define MAX_ASYNCGEN_FREE_LIST_COUNT 100
 static struct Nuitka_AsyncgenObject *free_list_asyncgens = NULL;
 static int free_list_asyncgens_count = 0;
+NUITKA_FREELIST_DECLARE_LOCK(free_list_asyncgens)
 
 // TODO: This might have to be finalize actually.
 static void Nuitka_Asyncgen_tp_dealloc(PyObject *self) {
@@ -1210,6 +1211,7 @@ struct Nuitka_AsyncgenWrappedValueObject {
 
 static struct Nuitka_AsyncgenWrappedValueObject *free_list_asyncgen_value_wrappers = NULL;
 static int free_list_asyncgen_value_wrappers_count = 0;
+NUITKA_FREELIST_DECLARE_LOCK(free_list_asyncgen_value_wrappers)
 
 static void Nuitka_AsyncgenValueWrapper_tp_dealloc(PyObject *self) {
     struct Nuitka_AsyncgenWrappedValueObject *asyncgen_value_wrapper = (struct Nuitka_AsyncgenWrappedValueObject *)self;
@@ -1423,6 +1425,7 @@ static PyObject *_Nuitka_Asyncgen_unwrap_value(PyThreadState *tstate, struct Nui
 
 static struct Nuitka_AsyncgenAsendObject *free_list_asyncgen_asends = NULL;
 static int free_list_asyncgen_asends_count = 0;
+NUITKA_FREELIST_DECLARE_LOCK(free_list_asyncgen_asends)
 
 static void Nuitka_AsyncgenAsend_tp_dealloc(PyObject *self) {
     struct Nuitka_AsyncgenAsendObject *asyncgen_asend = (struct Nuitka_AsyncgenAsendObject *)self;
@@ -1857,6 +1860,7 @@ NUITKA_MAY_BE_UNUSED static void _PRINT_ASYNCGEN_ATHROW_STATUS(char const *descr
 
 static struct Nuitka_AsyncgenAthrowObject *free_list_asyncgen_athrows = NULL;
 static int free_list_asyncgen_athrows_count = 0;
+NUITKA_FREELIST_DECLARE_LOCK(free_list_asyncgen_athrows)
 
 static void Nuitka_AsyncgenAthrow_dealloc(PyObject *self) {
     struct Nuitka_AsyncgenAthrowObject *asyncgen_athrow = (struct Nuitka_AsyncgenAthrowObject *)self;

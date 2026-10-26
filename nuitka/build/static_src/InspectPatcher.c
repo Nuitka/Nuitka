@@ -570,6 +570,7 @@ void patchTypeComparison(void) {
 #define MAX_TRACEBACK_FREE_LIST_COUNT 1000
 static PyTracebackObject *free_list_tracebacks = NULL;
 static int free_list_tracebacks_count = 0;
+NUITKA_FREELIST_DECLARE_LOCK(free_list_tracebacks)
 
 // Create a traceback for a given frame, using a free list hacked into the
 // existing type.

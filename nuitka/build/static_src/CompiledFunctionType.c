@@ -903,6 +903,7 @@ static PyObject *Nuitka_Function_clone(PyObject *self, PyObject *unused) {
 #define MAX_FUNCTION_FREE_LIST_COUNT 100
 static struct Nuitka_FunctionObject *free_list_functions = NULL;
 static int free_list_functions_count = 0;
+NUITKA_FREELIST_DECLARE_LOCK(free_list_functions)
 
 static void Nuitka_Function_tp_dealloc(PyObject *self) {
     struct Nuitka_FunctionObject *function = (struct Nuitka_FunctionObject *)self;
