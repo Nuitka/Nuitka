@@ -526,13 +526,13 @@ Py_hash_t DEEP_HASH(PyThreadState *tstate, PyObject *value) {
 }
 #endif
 
-static void abortCorruptNamedObject(char const *name, char const *reason) {
+NUITKA_NO_RETURN static void abortCorruptNamedObject(char const *name, char const *reason) {
     fprintf(stderr, "Corrupt object at %s: %s\n", name, reason);
     fflush(stderr);
     abort();
 }
 
-static void abortCorruptNamedRefcount(char const *name, PyObject *value) {
+NUITKA_NO_RETURN static void abortCorruptNamedRefcount(char const *name, PyObject *value) {
     fprintf(stderr, "Corrupt object at %s: refcount %ld\n", name, (long)Py_REFCNT(value));
     fflush(stderr);
     abort();

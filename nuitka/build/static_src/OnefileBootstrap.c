@@ -137,41 +137,45 @@
 // For tracing outputs if enabled at compile time.
 #include "nuitka/tracing.h"
 
-static void fatalError(char const *message) {
+NUITKA_NO_RETURN static void fatalError(char const *message) {
     puts(message);
     exit(2);
 }
 
-static void fatalIOError(char const *message, error_code_t error_code) {
+NUITKA_NO_RETURN static void fatalIOError(char const *message, error_code_t error_code) {
     printOSErrorMessage(message, error_code);
     exit(2);
 }
 
 // Failure to expand the template for where to extract to.
-static void fatalErrorTempFiles(void) {
+NUITKA_NO_RETURN static void fatalErrorTempFiles(void) {
     fatalIOError("Error, couldn't unpack file to target path.", getLastErrorCode());
 }
 
 #if _NUITKA_ONEFILE_COMPRESSION_BOOL == 1
-static void fatalErrorAttachedData(void) { fatalError("Error, couldn't decode attached data."); }
+NUITKA_NO_RETURN static void fatalErrorAttachedData(void) { fatalError("Error, couldn't decode attached data."); }
 #endif
 
-static void fatalErrorHeaderAttachedData(void) { fatalError("Error, couldn't find attached data header."); }
+NUITKA_NO_RETURN static void fatalErrorHeaderAttachedData(void) {
+    fatalError("Error, couldn't find attached data header.");
+}
 
 // Out of memory error.
 #if !defined(_WIN32) || _NUITKA_ONEFILE_COMPRESSION_BOOL == 1
-static void fatalErrorMemory(void) { fatalError("Error, couldn't allocate memory."); }
+NUITKA_NO_RETURN static void fatalErrorMemory(void) { fatalError("Error, couldn't allocate memory."); }
 #endif
 
 // Could not launch child process.
-static void fatalErrorChild(char const *message, error_code_t error_code) { fatalIOError(message, error_code); }
+NUITKA_NO_RETURN static void fatalErrorChild(char const *message, error_code_t error_code) {
+    fatalIOError(message, error_code);
+}
 
-static void fatalErrorTempFileCreate(filename_char_t const *filename) {
+NUITKA_NO_RETURN static void fatalErrorTempFileCreate(filename_char_t const *filename) {
     fprintf(stderr, "Error, failed to open '" FILENAME_FORMAT_STR "' for writing.\n", filename);
     exit(2);
 }
 
-static void fatalErrorSpec(filename_char_t const *spec) {
+NUITKA_NO_RETURN static void fatalErrorSpec(filename_char_t const *spec) {
     fprintf(stderr, "Error, couldn't runtime expand spec '" FILENAME_FORMAT_STR "'.\n", spec);
     abort();
 }
