@@ -16,7 +16,8 @@
 #endif
 
 static Py_ssize_t CONVERT_LONG_TO_REPEAT_FACTOR(PyObject *value) {
-    /* Inline PyLong_AsSsize_t here for our special purpose. */
+    // This conversion is repeat-specific: negative values and overflow are
+    // sentinels for "no repetition", not a general "Py_ssize_t" conversion.
     assert(PyLong_Check(value));
 
     Py_ssize_t digits_count = Nuitka_LongGetDigitSize(value);

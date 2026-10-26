@@ -266,6 +266,102 @@ long Nuitka_PyLong_AsLongAndOverflow(PyObject *value, int *overflow) {
 #endif
 }
 
+// Our "PyLong_AsSsize_t" replacement with a fast path for long values.
+Py_ssize_t Nuitka_PyLong_AsSsize_tAndOverflow(PyObject *value, int *overflow) {
+    CHECK_OBJECT(value);
+    assert(overflow != NULL);
+    assert(PyLong_Check(value));
+
+    *overflow = 0;
+
+    if (value == Py_False) {
+        return 0;
+    }
+
+    if (value == Py_True) {
+        return 1;
+    }
+
+    Py_ssize_t digit_count = Nuitka_LongGetDigitSize(value);
+
+    if (digit_count == 0) {
+        return 0;
+    }
+
+    if (digit_count == 1) {
+        return (Py_ssize_t)MEDIUM_VALUE(value);
+    }
+
+    digit const *digits = Nuitka_LongGetDigitPointer(value);
+    size_t result = 0;
+    bool negative = Nuitka_LongIsNegative(value);
+
+    for (Py_ssize_t i = digit_count; i > 0; i--) {
+        size_t previous = result;
+
+        result = (result << PyLong_SHIFT) | digits[i - 1];
+
+        // Overflow detection, exactly like CPython does it.
+        if ((result >> PyLong_SHIFT) != previous) {
+            *overflow = negative ? -1 : 1;
+            return -1;
+        }
+    }
+
+    if (negative) {
+        size_t const negative_limit = (size_t)PY_SSIZE_T_MAX + 1;
+
+        if (result > negative_limit) {
+            *overflow = -1;
+            return -1;
+        }
+
+        if (result == negative_limit) {
+            return PY_SSIZE_T_MIN;
+        }
+
+        return -(Py_ssize_t)result;
+    }
+
+    if (result > (size_t)PY_SSIZE_T_MAX) {
+        *overflow = 1;
+        return -1;
+    }
+
+    return (Py_ssize_t)result;
+}
+
+// Our "PyLong_AsSsize_t" replacement, raising errors for invalid values and
+// overflow.
+Py_ssize_t Nuitka_PyLong_AsSsize_t(PyThreadState *tstate, PyObject *value) {
+    CHECK_OBJECT(value);
+
+    if (unlikely(!PyLong_Check(value))) {
+#if PYTHON_VERSION < 0x300
+        SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_SystemError, "bad argument to internal function");
+#else
+        SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_TypeError, "an integer is required");
+#endif
+
+        return -1;
+    }
+
+    int overflow;
+    Py_ssize_t result = Nuitka_PyLong_AsSsize_tAndOverflow(value, &overflow);
+
+    if (unlikely(overflow != 0)) {
+#if PYTHON_VERSION < 0x300
+        SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_OverflowError, "long int too large to convert to int");
+#else
+        SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_OverflowError, "Python int too large to convert to C ssize_t");
+#endif
+
+        return -1;
+    }
+
+    return result;
+}
+
 static void Nuitka_LongUpdateFromCLong(PyObject **value, long ival) {
     assert(Py_REFCNT(*value) == 1);
 

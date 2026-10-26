@@ -22,6 +22,7 @@ static inline bool Nuitka_Index_Check(PyObject *obj) {
 
 // Similar to "PyNumber_Index" but "Nuitka_Number_IndexAsLong" could be more relevant
 extern PyObject *Nuitka_Number_Index(PyObject *item);
+extern Py_ssize_t Nuitka_Number_AsSsize_t(PyObject *item, PyObject *exc);
 
 // In Python 3.10 or higher, the conversion to long is forced, but sometimes we
 // do not care at all, or it should not be done.

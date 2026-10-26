@@ -682,15 +682,11 @@ PyObject *LIST_INDEX3(PyThreadState *tstate, PyObject *list, PyObject *item, PyO
         return NULL;
     }
 
-    PyObject *start_index = Nuitka_Number_Index(start);
+    Py_ssize_t start_ssize = Nuitka_Number_AsSsize_t(start, NULL);
 
-    if (unlikely(start_index == NULL)) {
+    if (unlikely(start_ssize == -1 && HAS_ERROR_OCCURRED(tstate))) {
         return NULL;
     }
-
-    Py_ssize_t start_ssize = PyNumber_AsSsize_t(start_index, NULL);
-
-    Py_DECREF(start_index);
 
     return _LIST_INDEX_COMMON(tstate, (PyListObject *)list, item, start_ssize, Py_SIZE(list));
 }
@@ -704,30 +700,22 @@ PyObject *LIST_INDEX4(PyThreadState *tstate, PyObject *list, PyObject *item, PyO
         return NULL;
     }
 
-    PyObject *start_index = Nuitka_Number_Index(start);
+    Py_ssize_t start_ssize = Nuitka_Number_AsSsize_t(start, NULL);
 
-    if (unlikely(start_index == NULL)) {
+    if (unlikely(start_ssize == -1 && HAS_ERROR_OCCURRED(tstate))) {
         return NULL;
     }
-
-    Py_ssize_t start_ssize = PyNumber_AsSsize_t(start_index, NULL);
-
-    Py_DECREF(start_index);
 
     if (unlikely(!Nuitka_Index_Check(stop))) {
         SET_SLICE_INDICES_ERROR(tstate);
         return NULL;
     }
 
-    PyObject *stop_index = Nuitka_Number_Index(stop);
+    Py_ssize_t stop_ssize = Nuitka_Number_AsSsize_t(stop, NULL);
 
-    if (unlikely(stop_index == NULL)) {
+    if (unlikely(stop_ssize == -1 && HAS_ERROR_OCCURRED(tstate))) {
         return NULL;
     }
-
-    Py_ssize_t stop_ssize = PyNumber_AsSsize_t(stop_index, NULL);
-
-    Py_DECREF(stop_index);
 
     return _LIST_INDEX_COMMON(tstate, (PyListObject *)list, item, start_ssize, stop_ssize);
 }
@@ -784,7 +772,7 @@ bool LIST_INSERT(PyThreadState *tstate, PyObject *list, PyObject *index, PyObjec
         return false;
     }
 
-    index_ssize = PyLong_AsSsize_t(index_long);
+    index_ssize = Nuitka_PyLong_AsSsize_t(tstate, index_long);
 
     // Values that do not fit raise "OverflowError", unlike for slice indexes.
     if (unlikely(index_ssize == -1 && HAS_ERROR_OCCURRED(tstate))) {

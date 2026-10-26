@@ -16,6 +16,8 @@
 // Our "PyLong_FromLong" replacement.
 extern PyObject *Nuitka_PyLong_FromLong(long ival);
 extern long Nuitka_PyLong_AsLongAndOverflow(PyObject *value, int *overflow);
+extern Py_ssize_t Nuitka_PyLong_AsSsize_tAndOverflow(PyObject *value, int *overflow);
+extern Py_ssize_t Nuitka_PyLong_AsSsize_t(PyThreadState *tstate, PyObject *value);
 
 // Our "PyInt_FromLong" replacement, not done (yet?).
 #if PYTHON_VERSION >= 0x300

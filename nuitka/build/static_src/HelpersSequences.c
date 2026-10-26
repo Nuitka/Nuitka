@@ -104,6 +104,47 @@ PyObject *Nuitka_Number_Index(PyObject *item) {
     return result;
 }
 
+// Our "PyNumber_AsSsize_t" replacement. It clips on overflow if "exc" is
+// "NULL", otherwise it raises "exc" with the original item type in the message.
+Py_ssize_t Nuitka_Number_AsSsize_t(PyObject *item, PyObject *exc) {
+    CHECK_OBJECT(item);
+
+    PyObject *index = Nuitka_Number_Index(item);
+
+    if (unlikely(index == NULL)) {
+        return -1;
+    }
+
+    Py_ssize_t result;
+
+#if PYTHON_VERSION < 0x300
+    if (PyInt_Check(index)) {
+        result = (Py_ssize_t)PyInt_AS_LONG(index);
+    } else
+#endif
+    {
+        int overflow;
+        result = Nuitka_PyLong_AsSsize_tAndOverflow(index, &overflow);
+
+        if (unlikely(overflow != 0)) {
+            Py_DECREF(index);
+
+            if (exc == NULL) {
+                return overflow < 0 ? PY_SSIZE_T_MIN : PY_SSIZE_T_MAX;
+            }
+
+            SET_CURRENT_EXCEPTION_TYPE0_FORMAT1(exc, "cannot fit '%s' into an index-sized integer",
+                                                Py_TYPE(item)->tp_name);
+
+            return -1;
+        }
+    }
+
+    Py_DECREF(index);
+
+    return result;
+}
+
 #if PYTHON_VERSION >= 0x3a0
 PyObject *Nuitka_Number_IndexAsLong(PyObject *item) {
     PyObject *result = Nuitka_Number_Index(item);

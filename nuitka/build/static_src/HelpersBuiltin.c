@@ -873,7 +873,7 @@ PyObject *BUILTIN_INT2(PyThreadState *tstate, PyObject *value, PyObject *base) {
 #if PYTHON_VERSION < 0x300
     long base_int = PyInt_AsLong(base);
 #else
-    Py_ssize_t base_int = PyNumber_AsSsize_t(base, NULL);
+    Py_ssize_t base_int = Nuitka_Number_AsSsize_t(base, NULL);
 #endif
 
     if (unlikely(base_int == -1)) {

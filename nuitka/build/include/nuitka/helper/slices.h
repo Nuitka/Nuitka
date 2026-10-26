@@ -57,7 +57,7 @@ static Py_ssize_t CONVERT_TO_INDEX(PyThreadState *tstate, PyObject *value) {
     if (PyInt_Check(value)) {
         return PyInt_AS_LONG(value);
     } else if (Nuitka_Index_Check(value)) {
-        return PyNumber_AsSsize_t(value, NULL);
+        return Nuitka_Number_AsSsize_t(value, NULL);
     } else {
         SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_TypeError,
                                         "slice indices must be integers or None or have an __index__ method");

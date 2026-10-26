@@ -1683,7 +1683,7 @@ the mapping size is tried.
        if (m && m->mp_length)
            return m->mp_length(o);
 
-       type_error("object of type '%.200s' has no len()", o);
+       type_error("object of type '%s' has no len()", o);
        return -1;
    }
 
@@ -2259,6 +2259,29 @@ call of the functions below is a hint that it should be replaced.
       -  ``Nuitka_Number_Index`` accepts int subtypes from
          ``__index__``; ``_IndexAsLong`` returns an exact
          ``PyLongObject`` copy on 3.10+.
+
+   -  -  ``PyLong_AsSsize_t``
+
+      -  ``Nuitka_PyLong_AsSsize_t``,
+         ``Nuitka_PyLong_AsSsize_tAndOverflow``
+
+      -  ``helper/ints.h``
+
+      -  Reads the ``PyLongObject`` digits directly, including compact
+         ints on 3.12+ and free-threaded builds. The wrapper raises the
+         version-specific ``TypeError``/``SystemError`` and
+         ``OverflowError`` messages; the ``AndOverflow`` variant reports
+         the sign through ``overflow`` without setting an exception.
+
+   -  -  ``PyNumber_AsSsize_t``
+
+      -  ``Nuitka_Number_AsSsize_t``
+
+      -  ``helper/indexes.h``
+
+      -  Calls ``Nuitka_Number_Index`` and clips on overflow when
+         ``exc`` is ``NULL``, otherwise raises ``exc`` with the original
+         item type. Python 2 ``int`` values use ``PyInt_AS_LONG``.
 
    -  -  ``PyNumber_Add`` etc.
 
