@@ -52,7 +52,7 @@ dict_get_spec = DictMethodSpecNoKeywords(
     "get", arg_names=("key", "default"), default_count=1
 )
 
-dict_has_key_spec = DictMethodSpec(
+dict_has_key_spec = DictMethodSpecNoKeywords(
     "has_key", arg_names=("key",), type_shape=tshape_bool
 )
 
