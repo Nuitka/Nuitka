@@ -1687,8 +1687,7 @@ class NBoolDesc(ConcreteCTypeBase):
 
     @classmethod
     def getToValueFromObjectExpression(cls, operand):
-        # TODO: Seems wrong, int return values only happen to match nuitka_bool here
-        return cls.getToValueFromBoolExpression("CHECK_IF_TRUE(%s)" % operand)
+        return "CHECK_IF_TRUE_NBOOL(%s)" % operand
 
     @staticmethod
     def getTakeReferenceStatement(operand, immortal):
@@ -1787,8 +1786,7 @@ class NILongDesc(DualTypeBase):
 
     @classmethod
     def getToValueFromObjectExpression(cls, operand):
-        # TODO: Seems wrong, int return values only happen to match nuitka_bool here
-        return cls.getToValueFromBoolExpression("CHECK_IF_TRUE(%s)" % operand)
+        raise AssertionError("Cannot convert object expression to nilong: %s" % operand)
 
     @staticmethod
     def getTakeReferenceStatement(operand, immortal):

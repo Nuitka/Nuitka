@@ -73,6 +73,17 @@ typedef enum {
     NUITKA_BOOL_EXCEPTION = -1
 } nuitka_bool;
 
+// Convert a truth check to "nuitka_bool", preserving the exception indicator.
+NUITKA_MAY_BE_UNUSED static nuitka_bool CHECK_IF_TRUE_NBOOL(PyObject *obj) {
+    int result = CHECK_IF_TRUE(obj);
+
+    if (result == -1) {
+        return NUITKA_BOOL_EXCEPTION;
+    }
+
+    return result == 0 ? NUITKA_BOOL_FALSE : NUITKA_BOOL_TRUE;
+}
+
 typedef enum { NUITKA_VOID_OK = 0, NUITKA_VOID_EXCEPTION = 1 } nuitka_void;
 
 #endif

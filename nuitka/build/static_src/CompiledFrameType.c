@@ -1363,7 +1363,7 @@ void Nuitka_Frame_AttachLocals(struct Nuitka_FrameObject *frame_object) {
         case NUITKA_TYPE_DESCRIPTION_NULL:
             break;
         case NUITKA_TYPE_DESCRIPTION_BOOL: {
-            int value = *(nuitka_bool *)src_slot;
+            nuitka_bool value = *(nuitka_bool *)src_slot;
             memcpy(dst_slot, &value, sizeof(nuitka_bool));
             break;
         }

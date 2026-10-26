@@ -621,7 +621,7 @@ exit_result_object:
     if (unlikely(obj_result == NULL)) {
         goto exit_result_exception;
     }
-    result = CHECK_IF_TRUE(obj_result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+    result = CHECK_IF_TRUE_NBOOL(obj_result);
     Py_DECREF(obj_result);
     goto exit_result_ok;
 
@@ -771,7 +771,7 @@ exit_binary_result_object:
     }
 
     {
-        nuitka_bool r = CHECK_IF_TRUE(obj_result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+        nuitka_bool r = CHECK_IF_TRUE_NBOOL(obj_result);
         Py_DECREF(obj_result);
         return r;
     }
@@ -849,7 +849,7 @@ static nuitka_bool _BINARY_OPERATION_MOD_NBOOL_OBJECT_INT(PyObject *operand1, Py
         if (unlikely(obj_result == NULL)) {
             goto exit_result_exception;
         }
-        result = CHECK_IF_TRUE(obj_result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+        result = CHECK_IF_TRUE_NBOOL(obj_result);
         Py_DECREF(obj_result);
         goto exit_result_ok;
 
@@ -1016,7 +1016,7 @@ exit_binary_result_object:
     }
 
     {
-        nuitka_bool r = CHECK_IF_TRUE(obj_result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+        nuitka_bool r = CHECK_IF_TRUE_NBOOL(obj_result);
         Py_DECREF(obj_result);
         return r;
     }
@@ -1094,7 +1094,7 @@ static nuitka_bool _BINARY_OPERATION_MOD_NBOOL_INT_OBJECT(PyObject *operand1, Py
         if (unlikely(obj_result == NULL)) {
             goto exit_result_exception;
         }
-        result = CHECK_IF_TRUE(obj_result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+        result = CHECK_IF_TRUE_NBOOL(obj_result);
         Py_DECREF(obj_result);
         goto exit_result_ok;
 
@@ -1575,7 +1575,7 @@ exit_result_object:
     if (unlikely(obj_result == NULL)) {
         goto exit_result_exception;
     }
-    result = CHECK_IF_TRUE(obj_result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+    result = CHECK_IF_TRUE_NBOOL(obj_result);
     Py_DECREF(obj_result);
     goto exit_result_ok;
 
@@ -1728,7 +1728,7 @@ exit_binary_result_object:
     }
 
     {
-        nuitka_bool r = CHECK_IF_TRUE(obj_result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+        nuitka_bool r = CHECK_IF_TRUE_NBOOL(obj_result);
         Py_DECREF(obj_result);
         return r;
     }
@@ -1769,7 +1769,7 @@ static nuitka_bool _BINARY_OPERATION_MOD_NBOOL_OBJECT_LONG(PyObject *operand1, P
         if (unlikely(obj_result == NULL)) {
             goto exit_result_exception;
         }
-        result = CHECK_IF_TRUE(obj_result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+        result = CHECK_IF_TRUE_NBOOL(obj_result);
         Py_DECREF(obj_result);
         goto exit_result_ok;
 
@@ -1939,7 +1939,7 @@ exit_binary_result_object:
     }
 
     {
-        nuitka_bool r = CHECK_IF_TRUE(obj_result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+        nuitka_bool r = CHECK_IF_TRUE_NBOOL(obj_result);
         Py_DECREF(obj_result);
         return r;
     }
@@ -1980,7 +1980,7 @@ static nuitka_bool _BINARY_OPERATION_MOD_NBOOL_LONG_OBJECT(PyObject *operand1, P
         if (unlikely(obj_result == NULL)) {
             goto exit_result_exception;
         }
-        result = CHECK_IF_TRUE(obj_result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+        result = CHECK_IF_TRUE_NBOOL(obj_result);
         Py_DECREF(obj_result);
         goto exit_result_ok;
 
@@ -2686,7 +2686,7 @@ exit_binary_result_object:
     }
 
     {
-        nuitka_bool r = CHECK_IF_TRUE(obj_result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+        nuitka_bool r = CHECK_IF_TRUE_NBOOL(obj_result);
         Py_DECREF(obj_result);
         return r;
     }
@@ -2913,7 +2913,7 @@ exit_binary_result_object:
     }
 
     {
-        nuitka_bool r = CHECK_IF_TRUE(obj_result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+        nuitka_bool r = CHECK_IF_TRUE_NBOOL(obj_result);
         Py_DECREF(obj_result);
         return r;
     }
@@ -3146,7 +3146,7 @@ exit_binary_result_object:
     }
 
     {
-        nuitka_bool r = CHECK_IF_TRUE(obj_result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+        nuitka_bool r = CHECK_IF_TRUE_NBOOL(obj_result);
         Py_DECREF(obj_result);
         return r;
     }
@@ -3211,7 +3211,7 @@ exit_binary_result_object:
     }
 
     {
-        nuitka_bool r = CHECK_IF_TRUE(obj_result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+        nuitka_bool r = CHECK_IF_TRUE_NBOOL(obj_result);
         Py_DECREF(obj_result);
         return r;
     }
@@ -3371,7 +3371,7 @@ exit_binary_result_object:
     }
 
     {
-        nuitka_bool r = CHECK_IF_TRUE(obj_result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+        nuitka_bool r = CHECK_IF_TRUE_NBOOL(obj_result);
         Py_DECREF(obj_result);
         return r;
     }
@@ -3434,7 +3434,7 @@ exit_binary_result_object:
     }
 
     {
-        nuitka_bool r = CHECK_IF_TRUE(obj_result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+        nuitka_bool r = CHECK_IF_TRUE_NBOOL(obj_result);
         Py_DECREF(obj_result);
         return r;
     }
@@ -3595,7 +3595,7 @@ exit_binary_result_object:
     }
 
     {
-        nuitka_bool r = CHECK_IF_TRUE(obj_result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+        nuitka_bool r = CHECK_IF_TRUE_NBOOL(obj_result);
         Py_DECREF(obj_result);
         return r;
     }
@@ -3658,7 +3658,7 @@ exit_binary_result_object:
     }
 
     {
-        nuitka_bool r = CHECK_IF_TRUE(obj_result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+        nuitka_bool r = CHECK_IF_TRUE_NBOOL(obj_result);
         Py_DECREF(obj_result);
         return r;
     }
@@ -3901,7 +3901,7 @@ exit_result_object:
     if (unlikely(obj_result == NULL)) {
         goto exit_result_exception;
     }
-    result = CHECK_IF_TRUE(obj_result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+    result = CHECK_IF_TRUE_NBOOL(obj_result);
     Py_DECREF(obj_result);
     goto exit_result_ok;
 
@@ -3984,7 +3984,7 @@ exit_result_object:
     if (unlikely(obj_result == NULL)) {
         goto exit_result_exception;
     }
-    result = CHECK_IF_TRUE(obj_result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+    result = CHECK_IF_TRUE_NBOOL(obj_result);
     Py_DECREF(obj_result);
     goto exit_result_ok;
 
@@ -6363,7 +6363,7 @@ static nuitka_bool _BINARY_OPERATION_MOD_NBOOL_OBJECT_OBJECT(PyObject *operand1,
         if (unlikely(obj_result == NULL)) {
             goto exit_result_exception;
         }
-        result = CHECK_IF_TRUE(obj_result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+        result = CHECK_IF_TRUE_NBOOL(obj_result);
         Py_DECREF(obj_result);
         goto exit_result_ok;
 
@@ -6523,7 +6523,7 @@ exit_binary_result_object:
     }
 
     {
-        nuitka_bool r = CHECK_IF_TRUE(obj_result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+        nuitka_bool r = CHECK_IF_TRUE_NBOOL(obj_result);
         Py_DECREF(obj_result);
         return r;
     }
