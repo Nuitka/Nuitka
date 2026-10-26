@@ -840,7 +840,7 @@ class TraceCollectionBase(object):
         has_unescaped_variables = (
             collection1.has_unescaped_variables or collection2.has_unescaped_variables
         )
-        new_actives = {}
+        new_actives = collection1.variable_actives.copy()
 
         for variable, version in iterItems(collection1.variable_actives):
             other_version = collection2.variable_actives[variable]
@@ -866,7 +866,7 @@ class TraceCollectionBase(object):
 
                     has_unescaped_variables = True
 
-            new_actives[variable] = version
+                new_actives[variable] = version
 
         self.variable_actives = new_actives
         self.variable_actives_needs_copy = False
@@ -876,7 +876,7 @@ class TraceCollectionBase(object):
         self.has_unescaped_variables = has_unescaped_variables
 
     def mergeMultipleBranches(self, collections):
-        # pylint: disable=too-many-locals
+        # pylint: disable=too-many-branches,too-many-locals
 
         # Optimize for length 1, which is trivial merge and needs not a
         # lot of work, and length 2 has dedicated code as it's so frequent.
@@ -905,38 +905,41 @@ class TraceCollectionBase(object):
 
         _merge_counts[merge_size] += 1
 
-        new_actives = {}
-
         has_unescaped_variables = any(
             collection.has_unescaped_variables for collection in collections
         )
 
-        other_collections = collections[1:]
+        first_actives = collections[0].variable_actives
+        new_actives = first_actives.copy()
+        other_actives = [collection.variable_actives for collection in collections[1:]]
 
-        for variable, first_collection_version in collections[
-            0
-        ].variable_actives.items():
+        for variable, first_collection_version in first_actives.items():
             # Attempt optimistically that a variable is not influenced at
             # all by any of the branches we merge.
-            for collection in other_collections:
-                if collection.variable_actives[variable] != first_collection_version:
+            for actives in other_actives:
+                if actives[variable] != first_collection_version:
                     break
             else:
-                new_actives[variable] = first_collection_version
                 continue
 
             # Slow path: collect unique versions, they are different.
-            versions = set(
-                collection.variable_actives[variable] for collection in collections
-            )
+            versions = [first_collection_version]
+
+            for actives in other_actives:
+                version = actives[variable]
+
+                if version not in versions:
+                    versions.append(version)
+
+            versions.sort()
 
             traces = []
-            escaped = set()
+            escaped = []
             winner_version = None
 
             variable_traces = self.variable_traces[variable]
 
-            for version in sorted(versions):
+            for version in versions:
                 trace = variable_traces[version]
 
                 if version % 3 == 1:
@@ -946,7 +949,7 @@ class TraceCollectionBase(object):
                     if escaped_trace in traces:
                         traces.remove(escaped_trace)
 
-                    escaped.add(escaped_trace)
+                    escaped.append(escaped_trace)
                     traces.append(trace)
                 else:
                     if trace not in escaped:
