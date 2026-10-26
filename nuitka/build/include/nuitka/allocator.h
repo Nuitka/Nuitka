@@ -295,9 +295,19 @@ static inline void Nuitka_GC_UnTrack(void *raw_op) {
 #define Nuitka_GC_UnTrack _PyObject_GC_UNTRACK
 #endif
 
-// For Python2.6, these assertions cannot be done easily, just disable them with dummy code.
+// Python2.6 does not provide "_PyObject_GC_IS_TRACKED" or
+// "_PyObject_GC_MAY_BE_TRACKED" yet, but we want to use it.
 #if PYTHON_VERSION < 0x270 && !defined(_PyObject_GC_IS_TRACKED)
-#define _PyObject_GC_IS_TRACKED(obj) (1)
+NUITKA_MAY_BE_UNUSED static inline int Nuitka_PyObject_GC_IsTracked(PyObject *obj) {
+    return PyObject_IS_GC(obj) && ((_Py_AS_GC(obj))->gc.gc_refs != _PyGC_REFS_UNTRACKED);
+}
+
+#define _PyObject_GC_IS_TRACKED(obj) Nuitka_PyObject_GC_IsTracked((PyObject *)(obj))
+#endif
+
+#if PYTHON_VERSION < 0x270 && !defined(_PyObject_GC_MAY_BE_TRACKED)
+#define _PyObject_GC_MAY_BE_TRACKED(obj)                                                                               \
+    (PyObject_IS_GC(obj) && (!PyTuple_CheckExact(obj) || _PyObject_GC_IS_TRACKED(obj)))
 #endif
 
 // The full API is available for Python 3.5 only

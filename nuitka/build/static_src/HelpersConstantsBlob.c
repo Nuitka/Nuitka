@@ -391,10 +391,11 @@ static PyObject *makeConstantCacheDict(void) {
     // The caches are permanent roots holding only constants, so they are not
     // part of the garbage collected values. Python 2.6 and 3.14 or higher
     // create dictionaries tracked already.
-#if PYTHON_VERSION < 0x270 || PYTHON_VERSION >= 0x3e0
-    Nuitka_GC_UnTrack(result);
-#else
+#if PYTHON_VERSION >= 0x270 && PYTHON_VERSION < 0x3e0
     assert(!_PyObject_GC_IS_TRACKED(result));
+#else
+    assert(_PyObject_GC_IS_TRACKED(result));
+    Nuitka_GC_UnTrack(result);
 #endif
 
     return result;
@@ -463,13 +464,11 @@ static void insertToDictCache(PyThreadState *tstate, PyObject *dict, PyObject **
     } else {
         DICT_SET_ITEM(dict, *value, *value);
 
-#if PYTHON_VERSION >= 0x270
         if (_PyObject_GC_IS_TRACKED(dict)) {
             Nuitka_GC_UnTrack(dict);
         }
 
         assert(!_PyObject_GC_IS_TRACKED(dict));
-#endif
     }
 }
 

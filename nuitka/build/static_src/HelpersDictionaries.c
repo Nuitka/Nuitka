@@ -2008,11 +2008,6 @@ static bool Nuitka_DictGetHash(PyThreadState *tstate, PyObject *key, Py_hash_t *
 #define NUITKA_DICT_NEXT_VERSION(dict_mp)
 #endif
 
-#if PYTHON_VERSION < 0x270
-// Python2.6 dictionaries are tracked when created and never untracked, so
-// there is nothing to maintain there.
-#define NUITKA_DICT_MAINTAIN_TRACKING(dict_mp, key, value)
-#else
 #define NUITKA_DICT_MAINTAIN_TRACKING(dict_mp, key, value)                                                             \
     do {                                                                                                               \
         if (!_PyObject_GC_IS_TRACKED(dict_mp) &&                                                                       \
@@ -2020,7 +2015,6 @@ static bool Nuitka_DictGetHash(PyThreadState *tstate, PyObject *key, Py_hash_t *
             Nuitka_GC_Track(dict_mp);                                                                                  \
         }                                                                                                              \
     } while (0)
-#endif
 
 #if PYTHON_VERSION >= 0x300 && PYTHON_VERSION < 0x3b0
 // Get the "lookdict" function pointer that CPython uses for a dictionary with
