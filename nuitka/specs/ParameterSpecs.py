@@ -514,6 +514,25 @@ def matchCall(
     if unassigned:
         num_required = num_args - max(0, num_defaults - len(kw_only_args))
 
+        # Required positional only arguments given as keyword arguments.
+        num_required_pos_only = min(num_pos_only, num_required)
+        if (
+            num_pos < num_required_pos_only
+            and (simulator is None or improved)
+            and any(pair[0] in pos_only_names for pair in supplied_pairs)
+        ):
+            raise TooManyArguments(
+                TypeError(
+                    "%s() takes at least %d positional argument%s (%d given)"
+                    % (
+                        func_name,
+                        num_required_pos_only,
+                        "s" if num_required_pos_only > 1 else "",
+                        num_pos,
+                    )
+                )
+            )
+
         # Special case required arguments.
         if num_required > 0 or improved:
             if num_defaults == 0 and num_args != 1:

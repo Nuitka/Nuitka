@@ -13,11 +13,18 @@ from nuitka.nodes.shapes.BuiltinTypeShapes import (
 
 from .BuiltinParameterSpecs import (
     BuiltinMethodParameterSpecBase,
+    BuiltinMethodParameterSpecNoKeywordsBase,
     BuiltinParameterSpecSinglePosArgStarDictArgs,
 )
 
 
 class DictMethodSpec(BuiltinMethodParameterSpecBase):
+    __slots__ = ()
+
+    method_prefix = "dict"
+
+
+class DictMethodSpecNoKeywords(BuiltinMethodParameterSpecNoKeywordsBase):
     __slots__ = ()
 
     method_prefix = "dict"
@@ -41,17 +48,21 @@ dict_values_spec = DictMethodSpec("values", type_shape=tshape_list)
 dict_itervalues_spec = DictMethodSpec("itervalues")
 dict_viewvalues_spec = DictMethodSpec("viewvalues")
 
-dict_get_spec = DictMethodSpec("get", arg_names=("key", "default"), default_count=1)
+dict_get_spec = DictMethodSpecNoKeywords(
+    "get", arg_names=("key", "default"), default_count=1
+)
 
-dict_has_key_spec = DictMethodSpec(
+dict_has_key_spec = DictMethodSpecNoKeywords(
     "has_key", arg_names=("key",), type_shape=tshape_bool
 )
 
-dict_setdefault_spec = DictMethodSpec(
+dict_setdefault_spec = DictMethodSpecNoKeywords(
     "setdefault", arg_names=("key", "default"), default_count=1
 )
 
-dict_pop_spec = DictMethodSpec("pop", arg_names=("key", "default"), default_count=1)
+dict_pop_spec = DictMethodSpecNoKeywords(
+    "pop", arg_names=("key", "default"), default_count=1
+)
 
 dict_popitem_spec = DictMethodSpec("popitem", type_shape=tshape_tuple)
 
@@ -62,7 +73,7 @@ dict_update_spec = BuiltinParameterSpecSinglePosArgStarDictArgs(
     type_shape=tshape_none,
 )
 
-dict_fromkeys_spec = DictMethodSpec(
+dict_fromkeys_spec = DictMethodSpecNoKeywords(
     "fromkeys", arg_names=("iterable", "value"), default_count=1, type_shape=tshape_dict
 )
 
