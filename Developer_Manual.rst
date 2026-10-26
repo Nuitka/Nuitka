@@ -1881,8 +1881,7 @@ call of the functions below is a hint that it should be replaced.
          ``PyDict_GetItemWithError`` replacement.
 
    -  -  ``PyDict_GetItemWithError`` (silent miss)
-      -  ``DICT_GET_ITEM_WITH_HASH_ERROR0`` (borrowed),
-         ``DICT_GET_ITEM_WITH_HASH_ERROR1`` (new ref)
+      -  ``DICT_GET_ITEM_WITH_HASH_ERROR1`` (new ref)
       -  ``helper/dictionaries.h``
       -  Exact ``dict`` only. Missing keys return ``NULL`` without an
          exception; hash errors still propagate.

@@ -394,13 +394,6 @@ NUITKA_MAY_BE_UNUSED static PyObject *MODULE_NAME1(PyThreadState *tstate, PyObje
     return DICT_GET_ITEM1(tstate, module_dict, const_str_plain___name__);
 }
 
-NUITKA_MAY_BE_UNUSED static PyObject *MODULE_NAME0(PyThreadState *tstate, PyObject *module) {
-    assert(PyModule_Check(module));
-    PyObject *module_dict = ((PyModuleObject *)module)->md_dict;
-
-    return DICT_GET_ITEM0(tstate, module_dict, const_str_plain___name__);
-}
-
 // Get the binary directory as wide characters.
 extern wchar_t const *getBinaryDirectoryWideChars(bool resolve_symlinks);
 

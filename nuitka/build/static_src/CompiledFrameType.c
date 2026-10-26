@@ -334,9 +334,11 @@ void Nuitka_Frame_AssignLocals(struct Nuitka_FrameObject *frame_object, PyObject
 #if PYTHON_VERSION < 0x300
     if (PyModule_Check(locals_value)) {
         // Class frames in Python2 expose a minimal locals dict with "__module__".
-        PyObject *kw_pairs[2] = {const_str_plain___module__, MODULE_NAME0(tstate, locals_value)};
+        PyObject *module_name = MODULE_NAME1(tstate, locals_value);
+        PyObject *kw_pairs[2] = {const_str_plain___module__, module_name};
 
         locals_owner->f_locals = MAKE_DICT(kw_pairs, 1);
+        Py_DECREF(module_name);
         return;
     }
 #endif
@@ -1047,8 +1049,10 @@ struct Nuitka_FrameObject *MAKE_FUNCTION_FRAME(PyThreadState *tstate, PyCodeObje
     if (likely((code->co_flags & CO_OPTIMIZED) == CO_OPTIMIZED)) {
         f_locals = NULL;
     } else {
-        PyObject *kw_pairs[2] = {const_str_plain___module__, MODULE_NAME0(tstate, module)};
+        PyObject *module_name = MODULE_NAME1(tstate, module);
+        PyObject *kw_pairs[2] = {const_str_plain___module__, module_name};
         f_locals = MAKE_DICT(kw_pairs, 1);
+        Py_DECREF(module_name);
     }
 
     return _MAKE_COMPILED_FRAME(code, module, f_locals, locals_size, type_description);

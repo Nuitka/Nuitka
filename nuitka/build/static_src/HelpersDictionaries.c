@@ -503,102 +503,16 @@ PyObject *DICT_GET_ITEM_WITH_ERROR(PyThreadState *tstate, PyObject *dict, PyObje
     }
 
     CHECK_OBJECT(result);
+
+#if defined(Py_GIL_DISABLED)
+    return result;
+#else
     Py_INCREF(result);
     return result;
 #endif
-}
-
-PyObject *DICT_GET_ITEM_WITH_HASH_ERROR0(PyThreadState *tstate, PyObject *dict, PyObject *key) {
-    CHECK_OBJECT(dict);
-    assert(PyDict_CheckExact(dict));
-
-    CHECK_OBJECT(key);
-
-    Py_hash_t hash;
-
-// This variant is uncertain about the hashing.
-#if PYTHON_VERSION < 0x300
-    if (PyString_CheckExact(key)) {
-        hash = ((PyStringObject *)key)->ob_shash;
-
-        if (unlikely(hash == -1)) {
-            hash = HASH_VALUE_WITHOUT_ERROR(tstate, key);
-        }
-
-        if (unlikely(hash == -1)) {
-            return NULL;
-        }
-    } else {
-        hash = HASH_VALUE_WITH_ERROR(tstate, key);
-
-        if (unlikely(hash == -1)) {
-            return NULL;
-        }
-    }
-
-    PyDictObject *dict_object = (PyDictObject *)dict;
-    PyDictEntry *entry = (dict_object->ma_lookup)(dict_object, key, hash);
-
-    if (unlikely(entry == NULL || entry->me_value == NULL)) {
-        return NULL;
-    }
-
-    CHECK_OBJECT(entry->me_value);
-    return entry->me_value;
-#else
-    if (!PyUnicode_CheckExact(key) || (hash = ((PyASCIIObject *)key)->hash) == -1) {
-        hash = HASH_VALUE_WITH_ERROR(tstate, key);
-        if (unlikely(hash == -1)) {
-            return NULL;
-        }
-    }
-
-    PyDictObject *dict_object = (PyDictObject *)dict;
-
-#if PYTHON_VERSION < 0x360
-    PyObject **value_addr;
-    PyDictKeyEntry *entry = dict_object->ma_keys->dk_lookup(dict_object, key, hash, &value_addr);
-
-    if (unlikely(entry == NULL || *value_addr == NULL)) {
-        return NULL;
-    }
-#else
-#if PYTHON_VERSION < 0x370
-    PyObject **value_addr;
-    Py_ssize_t ix = (dict_object->ma_keys->dk_lookup)(dict_object, key, hash, &value_addr, NULL);
-#elif PYTHON_VERSION < 0x3b0
-    PyObject *result;
-    Py_ssize_t ix = (dict_object->ma_keys->dk_lookup)(dict_object, key, hash, &result);
-#elif defined(Py_GIL_DISABLED)
-    PyObject *result;
-    Py_ssize_t ix = Nuitka_Py_dict_lookup_threadsafe(dict_object, key, hash, &result);
-#else
-    PyObject **value_addr;
-    Py_ssize_t ix = Nuitka_PyDictLookup(dict_object, key, hash, &value_addr);
-#endif
-
-    if (unlikely(ix < 0)) {
-        return NULL;
-    }
-#endif
-
-#if PYTHON_VERSION < 0x370 || (PYTHON_VERSION >= 0x3b0 && !defined(Py_GIL_DISABLED))
-    assert(value_addr != NULL);
-    PyObject *result = *value_addr;
-#endif
-
-    if (unlikely(result == NULL)) {
-        return NULL;
-    }
-
-    CHECK_OBJECT(result);
-    return result;
 #endif
 }
 
-// TODO: Exact copy of DICT_GET_ITEM_WITH_HASH_ERROR0 with just a Py_INCREF added, we should
-// generate these and all other variants rather than manually maintaining them, so we can
-// also specialize by type and not just result needs.
 PyObject *DICT_GET_ITEM_WITH_HASH_ERROR1(PyThreadState *tstate, PyObject *dict, PyObject *key) {
     CHECK_OBJECT(dict);
     assert(PyDict_CheckExact(dict));
@@ -684,8 +598,13 @@ PyObject *DICT_GET_ITEM_WITH_HASH_ERROR1(PyThreadState *tstate, PyObject *dict, 
     }
 
     CHECK_OBJECT(result);
+
+#if defined(Py_GIL_DISABLED)
+    return result;
+#else
     Py_INCREF(result);
     return result;
+#endif
 #endif
 }
 
@@ -1393,9 +1312,9 @@ static inline int Nuitka_Py_dictkeys_compare_unicode_generic(PyDictObject *mp, P
     if (Nuitka_Py_unicode_get_hash(ep->me_key) == hash) {
         PyObject *startkey = ep->me_key;
         Py_INCREF(startkey);
-        int cmp = RICH_COMPARE_EQ_NBOOL_OBJECT_OBJECT(startkey, key);
+        nuitka_bool cmp = RICH_COMPARE_EQ_NBOOL_OBJECT_OBJECT(startkey, key);
         Py_DECREF(startkey);
-        if (cmp < 0) {
+        if (cmp == NUITKA_BOOL_EXCEPTION) {
             return DKIX_ERROR;
         }
         if (dk == mp->ma_keys && ep->me_key == startkey) {

@@ -297,7 +297,6 @@ extern PyObject *DICT_GET_ITEM_WITH_ERROR(PyThreadState *tstate, PyObject *dict,
 // Get a dict lookup for a key, propagating only hash errors and not creating a
 // KeyError on a miss. "_1" returns a new reference, "_0" a borrowed one.
 extern PyObject *DICT_GET_ITEM_WITH_HASH_ERROR1(PyThreadState *tstate, PyObject *dict, PyObject *key);
-extern PyObject *DICT_GET_ITEM_WITH_HASH_ERROR0(PyThreadState *tstate, PyObject *dict, PyObject *key);
 
 // Get dict lookup for a key, similar to PyDict_GetItem, 1=ref returned, 0=not
 extern PyObject *DICT_GET_ITEM1(PyThreadState *tstate, PyObject *dict, PyObject *key);
