@@ -15,6 +15,7 @@ from nuitka.build.SconsInterface import (
     provideStaticSourceFilesOnefile,
     runScons,
 )
+from nuitka.build.SconsSourceIndex import createSourceFilesIndex
 from nuitka.build.SconsUtils import getSconsReportValue
 from nuitka.options.Options import (
     getJobLimit,
@@ -98,6 +99,7 @@ def _runOnefileScons(onefile_compression, onefile_payload_size):
     # Let plugins do their thing for onefile mode too.
     writeExtraCodeFiles(onefile=True)
     provideStaticSourceFilesOnefile(source_dir=source_dir)
+    createSourceFilesIndex(source_dir=source_dir)
     onGeneratedSourceCode(source_dir=source_dir, onefile=True)
 
     scons_options["result_exe"] = getResultFullpath(onefile=True, real=False)

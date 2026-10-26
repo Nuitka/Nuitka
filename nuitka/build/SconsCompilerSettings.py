@@ -883,6 +883,10 @@ unsigned CONST_CONSTANT char *get%(symbol_name)sData(void) {
         },
     )
 
+    env.generated_source_filenames.append(
+        os.path.basename(constants_generated_filename)
+    )
+
     return "_NUITKA_CONSTANTS_FROM_INCBIN"
 
 
@@ -1086,6 +1090,10 @@ unsigned char *get%(symbol_name)sData(void) {
                 output.write("}")
 
     writeConstantsDataSource()
+
+    env.generated_source_filenames.append(
+        os.path.basename(constants_generated_filename)
+    )
 
     return "_NUITKA_CONSTANTS_FROM_CODE"
 
@@ -1538,6 +1546,8 @@ def createNuitkaSconsEnvironment(needs_source_dir=True):
     env.unstripped_mode = unstripped_mode
     env.console_mode = console_mode
     env.source_dir = source_dir
+    # Sources generated only during Scons setup, e.g. constants blob data.
+    env.generated_source_filenames = []
     env.deployment_mode = deployment_mode
     env.nuitka_src = nuitka_src
     env.low_memory = low_memory

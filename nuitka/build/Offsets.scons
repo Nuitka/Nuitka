@@ -31,10 +31,7 @@ __package__ = "nuitka.build"  # pylint: disable=redefined-builtin
 # isort:start
 
 from nuitka.Tracing import scons_logger
-from nuitka.utils.FileOperations import (
-    getExternalUsePath,
-    getNormalizedPathJoin,
-)
+from nuitka.utils.FileOperations import getExternalUsePath
 
 from .SconsCompilerSettings import (
     createNuitkaSconsEnvironment,
@@ -47,11 +44,11 @@ from .SconsPythonBuild import (
     addWin32PythonLib,
     applyPythonBuildSettings,
 )
+from .SconsSourceIndex import getSourceFilenamesFromIndex
 from .SconsUtils import (
     getArgumentList,
     getArgumentRequired,
     makeResultPathFileSystemEncodable,
-    scanSourceDir,
 )
 
 # spell-checker: ignore cppdefines,cpppath
@@ -155,23 +152,7 @@ env.Append(
 )
 
 
-# TODO: Make this more easily reusable across scons files by fixed names as
-# arguments to a general scan.
-def discoverSourceFiles():
-    result = []
-
-    result.extend(
-        scanSourceDir(
-            env=env,
-            dirname=getNormalizedPathJoin(env.source_dir, "static_src"),
-            plugins=False,
-        )
-    )
-
-    return result
-
-
-source_filenames = discoverSourceFiles()
+source_filenames = getSourceFilenamesFromIndex(env=env, source_dir=env.source_dir)
 
 # Remove the target file to avoid cases where it falsely doesn't get rebuild and
 # then lingers from previous builds, and also workaround for MinGW64 not

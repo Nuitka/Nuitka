@@ -28,10 +28,7 @@ __package__ = "nuitka.build"  # pylint: disable=redefined-builtin
 # isort:start
 
 from nuitka.Tracing import scons_logger
-from nuitka.utils.FileOperations import (
-    getExternalUsePath,
-    getNormalizedPathJoin,
-)
+from nuitka.utils.FileOperations import getExternalUsePath
 from nuitka.utils.InlineCopies import getInlineCopyFolderIfExists
 
 from .SconsCompilerSettings import (
@@ -40,6 +37,7 @@ from .SconsCompilerSettings import (
     setupCCompiler,
 )
 from .SconsControl import executeSconsBuild
+from .SconsSourceIndex import getSourceFilenamesFromIndex
 from .SconsUtils import (
     createDefinitionsFile,
     getArgumentBool,
@@ -47,7 +45,6 @@ from .SconsUtils import (
     getArgumentRequired,
     linkSystemLibrary,
     makeResultPathFileSystemEncodable,
-    scanSourceDir,
 )
 
 # spell-checker: ignore cppdefines,cpppath
@@ -151,30 +148,7 @@ if onefile_compression:
 env.Append(CPPDEFINES=["_NUITKA_EXE_MODE"])
 
 
-def discoverSourceFiles():
-    result = []
-
-    # Scan for Nuitka created source files, and add them too.
-    result.extend(scanSourceDir(env=env, dirname=env.source_dir, plugins=False))
-    result.extend(
-        scanSourceDir(
-            env=env,
-            dirname=getNormalizedPathJoin(env.source_dir, "plugins"),
-            plugins=True,
-        )
-    )
-    result.extend(
-        scanSourceDir(
-            env=env,
-            dirname=getNormalizedPathJoin(env.source_dir, "static_src"),
-            plugins=False,
-        )
-    )
-
-    return result
-
-
-source_filenames = discoverSourceFiles()
+source_filenames = getSourceFilenamesFromIndex(env=env, source_dir=env.source_dir)
 
 # Remove the target file to avoid cases where it falsely doesn't get rebuild and
 # then lingers from previous builds, and also workaround for MinGW64 not

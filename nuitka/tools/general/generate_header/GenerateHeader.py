@@ -11,6 +11,7 @@ from nuitka.build.SconsInterface import (
     getCommonSconsOptions,
     runScons,
 )
+from nuitka.build.SconsSourceIndex import createSourceFilesIndex
 from nuitka.PythonVersions import (
     isDebugPython,
     isPythonWithGil,
@@ -101,6 +102,8 @@ def generateHeader():
         )
         makeContainingPath(c_filepath)
         putTextFileContents(c_filepath, c_code)
+
+        createSourceFilesIndex(source_dir=source_dir)
 
         with withTemporaryFilename(
             prefix=python_version_id, suffix=".exe"

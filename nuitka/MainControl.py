@@ -19,6 +19,7 @@ from nuitka.build.SconsInterface import (
     applyPreprocessorSymbols,
     provideStaticSourceFilesBackend,
 )
+from nuitka.build.SconsSourceIndex import createSourceFilesIndex
 from nuitka.build.SconsUtils import (
     getSconsCompilerUsed,
     getSconsReportValue,
@@ -1169,6 +1170,8 @@ def compileTree():
     writeExtraCodeFiles(onefile=False)
 
     provideStaticSourceFilesBackend(source_dir=source_dir)
+
+    createSourceFilesIndex(source_dir=source_dir)
 
     onGeneratedSourceCode(source_dir, onefile=False)
 
