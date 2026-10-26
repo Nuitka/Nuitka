@@ -126,12 +126,17 @@ def generateBuiltinZipCode(to_name, expression, emit, context):
     ) as result_name:
         if iterable_names:
             emit(
-                "PyObject *zip_iterables[] = {%s};"
-                % ", ".join(str(name) for name in iterable_names)
-            )
-            emit(
-                "%s = BUILTIN_ZIP(tstate, zip_iterables, %d);"
-                % (result_name, len(iterable_names))
+                """\
+{
+    PyObject *zip_iterables[] = {%s};
+    %s = BUILTIN_ZIP(tstate, zip_iterables, %d);
+}
+"""
+                % (
+                    ", ".join(str(name) for name in iterable_names),
+                    result_name,
+                    len(iterable_names),
+                )
             )
         else:
             emit("%s = BUILTIN_ZIP(tstate, NULL, 0);" % result_name)

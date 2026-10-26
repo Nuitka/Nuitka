@@ -759,6 +759,8 @@ try:
 except TypeError as e:
     print("Occurred", repr(e))
 print(zip())
+print("Zip with nested zip:")
+print(list(zip([1, 2], zip([3, 4], [5, 6]))))
 x = [(u, v) for (u, v) in zip(range(8), reversed(range(8)))]
 print(x)
 for v in zip([1, 2, 3], "String"):
