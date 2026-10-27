@@ -572,6 +572,22 @@ static PyTracebackObject *free_list_tracebacks = NULL;
 static int free_list_tracebacks_count = 0;
 NUITKA_FREELIST_DECLARE_LOCK(free_list_tracebacks)
 
+#ifdef _NUITKA_EXPERIMENTAL_SUBINTERPRETERS
+static bool useTracebackFreeList(void) {
+#if PYTHON_VERSION >= 0x3c0
+    // Since Python3.12 object allocation is per-interpreter. A process global
+    // free list would allow tracebacks allocated with one interpreter's
+    // allocator to be freed with another interpreter's allocator. In
+    // subinterpreters we therefore do not use the free list at all. This is
+    // only done when subinterpreters are explicitly enabled, so that normal
+    // programs do not pay for the interpreter check.
+    return use_freelists && PyInterpreterState_GetID(_PyInterpreterState_GET()) == 0;
+#else
+    return use_freelists;
+#endif
+}
+#endif
+
 // Create a traceback for a given frame, using a free list hacked into the
 // existing type.
 PyTracebackObject *MAKE_TRACEBACK(struct Nuitka_FrameObject *frame, int lineno) {
@@ -591,7 +607,29 @@ PyTracebackObject *MAKE_TRACEBACK(struct Nuitka_FrameObject *frame, int lineno) 
 
     PyTracebackObject *result;
 
+#ifdef _NUITKA_EXPERIMENTAL_SUBINTERPRETERS
+    if (useTracebackFreeList()) {
+        NUITKA_FREELIST_LOCK(free_list_tracebacks);
+        if (free_list_tracebacks != NULL) {
+            result = free_list_tracebacks;
+            free_list_tracebacks = *((PyTracebackObject **)free_list_tracebacks);
+            free_list_tracebacks_count -= 1;
+            assert(free_list_tracebacks_count >= 0);
+            NUITKA_FREELIST_UNLOCK(free_list_tracebacks);
+
+            Nuitka_Py_NewReference((PyObject *)result);
+        } else {
+            NUITKA_FREELIST_UNLOCK(free_list_tracebacks);
+            result = (PyTracebackObject *)Nuitka_GC_New(&PyTraceBack_Type);
+        }
+    } else {
+        result = (PyTracebackObject *)Nuitka_GC_New(&PyTraceBack_Type);
+    }
+#else
     allocateFromFreeListFixed(free_list_tracebacks, PyTracebackObject, PyTraceBack_Type);
+#endif
+
+    CHECK_OBJECT(result);
 
     result->tb_next = NULL;
     result->tb_frame = (PyFrameObject *)frame;
@@ -622,7 +660,15 @@ static void Nuitka_tb_dealloc(PyObject *self) {
     Py_XDECREF(tb->tb_next);
     Py_XDECREF(tb->tb_frame);
 
+#ifdef _NUITKA_EXPERIMENTAL_SUBINTERPRETERS
+    if (useTracebackFreeList()) {
+        releaseToFreeList(free_list_tracebacks, tb, MAX_TRACEBACK_FREE_LIST_COUNT);
+    } else {
+        PyObject_GC_Del(tb);
+    }
+#else
     releaseToFreeList(free_list_tracebacks, tb, MAX_TRACEBACK_FREE_LIST_COUNT);
+#endif
 
 #if 0
 #if PYTHON_VERSION >= 0x380
