@@ -59,11 +59,11 @@ static void Nuitka_Py_dictkeys_free_keys_object(PyDictKeysObject *keys, bool use
 static inline void ASSERT_DICT_LOCKED(PyObject *op) { _Py_CRITICAL_SECTION_ASSERT_OBJECT_LOCKED(op); }
 #define ASSERT_DICT_LOCKED(op) ASSERT_DICT_LOCKED(_Py_CAST(PyObject *, op))
 #define ASSERT_WORLD_STOPPED_OR_DICT_LOCKED(op)                                                                        \
-    if (!_PyInterpreterState_GET()->stoptheworld.world_stopped) {                                                      \
+    if (!Nuitka_GetStopTheWorld()->world_stopped) {                                                                    \
         ASSERT_DICT_LOCKED(op);                                                                                        \
     }
 #define ASSERT_WORLD_STOPPED_OR_OBJ_LOCKED(op)                                                                         \
-    if (!_PyInterpreterState_GET()->stoptheworld.world_stopped) {                                                      \
+    if (!Nuitka_GetStopTheWorld()->world_stopped) {                                                                    \
         _Py_CRITICAL_SECTION_ASSERT_OBJECT_LOCKED(op);                                                                 \
     }
 
@@ -94,8 +94,15 @@ static inline void ASSERT_DICT_LOCKED(PyObject *op) { _Py_CRITICAL_SECTION_ASSER
 #define DECREF_KEYS(dk) _Py_atomic_add_ssize(&dk->dk_refcnt, -1)
 #define LOAD_KEYS_NENTRIES(keys) _Py_atomic_load_ssize_relaxed(&keys->dk_nentries)
 
+#if PYTHON_VERSION >= 0x3e0
+// Python 3.14 uses a negative refcount for immortal dictionary keys.
+#define NUITKA_DICT_KEYS_IS_IMMORTAL(dk) (FT_ATOMIC_LOAD_SSIZE_RELAXED((dk)->dk_refcnt) < 0)
+#else
+#define NUITKA_DICT_KEYS_IS_IMMORTAL(dk) (FT_ATOMIC_LOAD_SSIZE_RELAXED((dk)->dk_refcnt) == _Py_IMMORTAL_REFCNT)
+#endif
+
 static inline void Nuitka_Py_dictkeys_incref(PyDictKeysObject *dk) {
-    if (FT_ATOMIC_LOAD_SSIZE_RELAXED(dk->dk_refcnt) == _Py_IMMORTAL_REFCNT) {
+    if (NUITKA_DICT_KEYS_IS_IMMORTAL(dk)) {
         return;
     }
 #ifdef Py_REF_DEBUG
@@ -105,7 +112,7 @@ static inline void Nuitka_Py_dictkeys_incref(PyDictKeysObject *dk) {
 }
 
 static inline void Nuitka_Py_dictkeys_decref(PyInterpreterState *interp, PyDictKeysObject *dk, bool use_qsbr) {
-    if (FT_ATOMIC_LOAD_SSIZE_RELAXED(dk->dk_refcnt) == _Py_IMMORTAL_REFCNT) {
+    if (NUITKA_DICT_KEYS_IS_IMMORTAL(dk)) {
         return;
     }
     assert(FT_ATOMIC_LOAD_SSIZE(dk->dk_refcnt) > 0);
@@ -1094,7 +1101,8 @@ static PyDictObject *_Nuitka_AllocatePyDictObject(PyThreadState *tstate) {
 #endif
 
 #if PYTHON_VERSION >= 0x360
-static PyDictKeysObject *_Nuitka_AllocatePyDictKeysObject(PyThreadState *tstate, Py_ssize_t keys_size) {
+NUITKA_MAY_BE_UNUSED static PyDictKeysObject *_Nuitka_AllocatePyDictKeysObject(PyThreadState *tstate,
+                                                                               Py_ssize_t keys_size) {
     // CPython names, spell-checker: ignore dictkeys,numfree
     PyDictKeysObject *dk;
 
@@ -1131,7 +1139,7 @@ static PyDictKeysObject *_Nuitka_AllocatePyDictKeysObject(PyThreadState *tstate,
 
 #if PYTHON_VERSION >= 0x360 && !_NUITKA_EXPERIMENTAL_DISABLE_DICT_OPT
 
-static Py_ssize_t _Nuitka_Py_PyDict_KeysSize(PyDictKeysObject *keys) {
+NUITKA_MAY_BE_UNUSED static Py_ssize_t _Nuitka_Py_PyDict_KeysSize(PyDictKeysObject *keys) {
 #if PYTHON_VERSION < 0x360
     return sizeof(PyDictKeysObject) + (DK_SIZE(keys) - 1) * sizeof(PyDictKeyEntry);
 #elif PYTHON_VERSION < 0x370
@@ -1936,7 +1944,7 @@ Py_ssize_t Nuitka_PyDictLookupStr(PyDictObject *mp, PyObject *key, Py_hash_t has
 // works directly on the standard "PyDictObject" state, so dictionaries can be
 // freely passed between it and CPython APIs.
 
-static bool Nuitka_DictGetHash(PyThreadState *tstate, PyObject *key, Py_hash_t *hash_ptr) {
+NUITKA_MAY_BE_UNUSED static bool Nuitka_DictGetHash(PyThreadState *tstate, PyObject *key, Py_hash_t *hash_ptr) {
     CHECK_OBJECT(key);
 
     Py_hash_t hash;

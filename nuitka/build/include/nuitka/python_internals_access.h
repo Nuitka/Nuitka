@@ -15,7 +15,7 @@
 
 // spell-checker: ignore GNUC,PYRUNTIME,Qsbr,Reftracer,ceval,offsetof,stoptheworld
 
-#if _NUITKA_MODULE_MODE && PYTHON_VERSION >= 0x3e0 && PYTHON_VERSION < 0x3f0 && !defined(Py_GIL_DISABLED)
+#if _NUITKA_MODULE_MODE && PYTHON_VERSION >= 0x3e0 && PYTHON_VERSION < 0x3f0
 static inline struct _Py_interp_cached_objects *Nuitka_PyInterpreterState_GetCachedObjects(PyInterpreterState *interp) {
     return (struct _Py_interp_cached_objects *)Nuitka_PyInterpreterState_AdjustPostQsbrPointer(&interp->cached_objects);
 }
