@@ -83,6 +83,10 @@ NUITKA_MAY_BE_UNUSED static inline bool CONSIDER_THREADING(PyThreadState *tstate
 }
 #else
 NUITKA_MAY_BE_UNUSED static inline bool CONSIDER_THREADING(PyThreadState *tstate) {
+    if (_Py_HandlePending(tstate) < 0) {
+        return false;
+    }
+
     if (unlikely(tstate->async_exc != NULL)) {
         PyObject *async_exc = tstate->async_exc;
         tstate->async_exc = NULL;
