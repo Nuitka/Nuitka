@@ -105,6 +105,7 @@ from nuitka.plugins.Hooks import onClassBodyParsing
 from nuitka.Policies import decidePGOClassDictAssertionPolicy
 from nuitka.PythonVersions import python_version
 from nuitka.specs.ParameterSpecs import ParameterSpec
+from nuitka.States import states
 
 from .FutureSpecState import getFutureSpec
 from .InternalModule import (
@@ -1038,8 +1039,82 @@ def getClassBasesMroConversionHelper():
     tmp_item_variable = result.allocateTempVariable(
         temp_scope, "base", temp_type="object"
     )
+    tmp_mro_entries_variable = result.allocateTempVariable(
+        temp_scope, "mro_entries", temp_type="object"
+    )
 
     args_variable = result.getVariableForAssignment(variable_name="bases")
+
+    mro_entries_call = makeExpressionCall(
+        called=makeExpressionAttributeLookup(
+            expression=ExpressionTempVariableRef(
+                variable=tmp_item_variable, source_ref=internal_source_ref
+            ),
+            attribute_name="__mro_entries__",
+            source_ref=internal_source_ref,
+        ),
+        args=makeExpressionMakeTuple(
+            elements=(
+                ExpressionVariableRef(
+                    variable=args_variable, source_ref=internal_source_ref
+                ),
+            ),
+            source_ref=internal_source_ref,
+        ),
+        kw=None,
+        source_ref=internal_source_ref,
+    )
+
+    extend_result_statement = StatementExpressionOnly(
+        expression=ExpressionListOperationExtend(
+            list_arg=ExpressionTempVariableRef(
+                variable=tmp_result_variable, source_ref=internal_source_ref
+            ),
+            value=ExpressionTempVariableRef(
+                variable=tmp_mro_entries_variable, source_ref=internal_source_ref
+            ),
+            source_ref=internal_source_ref,
+        ),
+        source_ref=internal_source_ref,
+    )
+
+    if states.is_full_compat:
+        mro_entries_result_statement = makeStatementConditional(
+            condition=ExpressionSubtypeCheck(
+                left=ExpressionBuiltinType1(
+                    value=ExpressionTempVariableRef(
+                        variable=tmp_mro_entries_variable,
+                        source_ref=internal_source_ref,
+                    ),
+                    source_ref=internal_source_ref,
+                ),
+                right=makeExpressionBuiltinTypeRef(
+                    "tuple", source_ref=internal_source_ref
+                ),
+                source_ref=internal_source_ref,
+            ),
+            yes_branch=extend_result_statement,
+            no_branch=StatementRaiseException(
+                exception_type=ExpressionBuiltinMakeException(
+                    exception_name="TypeError",
+                    args=(
+                        makeConstantRefNode(
+                            constant="__mro_entries__ must return a tuple",
+                            source_ref=internal_source_ref,
+                        ),
+                    ),
+                    for_raise=False,
+                    source_ref=internal_source_ref,
+                ),
+                exception_value=None,
+                exception_trace=None,
+                exception_cause=None,
+                source_ref=internal_source_ref,
+            ),
+            source_ref=internal_source_ref,
+        )
+    else:
+        mro_entries_result_statement = extend_result_statement
 
     non_type_case = makeStatementConditional(
         condition=ExpressionAttributeCheck(
@@ -1049,33 +1124,13 @@ def getClassBasesMroConversionHelper():
             attribute_name="__mro_entries__",
             source_ref=internal_source_ref,
         ),
-        yes_branch=StatementExpressionOnly(
-            expression=ExpressionListOperationExtend(
-                list_arg=ExpressionTempVariableRef(
-                    variable=tmp_result_variable, source_ref=internal_source_ref
-                ),
-                value=makeExpressionCall(
-                    called=makeExpressionAttributeLookup(
-                        expression=ExpressionTempVariableRef(
-                            variable=tmp_item_variable, source_ref=internal_source_ref
-                        ),
-                        attribute_name="__mro_entries__",
-                        source_ref=internal_source_ref,
-                    ),
-                    args=makeExpressionMakeTuple(
-                        elements=(
-                            ExpressionVariableRef(
-                                variable=args_variable, source_ref=internal_source_ref
-                            ),
-                        ),
-                        source_ref=internal_source_ref,
-                    ),
-                    kw=None,
-                    source_ref=internal_source_ref,
-                ),
+        yes_branch=makeStatementsSequenceFromStatements(
+            makeStatementAssignmentVariable(
+                variable=tmp_mro_entries_variable,
+                source=mro_entries_call,
                 source_ref=internal_source_ref,
             ),
-            source_ref=internal_source_ref,
+            mro_entries_result_statement,
         ),
         no_branch=StatementListOperationAppend(
             list_arg=ExpressionTempVariableRef(
@@ -1166,6 +1221,7 @@ def getClassBasesMroConversionHelper():
                     tmp_result_variable,
                     tmp_iter_variable,
                     tmp_item_variable,
+                    tmp_mro_entries_variable,
                 ),
                 source_ref=internal_source_ref,
             )
