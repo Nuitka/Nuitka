@@ -136,6 +136,7 @@ def generateBuiltinCompileCode(to_name, expression, emit, context):
             flags_name=flags_name,
             dont_inherit_name=dont_inherit_name,
             optimize_name=optimize_name,
+            for_exec=False,
             emit=emit,
             context=context,
         )
@@ -149,6 +150,7 @@ def _getBuiltinCompileCode(
     flags_name,
     dont_inherit_name,
     optimize_name,
+    for_exec,
     emit,
     context,
 ):
@@ -165,8 +167,12 @@ def _getBuiltinCompileCode(
         )
 
     emit(
-        "%s = COMPILE_CODE(tstate, %s);"
-        % (to_name, ", ".join(str(arg) for arg in args))
+        "%s = %s(tstate, %s);"
+        % (
+            to_name,
+            "COMPILE_CODE_EXEC" if for_exec else "COMPILE_CODE",
+            ", ".join(str(arg) for arg in args),
+        )
     )
 
     getErrorExitCode(
@@ -194,6 +200,7 @@ def getBuiltinEvalCode(
     locals_name,
     mode_name,
     closure_name,
+    for_exec,
     emit,
     context,
 ):
@@ -207,6 +214,7 @@ def getBuiltinEvalCode(
         flags_name="NULL",
         dont_inherit_name="NULL",
         optimize_name="NULL",
+        for_exec=for_exec,
         emit=emit,
         context=context,
     )
@@ -296,6 +304,7 @@ def generateExecCode(statement, emit, context):
             flags_name="NULL",
             dont_inherit_name="NULL",
             optimize_name="NULL",
+            for_exec=True,
             emit=emit,
             context=context,
         )
@@ -375,6 +384,13 @@ def _generateEvalCode(to_name, node, emit, context):
     else:
         closure_name = None
 
+    if node.isExpressionBuiltinEval() and python_version >= 0x3E0:
+        # Since Python 3.14, the "eval" built-in suppresses constant
+        # immortalization, unlike "exec" and older "eval" implementations.
+        for_exec = False
+    else:
+        for_exec = True
+
     getBuiltinEvalCode(
         to_name=to_name,
         source_name=source_name,
@@ -385,6 +401,7 @@ def _generateEvalCode(to_name, node, emit, context):
             constant="eval" if node.isExpressionBuiltinEval() else "exec"
         ),
         closure_name=closure_name,
+        for_exec=for_exec,
         emit=emit,
         context=context,
     )

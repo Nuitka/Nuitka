@@ -133,6 +133,16 @@ extern PyObject *COMPILE_CODE(PyThreadState *tstate, PyObject *source_code, PyOb
                               PyObject *flags, PyObject *dont_inherit, PyObject *optimize);
 #endif
 
+// Compile source code for "exec" and "eval", which do not suppress constant
+// immortalization in CPython.
+#if PYTHON_VERSION < 0x300
+extern PyObject *COMPILE_CODE_EXEC(PyThreadState *tstate, PyObject *source_code, PyObject *file_name, PyObject *mode,
+                                   PyObject *flags, PyObject *dont_inherit);
+#else
+extern PyObject *COMPILE_CODE_EXEC(PyThreadState *tstate, PyObject *source_code, PyObject *file_name, PyObject *mode,
+                                   PyObject *flags, PyObject *dont_inherit, PyObject *optimize);
+#endif
+
 #if PYTHON_VERSION < 0x300
 extern bool EXEC_FILE_ARG_HANDLING(PyThreadState *tstate, PyObject **prog, PyObject **name);
 #endif

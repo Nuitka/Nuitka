@@ -108,6 +108,42 @@ PyObject *COMPILE_CODE(PyThreadState *tstate, PyObject *source_code, PyObject *f
     return result;
 }
 
+#if PYTHON_VERSION < 0x300
+PyObject *COMPILE_CODE_EXEC(PyThreadState *tstate, PyObject *source_code, PyObject *file_name, PyObject *mode,
+                            PyObject *flags, PyObject *dont_inherit)
+#else
+PyObject *COMPILE_CODE_EXEC(PyThreadState *tstate, PyObject *source_code, PyObject *file_name, PyObject *mode,
+                            PyObject *flags, PyObject *dont_inherit, PyObject *optimize)
+#endif
+{
+#if defined(Py_GIL_DISABLED) && PYTHON_VERSION < 0x3e0
+    // The "compile" built-in suppresses constant immortalization for explicit
+    // compile calls. Cancel that here, because "exec" and "eval" in CPython do
+    // not suppress it. An active user suppression remains in effect, since it
+    // makes the value negative both before and after the built-in call.
+    PyInterpreterState *interp = _PyInterpreterState_GET();
+    _Py_atomic_add_int(&interp->gc.immortalize, 2);
+#elif defined(Py_GIL_DISABLED) && PYTHON_VERSION >= 0x3e0
+    // Same as above, but Python3.14 uses a thread state counter for this.
+    _PyThreadStateImpl *tstate_impl = (_PyThreadStateImpl *)tstate;
+    tstate_impl->suppress_co_const_immortalization -= 1;
+#endif
+
+#if PYTHON_VERSION < 0x300
+    PyObject *result = COMPILE_CODE(tstate, source_code, file_name, mode, flags, dont_inherit);
+#else
+    PyObject *result = COMPILE_CODE(tstate, source_code, file_name, mode, flags, dont_inherit, optimize);
+#endif
+
+#if defined(Py_GIL_DISABLED) && PYTHON_VERSION < 0x3e0
+    _Py_atomic_add_int(&interp->gc.immortalize, -2);
+#elif defined(Py_GIL_DISABLED) && PYTHON_VERSION >= 0x3e0
+    tstate_impl->suppress_co_const_immortalization += 1;
+#endif
+
+    return result;
+}
+
 /**
  * Helper used to deal with exec statement
  */
