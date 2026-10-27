@@ -183,6 +183,7 @@ static Py_ssize_t _Nuitka_FrameLocalsProxy_length(PyObject *self) {
 // signals a failed name comparison.
 static void *_Nuitka_FrameLocalsProxy_lookup(Nuitka_FrameLocalsProxyObject *proxy, PyObject *key, int *type_out) {
     struct Nuitka_FrameObject *frame = proxy->frame;
+    PyThreadState *tstate = PyThreadState_GET();
     PyCodeObject *co = Nuitka_GetFrameCodeObject(frame);
 
     unsigned char const *p = (unsigned char const *)frame->m_type_description;
@@ -193,6 +194,11 @@ static void *_Nuitka_FrameLocalsProxy_lookup(Nuitka_FrameLocalsProxyObject *prox
     size_t offset = 0;
 
     assert(p[co->co_nlocals] == 0);
+
+    Py_hash_t key_hash = HASH_VALUE_WITH_ERROR(tstate, key);
+    if (key_hash == -1) {
+        return NULL;
+    }
 
     for (int i = 0; i < co->co_nlocals; i++) {
         int type = p[i];
@@ -206,6 +212,14 @@ static void *_Nuitka_FrameLocalsProxy_lookup(Nuitka_FrameLocalsProxyObject *prox
         }
 
         if (*var_names != key) {
+            Py_hash_t name_hash = ((PyASCIIObject *)*var_names)->hash;
+
+            if (name_hash != key_hash) {
+                var_names++;
+                offset += Nuitka_FrameLocals_Size(type);
+                continue;
+            }
+
             nuitka_bool equal = RICH_COMPARE_EQ_NBOOL_OBJECT_OBJECT(*var_names, key);
             if (unlikely(equal == NUITKA_BOOL_EXCEPTION)) {
                 return NULL;
