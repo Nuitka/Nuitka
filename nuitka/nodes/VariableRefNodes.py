@@ -10,10 +10,7 @@ and its expressions, changing the meaning of course dramatically.
 
 from nuitka.Builtins import builtin_exception_names, builtin_names
 from nuitka.ModuleRegistry import getOwnerFromCodeName
-from nuitka.PythonVersions import (
-    getUnboundLocalErrorErrorTemplate,
-    python_version,
-)
+from nuitka.PythonVersions import getUnboundLocalErrorMessage, python_version
 from nuitka.Variables import Variable
 
 from .ConstantRefNodes import makeConstantRefNode
@@ -586,7 +583,7 @@ Replaced read-only module attribute '__spec__' with module attribute reference."
             result = makeRaiseExceptionReplacementExpression(
                 expression=self,
                 exception_type="UnboundLocalError",
-                exception_value=getUnboundLocalErrorErrorTemplate() % variable_name,
+                exception_value=getUnboundLocalErrorMessage(variable_name),
             )
 
             return (

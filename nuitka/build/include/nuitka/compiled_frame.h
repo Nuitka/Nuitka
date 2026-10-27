@@ -71,6 +71,13 @@ extern void Nuitka_Frame_FormatUnboundLocalError(PyThreadState *tstate,
                                                  struct Nuitka_ExceptionPreservationItem *keeper_exception_state,
                                                  struct Nuitka_FrameObject *frame_object, int variable_index);
 
+// Format an UnboundLocalError for the given variable name, used by frame-less
+// outline code, and chain the exception as needed.
+extern void Nuitka_FormatUnboundLocalError(PyThreadState *tstate,
+                                           struct Nuitka_ExceptionPreservationItem *exception_state,
+                                           struct Nuitka_ExceptionPreservationItem *keeper_exception_state,
+                                           PyObject *variable_name);
+
 // Format a NameError for the free variable at the given index of the frame code
 // object's free variables, and chain the exception as needed.
 extern void Nuitka_Frame_FormatUnboundClosureError(PyThreadState *tstate,

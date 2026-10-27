@@ -1475,22 +1475,13 @@ static void _Nuitka_Frame_ChainException(PyThreadState *tstate,
 #endif
 }
 
-// Format an UnboundLocalError for the local variable at the given index of the
-// frame code object's variable names. The name is taken from the code object,
-// so no string constant is needed at the call site.
-void Nuitka_Frame_FormatUnboundLocalError(PyThreadState *tstate,
-                                          struct Nuitka_ExceptionPreservationItem *exception_state,
-                                          struct Nuitka_ExceptionPreservationItem *keeper_exception_state,
-                                          struct Nuitka_FrameObject *frame_object, int variable_index) {
-    CHECK_OBJECT((PyObject *)frame_object);
-    assertFrameObject(frame_object);
-
-    PyCodeObject *code_object = Nuitka_GetFrameCodeObject(frame_object);
-
-    assert(variable_index >= 0);
-    assert(variable_index < Nuitka_GetCodeLocalsCount(code_object));
-
-    PyObject *variable_name = Nuitka_GetCodeVarNames(code_object)[variable_index];
+// Format an UnboundLocalError for the given variable name, chaining the
+// exception as needed. This is used for frame-less outline code, where no
+// frame variable index is available.
+void Nuitka_FormatUnboundLocalError(PyThreadState *tstate, struct Nuitka_ExceptionPreservationItem *exception_state,
+                                    struct Nuitka_ExceptionPreservationItem *keeper_exception_state,
+                                    PyObject *variable_name) {
+    CHECK_OBJECT(variable_name);
 
 #if PYTHON_VERSION < 0x300
     PyObject *exception_value = Nuitka_String_FromFormat("local variable '%s' referenced before assignment",
@@ -1508,6 +1499,26 @@ void Nuitka_Frame_FormatUnboundLocalError(PyThreadState *tstate,
                                                        exception_value);
 
     _Nuitka_Frame_ChainException(tstate, exception_state, keeper_exception_state);
+}
+
+// Format an UnboundLocalError for the local variable at the given index of the
+// frame code object's variable names. The name is taken from the code object,
+// so no string constant is needed at the call site.
+void Nuitka_Frame_FormatUnboundLocalError(PyThreadState *tstate,
+                                          struct Nuitka_ExceptionPreservationItem *exception_state,
+                                          struct Nuitka_ExceptionPreservationItem *keeper_exception_state,
+                                          struct Nuitka_FrameObject *frame_object, int variable_index) {
+    CHECK_OBJECT((PyObject *)frame_object);
+    assertFrameObject(frame_object);
+
+    PyCodeObject *code_object = Nuitka_GetFrameCodeObject(frame_object);
+
+    assert(variable_index >= 0);
+    assert(variable_index < Nuitka_GetCodeLocalsCount(code_object));
+
+    PyObject *variable_name = Nuitka_GetCodeVarNames(code_object)[variable_index];
+
+    Nuitka_FormatUnboundLocalError(tstate, exception_state, keeper_exception_state, variable_name);
 }
 
 // Format an NameError for the free variable at the given index of the frame

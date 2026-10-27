@@ -12,7 +12,7 @@ from abc import abstractmethod
 from nuitka.__past__ import iterItems
 from nuitka.ModuleRegistry import getOwnerFromCodeName
 from nuitka.options.Options import isExperimental
-from nuitka.PythonVersions import getUnboundLocalErrorErrorTemplate
+from nuitka.PythonVersions import getUnboundLocalErrorMessage
 
 from .NodeBases import StatementBase
 from .NodeMakingHelpers import makeRaiseExceptionReplacementStatement
@@ -303,8 +303,7 @@ class StatementDelVariableIntolerant(StatementDelVariableBase):
             result = makeRaiseExceptionReplacementStatement(
                 statement=self,
                 exception_type="UnboundLocalError",
-                exception_value=getUnboundLocalErrorErrorTemplate()
-                % self.variable.getName(),
+                exception_value=getUnboundLocalErrorMessage(self.variable.getName()),
             )
         else:
             result = makeRaiseExceptionReplacementStatement(

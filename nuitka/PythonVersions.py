@@ -17,6 +17,7 @@ import re
 import sys
 
 from nuitka.__past__ import subprocess
+from nuitka.States import states
 
 
 def getSupportedPythonVersions():
@@ -305,6 +306,22 @@ f()
             sys.exit("Error, cannot detect expected error message.")
 
     return getUnboundLocalErrorErrorTemplate.result
+
+
+def getUnboundLocalErrorMessage(variable_name):
+    """Get the UnboundLocalError message for a variable name.
+
+    Args:
+        variable_name: Name of the variable.
+
+    Returns:
+        Message text, either CPython compatible or plain.
+    """
+
+    if states.is_full_compat:
+        return getUnboundLocalErrorErrorTemplate() % variable_name
+
+    return "local variable referenced before assignment"
 
 
 def getDictFromkeysNoArgErrorMessage():

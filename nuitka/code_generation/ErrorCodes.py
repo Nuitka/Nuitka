@@ -15,6 +15,7 @@ And releasing of values, as this is what the error case commonly does.
 """
 
 from nuitka.PythonVersions import python_version
+from nuitka.States import states
 
 from .DeferredReleaseCodes import getDeferredReleaseErrorCode
 from .LineNumberCodes import getErrorLineNumberUpdateCode
@@ -301,6 +302,41 @@ def _getFrameVariableErrorCode(
     return None
 
 
+def _getSimpleVariableErrorCode(variable, exception_state_name, context):
+    """Get a plain unbound local or closure variable error code.
+
+    Args:
+        variable: Variable that is accessed.
+        exception_state_name: Name of the exception state variable.
+        context: Code generation context.
+
+    Returns:
+        Code that sets the exception.
+    """
+
+    variable_owner = variable.getOwner()
+
+    if variable_owner.isExpressionOutlineFunctionBase():
+        variable_entry_point = variable_owner.getEntryPoint()
+    else:
+        variable_entry_point = variable_owner
+
+    if variable_entry_point is context.getOwner().getEntryPoint():
+        return (
+            """\
+SET_EXCEPTION_PRESERVATION_STATE_FROM_TYPE0_STR(
+    tstate, &%s, PyExc_UnboundLocalError, "local variable referenced before assignment");"""
+            % exception_state_name
+        )
+
+    return (
+        """\
+SET_EXCEPTION_PRESERVATION_STATE_FROM_TYPE0_STR(
+    tstate, &%s, PyExc_NameError, "free variable referenced before assignment in enclosing scope");"""
+        % exception_state_name
+    )
+
+
 def getLocalVariableReferenceErrorCode(variable, condition, emit, context):
     (
         exception_state_name,
@@ -319,17 +355,51 @@ def getLocalVariableReferenceErrorCode(variable, condition, emit, context):
 
     frame_identifier = context.getFrameHandle()
 
-    frame_error_code = _getFrameVariableErrorCode(
-        variable=variable,
-        exception_state_name=exception_state_name,
-        keeper_exception_state_code=keeper_exception_state_code,
-        frame_identifier=frame_identifier,
-        context=context,
-    )
+    if states.is_full_compat:
+        frame_error_code = _getFrameVariableErrorCode(
+            variable=variable,
+            exception_state_name=exception_state_name,
+            keeper_exception_state_code=keeper_exception_state_code,
+            frame_identifier=frame_identifier,
+            context=context,
+        )
 
-    # Without a frame or frame variables, only spurious local variable checks
-    # would remain, and those must not exist anymore.
-    assert frame_error_code is not None, variable
+        # Without a frame or frame variables, only frame-less outline code,
+        # e.g. comprehensions, remains, and it still needs a proper error
+        # message.
+        if frame_error_code is None:
+            variable_owner = variable.getOwner()
+
+            if variable_owner.isExpressionOutlineFunctionBase():
+                variable_entry_point = variable_owner.getEntryPoint()
+            else:
+                variable_entry_point = variable_owner
+
+            # This is the known frame-less outline situation: the variable
+            # belongs to the outline that is currently being generated, and
+            # the parent entry point frame is the one in use.
+            if (
+                frame_identifier is not None
+                and context.getOwner() is variable_owner
+                and variable_owner.isExpressionOutlineFunctionBase()
+                and variable_entry_point is context.getOwner().getEntryPoint()
+            ):
+                frame_error_code = (
+                    "Nuitka_FormatUnboundLocalError(tstate, &%s, %s, %s);"
+                    % (
+                        exception_state_name,
+                        keeper_exception_state_code,
+                        context.getConstantCode(constant=variable.getName()),
+                    )
+                )
+            else:
+                assert frame_error_code is not None, variable
+    else:
+        frame_error_code = _getSimpleVariableErrorCode(
+            variable=variable,
+            exception_state_name=exception_state_name,
+            context=context,
+        )
 
     getErrorExitRaiseCode(
         condition=condition,
