@@ -9,6 +9,10 @@
 #include "nuitka/cpython_api_compat.h"
 #include "nuitka/defines.h"
 
+#if PYTHON_VERSION >= 0x3d0
+#include "internal/pycore_interp.h"
+#endif
+
 #if PYTHON_VERSION >= 0x3e0
 #include "internal/pycore_ceval.h"
 #endif

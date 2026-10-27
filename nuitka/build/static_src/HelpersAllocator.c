@@ -666,7 +666,28 @@ static void Nuitka_Py_ScheduleGC(PyThreadState *tstate) {
 
 // This is called during object creation and might trigger garbage collection
 void Nuitka_PyObject_GC_Link(PyObject *op) {
-#if PYTHON_VERSION < 0x3d0
+#if defined(Py_GIL_DISABLED) && PYTHON_VERSION >= 0x3e0 && PYTHON_VERSION < 0x3f0
+    // Match CPython's free-threaded GC accounting. Objects are tracked with
+    // the GC bits only, not linked into a generation list, and a per-thread
+    // allocation counter is folded into the interpreter's young generation
+    // counter in batches, rather than updating it for each object.
+    (void)op;
+
+    _PyThreadStateImpl *tstate_impl = (_PyThreadStateImpl *)_PyThreadState_GET();
+
+    if (unlikely(++tstate_impl->gc.alloc_count > 511)) {
+        PyThreadState *tstate = (PyThreadState *)tstate_impl;
+        GCState *gcstate = &tstate->interp->gc;
+
+        _Py_atomic_add_int(&gcstate->young.count, (int)tstate_impl->gc.alloc_count);
+        tstate_impl->gc.alloc_count = 0;
+
+        if (gcstate->young.count > gcstate->young.threshold && gcstate->young.threshold && gcstate->enabled &&
+            !_Py_atomic_load_int_relaxed(&gcstate->collecting) && !_PyErr_Occurred(tstate)) {
+            Nuitka_Py_ScheduleGC(tstate);
+        }
+    }
+#elif PYTHON_VERSION < 0x3d0
     PyGC_Head *g = AS_GC(op);
 
     PyThreadState *tstate = _PyThreadState_GET();
@@ -774,6 +795,7 @@ void Nuitka_PyObject_GC_Link(PyObject *op) {
     PyThreadState *tstate = _PyThreadState_GET();
     GCState *gcstate = &tstate->interp->gc;
 
+#ifndef Py_GIL_DISABLED
     gc->_gc_next = 0;
     gc->_gc_prev = 0;
 
@@ -784,6 +806,15 @@ void Nuitka_PyObject_GC_Link(PyObject *op) {
         !_PyErr_Occurred(tstate)) {
         Nuitka_Py_ScheduleGC(tstate);
     }
+#else
+    gcstate->young.count++;
+    gcstate->heap_size++;
+
+    if (gcstate->young.count > gcstate->young.threshold && gcstate->enabled && gcstate->young.threshold &&
+        !_Py_atomic_load_int_relaxed(&gcstate->collecting) && !_PyErr_Occurred(tstate)) {
+        Nuitka_Py_ScheduleGC(tstate);
+    }
+#endif
 #endif
 }
 
@@ -981,7 +1012,7 @@ void _NuitkaMem_ProcessDelayed(PyThreadState *tstate) {
 
 static void _NuitkaMem_FreeDelayed2(uintptr_t ptr) {
     // Free immediately if possible.
-    if (_PyRuntime.stoptheworld.world_stopped) {
+    if (Nuitka_GetStopTheWorld()->world_stopped) {
         _NuitkaMem_free_work_item(ptr);
         return;
     }

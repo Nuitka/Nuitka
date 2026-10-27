@@ -15,6 +15,10 @@
 #include "internal/pycore_pystate.h"
 #include "internal/pycore_runtime.h"
 
+#if defined(Py_GIL_DISABLED) && PYTHON_VERSION >= 0x3d0
+#include "internal/pycore_object_alloc.h"
+#endif
+
 #include "nuitka/defines.h"
 #include "nuitka/gc_runtime.h"
 #endif
@@ -737,7 +741,11 @@ static PyObject *Nuitka_PyType_AllocNoTrackVar(PyTypeObject *type, Py_ssize_t ni
     inline_values_size = Nuitka_PyType_InlineValuesSize(type);
 #endif
 
+#ifdef Py_GIL_DISABLED
+    char *alloc = (char *)_PyObject_MallocWithType(type, size + pre_size + inline_values_size);
+#else
     char *alloc = (char *)NuitkaObject_Malloc(size + pre_size + inline_values_size);
+#endif
     assert(alloc);
     PyObject *obj = (PyObject *)(alloc + pre_size);
 
@@ -794,7 +802,11 @@ static PyObject *Nuitka_PyType_AllocNoTrack(PyTypeObject *type) {
     size += Nuitka_PyType_InlineValuesSize(type);
 #endif
 
+#ifdef Py_GIL_DISABLED
+    char *alloc = (char *)_PyObject_MallocWithType(type, size + pre_size);
+#else
     char *alloc = (char *)NuitkaObject_Malloc(size + pre_size);
+#endif
     assert(alloc);
     PyObject *obj = (PyObject *)(alloc + pre_size);
 
@@ -921,7 +933,7 @@ static inline void Py_SET_REFCNT_IMMORTAL(PyObject *obj) {
     obj->ob_ref_local = _Py_IMMORTAL_INITIAL_REFCNT;
     obj->ob_ref_shared = 0;
 #if PYTHON_VERSION >= 0x3e0
-    _Py_atomic_or_uint8(&op->ob_gc_bits, _PyGC_BITS_DEFERRED);
+    _Py_atomic_or_uint8(&obj->ob_gc_bits, _PyGC_BITS_DEFERRED);
 #endif
 
 #else

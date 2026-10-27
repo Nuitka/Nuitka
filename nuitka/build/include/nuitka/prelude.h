@@ -224,6 +224,10 @@ NUITKA_MAY_BE_UNUSED static inline managed_static_type_state *Nuitka_PyStaticTyp
 #include <internal/pycore_unicodeobject.h>
 #endif
 
+#if defined(Py_GIL_DISABLED) && PYTHON_VERSION >= 0x3d0 && PYTHON_VERSION < 0x3e0
+#include "internal/pycore_object_alloc.h"
+#endif
+
 #ifndef __IDE_ONLY__
 // IDEs keep the define, so they can still parse private headers included later.
 #undef Py_BUILD_CORE
@@ -269,6 +273,19 @@ Nuitka_PyInterpreterState_GetMemFreeQueue(PyInterpreterState *interp) {
     return (struct _Py_mem_interp_free_queue *)Nuitka_PyInterpreterState_AdjustPostQsbrPointer(&interp->mem_free_queue);
 #else
     return &interp->mem_free_queue;
+#endif
+}
+
+// Python 3.13 uses the global stop-the-world state for delayed memory frees,
+// while Python 3.14 uses the per-interpreter state.
+NUITKA_MAY_BE_UNUSED static inline struct _stoptheworld_state *Nuitka_GetStopTheWorld(void) {
+#if PYTHON_VERSION >= 0x3e0 && PYTHON_VERSION < 0x3f0
+    return (struct _stoptheworld_state *)Nuitka_PyInterpreterState_AdjustPostGcPointer(
+        &_PyInterpreterState_GET()->stoptheworld);
+#elif defined(_NUITKA_ADAPTED_PYTHON_HEADERS)
+    return NUITKA_PYRUNTIME_DYNAMIC(_Nuitka_PyRuntime_PTR, stoptheworld, struct _stoptheworld_state);
+#else
+    return &_PyRuntime.stoptheworld;
 #endif
 }
 #endif
