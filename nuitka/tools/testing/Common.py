@@ -137,7 +137,7 @@ def _parsePythonVersionOutput(python_binary):
             "-c",
             """\
 import sys, os;\
-print(sys.version.split(" ")[0]);\
+print(sys.version.split(" ")[0] + ("t" if "t" in getattr(sys, "abiflags", "") else ""));\
 print(".".join(str(s) for s in list(sys.version_info)[:3]));\
 print(\
 ("x86_64" if "AMD64" in sys.version else (\

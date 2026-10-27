@@ -399,8 +399,12 @@ def getPythonABI(python_debug):
 
         # spell-checker: ignore getobjects
         if python_debug or hasattr(sys, "getobjects"):
-            if not abiflags.startswith("d"):
-                abiflags = "d" + abiflags
+            # Keep CPython's ABI flag order: "dm" for 3.7, "td" for free-threaded builds.
+            if "d" not in abiflags:
+                if "t" in abiflags:
+                    abiflags = abiflags + "d"
+                else:
+                    abiflags = "d" + abiflags
     else:
         abiflags = ""
 
