@@ -444,15 +444,17 @@ def buildFunctionNode(provider, node, source_ref):
         function_provider, node, function_creation, source_ref
     )
 
-    # Add wrapping for function with generic types to be provided to the
     # Add the "staticmethod" decorator to __new__ methods if not provided.
-
-    # CPython 2.x made these optional, but secretly applies them when it does
-    # "class __new__".  We add them earlier, so our optimization will see it.
+    # CPython does this implicitly only for its own function type when
+    # creating a class. We add it earlier so our optimization sees it and
+    # compiled functions get the same treatment. Before Python 3.10,
+    # 'staticmethod' objects are not callable, and 'enum' calls '__new__' from
+    # the class namespace directly, so pre-wrapping would break enum classes
+    # there.
     if (
-        python_version < 0x300
-        and node.name == "__new__"
+        node.name == "__new__"
         and provider.isExpressionClassBodyBase()
+        and (python_version < 0x300 or python_version >= 0x3A0)
     ):
         _injectDecorator(
             decorators, "staticmethod", ("staticmethod", "classmethod"), source_ref
