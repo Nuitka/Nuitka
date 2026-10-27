@@ -954,7 +954,7 @@ static struct Nuitka_FrameObject *_MAKE_COMPILED_FRAME(PyCodeObject *code, PyObj
     locals_owner->f_executable = (PyObject *)code;
 #else
     // TODO: Why is our code object not immortal?
-    locals_owner->f_executable = _PyStackRef_FromPyObjectNew((PyObject *)code);
+    locals_owner->f_executable = PyStackRef_FromPyObjectNew((PyObject *)code);
 #endif
 
     frame->f_trace = Py_None;
