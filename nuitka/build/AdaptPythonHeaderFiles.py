@@ -352,9 +352,10 @@ def _getPythonInternalHeadersAndHash(internal_include_dir):
     header_filenames = []
 
     hash_obj.updateFromValues(
-        "adapted-python-headers-v2",
+        "adapted-python-headers",
         getNuitkaVersion(),
         "module" if shallMakeModule() else "non-module",
+        "gil" if isPythonWithGil() else "no-gil",
     )
 
     for header_filename in sorted(
