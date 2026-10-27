@@ -796,17 +796,30 @@ PyObject *BUILTIN_TYPE3(PyThreadState *tstate, PyObject *module_name, PyObject *
 
 NUITKA_DEFINE_BUILTIN(super);
 
+static PyObject *Nuitka_GetSuperValue(PyDictObject *module_dict) {
+#ifdef _NUITKA_FULL_COMPAT
+    // Only full compat mode observes a dynamically shadowed 'super'. Static
+    // shadowing is already handled by variable resolution, and regular code
+    // does not patch it at runtime.
+    PyObject *super_value = GET_STRING_DICT_VALUE(module_dict, (Nuitka_StringObject *)const_str_plain_super);
+
+    if (super_value != NULL) {
+        return super_value;
+    }
+#else
+    (void)module_dict;
+#endif
+
+    NUITKA_ASSIGN_BUILTIN(super);
+
+    return NUITKA_ACCESS_BUILTIN(super);
+}
+
 PyObject *BUILTIN_SUPER2(PyThreadState *tstate, PyDictObject *module_dict, PyObject *type, PyObject *obj) {
     CHECK_OBJECT(type);
     CHECK_OBJECT_X(obj);
 
-    PyObject *super_value = GET_STRING_DICT_VALUE(module_dict, (Nuitka_StringObject *)const_str_plain_super);
-
-    if (super_value == NULL) {
-        NUITKA_ASSIGN_BUILTIN(super);
-
-        super_value = NUITKA_ACCESS_BUILTIN(super);
-    }
+    PyObject *super_value = Nuitka_GetSuperValue(module_dict);
 
     if (obj != NULL) {
         PyObject *args[] = {type, obj};
@@ -818,11 +831,31 @@ PyObject *BUILTIN_SUPER2(PyThreadState *tstate, PyDictObject *module_dict, PyObj
 }
 
 PyObject *BUILTIN_SUPER0(PyThreadState *tstate, PyDictObject *module_dict, PyObject *type, PyObject *obj) {
+    CHECK_OBJECT(type);
+    CHECK_OBJECT_X(obj);
+
     if (obj == Py_None) {
         obj = NULL;
     }
 
-    return BUILTIN_SUPER2(tstate, module_dict, type, obj);
+    PyObject *super_value = Nuitka_GetSuperValue(module_dict);
+
+#ifdef _NUITKA_FULL_COMPAT
+    // CPython only supplies the implicit arguments to the actual 'super'
+    // built-in. If the name was shadowed dynamically, it is called without
+    // arguments instead.
+    if (super_value != (PyObject *)&PySuper_Type) {
+        return CALL_FUNCTION_NO_ARGS(tstate, super_value);
+    }
+#endif
+
+    if (obj != NULL) {
+        PyObject *args[] = {type, obj};
+
+        return CALL_FUNCTION_WITH_ARGS2(tstate, super_value, args);
+    }
+
+    return CALL_FUNCTION_WITH_SINGLE_ARG(tstate, super_value, type);
 }
 
 /** The "callable" built-in.

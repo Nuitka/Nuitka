@@ -1173,7 +1173,7 @@ def compile_extractor(node):
 
 def super_extractor(node):
     def wrapSuperBuiltin(type_arg, object_arg, source_ref):
-        # Many cases due to complex defaulting behavior, pylint: disable=too-many-return-statements
+        # Many cases due to complex defaulting behavior, pylint: disable=too-many-branches,too-many-return-statements
 
         if type_arg is None and python_version >= 0x300:
             if provider.isCompiledPythonModule():
@@ -1185,7 +1185,18 @@ def super_extractor(node):
 
             class_variable = provider.getVariableForReference(variable_name="__class__")
 
-            provider.trace_collection.getVariableCurrentTrace(class_variable).addUsage()
+            class_trace = provider.trace_collection.getVariableCurrentTrace(
+                class_variable
+            )
+
+            if class_trace.mustNotHaveValue():
+                return makeRaiseExceptionReplacementExpression(
+                    expression=node,
+                    exception_type="RuntimeError",
+                    exception_value="super(): empty __class__ cell",
+                )
+
+            class_trace.addUsage()
 
             type_arg = ExpressionVariableRef(
                 # Ought to be already closure taken due to "super" flag in
@@ -1232,9 +1243,18 @@ def super_extractor(node):
                         variable_name=par1_name
                     )
 
-                    provider.trace_collection.getVariableCurrentTrace(
+                    object_trace = provider.trace_collection.getVariableCurrentTrace(
                         object_variable
-                    ).addUsage()
+                    )
+
+                    if object_trace.mustNotHaveValue():
+                        return makeRaiseExceptionReplacementExpression(
+                            expression=node,
+                            exception_type="RuntimeError",
+                            exception_value="super(): arg[0] deleted",
+                        )
+
+                    object_trace.addUsage()
 
                     object_arg = ExpressionVariableRef(
                         variable=object_variable, source_ref=source_ref

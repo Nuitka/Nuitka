@@ -18,6 +18,7 @@
 
 #include "nuitka/checkers.h"
 #include "nuitka/defines.h"
+#include "nuitka/exceptions.h"
 #include "nuitka/helper/boolean.h"
 #include "nuitka/helper/ints.h"
 #endif
