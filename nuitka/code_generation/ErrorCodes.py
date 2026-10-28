@@ -45,6 +45,10 @@ def getErrorExitReleaseCode(context):
             if deferred_code is not None:
                 temp_release.append(deferred_code)
 
+        # The shared function exception exit also releases the return value.
+        if tmp_name.code_name == "tmp_return_value":
+            temp_release.append("%s = NULL;" % tmp_name)
+
     temp_release = "\n".join(temp_release)
 
     (
