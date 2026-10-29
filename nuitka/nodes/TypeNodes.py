@@ -372,6 +372,18 @@ class ExpressionTypeAlias(ChildrenExpressionTypeAliasMixin, ExpressionBase):
     def mayRaiseExceptionOperation():
         return False
 
+    def mayRaiseException(self, exception_type):
+        # The creation of the type alias itself cannot raise anything that
+        # code generation would handle, only the children are evaluated.
+        return (
+            self.subnode_name.mayRaiseException(exception_type)
+            or any(
+                type_param.mayRaiseException(exception_type)
+                for type_param in self.subnode_type_params
+            )
+            or self.subnode_value.mayRaiseException(exception_type)
+        )
+
 
 class ExpressionTypeVariable(ExpressionTypeVariableBase, ExpressionBase):
     kind = "EXPRESSION_TYPE_VARIABLE"

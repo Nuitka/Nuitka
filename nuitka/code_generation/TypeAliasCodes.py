@@ -27,7 +27,7 @@ def generateTypeAliasCode(to_name, expression, emit, context):
         expression=expression.subnode_value, emit=emit, context=context
     )
 
-    type_alias_name = expression.subnode_name.getVariableName()
+    type_alias_name = expression.subnode_name.getCompileTimeConstant()
 
     with withObjectCodeTemporaryAssignment(
         to_name, "type_alias_value", expression, emit, context

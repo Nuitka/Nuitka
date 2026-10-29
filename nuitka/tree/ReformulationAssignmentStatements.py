@@ -1468,9 +1468,9 @@ def buildTypeAliasNode(provider, node, source_ref):
 
     type_alias_name = mangleName(node.name.id, provider)
     type_alias_node = ExpressionTypeAlias(
-        name=ExpressionVariableNameRef(
-            provider=provider, variable_name=type_alias_name, source_ref=source_ref
-        ),
+        # The variable name is mangled in class scopes, but the alias object
+        # uses the source name.
+        name=makeConstantRefNode(constant=node.name.id, source_ref=source_ref),
         type_params=buildNodeTuple(provider, node.type_params, source_ref),
         value=_makeTypeExpressionFactory(
             provider=provider,

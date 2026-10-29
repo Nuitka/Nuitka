@@ -180,6 +180,24 @@ def classTypeAliasInFunction():
 
 classTypeAliasInFunction()
 
+
+def typeAliasInFunction():
+    def outer[A]():
+        type TA1[B] = dict[A, B]
+        return TA1
+
+    alias = outer()
+
+    print(
+        "Type alias in function:",
+        alias.__parameters__,
+        alias.__value__,
+        outer.__type_params__,
+    )
+
+
+typeAliasInFunction()
+
 #     Python tests originally created or extracted from other peoples work. The
 #     parts were too small to be protected.
 #
