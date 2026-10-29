@@ -868,10 +868,18 @@ class ExpressionSliceShapeExactMixin(
     def getKnownAttributeValue(attribute_name):
         return getattr(the_empty_slice, attribute_name)
 
-    @staticmethod
-    def isKnownToBeHashable():
-        # Hashable for Python 3.12 or higher, if its values are.
-        return None if python_version >= 0x3C0 else False
+    if python_version >= 0x3C0:
+
+        @staticmethod
+        def isKnownToBeHashable():
+            # Hashable for Python 3.12 or higher, if its values are.
+            return None
+
+    else:
+
+        @staticmethod
+        def isKnownToBeHashable():
+            return False
 
     def extractUnhashableNodeType(self):
         return makeConstantReplacementNode(
