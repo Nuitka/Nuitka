@@ -265,6 +265,7 @@ def isHashable(constant):
     mutable, and still not hashable: slices, before Python 3.12.
     """
     # Many cases and all return, that is how we do it here,
+    # pylint: disable=too-many-return-statements
 
     constant_type = type(constant)
 
@@ -288,7 +289,14 @@ def isHashable(constant):
     elif constant_type in (dict, list, set, bytearray):
         return False
     elif constant_type is slice:
-        return python_version >= 0x3C0
+        # Hashability of a slice depends on its values for Python 3.12 or higher.
+        if python_version < 0x3C0:
+            return False
+        return (
+            isHashable(constant.start)
+            and isHashable(constant.stop)
+            and isHashable(constant.step)
+        )
     elif constant_type is frozendict:
         # Hashability of a frozendict depends on both its keys and values.
         for key, value in iterItems(constant):
@@ -308,7 +316,7 @@ def getUnhashableConstant(constant):
     """Get one unhashable part of a constant."""
 
     # Many cases and all return, that is how we do it here,
-    # pylint: disable=too-many-return-statements
+    # pylint: disable=too-many-branches,too-many-return-statements
 
     constant_type = type(constant)
 
@@ -332,7 +340,13 @@ def getUnhashableConstant(constant):
     elif constant_type in (dict, list, set):
         return constant
     elif constant_type is slice:
-        return constant if python_version < 0x3C0 else None
+        if python_version < 0x3C0:
+            return constant
+        for value in (constant.start, constant.stop, constant.step):
+            res = getUnhashableConstant(value)
+            if res is not None:
+                return res
+        return None
     elif constant_type is frozendict:
         for key, value in iterItems(constant):
             res = getUnhashableConstant(key)

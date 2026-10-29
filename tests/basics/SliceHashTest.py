@@ -1,7 +1,8 @@
 #     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-"""Slices as dictionary and set keys, these are hashable for Python 3.12 or higher."""
+"""Slices as dictionary and set keys, these are hashable for Python 3.12 or higher,
+if their values are hashable."""
 
 from __future__ import print_function
 
@@ -11,6 +12,17 @@ def report(name, func, *args):
         result = func(*args)
     except TypeError as e:
         print(name, "TypeError:", e)
+    else:
+        print(name, repr(result))
+
+
+def reportExceptionType(name, func, *args):
+    # The messages of "dict" methods for unhashable keys differ with Python
+    # 3.14 at this time, so only the exception type is checked for these.
+    try:
+        result = func(*args)
+    except TypeError:
+        print(name, "TypeError")
     else:
         print(name, repr(result))
 
@@ -66,6 +78,27 @@ def hashCall():
     return hash(slice(1, 2)) == hash(slice(1, 2))
 
 
+def dictLiteralUnhashableValue():
+    result = {slice([]): 1}
+    return result
+
+
+def dictGetUnhashableValue():
+    return {}.get(slice([1], 2))
+
+
+def dictContainsUnhashableValue():
+    return slice(1, {}) in {}
+
+
+def dictGetUnhashableValueDynamic(value):
+    return {}.get(slice(1, [value]))
+
+
+def hashCallUnhashableValue():
+    return hash(slice([]))
+
+
 report("dict literal:", dictLiteral)
 report("dict literal from variable:", dictLiteralFromVariable)
 report("dict literal tuple key:", dictLiteralTupleKey)
@@ -78,6 +111,13 @@ report("dict subscript store:", dictSubscriptStore)
 report("set literal:", setLiteral)
 report("set contains:", setContains)
 report("hash call:", hashCall)
+report("dict literal unhashable value:", dictLiteralUnhashableValue)
+reportExceptionType("dict get unhashable value:", dictGetUnhashableValue)
+report("dict contains unhashable value:", dictContainsUnhashableValue)
+reportExceptionType(
+    "dict get unhashable value dynamic:", dictGetUnhashableValueDynamic, 1
+)
+report("hash call unhashable value:", hashCallUnhashableValue)
 
 #     Python tests originally created or extracted from other peoples work. The
 #     parts were too small to be protected.

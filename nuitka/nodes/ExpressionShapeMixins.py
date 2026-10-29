@@ -870,7 +870,8 @@ class ExpressionSliceShapeExactMixin(
 
     @staticmethod
     def isKnownToBeHashable():
-        return python_version >= 0x3C0
+        # Hashable for Python 3.12 or higher, if its values are.
+        return None if python_version >= 0x3C0 else False
 
     def extractUnhashableNodeType(self):
         return makeConstantReplacementNode(

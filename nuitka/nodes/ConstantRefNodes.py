@@ -1355,6 +1355,13 @@ class ExpressionConstantSliceRef(
     def isMutable():
         return False
 
+    def isKnownToBeHashable(self):
+        return isHashable(self.constant)
+
+    def extractUnhashableNodeType(self):
+        # For Python 3.12 or higher, it is one of the values that is unhashable.
+        return ExpressionConstantUntrackedRefBase.extractUnhashableNodeType(self)
+
     @staticmethod
     def isIterableConstant():
         return False
