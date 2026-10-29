@@ -1106,8 +1106,8 @@ release will add it. In the mean time use '%s' instead."""
 
     if not isPythonWithGil():
         general.warning("""\
-The Python without GIL is only experimentally supported by \
-and recommended only for use in Nuitka development and testing.""")
+The Python without GIL (free-threaded) is only experimentally supported \
+by Nuitka.""")
 
     if python_version == 0x3D4 and isWin32Windows() and isCPythonOfficialPackage():
         return general.sysexit("""\
