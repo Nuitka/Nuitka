@@ -616,6 +616,9 @@ NUITKA_MODULE_INIT_FUNCTION (%(module_dll_entry_point)s)(void) {
 
 #if %(module_def_size)s >= 0
     static PyModuleDef_Slot _module_slots[] = {
+#if PYTHON_VERSION >= 0x3d0 && defined(Py_GIL_DISABLED)
+        {Py_mod_gil, Py_MOD_GIL_NOT_USED},
+#endif
         {Py_mod_exec, (void *)%(module_dll_entry_point)s_slot},
         {0, NULL}
     };
