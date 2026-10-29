@@ -397,7 +397,7 @@ static void Nuitka_LongUpdateFromCLong(PyObject **value, long ival) {
 #if PyLong_SHIFT == 15
     if (!(abs_ival >> 2 * PyLong_SHIFT)) {
         PyLongObject *result;
-        if (unlikely(Py_ABS(Py_SIZE(*value)) < 2)) {
+        if (unlikely(Nuitka_LongGetDigitSize(*value) < 2)) {
             *value = Nuitka_LongRealloc(*value, 2);
             CHECK_OBJECT(*value);
 
@@ -429,7 +429,7 @@ static void Nuitka_LongUpdateFromCLong(PyObject **value, long ival) {
         t >>= PyLong_SHIFT;
     }
 
-    if (unlikely(Py_ABS(Py_SIZE(*value)) < ndigits)) {
+    if (unlikely(Nuitka_LongGetDigitSize(*value) < ndigits)) {
         *value = Nuitka_LongRealloc(*value, ndigits);
     }
 
