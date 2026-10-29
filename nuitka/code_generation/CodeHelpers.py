@@ -434,6 +434,10 @@ def withCleanupFinally(name, release_name, needs_exception, emit, context):
 
         emit(getErrorExitReleaseCode(context))
 
+        # The value can be the return value, which the function exception exit
+        # releases as well, so it must not point to the released object.
+        emit("%s = NULL;" % release_name)
+
         getGotoCode(old_exception_target, emit)
 
         emit("// Finished with no exception for %s:" % name)
