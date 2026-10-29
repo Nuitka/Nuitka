@@ -83,10 +83,21 @@ class ExpressionListOperationCopy(
         # This lets the value previously in that list escape.
         self.subnode_list_arg.onContentEscapes(trace_collection)
 
-        # Might give MemoryError
-        trace_collection.onExceptionRaiseExit(BaseException)
+        if self.mayRaiseExceptionOperation():
+            trace_collection.onExceptionRaiseExit(BaseException)
 
         return self, None, None
+
+    def mayRaiseException(self, exception_type):
+        return (
+            self.subnode_list_arg.mayRaiseException(exception_type)
+            or self.mayRaiseExceptionOperation()
+        )
+
+    @staticmethod
+    def mayRaiseExceptionOperation():
+        # We do not count MemoryError, the code generation ignores it.
+        return False
 
 
 # TODO: The generator doesn't handle int or long yet.

@@ -481,7 +481,11 @@ int getFileMode(filename_char_t const *filename) {
 
     return fileinfo.st_mode;
 #else
-    // There is no mode on Windows, but copyFile calls should get it.
+    // There is no mode on Windows, but callers need to know if the file exists.
+    if (GetFileAttributesW(filename) == INVALID_FILE_ATTRIBUTES) {
+        return -1;
+    }
+
     return 0;
 #endif
 }

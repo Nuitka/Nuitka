@@ -703,7 +703,10 @@ int HAS_ATTR_BOOL2(PyThreadState *tstate, PyObject *source, PyObject *attr_name)
         return 0;
     }
 
-    return CHECK_IF_TRUE(result) ? 1 : 0;
+    int result_bool = CHECK_IF_TRUE(result);
+    Py_DECREF(result);
+
+    return result_bool;
 #else
     PyTypeObject *type = Py_TYPE(source);
 

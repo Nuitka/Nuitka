@@ -717,8 +717,6 @@ PyObject *LIST_INDEX4(PyThreadState *tstate, PyObject *list, PyObject *item, PyO
     PyObject *stop_index = Nuitka_Number_IndexAsLong(stop);
 
     if (unlikely(stop_index == NULL)) {
-        Py_DECREF(start_index);
-
         CLEAR_ERROR_OCCURRED(tstate);
 
         SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_TypeError,
