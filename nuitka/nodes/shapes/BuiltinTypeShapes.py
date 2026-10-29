@@ -1757,7 +1757,7 @@ class ShapeTypeSlice(ShapeNotContainerMixin, ShapeNotNumberMixin, ShapeBase):
 
     @staticmethod
     def hasShapeSlotHash():
-        return False
+        return python_version >= 0x3C0
 
     @staticmethod
     def hasShapeIndexLookup():

@@ -262,7 +262,7 @@ def isHashable(constant):
 
     That means a user of a reference to it, can use it for dicts and set
     keys. This is distinct from mutable, there is one types that is not
-    mutable, and still not hashable: slices.
+    mutable, and still not hashable: slices, before Python 3.12.
     """
     # Many cases and all return, that is how we do it here,
 
@@ -285,8 +285,10 @@ def isHashable(constant):
         EllipsisType,
     ):
         return True
-    elif constant_type in (dict, list, set, slice, bytearray):
+    elif constant_type in (dict, list, set, bytearray):
         return False
+    elif constant_type is slice:
+        return python_version >= 0x3C0
     elif constant_type is frozendict:
         # Hashability of a frozendict depends on both its keys and values.
         for key, value in iterItems(constant):
@@ -322,13 +324,15 @@ def getUnhashableConstant(constant):
         xrange,
         bytes,
         type,
-        slice,
+        frozenset,
         BuiltinFunctionType,
         EllipsisType,
     ):
         return None
     elif constant_type in (dict, list, set):
         return constant
+    elif constant_type is slice:
+        return constant if python_version < 0x3C0 else None
     elif constant_type is frozendict:
         for key, value in iterItems(constant):
             res = getUnhashableConstant(key)

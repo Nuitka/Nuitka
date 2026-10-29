@@ -20,6 +20,7 @@ from nuitka.Constants import (
     the_empty_tuple,
     the_empty_unicode,
 )
+from nuitka.PythonVersions import python_version
 
 from .NodeMakingHelpers import (
     makeConstantReplacementNode,
@@ -869,7 +870,12 @@ class ExpressionSliceShapeExactMixin(
 
     @staticmethod
     def isKnownToBeHashable():
-        return False
+        return python_version >= 0x3C0
+
+    def extractUnhashableNodeType(self):
+        return makeConstantReplacementNode(
+            constant=slice, node=self, user_provided=False
+        )
 
 
 class ExpressionTypeShapeExactMixin(
