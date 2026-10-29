@@ -123,6 +123,39 @@ def test_catch_multiple_types_with_remaining():
 
 test_catch_multiple_types_with_remaining()
 
+
+def test_nested_scopes_in_handler():
+    try:
+        raise ExceptionGroup("test", [ValueError("1")])
+    except* ValueError:
+
+        def nested_return():
+            return "nested return"
+
+        print(nested_return())
+
+    try:
+        raise ExceptionGroup("test", [ValueError("1")])
+    except* ValueError:
+        for _i in range(1):
+            break
+        print("nested break")
+
+    try:
+        raise ExceptionGroup("test", [ValueError("1")])
+    except* ValueError:
+        for _i in range(2):
+            continue
+        print("nested continue")
+
+    try:
+        raise ExceptionGroup("test", [ValueError("1")])
+    except* ValueError:
+        print((lambda: "nested lambda")())
+
+
+test_nested_scopes_in_handler()
+
 #     Python tests originally created or extracted from other peoples work. The
 #     parts were too small to be protected.
 #

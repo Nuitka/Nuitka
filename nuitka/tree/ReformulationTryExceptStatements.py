@@ -49,7 +49,7 @@ from .ReformulationAssignmentStatements import (
     decodeAssignTarget,
 )
 from .ReformulationTryFinallyStatements import makeTryFinallyStatement
-from .SyntaxErrors import raiseSyntaxError
+from .SyntaxErrors import checkExceptStarHandlerBody, raiseSyntaxError
 from .TreeHelpers import (
     buildNode,
     buildStatementsNode,
@@ -468,6 +468,15 @@ def buildTryStarExceptionNode(provider, node, source_ref):
     ]
 
     for handler in node.handlers:
+        checkExceptStarHandlerBody(
+            body=handler.body,
+            source_ref=source_ref,
+            check_return=not (
+                provider.isCompiledPythonModule()
+                or provider.isExpressionClassBodyBase()
+            ),
+        )
+
         scope = provider.allocateTempScope("try_star_handler")
         match_result = provider.allocateTempVariable(
             name="match_result", temp_scope=scope, temp_type="object"

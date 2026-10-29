@@ -119,6 +119,66 @@ def checkDebugNameTarget(node, source_ref):
             raiseSyntaxError(deletion_reason, source_ref)
 
 
+def checkExceptStarHandlerBody(body, source_ref, check_return):
+    """Raise a SyntaxError for 'return', 'break', and 'continue' in an 'except*'.
+
+    Notes:
+        These statements must not escape an 'except*' block, but are allowed
+        within a nested loop body for the latter two, and within nested
+        function and class scopes for all of them. The 'return' check is
+        disabled outside of function scopes, where it is not the error that
+        CPython reports.
+    """
+
+    def raiseEscape(node):
+        raiseSyntaxError(
+            "'break', 'continue' and 'return' cannot appear in an except* block",
+            source_ref.atLineNumber(node.lineno).atColumnNumber(node.col_offset),
+        )
+
+    def checkNode(node, in_loop):
+        node_class = node.__class__
+
+        # These have their own scope, escaping them is not escaping the
+        # "except*" block.
+        if node_class in (
+            ast.FunctionDef,
+            ast.AsyncFunctionDef,
+            ast.Lambda,
+            ast.ClassDef,
+        ):
+            return
+
+        if node_class is ast.Return:
+            if check_return:
+                raiseEscape(node)
+        elif node_class in (ast.Break, ast.Continue):
+            if not in_loop:
+                raiseEscape(node)
+        elif node_class in (ast.For, ast.AsyncFor, ast.While):
+            if node_class is ast.While:
+                checkNode(node.test, in_loop)
+            else:
+                # The loop target and iterable are not part of the loop body,
+                # but cannot contain these statements either.
+                checkNode(node.target, in_loop)
+                checkNode(node.iter, in_loop)
+
+            for child in node.body:
+                checkNode(child, True)
+
+            # A "break" or "continue" in the "else" block refers to an outer
+            # loop, or is invalid otherwise.
+            for child in node.orelse:
+                checkNode(child, in_loop)
+        else:
+            for child in ast.iter_child_nodes(node):
+                checkNode(child, in_loop)
+
+    for child in body:
+        checkNode(child, False)
+
+
 def raiseSyntaxError(reason, source_ref, display_file=True, display_line=True):
     col_offset = source_ref.getColumnNumber()
 
