@@ -70,6 +70,26 @@ PyObject *DEEP_COPY_TUPLE(PyThreadState *tstate, PyObject *value) {
     return result;
 }
 
+PyObject *DEEP_COPY_SLICE(PyThreadState *tstate, PyObject *value) {
+    assert(PySlice_Check(value));
+
+    PySliceObject *slice = (PySliceObject *)value;
+
+    PyObject *start = DEEP_COPY(tstate, slice->start);
+    PyObject *stop = DEEP_COPY(tstate, slice->stop);
+    PyObject *step = DEEP_COPY(tstate, slice->step);
+
+    PyObject *result = PySlice_New(start, stop, step);
+
+    Py_DECREF(start);
+    Py_DECREF(stop);
+    Py_DECREF(step);
+
+    CHECK_OBJECT(result);
+
+    return result;
+}
+
 static PyObject *_DEEP_COPY_SET(PyObject *value) {
     // Sets cannot contain non-hashable types, so these all must be immutable,
     // but the set itself might be changed, so we need to copy it.
@@ -123,6 +143,25 @@ PyObject *DEEP_COPY_GENERICALIAS(PyThreadState *tstate, PyObject *value) {
     } else {
         return Py_GenericAlias(origin, args);
     }
+}
+#endif
+
+#if PYTHON_VERSION >= 0x3a0
+static PyObject *DEEP_COPY_UNION(PyThreadState *tstate, PyObject *value) {
+    assert(Py_TYPE(value) == Nuitka_PyUnion_Type);
+
+    PyObject *args = LOOKUP_ATTRIBUTE(tstate, value, const_str_plain___args__);
+    CHECK_OBJECT(args);
+
+    PyObject *args_copy = DEEP_COPY(tstate, args);
+    Py_DECREF(args);
+
+    PyObject *result = MAKE_UNION_TYPE(args_copy);
+    Py_DECREF(args_copy);
+
+    CHECK_OBJECT(result);
+
+    return result;
 }
 #endif
 
@@ -185,7 +224,8 @@ static void _initDeepCopy(PyThreadState *tstate) {
 
         Nuitka_PyUnion_Type = Py_TYPE(union_value);
 
-        PyDict_SetItem(_deep_copy_dispatch, (PyObject *)Nuitka_PyUnion_Type, _deep_noop);
+        PyDict_SetItem(_deep_copy_dispatch, (PyObject *)Nuitka_PyUnion_Type,
+                       _makeDeepCopyFunctionCapsule(DEEP_COPY_UNION));
 
         Py_DECREF(union_value);
         Py_DECREF(args_tuple);
@@ -206,7 +246,7 @@ static void _initDeepCopy(PyThreadState *tstate) {
     PyDict_SetItem(_deep_copy_dispatch, (PyObject *)&PyFloat_Type, _deep_noop);
     PyDict_SetItem(_deep_copy_dispatch, (PyObject *)&PyRange_Type, _deep_noop);
     PyDict_SetItem(_deep_copy_dispatch, (PyObject *)&PyType_Type, _deep_noop);
-    PyDict_SetItem(_deep_copy_dispatch, (PyObject *)&PySlice_Type, _deep_noop);
+    PyDict_SetItem(_deep_copy_dispatch, (PyObject *)&PySlice_Type, _makeDeepCopyFunctionCapsule(DEEP_COPY_SLICE));
     PyDict_SetItem(_deep_copy_dispatch, (PyObject *)&PyComplex_Type, _deep_noop);
     PyDict_SetItem(_deep_copy_dispatch, (PyObject *)&PyCFunction_Type, _deep_noop);
     PyDict_SetItem(_deep_copy_dispatch, (PyObject *)Py_TYPE(Py_Ellipsis), _deep_noop);

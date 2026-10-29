@@ -203,6 +203,86 @@ try:
 except TypeError:
     print("TypeError")
 
+
+def makeSliceWithListValue():
+    return slice([])
+
+
+first = makeSliceWithListValue()
+second = makeSliceWithListValue()
+print("Slice with list identity:", first is second, first.stop is second.stop)
+first.stop.append(1)
+print("Slice with list copy:", first.stop, second.stop)
+
+
+def makeSliceWithNestedListValue():
+    return slice(([],))
+
+
+first = makeSliceWithNestedListValue()
+second = makeSliceWithNestedListValue()
+print(
+    "Slice with nested list identity:",
+    first is second,
+    first.stop is second.stop,
+    first.stop[0] is second.stop[0],
+)
+first.stop[0].append(1)
+print("Slice with nested list copy:", first.stop, second.stop)
+
+
+def makeSliceWithGenericAliasValue():
+    return slice(list[[]])
+
+
+try:
+    first = makeSliceWithGenericAliasValue()
+    second = makeSliceWithGenericAliasValue()
+except TypeError:
+    print("Slice with generic alias: TypeError")
+else:
+    print(
+        "Slice with generic alias identity:",
+        first is second,
+        first.stop is second.stop,
+        first.stop.__args__[0] is second.stop.__args__[0],
+    )
+    first.stop.__args__[0].append(1)
+    print(
+        "Slice with generic alias copy:",
+        first.stop.__args__[0],
+        second.stop.__args__[0],
+    )
+
+
+def makeSliceWithUnionValue():
+    return slice(int | list[[]])
+
+
+try:
+    first = makeSliceWithUnionValue()
+    second = makeSliceWithUnionValue()
+except TypeError:
+    print("Slice with union: TypeError")
+else:
+    first_alias = [value for value in first.stop.__args__ if type(value) is not type][0]
+    second_alias = [value for value in second.stop.__args__ if type(value) is not type][
+        0
+    ]
+
+    print(
+        "Slice with union identity:",
+        first is second,
+        first.stop is second.stop,
+        first_alias is second_alias,
+    )
+    first_alias.__args__[0].append(1)
+    print(
+        "Slice with union copy:",
+        first_alias.__args__[0],
+        second_alias.__args__[0],
+    )
+
 #     Python tests originally created or extracted from other peoples work. The
 #     parts were too small to be protected.
 #

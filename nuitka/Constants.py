@@ -223,7 +223,6 @@ def isMutable(constant):
         NoneType,
         range,
         bytes,
-        slice,
         xrange,
         type,
         frozenset,
@@ -238,6 +237,12 @@ def isMutable(constant):
             if isMutable(value):
                 return True
         return False
+    elif constant_type is slice:
+        return (
+            isMutable(constant.start)
+            or isMutable(constant.stop)
+            or isMutable(constant.step)
+        )
     elif constant_type is frozendict:
         # The frozendict itself cannot be changed, but nested values may still
         # be mutable and thus make copies necessary.
@@ -250,8 +255,10 @@ def isMutable(constant):
     elif constant_type is GenericAlias:
         return isMutable(constant.__origin__) or isMutable(constant.__args__)
     elif constant_type is UnionType:
-        return False
+        return isMutable(constant.__args__)
     elif constant is sys.version_info:
+        return False
+    elif isinstance(constant, type):
         return False
     else:
         assert False, repr(constant)
@@ -457,7 +464,6 @@ def getConstantValueGuide(constant, elements_only):
         NoneType,
         range,
         bytes,
-        slice,
         xrange,
         type,
         frozenset,
@@ -488,6 +494,15 @@ def getConstantValueGuide(constant, elements_only):
                 for element in constant
             ),
         )
+    elif constant_type is slice:
+        if not (
+            isMutable(constant.start)
+            or isMutable(constant.stop)
+            or isMutable(constant.step)
+        ):
+            return "i"
+
+        return "?"
     elif constant_type is set:
         return "S"
     elif constant_type is bytearray:
@@ -509,6 +524,10 @@ def getConstantValueGuide(constant, elements_only):
                 for _key, value in constant.items()
             ),
         )
+    elif constant_type is GenericAlias:
+        return "?" if isMutable(constant) else "i"
+    elif constant_type is UnionType:
+        return "?" if isMutable(constant) else "i"
     else:
         return "?"
 

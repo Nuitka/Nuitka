@@ -454,6 +454,7 @@ extern PyObject *DEEP_COPY_FROZENDICT(PyThreadState *tstate, PyObject *frozendic
 #endif
 extern PyObject *DEEP_COPY_LIST(PyThreadState *tstate, PyObject *value);
 extern PyObject *DEEP_COPY_TUPLE(PyThreadState *tstate, PyObject *value);
+extern PyObject *DEEP_COPY_SLICE(PyThreadState *tstate, PyObject *value);
 extern PyObject *DEEP_COPY_SET(PyThreadState *tstate, PyObject *value);
 
 // Constants deep copies are guided by value type descriptions.
