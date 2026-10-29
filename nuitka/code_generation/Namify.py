@@ -173,6 +173,13 @@ def namifyConstant(constant):
             namifyConstant(constant.stop),
             namifyConstant(constant.step),
         )
+    elif constant_type is GenericAlias:
+        return "genalias_%s_%s" % (
+            namifyConstant(constant.__origin__),
+            namifyConstant(constant.__args__),
+        )
+    elif constant_type is UnionType:
+        return "uniontype_%s" % namifyConstant(constant.__args__)
     elif constant in builtin_anon_values:
         return "anon_%s" % builtin_anon_values[constant]
     elif constant_type is type:
@@ -191,13 +198,6 @@ def namifyConstant(constant):
         return "class_codeobj_" + constant.getHash()
     elif constant_type is CodeObjectSpecGeneratorExpression:
         return "genexpr_codeobj_" + constant.getHash()
-    elif constant_type is GenericAlias:
-        return "genalias_%s_%s" % (
-            namifyConstant(constant.__origin__),
-            namifyConstant(constant.__args__),
-        )
-    elif constant_type is UnionType:
-        return "uniontype_%s" % namifyConstant(constant.__args__)
     elif constant is sys.version_info:
         return "sys_version_info"
     elif constant_type is BlobData:

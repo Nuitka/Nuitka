@@ -1755,9 +1755,18 @@ class ShapeTypeSlice(ShapeNotContainerMixin, ShapeNotNumberMixin, ShapeBase):
     def getTypeName():
         return "slice"
 
-    @staticmethod
-    def hasShapeSlotHash():
-        return False
+    if python_version >= 0x3C0:
+
+        @staticmethod
+        def hasShapeSlotHash():
+            # Hashable for Python 3.12 or higher, if its values are.
+            return None
+
+    else:
+
+        @staticmethod
+        def hasShapeSlotHash():
+            return False
 
     @staticmethod
     def hasShapeIndexLookup():

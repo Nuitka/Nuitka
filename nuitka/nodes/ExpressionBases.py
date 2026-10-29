@@ -15,7 +15,7 @@ from nuitka.__past__ import long
 
 # TODO: Probably should separate building reports out.
 from nuitka.code_generation.Reports import onMissingOverload
-from nuitka.Constants import isCompileTimeConstantValue
+from nuitka.Constants import isCompileTimeConstantValue, isMutable
 from nuitka.PythonVersions import python_version
 from nuitka.States import states
 
@@ -1154,10 +1154,14 @@ Compile time constant bytes value pre-computed.""",
         if self.computed_attribute is None:
             self.computed_attribute = hasattr(value, attribute_name)
 
+        attribute_value = getattr(value, attribute_name, None)
+
         # If it raises, or the attribute itself is a compile time constant,
-        # then do execute it.
-        if not self.computed_attribute or isCompileTimeConstantValue(
-            getattr(value, attribute_name, None)
+        # then do execute it, unless it would expose mutable content of a
+        # mutable constant, where a shared value would be wrong.
+        if not self.computed_attribute or (
+            isCompileTimeConstantValue(attribute_value)
+            and not (self.isMutable() and isMutable(attribute_value))
         ):
             return trace_collection.getCompileTimeComputationResult(
                 node=lookup_node,

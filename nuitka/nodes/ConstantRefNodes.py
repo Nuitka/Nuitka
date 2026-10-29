@@ -1355,8 +1355,29 @@ class ExpressionConstantSliceRef(
     def isMutable():
         return False
 
+    def isKnownToBeHashable(self):
+        return isHashable(self.constant)
+
+    def extractUnhashableNodeType(self):
+        # For Python 3.12 or higher, it is one of the values that is unhashable.
+        return ExpressionConstantUntrackedRefBase.extractUnhashableNodeType(self)
+
     @staticmethod
     def isIterableConstant():
+        return False
+
+
+class ExpressionConstantSliceMutableRef(ExpressionConstantSliceRef):
+    kind = "EXPRESSION_CONSTANT_SLICE_MUTABLE_REF"
+
+    __slots__ = ()
+
+    @staticmethod
+    def isMutable():
+        return True
+
+    @staticmethod
+    def isKnownToBeHashable():
         return False
 
 
@@ -1731,6 +1752,12 @@ def makeConstantRefNode(constant, source_ref, user_provided=False):
             source_ref=source_ref,
         )
     elif constant_type is slice:
+        if isMutable(constant):
+            return ExpressionConstantSliceMutableRef(
+                constant=constant,
+                source_ref=source_ref,
+            )
+
         return ExpressionConstantSliceRef(
             constant=constant,
             source_ref=source_ref,

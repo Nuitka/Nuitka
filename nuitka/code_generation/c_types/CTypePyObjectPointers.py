@@ -303,6 +303,22 @@ class CPythonPyObjectPtrBase(CTypeBase):
             else:
                 code = context.getConstantCode(constant)
                 ref_count = 0
+        elif type(constant) is slice:
+            if not may_escape:
+                code = context.getConstantCode(constant)
+                ref_count = 0
+            elif (
+                isMutable(constant.start)
+                or isMutable(constant.stop)
+                or isMutable(constant.step)
+            ):
+                code = "DEEP_COPY_SLICE(tstate, %s)" % context.getConstantCode(
+                    constant, deep_check=False
+                )
+                ref_count = 1
+            else:
+                code = context.getConstantCode(constant)
+                ref_count = 0
         elif type(constant) is bytearray:
             if may_escape:
                 code = "BYTEARRAY_COPY(tstate, %s)" % context.getConstantCode(constant)
