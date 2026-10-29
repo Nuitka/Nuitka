@@ -78,7 +78,11 @@ PyObject *DICT_COPY(PyThreadState *tstate, PyObject *dict_value) {
             result_mp->ma_used = dict_mp->ma_used;
 
             Nuitka_Py_IncRefTotal(tstate);
+#ifdef Py_GIL_DISABLED
+            Nuitka_Py_dictkeys_incref(dict_mp->ma_keys);
+#else
             dict_mp->ma_keys->dk_refcnt += 1;
+#endif
 
             for (Py_ssize_t i = 0; i < size; i++) {
                 if (DK_VALUE(dict_mp, i)) {
@@ -301,7 +305,11 @@ PyObject *DEEP_COPY_DICT(PyThreadState *tstate, PyObject *dict_value) {
             result_mp->ma_used = dict_mp->ma_used;
 
             Nuitka_Py_IncRefTotal(tstate);
+#ifdef Py_GIL_DISABLED
+            Nuitka_Py_dictkeys_incref(dict_mp->ma_keys);
+#else
             dict_mp->ma_keys->dk_refcnt += 1;
+#endif
 
             for (Py_ssize_t i = 0; i < size; i++) {
                 if (DK_VALUE(dict_mp, i)) {
