@@ -33,6 +33,11 @@ def getErrorExitReleaseCode(context):
         # Drop the owning reference.
         temp_release.append("Py_DECREF(%s);" % tmp_name)
 
+        # The shared function exception exit releases the return value as
+        # well, so it must not point to the released object anymore.
+        if tmp_name.code_name == "tmp_return_value":
+            temp_release.append("%s = NULL;" % tmp_name)
+
         if context.isDeferredReleaseName(tmp_name):
             # Release the deferred reference only when nothing else
             # references the value.

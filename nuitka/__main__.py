@@ -256,7 +256,9 @@ def main():
         code = """\
 import sys
 import %s as user_main
-sys.exit(user_main.%s())
+
+if __name__ == "__main__":
+    sys.exit(user_main.%s())
 """ % (
             module_name,
             function_name,

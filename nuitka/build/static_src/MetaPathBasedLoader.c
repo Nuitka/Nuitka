@@ -1017,13 +1017,13 @@ static entrypoint_t _loadExtensionModuleInitAddress(PyThreadState *tstate, char 
     return entrypoint;
 }
 
-#if PYTHON_VERSION >= 0x300
+#if PYTHON_VERSION >= 0x350
 // Python 3.15 comes with PyImport_CreateModuleFromInitfunc, which saves us
 // from a lot of the hacks that we're doing in other versions. Most importantly,
 // we don't need access to the package context (which isn't exported anywhere
 // starting in 3.15).
-static int _finalizeExtensionModule(PyThreadState *tstate, PyObject *module, PyObject *spec_value, PyObject *origin,
-                                    const filename_char_t *filename, PyObject *full_name_obj, bool is_package) {
+static int _setExtensionModuleAttributes(PyThreadState *tstate, PyObject *module, PyObject *spec_value,
+                                         PyObject *origin, const filename_char_t *filename, bool is_package) {
     SET_ATTRIBUTE(tstate, module, const_str_plain___spec__, spec_value);
     setModuleFileValue(tstate, module, filename);
 
@@ -1036,9 +1036,20 @@ static int _finalizeExtensionModule(PyThreadState *tstate, PyObject *module, PyO
         }
     }
 
+    return 0;
+}
+
+#if PYTHON_VERSION < 0x3f0
+static int _finalizeExtensionModule(PyThreadState *tstate, PyObject *module, PyObject *spec_value, PyObject *origin,
+                                    const filename_char_t *filename, PyObject *full_name_obj, bool is_package) {
+    if (_setExtensionModuleAttributes(tstate, module, spec_value, origin, filename, is_package) != 0) {
+        return -1;
+    }
+
     Nuitka_SetModule(full_name_obj, module);
     return 0;
 }
+#endif
 #endif
 
 static PyObject *callIntoExtensionModule(PyThreadState *tstate, char const *full_name, const filename_char_t *filename,
@@ -1109,15 +1120,19 @@ static PyObject *callIntoExtensionModule(PyThreadState *tstate, char const *full
         goto error;
     }
 
+    // The import machinery sets attributes like "__spec__" and "__file__" on
+    // the module before executing it.
+    if (_setExtensionModuleAttributes(tstate, module, spec_value, origin, filename, is_package) != 0) {
+        Py_DECREF(module);
+        goto error;
+    }
+
     if (unlikely(PyModule_Exec(module) != 0)) {
         Py_DECREF(module);
         goto error;
     }
 
-    if (_finalizeExtensionModule(tstate, module, spec_value, origin, filename, full_name_obj, is_package) != 0) {
-        Py_DECREF(module);
-        goto error;
-    }
+    Nuitka_SetModule(full_name_obj, module);
 
     Py_DECREF(spec_value);
     Py_DECREF(full_name_obj);
