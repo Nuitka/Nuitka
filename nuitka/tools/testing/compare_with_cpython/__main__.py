@@ -34,7 +34,12 @@ from nuitka.utils.Execution import (
     executeProcess,
     wrapCommandForDebuggerForSubprocess,
 )
-from nuitka.utils.FileOperations import deleteFile, getFileContentByLine
+from nuitka.utils.FileOperations import (
+    deleteFile,
+    getFileContentByLine,
+    replaceFileAtomic,
+    withTemporaryFilename,
+)
 from nuitka.utils.Importing import getExtensionModuleSuffix
 from nuitka.utils.Timing import StopWatchWallClock
 from nuitka.utils.Utils import isMacOS
@@ -156,9 +161,13 @@ def getCPythonResults(cpython_cmd, cpython_cached, force_update, send_kill):
                         stderr_cpython,
                         exit_cpython,
                     ) = pickle.load(cache_file)
-            except (IOError, EOFError, ValueError):
-                # Broken cache content.
-                pass
+            except Exception as e:  # pylint: disable=broad-exception-caught
+                # Cache files can be damaged, e.g. truncated or zeroed out due
+                # to a system crash while writing them, just redo the work then.
+                test_logger.warning(
+                    "Ignoring damaged CPython results cache file '%s' (%s)."
+                    % (cache_filename, e)
+                )
             else:
                 cached = True
 
@@ -168,11 +177,20 @@ def getCPythonResults(cpython_cmd, cpython_cached, force_update, send_kill):
         )
 
         if cpython_cached:
-            with open(cache_filename, "wb") as cache_file:
-                pickle.dump(
-                    (cpython_time, stdout_cpython, stderr_cpython, exit_cpython),
-                    cache_file,
-                )
+            # Write the cache atomically, so that a crash cannot leave behind
+            # a partially written cache file.
+            with withTemporaryFilename(
+                prefix="cpython-results-",
+                suffix=".tmp",
+                temp_path=os.path.dirname(cache_filename),
+            ) as temp_filename:
+                with open(temp_filename, "wb") as cache_file:
+                    pickle.dump(
+                        (cpython_time, stdout_cpython, stderr_cpython, exit_cpython),
+                        cache_file,
+                    )
+
+                replaceFileAtomic(temp_filename, cache_filename)
 
     return cpython_time, stdout_cpython, stderr_cpython, exit_cpython
 
