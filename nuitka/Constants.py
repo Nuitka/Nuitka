@@ -300,7 +300,7 @@ def isHashable(constant):
     mutable, and still not hashable: slices, before Python 3.12.
     """
     # Many cases and all return, that is how we do it here,
-    # pylint: disable=too-many-return-statements
+    # pylint: disable=too-many-branches,too-many-return-statements
 
     constant_type = type(constant)
 
@@ -345,7 +345,7 @@ def getUnhashableConstant(constant):
     """Get one unhashable part of a constant."""
 
     # Many cases and all return, that is how we do it here,
-    # pylint: disable=too-many-return-statements
+    # pylint: disable=too-many-branches,too-many-return-statements
 
     constant_type = type(constant)
 
