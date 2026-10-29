@@ -1604,15 +1604,25 @@ static PyObject *Nuitka_GetAwaitableIter(PyThreadState *tstate, PyObject *value)
 
         if (result != NULL) {
             if (unlikely(PyCoro_CheckExact(result) || gen_is_coroutine(result) || Nuitka_Coroutine_Check(result))) {
-                Py_DECREF(result);
-
+#if PYTHON_VERSION >= 0x3f0
+                SET_CURRENT_EXCEPTION_TYPE_COMPLAINT_QUALIFIED("%s.__await__() must return an iterator, not coroutine",
+                                                               value);
+#else
                 SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_TypeError, "__await__() returned a coroutine");
+#endif
+
+                Py_DECREF(result);
 
                 return NULL;
             }
 
             if (unlikely(!HAS_ITERNEXT(result))) {
+#if PYTHON_VERSION >= 0x3f0
+                SET_CURRENT_EXCEPTION_TYPE_COMPLAINT_QUALIFIED2("%s.__await__() must return an iterator, not %s", value,
+                                                                result);
+#else
                 SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("__await__() returned non-iterator of type '%s'", result);
+#endif
 
                 Py_DECREF(result);
 
@@ -1623,8 +1633,8 @@ static PyObject *Nuitka_GetAwaitableIter(PyThreadState *tstate, PyObject *value)
         return result;
     }
 
-#if PYTHON_VERSION >= 0x3e0 && defined(_NUITKA_FULL_COMPAT)
-    SET_CURRENT_EXCEPTION_TYPE0_FORMAT1(PyExc_TypeError, "'%s' object can't be awaited", Py_TYPE(value)->tp_name);
+#if PYTHON_VERSION >= 0x3f0 || (PYTHON_VERSION >= 0x3e0 && defined(_NUITKA_FULL_COMPAT))
+    SET_CURRENT_EXCEPTION_TYPE0_FORMAT1(PyExc_TypeError, "'%.100s' object can't be awaited", Py_TYPE(value)->tp_name);
 #else
     SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("object %s can't be used in 'await' expression", value);
 #endif

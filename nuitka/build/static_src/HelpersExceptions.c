@@ -53,6 +53,36 @@ void SET_CURRENT_EXCEPTION_TYPE_COMPLAINT_QUALIFIED(char const *format, PyObject
     SET_CURRENT_EXCEPTION_TYPE0_FORMAT1(PyExc_TypeError, format, Py_TYPE(mistyped)->tp_name);
 }
 
+void SET_CURRENT_EXCEPTION_TYPE_COMPLAINT_QUALIFIED2(char const *format, PyObject *mistyped1, PyObject *mistyped2) {
+#if PYTHON_VERSION >= 0x3e0
+    PyThreadState *tstate = PyThreadState_GET();
+
+    PyObject *qualified_name1 = Nuitka_PyType_GetFullyQualifiedName(Py_TYPE(mistyped1));
+    PyObject *qualified_name2 = Nuitka_PyType_GetFullyQualifiedName(Py_TYPE(mistyped2));
+
+    if (qualified_name1 != NULL && PyUnicode_Check(qualified_name1) && qualified_name2 != NULL &&
+        PyUnicode_Check(qualified_name2)) {
+        char const *name1 = PyUnicode_AsUTF8(qualified_name1);
+        char const *name2 = PyUnicode_AsUTF8(qualified_name2);
+
+        if (name1 != NULL && name2 != NULL) {
+            SET_CURRENT_EXCEPTION_TYPE0_FORMAT2(PyExc_TypeError, format, name1, name2);
+
+            Py_DECREF(qualified_name1);
+            Py_DECREF(qualified_name2);
+            return;
+        }
+    }
+
+    Py_XDECREF(qualified_name1);
+    Py_XDECREF(qualified_name2);
+    CLEAR_ERROR_OCCURRED(tstate);
+#endif
+
+    SET_CURRENT_EXCEPTION_TYPE0_FORMAT2(PyExc_TypeError, format, Py_TYPE(mistyped1)->tp_name,
+                                        Py_TYPE(mistyped2)->tp_name);
+}
+
 static char const *TYPE_NAME_DESC(PyObject *type) {
     if (type == Py_None) {
         return "None";
