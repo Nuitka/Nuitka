@@ -88,25 +88,34 @@ NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_SUBSCRIPT_CONST(PyThreadState *tsta
 
     if (tp_as_mapping && tp_as_mapping->mp_subscript) {
         if (PyList_CheckExact(source)) {
+#ifdef Py_GIL_DISABLED
+            Py_BEGIN_CRITICAL_SECTION(source);
+#endif
             Py_ssize_t list_size = PyList_GET_SIZE(source);
+            bool out_of_range = false;
 
             if (int_subscript < 0) {
-                if (-int_subscript > list_size) {
-                    SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_IndexError, "list index out of range");
-                    return NULL;
+                if (int_subscript < -list_size) {
+                    out_of_range = true;
+                } else {
+                    int_subscript += list_size;
                 }
-
-                int_subscript += list_size;
-            } else {
-                if (int_subscript >= list_size) {
-                    SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_IndexError, "list index out of range");
-                    return NULL;
-                }
+            } else if (int_subscript >= list_size) {
+                out_of_range = true;
             }
 
-            result = ((PyListObject *)source)->ob_item[int_subscript];
+            if (unlikely(out_of_range)) {
+                SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_IndexError, "list index out of range");
+                result = NULL;
+            } else {
+                result = ((PyListObject *)source)->ob_item[int_subscript];
 
-            Py_INCREF(result);
+                Py_INCREF(result);
+            }
+
+#ifdef Py_GIL_DISABLED
+            Py_END_CRITICAL_SECTION();
+#endif
             return result;
         } else if (PyTuple_Check(source) && tp_as_mapping->mp_subscript == PyTuple_Type.tp_as_mapping->mp_subscript) {
             // Tuples, and subclasses that inherit tuple's subscript, e.g. named
@@ -297,26 +306,44 @@ NUITKA_MAY_BE_UNUSED static bool SET_SUBSCRIPT_CONST(PyThreadState *tstate, PyOb
 
     if (tp_as_mapping != NULL && tp_as_mapping->mp_ass_subscript) {
         if (PyList_CheckExact(target)) {
+            bool result;
+
+#ifdef Py_GIL_DISABLED
+            Py_BEGIN_CRITICAL_SECTION(target);
+#endif
             Py_ssize_t list_size = PyList_GET_SIZE(target);
+            bool out_of_range = false;
 
             if (int_subscript < 0) {
-                if (-int_subscript > list_size) {
-                    SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_IndexError, "list assignment index out of range");
-
-                    return false;
+                if (int_subscript < -list_size) {
+                    out_of_range = true;
+                } else {
+                    int_subscript += list_size;
                 }
-
-                int_subscript += list_size;
+            } else if (int_subscript >= list_size) {
+                out_of_range = true;
             }
 
-            PyListObject *target_list = (PyListObject *)target;
+            if (unlikely(out_of_range)) {
+                SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_IndexError, "list assignment index out of range");
 
-            PyObject *old_value = target_list->ob_item[int_subscript];
-            Py_INCREF(value);
-            target_list->ob_item[int_subscript] = value;
-            Py_DECREF(old_value);
+                result = false;
+            } else {
+                PyListObject *target_list = (PyListObject *)target;
 
-            return true;
+                PyObject *old_value = target_list->ob_item[int_subscript];
+                Py_INCREF(value);
+                FT_ATOMIC_STORE_PTR_RELEASE(target_list->ob_item[int_subscript], value);
+                Py_DECREF(old_value);
+
+                result = true;
+            }
+
+#ifdef Py_GIL_DISABLED
+            Py_END_CRITICAL_SECTION();
+#endif
+
+            return result;
         } else {
             int res = tp_as_mapping->mp_ass_subscript(target, subscript, value);
 
