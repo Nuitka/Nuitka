@@ -8,7 +8,7 @@ import os
 from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.options.Options import assumeYesForDownloads
 from nuitka.Tracing import inclusion_logger
-from nuitka.utils.Download import getCachedDownload
+from nuitka.utils.Download import getCachedDownload, getDownloadMode
 from nuitka.utils.Execution import (
     executeProcess,
     getExecutablePath,
@@ -150,8 +150,7 @@ Nuitka will make use of WinDepends (https://github.com/hfiref0x/WinDepends) tool
 to analyze the dependencies of Python extension modules when using the
 '--experimental=force-dependencies-windepends' backend.""",
         reject="Nuitka cannot use '--experimental=force-dependencies-windepends' without WinDepends.",
-        assume_yes_for_downloads=assumeYesForDownloads(),
-        download_ok=True,
+        download_mode=getDownloadMode(assumeYesForDownloads()),
     )
 
 

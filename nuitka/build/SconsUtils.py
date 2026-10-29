@@ -200,7 +200,7 @@ def createEnvironment(
     zig_exe_path,
     target_arch,
     consider_environ_variables,
-    assume_yes_for_downloads,
+    download_mode,
     experimental_flags,
     source_dir,
 ):
@@ -295,7 +295,8 @@ def createEnvironment(
     )
 
     env.source_dir = source_dir
-    env.assume_yes_for_downloads = assume_yes_for_downloads
+    env.download_mode = download_mode
+    env.no_usable_compiler = False
 
     if zig_exe_path:
         env["CC"] = zig_exe_path

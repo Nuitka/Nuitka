@@ -38,6 +38,11 @@ from .SconsCompilerSettings import (
 # Set up the basic stuff.
 env = createNuitkaSconsEnvironment(needs_source_dir=False)
 
+if env.no_usable_compiler:
+    my_print("Version C compiler: not found.")
+
+    sys.exit(0)
+
 
 # Report the C compiler used.
 reportCCompiler(env, "Version", my_print)

@@ -100,7 +100,7 @@ def _getArchCcacheRunPrefixes(ccache_binary, arch_prefix):
     return ccache_run_prefix, compiler_run_prefix
 
 
-def _injectCcache(env, cc_path, python_prefix, assume_yes_for_downloads):
+def _injectCcache(env, cc_path, python_prefix, download_mode):
     ccache_binary = os.getenv("NUITKA_CCACHE_BINARY")
 
     # If not provided, search it in PATH and guessed directories.
@@ -140,8 +140,7 @@ def _injectCcache(env, cc_path, python_prefix, assume_yes_for_downloads):
                 binary="ccache",
                 message="Nuitka will make use of ccache to speed up repeated compilation.",
                 reject=None,
-                assume_yes_for_downloads=assume_yes_for_downloads,
-                download_ok=True,
+                download_mode=download_mode,
             )
 
     else:
@@ -261,7 +260,7 @@ def enableCcache(env, source_dir, python_prefix):
             env=env,
             cc_path=cc_path,
             python_prefix=python_prefix,
-            assume_yes_for_downloads=env.assume_yes_for_downloads,
+            download_mode=env.download_mode,
         )
 
     # If we failed to inject zig argument into ccache command line, we need to

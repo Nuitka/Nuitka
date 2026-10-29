@@ -18,7 +18,7 @@ from nuitka.tools.release.Release import (
     getBranchRemoteIdentifier,
 )
 from nuitka.Tracing import containers_logger
-from nuitka.utils.Download import getCachedDownloadedMinGW64
+from nuitka.utils.Download import getCachedDownloadedMinGW64, getDownloadMode
 from nuitka.utils.Execution import (
     callProcess,
     check_output,
@@ -389,8 +389,7 @@ def getCppPath():
 
         mingw64_gcc_path = getCachedDownloadedMinGW64(
             target_arch=getArchitecture(),
-            assume_yes_for_downloads=assumeYesForDownloads(),
-            download_ok=True,
+            download_mode=getDownloadMode(assumeYesForDownloads()),
             experimental=False,
         )
 

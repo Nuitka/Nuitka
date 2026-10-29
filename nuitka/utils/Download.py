@@ -28,6 +28,23 @@ from .FileOperations import (
 )
 from .Zipfiles import extractZipFile
 
+# Download modes for tools that Nuitka may download on demand.
+DOWNLOAD_MODE_NO = "no"
+DOWNLOAD_MODE_ASK = "ask"
+DOWNLOAD_MODE_YES = "yes"
+
+
+def getDownloadMode(assume_yes_for_downloads):
+    """Convert the assume yes option to a download mode.
+
+    Args:
+        assume_yes_for_downloads: bool, whether downloads may happen without asking.
+
+    Returns:
+        One of DOWNLOAD_MODE_ASK, DOWNLOAD_MODE_YES.
+    """
+    return DOWNLOAD_MODE_YES if assume_yes_for_downloads else DOWNLOAD_MODE_ASK
+
 
 def getCertifiModule():
     try:
@@ -43,14 +60,25 @@ def getCertifiModule():
     return certifi
 
 
-def shouldDownload(message, reject_message, assume_yes_for_downloads, download_ok):
-    """Check if we should download"""
+def shouldDownload(message, reject_message, download_mode):
+    """Check if we should download.
 
-    if not download_ok:
+    Args:
+        message: Text explaining what would be downloaded.
+        reject_message: Error message to use if downloads are not allowed.
+        download_mode: One of DOWNLOAD_MODE_NO, DOWNLOAD_MODE_ASK, DOWNLOAD_MODE_YES.
+
+    Returns:
+        bool, whether a download should be made.
+    """
+
+    if download_mode == DOWNLOAD_MODE_NO:
         reply = "no"
-    elif assume_yes_for_downloads:
+    elif download_mode == DOWNLOAD_MODE_YES:
         reply = "yes"
     else:
+        assert download_mode == DOWNLOAD_MODE_ASK, download_mode
+
         reply = queryUser(
             question="""\
 %s
@@ -65,7 +93,7 @@ Fully automatic, cached. Proceed and download""" % (message,),
 
     if reply != "yes":
         if reject_message is not None:
-            if not download_ok:
+            if download_mode == DOWNLOAD_MODE_NO:
                 reject_message += " Make sure to allow downloading it when prompted."
 
             return general.sysexit(reject_message)
@@ -194,11 +222,10 @@ def getCachedDownload(
     specificity,
     message,
     reject,
-    assume_yes_for_downloads,
-    download_ok,
+    download_mode,
 ):
     # Many branches to deal with.
-    # pylint: disable=too-many-locals,too-many-return-statements
+    # pylint: disable=too-many-return-statements
 
     nuitka_download_dir = getDownloadCacheDir()
 
@@ -223,8 +250,7 @@ def getCachedDownload(
         if not shouldDownload(
             message=message,
             reject_message=reject,
-            assume_yes_for_downloads=assume_yes_for_downloads,
-            download_ok=download_ok,
+            download_mode=download_mode,
         ):
             return None
 
@@ -291,9 +317,7 @@ def getCachedDownload(
         return getNormalizedPath(download_path)
 
 
-def getCachedDownloadedMinGW64(
-    target_arch, assume_yes_for_downloads, download_ok, experimental=False
-):
+def getCachedDownloadedMinGW64(target_arch, download_mode, experimental=False):
     # Large URLs, pylint: disable=line-too-long
     if target_arch == "x86_64":
         if experimental:
@@ -323,9 +347,14 @@ def getCachedDownloadedMinGW64(
         unzip=True,
         flatten=False,
         message="Nuitka will use gcc from MinGW64 of winlibs to compile on Windows.",
-        reject="Only this specific gcc is supported with Nuitka.",
-        assume_yes_for_downloads=assume_yes_for_downloads,
-        download_ok=download_ok,
+        # When downloads are not allowed, e.g. for the version output, only
+        # a cached compiler is used, and its absence is not a fatal error.
+        reject=(
+            "Only this specific gcc is supported with Nuitka."
+            if download_mode != DOWNLOAD_MODE_NO
+            else None
+        ),
+        download_mode=download_mode,
     )
 
     return gcc_binary

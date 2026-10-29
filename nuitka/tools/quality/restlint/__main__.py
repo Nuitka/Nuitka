@@ -14,6 +14,7 @@ from nuitka.tools.release.Documentation import (
 )
 from nuitka.tools.testing.Common import hasModule, setup
 from nuitka.Tracing import tools_logger
+from nuitka.utils.Download import DOWNLOAD_MODE_YES
 from nuitka.utils.PrivatePipSpace import tryDownloadPackageName
 
 
@@ -38,13 +39,13 @@ Allow download and execution of tools if needed. Default is %default.""",
         if not hasModule("restructuredtext_lint"):
             tools_logger.info("Installing restlint...")
 
-            site_packages_folder, _assume_yes_for_downloads = tryDownloadPackageName(
+            site_packages_folder, _download_mode = tryDownloadPackageName(
                 logger=tools_logger,
                 package_name="restructuredtext_lint",
                 module_name="restructuredtext_lint",
                 package_version=None,
                 force_update=False,
-                assume_yes_for_downloads=True,
+                download_mode=DOWNLOAD_MODE_YES,
                 reject_message="Restlint is needed for checking source code.",
             )
 
@@ -54,13 +55,13 @@ Allow download and execution of tools if needed. Default is %default.""",
         if not hasModule("pygments"):
             tools_logger.info("Installing pygments...")
 
-            site_packages_folder, _assume_yes_for_downloads = tryDownloadPackageName(
+            site_packages_folder, _download_mode = tryDownloadPackageName(
                 logger=tools_logger,
                 package_name="pygments",
                 module_name="pygments",
                 package_version=None,
                 force_update=False,
-                assume_yes_for_downloads=True,
+                download_mode=DOWNLOAD_MODE_YES,
                 reject_message="Pygments is needed for RST code block analysis.",
             )
 

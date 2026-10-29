@@ -21,6 +21,7 @@ from nuitka.tools.quality.auto_format.AutoFormat import (
     withFileOpenedAndAutoFormatted,
 )
 from nuitka.Tracing import offsets_logger
+from nuitka.utils.Download import DOWNLOAD_MODE_YES
 from nuitka.utils.Execution import check_output
 from nuitka.utils.FileOperations import (
     getExternalUsePath,
@@ -74,7 +75,7 @@ def generateHeader():
     if getOS() == "Windows":
         scons_options["zig_exe_path"] = getZigBinaryPath(
             logger=offsets_logger,
-            assume_yes_for_downloads=True,
+            download_mode=DOWNLOAD_MODE_YES,
             reject_message="Nuitka needs zig for header generation.",
         )
         if scons_options["zig_exe_path"] is None:

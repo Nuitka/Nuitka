@@ -17,7 +17,7 @@ from nuitka.options.Options import (
     getProductVersionTuple,
 )
 from nuitka.Tracing import installer_logger
-from nuitka.utils.Download import getCachedDownload
+from nuitka.utils.Download import getCachedDownload, getDownloadMode
 from nuitka.utils.Execution import (
     check_output,
     executeToolChecked,
@@ -129,8 +129,7 @@ def getNsisBinaryPath(installer_tool_path):
 Nuitka will use NSIS from the official upstream download to create the \
 Windows installer, it will be cached for future use.""",
                 reject="Error, NSIS is required to create a Windows installer with the 'nsis' backend.",
-                assume_yes_for_downloads=assumeYesForDownloads(),
-                download_ok=True,
+                download_mode=getDownloadMode(assumeYesForDownloads()),
             )
 
         if tool_path is None:

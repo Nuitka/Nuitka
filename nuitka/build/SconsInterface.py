@@ -46,6 +46,7 @@ from nuitka.options.Options import (
     isOnefileTempDirMode,
     isReproducibleBuild,
     isShowScons,
+    isShowVersion,
     isStandaloneMode,
     isUnstripped,
     isZig,
@@ -95,7 +96,12 @@ from nuitka.utils.AppDirs import (
     getCacheDir,
     getCacheDirEnvironmentVariableName,
 )
-from nuitka.utils.Download import getDownloadCacheDir, getDownloadCacheName
+from nuitka.utils.Download import (
+    DOWNLOAD_MODE_NO,
+    getDownloadCacheDir,
+    getDownloadCacheName,
+    getDownloadMode,
+)
 from nuitka.utils.Execution import (
     getExecutablePath,
     withEnvironmentVarsOverridden,
@@ -791,8 +797,11 @@ def getCommonSconsOptions():
     if shallRunInDebugger():
         scons_options["full_names"] = asBoolStr(True)
 
-    if assumeYesForDownloads():
-        scons_options["assume_yes_for_downloads"] = asBoolStr(True)
+    show_version = isShowVersion()
+    download_mode = (
+        DOWNLOAD_MODE_NO if show_version else getDownloadMode(assumeYesForDownloads())
+    )
+    scons_options["download_mode"] = download_mode
 
     if getProgressBar() != "auto":
         scons_options["progress_bar"] = getProgressBar()
@@ -812,13 +821,19 @@ def getCommonSconsOptions():
         if zig_exe_path is None:
             zig_exe_path = getZigBinaryPath(
                 logger=scons_logger,
-                assume_yes_for_downloads=assumeYesForDownloads(),
-                reject_message="Nuitka with '--zig' depends on 'zig' to compile.",
+                download_mode=download_mode,
+                reject_message=(
+                    None
+                    if show_version
+                    else "Nuitka with '--zig' depends on 'zig' to compile."
+                ),
             )
 
-        scons_options["zig_exe_path"] = zig_exe_path
-
-        if scons_options["zig_exe_path"] is None:
+        if zig_exe_path is not None:
+            scons_options["zig_exe_path"] = zig_exe_path
+        elif show_version:
+            scons_options["zig_unavailable"] = asBoolStr(True)
+        else:
             return scons_logger.sysexit(
                 "Nuitka with '--zig' depends on 'zig' to compile."
             )

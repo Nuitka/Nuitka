@@ -16,7 +16,13 @@ from nuitka.PythonVersions import (
     python_version_str,
 )
 
-from .Download import getDownloadCacheDir, shouldDownload
+from .Download import (
+    DOWNLOAD_MODE_ASK,
+    DOWNLOAD_MODE_YES,
+    getDownloadCacheDir,
+    getDownloadMode,
+    shouldDownload,
+)
 from .Execution import (
     NuitkaCalledProcessError,
     check_output,
@@ -299,6 +305,8 @@ def _getPrivatePipBinaryPath(
     """
     # Complex code, pylint: disable=too-many-locals
 
+    download_mode = getDownloadMode(assume_yes_for_downloads)
+
     version = getRequiredVersion(logger, package_name)
     report_rejection = reject_message is not None
 
@@ -322,12 +330,12 @@ def _getPrivatePipBinaryPath(
         )
 
         if ok:
-            return binary_path, None, assume_yes_for_downloads
+            return binary_path, None, download_mode
 
         force_package_update = True
 
     if reject_message is None:
-        return None, None, assume_yes_for_downloads
+        return None, None, download_mode
 
     if force_package_update:
         cleaned_private_pip = _cleanupPrivatePipPackageState(
@@ -356,25 +364,25 @@ def _getPrivatePipBinaryPath(
 
     # Download, avoiding to use the result, which is the site-packages
     # folder
-    site_packages_folder, assume_yes_for_downloads = tryDownloadPackageName(
+    site_packages_folder, download_mode = tryDownloadPackageName(
         logger=logger,
         package_name=package_name,
         module_name=module_name,
         package_version=version,
         force_update=force_package_update,
-        assume_yes_for_downloads=assume_yes_for_downloads,
+        download_mode=download_mode,
         reject_message=reject_message,
     )
 
     if site_packages_folder:
         for dep_package_name, dep_module_name, dep_reject_message in dependencies:
-            _, assume_yes_for_downloads = tryDownloadPackageName(
+            _, download_mode = tryDownloadPackageName(
                 logger=logger,
                 package_name=dep_package_name,
                 module_name=dep_module_name,
                 package_version=getRequiredVersion(logger, dep_package_name),
                 force_update=force_package_update,
-                assume_yes_for_downloads=assume_yes_for_downloads,
+                download_mode=download_mode,
                 reject_message=dep_reject_message,
             )
 
@@ -403,9 +411,9 @@ def _getPrivatePipBinaryPath(
                 if not ok:
                     continue
 
-                return possible, site_packages_folder, assume_yes_for_downloads
+                return possible, site_packages_folder, download_mode
 
-    return None, site_packages_folder, assume_yes_for_downloads
+    return None, site_packages_folder, download_mode
 
 
 def getPrivatePipBaseFolder():
@@ -637,10 +645,18 @@ def tryDownloadPackageName(
     module_name,
     package_version,
     force_update,
-    assume_yes_for_downloads,
+    download_mode,
     reject_message,
 ):
-    """Try to download a package from the private pip space."""
+    """Try to download a package from the private pip space.
+
+    Args:
+        download_mode: One of DOWNLOAD_MODE_NO, DOWNLOAD_MODE_ASK,
+            DOWNLOAD_MODE_YES, deciding if and how downloads are made.
+
+    Returns:
+        tuple: Site packages folder or None, and the updated download mode.
+    """
     download_folder = getPrivatePipBaseFolder()
 
     site_packages_folder = _findPrivatePipSitePackagesDir(
@@ -658,20 +674,20 @@ def tryDownloadPackageName(
         ):
             return (
                 site_packages_folder,
-                assume_yes_for_downloads,
+                download_mode,
             )
 
     if not _checkPackageConstraint(logger, package_name):
-        return None, assume_yes_for_downloads
+        return None, download_mode
 
     if shouldDownload(
         message="Nuitka depends on '%s' to compile code, it is recommended."
         % package_name,
         reject_message=reject_message,
-        assume_yes_for_downloads=assume_yes_for_downloads,
-        download_ok=True,
+        download_mode=download_mode,
     ):
-        assume_yes_for_downloads = True
+        if download_mode == DOWNLOAD_MODE_ASK:
+            download_mode = DOWNLOAD_MODE_YES
 
         if site_packages_folder is not None:
             _cleanupPrivatePipMetadataState(
@@ -712,7 +728,7 @@ def tryDownloadPackageName(
             )
 
         if exit_code != 0:
-            return None, assume_yes_for_downloads
+            return None, download_mode
 
         # The package may have been installed into a different site-packages
         # folder than it was previously found in, e.g. when the private pip
@@ -739,10 +755,10 @@ def tryDownloadPackageName(
     if site_packages_folder is not None:
         return (
             site_packages_folder,
-            assume_yes_for_downloads,
+            download_mode,
         )
 
-    return None, assume_yes_for_downloads
+    return None, download_mode
 
 
 def _evaluateConstraint(logger, constraint, package_name):
@@ -875,13 +891,13 @@ def getPrivatePackage(
         except Exception:  # Catch all the things, pylint: disable=broad-except
             pass
 
-    site_packages_folder, _assume_yes_for_downloads = tryDownloadPackageName(
+    site_packages_folder, _download_mode = tryDownloadPackageName(
         logger=logger,
         package_name=package_name,
         module_name=module_name.split(".")[0],
         package_version=package_version,
         force_update=False,
-        assume_yes_for_downloads=assume_yes_for_downloads,
+        download_mode=getDownloadMode(assume_yes_for_downloads),
         reject_message=reject_message,
     )
 
@@ -898,17 +914,17 @@ def getPrivatePackage(
     return None
 
 
-def getZigBinaryPath(logger, assume_yes_for_downloads, reject_message):
+def getZigBinaryPath(logger, download_mode, reject_message):
     """Get the path of the Zig binary from the private pip space."""
     # spell-checker: ignore ziglang
 
-    site_packages_folder, _assume_yes_for_downloads = tryDownloadPackageName(
+    site_packages_folder, _download_mode = tryDownloadPackageName(
         logger=logger,
         package_name="ziglang",
         module_name="ziglang",
         package_version="0.16.0" if isMacOS() else None,
         force_update=False,
-        assume_yes_for_downloads=assume_yes_for_downloads,
+        download_mode=download_mode,
         reject_message=reject_message,
     )
 
@@ -929,67 +945,59 @@ def getZigBinaryPath(logger, assume_yes_for_downloads, reject_message):
 
 def getClangFormatBinaryPath(logger, assume_yes_for_downloads, reject_message):
     """Get the path of the clang-format binary from the private pip space."""
-    binary_path, _site_packages_folder, _assume_yes_for_downloads = (
-        _getPrivatePipBinaryPath(
-            logger=logger,
-            binary_name="clang-format",
-            package_name="clang-format",
-            module_name="clang_format",
-            dependencies=(),
-            check_binary=None,
-            assume_yes_for_downloads=assume_yes_for_downloads,
-            reject_message=reject_message,
-        )
+    binary_path, _site_packages_folder, _download_mode = _getPrivatePipBinaryPath(
+        logger=logger,
+        binary_name="clang-format",
+        package_name="clang-format",
+        module_name="clang_format",
+        dependencies=(),
+        check_binary=None,
+        assume_yes_for_downloads=assume_yes_for_downloads,
+        reject_message=reject_message,
     )
     return binary_path
 
 
 def getCodespellBinaryPath(logger, assume_yes_for_downloads):
-    binary_path, _site_packages_folder, _assume_yes_for_downloads = (
-        _getPrivatePipBinaryPath(
-            logger=logger,
-            binary_name="codespell",
-            package_name="codespell",
-            module_name="codespell_lib",
-            dependencies=(),
-            check_binary=None,
-            assume_yes_for_downloads=assume_yes_for_downloads,
-            reject_message="Spell checking needs to use 'codespell'.",
-        )
+    binary_path, _site_packages_folder, _download_mode = _getPrivatePipBinaryPath(
+        logger=logger,
+        binary_name="codespell",
+        package_name="codespell",
+        module_name="codespell_lib",
+        dependencies=(),
+        check_binary=None,
+        assume_yes_for_downloads=assume_yes_for_downloads,
+        reject_message="Spell checking needs to use 'codespell'.",
     )
     return binary_path
 
 
 def getBlackBinaryPath(logger, assume_yes_for_downloads):
     """Get the path of the black binary from the private pip space."""
-    binary_path, _site_packages_folder, _assume_yes_for_downloads = (
-        _getPrivatePipBinaryPath(
-            logger=logger,
-            binary_name="black",
-            package_name="black",
-            module_name="black",
-            dependencies=(),
-            check_binary=None,
-            assume_yes_for_downloads=assume_yes_for_downloads,
-            reject_message="Python formatting needs to use 'black'.",
-        )
+    binary_path, _site_packages_folder, _download_mode = _getPrivatePipBinaryPath(
+        logger=logger,
+        binary_name="black",
+        package_name="black",
+        module_name="black",
+        dependencies=(),
+        check_binary=None,
+        assume_yes_for_downloads=assume_yes_for_downloads,
+        reject_message="Python formatting needs to use 'black'.",
     )
     return binary_path
 
 
 def getIsortBinaryPath(logger, assume_yes_for_downloads):
     """Get the path of the isort binary from the private pip space."""
-    binary_path, _site_packages_folder, _assume_yes_for_downloads = (
-        _getPrivatePipBinaryPath(
-            logger=logger,
-            binary_name="isort",
-            package_name="isort",
-            module_name="isort",
-            dependencies=(),
-            check_binary=None,
-            assume_yes_for_downloads=assume_yes_for_downloads,
-            reject_message="Python formatting needs to use 'isort'.",
-        )
+    binary_path, _site_packages_folder, _download_mode = _getPrivatePipBinaryPath(
+        logger=logger,
+        binary_name="isort",
+        package_name="isort",
+        module_name="isort",
+        dependencies=(),
+        check_binary=None,
+        assume_yes_for_downloads=assume_yes_for_downloads,
+        reject_message="Python formatting needs to use 'isort'.",
     )
     return binary_path
 
@@ -1048,17 +1056,15 @@ def getMdformatBinaryPath(logger, assume_yes_for_downloads):
         ),
     )
 
-    mdformat_path, _site_packages_folder, _assume_yes_for_downloads = (
-        _getPrivatePipBinaryPath(
-            logger=logger,
-            binary_name="mdformat",
-            package_name="mdformat",
-            module_name="mdformat",
-            dependencies=dependencies,
-            check_binary=_checkMdformatUsability,
-            assume_yes_for_downloads=assume_yes_for_downloads,
-            reject_message="Markdown formatting needs to use 'mdformat'.",
-        )
+    mdformat_path, _site_packages_folder, _download_mode = _getPrivatePipBinaryPath(
+        logger=logger,
+        binary_name="mdformat",
+        package_name="mdformat",
+        module_name="mdformat",
+        dependencies=dependencies,
+        check_binary=_checkMdformatUsability,
+        assume_yes_for_downloads=assume_yes_for_downloads,
+        reject_message="Markdown formatting needs to use 'mdformat'.",
     )
 
     return mdformat_path
@@ -1066,17 +1072,15 @@ def getMdformatBinaryPath(logger, assume_yes_for_downloads):
 
 def getRstfmtBinaryPath(logger, assume_yes_for_downloads):
     """Get the path of the rstfmt binary from the private pip space."""
-    binary_path, _site_packages_folder, _assume_yes_for_downloads = (
-        _getPrivatePipBinaryPath(
-            logger=logger,
-            binary_name="rstfmt",
-            package_name="rstfmt",
-            module_name="rstfmt",
-            dependencies=(),
-            check_binary=None,
-            assume_yes_for_downloads=assume_yes_for_downloads,
-            reject_message="ReStructuredText formatting needs to use 'rstfmt'.",
-        )
+    binary_path, _site_packages_folder, _download_mode = _getPrivatePipBinaryPath(
+        logger=logger,
+        binary_name="rstfmt",
+        package_name="rstfmt",
+        module_name="rstfmt",
+        dependencies=(),
+        check_binary=None,
+        assume_yes_for_downloads=assume_yes_for_downloads,
+        reject_message="ReStructuredText formatting needs to use 'rstfmt'.",
     )
     return binary_path
 

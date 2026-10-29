@@ -18,7 +18,7 @@ from nuitka.__past__ import iterItems, selectors, subprocess
 from nuitka.containers.Namedtuples import makeNamedtupleClass
 from nuitka.Tracing import general
 
-from .Download import getCachedDownloadedMinGW64
+from .Download import getCachedDownloadedMinGW64, getDownloadMode
 from .FileOperations import getExternalUsePath, hasFilenameExtension
 from .Utils import (
     getArchCommandPrefix,
@@ -29,7 +29,8 @@ from .Utils import (
 )
 
 if str is bytes:
-    from pipes import quote as _shellQuote  # Python2 code
+    # Python2 code, pylint: disable=I0021,import-error
+    from pipes import quote as _shellQuote
 else:
     from shlex import quote as _shellQuote
 
@@ -477,8 +478,7 @@ def wrapCommandForDebuggerForExec(command, debugger):
 
         mingw64_gcc_path = getCachedDownloadedMinGW64(
             target_arch=getArchitecture(),
-            assume_yes_for_downloads=assumeYesForDownloads(),
-            download_ok=True,
+            download_mode=getDownloadMode(assumeYesForDownloads()),
             experimental=isExperimental("winlibs-new"),
         )
 

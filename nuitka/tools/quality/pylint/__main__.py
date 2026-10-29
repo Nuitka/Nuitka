@@ -15,6 +15,7 @@ from nuitka.tools.quality.pylint.PyLint import executePyLint
 from nuitka.tools.quality.ScanSources import isPythonFile, scanTargets
 from nuitka.tools.testing.Common import hasModule, setup
 from nuitka.Tracing import my_print, tools_logger
+from nuitka.utils.Download import getDownloadMode
 from nuitka.utils.FileOperations import (
     getFileModificationTime,
     getPathWithForwardSlashes,
@@ -259,13 +260,13 @@ def _ensurePylintInstalled(options):
 
     # Try the private pip space next. If the correct version is already
     # installed there, this returns it without any prompt or download.
-    site_packages_folder, assume_yes_for_downloads = tryDownloadPackageName(
+    site_packages_folder, download_mode = tryDownloadPackageName(
         logger=tools_logger,
         package_name="pylint",
         module_name="pylint",
         package_version=package_version,
         force_update=False,
-        assume_yes_for_downloads=options.assume_yes_for_downloads,
+        download_mode=getDownloadMode(options.assume_yes_for_downloads),
         reject_message=(
             "PyLint is needed for checking source code."
             if options.assume_yes_for_downloads
@@ -278,13 +279,13 @@ def _ensurePylintInstalled(options):
 
         # Also ensure the pinned dependencies in the private pip space.
         for dep_package_name, dep_module_name, dep_reject_message in dependencies:
-            _, assume_yes_for_downloads = tryDownloadPackageName(
+            _, download_mode = tryDownloadPackageName(
                 logger=tools_logger,
                 package_name=dep_package_name,
                 module_name=dep_module_name,
                 package_version=getRequiredVersion(tools_logger, dep_package_name),
                 force_update=False,
-                assume_yes_for_downloads=assume_yes_for_downloads,
+                download_mode=download_mode,
                 reject_message=dep_reject_message,
             )
 

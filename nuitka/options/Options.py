@@ -2194,6 +2194,11 @@ def isShowScons():
     return options.show_scons
 
 
+def isShowVersion():
+    """:returns: bool derived from ``--version``"""
+    return options.version
+
+
 def getJobLimit():
     """*int*, value of ``--jobs`` / "-j" or number of CPU kernels"""
     jobs = options.jobs

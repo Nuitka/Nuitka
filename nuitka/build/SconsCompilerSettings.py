@@ -13,7 +13,11 @@ from SCons.Script import (  # type: ignore # pylint: disable=I0021,import-error
 )
 
 from nuitka.Tracing import scons_details_logger, scons_logger
-from nuitka.utils.Download import getCachedDownloadedMinGW64
+from nuitka.utils.Download import (
+    DOWNLOAD_MODE_ASK,
+    DOWNLOAD_MODE_NO,
+    getCachedDownloadedMinGW64,
+)
 from nuitka.utils.Execution import check_call
 from nuitka.utils.FileOperations import (
     getFileSize,
@@ -313,8 +317,7 @@ def checkWindowsCompilerFound(
     mingw_mode,
     clang_mode,
     msvc_version,
-    download_ok,
-    assume_yes_for_downloads,
+    download_mode,
 ):
     """Remove compiler of wrong arch or too old gcc and replace with downloaded winlibs gcc."""
     # Many cases to deal with, pylint: disable=too-many-branches,too-many-statements
@@ -468,8 +471,7 @@ For Python version %s MSVC %s or later is required, not %s which is too old."""
 
             compiler_path = getCachedDownloadedMinGW64(
                 target_arch=target_arch,
-                assume_yes_for_downloads=assume_yes_for_downloads,
-                download_ok=download_ok,
+                download_mode=download_mode,
                 experimental="winlibs-new" in env.experimental_flags,
             )
         elif target_arch != "x86" and not mingw_mode:
@@ -479,7 +481,7 @@ For Python version %s MSVC %s or later is required, not %s which is too old."""
             # and MSVC is not enforced.
             compiler_path = getZigBinaryPath(
                 logger=scons_logger,
-                assume_yes_for_downloads=env.assume_yes_for_downloads,
+                download_mode=download_mode,
                 reject_message=None,
             )
 
@@ -502,15 +504,26 @@ For Python version %s MSVC %s or later is required, not %s which is too old."""
                 ),
                 target_arch=target_arch,
                 consider_environ_variables=False,
-                assume_yes_for_downloads=env.assume_yes_for_downloads,
+                download_mode=download_mode,
                 experimental_flags=env.experimental_flags,
                 source_dir=env.source_dir,
             )
 
             if clang_mode:
                 env["CC"] = os.path.join(os.path.dirname(compiler_path), "clang.exe")
-        else:
+        elif download_mode != DOWNLOAD_MODE_NO:
             raiseNoCompilerFoundErrorExit()
+        else:
+            # For the version output, downloads are not attempted, and a
+            # missing compiler is reported instead of being an error.
+            env.no_usable_compiler = True
+
+    elif compiler_path is None:
+        # A requested MSVC version was not found, and no fallback is attempted.
+        if download_mode != DOWNLOAD_MODE_NO:
+            raiseNoCompilerFoundErrorExit()
+
+        env.no_usable_compiler = True
 
     return env
 
@@ -532,11 +545,14 @@ def createEnvironmentAndCheckCompiler(
     clangcl_mode,
     target_arch,
     consider_environ_variables,
-    assume_yes_for_downloads,
-    download_ok,
+    download_mode,
+    compiler_version_mode,
     experimental_flags,
     source_dir,
 ):
+    # Many cases to deal with, pylint: disable=too-many-branches
+    # pylint: disable=too-many-return-statements,too-many-statements
+
     anaconda_python = getArgumentBool("anaconda_python", False)
 
     if isLinux() and anaconda_python:
@@ -551,7 +567,7 @@ def createEnvironmentAndCheckCompiler(
         zig_exe_path=None,
         target_arch=target_arch,
         consider_environ_variables=consider_environ_variables,
-        assume_yes_for_downloads=assume_yes_for_downloads,
+        download_mode=download_mode,
         experimental_flags=experimental_flags,
         source_dir=source_dir,
     )
@@ -562,9 +578,21 @@ def createEnvironmentAndCheckCompiler(
         mingw_mode=mingw_mode,
         clang_mode=clang_mode,
         msvc_version=msvc_version,
-        download_ok=download_ok,
-        assume_yes_for_downloads=assume_yes_for_downloads,
+        download_mode=download_mode,
     )
+
+    if env.no_usable_compiler:
+        if not compiler_version_mode:
+            raiseNoCompilerFoundErrorExit()
+
+        return env
+
+    if env.get("CC") is None and env.get("CXX") is None:
+        if compiler_version_mode:
+            env.no_usable_compiler = True
+            return env
+
+        raiseNoCompilerFoundErrorExit()
 
     env.the_compiler = env["CC"] or env["CXX"]
     env.the_cc_name = os.path.normcase(os.path.basename(env.the_compiler))
@@ -615,6 +643,10 @@ as described in the documentation.""",
         env.zig_version = myDetectVersion(env, env.the_compiler)
 
         if env.zig_version is None:
+            if compiler_version_mode:
+                env.no_usable_compiler = True
+                return env
+
             scons_logger.sysexit(
                 "Error, failed to detect Zig version of backend compiler '%s'."
                 % env.the_compiler
@@ -626,6 +658,10 @@ as described in the documentation.""",
         env.clang_version = myDetectVersion(env, env.the_compiler)
 
         if env.clang_version is None:
+            if compiler_version_mode:
+                env.no_usable_compiler = True
+                return env
+
             scons_logger.sysexit(
                 "Error, failed to detect Clang version of backend compiler '%s'."
                 % env.the_compiler
@@ -637,6 +673,10 @@ as described in the documentation.""",
         env.gcc_version = myDetectVersion(env, env.the_compiler)
 
         if env.gcc_version is None:
+            if compiler_version_mode:
+                env.no_usable_compiler = True
+                return env
+
             scons_logger.sysexit(
                 "Error, failed to detect GCC version of backend compiler '%s'."
                 % env.the_compiler
@@ -1374,7 +1414,7 @@ def _addArchCompilerPrefixes(env):
 
 def createNuitkaSconsEnvironment(needs_source_dir=True):
     # This is handling the common setup of the Scons environment for Nuitka
-    # and has many steps, pylint: disable=too-many-locals,too-many-statements
+    # and has many steps, pylint: disable=too-many-branches,too-many-locals,too-many-statements
 
     # Set up the basic stuff.
     initScons(ARGUMENTS)
@@ -1467,8 +1507,19 @@ def createNuitkaSconsEnvironment(needs_source_dir=True):
     # Forced MSVC version (windows-only)
     msvc_version = getArgumentDefaulted("msvc_version", None)
 
-    # Allow automatic downloads for ccache, etc.
-    assume_yes_for_downloads = getArgumentBool("assume_yes_for_downloads", False)
+    # Only report the compiler for the version output, do not download or
+    # otherwise insist on a usable compiler.
+    compiler_version_mode = getArgumentBool("compiler_version_mode", False)
+
+    # Whether downloads for ccache, compilers, etc. are allowed.
+    download_mode = getArgumentDefaulted("download_mode", DOWNLOAD_MODE_ASK)
+
+    if compiler_version_mode:
+        download_mode = DOWNLOAD_MODE_NO
+
+    # The version output was requested with "--zig", but no zig binary was
+    # found. Do not fall back to another compiler in that case.
+    zig_unavailable = getArgumentBool("zig_unavailable", False)
 
     # Low memory mode, compile using less memory if possible.
     low_memory = getArgumentBool("low_memory", False)
@@ -1512,11 +1563,19 @@ def createNuitkaSconsEnvironment(needs_source_dir=True):
         clangcl_mode=clangcl_mode,
         target_arch=target_arch,
         consider_environ_variables=True,
-        assume_yes_for_downloads=assume_yes_for_downloads,
-        download_ok=True,
+        download_mode=download_mode,
+        compiler_version_mode=compiler_version_mode,
         experimental_flags=experimental_flags,
         source_dir=source_dir,
     )
+
+    if zig_unavailable:
+        env.no_usable_compiler = True
+
+    if env.no_usable_compiler:
+        # The version output reports the absence of a compiler rather than
+        # failing, and there is nothing further to configure.
+        return env
 
     if disable_ccache:
         _disableCcacheInEnvironment(env=env)
@@ -1569,6 +1628,10 @@ def createNuitkaSconsEnvironment(needs_source_dir=True):
     env.disable_ccache = disable_ccache
 
     if env.the_compiler is None or getExecutablePath(env.the_compiler, env=env) is None:
+        if compiler_version_mode:
+            env.no_usable_compiler = True
+            return env
+
         raiseNoCompilerFoundErrorExit()
 
     scons_details_logger.info("Told to run compilation on %d CPUs." % env.job_count)

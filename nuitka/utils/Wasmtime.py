@@ -9,7 +9,12 @@ import tarfile
 
 from nuitka.Tracing import general
 
-from .Download import getDownload, getDownloadCacheDir, shouldDownload
+from .Download import (
+    getDownload,
+    getDownloadCacheDir,
+    getDownloadMode,
+    shouldDownload,
+)
 from .FileOperations import (
     deleteFile,
     getNormalizedPathJoin,
@@ -72,8 +77,7 @@ def _ensureDownloaded(url, download_path, description, assume_yes_for_downloads)
     if not shouldDownload(
         message="Nuitka will download %s to run WASI binaries." % description,
         reject_message="Error, need %s to run WASI binaries." % description,
-        assume_yes_for_downloads=assume_yes_for_downloads,
-        download_ok=True,
+        download_mode=getDownloadMode(assume_yes_for_downloads),
     ):
         return general.sysexit("Error, need %s to run WASI binaries." % description)
 

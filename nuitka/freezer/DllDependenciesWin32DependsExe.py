@@ -16,7 +16,7 @@ from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.Errors import UnsupportedDependencyWalkerCall
 from nuitka.options.Options import assumeYesForDownloads, isExperimental
 from nuitka.Tracing import inclusion_logger
-from nuitka.utils.Download import getCachedDownload
+from nuitka.utils.Download import getCachedDownload, getDownloadMode
 from nuitka.utils.Execution import executeProcess, withEnvironmentVarOverridden
 from nuitka.utils.FileOperations import (
     deleteFile,
@@ -64,8 +64,7 @@ def getDependsExePath():
 Nuitka will make use of Dependency Walker (https://dependencywalker.com) tool
 to analyze the dependencies of Python extension modules.""",
         reject="Nuitka does not work in '--mode=standalone' or '--mode=onefile' on Windows without dependency walker.",
-        assume_yes_for_downloads=assumeYesForDownloads(),
-        download_ok=True,
+        download_mode=getDownloadMode(assumeYesForDownloads()),
     )
 
 

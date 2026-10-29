@@ -5,7 +5,7 @@
 
 import os
 
-from nuitka.utils.Download import getCachedDownload
+from nuitka.utils.Download import getCachedDownload, getDownloadMode
 from nuitka.utils.Execution import check_call, getNullOutput
 from nuitka.utils.FileOperations import addFileExecutablePermission
 from nuitka.utils.Utils import getArchitecture, getOS
@@ -92,8 +92,7 @@ def _getBiomeBinaryPath(assume_yes_for_downloads):
         flatten=False,
         message="Nuitka will make use of 'biome' to format JSON files.",
         reject=None,
-        assume_yes_for_downloads=assume_yes_for_downloads,
-        download_ok=True,
+        download_mode=getDownloadMode(assume_yes_for_downloads),
     )
 
     addFileExecutablePermission(_biome_path)
