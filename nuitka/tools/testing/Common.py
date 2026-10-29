@@ -97,6 +97,7 @@ _python_arch = None
 _python_executable = None
 _python_vendor = None
 _python_debug = None
+_python_gil = None
 
 
 def _getMinVersionSuffixRequirements():
@@ -146,7 +147,8 @@ if os.name == "nt" else os.uname()[4]\
 );\
 print(sys.executable);\
 print("Anaconda" if os.path.exists(os.path.join(sys.prefix, 'conda-meta')) else "Unknown");\
-print(hasattr(sys, "gettotalrefcount"))\
+print(hasattr(sys, "gettotalrefcount"));\
+print(bool(getattr(sys.flags, "gil", True)))\
 """,
         ),
         stderr=subprocess.STDOUT,
@@ -161,6 +163,7 @@ print(hasattr(sys, "gettotalrefcount"))\
     python_executable = version_output.split("\n")[3].strip()
     python_vendor = version_output.split("\n")[4].strip()
     python_debug = version_output.split("\n")[5].strip()
+    python_gil = version_output.split("\n")[6].strip()
 
     assert type(python_version_str) is str, repr(python_version_str)
     assert type(python_arch) is str, repr(python_arch)
@@ -168,6 +171,7 @@ print(hasattr(sys, "gettotalrefcount"))\
 
     python_version = tuple(int(d) for d in python_version_numeric.split("."))
     python_debug = python_debug == "True"
+    python_gil = python_gil == "True"
 
     return (
         python_version,
@@ -176,6 +180,7 @@ print(hasattr(sys, "gettotalrefcount"))\
         python_executable,
         python_vendor,
         python_debug,
+        python_gil,
     )
 
 
@@ -203,7 +208,7 @@ def setup(suite="", needs_io_encoding=False, silent=False, go_main=True):
     if needs_io_encoding and "PYTHONIOENCODING" not in os.environ:
         os.environ["PYTHONIOENCODING"] = "utf-8"
 
-    global _python_version_str, _python_version, _python_arch, _python_executable, _python_vendor, _python_debug  # singleton, pylint: disable=global-statement
+    global _python_version_str, _python_version, _python_arch, _python_executable, _python_vendor, _python_debug, _python_gil  # singleton, pylint: disable=global-statement
 
     (
         _python_version,
@@ -212,10 +217,20 @@ def setup(suite="", needs_io_encoding=False, silent=False, go_main=True):
         _python_executable,
         _python_vendor,
         _python_debug,
+        _python_gil,
     ) = _parsePythonVersionOutput(python_binary=os.environ["PYTHON"])
 
     if not silent:
-        my_print("Using concrete python", _python_version_str, "on", _python_arch)
+        if _python_version >= (3, 13):
+            my_print(
+                "Using concrete python",
+                _python_version_str,
+                "on",
+                _python_arch,
+                "(GIL enabled)" if _python_gil else "(GIL disabled)",
+            )
+        else:
+            my_print("Using concrete python", _python_version_str, "on", _python_arch)
 
     if "COVERAGE_FILE" not in os.environ:
         os.environ["COVERAGE_FILE"] = getCoverageFile()
@@ -241,6 +256,17 @@ def getPythonDebug():
 
 def getPythonVersionString():
     return _python_version_str
+
+
+def isPythonWithGil():
+    """Check if the concretely used Python has the GIL enabled.
+
+    This must use the queried Python, not the interpreter running the test
+    runner, as those can differ.
+    """
+    assert _python_gil is not None
+
+    return _python_gil
 
 
 tmp_dir = None
