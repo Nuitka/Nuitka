@@ -2100,6 +2100,14 @@ static int Nuitka_Main(int argc, native_command_line_argument_t **argv) {
 #else
     PyStructSequence_SetItem(Nuitka_SysGetObject("flags"), 6, const_int_0);
 #endif
+
+#if PYTHON_VERSION >= 0x3e0 && defined(_NUITKA_EXPERIMENTAL_SUBINTERPRETERS) && defined(_NUITKA_USE_UNEXPOSED_API)
+    // We disabled site during initialization to import it later ourselves.
+    // Subinterpreters inherit the configuration, so restore it for them.
+    // This uses an internal API only available with static libpython.
+    PyConfig *interpreter_config = (PyConfig *)_PyInterpreterState_GetConfig(_PyInterpreterState_GET());
+    interpreter_config->site_import = 1;
+#endif
 #endif
 
     /* Initialize the compiled types of Nuitka. */
