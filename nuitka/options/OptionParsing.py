@@ -1197,6 +1197,20 @@ enabled with "ASAN_OPTIONS=detect_leaks=1" if wanted. Defaults to off.""",
 )
 
 debug_group.add_option(
+    "--debug-thread-sanitizer",
+    action="store_true",
+    dest="debug_thread_sanitizer",
+    default=False,
+    help="""\
+Compile and link with ThreadSanitizer instrumentation, if the C compiler
+supports it. Known to work with GCC and Clang on Linux and macOS, but not
+available on Windows. This implies keeping debug information. For compiled
+extension modules the host program must preload the ThreadSanitizer runtime,
+e.g. using the "LD_PRELOAD" environment variable on Linux, or
+"DYLD_INSERT_LIBRARIES" on macOS. Defaults to off.""",
+)
+
+debug_group.add_option(
     "--no-debug-immortal-assumptions",
     action="store_false",
     dest="debug_immortal",

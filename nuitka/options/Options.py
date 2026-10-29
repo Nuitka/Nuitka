@@ -618,6 +618,23 @@ longer part of Winlibs and therefore no more available this way. Use only \
     if shallCreateAppBundle():
         options.is_standalone = True
 
+    if options.debug_address_sanitizer and options.debug_thread_sanitizer:
+        return options_logger.sysexit("""\
+Error, conflicting options '--debug-address-sanitizer' and \
+'--debug-thread-sanitizer', they cannot be combined.""")
+
+    if options.debug_thread_sanitizer:
+        if isWin32OrPosixWindows():
+            return options_logger.sysexit("""\
+Error, ThreadSanitizer is not supported on Windows, use Linux or macOS \
+instead.""")
+
+        if shallMakeModule() or shallMakeDll():
+            options_logger.info("""\
+ThreadSanitizer in a compiled extension module requires the host program to \
+preload the ThreadSanitizer runtime, e.g. using the "LD_PRELOAD" environment \
+variable on Linux, or "DYLD_INSERT_LIBRARIES" on macOS.""")
+
     if options.is_project_mode:
         if not isStandaloneMode():
             return options_logger.sysexit(
@@ -1887,6 +1904,7 @@ def isUnstripped():
         or isRuntimeProfile()
         or states.is_debug
         or options.debug_address_sanitizer
+        or options.debug_thread_sanitizer
     )
 
 
@@ -2504,6 +2522,7 @@ def getDebugModeIndications():
         "debug_c_warnings",
         "debug_self_forking",
         "debug_address_sanitizer",
+        "debug_thread_sanitizer",
     ):
         # Makes no sense prior Python3.12
         if debug_option_value_name == "debug_immortal" and python_version < 0x3C0:

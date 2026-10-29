@@ -2031,6 +2031,7 @@ def setupCCompiler(env, pgo_mode, exe_target, onefile_compile):
     importEnvironmentVariableSettings(env)
 
     _enableAddressSanitizerSettings(env)
+    _enableThreadSanitizerSettings(env)
 
     # Add constant blob files. Must be after all compiler settings are
     # established so the resource mode decision is correct.
@@ -2137,6 +2138,21 @@ variable on Linux, or "DYLD_INSERT_LIBRARIES" on macOS.""")
         else:
             env.Append(CCFLAGS=["-fsanitize=address"])
             env.Append(LINKFLAGS=["-fsanitize=address"])
+
+
+def _enableThreadSanitizerSettings(env):
+    # ThreadSanitizer is requested via "--debug-thread-sanitizer" and uses the
+    # compiler driver to add the runtime library, which is not available for
+    # all compilers and platforms.
+    if "debug_thread_sanitizer" in env.debug_modes_flags:
+        if env.zig_mode:
+            return scons_logger.sysexit("""\
+Error, ThreadSanitizer with the Zig compiler is not supported, as its \
+"compiler-rt" does not include the sanitizer runtime library, use gcc or \
+clang instead.""")
+
+        env.Append(CCFLAGS=["-fsanitize=thread"])
+        env.Append(LINKFLAGS=["-fsanitize=thread"])
 
 
 def switchFromGccToGpp(env):
