@@ -666,7 +666,7 @@ static void Nuitka_Py_ScheduleGC(PyThreadState *tstate) {
 
 // This is called during object creation and might trigger garbage collection
 void Nuitka_PyObject_GC_Link(PyObject *op) {
-#if defined(Py_GIL_DISABLED) && PYTHON_VERSION >= 0x3e0 && PYTHON_VERSION < 0x3f0
+#if defined(Py_GIL_DISABLED) && PYTHON_VERSION >= 0x3e0
     // Match CPython's free-threaded GC accounting. Objects are tracked with
     // the GC bits only, not linked into a generation list, and a per-thread
     // allocation counter is folded into the interpreter's young generation
@@ -675,14 +675,41 @@ void Nuitka_PyObject_GC_Link(PyObject *op) {
 
     _PyThreadStateImpl *tstate_impl = (_PyThreadStateImpl *)_PyThreadState_GET();
 
-    if (unlikely(++tstate_impl->gc.alloc_count > 511)) {
+    if (unlikely(++tstate_impl->gc.alloc_count >= 512)) {
         PyThreadState *tstate = (PyThreadState *)tstate_impl;
         GCState *gcstate = &tstate->interp->gc;
 
         _Py_atomic_add_int(&gcstate->young.count, (int)tstate_impl->gc.alloc_count);
         tstate_impl->gc.alloc_count = 0;
 
-        if (gcstate->young.count > gcstate->young.threshold && gcstate->young.threshold && gcstate->enabled &&
+        int count = _Py_atomic_load_int_relaxed(&gcstate->young.count);
+
+        if (count > gcstate->young.threshold && gcstate->young.threshold &&
+            _Py_atomic_load_int_relaxed(&gcstate->enabled) &&
+            (gcstate->old[0].threshold == 0 || count >= gcstate->long_lived_total / 4) &&
+            !_Py_atomic_load_int_relaxed(&gcstate->collecting) && !_PyErr_Occurred(tstate)) {
+            Nuitka_Py_ScheduleGC(tstate);
+        }
+    }
+#elif defined(Py_GIL_DISABLED)
+    // Python 3.13 free-threaded also uses a per-thread allocation counter, but
+    // still keeps the young generation count in the generations array.
+    (void)op;
+
+    _PyThreadStateImpl *tstate_impl = (_PyThreadStateImpl *)_PyThreadState_GET();
+
+    if (unlikely(++tstate_impl->gc.alloc_count >= 512)) {
+        PyThreadState *tstate = (PyThreadState *)tstate_impl;
+        GCState *gcstate = &tstate->interp->gc;
+
+        _Py_atomic_add_int(&gcstate->generations[0].count, (int)tstate_impl->gc.alloc_count);
+        tstate_impl->gc.alloc_count = 0;
+
+        int count = _Py_atomic_load_int_relaxed(&gcstate->generations[0].count);
+
+        if (count > gcstate->generations[0].threshold && gcstate->generations[0].threshold &&
+            _Py_atomic_load_int_relaxed(&gcstate->enabled) &&
+            (count > gcstate->long_lived_total / 4 || gcstate->generations[1].threshold == 0) &&
             !_Py_atomic_load_int_relaxed(&gcstate->collecting) && !_PyErr_Occurred(tstate)) {
             Nuitka_Py_ScheduleGC(tstate);
         }

@@ -277,11 +277,15 @@ Nuitka_PyInterpreterState_GetMemFreeQueue(PyInterpreterState *interp) {
 }
 
 // Python 3.13 uses the global stop-the-world state for delayed memory frees,
-// while Python 3.14 uses the per-interpreter state.
+// while Python 3.14 and 3.15 use the per-interpreter state.
 NUITKA_MAY_BE_UNUSED static inline struct _stoptheworld_state *Nuitka_GetStopTheWorld(void) {
-#if PYTHON_VERSION >= 0x3e0 && PYTHON_VERSION < 0x3f0
+#if PYTHON_VERSION >= 0x3e0
+#if PYTHON_VERSION < 0x3f0
     return (struct _stoptheworld_state *)Nuitka_PyInterpreterState_AdjustPostGcPointer(
         &_PyInterpreterState_GET()->stoptheworld);
+#else
+    return &_PyInterpreterState_GET()->stoptheworld;
+#endif
 #elif defined(_NUITKA_ADAPTED_PYTHON_HEADERS)
     return NUITKA_PYRUNTIME_DYNAMIC(_Nuitka_PyRuntime_PTR, stoptheworld, struct _stoptheworld_state);
 #else
