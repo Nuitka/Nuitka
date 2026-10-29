@@ -37,6 +37,7 @@ importerror_re = re.compile(
 )
 tempfile_posix_re = re.compile(r"/tmp/tmp[a-z0-9_]*")
 tempfile_win_re = re.compile(r"([Tt]emp)[\\/]+[^'\\/]*")
+test_tmp_re = re.compile(r"(%40|@)test_\d+_tmp")
 
 logging_info_re = re.compile(r"^Nuitka(-\w+)?:([-\w]+:)? ")
 logging_warning_re = re.compile(r"^Nuitka.*?:WARNING")
@@ -243,6 +244,9 @@ def makeDiffable(output, ignore_warnings, syntax_errors):
 
         # Temp files on Windows have random names in error messages too.
         line = tempfile_win_re.sub(r"\1\\xxxxx", line)
+
+        # Test support temp names contain the process ID.
+        line = test_tmp_re.sub(r"\1test_xxxxx_tmp", line)
 
         line = did_you_mean_re.sub("", line)
 
