@@ -837,6 +837,7 @@ addExpressionDispatchDict(
         "EXPRESSION_CONSTANT_FROZENSET_REF": generateConstantReferenceCode,
         "EXPRESSION_CONSTANT_FROZENSET_EMPTY_REF": generateConstantReferenceCode,
         "EXPRESSION_CONSTANT_SLICE_REF": generateConstantReferenceCode,
+        "EXPRESSION_CONSTANT_SLICE_MUTABLE_REF": generateConstantReferenceCode,
         "EXPRESSION_CONSTANT_XRANGE_REF": generateConstantReferenceCode,
         "EXPRESSION_CONSTANT_TYPE_REF": generateConstantReferenceCode,
         "EXPRESSION_CONSTANT_TYPE_DICT_REF": generateConstantReferenceCode,

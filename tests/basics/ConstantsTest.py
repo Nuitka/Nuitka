@@ -215,6 +215,19 @@ first.stop.append(1)
 print("Slice with list copy:", first.stop, second.stop)
 
 
+def makeSliceWithMutableValueAndMutate():
+    value = slice([])
+    value.stop.append(1)
+    return value.stop
+
+
+print(
+    "Slice with list mutation:",
+    makeSliceWithMutableValueAndMutate(),
+    makeSliceWithMutableValueAndMutate(),
+)
+
+
 def makeSliceWithNestedListValue():
     return slice(([],))
 

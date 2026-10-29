@@ -1367,6 +1367,20 @@ class ExpressionConstantSliceRef(
         return False
 
 
+class ExpressionConstantSliceMutableRef(ExpressionConstantSliceRef):
+    kind = "EXPRESSION_CONSTANT_SLICE_MUTABLE_REF"
+
+    __slots__ = ()
+
+    @staticmethod
+    def isMutable():
+        return True
+
+    @staticmethod
+    def isKnownToBeHashable():
+        return False
+
+
 class ExpressionConstantXrangeRef(ExpressionConstantUntrackedRefBase):
     kind = "EXPRESSION_CONSTANT_XRANGE_REF"
 
@@ -1738,6 +1752,12 @@ def makeConstantRefNode(constant, source_ref, user_provided=False):
             source_ref=source_ref,
         )
     elif constant_type is slice:
+        if isMutable(constant):
+            return ExpressionConstantSliceMutableRef(
+                constant=constant,
+                source_ref=source_ref,
+            )
+
         return ExpressionConstantSliceRef(
             constant=constant,
             source_ref=source_ref,
