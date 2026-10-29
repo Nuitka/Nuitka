@@ -238,6 +238,8 @@ class ExpressionMakeDict(
 
                     side_effects.extend(pair2.extractSideEffects())
 
+                unhashable_type = key.extractUnhashableNodeType()
+
                 if python_version >= 0x3E0:
                     result = makeRaiseExceptionExpressionFromTemplate(
                         exception_type="TypeError",
@@ -249,19 +251,30 @@ class ExpressionMakeDict(
                                 source_ref=key.source_ref,
                             ),
                             makeExpressionAttributeLookup(
-                                expression=key.extractUnhashableNodeType(),
+                                expression=unhashable_type,
                                 attribute_name="__name__",
                                 source_ref=key.source_ref,
                             ),
                         ),
                         source_ref=key.source_ref,
                     )
+                elif (
+                    python_version < 0x300
+                    and unhashable_type.getCompileTimeConstant() is slice
+                ):
+                    # CPython 2 uses a short message for slices, the type name
+                    # is only added for other types.
+                    result = makeRaiseExceptionReplacementExpression(
+                        expression=key,
+                        exception_type="TypeError",
+                        exception_value="unhashable type",
+                    )
                 else:
                     result = makeRaiseExceptionExpressionFromTemplate(
                         exception_type="TypeError",
                         template="unhashable type: '%s'",
                         template_args=makeExpressionAttributeLookup(
-                            expression=key.extractUnhashableNodeType(),
+                            expression=unhashable_type,
                             attribute_name="__name__",
                             source_ref=key.source_ref,
                         ),
@@ -1298,11 +1311,21 @@ def makeUnhashableExceptionReplacementExpression(node, key, side_effects, operat
     unhashable_type_name = (
         key.extractUnhashableNodeType().getCompileTimeConstant().__name__
     )
-    result = makeRaiseExceptionReplacementExpression(
-        expression=node,
-        exception_type="TypeError",
-        exception_value="unhashable type: '%s'" % unhashable_type_name,
-    )
+
+    if python_version < 0x300 and unhashable_type_name == "slice":
+        # CPython 2 uses a short message for slices, the type name is only
+        # added for other types.
+        result = makeRaiseExceptionReplacementExpression(
+            expression=node,
+            exception_type="TypeError",
+            exception_value="unhashable type",
+        )
+    else:
+        result = makeRaiseExceptionReplacementExpression(
+            expression=node,
+            exception_type="TypeError",
+            exception_value="unhashable type: '%s'" % unhashable_type_name,
+        )
     result = wrapExpressionWithSideEffects(
         side_effects=side_effects,
         old_node=node,

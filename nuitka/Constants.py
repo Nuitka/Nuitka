@@ -233,16 +233,16 @@ def isMutable(constant):
         return False
     elif constant_type in (dict, list, set, bytearray):
         return True
-    elif constant_type is frozendict:
-        # The frozendict itself cannot be changed, but nested values may still
-        # be mutable and thus make copies necessary.
-        for key, value in iterItems(constant):
-            if isMutable(key) or isMutable(value):
-                return True
-        return False
     elif constant_type is tuple:
         for value in constant:
             if isMutable(value):
+                return True
+        return False
+    elif constant_type is frozendict:
+        # The frozendict itself cannot be changed, but nested values may still
+        # be mutable and thus make copies necessary.
+        for key, value in constant.items():
+            if isMutable(key) or isMutable(value):
                 return True
         return False
     elif constant is NotImplemented:
@@ -257,6 +257,34 @@ def isMutable(constant):
         assert False, repr(constant)
 
 
+# Types whose constants are hashable or unhashable by type. Slices are
+# unhashable by type before Python 3.12, and containers are handled
+# separately, as their hashability depends on their values.
+_hashable_constant_types = frozenset(
+    (
+        str,
+        unicode,
+        complex,
+        int,
+        long,
+        bool,
+        float,
+        NoneType,
+        xrange,
+        bytes,
+        type,
+        frozenset,
+        BuiltinFunctionType,
+        EllipsisType,
+    )
+)
+_unhashable_constant_types = frozenset((dict, list, set, bytearray))
+
+if python_version < 0x3C0:
+    # Before Python 3.12, slices are unhashable regardless of their values.
+    _unhashable_constant_types = _unhashable_constant_types | frozenset((slice,))
+
+
 def isHashable(constant):
     """Is a constant hashable
 
@@ -269,29 +297,22 @@ def isHashable(constant):
 
     constant_type = type(constant)
 
-    if constant_type in (
-        str,
-        unicode,
-        complex,
-        int,
-        long,
-        bool,
-        float,
-        NoneType,
-        xrange,
-        bytes,
-        type,
-        frozenset,
-        BuiltinFunctionType,
-        EllipsisType,
-    ):
+    if constant_type in _hashable_constant_types:
         return True
-    elif constant_type in (dict, list, set, bytearray):
+    elif constant_type in _unhashable_constant_types:
         return False
+    elif constant is NotImplemented:
+        return True
+    elif constant is sys.version_info:
+        return True
+    elif constant_type is tuple:
+        for value in constant:
+            if not isHashable(value):
+                return False
+        return True
     elif constant_type is slice:
-        # Hashability of a slice depends on its values for Python 3.12 or higher.
-        if python_version < 0x3C0:
-            return False
+        # Only reached for Python 3.12 or higher, before slices are in the
+        # unhashable bucket. Slices hash their values like tuples.
         return (
             isHashable(constant.start)
             and isHashable(constant.stop)
@@ -299,14 +320,15 @@ def isHashable(constant):
         )
     elif constant_type is frozendict:
         # Hashability of a frozendict depends on both its keys and values.
-        for key, value in iterItems(constant):
+        for key, value in constant.items():
             if not isHashable(key) or not isHashable(value):
                 return False
         return True
-    elif constant_type is tuple:
-        for value in constant:
-            if not isHashable(value):
-                return False
+    elif constant_type is GenericAlias:
+        return isHashable(constant.__origin__) and isHashable(constant.__args__)
+    elif constant_type is UnionType:
+        return isHashable(constant.__args__)
+    elif isinstance(constant, type):
         return True
     else:
         assert False, constant_type
@@ -316,39 +338,34 @@ def getUnhashableConstant(constant):
     """Get one unhashable part of a constant."""
 
     # Many cases and all return, that is how we do it here,
-    # pylint: disable=too-many-branches,too-many-return-statements
+    # pylint: disable=too-many-return-statements
 
     constant_type = type(constant)
 
-    if constant_type in (
-        str,
-        unicode,
-        complex,
-        int,
-        long,
-        bool,
-        float,
-        NoneType,
-        xrange,
-        bytes,
-        type,
-        frozenset,
-        BuiltinFunctionType,
-        EllipsisType,
-    ):
+    if constant_type in _hashable_constant_types:
         return None
-    elif constant_type in (dict, list, set):
+    elif constant_type in _unhashable_constant_types:
         return constant
+    elif constant is NotImplemented:
+        return None
+    elif constant is sys.version_info:
+        return None
+    elif constant_type is tuple:
+        for value in constant:
+            res = getUnhashableConstant(value)
+            if res is not None:
+                return res
+        return None
     elif constant_type is slice:
-        if python_version < 0x3C0:
-            return constant
+        # Only reached for Python 3.12 or higher, before slices are in the
+        # unhashable bucket and returned above.
         for value in (constant.start, constant.stop, constant.step):
             res = getUnhashableConstant(value)
             if res is not None:
                 return res
         return None
     elif constant_type is frozendict:
-        for key, value in iterItems(constant):
+        for key, value in constant.items():
             res = getUnhashableConstant(key)
             if res is not None:
                 return res
@@ -357,11 +374,14 @@ def getUnhashableConstant(constant):
             if res is not None:
                 return res
         return None
-    elif constant_type is tuple:
-        for value in constant:
-            res = getUnhashableConstant(value)
-            if res is not None:
-                return res
+    elif constant_type is GenericAlias:
+        res = getUnhashableConstant(constant.__origin__)
+        if res is not None:
+            return res
+        return getUnhashableConstant(constant.__args__)
+    elif constant_type is UnionType:
+        return getUnhashableConstant(constant.__args__)
+    elif isinstance(constant, type):
         return None
     elif constant in constant_builtin_types:
         return None
@@ -486,7 +506,7 @@ def getConstantValueGuide(constant, elements_only):
         return ("%s" if elements_only else "E%s") % (
             "".join(
                 getConstantValueGuide(value, elements_only=False)
-                for _key, value in iterItems(constant)
+                for _key, value in constant.items()
             ),
         )
     else:

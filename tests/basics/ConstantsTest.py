@@ -197,6 +197,12 @@ def aliasMutationInCheck():
 
 print("Aliased constant dict mutation:", aliasMutationInCheck())
 
+print("Unhashable bytearray in tuple key:", end=" ")
+try:
+    print({(bytearray(b"x"),): 1})
+except TypeError:
+    print("TypeError")
+
 #     Python tests originally created or extracted from other peoples work. The
 #     parts were too small to be protected.
 #

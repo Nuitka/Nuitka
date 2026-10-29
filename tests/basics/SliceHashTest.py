@@ -6,6 +6,8 @@ if their values are hashable."""
 
 from __future__ import print_function
 
+import sys
+
 
 def report(name, func, *args):
     try:
@@ -67,7 +69,7 @@ def dictSubscriptStore():
 
 
 def setLiteral():
-    return {slice(1, 2)}
+    return set([slice(1, 2)])
 
 
 def setContains():
@@ -76,6 +78,30 @@ def setContains():
 
 def hashCall():
     return hash(slice(1, 2)) == hash(slice(1, 2))
+
+
+def dictLiteralNotImplementedKey():
+    return {slice(NotImplemented): 1}
+
+
+def dictLiteralGenericAliasKey():
+    return {slice(list[int]): 1}
+
+
+def dictLiteralUnionKey():
+    return {slice(int | None): 1}
+
+
+def dictLiteralVersionInfoKey():
+    return {slice(sys.version_info): 1}
+
+
+def dictLiteralGenericAliasUnhashableKey():
+    return {slice(list[[]]): 1}
+
+
+def dictLiteralUnionUnhashableKey():
+    return {slice(int | list[[]]): 1}
 
 
 def dictLiteralUnhashableValue():
@@ -111,6 +137,16 @@ report("dict subscript store:", dictSubscriptStore)
 report("set literal:", setLiteral)
 report("set contains:", setContains)
 report("hash call:", hashCall)
+
+report("dict literal NotImplemented key:", dictLiteralNotImplementedKey)
+report("dict literal generic alias key:", dictLiteralGenericAliasKey)
+report("dict literal union key:", dictLiteralUnionKey)
+report("dict literal version info key:", dictLiteralVersionInfoKey)
+report(
+    "dict literal generic alias unhashable key:",
+    dictLiteralGenericAliasUnhashableKey,
+)
+report("dict literal union unhashable key:", dictLiteralUnionUnhashableKey)
 report("dict literal unhashable value:", dictLiteralUnhashableValue)
 reportExceptionType("dict get unhashable value:", dictGetUnhashableValue)
 report("dict contains unhashable value:", dictContainsUnhashableValue)
