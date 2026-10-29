@@ -16,6 +16,16 @@
 // #include "richcomparisons.h"
 
 #ifdef Py_GIL_DISABLED
+#define NUITKA_LIST_BEGIN(list) Py_BEGIN_CRITICAL_SECTION(list)
+#define NUITKA_LIST_END() Py_END_CRITICAL_SECTION()
+#define NUITKA_LIST_STORE_PTR(ptr, value) FT_ATOMIC_STORE_PTR_RELEASE(*(ptr), (value))
+#else
+#define NUITKA_LIST_BEGIN(list)
+#define NUITKA_LIST_END()
+#define NUITKA_LIST_STORE_PTR(ptr, value) (*(ptr) = (value))
+#endif
+
+#ifdef Py_GIL_DISABLED
 typedef struct {
     Py_ssize_t allocated;
     PyObject *ob_item[];
@@ -26,8 +36,7 @@ static _PyListArray *Nuitka_AllocateListArray(size_t capacity) {
         return NULL;
     }
 
-    // TODO: API call to be removed.
-    _PyListArray *list_array = PyMem_Malloc(sizeof(_PyListArray) + capacity * sizeof(PyObject *));
+    _PyListArray *list_array = NuitkaMem_Malloc(sizeof(_PyListArray) + capacity * sizeof(PyObject *));
 
     if (unlikely(list_array == NULL)) {
         return NULL;
@@ -45,6 +54,14 @@ static void Nuitka_FreeListArray(PyObject **items, bool use_qsbr) {
         NuitkaMem_FreeDelayed(array);
     } else {
         NuitkaMem_Free(array);
+    }
+}
+
+static void Nuitka_List_EnsureSharedOnResize(PyListObject *list) {
+    assert(Py_REFCNT(list) == 1 || PyMutex_IsLocked(&((PyObject *)list)->ob_mutex));
+
+    if (!_Py_IsOwnedByCurrentThread((PyObject *)list) && !_PyObject_GC_IS_SHARED(list)) {
+        _PyObject_GC_SET_SHARED(list);
     }
 }
 
@@ -130,23 +147,79 @@ PyObject *LIST_COPY(PyThreadState *tstate, PyObject *list) {
     CHECK_OBJECT(list);
     assert(PyList_CheckExact(list));
 
-    Py_ssize_t size = PyList_GET_SIZE(list);
-    PyObject *result = MAKE_LIST_EMPTY(tstate, size);
+    PyObject *result;
 
-    if (unlikely(result == NULL)) {
-        return NULL;
-    }
+#ifdef Py_GIL_DISABLED
+    Py_BEGIN_CRITICAL_SECTION(list);
+#endif
+
+    Py_ssize_t size = PyList_GET_SIZE(list);
+
+    result = MAKE_LIST_EMPTY(tstate, size);
+    assert(result != NULL);
+
+    PyObject **src = ((PyListObject *)list)->ob_item;
+    PyObject **dest = ((PyListObject *)result)->ob_item;
 
     for (Py_ssize_t i = 0; i < size; i++) {
-        PyObject *item = PyList_GET_ITEM(list, i);
+        PyObject *item = src[i];
         Py_INCREF(item);
-        PyList_SET_ITEM(result, i, item);
+        NUITKA_LIST_STORE_PTR(&dest[i], item);
     }
+
+#ifdef Py_GIL_DISABLED
+    Py_END_CRITICAL_SECTION();
+#endif
 
     return result;
 }
 
-static bool LIST_RESIZE(PyListObject *list, Py_ssize_t new_size) {
+PyObject *LIST_CONCAT(PyThreadState *tstate, PyObject *operand1, PyObject *operand2) {
+    CHECK_OBJECT(operand1);
+    assert(PyList_CheckExact(operand1));
+    CHECK_OBJECT(operand2);
+    assert(PyList_CheckExact(operand2));
+
+    PyObject *result;
+
+#ifdef Py_GIL_DISABLED
+    Py_BEGIN_CRITICAL_SECTION2(operand1, operand2);
+#endif
+
+    Py_ssize_t size1 = Py_SIZE(operand1);
+    Py_ssize_t size2 = Py_SIZE(operand2);
+
+    assert((size_t)size1 + (size_t)size2 < PY_SSIZE_T_MAX);
+
+    result = MAKE_LIST_EMPTY(tstate, size1 + size2);
+    assert(result != NULL);
+
+    PyObject **src = ((PyListObject *)operand1)->ob_item;
+    PyObject **dest = ((PyListObject *)result)->ob_item;
+
+    for (Py_ssize_t i = 0; i < size1; i++) {
+        PyObject *value = src[i];
+        Py_INCREF(value);
+        NUITKA_LIST_STORE_PTR(&dest[i], value);
+    }
+
+    src = ((PyListObject *)operand2)->ob_item;
+    dest = ((PyListObject *)result)->ob_item + size1;
+
+    for (Py_ssize_t i = 0; i < size2; i++) {
+        PyObject *value = src[i];
+        Py_INCREF(value);
+        NUITKA_LIST_STORE_PTR(&dest[i], value);
+    }
+
+#ifdef Py_GIL_DISABLED
+    Py_END_CRITICAL_SECTION2();
+#endif
+
+    return result;
+}
+
+static bool _LIST_RESIZE(PyListObject *list, Py_ssize_t new_size) {
     CHECK_OBJECT(list);
     assert(new_size >= 0);
 
@@ -168,11 +241,20 @@ static bool LIST_RESIZE(PyListObject *list, Py_ssize_t new_size) {
     }
 
 #ifdef Py_GIL_DISABLED
+    Nuitka_List_EnsureSharedOnResize(list);
+
     _PyListArray *array = Nuitka_AllocateListArray(new_allocated);
 
     if (array == NULL) {
+#if PYTHON_VERSION >= 0x3f0
+        // Python 3.15 does not fail when shrinking an allocation.
+        if (new_size < allocated) {
+            Py_SET_SIZE(list, new_size);
+            return true;
+        }
+#endif
         PyErr_NoMemory();
-        return -1;
+        return false;
     }
     PyObject **old_items = list->ob_item;
     if (list->ob_item != NULL) {
@@ -211,6 +293,57 @@ static bool LIST_RESIZE(PyListObject *list, Py_ssize_t new_size) {
     return true;
 }
 
+static bool _LIST_EXTEND_SELF(PyListObject *list) {
+    Py_ssize_t n = Py_SIZE(list);
+
+    if (n == 0) {
+        return true;
+    }
+
+    if (n > PY_SSIZE_T_MAX / 2) {
+        PyErr_NoMemory();
+        return false;
+    }
+
+    NUITKA_MAY_BE_UNUSED bool resize_result = _LIST_RESIZE(list, n * 2);
+    assert(resize_result);
+
+    PyObject **items = list->ob_item;
+
+    for (Py_ssize_t i = 0; i < n; i++) {
+        PyObject *item = items[i];
+        Py_INCREF(item);
+        NUITKA_LIST_STORE_PTR(&items[n + i], item);
+    }
+
+    return true;
+}
+
+static bool _LIST_EXTEND_FROM_LIST_LOCK_HELD(PyListObject *list, PyListObject *other) {
+    size_t n = Py_SIZE(other);
+
+    if (n == 0) {
+        return true;
+    }
+
+    size_t m = Py_SIZE(list);
+
+    NUITKA_MAY_BE_UNUSED bool resize_result = _LIST_RESIZE(list, m + n);
+    assert(resize_result);
+
+    PyObject **src = other->ob_item;
+    PyObject **dest = list->ob_item + m;
+
+    for (size_t i = 0; i < n; i++) {
+        PyObject *o = src[i];
+        Py_INCREF(o);
+
+        NUITKA_LIST_STORE_PTR(&dest[i], o);
+    }
+
+    return true;
+}
+
 bool LIST_EXTEND_FROM_LIST(PyObject *list, PyObject *other) {
 #if _NUITKA_EXPERIMENTAL_DISABLE_LIST_OPT
     PyObject *result = _PyList_Extend((PyListObject *)list, other);
@@ -224,56 +357,39 @@ bool LIST_EXTEND_FROM_LIST(PyObject *list, PyObject *other) {
     assert(PyList_CheckExact(list));
     assert(PyList_CheckExact(other));
 
-    size_t n = PyList_GET_SIZE(other);
+#ifdef Py_GIL_DISABLED
+    bool result;
 
-    if (n == 0) {
-        return true;
+    if (list == other) {
+        Py_BEGIN_CRITICAL_SECTION(list);
+        result = _LIST_EXTEND_SELF((PyListObject *)list);
+        Py_END_CRITICAL_SECTION();
+    } else {
+        Py_BEGIN_CRITICAL_SECTION2(list, other);
+        result = _LIST_EXTEND_FROM_LIST_LOCK_HELD((PyListObject *)list, (PyListObject *)other);
+        Py_END_CRITICAL_SECTION2();
     }
 
-    size_t m = Py_SIZE(list);
-
-    if (LIST_RESIZE((PyListObject *)list, m + n) == false) {
-        return false;
+    return result;
+#else
+    if (list == other) {
+        return _LIST_EXTEND_SELF((PyListObject *)list);
     }
 
-    PyObject **src = &PyList_GET_ITEM(other, 0);
-    PyObject **dest = &PyList_GET_ITEM(list, m);
-
-    for (size_t i = 0; i < n; i++) {
-        PyObject *o = src[i];
-        Py_INCREF(o);
-
-        dest[i] = o;
-    }
-
-    return true;
+    return _LIST_EXTEND_FROM_LIST_LOCK_HELD((PyListObject *)list, (PyListObject *)other);
+#endif
 #endif
 }
 
-bool LIST_EXTEND_FROM_ITERABLE(PyThreadState *tstate, PyObject *target, PyObject *other) {
-    CHECK_OBJECT(target);
-    assert(PyList_CheckExact(target));
+static bool _LIST_EXTEND_FROM_ITERABLE_LOCK_HELD(PyThreadState *tstate, PyListObject *list, PyObject *other) {
+    assert((PyObject *)list != other);
 
-    CHECK_OBJECT(other);
-
-    PyListObject *list = (PyListObject *)target;
-
-#if _NUITKA_EXPERIMENTAL_DISABLE_LIST_OPT
-    PyObject *result = _PyList_Extend(list, other);
-    if (result != NULL) {
-        Py_DECREF(result);
-        return true;
-    } else {
-        return false;
-    }
-#else
-    // First attempt those things that occur most often. Keep in mind that
-    // other might be the same object as list.
+    // First attempt those things that occur most often.
     PyObject **src;
     Py_ssize_t src_size;
 
-    if (PyList_CheckExact(other)) { // this covers list == other too.
-        src = _PyList_ITEMS(other);
+    if (PyList_CheckExact(other)) {
+        src = NUITKA_LIST_ITEMS(other);
         src_size = PyList_GET_SIZE(other);
     } else if (PyTuple_CheckExact(other)) {
         src = _PyTuple_ITEMS(other);
@@ -294,30 +410,28 @@ bool LIST_EXTEND_FROM_ITERABLE(PyThreadState *tstate, PyObject *target, PyObject
 
         // Overflow is not really realistic, so we only assert against it.
         assert(list_size <= PY_SSIZE_T_MAX - src_size);
-        if (LIST_RESIZE(list, list_size + src_size) == false) {
-            return false;
-        }
+        NUITKA_MAY_BE_UNUSED bool resize_result = _LIST_RESIZE(list, list_size + src_size);
+        assert(resize_result);
 
-        PyObject **target_items = _PyList_ITEMS(list) + list_size;
+        PyObject **target_items = NUITKA_LIST_ITEMS(list) + list_size;
 
         for (Py_ssize_t i = 0; i < src_size; i++) {
             PyObject *value = src[i];
             Py_INCREF(value);
-            *target_items++ = value;
+            NUITKA_LIST_STORE_PTR(target_items, value);
+            target_items += 1;
         }
 
         return true;
     }
 
-    // Slow path needs to use iterator. TODO:
+    // Slow path needs to use iterator.
     PyObject *iter = MAKE_ITERATOR(tstate, other);
 
     if (iter == NULL) {
         return false;
     }
     PyObject *(*iternext)(PyObject *) = *Py_TYPE(iter)->tp_iternext;
-
-    Py_ssize_t cur_size = PyList_GET_SIZE(list);
 
 #if PYTHON_VERSION >= 0x300
     // Guess a iterator size if possible
@@ -334,7 +448,7 @@ bool LIST_EXTEND_FROM_ITERABLE(PyThreadState *tstate, PyObject *target, PyObject
         // Overflow is not really realistic, hope is, it will not come true.
     } else {
         // Allocate the space in one go.
-        if (LIST_RESIZE(list, list_size + src_size) == false) {
+        if (_LIST_RESIZE(list, list_size + src_size) == false) {
             Py_DECREF(iter);
             return false;
         }
@@ -353,8 +467,10 @@ bool LIST_EXTEND_FROM_ITERABLE(PyThreadState *tstate, PyObject *target, PyObject
             Py_DECREF(iter);
 
             if (unlikely(stop_iteration_error == false)) {
+                Py_ssize_t cur_size = PyList_GET_SIZE(list);
+
                 if (cur_size < list->allocated) {
-                    if (LIST_RESIZE(list, cur_size) == false) {
+                    if (_LIST_RESIZE(list, cur_size) == false) {
                         return false;
                     }
                 }
@@ -367,32 +483,83 @@ bool LIST_EXTEND_FROM_ITERABLE(PyThreadState *tstate, PyObject *target, PyObject
 
         CHECK_OBJECT(item);
 
+        Py_ssize_t cur_size = PyList_GET_SIZE(list);
+
         if (cur_size < list->allocated) {
             // Already allocated, so we can just set it.
-            PyList_SET_ITEM(list, cur_size, item);
+            NUITKA_LIST_STORE_PTR(&list->ob_item[cur_size], item);
             Py_SET_SIZE(list, cur_size + 1);
         } else {
             assert(cur_size != PY_SSIZE_T_MAX);
 
-            if (LIST_RESIZE(list, cur_size + 1) == false) {
+            if (_LIST_RESIZE(list, cur_size + 1) == false) {
+                Py_DECREF(item);
                 return false;
             }
 
-            PyList_SET_ITEM(list, cur_size, item);
+            NUITKA_LIST_STORE_PTR(&list->ob_item[cur_size], item);
         }
-        cur_size += 1;
     }
 
     /* Cut back result list if initial guess was too large. */
-    assert(cur_size == PyList_GET_SIZE(list));
+    Py_ssize_t cur_size = PyList_GET_SIZE(list);
 
     if (cur_size < list->allocated) {
-        if (LIST_RESIZE(list, cur_size) == false) {
+        if (_LIST_RESIZE(list, cur_size) == false) {
             return false;
         }
     }
 
     return true;
+}
+
+bool LIST_EXTEND_FROM_ITERABLE(PyThreadState *tstate, PyObject *target, PyObject *other) {
+    CHECK_OBJECT(target);
+    assert(PyList_CheckExact(target));
+
+    CHECK_OBJECT(other);
+
+    PyListObject *list = (PyListObject *)target;
+
+#if _NUITKA_EXPERIMENTAL_DISABLE_LIST_OPT
+    PyObject *result = _PyList_Extend(list, other);
+    if (result != NULL) {
+        Py_DECREF(result);
+        return true;
+    } else {
+        return false;
+    }
+#else
+    if ((PyObject *)list == other) {
+#ifdef Py_GIL_DISABLED
+        bool result;
+        Py_BEGIN_CRITICAL_SECTION(list);
+        result = _LIST_EXTEND_SELF(list);
+        Py_END_CRITICAL_SECTION();
+
+        return result;
+#else
+        return _LIST_EXTEND_SELF(list);
+#endif
+    }
+
+#ifdef Py_GIL_DISABLED
+    bool result;
+
+    if (PyList_CheckExact(other)) {
+        Py_BEGIN_CRITICAL_SECTION2(list, other);
+        result = _LIST_EXTEND_FROM_ITERABLE_LOCK_HELD(tstate, list, other);
+        Py_END_CRITICAL_SECTION2();
+    } else {
+        Py_BEGIN_CRITICAL_SECTION(list);
+        result = _LIST_EXTEND_FROM_ITERABLE_LOCK_HELD(tstate, list, other);
+        Py_END_CRITICAL_SECTION();
+    }
+
+    return result;
+#else
+    return _LIST_EXTEND_FROM_ITERABLE_LOCK_HELD(tstate, list, other);
+#endif
 #endif
 }
 
@@ -420,17 +587,7 @@ bool LIST_EXTEND_FOR_UNPACK(PyThreadState *tstate, PyObject *list, PyObject *oth
 }
 #endif
 
-bool LIST_APPEND1(PyObject *target, PyObject *item) {
-    CHECK_OBJECT(target);
-    assert(PyList_CheckExact(target));
-
-    CHECK_OBJECT(item);
-
-#if _NUITKA_EXPERIMENTAL_DISABLE_LIST_OPT
-    int res = PyList_Append(target, item);
-    Py_DECREF(item);
-    return res == 0;
-#else
+static bool _LIST_APPEND1_LOCK_HELD(PyObject *target, PyObject *item) {
     PyListObject *list = (PyListObject *)target;
 
     Py_ssize_t cur_size = PyList_GET_SIZE(list);
@@ -438,14 +595,51 @@ bool LIST_APPEND1(PyObject *target, PyObject *item) {
     // Overflow is not really realistic, so we only assert against it.
     assert(cur_size <= PY_SSIZE_T_MAX);
 
-    if (LIST_RESIZE(list, cur_size + 1) == false) {
+    if (_LIST_RESIZE(list, cur_size + 1) == false) {
         return false;
     }
 
-    PyList_SET_ITEM(list, cur_size, item);
+    NUITKA_LIST_STORE_PTR(&list->ob_item[cur_size], item);
 
     return true;
+}
+
+bool LIST_APPEND1(PyObject *target, PyObject *item) {
+    CHECK_OBJECT(target);
+    assert(PyList_CheckExact(target));
+
+    CHECK_OBJECT(item);
+
+#if _NUITKA_EXPERIMENTAL_DISABLE_LIST_OPT && !defined(Py_GIL_DISABLED)
+    int res = PyList_Append(target, item);
+    Py_DECREF(item);
+    return res == 0;
+#else
+    bool result;
+    NUITKA_LIST_BEGIN(target);
+    result = _LIST_APPEND1_LOCK_HELD(target, item);
+    NUITKA_LIST_END();
+
+    return result;
 #endif
+}
+
+static bool _LIST_APPEND0_LOCK_HELD(PyObject *target, PyObject *item) {
+    PyListObject *list = (PyListObject *)target;
+
+    Py_ssize_t cur_size = PyList_GET_SIZE(list);
+
+    // Overflow is not really realistic, so we only assert against it.
+    assert(cur_size <= PY_SSIZE_T_MAX);
+
+    if (_LIST_RESIZE(list, cur_size + 1) == false) {
+        return false;
+    }
+
+    Py_INCREF(item);
+    NUITKA_LIST_STORE_PTR(&list->ob_item[cur_size], item);
+
+    return true;
 }
 
 bool LIST_APPEND0(PyObject *target, PyObject *item) {
@@ -454,25 +648,64 @@ bool LIST_APPEND0(PyObject *target, PyObject *item) {
 
     CHECK_OBJECT(item);
 
-#if _NUITKA_EXPERIMENTAL_DISABLE_LIST_OPT
+#if _NUITKA_EXPERIMENTAL_DISABLE_LIST_OPT && !defined(Py_GIL_DISABLED)
     int res = PyList_Append(target, item);
     return res == 0;
 #else
+    bool result;
+    NUITKA_LIST_BEGIN(target);
+    result = _LIST_APPEND0_LOCK_HELD(target, item);
+    NUITKA_LIST_END();
+
+    return result;
+#endif
+}
+
+static bool _LIST_REMOVE_LOCK_HELD(PyObject *target, PyObject *item) {
     PyListObject *list = (PyListObject *)target;
 
-    Py_ssize_t cur_size = PyList_GET_SIZE(list);
+    for (Py_ssize_t i = 0; i < Py_SIZE(list); i++) {
+        PyObject *element = list->ob_item[i];
 
-    // Overflow is not really realistic, so we only assert against it.
-    assert(cur_size <= PY_SSIZE_T_MAX);
+        Py_INCREF(element);
+        nuitka_bool cmp = RICH_COMPARE_EQ_NBOOL_OBJECT_OBJECT(element, item);
+        Py_DECREF(element);
 
-    if (LIST_RESIZE(list, cur_size + 1) == false) {
-        return false;
+        if (cmp == NUITKA_BOOL_TRUE) {
+            // The comparison may run arbitrary code that mutates the list.
+            Py_ssize_t cur_size = Py_SIZE(list);
+
+            if (i >= cur_size) {
+                // The item was already removed by the comparison code.
+                return true;
+            }
+
+            PyObject *removed = list->ob_item[i];
+
+            Py_SET_SIZE(list, cur_size - 1);
+
+#ifdef Py_GIL_DISABLED
+            for (Py_ssize_t j = i; j + 1 < cur_size; j++) {
+                NUITKA_LIST_STORE_PTR(&list->ob_item[j], list->ob_item[j + 1]);
+            }
+#else
+            memmove(list->ob_item + i, list->ob_item + i + 1, sizeof(PyObject *) * (cur_size - i - 1));
+#endif
+
+            // Only release the removed item once the list is canonical again,
+            // as its deallocator may mutate the list.
+            Py_DECREF(removed);
+
+            return true;
+        } else if (unlikely(cmp == NUITKA_BOOL_EXCEPTION)) {
+            return false;
+        }
     }
 
-    PyList_SET_ITEM0(list, cur_size, item);
+    PyThreadState *tstate = PyThreadState_GET();
 
-    return true;
-#endif
+    SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_ValueError, "list.remove(x): x not in list");
+    return false;
 }
 
 bool LIST_REMOVE(PyObject *target, PyObject *item) {
@@ -486,37 +719,16 @@ bool LIST_REMOVE(PyObject *target, PyObject *item) {
     int res = PyList_Remove(target, item);
     return res == 0;
 #else
-    PyListObject *list = (PyListObject *)target;
+    bool result;
+    NUITKA_LIST_BEGIN(target);
+    result = _LIST_REMOVE_LOCK_HELD(target, item);
+    NUITKA_LIST_END();
 
-    Py_ssize_t cur_size = PyList_GET_SIZE(list);
-
-    for (Py_ssize_t i = 0; i < cur_size; i++) {
-        PyObject *element = list->ob_item[i];
-
-        Py_INCREF(element);
-        nuitka_bool cmp = RICH_COMPARE_EQ_NBOOL_OBJECT_OBJECT(element, item);
-        Py_DECREF(element);
-
-        if (cmp == NUITKA_BOOL_TRUE) {
-            Py_DECREF(element);
-            Py_SET_SIZE(list, cur_size - 1);
-
-            memmove(list->ob_item + i, list->ob_item + i + 1, sizeof(PyObject *) * (cur_size - i - 1));
-
-            return true;
-        } else if (unlikely(cmp == NUITKA_BOOL_EXCEPTION)) {
-            return false;
-        }
-    }
-
-    PyThreadState *tstate = PyThreadState_GET();
-
-    SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_ValueError, "list.remove(x): x not in list");
-    return false;
+    return result;
 #endif
 }
 
-void LIST_CLEAR(PyObject *target) {
+static void _LIST_CLEAR_LOCK_HELD(PyObject *target) {
     CHECK_OBJECT(target);
     assert(PyList_CheckExact(target));
 
@@ -540,11 +752,18 @@ void LIST_CLEAR(PyObject *target) {
         }
 
 #ifdef Py_GIL_DISABLED
+        Nuitka_List_EnsureSharedOnResize(list);
         Nuitka_FreeListArray(items, _PyObject_GC_IS_SHARED(list));
 #else
         PyMem_Free(items);
 #endif
     }
+}
+
+void LIST_CLEAR(PyObject *target) {
+    NUITKA_LIST_BEGIN(target);
+    _LIST_CLEAR_LOCK_HELD(target);
+    NUITKA_LIST_END();
 }
 
 PyObject *getListIndexObject(Py_ssize_t value) {
@@ -557,7 +776,7 @@ PyObject *getListIndexObject(Py_ssize_t value) {
 #endif
 }
 
-PyObject *LIST_COUNT(PyObject *list, PyObject *item) {
+static PyObject *_LIST_COUNT_LOCK_HELD(PyObject *list, PyObject *item) {
     CHECK_OBJECT(list);
     assert(PyList_CheckExact(list));
 
@@ -591,6 +810,15 @@ PyObject *LIST_COUNT(PyObject *list, PyObject *item) {
     }
 
     return getListIndexObject(count);
+}
+
+PyObject *LIST_COUNT(PyObject *list, PyObject *item) {
+    PyObject *result;
+    NUITKA_LIST_BEGIN(list);
+    result = _LIST_COUNT_LOCK_HELD(list, item);
+    NUITKA_LIST_END();
+
+    return result;
 }
 
 static PyObject *_LIST_INDEX_COMMON(PyThreadState *tstate, PyListObject *list, PyObject *item, Py_ssize_t start,
@@ -657,7 +885,12 @@ PyObject *LIST_INDEX2(PyThreadState *tstate, PyObject *list, PyObject *item) {
     CHECK_OBJECT(list);
     assert(PyList_CheckExact(list));
 
-    return _LIST_INDEX_COMMON(tstate, (PyListObject *)list, item, 0, Py_SIZE(list));
+    PyObject *result;
+    NUITKA_LIST_BEGIN(list);
+    result = _LIST_INDEX_COMMON(tstate, (PyListObject *)list, item, 0, Py_SIZE(list));
+    NUITKA_LIST_END();
+
+    return result;
 }
 
 static void SET_SLICE_INDICES_ERROR(PyThreadState *tstate) {
@@ -688,7 +921,12 @@ PyObject *LIST_INDEX3(PyThreadState *tstate, PyObject *list, PyObject *item, PyO
         return NULL;
     }
 
-    return _LIST_INDEX_COMMON(tstate, (PyListObject *)list, item, start_ssize, Py_SIZE(list));
+    PyObject *result;
+    NUITKA_LIST_BEGIN(list);
+    result = _LIST_INDEX_COMMON(tstate, (PyListObject *)list, item, start_ssize, Py_SIZE(list));
+    NUITKA_LIST_END();
+
+    return result;
 }
 
 PyObject *LIST_INDEX4(PyThreadState *tstate, PyObject *list, PyObject *item, PyObject *start, PyObject *stop) {
@@ -717,8 +955,15 @@ PyObject *LIST_INDEX4(PyThreadState *tstate, PyObject *list, PyObject *item, PyO
         return NULL;
     }
 
-    return _LIST_INDEX_COMMON(tstate, (PyListObject *)list, item, start_ssize, stop_ssize);
+    PyObject *result;
+    NUITKA_LIST_BEGIN(list);
+    result = _LIST_INDEX_COMMON(tstate, (PyListObject *)list, item, start_ssize, stop_ssize);
+    NUITKA_LIST_END();
+
+    return result;
 }
+
+static void _LIST_INSERT_CONST_LOCK_HELD(PyObject *list, Py_ssize_t index, PyObject *item);
 
 bool LIST_INSERT(PyThreadState *tstate, PyObject *list, PyObject *index, PyObject *item) {
     CHECK_OBJECT(list);
@@ -783,11 +1028,14 @@ bool LIST_INSERT(PyThreadState *tstate, PyObject *list, PyObject *index, PyObjec
     Py_DECREF(index_long);
 #endif
 
-    LIST_INSERT_CONST(list, index_ssize, item);
+    NUITKA_LIST_BEGIN(list);
+    _LIST_INSERT_CONST_LOCK_HELD(list, index_ssize, item);
+    NUITKA_LIST_END();
+
     return true;
 }
 
-void LIST_INSERT_CONST(PyObject *list, Py_ssize_t index, PyObject *item) {
+static void _LIST_INSERT_CONST_LOCK_HELD(PyObject *list, Py_ssize_t index, PyObject *item) {
     CHECK_OBJECT(list);
     assert(PyList_CheckExact(list));
     CHECK_OBJECT(item);
@@ -797,7 +1045,7 @@ void LIST_INSERT_CONST(PyObject *list, Py_ssize_t index, PyObject *item) {
     Py_ssize_t n = Py_SIZE(list_object);
 
     // Expand the list by needed space.
-    if (LIST_RESIZE(list_object, n + 1) == false) {
+    if (_LIST_RESIZE(list_object, n + 1) == false) {
         abort();
     }
 
@@ -816,11 +1064,17 @@ void LIST_INSERT_CONST(PyObject *list, Py_ssize_t index, PyObject *item) {
     PyObject **items = list_object->ob_item;
 
     for (Py_ssize_t i = n; --i >= index;) {
-        items[i + 1] = items[i];
+        NUITKA_LIST_STORE_PTR(&items[i + 1], items[i]);
     }
 
     Py_INCREF(item);
-    items[index] = item;
+    NUITKA_LIST_STORE_PTR(&items[index], item);
+}
+
+void LIST_INSERT_CONST(PyObject *list, Py_ssize_t index, PyObject *item) {
+    NUITKA_LIST_BEGIN(list);
+    _LIST_INSERT_CONST_LOCK_HELD(list, index, item);
+    NUITKA_LIST_END();
 }
 
 static void _Nuitka_ReverseObjectsSlice(PyObject **lo, PyObject **hi) {
@@ -831,8 +1085,8 @@ static void _Nuitka_ReverseObjectsSlice(PyObject **lo, PyObject **hi) {
     while (lo < hi) {
         {
             PyObject *t = *lo;
-            *lo = *hi;
-            *hi = t;
+            NUITKA_LIST_STORE_PTR(lo, *hi);
+            NUITKA_LIST_STORE_PTR(hi, t);
         }
 
         lo += 1;
@@ -840,7 +1094,7 @@ static void _Nuitka_ReverseObjectsSlice(PyObject **lo, PyObject **hi) {
     }
 }
 
-void LIST_REVERSE(PyObject *list) {
+static void _LIST_REVERSE_LOCK_HELD(PyObject *list) {
     CHECK_OBJECT(list);
     assert(PyList_CheckExact(list));
 
@@ -851,11 +1105,20 @@ void LIST_REVERSE(PyObject *list) {
     }
 }
 
+void LIST_REVERSE(PyObject *list) {
+    NUITKA_LIST_BEGIN(list);
+    _LIST_REVERSE_LOCK_HELD(list);
+    NUITKA_LIST_END();
+}
+
 #if PYTHON_VERSION >= 0x300 && !defined(_NUITKA_EXPERIMENTAL_DISABLE_LIST_OPT)
 static bool allocateListItems(PyListObject *list, Py_ssize_t size) {
 #ifdef Py_GIL_DISABLED
     _PyListArray *array = Nuitka_AllocateListArray(size);
-    assert(array != NULL);
+
+    if (unlikely(array == NULL)) {
+        return false;
+    }
 
     PyObject **items = array->ob_item;
     memset(items, 0, size * sizeof(PyObject *));
@@ -864,7 +1127,6 @@ static bool allocateListItems(PyListObject *list, Py_ssize_t size) {
     PyObject **items = PyMem_New(PyObject *, size);
 
     if (unlikely(items == NULL)) {
-        PyErr_NoMemory();
         return false;
     }
 
@@ -900,12 +1162,18 @@ PyObject *MAKE_LIST(PyThreadState *tstate, PyObject *iterable) {
 
         if (unlikely(iter_len == -1)) {
             if (!CHECK_AND_CLEAR_TYPE_ERROR_OCCURRED(tstate)) {
+                Py_DECREF(iterable);
+                Py_DECREF(list);
                 return NULL;
             }
         }
 
         if (iter_len > 0) {
             if (allocateListItems((PyListObject *)list, iter_len) == false) {
+                Py_DECREF(iterable);
+                Py_DECREF(list);
+
+                PyErr_NoMemory();
                 return NULL;
             }
         }

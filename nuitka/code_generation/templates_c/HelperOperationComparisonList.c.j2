@@ -8,6 +8,18 @@ static {{ target.getTypeDecl() }} COMPARE_{{op_code}}_{{target.getHelperCodeName
     PyListObject *a = (PyListObject *)operand1;
     PyListObject *b = (PyListObject *)operand2;
 
+#ifdef Py_GIL_DISABLED
+    PyCriticalSection2 _cs;
+    PyCriticalSection2_Begin(&_cs, operand1, operand2);
+#define NUITKA_COMPARE_LIST_RETURN(value)                                                                              \
+    do {                                                                                                               \
+        PyCriticalSection2_End(&_cs);                                                                                  \
+        return (value);                                                                                                \
+    } while (0)
+#else
+#define NUITKA_COMPARE_LIST_RETURN(value) return (value)
+#endif
+
 {# Shortcut for equality, driven by length check. #}
 {% if operator in ("==", "!=") %}
     if (Py_SIZE(a) != Py_SIZE(b)) {
@@ -20,7 +32,7 @@ static {{ target.getTypeDecl() }} COMPARE_{{op_code}}_{{target.getHelperCodeName
         // Convert to target type.
         {{ target.getTypeDecl() }} result = {{target.getToValueFromBoolExpression("r")}};
         {{ target.getTakeReferenceStatement("result", immortal=True) }}
-        return result;
+        NUITKA_COMPARE_LIST_RETURN(result);
     }
 {% endif %}
 
@@ -46,7 +58,7 @@ static {{ target.getTypeDecl() }} COMPARE_{{op_code}}_{{target.getHelperCodeName
         Py_DECREF(bb);
 
         if (res == NUITKA_BOOL_EXCEPTION) {
-            return {{target.getExceptionResultIndicatorValue()}};
+            NUITKA_COMPARE_LIST_RETURN({{target.getExceptionResultIndicatorValue()}});
         }
 
         if (res == NUITKA_BOOL_FALSE) {
@@ -65,10 +77,12 @@ static {{ target.getTypeDecl() }} COMPARE_{{op_code}}_{{target.getHelperCodeName
         // Convert to target type.
         {{ target.getTypeDecl() }} result = {{target.getToValueFromBoolExpression("r")}};
         {{ target.getTakeReferenceStatement("result", immortal=True) }}
-        return result;
+        NUITKA_COMPARE_LIST_RETURN(result);
     }
 
-    return RICH_COMPARE_{{op_code}}_{{target.getHelperCodeName()}}_OBJECT_OBJECT(a->ob_item[i], b->ob_item[i]);
+    {{ target.getTypeDecl() }} result = RICH_COMPARE_{{op_code}}_{{target.getHelperCodeName()}}_OBJECT_OBJECT(a->ob_item[i], b->ob_item[i]);
+
+    NUITKA_COMPARE_LIST_RETURN(result);
 {% else %}
 {% if operator == "==" %}
     bool r;
@@ -90,11 +104,13 @@ static {{ target.getTypeDecl() }} COMPARE_{{op_code}}_{{target.getHelperCodeName
     // Convert to target type.
     {{ target.getTypeDecl() }} result = {{target.getToValueFromBoolExpression("r")}};
     {{ target.getTakeReferenceStatement("result", immortal=True) }}
-    return result;
+    NUITKA_COMPARE_LIST_RETURN(result);
 
 {% endif %}
 
 }
+
+#undef NUITKA_COMPARE_LIST_RETURN
 
 {#-  Part of "Nuitka", an optimizing Python compiler that is compatible and           -#}
 {#-  integrates with CPython, but also works on its own.                              -#}

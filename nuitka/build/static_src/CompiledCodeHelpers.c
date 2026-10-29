@@ -1399,19 +1399,35 @@ static PyObject *QUICK_ITERATOR_NEXT(PyThreadState *tstate, struct Nuitka_QuickI
             *finished = true;
             return NULL;
         }
-    case ITERATOR_LIST:
-        if (qiter->iterator_data.list_data.list_index < PyList_GET_SIZE(qiter->iterator_data.list_data.list)) {
-            result = PyList_GET_ITEM(qiter->iterator_data.list_data.list, qiter->iterator_data.list_data.list_index);
-            qiter->iterator_data.list_data.list_index += 1;
+    case ITERATOR_LIST: {
+        PyListObject *list = qiter->iterator_data.list_data.list;
+        Py_ssize_t list_index = qiter->iterator_data.list_data.list_index;
 
-            *finished = false;
+#ifdef Py_GIL_DISABLED
+        Py_BEGIN_CRITICAL_SECTION(list);
+#endif
+
+        if (list_index < PyList_GET_SIZE(list)) {
+            result = PyList_GET_ITEM(list, list_index);
+            qiter->iterator_data.list_data.list_index = list_index + 1;
 
             Py_INCREF(result);
-            return result;
         } else {
-            *finished = true;
-            return NULL;
+            result = NULL;
         }
+
+#ifdef Py_GIL_DISABLED
+        Py_END_CRITICAL_SECTION();
+#endif
+
+        if (result != NULL) {
+            *finished = false;
+            return result;
+        }
+
+        *finished = true;
+        return NULL;
+    }
     }
 
     assert(false);

@@ -10412,13 +10412,25 @@ static PyObject *COMPARE_EQ_OBJECT_LIST_LIST(PyObject *operand1, PyObject *opera
     PyListObject *a = (PyListObject *)operand1;
     PyListObject *b = (PyListObject *)operand2;
 
+#ifdef Py_GIL_DISABLED
+    PyCriticalSection2 _cs;
+    PyCriticalSection2_Begin(&_cs, operand1, operand2);
+#define NUITKA_COMPARE_LIST_RETURN(value)                                                                              \
+    do {                                                                                                               \
+        PyCriticalSection2_End(&_cs);                                                                                  \
+        return (value);                                                                                                \
+    } while (0)
+#else
+#define NUITKA_COMPARE_LIST_RETURN(value) return (value)
+#endif
+
     if (Py_SIZE(a) != Py_SIZE(b)) {
         bool r = false;
 
         // Convert to target type.
         PyObject *result = BOOL_FROM(r);
         Py_INCREF_IMMORTAL(result);
-        return result;
+        NUITKA_COMPARE_LIST_RETURN(result);
     }
 
     nuitka_bool res = NUITKA_BOOL_TRUE;
@@ -10439,7 +10451,7 @@ static PyObject *COMPARE_EQ_OBJECT_LIST_LIST(PyObject *operand1, PyObject *opera
         Py_DECREF(bb);
 
         if (res == NUITKA_BOOL_EXCEPTION) {
-            return NULL;
+            NUITKA_COMPARE_LIST_RETURN(NULL);
         }
 
         if (res == NUITKA_BOOL_FALSE) {
@@ -10457,8 +10469,10 @@ static PyObject *COMPARE_EQ_OBJECT_LIST_LIST(PyObject *operand1, PyObject *opera
     // Convert to target type.
     PyObject *result = BOOL_FROM(r);
     Py_INCREF_IMMORTAL(result);
-    return result;
+    NUITKA_COMPARE_LIST_RETURN(result);
 }
+
+#undef NUITKA_COMPARE_LIST_RETURN
 /* Code referring to "OBJECT" corresponds to any Python object and "LIST" to Python 'list'. */
 PyObject *RICH_COMPARE_EQ_OBJECT_OBJECT_LIST(PyObject *operand1, PyObject *operand2) {
 
@@ -11058,13 +11072,25 @@ static nuitka_bool COMPARE_EQ_NBOOL_LIST_LIST(PyObject *operand1, PyObject *oper
     PyListObject *a = (PyListObject *)operand1;
     PyListObject *b = (PyListObject *)operand2;
 
+#ifdef Py_GIL_DISABLED
+    PyCriticalSection2 _cs;
+    PyCriticalSection2_Begin(&_cs, operand1, operand2);
+#define NUITKA_COMPARE_LIST_RETURN(value)                                                                              \
+    do {                                                                                                               \
+        PyCriticalSection2_End(&_cs);                                                                                  \
+        return (value);                                                                                                \
+    } while (0)
+#else
+#define NUITKA_COMPARE_LIST_RETURN(value) return (value)
+#endif
+
     if (Py_SIZE(a) != Py_SIZE(b)) {
         bool r = false;
 
         // Convert to target type.
         nuitka_bool result = r ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
 
-        return result;
+        NUITKA_COMPARE_LIST_RETURN(result);
     }
 
     nuitka_bool res = NUITKA_BOOL_TRUE;
@@ -11085,7 +11111,7 @@ static nuitka_bool COMPARE_EQ_NBOOL_LIST_LIST(PyObject *operand1, PyObject *oper
         Py_DECREF(bb);
 
         if (res == NUITKA_BOOL_EXCEPTION) {
-            return NUITKA_BOOL_EXCEPTION;
+            NUITKA_COMPARE_LIST_RETURN(NUITKA_BOOL_EXCEPTION);
         }
 
         if (res == NUITKA_BOOL_FALSE) {
@@ -11103,8 +11129,10 @@ static nuitka_bool COMPARE_EQ_NBOOL_LIST_LIST(PyObject *operand1, PyObject *oper
     // Convert to target type.
     nuitka_bool result = r ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
 
-    return result;
+    NUITKA_COMPARE_LIST_RETURN(result);
 }
+
+#undef NUITKA_COMPARE_LIST_RETURN
 /* Code referring to "OBJECT" corresponds to any Python object and "LIST" to Python 'list'. */
 nuitka_bool RICH_COMPARE_EQ_NBOOL_OBJECT_LIST(PyObject *operand1, PyObject *operand2) {
 

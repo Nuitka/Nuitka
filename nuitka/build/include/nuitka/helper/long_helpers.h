@@ -48,7 +48,6 @@
 #define Nuitka_LongFlipSign(value) _PyLong_FlipSign(value)
 #endif
 
-static PyObject *LIST_CONCAT(PyThreadState *tstate, PyObject *operand1, PyObject *operand2);
 static PyLongObject *Nuitka_LongNew(Py_ssize_t size);
 static PyObject *Nuitka_LongRealloc(PyObject *value, Py_ssize_t size);
 static PyObject *Nuitka_LongFromCLong(long ival);

@@ -18,8 +18,13 @@
         PyList_SET_ITEM(tuple, index, tmp);                                                                            \
     }
 
-#ifndef _PyList_ITEMS
-#define _PyList_ITEMS(op) (((PyListObject *)(op))->ob_item)
+// Use CPython's private macro when it is already available, e.g. for
+// free-threaded builds, but do not define it ourselves, since internal
+// headers included later may define it with a different expansion.
+#ifdef _PyList_ITEMS
+#define NUITKA_LIST_ITEMS(op) _PyList_ITEMS(op)
+#else
+#define NUITKA_LIST_ITEMS(op) (((PyListObject *)(op))->ob_item)
 #endif
 
 #if PYTHON_VERSION >= 0x3a0
@@ -49,6 +54,9 @@ extern void LIST_REVERSE(PyObject *list);
 
 // Like list.copy
 extern PyObject *LIST_COPY(PyThreadState *tstate, PyObject *list);
+
+// Like list concatenation
+extern PyObject *LIST_CONCAT(PyThreadState *tstate, PyObject *operand1, PyObject *operand2);
 
 // Like list.count
 extern PyObject *LIST_COUNT(PyObject *list, PyObject *item);
