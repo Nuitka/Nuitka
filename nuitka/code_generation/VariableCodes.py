@@ -8,6 +8,7 @@ from nuitka.nodes.shapes.BuiltinTypeShapes import (
     tshape_int_or_long,
 )
 from nuitka.PythonVersions import python_version
+from nuitka.States import states
 from nuitka.utils.CStrings import encodePythonIdentifierToC
 
 from .c_types.CTypeNuitkaBooleans import CTypeNuitkaBoolEnum
@@ -29,6 +30,7 @@ from .ErrorCodes import (
     getLocalVariableReferenceErrorCode,
     getNameReferenceErrorCode,
 )
+from .LineNumberCodes import emitLineNumberUpdateCode
 from .VariableDeclarations import VariableDeclaration
 
 
@@ -78,6 +80,9 @@ def generateAssignmentVariableCode(statement, emit, context):
 
 def generateDelVariableCode(statement, emit, context):
     with context.withCurrentSourceCodeReference(statement.getSourceReference()):
+        if states.is_full_compat:
+            emitLineNumberUpdateCode(None, emit, context)
+
         _getVariableDelCode(
             variable=statement.getVariable(),
             variable_trace=statement.variable_trace,
