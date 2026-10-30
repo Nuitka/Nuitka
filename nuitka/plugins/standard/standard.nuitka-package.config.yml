@@ -9630,6 +9630,16 @@
         - 'urllib.request'
         - 'urllib.response'
 
+- module-name: 'urllib3.contrib.resolver._async.factories' # checksum: b423bd1
+  implicit-imports:
+    - depends:
+        - 'urllib3.contrib.resolver._async.*'
+
+- module-name: 'urllib3.contrib.resolver.factories' # checksum: ae0c8302
+  implicit-imports:
+    - depends:
+        - 'urllib3.contrib.resolver.*'
+
 - module-name: 'urllib3.packages.six' # checksum: e62bccb7
   implicit-imports:
     - depends:
