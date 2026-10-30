@@ -198,6 +198,12 @@ def decideAssertions(module_name):
     return Plugins.decideAssertions(module_name=module_name)
 
 
+def decideNeedsFrameLocalsProxy(module_name, code_qualname):
+    return Plugins.decideNeedsFrameLocalsProxy(
+        module_name=module_name, code_qualname=code_qualname
+    )
+
+
 def decideDocStrings(module_name):
     return Plugins.decideDocStrings(module_name=module_name)
 

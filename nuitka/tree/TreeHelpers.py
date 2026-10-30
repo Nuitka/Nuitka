@@ -33,6 +33,7 @@ from nuitka.nodes.NodeMakingHelpers import (
 )
 from nuitka.nodes.StatementNodes import StatementsSequence
 from nuitka.options.Options import hasPythonFlagNoDocStrings
+from nuitka.plugins.Hooks import decideNeedsFrameLocalsProxy
 from nuitka.PythonVersions import python_version
 from nuitka.States import states
 from nuitka.Tracing import optimization_logger, printLine
@@ -513,11 +514,17 @@ def buildFrameNode(provider, nodes, code_object, source_ref):
     if provider.isExpressionOutlineFunction():
         provider = provider.getParentVariableProvider()
 
+    needs_frame_locals_proxy = decideNeedsFrameLocalsProxy(
+        module_name=provider.getParentModule().getFullName(),
+        code_qualname=code_object.getCodeObjectQualname(),
+    )
+
     if provider.isExpressionFunctionBody():
         result = StatementsFrameFunction(
             statements=statements,
             code_object=code_object,
             owner_code_name=provider.getCodeName(),
+            needs_frame_locals=needs_frame_locals_proxy,
             source_ref=source_ref,
         )
     elif provider.isExpressionClassBodyBase():
@@ -526,6 +533,7 @@ def buildFrameNode(provider, nodes, code_object, source_ref):
             code_object=code_object,
             owner_code_name=provider.getCodeName(),
             locals_scope=provider.getLocalsScope(),
+            needs_frame_locals=False,
             source_ref=source_ref,
         )
     elif provider.isExpressionGeneratorObjectBody():
@@ -533,6 +541,7 @@ def buildFrameNode(provider, nodes, code_object, source_ref):
             statements=statements,
             code_object=code_object,
             owner_code_name=provider.getCodeName(),
+            needs_frame_locals=needs_frame_locals_proxy,
             source_ref=source_ref,
         )
     elif provider.isExpressionCoroutineObjectBody():
@@ -540,6 +549,7 @@ def buildFrameNode(provider, nodes, code_object, source_ref):
             statements=statements,
             code_object=code_object,
             owner_code_name=provider.getCodeName(),
+            needs_frame_locals=needs_frame_locals_proxy,
             source_ref=source_ref,
         )
     elif provider.isExpressionAsyncgenObjectBody():
@@ -547,6 +557,7 @@ def buildFrameNode(provider, nodes, code_object, source_ref):
             statements=statements,
             code_object=code_object,
             owner_code_name=provider.getCodeName(),
+            needs_frame_locals=needs_frame_locals_proxy,
             source_ref=source_ref,
         )
     else:

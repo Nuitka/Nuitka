@@ -20,7 +20,7 @@ from nuitka.ModuleRegistry import getModuleByName
 from nuitka.options.Options import isExperimental
 from nuitka.plugins.YamlPluginBase import NuitkaYamlPluginBase
 from nuitka.utils.Importing import withTemporarySysPathExtension
-from nuitka.utils.ModuleNames import ModuleName
+from nuitka.utils.ModuleNames import ModuleName, QualifiedName
 
 # spell-checker: ignore dask,ipykernel,matplotlib,numba,pyximport,sqlalchemy,statsmodels
 
@@ -824,6 +824,25 @@ class %(class_name)s:
             recursive=True,
         ):
             return asserts_config_value == "yes"
+
+        return None
+
+    def decideNeedsFrameLocalsProxy(self, module_name, code_qualname):
+        if isExperimental("force-locals-frame-proxy"):
+            return True
+
+        qualified_name = QualifiedName(code_qualname)
+
+        for _config_module_name, patterns in self.getYamlConfigItem(
+            module_name=module_name,
+            section="anti-bloat",
+            item_name="frame_locals",
+            default=(),
+            decide_relevant=bool,
+            recursive=True,
+        ):
+            if qualified_name.matchesToShellPatterns(patterns).is_match:
+                return True
 
         return None
 

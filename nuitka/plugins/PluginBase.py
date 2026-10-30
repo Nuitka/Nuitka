@@ -1360,6 +1360,19 @@ Unwanted import of '%(unwanted)s' that %(problem)s '%(binding_name)s' encountere
         # Virtual method, pylint: disable=no-self-use,unused-argument
         return None
 
+    def decideNeedsFrameLocalsProxy(self, module_name, code_qualname):
+        """Decide whether a function or class needs a frame locals proxy.
+
+        Args:
+            module_name: name of the module containing it
+            code_qualname: qualified name of the function or class
+
+        Returns:
+            True if a frame locals proxy is needed, None for no opinion
+        """
+        # Virtual method, pylint: disable=no-self-use,unused-argument
+        return None
+
     def getPreprocessorSymbols(self, onefile):
         """Decide which C defines to be used in compilation.
 

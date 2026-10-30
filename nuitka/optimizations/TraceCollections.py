@@ -306,6 +306,8 @@ class TraceCollectionBase(object):
     They are kept for "variable" and versions.
     """
 
+    # Many state attributes, pylint: disable=too-many-instance-attributes
+
     __slots__ = (
         "owner",
         "parent",
@@ -314,6 +316,7 @@ class TraceCollectionBase(object):
         "variable_actives_needs_copy",
         "has_unescaped_variables",
         "variable_escapable",
+        "needs_frame_locals_proxy",
     )
 
     if isCountingInstances():
@@ -333,6 +336,20 @@ class TraceCollectionBase(object):
         self.has_unescaped_variables = True
 
         self.variable_escapable = OrderedSet()
+
+        self.needs_frame_locals_proxy = False
+
+    def setNeedsFrameLocalsProxy(self, value):
+        """Set whether the current frame needs observable local variables."""
+        self.needs_frame_locals_proxy = value
+
+    def needsFrameLocalsProxy(self):
+        """Whether the current frame needs observable local variables.
+
+        Returns:
+            bool
+        """
+        return self.needs_frame_locals_proxy
 
     def __repr__(self):
         return "<%s for %s at 0x%x>" % (self.__class__.__name__, self.name, id(self))
@@ -1178,6 +1195,7 @@ class TraceCollectionBranch(CollectionUpdateMixin, TraceCollectionBase):
 
         self.variable_escapable = parent.variable_escapable
         self.has_unescaped_variables = parent.has_unescaped_variables
+        self.needs_frame_locals_proxy = parent.needs_frame_locals_proxy
 
         # For quick access without going to parent.
         self.variable_traces = parent.variable_traces
@@ -1213,6 +1231,7 @@ class TraceCollectionSnapshot(CollectionUpdateMixin, TraceCollectionBase):
 
         self.variable_escapable = parent.variable_escapable
         self.has_unescaped_variables = parent.has_unescaped_variables
+        self.needs_frame_locals_proxy = parent.needs_frame_locals_proxy
 
         # For quick access without going to parent.
         self.variable_traces = parent.variable_traces

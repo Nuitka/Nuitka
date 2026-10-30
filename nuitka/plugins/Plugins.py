@@ -89,6 +89,7 @@ active_plugins_with_decide_compilation = []
 active_plugins_with_decide_annotations = []
 active_plugins_with_decide_doc_strings = []
 active_plugins_with_decide_assertions = []
+active_plugins_with_decide_needs_frame_locals_proxy = []
 active_plugins_with_function_body_parsing = []
 active_plugins_with_class_body_parsing = []
 active_plugins_with_variable_constant_value = []
@@ -165,6 +166,10 @@ def _addActivePlugin(plugin_class, args, force=False):
         ("decideAnnotations", active_plugins_with_decide_annotations),
         ("decideDocStrings", active_plugins_with_decide_doc_strings),
         ("decideAssertions", active_plugins_with_decide_assertions),
+        (
+            "decideNeedsFrameLocalsProxy",
+            active_plugins_with_decide_needs_frame_locals_proxy,
+        ),
         ("onFunctionBodyParsing", active_plugins_with_function_body_parsing),
         ("onClassBodyParsing", active_plugins_with_class_body_parsing),
         ("getVariableConstantValue", active_plugins_with_variable_constant_value),
@@ -2099,6 +2104,29 @@ through incomplete set import by '%s' plugin encountered."""
             )
 
         return cls.decide_assertions_cache[module_name]
+
+    decide_needs_frame_locals_proxy_cache = {}
+
+    @classmethod
+    def decideNeedsFrameLocalsProxy(cls, module_name, code_qualname):
+        cache_key = (module_name, code_qualname)
+
+        if cache_key not in cls.decide_needs_frame_locals_proxy_cache:
+            cls.decide_needs_frame_locals_proxy_cache[cache_key] = (
+                cls._decideWithoutDisagreement(
+                    call_per_plugin=lambda plugin: plugin.decideNeedsFrameLocalsProxy(
+                        module_name, code_qualname
+                    ),
+                    legal_values=(None, True, False),
+                    abstain_values=(None,),
+                    method_name="decideNeedsFrameLocalsProxy",
+                    default_value=False,
+                    plugins_list=active_plugins_with_decide_needs_frame_locals_proxy,
+                    registered_values=None,
+                )
+            )
+
+        return cls.decide_needs_frame_locals_proxy_cache[cache_key]
 
     @classmethod
     @counted_plugin_method

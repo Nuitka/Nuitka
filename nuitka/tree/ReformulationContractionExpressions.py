@@ -63,6 +63,7 @@ from nuitka.nodes.YieldNodes import (
     ExpressionYield,
     ExpressionYieldFromAwaitable,
 )
+from nuitka.plugins.Hooks import decideNeedsFrameLocalsProxy
 from nuitka.PythonVersions import python_version
 
 from .ReformulationAssignmentStatements import buildAssignmentStatements
@@ -333,12 +334,18 @@ def buildGeneratorExpressionNode(provider, node, source_ref):
 
     frame_node_class = StatementsFrameAsyncgen if is_async else StatementsFrameGenerator
 
+    needs_frame_locals_proxy = decideNeedsFrameLocalsProxy(
+        module_name=provider.getParentModule().getFullName(),
+        code_qualname=code_object.getCodeObjectQualname(),
+    )
+
     code_body.setChildBody(
         makeStatementsSequenceFromStatement(
             statement=frame_node_class(
                 statements=mergeStatements(statements),
                 code_object=code_object,
                 owner_code_name=code_body.getCodeName(),
+                needs_frame_locals=needs_frame_locals_proxy,
                 source_ref=source_ref,
             )
         )

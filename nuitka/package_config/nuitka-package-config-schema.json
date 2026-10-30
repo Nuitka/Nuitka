@@ -440,6 +440,12 @@
                 "no"
               ]
             },
+            "frame_locals": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/non-empty-string"
+              }
+            },
             "when": {
               "$ref": "#/definitions/python-expression"
             }

@@ -7,7 +7,6 @@ This is about frame stacks and their management. There are different kinds
 of frames for different uses.
 """
 
-from nuitka.options.Options import isExperimental
 from nuitka.PythonVersions import python_version
 from nuitka.utils.Jinja2 import renderTemplateFromString
 
@@ -246,6 +245,142 @@ Nuitka_Frame_AttachLocalsCopied(
     }
 
 
+def _getFrameGuardHeavyClassCode(
+    frame_node, code_identifier, frame_identifier, context
+):
+    attach_locals_code = getFrameAttachLocalsCode(frame_identifier)
+    module_identifier = getModuleAccessCode(context)
+    locals_dict_name = context.variable_storage.getVariableDeclarationTop(
+        frame_node.getLocalsScope().getCodeName()
+    )
+    use_locals_dict = locals_dict_name in context.getLocalsDictNames()
+
+    make_frame_code = (
+        """MAKE_CLASS_FRAME(tstate, %(code_identifier)s, %(module_identifier)s, NULL, 0, NULL)"""
+        % {
+            "code_identifier": code_identifier,
+            "module_identifier": module_identifier,
+        }
+    )
+
+    if use_locals_dict:
+        frame_init_code = """\
+Nuitka_Frame_AssignLocals(%(frame_identifier)s, %(locals_dict)s);
+""" % {
+            "frame_identifier": frame_identifier,
+            "locals_dict": locals_dict_name,
+        }
+    elif python_version < 0x300:
+        frame_init_code = """\
+Nuitka_Frame_AssignLocals(%(frame_identifier)s, %(module_identifier)s);
+""" % {
+            "frame_identifier": frame_identifier,
+            "module_identifier": module_identifier,
+        }
+    else:
+        frame_init_code = ""
+
+    if use_locals_dict or python_version < 0x300:
+        frame_exit_code = """\
+Nuitka_Frame_ClearLocals(%(frame_identifier)s);
+""" % {
+            "frame_identifier": frame_identifier,
+        }
+    else:
+        frame_exit_code = ""
+
+    return attach_locals_code, frame_init_code, frame_exit_code, make_frame_code
+
+
+def _getFrameGuardHeavyFunctionCode(
+    frame_node, code_identifier, frame_identifier, context
+):
+    frame_init_code = ""
+    frame_exit_code = ""
+
+    if context.variable_storage.makeCStructLevelDeclarations():
+        indicators = _getFrameVariableIndicators(context)
+
+        # The runtime walkers use the code object's co_nlocals as the
+        # description length, so they must agree at build time already.
+        assert len(indicators) == len(frame_node.getCodeObject().getVarNames())
+
+        # A struct with only outline variables has no frame variables and
+        # would produce an empty type description, which is invalid C.
+        assert indicators, (
+            "empty type description",
+            frame_node,
+            context.getOwner(),
+            context.variable_storage.makeCStructLevelDeclarations(),
+        )
+
+        locals_size = "sizeof(%s)" % context.variable_storage.struct_name
+        type_description_name = context.getTypeDescriptionCode("".join(indicators))
+
+        if frame_node.needsFrameLocals():
+            if frame_node.needsFrameLocalsProxy():
+                assert python_version >= 0x3D0
+
+                # Singleton, pylint: disable=global-statement
+                global _frame_locals_proxy_used
+                _frame_locals_proxy_used = True
+
+            attach_locals_code = getFrameAttachLocalsCode(frame_identifier)
+            # A cached frame can have been cleared in the meantime, e.g.
+            # by "frame.clear()", which resets the type description and
+            # writability, so publish them again, not only the pointer
+            # to the stack struct.
+            frame_init_code = """\
+%(frame_identifier)s->m_type_description = %(type_description)s;
+%(frame_identifier)s->m_locals_writable = %(locals_writable)d;
+%(frame_identifier)s->m_locals_ptr = &%(struct_name)s;""" % {
+                "frame_identifier": frame_identifier,
+                "type_description": type_description_name,
+                "locals_writable": frame_node.needsFrameLocalsProxy(),
+                "struct_name": context.variable_storage.struct_name,
+            }
+            # On normal exit the frame is cached and nobody reads the stack
+            # struct anymore; on the exception path the attach above has
+            # already copied the values into the frame heap buffer.
+            frame_exit_code = "%s->m_locals_ptr = NULL;" % frame_identifier
+            frame_type_description = type_description_name
+        else:
+            # Same struct, but its address is not published on the normal
+            # path, so the C compiler can keep the locals in registers. At
+            # the exception exit the struct is copied by value, which is
+            # not an address escape either.
+            attach_locals_code = getFrameAttachLocalsCopyCode(
+                context, frame_identifier, type_description_name
+            )
+            frame_type_description = "NULL"
+    else:
+        attach_locals_code = ""
+        frame_type_description = "NULL"
+        locals_size = "0"
+
+    make_frame_code = """MAKE_FUNCTION_FRAME(tstate, %(code_identifier)s, %(module_identifier)s, %(locals_size)s, \
+%(type_description)s)""" % {
+        "code_identifier": code_identifier,
+        "module_identifier": getModuleAccessCode(context),
+        "locals_size": locals_size,
+        "type_description": frame_type_description,
+    }
+
+    return attach_locals_code, frame_init_code, frame_exit_code, make_frame_code
+
+
+def _getFrameGuardHeavyModuleCode(code_identifier, context):
+    make_frame_code = (
+        """MAKE_MODULE_FRAME(%(code_identifier)s, %(module_identifier)s)"""
+        % {
+            "code_identifier": code_identifier,
+            "module_identifier": getModuleAccessCode(context),
+        }
+    )
+
+    return "", "", "", make_frame_code
+
+
 def getFrameGuardHeavyCode(
     frame_node,
     code_identifier,
@@ -259,7 +394,7 @@ def getFrameGuardHeavyCode(
     context,
 ):
     # A lot of details go into the frame guard code,
-    # pylint: disable=too-many-branches,too-many-locals,too-many-statements
+    # pylint: disable=too-many-locals
 
     no_exception_exit = context.allocateLabel("frame_no_exception")
 
@@ -273,124 +408,38 @@ def getFrameGuardHeavyCode(
 
     cache_claim_identifier = _getFrameCacheClaimIdentifier(frame_identifier)
 
-    frame_init_code = ""
-    frame_exit_code = ""
-
-    # Expose the locals dictionary with the frame locals if it exists.
     if frame_node.isStatementsFrameClass():
-        attach_locals_code = getFrameAttachLocalsCode(frame_identifier)
-        module_identifier = getModuleAccessCode(context)
-        locals_dict_name = context.variable_storage.getVariableDeclarationTop(
-            frame_node.getLocalsScope().getCodeName()
+        (
+            attach_locals_code,
+            frame_init_code,
+            frame_exit_code,
+            make_frame_code,
+        ) = _getFrameGuardHeavyClassCode(
+            frame_node=frame_node,
+            code_identifier=code_identifier,
+            frame_identifier=frame_identifier,
+            context=context,
         )
-        use_locals_dict = locals_dict_name in context.getLocalsDictNames()
-
-        make_frame_code = (
-            """MAKE_CLASS_FRAME(tstate, %(code_identifier)s, %(module_identifier)s, NULL, 0, NULL)"""
-            % {
-                "code_identifier": code_identifier,
-                "module_identifier": module_identifier,
-            }
-        )
-
-        if use_locals_dict:
-            frame_init_code = """\
-Nuitka_Frame_AssignLocals(%(frame_identifier)s, %(locals_dict)s);
-""" % {
-                "frame_identifier": frame_identifier,
-                "locals_dict": locals_dict_name,
-            }
-        elif python_version < 0x300:
-            frame_init_code = """\
-Nuitka_Frame_AssignLocals(%(frame_identifier)s, %(module_identifier)s);
-""" % {
-                "frame_identifier": frame_identifier,
-                "module_identifier": module_identifier,
-            }
-
-        if use_locals_dict or python_version < 0x300:
-            frame_exit_code = """\
-Nuitka_Frame_ClearLocals(%(frame_identifier)s);
-""" % {
-                "frame_identifier": frame_identifier,
-            }
     elif frame_node.isStatementsFrameFunction():
-        if context.variable_storage.makeCStructLevelDeclarations():
-            indicators = _getFrameVariableIndicators(context)
-
-            # The runtime walkers use the code object's co_nlocals as the
-            # description length, so they must agree at build time already.
-            assert len(indicators) == len(frame_node.getCodeObject().getVarNames())
-
-            # A struct with only outline variables has no frame variables and
-            # would produce an empty type description, which is invalid C.
-            assert indicators, (
-                "empty type description",
-                frame_node,
-                context.getOwner(),
-                context.variable_storage.makeCStructLevelDeclarations(),
-            )
-
-            locals_size = "sizeof(%s)" % context.variable_storage.struct_name
-            type_description_name = context.getTypeDescriptionCode("".join(indicators))
-
-            if isExperimental("force-locals-frame-proxy"):
-                if python_version >= 0x3D0:
-                    # Singleton, pylint: disable=global-statement
-                    global _frame_locals_proxy_used
-                    _frame_locals_proxy_used = True
-
-                attach_locals_code = getFrameAttachLocalsCode(frame_identifier)
-                # A cached frame can have been cleared in the meantime, e.g.
-                # by "frame.clear()", which resets the type description and
-                # writability, so publish them again, not only the pointer
-                # to the stack struct.
-                frame_init_code = """\
-%(frame_identifier)s->m_type_description = %(type_description)s;
-%(frame_identifier)s->m_locals_writable = 1;
-%(frame_identifier)s->m_locals_ptr = &%(struct_name)s;""" % {
-                    "frame_identifier": frame_identifier,
-                    "type_description": type_description_name,
-                    "struct_name": context.variable_storage.struct_name,
-                }
-                # On normal exit the frame is cached and nobody reads the stack
-                # struct anymore; on the exception path the attach above has
-                # already copied the values into the frame heap buffer.
-                frame_exit_code = "%s->m_locals_ptr = NULL;" % frame_identifier
-                frame_type_description = type_description_name
-            else:
-                # Same struct, but its address is not published on the normal
-                # path, so the C compiler can keep the locals in registers. At
-                # the exception exit the struct is copied by value, which is
-                # not an address escape either.
-                attach_locals_code = getFrameAttachLocalsCopyCode(
-                    context, frame_identifier, type_description_name
-                )
-                frame_init_code = ""
-                frame_exit_code = ""
-                frame_type_description = "NULL"
-        else:
-            attach_locals_code = ""
-            frame_init_code = ""
-            frame_exit_code = ""
-            frame_type_description = "NULL"
-            locals_size = "0"
-
-        make_frame_code = """MAKE_FUNCTION_FRAME(tstate, %(code_identifier)s, %(module_identifier)s, %(locals_size)s, \
-%(type_description)s)""" % {
-            "code_identifier": code_identifier,
-            "module_identifier": getModuleAccessCode(context),
-            "locals_size": locals_size,
-            "type_description": frame_type_description,
-        }
+        (
+            attach_locals_code,
+            frame_init_code,
+            frame_exit_code,
+            make_frame_code,
+        ) = _getFrameGuardHeavyFunctionCode(
+            frame_node=frame_node,
+            code_identifier=code_identifier,
+            frame_identifier=frame_identifier,
+            context=context,
+        )
     elif frame_node.isStatementsFrameModule():
-        attach_locals_code = ""
-        make_frame_code = (
-            """MAKE_MODULE_FRAME(%(code_identifier)s, %(module_identifier)s)"""
-            % {
-                "code_identifier": code_identifier,
-                "module_identifier": getModuleAccessCode(context),
-            }
+        (
+            attach_locals_code,
+            frame_init_code,
+            frame_exit_code,
+            make_frame_code,
+        ) = _getFrameGuardHeavyModuleCode(
+            code_identifier=code_identifier, context=context
         )
     else:
         assert False, frame_node

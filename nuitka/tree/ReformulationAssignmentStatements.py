@@ -79,6 +79,7 @@ from nuitka.nodes.VariableRefNodes import (
     ExpressionVariableRef,
 )
 from nuitka.options.Options import isExperimental
+from nuitka.plugins.Hooks import decideNeedsFrameLocalsProxy
 from nuitka.PythonVersions import python_version
 from nuitka.specs.ParameterSpecs import ParameterSpec
 
@@ -1395,6 +1396,10 @@ def _makeDeferredEvaluationFunction(
                 statements=(StatementReturn(create_expression(body), source_ref),),
                 code_object=code_object,
                 owner_code_name=body.getCodeName(),
+                needs_frame_locals=decideNeedsFrameLocalsProxy(
+                    module_name=parent_module.getFullName(),
+                    code_qualname=code_object.getCodeObjectQualname(),
+                ),
                 source_ref=source_ref,
             )
         )

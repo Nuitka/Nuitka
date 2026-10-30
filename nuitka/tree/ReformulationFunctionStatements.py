@@ -78,6 +78,7 @@ from nuitka.nodes.VariableRefNodes import (
 )
 from nuitka.options.Options import isExperimental
 from nuitka.plugins.Hooks import (
+    decideNeedsFrameLocalsProxy,
     getUncompiledDecoratorNames,
     onFunctionBodyParsing,
 )
@@ -773,6 +774,10 @@ def makeDeferredAnnotateFunctionBody(provider, source_ref):
         statements=(body,),
         code_object=code_object,
         owner_code_name=outer_body.getCodeName(),
+        needs_frame_locals=decideNeedsFrameLocalsProxy(
+            module_name=outer_body.getParentModule().getFullName(),
+            code_qualname=code_object.getCodeObjectQualname(),
+        ),
         source_ref=source_ref,
     )
 

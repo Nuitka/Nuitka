@@ -681,6 +681,7 @@ class StatementAssignmentVariableConstantMutable(
             if (
                 variable.isModuleVariable()
                 or variable.owner.locals_scope.isUnoptimizedFunctionScope()
+                or trace_collection.needsFrameLocalsProxy()
             ):
                 # TODO: We do not trust these yet a lot, but more might be
                 pass
@@ -770,6 +771,7 @@ class StatementAssignmentVariableConstantImmutable(
             if (
                 variable.isModuleVariable()
                 or variable.owner.locals_scope.isUnoptimizedFunctionScope()
+                or trace_collection.needsFrameLocalsProxy()
             ):
                 # TODO: We do not trust these yet a lot, but more might be
                 pass

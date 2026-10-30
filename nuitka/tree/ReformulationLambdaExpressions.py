@@ -28,6 +28,7 @@ from nuitka.nodes.StatementNodes import StatementExpressionOnly
 from nuitka.nodes.VariableAssignNodes import makeStatementAssignmentVariable
 from nuitka.nodes.VariableRefNodes import ExpressionTempVariableRef
 from nuitka.nodes.YieldNodes import ExpressionYield
+from nuitka.plugins.Hooks import decideNeedsFrameLocalsProxy
 from nuitka.PythonVersions import python_version
 
 from .ReformulationFunctionStatements import (
@@ -145,10 +146,16 @@ def buildLambdaNode(provider, node, source_ref):
     else:
         frame_class = StatementsFrameFunction
 
+    needs_frame_locals_proxy = decideNeedsFrameLocalsProxy(
+        module_name=provider.getParentModule().getFullName(),
+        code_qualname=code_object.getCodeObjectQualname(),
+    )
+
     body = frame_class(
         statements=mergeStatements((body,)),
         code_object=code_object,
         owner_code_name=code_body.getCodeName(),
+        needs_frame_locals=needs_frame_locals_proxy,
         source_ref=body.getSourceReference(),
     )
 

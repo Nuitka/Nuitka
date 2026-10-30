@@ -44,20 +44,51 @@ class StatementsFrameBase(StatementsSequenceMixin, StatementsSequenceBase):
     code_object_class = CodeObjectSpec
     code_object_detail_names = ()
 
-    __slots__ = ("code_object", "owner_code_name", "needs_frame_exception_preserve")
+    __slots__ = (
+        "code_object",
+        "owner_code_name",
+        "needs_frame_exception_preserve",
+        "needs_frame_locals",
+        "needs_proxy",
+    )
 
     named_children = ("statements|tuple+setter",)
 
-    def __init__(self, statements, code_object, owner_code_name, source_ref):
+    def __init__(
+        self,
+        statements,
+        code_object,
+        owner_code_name,
+        needs_frame_locals,
+        source_ref,
+    ):
         StatementsSequenceBase.__init__(
             self, statements=statements, source_ref=source_ref
         )
 
         self.code_object = code_object
-
         self.owner_code_name = owner_code_name
+        self.needs_frame_locals = needs_frame_locals
 
         self.needs_frame_exception_preserve = False
+
+        self.needs_proxy = needs_frame_locals and python_version >= 0x3D0
+
+    def needsFrameLocals(self):
+        """Whether the frame needs observable local variables.
+
+        Returns:
+            bool
+        """
+        return self.needs_frame_locals
+
+    def needsFrameLocalsProxy(self):
+        """Whether the frame needs a frame locals proxy.
+
+        Returns:
+            bool
+        """
+        return self.needs_proxy
 
     @staticmethod
     def isStatementsFrame():
@@ -68,15 +99,18 @@ class StatementsFrameBase(StatementsSequenceMixin, StatementsSequenceBase):
         return True
 
     def getDetails(self):
-        result = {"code_object": self.code_object}
+        result = {
+            "code_object": self.code_object,
+            "needs_frame_locals": self.needs_frame_locals,
+        }
 
         result.update(StatementsSequenceBase.getDetails(self))
 
         return result
 
     def getDetailsForDisplay(self):
-        result = StatementsSequenceBase.getDetails(self)
-        result.update()
+        result = self.getDetails()
+        del result["code_object"]
 
         result.update(self.code_object.getDetails())
 
@@ -185,6 +219,9 @@ class StatementsFrameBase(StatementsSequenceMixin, StatementsSequenceBase):
 
         change_epoch = trace_collection.getChangeEpoch()
 
+        previous_needs_proxy = trace_collection.needsFrameLocalsProxy()
+        trace_collection.setNeedsFrameLocalsProxy(self.needsFrameLocals())
+
         for count, statement in enumerate(statements):
             # May be frames embedded.
             if statement.isStatementsFrame():
@@ -214,6 +251,16 @@ class StatementsFrameBase(StatementsSequenceMixin, StatementsSequenceBase):
                         s.finalize()
 
                     break
+
+        if self.needsFrameLocals():
+            locals_scope = self.getParentVariableProvider().getLocalsScope()
+            assert locals_scope is not None
+
+            # Keep the locals in the locals scope, so they remain
+            # materialized for frame introspection.
+            trace_collection.onLocalsUsage(locals_scope)
+
+        trace_collection.setNeedsFrameLocalsProxy(previous_needs_proxy)
 
         if not new_statements:
             trace_collection.signalChange(
@@ -312,8 +359,15 @@ class StatementsFrameModule(StatementsFrameBase):
             statements=statements,
             code_object=code_object,
             owner_code_name=owner_code_name,
+            needs_frame_locals=False,
             source_ref=source_ref,
         )
+
+    def getDetails(self):
+        result = StatementsFrameBase.getDetails(self)
+        del result["needs_frame_locals"]
+
+        return result
 
     @staticmethod
     def hasStructureMember():
@@ -323,12 +377,20 @@ class StatementsFrameModule(StatementsFrameBase):
 class StatementsFrameFunction(StatementsFrameBase):
     kind = "STATEMENTS_FRAME_FUNCTION"
 
-    def __init__(self, statements, code_object, owner_code_name, source_ref):
+    def __init__(
+        self,
+        statements,
+        code_object,
+        owner_code_name,
+        needs_frame_locals,
+        source_ref,
+    ):
         StatementsFrameBase.__init__(
             self,
             statements=statements,
             code_object=code_object,
             owner_code_name=owner_code_name,
+            needs_frame_locals=needs_frame_locals,
             source_ref=source_ref,
         )
 
@@ -346,13 +408,20 @@ class StatementsFrameClass(StatementsFrameBase):
     __slots__ = ("locals_scope",)
 
     def __init__(
-        self, statements, code_object, owner_code_name, locals_scope, source_ref
+        self,
+        statements,
+        code_object,
+        owner_code_name,
+        locals_scope,
+        needs_frame_locals,
+        source_ref,
     ):
         StatementsFrameBase.__init__(
             self,
             statements=statements,
             code_object=code_object,
             owner_code_name=owner_code_name,
+            needs_frame_locals=needs_frame_locals,
             source_ref=source_ref,
         )
 
@@ -367,12 +436,20 @@ class StatementsFrameClass(StatementsFrameBase):
 
 
 class StatementsFrameGeneratorBase(StatementsFrameBase):
-    def __init__(self, statements, code_object, owner_code_name, source_ref):
+    def __init__(
+        self,
+        statements,
+        code_object,
+        owner_code_name,
+        needs_frame_locals,
+        source_ref,
+    ):
         StatementsFrameBase.__init__(
             self,
             statements=statements,
             code_object=code_object,
             owner_code_name=owner_code_name,
+            needs_frame_locals=needs_frame_locals,
             source_ref=source_ref,
         )
 
