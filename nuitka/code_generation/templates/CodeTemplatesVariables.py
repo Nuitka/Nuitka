@@ -291,7 +291,9 @@ if (%(test_code)s) {
 
 template_module_variable_accessor_function = """\
 static PyObject *%(accessor_function_name)s(PyThreadState *tstate) {
-#if %(caching)s
+// The static cache variables are not safe to update from multiple threads
+// without the GIL, as another thread can observe them out of order.
+#if %(caching)s && !defined(Py_GIL_DISABLED)
     PyObject *result;
 
 #if PYTHON_VERSION < 0x3b0
