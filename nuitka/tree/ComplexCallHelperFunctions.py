@@ -306,10 +306,24 @@ def getCallableNameDescBody():
     return result
 
 
-def makeStarListArgumentErrorRaise(called_variable, star_list_variable):
-    error_template = getComplexCallSequenceErrorTemplate()
+def makeStarListArgumentErrorRaise(
+    called_variable, star_list_variable, use_generic_error
+):
+    if use_generic_error:
+        assert python_version >= 0x390
 
-    if python_version >= 0x3F0:
+        error_template = "Value after * must be an iterable, not %s"
+
+        error_arg = _makeNameAttributeLookup(
+            ExpressionBuiltinType1(
+                value=ExpressionVariableRef(
+                    variable=star_list_variable, source_ref=internal_source_ref
+                ),
+                source_ref=internal_source_ref,
+            )
+        )
+    elif python_version >= 0x3F0:
+        error_template = getComplexCallSequenceErrorTemplate()
         assert error_template.count("%s") == 1
 
         error_arg = _makeNameAttributeLookup(
@@ -321,6 +335,7 @@ def makeStarListArgumentErrorRaise(called_variable, star_list_variable):
             )
         )
     else:
+        error_template = getComplexCallSequenceErrorTemplate()
         assert error_template.count("%s") == 2
 
         error_arg = makeExpressionMakeTuple(
@@ -382,7 +397,9 @@ def makeStarListArgumentErrorRaise(called_variable, star_list_variable):
     )
 
 
-def _makeStarListArgumentToTupleStatement(called_variable, star_list_variable):
+def _makeStarListArgumentToTupleStatement(
+    called_variable, star_list_variable, use_generic_error
+):
     if python_version >= 0x350:
         non_tuple_code = makeStatementConditional(
             condition=ExpressionConditionalOr(
@@ -413,7 +430,9 @@ def _makeStarListArgumentToTupleStatement(called_variable, star_list_variable):
                 source_ref=internal_source_ref,
             ),
             no_branch=makeStarListArgumentErrorRaise(
-                called_variable=called_variable, star_list_variable=star_list_variable
+                called_variable=called_variable,
+                star_list_variable=star_list_variable,
+                use_generic_error=use_generic_error,
             ),
             source_ref=internal_source_ref,
         )
@@ -431,7 +450,9 @@ def _makeStarListArgumentToTupleStatement(called_variable, star_list_variable):
             ),
             exception_name="TypeError",
             handler_body=makeStarListArgumentErrorRaise(
-                called_variable=called_variable, star_list_variable=star_list_variable
+                called_variable=called_variable,
+                star_list_variable=star_list_variable,
+                use_generic_error=use_generic_error,
             ),
             source_ref=internal_source_ref,
         )
@@ -1065,7 +1086,9 @@ def getFunctionCallHelperStarList():
 
     body = makeStatementsSequenceFromStatements(
         _makeStarListArgumentToTupleStatement(
-            called_variable=called_variable, star_list_variable=star_arg_list_variable
+            called_variable=called_variable,
+            star_list_variable=star_arg_list_variable,
+            use_generic_error=False,
         ),
         StatementReturn(
             expression=makeExpressionCall(
@@ -1132,7 +1155,9 @@ def getFunctionCallHelperKeywordsStarList():
 
     body = makeStatementsSequenceFromStatements(
         _makeStarListArgumentToTupleStatement(
-            called_variable=called_variable, star_list_variable=star_arg_list_variable
+            called_variable=called_variable,
+            star_list_variable=star_arg_list_variable,
+            use_generic_error=False,
         ),
         StatementReturn(
             expression=makeExpressionCall(
@@ -1201,7 +1226,9 @@ def getFunctionCallHelperPosStarList():
 
     body = makeStatementsSequenceFromStatements(
         _makeStarListArgumentToTupleStatement(
-            called_variable=called_variable, star_list_variable=star_arg_list_variable
+            called_variable=called_variable,
+            star_list_variable=star_arg_list_variable,
+            use_generic_error=python_version >= 0x390,
         ),
         StatementReturn(
             expression=makeExpressionCall(
@@ -1276,7 +1303,9 @@ def getFunctionCallHelperPosKeywordsStarList():
 
     body = makeStatementsSequenceFromStatements(
         _makeStarListArgumentToTupleStatement(
-            called_variable=called_variable, star_list_variable=star_arg_list_variable
+            called_variable=called_variable,
+            star_list_variable=star_arg_list_variable,
+            use_generic_error=python_version >= 0x390,
         ),
         StatementReturn(
             expression=makeExpressionCall(
@@ -1691,7 +1720,12 @@ def getFunctionCallHelperPosKeywordsStarDict():
 
 
 def getDoubleStarArgsConversion(
-    result, called_variable, kw_variable, star_arg_list_variable, star_arg_dict_variable
+    result,
+    called_variable,
+    kw_variable,
+    star_arg_list_variable,
+    star_arg_dict_variable,
+    use_generic_star_error,
 ):
     statements = []
 
@@ -1715,7 +1749,9 @@ def getDoubleStarArgsConversion(
 
     statements.append(
         _makeStarListArgumentToTupleStatement(
-            called_variable=called_variable, star_list_variable=star_arg_list_variable
+            called_variable=called_variable,
+            star_list_variable=star_arg_list_variable,
+            use_generic_error=use_generic_star_error,
         )
     )
 
@@ -1757,6 +1793,7 @@ def getFunctionCallHelperStarListStarDict():
         star_arg_list_variable=star_arg_list_variable,
         kw_variable=None,
         star_arg_dict_variable=star_arg_dict_variable,
+        use_generic_star_error=False,
     )
 
     statements.append(
@@ -1821,6 +1858,7 @@ def getFunctionCallHelperPosStarListStarDict():
         star_arg_list_variable=star_arg_list_variable,
         kw_variable=None,
         star_arg_dict_variable=star_arg_dict_variable,
+        use_generic_star_error=python_version >= 0x390,
     )
 
     if python_version >= 0x360:
@@ -1895,6 +1933,7 @@ def getFunctionCallHelperKeywordsStarListStarDict():
         star_arg_list_variable=star_arg_list_variable,
         kw_variable=kw_variable,
         star_arg_dict_variable=star_arg_dict_variable,
+        use_generic_star_error=False,
     )
 
     statements.append(
@@ -1963,6 +2002,7 @@ def getFunctionCallHelperPosKeywordsStarListStarDict():
         star_arg_list_variable=star_arg_list_variable,
         kw_variable=kw_variable,
         star_arg_dict_variable=star_arg_dict_variable,
+        use_generic_star_error=python_version >= 0x390,
     )
 
     if python_version >= 0x360:
@@ -2040,20 +2080,6 @@ def getFunctionCallHelperDictionaryUnpacking():
 
     update_body = (
         makeStatementConditional(
-            condition=ExpressionBuiltinIsinstance(
-                instance=ExpressionTempVariableRef(
-                    variable=tmp_key_variable, source_ref=internal_source_ref
-                ),
-                classes=makeExpressionBuiltinTypeRef(
-                    builtin_name="str", source_ref=internal_source_ref
-                ),
-                source_ref=internal_source_ref,
-            ),
-            yes_branch=None,
-            no_branch=_makeRaiseNoStringItem(called_variable=called_variable),
-            source_ref=internal_source_ref,
-        ),
-        makeStatementConditional(
             condition=ExpressionComparisonIn(
                 left=ExpressionTempVariableRef(
                     variable=tmp_key_variable, source_ref=internal_source_ref
@@ -2089,6 +2115,26 @@ def getFunctionCallHelperDictionaryUnpacking():
         ),
     )
 
+    if python_version < 0x390:
+        # Before Python 3.9, non-string keys are rejected during merging,
+        # before a duplicate of them can be detected.
+        update_body = (
+            makeStatementConditional(
+                condition=ExpressionBuiltinIsinstance(
+                    instance=ExpressionTempVariableRef(
+                        variable=tmp_key_variable, source_ref=internal_source_ref
+                    ),
+                    classes=makeExpressionBuiltinTypeRef(
+                        builtin_name="str", source_ref=internal_source_ref
+                    ),
+                    source_ref=internal_source_ref,
+                ),
+                yes_branch=None,
+                no_branch=_makeRaiseNoStringItem(called_variable=called_variable),
+                source_ref=internal_source_ref,
+            ),
+        ) + update_body
+
     loop_body = (
         makeTryExceptSingleHandlerNode(
             tried=makeStatementsSequenceFromStatements(
@@ -2123,6 +2169,47 @@ def getFunctionCallHelperDictionaryUnpacking():
         ),
     )
 
+    if python_version >= 0x390:
+        # CPython only validates keyword names after all mappings have been
+        # merged, so duplicates take precedence over this error.
+        string_check_statements = (
+            makeStatementAssignmentVariable(
+                variable=tmp_iter_variable,
+                source=ExpressionBuiltinIter1(
+                    value=ExpressionTempVariableRef(
+                        variable=tmp_result_variable, source_ref=internal_source_ref
+                    ),
+                    source_ref=internal_source_ref,
+                ),
+                source_ref=internal_source_ref,
+            ),
+            _makeIteratingLoopStatement(
+                tmp_iter_variable=tmp_iter_variable,
+                tmp_item_variable=tmp_key_variable,
+                statements=(
+                    makeStatementConditional(
+                        condition=ExpressionBuiltinIsinstance(
+                            instance=ExpressionTempVariableRef(
+                                variable=tmp_key_variable,
+                                source_ref=internal_source_ref,
+                            ),
+                            classes=makeExpressionBuiltinTypeRef(
+                                builtin_name="str", source_ref=internal_source_ref
+                            ),
+                            source_ref=internal_source_ref,
+                        ),
+                        yes_branch=None,
+                        no_branch=_makeRaiseNoStringItem(
+                            called_variable=called_variable
+                        ),
+                        source_ref=internal_source_ref,
+                    ),
+                ),
+            ),
+        )
+    else:
+        string_check_statements = ()
+
     tried = makeStatementsSequenceFromStatements(
         makeStatementAssignmentVariable(
             variable=tmp_iter_variable,
@@ -2144,6 +2231,7 @@ def getFunctionCallHelperDictionaryUnpacking():
             tmp_item_variable=tmp_item_variable,
             statements=loop_body,
         ),
+        string_check_statements,
         StatementReturn(
             expression=ExpressionTempVariableRef(
                 variable=tmp_result_variable, source_ref=internal_source_ref

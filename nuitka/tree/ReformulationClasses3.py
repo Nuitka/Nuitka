@@ -15,7 +15,10 @@ from nuitka.nodes.AttributeNodes import (
 )
 from nuitka.nodes.BuiltinIteratorNodes import ExpressionBuiltinIter1
 from nuitka.nodes.BuiltinNextNodes import ExpressionBuiltinNext1
-from nuitka.nodes.BuiltinRefNodes import makeExpressionBuiltinTypeRef
+from nuitka.nodes.BuiltinRefNodes import (
+    ExpressionBuiltinRef,
+    makeExpressionBuiltinTypeRef,
+)
 from nuitka.nodes.BuiltinTypeNodes import ExpressionBuiltinTuple
 from nuitka.nodes.CallNodes import makeExpressionCall
 from nuitka.nodes.ClassNodes import (
@@ -107,13 +110,19 @@ from nuitka.PythonVersions import python_version
 from nuitka.specs.ParameterSpecs import ParameterSpec
 from nuitka.States import states
 
+from .ComplexCallHelperFunctions import (
+    getFunctionCallHelperDictionaryUnpacking,
+)
 from .FutureSpecState import getFutureSpec
 from .InternalModule import (
     internal_source_ref,
     makeInternalHelperFunctionBody,
     once_decorator,
 )
-from .ReformulationDictionaryCreation import buildDictionaryUnpacking
+from .ReformulationDictionaryCreation import (
+    buildDictionaryUnpacking,
+    buildDictionaryUnpackingArgs,
+)
 from .ReformulationFunctionStatements import (
     makeDeferredAnnotateFunctionBody,
     makeDeferredAnnotationsReturnExpression,
@@ -158,6 +167,43 @@ def _buildBasesTupleCreationNode(provider, elements, source_ref):
 
 def _needsOrigBases(_static_qualname):
     return python_version >= 0x370
+
+
+def _makeClassKeywordsDict(provider, keys, values, source_ref):
+    """Create class keywords dict with call argument semantics.
+
+    Notes:
+        Class keywords are merged like call keyword arguments, so duplicate
+        keywords and non-mapping values after '**' have to be reported with
+        the '__build_class__' name.
+    """
+
+    return makeExpressionFunctionCall(
+        function=makeExpressionFunctionCreation(
+            function_ref=ExpressionFunctionRef(
+                function_body=getFunctionCallHelperDictionaryUnpacking(),
+                source_ref=source_ref,
+            ),
+            defaults=(),
+            kw_defaults=None,
+            annotations=None,
+            type_params=None,
+            source_ref=source_ref,
+        ),
+        values=(
+            ExpressionBuiltinRef(builtin_name="__build_class__", source_ref=source_ref),
+            makeExpressionMakeTuple(
+                elements=buildDictionaryUnpackingArgs(
+                    provider=provider,
+                    keys=keys,
+                    values=values,
+                    source_ref=source_ref,
+                ),
+                source_ref=source_ref,
+            ),
+        ),
+        source_ref=source_ref,
+    )
 
 
 def makeExpressionClassPrepareCall(
@@ -717,12 +763,22 @@ def buildClassNode3(provider, node, source_ref):
     if None in keyword_keys:
         assert python_version >= 0x350
 
-        make_keywords_dict = buildDictionaryUnpacking(
-            provider,
-            keys=keyword_keys,
-            values=keyword_values,
-            source_ref=source_ref,
-        )
+        # Only full compat mode needs the exact call argument errors, normal
+        # mode can use the cheaper dictionary unpacking.
+        if states.is_full_compat:
+            make_keywords_dict = _makeClassKeywordsDict(
+                provider=provider,
+                keys=keyword_keys,
+                values=keyword_values,
+                source_ref=source_ref,
+            )
+        else:
+            make_keywords_dict = buildDictionaryUnpacking(
+                provider,
+                keys=keyword_keys,
+                values=keyword_values,
+                source_ref=source_ref,
+            )
     else:
         make_keywords_dict = makeDictCreationOrConstant2(
             keys=keyword_keys,
