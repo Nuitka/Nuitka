@@ -273,12 +273,35 @@
         'IPython': 'ignore'
       when: 'not use_ipython'
 
-- module-name: 'astropy.constants.config' # checksum: 71da0564
+- module-name: 'astropy.constants.config' # checksum: 8a82de91
   implicit-imports:
     - depends:
-        # TODO: These should probably be compile time computed
-        - 'astropy.constants.codata2018'
-        - 'astropy.constants.iau2015'
+        - 'astropy.constants.codata*'
+        - 'astropy.constants.iau*'
+
+- module-name: 'astropy.coordinates' # checksum: d825bc3d
+  implicit-imports:
+    - depends:
+        - 'astropy.coordinates.*_lextab'
+        - 'astropy.coordinates.*_parsetab'
+
+- module-name: 'astropy.coordinates.angle_formats' # checksum: 919d1850
+  anti-bloat:
+    - description: 'enable frame locals proxy for PLY parser construction'
+      frame_locals:
+        - '_AngleParser._make_parser'
+
+- module-name: 'astropy.coordinates.angles' # checksum: 53fa35d3
+  implicit-imports:
+    - depends:
+        - 'astropy.coordinates.angles.*_lextab'
+        - 'astropy.coordinates.angles.*_parsetab'
+
+- module-name: 'astropy.coordinates.angles.formats' # checksum: 919d1850
+  anti-bloat:
+    - description: 'enable frame locals proxy for PLY parser construction'
+      frame_locals:
+        - '_AngleParser._make_parser'
 
 - module-name: 'astropy.table.table' # checksum: 6fb51e0f
   anti-bloat:
@@ -287,6 +310,20 @@
         # This pulls in pandas potentially too.
         'show_in_notebook': 'un-callable'
       when: 'not use_ipython'
+
+- module-name: 'astropy.units.format' # checksum: 2a329c0a
+  anti-bloat:
+    - description: 'enable frame locals proxy for PLY parser construction'
+      frame_locals:
+        - '*._make_parser'
+        - '*._make_lexer'
+        - '*._parser'
+        - '*._lexer'
+
+  implicit-imports:
+    - depends:
+        - 'astropy.units.format.*_lextab'
+        - 'astropy.units.format.*_parsetab'
 
 - module-name: 'astropy.utils.console' # checksum: fbf167a8
   anti-bloat:
@@ -298,12 +335,30 @@
         'from IPython.display import display': 'raise ImportError'
       when: 'not use_ipython'
 
+- module-name: 'astropy.utils.iers' # checksum: e5031c06
+  data-files:
+    - patterns:
+        - 'data/*'
+
+- module-name: 'astropy.utils.parsing' # checksum: ecc8e290
+  anti-bloat:
+    - description: 'avoid writing generated parser tables in compiled binaries'
+      replacements_plain:
+        'if not lextab_exists:': 'if False:'
+        'if not tab_exists:': 'if False:'
+        'if not file_exists:': 'if False:'
+
 - module-name: 'astropy.visualization.wcsaxes' # checksum: efd86e9d
   anti-bloat:
     - description: 'remove pytest reference'
       replacements_plain:
         'import pytest': 'raise ImportError'
       when: 'not use_pytest'
+
+- module-name: 'astropy_iers_data' # checksum: e5031c06
+  data-files:
+    - patterns:
+        - 'data/*'
 
 - module-name: 'asyncpg.pgproto.pgproto' # checksum: dadd25bf
   implicit-imports:
