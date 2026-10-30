@@ -735,11 +735,24 @@ def getTotalReferenceCount():
     elif hasattr(sys, "_clear_type_cache"):
         sys._clear_type_cache()
 
-    if _debug_python:
-        gc.collect()
+    gc.collect()
+
+    # Free-threaded builds use deferred reference counting and stack
+    # references, which makes the total reference count unreliable, e.g.
+    # CPython 3.13.0 free-threaded reports phantom leaks, so use the object
+    # based count there as well. Python 3.14 free-threaded builds have a
+    # reliable total reference count again, and only that can detect leaked
+    # references to objects that the GC does not track, e.g. strings.
+    if _debug_python and (
+        getattr(sys.flags, "gil", True) or sys.version_info >= (3, 14)
+    ):
         return sys.gettotalrefcount()
     else:
-        gc.collect()
+        # A single collection does not settle the deferred reference counts of
+        # free-threaded builds, and even CPython then reports phantom leaks for
+        # things like class creation, so collect the young generation again.
+        gc.collect(0)
+
         all_objects = gc.get_objects()
 
         # Sum object reference twice, once without the sum value type, then switch
