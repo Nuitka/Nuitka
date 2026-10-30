@@ -173,6 +173,7 @@ static inline void split_keys_entry_added(PyDictKeysObject *keys) {
 #endif
 
 Py_ssize_t Nuitka_Py_dict_lookup_threadsafe(PyDictObject *mp, PyObject *key, Py_hash_t hash, PyObject **value_addr);
+Py_ssize_t Nuitka_PyDictLookup(PyDictObject *mp, PyObject *key, Py_hash_t hash, PyObject ***value_addr);
 
 #ifdef Py_GIL_DISABLED
 static PyObject *Nuitka_Py_dict_lookup_threadsafe_borrowed(PyDictObject *mp, PyObject *key, Py_hash_t hash);
@@ -207,7 +208,7 @@ PyObject *DICT_GET_ITEM0(PyThreadState *tstate, PyObject *dict, PyObject *key) {
     }
 
     PyDictObject *dict_object = (PyDictObject *)dict;
-    PyDictEntry *entry = (dict_object->ma_lookup)(dict_object, key, hash);
+    PyDictEntry *entry = Nuitka_DictLookupLegacy(dict_object, key, hash);
 
     if (unlikely(entry == NULL || entry->me_value == NULL)) {
         return NULL;
@@ -239,7 +240,7 @@ PyObject *DICT_GET_ITEM0(PyThreadState *tstate, PyObject *dict, PyObject *key) {
 
 #if PYTHON_VERSION < 0x360
     PyObject **value_addr;
-    PyDictKeyEntry *entry = dict_object->ma_keys->dk_lookup(dict_object, key, hash, &value_addr);
+    PyDictKeyEntry *entry = Nuitka_DictLookup34(dict_object, key, hash, &value_addr);
 
     if (unlikely(entry == NULL || *value_addr == NULL)) {
         return NULL;
@@ -247,10 +248,10 @@ PyObject *DICT_GET_ITEM0(PyThreadState *tstate, PyObject *dict, PyObject *key) {
 #else
 #if PYTHON_VERSION < 0x370
     PyObject **value_addr;
-    Py_ssize_t ix = (dict_object->ma_keys->dk_lookup)(dict_object, key, hash, &value_addr, NULL);
+    Py_ssize_t ix = Nuitka_DictLookupCompact(dict_object, key, hash, &value_addr);
 #elif PYTHON_VERSION < 0x3b0
     PyObject *result;
-    Py_ssize_t ix = (dict_object->ma_keys->dk_lookup)(dict_object, key, hash, &result);
+    Py_ssize_t ix = Nuitka_DictLookupCompactResult(dict_object, key, hash, &result);
 #elif defined(Py_GIL_DISABLED)
     PyObject *result;
     Py_ssize_t ix = Nuitka_Py_dict_lookup_threadsafe(dict_object, key, hash, &result);
@@ -306,7 +307,7 @@ PyObject *DICT_GET_ITEM1(PyThreadState *tstate, PyObject *dict, PyObject *key) {
     }
 
     PyDictObject *dict_object = (PyDictObject *)dict;
-    PyDictEntry *entry = (dict_object->ma_lookup)(dict_object, key, hash);
+    PyDictEntry *entry = Nuitka_DictLookupLegacy(dict_object, key, hash);
 
     if (unlikely(entry == NULL || entry->me_value == NULL)) {
         return NULL;
@@ -328,7 +329,7 @@ PyObject *DICT_GET_ITEM1(PyThreadState *tstate, PyObject *dict, PyObject *key) {
 
 #if PYTHON_VERSION < 0x360
     PyObject **value_addr;
-    PyDictKeyEntry *entry = dict_object->ma_keys->dk_lookup(dict_object, key, hash, &value_addr);
+    PyDictKeyEntry *entry = Nuitka_DictLookup34(dict_object, key, hash, &value_addr);
 
     if (unlikely(entry == NULL || *value_addr == NULL)) {
         return NULL;
@@ -336,10 +337,10 @@ PyObject *DICT_GET_ITEM1(PyThreadState *tstate, PyObject *dict, PyObject *key) {
 #else
 #if PYTHON_VERSION < 0x370
     PyObject **value_addr;
-    Py_ssize_t ix = (dict_object->ma_keys->dk_lookup)(dict_object, key, hash, &value_addr, NULL);
+    Py_ssize_t ix = Nuitka_DictLookupCompact(dict_object, key, hash, &value_addr);
 #elif PYTHON_VERSION < 0x3b0
     PyObject *result;
-    Py_ssize_t ix = (dict_object->ma_keys->dk_lookup)(dict_object, key, hash, &result);
+    Py_ssize_t ix = Nuitka_DictLookupCompactResult(dict_object, key, hash, &result);
 #elif defined(Py_GIL_DISABLED)
     PyObject *result;
     Py_ssize_t ix = Nuitka_Py_dict_lookup_threadsafe(dict_object, key, hash, &result);
@@ -434,7 +435,7 @@ PyObject *DICT_GET_ITEM_WITH_ERROR(PyThreadState *tstate, PyObject *dict, PyObje
     }
 
     PyDictObject *dict_object = (PyDictObject *)dict;
-    PyDictEntry *entry = (dict_object->ma_lookup)(dict_object, key, hash);
+    PyDictEntry *entry = Nuitka_DictLookupLegacy(dict_object, key, hash);
 
     if (unlikely(entry == NULL || entry->me_value == NULL)) {
         SET_CURRENT_EXCEPTION_KEY_ERROR(tstate, key);
@@ -457,7 +458,7 @@ PyObject *DICT_GET_ITEM_WITH_ERROR(PyThreadState *tstate, PyObject *dict, PyObje
 
 #if PYTHON_VERSION < 0x360
     PyObject **value_addr;
-    PyDictKeyEntry *entry = dict_object->ma_keys->dk_lookup(dict_object, key, hash, &value_addr);
+    PyDictKeyEntry *entry = Nuitka_DictLookup34(dict_object, key, hash, &value_addr);
 
     if (unlikely(entry == NULL || *value_addr == NULL)) {
         if (unlikely(HAS_ERROR_OCCURRED(tstate))) {
@@ -471,10 +472,10 @@ PyObject *DICT_GET_ITEM_WITH_ERROR(PyThreadState *tstate, PyObject *dict, PyObje
 #else
 #if PYTHON_VERSION < 0x370
     PyObject **value_addr;
-    Py_ssize_t ix = (dict_object->ma_keys->dk_lookup)(dict_object, key, hash, &value_addr, NULL);
+    Py_ssize_t ix = Nuitka_DictLookupCompact(dict_object, key, hash, &value_addr);
 #elif PYTHON_VERSION < 0x3b0
     PyObject *result;
-    Py_ssize_t ix = (dict_object->ma_keys->dk_lookup)(dict_object, key, hash, &result);
+    Py_ssize_t ix = Nuitka_DictLookupCompactResult(dict_object, key, hash, &result);
 #elif defined(Py_GIL_DISABLED)
     PyObject *result;
     Py_ssize_t ix = Nuitka_Py_dict_lookup_threadsafe(dict_object, key, hash, &result);
@@ -549,7 +550,7 @@ PyObject *DICT_GET_ITEM_WITH_HASH_ERROR1(PyThreadState *tstate, PyObject *dict, 
     }
 
     PyDictObject *dict_object = (PyDictObject *)dict;
-    PyDictEntry *entry = (dict_object->ma_lookup)(dict_object, key, hash);
+    PyDictEntry *entry = Nuitka_DictLookupLegacy(dict_object, key, hash);
 
     if (unlikely(entry == NULL || entry->me_value == NULL)) {
         return NULL;
@@ -570,7 +571,7 @@ PyObject *DICT_GET_ITEM_WITH_HASH_ERROR1(PyThreadState *tstate, PyObject *dict, 
 
 #if PYTHON_VERSION < 0x360
     PyObject **value_addr;
-    PyDictKeyEntry *entry = dict_object->ma_keys->dk_lookup(dict_object, key, hash, &value_addr);
+    PyDictKeyEntry *entry = Nuitka_DictLookup34(dict_object, key, hash, &value_addr);
 
     if (unlikely(entry == NULL || *value_addr == NULL)) {
         return NULL;
@@ -578,10 +579,10 @@ PyObject *DICT_GET_ITEM_WITH_HASH_ERROR1(PyThreadState *tstate, PyObject *dict, 
 #else
 #if PYTHON_VERSION < 0x370
     PyObject **value_addr;
-    Py_ssize_t ix = (dict_object->ma_keys->dk_lookup)(dict_object, key, hash, &value_addr, NULL);
+    Py_ssize_t ix = Nuitka_DictLookupCompact(dict_object, key, hash, &value_addr);
 #elif PYTHON_VERSION < 0x3b0
     PyObject *result;
-    Py_ssize_t ix = (dict_object->ma_keys->dk_lookup)(dict_object, key, hash, &result);
+    Py_ssize_t ix = Nuitka_DictLookupCompactResult(dict_object, key, hash, &result);
 #elif defined(Py_GIL_DISABLED)
     PyObject *result;
     Py_ssize_t ix = Nuitka_Py_dict_lookup_threadsafe(dict_object, key, hash, &result);
@@ -644,7 +645,7 @@ int DICT_HAS_ITEM(PyThreadState *tstate, PyObject *dict, PyObject *key) {
     }
 
     PyDictObject *dict_object = (PyDictObject *)dict;
-    PyDictEntry *entry = (dict_object->ma_lookup)(dict_object, key, hash);
+    PyDictEntry *entry = Nuitka_DictLookupLegacy(dict_object, key, hash);
 
     if (unlikely(entry == NULL || entry->me_value == NULL)) {
         return 0;
@@ -663,7 +664,7 @@ int DICT_HAS_ITEM(PyThreadState *tstate, PyObject *dict, PyObject *key) {
 
 #if PYTHON_VERSION < 0x360
     PyObject **value_addr;
-    PyDictKeyEntry *entry = dict_object->ma_keys->dk_lookup(dict_object, key, hash, &value_addr);
+    PyDictKeyEntry *entry = Nuitka_DictLookup34(dict_object, key, hash, &value_addr);
 
     if (unlikely(entry == NULL || *value_addr == NULL)) {
         return 0;
@@ -673,10 +674,10 @@ int DICT_HAS_ITEM(PyThreadState *tstate, PyObject *dict, PyObject *key) {
 #else
 #if PYTHON_VERSION < 0x370
     PyObject **value_addr;
-    Py_ssize_t ix = (dict_object->ma_keys->dk_lookup)(dict_object, key, hash, &value_addr, NULL);
+    Py_ssize_t ix = Nuitka_DictLookupCompact(dict_object, key, hash, &value_addr);
 #elif PYTHON_VERSION < 0x3b0
     PyObject *result;
-    Py_ssize_t ix = (dict_object->ma_keys->dk_lookup)(dict_object, key, hash, &result);
+    Py_ssize_t ix = Nuitka_DictLookupCompactResult(dict_object, key, hash, &result);
 #elif defined(Py_GIL_DISABLED)
     PyObject *result;
     Py_ssize_t ix = Nuitka_Py_dict_lookup_threadsafe(dict_object, key, hash, &result);
@@ -1980,21 +1981,11 @@ NUITKA_MAY_BE_UNUSED static bool Nuitka_DictGetHash(PyThreadState *tstate, PyObj
     return true;
 }
 
-#if _NUITKA_MAINTAIN_DICT_VERSION_TAG
-#define NUITKA_DICT_NEXT_VERSION(dict_mp) ((dict_mp)->ma_version_tag = nuitka_dict_version_tag_counter++)
-#else
-#define NUITKA_DICT_NEXT_VERSION(dict_mp)
+#if PYTHON_VERSION < 0x300
+typedef PyDictEntry *(*nuitka_dict_lookup_func)(PyDictObject *mp, PyObject *key, long hash);
 #endif
 
-#define NUITKA_DICT_MAINTAIN_TRACKING(dict_mp, key, value)                                                             \
-    do {                                                                                                               \
-        if (!_PyObject_GC_IS_TRACKED(dict_mp) &&                                                                       \
-            (_PyObject_GC_MAY_BE_TRACKED(key) || _PyObject_GC_MAY_BE_TRACKED(value))) {                                \
-            Nuitka_GC_Track(dict_mp);                                                                                  \
-        }                                                                                                              \
-    } while (0)
-
-#if PYTHON_VERSION >= 0x300 && PYTHON_VERSION < 0x3b0
+#if PYTHON_VERSION < 0x3b0
 // Get the "lookdict" function pointer that CPython uses for a dictionary with
 // non-string keys. There is no exported way to get it, so a tiny template
 // dictionary is used once. This gives compatibility with CPython internals
@@ -2012,7 +2003,11 @@ static void *Nuitka_GetGenericDictLookup(void) {
         NUITKA_MAY_BE_UNUSED int res = PyObject_SetItem(template_dict, key, Py_None);
         assert(res == 0);
 
+#if PYTHON_VERSION < 0x300
+        generic_lookup = (void *)((PyDictObject *)template_dict)->ma_lookup;
+#else
         generic_lookup = (void *)((PyDictObject *)template_dict)->ma_keys->dk_lookup;
+#endif
 
         Py_DECREF(key);
         Py_DECREF(template_dict);
@@ -2538,114 +2533,6 @@ static int Nuitka_DictInsertionResize(PyThreadState *tstate, PyDictObject *mp, b
     return Nuitka_DictResize(tstate, mp, Nuitka_DictCalculateLog2Keysize(mp->ma_used * 3), unicode);
 }
 
-#if PYTHON_VERSION < 0x3d0
-static int Nuitka_DictSetItemCompact(PyThreadState *tstate, PyDictObject *mp, PyObject *key, Py_hash_t hash,
-                                     PyObject *value) {
-    PyObject *old_value = NULL;
-
-    if (DK_IS_UNICODE(mp->ma_keys) && !PyUnicode_CheckExact(key)) {
-        if (Nuitka_DictInsertionResize(tstate, mp, false) < 0) {
-            return -1;
-        }
-
-        assert(mp->ma_keys->dk_kind == DICT_KEYS_GENERAL);
-    }
-
-    PyObject **value_addr;
-    Py_ssize_t ix = Nuitka_PyDictLookup(mp, key, hash, &value_addr);
-
-    if (unlikely(ix == DKIX_ERROR)) {
-        return -1;
-    }
-
-    if (ix >= 0) {
-        old_value = *value_addr;
-    }
-
-    NUITKA_DICT_MAINTAIN_TRACKING(mp, key, value);
-
-    if (ix == DKIX_EMPTY) {
-        assert(old_value == NULL);
-
-        if (mp->ma_keys->dk_usable <= 0) {
-            if (Nuitka_DictInsertionResize(tstate, mp, true) < 0) {
-                return -1;
-            }
-        }
-
-        mp->ma_keys->dk_version = 0;
-
-        Py_ssize_t hashpos = Nuitka_DictFindEmptySlot(mp->ma_keys, hash);
-
-        Nuitka_DictKeysSetIndex(mp->ma_keys, hashpos, mp->ma_keys->dk_nentries);
-
-        Py_INCREF(key);
-        Py_INCREF(value);
-
-        if (DK_IS_UNICODE(mp->ma_keys)) {
-            PyDictUnicodeEntry *entry = &DK_UNICODE_ENTRIES(mp->ma_keys)[mp->ma_keys->dk_nentries];
-
-            entry->me_key = key;
-
-            if (mp->ma_values == NULL) {
-                entry->me_value = value;
-            }
-        } else {
-            PyDictKeyEntry *entry = &DK_ENTRIES(mp->ma_keys)[mp->ma_keys->dk_nentries];
-
-            entry->me_key = key;
-            entry->me_hash = hash;
-
-            if (mp->ma_values == NULL) {
-                entry->me_value = value;
-            }
-        }
-
-        if (mp->ma_values != NULL) {
-            mp->ma_values->values[mp->ma_keys->dk_nentries] = value;
-        }
-
-        mp->ma_used++;
-
-        if (mp->ma_values != NULL) {
-            Nuitka_DictValuesAddToInsertionOrder(mp->ma_values, mp->ma_keys->dk_nentries);
-        }
-
-        NUITKA_DICT_NEXT_VERSION(mp);
-        mp->ma_keys->dk_usable--;
-        mp->ma_keys->dk_nentries++;
-
-        return 0;
-    }
-
-    if (old_value != value) {
-        Py_INCREF(value);
-
-        if (mp->ma_values != NULL) {
-            mp->ma_values->values[ix] = value;
-
-            if (old_value == NULL) {
-                Nuitka_DictValuesAddToInsertionOrder(mp->ma_values, ix);
-                mp->ma_used++;
-            }
-        } else {
-            assert(old_value != NULL);
-
-            if (DK_IS_UNICODE(mp->ma_keys)) {
-                DK_UNICODE_ENTRIES(mp->ma_keys)[ix].me_value = value;
-            } else {
-                DK_ENTRIES(mp->ma_keys)[ix].me_value = value;
-            }
-        }
-
-        NUITKA_DICT_NEXT_VERSION(mp);
-        Py_XDECREF(old_value);
-    }
-
-    return 0;
-}
-#endif
-
 #if PYTHON_VERSION >= 0x3d0
 static Py_ssize_t Nuitka_DictInsertSplitKey(PyDictKeysObject *keys, PyObject *key, Py_hash_t hash) {
     Py_ssize_t ix = Nuitka_Py_unicodekeys_lookup_unicode(keys, key, hash);
@@ -2669,118 +2556,6 @@ static Py_ssize_t Nuitka_DictInsertSplitKey(PyDictKeysObject *keys, PyObject *ke
     return ix;
 }
 
-static void Nuitka_DictInsertSplitValue(PyDictObject *mp, PyObject *value, Py_ssize_t ix) {
-    PyObject *old_value = mp->ma_values->values[ix];
-
-    if (old_value == NULL) {
-        mp->ma_values->values[ix] = Py_NewRef(value);
-        Nuitka_DictValuesAddToInsertionOrder(mp->ma_values, ix);
-        mp->ma_used++;
-    } else if (old_value != value) {
-        mp->ma_values->values[ix] = Py_NewRef(value);
-        Py_DECREF(old_value);
-    }
-}
-
-static int Nuitka_DictSetItem3x(PyThreadState *tstate, PyDictObject *mp, PyObject *key, Py_hash_t hash,
-                                PyObject *value) {
-    PyObject *old_value = NULL;
-    Py_ssize_t ix;
-
-    NUITKA_DICT_MAINTAIN_TRACKING(mp, key, value);
-
-    if (mp->ma_values != NULL && PyUnicode_CheckExact(key)) {
-        ix = Nuitka_DictInsertSplitKey(mp->ma_keys, key, hash);
-
-        if (ix != DKIX_EMPTY) {
-            Nuitka_DictInsertSplitValue(mp, value, ix);
-            return 0;
-        }
-    } else {
-        PyObject **value_addr;
-        ix = Nuitka_PyDictLookup(mp, key, hash, &value_addr);
-
-        if (unlikely(ix == DKIX_ERROR)) {
-            return -1;
-        }
-
-        if (ix >= 0) {
-            old_value = *value_addr;
-        }
-    }
-
-    if (old_value == NULL) {
-        if (DK_IS_UNICODE(mp->ma_keys) && !PyUnicode_CheckExact(key)) {
-            if (Nuitka_DictInsertionResize(tstate, mp, false) < 0) {
-                return -1;
-            }
-
-            assert(mp->ma_keys->dk_kind == DICT_KEYS_GENERAL);
-        } else if (mp->ma_values != NULL) {
-            if (Nuitka_DictInsertionResize(tstate, mp, true) < 0) {
-                return -1;
-            }
-        }
-
-        if (mp->ma_keys->dk_usable <= 0) {
-            if (Nuitka_DictInsertionResize(tstate, mp, true) < 0) {
-                return -1;
-            }
-        }
-
-        mp->ma_keys->dk_version = 0;
-
-        Py_ssize_t new_ix = mp->ma_keys->dk_nentries;
-        Py_ssize_t hashpos = Nuitka_DictFindEmptySlot(mp->ma_keys, hash);
-        Nuitka_DictKeysSetIndex(mp->ma_keys, hashpos, new_ix);
-
-        Py_INCREF(key);
-        Py_INCREF(value);
-
-        if (DK_IS_UNICODE(mp->ma_keys)) {
-            PyDictUnicodeEntry *entry = &DK_UNICODE_ENTRIES(mp->ma_keys)[new_ix];
-
-            entry->me_key = key;
-
-            if (mp->ma_values != NULL) {
-                mp->ma_values->values[new_ix] = value;
-                Nuitka_DictValuesAddToInsertionOrder(mp->ma_values, new_ix);
-            } else {
-                entry->me_value = value;
-            }
-        } else {
-            PyDictKeyEntry *entry = &DK_ENTRIES(mp->ma_keys)[new_ix];
-
-            entry->me_key = key;
-            entry->me_hash = hash;
-            entry->me_value = value;
-        }
-
-        mp->ma_used++;
-        NUITKA_DICT_NEXT_VERSION(mp);
-        mp->ma_keys->dk_usable--;
-        mp->ma_keys->dk_nentries++;
-
-        return 0;
-    }
-
-    if (old_value != value) {
-        Py_INCREF(value);
-
-        if (mp->ma_values != NULL) {
-            mp->ma_values->values[ix] = value;
-        } else if (DK_IS_UNICODE(mp->ma_keys)) {
-            DK_UNICODE_ENTRIES(mp->ma_keys)[ix].me_value = value;
-        } else {
-            DK_ENTRIES(mp->ma_keys)[ix].me_value = value;
-        }
-
-        NUITKA_DICT_NEXT_VERSION(mp);
-        Py_DECREF(old_value);
-    }
-
-    return 0;
-}
 #endif
 
 static int Nuitka_DictDeleteItemCompact(PyThreadState *tstate, PyDictObject *mp, PyObject *key, Py_hash_t hash) {
@@ -2838,7 +2613,9 @@ static int Nuitka_DictDeleteItemCompact(PyThreadState *tstate, PyDictObject *mp,
     return 0;
 }
 
-#elif PYTHON_VERSION >= 0x360 && !defined(Py_GIL_DISABLED)
+#endif
+
+#if PYTHON_VERSION >= 0x360 && PYTHON_VERSION < 0x3b0 && !defined(Py_GIL_DISABLED)
 
 #define NUITKA_DICT_MINSIZE 8
 
@@ -2851,6 +2628,8 @@ static int Nuitka_DictDeleteItemCompact(PyThreadState *tstate, PyDictObject *mp,
 #define DKIX_DUMMY (-2)
 #define DKIX_ERROR (-3)
 #endif
+
+#define DKIX_KEY_CHANGED (-4)
 
 #if PYTHON_VERSION < 0x370
 #define NUITKA_DICT_INDICES(keys) ((keys)->dk_indices.as_1)
@@ -3013,6 +2792,68 @@ static void Nuitka_DictKeysDecref(PyThreadState *tstate, PyDictKeysObject *keys)
     Nuitka_DictKeysFreeStruct(keys);
 }
 
+static Py_ssize_t Nuitka_DictLookupCompact(PyDictObject *mp, PyObject *key, Py_hash_t hash, PyObject ***value_addr) {
+    for (;;) {
+        PyDictKeysObject *dk = mp->ma_keys;
+        PyDictKeyEntry *entries = DK_ENTRIES(dk);
+        size_t mask = (size_t)DK_MASK(dk);
+        size_t i = (size_t)hash & mask;
+
+        for (size_t perturb = hash;;) {
+            Py_ssize_t ix = Nuitka_DictKeysGetIndex(dk, i);
+
+            if (ix == DKIX_EMPTY) {
+                *value_addr = NULL;
+                return ix;
+            }
+
+            if (ix >= 0) {
+                PyDictKeyEntry *entry = &entries[ix];
+
+                if (entry->me_key == key) {
+                    *value_addr = mp->ma_values != NULL ? &mp->ma_values[ix] : &entry->me_value;
+                    return ix;
+                }
+
+                if (entry->me_hash == hash) {
+                    PyObject *startkey = entry->me_key;
+                    Py_INCREF(startkey);
+                    nuitka_bool cmp = RICH_COMPARE_EQ_NBOOL_OBJECT_OBJECT(startkey, key);
+                    Py_DECREF(startkey);
+
+                    if (cmp == NUITKA_BOOL_EXCEPTION) {
+                        return DKIX_ERROR;
+                    }
+
+                    if (dk != mp->ma_keys) {
+                        break;
+                    }
+
+                    if (entry->me_key != startkey) {
+                        break;
+                    }
+
+                    if (cmp == NUITKA_BOOL_TRUE) {
+                        *value_addr = mp->ma_values != NULL ? &mp->ma_values[ix] : &entry->me_value;
+                        return ix;
+                    }
+                }
+            }
+
+            perturb >>= PERTURB_SHIFT;
+            i = mask & (i * 5 + perturb + 1);
+        }
+    }
+}
+
+static Py_ssize_t Nuitka_DictLookupCompactResult(PyDictObject *mp, PyObject *key, Py_hash_t hash, PyObject **result) {
+    PyObject **value_addr;
+    Py_ssize_t ix = Nuitka_DictLookupCompact(mp, key, hash, &value_addr);
+
+    *result = value_addr != NULL ? *value_addr : NULL;
+    return ix;
+}
+
 static Py_ssize_t Nuitka_DictFindEmptySlot(PyDictKeysObject *keys, Py_hash_t hash) {
     size_t mask = (size_t)DK_MASK(keys);
     size_t i = (size_t)hash & mask;
@@ -3148,119 +2989,11 @@ static int Nuitka_DictInsertionResize(PyThreadState *tstate, PyDictObject *mp) {
 #endif
 }
 
-static int Nuitka_DictSetItemCompact(PyThreadState *tstate, PyDictObject *mp, PyObject *key, Py_hash_t hash,
-                                     PyObject *value) {
-    PyObject *old_value = NULL;
-
-#if PYTHON_VERSION < 0x370
-    PyObject **value_addr = NULL;
-#endif
-
-    if (mp->ma_values != NULL && !PyUnicode_CheckExact(key)) {
-        if (Nuitka_DictInsertionResize(tstate, mp) < 0) {
-            return -1;
-        }
-    }
-
-#if PYTHON_VERSION < 0x370
-    NUITKA_MAY_BE_UNUSED Py_ssize_t hashpos;
-    Py_ssize_t ix = mp->ma_keys->dk_lookup(mp, key, hash, &value_addr, &hashpos);
-
-    if (unlikely(ix == DKIX_ERROR)) {
-        return -1;
-    }
-
-    if (value_addr != NULL) {
-        old_value = *value_addr;
-    }
-#else
-    Py_ssize_t ix = mp->ma_keys->dk_lookup(mp, key, hash, &old_value);
-
-    if (unlikely(ix == DKIX_ERROR)) {
-        return -1;
-    }
-#endif
-
-    NUITKA_DICT_MAINTAIN_TRACKING(mp, key, value);
-
-    if (mp->ma_values != NULL && ((ix >= 0 && old_value == NULL && mp->ma_used != ix) ||
-                                  (ix == DKIX_EMPTY && mp->ma_used != mp->ma_keys->dk_nentries))) {
-        if (Nuitka_DictInsertionResize(tstate, mp) < 0) {
-            return -1;
-        }
-
-        ix = DKIX_EMPTY;
-        old_value = NULL;
-    }
-
-    if (ix == DKIX_EMPTY) {
-        assert(old_value == NULL);
-
-        if (mp->ma_keys->dk_usable <= 0) {
-            if (Nuitka_DictInsertionResize(tstate, mp) < 0) {
-                return -1;
-            }
-        }
-
-        if (!PyUnicode_CheckExact(key)) {
-            mp->ma_keys->dk_lookup = (dict_lookup_func)Nuitka_GetGenericDictLookup();
-        }
-
-        Py_ssize_t new_hashpos = Nuitka_DictFindEmptySlot(mp->ma_keys, hash);
-        PyDictKeyEntry *entry = &DK_ENTRIES(mp->ma_keys)[mp->ma_keys->dk_nentries];
-
-        Nuitka_DictKeysSetIndex(mp->ma_keys, new_hashpos, mp->ma_keys->dk_nentries);
-
-        Py_INCREF(key);
-        Py_INCREF(value);
-
-        entry->me_key = key;
-        entry->me_hash = hash;
-
-        if (mp->ma_values != NULL) {
-            assert(mp->ma_values[mp->ma_keys->dk_nentries] == NULL);
-            mp->ma_values[mp->ma_keys->dk_nentries] = value;
-        } else {
-            entry->me_value = value;
-        }
-
-        mp->ma_used++;
-        NUITKA_DICT_NEXT_VERSION(mp);
-        mp->ma_keys->dk_usable--;
-        mp->ma_keys->dk_nentries++;
-
-        return 0;
-    }
-
-    if (old_value != value) {
-        Py_INCREF(value);
-
-        if (mp->ma_values != NULL) {
-            mp->ma_values[ix] = value;
-
-            if (old_value == NULL) {
-                assert(ix == mp->ma_used);
-                mp->ma_used++;
-            }
-        } else {
-            assert(old_value != NULL);
-            DK_ENTRIES(mp->ma_keys)[ix].me_value = value;
-        }
-
-        NUITKA_DICT_NEXT_VERSION(mp);
-        Py_XDECREF(old_value);
-    }
-
-    return 0;
-}
-
 static int Nuitka_DictDeleteItemCompact(PyThreadState *tstate, PyDictObject *mp, PyObject *key, Py_hash_t hash) {
     PyObject *old_value = NULL;
 
-#if PYTHON_VERSION < 0x370
     PyObject **value_addr = NULL;
-    NUITKA_MAY_BE_UNUSED Py_ssize_t hashpos;
-    Py_ssize_t ix = mp->ma_keys->dk_lookup(mp, key, hash, &value_addr, &hashpos);
+    Py_ssize_t ix = Nuitka_DictLookupCompact(mp, key, hash, &value_addr);
 
     if (unlikely(ix == DKIX_ERROR)) {
         return -1;
@@ -3269,13 +3002,6 @@ static int Nuitka_DictDeleteItemCompact(PyThreadState *tstate, PyDictObject *mp,
     if (value_addr != NULL) {
         old_value = *value_addr;
     }
-#else
-    Py_ssize_t ix = mp->ma_keys->dk_lookup(mp, key, hash, &old_value);
-
-    if (unlikely(ix == DKIX_ERROR)) {
-        return -1;
-    }
-#endif
 
     if (ix < 0 || old_value == NULL) {
         SET_CURRENT_EXCEPTION_KEY_ERROR(tstate, key);
@@ -3287,11 +3013,7 @@ static int Nuitka_DictDeleteItemCompact(PyThreadState *tstate, PyDictObject *mp,
             return -1;
         }
 
-#if PYTHON_VERSION < 0x370
-        ix = mp->ma_keys->dk_lookup(mp, key, hash, &value_addr, &hashpos);
-#else
-        ix = mp->ma_keys->dk_lookup(mp, key, hash, &old_value);
-#endif
+        ix = Nuitka_DictLookupCompact(mp, key, hash, &value_addr);
         assert(ix >= 0);
     }
 
@@ -3430,6 +3152,66 @@ static void Nuitka_DictKeysDecref(PyThreadState *tstate, PyDictKeysObject *keys)
     Nuitka_DictKeysFreeStruct(keys);
 }
 
+static PyDictKeyEntry *Nuitka_DictLookup34(PyDictObject *mp, PyObject *key, Py_hash_t hash, PyObject ***value_addr) {
+    PyObject *dict_dummy = Nuitka_GetDictDummy();
+
+    for (;;) {
+        PyDictKeysObject *keys = mp->ma_keys;
+        size_t mask = (size_t)DK_SIZE(keys) - 1;
+        PyDictKeyEntry *entries = DK_ENTRIES(keys);
+        size_t i = (size_t)hash & mask;
+        PyDictKeyEntry *freeslot = NULL;
+
+        for (size_t perturb = hash;; perturb >>= PERTURB_SHIFT) {
+            PyDictKeyEntry *entry = &entries[i & mask];
+
+            if (entry->me_key == NULL) {
+                if (freeslot != NULL) {
+                    entry = freeslot;
+                }
+
+                *value_addr = mp->ma_values != NULL ? &mp->ma_values[entry - entries] : &entry->me_value;
+                return entry;
+            }
+
+            if (entry->me_key == key) {
+                *value_addr = mp->ma_values != NULL ? &mp->ma_values[entry - entries] : &entry->me_value;
+                return entry;
+            }
+
+            if (entry->me_key == dict_dummy) {
+                if (freeslot == NULL) {
+                    freeslot = entry;
+                }
+            } else if (entry->me_hash == hash) {
+                PyObject *startkey = entry->me_key;
+                Py_INCREF(startkey);
+                nuitka_bool cmp = RICH_COMPARE_EQ_NBOOL_OBJECT_OBJECT(startkey, key);
+                Py_DECREF(startkey);
+
+                if (cmp == NUITKA_BOOL_EXCEPTION) {
+                    return NULL;
+                }
+
+                if (keys != mp->ma_keys) {
+                    break;
+                }
+
+                if (entry->me_key != startkey) {
+                    break;
+                }
+
+                if (cmp == NUITKA_BOOL_TRUE) {
+                    *value_addr = mp->ma_values != NULL ? &mp->ma_values[entry - entries] : &entry->me_value;
+                    return entry;
+                }
+            }
+
+            i = ((i << 2) + i + perturb + 1) & mask;
+        }
+    }
+}
+
 static PyDictKeyEntry *Nuitka_DictFindEmptySlot(PyDictObject *mp, Py_hash_t hash, PyObject ***value_addr) {
     PyDictKeysObject *keys = mp->ma_keys;
     size_t mask = (size_t)DK_SIZE(keys) - 1;
@@ -3542,82 +3324,9 @@ static int Nuitka_DictResize(PyThreadState *tstate, PyDictObject *mp, Py_ssize_t
 
 static Py_ssize_t Nuitka_DictGrowthRate(PyDictObject *mp) { return mp->ma_used * 2 + (DK_SIZE(mp->ma_keys) >> 1); }
 
-static int Nuitka_DictSetItemCompact(PyThreadState *tstate, PyDictObject *mp, PyObject *key, Py_hash_t hash,
-                                     PyObject *value) {
-    PyObject **value_addr;
-
-    if (mp->ma_values != NULL && !PyUnicode_CheckExact(key)) {
-        if (Nuitka_DictResize(tstate, mp, Nuitka_DictGrowthRate(mp)) < 0) {
-            return -1;
-        }
-    }
-
-    PyDictKeyEntry *entry = mp->ma_keys->dk_lookup(mp, key, hash, &value_addr);
-
-    if (unlikely(entry == NULL)) {
-        return -1;
-    }
-
-    NUITKA_DICT_MAINTAIN_TRACKING(mp, key, value);
-
-    PyObject *old_value = *value_addr;
-
-    if (old_value != NULL) {
-        Py_INCREF(value);
-        *value_addr = value;
-        NUITKA_DICT_NEXT_VERSION(mp);
-        Py_DECREF(old_value);
-
-        return 0;
-    }
-
-    if (entry->me_key == NULL) {
-        if (mp->ma_keys->dk_usable <= 0) {
-            if (Nuitka_DictResize(tstate, mp, Nuitka_DictGrowthRate(mp)) < 0) {
-                return -1;
-            }
-
-            entry = Nuitka_DictFindEmptySlot(mp, hash, &value_addr);
-        }
-
-        Py_INCREF(key);
-        Py_INCREF(value);
-
-        *value_addr = value;
-        mp->ma_keys->dk_usable--;
-        mp->ma_used++;
-
-        entry->me_key = key;
-        entry->me_hash = hash;
-
-        NUITKA_DICT_NEXT_VERSION(mp);
-
-        return 0;
-    }
-
-    Py_INCREF(value);
-
-    *value_addr = value;
-    mp->ma_used++;
-
-    if (entry->me_key == Nuitka_GetDictDummy()) {
-        Py_INCREF(key);
-
-        entry->me_key = key;
-        entry->me_hash = hash;
-        Py_DECREF(Nuitka_GetDictDummy());
-    } else {
-        assert(mp->ma_values != NULL);
-    }
-
-    NUITKA_DICT_NEXT_VERSION(mp);
-
-    return 0;
-}
-
 static int Nuitka_DictDeleteItemCompact(PyThreadState *tstate, PyDictObject *mp, PyObject *key, Py_hash_t hash) {
     PyObject **value_addr;
-    PyDictKeyEntry *entry = mp->ma_keys->dk_lookup(mp, key, hash, &value_addr);
+    PyDictKeyEntry *entry = Nuitka_DictLookup34(mp, key, hash, &value_addr);
 
     if (unlikely(entry == NULL)) {
         return -1;
@@ -3659,6 +3368,50 @@ static int Nuitka_DictDeleteItemCompact(PyThreadState *tstate, PyDictObject *mp,
 #ifndef PERTURB_SHIFT
 #define PERTURB_SHIFT 5
 #endif
+
+static PyDictEntry *Nuitka_DictLookupLegacy(PyDictObject *mp, PyObject *key, Py_hash_t hash) {
+    if (!PyString_CheckExact(key) && mp->ma_lookup != (nuitka_dict_lookup_func)Nuitka_GetGenericDictLookup()) {
+        mp->ma_lookup = (nuitka_dict_lookup_func)Nuitka_GetGenericDictLookup();
+    }
+
+    PyDictEntry *entries = mp->ma_table;
+    size_t mask = (size_t)mp->ma_mask;
+    size_t i = (size_t)hash & mask;
+    PyDictEntry *freeslot = NULL;
+
+    for (size_t perturb = hash;; perturb >>= PERTURB_SHIFT) {
+        PyDictEntry *entry = &entries[i];
+
+        if (entry->me_key == NULL) {
+            return freeslot != NULL ? freeslot : entry;
+        }
+
+        if (entry->me_key == key) {
+            return entry;
+        }
+
+        if (entry->me_key != NULL && entry->me_value == NULL) {
+            if (freeslot == NULL) {
+                freeslot = entry;
+            }
+        } else if (entry->me_hash == hash) {
+            PyObject *startkey = entry->me_key;
+            Py_INCREF(startkey);
+            nuitka_bool cmp = RICH_COMPARE_EQ_NBOOL_OBJECT_OBJECT(startkey, key);
+            Py_DECREF(startkey);
+
+            if (cmp == NUITKA_BOOL_EXCEPTION) {
+                return NULL;
+            }
+
+            if (cmp == NUITKA_BOOL_TRUE) {
+                return entry;
+            }
+        }
+
+        i = ((i << 2) + i + perturb + 1) & mask;
+    }
+}
 
 static void Nuitka_DictInsertDictClean(PyDictObject *mp, PyObject *key, Py_hash_t hash, PyObject *value) {
     size_t mask = (size_t)mp->ma_mask;
@@ -3763,54 +3516,11 @@ static int Nuitka_DictResizeLegacy(PyDictObject *mp, Py_ssize_t minused) {
     return 0;
 }
 
-static int Nuitka_DictSetItemLegacy(PyThreadState *tstate, PyDictObject *mp, PyObject *key, Py_hash_t hash,
-                                    PyObject *value) {
-    assert(key != Nuitka_GetDictDummy());
+#endif
 
-    PyDictEntry *entry = (mp->ma_lookup)(mp, key, hash);
-
-    if (unlikely(entry == NULL)) {
-        return -1;
-    }
-
-    NUITKA_DICT_MAINTAIN_TRACKING(mp, key, value);
-
-    if (entry->me_value != NULL) {
-        PyObject *old_value = entry->me_value;
-
-        Py_INCREF(value);
-        entry->me_value = value;
-        Py_DECREF(old_value);
-
-        return 0;
-    }
-
-    Py_INCREF(key);
-    Py_INCREF(value);
-
-    if (entry->me_key == NULL) {
-        mp->ma_fill++;
-    } else {
-        assert(entry->me_key == Nuitka_GetDictDummy());
-        Py_DECREF(Nuitka_GetDictDummy());
-    }
-
-    entry->me_key = key;
-    entry->me_hash = (Py_ssize_t)hash;
-    entry->me_value = value;
-    mp->ma_used++;
-
-    if (mp->ma_fill * 3 >= (mp->ma_mask + 1) * 2) {
-        if (Nuitka_DictResizeLegacy(mp, (mp->ma_used > 50000 ? 2 : 4) * mp->ma_used) < 0) {
-            return -1;
-        }
-    }
-
-    return 0;
-}
-
+#if PYTHON_VERSION < 0x300
 static int Nuitka_DictDeleteItemLegacy(PyThreadState *tstate, PyDictObject *mp, PyObject *key, Py_hash_t hash) {
-    PyDictEntry *entry = (mp->ma_lookup)(mp, key, hash);
+    PyDictEntry *entry = Nuitka_DictLookupLegacy(mp, key, hash);
 
     if (unlikely(entry == NULL)) {
         return -1;
@@ -3835,7 +3545,6 @@ static int Nuitka_DictDeleteItemLegacy(PyThreadState *tstate, PyDictObject *mp, 
 
     return 0;
 }
-
 #endif
 
 bool Nuitka_DictNext(PyObject *dict, Py_ssize_t *pos, PyObject **key_ptr, PyObject **value_ptr) {
@@ -4129,46 +3838,7 @@ PyObject *TO_DICT(PyThreadState *tstate, PyObject *seq_obj, PyObject *dict_obj) 
     return result;
 }
 
-bool DICT_SET_ITEM(PyObject *dict, PyObject *key, PyObject *value) {
-    CHECK_OBJECT(dict);
-    assert(PyDict_Check(dict));
-    CHECK_OBJECT(key);
-    CHECK_OBJECT(value);
-
-#if !defined(Py_GIL_DISABLED) && PYTHON_VERSION >= 0x3c0
-    if (unlikely(NUITKA_DICT_IS_WATCHED((PyDictObject *)dict))) {
-        return PyDict_Type.tp_as_mapping->mp_ass_subscript(dict, key, value) == 0;
-    }
-#endif
-
-#if _NUITKA_EXPERIMENTAL_DISABLE_DICT_OPT || _NUITKA_EXPERIMENTAL_DISABLE_DICT_ACCESS_OPT
-    return PyDict_SetItem(dict, key, value) == 0;
-#elif PYTHON_VERSION >= 0x300 && !defined(Py_GIL_DISABLED)
-    PyThreadState *tstate = PyThreadState_GET();
-    Py_hash_t hash;
-
-    if (unlikely(Nuitka_DictGetHash(tstate, key, &hash) == false)) {
-        return false;
-    }
-
-#if PYTHON_VERSION >= 0x3d0
-    return Nuitka_DictSetItem3x(tstate, (PyDictObject *)dict, key, hash, value) == 0;
-#else
-    return Nuitka_DictSetItemCompact(tstate, (PyDictObject *)dict, key, hash, value) == 0;
-#endif
-#elif PYTHON_VERSION < 0x300
-    PyThreadState *tstate = PyThreadState_GET();
-    Py_hash_t hash;
-
-    if (unlikely(Nuitka_DictGetHash(tstate, key, &hash) == false)) {
-        return false;
-    }
-
-    return Nuitka_DictSetItemLegacy(tstate, (PyDictObject *)dict, key, hash, value) == 0;
-#else
-    return PyDict_Type.tp_as_mapping->mp_ass_subscript(dict, key, value) == 0;
-#endif
-}
+#include "HelpersDictionariesSetGenerated.c"
 
 bool DICT_SET_ITEM_STRING(PyObject *dict, char const *key, PyObject *value) {
     CHECK_OBJECT(dict);

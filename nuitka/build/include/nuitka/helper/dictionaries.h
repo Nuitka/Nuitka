@@ -263,6 +263,10 @@ NUITKA_MAY_BE_UNUSED static PyObject *GET_STRING_DICT_VALUE(PyDictObject *dict, 
 // success, true is returned, otherwise false with an exception set.
 extern bool DICT_SET_ITEM(PyObject *dict, PyObject *key, PyObject *value);
 
+// Set a key in a dictionary, consuming the value reference. The key is
+// borrowed. The value reference is consumed on success and on failure.
+extern bool DICT_SET_ITEM1(PyObject *dict, PyObject *key, PyObject *value);
+
 // Set a string key in a dictionary, semantically identical to
 // "PyDict_SetItemString". On success, true is returned, otherwise false with
 // an exception set.
@@ -384,8 +388,7 @@ NUITKA_MAY_BE_UNUSED static void UPDATE_STRING_DICT_INPLACE(PyDictObject *dict, 
 
 #if PYTHON_VERSION >= 0x3c0 && !defined(Py_GIL_DISABLED)
     if (unlikely(NUITKA_DICT_IS_WATCHED(dict))) {
-        DICT_SET_ITEM((PyObject *)dict, (PyObject *)key, value);
-        Py_DECREF(value);
+        DICT_SET_ITEM1((PyObject *)dict, (PyObject *)key, value);
         CHECK_OBJECT(value);
         return;
     }
@@ -395,9 +398,7 @@ NUITKA_MAY_BE_UNUSED static void UPDATE_STRING_DICT_INPLACE(PyDictObject *dict, 
 
 #if PYTHON_VERSION >= 0x360
     if (entry == NULL) {
-        DICT_SET_ITEM((PyObject *)dict, (PyObject *)key, value);
-
-        Py_DECREF(value);
+        DICT_SET_ITEM1((PyObject *)dict, (PyObject *)key, value);
         CHECK_OBJECT(value);
 
         return;
@@ -406,25 +407,16 @@ NUITKA_MAY_BE_UNUSED static void UPDATE_STRING_DICT_INPLACE(PyDictObject *dict, 
 
     PyObject *old = GET_DICT_ENTRY_VALUE(entry);
 
-    if (old != value) {
-        // Values are more likely (more often) set than not set, in that case
-        // speculatively try the quickest access method.
-        if (likely(old != NULL)) {
-            SET_DICT_ENTRY_VALUE(entry, value);
+    if (old == NULL) {
+        DICT_SET_ITEM1((PyObject *)dict, (PyObject *)key, value);
+        CHECK_OBJECT(value);
+    } else {
+        SET_DICT_ENTRY_VALUE(entry, value);
 
 #if _NUITKA_MAINTAIN_DICT_VERSION_TAG
-            dict->ma_version_tag = nuitka_dict_version_tag_counter++;
+        dict->ma_version_tag = nuitka_dict_version_tag_counter++;
 #endif
-            Py_DECREF(old);
-        } else {
-            DICT_SET_ITEM((PyObject *)dict, (PyObject *)key, value);
-            Py_DECREF(value);
-
-            CHECK_OBJECT(value);
-        }
-    } else {
-        Py_DECREF(value);
-        CHECK_OBJECT(value);
+        Py_DECREF(old);
     }
 }
 
@@ -434,8 +426,7 @@ NUITKA_MAY_BE_UNUSED static void UPDATE_STRING_DICT1(PyDictObject *dict, Nuitka_
 
 #if PYTHON_VERSION >= 0x3c0 && !defined(Py_GIL_DISABLED)
     if (unlikely(NUITKA_DICT_IS_WATCHED(dict))) {
-        DICT_SET_ITEM((PyObject *)dict, (PyObject *)key, value);
-        Py_DECREF(value);
+        DICT_SET_ITEM1((PyObject *)dict, (PyObject *)key, value);
         CHECK_OBJECT(value);
         return;
     }
@@ -445,9 +436,7 @@ NUITKA_MAY_BE_UNUSED static void UPDATE_STRING_DICT1(PyDictObject *dict, Nuitka_
 
 #if PYTHON_VERSION >= 0x360
     if (entry == NULL) {
-        DICT_SET_ITEM((PyObject *)dict, (PyObject *)key, value);
-
-        Py_DECREF(value);
+        DICT_SET_ITEM1((PyObject *)dict, (PyObject *)key, value);
         CHECK_OBJECT(value);
 
         return;
@@ -468,9 +457,7 @@ NUITKA_MAY_BE_UNUSED static void UPDATE_STRING_DICT1(PyDictObject *dict, Nuitka_
 #endif
             Py_DECREF(old);
         } else {
-            DICT_SET_ITEM((PyObject *)dict, (PyObject *)key, value);
-
-            Py_DECREF(value);
+            DICT_SET_ITEM1((PyObject *)dict, (PyObject *)key, value);
             CHECK_OBJECT(value);
         }
     } else {

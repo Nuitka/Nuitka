@@ -276,10 +276,9 @@ else:
 
         if values:
             values_object = _at(values, PyDictValues313)
-            order_address = (
-                values
-                + PyDictValues313.values.offset
-                + values_object.capacity * ctypes.sizeof(voidp)
+            values_address = values + PyDictValues313.values.offset
+            order_address = values_address + values_object.capacity * ctypes.sizeof(
+                voidp
             )
             order = tuple(
                 ctypes.cast(order_address + i, ctypes.POINTER(ctypes.c_uint8))[0]
@@ -290,7 +289,7 @@ else:
             for i in range(keys.dk_nentries):
                 entry_address = entries_address + i * entry_size
                 key = _voidp_at(entry_address, 0)
-                entries_state.append((0, key, _voidp_at(values, i)))
+                entries_state.append((0, key, _voidp_at(values_address, i)))
 
             return (
                 "split",
@@ -486,13 +485,34 @@ def runOperations(operations):
     return True
 
 
+def runSameValueTest():
+    reference = {}
+    candidate = {}
+    key = ("same",)
+    sentinel = None
+
+    for _ in range(1000):
+        dict.__setitem__(reference, key, sentinel)
+        candidate[key] = sentinel
+
+    if not compareStates(reference, candidate, 1000):
+        sys.stderr.write("SAME VALUE MISMATCH\n")
+        return False
+
+    return True
+
+
 class SplitTableObject(object):
     pass
 
 
-def makeSplitObjectDict():
-    obj = SplitTableObject()
-    setattr(obj, "seed", 0)
+class CSplitTableObject(object):
+    pass
+
+
+def makeSplitObjectDict(seed_value, object_type):
+    obj = object_type()
+    setattr(obj, "seed", seed_value)
     instance_dict = obj.__dict__
 
     if getDictState(instance_dict)[0] != "split":
@@ -528,8 +548,9 @@ def runSplitTableTest():
     if py_version < (3, 4):
         return True
 
-    ref_obj, reference = makeSplitObjectDict()
-    cand_obj, candidate_source = makeSplitObjectDict()
+    seed_value = 0
+    ref_obj, reference = makeSplitObjectDict(seed_value, SplitTableObject)
+    cand_obj, candidate_source = makeSplitObjectDict(seed_value, SplitTableObject)
 
     if reference is None or candidate_source is None:
         return False
@@ -553,6 +574,16 @@ def runSplitTableTest():
 
     if not compareStates(reference, candidate, 0):
         sys.stderr.write("SPLIT SWAP MISMATCH\n")
+        return False
+
+    sentinel = None
+
+    for _ in range(1000):
+        dict.__setitem__(reference, "seed", sentinel)
+        candidate["seed"] = sentinel
+
+    if not compareStates(reference, candidate, 1001):
+        sys.stderr.write("SPLIT SAME VALUE MISMATCH\n")
         return False
 
     names = ["split_key_%d" % i for i in range(40)]
@@ -617,6 +648,111 @@ def runSplitTableTest():
 
     if list(reference) != list(candidate):
         sys.stderr.write("FINAL SPLIT ORDER MISMATCH\n")
+        return False
+
+    return True
+
+
+def runCSplitTableTest():
+    if py_version < (3, 4):
+        return True
+
+    set_item = globals().get("_nuitka_test_dict_set_item")
+    remove_item = globals().get("_nuitka_test_dict_remove_item")
+    update_from = globals().get("_nuitka_test_dict_update_from")
+    update_from_seq = globals().get("_nuitka_test_dict_update_from_seq")
+
+    if (
+        set_item is None
+        or remove_item is None
+        or update_from is None
+        or update_from_seq is None
+    ):
+        return True
+
+    seed_value = 0
+    ref_obj, reference = makeSplitObjectDict(seed_value, CSplitTableObject)
+    cand_obj, candidate = makeSplitObjectDict(seed_value, CSplitTableObject)
+
+    if reference is None or candidate is None:
+        return False
+
+    if not compareStates(reference, candidate, 0):
+        sys.stderr.write("C SPLIT INITIAL MISMATCH\n")
+        return False
+
+    sentinel = None
+
+    for _ in range(1000):
+        dict.__setitem__(reference, "seed", sentinel)
+        set_item(candidate, "seed", sentinel)
+
+    if not compareStates(reference, candidate, 1001):
+        sys.stderr.write("C SPLIT SAME VALUE MISMATCH\n")
+        return False
+
+    names = ["c_split_key_%d" % i for i in range(40)]
+
+    for i, name in enumerate(names):
+        value = i
+
+        if i % 2:
+            set_item(candidate, name, value)
+            dict.__setitem__(reference, name, value)
+        else:
+            dict.__setitem__(reference, name, value)
+            set_item(candidate, name, value)
+
+        if not compareStates(reference, candidate, i + 1):
+            sys.stderr.write("C SPLIT INSERT MISMATCH: %s\n" % name)
+            return False
+
+    for i in range(0, len(names), 3):
+        name = names[i]
+        value = i * 10
+        dict.__setitem__(reference, name, value)
+        set_item(candidate, name, value)
+
+        if not compareStates(reference, candidate, i + 100):
+            sys.stderr.write("C SPLIT UPDATE MISMATCH: %s\n" % name)
+            return False
+
+    for i in range(0, len(names), 4):
+        name = names[i]
+        dict.__delitem__(reference, name)
+        remove_item(candidate, name)
+
+        if not compareStates(reference, candidate, i + 200):
+            sys.stderr.write("C SPLIT DELETE MISMATCH: %s\n" % name)
+            return False
+
+    source = {}
+
+    for i in range(0, len(names), 5):
+        source[names[i]] = i + 1000
+
+    reference.update(source)
+    update_from(candidate, source)
+
+    if not compareStates(reference, candidate, 300):
+        sys.stderr.write("C SPLIT TARGET MERGE MISMATCH\n")
+        return False
+
+    pairs = [(names[i], i + 2000) for i in range(0, len(names), 7)]
+
+    reference.update(pairs)
+    update_from_seq(candidate, pairs)
+
+    if not compareStates(reference, candidate, 301):
+        sys.stderr.write("C SPLIT TARGET SEQUENCE MERGE MISMATCH\n")
+        return False
+
+    if reference != candidate:
+        sys.stderr.write("FINAL C SPLIT DICT MISMATCH\n")
+        return False
+
+    if list(reference) != list(candidate):
+        sys.stderr.write("FINAL C SPLIT ORDER MISMATCH\n")
         return False
 
     return True
@@ -696,6 +832,32 @@ def runCloneTest():
     return True
 
 
+def runCCloneTest():
+    update_from = globals().get("_nuitka_test_dict_update_from")
+
+    if update_from is None or py_version < (3, 6):
+        return True
+
+    for size in (1, 5, 100):
+        source = {}
+
+        for i in range(size):
+            source[i] = i
+
+        target = {}
+        update_from(target, source)
+
+        if target != source:
+            sys.stderr.write("C CLONE MISMATCH (%d entries)\n" % size)
+            return False
+
+        if getDictState(target) != getDictState(source):
+            sys.stderr.write("C CLONE STATE MISMATCH (%d entries)\n" % size)
+            return False
+
+    return True
+
+
 def runMutationTest():
     source = {}
     key_a = MutatingKey(source, "a")
@@ -768,10 +930,19 @@ def main():
     if not runMutationTest():
         return 1
 
+    if not runSameValueTest():
+        return 1
+
     if not runSplitTableTest():
         return 1
 
+    if not runCSplitTableTest():
+        return 1
+
     if not runCloneTest():
+        return 1
+
+    if not runCCloneTest():
         return 1
 
     sys.stdout.write(

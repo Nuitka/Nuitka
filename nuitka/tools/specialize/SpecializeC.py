@@ -1416,6 +1416,29 @@ generate_builtin_type_operations = [
 ]
 
 
+def makeDictSetHelperCodes():
+    filename_c = getNormalizedPath(
+        "nuitka/build/static_src/HelpersDictionariesSetGenerated.c"
+    )
+
+    with withFileOpenedAndAutoFormattedWithClaim(
+        filename_c, claim=getLicenseGeneratedCode()
+    ) as output_c:
+
+        def emit(*args):
+            writeLine(output_c, *args)
+
+        template = getDoExtensionUsingTemplateC("HelperDictionarySet.c.j2")
+
+        emitGenerationWarning(emit, template.name)
+
+        emitIDE(emit, ["nuitka/helper/dict_internals.h"])
+
+        code = template.render()
+
+        emit(code)
+
+
 def makeDictCopyHelperCodes():
     filename_c = getNormalizedPath(
         "nuitka/build/static_src/HelpersDictionariesGenerated.c"
@@ -1780,6 +1803,9 @@ def main():
 
     traceSpecialization("Make dict copy helper codes...")
     makeDictCopyHelperCodes()
+
+    traceSpecialization("Make dict set helper codes...")
+    makeDictSetHelperCodes()
 
     # Cover many things once first, then cover all for quicker turnaround during development.
     traceSpecialization("Make some operation helpers for early coverage...")

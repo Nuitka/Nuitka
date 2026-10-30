@@ -260,8 +260,7 @@ static PyObject *_Nuitka_Frame_GetLocalsDict(struct Nuitka_FrameObject *nuitka_f
                 PyObject *boxed = Nuitka_PyLong_FromLong(value->c_value);
 
                 if (boxed != NULL) {
-                    DICT_SET_ITEM(result, *var_names, boxed);
-                    Py_DECREF(boxed);
+                    DICT_SET_ITEM1(result, *var_names, boxed);
                 }
             }
 

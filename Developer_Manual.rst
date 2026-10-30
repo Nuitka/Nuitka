@@ -1897,10 +1897,15 @@ call of the functions below is a hint that it should be replaced.
          cleared.
 
    -  -  ``PyDict_SetItem``
-      -  ``DICT_SET_ITEM``
+
+      -  ``DICT_SET_ITEM``, ``DICT_SET_ITEM1``
+
       -  ``helper/dictionaries.h``
+
       -  Returns ``bool``; accepts a ``dict`` or subtype, and watched
-         dictionaries are routed through CPython.
+         dictionaries are routed through CPython. The consuming
+         ``DICT_SET_ITEM1`` variant releases the value reference on
+         success and failure.
 
    -  -  ``PyDict_SetItemString``
       -  ``DICT_SET_ITEM_STRING``

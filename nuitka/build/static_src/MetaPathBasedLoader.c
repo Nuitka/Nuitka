@@ -690,10 +690,8 @@ static void setModuleFileValue(PyThreadState *tstate, PyObject *module, filename
 
     PyObject *dict = PyModule_GetDict(module);
 
-    // TODO: We should have DICT_SET_ITEM0/1 for these things.
     PyObject *new_file_value = Nuitka_String_FromFilename(filename);
-    DICT_SET_ITEM(dict, const_str_plain___file__, new_file_value);
-    Py_DECREF(new_file_value);
+    DICT_SET_ITEM1(dict, const_str_plain___file__, new_file_value);
 }
 
 #if PYTHON_VERSION < 0x300
