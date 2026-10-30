@@ -5433,11 +5433,15 @@
         - 'pylink-square'
         - 'pyusb'
 
-- module-name: 'pyodbc' # checksum: 893567d5
+- module-name: 'pyodbc' # checksum: df8d2f1c
   implicit-imports:
     - depends:
         - 'hashlib'
         - 'decimal'
+
+  import-hacks:
+    - package-system-dlls: 'yes'
+      when: 'macos'
 
 - module-name: 'pyparsing' # checksum: cf2c5e7f
   anti-bloat:
