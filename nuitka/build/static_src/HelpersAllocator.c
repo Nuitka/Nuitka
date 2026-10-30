@@ -864,7 +864,7 @@ struct _mem_work_chunk {
     struct _mem_work_item array[WORK_ITEMS_PER_CHUNK];
 };
 
-// Aligns with CPython "qsbr.c"
+// Number of deferred frees before the write sequence is advanced.
 #define QSBR_DEFERRED_LIMIT 10
 
 static uint64_t Nuitka_qsbr_shared_next(struct _qsbr_shared *shared) {
@@ -876,12 +876,22 @@ static uint64_t Nuitka_qsbr_advance(struct _qsbr_shared *shared) {
 }
 
 static uint64_t Nuitka_qsbr_deferred_advance(struct _qsbr_thread_state *qsbr) {
+    // Python 3.13.6 backported the QSBR changes from 3.14, older 3.13 releases
+    // use a "deferrals" counter instead.
+#if PYTHON_VERSION >= 0x3d6
     if (++qsbr->deferred_count < QSBR_DEFERRED_LIMIT) {
         return Nuitka_qsbr_shared_next(qsbr->shared);
     }
 
     qsbr->deferred_count = 0;
     qsbr->should_process = true;
+#else
+    if (++qsbr->deferrals < QSBR_DEFERRED_LIMIT) {
+        return Nuitka_qsbr_shared_next(qsbr->shared);
+    }
+
+    qsbr->deferrals = 0;
+#endif
     return Nuitka_qsbr_advance(qsbr->shared);
 }
 
@@ -1068,10 +1078,16 @@ static void _NuitkaMem_FreeDelayed2(uintptr_t ptr) {
     buf->array[buf->wr_idx].qsbr_goal = seq;
     buf->wr_idx++;
 
+#if PYTHON_VERSION >= 0x3d6
     if (buf->wr_idx == WORK_ITEMS_PER_CHUNK || _Py_qsbr_should_process(tstate->qsbr)) {
         tstate->qsbr->should_process = false;
         _NuitkaMem_ProcessDelayed((PyThreadState *)tstate);
     }
+#else
+    if (buf->wr_idx == WORK_ITEMS_PER_CHUNK) {
+        _NuitkaMem_ProcessDelayed((PyThreadState *)tstate);
+    }
+#endif
 }
 
 void NuitkaMem_FreeDelayed(void *ptr) {
