@@ -124,6 +124,34 @@ def test_catch_multiple_types_with_remaining():
 test_catch_multiple_types_with_remaining()
 
 
+def test_reraise_leaf_exception():
+    try:
+        try:
+            raise ExceptionGroup("test", [ValueError("1")])
+        except* ValueError as error:
+            raise error.exceptions[0]
+    except Exception as outer:
+        print(repr(outer))
+        print(repr(outer.__context__))
+
+
+test_reraise_leaf_exception()
+
+
+def test_raise_new_group_with_same_leaf():
+    try:
+        try:
+            raise ExceptionGroup("test", [ValueError("1")])
+        except* ValueError as error:
+            raise ExceptionGroup("new", [error.exceptions[0]])
+    except Exception as outer:
+        print(repr(outer))
+        print(repr(outer.__context__))
+
+
+test_raise_new_group_with_same_leaf()
+
+
 def test_nested_scopes_in_handler():
     try:
         raise ExceptionGroup("test", [ValueError("1")])

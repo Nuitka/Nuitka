@@ -426,14 +426,17 @@ static PyObject *_makeExceptionGroupProjection(PyThreadState *tstate, PyObject *
     return result;
 }
 
-// Decide if an exception is a re-raise of (a part of) the original exception
-// group, i.e. all of its leaf exceptions are contained in it.
-//
-// TODO: CPython decides this by comparing the exception metadata, which is
-// not maintained yet for exceptions we raise, so we use the contained leaf
-// exceptions instead, which gets the same results for all but constructed
-// cases, and should be replaced once that metadata is available.
-static int _isDerivedException(PyObject *exc, PyObject *leaf_ids) {
+// This mirrors CPython, it determines if an exception is a re-raise in an "except*" construct.
+static bool _isSameExceptionMetadata(PyObject *exc1, PyObject *exc2) {
+    PyBaseExceptionObject *e1 = _Nuitka_PyBaseExceptionObject_cast(exc1);
+    PyBaseExceptionObject *e2 = _Nuitka_PyBaseExceptionObject_cast(exc2);
+
+    return e1->notes == e2->notes && e1->traceback == e2->traceback && e1->cause == e2->cause &&
+           e1->context == e2->context;
+}
+
+// Decide if an exception contains only leaves of the original exception group.
+static int _isDerivedExceptionLeaves(PyObject *exc, PyObject *leaf_ids) {
     CHECK_OBJECT(exc);
     CHECK_OBJECT(leaf_ids);
 
@@ -458,7 +461,7 @@ static int _isDerivedException(PyObject *exc, PyObject *leaf_ids) {
     }
 
     for (Py_ssize_t i = 0; i < num_excs; i++) {
-        int res = _isDerivedException(PyTuple_GET_ITEM(eg->excs, i), leaf_ids);
+        int res = _isDerivedExceptionLeaves(PyTuple_GET_ITEM(eg->excs, i), leaf_ids);
 
         if (res != 1) {
             return res;
@@ -466,6 +469,22 @@ static int _isDerivedException(PyObject *exc, PyObject *leaf_ids) {
     }
 
     return 1;
+}
+
+// Decide if an exception is a re-raise of (a part of) the original exception
+// group. Like CPython, this uses the exception metadata to distinguish actual
+// re-raises from exceptions that merely reuse the same leaves, e.g. a newly
+// constructed exception group.
+static int _isDerivedException(PyObject *exc, PyObject *orig, PyObject *leaf_ids) {
+    CHECK_OBJECT(exc);
+    CHECK_OBJECT(orig);
+    CHECK_OBJECT(leaf_ids);
+
+    if (!_isSameExceptionMetadata(exc, orig)) {
+        return 0;
+    }
+
+    return _isDerivedExceptionLeaves(exc, leaf_ids);
 }
 
 // Calculate the exception to be raised at the end of an "except*" construct.
@@ -541,7 +560,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *EXCEPTION_GROUP_PREPARE_RERAISE(PyThreadSt
             continue;
         }
 
-        int is_reraise = _isDerivedException(element, orig_leaf_ids);
+        int is_reraise = _isDerivedException(element, orig, orig_leaf_ids);
 
         if (unlikely(is_reraise < 0)) {
             Py_DECREF(orig_leaf_ids);
