@@ -54,6 +54,9 @@ timing_re = re.compile(r"in [0-9]+.[0-9][0-9](s| seconds)")
 took_ms_re = re.compile(r"took \d+ ms")
 
 did_you_mean_re = re.compile(r"\. Did you mean:? '.*?'\?")
+site_initialization_re = re.compile(
+    r"\. Site initialization is disabled, .*?environment\?"
+)
 # spell-checker:enable
 
 
@@ -249,6 +252,11 @@ def makeDiffable(output, ignore_warnings, syntax_errors):
         line = test_tmp_re.sub(r"\1test_xxxxx_tmp", line)
 
         line = did_you_mean_re.sub("", line)
+
+        # CPython 3.15 adds a hint to import errors when site initialization is
+        # disabled. Nuitka's subinterpreters inherit that state from Nuitka's
+        # own startup, where site import is delayed, so it is not meaningful.
+        line = site_initialization_re.sub("", line)
 
         # This is a bug potentially, occurs only for CPython when re-directed,
         # we are going to ignore the issue as Nuitka is fine.
