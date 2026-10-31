@@ -14367,7 +14367,7 @@ class ChildHavingObjectMixin(object):
         """
 
         values = {
-            "object": self.subnode_object.makeClone(),
+            "object_arg": self.subnode_object.makeClone(),
         }
 
         values.update(self.getDetails())
