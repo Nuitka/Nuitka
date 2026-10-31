@@ -88,6 +88,11 @@ class ValueTraceBase(object):
     def isLoopTrace():
         return False
 
+    @staticmethod
+    def isLoopDependent():
+        """Is the value decision dependent on a loop trace."""
+        return False
+
     def addUsage(self):
         self.usage_count += 1
 
@@ -732,6 +737,9 @@ class ValueTraceEscaped(ValueTraceUnknown):
     def mustHaveValue(self):
         return self.previous.mustHaveValue()
 
+    def isLoopDependent(self):
+        return self.previous.isLoopDependent()
+
     def mustNotHaveValue(self):
         return self.previous.mustNotHaveValue()
 
@@ -1062,7 +1070,7 @@ class ValueTraceMerge(ValueTraceMergeBase):
     "continue" exits.
     """
 
-    __slots__ = ()
+    __slots__ = ("loop_dependent", "must_have_value_cache")
 
     @counted_init
     def __init__(self, traces):
@@ -1088,6 +1096,9 @@ class ValueTraceMerge(ValueTraceMergeBase):
         self.usage_count = 0
         self.name_usage_count = 0
         self.merge_usage_count = 0
+
+        self.loop_dependent = None
+        self.must_have_value_cache = None
 
     def __repr__(self):
         return "<ValueTraceMerge of %s>" % (self.previous,)
@@ -1164,12 +1175,31 @@ class ValueTraceMerge(ValueTraceMergeBase):
             for previous in self.previous
         )
 
+    def isLoopDependent(self):
+        if self.loop_dependent is None:
+            self.loop_dependent = any(
+                previous.isLoopDependent() for previous in self.previous
+            )
+
+        return self.loop_dependent
+
     def mustHaveValue(self):
+        loop_dependent = self.isLoopDependent()
+
+        if not loop_dependent and self.must_have_value_cache is not None:
+            return self.must_have_value_cache
+
+        result = True
+
         for previous in self.previous:
             if not previous.mustHaveValue():
-                return False
+                result = False
+                break
 
-        return True
+        if not loop_dependent:
+            self.must_have_value_cache = result
+
+        return result
 
     def mustNotHaveValue(self):
         for previous in self.previous:
@@ -1277,6 +1307,10 @@ class ValueTraceLoop(ValueTraceMergeBase):
 
     @staticmethod
     def isLoopTrace():
+        return True
+
+    @staticmethod
+    def isLoopDependent():
         return True
 
     @staticmethod
