@@ -94,8 +94,65 @@ class CollectionUpdateMixin(object):
     def getVariableTracesAll(self):
         return self.variable_traces
 
+    def addVariableMergeTrace2(self, variable, trace1, trace2):
+        if type(trace1) is ValueTraceMerge:
+            flattened = list(trace1.previous)
+
+            if type(trace2) is ValueTraceMerge:
+                for candidate in trace2.previous:
+                    if candidate not in flattened:
+                        flattened.append(candidate)
+            else:
+                if trace2 not in flattened:
+                    flattened.append(trace2)
+
+            trace_merge = ValueTraceMerge(flattened)
+        else:
+            if type(trace2) is ValueTraceMerge:
+                flattened = [trace1]
+
+                for candidate in trace2.previous:
+                    if candidate not in flattened:
+                        flattened.append(candidate)
+
+                trace_merge = ValueTraceMerge(flattened)
+            else:
+                trace_merge = ValueTraceMerge((trace1, trace2))
+
+        version = variable.allocateTargetNumber()
+
+        self.variable_traces[variable][version] = trace_merge
+
+        return version
+
     def addVariableMergeMultipleTrace(self, variable, traces):
-        trace_merge = ValueTraceMerge(traces)
+        # Merge traces have already flattened previous tuples, so this is a
+        # single level expansion that also removes duplicate traces.
+        first_merge_index = None
+
+        for index, trace in enumerate(traces):
+            if type(trace) is ValueTraceMerge:
+                first_merge_index = index
+                break
+
+        if first_merge_index is None:
+            trace_merge = ValueTraceMerge(traces)
+        else:
+            flattened = traces[:first_merge_index]
+            seen = set(flattened)
+
+            for trace in traces[first_merge_index:]:
+                if type(trace) is ValueTraceMerge:
+                    for candidate in trace.previous:
+                        if candidate not in seen:
+                            seen.add(candidate)
+                            flattened.append(candidate)
+                else:
+                    if trace not in seen:
+                        seen.add(trace)
+                        flattened.append(trace)
+
+            trace_merge = ValueTraceMerge(flattened)
 
         version = variable.allocateTargetNumber()
 
@@ -873,13 +930,7 @@ class TraceCollectionBase(object):
                 elif other_version % 3 == 1 and trace2.previous is trace1:
                     version = other_version
                 else:
-                    version = self.addVariableMergeMultipleTrace(
-                        variable,
-                        (
-                            trace1,
-                            trace2,
-                        ),
-                    )
+                    version = self.addVariableMergeTrace2(variable, trace1, trace2)
 
                     has_unescaped_variables = True
 

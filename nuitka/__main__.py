@@ -228,6 +228,10 @@ def main():
 
     warnings.simplefilter("ignore", DeprecationWarning)
 
+    # Generated code intentionally uses identity comparisons for interned
+    # small integer states, which Python warns about as SyntaxWarning.
+    warnings.simplefilter("ignore", SyntaxWarning)
+
     # Hack, we need this to bootstrap and it's actually living in __main__
     # module of nuitka package and renamed to where we can get at easily for
     # other uses.
