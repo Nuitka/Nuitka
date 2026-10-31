@@ -231,6 +231,14 @@ def localsUnpacking():
     print("Assignment from tuple with locals():", sorted(c), d)
 
 
+def reversedUnpacking():
+    a, b = 0, reversed((1, 2, 3))
+    print("Assignment from reversed() in tuple:", a, list(b))
+
+    c, d = reversed((1, 2, 3)), 0
+    print("Assignment from tuple with reversed():", list(c), d)
+
+
 def complexDel():
     a = b = c = d = 1
 
@@ -280,6 +288,7 @@ InterruptedUnpack()
 multiTargetInterrupt()
 optimizableTargets()
 localsUnpacking()
+reversedUnpacking()
 complexDel()
 sliceDel()
 globalErrors()

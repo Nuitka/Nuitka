@@ -241,13 +241,13 @@ class {{mixin_class_name}}({{base_class}}):
         """
 
         values = {
-{% for named_child in named_children %}
+{% for named_child, param_name in init_args_spec %}
 {% if named_children_types.get(named_child) == "tuple" %}
-            "{{named_child}}" : tuple(v.makeClone() for v in self.subnode_{{named_child}}),
+            "{{param_name}}" : tuple(v.makeClone() for v in self.subnode_{{named_child}}),
 {% elif named_children_types.get(named_child) == "optional" %}
-            "{{named_child}}" : self.subnode_{{named_child}}.makeClone() if self.subnode_{{named_child}} is not None else None,
+            "{{param_name}}" : self.subnode_{{named_child}}.makeClone() if self.subnode_{{named_child}} is not None else None,
 {% else %}
-            "{{named_child}}" : self.subnode_{{named_child}}.makeClone(),
+            "{{param_name}}" : self.subnode_{{named_child}}.makeClone(),
 {% endif %}
 {% endfor %}
         }
