@@ -49,6 +49,9 @@ bool LIST_REMOVE(PyObject *target, PyObject *item);
 // Like list.clear
 extern void LIST_CLEAR(PyObject *target);
 
+// Like "del list[lower:upper]"
+extern bool LIST_DEL_SLICE(PyObject *target, Py_ssize_t lower, Py_ssize_t upper);
+
 // Like list.reverse
 extern void LIST_REVERSE(PyObject *list);
 
