@@ -3,6 +3,7 @@
 
 """Code generation for dictionaries."""
 
+from nuitka.__past__ import unicode
 from nuitka.PythonVersions import python_version
 from nuitka.States import states
 from nuitka.utils.Jinja2 import renderTemplateFromString
@@ -125,6 +126,19 @@ def generateDictionaryCreationCode(to_name, expression, emit, context):
         )
 
 
+def _hasOnlyUnicodeKeys(pairs):
+    for pair in pairs:
+        key_node = pair.getKeyNode()
+
+        if (
+            not key_node.isCompileTimeConstant()
+            or type(key_node.getCompileTimeConstant()) is not unicode
+        ):
+            return False
+
+    return True
+
+
 def getDictionaryCreationCode(to_name, pairs, emit, context):
     # Detailed, and verbose code, pylint: disable=too-many-locals
 
@@ -191,8 +205,11 @@ def getDictionaryCreationCode(to_name, pairs, emit, context):
 
     key_needs_release, value_needs_release = generatePairCode(pairs[0])
 
-    # Create dictionary pre-sized.
-    emit("%s = _PyDict_NewPresized( %d );" % (to_name, pairs_count))
+    # Create dictionary pre-sized, using unicode-only keys when possible.
+    if python_version >= 0x3B0 and _hasOnlyUnicodeKeys(pairs):
+        emit("%s = MAKE_DICT_PRESIZED_UNICODE(tstate, %d);" % (to_name, pairs_count))
+    else:
+        emit("%s = MAKE_DICT_PRESIZED(tstate, %d);" % (to_name, pairs_count))
 
     with withCleanupFinally(
         "dict_build", to_name, needs_exception_exit, emit, context

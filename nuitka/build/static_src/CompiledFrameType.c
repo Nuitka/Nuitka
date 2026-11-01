@@ -336,7 +336,7 @@ void Nuitka_Frame_AssignLocals(struct Nuitka_FrameObject *frame_object, PyObject
         PyObject *module_name = MODULE_NAME1(tstate, locals_value);
         PyObject *kw_pairs[2] = {const_str_plain___module__, module_name};
 
-        locals_owner->f_locals = MAKE_DICT(kw_pairs, 1);
+        locals_owner->f_locals = MAKE_DICT_UNICODE(tstate, kw_pairs, 1);
         Py_DECREF(module_name);
         return;
     }
@@ -1060,7 +1060,7 @@ struct Nuitka_FrameObject *MAKE_FUNCTION_FRAME(PyThreadState *tstate, PyCodeObje
     } else {
         PyObject *module_name = MODULE_NAME1(tstate, module);
         PyObject *kw_pairs[2] = {const_str_plain___module__, module_name};
-        f_locals = MAKE_DICT(kw_pairs, 1);
+        f_locals = MAKE_DICT_UNICODE(tstate, kw_pairs, 1);
         Py_DECREF(module_name);
     }
 

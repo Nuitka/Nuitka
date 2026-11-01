@@ -2912,7 +2912,7 @@ static PyObject *createModuleSpec(PyThreadState *tstate, PyObject *module_name, 
 
     char const *kw_keys[] = {"is_package", "origin"};
 
-    PyObject *kw_args = MAKE_DICT_X_CSTR(kw_keys, kw_values, sizeof(kw_values) / sizeof(PyObject *));
+    PyObject *kw_args = MAKE_DICT_CSTR_X(tstate, kw_keys, kw_values, sizeof(kw_values) / sizeof(PyObject *));
 
     PyObject *result = CALL_FUNCTION(tstate, module_spec_class, args, kw_args);
 

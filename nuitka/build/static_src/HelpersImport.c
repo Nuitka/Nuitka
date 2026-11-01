@@ -27,7 +27,7 @@ PyObject *IMPORT_MODULE_KW(PyThreadState *tstate, PyObject *module_name, PyObjec
     PyObject *kw_pairs[5 * 2] = {const_str_plain_name,   module_name, const_str_plain_globals,  globals,
                                  const_str_plain_locals, locals,      const_str_plain_fromlist, import_items,
                                  const_str_plain_level,  level};
-    PyObject *kw_args = MAKE_DICT_X(kw_pairs, 5);
+    PyObject *kw_args = MAKE_DICT_UNICODE_X(tstate, kw_pairs, 5);
 
     NUITKA_ASSIGN_BUILTIN(__import__);
 

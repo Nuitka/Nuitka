@@ -728,7 +728,7 @@ bool PRINT_NEW_LINE_TO(PyObject *file) {
         result = CALL_FUNCTION_NO_ARGS(tstate, NUITKA_ACCESS_BUILTIN(print));
     } else {
         PyObject *kw_pairs[2] = {const_str_plain_file, GET_STDOUT()};
-        PyObject *kw_args = MAKE_DICT(kw_pairs, 1);
+        PyObject *kw_args = MAKE_DICT_UNICODE(tstate, kw_pairs, 1);
 
         // TODO: This should use something that does not build a dictionary at all, and not
         // uses a tuple.
@@ -1328,7 +1328,7 @@ PyObject *BUILTIN_ZIP310(PyThreadState *tstate, PyObject *iterables, PyObject *s
     PyObject *kw_values[] = {strict};
     char const *kw_keys[] = {"strict"};
 
-    PyObject *kw_args = MAKE_DICT_X_CSTR(kw_keys, kw_values, 1);
+    PyObject *kw_args = MAKE_DICT_CSTR_X(tstate, kw_keys, kw_values, 1);
 
     PyObject *result = CALL_FUNCTION(tstate, (PyObject *)&PyZip_Type, iterables, kw_args);
     Py_XDECREF(kw_args);
