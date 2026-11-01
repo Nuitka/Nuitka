@@ -17,9 +17,10 @@ from nuitka.options.Options import (
     getCompilationMode,
     getMacOSTargetArch,
     isShowInclusion,
+    isUnstripped,
 )
 from nuitka.PythonVersions import python_version
-from nuitka.targets.Targets import isElfTarget
+from nuitka.targets.Targets import isElfTarget, isMachOTarget
 from nuitka.Tracing import inclusion_logger, postprocessing_logger
 
 from .Execution import executeToolChecked, filterOutputByLine
@@ -1250,6 +1251,75 @@ def makeMacOSThinBinary(dest_path, original_path):
         )
 
 
+_strip_usage = (
+    "The 'strip' tool is used to reduce the size of binaries and required to be found."
+)
+
+
+def _filterStripErrorOutput(stderr, filename):
+    # Need to tolerate complaints about strip on signed code on macOS
+    stderr = b"\n".join(
+        line
+        for line in stderr.splitlines()
+        if line
+        if b"invalidate the code signature" not in line
+    )
+
+    # Older 'binutils' versions cannot strip files whose program headers in some cases
+    # but then we just ignore the error and report it as information.
+    if b"Not enough room for program headers" in stderr:
+        if str is not bytes:
+            stderr = stderr.decode("utf8", "replace")
+
+        postprocessing_logger.info(
+            "Info, 'strip' failed for '%s', leaving file unstripped: %s"
+            % (filename, stderr)
+        )
+
+        return 0, b""
+
+    return None, stderr
+
+
+def stripBinarySymbols(filename):
+    """Strip a binary file of symbols that are not needed at runtime.
+
+    Args:
+        filename: Path to the binary file to strip.
+
+    Notes:
+        This is only used for ELF and macOS binaries. On Windows, debug
+        information is in separate PDB files, and stripping PE files is not
+        generally beneficial.
+
+        For ELF, symbols not needed for relocations are removed, which is the
+        safe maximum for shared libraries. For macOS, local symbols and debug
+        information are removed, while global symbols are preserved for
+        dynamic linking.
+
+        Since stripping is only done to reduce the size of the distribution,
+        known failures are tolerated and leave the file unstripped, while
+        unknown errors remain fatal.
+    """
+    if isMachOTarget():
+        command = ("strip", "-S", "-x", filename)
+    else:
+        assert isElfTarget(), filename
+        command = ("strip", "--strip-unneeded", filename)
+
+    # TODO: The 'strip' command should run through the target specification,
+    # which we currently cannot do yet. Until then this won't work for cross
+    # compilation, and a lot of commands and tool calls will need that.
+    with withMadeWritableFileMode(filename):
+        executeToolChecked(
+            logger=postprocessing_logger,
+            command=command,
+            stderr_filter=_filterStripErrorOutput,
+            context={"filename": filename},
+            absence_message=_strip_usage,
+        )
+
+
 def _isSymlinkTargetEntryPoint(
     source_path, target_filename, dist_dir, other_entry_points
 ):
@@ -1317,8 +1387,11 @@ def copyDllFile(source_path, dist_dir, dest_path, executable, other_entry_points
         if isWin32Windows() and python_version < 0x300:
             _removeSxsFromDLL(target_filename)
 
-        if isMacOS():
+        if isMachOTarget():
             makeMacOSThinBinary(dest_path=target_filename, original_path=source_path)
+
+        if (isElfTarget() or isMachOTarget()) and not isUnstripped():
+            stripBinarySymbols(target_filename)
 
         if isElfTarget():
             rpaths = getStandaloneEntryPointRPATHs(

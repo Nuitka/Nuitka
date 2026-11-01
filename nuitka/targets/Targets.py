@@ -92,6 +92,10 @@ class TargetBase(object):
         """Return whether this target uses the ELF file format."""
         return self.binary_format == "elf"
 
+    def isMachOTarget(self):
+        """Return whether this target uses the Mach-O file format."""
+        return self.binary_format == "macho"
+
     def isRPathUsingTarget(self):
         """Return whether this target uses RPATH or an equivalent."""
         return self.rpath_using
@@ -294,6 +298,11 @@ def isWin32Target():
 def isElfTarget():
     """Return whether the installed target uses the ELF file format."""
     return _target_specification.isElfTarget()
+
+
+def isMachOTarget():
+    """Return whether the installed target uses the Mach-O file format."""
+    return _target_specification.isMachOTarget()
 
 
 def isWin32OrPosixWindowsTarget():

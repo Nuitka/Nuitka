@@ -604,7 +604,15 @@ def filterOutputByLine(output, filter_func):
 # Nuitka or the tests are run by a translated x86_64 process, where they
 # would otherwise fail to load their libraries. This includes "git", which
 # is a shim that loads the ARM64 only "libxcrun" library.
-_macos_native_arch_tools = ("git", "install_name_tool", "lldb", "lipo", "nm", "otool")
+_macos_native_arch_tools = (
+    "git",
+    "install_name_tool",
+    "lldb",
+    "lipo",
+    "nm",
+    "otool",
+    "strip",
+)
 
 
 def getToolArchPrefix(tool):

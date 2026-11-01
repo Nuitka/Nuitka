@@ -1897,7 +1897,8 @@ def isUnstripped():
     necessary, but it doesn't enable debug checks like ``--debug`` does.
 
     Passed to Scons as ``unstripped_mode`` to it can ask the linker to
-    include symbol information.
+    include symbol information. It also controls whether copied extension
+    modules and shared libraries are stripped after copying.
     """
     return (
         options.unstripped
