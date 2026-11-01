@@ -600,6 +600,7 @@ static int multiprocessing_forkserver_fd1 = -1;
 static int multiprocessing_forkserver_fd2 = -1;
 #if PYTHON_VERSION >= 0x3e0
 static int multiprocessing_forkserver_authkey_fd = -1;
+static int multiprocessing_forkserver_argv_offset = -1;
 #endif
 
 // This is a multiprocessing resource or semaphore tracker if not -1
@@ -734,6 +735,10 @@ static void setCommandLineParameters(int argc, wchar_t **argv) {
                         multiprocessing_forkserver_authkey_fd = -1;
                     }
                 }
+
+                // The args after the command are the ones of the parent process,
+                // remove our own "-c" invocation from "sys.argv" later.
+                multiprocessing_forkserver_argv_offset = i + 2;
 
                 is_multiprocessing_forkserver = true;
                 break;
@@ -2285,6 +2290,16 @@ static int Nuitka_Main(int argc, native_command_line_argument_t **argv) {
 
         PyObject *main_function = PyObject_GetAttrString(forkserver_module, "main");
         CHECK_OBJECT(main_function);
+
+#if PYTHON_VERSION >= 0x3e0
+        if (multiprocessing_forkserver_argv_offset != -1) {
+            // Remove the "-c" and its command from "sys.argv", like CPython does
+            // for the forkserver, leaving the arguments of the parent process.
+            PyObject *argv_list = Nuitka_SysGetObject("argv");
+            NUITKA_MAY_BE_UNUSED bool res = LIST_DEL_SLICE(argv_list, 0, multiprocessing_forkserver_argv_offset);
+            assert(res);
+        }
+#endif
 
         PyObject *main_list = MAKE_LIST_EMPTY(tstate, 1);
         PyList_SET_ITEM(main_list, 0, Nuitka_String_FromString("__main__"));
