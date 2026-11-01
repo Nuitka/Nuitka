@@ -529,6 +529,8 @@ static inline PyObject *MAKE_DICT_EMPTY(PyThreadState *tstate) {
 }
 #endif
 
+// Create a dictionary from keyword argument names and their values.
+extern PyObject *MAKE_DICT_FROM_KWARGS(PyThreadState *tstate, PyObject *kw_names, PyObject *const *kw_values);
 // Create a dictionary from key/value pairs.
 extern PyObject *MAKE_DICT(PyObject **pairs, Py_ssize_t size);
 // Create a dictionary from key/value pairs (NULL value means skip)

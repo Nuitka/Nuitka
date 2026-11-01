@@ -157,7 +157,6 @@
     "_NUITKA_WINMAIN_ENTRY_POINT",
     "_Py_DEC_REFTOTAL",
     "_Py_DecodeUTF8_surrogateescape",
-    "_PyDict_NewPresized",
     "_wfreopen",
     "_wtoi",
     "_XOPEN_SOURCE",

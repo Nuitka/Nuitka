@@ -9138,8 +9138,6 @@ PyObject *CALL_FUNCTION_WITH_NO_ARGS_KW_SPLIT(PyThreadState *tstate, PyObject *c
     assert(PyTuple_CheckExact(kw_names));
     CHECK_OBJECT(called);
 
-    Py_ssize_t kwargs_count = PyTuple_GET_SIZE(kw_names);
-
     CHECK_OBJECTS(kw_values, PyTuple_GET_SIZE(kw_names));
 
     if (Nuitka_Function_Check(called)) {
@@ -9190,17 +9188,12 @@ PyObject *CALL_FUNCTION_WITH_NO_ARGS_KW_SPLIT(PyThreadState *tstate, PyObject *c
 
     PyObject *pos_args = const_tuple_empty;
 
-    PyObject *named_args = _PyDict_NewPresized(kwargs_count);
+    PyObject *named_args = MAKE_DICT_FROM_KWARGS(tstate, kw_names, kw_values);
 
-    for (Py_ssize_t i = 0; i < kwargs_count; i++) {
-        PyObject *key = PyTuple_GET_ITEM(kw_names, i);
+    if (unlikely(named_args == NULL)) {
+        Py_LeaveRecursiveCall();
 
-        PyObject *value = kw_values[i];
-
-        CHECK_OBJECT(key);
-        CHECK_OBJECT(value);
-
-        DICT_SET_ITEM(named_args, key, value);
+        return NULL;
     }
 
     PyObject *result = (*call_slot)(called, pos_args, named_args);
@@ -9273,17 +9266,13 @@ PyObject *CALL_FUNCTION_WITH_ARGS1_VECTORCALL(PyThreadState *tstate, PyObject *c
 
     PyObject *pos_args = MAKE_TUPLE(tstate, args, 1);
 
-    PyObject *named_args = _PyDict_NewPresized(kwargs_count);
+    PyObject *named_args = MAKE_DICT_FROM_KWARGS(tstate, kw_names, &args[1]);
 
-    for (Py_ssize_t i = 0; i < kwargs_count; i++) {
-        PyObject *key = PyTuple_GET_ITEM(kw_names, i);
+    if (unlikely(named_args == NULL)) {
+        Py_DECREF(pos_args);
+        Py_LeaveRecursiveCall();
 
-        PyObject *value = args[1 + i];
-
-        CHECK_OBJECT(key);
-        CHECK_OBJECT(value);
-
-        DICT_SET_ITEM(named_args, key, value);
+        return NULL;
     }
 
     PyObject *result = (*call_slot)(called, pos_args, named_args);
@@ -9306,7 +9295,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS1_KW_SPLIT(PyThreadState *tstate, PyObject *cal
 
     Py_ssize_t kwargs_count = PyTuple_GET_SIZE(kw_names);
 
-    CHECK_OBJECTS(kw_values, PyTuple_GET_SIZE(kw_names));
+    CHECK_OBJECTS(kw_values, kwargs_count);
 
     if (Nuitka_Function_Check(called)) {
         if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
@@ -9361,17 +9350,13 @@ PyObject *CALL_FUNCTION_WITH_ARGS1_KW_SPLIT(PyThreadState *tstate, PyObject *cal
 
     PyObject *pos_args = MAKE_TUPLE(tstate, args, 1);
 
-    PyObject *named_args = _PyDict_NewPresized(kwargs_count);
+    PyObject *named_args = MAKE_DICT_FROM_KWARGS(tstate, kw_names, kw_values);
 
-    for (Py_ssize_t i = 0; i < kwargs_count; i++) {
-        PyObject *key = PyTuple_GET_ITEM(kw_names, i);
+    if (unlikely(named_args == NULL)) {
+        Py_DECREF(pos_args);
+        Py_LeaveRecursiveCall();
 
-        PyObject *value = kw_values[i];
-
-        CHECK_OBJECT(key);
-        CHECK_OBJECT(value);
-
-        DICT_SET_ITEM(named_args, key, value);
+        return NULL;
     }
 
     PyObject *result = (*call_slot)(called, pos_args, named_args);
@@ -9396,7 +9381,7 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS1_KW_SPLIT(PyThreadState *tstate, PyObject 
 
     Py_ssize_t kwargs_count = PyTuple_GET_SIZE(kw_names);
 
-    CHECK_OBJECTS(kw_values, PyTuple_GET_SIZE(kw_names));
+    CHECK_OBJECTS(kw_values, kwargs_count);
 
     if (Nuitka_Function_Check(called)) {
         if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
@@ -9449,17 +9434,12 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS1_KW_SPLIT(PyThreadState *tstate, PyObject 
         return NULL;
     }
 
-    PyObject *named_args = _PyDict_NewPresized(kwargs_count);
+    PyObject *named_args = MAKE_DICT_FROM_KWARGS(tstate, kw_names, kw_values);
 
-    for (Py_ssize_t i = 0; i < kwargs_count; i++) {
-        PyObject *key = PyTuple_GET_ITEM(kw_names, i);
+    if (unlikely(named_args == NULL)) {
+        Py_LeaveRecursiveCall();
 
-        PyObject *value = kw_values[i];
-
-        CHECK_OBJECT(key);
-        CHECK_OBJECT(value);
-
-        DICT_SET_ITEM(named_args, key, value);
+        return NULL;
     }
 
     PyObject *result = (*call_slot)(called, pos_args, named_args);
@@ -9532,17 +9512,13 @@ PyObject *CALL_FUNCTION_WITH_ARGS2_VECTORCALL(PyThreadState *tstate, PyObject *c
 
     PyObject *pos_args = MAKE_TUPLE(tstate, args, 2);
 
-    PyObject *named_args = _PyDict_NewPresized(kwargs_count);
+    PyObject *named_args = MAKE_DICT_FROM_KWARGS(tstate, kw_names, &args[2]);
 
-    for (Py_ssize_t i = 0; i < kwargs_count; i++) {
-        PyObject *key = PyTuple_GET_ITEM(kw_names, i);
+    if (unlikely(named_args == NULL)) {
+        Py_DECREF(pos_args);
+        Py_LeaveRecursiveCall();
 
-        PyObject *value = args[2 + i];
-
-        CHECK_OBJECT(key);
-        CHECK_OBJECT(value);
-
-        DICT_SET_ITEM(named_args, key, value);
+        return NULL;
     }
 
     PyObject *result = (*call_slot)(called, pos_args, named_args);
@@ -9565,7 +9541,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS2_KW_SPLIT(PyThreadState *tstate, PyObject *cal
 
     Py_ssize_t kwargs_count = PyTuple_GET_SIZE(kw_names);
 
-    CHECK_OBJECTS(kw_values, PyTuple_GET_SIZE(kw_names));
+    CHECK_OBJECTS(kw_values, kwargs_count);
 
     if (Nuitka_Function_Check(called)) {
         if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
@@ -9620,17 +9596,13 @@ PyObject *CALL_FUNCTION_WITH_ARGS2_KW_SPLIT(PyThreadState *tstate, PyObject *cal
 
     PyObject *pos_args = MAKE_TUPLE(tstate, args, 2);
 
-    PyObject *named_args = _PyDict_NewPresized(kwargs_count);
+    PyObject *named_args = MAKE_DICT_FROM_KWARGS(tstate, kw_names, kw_values);
 
-    for (Py_ssize_t i = 0; i < kwargs_count; i++) {
-        PyObject *key = PyTuple_GET_ITEM(kw_names, i);
+    if (unlikely(named_args == NULL)) {
+        Py_DECREF(pos_args);
+        Py_LeaveRecursiveCall();
 
-        PyObject *value = kw_values[i];
-
-        CHECK_OBJECT(key);
-        CHECK_OBJECT(value);
-
-        DICT_SET_ITEM(named_args, key, value);
+        return NULL;
     }
 
     PyObject *result = (*call_slot)(called, pos_args, named_args);
@@ -9655,7 +9627,7 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS2_KW_SPLIT(PyThreadState *tstate, PyObject 
 
     Py_ssize_t kwargs_count = PyTuple_GET_SIZE(kw_names);
 
-    CHECK_OBJECTS(kw_values, PyTuple_GET_SIZE(kw_names));
+    CHECK_OBJECTS(kw_values, kwargs_count);
 
     if (Nuitka_Function_Check(called)) {
         if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
@@ -9708,17 +9680,12 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS2_KW_SPLIT(PyThreadState *tstate, PyObject 
         return NULL;
     }
 
-    PyObject *named_args = _PyDict_NewPresized(kwargs_count);
+    PyObject *named_args = MAKE_DICT_FROM_KWARGS(tstate, kw_names, kw_values);
 
-    for (Py_ssize_t i = 0; i < kwargs_count; i++) {
-        PyObject *key = PyTuple_GET_ITEM(kw_names, i);
+    if (unlikely(named_args == NULL)) {
+        Py_LeaveRecursiveCall();
 
-        PyObject *value = kw_values[i];
-
-        CHECK_OBJECT(key);
-        CHECK_OBJECT(value);
-
-        DICT_SET_ITEM(named_args, key, value);
+        return NULL;
     }
 
     PyObject *result = (*call_slot)(called, pos_args, named_args);
@@ -9791,17 +9758,13 @@ PyObject *CALL_FUNCTION_WITH_ARGS3_VECTORCALL(PyThreadState *tstate, PyObject *c
 
     PyObject *pos_args = MAKE_TUPLE(tstate, args, 3);
 
-    PyObject *named_args = _PyDict_NewPresized(kwargs_count);
+    PyObject *named_args = MAKE_DICT_FROM_KWARGS(tstate, kw_names, &args[3]);
 
-    for (Py_ssize_t i = 0; i < kwargs_count; i++) {
-        PyObject *key = PyTuple_GET_ITEM(kw_names, i);
+    if (unlikely(named_args == NULL)) {
+        Py_DECREF(pos_args);
+        Py_LeaveRecursiveCall();
 
-        PyObject *value = args[3 + i];
-
-        CHECK_OBJECT(key);
-        CHECK_OBJECT(value);
-
-        DICT_SET_ITEM(named_args, key, value);
+        return NULL;
     }
 
     PyObject *result = (*call_slot)(called, pos_args, named_args);
@@ -9824,7 +9787,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS3_KW_SPLIT(PyThreadState *tstate, PyObject *cal
 
     Py_ssize_t kwargs_count = PyTuple_GET_SIZE(kw_names);
 
-    CHECK_OBJECTS(kw_values, PyTuple_GET_SIZE(kw_names));
+    CHECK_OBJECTS(kw_values, kwargs_count);
 
     if (Nuitka_Function_Check(called)) {
         if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
@@ -9879,17 +9842,13 @@ PyObject *CALL_FUNCTION_WITH_ARGS3_KW_SPLIT(PyThreadState *tstate, PyObject *cal
 
     PyObject *pos_args = MAKE_TUPLE(tstate, args, 3);
 
-    PyObject *named_args = _PyDict_NewPresized(kwargs_count);
+    PyObject *named_args = MAKE_DICT_FROM_KWARGS(tstate, kw_names, kw_values);
 
-    for (Py_ssize_t i = 0; i < kwargs_count; i++) {
-        PyObject *key = PyTuple_GET_ITEM(kw_names, i);
+    if (unlikely(named_args == NULL)) {
+        Py_DECREF(pos_args);
+        Py_LeaveRecursiveCall();
 
-        PyObject *value = kw_values[i];
-
-        CHECK_OBJECT(key);
-        CHECK_OBJECT(value);
-
-        DICT_SET_ITEM(named_args, key, value);
+        return NULL;
     }
 
     PyObject *result = (*call_slot)(called, pos_args, named_args);
@@ -9914,7 +9873,7 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS3_KW_SPLIT(PyThreadState *tstate, PyObject 
 
     Py_ssize_t kwargs_count = PyTuple_GET_SIZE(kw_names);
 
-    CHECK_OBJECTS(kw_values, PyTuple_GET_SIZE(kw_names));
+    CHECK_OBJECTS(kw_values, kwargs_count);
 
     if (Nuitka_Function_Check(called)) {
         if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
@@ -9967,17 +9926,12 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS3_KW_SPLIT(PyThreadState *tstate, PyObject 
         return NULL;
     }
 
-    PyObject *named_args = _PyDict_NewPresized(kwargs_count);
+    PyObject *named_args = MAKE_DICT_FROM_KWARGS(tstate, kw_names, kw_values);
 
-    for (Py_ssize_t i = 0; i < kwargs_count; i++) {
-        PyObject *key = PyTuple_GET_ITEM(kw_names, i);
+    if (unlikely(named_args == NULL)) {
+        Py_LeaveRecursiveCall();
 
-        PyObject *value = kw_values[i];
-
-        CHECK_OBJECT(key);
-        CHECK_OBJECT(value);
-
-        DICT_SET_ITEM(named_args, key, value);
+        return NULL;
     }
 
     PyObject *result = (*call_slot)(called, pos_args, named_args);
@@ -10050,17 +10004,13 @@ PyObject *CALL_FUNCTION_WITH_ARGS4_VECTORCALL(PyThreadState *tstate, PyObject *c
 
     PyObject *pos_args = MAKE_TUPLE(tstate, args, 4);
 
-    PyObject *named_args = _PyDict_NewPresized(kwargs_count);
+    PyObject *named_args = MAKE_DICT_FROM_KWARGS(tstate, kw_names, &args[4]);
 
-    for (Py_ssize_t i = 0; i < kwargs_count; i++) {
-        PyObject *key = PyTuple_GET_ITEM(kw_names, i);
+    if (unlikely(named_args == NULL)) {
+        Py_DECREF(pos_args);
+        Py_LeaveRecursiveCall();
 
-        PyObject *value = args[4 + i];
-
-        CHECK_OBJECT(key);
-        CHECK_OBJECT(value);
-
-        DICT_SET_ITEM(named_args, key, value);
+        return NULL;
     }
 
     PyObject *result = (*call_slot)(called, pos_args, named_args);
@@ -10083,7 +10033,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS4_KW_SPLIT(PyThreadState *tstate, PyObject *cal
 
     Py_ssize_t kwargs_count = PyTuple_GET_SIZE(kw_names);
 
-    CHECK_OBJECTS(kw_values, PyTuple_GET_SIZE(kw_names));
+    CHECK_OBJECTS(kw_values, kwargs_count);
 
     if (Nuitka_Function_Check(called)) {
         if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
@@ -10138,17 +10088,13 @@ PyObject *CALL_FUNCTION_WITH_ARGS4_KW_SPLIT(PyThreadState *tstate, PyObject *cal
 
     PyObject *pos_args = MAKE_TUPLE(tstate, args, 4);
 
-    PyObject *named_args = _PyDict_NewPresized(kwargs_count);
+    PyObject *named_args = MAKE_DICT_FROM_KWARGS(tstate, kw_names, kw_values);
 
-    for (Py_ssize_t i = 0; i < kwargs_count; i++) {
-        PyObject *key = PyTuple_GET_ITEM(kw_names, i);
+    if (unlikely(named_args == NULL)) {
+        Py_DECREF(pos_args);
+        Py_LeaveRecursiveCall();
 
-        PyObject *value = kw_values[i];
-
-        CHECK_OBJECT(key);
-        CHECK_OBJECT(value);
-
-        DICT_SET_ITEM(named_args, key, value);
+        return NULL;
     }
 
     PyObject *result = (*call_slot)(called, pos_args, named_args);
@@ -10173,7 +10119,7 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS4_KW_SPLIT(PyThreadState *tstate, PyObject 
 
     Py_ssize_t kwargs_count = PyTuple_GET_SIZE(kw_names);
 
-    CHECK_OBJECTS(kw_values, PyTuple_GET_SIZE(kw_names));
+    CHECK_OBJECTS(kw_values, kwargs_count);
 
     if (Nuitka_Function_Check(called)) {
         if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
@@ -10226,17 +10172,12 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS4_KW_SPLIT(PyThreadState *tstate, PyObject 
         return NULL;
     }
 
-    PyObject *named_args = _PyDict_NewPresized(kwargs_count);
+    PyObject *named_args = MAKE_DICT_FROM_KWARGS(tstate, kw_names, kw_values);
 
-    for (Py_ssize_t i = 0; i < kwargs_count; i++) {
-        PyObject *key = PyTuple_GET_ITEM(kw_names, i);
+    if (unlikely(named_args == NULL)) {
+        Py_LeaveRecursiveCall();
 
-        PyObject *value = kw_values[i];
-
-        CHECK_OBJECT(key);
-        CHECK_OBJECT(value);
-
-        DICT_SET_ITEM(named_args, key, value);
+        return NULL;
     }
 
     PyObject *result = (*call_slot)(called, pos_args, named_args);
@@ -10309,17 +10250,13 @@ PyObject *CALL_FUNCTION_WITH_ARGS5_VECTORCALL(PyThreadState *tstate, PyObject *c
 
     PyObject *pos_args = MAKE_TUPLE(tstate, args, 5);
 
-    PyObject *named_args = _PyDict_NewPresized(kwargs_count);
+    PyObject *named_args = MAKE_DICT_FROM_KWARGS(tstate, kw_names, &args[5]);
 
-    for (Py_ssize_t i = 0; i < kwargs_count; i++) {
-        PyObject *key = PyTuple_GET_ITEM(kw_names, i);
+    if (unlikely(named_args == NULL)) {
+        Py_DECREF(pos_args);
+        Py_LeaveRecursiveCall();
 
-        PyObject *value = args[5 + i];
-
-        CHECK_OBJECT(key);
-        CHECK_OBJECT(value);
-
-        DICT_SET_ITEM(named_args, key, value);
+        return NULL;
     }
 
     PyObject *result = (*call_slot)(called, pos_args, named_args);
@@ -10342,7 +10279,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS5_KW_SPLIT(PyThreadState *tstate, PyObject *cal
 
     Py_ssize_t kwargs_count = PyTuple_GET_SIZE(kw_names);
 
-    CHECK_OBJECTS(kw_values, PyTuple_GET_SIZE(kw_names));
+    CHECK_OBJECTS(kw_values, kwargs_count);
 
     if (Nuitka_Function_Check(called)) {
         if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
@@ -10397,17 +10334,13 @@ PyObject *CALL_FUNCTION_WITH_ARGS5_KW_SPLIT(PyThreadState *tstate, PyObject *cal
 
     PyObject *pos_args = MAKE_TUPLE(tstate, args, 5);
 
-    PyObject *named_args = _PyDict_NewPresized(kwargs_count);
+    PyObject *named_args = MAKE_DICT_FROM_KWARGS(tstate, kw_names, kw_values);
 
-    for (Py_ssize_t i = 0; i < kwargs_count; i++) {
-        PyObject *key = PyTuple_GET_ITEM(kw_names, i);
+    if (unlikely(named_args == NULL)) {
+        Py_DECREF(pos_args);
+        Py_LeaveRecursiveCall();
 
-        PyObject *value = kw_values[i];
-
-        CHECK_OBJECT(key);
-        CHECK_OBJECT(value);
-
-        DICT_SET_ITEM(named_args, key, value);
+        return NULL;
     }
 
     PyObject *result = (*call_slot)(called, pos_args, named_args);
@@ -10432,7 +10365,7 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS5_KW_SPLIT(PyThreadState *tstate, PyObject 
 
     Py_ssize_t kwargs_count = PyTuple_GET_SIZE(kw_names);
 
-    CHECK_OBJECTS(kw_values, PyTuple_GET_SIZE(kw_names));
+    CHECK_OBJECTS(kw_values, kwargs_count);
 
     if (Nuitka_Function_Check(called)) {
         if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
@@ -10485,17 +10418,12 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS5_KW_SPLIT(PyThreadState *tstate, PyObject 
         return NULL;
     }
 
-    PyObject *named_args = _PyDict_NewPresized(kwargs_count);
+    PyObject *named_args = MAKE_DICT_FROM_KWARGS(tstate, kw_names, kw_values);
 
-    for (Py_ssize_t i = 0; i < kwargs_count; i++) {
-        PyObject *key = PyTuple_GET_ITEM(kw_names, i);
+    if (unlikely(named_args == NULL)) {
+        Py_LeaveRecursiveCall();
 
-        PyObject *value = kw_values[i];
-
-        CHECK_OBJECT(key);
-        CHECK_OBJECT(value);
-
-        DICT_SET_ITEM(named_args, key, value);
+        return NULL;
     }
 
     PyObject *result = (*call_slot)(called, pos_args, named_args);
@@ -10568,17 +10496,13 @@ PyObject *CALL_FUNCTION_WITH_ARGS6_VECTORCALL(PyThreadState *tstate, PyObject *c
 
     PyObject *pos_args = MAKE_TUPLE(tstate, args, 6);
 
-    PyObject *named_args = _PyDict_NewPresized(kwargs_count);
+    PyObject *named_args = MAKE_DICT_FROM_KWARGS(tstate, kw_names, &args[6]);
 
-    for (Py_ssize_t i = 0; i < kwargs_count; i++) {
-        PyObject *key = PyTuple_GET_ITEM(kw_names, i);
+    if (unlikely(named_args == NULL)) {
+        Py_DECREF(pos_args);
+        Py_LeaveRecursiveCall();
 
-        PyObject *value = args[6 + i];
-
-        CHECK_OBJECT(key);
-        CHECK_OBJECT(value);
-
-        DICT_SET_ITEM(named_args, key, value);
+        return NULL;
     }
 
     PyObject *result = (*call_slot)(called, pos_args, named_args);
@@ -10601,7 +10525,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS6_KW_SPLIT(PyThreadState *tstate, PyObject *cal
 
     Py_ssize_t kwargs_count = PyTuple_GET_SIZE(kw_names);
 
-    CHECK_OBJECTS(kw_values, PyTuple_GET_SIZE(kw_names));
+    CHECK_OBJECTS(kw_values, kwargs_count);
 
     if (Nuitka_Function_Check(called)) {
         if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
@@ -10656,17 +10580,13 @@ PyObject *CALL_FUNCTION_WITH_ARGS6_KW_SPLIT(PyThreadState *tstate, PyObject *cal
 
     PyObject *pos_args = MAKE_TUPLE(tstate, args, 6);
 
-    PyObject *named_args = _PyDict_NewPresized(kwargs_count);
+    PyObject *named_args = MAKE_DICT_FROM_KWARGS(tstate, kw_names, kw_values);
 
-    for (Py_ssize_t i = 0; i < kwargs_count; i++) {
-        PyObject *key = PyTuple_GET_ITEM(kw_names, i);
+    if (unlikely(named_args == NULL)) {
+        Py_DECREF(pos_args);
+        Py_LeaveRecursiveCall();
 
-        PyObject *value = kw_values[i];
-
-        CHECK_OBJECT(key);
-        CHECK_OBJECT(value);
-
-        DICT_SET_ITEM(named_args, key, value);
+        return NULL;
     }
 
     PyObject *result = (*call_slot)(called, pos_args, named_args);
@@ -10691,7 +10611,7 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS6_KW_SPLIT(PyThreadState *tstate, PyObject 
 
     Py_ssize_t kwargs_count = PyTuple_GET_SIZE(kw_names);
 
-    CHECK_OBJECTS(kw_values, PyTuple_GET_SIZE(kw_names));
+    CHECK_OBJECTS(kw_values, kwargs_count);
 
     if (Nuitka_Function_Check(called)) {
         if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
@@ -10744,17 +10664,12 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS6_KW_SPLIT(PyThreadState *tstate, PyObject 
         return NULL;
     }
 
-    PyObject *named_args = _PyDict_NewPresized(kwargs_count);
+    PyObject *named_args = MAKE_DICT_FROM_KWARGS(tstate, kw_names, kw_values);
 
-    for (Py_ssize_t i = 0; i < kwargs_count; i++) {
-        PyObject *key = PyTuple_GET_ITEM(kw_names, i);
+    if (unlikely(named_args == NULL)) {
+        Py_LeaveRecursiveCall();
 
-        PyObject *value = kw_values[i];
-
-        CHECK_OBJECT(key);
-        CHECK_OBJECT(value);
-
-        DICT_SET_ITEM(named_args, key, value);
+        return NULL;
     }
 
     PyObject *result = (*call_slot)(called, pos_args, named_args);
@@ -10827,17 +10742,13 @@ PyObject *CALL_FUNCTION_WITH_ARGS7_VECTORCALL(PyThreadState *tstate, PyObject *c
 
     PyObject *pos_args = MAKE_TUPLE(tstate, args, 7);
 
-    PyObject *named_args = _PyDict_NewPresized(kwargs_count);
+    PyObject *named_args = MAKE_DICT_FROM_KWARGS(tstate, kw_names, &args[7]);
 
-    for (Py_ssize_t i = 0; i < kwargs_count; i++) {
-        PyObject *key = PyTuple_GET_ITEM(kw_names, i);
+    if (unlikely(named_args == NULL)) {
+        Py_DECREF(pos_args);
+        Py_LeaveRecursiveCall();
 
-        PyObject *value = args[7 + i];
-
-        CHECK_OBJECT(key);
-        CHECK_OBJECT(value);
-
-        DICT_SET_ITEM(named_args, key, value);
+        return NULL;
     }
 
     PyObject *result = (*call_slot)(called, pos_args, named_args);
@@ -10860,7 +10771,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS7_KW_SPLIT(PyThreadState *tstate, PyObject *cal
 
     Py_ssize_t kwargs_count = PyTuple_GET_SIZE(kw_names);
 
-    CHECK_OBJECTS(kw_values, PyTuple_GET_SIZE(kw_names));
+    CHECK_OBJECTS(kw_values, kwargs_count);
 
     if (Nuitka_Function_Check(called)) {
         if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
@@ -10915,17 +10826,13 @@ PyObject *CALL_FUNCTION_WITH_ARGS7_KW_SPLIT(PyThreadState *tstate, PyObject *cal
 
     PyObject *pos_args = MAKE_TUPLE(tstate, args, 7);
 
-    PyObject *named_args = _PyDict_NewPresized(kwargs_count);
+    PyObject *named_args = MAKE_DICT_FROM_KWARGS(tstate, kw_names, kw_values);
 
-    for (Py_ssize_t i = 0; i < kwargs_count; i++) {
-        PyObject *key = PyTuple_GET_ITEM(kw_names, i);
+    if (unlikely(named_args == NULL)) {
+        Py_DECREF(pos_args);
+        Py_LeaveRecursiveCall();
 
-        PyObject *value = kw_values[i];
-
-        CHECK_OBJECT(key);
-        CHECK_OBJECT(value);
-
-        DICT_SET_ITEM(named_args, key, value);
+        return NULL;
     }
 
     PyObject *result = (*call_slot)(called, pos_args, named_args);
@@ -10950,7 +10857,7 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS7_KW_SPLIT(PyThreadState *tstate, PyObject 
 
     Py_ssize_t kwargs_count = PyTuple_GET_SIZE(kw_names);
 
-    CHECK_OBJECTS(kw_values, PyTuple_GET_SIZE(kw_names));
+    CHECK_OBJECTS(kw_values, kwargs_count);
 
     if (Nuitka_Function_Check(called)) {
         if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
@@ -11003,17 +10910,12 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS7_KW_SPLIT(PyThreadState *tstate, PyObject 
         return NULL;
     }
 
-    PyObject *named_args = _PyDict_NewPresized(kwargs_count);
+    PyObject *named_args = MAKE_DICT_FROM_KWARGS(tstate, kw_names, kw_values);
 
-    for (Py_ssize_t i = 0; i < kwargs_count; i++) {
-        PyObject *key = PyTuple_GET_ITEM(kw_names, i);
+    if (unlikely(named_args == NULL)) {
+        Py_LeaveRecursiveCall();
 
-        PyObject *value = kw_values[i];
-
-        CHECK_OBJECT(key);
-        CHECK_OBJECT(value);
-
-        DICT_SET_ITEM(named_args, key, value);
+        return NULL;
     }
 
     PyObject *result = (*call_slot)(called, pos_args, named_args);
@@ -11086,17 +10988,13 @@ PyObject *CALL_FUNCTION_WITH_ARGS8_VECTORCALL(PyThreadState *tstate, PyObject *c
 
     PyObject *pos_args = MAKE_TUPLE(tstate, args, 8);
 
-    PyObject *named_args = _PyDict_NewPresized(kwargs_count);
+    PyObject *named_args = MAKE_DICT_FROM_KWARGS(tstate, kw_names, &args[8]);
 
-    for (Py_ssize_t i = 0; i < kwargs_count; i++) {
-        PyObject *key = PyTuple_GET_ITEM(kw_names, i);
+    if (unlikely(named_args == NULL)) {
+        Py_DECREF(pos_args);
+        Py_LeaveRecursiveCall();
 
-        PyObject *value = args[8 + i];
-
-        CHECK_OBJECT(key);
-        CHECK_OBJECT(value);
-
-        DICT_SET_ITEM(named_args, key, value);
+        return NULL;
     }
 
     PyObject *result = (*call_slot)(called, pos_args, named_args);
@@ -11119,7 +11017,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS8_KW_SPLIT(PyThreadState *tstate, PyObject *cal
 
     Py_ssize_t kwargs_count = PyTuple_GET_SIZE(kw_names);
 
-    CHECK_OBJECTS(kw_values, PyTuple_GET_SIZE(kw_names));
+    CHECK_OBJECTS(kw_values, kwargs_count);
 
     if (Nuitka_Function_Check(called)) {
         if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
@@ -11174,17 +11072,13 @@ PyObject *CALL_FUNCTION_WITH_ARGS8_KW_SPLIT(PyThreadState *tstate, PyObject *cal
 
     PyObject *pos_args = MAKE_TUPLE(tstate, args, 8);
 
-    PyObject *named_args = _PyDict_NewPresized(kwargs_count);
+    PyObject *named_args = MAKE_DICT_FROM_KWARGS(tstate, kw_names, kw_values);
 
-    for (Py_ssize_t i = 0; i < kwargs_count; i++) {
-        PyObject *key = PyTuple_GET_ITEM(kw_names, i);
+    if (unlikely(named_args == NULL)) {
+        Py_DECREF(pos_args);
+        Py_LeaveRecursiveCall();
 
-        PyObject *value = kw_values[i];
-
-        CHECK_OBJECT(key);
-        CHECK_OBJECT(value);
-
-        DICT_SET_ITEM(named_args, key, value);
+        return NULL;
     }
 
     PyObject *result = (*call_slot)(called, pos_args, named_args);
@@ -11209,7 +11103,7 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS8_KW_SPLIT(PyThreadState *tstate, PyObject 
 
     Py_ssize_t kwargs_count = PyTuple_GET_SIZE(kw_names);
 
-    CHECK_OBJECTS(kw_values, PyTuple_GET_SIZE(kw_names));
+    CHECK_OBJECTS(kw_values, kwargs_count);
 
     if (Nuitka_Function_Check(called)) {
         if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
@@ -11262,17 +11156,12 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS8_KW_SPLIT(PyThreadState *tstate, PyObject 
         return NULL;
     }
 
-    PyObject *named_args = _PyDict_NewPresized(kwargs_count);
+    PyObject *named_args = MAKE_DICT_FROM_KWARGS(tstate, kw_names, kw_values);
 
-    for (Py_ssize_t i = 0; i < kwargs_count; i++) {
-        PyObject *key = PyTuple_GET_ITEM(kw_names, i);
+    if (unlikely(named_args == NULL)) {
+        Py_LeaveRecursiveCall();
 
-        PyObject *value = kw_values[i];
-
-        CHECK_OBJECT(key);
-        CHECK_OBJECT(value);
-
-        DICT_SET_ITEM(named_args, key, value);
+        return NULL;
     }
 
     PyObject *result = (*call_slot)(called, pos_args, named_args);
@@ -11345,17 +11234,13 @@ PyObject *CALL_FUNCTION_WITH_ARGS9_VECTORCALL(PyThreadState *tstate, PyObject *c
 
     PyObject *pos_args = MAKE_TUPLE(tstate, args, 9);
 
-    PyObject *named_args = _PyDict_NewPresized(kwargs_count);
+    PyObject *named_args = MAKE_DICT_FROM_KWARGS(tstate, kw_names, &args[9]);
 
-    for (Py_ssize_t i = 0; i < kwargs_count; i++) {
-        PyObject *key = PyTuple_GET_ITEM(kw_names, i);
+    if (unlikely(named_args == NULL)) {
+        Py_DECREF(pos_args);
+        Py_LeaveRecursiveCall();
 
-        PyObject *value = args[9 + i];
-
-        CHECK_OBJECT(key);
-        CHECK_OBJECT(value);
-
-        DICT_SET_ITEM(named_args, key, value);
+        return NULL;
     }
 
     PyObject *result = (*call_slot)(called, pos_args, named_args);
@@ -11378,7 +11263,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS9_KW_SPLIT(PyThreadState *tstate, PyObject *cal
 
     Py_ssize_t kwargs_count = PyTuple_GET_SIZE(kw_names);
 
-    CHECK_OBJECTS(kw_values, PyTuple_GET_SIZE(kw_names));
+    CHECK_OBJECTS(kw_values, kwargs_count);
 
     if (Nuitka_Function_Check(called)) {
         if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
@@ -11433,17 +11318,13 @@ PyObject *CALL_FUNCTION_WITH_ARGS9_KW_SPLIT(PyThreadState *tstate, PyObject *cal
 
     PyObject *pos_args = MAKE_TUPLE(tstate, args, 9);
 
-    PyObject *named_args = _PyDict_NewPresized(kwargs_count);
+    PyObject *named_args = MAKE_DICT_FROM_KWARGS(tstate, kw_names, kw_values);
 
-    for (Py_ssize_t i = 0; i < kwargs_count; i++) {
-        PyObject *key = PyTuple_GET_ITEM(kw_names, i);
+    if (unlikely(named_args == NULL)) {
+        Py_DECREF(pos_args);
+        Py_LeaveRecursiveCall();
 
-        PyObject *value = kw_values[i];
-
-        CHECK_OBJECT(key);
-        CHECK_OBJECT(value);
-
-        DICT_SET_ITEM(named_args, key, value);
+        return NULL;
     }
 
     PyObject *result = (*call_slot)(called, pos_args, named_args);
@@ -11468,7 +11349,7 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS9_KW_SPLIT(PyThreadState *tstate, PyObject 
 
     Py_ssize_t kwargs_count = PyTuple_GET_SIZE(kw_names);
 
-    CHECK_OBJECTS(kw_values, PyTuple_GET_SIZE(kw_names));
+    CHECK_OBJECTS(kw_values, kwargs_count);
 
     if (Nuitka_Function_Check(called)) {
         if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
@@ -11521,17 +11402,12 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS9_KW_SPLIT(PyThreadState *tstate, PyObject 
         return NULL;
     }
 
-    PyObject *named_args = _PyDict_NewPresized(kwargs_count);
+    PyObject *named_args = MAKE_DICT_FROM_KWARGS(tstate, kw_names, kw_values);
 
-    for (Py_ssize_t i = 0; i < kwargs_count; i++) {
-        PyObject *key = PyTuple_GET_ITEM(kw_names, i);
+    if (unlikely(named_args == NULL)) {
+        Py_LeaveRecursiveCall();
 
-        PyObject *value = kw_values[i];
-
-        CHECK_OBJECT(key);
-        CHECK_OBJECT(value);
-
-        DICT_SET_ITEM(named_args, key, value);
+        return NULL;
     }
 
     PyObject *result = (*call_slot)(called, pos_args, named_args);
@@ -11604,17 +11480,13 @@ PyObject *CALL_FUNCTION_WITH_ARGS10_VECTORCALL(PyThreadState *tstate, PyObject *
 
     PyObject *pos_args = MAKE_TUPLE(tstate, args, 10);
 
-    PyObject *named_args = _PyDict_NewPresized(kwargs_count);
+    PyObject *named_args = MAKE_DICT_FROM_KWARGS(tstate, kw_names, &args[10]);
 
-    for (Py_ssize_t i = 0; i < kwargs_count; i++) {
-        PyObject *key = PyTuple_GET_ITEM(kw_names, i);
+    if (unlikely(named_args == NULL)) {
+        Py_DECREF(pos_args);
+        Py_LeaveRecursiveCall();
 
-        PyObject *value = args[10 + i];
-
-        CHECK_OBJECT(key);
-        CHECK_OBJECT(value);
-
-        DICT_SET_ITEM(named_args, key, value);
+        return NULL;
     }
 
     PyObject *result = (*call_slot)(called, pos_args, named_args);
@@ -11637,7 +11509,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS10_KW_SPLIT(PyThreadState *tstate, PyObject *ca
 
     Py_ssize_t kwargs_count = PyTuple_GET_SIZE(kw_names);
 
-    CHECK_OBJECTS(kw_values, PyTuple_GET_SIZE(kw_names));
+    CHECK_OBJECTS(kw_values, kwargs_count);
 
     if (Nuitka_Function_Check(called)) {
         if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
@@ -11692,17 +11564,13 @@ PyObject *CALL_FUNCTION_WITH_ARGS10_KW_SPLIT(PyThreadState *tstate, PyObject *ca
 
     PyObject *pos_args = MAKE_TUPLE(tstate, args, 10);
 
-    PyObject *named_args = _PyDict_NewPresized(kwargs_count);
+    PyObject *named_args = MAKE_DICT_FROM_KWARGS(tstate, kw_names, kw_values);
 
-    for (Py_ssize_t i = 0; i < kwargs_count; i++) {
-        PyObject *key = PyTuple_GET_ITEM(kw_names, i);
+    if (unlikely(named_args == NULL)) {
+        Py_DECREF(pos_args);
+        Py_LeaveRecursiveCall();
 
-        PyObject *value = kw_values[i];
-
-        CHECK_OBJECT(key);
-        CHECK_OBJECT(value);
-
-        DICT_SET_ITEM(named_args, key, value);
+        return NULL;
     }
 
     PyObject *result = (*call_slot)(called, pos_args, named_args);
@@ -11727,7 +11595,7 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS10_KW_SPLIT(PyThreadState *tstate, PyObject
 
     Py_ssize_t kwargs_count = PyTuple_GET_SIZE(kw_names);
 
-    CHECK_OBJECTS(kw_values, PyTuple_GET_SIZE(kw_names));
+    CHECK_OBJECTS(kw_values, kwargs_count);
 
     if (Nuitka_Function_Check(called)) {
         if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
@@ -11780,17 +11648,12 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS10_KW_SPLIT(PyThreadState *tstate, PyObject
         return NULL;
     }
 
-    PyObject *named_args = _PyDict_NewPresized(kwargs_count);
+    PyObject *named_args = MAKE_DICT_FROM_KWARGS(tstate, kw_names, kw_values);
 
-    for (Py_ssize_t i = 0; i < kwargs_count; i++) {
-        PyObject *key = PyTuple_GET_ITEM(kw_names, i);
+    if (unlikely(named_args == NULL)) {
+        Py_LeaveRecursiveCall();
 
-        PyObject *value = kw_values[i];
-
-        CHECK_OBJECT(key);
-        CHECK_OBJECT(value);
-
-        DICT_SET_ITEM(named_args, key, value);
+        return NULL;
     }
 
     PyObject *result = (*call_slot)(called, pos_args, named_args);
