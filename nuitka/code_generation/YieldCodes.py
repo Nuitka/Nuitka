@@ -144,6 +144,17 @@ def generateYieldCode(to_name, expression, emit, context):
 
     yield_code = "return %(yielded_value)s;" % {"yielded_value": value_name}
 
+    # Mimic CPython's "RESUME" instruction handling of pending signals when a
+    # generator is resumed, delivering a "KeyboardInterrupt" at the yield
+    # expression rather than at a later point in the caller. A "throw" into the
+    # generator is not handled this way in CPython, and it also already has an
+    # exception set, so it is excluded.
+    resume_code = """\
+if (yield_return_value != NULL && unlikely(CONSIDER_THREADING(tstate) == false)) {
+    Py_DECREF(yield_return_value);
+    yield_return_value = NULL;
+}"""
+
     with withObjectCodeTemporaryAssignment(
         to_name, "yield_result", expression, emit, context
     ) as result_name:
@@ -151,7 +162,7 @@ def generateYieldCode(to_name, expression, emit, context):
             to_name=result_name,
             value_name=value_name,
             yield_code=yield_code,
-            resume_code=None,
+            resume_code=resume_code,
             preserve_exception=preserve_exception,
             emit=emit,
             context=context,
