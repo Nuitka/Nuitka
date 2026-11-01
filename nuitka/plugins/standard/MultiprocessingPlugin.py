@@ -158,6 +158,38 @@ if str is not bytes:
 Monkey patching "multiprocessing" for compiled methods.""",
             )
 
+        if full_name == "multiprocessing" and python_version >= 0x30E:
+            yield (
+                """\
+import sys
+
+if sys.platform != "win32":
+    import multiprocessing.forkserver
+
+    if not hasattr(multiprocessing.forkserver, "__nuitka_original_main"):
+        multiprocessing.forkserver.__nuitka_original_main = multiprocessing.forkserver.main
+
+        def _main_for_nuitka(listener_fd, alive_r, preload, main_path=None, sys_path=None, **kwargs):
+            # Nuitka: The C launcher cannot pass the main path, but newer Python
+            # versions use it to pre-load the main module into the forkserver.
+            # Without it, each forked child would execute the main module again.
+            if main_path is None and "__main__" in preload:
+                import __parents_main__ as parents_main
+
+                parents_main.__spec__ = None
+                sys.modules["__main__"] = parents_main
+                sys.modules["__mp_main__"] = parents_main
+
+            return multiprocessing.forkserver.__nuitka_original_main(
+                listener_fd, alive_r, preload, main_path=main_path, sys_path=sys_path, **kwargs
+            )
+
+        multiprocessing.forkserver.main = _main_for_nuitka
+""",
+                """\
+Monkey patching "multiprocessing.forkserver" for main module pre-loading.""",
+            )
+
         if full_name == "anyio.to_process":
             yield (
                 """\
