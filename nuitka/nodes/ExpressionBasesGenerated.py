@@ -2430,6 +2430,152 @@ class _ChildrenHavingListArgValueFinalNoRaiseMixin(ExpressionBase):
 ExpressionListOperationCountBase = _ChildrenHavingListArgValueFinalNoRaiseMixin
 
 
+class _ChildrenHavingMappingFallbackVariableNameMixin(ExpressionBase):
+    # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
+    __slots__ = ()
+
+    # This is generated for use in
+    #   ExpressionClassMappingVariableRefOrFallback
+
+    def __init__(self, mapping, fallback, variable_name, source_ref):
+        mapping.parent = self
+
+        self.subnode_mapping = mapping
+
+        fallback.parent = self
+
+        self.subnode_fallback = fallback
+
+        self.variable_name = variable_name
+
+        ExpressionBase.__init__(self, source_ref)
+
+    def getDetails(self):
+        return {
+            "variable_name": self.variable_name,
+        }
+
+    def getVisitableNodes(self):
+        """The visitable nodes, with tuple values flattened."""
+
+        return (
+            self.subnode_mapping,
+            self.subnode_fallback,
+        )
+
+    def getVisitableNodesNamed(self):
+        """Named children dictionary.
+
+        For use in cloning nodes, debugging and XML output.
+        """
+
+        return (
+            ("mapping", self.subnode_mapping),
+            ("fallback", self.subnode_fallback),
+        )
+
+    def replaceChild(self, old_node, new_node):
+        value = self.subnode_mapping
+        if old_node is value:
+            new_node.parent = self
+
+            self.subnode_mapping = new_node
+
+            return
+
+        value = self.subnode_fallback
+        if old_node is value:
+            new_node.parent = self
+
+            self.subnode_fallback = new_node
+
+            return
+
+        raise AssertionError("Didn't find child", old_node, "in", self)
+
+    def getCloneArgs(self):
+        """Get clones of all children to pass for a new node.
+
+        Needs to make clones of child nodes too.
+        """
+
+        values = {
+            "mapping": self.subnode_mapping.makeClone(),
+            "fallback": self.subnode_fallback.makeClone(),
+        }
+
+        values.update(self.getDetails())
+
+        return values
+
+    def finalize(self):
+        del self.parent
+
+        self.subnode_mapping.finalize()
+        del self.subnode_mapping
+        self.subnode_fallback.finalize()
+        del self.subnode_fallback
+
+    def computeExpressionRaw(self, trace_collection):
+        """Compute an expression.
+
+        Default behavior is to just visit the child expressions first, and
+        then the node "computeExpression". For a few cases this needs to
+        be overloaded, e.g. conditional expressions.
+        """
+
+        # First apply the sub-expressions, as they are evaluated before
+        # the actual operation.
+        for count, sub_expression in enumerate(self.getVisitableNodes()):
+            expression = trace_collection.onExpression(sub_expression)
+
+            if expression.willRaiseAnyException():
+                sub_expressions = self.getVisitableNodes()
+
+                wrapped_expression = wrapExpressionWithSideEffects(
+                    side_effects=sub_expressions[:count],
+                    old_node=sub_expression,
+                    new_node=expression,
+                )
+
+                return (
+                    wrapped_expression,
+                    "new_raise",
+                    lambda: "For '%s' the child expression '%s' will raise."
+                    % (self.getChildNameNice(), expression.getChildNameNice()),
+                )
+
+        # Then ask ourselves to work on it.
+        return self.computeExpression(trace_collection)
+
+    @abstractmethod
+    def computeExpression(self, trace_collection):
+        """Must be overloaded for non-final node."""
+
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
+
+        self.undoVariableTracing()
+
+    # For overload only
+    @staticmethod
+    def undoVariableTracing():
+        pass
+
+    def collectVariableAccesses(self, emit_variable):
+        """Collect variable reads and writes of child nodes."""
+
+        self.subnode_mapping.collectVariableAccesses(emit_variable)
+        self.subnode_fallback.collectVariableAccesses(emit_variable)
+
+
+# Assign the names that are easier to import with a stable name.
+ExpressionClassMappingVariableRefOrFallbackBase = (
+    _ChildrenHavingMappingFallbackVariableNameMixin
+)
+
+
 class _ChildrenHavingMetaclassNameBasesDictArgClassDeclDictClassVariableMixin(
     ExpressionBase
 ):

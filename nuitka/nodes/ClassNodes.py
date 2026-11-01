@@ -38,6 +38,7 @@ class ExpressionClassBodyBase(ExpressionOutlineFunctionBase):
         "locals_scope",
         "conditional_annotation_indices",
         "conditional_annotations_variable",
+        "deferred_class_dict",
     )
 
     def __init__(self, provider, name, doc, source_ref):
@@ -55,6 +56,9 @@ class ExpressionClassBodyBase(ExpressionOutlineFunctionBase):
         # Conditional annotations, set during tree building on 3.14 or higher.
         self.conditional_annotation_indices = None
         self.conditional_annotations_variable = None
+
+        # Class namespace for annotation scopes created during tree building.
+        self.deferred_class_dict = None
 
         self.locals_scope = getLocalsDictHandle(
             "locals_%s_%d" % (self.getCodeName(), source_ref.getLineNumber()),
@@ -115,6 +119,16 @@ class ExpressionClassBodyBase(ExpressionOutlineFunctionBase):
             result = self.provider.getVariableForClosure(variable_name)
             self.taken.add(result)
             return result
+
+    def getDeferredClassDictVariable(self):
+        if self.deferred_class_dict is None:
+            self.deferred_class_dict = self.getLocalsScope().getLocalVariable(
+                owner=self,
+                variable_name="classdict$",
+            )
+            self.getLocalsScope().registerProvidedVariable(self.deferred_class_dict)
+
+        return self.deferred_class_dict
 
     @staticmethod
     def markAsDirectlyCalled():
@@ -210,6 +224,43 @@ class ExpressionClassDictBody(MarkNeedsAnnotationsMixin, ExpressionClassDictBody
         MarkNeedsAnnotationsMixin.__init__(self)
 
         self.qualname_setup = None
+
+
+class ExpressionClassDictFromClass(ExpressionBase):
+    """The dictionary of a created class for annotation scopes.
+
+    This is only for the case of the created object being a class, the rare
+    case of a metaclass returning something that is not a class, is handled
+    by using the prepared class namespace instead.
+    """
+
+    kind = "EXPRESSION_CLASS_DICT_FROM_CLASS"
+
+    __slots__ = ("variable",)
+
+    def __init__(self, variable, source_ref):
+        ExpressionBase.__init__(self, source_ref)
+
+        self.variable = variable
+
+    def finalize(self):
+        del self.parent
+        del self.variable
+
+    def getDetails(self):
+        return {
+            "variable": self.variable,
+        }
+
+    def setVariable(self, variable):
+        self.variable = variable
+
+    def computeExpressionRaw(self, trace_collection):
+        return self, None, None
+
+    @staticmethod
+    def mayRaiseException(exception_type):
+        return False
 
 
 class ExpressionSelectMetaclass(ChildrenHavingMetaclassBasesMixin, ExpressionBase):

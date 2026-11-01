@@ -344,6 +344,13 @@ class PythonContextBase(getMetaClassBase("Context", require_slots=True)):
     def getModuleCodeName(self):
         pass
 
+    def getModuleDictCodeName(self):
+        return "moduledict_%s" % self.getModuleCodeName()
+
+    @abstractmethod
+    def getModuleUniqueCodeName(self, base_name):
+        pass
+
     @abstractmethod
     def getModuleName(self):
         pass
@@ -513,6 +520,9 @@ class PythonChildContextBase(PythonContextBase):
 
     def getModuleCodeName(self):
         return self.parent.getModuleCodeName()
+
+    def getModuleUniqueCodeName(self, base_name):
+        return self.parent.getModuleUniqueCodeName(base_name)
 
     def getModuleName(self):
         return self.parent.getModuleName()
@@ -830,6 +840,9 @@ class PythonModuleContext(
 
     def getModuleCodeName(self):
         return self.code_name
+
+    def getModuleUniqueCodeName(self, base_name):
+        return self.getUniqueCodeName(base_name)
 
     def getDataFilename(self):
         return self.data_filename

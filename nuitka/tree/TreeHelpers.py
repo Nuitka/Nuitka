@@ -49,6 +49,38 @@ def getKind(node):
     return node.__class__.__name__.rsplit(".", 1)[-1]
 
 
+def getClassBodyForDeferredScope(provider):
+    """Return the class body that provides names to a deferred scope.
+
+    Annotation scopes, e.g. the ones created for type aliases, type variables,
+    and deferred annotations, resolve names in the class namespace first,
+    unlike normal functions nested in a class body.
+
+    Args:
+        provider: The variable provider of the deferred function.
+
+    Returns:
+        Class body node or None.
+    """
+
+    current = provider
+
+    while not current.isCompiledPythonModule():
+        if current.isExpressionClassBodyBase():
+            return current
+
+        if current.isExpressionFunctionBody() and not (
+            current.hasFlag("type_alias")
+            or current.hasFlag("typevar")
+            or current.hasFlag("annotate")
+        ):
+            return None
+
+        current = current.getParentVariableProvider()
+
+    return None
+
+
 def extractDocFromBody(node):
     body = node.body
     doc = None

@@ -13,7 +13,7 @@ from .CodeHelpers import (
 from .Emission import SourceCodeCollector
 from .ErrorCodes import getErrorExitBoolCode
 from .Indentation import indented
-from .PythonAPICodes import generateCAPIObjectCode
+from .PythonAPICodes import generateCAPIObjectCode, getReferenceExportCode
 from .templates.CodeTemplatesVariables import (
     template_set_locals_dict_value,
     template_set_locals_mapping_value,
@@ -36,6 +36,20 @@ def generateBuiltinLocalsRefCode(to_name, expression, emit, context):
         to_name, "locals_ref_value", expression, emit, context
     ) as value_name:
         emit("%s = %s;" % (value_name, locals_declaration))
+
+
+def generateClassDictRefCode(to_name, expression, emit, context):
+    locals_declaration = context.addLocalsDictName(
+        expression.getLocalsScope().getCodeName()
+    )
+
+    with withObjectCodeTemporaryAssignment(
+        to_name, "class_dict_ref_value", expression, emit, context
+    ) as value_name:
+        emit("%s = %s;" % (value_name, locals_declaration))
+        getReferenceExportCode(value_name, emit, context)
+
+        context.addCleanupTempName(value_name)
 
 
 def generateBuiltinLocalsCode(to_name, expression, emit, context):
@@ -101,8 +115,11 @@ def generateBuiltinGlobalsCode(to_name, expression, emit, context):
         to_name, "globals_value", expression, emit, context
     ) as value_name:
         emit(
-            "%(to_name)s = (PyObject *)moduledict_%(module_identifier)s;"
-            % {"to_name": value_name, "module_identifier": context.getModuleCodeName()}
+            "%(to_name)s = %(module_dict)s;"
+            % {
+                "to_name": value_name,
+                "module_dict": "(PyObject *)%s" % context.getModuleDictCodeName(),
+            }
         )
 
 
@@ -169,7 +186,7 @@ def _getVariableDictUpdateCode(
                 "mapping_name": target_name,
                 "var_name": context.getConstantCode(constant=variable.getName()),
                 "test_code": test_code,
-                "access_code": access_code,
+                "access_code": indented(access_code),
                 "tmp_name": res_name,
             }
         )

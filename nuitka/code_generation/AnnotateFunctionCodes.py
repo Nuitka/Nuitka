@@ -14,6 +14,8 @@ from .ErrorCodes import getAssertionCode
 from .PythonSourceCodeGeneration import (
     PythonSourceGenerationError,
     generateFunctionSourceFromBody,
+    getAnnotateClosureVariables,
+    getAnnotateSourceVariableName,
     getFunctionCodeObjectFromSource,
     getFunctionMakerIdentifier,
 )
@@ -51,8 +53,16 @@ def generateAnnotateFunctionCreationCode(to_name, expression, emit, context):
     if not context.hasHelperCode(function_identifier):
         _generateAnnotateFunctionMaker(function_body, function_identifier, context)
 
+    closure_variables = expression.getClosureVariableVersions()
+
+    if closure_variables:
+        closure_variables = sorted(
+            closure_variables,
+            key=lambda item: getAnnotateSourceVariableName(item[0]),
+        )
+
     closure_name, closure_copy = getClosureCopyCode(
-        closure_variables=expression.getClosureVariableVersions(),
+        closure_variables=closure_variables,
         context=context,
     )
 
@@ -159,12 +169,10 @@ def _generateAnnotateFunctionMaker(function_body, function_identifier, context):
         function_body=function_body, compiled=compiled
     )
 
-    closure_variables = function_body.getClosureVariables()
+    closure_variables = getAnnotateClosureVariables(function_body)
 
-    # Nuitka closure variables and CPython free variables are both sorted by
-    # name, so the closure cells are already in the order of the code object.
     if annotate_code.co_freevars != tuple(
-        variable.getName() for variable in closure_variables
+        getAnnotateSourceVariableName(variable) for variable in closure_variables
     ):
         raise PythonSourceGenerationError(
             "Closure variables of annotate function '%s' do not match its free variables"
@@ -193,7 +201,7 @@ static PyObject *%(maker)s(PyThreadState *tstate%(closure_parameter)s) {
 }
 """ % {
         "maker": maker_identifier,
-        "module_dict": "(PyObject *)moduledict_%s" % context.getModuleCodeName(),
+        "module_dict": "(PyObject *)%s" % context.getModuleDictCodeName(),
         "qualname": context.getConstantCode(
             constant=function_body.getFunctionQualname()
         ),
