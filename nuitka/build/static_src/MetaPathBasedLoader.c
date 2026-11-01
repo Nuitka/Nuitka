@@ -31,6 +31,16 @@ static char const *module_root_leaf = NULL;
 #include <windows.h>
 #endif
 
+// The filename suffix used for extension modules in the standalone
+// distribution. This has to match what the freezer uses.
+#if defined(_WIN32) && defined(Py_DEBUG)
+#define _NUITKA_EXTENSION_MODULE_SUFFIX "_d.pyd"
+#elif defined(_WIN32)
+#define _NUITKA_EXTENSION_MODULE_SUFFIX ".pyd"
+#else
+#define _NUITKA_EXTENSION_MODULE_SUFFIX ".so"
+#endif
+
 // Toggle to control the extension module preservation hack.
 //
 // This handles cases where Nuitka is unable to set the loading package context properly
@@ -775,7 +785,7 @@ static void _makeModuleCFilenameValue(filename_char_t *filename, size_t filename
         appendWCharSafeW(filename, FILENAME_SEP_CHAR, filename_size);
         appendStringSafeW(filename, "__init__", filename_size);
     }
-    appendStringSafeW(filename, ".pyd", filename_size);
+    appendStringSafeW(filename, _NUITKA_EXTENSION_MODULE_SUFFIX, filename_size);
 #else
 #if _NUITKA_ONEFILE_DLL_MODE
     filename_char_t const *base_directory = getDllDirectory();
@@ -789,7 +799,7 @@ static void _makeModuleCFilenameValue(filename_char_t *filename, size_t filename
         appendCharSafe(filename, FILENAME_SEP_CHAR, filename_size);
         appendStringSafe(filename, "__init__", filename_size);
     }
-    appendStringSafe(filename, ".so", filename_size);
+    appendStringSafe(filename, _NUITKA_EXTENSION_MODULE_SUFFIX, filename_size);
 #endif
 }
 #endif
@@ -2832,11 +2842,7 @@ static PyObject *getModuleFileValue(PyThreadState *tstate, struct Nuitka_MetaPat
     }
 
     if ((entry->flags & NUITKA_EXTENSION_MODULE_FLAG) != 0) {
-#if defined(_WIN32)
-        appendStringSafe(filename_buffer, ".pyd", sizeof(filename_buffer));
-#else
-        appendStringSafe(filename_buffer, ".so", sizeof(filename_buffer));
-#endif
+        appendStringSafe(filename_buffer, _NUITKA_EXTENSION_MODULE_SUFFIX, sizeof(filename_buffer));
     } else {
         appendStringSafe(filename_buffer, ".py", sizeof(filename_buffer));
     }
