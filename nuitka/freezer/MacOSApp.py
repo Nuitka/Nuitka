@@ -66,6 +66,10 @@ def createPlistInfoFile(logger):
     result_filename = getResultFullpath(onefile=False, real=True)
     executable_name = os.path.basename(result_filename)
     app_name = getMacOSAppName() or executable_name
+
+    if getMacOSAppConsoleMode() == "force":
+        executable_name += ".sh"
+
     signed_app_name = getMacOSSignedAppName() or app_name
     app_version = getMacOSAppVersion() or "1.0"
     macos_min_version = getMacOSAppMacOSMinVersion()
