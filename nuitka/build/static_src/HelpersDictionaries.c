@@ -4296,6 +4296,32 @@ PyObject *MAKE_DICT_EMPTY(PyThreadState *tstate) {
 }
 #endif
 
+PyObject *MAKE_DICT_FROM_KWARGS(PyThreadState *tstate, PyObject *kw_names, PyObject *const *kw_values) {
+    CHECK_OBJECT(kw_names);
+    assert(PyTuple_CheckExact(kw_names));
+
+    Py_ssize_t kwargs_count = PyTuple_GET_SIZE(kw_names);
+
+    PyObject *result = MAKE_DICT_EMPTY(tstate);
+
+    for (Py_ssize_t i = 0; i < kwargs_count; i++) {
+        PyObject *key = PyTuple_GET_ITEM(kw_names, i);
+        PyObject *value = kw_values[i];
+
+        CHECK_OBJECT(key);
+        CHECK_OBJECT(value);
+
+        bool res = DICT_SET_ITEM(result, key, value);
+
+        if (unlikely(res == false)) {
+            Py_DECREF(result);
+            return NULL;
+        }
+    }
+
+    return result;
+}
+
 PyObject *MAKE_DICT(PyObject **pairs, Py_ssize_t size) {
     PyObject *result = _PyDict_NewPresized(size);
 
