@@ -46,6 +46,24 @@ def generateSelectMetaclassCode(to_name, expression, emit, context):
         context.addCleanupTempName(value_name)
 
 
+def generateClassDictFromClassCode(to_name, expression, emit, context):
+    class_declaration = getLocalVariableDeclaration(context, expression.variable, None)
+
+    with withObjectCodeTemporaryAssignment(
+        to_name, "class_dict_value", expression, emit, context
+    ) as value_name:
+        class_name = class_declaration.getCType().emitValueAccessCode(
+            value_name=class_declaration, emit=emit, context=context
+        )
+
+        emit("""\
+%(to_name)s = (PyObject *)(((PyTypeObject *)%(class_name)s)->tp_dict);
+CHECK_OBJECT(%(to_name)s);
+Py_INCREF(%(to_name)s);""" % {"to_name": value_name, "class_name": class_name})
+
+        context.addCleanupTempName(value_name)
+
+
 def generateBuiltinSuper1Code(to_name, expression, emit, context):
     (type_name,) = generateChildExpressionsCode(
         expression=expression, emit=emit, context=context

@@ -100,6 +100,7 @@ from .TreeHelpers import (
     buildNodeTuple,
     detectFunctionBodyKind,
     extractDocFromBody,
+    getClassBodyForDeferredScope,
     getKind,
     makeCallNode,
     makeDictCreationOrConstant2,
@@ -693,6 +694,13 @@ _annotate_flags = frozenset(("annotate", "python_source", "python_closure"))
 
 def makeDeferredAnnotateFunctionBody(provider, source_ref):
     function_name = "__annotate__"
+
+    class_body = getClassBodyForDeferredScope(provider)
+
+    if class_body is not None:
+        # Make the class namespace available to the deferred function, it is
+        # initialized at the start of the class body.
+        class_body.getDeferredClassDictVariable()
 
     # Not using the CPython parameter name "format" here, since following
     # annotation values may reference a variable of that name, which would

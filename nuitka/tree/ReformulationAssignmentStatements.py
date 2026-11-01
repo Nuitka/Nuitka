@@ -94,6 +94,7 @@ from .TreeHelpers import (
     buildAnnotationNode,
     buildNode,
     buildNodeTuple,
+    getClassBodyForDeferredScope,
     getKind,
     makeCallNode,
     makeStatementsSequenceFromStatement,
@@ -1352,6 +1353,13 @@ def _makeDeferredEvaluationFunction(
     flags,
     source_ref,
 ):
+    class_body = getClassBodyForDeferredScope(provider)
+
+    if class_body is not None:
+        # Make the class namespace available to the deferred function, it is
+        # initialized at the start of the class body.
+        class_body.getDeferredClassDictVariable()
+
     parameters = ParameterSpec(
         ps_name=function_name,
         ps_normal_args=(),

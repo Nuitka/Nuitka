@@ -302,6 +302,13 @@ class ExpressionOutlineFunctionBase(ExpressionOutlineMixin, ExpressionFunctionBo
             variable_translations=variable_translations,
         )
 
+        deferred_class_dict = getattr(self, "deferred_class_dict", None)
+
+        if deferred_class_dict is not None:
+            result.deferred_class_dict = variable_translations.get(
+                deferred_class_dict, deferred_class_dict
+            )
+
         return result
 
     def computeExpressionRaw(self, trace_collection):

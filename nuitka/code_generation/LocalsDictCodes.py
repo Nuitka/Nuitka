@@ -16,6 +16,7 @@ from .ErrorCodes import (
     getErrorExitBoolCode,
     getErrorExitCode,
     getNameReferenceErrorCode,
+    getReleaseCode,
 )
 from .Indentation import indented
 from .PythonAPICodes import getReferenceExportCode
@@ -263,6 +264,60 @@ def generateLocalsDictVariableRefOrFallbackCode(to_name, expression, emit, conte
             # anyway.
             if not needs_ref:
                 context.addCleanupTempName(value_name)
+
+
+def generateClassMappingVariableRefOrFallbackCode(to_name, expression, emit, context):
+    variable_name = expression.getVariableName()
+
+    mapping_name = context.allocateTempName("class_mapping_value")
+    generateExpressionCode(
+        to_name=mapping_name,
+        expression=expression.subnode_mapping,
+        emit=emit,
+        context=context,
+    )
+
+    fallback_emit = SourceCodeCollector()
+
+    with withObjectCodeTemporaryAssignment(
+        to_name, "class_mapping_lookup_value", expression, emit, context
+    ) as value_name:
+        generateExpressionCode(
+            to_name=value_name,
+            expression=expression.subnode_fallback,
+            emit=fallback_emit,
+            context=context,
+        )
+
+        needs_ref = context.needsCleanup(value_name)
+
+        if needs_ref:
+            template = template_read_locals_mapping_with_fallback_ref
+        else:
+            template = template_read_locals_mapping_with_fallback_no_ref
+
+        (
+            exception_state_name,
+            _exception_lineno,
+        ) = context.getExceptionVariableDescriptions()
+
+        emit(
+            template
+            % {
+                "to_name": value_name,
+                "locals_dict": mapping_name,
+                "fallback": indented(fallback_emit),
+                "var_name": context.getConstantCode(constant=variable_name),
+                "exception_state_name": exception_state_name,
+                "exception_exit": context.getExceptionEscape(),
+            }
+        )
+
+        # If the fallback took no reference, then make it do it anyway.
+        if not needs_ref:
+            context.addCleanupTempName(value_name)
+
+    getReleaseCode(mapping_name, emit, context)
 
 
 def generateLocalsDictVariableRefCode(to_name, expression, emit, context):

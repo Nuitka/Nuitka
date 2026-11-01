@@ -865,6 +865,58 @@ def %(factory_name)s(%(factory_parameters)s):
 _annotate_argument_name = "_annotate_argument"
 
 
+def getAnnotateSourceVariableName(variable):
+    """Get a valid Python identifier for an annotate function variable.
+
+    Notes:
+        Nuitka internal variable names can contain characters that are not
+        valid in Python identifiers, e.g. for temporary variables of class
+        bodies with type parameters. These need translated names in the
+        generated Python source of annotate functions.
+
+    Args:
+        variable: The variable to get a source name for.
+
+    Returns:
+        Source code name for the variable.
+    """
+
+    variable_name = variable.getName()
+
+    if variable_name.isidentifier():
+        return variable_name
+
+    # A leading underscore allows checking for identifier continuation
+    # characters, which includes digits, but not e.g. "$".
+    result = "".join(
+        char if ("_" + char).isidentifier() else "_%x_" % ord(char)
+        for char in variable_name
+    )
+
+    if not result.isidentifier():
+        result = "_" + result
+
+    return result
+
+
+def getAnnotateClosureVariables(function_body):
+    """Get closure variables sorted by their source code names.
+
+    Args:
+        function_body: Function body node to get closure variables for.
+
+    Returns:
+        Tuple of closure variables in source code name order.
+    """
+
+    return tuple(
+        sorted(
+            function_body.getClosureVariables(),
+            key=getAnnotateSourceVariableName,
+        )
+    )
+
+
 def generateFunctionSourceFromBody(function_body):
     """Generate a complete 'def ...' Python source from a function body.
 
@@ -873,7 +925,7 @@ def generateFunctionSourceFromBody(function_body):
         them as parameters, so they become free variables of the function and
         can be resolved through real cells when the function is created.
     """
-    closure_variables = function_body.getClosureVariables()
+    closure_variables = getAnnotateClosureVariables(function_body)
 
     function_name = function_body.getFunctionName()
     parameter_names = function_body.getParameters().getParameterNames()
@@ -883,10 +935,24 @@ def generateFunctionSourceFromBody(function_body):
     else:
         indent = " " * 4
 
-    parameter_spec = ", ".join(
+    parameter_source_names = [
         parameter_name if parameter_name.isidentifier() else _annotate_argument_name
         for parameter_name in parameter_names
-    )
+    ]
+
+    closure_source_names = [
+        getAnnotateSourceVariableName(variable) for variable in closure_variables
+    ]
+
+    if len(set(closure_source_names)) != len(closure_source_names) or set(
+        closure_source_names
+    ).intersection(parameter_source_names):
+        raise PythonSourceGenerationError(
+            "Closure variable source names of annotate function '%s' collide"
+            % function_body.getCodeName()
+        )
+
+    parameter_spec = ", ".join(parameter_source_names)
 
     body_source = generateStatementSequenceSource(
         function_body.subnode_body, indent=indent
@@ -896,7 +962,8 @@ def generateFunctionSourceFromBody(function_body):
         source = _annotate_factory_source_template % {
             "factory_name": "__annotate_factory__",
             "factory_parameters": ", ".join(
-                variable.getName() for variable in closure_variables
+                getAnnotateSourceVariableName(variable)
+                for variable in closure_variables
             ),
             "function_name": function_name,
             "parameters": parameter_spec,
@@ -969,7 +1036,20 @@ def _generateVariableRefSource(expression):
             % _annotate_argument_name
         )
 
-    return variable.getName()
+    return getAnnotateSourceVariableName(variable)
+
+
+def _generateClassMappingVariableRefOrFallbackSource(expression):
+    mapping = generateExpressionSource(expression.subnode_mapping)
+    fallback = generateExpressionSource(expression.subnode_fallback)
+
+    variable_name = repr(expression.getVariableName())
+
+    return "(%(mapping)s[%(name)s] if %(name)s in %(mapping)s else %(fallback)s)" % {
+        "mapping": mapping,
+        "name": variable_name,
+        "fallback": fallback,
+    }
 
 
 def _generateEllipsisSource(_expression):
@@ -1057,6 +1137,8 @@ _expression_source_dispatch = {
     "EXPRESSION_CONSTANT_TYPE_FROZENSET_REF": _generateConstantTypeRefSource,
     "EXPRESSION_CONSTANT_TYPE_TUPLE_REF": _generateConstantTypeRefSource,
     "EXPRESSION_CONSTANT_TYPE_TYPE_REF": _generateConstantTypeRefSource,
+    "EXPRESSION_CLASS_MAPPING_VARIABLE_REF_OR_FALLBACK": _generateClassMappingVariableRefOrFallbackSource,
+    "EXPRESSION_TEMP_VARIABLE_REF": _generateVariableRefSource,
     "EXPRESSION_VARIABLE_REF": _generateVariableRefSource,
     "EXPRESSION_CONSTANT_STR_REF": _generateConstantStrRefSource,
     "EXPRESSION_CONSTANT_STR_EMPTY_REF": _generateConstantStrRefSource,

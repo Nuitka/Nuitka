@@ -198,6 +198,68 @@ def typeAliasInFunction():
 
 typeAliasInFunction()
 
+print("Type alias in class with forward references")
+
+
+class TypeAliasForwardReferences:
+    type TA1 = dict[Later, int]
+    type TA2[ValueT] = tuple[ValueT, Later]
+
+    class Later:
+        pass
+
+
+print(TypeAliasForwardReferences.TA1.__value__)
+print(TypeAliasForwardReferences.TA2.__value__)
+
+
+def typeAliasInClassInFunction():
+    class Local:
+        type TA1 = list[Later]
+
+        class Later:
+            pass
+
+    print("Type alias in class in function:", Local.TA1.__value__)
+
+
+typeAliasInClassInFunction()
+
+print("Type alias in class using class namespace")
+
+
+class TypeAliasClassNamespace:
+    type TA1 = dict[Shadowed]
+
+    Shadowed = str
+
+
+print(TypeAliasClassNamespace.TA1.__value__)
+
+
+class TypeAliasDeletedClassAttribute:
+    type TA1 = dict[Deleted]
+
+    Deleted = str
+
+
+del TypeAliasDeletedClassAttribute.Deleted
+Deleted = bytes
+print(TypeAliasDeletedClassAttribute.TA1.__value__)
+
+print("Type variable bound using class namespace")
+
+
+class TypeVarBoundForwardReference:
+    def someGenericMethod[ValueT: Later]():
+        pass
+
+    class Later:
+        pass
+
+
+print(TypeVarBoundForwardReference.someGenericMethod.__type_params__[0].__bound__)
+
 #     Python tests originally created or extracted from other peoples work. The
 #     parts were too small to be protected.
 #

@@ -117,6 +117,34 @@ def makeClosureNamedTuple():
     return NT
 
 
+class ClassNamespaceAnnotation:
+    ModuleLevel = str
+    annotation: ModuleLevel
+
+
+class MetaReturningNamespace(type):
+    def __new__(mcls, name, bases, namespace):
+        return namespace
+
+
+class NonTypeClassAnnotation(metaclass=MetaReturningNamespace):
+    class_level = 7
+    reference: class_level
+
+
+def makeClassesInLoop():
+    result = []
+
+    for _ in range(2):
+
+        class Inner:
+            annotation: ModuleLevel
+
+        result.append(Inner)
+
+    return result
+
+
 def callAnnotateForwardRef(annotate):
     return annotationlib.call_annotate_function(
         annotate,
@@ -178,6 +206,27 @@ print(
 print(
     "Closure NamedTuple:",
     displayDict(closure_named_tuple.__annotations__),
+)
+
+print(
+    "Class namespace:",
+    displayDict(ClassNamespaceAnnotation.__annotations__),
+)
+
+loop_class_1, loop_class_2 = makeClassesInLoop()
+
+print(
+    "Class in loop:",
+    displayDict(loop_class_1.__annotations__),
+    displayDict(loop_class_2.__annotations__),
+)
+print(
+    "Non-type metaclass:",
+    displayDict(
+        annotationlib.call_annotate_function(
+            NonTypeClassAnnotation["__annotate_func__"], annotationlib.Format.VALUE
+        )
+    ),
 )
 
 #     Python tests originally created or extracted from other peoples work. The

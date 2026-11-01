@@ -27,6 +27,7 @@ from nuitka.nodes.ClassNodes import (
     ExpressionCallClassPrepareKnownStartValueDictException,
     ExpressionCallClassPrepareKnownStartValueDictIgnored,
     ExpressionCallMetaclass,
+    ExpressionClassDictFromClass,
     ExpressionClassMappingBody,
     ExpressionSelectMetaclass,
 )
@@ -63,6 +64,7 @@ from nuitka.nodes.FunctionNodes import (
 )
 from nuitka.nodes.ListOperationNodes import ExpressionListOperationExtend
 from nuitka.nodes.LocalsDictNodes import (
+    ExpressionClassDictRef,
     ExpressionLocalsDictRef,
     StatementLocalsDictOperationSet,
     StatementReleaseLocals,
@@ -538,6 +540,19 @@ def buildClassNode3(provider, node, source_ref):
             )
         )
 
+    if class_dict_creation_function.deferred_class_dict is not None:
+        # Annotation scopes in the class body resolve names against the class
+        # namespace, so capture it before code in the class body runs.
+        statements.append(
+            makeStatementAssignmentVariable(
+                variable=class_dict_creation_function.deferred_class_dict,
+                source=ExpressionClassDictRef(
+                    locals_scope=locals_scope, source_ref=source_ref
+                ),
+                source_ref=source_ref,
+            )
+        )
+
     statements.append(body)
 
     if python_version >= 0x3D0:
@@ -635,7 +650,7 @@ def buildClassNode3(provider, node, source_ref):
             )
         )
 
-    statements += (
+    statements.append(
         makeStatementAssignmentVariable(
             variable=class_variable,
             source=ExpressionCallMetaclass(
@@ -658,8 +673,42 @@ def buildClassNode3(provider, node, source_ref):
                 source_ref=source_ref,
             ),
             source_ref=source_ref,
-        ),
-        StatementReturn(expression=class_variable_ref, source_ref=source_ref),
+        )
+    )
+
+    if class_dict_creation_function.deferred_class_dict is not None:
+        # Deferred scopes are to resolve against the class dictionary, not
+        # the prepared namespace, once the class exists, but the metaclass
+        # may return something that is not a class, in which case the class
+        # namespace remains in use.
+        statements.append(
+            makeStatementConditional(
+                condition=ExpressionTypeCheck(
+                    cls=ExpressionVariableRef(
+                        variable=class_variable, source_ref=source_ref
+                    ),
+                    source_ref=source_ref,
+                ),
+                yes_branch=makeStatementAssignmentVariable(
+                    variable=class_dict_creation_function.deferred_class_dict,
+                    source=ExpressionClassDictFromClass(
+                        variable=class_variable, source_ref=source_ref
+                    ),
+                    source_ref=source_ref,
+                ),
+                no_branch=makeStatementAssignmentVariable(
+                    variable=class_dict_creation_function.deferred_class_dict,
+                    source=ExpressionClassDictRef(
+                        locals_scope=locals_scope, source_ref=source_ref
+                    ),
+                    source_ref=source_ref,
+                ),
+                source_ref=source_ref,
+            )
+        )
+
+    statements.append(
+        StatementReturn(expression=class_variable_ref, source_ref=source_ref)
     )
 
     # TODO: Is this something similar to makeTryFinallyReleaseStatement

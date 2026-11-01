@@ -88,6 +88,7 @@ from .ClassCodes import (
     generateBuiltinSuperCode,
     generateCallClassPrepareCode,
     generateCallMetaclassCode,
+    generateClassDictFromClassCode,
     generateSelectMetaclassCode,
     generateTypeOperationPrepareCode,
 )
@@ -208,6 +209,7 @@ from .GlobalsLocalsCodes import (
     generateBuiltinLocalsCode,
     generateBuiltinLocalsRefCode,
     generateBuiltinVarsCode,
+    generateClassDictRefCode,
 )
 from .IdCodes import generateBuiltinHashCode, generateBuiltinIdCode
 from .ImportCodes import (
@@ -266,6 +268,7 @@ from .ListCodes import (
     generateListOperationSort3Code,
 )
 from .LocalsDictCodes import (
+    generateClassMappingVariableRefOrFallbackCode,
     generateLocalsDictDelCode,
     generateLocalsDictSetCode,
     generateLocalsDictVariableCheckCode,
@@ -765,6 +768,7 @@ addExpressionDispatchDict(
         "EXPRESSION_BUILTIN_LOCALS_COPY": generateBuiltinLocalsCode,
         "EXPRESSION_BUILTIN_LOCALS_UPDATED": generateBuiltinLocalsCode,
         "EXPRESSION_BUILTIN_LOCALS_REF": generateBuiltinLocalsRefCode,
+        "EXPRESSION_CLASS_DICT_REF": generateClassDictRefCode,
         "EXPRESSION_LOCALS_DICT_REF": generateBuiltinLocalsRefCode,
         "EXPRESSION_BUILTIN_GLOBALS": generateBuiltinGlobalsCode,
         "EXPRESSION_BUILTIN_SUPER0": generateBuiltinSuperCode,
@@ -1005,10 +1009,12 @@ addExpressionDispatchDict(
         "EXPRESSION_ASYNC_WAIT_EXIT": generateAsyncWaitCode,
         "EXPRESSION_ASYNC_ITER": generateAsyncIterCode,
         "EXPRESSION_ASYNC_NEXT": generateAsyncNextCode,
+        "EXPRESSION_CLASS_DICT_FROM_CLASS": generateClassDictFromClassCode,
         "EXPRESSION_SELECT_METACLASS": generateSelectMetaclassCode,
         "EXPRESSION_STRING_CONCATENATION": generateStringConcatenationCode,
         "EXPRESSION_BUILTIN_FORMAT": generateBuiltinFormatCode,
         "EXPRESSION_BUILTIN_ASCII": generateBuiltinAsciiCode,
+        "EXPRESSION_CLASS_MAPPING_VARIABLE_REF_OR_FALLBACK": generateClassMappingVariableRefOrFallbackCode,
         "EXPRESSION_LOCALS_VARIABLE_CHECK": generateLocalsDictVariableCheckCode,
         "EXPRESSION_LOCALS_VARIABLE_REF_OR_FALLBACK": generateLocalsDictVariableRefOrFallbackCode,
         "EXPRESSION_LOCALS_VARIABLE_REF": generateLocalsDictVariableRefCode,

@@ -15,6 +15,9 @@ from nuitka.tree.TreeHelpers import makeStatementsSequence
 from .ChildrenHavingMixins import ChildHavingFallbackMixin
 from .ConditionalNodes import ExpressionConditional
 from .ExpressionBases import ExpressionBase
+from .ExpressionBasesGenerated import (
+    ExpressionClassMappingVariableRefOrFallbackBase,
+)
 from .GlobalsLocalsNodes import ExpressionBuiltinLocalsRef
 from .NodeBases import StatementBase
 from .StatementBasesGenerated import (
@@ -224,6 +227,38 @@ class ExpressionLocalsVariableRefOrFallback(ChildHavingFallbackMixin, Expression
             return True
 
         return self.subnode_fallback.mayRaiseException(exception_type)
+
+
+class ExpressionClassMappingVariableRefOrFallback(
+    ExpressionClassMappingVariableRefOrFallbackBase, ExpressionBase
+):
+    """Lookup of a name in a class namespace with global fallback.
+
+    This mirrors the 'LOAD_FROM_DICT_OR_GLOBALS' used by CPython for
+    annotation scopes that are nested inside a class body.
+
+    Notes:
+        The mapping child is the class namespace, and the fallback child is
+        the module level variable reference for the same name.
+    """
+
+    kind = "EXPRESSION_CLASS_MAPPING_VARIABLE_REF_OR_FALLBACK"
+
+    named_children = ("mapping", "fallback")
+    node_attributes = ("variable_name",)
+
+    def getVariableName(self):
+        return self.variable_name
+
+    def computeExpression(self, trace_collection):
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        return self, None, None
+
+    def mayRaiseException(self, exception_type):
+        # The mapping lookup can raise for custom mappings, and the fallback
+        # can raise a name error.
+        return True
 
 
 # TODO: Why is this unused.
@@ -662,6 +697,23 @@ class ExpressionLocalsDictRef(ExpressionBuiltinLocalsRef):
     @staticmethod
     def isFinalUseOfLocals():
         return True
+
+
+class ExpressionClassDictRef(ExpressionLocalsDictRef):
+    """Reference to the class namespace mapping.
+
+    Unlike 'ExpressionLocalsDictRef', this returns a new reference, and does
+    not consider the locals dictionary as used up by the reference.
+    """
+
+    kind = "EXPRESSION_CLASS_DICT_REF"
+
+    @staticmethod
+    def isFinalUseOfLocals():
+        return False
+
+    def computeExpressionRaw(self, trace_collection):
+        return self, None, None
 
 
 class StatementReleaseLocals(StatementBase):

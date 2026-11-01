@@ -12,6 +12,7 @@ complete.
 
 from nuitka.nodes.FunctionNodes import MaybeLocalVariableUsage
 from nuitka.nodes.LocalsDictNodes import (
+    ExpressionClassMappingVariableRefOrFallback,
     ExpressionLocalsVariableRef,
     ExpressionLocalsVariableRefOrFallback,
     StatementLocalsDictOperationDel,
@@ -26,6 +27,7 @@ from nuitka.nodes.VariableAssignNodes import makeStatementAssignmentVariable
 from nuitka.nodes.VariableDelNodes import makeStatementDelVariable
 from nuitka.nodes.VariableRefNodes import (
     ExpressionTempVariableRef,
+    ExpressionVariableRef,
     makeExpressionVariableRef,
 )
 from nuitka.plugins.Hooks import getVariableConstantValue
@@ -39,6 +41,47 @@ from .Operations import VisitorNoopMixin, visitTree
 from .ReformulationFunctionStatements import addFunctionVariableReleases
 from .ReformulationTryFinallyStatements import makeTryFinallyReleaseStatement
 from .SyntaxErrors import raiseSyntaxError
+
+
+def _getClassBodyForDeferredScope(provider):
+    """Return the class body if the provider is an annotation scope in it.
+
+    Annotation scopes, e.g. the ones created for type aliases, type
+    variables, and deferred annotations, resolve names in the class namespace
+    first, unlike normal functions nested in a class body. This finds the
+    class body for such scopes, and returns None for anything else such as
+    methods.
+
+    Args:
+        provider: The variable provider of a name reference.
+
+    Returns:
+        Class body node or None.
+    """
+
+    current = provider
+    seen_annotation_scope = False
+
+    while not current.isCompiledPythonModule():
+        if current.isExpressionClassBodyBase():
+            return current if seen_annotation_scope else None
+
+        if current.isExpressionFunctionBody():
+            if (
+                current.hasFlag("type_alias")
+                or current.hasFlag("typevar")
+                or current.hasFlag("annotate")
+            ):
+                seen_annotation_scope = True
+            else:
+                # A normal function is a boundary, class variables are not
+                # visible in it.
+                return None
+
+        current = current.getParentVariableProvider()
+
+    return None
+
 
 # Note: We do the variable scope assignment, as an extra step from tree
 # building, because tree building creates the tree without any consideration of
@@ -428,11 +471,47 @@ class VariableClosureLookupVisitorPhase2(VisitorNoopMixin):
                     source_ref=node.source_ref,
                 )
             else:
-                new_node = makeExpressionVariableRef(
-                    variable=variable,
-                    locals_scope=provider.getLocalsScope(),
-                    source_ref=node.source_ref,
+                class_body = (
+                    _getClassBodyForDeferredScope(provider)
+                    if variable.isModuleVariable()
+                    else None
                 )
+
+                if (
+                    class_body is not None
+                    and class_body.deferred_class_dict is not None
+                ):
+                    class_dict_variable = class_body.deferred_class_dict
+
+                    new_node = ExpressionClassMappingVariableRefOrFallback(
+                        mapping=ExpressionVariableRef(
+                            variable=class_dict_variable, source_ref=node.source_ref
+                        ),
+                        fallback=makeExpressionVariableRef(
+                            variable=variable,
+                            locals_scope=provider.getLocalsScope(),
+                            source_ref=node.source_ref,
+                        ),
+                        variable_name=node.getVariableName(),
+                        source_ref=node.source_ref,
+                    )
+
+                    # The class namespace needs to be a closure variable of
+                    # all deferred scopes in between.
+                    current = provider
+
+                    while current is not class_body:
+                        if current.isExpressionFunctionBody():
+                            current.addClosureVariable(class_dict_variable)
+                            class_dict_variable.addVariableUser(current)
+
+                        current = current.getParentVariableProvider()
+                else:
+                    new_node = makeExpressionVariableRef(
+                        variable=variable,
+                        locals_scope=provider.getLocalsScope(),
+                        source_ref=node.source_ref,
+                    )
 
                 variable.addVariableUser(provider)
 

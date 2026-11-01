@@ -114,6 +114,46 @@ print(
 print("Child attr:", TestChild.child_attr)
 print("Parent attr:", TestChild.parent_attr)
 
+
+class TestClassAnnotationsForward:
+    attribute: Later
+
+    class Later:
+        pass
+
+
+print(
+    "Class annotations with forward reference:",
+    displayDict(TestClassAnnotationsForward.__annotations__),
+)
+
+
+class TestClassAnnotationsTypeParams[T]:
+    attribute: Later
+
+    class Later:
+        pass
+
+
+print(
+    "Class annotations with type parameters and forward reference:",
+    displayDict(TestClassAnnotationsTypeParams.__annotations__),
+)
+
+
+class TestMethodAnnotationsForward:
+    def method(self, value: Later) -> Later:
+        return value
+
+    class Later:
+        pass
+
+
+print(
+    "Method annotations with forward reference:",
+    displayDict(TestMethodAnnotationsForward.method.__annotations__),
+)
+
 #     Python tests originally created or extracted from other peoples work. The
 #     parts were too small to be protected.
 #
