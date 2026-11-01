@@ -2067,7 +2067,8 @@ static int Nuitka_Main(int argc, native_command_line_argument_t **argv) {
 #if SYSFLAG_ISOLATED
     Nuitka_SysSetObject("path", PyList_New(0));
 #elif PYTHON_VERSION >= 0x3b0 && SYSFLAG_SAFE_PATH == 1
-    PyList_SetSlice(Nuitka_SysGetObject("path"), 0, 1, PyTuple_New(0));
+    NUITKA_MAY_BE_UNUSED bool res = LIST_DEL_SLICE(Nuitka_SysGetObject("path"), 0, 1);
+    assert(res);
 #endif
 
     /* Initialize the built-in module tricks used and builtin-type methods */
@@ -2323,8 +2324,8 @@ static int Nuitka_Main(int argc, native_command_line_argument_t **argv) {
         Py_ssize_t size = PyList_Size(argv_list);
 
         // Negative indexes are not supported by this function.
-        NUITKA_MAY_BE_UNUSED int res = PyList_SetSlice(argv_list, 1, size - 2, const_tuple_empty);
-        assert(res == 0);
+        NUITKA_MAY_BE_UNUSED bool res = LIST_DEL_SLICE(argv_list, 1, size - 2);
+        assert(res);
 
         PyObject *main_function = PyObject_GetAttrString(joblib_popen_loky_win32_module, "main");
         CHECK_OBJECT(main_function);
@@ -2354,8 +2355,8 @@ static int Nuitka_Main(int argc, native_command_line_argument_t **argv) {
             tstate, Nuitka_JoblibPopenLokyPosixModuleEntry, "joblib.externals.loky.backend.popen_loky_posix", true);
 
         // Remove the "-m" like CPython would do as well.
-        NUITKA_MAY_BE_UNUSED int res = PyList_SetSlice(Nuitka_SysGetObject("argv"), 0, 2, const_tuple_empty);
-        assert(res == 0);
+        NUITKA_MAY_BE_UNUSED bool res = LIST_DEL_SLICE(Nuitka_SysGetObject("argv"), 0, 2);
+        assert(res);
 
         PyObject *main_function = PyObject_GetAttrString(joblib_popen_loky_posix_module, "main");
         CHECK_OBJECT(main_function);

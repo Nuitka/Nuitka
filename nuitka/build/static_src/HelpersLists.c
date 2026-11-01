@@ -766,6 +766,90 @@ void LIST_CLEAR(PyObject *target) {
     NUITKA_LIST_END();
 }
 
+static bool _LIST_DEL_SLICE_LOCK_HELD(PyObject *target, Py_ssize_t lower, Py_ssize_t upper) {
+    CHECK_OBJECT(target);
+    assert(PyList_CheckExact(target));
+
+    PyListObject *list = (PyListObject *)target;
+
+    Py_ssize_t size = Py_SIZE(list);
+
+    // Clamp the indices like "PyList_SetSlice" does for an empty replacement.
+    if (lower < 0) {
+        lower = 0;
+    } else if (lower > size) {
+        lower = size;
+    }
+
+    if (upper < lower) {
+        upper = lower;
+    } else if (upper > size) {
+        upper = size;
+    }
+
+    Py_ssize_t length = upper - lower;
+
+    if (length == 0) {
+        return true;
+    }
+
+    if (length == size) {
+        _LIST_CLEAR_LOCK_HELD(target);
+        return true;
+    }
+
+    PyObject *recycle_on_stack[8];
+    PyObject **recycle = recycle_on_stack;
+    size_t removed_bytes = length * sizeof(PyObject *);
+    PyObject **items = list->ob_item;
+    size_t tail_bytes = (size - upper) * sizeof(PyObject *);
+
+    if (removed_bytes > sizeof(recycle_on_stack)) {
+        recycle = (PyObject **)NuitkaMem_Malloc(removed_bytes);
+
+        if (unlikely(recycle == NULL)) {
+            PyErr_NoMemory();
+            return false;
+        }
+    }
+
+    // Postpone the decref until the list is back in a consistent shape, as
+    // destructors can re-enter the list.
+    memcpy(recycle, &items[lower], removed_bytes);
+    memmove(&items[lower], &items[upper], tail_bytes);
+
+    bool result = _LIST_RESIZE(list, size - length);
+
+    if (unlikely(!result)) {
+        memmove(&items[upper], &items[lower], tail_bytes);
+        memcpy(&items[lower], recycle, removed_bytes);
+    } else {
+        for (Py_ssize_t i = length - 1; i >= 0; i--) {
+            Py_XDECREF(recycle[i]);
+        }
+    }
+
+    if (recycle != recycle_on_stack) {
+#ifdef Py_GIL_DISABLED
+        NuitkaMem_Free(recycle);
+#else
+        PyMem_Free(recycle);
+#endif
+    }
+
+    return result;
+}
+
+bool LIST_DEL_SLICE(PyObject *target, Py_ssize_t lower, Py_ssize_t upper) {
+    bool result;
+
+    NUITKA_LIST_BEGIN(target);
+    result = _LIST_DEL_SLICE_LOCK_HELD(target, lower, upper);
+    NUITKA_LIST_END();
+
+    return result;
+}
+
 PyObject *getListIndexObject(Py_ssize_t value) {
 #if PYTHON_VERSION < 0x300
     return PyInt_FromSsize_t(value);

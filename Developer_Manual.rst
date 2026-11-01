@@ -2121,6 +2121,16 @@ call of the functions below is a hint that it should be replaced.
       -  ``bool`` result; the suffix selects borrowed (``0``) versus
          owned (``1``) item reference transfer.
 
+   -  -  ``PyList_SetSlice(..., empty)`` / ``del list[lower:upper]``
+
+      -  ``LIST_DEL_SLICE``
+
+      -  ``helper/lists.h``
+
+      -  Exact ``list`` only; direct slice deletion with the same index
+         clamping as ``PyList_SetSlice`` and deferred reference
+         releases.
+
    -  -  ``list.extend``
 
       -  ``LIST_EXTEND_FROM_LIST``, ``LIST_EXTEND_FROM_ITERABLE``,
