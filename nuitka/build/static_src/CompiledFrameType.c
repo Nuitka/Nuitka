@@ -706,7 +706,11 @@ static PyObject *Nuitka_Frame_clear(PyObject *self, PyObject *unused) {
     // frame_clear logic.
     PyObject *frame_gen = Nuitka_GetFrameGenerator(frame);
     if ((frame_gen != NULL) && Nuitka_Frame_IsSuspended(frame)) {
+#if PYTHON_VERSION >= 0x3f0 && defined(_NUITKA_FULL_COMPAT)
+        SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_RuntimeError, "cannot clear an suspended frame");
+#else
         SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_RuntimeError, "cannot clear a suspended frame");
+#endif
 
         return NULL;
     }
