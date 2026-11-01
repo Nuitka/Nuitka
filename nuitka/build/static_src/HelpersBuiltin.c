@@ -96,7 +96,7 @@ PyObject *COMPILE_CODE(PyThreadState *tstate, PyObject *source_code, PyObject *f
 #endif
     };
 
-    PyObject *kw_args = MAKE_DICT_X_CSTR(kw_keys, kw_values, sizeof(kw_values) / sizeof(PyObject *));
+    PyObject *kw_args = MAKE_DICT_CSTR_X(tstate, kw_keys, kw_values, sizeof(kw_values) / sizeof(PyObject *));
 
     NUITKA_ASSIGN_BUILTIN(compile);
 
@@ -697,7 +697,7 @@ PyObject *BUILTIN_PRINT(PyThreadState *tstate, PyObject **values, int count, PyO
         PyObject *kw_values[] = {sep, end, file, flush};
         char const *kw_keys[] = {"sep", "end", "file", "flush"};
 
-        kw_dict = MAKE_DICT_X_CSTR(kw_keys, kw_values, 4);
+        kw_dict = MAKE_DICT_CSTR_X(tstate, kw_keys, kw_values, 4);
 
         assert(kw_dict != NULL);
     }
@@ -721,7 +721,7 @@ PyObject *BUILTIN_PRINT(PyThreadState *tstate, PyObject **values, int count, PyO
         PyObject *kw_values[] = {sep, end, file};
         char const *kw_keys[] = {"sep", "end", "file"};
 
-        kw_dict = MAKE_DICT_X_CSTR(kw_keys, kw_values, 3);
+        kw_dict = MAKE_DICT_CSTR_X(tstate, kw_keys, kw_values, 3);
 
         assert(kw_dict != NULL);
     }

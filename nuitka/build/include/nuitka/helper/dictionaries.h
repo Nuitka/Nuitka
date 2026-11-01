@@ -531,12 +531,20 @@ static inline PyObject *MAKE_DICT_EMPTY(PyThreadState *tstate) {
 
 // Create a dictionary from keyword argument names and their values.
 extern PyObject *MAKE_DICT_FROM_KWARGS(PyThreadState *tstate, PyObject *kw_names, PyObject *const *kw_values);
+// Create an empty dictionary pre-sized for the given number of entries.
+extern PyObject *MAKE_DICT_PRESIZED(PyThreadState *tstate, Py_ssize_t size);
+// Create an empty dictionary pre-sized for the given number of string entries.
+extern PyObject *MAKE_DICT_PRESIZED_UNICODE(PyThreadState *tstate, Py_ssize_t size);
 // Create a dictionary from key/value pairs.
-extern PyObject *MAKE_DICT(PyObject **pairs, Py_ssize_t size);
+extern PyObject *MAKE_DICT(PyThreadState *tstate, PyObject **pairs, Py_ssize_t size);
+// Create a dictionary from string key/value pairs.
+extern PyObject *MAKE_DICT_UNICODE(PyThreadState *tstate, PyObject **pairs, Py_ssize_t size);
 // Create a dictionary from key/value pairs (NULL value means skip)
-extern PyObject *MAKE_DICT_X(PyObject **pairs, Py_ssize_t size);
+extern PyObject *MAKE_DICT_X(PyThreadState *tstate, PyObject **pairs, Py_ssize_t size);
+// Create a dictionary from string key/value pairs (NULL value means skip)
+extern PyObject *MAKE_DICT_UNICODE_X(PyThreadState *tstate, PyObject **pairs, Py_ssize_t size);
 // Create a dictionary from key/value pairs (NULL value means skip) where keys are C strings.
-extern PyObject *MAKE_DICT_X_CSTR(char const **keys, PyObject **values, Py_ssize_t size);
+extern PyObject *MAKE_DICT_CSTR_X(PyThreadState *tstate, char const **keys, PyObject **values, Py_ssize_t size);
 
 // It's probably unchanged across all Python versions 2.6-3.15
 #if PYTHON_VERSION >= 0x3e0

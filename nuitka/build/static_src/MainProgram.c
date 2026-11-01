@@ -2362,7 +2362,7 @@ static int Nuitka_Main(int argc, native_command_line_argument_t **argv) {
                 Nuitka_PyLong_FromLong(loky_joblib_parent_pid_arg),
             };
 
-            PyObject *kw_args = MAKE_DICT_X_CSTR(kw_keys, kw_values, sizeof(kw_values) / sizeof(PyObject *));
+            PyObject *kw_args = MAKE_DICT_CSTR_X(tstate, kw_keys, kw_values, sizeof(kw_values) / sizeof(PyObject *));
 
             CALL_FUNCTION_WITH_KW_ARGS(tstate, main_function, kw_args);
         }

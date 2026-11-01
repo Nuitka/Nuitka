@@ -4296,13 +4296,80 @@ PyObject *MAKE_DICT_EMPTY(PyThreadState *tstate) {
 }
 #endif
 
+PyObject *MAKE_DICT_PRESIZED(PyThreadState *tstate, Py_ssize_t size) {
+    PyObject *result = MAKE_DICT_EMPTY(tstate);
+
+#if !defined(Py_GIL_DISABLED)
+    // Match CPython's "_PyDict_NewPresized", which only pre-sizes beyond 5
+    // entries.
+    if (size > 5) {
+        int res;
+
+#if PYTHON_VERSION >= 0x3b0
+        res = Nuitka_DictResize(tstate, (PyDictObject *)result, Nuitka_DictCalculateLog2Keysize((size * 3 + 1) / 2),
+                                false);
+#elif PYTHON_VERSION >= 0x360
+        // This variant expects a power of two size already.
+        res = Nuitka_DictResize(tstate, (PyDictObject *)result, Nuitka_DictCalculateKeysize((size * 3 + 1) / 2));
+#elif PYTHON_VERSION >= 0x300
+        // Account for only about 2/3 of the keys table being usable.
+        res = Nuitka_DictResize(tstate, (PyDictObject *)result, (size * 3 + 1) / 2);
+#else
+        res = Nuitka_DictResizeLegacy((PyDictObject *)result, (size * 3 + 1) / 2);
+#endif
+
+        if (unlikely(res < 0)) {
+            Py_DECREF(result);
+            return NULL;
+        }
+    }
+#else
+    (void)size;
+#endif
+
+    return result;
+}
+
+PyObject *MAKE_DICT_PRESIZED_UNICODE(PyThreadState *tstate, Py_ssize_t size) {
+#if PYTHON_VERSION >= 0x3b0 && !defined(Py_GIL_DISABLED)
+    if (size <= 0) {
+        return MAKE_DICT_EMPTY(tstate);
+    }
+
+    PyDictObject *result_mp = (PyDictObject *)MAKE_DICT_EMPTY(tstate);
+
+    // For small dictionaries the minimum size is enough, but it still pays
+    // to use the unicode-only keys object.
+    Py_ssize_t minused = size > 5 ? (size * 3 + 1) / 2 : size;
+
+    PyDictKeysObject *keys = Nuitka_DictNewKeysObject(tstate, Nuitka_DictCalculateLog2Keysize(minused), true);
+
+    if (unlikely(keys == NULL)) {
+        Py_DECREF(result_mp);
+        return NULL;
+    }
+
+    Nuitka_DictKeysDecref(tstate, result_mp->ma_keys);
+
+    result_mp->ma_keys = keys;
+    result_mp->ma_values = NULL;
+    result_mp->ma_used = 0;
+
+    assert(result_mp->ma_keys->dk_kind == DICT_KEYS_UNICODE);
+
+    return (PyObject *)result_mp;
+#else
+    return MAKE_DICT_PRESIZED(tstate, size);
+#endif
+}
+
 PyObject *MAKE_DICT_FROM_KWARGS(PyThreadState *tstate, PyObject *kw_names, PyObject *const *kw_values) {
     CHECK_OBJECT(kw_names);
     assert(PyTuple_CheckExact(kw_names));
 
     Py_ssize_t kwargs_count = PyTuple_GET_SIZE(kw_names);
 
-    PyObject *result = MAKE_DICT_EMPTY(tstate);
+    PyObject *result = MAKE_DICT_PRESIZED_UNICODE(tstate, kwargs_count);
 
     for (Py_ssize_t i = 0; i < kwargs_count; i++) {
         PyObject *key = PyTuple_GET_ITEM(kw_names, i);
@@ -4322,8 +4389,14 @@ PyObject *MAKE_DICT_FROM_KWARGS(PyThreadState *tstate, PyObject *kw_names, PyObj
     return result;
 }
 
-PyObject *MAKE_DICT(PyObject **pairs, Py_ssize_t size) {
-    PyObject *result = _PyDict_NewPresized(size);
+static PyObject *_MAKE_DICT(PyThreadState *tstate, PyObject **pairs, Py_ssize_t size, bool unicode_keys) {
+    PyObject *result;
+
+    if (unicode_keys) {
+        result = MAKE_DICT_PRESIZED_UNICODE(tstate, size);
+    } else {
+        result = MAKE_DICT_PRESIZED(tstate, size);
+    }
 
     // Reject usage like this.
     assert(size > 0);
@@ -4342,8 +4415,22 @@ PyObject *MAKE_DICT(PyObject **pairs, Py_ssize_t size) {
     return result;
 }
 
-PyObject *MAKE_DICT_X(PyObject **pairs, Py_ssize_t size) {
-    PyObject *result = _PyDict_NewPresized(size);
+PyObject *MAKE_DICT(PyThreadState *tstate, PyObject **pairs, Py_ssize_t size) {
+    return _MAKE_DICT(tstate, pairs, size, false);
+}
+
+PyObject *MAKE_DICT_UNICODE(PyThreadState *tstate, PyObject **pairs, Py_ssize_t size) {
+    return _MAKE_DICT(tstate, pairs, size, true);
+}
+
+static PyObject *_MAKE_DICT_X(PyThreadState *tstate, PyObject **pairs, Py_ssize_t size, bool unicode_keys) {
+    PyObject *result;
+
+    if (unicode_keys) {
+        result = MAKE_DICT_PRESIZED_UNICODE(tstate, size);
+    } else {
+        result = MAKE_DICT_PRESIZED(tstate, size);
+    }
 
     // Reject usage like this.
     assert(size > 0);
@@ -4367,8 +4454,16 @@ PyObject *MAKE_DICT_X(PyObject **pairs, Py_ssize_t size) {
     return result;
 }
 
-PyObject *MAKE_DICT_X_CSTR(char const **keys, PyObject **values, Py_ssize_t size) {
-    PyObject *result = _PyDict_NewPresized(size);
+PyObject *MAKE_DICT_X(PyThreadState *tstate, PyObject **pairs, Py_ssize_t size) {
+    return _MAKE_DICT_X(tstate, pairs, size, false);
+}
+
+PyObject *MAKE_DICT_UNICODE_X(PyThreadState *tstate, PyObject **pairs, Py_ssize_t size) {
+    return _MAKE_DICT_X(tstate, pairs, size, true);
+}
+
+PyObject *MAKE_DICT_CSTR_X(PyThreadState *tstate, char const **keys, PyObject **values, Py_ssize_t size) {
+    PyObject *result = MAKE_DICT_PRESIZED_UNICODE(tstate, size);
 
     // Reject usage like this.
     assert(size > 0);
