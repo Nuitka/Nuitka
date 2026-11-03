@@ -3,10 +3,10 @@
 
 """Deferred releases for code generation.
 
-Values whose release cannot happen at the point where code generation drops
-them can be registered for release at the end of the enclosing code scope. The
-concrete release behavior is supplied by the code generation that registers
-such values.
+Values that keep a pinned reference in addition to their normal owning
+reference are registered with their release details. The custom release is
+emitted by the normal release code path when the owning reference is dropped,
+and by error exit code for values that are still owned when an error occurs.
 """
 
 _deferred_release_emitter = None
@@ -19,14 +19,16 @@ def registerDeferredReleaseEmitter(emitter):
 
 
 def addDeferredRelease(context, tmp_name, release_info):
-    """Register a value for a release at the end of the code scope."""
+    """Register a value for a custom release."""
     context.addDeferredReleaseName(tmp_name, release_info)
 
 
-def emitDeferredReleases(emit, context):
-    """Emit the release of all registered values of the current scope."""
+def emitDeferredRelease(emit, context, tmp_name):
+    """Emit the release of one registered value and unregister it."""
     if _deferred_release_emitter is not None:
-        _deferred_release_emitter.emitReleases(emit=emit, context=context)
+        _deferred_release_emitter.emitRelease(
+            emit=emit, context=context, tmp_name=tmp_name
+        )
 
 
 def getDeferredReleaseErrorCode(context, tmp_name, release_info):

@@ -17,7 +17,10 @@ And releasing of values, as this is what the error case commonly does.
 from nuitka.PythonVersions import python_version
 from nuitka.States import states
 
-from .DeferredReleaseCodes import getDeferredReleaseErrorCode
+from .DeferredReleaseCodes import (
+    emitDeferredRelease,
+    getDeferredReleaseErrorCode,
+)
 from .LineNumberCodes import getErrorLineNumberUpdateCode
 from .templates.CodeTemplatesExceptions import (
     template_error_catch_exception,
@@ -40,8 +43,7 @@ def getErrorExitReleaseCode(context):
             temp_release.append("%s = NULL;" % tmp_name)
 
         if context.isDeferredReleaseName(tmp_name):
-            # Release the deferred reference only when nothing else
-            # references the value.
+            # Release the deferred reference.
             deferred_code = getDeferredReleaseErrorCode(
                 context=context,
                 tmp_name=tmp_name,
@@ -92,17 +94,36 @@ def getErrorExitBoolCode(
     """
     assert not condition.endswith(";")
 
+    deferred_release_names = []
+
     if release_names:
-        getReleaseCodes(release_names, emit, context)
+        normal_release_names = []
+
+        for tmp_name in release_names:
+            if context.isDeferredReleaseName(tmp_name):
+                deferred_release_names.append(tmp_name)
+            else:
+                normal_release_names.append(tmp_name)
+
+        getReleaseCodes(normal_release_names, emit, context)
         assert not release_name
 
     if release_name is not None:
         assert type(release_name) is not tuple
-        getReleaseCode(release_name, emit, context)
+
+        if context.isDeferredReleaseName(release_name):
+            deferred_release_names.append(release_name)
+        else:
+            getReleaseCode(release_name, emit, context)
+
         assert not release_names
 
     if not needs_check:
         getAssertionCode("!(%s)" % condition, emit)
+
+        # The deferred values are released on the non-error path.
+        getReleaseCodes(deferred_release_names, emit, context)
+
         return
 
     (
@@ -132,6 +153,8 @@ def getErrorExitBoolCode(
                 "line_number_code": getErrorLineNumberUpdateCode(context),
             }
         )
+
+    getReleaseCodes(deferred_release_names, emit, context)
 
 
 def getErrorExitRaiseCode(condition, set_exception, emit, context):
@@ -221,13 +244,15 @@ def getTakeReferenceCode(value_name, emit):
 
 def getReleaseCode(release_name, emit, context):
     if context.needsCleanup(release_name):
-        # Note: Deferred release values additionally keep a pinned reference
-        # that is released at the end of the statement.
+        # Drop the owning reference.
         release_name.getCType().getReleaseCode(
             value_name=release_name, needs_check=False, emit=emit
         )
 
         context.removeCleanupTempName(release_name)
+
+        if context.isDeferredReleaseName(release_name):
+            emitDeferredRelease(emit=emit, context=context, tmp_name=release_name)
 
 
 def getReleaseCodes(release_names, emit, context):
