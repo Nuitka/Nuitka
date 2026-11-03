@@ -1299,9 +1299,30 @@ def buildNamedExprNode(provider, node, source_ref):
     return outline_body
 
 
+def _isConstantTupleNode(node):
+    """Check if a node is a tuple that CPython considers constant.
+
+    Notes:
+        CPython's AST optimizer folds tuples with only constant elements into
+        constants. For a type variable bound this means the tuple is a bound
+        and not a constraints specification.
+    """
+
+    if getKind(node) != "Tuple":
+        return False
+
+    return all(
+        getKind(element) == "Constant" or _isConstantTupleNode(element)
+        for element in node.elts
+    )
+
+
 def buildTypeVarNode(provider, node, source_ref):
+    evaluate_bound = None
+    evaluate_constraints = None
+
     if node.bound is not None:
-        evaluate_bound = _makeDeferredEvaluationFunction(
+        evaluate = _makeDeferredEvaluationFunction(
             provider=provider,
             function_name=node.name,
             create_expression=lambda inner_provider: buildNode(
@@ -1310,8 +1331,13 @@ def buildTypeVarNode(provider, node, source_ref):
             flags=_typevar_flags,
             source_ref=source_ref,
         )
-    else:
-        evaluate_bound = None
+
+        # The parser puts constraints into the bound field too, i.e. a tuple is
+        # a constraints specification, but evaluated lazily like a bound.
+        if getKind(node.bound) == "Tuple" and not _isConstantTupleNode(node.bound):
+            evaluate_constraints = evaluate
+        else:
+            evaluate_bound = evaluate
 
     if python_version >= 0x3D0:
         default_value = buildNode(
@@ -1326,6 +1352,7 @@ def buildTypeVarNode(provider, node, source_ref):
     return ExpressionTypeVariable(
         name=node.name,
         bound=evaluate_bound,
+        constraints=evaluate_constraints,
         default_value=default_value,
         source_ref=source_ref,
     )

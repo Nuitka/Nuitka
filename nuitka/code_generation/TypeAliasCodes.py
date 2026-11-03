@@ -55,7 +55,7 @@ def generateTypeAliasCode(to_name, expression, emit, context):
 
 
 def generateTypeVarCode(to_name, expression, emit, context):
-    bound_name, default_value_name = generateChildExpressionsCode(
+    bound_name, constraints_name, default_value_name = generateChildExpressionsCode(
         expression=expression, emit=emit, context=context
     )
 
@@ -64,27 +64,29 @@ def generateTypeVarCode(to_name, expression, emit, context):
     ) as value_name:
         if python_version >= 0x3D0:
             emit(
-                "%s = MAKE_TYPE_VAR(tstate, %s, %s, %s);"
+                "%s = MAKE_TYPE_VAR(tstate, %s, %s, %s, %s);"
                 % (
                     value_name,
                     context.getConstantCode(constant=expression.name),
                     bound_name if bound_name is not None else "NULL",
+                    constraints_name if constraints_name is not None else "NULL",
                     default_value_name if default_value_name is not None else "NULL",
                 )
             )
         else:
             emit(
-                "%s = MAKE_TYPE_VAR(tstate, %s, %s);"
+                "%s = MAKE_TYPE_VAR(tstate, %s, %s, %s);"
                 % (
                     value_name,
                     context.getConstantCode(constant=expression.name),
                     bound_name if bound_name is not None else "NULL",
+                    constraints_name if constraints_name is not None else "NULL",
                 )
             )
 
         getErrorExitCode(
             check_name=value_name,
-            release_names=(bound_name, default_value_name),
+            release_names=(bound_name, constraints_name, default_value_name),
             emit=emit,
             context=context,
             needs_check=False,

@@ -59,7 +59,7 @@ class ExpressionBuiltinType1(ExpressionBuiltinSingleArgBase):
                     type_shape, "typical_value"
                 ):
                     result = makeConstantReplacementNode(
-                        constant=type(getattr(type_shape, "typical_value")),
+                        constant=type(type_shape.typical_value),
                         node=self,
                         user_provided=False,
                     )
@@ -389,7 +389,11 @@ class ExpressionTypeVariable(ExpressionTypeVariableBase, ExpressionBase):
     kind = "EXPRESSION_TYPE_VARIABLE"
 
     auto_compute_handling = "final,no_raise"
-    named_children = ("bound|optional", "default_value|auto_none")
+    named_children = (
+        "bound|optional",
+        "constraints|optional",
+        "default_value|auto_none",
+    )
     node_attributes = ("name",)
 
     python_version_spec = ">= 0x3c0"
