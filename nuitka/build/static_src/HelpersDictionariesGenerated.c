@@ -31,7 +31,7 @@ PyObject *DICT_COPY(PyThreadState *tstate, PyObject *dict_value) {
 #if PYTHON_VERSION < 0x300
         // For Python3, this can be done much faster in the same way as it is
         // done in parameter parsing.
-        result = _PyDict_NewPresized(dict_mp->ma_used);
+        result = MAKE_DICT_PRESIZED(tstate, dict_mp->ma_used);
 
         for (Py_ssize_t i = 0; i <= dict_mp->ma_mask; i++) {
             PyDictEntry *entry = &dict_mp->ma_table[i];
@@ -177,7 +177,15 @@ PyObject *DICT_COPY(PyThreadState *tstate, PyObject *dict_value) {
             } else
 #endif
             {
-                result = _PyDict_NewPresized(dict_mp->ma_used);
+#if PYTHON_VERSION >= 0x3b0 && !defined(Py_GIL_DISABLED)
+                if (DK_IS_UNICODE(dict_mp->ma_keys)) {
+                    result = MAKE_DICT_PRESIZED_UNICODE(tstate, dict_mp->ma_used);
+                } else {
+                    result = MAKE_DICT_PRESIZED(tstate, dict_mp->ma_used);
+                }
+#else
+            result = MAKE_DICT_PRESIZED(tstate, dict_mp->ma_used);
+#endif
 
 #if PYTHON_VERSION < 0x3b0
                 Py_ssize_t size = DK_ENTRIES_SIZE(dict_mp->ma_keys);
@@ -255,7 +263,7 @@ PyObject *DEEP_COPY_DICT(PyThreadState *tstate, PyObject *dict_value) {
 #if PYTHON_VERSION < 0x300
         // For Python3, this can be done much faster in the same way as it is
         // done in parameter parsing.
-        result = _PyDict_NewPresized(dict_mp->ma_used);
+        result = MAKE_DICT_PRESIZED(tstate, dict_mp->ma_used);
 
         for (Py_ssize_t i = 0; i <= dict_mp->ma_mask; i++) {
             PyDictEntry *entry = &dict_mp->ma_table[i];
@@ -406,7 +414,15 @@ PyObject *DEEP_COPY_DICT(PyThreadState *tstate, PyObject *dict_value) {
             } else
 #endif
             {
-                result = _PyDict_NewPresized(dict_mp->ma_used);
+#if PYTHON_VERSION >= 0x3b0 && !defined(Py_GIL_DISABLED)
+                if (DK_IS_UNICODE(dict_mp->ma_keys)) {
+                    result = MAKE_DICT_PRESIZED_UNICODE(tstate, dict_mp->ma_used);
+                } else {
+                    result = MAKE_DICT_PRESIZED(tstate, dict_mp->ma_used);
+                }
+#else
+            result = MAKE_DICT_PRESIZED(tstate, dict_mp->ma_used);
+#endif
 
 #if PYTHON_VERSION < 0x3b0
                 Py_ssize_t size = DK_ENTRIES_SIZE(dict_mp->ma_keys);

@@ -79,12 +79,22 @@ static PyObject *_DEEP_COPY_SET(PyObject *value) {
 PyObject *DEEP_COPY_SET(PyThreadState *tstate, PyObject *value) { return _DEEP_COPY_SET(value); }
 
 #if PYTHON_VERSION >= 0x3f0
+static PyObject *_MAKE_FROZENDICT_COPY_DICT(PyThreadState *tstate, PyObject *frozendict_value) {
+    Py_ssize_t size = FROZENDICT_SIZE(frozendict_value);
+
+#if !defined(Py_GIL_DISABLED)
+    if (DK_IS_UNICODE(((PyDictObject *)frozendict_value)->ma_keys)) {
+        return MAKE_DICT_PRESIZED_UNICODE(tstate, size);
+    }
+#endif
+
+    return MAKE_DICT_PRESIZED(tstate, size);
+}
+
 PyObject *DEEP_COPY_FROZENDICT(PyThreadState *tstate, PyObject *frozendict_value) {
     assert(PyFrozenDict_CheckExact(frozendict_value));
 
-    Py_ssize_t size = FROZENDICT_SIZE(frozendict_value);
-
-    PyObject *d = _PyDict_NewPresized(size);
+    PyObject *d = _MAKE_FROZENDICT_COPY_DICT(tstate, frozendict_value);
     CHECK_OBJECT(d);
 
     Py_ssize_t pos = 0;
@@ -753,9 +763,7 @@ static PyObject *_DEEP_COPY_TUPLE_GUIDED(PyThreadState *tstate, PyObject *value,
 static PyObject *_DEEP_COPY_FROZENDICT_GUIDED(PyThreadState *tstate, PyObject *value, char const **guide) {
     assert(PyFrozenDict_CheckExact(value));
 
-    Py_ssize_t size = FROZENDICT_SIZE(value);
-
-    PyObject *d = _PyDict_NewPresized(size);
+    PyObject *d = _MAKE_FROZENDICT_COPY_DICT(tstate, value);
     CHECK_OBJECT(d);
 
     Py_ssize_t pos = 0;
