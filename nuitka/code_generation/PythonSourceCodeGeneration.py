@@ -661,6 +661,16 @@ def _generateBuiltinFrozensetSource(expression):
     return "frozenset(%s)" % generateExpressionSource(expression.subnode_value)
 
 
+def _generateBuiltinSentinelSource(expression):
+    if expression.subnode_repr_value is None:
+        return "sentinel(%s)" % generateExpressionSource(expression.subnode_name)
+
+    return "sentinel(%s, repr=%s)" % (
+        generateExpressionSource(expression.subnode_name),
+        generateExpressionSource(expression.subnode_repr_value),
+    )
+
+
 def _generateBuiltinType1Source(expression):
     return "type(%s)" % generateExpressionSource(expression.subnode_value)
 
@@ -1201,6 +1211,7 @@ _expression_source_dispatch = {
     "EXPRESSION_BUILTIN_DICT": _generateBuiltinDictSource,
     "EXPRESSION_BUILTIN_FROZENDICT": _generateBuiltinFrozendictSource,
     "EXPRESSION_BUILTIN_FROZENSET": _generateBuiltinFrozensetSource,
+    "EXPRESSION_BUILTIN_SENTINEL_CALL": _generateBuiltinSentinelSource,
     "EXPRESSION_BUILTIN_TYPE1": _generateBuiltinType1Source,
     "EXPRESSION_BUILTIN_SLICE1": _generateSliceSource,
     "EXPRESSION_BUILTIN_SLICE2": _generateSliceSource,

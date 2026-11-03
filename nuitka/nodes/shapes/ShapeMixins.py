@@ -39,6 +39,10 @@ class ShapeContainerMixin(object):
         return False
 
     @staticmethod
+    def hasShapeSlotHashCode():
+        return None
+
+    @staticmethod
     def hasShapeSlotNext():
         return False
 
@@ -72,6 +76,10 @@ class ShapeContainerImmutableMixin(ShapeContainerMixin):
     def hasShapeSlotHash():
         return True
 
+    @staticmethod
+    def hasShapeSlotHashCode():
+        return False
+
 
 class ShapeNotContainerMixin(object):
     # Mixins are required to define empty slots
@@ -95,6 +103,10 @@ class ShapeNotContainerMixin(object):
 
     @staticmethod
     def hasShapeSlotContains():
+        return False
+
+    @staticmethod
+    def hasShapeSlotHashCode():
         return False
 
     @staticmethod
@@ -193,6 +205,10 @@ class ShapeNumberMixin(object):
         return True
 
     @staticmethod
+    def hasShapeSlotHashCode():
+        return False
+
+    @staticmethod
     def hasShapeModule():
         return False
 
@@ -251,6 +267,10 @@ class ShapeIteratorMixin(ShapeNotContainerMixin):
     @staticmethod
     def hasShapeSlotHash():
         return True
+
+    @staticmethod
+    def hasShapeSlotHashCode():
+        return False
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and

@@ -104,6 +104,37 @@ def generateBuiltinType3Code(to_name, expression, emit, context):
         context.addCleanupTempName(value_name)
 
 
+def generateBuiltinSentinelCallCode(to_name, expression, emit, context):
+    name_name, repr_name = generateChildExpressionsCode(
+        expression=expression, emit=emit, context=context
+    )
+
+    module_dict_name = context.getModuleDictCodeName()
+
+    with withObjectCodeTemporaryAssignment(
+        to_name, "sentinel_value", expression, emit, context
+    ) as value_name:
+        emit(
+            "%s = BUILTIN_SENTINEL(tstate, %s, %s, %s);"
+            % (
+                value_name,
+                name_name,
+                "NULL" if repr_name is None else repr_name,
+                module_dict_name,
+            )
+        )
+
+        getErrorExitCode(
+            check_name=value_name,
+            release_names=(name_name, repr_name),
+            needs_check=expression.mayRaiseExceptionOperation(),
+            emit=emit,
+            context=context,
+        )
+
+        context.addCleanupTempName(value_name)
+
+
 def generateBuiltinInputCode(to_name, expression, emit, context):
     generateCAPIObjectCode(
         to_name=to_name,

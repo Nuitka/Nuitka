@@ -21,6 +21,7 @@ from nuitka.nodes.shapes.BuiltinTypeShapes import (
     tshape_list,
     tshape_long,
     tshape_none,
+    tshape_sentinel,
     tshape_set,
     tshape_str,
     tshape_tuple,
@@ -58,6 +59,9 @@ _value_size_check_codes = {
     tshape_dict: "DICT_SIZE(%s) == 0",
     tshape_frozendict: "FROZENDICT_SIZE(%s) == 0",
 }
+
+if python_version >= 0x3F0:
+    _value_type_check_codes[tshape_sentinel] = "PySentinel_CheckExact(%s)"
 
 if python_version >= 0x300:
     _value_type_check_codes[tshape_int] = "PyLong_CheckExact(%s)"

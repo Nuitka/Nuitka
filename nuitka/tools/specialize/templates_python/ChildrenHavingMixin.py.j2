@@ -35,7 +35,7 @@ from nuitka.nodes.ExpressionBases import ExpressionBase
 {% if named_children and is_expression %}
 from nuitka.nodes.NodeMakingHelpers import wrapExpressionWithSideEffects
 {% endif %}
-{% if not is_compute_final and named_children and base_class == "ExpressionBase" %}
+{% if (not is_compute_final and named_children and base_class == "ExpressionBase") or is_compute_expression_operation %}
 from abc import abstractmethod
 {% endif %}
 {% if is_compute_statement %}
@@ -420,6 +420,34 @@ class {{mixin_class_name}}({{base_class}}):
         return False
 {% endif %}
 
+{% endif %}
+
+{% if is_compute_expression_operation %}
+{% if named_children %}
+    def mayRaiseException(self, exception_type):
+        return \
+{% for named_child in named_children %}
+{% if named_children_types.get(named_child) == "optional" %}
+            (self.subnode_{{named_child}} is not None and self.subnode_{{named_child}}.mayRaiseException(exception_type)) \
+{% elif named_children_types.get(named_child) == "tuple" %}
+            any(value.mayRaiseException(exception_type) for value in self.subnode_{{named_child}}) \
+{% else %}
+            self.subnode_{{named_child}}.mayRaiseException(exception_type) \
+{% endif %}
+{% if named_child != named_children[-1] %}
+            or \
+{% endif %}
+{% endfor %}
+            or self.mayRaiseExceptionOperation()
+
+{% else %}
+    def mayRaiseException(self, exception_type):
+        return self.mayRaiseExceptionOperation()
+
+{% endif %}
+    @abstractmethod
+    def mayRaiseExceptionOperation(self):
+        """Must be overloaded for operation nodes."""
 {% endif %}
 
 {# TODO: Should make it abstract for mere mixins too, but too much work now. #}

@@ -20,6 +20,7 @@ from .__past__ import (
     frozendict,
     iterItems,
     long,
+    sentinel,
     unicode,
     xrange,
 )
@@ -415,6 +416,12 @@ if python_version >= 0x3F0:
     the_empty_frozendict = frozendict()
 else:
     the_empty_frozendict = None
+
+if python_version >= 0x3F0:
+    # Compiler-side sample for shape attribute discovery.
+    the_empty_sentinel = sentinel("NuitkaSentinel")
+else:
+    the_empty_sentinel = None
 
 the_empty_unicode = unicode()  # black doesn't let us write u"" anymore.
 

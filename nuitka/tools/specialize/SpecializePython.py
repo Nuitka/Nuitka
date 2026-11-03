@@ -43,6 +43,7 @@ from nuitka.nodes.shapes.BuiltinTypeShapes import (
     tshape_int,
     tshape_list,
     tshape_none,
+    tshape_sentinel,
     tshape_str,
     tshape_tuple,
 )
@@ -129,6 +130,8 @@ def _getMixinForShape(shape):
         return "nuitka.nodes.ExpressionShapeMixins.ExpressionDictShapeExactMixin"
     elif shape is tshape_frozendict:
         return "nuitka.nodes.ExpressionShapeMixins.ExpressionFrozendictShapeExactMixin"
+    elif shape is tshape_sentinel:
+        return "nuitka.nodes.ExpressionShapeMixins.ExpressionSentinelShapeExactMixin"
     elif shape is tshape_bytes:
         return "nuitka.nodes.ExpressionShapeMixins.ExpressionBytesShapeExactMixin"
     else:
@@ -706,9 +709,7 @@ def _addFromNode(node_class):
     # assert not hasattr(node_class, "named_child"), node_class
 
     if hasattr(node_class, "auto_compute_handling"):
-        auto_compute_handling = frozenset(
-            getattr(node_class, "auto_compute_handling").split(",")
-        )
+        auto_compute_handling = frozenset(node_class.auto_compute_handling.split(","))
     else:
         auto_compute_handling = ()
 
@@ -966,7 +967,9 @@ from .Checkers import (
             else:
                 raise_mode = None
 
-            is_compute_statement = pop("operation")
+            is_compute_operation = pop("operation")
+            is_compute_statement = is_compute_operation and is_statement
+            is_compute_expression_operation = is_compute_operation and is_expression
             has_post_node_init = pop("post_init")
 
             awaited_constant_attributes = OrderedSet(
@@ -1024,6 +1027,7 @@ from .Checkers import (
                 is_compute_final_children=is_compute_final_children,
                 raise_mode=raise_mode,
                 is_compute_statement=is_compute_statement,
+                is_compute_expression_operation=is_compute_expression_operation,
                 awaited_constant_attributes=awaited_constant_attributes,
                 has_post_node_init=has_post_node_init,
                 node_attributes=node_attributes,
