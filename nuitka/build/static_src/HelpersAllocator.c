@@ -274,6 +274,28 @@ static inline void Nuitka_deduce_unreachable(PyGC_Head *base, PyGC_Head *unreach
     Nuitka_move_unreachable(base, unreachable);
 }
 
+static void Nuitka_TupleMaybeUntrack(PyObject *op) {
+    CHECK_OBJECT(op);
+    assert(PyTuple_CheckExact(op));
+
+    if (!_PyObject_GC_IS_TRACKED(op)) {
+        return;
+    }
+
+    Py_ssize_t size = PyTuple_GET_SIZE(op);
+
+    for (Py_ssize_t i = 0; i < size; i++) {
+        PyObject *item = PyTuple_GET_ITEM(op, i);
+
+        // Tuples with NULL items are not fully constructed yet, don't untrack them.
+        if (item == NULL || _PyObject_GC_MAY_BE_TRACKED(item)) {
+            return;
+        }
+    }
+
+    Nuitka_GC_UnTrack(op);
+}
+
 static void Nuitka_untrack_tuples(PyGC_Head *head) {
     PyGC_Head *gc = GC_NEXT(head);
 
@@ -282,8 +304,7 @@ static void Nuitka_untrack_tuples(PyGC_Head *head) {
         PyGC_Head *next = GC_NEXT(gc);
 
         if (PyTuple_CheckExact(op)) {
-            // TODO: API function
-            _PyTuple_MaybeUntrack(op);
+            Nuitka_TupleMaybeUntrack(op);
         }
 
         gc = next;
@@ -306,8 +327,7 @@ static void Nuitka_untrack_dicts(PyGC_Head *head) {
         PyObject *op = FROM_GC(gc);
         next = GC_NEXT(gc);
         if (PyDict_CheckExact(op)) {
-            // TODO: API function
-            _PyDict_MaybeUntrack(op);
+            Nuitka_DictMaybeUntrack(op);
         }
         gc = next;
     }

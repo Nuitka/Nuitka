@@ -507,6 +507,11 @@ extern void DICT_CLEAR(PyObject *dict);
 // Replacement for PyDict_Next that is faster (to call).
 extern bool Nuitka_DictNext(PyObject *dict, Py_ssize_t *pos, PyObject **key_ptr, PyObject **value_ptr);
 
+#if PYTHON_VERSION >= 0x3b0 && PYTHON_VERSION < 0x3d0
+// Replacement for CPython's private _PyDict_MaybeUntrack.
+extern void Nuitka_DictMaybeUntrack(PyObject *op);
+#endif
+
 #if PYTHON_VERSION >= 0x3f0
 // Replacement for PyDict_Next for frozendicts, that are always combined dicts.
 extern bool Nuitka_FrozenDictNext(PyObject *frozendict, Py_ssize_t *pos, PyObject **key_ptr, PyObject **value_ptr);

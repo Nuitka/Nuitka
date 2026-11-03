@@ -3719,6 +3719,56 @@ bool Nuitka_DictNext(PyObject *dict, Py_ssize_t *pos, PyObject **key_ptr, PyObje
 #endif
 }
 
+#if PYTHON_VERSION >= 0x3b0 && PYTHON_VERSION < 0x3d0
+void Nuitka_DictMaybeUntrack(PyObject *op) {
+    CHECK_OBJECT(op);
+    assert(PyDict_CheckExact(op));
+
+    if (!_PyObject_GC_IS_TRACKED(op)) {
+        return;
+    }
+
+    PyDictObject *mp = (PyDictObject *)op;
+    Py_ssize_t numentries = mp->ma_keys->dk_nentries;
+
+    if (mp->ma_values != NULL) {
+        for (Py_ssize_t i = 0; i < numentries; i++) {
+            PyObject *value = mp->ma_values->values[i];
+
+            if (value != NULL && _PyObject_GC_MAY_BE_TRACKED(value)) {
+                return;
+            }
+        }
+    } else if (DK_IS_UNICODE(mp->ma_keys)) {
+        PyDictUnicodeEntry *entries = DK_UNICODE_ENTRIES(mp->ma_keys);
+
+        for (Py_ssize_t i = 0; i < numentries; i++) {
+            PyObject *value = entries[i].me_value;
+
+            if (value != NULL && _PyObject_GC_MAY_BE_TRACKED(value)) {
+                return;
+            }
+        }
+    } else {
+        PyDictKeyEntry *entries = DK_ENTRIES(mp->ma_keys);
+
+        for (Py_ssize_t i = 0; i < numentries; i++) {
+            PyObject *value = entries[i].me_value;
+
+            if (value == NULL) {
+                continue;
+            }
+
+            if (_PyObject_GC_MAY_BE_TRACKED(value) || _PyObject_GC_MAY_BE_TRACKED(entries[i].me_key)) {
+                return;
+            }
+        }
+    }
+
+    Nuitka_GC_UnTrack(op);
+}
+#endif
+
 #if PYTHON_VERSION >= 0x3f0
 bool Nuitka_FrozenDictNext(PyObject *frozendict, Py_ssize_t *pos, PyObject **key_ptr, PyObject **value_ptr) {
     CHECK_OBJECT(frozendict);
