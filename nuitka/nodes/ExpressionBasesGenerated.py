@@ -2787,6 +2787,172 @@ ExpressionCallMetaclassBase = (
 )
 
 
+class ChildrenHavingNameReprValueAutoNoneOperationMixin(object):
+    # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
+    __slots__ = ()
+
+    # This is generated for use in
+    #   ExpressionBuiltinSentinelCall
+
+    def __init__(
+        self,
+        name,
+        repr_value,
+    ):
+        name.parent = self
+
+        self.subnode_name = name
+
+        repr_value = convertNoneConstantToNone(repr_value)
+        if repr_value is not None:
+            repr_value.parent = self
+
+        self.subnode_repr_value = repr_value
+
+    def getVisitableNodes(self):
+        """The visitable nodes, with tuple values flattened."""
+
+        if self.subnode_repr_value is None:
+            return (self.subnode_name,)
+
+        return (
+            self.subnode_name,
+            self.subnode_repr_value,
+        )
+
+    def getVisitableNodesNamed(self):
+        """Named children dictionary.
+
+        For use in cloning nodes, debugging and XML output.
+        """
+
+        return (
+            ("name", self.subnode_name),
+            ("repr_value", self.subnode_repr_value),
+        )
+
+    def replaceChild(self, old_node, new_node):
+        value = self.subnode_name
+        if old_node is value:
+            new_node.parent = self
+
+            self.subnode_name = new_node
+
+            return
+
+        value = self.subnode_repr_value
+        if old_node is value:
+            new_node = convertNoneConstantToNone(new_node)
+            if new_node is not None:
+                new_node.parent = self
+
+            self.subnode_repr_value = new_node
+
+            return
+
+        raise AssertionError("Didn't find child", old_node, "in", self)
+
+    def getCloneArgs(self):
+        """Get clones of all children to pass for a new node.
+
+        Needs to make clones of child nodes too.
+        """
+
+        values = {
+            "name": self.subnode_name.makeClone(),
+            "repr_value": (
+                self.subnode_repr_value.makeClone()
+                if self.subnode_repr_value is not None
+                else None
+            ),
+        }
+
+        values.update(self.getDetails())
+
+        return values
+
+    def finalize(self):
+        del self.parent
+
+        self.subnode_name.finalize()
+        del self.subnode_name
+        if self.subnode_repr_value is not None:
+            self.subnode_repr_value.finalize()
+        del self.subnode_repr_value
+
+    def computeExpressionRaw(self, trace_collection):
+        """Compute an expression.
+
+        Default behavior is to just visit the child expressions first, and
+        then the node "computeExpression". For a few cases this needs to
+        be overloaded, e.g. conditional expressions.
+        """
+
+        # First apply the sub-expressions, as they are evaluated before
+        # the actual operation.
+        for count, sub_expression in enumerate(self.getVisitableNodes()):
+            expression = trace_collection.onExpression(sub_expression)
+
+            if expression.willRaiseAnyException():
+                sub_expressions = self.getVisitableNodes()
+
+                wrapped_expression = wrapExpressionWithSideEffects(
+                    side_effects=sub_expressions[:count],
+                    old_node=sub_expression,
+                    new_node=expression,
+                )
+
+                return (
+                    wrapped_expression,
+                    "new_raise",
+                    lambda: "For '%s' the child expression '%s' will raise."
+                    % (self.getChildNameNice(), expression.getChildNameNice()),
+                )
+
+        # Then ask ourselves to work on it.
+        return self.computeExpression(trace_collection)
+
+    def mayRaiseException(self, exception_type):
+        return (
+            self.subnode_name.mayRaiseException(exception_type)
+            or (
+                self.subnode_repr_value is not None
+                and self.subnode_repr_value.mayRaiseException(exception_type)
+            )
+            or self.mayRaiseExceptionOperation()
+        )
+
+    @abstractmethod
+    def mayRaiseExceptionOperation(self):
+        """Must be overloaded for operation nodes."""
+
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
+
+        self.undoVariableTracing()
+
+    # For overload only
+    @staticmethod
+    def undoVariableTracing():
+        pass
+
+    def collectVariableAccesses(self, emit_variable):
+        """Collect variable reads and writes of child nodes."""
+
+        self.subnode_name.collectVariableAccesses(emit_variable)
+        subnode_repr_value = self.subnode_repr_value
+
+        if subnode_repr_value is not None:
+            self.subnode_repr_value.collectVariableAccesses(emit_variable)
+
+
+# Assign the names that are easier to import with a stable name.
+ChildrenExpressionBuiltinSentinelCallMixin = (
+    ChildrenHavingNameReprValueAutoNoneOperationMixin
+)
+
+
 class _ChildHavingPairsTupleFinalNoRaiseMixin(ExpressionBase):
     # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
     __slots__ = ()

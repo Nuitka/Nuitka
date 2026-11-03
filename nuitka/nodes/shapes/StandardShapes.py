@@ -114,6 +114,11 @@ class ShapeBase(getMetaClassBase("Shape", require_slots=True)):
         return None
 
     @staticmethod
+    def hasShapeSlotHashCode():
+        """Does hashing execute code, i.e. control flow escaped."""
+        return None
+
+    @staticmethod
     def hasShapeTrustedAttributes():
         return None
 
@@ -1362,6 +1367,9 @@ class ShapeLoopCompleteAlternative(ShapeBase):
 
     def hasShapeSlotIterCode(self):
         return self._delegatedCheck(lambda x: x.hasShapeSlotIterCode())
+
+    def hasShapeSlotHashCode(self):
+        return self._delegatedCheck(lambda x: x.hasShapeSlotHashCode())
 
     def hasShapeSlotNext(self):
         return self._delegatedCheck(lambda x: x.hasShapeSlotNext())

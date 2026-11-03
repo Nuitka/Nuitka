@@ -3,7 +3,7 @@
 
 """Shapes for Python built-in types."""
 
-from nuitka.__past__ import frozendict, long, unicode, xrange
+from nuitka.__past__ import frozendict, long, sentinel, unicode, xrange
 from nuitka.code_generation.c_types.CTypeNuitkaBooleans import (
     CTypeNuitkaBoolEnum,
 )
@@ -11,7 +11,11 @@ from nuitka.code_generation.c_types.CTypeNuitkaInts import (
     CTypeNuitkaIntOrLongStruct,
 )
 from nuitka.code_generation.Reports import onMissingOperation
-from nuitka.Constants import the_empty_frozendict, the_empty_unicode
+from nuitka.Constants import (
+    the_empty_frozendict,
+    the_empty_sentinel,
+    the_empty_unicode,
+)
 from nuitka.options.Options import isExperimental
 from nuitka.PythonVersions import python_version
 
@@ -1183,6 +1187,31 @@ class ShapeTypeFrozendict(ShapeContainerMixin, ShapeNotNumberMixin, ShapeBase):
 tshape_frozendict = ShapeTypeFrozendict()
 
 
+class ShapeTypeSentinel(ShapeNotContainerMixin, ShapeNotNumberMixin, ShapeBase):
+    __slots__ = ()
+
+    typical_value = the_empty_sentinel
+
+    @staticmethod
+    def getTypeName():
+        return "sentinel"
+
+    @staticmethod
+    def hasShapeSlotHash():
+        return True
+
+    @staticmethod
+    def hasShapeIndexLookup():
+        return False
+
+    @staticmethod
+    def isKnownToHaveAttribute(attribute_name):
+        return hasattr(the_empty_sentinel, attribute_name)
+
+
+tshape_sentinel = ShapeTypeSentinel()
+
+
 class ShapeTypeStr(ShapeNotContainerMixin, ShapeNotNumberMixin, ShapeBase):
     __slots__ = ()
 
@@ -1863,6 +1892,10 @@ class ShapeTypeTypeBase(ShapeNotNumberMixin, ShapeBase):
     @staticmethod
     def hasShapeSlotHash():
         return True
+
+    @staticmethod
+    def hasShapeSlotHashCode():
+        return False
 
     def getComparisonLtShape(self, right_shape):
         if right_shape is tshape_unknown:
@@ -4427,6 +4460,7 @@ _shapes_by_type[xrange] = tshape_xrange
 
 if python_version >= 0x3F0:
     _shapes_by_type[frozendict] = tshape_frozendict
+    _shapes_by_type[sentinel] = tshape_sentinel
 
 
 def getTypeShapeFromValue(value):

@@ -789,6 +789,50 @@ PyObject *BUILTIN_TYPE3(PyThreadState *tstate, PyObject *module_name, PyObject *
     return result;
 }
 
+#if PYTHON_VERSION >= 0x3f0
+/** The "sentinel" built-in.
+ *
+ * CPython determines the module from the current frame's function object.
+ * Compiled frames do not have one, so the caller passes the module dictionary
+ * instead and the helper fills in the correct module name.
+ **/
+PyObject *BUILTIN_SENTINEL(PyThreadState *tstate, PyObject *name, PyObject *repr, PyDictObject *module_dict) {
+    CHECK_OBJECT(name);
+    CHECK_OBJECT(module_dict);
+
+    PyObject *args[] = {name, repr};
+    char const *arg_names[] = {"name", "repr"};
+
+    PyObject *result = CALL_BUILTIN_KW_ARGS(tstate, (PyObject *)&PySentinel_Type, args, arg_names, 2, 1);
+
+    if (unlikely(result == NULL)) {
+        return NULL;
+    }
+
+    if (unlikely(!PySentinel_CheckExact(result))) {
+        // A patched constructor returned something unexpected. Do not touch
+        // attributes on an object we do not understand.
+        return result;
+    }
+
+    // Compiled frames always make CPython's sentinel constructor use None for
+    // the module, so replace it with the module dictionary's name.
+    PyObject *dict_module_name = DICT_GET_ITEM0(tstate, (PyObject *)module_dict, const_str_plain___name__);
+
+    if (unlikely(dict_module_name == NULL)) {
+        CLEAR_ERROR_OCCURRED(tstate);
+
+        return result;
+    }
+
+    if (unlikely(SET_ATTRIBUTE(tstate, result, const_str_plain___module__, dict_module_name) == false)) {
+        CLEAR_ERROR_OCCURRED(tstate);
+    }
+
+    return result;
+}
+#endif
+
 /** The "super" built-in.
  *
  *

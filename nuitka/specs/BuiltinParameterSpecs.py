@@ -383,6 +383,17 @@ builtin_frozenset_spec = BuiltinParameterSpecNoKeywords(
 
 builtin_frozendict_spec = BuiltinParameterSpecSinglePosArgStarDictArgs("frozendict")
 
+if python_version >= 0x3F0:
+    builtin_sentinel_spec = BuiltinParameterSpec(
+        "sentinel",
+        (),
+        pos_only_args=("name",),
+        kw_only_args=("repr",),
+        default_count=1,
+    )
+else:
+    builtin_sentinel_spec = None
+
 builtin_import_spec = BuiltinParameterSpec(
     "__import__", ("name", "globals", "locals", "fromlist", "level"), default_count=4
 )

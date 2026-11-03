@@ -73,6 +73,7 @@ from nuitka.nodes.BuiltinRefNodes import (
     ExpressionBuiltinAnonymousRef,
     makeExpressionBuiltinTypeRef,
 )
+from nuitka.nodes.BuiltinSentinelNodes import ExpressionBuiltinSentinelCall
 from nuitka.nodes.BuiltinSumNodes import (
     ExpressionBuiltinSum1,
     ExpressionBuiltinSum2,
@@ -399,6 +400,14 @@ def frozendict_extractor(node):
         node=node,
         builtin_class=wrapExpressionBuiltinFrozendictCreation,
         builtin_spec=BuiltinParameterSpecs.builtin_frozendict_spec,
+    )
+
+
+def sentinel_extractor(node):
+    return BuiltinParameterSpecs.extractBuiltinArgs(
+        node=node,
+        builtin_class=ExpressionBuiltinSentinelCall,
+        builtin_spec=BuiltinParameterSpecs.builtin_sentinel_spec,
     )
 
 
@@ -1548,6 +1557,7 @@ else:
 
 if python_version >= 0x3F0:
     _dispatch_dict["frozendict"] = frozendict_extractor
+    _dispatch_dict["sentinel"] = sentinel_extractor
 
 
 def check():

@@ -238,6 +238,11 @@ extern PyObject *BUILTIN_TYPE1(PyObject *arg);
 extern PyObject *BUILTIN_TYPE3(PyThreadState *tstate, PyObject *module_name, PyObject *name, PyObject *bases,
                                PyObject *dict);
 
+#if PYTHON_VERSION >= 0x3f0
+// For the built-in sentinel() functionality.
+extern PyObject *BUILTIN_SENTINEL(PyThreadState *tstate, PyObject *name, PyObject *repr, PyDictObject *module_dict);
+#endif
+
 // For built-in built-in len() functionality.
 extern PyObject *BUILTIN_LEN(PyThreadState *tstate, PyObject *boundary);
 

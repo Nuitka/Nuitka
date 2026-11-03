@@ -9,12 +9,14 @@ are automatically implemented.
 
 from abc import abstractmethod
 
+from nuitka.__past__ import sentinel
 from nuitka.Constants import (
     the_empty_bytearray,
     the_empty_dict,
     the_empty_frozendict,
     the_empty_frozenset,
     the_empty_list,
+    the_empty_sentinel,
     the_empty_set,
     the_empty_slice,
     the_empty_tuple,
@@ -40,6 +42,7 @@ from .shapes.BuiltinTypeShapes import (
     tshape_list,
     tshape_long,
     tshape_none,
+    tshape_sentinel,
     tshape_set,
     tshape_slice,
     tshape_str,
@@ -362,6 +365,41 @@ class ExpressionFrozendictShapeExactMixin(
     @staticmethod
     def getKnownAttributeValue(attribute_name):
         return getattr(the_empty_frozendict, attribute_name)
+
+
+class ExpressionSentinelShapeExactMixin(
+    ExpressionNonIterableTypeShapeMixin, ExpressionSpecificExactMixinBase
+):
+    """Mixin for nodes with exact sentinel shape."""
+
+    __slots__ = ()
+
+    @staticmethod
+    def getTypeShape():
+        return tshape_sentinel
+
+    @staticmethod
+    def isKnownToHaveAttribute(attribute_name):
+        return hasattr(the_empty_sentinel, attribute_name)
+
+    @staticmethod
+    def getKnownAttributeValue(attribute_name):
+        # Sentinel names and modules are instance-specific, so only expose
+        # type-level values here.
+        if attribute_name == "__class__":
+            return sentinel
+
+        return None
+
+    @staticmethod
+    def isKnownToBeHashable():
+        return True
+
+    @staticmethod
+    def getTruthValue():
+        """Return known truth value."""
+
+        return True
 
 
 class ExpressionSetShapeExactMixin(
