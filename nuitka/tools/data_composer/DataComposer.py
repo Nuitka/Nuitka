@@ -114,10 +114,34 @@ def _writeConstantValue(output, constant_value, blob_spec):
         for element in constant_value:
             _writeConstantValue(output, element, blob_spec)
     elif constant_type is dict or constant_type is frozendict:
-        output.write(
-            (blob_spec.tag_dict if constant_type is dict else blob_spec.tag_frozendict)
-            + _encodeVariableLength(len(constant_value))
-        )
+        if constant_type is dict and not constant_value:
+            output.write(blob_spec.tag_dict_empty)
+        else:
+            if (
+                python_version >= 0x3B0
+                and constant_value
+                and all(type(key) is unicode for key in constant_value)
+            ):
+                tag = (
+                    blob_spec.tag_dict_unicode
+                    if constant_type is dict
+                    else blob_spec.tag_frozendict_unicode
+                )
+            else:
+                tag = (
+                    blob_spec.tag_dict
+                    if constant_type is dict
+                    else blob_spec.tag_frozendict
+                )
+
+            if constant_type is dict:
+                # Empty dicts use a dedicated tag, so the normal tag only
+                # needs to encode lengths starting at zero for one entry.
+                length = len(constant_value) - 1
+            else:
+                length = len(constant_value)
+
+            output.write(tag + _encodeVariableLength(length))
 
         # Write keys first, and values second, such that we allow for the
         # last_written to have an impact.

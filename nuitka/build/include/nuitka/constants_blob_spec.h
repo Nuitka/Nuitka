@@ -15,9 +15,12 @@
 #define NUITKA_CONSTANT_BLOB_TAG_TUPLE 0x54                            /* 'T' */
 #define NUITKA_CONSTANT_BLOB_TAG_LIST 0x4c                             /* 'L' */
 #define NUITKA_CONSTANT_BLOB_TAG_DICT 0x44                             /* 'D' */
+#define NUITKA_CONSTANT_BLOB_TAG_DICT_UNICODE 0x4e                     /* 'N' */
+#define NUITKA_CONSTANT_BLOB_TAG_DICT_EMPTY 0x55                       /* 'U' */
 #define NUITKA_CONSTANT_BLOB_TAG_SET 0x53                              /* 'S' */
 #define NUITKA_CONSTANT_BLOB_TAG_FROZENSET 0x50                        /* 'P' */
 #define NUITKA_CONSTANT_BLOB_TAG_FROZENDICT 0x65                       /* 'e' */
+#define NUITKA_CONSTANT_BLOB_TAG_FROZENDICT_UNICODE 0x52               /* 'R' */
 #define NUITKA_CONSTANT_BLOB_TAG_LONG_POSITIVE_SMALL 0x6c              /* 'l' */
 #define NUITKA_CONSTANT_BLOB_TAG_LONG_NEGATIVE_SMALL 0x71              /* 'q' */
 #define NUITKA_CONSTANT_BLOB_TAG_LONG_POSITIVE_LARGE 0x67              /* 'g' */
