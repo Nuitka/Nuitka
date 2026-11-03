@@ -260,6 +260,64 @@ class TypeVarBoundForwardReference:
 
 print(TypeVarBoundForwardReference.someGenericMethod.__type_params__[0].__bound__)
 
+print("Type variable constraints")
+
+
+def usingConstraints[T: (str, int), Deferred: (sideEffect(),)]():
+    print("T.__constraints__", T.__constraints__)
+    print("T.__bound__", T.__bound__)
+    print("Deferred.__constraints__", Deferred.__constraints__)
+
+
+print("Function with constraints")
+usingConstraints()
+
+print("Class with constraints")
+
+
+class UsingConstraints[T: (str, int), Deferred: (sideEffect(),)]:
+    print("T.__constraints__", T.__constraints__)
+    print("T.__bound__", T.__bound__)
+    print("Deferred.__constraints__", Deferred.__constraints__)
+
+
+print("Type variable constraints using class namespace")
+
+
+class TypeVarConstraintsForwardReference:
+    def someGenericMethod[ValueT: (Later,)]():
+        pass
+
+    class Later:
+        pass
+
+
+print(
+    TypeVarConstraintsForwardReference.someGenericMethod.__type_params__[
+        0
+    ].__constraints__
+)
+
+print("Type variable constraints are lazily evaluated")
+
+
+class TypeVarConstraintsLazyEvaluation[T: Undefined, U: (Undefined,)]:
+    pass
+
+
+for type_param in TypeVarConstraintsLazyEvaluation.__type_params__:
+    for attribute_name in ("__bound__", "__constraints__"):
+        try:
+            print(attribute_name, getattr(type_param, attribute_name))
+        except NameError as e:
+            print(attribute_name, type(e).__name__, e)
+
+Undefined = "defined"
+
+print("Type variable constraints after definition")
+for type_param in TypeVarConstraintsLazyEvaluation.__type_params__:
+    print(type_param.__bound__, type_param.__constraints__)
+
 #     Python tests originally created or extracted from other peoples work. The
 #     parts were too small to be protected.
 #

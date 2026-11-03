@@ -811,7 +811,7 @@ ExpressionBuiltinMakeExceptionModuleNotFoundErrorBase = (
 )
 
 
-class _ChildrenHavingBoundOptionalDefaultValueAutoNoneFinalNoRaiseNameMixin(
+class _ChildrenHavingBoundOptionalConstraintsOptionalDefaultValueAutoNoneFinalNoRaiseNameMixin(
     ExpressionBase
 ):
     # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
@@ -820,11 +820,16 @@ class _ChildrenHavingBoundOptionalDefaultValueAutoNoneFinalNoRaiseNameMixin(
     # This is generated for use in
     #   ExpressionTypeVariable
 
-    def __init__(self, bound, default_value, name, source_ref):
+    def __init__(self, bound, constraints, default_value, name, source_ref):
         if bound is not None:
             bound.parent = self
 
         self.subnode_bound = bound
+
+        if constraints is not None:
+            constraints.parent = self
+
+        self.subnode_constraints = constraints
 
         default_value = convertNoneConstantToNone(default_value)
         if default_value is not None:
@@ -847,6 +852,8 @@ class _ChildrenHavingBoundOptionalDefaultValueAutoNoneFinalNoRaiseNameMixin(
         result = []
         if self.subnode_bound is not None:
             result.append(self.subnode_bound)
+        if self.subnode_constraints is not None:
+            result.append(self.subnode_constraints)
         if self.subnode_default_value is not None:
             result.append(self.subnode_default_value)
         return result
@@ -859,6 +866,7 @@ class _ChildrenHavingBoundOptionalDefaultValueAutoNoneFinalNoRaiseNameMixin(
 
         return (
             ("bound", self.subnode_bound),
+            ("constraints", self.subnode_constraints),
             ("default_value", self.subnode_default_value),
         )
 
@@ -869,6 +877,15 @@ class _ChildrenHavingBoundOptionalDefaultValueAutoNoneFinalNoRaiseNameMixin(
                 new_node.parent = self
 
             self.subnode_bound = new_node
+
+            return
+
+        value = self.subnode_constraints
+        if old_node is value:
+            if new_node is not None:
+                new_node.parent = self
+
+            self.subnode_constraints = new_node
 
             return
 
@@ -896,6 +913,11 @@ class _ChildrenHavingBoundOptionalDefaultValueAutoNoneFinalNoRaiseNameMixin(
                 if self.subnode_bound is not None
                 else None
             ),
+            "constraints": (
+                self.subnode_constraints.makeClone()
+                if self.subnode_constraints is not None
+                else None
+            ),
             "default_value": (
                 self.subnode_default_value.makeClone()
                 if self.subnode_default_value is not None
@@ -913,6 +935,9 @@ class _ChildrenHavingBoundOptionalDefaultValueAutoNoneFinalNoRaiseNameMixin(
         if self.subnode_bound is not None:
             self.subnode_bound.finalize()
         del self.subnode_bound
+        if self.subnode_constraints is not None:
+            self.subnode_constraints.finalize()
+        del self.subnode_constraints
         if self.subnode_default_value is not None:
             self.subnode_default_value.finalize()
         del self.subnode_default_value
@@ -954,11 +979,18 @@ class _ChildrenHavingBoundOptionalDefaultValueAutoNoneFinalNoRaiseNameMixin(
 
     def mayRaiseException(self, exception_type):
         return (
-            self.subnode_bound is not None
-            and self.subnode_bound.mayRaiseException(exception_type)
-        ) or (
-            self.subnode_default_value is not None
-            and self.subnode_default_value.mayRaiseException(exception_type)
+            (
+                self.subnode_bound is not None
+                and self.subnode_bound.mayRaiseException(exception_type)
+            )
+            or (
+                self.subnode_constraints is not None
+                and self.subnode_constraints.mayRaiseException(exception_type)
+            )
+            or (
+                self.subnode_default_value is not None
+                and self.subnode_default_value.mayRaiseException(exception_type)
+            )
         )
 
     def undoVariableTracingRaw(self, trace_collection):
@@ -979,6 +1011,10 @@ class _ChildrenHavingBoundOptionalDefaultValueAutoNoneFinalNoRaiseNameMixin(
 
         if subnode_bound is not None:
             self.subnode_bound.collectVariableAccesses(emit_variable)
+        subnode_constraints = self.subnode_constraints
+
+        if subnode_constraints is not None:
+            self.subnode_constraints.collectVariableAccesses(emit_variable)
         subnode_default_value = self.subnode_default_value
 
         if subnode_default_value is not None:
@@ -986,9 +1022,7 @@ class _ChildrenHavingBoundOptionalDefaultValueAutoNoneFinalNoRaiseNameMixin(
 
 
 # Assign the names that are easier to import with a stable name.
-ExpressionTypeVariableBase = (
-    _ChildrenHavingBoundOptionalDefaultValueAutoNoneFinalNoRaiseNameMixin
-)
+ExpressionTypeVariableBase = _ChildrenHavingBoundOptionalConstraintsOptionalDefaultValueAutoNoneFinalNoRaiseNameMixin
 
 
 class _ChildrenHavingCallableArgSentinelFinalMixin(ExpressionBase):
