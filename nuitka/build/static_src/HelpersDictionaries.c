@@ -1029,7 +1029,13 @@ static PyDictObject *_Nuitka_AllocatePyDictObjectFresh(void) {
     size_t pre_size = _PyType_PreHeaderSize(&PyDict_Type);
     size_t size = _PyObject_SIZE(&PyDict_Type);
 
+#ifdef Py_GIL_DISABLED
+    // Allocate through the type, so that free-threaded builds place the object
+    // in the GC heap, where the collector looks for it.
+    char *alloc = (char *)_PyObject_MallocWithType(&PyDict_Type, size + pre_size);
+#else
     char *alloc = (char *)NuitkaObject_Malloc(size + pre_size);
+#endif
     assert(alloc != NULL);
 
     ((PyObject **)alloc)[0] = NULL;
