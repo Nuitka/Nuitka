@@ -484,7 +484,7 @@ typedef signed int sdigit;
 // PyCFunctionWithKeywords using a ternary operator conditional that forces the
 // compiler to check the input type. The strict clang warning is suppressed
 // only around the expansion, as the type pun is intentional and required.
-#if defined(__clang__)
+#if HEDLEY_HAS_WARNING("-Wcast-function-type-strict")
 #define CAST_METHOD_KW(func)                                                                                           \
     _Pragma("clang diagnostic push") _Pragma("clang diagnostic ignored \"-Wcast-function-type-strict\"")(PyCFunction)( \
         void (*)(void))(1 ? (func) : (PyCFunctionWithKeywords)(func))_Pragma("clang diagnostic pop")
