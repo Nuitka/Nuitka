@@ -492,6 +492,11 @@ static void _finalizeUnpackedConstantObject(void **output, PyObject *value) {
     *output = (void *)((PyObject **)*output + 1);
 }
 
+static void _setUnpackedConstantObject(void **output, PyObject *value) {
+    *(PyObject **)*output = value;
+    *output = (void *)((PyObject **)*output + 1);
+}
+
 static void insertToDictCacheForcedHash(PyThreadState *tstate, PyObject *dict, PyObject **value, hashfunc tp_hash,
                                         richcmpfunc tp_richcompare) {
     hashfunc old_hash = Py_TYPE(*value)->tp_hash;
@@ -735,27 +740,41 @@ static unsigned char const *_unpackBlobConstantObjectList(PyThreadState *tstate,
     return data;
 }
 
-static unsigned char const *_unpackBlobConstantObjectDict(PyThreadState *tstate, void **output,
-                                                          unsigned char const *data) {
-    int size = (int)_unpackVariableLength(&data);
+static unsigned char const *_unpackBlobConstantObjectEmptyDict(void **output, unsigned char const *data) {
+    CHECK_OBJECT(const_dict_empty);
 
-    PyObject *d = _PyDict_NewPresized(size);
+    _setUnpackedConstantObject(output, const_dict_empty);
+
+    return data;
+}
+
+static unsigned char const *_unpackBlobConstantObjectDict(PyThreadState *tstate, void **output,
+                                                          unsigned char const *data, bool unicode_keys) {
+    // Empty dicts have a dedicated tag, so the length is stored minus one.
+    int size = (int)_unpackVariableLength(&data) + 1;
+
+    PyObject *d;
+
+    if (unicode_keys) {
+        d = MAKE_DICT_PRESIZED_UNICODE(tstate, size);
+    } else {
+        d = MAKE_DICT_PRESIZED(tstate, size);
+    }
+
     CHECK_OBJECT(d);
 
-    if (size > 0) {
-        NUITKA_DYNAMIC_ARRAY_DECL(keys, PyObject *, size);
-        NUITKA_DYNAMIC_ARRAY_DECL(values, PyObject *, size);
+    NUITKA_DYNAMIC_ARRAY_DECL(keys, PyObject *, size);
+    NUITKA_DYNAMIC_ARRAY_DECL(values, PyObject *, size);
 
-        data = _unpackBlobConstantsAt(tstate, keys, data, size);
-        data = _unpackBlobConstantsAt(tstate, values, data, size);
+    data = _unpackBlobConstantsAt(tstate, keys, data, size);
+    data = _unpackBlobConstantsAt(tstate, values, data, size);
 
-        CHECK_OBJECTS(&keys[0], size);
-        CHECK_OBJECTS(&values[0], size);
+    CHECK_OBJECTS(&keys[0], size);
+    CHECK_OBJECTS(&values[0], size);
 
-        for (int i = 0; i < size; i++) {
-            NUITKA_MAY_BE_UNUSED bool res = DICT_SET_ITEM(d, keys[i], values[i]);
-            assert(res != false);
-        }
+    for (int i = 0; i < size; i++) {
+        NUITKA_MAY_BE_UNUSED bool res = DICT_SET_ITEM(d, keys[i], values[i]);
+        assert(res != false);
     }
 
     insertToDictCacheForcedHash(tstate, dict_cache, &d, (hashfunc)our_dict_hash, (richcmpfunc)our_dict_tp_richcompare);
@@ -767,10 +786,11 @@ static unsigned char const *_unpackBlobConstantObjectDict(PyThreadState *tstate,
 
 #if PYTHON_VERSION >= 0x3f0
 static unsigned char const *_unpackBlobConstantObjectFrozendict(PyThreadState *tstate, void **output,
-                                                                unsigned char const *data) {
+                                                                unsigned char const *data, bool unicode_keys) {
     int size = (int)_unpackVariableLength(&data);
 
-    PyObject *d = _PyDict_NewPresized(size);
+    PyObject *d = unicode_keys ? MAKE_DICT_PRESIZED_UNICODE(tstate, size) : MAKE_DICT_PRESIZED(tstate, size);
+
     CHECK_OBJECT(d);
 
     if (size > 0) {
@@ -1479,9 +1499,13 @@ static unsigned char const *_unpackBlobConstantObjectCodeObject(PyThreadState *t
 
 static unsigned char const *_unpackBlobConstant(PyThreadState *tstate, void **output, unsigned char const *data) {
 
-    // Make sure we discover failures to assign.
-    *(PyObject **)*output = NULL;
     unsigned char c = *data++;
+
+    // Make sure we discover failures to assign, except for the pre-created
+    // empty dict constant.
+    if (c != NUITKA_CONSTANT_BLOB_TAG_DICT_EMPTY) {
+        *(PyObject **)*output = NULL;
+    }
 #ifdef _NUITKA_EXPERIMENTAL_DEBUG_CONSTANTS
     unsigned char const *data_old = data;
     printf("Type %u:\n", (unsigned int)c);
@@ -1500,8 +1524,16 @@ static unsigned char const *_unpackBlobConstant(PyThreadState *tstate, void **ou
         data = _unpackBlobConstantObjectList(tstate, output, data);
         break;
     }
+    case NUITKA_CONSTANT_BLOB_TAG_DICT_EMPTY: {
+        data = _unpackBlobConstantObjectEmptyDict(output, data);
+        break;
+    }
     case NUITKA_CONSTANT_BLOB_TAG_DICT: {
-        data = _unpackBlobConstantObjectDict(tstate, output, data);
+        data = _unpackBlobConstantObjectDict(tstate, output, data, false);
+        break;
+    }
+    case NUITKA_CONSTANT_BLOB_TAG_DICT_UNICODE: {
+        data = _unpackBlobConstantObjectDict(tstate, output, data, true);
         break;
     }
     case NUITKA_CONSTANT_BLOB_TAG_FROZENSET:
@@ -1511,7 +1543,11 @@ static unsigned char const *_unpackBlobConstant(PyThreadState *tstate, void **ou
     }
 #if PYTHON_VERSION >= 0x3f0
     case NUITKA_CONSTANT_BLOB_TAG_FROZENDICT: {
-        data = _unpackBlobConstantObjectFrozendict(tstate, output, data);
+        data = _unpackBlobConstantObjectFrozendict(tstate, output, data, false);
+        break;
+    }
+    case NUITKA_CONSTANT_BLOB_TAG_FROZENDICT_UNICODE: {
+        data = _unpackBlobConstantObjectFrozendict(tstate, output, data, true);
         break;
     }
 #endif
@@ -1690,6 +1726,19 @@ static unsigned char const *_unpackBlobConstantsAt(PyThreadState *tstate, void *
 }
 
 static void unpackBlobConstants(PyThreadState *tstate, void *output, unsigned char const *data) {
+    // The empty dict constant is used by the dict creation helpers, but the
+    // constants blob itself may contain it, so provide it before decoding.
+    // However, the bytecode blob is decoded before interpreter initialization
+    // without a thread state, where creating dictionaries is not possible. It
+    // contains raw blob data only, so it does not need the empty dict constant.
+    if (tstate != NULL && const_dict_empty == NULL) {
+        PyObject *value = PyDict_New();
+        CHECK_OBJECT(value);
+
+        void *empty_dict_output = (void *)&const_dict_empty;
+        _finalizeUnpackedConstantObject(&empty_dict_output, value);
+    }
+
     int count = (int)unpackValueUint16(&data);
 
 #ifdef _NUITKA_EXPERIMENTAL_DEBUG_CONSTANTS
