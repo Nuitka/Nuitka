@@ -277,6 +277,11 @@ class ExpressionMakeSet(ExpressionSetShapeExactMixin, ExpressionMakeSequenceBase
         else:
             return element_count
 
+    def canPredictIterationValues(self):
+        # A set does not yield its display elements in general, but for a
+        # single element its iteration value is predictable.
+        return len(self.subnode_elements) == 1
+
     @staticmethod
     def getIterationMinLength():
         # Hashing and equality may consume elements of the produced set.
@@ -326,9 +331,18 @@ class ExpressionMakeSet(ExpressionSetShapeExactMixin, ExpressionMakeSequenceBase
         return False
 
     def computeExpressionIter1(self, iter_node, trace_collection):
-        result = ExpressionMakeTuple(
-            elements=self.subnode_elements, source_ref=self.source_ref
-        )
+        elements = self.subnode_elements
+
+        # A set creatiom does not yield its elements as they are given, it
+        # removes duplicates and re-orders.
+        if (
+            len(elements) != 1
+            or elements[0].isKnownToBeHashable() is not True
+            or elements[0].getTypeShape().hasShapeSlotHashCode() is not False
+        ):
+            return iter_node, None, None
+
+        result = ExpressionMakeTuple(elements=elements, source_ref=self.source_ref)
 
         self.parent.replaceChild(self, result)
         del self.parent
@@ -362,8 +376,12 @@ def reversed_set(value):
 
 def makeExpressionMakeSetLiteralOrConstant(elements, user_provided, source_ref):
     for element in elements:
-        # TODO: Compile time constant ought to be the criterion.
-        if not element.isExpressionConstantRef():
+        # Constants can be unhashable, e.g. an empty list, and then a constant
+        # set cannot be made, and the creation code has to raise instead.
+        if (
+            not element.isExpressionConstantRef()
+            or element.isKnownToBeHashable() is not True
+        ):
             result = makeExpressionMakeSetLiteral(elements, source_ref)
             break
     else:

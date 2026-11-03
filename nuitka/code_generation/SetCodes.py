@@ -40,11 +40,11 @@ def generateSetCreationCode(to_name, expression, emit, context):
                 emit("%s = PySet_New(NULL);" % (result_name,))
                 getAssertionCode(result_name, emit)
 
-                context.addCleanupTempName(to_name)
+                context.addCleanupTempName(result_name)
 
             res_name = context.getIntResName()
 
-            emit("%s = PySet_Add(%s, %s);" % (res_name, to_name, element_name))
+            emit("%s = PySet_Add(%s, %s);" % (res_name, result_name, element_name))
 
             getErrorExitBoolCode(
                 condition="%s != 0" % res_name,
