@@ -26,6 +26,56 @@ def getKeyIndex(module, key):
     return list(module.__dict__).index(key)
 
 
+def getFileFromLocalVariable():
+    # Assigning "__file__" to a local variable in a function crashed the
+    # optimization in standalone mode, where "__file__" becomes a path relative
+    # to the program directory.
+    filename = __file__
+    return filename
+
+
+def getFileFromChainedAssignment():
+    first = second = __file__
+    return first, second
+
+
+def getFileFromTupleAssignment():
+    first, second = __file__, __file__
+    return first, second
+
+
+def getFileFromClosure():
+    def inner():
+        return __file__
+
+    return inner()
+
+
+def getFileFromLoopAssignment():
+    result = None
+
+    for _unused in range(2):
+        result = __file__
+
+    return result
+
+
+def getDunderValues():
+    name = __name__
+    package = __package__
+    return name, package
+
+
+def getLoaderValue():
+    loader = __loader__
+    return loader
+
+
+def getSpecValue():
+    spec = __spec__
+    return spec
+
+
 if "__compiled__" in globals():
     # Early/technical modules are stamped after they were executed.
     assert "__uncompiled__" in vars(codecs)
@@ -94,6 +144,35 @@ if "__compiled__" in globals():
 
         package_filename = inspect.getfile(compiled_package)
         assert package_filename.endswith("__init__.py"), repr(package_filename)
+
+assert getFileFromLocalVariable() == __file__, (getFileFromLocalVariable(), __file__)
+assert getFileFromChainedAssignment() == (__file__, __file__), (
+    getFileFromChainedAssignment(),
+    __file__,
+)
+assert getFileFromTupleAssignment() == (__file__, __file__), (
+    getFileFromTupleAssignment(),
+    __file__,
+)
+assert getFileFromClosure() == __file__, (getFileFromClosure(), __file__)
+assert getFileFromLoopAssignment() == __file__, (getFileFromLoopAssignment(), __file__)
+
+assert some_module.getFileFromLocalVariable() == some_module.__file__, (
+    some_module.getFileFromLocalVariable(),
+    some_module.__file__,
+)
+assert some_package.getFileFromLocalVariable() == some_package.__file__, (
+    some_package.getFileFromLocalVariable(),
+    some_package.__file__,
+)
+
+name, package = getDunderValues()
+assert name == __name__, (name, __name__)
+assert package == __package__, (package, __package__)
+
+if sys.version_info >= (3,):
+    assert getLoaderValue() is __loader__, (getLoaderValue(), __loader__)
+    assert getSpecValue() is __spec__, (getSpecValue(), __spec__)
 
 print("OK")
 

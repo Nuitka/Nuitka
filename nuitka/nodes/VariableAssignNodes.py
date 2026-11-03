@@ -998,7 +998,11 @@ class StatementAssignmentVariableFromVariable(
         # module variables that collide with built-in names. TODO: In
         # specialization this could be considered right away as its own node
         # type, waiting for it to compute like this.
-        if not variable.isModuleVariable() and old_source.getVariable() is variable:
+        if (
+            not variable.isModuleVariable()
+            and old_source.isExpressionVariableRefOrTempVariableRef()
+            and old_source.getVariable() is variable
+        ):
             # A variable access that has a side effect, must be preserved,
             # so it can e.g. raise an exception, otherwise we can be fully
             # removed.
@@ -1044,6 +1048,19 @@ Assignment raises exception in assigned variable access, removed assignment.""",
                 )
 
             result = self._considerSpecialization(old_source, source)
+
+            if result[0] is self and not source.isExpressionVariableRef():
+                result = (
+                    StatementAssignmentVariableGeneric(
+                        source=source,
+                        variable=self.variable,
+                        variable_version=self.variable_version,
+                        source_ref=self.source_ref,
+                    ),
+                    "new_statements",
+                    "Assignment source is no longer a variable reference.",
+                )
+
             result[0].parent = self.parent
 
         result[0].computeStatementAssignmentTraceUpdate(trace_collection, source)
@@ -1059,10 +1076,9 @@ Assignment raises exception in assigned variable access, removed assignment.""",
                 source=source,
             )
         else:
-            # Set-up the trace to the trace collection, so future references will
-            # find this assignment. TODO: We should for non-variables make sure we do
-            # always specialize, since this is no longer a variable once it was
-            # resolved.
+            # Non-variable sources are converted to generic assignments in
+            # 'computeStatement', but restored or cloned trees may still get
+            # here, where the trace must not assume a variable source.
             self.variable_trace = trace_collection.onVariableSet(
                 variable=self.variable, version=self.variable_version, assign_node=self
             )
@@ -1111,7 +1127,10 @@ class StatementAssignmentVariableFromTempVariable(
         # Assigning from and to the same variable, can be optimized away
         # immediately, there is no point in doing it. Exceptions are of course
         # module variables that collide with built-in names.
-        if old_source.getVariable() is variable:
+        if (
+            old_source.isExpressionVariableRefOrTempVariableRef()
+            and old_source.getVariable() is variable
+        ):
             return (
                 None,
                 "new_statements",
@@ -1127,6 +1146,19 @@ Removed assignment of %s from itself which is known to be defined."""
             result = self, None, None
         else:
             result = self._considerSpecialization(old_source, source)
+
+            if result[0] is self and not source.isExpressionTempVariableRef():
+                result = (
+                    StatementAssignmentVariableGeneric(
+                        source=source,
+                        variable=self.variable,
+                        variable_version=self.variable_version,
+                        source_ref=self.source_ref,
+                    ),
+                    "new_statements",
+                    "Assignment source is no longer a temporary variable reference.",
+                )
+
             result[0].parent = self.parent
 
         result[0].computeStatementAssignmentTraceUpdate(trace_collection, source)
