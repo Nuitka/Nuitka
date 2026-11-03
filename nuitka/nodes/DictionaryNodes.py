@@ -280,9 +280,8 @@ class ExpressionMakeDict(
                     "Dictionary key is known to not be hashable.",
                 )
 
-            if is_constant:
-                if not pair.isCompileTimeConstant():
-                    is_constant = False
+            if is_constant and not pair.isCompileTimeConstant():
+                is_constant = False
 
         if not is_constant:
             return self, None, None
