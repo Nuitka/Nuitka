@@ -18,9 +18,7 @@ _visit_depth_threshold = sys.getrecursionlimit() // 2
 def _visitorIsEnterOnly(visitor):
     # Visitors without their own leave callback only need the entering nodes,
     # which can be done much faster without post-order handling.
-    return getattr(type(visitor), "onLeaveNode") is getattr(
-        VisitorNoopMixin, "onLeaveNode"
-    )
+    return type(visitor).onLeaveNode is VisitorNoopMixin.onLeaveNode
 
 
 def visitTree(tree, visitor):
