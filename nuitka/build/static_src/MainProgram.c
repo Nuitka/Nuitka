@@ -528,12 +528,9 @@ static PyObject *EXECUTE_MAIN_MODULE_ENTRY(PyThreadState *tstate, struct Nuitka_
     return entry->m_import_module(tstate, entry, NULL);
 }
 
-#define EXECUTE_MAIN_MODULE(tstate, entry, module_name, is_package) EXECUTE_MAIN_MODULE_ENTRY(tstate, entry)
 #else
 static PyObject *EXECUTE_MAIN_MODULE_BY_NAME(PyThreadState *tstate, struct Nuitka_MetaPathBasedLoaderEntry const *entry,
                                              char const *module_name, bool is_package) {
-    // NUITKA_INIT_PROGRAM_LATE(module_name);
-
     if (entry != NULL && entry->m_import_module != NULL) {
         return entry->m_import_module(tstate, entry, NULL);
     }
@@ -564,10 +561,18 @@ static PyObject *EXECUTE_MAIN_MODULE_BY_NAME(PyThreadState *tstate, struct Nuitk
 
     return IMPORT_EMBEDDED_MODULE(tstate, module_name, false);
 }
-
-#define EXECUTE_MAIN_MODULE(tstate, entry, module_name, is_package)                                                    \
-    EXECUTE_MAIN_MODULE_BY_NAME(tstate, entry, module_name, is_package)
 #endif
+
+static PyObject *EXECUTE_MAIN_MODULE(PyThreadState *tstate, struct Nuitka_MetaPathBasedLoaderEntry const *entry,
+                                     char const *module_name, bool is_package) {
+    // NUITKA_INIT_PROGRAM_LATE(module_name);
+
+#if _NUITKA_STANDALONE_MODE
+    return EXECUTE_MAIN_MODULE_ENTRY(tstate, entry);
+#else
+    return EXECUTE_MAIN_MODULE_BY_NAME(tstate, entry, module_name, is_package);
+#endif
+}
 
 #if _NUITKA_PLUGIN_WINDOWS_SERVICE_ENABLED
 #include "nuitka_windows_service.h"
