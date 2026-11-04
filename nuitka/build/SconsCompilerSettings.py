@@ -265,7 +265,7 @@ slower without it.
                 env.Append(CCFLAGS=["-flto=thin"])
                 env.Append(LINKFLAGS=["-flto=thin"])
         else:
-            env.Append(CCFLAGS=["-flto=%d" % env.job_count])
+            env.Append(CCFLAGS=["-flto"])
             env.Append(LINKFLAGS=["-flto=%d" % env.job_count])
 
             env.Append(CCFLAGS=["-fuse-linker-plugin", "-fno-fat-lto-objects"])
