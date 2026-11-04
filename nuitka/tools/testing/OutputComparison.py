@@ -45,6 +45,17 @@ gcc_in_function_re = re.compile(r".*: In function '.*':$")
 gcc_var_tracking_size_limit_message = """\
 variable tracking size limit exceeded with -fvar-tracking-assignments, retrying without"""
 
+# GCC LTO uses make for parallel linking, and with clock skew in the
+# environment, it emits these warnings that are not relevant to the
+# comparison..
+make_clock_skew_file_re = re.compile(
+    r"^make(\[\d+\])?: [Ww]arning: File '.*' has modification time .* in the future$"
+)
+make_clock_skew_summary_re = re.compile(
+    r"^make(\[\d+\])?: [Ww]arning: +Clock skew detected\. +"
+    r"Your build may be incomplete\.$"
+)
+
 # Python3.11 style traceback carets are not done by Nuitka (yet?)
 syntax_error_caret_re = re.compile(r"^\s*~*\^*~*$")
 
@@ -295,6 +306,12 @@ exceeded while calling a Python object' in \
 
         # Ignore spurious clcache warning.
         if "clcache: persistent json file" in line or "clcache: manifest file" in line:
+            continue
+
+        # Ignore clock skew warnings of make used by GCC LTO linking.
+        if make_clock_skew_file_re.match(line) or make_clock_skew_summary_re.match(
+            line
+        ):
             continue
 
         # Some tests do malloc too large things on purpose
