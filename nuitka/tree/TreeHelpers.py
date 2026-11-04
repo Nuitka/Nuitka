@@ -32,8 +32,7 @@ from nuitka.nodes.NodeMakingHelpers import (
     mergeStatementsWithNone,
 )
 from nuitka.nodes.StatementNodes import StatementsSequence
-from nuitka.options.Options import hasPythonFlagNoDocStrings
-from nuitka.plugins.Hooks import decideNeedsFrameLocalsProxy
+from nuitka.plugins.Hooks import decideDocStrings, decideNeedsFrameLocalsProxy
 from nuitka.PythonVersions import python_version
 from nuitka.States import states
 from nuitka.Tracing import optimization_logger, printLine
@@ -81,7 +80,7 @@ def getClassBodyForDeferredScope(provider):
     return None
 
 
-def extractDocFromBody(node):
+def extractDocFromBody(node, module):
     body = node.body
     doc = None
 
@@ -97,7 +96,7 @@ def extractDocFromBody(node):
                 doc = body[0].value.value
             body = body[1:]
 
-        if hasPythonFlagNoDocStrings():
+        if decideDocStrings(module) is False:
             doc = None
 
     if doc is not None and python_version >= 0x3D0:

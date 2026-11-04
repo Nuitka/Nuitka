@@ -97,6 +97,7 @@ class ExpressionBuiltinType1(ExpressionBuiltinSingleArgBase):
                     builtin_name=type_name,
                     locals_scope=None,
                     source_ref=self.source_ref,
+                    module_name=None,
                 )
             else:
                 new_node = ExpressionBuiltinAnonymousRef(

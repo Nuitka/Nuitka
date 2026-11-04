@@ -327,7 +327,9 @@ def buildFunctionNode(provider, node, source_ref):
 
     function_provider = _getFunctionProvider(provider, node, source_ref)
 
-    function_statement_nodes, function_doc = extractDocFromBody(node)
+    function_statement_nodes, function_doc = extractDocFromBody(
+        node=node, module=provider.getParentModule()
+    )
 
     function_kind, flags = detectFunctionBodyKind(nodes=function_statement_nodes)
 
@@ -519,7 +521,9 @@ def buildAsyncFunctionNode(provider, node, source_ref):
 
     function_provider = _getFunctionProvider(provider, node, source_ref)
 
-    function_statement_nodes, function_doc = extractDocFromBody(node)
+    function_statement_nodes, function_doc = extractDocFromBody(
+        node=node, module=provider.getParentModule()
+    )
 
     function_kind, flags = detectFunctionBodyKind(
         nodes=function_statement_nodes, start_value="Coroutine"

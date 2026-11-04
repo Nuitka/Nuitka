@@ -874,7 +874,7 @@ def buildParseTree(provider, ast_tree, source_ref, is_main):
     pushFutureSpec(provider.getFullName())
     provider.setFutureSpec(getFutureSpec())
 
-    body, doc = extractDocFromBody(ast_tree)
+    body, doc = extractDocFromBody(ast_tree, module=provider)
 
     if (
         python_version >= 0x3E0
@@ -1136,13 +1136,17 @@ def _loadUncompiledModuleFromCache(
         module_name=module_name,
         reason=reason,
         filename=source_ref.getFilename(),
-        bytecode=demoteSourceCodeToBytecode(
-            module_name=module_name,
-            source_code=source_code,
-            filename=source_ref.getFilename(),
-        ),
+        bytecode=None,
         technical=module_name in detectEarlyImports(),
         is_package=is_package,
+    )
+
+    result.setByteCode(
+        demoteSourceCodeToBytecode(
+            module=result,
+            source_code=source_code,
+            filename=source_ref.getFilename(),
+        )
     )
 
     used_modules = OrderedSet()

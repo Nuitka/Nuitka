@@ -249,6 +249,7 @@ def makeCompileTimeConstantReplacementNode(value, node, user_provided):
                 builtin_name=value.__name__,
                 locals_scope=None,
                 source_ref=node.getSourceReference(),
+                module_name=None,
             )
         else:
             return node

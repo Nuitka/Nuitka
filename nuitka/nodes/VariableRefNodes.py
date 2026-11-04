@@ -512,6 +512,9 @@ Module variable '%s' found to be built-in exception reference.""" % (variable_na
                         builtin_name=variable_name,
                         locals_scope=self.getFunctionsLocalsScope(),
                         source_ref=self.source_ref,
+                        module_name=self.variable.getOwner()
+                        .getParentModule()
+                        .getFullName(),
                     )
 
                     change_tags = "new_builtin_ref"

@@ -285,7 +285,9 @@ def buildClassNode3(provider, node, source_ref):
         provider=provider, name=helper_name, source_ref=source_ref
     )
 
-    class_statement_nodes, class_doc = extractDocFromBody(node)
+    class_statement_nodes, class_doc = extractDocFromBody(
+        node=node, module=provider.getParentModule()
+    )
 
     has_type_params = python_version >= 0x3C0 and bool(node.type_params)
 

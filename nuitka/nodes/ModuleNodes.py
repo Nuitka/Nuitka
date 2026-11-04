@@ -15,6 +15,7 @@ from nuitka.importing.Importing import (
     makeSyntheticModuleUsageAttempt,
 )
 from nuitka.importing.Recursion import decideRecursion, recurseTo
+from nuitka.importing.StandardLibrary import isStandardLibraryPath
 from nuitka.ModuleRegistry import getModuleByName, getOwnerFromCodeName
 from nuitka.optimizations.TraceCollections import TraceCollectionModule
 from nuitka.options.Options import (
@@ -53,7 +54,7 @@ from .NodeBases import (
 class PythonModuleBase(NodeBase):
     # Base classes can be abstract, pylint: disable=abstract-method
 
-    __slots__ = ("module_name", "reason")
+    __slots__ = ("module_name", "reason", "is_stdlib")
 
     def __init__(self, module_name, reason, source_ref):
         assert type(module_name) is ModuleName, module_name
@@ -64,12 +65,16 @@ class PythonModuleBase(NodeBase):
 
         self.module_name = module_name
         self.reason = reason
+        self.is_stdlib = isStandardLibraryPath(self.getCompileTimeFilename())
 
     def getDetails(self):
         return {"module_name": self.module_name}
 
     def getFullName(self):
         return self.module_name
+
+    def isStandardLibraryModule(self):
+        return self.is_stdlib
 
     @staticmethod
     def isMainModule():
@@ -894,6 +899,9 @@ class UncompiledPythonModule(PythonModuleBase):
 
     def getByteCode(self):
         return self.bytecode
+
+    def setByteCode(self, bytecode):
+        self.bytecode = bytecode
 
     def getFilename(self):
         return self.filename
