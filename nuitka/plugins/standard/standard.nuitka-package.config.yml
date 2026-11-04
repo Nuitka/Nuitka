@@ -8166,10 +8166,15 @@
       change_function:
         '_test': "'(lambda: None)'"
 
-- module-name: 'telethon' # checksum: a76d75f1
+- module-name: 'telethon' # checksum: 6ff1416f
   anti-bloat:
     - description: 'avoid annotations bloat'
       annotations: 'no'
+    - description: 'avoid docstrings bloat'
+      doc_strings: 'no'
+    - description: 'remove optional PIL dependency'
+      no-auto-follow:
+        'PIL': 'PIL is only used for optional image thumbnails'
 
 - module-name: 'tenacity' # checksum: 64bd1802
   anti-bloat:
