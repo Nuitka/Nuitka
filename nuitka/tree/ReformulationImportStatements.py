@@ -286,9 +286,6 @@ def buildImportFromNode(provider, node, source_ref):
 
 
 def _makeImportModuleNode(module_name, lazy_mode, source_ref):
-    # Note: The "level" of import is influenced by the future absolute
-    # imports. Each call creates fresh child nodes, because a node may only
-    # have a single parent in the tree.
     level = (
         makeConstantRefNode(0, source_ref, True)
         if getFutureSpec().isAbsoluteImport()

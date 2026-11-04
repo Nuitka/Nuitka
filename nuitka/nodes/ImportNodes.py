@@ -1206,7 +1206,7 @@ class ExpressionBuiltinImport(ChildrenExpressionBuiltinImportMixin, ExpressionBa
         if self.follow_attempted:
             trace_collection.onExceptionRaiseExit(
                 BaseException
-                if self.lazy_mode or self.finding == "not-found"
+                if (self.lazy_mode != "eager") or (self.finding == "not-found")
                 else RuntimeError
             )
 
@@ -1232,7 +1232,7 @@ class ExpressionBuiltinImport(ChildrenExpressionBuiltinImportMixin, ExpressionBa
             # Trace the module usage attempts.
             trace_collection.onModuleUsageAttempts(self.used_modules)
 
-            if self.lazy_mode:
+            if self.lazy_mode != "eager":
                 return self, None, None
 
             if type(imported_module_name) in (str, unicode):
@@ -1403,7 +1403,7 @@ class ExpressionBuiltinImport(ChildrenExpressionBuiltinImportMixin, ExpressionBa
     # TODO: Add computeExpressionImportName
 
     def mayRaiseException(self, exception_type):
-        return bool(self.lazy_mode) or self.finding != "built-in"
+        return (self.lazy_mode != "eager") or (self.finding != "built-in")
 
 
 class StatementImportStar(StatementImportStarBase):
