@@ -102,9 +102,17 @@ NUITKA_MAY_BE_UNUSED static inline const struct mach_header_arch *_getNuitkaMach
 #define NUITKA_CONSTANTS_EXTERN_C_END
 #endif
 
+// With "-export-dynamic", blob symbols named after modules would be exported,
+// but they are only ever referenced directly.
+#if defined(__ELF__)
+#define NUITKA_CONSTANTS_BLOB_VISIBILITY __attribute__((visibility("hidden")))
+#else
+#define NUITKA_CONSTANTS_BLOB_VISIBILITY
+#endif
+
 #define NUITKA_DECLARE_CONSTANT_BLOB(blob_name, blob_symbol_name, modifier)                                            \
     NUITKA_CONSTANTS_EXTERN_C_START                                                                                    \
-    extern modifier unsigned char blob_name##_data[];                                                                  \
+    extern NUITKA_CONSTANTS_BLOB_VISIBILITY modifier unsigned char blob_name##_data[];                                 \
     NUITKA_CONSTANTS_EXTERN_C_END                                                                                      \
     NUITKA_MAY_BE_UNUSED static inline unsigned modifier char *get##blob_symbol_name##Data(void) {                     \
         return (unsigned modifier char *)(blob_name##_data);                                                           \
