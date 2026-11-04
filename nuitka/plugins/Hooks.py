@@ -204,8 +204,12 @@ def decideNeedsFrameLocalsProxy(module_name, code_qualname):
     )
 
 
-def decideDocStrings(module_name):
-    return Plugins.decideDocStrings(module_name=module_name)
+def decideDocStrings(module):
+    return Plugins.decideDocStrings(module=module)
+
+
+def decideDocStringsForModuleName(module_name):
+    return Plugins.decideDocStringsForModuleName(module_name=module_name)
 
 
 def onClassBodyParsing(provider, class_name, node):

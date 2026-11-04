@@ -67,7 +67,9 @@ def buildClassNode2(provider, node, source_ref):
     # First, allow plugins to modify the code if they want to.
     onClassBodyParsing(provider=provider, class_name=node.name, node=node)
 
-    class_statement_nodes, class_doc = extractDocFromBody(node)
+    class_statement_nodes, class_doc = extractDocFromBody(
+        node=node, module=provider.getParentModule()
+    )
 
     function_body = ExpressionClassDictBody(
         provider=provider, name=node.name, doc=class_doc, source_ref=source_ref

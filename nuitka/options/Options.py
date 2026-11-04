@@ -2478,6 +2478,11 @@ def shallUseDirectConstantBlobs():
     return isExperimental("direct-constant-blobs")
 
 
+def shallRemoveBytecodeLineNumbers():
+    """*bool* indicating if bytecode line numbers should be removed."""
+    return False
+
+
 def getResourceMode(onefile):
     """Resource mode requested for the constants blobs.
 

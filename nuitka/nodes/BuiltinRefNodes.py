@@ -17,7 +17,7 @@ from nuitka.Builtins import (
     builtin_names,
     builtin_type_names,
 )
-from nuitka.options.Options import hasPythonFlagNoAsserts
+from nuitka.plugins.Hooks import decideAssertions
 from nuitka.specs import BuiltinParameterSpecs
 
 from .ConstantRefNodes import makeConstantRefNode
@@ -107,7 +107,7 @@ class ExpressionBuiltinPatchableTypeRef(ExpressionNoSideEffectsMixin, Expression
 quick_names = {"None": None, "True": True, "False": False}
 
 
-def makeExpressionBuiltinRef(builtin_name, locals_scope, source_ref):
+def makeExpressionBuiltinRef(builtin_name, locals_scope, source_ref, module_name):
     assert builtin_name in builtin_names, builtin_name
 
     if builtin_name in quick_names:
@@ -116,8 +116,10 @@ def makeExpressionBuiltinRef(builtin_name, locals_scope, source_ref):
         )
 
     if builtin_name == "__debug__":
+        assert module_name is not None, builtin_name
+
         return makeConstantRefNode(
-            constant=not hasPythonFlagNoAsserts(), source_ref=source_ref
+            constant=decideAssertions(module_name), source_ref=source_ref
         )
 
     node = getBuiltinRefNode(builtin_name)

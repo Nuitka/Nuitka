@@ -118,7 +118,7 @@ from nuitka.utils.Utils import (
 from .Hooks import (
     decideAnnotations,
     decideAssertions,
-    decideDocStrings,
+    decideDocStringsForModuleName,
     registerDecisionCompilation,
 )
 
@@ -2221,7 +2221,7 @@ class TagContext(dict):
                 return decideAssertions(self.full_name) is False
 
             if key == "no_docstrings":
-                return decideDocStrings(self.full_name) is False
+                return decideDocStringsForModuleName(self.full_name) is False
 
             if key == "no_annotations":
                 return decideAnnotations(self.full_name) is False

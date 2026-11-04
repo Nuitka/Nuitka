@@ -2107,7 +2107,7 @@ through incomplete set import by '%s' plugin encountered."""
     decide_doc_strings_cache = {}
 
     @classmethod
-    def decideDocStrings(cls, module_name):
+    def _decideDocStringsByName(cls, module_name):
         if module_name not in cls.decide_doc_strings_cache:
             cls.decide_doc_strings_cache[module_name] = cls._decideWithoutDisagreement(
                 call_per_plugin=lambda plugin: plugin.decideDocStrings(module_name),
@@ -2120,6 +2120,35 @@ through incomplete set import by '%s' plugin encountered."""
             )
 
         return cls.decide_doc_strings_cache[module_name]
+
+    @classmethod
+    def decideDocStrings(cls, module):
+        """Decide whether to keep docstrings for a module.
+
+        Notes:
+            This requires the module object, since the module is not present
+            in the registry yet while its tree is being built.
+        """
+        if module.isStandardLibraryModule():
+            return False
+
+        return cls._decideDocStringsByName(module.getFullName())
+
+    @classmethod
+    def decideDocStringsForModuleName(cls, module_name):
+        """Decide docstrings when only the module name is available.
+
+        Notes:
+            This is for configuration condition evaluation, where no module
+            object exists yet. Use a module found in the registry when
+            possible, otherwise fall back to the name-only plugin decision.
+        """
+        module = getModuleByName(module_name)
+
+        if module is not None:
+            return cls.decideDocStrings(module)
+
+        return cls._decideDocStringsByName(module_name)
 
     decide_assertions_cache = {}
 

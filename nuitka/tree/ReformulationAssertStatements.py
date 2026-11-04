@@ -16,7 +16,7 @@ from nuitka.nodes.ExceptionNodes import (
     makeBuiltinMakeExceptionNode,
 )
 from nuitka.nodes.OperatorNodesUnary import ExpressionOperationNot
-from nuitka.options.Options import hasPythonFlagNoAsserts
+from nuitka.plugins.Hooks import decideAssertions
 from nuitka.PythonVersions import python_version
 
 from .TreeHelpers import buildNode
@@ -26,6 +26,9 @@ def buildAssertNode(provider, node, source_ref):
     # Build assert statements. These are re-formulated as described in the
     # Developer Manual too. They end up as conditional statement with raises of
     # AssertionError exceptions.
+
+    if decideAssertions(provider.getParentModule().getFullName()) is False:
+        return None
 
     # Underlying assumption:
     #
@@ -40,9 +43,6 @@ def buildAssertNode(provider, node, source_ref):
     asserted_value_expression = buildNode(provider, node.test, source_ref)
 
     exception_value = buildNode(provider, node.msg, source_ref, True)
-
-    if hasPythonFlagNoAsserts():
-        return None
 
     if python_version < 0x3C0:
         if exception_value is not None and python_version >= 0x272:

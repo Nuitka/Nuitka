@@ -14,18 +14,31 @@ from nuitka.importing.ImportCache import (
 )
 from nuitka.ModuleRegistry import replaceRootModule
 from nuitka.nodes.ModuleNodes import makeUncompiledPythonModule
+from nuitka.options import Options
 from nuitka.options.Options import isShowProgress, isStandaloneMode
-from nuitka.plugins.Hooks import onFrozenModuleBytecode
+from nuitka.plugins.Hooks import (
+    decideAssertions,
+    decideDocStrings,
+    onFrozenModuleBytecode,
+)
 from nuitka.plugins.Plugins import isTriggerModule, replaceTriggerModule
 from nuitka.Tracing import inclusion_logger
 from nuitka.utils.FileOperations import getNormalizedPath
 
 
-def demoteSourceCodeToBytecode(module_name, source_code, filename):
+def demoteSourceCodeToBytecode(module, source_code, filename):
+    module_name = module.getFullName()
+
     if isStandaloneMode():
         filename = module_name.asPath() + ".py"
 
-    bytecode = compileSourceToBytecode(source_code, filename)
+    bytecode = compileSourceToBytecode(
+        source_code=source_code,
+        filename=filename,
+        remove_doc_strings=not decideDocStrings(module),
+        remove_asserts=not decideAssertions(module_name),
+        remove_line_numbers=Options.shallRemoveBytecodeLineNumbers(),
+    )
 
     bytecode = onFrozenModuleBytecode(
         module_name=module_name, is_package=False, bytecode=bytecode
@@ -49,7 +62,9 @@ def demoteCompiledModuleToBytecode(module):
     source_code = module.getSourceCode()
 
     bytecode = demoteSourceCodeToBytecode(
-        module_name=full_name, source_code=source_code, filename=filename
+        module=module,
+        source_code=source_code,
+        filename=filename,
     )
 
     uncompiled_module = makeUncompiledPythonModule(
