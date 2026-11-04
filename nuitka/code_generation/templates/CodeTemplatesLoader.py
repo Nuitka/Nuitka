@@ -66,6 +66,10 @@ static unsigned char *bytecode_data[%(bytecode_count)d];
 static unsigned char **bytecode_data = NULL;
 #endif
 
+#if %(use_direct_constant_blobs)d
+NUITKA_DECLARE_CONSTANT_BLOB(bytecode_bin, bytecode_bin, const);
+#endif
+
 /* Helper for portable cast, to use string literals as module_init_func */
 #ifdef __cplusplus
 #define NUITKA_CAST_INIT_REASON(x) reinterpret_cast<module_init_func>((void*)(x))
@@ -89,8 +93,12 @@ static void _loadBytesCodesBlob(PyThreadState *tstate) {
     static bool init_done = false;
 
     if (init_done == false) {
+#if %(use_direct_constant_blobs)d
+        LOAD_DIRECT_CONSTANTS_BLOB(tstate, bytecode_data, bytecode_bin);
+#else
         // Note needed for mere data.
         loadConstantsBlob(tstate, bytecode_data, ".bytecode");
+#endif
 
         init_done = true;
     }

@@ -741,8 +741,8 @@ def main():
                     ),
                     part=part,
                 )
-
-            desc.append((encoded_name, part))
+            else:
+                desc.append((encoded_name, part))
         except Exception:
             data_composer_logger.warning("Problem with constant file '%s'." % filename)
             raise
@@ -762,7 +762,8 @@ def main():
 
     data_composer_logger.info("Total amount of constants is %d." % total)
 
-    _writeConstantsBlob(output_filename=output_filename, desc=desc)
+    if desc:
+        _writeConstantsBlob(output_filename=output_filename, desc=desc)
 
     writeJsonToFilename(stats_filename, contents=stats)
 

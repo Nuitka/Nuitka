@@ -32,17 +32,21 @@
 #define CONSTANT_BIN_CONSTANT const
 #endif
 
+#if !defined(_NUITKA_EXPERIMENTAL_DIRECT_CONSTANT_BLOBS)
 #if defined(_NUITKA_CONSTANTS_FROM_LINKER) || defined(_NUITKA_CONSTANTS_FROM_COFF_OBJ) ||                              \
     defined(_NUITKA_CONSTANTS_FROM_XCOFF_OBJ) || defined(_NUITKA_CONSTANTS_FROM_CODE) ||                               \
     defined(_NUITKA_CONSTANTS_FROM_INCBIN) || defined(_NUITKA_CONSTANTS_FROM_C23_EMBED) ||                             \
     defined(_NUITKA_CONSTANTS_FROM_MACOS_SECTION)
 NUITKA_DECLARE_CONSTANT_BLOB(constant_bin, constant_bin, CONSTANT_BIN_CONSTANT);
 #endif
+#endif
 
 #include "nuitka/constants_blob_spec.h"
 
+#if !defined(_NUITKA_EXPERIMENTAL_DIRECT_CONSTANT_BLOBS)
 // Symbol to be assigned locally.
 unsigned char const *constant_bin = NULL;
+#endif
 
 #if PYTHON_VERSION < 0x300
 static PyObject *int_cache = NULL;
@@ -1748,10 +1752,17 @@ static void unpackBlobConstants(PyThreadState *tstate, void *output, unsigned ch
 }
 
 void loadConstantsBlobData(PyThreadState *tstate, void *output, unsigned char const *data) {
-    initCaches();
+    // The bytecode blob is decoded before interpreter initialization without a
+    // thread state, where the caches cannot be created yet. It contains raw
+    // blob data only, so they are not needed for it.
+    if (tstate != NULL) {
+        initCaches();
+    }
+
     unpackBlobConstants(tstate, output, data);
 }
 
+#if !defined(_NUITKA_EXPERIMENTAL_DIRECT_CONSTANT_BLOBS)
 void loadConstantsBlob(PyThreadState *tstate, void *output, char const *name) {
     static bool init_done = false;
 
@@ -1809,6 +1820,7 @@ void loadConstantsBlob(PyThreadState *tstate, void *output, char const *name) {
 
     unpackBlobConstants(tstate, output, w);
 }
+#endif
 
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
