@@ -167,6 +167,10 @@ if [ ! -f "Makefile" ]; then
         fi
     fi
 
+    if [ "$PY_MINOR" -ge 14 ]; then
+        EXTRA_CONFIGURE_OPTS="$EXTRA_CONFIGURE_OPTS --without-remote-debug"
+    fi
+
     if [ -n "$INSTALL_PREFIX" ]; then
         CONFIGURE_PREFIX_OPTS="--prefix=$INSTALL_PREFIX"
     else
