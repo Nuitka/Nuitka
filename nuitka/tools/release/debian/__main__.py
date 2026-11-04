@@ -19,6 +19,7 @@ from nuitka.tools.release.Release import (
     checkBranchName,
     cleanupSourceDistributionState,
     getBranchCategory,
+    syncTime,
 )
 from nuitka.Tracing import my_print, tools_logger
 from nuitka.utils.Execution import check_call, withEnvironmentVarOverridden
@@ -87,6 +88,10 @@ def main():
 
     # Make sure error messages are in English.
     os.environ["LC_ALL"] = "C"
+
+    # The WSL clock can be skewed, which breaks builds and package repository
+    # signatures, so update it before starting.
+    syncTime()
 
     options, codename = parseArgs()
 
