@@ -120,6 +120,31 @@ else
     exit 1
 fi
 
+# Keep frame pointers for debug builds, so C-level backtraces are reliable.
+# Release builds explicitly omit them.
+if [[ "$BUILD_CONFIG" == "Debug" ]]; then
+    case "$(uname -m)" in
+        armv7l|armv8l)
+            FRAME_POINTER_CFLAGS="-fno-omit-frame-pointer -mno-omit-leaf-frame-pointer -marm"
+            ;;
+        s390x)
+            FRAME_POINTER_CFLAGS="-mbackchain"
+            ;;
+        ppc64le)
+            FRAME_POINTER_CFLAGS=""
+            ;;
+        *)
+            FRAME_POINTER_CFLAGS="-fno-omit-frame-pointer -mno-omit-leaf-frame-pointer"
+            ;;
+    esac
+
+    if [ -n "$FRAME_POINTER_CFLAGS" ]; then
+        export CFLAGS="${CFLAGS:+$CFLAGS }$FRAME_POINTER_CFLAGS"
+    fi
+else
+    export CFLAGS="${CFLAGS:+$CFLAGS }-fomit-frame-pointer"
+fi
+
 # --- 2. Download and Extract Source ---
 if [ ! -f "$TARBALL" ]; then
     echo "Downloading $TARBALL..."
@@ -169,6 +194,10 @@ if [ ! -f "Makefile" ]; then
 
     if [ "$PY_MINOR" -ge 14 ]; then
         EXTRA_CONFIGURE_OPTS="$EXTRA_CONFIGURE_OPTS --without-remote-debug"
+    fi
+
+    if [ "$PY_MINOR" -ge 15 ] && [[ "$BUILD_CONFIG" != "Debug" ]]; then
+        EXTRA_CONFIGURE_OPTS="$EXTRA_CONFIGURE_OPTS --without-frame-pointers"
     fi
 
     if [ -n "$INSTALL_PREFIX" ]; then
