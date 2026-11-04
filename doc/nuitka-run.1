@@ -309,6 +309,9 @@ Forbid fallback from bytecode backed annotate functions to compiled code when so
 .TP
 \fB\-\-devel\-pgo\-warn\-unknown\fR
 Report PGO values that are not usable when reading a PGO file, and values that cannot be captured at runtime. Defaults to off.
+.TP
+\fB\-\-devel\-remote\-debug\fR
+Keep the Python 3.14 remote debugging interface enabled. Defaults to off.
 .IP
 Backend C compiler choice:
 .TP
@@ -658,7 +661,7 @@ Also sign included DLLs (shared libraries) and extension modules in the distribu
 Disable usage of the hashing based signing cache. This will make deep signing much slower.
 .TP
 \fB\-\-windows\-signing\-tool\-path\fR=\fI\,WINDOWS_SIGNTOOL_PATH\/\fR
-The 'signtool' executable. You may make this a wrapper script should you want very specific options, by default `signtool` from PATH or used MSVC used is used.
+The 'signtool' executable. You may make this a wrapper script should you want very specific options, by default `signtool` from PATH, the used MSVC, or the Windows SDK installation is used.
 .TP
 \fB\-\-windows\-certificate\-name\fR=\fI\,WINDOWS_CERTIFICATE_NAME\/\fR
 Name of the certificate to use. This will be used to sign the binary.
