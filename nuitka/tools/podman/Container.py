@@ -607,6 +607,7 @@ def _makePodmanRunCommand(
 def runContainer(
     container_name,
     command,
+    logged_command,
     no_build,
     podman_path,
     quiet,
@@ -621,6 +622,8 @@ def runContainer(
     Args:
         container_name: name of the container, or path to a container file.
         command: command to execute inside the container.
+        logged_command: the command as shown in the output, with the values of
+          sensitive options redacted.
         no_build: bool, do not update the container before using it.
         podman_path: path of the podman binary to use.
         quiet: bool, use podman quietly during the container build.
@@ -635,8 +638,10 @@ def runContainer(
     Returns:
         None, exits with the container run exit code.
     """
+    # Many details, pylint: disable=too-many-locals
+
     containers_logger.info(
-        "Running in container '%s' this command: %s" % (container_name, command)
+        "Running in container '%s' this command: %s" % (container_name, logged_command)
     )
 
     container_name, container_file_path = _getContainerFilePath(
@@ -671,7 +676,21 @@ def runContainer(
         privileged=privileged,
     )
 
-    exit_code = callProcess(run_command, shell=False, logger=containers_logger)
+    logged_run_command = _makePodmanRunCommand(
+        podman_path=podman_path,
+        container_tag_name=container_tag_name,
+        command=logged_command,
+        shared_paths=shared_paths,
+        network=network,
+        isolated=isolated,
+        privileged=privileged,
+    )
+
+    containers_logger.info(
+        "Executing command '%s'." % (logged_run_command,), keep_format=True
+    )
+
+    exit_code = callProcess(run_command, shell=False)
 
     containers_logger.sysexit(
         "Finished container run with exit code '%d'." % exit_code, exit_code=exit_code
@@ -779,6 +798,7 @@ def runNuitkaInContainer(container_name, container_command):
         activatePlugins,
         getContainerFileContents,
         onContainerSelection,
+        redactCommandLineArg,
     )
 
     activatePlugins()
@@ -792,6 +812,17 @@ def runNuitkaInContainer(container_name, container_command):
             main_args=Options.getMainArgs(),
             execute_immediately=Options.shallExecuteImmediately(),
         )
+
+        # The output shows the command with the values of sensitive options
+        # redacted, as the compilation inside the container will do.
+        logged_command = makeCompileCommand(
+            container_name=container_name,
+            args=[redactCommandLineArg(arg) for arg in sys.argv[1:]],
+            main_args=Options.getMainArgs(),
+            execute_immediately=Options.shallExecuteImmediately(),
+        )
+    else:
+        logged_command = container_command
 
     podman_path = Options.getContainerPodmanPath()
 
@@ -820,6 +851,7 @@ def runNuitkaInContainer(container_name, container_command):
         runContainer(
             container_name=container_name,
             command=container_command,
+            logged_command=logged_command,
             no_build=Options.getContainerNoBuild(),
             podman_path=podman_path,
             quiet=not Options.getContainerPodmanVerbose(),
