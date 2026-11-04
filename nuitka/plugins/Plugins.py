@@ -921,9 +921,12 @@ through implicit import by '%s' plugin encountered."""
     @staticmethod
     @counted_plugin_method
     def onFinalResult(filename):
-        """Let plugins add to final binary in some way"""
+        """Let plugins add to final binary in some way, then let them see it final"""
         for plugin in getActivePlugins():
             plugin.onFinalResult(filename)
+
+        for plugin in getActivePlugins():
+            plugin.onFinalResultFinished(filename)
 
     @staticmethod
     @counted_plugin_method
