@@ -69,9 +69,16 @@ PyObject *IMPORT_MODULE3(PyThreadState *tstate, PyObject *module_name, int is_la
 
     PyObject *pos_args[] = {module_name, globals};
 
-    NUITKA_ASSIGN_BUILTIN(__import__);
+    PyObject *import_function;
+    if (is_lazy) {
+        NUITKA_ASSIGN_BUILTIN(__lazy_import__);
+        import_function = NUITKA_ACCESS_BUILTIN(__lazy_import__);
+    } else {
+        NUITKA_ASSIGN_BUILTIN(__import__);
+        import_function = NUITKA_ACCESS_BUILTIN(__import__);
+    }
 
-    PyObject *import_result = CALL_FUNCTION_WITH_ARGS2(tstate, NUITKA_ACCESS_BUILTIN(__import__), pos_args);
+    PyObject *import_result = CALL_FUNCTION_WITH_ARGS2(tstate, import_function, pos_args);
 
     return import_result;
 }
@@ -128,6 +135,13 @@ PyObject *IMPORT_MODULE6(PyThreadState *tstate, PyObject *module_name, int is_la
     CHECK_OBJECT(locals);
     CHECK_OBJECT(import_items);
     CHECK_OBJECT(level);
+
+#if PYTHON_VERSION >= 0x3f0
+    if (is_lazy != 0) {
+        return _PyEval_LazyImportName(tstate, PyEval_GetBuiltins(), globals, locals, module_name, import_items, level,
+                                      is_lazy == 1);
+    }
+#endif
 
     PyObject *pos_args[] = {module_name, globals, locals, import_items, level};
 
@@ -256,6 +270,12 @@ bool IMPORT_MODULE_STAR(PyThreadState *tstate, PyObject *target, bool is_module,
 PyObject *IMPORT_NAME_FROM_MODULE(PyThreadState *tstate, PyObject *module, PyObject *import_name) {
     CHECK_OBJECT(module);
     CHECK_OBJECT(import_name);
+
+#if PYTHON_VERSION >= 0x3f0
+    if (PyLazyImport_CheckExact(module)) {
+        return _PyEval_LazyImportFrom(tstate, CURRENT_TSTATE_INTERPRETER_FRAME(tstate), module, import_name);
+    }
+#endif
 
     PyObject *result = PyObject_GetAttr(module, import_name);
 
@@ -440,6 +460,12 @@ PyObject *IMPORT_NAME_OR_MODULE(PyThreadState *tstate, PyObject *module, PyObjec
                                 PyObject *level) {
     CHECK_OBJECT(module);
     CHECK_OBJECT(import_name);
+
+#if PYTHON_VERSION >= 0x3f0
+    if (PyLazyImport_CheckExact(module)) {
+        return _PyEval_LazyImportFrom(tstate, CURRENT_TSTATE_INTERPRETER_FRAME(tstate), module, import_name);
+    }
+#endif
 
     PyObject *result = PyObject_GetAttr(module, import_name);
 

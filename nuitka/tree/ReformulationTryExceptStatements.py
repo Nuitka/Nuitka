@@ -53,6 +53,7 @@ from .SyntaxErrors import checkExceptStarHandlerBody, raiseSyntaxError
 from .TreeHelpers import (
     buildNode,
     buildStatementsNode,
+    buildStatementsNodeWithEagerImports,
     makeReraiseExceptionStatement,
     makeStatementsSequenceFromStatement,
     makeStatementsSequenceFromStatements,
@@ -227,7 +228,7 @@ def buildTryExceptionNode(provider, node, source_ref):
     # Many variables and branches, due to the re-formulation that is going on
     # here, which just has the complexity, pylint: disable=too-many-branches,too-many-locals
 
-    tried = buildStatementsNode(
+    tried = buildStatementsNodeWithEagerImports(
         provider=provider, nodes=node.body, source_ref=source_ref
     )
 
@@ -242,7 +243,7 @@ def buildTryExceptionNode(provider, node, source_ref):
 
         if exception_assign is None:
             statements = [
-                buildStatementsNode(
+                buildStatementsNodeWithEagerImports(
                     provider=provider, nodes=exception_block, source_ref=source_ref
                 )
             ]
@@ -256,7 +257,7 @@ def buildTryExceptionNode(provider, node, source_ref):
                     ),
                     source_ref=source_ref.atInternal(),
                 ),
-                buildStatementsNode(
+                buildStatementsNodeWithEagerImports(
                     provider=provider, nodes=exception_block, source_ref=source_ref
                 ),
             ]
@@ -282,7 +283,7 @@ def buildTryExceptionNode(provider, node, source_ref):
                 ),
                 makeTryFinallyStatement(
                     provider=provider,
-                    tried=buildStatementsNode(
+                    tried=buildStatementsNodeWithEagerImports(
                         provider=provider, nodes=exception_block, source_ref=source_ref
                     ),
                     final=buildDeleteStatementFromDecoded(
@@ -424,7 +425,7 @@ def buildTryStarExceptionNode(provider, node, source_ref):
     # Many variables, due to the re-formulation that is going on here, which
     # just has the complexity, pylint: disable=too-many-locals
 
-    tried = buildStatementsNode(provider, node.body, source_ref)
+    tried = buildStatementsNodeWithEagerImports(provider, node.body, source_ref)
 
     # All clauses are executed, each one processing the remaining exception
     # group of the previous one. Exceptions raised by a clause do not stop
@@ -485,7 +486,7 @@ def buildTryStarExceptionNode(provider, node, source_ref):
             name="matched", temp_scope=scope, temp_type="object"
         )
 
-        user_statements = buildStatementsNode(
+        user_statements = buildStatementsNodeWithEagerImports(
             provider=provider, nodes=handler.body, source_ref=source_ref
         )
 

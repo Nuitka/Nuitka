@@ -11,8 +11,6 @@ source code comments with Developer Manual sections.
 # spell-checker: ignore asname,fromlist
 
 from nuitka.importing.ImportResolving import resolveModuleName
-from nuitka.nodes.ComparisonNodes import ExpressionComparisonIn
-from nuitka.nodes.ConditionalNodes import makeStatementConditional
 from nuitka.nodes.ConstantRefNodes import makeConstantRefNode
 from nuitka.nodes.GlobalsLocalsNodes import ExpressionBuiltinGlobals
 from nuitka.nodes.ImportNodes import (
@@ -22,14 +20,9 @@ from nuitka.nodes.ImportNodes import (
     makeExpressionImportModuleFixed,
 )
 from nuitka.nodes.NodeMakingHelpers import mergeStatements
-from nuitka.nodes.OutlineNodes import ExpressionOutlineBody
-from nuitka.nodes.ReturnNodes import StatementReturn
 from nuitka.nodes.StatementNodes import StatementsSequence
 from nuitka.nodes.VariableAssignNodes import makeStatementAssignmentVariable
-from nuitka.nodes.VariableNameNodes import (
-    ExpressionVariableNameRef,
-    StatementAssignmentVariableName,
-)
+from nuitka.nodes.VariableNameNodes import StatementAssignmentVariableName
 from nuitka.nodes.VariableRefNodes import ExpressionTempVariableRef
 from nuitka.PythonVersions import python_version
 from nuitka.utils.ModuleNames import ModuleName
@@ -38,8 +31,7 @@ from .FutureSpecState import enableFutureFeature, getFutureSpec
 from .ReformulationTryFinallyStatements import makeTryFinallyReleaseStatement
 from .SyntaxErrors import checkDebugNameAssignment, raiseSyntaxError
 from .TreeHelpers import (
-    makeStatementsSequenceFromStatement,
-    makeStatementsSequenceFromStatements,
+    isImportEager,
     makeStatementsSequenceOrStatement,
     mangleName,
 )
@@ -92,6 +84,26 @@ def _resolveImportModuleName(module_name):
     return module_name
 
 
+def _getImportLazyMode(provider, node, source_ref):
+    if python_version < 0x3F0:
+        return "eager"
+
+    if node.is_lazy:
+        if not provider.isCompiledPythonModule():
+            raiseSyntaxError(
+                "lazy imports only allowed in module scope",
+                source_ref.atColumnNumber(node.col_offset),
+            )
+
+        return "explicit"
+
+    if provider.isCompiledPythonModule() and not isImportEager(provider):
+        # The import might be in __lazy_modules__
+        return "maybe"
+
+    return 0
+
+
 def buildImportFromNode(provider, node, source_ref):
     # "from .. import .." statements. This may trigger a star import, or
     # multiple names being looked up from the given module variable name.
@@ -100,7 +112,10 @@ def buildImportFromNode(provider, node, source_ref):
 
     module_name = node.module if node.module is not None else ""
 
-    module_name = _resolveImportModuleName(module_name)
+    lazy_mode = _getImportLazyMode(provider, node, source_ref)
+
+    if lazy_mode == "eager":
+        module_name = _resolveImportModuleName(module_name)
 
     level = node.level
 
@@ -146,6 +161,12 @@ def buildImportFromNode(provider, node, source_ref):
         # all, it's only allowed value for import list in  this case.
         assert target_names == [None]
 
+        if lazy_mode == "explicit":
+            raiseSyntaxError(
+                "cannot lazy import *",
+                source_ref.atColumnNumber(node.col_offset),
+            )
+
         # Python3 made it so that these can only occur on the module level,
         # so this a syntax error if not there. For Python2 it is OK to
         # occur everywhere though.
@@ -170,7 +191,7 @@ def buildImportFromNode(provider, node, source_ref):
                 locals_arg=import_locals,
                 fromlist=makeConstantRefNode(("*",), source_ref, True),
                 level=level_obj,
-                is_lazy=False,
+                lazy_mode=False,
                 source_ref=source_ref,
             ),
             source_ref=source_ref,
@@ -185,16 +206,13 @@ def buildImportFromNode(provider, node, source_ref):
                 source_ref=source_ref,
             )
         else:
-            # TODO: Lazy "from" imports are not supported yet, the imported
-            # names are looked up on the module immediately, which a lazy
-            # import object cannot provide, so these are always eager for now.
             imported_from_module = ExpressionBuiltinImport(
                 name=makeConstantRefNode(module_name, source_ref, True),
                 globals_arg=ExpressionBuiltinGlobals(source_ref),
                 locals_arg=makeConstantRefNode(None, source_ref, True),
                 fromlist=makeConstantRefNode(tuple(import_names), source_ref, True),
                 level=level_obj,
-                is_lazy=False,
+                lazy_mode=lazy_mode,
                 source_ref=source_ref,
             )
 
@@ -267,7 +285,7 @@ def buildImportFromNode(provider, node, source_ref):
         )
 
 
-def _makeImportModuleNode(module_name, is_lazy, source_ref):
+def _makeImportModuleNode(module_name, lazy_mode, source_ref):
     # Note: The "level" of import is influenced by the future absolute
     # imports. Each call creates fresh child nodes, because a node may only
     # have a single parent in the tree.
@@ -283,7 +301,7 @@ def _makeImportModuleNode(module_name, is_lazy, source_ref):
         locals_arg=makeConstantRefNode(None, source_ref, True),
         fromlist=makeConstantRefNode(None, source_ref, True),
         level=level,
-        is_lazy=is_lazy,
+        lazy_mode=lazy_mode,
         source_ref=source_ref,
     )
 
@@ -312,58 +330,12 @@ def buildImportModulesNode(provider, node, source_ref):
 
         checkDebugNameAssignment(name=check_name, source_ref=source_ref)
 
-        if python_version >= 0x3F0:
-            is_lazy = node.is_lazy
-        else:
-            is_lazy = False
+        lazy_mode = _getImportLazyMode(provider, node, source_ref)
 
-        module_name = _resolveImportModuleName(module_name)
+        if lazy_mode == "eager":
+            module_name = _resolveImportModuleName(module_name)
 
-        # TODO: Go to fixed node directly, avoiding the optimization for the
-        # node to do it, with absolute imports we can use makeExpressionImportModuleFixed
-        # instead.
-        if python_version >= 0x3F0 and not is_lazy:
-            maybe_lazy_node = ExpressionOutlineBody(
-                provider, "potentially_lazy_import", source_ref
-            )
-            conditional = makeStatementConditional(
-                condition=ExpressionComparisonIn(
-                    left=makeConstantRefNode("__lazy_modules__", source_ref),
-                    right=ExpressionBuiltinGlobals(source_ref),
-                    source_ref=source_ref,
-                ),
-                yes_branch=makeStatementConditional(
-                    condition=ExpressionComparisonIn(
-                        left=makeConstantRefNode(module_name, source_ref, True),
-                        right=ExpressionVariableNameRef(
-                            provider, "__lazy_modules__", source_ref
-                        ),
-                        source_ref=source_ref,
-                    ),
-                    yes_branch=StatementReturn(
-                        expression=_makeImportModuleNode(module_name, True, source_ref),
-                        source_ref=source_ref,
-                    ),
-                    no_branch=StatementReturn(
-                        expression=_makeImportModuleNode(
-                            module_name, False, source_ref
-                        ),
-                        source_ref=source_ref,
-                    ),
-                    source_ref=source_ref,
-                ),
-                no_branch=StatementReturn(
-                    expression=_makeImportModuleNode(module_name, False, source_ref),
-                    source_ref=source_ref,
-                ),
-                source_ref=source_ref,
-            )
-            maybe_lazy_node.setChildBody(
-                makeStatementsSequenceFromStatement(conditional)
-            )
-            import_node = maybe_lazy_node
-        else:
-            import_node = _makeImportModuleNode(module_name, is_lazy, source_ref)
+        import_node = _makeImportModuleNode(module_name, lazy_mode, source_ref)
 
         if local_name:
             # If is gets a local name, the real name must be used as a

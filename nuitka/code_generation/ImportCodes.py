@@ -47,7 +47,7 @@ def generateBuiltinImportCode(to_name, expression, emit, context):
             import_list_name=import_list_name,
             level_name=level_name,
             needs_check=expression.mayRaiseException(BaseException),
-            is_lazy="1" if expression.is_lazy else "0",
+            lazy_mode=expression.lazy_mode,
             emit=emit,
             context=context,
         )
@@ -100,11 +100,13 @@ def _getBuiltinImportCode(
     import_list_name,
     level_name,
     needs_check,
-    is_lazy,
+    lazy_mode,
     emit,
     context,
 ):
     emitLineNumberUpdateCode(expression, emit, context)
+
+    lazy_mode_in_c = {"eager": 0, "explicit": 1, "maybe": 2}[lazy_mode]
 
     # Spell the resulting helper names out, so this can be found,
     # IMPORT_MODULE_KW, IMPORT_MODULE1, IMPORT_MODULE2, IMPORT_MODULE3, IMPORT_MODULE5
@@ -113,7 +115,7 @@ def _getBuiltinImportCode(
         to_name=to_name,
         args=(
             module_name,
-            is_lazy,
+            lazy_mode_in_c,
             globals_name,
             locals_name,
             import_list_name,
