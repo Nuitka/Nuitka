@@ -734,17 +734,14 @@ def main():
             else:
                 encoded_name = name
 
-            is_name_based_blob = name in (".bytecode", ".files")
-
-            if use_direct_constant_blobs and not is_name_based_blob:
+            if use_direct_constant_blobs:
                 _writeConstantBlob(
                     output_filename=getConstantBlobFilenameForDataFilename(
                         build_dir, filename
                     ),
                     part=part,
                 )
-
-            if not use_direct_constant_blobs or is_name_based_blob:
+            else:
                 desc.append((encoded_name, part))
         except Exception:
             data_composer_logger.warning("Problem with constant file '%s'." % filename)
@@ -756,7 +753,7 @@ def main():
             "blob_size": len(part),
         }
 
-        if use_direct_constant_blobs and not is_name_based_blob:
+        if use_direct_constant_blobs:
             stats[filename]["blob_filename"] = os.path.basename(
                 getConstantBlobFilenameForDataFilename(build_dir, filename)
             )
@@ -765,7 +762,8 @@ def main():
 
     data_composer_logger.info("Total amount of constants is %d." % total)
 
-    _writeConstantsBlob(output_filename=output_filename, desc=desc)
+    if desc:
+        _writeConstantsBlob(output_filename=output_filename, desc=desc)
 
     writeJsonToFilename(stats_filename, contents=stats)
 

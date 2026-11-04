@@ -29,6 +29,7 @@ from nuitka.options.Options import (
     isShowInclusion,
     isStandaloneMode,
     shallMakeModule,
+    shallUseDirectConstantBlobs,
 )
 from nuitka.plugins.Hooks import onMetaPathLoaderEntryTemplate
 from nuitka.PythonVersions import python_version
@@ -415,6 +416,7 @@ def getMetaPathLoaderBodyCode(bytecode_accessor):
         "metapath_loader_refs": indented(metapath_loader_refs),
         "entry_count": len(metapath_loader_refs),
         "bytecode_count": bytecode_accessor.getConstantsCount(),
+        "use_direct_constant_blobs": 1 if shallUseDirectConstantBlobs() else 0,
         "frozen_modules": indented(frozen_defs),
     }
 
