@@ -57,7 +57,7 @@ class ValueTraceMerge{{ trace_count }}(ValueTraceMergeMethodsMixin, ValueTraceMe
 
         return state is 2  # loop dependent
 
-    def mustHaveValue(self):
+    def mustHaveValue(self, context=None):
         state = self.must_have_value_state
 
         if state is 3:  # must have value
@@ -68,15 +68,26 @@ class ValueTraceMerge{{ trace_count }}(ValueTraceMergeMethodsMixin, ValueTraceMe
 
         loop_dependent = self.isLoopDependent()
 
+        if loop_dependent:
+            if context is None:
+                context = MustHaveValueQueryContext()
+            else:
+                cached = context.cache.get(self)
+
+                if cached is not None:
+                    return cached
+
         result = (
 {% for trace in traces %}
-            self.{{ trace }}.mustHaveValue(){% if not loop.last %} and{% endif %}
+            self.{{ trace }}.mustHaveValue(context){% if not loop.last %} and{% endif %}
 
 {% endfor %}
         )
 
         if not loop_dependent:
             self.must_have_value_state = 3 if result else 4
+        else:
+            context.cache[self] = result
 
         return result
 

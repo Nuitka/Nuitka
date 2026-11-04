@@ -213,7 +213,7 @@ class ValueTraceBase(object):
         return False
 
     @abstractmethod
-    def mustHaveValue(self):
+    def mustHaveValue(self, context=None):
         """Will this definitely have a value."""
 
     @abstractmethod
@@ -361,8 +361,7 @@ class ValueTraceUnassignedBase(ValueTraceBase):
         # We are unassigned, just need to know if the other one is, pylint: disable=no-self-use
         return other.isUnassignedTrace()
 
-    @staticmethod
-    def mustHaveValue():
+    def mustHaveValue(self, context=None):
         return False
 
     @staticmethod
@@ -511,8 +510,7 @@ class ValueTraceStartInit(ValueTraceStartMixin, ValueTraceBase):
     def isWritingTrace():
         return False
 
-    @staticmethod
-    def mustHaveValue():
+    def mustHaveValue(self, context=None):
         return True
 
     @staticmethod
@@ -581,8 +579,7 @@ class ValueTraceUnknownBase(ValueTraceBase):
     def isTraceThatNeedsEscape():
         return False
 
-    @staticmethod
-    def mustHaveValue():
+    def mustHaveValue(self, context=None):
         return False
 
     @staticmethod
@@ -703,8 +700,8 @@ class ValueTraceEscaped(ValueTraceUnknown):
     def emitShapeAlternativesForLoop(self, emit, loop_node):
         self.previous.emitShapeAlternativesForLoop(emit, loop_node)
 
-    def mustHaveValue(self):
-        return self.previous.mustHaveValue()
+    def mustHaveValue(self, context=None):
+        return self.previous.mustHaveValue(context)
 
     def isLoopDependent(self):
         return self.previous.isLoopDependent()
@@ -794,8 +791,7 @@ class ValueTraceAssignBase(ValueTraceBase):
     def compareValueTrace(self, other):
         return other.isAssignTrace() and self.assign_node is other.assign_node
 
-    @staticmethod
-    def mustHaveValue():
+    def mustHaveValue(self, context=None):
         return True
 
     @staticmethod
@@ -1111,6 +1107,34 @@ class ValueTraceMergeBase(ValueTraceBase):
         return self.getAttributeNodeVeryTrustedMatching(set())
 
 
+class MustHaveValueQueryContext(object):
+    """State of a single 'mustHaveValue' query.
+
+    Merges that involve loop traces cannot cache their answer on the trace
+    itself, because loop traces only become final when the loop analysis
+    completes. Within a single query though, the trace graph does not change,
+    so answers can be cached to avoid exponential revisits of shared merge
+    traces.
+
+    While a loop trace assumes itself to have a value, results are only valid
+    under that assumption, and therefore get their own cache scope, which is
+    discarded when the assumption no longer applies.
+    """
+
+    __slots__ = ("cache", "cache_stack")
+
+    def __init__(self):
+        self.cache = {}
+        self.cache_stack = []
+
+    def pushScope(self):
+        self.cache_stack.append(self.cache)
+        self.cache = {}
+
+    def popScope(self):
+        self.cache = self.cache_stack.pop()
+
+
 # States of the "must have value" decision of a merge trace. The values are
 # interned small integers, so identity comparisons are intentional.
 #
@@ -1223,7 +1247,7 @@ class ValueTraceMergeMethodsMixin(object):
 
         return state is 2  # loop dependent
 
-    def mustHaveValue(self):
+    def mustHaveValue(self, context=None):
         state = self.must_have_value_state
 
         if state is 3:  # must have value
@@ -1234,10 +1258,19 @@ class ValueTraceMergeMethodsMixin(object):
 
         loop_dependent = self.isLoopDependent()
 
+        if loop_dependent:
+            if context is None:
+                context = MustHaveValueQueryContext()
+            else:
+                cached = context.cache.get(self)
+
+                if cached is not None:
+                    return cached
+
         result = True
 
         for previous in self.previous:
-            if not previous.mustHaveValue():
+            if not previous.mustHaveValue(context):
                 result = False
                 break
 
@@ -1245,6 +1278,8 @@ class ValueTraceMergeMethodsMixin(object):
             self.must_have_value_state = (
                 3 if result else 4  # must have value / must not have value
             )
+        else:
+            context.cache[self] = result
 
         return result
 
@@ -1451,12 +1486,12 @@ class ValueTraceLoop(ValueTraceMergeBase):
         # TODO: May consider the shapes for better result
         return ControlFlowDescriptionFullEscape
 
-    def mustHaveValue(self):
+    def mustHaveValue(self, context=None):
         # A stable value identity means the loop paths do not rebind the
         # variable, so the value from before the loop is what is seen on
         # every iteration, and only that entry trace needs to answer.
         if self.value_identity_stable:
-            return self.previous[0].mustHaveValue()
+            return self.previous[0].mustHaveValue(context)
 
         # Without complete loop analysis, the loop may still delete or assign
         # the variable. The answer from the previous pass is used then, so
@@ -1468,15 +1503,31 @@ class ValueTraceLoop(ValueTraceMergeBase):
         if self.recursion:
             return True
 
+        if context is None:
+            context = MustHaveValueQueryContext()
+        else:
+            cached = context.cache.get(self)
+
+            if cached is not None:
+                return cached
+
         self.recursion = True
+        context.pushScope()
 
-        for previous in self.previous:
-            if not previous.mustHaveValue():
-                self.recursion = False
-                return False
+        try:
+            for previous in self.previous:
+                if not previous.mustHaveValue(context):
+                    result = False
+                    break
+            else:
+                result = True
+        finally:
+            context.popScope()
+            self.recursion = False
 
-        self.recursion = False
-        return True
+        context.cache[self] = result
+
+        return result
 
     @staticmethod
     def mustNotHaveValue():

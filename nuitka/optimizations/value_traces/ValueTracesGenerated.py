@@ -41,7 +41,11 @@ from nuitka.nodes.shapes.ControlFlowDescriptions import (
 from nuitka.nodes.shapes.StandardShapes import tshape_unknown
 from nuitka.utils.InstanceCounters import counted_init
 
-from .ValueTracesStatic import ValueTraceMergeBase, ValueTraceMergeMethodsMixin
+from .ValueTracesStatic import (
+    MustHaveValueQueryContext,
+    ValueTraceMergeBase,
+    ValueTraceMergeMethodsMixin,
+)
 
 
 class ValueTraceMerge2(ValueTraceMergeMethodsMixin, ValueTraceMergeBase):
@@ -98,7 +102,7 @@ class ValueTraceMerge2(ValueTraceMergeMethodsMixin, ValueTraceMergeBase):
 
         return state is 2  # loop dependent
 
-    def mustHaveValue(self):
+    def mustHaveValue(self, context=None):
         state = self.must_have_value_state
 
         if state is 3:  # must have value
@@ -109,10 +113,23 @@ class ValueTraceMerge2(ValueTraceMergeMethodsMixin, ValueTraceMergeBase):
 
         loop_dependent = self.isLoopDependent()
 
-        result = self.trace1.mustHaveValue() and self.trace2.mustHaveValue()
+        if loop_dependent:
+            if context is None:
+                context = MustHaveValueQueryContext()
+            else:
+                cached = context.cache.get(self)
+
+                if cached is not None:
+                    return cached
+
+        result = self.trace1.mustHaveValue(context) and self.trace2.mustHaveValue(
+            context
+        )
 
         if not loop_dependent:
             self.must_have_value_state = 3 if result else 4
+        else:
+            context.cache[self] = result
 
         return result
 
@@ -345,7 +362,7 @@ class ValueTraceMerge3(ValueTraceMergeMethodsMixin, ValueTraceMergeBase):
 
         return state is 2  # loop dependent
 
-    def mustHaveValue(self):
+    def mustHaveValue(self, context=None):
         state = self.must_have_value_state
 
         if state is 3:  # must have value
@@ -356,14 +373,25 @@ class ValueTraceMerge3(ValueTraceMergeMethodsMixin, ValueTraceMergeBase):
 
         loop_dependent = self.isLoopDependent()
 
+        if loop_dependent:
+            if context is None:
+                context = MustHaveValueQueryContext()
+            else:
+                cached = context.cache.get(self)
+
+                if cached is not None:
+                    return cached
+
         result = (
-            self.trace1.mustHaveValue()
-            and self.trace2.mustHaveValue()
-            and self.trace3.mustHaveValue()
+            self.trace1.mustHaveValue(context)
+            and self.trace2.mustHaveValue(context)
+            and self.trace3.mustHaveValue(context)
         )
 
         if not loop_dependent:
             self.must_have_value_state = 3 if result else 4
+        else:
+            context.cache[self] = result
 
         return result
 
@@ -659,7 +687,7 @@ class ValueTraceMerge4(ValueTraceMergeMethodsMixin, ValueTraceMergeBase):
 
         return state is 2  # loop dependent
 
-    def mustHaveValue(self):
+    def mustHaveValue(self, context=None):
         state = self.must_have_value_state
 
         if state is 3:  # must have value
@@ -670,15 +698,26 @@ class ValueTraceMerge4(ValueTraceMergeMethodsMixin, ValueTraceMergeBase):
 
         loop_dependent = self.isLoopDependent()
 
+        if loop_dependent:
+            if context is None:
+                context = MustHaveValueQueryContext()
+            else:
+                cached = context.cache.get(self)
+
+                if cached is not None:
+                    return cached
+
         result = (
-            self.trace1.mustHaveValue()
-            and self.trace2.mustHaveValue()
-            and self.trace3.mustHaveValue()
-            and self.trace4.mustHaveValue()
+            self.trace1.mustHaveValue(context)
+            and self.trace2.mustHaveValue(context)
+            and self.trace3.mustHaveValue(context)
+            and self.trace4.mustHaveValue(context)
         )
 
         if not loop_dependent:
             self.must_have_value_state = 3 if result else 4
+        else:
+            context.cache[self] = result
 
         return result
 
@@ -1029,7 +1068,7 @@ class ValueTraceMerge5(ValueTraceMergeMethodsMixin, ValueTraceMergeBase):
 
         return state is 2  # loop dependent
 
-    def mustHaveValue(self):
+    def mustHaveValue(self, context=None):
         state = self.must_have_value_state
 
         if state is 3:  # must have value
@@ -1040,16 +1079,27 @@ class ValueTraceMerge5(ValueTraceMergeMethodsMixin, ValueTraceMergeBase):
 
         loop_dependent = self.isLoopDependent()
 
+        if loop_dependent:
+            if context is None:
+                context = MustHaveValueQueryContext()
+            else:
+                cached = context.cache.get(self)
+
+                if cached is not None:
+                    return cached
+
         result = (
-            self.trace1.mustHaveValue()
-            and self.trace2.mustHaveValue()
-            and self.trace3.mustHaveValue()
-            and self.trace4.mustHaveValue()
-            and self.trace5.mustHaveValue()
+            self.trace1.mustHaveValue(context)
+            and self.trace2.mustHaveValue(context)
+            and self.trace3.mustHaveValue(context)
+            and self.trace4.mustHaveValue(context)
+            and self.trace5.mustHaveValue(context)
         )
 
         if not loop_dependent:
             self.must_have_value_state = 3 if result else 4
+        else:
+            context.cache[self] = result
 
         return result
 
@@ -1455,7 +1505,7 @@ class ValueTraceMerge6(ValueTraceMergeMethodsMixin, ValueTraceMergeBase):
 
         return state is 2  # loop dependent
 
-    def mustHaveValue(self):
+    def mustHaveValue(self, context=None):
         state = self.must_have_value_state
 
         if state is 3:  # must have value
@@ -1466,17 +1516,28 @@ class ValueTraceMerge6(ValueTraceMergeMethodsMixin, ValueTraceMergeBase):
 
         loop_dependent = self.isLoopDependent()
 
+        if loop_dependent:
+            if context is None:
+                context = MustHaveValueQueryContext()
+            else:
+                cached = context.cache.get(self)
+
+                if cached is not None:
+                    return cached
+
         result = (
-            self.trace1.mustHaveValue()
-            and self.trace2.mustHaveValue()
-            and self.trace3.mustHaveValue()
-            and self.trace4.mustHaveValue()
-            and self.trace5.mustHaveValue()
-            and self.trace6.mustHaveValue()
+            self.trace1.mustHaveValue(context)
+            and self.trace2.mustHaveValue(context)
+            and self.trace3.mustHaveValue(context)
+            and self.trace4.mustHaveValue(context)
+            and self.trace5.mustHaveValue(context)
+            and self.trace6.mustHaveValue(context)
         )
 
         if not loop_dependent:
             self.must_have_value_state = 3 if result else 4
+        else:
+            context.cache[self] = result
 
         return result
 

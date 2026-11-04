@@ -814,6 +814,7 @@ from nuitka.nodes.shapes.StandardShapes import tshape_unknown
 from nuitka.utils.InstanceCounters import counted_init
 
 from .ValueTracesStatic import (
+    MustHaveValueQueryContext,
     ValueTraceMergeBase,
     ValueTraceMergeMethodsMixin,
 )

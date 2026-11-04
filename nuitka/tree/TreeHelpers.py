@@ -6,6 +6,7 @@
 import __future__
 
 import ast
+from contextlib import contextmanager
 
 from nuitka.Constants import createConstantDict
 from nuitka.Errors import CodeTooComplexCode
@@ -476,6 +477,30 @@ def collectConditionalAnnotationIndices(statements):
     visitStatements(statements, False)
 
     return result
+
+
+_eager_import_providers = []
+
+
+@contextmanager
+def withEagerImports(provider):
+    if python_version >= 0x3F0:
+        _eager_import_providers.append(provider)
+
+    try:
+        yield
+    finally:
+        if python_version >= 0x3F0:
+            _eager_import_providers.pop()
+
+
+def isImportEager(provider):
+    return provider in _eager_import_providers
+
+
+def buildStatementsNodeWithEagerImports(provider, nodes, source_ref):
+    with withEagerImports(provider):
+        return buildStatementsNode(provider, nodes, source_ref)
 
 
 def buildStatementsNode(provider, nodes, source_ref):

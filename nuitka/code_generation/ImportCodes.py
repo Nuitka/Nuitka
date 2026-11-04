@@ -47,6 +47,7 @@ def generateBuiltinImportCode(to_name, expression, emit, context):
             import_list_name=import_list_name,
             level_name=level_name,
             needs_check=expression.mayRaiseException(BaseException),
+            lazy_mode=expression.lazy_mode,
             emit=emit,
             context=context,
         )
@@ -99,18 +100,28 @@ def _getBuiltinImportCode(
     import_list_name,
     level_name,
     needs_check,
+    lazy_mode,
     emit,
     context,
 ):
     emitLineNumberUpdateCode(expression, emit, context)
+
+    lazy_mode_in_c = {"eager": 0, "explicit": 1, "maybe": 2}[lazy_mode]
 
     # Spell the resulting helper names out, so this can be found,
     # IMPORT_MODULE_KW, IMPORT_MODULE1, IMPORT_MODULE2, IMPORT_MODULE3, IMPORT_MODULE5
     _getCountedArgumentsHelperCallCode(
         helper_prefix="IMPORT_MODULE",
         to_name=to_name,
-        args=(module_name, globals_name, locals_name, import_list_name, level_name),
-        min_args=1,
+        args=(
+            module_name,
+            lazy_mode_in_c,
+            globals_name,
+            locals_name,
+            import_list_name,
+            level_name,
+        ),
+        min_args=2,
         needs_check=needs_check,
         emit=emit,
         context=context,
@@ -768,6 +779,32 @@ if (PyModule_Check(%(from_arg_name)s)) {
         )
 
         context.addCleanupTempName(value_name)
+
+
+def generateResolveLazyImportCode(to_name, expression, emit, context):
+    (lazy_import_value,) = generateChildExpressionsCode(
+        expression=expression, emit=emit, context=context
+    )
+
+    with withObjectCodeTemporaryAssignment(
+        to_name, "resolved", expression, emit, context
+    ) as resolved_name:
+        emit(
+            "%s = _PyImport_LoadLazyImportTstate(tstate, %s);"
+            % (
+                resolved_name,
+                lazy_import_value,
+            )
+        )
+
+        getErrorExitCode(
+            check_name=resolved_name,
+            release_name=lazy_import_value,
+            emit=emit,
+            context=context,
+        )
+
+        context.addCleanupTempName(resolved_name)
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
