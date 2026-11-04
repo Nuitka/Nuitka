@@ -22,6 +22,7 @@ from nuitka.utils.Execution import check_call
 from nuitka.utils.FileOperations import (
     getFileSize,
     getNormalizedPathJoin,
+    getPathWithForwardSlashes,
     getReportPath,
     listDir,
     openTextFile,
@@ -916,7 +917,7 @@ unsigned CONST_CONSTANT char *get%(symbol_name)sData(void) {
 #endif
 """
         % {
-            "blob_filename": blob_filename,
+            "blob_filename": getPathWithForwardSlashes(blob_filename),
             "symbol_name": symbol_name,
             "writeable_data_section": writeable_data_section,
             "read_only_data_section_define": read_only_data_section_define,
@@ -987,9 +988,9 @@ def _makeLargeDataBlobObject(env, blob_filename, obj_filename):
 
 def _addConstantBlobFileLinker(env, blob_filename):
 
-    # For MinGW the symbol name to be used is more low level.
+    # For 32-bit MinGW the symbol name has a leading underscore.
     constant_bin_link_name = _getSymbolName(blob_filename) + "_data"
-    if env.mingw_mode:
+    if env.mingw_mode and env.target_arch == "x86":
         constant_bin_link_name = "_" + constant_bin_link_name
 
     # At least some gcc versions need this path to contain a path element,
@@ -1081,7 +1082,7 @@ unsigned char %s_data[] =
 #endif
 """)
 
-                output.write('#embed "%s"\n' % blob_filename)
+                output.write('#embed "%s"\n' % getPathWithForwardSlashes(blob_filename))
             else:
                 with open(blob_filename, "rb") as f:
                     content = f.read()
