@@ -13,6 +13,7 @@ The base class in PluginBase will serve as documentation of available.
 
 """
 
+import fnmatch
 import inspect
 import os
 import sys
@@ -214,6 +215,35 @@ def redactCommandLineArg(arg):
         The argument, with value redacted if sensitive.
     """
     return Plugins.redactCommandLineArg(arg)
+
+
+def _getFullLongOptionName(option_name):
+    """Get the full long option name for an abbreviation.
+
+    Args:
+        option_name: abbreviated long option name.
+
+    Returns:
+        The full option name, or None if not unique.
+    """
+    # Cyclic dependency on options during parsing.
+    from nuitka.options.OptionParsing import parser
+
+    parser_long_options = parser._long_opt  # pylint: disable=protected-access
+
+    if option_name in parser_long_options:
+        return option_name
+
+    matching_option_names = [
+        full_option_name
+        for full_option_name in parser_long_options
+        if fnmatch.fnmatchcase(full_option_name, option_name + "*")
+    ]
+
+    if len(matching_option_names) == 1:
+        return matching_option_names[0]
+
+    return None
 
 
 def getActivePlugins():
@@ -2213,15 +2243,16 @@ through incomplete set import by '%s' plugin encountered."""
 
     @staticmethod
     def getReportRedactedOptions():
-        """Return option prefixes with values to redact in reports and output.
+        """Return option name patterns with values to redact in reports and output.
 
         Returns:
-            Tuple of option name prefixes.
+            Tuple of option name patterns.
         """
         # Load plugin classes, to know what we are talking about.
         loadPlugins()
 
-        result = set()
+        # Options with sensitive values, by their name patterns.
+        result = set(("*-password*", "*-salt*", "*-secret*"))
 
         for plugin_classes in plugin_name2plugin_classes.values():
             result.update(plugin_classes[0].getReportRedactedOptions())
@@ -2229,7 +2260,7 @@ through incomplete set import by '%s' plugin encountered."""
         for plugin_class in user_plugins:
             result.update(plugin_class.getReportRedactedOptions())
 
-        return tuple(sorted(result))
+        return tuple(sorted(option_pattern.rstrip("=") for option_pattern in result))
 
     @staticmethod
     def redactCommandLineArg(arg):
@@ -2241,10 +2272,19 @@ through incomplete set import by '%s' plugin encountered."""
         Returns:
             The argument, with value redacted if sensitive.
         """
-        redacted_option_prefixes = Plugins.getReportRedactedOptions()
+        redacted_options_patterns = Plugins.getReportRedactedOptions()
 
-        if redacted_option_prefixes and arg.startswith(redacted_option_prefixes):
-            arg = arg.split("=", 1)[0] + "=REDACTED"
+        if redacted_options_patterns and arg.startswith("--") and "=" in arg:
+            option_name = arg.split("=", 1)[0]
+            full_option_name = _getFullLongOptionName(option_name)
+
+            for redacted_option_pattern in redacted_options_patterns:
+                if fnmatch.fnmatchcase(option_name, redacted_option_pattern) or (
+                    full_option_name is not None
+                    and fnmatch.fnmatchcase(full_option_name, redacted_option_pattern)
+                ):
+                    arg = option_name + "=REDACTED"
+                    break
 
         return arg
 

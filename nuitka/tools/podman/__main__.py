@@ -140,6 +140,7 @@ def main():
     runContainer(
         container_name=options.container_id,
         command=options.command,
+        logged_command=options.command,
         no_build=options.no_build_container,
         podman_path=options.podman_path,
         quiet=options.quiet,

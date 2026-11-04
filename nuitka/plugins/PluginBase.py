@@ -1766,7 +1766,7 @@ except Exception as e:
 
     @staticmethod
     def getReportRedactedOptions():
-        """Provide option prefixes with values that are redacted in reports."""
+        """Provide option name patterns with values redacted in reports."""
         return ()
 
     @staticmethod
