@@ -2453,10 +2453,14 @@ def shallNotFallbackBytecodeToCompiled(module_name, function_qualname, source_re
 def getDevelModeIndications():
     """*tuple* of active development options that need C level definitions."""
 
-    # No development option needs a C level definition at the moment, they are
-    # handled in Python code. List option value names here when one does, they
-    # become "_NUITKA_DEVEL_<NAME>" defines via "enableFlagSettings".
-    return ()
+    # List option value names here when one does, they become
+    # "_NUITKA_DEVEL_<NAME>" defines via "enableFlagSettings".
+    result = []
+
+    if options.devel_remote_debug:
+        result.append("remote-debug")
+
+    return tuple(result)
 
 
 def getDebugModeIndications():
