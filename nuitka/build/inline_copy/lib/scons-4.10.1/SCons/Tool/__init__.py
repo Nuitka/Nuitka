@@ -711,7 +711,9 @@ def tool_list(platform, env):
         other_plat_tools = ['msvs']
     elif str(platform) == 'os2':
         "prefer IBM tools on OS/2"
-        linkers = ['ilink', 'gnulink', ]  # 'mslink']
+        # Nuitka: Avoid unused tools
+        # linkers = ['ilink', 'gnulink', ]  # 'mslink'
+        linkers = ['gnulink', ]
         c_compilers = ['icc', 'gcc', ]  # 'msvc', 'cc']
         cxx_compilers = ['icc', 'g++', ]  # 'msvc', 'cxx']
         assemblers = ['nasm', ]  # 'masm', 'gas']
@@ -760,7 +762,9 @@ def tool_list(platform, env):
         ars = ['ar']
     elif str(platform) == 'cygwin':
         "prefer GNU tools on Cygwin, except for a platform-specific linker"
-        linkers = ['cyglink', 'mslink', 'ilink']
+        # Nuitka: Avoid unused tools
+        # linkers = ['cyglink', 'mslink', 'ilink']
+        linkers = ['cyglink', 'mslink']
         c_compilers = ['gcc', 'msvc', 'intelc', 'icc', 'cc']
         cxx_compilers = ['g++', 'msvc', 'intelc', 'icc', 'cxx']
         assemblers = ['gas', 'nasm', 'masm']
@@ -768,7 +772,9 @@ def tool_list(platform, env):
         ars = ['ar', 'mslib']
     else:
         "prefer GNU tools on all other platforms"
-        linkers = ['gnulink', 'ilink']
+        # Nuitka: Avoid unused tools
+        # linkers = ['gnulink', 'ilink']
+        linkers = ['gnulink']
         c_compilers = ['gcc', 'clang', 'intelc', 'icc', 'cc']
         cxx_compilers = ['g++', 'clang++', 'intelc', 'icc', 'cxx']
         assemblers = ['gas', 'nasm', 'masm']
