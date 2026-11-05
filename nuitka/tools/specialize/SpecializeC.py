@@ -1657,6 +1657,44 @@ def makeHelperBuiltinTypeMethods():
             emit_h("#endif")
 
 
+def makeAttributeLookupHelperCodes():
+    filename_c = getNormalizedPath(
+        "nuitka/build/static_src/HelpersAttributesGenerated.c"
+    )
+
+    template = getDoExtensionUsingTemplateC("HelperAttributeLookup.c.j2")
+
+    with withFileOpenedAndAutoFormattedWithClaim(
+        filename_c, claim=getLicenseGeneratedCode()
+    ) as output_c:
+
+        def emit(*args):
+            writeLine(output_c, *args)
+
+        emitGenerationWarning(emit, template.name)
+
+        emitIDE(emit)
+
+        for helper_name, result_type, result_kind, slot_name in (
+            ("LOOKUP_ATTRIBUTE", "PyObject *", "object", None),
+            ("LOOKUP_ATTRIBUTE_DICT_SLOT", "PyObject *", "object", "__dict__"),
+            ("LOOKUP_ATTRIBUTE_CLASS_SLOT", "PyObject *", "object", "__class__"),
+            ("HAS_ATTR_BOOL", "bool", "bool", None),
+            ("HAS_ATTR_BOOL2", "int", "int", None),
+        ):
+            emit(
+                template.render(
+                    helper_name=helper_name,
+                    result_type=result_type,
+                    result_kind=result_kind,
+                    slot_name=slot_name,
+                    attr_name=(
+                        "const_str_plain_%s" % slot_name if slot_name else "attr_name"
+                    ),
+                )
+            )
+
+
 def _getOffsetAssertionCode(key):
     if key.startswith("_PyRuntimeState_"):
         # spell-checker: ignore offsetof
@@ -1868,6 +1906,9 @@ def main():
     makeHelpersComparisonDualOperation(">=", "GE")
     makeHelpersComparisonDualOperation(">", "GT")
     makeHelpersComparisonDualOperation("<", "LT")
+
+    traceSpecialization("Make attribute lookup helpers...")
+    makeAttributeLookupHelperCodes()
 
     updateCompiledOffsetsHeader()
 
