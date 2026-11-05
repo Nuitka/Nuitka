@@ -1,6 +1,7 @@
 #     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
+# nuitka-project: --mode=module
 # nuitka-project: --include-package=kitty
 
 from __future__ import print_function

@@ -378,6 +378,9 @@ def main():
         logger=test_logger, filename_arg=filename, module_mode=module_mode
     )
 
+    if "--mode=module" in project_options:
+        module_mode = True
+
     (
         compiled_only_stdout,
         compiled_only_stderr,
