@@ -142,7 +142,7 @@ NUITKA_MAY_BE_UNUSED static uint32_t _Nuitka_PyDictKeys_GetVersionForCurrentStat
 %(module_functions_code)s
 
 extern void _initCompiledCellType();
-extern void _initCompiledGeneratorType();
+extern void _initCompiledGeneratorType(PyThreadState *tstate);
 extern void _initCompiledFunctionType();
 extern void _initCompiledMethodType();
 extern void _initCompiledFrameType();
@@ -263,7 +263,7 @@ static PyObject *module_code_%(module_identifier)s(PyThreadState *tstate, PyObje
 
         /* Initialize the compiled types of Nuitka. */
         _initCompiledCellType();
-        _initCompiledGeneratorType();
+        _initCompiledGeneratorType(tstate);
         _initCompiledFunctionType();
         _initCompiledMethodType();
         _initCompiledFrameType();
@@ -320,7 +320,7 @@ static PyObject *module_code_%(module_identifier)s(PyThreadState *tstate, PyObje
     // loader before module code runs. Pre-seed "__compiled__" for non-packages
     // to keep their dangerous dict slots aligned with packages.
 #if PYTHON_VERSION >= 0x3b0 && PYTHON_VERSION < 0x3c0 && _NUITKA_STANDALONE_MODE && !%(is_package)s
-    UPDATE_STRING_DICT0(
+    UPDATE_STRING_DICT0(tstate,
         moduledict_%(module_identifier)s,
         (Nuitka_StringObject *)const_str_plain___compiled__,
         Nuitka_dunder_compiled_value
@@ -330,13 +330,13 @@ static PyObject *module_code_%(module_identifier)s(PyThreadState *tstate, PyObje
     // Update "__package__" value to what it ought to be.
     {
 #if %(is_dunder_main)s
-        UPDATE_STRING_DICT0(
+        UPDATE_STRING_DICT0(tstate,
             moduledict_%(module_identifier)s,
             (Nuitka_StringObject *)const_str_plain___package__,
             %(dunder_main_package)s
         );
 #elif %(is_package)s
-        UPDATE_STRING_DICT0(
+        UPDATE_STRING_DICT0(tstate,
             moduledict_%(module_identifier)s,
             (Nuitka_StringObject *)const_str_plain___package__,
             GET_STRING_DICT_VALUE(moduledict_%(module_identifier)s, (Nuitka_StringObject *)const_str_plain___name__)
@@ -348,7 +348,7 @@ static PyObject *module_code_%(module_identifier)s(PyThreadState *tstate, PyObje
             );
 
             if (parent_name != NULL) {
-                UPDATE_STRING_DICT1(
+                UPDATE_STRING_DICT1(tstate,
                     moduledict_%(module_identifier)s,
                     (Nuitka_StringObject *)const_str_plain___package__,
                     parent_name
@@ -372,18 +372,18 @@ static PyObject *module_code_%(module_identifier)s(PyThreadState *tstate, PyObje
         value = PyModule_GetDict(value);
 #endif
 
-        UPDATE_STRING_DICT0(moduledict_%(module_identifier)s, (Nuitka_StringObject *)const_str_plain___builtins__, value);
+        UPDATE_STRING_DICT0(tstate, moduledict_%(module_identifier)s, (Nuitka_StringObject *)const_str_plain___builtins__, value);
     }
 
     PyObject *module_loader = Nuitka_Loader_New(&entry_%(module_identifier)s);
-    UPDATE_STRING_DICT0(moduledict_%(module_identifier)s, (Nuitka_StringObject *)const_str_plain___loader__, module_loader);
+    UPDATE_STRING_DICT0(tstate, moduledict_%(module_identifier)s, (Nuitka_StringObject *)const_str_plain___loader__, module_loader);
 
 #if PYTHON_VERSION >= 0x300
 // Set the "__spec__" value
 
 #if %(is_dunder_main)s && !%(has_main_package)s
     // Main modules just get "None" as spec.
-    UPDATE_STRING_DICT0(moduledict_%(module_identifier)s, (Nuitka_StringObject *)const_str_plain___spec__, Py_None);
+    UPDATE_STRING_DICT0(tstate, moduledict_%(module_identifier)s, (Nuitka_StringObject *)const_str_plain___spec__, Py_None);
 #else
     // Other modules, and main modules running as a package (-m flag),
     // get a "ModuleSpec" from the standard mechanism.
@@ -413,7 +413,7 @@ static PyObject *module_code_%(module_identifier)s(PyThreadState *tstate, PyObje
         SET_ATTRIBUTE(tstate, spec_value, const_str_plain_loader, module_loader);
 #endif
 
-        UPDATE_STRING_DICT1(moduledict_%(module_identifier)s, (Nuitka_StringObject *)const_str_plain___spec__, spec_value);
+        UPDATE_STRING_DICT1(tstate, moduledict_%(module_identifier)s, (Nuitka_StringObject *)const_str_plain___spec__, spec_value);
     }
 #endif
 #endif
@@ -480,10 +480,12 @@ static setattrofunc orig_PyModule_Type_tp_setattro;
 
 /* This is used one time only. */
 static int Nuitka_TopLevelModule_tp_setattro(PyObject *module, PyObject *name, PyObject *value) {
+    PyThreadState *tstate = PyThreadState_GET();
+
     PyModule_Type.tp_setattro = orig_PyModule_Type_tp_setattro;
 
     if (orig_dunder_file_value != NULL) {
-        UPDATE_STRING_DICT0(
+        UPDATE_STRING_DICT0(tstate,
             moduledict_%(module_identifier)s,
             (Nuitka_StringObject *)const_str_plain___file__,
             orig_dunder_file_value
@@ -518,7 +520,9 @@ static struct PyModuleDef mdef_%(module_identifier)s = {
 #if PYTHON_VERSION < 0x300
 static void onModuleFileValueRelease(void *v) {
     if (orig_dunder_file_value != NULL) {
-        UPDATE_STRING_DICT0(
+        PyThreadState *tstate = PyThreadState_GET();
+
+        UPDATE_STRING_DICT0(tstate,
             moduledict_%(module_identifier)s,
             (Nuitka_StringObject *)const_str_plain___file__,
             orig_dunder_file_value
@@ -547,7 +551,7 @@ static PyObject *%(module_dll_entry_point)s_phase2(PyObject *module) {
 
         PyObject *fake_file_value = PyCObject_FromVoidPtr(NULL, onModuleFileValueRelease);
 
-        UPDATE_STRING_DICT1(
+        UPDATE_STRING_DICT1(tstate,
             moduledict_%(module_identifier)s,
             (Nuitka_StringObject *)const_str_plain___file__,
             fake_file_value
@@ -603,11 +607,13 @@ NUITKA_MODULE_INIT_FUNCTION (%(module_dll_entry_point)s)(void) {
     mdef_%(module_identifier)s.m_name = module_full_name;
 
 #if %(module_def_size)s == -1
+    PyThreadState *tstate = PyThreadState_GET();
+
     PyObject *module = PyModule_Create(&mdef_%(module_identifier)s);
     CHECK_OBJECT(module);
 
     {
-        NUITKA_MAY_BE_UNUSED bool res = Nuitka_SetModuleString(module_full_name, module);
+        NUITKA_MAY_BE_UNUSED bool res = Nuitka_SetModuleString(tstate, module_full_name, module);
         assert(res != false);
     }
 

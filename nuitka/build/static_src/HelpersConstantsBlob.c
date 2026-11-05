@@ -388,8 +388,20 @@ PyObject *Nuitka_Long_SmallValues[NUITKA_STATIC_SMALLINT_VALUE_MAX - NUITKA_STAT
 #endif
 #endif
 
-static PyObject *makeConstantCacheDict(void) {
-    PyObject *result = PyDict_New();
+static void _finalizeUnpackedConstantObject(void **output, PyObject *value);
+
+static void initConstDictEmpty(void) {
+    if (const_dict_empty == NULL) {
+        PyObject *value = PyDict_New();
+        CHECK_OBJECT(value);
+
+        void *empty_dict_output = (void *)&const_dict_empty;
+        _finalizeUnpackedConstantObject(&empty_dict_output, value);
+    }
+}
+
+static PyObject *makeConstantCacheDict(PyThreadState *tstate) {
+    PyObject *result = MAKE_DICT_EMPTY(tstate);
     CHECK_OBJECT(result);
 
     // The caches are permanent roots holding only constants, so they are not
@@ -405,42 +417,46 @@ static PyObject *makeConstantCacheDict(void) {
     return result;
 }
 
-static void initCaches(void) {
+static void initConstantsCaches(PyThreadState *tstate) {
     static bool init_done = false;
     if (init_done == true) {
         return;
     }
 
+    // The empty dict constant is a dependency of our dictionary creation
+    // helpers, and the cache dictionaries themselves use them now.
+    initConstDictEmpty();
+
 #if PYTHON_VERSION < 0x300
-    int_cache = makeConstantCacheDict();
+    int_cache = makeConstantCacheDict(tstate);
 #endif
 
-    long_cache = makeConstantCacheDict();
+    long_cache = makeConstantCacheDict(tstate);
 
-    float_cache = makeConstantCacheDict();
+    float_cache = makeConstantCacheDict(tstate);
 
 #if PYTHON_VERSION >= 0x300
-    bytes_cache = makeConstantCacheDict();
+    bytes_cache = makeConstantCacheDict(tstate);
 #endif
 
 #if PYTHON_VERSION < 0x300
-    unicode_cache = makeConstantCacheDict();
+    unicode_cache = makeConstantCacheDict(tstate);
 #endif
 
-    tuple_cache = makeConstantCacheDict();
+    tuple_cache = makeConstantCacheDict(tstate);
 
-    list_cache = makeConstantCacheDict();
+    list_cache = makeConstantCacheDict(tstate);
 
-    slice_cache = makeConstantCacheDict();
+    slice_cache = makeConstantCacheDict(tstate);
 
-    dict_cache = makeConstantCacheDict();
+    dict_cache = makeConstantCacheDict(tstate);
 
-    set_cache = makeConstantCacheDict();
+    set_cache = makeConstantCacheDict(tstate);
 
-    frozenset_cache = makeConstantCacheDict();
+    frozenset_cache = makeConstantCacheDict(tstate);
 
 #if PYTHON_VERSION >= 0x3f0
-    frozendict_cache = makeConstantCacheDict();
+    frozendict_cache = makeConstantCacheDict(tstate);
 #endif
 
 #if PYTHON_VERSION < 0x3b0
@@ -460,20 +476,37 @@ static void initCaches(void) {
     init_done = true;
 }
 
-static void insertToDictCache(PyThreadState *tstate, PyObject *dict, PyObject **value) {
-    PyObject *item = DICT_GET_ITEM0(tstate, dict, *value);
+static void insertToDictCacheWithRules(PyThreadState *tstate, PyObject *dict, PyObject **value, hashfunc tp_hash,
+                                       richcmpfunc tp_richcompare) {
+    Py_hash_t hash = tp_hash != NULL ? (*tp_hash)(*value) : HASH_VALUE_WITHOUT_ERROR(tstate, *value);
+
+    if (unlikely(hash == -1)) {
+        return;
+    }
+
+    PyObject *item = DICT_GET_ITEM0_WITH_HASH_AND_EQ(tstate, dict, *value, hash, tp_richcompare);
 
     if (item != NULL) {
         *value = item;
-    } else {
-        DICT_SET_ITEM(dict, *value, *value);
-
-        if (_PyObject_GC_IS_TRACKED(dict)) {
-            Nuitka_GC_UnTrack(dict);
-        }
-
-        assert(!_PyObject_GC_IS_TRACKED(dict));
+        return;
     }
+
+    if (unlikely(HAS_ERROR_OCCURRED(tstate))) {
+        return;
+    }
+
+    NUITKA_MAY_BE_UNUSED bool res = DICT_SET_ITEM_WITH_HASH_AND_EQ(tstate, dict, *value, hash, tp_richcompare, *value);
+    assert(res != false);
+
+    if (_PyObject_GC_IS_TRACKED(dict)) {
+        Nuitka_GC_UnTrack(dict);
+    }
+
+    assert(!_PyObject_GC_IS_TRACKED(dict));
+}
+
+static void insertToDictCache(PyThreadState *tstate, PyObject *dict, PyObject **value) {
+    insertToDictCacheWithRules(tstate, dict, value, NULL, NULL);
 }
 
 static void _finalizeUnpackedConstantObject(void **output, PyObject *value) {
@@ -503,20 +536,9 @@ static void _setUnpackedConstantObject(void **output, PyObject *value) {
 
 static void insertToDictCacheForcedHash(PyThreadState *tstate, PyObject *dict, PyObject **value, hashfunc tp_hash,
                                         richcmpfunc tp_richcompare) {
-    hashfunc old_hash = Py_TYPE(*value)->tp_hash;
-    richcmpfunc old_richcmpfunc = Py_TYPE(*value)->tp_richcompare;
-
     // Hash is optional, e.g. for floats we can spare us doing our own hash,
-    // but we do equality
-    if (tp_hash != NULL) {
-        Py_TYPE(*value)->tp_hash = tp_hash;
-    }
-    Py_TYPE(*value)->tp_richcompare = tp_richcompare;
-
-    insertToDictCache(tstate, dict, value);
-
-    Py_TYPE(*value)->tp_hash = old_hash;
-    Py_TYPE(*value)->tp_richcompare = old_richcmpfunc;
+    // but we do equality.
+    insertToDictCacheWithRules(tstate, dict, value, tp_hash, tp_richcompare);
 }
 
 static uint16_t unpackValueUint16(unsigned char const **data) {
@@ -777,7 +799,7 @@ static unsigned char const *_unpackBlobConstantObjectDict(PyThreadState *tstate,
     CHECK_OBJECTS(&values[0], size);
 
     for (int i = 0; i < size; i++) {
-        NUITKA_MAY_BE_UNUSED bool res = DICT_SET_ITEM(d, keys[i], values[i]);
+        NUITKA_MAY_BE_UNUSED bool res = DICT_SET_ITEM(tstate, d, keys[i], values[i]);
         assert(res != false);
     }
 
@@ -808,7 +830,7 @@ static unsigned char const *_unpackBlobConstantObjectFrozendict(PyThreadState *t
         CHECK_OBJECTS(&values[0], size);
 
         for (int i = 0; i < size; i++) {
-            NUITKA_MAY_BE_UNUSED bool res = DICT_SET_ITEM(d, keys[i], values[i]);
+            NUITKA_MAY_BE_UNUSED bool res = DICT_SET_ITEM(tstate, d, keys[i], values[i]);
             assert(res != false);
         }
     }
@@ -1735,12 +1757,8 @@ static void unpackBlobConstants(PyThreadState *tstate, void *output, unsigned ch
     // However, the bytecode blob is decoded before interpreter initialization
     // without a thread state, where creating dictionaries is not possible. It
     // contains raw blob data only, so it does not need the empty dict constant.
-    if (tstate != NULL && const_dict_empty == NULL) {
-        PyObject *value = PyDict_New();
-        CHECK_OBJECT(value);
-
-        void *empty_dict_output = (void *)&const_dict_empty;
-        _finalizeUnpackedConstantObject(&empty_dict_output, value);
+    if (tstate != NULL) {
+        initConstDictEmpty();
     }
 
     int count = (int)unpackValueUint16(&data);
@@ -1756,7 +1774,7 @@ void loadConstantsBlobData(PyThreadState *tstate, void *output, unsigned char co
     // thread state, where the caches cannot be created yet. It contains raw
     // blob data only, so they are not needed for it.
     if (tstate != NULL) {
-        initCaches();
+        initConstantsCaches(tstate);
     }
 
     unpackBlobConstants(tstate, output, data);
@@ -1792,7 +1810,7 @@ void loadConstantsBlob(PyThreadState *tstate, void *output, char const *name) {
 #endif
     // Python 3.9 or higher cannot create dictionary before calling init so avoid it.
     if (strcmp(name, ".bytecode") != 0) {
-        initCaches();
+        initConstantsCaches(tstate);
     }
 
     unsigned char const *w = constant_bin;

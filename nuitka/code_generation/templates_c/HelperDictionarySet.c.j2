@@ -3,7 +3,7 @@
 {% macro compact_set_item(value_owned, suffix) %}
 #if PYTHON_VERSION >= 0x300 && PYTHON_VERSION < 0x360
 static int _Nuitka_DictSetItemCompact{{ suffix }}(PyThreadState *tstate, PyDictObject *mp, PyObject *key, Py_hash_t hash,
-                                     PyObject *value) {
+                                     richcmpfunc equal_func, PyObject *value) {
     PyObject **value_addr;
 
     if (mp->ma_values != NULL && !PyUnicode_CheckExact(key)) {
@@ -18,7 +18,7 @@ static int _Nuitka_DictSetItemCompact{{ suffix }}(PyThreadState *tstate, PyDictO
         mp->ma_keys->dk_lookup = (dict_lookup_func)Nuitka_GetGenericDictLookup();
     }
 
-    PyDictKeyEntry *entry = Nuitka_DictLookup34(mp, key, hash, &value_addr);
+    PyDictKeyEntry *entry = Nuitka_DictLookup34WithEq(mp, key, hash, &value_addr, equal_func);
 
     if (unlikely(entry == NULL)) {
         return -1;
@@ -34,7 +34,7 @@ static int _Nuitka_DictSetItemCompact{{ suffix }}(PyThreadState *tstate, PyDictO
         Py_INCREF(value);
 {% endif %}
             *value_addr = value;
-            NUITKA_DICT_NEXT_VERSION(mp);
+            NUITKA_DICT_NOTIFY_EVENT(tstate, mp, old_value == NULL ? PyDict_EVENT_ADDED : PyDict_EVENT_MODIFIED, key, value);
             Py_DECREF(old_value);
         }{% if value_owned %} else {
             Py_DECREF(value);
@@ -64,7 +64,7 @@ static int _Nuitka_DictSetItemCompact{{ suffix }}(PyThreadState *tstate, PyDictO
         entry->me_key = key;
         entry->me_hash = hash;
 
-        NUITKA_DICT_NEXT_VERSION(mp);
+        NUITKA_DICT_NOTIFY_EVENT(tstate, mp, old_value == NULL ? PyDict_EVENT_ADDED : PyDict_EVENT_MODIFIED, key, value);
 
         return 0;
     }
@@ -86,13 +86,13 @@ static int _Nuitka_DictSetItemCompact{{ suffix }}(PyThreadState *tstate, PyDictO
         assert(mp->ma_values != NULL);
     }
 
-    NUITKA_DICT_NEXT_VERSION(mp);
+    NUITKA_DICT_NOTIFY_EVENT(tstate, mp, old_value == NULL ? PyDict_EVENT_ADDED : PyDict_EVENT_MODIFIED, key, value);
 
     return 0;
 }
 #elif PYTHON_VERSION >= 0x360 && PYTHON_VERSION < 0x3b0
 static int _Nuitka_DictSetItemCompact{{ suffix }}(PyThreadState *tstate, PyDictObject *mp, PyObject *key, Py_hash_t hash,
-                                     PyObject *value) {
+                                     richcmpfunc equal_func, PyObject *value) {
     PyObject *old_value = NULL;
     PyObject **value_addr = NULL;
 
@@ -102,7 +102,7 @@ static int _Nuitka_DictSetItemCompact{{ suffix }}(PyThreadState *tstate, PyDictO
         }
     }
 
-    Py_ssize_t ix = Nuitka_DictLookupCompact(mp, key, hash, &value_addr);
+    Py_ssize_t ix = Nuitka_DictLookupCompactWithEq(mp, key, hash, &value_addr, equal_func);
 
     if (unlikely(ix == DKIX_ERROR)) {
         return -1;
@@ -158,7 +158,7 @@ static int _Nuitka_DictSetItemCompact{{ suffix }}(PyThreadState *tstate, PyDictO
         }
 
         mp->ma_used++;
-        NUITKA_DICT_NEXT_VERSION(mp);
+        NUITKA_DICT_NOTIFY_EVENT(tstate, mp, old_value == NULL ? PyDict_EVENT_ADDED : PyDict_EVENT_MODIFIED, key, value);
         mp->ma_keys->dk_usable--;
         mp->ma_keys->dk_nentries++;
 
@@ -182,7 +182,7 @@ static int _Nuitka_DictSetItemCompact{{ suffix }}(PyThreadState *tstate, PyDictO
             DK_ENTRIES(mp->ma_keys)[ix].me_value = value;
         }
 
-        NUITKA_DICT_NEXT_VERSION(mp);
+        NUITKA_DICT_NOTIFY_EVENT(tstate, mp, old_value == NULL ? PyDict_EVENT_ADDED : PyDict_EVENT_MODIFIED, key, value);
         Py_XDECREF(old_value);
     }{% if value_owned %} else {
         Py_DECREF(value);
@@ -192,7 +192,7 @@ static int _Nuitka_DictSetItemCompact{{ suffix }}(PyThreadState *tstate, PyDictO
 }
 #elif PYTHON_VERSION >= 0x3b0 && PYTHON_VERSION < 0x3d0
 static int _Nuitka_DictSetItemCompact{{ suffix }}(PyThreadState *tstate, PyDictObject *mp, PyObject *key, Py_hash_t hash,
-                                     PyObject *value) {
+                                     richcmpfunc equal_func, PyObject *value) {
     PyObject *old_value = NULL;
 
     if (DK_IS_UNICODE(mp->ma_keys) && !PyUnicode_CheckExact(key)) {
@@ -204,7 +204,7 @@ static int _Nuitka_DictSetItemCompact{{ suffix }}(PyThreadState *tstate, PyDictO
     }
 
     PyObject **value_addr;
-    Py_ssize_t ix = Nuitka_PyDictLookup(mp, key, hash, &value_addr);
+    Py_ssize_t ix = Nuitka_PyDictLookupWithEq(mp, key, hash, &value_addr, equal_func);
 
     if (unlikely(ix == DKIX_ERROR)) {
         return -1;
@@ -265,7 +265,7 @@ static int _Nuitka_DictSetItemCompact{{ suffix }}(PyThreadState *tstate, PyDictO
             Nuitka_DictValuesAddToInsertionOrder(mp->ma_values, mp->ma_keys->dk_nentries);
         }
 
-        NUITKA_DICT_NEXT_VERSION(mp);
+        NUITKA_DICT_NOTIFY_EVENT(tstate, mp, old_value == NULL ? PyDict_EVENT_ADDED : PyDict_EVENT_MODIFIED, key, value);
         mp->ma_keys->dk_usable--;
         mp->ma_keys->dk_nentries++;
 
@@ -294,7 +294,7 @@ static int _Nuitka_DictSetItemCompact{{ suffix }}(PyThreadState *tstate, PyDictO
             }
         }
 
-        NUITKA_DICT_NEXT_VERSION(mp);
+        NUITKA_DICT_NOTIFY_EVENT(tstate, mp, old_value == NULL ? PyDict_EVENT_ADDED : PyDict_EVENT_MODIFIED, key, value);
         Py_XDECREF(old_value);
     }{% if value_owned %} else {
         Py_DECREF(value);
@@ -310,14 +310,17 @@ static int _Nuitka_DictSetItemCompact{{ suffix }}(PyThreadState *tstate, PyDictO
 
 {% macro split_value_insert(value_owned, suffix) %}
 #if PYTHON_VERSION >= 0x3d0 && !defined(Py_GIL_DISABLED)
-static void _Nuitka_DictInsertSplitValue{{ suffix }}(PyDictObject *mp, PyObject *value, Py_ssize_t ix) {
+static void _Nuitka_DictInsertSplitValue{{ suffix }}(PyThreadState *tstate, PyDictObject *mp, PyObject *key,
+                                                           PyObject *value, Py_ssize_t ix) {
     PyObject *old_value = mp->ma_values->values[ix];
 
     if (old_value == NULL) {
+        NUITKA_DICT_NOTIFY_EVENT(tstate, mp, PyDict_EVENT_ADDED, key, value);
         mp->ma_values->values[ix] = {% if value_owned %}value{% else %}Py_NewRef(value){% endif %};
         Nuitka_DictValuesAddToInsertionOrder(mp->ma_values, ix);
         mp->ma_used++;
     } else if (old_value != value) {
+        NUITKA_DICT_NOTIFY_EVENT(tstate, mp, PyDict_EVENT_MODIFIED, key, value);
         mp->ma_values->values[ix] = {% if value_owned %}value{% else %}Py_NewRef(value){% endif %};
         Py_DECREF(old_value);
     }{% if value_owned %} else {
@@ -333,26 +336,26 @@ static void _Nuitka_DictInsertSplitValue{{ suffix }}(PyDictObject *mp, PyObject 
 {% macro set_item_3x(value_owned, suffix) %}
 #if PYTHON_VERSION >= 0x3d0 && !defined(Py_GIL_DISABLED)
 static int _Nuitka_DictSetItem3x{{ suffix }}(PyThreadState *tstate, PyDictObject *mp, PyObject *key, Py_hash_t hash,
-                                 PyObject *value) {
+                                 richcmpfunc equal_func, PyObject *value) {
     PyObject *old_value = NULL;
     Py_ssize_t ix;
 
     NUITKA_DICT_MAINTAIN_TRACKING(mp, key, value);
 
     if (mp->ma_values != NULL && PyUnicode_CheckExact(key)) {
-        ix = Nuitka_DictInsertSplitKey(mp->ma_keys, key, hash);
+        ix = Nuitka_DictInsertSplitKey(mp->ma_keys, key, hash, equal_func);
 
         if (ix != DKIX_EMPTY) {
             {% if value_owned %}
-            _Nuitka_DictInsertSplitValue1(mp, value, ix);
+            _Nuitka_DictInsertSplitValue1(tstate, mp, key, value, ix);
 {% else %}
-            _Nuitka_DictInsertSplitValue(mp, value, ix);
+            _Nuitka_DictInsertSplitValue(tstate, mp, key, value, ix);
 {% endif %}
             return 0;
         }
     } else {
         PyObject **value_addr;
-        ix = Nuitka_PyDictLookup(mp, key, hash, &value_addr);
+        ix = Nuitka_PyDictLookupWithEq(mp, key, hash, &value_addr, equal_func);
 
         if (unlikely(ix == DKIX_ERROR)) {
             return -1;
@@ -413,7 +416,7 @@ static int _Nuitka_DictSetItem3x{{ suffix }}(PyThreadState *tstate, PyDictObject
         }
 
         mp->ma_used++;
-        NUITKA_DICT_NEXT_VERSION(mp);
+        NUITKA_DICT_NOTIFY_EVENT(tstate, mp, old_value == NULL ? PyDict_EVENT_ADDED : PyDict_EVENT_MODIFIED, key, value);
         mp->ma_keys->dk_usable--;
         mp->ma_keys->dk_nentries++;
 
@@ -433,7 +436,7 @@ static int _Nuitka_DictSetItem3x{{ suffix }}(PyThreadState *tstate, PyDictObject
             DK_ENTRIES(mp->ma_keys)[ix].me_value = value;
         }
 
-        NUITKA_DICT_NEXT_VERSION(mp);
+        NUITKA_DICT_NOTIFY_EVENT(tstate, mp, old_value == NULL ? PyDict_EVENT_ADDED : PyDict_EVENT_MODIFIED, key, value);
         Py_DECREF(old_value);
     }{% if value_owned %} else {
         Py_DECREF(value);
@@ -450,10 +453,10 @@ static int _Nuitka_DictSetItem3x{{ suffix }}(PyThreadState *tstate, PyDictObject
 {% macro set_item_legacy(value_owned, suffix) %}
 #if PYTHON_VERSION < 0x300
 static int _Nuitka_DictSetItemLegacy{{ suffix }}(PyThreadState *tstate, PyDictObject *mp, PyObject *key, Py_hash_t hash,
-                                    PyObject *value) {
+                                    richcmpfunc equal_func, PyObject *value) {
     assert(key != Nuitka_GetDictDummy());
 
-    PyDictEntry *entry = Nuitka_DictLookupLegacy(mp, key, hash);
+    PyDictEntry *entry = Nuitka_DictLookupLegacyWithEq(mp, key, hash, equal_func);
 
     if (unlikely(entry == NULL)) {
         return -1;
@@ -510,23 +513,29 @@ static int _Nuitka_DictSetItemLegacy{{ suffix }}(PyThreadState *tstate, PyDictOb
 {{ set_item_legacy(false, "") }}
 {{ set_item_legacy(true, "1") }}
 
-{% for value_owned, suffix in ((false, ""), (true, "1")) %}
-bool DICT_SET_ITEM{{ suffix }}(PyObject *dict, PyObject *key, PyObject *value) {
+{% macro set_item_wrapper(name, value_owned, with_hash, with_eq) %}
+bool {{ name }}(
+    PyThreadState *tstate,
+    PyObject *dict,
+    PyObject *key,
+{% if with_hash %}
+    Py_hash_t hash,
+{% endif %}
+{% if with_eq %}
+    richcmpfunc equal_func,
+{% endif %}
+    PyObject *value) {
     CHECK_OBJECT(dict);
     assert(PyDict_Check(dict));
     CHECK_OBJECT(key);
     CHECK_OBJECT(value);
-
-#if !defined(Py_GIL_DISABLED) && PYTHON_VERSION >= 0x3c0
-    if (unlikely(NUITKA_DICT_IS_WATCHED((PyDictObject *)dict))) {
-        int status = PyDict_Type.tp_as_mapping->mp_ass_subscript(dict, key, value);
-
-{% if value_owned %}
-        Py_DECREF(value);
+{% if with_hash %}
+    assert(hash != -1);
+    (void)hash;
 {% endif %}
-        return status == 0;
-    }
-#endif
+{% if with_eq %}
+    (void)equal_func;
+{% endif %}
 
 #if _NUITKA_EXPERIMENTAL_DISABLE_DICT_OPT || _NUITKA_EXPERIMENTAL_DISABLE_DICT_ACCESS_OPT
     int status = PyDict_SetItem(dict, key, value);
@@ -536,7 +545,7 @@ bool DICT_SET_ITEM{{ suffix }}(PyObject *dict, PyObject *key, PyObject *value) {
 {% endif %}
     return status == 0;
 #elif PYTHON_VERSION >= 0x300 && !defined(Py_GIL_DISABLED)
-    PyThreadState *tstate = PyThreadState_GET();
+{% if not with_hash %}
     Py_hash_t hash;
 
     if (unlikely(Nuitka_DictGetHash(tstate, key, &hash) == false)) {
@@ -545,15 +554,34 @@ bool DICT_SET_ITEM{{ suffix }}(PyObject *dict, PyObject *key, PyObject *value) {
 {% endif %}
         return false;
     }
+{% endif %}
 
     bool result;
 
 #if PYTHON_VERSION >= 0x3d0
-    result = _Nuitka_DictSetItem3x{{ suffix }}(tstate, (PyDictObject *)dict, key, hash, value) == 0;
+    result = _Nuitka_DictSetItem3x{{ "1" if value_owned else "" }}(tstate, (PyDictObject *)dict, key, hash,
+{% if with_eq %}
+                                                                equal_func,
+{% else %}
+                                                                NULL,
+{% endif %}
+                                                                value) == 0;
 #elif PYTHON_VERSION >= 0x300
-    result = _Nuitka_DictSetItemCompact{{ suffix }}(tstate, (PyDictObject *)dict, key, hash, value) == 0;
+    result = _Nuitka_DictSetItemCompact{{ "1" if value_owned else "" }}(tstate, (PyDictObject *)dict, key, hash,
+{% if with_eq %}
+                                                                    equal_func,
+{% else %}
+                                                                    NULL,
+{% endif %}
+                                                                    value) == 0;
 #else
-    result = _Nuitka_DictSetItemLegacy{{ suffix }}(tstate, (PyDictObject *)dict, key, hash, value) == 0;
+    result = _Nuitka_DictSetItemLegacy{{ "1" if value_owned else "" }}(tstate, (PyDictObject *)dict, key, hash,
+{% if with_eq %}
+                                                                   equal_func,
+{% else %}
+                                                                   NULL,
+{% endif %}
+                                                                   value) == 0;
 #endif
 
 {% if value_owned %}
@@ -563,8 +591,8 @@ bool DICT_SET_ITEM{{ suffix }}(PyObject *dict, PyObject *key, PyObject *value) {
 {% endif %}
 
     return result;
-#elif PYTHON_VERSION < 0x300
-    PyThreadState *tstate = PyThreadState_GET();
+#elif defined(Py_GIL_DISABLED) && PYTHON_VERSION >= 0x3d0
+{% if not with_hash %}
     Py_hash_t hash;
 
     if (unlikely(Nuitka_DictGetHash(tstate, key, &hash) == false)) {
@@ -573,8 +601,34 @@ bool DICT_SET_ITEM{{ suffix }}(PyObject *dict, PyObject *key, PyObject *value) {
 {% endif %}
         return false;
     }
+{% endif %}
 
-    bool result = _Nuitka_DictSetItemLegacy{{ suffix }}(tstate, (PyDictObject *)dict, key, hash, value) == 0;
+    return Nuitka_DictSetItemFreeThreaded(tstate, dict, key, hash,
+{% if with_eq %}
+                                          equal_func,
+{% else %}
+                                          NULL,
+{% endif %}
+                                          value, {{ "true" if value_owned else "false" }});
+#elif PYTHON_VERSION < 0x300
+{% if not with_hash %}
+    Py_hash_t hash;
+
+    if (unlikely(Nuitka_DictGetHash(tstate, key, &hash) == false)) {
+{% if value_owned %}
+        Py_DECREF(value);
+{% endif %}
+        return false;
+    }
+{% endif %}
+
+    bool result = _Nuitka_DictSetItemLegacy{{ "1" if value_owned else "" }}(tstate, (PyDictObject *)dict, key, hash,
+{% if with_eq %}
+                                                                   equal_func,
+{% else %}
+                                                                   NULL,
+{% endif %}
+                                                                   value) == 0;
 
 {% if value_owned %}
     if (!result) {
@@ -592,7 +646,11 @@ bool DICT_SET_ITEM{{ suffix }}(PyObject *dict, PyObject *key, PyObject *value) {
     return status == 0;
 #endif
 }
-{% endfor %}
+{% endmacro %}
+
+{{ set_item_wrapper("DICT_SET_ITEM", false, false, false) }}
+{{ set_item_wrapper("DICT_SET_ITEM1", true, false, false) }}
+{{ set_item_wrapper("DICT_SET_ITEM_WITH_HASH_AND_EQ", false, true, true) }}
 
 {#-  Part of "Nuitka", an optimizing Python compiler that is compatible and           -#}
 {#-  integrates with CPython, but also works on its own.                              -#}

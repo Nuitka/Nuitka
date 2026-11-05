@@ -19,7 +19,7 @@ def addUncompiledFunctionSourceDict(func_value, context):
 
         context.addModuleInitCode(
             """\
-SET_UNCOMPILED_FUNCTION_SOURCE_DICT(%s, %s);
+SET_UNCOMPILED_FUNCTION_SOURCE_DICT(tstate, %s, %s);
 """
             % (
                 context.getConstantCode(function_super_qualified_name),

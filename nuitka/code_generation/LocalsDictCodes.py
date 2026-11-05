@@ -104,7 +104,7 @@ def assignDictOrMappingItem(
         res_name = context.getBoolResName()
 
         emit(
-            "%s = DICT_SET_ITEM(%s, %s, %s);"
+            "%s = DICT_SET_ITEM(tstate, %s, %s, %s);"
             % (res_name, target_name, key_name, value_name)
         )
     else:
@@ -163,7 +163,7 @@ def generateLocalsDictDelCode(statement, emit, context):
         res_name = context.getBoolResName()
 
         emit(
-            "%s = DICT_REMOVE_ITEM(%s, %s);"
+            "%s = DICT_REMOVE_ITEM(tstate, %s, %s);"
             % (
                 res_name,
                 dict_arg_name,

@@ -53,11 +53,24 @@ void initNuitkaAllocators(void) {
 }
 
 #if defined(Py_GIL_DISABLED) && defined(Py_REF_DEBUG) && PYTHON_VERSION >= 0x3d0 && PYTHON_VERSION < 0x3e0
-void _Py_AddRefTotal(PyThreadState *tstate, Py_ssize_t n) { tstate->interp->object_state.reftotal += n; }
+#if defined(_MSC_VER)
+#define NUITKA_REF_TOTAL_LINKAGE
+#else
+// Python 3.13 free-threaded debug builds do not export these internal
+// helpers on Windows, but a static libpython already provides them on Unix.
+// Weak definitions let the library's strong symbols win when present.
+#define NUITKA_REF_TOTAL_LINKAGE __attribute__((weak))
+#endif
 
-void _Py_IncRefTotal(PyThreadState *tstate) { _Py_AddRefTotal(tstate, 1); }
+NUITKA_REF_TOTAL_LINKAGE void _Py_AddRefTotal(PyThreadState *tstate, Py_ssize_t n) {
+    tstate->interp->object_state.reftotal += n;
+}
 
-void _Py_DecRefTotal(PyThreadState *tstate) { _Py_AddRefTotal(tstate, -1); }
+NUITKA_REF_TOTAL_LINKAGE void _Py_IncRefTotal(PyThreadState *tstate) { _Py_AddRefTotal(tstate, 1); }
+
+NUITKA_REF_TOTAL_LINKAGE void _Py_DecRefTotal(PyThreadState *tstate) { _Py_AddRefTotal(tstate, -1); }
+
+#undef NUITKA_REF_TOTAL_LINKAGE
 #endif
 
 #if PYTHON_VERSION >= 0x3b0

@@ -210,7 +210,7 @@ static PyObject *_Nuitka_Frame_GetLocalsDict(struct Nuitka_FrameObject *nuitka_f
             CHECK_OBJECT_X(value);
 
             if (value != NULL) {
-                DICT_SET_ITEM(result, *var_names, value);
+                DICT_SET_ITEM(tstate, result, *var_names, value);
             }
 
             break;
@@ -225,7 +225,7 @@ static PyObject *_Nuitka_Frame_GetLocalsDict(struct Nuitka_FrameObject *nuitka_f
                 PyObject *cell_value = Nuitka_CellOrPyCell_GET((PyObject *)value);
 
                 if (cell_value != NULL) {
-                    DICT_SET_ITEM(result, *var_names, cell_value);
+                    DICT_SET_ITEM(tstate, result, *var_names, cell_value);
                 }
             }
 
@@ -239,11 +239,11 @@ static PyObject *_Nuitka_Frame_GetLocalsDict(struct Nuitka_FrameObject *nuitka_f
 
             switch (value) {
             case NUITKA_BOOL_TRUE: {
-                DICT_SET_ITEM(result, *var_names, Py_True);
+                DICT_SET_ITEM(tstate, result, *var_names, Py_True);
                 break;
             }
             case NUITKA_BOOL_FALSE: {
-                DICT_SET_ITEM(result, *var_names, Py_False);
+                DICT_SET_ITEM(tstate, result, *var_names, Py_False);
                 break;
             }
             default:
@@ -255,12 +255,12 @@ static PyObject *_Nuitka_Frame_GetLocalsDict(struct Nuitka_FrameObject *nuitka_f
             nuitka_ilong const *value = (nuitka_ilong const *)t;
 
             if (IS_NILONG_OBJECT_VALUE_VALID(value)) {
-                DICT_SET_ITEM(result, *var_names, value->python_value);
+                DICT_SET_ITEM(tstate, result, *var_names, value->python_value);
             } else if (IS_NILONG_C_VALUE_VALID(value)) {
                 PyObject *boxed = Nuitka_PyLong_FromLong(value->c_value);
 
                 if (boxed != NULL) {
-                    DICT_SET_ITEM1(result, *var_names, boxed);
+                    DICT_SET_ITEM1(tstate, result, *var_names, boxed);
                 }
             }
 

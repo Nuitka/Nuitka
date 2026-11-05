@@ -262,7 +262,7 @@ static PyObject *loadModuleFromCodeObject(PyThreadState *tstate, PyObject *modul
     bool is_package = (entry->flags & NUITKA_PACKAGE_FLAG) != 0;
 
     {
-        NUITKA_MAY_BE_UNUSED bool b_res = Nuitka_SetModuleString(name, module);
+        NUITKA_MAY_BE_UNUSED bool b_res = Nuitka_SetModuleString(tstate, name, module);
         assert(b_res != false);
     }
 
@@ -472,9 +472,9 @@ static PyObject *getExtensionModuleSuffixesByPriority(PyThreadState *tstate) {
 static PyObject *installed_extension_modules = NULL;
 
 static bool scanModuleInPackagePath(PyThreadState *tstate, PyObject *module_name, char const *parent_module_name) {
-    PyObject *sys_modules = Nuitka_GetSysModules();
+    PyObject *sys_modules = Nuitka_GetSysModules(tstate);
 
-    PyObject *parent_module = DICT_GET_ITEM_STRING(sys_modules, parent_module_name);
+    PyObject *parent_module = DICT_GET_ITEM_STRING(tstate, sys_modules, parent_module_name);
     CHECK_OBJECT(parent_module);
 
     PyObject *parent_path = LOOKUP_ATTRIBUTE(tstate, parent_module, const_str_plain___path__);
@@ -558,7 +558,7 @@ static bool scanModuleInPackagePath(PyThreadState *tstate, PyObject *module_name
                 fullpath = tmp;
 #endif
 
-                DICT_SET_ITEM(installed_extension_modules, module_name, fullpath);
+                DICT_SET_ITEM(tstate, installed_extension_modules, module_name, fullpath);
 
                 result = true;
                 break;
@@ -701,7 +701,7 @@ static void setModuleFileValue(PyThreadState *tstate, PyObject *module, filename
     PyObject *dict = PyModule_GetDict(module);
 
     PyObject *new_file_value = Nuitka_String_FromFilename(filename);
-    DICT_SET_ITEM1(dict, const_str_plain___file__, new_file_value);
+    DICT_SET_ITEM1(tstate, dict, const_str_plain___file__, new_file_value);
 }
 
 #if PYTHON_VERSION < 0x300
@@ -1054,7 +1054,7 @@ static int _finalizeExtensionModule(PyThreadState *tstate, PyObject *module, PyO
         return -1;
     }
 
-    Nuitka_SetModule(full_name_obj, module);
+    Nuitka_SetModule(tstate, full_name_obj, module);
     return 0;
 }
 #endif
@@ -1140,7 +1140,7 @@ static PyObject *callIntoExtensionModule(PyThreadState *tstate, char const *full
         goto error;
     }
 
-    Nuitka_SetModule(full_name_obj, module);
+    Nuitka_SetModule(tstate, full_name_obj, module);
 
     Py_DECREF(spec_value);
     Py_DECREF(full_name_obj);
@@ -1191,7 +1191,7 @@ error:
         if (preserved_basename_module != NULL) {
             preserved_sub_modules = MAKE_DICT_EMPTY(tstate);
 
-            PyObject *modules_dict = Nuitka_GetSysModules();
+            PyObject *modules_dict = Nuitka_GetSysModules(tstate);
 
             Py_ssize_t pos = 0;
             PyObject *key, *value;
@@ -1206,7 +1206,7 @@ error:
                 PyObject *starts_with_result = UNICODE_STARTSWITH2(tstate, key, base_name_prefix);
 
                 if (CHECK_IF_TRUE(starts_with_result) == 1) {
-                    DICT_SET_ITEM(preserved_sub_modules, key, value);
+                    DICT_SET_ITEM(tstate, preserved_sub_modules, key, value);
                 }
 
                 Py_DECREF(starts_with_result);
@@ -1417,7 +1417,7 @@ error:
         PRINT_STRING(" with preserved value ");
         PRINT_ITEM_LINE(preserved_basename_module);
 #endif
-        Nuitka_SetModule(base_name_obj, preserved_basename_module);
+        Nuitka_SetModule(tstate, base_name_obj, preserved_basename_module);
         Py_DECREF(preserved_basename_module);
     }
 
@@ -1425,7 +1425,7 @@ error:
         PyObject *need_correction = MAKE_LIST_EMPTY(tstate, 0);
 
         {
-            PyObject *modules_dict = Nuitka_GetSysModules();
+            PyObject *modules_dict = Nuitka_GetSysModules(tstate);
 
             Py_ssize_t pos = 0;
             PyObject *key, *value;
@@ -1472,7 +1472,7 @@ error:
             PRINT_ITEM(module_to_correct);
             PRINT_STRING(")\n");
 #endif
-            Nuitka_SetModule(correct_module_name, module_to_correct);
+            Nuitka_SetModule(tstate, correct_module_name, module_to_correct);
 
             Nuitka_DelModule(tstate, module_to_correct_name);
         }
@@ -1497,7 +1497,7 @@ error:
                     PRINT_STRING(" (new)\n");
                 }
 #endif
-                Nuitka_SetModule(key, value);
+                Nuitka_SetModule(tstate, key, value);
             }
         }
 
@@ -1512,13 +1512,13 @@ error:
     int res = _PyImport_FixupExtensionObject(module, full_name_obj, filename_obj
 #if PYTHON_VERSION >= 0x370
                                              ,
-                                             Nuitka_GetSysModules()
+                                             Nuitka_GetSysModules(tstate)
 #endif
     );
 #endif
 
 #if PYTHON_VERSION >= 0x3d0
-    Nuitka_SetModuleString(full_name, module);
+    Nuitka_SetModuleString(tstate, full_name, module);
 #endif
 
     Py_DECREF(full_name_obj);
@@ -1582,7 +1582,7 @@ static void loadPostLoadCode(PyThreadState *tstate, PyObject *module_name, char 
                 PySys_WriteStderr("Adding module '%s' to sys.modules temporarily for -postLoad.\n", name);
             }
 
-            Nuitka_SetModule(module_name, module);
+            Nuitka_SetModule(tstate, module_name, module);
         }
 
         char const *dot = strrchr(name, '.');
@@ -1702,7 +1702,7 @@ static PyObject *loadModule(PyThreadState *tstate, PyObject *module, PyObject *m
         assert(entry->python_init_func);
 
         {
-            NUITKA_MAY_BE_UNUSED bool res = Nuitka_SetModule(module_name, module);
+            NUITKA_MAY_BE_UNUSED bool res = Nuitka_SetModule(tstate, module_name, module);
             assert(res != false);
         }
 
@@ -2215,7 +2215,7 @@ static PyObject *executeCompiledModule(PyThreadState *tstate, struct Nuitka_Meta
 #endif
 
     if (unlikely((entry->flags & NUITKA_INTERNAL_MODULE_FLAG) == 0)) {
-        NUITKA_MAY_BE_UNUSED bool res = Nuitka_SetModule(module_name, module);
+        NUITKA_MAY_BE_UNUSED bool res = Nuitka_SetModule(tstate, module_name, module);
         assert(res != false);
     }
 
@@ -3769,7 +3769,7 @@ void registerMetaPathBasedLoader(struct Nuitka_MetaPathBasedLoaderEntry **_loade
 // This is called for the technical module imported early on during interpreter
 // into, to still get compatible "__file__" attributes.
 void setEarlyFrozenModulesFileAttribute(PyThreadState *tstate) {
-    PyObject *sys_modules = Nuitka_GetSysModules();
+    PyObject *sys_modules = Nuitka_GetSysModules(tstate);
     Py_ssize_t pos = 0;
     PyObject *key, *value;
 

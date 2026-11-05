@@ -26,6 +26,20 @@ void NuitkaMem_FreeDelayed(void *ptr);
 PyObject *global_constants_storage[1];
 PyObject **global_constants = global_constants_storage;
 
+#if PYTHON_VERSION >= 0x3a0 && PYTHON_VERSION < 0x3c0 && !defined(_NUITKA_EXPERIMENTAL_DISABLE_FREELIST_ALL)
+// Minimal tuple helpers for the standalone harness, which does not link the
+// tuple freelist implementation from HelpersTuples.c.
+PyObject *MAKE_TUPLE_EMPTY(PyThreadState *tstate, Py_ssize_t size) {
+    (void)tstate;
+    return PyTuple_New(size);
+}
+
+PyObject *MAKE_TUPLE_EMPTY_VAR(PyThreadState *tstate, Py_ssize_t size) {
+    (void)tstate;
+    return PyTuple_New(size);
+}
+#endif
+
 #if defined(Py_DEBUG)
 void *python_obj_ctx = NULL;
 void *python_mem_ctx = NULL;
@@ -75,6 +89,42 @@ void *(*python_mem_realloc)(void *ctx, void *ptr, size_t new_size) = concurrency
 void (*python_mem_free)(void *ctx, void *ptr) = concurrencyMemFree;
 #endif
 
+void SET_CURRENT_EXCEPTION_TYPE_COMPLAINT(char const *format, PyObject *mistyped) {
+    PyErr_Format(PyExc_TypeError, format, Py_TYPE(mistyped)->tp_name);
+}
+
+void SET_CURRENT_EXCEPTION_TYPE0_FORMAT1(PyObject *exception_type, char const *format, char const *value) {
+    PyErr_Format(exception_type, format, value);
+}
+
+PyObject *CALL_FUNCTION_WITH_SINGLE_ARG(PyThreadState *tstate, PyObject *called, PyObject *arg) {
+    (void)tstate;
+    return PyObject_CallFunctionObjArgs(called, arg, NULL);
+}
+
+PyObject *LOOKUP_ATTRIBUTE(PyThreadState *tstate, PyObject *source, PyObject *attr_name) {
+    (void)tstate;
+    return PyObject_GetAttr(source, attr_name);
+}
+
+Py_ssize_t Nuitka_Number_AsSsize_t(PyObject *item, PyObject *exc) { return PyNumber_AsSsize_t(item, exc); }
+
+static PyObject *defaultIterNext(PyObject *self) {
+    (void)self;
+    PyErr_SetString(PyExc_TypeError, "not an iterator");
+    return NULL;
+}
+
+iternextfunc default_iternext = defaultIterNext;
+
+bool Nuitka_Type_IsSubtype(PyTypeObject *a, PyTypeObject *b) { return PyType_IsSubtype(a, b) != 0; }
+
+void Nuitka_PyObject_GC_Link(PyObject *op) {
+    // The concurrency harness only exercises the dictionary paths, which do
+    // not allocate objects through Nuitka's GC helpers.
+    (void)op;
+}
+
 Py_hash_t HASH_VALUE_WITH_ERROR(PyThreadState *tstate, PyObject *value) {
     (void)tstate;
     return PyObject_Hash(value);
@@ -121,6 +171,12 @@ bool RICH_COMPARE_EQ_CBOOL_OBJECT_OBJECT(PyObject *operand1, PyObject *operand2)
 #define SPLIT_THREAD_COUNT 4
 #define KEY_COUNT 32
 #define ITERATIONS 400
+#define BULK_KEY_COUNT 4
+#define BULK_ITERATIONS 50
+#define HASH_KEY_COUNT 4
+#define HASH_ITERATIONS 50
+#define CONSUME_KEY_COUNT 4
+#define CONSUME_ITERATIONS 50
 
 typedef struct {
     int thread_id;
@@ -135,9 +191,20 @@ static PyObject *makeKey(const char *prefix, int thread_id, int index) {
     return PyUnicode_FromFormat("%s_%d_%d", prefix, thread_id, index);
 }
 
+static PyObject *makeKeyWithCategory(const char *prefix, int thread_id, const char *category, int index) {
+    return PyUnicode_FromFormat("%s_%s_%d_%d", prefix, category, thread_id, index);
+}
+
+static PyObject *knownHashAlwaysEqual(PyObject *object1, PyObject *object2, int op);
+static PyObject *knownHashObjectEqual(PyObject *object1, PyObject *object2, int op);
+
+static int verifyBulkKeys(PyObject *dict, const char *prefix, int thread_count);
+static int verifyHashKeys(PyObject *dict, const char *prefix, int thread_count);
+static int verifyConsumeKeys(PyObject *dict, const char *prefix, int thread_count);
+
 static bool setItem(PyObject *dict, PyObject *key, PyObject *value, bool use_helper) {
     if (use_helper) {
-        return DICT_SET_ITEM(dict, key, value);
+        return DICT_SET_ITEM(PyThreadState_GET(), dict, key, value);
     }
 
     return PyDict_SetItem(dict, key, value) == 0;
@@ -145,7 +212,7 @@ static bool setItem(PyObject *dict, PyObject *key, PyObject *value, bool use_hel
 
 static bool removeItem(PyObject *dict, PyObject *key, bool use_helper) {
     if (use_helper) {
-        return DICT_REMOVE_ITEM(dict, key);
+        return DICT_REMOVE_ITEM(PyThreadState_GET(), dict, key);
     }
 
     return PyDict_DelItem(dict, key) == 0;
@@ -256,6 +323,134 @@ static void *stressWorker(void *argument) {
         Py_DECREF(key);
     }
 
+    for (int i = 0; i < BULK_ITERATIONS; i++) {
+        PyObject *map_source = PyDict_New();
+        PyObject *seq_pairs = PyList_New(0);
+
+        if (map_source == NULL || seq_pairs == NULL) {
+            Py_XDECREF(map_source);
+            Py_XDECREF(seq_pairs);
+            recordError(args->error_count);
+            PyErr_Clear();
+            continue;
+        }
+
+        bool build_ok = true;
+
+        for (int j = 0; j < BULK_KEY_COUNT; j++) {
+            PyObject *map_key = makeKeyWithCategory(args->prefix, args->thread_id, "bulk", j);
+            PyObject *map_value = PyLong_FromLong(i + 20000 + j);
+            PyObject *seq_key = makeKeyWithCategory(args->prefix, args->thread_id, "seq", j);
+            PyObject *seq_value = PyLong_FromLong(i + 30000 + j);
+            PyObject *pair = NULL;
+
+            if (map_key != NULL && map_value != NULL && seq_key != NULL && seq_value != NULL) {
+                pair = PyTuple_Pack(2, seq_key, seq_value);
+            }
+
+            if (map_key == NULL || map_value == NULL || seq_key == NULL || seq_value == NULL || pair == NULL ||
+                PyDict_SetItem(map_source, map_key, map_value) != 0 || PyList_Append(seq_pairs, pair) != 0) {
+                Py_XDECREF(map_key);
+                Py_XDECREF(map_value);
+                Py_XDECREF(seq_key);
+                Py_XDECREF(seq_value);
+                Py_XDECREF(pair);
+                recordError(args->error_count);
+                PyErr_Clear();
+                build_ok = false;
+                break;
+            }
+
+            Py_DECREF(map_key);
+            Py_DECREF(map_value);
+            Py_DECREF(seq_key);
+            Py_DECREF(seq_value);
+            Py_DECREF(pair);
+        }
+
+        if (build_ok) {
+            if ((i + args->thread_id) % 2) {
+                if (DICT_UPDATE_FROM(tstate, args->dict, map_source) < 0) {
+                    recordError(args->error_count);
+                    PyErr_Clear();
+                }
+            } else if (PyDict_Update(args->dict, map_source) != 0) {
+                recordError(args->error_count);
+                PyErr_Clear();
+            }
+
+            if ((i + args->thread_id) % 2 == 0) {
+                if (DICT_UPDATE_FROM_SEQ(tstate, args->dict, seq_pairs) < 0) {
+                    recordError(args->error_count);
+                    PyErr_Clear();
+                }
+            } else if (PyDict_MergeFromSeq2(args->dict, seq_pairs, 1) != 0) {
+                recordError(args->error_count);
+                PyErr_Clear();
+            }
+        }
+
+        Py_DECREF(map_source);
+        Py_DECREF(seq_pairs);
+    }
+
+    for (int i = 0; i < HASH_ITERATIONS; i++) {
+        for (int j = 0; j < HASH_KEY_COUNT; j++) {
+            int key_value = 1000000 + args->thread_id * 1000 + j;
+            PyObject *key = PyLong_FromLong(key_value);
+            PyObject *value = PyLong_FromLong(i + 40000 + j);
+
+            if (key == NULL || value == NULL) {
+                Py_XDECREF(key);
+                Py_XDECREF(value);
+                recordError(args->error_count);
+                PyErr_Clear();
+                continue;
+            }
+
+            // Use a supplied hash different from the integer's actual hash so
+            // this exercises forced hashes in a general keyed table.
+            Py_hash_t hash = (Py_hash_t)(2000000 + args->thread_id * 1000 + j);
+            bool result;
+
+            if ((i + args->thread_id + j) % 2) {
+                result = DICT_SET_ITEM_WITH_HASH_AND_EQ(tstate, args->dict, key, hash, knownHashObjectEqual, value);
+            } else {
+                result = DICT_SET_ITEM_WITH_HASH(tstate, args->dict, key, hash, value);
+            }
+
+            if (!result) {
+                recordError(args->error_count);
+                PyErr_Clear();
+            }
+
+            Py_DECREF(key);
+            Py_DECREF(value);
+        }
+    }
+
+    for (int i = 0; i < CONSUME_ITERATIONS; i++) {
+        for (int j = 0; j < CONSUME_KEY_COUNT; j++) {
+            PyObject *key = makeKeyWithCategory(args->prefix, args->thread_id, "consume", j);
+            PyObject *value = PyLong_FromLong(i + 50000 + j);
+
+            if (key == NULL || value == NULL) {
+                Py_XDECREF(key);
+                Py_XDECREF(value);
+                recordError(args->error_count);
+                PyErr_Clear();
+                continue;
+            }
+
+            if (!DICT_SET_ITEM1(tstate, args->dict, key, value)) {
+                recordError(args->error_count);
+                PyErr_Clear();
+            }
+
+            Py_DECREF(key);
+        }
+    }
+
     PyGILState_Release(gil_state);
 
     return NULL;
@@ -295,8 +490,8 @@ static int runThreads(PyObject *dict, const char *prefix, int thread_count) {
     return atomic_load(&error_count);
 }
 
-static int verifyDict(PyObject *dict, const char *prefix, int thread_count, int extra_entries) {
-    Py_ssize_t expected = extra_entries;
+static int verifyDict(PyObject *dict, const char *prefix, int thread_count, int extra_entries, int additional_entries) {
+    Py_ssize_t expected = extra_entries + additional_entries;
     int errors = 0;
 
     for (int thread_id = 0; thread_id < thread_count; thread_id++) {
@@ -342,6 +537,114 @@ static int verifyDict(PyObject *dict, const char *prefix, int thread_count, int 
     return errors;
 }
 
+static int verifyBulkKeys(PyObject *dict, const char *prefix, int thread_count) {
+    int errors = 0;
+
+    for (int thread_id = 0; thread_id < thread_count; thread_id++) {
+        for (int index = 0; index < BULK_KEY_COUNT; index++) {
+            PyObject *key = makeKeyWithCategory(prefix, thread_id, "bulk", index);
+            PyObject *result;
+            long expected = BULK_ITERATIONS - 1 + 20000 + index;
+
+            if (key == NULL) {
+                errors++;
+                PyErr_Clear();
+                continue;
+            }
+
+            result = PyDict_GetItemWithError(dict, key);
+
+            if (result == NULL || !PyLong_Check(result) || PyLong_AsLong(result) != expected) {
+                errors++;
+                PyErr_Clear();
+            }
+
+            Py_DECREF(key);
+
+            key = makeKeyWithCategory(prefix, thread_id, "seq", index);
+            expected = BULK_ITERATIONS - 1 + 30000 + index;
+
+            if (key == NULL) {
+                errors++;
+                PyErr_Clear();
+                continue;
+            }
+
+            result = PyDict_GetItemWithError(dict, key);
+
+            if (result == NULL || !PyLong_Check(result) || PyLong_AsLong(result) != expected) {
+                errors++;
+                PyErr_Clear();
+            }
+
+            Py_DECREF(key);
+        }
+    }
+
+    return errors;
+}
+
+static int verifyHashKeys(PyObject *dict, const char *prefix, int thread_count) {
+    int errors = 0;
+    PyThreadState *tstate = PyThreadState_GET();
+
+    for (int thread_id = 0; thread_id < thread_count; thread_id++) {
+        for (int index = 0; index < HASH_KEY_COUNT; index++) {
+            int key_value = 1000000 + thread_id * 1000 + index;
+            PyObject *key = PyLong_FromLong(key_value);
+            Py_hash_t hash = (Py_hash_t)(2000000 + thread_id * 1000 + index);
+            PyObject *result;
+            long expected = HASH_ITERATIONS - 1 + 40000 + index;
+
+            if (key == NULL) {
+                errors++;
+                PyErr_Clear();
+                continue;
+            }
+
+            result = DICT_GET_ITEM0_WITH_HASH_AND_EQ(tstate, dict, key, hash, knownHashObjectEqual);
+
+            if (result == NULL || !PyLong_Check(result) || PyLong_AsLong(result) != expected) {
+                errors++;
+                PyErr_Clear();
+            }
+
+            Py_DECREF(key);
+        }
+    }
+
+    return errors;
+}
+
+static int verifyConsumeKeys(PyObject *dict, const char *prefix, int thread_count) {
+    int errors = 0;
+
+    for (int thread_id = 0; thread_id < thread_count; thread_id++) {
+        for (int index = 0; index < CONSUME_KEY_COUNT; index++) {
+            PyObject *key = makeKeyWithCategory(prefix, thread_id, "consume", index);
+            PyObject *result;
+            long expected = CONSUME_ITERATIONS - 1 + 50000 + index;
+
+            if (key == NULL) {
+                errors++;
+                PyErr_Clear();
+                continue;
+            }
+
+            result = PyDict_GetItemWithError(dict, key);
+
+            if (result == NULL || !PyLong_Check(result) || PyLong_AsLong(result) != expected) {
+                errors++;
+                PyErr_Clear();
+            }
+
+            Py_DECREF(key);
+        }
+    }
+
+    return errors;
+}
+
 static int runCombinedStressTest(void) {
     PyObject *dict = PyDict_New();
     int errors = 0;
@@ -351,7 +654,11 @@ static int runCombinedStressTest(void) {
     }
 
     errors += runThreads(dict, "combined", THREAD_COUNT);
-    errors += verifyDict(dict, "combined", THREAD_COUNT, 0);
+    errors += verifyDict(dict, "combined", THREAD_COUNT, 0,
+                         THREAD_COUNT * (2 * BULK_KEY_COUNT + HASH_KEY_COUNT + CONSUME_KEY_COUNT));
+    errors += verifyBulkKeys(dict, "combined", THREAD_COUNT);
+    errors += verifyHashKeys(dict, "combined", THREAD_COUNT);
+    errors += verifyConsumeKeys(dict, "combined", THREAD_COUNT);
 
     Py_DECREF(dict);
 
@@ -412,7 +719,11 @@ static int runSplitStressTest(void) {
     }
 
     errors += runThreads(dict, "split", SPLIT_THREAD_COUNT);
-    errors += verifyDict(dict, "split", SPLIT_THREAD_COUNT, 1);
+    errors += verifyDict(dict, "split", SPLIT_THREAD_COUNT, 1,
+                         SPLIT_THREAD_COUNT * (2 * BULK_KEY_COUNT + HASH_KEY_COUNT + CONSUME_KEY_COUNT));
+    errors += verifyBulkKeys(dict, "split", SPLIT_THREAD_COUNT);
+    errors += verifyHashKeys(dict, "split", SPLIT_THREAD_COUNT);
+    errors += verifyConsumeKeys(dict, "split", SPLIT_THREAD_COUNT);
 
     Py_DECREF(dict);
     Py_DECREF(obj);
@@ -448,7 +759,7 @@ static int runCollisionTest(void) {
         PyObject *key = PyObject_CallFunction(class_object, "i", i);
         PyObject *value = PyLong_FromLong(i);
 
-        if (key == NULL || value == NULL || !DICT_SET_ITEM(dict, key, value)) {
+        if (key == NULL || value == NULL || !DICT_SET_ITEM(PyThreadState_GET(), dict, key, value)) {
             errors++;
             PyErr_Clear();
         }
@@ -460,7 +771,7 @@ static int runCollisionTest(void) {
     for (int i = 0; i < 64; i += 2) {
         PyObject *key = PyObject_CallFunction(class_object, "i", i);
 
-        if (key == NULL || !DICT_REMOVE_ITEM(dict, key)) {
+        if (key == NULL || !DICT_REMOVE_ITEM(PyThreadState_GET(), dict, key)) {
             errors++;
             PyErr_Clear();
         }
@@ -502,7 +813,7 @@ static int runConsumeSetTest(void) {
     PyObject *value = PyList_New(0);
     int errors = 0;
 
-    if (dict == NULL || key == NULL || value == NULL || !DICT_SET_ITEM1(dict, key, value)) {
+    if (dict == NULL || key == NULL || value == NULL || !DICT_SET_ITEM1(PyThreadState_GET(), dict, key, value)) {
         Py_XDECREF(dict);
         Py_XDECREF(key);
         Py_XDECREF(value);
@@ -532,7 +843,7 @@ static int runBorrowedGetTest(void) {
     PyObject *value = PyList_New(0);
     int errors = 0;
 
-    if (dict == NULL || key == NULL || value == NULL || !DICT_SET_ITEM(dict, key, value)) {
+    if (dict == NULL || key == NULL || value == NULL || !DICT_SET_ITEM(PyThreadState_GET(), dict, key, value)) {
         Py_XDECREF(dict);
         Py_XDECREF(key);
         Py_XDECREF(value);
@@ -582,6 +893,184 @@ static int runBorrowedGetTest(void) {
     return errors;
 }
 
+static bool DICT_REMOVE_ITEM_WITH_HASH_AND_EQ(PyThreadState *tstate, PyObject *dict, PyObject *key, Py_hash_t hash,
+                                              richcmpfunc equal_func) {
+    return Nuitka_DictRemoveItemWithHash(tstate, dict, key, hash, equal_func);
+}
+
+static PyObject *knownHashAlwaysEqual(PyObject *object1, PyObject *object2, int op) {
+    (void)object1;
+    (void)object2;
+    assert(op == Py_EQ);
+
+    Py_INCREF(Py_True);
+    return Py_True;
+}
+
+static PyObject *knownHashObjectEqual(PyObject *object1, PyObject *object2, int op) {
+    assert(op == Py_EQ);
+
+    int result = PyObject_RichCompareBool(object1, object2, Py_EQ);
+
+    if (result < 0) {
+        return NULL;
+    }
+
+    PyObject *equal = result ? Py_True : Py_False;
+    Py_INCREF(equal);
+
+    return equal;
+}
+
+static int runKnownHashReadTest(void) {
+    int errors = 0;
+
+    PyObject *dict = PyDict_New();
+    PyObject *stored_key = PyUnicode_FromString("stored_key");
+    PyObject *lookup_key = PyUnicode_FromString("lookup_key");
+    PyObject *value = PyLong_FromLong(7);
+
+    if (dict == NULL || stored_key == NULL || lookup_key == NULL || value == NULL) {
+        Py_XDECREF(dict);
+        Py_XDECREF(stored_key);
+        Py_XDECREF(lookup_key);
+        Py_XDECREF(value);
+        PyErr_Clear();
+        return 1;
+    }
+
+    if (!DICT_SET_ITEM(PyThreadState_GET(), dict, stored_key, value)) {
+        PyErr_Clear();
+        errors++;
+    }
+
+    Py_hash_t hash = PyObject_Hash(stored_key);
+
+    if (hash == -1 ||
+        DICT_GET_ITEM0_WITH_HASH_AND_EQ(PyThreadState_GET(), dict, lookup_key, hash, knownHashAlwaysEqual) != value) {
+        PyErr_Clear();
+        errors++;
+    }
+
+    Py_DECREF(dict);
+    Py_DECREF(stored_key);
+    Py_DECREF(lookup_key);
+    Py_DECREF(value);
+
+    return errors;
+}
+
+static PyObject *knownHashPointerEqual(PyObject *object1, PyObject *object2, int op) {
+    assert(op == Py_EQ);
+
+    PyObject *result = object1 == object2 ? Py_True : Py_False;
+    Py_INCREF(result);
+
+    return result;
+}
+
+static int runKnownHashTest(void) {
+    int errors = 0;
+
+    PyObject *dict = PyDict_New();
+    PyObject *key = PyUnicode_FromString("known_hash_key");
+    PyObject *value = PyLong_FromLong(42);
+
+    if (dict == NULL || key == NULL || value == NULL) {
+        Py_XDECREF(dict);
+        Py_XDECREF(key);
+        Py_XDECREF(value);
+        PyErr_Clear();
+        return 1;
+    }
+
+    Py_hash_t hash = PyObject_Hash(key);
+
+    if (hash == -1 || !DICT_SET_ITEM_WITH_HASH(PyThreadState_GET(), dict, key, hash, value)) {
+        PyErr_Clear();
+        errors++;
+    }
+
+    if (DICT_GET_ITEM0_WITH_HASH(PyThreadState_GET(), dict, key, hash) != value || PyDict_Size(dict) != 1) {
+        errors++;
+    }
+
+    if (!DICT_REMOVE_ITEM_WITH_HASH_AND_EQ(PyThreadState_GET(), dict, key, hash, NULL) || PyDict_Size(dict) != 0) {
+        PyErr_Clear();
+        errors++;
+    }
+
+    // The supplied hash must be stored, not the object's own hash. Use an
+    // integer key to force a general keyed table that stores the hash.
+    PyObject *int_key = PyLong_FromLong(7);
+
+    if (int_key == NULL || !DICT_SET_ITEM_WITH_HASH(PyThreadState_GET(), dict, int_key, 12345, value)) {
+        PyErr_Clear();
+        errors++;
+    }
+
+    if (DICT_GET_ITEM0_WITH_HASH(PyThreadState_GET(), dict, int_key, PyObject_Hash(int_key)) != NULL ||
+        DICT_GET_ITEM0_WITH_HASH(PyThreadState_GET(), dict, int_key, 12345) != value) {
+        errors++;
+    }
+
+    if (!DICT_REMOVE_ITEM_WITH_HASH_AND_EQ(PyThreadState_GET(), dict, int_key, 12345, NULL) || PyDict_Size(dict) != 0) {
+        PyErr_Clear();
+        errors++;
+    }
+
+    Py_XDECREF(int_key);
+
+    // Caller supplied equality rules must allow distinct keys with equal hashes.
+    PyObject *key1 = PyUnicode_FromString("same");
+    PyObject *key2 = PyUnicode_FromString("same");
+    PyObject *value1 = PyLong_FromLong(1);
+    PyObject *value2 = PyLong_FromLong(2);
+
+    if (key1 == NULL || key2 == NULL || value1 == NULL || value2 == NULL) {
+        Py_XDECREF(key1);
+        Py_XDECREF(key2);
+        Py_XDECREF(value1);
+        Py_XDECREF(value2);
+        Py_DECREF(dict);
+        Py_DECREF(key);
+        Py_DECREF(value);
+        PyErr_Clear();
+        return errors + 1;
+    }
+
+    hash = PyObject_Hash(key1);
+
+    if (!DICT_SET_ITEM_WITH_HASH_AND_EQ(PyThreadState_GET(), dict, key1, hash, knownHashPointerEqual, value1) ||
+        !DICT_SET_ITEM_WITH_HASH_AND_EQ(PyThreadState_GET(), dict, key2, hash, knownHashPointerEqual, value2) ||
+        PyDict_Size(dict) != 2) {
+        PyErr_Clear();
+        errors++;
+    }
+
+    if (DICT_GET_ITEM0_WITH_HASH_AND_EQ(PyThreadState_GET(), dict, key1, hash, knownHashPointerEqual) != value1 ||
+        DICT_GET_ITEM0_WITH_HASH_AND_EQ(PyThreadState_GET(), dict, key2, hash, knownHashPointerEqual) != value2) {
+        errors++;
+    }
+
+    if (!DICT_REMOVE_ITEM_WITH_HASH_AND_EQ(PyThreadState_GET(), dict, key1, hash, knownHashPointerEqual) ||
+        !DICT_REMOVE_ITEM_WITH_HASH_AND_EQ(PyThreadState_GET(), dict, key2, hash, knownHashPointerEqual) ||
+        PyDict_Size(dict) != 0) {
+        PyErr_Clear();
+        errors++;
+    }
+
+    Py_DECREF(key1);
+    Py_DECREF(key2);
+    Py_DECREF(value1);
+    Py_DECREF(value2);
+    Py_DECREF(dict);
+    Py_DECREF(key);
+    Py_DECREF(value);
+
+    return errors;
+}
+
 #ifndef Py_GIL_DISABLED
 static int runRefcountTest(void) {
     PyObject *dict = PyDict_New();
@@ -599,7 +1088,7 @@ static int runRefcountTest(void) {
     for (int i = 0; i < 64; i++) {
         PyObject *key = PyUnicode_FromFormat("refcount_%d", i);
 
-        if (key == NULL || !DICT_SET_ITEM(dict, key, value)) {
+        if (key == NULL || !DICT_SET_ITEM(PyThreadState_GET(), dict, key, value)) {
             errors++;
             PyErr_Clear();
         }
@@ -614,7 +1103,7 @@ static int runRefcountTest(void) {
     for (int i = 0; i < 64; i++) {
         PyObject *key = PyUnicode_FromFormat("refcount_%d", i);
 
-        if (key == NULL || !DICT_REMOVE_ITEM(dict, key)) {
+        if (key == NULL || !DICT_REMOVE_ITEM(PyThreadState_GET(), dict, key)) {
             errors++;
             PyErr_Clear();
         }
@@ -641,15 +1130,28 @@ int main(void) {
 
     int errors = 0;
 
-    errors += runCombinedStressTest();
-    errors += runSplitStressTest();
-    errors += runCollisionTest();
-    errors += runBorrowedGetTest();
-    errors += runConsumeSetTest();
+#define RUN_TEST(name)                                                                                                 \
+    do {                                                                                                               \
+        int test_errors = name();                                                                                      \
+        if (test_errors != 0) {                                                                                        \
+            fprintf(stderr, "%s failed with %d errors\n", #name, test_errors);                                         \
+            errors += test_errors;                                                                                     \
+        }                                                                                                              \
+    } while (0)
+
+    RUN_TEST(runCombinedStressTest);
+    RUN_TEST(runSplitStressTest);
+    RUN_TEST(runCollisionTest);
+    RUN_TEST(runBorrowedGetTest);
+    RUN_TEST(runConsumeSetTest);
+    RUN_TEST(runKnownHashReadTest);
+    RUN_TEST(runKnownHashTest);
 
 #ifndef Py_GIL_DISABLED
-    errors += runRefcountTest();
+    RUN_TEST(runRefcountTest);
 #endif
+
+#undef RUN_TEST
 
     if (errors != 0) {
         fprintf(stderr, "dictionary concurrency stress failed with %d errors\n", errors);

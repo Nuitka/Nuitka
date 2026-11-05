@@ -707,10 +707,10 @@ static int Nuitka_Function_set_module(PyObject *self, PyObject *value, void *dat
     assert(_PyObject_GC_IS_TRACKED(self));
     CHECK_OBJECT_X(value);
 
+    PyThreadState *tstate = PyThreadState_GET();
+
     struct Nuitka_FunctionObject *function = (struct Nuitka_FunctionObject *)self;
     if (function->m_dict == NULL) {
-        NUITKA_MAY_BE_UNUSED PyThreadState *tstate = PyThreadState_GET();
-
         function->m_dict = MAKE_DICT_EMPTY(tstate);
     }
 
@@ -718,7 +718,7 @@ static int Nuitka_Function_set_module(PyObject *self, PyObject *value, void *dat
         value = Py_None;
     }
 
-    return DICT_SET_ITEM(function->m_dict, const_str_plain___module__, value) ? 0 : -1;
+    return DICT_SET_ITEM(tstate, function->m_dict, const_str_plain___module__, value) ? 0 : -1;
 }
 
 static PyObject *Nuitka_Function_get_module(PyObject *self, void *data) {
@@ -2399,7 +2399,7 @@ static Py_ssize_t handleKeywordArgsWithStarDict(PyThreadState *tstate, struct Nu
         }
 
         if (found == false) {
-            if (unlikely(DICT_SET_ITEM(python_pars[star_dict_index], key, value) == false)) {
+            if (unlikely(DICT_SET_ITEM(tstate, python_pars[star_dict_index], key, value) == false)) {
                 return -1;
             }
         }
@@ -2493,7 +2493,7 @@ static Py_ssize_t handleKeywordArgsSplitWithStarDict(PyThreadState *tstate,
         }
 
         if (found == false) {
-            if (unlikely(DICT_SET_ITEM(python_pars[star_dict_index], key, value) == false)) {
+            if (unlikely(DICT_SET_ITEM(tstate, python_pars[star_dict_index], key, value) == false)) {
                 return -1;
             }
         }
@@ -3401,7 +3401,7 @@ static Py_ssize_t handleVectorcallKeywordArgsWithStarDict(PyThreadState *tstate,
         }
 
         if (found == false) {
-            if (unlikely(DICT_SET_ITEM(python_pars[star_dict_index], key, value) == false)) {
+            if (unlikely(DICT_SET_ITEM(tstate, python_pars[star_dict_index], key, value) == false)) {
                 return -1;
             }
         }
