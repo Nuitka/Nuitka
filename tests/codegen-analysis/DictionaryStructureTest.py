@@ -13,7 +13,14 @@ import ctypes
 import random
 import sys
 
+try:
+    import sysconfig
+except ImportError:
+    # Python 2.6 does not have the sysconfig module.
+    import distutils.sysconfig as sysconfig
+
 py_version = sys.version_info[:2]
+is_free_threaded = sysconfig.get_config_var("Py_GIL_DISABLED") == 1
 voidp = ctypes.c_void_p
 
 if hasattr(ctypes, "c_ssize_t"):
@@ -45,6 +52,13 @@ def _signed_at(address, index, size):
 class PyDictEntry(ctypes.Structure):
     _fields_ = [
         ("me_hash", py_ssize_t),
+        ("me_key", voidp),
+        ("me_value", voidp),
+    ]
+
+
+class PyDictUnicodeEntry(ctypes.Structure):
+    _fields_ = [
         ("me_key", voidp),
         ("me_value", voidp),
     ]
@@ -183,6 +197,39 @@ else:
             ("values", voidp * 1),
         ]
 
+    class PyObjectHeadFT(ctypes.Structure):
+        _fields_ = [
+            ("ob_tid", ctypes.c_size_t),
+            ("_padding", ctypes.c_uint16),
+            ("ob_mutex", ctypes.c_uint8),
+            ("ob_gc_bits", ctypes.c_uint8),
+            ("ob_ref_local", ctypes.c_uint32),
+            ("ob_ref_shared", py_ssize_t),
+            ("ob_type", voidp),
+        ]
+
+    class PyDictObjectFT(ctypes.Structure):
+        _fields_ = [
+            ("ob_base", PyObjectHeadFT),
+            ("ma_used", py_ssize_t),
+            ("ma_version_tag", ctypes.c_uint64),
+            ("ma_keys", voidp),
+            ("ma_values", voidp),
+        ]
+
+    class PyDictKeysObjectFT(ctypes.Structure):
+        _fields_ = [
+            ("dk_refcnt", py_ssize_t),
+            ("dk_log2_size", ctypes.c_uint8),
+            ("dk_log2_index_bytes", ctypes.c_uint8),
+            ("dk_kind", ctypes.c_uint8),
+            ("dk_mutex", ctypes.c_uint8),
+            ("dk_version", ctypes.c_uint32),
+            ("dk_usable", py_ssize_t),
+            ("dk_nentries", py_ssize_t),
+            ("dk_indices", ctypes.c_uint8 * 1),
+        ]
+
     def _index_size(size):
         if size <= 0xFF:
             return 1
@@ -230,12 +277,16 @@ else:
                 tuple(entries),
             )
 
-        if py_version < (3, 14):
-            mp = _at(id(d), PyDictObject313)
+        if is_free_threaded:
+            mp = _at(id(d), PyDictObjectFT)
+            keys = _at(mp.ma_keys, PyDictKeysObjectFT)
         else:
-            mp = _at(id(d), PyDictObject314)
+            if py_version < (3, 14):
+                mp = _at(id(d), PyDictObject313)
+            else:
+                mp = _at(id(d), PyDictObject314)
 
-        keys = _at(mp.ma_keys, PyDictKeysObject311)
+            keys = _at(mp.ma_keys, PyDictKeysObject311)
         size = 1 << keys.dk_log2_size
         index_bytes = 1 << keys.dk_log2_index_bytes
         indices_address = ctypes.addressof(keys) + PyDictKeysObject311.dk_indices.offset
@@ -243,7 +294,11 @@ else:
         index_size = _index_size(size)
         indices = tuple(_signed_at(indices_address, i, index_size) for i in range(size))
         unicode_keys = keys.dk_kind != 0
-        entry_size = 16 if unicode_keys else ctypes.sizeof(PyDictEntry)
+        entry_size = (
+            ctypes.sizeof(PyDictUnicodeEntry)
+            if unicode_keys
+            else ctypes.sizeof(PyDictEntry)
+        )
         entries = []
         values = mp.ma_values
         values_state = None
@@ -662,12 +717,7 @@ def runCSplitTableTest():
     update_from = globals().get("_nuitka_test_dict_update_from")
     update_from_seq = globals().get("_nuitka_test_dict_update_from_seq")
 
-    if (
-        set_item is None
-        or remove_item is None
-        or update_from is None
-        or update_from_seq is None
-    ):
+    if set_item is None or update_from is None or update_from_seq is None:
         return True
 
     seed_value = 0
@@ -858,6 +908,148 @@ def runCCloneTest():
     return True
 
 
+def runCKnownHashTest():
+    set_item = globals().get("_nuitka_test_dict_set_item_with_hash")
+    get_item = globals().get("_nuitka_test_dict_get_item_with_hash")
+    set_item_eq = globals().get("_nuitka_test_dict_set_item_with_hash_and_eq")
+    get_item_eq = globals().get("_nuitka_test_dict_get_item_with_hash_and_eq")
+
+    if (
+        set_item is None
+        or get_item is None
+        or set_item_eq is None
+        or get_item_eq is None
+    ):
+        return True
+
+    class HashOnceKey(object):
+        def __init__(self):
+            self.calls = 0
+
+        def __hash__(self):
+            self.calls += 1
+
+            if self.calls > 1:
+                raise RuntimeError("key hashed again")
+
+            return 12345
+
+        def __eq__(self, other):
+            return self is other
+
+    key = HashOnceKey()
+    expected_hash = hash(key)
+    candidate = {}
+    set_item(candidate, key, expected_hash, "value")
+
+    if key.calls != 1:
+        sys.stderr.write("KNOWN HASH SET HASHED AGAIN\n")
+        return False
+
+    if len(candidate) != 1 or list(candidate.values()) != ["value"]:
+        sys.stderr.write("KNOWN HASH SET MISMATCH\n")
+        return False
+
+    if get_item(candidate, key, expected_hash) != "value":
+        sys.stderr.write("KNOWN HASH GET MISMATCH\n")
+        return False
+
+    if key.calls != 1:
+        sys.stderr.write("KNOWN HASH GET HASHED AGAIN\n")
+        return False
+
+    class StableKey(object):
+        def __hash__(self):
+            return 7
+
+        def __eq__(self, other):
+            return self is other
+
+    key = StableKey()
+    candidate = {}
+    set_item(candidate, key, 123456, "value")
+
+    if get_item(candidate, key, 123456) != "value":
+        sys.stderr.write("KNOWN HASH SUPPLIED HASH NOT STORED\n")
+        return False
+
+    if get_item(candidate, key, hash(key)) is not None:
+        sys.stderr.write("KNOWN HASH LOOKUP USED OBJECT HASH\n")
+        return False
+
+    class EqualKey(object):
+        def __init__(self, value):
+            self.value = value
+
+        def __hash__(self):
+            return 42
+
+        def __eq__(self, other):
+            return isinstance(other, EqualKey) and self.value == other.value
+
+    key1 = EqualKey(1)
+    key2 = EqualKey(1)
+    candidate = {}
+    set_item_eq(candidate, key1, 42, "one")
+    set_item_eq(candidate, key2, 42, "two")
+
+    if len(candidate) != 2:
+        sys.stderr.write("CUSTOM EQUALITY SET MISMATCH\n")
+        return False
+
+    if (
+        get_item_eq(candidate, key1, 42) != "one"
+        or get_item_eq(candidate, key2, 42) != "two"
+    ):
+        sys.stderr.write("CUSTOM EQUALITY GET MISMATCH\n")
+        return False
+
+    set_item_eq(candidate, key1, 42, "one-new")
+
+    if len(candidate) != 2 or get_item_eq(candidate, key1, 42) != "one-new":
+        sys.stderr.write("CUSTOM EQUALITY REPLACE MISMATCH\n")
+        return False
+
+    keys = (
+        list(range(80))
+        + ["key%d" % i for i in range(40)]
+        + [(i, i + 1) for i in range(20)]
+    )
+    reference = {}
+    candidate = {}
+
+    if not compareStates(reference, candidate, 0):
+        return False
+
+    for step, key in enumerate(keys, 1):
+        key_hash = hash(key)
+        dict.__setitem__(reference, key, key)
+        set_item(candidate, key, key_hash, key)
+
+        if not compareStates(reference, candidate, step):
+            sys.stderr.write("KNOWN HASH SET STRUCTURE MISMATCH: %r\n" % (key,))
+            return False
+
+    # Forced-hash keys in a general keyed table must keep their supplied hash
+    # across resizes. A list is used here because it is unhashable, matching
+    # the list constants cache that relies on the supplied hash.
+    list_key = []
+    candidate = {}
+    set_item_eq(candidate, list_key, 424242, "list-value")
+
+    for i in range(200):
+        dict.__setitem__(candidate, "resize_%d" % i, i)
+
+    if (
+        len(candidate) != 201
+        or get_item_eq(candidate, list_key, 424242) != "list-value"
+    ):
+        sys.stderr.write("FORCED HASH RESIZE MISMATCH\n")
+        return False
+
+    return True
+
+
 def runMutationTest():
     source = {}
     key_a = MutatingKey(source, "a")
@@ -943,6 +1135,9 @@ def main():
         return 1
 
     if not runCCloneTest():
+        return 1
+
+    if not runCKnownHashTest():
         return 1
 
     sys.stdout.write(

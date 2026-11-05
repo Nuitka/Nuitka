@@ -114,7 +114,9 @@ def buildAndRun(python, keep, gil, tsan):
 
     config = findPythonConfig(python)
 
-    if config is None:
+    if config is None or getPythonVersion(python) < (3, 8):
+        # Python 3.7 config scripts do not support the --embed option, and a
+        # config script found on PATH may belong to a different installation.
         includes, ldflags = getSysconfigFlags(python)
     else:
         includes = getConfigFlags(config, "--includes")

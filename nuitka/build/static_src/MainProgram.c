@@ -252,7 +252,7 @@ static void restoreStandaloneEnvironment(void) {
 #endif
 
 extern void _initCompiledCellType();
-extern void _initCompiledGeneratorType();
+extern void _initCompiledGeneratorType(PyThreadState *tstate);
 extern void _initCompiledFunctionType();
 extern void _initCompiledMethodType();
 extern void _initCompiledFrameType();
@@ -1165,8 +1165,8 @@ static void setInputOutputHandles(PyThreadState *tstate) {
 #if defined(NUITKA_FORCED_STDOUT_PATH) || defined(NUITKA_FORCED_STDERR_PATH)
     PyObject *args = MAKE_DICT_EMPTY(tstate);
 
-    DICT_SET_ITEM(args, const_str_plain_encoding, Nuitka_String_FromString("utf-8"));
-    DICT_SET_ITEM(args, const_str_plain_line_buffering, Py_True);
+    DICT_SET_ITEM(tstate, args, const_str_plain_encoding, Nuitka_String_FromString("utf-8"));
+    DICT_SET_ITEM(tstate, args, const_str_plain_line_buffering, Py_True);
 
 #if defined(NUITKA_FORCED_STDOUT_PATH)
     NUITKA_PRINT_TRACE("setInputOutputHandles(): Forced stdout update.");
@@ -2108,7 +2108,7 @@ static int Nuitka_Main(int argc, native_command_line_argument_t **argv) {
     NUITKA_PRINT_TIMING("main(): Returned createMainModuleConstants().");
 
     NUITKA_PRINT_TRACE("main(): Calling _initBuiltinOriginalValues().");
-    _initBuiltinOriginalValues();
+    _initBuiltinOriginalValues(tstate);
 
     /* Revert the wrong "sys.flags" value, it's used by "site" on at least
      * Debian for Python 3.3, more uses may exist.
@@ -2131,7 +2131,7 @@ static int Nuitka_Main(int argc, native_command_line_argument_t **argv) {
 
     /* Initialize the compiled types of Nuitka. */
     _initCompiledCellType();
-    _initCompiledGeneratorType();
+    _initCompiledGeneratorType(tstate);
     _initCompiledFunctionType();
     _initCompiledMethodType();
     _initCompiledFrameType();
@@ -2469,7 +2469,7 @@ static int Nuitka_Main(int argc, native_command_line_argument_t **argv) {
             }
         }
 #endif
-        DICT_REMOVE_ITEM_STRING(Nuitka_GetSysModules(), NUITKA_MAIN_MODULE_NAME);
+        DICT_REMOVE_ITEM_STRING(tstate, Nuitka_GetSysModules(tstate), NUITKA_MAIN_MODULE_NAME);
         DROP_ERROR_OCCURRED(tstate);
 
 #if _NUITKA_PLUGIN_WINDOWS_SERVICE_ENABLED

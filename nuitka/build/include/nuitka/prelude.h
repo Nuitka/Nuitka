@@ -464,7 +464,7 @@ static inline PyObject *_Py_XNewRef(PyObject *obj) {
 
 // Forward declaration for the canonical dictionary insertion helper, used by
 // exception handling before the full dictionary helpers are available.
-extern bool DICT_SET_ITEM(PyObject *dict, PyObject *key, PyObject *value);
+extern bool DICT_SET_ITEM(PyThreadState *tstate, PyObject *dict, PyObject *key, PyObject *value);
 
 #include "nuitka/exceptions.h"
 

@@ -108,7 +108,7 @@ static PyObject *_Nuitka_FrameLocalsProxy_to_dict(Nuitka_FrameLocalsProxyObject 
             }
             if (value != NULL) {
                 PyObject *name = *var_names;
-                if (DICT_SET_ITEM(result, name, value) == false) {
+                if (DICT_SET_ITEM(tstate, result, name, value) == false) {
                     Py_DECREF(result);
                     return NULL;
                 }
@@ -395,7 +395,7 @@ static int _Nuitka_FrameLocalsProxy_ass_subscript(PyObject *self, PyObject *key,
             SET_CURRENT_EXCEPTION_KEY_ERROR(tstate, key);
             return -1;
         }
-        return DICT_REMOVE_ITEM(frame->m_frame.f_extra_locals, key) ? 0 : -1;
+        return DICT_REMOVE_ITEM(tstate, frame->m_frame.f_extra_locals, key) ? 0 : -1;
     }
     if (frame->m_frame.f_extra_locals == NULL) {
         frame->m_frame.f_extra_locals = MAKE_DICT_EMPTY(tstate);
@@ -403,7 +403,7 @@ static int _Nuitka_FrameLocalsProxy_ass_subscript(PyObject *self, PyObject *key,
             return -1;
         }
     }
-    return DICT_SET_ITEM(frame->m_frame.f_extra_locals, key, value) ? 0 : -1;
+    return DICT_SET_ITEM(tstate, frame->m_frame.f_extra_locals, key, value) ? 0 : -1;
 }
 
 static int _Nuitka_FrameLocalsProxy_contains(PyObject *self, PyObject *key) {

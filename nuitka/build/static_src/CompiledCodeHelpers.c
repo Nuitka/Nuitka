@@ -817,12 +817,12 @@ bool PRINT_ITEM_TO(PyObject *file, PyObject *obj) {
 
     // TODO: Have a helper that creates a dictionary for PyObject **
     PyObject *print_kw = MAKE_DICT_EMPTY(tstate);
-    DICT_SET_ITEM(print_kw, const_str_plain_end, const_str_empty);
+    DICT_SET_ITEM(tstate, print_kw, const_str_plain_end, const_str_empty);
 
     if (file == NULL) {
-        DICT_SET_ITEM(print_kw, const_str_plain_file, GET_STDOUT());
+        DICT_SET_ITEM(tstate, print_kw, const_str_plain_file, GET_STDOUT());
     } else {
-        DICT_SET_ITEM(print_kw, const_str_plain_file, file);
+        DICT_SET_ITEM(tstate, print_kw, const_str_plain_file, file);
     }
 
     PyObject *print_args = MAKE_TUPLE1(tstate, obj);
@@ -1160,6 +1160,8 @@ static bool set_name(PyClassObject *class_object, PyObject *value) {
 }
 
 static int nuitka_class_setattr(PyObject *self, PyObject *attr_name, PyObject *value) {
+    PyThreadState *tstate = PyThreadState_GET();
+
     PyClassObject *class_object = (PyClassObject *)self;
     char const *sattr_name = PyString_AsString(attr_name);
 
@@ -1196,16 +1198,18 @@ static int nuitka_class_setattr(PyObject *self, PyObject *attr_name, PyObject *v
     }
 
     if (value == NULL) {
-        int status = DICT_REMOVE_ITEM(class_object->cl_dict, attr_name);
+        if (DICT_REMOVE_ITEM(tstate, class_object->cl_dict, attr_name) == false) {
+            if (CHECK_AND_CLEAR_KEY_ERROR_OCCURRED(tstate)) {
+                PyErr_Format(PyExc_AttributeError, "class %s has no attribute '%s'",
+                             PyString_AS_STRING(class_object->cl_name), sattr_name);
+            }
 
-        if (status < 0) {
-            PyErr_Format(PyExc_AttributeError, "class %s has no attribute '%s'",
-                         PyString_AS_STRING(class_object->cl_name), sattr_name);
+            return -1;
         }
 
-        return status;
+        return 0;
     } else {
-        return DICT_SET_ITEM(class_object->cl_dict, attr_name, value) ? 0 : -1;
+        return DICT_SET_ITEM(tstate, class_object->cl_dict, attr_name, value) ? 0 : -1;
     }
 }
 
@@ -2104,8 +2108,13 @@ PyObject *getStandaloneSysExecutablePath(PyObject *basename) {
 #endif
 
 static void _initDeepCopy(PyThreadState *tstate);
+static void initConstantsCaches(PyThreadState *tstate);
 
 void _initBuiltinModule(PyThreadState *tstate) {
+    // Initialize the empty dict constant and constant caches before the first
+    // Nuitka dictionary helper use, e.g. by deep copy dispatch setup.
+    initConstantsCaches(tstate);
+
     NUITKA_PRINT_TRACE("main(): Calling _initBuiltinTypeMethods().");
     _initBuiltinTypeMethods();
 
@@ -2140,17 +2149,18 @@ void _initBuiltinModule(PyThreadState *tstate) {
         PyObject *nuitka_binary_dir = getDllDirectoryObject();
 #endif
         NUITKA_MAY_BE_UNUSED bool res =
-            DICT_SET_ITEM_STRING((PyObject *)dict_builtin, "__nuitka_binary_dir", nuitka_binary_dir);
+            DICT_SET_ITEM_STRING(tstate, (PyObject *)dict_builtin, "__nuitka_binary_dir", nuitka_binary_dir);
         assert(res != false);
 
 #if _NUITKA_EXE_MODE || _NUITKA_ONEFILE_DLL_MODE
 #if _NUITKA_ONEFILE_DLL_MODE
         // In onefile DLL mode, the outer EXE is the one to use for child
         // process spawning, not the loaded DLL.
-        res = DICT_SET_ITEM_STRING((PyObject *)dict_builtin, "__nuitka_binary_exe",
+        res = DICT_SET_ITEM_STRING(tstate, (PyObject *)dict_builtin, "__nuitka_binary_exe",
                                    Nuitka_String_FromFilename(getBinaryPath()));
 #else
-        res = DICT_SET_ITEM_STRING((PyObject *)dict_builtin, "__nuitka_binary_exe", getBinaryFilenameObject(true));
+        res = DICT_SET_ITEM_STRING(tstate, (PyObject *)dict_builtin, "__nuitka_binary_exe",
+                                   getBinaryFilenameObject(true));
 #endif
         assert(res != false);
 #endif
@@ -2211,7 +2221,7 @@ NUITKA_DEFINE_BUILTIN(long)
 NUITKA_DEFINE_BUILTIN(range);
 #endif
 
-void _initBuiltinOriginalValues(void) {
+void _initBuiltinOriginalValues(PyThreadState *tstate) {
     NUITKA_ASSIGN_BUILTIN(type);
     NUITKA_ASSIGN_BUILTIN(len);
     NUITKA_ASSIGN_BUILTIN(range);
@@ -2242,7 +2252,7 @@ void _initSlotIterNext(void) {
 
     // Note: Not using MAKE_DICT_EMPTY on purpose, this is called early on.
     PyObject *kw_args = PyDict_New();
-    DICT_SET_ITEM(kw_args, (PyObject *)const_str_plain___iter__, Py_True);
+    DICT_SET_ITEM(tstate, kw_args, (PyObject *)const_str_plain___iter__, Py_True);
 
     PyObject *c =
         PyObject_CallFunctionObjArgs((PyObject *)&PyType_Type, const_str_plain___iter__, pos_args, kw_args, NULL);

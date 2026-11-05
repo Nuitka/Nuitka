@@ -33,10 +33,10 @@ NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_BUILTIN(PyObject *name) {
 }
 
 // Returns a reference.
-NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_BUILTIN_STR(char const *name) {
+NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_BUILTIN_STR(PyThreadState *tstate, char const *name) {
     CHECK_OBJECT(dict_builtin);
 
-    PyObject *result = DICT_GET_ITEM_STRING((PyObject *)dict_builtin, name);
+    PyObject *result = DICT_GET_ITEM_STRING(tstate, (PyObject *)dict_builtin, name);
 
     // This is assumed to not fail, abort if it does.
     if (unlikely(result == NULL)) {
@@ -56,7 +56,7 @@ extern void _initBuiltinModule(PyThreadState *tstate);
 #define NUITKA_DEFINE_BUILTIN(name) PyObject *_python_original_builtin_value_##name = NULL;
 #define NUITKA_ASSIGN_BUILTIN(name)                                                                                    \
     if (_python_original_builtin_value_##name == NULL)                                                                 \
-        _python_original_builtin_value_##name = LOOKUP_BUILTIN_STR(#name);
+        _python_original_builtin_value_##name = LOOKUP_BUILTIN_STR(tstate, #name);
 #define NUITKA_UPDATE_BUILTIN(name, value) _python_original_builtin_value_##name = value;
 #define NUITKA_ACCESS_BUILTIN(name) (_python_original_builtin_value_##name)
 
@@ -72,7 +72,7 @@ NUITKA_DECLARE_BUILTIN(iter);
 NUITKA_DECLARE_BUILTIN(long);
 #endif
 
-extern void _initBuiltinOriginalValues(void);
+extern void _initBuiltinOriginalValues(PyThreadState *tstate);
 #endif
 
 // Avoid the casts needed for older Python, as it's easily forgotten and

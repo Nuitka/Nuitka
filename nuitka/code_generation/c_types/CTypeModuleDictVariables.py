@@ -29,7 +29,12 @@ class CTypeModuleDictVariable(CTypeBase):
             emit(
                 """\
 if (%(orig_name)s != %(tmp_name)s) {
-    UPDATE_STRING_DICT_INPLACE(moduledict_%(module_identifier)s, (Nuitka_StringObject *)%(variable_name_str)s, %(tmp_name)s);
+    UPDATE_STRING_DICT_INPLACE(
+        tstate,
+        moduledict_%(module_identifier)s,
+        (Nuitka_StringObject *)%(variable_name_str)s,
+        %(tmp_name)s
+    );
 } else {
     Py_DECREF(%(tmp_name)s);
 }"""
@@ -45,7 +50,7 @@ if (%(orig_name)s != %(tmp_name)s) {
 
         else:
             emit(
-                "UPDATE_STRING_DICT%s(moduledict_%s, (Nuitka_StringObject *)%s, %s);"
+                "UPDATE_STRING_DICT%s(tstate, moduledict_%s, (Nuitka_StringObject *)%s, %s);"
                 % (
                     ref_count,
                     context.getModuleCodeName(),

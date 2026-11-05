@@ -224,7 +224,7 @@ def getDictionaryCreationCode(to_name, pairs, emit, context):
             res_name = context.getBoolResName()
 
             emit(
-                "%s = DICT_SET_ITEM(%s, %s, %s);"
+                "%s = DICT_SET_ITEM(tstate, %s, %s, %s);"
                 % (res_name, to_name, dict_key_name, dict_value_name)
             )
 
@@ -564,7 +564,7 @@ def generateDictOperationUpdate3Code(to_name, expression, emit, context):
         )
 
         emit(
-            "%s = DICT_SET_ITEM(%s, %s, %s);"
+            "%s = DICT_SET_ITEM(tstate, %s, %s, %s);"
             % (res_name, dict_name, dict_key_name, dict_value_name)
         )
 
@@ -854,7 +854,7 @@ def generateDictOperationSetCode(statement, emit, context):
 
     emit("""\
 assert(PyDict_CheckExact(%s));
-%s = DICT_SET_ITEM(%s, %s, %s);
+%s = DICT_SET_ITEM(tstate, %s, %s, %s);
 """ % (dict_arg_name, res_name, dict_arg_name, key_arg_name, value_arg_name))
 
     getErrorExitBoolCode(
@@ -897,7 +897,7 @@ def generateDictOperationSetCodeKeyValue(statement, emit, context):
 
     emit("""\
 assert(PyDict_CheckExact(%s));
-%s = DICT_SET_ITEM(%s, %s, %s);
+%s = DICT_SET_ITEM(tstate, %s, %s, %s);
 """ % (dict_arg_name, res_name, dict_arg_name, key_arg_name, value_arg_name))
 
     getErrorExitBoolCode(
@@ -933,7 +933,10 @@ def generateDictOperationRemoveCode(statement, emit, context):
     ):
         res_name = context.getBoolResName()
 
-        emit("%s = DICT_REMOVE_ITEM(%s, %s);" % (res_name, dict_arg_name, key_arg_name))
+        emit(
+            "%s = DICT_REMOVE_ITEM(tstate, %s, %s);"
+            % (res_name, dict_arg_name, key_arg_name)
+        )
 
         getErrorExitBoolCode(
             condition="%s == false" % res_name,

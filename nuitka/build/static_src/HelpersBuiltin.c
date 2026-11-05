@@ -41,7 +41,7 @@ PyObject *CALL_BUILTIN_KW_ARGS(PyThreadState *tstate, PyObject *callable, PyObje
                 kw_dict = MAKE_DICT_EMPTY(tstate);
             }
 
-            NUITKA_MAY_BE_UNUSED bool res = DICT_SET_ITEM_STRING(kw_dict, arg_names[i], args[i]);
+            NUITKA_MAY_BE_UNUSED bool res = DICT_SET_ITEM_STRING(tstate, kw_dict, arg_names[i], args[i]);
             assert(res != false);
         }
 
@@ -208,7 +208,8 @@ PyObject *EVAL_CODE(PyThreadState *tstate, PyObject *code, PyObject *globals, Py
         const int res = DICT_HAS_ITEM(tstate, globals, const_str_plain___builtins__);
 
         if (res == 0) {
-            if (DICT_SET_ITEM(globals, (PyObject *)const_str_plain___builtins__, (PyObject *)builtin_module) == false) {
+            if (DICT_SET_ITEM(tstate, globals, (PyObject *)const_str_plain___builtins__, (PyObject *)builtin_module) ==
+                false) {
                 // Not really allowed to happen, so far this was seen only with
                 // C compilers getting the value of "res" wrong.
                 assert(false);
@@ -840,7 +841,7 @@ PyObject *BUILTIN_SENTINEL(PyThreadState *tstate, PyObject *name, PyObject *repr
 
 NUITKA_DEFINE_BUILTIN(super);
 
-static PyObject *Nuitka_GetSuperValue(PyDictObject *module_dict) {
+static PyObject *Nuitka_GetSuperValue(PyThreadState *tstate, PyDictObject *module_dict) {
 #ifdef _NUITKA_FULL_COMPAT
     // Only full compat mode observes a dynamically shadowed 'super'. Static
     // shadowing is already handled by variable resolution, and regular code
@@ -863,7 +864,7 @@ PyObject *BUILTIN_SUPER2(PyThreadState *tstate, PyDictObject *module_dict, PyObj
     CHECK_OBJECT(type);
     CHECK_OBJECT_X(obj);
 
-    PyObject *super_value = Nuitka_GetSuperValue(module_dict);
+    PyObject *super_value = Nuitka_GetSuperValue(tstate, module_dict);
 
     if (obj != NULL) {
         PyObject *args[] = {type, obj};
@@ -882,7 +883,7 @@ PyObject *BUILTIN_SUPER0(PyThreadState *tstate, PyDictObject *module_dict, PyObj
         obj = NULL;
     }
 
-    PyObject *super_value = Nuitka_GetSuperValue(module_dict);
+    PyObject *super_value = Nuitka_GetSuperValue(tstate, module_dict);
 
 #ifdef _NUITKA_FULL_COMPAT
     // CPython only supplies the implicit arguments to the actual 'super'

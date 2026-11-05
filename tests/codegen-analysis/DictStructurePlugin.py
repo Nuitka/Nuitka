@@ -18,7 +18,7 @@ static PyObject *nuitka_test_dict_set_item(PyObject *self, PyObject *args) {
         return NULL;
     }
 
-    if (!DICT_SET_ITEM(dict, key, value)) {
+    if (!DICT_SET_ITEM(PyThreadState_GET(), dict, key, value)) {
         return NULL;
     }
 
@@ -33,11 +33,102 @@ static PyObject *nuitka_test_dict_remove_item(PyObject *self, PyObject *args) {
         return NULL;
     }
 
-    if (!DICT_REMOVE_ITEM(dict, key)) {
+    if (!DICT_REMOVE_ITEM(PyThreadState_GET(), dict, key)) {
         return NULL;
     }
 
     Py_RETURN_NONE;
+}
+
+static PyObject *nuitka_test_dict_set_item_with_hash(PyObject *self, PyObject *args) {
+    PyObject *dict;
+    PyObject *key;
+    PyObject *value;
+    Py_ssize_t hash;
+
+    if (!PyArg_ParseTuple(args, "OOnO:nuitka_test_dict_set_item_with_hash", &dict, &key, &hash, &value)) {
+        return NULL;
+    }
+
+    if (!DICT_SET_ITEM_WITH_HASH(PyThreadState_GET(), dict, key, (Py_hash_t)hash, value)) {
+        return NULL;
+    }
+
+    Py_RETURN_NONE;
+}
+
+static PyObject *nuitka_test_dict_get_item_with_hash(PyObject *self, PyObject *args) {
+    PyObject *dict;
+    PyObject *key;
+    Py_ssize_t hash;
+
+    if (!PyArg_ParseTuple(args, "OOn:nuitka_test_dict_get_item_with_hash", &dict, &key, &hash)) {
+        return NULL;
+    }
+
+    PyObject *value = DICT_GET_ITEM0_WITH_HASH(PyThreadState_GET(), dict, key, (Py_hash_t)hash);
+
+    if (value == NULL) {
+        if (PyErr_Occurred()) {
+            return NULL;
+        }
+
+        Py_RETURN_NONE;
+    }
+
+    Py_INCREF(value);
+    return value;
+}
+
+static PyObject *nuitka_test_dict_pointer_equal(PyObject *object1, PyObject *object2, int op) {
+    assert(op == Py_EQ);
+
+    PyObject *result = object1 == object2 ? Py_True : Py_False;
+    Py_INCREF_IMMORTAL(result);
+
+    return result;
+}
+
+static PyObject *nuitka_test_dict_set_item_with_hash_and_eq(PyObject *self, PyObject *args) {
+    PyObject *dict;
+    PyObject *key;
+    PyObject *value;
+    Py_ssize_t hash;
+
+    if (!PyArg_ParseTuple(args, "OOnO:nuitka_test_dict_set_item_with_hash_and_eq", &dict, &key, &hash, &value)) {
+        return NULL;
+    }
+
+    if (!DICT_SET_ITEM_WITH_HASH_AND_EQ(PyThreadState_GET(), dict, key, (Py_hash_t)hash,
+                                               nuitka_test_dict_pointer_equal, value)) {
+        return NULL;
+    }
+
+    Py_RETURN_NONE;
+}
+
+static PyObject *nuitka_test_dict_get_item_with_hash_and_eq(PyObject *self, PyObject *args) {
+    PyObject *dict;
+    PyObject *key;
+    Py_ssize_t hash;
+
+    if (!PyArg_ParseTuple(args, "OOn:nuitka_test_dict_get_item_with_hash_and_eq", &dict, &key, &hash)) {
+        return NULL;
+    }
+
+    PyObject *value = DICT_GET_ITEM0_WITH_HASH_AND_EQ(PyThreadState_GET(), dict, key, (Py_hash_t)hash,
+                                                      nuitka_test_dict_pointer_equal);
+
+    if (value == NULL) {
+        if (PyErr_Occurred()) {
+            return NULL;
+        }
+
+        Py_RETURN_NONE;
+    }
+
+    Py_INCREF(value);
+    return value;
 }
 
 static PyObject *nuitka_test_dict_update_from(PyObject *self, PyObject *args) {
@@ -73,6 +164,12 @@ static PyObject *nuitka_test_dict_update_from_seq(PyObject *self, PyObject *args
 static PyMethodDef nuitka_test_dict_methods[] = {
     {"_nuitka_test_dict_set_item", (PyCFunction)nuitka_test_dict_set_item, METH_VARARGS, NULL},
     {"_nuitka_test_dict_remove_item", (PyCFunction)nuitka_test_dict_remove_item, METH_VARARGS, NULL},
+    {"_nuitka_test_dict_set_item_with_hash", (PyCFunction)nuitka_test_dict_set_item_with_hash, METH_VARARGS, NULL},
+    {"_nuitka_test_dict_get_item_with_hash", (PyCFunction)nuitka_test_dict_get_item_with_hash, METH_VARARGS, NULL},
+    {"_nuitka_test_dict_set_item_with_hash_and_eq", (PyCFunction)nuitka_test_dict_set_item_with_hash_and_eq,
+     METH_VARARGS, NULL},
+    {"_nuitka_test_dict_get_item_with_hash_and_eq", (PyCFunction)nuitka_test_dict_get_item_with_hash_and_eq,
+     METH_VARARGS, NULL},
     {"_nuitka_test_dict_update_from", (PyCFunction)nuitka_test_dict_update_from, METH_VARARGS, NULL},
     {"_nuitka_test_dict_update_from_seq", (PyCFunction)nuitka_test_dict_update_from_seq, METH_VARARGS, NULL},
     {NULL, NULL, 0, NULL}};

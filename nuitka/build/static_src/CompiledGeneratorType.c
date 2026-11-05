@@ -763,14 +763,14 @@ static PyObject *_Nuitka_Generator_send(PyThreadState *tstate, struct Nuitka_Gen
                 Py_XDECREF(old_tb);
 
                 if (old_type != saved_exception_type) {
-                    DICT_SET_ITEM(sys_dict, const_str_plain_exc_type, saved_exception_type);
+                    DICT_SET_ITEM(tstate, sys_dict, const_str_plain_exc_type, saved_exception_type);
                 }
                 if (saved_exception_value != old_value) {
-                    DICT_SET_ITEM(sys_dict, const_str_plain_exc_value,
+                    DICT_SET_ITEM(tstate, sys_dict, const_str_plain_exc_value,
                                   saved_exception_value ? saved_exception_value : Py_None);
                 }
                 if (saved_exception_traceback != old_tb) {
-                    DICT_SET_ITEM(sys_dict, const_str_plain_exc_traceback,
+                    DICT_SET_ITEM(tstate, sys_dict, const_str_plain_exc_traceback,
                                   saved_exception_traceback ? (PyObject *)saved_exception_traceback : Py_None);
                 }
             } else {
@@ -787,13 +787,13 @@ static PyObject *_Nuitka_Generator_send(PyThreadState *tstate, struct Nuitka_Gen
                 Py_XDECREF(old_tb);
 
                 if (old_type != Py_None) {
-                    DICT_SET_ITEM(sys_dict, const_str_plain_exc_type, Py_None);
+                    DICT_SET_ITEM(tstate, sys_dict, const_str_plain_exc_type, Py_None);
                 }
                 if (old_value != Py_None) {
-                    DICT_SET_ITEM(sys_dict, const_str_plain_exc_value, Py_None);
+                    DICT_SET_ITEM(tstate, sys_dict, const_str_plain_exc_value, Py_None);
                 }
                 if (old_tb != (PyTracebackObject *)Py_None) {
-                    DICT_SET_ITEM(sys_dict, const_str_plain_exc_traceback, Py_None);
+                    DICT_SET_ITEM(tstate, sys_dict, const_str_plain_exc_traceback, Py_None);
                 }
             }
 #endif
@@ -1865,7 +1865,7 @@ PyTypeObject Nuitka_Generator_Type = {
 #endif
 };
 
-void _initCompiledGeneratorType(void) {
+void _initCompiledGeneratorType(PyThreadState *tstate) {
     Nuitka_PyType_Ready(&Nuitka_Generator_Type, // type
                         &PyGen_Type,            // base
                         true,                   // generic_get_attr
@@ -1915,7 +1915,8 @@ void _initCompiledGeneratorType(void) {
     // "dir" and "hasattr", so remove it again, the slot itself is what the
     // "await" statement uses.
     if (Nuitka_Generator_Type.tp_as_async->am_await != NULL) {
-        NUITKA_MAY_BE_UNUSED bool res = DICT_REMOVE_ITEM(Nuitka_Generator_Type.tp_dict, const_str_plain___await__);
+        NUITKA_MAY_BE_UNUSED bool res =
+            DICT_REMOVE_ITEM(tstate, Nuitka_Generator_Type.tp_dict, const_str_plain___await__);
         assert(res);
     }
 

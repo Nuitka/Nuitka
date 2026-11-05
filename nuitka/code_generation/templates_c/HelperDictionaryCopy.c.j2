@@ -26,7 +26,7 @@ else
             PyObject *value = entry->me_value;
             {{ per_value_code }}
 
-            NUITKA_MAY_BE_UNUSED bool res = DICT_SET_ITEM({{ result }}, key, value);
+            NUITKA_MAY_BE_UNUSED bool res = DICT_SET_ITEM(tstate, {{ result }}, key, value);
             assert(res != false);
 
 {% if value_ref == 1 %}
@@ -238,7 +238,7 @@ else
 
                 {{ per_value_code }}
 
-                NUITKA_MAY_BE_UNUSED bool res = DICT_SET_ITEM({{ result }}, key, value);
+                NUITKA_MAY_BE_UNUSED bool res = DICT_SET_ITEM(tstate, {{ result }}, key, value);
                 assert(res != false);
 
 {% if value_ref == 1 %}
@@ -260,7 +260,7 @@ else
 
             {{ per_value_code }}
 
-            NUITKA_MAY_BE_UNUSED bool res = DICT_SET_ITEM({{ result }}, key, value);
+            NUITKA_MAY_BE_UNUSED bool res = DICT_SET_ITEM(tstate, {{ result }}, key, value);
             assert(res != false);
 
 {% if value_ref == 1 %}
@@ -306,7 +306,7 @@ PyObject *DEEP_COPY_DICT(PyThreadState *tstate, PyObject *dict_value) {
         PyObject *dict_value_copy = DEEP_COPY(tstate, value);
 
         if (dict_value_copy != value) {
-            NUITKA_MAY_BE_UNUSED bool res = DICT_SET_ITEM(result, key, dict_value_copy);
+            NUITKA_MAY_BE_UNUSED bool res = DICT_SET_ITEM(tstate, result, key, dict_value_copy);
             assert(res != false);
         }
 

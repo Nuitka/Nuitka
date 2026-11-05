@@ -897,7 +897,7 @@ static bool SET_INSTANCE(PyThreadState *tstate, PyObject *target, PyObject *attr
 
         return true;
     } else {
-        bool status = DICT_SET_ITEM((PyObject *)target_instance->in_dict, attr_name, value);
+        bool status = DICT_SET_ITEM(tstate, (PyObject *)target_instance->in_dict, attr_name, value);
 
         if (unlikely(status == false)) {
             return false;
@@ -991,7 +991,7 @@ static bool SET_ATTRIBUTE_GENERIC(PyThreadState *tstate, PyTypeObject *type, PyO
         // TODO: If this is an exact dict, we don't have to hold a reference, is it?
         Py_INCREF(dict);
 
-        bool res = DICT_SET_ITEM(dict, attr_name, value);
+        bool res = DICT_SET_ITEM(tstate, dict, attr_name, value);
 
         Py_DECREF(dict);
         Py_XDECREF(descr);

@@ -11,7 +11,7 @@
 // Helpers for making source available at run-time for JIT systems
 // outside of Nuitka that want it.
 
-extern void SET_UNCOMPILED_FUNCTION_SOURCE_DICT(PyObject *name, PyObject *source);
+extern void SET_UNCOMPILED_FUNCTION_SOURCE_DICT(PyThreadState *tstate, PyObject *name, PyObject *source);
 
 #endif
 
