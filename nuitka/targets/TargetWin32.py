@@ -88,7 +88,7 @@ nuitka.utils.StaticLibraries.getSystemStaticLibPythonPath(
 
     def couldUseStaticLibPython(self, python_debug, dll_mode):
         """Return whether the Windows Python can use a static libpython."""
-        return self._getTargetPython().evaluate(
+        result = self._getTargetPython().evaluate(
             expression="""\
 nuitka.utils.StaticLibraries.couldUseStaticLibPython(
     python_debug=%r,
@@ -96,6 +96,11 @@ nuitka.utils.StaticLibraries.couldUseStaticLibPython(
 )""" % (python_debug, dll_mode),
             setup_code="import nuitka.utils.StaticLibraries",
         )
+
+        assert isinstance(result, tuple), result
+        assert len(result) == 2, result
+
+        return result
 
     def translateHostPathToTarget(self, host_path):
         """Translate a host path to a path usable by the target Python."""

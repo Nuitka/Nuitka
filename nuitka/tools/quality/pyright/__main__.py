@@ -140,7 +140,7 @@ Use basedpyright instead of pyright. Default is %default.""",
 def main():
     # pylint: disable=too-many-branches
 
-    setup(go_main=False)
+    setup(silent=True, go_main=False)
 
     addPYTHONPATH(getHomePath())
     setupPATH()
