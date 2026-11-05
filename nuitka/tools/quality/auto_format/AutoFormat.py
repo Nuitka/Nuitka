@@ -69,7 +69,7 @@ def _shouldNotFormatCode(filename, effective_filename):
         return True
     if "tests" in parts and "scratch" in parts:
         return True
-    if "tests" in parts and "nuitka_protected_strings" in parts:
+    if "tests" in parts and "nuitka_protected_strings_test" in parts:
         return True
     if ".dist/" in effective_filename:
         return True
