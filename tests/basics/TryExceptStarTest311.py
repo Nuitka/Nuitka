@@ -1,6 +1,9 @@
 #     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
+import sys
+
+
 def test_raise_and_catch_no_assign():
     try:
         raise ExceptionGroup("test", [ValueError("1")])
@@ -135,7 +138,11 @@ def test_reraise_leaf_exception():
         print(repr(outer.__context__))
 
 
-test_reraise_leaf_exception()
+# Before Python 3.11.4, a single exception raised from an "except*" clause
+# was wrapped in an exception group, see CPython issue #103590. Nuitka
+# implements the fixed behavior for all versions.
+if sys.version_info >= (3, 11, 4):
+    test_reraise_leaf_exception()
 
 
 def test_raise_new_group_with_same_leaf():
@@ -149,7 +156,8 @@ def test_raise_new_group_with_same_leaf():
         print(repr(outer.__context__))
 
 
-test_raise_new_group_with_same_leaf()
+if sys.version_info >= (3, 11, 4):
+    test_raise_new_group_with_same_leaf()
 
 
 def test_nested_scopes_in_handler():
