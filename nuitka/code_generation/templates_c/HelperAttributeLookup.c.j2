@@ -1,0 +1,325 @@
+{% macro lookup_result(result_kind) %}
+    CHECK_OBJECT(result);
+{% if result_kind != "object" %}
+    Py_DECREF(result);
+{% endif %}
+    return {{ "result" if result_kind == "object" else "true" if result_kind == "bool" else "1" }};
+{%- endmacro %}
+
+{% macro missing_attribute(attr_name, slot_name, result_kind) %}
+{% if result_kind == "object" %}
+{% if slot_name %}
+    PyErr_Format(PyExc_AttributeError, "'%s' object has no attribute '{{ slot_name }}'", type->tp_name);
+{% else %}
+#if PYTHON_VERSION < 0x300
+    PyErr_Format(PyExc_AttributeError, "'%s' object has no attribute '%s'", type->tp_name,
+                 PyString_AS_STRING({{ attr_name }}));
+#else
+    PyErr_Format(PyExc_AttributeError, "'%s' object has no attribute '%U'", type->tp_name, {{ attr_name }});
+#endif
+{% endif %}
+{% endif %}
+    return {{ "NULL" if result_kind == "object" else "false" if result_kind == "bool" else "0" }};
+{%- endmacro %}
+
+{% macro attribute_lookup_core(attr_name, slot_name, result_kind) %}
+    PyTypeObject *type = Py_TYPE(source);
+
+    if (hasTypeGenericGetAttr(type)) {
+        if (unlikely(type->tp_dict == NULL)) {
+            if (unlikely(PyType_Ready(type) < 0)) {
+{% if result_kind == "bool" %}
+                CLEAR_ERROR_OCCURRED(tstate);
+{% endif %}
+                return {{ "NULL" if result_kind == "object" else "false" if result_kind == "bool" else "-1" }};
+            }
+        }
+
+        PyObject *descr = Nuitka_TypeLookup(type, {{ attr_name }});
+        descrgetfunc func = NULL;
+
+        if (descr != NULL) {
+            // Hold a refcount, Nuitka_TypeLookup does not give any.
+            Py_INCREF(descr);
+
+            if (NuitkaType_HasFeatureClass(Py_TYPE(descr))) {
+                func = Py_TYPE(descr)->tp_descr_get;
+
+                if (func != NULL && Nuitka_Descr_IsData(descr)) {
+                    PyObject *result = func(descr, source, (PyObject *)type);
+                    Py_DECREF(descr);
+
+{% if result_kind == "object" %}
+                    return result;
+{% else %}
+                    if (result) {
+                        {{ lookup_result(result_kind) }}
+                    }
+
+                    DROP_ERROR_OCCURRED(tstate);
+                    return {{ "false" if result_kind == "bool" else "0" }};
+{% endif %}
+                }
+            }
+        }
+
+{% if result_kind == "object" and not slot_name %}
+        PyObject *dict = NULL;
+
+// TODO: This is what Python 3.11 requires us to add.
+#if PYTHON_VERSION >= 0x3b0 && 0
+        if ((type->tp_flags & Py_TPFLAGS_MANAGED_DICT) && *_PyObject_ValuesPointer(source)) {
+            PyObject **dict_pointer;
+
+            PyDictValues **values_ptr = _PyObject_ValuesPointer(source);
+
+            // TODO: Seems we would benefit by knowing this on the outside.
+            if (PyUnicode_CheckExact({{ attr_name }})) {
+                assert(*_PyObject_DictPointer(source) == NULL);
+                PyObject *result = _PyObject_GetInstanceAttribute(source, *values_ptr, {{ attr_name }});
+                if (result != NULL) {
+                    return result;
+                }
+            } else {
+                dict_pointer = _PyObject_DictPointer(source);
+                assert(dict_pointer != NULL && *dict_pointer == NULL);
+
+                *dict_pointer = dict = _PyObject_MakeDictFromInstanceAttributes(source, *values_ptr);
+                if (unlikely(dict == NULL)) {
+                    return NULL;
+                }
+                *values_ptr = NULL;
+            }
+        }
+#endif
+
+        if (dict == NULL) {
+{% endif %}
+            Py_ssize_t dict_offset = type->tp_dictoffset;
+{% if result_kind != "object" or slot_name %}
+            PyObject *dict = NULL;
+{% endif %}
+
+            if (dict_offset != 0) {
+                // Negative dictionary offsets have special meaning.
+                if (dict_offset < 0) {
+                    Py_ssize_t tsize;
+                    size_t size;
+
+                    tsize = ((PyVarObject *)source)->ob_size;
+                    if (tsize < 0) {
+                        tsize = -tsize;
+                    }
+                    size = _PyObject_VAR_SIZE(type, tsize);
+
+                    dict_offset += (long)size;
+                }
+
+                PyObject **dict_pointer = (PyObject **)((char *)source + dict_offset);
+                dict = *dict_pointer;
+            }
+{% if result_kind == "object" and not slot_name %}
+        }
+{% endif %}
+
+        if (dict != NULL) {
+            CHECK_OBJECT(dict);
+
+{% if not slot_name %}
+            // TODO: If this is an exact dict, we don't have to hold a reference, is it?
+{% endif %}
+            Py_INCREF(dict);
+
+            PyObject *result = DICT_GET_ITEM1(tstate, dict, {{ attr_name }});
+{% if result_kind == "bool" %}
+            DROP_ERROR_OCCURRED(tstate);
+{% elif result_kind == "int" %}
+
+            if (CHECK_AND_CLEAR_ATTRIBUTE_ERROR_OCCURRED(tstate) == false) {
+                return -1;
+            }
+{% endif %}
+
+{% if not slot_name %}
+            Py_DECREF(dict);
+{% endif %}
+
+            if (result != NULL) {
+                Py_XDECREF(descr);
+{% if slot_name %}
+                Py_DECREF(dict);
+{% endif %}
+
+                {{ lookup_result(result_kind) }}
+            }
+{% if slot_name %}
+
+            Py_DECREF(dict);
+{% endif %}
+        }
+
+        if (func != NULL) {
+            PyObject *result = func(descr, source, (PyObject *)type);
+            Py_DECREF(descr);
+
+{% if result_kind == "object" %}
+            CHECK_OBJECT_X(result);
+            return result;
+{% else %}
+            if (result != NULL) {
+                {{ lookup_result(result_kind) }}
+            }
+
+            if (CHECK_AND_CLEAR_ATTRIBUTE_ERROR_OCCURRED(tstate) == false) {
+                return {{ "false" if result_kind == "bool" else "-1" }};
+            }
+            return {{ "true" if result_kind == "bool" else "0" }};
+{% endif %}
+        }
+
+        if (descr != NULL) {
+            CHECK_OBJECT(descr);
+{% if result_kind == "object" %}
+            return descr;
+{% else %}
+
+            Py_DECREF(descr);
+            return {{ "true" if result_kind == "bool" else "1" }};
+{% endif %}
+        }
+
+        {{ missing_attribute(attr_name, slot_name, result_kind) }}
+    }
+#if PYTHON_VERSION < 0x300
+    else if (type->tp_getattro == PyInstance_Type.tp_getattro{% if not slot_name %} && Nuitka_String_CheckExact({{ attr_name }}){% endif %}) {
+{% if slot_name %}
+        PyInstanceObject *source_instance = (PyInstanceObject *)source;
+        PyObject *result = {{ "source_instance->in_dict" if slot_name == "__dict__" else "(PyObject *)source_instance->in_class" }};
+
+        Py_INCREF(result);
+        return result;
+{% else %}
+        PyObject *result = LOOKUP_INSTANCE(tstate, source, {{ attr_name }});
+{% if result_kind == "object" %}
+        return result;
+{% else %}
+
+        if (result == NULL) {
+{% if result_kind == "bool" %}
+            CLEAR_ERROR_OCCURRED(tstate);
+{% endif %}
+            return {{ "false" if result_kind == "bool" else "-1" }};
+        }
+
+        CHECK_OBJECT(result);
+
+        Py_DECREF(result);
+        return true;
+{% endif %}
+{% endif %}
+    }
+#endif
+    else if (type->tp_getattro != NULL) {
+        PyObject *result = (*type->tp_getattro)(source, {{ attr_name }});
+
+{% if result_kind == "object" %}
+        if (unlikely(result == NULL)) {
+            return NULL;
+{% else %}
+        if (result == NULL) {
+{% if result_kind == "bool" %}
+            DROP_ERROR_OCCURRED(tstate);
+
+            return false;
+{% else %}
+            if (CHECK_AND_CLEAR_ATTRIBUTE_ERROR_OCCURRED(tstate) == false) {
+                return -1;
+            }
+
+            return 0;
+{% endif %}
+{% endif %}
+        }
+
+        CHECK_OBJECT(result);
+{% if result_kind == "object" %}
+        return result;
+{% else %}
+        Py_DECREF(result);
+        return true;
+{% endif %}
+    } else if (type->tp_getattr != NULL) {
+        PyObject *result = (*type->tp_getattr)(source, (char *){{ '"' + slot_name + '"' if slot_name else 'Nuitka_String_AsString_Unchecked(' + attr_name + ')' }});
+{% if result_kind == "object" %}
+        return result;
+{% else %}
+
+        if (result == NULL) {
+{% if result_kind == "bool" %}
+            CLEAR_ERROR_OCCURRED(tstate);
+
+            return false;
+{% else %}
+            if (CHECK_AND_CLEAR_ATTRIBUTE_ERROR_OCCURRED(tstate) == false) {
+                return -1;
+            }
+
+            return 0;
+{% endif %}
+        }
+
+        {{ lookup_result(result_kind) }}
+{% endif %}
+    } else {
+{% if result_kind == "object" %}
+{% if slot_name %}
+        PyErr_Format(PyExc_AttributeError, "'%s' object has no attribute '{{ slot_name }}'", type->tp_name);
+{% else %}
+        PyErr_Format(PyExc_AttributeError, "'%s' object has no attribute '%s'", type->tp_name,
+                     Nuitka_String_AsString_Unchecked({{ attr_name }}));
+{% endif %}
+
+{% endif %}
+        return {{ "NULL" if result_kind == "object" else "false" if result_kind == "bool" else "0" }};
+    }
+{%- endmacro %}
+
+{{ result_type }} {{ helper_name }}(PyThreadState *tstate, PyObject *source{% if not slot_name %}, PyObject *attr_name{% endif %}) {
+{% if slot_name %}
+    CHECK_OBJECT(source);
+
+{% elif result_kind != "object" %}
+    CHECK_OBJECT(source);
+    CHECK_OBJECT(attr_name);
+
+{% endif %}
+#if _NUITKA_EXPERIMENTAL_DISABLE_ATTR_OPT
+{% if result_kind == "object" %}
+    return PyObject_GetAttr(source, {{ attr_name }});
+{% elif result_kind == "bool" %}
+    return PyObject_HasAttr(source, {{ attr_name }});
+{% else %}
+    PyObject *result = PyObject_GetAttr(source, {{ attr_name }});
+
+    if (CHECK_AND_CLEAR_ATTRIBUTE_ERROR_OCCURRED(tstate) == false) {
+        return -1;
+    }
+
+    if (result == NULL) {
+        return 0;
+    }
+
+    int result_bool = CHECK_IF_TRUE(result);
+    Py_DECREF(result);
+
+    return result_bool;
+{% endif %}
+#else
+{% if result_kind == "object" and not slot_name %}
+    CHECK_OBJECT(source);
+    CHECK_OBJECT(attr_name);
+
+{% endif %}
+    {{ attribute_lookup_core(attr_name, slot_name, result_kind) }}
+#endif
+}
