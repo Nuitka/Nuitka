@@ -2855,10 +2855,15 @@ def getNuitkaProjectOptions(logger, filename_arg, module_mode):
     # pylint: disable=too-many-return-statements
 
     if os.path.isdir(filename_arg):
+        filename_dir = filename_arg
+
         if module_mode:
-            filename_arg = os.path.join(filename_arg, "__init__.py")
+            filename_arg = os.path.join(filename_dir, "__init__.py")
         else:
-            filename_arg = os.path.join(filename_arg, "__main__.py")
+            filename_arg = os.path.join(filename_dir, "__main__.py")
+
+            if not os.path.isfile(filename_arg):
+                filename_arg = os.path.join(filename_dir, "__init__.py")
 
     # The file specified may not exist, let the later parts of Nuitka handle this.
     try:
