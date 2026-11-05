@@ -209,6 +209,11 @@ static Py_hash_t our_set_hash(PyObject *set) {
     }
 #endif
 
+    // The value -1 is reserved for errors.
+    if (unlikely(result == -1)) {
+        result = -2;
+    }
+
     return result;
 }
 
@@ -294,6 +299,11 @@ static Py_hash_t our_dict_hash(PyObject *dict) {
         result ^= Nuitka_FastHashBytes(&value, sizeof(PyObject *));
     }
 
+    // The value -1 is reserved for errors.
+    if (unlikely(result == -1)) {
+        result = -2;
+    }
+
     return result;
 }
 
@@ -341,6 +351,11 @@ static Py_hash_t our_frozendict_hash(PyObject *frozendict) {
         result ^= Nuitka_FastHashBytes(&key, sizeof(PyObject *));
         result *= 1000003;
         result ^= Nuitka_FastHashBytes(&value, sizeof(PyObject *));
+    }
+
+    // The value -1 is reserved for errors.
+    if (unlikely(result == -1)) {
+        result = -2;
     }
 
     return result;
@@ -478,11 +493,12 @@ static void initConstantsCaches(PyThreadState *tstate) {
 
 static void insertToDictCacheWithRules(PyThreadState *tstate, PyObject *dict, PyObject **value, hashfunc tp_hash,
                                        richcmpfunc tp_richcompare) {
-    Py_hash_t hash = tp_hash != NULL ? (*tp_hash)(*value) : HASH_VALUE_WITHOUT_ERROR(tstate, *value);
+    Py_hash_t hash = tp_hash != NULL ? (*tp_hash)(*value) : HASH_VALUE_WITH_ERROR(tstate, *value);
 
-    if (unlikely(hash == -1)) {
-        return;
-    }
+    // Constants must be hashable, and their hash functions must not use -1,
+    // which is reserved for errors.
+    assert(!HAS_ERROR_OCCURRED(tstate));
+    assert(hash != -1);
 
     PyObject *item = DICT_GET_ITEM0_WITH_HASH_AND_EQ(tstate, dict, *value, hash, tp_richcompare);
 
@@ -495,12 +511,9 @@ static void insertToDictCacheWithRules(PyThreadState *tstate, PyObject *dict, Py
         return;
     }
 
-    NUITKA_MAY_BE_UNUSED bool res = DICT_SET_ITEM_WITH_HASH_AND_EQ(tstate, dict, *value, hash, tp_richcompare, *value);
+    NUITKA_MAY_BE_UNUSED bool res =
+        DICT_SET_ITEM_WITH_HASH_AND_EQ_UNTRACKED(tstate, dict, *value, hash, tp_richcompare, *value);
     assert(res != false);
-
-    if (_PyObject_GC_IS_TRACKED(dict)) {
-        Nuitka_GC_UnTrack(dict);
-    }
 
     assert(!_PyObject_GC_IS_TRACKED(dict));
 }

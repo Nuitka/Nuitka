@@ -2252,7 +2252,7 @@ void _initSlotIterNext(void) {
 
     // Note: Not using MAKE_DICT_EMPTY on purpose, this is called early on.
     PyObject *kw_args = PyDict_New();
-    DICT_SET_ITEM(tstate, kw_args, (PyObject *)const_str_plain___iter__, Py_True);
+    DICT_SET_ITEM(tstate, kw_args, const_str_plain___iter__, Py_True);
 
     PyObject *c =
         PyObject_CallFunctionObjArgs((PyObject *)&PyType_Type, const_str_plain___iter__, pos_args, kw_args, NULL);

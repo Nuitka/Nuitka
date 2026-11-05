@@ -1326,9 +1326,6 @@ static void Nuitka_DictNotifyEvent(PyThreadState *tstate, PyDictObject *mp, PyDi
 #endif
 }
 
-#define NUITKA_DICT_NOTIFY_EVENT(tstate, mp, event, key, value) Nuitka_DictNotifyEvent(tstate, mp, event, key, value)
-#else
-#define NUITKA_DICT_NOTIFY_EVENT(tstate, mp, event, key, value) NUITKA_DICT_NEXT_VERSION(mp)
 #endif
 
 void DICT_CLEAR(PyObject *dict) {
@@ -2569,28 +2566,36 @@ static Py_ssize_t Nuitka_DictFTInsertSplitKey(PyDictKeysObject *keys, PyObject *
 }
 
 static void Nuitka_DictFTInsertSplitValue(PyThreadState *tstate, PyDictObject *mp, PyObject *key, PyObject *value,
-                                          Py_ssize_t ix) {
+                                          Py_ssize_t ix, bool track) {
     ASSERT_DICT_LOCKED(mp);
 
-    NUITKA_DICT_MAINTAIN_TRACKING(mp, key, value);
+    if (track) {
+        NUITKA_DICT_MAINTAIN_TRACKING(mp, key, value);
+    }
 
     PyDictValues *values = FT_ATOMIC_LOAD_PTR(mp->ma_values);
     PyObject *old_value = FT_ATOMIC_LOAD_PTR(values->values[ix]);
 
     if (old_value == NULL) {
-        Nuitka_DictNotifyEvent(tstate, mp, PyDict_EVENT_ADDED, key, value);
+        if (track) {
+            Nuitka_DictNotifyEvent(tstate, mp, PyDict_EVENT_ADDED, key, value);
+        }
+
         FT_ATOMIC_STORE_PTR_RELEASE(values->values[ix], Py_NewRef(value));
         Nuitka_DictFTValuesAddToInsertionOrder(values, ix);
         FT_ATOMIC_STORE_SSIZE_RELAXED(mp->ma_used, FT_ATOMIC_LOAD_SSIZE_RELAXED(mp->ma_used) + 1);
     } else if (old_value != value) {
-        Nuitka_DictNotifyEvent(tstate, mp, PyDict_EVENT_MODIFIED, key, value);
+        if (track) {
+            Nuitka_DictNotifyEvent(tstate, mp, PyDict_EVENT_MODIFIED, key, value);
+        }
+
         FT_ATOMIC_STORE_PTR_RELEASE(values->values[ix], Py_NewRef(value));
         Py_DECREF(old_value);
     }
 }
 
 static int Nuitka_DictFTInsertCombinedDict(PyThreadState *tstate, PyDictObject *mp, Py_hash_t hash, PyObject *key,
-                                           PyObject *value) {
+                                           PyObject *value, bool track) {
     if (DK_IS_UNICODE((PyDictKeysObject *)FT_ATOMIC_LOAD_PTR(mp->ma_keys)) && !PyUnicode_CheckExact(key)) {
         if (Nuitka_DictFTInsertionResize(tstate, mp, false) < 0) {
             return -1;
@@ -2609,7 +2614,9 @@ static int Nuitka_DictFTInsertCombinedDict(PyThreadState *tstate, PyDictObject *
         keys = FT_ATOMIC_LOAD_PTR(mp->ma_keys);
     }
 
-    Nuitka_DictNotifyEvent(tstate, mp, PyDict_EVENT_ADDED, key, value);
+    if (track) {
+        Nuitka_DictNotifyEvent(tstate, mp, PyDict_EVENT_ADDED, key, value);
+    }
 
     keys = FT_ATOMIC_LOAD_PTR(mp->ma_keys);
     FT_ATOMIC_STORE_UINT32_RELAXED(keys->dk_version, 0);
@@ -2639,7 +2646,7 @@ static int Nuitka_DictFTInsertCombinedDict(PyThreadState *tstate, PyDictObject *
 }
 
 static int Nuitka_DictFTInsertToEmptyDict(PyThreadState *tstate, PyDictObject *mp, PyObject *key, Py_hash_t hash,
-                                          PyObject *value) {
+                                          PyObject *value, bool track) {
     assert(Nuitka_DictFTKeysIsEmpty((PyDictKeysObject *)FT_ATOMIC_LOAD_PTR(mp->ma_keys)));
     ASSERT_DICT_LOCKED(mp);
 
@@ -2654,9 +2661,13 @@ static int Nuitka_DictFTInsertToEmptyDict(PyThreadState *tstate, PyDictObject *m
 
     assert(FT_ATOMIC_LOAD_PTR(mp->ma_values) == NULL);
 
-    NUITKA_DICT_MAINTAIN_TRACKING(mp, key, value);
+    if (track) {
+        NUITKA_DICT_MAINTAIN_TRACKING(mp, key, value);
+    }
 
-    Nuitka_DictNotifyEvent(tstate, mp, PyDict_EVENT_ADDED, key, value);
+    if (track) {
+        Nuitka_DictNotifyEvent(tstate, mp, PyDict_EVENT_ADDED, key, value);
+    }
 
     size_t hashpos = (size_t)hash & (NUITKA_DICT_FT_MINSIZE - 1);
     Nuitka_DictFTKeysSetIndex(newkeys, hashpos, 0);
@@ -2685,10 +2696,12 @@ static int Nuitka_DictFTInsertToEmptyDict(PyThreadState *tstate, PyDictObject *m
 }
 
 static int Nuitka_DictFTInsertDict(PyThreadState *tstate, PyDictObject *mp, PyObject *key, Py_hash_t hash,
-                                   PyObject *value, richcmpfunc equal_func) {
+                                   PyObject *value, richcmpfunc equal_func, bool track) {
     ASSERT_DICT_LOCKED(mp);
 
-    NUITKA_DICT_MAINTAIN_TRACKING(mp, key, value);
+    if (track) {
+        NUITKA_DICT_MAINTAIN_TRACKING(mp, key, value);
+    }
 
     PyObject *old_value = NULL;
     Py_ssize_t ix = DKIX_EMPTY;
@@ -2701,7 +2714,7 @@ static int Nuitka_DictFTInsertDict(PyThreadState *tstate, PyDictObject *mp, PyOb
         }
 
         if (ix != DKIX_EMPTY) {
-            Nuitka_DictFTInsertSplitValue(tstate, mp, key, value, ix);
+            Nuitka_DictFTInsertSplitValue(tstate, mp, key, value, ix, track);
             return 0;
         }
     } else {
@@ -2718,7 +2731,7 @@ static int Nuitka_DictFTInsertDict(PyThreadState *tstate, PyDictObject *mp, PyOb
     }
 
     if (old_value == NULL) {
-        if (Nuitka_DictFTInsertCombinedDict(tstate, mp, hash, key, value) < 0) {
+        if (Nuitka_DictFTInsertCombinedDict(tstate, mp, hash, key, value, track) < 0) {
             return -1;
         }
 
@@ -2728,7 +2741,9 @@ static int Nuitka_DictFTInsertDict(PyThreadState *tstate, PyDictObject *mp, PyOb
     }
 
     if (old_value != value) {
-        Nuitka_DictNotifyEvent(tstate, mp, PyDict_EVENT_MODIFIED, key, value);
+        if (track) {
+            Nuitka_DictNotifyEvent(tstate, mp, PyDict_EVENT_MODIFIED, key, value);
+        }
 
         if (FT_ATOMIC_LOAD_PTR(mp->ma_values) != NULL) {
             FT_ATOMIC_STORE_PTR_RELEASE(mp->ma_values->values[ix], Py_NewRef(value));
@@ -2806,7 +2821,7 @@ static int Nuitka_DictFTDeleteItem(PyThreadState *tstate, PyDictObject *mp, PyOb
 }
 
 static bool Nuitka_DictSetItemFreeThreaded(PyThreadState *tstate, PyObject *dict, PyObject *key, Py_hash_t hash,
-                                           richcmpfunc equal_func, PyObject *value, bool value_owned) {
+                                           richcmpfunc equal_func, PyObject *value, bool value_owned, bool track) {
     CHECK_OBJECT(dict);
     assert(PyDict_Check(dict));
     CHECK_OBJECT(key);
@@ -2821,9 +2836,9 @@ static bool Nuitka_DictSetItemFreeThreaded(PyThreadState *tstate, PyObject *dict
     PyDictKeysObject *keys = (PyDictKeysObject *)FT_ATOMIC_LOAD_PTR(mp->ma_keys);
 
     if (unlikely(Nuitka_DictFTKeysIsEmpty(keys))) {
-        res = Nuitka_DictFTInsertToEmptyDict(tstate, mp, key, hash, value);
+        res = Nuitka_DictFTInsertToEmptyDict(tstate, mp, key, hash, value, track);
     } else {
-        res = Nuitka_DictFTInsertDict(tstate, mp, key, hash, value, equal_func);
+        res = Nuitka_DictFTInsertDict(tstate, mp, key, hash, value, equal_func, track);
     }
 
     Py_END_CRITICAL_SECTION();

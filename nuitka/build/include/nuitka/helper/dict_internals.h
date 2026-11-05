@@ -48,6 +48,15 @@ typedef PyObject *PyDictValues;
 
 // Declarations of the helpers that the chained generated dictionary code
 // uses, they are implemented in "HelpersDictionaries.c".
+#if PYTHON_VERSION >= 0x3c0
+static void Nuitka_DictNotifyEvent(PyThreadState *tstate, PyDictObject *mp, PyDict_WatchEvent event, PyObject *key,
+                                   PyObject *value);
+
+#define NUITKA_DICT_NOTIFY_EVENT(tstate, mp, event, key, value) Nuitka_DictNotifyEvent(tstate, mp, event, key, value)
+#else
+#define NUITKA_DICT_NOTIFY_EVENT(tstate, mp, event, key, value) NUITKA_DICT_NEXT_VERSION(mp)
+#endif
+
 NUITKA_MAY_BE_UNUSED static bool Nuitka_DictGetHash(PyThreadState *tstate, PyObject *key, Py_hash_t *hash_ptr);
 
 #if PYTHON_VERSION >= 0x3b0
@@ -57,7 +66,7 @@ static Py_ssize_t Nuitka_PyDictLookupWithEq(PyDictObject *mp, PyObject *key, Py_
 
 #if defined(Py_GIL_DISABLED) && PYTHON_VERSION >= 0x3d0
 static bool Nuitka_DictSetItemFreeThreaded(PyThreadState *tstate, PyObject *dict, PyObject *key, Py_hash_t hash,
-                                           richcmpfunc equal_func, PyObject *value, bool value_owned);
+                                           richcmpfunc equal_func, PyObject *value, bool value_owned, bool track);
 static bool Nuitka_DictDeleteItemFreeThreaded(PyThreadState *tstate, PyObject *dict, PyObject *key, Py_hash_t hash,
                                               richcmpfunc equal_func);
 #endif

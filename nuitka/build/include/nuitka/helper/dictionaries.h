@@ -275,6 +275,18 @@ extern bool DICT_SET_ITEM1(PyThreadState *tstate, PyObject *dict, PyObject *key,
 extern bool DICT_SET_ITEM_WITH_HASH_AND_EQ(PyThreadState *tstate, PyObject *dict, PyObject *key, Py_hash_t hash,
                                            richcmpfunc equal_func, PyObject *value);
 
+// Set a key in a private dictionary without updating its garbage collection
+// tracking or notifying watchers.
+extern bool DICT_SET_ITEM_UNTRACKED(PyThreadState *tstate, PyObject *dict, PyObject *key, PyObject *value);
+
+// Set a key in a private dictionary without updating its garbage collection
+// tracking or notifying watchers, consuming the value reference.
+extern bool DICT_SET_ITEM_UNTRACKED1(PyThreadState *tstate, PyObject *dict, PyObject *key, PyObject *value);
+
+// Hash and equality variant of "DICT_SET_ITEM_UNTRACKED".
+extern bool DICT_SET_ITEM_WITH_HASH_AND_EQ_UNTRACKED(PyThreadState *tstate, PyObject *dict, PyObject *key,
+                                                     Py_hash_t hash, richcmpfunc equal_func, PyObject *value);
+
 // Set a key in a dictionary using a caller supplied hash, semantically
 // identical to "DICT_SET_ITEM" otherwise.
 static inline bool DICT_SET_ITEM_WITH_HASH(PyThreadState *tstate, PyObject *dict, PyObject *key, Py_hash_t hash,
