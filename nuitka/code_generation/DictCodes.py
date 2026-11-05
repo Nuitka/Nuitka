@@ -140,7 +140,7 @@ def _hasOnlyUnicodeKeys(pairs):
 
 
 def getDictionaryCreationCode(to_name, pairs, emit, context):
-    # Detailed, and verbose code, pylint: disable=too-many-locals
+    # Detailed, and verbose code, pylint: disable=too-many-branches,too-many-locals,too-many-statements
 
     pairs_count = len(pairs)
 
@@ -223,13 +223,21 @@ def getDictionaryCreationCode(to_name, pairs, emit, context):
             needs_check = not is_hashable_key[count]
             res_name = context.getBoolResName()
 
-            emit(
-                "%s = DICT_SET_ITEM(tstate, %s, %s, %s);"
-                % (res_name, to_name, dict_key_name, dict_value_name)
-            )
-
             if value_needs_release:
-                emit("Py_DECREF(%s);" % dict_value_name)
+                if python_version >= 0x3E0:
+                    set_item_name = "DICT_SET_ITEM_UNTRACKED1"
+                else:
+                    set_item_name = "DICT_SET_ITEM1"
+            else:
+                if python_version >= 0x3E0:
+                    set_item_name = "DICT_SET_ITEM_UNTRACKED"
+                else:
+                    set_item_name = "DICT_SET_ITEM"
+
+            emit(
+                "%s = %s(tstate, %s, %s, %s);"
+                % (res_name, set_item_name, to_name, dict_key_name, dict_value_name)
+            )
 
             if key_needs_release:
                 emit("Py_DECREF(%s);" % dict_key_name)
