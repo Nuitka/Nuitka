@@ -70,7 +70,7 @@ def buildComplexComparisonNode(provider, left, rights, comparators, source_ref):
         outline_body.allocateTempVariable(
             temp_scope=None, name="operand_%d" % count, temp_type="object"
         )
-        for count in range(2, len(rights) + 2)
+        for count in range(1, len(rights) + 1)
     ]
 
     tmp_variable = outline_body.allocateTempVariable(
@@ -80,6 +80,11 @@ def buildComplexComparisonNode(provider, left, rights, comparators, source_ref):
     def makeTempAssignment(count, value):
         return makeStatementAssignmentVariable(
             variable=variables[count], source=value, source_ref=source_ref
+        )
+
+    def makeTempReference(count):
+        return ExpressionTempVariableRef(
+            variable=variables[count], source_ref=source_ref
         )
 
     def makeValueComparisonReturn(left, right, comparator):
@@ -111,20 +116,22 @@ def buildComplexComparisonNode(provider, left, rights, comparators, source_ref):
     statements = []
     release_variables = []
 
+    # The left operand is evaluated before the right operands, so it has to be
+    # assigned to a temporary variable first.
+    statements.append(makeTempAssignment(0, left))
+    release_variables.append(variables[0])
+
     for count, value in enumerate(rights):
+        # Each comparison needs its own reference node, and the left operand of
+        # the current comparison is the operand assigned before it.
+        left = makeTempReference(count)
+
         if value is not rights[-1]:
-            statements.append(makeTempAssignment(count, value))
-            release_variables.append(variables[count])
-            right = ExpressionTempVariableRef(
-                variable=variables[count], source_ref=source_ref
-            )
+            statements.append(makeTempAssignment(count + 1, value))
+            release_variables.append(variables[count + 1])
+            right = makeTempReference(count + 1)
         else:
             right = value
-
-        if count != 0:
-            left = ExpressionTempVariableRef(
-                variable=variables[count - 1], source_ref=source_ref
-            )
 
         comparator = comparators[count]
 

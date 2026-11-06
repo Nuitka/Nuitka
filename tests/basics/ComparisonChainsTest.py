@@ -210,6 +210,25 @@ print(compareDigitsSuccess(v))
 print(compareDigitsFirstFalse(v))
 print(compareDigitsSecondFalse(v))
 
+# Make sure operands are evaluated left to right, and that later operands are
+# not evaluated at all after short circuiting.
+print("Comparison chain operand evaluation order:")
+
+
+def traced_operand(value):
+    print("evaluating %d" % value, end="; ")
+
+    return value
+
+
+print(traced_operand(1) < traced_operand(2) < traced_operand(3) < traced_operand(4))
+print(traced_operand(4) < traced_operand(3) < traced_operand(2) < traced_operand(1))
+print(traced_operand(1) < traced_operand(2) > traced_operand(3) < traced_operand(4))
+print(traced_operand(1) < traced_operand(0) < traced_operand(3) < traced_operand(4))
+
+captured = iter([1, 2])
+print(next(captured) < next(captured) < 10)
+
 #     Python tests originally created or extracted from other peoples work. The
 #     parts were too small to be protected.
 #
