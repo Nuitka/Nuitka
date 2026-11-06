@@ -230,6 +230,26 @@ PyObject *IMPORT_HARD_FUNCTOOLS(void) {
     return module_import_hard_functools;
 }
 
+/* C helper for hard import of module "imp" import. */
+#if PYTHON_VERSION < 0x300
+PyObject *IMPORT_HARD_IMP(void) {
+    static PyObject *module_import_hard_imp = NULL;
+
+    if (module_import_hard_imp == NULL) {
+        module_import_hard_imp = PyImport_ImportModule("imp");
+
+        if (unlikely(module_import_hard_imp == NULL)) {
+#ifndef __NUITKA_NO_ASSERT__
+            PyErr_PrintEx(0);
+#endif
+            NUITKA_ERROR_EXIT("Unexpected failure of hard import of 'imp'");
+        }
+    }
+
+    return module_import_hard_imp;
+}
+#endif
+
 /* C helper for hard import of module "importlib" import. */
 PyObject *IMPORT_HARD_IMPORTLIB(void) {
     static PyObject *module_import_hard_importlib = NULL;

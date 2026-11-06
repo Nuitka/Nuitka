@@ -351,6 +351,12 @@ from .StrNodes import (
     makeExpressionStrOperationRsplit3,
     makeExpressionStrOperationSplit3,
 )
+from .SysModulesNodes import (
+    makeExpressionSysModulesGet2,
+    makeExpressionSysModulesGet3,
+    makeExpressionSysModulesPop2,
+    makeExpressionSysModulesPop3,
+)
 
 attribute_classes = {}
 attribute_typed_classes = set()
@@ -3015,6 +3021,20 @@ class ExpressionAttributeLookupDictGet(
     @staticmethod
     def _computeExpressionCall(call_node, dict_arg, trace_collection):
         def wrapExpressionDictOperationGet(key, default, source_ref):
+            if dict_arg.isExpressionSysModulesRef():
+                if default is not None:
+                    return makeExpressionSysModulesGet3(
+                        dict_arg=dict_arg,
+                        key=key,
+                        default=default,
+                        source_ref=source_ref,
+                    )
+                else:
+                    return makeExpressionSysModulesGet2(
+                        dict_arg=dict_arg,
+                        key=key,
+                        source_ref=source_ref,
+                    )
             if default is not None:
                 return ExpressionDictOperationGet3(
                     dict_arg=dict_arg, key=key, default=default, source_ref=source_ref
@@ -6830,6 +6850,20 @@ class ExpressionAttributeLookupDictPop(
     @staticmethod
     def _computeExpressionCall(call_node, dict_arg, trace_collection):
         def wrapExpressionDictOperationPop(key, default, source_ref):
+            if dict_arg.isExpressionSysModulesRef():
+                if default is not None:
+                    return makeExpressionSysModulesPop3(
+                        dict_arg=dict_arg,
+                        key=key,
+                        default=default,
+                        source_ref=source_ref,
+                    )
+                else:
+                    return makeExpressionSysModulesPop2(
+                        dict_arg=dict_arg,
+                        key=key,
+                        source_ref=source_ref,
+                    )
             if default is not None:
                 return ExpressionDictOperationPop3(
                     dict_arg=dict_arg, key=key, default=default, source_ref=source_ref

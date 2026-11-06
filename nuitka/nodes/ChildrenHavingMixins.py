@@ -6215,6 +6215,8 @@ class ChildrenHavingDictArgKeyMixin(object):
     #   ExpressionDictOperationItem
     #   ExpressionDictOperationPop2
     #   ExpressionDictOperationSetdefault2
+    #   ExpressionSysModulesGet2
+    #   ExpressionSysModulesPop2
 
     def __init__(
         self,
@@ -6346,6 +6348,8 @@ ChildrenExpressionDictOperationHaskeyMixin = ChildrenHavingDictArgKeyMixin
 ChildrenExpressionDictOperationItemMixin = ChildrenHavingDictArgKeyMixin
 ChildrenExpressionDictOperationPop2Mixin = ChildrenHavingDictArgKeyMixin
 ChildrenExpressionDictOperationSetdefault2Mixin = ChildrenHavingDictArgKeyMixin
+ChildrenExpressionSysModulesGet2Mixin = ChildrenHavingDictArgKeyMixin
+ChildrenExpressionSysModulesPop2Mixin = ChildrenHavingDictArgKeyMixin
 
 
 class ChildrenHavingDictArgKeyDefaultMixin(object):
@@ -6356,6 +6360,8 @@ class ChildrenHavingDictArgKeyDefaultMixin(object):
     #   ExpressionDictOperationGet3
     #   ExpressionDictOperationPop3
     #   ExpressionDictOperationSetdefault3
+    #   ExpressionSysModulesGet3
+    #   ExpressionSysModulesPop3
 
     def __init__(
         self,
@@ -6504,6 +6510,8 @@ class ChildrenHavingDictArgKeyDefaultMixin(object):
 ChildrenExpressionDictOperationGet3Mixin = ChildrenHavingDictArgKeyDefaultMixin
 ChildrenExpressionDictOperationPop3Mixin = ChildrenHavingDictArgKeyDefaultMixin
 ChildrenExpressionDictOperationSetdefault3Mixin = ChildrenHavingDictArgKeyDefaultMixin
+ChildrenExpressionSysModulesGet3Mixin = ChildrenHavingDictArgKeyDefaultMixin
+ChildrenExpressionSysModulesPop3Mixin = ChildrenHavingDictArgKeyDefaultMixin
 
 
 class ChildrenHavingDictArgPairsTupleMixin(object):
@@ -8636,6 +8644,7 @@ class ChildrenHavingExpressionSubscriptMixin(object):
     #   ExpressionMatchSubscriptCheck
     #   ExpressionSubscriptLookup
     #   ExpressionSubscriptLookupForUnpack
+    #   ExpressionSysModulesLookup
 
     def __init__(
         self,
@@ -8765,6 +8774,7 @@ class ChildrenHavingExpressionSubscriptMixin(object):
 ChildrenExpressionMatchSubscriptCheckMixin = ChildrenHavingExpressionSubscriptMixin
 ChildrenExpressionSubscriptLookupMixin = ChildrenHavingExpressionSubscriptMixin
 ChildrenExpressionSubscriptLookupForUnpackMixin = ChildrenHavingExpressionSubscriptMixin
+ChildrenExpressionSysModulesLookupMixin = ChildrenHavingExpressionSubscriptMixin
 
 
 class ChildHavingFallbackMixin(object):
@@ -13259,6 +13269,7 @@ class ChildHavingModuleMixin(object):
 
     # This is generated for use in
     #   ExpressionImportName
+    #   ExpressionImportlibReloadCall
 
     def __init__(
         self,
@@ -13353,6 +13364,7 @@ class ChildHavingModuleMixin(object):
 
 # Assign the names that are easier to import with a stable name.
 ChildrenExpressionImportNameMixin = ChildHavingModuleMixin
+ChildrenExpressionImportlibReloadCallMixin = ChildHavingModuleMixin
 
 
 class ChildrenHavingNameGlobalsArgOptionalLocalsArgOptionalFromlistOptionalLevelOptionalMixin(

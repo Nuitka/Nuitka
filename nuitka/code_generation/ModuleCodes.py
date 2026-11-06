@@ -9,11 +9,13 @@ from nuitka.__past__ import iterItems
 from nuitka.code_generation import Emission
 from nuitka.options.Options import (
     getFileReferenceMode,
+    getModuleForceNamespace,
     shallMakeModule,
     shallUseDirectConstantBlobs,
 )
 from nuitka.plugins.Hooks import getModuleIncludes
 from nuitka.PythonVersions import python_version
+from nuitka.utils.CStrings import encodePythonStringToC
 from nuitka.Version import getNuitkaVersion, getNuitkaVersionYear
 
 from .CodeHelpers import (
@@ -149,6 +151,15 @@ def getModuleCode(
 
     is_dunder_main = module.isMainModule()
 
+    module_force_namespace = getModuleForceNamespace()
+
+    if module_force_namespace is None:
+        module_force_name_code = "NULL"
+    else:
+        module_force_name_code = encodePythonStringToC(
+            module.getRuntimeNameValue().encode("utf8")
+        )
+
     dunder_main_package = context.getConstantCode(
         module.getRuntimePackageValue() if is_dunder_main else ""
     )
@@ -201,6 +212,8 @@ def getModuleCode(
 
     return template % {
         "module_name_cstr": module_name.asCString(),
+        "has_module_force_namespace": (1 if module_force_namespace is not None else 0),
+        "module_force_name": module_force_name_code,
         "version": getNuitkaVersion(),
         "year": getNuitkaVersionYear(),
         "is_top": 1 if module.isTopModule() else 0,

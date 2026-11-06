@@ -389,6 +389,31 @@ def _generateSubscriptLookupSource(expression):
     return "%s[%s]" % (looked_up, subscript)
 
 
+def _generateImportlibReloadRefSource(_expression):
+    return "importlib.reload"
+
+
+def _generateImportlibReloadCallSource(expression):
+    return "importlib.reload(%s)" % generateExpressionSource(expression.subnode_module)
+
+
+def _generateSysModulesRefSource(_expression):
+    return "sys.modules"
+
+
+def _generateSysModulesCallSource(expression):
+    arguments = [generateExpressionSource(expression.subnode_key)]
+
+    default = getattr(expression, "subnode_default", None)
+
+    if default is not None:
+        arguments.append(generateExpressionSource(default))
+
+    method_name = "get" if "GET" in expression.kind else "pop"
+
+    return "sys.modules.%s(%s)" % (method_name, ", ".join(arguments))
+
+
 _binary_operator_symbols = {
     "Add": "+",
     "Sub": "-",
@@ -814,6 +839,23 @@ def generateStatementSequenceSource(statement_seq, indent=""):
     return "\n".join(lines)
 
 
+def _generateSysModulesAssignmentSource(statement, indent):
+    return "%s%s[%s] = %s" % (
+        indent,
+        generateExpressionSource(statement.subnode_subscribed),
+        generateExpressionSource(statement.subnode_subscript),
+        generateExpressionSource(statement.subnode_source),
+    )
+
+
+def _generateSysModulesDelSource(statement, indent):
+    return "%sdel %s[%s]" % (
+        indent,
+        generateExpressionSource(statement.subnode_subscribed),
+        generateExpressionSource(statement.subnode_subscript),
+    )
+
+
 def _generateConditionalSource(statement, indent):
     condition = generateExpressionSource(statement.subnode_condition)
     yes_body = generateStatementSequenceSource(
@@ -1169,6 +1211,14 @@ _expression_source_dispatch = {
     "EXPRESSION_CONSTANT_XRANGE_REF": _generateConstantXrangeRefSource,
     "EXPRESSION_ATTRIBUTE_LOOKUP": _generateAttributeLookupSource,
     "EXPRESSION_SUBSCRIPT_LOOKUP": _generateSubscriptLookupSource,
+    "EXPRESSION_IMPORTLIB_RELOAD_REF": _generateImportlibReloadRefSource,
+    "EXPRESSION_IMPORTLIB_RELOAD_CALL": _generateImportlibReloadCallSource,
+    "EXPRESSION_SYS_MODULES_REF": _generateSysModulesRefSource,
+    "EXPRESSION_SYS_MODULES_LOOKUP": _generateSubscriptLookupSource,
+    "EXPRESSION_SYS_MODULES_GET2": _generateSysModulesCallSource,
+    "EXPRESSION_SYS_MODULES_GET3": _generateSysModulesCallSource,
+    "EXPRESSION_SYS_MODULES_POP2": _generateSysModulesCallSource,
+    "EXPRESSION_SYS_MODULES_POP3": _generateSysModulesCallSource,
     "EXPRESSION_OPERATION_BINARY_ADD": _generateBinaryOpSource,
     "EXPRESSION_OPERATION_BINARY_SUB": _generateBinaryOpSource,
     "EXPRESSION_OPERATION_BINARY_MULT": _generateBinaryOpSource,
@@ -1261,6 +1311,8 @@ _expression_source_dispatch.update(
 )
 
 _statement_source_dispatch = {
+    "STATEMENT_ASSIGNMENT_SYS_MODULES_SUBSCRIPT": _generateSysModulesAssignmentSource,
+    "STATEMENT_DEL_SYS_MODULES_SUBSCRIPT": _generateSysModulesDelSource,
     "STATEMENT_CONDITIONAL": _generateConditionalSource,
     "STATEMENT_RAISE_EXCEPTION": _generateRaiseExceptionSource,
     "STATEMENT_RETURN": _generateReturnSource,

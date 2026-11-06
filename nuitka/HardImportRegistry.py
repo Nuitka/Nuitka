@@ -17,6 +17,7 @@ from nuitka.nodes.ConstantRefNodes import (
     makeExpressionConstantSysVersionInfoRef,
 )
 from nuitka.nodes.HardImportNodes import getHardImportNodeClasses
+from nuitka.nodes.SysModulesNodes import makeExpressionSysModulesRef
 from nuitka.options.Options import shallMakeModule
 from nuitka.PythonVersions import getFutureModuleKeys, python_version
 from nuitka.States import states
@@ -29,6 +30,7 @@ from nuitka.utils.Utils import isWin32Windows, withNoDeprecationWarning
 # These module are supported in code generation to be imported the hard way.
 hard_modules = set(
     (
+        "imp",
         "os",
         "ntpath",
         "posixpath",
@@ -87,6 +89,7 @@ hard_modules_non_stdlib = set(
 hard_modules = hard_modules | hard_modules_non_stdlib
 
 hard_modules_version = {
+    "imp": (None, 0x300, None),
     "cStringIO": (None, 0x300, None),
     "typing": (0x350, None, None),
     "_frozen_importlib": (0x300, None, None),
@@ -225,7 +228,10 @@ module_sys_trust = {
     #    "stdout": trust_exist,
     #    "stderr": trust_exist,
     "exit": trust_node,
+    "modules": trust_node,
 }
+
+trust_node_factory[("sys", "modules")] = makeExpressionSysModulesRef
 
 if python_version < 0x270:
     module_sys_trust["version_info"] = trust_constant
@@ -359,6 +365,7 @@ hard_modules_trust = {
         "entry_points": trust_node,
         "PackageNotFoundError": trust_exist,
     },
+    "imp": {},
     "_frozen_importlib": {},
     "_frozen_importlib_external": {},
     "pathlib": {},

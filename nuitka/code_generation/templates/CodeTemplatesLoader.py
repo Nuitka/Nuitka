@@ -7,12 +7,33 @@
 # their load state slots generated in the loader body.
 template_metapath_loader_module_state = """\
 static PyObject *module_state_%(module_identifier)s = NULL;
-static PyThreadState *module_owner_%(module_identifier)s = NULL;"""
+static PyThreadState *module_owner_%(module_identifier)s = NULL;
+static PyObject *module_value_%(module_identifier)s = NULL;
+
+static PyObject *module_get_value_%(module_identifier)s(PyThreadState *tstate, struct Nuitka_MetaPathBasedLoaderEntry const *entry, bool include_loaded) {
+    (void)tstate;
+    (void)entry;
+
+    PyObject *value = module_value_%(module_identifier)s;
+
+    if (value == NULL && include_loaded) {
+        value = module_state_%(module_identifier)s;
+    }
+
+    Py_XINCREF(value);
+    return value;
+}
+
+%(module_set_value_code)s
+
+static PyObject *module_import_%(module_identifier)s(PyThreadState *tstate, struct Nuitka_MetaPathBasedLoaderEntry const *entry, PyObject *module) {
+    return IMPORT_EMBEDDED_MODULE_STATE(tstate, entry, &module_state_%(module_identifier)s, &module_owner_%(module_identifier)s, &module_value_%(module_identifier)s, module);
+}"""
 
 template_metapath_loader_extension_module_entry = """\
 %(module_state_decls)s
 struct Nuitka_MetaPathBasedLoaderEntry %(entry_name)s = {
-    %(module_name)s, %(get_name_func)s, %(compare_name_func)s, %(get_display_name)s, %(pre_load)s, %(post_load)s, %(parent)s, NULL, IMPORT_EMBEDDED_MODULE_ENTRY, &module_state_%(module_identifier)s, &module_owner_%(module_identifier)s, 0, 0, %(flags)s
+    %(module_name)s, %(get_name_func)s, %(compare_name_func)s, %(get_display_name)s, %(pre_load)s, %(post_load)s, %(parent)s, NULL, module_import_%(module_identifier)s, &module_state_%(module_identifier)s, &module_owner_%(module_identifier)s, module_get_value_%(module_identifier)s, %(module_set_value_ref)s, 0, 0, %(flags)s
 #if defined(_NUITKA_FREEZER_HAS_FILE_PATH)
     , %(file_path)s
 #endif
@@ -21,7 +42,7 @@ struct Nuitka_MetaPathBasedLoaderEntry %(entry_name)s = {
 template_metapath_loader_bytecode_module_entry = """\
 %(module_state_decls)s
 struct Nuitka_MetaPathBasedLoaderEntry %(entry_name)s = {
-    %(module_name)s, %(get_name_func)s, %(compare_name_func)s, %(get_display_name)s, %(pre_load)s, %(post_load)s, %(parent)s, NULL, IMPORT_EMBEDDED_MODULE_ENTRY, &module_state_%(module_identifier)s, &module_owner_%(module_identifier)s, %(bytecode)s, %(size)d, %(flags)s
+    %(module_name)s, %(get_name_func)s, %(compare_name_func)s, %(get_display_name)s, %(pre_load)s, %(post_load)s, %(parent)s, NULL, module_import_%(module_identifier)s, &module_state_%(module_identifier)s, &module_owner_%(module_identifier)s, module_get_value_%(module_identifier)s, %(module_set_value_ref)s, %(bytecode)s, %(size)d, %(flags)s
 #if defined(_NUITKA_FREEZER_HAS_FILE_PATH)
     , %(file_path)s
 #endif
@@ -31,7 +52,7 @@ struct Nuitka_MetaPathBasedLoaderEntry %(entry_name)s = {
 # bytecode and extension module entries, they remain private to the loader.
 template_metapath_loader_excluded_module_entry = """\
 static struct Nuitka_MetaPathBasedLoaderEntry %(entry_name)s = {
-    %(module_name)s, %(get_name_func)s, %(compare_name_func)s, NULL, NULL, NULL, NULL, NUITKA_CAST_INIT_REASON(%(exclusion_reason)s), NULL, NULL, NULL, 0, 0, %(flags)s
+    %(module_name)s, %(get_name_func)s, %(compare_name_func)s, NULL, NULL, NULL, NULL, NUITKA_CAST_INIT_REASON(%(exclusion_reason)s), NULL, NULL, NULL, NULL, NULL, 0, 0, %(flags)s
 #if defined(_NUITKA_FREEZER_HAS_FILE_PATH)
     , NULL
 #endif

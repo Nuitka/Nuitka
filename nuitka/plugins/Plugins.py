@@ -1163,6 +1163,8 @@ through implicit import by '%s' plugin encountered."""
         if trigger_module.getCompilationMode() == "bytecode":
             trigger_module.setSourceCode(code)
 
+        trigger_module.markAsInternalModule()
+
         return trigger_module
 
     @classmethod

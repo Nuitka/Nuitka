@@ -124,6 +124,10 @@ def _getReportInputData(aborted):
         (module.getFullName(), module.source_ref) for module in getDoneModules()
     )
 
+    module_internal_flags = dict(
+        (module.getFullName(), module.isInternalModule()) for module in getDoneModules()
+    )
+
     module_inclusion_infos = dict(
         (module.getFullName(), getModuleInclusionInfoByName(module.getFullName()))
         for module in getDoneModules()
@@ -544,6 +548,9 @@ def _addModulesToReport(root, report_input_data, diffable):
                 report_input_data["module_sources"][module_name].getFilename()
             ),
         )
+
+        if report_input_data["module_internal_flags"][module_name]:
+            module_xml_node.attrib["internal"] = "True"
 
         recompiled, recompiled_reason = getRecompileDecisionReason(module_name)
         if recompiled_reason is not None:

@@ -55,7 +55,13 @@ from .NodeBases import (
 class PythonModuleBase(NodeBase):
     # Base classes can be abstract, pylint: disable=abstract-method
 
-    __slots__ = ("module_name", "reason", "is_stdlib")
+    __slots__ = (
+        "module_name",
+        "reason",
+        "is_stdlib",
+        "is_internal_module",
+        "needs_module_value_setter",
+    )
 
     def __init__(self, module_name, reason, source_ref):
         assert type(module_name) is ModuleName, module_name
@@ -67,9 +73,23 @@ class PythonModuleBase(NodeBase):
         self.module_name = module_name
         self.reason = reason
         self.is_stdlib = isStandardLibraryPath(self.getCompileTimeFilename())
+        self.is_internal_module = False
+        self.needs_module_value_setter = False
 
     def getDetails(self):
         return {"module_name": self.module_name}
+
+    def markAsInternalModule(self):
+        self.is_internal_module = True
+
+    def isInternalModule(self):
+        return self.is_internal_module
+
+    def markModuleValueSetterNeeded(self):
+        self.needs_module_value_setter = True
+
+    def isModuleValueSetterNeeded(self):
+        return self.needs_module_value_setter
 
     def getFullName(self):
         return self.module_name

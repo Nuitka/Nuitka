@@ -389,6 +389,15 @@ from .SubscriptCodes import (
     generateMatchSubscriptCheckCode,
     generateSubscriptLookupCode,
 )
+from .SysModulesCodes import (
+    generateImportlibReloadCallCode,
+    generateSysModulesAssignmentCode,
+    generateSysModulesDelCode,
+    generateSysModulesGetCode,
+    generateSysModulesLookupCode,
+    generateSysModulesPopCode,
+    generateSysModulesRefCode,
+)
 from .TensorflowCodes import generateTensorflowFunctionCallCode
 from .TryCodes import generateTryCode
 from .TupleCodes import generateBuiltinTupleCode, generateTupleCreationCode
@@ -920,6 +929,8 @@ addExpressionDispatchDict(
         "EXPRESSION_IMPORT_MODULE_NAME_HARD_EXISTS": generateImportModuleNameHardCode,
         "EXPRESSION_BUILTIN_PATCHABLE_TYPE_REF": generateImportModuleNameHardCode,
         "EXPRESSION_IMPORTLIB_IMPORT_MODULE_REF": generateImportModuleNameHardCode,
+        "EXPRESSION_IMPORTLIB_RELOAD_REF": generateImportModuleNameHardCode,
+        "EXPRESSION_IMPORTLIB_RELOAD_CALL": generateImportlibReloadCallCode,
         "EXPRESSION_IMPORTLIB_IMPORT_MODULE_CALL": generateImportlibImportCallCode,
         "EXPRESSION_IMPORT_NAME": generateImportNameCode,
         "EXPRESSION_LIST_OPERATION_APPEND": generateListOperationAppendCode2,
@@ -996,6 +1007,12 @@ addExpressionDispatchDict(
         "EXPRESSION_CLASS_DICT_BODY_P2": generateFunctionOutlineCode,
         "EXPRESSION_SUBSCRIPT_LOOKUP": generateSubscriptLookupCode,
         "EXPRESSION_SUBSCRIPT_LOOKUP_FOR_UNPACK": generateSubscriptLookupCode,
+        "EXPRESSION_SYS_MODULES_REF": generateSysModulesRefCode,
+        "EXPRESSION_SYS_MODULES_LOOKUP": generateSysModulesLookupCode,
+        "EXPRESSION_SYS_MODULES_GET2": generateSysModulesGetCode,
+        "EXPRESSION_SYS_MODULES_GET3": generateSysModulesGetCode,
+        "EXPRESSION_SYS_MODULES_POP2": generateSysModulesPopCode,
+        "EXPRESSION_SYS_MODULES_POP3": generateSysModulesPopCode,
         "EXPRESSION_SLICE_LOOKUP": generateSliceLookupCode,
         "EXPRESSION_SET_OPERATION_UPDATE": generateSetOperationUpdateCode,
         "EXPRESSION_SIDE_EFFECTS": generateSideEffectsCode,
@@ -1167,11 +1184,13 @@ setStatementDispatchDict(
         "STATEMENT_ASSIGNMENT_VARIABLE_HARD_VALUE": generateAssignmentVariableCode,
         "STATEMENT_ASSIGNMENT_ATTRIBUTE": generateAssignmentAttributeCode,
         "STATEMENT_ASSIGNMENT_SUBSCRIPT": generateAssignmentSubscriptCode,
+        "STATEMENT_ASSIGNMENT_SYS_MODULES_SUBSCRIPT": generateSysModulesAssignmentCode,
         "STATEMENT_ASSIGNMENT_SLICE": generateAssignmentSliceCode,
         "STATEMENT_DEL_VARIABLE_TOLERANT": generateDelVariableCode,
         "STATEMENT_DEL_VARIABLE_INTOLERANT": generateDelVariableCode,
         "STATEMENT_DEL_ATTRIBUTE": generateDelAttributeCode,
         "STATEMENT_DEL_SUBSCRIPT": generateDelSubscriptCode,
+        "STATEMENT_DEL_SYS_MODULES_SUBSCRIPT": generateSysModulesDelCode,
         "STATEMENT_DEL_SLICE": generateDelSliceCode,
         "STATEMENT_DICT_OPERATION_REMOVE": generateDictOperationRemoveCode,
         "STATEMENT_DICT_OPERATION_UPDATE": generateDictOperationUpdateCode,

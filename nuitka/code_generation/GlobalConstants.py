@@ -90,6 +90,7 @@ def getConstantDefaultPopulation():
         "classmethod",
         "keys",
         "get",
+        "pop",
         "join",
         "print",
         # Arguments of __import__ built-in used in helper code.
@@ -105,6 +106,8 @@ def getConstantDefaultPopulation():
         "w",
         "b",
         "lower",
+        "loader",
+        "reload",
         # File handling
         "/",
         "\\",
