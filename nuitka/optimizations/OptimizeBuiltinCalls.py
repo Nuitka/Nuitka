@@ -218,7 +218,7 @@ def vars_extractor(node):
 
 
 def import_extractor(node):
-    return BuiltinParameterSpecs.extractBuiltinArgs(
+    return BuiltinParameterSpecs.extractBuiltinArgsPreservingEvalOrder(
         node=node,
         builtin_class=ExpressionBuiltinImport,
         builtin_spec=BuiltinParameterSpecs.builtin_import_spec,
@@ -234,13 +234,13 @@ def type_extractor(node):
         iter_length = args.getIterationLength()
 
     if iter_length == 1:
-        return BuiltinParameterSpecs.extractBuiltinArgs(
+        return BuiltinParameterSpecs.extractBuiltinArgsPreservingEvalOrder(
             node=node,
             builtin_class=ExpressionBuiltinType1,
             builtin_spec=BuiltinParameterSpecs.builtin_type1_spec,
         )
     elif iter_length == 3:
-        return BuiltinParameterSpecs.extractBuiltinArgs(
+        return BuiltinParameterSpecs.extractBuiltinArgsPreservingEvalOrder(
             node=node,
             builtin_class=ExpressionBuiltinType3,
             builtin_spec=BuiltinParameterSpecs.builtin_type3_spec,
@@ -260,7 +260,7 @@ def iter_extractor(node):
                 callable_arg=callable_arg, sentinel=sentinel, source_ref=source_ref
             )
 
-    return BuiltinParameterSpecs.extractBuiltinArgs(
+    return BuiltinParameterSpecs.extractBuiltinArgsPreservingEvalOrder(
         node=node,
         builtin_class=wrapIterCreation,
         builtin_spec=BuiltinParameterSpecs.builtin_iter_spec,
@@ -278,7 +278,7 @@ def next_extractor(node):
                 iterator=iterator, default=default, source_ref=source_ref
             )
 
-    return BuiltinParameterSpecs.extractBuiltinArgs(
+    return BuiltinParameterSpecs.extractBuiltinArgsPreservingEvalOrder(
         node=node,
         builtin_class=selectNextBuiltinClass,
         builtin_spec=BuiltinParameterSpecs.builtin_next_spec,
@@ -294,7 +294,7 @@ def enumerate_extractor(node):
                 sequence=sequence, start=start, source_ref=source_ref
             )
 
-    return BuiltinParameterSpecs.extractBuiltinArgs(
+    return BuiltinParameterSpecs.extractBuiltinArgsPreservingEvalOrder(
         node=node,
         builtin_class=selectEnumerateBuiltin,
         builtin_spec=BuiltinParameterSpecs.builtin_enumerate_spec,
@@ -679,7 +679,7 @@ def complex_extractor(node):
                 real=real, imag=imag, source_ref=source_ref
             )
 
-    return BuiltinParameterSpecs.extractBuiltinArgs(
+    return BuiltinParameterSpecs.extractBuiltinArgsPreservingEvalOrder(
         node=node,
         builtin_class=selectComplexBuiltin,
         builtin_spec=BuiltinParameterSpecs.builtin_complex_spec,
@@ -697,7 +697,7 @@ def str_extractor(node):
 
     builtin_class = ExpressionBuiltinStrP2 if str is bytes else ExpressionBuiltinStrP3
 
-    return BuiltinParameterSpecs.extractBuiltinArgs(
+    return BuiltinParameterSpecs.extractBuiltinArgsPreservingEvalOrder(
         node=node,
         builtin_class=builtin_class,
         builtin_spec=builtin_class.builtin_spec,
@@ -747,7 +747,7 @@ else:
                     source_ref=source_ref,
                 )
 
-        return BuiltinParameterSpecs.extractBuiltinArgs(
+        return BuiltinParameterSpecs.extractBuiltinArgsPreservingEvalOrder(
             node=node,
             builtin_class=selectBytesBuiltin,
             builtin_spec=BuiltinParameterSpecs.builtin_bytes_p3_spec,
@@ -1164,7 +1164,7 @@ def compile_extractor(node):
             source_ref=source_ref,
         )
 
-    return BuiltinParameterSpecs.extractBuiltinArgs(
+    return BuiltinParameterSpecs.extractBuiltinArgsPreservingEvalOrder(
         node=node,
         builtin_class=wrapExpressionBuiltinCompileCreation,
         builtin_spec=BuiltinParameterSpecs.builtin_compile_spec,
@@ -1294,7 +1294,7 @@ def super_extractor(node):
     if not provider.isCompiledPythonModule():
         provider.discardFlag("has_super")
 
-    return BuiltinParameterSpecs.extractBuiltinArgs(
+    return BuiltinParameterSpecs.extractBuiltinArgsPreservingEvalOrder(
         node=node,
         builtin_class=wrapSuperBuiltin,
         builtin_spec=BuiltinParameterSpecs.builtin_super_spec,
@@ -1308,7 +1308,7 @@ def hasattr_extractor(node):
             expression=object, name=name, source_ref=source_ref
         )
 
-    return BuiltinParameterSpecs.extractBuiltinArgs(
+    return BuiltinParameterSpecs.extractBuiltinArgsPreservingEvalOrder(
         node=node,
         builtin_class=makeExpressionBuiltinHasattr,
         builtin_spec=BuiltinParameterSpecs.builtin_hasattr_spec,
@@ -1322,7 +1322,7 @@ def getattr_extractor(node):
             expression=object, name=name, default=default, source_ref=source_ref
         )
 
-    return BuiltinParameterSpecs.extractBuiltinArgs(
+    return BuiltinParameterSpecs.extractBuiltinArgsPreservingEvalOrder(
         node=node,
         builtin_class=makeExpressionBuiltinGetattr,
         builtin_spec=BuiltinParameterSpecs.builtin_getattr_spec,
@@ -1336,7 +1336,7 @@ def setattr_extractor(node):
             expression=object, name=name, value=value, source_ref=source_ref
         )
 
-    return BuiltinParameterSpecs.extractBuiltinArgs(
+    return BuiltinParameterSpecs.extractBuiltinArgsPreservingEvalOrder(
         node=node,
         builtin_class=makeExpressionBuiltinSetattr,
         builtin_spec=BuiltinParameterSpecs.builtin_setattr_spec,
@@ -1344,7 +1344,7 @@ def setattr_extractor(node):
 
 
 def isinstance_extractor(node):
-    return BuiltinParameterSpecs.extractBuiltinArgs(
+    return BuiltinParameterSpecs.extractBuiltinArgsPreservingEvalOrder(
         node=node,
         builtin_class=ExpressionBuiltinIsinstance,
         builtin_spec=BuiltinParameterSpecs.builtin_isinstance_spec,
@@ -1352,7 +1352,7 @@ def isinstance_extractor(node):
 
 
 def issubclass_extractor(node):
-    return BuiltinParameterSpecs.extractBuiltinArgs(
+    return BuiltinParameterSpecs.extractBuiltinArgsPreservingEvalOrder(
         node=node,
         builtin_class=ExpressionBuiltinIssubclass,
         builtin_spec=BuiltinParameterSpecs.builtin_isinstance_spec,
@@ -1371,7 +1371,7 @@ def bytearray_extractor(node):
                 string=source, encoding=encoding, errors=errors, source_ref=source_ref
             )
 
-    return BuiltinParameterSpecs.extractBuiltinArgs(
+    return BuiltinParameterSpecs.extractBuiltinArgsPreservingEvalOrder(
         node=node,
         builtin_class=selectBytearrayBuiltinClass,
         builtin_spec=BuiltinParameterSpecs.builtin_bytearray_spec,
@@ -1391,7 +1391,7 @@ def slice_extractor(node):
             start=start, stop=stop, step=step, source_ref=source_ref
         )
 
-    return BuiltinParameterSpecs.extractBuiltinArgs(
+    return BuiltinParameterSpecs.extractBuiltinArgsPreservingEvalOrder(
         node=node,
         builtin_class=wrapSlice,
         builtin_spec=BuiltinParameterSpecs.builtin_slice_spec,
@@ -1423,7 +1423,7 @@ def format_extractor(node):
             exception=TypeError("format() takes at least 1 argument (0 given)"),
         )
 
-    return BuiltinParameterSpecs.extractBuiltinArgs(
+    return BuiltinParameterSpecs.extractBuiltinArgsPreservingEvalOrder(
         node=node,
         builtin_class=ExpressionBuiltinFormat,
         builtin_spec=BuiltinParameterSpecs.builtin_format_spec,
@@ -1628,6 +1628,11 @@ def computeBuiltinCall(builtin_name, call_node, trace_collection):
             return call_node, None, None
 
         new_node = _dispatch_dict[builtin_name](call_node)
+
+        # The extractor can refuse to specialize the call, e.g. to preserve
+        # the evaluation order of keyword arguments, then keep the call.
+        if new_node is None:
+            return call_node, None, None
 
         assert new_node is not call_node, builtin_name
         assert new_node is not None, builtin_name
