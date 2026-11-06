@@ -843,6 +843,47 @@ def extractBuiltinArgs(node, builtin_spec, builtin_class, empty_special_class=No
     return result
 
 
+def extractBuiltinArgsPreservingEvalOrder(
+    node, builtin_class, builtin_spec, empty_special_class=None
+):
+    """Extract built-in call args, unless keyword evaluation order changes.
+
+    Keyword arguments are evaluated in the order they are given in the
+    source, but the built-in node will evaluate its children in parameter
+    order. When the given keyword order differs from the parameter order,
+    and any of the values can have side effects, return None, so the call
+    is not specialized. Without side effects, the order is not observable,
+    and the arguments can be passed on as they are.
+    """
+    if builtin_spec.allowsKeywords() and builtin_spec.getStarDictArgumentName() is None:
+        kw = node.subnode_kwargs
+
+        if kw is not None and kw.isMappingWithConstantStringKeys():
+            pairs = kw.getMappingStringKeyPairs()
+
+            if pairs:
+                given_names = tuple(name for name, _value in pairs)
+
+                spec_names = tuple(builtin_spec.getArgumentNames()) + tuple(
+                    builtin_spec.getKwOnlyParameterNames()
+                )
+
+                if tuple(
+                    name for name in spec_names if name in given_names
+                ) != given_names and any(
+                    value.mayHaveSideEffects() or value.mayRaiseException(BaseException)
+                    for _name, value in pairs
+                ):
+                    return None
+
+    return extractBuiltinArgs(
+        node=node,
+        builtin_class=builtin_class,
+        builtin_spec=builtin_spec,
+        empty_special_class=empty_special_class,
+    )
+
+
 class BuiltinMethodParameterSpecBase(BuiltinParameterSpec):
     __slots__ = ()
 
