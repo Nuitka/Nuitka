@@ -15,7 +15,11 @@ quickly, in others they will present boundaries for optimization.
 
 import os
 
-from nuitka.options.Options import getFileReferenceMode, getModuleNameMode
+from nuitka.options.Options import (
+    getFileReferenceMode,
+    getModuleForceNamespace,
+    getModuleNameMode,
+)
 
 from .ConstantRefNodes import makeConstantRefNode
 from .ExpressionBases import ExpressionBase
@@ -113,17 +117,32 @@ class ExpressionModuleAttributeNameRef(ExpressionModuleAttributeBase):
     kind = "EXPRESSION_MODULE_ATTRIBUTE_NAME_REF"
 
     def computeExpressionRaw(self, trace_collection):
-        # For binaries, we can know it definite, but not for modules.
-
-        if getModuleNameMode() != "runtime":
-            result = makeConstantRefNode(
-                constant=self.variable.getModule().getRuntimeNameValue(),
-                source_ref=self.source_ref,
-            )
-
-            return result, "new_expression", "Using constant '__name__' value."
-
+        # The factory only creates this node when the module name is runtime
+        # dependent, so there is nothing to fold here.
         return self, None, None
+
+
+def makeExpressionModuleAttributeNameRef(variable, source_ref):
+    """Create the best node for a module '__name__' reference.
+
+    Notes:
+        When the module name is known at compile time, this returns a constant
+        immediately instead of waiting for optimization.
+
+    Args:
+        variable: Module variable of the '__name__' attribute.
+        source_ref: Source reference.
+
+    Returns:
+        Expression node.
+    """
+    if getModuleNameMode() != "runtime" or getModuleForceNamespace() is not None:
+        return makeConstantRefNode(
+            constant=variable.getModule().getRuntimeNameValue(),
+            source_ref=source_ref,
+        )
+
+    return ExpressionModuleAttributeNameRef(variable=variable, source_ref=source_ref)
 
 
 class ExpressionModuleAttributePackageRef(ExpressionModuleAttributeBase):
@@ -137,17 +156,32 @@ class ExpressionModuleAttributePackageRef(ExpressionModuleAttributeBase):
     kind = "EXPRESSION_MODULE_ATTRIBUTE_PACKAGE_REF"
 
     def computeExpressionRaw(self, trace_collection):
-        # For binaries, we can know it definite, but not for modules.
-
-        if getModuleNameMode() != "runtime":
-            provider = self.variable.getModule()
-            value = provider.getRuntimePackageValue()
-
-            result = makeConstantRefNode(constant=value, source_ref=self.source_ref)
-
-            return result, "new_expression", "Using constant '__package__' value."
-
+        # The factory only creates this node when the module package is runtime
+        # dependent, so there is nothing to fold here.
         return self, None, None
+
+
+def makeExpressionModuleAttributePackageRef(variable, source_ref):
+    """Create the best node for a module '__package__' reference.
+
+    Notes:
+        When the module package is known at compile time, this returns a
+        constant immediately instead of waiting for optimization.
+
+    Args:
+        variable: Module variable of the '__package__' attribute.
+        source_ref: Source reference.
+
+    Returns:
+        Expression node.
+    """
+    if getModuleNameMode() != "runtime" or getModuleForceNamespace() is not None:
+        return makeConstantRefNode(
+            constant=variable.getModule().getRuntimePackageValue(),
+            source_ref=source_ref,
+        )
+
+    return ExpressionModuleAttributePackageRef(variable=variable, source_ref=source_ref)
 
 
 class ExpressionModuleAttributeLoaderRef(ExpressionModuleAttributeBase):

@@ -1151,6 +1151,9 @@ library. Please upgrade/downgrade to a supported micro version.""")
                 % default_reference_mode
             )
 
+    if options.module_force_namespace is not None:
+        _warningModuleModeOnlyOption("--module-force-namespace")
+
     default_mode_name_mode = "runtime" if shallMakeModule() else "original"
 
     if getModuleNameMode() is None:
@@ -1609,6 +1612,20 @@ def getModuleNameMode():
     """
 
     return options.module_name_mode
+
+
+def getModuleForceNamespace():
+    """*str* or None, coming from ``--module-force-namespace``
+
+    Notes:
+        Only meaningful in module mode. An empty string forces top level
+        loading, a non-empty value forces loading below that package.
+    """
+
+    if not shallMakeModule():
+        return None
+
+    return options.module_force_namespace
 
 
 def shallMakeModule():

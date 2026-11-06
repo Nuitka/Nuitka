@@ -25,9 +25,9 @@ from .ExpressionBases import ExpressionBase, ExpressionNoSideEffectsMixin
 from .ModuleAttributeNodes import (
     ExpressionModuleAttributeFileRef,
     ExpressionModuleAttributeLoaderRef,
-    ExpressionModuleAttributeNameRef,
-    ExpressionModuleAttributePackageRef,
     ExpressionModuleAttributeSpecRef,
+    makeExpressionModuleAttributeNameRef,
+    makeExpressionModuleAttributePackageRef,
 )
 from .NodeMakingHelpers import (
     makeRaiseExceptionReplacementExpression,
@@ -527,7 +527,7 @@ Module variable '%s' found to be built-in reference.""" % (variable_name)
                     change_tags = None
                     change_desc = None
             elif variable_name == "__name__":
-                new_node = ExpressionModuleAttributeNameRef(
+                new_node = makeExpressionModuleAttributeNameRef(
                     variable=variable, source_ref=self.source_ref
                 )
 
@@ -535,7 +535,7 @@ Module variable '%s' found to be built-in reference.""" % (variable_name)
                 change_desc = """\
 Replaced read-only module attribute '__name__' with module attribute reference."""
             elif variable_name == "__package__":
-                new_node = ExpressionModuleAttributePackageRef(
+                new_node = makeExpressionModuleAttributePackageRef(
                     variable=variable, source_ref=self.source_ref
                 )
 

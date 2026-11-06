@@ -28,7 +28,9 @@ from nuitka.nodes.LocalsDictNodes import (
     StatementReleaseLocals,
     StatementSetLocalsDictionary,
 )
-from nuitka.nodes.ModuleAttributeNodes import ExpressionModuleAttributeNameRef
+from nuitka.nodes.ModuleAttributeNodes import (
+    makeExpressionModuleAttributeNameRef,
+)
 from nuitka.nodes.NodeMakingHelpers import mergeStatementsWithNone
 from nuitka.nodes.OutlineNodes import ExpressionOutlineBody
 from nuitka.nodes.ReturnNodes import StatementReturn
@@ -108,7 +110,7 @@ def buildClassNode2(provider, node, source_ref):
         StatementAssignmentVariableName(
             provider=function_body,
             variable_name="__module__",
-            source=ExpressionModuleAttributeNameRef(
+            source=makeExpressionModuleAttributeNameRef(
                 variable=provider.getParentModule().getVariableForReference("__name__"),
                 source_ref=source_ref,
             ),

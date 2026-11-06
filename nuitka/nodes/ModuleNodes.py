@@ -20,6 +20,7 @@ from nuitka.ModuleRegistry import getModuleByName, getOwnerFromCodeName
 from nuitka.optimizations.TraceCollections import TraceCollectionModule
 from nuitka.options.Options import (
     getFileReferenceMode,
+    getModuleForceNamespace,
     hasPythonFlagIsolated,
     hasPythonFlagPackageMode,
     shallMakeModule,
@@ -754,6 +755,21 @@ class CompiledPythonModule(
         return self.locals_scope
 
     def getRuntimePackageValue(self):
+        # Many cases for main, package and forced namespace variants.
+        # pylint: disable=too-many-return-statements
+        force_namespace = getModuleForceNamespace()
+
+        if force_namespace is not None:
+            runtime_name = self.getRuntimeNameValue()
+
+            if self.isCompiledPythonPackage():
+                return runtime_name
+
+            if "." in runtime_name:
+                return runtime_name.rsplit(".", 1)[0]
+
+            return ""
+
         if self.isCompiledPythonPackage():
             return self.getFullName().asString()
 
@@ -775,8 +791,18 @@ class CompiledPythonModule(
             return "__main__"
         elif self.module_name.isMultidistModuleName():
             return "__main__"
-        else:
-            return self.getFullName().asString()
+
+        force_namespace = getModuleForceNamespace()
+
+        if force_namespace is not None:
+            full_name = self.getFullName().asString()
+
+            if force_namespace:
+                return force_namespace + "." + full_name
+
+            return full_name
+
+        return self.getFullName().asString()
 
 
 class CompiledPythonPackage(CompiledPythonModule):
