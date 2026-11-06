@@ -71,7 +71,9 @@ from nuitka.nodes.LocalsDictNodes import (
     StatementSetLocals,
 )
 from nuitka.nodes.LoopNodes import StatementLoop, StatementLoopBreak
-from nuitka.nodes.ModuleAttributeNodes import ExpressionModuleAttributeNameRef
+from nuitka.nodes.ModuleAttributeNodes import (
+    makeExpressionModuleAttributeNameRef,
+)
 from nuitka.nodes.NodeMakingHelpers import (
     makeRaiseExceptionExpressionFromTemplate,
     mergeStatementsWithNone,
@@ -409,7 +411,7 @@ def buildClassNode3(provider, node, source_ref):
         StatementAssignmentVariableName(
             provider=class_dict_creation_function,
             variable_name="__module__",
-            source=ExpressionModuleAttributeNameRef(
+            source=makeExpressionModuleAttributeNameRef(
                 variable=parent_module.getVariableForReference("__name__"),
                 source_ref=source_ref,
             ),

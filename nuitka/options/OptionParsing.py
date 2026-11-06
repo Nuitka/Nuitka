@@ -1038,6 +1038,19 @@ deduce the value of "__package__", to be fully compatible. The value "original"
 is incompatible for modules that normally can be loaded into any package.""",
 )
 
+compilation_group.add_option(
+    "--module-force-namespace",
+    action="store",
+    dest="module_force_namespace",
+    metavar="NAMESPACE",
+    default=None,
+    help="""\
+Require this compiled module to be loaded below the given namespace. An empty
+namespace means the module can only be loaded at top level, a non-empty value
+means it can only be loaded as a submodule of that package. This makes
+"__name__" and "__package__" compile time constants. Only valid in module mode.""",
+)
+
 
 del compilation_group
 
