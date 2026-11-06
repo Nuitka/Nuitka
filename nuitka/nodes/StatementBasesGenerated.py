@@ -2869,6 +2869,7 @@ class _StatementChildrenHavingSourceSubscribedSubscriptOperationMixin(StatementB
 
     # This is generated for use in
     #   StatementAssignmentSubscript
+    #   StatementAssignmentSysModulesSubscript
 
     def __init__(self, source, subscribed, subscript, source_ref):
         source.parent = self
@@ -2994,6 +2995,9 @@ class _StatementChildrenHavingSourceSubscribedSubscriptOperationMixin(StatementB
 
 # Assign the names that are easier to import with a stable name.
 StatementAssignmentSubscriptBase = (
+    _StatementChildrenHavingSourceSubscribedSubscriptOperationMixin
+)
+StatementAssignmentSysModulesSubscriptBase = (
     _StatementChildrenHavingSourceSubscribedSubscriptOperationMixin
 )
 
@@ -3279,6 +3283,7 @@ class _StatementChildrenHavingSubscribedSubscriptOperationMixin(StatementBase):
 
     # This is generated for use in
     #   StatementDelSubscript
+    #   StatementDelSysModulesSubscript
 
     def __init__(self, subscribed, subscript, source_ref):
         subscribed.parent = self
@@ -3386,6 +3391,9 @@ class _StatementChildrenHavingSubscribedSubscriptOperationMixin(StatementBase):
 
 # Assign the names that are easier to import with a stable name.
 StatementDelSubscriptBase = _StatementChildrenHavingSubscribedSubscriptOperationMixin
+StatementDelSysModulesSubscriptBase = (
+    _StatementChildrenHavingSubscribedSubscriptOperationMixin
+)
 
 
 class _StatementChildrenHavingTriedStatementsExceptHandlerOptionalStatementsOrNoneBreakHandlerOptionalStatementsOrNoneContinueHandlerOptionalStatementsOrNoneReturnHandlerOptionalStatementsOrNonePostInitMixin(

@@ -207,6 +207,18 @@ from .DictionaryNodes import {{translateNodeClassName("ExpressionDictOperation" 
 from .DictionaryNodes import ExpressionDictOperation{{attribute_name_class}}Ref
 {% endif %}
 
+{% if attribute_name == "get" %}
+from .SysModulesNodes import (
+    makeExpressionSysModulesGet2,
+    makeExpressionSysModulesGet3,
+)
+{% elif attribute_name == "pop" %}
+from .SysModulesNodes import (
+    makeExpressionSysModulesPop2,
+    makeExpressionSysModulesPop3,
+)
+{% endif %}
+
 class ExpressionAttributeLookupDict{{attribute_name_class}}(SideEffectsFromChildrenMixin, ExpressionAttributeLookupFixed{{attribute_name_class}}):
     """Attribute '{{attribute_name}}' lookup on a dict value.
 
@@ -238,6 +250,37 @@ class ExpressionAttributeLookupDict{{attribute_name_class}}(SideEffectsFromChild
     @staticmethod
     def _computeExpressionCall(call_node, dict_arg, trace_collection):
         def wrapExpressionDictOperation{{attribute_name_class}}({{formatArgs(dict_operation_args, starting=True, finishing=False)}} source_ref):
+{% if attribute_name == "get" %}
+            if dict_arg.isExpressionSysModulesRef():
+                if default is not None:
+                    return makeExpressionSysModulesGet3(
+                        dict_arg=dict_arg,
+                        key=key,
+                        default=default,
+                        source_ref=source_ref,
+                    )
+                else:
+                    return makeExpressionSysModulesGet2(
+                        dict_arg=dict_arg,
+                        key=key,
+                        source_ref=source_ref,
+                    )
+{% elif attribute_name == "pop" %}
+            if dict_arg.isExpressionSysModulesRef():
+                if default is not None:
+                    return makeExpressionSysModulesPop3(
+                        dict_arg=dict_arg,
+                        key=key,
+                        default=default,
+                        source_ref=source_ref,
+                    )
+                else:
+                    return makeExpressionSysModulesPop2(
+                        dict_arg=dict_arg,
+                        key=key,
+                        source_ref=source_ref,
+                    )
+{% endif %}
 {% if python3_operation_name %}
             if str is bytes:
                 return ExpressionDictOperation{{attribute_name_class}}(

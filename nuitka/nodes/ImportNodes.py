@@ -779,6 +779,10 @@ importlib_import_module_spec = BuiltinParameterSpec(
     "importlib.import_module", ("name", "package"), default_count=1
 )
 
+importlib_reload_spec = BuiltinParameterSpec(
+    "importlib.reload", ("module",), default_count=0
+)
+
 
 class ExpressionImportlibImportModuleRef(
     ExpressionImportModuleNameHardExistsSpecificBase
@@ -810,6 +814,63 @@ class ExpressionImportlibImportModuleRef(
         )
 
         return result, "new_expression", "Call of 'importlib.import_module' recognized."
+
+
+class ExpressionImportlibReloadRef(ExpressionImportModuleNameHardExistsSpecificBase):
+    """Reference to "importlib.reload"."""
+
+    kind = "EXPRESSION_IMPORTLIB_RELOAD_REF"
+
+    def __init__(self, source_ref):
+        ExpressionImportModuleNameHardExistsSpecificBase.__init__(
+            self,
+            module_name="importlib",
+            import_name="reload",
+            module_guaranteed=True,
+            source_ref=source_ref,
+        )
+
+    @staticmethod
+    def getDetails():
+        return {}
+
+    def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        result = extractBuiltinArgs(
+            node=call_node,
+            builtin_class=ExpressionImportlibReloadCall,
+            builtin_spec=importlib_reload_spec,
+        )
+
+        return result, "new_expression", "Call of 'importlib.reload' recognized."
+
+
+class ExpressionImportlibReloadCall(ChildHavingModuleMixin, ExpressionBase):
+    """Call to "importlib.reload", handled through the Nuitka loader."""
+
+    kind = "EXPRESSION_IMPORTLIB_RELOAD_CALL"
+
+    named_children = ("module",)
+
+    def __init__(self, module, source_ref):
+        ChildHavingModuleMixin.__init__(self, module=module)
+
+        ExpressionBase.__init__(self, source_ref)
+
+    @staticmethod
+    def mayHaveSideEffects():
+        return True
+
+    @staticmethod
+    def mayRaiseException(exception_type):
+        return True
+
+    def computeExpression(self, trace_collection):
+        trace_collection.onControlFlowEscape(self)
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        return self, None, None
 
 
 def _getImportNameAsStr(value):
@@ -934,6 +995,8 @@ class ExpressionImportlibImportModuleCall(
 addModuleSingleAttributeNodeFactory(
     "importlib", "import_module", ExpressionImportlibImportModuleRef
 )
+
+addModuleSingleAttributeNodeFactory("importlib", "reload", ExpressionImportlibReloadRef)
 
 if python_version >= 0x300:
     # In Python3 "io.open" is the same function as "open", therefore we handle

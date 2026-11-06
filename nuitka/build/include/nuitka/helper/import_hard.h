@@ -52,6 +52,11 @@ extern PyObject *IMPORT_HARD_CTYPES__WINTYPES(void);
 /* C helper for hard import of module "functools" import. */
 extern PyObject *IMPORT_HARD_FUNCTOOLS(void);
 
+/* C helper for hard import of module "imp" import. */
+#if PYTHON_VERSION < 0x300
+extern PyObject *IMPORT_HARD_IMP(void);
+#endif
+
 /* C helper for hard import of module "importlib" import. */
 extern PyObject *IMPORT_HARD_IMPORTLIB(void);
 

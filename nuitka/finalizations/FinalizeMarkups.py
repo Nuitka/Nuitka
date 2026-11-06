@@ -15,6 +15,7 @@ are in another context.
 """
 
 from nuitka import Tracing
+from nuitka.ModuleRegistry import getModuleByName
 from nuitka.PythonVersions import python_version
 from nuitka.tree.Operations import VisitorNoopMixin
 
@@ -36,6 +37,14 @@ class FinalizeMarkups(VisitorNoopMixin):
     def _onEnterNode(self, node):
         # This has many different things it deals with, so there need to be a
         # lot of branches and statements, pylint: disable=too-many-branches
+
+        module_name = node.needsModuleValueSetter()
+
+        if module_name is not None:
+            module = getModuleByName(module_name)
+
+            if module is not None:
+                module.markModuleValueSetterNeeded()
 
         if node.isExpressionFunctionCreation() and (
             not node.getParent().isExpressionFunctionCall()

@@ -1109,6 +1109,11 @@ through implicit import by '%s' plugin encountered."""
         for plugin in getActivePlugins():
             plugin.onDllTags(included_entry_point)
 
+    @staticmethod
+    def isTriggerModule(module):
+        """Check if a module is a pre/post load trigger module."""
+        return isTriggerModule(module)
+
     @classmethod
     def _createTriggerLoadedModule(cls, module, trigger_name, code, flags):
         """Create a "trigger" for a module to be imported.

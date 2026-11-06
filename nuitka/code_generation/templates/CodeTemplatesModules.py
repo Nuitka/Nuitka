@@ -259,6 +259,18 @@ static PyObject *module_code_%(module_identifier)s(PyThreadState *tstate, PyObje
         CHECK_OBJECT(real_module_name);
         module_full_name = strdup(Nuitka_String_AsString(real_module_name));
 
+        if (%(module_force_namespace)s != NULL && strcmp(module_full_name, %(module_force_name)s) != 0) {
+            PyErr_Format(
+                PyExc_ImportError,
+                "Module '%%s' must be loaded as '%%s', but was loaded as '%%s'",
+                %(module_name_cstr)s,
+                %(module_force_name)s,
+                module_full_name
+            );
+
+            return NULL;
+        }
+
         createGlobalConstants(tstate, real_module_name);
 
         /* Initialize the compiled types of Nuitka. */
@@ -612,7 +624,7 @@ NUITKA_MODULE_INIT_FUNCTION (%(module_dll_entry_point)s)(void) {
     PyObject *module = PyModule_Create(&mdef_%(module_identifier)s);
     CHECK_OBJECT(module);
 
-    {
+    if ((entry_%(module_identifier)s.flags & NUITKA_INTERNAL_MODULE_FLAG) == 0) {
         NUITKA_MAY_BE_UNUSED bool res = Nuitka_SetModuleString(tstate, module_full_name, module);
         assert(res != false);
     }
@@ -661,11 +673,42 @@ template_module_exception_exit = """\
 template_module_no_exception_exit = """\
 }"""
 
+template_module_set_value = """\
+static void module_set_value_%(module_identifier)s(struct Nuitka_MetaPathBasedLoaderEntry const *entry, PyObject *value, uint64_t reserved) {
+    (void)entry;
+
+    // NUITKA_MODULE_SET_VALUE_RESERVED(%(module_identifier)s, reserved);
+    (void)reserved;
+
+    PyObject *old_value = module_value_%(module_identifier)s;
+
+    Py_XINCREF(value);
+    module_value_%(module_identifier)s = value;
+    Py_XDECREF(old_value);
+}"""
+
 template_module_compiled_importer = """\
 static PyThreadState *module_owner_%(module_identifier)s = NULL;
+static PyObject *module_value_%(module_identifier)s = NULL;
+
+static PyObject *module_get_value_%(module_identifier)s(PyThreadState *tstate, struct Nuitka_MetaPathBasedLoaderEntry const *entry, bool include_loaded) {
+    (void)tstate;
+    (void)entry;
+
+    PyObject *value = module_value_%(module_identifier)s;
+
+    if (value == NULL && include_loaded) {
+        value = module_%(module_identifier)s;
+    }
+
+    Py_XINCREF(value);
+    return value;
+}
+
+%(module_set_value_code)s
 
 static PyObject *module_import_%(module_identifier)s(PyThreadState *tstate, struct Nuitka_MetaPathBasedLoaderEntry const *entry, PyObject *module) {
-    return IMPORT_COMPILED_MODULE(tstate, &entry_%(module_identifier)s, &module_%(module_identifier)s, &module_owner_%(module_identifier)s, module);
+    return IMPORT_COMPILED_MODULE(tstate, &entry_%(module_identifier)s, &module_%(module_identifier)s, &module_owner_%(module_identifier)s, &module_value_%(module_identifier)s, module);
 }"""
 
 template_module_loader_entry = """\
@@ -673,7 +716,7 @@ template_module_loader_entry = """\
 %(module_loader_entry_body)s
 %(module_importer_wrapper)s
 struct Nuitka_MetaPathBasedLoaderEntry entry_%(module_identifier)s = {
-    %(module_name)s, %(get_name_func)s, %(compare_name_func)s, %(get_display_name)s, %(pre_load)s, %(post_load)s, %(parent)s, module_code_%(module_identifier)s, module_import_%(module_identifier)s, NULL, NULL, 0, 0, %(flags)s
+    %(module_name)s, %(get_name_func)s, %(compare_name_func)s, %(get_display_name)s, %(pre_load)s, %(post_load)s, %(parent)s, module_code_%(module_identifier)s, module_import_%(module_identifier)s, &module_%(module_identifier)s, &module_owner_%(module_identifier)s, module_get_value_%(module_identifier)s, %(module_set_value_ref)s, 0, 0, %(flags)s
 #if defined(_NUITKA_FREEZER_HAS_FILE_PATH)
     , %(file_path)s
 #endif

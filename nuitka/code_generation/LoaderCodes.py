@@ -31,7 +31,7 @@ from nuitka.options.Options import (
     shallMakeModule,
     shallUseDirectConstantBlobs,
 )
-from nuitka.plugins.Hooks import onMetaPathLoaderEntryTemplate
+from nuitka.plugins.Hooks import isTriggerModule, onMetaPathLoaderEntryTemplate
 from nuitka.PythonVersions import python_version
 from nuitka.Tracing import inclusion_logger
 from nuitka.utils.CStrings import (
@@ -58,6 +58,7 @@ from .templates.CodeTemplatesLoader import (
 from .templates.CodeTemplatesModules import (
     template_module_compiled_importer,
     template_module_loader_entry,
+    template_module_set_value,
 )
 
 
@@ -162,6 +163,9 @@ def _getModuleEntryCommonArgs(module):
     if module.isMainModule():
         flags.append("NUITKA_MAIN_MODULE_FLAG")
 
+    if isTriggerModule(module):
+        flags.append("NUITKA_INTERNAL_MODULE_FLAG")
+
     pre_load_entry, post_load_entry, parent_entry = _getModuleEntryRefs(module_name)
 
     return {
@@ -177,6 +181,20 @@ def _getModuleEntryCommonArgs(module):
     }
 
 
+def _getModuleSetValueArgs(module, module_identifier):
+    if module.isModuleValueSetterNeeded():
+        return {
+            "module_set_value_code": template_module_set_value
+            % {"module_identifier": module_identifier},
+            "module_set_value_ref": "module_set_value_%s" % module_identifier,
+        }
+
+    return {
+        "module_set_value_code": "",
+        "module_set_value_ref": "NULL",
+    }
+
+
 def getModuleLoaderEntryCode(module):
     module_identifier = module.getCodeName()
 
@@ -188,8 +206,12 @@ def getModuleLoaderEntryCode(module):
     template_args["entry_name"] = getModuleEntryCodeName(module.getFullName())
     template_args["module_identifier"] = module_identifier
     template_args["module_loader_entry_body"] = ""
+    template_args.update(
+        _getModuleSetValueArgs(module=module, module_identifier=module_identifier)
+    )
     template_args["module_importer_wrapper"] = template_module_compiled_importer % {
-        "module_identifier": module_identifier
+        "module_identifier": module_identifier,
+        "module_set_value_code": template_args["module_set_value_code"],
     }
     template_args["template"] = template_module_loader_entry
 
@@ -215,8 +237,12 @@ def getModuleMetaPathLoaderEntryCode(module, bytecode_accessor, entry_name):
     # modules, their code name is derived from the full name only.
     module_identifier = getModuleEntryIdentifier(module.getFullName())
     template_args["module_identifier"] = module_identifier
+    template_args.update(
+        _getModuleSetValueArgs(module=module, module_identifier=module_identifier)
+    )
     template_args["module_state_decls"] = template_metapath_loader_module_state % {
-        "module_identifier": module_identifier
+        "module_identifier": module_identifier,
+        "module_set_value_code": template_args["module_set_value_code"],
     }
 
     if module.isUncompiledPythonModule():

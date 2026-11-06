@@ -357,6 +357,11 @@ class NodeBase(NodeMetaClassBase):
         return False
 
     @staticmethod
+    def needsModuleValueSetter():
+        # Virtual method for nodes that modify "sys.modules" for a module.
+        return None
+
+    @staticmethod
     def isExpressionBuiltinCall():
         return False
 

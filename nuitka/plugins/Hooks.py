@@ -107,6 +107,11 @@ def onMetaPathLoaderEntryTemplate(module, template_args):
     Plugins.onMetaPathLoaderEntryTemplate(module=module, template_args=template_args)
 
 
+def isTriggerModule(module):
+    """Check if a module is a pre/post load trigger module."""
+    return Plugins.isTriggerModule(module)
+
+
 def getPreprocessorSymbols(onefile):
     """Let plugins provide C defines to be used in compilation.
 
