@@ -32,8 +32,16 @@ del sys.path[0]
 # We expect `uv_build` to be installed in the environment running this script.
 try:
     import uv_build
-except ImportError:
-    sys.exit("Error, 'uv_build' not installed in this environment.")
+except ImportError as e:
+    # It might be installed, but fail to import something it needs.
+    if getattr(e, "name", "uv_build") != "uv_build":
+        sys.exit("Error, 'uv_build' failed to import: %s" % e)
+
+    sys.exit("""\
+Error, 'uv_build' is not installed for '%s', but it is needed for '--project' \
+with 'build-backend = "uv_build"'. The 'requires' of '[build-system]' in the \
+'pyproject.toml' are not installed automatically, install it, e.g. with \
+'%s -m pip install uv_build'.""" % (sys.executable, sys.executable))
 
 
 # uv_build requires 'uv-build' or 'uv' executable to be in PATH.
