@@ -36,8 +36,11 @@ def _maybeVirtualEnv(path):
 
 
 def _handleUvConfig(logger, pyproject_data):
-    uv_config = dict(pyproject_data.get("tool", {}).get("uv", {}))
-    uv_build_config = dict(uv_config.pop("build-backend", {}))
+    # The other keys of "[tool.uv]", e.g. "sources" or "index", configure how
+    # uv resolves and installs dependencies, not how the project is built, so
+    # only "[tool.uv.build-backend]" is relevant here.
+    uv_config = pyproject_data.get("tool", {}).get("uv", {})
+    uv_build_config = dict(uv_config.get("build-backend", {}))
 
     module_root = uv_build_config.pop("module-root", None)
     if module_root is not None:
@@ -55,12 +58,6 @@ Unhandled UV build backend config key '%s' in [tool.uv.build-backend] of the \
 'pyproject.toml', we might have to ignore list or handle it: %s"""
                 % (unhandled_key, uv_build_config[unhandled_key])
             )
-
-    if uv_config:
-        for unhandled_key in uv_config:
-            logger.warning("""\
-Unhandled UV config key '%s' in [tool.uv] of the 'pyproject.toml', we might \
-have to ignore list or handle it: %s""" % (unhandled_key, uv_config[unhandled_key]))
 
 
 def getUvBuildConfiguration(logger, pyproject_data):
