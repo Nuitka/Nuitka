@@ -4,16 +4,16 @@
 # We are not avoiding these in generated code at all
 # pylint: disable=I0021,line-too-long,too-many-instance-attributes,too-many-lines
 # pylint: disable=too-many-arguments,too-many-return-statements,too-many-statements
-# pylint: disable=literal-comparison
+# pylint: disable=chained-comparison,literal-comparison
 
 
 """Children having mixins
 
 WARNING, this code is GENERATED. Modify the template ChildrenHavingMixin.py.j2 instead!
 
-spell-checker: ignore __prepare__ append args autograph buffering capitalize casefold
-spell-checker: ignore center chars clear closefd copy count decode default delete dist
-spell-checker: ignore distribution_name encode encoding end endswith errors exit_code
+spell-checker: ignore __prepare__ anchor append args autograph buffering capitalize
+spell-checker: ignore casefold center chars clear closefd copy count decode default delete
+spell-checker: ignore dist distribution_name encode encoding end endswith errors exit_code
 spell-checker: ignore expandtabs experimental_attributes experimental_autograph_options
 spell-checker: ignore experimental_compile experimental_follow_type_hints
 spell-checker: ignore experimental_implements experimental_relax_shapes extend file
@@ -194,6 +194,291 @@ ChildrenCompiledPythonPackageMixin = (
 )
 ChildrenPythonMainModuleMixin = (
     ModuleChildrenHavingBodyOptionalStatementsOrNoneFunctionsTupleMixin
+)
+
+
+class ChildHavingAnchorOptionalMixin(object):
+    # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
+    __slots__ = ()
+
+    # This is generated for use in
+    #   ExpressionImportlibResourcesFiles
+    #   ExpressionImportlibResourcesFilesSince315Call
+
+    def __init__(
+        self,
+        anchor,
+    ):
+        if anchor is not None:
+            anchor.parent = self
+
+        self.subnode_anchor = anchor
+
+    def getVisitableNodes(self):
+        """The visitable nodes, with tuple values flattened."""
+
+        if self.subnode_anchor is None:
+            return ()
+
+        return (self.subnode_anchor,)
+
+    def getVisitableNodesNamed(self):
+        """Named children dictionary.
+
+        For use in cloning nodes, debugging and XML output.
+        """
+
+        return (("anchor", self.subnode_anchor),)
+
+    def replaceChild(self, old_node, new_node):
+        value = self.subnode_anchor
+        if old_node is value:
+            if new_node is not None:
+                new_node.parent = self
+
+            self.subnode_anchor = new_node
+
+            return
+
+        raise AssertionError("Didn't find child", old_node, "in", self)
+
+    def getCloneArgs(self):
+        """Get clones of all children to pass for a new node.
+
+        Needs to make clones of child nodes too.
+        """
+
+        values = {
+            "anchor": (
+                self.subnode_anchor.makeClone()
+                if self.subnode_anchor is not None
+                else None
+            ),
+        }
+
+        values.update(self.getDetails())
+
+        return values
+
+    def finalize(self):
+        del self.parent
+
+        if self.subnode_anchor is not None:
+            self.subnode_anchor.finalize()
+        del self.subnode_anchor
+
+    def computeExpressionRaw(self, trace_collection):
+        """Compute an expression.
+
+        Default behavior is to just visit the child expressions first, and
+        then the node "computeExpression". For a few cases this needs to
+        be overloaded, e.g. conditional expressions.
+        """
+
+        # First apply the sub-expression, as they it's evaluated before.
+        expression = self.subnode_anchor
+
+        if expression is not None:
+            expression = trace_collection.onExpression(expression)
+
+            if expression.willRaiseAnyException():
+                return (
+                    expression,
+                    "new_raise",
+                    lambda: "For '%s' the child expression '%s' will raise."
+                    % (self.getChildNameNice(), expression.getChildNameNice()),
+                )
+
+        # Then ask ourselves to work on it.
+        return self.computeExpression(trace_collection)
+
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
+
+        self.undoVariableTracing()
+
+    # For overload only
+    @staticmethod
+    def undoVariableTracing():
+        pass
+
+    def collectVariableAccesses(self, emit_variable):
+        """Collect variable reads and writes of child nodes."""
+
+        subnode_anchor = self.subnode_anchor
+
+        if subnode_anchor is not None:
+            self.subnode_anchor.collectVariableAccesses(emit_variable)
+
+
+# Assign the names that are easier to import with a stable name.
+ChildrenExpressionImportlibResourcesFilesMixin = ChildHavingAnchorOptionalMixin
+ChildrenExpressionImportlibResourcesFilesSince315CallMixin = (
+    ChildHavingAnchorOptionalMixin
+)
+
+
+class ChildrenHavingAnchorOptionalPackageOptionalMixin(object):
+    # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
+    __slots__ = ()
+
+    # This is generated for use in
+    #   ExpressionImportlibResourcesFiles
+    #   ExpressionImportlibResourcesFilesSince312Call
+
+    def __init__(
+        self,
+        anchor,
+        package,
+    ):
+        if anchor is not None:
+            anchor.parent = self
+
+        self.subnode_anchor = anchor
+
+        if package is not None:
+            package.parent = self
+
+        self.subnode_package = package
+
+    def getVisitableNodes(self):
+        """The visitable nodes, with tuple values flattened."""
+
+        result = []
+        if self.subnode_anchor is not None:
+            result.append(self.subnode_anchor)
+        if self.subnode_package is not None:
+            result.append(self.subnode_package)
+        return result
+
+    def getVisitableNodesNamed(self):
+        """Named children dictionary.
+
+        For use in cloning nodes, debugging and XML output.
+        """
+
+        return (
+            ("anchor", self.subnode_anchor),
+            ("package", self.subnode_package),
+        )
+
+    def replaceChild(self, old_node, new_node):
+        value = self.subnode_anchor
+        if old_node is value:
+            if new_node is not None:
+                new_node.parent = self
+
+            self.subnode_anchor = new_node
+
+            return
+
+        value = self.subnode_package
+        if old_node is value:
+            if new_node is not None:
+                new_node.parent = self
+
+            self.subnode_package = new_node
+
+            return
+
+        raise AssertionError("Didn't find child", old_node, "in", self)
+
+    def getCloneArgs(self):
+        """Get clones of all children to pass for a new node.
+
+        Needs to make clones of child nodes too.
+        """
+
+        values = {
+            "anchor": (
+                self.subnode_anchor.makeClone()
+                if self.subnode_anchor is not None
+                else None
+            ),
+            "package": (
+                self.subnode_package.makeClone()
+                if self.subnode_package is not None
+                else None
+            ),
+        }
+
+        values.update(self.getDetails())
+
+        return values
+
+    def finalize(self):
+        del self.parent
+
+        if self.subnode_anchor is not None:
+            self.subnode_anchor.finalize()
+        del self.subnode_anchor
+        if self.subnode_package is not None:
+            self.subnode_package.finalize()
+        del self.subnode_package
+
+    def computeExpressionRaw(self, trace_collection):
+        """Compute an expression.
+
+        Default behavior is to just visit the child expressions first, and
+        then the node "computeExpression". For a few cases this needs to
+        be overloaded, e.g. conditional expressions.
+        """
+
+        # First apply the sub-expressions, as they are evaluated before
+        # the actual operation.
+        for count, sub_expression in enumerate(self.getVisitableNodes()):
+            expression = trace_collection.onExpression(sub_expression)
+
+            if expression.willRaiseAnyException():
+                sub_expressions = self.getVisitableNodes()
+
+                wrapped_expression = wrapExpressionWithSideEffects(
+                    side_effects=sub_expressions[:count],
+                    old_node=sub_expression,
+                    new_node=expression,
+                )
+
+                return (
+                    wrapped_expression,
+                    "new_raise",
+                    lambda: "For '%s' the child expression '%s' will raise."
+                    % (self.getChildNameNice(), expression.getChildNameNice()),
+                )
+
+        # Then ask ourselves to work on it.
+        return self.computeExpression(trace_collection)
+
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
+
+        self.undoVariableTracing()
+
+    # For overload only
+    @staticmethod
+    def undoVariableTracing():
+        pass
+
+    def collectVariableAccesses(self, emit_variable):
+        """Collect variable reads and writes of child nodes."""
+
+        subnode_anchor = self.subnode_anchor
+
+        if subnode_anchor is not None:
+            self.subnode_anchor.collectVariableAccesses(emit_variable)
+        subnode_package = self.subnode_package
+
+        if subnode_package is not None:
+            self.subnode_package.collectVariableAccesses(emit_variable)
+
+
+# Assign the names that are easier to import with a stable name.
+ChildrenExpressionImportlibResourcesFilesMixin = (
+    ChildrenHavingAnchorOptionalPackageOptionalMixin
+)
+ChildrenExpressionImportlibResourcesFilesSince312CallMixin = (
+    ChildrenHavingAnchorOptionalPackageOptionalMixin
 )
 
 
@@ -15347,128 +15632,6 @@ ChildrenExpressionImportlibResourcesFilesMixin = ChildHavingPackageMixin
 ChildrenExpressionImportlibResourcesFilesCallMixin = ChildHavingPackageMixin
 
 
-class ChildHavingPackageOptionalMixin(object):
-    # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
-    __slots__ = ()
-
-    # This is generated for use in
-    #   ExpressionImportlibResourcesFiles
-    #   ExpressionImportlibResourcesFilesSince312Call
-
-    def __init__(
-        self,
-        package,
-    ):
-        if package is not None:
-            package.parent = self
-
-        self.subnode_package = package
-
-    def getVisitableNodes(self):
-        """The visitable nodes, with tuple values flattened."""
-
-        if self.subnode_package is None:
-            return ()
-
-        return (self.subnode_package,)
-
-    def getVisitableNodesNamed(self):
-        """Named children dictionary.
-
-        For use in cloning nodes, debugging and XML output.
-        """
-
-        return (("package", self.subnode_package),)
-
-    def replaceChild(self, old_node, new_node):
-        value = self.subnode_package
-        if old_node is value:
-            if new_node is not None:
-                new_node.parent = self
-
-            self.subnode_package = new_node
-
-            return
-
-        raise AssertionError("Didn't find child", old_node, "in", self)
-
-    def getCloneArgs(self):
-        """Get clones of all children to pass for a new node.
-
-        Needs to make clones of child nodes too.
-        """
-
-        values = {
-            "package": (
-                self.subnode_package.makeClone()
-                if self.subnode_package is not None
-                else None
-            ),
-        }
-
-        values.update(self.getDetails())
-
-        return values
-
-    def finalize(self):
-        del self.parent
-
-        if self.subnode_package is not None:
-            self.subnode_package.finalize()
-        del self.subnode_package
-
-    def computeExpressionRaw(self, trace_collection):
-        """Compute an expression.
-
-        Default behavior is to just visit the child expressions first, and
-        then the node "computeExpression". For a few cases this needs to
-        be overloaded, e.g. conditional expressions.
-        """
-
-        # First apply the sub-expression, as they it's evaluated before.
-        expression = self.subnode_package
-
-        if expression is not None:
-            expression = trace_collection.onExpression(expression)
-
-            if expression.willRaiseAnyException():
-                return (
-                    expression,
-                    "new_raise",
-                    lambda: "For '%s' the child expression '%s' will raise."
-                    % (self.getChildNameNice(), expression.getChildNameNice()),
-                )
-
-        # Then ask ourselves to work on it.
-        return self.computeExpression(trace_collection)
-
-    def undoVariableTracingRaw(self, trace_collection):
-        for child in reversed(self.getVisitableNodes()):
-            child.undoVariableTracingRaw(trace_collection)
-
-        self.undoVariableTracing()
-
-    # For overload only
-    @staticmethod
-    def undoVariableTracing():
-        pass
-
-    def collectVariableAccesses(self, emit_variable):
-        """Collect variable reads and writes of child nodes."""
-
-        subnode_package = self.subnode_package
-
-        if subnode_package is not None:
-            self.subnode_package.collectVariableAccesses(emit_variable)
-
-
-# Assign the names that are easier to import with a stable name.
-ChildrenExpressionImportlibResourcesFilesMixin = ChildHavingPackageOptionalMixin
-ChildrenExpressionImportlibResourcesFilesSince312CallMixin = (
-    ChildHavingPackageOptionalMixin
-)
-
-
 class ChildrenHavingPackageResourceMixin(object):
     # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
     __slots__ = ()
@@ -16502,7 +16665,6 @@ class ChildHavingPathMixin(object):
     # This is generated for use in
     #   ExpressionOsPathAbspath
     #   ExpressionOsPathExists
-    #   ExpressionOsPathIsdir
     #   ExpressionOsPathIsfile
     #   ExpressionOsPathNormpath
 
@@ -16600,7 +16762,6 @@ class ChildHavingPathMixin(object):
 # Assign the names that are easier to import with a stable name.
 ChildrenExpressionOsPathAbspathMixin = ChildHavingPathMixin
 ChildrenExpressionOsPathExistsMixin = ChildHavingPathMixin
-ChildrenExpressionOsPathIsdirMixin = ChildHavingPathMixin
 ChildrenExpressionOsPathIsfileMixin = ChildHavingPathMixin
 ChildrenExpressionOsPathNormpathMixin = ChildHavingPathMixin
 
@@ -17625,6 +17786,7 @@ class ChildHavingSMixin(object):
 
     # This is generated for use in
     #   ExpressionOsPathIsabs
+    #   ExpressionOsPathIsdir
 
     def __init__(
         self,
@@ -17719,6 +17881,7 @@ class ChildHavingSMixin(object):
 
 # Assign the names that are easier to import with a stable name.
 ChildrenExpressionOsPathIsabsMixin = ChildHavingSMixin
+ChildrenExpressionOsPathIsdirMixin = ChildHavingSMixin
 
 
 class ChildHavingSequenceMixin(object):

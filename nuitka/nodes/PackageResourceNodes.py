@@ -11,6 +11,10 @@ from nuitka.importing.Importing import (
 from nuitka.importing.ImportResolving import resolveModuleName
 
 from .ConstantRefNodes import makeConstantRefNode
+from .ExceptionNodes import (
+    ExpressionRaiseException,
+    makeBuiltinMakeExceptionNode,
+)
 from .ExpressionBases import ExpressionBase
 from .ExpressionShapeMixins import (
     ExpressionBytesShapeExactMixin,
@@ -24,6 +28,7 @@ from .HardImportNodesGenerated import (
     ExpressionImportlibResourcesBackportReadTextCallBase,
     ExpressionImportlibResourcesFilesCallBase,
     ExpressionImportlibResourcesFilesSince312CallBase,
+    ExpressionImportlibResourcesFilesSince315CallBase,
     ExpressionImportlibResourcesOpenBinaryCallBase,
     ExpressionImportlibResourcesOpenTextCallBase,
     ExpressionImportlibResourcesReadBinaryCallBase,
@@ -34,6 +39,7 @@ from .HardImportNodesGenerated import (
     ExpressionPkgutilGetDataCallBase,
 )
 from .NodeBases import SideEffectsFromChildrenMixin
+from .NodeMakingHelpers import wrapExpressionWithSideEffects
 
 
 class ExpressionPkgutilGetDataCall(
@@ -376,10 +382,12 @@ class ExpressionImportlibResourcesFilesCallMixin:
     def replaceWithCompileTimeValue(self, trace_collection):
         trace_collection.onExceptionRaiseExit(BaseException)
 
-        if self.subnode_package is None:
+        package = self.getPackageNameUsed()
+
+        if package is None:
             return self, None, None
 
-        package_name = self.subnode_package.getCompileTimeConstant()
+        package_name = package.getCompileTimeConstant()
 
         if type(package_name) is str:
             package_name = resolveModuleName(package_name)
@@ -474,9 +482,31 @@ class ExpressionImportlibResourcesBackportFilesCallFixed(
         return self, None, None
 
 
-def makeExpressionImportlibResourcesFilesSince312Call(package, source_ref):
+def makeExpressionImportlibResourcesFilesSince312Call(anchor, package, source_ref):
+    # The wrapper that still accepts "package" passes both values on, if both
+    # are given, which "files" itself rejects then.
+    if anchor is not None and package is not None:
+        result = ExpressionRaiseException(
+            exception_type=makeBuiltinMakeExceptionNode(
+                exception_name="TypeError",
+                args=(
+                    makeConstantRefNode(
+                        constant="files() takes from 0 to 1 positional arguments but 2 were given",
+                        source_ref=source_ref,
+                    ),
+                ),
+                for_raise=False,
+                source_ref=source_ref,
+            ),
+            source_ref=source_ref,
+        )
+
+        return wrapExpressionWithSideEffects(
+            side_effects=(anchor, package), old_node=anchor, new_node=result
+        )
+
     return ExpressionImportlibResourcesFilesSince312Call(
-        package=package, source_ref=source_ref
+        anchor=anchor, package=package, source_ref=source_ref
     )
 
 
@@ -490,10 +520,29 @@ class ExpressionImportlibResourcesFilesSince312Call(
     makeImportlibResourcesFilesCallFixedExpression = (
         ExpressionImportlibResourcesFilesCallFixed
     )
-    named_children = ("package|optional",)
+    named_children = ("anchor|optional", "package|optional")
 
     def getPackageNameUsed(self):
+        if self.subnode_anchor is not None:
+            return self.subnode_anchor
+
         return self.subnode_package
+
+
+class ExpressionImportlibResourcesFilesSince315Call(
+    ExpressionImportlibResourcesFilesCallMixin,
+    ExpressionImportlibResourcesFilesSince315CallBase,
+):
+    kind = "EXPRESSION_IMPORTLIB_RESOURCES_FILES_SINCE315_CALL"
+    python_version_spec = ">= 0x3F0"
+    importlib_resources_name = "importlib.resources"
+    makeImportlibResourcesFilesCallFixedExpression = (
+        ExpressionImportlibResourcesFilesCallFixed
+    )
+    named_children = ("anchor|optional",)
+
+    def getPackageNameUsed(self):
+        return self.subnode_anchor
 
 
 class ExpressionImportlibResourcesFilesCall(

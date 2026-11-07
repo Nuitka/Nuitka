@@ -301,7 +301,7 @@ def emitGenerationWarning(emit, doc_string, template_name):
 # We are not avoiding these in generated code at all
 # pylint: disable=I0021,line-too-long,too-many-instance-attributes,too-many-lines
 # pylint: disable=too-many-arguments,too-many-return-statements,too-many-statements
-# pylint: disable=literal-comparison
+# pylint: disable=chained-comparison,literal-comparison
 """)
 
     emit('''
@@ -1089,16 +1089,18 @@ def getSpecVersions(spec_module):
         result[spec.name].append(
             SpecVersion(spec_name, python_criterion, python_criterion, spec, suffix)
         )
-        result[spec.name].sort(
+
+    # Sort and tighten the criteria only once all versions of a spec are known.
+    for spec_versions in result.values():
+        spec_versions.sort(
             key=lambda spec_version: spec_version.python_criterion or "", reverse=True
         )
 
         # Logic to tighten the criteria for older versions to not match the
         # newer versions.
-        sorted_specs = result[spec.name]
-        for i, spec_version in enumerate(sorted_specs):
+        for i, spec_version in enumerate(spec_versions):
             if i > 0:
-                prev_spec_version = sorted_specs[i - 1]
+                prev_spec_version = spec_versions[i - 1]
 
                 if (
                     prev_spec_version.python_criterion
@@ -1113,7 +1115,7 @@ def getSpecVersions(spec_module):
                     )
                     new_spec = "%s, %s" % (spec_version.python_version_spec, limit)
 
-                    result[spec.name][i] = spec_version.replace(
+                    spec_versions[i] = spec_version.replace(
                         python_criterion=new_criterion, python_version_spec=new_spec
                     )
 

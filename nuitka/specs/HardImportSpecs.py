@@ -14,6 +14,8 @@ from nuitka.nodes.shapes.BuiltinTypeShapes import (
     tshape_dict,
     tshape_str,
 )
+from nuitka.PythonVersions import python_version
+from nuitka.utils.Utils import isWin32Windows
 
 from .BuiltinParameterSpecs import (  # For re-export, pylint: disable=unused-import
     BuiltinParameterSpec,
@@ -146,9 +148,17 @@ importlib_resources_files_spec = BuiltinParameterSpec(
     ("package",),
     default_count=0,
 )
+# For Python 3.12 to 3.14, the argument is named "anchor", but a wrapper
+# still accepts "package" as well.
 importlib_resources_files_since_312_spec = BuiltinParameterSpec(
     "importlib.resources.files",
-    ("package",),
+    ("anchor", "package"),
+    default_count=2,
+)
+# For Python 3.15 or higher, the wrapper accepting "package" was removed.
+importlib_resources_files_since_315_spec = BuiltinParameterSpec(
+    "importlib.resources.files",
+    ("anchor",),
     default_count=1,
 )
 importlib_resources_backport_files_spec = BuiltinParameterSpec(
@@ -167,7 +177,14 @@ os_uname_spec = BuiltinParameterSpec(
 
 os_path_exists_spec = BuiltinParameterSpec("os.path.exists", ("path",), default_count=0)
 os_path_isfile_spec = BuiltinParameterSpec("os.path.isfile", ("path",), default_count=0)
-os_path_isdir_spec = BuiltinParameterSpec("os.path.isdir", ("path",), default_count=0)
+if isWin32Windows() and python_version < 0x380:
+    # Before Python 3.8, on Windows "os.path.isdir" is "nt._isdir", which takes
+    # its argument only positionally.
+    os_path_isdir_spec = BuiltinParameterSpec(
+        "os.path.isdir", (), default_count=0, pos_only_args=("s",)
+    )
+else:
+    os_path_isdir_spec = BuiltinParameterSpec("os.path.isdir", ("s",), default_count=0)
 os_path_basename_spec = BuiltinParameterSpec(
     "os.path.basename", ("p",), default_count=0
 )
