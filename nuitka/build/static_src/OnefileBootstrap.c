@@ -1653,7 +1653,7 @@ int main(int argc, char **argv) {
     // _putws(payload_path);
 
     // If we are the onefile initial bootstrap binary, show the splash screen.
-#if defined(_NUITKA_ONEFILE_SPLASH_SCREEN) && _NUITKA_ONEFILE_COMPRESSION_BOOL == 1
+#if _NUITKA_ONEFILE_SPLASH_SCREEN
     if (process_role == NULL) {
         initSplashScreen();
     }
