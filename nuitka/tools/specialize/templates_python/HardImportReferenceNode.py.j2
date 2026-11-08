@@ -68,8 +68,8 @@ class Expression{{module_name_title}}{{function_name_title}}Ref(
         trace_collection.onExceptionRaiseExit(BaseException)
 
 {% for spec in specs %}
-{% if spec.python_criterion %}
-        if python_version {{spec.python_criterion}}:
+{% if spec.python_condition %}
+        if {{spec.python_condition}}:
 {{apply_builtin_extraction(spec.spec_name, spec.suffix)| indent(12, True)}}
 {% else %}
 {{apply_builtin_extraction(spec.spec_name, spec.suffix)| indent(8, True)}}

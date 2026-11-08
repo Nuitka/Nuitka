@@ -148,9 +148,17 @@ importlib_resources_files_spec = BuiltinParameterSpec(
     ("package",),
     default_count=0,
 )
+# For Python 3.12 to 3.14, the argument is named "anchor", but a wrapper
+# still accepts "package" as well.
 importlib_resources_files_since_312_spec = BuiltinParameterSpec(
     "importlib.resources.files",
-    ("package",),
+    ("anchor", "package"),
+    default_count=2,
+)
+# For Python 3.15 or higher, the wrapper accepting "package" was removed.
+importlib_resources_files_since_315_spec = BuiltinParameterSpec(
+    "importlib.resources.files",
+    ("anchor",),
     default_count=1,
 )
 importlib_resources_backport_files_spec = BuiltinParameterSpec(

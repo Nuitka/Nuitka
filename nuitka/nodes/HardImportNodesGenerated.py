@@ -11,9 +11,9 @@
 
 WARNING, this code is GENERATED. Modify the template HardImportReferenceNode.py.j2 instead!
 
-spell-checker: ignore __prepare__ append args autograph buffering capitalize casefold
-spell-checker: ignore center chars clear closefd copy count decode default delete dist
-spell-checker: ignore distribution_name encode encoding end endswith errors exit_code
+spell-checker: ignore __prepare__ anchor append args autograph buffering capitalize
+spell-checker: ignore casefold center chars clear closefd copy count decode default delete
+spell-checker: ignore dist distribution_name encode encoding end endswith errors exit_code
 spell-checker: ignore expandtabs experimental_attributes experimental_autograph_options
 spell-checker: ignore experimental_compile experimental_follow_type_hints
 spell-checker: ignore experimental_implements experimental_relax_shapes extend file
@@ -64,6 +64,7 @@ from nuitka.specs.HardImportSpecs import (
     importlib_resources_backport_read_binary_spec,
     importlib_resources_backport_read_text_spec,
     importlib_resources_files_since_312_spec,
+    importlib_resources_files_since_315_spec,
     importlib_resources_files_spec,
     importlib_resources_open_binary_spec,
     importlib_resources_open_text_spec,
@@ -95,6 +96,7 @@ from nuitka.specs.HardImportSpecs import (
 
 from .BuiltinRefNodes import ExpressionBuiltinRef
 from .ChildrenHavingMixins import (
+    ChildHavingAnchorOptionalMixin,
     ChildHavingDistMixin,
     ChildHavingDistributionNameMixin,
     ChildHavingExitCodeOptionalMixin,
@@ -102,7 +104,6 @@ from .ChildrenHavingMixins import (
     ChildHavingObjectMixin,
     ChildHavingObjectsTupleMixin,
     ChildHavingPackageMixin,
-    ChildHavingPackageOptionalMixin,
     ChildHavingParamsTupleMixin,
     ChildHavingPathMixin,
     ChildHavingPathOptionalMixin,
@@ -110,6 +111,7 @@ from .ChildrenHavingMixins import (
     ChildHavingPMixin,
     ChildHavingRequirementsTupleMixin,
     ChildHavingSMixin,
+    ChildrenHavingAnchorOptionalPackageOptionalMixin,
     ChildrenHavingFileModeOptionalBufferingOptionalEncodingOptionalErrorsOptionalNewlineOptionalClosefdOptionalOpenerOptionalMixin,
     ChildrenHavingFuncOptionalInputSignatureOptionalAutographOptionalJitCompileOptionalReduceRetracingOptionalExperimentalImplementsOptionalExperimentalAutographOptionsOptionalExperimentalAttributesOptionalExperimentalRelaxShapesOptionalExperimentalCompileOptionalExperimentalFollowTypeHintsOptionalMixin,
     ChildrenHavingGroupNameOptionalMixin,
@@ -2536,7 +2538,24 @@ class ExpressionImportlibResourcesFilesRef(
         # replaced, we might be better but not now.
         trace_collection.onExceptionRaiseExit(BaseException)
 
-        if python_version >= 0x3C0:
+        if python_version >= 0x3F0:
+            from .PackageResourceNodes import (
+                ExpressionImportlibResourcesFilesSince315Call,
+            )
+
+            result = extractBuiltinArgs(
+                node=call_node,
+                builtin_class=ExpressionImportlibResourcesFilesSince315Call,
+                builtin_spec=importlib_resources_files_since_315_spec,
+            )
+
+            return (
+                result,
+                "new_expression",
+                "Call to 'importlib.resources.files' recognized.",
+            )
+
+        if 0x3C0 <= python_version < 0x3F0:
             from .PackageResourceNodes import (
                 makeExpressionImportlibResourcesFilesSince312Call,
             )
@@ -2569,30 +2588,86 @@ class ExpressionImportlibResourcesFilesRef(
 
 
 addHardImportNodeClass(
-    ExpressionImportlibResourcesFilesRef, importlib_resources_files_since_312_spec
+    ExpressionImportlibResourcesFilesRef, importlib_resources_files_since_315_spec
 )
 
 
+class ExpressionImportlibResourcesFilesSince315CallBase(
+    ChildHavingAnchorOptionalMixin, ExpressionBase
+):
+    """Base class for ImportlibResourcesFilesSince315Call
+
+    Generated boiler plate code from 'HardImportCallNode.py.j2' template.
+    """
+
+    python_version_spec = ">= 0x3f0"
+
+    named_children = ("anchor|optional",)
+
+    __slots__ = ("attempted",)
+
+    spec = importlib_resources_files_since_315_spec
+
+    def __init__(self, anchor, source_ref):
+
+        ChildHavingAnchorOptionalMixin.__init__(
+            self,
+            anchor=anchor,
+        )
+
+        ExpressionBase.__init__(self, source_ref)
+
+        self.attempted = False
+
+    def computeExpression(self, trace_collection):
+        if (
+            self.attempted
+            or not importlib_resources_files_since_315_spec.isCompileTimeComputable(
+                (self.subnode_anchor,)
+            )
+        ):
+            trace_collection.onExceptionRaiseExit(BaseException)
+
+            return self, None, None
+
+        try:
+            return self.replaceWithCompileTimeValue(trace_collection)
+        finally:
+            self.attempted = True
+
+    @abstractmethod
+    def replaceWithCompileTimeValue(self, trace_collection):
+        pass
+
+    @staticmethod
+    def mayRaiseExceptionOperation():
+        return True
+
+
 class ExpressionImportlibResourcesFilesSince312CallBase(
-    ChildHavingPackageOptionalMixin, ExpressionBase
+    ChildrenHavingAnchorOptionalPackageOptionalMixin, ExpressionBase
 ):
     """Base class for ImportlibResourcesFilesSince312Call
 
     Generated boiler plate code from 'HardImportCallNode.py.j2' template.
     """
 
-    python_version_spec = ">= 0x3c0"
+    python_version_spec = ">= 0x3c0, < 0x3f0"
 
-    named_children = ("package|optional",)
+    named_children = (
+        "anchor|optional",
+        "package|optional",
+    )
 
     __slots__ = ("attempted",)
 
     spec = importlib_resources_files_since_312_spec
 
-    def __init__(self, package, source_ref):
+    def __init__(self, anchor, package, source_ref):
 
-        ChildHavingPackageOptionalMixin.__init__(
+        ChildrenHavingAnchorOptionalPackageOptionalMixin.__init__(
             self,
+            anchor=anchor,
             package=package,
         )
 
@@ -2604,7 +2679,10 @@ class ExpressionImportlibResourcesFilesSince312CallBase(
         if (
             self.attempted
             or not importlib_resources_files_since_312_spec.isCompileTimeComputable(
-                (self.subnode_package,)
+                (
+                    self.subnode_anchor,
+                    self.subnode_package,
+                )
             )
         ):
             trace_collection.onExceptionRaiseExit(BaseException)
