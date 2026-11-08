@@ -4,7 +4,7 @@
 # We are not avoiding these in generated code at all
 # pylint: disable=I0021,line-too-long,too-many-instance-attributes,too-many-lines
 # pylint: disable=too-many-arguments,too-many-return-statements,too-many-statements
-# pylint: disable=chained-comparison,literal-comparison
+# pylint: disable=literal-comparison
 
 
 """Hard import nodes
@@ -2555,7 +2555,7 @@ class ExpressionImportlibResourcesFilesRef(
                 "Call to 'importlib.resources.files' recognized.",
             )
 
-        if python_version >= 0x3C0 and python_version < 0x3F0:
+        if 0x3C0 <= python_version < 0x3F0:
             from .PackageResourceNodes import (
                 makeExpressionImportlibResourcesFilesSince312Call,
             )

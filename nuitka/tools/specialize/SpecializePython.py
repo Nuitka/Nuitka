@@ -301,7 +301,7 @@ def emitGenerationWarning(emit, doc_string, template_name):
 # We are not avoiding these in generated code at all
 # pylint: disable=I0021,line-too-long,too-many-instance-attributes,too-many-lines
 # pylint: disable=too-many-arguments,too-many-return-statements,too-many-statements
-# pylint: disable=chained-comparison,literal-comparison
+# pylint: disable=literal-comparison
 """)
 
     emit('''
@@ -1046,6 +1046,7 @@ SpecVersion = makeNamedtupleClass(
         "spec_name",
         "python_criterion",
         "python_version_spec",
+        "python_condition",
         "spec",
         "suffix",
     ),
@@ -1087,7 +1088,18 @@ def getSpecVersions(spec_module):
             result[spec.name] = []
 
         result[spec.name].append(
-            SpecVersion(spec_name, python_criterion, python_criterion, spec, suffix)
+            SpecVersion(
+                spec_name=spec_name,
+                python_criterion=python_criterion,
+                python_version_spec=python_criterion,
+                python_condition=(
+                    None
+                    if python_criterion is None
+                    else "python_version %s" % python_criterion
+                ),
+                spec=spec,
+                suffix=suffix,
+            )
         )
 
     # Sort and tighten the criteria only once all versions of a spec are known.
@@ -1116,7 +1128,13 @@ def getSpecVersions(spec_module):
                     new_spec = "%s, %s" % (spec_version.python_version_spec, limit)
 
                     spec_versions[i] = spec_version.replace(
-                        python_criterion=new_criterion, python_version_spec=new_spec
+                        python_criterion=new_criterion,
+                        python_version_spec=new_spec,
+                        python_condition="%s <= python_version %s"
+                        % (
+                            spec_version.python_criterion.replace(">= ", "", 1),
+                            limit,
+                        ),
                     )
 
     return tuple(sorted(result.values()))

@@ -4,7 +4,7 @@
 # We are not avoiding these in generated code at all
 # pylint: disable=I0021,line-too-long,too-many-instance-attributes,too-many-lines
 # pylint: disable=too-many-arguments,too-many-return-statements,too-many-statements
-# pylint: disable=chained-comparison,literal-comparison
+# pylint: disable=literal-comparison
 
 
 """Children having expression bases
