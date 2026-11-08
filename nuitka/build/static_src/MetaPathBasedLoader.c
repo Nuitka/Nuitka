@@ -3635,8 +3635,15 @@ static PyObject *_nuitka_loader_find_spec(PyObject *self, PyObject *args, PyObje
 #if _NUITKA_STANDALONE_MODE && !defined(_NUITKA_DEPLOYMENT_MODE) &&                                                    \
     !defined(_NUITKA_NO_DEPLOYMENT_EXCLUDED_MODULE_USAGE)
     if ((entry->flags & NUITKA_EXCLUDED_MODULE_FLAG) != 0) {
-        raiseExcludedModuleImportError(entry);
-        return NULL;
+        // Excluded modules behave like modules that are not installed, so that
+        // availability probes such as "importlib.util.find_spec" return None.
+        // The actual import still raises from "loadModule".
+        if (isVerbose()) {
+            PySys_WriteStderr("import %s # denied responsibility (excluded)\n", full_name);
+        }
+
+        Py_INCREF_IMMORTAL(Py_None);
+        return Py_None;
     }
 #endif
 
