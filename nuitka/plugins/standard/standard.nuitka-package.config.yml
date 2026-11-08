@@ -1128,7 +1128,7 @@
       # Not necessary on Windows
       when: 'not win32'
 
-- module-name: 'cutlass._mlir._mlir_libs' # checksum: d40deb7b
+- module-name: 'cutlass._mlir._mlir_libs' # checksum: c5ab98eb
   dlls:
     - from_filenames:
         prefixes:
@@ -1150,6 +1150,10 @@
     - description: 'look for the CTK flavor lib dirs next to the module'
       replacements_plain:
         'nvidia_root = None': 'nvidia_root = this_dir'
+  implicit-imports:
+    - depends:
+        # The filename is chosen by the toolkit version at run time.
+        - 'cutlass._mlir._mlir_libs._cutlass_ir_version_cu*'
 
 - module-name: 'cv2' # checksum: 536d0e49
   variables:
@@ -1881,10 +1885,11 @@
       bloat-mode-overrides:
         'setuptools': 'allow'
 
-- module-name: 'flashinfer' # checksum: b785f925
+- module-name: 'flashinfer' # checksum: a2edb48a
   data-files:
     - dirs:
         - 'data'
+        - 'experimental/b12x'
   anti-bloat:
     - description: 'flashinfer builds its kernels with triton and in place'
       bloat-mode-overrides:
@@ -2439,6 +2444,20 @@
   anti-bloat:
     - description: 'workaround hard module import attribute bug'
       append_plain: 'from .utils.tqdm import tqdm'
+
+- module-name: 'humming' # checksum: 8630dcf4
+  data-files:
+    - dirs:
+        - 'include'
+        - 'csrc'
+    - patterns:
+        - '_native/*/manifest.json'
+  dlls:
+    - from_filenames:
+        relative_path: '_native/x86_64'
+        prefixes:
+          - 'lib'
+      when: 'linux'
 
 - module-name: 'hydra' # checksum: d3aae307
   data-files:
@@ -3984,8 +4003,14 @@
         'rundocs': 'un-callable'
       when: 'not use_unittest'
 
-- module-name: 'nvidia' # checksum: 1639b6cb
+- module-name: 'nvidia' # checksum: 73a9436a
   dlls:
+    - from_filenames:
+        # CUDA 13 wheels place the runtime libraries in a single directory.
+        relative_path: 'cu13/lib'
+        prefixes:
+          - 'lib'
+      when: 'linux'
     - from_filenames:
         relative_path: 'cublas/lib'
         prefixes:
@@ -4038,6 +4063,11 @@
       when: 'linux'
     - from_filenames:
         relative_path: 'nvjitlink/lib'
+        prefixes:
+          - 'lib'
+      when: 'linux'
+    - from_filenames:
+        relative_path: 'nvvm/lib'
         prefixes:
           - 'lib'
       when: 'linux'
@@ -7106,12 +7136,16 @@
         prefixes:
           - 'common_ops'
 
-- module-name: 'sglang' # checksum: f34765c7
+- module-name: 'sglang' # checksum: 2e027f07
   data-files:
     - include-metadata:
         - 'sglang-kernel'
         - 'triton'
         - 'hf_xet'
+    - patterns:
+        - '**/*.json'
+        - '**/*.yaml'
+        - '**/*.yml'
   anti-bloat:
     - description: 'drop HF datasets, only training and benchmark code uses it'
       no-auto-follow:
@@ -9343,7 +9377,7 @@
   import-hacks:
     - recompile-extensions: 'no'
 
-- module-name: 'torch' # checksum: 6f92ea34
+- module-name: 'torch' # checksum: 759b45ba
   parameters:
     - 'name': 'disable-jit'
       'values': 'value in ("yes", "no")'
@@ -9353,6 +9387,7 @@
         - 'include'
     - patterns:
         - 'bin/*.h'
+        - '_dynamo/graph_break_registry.json'
   dlls:
     - from_filenames:
         relative_path: 'lib'
@@ -10435,10 +10470,14 @@
     - depends:
         - 'vibora.router.parser'
 
-- module-name: 'vllm' # checksum: 62ff02c0
+- module-name: 'vllm' # checksum: d2307df5
   data-files:
     - include-metadata:
         - 'gguf'
+    - patterns:
+        - '**/*.json'
+        - '**/*.yaml'
+        - '**/*.yml'
   anti-bloat:
     - description: "remove 'ray' package reference"
       no-auto-follow:
