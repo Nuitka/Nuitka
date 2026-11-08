@@ -16502,7 +16502,6 @@ class ChildHavingPathMixin(object):
     # This is generated for use in
     #   ExpressionOsPathAbspath
     #   ExpressionOsPathExists
-    #   ExpressionOsPathIsdir
     #   ExpressionOsPathIsfile
     #   ExpressionOsPathNormpath
 
@@ -16600,7 +16599,6 @@ class ChildHavingPathMixin(object):
 # Assign the names that are easier to import with a stable name.
 ChildrenExpressionOsPathAbspathMixin = ChildHavingPathMixin
 ChildrenExpressionOsPathExistsMixin = ChildHavingPathMixin
-ChildrenExpressionOsPathIsdirMixin = ChildHavingPathMixin
 ChildrenExpressionOsPathIsfileMixin = ChildHavingPathMixin
 ChildrenExpressionOsPathNormpathMixin = ChildHavingPathMixin
 
@@ -17625,6 +17623,7 @@ class ChildHavingSMixin(object):
 
     # This is generated for use in
     #   ExpressionOsPathIsabs
+    #   ExpressionOsPathIsdir
 
     def __init__(
         self,
@@ -17719,6 +17718,7 @@ class ChildHavingSMixin(object):
 
 # Assign the names that are easier to import with a stable name.
 ChildrenExpressionOsPathIsabsMixin = ChildHavingSMixin
+ChildrenExpressionOsPathIsdirMixin = ChildHavingSMixin
 
 
 class ChildHavingSequenceMixin(object):

@@ -1370,6 +1370,14 @@ static void Nuitka_Py_Initialize(void) {
 
     config.install_signal_handlers = 1;
 
+    // A deployed program is not a debug target, so turn off the PEP 768 remote
+    // debugging, through which another process can attach to it and execute
+    // code in it with "sys.remote_exec", unless "--devel-remote-debug" keeps
+    // it for our own debugging.
+#if PYTHON_VERSION >= 0x3e0 && !defined(_NUITKA_DEVEL_REMOTE_DEBUG)
+    config.remote_debug = 0;
+#endif
+
 #if PYTHON_VERSION >= 0x3b0 && SYSFLAG_SAFE_PATH == 1
     config.safe_path = 1;
 #endif

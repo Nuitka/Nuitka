@@ -1469,6 +1469,16 @@ Report PGO values that are not usable when reading a PGO file, and values that \
 cannot be captured at runtime. Defaults to off.""",
 )
 
+development_group.add_option(
+    "--devel-remote-debug",
+    action="store_true",
+    dest="devel_remote_debug",
+    default=False,
+    github_action=False,
+    help="""\
+Keep the Python 3.14 remote debugging interface enabled. Defaults to off.""",
+)
+
 del development_group
 
 # This is for testing framework, "coverage.py" hates to loose the process. And
