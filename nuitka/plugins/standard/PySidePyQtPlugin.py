@@ -1444,12 +1444,6 @@ class NuitkaPluginPyQt5QtPluginsPlugin(NuitkaPluginQtBindingsPluginBase):
 
     binding_name = "PyQt5"
 
-    def getUncompiledDecoratorNames(self):
-        if python_version >= 0x390:
-            return ("pyqtSlot", "asyncSlot", "Slot")
-        else:
-            return ()
-
     def __init__(
         self,
         include_qt_plugins,
@@ -1506,23 +1500,17 @@ to compiled functions, etc. may not be working.""",
 
         return result
 
-    @classmethod
-    def isRelevant(cls):
-        return isStandaloneMode()
-
 
 class NuitkaPluginDetectorPyQt5QtPluginsPlugin(NuitkaPluginBase):
     detector_for = NuitkaPluginPyQt5QtPluginsPlugin
-
-    @classmethod
-    def isRelevant(cls):
-        return isStandaloneMode()
 
     def onModuleDiscovered(self, module):
         full_name = module.getFullName()
 
         if full_name == NuitkaPluginPyQt5QtPluginsPlugin.binding_name + ".QtCore":
-            self.warnUnusedPlugin("Inclusion of Qt plugins.")
+            self.warnUnusedPlugin(
+                "Standalone mode support, signal callbacks, and Qt plugins."
+            )
         elif full_name == "PyQt4.QtCore":
             self.warning(
                 "Support for PyQt4 has been dropped. Please contact Nuitka commercial if you need it."
@@ -1740,12 +1728,6 @@ class NuitkaPluginPyQt6Plugins(NuitkaPluginQtBindingsPluginBase):
     plugin_desc = "Required by 'PyQt6' package."
 
     binding_name = "PyQt6"
-
-    def getUncompiledDecoratorNames(self):
-        if python_version >= 0x390:
-            return ("pyqtSlot", "asyncSlot", "Slot")
-        else:
-            return ()
 
     def __init__(
         self,

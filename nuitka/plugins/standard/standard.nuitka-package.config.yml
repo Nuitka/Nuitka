@@ -4,12 +4,20 @@
 # yamllint disable rule:comments
 # too many spelling things, spell-checker: disable
 ---
-- module-name: '<main>' # checksum: ac52d2b3
+- module-name: '<main>' # checksum: 73c0fe80
   include-config:
     - 'from': 'PySide6/implicit-imports'
       'key-map':
         post-import-code: pre-import-code
       when: 'module_mode and plugin("pyside6")'
+    - 'from': 'PyQt5.QtCore/implicit-imports'
+      'key-map':
+        post-import-code: pre-import-code
+      when: 'not standalone and plugin("pyqt5")'
+    - 'from': 'PyQt6.QtCore/implicit-imports'
+      'key-map':
+        post-import-code: pre-import-code
+      when: 'not standalone and plugin("pyqt6")'
 
 - module-name: '_dbus_glib_bindings' # checksum: 437428e9
   implicit-imports:
@@ -5559,6 +5567,131 @@
     - depends:
         - 'PyQt5.QtCore'
 
+- module-name: 'PyQt5.QtCore' # checksum: 9a21826a
+  implicit-imports:
+      # The slot wrapper has to be a real Python function; because this code runs
+      # from a compiled trigger module, it must be created with a runtime "exec".
+    - post-import-code:
+        - |
+          import functools
+          import inspect
+          import sys
+          import types
+
+          from PyQt5 import QtCore
+
+          def _nuitka_convert_compiled_method(slot):
+              if type(slot).__name__ == "compiled_method":
+                  slot_self = slot.__self__
+
+                  if slot_self is not None:
+                      if sys.version_info[0] < 3:
+                          return types.MethodType(
+                              slot.__func__, slot_self, slot_self.__class__
+                          )
+
+                      return types.MethodType(slot.__func__, slot_self)
+
+              return slot
+
+          def _nuitka_make_slot_wrapper(func):
+              namespace = {"_nuitka_slot_function": func}
+
+              is_coroutine_function = getattr(inspect, "iscoroutinefunction", None)
+
+              if is_coroutine_function is not None:
+                  is_coroutine = is_coroutine_function(func)
+              else:
+                  is_coroutine = False
+
+              if not is_coroutine and hasattr(func, "__code__"):
+                  is_coroutine = bool(func.__code__.co_flags & 0x80)
+
+              if is_coroutine:
+                  source = (
+                      "async def _nuitka_slot_wrapper(*args, **kwargs):\n"
+                      "    return await _nuitka_slot_function(*args, **kwargs)\n"
+                  )
+              else:
+                  source = (
+                      "def _nuitka_slot_wrapper(*args, **kwargs):\n"
+                      "    return _nuitka_slot_function(*args, **kwargs)\n"
+                  )
+
+              exec(source, namespace)
+
+              wrapper = namespace["_nuitka_slot_wrapper"]
+
+              for attribute_name in ("__defaults__", "__kwdefaults__", "__annotations__"):
+                  try:
+                      setattr(wrapper, attribute_name, getattr(func, attribute_name))
+                  except AttributeError:
+                      pass
+
+              functools.update_wrapper(wrapper, func)
+
+              return wrapper
+
+          def _nuitka_make_slot_decorator_factory(original_factory):
+              def _nuitka_slot_decorator_factory(*args, **kwargs):
+                  original_decorator = original_factory(*args, **kwargs)
+
+                  def _nuitka_slot_decorator(func):
+                      func = original_decorator(func)
+
+                      if type(func).__name__ == "compiled_function":
+                          func = _nuitka_make_slot_wrapper(func)
+
+                      return func
+
+                  return _nuitka_slot_decorator
+
+              return _nuitka_slot_decorator_factory
+
+          def _nuitka_patched_single_shot(*args, **kwargs):
+              if args:
+                  args = args[:-1] + (_nuitka_convert_compiled_method(args[-1]),)
+              elif "slot" in kwargs:
+                  kwargs["slot"] = _nuitka_convert_compiled_method(kwargs["slot"])
+
+              return _nuitka_orig_single_shot(*args, **kwargs)
+
+          def _nuitka_patched_connect(self, *args, **kwargs):
+              if args:
+                  args = (_nuitka_convert_compiled_method(args[0]),) + args[1:]
+              elif "slot" in kwargs:
+                  kwargs["slot"] = _nuitka_convert_compiled_method(kwargs["slot"])
+
+              return _nuitka_orig_connect(self, *args, **kwargs)
+
+          def _nuitka_patched_disconnect(self, *args, **kwargs):
+              if args:
+                  args = (_nuitka_convert_compiled_method(args[0]),) + args[1:]
+              elif "slot" in kwargs:
+                  kwargs["slot"] = _nuitka_convert_compiled_method(kwargs["slot"])
+
+              return _nuitka_orig_disconnect(self, *args, **kwargs)
+
+          if not getattr(sys, "_nuitka_qt_signal_patch", False):
+              sys._nuitka_qt_signal_patch = True
+
+              for _nuitka_decorator_name in ("pyqtSlot", "asyncSlot", "Slot"):
+                  _nuitka_original_decorator = getattr(QtCore, _nuitka_decorator_name, None)
+
+                  if _nuitka_original_decorator is not None:
+                      setattr(
+                          QtCore,
+                          _nuitka_decorator_name,
+                          _nuitka_make_slot_decorator_factory(_nuitka_original_decorator),
+                      )
+
+              _nuitka_orig_disconnect = QtCore.pyqtBoundSignal.disconnect
+              QtCore.pyqtBoundSignal.disconnect = _nuitka_patched_disconnect
+              _nuitka_orig_connect = QtCore.pyqtBoundSignal.connect
+              QtCore.pyqtBoundSignal.connect = _nuitka_patched_connect
+              _nuitka_orig_single_shot = QtCore.QTimer.singleShot
+              QtCore.QTimer.singleShot = staticmethod(_nuitka_patched_single_shot)
+
 - module-name: 'PyQt6' # checksum: 9ddfb6bb
   options:
     checks:
@@ -5568,6 +5701,131 @@
       - description: 'PyQt6 on macOS is not supported, use PySide6 instead'
         support_info: 'error'
         when: 'macos and use_pyqt6'
+
+- module-name: 'PyQt6.QtCore' # checksum: 9b25bbb0
+  implicit-imports:
+      # The slot wrapper has to be a real Python function; because this code runs
+      # from a compiled trigger module, it must be created with a runtime "exec".
+    - post-import-code:
+        - |
+          import functools
+          import inspect
+          import sys
+          import types
+
+          from PyQt6 import QtCore
+
+          def _nuitka_convert_compiled_method(slot):
+              if type(slot).__name__ == "compiled_method":
+                  slot_self = slot.__self__
+
+                  if slot_self is not None:
+                      if sys.version_info[0] < 3:
+                          return types.MethodType(
+                              slot.__func__, slot_self, slot_self.__class__
+                          )
+
+                      return types.MethodType(slot.__func__, slot_self)
+
+              return slot
+
+          def _nuitka_make_slot_wrapper(func):
+              namespace = {"_nuitka_slot_function": func}
+
+              is_coroutine_function = getattr(inspect, "iscoroutinefunction", None)
+
+              if is_coroutine_function is not None:
+                  is_coroutine = is_coroutine_function(func)
+              else:
+                  is_coroutine = False
+
+              if not is_coroutine and hasattr(func, "__code__"):
+                  is_coroutine = bool(func.__code__.co_flags & 0x80)
+
+              if is_coroutine:
+                  source = (
+                      "async def _nuitka_slot_wrapper(*args, **kwargs):\n"
+                      "    return await _nuitka_slot_function(*args, **kwargs)\n"
+                  )
+              else:
+                  source = (
+                      "def _nuitka_slot_wrapper(*args, **kwargs):\n"
+                      "    return _nuitka_slot_function(*args, **kwargs)\n"
+                  )
+
+              exec(source, namespace)
+
+              wrapper = namespace["_nuitka_slot_wrapper"]
+
+              for attribute_name in ("__defaults__", "__kwdefaults__", "__annotations__"):
+                  try:
+                      setattr(wrapper, attribute_name, getattr(func, attribute_name))
+                  except AttributeError:
+                      pass
+
+              functools.update_wrapper(wrapper, func)
+
+              return wrapper
+
+          def _nuitka_make_slot_decorator_factory(original_factory):
+              def _nuitka_slot_decorator_factory(*args, **kwargs):
+                  original_decorator = original_factory(*args, **kwargs)
+
+                  def _nuitka_slot_decorator(func):
+                      func = original_decorator(func)
+
+                      if type(func).__name__ == "compiled_function":
+                          func = _nuitka_make_slot_wrapper(func)
+
+                      return func
+
+                  return _nuitka_slot_decorator
+
+              return _nuitka_slot_decorator_factory
+
+          def _nuitka_patched_single_shot(*args, **kwargs):
+              if args:
+                  args = args[:-1] + (_nuitka_convert_compiled_method(args[-1]),)
+              elif "slot" in kwargs:
+                  kwargs["slot"] = _nuitka_convert_compiled_method(kwargs["slot"])
+
+              return _nuitka_orig_single_shot(*args, **kwargs)
+
+          def _nuitka_patched_connect(self, *args, **kwargs):
+              if args:
+                  args = (_nuitka_convert_compiled_method(args[0]),) + args[1:]
+              elif "slot" in kwargs:
+                  kwargs["slot"] = _nuitka_convert_compiled_method(kwargs["slot"])
+
+              return _nuitka_orig_connect(self, *args, **kwargs)
+
+          def _nuitka_patched_disconnect(self, *args, **kwargs):
+              if args:
+                  args = (_nuitka_convert_compiled_method(args[0]),) + args[1:]
+              elif "slot" in kwargs:
+                  kwargs["slot"] = _nuitka_convert_compiled_method(kwargs["slot"])
+
+              return _nuitka_orig_disconnect(self, *args, **kwargs)
+
+          if not getattr(sys, "_nuitka_qt_signal_patch", False):
+              sys._nuitka_qt_signal_patch = True
+
+              for _nuitka_decorator_name in ("pyqtSlot", "asyncSlot", "Slot"):
+                  _nuitka_original_decorator = getattr(QtCore, _nuitka_decorator_name, None)
+
+                  if _nuitka_original_decorator is not None:
+                      setattr(
+                          QtCore,
+                          _nuitka_decorator_name,
+                          _nuitka_make_slot_decorator_factory(_nuitka_original_decorator),
+                      )
+
+              _nuitka_orig_disconnect = QtCore.pyqtBoundSignal.disconnect
+              QtCore.pyqtBoundSignal.disconnect = _nuitka_patched_disconnect
+              _nuitka_orig_connect = QtCore.pyqtBoundSignal.connect
+              QtCore.pyqtBoundSignal.connect = _nuitka_patched_connect
+              _nuitka_orig_single_shot = QtCore.QTimer.singleShot
+              QtCore.QTimer.singleShot = staticmethod(_nuitka_patched_single_shot)
 
 - module-name: 'pyqtgraph' # checksum: cddd333f
   data-files:

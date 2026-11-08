@@ -11,6 +11,8 @@
 
 from __future__ import print_function
 
+import types
+
 from PyQt6.QtCore import (
     QCoreApplication,
     QMetaObject,
@@ -28,7 +30,7 @@ app.setOrganizationDomain("bogosity.com")
 app.setApplicationName("BOGUS")
 print("OK.")
 
-# This test is using signals and will only work if PySide properly accepts
+# This test is using signals and will only work if PyQt6 properly accepts
 # compiled functions as callables.
 
 
@@ -40,14 +42,38 @@ class Communicate(QObject):
         self.setObjectName(name)
 
 
-class Speaker(QObject):
+class SpeakerBase(QObject):
+    def describe(self):
+        return "base speaker"
+
+
+class Speaker(SpeakerBase):
     @pyqtSlot(int)
     def on_communicator_speak(self, stuff):
-        print(stuff)
+        # This checks that zero-argument "super()" works with compiled slot
+        # methods, which use the implicit "__class__" closure.
+        print(stuff, super().describe())
+
+
+class UndecoratedSpeaker(QObject):
+    def on_communicator_speak(self, stuff):
+        print("undecorated", stuff)
+
+
+class PlainReceiver(object):
+    def on_signal(self, value):
+        print("plain receiver", value)
 
 
 speaker = Speaker()
 someone = Communicate(name="communicator", parent=speaker)
+
+# Decorated slots must be exposed as real Python methods, otherwise PyQt6
+# consumers that use the SIP method checks, e.g. QtDBus, will reject them.
+assert type(speaker.on_communicator_speak) is types.MethodType, type(
+    speaker.on_communicator_speak
+)
+assert hasattr(speaker.on_communicator_speak, "__pyqtSignature__")
 
 QMetaObject.connectSlotsByName(speaker)
 
@@ -55,6 +81,33 @@ print("The answer is:", end="")
 # emit  'speak' signal
 someone.speak.emit(42)
 print("Slot should have made output by now.")
+
+# Connections to compiled methods must be disconnectable by a new bound method
+# object, and the receiver must be recognized, so that connection lifetime is
+# not extended by the proxy used for arbitrary callables.
+
+sender = Communicate(name="sender")
+undecorated_speaker = UndecoratedSpeaker()
+
+sender.speak.connect(undecorated_speaker.on_communicator_speak)
+sender.speak.emit(1)
+sender.speak.disconnect(undecorated_speaker.on_communicator_speak)
+sender.speak.emit(2)
+
+plain_receiver = PlainReceiver()
+
+sender.speak.connect(plain_receiver.on_signal)
+sender.speak.emit(3)
+sender.speak.disconnect(plain_receiver.on_signal)
+sender.speak.emit(4)
+
+# Each connection is disconnected separately, and matching happens by receiver
+# and function, not by the bound method object identity.
+sender.speak.connect(plain_receiver.on_signal)
+sender.speak.connect(plain_receiver.on_signal)
+sender.speak.emit(5)
+sender.speak.disconnect(plain_receiver.on_signal)
+sender.speak.emit(6)
 
 #     Python test originally created or extracted from other peoples work. The
 #     parts from me are licensed as below. It is at least Free Software where
