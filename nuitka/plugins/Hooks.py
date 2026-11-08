@@ -409,7 +409,7 @@ def getPackageExtraScanPaths(package_name, package_dir):
 
 
 def getUncompiledDecoratorNames():
-    """Return a tuple of decorator names that should cause the function to be uncompiled.
+    """Return full decorator names that should cause the function to be uncompiled.
 
     Returns:
         tuple of strings

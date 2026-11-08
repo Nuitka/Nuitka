@@ -695,7 +695,12 @@ class NuitkaPluginBase(getMetaClassBase("Plugin", require_slots=False)):
 
     @staticmethod
     def getUncompiledDecoratorNames():
-        """Return a tuple of decorator names that should cause the function to be uncompiled.
+        """Return full decorator names that should cause the function to be uncompiled.
+
+        Notes:
+            Names are fully qualified, e.g. "numba.jit".
+            Imported names are resolved against their import statement, so
+            "from numba import jit" matches "numba.jit" as well.
 
         Returns:
             tuple of strings

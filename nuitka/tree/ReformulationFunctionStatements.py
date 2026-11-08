@@ -8,8 +8,6 @@ source code comments with Developer Manual sections.
 
 """
 
-import ast
-
 from nuitka.nodes.AsyncgenNodes import (
     ExpressionAsyncgenObjectBody,
     ExpressionMakeAsyncgenObject,
@@ -47,7 +45,6 @@ from nuitka.nodes.CoroutineNodes import (
 )
 from nuitka.nodes.DictionaryNodes import makeExpressionMakeDict
 from nuitka.nodes.ExceptionNodes import StatementRaiseException
-from nuitka.nodes.ExecEvalNodes import ExpressionBuiltinExec
 from nuitka.nodes.FrameNodes import StatementsFrameFunction
 from nuitka.nodes.FunctionNodes import (
     ExpressionFunctionBody,
@@ -66,7 +63,6 @@ from nuitka.nodes.LocalsDictNodes import StatementSetLocalsDictionary
 from nuitka.nodes.OperatorNodes import makeBinaryOperationNode
 from nuitka.nodes.OutlineNodes import ExpressionOutlineFunction
 from nuitka.nodes.ReturnNodes import StatementReturn, StatementReturnNone
-from nuitka.nodes.StatementNodes import StatementExpressionOnly
 from nuitka.nodes.VariableAssignNodes import makeStatementAssignmentVariable
 from nuitka.nodes.VariableNameNodes import (
     ExpressionVariableNameRef,
@@ -79,18 +75,17 @@ from nuitka.nodes.VariableRefNodes import (
 from nuitka.options.Options import isExperimental
 from nuitka.plugins.Hooks import (
     decideNeedsFrameLocalsProxy,
-    getUncompiledDecoratorNames,
     onFunctionBodyParsing,
 )
 from nuitka.PythonVersions import python_version
 from nuitka.specs.ParameterSpecs import ParameterSpec
 
 from .FutureSpecState import getFutureSpec
-from .ReformulationExecStatements import wrapEvalGlobalsAndLocals
-from .ReformulationTryFinallyStatements import (
-    makeTryFinallyReleaseStatement,
-    makeTryFinallyStatement,
+from .JITCompilation import (
+    buildBytecodeOrSourceFunction,
+    decideFunctionCompilationMode,
 )
+from .ReformulationTryFinallyStatements import makeTryFinallyReleaseStatement
 from .SyntaxErrors import checkDebugNameAssignment, raiseSyntaxError
 from .TreeHelpers import (
     buildAnnotationNode,
@@ -104,7 +99,6 @@ from .TreeHelpers import (
     getKind,
     makeCallNode,
     makeDictCreationOrConstant2,
-    makeStatementsSequence,
     makeStatementsSequenceFromStatement,
     makeStatementsSequenceFromStatements,
     mangleName,
@@ -158,115 +152,6 @@ def _injectDecorator(decorators, inject, acceptable, source_ref):
         )
 
 
-def _getDecoratorName(decorator):
-    # Attribute lookups are considered too, so that e.g. "@numba.njit" or
-    # "@numba.jit(nopython=True)" can be recognized by their attribute name.
-    if decorator.isExpressionVariableNameRef():
-        return decorator.getVariableName()
-
-    if decorator.isExpressionAttributeLookup():
-        return decorator.getAttributeName()
-
-    if decorator.isExpressionCall():
-        return _getDecoratorName(decorator.subnode_called)
-
-    return None
-
-
-def _isUncompiledDecorator(decorator):
-    decorator_name = _getDecoratorName(decorator)
-
-    # Hard coded name.
-    if decorator_name == "nuitka_ignore":
-        return True
-
-    # False alarm, pylint: disable=I0021,unsupported-membership-test
-    if decorator_name in getUncompiledDecoratorNames():
-        return True
-
-    return False
-
-
-def decideFunctionCompilationMode(decorators):
-    """Decide how to compile a function based on decorator names."""
-    for decorator in decorators:
-        if _isUncompiledDecorator(decorator):
-            return "bytecode"
-
-    return "compiled"
-
-
-def _buildBytecodeOrSourceFunction(provider, node, compilation_mode, source_ref):
-    # TODO: We should have a compile() builtin usage here, lookup "co_code" and
-    # support that as a constant value. We then would have the "bytecode" only
-    # in the binary, right now "bytecode" and "source" make no difference.
-    #  pylint: disable=unused-argument
-    source_code = ast.unparse(node)
-
-    source = makeConstantRefNode(
-        constant=source_code,
-        source_ref=source_ref,
-        user_provided=True,
-    )
-
-    # if compilation_mode == "bytecode":
-    #     source = ExpressionBuiltinCompile(
-    #         source_code=source,
-    #         filename=makeConstantRefNode(constant="<exec>", source_ref=source_ref),
-    #         mode=makeConstantRefNode(constant="exec", source_ref=source_ref),
-    #         flags=None,
-    #         dont_inherit=None,
-    #         optimize=None,
-    #         source_ref=source_ref
-    #     )
-
-    # This is actually for the globals locals usage to be default values of the
-    # scope.
-
-    temp_scope = provider.allocateTempScope("function_exec")
-
-    source_variable, globals_ref, locals_ref, tried, final = wrapEvalGlobalsAndLocals(
-        provider=provider,
-        locals_scope=provider.getLocalsScope(),
-        source_node=source,
-        globals_node=None,
-        locals_node=None,
-        temp_scope=temp_scope,
-        source_ref=source_ref,
-    )
-
-    tried = makeStatementsSequence(
-        statements=(
-            tried,
-            (
-                StatementExpressionOnly(
-                    expression=ExpressionBuiltinExec(
-                        source_code=ExpressionTempVariableRef(
-                            variable=source_variable, source_ref=source_ref
-                        ),
-                        globals_arg=globals_ref,
-                        locals_arg=locals_ref,
-                        closure=None,
-                        source_ref=source_ref,
-                    ),
-                    source_ref=source_ref,
-                )
-            ),
-        ),
-        source_ref=source_ref,
-    )
-
-    # Hack: Allow some APIs to work already
-    # tried.parent = provider
-
-    return makeTryFinallyStatement(
-        provider=provider,
-        tried=tried,
-        final=final,
-        source_ref=source_ref,
-    )
-
-
 def _getFunctionProvider(provider, node, source_ref):
     if python_version >= 0x3C0 and node.type_params:
         type_params_outline = ExpressionOutlineFunction(
@@ -314,14 +199,14 @@ def buildFunctionNode(provider, node, source_ref):
         provider=provider, nodes=reversed(node.decorator_list), source_ref=source_ref
     )
 
-    compilation_mode = decideFunctionCompilationMode(decorators)
+    compilation_mode = decideFunctionCompilationMode(provider, decorators)
 
     onFunctionBodyParsing(provider=provider, function_name=node.name, body=node.body)
 
     if compilation_mode != "compiled":
         node.name = mangleName(node.name, provider)
 
-        return _buildBytecodeOrSourceFunction(
+        return buildBytecodeOrSourceFunction(
             provider=provider,
             node=node,
             compilation_mode=compilation_mode,
@@ -510,12 +395,12 @@ def buildAsyncFunctionNode(provider, node, source_ref):
         provider=provider, nodes=reversed(node.decorator_list), source_ref=source_ref
     )
 
-    compilation_mode = decideFunctionCompilationMode(decorators)
+    compilation_mode = decideFunctionCompilationMode(provider, decorators)
 
     onFunctionBodyParsing(provider=provider, function_name=node.name, body=node.body)
 
     if compilation_mode != "compiled":
-        return _buildBytecodeOrSourceFunction(
+        return buildBytecodeOrSourceFunction(
             provider=provider,
             node=node,
             compilation_mode=compilation_mode,

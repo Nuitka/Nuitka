@@ -28,6 +28,7 @@ from nuitka.PythonVersions import python_version
 from nuitka.utils.ModuleNames import ModuleName
 
 from .FutureSpecState import enableFutureFeature, getFutureSpec
+from .JITCompilation import recordImportFrom, recordImportModule
 from .ReformulationTryFinallyStatements import makeTryFinallyReleaseStatement
 from .SyntaxErrors import checkDebugNameAssignment, raiseSyntaxError
 from .TreeHelpers import makeStatementsSequenceOrStatement, mangleName
@@ -127,6 +128,14 @@ def buildImportFromNode(provider, node, source_ref):
             target_names.append(target_name)
 
         import_names.append(object_name)
+
+    if node.level == 0 and module_name != "__future__":
+        recordImportFrom(
+            provider=provider,
+            module_name=module_name,
+            import_names=import_names,
+            target_names=target_names,
+        )
 
     # Star imports get special treatment.
     if None in target_names:
@@ -283,6 +292,10 @@ def buildImportModulesNode(provider, node, source_ref):
         )
 
         module_name = _resolveImportModuleName(module_name)
+
+        recordImportModule(
+            provider=provider, module_name=module_name, local_name=local_name
+        )
 
         # TODO: Go to fixed node directly, avoiding the optimization for the
         # node to do it, with absolute imports we can use makeExpressionImportModuleFixed

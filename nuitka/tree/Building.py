@@ -146,6 +146,7 @@ from nuitka.utils import MemoryUsage
 
 from . import SyntaxErrors
 from .FutureSpecState import getFutureSpec, popFutureSpec, pushFutureSpec
+from .JITCompilation import clearDecoratorImportAliasesCache
 from .ReformulationAssertStatements import buildAssertNode
 from .ReformulationAssignmentStatements import (
     buildAnnAssignNode,
@@ -1276,6 +1277,8 @@ def createModuleTree(module, source_ref, ast_tree, is_main):
 
     completeVariableClosures(module)
 
+    clearDecoratorImportAliasesCache()
+
     if isShowMemory():
         memory_watch.finish(
             "Memory usage changed loading module '%s'" % module.getFullName()
@@ -1565,6 +1568,8 @@ def buildModule(
                 is_main=is_main,
             )
         except CodeTooComplexCode:
+            clearDecoratorImportAliasesCache()
+
             # Do not hide CodeTooComplexCode in main module.
             if is_main or is_top:
                 raise
