@@ -994,6 +994,8 @@ Error, directory '%s' given to '--include-plugin-directory' must not be a \
 standard library path. Use '--include-module' or '--include-package' \
 options instead.""" % pattern)
 
+    _checkLtoOptions()
+
     _checkStaticLibPython()
 
     if isApplePython():
@@ -2088,6 +2090,86 @@ def shallOptimizeStringExec():
 _shall_use_static_lib_python = None
 
 
+_lto_environment_variable_names = ("CFLAGS", "CCFLAGS", "CXXFLAGS", "LDFLAGS")
+
+
+def _getLtoFlagsFromEnvironment():
+    """Get LTO related flags from C compiler environment variables.
+
+    Returns:
+        List of tuples of environment variable name, flag, and LTO mode.
+    """
+    result = []
+
+    for variable_name in _lto_environment_variable_names:
+        variable_value = os.getenv(variable_name)
+        if variable_value is None:
+            continue
+
+        for flag in variable_value.split():
+            if flag == "-flto" or flag.startswith("-flto="):
+                result.append((variable_name, flag, "yes"))
+            elif flag == "-fno-lto":
+                result.append((variable_name, flag, "no"))
+
+    return result
+
+
+def _getLtoModeFromEnvironment():
+    """Get LTO mode requested by C compiler environment variables.
+
+    Returns:
+        Tuple of the mode ('yes', 'no', 'conflict', or None), and the LTO
+        flags found in the environment.
+    """
+    lto_flags = _getLtoFlagsFromEnvironment()
+
+    modes = set()
+    for _variable_name, _flag, mode in lto_flags:
+        modes.add(mode)
+
+    if not modes:
+        return None, lto_flags
+    elif len(modes) > 1:
+        return "conflict", lto_flags
+    else:
+        return modes.pop(), lto_flags
+
+
+def _checkLtoOptions():
+    environment_lto_mode, lto_flags = _getLtoModeFromEnvironment()
+
+    if environment_lto_mode == "conflict":
+        return options_logger.sysexit(
+            "Error, environment variables contain conflicting LTO flags: %s."
+            % ", ".join(
+                "%s='%s'" % (variable_name, flag)
+                for variable_name, flag, _mode in lto_flags
+            )
+        )
+
+    if environment_lto_mode is None:
+        return
+
+    variable_name, flag, _mode = lto_flags[0]
+
+    if options.lto == "auto":
+        options.lto = environment_lto_mode
+
+        options_logger.info(
+            "Resolved '--lto=auto' to '%s' due to %s='%s'."
+            % (environment_lto_mode, variable_name, flag)
+        )
+    elif options.lto == "yes" and environment_lto_mode == "no":
+        return options_logger.sysexit("""\
+Error, '--lto=yes' conflicts with %s='%s' from the environment. Remove \
+the LTO flag from the environment or use '--lto=no'.""" % (variable_name, flag))
+    elif options.lto == "no" and environment_lto_mode == "yes":
+        return options_logger.sysexit("""\
+Error, '--lto=no' conflicts with %s='%s' from the environment. Remove \
+the LTO flag from the environment or use '--lto=yes'.""" % (variable_name, flag))
+
+
 def _checkStaticLibPython():
     static_libpython_path = getTargetSystemStaticLibPythonPath(
         python_debug=shallUsePythonDebug()
@@ -2246,7 +2328,12 @@ def isReproducibleBuild():
 
 
 def getLtoMode():
-    """:returns: bool derived from ``--lto``"""
+    """Return LTO mode.
+
+    Returns:
+        str - derived from ``--lto``, with 'auto' resolved from environment
+        flags when possible.
+    """
     return options.lto
 
 
