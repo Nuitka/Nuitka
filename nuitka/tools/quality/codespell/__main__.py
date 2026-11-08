@@ -22,7 +22,7 @@ from nuitka.utils.FileOperations import (
 )
 from nuitka.utils.PrivatePipSpace import (
     getCodespellBinaryPath,
-    withPrivatePipSitePackagesPathAdded,
+    getPrivatePipSitePackagesEnvironment,
 )
 
 replacements = [
@@ -77,10 +77,12 @@ def _checkIgnoreWords(contents):
 
 
 def runCodespell(codespell_binary, filenames, verbose, write):
+    env = getPrivatePipSitePackagesEnvironment(binary_path=codespell_binary)
+
     if verbose:
         my_print("Consider", " ".join(filenames))
 
-    codespell_version = check_output([codespell_binary, "--version"])
+    codespell_version = check_output([codespell_binary, "--version"], env=env)
 
     if str is not bytes:
         codespell_version = codespell_version.decode("utf8").strip()
@@ -101,7 +103,7 @@ def runCodespell(codespell_binary, filenames, verbose, write):
         command.append("-w")
 
     result = callProcessChunked(
-        command, filenames, logger=tools_logger if verbose else None
+        command, filenames, logger=tools_logger if verbose else None, env=env
     )
 
     # Check for unnecessary ignores, but only if the file is cleanly passing
@@ -211,13 +213,12 @@ Allow download and execution of tools if needed. Default is %default.""",
     if not filenames:
         sys.exit("No files found.")
 
-    with withPrivatePipSitePackagesPathAdded(binary_path=codespell_binary):
-        result = runCodespell(
-            codespell_binary=codespell_binary,
-            filenames=filenames,
-            verbose=options.verbose,
-            write=options.write,
-        )
+    result = runCodespell(
+        codespell_binary=codespell_binary,
+        filenames=filenames,
+        verbose=options.verbose,
+        write=options.write,
+    )
 
     if result:
         my_print("OK.")

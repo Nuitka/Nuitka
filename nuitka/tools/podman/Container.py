@@ -24,7 +24,6 @@ from nuitka.utils.Execution import (
     check_output,
     getExecutablePath,
     quoteForShell,
-    withEnvironmentPathAdded,
 )
 from nuitka.utils.FileOperations import (
     changeFilenameExtension,
@@ -393,10 +392,9 @@ def getCppPath():
             experimental=False,
         )
 
-        with withEnvironmentPathAdded("PATH", os.path.dirname(mingw64_gcc_path)):
-            cpp_path = getExecutablePath("cpp")
+        cpp_path = getExecutablePath("cpp", extra_dir=os.path.dirname(mingw64_gcc_path))
 
-            os.environ["CPP_PATH"] = cpp_path
+        os.environ["CPP_PATH"] = cpp_path
 
     if cpp_path is None:
         containers_logger.sysexit(

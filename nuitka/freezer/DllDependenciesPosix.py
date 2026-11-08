@@ -9,7 +9,7 @@ import sys
 from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.PythonFlavors import isAnacondaPython
 from nuitka.Tracing import inclusion_logger
-from nuitka.utils.Execution import executeProcess, withEnvironmentPathAdded
+from nuitka.utils.Execution import executeProcess, getEnvironmentWithPathAdded
 from nuitka.utils.SharedLibraries import getSharedLibraryRPATHs
 from nuitka.utils.Utils import (
     isAlpineLinux,
@@ -76,19 +76,18 @@ def detectBinaryPathDLLsPosix(dll_filename, package_name, original_dir):
         link_target_path = os.path.dirname(os.path.realpath(dll_filename))
         python_rpaths.append(link_target_path)
 
-    # TODO: Actually would be better to pass it as env to the created process instead.
-    with withEnvironmentPathAdded(
-        "LD_LIBRARY_PATH",
-        *getLdLibraryPath(
-            package_name=package_name,
-            python_rpaths=python_rpaths,
-            original_dir=original_dir,
-        )
-    ):
-        # TODO: Check exit code, should never fail.
-        process_result = executeProcess(
-            command=("ldd", dll_filename),
-        )
+    # TODO: Check exit code, should never fail.
+    process_result = executeProcess(
+        command=("ldd", dll_filename),
+        env=getEnvironmentWithPathAdded(
+            "LD_LIBRARY_PATH",
+            *getLdLibraryPath(
+                package_name=package_name,
+                python_rpaths=python_rpaths,
+                original_dir=original_dir,
+            )
+        ),
+    )
 
     stderr = b"\n".join(
         line

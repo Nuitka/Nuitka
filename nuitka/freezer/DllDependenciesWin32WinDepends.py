@@ -11,8 +11,8 @@ from nuitka.Tracing import inclusion_logger
 from nuitka.utils.Download import getCachedDownload, getDownloadMode
 from nuitka.utils.Execution import (
     executeProcess,
+    getEnvironmentWithPathAdded,
     getExecutablePath,
-    withEnvironmentPathAdded,
 )
 from nuitka.utils.FileOperations import (
     areSamePaths,
@@ -263,23 +263,23 @@ def detectDLLsWithWinDepends(binary_filename, source_dir, scan_dirs):
     with withFileLock("Finding out WinDepends path for %s" % binary_filename):
         windepends_exe = getWinDependsExePath()
 
-    scan_path = list(getExternalUsePath(dirname) for dirname in scan_dirs)
+    scan_path = [getExternalUsePath(dirname) for dirname in scan_dirs]
 
-    with withEnvironmentPathAdded("PATH", *scan_path, prefix=True):
-        process_result = executeProcess(
-            command=(
-                windepends_exe,
-                getExternalUsePath(binary_filename),
-                "-o",
-                output_filename,
-                "-f",
-                "json",
-                "-q",
-                "--no-exports",
-                "--no-imports",
-            ),
-            external_cwd=True,
-        )
+    process_result = executeProcess(
+        command=(
+            windepends_exe,
+            getExternalUsePath(binary_filename),
+            "-o",
+            output_filename,
+            "-f",
+            "json",
+            "-q",
+            "--no-exports",
+            "--no-imports",
+        ),
+        env=getEnvironmentWithPathAdded("PATH", *scan_path, prefix=True),
+        external_cwd=True,
+    )
 
     if not os.path.exists(output_filename):
         output = _decodeWinDependsProcessOutput(process_result)

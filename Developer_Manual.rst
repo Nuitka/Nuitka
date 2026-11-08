@@ -301,7 +301,7 @@ that easily recognized.
 
 .. code:: python
 
-   with withEnvironmentPathAdded(os.path.join(sys.prefix, "bin")):
+   with withFileLock("reading Qt data files"):
        with withDirectoryChange(self.qt_datadir):
            ...
 

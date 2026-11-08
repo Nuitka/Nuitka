@@ -24,7 +24,7 @@ from nuitka.reports.CompilationReportReader import (
     parseCompilationReport,
 )
 from nuitka.Tracing import wheel_logger
-from nuitka.utils.Execution import check_call, withEnvironmentPathAdded
+from nuitka.utils.Execution import check_call, getEnvironmentWithPathAdded
 from nuitka.utils.FileOperations import deleteFile, getFileList, renameFile
 from nuitka.utils.Json import writeJsonToFile, writeJsonToFilename
 from nuitka.utils.ModuleNames import ModuleName
@@ -428,8 +428,11 @@ class build(distutils.command.build.build):
                 "Building: '%s' with command '%s'" % (module_name.asString(), command)
             )
 
-            with withEnvironmentPathAdded("PYTHONPATH", python_path, prefix=True):
-                check_call(command, cwd=build_lib)
+            check_call(
+                command,
+                cwd=build_lib,
+                env=getEnvironmentWithPathAdded("PYTHONPATH", python_path, prefix=True),
+            )
 
             wheel_logger.info(
                 "Finished compilation of '%s'." % module_name.asString(), style="green"

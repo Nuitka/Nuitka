@@ -26,9 +26,9 @@ from .Download import (
 from .Execution import (
     NuitkaCalledProcessError,
     check_output,
+    getEnvironmentWithPathAdded,
     getExecutablePath,
     getNullOutput,
-    withEnvironmentPathAdded,
 )
 from .FileOperations import (
     deleteFile,
@@ -257,23 +257,22 @@ def _checkPrivatePipBinaryPath(
 ):
     """Check if a binary path is version compatible and usable."""
 
-    with withPrivatePipSitePackagesPathAdded(binary_path=binary_path):
-        if version is None:
-            ok = True
-            message = None
-        else:
-            ok, message = _checkRequiredVersion(
-                logger=logger,
-                tool=binary_name,
-                tool_call=[binary_path],
-                dependencies=dependencies,
-            )
+    if version is None:
+        ok = True
+        message = None
+    else:
+        ok, message = _checkRequiredVersion(
+            logger=logger,
+            tool=binary_name,
+            tool_call=[binary_path],
+            dependencies=dependencies,
+        )
 
-        if ok and check_binary is not None:
-            ok, message = check_binary(
-                logger=logger,
-                binary_path=binary_path,
-            )
+    if ok and check_binary is not None:
+        ok, message = check_binary(
+            logger=logger,
+            binary_path=binary_path,
+        )
 
     if report_rejection and not ok and message is not None and logger is not None:
         logger.info(
@@ -545,8 +544,8 @@ def _getPrivatePipSitePackagesDirForBinary(binary_path):
     return None
 
 
-def withPrivatePipSitePackagesPathAdded(binary_path):
-    """Context manager to add private pip site-packages to PYTHONPATH.
+def getPrivatePipSitePackagesEnvironment(binary_path):
+    """Get environment with private pip site-packages added to PYTHONPATH.
 
     Args:
         binary_path: path to the binary that is going to be executed, used to
@@ -563,7 +562,7 @@ def withPrivatePipSitePackagesPathAdded(binary_path):
             if site_packages_dir != preferred_site_packages_dir
         ]
 
-    return withEnvironmentPathAdded("PYTHONPATH", *site_packages_dirs, prefix=True)
+    return getEnvironmentWithPathAdded("PYTHONPATH", *site_packages_dirs, prefix=True)
 
 
 def _isPackageInstalled(site_packages_folder, package_name, package_version):
@@ -1014,7 +1013,10 @@ def _checkMdformatUsability(logger, binary_path):
     with withTemporaryFilename(suffix=".md") as temp_filename:
         try:
             putBinaryFileContents(temp_filename, b"# smoke\n")
-            check_output([binary_path, "--check", temp_filename])
+            check_output(
+                [binary_path, "--check", temp_filename],
+                env=getPrivatePipSitePackagesEnvironment(binary_path=binary_path),
+            )
         except NuitkaCalledProcessError as e:
             stderr = e.stderr
 
@@ -1218,7 +1220,10 @@ def _checkRequiredVersion(logger, tool, tool_call, dependencies):
         return _check_required_version_cache[tool_call]
 
     try:
-        version_output = check_output(tool_call)
+        version_output = check_output(
+            tool_call,
+            env=getPrivatePipSitePackagesEnvironment(binary_path=tool_call[0]),
+        )
     except NuitkaCalledProcessError as e:
         result = False, "failed to execute: %s" % e.stderr
         _check_required_version_cache[tool_call] = result

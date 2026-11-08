@@ -24,8 +24,8 @@ from nuitka.utils.Hashing import Hash
 from nuitka.utils.PrivatePipSpace import (
     getBlackBinaryPath,
     getIsortBinaryPath,
+    getPrivatePipSitePackagesEnvironment,
     getRequiredVersion,
-    withPrivatePipSitePackagesPathAdded,
 )
 
 from .FileFormatting import _dash_characters, cleanupWindowsNewlines
@@ -275,8 +275,10 @@ def _cleanupImportSortOrder(
 
             return
 
-    with withPrivatePipSitePackagesPathAdded(binary_path=isort_path):
-        isort_output = check_output(isort_call + isort_args + [filename])
+    isort_output = check_output(
+        isort_call + isort_args + [filename],
+        env=getPrivatePipSitePackagesEnvironment(binary_path=isort_path),
+    )
 
     if isort_output == b"" and contents != "":
         if logger is not None:
@@ -434,8 +436,10 @@ def formatPython(
 
         if not black_cache_hit:
             try:
-                with withPrivatePipSitePackagesPathAdded(binary_path=black_path):
-                    check_call(black_call)
+                check_call(
+                    black_call,
+                    env=getPrivatePipSitePackagesEnvironment(binary_path=black_path),
+                )
 
                 new_contents = getFileContents(filename, mode="rb")
                 putBinaryFileContents(cache_filename, new_contents)

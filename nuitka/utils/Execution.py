@@ -361,21 +361,31 @@ def getEnvironmentPathAdded(env_var_name, *paths, **kw):
         return old_path + os.pathsep + path
 
 
-@contextmanager
-def withEnvironmentPathAdded(env_var_name, *paths, **kw):
-    old_path = os.environ.get(env_var_name)
+def getEnvironmentWithPathAdded(env_var_name, *paths, **kw):
+    """Get a copy of the environment with paths added to an environment variable.
+
+    Notes:
+        This is for passing to child processes instead of modifying the
+        environment of the current process.
+
+    Args:
+        env_var_name: Name of the environment variable, e.g. 'LD_LIBRARY_PATH'.
+        *paths: Paths to add to the variable, empty ones are ignored.
+
+    Kwargs:
+        prefix: If True, the paths are added at the front, otherwise at the end.
+
+    Returns:
+        A copy of the current environment with the paths added.
+    """
+    env = dict(os.environ)
+
     new_path = getEnvironmentPathAdded(env_var_name, *paths, **kw)
 
     if new_path is not None:
-        os.environ[env_var_name] = new_path
+        env[env_var_name] = new_path
 
-    yield
-
-    if new_path is not None:
-        if old_path is None:
-            del os.environ[env_var_name]
-        else:
-            os.environ[env_var_name] = old_path
+    return env
 
 
 @contextmanager
@@ -482,8 +492,9 @@ def wrapCommandForDebuggerForExec(command, debugger):
             experimental=isExperimental("winlibs-new"),
         )
 
-        with withEnvironmentPathAdded("PATH", os.path.dirname(mingw64_gcc_path)):
-            lldb_path = getExecutablePath("lldb")
+        lldb_path = getExecutablePath(
+            "lldb", extra_dir=os.path.dirname(mingw64_gcc_path)
+        )
 
     if gdb_path is None and lldb_path is None and valgrind_path is None:
         if lldb_path is None:

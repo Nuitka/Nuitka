@@ -14,7 +14,7 @@ from nuitka.utils.FileOperations import (
 )
 from nuitka.utils.PrivatePipSpace import (
     getClangFormatBinaryPath,
-    withPrivatePipSitePackagesPathAdded,
+    getPrivatePipSitePackagesEnvironment,
 )
 from nuitka.utils.Utils import counted
 
@@ -304,15 +304,15 @@ def _cleanupClangFormat(logger, filename, assume_yes_for_downloads, reject_messa
     )
 
     if clang_format_path:
-        with withPrivatePipSitePackagesPathAdded(binary_path=clang_format_path):
-            subprocess.call(
-                [
-                    clang_format_path,
-                    "-i",
-                    "-style={BasedOnStyle: llvm, IndentWidth: 4, ColumnLimit: 120}",
-                    filename,
-                ]
-            )
+        subprocess.call(
+            [
+                clang_format_path,
+                "-i",
+                "-style={BasedOnStyle: llvm, IndentWidth: 4, ColumnLimit: 120}",
+                filename,
+            ],
+            env=getPrivatePipSitePackagesEnvironment(binary_path=clang_format_path),
+        )
 
 
 def _cleanupEmDashes(filename):

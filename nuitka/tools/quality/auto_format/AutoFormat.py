@@ -43,8 +43,8 @@ from nuitka.utils.FileOperations import (
 )
 from nuitka.utils.PrivatePipSpace import (
     getMdformatBinaryPath,
+    getPrivatePipSitePackagesEnvironment,
     getRstfmtBinaryPath,
-    withPrivatePipSitePackagesPathAdded,
 )
 
 
@@ -118,8 +118,10 @@ def cleanupMarkdownFmt(logger, filename, assume_yes_for_downloads):
             logger.warning("Need to accept mdformat download to format markdown files.")
         return
 
-    with withPrivatePipSitePackagesPathAdded(binary_path=mdformat_path):
-        check_call([mdformat_path, "--number", "--wrap=100", filename])
+    check_call(
+        [mdformat_path, "--number", "--wrap=100", filename],
+        env=getPrivatePipSitePackagesEnvironment(binary_path=mdformat_path),
+    )
 
 
 def cleanupRstFmt(logger, filename, effective_filename, assume_yes_for_downloads):
@@ -151,8 +153,10 @@ def cleanupRstFmt(logger, filename, effective_filename, assume_yes_for_downloads
             logger.warning("Need to accept rstfmt download to format RST files.")
         return
 
-    with withPrivatePipSitePackagesPathAdded(binary_path=rstfmt_path):
-        check_call([rstfmt_path, filename])
+    check_call(
+        [rstfmt_path, filename],
+        env=getPrivatePipSitePackagesEnvironment(binary_path=rstfmt_path),
+    )
 
     cleanupWindowsNewlines(filename, effective_filename)
 
