@@ -138,6 +138,10 @@ class NuitkaPluginDllFiles(NuitkaYamlPluginBase):
 
         module_filename = self.locateModule(base_module_name)
 
+        # Ignore if the "relative_to" module is not available.
+        if module_filename is None:
+            return
+
         if os.path.isdir(module_filename):
             module_directory = module_filename
 
@@ -217,6 +221,11 @@ class NuitkaPluginDllFiles(NuitkaYamlPluginBase):
         if dest_path is None:
             module_filename = self.locateModule(full_name)
 
+            # Allow for the module to not be available, then we have
+            # no relative path against it.
+            if module_filename is None:
+                return None
+
             if os.path.isdir(module_filename):
                 dest_path = full_name.asPath()
             else:
@@ -283,12 +292,15 @@ conditions are missing, or this version of the module needs treatment added."""
             # shall tolerate relative paths by the config.
             filename = getNormalizedPath(os.path.abspath(filename))
 
-            yield self._handleDllConfigByCodeResult(
+            dll_entry_point = self._handleDllConfigByCodeResult(
                 filename=filename,
                 full_name=full_name,
                 dest_path=dest_path,
                 executable=dll_config.get("executable", "no") == "yes",
             )
+
+            if dll_entry_point is not None:
+                yield dll_entry_point
 
     def _handleDllConfig(self, dll_config, full_name, count):
         dest_path = dll_config.get("dest_path")
