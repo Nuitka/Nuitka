@@ -104,7 +104,10 @@
   ],
   "python.analysis.exclude": [
     "nuitka/build/inline_copy/stubgen",
-    "tests/CPython*/test"
+    "tests"
+  ],
+  "python.analysis.ignore": [
+    "tests"
   ],
   "python.analysis.diagnosticSeverityOverrides": {
     "reportMissingImports": "none"

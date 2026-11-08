@@ -31,14 +31,15 @@ exclude = [
     "**/__pycache__",
     "**/.*",
     "**/inline_copy/**",
-    "tests/CPython*",
+    "tests",
     "*Mini*",
 ]
 
-# Suppress diagnostics for vendored code even when it is analyzed, e.g. because
-# an editor opens one of its files.
+# Suppress diagnostics for vendored code and tests even when they are analyzed,
+# e.g. because an editor opens one of their files.
 ignore = [
     "**/inline_copy/**",
+    "tests",
 ]
 
 [tool.ruff]

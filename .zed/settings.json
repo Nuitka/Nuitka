@@ -120,7 +120,13 @@
     "basedpyright": {
       "settings": {
         "basedpyright.analysis": {
-          "diagnosticMode": "openFilesOnly"
+          "diagnosticMode": "openFilesOnly",
+          "exclude": [
+            "tests"
+          ],
+          "ignore": [
+            "tests"
+          ]
         }
       }
     }
