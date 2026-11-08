@@ -3368,23 +3368,23 @@ class ExpressionOsPathIsdirRef(ExpressionImportModuleNameHardExistsSpecificBase)
 addHardImportNodeClass(ExpressionOsPathIsdirRef, os_path_isdir_spec)
 
 
-class ExpressionOsPathIsdirCallBase(ChildHavingPathMixin, ExpressionBase):
+class ExpressionOsPathIsdirCallBase(ChildHavingSMixin, ExpressionBase):
     """Base class for OsPathIsdirCall
 
     Generated boiler plate code from 'HardImportCallNode.py.j2' template.
     """
 
-    named_children = ("path",)
+    named_children = ("s",)
 
     __slots__ = ("attempted",)
 
     spec = os_path_isdir_spec
 
-    def __init__(self, path, source_ref):
+    def __init__(self, s, source_ref):
 
-        ChildHavingPathMixin.__init__(
+        ChildHavingSMixin.__init__(
             self,
-            path=path,
+            s=s,
         )
 
         ExpressionBase.__init__(self, source_ref)
@@ -3393,7 +3393,7 @@ class ExpressionOsPathIsdirCallBase(ChildHavingPathMixin, ExpressionBase):
 
     def computeExpression(self, trace_collection):
         if self.attempted or not os_path_isdir_spec.isCompileTimeComputable(
-            (self.subnode_path,)
+            (self.subnode_s,)
         ):
             trace_collection.onExceptionRaiseExit(BaseException)
 
