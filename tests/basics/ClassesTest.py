@@ -219,6 +219,20 @@ class DictUpdating:
 print("Changed values", DictUpdating.b, DictUpdating.test_4)
 
 
+def makeConditionalClass(condition):
+    if condition:
+
+        class ConditionalClass:
+            a = 1
+            class_locals = locals()
+
+        return ConditionalClass
+
+
+conditional_class = makeConditionalClass(True)
+print("Class in conditional with locals:", conditional_class.a)
+
+
 def functionThatOffersClosureToPassThroughClass(x):
     class Foo:
         global x

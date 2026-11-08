@@ -143,6 +143,11 @@ class ExpressionLocalsVariableRefOrFallback(ChildHavingFallbackMixin, Expression
                     # Need to compute the replacement still.
                     return result.computeExpressionRaw(trace_collection)
 
+        # This reference remains undecided and needs the class dictionary at
+        # run time, so it cannot be replaced with a temporary variable during
+        # forward propagation.
+        self.locals_scope.preventLocalsDictPropagation()
+
         trace_collection.onExceptionRaiseExit(BaseException)
 
         branch_fallback = TraceCollectionBranch(

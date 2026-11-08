@@ -93,6 +93,20 @@ class CollectionUpdateMixin(object):
     # Mixins are not allowed to specify slots.
     __slots__ = ()
 
+    def onLocalsDictEscaped(self, locals_scope):
+        locals_scope.preventLocalsDictPropagation()
+
+        for variable in locals_scope.variables.values():
+            self.markActiveVariableAsEscaped(variable)
+
+        # TODO: Limit to the scope.
+        # TODO: Does the above code not do that already?
+        for variable in self.variable_actives:
+            if variable.isTempVariable() or variable.isModuleVariable():
+                continue
+
+            self.markActiveVariableAsEscaped(variable)
+
     def getVariableTracesAll(self):
         return self.variable_traces
 
@@ -289,20 +303,6 @@ class CollectionStartPointMixin(CollectionUpdateMixin):
 
     def getOutlineFunctions(self):
         return self.outline_functions
-
-    def onLocalsDictEscaped(self, locals_scope):
-        locals_scope.preventLocalsDictPropagation()
-
-        for variable in locals_scope.variables.values():
-            self.markActiveVariableAsEscaped(variable)
-
-        # TODO: Limit to the scope.
-        # TODO: Does the above code not do that already?
-        for variable in self.variable_actives:
-            if variable.isTempVariable() or variable.isModuleVariable():
-                continue
-
-            self.markActiveVariableAsEscaped(variable)
 
     def onUsedFunction(self, function_body):
         owning_module = function_body.getParentModule()
@@ -1100,9 +1100,6 @@ class TraceCollectionBase(object):
             catch_returns=catch_returns,
             catch_exceptions=catch_exceptions,
         )
-
-    def onLocalsDictEscaped(self, locals_scope):
-        self.parent.onLocalsDictEscaped(locals_scope)
 
     def getCompileTimeComputationResult(
         self, node, computation, description, user_provided=False
