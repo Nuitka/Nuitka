@@ -32,6 +32,7 @@ from nuitka.utils.Importing import getExtensionModuleSuffix
 from nuitka.utils.ModuleNames import ModuleName, checkModuleName
 from nuitka.utils.SharedLibraries import getDLLVersion
 
+from .DllPaths import classifyDllPath, compareDllPathClassifications
 from .IncludedDataFiles import addIncludedPdbFile
 
 dll_tags = []
@@ -330,7 +331,8 @@ Ignoring non-identical DLLs for %s, %s different from %s. Using first one and ho
 
 def addIncludedEntryPoint(entry_point):
     # Checking here if user or DLL version conflicts require it to be ignored,
-    # which has a couple of decisions to make, pylint: disable=too-many-branches
+    # which has a couple of decisions to make.
+    # pylint: disable=too-many-branches,too-many-statements
 
     # Allow configured tags to be applied to it
     entry_point.tags.update(getDllTags(entry_point.dest_path))
@@ -362,6 +364,27 @@ def addIncludedEntryPoint(entry_point):
                         standalone_entry_point.source_path,
                     )
                 )
+
+            # Prefer DLLs from the Python installation or program directories
+            # over system or otherwise external copies with the same name.
+            entry_point_classification = classifyDllPath(entry_point.source_path)
+            standalone_entry_point_classification = classifyDllPath(
+                standalone_entry_point.source_path
+            )
+
+            classification_comparison = compareDllPathClassifications(
+                entry_point_classification, standalone_entry_point_classification
+            )
+
+            if classification_comparison != 0:
+                if classification_comparison > 0:
+                    standalone_entry_points[count] = _makeIgnoredEntryPoint(
+                        standalone_entry_point
+                    )
+                else:
+                    entry_point = _makeIgnoredEntryPoint(entry_point)
+
+                break
 
             # Check that if a DLL has the same name, if it's identical, then it's easy, we just
             # want to remember, therefore we convert to an ignored type.

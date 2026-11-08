@@ -12,12 +12,7 @@ import os
 
 from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.Errors import NuitkaForbiddenDLLEncounter, NuitkaNotYetSupported
-from nuitka.importing.Importing import (
-    getExtraSysPaths,
-    getMainScriptDirectories,
-    getPythonUnpackedSearchPath,
-    locateModule,
-)
+from nuitka.importing.Importing import locateModule
 from nuitka.importing.StandardLibrary import isStandardLibraryPath
 from nuitka.options.Options import (
     isShowProgress,
@@ -31,19 +26,7 @@ from nuitka.plugins.Hooks import (
     removeDllDependencies,
 )
 from nuitka.Progress import reportProgressBar, withProgressBar
-from nuitka.PythonFlavors import (
-    getHomebrewInstallPath,
-    getMacPortsInstallPath,
-    isAnacondaPython,
-    isCPythonOfficialPackage,
-    isHomebrewPython,
-    isMacPortsPython,
-    isMonolithPy,
-    isMSYS2MingwPython,
-    isPyenvHomebrewPython,
-    isPythonBuildStandalonePython,
-)
-from nuitka.PythonPrefixes import getSystemPrefixPath
+from nuitka.PythonFlavors import isMonolithPy
 from nuitka.targets.Targets import isElfTarget, isRPathUsingTarget
 from nuitka.Tracing import general, inclusion_logger
 from nuitka.utils.Execution import executeToolChecked
@@ -84,10 +67,8 @@ from .DllDependenciesMacOS import (
     fixupBinaryDLLPathsMacOS,
 )
 from .DllDependenciesPosix import detectBinaryPathDLLsPosix
-from .DllDependenciesWin32 import (
-    detectBinaryPathDLLsWin32,
-    shallIncludeVCRedistDLL,
-)
+from .DllDependenciesWin32 import detectBinaryPathDLLsWin32
+from .DllPaths import classifyDllPath
 from .IncludedDataFiles import (
     addIncludedPdbFile,
     getIncludedFrameworkDistPathFromSourcePath,
@@ -601,43 +582,12 @@ def _reduceToPythonPath(used_dll_paths):
 
     DLLs found in the MSVC Redist folder are kept regardless.
     """
-    inside_paths = getPythonUnpackedSearchPath()
-
-    # Shared libraries that live next to the program rather than in the Python
-    # installation must be kept, e.g. packages vendored next to the main script
-    # that ship their dependencies in sibling directories.
-    inside_paths.extend(getMainScriptDirectories())
-    inside_paths.extend(getExtraSysPaths())
-
-    if isAnacondaPython():
-        inside_paths.insert(0, getSystemPrefixPath())
-
-    if isMacOS() and (isCPythonOfficialPackage() or isPythonBuildStandalonePython()):
-        inside_paths.insert(0, getSystemPrefixPath())
-
-    if isMacPortsPython():
-        inside_paths.insert(0, getMacPortsInstallPath())
-
-    if isHomebrewPython() or isPyenvHomebrewPython():
-        inside_paths.insert(0, getHomebrewInstallPath())
-
-    if isMSYS2MingwPython():
-        inside_paths.insert(0, getNormalizedPathJoin(getSystemPrefixPath(), "bin"))
-
-    def decideInside(dll_filename):
-        return any(
-            isFilenameBelowPath(path=inside_path, filename=dll_filename)
-            for inside_path in inside_paths
-        )
-
-    def decideMsvcRedistDll(dll_filename):
-        return isWin32Windows() and shallIncludeVCRedistDLL(dll_filename)
 
     kept_used_dll_paths = OrderedSet()
     removed_dll_paths = OrderedSet()
 
     for dll_filename in used_dll_paths:
-        if decideInside(dll_filename) or decideMsvcRedistDll(dll_filename):
+        if classifyDllPath(dll_filename) in ("inside", "vc_redist"):
             kept_used_dll_paths.add(dll_filename)
         else:
             if dll_filename not in _excluded_system_dlls:
