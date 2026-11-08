@@ -1319,12 +1319,12 @@
     - dirs:
         - 'templates'
 
-- module-name: 'datasets' # checksum: 98a37e8f
+- module-name: 'datasets' # checksum: 3659422e
   options:
     checks:
-      - description: 'datasets 2.7.1+ fingerprints dataset state using dill, requires dill-compat plugin to be enabled'
-        support_info: 'plugin-error'
-        when: 'version("datasets") >= (2, 7, 1) and not plugin("dill-compat")'
+      - description: 'datasets 2.7.1+ fingerprints dataset state using dill; compiled functions require the dill-compat plugin to be serializable'
+        support_info: 'plugin-warning'
+        when: 'None is not version("datasets") >= (2, 7, 1) and not plugin("dill-compat")'
 
 - module-name: 'datasets.packaged_modules' # checksum: 4c45e344
   anti-bloat:
@@ -1453,11 +1453,12 @@
     - depends:
         - 'dependency_injector.errors'
 
-- module-name: 'depyf' # checksum: 77493764
+- module-name: 'depyf' # checksum: 2e3577e5
   anti-bloat:
     - description: "remove 'dill' package reference"
       no-auto-follow:
         'dill': 'ignore'
+      when: 'not plugin("dill-compat")'
 
 - module-name: 'diatheke' # checksum: ad402cfe
   import-hacks:
@@ -7105,7 +7106,7 @@
         prefixes:
           - 'common_ops'
 
-- module-name: 'sglang' # checksum: 6fe969ce
+- module-name: 'sglang' # checksum: f34765c7
   data-files:
     - include-metadata:
         - 'sglang-kernel'
@@ -7113,9 +7114,8 @@
         - 'hf_xet'
   anti-bloat:
     - description: 'drop HF datasets, only training and benchmark code uses it'
-      no-follow:
+      no-auto-follow:
         'datasets': 'HF datasets is not used when serving a model'
-        'datasets.*': 'HF datasets is not used when serving a model'
     - description: 'drop tilelang, it cannot load TVM in the compiled build'
       no-follow:
         'tilelang': 'tilelang loads TVM from a path at run time, which the build does not have'
@@ -9343,7 +9343,7 @@
   import-hacks:
     - recompile-extensions: 'no'
 
-- module-name: 'torch' # checksum: c7a5c4df
+- module-name: 'torch' # checksum: 6f92ea34
   parameters:
     - 'name': 'disable-jit'
       'values': 'value in ("yes", "no")'
@@ -9382,6 +9382,7 @@
         # When using dill, we expect that to be outside, this is only for
         # testing if it needs to be considered.
         'dill': 'ignore'
+      when: 'not plugin("dill-compat")'
   implicit-imports:
     - depends:
         - 'nvidia'
