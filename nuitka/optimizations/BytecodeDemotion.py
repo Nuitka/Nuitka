@@ -15,7 +15,11 @@ from nuitka.importing.ImportCache import (
 from nuitka.ModuleRegistry import replaceRootModule
 from nuitka.nodes.ModuleNodes import makeUncompiledPythonModule
 from nuitka.options import Options
-from nuitka.options.Options import isShowProgress, isStandaloneMode
+from nuitka.options.Options import (
+    getFileReferenceMode,
+    isShowProgress,
+    isStandaloneMode,
+)
 from nuitka.plugins.Hooks import (
     decideAssertions,
     decideDocStrings,
@@ -36,6 +40,8 @@ def demoteSourceCodeToBytecode(module, source_code, filename):
 
     if isStandaloneMode():
         filename = module_name.asPath() + ".py"
+    elif getFileReferenceMode() != "original":
+        filename = module.getRunTimeFilename()
 
     bytecode = compileSourceToBytecode(
         source_code=source_code,
