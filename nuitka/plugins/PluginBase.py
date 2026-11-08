@@ -1250,6 +1250,22 @@ Unwanted import of '%(unwanted)s' that %(problem)s '%(binding_name)s' encountere
         # Virtual method, pylint: disable=no-self-use,unused-argument
         return None
 
+    def onFinalResultFinished(self, filename):
+        """Called after all plugins are done with modifying the final result.
+
+        Note:
+            Plugins may still change the binary in "onFinalResult", e.g. by
+            signing or compressing it, here it is final. Use this for what
+            must see it as it is delivered, e.g. a checksum of it.
+        Args:
+            filename: the created binary (module, accelerated exe, dist exe, onefile exe)
+
+        Returns:
+            None
+        """
+        # Virtual method, pylint: disable=no-self-use,unused-argument
+        return None
+
     def onInstallerOutput(self, filename):
         """Called after an installer has been created.
 

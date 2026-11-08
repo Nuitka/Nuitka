@@ -856,7 +856,7 @@ def generateOsPathIsdirCallCode(to_name, expression, emit, context):
         to_name=to_name,
         capi="OS_PATH_FILE_ISDIR",
         tstate=True,
-        arg_desc=(("isdir_arg", expression.subnode_path),),
+        arg_desc=(("isdir_arg", expression.subnode_s),),
         may_raise=expression.mayRaiseException(BaseException),
         conversion_check=decideConversionCheckNeeded(to_name, expression),
         source_ref=expression.getCompatibleSourceReference(),
