@@ -406,6 +406,52 @@ def rangeOrderCheck():
         print("Expected exception caught range 2", repr(e))
 
 
+def evalExecOrderCheckSource():
+    print("source", end=" ")
+
+    return "40 + 2"
+
+
+def evalExecOrderCheckGlobals():
+    print("globals", end=" ")
+
+    return {}
+
+
+def evalExecOrderCheckLocals():
+    print("locals", end=" ")
+
+    return {}
+
+
+def evalFromIteratorOrderCheck():
+    iterator = iter(("x * 2", 21))
+
+    return eval(next(iterator), {"x": next(iterator)})
+
+
+def evalExecOrderCheck():
+    print("Built-in eval and exec:")
+
+    print(
+        "eval result",
+        eval(
+            evalExecOrderCheckSource(),
+            evalExecOrderCheckGlobals(),
+            evalExecOrderCheckLocals(),
+        ),
+    )
+
+    exec(
+        evalExecOrderCheckSource(),
+        evalExecOrderCheckGlobals(),
+        evalExecOrderCheckLocals(),
+    )
+    print("exec done")
+
+    print("eval value order", evalFromIteratorOrderCheck())
+
+
 def importOrderCheck():
     print("Built-in __import__:")
 
@@ -656,6 +702,8 @@ separator()
 isinstanceOrderCheck()
 separator()
 rangeOrderCheck()
+separator()
+evalExecOrderCheck()
 separator()
 importOrderCheck()
 separator()

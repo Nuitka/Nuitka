@@ -138,10 +138,7 @@ from nuitka.nodes.TypeNodes import (
     ExpressionBuiltinSuper2,
     ExpressionBuiltinType1,
 )
-from nuitka.nodes.VariableAssignNodes import (
-    makeStatementAssignmentVariable,
-    makeStatementDelVariable,
-)
+from nuitka.nodes.VariableAssignNodes import makeStatementAssignmentVariable
 from nuitka.nodes.VariableRefNodes import (
     ExpressionTempVariableRef,
     ExpressionVariableRef,
@@ -869,13 +866,16 @@ if python_version < 0x300:
                 source_ref=node.source_ref,
             )
 
-            globals_ref, locals_ref, tried, final = wrapEvalGlobalsAndLocals(
-                provider=outline_body,
-                locals_scope=node.getParentVariableProvider().getLocalsScope(),
-                globals_node=globals_arg,
-                locals_node=locals_arg,
-                temp_scope=outline_body.getOutlineTempScope(),
-                source_ref=source_ref,
+            filename_variable, globals_ref, locals_ref, tried, final = (
+                wrapEvalGlobalsAndLocals(
+                    provider=outline_body,
+                    locals_scope=node.getParentVariableProvider().getLocalsScope(),
+                    source_node=filename,
+                    globals_node=globals_arg,
+                    locals_node=locals_arg,
+                    temp_scope=outline_body.getOutlineTempScope(),
+                    source_ref=source_ref,
+                )
             )
 
             tried = makeStatementsSequence(
@@ -887,7 +887,10 @@ if python_version < 0x300:
                             source_code=makeCallNode(
                                 makeExpressionAttributeLookup(
                                     expression=ExpressionBuiltinsOpenBefore3Call(
-                                        name=filename,
+                                        name=ExpressionTempVariableRef(
+                                            variable=filename_variable,
+                                            source_ref=source_ref,
+                                        ),
                                         mode=makeConstantRefNode(
                                             constant="rU", source_ref=source_ref
                                         ),
@@ -940,13 +943,16 @@ def eval_extractor(node):
             source_ref=source_ref,
         )
 
-        globals_ref, locals_ref, tried, final = wrapEvalGlobalsAndLocals(
-            provider=outline_body,
-            locals_scope=provider.getLocalsScope(),
-            globals_node=globals_arg,
-            locals_node=locals_arg,
-            temp_scope=outline_body.getOutlineTempScope(),
-            source_ref=source_ref,
+        source_variable, globals_ref, locals_ref, tried, final = (
+            wrapEvalGlobalsAndLocals(
+                provider=outline_body,
+                locals_scope=provider.getLocalsScope(),
+                source_node=source,
+                globals_node=globals_arg,
+                locals_node=locals_arg,
+                temp_scope=outline_body.getOutlineTempScope(),
+                source_ref=source_ref,
+            )
         )
 
         # The wrapping should not relocate to the "source_ref".
@@ -957,19 +963,6 @@ def eval_extractor(node):
         assert (
             locals_arg is None
             or locals_ref.getSourceReference() == locals_arg.getSourceReference()
-        )
-
-        source_variable = outline_body.allocateTempVariable(
-            temp_scope=None, name="source", temp_type="object"
-        )
-
-        final.setChildStatements(
-            final.subnode_statements
-            + (
-                makeStatementDelVariable(
-                    variable=source_variable, tolerant=True, source_ref=source_ref
-                ),
-            )
         )
 
         strip_choice = makeConstantRefNode(constant=(" \t",), source_ref=source_ref)
@@ -1026,9 +1019,6 @@ def eval_extractor(node):
             )
 
         statements = (
-            makeStatementAssignmentVariable(
-                variable=source_variable, source=source, source_ref=source_ref
-            ),
             makeStatementConditional(
                 condition=ExpressionOperationNot(
                     operand=ExpressionBuiltinIsinstance(
@@ -1103,13 +1093,16 @@ if python_version >= 0x300:
                 provider=provider, name="exec_call", source_ref=source_ref
             )
 
-            globals_ref, locals_ref, tried, final = wrapEvalGlobalsAndLocals(
-                provider=outline_body,
-                locals_scope=provider.getLocalsScope(),
-                globals_node=globals_arg,
-                locals_node=locals_arg,
-                temp_scope=outline_body.getOutlineTempScope(),
-                source_ref=source_ref,
+            source_variable, globals_ref, locals_ref, tried, final = (
+                wrapEvalGlobalsAndLocals(
+                    provider=outline_body,
+                    locals_scope=provider.getLocalsScope(),
+                    source_node=source,
+                    globals_node=globals_arg,
+                    locals_node=locals_arg,
+                    temp_scope=outline_body.getOutlineTempScope(),
+                    source_ref=source_ref,
+                )
             )
 
             tried = makeStatementsSequence(
@@ -1117,7 +1110,9 @@ if python_version >= 0x300:
                     tried,
                     makeStatementReturn(
                         expression=ExpressionBuiltinExec(
-                            source_code=source,
+                            source_code=ExpressionTempVariableRef(
+                                variable=source_variable, source_ref=source_ref
+                            ),
                             globals_arg=globals_ref,
                             locals_arg=locals_ref,
                             closure=closure,

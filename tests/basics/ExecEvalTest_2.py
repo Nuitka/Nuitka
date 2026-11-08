@@ -103,6 +103,27 @@ def functionExecfile():
 functionExecfile()
 
 
+def functionExecfileOrder():
+    def filename():
+        print "filename",
+        return tmp_filename
+
+    def globals_value():
+        print "globals",
+        return {}
+
+    def locals_value():
+        print "locals",
+        return {}
+
+    print "execfile order:",
+    execfile(filename(), globals_value(), locals_value())
+    print
+
+
+functionExecfileOrder()
+
+
 class classExecfile:
     e = 0
     f = 0

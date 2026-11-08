@@ -225,9 +225,10 @@ def _buildBytecodeOrSourceFunction(provider, node, compilation_mode, source_ref)
 
     temp_scope = provider.allocateTempScope("function_exec")
 
-    globals_ref, locals_ref, tried, final = wrapEvalGlobalsAndLocals(
+    source_variable, globals_ref, locals_ref, tried, final = wrapEvalGlobalsAndLocals(
         provider=provider,
         locals_scope=provider.getLocalsScope(),
+        source_node=source,
         globals_node=None,
         locals_node=None,
         temp_scope=temp_scope,
@@ -240,7 +241,9 @@ def _buildBytecodeOrSourceFunction(provider, node, compilation_mode, source_ref)
             (
                 StatementExpressionOnly(
                     expression=ExpressionBuiltinExec(
-                        source_code=source,
+                        source_code=ExpressionTempVariableRef(
+                            variable=source_variable, source_ref=source_ref
+                        ),
                         globals_arg=globals_ref,
                         locals_arg=locals_ref,
                         closure=None,

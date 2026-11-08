@@ -40,13 +40,23 @@ from .TreeHelpers import (
 
 
 def wrapEvalGlobalsAndLocals(
-    provider, locals_scope, globals_node, locals_node, temp_scope, source_ref
+    provider,
+    locals_scope,
+    source_node,
+    globals_node,
+    locals_node,
+    temp_scope,
+    source_ref,
 ):
-    """Wrap the locals and globals arguments for "eval".
+    """Wrap the source, locals and globals arguments for "eval" and "exec".
 
     This is called from the outside, and when the node tree
     already exists.
     """
+
+    source_keeper_variable = provider.allocateTempVariable(
+        temp_scope=temp_scope, name="source", temp_type="object", late=True
+    )
 
     globals_keeper_variable = provider.allocateTempVariable(
         temp_scope=temp_scope, name="globals", temp_type="object", late=True
@@ -76,7 +86,11 @@ def wrapEvalGlobalsAndLocals(
         )
 
     post_statements += makeStatementsReleaseVariables(
-        variables=(globals_keeper_variable, locals_keeper_variable),
+        variables=(
+            globals_keeper_variable,
+            locals_keeper_variable,
+            source_keeper_variable,
+        ),
         source_ref=source_ref,
     )
 
@@ -99,7 +113,12 @@ def wrapEvalGlobalsAndLocals(
     )
 
     pre_statements = [
-        # First assign globals and locals temporary the values given.
+        # First assign the source temporary variable the value given, so that
+        # it is evaluated before the globals and locals arguments.
+        makeStatementAssignmentVariable(
+            variable=source_keeper_variable, source=source_node, source_ref=source_ref
+        ),
+        # Then assign globals and locals temporary variables the values given.
         makeStatementAssignmentVariable(
             variable=globals_keeper_variable, source=globals_node, source_ref=source_ref
         ),
@@ -141,6 +160,7 @@ def wrapEvalGlobalsAndLocals(
     ]
 
     return (
+        source_keeper_variable,
         ExpressionTempVariableRef(
             variable=globals_keeper_variable,
             source_ref=(
