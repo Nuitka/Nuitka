@@ -10,7 +10,7 @@ import sys
 
 from nuitka.format.FileFormatting import cleanupWindowsNewlines
 from nuitka.options.CommandLineOptionsTools import makeOptionsParser
-from nuitka.tools.Basics import goHome
+from nuitka.tools.quality.Git import addGitArguments, getGitPaths
 from nuitka.tools.quality.ScanSources import scanTargets
 from nuitka.Tracing import my_print, tools_logger
 from nuitka.utils.Execution import callProcessChunked, check_output
@@ -18,7 +18,7 @@ from nuitka.utils.FileOperations import (
     areSamePaths,
     getFileContents,
     putTextFileContents,
-    resolveShellPatternToFilenames,
+    resolveShellPatternsToFilenames,
 )
 from nuitka.utils.PrivatePipSpace import (
     getCodespellBinaryPath,
@@ -168,6 +168,8 @@ def main():
 Allow download and execution of tools if needed. Default is %default.""",
     )
 
+    addGitArguments(parser)
+
     options, positional_args = parser.parse_args()
 
     codespell_binary = getCodespellBinaryPath(
@@ -178,26 +180,25 @@ Allow download and execution of tools if needed. Default is %default.""",
     if codespell_binary is None:
         return tools_logger.sysexit("Error, cannot find 'codespell' binary.")
 
-    if not positional_args:
-        positional_args = [
+    positional_args = getGitPaths(
+        options=options,
+        positional_args=positional_args,
+        default_positional_args=(
             "bin",
             "nuitka",
             "rpm",
             "misc",
             "tests/*/run_all.py",
             "*.rst",
-        ]
-        goHome()
-
-    my_print("Working on:", positional_args)
-
-    positional_args = sum(
-        (
-            resolveShellPatternToFilenames(positional_arg)
-            for positional_arg in positional_args
         ),
-        [],
     )
+
+    if not positional_args:
+        sys.exit("No files found.")
+
+    my_print("Working on:", ", ".join(positional_args))
+
+    positional_args = resolveShellPatternsToFilenames(positional_args)
 
     filenames = list(
         scanTargets(

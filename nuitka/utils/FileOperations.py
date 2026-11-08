@@ -2137,6 +2137,23 @@ def resolveShellPatternToFilenames(pattern):
     return result
 
 
+def resolveShellPatternsToFilenames(patterns):
+    """Resolve shell patterns to filenames.
+
+    Args:
+        patterns: Iterable of shell patterns.
+
+    Returns:
+        list: Filenames that matched.
+    """
+
+    return [
+        filename
+        for pattern in patterns
+        for filename in resolveShellPatternToFilenames(pattern)
+    ]
+
+
 @contextmanager
 def withDirectoryChange(path, allow_none=False):
     """Change current directory temporarily in a context.

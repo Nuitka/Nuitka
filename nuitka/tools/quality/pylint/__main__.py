@@ -19,7 +19,7 @@ from nuitka.utils.Download import getDownloadMode
 from nuitka.utils.FileOperations import (
     getFileModificationTime,
     getPathWithForwardSlashes,
-    resolveShellPatternToFilenames,
+    resolveShellPatternsToFilenames,
 )
 from nuitka.utils.PrivatePipSpace import (
     arePackagesInstalledGlobally,
@@ -72,13 +72,7 @@ def _resolveFilenames(options, positional_args):
     if options.verbose:
         my_print("Working on: %s" % " ".join(positional_args))
 
-    positional_args = sum(
-        (
-            resolveShellPatternToFilenames(positional_arg)
-            for positional_arg in positional_args
-        ),
-        [],
-    )
+    positional_args = resolveShellPatternsToFilenames(positional_args)
 
     ignore_list = []
 

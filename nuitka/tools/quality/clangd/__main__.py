@@ -15,7 +15,7 @@ from nuitka.Tracing import my_print, tools_logger
 from nuitka.utils.Execution import executeProcess, getExecutablePath
 from nuitka.utils.FileOperations import (
     getPathWithForwardSlashes,
-    resolveShellPatternToFilenames,
+    resolveShellPatternsToFilenames,
 )
 from nuitka.utils.Utils import isWin32Windows
 
@@ -62,13 +62,7 @@ def _resolveFilenames(options, positional_args):
     if options.verbose:
         my_print("Working on: %s" % " ".join(positional_args))
 
-    positional_args = sum(
-        (
-            resolveShellPatternToFilenames(positional_arg)
-            for positional_arg in positional_args
-        ),
-        [],
-    )
+    positional_args = resolveShellPatternsToFilenames(positional_args)
 
     filenames = list(
         scanTargets(positional_args, suffixes=(".c", ".h"), ignore_list=[])
@@ -133,9 +127,8 @@ def _checkClangdFile(filename, verbose):
 
     stderr = process_result.stderr
 
-    if str is not bytes:
-        if stderr is not None:
-            stderr = stderr.decode("utf8")
+    if str is not bytes and stderr is not None:
+        stderr = stderr.decode("utf8")
 
     return process_result.exit_code, stderr
 
@@ -166,7 +159,7 @@ def _filterClangdDiagnostics(stderr):
         stripped = line.strip()
         if not stripped:
             continue
-        if not (stripped.startswith("E[") or stripped.startswith("W[")):
+        if not stripped.startswith(("E[", "W[")):
             continue
 
         # Strip the "[HH:MM:SS.mmm]" timestamp right after the severity marker.
@@ -236,13 +229,12 @@ def _checkFiles(filenames, verbose):
 def main():
     options, positional_args = _parseArguments()
 
-    if options.not_installed_is_no_error:
-        if getExecutablePath("clangd") is None:
-            tools_logger.warning(
-                "clangd is not installed: SKIPPED",
-                style="yellow",
-            )
-            return tools_logger.sysexit(exit_code=0)
+    if options.not_installed_is_no_error and getExecutablePath("clangd") is None:
+        tools_logger.warning(
+            "clangd is not installed: SKIPPED",
+            style="yellow",
+        )
+        return tools_logger.sysexit(exit_code=0)
 
     goHome()
 

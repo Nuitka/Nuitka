@@ -20,7 +20,7 @@ from nuitka.options.CommandLineOptionsTools import makeOptionsParser
 from nuitka.tools.Basics import goHome
 from nuitka.tools.quality.ScanSources import scanTargets
 from nuitka.Tracing import my_print, tools_logger
-from nuitka.utils.FileOperations import resolveShellPatternToFilenames
+from nuitka.utils.FileOperations import resolveShellPatternsToFilenames
 
 
 def main():
@@ -54,13 +54,7 @@ Allow download and execution of tools if needed. Default is %default.""",
 
     my_print("Working on:", positional_args)
 
-    positional_args = sum(
-        (
-            resolveShellPatternToFilenames(positional_arg)
-            for positional_arg in positional_args
-        ),
-        [],
-    )
+    positional_args = resolveShellPatternsToFilenames(positional_args)
 
     goHome()
 

@@ -14,7 +14,7 @@ from nuitka.tools.quality.Git import (
 )
 from nuitka.tools.quality.ScanSources import isPythonFile, scanTargets
 from nuitka.Tracing import my_print, tools_logger
-from nuitka.utils.FileOperations import resolveShellPatternToFilenames
+from nuitka.utils.FileOperations import resolveShellPatternsToFilenames
 
 
 def _addOptions(parser):
@@ -123,11 +123,10 @@ def _parseArgs():
 
     options, positional_args = parser.parse_args()
 
-    if options.diff or options.un_pushed:
-        if options.from_commit:
-            return tools_logger.sysexit(
-                "Error, no --from-commit argument allowed in git diff mode."
-            )
+    if (options.diff or options.un_pushed) and options.from_commit:
+        return tools_logger.sysexit(
+            "Error, no --from-commit argument allowed in git diff mode."
+        )
 
     if options.progress_bar:
         enableProgressBar(progress_bar="auto")
@@ -183,11 +182,11 @@ def _filenameMatchesLimits(filename, options):
 
     if options.yaml and filename.endswith(".nuitka-package.config.yml"):
         return True
-    if options.c and (filename.endswith(".c") or filename.endswith(".h")):
+    if options.c and filename.endswith((".c", ".h")):
         return True
     if options.python and isPythonFile(filename):
         return True
-    if options.rst and (filename.endswith(".rst") or filename.endswith(".inc")):
+    if options.rst and filename.endswith((".rst", ".inc")):
         return True
     if options.md and filename.endswith(".md"):
         return True
@@ -233,13 +232,7 @@ def _formatFromGitPaths(options, positional_args):
     else:
         my_print("Working on:", ", ".join(positional_args))
 
-    positional_args = sum(
-        (
-            resolveShellPatternToFilenames(positional_arg)
-            for positional_arg in positional_args
-        ),
-        [],
-    )
+    positional_args = resolveShellPatternsToFilenames(positional_args)
 
     filenames = list(
         scanTargets(
