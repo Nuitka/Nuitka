@@ -1059,7 +1059,7 @@ static void setStdFileHandleNumber(PyThreadState *tstate, DWORD std_handle_id, P
 }
 #endif
 
-static bool shallSetOutputHandleToNull(char const *name) {
+static bool shallSetStandardHandleToNull(char const *name) {
 #if NUITKA_FORCED_STDOUT_NULL_BOOL
     if (strcmp(name, "stdout") == 0) {
         return true;
@@ -1078,6 +1078,15 @@ static bool shallSetOutputHandleToNull(char const *name) {
 
 #if _NUITKA_DLL_MODE
     return false;
+#endif
+
+#if !defined(_WIN32)
+    // CPython leaves "sys.stdin" as None when file descriptor 0 is closed.
+    // Replacing that with "/dev/null" changes the behavior of child processes,
+    // which e.g. multiprocessing relies on, so keep it closed on POSIX.
+    if (strcmp(name, "stdin") == 0) {
+        return false;
+    }
 #endif
 
     PyObject *sys_std_handle = Nuitka_SysGetObject(name);
@@ -1257,7 +1266,7 @@ static void setInputOutputHandles(PyThreadState *tstate) {
 
         NUITKA_PRINT_TRACE("setInputOutputHandles(): Considering stdin.");
 
-        if (shallSetOutputHandleToNull("stdin")) {
+        if (shallSetStandardHandleToNull("stdin")) {
             NUITKA_PRINT_TRACE("setInputOutputHandles(): Set stdin to NULL file.");
 
             // CPython core requires stdin to be buffered due to methods usage, and it won't matter
@@ -1270,7 +1279,7 @@ static void setInputOutputHandles(PyThreadState *tstate) {
 
         NUITKA_PRINT_TRACE("setInputOutputHandles(): Considering stdout.");
 
-        if (shallSetOutputHandleToNull("stdout")) {
+        if (shallSetStandardHandleToNull("stdout")) {
             NUITKA_PRINT_TRACE("setInputOutputHandles(): Set stdout to NULL file.");
 
             PyObject *stdout_file = BUILTIN_OPEN_SIMPLE(tstate, devnull_filename, "w", false, encoding);
@@ -1281,7 +1290,7 @@ static void setInputOutputHandles(PyThreadState *tstate) {
 
         NUITKA_PRINT_TRACE("setInputOutputHandles(): Considering stderr.");
 
-        if (shallSetOutputHandleToNull("stderr")) {
+        if (shallSetStandardHandleToNull("stderr")) {
             NUITKA_PRINT_TRACE("setInputOutputHandles(): Set stderr to NULL file.");
 
             PyObject *stderr_file = BUILTIN_OPEN_SIMPLE(tstate, devnull_filename, "w", false, encoding);
