@@ -135,14 +135,15 @@ def _cleanupPrivatePipModuleState(logger, site_packages_folder, module_name):
             module_basename = os.path.basename(module_path)
 
             for filename in os.listdir(pycache_dir):
-                if filename.startswith(module_basename + ".") and filename.endswith(
-                    ".pyc"
-                ):
-                    if _removePrivatePipInstalledPath(
+                if (
+                    filename.startswith(module_basename + ".")
+                    and filename.endswith(".pyc")
+                    and _removePrivatePipInstalledPath(
                         logger=logger,
                         path=os.path.join(pycache_dir, filename),
-                    ):
-                        removed = True
+                    )
+                ):
+                    removed = True
 
     return removed
 
@@ -155,14 +156,15 @@ def _cleanupPrivatePipMetadataState(logger, site_packages_folder, package_name):
         dist_info_prefix = _normalizePrivatePipPackageName(package_name) + "-"
 
         for filename in os.listdir(site_packages_folder):
-            if filename.startswith(dist_info_prefix) and filename.endswith(
-                (".dist-info", ".egg-info")
-            ):
-                if _removePrivatePipInstalledPath(
+            if (
+                filename.startswith(dist_info_prefix)
+                and filename.endswith((".dist-info", ".egg-info"))
+                and _removePrivatePipInstalledPath(
                     logger=logger,
                     path=os.path.join(site_packages_folder, filename),
-                ):
-                    removed = True
+                )
+            ):
+                removed = True
 
     return removed
 
@@ -594,7 +596,7 @@ def _isPackageInstalled(site_packages_folder, package_name, package_version):
         for filename in os.listdir(site_packages_folder):
             if (
                 filename.startswith(normalized_name + "-")
-                and (filename.endswith(".dist-info") or filename.endswith(".egg-info"))
+                and filename.endswith((".dist-info", ".egg-info"))
                 and filename != os.path.basename(dist_info_path)
                 and filename != os.path.basename(egg_info_path)
             ):
@@ -664,17 +666,20 @@ def tryDownloadPackageName(
         package_version=package_version,
     )
 
-    if site_packages_folder is not None and not force_update:
-        # If version is specified, check if it looks installed.
-        if _isPackageInstalled(
+    # If version is specified, check if it looks installed.
+    if (
+        site_packages_folder is not None
+        and not force_update
+        and _isPackageInstalled(
             site_packages_folder=site_packages_folder,
             package_name=package_name,
             package_version=package_version,
-        ):
-            return (
-                site_packages_folder,
-                download_mode,
-            )
+        )
+    ):
+        return (
+            site_packages_folder,
+            download_mode,
+        )
 
     if not _checkPackageConstraint(logger, package_name):
         return None, download_mode

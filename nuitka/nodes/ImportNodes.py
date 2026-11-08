@@ -170,9 +170,7 @@ class ExpressionImportAllowanceMixin(object):
 
         if self.finding == "not-found":
             self.allowed = False
-        elif self.finding == "built-in":
-            self.allowed = True
-        elif self.module_name in hard_modules_stdlib:
+        elif self.finding == "built-in" or self.module_name in hard_modules_stdlib:
             self.allowed = True
         else:
             self.allowed, _reason = decideRecursion(
@@ -879,10 +877,9 @@ def _getImportNameAsStr(value):
     else:
         result = value.getCompileTimeConstant()
 
-    if type(result) in (str, unicode):
+    if str is not unicode and type(result) is unicode:
         # TODO: This is not handling decoding errors all that well.
-        if str is not unicode and type(result) is unicode:
-            result = str(result)
+        result = str(result)
 
     return result
 

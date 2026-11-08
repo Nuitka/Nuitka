@@ -171,7 +171,7 @@ def getPluginIncludePaths():
 
     for root, _, files in os.walk(base_plugins_dir):
         # We only care if the directory contains header files directly
-        if any(f.endswith(".h") or f.endswith(".hpp") for f in files):
+        if any(f.endswith((".h", ".hpp")) for f in files):
             plugin_includes.append(root)
 
     return sorted(plugin_includes)
