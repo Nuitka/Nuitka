@@ -12,13 +12,13 @@ demoted to bytecode, for which the plugin provided modules have to follow.
 # nuitka-project: --pgo-args=profiling
 # nuitka-project: --disable-cache=bytecode
 
-import multiprocessing
 import sys
 
 if "profiling" in sys.argv:
     print("Profiling run.")
     sys.exit(0)
 
+import multiprocessing  # isort:skip
 
 print("Has cpu_count:", callable(multiprocessing.cpu_count))
 
