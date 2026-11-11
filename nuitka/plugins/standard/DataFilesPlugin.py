@@ -8,10 +8,11 @@ import pkgutil
 
 from nuitka.code_generation.ConstantCodes import addDistributionMetadataValue
 from nuitka.containers.OrderedSets import OrderedSet
-from nuitka.options.Options import isStandaloneMode
+from nuitka.options.Options import assumeYesForDownloads, isStandaloneMode
 from nuitka.plugins.YamlPluginBase import NuitkaYamlPluginBase
 from nuitka.PythonFlavors import isDebianPackagePython
 from nuitka.utils.Distributions import getDistribution
+from nuitka.utils.Download import getCachedDownloadedFile, getDownloadMode
 from nuitka.utils.FileOperations import (
     changeFilenameExtension,
     getFileList,
@@ -57,6 +58,11 @@ class NuitkaPluginDataFileCollector(NuitkaYamlPluginBase):
                     target_dir = module_name.getPackageName().asPath()
                 else:
                     target_dir = "."
+
+        for included_data_file in self._considerDataFileDownloads(
+            module=module, data_file_config=data_file_config, target_dir=target_dir
+        ):
+            yield included_data_file
 
         patterns = data_file_config.get("patterns")
         if patterns is not None:
@@ -230,6 +236,63 @@ class NuitkaPluginDataFileCollector(NuitkaYamlPluginBase):
                     reason="According to Yaml configuration 'include-metadata' for '%s'"
                     % module_name.asString(),
                 )
+
+    def _considerDataFileDownloads(self, module, data_file_config, target_dir):
+        module_name = module.getFullName()
+        downloads = data_file_config.get("downloads")
+
+        if downloads is None:
+            return
+
+        if type(downloads) is not list or not downloads:
+            self.sysexit(
+                "Error, requiring list below 'downloads' entry for '%s' entry."
+                % module_name
+            )
+
+        download_mode = getDownloadMode(assumeYesForDownloads())
+
+        for download in downloads:
+            if type(download) is not dict:
+                self.sysexit(
+                    "Error, requiring object below 'downloads' entry for '%s' entry."
+                    % module_name
+                )
+
+            source_url = download.get("source")
+            dest_path = download.get("dest_path")
+
+            if not source_url or not dest_path:
+                self.sysexit(
+                    "Error, requiring 'source' and 'dest_path' in 'downloads' entry for '%s' entry."
+                    % module_name
+                )
+
+            source_url = self.evaluateExpressionOrConstant(
+                full_name=module_name,
+                expression=source_url,
+                config_name="data file download source for '%s'" % module_name,
+                extra_context=None,
+                single_value=True,
+            )
+            dest_path = self.evaluateExpressionOrConstant(
+                full_name=module_name,
+                expression=dest_path,
+                config_name="data file download destination for '%s'" % module_name,
+                extra_context=None,
+                single_value=True,
+            )
+
+            yield self.makeIncludedDataFile(
+                source_path=getCachedDownloadedFile(
+                    name="data file '%s'" % os.path.basename(source_url),
+                    url=source_url,
+                    download_mode=download_mode,
+                ),
+                dest_path=os.path.normpath(os.path.join(target_dir, dest_path)),
+                reason="downloaded data file for '%s'" % module_name,
+                tags="config",
+            )
 
     def considerDataFiles(self, module):
         full_name = module.getFullName()

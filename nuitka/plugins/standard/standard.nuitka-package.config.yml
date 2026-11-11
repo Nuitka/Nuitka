@@ -9078,6 +9078,34 @@
       change_function:
         'main': 'un-callable'
 
+- module-name: 'tiktoken' # checksum: cd30aa7
+  variables:
+    setup_code:
+      - 'import hashlib'
+      - 'tiktoken_o200k_base_url = "https://openaipublic.blob.core.windows.net/encodings/o200k_base.tiktoken"'
+    declarations:
+      'tiktoken_o200k_base_url': 'tiktoken_o200k_base_url'
+      'tiktoken_o200k_base_cache_key': 'hashlib.sha1(tiktoken_o200k_base_url.encode("utf8")).hexdigest()'
+  data-files:
+    # OpenAI publishes 'o200k_base.tiktoken' under the MIT license:
+    # https://github.com/openai/tiktoken/blob/main/LICENSE
+    - downloads:
+        - 'source': 'get_variable("tiktoken_o200k_base_url")'
+          dest_path: "'data-gym-cache/%s' % get_variable('tiktoken_o200k_base_cache_key')"
+  implicit-imports:
+    - post-import-code:
+        - |
+          import os
+          import sys
+          os.environ.setdefault(
+              "TIKTOKEN_CACHE_DIR",
+              os.path.join(
+                  os.path.dirname(os.path.abspath(sys.modules["tiktoken"].__file__)),
+                  "data-gym-cache",
+              ),
+          )
+      when: 'standalone'
+
 - module-name: 'tiktoken.registry' # checksum: 6350df24
   implicit-imports:
     - depends:

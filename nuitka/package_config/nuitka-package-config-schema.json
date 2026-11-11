@@ -31,6 +31,22 @@
     "config-reference": {
       "type": "string",
       "pattern": "^[^\\s/]+/[^\\s/]+$"
+    },
+    "download-file": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "source": {
+          "$ref": "#/definitions/non-empty-string"
+        },
+        "dest_path": {
+          "$ref": "#/definitions/non-empty-string"
+        }
+      },
+      "required": [
+        "source",
+        "dest_path"
+      ]
     }
   },
   "type": "array",
@@ -161,6 +177,12 @@
               "type": "array",
               "items": {
                 "type": "string"
+              }
+            },
+            "downloads": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/download-file"
               }
             },
             "empty_dirs": {

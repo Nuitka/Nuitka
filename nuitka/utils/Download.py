@@ -7,6 +7,7 @@ Mostly used on Windows, for dependency walker and ccache binaries.
 """
 
 import contextlib
+import hashlib
 import os
 
 from nuitka.Progress import withNuitkaDownloadProgressBar
@@ -210,6 +211,51 @@ def getDownloadCacheName():
 
 def getDownloadCacheDir():
     return getCacheDir(getDownloadCacheName())
+
+
+def getCachedDownloadedFile(name, url, download_mode):
+    """Download a plain file into the Nuitka cache and return its path.
+
+    Args:
+        name: Name of the file for progress reporting.
+        url: URL to download from.
+        download_mode: One of DOWNLOAD_MODE_NO, DOWNLOAD_MODE_ASK, DOWNLOAD_MODE_YES.
+
+    Returns:
+        str - path of the cached file.
+    """
+    cache_key = hashlib.sha256(url.encode("utf8")).hexdigest()
+    cache_dir = getNormalizedPathJoin(getDownloadCacheDir(), "data-files", cache_key)
+
+    makePath(cache_dir)
+
+    filename = os.path.basename(url.split("?", 1)[0].split("#", 1)[0]) or "download"
+    download_path = getNormalizedPathJoin(cache_dir, filename)
+
+    if not os.path.isfile(download_path):
+        shouldDownload(
+            message="the data file '%s' for package configuration" % url,
+            reject_message="""\
+Error, data file '%s' is not in the cache '%s' and downloads are disabled."""
+            % (url, download_path),
+            download_mode=download_mode,
+        )
+
+        general.info("Downloading '%s'." % url)
+
+        try:
+            getDownload(
+                name=name,
+                url=url,
+                download_path=download_path,
+            )
+        except Exception as e:  # Any kind of error, pylint: disable=broad-except
+            return general.sysexit(
+                "Failed to download '%s' due to '%s'. Contents should manually be copied to '%s'."
+                % (url, e, download_path)
+            )
+
+    return getNormalizedPath(download_path)
 
 
 def getCachedDownload(
