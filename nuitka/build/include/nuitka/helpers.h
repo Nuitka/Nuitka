@@ -378,6 +378,13 @@ extern void setupMetaPathBasedLoader(PyThreadState *tstate);
 extern void patchInspectModule(PyThreadState *tstate);
 #endif
 
+// Replace "eval", "exec", and frame locals built-ins with ones that handle
+// compiled frames. Must run after global constants are created and before
+// module constants are created.
+#if PYTHON_VERSION >= 0x3d0
+extern void patchBuiltinFrameFunctions(PyThreadState *tstate);
+#endif
+
 // Replace type comparison with one that accepts compiled types too, will work
 // for "==" and "!=", but not for "is" checks.
 extern void patchTypeComparison(void);

@@ -54,6 +54,18 @@
 #define NUITKA_CANNOT_GET_HERE(NAME) abort();
 #endif
 
+/* Assert that a function is only called once in debug mode. */
+#ifndef __NUITKA_NO_ASSERT__
+#define NUITKA_ONCE(message)                                                                                           \
+    static bool _nuitka_once = false;                                                                                  \
+    if (unlikely(_nuitka_once)) {                                                                                      \
+        NUITKA_CANNOT_GET_HERE(message);                                                                               \
+    }                                                                                                                  \
+    _nuitka_once = true
+#else
+#define NUITKA_ONCE(message)
+#endif
+
 #define NUITKA_ERROR_EXIT(NAME)                                                                                        \
     fprintf(stderr, "%s : %s\n", __FUNCTION__, #NAME);                                                                 \
     abort();

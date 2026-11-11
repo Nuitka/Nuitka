@@ -281,6 +281,11 @@ static PyObject *module_code_%(module_identifier)s(PyThreadState *tstate, PyObje
 
         createGlobalConstants(tstate, real_module_name);
 
+#if PYTHON_VERSION >= 0x3d0 && defined(_NUITKA_EXPERIMENTAL_MODULE_PATCH_FRAME_BUILTINS)
+        /* Replace frame locals built-ins before module constants are created. */
+        patchBuiltinFrameFunctions(tstate);
+#endif
+
         /* Initialize the compiled types of Nuitka. */
         _initCompiledCellType();
         _initCompiledGeneratorType(tstate);

@@ -79,6 +79,8 @@ def getConstantDefaultPopulation():
         "inspect",
         # Names of built-ins used in helper code.
         "compile",
+        "eval",
+        "exec",
         "range",
         "open",
         "super",
@@ -97,8 +99,11 @@ def getConstantDefaultPopulation():
         "name",
         "globals",
         "locals",
+        "vars",
+        "dir",
         "fromlist",
         "level",
+        "closure",
         # Meta path based loader.
         "read",
         "rb",

@@ -2109,6 +2109,13 @@ static int Nuitka_Main(int argc, native_command_line_argument_t **argv) {
     createGlobalConstants(tstate);
     NUITKA_PRINT_TIMING("main(): Returned createGlobalConstants().");
 
+#if PYTHON_VERSION >= 0x3d0
+    // Must be done before module constants are created, since those may
+    // contain references to the original builtins.
+    NUITKA_PRINT_TRACE("main(): Calling patchBuiltinFrameFunctions().");
+    patchBuiltinFrameFunctions(tstate);
+#endif
+
     /* Complex call helpers need "__main__" constants, even if we only
      * go into "__parents__main__" module as a start point.
      */
