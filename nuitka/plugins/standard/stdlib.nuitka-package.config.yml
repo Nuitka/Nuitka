@@ -167,27 +167,6 @@
       change_function:
         '_main': "'(lambda: None)'"
 
-- module-name: 'json.decoder' # checksum: f0af106d
-  anti-bloat:
-    - description: 'avoid _json module usage'
-      no-auto-follow:
-        '_json': 'may slow down by using fallback implementation'
-      when: 'not has_builtin_module("_json")'
-
-- module-name: 'json.encoder' # checksum: f0af106d
-  anti-bloat:
-    - description: 'avoid _json module usage'
-      no-auto-follow:
-        '_json': 'may slow down by using fallback implementation'
-      when: 'not has_builtin_module("_json")'
-
-- module-name: 'json.scanner' # checksum: f0af106d
-  anti-bloat:
-    - description: 'avoid _json module usage'
-      no-auto-follow:
-        '_json': 'may slow down by using fallback implementation'
-      when: 'not has_builtin_module("_json")'
-
 - module-name: 'keyword' # checksum: 6a44b57d
   anti-bloat:
     - description: 'remove module ability to run as a binary'
