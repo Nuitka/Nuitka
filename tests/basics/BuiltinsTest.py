@@ -1012,6 +1012,24 @@ for chr_value in (
 ):
     chrCheck(chr_value)
 
+print("Tests for keyword argument evaluation order:")
+
+
+def evaluationOrder(value):
+    print("Evaluated", value)
+    return value
+
+
+def parseComplex(fields):
+    it = iter(fields)
+    return complex(imag=next(it), real=next(it))
+
+
+print(parseComplex([2.0, 1.0]))
+print(complex(imag=evaluationOrder(2), real=evaluationOrder(1)))
+print(bytes("abc", errors=evaluationOrder("strict"), encoding=evaluationOrder("utf-8")))
+print(list(enumerate(evaluationOrder("ab"), start=evaluationOrder(9))))
+
 #     Python tests originally created or extracted from other peoples work. The
 #     parts were too small to be protected.
 #
