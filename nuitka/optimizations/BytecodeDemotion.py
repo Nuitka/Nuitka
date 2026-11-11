@@ -21,7 +21,12 @@ from nuitka.plugins.Hooks import (
     decideDocStrings,
     onFrozenModuleBytecode,
 )
-from nuitka.plugins.Plugins import isTriggerModule, replaceTriggerModule
+from nuitka.plugins.Plugins import (
+    isFakeModule,
+    isTriggerModule,
+    replaceFakeModule,
+    replaceTriggerModule,
+)
 from nuitka.Tracing import inclusion_logger
 from nuitka.utils.FileOperations import getNormalizedPath
 
@@ -90,6 +95,9 @@ def demoteCompiledModuleToBytecode(module):
 
     if isTriggerModule(module):
         replaceTriggerModule(old=module, new=uncompiled_module)
+
+    if isFakeModule(module):
+        replaceFakeModule(old=module, new=uncompiled_module)
 
     writeImportedModulesNamesToCache(
         module_name=full_name,

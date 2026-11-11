@@ -1160,7 +1160,10 @@ through implicit import by '%s' plugin encountered."""
                 % (module_name, e)
             )
 
-        if trigger_module.getCompilationMode() == "bytecode":
+        if (
+            trigger_module.isCompiledPythonModule()
+            and trigger_module.getCompilationMode() == "bytecode"
+        ):
             trigger_module.setSourceCode(code)
 
         trigger_module.markAsInternalModule()
@@ -1324,7 +1327,10 @@ through implicit import by '%s' plugin encountered."""
                     hide_syntax_error=False,
                 )
 
-                if fake_module.getCompilationMode() == "bytecode":
+                if (
+                    fake_module.isCompiledPythonModule()
+                    and fake_module.getCompilationMode() == "bytecode"
+                ):
                     fake_module.setSourceCode(fake_module_description.source_code)
 
                 fake_modules[full_name].append(
@@ -2678,7 +2684,7 @@ def getPluginOptions(plugin_name):
 
 
 def replaceTriggerModule(old, new):
-    """Replace a trigger module with another form if it. For use in bytecode demotion."""
+    """Replace a trigger module with another form of it. For use in bytecode demotion."""
 
     found = None
     for key, value in pre_modules.items():
@@ -2702,6 +2708,28 @@ def replaceTriggerModule(old, new):
 def isTriggerModule(module):
     """Decide of a module is a trigger module."""
     return module in pre_modules.values() or module in post_modules.values()
+
+
+def replaceFakeModule(old, new):
+    """Replace a fake module with another form of it. For use in bytecode demotion."""
+
+    for fake_module_infos in fake_modules.values():
+        for count, fake_module_info in enumerate(fake_module_infos):
+            if fake_module_info.module is old:
+                fake_module_infos[count] = FakeModuleInfo(
+                    module=new,
+                    plugin=fake_module_info.plugin,
+                    reason=fake_module_info.reason,
+                )
+
+
+def isFakeModule(module):
+    """Decide if a module is a plugin provided fake module."""
+    return any(
+        fake_module_info.module is module
+        for fake_module_infos in fake_modules.values()
+        for fake_module_info in fake_module_infos
+    )
 
 
 # TODO: Make this a dedicated thing generally.
