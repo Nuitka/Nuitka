@@ -2687,7 +2687,7 @@ def getPluginOptions(plugin_name):
 
 
 def replaceTriggerModule(old, new):
-    """Replace a trigger module with another form if it. For use in bytecode demotion."""
+    """Replace a trigger module with another form of it. For use in bytecode demotion."""
 
     found = None
     for key, value in pre_modules.items():
