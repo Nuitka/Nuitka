@@ -24,9 +24,11 @@ class NuitkaPluginCuteDsl(NuitkaPluginBase):
         return True
 
     @staticmethod
-    def getUncompiledDecoratorNames():
-        yield "cutlass.cute.jit"
-        yield "cutlass.cute.kernel"
+    def getJITDecoratorRegistrations():
+        # The CuTe DSL rewrites the function's '__code__', so real bytecode is
+        # required even though source inclusion also needs the source text.
+        yield "cutlass.cute.jit", "bytecode"
+        yield "cutlass.cute.kernel", "bytecode"
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and

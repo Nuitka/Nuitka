@@ -408,13 +408,13 @@ def getPackageExtraScanPaths(package_name, package_dir):
     )
 
 
-def getUncompiledDecoratorNames():
-    """Return full decorator names that should cause the function to be uncompiled.
+def getJITDecoratorRegistrations():
+    """Return JIT decorator handling registrations.
 
     Returns:
-        tuple of strings
+        dict of decorator name to tuple of (mode, callback, plugin) tuples
     """
-    return Plugins.getUncompiledDecoratorNames()
+    return Plugins.getJITDecoratorRegistrations()
 
 
 def redactCommandLineArg(arg):

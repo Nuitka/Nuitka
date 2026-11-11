@@ -694,16 +694,23 @@ class NuitkaPluginBase(getMetaClassBase("Plugin", require_slots=False)):
         return bytecode
 
     @staticmethod
-    def getUncompiledDecoratorNames():
-        """Return full decorator names that should cause the function to be uncompiled.
+    def getJITDecoratorRegistrations():
+        """Return JIT decorator handling registrations.
 
         Notes:
-            Names are fully qualified, e.g. "numba.jit".
-            Imported names are resolved against their import statement, so
-            "from numba import jit" matches "numba.jit" as well.
+            Names are fully qualified, e.g. "numba.jit". Imported names are
+            resolved against their import statement, so "from numba import
+            jit" matches "numba.jit" as well.
+
+            Registrations are tuples of decorator name and action. The action
+            is either "bytecode", or a tuple of "callback" and a callback
+            function. The callback is called with the registered decorator
+            name, the containing module, the start and end line, a callable
+            returning the module's source lines, and its AST node.
 
         Returns:
-            tuple of strings
+            tuple of decorator name and action tuples, where action is
+            "bytecode" or a tuple of "callback" and a callback function.
         """
         return ()
 

@@ -22,6 +22,25 @@ def attribute_njit(a):
     return a.sum() + 1
 
 
+def make_closure(offset):
+    @numba.njit
+    def closure_njit(a):
+        return a.sum() + offset
+
+    return closure_njit
+
+
+def make_nested_closure(outer_offset):
+    def middle(middle_offset):
+        @numba.njit
+        def nested_closure_njit(a):
+            return a.sum() + outer_offset + middle_offset
+
+        return nested_closure_njit
+
+    return middle
+
+
 @stencil
 def stencil_kernel(a):
     return (a[0, 0] + a[1, 0] + a[0, 1] + a[-1, 0] + a[0, -1]) / 5
@@ -31,6 +50,8 @@ x = np.arange(100).reshape(10, 10).astype(np.float64)
 
 print("imported njit", imported_njit(x))
 print("attribute njit", attribute_njit(x))
+print("closure njit", make_closure(5)(x))
+print("nested closure njit", make_nested_closure(3)(2)(x))
 
 out = np.empty_like(x)
 print("stencil", stencil_kernel(x, out=out).sum())

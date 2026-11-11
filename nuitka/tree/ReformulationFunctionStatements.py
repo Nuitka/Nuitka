@@ -199,7 +199,9 @@ def buildFunctionNode(provider, node, source_ref):
         provider=provider, nodes=reversed(node.decorator_list), source_ref=source_ref
     )
 
-    compilation_mode = decideFunctionCompilationMode(provider, decorators)
+    compilation_mode, compilation_logger = decideFunctionCompilationMode(
+        provider, node, decorators
+    )
 
     onFunctionBodyParsing(provider=provider, function_name=node.name, body=node.body)
 
@@ -211,6 +213,7 @@ def buildFunctionNode(provider, node, source_ref):
             node=node,
             compilation_mode=compilation_mode,
             source_ref=source_ref,
+            logger=compilation_logger,
         )
 
     function_provider = _getFunctionProvider(provider, node, source_ref)
@@ -395,7 +398,9 @@ def buildAsyncFunctionNode(provider, node, source_ref):
         provider=provider, nodes=reversed(node.decorator_list), source_ref=source_ref
     )
 
-    compilation_mode = decideFunctionCompilationMode(provider, decorators)
+    compilation_mode, compilation_logger = decideFunctionCompilationMode(
+        provider, node, decorators
+    )
 
     onFunctionBodyParsing(provider=provider, function_name=node.name, body=node.body)
 
@@ -405,6 +410,7 @@ def buildAsyncFunctionNode(provider, node, source_ref):
             node=node,
             compilation_mode=compilation_mode,
             source_ref=source_ref,
+            logger=compilation_logger,
         )
 
     function_provider = _getFunctionProvider(provider, node, source_ref)

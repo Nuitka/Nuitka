@@ -988,28 +988,43 @@ through implicit import by '%s' plugin encountered."""
 
         return result
 
-    _uncompiled_decorator_names = None
+    _jit_decorator_registrations = None
 
     @classmethod
     @counted_plugin_method
-    def getUncompiledDecoratorNames(cls):
-        """Provide full decorator names that should cause a function to be uncompiled.
+    def getJITDecoratorRegistrations(cls):
+        """Provide JIT decorator handling registrations.
 
         Returns:
-            set of strings
+            dict of decorator name to tuple of (mode, callback, plugin) tuples
         """
 
-        result = cls._uncompiled_decorator_names
+        result = cls._jit_decorator_registrations
 
         if result is None:
-            result = set()
+            result = OrderedDict()
 
             for plugin in getActivePlugins():
-                for decorator_name in plugin.getUncompiledDecoratorNames():
+                for decorator_name, action in plugin.getJITDecoratorRegistrations():
                     assert type(decorator_name) is str, decorator_name
-                    result.add(decorator_name)
 
-            cls._uncompiled_decorator_names = result
+                    if type(action) is str:
+                        mode = action
+                        callback = None
+                    else:
+                        assert type(action) is tuple and len(action) == 2, action
+                        mode, callback = action
+
+                    assert mode in ("bytecode", "callback"), mode
+
+                    if mode == "callback":
+                        assert callback is not None and callable(callback), callback
+
+                    result.setdefault(decorator_name, []).append(
+                        (mode, callback, plugin)
+                    )
+
+            cls._jit_decorator_registrations = result
 
         return result
 

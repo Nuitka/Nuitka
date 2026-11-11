@@ -4,25 +4,47 @@
 """Helpers for JIT related function building and compilation decisions."""
 
 import ast
+import symtable
 
+from nuitka.nodes.BuiltinDictNodes import ExpressionBuiltinDict
 from nuitka.nodes.ConstantRefNodes import makeConstantRefNode
+from nuitka.nodes.DictionaryNodes import StatementDictOperationSet
 from nuitka.nodes.ExecEvalNodes import ExpressionBuiltinExec
-from nuitka.nodes.NodeMakingHelpers import makeVariableRefNode
+from nuitka.nodes.GlobalsLocalsNodes import ExpressionBuiltinGlobals
+from nuitka.nodes.KeyValuePairNodes import (
+    makeExpressionKeyValuePairConstantKey,
+)
+from nuitka.nodes.NodeMakingHelpers import (
+    makeExpressionBuiltinLocals,
+    makeVariableRefNode,
+)
 from nuitka.nodes.StatementNodes import StatementExpressionOnly
 from nuitka.nodes.SubscriptNodes import makeExpressionIndexLookup
-from nuitka.nodes.VariableNameNodes import StatementAssignmentVariableName
-from nuitka.plugins.Hooks import getUncompiledDecoratorNames
+from nuitka.nodes.VariableNameNodes import (
+    ExpressionVariableNameRef,
+    StatementAssignmentVariableName,
+)
+from nuitka.plugins.Hooks import getJITDecoratorRegistrations
+from nuitka.Tracing import general
 
+from .AstUnparsing import unparseNode
 from .ReformulationExecStatements import wrapEvalGlobalsAndLocals
 from .ReformulationTryFinallyStatements import makeTryFinallyStatement
 from .TreeHelpers import makeStatementsSequence
 
 _provider_import_aliases = {}
+_module_source_lines = None
+_module_symbol_table = None
 
 
 def clearDecoratorImportAliasesCache():
-    """Reset the import alias cache after a module tree is built."""
+    """Reset the module tree caches after a module tree is built."""
+    # Singleton caches, pylint: disable=global-statement
+    global _module_source_lines, _module_symbol_table
+
     _provider_import_aliases.clear()
+    _module_source_lines = None
+    _module_symbol_table = None
 
 
 def _getProviderImportAliases(provider):
@@ -138,37 +160,171 @@ def _getDecoratorFullNames(provider, decorator):
     return result
 
 
-def _isUncompiledDecorator(provider, decorator):
-    decorator_name = _getDecoratorSyntacticName(decorator)
+def _getNodeLineRange(node):
+    start_line = node.lineno
 
-    # Hard coded name.
-    if decorator_name == "nuitka_ignore":
-        return True
+    if node.decorator_list:
+        start_line = min(
+            [start_line] + [decorator.lineno for decorator in node.decorator_list]
+        )
 
-    decorator_names = getUncompiledDecoratorNames()
+    end_line = getattr(node, "end_lineno", None)
+
+    if end_line is None:
+        end_line = max(
+            getattr(child_node, "lineno", start_line) for child_node in ast.walk(node)
+        )
+
+    return start_line, end_line
+
+
+def _getModuleSourceLines(module):
+    global _module_source_lines  # singleton, pylint: disable=global-statement
+
+    if _module_source_lines is None:
+        _module_source_lines = tuple(module.getSourceCode().splitlines(True))
+
+    return _module_source_lines
+
+
+def _getModuleSymbolTable(module):
+    global _module_symbol_table  # singleton, pylint: disable=global-statement
+
+    if _module_symbol_table is None:
+        source_code = module.getSourceCode()
+
+        # Only called for functions of modules that are built from source.
+        assert source_code is not None, module
+
+        _module_symbol_table = symtable.symtable(
+            source_code, module.getCompileTimeFilename(), "exec"
+        )
+
+    return _module_symbol_table
+
+
+def _findFunctionSymbolTable(table, function_name, line_number):
+    line_match = None
+
+    for child in table.get_children():
+        if child.get_type() == "function" and child.get_lineno() == line_number:
+            if child.get_name() == function_name:
+                return child
+
+            # The name can be mangled for private names of classes, in which
+            # case the line number is still unique.
+            if line_match is None:
+                line_match = child
+
+        result = _findFunctionSymbolTable(child, function_name, line_number)
+
+        if result is not None:
+            return result
+
+    return line_match
+
+
+def _getFunctionFreeVariableNames(module, node):
+    """Get the free variable names of a function, i.e. its closure variables.
+
+    Notes:
+        This uses the module symbol table, so that functions that reference
+        names from an enclosing function are known before their body is
+        parsed, which the JIT compilation mode avoids.
+
+    Args:
+        module: The module the function is contained in.
+        node: The AST node of the function.
+
+    Returns:
+        Tuple of free variable names, sorted.
+    """
+
+    function_table = _findFunctionSymbolTable(
+        table=_getModuleSymbolTable(module),
+        function_name=node.name,
+        line_number=node.lineno,
+    )
+
+    assert function_table is not None, node.name
+
+    return tuple(
+        sorted(
+            symbol.get_name()
+            for symbol in function_table.get_symbols()
+            if symbol.is_free()
+        )
+    )
+
+
+def _getDecoratorRegistrations(provider, decorator):
+    decorator_registrations = getJITDecoratorRegistrations()
 
     for full_name in _getDecoratorFullNames(provider, decorator):
-        if full_name in decorator_names:
-            return True
-
-    return False
+        for registration in decorator_registrations.get(full_name, ()):
+            yield (full_name,) + registration
 
 
-def decideFunctionCompilationMode(provider, decorators):
-    """Decide how to compile a function based on decorator names."""
+def decideFunctionCompilationMode(provider, node, decorators):
+    """Decide how to compile a function based on decorator names.
+
+    Returns:
+        tuple of compilation mode and logger to use for related errors.
+    """
+    compilation_mode = "compiled"
+    compilation_logger = general
+    module = provider.getParentModule()
+    start_line, end_line = _getNodeLineRange(node)
+    get_lines = None
+
     for decorator in decorators:
-        if _isUncompiledDecorator(provider, decorator):
-            return "bytecode"
+        decorator_name = _getDecoratorSyntacticName(decorator)
 
-    return "compiled"
+        # Hard coded name.
+        if decorator_name == "nuitka_ignore":
+            compilation_mode = "bytecode"
+            compilation_logger = general
+            continue
+
+        for registered_name, mode, callback, plugin in _getDecoratorRegistrations(
+            provider, decorator
+        ):
+            if mode == "bytecode":
+                compilation_mode = "bytecode"
+                compilation_logger = plugin
+            else:
+                if get_lines is None:
+
+                    def get_lines():
+                        return _getModuleSourceLines(module)
+
+                callback(
+                    decorator_name=registered_name,
+                    module=module,
+                    start_line=start_line,
+                    end_line=end_line,
+                    get_lines=get_lines,
+                    node=node,
+                )
+
+    return compilation_mode, compilation_logger
 
 
-def buildBytecodeOrSourceFunction(provider, node, compilation_mode, source_ref):
+def buildBytecodeOrSourceFunction(provider, node, compilation_mode, source_ref, logger):
     # TODO: We should have a compile() builtin usage here, lookup "co_code" and
     # support that as a constant value. We then would have the "bytecode" only
     # in the binary, right now "bytecode" and "source" make no difference.
     #  pylint: disable=unused-argument
-    source_code = ast.unparse(node)
+    source_line = node.lineno
+
+    if node.decorator_list:
+        source_line = min(
+            [source_line] + [decorator.lineno for decorator in node.decorator_list]
+        )
+
+    # Preserve line numbers, so that source inspection of the bytecode
+    # function finds the right lines in the module source.
+    source_code = "\n" * (source_line - 1) + unparseNode(node, logger=logger)
 
     source = makeConstantRefNode(
         constant=source_code,
@@ -190,15 +346,47 @@ def buildBytecodeOrSourceFunction(provider, node, compilation_mode, source_ref):
     # This is actually for the globals locals usage to be default values of the
     # scope.
 
-    temp_scope = provider.allocateTempScope("function_exec")
+    # Functions with closure variables are executed with a namespace that
+    # contains them as globals. The "exec" creates a module level function,
+    # which can only access these through its globals, but the JIT will then
+    # find the values it needs. The actual locals are still used, so that
+    # decorators and default values can see them too.
+    free_variable_names = _getFunctionFreeVariableNames(
+        module=provider.getParentModule(), node=node
+    )
 
     source_variable, globals_ref, locals_ref, tried, final = wrapEvalGlobalsAndLocals(
         provider=provider,
         locals_scope=provider.getLocalsScope(),
         source_node=source,
-        globals_node=None,
-        locals_node=None,
-        temp_scope=temp_scope,
+        globals_node=(
+            ExpressionBuiltinDict(
+                pos_arg=ExpressionBuiltinGlobals(source_ref=source_ref),
+                pairs=tuple(
+                    makeExpressionKeyValuePairConstantKey(
+                        key=variable_name,
+                        value=ExpressionVariableNameRef(
+                            provider=provider,
+                            variable_name=variable_name,
+                            source_ref=source_ref,
+                        ),
+                    )
+                    for variable_name in free_variable_names
+                    if variable_name != node.name
+                ),
+                source_ref=source_ref,
+            )
+            if free_variable_names
+            else None
+        ),
+        locals_node=(
+            makeExpressionBuiltinLocals(
+                locals_scope=provider.getLocalsScope(), source_ref=source_ref
+            )
+            if free_variable_names
+            else None
+        ),
+        temp_scope=provider.allocateTempScope("function_exec"),
         source_ref=source_ref,
     )
 
@@ -226,6 +414,26 @@ def buildBytecodeOrSourceFunction(provider, node, compilation_mode, source_ref):
                 provider=provider,
                 variable_name=node.name,
                 source=makeExpressionIndexLookup(
+                    expression=makeVariableRefNode(
+                        variable=locals_ref.getVariable(), source_ref=source_ref
+                    ),
+                    index_value=node.name,
+                    source_ref=source_ref,
+                ),
+                source_ref=source_ref,
+            )
+        )
+
+    if node.name in free_variable_names:
+        # Make the function itself available in its namespace, so that
+        # recursive calls resolve.
+        exec_statements.append(
+            StatementDictOperationSet(
+                dict_arg=makeVariableRefNode(
+                    variable=globals_ref.getVariable(), source_ref=source_ref
+                ),
+                key=makeConstantRefNode(constant=node.name, source_ref=source_ref),
+                value=makeExpressionIndexLookup(
                     expression=makeVariableRefNode(
                         variable=locals_ref.getVariable(), source_ref=source_ref
                     ),

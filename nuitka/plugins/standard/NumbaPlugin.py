@@ -62,12 +62,15 @@ and 'yes' otherwise.""",
 
         return None
 
-    def getUncompiledDecoratorNames(self):
+    def getJITDecoratorRegistrations(self):
         # The stencil decorator always compiles its function, even when the
         # JIT is disabled, so those functions always need real bytecode.
-        yield "numba.stencil"
-        yield "numba.core.decorators.stencil"
-        yield "numba.stencils.stencil.stencil"
+        for decorator_name in (
+            "numba.stencil",
+            "numba.core.decorators.stencil",
+            "numba.stencils.stencil.stencil",
+        ):
+            yield decorator_name, "bytecode"
 
         if self._isNumbaJitEnabled():
             for decorator_name in (
@@ -78,14 +81,17 @@ and 'yes' otherwise.""",
                 "guvectorize",
                 "cfunc",
             ):
-                yield "numba." + decorator_name
-                yield "numba.core.decorators." + decorator_name
+                yield "numba." + decorator_name, "bytecode"
+                yield "numba.core.decorators." + decorator_name, "bytecode"
 
-            yield "numba.np.ufunc.decorators.vectorize"
-            yield "numba.np.ufunc.decorators.guvectorize"
-            yield "numba.cuda.jit"
-            yield "numba.cuda.decorators.jit"
-            yield "numba.cuda.simulator.api.jit"
+            for decorator_name in (
+                "numba.np.ufunc.decorators.vectorize",
+                "numba.np.ufunc.decorators.guvectorize",
+                "numba.cuda.jit",
+                "numba.cuda.decorators.jit",
+                "numba.cuda.simulator.api.jit",
+            ):
+                yield decorator_name, "bytecode"
 
 
 class NuitkaPluginDetectorNumba(NuitkaNamespaceDetectorPluginBase):

@@ -114,6 +114,20 @@ def _formatDictLiteralCode(value):
     return "\n".join(result)
 
 
+_source_inclusion_decorator_names = (
+    "triton.jit",
+    "triton.autotune",
+    "triton.constexpr_function",
+    "triton.heuristics",
+    "cutlass.cute.jit",
+    "cutlass.cute.kernel",
+    "cuda.tile.function",
+    "cuda.tile.kernel",
+    "cuda.tile._execution.function",
+    "cuda.tile._execution.kernel",
+)
+
+
 _probe_result_prefix = "NUITKA_SOURCE_INCLUSION_JSON:"
 
 _probe_records_environment = "NUITKA_SOURCE_INCLUSION_RECORDS"
@@ -176,6 +190,9 @@ if _record_directory:
 
 
 class NuitkaPluginSourceInclusion(NuitkaPluginBase):
+    # Many configuration and collected data attributes,
+    # pylint: disable=too-many-instance-attributes
+
     plugin_name = "source-inclusion"
     plugin_desc = (
         "Record source files from probe execution and serve them via 'linecache'."
@@ -263,6 +280,7 @@ imports the package and runs typical operations.""",
 
         self.main_filename = None
         self.source_data = OrderedDict()
+        self.build_time_source_data = OrderedDict()
         self.python_headers_included = False
 
     def onCompilationStartChecks(self):
@@ -315,6 +333,38 @@ Error, in '%s' mode, '--enable-plugin=source-inclusion' requires \
 No source file lookups were recorded. Adjust \
 '--source-inclusion-args' values if source inspection still fails at run \
 time.""")
+
+    def getJITDecoratorRegistrations(self):
+        for decorator_name in _source_inclusion_decorator_names:
+            yield decorator_name, ("callback", self._registerJITSource)
+
+    def _registerJITSource(
+        self, decorator_name, module, start_line, end_line, get_lines, node
+    ):
+        """Register the source of a decorated function for source inspection.
+
+        Args:
+            decorator_name: The registered decorator name.
+            module: The module containing the decorated function.
+            start_line: First source line of the decorated function.
+            end_line: Last source line of the decorated function.
+            get_lines: Callable returning the decorated function's source lines.
+            node: AST node of the decorated function.
+        """
+        # The callback interface provides these for plugins that need them.
+        # pylint: disable=unused-argument
+
+        assert module.isCompiledPythonModule()
+
+        module_name = module.getRuntimeNameValue()
+
+        if module_name in self.source_data:
+            return
+
+        module_segments = self.build_time_source_data.setdefault(
+            module_name, OrderedDict()
+        )
+        module_segments[start_line] = get_lines()[start_line - 1 : end_line]
 
     def considerDataFiles(self, module):
         """Provide the Python header files for in-place C compilation.
@@ -563,7 +613,7 @@ _main()
 """
 
     def _isSourceInclusionTrigger(self, module, pre_load):
-        if not self.source_data:
+        if not (self.source_data or self.build_time_source_data):
             return False
 
         if pre_load:
@@ -573,10 +623,12 @@ _main()
 
         return not shallMakeModule() and module.getFullName() == "linecache"
 
+    @staticmethod
+    def _isSupportModuleTrigger(module):
+        return module.isCompiledPythonModule() and module.isTopModule()
+
     def createFakeModuleDependency(self, module):
-        if self._isSourceInclusionTrigger(
-            module, pre_load=True
-        ) or self._isSourceInclusionTrigger(module, pre_load=False):
+        if self._isSupportModuleTrigger(module):
             return (
                 makeFakeModuleDescription(
                     module_name=ModuleName("_nuitka_source_inclusion"),
@@ -596,7 +648,26 @@ import _nuitka_source_inclusion
 _nuitka_source_inclusion.install(linecache)
 """
 
+    @staticmethod
+    def _getSourceRegistrationCode(module_name, source_segments):
+        return """\
+_nuitka_source_inclusion.add_source_segments(%r, %s)
+""" % (module_name, _formatDictLiteralCode(source_segments))
+
     def createPreModuleLoadCode(self, module):
+        if module.isCompiledPythonModule():
+            module_name = module.getRuntimeNameValue()
+            source_segments = self.build_time_source_data.get(module_name)
+
+            if source_segments is not None:
+                return (
+                    self._getInstallCode()
+                    + self._getSourceRegistrationCode(
+                        module_name=module_name, source_segments=source_segments
+                    ),
+                    "Install and register source inclusion for kernel module.",
+                )
+
         if self._isSourceInclusionTrigger(module, pre_load=True):
             return (
                 self._getInstallCode(),
@@ -623,6 +694,10 @@ import linecache
 _source_inclusion_data = %s
 
 
+def add_source_segments(module_name, source_segments):
+    _source_inclusion_data[module_name] = source_segments
+
+
 def install(linecache_module):
     if getattr(linecache_module, "_nuitka_source_inclusion_installed", False):
         return
@@ -634,9 +709,23 @@ def install(linecache_module):
             module_name = module_globals.get("__name__")
 
             if module_name is not None:
-                lines = _source_inclusion_data.get(module_name)
+                source_data = _source_inclusion_data.get(module_name)
 
-                if lines is not None:
+                if source_data is not None:
+                    if type(source_data) is dict:
+                        line_count = max(
+                            start_line + len(segment) - 1
+                            for start_line, segment in source_data.items()
+                        )
+                        lines = [""] * line_count
+
+                        for start_line, segment in source_data.items():
+                            lines[start_line - 1 : start_line - 1 + len(segment)] = (
+                                segment
+                            )
+                    else:
+                        lines = source_data
+
                     linecache_module.cache[filename] = (None, None, lines, filename)
 
                     return lines
@@ -649,7 +738,10 @@ def install(linecache_module):
 """ % source_data_code
 
     def getReportData(self, make_report_path):
-        yield "recorded_source_modules", _joinSortedKeys(self.source_data)
+        source_data = OrderedDict(self.source_data)
+        source_data.update(self.build_time_source_data)
+
+        yield "recorded_source_modules", _joinSortedKeys(source_data)
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
