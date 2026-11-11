@@ -2408,13 +2408,25 @@ def doesFileStartWithBytes(filename, search):
 
     Args:
         filename: Path to the file.
-        search: Bytes to check for at the start.
+        search: Bytes to check for at the start, or a tuple of byte sequences.
 
     Returns:
-        bool: True if the file starts with the byte sequence.
+        bool: True if the file starts with the byte sequence or any of the
+        sequences in the tuple.
     """
+    if type(search) is tuple:
+        search_sequences = search
+    else:
+        search_sequences = (search,)
+
     with open(filename, "rb") as f:
-        return f.read(len(search)) == search
+        file_start = f.read(
+            max(len(search_sequence) for search_sequence in search_sequences)
+        )
+
+    return any(
+        file_start.startswith(search_sequence) for search_sequence in search_sequences
+    )
 
 
 def doesFileContainBytes(filename, search):

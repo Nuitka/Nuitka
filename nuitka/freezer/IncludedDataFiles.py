@@ -60,6 +60,8 @@ from nuitka.utils.FileOperations import (
 from nuitka.utils.Importing import getExtensionModuleSuffixes
 from nuitka.utils.Utils import counted, isMacOS, isWin32Windows
 
+from .MacOSFrameworkBundles import getMacOSFrameworkVersionDir
+
 data_file_tags = []
 
 
@@ -465,29 +467,6 @@ def _registerIncludedFrameworkDirectory(logger, source_path, dest_path):
         )
 
 
-def _getFrameworkVersionDir(source_path):
-    versions_dir = os.path.join(source_path, "Versions")
-
-    if not os.path.isdir(versions_dir):
-        return None
-
-    framework_name = os.path.basename(source_path)
-    if framework_name.endswith(".framework"):
-        framework_name = framework_name[: -len(".framework")]
-
-    for _entry_path, entry_name in listDir(versions_dir):
-        if entry_name == "Current":
-            continue
-
-        if not os.path.isdir(_entry_path):
-            continue
-
-        if os.path.exists(os.path.join(_entry_path, framework_name)):
-            return entry_name
-
-    return None
-
-
 def makeIncludedFrameworkDirectory(logger, source_path, dest_path, reason, tags):
     assert isMacOS(), source_path
     assert os.path.isdir(source_path), source_path
@@ -503,7 +482,7 @@ def makeIncludedFrameworkDirectory(logger, source_path, dest_path, reason, tags)
         dest_path=dest_path,
     )
 
-    version_dir_name = _getFrameworkVersionDir(source_path)
+    version_dir_name = getMacOSFrameworkVersionDir(framework_path=source_path)
 
     if version_dir_name is not None:
         # Some frameworks (like Qt 5.15 shipped with PySide2) place

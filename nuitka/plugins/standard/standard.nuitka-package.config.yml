@@ -5725,15 +5725,54 @@
               _nuitka_orig_single_shot = QtCore.QTimer.singleShot
               QtCore.QTimer.singleShot = staticmethod(_nuitka_patched_single_shot)
 
-- module-name: 'PyQt6' # checksum: 9ddfb6bb
+- module-name: 'PyQt6' # checksum: c9bc7d1e
   options:
     checks:
       - description: 'PyQt6 is a GUI framework'
         macos_bundle: 'recommend'
         when: 'use_pyqt6'
-      - description: 'PyQt6 on macOS is not supported, use PySide6 instead'
-        support_info: 'error'
-        when: 'macos and use_pyqt6'
+
+  import-hacks:
+    - acceptable-missing-dlls:
+        - 'libassimpsceneimport'
+        - 'libdefaultgeometryloader'
+        - 'libeffects'
+        - 'libeffectsplugin'
+        - 'libffmpegmediaplugin'
+        - 'libgltfgeometryloader'
+        - 'libgltfsceneexport'
+        - 'libgltfsceneimport'
+        - 'libhelpplugin'
+        - 'libopenglrenderer'
+        - 'libpdfquickplugin'
+        - 'libqdslintplugin'
+        - 'libqmlnetworkplugin'
+        - 'libqmldesignsupportplugin'
+        - 'libqmllocalstorageplugin'
+        - 'libqmllsquickplugin'
+        - 'libqmlxmllistmodelplugin'
+        - 'libqpdf'
+        - 'libqscxmlecmascriptdatamodel'
+        - 'libqt3dquicklogicplugin'
+        - 'libqtquick3dhelpersimplplugin'
+        - 'libqtquick3dparticleeffectsplugin'
+        - 'libqtquickcontrols2fluentwinui3styleimplplugin'
+        - 'libqtquickcontrols2fluentwinui3styleplugin'
+        - 'libqtquickscene2dplugin'
+        - 'libqtquickscene3dplugin'
+        - 'libqtquickshapesdesignhelpersplugin'
+        - 'libqtvkbcomponentsplugin'
+        - 'libqtvkbsettingsplugin'
+        - 'libqtvkbplugin'
+        - 'libqtwebview_darwin'
+        - 'libqtwebview_webengine'
+        - 'libqtwebviewquickplugin'
+        - 'librhirenderer'
+        - 'libscene2d'
+        - 'libqsqlmimer'
+        - 'libqsqlodbc'
+        - 'libpq.5'
+        - 'libquicklintplugin'
 
 - module-name: 'PyQt6.QtCore' # checksum: 9b25bbb0
   implicit-imports:

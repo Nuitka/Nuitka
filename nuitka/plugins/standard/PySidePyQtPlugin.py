@@ -29,6 +29,7 @@ from nuitka.PythonFlavors import isAnacondaPython
 from nuitka.PythonVersions import python_version
 from nuitka.utils.Distributions import getDistributionFromModuleName
 from nuitka.utils.FileOperations import (
+    getDllBasename,
     getFileList,
     getNormalizedPath,
     getNormalizedPathJoin,
@@ -208,13 +209,24 @@ there might be.""",
         """Where does the Qt bindings package expect the QML files."""
         return getNormalizedPathJoin(self.binding_name, "qml")
 
+    def _getQtLibraryTargetPath(self):
+        """Where do the Qt bindings packages expect the Qt libraries."""
+        if self.binding_name == "PyQt6":
+            qt_dir_name = "Qt6"
+        elif self.binding_name == "PyQt5":
+            qt_dir_name = "Qt5"
+        else:
+            qt_dir_name = "Qt"
+
+        return getNormalizedPathJoin(self.binding_name, qt_dir_name, "lib")
+
     def _isUsingMacOSFrameworks(self):
         """Is this a framework based build, or one that shared more commonality with Linux"""
-        if isMacOS() and self.binding_name in ("PySide6", "PySide2"):
+        if isMacOS() and self.binding_name in ("PySide6", "PySide2", "PyQt6"):
             return os.path.exists(
                 getNormalizedPathJoin(
                     self._getQtInformation().data_path,
-                    "lib/QtWebEngineCore.framework",
+                    "lib/QtCore.framework",
                 )
             )
         else:
@@ -239,9 +251,13 @@ there might be.""",
 
     def _getTranslationsTargetDir(self):
         """Where does the Qt bindings package expect the translation files."""
+        # Return driven, pylint: disable=too-many-return-statements
         if isMacOS():
-            # default name of PySide6, spell-checker: ignore qtwebengine_locales
-            return getNormalizedPathJoin(self.binding_name, "Qt", "translations")
+            if self.binding_name == "PyQt6":
+                return getNormalizedPathJoin(self.binding_name, "Qt6", "translations")
+            else:
+                # default name of PySide6, spell-checker: ignore qtwebengine_locales
+                return getNormalizedPathJoin(self.binding_name, "Qt", "translations")
         elif isWin32Windows():
             if self.binding_name in ("PySide2", "PyQt5"):
                 return "translations"
@@ -364,7 +380,7 @@ import %(binding_name)s.QtCore
                     self._applyBindingName(
                         "%(binding_name)s.__version_info__"
                         if "PySide" in self.binding_name
-                        else "%(binding_name)s.QtCore.PYQT_VERSION_STR"
+                        else "tuple(int(part) for part in %(binding_name)s.QtCore.PYQT_VERSION_STR.split('.'))"
                     ),
                 ),
                 (
@@ -589,6 +605,11 @@ permissions. Try reinstalling the package, or fix the permissions on \
 the directory.""" % (qt_plugins_dir, self.binding_name))
 
             for filename in file_list:
+                # Wheels may contain build artifacts, e.g. static libraries,
+                # that are not usable as plugins.
+                if getDllBasename(os.path.basename(filename)) is None:
+                    continue
+
                 filename_relative = os.path.relpath(filename, start=qt_plugins_dir)
 
                 qt_plugin_name = filename_relative.split(os.path.sep, 1)[0]
@@ -1007,9 +1028,15 @@ os.environ["QTWEBENGINE_LOCALES_PATH"] = os.path.join(
 )
 os.environ["QTWEBENGINE_DISABLE_SANDBOX"]="1"
 """ % {
-                    "web_engine_process_path": """\
-%s/Qt/lib/QtWebEngineCore.framework/Helpers/QtWebEngineProcess.app/Contents/MacOS/QtWebEngineProcess"""
-                    % self.binding_name
+                    "web_engine_process_path": getNormalizedPathJoin(
+                        self._getQtLibraryTargetPath(),
+                        "QtWebEngineCore.framework",
+                        "Helpers",
+                        "QtWebEngineProcess.app",
+                        "Contents",
+                        "MacOS",
+                        "QtWebEngineProcess",
+                    )
                 }
 
                 yield (
@@ -1069,10 +1096,13 @@ Prefix = .
         if self.binding_name in ("PySide6", "PyQt6"):
             used_frameworks += ["QtOpenGL", "QtDBus"]
 
-        # Newer PySide6 needs even more.
-        if self.binding_name == "PySide6" and self._getBindingVersion() >= (6, 8, 0):
-            used_frameworks.append("QtQmlMeta")
-            used_frameworks.append("QtQmlWorkerScript")
+        # Newer PySide6 and PyQt6 need even more.
+        if self.binding_name in ("PySide6", "PyQt6"):
+            binding_version = self._getBindingVersion()
+
+            if binding_version >= (6, 8, 0):
+                used_frameworks.append("QtQmlMeta")
+                used_frameworks.append("QtQmlWorkerScript")
 
         for used_framework in used_frameworks:
             yield self.makeIncludedAppBundleFramework(
@@ -1098,9 +1128,7 @@ Prefix = .
         return self.makeIncludedFrameworkDirectory(
             source_path=framework_path,
             dest_path=getNormalizedPathJoin(
-                self.binding_name,
-                "Qt",
-                "lib",
+                self._getQtLibraryTargetPath(),
                 framework_basename,
             ),
             reason=reason,
@@ -1200,9 +1228,10 @@ Prefix = .
             return getNormalizedPathJoin(self.binding_name, "qt-plugins")
 
     def isDefaultQtPluginTargetPath(self):
-        # So far we use the default only with PyQt6, since our post load code to
-        # change it crashes on macOS, probably being called too soon.
-        return self.binding_name == "PyQt6"
+        # On macOS, Qt computes the plugin path relative to the executable,
+        # which does not match the distribution layout, so the post load code
+        # has to set an explicit library path there.
+        return self.binding_name == "PyQt6" and not isMacOS()
 
     def getExtraDlls(self, module):
         # pylint: disable=too-many-branches
@@ -1744,10 +1773,8 @@ class NuitkaPluginPyQt6Plugins(NuitkaPluginQtBindingsPluginBase):
             qt_debug_plugins=qt_debug_plugins,
         )
 
-        self.info(
-            """\
-Support for PyQt6 is not perfect, e.g. Qt threading does not work, so prefer PySide6 if you can."""
-        )
+        self.info("""\
+Support for PyQt6 is not absolutely perfect so prefer PySide6 if you can.""")
 
 
 class NuitkaPluginDetectorPyQt6Plugins(NuitkaPluginBase):

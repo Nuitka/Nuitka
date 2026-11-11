@@ -1,11 +1,8 @@
 #     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-# nuitka-project: --mode=standalone
+# nuitka-project: --mode=app-dist
 # nuitka-project: --enable-plugin=pyqt6
-
-# nuitka-project-if: {OS} == "Darwin":
-#   nuitka-project: --macos-create-app-bundle
 
 # nuitka-skip-unless-imports: PyQt6.QtGui
 

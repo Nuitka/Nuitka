@@ -230,13 +230,9 @@ def main():
             if filename != "PySide6":
                 extra_flags.append("ignore_warnings")
 
-        if filename == "PySide6WebEngineFrameworks.py" and isMacOS():
+        if filename.endswith("WebEngineFrameworks.py") and isMacOS():
             extra_flags.append("ignore_stderr")
             extra_flags.append("verify_signature")
-
-        if filename.startswith("PyQt6") and isMacOS():
-            reportSkip("not currently supported", ".", filename)
-            continue
 
         test_logger.info(
             "Consider output of standalone mode compiled program: %s" % filename

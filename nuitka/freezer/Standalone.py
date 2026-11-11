@@ -32,17 +32,13 @@ from nuitka.Tracing import general, inclusion_logger
 from nuitka.utils.Execution import executeToolChecked
 from nuitka.utils.FileOperations import (
     areInSamePaths,
-    areSamePaths,
-    deleteFile,
     getFileList,
     getNormalizedPathJoin,
     getSubDirectories,
     isFilenameBelowPath,
     isLink,
-    listDir,
     makePath,
     relpath,
-    removeDirectory,
     withMadeWritableFileMode,
 )
 from nuitka.utils.SharedLibraries import (
@@ -81,6 +77,7 @@ from .IncludedEntryPoints import (
     makeDllEntryPoint,
 )
 from .MacOSApp import createEntitlementsInfoFile
+from .MacOSFrameworkBundles import normalizeMacOSFrameworkBundleLayouts
 
 
 def checkFreezingModuleSet():
@@ -400,7 +397,7 @@ def _relocateMacOSAppBundleDirectories(dist_dir, data_file_paths):
         symlinks.add(relocated_path)
         translations.add((not_signable_path, relocated_path))
 
-    return translations, _normalizeMacOSFrameworkBundleLayouts(
+    return translations, normalizeMacOSFrameworkBundleLayouts(
         frameworks_dir=frameworks_dir
     )
 
@@ -440,138 +437,6 @@ def _getMacOSCodeSigningPaths(
             filenames_to_sign.add(framework_path)
 
     return filenames_to_sign
-
-
-def _removeMacOSFrameworkBundlePath(path):
-    if isLink(path) or os.path.isfile(path):
-        deleteFile(path, must_exist=False)
-    elif os.path.isdir(path):
-        removeDirectory(
-            path=path,
-            logger=inclusion_logger,
-            ignore_errors=False,
-            extra_recommendation=None,
-        )
-
-
-def _makeMacOSFrameworkBundleSymlink(link_path, link_target):
-    if isLink(link_path) and os.readlink(link_path) == link_target:
-        return
-
-    if os.path.exists(link_path) or isLink(link_path):
-        _removeMacOSFrameworkBundlePath(link_path)
-
-    os.symlink(link_target, link_path)
-
-
-def _detectMacOSFrameworkCurrentVersion(framework_path):
-    framework_name = os.path.basename(framework_path)[: -len(".framework")]
-    versions_dir = getNormalizedPathJoin(framework_path, "Versions")
-
-    if not os.path.isdir(versions_dir):
-        return None, None
-
-    version_candidates = []
-
-    for version_path, version_name in listDir(versions_dir):
-        if version_name == "Current":
-            continue
-
-        if not os.path.isdir(version_path):
-            continue
-
-        if os.path.exists(getNormalizedPathJoin(version_path, framework_name)):
-            version_candidates.append((version_name, version_path))
-
-    if not version_candidates:
-        return None, None
-
-    current_path = getNormalizedPathJoin(versions_dir, "Current")
-
-    if isLink(current_path):
-        current_target_path = getNormalizedPathJoin(
-            versions_dir, os.readlink(current_path)
-        )
-
-        for version_name, version_path in version_candidates:
-            if areSamePaths(version_path, current_target_path):
-                return version_name, version_path
-
-    return version_candidates[0]
-
-
-def _isMacOSFrameworkVersionPath(path, framework_name):
-    return os.path.isdir(path) and os.path.exists(
-        getNormalizedPathJoin(path, framework_name)
-    )
-
-
-def _normalizeMacOSFrameworkBundleLayout(framework_path):
-    framework_name = os.path.basename(framework_path)[: -len(".framework")]
-
-    version_name, version_path = _detectMacOSFrameworkCurrentVersion(
-        framework_path=framework_path
-    )
-
-    if version_name is None:
-        return
-
-    top_level_code_signature_path = getNormalizedPathJoin(
-        framework_path, "_CodeSignature"
-    )
-
-    if os.path.isdir(top_level_code_signature_path):
-        _removeMacOSFrameworkBundlePath(top_level_code_signature_path)
-
-    versions_dir = getNormalizedPathJoin(framework_path, "Versions")
-
-    for version_entry_path, version_entry_name in listDir(versions_dir):
-        if version_entry_name == "Current":
-            continue
-
-        if _isMacOSFrameworkVersionPath(version_entry_path, framework_name):
-            continue
-
-        _removeMacOSFrameworkBundlePath(version_entry_path)
-
-    _makeMacOSFrameworkBundleSymlink(
-        link_path=getNormalizedPathJoin(versions_dir, "Current"),
-        link_target=version_name,
-    )
-
-    versioned_binary_path = getNormalizedPathJoin(version_path, framework_name)
-
-    if os.path.exists(versioned_binary_path):
-        _makeMacOSFrameworkBundleSymlink(
-            link_path=getNormalizedPathJoin(framework_path, framework_name),
-            link_target=getNormalizedPathJoin("Versions", "Current", framework_name),
-        )
-
-    for entry_path, entry_name in listDir(version_path):
-        if entry_name == "_CodeSignature":
-            continue
-
-        if os.path.isdir(entry_path):
-            _makeMacOSFrameworkBundleSymlink(
-                link_path=getNormalizedPathJoin(framework_path, entry_name),
-                link_target=getNormalizedPathJoin("Versions", "Current", entry_name),
-            )
-
-
-def _normalizeMacOSFrameworkBundleLayouts(frameworks_dir):
-    if not os.path.isdir(frameworks_dir):
-        return ()
-
-    framework_paths = [
-        sub_directory
-        for sub_directory in getSubDirectories(frameworks_dir)
-        if sub_directory.endswith(".framework")
-    ]
-
-    for framework_path in framework_paths:
-        _normalizeMacOSFrameworkBundleLayout(framework_path=framework_path)
-
-    return tuple(framework_paths)
 
 
 _excluded_system_dlls = set()
