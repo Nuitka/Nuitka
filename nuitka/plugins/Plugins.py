@@ -1160,8 +1160,6 @@ through implicit import by '%s' plugin encountered."""
                 % (module_name, e)
             )
 
-        # The module may have been created as uncompiled already, e.g. when
-        # Python PGO decided it is unused, then there is no source code to attach.
         if (
             trigger_module.isCompiledPythonModule()
             and trigger_module.getCompilationMode() == "bytecode"
@@ -1329,7 +1327,6 @@ through implicit import by '%s' plugin encountered."""
                     hide_syntax_error=False,
                 )
 
-                # May be uncompiled already, see "_createTriggerLoadedModule".
                 if (
                     fake_module.isCompiledPythonModule()
                     and fake_module.getCompilationMode() == "bytecode"
