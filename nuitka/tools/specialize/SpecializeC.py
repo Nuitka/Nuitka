@@ -72,6 +72,7 @@ from .Common import (
     formatArgs,
     getLicenseGeneratedCode,
     getMethodVariations,
+    getSpecVariation,
     parseOptions,
     python2_dict_methods,
     python2_list_methods,
@@ -1492,8 +1493,62 @@ def _getCheckForShape(shape):
         assert False, shape
 
 
+def _getArgCountConditions(spec_versions):
+    """Get the Python conditions for each argument count of a method.
+
+    Args:
+        spec_versions: List of 'SpecVersion' values.
+
+    Returns:
+        Dictionary of argument count to set of Python conditions.
+    """
+    result = {}
+
+    for spec_version in spec_versions:
+        (
+            _spec_arg_names,
+            _spec_arg_tests,
+            _spec_arg_name_mapping,
+            spec_arg_counts,
+            _spec_result_shape,
+        ) = getSpecVariation(spec_version.spec)
+
+        for arg_count in spec_arg_counts:
+            if arg_count not in result:
+                result[arg_count] = set()
+
+            result[arg_count].add(spec_version.python_condition)
+
+    return result
+
+
+def _getHelperCondition(conditions, type_python_requirement):
+    """Get the C condition for a helper, if it is version specific.
+
+    Args:
+        conditions: Set of Python conditions for the helper.
+        type_python_requirement: Python requirement of the builtin type.
+
+    Returns:
+        C condition string or None.
+    """
+    if None in conditions or len(conditions) > 1:
+        return None
+
+    helper_condition = next(iter(conditions))
+
+    assert helper_condition.count("<") <= 1, helper_condition
+
+    helper_condition = helper_condition.replace("python_version", "PYTHON_VERSION")
+
+    if helper_condition == type_python_requirement:
+        return None
+
+    return helper_condition
+
+
 def makeHelperBuiltinTypeMethods():
-    # Many details, pylint: disable=too-many-locals
+    # Many details, pylint: disable=too-many-locals,too-many-statements
     filename_c = getNormalizedPath(
         "nuitka/build/static_src/HelpersBuiltinTypeMethods.c"
     )
@@ -1586,21 +1641,23 @@ def makeHelperBuiltinTypeMethods():
                         emit_c("#if %s" % method_requirement)
                         emit_h("#if %s" % method_requirement)
 
-                    (
-                        present,
-                        arg_names,
-                        _arg_tests,
-                        arg_name_mapping,
-                        arg_counts,
-                        result_shape,
-                    ) = getMethodVariations(
+                    method_variations = getMethodVariations(
                         spec_module=spec_module,
                         shape_name=shape_name,
                         method_name=method_name,
                         must_exist=True,
                     )
 
-                    assert present, method_name
+                    assert method_variations.present, method_name
+
+                    arg_names = method_variations.arg_names
+                    arg_name_mapping = method_variations.arg_name_mapping
+                    arg_counts = method_variations.arg_counts
+                    result_shape = method_variations.result_shape
+
+                    arg_count_conditions = _getArgCountConditions(
+                        method_variations.spec_versions
+                    )
 
                     def formatArgumentDeclaration(arg_types, arg_names, starting):
                         return formatArgs(
@@ -1627,6 +1684,15 @@ def makeHelperBuiltinTypeMethods():
                             for arg_name in arg_names[:arg_count]
                         ]
 
+                        helper_condition = _getHelperCondition(
+                            conditions=arg_count_conditions[arg_count],
+                            type_python_requirement=type_desc.python_requirement,
+                        )
+
+                        if helper_condition:
+                            emit_c("#if %s" % helper_condition)
+                            emit_h("#if %s" % helper_condition)
+
                         code = template.render(
                             object_desc=object_desc,
                             builtin_type=type_desc,
@@ -1650,6 +1716,10 @@ def makeHelperBuiltinTypeMethods():
 
                         emit_c(code)
                         emit_h(getTemplateCodeDeclaredFunction(code))
+
+                        if helper_condition:
+                            emit_c("#endif")
+                            emit_h("#endif")
 
                     if method_requirement:
                         emit_c("#endif")

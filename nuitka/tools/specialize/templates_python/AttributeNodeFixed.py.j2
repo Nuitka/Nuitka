@@ -25,6 +25,7 @@
 {% set str_operation_variation = attribute_shape_variations.get((attribute_name, "tshape_str")) %}
 {% set str_operation_node_arg_mapping = attribute_shape_node_arg_mapping.get((attribute_name, "tshape_str")) %}
 {% set str_operation_empty = attribute_shape_empty.get((attribute_name, "tshape_str"), "None") %}
+{% set str_operation_spec_versions = attribute_shape_spec_versions.get((attribute_name, "tshape_str")) %}
 {% else %}
 {% set str_shape = 0 %}
 {% endif %}
@@ -65,6 +66,30 @@
 {% else %}
 {% set type_shape = 0 %}
 {% endif %}
+
+
+{% macro make_str_operation_wrapper(function_name, args, arg_tests, variation, node_arg_mapping, indexed) %}
+        def {{function_name}}({{formatArgs(args, starting=True, finishing=False)}} source_ref):
+{% if variation and variation|length > 1 %}
+{% for count in reversed(variation[1:]) %}
+{% set node_suffix = str(count+1) if indexed else "" %}
+            {{"if" if count == variation[-1] else "elif"}} {{args[count-1]}} {{arg_tests[count-1]}}:
+                return {{translateNodeClassName("ExpressionStrOperation" + attribute_name_class + node_suffix)}}(
+                    str_arg=str_arg {{formatCallArgs(node_arg_mapping, args[:count], starting=False)}}, source_ref=source_ref
+                )
+{% endfor %}
+{% set node_suffix = str(variation[0]+1) if indexed else "" %}
+            else:
+                return {{translateNodeClassName("ExpressionStrOperation" + attribute_name_class + node_suffix)}}(
+                    str_arg=str_arg {{formatCallArgs(node_arg_mapping, args[:variation[0]], starting=False)}}, source_ref=source_ref
+                )
+{% else %}
+{% set node_suffix = str(args|length + 1) if indexed else "" %}
+            return {{translateNodeClassName("ExpressionStrOperation" + attribute_name_class + node_suffix)}}(
+                str_arg=str_arg {{formatCallArgs(node_arg_mapping, args, starting=False)}}, source_ref=source_ref
+            )
+{% endif %}
+{% endmacro %}
 
 
 {% set attribute_name_class = attribute_name.replace("_", "").title() %}
@@ -372,7 +397,15 @@ attribute_typed_classes.add(ExpressionAttributeLookupDict{{attribute_name_class}
 {% if str_shape %}
 
 {% if str_operation_version_presence %}
+{% if str_operation_spec_versions %}
+from nuitka.specs.BuiltinStrOperationSpecs import (
+{% for spec_version in str_operation_spec_versions %}
+    {{spec_version.spec_name}},
+{% endfor %}
+)
+{% else %}
 from nuitka.specs.BuiltinStrOperationSpecs import str_{{attribute_name}}_spec
+{% endif %}
 {% if str_operation_variation %}
 {% for count in reversed(str_operation_variation) %}
 from .StrNodes import {{translateNodeClassName("ExpressionStrOperation" + attribute_name_class + str(count+1))}}
@@ -401,23 +434,17 @@ class ExpressionAttributeLookupStr{{attribute_name_class}}(SideEffectsFromChildr
 {% if str_operation_version_presence %}
     @staticmethod
     def _computeExpressionCall(call_node, str_arg, trace_collection):
-        def wrapExpressionStrOperation{{attribute_name_class}}({{formatArgs(str_operation_args, starting=True, finishing=False)}} source_ref):
-{% if str_operation_variation %}
-{% for count in reversed(str_operation_variation[1:]) %}
-            {{"if" if count == str_operation_variation[-1] else "elif"}} {{str_operation_args[count-1]}} {{str_operation_arg_tests[count-1]}}:
-                return {{translateNodeClassName("ExpressionStrOperation" + attribute_name_class + str(count+1))}}(
-                    str_arg=str_arg {{formatCallArgs(str_operation_node_arg_mapping, str_operation_args[:count], starting=False)}}, source_ref=source_ref
-                )
+{% if str_operation_spec_versions %}
+{% for spec_version in str_operation_spec_versions %}
+{% set spec_args, spec_arg_tests, spec_arg_name_mapping, spec_variation, _spec_result_shape = getSpecVariation(spec_version.spec) %}
+        {{"if" if loop.first else "elif"}} {{spec_version.python_condition}}:
+{{ make_str_operation_wrapper("wrapExpressionStrOperation" + attribute_name_class, spec_args, spec_arg_tests, spec_variation, spec_arg_name_mapping, str_operation_variation is not none) | indent(4, True) }}
+            builtin_spec = {{spec_version.spec_name}}
 {% endfor %}
-            else:
-                return {{translateNodeClassName("ExpressionStrOperation" + attribute_name_class + str(str_operation_variation[0]+1))}}(
-                    str_arg=str_arg {{formatCallArgs(str_operation_node_arg_mapping, str_operation_args[:str_operation_variation[0]], starting=False)}}, source_ref=source_ref
-                )
-
+        else:
+            assert False, "Unhandled Python version for 'str.{{attribute_name}}'."
 {% else %}
-            return {{translateNodeClassName("ExpressionStrOperation" + attribute_name_class)}}(
-                str_arg=str_arg {{formatCallArgs(str_operation_node_arg_mapping, str_operation_args, starting=False)}}, source_ref=source_ref
-            )
+{{ make_str_operation_wrapper("wrapExpressionStrOperation" + attribute_name_class, str_operation_args, str_operation_arg_tests, str_operation_variation, str_operation_node_arg_mapping, str_operation_variation is not none) }}
 {% endif %}
 
         # Anything may happen. On next pass, if replaced, we might be better
@@ -427,7 +454,11 @@ class ExpressionAttributeLookupStr{{attribute_name_class}}(SideEffectsFromChildr
         result = extractBuiltinArgs(
             node=call_node,
             builtin_class=wrapExpressionStrOperation{{attribute_name_class}},
+{% if str_operation_spec_versions %}
+            builtin_spec=builtin_spec,
+{% else %}
             builtin_spec=str_{{attribute_name}}_spec,
+{% endif %}
 {% if str_operation_empty != "None" %}
             empty_special_class={{str_operation_empty}}
 {% endif %}

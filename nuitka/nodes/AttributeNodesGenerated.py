@@ -149,7 +149,8 @@ from nuitka.specs.BuiltinStrOperationSpecs import (
     str_strip_spec,
     str_swapcase_spec,
     str_title_spec,
-    str_translate_spec,
+    str_translate_before_3_spec,
+    str_translate_since_3_spec,
     str_upper_spec,
     str_zfill_spec,
 )
@@ -344,7 +345,8 @@ from .StrNodes import (
     ExpressionStrOperationStrip2,
     ExpressionStrOperationSwapcase,
     ExpressionStrOperationTitle,
-    ExpressionStrOperationTranslate,
+    ExpressionStrOperationTranslate2,
+    ExpressionStrOperationTranslate3,
     ExpressionStrOperationUpper,
     ExpressionStrOperationZfill,
     makeExpressionStrOperationEncode3,
@@ -9976,10 +9978,32 @@ class ExpressionAttributeLookupStrTranslate(
 
     @staticmethod
     def _computeExpressionCall(call_node, str_arg, trace_collection):
-        def wrapExpressionStrOperationTranslate(table, source_ref):
-            return ExpressionStrOperationTranslate(
-                str_arg=str_arg, table=table, source_ref=source_ref
-            )
+        if python_version >= 0x300:
+
+            def wrapExpressionStrOperationTranslate(table, source_ref):
+                return ExpressionStrOperationTranslate2(
+                    str_arg=str_arg, table=table, source_ref=source_ref
+                )
+
+            builtin_spec = str_translate_since_3_spec
+        elif python_version < 0x300:
+
+            def wrapExpressionStrOperationTranslate(table, delete, source_ref):
+                if delete is not None:
+                    return ExpressionStrOperationTranslate3(
+                        str_arg=str_arg,
+                        table=table,
+                        delete=delete,
+                        source_ref=source_ref,
+                    )
+                else:
+                    return ExpressionStrOperationTranslate2(
+                        str_arg=str_arg, table=table, source_ref=source_ref
+                    )
+
+            builtin_spec = str_translate_before_3_spec
+        else:
+            assert False, "Unhandled Python version for 'str.translate'."
 
         # Anything may happen. On next pass, if replaced, we might be better
         # but not now.
@@ -9988,7 +10012,7 @@ class ExpressionAttributeLookupStrTranslate(
         result = extractBuiltinArgs(
             node=call_node,
             builtin_class=wrapExpressionStrOperationTranslate,
-            builtin_spec=str_translate_spec,
+            builtin_spec=builtin_spec,
         )
 
         return result, "new_expression", "Call to 'translate' of str recognized."

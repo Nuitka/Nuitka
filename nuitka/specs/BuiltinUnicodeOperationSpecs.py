@@ -108,7 +108,12 @@ unicode_rjust_spec = UnicodeMethodSpecNoKeywords(
     "rjust", arg_names=("width", "fillchar"), default_count=1
 )
 unicode_zfill_spec = UnicodeMethodSpecNoKeywords("zfill", arg_names=("width",))
-unicode_translate_spec = UnicodeMethodSpecNoKeywords("translate", arg_names=("table",))
+unicode_translate_before_3_spec = UnicodeMethodSpecNoKeywords(
+    "translate", arg_names=("table", "delete"), default_count=1
+)
+unicode_translate_since_3_spec = UnicodeMethodSpecNoKeywords(
+    "translate", arg_names=("table",)
+)
 unicode_splitlines_spec = UnicodeMethodSpecNoKeywords(
     "splitlines", arg_names=("keepends"), default_count=1
 )

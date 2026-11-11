@@ -189,8 +189,17 @@ str_rjust_spec = StrMethodSpecNoKeywords(
 str_zfill_spec = StrMethodSpecNoKeywords(
     "zfill", arg_names=("width",), type_shape=tshape_str
 )
-str_translate_spec = StrMethodSpecNoKeywords(
-    "translate", arg_names=("table",), type_shape=tshape_str
+# Python2 "str" accepts the "delete" argument, Python3 "str" does not.
+str_translate_before_3_spec = StrMethodSpecNoKeywords(
+    "translate",
+    arg_names=("table", "delete"),
+    default_count=1,
+    type_shape=tshape_str,
+)
+str_translate_since_3_spec = StrMethodSpecNoKeywords(
+    "translate",
+    arg_names=("table",),
+    type_shape=tshape_str,
 )
 str_splitlines_spec = (StrMethodSpecNoKeywords if str is bytes else StrMethodSpec)(
     "splitlines", arg_names=("keepends"), default_count=1, type_shape=tshape_list

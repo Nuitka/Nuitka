@@ -76,7 +76,8 @@ from .BuiltinOperationNodeBasesGenerated import (
     ExpressionStrOperationStrip2Base,
     ExpressionStrOperationSwapcaseBase,
     ExpressionStrOperationTitleBase,
-    ExpressionStrOperationTranslateBase,
+    ExpressionStrOperationTranslate2Base,
+    ExpressionStrOperationTranslate3Base,
     ExpressionStrOperationUpperBase,
     ExpressionStrOperationZfillBase,
 )
@@ -869,10 +870,24 @@ class ExpressionStrOperationExpandtabs2(ExpressionStrOperationExpandtabs2Base):
         return True
 
 
-class ExpressionStrOperationTranslate(ExpressionStrOperationTranslateBase):
+class ExpressionStrOperationTranslate2(ExpressionStrOperationTranslate2Base):
     """This operation represents s.translate(table)."""
 
-    kind = "EXPRESSION_STR_OPERATION_TRANSLATE"
+    kind = "EXPRESSION_STR_OPERATION_TRANSLATE2"
+
+    @staticmethod
+    def mayRaiseExceptionOperation():
+        # TODO: Only if the arguments have wrong shapes, code generation needs to use this too.
+        return True
+
+
+class ExpressionStrOperationTranslate3(ExpressionStrOperationTranslate3Base):
+    """This operation represents s.translate(table, delete).
+
+    spell-checker: ignore delete
+    """
+
+    kind = "EXPRESSION_STR_OPERATION_TRANSLATE3"
 
     @staticmethod
     def mayRaiseExceptionOperation():

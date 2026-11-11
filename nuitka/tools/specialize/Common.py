@@ -4,6 +4,7 @@
 """Common helper functions for specializing code."""
 
 from nuitka.Constants import the_empty_unicode
+from nuitka.containers.Namedtuples import makeNamedtupleClass
 from nuitka.options.CommandLineOptionsTools import makeOptionsParser
 from nuitka.tools.quality.auto_format.AutoFormat import (
     withFileOpenedAndAutoFormatted,
@@ -294,53 +295,324 @@ python3_type_methods = (
 )
 
 
-def getMethodVariations(spec_module, shape_name, method_name, must_exist=False):
-    spec_name = shape_name.split("_")[-1] + "_" + method_name + "_spec"
-    spec = getattr(spec_module, spec_name, None)
+SpecVersion = makeNamedtupleClass(
+    "SpecVersion",
+    (
+        "spec_name",
+        "python_criterion",
+        "python_version_spec",
+        "python_condition",
+        "spec",
+        "suffix",
+    ),
+)
 
-    present = spec is not None
+MethodVariations = makeNamedtupleClass(
+    "MethodVariations",
+    (
+        "present",
+        "arg_names",
+        "arg_tests",
+        "arg_name_mapping",
+        "arg_counts",
+        "result_shape",
+        "spec_versions",
+    ),
+)
 
-    if not present and must_exist:
-        assert False, spec_name
 
-    if present:
-        if spec.isStarListSingleArg():
-            required = 1
+_spec_versions_cache = {}
 
-            arg_counts = tuple(range(required, required + 2))
 
-            arg_names = (
-                spec.getStarListArgumentName(),
-                spec.getStarDictArgumentName(),
+def _getSpecVersionsDict(spec_module):
+    """Get the spec versions of a module, grouped by spec name.
+
+    Args:
+        spec_module: Module with parameter specs.
+
+    Returns:
+        Dictionary of spec name to list of 'SpecVersion' values.
+    """
+    result = _spec_versions_cache.get(spec_module)
+
+    if result is None:
+        result = {}
+
+        for spec_name, spec in getSpecs(spec_module):
+            for version, str_version in (
+                (0x300, "3"),
+                (0x370, "37"),
+                (0x380, "38"),
+                (0x390, "39"),
+                (0x3A0, "310"),
+                (0x3B0, "311"),
+                (0x3C0, "312"),
+                (0x3D0, "313"),
+                (0x3E0, "314"),
+                (0x3F0, "315"),
+            ):
+                if spec_name.endswith("_since_%s_spec" % str_version):
+                    python_criterion = ">= 0x%x" % version
+                    suffix = "Since%s" % str_version
+                    break
+
+                if spec_name.endswith("_before_%s_spec" % str_version):
+                    python_criterion = "< 0x%x" % version
+                    suffix = "Before%s" % str_version
+                    break
+            else:
+                python_criterion = None
+                suffix = ""
+
+            assert ".entry_points" not in spec_name or python_criterion is not None
+
+            if spec.name not in result:
+                result[spec.name] = []
+
+            result[spec.name].append(
+                SpecVersion(
+                    spec_name=spec_name,
+                    python_criterion=python_criterion,
+                    python_version_spec=python_criterion,
+                    python_condition=(
+                        None
+                        if python_criterion is None
+                        else "python_version %s" % python_criterion
+                    ),
+                    spec=spec,
+                    suffix=suffix,
+                )
             )
 
-            arg_name_mapping = {
-                "list_args": spec.getStarListArgumentName(),
-            }
-        else:
-            required = spec.getArgumentCount() - spec.getDefaultCount()
-
-            arg_counts = tuple(range(required, spec.getArgumentCount() + 1))
-
-            arg_names = spec.getParameterNames()
-            arg_name_mapping = {}
-
-        arg_tests = [
-            (
-                ""
-                if arg_name
-                in (spec.getStarListArgumentName(), spec.getStarDictArgumentName())
-                else "is not None"
+        # Sort and tighten the criteria only once all versions of a spec are known.
+        for spec_versions in result.values():
+            spec_versions.sort(
+                key=lambda spec_version: spec_version.python_criterion or "",
+                reverse=True,
             )
-            for arg_name in arg_names
+
+            # Logic to tighten the criteria for older versions to not match the
+            # newer versions.
+            for i, spec_version in enumerate(spec_versions):
+                if i > 0:
+                    prev_spec_version = spec_versions[i - 1]
+
+                    if (
+                        prev_spec_version.python_criterion
+                        and spec_version.python_criterion
+                        and prev_spec_version.python_criterion.startswith(">= ")
+                        and spec_version.python_criterion.startswith(">= ")
+                    ):
+                        limit = prev_spec_version.python_criterion.replace(">=", "<")
+                        new_criterion = "%s and python_version %s" % (
+                            spec_version.python_criterion,
+                            limit,
+                        )
+                        new_spec = "%s, %s" % (spec_version.python_version_spec, limit)
+
+                        spec_versions[i] = spec_version.replace(
+                            python_criterion=new_criterion,
+                            python_version_spec=new_spec,
+                            python_condition="%s <= python_version %s"
+                            % (
+                                spec_version.python_criterion.replace(">= ", "", 1),
+                                limit,
+                            ),
+                        )
+
+        _spec_versions_cache[spec_module] = result
+
+    return result
+
+
+def getSpecVersions(spec_module):
+    """Get the spec versions of a module.
+
+    Args:
+        spec_module: Module with parameter specs.
+
+    Returns:
+        Tuple of lists of 'SpecVersion' values.
+    """
+    return tuple(sorted(_getSpecVersionsDict(spec_module).values()))
+
+
+def getMethodSpecVersions(spec_module, shape_name, method_name):
+    """Get the versioned specs of a method.
+
+    Args:
+        spec_module: Module with parameter specs.
+        shape_name: Name of the type shape, e.g. 'tshape_str'.
+        method_name: Name of the method, e.g. 'translate'.
+
+    Returns:
+        List of 'SpecVersion' values, or None if the method is unknown.
+    """
+    method_spec_name = "%s.%s" % (shape_name.split("_")[-1], method_name)
+
+    spec_versions = _getSpecVersionsDict(spec_module).get(method_spec_name)
+
+    if spec_versions is not None:
+        versioned_specs = [
+            spec_version
+            for spec_version in spec_versions
+            if spec_version.python_criterion is not None
         ]
 
-        result_shape = spec.getTypeShape()
+        # If there are version specific specs, prefer them over any unversioned
+        # alias that might still be present.
+        if versioned_specs:
+            spec_versions = versioned_specs
 
+    return spec_versions
+
+
+def getSpecVariation(spec):
+    """Get the code generation variation of a parameter spec.
+
+    Args:
+        spec: Parameter spec to get the variation of.
+
+    Returns:
+        Tuple of argument names, argument tests, argument name mapping,
+        argument counts, and result shape.
+    """
+    if spec.isStarListSingleArg():
+        required = 1
+
+        arg_counts = tuple(range(required, required + 2))
+
+        arg_names = (
+            spec.getStarListArgumentName(),
+            spec.getStarDictArgumentName(),
+        )
+
+        arg_name_mapping = {
+            "list_args": spec.getStarListArgumentName(),
+        }
     else:
-        arg_names = arg_name_mapping = arg_counts = arg_tests = result_shape = None
+        required = spec.getArgumentCount() - spec.getDefaultCount()
 
-    return present, arg_names, arg_tests, arg_name_mapping, arg_counts, result_shape
+        arg_counts = tuple(range(required, spec.getArgumentCount() + 1))
+
+        arg_names = spec.getParameterNames()
+        arg_name_mapping = {}
+
+    arg_tests = [
+        (
+            ""
+            if arg_name
+            in (spec.getStarListArgumentName(), spec.getStarDictArgumentName())
+            else "is not None"
+        )
+        for arg_name in arg_names
+    ]
+
+    return arg_names, arg_tests, arg_name_mapping, arg_counts, spec.getTypeShape()
+
+
+def _mergeSpecVariations(spec_versions):
+    """Merge the variations of the specs of a method.
+
+    Args:
+        spec_versions: List of 'SpecVersion' values.
+
+    Returns:
+        Tuple of argument names, argument tests, argument name mapping,
+        argument counts, and result shape.
+    """
+    arg_names = []
+    arg_tests_dict = {}
+    arg_name_mapping = {}
+    arg_counts = set()
+    result_shape = None
+
+    for spec_version in spec_versions:
+        (
+            variant_arg_names,
+            variant_arg_tests,
+            variant_arg_name_mapping,
+            variant_arg_counts,
+            variant_result_shape,
+        ) = getSpecVariation(spec_version.spec)
+
+        for arg_name, arg_test in zip(variant_arg_names, variant_arg_tests):
+            if arg_name not in arg_names:
+                arg_names.append(arg_name)
+
+            assert arg_tests_dict.get(arg_name, arg_test) == arg_test
+            arg_tests_dict[arg_name] = arg_test
+
+        for arg_name, mapped_arg_name in variant_arg_name_mapping.items():
+            assert arg_name_mapping.get(arg_name, mapped_arg_name) == mapped_arg_name
+            arg_name_mapping[arg_name] = mapped_arg_name
+
+        arg_counts.update(variant_arg_counts)
+
+        if result_shape is None:
+            result_shape = variant_result_shape
+        else:
+            assert result_shape is variant_result_shape, (
+                result_shape,
+                variant_result_shape,
+            )
+
+    arg_names = tuple(arg_names)
+
+    return (
+        arg_names,
+        [arg_tests_dict[arg_name] for arg_name in arg_names],
+        arg_name_mapping,
+        tuple(sorted(arg_counts)),
+        result_shape,
+    )
+
+
+def getMethodVariations(spec_module, shape_name, method_name, must_exist=False):
+    """Get the variations of a method for code generation.
+
+    Args:
+        spec_module: Module with parameter specs.
+        shape_name: Name of the type shape, e.g. 'tshape_str'.
+        method_name: Name of the method, e.g. 'translate'.
+        must_exist: Whether to assert that the method spec exists.
+
+    Returns:
+        'MethodVariations' value.
+    """
+    spec_versions = getMethodSpecVersions(spec_module, shape_name, method_name)
+
+    if spec_versions is None:
+        if must_exist:
+            assert False, "%s.%s" % (shape_name.split("_")[-1], method_name)
+
+        return MethodVariations(
+            present=False,
+            arg_names=None,
+            arg_tests=None,
+            arg_name_mapping=None,
+            arg_counts=None,
+            result_shape=None,
+            spec_versions=None,
+        )
+
+    (
+        arg_names,
+        arg_tests,
+        arg_name_mapping,
+        arg_counts,
+        result_shape,
+    ) = _mergeSpecVariations(spec_versions)
+
+    return MethodVariations(
+        present=True,
+        arg_names=arg_names,
+        arg_tests=arg_tests,
+        arg_name_mapping=arg_name_mapping,
+        arg_counts=arg_counts,
+        result_shape=result_shape,
+        spec_versions=spec_versions,
+    )
 
 
 def getSpecs(spec_module):

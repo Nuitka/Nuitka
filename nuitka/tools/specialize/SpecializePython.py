@@ -30,7 +30,6 @@ import nuitka.specs.BuiltinStrOperationSpecs
 import nuitka.specs.BuiltinTypeOperationSpecs
 import nuitka.specs.HardImportSpecs
 import nuitka.tree.Building
-from nuitka.containers.Namedtuples import makeNamedtupleClass
 from nuitka.containers.OrderedDicts import OrderedDict
 from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.nodes.ImportNodes import hard_modules_non_stdlib
@@ -54,7 +53,8 @@ from .Common import (
     formatArgs,
     getLicenseGeneratedCode,
     getMethodVariations,
-    getSpecs,
+    getSpecVariation,
+    getSpecVersions,
     parseOptions,
     python2_dict_methods,
     python2_list_methods,
@@ -107,6 +107,9 @@ attribute_shape_arg_tests = {}
 # Some methods are static, but we still do them
 attribute_shape_static = {}
 
+# Version specific specs for attributes, if used.
+attribute_shape_spec_versions = {}
+
 # Translations for node names.
 node_factory_translations = {}
 
@@ -148,34 +151,33 @@ def processTypeShapeAttribute(
         if method_name not in python3_methods:
             attribute_shape_versions[key] = "str is bytes"
 
-        (
-            present,
-            arg_names,
-            arg_tests,
-            arg_name_mapping,
-            arg_counts,
-            result_shape,
-        ) = getMethodVariations(
+        method_variations = getMethodVariations(
             spec_module=spec_module, shape_name=shape_name, method_name=method_name
         )
 
-        attribute_shape_operations[key] = present
-        attribute_shape_operations_result_types[key] = result_shape
+        attribute_shape_operations[key] = method_variations.present
+        attribute_shape_operations_result_types[key] = method_variations.result_shape
 
-        if result_shape is not None:
+        if method_variations.result_shape is not None:
             attribute_shape_operations_mixin_classes[key] = [
-                _getMixinForShape(result_shape)
+                _getMixinForShape(method_variations.result_shape)
             ]
 
-        if present:
-            attribute_shape_args[key] = tuple(arg_names)
-            attribute_shape_arg_tests[key] = arg_tests
+        if method_variations.present:
+            attribute_shape_args[key] = tuple(method_variations.arg_names)
+            attribute_shape_arg_tests[key] = method_variations.arg_tests
             attribute_shape_static[key] = method_name in staticmethod_names
 
-            if len(arg_counts) > 1:
-                attribute_shape_variations[key] = arg_counts
+            if len(method_variations.arg_counts) > 1:
+                attribute_shape_variations[key] = method_variations.arg_counts
 
-            attribute_shape_node_arg_mapping[key] = arg_name_mapping
+            if any(
+                spec_version.python_criterion is not None
+                for spec_version in method_variations.spec_versions
+            ):
+                attribute_shape_spec_versions[key] = method_variations.spec_versions
+
+            attribute_shape_node_arg_mapping[key] = method_variations.arg_name_mapping
 
     for method_name in python3_methods:
         attribute_information.setdefault(method_name, set()).add(shape_name)
@@ -186,34 +188,33 @@ def processTypeShapeAttribute(
                 method_name, "str is not bytes"
             )
 
-        (
-            present,
-            arg_names,
-            arg_tests,
-            arg_name_mapping,
-            arg_counts,
-            result_shape,
-        ) = getMethodVariations(
+        method_variations = getMethodVariations(
             spec_module=spec_module, shape_name=shape_name, method_name=method_name
         )
 
-        attribute_shape_operations[key] = present
-        attribute_shape_operations_result_types[key] = result_shape
+        attribute_shape_operations[key] = method_variations.present
+        attribute_shape_operations_result_types[key] = method_variations.result_shape
 
-        if result_shape is not None:
+        if method_variations.result_shape is not None:
             attribute_shape_operations_mixin_classes[key] = [
-                _getMixinForShape(result_shape)
+                _getMixinForShape(method_variations.result_shape)
             ]
 
-        if present:
-            attribute_shape_args[key] = tuple(arg_names)
-            attribute_shape_arg_tests[key] = arg_tests
+        if method_variations.present:
+            attribute_shape_args[key] = tuple(method_variations.arg_names)
+            attribute_shape_arg_tests[key] = method_variations.arg_tests
             attribute_shape_static[key] = method_name in staticmethod_names
 
-            if len(arg_counts) > 1:
-                attribute_shape_variations[key] = arg_counts
+            if len(method_variations.arg_counts) > 1:
+                attribute_shape_variations[key] = method_variations.arg_counts
 
-            attribute_shape_node_arg_mapping[key] = arg_name_mapping
+            if any(
+                spec_version.python_criterion is not None
+                for spec_version in method_variations.spec_versions
+            ):
+                attribute_shape_spec_versions[key] = method_variations.spec_versions
+
+            attribute_shape_node_arg_mapping[key] = method_variations.arg_name_mapping
 
 
 processTypeShapeAttribute(
@@ -416,6 +417,8 @@ from nuitka.nodes.NodeMakingHelpers import (
                 attribute_shape_arg_tests=attribute_shape_arg_tests,
                 attribute_shape_empty=attribute_shape_empty,
                 attribute_shape_static=attribute_shape_static,
+                attribute_shape_spec_versions=attribute_shape_spec_versions,
+                getSpecVariation=getSpecVariation,
                 formatArgs=formatArgs,
                 formatCallArgs=formatCallArgs,
                 translateNodeClassName=translateNodeClassName,
@@ -1042,106 +1045,6 @@ from .Checkers import (
                 emit1(code)
 
             mixins_done.add(mixin_name)
-
-
-SpecVersion = makeNamedtupleClass(
-    "SpecVersion",
-    (
-        "spec_name",
-        "python_criterion",
-        "python_version_spec",
-        "python_condition",
-        "spec",
-        "suffix",
-    ),
-)
-
-
-def getSpecVersions(spec_module):
-    result = {}
-
-    for spec_name, spec in getSpecs(spec_module):
-        for version, str_version in (
-            (0x300, "3"),
-            (0x370, "37"),
-            (0x380, "38"),
-            (0x390, "39"),
-            (0x3A0, "310"),
-            (0x3B0, "311"),
-            (0x3C0, "312"),
-            (0x3D0, "313"),
-            (0x3E0, "314"),
-            (0x3F0, "315"),
-        ):
-            if spec_name.endswith("_since_%s_spec" % str_version):
-                python_criterion = ">= 0x%x" % version
-                suffix = "Since%s" % str_version
-                break
-
-            if spec_name.endswith("_before_%s_spec" % str_version):
-                python_criterion = "< 0x%x" % version
-                suffix = "Before%s" % str_version
-                break
-        else:
-            python_criterion = None
-            suffix = ""
-
-        assert ".entry_points" not in spec_name or python_criterion is not None
-
-        if spec.name not in result:
-            result[spec.name] = []
-
-        result[spec.name].append(
-            SpecVersion(
-                spec_name=spec_name,
-                python_criterion=python_criterion,
-                python_version_spec=python_criterion,
-                python_condition=(
-                    None
-                    if python_criterion is None
-                    else "python_version %s" % python_criterion
-                ),
-                spec=spec,
-                suffix=suffix,
-            )
-        )
-
-    # Sort and tighten the criteria only once all versions of a spec are known.
-    for spec_versions in result.values():
-        spec_versions.sort(
-            key=lambda spec_version: spec_version.python_criterion or "", reverse=True
-        )
-
-        # Logic to tighten the criteria for older versions to not match the
-        # newer versions.
-        for i, spec_version in enumerate(spec_versions):
-            if i > 0:
-                prev_spec_version = spec_versions[i - 1]
-
-                if (
-                    prev_spec_version.python_criterion
-                    and spec_version.python_criterion
-                    and prev_spec_version.python_criterion.startswith(">= ")
-                    and spec_version.python_criterion.startswith(">= ")
-                ):
-                    limit = prev_spec_version.python_criterion.replace(">=", "<")
-                    new_criterion = "%s and python_version %s" % (
-                        spec_version.python_criterion,
-                        limit,
-                    )
-                    new_spec = "%s, %s" % (spec_version.python_version_spec, limit)
-
-                    spec_versions[i] = spec_version.replace(
-                        python_criterion=new_criterion,
-                        python_version_spec=new_spec,
-                        python_condition="%s <= python_version %s"
-                        % (
-                            spec_version.python_criterion.replace(">= ", "", 1),
-                            limit,
-                        ),
-                    )
-
-    return tuple(sorted(result.values()))
 
 
 def makeHardImportNodes():

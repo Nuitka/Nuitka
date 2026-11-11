@@ -1615,7 +1615,7 @@ PyObject *STR_TITLE(PyThreadState *tstate, PyObject *str) {
     assert(result == NULL || Nuitka_String_CheckExact(result));
     return result;
 }
-PyObject *STR_TRANSLATE(PyThreadState *tstate, PyObject *str, PyObject *table) {
+PyObject *STR_TRANSLATE2(PyThreadState *tstate, PyObject *str, PyObject *table) {
     CHECK_OBJECT(str);
     assert(PyString_CheckExact(str));
 
@@ -1626,6 +1626,23 @@ PyObject *STR_TRANSLATE(PyThreadState *tstate, PyObject *str, PyObject *table) {
 
     PyObject *args[2] = {str, table};
     PyObject *result = CALL_METHODDESCR_WITH_ARGS2(tstate, called, args);
+
+    CHECK_OBJECT_X(result);
+    assert(result == NULL || Nuitka_String_CheckExact(result));
+    return result;
+}
+PyObject *STR_TRANSLATE3(PyThreadState *tstate, PyObject *str, PyObject *table, PyObject *delete_value) {
+    CHECK_OBJECT(str);
+    assert(PyString_CheckExact(str));
+
+    CHECK_OBJECT(table);
+    CHECK_OBJECT(delete_value);
+
+    PyObject *called = str_builtin_translate;
+    CHECK_OBJECT(called);
+
+    PyObject *args[3] = {str, table, delete_value};
+    PyObject *result = CALL_METHODDESCR_WITH_ARGS3(tstate, called, args);
 
     CHECK_OBJECT_X(result);
     assert(result == NULL || Nuitka_String_CheckExact(result));
@@ -2602,7 +2619,7 @@ PyObject *UNICODE_TITLE(PyThreadState *tstate, PyObject *unicode) {
     CHECK_OBJECT_X(result);
     return result;
 }
-PyObject *UNICODE_TRANSLATE(PyThreadState *tstate, PyObject *unicode, PyObject *table) {
+PyObject *UNICODE_TRANSLATE2(PyThreadState *tstate, PyObject *unicode, PyObject *table) {
     CHECK_OBJECT(unicode);
     assert(PyUnicode_CheckExact(unicode));
 
@@ -2617,6 +2634,24 @@ PyObject *UNICODE_TRANSLATE(PyThreadState *tstate, PyObject *unicode, PyObject *
     CHECK_OBJECT_X(result);
     return result;
 }
+#if PYTHON_VERSION < 0x300
+PyObject *UNICODE_TRANSLATE3(PyThreadState *tstate, PyObject *unicode, PyObject *table, PyObject *delete_value) {
+    CHECK_OBJECT(unicode);
+    assert(PyUnicode_CheckExact(unicode));
+
+    CHECK_OBJECT(table);
+    CHECK_OBJECT(delete_value);
+
+    PyObject *called = unicode_builtin_translate;
+    CHECK_OBJECT(called);
+
+    PyObject *args[3] = {unicode, table, delete_value};
+    PyObject *result = CALL_METHODDESCR_WITH_ARGS3(tstate, called, args);
+
+    CHECK_OBJECT_X(result);
+    return result;
+}
+#endif
 PyObject *UNICODE_UPPER(PyThreadState *tstate, PyObject *unicode) {
     CHECK_OBJECT(unicode);
     assert(PyUnicode_CheckExact(unicode));

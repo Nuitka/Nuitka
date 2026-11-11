@@ -22602,8 +22602,7 @@ class ChildrenHavingStrArgTableMixin(object):
     __slots__ = ()
 
     # This is generated for use in
-    #   ExpressionStrOperationTranslate
-    #   ExpressionStrOperationTranslateBase
+    #   ExpressionStrOperationTranslate2
 
     def __init__(
         self,
@@ -22730,8 +22729,161 @@ class ChildrenHavingStrArgTableMixin(object):
 
 
 # Assign the names that are easier to import with a stable name.
-ChildrenExpressionStrOperationTranslateMixin = ChildrenHavingStrArgTableMixin
-ChildrenExpressionStrOperationTranslateBaseMixin = ChildrenHavingStrArgTableMixin
+ChildrenExpressionStrOperationTranslate2Mixin = ChildrenHavingStrArgTableMixin
+
+
+class ChildrenHavingStrArgTableDeleteMixin(object):
+    # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
+    __slots__ = ()
+
+    # This is generated for use in
+    #   ExpressionStrOperationTranslate3
+
+    def __init__(
+        self,
+        str_arg,
+        table,
+        delete,
+    ):
+        str_arg.parent = self
+
+        self.subnode_str_arg = str_arg
+
+        table.parent = self
+
+        self.subnode_table = table
+
+        delete.parent = self
+
+        self.subnode_delete = delete
+
+    def getVisitableNodes(self):
+        """The visitable nodes, with tuple values flattened."""
+
+        return (
+            self.subnode_str_arg,
+            self.subnode_table,
+            self.subnode_delete,
+        )
+
+    def getVisitableNodesNamed(self):
+        """Named children dictionary.
+
+        For use in cloning nodes, debugging and XML output.
+        """
+
+        return (
+            ("str_arg", self.subnode_str_arg),
+            ("table", self.subnode_table),
+            ("delete", self.subnode_delete),
+        )
+
+    def replaceChild(self, old_node, new_node):
+        value = self.subnode_str_arg
+        if old_node is value:
+            new_node.parent = self
+
+            self.subnode_str_arg = new_node
+
+            return
+
+        value = self.subnode_table
+        if old_node is value:
+            new_node.parent = self
+
+            self.subnode_table = new_node
+
+            return
+
+        value = self.subnode_delete
+        if old_node is value:
+            new_node.parent = self
+
+            self.subnode_delete = new_node
+
+            return
+
+        raise AssertionError("Didn't find child", old_node, "in", self)
+
+    def getCloneArgs(self):
+        """Get clones of all children to pass for a new node.
+
+        Needs to make clones of child nodes too.
+        """
+
+        values = {
+            "str_arg": self.subnode_str_arg.makeClone(),
+            "table": self.subnode_table.makeClone(),
+            "delete": self.subnode_delete.makeClone(),
+        }
+
+        values.update(self.getDetails())
+
+        return values
+
+    def finalize(self):
+        del self.parent
+
+        self.subnode_str_arg.finalize()
+        del self.subnode_str_arg
+        self.subnode_table.finalize()
+        del self.subnode_table
+        self.subnode_delete.finalize()
+        del self.subnode_delete
+
+    def computeExpressionRaw(self, trace_collection):
+        """Compute an expression.
+
+        Default behavior is to just visit the child expressions first, and
+        then the node "computeExpression". For a few cases this needs to
+        be overloaded, e.g. conditional expressions.
+        """
+
+        # First apply the sub-expressions, as they are evaluated before
+        # the actual operation.
+        for count, sub_expression in enumerate(self.getVisitableNodes()):
+            expression = trace_collection.onExpression(sub_expression)
+
+            if expression.willRaiseAnyException():
+                sub_expressions = self.getVisitableNodes()
+
+                wrapped_expression = wrapExpressionWithSideEffects(
+                    side_effects=sub_expressions[:count],
+                    old_node=sub_expression,
+                    new_node=expression,
+                )
+
+                return (
+                    wrapped_expression,
+                    "new_raise",
+                    lambda: "For '%s' the child expression '%s' will raise."
+                    % (self.getChildNameNice(), expression.getChildNameNice()),
+                )
+
+        # Then ask ourselves to work on it.
+        return self.computeExpression(trace_collection)
+
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
+
+        self.undoVariableTracing()
+
+    # For overload only
+    @staticmethod
+    def undoVariableTracing():
+        pass
+
+    def collectVariableAccesses(self, emit_variable):
+        """Collect variable reads and writes of child nodes."""
+
+        self.subnode_str_arg.collectVariableAccesses(emit_variable)
+        self.subnode_table.collectVariableAccesses(emit_variable)
+        self.subnode_delete.collectVariableAccesses(emit_variable)
+
+
+# Assign the names that are easier to import with a stable name.
+ChildrenExpressionStrOperationTranslate3Mixin = ChildrenHavingStrArgTableDeleteMixin
 
 
 class ChildrenHavingStrArgTabsizeMixin(object):

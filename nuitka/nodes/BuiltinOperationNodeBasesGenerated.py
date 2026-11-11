@@ -86,6 +86,7 @@ from .ChildrenHavingMixins import (
     ChildrenHavingStrArgSuffixMixin,
     ChildrenHavingStrArgSuffixStartEndMixin,
     ChildrenHavingStrArgSuffixStartMixin,
+    ChildrenHavingStrArgTableDeleteMixin,
     ChildrenHavingStrArgTableMixin,
     ChildrenHavingStrArgTabsizeMixin,
     ChildrenHavingStrArgWidthFillcharMixin,
@@ -6941,7 +6942,61 @@ class ExpressionBytesOperationTitleBase(
         """Does the operation part raise an exception possibly."""
 
 
-class ExpressionStrOperationTranslateBase(
+class ExpressionStrOperationTranslate3Base(
+    ExpressionStrShapeExactMixin, ChildrenHavingStrArgTableDeleteMixin, ExpressionBase
+):
+    named_children = (
+        "str_arg",
+        "table",
+        "delete",
+    )
+
+    def __init__(self, str_arg, table, delete, source_ref):
+        ChildrenHavingStrArgTableDeleteMixin.__init__(
+            self,
+            str_arg=str_arg,
+            table=table,
+            delete=delete,
+        )
+
+        ExpressionBase.__init__(self, source_ref)
+
+    def computeExpression(self, trace_collection):
+        if (
+            self.subnode_str_arg.isCompileTimeConstant()
+            and self.subnode_table.isCompileTimeConstant()
+            and self.subnode_delete.isCompileTimeConstant()
+        ):
+            return trace_collection.getCompileTimeComputationResult(
+                node=self,
+                computation=lambda: str.translate(
+                    self.subnode_str_arg.getCompileTimeConstant(),
+                    self.subnode_table.getCompileTimeConstant(),
+                    self.subnode_delete.getCompileTimeConstant(),
+                ),
+                description="Built-in 'str.translate' with constant values.",
+                user_provided=self.subnode_str_arg.user_provided,
+            )
+
+        if self.mayRaiseExceptionOperation():
+            trace_collection.onExceptionRaiseExit(BaseException)
+
+        return self, None, None
+
+    def mayRaiseException(self, exception_type):
+        return (
+            self.subnode_str_arg.mayRaiseException(exception_type)
+            or self.subnode_table.mayRaiseException(exception_type)
+            or self.subnode_delete.mayRaiseException(exception_type)
+            or self.mayRaiseExceptionOperation()
+        )
+
+    @abstractmethod
+    def mayRaiseExceptionOperation(self):
+        """Does the operation part raise an exception possibly."""
+
+
+class ExpressionStrOperationTranslate2Base(
     ExpressionStrShapeExactMixin, ChildrenHavingStrArgTableMixin, ExpressionBase
 ):
     named_children = (
