@@ -270,12 +270,30 @@ class ExpressionFunctionBodyBase(
     def getVariableForAssignment(self, variable_name):
         # print("ASS func", self, variable_name)
 
-        if self.hasTakenVariable(variable_name):
+        if self.hasProvidedVariable(variable_name):
+            result = self.getProvidedVariable(variable_name)
+        elif self.hasTakenVariable(variable_name):
             result = self.getTakenVariable(variable_name)
         else:
             result = self.getProvidedVariable(variable_name)
 
         return result
+
+    def registerVariableBinding(self, variable_name):
+        """Register a name bound in this scope during tree building.
+
+        This makes function locals known before early closure lookups of
+        class bodies are resolved. Nonlocal names are left for phase 1 to
+        take from their provider.
+
+        Args:
+            variable_name: The variable name bound in this scope.
+        """
+
+        if not self.hasProvidedVariable(
+            variable_name
+        ) and not self.hasNonlocalDeclaration(variable_name):
+            self.getProvidedVariable(variable_name)
 
     def getVariableForReference(self, variable_name):
         # print( "REF func", self, variable_name )
@@ -342,6 +360,28 @@ class ExpressionFunctionBodyBase(
             self.non_local_declarations = []
 
         self.non_local_declarations.append((names, user_provided, source_ref))
+
+    def hasNonlocalDeclaration(self, variable_name):
+        """Check if a name is declared nonlocal.
+
+        This has to be used before the nonlocal declarations are consumed, e.g.
+        when creating local variables upfront.
+
+        Args:
+            variable_name: The variable name to check.
+
+        Returns:
+            bool
+        """
+
+        if python_version < 0x300 or self.non_local_declarations is None:
+            return False
+
+        for names, _user_provided, _source_ref in self.non_local_declarations:
+            if variable_name in names:
+                return True
+
+        return False
 
     def consumeNonlocalDeclarations(self):
         """Return the nonlocal declared names for this function.

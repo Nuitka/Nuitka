@@ -101,6 +101,9 @@ class ExpressionClassBodyBase(ExpressionOutlineFunctionBase):
     def isEarlyClosure():
         return True
 
+    def registerVariableBinding(self, variable_name):
+        self.getLocalsScope().registerBoundVariableName(variable_name)
+
     def getVariableForClosure(self, variable_name):
         # print( "getVariableForClosure", self, variable_name )
 

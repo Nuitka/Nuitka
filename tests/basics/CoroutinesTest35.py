@@ -194,6 +194,21 @@ print("Coroutine state after close is", inspect.getcoroutinestate(coro))
 coro.close()
 print("Closed again without trouble")
 
+print("Class body reads local assigned later in coroutine:")
+
+
+async def class_body_reads_later_local():
+    class C:
+        x = 1
+        y = x
+
+    x = 5
+
+    return C.y, x
+
+
+print(run_async(class_body_reads_later_local()))
+
 #     Python tests originally created or extracted from other peoples work. The
 #     parts were too small to be protected.
 #

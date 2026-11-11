@@ -31,6 +31,9 @@ class StatementAssignmentVariableName(StatementAssignmentVariableNameBase):
     def postInitNode(self):
         assert not self.provider.isExpressionOutlineBody(), self.source_ref
 
+        if self.provider.isExpressionFunctionBodyBase():
+            self.provider.registerVariableBinding(self.variable_name)
+
     def getVariableName(self):
         return self.variable_name
 
@@ -60,6 +63,9 @@ class StatementDelVariableName(StatementBase):
         self.provider = provider
 
         self.tolerant = tolerant
+
+        if provider.isExpressionFunctionBodyBase():
+            provider.registerVariableBinding(variable_name)
 
     def finalize(self):
         del self.parent

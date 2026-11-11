@@ -179,6 +179,70 @@ class VariableClosureLookupVisitorPhase1(VisitorNoopMixin):
             or provider.getProvidedVariable(variable_name).getOwner() is provider
         )
 
+    @staticmethod
+    def _addModuleVariableToClosureChain(provider, variable):
+        """Add a module variable to the closure chain up to the module.
+
+        This is needed when a module variable is used as a fallback in a
+        class body, because the trace collection of each variable provider
+        needs to know the module variable.
+
+        Args:
+            provider: The variable provider to start at.
+            variable: The module variable to add.
+        """
+
+        while not provider.isCompiledPythonModule():
+            provider.addClosureVariable(variable)
+            provider = provider.getParentVariableProvider()
+
+    @classmethod
+    def _makeClassBodyVariableRef(cls, node, provider):
+        """Make a variable reference node for a class body name.
+
+        Args:
+            node: The variable name reference.
+            provider: The class body the reference is contained in.
+
+        Returns:
+            The replacement node.
+        """
+
+        variable_name = node.getVariableName()
+
+        if not node.needsFallback():
+            return ExpressionLocalsVariableRef(
+                locals_scope=provider.getLocalsScope(),
+                variable_name=variable_name,
+                source_ref=node.source_ref,
+            )
+
+        # Names bound in the class body use LOAD_NAME with a fallback to the
+        # module, not to a closure variable.
+        if provider.getLocalsScope().hasBoundVariableName(
+            variable_name
+        ) and not provider.hasProvidedVariable(variable_name):
+            variable = provider.getParentModule().getVariableForReference(
+                variable_name=variable_name
+            )
+
+            cls._addModuleVariableToClosureChain(provider=provider, variable=variable)
+        else:
+            variable = provider.getVariableForReference(variable_name=variable_name)
+
+        variable.addVariableUser(provider)
+
+        return ExpressionLocalsVariableRefOrFallback(
+            locals_scope=provider.getLocalsScope(),
+            variable_name=variable_name,
+            fallback=makeExpressionVariableRef(
+                variable=variable,
+                locals_scope=provider.getLocalsScope(),
+                source_ref=node.source_ref,
+            ),
+            source_ref=node.source_ref,
+        )
+
     def onLeaveNode(self, node):
         if node.isStatementAssignmentVariableName():
             variable_name = node.getVariableName()
@@ -325,29 +389,7 @@ class VariableClosureLookupVisitorPhase1(VisitorNoopMixin):
             provider = node.provider
 
             if provider.isExpressionClassBodyBase():
-                if node.needsFallback():
-                    variable = provider.getVariableForReference(
-                        variable_name=node.getVariableName()
-                    )
-
-                    new_node = ExpressionLocalsVariableRefOrFallback(
-                        locals_scope=provider.getLocalsScope(),
-                        variable_name=node.getVariableName(),
-                        fallback=makeExpressionVariableRef(
-                            variable=variable,
-                            locals_scope=provider.getLocalsScope(),
-                            source_ref=node.source_ref,
-                        ),
-                        source_ref=node.source_ref,
-                    )
-
-                    variable.addVariableUser(provider)
-                else:
-                    new_node = ExpressionLocalsVariableRef(
-                        locals_scope=provider.getLocalsScope(),
-                        variable_name=node.getVariableName(),
-                        source_ref=node.source_ref,
-                    )
+                new_node = self._makeClassBodyVariableRef(node=node, provider=provider)
 
                 parent = node.parent
                 node.finalize()

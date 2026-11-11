@@ -63,6 +63,7 @@ class LocalsDictHandleBase(object):
         "variables",
         "local_variables",
         "providing",
+        "bound_variable_names",
         "mark_for_propagation",
         "prevented_propagation",
         "propagation",
@@ -82,6 +83,10 @@ class LocalsDictHandleBase(object):
         # For local variables in this scope.
         self.local_variables = {}
         self.providing = OrderedDict()
+
+        # Names bound anywhere in the scope, used for early class body closure
+        # lookups before the assignments are visited.
+        self.bound_variable_names = set()
 
         # Can this be eliminated through replacement of temporary variables, or has
         # e.g. the use of locals prevented this, which it should in classes.
@@ -154,6 +159,8 @@ class LocalsDictHandleBase(object):
 
             result.providing[variable_name] = new_variable
 
+        result.bound_variable_names = set(self.bound_variable_names)
+
         return result, variable_translation
 
     @staticmethod
@@ -211,6 +218,12 @@ class LocalsDictHandleBase(object):
         """Test if a variable is provided."""
 
         return self.providing[variable_name]
+
+    def registerBoundVariableName(self, variable_name):
+        self.bound_variable_names.add(variable_name)
+
+    def hasBoundVariableName(self, variable_name):
+        return variable_name in self.bound_variable_names
 
     def getLocalsRelevantVariables(self):
         """The variables relevant to locals."""
@@ -284,6 +297,7 @@ class LocalsDictHandleBase(object):
 
         del self.variables
         del self.providing
+        del self.bound_variable_names
 
     def markAsComplete(self, trace_collection):
         self.complete = True

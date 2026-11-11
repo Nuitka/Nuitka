@@ -287,6 +287,177 @@ print(
     ClassWithModuleVariableCollisionMain, ClassWithModuleVariableCollisionMain().value
 )
 
+# See #4166.
+print("Class body reads a function local assigned later:")
+
+shared_name = 30
+
+
+def classBodyThenLocalAssignment(use_class):
+    if use_class:
+
+        class C:
+            shared_name = 5
+            derived_name = shared_name * 2
+
+        return C
+
+    shared_name = 5
+
+    return {"shared_name": shared_name, "derived_name": shared_name * 2}
+
+
+print(classBodyThenLocalAssignment(False))
+print("module shared_name:", shared_name)
+
+
+def classBodyReadsLaterLocal():
+    class C:
+        x = 1
+        y = x
+
+    x = 2
+
+    return C.y, x
+
+
+print(classBodyReadsLaterLocal())
+
+
+def recursiveFunctionUsesLocal():
+    def recurse(n):
+        if n < 0:
+
+            class C:
+                x = 1
+                y = x
+
+        x = n
+
+        if n:
+            recurse(n - 1)
+
+        return x
+
+    return recurse(2)
+
+
+print("recursion result:", recursiveFunctionUsesLocal())
+
+later_local = 100
+
+
+def classBodyReadsUnboundLocal():
+    class C:
+        y = later_local
+
+    later_local = 2
+
+    return C.y
+
+
+try:
+    print(classBodyReadsUnboundLocal())
+except NameError:
+    print("NameError expected")
+
+print("module later_local:", later_local)
+
+shadowed_name = 100
+
+
+def classBodyBindsAndReadsName():
+    class C:
+        y = shadowed_name
+        shadowed_name = 2
+
+    shadowed_name = 3
+
+    return C.y, C.shadowed_name, shadowed_name
+
+
+print(classBodyBindsAndReadsName())
+print("module shadowed_name:", shadowed_name)
+
+iterable_name = (100,)
+
+
+def classBodyComprehensionIterable():
+    class C:
+        values = [i for i in iterable_name]
+
+    iterable_name = (2, 3)
+
+    return C.values
+
+
+try:
+    print(classBodyComprehensionIterable())
+except NameError:
+    print("NameError expected")
+
+print("module iterable_name:", iterable_name)
+
+
+def forTargetBindsLocal():
+    class C:
+        x = 1
+        y = x
+
+    for x in (2,):
+        pass
+
+    return C.y, x
+
+
+print(forTargetBindsLocal())
+
+exception_target = "module value"
+
+
+def exceptTargetBindsLocal():
+    class C:
+        exception_target = 1
+        y = exception_target
+
+    try:
+        1 / 0
+    except ZeroDivisionError as exception_target:
+        pass
+
+    return C.y
+
+
+print(exceptTargetBindsLocal())
+print("module exception_target:", exception_target)
+
+
+class MethodWithClassBody:
+    def method(self):
+        class C:
+            x = 1
+            y = x
+
+        x = 3
+
+        return C.y, x
+
+
+print(MethodWithClassBody().method())
+
+
+def classBodyInGenerator():
+    class C:
+        x = 1
+        y = x
+
+    x = 4
+
+    yield C.y, x
+
+
+print(list(classBodyInGenerator()))
+
 #     Python tests originally created or extracted from other peoples work. The
 #     parts were too small to be protected.
 #
