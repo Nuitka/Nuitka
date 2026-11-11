@@ -3,7 +3,9 @@
 
 """Tests to cover parameter error messages."""
 
+import os
 import sys
+import warnings
 
 
 def functionNoParameters():
@@ -304,6 +306,23 @@ def checkBuiltinMethodRejected(description, func):
         print("%s: TypeError" % description)
 
 
+def checkBuiltinMethodOutcome(description, func):
+    # Only the exception type, method names in messages are not exact.
+    try:
+        result = func()
+    except TypeError:
+        print("%s: TypeError" % description)
+    else:
+        print("%s -> %r" % (description, result))
+
+
+def checkBuiltinMethodOutcomeIgnoringWarnings(description, func):
+    # Deprecation warnings for older argument names are not relevant here.
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        checkBuiltinMethodOutcome(description, func)
+
+
 checkBuiltinMethodCall("dict.get key=", lambda: {"a": 1}.get(key="a"))
 checkBuiltinMethodCall("dict.get default=", lambda: {"a": 1}.get("z", default=3))
 checkBuiltinMethodCall("dict.pop key=", lambda: {"a": 1}.pop(key="a"))
@@ -325,13 +344,31 @@ checkBuiltinMethodRejected(
     "bytes.translate table=", lambda: b"abc".translate(table=None)
 )
 
-if sys.version_info[0] < 3:
-    # Python2 "str.translate" has an optional second "deletechars" argument,
-    # which the specialized node does not support yet.
-    checkBuiltinMethodCall("bytes.translate positional", lambda: b"abc".translate(None))
-else:
-    checkBuiltinMethodCall(
-        "bytes.translate positional", lambda: b"abc".translate(None, b"b")
+checkBuiltinMethodOutcome("bytes.translate positional", lambda: b"abc".translate(None))
+checkBuiltinMethodOutcome(
+    "bytes.translate positional delete", lambda: b"abc".translate(None, b"b")
+)
+
+# The argument name of "os.path.isdir" depends on platform and Python version.
+checkBuiltinMethodOutcome(
+    "os.path.isdir path=", lambda: os.path.isdir(path=sys.argv[0])
+)
+checkBuiltinMethodOutcome("os.path.isdir s=", lambda: os.path.isdir(s=sys.argv[0]))
+
+if sys.version_info >= (3, 9):
+    import importlib.resources
+
+    checkBuiltinMethodOutcome(
+        "resources.files anchor=",
+        lambda: type(importlib.resources.files(anchor="json")),
+    )
+    checkBuiltinMethodRejected(
+        "resources.files anchor+package",
+        lambda: importlib.resources.files(anchor="json", package="json"),
+    )
+    checkBuiltinMethodOutcomeIgnoringWarnings(
+        "resources.files package=",
+        lambda: type(importlib.resources.files(package="json")),
     )
 
 #     Python tests originally created or extracted from other peoples work. The

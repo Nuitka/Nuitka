@@ -293,6 +293,10 @@ class ParameterSpec(object):
     def getKeywordRefusalText(self):
         return "%s() takes no keyword arguments" % self.name
 
+    def getKeywordAliases(self):
+        # Default is unchanged argument names, pylint: disable=no-self-use
+        return None
+
     def getArgumentNames(self):
         return self.pos_only_args + self.normal_args
 

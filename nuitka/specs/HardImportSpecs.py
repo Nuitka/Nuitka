@@ -177,14 +177,38 @@ os_uname_spec = BuiltinParameterSpec(
 
 os_path_exists_spec = BuiltinParameterSpec("os.path.exists", ("path",), default_count=0)
 os_path_isfile_spec = BuiltinParameterSpec("os.path.isfile", ("path",), default_count=0)
-if isWin32Windows() and python_version < 0x380:
-    # Before Python 3.8, on Windows "os.path.isdir" is "nt._isdir", which takes
-    # its argument only positionally.
-    os_path_isdir_spec = BuiltinParameterSpec(
+
+
+class OsPathIsdirSpec(BuiltinParameterSpec):
+    __slots__ = ()
+
+    def getKeywordAliases(self):
+        # Python 3.12.0 on Windows named the "nt._path_isdir" argument "path",
+        # before it was renamed to "s" in Python 3.12.1.
+        if isWin32Windows() and python_version == 0x3C0:
+            return {"path": "s"}
+
+        return None
+
+
+if isWin32Windows() and 0x270 <= python_version < 0x380:
+    # Python 2.7 to 3.7 on Windows use "nt._isdir", which takes its argument
+    # only positionally. Python 2.6 is not included, as it still used
+    # "genericpath.isdir".
+    os_path_isdir_spec = OsPathIsdirSpec(
+        "os.path.isdir", (), default_count=0, pos_only_args=("s",)
+    )
+elif isWin32Windows() and python_version >= 0x3F0:
+    # Python 3.15 or higher on Windows use "nt._path_isdir", which takes its
+    # argument only positionally.
+    os_path_isdir_spec = OsPathIsdirSpec(
         "os.path.isdir", (), default_count=0, pos_only_args=("s",)
     )
 else:
-    os_path_isdir_spec = BuiltinParameterSpec("os.path.isdir", ("s",), default_count=0)
+    # Python 2.6, Python 3.8 to 3.14, and non-Windows versions use
+    # "genericpath.isdir" or "nt._path_isdir" with the argument named "s".
+    os_path_isdir_spec = OsPathIsdirSpec("os.path.isdir", ("s",), default_count=0)
+
 os_path_basename_spec = BuiltinParameterSpec(
     "os.path.basename", ("p",), default_count=0
 )

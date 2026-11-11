@@ -757,6 +757,26 @@ builtin_divmod_spec = BuiltinParameterSpecNoKeywords(
 )
 
 
+def applyKeywordAliases(builtin_spec, pairs):
+    # A non-None alias mapping also restricts the accepted keyword names, so
+    # that internal argument names can differ from Python visible ones.
+    keyword_aliases = builtin_spec.getKeywordAliases()
+
+    if keyword_aliases is None:
+        return pairs
+
+    for pair_name, _pair_value in pairs:
+        if pair_name not in keyword_aliases:
+            raise TooManyArguments(
+                TypeError(
+                    "%s() got an unexpected keyword argument '%s'"
+                    % (builtin_spec.getName(), pair_name)
+                )
+            )
+
+    return tuple((keyword_aliases[pair_name], value) for pair_name, value in pairs)
+
+
 def extractBuiltinArgs(node, builtin_spec, builtin_class, empty_special_class=None):
     # Many cases to deal with, pylint: disable=too-many-branches
 
@@ -785,6 +805,8 @@ def extractBuiltinArgs(node, builtin_spec, builtin_class, empty_special_class=No
 
             if pairs and not builtin_spec.allowsKeywords():
                 raise TooManyArguments(TypeError(builtin_spec.getKeywordRefusalText()))
+
+            pairs = applyKeywordAliases(builtin_spec, pairs)
         else:
             pairs = ()
 
