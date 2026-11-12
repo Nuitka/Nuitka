@@ -56,6 +56,28 @@ PyObject *CALL_METHOD_WITH_ARGS{{args_count}}(PyThreadState *tstate, PyObject *s
         Py_ssize_t dictoffset = type->tp_dictoffset;
         PyObject *dict = NULL;
 
+#if PYTHON_VERSION >= 0x3b0
+        if (type->tp_flags & Py_TPFLAGS_MANAGED_DICT) {
+            PyObject *called_object;
+            int found = Nuitka_LookupManagedDictAttribute(type, source, attr_name, &dict, &called_object);
+
+            if (found != 0) {
+                Py_XDECREF(descr);
+
+                if (unlikely(found < 0)) {
+                    return NULL;
+                }
+
+                PyObject *result = {{ call_function_with_args( "called_object", "args", args_count) }};
+                Py_DECREF(called_object);
+                return result;
+            }
+
+            // Dictionary offsets are not usable with managed dictionaries.
+            dictoffset = 0;
+        }
+#endif
+
         if (dictoffset != 0) {
             // Negative dictionary offsets have special meaning.
             if (dictoffset < 0) {
@@ -148,6 +170,9 @@ PyObject *CALL_METHOD_WITH_ARGS{{args_count}}(PyThreadState *tstate, PyObject *s
             type->tp_name,
             attr_name
         );
+#endif
+#if PYTHON_VERSION >= 0x3a0
+        SET_ATTRIBUTE_ERROR_CONTEXT(tstate, source, attr_name);
 #endif
         return NULL;
     }
