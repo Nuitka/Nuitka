@@ -65,6 +65,7 @@ from nuitka.utils.Utils import withNoDeprecationWarning, withWarningRemoved
 
 from .BuiltinOpenNodes import makeBuiltinOpenRefNode
 from .ChildrenHavingMixins import (
+    ChildHavingLazyImportMixin,
     ChildHavingModuleMixin,
     ChildrenExpressionBuiltinImportMixin,
     ChildrenExpressionImportlibImportModuleCallMixin,
@@ -1032,6 +1033,7 @@ class ExpressionBuiltinImport(ChildrenExpressionBuiltinImportMixin, ExpressionBa
         "finding",
         "used_modules",
         "found_module_name",
+        "lazy_mode",
     )
 
     kind = "EXPRESSION_BUILTIN_IMPORT"
@@ -1048,7 +1050,9 @@ class ExpressionBuiltinImport(ChildrenExpressionBuiltinImportMixin, ExpressionBa
         "level|optional",
     )
 
-    def __init__(self, name, globals_arg, locals_arg, fromlist, level, source_ref):
+    def __init__(
+        self, name, globals_arg, locals_arg, fromlist, level, lazy_mode, source_ref
+    ):
         ChildrenExpressionBuiltinImportMixin.__init__(
             self,
             name=name,
@@ -1069,6 +1073,11 @@ class ExpressionBuiltinImport(ChildrenExpressionBuiltinImportMixin, ExpressionBa
         self.finding = None
 
         self.found_module_name = None
+
+        self.lazy_mode = lazy_mode
+
+    def getDetails(self):
+        return {"lazy_mode": self.lazy_mode}
 
     def _getLevelValue(self):
         parent_module = self.getParentModule()
@@ -1108,13 +1117,14 @@ class ExpressionBuiltinImport(ChildrenExpressionBuiltinImportMixin, ExpressionBa
         if module_name_resolved != module_name:
             module_name = module_name_resolved
 
-            self.setChildName(
-                makeConstantReplacementNode(
-                    constant=module_name.asString(),
-                    node=self.subnode_name,
-                    user_provided=True,
+            if not self.lazy_mode:
+                self.setChildName(
+                    makeConstantReplacementNode(
+                        constant=module_name.asString(),
+                        node=self.subnode_name,
+                        user_provided=True,
+                    )
                 )
-            )
 
         module_name = ModuleName(module_name)
         module_name_found, module_filename, module_kind, self.finding = locateModule(
@@ -1250,13 +1260,15 @@ class ExpressionBuiltinImport(ChildrenExpressionBuiltinImportMixin, ExpressionBa
     def computeExpression(self, trace_collection):
         # Attempt to recurse if not already done, many cases to consider and its
         # return driven, pylint: disable=too-many-branches,too-many-return-statements
+        if self.lazy_mode:
+            trace_collection.onControlFlowEscape(self)
+
         if self.follow_attempted:
-            if self.finding == "not-found":
-                # Importing and not finding, may raise an exception obviously.
-                trace_collection.onExceptionRaiseExit(BaseException)
-            else:
-                # If we know it exists, only RuntimeError shall occur.
-                trace_collection.onExceptionRaiseExit(RuntimeError)
+            trace_collection.onExceptionRaiseExit(
+                BaseException
+                if (self.lazy_mode != "eager") or (self.finding == "not-found")
+                else RuntimeError
+            )
 
             # Trace the module usage attempts.
             trace_collection.onModuleUsageAttempts(self.used_modules)
@@ -1278,8 +1290,10 @@ class ExpressionBuiltinImport(ChildrenExpressionBuiltinImportMixin, ExpressionBa
             self.follow_attempted = True
 
             # Trace the module usage attempts.
-            for module_usage_attempt in self.used_modules:
-                trace_collection.onModuleUsageAttempt(module_usage_attempt)
+            trace_collection.onModuleUsageAttempts(self.used_modules)
+
+            if self.lazy_mode != "eager":
+                return self, None, None
 
             if type(imported_module_name) in (str, unicode):
                 if self.finding == "relative" and self._isFromlistConstant():
@@ -1442,11 +1456,6 @@ class ExpressionBuiltinImport(ChildrenExpressionBuiltinImportMixin, ExpressionBa
 
                 return new_node, change_tags, message
 
-        # Trace the module usage attempts, doing it twice will not harm, this
-        # becomes a set.
-        for module_usage_attempt in self.used_modules:
-            trace_collection.onModuleUsageAttempt(module_usage_attempt)
-
         # TODO: May return a module or module variable reference of some sort in
         # the future with embedded modules.
         return self, None, None
@@ -1454,7 +1463,7 @@ class ExpressionBuiltinImport(ChildrenExpressionBuiltinImportMixin, ExpressionBa
     # TODO: Add computeExpressionImportName
 
     def mayRaiseException(self, exception_type):
-        return self.finding != "built-in"
+        return (self.lazy_mode != "eager") or (self.finding != "built-in")
 
 
 class StatementImportStar(StatementImportStarBase):
@@ -1536,6 +1545,20 @@ class ExpressionImportName(ChildHavingModuleMixin, ExpressionBase):
         return self.subnode_module.mayRaiseExceptionImportName(
             exception_type=exception_type, import_name=self.import_name
         )
+
+
+class ExpressionResolveLazyImport(ChildHavingLazyImportMixin, ExpressionBase):
+    kind = "EXPRESSION_RESOLVE_LAZY_IMPORT"
+
+    named_children = ("lazy_import",)
+
+    def __init__(self, lazy_import, source_ref):
+        ChildHavingLazyImportMixin.__init__(self, lazy_import=lazy_import)
+
+        ExpressionBase.__init__(self, source_ref)
+
+    def computeExpression(self, trace_collection):
+        return self, None, None
 
 
 def makeExpressionImportModuleFixed(

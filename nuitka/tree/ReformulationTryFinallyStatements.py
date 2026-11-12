@@ -31,6 +31,7 @@ from .TreeHelpers import (
     mergeStatements,
     popBuildContext,
     pushBuildContext,
+    withEagerImports,
 )
 
 
@@ -65,6 +66,21 @@ def makeTryFinallyReleaseStatement(provider, tried, variables, source_ref):
         ),
         source_ref=source_ref,
     )
+
+
+def _makeEagerImportFinal(final):
+    result = final.makeClone()
+    pending = [result]
+
+    while pending:
+        node = pending.pop()
+
+        if node.isExpressionBuiltinImport() and node.lazy_mode == "maybe":
+            node.lazy_mode = "eager"
+
+        pending.extend(node.getVisitableNodes())
+
+    return result
 
 
 def makeTryFinallyStatement(provider, tried, final, source_ref, public_exc=False):
@@ -110,8 +126,16 @@ def makeTryFinallyStatement(provider, tried, final, source_ref, public_exc=False
             return final
 
     if tried.mayRaiseException(BaseException):
+        # An active exception forces implicit imports to be eager, while
+        # the normal final paths retain the module's lazy import policy.
+        exception_final = (
+            _makeEagerImportFinal(final)
+            if public_exc and python_version >= 0x3F0
+            else getFinal()
+        )
+
         except_handler = getStatementsAppended(
-            statement_sequence=getFinal(),
+            statement_sequence=exception_final,
             statements=makeReraiseExceptionStatement(source_ref=source_ref),
         )
 
@@ -206,7 +230,8 @@ def buildTryFinallyNode(provider, build_tried, node, source_ref):
             public_exc=False,
         )
     else:
-        tried = build_tried()
+        with withEagerImports(provider):
+            tried = build_tried()
 
         # Prevent "continue" statements in the final blocks, these have to
         # become "SyntaxError".

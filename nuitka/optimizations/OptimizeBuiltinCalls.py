@@ -216,9 +216,20 @@ def vars_extractor(node):
 
 
 def import_extractor(node):
+    def makeBuiltinImport(name, globals_arg, locals_arg, fromlist, level, source_ref):
+        return ExpressionBuiltinImport(
+            name=name,
+            globals_arg=globals_arg,
+            locals_arg=locals_arg,
+            fromlist=fromlist,
+            level=level,
+            lazy_mode=False,
+            source_ref=source_ref,
+        )
+
     return BuiltinParameterSpecs.extractBuiltinArgs(
         node=node,
-        builtin_class=ExpressionBuiltinImport,
+        builtin_class=makeBuiltinImport,
         builtin_spec=BuiltinParameterSpecs.builtin_import_spec,
     )
 
