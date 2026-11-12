@@ -94,6 +94,115 @@ static PyObject *LOOKUP_INSTANCE(PyThreadState *tstate, PyObject *source, PyObje
 
 #include "HelpersAttributesGenerated.c"
 
+#if PYTHON_VERSION >= 0x3a0
+void SET_ATTRIBUTE_ERROR_CONTEXT(PyThreadState *tstate, PyObject *source, PyObject *attr_name) {
+    assert(HAS_ERROR_OCCURRED(tstate));
+
+#if PYTHON_VERSION < 0x3c0
+    if (!EXCEPTION_MATCH_BOOL_SINGLE(tstate, tstate->curexc_type, PyExc_AttributeError)) {
+        return;
+    }
+
+    PyObject *exception_type;
+    PyObject *exception_value;
+    PyTracebackObject *exception_tb;
+
+    FETCH_ERROR_OCCURRED(tstate, &exception_type, &exception_value, &exception_tb);
+    NORMALIZE_EXCEPTION(tstate, &exception_type, &exception_value, &exception_tb);
+    RESTORE_ERROR_OCCURRED(tstate, exception_type, exception_value, exception_tb);
+#else
+    PyObject *exception_value = tstate->current_exception;
+#endif
+
+    if (likely(PyErr_GivenExceptionMatches(exception_value, PyExc_AttributeError))) {
+        PyAttributeErrorObject *attribute_error = (PyAttributeErrorObject *)exception_value;
+
+        if (attribute_error->name == NULL && attribute_error->obj == NULL) {
+            Py_INCREF(attr_name);
+            attribute_error->name = attr_name;
+            Py_INCREF(source);
+            attribute_error->obj = source;
+        }
+    }
+}
+#endif
+
+#if PYTHON_VERSION >= 0x3b0
+int Nuitka_LookupManagedDictAttribute(PyTypeObject *type, PyObject *source, PyObject *attr_name, PyObject **dict,
+                                      PyObject **result) {
+    assert(type->tp_flags & Py_TPFLAGS_MANAGED_DICT);
+
+    PyDictValues *values = NULL;
+
+#if PYTHON_VERSION < 0x3c0
+    values = *_PyObject_ValuesPointer(source);
+
+    if (values == NULL) {
+        *dict = *_PyObject_ManagedDictPointer(source);
+    }
+#elif PYTHON_VERSION < 0x3d0
+    PyDictOrValues dorv = *_PyObject_DictOrValuesPointer(source);
+
+    if (_PyDictOrValues_IsValues(dorv)) {
+        values = _PyDictOrValues_GetValues(dorv);
+    } else {
+        *dict = _PyDictOrValues_GetDict(dorv);
+    }
+#else
+    if ((type->tp_flags & Py_TPFLAGS_INLINE_VALUES) && _PyObject_InlineValues(source)->valid) {
+        values = _PyObject_InlineValues(source);
+    } else {
+        *dict = (PyObject *)_PyObject_GetManagedDict(source);
+    }
+#endif
+
+    if (values == NULL) {
+        return 0;
+    }
+
+    if (likely(PyUnicode_CheckExact(attr_name))) {
+        PyDictKeysObject *keys = ((PyHeapTypeObject *)type)->ht_cached_keys;
+        assert(keys != NULL);
+
+        Py_hash_t hash = Nuitka_Py_unicode_get_hash(attr_name);
+        if (hash == -1) {
+            hash = PyUnicode_Type.tp_hash(attr_name);
+        }
+
+        Py_ssize_t ix = Nuitka_Py_unicodekeys_lookup_unicode(keys, attr_name, hash);
+
+        if (ix == DKIX_EMPTY) {
+            return 0;
+        }
+        assert(ix >= 0);
+
+        PyObject *value = values->values[ix];
+
+        if (value == NULL) {
+            return 0;
+        }
+
+        CHECK_OBJECT(value);
+        Py_INCREF(value);
+        *result = value;
+        return 1;
+    }
+
+    // CPython creates the instance dictionary for lookups with non-exact
+    // strings, do the same, the object keeps a reference to it.
+    PyObject *new_dict = PyObject_GenericGetDict(source, NULL);
+
+    if (unlikely(new_dict == NULL)) {
+        return -1;
+    }
+
+    Py_DECREF(new_dict);
+    *dict = new_dict;
+    return 0;
+}
+#endif
+
+
 int BUILTIN_HASATTR_BOOL(PyThreadState *tstate, PyObject *source, PyObject *attr_name) {
     CHECK_OBJECT(source);
     CHECK_OBJECT(attr_name);
@@ -214,6 +323,52 @@ static bool SET_ATTRIBUTE_GENERIC(PyThreadState *tstate, PyTypeObject *type, PyO
             }
         }
     }
+
+#if PYTHON_VERSION >= 0x3b0
+    if (type->tp_flags & Py_TPFLAGS_MANAGED_DICT) {
+        int res;
+
+#if PYTHON_VERSION < 0x3c0
+        PyDictValues *values = *_PyObject_ValuesPointer(target);
+
+        if (values != NULL) {
+            res = _PyObject_StoreInstanceAttribute(target, values, attr_name, value);
+        } else {
+            res = _PyObjectDict_SetItem(type, _PyObject_ManagedDictPointer(target), attr_name, value);
+        }
+#elif PYTHON_VERSION < 0x3d0
+        PyDictOrValues *dorv_pointer = _PyObject_DictOrValuesPointer(target);
+
+        if (_PyDictOrValues_IsValues(*dorv_pointer)) {
+            res = _PyObject_StoreInstanceAttribute(target, _PyDictOrValues_GetValues(*dorv_pointer), attr_name, value);
+        } else {
+            res = _PyObjectDict_SetItem(type, &dorv_pointer->dict, attr_name, value);
+        }
+#else
+        if (type->tp_flags & Py_TPFLAGS_INLINE_VALUES) {
+            res = _PyObject_StoreInstanceAttribute(target, attr_name, value);
+        } else {
+            res = _PyObjectDict_SetItem(type, target, (PyObject **)&_PyObject_ManagedDictPointer(target)->dict,
+                                        attr_name, value);
+        }
+#endif
+        Py_XDECREF(descr);
+
+        // TODO: Not possible for set, is it?
+        if (res < 0 && PyErr_ExceptionMatches(PyExc_KeyError)) {
+            SET_CURRENT_EXCEPTION_TYPE0_VALUE0(tstate, PyExc_AttributeError, attr_name);
+            return false;
+        }
+
+        return res >= 0;
+    } else if (type->tp_dictoffset == 0) {
+        // Without an instance dictionary this is an error, and the messages
+        // vary by version, so let CPython produce them.
+        Py_XDECREF(descr);
+
+        return PyObject_GenericSetAttr_resolved(target, attr_name, value) == 0;
+    }
+#endif
 
     Py_ssize_t dict_offset = type->tp_dictoffset;
     PyObject *dict = NULL;

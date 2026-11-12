@@ -11998,6 +11998,28 @@ PyObject *CALL_METHOD_NO_ARGS(PyThreadState *tstate, PyObject *source, PyObject 
         Py_ssize_t dictoffset = type->tp_dictoffset;
         PyObject *dict = NULL;
 
+#if PYTHON_VERSION >= 0x3b0
+        if (type->tp_flags & Py_TPFLAGS_MANAGED_DICT) {
+            PyObject *called_object;
+            int found = Nuitka_LookupManagedDictAttribute(type, source, attr_name, &dict, &called_object);
+
+            if (found != 0) {
+                Py_XDECREF(descr);
+
+                if (unlikely(found < 0)) {
+                    return NULL;
+                }
+
+                PyObject *result = CALL_FUNCTION_NO_ARGS(tstate, called_object);
+                Py_DECREF(called_object);
+                return result;
+            }
+
+            // Dictionary offsets are not usable with managed dictionaries.
+            dictoffset = 0;
+        }
+#endif
+
         if (dictoffset != 0) {
             // Negative dictionary offsets have special meaning.
             if (dictoffset < 0) {
@@ -12072,6 +12094,9 @@ PyObject *CALL_METHOD_NO_ARGS(PyThreadState *tstate, PyObject *source, PyObject 
                                             PyString_AS_STRING(attr_name));
 #else
         PyErr_Format(PyExc_AttributeError, "'%s' object has no attribute '%U'", type->tp_name, attr_name);
+#endif
+#if PYTHON_VERSION >= 0x3a0
+        SET_ATTRIBUTE_ERROR_CONTEXT(tstate, source, attr_name);
 #endif
         return NULL;
     }
@@ -12224,6 +12249,28 @@ PyObject *CALL_METHOD_WITH_SINGLE_ARG(PyThreadState *tstate, PyObject *source, P
         Py_ssize_t dictoffset = type->tp_dictoffset;
         PyObject *dict = NULL;
 
+#if PYTHON_VERSION >= 0x3b0
+        if (type->tp_flags & Py_TPFLAGS_MANAGED_DICT) {
+            PyObject *called_object;
+            int found = Nuitka_LookupManagedDictAttribute(type, source, attr_name, &dict, &called_object);
+
+            if (found != 0) {
+                Py_XDECREF(descr);
+
+                if (unlikely(found < 0)) {
+                    return NULL;
+                }
+
+                PyObject *result = CALL_FUNCTION_WITH_SINGLE_ARG(tstate, called_object, args[0]);
+                Py_DECREF(called_object);
+                return result;
+            }
+
+            // Dictionary offsets are not usable with managed dictionaries.
+            dictoffset = 0;
+        }
+#endif
+
         if (dictoffset != 0) {
             // Negative dictionary offsets have special meaning.
             if (dictoffset < 0) {
@@ -12298,6 +12345,9 @@ PyObject *CALL_METHOD_WITH_SINGLE_ARG(PyThreadState *tstate, PyObject *source, P
                                             PyString_AS_STRING(attr_name));
 #else
         PyErr_Format(PyExc_AttributeError, "'%s' object has no attribute '%U'", type->tp_name, attr_name);
+#endif
+#if PYTHON_VERSION >= 0x3a0
+        SET_ATTRIBUTE_ERROR_CONTEXT(tstate, source, attr_name);
 #endif
         return NULL;
     }
@@ -12449,6 +12499,28 @@ PyObject *CALL_METHOD_WITH_ARGS2(PyThreadState *tstate, PyObject *source, PyObje
         Py_ssize_t dictoffset = type->tp_dictoffset;
         PyObject *dict = NULL;
 
+#if PYTHON_VERSION >= 0x3b0
+        if (type->tp_flags & Py_TPFLAGS_MANAGED_DICT) {
+            PyObject *called_object;
+            int found = Nuitka_LookupManagedDictAttribute(type, source, attr_name, &dict, &called_object);
+
+            if (found != 0) {
+                Py_XDECREF(descr);
+
+                if (unlikely(found < 0)) {
+                    return NULL;
+                }
+
+                PyObject *result = CALL_FUNCTION_WITH_ARGS2(tstate, called_object, args);
+                Py_DECREF(called_object);
+                return result;
+            }
+
+            // Dictionary offsets are not usable with managed dictionaries.
+            dictoffset = 0;
+        }
+#endif
+
         if (dictoffset != 0) {
             // Negative dictionary offsets have special meaning.
             if (dictoffset < 0) {
@@ -12523,6 +12595,9 @@ PyObject *CALL_METHOD_WITH_ARGS2(PyThreadState *tstate, PyObject *source, PyObje
                                             PyString_AS_STRING(attr_name));
 #else
         PyErr_Format(PyExc_AttributeError, "'%s' object has no attribute '%U'", type->tp_name, attr_name);
+#endif
+#if PYTHON_VERSION >= 0x3a0
+        SET_ATTRIBUTE_ERROR_CONTEXT(tstate, source, attr_name);
 #endif
         return NULL;
     }
@@ -12674,6 +12749,28 @@ PyObject *CALL_METHOD_WITH_ARGS3(PyThreadState *tstate, PyObject *source, PyObje
         Py_ssize_t dictoffset = type->tp_dictoffset;
         PyObject *dict = NULL;
 
+#if PYTHON_VERSION >= 0x3b0
+        if (type->tp_flags & Py_TPFLAGS_MANAGED_DICT) {
+            PyObject *called_object;
+            int found = Nuitka_LookupManagedDictAttribute(type, source, attr_name, &dict, &called_object);
+
+            if (found != 0) {
+                Py_XDECREF(descr);
+
+                if (unlikely(found < 0)) {
+                    return NULL;
+                }
+
+                PyObject *result = CALL_FUNCTION_WITH_ARGS3(tstate, called_object, args);
+                Py_DECREF(called_object);
+                return result;
+            }
+
+            // Dictionary offsets are not usable with managed dictionaries.
+            dictoffset = 0;
+        }
+#endif
+
         if (dictoffset != 0) {
             // Negative dictionary offsets have special meaning.
             if (dictoffset < 0) {
@@ -12748,6 +12845,9 @@ PyObject *CALL_METHOD_WITH_ARGS3(PyThreadState *tstate, PyObject *source, PyObje
                                             PyString_AS_STRING(attr_name));
 #else
         PyErr_Format(PyExc_AttributeError, "'%s' object has no attribute '%U'", type->tp_name, attr_name);
+#endif
+#if PYTHON_VERSION >= 0x3a0
+        SET_ATTRIBUTE_ERROR_CONTEXT(tstate, source, attr_name);
 #endif
         return NULL;
     }
@@ -12899,6 +12999,28 @@ PyObject *CALL_METHOD_WITH_ARGS4(PyThreadState *tstate, PyObject *source, PyObje
         Py_ssize_t dictoffset = type->tp_dictoffset;
         PyObject *dict = NULL;
 
+#if PYTHON_VERSION >= 0x3b0
+        if (type->tp_flags & Py_TPFLAGS_MANAGED_DICT) {
+            PyObject *called_object;
+            int found = Nuitka_LookupManagedDictAttribute(type, source, attr_name, &dict, &called_object);
+
+            if (found != 0) {
+                Py_XDECREF(descr);
+
+                if (unlikely(found < 0)) {
+                    return NULL;
+                }
+
+                PyObject *result = CALL_FUNCTION_WITH_ARGS4(tstate, called_object, args);
+                Py_DECREF(called_object);
+                return result;
+            }
+
+            // Dictionary offsets are not usable with managed dictionaries.
+            dictoffset = 0;
+        }
+#endif
+
         if (dictoffset != 0) {
             // Negative dictionary offsets have special meaning.
             if (dictoffset < 0) {
@@ -12973,6 +13095,9 @@ PyObject *CALL_METHOD_WITH_ARGS4(PyThreadState *tstate, PyObject *source, PyObje
                                             PyString_AS_STRING(attr_name));
 #else
         PyErr_Format(PyExc_AttributeError, "'%s' object has no attribute '%U'", type->tp_name, attr_name);
+#endif
+#if PYTHON_VERSION >= 0x3a0
+        SET_ATTRIBUTE_ERROR_CONTEXT(tstate, source, attr_name);
 #endif
         return NULL;
     }
@@ -13124,6 +13249,28 @@ PyObject *CALL_METHOD_WITH_ARGS5(PyThreadState *tstate, PyObject *source, PyObje
         Py_ssize_t dictoffset = type->tp_dictoffset;
         PyObject *dict = NULL;
 
+#if PYTHON_VERSION >= 0x3b0
+        if (type->tp_flags & Py_TPFLAGS_MANAGED_DICT) {
+            PyObject *called_object;
+            int found = Nuitka_LookupManagedDictAttribute(type, source, attr_name, &dict, &called_object);
+
+            if (found != 0) {
+                Py_XDECREF(descr);
+
+                if (unlikely(found < 0)) {
+                    return NULL;
+                }
+
+                PyObject *result = CALL_FUNCTION_WITH_ARGS5(tstate, called_object, args);
+                Py_DECREF(called_object);
+                return result;
+            }
+
+            // Dictionary offsets are not usable with managed dictionaries.
+            dictoffset = 0;
+        }
+#endif
+
         if (dictoffset != 0) {
             // Negative dictionary offsets have special meaning.
             if (dictoffset < 0) {
@@ -13198,6 +13345,9 @@ PyObject *CALL_METHOD_WITH_ARGS5(PyThreadState *tstate, PyObject *source, PyObje
                                             PyString_AS_STRING(attr_name));
 #else
         PyErr_Format(PyExc_AttributeError, "'%s' object has no attribute '%U'", type->tp_name, attr_name);
+#endif
+#if PYTHON_VERSION >= 0x3a0
+        SET_ATTRIBUTE_ERROR_CONTEXT(tstate, source, attr_name);
 #endif
         return NULL;
     }
@@ -13349,6 +13499,28 @@ PyObject *CALL_METHOD_WITH_ARGS6(PyThreadState *tstate, PyObject *source, PyObje
         Py_ssize_t dictoffset = type->tp_dictoffset;
         PyObject *dict = NULL;
 
+#if PYTHON_VERSION >= 0x3b0
+        if (type->tp_flags & Py_TPFLAGS_MANAGED_DICT) {
+            PyObject *called_object;
+            int found = Nuitka_LookupManagedDictAttribute(type, source, attr_name, &dict, &called_object);
+
+            if (found != 0) {
+                Py_XDECREF(descr);
+
+                if (unlikely(found < 0)) {
+                    return NULL;
+                }
+
+                PyObject *result = CALL_FUNCTION_WITH_ARGS6(tstate, called_object, args);
+                Py_DECREF(called_object);
+                return result;
+            }
+
+            // Dictionary offsets are not usable with managed dictionaries.
+            dictoffset = 0;
+        }
+#endif
+
         if (dictoffset != 0) {
             // Negative dictionary offsets have special meaning.
             if (dictoffset < 0) {
@@ -13423,6 +13595,9 @@ PyObject *CALL_METHOD_WITH_ARGS6(PyThreadState *tstate, PyObject *source, PyObje
                                             PyString_AS_STRING(attr_name));
 #else
         PyErr_Format(PyExc_AttributeError, "'%s' object has no attribute '%U'", type->tp_name, attr_name);
+#endif
+#if PYTHON_VERSION >= 0x3a0
+        SET_ATTRIBUTE_ERROR_CONTEXT(tstate, source, attr_name);
 #endif
         return NULL;
     }
@@ -13574,6 +13749,28 @@ PyObject *CALL_METHOD_WITH_ARGS7(PyThreadState *tstate, PyObject *source, PyObje
         Py_ssize_t dictoffset = type->tp_dictoffset;
         PyObject *dict = NULL;
 
+#if PYTHON_VERSION >= 0x3b0
+        if (type->tp_flags & Py_TPFLAGS_MANAGED_DICT) {
+            PyObject *called_object;
+            int found = Nuitka_LookupManagedDictAttribute(type, source, attr_name, &dict, &called_object);
+
+            if (found != 0) {
+                Py_XDECREF(descr);
+
+                if (unlikely(found < 0)) {
+                    return NULL;
+                }
+
+                PyObject *result = CALL_FUNCTION_WITH_ARGS7(tstate, called_object, args);
+                Py_DECREF(called_object);
+                return result;
+            }
+
+            // Dictionary offsets are not usable with managed dictionaries.
+            dictoffset = 0;
+        }
+#endif
+
         if (dictoffset != 0) {
             // Negative dictionary offsets have special meaning.
             if (dictoffset < 0) {
@@ -13648,6 +13845,9 @@ PyObject *CALL_METHOD_WITH_ARGS7(PyThreadState *tstate, PyObject *source, PyObje
                                             PyString_AS_STRING(attr_name));
 #else
         PyErr_Format(PyExc_AttributeError, "'%s' object has no attribute '%U'", type->tp_name, attr_name);
+#endif
+#if PYTHON_VERSION >= 0x3a0
+        SET_ATTRIBUTE_ERROR_CONTEXT(tstate, source, attr_name);
 #endif
         return NULL;
     }
@@ -13799,6 +13999,28 @@ PyObject *CALL_METHOD_WITH_ARGS8(PyThreadState *tstate, PyObject *source, PyObje
         Py_ssize_t dictoffset = type->tp_dictoffset;
         PyObject *dict = NULL;
 
+#if PYTHON_VERSION >= 0x3b0
+        if (type->tp_flags & Py_TPFLAGS_MANAGED_DICT) {
+            PyObject *called_object;
+            int found = Nuitka_LookupManagedDictAttribute(type, source, attr_name, &dict, &called_object);
+
+            if (found != 0) {
+                Py_XDECREF(descr);
+
+                if (unlikely(found < 0)) {
+                    return NULL;
+                }
+
+                PyObject *result = CALL_FUNCTION_WITH_ARGS8(tstate, called_object, args);
+                Py_DECREF(called_object);
+                return result;
+            }
+
+            // Dictionary offsets are not usable with managed dictionaries.
+            dictoffset = 0;
+        }
+#endif
+
         if (dictoffset != 0) {
             // Negative dictionary offsets have special meaning.
             if (dictoffset < 0) {
@@ -13873,6 +14095,9 @@ PyObject *CALL_METHOD_WITH_ARGS8(PyThreadState *tstate, PyObject *source, PyObje
                                             PyString_AS_STRING(attr_name));
 #else
         PyErr_Format(PyExc_AttributeError, "'%s' object has no attribute '%U'", type->tp_name, attr_name);
+#endif
+#if PYTHON_VERSION >= 0x3a0
+        SET_ATTRIBUTE_ERROR_CONTEXT(tstate, source, attr_name);
 #endif
         return NULL;
     }
@@ -14024,6 +14249,28 @@ PyObject *CALL_METHOD_WITH_ARGS9(PyThreadState *tstate, PyObject *source, PyObje
         Py_ssize_t dictoffset = type->tp_dictoffset;
         PyObject *dict = NULL;
 
+#if PYTHON_VERSION >= 0x3b0
+        if (type->tp_flags & Py_TPFLAGS_MANAGED_DICT) {
+            PyObject *called_object;
+            int found = Nuitka_LookupManagedDictAttribute(type, source, attr_name, &dict, &called_object);
+
+            if (found != 0) {
+                Py_XDECREF(descr);
+
+                if (unlikely(found < 0)) {
+                    return NULL;
+                }
+
+                PyObject *result = CALL_FUNCTION_WITH_ARGS9(tstate, called_object, args);
+                Py_DECREF(called_object);
+                return result;
+            }
+
+            // Dictionary offsets are not usable with managed dictionaries.
+            dictoffset = 0;
+        }
+#endif
+
         if (dictoffset != 0) {
             // Negative dictionary offsets have special meaning.
             if (dictoffset < 0) {
@@ -14098,6 +14345,9 @@ PyObject *CALL_METHOD_WITH_ARGS9(PyThreadState *tstate, PyObject *source, PyObje
                                             PyString_AS_STRING(attr_name));
 #else
         PyErr_Format(PyExc_AttributeError, "'%s' object has no attribute '%U'", type->tp_name, attr_name);
+#endif
+#if PYTHON_VERSION >= 0x3a0
+        SET_ATTRIBUTE_ERROR_CONTEXT(tstate, source, attr_name);
 #endif
         return NULL;
     }
@@ -14249,6 +14499,28 @@ PyObject *CALL_METHOD_WITH_ARGS10(PyThreadState *tstate, PyObject *source, PyObj
         Py_ssize_t dictoffset = type->tp_dictoffset;
         PyObject *dict = NULL;
 
+#if PYTHON_VERSION >= 0x3b0
+        if (type->tp_flags & Py_TPFLAGS_MANAGED_DICT) {
+            PyObject *called_object;
+            int found = Nuitka_LookupManagedDictAttribute(type, source, attr_name, &dict, &called_object);
+
+            if (found != 0) {
+                Py_XDECREF(descr);
+
+                if (unlikely(found < 0)) {
+                    return NULL;
+                }
+
+                PyObject *result = CALL_FUNCTION_WITH_ARGS10(tstate, called_object, args);
+                Py_DECREF(called_object);
+                return result;
+            }
+
+            // Dictionary offsets are not usable with managed dictionaries.
+            dictoffset = 0;
+        }
+#endif
+
         if (dictoffset != 0) {
             // Negative dictionary offsets have special meaning.
             if (dictoffset < 0) {
@@ -14323,6 +14595,9 @@ PyObject *CALL_METHOD_WITH_ARGS10(PyThreadState *tstate, PyObject *source, PyObj
                                             PyString_AS_STRING(attr_name));
 #else
         PyErr_Format(PyExc_AttributeError, "'%s' object has no attribute '%U'", type->tp_name, attr_name);
+#endif
+#if PYTHON_VERSION >= 0x3a0
+        SET_ATTRIBUTE_ERROR_CONTEXT(tstate, source, attr_name);
 #endif
         return NULL;
     }
