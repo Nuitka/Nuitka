@@ -35,6 +35,10 @@ extern bool SET_ATTRIBUTE_DICT_SLOT(PyThreadState *tstate, PyObject *target, PyO
 // Set the "__class__" special attribute slot.
 extern bool SET_ATTRIBUTE_CLASS_SLOT(PyThreadState *tstate, PyObject *target, PyObject *value);
 
+#if PYTHON_VERSION >= 0x3a0
+extern void SET_ATTRIBUTE_ERROR_CONTEXT(PyThreadState *tstate, PyObject *source, PyObject *attr_name);
+#endif
+
 // Special attribute lookups, e.g. "__enter__".
 extern PyObject *LOOKUP_SPECIAL(PyThreadState *tstate, PyObject *source, PyObject *attr_name);
 
@@ -51,20 +55,26 @@ extern getattrofunc PyObject_GenericGetAttr_resolved;
 // Avoid repeated code, this checks if a type has the standard implementation, then
 // we can just try and do the same in slightly faster ways.
 static inline bool hasTypeGenericGetAttr(PyTypeObject *type) {
-#if PYTHON_VERSION >= 0x3b0
-    // TODO: Big performance loss here
+#if defined(Py_GIL_DISABLED)
+    // TODO: Reading inline values of instances needs the locking that CPython
+    // does for free threading.
     return false;
 #else
     return type->tp_getattro == PyObject_GenericGetAttr_resolved;
 #endif
 }
 
+#if PYTHON_VERSION >= 0x3b0
+extern int Nuitka_LookupManagedDictAttribute(PyTypeObject *type, PyObject *source, PyObject *attr_name, PyObject **dict,
+                                             PyObject **result);
+#endif
+
 // In case of DLL usage, this avoids looking up the symbol from it.
 extern setattrofunc PyObject_GenericSetAttr_resolved;
 
 static inline bool hasTypeGenericSetAttr(PyTypeObject *type) {
-#if PYTHON_VERSION >= 0x3b0
-    // TODO: Big performance loss here
+#if defined(Py_GIL_DISABLED)
+    // TODO: Same as for attribute lookup, free threading is not covered yet.
     return false;
 #else
     return type->tp_setattro == PyObject_GenericSetAttr_resolved;
