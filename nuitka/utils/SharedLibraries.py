@@ -5,6 +5,7 @@
 
 import os
 import re
+import struct
 import sys
 
 from nuitka.__past__ import (  # pylint: disable=I0021,redefined-builtin
@@ -34,9 +35,11 @@ from .FileOperations import (
     getNormalizedPathJoin,
     makeContainingPath,
     putBinaryFileContents,
+    replaceFileAtomic,
     resolveSymlink,
     withMadeWritableFileMode,
     withTemporaryDirectory,
+    withTemporaryFilename,
 )
 from .InlineCopies import importFromInlineCopy
 from .Utils import (
@@ -641,16 +644,7 @@ def _detectBinaryPathDLLsCoff2(filename, package_name, imported_by):
                 found_path=None,
                 imported_by=imported_by,
             )
-        elif not os.path.isabs(found_path):
-            return _coffDependencyError(
-                filename=filename,
-                imported_libraries=imported_libraries,
-                search_paths=search_paths,
-                base=base,
-                found_path=found_path,
-                imported_by=imported_by,
-            )
-        elif not os.path.isfile(found_path):
+        elif not os.path.isabs(found_path) or not os.path.isfile(found_path):
             return _coffDependencyError(
                 filename=filename,
                 imported_libraries=imported_libraries,
@@ -817,14 +811,13 @@ def _getSharedLibraryRPATHsDarwin(filename, cached):
     for line in output.split(b"\n"):
         line = line.strip()
 
-        if cmd == b"LC_RPATH":
-            if line.startswith(b"path "):
-                result = line[5 : line.rfind(b"(") - 1]
+        if cmd == b"LC_RPATH" and line.startswith(b"path "):
+            result = line[5 : line.rfind(b"(") - 1]
 
-                if str is not bytes:
-                    result = result.decode("utf8")
+            if str is not bytes:
+                result = result.decode("utf8")
 
-                rpaths.append(result)
+            rpaths.append(result)
 
         if last_was_load_command and line.startswith(b"cmd "):
             cmd = line.split()[1]
@@ -1281,6 +1274,157 @@ def _filterStripErrorOutput(stderr, filename):
     return None, stderr
 
 
+def _parseElfHeader(elf_header):
+    """Parse the ELF header for program header table information.
+
+    Args:
+        elf_header: Bytes of the beginning of an ELF file, at least the
+            header size, i.e. 52 bytes for 32 bits and 64 bytes for 64 bits.
+
+    Returns:
+        Tuple of ELF class, endianness, program header offset, program header
+        entry size, program header count, and load header size, or None if
+        the header is not understood.
+    """
+    # The ELF32 header is 52 bytes, only ELF64 uses the full 64 bytes.
+    if len(elf_header) < 52:
+        return None
+
+    if elf_header[:4] != b"\x7fELF":
+        return None
+
+    elf_class = elf_header[4]
+    elf_data = elf_header[5]
+
+    if elf_data == 1:
+        endian = "<"
+    elif elf_data == 2:
+        endian = ">"
+    else:
+        return None
+
+    if elf_class == 1:
+        # 32 bits ELF
+        (e_phoff,) = struct.unpack(endian + "I", elf_header[28:32])
+        (e_phentsize,) = struct.unpack(endian + "H", elf_header[42:44])
+        (e_phnum,) = struct.unpack(endian + "H", elf_header[44:46])
+        load_header_size = 32
+    elif elf_class == 2:
+        # 64 bits ELF
+        if len(elf_header) < 64:
+            return None
+
+        (e_phoff,) = struct.unpack(endian + "Q", elf_header[32:40])
+        (e_phentsize,) = struct.unpack(endian + "H", elf_header[54:56])
+        (e_phnum,) = struct.unpack(endian + "H", elf_header[56:58])
+        load_header_size = 56
+    else:
+        return None
+
+    return elf_class, endian, e_phoff, e_phentsize, e_phnum, load_header_size
+
+
+def _isAlignedElfLoadHeader(endian, elf_class, program_header):
+    """Check if an ELF load segment is aligned for mapping.
+
+    Args:
+        endian: Endianness prefix for 'struct.unpack', '<' or '>'.
+        elf_class: ELF class, 1 for 32 bits, 2 for 64 bits.
+        program_header: Bytes of the program header to check.
+
+    Returns:
+        True if the file offset and virtual address of the load segment are
+        aligned consistently.
+    """
+    if elf_class == 1:
+        (p_offset,) = struct.unpack(endian + "I", program_header[4:8])
+        (p_vaddr,) = struct.unpack(endian + "I", program_header[8:12])
+        (p_align,) = struct.unpack(endian + "I", program_header[28:32])
+    else:
+        (p_offset,) = struct.unpack(endian + "Q", program_header[8:16])
+        (p_vaddr,) = struct.unpack(endian + "Q", program_header[16:24])
+        (p_align,) = struct.unpack(endian + "Q", program_header[48:56])
+
+    return p_align <= 1 or (p_offset % p_align) == (p_vaddr % p_align)
+
+
+def _isInoperableElfFile(filename):
+    """Check if an ELF file has load segments that cannot be mapped.
+
+    Args:
+        filename: Path to the ELF file to check.
+
+    Returns:
+        True if the file must not be used, i.e. it has load segments whose
+        file offset and virtual address are not aligned consistently, which
+        the dynamic loader refuses to map.
+
+    Notes:
+        This verifies the result of stripping, because stripping can change
+        the file offsets of load segments without keeping them aligned to
+        their virtual addresses. Files that cannot be parsed are considered
+        inoperable, since they cannot be verified to be usable.
+    """
+    try:
+        with open(filename, "rb") as elf_file:
+            elf_header = elf_file.read(64)
+
+            elf_header_values = _parseElfHeader(elf_header)
+
+            if elf_header_values is None:
+                return True
+
+            (
+                elf_class,
+                endian,
+                e_phoff,
+                e_phentsize,
+                e_phnum,
+                load_header_size,
+            ) = elf_header_values
+
+            for program_header_no in range(e_phnum):
+                elf_file.seek(e_phoff + program_header_no * e_phentsize)
+
+                program_header = elf_file.read(e_phentsize)
+
+                if len(program_header) < load_header_size:
+                    return True
+
+                (p_type,) = struct.unpack(endian + "I", program_header[0:4])
+
+                # Only load segments are relevant for mapping the file.
+                if p_type != 1:
+                    continue
+
+                if not _isAlignedElfLoadHeader(endian, elf_class, program_header):
+                    return True
+    except (IOError, OSError, OverflowError, ValueError, struct.error):
+        return True
+
+    return False
+
+
+def _executeStripTool(filename, strip_command):
+    """Execute the 'strip' tool on a binary file.
+
+    Args:
+        filename: Path to the binary file to strip.
+        strip_command: Tuple of the command to execute.
+    """
+    # TODO: The 'strip' command should run through the target specification,
+    # which we currently cannot do yet. Until then this won't work for cross
+    # compilation, and a lot of commands and tool calls will need that.
+    with withMadeWritableFileMode(filename):
+        executeToolChecked(
+            logger=postprocessing_logger,
+            command=strip_command,
+            stderr_filter=_filterStripErrorOutput,
+            context={"filename": filename},
+            absence_message=_strip_usage,
+        )
+
+
 def stripBinarySymbols(filename):
     """Strip a binary file of symbols that are not needed at runtime.
 
@@ -1300,24 +1444,45 @@ def stripBinarySymbols(filename):
         Since stripping is only done to reduce the size of the distribution,
         known failures are tolerated and leave the file unstripped, while
         unknown errors remain fatal.
+
+        For ELF, stripping was observed to render shared libraries with
+        unusual program headers unusable, e.g. OpenBLAS libraries from PyPI
+        wheels, where the file offsets of the load segments are no longer
+        aligned to their virtual addresses afterwards. Since stripping is
+        only an optimization, such files are kept unstripped.
     """
     if isMachOTarget():
-        command = ("strip", "-S", "-x", filename)
-    else:
-        assert isElfTarget(), filename
-        command = ("strip", "--strip-unneeded", filename)
+        strip_command = ("strip", "-S", "-x", filename)
 
-    # TODO: The 'strip' command should run through the target specification,
-    # which we currently cannot do yet. Until then this won't work for cross
-    # compilation, and a lot of commands and tool calls will need that.
-    with withMadeWritableFileMode(filename):
-        executeToolChecked(
-            logger=postprocessing_logger,
-            command=command,
-            stderr_filter=_filterStripErrorOutput,
-            context={"filename": filename},
-            absence_message=_strip_usage,
-        )
+        _executeStripTool(filename, strip_command)
+    elif isElfTarget():
+        strip_command = ("strip", "--strip-unneeded", filename)
+
+        # Stripping is only an optimization, and it can render files with unusual
+        # program headers unusable, so keep the original until the result is
+        # verified to be usable.
+        target_dir = os.path.dirname(filename) or "."
+
+        with withTemporaryFilename(
+            prefix=".nuitka-strip-", suffix=".tmp", temp_path=target_dir
+        ) as backup_filename:
+            copyFileWithPermissions(
+                source_path=filename,
+                dest_path=backup_filename,
+                target_dir=target_dir,
+            )
+
+            _executeStripTool(filename, strip_command)
+
+            if _isInoperableElfFile(filename):
+                postprocessing_logger.info(
+                    "Cannot remove debug informatiuon as 'strip' made '%s' unusable, keeping the unstripped file."
+                    % filename
+                )
+
+                replaceFileAtomic(source_path=backup_filename, dest_path=filename)
+    else:
+        assert False, filename
 
 
 def _isSymlinkTargetEntryPoint(
