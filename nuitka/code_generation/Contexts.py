@@ -52,6 +52,10 @@ class TempMixin(object):
 
         self.cleanup_names = []
 
+        # Names of values we currently hold as borrowed references, mapped to
+        # the variable they were read from, in nested scopes.
+        self.borrowed_value_scopes = [{}]
+
         # Names of values whose release is deferred to the end of the
         # enclosing code scope, mapped to opaque release details.
         self.deferred_release_names = []
@@ -296,8 +300,109 @@ class TempMixin(object):
         assert not self.cleanup_names[-1]
         assert not self.deferred_release_names[-1]
 
+        cleanup_scope = self.cleanup_names[-1]
+
+        # The C temporaries of the scope are gone now, and so are borrowed
+        # references registered for them.
+        for scope in self.borrowed_value_scopes:
+            for tmp_name, entries in tuple(scope.items()):
+                remaining = [
+                    entry for entry in entries if entry[1] is not cleanup_scope
+                ]
+
+                if remaining:
+                    scope[tmp_name] = remaining
+                else:
+                    del scope[tmp_name]
+
         del self.cleanup_names[-1]
         del self.deferred_release_names[-1]
+
+    def pushBorrowedValueScope(self):
+        self.borrowed_value_scopes.append({})
+
+    def popBorrowedValueScope(self):
+        del self.borrowed_value_scopes[-1]
+
+    def _addBorrowedValueEntry(self, scope, variable, tmp_name, cleanup_scope):
+        entries = scope.setdefault(tmp_name, [])
+
+        for entry in entries:
+            if entry[0] is variable and entry[1] is cleanup_scope:
+                return
+
+        entries.append((variable, cleanup_scope))
+
+    def registerBorrowedValue(self, variable, tmp_name):
+        # The temporary name may be reused, e.g. by tuple creation, in which
+        # case the old registration is no longer valid.
+        self.unregisterBorrowedValue(tmp_name)
+
+        self.borrowed_value_scopes[-1][tmp_name] = [(variable, self.cleanup_names[-1])]
+
+    def unregisterBorrowedValue(self, tmp_name):
+        if tmp_name is None:
+            return
+
+        for scope in self.borrowed_value_scopes:
+            if tmp_name in scope:
+                del scope[tmp_name]
+
+    def getBorrowedValues(self, tmp_name):
+        for scope in reversed(self.borrowed_value_scopes):
+            if tmp_name in scope:
+                return list(scope[tmp_name])
+
+        return []
+
+    def addBorrowedValues(self, tmp_name, entries):
+        scope = self.borrowed_value_scopes[-1]
+
+        for variable, cleanup_scope in entries:
+            self._addBorrowedValueEntry(
+                scope=scope,
+                variable=variable,
+                tmp_name=tmp_name,
+                cleanup_scope=cleanup_scope,
+            )
+
+    def transferBorrowedValue(self, tmp_source, tmp_dest):
+        for scope in reversed(self.borrowed_value_scopes):
+            if tmp_source in scope:
+                entries = scope.pop(tmp_source)
+
+                for variable, cleanup_scope in entries:
+                    self._addBorrowedValueEntry(
+                        scope=scope,
+                        variable=variable,
+                        tmp_name=tmp_dest,
+                        cleanup_scope=cleanup_scope,
+                    )
+
+                return True
+
+        return False
+
+    def getBorrowedValuesForVariable(self, variable):
+        result = []
+        seen = set()
+
+        for scope in self.borrowed_value_scopes:
+            for tmp_name, entries in scope.items():
+                if tmp_name in seen:
+                    continue
+
+                for scope_variable, cleanup_scope in entries:
+                    if scope_variable is variable:
+                        result.append((tmp_name, cleanup_scope))
+                        seen.add(tmp_name)
+                        break
+
+        return result
+
+    def addCleanupTempNameToScope(self, tmp_name, cleanup_scope):
+        assert tmp_name not in cleanup_scope, tmp_name
+        cleanup_scope.append(tmp_name)
 
 
 class PythonContextBase(getMetaClassBase("Context", require_slots=True)):
@@ -762,6 +867,7 @@ class PythonModuleContext(
         "exception_keepers",
         "preserver_variable_declaration",
         "cleanup_names",
+        "borrowed_value_scopes",
         "deferred_release_names",
         # ReturnReleaseModeMixin
         "return_release_mode",
@@ -960,6 +1066,7 @@ class PythonFunctionContext(
         "exception_keepers",
         "preserver_variable_declaration",
         "cleanup_names",
+        "borrowed_value_scopes",
         "deferred_release_names",
         # ReturnReleaseModeMixin
         "return_release_mode",
@@ -1191,6 +1298,37 @@ class PythonFunctionOutlineContext(
 
     def popCleanupScope(self):
         self.parent.popCleanupScope()
+
+    def pushBorrowedValueScope(self):
+        return self.parent.pushBorrowedValueScope()
+
+    def popBorrowedValueScope(self):
+        return self.parent.popBorrowedValueScope()
+
+    def registerBorrowedValue(self, variable, tmp_name):
+        return self.parent.registerBorrowedValue(variable=variable, tmp_name=tmp_name)
+
+    def unregisterBorrowedValue(self, tmp_name):
+        return self.parent.unregisterBorrowedValue(tmp_name=tmp_name)
+
+    def getBorrowedValues(self, tmp_name):
+        return self.parent.getBorrowedValues(tmp_name=tmp_name)
+
+    def addBorrowedValues(self, tmp_name, entries):
+        return self.parent.addBorrowedValues(tmp_name=tmp_name, entries=entries)
+
+    def transferBorrowedValue(self, tmp_source, tmp_dest):
+        return self.parent.transferBorrowedValue(
+            tmp_source=tmp_source, tmp_dest=tmp_dest
+        )
+
+    def getBorrowedValuesForVariable(self, variable):
+        return self.parent.getBorrowedValuesForVariable(variable=variable)
+
+    def addCleanupTempNameToScope(self, tmp_name, cleanup_scope):
+        return self.parent.addCleanupTempNameToScope(
+            tmp_name=tmp_name, cleanup_scope=cleanup_scope
+        )
 
     def getExceptionEscape(self):
         return self.parent.getExceptionEscape()

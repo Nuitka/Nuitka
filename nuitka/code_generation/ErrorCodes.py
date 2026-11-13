@@ -243,6 +243,8 @@ def getTakeReferenceCode(value_name, emit):
 
 
 def getReleaseCode(release_name, emit, context):
+    context.unregisterBorrowedValue(release_name)
+
     if context.needsCleanup(release_name):
         # Drop the owning reference.
         release_name.getCType().getReleaseCode(

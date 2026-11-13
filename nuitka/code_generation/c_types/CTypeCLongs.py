@@ -3,10 +3,10 @@
 
 """CType classes for C "long", and C "digit" (used in conjunction with PyLongObject *)"""
 
-from .CTypeBases import CTypeBase
+from .CTypeBases import CTypeBase, CTypeNotReferenceCountedMixin
 
 
-class CTypeCLongMixin(CTypeBase):
+class CTypeCLongMixin(CTypeNotReferenceCountedMixin, CTypeBase):
     @classmethod
     def emitAssignmentCodeFromConstant(
         cls, to_name, constant, may_escape, emit, context

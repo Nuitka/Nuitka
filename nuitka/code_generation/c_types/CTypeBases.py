@@ -153,9 +153,25 @@ class CTypeBase(object):
     def isDualType(cls):
         return False
 
+    @classmethod
+    def holdsObjectReference(cls):
+        """Does a value of this C type itself hold a Python object reference?
+
+        This is about storage ownership, not about whether reading from this
+        type can produce an object reference. Types that only provide a read
+        path, e.g. module variable slots, do not hold the reference.
+        """
+
+        assert False, cls.c_type
+
 
 class CTypeNotReferenceCountedMixin(object):
     """Mixin for C types, that have no reference counting mechanism."""
+
+    @classmethod
+    def holdsObjectReference(cls):
+        # Non-reference-counted types cannot hold an object reference.
+        return False
 
     @classmethod
     def getReleaseCode(cls, value_name, needs_check, emit):

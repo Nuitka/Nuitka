@@ -21,6 +21,8 @@ from .c_types.CTypePyObjectPointers import (
 from .CodeHelpers import (
     decideConversionCheckNeeded,
     generateExpressionCode,
+    isObjectReferenceValue,
+    promoteBorrowedValuesForVariable,
     withObjectCodeTemporaryAssignment2,
 )
 from .DeferredReleaseCodes import checkDeferredReleaseUse
@@ -246,6 +248,14 @@ def generateVariableReferenceCode(to_name, expression, emit, context):
             context=context,
         )
 
+    if (
+        variable.writers
+        and to_name.code_name.startswith("tmp_")
+        and isObjectReferenceValue(to_name)
+        and not context.needsCleanup(to_name)
+    ):
+        context.registerBorrowedValue(variable=variable, tmp_name=to_name)
+
 
 def _getVariableCodeName(in_context, variable):
     if in_context:
@@ -453,6 +463,9 @@ def getVariableAssignmentCode(
         detail=variable.getName(),
     )
 
+    if not inplace:
+        promoteBorrowedValuesForVariable(variable=variable, emit=emit, context=context)
+
     # For transfer of ownership.
     if context.needsCleanup(tmp_name):
         ref_count = 1
@@ -521,6 +534,8 @@ def _getVariableDelCode(
         to_name = context.getBoolResName()
     else:
         to_name = None
+
+    promoteBorrowedValuesForVariable(variable=variable, emit=emit, context=context)
 
     variable_declaration_old.getCType().getDeleteObjectCode(
         to_name=to_name,

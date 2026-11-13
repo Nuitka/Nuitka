@@ -14,6 +14,7 @@ from .CodeHelpers import (
     decideConversionCheckNeeded,
     generateChildExpressionsCode,
     generateExpressionCode,
+    withBorrowedValueScope,
     withObjectCodeTemporaryAssignment,
 )
 from .ErrorCodes import getAssertionCode, getErrorExitBoolCode
@@ -21,6 +22,13 @@ from .PythonAPICodes import generateCAPIObjectCode
 
 
 def generateSetCreationCode(to_name, expression, emit, context):
+    with withBorrowedValueScope(context):
+        _generateSetCreationCode(
+            to_name=to_name, expression=expression, emit=emit, context=context
+        )
+
+
+def _generateSetCreationCode(to_name, expression, emit, context):
     element_name = context.allocateTempName("set_element")
 
     elements = expression.subnode_elements
@@ -57,8 +65,17 @@ def generateSetCreationCode(to_name, expression, emit, context):
                 emit("Py_DECREF(%s);" % element_name)
                 context.removeCleanupTempName(element_name)
 
+            context.unregisterBorrowedValue(element_name)
+
 
 def generateSetLiteralCreationCode(to_name, expression, emit, context):
+    with withBorrowedValueScope(context):
+        _generateSetLiteralCreationCode(
+            to_name=to_name, expression=expression, emit=emit, context=context
+        )
+
+
+def _generateSetLiteralCreationCode(to_name, expression, emit, context):
     if not needsSetLiteralReverseInsertion():
         return generateSetCreationCode(to_name, expression, emit, context)
 
@@ -98,6 +115,8 @@ def generateSetLiteralCreationCode(to_name, expression, emit, context):
             if context.needsCleanup(element_name):
                 emit("Py_DECREF(%s);" % element_name)
                 context.removeCleanupTempName(element_name)
+
+            context.unregisterBorrowedValue(element_name)
 
 
 def generateSetOperationAddCode(statement, emit, context):

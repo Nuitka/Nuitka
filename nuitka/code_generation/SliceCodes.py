@@ -15,6 +15,7 @@ from .CodeHelpers import (
     generateChildExpressionsCode,
     generateExpressionCode,
     generateExpressionsCode,
+    withBorrowedValueScope,
     withObjectCodeTemporaryAssignment,
 )
 from .ErrorCodes import getErrorExitBoolCode, getErrorExitCode
@@ -251,60 +252,62 @@ def generateDelSliceCode(statement, emit, context):
 
 
 def generateBuiltinSlice3Code(to_name, expression, emit, context):
-    lower_name, upper_name, step_name = generateChildExpressionsCode(
-        expression=expression, emit=emit, context=context
-    )
+    with withBorrowedValueScope(context):
+        lower_name, upper_name, step_name = generateChildExpressionsCode(
+            expression=expression, emit=emit, context=context
+        )
 
-    with withObjectCodeTemporaryAssignment(
-        to_name, "slice_obj_value", expression, emit, context
-    ) as result_name:
-        emit(
-            "%s = MAKE_SLICE_OBJECT3(tstate, %s, %s, %s);"
-            % (
-                result_name,
-                lower_name,
-                upper_name,
-                step_name,
+        with withObjectCodeTemporaryAssignment(
+            to_name, "slice_obj_value", expression, emit, context
+        ) as result_name:
+            emit(
+                "%s = MAKE_SLICE_OBJECT3(tstate, %s, %s, %s);"
+                % (
+                    result_name,
+                    lower_name,
+                    upper_name,
+                    step_name,
+                )
             )
-        )
 
-        getErrorExitCode(
-            check_name=result_name,
-            release_names=(lower_name, upper_name, step_name),
-            needs_check=False,  # Note: Cannot fail
-            emit=emit,
-            context=context,
-        )
+            getErrorExitCode(
+                check_name=result_name,
+                release_names=(lower_name, upper_name, step_name),
+                needs_check=False,  # Note: Cannot fail
+                emit=emit,
+                context=context,
+            )
 
-        context.addCleanupTempName(result_name)
+            context.addCleanupTempName(result_name)
 
 
 def generateBuiltinSlice2Code(to_name, expression, emit, context):
-    lower_name, upper_name = generateChildExpressionsCode(
-        expression=expression, emit=emit, context=context
-    )
+    with withBorrowedValueScope(context):
+        lower_name, upper_name = generateChildExpressionsCode(
+            expression=expression, emit=emit, context=context
+        )
 
-    with withObjectCodeTemporaryAssignment(
-        to_name, "slice_obj_value", expression, emit, context
-    ) as result_name:
-        emit(
-            "%s = MAKE_SLICE_OBJECT2(tstate, %s, %s);"
-            % (
-                result_name,
-                lower_name,
-                upper_name,
+        with withObjectCodeTemporaryAssignment(
+            to_name, "slice_obj_value", expression, emit, context
+        ) as result_name:
+            emit(
+                "%s = MAKE_SLICE_OBJECT2(tstate, %s, %s);"
+                % (
+                    result_name,
+                    lower_name,
+                    upper_name,
+                )
             )
-        )
 
-        getErrorExitCode(
-            check_name=result_name,
-            release_names=(lower_name, upper_name),
-            needs_check=False,  # Note: Cannot fail
-            emit=emit,
-            context=context,
-        )
+            getErrorExitCode(
+                check_name=result_name,
+                release_names=(lower_name, upper_name),
+                needs_check=False,  # Note: Cannot fail
+                emit=emit,
+                context=context,
+            )
 
-        context.addCleanupTempName(result_name)
+            context.addCleanupTempName(result_name)
 
 
 def generateBuiltinSlice1Code(to_name, expression, emit, context):

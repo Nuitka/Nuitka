@@ -12,7 +12,7 @@ and then can use the same code.
 """
 
 from .CodeHelpers import generateExpressionCode
-from .ErrorCodes import getErrorExitCode, getReleaseCode
+from .ErrorCodes import getErrorExitCode, getReleaseCode, getReleaseCodes
 
 
 def makeArgDescFromExpression(expression):
@@ -252,12 +252,16 @@ def getCAPIObjectCode(
 
         emit("%s(%s);" % (capi, ", ".join(str(arg_name) for arg_name in arg_names)))
 
-        getReleaseCode(release_names, emit, context)
+        getReleaseCodes(release_names, emit, context)
 
 
 def getReferenceExportCode(base_name, emit, context):
     if not context.needsCleanup(base_name):
         emit("Py_INCREF(%s);" % base_name)
+
+        # The value now owns a reference and no longer needs protection
+        # against writes to the variable it was read from.
+        context.unregisterBorrowedValue(base_name)
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and

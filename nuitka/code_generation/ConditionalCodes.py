@@ -38,7 +38,7 @@ def generateConditionCode(condition, emit, context):
 def generateConditionalAndOrCode(to_name, expression, emit, context):
     # This is a complex beast, handling both "or" and "and" expressions,
     # and it needs to micro manage details.
-    # pylint: disable=too-many-locals
+    # pylint: disable=too-many-locals,too-many-statements
     if expression.isExpressionConditionalOr():
         prefix = "or_"
     else:
@@ -94,7 +94,12 @@ def generateConditionalAndOrCode(to_name, expression, emit, context):
     getLabelCode(false_target, emit)
 
     # So it's not the left value, then lets release that one right away, it
-    # is not needed, but we remember if it should be added above.
+    # is not needed, but we remember if it should be added above. The
+    # borrowed association is kept for the result, because the left value
+    # may still be the result.
+    if not needs_ref1:
+        context.transferBorrowedValue(left_name, to_name)
+
     getReleaseCode(release_name=left_name, emit=emit, context=context)
 
     right_value = expression.subnode_right
@@ -113,6 +118,9 @@ def generateConditionalAndOrCode(to_name, expression, emit, context):
     if not needs_ref2 and needs_ref1:
         getTakeReferenceCode(right_name, emit)
 
+        # The result now owns the reference instead.
+        context.unregisterBorrowedValue(right_name)
+
     to_name.getCType().emitAssignConversionCode(
         to_name=to_name,
         value_name=right_name,
@@ -121,12 +129,18 @@ def generateConditionalAndOrCode(to_name, expression, emit, context):
         context=context,
     )
 
+    if not needs_ref2 and not needs_ref1:
+        context.transferBorrowedValue(right_name, to_name)
+
     getGotoCode(end_target, emit)
 
     getLabelCode(true_target, emit)
 
     if not needs_ref1 and needs_ref2:
         getTakeReferenceCode(left_name, emit)
+
+        # The result now owns the reference instead.
+        context.unregisterBorrowedValue(to_name)
 
     to_name.getCType().emitAssignConversionCode(
         to_name=to_name,
@@ -172,6 +186,10 @@ def generateConditionalCode(to_name, expression, emit, context):
     # Must not clean this up in other expression.
     if needs_ref1:
         context.removeCleanupTempName(to_name)
+        context.unregisterBorrowedValue(to_name)
+        yes_borrowed_values = ()
+    else:
+        yes_borrowed_values = context.getBorrowedValues(to_name)
 
     real_emit = emit
     emit = SourceCodeCollector()
@@ -196,8 +214,10 @@ def generateConditionalCode(to_name, expression, emit, context):
 
         getTakeReferenceCode(to_name, emit)
         context.addCleanupTempName(to_name)
+        context.unregisterBorrowedValue(to_name)
     elif not needs_ref1 and needs_ref2:
         getTakeReferenceCode(to_name, real_emit)
+        context.unregisterBorrowedValue(to_name)
 
         getGotoCode(end_target, real_emit)
         getLabelCode(false_target, real_emit)
@@ -205,6 +225,13 @@ def generateConditionalCode(to_name, expression, emit, context):
         real_emit.extend(emit)
         emit = real_emit
     else:
+        if not needs_ref1:
+            # The result is borrowed, and both branches may have contributed
+            # a different variable for it.
+            context.addBorrowedValues(to_name, yes_borrowed_values)
+        else:
+            context.unregisterBorrowedValue(to_name)
+
         getGotoCode(end_target, real_emit)
         getLabelCode(false_target, real_emit)
 

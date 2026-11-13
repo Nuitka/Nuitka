@@ -16,6 +16,7 @@ from nuitka.PythonVersions import python_version
 from nuitka.Tracing import printError
 
 from .Emission import withSubCollector
+from .ErrorCodes import getTakeReferenceCode
 from .LabelCodes import getGotoCode, getLabelCode, getStatementTrace
 
 _expression_dispatch_dict = {}
@@ -102,6 +103,50 @@ def generateExpressionsCode(names, expressions, emit, context):
     return result
 
 
+def isObjectReferenceValue(value_name):
+    """Check if a value itself holds an object reference, including dual types."""
+
+    return value_name.getCType().holdsObjectReference()
+
+
+def takeReferenceForValue(value_name, emit, context, cleanup_scope):
+    """Make a generated value own a reference, so later writes cannot free it."""
+
+    context.unregisterBorrowedValue(value_name)
+
+    if isObjectReferenceValue(value_name) and value_name not in cleanup_scope:
+        getTakeReferenceCode(value_name, emit)
+        context.addCleanupTempNameToScope(
+            tmp_name=value_name, cleanup_scope=cleanup_scope
+        )
+
+
+def promoteBorrowedValuesForVariable(variable, emit, context):
+    """Protect currently held borrowed references before a write to the variable."""
+
+    for value_name, cleanup_scope in context.getBorrowedValuesForVariable(
+        variable=variable
+    ):
+        takeReferenceForValue(
+            value_name=value_name,
+            emit=emit,
+            context=context,
+            cleanup_scope=cleanup_scope,
+        )
+
+
+@contextmanager
+def withBorrowedValueScope(context):
+    """Scope for borrowed references held while generating an expression."""
+
+    context.pushBorrowedValueScope()
+
+    try:
+        yield
+    finally:
+        context.popBorrowedValueScope()
+
+
 def generateChildExpressionsCode(expression, emit, context):
     value_names = []
 
@@ -173,15 +218,16 @@ def setStatementDispatchDict(dispatch_dict, update=False):
 
 def generateStatementCode(statement, emit, context):
     try:
-        _statement_dispatch_dict[statement.kind](
-            statement=statement, emit=emit, context=context
-        )
+        with withBorrowedValueScope(context):
+            _statement_dispatch_dict[statement.kind](
+                statement=statement, emit=emit, context=context
+            )
 
-        # Complain if any temporary was not dealt with yet.
-        assert not context.getCleanupTempNames(), (
-            statement.asXmlText(),
-            context.getCleanupTempNames(),
-        )
+            # Complain if any temporary was not dealt with yet.
+            assert not context.getCleanupTempNames(), (
+                statement.asXmlText(),
+                context.getCleanupTempNames(),
+            )
     except Exception:
         printError(
             "Problem with %r at %s"

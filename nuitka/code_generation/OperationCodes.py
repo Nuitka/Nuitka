@@ -23,6 +23,7 @@ from .c_types.CTypeVoids import CTypeVoid
 from .CodeHelpers import (
     generateChildExpressionsCode,
     generateExpressionCode,
+    withBorrowedValueScope,
     withObjectCodeTemporaryAssignment,
 )
 from .CodeHelperSelection import selectCodeHelper
@@ -36,17 +37,18 @@ from .ExpressionCTypeSelectionHelpers import decideExpressionCTypes
 
 
 def generateOperationBinaryCode(to_name, expression, emit, context):
-    _getBinaryOperationCode(
-        to_name=to_name,
-        operator=expression.getOperator(),
-        inplace=expression.isInplaceSuspect(),
-        needs_check=expression.mayRaiseExceptionOperation(),
-        left=expression.subnode_left,
-        right=expression.subnode_right,
-        source_ref=expression.source_ref,
-        emit=emit,
-        context=context,
-    )
+    with withBorrowedValueScope(context):
+        _getBinaryOperationCode(
+            to_name=to_name,
+            operator=expression.getOperator(),
+            inplace=expression.isInplaceSuspect(),
+            needs_check=expression.mayRaiseExceptionOperation(),
+            left=expression.subnode_left,
+            right=expression.subnode_right,
+            source_ref=expression.source_ref,
+            emit=emit,
+            context=context,
+        )
 
 
 def generateOperationNotCode(to_name, expression, emit, context):
@@ -217,6 +219,12 @@ def _getBinaryOperationCode(
     generateExpressionCode(
         to_name=left_name, expression=left, emit=emit, context=context
     )
+
+    if inplace and left.isExpressionVariableRef():
+        # The in-place code path transfers the variable reference into the
+        # operation, protecting it here would conflict with that ownership.
+        context.unregisterBorrowedValue(left_name)
+
     generateExpressionCode(
         to_name=right_name, expression=right, emit=emit, context=context
     )

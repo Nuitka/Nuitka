@@ -22,7 +22,11 @@ from .c_types.CTypeBooleans import CTypeBool
 from .c_types.CTypeNuitkaBooleans import CTypeNuitkaBoolEnum
 from .c_types.CTypeNuitkaVoids import CTypeNuitkaVoidEnum
 from .c_types.CTypePyObjectPointers import CTypePyObjectPtr
-from .CodeHelpers import generateChildExpressionsCode, generateExpressionCode
+from .CodeHelpers import (
+    generateChildExpressionsCode,
+    generateExpressionCode,
+    withBorrowedValueScope,
+)
 from .CodeHelperSelection import selectCodeHelper
 from .ComparisonHelperDefinitions import (
     getNonSpecializedComparisonOperations,
@@ -269,6 +273,13 @@ def getRichComparisonCode(
 
 
 def generateComparisonExpressionCode(to_name, expression, emit, context):
+    with withBorrowedValueScope(context):
+        _generateComparisonExpressionCode(
+            to_name=to_name, expression=expression, emit=emit, context=context
+        )
+
+
+def _generateComparisonExpressionCode(to_name, expression, emit, context):
     left = expression.subnode_left
     right = expression.subnode_right
 
@@ -369,16 +380,17 @@ def generateComparisonExpressionCode(to_name, expression, emit, context):
 
 
 def generateRichComparisonExpressionCode(to_name, expression, emit, context):
-    return getRichComparisonCode(
-        to_name=to_name,
-        comparator=expression.getComparator(),
-        left=expression.subnode_left,
-        right=expression.subnode_right,
-        needs_check=expression.mayRaiseExceptionComparison(),
-        source_ref=expression.source_ref,
-        emit=emit,
-        context=context,
-    )
+    with withBorrowedValueScope(context):
+        return getRichComparisonCode(
+            to_name=to_name,
+            comparator=expression.getComparator(),
+            left=expression.subnode_left,
+            right=expression.subnode_right,
+            needs_check=expression.mayRaiseExceptionComparison(),
+            source_ref=expression.source_ref,
+            emit=emit,
+            context=context,
+        )
 
 
 def generateBuiltinIsinstanceCode(to_name, expression, emit, context):

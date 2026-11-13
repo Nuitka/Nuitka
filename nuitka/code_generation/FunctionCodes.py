@@ -505,6 +505,8 @@ def getDirectFunctionCallCode(
         if context.needsCleanup(arg_name):
             context.removeCleanupTempName(arg_name)
 
+        context.unregisterBorrowedValue(arg_name)
+
     getErrorExitCode(
         check_name=to_name, emit=emit, needs_check=needs_check, context=context
     )

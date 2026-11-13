@@ -20,6 +20,12 @@ from .CTypeBases import CTypeBase
 
 class CTypeModuleDictVariable(CTypeBase):
     @classmethod
+    def holdsObjectReference(cls):
+        # Pseudo type for module dictionary slots. Reads materialize the value
+        # into a PyObject * temporary, this type itself holds no value storage.
+        return False
+
+    @classmethod
     def emitVariableAssignCode(
         cls, value_name, needs_release, tmp_name, ref_count, inplace, emit, context
     ):

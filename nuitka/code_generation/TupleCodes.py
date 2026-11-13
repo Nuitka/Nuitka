@@ -6,6 +6,7 @@
 from .CodeHelpers import (
     decideConversionCheckNeeded,
     generateExpressionCode,
+    withBorrowedValueScope,
     withCleanupFinally,
     withObjectCodeTemporaryAssignment,
 )
@@ -36,51 +37,61 @@ def generateTupleCreationCode(to_name, expression, emit, context):
 
 
 def getTupleCreationCode(to_name, elements, emit, context):
-    if _areConstants(elements):
-        to_name.getCType().emitAssignmentCodeFromConstant(
-            to_name=to_name,
-            constant=tuple(element.getCompileTimeConstant() for element in elements),
-            # TODO: Would depend on our target being escaping.
-            may_escape=True,
-            emit=emit,
-            context=context,
-        )
-    else:
-        element_name = context.allocateTempName("tuple_element")
+    with withBorrowedValueScope(context):
+        if _areConstants(elements):
+            to_name.getCType().emitAssignmentCodeFromConstant(
+                to_name=to_name,
+                constant=tuple(
+                    element.getCompileTimeConstant() for element in elements
+                ),
+                # TODO: Would depend on our target being escaping.
+                may_escape=True,
+                emit=emit,
+                context=context,
+            )
+        else:
+            element_name = context.allocateTempName("tuple_element")
 
-        def generateElementCode(element):
-            generateExpressionCode(
-                to_name=element_name, expression=element, emit=emit, context=context
+            def generateElementCode(element):
+                generateExpressionCode(
+                    to_name=element_name,
+                    expression=element,
+                    emit=emit,
+                    context=context,
+                )
+
+                # Use helper that makes sure we provide a reference.
+                if context.needsCleanup(element_name):
+                    context.removeCleanupTempName(element_name)
+                    helper_code = "PyTuple_SET_ITEM"
+                else:
+                    helper_code = "PyTuple_SET_ITEM0"
+
+                return helper_code
+
+            helper_code = generateElementCode(elements[0])
+
+            # TODO: Consider more compact tuple creation helpers
+            emit("%s = MAKE_TUPLE_EMPTY(tstate, %d);" % (to_name, len(elements)))
+
+            needs_exception_exit = any(
+                element.mayRaiseException(BaseException) for element in elements[1:]
             )
 
-            # Use helper that makes sure we provide a reference.
-            if context.needsCleanup(element_name):
-                context.removeCleanupTempName(element_name)
-                helper_code = "PyTuple_SET_ITEM"
-            else:
-                helper_code = "PyTuple_SET_ITEM0"
+            with withCleanupFinally(
+                "tuple_build", to_name, needs_exception_exit, emit, context
+            ) as guarded_emit:
+                emit = guarded_emit
 
-            return helper_code
+                for count, element in enumerate(elements):
+                    if count > 0:
+                        helper_code = generateElementCode(element)
 
-        helper_code = generateElementCode(elements[0])
+                    emit(
+                        "%s(%s, %d, %s);" % (helper_code, to_name, count, element_name)
+                    )
 
-        # TODO: Consider more compact tuple creation helpers
-        emit("%s = MAKE_TUPLE_EMPTY(tstate, %d);" % (to_name, len(elements)))
-
-        needs_exception_exit = any(
-            element.mayRaiseException(BaseException) for element in elements[1:]
-        )
-
-        with withCleanupFinally(
-            "tuple_build", to_name, needs_exception_exit, emit, context
-        ) as guarded_emit:
-            emit = guarded_emit
-
-            for count, element in enumerate(elements):
-                if count > 0:
-                    helper_code = generateElementCode(element)
-
-                emit("%s(%s, %d, %s);" % (helper_code, to_name, count, element_name))
+                    context.unregisterBorrowedValue(element_name)
 
 
 def generateBuiltinTupleCode(to_name, expression, emit, context):

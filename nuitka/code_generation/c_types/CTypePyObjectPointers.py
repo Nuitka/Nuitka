@@ -344,6 +344,11 @@ class CTypePyObjectPtr(CPythonPyObjectPtrBase):
     helper_code = "OBJECT"
 
     @classmethod
+    def holdsObjectReference(cls):
+        # The value itself is the Python object reference.
+        return True
+
+    @classmethod
     def getInitValue(cls, init_from):
         if init_from is None:
             return "NULL"
@@ -445,6 +450,11 @@ class CTypePyObjectPtrPtr(CPythonPyObjectPtrBase):
     c_type = "PyObject **"
 
     @classmethod
+    def holdsObjectReference(cls):
+        # The pointed-to location holds the object reference, not this value.
+        return False
+
+    @classmethod
     def getStructStorageCType(cls):
         # The struct member stores the pointed object, like the old variadic
         # attach did, so the walkers can treat it like an object.
@@ -486,6 +496,15 @@ class CTypePyObjectPtrPtr(CPythonPyObjectPtrBase):
 
 class CTypeCellObject(CTypeBase):
     c_type = "struct Nuitka_CellObject *"
+
+    @classmethod
+    def holdsObjectReference(cls):
+        # Holds an owned reference to the cell object itself.
+        return True
+
+    @classmethod
+    def getTakeReferenceCode(cls, value_name, emit):
+        emit("Py_INCREF((PyObject *)%s);" % value_name)
 
     @classmethod
     def getInitValue(cls, init_from):

@@ -199,6 +199,8 @@ print(
 print("More constant dictionaries", {"two": 2, "one": 1}, {}, dict())
 g = {"two": 2, "one": 1}
 print("Variable dictionary", dict(g))
+g.clear()
+print("Variable dictionary after clear statement", g)
 print(
     "Found during optimization",
     dict(dict({"le": 2, "la": 1}), fu=3),

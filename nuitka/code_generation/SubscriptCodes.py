@@ -13,12 +13,20 @@ from .CodeHelpers import (
     generateChildExpressionCode,
     generateExpressionCode,
     generateExpressionsCode,
+    withBorrowedValueScope,
     withObjectCodeTemporaryAssignment,
 )
 from .ErrorCodes import getErrorExitBoolCode, getErrorExitCode, getReleaseCodes
 
 
 def generateAssignmentSubscriptCode(statement, emit, context):
+    with withBorrowedValueScope(context):
+        _generateAssignmentSubscriptCode(
+            statement=statement, emit=emit, context=context
+        )
+
+
+def _generateAssignmentSubscriptCode(statement, emit, context):
     subscribed = statement.subnode_subscribed
     subscript = statement.subnode_subscript
     value = statement.subnode_source
@@ -66,6 +74,11 @@ def generateAssignmentSubscriptCode(statement, emit, context):
 
 
 def generateDelSubscriptCode(statement, emit, context):
+    with withBorrowedValueScope(context):
+        _generateDelSubscriptCode(statement=statement, emit=emit, context=context)
+
+
+def _generateDelSubscriptCode(statement, emit, context):
     subscribed = statement.subnode_subscribed
     subscript = statement.subnode_subscript
 
@@ -90,6 +103,13 @@ def generateDelSubscriptCode(statement, emit, context):
 
 
 def generateSubscriptLookupCode(to_name, expression, emit, context):
+    with withBorrowedValueScope(context):
+        _generateSubscriptLookupCode(
+            to_name=to_name, expression=expression, emit=emit, context=context
+        )
+
+
+def _generateSubscriptLookupCode(to_name, expression, emit, context):
     subscribed = expression.subnode_expression
     subscript = expression.subnode_subscript
 
@@ -126,6 +146,13 @@ def generateSubscriptLookupCode(to_name, expression, emit, context):
 
 
 def generateMatchSubscriptCheckCode(to_name, expression, emit, context):
+    with withBorrowedValueScope(context):
+        _generateMatchSubscriptCheckCode(
+            to_name=to_name, expression=expression, emit=emit, context=context
+        )
+
+
+def _generateMatchSubscriptCheckCode(to_name, expression, emit, context):
     subscribed = expression.subnode_expression
     subscript = expression.subnode_subscript
 

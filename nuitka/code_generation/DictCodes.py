@@ -15,6 +15,7 @@ from .CodeHelpers import (
     generateChildExpressionCode,
     generateChildExpressionsCode,
     generateExpressionCode,
+    withBorrowedValueScope,
     withCleanupFinally,
     withObjectCodeTemporaryAssignment,
 )
@@ -140,6 +141,13 @@ def _hasOnlyUnicodeKeys(pairs):
 
 
 def getDictionaryCreationCode(to_name, pairs, emit, context):
+    with withBorrowedValueScope(context):
+        _getDictionaryCreationCode(
+            to_name=to_name, pairs=pairs, emit=emit, context=context
+        )
+
+
+def _getDictionaryCreationCode(to_name, pairs, emit, context):
     # Detailed, and verbose code, pylint: disable=too-many-branches,too-many-locals,too-many-statements
 
     pairs_count = len(pairs)
@@ -241,6 +249,9 @@ def getDictionaryCreationCode(to_name, pairs, emit, context):
 
             if key_needs_release:
                 emit("Py_DECREF(%s);" % dict_key_name)
+
+            context.unregisterBorrowedValue(dict_key_name)
+            context.unregisterBorrowedValue(dict_value_name)
 
             getErrorExitBoolCode(
                 condition="%s == false" % res_name,

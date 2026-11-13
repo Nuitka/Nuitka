@@ -5,10 +5,10 @@
 
 from math import copysign, isinf, isnan
 
-from .CTypeBases import CTypeBase
+from .CTypeBases import CTypeBase, CTypeNotReferenceCountedMixin
 
 
-class CTypeCFloat(CTypeBase):
+class CTypeCFloat(CTypeNotReferenceCountedMixin, CTypeBase):
     c_type = "double"
 
     helper_code = "CFLOAT"

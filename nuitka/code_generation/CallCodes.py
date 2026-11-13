@@ -15,6 +15,7 @@ from nuitka.utils.Jinja2 import getTemplateC
 from .CodeHelpers import (
     generateChildExpressionCode,
     generateExpressionCode,
+    withBorrowedValueScope,
     withObjectCodeTemporaryAssignment,
 )
 from .ErrorCodes import getErrorExitCode
@@ -368,6 +369,13 @@ def _generateCallCodeKwDict(
 
 
 def generateCallCode(to_name, expression, emit, context):
+    with withBorrowedValueScope(context):
+        _generateCallCode(
+            to_name=to_name, expression=expression, emit=emit, context=context
+        )
+
+
+def _generateCallCode(to_name, expression, emit, context):
     # There is a whole lot of different cases, for each of which, we create
     # optimized code, constant, with and without positional or keyword arguments
     # each, so there is lots of branches involved. pylint: disable=too-many-branches

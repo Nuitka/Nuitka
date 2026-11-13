@@ -90,6 +90,53 @@ def runCoroutine(coroutine):
         return stop.value
 
 
+def case8_slice_with_walrus():
+    """A slice start read before a walrus assignment must stay alive."""
+
+    data = bytes(range(256)) * 2
+    cur = 1
+    upper_values = iter(range(300, 317))
+    lengths = []
+
+    for _i in range(17):
+        value = data[cur : (cur := cur + 2, next(upper_values))[1]]
+        lengths.append(len(value))
+        cur += 14
+
+    return lengths, cur
+
+
+def case9_operation_with_walrus():
+    """A left operand read before a walrus assignment must stay alive."""
+
+    value = "".join(["a"] * 1000)
+    other = value + (value := "b")
+
+    return len(other), other[:2], value
+
+
+def case10_call_argument_with_walrus():
+    """Call arguments read before a walrus assignment must stay alive."""
+
+    value = "".join(["a"] * 1000)
+
+    def collect(*args):
+        return len(args[0]), args[0][:2], args[1]
+
+    result = collect(value, (value := "b"))
+
+    return result, value
+
+
+def case11_dict_key_with_walrus():
+    """A dictionary key read before a walrus assignment must stay alive."""
+
+    value = "".join(["a"] * 1000)
+    mapping = {value: (value := "b")}
+
+    return len(list(mapping)[0]), list(mapping.values())[0], value
+
+
 print("case1-hit", case1_pop3_unknown_key("x", x=1))
 print("case1-miss", case1_pop3_unknown_key("x"))
 
@@ -111,6 +158,10 @@ print("case5-caught", case5_pop3_in_try([], x=1))
 
 print("case6", case6_shadows_outer_function())
 print("case7", runCoroutine(case7_asynchronous_generator_expression()))
+print("case8", case8_slice_with_walrus())
+print("case9", case9_operation_with_walrus())
+print("case10", case10_call_argument_with_walrus())
+print("case11", case11_dict_key_with_walrus())
 
 
 # TODO: This is not a walrus operation, it should be a separate test case, but

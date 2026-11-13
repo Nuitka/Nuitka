@@ -12,6 +12,7 @@ from .CodeHelpers import (
     generateChildExpressionCode,
     generateChildExpressionsCode,
     generateExpressionCode,
+    withBorrowedValueScope,
     withCleanupFinally,
     withObjectCodeTemporaryAssignment,
 )
@@ -29,6 +30,13 @@ from .PythonAPICodes import (
 
 
 def generateListCreationCode(to_name, expression, emit, context):
+    with withBorrowedValueScope(context):
+        _generateListCreationCode(
+            to_name=to_name, expression=expression, emit=emit, context=context
+        )
+
+
+def _generateListCreationCode(to_name, expression, emit, context):
     elements = expression.subnode_elements
     assert elements
 
@@ -71,6 +79,8 @@ def generateListCreationCode(to_name, expression, emit, context):
                 emit(
                     "%s(%s, %d, %s);" % (helper_code, result_name, count, element_name)
                 )
+
+                context.unregisterBorrowedValue(element_name)
 
 
 def generateListOperationAppendCode(statement, emit, context):

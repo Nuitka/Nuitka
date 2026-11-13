@@ -18,6 +18,11 @@ class CTypeNuitkaIntOrLongStruct(CTypeBase):
     helper_code = "NILONG"
 
     @classmethod
+    def holdsObjectReference(cls):
+        # Optionally holds a PyObject * for the integer value.
+        return True
+
+    @classmethod
     def isDualType(cls):
         return True
 
