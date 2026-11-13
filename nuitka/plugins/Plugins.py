@@ -246,6 +246,40 @@ def _getFullLongOptionName(option_name):
     return None
 
 
+def _getPluginSortKey(plugin):
+    return plugin.plugin_priority
+
+
+def _sortActivePlugins():
+    """Sort active plugins by their requested callback priority.
+
+    Notes:
+        This is a stable sort, so plugins with equal priority keep their
+        previous order, i.e. standard plugins remain sorted by name, and
+        user plugins remain last. Higher priorities are called later.
+    """
+    for plugin_list in (
+        active_plugins_with_implicit_imports,
+        active_plugins_with_create_virtual_module,
+        active_plugins_with_decide_compilation,
+        active_plugins_with_decide_annotations,
+        active_plugins_with_decide_doc_strings,
+        active_plugins_with_decide_assertions,
+        active_plugins_with_decide_needs_frame_locals_proxy,
+        active_plugins_with_function_body_parsing,
+        active_plugins_with_class_body_parsing,
+        active_plugins_with_variable_constant_value,
+    ):
+        plugin_list.sort(key=_getPluginSortKey)
+
+    active_plugins_sorted = sorted(
+        active_plugins.items(), key=lambda item: _getPluginSortKey(item[1])
+    )
+
+    active_plugins.clear()
+    active_plugins.update(active_plugins_sorted)
+
+
 def getActivePlugins():
     """Return list of active plugins.
 
@@ -2585,6 +2619,8 @@ def activatePlugins():
             or plugin_detector.plugin_name not in getGuiPluginNames()
         ):
             _addActivePlugin(plugin_detector, args=False)
+
+    _sortActivePlugins()
 
 
 def _addPluginCommandLineOptions(parser, plugin_class, plugin_help_mode):

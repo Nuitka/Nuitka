@@ -30,6 +30,13 @@ Nuitka's command line. The difference is the invocation format:
    once successfully loaded. They therefore have no mechanism to warn if
    not being used.
 
+Plugins are called in a deterministic order, with standard plugins
+sorted by name and user plugins called after them. A plugin can request
+to be called later by setting ``plugin_priority`` to a higher integer
+value. This is useful for plugins that must act on the final binary
+after other plugins, e.g. code signing after compression. The default is
+``0``.
+
 *********************
  Example User Plugin
 *********************

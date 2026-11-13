@@ -491,6 +491,11 @@ class NuitkaPluginBase(getMetaClassBase("Plugin", require_slots=False)):
     # the script's path (use __file__, __module__ or __name__).
     plugin_name = None
 
+    # Plugin callbacks are called in order of this value, with higher values
+    # being called later. This is for plugins that must run after others, e.g.
+    # signing must happen after compression and other binary modifications.
+    plugin_priority = 0
+
     def onGeneratedSourceCode(self, source_dir, onefile):
         """Called after all C code has been generated.
 
