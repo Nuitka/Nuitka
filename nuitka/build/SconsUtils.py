@@ -158,7 +158,7 @@ def _prepareFromEnvironmentVar(var_name):
         )
 
         if os.path.isdir(os.environ[var_name]):
-            scons_logger.sysexit(
+            return scons_logger.sysexit(
                 "Error, the '%s' variable must point to file, not directory." % var_name
             )
 
@@ -243,7 +243,7 @@ def createEnvironment(
     if msvc_version == "list":
         import SCons.Tool.MSCommon.vc  # pylint: disable=I0021,import-error
 
-        scons_logger.sysexit(
+        return scons_logger.sysexit(
             "Installed MSVC versions are %s."
             % ",".join(repr(v) for v in SCons.Tool.MSCommon.vc.get_installed_vcs()),
         )
@@ -683,9 +683,10 @@ Support language of Nuitka is English. Please install the English \
 language pack for Visual Studio in the installer. There is a \
 section for that.""")
 
-    if env.warn_error_mode and stderr is not None:
-
-        if (
+    if (
+        env.warn_error_mode
+        and stderr is not None
+        and (
             # gcc does this: "all warnings being treated as errors"
             "all warnings being treated as errors" in stderr
             or
@@ -694,10 +695,11 @@ section for that.""")
             or
             # macOS clang does this: "warnings generated"
             "warnings generated" in stderr
-        ):
-            scons_logger.sysexit(
-                "Error, C warnings occurred with '--debug' or '--debug-c-warnings', use '--no-debug-c-warnings' or fix them."
-            )
+        )
+    ):
+        return scons_logger.sysexit(
+            "Error, C warnings occurred with '--debug' or '--debug-c-warnings', use '--no-debug-c-warnings' or fix them."
+        )
 
     with withFileLock("writing scons error report"):
         file_handle, pickler = openPickleFile(
@@ -1194,7 +1196,7 @@ def getMsvcVersion(env):
         value = os.getenv("VCToolsVersion", "14.3").rsplit(".", 1)[0]
 
     value = value.replace("exp", "")
-    return tuple((int(d) for d in value.split(".")))
+    return tuple(int(d) for d in value.split("."))
 
 
 def _getBinaryArch(binary, mingw_mode):
@@ -1320,7 +1322,7 @@ def decideArchMismatch(target_arch, the_cc_name, compiler_path):
 
 def raiseNoCompilerFoundErrorExit():
     if os.name == "nt":
-        scons_logger.sysexit("""\
+        return scons_logger.sysexit("""\
 Error, cannot locate suitable C compiler. You have the following options:
 
 a) If a suitable Visual Studio version is installed (check above trace
@@ -1338,7 +1340,7 @@ c) Using "--zig" forces Nuitka download and use Zig for C compilation, but
    this only works with 64 bit Python versions.
 """)
     else:
-        scons_logger.sysexit("Error, cannot locate suitable C compiler.")
+        return scons_logger.sysexit("Error, cannot locate suitable C compiler.")
 
 
 def makeResultPathFileSystemEncodable(env, result_exe):
