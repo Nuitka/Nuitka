@@ -468,7 +468,9 @@ class StatementLoop(StatementLoopBase):
         )
 
         if break_collections:
-            outer_trace_collection.mergeMultipleBranches(break_collections)
+            outer_trace_collection.mergeMultipleBranches(
+                break_collections, base_pos=None
+            )
 
         # Consider trailing "continue" statements, these have no effect, so we
         # can remove them.

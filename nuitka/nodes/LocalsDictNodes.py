@@ -150,7 +150,7 @@ class ExpressionLocalsVariableRefOrFallback(ChildHavingFallbackMixin, Expression
         )
 
         branch_fallback.onExpression(self.subnode_fallback)
-        trace_collection.mergeBranches(branch_fallback, None)
+        trace_collection.mergeBranches(branch_fallback, None, base_pos=None)
 
         return self, None, None
 
