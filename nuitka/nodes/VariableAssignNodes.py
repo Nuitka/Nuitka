@@ -43,6 +43,8 @@ from .StatementBasesGenerated import (
 )
 from .VariableDelNodes import makeStatementDelVariable
 
+# Assignment tracing state is kept in the computeStatement methods.
+
 
 class StatementAssignmentVariableMixin(object):
     """Assignment to a variable from an expression.
@@ -574,42 +576,41 @@ Assignment raises exception in assigned value, removed assignment.""",
             and self.tmp_iterated_variable is None
             and self.is_indexable is None
             and source.isExpressionBuiltinIterForUnpack()
-            and not isExperimental("no-iterator-optimization")
+            and variable.hasAccessesOutsideOf(provider) is False
         ):
-            if variable.hasAccessesOutsideOf(provider) is False:
-                # TODO: Ought to become able to check if the self.variable_trace
-                # is escaped by annotating that upwards, so a search is not
-                # needed at all.
-                last_trace = variable.getMatchingUnescapedAssignTrace(self)
 
-                if last_trace is not None:
-                    # Might not be allowed, remember if it's not allowed, otherwise retry.
-                    self.is_indexable = source.subnode_value.isKnownToBeIndexable()
+            # TODO: Ought to become able to check if the self.variable_trace
+            # is escaped by annotating that upwards, so a search is not
+            # needed at all.
+            last_trace = variable.getMatchingUnescapedAssignTrace(self)
 
-                    if self.is_indexable:
-                        # Delay the allocation of the temp variable to after
-                        # the trace collection, so that no temps are introduced
-                        # during branching merges, the replacement is then
-                        # done on the next pass without delayed work.
-                        trace_collection.signalChange(
-                            tags="changed_variable_usage",
-                            source_ref=self.source_ref,
-                            message="Preparing to replace iteration with direct access for '%s'."
-                            % variable.getName(),
-                        )
+            if last_trace is not None:
+                # Might not be allowed, remember if it's not allowed, otherwise retry.
+                self.is_indexable = source.subnode_value.isKnownToBeIndexable()
 
-                        trace_collection.onDelayedWork(
-                            node=self,
-                            function=self._allocateTemps,
-                            old_desc="assignment to '%s' from iter()"
-                            % variable.getName(),
-                            # The delayed work only allocates temp variables
-                            # and returns the node unchanged, therefore no
-                            # replacement is ever described.
-                            describe_new_node=lambda new_node: (None, None),
-                        )
+                if self.is_indexable:
+                    # Delay the allocation of the temp variable to after
+                    # the trace collection, so that no temps are introduced
+                    # during branching merges, the replacement is then
+                    # done on the next pass without delayed work.
+                    trace_collection.signalChange(
+                        tags="changed_variable_usage",
+                        source_ref=self.source_ref,
+                        message="Preparing to replace iteration with direct access for '%s'."
+                        % variable.getName(),
+                    )
 
-                        # Process normally the iterator trace, but for the last time, all usages will cease to exist.
+                    trace_collection.onDelayedWork(
+                        node=self,
+                        function=self._allocateTemps,
+                        old_desc="assignment to '%s' from iter()" % variable.getName(),
+                        # The delayed work only allocates temp variables
+                        # and returns the node unchanged, therefore no
+                        # replacement is ever described.
+                        describe_new_node=lambda new_node: (None, None),
+                    )
+
+                    # Process normally the iterator trace, but for the last time, all usages will cease to exist.
 
         self.type_shape = source.getTypeShape()
 
