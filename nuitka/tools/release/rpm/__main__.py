@@ -66,7 +66,7 @@ def main():
         )
         # spell-checker: ignore gztar,rpmlintrc
         assert os.system("%s ../setup.py sdist --formats=gztar" % sys.executable) == 0
-        nuitka_dist_filename = "Nuitka%s-%s.tar.gz" % (spec_suffix, nuitka_version)
+        nuitka_dist_filename = "nuitka%s-%s.tar.gz" % (spec_suffix, nuitka_version)
         renameFile(
             source_filename=os.path.join("..", "dist", nuitka_dist_filename),
             dest_filename=os.path.join("/root/rpmbuild/SOURCES", nuitka_dist_filename),

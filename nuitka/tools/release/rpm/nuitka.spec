@@ -15,7 +15,7 @@ Summary:        Python compiler with full language support and CPython compatibi
 Group:          Development/Languages/Python
 License:        AGPL-3.0-or-later
 URL:            https://nuitka.net/
-Source0:        https://nuitka.net/releases/Nuitka-%{version}.tar.gz
+Source0:        https://nuitka.net/releases/nuitka-%{version}.tar.gz
 Source1:        nuitka-rpmlintrc
 BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 %if 0%{?fedora} < 28 && 0%{?rhel} < 8 && 0%{?suse_version} < 1600
@@ -101,7 +101,7 @@ code into compiled objects that are not second class at all. Instead they can
 be used in the same way as pure Python objects.
 
 %prep
-%setup -q -n Nuitka-%{version}
+%setup -q -n nuitka-%{version}
 
 %build
 

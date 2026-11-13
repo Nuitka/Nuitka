@@ -7,17 +7,16 @@ Uploads Nuitka branches adapting the RPM configuration to the different
 projects on OSC.
 """
 
-import os
 import shutil
 import sys
 
 from nuitka.tools.environments.Virtualenv import withVirtualenv
-from nuitka.tools.release.Documentation import checkReleaseDocumentation
 from nuitka.tools.release.Release import (
     checkBranchName,
     cleanupSourceDistributionState,
 )
 from nuitka.Tracing import tools_logger
+from nuitka.utils.Execution import check_call
 from nuitka.utils.InstalledPythons import findInstalledPython
 from nuitka.Version import getNuitkaVersion
 
@@ -31,9 +30,13 @@ def main():
 
     cleanupSourceDistributionState()
 
-    checkReleaseDocumentation()
-    # spell-checker: ignore gztar
-    assert os.system("%s setup.py sdist --formats=gztar" % sys.executable) == 0
+    check_call(
+        [
+            sys.executable,
+            "./bin/check-nuitka-with-restlint",
+            "--assume-yes-for-downloads",
+        ]
+    )
 
     # Upload stable releases to OpenSUSE Build Service:
     if (
@@ -63,7 +66,15 @@ def main():
         style="blue",
         python=installed_python.getPythonExe(),
     ) as venv:
-        venv.runCommand("python -m pip install osc 'setuptools<68'")
+        venv.runCommand("python -m pip install osc")
+
+        # Build the source distribution in the virtualenv, so that the archive
+        # name does not depend on the system installation.
+        # spell-checker: ignore gztar
+        venv.runCommand(
+            "python setup.py sdist --formats=gztar",
+            keep_cwd=True,
+        )
 
         # Stage the "osc" checkout from the ground up,
         # spell-checker: ignore addremove,kayhayen,rpmlintrc
@@ -72,7 +83,7 @@ def main():
 rm -rf osc && mkdir osc && cd osc && \
 osc checkout home:kayhayen %(osc_project_name)s && \
 rm home:kayhayen/%(osc_project_name)s/* && \
-cp ../dist/Nuitka-*.tar.gz home:kayhayen/%(osc_project_name)s/ && \
+cp ../dist/nuitka-*.tar.gz home:kayhayen/%(osc_project_name)s/ && \
 sed -e s/PROJECT_VERSION/%(nuitka_version)s/ ../nuitka/tools/release/rpm/nuitka.spec \
     >home:kayhayen/%(osc_project_name)s/nuitka%(spec_suffix)s.spec && \
 sed -i home:kayhayen/%(osc_project_name)s/nuitka%(spec_suffix)s.spec -e \
