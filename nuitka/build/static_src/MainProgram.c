@@ -85,7 +85,7 @@
 PyAPI_FUNC(wchar_t *) Py_GetPath(void);
 #endif
 
-#if NO_PYTHON_WARNINGS
+#if NO_PYTHON_WARNINGS || (PYTHON_NO_UNRAISABLE && PYTHON_VERSION >= 0x380)
 #include "HelpersWarnings.c"
 #endif
 
@@ -2270,6 +2270,10 @@ static int Nuitka_Main(int argc, native_command_line_argument_t **argv) {
 
 #if NO_PYTHON_WARNINGS
     setupWarningsLate(tstate);
+#endif
+
+#if PYTHON_NO_UNRAISABLE && PYTHON_VERSION >= 0x380
+    setupUnraisableIgnoring();
 #endif
 
 #if PYTHON_VERSION >= 0x300

@@ -3328,6 +3328,8 @@ def _getPythonFlags():
                     _python_flags.add("trace_imports")
                 elif part in ("no_warnings", "nowarnings"):
                     _python_flags.add("no_warnings")
+                elif part in ("no_unraisable", "nounraisable"):
+                    _python_flags.add("no_unraisable")
                 elif part in ("-O", "no_asserts", "noasserts"):
                     _python_flags.add("no_asserts")
                 elif part in ("no_docstrings", "nodocstrings"):
@@ -3383,6 +3385,12 @@ def hasPythonFlagNoWarnings():
     """*bool* = "no_warnings" in python flags given"""
 
     return "no_warnings" in _getPythonFlags()
+
+
+def hasPythonFlagNoUnraisable():
+    """*bool* = "no_unraisable" in python flags given"""
+
+    return "no_unraisable" in _getPythonFlags()
 
 
 def hasPythonFlagIsolated():

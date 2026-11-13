@@ -93,6 +93,7 @@ from nuitka.options.Options import (
     hasPythonFlagNoDocStrings,
     hasPythonFlagNoRandomization,
     hasPythonFlagNoSite,
+    hasPythonFlagNoUnraisable,
     hasPythonFlagNoWarnings,
     hasPythonFlagTraceImports,
     hasPythonFlagUnbuffered,
@@ -842,6 +843,9 @@ def runSconsBackend():
 
     if hasPythonFlagNoWarnings():
         scons_options["no_python_warnings"] = asBoolStr(True)
+
+    if hasPythonFlagNoUnraisable():
+        scons_options["no_unraisable"] = asBoolStr(True)
 
     if hasPythonFlagNoAsserts():
         scons_options["python_sysflag_optimize"] = str(

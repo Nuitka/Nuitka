@@ -18,6 +18,16 @@
 #include "nuitka/constants.h"
 #include "nuitka/printing.h"
 
+// Write unraisable exceptions, unless disabled at compile time. CPython
+// internal writes still need the "sys.unraisablehook" workaround.
+#if PYTHON_NO_UNRAISABLE
+#define Nuitka_WriteUnraisable(object)
+#define Nuitka_WriteUnraisableMsg(message, object)
+#else
+#define Nuitka_WriteUnraisable(object) PyErr_WriteUnraisable(object)
+#define Nuitka_WriteUnraisableMsg(message, object) _PyErr_WriteUnraisableMsg(message, object)
+#endif
+
 // Did an error occur.
 NUITKA_MAY_BE_UNUSED static inline bool HAS_ERROR_OCCURRED(PyThreadState const *tstate) {
 #if PYTHON_VERSION < 0x3c0
@@ -1141,7 +1151,7 @@ NUITKA_MAY_BE_UNUSED static bool EXCEPTION_MATCH_GENERATOR(PyThreadState *tstate
 
         // This function must not fail, so print the error here */
         if (unlikely(res == -1)) {
-            PyErr_WriteUnraisable(exception_value);
+            Nuitka_WriteUnraisable(exception_value);
         }
 
         if (res == 1) {
@@ -1152,7 +1162,7 @@ NUITKA_MAY_BE_UNUSED static bool EXCEPTION_MATCH_GENERATOR(PyThreadState *tstate
 
         // This function must not fail, so print the error here */
         if (unlikely(res == -1)) {
-            PyErr_WriteUnraisable(exception_value);
+            Nuitka_WriteUnraisable(exception_value);
         }
 
         RESTORE_ERROR_OCCURRED_STATE(tstate, &saved_exception_state);
@@ -1199,7 +1209,7 @@ NUITKA_MAY_BE_UNUSED static bool EXCEPTION_MATCH_BOOL_SINGLE(PyThreadState *tsta
 
         // This function must not fail, so print the error here */
         if (unlikely(res == -1)) {
-            PyErr_WriteUnraisable(exception_value);
+            Nuitka_WriteUnraisable(exception_value);
         }
 
         RESTORE_ERROR_OCCURRED_STATE(tstate, &saved_exception_state);
@@ -1245,7 +1255,7 @@ NUITKA_MAY_BE_UNUSED static inline int _EXCEPTION_MATCH_BOOL(PyThreadState *tsta
 
         // This function must not fail, so print the error here */
         if (unlikely(res == -1)) {
-            PyErr_WriteUnraisable(exception_value);
+            Nuitka_WriteUnraisable(exception_value);
             res = 0;
         }
 

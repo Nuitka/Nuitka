@@ -2610,7 +2610,7 @@ static int Nuitka_PyGen_gen_close_iter(PyThreadState *tstate, PyObject *yf) {
 
         if (meth == NULL) {
             if (!PyErr_ExceptionMatches(PyExc_AttributeError)) {
-                PyErr_WriteUnraisable(yf);
+                Nuitka_WriteUnraisable(yf);
             }
 
             CLEAR_ERROR_OCCURRED(tstate);

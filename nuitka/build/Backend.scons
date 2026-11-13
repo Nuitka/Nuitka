@@ -90,6 +90,9 @@ profile_mode = getArgumentBool("profile_mode", False)
 # sys.flags values to pass along
 no_python_warnings = getArgumentBool("no_python_warnings", False)
 
+# Disable Python unraisable exception output if requested to.
+no_unraisable = getArgumentBool("no_unraisable", False)
+
 # python_sysflag_py3k_warning
 python_sysflag_py3k_warning = getArgumentBool("python_sysflag_py3k_warning", False)
 # python_sysflag_division_warning
@@ -153,6 +156,9 @@ setupCCompiler(
 
 if full_compat_mode:
     env.Append(CPPDEFINES=["_NUITKA_FULL_COMPAT"])
+
+if no_unraisable:
+    env.Append(CPPDEFINES=["PYTHON_NO_UNRAISABLE"])
 
 if profile_mode:
     env.Append(CPPDEFINES=["_NUITKA_PROFILE"])
@@ -356,6 +362,28 @@ if (
 
 source_filenames = getSourceFilenamesFromIndex(env=env, source_dir=env.source_dir)
 
+
+def _addLinkerMapOutput():
+    # Add a linker flag to generate a .map file. Triggered by the
+    # 'generate-debug-symbols' experimental flag.
+
+    if "generate-debug-symbols" not in env.experimental_flags:
+        return
+
+    map_filename = changeFilenameExtension(result_exe, ".map")
+
+    if env.msvc_mode or env.clangcl_mode:
+        env.Append(LINKFLAGS=["/MAP:%s" % map_filename])
+    elif env.mingw_mode:
+        env.Append(LINKFLAGS=["-Wl,-Map,%s" % map_filename])
+    elif (env.gcc_mode or env.clang_mode) and not isMacOS():
+        env.Append(LINKFLAGS=["-Wl,-Map,%s" % map_filename])
+    else:
+        scons_logger.warning(
+            "Linker map generation is not supported for this toolchain."
+        )
+
+
 # Remove the target file to avoid cases where it falsely doesn't get rebuild and
 # then lingers from previous builds, and also workaround for MinGW64 not
 # supporting unicode result paths for "-o" basename.
@@ -427,6 +455,8 @@ elif env.dll_mode:
         no_import_lib=env.no_import_lib,
     )
 else:
+    _addLinkerMapOutput()
+
     # For scons internal use, we use Python native paths as MSYS2 does wrong things otherwise.
     target = env.Program(os.path.normpath(result_exe), source_filenames)
 

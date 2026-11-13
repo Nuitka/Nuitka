@@ -1105,7 +1105,7 @@ static void Nuitka_Coroutine_tp_finalize(PyObject *self) {
     bool close_result = _Nuitka_Coroutine_close(tstate, coroutine);
 
     if (unlikely(close_result == false)) {
-        PyErr_WriteUnraisable((PyObject *)coroutine);
+        Nuitka_WriteUnraisable((PyObject *)coroutine);
     }
 
     /* Restore the saved exception if any. */

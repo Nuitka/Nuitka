@@ -17,7 +17,7 @@ Show version information and important details for bug reports, then exit. Defau
 Mode in which to compile. "accelerated" runs in your Python installation and depends on it. "standalone" creates a folder with an executable contained to run it. "onefile" creates a single self extracting executable to deploy. "app" is "onefile" except on macOS where it creates an app bundle. "app\-dist" is "standalone" except on macOS where it creates an app bundle. "module" makes an extension module from a single module and "package" compiles a whole package into an extension module. "dll" is currently under development and not for users yet. Default is 'accelerated'.
 .TP
 \fB\-\-python\-flag\fR=\fI\,FLAG\/\fR
-Python flags to use. Default is what you are using to run Nuitka, this enforces a specific mode. These are options that also exist to standard Python executable. Currently supported: "\-S" (alias "no_site"), "static_hashes" (do not use hash randomization), "no_warnings" (do not give Python run time warnings), "\-O" (alias "no_asserts"), "no_docstrings" (do not use doc strings), "\-u" (alias "unbuffered"), "isolated" (do not load outside code), "\-P" (alias "safe_path", do not used current directory in module search) and "\-m" (package mode, compile as "package.__main__"). Default empty.
+Python flags to use. Default is what you are using to run Nuitka, this enforces a specific mode. These are options that also exist to standard Python executable. Currently supported: "\-S" (alias "no_site"), "static_hashes" (do not use hash randomization), "no_warnings" (do not give Python run time warnings), "no_unraisable" (do not give Python unraisable exception output), "\-O" (alias "no_asserts"), "no_docstrings" (do not use doc strings), "\-u" (alias "unbuffered"), "isolated" (do not load outside code), "\-P" (alias "safe_path", do not used current directory in module search) and "\-m" (package mode, compile as "package.__main__"). Default empty.
 .TP
 \fB\-\-python\-debug\fR
 Use debug version or not. Default uses what you are using to run Nuitka, most likely a non\-debug version. Only for debugging and testing purposes.
@@ -795,6 +795,14 @@ Accept only license keys that expire, denying time unlimited ones. This requires
 .TP
 \fB\-\-winlicense\-clear\-trial\-when\-registered\fR
 Clear trial information when registered, this restarts the trial from zero if the license key is removed or expires.
+.IP
+Plugin options of 'vmprotect' (categories: commercial, integration, vm):
+.TP
+\fB\-\-vmprotect\-path\fR=\fI\,VMPROTECT_PATH\/\fR
+Location of the VMProtect installation.
+.TP
+\fB\-\-vmprotect\-config\fR=\fI\,VMPROTECT_CONFIG\/\fR
+VMProtect .vmp project to use. Searches for 'vmprotect.vmp' in the current directory and then the output directory. Creates a default project with licensing keys in the output directory if absent.
 .IP
 Plugin options of 'anti\-debugger' (categories: commercial, protection):
 .TP

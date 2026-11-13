@@ -5,6 +5,7 @@
 #ifdef __IDE_ONLY__
 #include "nuitka/prelude.h"
 #define NO_PYTHON_WARNINGS 1
+#define PYTHON_NO_UNRAISABLE 1
 #endif
 
 #include "nuitka/tracing.h"
@@ -65,6 +66,31 @@ void setupWarningsLate(PyThreadState *tstate) {
 #endif
 }
 
+#endif
+
+#if PYTHON_NO_UNRAISABLE && PYTHON_VERSION >= 0x380
+static PyObject *Nuitka_IgnoreUnraisable(PyObject *self, PyObject *args) {
+    (void)self;
+    (void)args;
+
+    Py_INCREF_IMMORTAL(Py_None);
+    return Py_None;
+}
+
+static PyMethodDef Nuitka_IgnoreUnraisable_MethodDef = {"ignore_unraisable", Nuitka_IgnoreUnraisable, METH_VARARGS,
+                                                        NULL};
+
+void setupUnraisableIgnoring(void) {
+    // Nuitka's own writes are compiled out, this catches CPython internal
+    // writes, e.g. from finalizers during interpreter shutdown.
+    NUITKA_PRINT_TRACE("main(): Disabling Python unraisable exceptions.");
+
+    PyObject *hook = PyCFunction_New(&Nuitka_IgnoreUnraisable_MethodDef, NULL);
+    CHECK_OBJECT(hook);
+
+    Nuitka_SysSetObject("unraisablehook", hook);
+    Py_DECREF(hook);
+}
 #endif
 
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
