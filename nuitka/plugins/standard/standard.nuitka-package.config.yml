@@ -10764,7 +10764,7 @@
     - patterns:
         - 'VERSION'
 
-- module-name: 'webview' # checksum: f4e8fc01
+- module-name: 'webview' # checksum: 40f622d5
   data-files:
     - dirs:
         - 'js'
@@ -10806,6 +10806,11 @@
           - 'Microsoft.'
       when: 'win32'
     - from_filenames:
+        relative_path: 'lib/net462'
+        prefixes:
+          - 'Microsoft.'
+      when: 'win32'
+    - from_filenames:
         relative_path: 'lib'
         prefixes:
           - 'WebBrowserInterop.x86'
@@ -10816,11 +10821,11 @@
           - 'WebBrowserInterop.x64'
       when: 'win32 and arch_amd64'
 
-- module-name: 'webview.platforms.edgechromium' # checksum: e798fc8d
+- module-name: 'webview.platforms.edgechromium' # checksum: 745643eb
   anti-bloat:
     - description: 'workaround unused platform DLL checks'
       replacements_plain:
-        "';' + interop_dll_path(platform)": "';' + os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'lib', platform))"
+        "';' + interop_dll_path(platform)": "';' + os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'lib', platform)) + ';' + os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'lib', 'runtimes', platform, 'native'))"
 
 - module-name: 'webview.platforms.winforms' # checksum: 38f993f6
   anti-bloat:

@@ -8,7 +8,36 @@ from nuitka.plugins.PluginBase import NuitkaPluginBase
 from nuitka.plugins.Plugins import getActiveQtPlugin
 from nuitka.utils.Utils import getOS, isMacOS, isWin32Windows
 
-# spell-checker: ignore mshtml,pywebview
+# spell-checker: ignore edgechromium,edgehtml,mshtml,pywebview,webview2core,win32,winforms,winui3
+
+# Platform modules of "webview" that are only usable on certain operating
+# systems. Platform modules not listed here are included, so that new backends
+# added to "webview" do not require a Nuitka change to work.
+_win32_platform_names = frozenset(
+    (
+        "cef",
+        "edgechromium",
+        "edgehtml",
+        "mshtml",
+        "webview2core",
+        "win32",
+        "winforms",
+        "winui3",
+    )
+)
+_macos_platform_names = frozenset(("cocoa",))
+_linux_platform_names = frozenset(("gtk", "qt"))
+_android_platform_names = frozenset(("android",))
+
+_non_win32_platform_names = (
+    _macos_platform_names | _linux_platform_names | _android_platform_names
+)
+_non_macos_platform_names = (
+    _win32_platform_names | _linux_platform_names | _android_platform_names
+)
+_non_linux_platform_names = (
+    _win32_platform_names | _macos_platform_names | _android_platform_names
+)
 
 
 class NuitkaPluginPywebview(NuitkaPluginBase):
@@ -34,36 +63,33 @@ class NuitkaPluginPywebview(NuitkaPluginBase):
     def onModuleEncounter(
         self, using_module_name, module_name, module_filename, module_kind
     ):
-        # Make sure webview platforms are included as needed.
+        # Make sure webview platforms are included as needed, and backends for
+        # other platforms are excluded.
         if module_name.isBelowNamespace("webview.platforms"):
+            platform_name = module_name.getBasename()
+
             if isWin32Windows():
-                # spell-checker: ignore edgechromium,edgehtml,win32,winforms
-                result = module_name in (
-                    "webview.platforms.winforms",
-                    "webview.platforms.edgechromium",
-                    "webview.platforms.edgehtml",
-                    "webview.platforms.mshtml",
-                    "webview.platforms.cef",
-                    "webview.platforms.win32",
-                )
+                excluded_platform_names = _non_win32_platform_names
                 reason = "Platforms package of webview used on '%s'." % getOS()
             elif isMacOS():
-                result = module_name == "webview.platforms.cocoa"
+                excluded_platform_names = _non_macos_platform_names
                 reason = "Platforms package of webview used on '%s'." % getOS()
             elif getActiveQtPlugin() is not None:
-                result = module_name == "webview.platforms.qt"
+                excluded_platform_names = _non_linux_platform_names | frozenset(
+                    ("gtk",)
+                )
                 reason = (
                     "Platforms package of webview used due to '%s' plugin being active."
                     % getActiveQtPlugin()
                 )
             else:
-                result = module_name == "webview.platforms.gtk"
+                excluded_platform_names = _non_linux_platform_names | frozenset(("qt",))
                 reason = (
                     "Platforms package of webview used on '%s' without Qt plugin enabled."
                     % getOS()
                 )
 
-            return result, reason
+            return platform_name not in excluded_platform_names, reason
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
