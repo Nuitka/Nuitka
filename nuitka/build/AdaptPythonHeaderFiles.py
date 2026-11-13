@@ -9,8 +9,8 @@ This ensures Nuitka modules only consume dynamically safe abstractions.
 import os
 import re
 
+from nuitka.options.Experimental import isExperimental
 from nuitka.options.Options import (
-    isExperimental,
     isMingw64,
     shallMakeModule,
     shallUsePythonDebug,

@@ -20,7 +20,6 @@ from abc import abstractmethod
 
 from nuitka.__past__ import iterItems
 from nuitka.ModuleRegistry import getOwnerFromCodeName
-from nuitka.options.Options import isExperimental
 
 from .NodeMakingHelpers import (
     makeStatementExpressionOnlyReplacementNode,

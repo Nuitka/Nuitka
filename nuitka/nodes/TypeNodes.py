@@ -10,7 +10,7 @@ them, their relationship or check for them in re-formulations.
 
 from nuitka.__past__ import GenericAlias
 from nuitka.Builtins import builtin_names
-from nuitka.options.Options import isExperimental
+from nuitka.options.Experimental import isExperimental
 
 from .BuiltinRefNodes import (
     ExpressionBuiltinAnonymousRef,

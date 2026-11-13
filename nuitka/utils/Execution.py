@@ -16,6 +16,7 @@ from contextlib import contextmanager
 
 from nuitka.__past__ import iterItems, selectors, subprocess
 from nuitka.containers.Namedtuples import makeNamedtupleClass
+from nuitka.options.Experimental import isExperimental
 from nuitka.Tracing import general
 
 from .Download import getCachedDownloadedMinGW64, getDownloadMode
@@ -481,10 +482,8 @@ def wrapCommandForDebuggerForExec(command, debugger):
 
     # Windows extra ball, attempt the downloaded one.
     if isWin32Windows() and gdb_path is None and lldb_path is None:
-        from nuitka.options.Options import (
-            assumeYesForDownloads,
-            isExperimental,
-        )
+        # Local import to avoid a cycle: Options imports this module.
+        from nuitka.options.Options import assumeYesForDownloads
 
         mingw64_gcc_path = getCachedDownloadedMinGW64(
             target_arch=getArchitecture(),

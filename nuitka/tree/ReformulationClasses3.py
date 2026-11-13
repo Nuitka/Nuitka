@@ -106,7 +106,7 @@ from nuitka.nodes.VariableRefNodes import (
     ExpressionTempVariableRef,
     ExpressionVariableRef,
 )
-from nuitka.options.Options import isExperimental
+from nuitka.options.Experimental import isExperimental
 from nuitka.pgo.Pgo import getPGOClassPrepareResult
 from nuitka.plugins.Hooks import onClassBodyParsing
 from nuitka.Policies import decidePGOClassDictAssertionPolicy

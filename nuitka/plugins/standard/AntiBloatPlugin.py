@@ -17,7 +17,7 @@ from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.Errors import NuitkaForbiddenImportEncounter
 from nuitka.importing.Importing import getExtraSysPaths
 from nuitka.ModuleRegistry import getModuleByName
-from nuitka.options.Options import isExperimental
+from nuitka.options.Experimental import isExperimental
 from nuitka.plugins.YamlPluginBase import NuitkaYamlPluginBase
 from nuitka.utils.Importing import withTemporarySysPathExtension
 from nuitka.utils.ModuleNames import ModuleName, QualifiedName

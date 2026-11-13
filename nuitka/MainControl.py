@@ -65,6 +65,7 @@ from nuitka.importing.Recursion import (
     scanPluginPath,
 )
 from nuitka.installer.Installer import createInstallerDispatch
+from nuitka.options.Experimental import isExperimental
 from nuitka.options.Options import (
     assumeYesForDownloads,
     getDebuggerName,
@@ -101,7 +102,6 @@ from nuitka.options.Options import (
     hasPythonFlagUnbuffered,
     isCompileTimeProfile,
     isCPgoMode,
-    isExperimental,
     isLowMemory,
     isMultidistMode,
     isOnefileMode,

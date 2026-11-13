@@ -118,13 +118,13 @@ from nuitka.nodes.VariableNameNodes import (
     StatementAssignmentVariableName,
 )
 from nuitka.optimizations.BytecodeDemotion import demoteSourceCodeToBytecode
+from nuitka.options.Experimental import isExperimental
 from nuitka.options.Options import (
     getCompilationMode,
     getMainEntryPointFilenames,
     getMainModuleName,
     hasPythonFlagNoSite,
     hasPythonFlagPackageMode,
-    isExperimental,
     isShowMemory,
     isStandaloneMode,
     shallDisableBytecodeCacheUsage,

@@ -12,9 +12,9 @@ user control. They are kept here to avoid circular imports of "Options" and
 # into this module as well.
 
 from nuitka.ModuleRegistry import hasDoneModule
+from nuitka.options.Experimental import isExperimental
 from nuitka.options.Options import (
     hasNonDeploymentIndicator,
-    isExperimental,
     isStandaloneMode,
     shallMakeModule,
 )

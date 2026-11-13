@@ -14,9 +14,9 @@ from nuitka import ModuleRegistry
 from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.importing.Importing import addExtraSysPaths
 from nuitka.importing.Recursion import considerUsedModules
+from nuitka.options.Experimental import isExperimental
 from nuitka.options.Options import (
     isCompileTimeProfile,
-    isExperimental,
     isShowMemory,
     isShowProgress,
 )

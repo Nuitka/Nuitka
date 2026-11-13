@@ -40,6 +40,7 @@ from nuitka.utils.Utils import (
 from nuitka.Version import getCommercialVersion, getNuitkaVersion
 
 from .CommandLineOptionsTools import SUPPRESS_HELP, makeOptionsParser
+from .Experimental import setExperimental
 
 
 def _getSysArgv():
@@ -3243,6 +3244,8 @@ def parseOptions(logger):
 
     # Make sure the list of given options is present even if none were given.
     options.ensure_value("given_options", [])
+
+    setExperimental(options.experimental)
 
     if (
         not positional_args

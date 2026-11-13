@@ -11,7 +11,7 @@ from abc import abstractmethod
 
 from nuitka.__past__ import iterItems
 from nuitka.ModuleRegistry import getOwnerFromCodeName
-from nuitka.options.Options import isExperimental
+from nuitka.options.Experimental import isExperimental
 from nuitka.PythonVersions import getUnboundLocalErrorMessage
 
 from .NodeBases import StatementBase

@@ -99,6 +99,7 @@ from nuitka.utils.Utils import (
 from nuitka.Version import getCommercialVersion, getNuitkaVersion
 from nuitka.VersionCheck import getNuitkaUpdateStatusValue
 
+from .Experimental import isExperimental
 from .OptionParsing import parseOptions, runSpecialCommandsFromOptions
 from .PathSpecs import checkPathSpec
 
@@ -414,9 +415,6 @@ def parseArgs():
     states.is_debug = _isDebug()
     states.is_non_debug = not states.is_debug
     states.is_full_compat = _isFullCompat()
-
-    if hasattr(options, "experimental"):
-        _experimental.update(options.experimental)
 
     # Dedicated option for caches, ccache and bytecode
     if options.disable_ccache:
@@ -2549,29 +2547,6 @@ def getNoDeploymentIndications():
 
 def hasNonDeploymentIndicator(indicator_name):
     return not isDeploymentMode() and indicator_name not in getNoDeploymentIndications()
-
-
-_experimental = set()
-
-
-def isExperimental(indication):
-    """Check whether a given experimental feature is enabled.
-
-    Args:
-        indication: (str) feature name
-    Returns:
-        bool
-    """
-    return indication in _experimental
-
-
-def enableExperimental(indication):
-    _experimental.add(indication)
-
-
-def getExperimentalIndications():
-    """*tuple*, items of ``--experimental=`` and runtime enabled indications."""
-    return tuple(sorted(_experimental))
 
 
 def shallUseDirectConstantBlobs():

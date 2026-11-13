@@ -14,7 +14,8 @@ import os
 from nuitka.__past__ import iter_modules, unicode
 from nuitka.importing.Importing import locateModule
 from nuitka.importing.Recursion import decideRecursion
-from nuitka.options.Options import isExperimental, isStandaloneMode
+from nuitka.options.Experimental import isExperimental
+from nuitka.options.Options import isStandaloneMode
 from nuitka.plugins.YamlPluginBase import NuitkaYamlPluginBase
 from nuitka.utils.Distributions import (
     getDistributionFiles,

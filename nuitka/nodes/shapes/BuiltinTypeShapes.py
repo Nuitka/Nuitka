@@ -16,7 +16,7 @@ from nuitka.Constants import (
     the_empty_sentinel,
     the_empty_unicode,
 )
-from nuitka.options.Options import isExperimental
+from nuitka.options.Experimental import isExperimental
 from nuitka.PythonVersions import python_version
 
 from .ControlFlowDescriptions import (
@@ -512,11 +512,12 @@ class ShapeTypeInt(ShapeNotContainerMixin, ShapeNumberMixin, ShapeBase):
     def getTypeName():
         return "int"
 
-    if isExperimental("optimize-dual-int"):
-
-        @staticmethod
-        def getCType():
+    @staticmethod
+    def getCType():
+        if isExperimental("optimize-dual-int"):
             return CTypeNuitkaIntOrLongStruct
+
+        return ShapeBase.getCType()
 
     helper_code = "INT" if python_version < 0x300 else "LONG"
 
@@ -653,11 +654,12 @@ if python_version < 0x300:
     class ShapeTypeIntOrLong(ShapeNotContainerMixin, ShapeNumberMixin, ShapeBase):
         __slots__ = ()
 
-        if isExperimental("optimize-dual-int"):
-
-            @staticmethod
-            def getCType():
+        @staticmethod
+        def getCType():
+            if isExperimental("optimize-dual-int"):
                 return CTypeNuitkaIntOrLongStruct
+
+            return ShapeBase.getCType()
 
         @staticmethod
         def emitAlternatives(emit):

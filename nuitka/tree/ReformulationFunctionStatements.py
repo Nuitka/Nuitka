@@ -72,7 +72,7 @@ from nuitka.nodes.VariableRefNodes import (
     ExpressionTempVariableRef,
     ExpressionVariableRef,
 )
-from nuitka.options.Options import isExperimental
+from nuitka.options.Experimental import isExperimental
 from nuitka.plugins.Hooks import (
     decideNeedsFrameLocalsProxy,
     onFunctionBodyParsing,

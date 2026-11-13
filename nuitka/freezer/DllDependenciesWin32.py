@@ -13,10 +13,10 @@ from nuitka.__past__ import iterItems
 from nuitka.build.SconsUtils import readSconsReport
 from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.Errors import UnsupportedDependencyWalkerCall
+from nuitka.options.Experimental import isExperimental
 from nuitka.options.Options import (
     getMsvcVersion,
     getWindowsRuntimeDllsInclusionOption,
-    isExperimental,
     isShowProgress,
 )
 from nuitka.plugins.Hooks import getPluginsCacheContributionValues

@@ -41,6 +41,7 @@ from nuitka.ModuleRegistry import (
     addModuleInfluencingVariable,
     getModuleInclusionInfoByName,
 )
+from nuitka.options.Experimental import isExperimental
 from nuitka.options.Options import (
     getCompanyName,
     getFileVersion,
@@ -50,7 +51,6 @@ from nuitka.options.Options import (
     getProductName,
     getProductVersion,
     isDeploymentMode,
-    isExperimental,
     isOnefileMode,
     isOnefileTempDirMode,
     isStandaloneMode,

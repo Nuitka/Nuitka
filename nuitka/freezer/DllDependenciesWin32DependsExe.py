@@ -14,7 +14,8 @@ import re
 from nuitka.__past__ import WindowsError
 from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.Errors import UnsupportedDependencyWalkerCall
-from nuitka.options.Options import assumeYesForDownloads, isExperimental
+from nuitka.options.Experimental import isExperimental
+from nuitka.options.Options import assumeYesForDownloads
 from nuitka.Tracing import inclusion_logger
 from nuitka.utils.Download import getCachedDownload, getDownloadMode
 from nuitka.utils.Execution import executeProcess, withEnvironmentVarOverridden

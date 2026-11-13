@@ -17,11 +17,14 @@ import sys
 from nuitka.__past__ import unicode
 from nuitka.code_generation.FrameCodes import hasFrameLocalsProxy
 from nuitka.containers.OrderedDicts import OrderedDict
+from nuitka.options.Experimental import (
+    getExperimentalIndications,
+    isExperimental,
+)
 from nuitka.options.Options import (
     assumeYesForDownloads,
     getDebugModeIndications,
     getDevelModeIndications,
-    getExperimentalIndications,
     getFcfProtectionMode,
     getFileVersion,
     getJobLimit,
@@ -40,7 +43,6 @@ from nuitka.options.Options import (
     getWindowsVersionInfoStrings,
     isClang,
     isDeploymentMode,
-    isExperimental,
     isMingw64,
     isOnefileMode,
     isOnefileTempDirMode,
