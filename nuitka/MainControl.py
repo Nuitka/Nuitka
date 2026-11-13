@@ -49,6 +49,7 @@ from nuitka.freezer.IncludedEntryPoints import (
     addIncludedEntryPoints,
     addMainEntryPoint,
     getStandaloneEntryPoints,
+    restoreStandaloneEntryPoints,
 )
 from nuitka.freezer.LinuxApp import createLinuxAppFiles
 from nuitka.freezer.MacOSApp import addIncludedDataFilesFromMacOSAppOptions
@@ -77,6 +78,7 @@ from nuitka.options.Options import (
     getMustIncludePackages,
     getOutputDir,
     getPgoArgs,
+    getPgoExecutable,
     getPositionalArgs,
     getPythonPgoInput,
     getShallFollowExtra,
@@ -180,6 +182,7 @@ from nuitka.utils.Execution import (
     executeCompiledBinary,
     getEnvironmentPathAdded,
     withEnvironmentVarOverridden,
+    withEnvironmentVarsOverridden,
     wrapCommandForDebuggerForExec,
 )
 from nuitka.utils.FileOperations import (
@@ -190,6 +193,7 @@ from nuitka.utils.FileOperations import (
     getReportPath,
     isFilesystemEncodable,
     makeFilesystemEncodable,
+    makePath,
     openTextFile,
     removeDirectory,
 )
@@ -629,20 +633,18 @@ def makeSourceDirectory():
     return module_filenames
 
 
-def _getPgoCommand():
-    return [getExternalUsePath(OutputDirectories.getPgoRunExecutable())] + getPgoArgs()
+def _getPgoCommand(pgo_executable):
+    return [getExternalUsePath(pgo_executable)] + getPgoArgs()
 
 
-def _runPgoBinary():
-    pgo_executable = OutputDirectories.getPgoRunExecutable()
-
+def _runPgoBinary(pgo_executable):
     if not os.path.isfile(pgo_executable):
         return general.sysexit(
             "Error, failed to produce PGO binary '%s'" % pgo_executable
         )
 
     return executeCompiledBinary(
-        args=_getPgoCommand(),
+        args=_getPgoCommand(pgo_executable),
         shell=False,
         logger=pgo_logger,
     )
@@ -653,17 +655,16 @@ def _deleteMsvcPGOFiles(pgo_mode):
         OutputDirectories.getSourceDirectoryPath(onefile=False, create=False)
     ) in ("MSVC", "ClangCL")
 
-    msvc_pgc_filename = OutputDirectories.getResultBasePath(onefile=False) + "!1.pgc"
+    msvc_pgc_filename = OutputDirectories.getMsvcPgoPgcFilename()
     deleteFile(msvc_pgc_filename, must_exist=False)
 
     if pgo_mode == "use":
-        msvc_pgd_filename = OutputDirectories.getResultBasePath(onefile=False) + ".pgd"
-        deleteFile(msvc_pgd_filename, must_exist=False)
+        deleteFile(OutputDirectories.getMsvcPgoPgdFilename(), must_exist=False)
 
     return msvc_pgc_filename
 
 
-def _runCPgoBinary():
+def _runCPgoBinary(pgo_executable):
     # Note: For exit codes, we do not insist on anything yet, maybe we could point it out
     # or ask people to make scripts that buffer these kinds of errors, and take an error
     # instead as a serious failure.
@@ -677,20 +678,28 @@ def _runCPgoBinary():
     ) in ("MSVC", "ClangCL"):
         msvc_pgc_filename = _deleteMsvcPGOFiles(pgo_mode="generate")
 
-        with withEnvironmentVarOverridden(
-            "PATH",
-            getSconsReportValue(
-                source_dir=OutputDirectories.getSourceDirectoryPath(
-                    onefile=False, create=False
+        with withEnvironmentVarsOverridden(
+            {
+                "PATH": getSconsReportValue(
+                    source_dir=OutputDirectories.getSourceDirectoryPath(
+                        onefile=False, create=False
+                    ),
+                    key="PATH",
                 ),
-                key="PATH",
-            ),
+                # MSVC writes the ".pgc" files next to the profiled binary by
+                # default, but the build directory is where they belong.
+                "VCPROFILE_PATH": getExternalUsePath(
+                    OutputDirectories.getSourceDirectoryPath(
+                        onefile=False, create=False
+                    )
+                ),
+            }
         ):
-            exit_code_pgo = _runPgoBinary()
+            exit_code_pgo = _runPgoBinary(pgo_executable)
 
         pgo_data_collected = os.path.exists(msvc_pgc_filename)
     else:
-        exit_code_pgo = _runPgoBinary()
+        exit_code_pgo = _runPgoBinary(pgo_executable)
 
         # gcc file suffix, spell-checker: ignore gcda
         gcc_constants_pgo_filename = getNormalizedPathJoin(
@@ -713,21 +722,19 @@ did the created binary run at all?""")
     pgo_logger.info("Successfully collected C level PGO information.", style="blue")
 
 
-def _runPythonPgoBinary():
+def _runPythonPgoBinary(pgo_executable):
     # Note: For exit codes, we do not insist on anything yet, maybe we could point it out
     # or ask people to make scripts that buffer these kinds of errors, and take an error
     # instead as a serious failure.
 
     pgo_filename = OutputDirectories.getPgoRunInputFilename()
 
-    pgo_executable = OutputDirectories.getPgoRunExecutable()
-
     if not os.path.isfile(pgo_executable):
         return general.sysexit(
             "Error, failed to produce PGO binary '%s'" % pgo_executable
         )
 
-    pgo_command = _getPgoCommand()
+    pgo_command = _getPgoCommand(pgo_executable)
 
     with withEnvironmentVarOverridden("NUITKA_PGO_OUTPUT", pgo_filename):
         exit_code = executeCompiledBinary(
@@ -899,11 +906,7 @@ def runSconsBackend():
     if hasPythonFlagUnbuffered():
         scons_options["python_sysflag_unbuffered"] = asBoolStr(True)
 
-    # The Python PGO input build is compiled as accelerated mode and has to
-    # load the standard library from "sys.path" during its profiling run, so
-    # the isolation effect cannot be applied to it. The actual build after the
-    # re-execution will apply it normally.
-    if hasPythonFlagIsolated() and not shallCreatePythonPgoInput():
+    if hasPythonFlagIsolated():
         scons_options["python_sysflag_isolated"] = asBoolStr(True)
 
     abiflags = getPythonABI(python_debug=shallUsePythonDebug())
@@ -916,6 +919,11 @@ def runSconsBackend():
 
     # Allow plugins to build definitions.
     env_values.update(getBuildDefinitions())
+
+    if isCPgoMode():
+        # Keep MSVC profile data in the build directory, rather than in the
+        # distribution, which is reset between the two compilation passes.
+        scons_options["pgo_pgd_filename"] = OutputDirectories.getMsvcPgoPgdFilename()
 
     if shallCreatePythonPgoInput():
         scons_options["pgo_mode"] = "python"
@@ -935,35 +943,72 @@ def runSconsBackend():
 
         # Need to make it usable before executing it.
         executePostProcessing(scons_options["result_exe"])
-        _runPythonPgoBinary()
+
+        # A standalone profiling run needs the full distribution, or else
+        # programs requiring their data files or DLLs cannot run. The
+        # re-execution after the run will reset and recreate the distribution.
+        if (
+            isStandaloneMode()
+            and not shallOnlyExecCCompilerCall()
+            and getPgoExecutable() is None
+        ):
+            _prepareStandaloneDistribution(
+                scons_options=scons_options,
+                dist_dir=OutputDirectories.getStandaloneDirectoryPath(
+                    bundle=True, real=False
+                ),
+                for_c_pgo=False,
+            )
+
+        _runPythonPgoBinary(OutputDirectories.getPgoRunExecutable())
 
         return True, scons_options
 
-        # Need to restart compilation from scratch here.
     if isCPgoMode():
-        # For C level PGO, we have a 2 pass system. TODO: Make it more global for onefile
-        # and standalone mode proper support, which might need data files to be
-        # there, which currently are not yet there, so it won't run.
-        if isCPgoMode():
-            scons_options["pgo_mode"] = "generate"
+        # For C level PGO, we have a 2 pass system.
+        scons_options["pgo_mode"] = "generate"
 
-            applyPreprocessorSymbols(scons_options, onefile=False)
+        applyPreprocessorSymbols(scons_options, onefile=False)
 
-            result = runScons(
+        result = runScons(
+            scons_options=scons_options,
+            env_values=env_values,
+            scons_filename="Backend.scons",
+            source_dir=source_dir,
+            source_dir_external=source_dir_external,
+        )
+
+        if not result:
+            return result, scons_options
+
+        # Need to make it usable before executing it.
+        executePostProcessing(scons_options["result_exe"])
+
+        # The standalone profiling run needs the full distribution, or
+        # else programs requiring their data files or DLLs cannot run.
+        entry_points_before = None
+
+        if (
+            isStandaloneMode()
+            and not shallOnlyExecCCompilerCall()
+            and getPgoExecutable() is None
+        ):
+            entry_points_before = getStandaloneEntryPoints()
+
+            _prepareStandaloneDistribution(
                 scons_options=scons_options,
-                env_values=env_values,
-                scons_filename="Backend.scons",
-                source_dir=source_dir,
-                source_dir_external=source_dir_external,
+                dist_dir=OutputDirectories.getStandaloneDirectoryPath(
+                    bundle=True, real=False
+                ),
+                for_c_pgo=True,
             )
 
-            if not result:
-                return result, scons_options
+        _runCPgoBinary(OutputDirectories.getPgoRunExecutable())
 
-            # Need to make it usable before executing it.
-            executePostProcessing(scons_options["result_exe"])
-            _runCPgoBinary()
-            scons_options["pgo_mode"] = "use"
+        if entry_points_before is not None:
+            _resetStandaloneDistributionForCPgo(entry_points_before)
+
+        scons_options["pgo_mode"] = "use"
 
     applyPreprocessorSymbols(scons_options, onefile=False)
 
@@ -1259,6 +1304,63 @@ def _detectLateDLLs(scons_options):
         )
 
 
+def _prepareStandaloneDistribution(scons_options, dist_dir, for_c_pgo):
+    """Copy DLLs and data files into a standalone distribution.
+
+    Args:
+        scons_options: Scons options of the built program.
+        dist_dir: Distribution directory to prepare.
+        for_c_pgo: Whether this is the distribution for the C level PGO
+            profiling run, which is discarded later, and therefore must not
+            register the main binary PDB file for inclusion.
+
+    Returns:
+        list: Paths of the copied data files.
+    """
+    assert isStandaloneMode()
+
+    _detectLateDLLs(scons_options)
+
+    main_standalone_entry_point, copy_standalone_entry_points = copyDllsUsed(
+        dist_dir=dist_dir,
+        standalone_entry_points=getStandaloneEntryPoints(),
+        for_c_pgo=for_c_pgo,
+    )
+
+    data_file_paths = copyDataFiles(
+        standalone_entry_points=getStandaloneEntryPoints(),
+        dist_dir=dist_dir,
+    )
+
+    if isMacOS():
+        signDistributionMacOS(
+            dist_dir=dist_dir,
+            data_file_paths=data_file_paths,
+            main_standalone_entry_point=main_standalone_entry_point,
+            copy_standalone_entry_points=copy_standalone_entry_points,
+        )
+
+    return data_file_paths
+
+
+def _resetStandaloneDistributionForCPgo(entry_points_before):
+    """Reset the distribution after the C level PGO profiling run.
+
+    Notes:
+        The second compilation pass has to build into a clean distribution,
+        so that the DLL selection is done again for the final binary.
+
+    Args:
+        entry_points_before: Entry points before the profiling distribution
+            was prepared.
+    """
+    OutputDirectories.initStandaloneDirectory(logger=general)
+
+    makePath(OutputDirectories.getStandaloneDirectoryPath(bundle=True, real=False))
+
+    restoreStandaloneEntryPoints(entry_points_before)
+
+
 def _main():
     """Main program flow of Nuitka
 
@@ -1367,29 +1469,18 @@ def _main():
     executePostProcessing(scons_options["result_exe"])
 
     if isStandaloneMode():
-        _detectLateDLLs(scons_options)
-
         dist_dir = OutputDirectories.getStandaloneDirectoryPath(bundle=True, real=False)
 
         if not shallOnlyExecCCompilerCall():
-            main_standalone_entry_point, copy_standalone_entry_points = copyDllsUsed(
+            _prepareStandaloneDistribution(
+                scons_options=scons_options,
                 dist_dir=dist_dir,
-                standalone_entry_points=getStandaloneEntryPoints(),
+                for_c_pgo=False,
             )
-
-            data_file_paths = copyDataFiles(
-                standalone_entry_points=getStandaloneEntryPoints()
-            )
-
-            if isMacOS():
-                signDistributionMacOS(
-                    dist_dir=dist_dir,
-                    data_file_paths=data_file_paths,
-                    main_standalone_entry_point=main_standalone_entry_point,
-                    copy_standalone_entry_points=copy_standalone_entry_points,
-                )
 
             dist_dir = OutputDirectories.renameStandaloneDirectory(dist_dir)
+        else:
+            _detectLateDLLs(scons_options)
 
         onStandaloneDistributionFinished(
             dist_dir=dist_dir,

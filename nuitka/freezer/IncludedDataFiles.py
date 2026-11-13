@@ -1156,7 +1156,9 @@ Error, data file to be placed in distribution as '%s' conflicts with %s '%s' bec
         dest_path = os.path.dirname(dest_path)
 
 
-def _handleDataFile(included_datafile, standalone_entry_points, case_insensitive):
+def _handleDataFile(
+    included_datafile, standalone_entry_points, case_insensitive, dist_dir
+):
     """Handle a single data file, writing or copying it.
 
     Args:
@@ -1164,6 +1166,7 @@ def _handleDataFile(included_datafile, standalone_entry_points, case_insensitive
         standalone_entry_points: List of standalone entry points to check conflicts against.
         case_insensitive: Whether the paths are on a case insensitive file
         system.
+        dist_dir: Distribution directory to copy to.
 
     Returns:
         tuple: (external, dest_path) where external is bool.
@@ -1184,8 +1187,6 @@ def _handleDataFile(included_datafile, standalone_entry_points, case_insensitive
         _data_file_traces[key] = []
 
     _data_file_traces[key].append((included_datafile.kind, included_datafile.dest_path))
-
-    dist_dir = getStandaloneDirectoryPath(bundle=True, real=False)
 
     if "external" in included_datafile.tags:
         dest_path = getOutputPath(included_datafile.dest_path)
@@ -1224,7 +1225,7 @@ def _handleDataFile(included_datafile, standalone_entry_points, case_insensitive
     return external, dest_path
 
 
-def copyDataFiles(standalone_entry_points):
+def copyDataFiles(standalone_entry_points, dist_dir):
     """Copy the data files needed for standalone distribution.
 
     Notes:
@@ -1234,6 +1235,7 @@ def copyDataFiles(standalone_entry_points):
 
     Args:
         standalone_entry_points: List of standalone entry points available.
+        dist_dir: Distribution directory to copy to.
 
     Returns:
         list: List of paths to the copied data files.
@@ -1241,9 +1243,7 @@ def copyDataFiles(standalone_entry_points):
 
     data_file_paths = []
 
-    case_insensitive = isCaseInsensitiveFileSystem(
-        getStandaloneDirectoryPath(bundle=True, real=False)
-    )
+    case_insensitive = isCaseInsensitiveFileSystem(dist_dir)
 
     # Copy symlinks last, so their targets are present in the distribution, and
     # the symlinks can be preserved, rather than being dereferenced.
@@ -1269,6 +1269,7 @@ plugins '--embed-*' options. Not done for '%s'.""" % included_datafile.dest_path
                 included_datafile=included_datafile,
                 standalone_entry_points=standalone_entry_points,
                 case_insensitive=case_insensitive,
+                dist_dir=dist_dir,
             )
 
             if not external:

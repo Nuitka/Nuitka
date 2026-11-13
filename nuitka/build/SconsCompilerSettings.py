@@ -1469,6 +1469,8 @@ def createNuitkaSconsEnvironment(needs_source_dir=True):
     # PGO mode: Use profile guided optimization of C compiler if available.
     pgo_mode = getArgumentDefaulted("pgo_mode", "no")
 
+    pgo_pgd_filename = getArgumentDefaulted("pgo_pgd_filename", None)
+
     # Console mode specified
     console_mode = getArgumentDefaulted("console_mode", "attach")
 
@@ -1621,6 +1623,7 @@ def createNuitkaSconsEnvironment(needs_source_dir=True):
     env.lto_mode = lto_mode
     env.reproducible_mode = reproducible_mode
     env.pgo_mode = pgo_mode
+    env.pgo_pgd_filename = pgo_pgd_filename
     env.job_count = job_count
     env.frozen_modules = frozen_modules
     env.uninstalled_python = uninstalled_python
@@ -2105,6 +2108,27 @@ def setupCCompiler(env, pgo_mode, exe_target, onefile_compile):
     )
 
 
+def _enableMsvcPgoGenerateSettings(env):
+    env.Append(CCFLAGS=["/GL"])
+
+    if env.pgo_pgd_filename is not None:
+        env.Append(LINKFLAGS=["/GENPROFILE:EXACT,PGD=%s" % env.pgo_pgd_filename])
+    else:
+        env.Append(LINKFLAGS=["/GENPROFILE:EXACT"])
+
+    if not env.clangcl_mode:
+        env.Append(LINKFLAGS=["/LTCG"])
+
+
+def _enableMsvcPgoUseSettings(env):
+    env.Append(CCFLAGS=["/GL"])
+
+    if env.pgo_pgd_filename is not None:
+        env.Append(LINKFLAGS=["/USEPROFILE:PGD=%s" % env.pgo_pgd_filename])
+    else:
+        env.Append(LINKFLAGS=["/USEPROFILE"])
+
+
 def _enablePgoSettings(env):
     if env.pgo_mode == "no":
         env.progressbar_name = "Backend"
@@ -2119,10 +2143,7 @@ def _enablePgoSettings(env):
             env.Append(CCFLAGS=["-fprofile-generate"])
             env.Append(LINKFLAGS=["-fprofile-generate"])
         elif env.msvc_mode:
-            env.Append(CCFLAGS=["/GL"])
-            env.Append(LINKFLAGS=["/GENPROFILE:EXACT"])
-            if not env.clangcl_mode:
-                env.Append(LINKFLAGS=["/LTCG"])
+            _enableMsvcPgoGenerateSettings(env)
 
         else:
             scons_logger.sysexit(
@@ -2137,12 +2158,7 @@ def _enablePgoSettings(env):
             env.Append(CCFLAGS=["-fprofile-use"])
             env.Append(LINKFLAGS=["-fprofile-use"])
         elif env.msvc_mode:
-            env.Append(CCFLAGS=["/GL"])
-            env.Append(
-                LINKFLAGS=[
-                    "/USEPROFILE",
-                ]
-            )
+            _enableMsvcPgoUseSettings(env)
         else:
             scons_logger.sysexit(
                 "Error, PGO not supported for '%s' compiler." % env.the_cc_name

@@ -155,6 +155,8 @@ def main():
             # we check for that in the report generated.
             # "--mode=standalone",
             "remove_output",
+            # Keep the binary, normally "remove_output" includes that.
+            "--keep-binary",
             # Cache the CPython results for reuse, they will normally not change.
             "cpython_cache",
             # To understand what is slow.

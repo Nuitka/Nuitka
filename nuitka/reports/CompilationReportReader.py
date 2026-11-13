@@ -40,7 +40,8 @@ def extractModulesUsedByModule(compilation_report, module_name):
 
 def _getResolvedCompilationPath(path, prefixes):
     for prefix_name, prefix_path in prefixes:
-        path = path.replace(prefix_name, prefix_path)
+        if path.startswith(prefix_name):
+            return prefix_path + path[len(prefix_name) :]
 
     return path
 

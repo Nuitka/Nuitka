@@ -527,6 +527,19 @@ def getStandaloneEntryPoints():
     return tuple(standalone_entry_points)
 
 
+def restoreStandaloneEntryPoints(entry_points):
+    """Restore the entry points of the standalone distribution.
+
+    Notes:
+        This is for temporary distributions, e.g. the one used for PGO
+        profiling runs, whose entry points must not affect the final result.
+
+    Args:
+        entry_points: Entry points to restore.
+    """
+    standalone_entry_points[:] = entry_points
+
+
 def getStandaloneMainEntryPoint():
     for standalone_entry_point in standalone_entry_points:
         if standalone_entry_point.reason == "main binary":

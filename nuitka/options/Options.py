@@ -896,14 +896,7 @@ it before using it: '%s' (from --output-filename='%s')."""
             % getPythonFlavorName()
         )
 
-    # The Python PGO input build is accelerated, but compiled without the
-    # isolation effect, and the actual build is checked again after the
-    # re-execution.
-    if (
-        isAcceleratedMode()
-        and hasPythonFlagIsolated()
-        and not shallCreatePythonPgoInput()
-    ):
+    if isAcceleratedMode() and hasPythonFlagIsolated():
         return options_logger.sysexit("""\
 Error, the Python flag 'isolated' cannot be used in accelerated mode, since \
 Nuitka empties 'sys.path' for it, and accelerated mode loads the standard \
@@ -1420,7 +1413,12 @@ make sure that is intended."""
             "Providing PGO arguments without enabling PGO mode has no effect."
         )
 
-    if isCPgoMode() and not isAcceleratedMode():
+    if (isCPgoMode() or isPythonPgoMode()) and shallMakeDll():
+        return options_logger.sysexit(
+            "Error, using PGO with '%s' mode is not supported." % getCompilationMode()
+        )
+
+    if isCPgoMode() and shallMakeModule():
         optimization_logger.warning("""\
 Using C level PGO with '%s' mode is not currently \
 working. Expect errors.""" % getCompilationMode())
@@ -2677,9 +2675,6 @@ def shallExplainImports():
 
 def isStandaloneMode():
     """:returns: bool derived from ``--standalone``"""
-    if shallCreatePythonPgoInput():
-        return False
-
     return bool(options.is_standalone or options.list_package_dlls)
 
 
@@ -3088,9 +3083,6 @@ def getTargetArch():
 
 def shallCreateAppBundle():
     """*bool* shall create an application bundle, derived from ``--macos-create-app-bundle`` value"""
-    if shallCreatePythonPgoInput():
-        return False
-
     return options.macos_create_bundle and isMacOS()
 
 

@@ -12,6 +12,10 @@ import time
 
 from nuitka.__past__ import md5
 from nuitka.options.OptionParsing import getNuitkaProjectOptions
+from nuitka.reports.CompilationReportReader import (
+    getCompilationOutputBinary,
+    parseCompilationReport,
+)
 from nuitka.tools.testing.Common import (
     addToPythonPath,
     decryptOutput,
@@ -308,12 +312,14 @@ def main():
     no_diffable = hasArg("no_diffable")
     remove_output = hasArg("remove_output")
     remove_binary = not hasArg("--keep-binary")
-    app_bundle_mode = hasArg("--mode=app") and isMacOS()
+    app_bundle_mode = (hasArg("--mode=app") or hasArg("--mode=app-dist")) and isMacOS()
     standalone_mode = (
         hasArg("--standalone")
         or hasArg("--mode=standalone")
+        or hasArg("--mode=app-dist")
         or app_bundle_mode
         or "--mode=standalone" in extra_options
+        or "--mode=app-dist" in extra_options
     )
     onefile_mode = (
         hasArg("--onefile")
@@ -403,7 +409,11 @@ def main():
         for project_option in decryption_project_options
     )
 
-    if "--standalone" in project_options or "--mode=standalone" in project_options:
+    if (
+        "--standalone" in project_options
+        or "--mode=standalone" in project_options
+        or "--mode=app-dist" in project_options
+    ):
         standalone_mode = True
     if "--onefile" in project_options or "--mode=onefile" in project_options:
         standalone_mode = True
@@ -415,6 +425,8 @@ def main():
         else:
             standalone_mode = True
             onefile_mode = True
+    if "--mode=app-dist" in project_options and isMacOS():
+        app_bundle_mode = True
 
     # Verify signature must happen before the binary runs and modifies the
     # framework, so we enable two step execution.
@@ -730,7 +742,13 @@ Taking coverage of '{filename}' using '{python}' with flags {args} ...""".format
             else:
                 exe_filename += ".bin"
 
-            nuitka_cmd2 = [os.path.join(output_dir, exe_filename)]
+            if standalone_mode and not onefile_mode:
+                exe_basename = os.path.splitext(exe_filename)[0]
+                nuitka_cmd2 = [
+                    os.path.join(output_dir, exe_basename + ".dist", exe_filename)
+                ]
+            else:
+                nuitka_cmd2 = [os.path.join(output_dir, exe_filename)]
 
         pdb_filename = exe_filename[:-4] + ".pdb"
 
@@ -821,6 +839,21 @@ Stderr was:
                 )
                 stderr_nuitka2 = process_result.stderr
             else:
+                if report and not module_mode:
+                    compilation_report = parseCompilationReport(report)
+
+                    nuitka_cmd2 = [
+                        os.path.abspath(
+                            getCompilationOutputBinary(
+                                compilation_report=compilation_report,
+                                prefixes=(
+                                    ("${cwd}", os.getcwd()),
+                                    ("~", os.path.expanduser("~")),
+                                ),
+                            )
+                        )
+                    ]
+
                 if verify_signature and app_bundle_mode:
                     app_name = os.path.splitext(os.path.basename(filename))[0]
 

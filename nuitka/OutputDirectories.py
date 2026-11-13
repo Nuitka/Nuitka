@@ -295,6 +295,36 @@ def getPgoRunInputFilename():
     return getPgoRunExecutable() + ".nuitka-pgo"
 
 
+def getMsvcPgoPgdFilename():
+    """Get the MSVC PGO profile database filename.
+
+    Returns:
+        str: Filename of the PGD file in the build directory.
+    """
+    return getExternalUsePath(
+        getNormalizedPathJoin(
+            getSourceDirectoryPath(onefile=False, create=False),
+            os.path.basename(getResultBasePath(onefile=False)) + ".pgd",
+        ),
+        only_dirname=True,
+    )
+
+
+def getMsvcPgoPgcFilename():
+    """Get the MSVC PGO profile data filename.
+
+    Returns:
+        str: Filename of the PGC file in the build directory.
+    """
+    return getExternalUsePath(
+        getNormalizedPathJoin(
+            getSourceDirectoryPath(onefile=False, create=False),
+            os.path.basename(getResultBasePath(onefile=False)) + "!1.pgc",
+        ),
+        only_dirname=True,
+    )
+
+
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
 #

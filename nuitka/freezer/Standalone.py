@@ -193,7 +193,17 @@ def _detectBinaryDLLs(
         )
 
 
-def copyDllsUsed(dist_dir, standalone_entry_points):
+def copyDllsUsed(dist_dir, standalone_entry_points, for_c_pgo):
+    """Copy the DLLs used into the standalone distribution.
+
+    Args:
+        dist_dir: Distribution directory to copy to.
+        standalone_entry_points: Entry points of the distribution.
+        for_c_pgo: Whether this is the distribution for the C level PGO
+            profiling run, which is discarded later, and therefore must not
+            register the main binary PDB file for inclusion.
+    """
+
     # Only do ones not ignored
     copy_standalone_entry_points = [
         standalone_entry_point
@@ -291,7 +301,8 @@ def copyDllsUsed(dist_dir, standalone_entry_points):
         standalone_entry_points=copy_standalone_entry_points,
     )
 
-    addIncludedPdbFile(main_standalone_entry_point)
+    if not for_c_pgo:
+        addIncludedPdbFile(main_standalone_entry_point)
 
     return main_standalone_entry_point, copy_standalone_entry_points
 
