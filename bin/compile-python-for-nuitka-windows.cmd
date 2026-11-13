@@ -130,7 +130,8 @@ call PCbuild\build.bat -e -p x64 -t %BUILD_TARGET% -c %BUILD_CONFIG% %PGO_FLAG% 
 )
 
 echo Installing dependencies via pip...
-%PYTHON_BINARY% -m ensurepip
+%PYTHON_BINARY% -m ensurepip --upgrade
+%PYTHON_BINARY% -m pip install --disable-pip-version-check --upgrade pip
 
 :: Write dependencies to a temporary requirements file
 echo # Onefile compression > reqs.txt
@@ -139,7 +140,7 @@ echo. >> reqs.txt
 echo # Wheels >> reqs.txt
 echo wheel >> reqs.txt
 
-%PYTHON_BINARY% -m pip install -r reqs.txt
+%PYTHON_BINARY% -m pip install --disable-pip-version-check -r reqs.txt
 del reqs.txt
 
 echo --- Build Complete ---

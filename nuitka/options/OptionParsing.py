@@ -39,7 +39,13 @@ from nuitka.utils.Utils import (
 )
 from nuitka.Version import getCommercialVersion, getNuitkaVersion
 
-from .CommandLineOptionsTools import SUPPRESS_HELP, makeOptionsParser
+from .CommandLineOptionsTools import (
+    SUPPRESS_HELP,
+    getArgumentsBeforeDoubleDash,
+    getOptionIndex,
+    hasOption,
+    makeOptionsParser,
+)
 from .Experimental import setExperimental
 
 
@@ -280,7 +286,15 @@ parser.add_option(
 
 
 def getBuildConfigurationOptions(logger):
-    if "--project" not in sys.argv:
+    # This is a case driven by returns.
+    # pylint: disable=too-many-return-statements
+
+    # The project is parsed by the in-container Nuitka, where the project
+    # requirements are available. Parsing here would forward conflicting
+    # project options such as '--main-entry-point' alongside '--project'.
+    if hasOption(sys.argv[1:], "--container=") or not hasOption(
+        sys.argv[1:], "--project"
+    ):
         return []
 
     # Auto-detection of Poetry, we want to support that without the user saying so,
@@ -334,7 +348,7 @@ def getBuildConfigurationOptions(logger):
 
         return getBuildBackendConfiguration(logger=logger, pyproject_data={})
 
-    logger.sysexit(
+    return logger.sysexit(
         "Error, '--project' requires a 'pyproject.toml', 'setup.py', or 'setup.cfg' file."
     )
 
@@ -896,6 +910,41 @@ container_group.add_option(
     help="""\
 Command to execute inside the container selected with '--container' instead of compiling the
 program. Defaults to compiling the program inside the container.""",
+)
+
+container_group.add_option(
+    "--container-requirements",
+    action="append",
+    dest="container_requirements",
+    metavar="REQUIREMENTS",
+    default=[],
+    help="""\
+Install requirements with pip inside the container before compiling. Can be given multiple
+times, e.g. "lxml" or "-r requirements.txt". This enables network access for the container
+run. Defaults to nothing.""",
+)
+
+container_group.add_option(
+    "--container-wheels-dir",
+    action="store",
+    dest="container_wheels_dir",
+    metavar="DIRECTORY",
+    default=None,
+    help="""\
+Directory with wheel files to install with pip inside the container before compiling, e.g. for
+packages that cannot be built there. The directory is mounted at "/Nuitka-wheels". This enables
+network access for the container run. Defaults to nothing.""",
+)
+
+container_group.add_option(
+    "--container-python-version",
+    action="store",
+    dest="container_python_version",
+    metavar="VERSION",
+    default=None,
+    help="""\
+Python version to build inside the container, e.g. "3.12.3". Defaults to the version running
+Nuitka. Use "container" to keep the container's Python.""",
 )
 
 container_group.add_option(
@@ -2753,7 +2802,7 @@ def _considerPluginOptions(logger):
         parser=parser, plugin_help_mode=plugin_help_mode
     )
 
-    for arg in sys.argv[1:]:
+    for arg in getArgumentsBeforeDoubleDash(sys.argv[1:]):
         if arg.startswith(
             ("--enable-plugin=", "--enable-plugins=", "--plugin-enable=")
         ):
@@ -2847,15 +2896,20 @@ def _expandProjectArg(arg, filename_arg, for_eval, custom_values):
             values[k] = wrap(v)
 
     values.update(
-        (
-            (run_time_variable_name, "{%s}" % run_time_variable_name)
-            for run_time_variable_name in run_time_variable_names
-        )
+        (run_time_variable_name, "{%s}" % run_time_variable_name)
+        for run_time_variable_name in run_time_variable_names
     )
 
     arg = _RetainingFormatter().format(arg, **values)
 
     return arg
+
+
+def _checkValidProjectOption(logger, option):
+    if option == "--container" or option.startswith(("--container=", "--container-")):
+        return logger.sysexit("""\
+Error, option '%s' must be given on the command line, not in project configuration.\
+""" % option)
 
 
 def getNuitkaProjectOptions(logger, filename_arg, module_mode):
@@ -2903,7 +2957,15 @@ def getNuitkaProjectOptions(logger, filename_arg, module_mode):
         if match:
             level, command, arg = match.groups()
             level = len(level)
-            arg = arg.rstrip()
+            arg = arg.strip()
+
+            if str is not bytes:
+                command = command.decode("utf8")
+                arg = arg.decode("utf8")
+
+            # Check every option line, active or not.
+            if command == "":
+                _checkValidProjectOption(logger=logger, option=arg)
 
             # Check for empty conditional blocks.
             if expect_block and level <= cond_level:
@@ -2914,17 +2976,13 @@ def getNuitkaProjectOptions(logger, filename_arg, module_mode):
 
             expect_block = False
 
-            if level == cond_level and command == b"-else":
+            if level == cond_level and command == "-else":
                 execute_block = not execute_block
             elif level <= cond_level:
                 execute_block = True
 
             if level > cond_level and not execute_block:
                 continue
-
-            if str is not bytes:
-                command = command.decode("utf8")
-                arg = arg.decode("utf8")
 
             if command == "-if":
                 if not arg.endswith(":"):
@@ -2942,9 +3000,9 @@ def getNuitkaProjectOptions(logger, filename_arg, module_mode):
                     custom_values=custom_values,
                 )
 
-                r = eval(  # We allow the user to run any code, pylint: disable=eval-used
-                    expanded
-                )
+                # We allow the user to run any code.
+                # pylint: disable-next=eval-used
+                r = eval(expanded)
 
                 # Likely mistakes, e.g. with "in" tests.
                 if r is not True and r is not False:
@@ -3006,10 +3064,10 @@ def getNuitkaProjectOptions(logger, filename_arg, module_mode):
                 )
 
                 try:
-                    r = eval(  # We allow the user to run any code, pylint: disable=eval-used
-                        expanded
-                    )
-                except Exception as e:  # pylint: disable=broad-except
+                    # We allow the user to run any code.
+                    # pylint: disable-next=eval-used
+                    r = eval(expanded)
+                except Exception as e:  # pylint: disable=broad-exception-caught
                     return sysexit(
                         line_number,
                         "Error, 'nuitka-project-set' expression %r (expanded to %r) failed to evaluate: %s"
@@ -3031,7 +3089,7 @@ yielded unsupported type '%s' (value: %r). Expected string, number, or boolean."
 
                 custom_values[key] = r
             elif command == "":
-                arg = re.sub(r"""^([\w-]*=)(['"])(.*)\2$""", r"\1\3", arg.lstrip())
+                arg = re.sub(r"""^([\w-]*=)(['"])(.*)\2$""", r"\1\3", arg)
 
                 if not arg:
                     continue
@@ -3051,10 +3109,13 @@ yielded unsupported type '%s' (value: %r). Expected string, number, or boolean."
 
 
 def _considerGithubWorkflowOptions(phase):
-    try:
-        github_option_index = sys.argv.index("--github-workflow-options")
-    except ValueError:
+    github_option_index = getOptionIndex(sys.argv[1:], "--github-workflow-options")
+
+    if github_option_index is None:
         return
+
+    # Account for the program name.
+    github_option_index += 1
 
     import json
 
@@ -3108,11 +3169,13 @@ def _considerGithubWorkflowOptions(phase):
 
             options_added.append(option_name)
         elif parser.isListOption(option_name):
-            for value in value.split("\n"):
-                if not value.strip():
-                    continue
-
-                options_added.append("%s=%s" % (option_name, value))
+            options_added.extend(
+                [
+                    "%s=%s" % (option_name, value_line)
+                    for value_line in value.split("\n")
+                    if value_line.strip()
+                ]
+            )
         else:
             # Boolean disabled options from inactive plugins that default to off.
             if value == "false":
@@ -3159,13 +3222,14 @@ def _extractMainArguments(args):
 
 def parseOptions(logger):
     # Pretty complex code, having a small options parser and many details as
-    # well as integrating with plugins and run modes. pylint: disable=too-many-branches
+    # well as integrating with plugins and run modes.
+    # pylint: disable=too-many-branches
 
     # First, isolate the first non-option arguments.
     extra_args = []
 
     # Workaround for issue with help2man.
-    if "--version" in sys.argv[1:] and os.getenv("NUITKA_MANPAGE_GEN"):
+    if os.getenv("NUITKA_MANPAGE_GEN") and hasOption(sys.argv[1:], "--version"):
         sys.argv[1:] = ["--version"]
 
     if is_nuitka_run:
@@ -3194,17 +3258,18 @@ def parseOptions(logger):
     _considerGithubWorkflowOptions(phase="early")
 
     build_configuration_options = getBuildConfigurationOptions(logger)
+
+    for option in build_configuration_options:
+        _checkValidProjectOption(logger=logger, option=option)
+
     project_mains, project_main_entry_points = _extractMainArguments(
         build_configuration_options
     )
 
     sys.argv = [sys.argv[0]] + build_configuration_options + sys.argv[1:]
 
-    if "--project" not in sys.argv[1:]:
-        for count, arg in enumerate(sys.argv):
-            if count == 0:
-                continue
-
+    if not hasOption(sys.argv[1:], "--project"):
+        for arg in getArgumentsBeforeDoubleDash(sys.argv[1:]):
             if arg.startswith(("--main=", "--script-name=")):
                 filename_args.append(arg.split("=", 1)[1])
 
@@ -3215,12 +3280,15 @@ def parseOptions(logger):
                 filename_args.append(arg)
                 break
 
-    for filename in filename_args:
-        sys.argv = (
-            [sys.argv[0]]
-            + getNuitkaProjectOptions(logger, filename, module_mode)
-            + sys.argv[1:]
-        )
+    # With --container, project options are parsed by the in-container Nuitka,
+    # so conditions use the container OS and Python rather than the host ones.
+    if not hasOption(sys.argv[1:], "--container="):
+        for filename in filename_args:
+            sys.argv = (
+                [sys.argv[0]]
+                + getNuitkaProjectOptions(logger, filename, module_mode)
+                + sys.argv[1:]
+            )
 
     # Next, lets activate plugins early, so they can inject more options to the parser.
     _considerPluginOptions(logger)
@@ -3247,11 +3315,18 @@ def parseOptions(logger):
 
     setExperimental(options.experimental)
 
+    # In container project mode, project extraction is deferred to the
+    # in-container Nuitka, so the project entry points are not known here yet.
+    project_entry_points_deferred = (
+        options.is_project_mode and options.container is not None
+    )
+
     if (
         not positional_args
         and not options.mains
         and not options.main_entry_points
         and not parser.hasNonCompilingAction(options)
+        and not project_entry_points_deferred
     ):
         parser.print_help()
 
@@ -3283,7 +3358,7 @@ pass them to the compiled program execution.""")
 
 def runSpecialCommandsFromOptions(options):
     if options.container is not None:
-        from nuitka.tools.podman.Container import runNuitkaInContainer
+        from nuitka.tools.podman.ContainerCommand import runNuitkaInContainer
 
         runNuitkaInContainer(
             container_name=options.container,

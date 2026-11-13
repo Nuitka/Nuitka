@@ -163,6 +163,15 @@ Run the compilation inside the named container, building or updating the contain
 \fB\-\-container\-command\fR=\fI\,COMMAND\/\fR
 Command to execute inside the container selected with '\-\-container' instead of compiling the program. Defaults to compiling the program inside the container.
 .TP
+\fB\-\-container\-requirements\fR=\fI\,REQUIREMENTS\/\fR
+Install requirements with pip inside the container before compiling. Can be given multiple times, e.g. "lxml" or "\-r requirements.txt". This enables network access for the container run. Defaults to nothing.
+.TP
+\fB\-\-container\-wheels\-dir\fR=\fI\,DIRECTORY\/\fR
+Directory with wheel files to install with pip inside the container before compiling, e.g. for packages that cannot be built there. The directory is mounted at "/Nuitka\-wheels". This enables network access for the container run. Defaults to nothing.
+.TP
+\fB\-\-container\-python\-version\fR=\fI\,VERSION\/\fR
+Python version to build inside the container, e.g. "3.12.3". Defaults to the version running Nuitka. Use "container" to keep the container's Python.
+.TP
 \fB\-\-container\-no\-build\fR
 Do not update the container before using it, use it as it is. Defaults to off.
 .TP

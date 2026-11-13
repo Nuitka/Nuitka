@@ -37,8 +37,6 @@ from nuitka.utils.FileOperations import (
 from nuitka.utils.Jinja2 import renderTemplateFromString
 from nuitka.utils.Utils import getArchitecture, isWin32Windows
 
-from .Podman import getPodmanExecutablePath
-
 
 def isPodman(podman_path):
     return "podman" in os.path.normcase(os.path.basename(podman_path))
@@ -66,11 +64,18 @@ def _copyContainerReferences(container_content, repo_root, build_context_dir):
                 copyFile(full_source_path, dest_path)
 
 
-def getContainerPython(container_name):
+def getContainerPython(container_name, container_python_version):
     container_name = container_name.lower()
 
     if isTermuxContainer(container_name):
         return "python"
+
+    if container_python_version is not None:
+        python_binary = (
+            "python2" if container_python_version.startswith("2.") else "python3"
+        )
+
+        return "/opt/python%s/bin/%s" % (container_python_version, python_binary)
 
     if "centos6" in container_name or "rhel6" in container_name:
         return "python2.6"
@@ -247,35 +252,50 @@ def _updateContainerByBuild(
     repo_root,
     build_context_dir,
     quiet,
+    container_python_version,
 ):
+    if container_python_version is not None:
+        container_content += "\n# Build Python for Nuitka\n"
+        container_content += (
+            "COPY bin/compile-python-for-nuitka-linux.sh "
+            "/usr/local/bin/compile-python-for-nuitka-linux.sh\n"
+        )
+        container_content += (
+            "RUN chmod +x /usr/local/bin/compile-python-for-nuitka-linux.sh\n"
+        )
+        container_content += _makeRunCommand(
+            command=(
+                "/usr/local/bin/compile-python-for-nuitka-linux.sh "
+                "--version %s --prefix /opt/python%s --cleanup"
+                % (container_python_version, container_python_version)
+            ),
+        )
+    else:
+        # Update system pip for user provided requirements, but do not install
+        # any requirements by default.
+        container_content += _makeRunCommand(
+            command=(
+                "if command -v python3 >/dev/null 2>&1 && "
+                "python3 -m pip --version >/dev/null 2>&1; "
+                "then python3 -m pip install ${NUITKA_PIP_FLAGS} "
+                "--disable-pip-version-check --upgrade pip; "
+                "fi"
+            ),
+        )
+        container_content += _makeRunCommand(
+            command=(
+                "if command -v python2 >/dev/null 2>&1 && "
+                "python2 -m pip --version >/dev/null 2>&1; "
+                "then python2 -m pip install ${NUITKA_PIP_FLAGS} "
+                "--disable-pip-version-check --upgrade pip; "
+                "fi"
+            ),
+        )
+
     _copyContainerReferences(
         container_content=container_content,
         repo_root=repo_root,
         build_context_dir=build_context_dir,
-    )
-
-    # Append new instructions
-    container_content += "\n# Automatic requirements caching\n"
-    container_content += "COPY requirements-devel.txt /etc/requirements-devel.txt\n"
-    container_content += "COPY nuitka/utils/requirements-private.txt /etc/nuitka/utils/requirements-private.txt\n"
-
-    # Install requirements
-    # We try both python3 and python2.
-    container_content += _makeRunCommand(
-        command=(
-            "if command -v python3; "
-            "then python3 -m pip install ${NUITKA_PIP_FLAGS} -r /etc/requirements-devel.txt; "
-            "fi"
-        ),
-    )
-    container_content += _makeRunCommand(
-        command=(
-            "if command -v python2; "
-            "then wget https://bootstrap.pypa.io/pip/2.7/get-pip.py -O /var/tmp/get-pip.py && "
-            "python2 /var/tmp/get-pip.py && "
-            "python2 -m pip install ${NUITKA_PIP_FLAGS} -r /etc/requirements-devel.txt; "
-            "fi"
-        ),
     )
 
     # Write modified content to temporary containerfile in context
@@ -319,13 +339,24 @@ def _updateContainerByBuild(
     containers_logger.info("Updated container '%s' successfully." % container_tag_name)
 
 
-def updateContainer(podman_path, container_tag_name, container_file_path, quiet):
+def updateContainer(
+    podman_path,
+    container_tag_name,
+    container_file_path,
+    quiet,
+    container_python_version,
+):
     containers_logger.info("Updating container '%s'..." % container_tag_name)
+
+    if container_python_version is not None and not re.match(
+        r"^\d+\.\d+\.\d+$", container_python_version
+    ):
+        return containers_logger.sysexit(
+            "Error, '--container-python-version' must be a full version like '3.12.3'."
+        )
 
     container_content = getFileContents(container_file_path)
 
-    # Termux can refresh itself from its container file, but forcing the full
-    # development requirements there currently breaks on unsupported packages.
     if isTermuxContainer(container_tag_name):
         _updateTermuxContainer(
             podman_path=podman_path,
@@ -337,38 +368,12 @@ def updateContainer(podman_path, container_tag_name, container_file_path, quiet)
 
         return
 
-    requirements_file = os.path.join(
-        os.path.dirname(__file__), "..", "..", "..", "requirements-devel.txt"
+    repo_root = os.path.normpath(
+        os.path.join(os.path.dirname(__file__), "..", "..", "..")
     )
-
-    if not os.path.exists(requirements_file):
-        containers_logger.sysexit(
-            "Error, cannot find expected requirements-devel.txt file."
-        )
-
-    requirements_private_file = os.path.join(
-        os.path.dirname(requirements_file),
-        "nuitka",
-        "utils",
-        "requirements-private.txt",
-    )
-    repo_root = os.path.dirname(requirements_file)
 
     # Use a temporary directory for the build context.
     with withTemporaryDirectory(containers_logger) as build_context_dir:
-        # Copy requirements-devel.txt
-        copyFile(
-            requirements_file, os.path.join(build_context_dir, "requirements-devel.txt")
-        )
-
-        # Copy nuitka/utils/requirements-private.txt
-        requirements_private_dest = os.path.join(build_context_dir, "nuitka", "utils")
-        makePath(requirements_private_dest)
-        copyFile(
-            requirements_private_file,
-            os.path.join(requirements_private_dest, "requirements-private.txt"),
-        )
-
         _updateContainerByBuild(
             podman_path=podman_path,
             container_tag_name=container_tag_name,
@@ -376,6 +381,7 @@ def updateContainer(podman_path, container_tag_name, container_file_path, quiet)
             repo_root=repo_root,
             build_context_dir=build_context_dir,
             quiet=quiet,
+            container_python_version=container_python_version,
         )
 
 
@@ -444,10 +450,7 @@ def _checkContainerArgument(
     ):
         container_file_path = container_name
 
-        if container_file_path.endswith(".in"):
-            container_file_path_template = container_file_path
-            container_file_path = container_file_path[:-3]
-        elif container_file_path.endswith(".j2"):
+        if container_file_path.endswith((".in", ".j2")):
             container_file_path_template = container_file_path
             container_file_path = container_file_path[:-3]
         else:
@@ -614,6 +617,7 @@ def runContainer(
     isolated,
     privileged,
     plugin_container_files,
+    container_python_version,
 ):
     """Run a command inside a container, building or updating it if necessary.
 
@@ -632,11 +636,13 @@ def runContainer(
         privileged: bool, allow the container run to create device nodes.
         plugin_container_files: dict of container names to container file paths
           provided by plugins.
+        container_python_version: str or None, Python version to build in the
+          container, or None to use the container's Python.
 
     Returns:
         None, exits with the container run exit code.
     """
-    # Many details, pylint: disable=too-many-locals
+    # Many details, pylint: disable=too-many-arguments,too-many-locals
 
     containers_logger.info(
         "Running in container '%s' this command: %s" % (container_name, logged_command)
@@ -649,10 +655,19 @@ def runContainer(
 
     getBranchRemoteIdentifier()
 
-    container_tag_name = "nuitka-build-%s-%s:latest" % (
-        container_name.lower(),
-        getBranchRemoteIdentifier() + "-" + getBranchName(),
-    )
+    branch_tag = getBranchRemoteIdentifier() + "-" + getBranchName()
+
+    if container_python_version is None:
+        container_tag_name = "nuitka-build-%s-%s:latest" % (
+            container_name.lower(),
+            branch_tag,
+        )
+    else:
+        container_tag_name = "nuitka-build-%s-python%s-%s:latest" % (
+            container_name.lower(),
+            container_python_version,
+            branch_tag,
+        )
 
     isolated = _checkIsolated(isolated, container_tag_name)
 
@@ -662,6 +677,7 @@ def runContainer(
             container_tag_name=container_tag_name,
             container_file_path=container_file_path,
             quiet=quiet,
+            container_python_version=container_python_version,
         )
 
     run_command = _makePodmanRunCommand(
@@ -698,6 +714,9 @@ def runContainer(
 _container_option_names = (
     "--container",
     "--container-command",
+    "--container-requirements",
+    "--container-wheels-dir",
+    "--container-python-version",
     "--container-no-build",
     "--container-podman-path",
     "--container-podman-verbose",
@@ -711,6 +730,9 @@ _container_option_names = (
 _container_option_names_with_value = (
     "--container",
     "--container-command",
+    "--container-requirements",
+    "--container-wheels-dir",
+    "--container-python-version",
     "--container-podman-path",
     "--container-shared-path",
 )
@@ -752,11 +774,19 @@ def _filterContainerOptions(args):
     return result
 
 
-def makeCompileCommand(container_name, args, main_args, execute_immediately):
+def makeCompileCommand(
+    container_name,
+    container_python_version,
+    args,
+    main_args,
+    execute_immediately,
+):
     """Create the command to compile the program inside the container.
 
     Args:
         container_name: name of the container to use.
+        container_python_version: str or None, Python version to use inside the
+          container.
         args: sequence of command line arguments of the Nuitka invocation.
         main_args: sequence of arguments to pass to the compiled program.
         execute_immediately: bool, shall the program be run immediately.
@@ -765,100 +795,19 @@ def makeCompileCommand(container_name, args, main_args, execute_immediately):
         str, command to execute inside the container that repeats the local
         compilation command.
     """
-    command = [getContainerPython(container_name), "-m", "nuitka"]
+    command = [
+        getContainerPython(container_name, container_python_version),
+        "-m",
+        "nuitka",
+    ]
 
-    if execute_immediately:
+    if execute_immediately and "--run" not in args:
         command.append("--run")
 
     command += _filterContainerOptions(args)
     command += list(main_args)
 
     return " ".join(quoteForShell(argument) for argument in command)
-
-
-def runNuitkaInContainer(container_name, container_command):
-    """Run the compilation or a command inside the selected container.
-
-    Notes:
-        This activates plugins, since they can provide container files and
-        may want to react to the container selection.
-
-    Args:
-        container_name: name of the container to use.
-        container_command: command to run inside the container instead of
-          compiling, or None.
-
-    Returns:
-        None, exits with the container run exit code.
-    """
-    from nuitka.options import Options
-    from nuitka.plugins.Plugins import (
-        activatePlugins,
-        getContainerFileContents,
-        onContainerSelection,
-        redactCommandLineArg,
-    )
-
-    activatePlugins()
-
-    onContainerSelection(container_name)
-
-    if container_command is None:
-        container_command = makeCompileCommand(
-            container_name=container_name,
-            args=sys.argv[1:],
-            main_args=Options.getMainArgs(),
-            execute_immediately=Options.shallExecuteImmediately(),
-        )
-
-        # The output shows the command with the values of sensitive options
-        # redacted, as the compilation inside the container will do.
-        logged_command = makeCompileCommand(
-            container_name=container_name,
-            args=[redactCommandLineArg(arg) for arg in sys.argv[1:]],
-            main_args=Options.getMainArgs(),
-            execute_immediately=Options.shallExecuteImmediately(),
-        )
-    else:
-        logged_command = container_command
-
-    podman_path = Options.getContainerPodmanPath()
-
-    if podman_path is None:
-        podman_path = getPodmanExecutablePath(containers_logger)
-
-        assert podman_path is not None
-
-    # The selected container file is written here from plugin provided
-    # contents, if any.
-    container_file_contents = getContainerFileContents(container_name)
-
-    with withTemporaryDirectory(
-        containers_logger, prefix="nuitka-plugin-container-"
-    ) as plugin_container_dir:
-        plugin_container_files = {}
-
-        if container_file_contents is not None:
-            container_file_path = os.path.join(
-                plugin_container_dir, container_name + ".containerfile"
-            )
-            putTextFileContents(container_file_path, container_file_contents)
-
-            plugin_container_files[container_name] = container_file_path
-
-        runContainer(
-            container_name=container_name,
-            command=container_command,
-            logged_command=logged_command,
-            no_build=Options.getContainerNoBuild(),
-            podman_path=podman_path,
-            quiet=not Options.getContainerPodmanVerbose(),
-            shared_paths=Options.getContainerSharedPaths(),
-            network=Options.getContainerNetwork(),
-            isolated=Options.getContainerIsolated(),
-            privileged=Options.getContainerPrivileged(),
-            plugin_container_files=plugin_container_files,
-        )
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and

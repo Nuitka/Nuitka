@@ -26,6 +26,64 @@ def _splitShellPattern(value):
     return value.split(",") if "{" not in value else [value]
 
 
+def getArgumentsBeforeDoubleDash(args):
+    """Iterate command line arguments before the ``--`` terminator.
+
+    Args:
+        args: Sequence of command line arguments.
+
+    Yields:
+        Arguments up to, but not including, the first ``--``.
+    """
+    for arg in args:
+        if arg == "--":
+            break
+
+        yield arg
+
+
+def getOptionIndex(option_args, option_name):
+    """Get the index of an option before the ``--`` terminator.
+
+    Args:
+        option_args: Sequence of command line arguments, without the program
+          name.
+        option_name: Option name to look for. A trailing ``=`` matches any
+          value form with ``str.startswith``, otherwise an exact match is
+          performed.
+
+    Returns:
+        int or None, index of the option in the given sequence, or None when
+        it is not present.
+    """
+    if option_name.endswith("="):
+        for index, arg in enumerate(getArgumentsBeforeDoubleDash(option_args)):
+            if arg.startswith(option_name):
+                return index
+    else:
+        for index, arg in enumerate(getArgumentsBeforeDoubleDash(option_args)):
+            if arg == option_name:
+                return index
+
+    return None
+
+
+def hasOption(option_args, option_name):
+    """Check for an option before the ``--`` terminator.
+
+    Args:
+        option_args: Sequence of command line arguments, without the program
+          name.
+        option_name: Option name to look for. A trailing ``=`` matches any
+          value form with ``str.startswith``, otherwise an exact match is
+          performed.
+
+    Returns:
+        bool, whether the option is present.
+    """
+    return getOptionIndex(option_args, option_name) is not None
+
+
 class OurOption(Option):
     TYPES = Option.TYPES + ("append_comma", "append_shell_pattern")
     TYPE_CHECKER = dict(Option.TYPE_CHECKER)
@@ -239,13 +297,9 @@ class OurOptionParser(OptionParser):
         # pylint: disable=protected-access
         option_strings = option._long_opts + option._short_opts
 
-        for arg in args:
-            if arg == "--":
-                break
-
-            for option_string in option_strings:
-                if arg == option_string or arg.startswith(option_string + "="):
-                    return True
+        for option_string in option_strings:
+            if hasOption(args, option_string) or hasOption(args, option_string + "="):
+                return True
 
         return False
 

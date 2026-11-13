@@ -833,6 +833,74 @@ def setUserSiteDirectory(user_site_directory):
     _user_site_directory = user_site_directory
 
 
+def getUnmetRequirements(requirements):
+    """Get requirements that are not satisfied by installed distributions.
+
+    Args:
+        requirements: Sequence of requirement strings.
+
+    Returns:
+        List of requirement descriptions that are missing or have an
+        unsatisfied version.
+    """
+    try:
+        from packaging.requirements import InvalidRequirement, Requirement
+    except ImportError:
+        # Keep the packaging dependency optional, use pip's copy otherwise.
+        from pip._vendor.packaging.requirements import (
+            InvalidRequirement,
+            Requirement,
+        )
+
+    missing = []
+
+    for requirement_text in requirements:
+        # Poetry renders wildcard versions as "(*)"; that is not valid PEP 508.
+        requirement_text = re.sub(r"\s*\(\*\)", "", requirement_text)
+
+        try:
+            requirement = Requirement(requirement_text)
+        except InvalidRequirement:
+            missing.append("%s (invalid requirement)" % requirement_text)
+            continue
+
+        if requirement.name.lower() in ("python", "nuitka"):
+            continue
+
+        if requirement.marker is not None:
+            try:
+                if not requirement.marker.evaluate():
+                    continue
+            except Exception:  # pylint: disable=broad-except
+                # If the marker cannot be evaluated, check the requirement
+                # rather than silently ignoring it.
+                pass
+
+        distribution = getDistribution(requirement.name)
+
+        if distribution is None:
+            missing.append(requirement_text)
+            continue
+
+        installed_version = getDistributionVersion(distribution)
+
+        if requirement.specifier:
+            try:
+                if not requirement.specifier.contains(
+                    installed_version, prereleases=True
+                ):
+                    missing.append(
+                        "%s (installed %s)" % (requirement_text, installed_version)
+                    )
+            except Exception:  # pylint: disable=broad-except
+                missing.append(
+                    "%s (installed version %r is invalid)"
+                    % (requirement_text, installed_version)
+                )
+
+    return missing
+
+
 def isNuitkaInstallRequire(requirement):
     """Check if a requirement is Nuitka.
 

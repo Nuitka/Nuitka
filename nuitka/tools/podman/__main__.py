@@ -134,7 +134,8 @@ def main():
 
     if options.command is None:
         options.command = "%s -m nuitka --version" % getContainerPython(
-            options.container_id
+            container_name=options.container_id,
+            container_python_version=None,
         )
 
     runContainer(
@@ -149,6 +150,7 @@ def main():
         isolated=options.isolated,
         privileged=options.pbuilder,
         plugin_container_files={},
+        container_python_version=None,
     )
 
 

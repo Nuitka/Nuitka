@@ -1147,16 +1147,24 @@ login, and keeping it secure, as it's something you put your source code
 on.
 
 To aid that, Nuitka commercial has container based builds, that you can
-use. This uses dedicated optimized Python builds, targets CentOS 7, 8
-and 9 and supports even newest Pythons and very old OSes that way using
-recent C compiler chains all turn key solution. The effort needs to be
-compensated to support Nuitka development for Linux, there you need to
-purchase it https://nuitka.net/doc/commercial.html but even a sponsor
-license will be cheaper than doing it yourself.
+use. This uses dedicated optimized Python builds and targets CentOS 7
+and 8, with the CentOS 7 based container in the Nuitka Commercial
+package giving even better portability of the result. It supports even
+newest Pythons and very old OSes using recent C compiler chains. See the
+`container build feature
+<https://nuitka.net/doc/commercial/portable-linux-support.html>`__ for
+details, or purchase it at `Nuitka Commercial
+<https://nuitka.net/doc/commercial.html>`__.
 
 Nuitka itself can also compile inside a container with
-``--container=CentOS8``, and plugins can provide additional containers.
-See ``--help`` for the container options.
+``--container=CentOS8`` (CentOS Stream 8-based), and plugins can provide
+additional containers. The Python version running Nuitka is built inside
+the container by default; use ``--container-python-version`` to select
+another version or ``--container-python-version=container`` to use the
+container's own Python. Use ``--container-requirements`` to install
+project requirements before compiling, and ``--container-wheels-dir`` to
+install wheel files from a host directory, mounted at
+``/Nuitka-wheels``. See ``--help`` for the container options.
 
 Program crashes system (fork bombs)
 ===================================

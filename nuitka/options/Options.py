@@ -41,6 +41,7 @@ from nuitka.PythonVersions import (
     isPythonWithGil,
     python_release_level,
     python_version,
+    python_version_full_str,
     python_version_str,
 )
 from nuitka.States import states
@@ -64,6 +65,10 @@ from nuitka.Tracing import (
     options_logger,
     progress_logger,
     setQuiet,
+)
+from nuitka.utils.Distributions import (
+    filterInstallRequires,
+    getUnmetRequirements,
 )
 from nuitka.utils.Download import getPythonBuildStandaloneFullBuildHint
 from nuitka.utils.Execution import getExecutablePath
@@ -221,9 +226,8 @@ def printVersionInformation():
 
 
 def _warnAppBundleOnlyOption(option_name):
-    if isMacOS() and not shallCreateAppBundle():
-        if not options.github_workflow_options:
-            options_logger.warning("""\
+    if isMacOS() and not shallCreateAppBundle() and not options.github_workflow_options:
+        options_logger.warning("""\
 Note: Using app bundle specific option '%s' unless building macOS app bundle \
 need to use --mode=app if you want that.""" % option_name)
 
@@ -283,6 +287,16 @@ when neither '--mode=module' or --mode='package' is \
 specified.""" % option_name)
 
 
+def _warnProjectOnlyOption(option_name):
+    message = """\
+Using project specific option '%s' has no effect without '--project'.""" % option_name
+
+    if options.github_workflow_options:
+        options_logger.info(message)
+    else:
+        options_logger.warning(message)
+
+
 def _warnOSSpecificOption(option_name, *supported_os):
     if getOS() not in supported_os:
         if options.github_workflow_options:
@@ -311,9 +325,8 @@ def _warnLinuxSpecificOption(option_name):
 
 
 def _warnLinuxAppOnlyOption(option_name):
-    if isLinux() and not isLinuxAppMode():
-        if not options.github_workflow_options:
-            options_logger.warning("""\
+    if isLinux() and not isLinuxAppMode() and not options.github_workflow_options:
+        options_logger.warning("""\
 Note: Using Linux app specific option '%s' has no effect unless \
 building with '--mode=app' or '--mode=app-dist' on Linux.""" % option_name)
 
@@ -433,6 +446,13 @@ def parseArgs():
 
     states.report_missing_trust = options.report_missing_trust
 
+    if not options.is_project_mode:
+        if options.project_requires:
+            _warnProjectOnlyOption("--project-requires")
+
+        if options.project_name is not None:
+            _warnProjectOnlyOption("--project-name")
+
     if options.container is None:
         for option_name, _dest in options.given_options:
             if option_name.startswith("--container-"):
@@ -467,11 +487,15 @@ Error, conflicting options '--mingw64' and '--clang'. Note that Clang is no \
 longer part of Winlibs and therefore no more available this way. Use only \
 --clang to use it from a MSVC installation.""")
 
-    if isWin32Windows() and options.mingw64 and python_version >= 0x3D0:
-        if not isExperimental("force-mingw64"):
-            return options_logger.sysexit(
-                "Error, cannot use '--mingw64' on Python version 3.13 or higher."
-            )
+    if (
+        isWin32Windows()
+        and options.mingw64
+        and python_version >= 0x3D0
+        and not isExperimental("force-mingw64")
+    ):
+        return options_logger.sysexit(
+            "Error, cannot use '--mingw64' on Python version 3.13 or higher."
+        )
 
     if options.quiet or int(os.getenv("NUITKA_QUIET", "0")):
         setQuiet()
@@ -501,18 +525,21 @@ longer part of Winlibs and therefore no more available this way. Use only \
         else:
             return arg
 
+    if options.version:
+        printVersionInformation()
+        sys.exit(0)
+
     # This will not return if a non-compiling command is given.
     runSpecialCommandsFromOptions(options)
 
-    if not options.version:
-        options_logger.info(
-            leader="Used command line options:",
-            message=" ".join(
-                doNotBreakSpaces(
-                    _quoteArg(redactCommandLineArg(arg)) for arg in sys.argv[1:]
-                )
-            ),
-        )
+    options_logger.info(
+        leader="Used command line options:",
+        message=" ".join(
+            doNotBreakSpaces(
+                _quoteArg(redactCommandLineArg(arg)) for arg in sys.argv[1:]
+            )
+        ),
+    )
 
     if (
         getLaunchingNuitkaProcessEnvironmentValue("NUITKA_RE_EXECUTION")
@@ -546,10 +573,6 @@ longer part of Winlibs and therefore no more available this way. Use only \
 
     optimization_logger.is_quiet = not options.verbose
 
-    if options.version:
-        printVersionInformation()
-        sys.exit(0)
-
     if options.clean_caches:
         from nuitka.CacheCleanup import cleanCaches
 
@@ -557,6 +580,9 @@ longer part of Winlibs and therefore no more available this way. Use only \
 
         if not positional_args:
             sys.exit(0)
+
+    if options.is_project_mode:
+        _checkProjectRequirements()
 
     if options.show_inclusion_output:
         inclusion_logger.setFileHandle(
@@ -587,9 +613,7 @@ longer part of Winlibs and therefore no more available this way. Use only \
             options.is_onefile = True
         elif options.compilation_mode == "standalone":
             options.is_standalone = True
-        elif options.compilation_mode == "module":
-            options.module_mode = True
-        elif options.compilation_mode == "package":
+        elif options.compilation_mode in ("module", "package"):
             options.module_mode = True
         elif options.compilation_mode == "app":
             if isMacOS():
@@ -633,11 +657,10 @@ ThreadSanitizer in a compiled extension module requires the host program to \
 preload the ThreadSanitizer runtime, e.g. using the "LD_PRELOAD" environment \
 variable on Linux, or "DYLD_INSERT_LIBRARIES" on macOS.""")
 
-    if options.is_project_mode:
-        if not isStandaloneMode():
-            return options_logger.sysexit(
-                "Error, with '--project' you must also select a mode, e.g. '--mode=standalone' or '--mode=onefile'."
-            )
+    if options.is_project_mode and not isStandaloneMode():
+        return options_logger.sysexit(
+            "Error, with '--project' you must also select a mode, e.g. '--mode=standalone' or '--mode=onefile'."
+        )
 
     # The '--main-entry-point' is intended for project-based builds and
     # does not allow to derive build output names from the entry point,
@@ -724,9 +747,8 @@ Error, the value given for '--onefile-child-grace-time' must be integer or 'infi
     # Standalone mode implies an executable, not importing "site" module, which is
     # only for this machine, recursing to all modules, and even including the
     # standard library.
-    if options.is_standalone:
-        if options.module_mode:
-            return options_logger.sysexit("""\
+    if options.is_standalone and options.module_mode:
+        return options_logger.sysexit("""\
 Error, conflicting options, cannot make standalone module, only executable.
 
 Modules are supposed to be imported to an existing Python installation, therefore it
@@ -804,13 +826,11 @@ it before using it: '%s' (from --output-filename='%s')."""
                 )
             )
 
-    if isLinuxAppMode():
-        if len(getLinuxIconPaths()) > 1:
-            return options_logger.sysexit("Error, can only use one icon file on Linux.")
+    if isLinuxAppMode() and len(getLinuxIconPaths()) > 1:
+        return options_logger.sysexit("Error, can only use one icon file on Linux.")
 
-    if isMacOS():
-        if len(getMacOSIconPaths()) > 1:
-            return options_logger.sysexit("Error, can only use one icon file on macOS.")
+    if isMacOS() and len(getMacOSIconPaths()) > 1:
+        return options_logger.sysexit("Error, can only use one icon file on macOS.")
 
     for icon_path in getWindowsIconPaths():
         if "#" in icon_path and isWin32Windows():
@@ -834,17 +854,19 @@ it before using it: '%s' (from --output-filename='%s')."""
         )
 
     # Catch all the things, don't want any interface.
+    # pylint: disable=broad-exception-caught
     try:
         file_version = getFileVersionTuple()
-    except Exception:  # pylint: disable=broad-exception-caught
+    except Exception:
         return options_logger.sysexit(
             "Error, file version must be a tuple of up to 4 integer values."
         )
 
     # Catch all the things, don't want any interface.
+    # pylint: disable=broad-exception-caught
     try:
         product_version = getProductVersionTuple()
-    except Exception:  # pylint: disable=broad-exception-caught
+    except Exception:
         return options_logger.sysexit(
             "Error, product version must be a tuple of up to 4 integer values."
         )
@@ -861,23 +883,27 @@ it before using it: '%s' (from --output-filename='%s')."""
 
     splash_screen_filename = getWindowsSplashScreen()
 
-    if splash_screen_filename is not None:
-        if not os.path.isfile(splash_screen_filename):
-            return options_logger.sysexit(
-                "Error, specified splash screen image '%s' does not exist."
-                % splash_screen_filename
-            )
+    if splash_screen_filename is not None and not os.path.isfile(
+        splash_screen_filename
+    ):
+        return options_logger.sysexit(
+            "Error, specified splash screen image '%s' does not exist."
+            % splash_screen_filename
+        )
 
     if (
-        file_version
-        or product_version
-        or getWindowsVersionInfoStrings()
-        and isWin32Windows()
+        (
+            file_version
+            or product_version
+            or getWindowsVersionInfoStrings()
+            and isWin32Windows()
+        )
+        and not (file_version or product_version)
+        and getCompanyName()
     ):
-        if not (file_version or product_version) and getCompanyName():
-            return options_logger.sysexit(
-                "Error, company name and file or product version need to be given when any version information is given."
-            )
+        return options_logger.sysexit(
+            "Error, company name and file or product version need to be given when any version information is given."
+        )
 
     if isMonolithPy():
         unsupported_monolithpy_mode = getCompilationMode()
@@ -1087,9 +1113,11 @@ version '%s' instead or newer Nuitka."""
                 )
             )
 
-    if python_release_level not in ("final", "candidate"):
-        if python_version_str not in getNotYetSupportedPythonVersions():
-            return general.sysexit("""\
+    if (
+        python_release_level not in ("final", "candidate")
+        and python_version_str not in getNotYetSupportedPythonVersions()
+    ):
+        return general.sysexit("""\
 Non-final versions '%s' '%s' are not supported by Nuitka, use the \
 final version instead.""" % (python_version_str, python_release_level))
 
@@ -2435,6 +2463,32 @@ def getContainerCommand():
     return options.container_command if options is not None else None
 
 
+def getContainerRequirements():
+    """*tuple*, requirements to install inside the container"""
+    return tuple(options.container_requirements) if options is not None else ()
+
+
+def getContainerWheelsDir():
+    """*str* or *None*, directory with wheels to install inside the container"""
+    return options.container_wheels_dir if options is not None else None
+
+
+def getContainerPythonVersion():
+    """*str* or *None*, Python version to build inside the container"""
+    if options is None:
+        return None
+
+    result = options.container_python_version
+
+    if result is None:
+        result = python_version_full_str
+
+    if result.lower() == "container":
+        return None
+
+    return result
+
+
 def getContainerNoBuild():
     """*bool*, shall the container be used as is, from ``--container-no-build``"""
     return options.container_no_build if options is not None else False
@@ -3742,10 +3796,25 @@ def getCompilationMode():
 
 def getPyProjectRequiredPackages():
     """Get the requirements that are not Nuitka from project configuration."""
-    # TODO: Move this to using code to avoid cyclic dependency.
-    from nuitka.utils.Distributions import filterInstallRequires
-
     return filterInstallRequires(options.project_requires)
+
+
+def _checkProjectRequirements():
+    assert options.is_project_mode
+
+    unmet_requirements = getUnmetRequirements(
+        filterInstallRequires(options.project_requires)
+    )
+
+    if unmet_requirements:
+        return options_logger.sysexit("""\
+Error, project requirements are not installed:
+  %s
+
+Install them in the active Python environment, e.g. with 'pip install -e .', \
+'uv sync', or 'poetry install'. When compiling with '--container', use \
+'--container-requirements' to install them in the container instead.\
+""" % "\n  ".join(unmet_requirements))
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
