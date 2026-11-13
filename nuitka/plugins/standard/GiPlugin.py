@@ -91,16 +91,21 @@ if not os.getenv("GI_TYPELIB_PATH"):
         ):
             return source_code
 
-        original_line = "sys.meta_path.append(DynamicImporter('gi.repository'))"
-
-        if original_line not in source_code:
+        for original_line in (
+            "sys.meta_path.append(DynamicImporter('gi.repository'))",
+            'sys.meta_path.append(DynamicImporter("gi.repository"))',
+        ):
+            if original_line in source_code:
+                source_code = source_code.replace(
+                    original_line, _template_gi_repository_runtime_error
+                )
+                break
+        else:
             self.warning("""\
 Failed to patch module '%s' for runtime repository namespaces, PyGObject may have changed it, \
 please report this issue.""" % module_name)
 
-            return source_code
-
-        return source_code.replace(original_line, _template_gi_repository_runtime_error)
+        return source_code
 
     def _getNamespaceInfo(self, namespace):
         """Query typelib path and dependencies for a gi namespace.
@@ -133,6 +138,25 @@ Repository.require('%s', None)""" % namespace,
             ),
             warn_import_error=False,
         )
+
+    @staticmethod
+    def _getPlatformNamespace(namespace):
+        """Get platform specific gi namespace for a namespace.
+
+        Args:
+            namespace: name of the gi namespace, e.g. 'GLib'.
+
+        Returns:
+            Name of the platform specific namespace or None.
+        """
+
+        if namespace == "Gio":
+            return "GioWin32" if isWin32Windows() else "GioUnix"
+
+        if namespace == "GLib":
+            return "GLibWin32" if isWin32Windows() else "GLibUnix"
+
+        return None
 
     def _makeTypelibDataFile(self, namespace):
         namespace_info = self._getNamespaceInfo(namespace)
@@ -168,21 +192,6 @@ Repository.require('%s', None)""" % namespace,
         if included_datafile is not None:
             yield included_datafile
 
-        # Platform specific namespaces may be loaded by C code at runtime, so
-        # their typelib files are included like PyInstaller does.
-        if namespace == "Gio":
-            platform_namespace = "GioWin32" if isWin32Windows() else "GioUnix"
-        elif namespace == "GLib":
-            platform_namespace = "GLibWin32" if isWin32Windows() else "GLibUnix"
-        else:
-            platform_namespace = None
-
-        if platform_namespace is not None:
-            included_datafile = self._makeTypelibDataFile(platform_namespace)
-
-            if included_datafile is not None:
-                yield included_datafile
-
     def createVirtualModule(self, module_name):
         """Provide generated code for "gi.repository.*" virtual modules.
 
@@ -215,6 +224,17 @@ Repository.require('%s', None)""" % namespace,
 
         if self.locateModule(override_name) is not None:
             include_imports.append("import %s\n" % override_name)
+
+        # PyGObject imports the platform specific namespace from the overrides
+        # at runtime, so its stand-in must exist even though there is no static
+        # import for it, also its override module must be included.
+        platform_namespace = self._getPlatformNamespace(namespace)
+
+        if (
+            platform_namespace is not None
+            and self._getNamespaceInfo(platform_namespace) is not None
+        ):
+            include_imports.append("import gi.repository.%s\n" % platform_namespace)
 
         source_filename = self.locateModule("gi.repository")
 
