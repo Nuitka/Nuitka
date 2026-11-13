@@ -189,6 +189,13 @@ class CollectionStartPointMixin(CollectionUpdateMixin):
 
         self.delayed_work = []
 
+        # Variables whose active version changed, in order, shared with all
+        # snapshots and branches of this start point. Merges with a known
+        # common starting position need only look at the variables written
+        # since then, instead of all active variables.
+        self.write_log = []
+        self.fork_pos = 0
+
     def getLoopBreakCollections(self):
         return self.break_collections
 
@@ -377,6 +384,8 @@ class TraceCollectionBase(object):
         "has_unescaped_variables",
         "variable_escapable",
         "needs_frame_locals_proxy",
+        "write_log",
+        "fork_pos",
     )
 
     if isCountingInstances():
@@ -455,6 +464,7 @@ class TraceCollectionBase(object):
             self.variable_actives_needs_copy = False
 
         self.variable_actives[variable] = version
+        self.write_log.append(variable)
         self.has_unescaped_variables = True
 
     def removeCurrentVariableTrace(self, variable):
@@ -463,6 +473,7 @@ class TraceCollectionBase(object):
             self.variable_actives_needs_copy = False
 
         del self.variable_actives[variable]
+        self.write_log.append(variable)
 
     def initVariableLate(self, variable):
         if self.variable_actives_needs_copy:
@@ -854,7 +865,28 @@ class TraceCollectionBase(object):
         else:
             return expression, change_tags, change_desc
 
-    def mergeBranches(self, collection_yes, collection_no):
+    def getWritePosition(self):
+        """Position in the write log, to be given to merges as a common start."""
+        return len(self.write_log)
+
+    def _getMergeCandidates(self, actives, base_pos):
+        """Variables and versions a merge must check.
+
+        Notes:
+            Without a common start position, all active variables must be
+            checked. With one, only the ones written since then can differ,
+            unless that are more, then checking all is cheaper.
+        """
+        if base_pos is not None and len(self.write_log) - base_pos < len(actives):
+            return [
+                (variable, actives[variable])
+                for variable in dict.fromkeys(self.write_log[base_pos:])
+                if variable in actives
+            ]
+
+        return iterItems(actives)
+
+    def mergeBranches(self, collection_yes, collection_no, base_pos):
         """Merge two alternative branches into this trace.
 
         This is mostly for merging conditional branches, or other ways
@@ -919,7 +951,9 @@ class TraceCollectionBase(object):
         )
         new_actives = collection1.variable_actives.copy()
 
-        for variable, version in iterItems(collection1.variable_actives):
+        for variable, version in self._getMergeCandidates(
+            collection1.variable_actives, base_pos
+        ):
             other_version = collection2.variable_actives[variable]
 
             if version != other_version:
@@ -938,6 +972,7 @@ class TraceCollectionBase(object):
                     has_unescaped_variables = True
 
                 new_actives[variable] = version
+                self.write_log.append(variable)
 
         self.variable_actives = new_actives
         self.variable_actives_needs_copy = False
@@ -946,7 +981,7 @@ class TraceCollectionBase(object):
         # be more costly.
         self.has_unescaped_variables = has_unescaped_variables
 
-    def mergeMultipleBranches(self, collections):
+    def mergeMultipleBranches(self, collections, base_pos):
         # pylint: disable=too-many-branches,too-many-locals
 
         # Optimize for length 1, which is trivial merge and needs not a
@@ -972,7 +1007,7 @@ class TraceCollectionBase(object):
             self.replaceBranch(collections[0])
             return
         elif merge_size is 2:
-            return self.mergeBranches(*collections)
+            return self.mergeBranches(collections[0], collections[1], base_pos=base_pos)
 
         _merge_counts[merge_size] += 1
 
@@ -984,7 +1019,9 @@ class TraceCollectionBase(object):
         new_actives = first_actives.copy()
         other_actives = [collection.variable_actives for collection in collections[1:]]
 
-        for variable, first_collection_version in first_actives.items():
+        for variable, first_collection_version in self._getMergeCandidates(
+            first_actives, base_pos
+        ):
             # Attempt optimistically that a variable is not influenced at
             # all by any of the branches we merge.
             for actives in other_actives:
@@ -1044,6 +1081,7 @@ class TraceCollectionBase(object):
                 has_unescaped_variables = True
 
             new_actives[variable] = version
+            self.write_log.append(variable)
 
         self.variable_actives = new_actives
         self.variable_actives_needs_copy = False
@@ -1153,6 +1191,7 @@ class TraceCollectionBase(object):
         # Unknown traces are div 3 rem 2.
         self.variable_traces[variable][-1] = trace
         self.variable_actives[variable] = -1
+        self.write_log.append(variable)
 
         return trace
 
@@ -1167,6 +1206,7 @@ class TraceCollectionBase(object):
         # Unknown traces are div 3 rem 2.
         self.variable_traces[variable][-1] = trace
         self.variable_actives[variable] = -1
+        self.write_log.append(variable)
 
         return trace
 
@@ -1180,6 +1220,7 @@ class TraceCollectionBase(object):
 
         self.variable_traces[variable][0] = trace
         self.variable_actives[variable] = 0
+        self.write_log.append(variable)
 
         return trace
 
@@ -1193,6 +1234,7 @@ class TraceCollectionBase(object):
 
         self.variable_traces[variable][0] = trace
         self.variable_actives[variable] = 0
+        self.write_log.append(variable)
 
         return trace
 
@@ -1206,6 +1248,7 @@ class TraceCollectionBase(object):
 
         self.variable_traces[variable][0] = trace
         self.variable_actives[variable] = 0
+        self.write_log.append(variable)
 
         return trace
 
@@ -1219,6 +1262,7 @@ class TraceCollectionBase(object):
 
         self.variable_traces[variable][0] = trace
         self.variable_actives[variable] = 0
+        self.write_log.append(variable)
 
         return trace
 
@@ -1235,6 +1279,8 @@ class TraceCollectionBase(object):
 
 
 class TraceCollectionBranch(CollectionUpdateMixin, TraceCollectionBase):
+    # Many state attributes, pylint: disable=too-many-instance-attributes
+
     __slots__ = (
         "variable_traces",
         "loop_variables",
@@ -1260,6 +1306,9 @@ class TraceCollectionBranch(CollectionUpdateMixin, TraceCollectionBase):
         # For quick access without going to parent.
         self.variable_traces = parent.variable_traces
         self.loop_variables = parent.loop_variables
+
+        self.write_log = parent.write_log
+        self.fork_pos = len(self.write_log)
 
     def computeBranch(self, branch):
         result = branch.computeStatementsSequence(self)
@@ -1271,6 +1320,8 @@ class TraceCollectionBranch(CollectionUpdateMixin, TraceCollectionBase):
 
 
 class TraceCollectionSnapshot(CollectionUpdateMixin, TraceCollectionBase):
+    # Many state attributes, pylint: disable=too-many-instance-attributes
+
     __slots__ = (
         "variable_traces",
         "loop_variables",
@@ -1296,6 +1347,9 @@ class TraceCollectionSnapshot(CollectionUpdateMixin, TraceCollectionBase):
         # For quick access without going to parent.
         self.variable_traces = parent.variable_traces
         self.loop_variables = parent.loop_variables
+
+        self.write_log = parent.write_log
+        self.fork_pos = len(self.write_log)
 
 
 class TraceCollectionFunction(CollectionStartPointMixin, TraceCollectionBase):
@@ -1401,6 +1455,7 @@ class TraceCollectionFunction(CollectionStartPointMixin, TraceCollectionBase):
         # to div 4.
         self.variable_traces[variable][0] = assign_trace
         self.variable_actives[variable] = 0
+        self.write_log.append(variable)
 
         return assign_trace
 

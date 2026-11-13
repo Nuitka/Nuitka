@@ -118,7 +118,9 @@ class StatementTry(StatementTryBase):
                     tried,
                 )
 
-            collection_exception_handling.mergeMultipleBranches(exception_collections)
+            collection_exception_handling.mergeMultipleBranches(
+                exception_collections, base_pos=collection_start.fork_pos
+            )
 
             if except_handler is not None:
                 result = except_handler.computeStatementsSequence(
@@ -143,7 +145,9 @@ class StatementTry(StatementTryBase):
                 parent=collection_start, name="break handler"
             )
 
-            collection_break.mergeMultipleBranches(break_collections)
+            collection_break.mergeMultipleBranches(
+                break_collections, base_pos=collection_start.fork_pos
+            )
 
             result = break_handler.computeStatementsSequence(
                 trace_collection=collection_break
@@ -166,7 +170,9 @@ class StatementTry(StatementTryBase):
                 parent=collection_start, name="continue handler"
             )
 
-            collection_continue.mergeMultipleBranches(continue_collections)
+            collection_continue.mergeMultipleBranches(
+                continue_collections, base_pos=collection_start.fork_pos
+            )
 
             result = continue_handler.computeStatementsSequence(
                 trace_collection=collection_continue
@@ -190,7 +196,9 @@ class StatementTry(StatementTryBase):
                 parent=collection_start, name="return handler"
             )
 
-            collection_return.mergeMultipleBranches(return_collections)
+            collection_return.mergeMultipleBranches(
+                return_collections, base_pos=collection_start.fork_pos
+            )
 
             result = return_handler.computeStatementsSequence(
                 trace_collection=collection_return
@@ -222,7 +230,9 @@ class StatementTry(StatementTryBase):
                 )
             else:
                 trace_collection.mergeBranches(
-                    collection_yes=collection_exception_handling, collection_no=None
+                    collection_yes=collection_exception_handling,
+                    collection_no=None,
+                    base_pos=collection_start.fork_pos,
                 )
 
         # An empty exception handler means we have to swallow exception.
