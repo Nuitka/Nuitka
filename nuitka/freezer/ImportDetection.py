@@ -12,6 +12,7 @@ import os
 import pkgutil
 import sys
 
+from nuitka.__past__ import subprocess
 from nuitka.importing.StandardLibrary import (
     getStandardLibraryPaths,
     isStandardLibraryNoAutoInclusionModule,
@@ -24,6 +25,20 @@ from nuitka.Tracing import general, printError
 from nuitka.utils.Execution import executeProcess
 from nuitka.utils.FileOperations import areSamePaths
 from nuitka.utils.ModuleNames import ModuleName
+
+# Timeout for the import detection. This should never take long, and if it
+# does, a module hangs on import, which must not block compiling forever.
+_import_detection_timeout = 60.0
+
+
+def _isControlCExitCode(exit_code):
+    """Check if the process exit code indicates a CTRL-C termination.
+
+    Notes:
+        On POSIX systems, the negative signal number is given, on Windows
+        systems, it's the control C exit code.
+    """
+    return exit_code in (-2, 0xC000013A)
 
 
 def _detectImports(command):
@@ -57,31 +72,40 @@ print("\\n".join(sorted(
     if str is not bytes:
         command = command.encode("utf8")
 
-    process_result = executeProcess(
-        command=(
-            sys.executable,
-            "-s",
-            "-S",
-            "-v",
-            "-c",
-            "import sys;exec(sys.stdin.read())",
-        ),
-        stdin=command,
-        env=dict(os.environ, PYTHONIOENCODING="utf-8"),
-    )
+    try:
+        process_result = executeProcess(
+            command=(
+                sys.executable,
+                "-s",
+                "-S",
+                "-v",
+                "-c",
+                "import sys;exec(sys.stdin.read())",
+            ),
+            stdin=command,
+            env=dict(os.environ, PYTHONIOENCODING="utf-8"),
+            timeout=_import_detection_timeout,
+        )
+    except subprocess.TimeoutExpired:
+        return general.sysexit(
+            "Error, detecting imports took longer than %d seconds, a module "
+            "hangs on import, please report the issue." % _import_detection_timeout
+        )
 
     assert type(process_result.stderr) is bytes
 
     # Don't let errors here go unnoticed.
     if process_result.exit_code != 0:
         # An error by the user pressing CTRL-C should not lead to the below output.
-        if b"KeyboardInterrupt" in process_result.stderr:
-            general.sysexit("Pressed CTRL-C while detecting early imports.")
+        if _isControlCExitCode(process_result.exit_code) or (
+            process_result.stderr.rstrip().endswith(b"KeyboardInterrupt")
+        ):
+            return general.sysexit("Pressed CTRL-C while detecting early imports.")
 
         general.warning("There is a problem with detecting imports, CPython said:")
         for line in process_result.stderr.split(b"\n"):
             printError(line)
-        general.sysexit("Error, please report the issue with above output.")
+        return general.sysexit("Error, please report the issue with above output.")
 
     detections = []
 
@@ -192,9 +216,7 @@ print("\\n".join(sorted(
                 continue
 
             module_names.add(module_name)
-        elif kind == "precompiled":
-            module_names.add(module_name)
-        elif kind == "sourcefile":
+        elif kind in ("precompiled", "sourcefile"):
             module_names.add(module_name)
         else:
             assert False, kind

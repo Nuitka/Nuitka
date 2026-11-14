@@ -12,6 +12,7 @@ import os
 import select
 import shlex
 import sys
+import threading
 from contextlib import contextmanager
 
 from nuitka.__past__ import iterItems, selectors, subprocess
@@ -70,9 +71,8 @@ def _getExecutablePath(filename, search_path):
             if os.path.exists(full):
                 candidate = full
 
-        if candidate is not None:
-            if os.access(candidate, os.X_OK):
-                return candidate
+        if candidate is not None and os.access(candidate, os.X_OK):
+            return candidate
 
 
 def getExecutablePath(filename, extra_dir=None):
@@ -156,7 +156,7 @@ def check_output(*popenargs, **kwargs):
     if "env" in kwargs:
         _checkEnvironment(kwargs["env"])
 
-    process = subprocess.Popen(stdout=subprocess.PIPE, *popenargs, **kwargs)
+    process = subprocess.Popen(*popenargs, stdout=subprocess.PIPE, **kwargs)
 
     output, stderr = process.communicate()
     exit_code = process.poll()
@@ -496,10 +496,9 @@ def wrapCommandForDebuggerForExec(command, debugger):
         )
 
     if gdb_path is None and lldb_path is None and valgrind_path is None:
-        if lldb_path is None:
-            return general.sysexit(
-                "Error, no 'gdb', 'lldb', or 'valgrind' binary found in path."
-            )
+        return general.sysexit(
+            "Error, no 'gdb', 'lldb', or 'valgrind' binary found in path."
+        )
 
     if gdb_path is not None and debugger not in ("lldb", "valgrind-memcheck"):
         args = (
@@ -578,22 +577,14 @@ def wrapCommandForDebuggerForSubprocess(command, debugger):
 
 @contextmanager
 def getNullOutput():
-    r = open(os.devnull, "wb")
-
-    try:
+    with open(os.devnull, "wb") as r:
         yield r
-    finally:
-        r.close()
 
 
 @contextmanager
 def getNullInput():
-    r = open(os.devnull, "rb")
-
-    try:
+    with open(os.devnull, "rb") as r:
         yield r
-    finally:
-        r.close()
 
 
 def filterOutputByLine(output, filter_func):
@@ -779,9 +770,13 @@ def expandProcessCallForWindows(command, shell):
     and other side effects.
     """
     # spell-checker: ignore COMSPEC
-    if not shell and isWin32Windows() and type(command) in (list, tuple):
-        if hasFilenameExtension(command[0], (".cmd", ".bat")):
-            return [os.getenv("COMSPEC", "cmd.exe"), "/d", "/c"] + list(command)
+    if (
+        not shell
+        and isWin32Windows()
+        and type(command) in (list, tuple)
+        and hasFilenameExtension(command[0], (".cmd", ".bat"))
+    ):
+        return [os.getenv("COMSPEC", "cmd.exe"), "/d", "/c"] + list(command)
 
     return command
 
@@ -911,6 +906,14 @@ class Process(object):
         self.timeout = timeout
         self.rusage = rusage
 
+        # The rusage based communication does not support a timeout, and we do
+        # not use that combination anywhere, so make sure it stays that way.
+        assert not rusage or timeout is None
+
+        # Set when the process is stopped, so the reading thread can give up
+        # on pipes still held open by the process family.
+        self.stop_requested = threading.Event()
+
         # When running.
         self.process = None
 
@@ -935,16 +938,20 @@ class Process(object):
         else:
             process_input = None
 
+        # Apply timeout if possible.
         kw_args = {}
-        if self.timeout is not None:
-            # Apply timeout if possible.
-            if "timeout" in subprocess.Popen.communicate.__code__.co_varnames:
-                kw_args["timeout"] = self.timeout
+        if (
+            self.timeout is not None
+            and "timeout" in subprocess.Popen.communicate.__code__.co_varnames
+        ):
+            kw_args["timeout"] = self.timeout
 
         # TODO: May introduce a namedtuple for the return value.
         if self.rusage:
             stdout, stderr, exit_code, rusage = _communicateWithRusage(
-                proc=self.process, process_input=process_input
+                proc=self.process,
+                process_input=process_input,
+                stop_requested=self.stop_requested,
             )
         else:
             try:
@@ -957,7 +964,19 @@ class Process(object):
                 else:
                     self.process.terminate()
 
-                stdout, stderr = self.process.communicate()
+                # Only give the killed process a short grace period to hand
+                # over its output, grandchildren may hold the pipes open, and
+                # we must not block on them for long or even forever.
+                # The 'timeout' argument is guaranteed to be supported here,
+                # since 'TimeoutExpired' only exists along with it.
+                try:
+                    stdout, stderr = self.process.communicate(timeout=10.0)
+                except subprocess.TimeoutExpired:
+                    # Even after being killed, the process family did not
+                    # release the pipes in time. Report without output rather
+                    # than block indefinitely.
+                    stdout, stderr = b"", b""
+
                 e.output = stdout
                 e.stdout = stdout
                 e.stderr = stderr
@@ -972,10 +991,39 @@ class Process(object):
 
     def stop(self):
         if self.process is not None:
-            self.process.terminate()
+            # Do not wait for the process family to release inherited pipe
+            # handles, the reading thread must give up on them instead.
+            self.stop_requested.set()
+
+            if isWin32Windows():
+                # Only on Windows, the reading thread cannot be woken up, and
+                # a killed process may leave compiler children behind that
+                # keep the pipes open, so kill the whole process tree.
+                try:
+                    with getNullOutput() as null_file:
+                        subprocess.call(
+                            ("taskkill", "/F", "/T", "/PID", str(self.process.pid)),
+                            stdout=null_file,
+                            stderr=null_file,
+                        )
+                except OSError:
+                    pass
+
+            if self.process.poll() is None:
+                try:
+                    if hasattr(self.process, "kill"):
+                        self.process.kill()
+                    else:
+                        self.process.terminate()
+                except OSError:
+                    # 'taskkill' may have killed it in the meantime, and older
+                    # Python versions do not ignore that error.
+                    pass
+
+            self.process.wait()
 
 
-def _communicateWithRusage(proc, process_input):
+def _communicateWithRusage(proc, process_input, stop_requested):
     """
     A correct implementation of communicate() that also returns resource usage.
     This version uses the high-level 'selectors' module for robust I/O handling.
@@ -1026,13 +1074,27 @@ def _communicateWithRusage(proc, process_input):
         while read_fds or write_fds:
             try:
                 ready_to_read, ready_to_write, _unused = select.select(
-                    read_fds, write_fds, ()
+                    read_fds,  # rlist
+                    write_fds,  # wlist
+                    (),  # xlist
+                    1.0,  # timeout
                 )
             except (select.error, OSError) as e:
                 if e.args and e.args[0] == errno.EINTR:  # spell-checker: ignore EINTR
                     continue
 
                 raise
+
+            if not ready_to_read and not ready_to_write and stop_requested.is_set():
+                # Closing the pipes also ends writes of grandchildren that
+                # would otherwise keep them open indefinitely.
+                for file_object in file_objects.values():
+                    file_object.close()
+
+                if stdin_file is not None:
+                    stdin_file.close()
+
+                break
 
             for fd in ready_to_read:
                 chunk = os.read(fd, 8192)
@@ -1098,7 +1160,16 @@ def _communicateWithRusage(proc, process_input):
             # This is the correct way to check if we're done.
             while selector.get_map():
                 # Wait for any of the registered file descriptors to be ready
-                ready_events = selector.select()
+                ready_events = selector.select(timeout=1.0)
+
+                if not ready_events and stop_requested.is_set():
+                    # Closing the pipes also ends writes of grandchildren that
+                    # would otherwise keep them open indefinitely.
+                    for key in list(selector.get_map().values()):
+                        selector.unregister(key.fileobj)
+                        key.fileobj.close()
+
+                    break
 
                 for key, mask in ready_events:
                     if mask & selectors.EVENT_READ:

@@ -9,6 +9,7 @@ the target at the end.
 """
 
 import os
+import signal
 import sys
 
 from nuitka.Tracing import scons_details_logger
@@ -17,13 +18,9 @@ from nuitka.utils.Utils import isWin32Windows
 
 from .SconsHacks import makeLinkerUseResponseFile
 from .SconsProgress import setSconsProgressBarTotal
-from .SconsSpawn import enableSpawnMonitoring
+from .SconsSpawn import enableSpawnMonitoring, stopSpawnThreads
 from .SconsStableIncludePaths import makeIncludePathsStable
-from .SconsUtils import (
-    changeKeyboardInterruptToErrorExit,
-    getArgumentList,
-    writeSconsReport,
-)
+from .SconsUtils import getArgumentList, writeSconsReport
 
 # spell-checker: ignore cppdefines,cpppath,libpath
 
@@ -60,6 +57,22 @@ def _raiseStackSizeLimit():
                     for limit in (stack_wanted, stack_soft)
                 )
             )
+
+
+def _changeKeyboardInterruptToErrorExit():
+    def signalHandler(signum, frame):  # pylint: disable=unused-argument
+        # Make a second interruption during the cleanup exit immediately,
+        # rather than re-entering this handler.
+        signal.signal(signum, signal.SIG_DFL)
+
+        # Stop the compiler processes still running, they would otherwise
+        # be orphaned, and their spawn threads would block on reading their
+        # output pipes forever.
+        stopSpawnThreads()
+
+        sys.exit(2)
+
+    signal.signal(signal.SIGINT, signalHandler)
 
 
 def setupScons(env, source_dir):
@@ -137,7 +150,7 @@ def executeSconsBuild(
 
     # Before we go, also lets turn KeyboardInterrupt into a mere error exit as
     # the scons traceback is not going to be very interesting to us.
-    changeKeyboardInterruptToErrorExit()
+    _changeKeyboardInterruptToErrorExit()
 
     writeSconsReport(env=env, target=target)
 

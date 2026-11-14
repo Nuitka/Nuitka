@@ -472,6 +472,20 @@ def _stopOtherThreads():
                 thread.stopThread()
 
 
+def stopSpawnThreads():
+    """Stop all running spawn threads, e.g. when interrupted.
+
+    Notes:
+        This is for use from a signal handler, and it stops the compiler
+        processes still running, so they are not orphaned, and the spawn
+        threads are able to finish, rather than blocking on their output
+        pipes forever.
+    """
+
+    closeSconsProgressBar()
+    _stopOtherThreads()
+
+
 def _runSpawnMonitored(env, args, os_env, source_filename):
     thread = SpawnThread(env, args, os_env)
 

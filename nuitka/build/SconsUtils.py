@@ -7,7 +7,6 @@ from __future__ import print_function
 
 import os
 import pickle
-import signal
 import sys
 
 from nuitka.__past__ import (  # pylint: disable=redefined-builtin
@@ -557,15 +556,6 @@ Error, scons environment variable '%s' is not set, this ought to never happen. P
             return full
 
     return None
-
-
-def changeKeyboardInterruptToErrorExit():
-    def signalHandler(
-        signal, frame
-    ):  # pylint: disable=redefined-outer-name,unused-argument
-        sys.exit(2)
-
-    signal.signal(signal.SIGINT, signalHandler)
 
 
 def setEnvironmentVariable(env, key, value):
