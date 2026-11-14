@@ -133,7 +133,11 @@ from nuitka.options.Options import (
     shallWarnUnusualCode,
 )
 from nuitka.pgo.Pgo import decideCompilationFromPGO
-from nuitka.plugins.Hooks import decideCompilation, onModuleDiscovered
+from nuitka.plugins.Hooks import (
+    decideCompilation,
+    decideDocStrings,
+    onModuleDiscovered,
+)
 from nuitka.PythonVersions import python_version
 from nuitka.Tracing import (
     general,
@@ -1144,9 +1148,11 @@ def _loadUncompiledModuleFromCache(
 
     result.setByteCode(
         demoteSourceCodeToBytecode(
-            module=result,
+            module_name=module_name,
             source_code=source_code,
             filename=source_ref.getFilename(),
+            is_package=is_package,
+            remove_doc_strings=not decideDocStrings(result),
         )
     )
 

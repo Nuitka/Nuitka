@@ -15,11 +15,7 @@ from nuitka.importing.ImportCache import (
 from nuitka.ModuleRegistry import replaceRootModule
 from nuitka.nodes.ModuleNodes import makeUncompiledPythonModule
 from nuitka.options import Options
-from nuitka.options.Options import (
-    getFileReferenceMode,
-    isShowProgress,
-    isStandaloneMode,
-)
+from nuitka.options.Options import isShowProgress, isStandaloneMode
 from nuitka.plugins.Hooks import (
     decideAssertions,
     decideDocStrings,
@@ -35,24 +31,40 @@ from nuitka.Tracing import inclusion_logger
 from nuitka.utils.FileOperations import getNormalizedPath
 
 
-def demoteSourceCodeToBytecode(module, source_code, filename):
-    module_name = module.getFullName()
+def demoteSourceCodeToBytecode(
+    module_name, source_code, filename, is_package, remove_doc_strings
+):
+    """Compile source code as a bytecode module.
+
+    Notes:
+        The caller provides the module facts and the docstring decision, so
+        this can also be used for modules that do not exist as node objects
+        yet.
+
+    Args:
+        module_name: Name of the module being demoted.
+        source_code: Source code to compile.
+        filename: Filename to use for the compilation.
+        is_package: Whether the module is a package.
+        remove_doc_strings: Whether to remove docstrings from the source tree.
+
+    Returns:
+        Marshalled bytecode for the module.
+    """
 
     if isStandaloneMode():
         filename = module_name.asPath() + ".py"
-    elif getFileReferenceMode() != "original":
-        filename = module.getRunTimeFilename()
 
     bytecode = compileSourceToBytecode(
         source_code=source_code,
         filename=filename,
-        remove_doc_strings=not decideDocStrings(module),
+        remove_doc_strings=remove_doc_strings,
         remove_asserts=not decideAssertions(module_name),
         remove_line_numbers=Options.shallRemoveBytecodeLineNumbers(),
     )
 
     bytecode = onFrozenModuleBytecode(
-        module_name=module_name, is_package=False, bytecode=bytecode
+        module_name=module_name, is_package=is_package, bytecode=bytecode
     )
 
     return marshal.dumps(bytecode)
@@ -73,9 +85,11 @@ def demoteCompiledModuleToBytecode(module):
     source_code = module.getSourceCode()
 
     bytecode = demoteSourceCodeToBytecode(
-        module=module,
+        module_name=full_name,
         source_code=source_code,
-        filename=filename,
+        filename=module.getRunTimeFilename(),
+        is_package=module.isCompiledPythonPackage(),
+        remove_doc_strings=not decideDocStrings(module),
     )
 
     uncompiled_module = makeUncompiledPythonModule(
