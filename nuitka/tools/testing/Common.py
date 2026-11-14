@@ -66,7 +66,7 @@ def check_result(*popenargs, **kwargs):
     if "stdout" in kwargs:
         raise ValueError("stdout argument not allowed, it will be overridden.")
 
-    process = subprocess.Popen(stdout=subprocess.PIPE, *popenargs, **kwargs)
+    process = subprocess.Popen(*popenargs, stdout=subprocess.PIPE, **kwargs)
     _unused_output, _unused_err = process.communicate()
     ret_value = process.poll()
 
@@ -302,11 +302,10 @@ def getTempDir():
 def convertUsing2to3(path, force=False):
     command = [os.environ["PYTHON"], "-m", "py_compile", path]
 
-    if not force:
-        if "xrange" not in getFileContents(path):
-            with getNullOutput() as null_output:
-                if check_result(command, stderr=null_output):
-                    return path, False
+    if not force and "xrange" not in getFileContents(path):
+        with getNullOutput() as null_output:
+            if check_result(command, stderr=null_output):
+                return path, False
 
     filename = os.path.basename(path)
 
@@ -467,7 +466,7 @@ def _compareWithCPythonVariations(
             on_error=on_error,
         )
 
-    for test_variant_name in extra_flags.keys():
+    for test_variant_name in extra_flags:
         if test_variant_name == "":
             test_logger.info("Default variation of the test.")
         else:
@@ -834,6 +833,7 @@ def checkReferenceCount(checked_function, max_rounds=20, explain=False, no_print
             assert m2
 
             # Using items will unwanted usages, pylint: disable=consider-using-dict-items
+            # ruff: disable[PLC0206]
             for key in m1:
                 if key not in m2:
                     my_print("*" * 80)
@@ -850,6 +850,7 @@ def checkReferenceCount(checked_function, max_rounds=20, explain=False, no_print
                     my_print("missing:", m2[key], key)
 
                     # print m1[key]
+            # ruff: enable[PLC0206]
 
     assert sys.exc_info() == (None, None, None), sys.exc_info()
 
