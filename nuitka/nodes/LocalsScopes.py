@@ -115,6 +115,22 @@ class LocalsDictHandleBase(object):
         return self.locals_name
 
     def makeClone(self, new_owner):
+        return self.makeCloneWithVariableTranslations(
+            new_owner=new_owner, variable_translations={}
+        )
+
+    def makeCloneWithVariableTranslations(self, new_owner, variable_translations):
+        """Clone the locals scope, reusing given variable translations.
+
+        Args:
+            new_owner: The new owner of the cloned locals scope.
+            variable_translations: Dictionary of old to new variables, will
+                be updated with the cloned variables.
+
+        Returns:
+            Tuple of cloned locals scope and variable translations.
+        """
+
         count = 1
 
         # Make it unique.
@@ -128,26 +144,32 @@ class LocalsDictHandleBase(object):
 
         result = self.__class__(locals_name=locals_name, owner=new_owner)
 
-        variable_translation = {}
-
         # Clone variables as well.
         for variable_name, variable in self.variables.items():
-            new_variable = variable.makeClone(new_owner=new_owner)
+            if variable in variable_translations:
+                new_variable = variable_translations[variable]
+            else:
+                new_variable = variable.makeClone(new_owner=new_owner)
 
-            variable_translation[variable] = new_variable
+                variable_translations[variable] = new_variable
+
             result.variables[variable_name] = new_variable
 
         for variable_name, variable in self.local_variables.items():
-            new_variable = variable.makeClone(new_owner=new_owner)
+            if variable in variable_translations:
+                new_variable = variable_translations[variable]
+            else:
+                new_variable = variable.makeClone(new_owner=new_owner)
 
-            variable_translation[variable] = new_variable
+                variable_translations[variable] = new_variable
+
             result.local_variables[variable_name] = new_variable
 
         result.providing = OrderedDict()
 
         for variable_name, variable in self.providing.items():
-            if variable in variable_translation:
-                new_variable = variable_translation[variable]
+            if variable in variable_translations:
+                new_variable = variable_translations[variable]
             elif variable.getOwner() is not self.owner:
                 # Closure variables are not owned by this scope, both
                 # scopes reference the same variable, which is tracked
@@ -155,13 +177,13 @@ class LocalsDictHandleBase(object):
                 new_variable = variable
             else:
                 new_variable = variable.makeClone(new_owner=new_owner)
-                variable_translation[variable] = new_variable
+                variable_translations[variable] = new_variable
 
             result.providing[variable_name] = new_variable
 
         result.bound_variable_names = set(self.bound_variable_names)
 
-        return result, variable_translation
+        return result, variable_translations
 
     @staticmethod
     def getTypeShape():

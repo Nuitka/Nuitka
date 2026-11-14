@@ -127,6 +127,7 @@ class ParameterSpec(object):
             ps_list_star_arg=self.list_star_arg,
             ps_dict_star_arg=self.dict_star_arg,
             ps_default_count=self.default_count,
+            ps_is_list_star_arg_single=self.is_list_star_arg_single,
             type_shape=self.type_shape,
         )
 

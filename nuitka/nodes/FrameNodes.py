@@ -101,6 +101,7 @@ class StatementsFrameBase(StatementsSequenceMixin, StatementsSequenceBase):
     def getDetails(self):
         result = {
             "code_object": self.code_object,
+            "owner_code_name": self.owner_code_name,
             "needs_frame_locals": self.needs_frame_locals,
         }
 

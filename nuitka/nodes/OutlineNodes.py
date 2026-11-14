@@ -16,7 +16,10 @@ from .ChildrenHavingMixins import ChildHavingBodyOptionalMixin
 from .ConstantRefNodes import makeConstantRefNode
 from .ExceptionNodes import ExpressionRaiseException
 from .ExpressionBases import ExpressionBase
-from .FunctionNodes import ExpressionFunctionBodyBase
+from .FunctionNodes import (
+    ExpressionFunctionBodyBase,
+    updateFunctionBodyReferences,
+)
 from .LocalsScopes import getLocalsDictHandle
 
 
@@ -302,12 +305,20 @@ class ExpressionOutlineFunctionBase(ExpressionOutlineMixin, ExpressionFunctionBo
             variable_translations=variable_translations,
         )
 
-        deferred_class_dict = getattr(self, "deferred_class_dict", None)
+        updateFunctionBodyReferences(
+            provider=result,
+            old_provider=self,
+            variable_translations=variable_translations,
+            code_name_translations={self.getCodeName(): result.getCodeName()},
+        )
 
-        if deferred_class_dict is not None:
-            result.deferred_class_dict = variable_translations.get(
-                deferred_class_dict, deferred_class_dict
-            )
+        if self.isExpressionClassBodyBase():
+            deferred_class_dict = self.deferred_class_dict
+
+            if deferred_class_dict is not None:
+                result.deferred_class_dict = variable_translations.get(
+                    deferred_class_dict, deferred_class_dict
+                )
 
         return result
 

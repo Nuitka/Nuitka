@@ -123,6 +123,43 @@ def clonedFinallyContraction(flag):
 print(clonedFinallyContraction(False))
 print(clonedFinallyContraction(True))
 
+print("Contraction in tuple assignment with a generator expression closure:")
+
+
+def contractionWithGenexprClosure(xs, ys):
+    a, b = [x for x in xs if any(x == y for y in ys)], 0
+    return a, b
+
+
+print(contractionWithGenexprClosure([1, 2, 3], [2]))
+
+print("Contraction in tuple assignment with a lambda closure:")
+
+
+def contractionWithLambdaClosure(xs):
+    a, b = [x for x in xs if (lambda: x)()], 0
+    return a, b
+
+
+print(contractionWithLambdaClosure([1, 2, 3]))
+
+print("Cloned contraction in a 'finally' block with a generator expression closure:")
+
+
+def clonedFinallyContractionWithClosure(xs, ys):
+    try:
+        if not xs:
+            return "returned"
+
+        print("body")
+    finally:
+        values = [x for x in xs if any(x == y for y in ys)]
+        print("finally", values)
+
+
+print(clonedFinallyContractionWithClosure([1, 2, 3], [2]))
+print(clonedFinallyContractionWithClosure([], [2]))
+
 #     Python tests originally created or extracted from other peoples work. The
 #     parts were too small to be protected.
 #

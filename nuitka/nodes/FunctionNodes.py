@@ -32,6 +32,8 @@ from nuitka.specs.ParameterSpecs import (
 )
 from nuitka.States import states
 from nuitka.Tracing import optimization_logger, printError
+from nuitka.tree.Extractions import updateVariableUsage
+from nuitka.tree.Operations import VisitorNoopMixin, visitTree
 from nuitka.tree.SourceHandling import readSourceLines
 from nuitka.tree.TreeHelpers import makeDictCreationOrConstant2
 from nuitka.utils.CStrings import decodePythonIdentifierFromC
@@ -912,6 +914,186 @@ class ExpressionFunctionPureInlineConstBody(ExpressionFunctionBody):
 
     def getFunctionInlineCost(self, values):
         return 0
+
+
+def _makeFunctionBodyClone(function_body, new_provider, variable_translations):
+    """Make a clone of a function body whose provider scope was cloned.
+
+    Notes:
+        Function bodies are shared between clones of the expression tree they
+        are contained in. When the enclosing scope is cloned, its variables
+        change, and the closure variables of these bodies need to be
+        translated to the clones as well.
+    """
+
+    if function_body.isExpressionFunctionBody():
+        result = function_body.__class__(
+            provider=new_provider,
+            name=function_body.name,
+            code_object=function_body.code_object,
+            doc=function_body.doc,
+            parameters=function_body.parameters.makeClone(),
+            flags=function_body.flags,
+            auto_release=function_body.auto_release,
+            code_prefix=function_body.code_prefix,
+            source_ref=function_body.source_ref,
+        )
+
+        parameter_variable_translations = dict(
+            zip(
+                function_body.parameters.getAllVariables(),
+                result.parameters.getAllVariables(),
+            )
+        )
+    else:
+        # Importing these here avoids a circular dependency, as these modules
+        # themselves import from this module.
+        from .AsyncgenNodes import ExpressionAsyncgenObjectBody
+        from .CoroutineNodes import ExpressionCoroutineObjectBody
+        from .GeneratorNodes import ExpressionGeneratorObjectBody
+
+        if function_body.isExpressionGeneratorObjectBody():
+            result = ExpressionGeneratorObjectBody(
+                provider=new_provider,
+                name=function_body.name,
+                code_object=function_body.code_object,
+                flags=function_body.flags,
+                auto_release=function_body.auto_release,
+                source_ref=function_body.source_ref,
+            )
+        elif function_body.isExpressionAsyncgenObjectBody():
+            result = ExpressionAsyncgenObjectBody(
+                provider=new_provider,
+                name=function_body.name,
+                code_object=function_body.code_object,
+                flags=function_body.flags,
+                auto_release=function_body.auto_release,
+                source_ref=function_body.source_ref,
+            )
+        elif function_body.isExpressionCoroutineObjectBody():
+            result = ExpressionCoroutineObjectBody(
+                provider=new_provider,
+                name=function_body.name,
+                code_object=function_body.code_object,
+                flags=function_body.flags,
+                auto_release=function_body.auto_release,
+                source_ref=function_body.source_ref,
+            )
+        else:
+            return None
+
+        parameter_variable_translations = {}
+
+    result.setChildBody(function_body.subnode_body.makeClone())
+
+    all_variable_translations = dict(variable_translations)
+    all_variable_translations.update(parameter_variable_translations)
+
+    result.locals_scope, all_variable_translations = (
+        function_body.locals_scope.makeCloneWithVariableTranslations(
+            new_owner=result, variable_translations=all_variable_translations
+        )
+    )
+
+    for temp_variable in function_body.getTempVariables(None):
+        all_variable_translations[temp_variable] = result.createTempVariable(
+            temp_name=temp_variable.getName(),
+            temp_type=temp_variable.getVariableType(),
+            outline=None,
+        )
+
+    if function_body.auto_release is not None:
+        result.auto_release = tuple(
+            all_variable_translations.get(variable, variable)
+            for variable in function_body.auto_release
+        )
+
+    for variable in function_body.taken:
+        result.taken.add(all_variable_translations.get(variable, variable))
+
+    if python_version >= 0x300 and function_body.qualname_setup is not None:
+        result.qualname_setup = all_variable_translations.get(
+            function_body.qualname_setup, function_body.qualname_setup
+        )
+
+    updateVariableUsage(
+        provider=result,
+        old_locals_scope=function_body.locals_scope,
+        new_locals_scope=result.locals_scope,
+        variable_translations=all_variable_translations,
+    )
+
+    updateFunctionBodyReferences(
+        provider=result,
+        old_provider=function_body,
+        variable_translations=all_variable_translations,
+        code_name_translations={function_body.getCodeName(): result.getCodeName()},
+    )
+
+    return result
+
+
+class _FunctionBodyRefCloneVisitor(VisitorNoopMixin):
+    """Update closure variables of function bodies referenced in a clone."""
+
+    __slots__ = (
+        "old_provider",
+        "variable_translations",
+        "code_name_translations",
+    )
+
+    def __init__(self, old_provider, variable_translations, code_name_translations):
+        self.old_provider = old_provider
+        self.variable_translations = variable_translations
+        self.code_name_translations = code_name_translations
+
+    def onEnterNode(self, node):
+        if node.isExpressionFunctionBodyBase():
+            node.taken = set(
+                self.variable_translations.get(variable, variable)
+                for variable in node.taken
+            )
+        elif node.isStatementsFrame():
+            node.owner_code_name = self.code_name_translations.get(
+                node.owner_code_name, node.owner_code_name
+            )
+        elif node.isExpressionFunctionRef():
+            function_body = node.getFunctionBody()
+
+            if function_body.getParentVariableProvider() is self.old_provider or any(
+                variable in self.variable_translations
+                for variable in function_body.getClosureVariables()
+            ):
+                function_body_clone = _makeFunctionBodyClone(
+                    function_body=function_body,
+                    new_provider=node.getParentVariableProvider(),
+                    variable_translations=self.variable_translations,
+                )
+
+                if function_body_clone is not None:
+                    node.function_body = function_body_clone
+
+
+def updateFunctionBodyReferences(
+    provider, old_provider, variable_translations, code_name_translations
+):
+    """Update function body references after cloning their scope.
+
+    Args:
+        provider: Root of the cloned expression tree.
+        old_provider: Original provider whose variables were cloned.
+        variable_translations: Mapping of old to new variables.
+        code_name_translations: Mapping of old to new code names.
+    """
+
+    visitTree(
+        provider,
+        _FunctionBodyRefCloneVisitor(
+            old_provider=old_provider,
+            variable_translations=variable_translations,
+            code_name_translations=code_name_translations,
+        ),
+    )
 
 
 # TODO: Function direct call node ought to be here too.
