@@ -671,6 +671,19 @@ def generatePkgResourcesResourceStringCallCode(to_name, expression, emit, contex
         )
 
 
+def _getImportlibResourcesModuleName(expression):
+    """Get the module name of an 'importlib.resources' call.
+
+    Args:
+        expression: The call expression.
+
+    Returns:
+        str: The module name, e.g. 'importlib.resources' or
+        'importlib_resources' for the backport.
+    """
+    return expression.spec.name.rsplit(".", 1)[0]
+
+
 def generateImportlibResourcesReadBinaryCallCode(to_name, expression, emit, context):
     package_name, resource_name = generateChildExpressionsCode(
         expression=expression, emit=emit, context=context
@@ -685,7 +698,7 @@ def generateImportlibResourcesReadBinaryCallCode(to_name, expression, emit, cont
 
         getImportModuleNameHardCode(
             to_name=read_binary_function,
-            module_name="importlib.resources",
+            module_name=_getImportlibResourcesModuleName(expression),
             import_name="read_binary",
             needs_check=False,
             emit=emit,
@@ -716,7 +729,7 @@ def generateImportlibResourcesOpenBinaryCallCode(to_name, expression, emit, cont
 
         getImportModuleNameHardCode(
             to_name=open_binary_function,
-            module_name="importlib.resources",
+            module_name=_getImportlibResourcesModuleName(expression),
             import_name="open_binary",
             needs_check=False,
             emit=emit,
@@ -741,7 +754,7 @@ def generateImportlibResourcesOpenTextCallCode(to_name, expression, emit, contex
 
         getImportModuleNameHardCode(
             to_name=open_text_function,
-            module_name="importlib.resources",
+            module_name=_getImportlibResourcesModuleName(expression),
             import_name="open_text",
             needs_check=False,
             emit=emit,
@@ -766,7 +779,7 @@ def generateImportlibResourcesReadTextCallCode(to_name, expression, emit, contex
 
         getImportModuleNameHardCode(
             to_name=read_text_function,
-            module_name="importlib.resources",
+            module_name=_getImportlibResourcesModuleName(expression),
             import_name="read_text",
             needs_check=False,
             emit=emit,
