@@ -1522,9 +1522,9 @@ Py_ssize_t _Py_HOT_FUNCTION Nuitka_Py_unicodekeys_lookup_unicode(PyDictKeysObjec
 
 #ifdef Py_GIL_DISABLED
 
-static inline Py_ALWAYS_INLINE int
-Nuitka_Py_dictkeys_compare_unicode_generic_threadsafe(PyDictObject *mp, PyDictKeysObject *dk, void *ep0, Py_ssize_t ix,
-                                                      PyObject *key, Py_hash_t hash, richcmpfunc equal_func) {
+static inline int Nuitka_Py_dictkeys_compare_unicode_generic_threadsafe(PyDictObject *mp, PyDictKeysObject *dk,
+                                                                        void *ep0, Py_ssize_t ix, PyObject *key,
+                                                                        Py_hash_t hash, richcmpfunc equal_func) {
     PyDictUnicodeEntry *ep = &((PyDictUnicodeEntry *)ep0)[ix];
     PyObject *startkey = _Py_atomic_load_ptr_relaxed(&ep->me_key);
     assert(startkey == NULL || PyUnicode_CheckExact(ep->me_key));
@@ -1563,9 +1563,9 @@ static Py_ssize_t Nuitka_Py_unicodekeys_lookup_generic_threadsafeWithEq(PyDictOb
                                         equal_func);
 }
 
-static inline Py_ALWAYS_INLINE int
-Nuitka_Py_dictkeys_compare_unicode_unicode_threadsafe(PyDictObject *mp, PyDictKeysObject *dk, void *ep0, Py_ssize_t ix,
-                                                      PyObject *key, Py_hash_t hash, richcmpfunc equal_func) {
+static inline int Nuitka_Py_dictkeys_compare_unicode_unicode_threadsafe(PyDictObject *mp, PyDictKeysObject *dk,
+                                                                        void *ep0, Py_ssize_t ix, PyObject *key,
+                                                                        Py_hash_t hash, richcmpfunc equal_func) {
     PyDictUnicodeEntry *ep = &((PyDictUnicodeEntry *)ep0)[ix];
     PyObject *startkey = _Py_atomic_load_ptr_relaxed(&ep->me_key);
     assert(startkey == NULL || PyUnicode_CheckExact(startkey));
@@ -1626,10 +1626,9 @@ static Py_ssize_t _Py_HOT_FUNCTION Nuitka_Py_unicodekeys_lookup_unicode_threadsa
                                         equal_func);
 }
 
-static inline Py_ALWAYS_INLINE int Nuitka_Py_dictkeys_compare_generic_threadsafe(PyDictObject *mp, PyDictKeysObject *dk,
-                                                                                 void *ep0, Py_ssize_t ix,
-                                                                                 PyObject *key, Py_hash_t hash,
-                                                                                 richcmpfunc equal_func) {
+static inline int Nuitka_Py_dictkeys_compare_generic_threadsafe(PyDictObject *mp, PyDictKeysObject *dk, void *ep0,
+                                                                Py_ssize_t ix, PyObject *key, Py_hash_t hash,
+                                                                richcmpfunc equal_func) {
     PyDictKeyEntry *ep = &((PyDictKeyEntry *)ep0)[ix];
     PyObject *startkey = _Py_atomic_load_ptr_relaxed(&ep->me_key);
     if (startkey == key) {
