@@ -245,19 +245,23 @@ void checkStringNumber(char const *value) {
 
 void printOSErrorMessage(char const *message, error_code_t error_code) {
 #if defined(_WIN32)
-    LPTSTR err_buffer;
+    LPWSTR err_buffer = NULL;
 
     DWORD res =
-        FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS, NULL,
-                      error_code, MAKELANGID(LANG_ENGLISH, SUBLANG_ENGLISH_US), (LPTSTR)&err_buffer, 0, NULL);
-    assert(res != 0);
+        FormatMessageW(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
+                       NULL, error_code, 0, (LPWSTR)&err_buffer, 0, NULL);
 
-    while (res > 0 && (err_buffer[res - 1] == '\r' || err_buffer[res - 1] == '\n')) {
-        res -= 1;
-        err_buffer[res] = 0;
+    if (res == 0 || err_buffer == NULL) {
+        fprintf(stderr, "%s ([Error " ERROR_CODE_FORMAT_STR "] <unknown>)\n", message, error_code);
+        return;
     }
 
-    fprintf(stderr, "%s ([Error " ERROR_CODE_FORMAT_STR "] %s)\n", message, error_code, err_buffer);
+    while (res > 0 && (err_buffer[res - 1] == L'\r' || err_buffer[res - 1] == L'\n')) {
+        res -= 1;
+    }
+    err_buffer[res] = L'\0';
+
+    fprintf(stderr, "%s ([Error " ERROR_CODE_FORMAT_STR "] %ls)\n", message, error_code, err_buffer);
 #else
     fprintf(stderr, "%s: %s\n", message, strerror(error_code));
 #endif

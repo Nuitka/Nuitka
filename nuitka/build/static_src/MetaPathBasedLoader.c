@@ -1347,27 +1347,27 @@ static entrypoint_t _loadExtensionModuleInitAddress(PyThreadState *tstate, char 
     if (unlikely(hDLL == NULL)) {
         char buffer[1024];
 
-        char error_message[1024];
+        wchar_t error_message[1024];
         int size;
 
         unsigned int error_code = GetLastError();
 
-        size = FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS, NULL, error_code, 0,
-                             (LPTSTR)error_message, sizeof(error_message), NULL);
+        size = FormatMessageW(FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS, NULL, error_code, 0,
+                              error_message, (DWORD)(sizeof(error_message) / sizeof(wchar_t)), NULL);
 
         // Report either way even if failed to get error message.
         if (size == 0) {
-            int ret = PyOS_snprintf(buffer, sizeof(buffer), "LoadLibraryExW '%S' failed with error code %d", filename,
+            int ret = PyOS_snprintf(buffer, sizeof(buffer), "LoadLibraryExW '%S' failed with error code %u", filename,
                                     error_code);
 
             assert(ret >= 0);
         } else {
             // Strip trailing newline.
-            if (size >= 2 && error_message[size - 2] == '\r' && error_message[size - 1] == '\n') {
+            if (size >= 2 && error_message[size - 2] == L'\r' && error_message[size - 1] == L'\n') {
                 size -= 2;
-                error_message[size] = '\0';
+                error_message[size] = L'\0';
             }
-            int ret = PyOS_snprintf(buffer, sizeof(buffer), "LoadLibraryExW '%S' failed: %s", filename, error_message);
+            int ret = PyOS_snprintf(buffer, sizeof(buffer), "LoadLibraryExW '%S' failed: %ls", filename, error_message);
             assert(ret >= 0);
         }
 

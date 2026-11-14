@@ -48,7 +48,7 @@ void checkStringNumber(char const *value);
 /* Get OS error code and print it to stderr. */
 #ifdef _WIN32
 typedef DWORD error_code_t;
-#define ERROR_CODE_FORMAT_STR "%ld"
+#define ERROR_CODE_FORMAT_STR "%lu"
 static inline error_code_t getCurrentErrorCode(void) { return GetLastError(); }
 #else
 typedef int error_code_t;
