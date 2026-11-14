@@ -1774,7 +1774,7 @@ through incomplete set import by '%s' plugin encountered."""
 
         return result
 
-    preprocessor_symbols = None
+    preprocessor_symbols = {}
 
     @classmethod
     @counted_plugin_method
@@ -1792,8 +1792,8 @@ through incomplete set import by '%s' plugin encountered."""
 
         # spell-checker: ignore -Dkey
 
-        if cls.preprocessor_symbols is None:
-            cls.preprocessor_symbols = OrderedDict()
+        if onefile not in cls.preprocessor_symbols:
+            symbols = OrderedDict()
 
             for plugin in getActivePlugins():
                 value = plugin.getPreprocessorSymbols(onefile=onefile)
@@ -1805,9 +1805,11 @@ through incomplete set import by '%s' plugin encountered."""
                     # and achieve determinism by ordering the defines by name.
                     for key, value in sorted(value.items()):
                         # False alarm, pylint: disable=I0021,unsupported-assignment-operation
-                        cls.preprocessor_symbols[key] = value
+                        symbols[key] = value
 
-        return cls.preprocessor_symbols
+            cls.preprocessor_symbols[onefile] = symbols
+
+        return cls.preprocessor_symbols[onefile]
 
     build_definitions = None
 
