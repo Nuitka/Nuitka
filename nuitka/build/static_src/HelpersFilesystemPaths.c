@@ -1349,6 +1349,8 @@ bool expandTemplatePath(char *target, char const *source, size_t buffer_size) {
                         return false;
                     }
 
+                    length -= 1;
+
                     if (target[length] == '/') {
                         break;
                     }
