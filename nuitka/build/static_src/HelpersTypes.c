@@ -32,8 +32,8 @@ PyObject *Nuitka_PyType_GetFullyQualifiedName(PyTypeObject *type) {
 
     PyObject *result;
 
-    if (PyUnicode_Check(module) && PyUnicode_CompareWithASCIIString(module, "builtins") != 0 &&
-        PyUnicode_CompareWithASCIIString(module, "__main__") != 0) {
+    if (PyUnicode_Check(module) && Nuitka_Unicode_CompareWithASCIIString(module, "builtins") != 0 &&
+        Nuitka_Unicode_CompareWithASCIIString(module, "__main__") != 0) {
         result = PyUnicode_FromFormat("%U.%U", module, qualname);
     } else {
         result = qualname;

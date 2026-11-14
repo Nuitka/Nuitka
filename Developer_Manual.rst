@@ -2239,6 +2239,16 @@ call of the functions below is a hint that it should be replaced.
       -  Assert an exact ``unicode`` receiver; narrower than the
          subtype-friendly CPython API.
 
+   -  -  ``PyUnicode_CompareWithASCIIString``
+
+      -  ``Nuitka_Unicode_CompareWithASCIIString``
+
+      -  ``helper/strings.h``
+
+      -  Same zero/non-zero result contract, but no internal encoding
+         and no exception raised. The C string argument must be ASCII,
+         which is asserted in debug builds.
+
    -  -  ``PyObject_Str`` / ``str()``
 
       -  ``BUILTIN_UNICODE1``

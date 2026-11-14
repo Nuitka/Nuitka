@@ -1241,6 +1241,66 @@ PyObject *Nuitka_Unicode_New(Py_ssize_t size, Py_UCS4 max_char) {
 #endif
 }
 
+int Nuitka_Unicode_CompareWithASCIIString(PyObject *unicode, char const *ascii) {
+    // Our own version of "PyUnicode_CompareWithASCIIString", see there for
+    // the result contract, but not encoding anything internally.
+    if (unlikely(!PyUnicode_Check(unicode))) {
+        return -1;
+    }
+
+#ifndef __NUITKA_NO_ASSERT__
+    // Make sure the argument is ASCII, for anything else this helper would
+    // not compare in a compatible way.
+    for (char const *ascii_char = ascii; *ascii_char != 0; ascii_char++) {
+        assert((unsigned char)*ascii_char < 128);
+    }
+#endif
+
+#if PYTHON_VERSION >= 0x300
+    // Non-ASCII strings cannot be equal to an ASCII string, no need to
+    // inspect the characters then.
+    if (!PyUnicode_IS_ASCII(unicode)) {
+        return 1;
+    }
+
+    Py_ssize_t size = PyUnicode_GET_LENGTH(unicode);
+    Py_UCS1 const *data = PyUnicode_1BYTE_DATA(unicode);
+
+    for (Py_ssize_t i = 0; i < size; i++) {
+        unsigned char c = (unsigned char)ascii[i];
+
+        if (c == 0) {
+            // The ASCII string ended before the unicode one.
+            return 1;
+        }
+
+        if (data[i] != c) {
+            return data[i] < c ? -1 : 1;
+        }
+    }
+
+    return ascii[size] != 0 ? -1 : 0;
+#else
+    Py_ssize_t size = PyUnicode_GET_SIZE(unicode);
+    Py_UNICODE const *data = PyUnicode_AS_UNICODE(unicode);
+
+    for (Py_ssize_t i = 0; i < size; i++) {
+        unsigned char c = (unsigned char)ascii[i];
+
+        if (c == 0) {
+            // The ASCII string ended before the unicode one.
+            return 1;
+        }
+
+        if (data[i] != (Py_UNICODE)c) {
+            return data[i] < (Py_UNICODE)c ? -1 : 1;
+        }
+    }
+
+    return ascii[size] != 0 ? -1 : 0;
+#endif
+}
+
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
 //

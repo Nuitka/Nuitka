@@ -474,8 +474,9 @@ static int HANDLE_PROGRAM_EXIT(PyThreadState *tstate) {
             PyTracebackObject *tb = (PyTracebackObject *)tstate->curexc_traceback;
             PyFrameObject *frame = tb->tb_frame;
 
-            if (0 == strcmp(PyUnicode_AsUTF8(Nuitka_Frame_GetCodeObject(frame)->co_filename),
-                            "<frozen importlib._bootstrap>")) {
+            PyObject *filename = Nuitka_Frame_GetCodeObject(frame)->co_filename;
+
+            if (Nuitka_Unicode_CompareWithASCIIString(filename, "<frozen importlib._bootstrap>") == 0) {
                 tstate->curexc_traceback = (PyObject *)tb->tb_next;
                 // Process is exiting, not releasing the old head frame
                 // here is acceptable.

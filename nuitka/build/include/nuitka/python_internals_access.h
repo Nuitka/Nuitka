@@ -13,6 +13,8 @@
 
 #undef _PyRuntime
 
+#include "nuitka/helper/strings.h"
+
 // spell-checker: ignore GNUC,PYRUNTIME,Qsbr,Reftracer,ceval,offsetof,stoptheworld
 
 #if _NUITKA_MODULE_MODE && PYTHON_VERSION >= 0x3e0 && PYTHON_VERSION < 0x3f0
@@ -50,9 +52,7 @@ static inline bool Nuitka_RuntimeHasPerfTrampoline(void) {
     PyObject *arg = PyTuple_GET_ITEM(args, 0);
     assert(PyUnicode_CheckExact(arg));
 
-    const char *msg = PyUnicode_AsUTF8(arg);
-    assert(msg != NULL);
-    if (strcmp(msg, "perf trampoline not available") == 0) {
+    if (Nuitka_Unicode_CompareWithASCIIString(arg, "perf trampoline not available") == 0) {
         has_perf = false;
     }
 
