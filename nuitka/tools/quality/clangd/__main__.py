@@ -17,7 +17,15 @@ from nuitka.utils.FileOperations import (
     getPathWithForwardSlashes,
     resolveShellPatternsToFilenames,
 )
+from nuitka.utils.PrivatePipSpace import (
+    getClangdBinaryPath,
+    getPrivatePipSitePackagesEnvironment,
+)
 from nuitka.utils.Utils import isWin32Windows
+
+# clangd can hang on some files, and a stuck checker is worse than a
+# reported timeout. Generated helper files can take a few minutes.
+_clangd_check_timeout = 300
 
 
 def _isIgnoredCFile(filename):
@@ -36,6 +44,14 @@ def _isIgnoredCFile(filename):
 
     if os.path.basename(filename) == "OnefileSplashScreen.cpp":
         return not isWin32Windows()
+
+    # This uses ucontext and is not buildable on Windows.
+    if os.path.basename(filename) == "HelpersDumpBacktraces.c":
+        return isWin32Windows()
+
+    # Kept for reference only, not part of any build.
+    if os.path.basename(filename) == "MetaPathBasedLoaderSource.c":
+        return True
 
     return False
 
@@ -95,12 +111,12 @@ Be verbose in output. Default is %default.""",
     )
 
     parser.add_option(
-        "--not-installed-is-no-error",
+        "--assume-yes-for-downloads",
         action="store_true",
-        dest="not_installed_is_no_error",
+        dest="assume_yes_for_downloads",
         default=False,
         help="""\
-Do not error if clangd is not installed. Default is %default.""",
+Allow download and execution of tools if needed. Default is %default.""",
     )
 
     options, positional_args = parser.parse_args()
@@ -108,27 +124,48 @@ Do not error if clangd is not installed. Default is %default.""",
     return options, positional_args
 
 
-def _checkClangdFile(filename, verbose):
+def _checkClangdFile(clangd_path, filename, verbose):
     """Run clangd --check on a single C source file.
 
     Args:
+        clangd_path: str - path to the clangd executable.
         filename: str - path to the file.
         verbose: bool - if True, echo command.
 
     Returns:
         tuple: (exit_code, stderr_text)
     """
-    command = ["clangd", "--check=%s" % filename]
+    command = [
+        clangd_path,
+        # Background indexing can make a single check take minutes or hang
+        # indefinitely, and it is not needed for checking a single file.
+        "--background-index=0",
+        "--check=%s" % filename,
+    ]
 
     if verbose:
         my_print("Running: %s" % " ".join(command))
 
-    process_result = executeProcess(command)
+    try:
+        process_result = executeProcess(
+            command,
+            env=getPrivatePipSitePackagesEnvironment(binary_path=clangd_path),
+            timeout=_clangd_check_timeout,
+        )
+    except Exception as e:
+        if e.__class__.__name__ == "TimeoutExpired":
+            return (
+                1,
+                "E[timeout] clangd check did not finish within %d seconds"
+                % _clangd_check_timeout,
+            )
+
+        raise
 
     stderr = process_result.stderr
 
     if str is not bytes and stderr is not None:
-        stderr = stderr.decode("utf8")
+        stderr = stderr.decode("utf8", "replace")
 
     return process_result.exit_code, stderr
 
@@ -149,12 +186,15 @@ def _filterClangdDiagnostics(stderr):
         stderr: str - raw stderr output from clangd.
 
     Returns:
-        list of diagnostic line strings (E and W lines only).
+        tuple: list of diagnostic line strings (E and W lines only), and the
+        number of lines that were filtered as known false positives.
     """
     if not stderr:
-        return []
+        return [], 0
 
     result = []
+    suppressed_count = 0
+
     for line in stderr.splitlines():
         stripped = line.strip()
         if not stripped:
@@ -168,35 +208,41 @@ def _filterClangdDiagnostics(stderr):
             stripped = stripped[bracket_end + 2 :]
 
         if "Failed to resolve URI" in stripped:
+            suppressed_count += 1
             continue
 
         if (
             "DefineOutline" in stripped
             and "Couldn't find a suitable implementation file" in stripped
         ):
+            suppressed_count += 1
             continue
 
         if "The new replacement overlaps with an existing replacement" in stripped:
+            suppressed_count += 1
             continue
 
         if "Class body in wrong file" in stripped:
+            suppressed_count += 1
             continue
 
         if (
             "Cannot extract break/continue without corresponding loop/switch statement"
             in stripped
         ):
+            suppressed_count += 1
             continue
 
         result.append(stripped)
 
-    return result
+    return result, suppressed_count
 
 
-def _checkFiles(filenames, verbose):
+def _checkFiles(clangd_path, filenames, verbose):
     """Run clangd --check on a list of files.
 
     Args:
+        clangd_path: str - path to the clangd executable.
         filenames: list of file paths.
         verbose: bool - if True, print OK for each file that passes.
 
@@ -206,18 +252,24 @@ def _checkFiles(filenames, verbose):
     exit_code = 0
 
     for filename in filenames:
-        file_exit_code, stderr = _checkClangdFile(filename, verbose=verbose)
+        file_exit_code, stderr = _checkClangdFile(
+            clangd_path=clangd_path, filename=filename, verbose=verbose
+        )
 
-        diagnostics = _filterClangdDiagnostics(stderr)
+        diagnostics, suppressed_count = _filterClangdDiagnostics(stderr)
 
         if diagnostics:
             exit_code = 1
             my_print("\n%s:" % filename)
             for line in diagnostics:
                 my_print("  %s" % line)
-        elif verbose and file_exit_code != 0:
+        elif file_exit_code != 0 and suppressed_count == 0:
+            # A non-zero exit without any diagnostic means clangd failed
+            # internally, e.g. because the configuration is broken or the
+            # process crashed. Do not silently accept that.
+            exit_code = 1
             my_print(
-                "\n%s: clangd exited with code %d (no diagnostics after filter)"
+                "\n%s: clangd exited with code %d without any diagnostics"
                 % (filename, file_exit_code)
             )
         elif verbose:
@@ -229,12 +281,18 @@ def _checkFiles(filenames, verbose):
 def main():
     options, positional_args = _parseArguments()
 
-    if options.not_installed_is_no_error and getExecutablePath("clangd") is None:
-        tools_logger.warning(
-            "clangd is not installed: SKIPPED",
-            style="yellow",
+    clangd_path = getExecutablePath("clangd")
+
+    if clangd_path is None:
+        clangd_path = getClangdBinaryPath(
+            logger=tools_logger,
+            assume_yes_for_downloads=options.assume_yes_for_downloads,
         )
-        return tools_logger.sysexit(exit_code=0)
+
+        if clangd_path is None:
+            return tools_logger.sysexit(
+                "Error, clangd is not installed. Use '--assume-yes-for-downloads'."
+            )
 
     goHome()
 
@@ -254,7 +312,9 @@ Run 'python misc/vscode_config_gen.py' to generate one.\
 
     my_print("Checking %d C source file(s) with clangd..." % len(filenames))
 
-    exit_code = _checkFiles(filenames, verbose=options.verbose)
+    exit_code = _checkFiles(
+        clangd_path=clangd_path, filenames=filenames, verbose=options.verbose
+    )
 
     sys.stdout.flush()
 

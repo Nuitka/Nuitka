@@ -962,6 +962,25 @@ def getClangFormatBinaryPath(logger, assume_yes_for_downloads, reject_message):
     return binary_path
 
 
+def getClangdBinaryPath(logger, assume_yes_for_downloads):
+    """Get the path of the clangd binary from the private pip space."""
+    # The clangd wheel requires Python 3.9 or newer.
+    if sys.version_info < (3, 9):
+        return None
+
+    binary_path, _site_packages_folder, _download_mode = _getPrivatePipBinaryPath(
+        logger=logger,
+        binary_name="clangd",
+        package_name="clangd",
+        module_name="clangd",
+        dependencies=(),
+        check_binary=None,
+        assume_yes_for_downloads=assume_yes_for_downloads,
+        reject_message="Checking C source code needs to use 'clangd'.",
+    )
+    return binary_path
+
+
 def getCodespellBinaryPath(logger, assume_yes_for_downloads):
     binary_path, _site_packages_folder, _download_mode = _getPrivatePipBinaryPath(
         logger=logger,
@@ -1280,6 +1299,9 @@ def _checkRequiredVersion(logger, tool, tool_call, dependencies):
             actual_version = line.split()[-1]
             break
         if "clang-format version " in line:
+            actual_version = line.split()[2]
+            break
+        if "clangd version " in line:
             actual_version = line.split()[2]
             break
 

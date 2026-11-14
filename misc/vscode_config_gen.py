@@ -197,14 +197,62 @@ def getCompilerInfo():
         return compiler_path, "", mode
 
 
+def generateClangdConfig(python_include, python_version, plugin_include_paths):
+    """Generate the .clangd configuration for the clangd LSP.
+
+    Args:
+        python_include: str - path to the Python include directory.
+        python_version: str - Python version in hexadecimal form.
+        plugin_include_paths: list of plugin include directory paths.
+    """
+    if not python_include or not os.path.isdir(python_include):
+        print(f"Error: Python include directory not found: {python_include}")
+        return
+
+    clangd_template_path = os.path.join(repo_root, "misc", "clangd.j2")
+
+    if not os.path.exists(clangd_template_path):
+        print(
+            f"Skipping .clangd generation, template not found: {clangd_template_path}"
+        )
+        return
+
+    print("Generating .clangd...")
+
+    clangd_template_str = getFileContents(clangd_template_path)
+
+    clangd_output = getTemplateFromString(clangd_template_str).render(
+        python_include_path=getPathWithForwardSlashes(python_include),
+        python_version_hex=python_version,
+        repo_root=getPathWithForwardSlashes(repo_root),
+        plugin_include_paths=[
+            getPathWithForwardSlashes(path) for path in plugin_include_paths
+        ],
+    )
+
+    clangd_output_path = os.path.join(repo_root, ".clangd")
+    putTextFileContents(clangd_output_path, clangd_output)
+
+    print(f"Successfully generated {clangd_output_path}")
+
+
 def main():
-    # Many config files to generate, therefore many locals to track,
-    # pylint: disable=too-many-locals
     print("Generating .vscode/c_cpp_properties.json...")
 
     python_include, python_version = getPythonInfo()
     print(f"Python Include: {python_include}")
     print(f"Python Version: {python_version}")
+
+    plugin_include_paths = getPluginIncludePaths()
+    print(f"Found {len(plugin_include_paths)} plugins with headers.")
+
+    # Generate the clangd configuration independently of the compiler
+    # detection, since clangd comes with its own compiler.
+    generateClangdConfig(
+        python_include=python_include,
+        python_version=python_version,
+        plugin_include_paths=plugin_include_paths,
+    )
 
     compiler_path, sdk_version, intelliSenseMode = getCompilerInfo()
 
@@ -216,9 +264,6 @@ def main():
     if sdk_version:
         print(f"Windows SDK Version: {sdk_version}")
     print(f"IntelliSense Mode: {intelliSenseMode}")
-
-    plugin_include_paths = getPluginIncludePaths()
-    print(f"Found {len(plugin_include_paths)} plugins with headers.")
 
     # VSCode expects paths relative to the workspace folder.
     vscode_plugin_include_paths = [
@@ -246,25 +291,6 @@ def main():
     putTextFileContents(output_path, output)
 
     print(f"Successfully generated {output_path}")
-
-    # Also generate .clangd for clangd-based LSP support
-    clangd_template_path = os.path.join(repo_root, "misc", "clangd.j2")
-    if os.path.exists(clangd_template_path):
-        print("Generating .clangd...")
-
-        clangd_template_str = getFileContents(clangd_template_path)
-
-        clangd_output = getTemplateFromString(clangd_template_str).render(
-            python_include_path=python_include,
-            python_version_hex=python_version,
-            repo_root=repo_root,
-            plugin_include_paths=plugin_include_paths,
-        )
-
-        clangd_output_path = os.path.join(repo_root, ".clangd")
-        putTextFileContents(clangd_output_path, clangd_output)
-
-        print(f"Successfully generated {clangd_output_path}")
 
     # Also generate .python_alias_path for the bin/*.cmd launchers on Windows.
     python_alias_path = os.path.join(repo_root, ".vscode", ".python_alias_path")
