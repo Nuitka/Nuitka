@@ -19,6 +19,15 @@ from .BuildPackageCommon import (
     setProjectExpectedDataFiles,
 )
 
+# These keys of the "[tool.uv]" section are known to not affect how the project
+# is built, and are therefore acceptable without handling. Everything else is
+# warned about, so new keys that might matter can be noticed.
+_uv_config_ignore_list = (
+    "index",
+    "managed",
+    "sources",
+)
+
 
 def _maybeVirtualEnv(path):
     """
@@ -58,8 +67,11 @@ Unhandled UV build backend config key '%s' in [tool.uv.build-backend] of the \
 
     if uv_config:
         for unhandled_key in uv_config:
+            if unhandled_key in _uv_config_ignore_list:
+                continue
+
             logger.warning("""\
-Unhandled UV config key '%s' in [tool.uv] of the 'pyproject.toml', we might \
+Unhandled UV config key '%s' in [tool.uv] of the 'pyproject.toml', Nuitka might \
 have to ignore list or handle it: %s""" % (unhandled_key, uv_config[unhandled_key]))
 
 
