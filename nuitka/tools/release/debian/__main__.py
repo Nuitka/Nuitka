@@ -267,21 +267,11 @@ SignWith: D96ADCA1377F1CEB6B5103F11BFC33752912B99C
 
     my_print("Uploading ...", style="blue")
 
-    # Create repo folder unless already done. This is needed for the first
-    # build only. It also prevents us from talking to foreign servers, by
-    # letting ssh check all it wants.
+    # Update the repository on the web site. The deploy account is restricted
+    # to rsync, and --mkpath creates the first-build repository directory.
     assert (
         os.system(
-            "ssh root@ssh.nuitka.net mkdir -p /var/www/deb/%s/%s/"
-            % (category, codename)
-        )
-        == 0
-    )
-
-    # Update the repository on the web site.
-    assert (
-        os.system(
-            "rsync -avz --delete dists pool --chown www-data root@ssh.nuitka.net:/var/www/deb/%s/%s/"
+            "rsync -avz --delete --mkpath --chmod=D755,F644 dists pool deploy@ssh.nuitka.net:/var/www/deb/%s/%s/"
             % (category, codename)
         )
         == 0
