@@ -175,6 +175,18 @@ static void prepareFrozenModules(void) {
 
 static environment_char_t const *old_env_path;
 static environment_char_t const *old_env_pythonhome;
+#if PYTHON_VERSION >= 0x360
+static environment_char_t const *old_env_pythonmalloc;
+#endif
+#if PYTHON_VERSION >= 0x300
+static environment_char_t const *old_env_pythontracemalloc;
+#endif
+#if PYTHON_VERSION >= 0x370
+static environment_char_t const *old_env_pythondevmode;
+#endif
+#if defined(Py_GIL_DISABLED)
+static environment_char_t const *old_env_pythongil;
+#endif
 
 static void prepareStandaloneEnvironment(void) {
     /* Setup environment variables to tell CPython that we would like it to use
@@ -190,6 +202,32 @@ static void prepareStandaloneEnvironment(void) {
     setEnvironmentVariable("PYTHONHOME", getBinaryDirectoryWideChars(true));
 #else
     setEnvironmentVariable("PYTHONHOME", getBinaryDirectoryHostEncoded(true));
+#endif
+
+    // Ignore allocator and interpreter mode settings from the environment, the
+    // standalone binary should use its build time defaults.
+#if PYTHON_VERSION >= 0x360
+    // Added in Python 3.6.
+    old_env_pythonmalloc = getEnvironmentVariable("PYTHONMALLOC");
+    unsetEnvironmentVariable("PYTHONMALLOC");
+#endif
+
+#if PYTHON_VERSION >= 0x300
+    // Added in Python 3.4.
+    old_env_pythontracemalloc = getEnvironmentVariable("PYTHONTRACEMALLOC");
+    unsetEnvironmentVariable("PYTHONTRACEMALLOC");
+#endif
+
+#if PYTHON_VERSION >= 0x370
+    // Added in Python 3.7.
+    old_env_pythondevmode = getEnvironmentVariable("PYTHONDEVMODE");
+    unsetEnvironmentVariable("PYTHONDEVMODE");
+#endif
+
+#if defined(Py_GIL_DISABLED)
+    // Free-threaded builds only, added in Python 3.13.
+    old_env_pythongil = getEnvironmentVariable("PYTHON_GIL");
+    unsetEnvironmentVariable("PYTHON_GIL");
 #endif
 
 #if defined(_WIN32)
@@ -1316,10 +1354,6 @@ static void setInputOutputHandles(PyThreadState *tstate) {
 }
 
 static void Nuitka_Py_Initialize(void) {
-#if PYTHON_VERSION > 0x350 && !defined(_NUITKA_EXPERIMENTAL_DISABLE_ALLOCATORS)
-    initNuitkaAllocators();
-#endif
-
     // This dead code is a good spot to put this code that is just intended to
     // for linking this API in.
 #if !defined(_WIN32) && PYTHON_VERSION >= 0x3d0
@@ -1420,6 +1454,14 @@ static void Nuitka_Py_Initialize(void) {
 #endif
 #endif
 
+#endif
+
+    // The allocators must be captured after Python initialization, so that
+    // allocator configuration done during initialization, e.g. from the
+    // "PYTHONMALLOC" environment variable, is respected. This must happen
+    // before any generated code runs, which the allocator accessors assert.
+#if PYTHON_VERSION > 0x350 && !defined(_NUITKA_EXPERIMENTAL_DISABLE_ALLOCATORS)
+    initNuitkaAllocators();
 #endif
 }
 
@@ -2296,6 +2338,18 @@ static int Nuitka_Main(int argc, native_command_line_argument_t **argv) {
     NUITKA_PRINT_TRACE("main(): Reverting to initial 'PATH' value.");
     undoEnvironmentVariable(tstate, "PATH", old_env_path);
     undoEnvironmentVariable(tstate, "PYTHONHOME", old_env_pythonhome);
+#if PYTHON_VERSION >= 0x360
+    undoEnvironmentVariable(tstate, "PYTHONMALLOC", old_env_pythonmalloc);
+#endif
+#if PYTHON_VERSION >= 0x300
+    undoEnvironmentVariable(tstate, "PYTHONTRACEMALLOC", old_env_pythontracemalloc);
+#endif
+#if PYTHON_VERSION >= 0x370
+    undoEnvironmentVariable(tstate, "PYTHONDEVMODE", old_env_pythondevmode);
+#endif
+#if defined(Py_GIL_DISABLED)
+    undoEnvironmentVariable(tstate, "PYTHON_GIL", old_env_pythongil);
+#endif
 #endif
 
 #if _NUITKA_PROFILE

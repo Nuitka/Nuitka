@@ -335,34 +335,38 @@ extern void *(*python_mem_realloc)(void *ctx, void *ptr, size_t new_size);
 extern void (*python_mem_free)(void *ctx, void *ptr);
 #endif
 
-#if defined(Py_DEBUG)
-extern void *python_obj_ctx;
-extern void *python_mem_ctx;
-#else
-#define python_obj_ctx (NULL)
-#define python_mem_ctx (NULL)
-#endif
-
 extern void initNuitkaAllocators(void);
 
-// Our version of "PyObject_Malloc".
-NUITKA_MAY_BE_UNUSED static void *NuitkaObject_Malloc(size_t size) { return python_obj_malloc(python_obj_ctx, size); }
+// Our version of "PyObject_Malloc". The default allocator does not use a
+// context, and hook allocators are routed through "PyObject_Malloc" instead.
+NUITKA_MAY_BE_UNUSED static void *NuitkaObject_Malloc(size_t size) {
+    assert(python_obj_malloc != NULL);
+    return python_obj_malloc(NULL, size);
+}
 
 // Our version of "PyMem_Malloc".
-NUITKA_MAY_BE_UNUSED static void *NuitkaMem_Malloc(size_t size) { return python_mem_malloc(python_mem_ctx, size); }
+NUITKA_MAY_BE_UNUSED static void *NuitkaMem_Malloc(size_t size) {
+    assert(python_mem_malloc != NULL);
+    return python_mem_malloc(NULL, size);
+}
 
 // Our version of "PyMem_Calloc".
 NUITKA_MAY_BE_UNUSED static void *NuitkaMem_Calloc(size_t nelem, size_t elsize) {
-    return python_mem_calloc(python_mem_ctx, nelem, elsize);
+    assert(python_mem_calloc != NULL);
+    return python_mem_calloc(NULL, nelem, elsize);
 }
 
 #ifndef Py_GIL_DISABLED
 // Our version of "PyMem_Realloc".
 NUITKA_MAY_BE_UNUSED static void *NuitkaMem_Realloc(void *ptr, size_t new_size) {
-    return python_mem_realloc(python_mem_ctx, ptr, new_size);
+    assert(python_mem_realloc != NULL);
+    return python_mem_realloc(NULL, ptr, new_size);
 }
 #else
-NUITKA_MAY_BE_UNUSED static void NuitkaMem_Free(void *ptr) { python_mem_free(python_mem_ctx, ptr); }
+NUITKA_MAY_BE_UNUSED static void NuitkaMem_Free(void *ptr) {
+    assert(python_mem_free != NULL);
+    python_mem_free(NULL, ptr);
+}
 #endif
 
 #else

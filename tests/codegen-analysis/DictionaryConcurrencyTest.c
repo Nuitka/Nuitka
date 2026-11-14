@@ -40,11 +40,6 @@ PyObject *MAKE_TUPLE_EMPTY_VAR(PyThreadState *tstate, Py_ssize_t size) {
 }
 #endif
 
-#if defined(Py_DEBUG)
-void *python_obj_ctx = NULL;
-void *python_mem_ctx = NULL;
-#endif
-
 // Minimal implementations for helpers that are not part of the dictionary
 // implementation, but are referenced by its code paths.
 void *(*python_obj_malloc)(void *ctx, size_t size) = NULL;

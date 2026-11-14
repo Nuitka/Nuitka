@@ -21,9 +21,44 @@ void *(*python_mem_realloc)(void *ctx, void *ptr, size_t new_size) = NULL;
 void (*python_mem_free)(void *ctx, void *ptr) = NULL;
 #endif
 
-#if defined(Py_DEBUG)
-void *python_obj_ctx = NULL;
-void *python_mem_ctx = NULL;
+#if _NUITKA_STANDALONE_MODE && !defined(Py_DEBUG)
+// Standalone mode ignores allocator settings from the environment, and only
+// the default allocators are expected to be in use.
+#define NUITKA_ALLOCATORS_DEFAULT_ONLY 1
+#else
+#define NUITKA_ALLOCATORS_DEFAULT_ONLY 0
+#endif
+
+// The allocator hooks can be installed and removed at runtime, e.g. by
+// "PYTHONMALLOC=debug" or "tracemalloc". Their context only remains valid for
+// as long as the hook is installed, so their functions and context must not be
+// cached, and the current allocator API is used instead. Only the default
+// allocators, which do not use a context, are called through cached pointers.
+static void *NuitkaObject_MallocAPI(void *ctx, size_t size) {
+    (void)ctx;
+    return PyObject_Malloc(size);
+}
+
+static void *NuitkaMem_MallocAPI(void *ctx, size_t size) {
+    (void)ctx;
+    return PyMem_Malloc(size);
+}
+
+static void *NuitkaMem_CallocAPI(void *ctx, size_t nelem, size_t elsize) {
+    (void)ctx;
+    return PyMem_Calloc(nelem, elsize);
+}
+
+#ifndef Py_GIL_DISABLED
+static void *NuitkaMem_ReallocAPI(void *ctx, void *ptr, size_t new_size) {
+    (void)ctx;
+    return PyMem_Realloc(ptr, new_size);
+}
+#else
+static void NuitkaMem_FreeAPI(void *ctx, void *ptr) {
+    (void)ctx;
+    PyMem_Free(ptr);
+}
 #endif
 
 void initNuitkaAllocators(void) {
@@ -31,25 +66,45 @@ void initNuitkaAllocators(void) {
 
     PyMem_GetAllocator(PYMEM_DOMAIN_OBJ, &allocators);
 
-#if defined(Py_DEBUG)
-    python_obj_ctx = allocators.ctx;
+    assert(allocators.malloc != NULL);
+
+#if NUITKA_ALLOCATORS_DEFAULT_ONLY
+    assert(allocators.ctx == NULL);
 #endif
 
-    python_obj_malloc = allocators.malloc;
+    python_obj_malloc = allocators.ctx == NULL ? allocators.malloc : NuitkaObject_MallocAPI;
 
     PyMem_GetAllocator(PYMEM_DOMAIN_MEM, &allocators);
 
-#if defined(Py_DEBUG)
-    python_mem_ctx = allocators.ctx;
+    assert(allocators.malloc != NULL);
+    assert(allocators.calloc != NULL);
+#ifndef Py_GIL_DISABLED
+    assert(allocators.realloc != NULL);
+#else
+    assert(allocators.free != NULL);
 #endif
 
-    python_mem_malloc = allocators.malloc;
-    python_mem_calloc = allocators.calloc;
-#ifndef Py_GIL_DISABLED
-    python_mem_realloc = allocators.realloc;
-#else
-    python_mem_free = allocators.free;
+#if NUITKA_ALLOCATORS_DEFAULT_ONLY
+    assert(allocators.ctx == NULL);
 #endif
+
+    if (allocators.ctx == NULL) {
+        python_mem_malloc = allocators.malloc;
+        python_mem_calloc = allocators.calloc;
+#ifndef Py_GIL_DISABLED
+        python_mem_realloc = allocators.realloc;
+#else
+        python_mem_free = allocators.free;
+#endif
+    } else {
+        python_mem_malloc = NuitkaMem_MallocAPI;
+        python_mem_calloc = NuitkaMem_CallocAPI;
+#ifndef Py_GIL_DISABLED
+        python_mem_realloc = NuitkaMem_ReallocAPI;
+#else
+        python_mem_free = NuitkaMem_FreeAPI;
+#endif
+    }
 }
 
 #if defined(Py_GIL_DISABLED) && defined(Py_REF_DEBUG) && PYTHON_VERSION >= 0x3d0 && PYTHON_VERSION < 0x3e0

@@ -32,6 +32,59 @@ environment_char_t const *getEnvironmentVariable(char const *name) {
     return getEnvironmentVariableW(name_wide);
 }
 
+// Update the C runtime environment too, since "getenv" uses it and does not
+// see changes done with "SetEnvironmentVariableW".
+static void updateCRTEnvironmentVariable(char const *name, wchar_t const *value) {
+    wchar_t name_wide[64];
+    name_wide[0] = 0;
+    appendStringSafeW(name_wide, name, sizeof(name_wide) / sizeof(wchar_t));
+
+    size_t name_length = wcslen(name_wide);
+    size_t value_length = wcslen(value);
+
+    wchar_t *env_string = (wchar_t *)malloc((name_length + value_length + 2) * sizeof(wchar_t));
+    assert(env_string != NULL);
+
+    memcpy(env_string, name_wide, name_length * sizeof(wchar_t));
+    env_string[name_length] = L'=';
+    memcpy(env_string + name_length + 1, value, (value_length + 1) * sizeof(wchar_t));
+
+    _wputenv(env_string);
+
+    // When Nuitka is compiled with a different C runtime than Python, e.g.
+    // MinGW against an official UCRT based Python, the environment of the
+    // Python runtime must be updated as well, since it uses "getenv".
+    {
+        static wchar_t const *const crt_names[] = {
+            L"ucrtbase.dll", L"msvcrt.dll",   L"msvcr80.dll",  L"msvcr90.dll",
+            L"msvcr100.dll", L"msvcr110.dll", L"msvcr120.dll",
+        };
+
+        typedef int(__cdecl * wputenv_function_t)(wchar_t const *);
+
+        for (size_t i = 0; i < sizeof(crt_names) / sizeof(crt_names[0]); i++) {
+            HMODULE crt_module = GetModuleHandleW(crt_names[i]);
+
+            if (crt_module != NULL) {
+                // Avoid a cast between incompatible function types, which
+                // newer compilers warn about.
+                union {
+                    FARPROC as_proc;
+                    wputenv_function_t as_function;
+                } function;
+
+                function.as_proc = GetProcAddress(crt_module, "_wputenv");
+
+                if (function.as_function != NULL) {
+                    function.as_function(env_string);
+                }
+            }
+        }
+    }
+
+    // Intentionally not freed, a C runtime might keep a pointer to it.
+}
+
 void setEnvironmentVariable(char const *name, environment_char_t const *value) {
     assert(name != NULL);
     assert(value != NULL);
@@ -42,8 +95,9 @@ void setEnvironmentVariable(char const *name, environment_char_t const *value) {
 
     DWORD res = SetEnvironmentVariableW(name_wide, value);
     assert(wcscmp(getEnvironmentVariable(name), value) == 0);
-
     assert(res != 0);
+
+    updateCRTEnvironmentVariable(name, value);
 }
 
 void unsetEnvironmentVariable(char const *name) {
@@ -52,8 +106,9 @@ void unsetEnvironmentVariable(char const *name) {
     appendStringSafeW(name_wide, name, sizeof(name_wide) / sizeof(wchar_t));
 
     DWORD res = SetEnvironmentVariableW(name_wide, NULL);
-
     assert(res != 0);
+
+    updateCRTEnvironmentVariable(name, L"");
 }
 
 #else
