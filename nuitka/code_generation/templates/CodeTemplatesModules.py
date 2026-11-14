@@ -242,6 +242,21 @@ static PyObject *module_code_%(module_identifier)s(PyThreadState *tstate, PyObje
     // Report entry to PGO.
     %(pgo_probe_module_enter_code)s
 
+#if _NUITKA_MODULE_MODE && %(is_top)d
+    // A first load through the interpreter's extension module loading does not
+    // go through our loader, which otherwise sets the state before running the
+    // module code. The state has to own a reference after a successful first
+    // load, and it must not keep the failed module of a first load, which the
+    // interpreter releases.
+    bool module_state_was_set = module_%(module_identifier)s == module;
+
+    if (module_state_was_set == false && module_%(module_identifier)s != NULL) {
+        // The state of a previous successful load is replaced, release the
+        // reference it owns.
+        Py_DECREF(module_%(module_identifier)s);
+    }
+#endif
+
     // Store the module for future use.
     module_%(module_identifier)s = module;
 
@@ -274,6 +289,12 @@ static PyObject *module_code_%(module_identifier)s(PyThreadState *tstate, PyObje
                 %(module_force_name)s,
                 module_full_name
             );
+
+#if _NUITKA_MODULE_MODE && %(is_top)d
+            if (module_state_was_set == false) {
+                module_%(module_identifier)s = NULL;
+            }
+#endif
 
             return NULL;
         }
@@ -465,6 +486,14 @@ static PyObject *module_code_%(module_identifier)s(PyThreadState *tstate, PyObje
     Nuitka_LoadTriggeredModule(tstate, entry_%(module_identifier)s.m_post_load);
 #endif
 
+#if _NUITKA_MODULE_MODE && %(is_top)d
+    // A first load through the interpreter's extension module loading does not
+    // go through our loader, so the load state does not own a reference yet.
+    if (module_state_was_set == false) {
+        Py_INCREF(module_%(module_identifier)s);
+    }
+#endif
+
     Py_INCREF(module_%(module_identifier)s);
     return module_%(module_identifier)s;
 %(module_exit)s
@@ -609,6 +638,10 @@ static int %(module_dll_entry_point)s_slot(PyObject *module) {
     if (unlikely(result == NULL)) {
         return 1;
     } else {
+        // The module execution slot only reports success, the returned module
+        // reference is not used by the interpreter.
+        Py_DECREF(result);
+
         return 0;
     }
 }
@@ -675,15 +708,17 @@ template_module_exception_exit = """\
     module_exception_exit:
 
 #if _NUITKA_MODULE_MODE && %(is_top)d
-    {
+    if (module_state_was_set == false) {
         PyObject *module_name = GET_STRING_DICT_VALUE(moduledict_%(module_identifier)s, (Nuitka_StringObject *)const_str_plain___name__);
 
         if (module_name != NULL) {
             Nuitka_DelModule(tstate, module_name);
         }
 
-        // The failed module is not published, the interpreter removes it from
-        // "sys.modules" as well.
+        // The failed module of a first load is not published and the
+        // interpreter releases it, so the load state must not keep it.
+        module_%(module_identifier)s = NULL;
+
         module_set_published_value_%(module_identifier)s(NULL);
     }
 #endif
