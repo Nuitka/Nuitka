@@ -253,10 +253,19 @@ class ValueTraceMerge2(ValueTraceMergeMethodsMixin, ValueTraceMergeBase):
             other.trace1
         ) and self.trace2.compareValueTrace(other.trace2)
 
-    def isUnchangedResumeTrace(self, loop_entry_trace):
-        return self.trace1.isUnchangedResumeTrace(
-            loop_entry_trace
-        ) and self.trace2.isUnchangedResumeTrace(loop_entry_trace)
+    def isUnchangedResumeTrace(self, loop_entry_trace, context):
+        cached = context.cache.get(self)
+
+        if cached is not None:
+            return cached
+
+        result = self.trace1.isUnchangedResumeTrace(
+            loop_entry_trace, context
+        ) and self.trace2.isUnchangedResumeTrace(loop_entry_trace, context)
+
+        context.cache[self] = result
+
+        return result
 
     def addNameUsage(self):
         self.usage_count += 1
@@ -564,12 +573,21 @@ class ValueTraceMerge3(ValueTraceMergeMethodsMixin, ValueTraceMergeBase):
             and self.trace3.compareValueTrace(other.trace3)
         )
 
-    def isUnchangedResumeTrace(self, loop_entry_trace):
-        return (
-            self.trace1.isUnchangedResumeTrace(loop_entry_trace)
-            and self.trace2.isUnchangedResumeTrace(loop_entry_trace)
-            and self.trace3.isUnchangedResumeTrace(loop_entry_trace)
+    def isUnchangedResumeTrace(self, loop_entry_trace, context):
+        cached = context.cache.get(self)
+
+        if cached is not None:
+            return cached
+
+        result = (
+            self.trace1.isUnchangedResumeTrace(loop_entry_trace, context)
+            and self.trace2.isUnchangedResumeTrace(loop_entry_trace, context)
+            and self.trace3.isUnchangedResumeTrace(loop_entry_trace, context)
         )
+
+        context.cache[self] = result
+
+        return result
 
     def addNameUsage(self):
         self.usage_count += 1
@@ -932,13 +950,22 @@ class ValueTraceMerge4(ValueTraceMergeMethodsMixin, ValueTraceMergeBase):
             and self.trace4.compareValueTrace(other.trace4)
         )
 
-    def isUnchangedResumeTrace(self, loop_entry_trace):
-        return (
-            self.trace1.isUnchangedResumeTrace(loop_entry_trace)
-            and self.trace2.isUnchangedResumeTrace(loop_entry_trace)
-            and self.trace3.isUnchangedResumeTrace(loop_entry_trace)
-            and self.trace4.isUnchangedResumeTrace(loop_entry_trace)
+    def isUnchangedResumeTrace(self, loop_entry_trace, context):
+        cached = context.cache.get(self)
+
+        if cached is not None:
+            return cached
+
+        result = (
+            self.trace1.isUnchangedResumeTrace(loop_entry_trace, context)
+            and self.trace2.isUnchangedResumeTrace(loop_entry_trace, context)
+            and self.trace3.isUnchangedResumeTrace(loop_entry_trace, context)
+            and self.trace4.isUnchangedResumeTrace(loop_entry_trace, context)
         )
+
+        context.cache[self] = result
+
+        return result
 
     def addNameUsage(self):
         self.usage_count += 1
@@ -1356,14 +1383,23 @@ class ValueTraceMerge5(ValueTraceMergeMethodsMixin, ValueTraceMergeBase):
             and self.trace5.compareValueTrace(other.trace5)
         )
 
-    def isUnchangedResumeTrace(self, loop_entry_trace):
-        return (
-            self.trace1.isUnchangedResumeTrace(loop_entry_trace)
-            and self.trace2.isUnchangedResumeTrace(loop_entry_trace)
-            and self.trace3.isUnchangedResumeTrace(loop_entry_trace)
-            and self.trace4.isUnchangedResumeTrace(loop_entry_trace)
-            and self.trace5.isUnchangedResumeTrace(loop_entry_trace)
+    def isUnchangedResumeTrace(self, loop_entry_trace, context):
+        cached = context.cache.get(self)
+
+        if cached is not None:
+            return cached
+
+        result = (
+            self.trace1.isUnchangedResumeTrace(loop_entry_trace, context)
+            and self.trace2.isUnchangedResumeTrace(loop_entry_trace, context)
+            and self.trace3.isUnchangedResumeTrace(loop_entry_trace, context)
+            and self.trace4.isUnchangedResumeTrace(loop_entry_trace, context)
+            and self.trace5.isUnchangedResumeTrace(loop_entry_trace, context)
         )
+
+        context.cache[self] = result
+
+        return result
 
     def addNameUsage(self):
         self.usage_count += 1
@@ -1836,15 +1872,24 @@ class ValueTraceMerge6(ValueTraceMergeMethodsMixin, ValueTraceMergeBase):
             and self.trace6.compareValueTrace(other.trace6)
         )
 
-    def isUnchangedResumeTrace(self, loop_entry_trace):
-        return (
-            self.trace1.isUnchangedResumeTrace(loop_entry_trace)
-            and self.trace2.isUnchangedResumeTrace(loop_entry_trace)
-            and self.trace3.isUnchangedResumeTrace(loop_entry_trace)
-            and self.trace4.isUnchangedResumeTrace(loop_entry_trace)
-            and self.trace5.isUnchangedResumeTrace(loop_entry_trace)
-            and self.trace6.isUnchangedResumeTrace(loop_entry_trace)
+    def isUnchangedResumeTrace(self, loop_entry_trace, context):
+        cached = context.cache.get(self)
+
+        if cached is not None:
+            return cached
+
+        result = (
+            self.trace1.isUnchangedResumeTrace(loop_entry_trace, context)
+            and self.trace2.isUnchangedResumeTrace(loop_entry_trace, context)
+            and self.trace3.isUnchangedResumeTrace(loop_entry_trace, context)
+            and self.trace4.isUnchangedResumeTrace(loop_entry_trace, context)
+            and self.trace5.isUnchangedResumeTrace(loop_entry_trace, context)
+            and self.trace6.isUnchangedResumeTrace(loop_entry_trace, context)
         )
+
+        context.cache[self] = result
+
+        return result
 
     def addNameUsage(self):
         self.usage_count += 1

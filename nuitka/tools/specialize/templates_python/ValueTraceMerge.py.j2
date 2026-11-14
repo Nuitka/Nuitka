@@ -226,13 +226,22 @@ class ValueTraceMerge{{ trace_count }}(ValueTraceMergeMethodsMixin, ValueTraceMe
 {% endfor %}
         )
 
-    def isUnchangedResumeTrace(self, loop_entry_trace):
-        return (
+    def isUnchangedResumeTrace(self, loop_entry_trace, context):
+        cached = context.cache.get(self)
+
+        if cached is not None:
+            return cached
+
+        result = (
 {% for trace in traces %}
-            self.{{ trace }}.isUnchangedResumeTrace(loop_entry_trace){% if not loop.last %} and{% endif %}
+            self.{{ trace }}.isUnchangedResumeTrace(loop_entry_trace, context){% if not loop.last %} and{% endif %}
 
 {% endfor %}
         )
+
+        context.cache[self] = result
+
+        return result
 
     def addNameUsage(self):
         self.usage_count += 1

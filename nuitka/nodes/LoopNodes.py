@@ -12,6 +12,9 @@ from collections import defaultdict
 
 from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.optimizations.TraceCollections import TraceCollectionBranch
+from nuitka.optimizations.value_traces.ValueTracesStatic import (
+    UnchangedResumeTraceQueryContext,
+)
 
 from .NodeBases import StatementBase
 from .shapes.StandardShapes import tshape_unknown, tshape_unknown_loop
@@ -312,10 +315,16 @@ class StatementLoop(StatementLoopBase):
                     for continue_collection in continue_collections
                 )
 
-                value_identity_stable = all(
-                    resume_trace.isUnchangedResumeTrace(loop_entry_trace)
-                    for resume_trace in loop_resume_traces
-                )
+                unchanged_resume_context = UnchangedResumeTraceQueryContext()
+
+                for resume_trace in loop_resume_traces:
+                    if not resume_trace.isUnchangedResumeTrace(
+                        loop_entry_trace, unchanged_resume_context
+                    ):
+                        value_identity_stable = False
+                        break
+                else:
+                    value_identity_stable = True
 
                 # Giving up
                 if self.incomplete_count >= 20:

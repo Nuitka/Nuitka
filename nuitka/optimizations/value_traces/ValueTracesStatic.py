@@ -135,13 +135,14 @@ class ValueTraceBase(object):
     def getPrevious():
         return None
 
-    def isUnchangedResumeTrace(self, loop_entry_trace):
+    def isUnchangedResumeTrace(self, loop_entry_trace, context):
         """Is this loop resume trace the loop entry value itself.
 
         Escape and unknown traces only mean knowledge was lost, not that
         the value identity changed, so they are looked through. Rebinding
         would be an assignment or deletion trace.
         """
+        # Virtual method, pylint: disable=unused-argument
         return self is loop_entry_trace
 
     @abstractmethod
@@ -639,8 +640,8 @@ class ValueTraceUnknown(ValueTraceSinglePreviousMixin, ValueTraceUnknownBase):
         finally:
             visited.remove(self)
 
-    def isUnchangedResumeTrace(self, loop_entry_trace):
-        return self.previous.isUnchangedResumeTrace(loop_entry_trace)
+    def isUnchangedResumeTrace(self, loop_entry_trace, context):
+        return self.previous.isUnchangedResumeTrace(loop_entry_trace, context)
 
 
 class ValueTraceStartUnknown(ValueTraceStartMixin, ValueTraceUnknownBase):
@@ -1135,6 +1136,21 @@ class MustHaveValueQueryContext(object):
         self.cache = self.cache_stack.pop()
 
 
+class UnchangedResumeTraceQueryContext(object):
+    """State of a single 'isUnchangedResumeTrace' query.
+
+    Merge traces form a shared graph, and without caching answers, visiting
+    all paths through it can take exponential time. Within a single query,
+    the trace graph does not change, so answers can be cached to avoid
+    revisiting shared merge traces.
+    """
+
+    __slots__ = ("cache",)
+
+    def __init__(self):
+        self.cache = {}
+
+
 # States of the "must have value" decision of a merge trace. The values are
 # interned small integers, so identity comparisons are intentional.
 #
@@ -1225,12 +1241,22 @@ class ValueTraceMergeMethodsMixin(object):
 
         return True
 
-    def isUnchangedResumeTrace(self, loop_entry_trace):
-        for previous in self.previous:
-            if not previous.isUnchangedResumeTrace(loop_entry_trace):
-                return False
+    def isUnchangedResumeTrace(self, loop_entry_trace, context):
+        cached = context.cache.get(self)
 
-        return True
+        if cached is not None:
+            return cached
+
+        result = True
+
+        for previous in self.previous:
+            if not previous.isUnchangedResumeTrace(loop_entry_trace, context):
+                result = False
+                break
+
+        context.cache[self] = result
+
+        return result
 
     def isLoopDependent(self):
         state = self.must_have_value_state
