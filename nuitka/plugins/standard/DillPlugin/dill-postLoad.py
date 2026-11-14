@@ -55,6 +55,12 @@ else:
         # This gets the "_create_compiled_function" of the module and calls it.
         return compiled_function_tables[module_name][1](*func_values)
 
+    # The helper is defined in an internal trigger module that is not in
+    # "sys.modules", but pickle needs to find it by reference, so publish it in
+    # the visible "dill" module instead.
+    dill._create_compiled_function = _create_compiled_function
+    _create_compiled_function.__module__ = dill.__name__
+
     # Compiled methods might have to be created as well. This is very closely following
     # the code of "dill._dill.save_function" that is intended to do things for the
     # uncompiled function.

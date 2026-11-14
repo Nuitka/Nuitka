@@ -23,6 +23,12 @@ else:
         # This gets the "_create_compiled_function" of the module and calls it.
         return compiled_function_tables[module_name][1](*func_values)
 
+    # The helper is defined in an internal trigger module that is not in
+    # "sys.modules", but pickle needs to find it by reference, so publish it in
+    # the visible "cloudpickle" module instead.
+    cloudpickle._create_compiled_function = _create_compiled_function
+    _create_compiled_function.__module__ = cloudpickle.__name__
+
     orig_dynamic_function_reduce = (
         cloudpickle.cloudpickle.Pickler._dynamic_function_reduce
     )
