@@ -33,6 +33,53 @@ def _resolveOriginValue(rpath, origin):
     return rpath
 
 
+def _runLddCommand(dll_filename, package_name, python_rpaths, original_dir):
+    """Run 'ldd' with the package specific library path and check for failures.
+
+    Args:
+        dll_filename: The DLL to inspect.
+        package_name: Name of the package the DLL belongs to.
+        python_rpaths: RPATHs of the Python executable.
+        original_dir: Directory of the original DLL file.
+
+    Returns:
+        Tuple of the process result and the filtered stderr output.
+    """
+    process_result = executeProcess(
+        command=("ldd", dll_filename),
+        env=getEnvironmentWithPathAdded(
+            "LD_LIBRARY_PATH",
+            *getLdLibraryPath(
+                package_name=package_name,
+                python_rpaths=python_rpaths,
+                original_dir=original_dir,
+            )
+        ),
+    )
+
+    # This warning is harmless, the DLL is still analyzed.
+    stderr = b"\n".join(
+        line
+        for line in process_result.stderr.splitlines()
+        if not line.startswith(
+            b"ldd: warning: you do not have execution permission for"
+        )
+    )
+
+    if process_result.exit_code != 0:
+        error_output = stderr or process_result.stdout
+
+        if str is not bytes:
+            error_output = error_output.decode("utf8", "replace")
+
+        return inclusion_logger.sysexit(
+            "Error, 'ldd' failed with exit code %d for '%s':\n%s"
+            % (process_result.exit_code, dll_filename, error_output)
+        )
+
+    return process_result, stderr
+
+
 def detectBinaryPathDLLsPosix(dll_filename, package_name, original_dir):
     # This is complex, as it also includes the caching mechanism
     # pylint: disable=too-many-branches,too-many-locals
@@ -76,25 +123,11 @@ def detectBinaryPathDLLsPosix(dll_filename, package_name, original_dir):
         link_target_path = os.path.dirname(os.path.realpath(dll_filename))
         python_rpaths.append(link_target_path)
 
-    # TODO: Check exit code, should never fail.
-    process_result = executeProcess(
-        command=("ldd", dll_filename),
-        env=getEnvironmentWithPathAdded(
-            "LD_LIBRARY_PATH",
-            *getLdLibraryPath(
-                package_name=package_name,
-                python_rpaths=python_rpaths,
-                original_dir=original_dir,
-            )
-        ),
-    )
-
-    stderr = b"\n".join(
-        line
-        for line in process_result.stderr.splitlines()
-        if not line.startswith(
-            b"ldd: warning: you do not have execution permission for"
-        )
+    process_result, stderr = _runLddCommand(
+        dll_filename=dll_filename,
+        package_name=package_name,
+        python_rpaths=python_rpaths,
+        original_dir=original_dir,
     )
 
     inclusion_logger.debug(
