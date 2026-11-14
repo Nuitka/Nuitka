@@ -845,7 +845,13 @@ static struct Nuitka_MetaPathBasedLoaderEntry *findContainingPackageEntry(char c
 
     size_t length = package_name_end - name;
 
-    char package_name[256];
+    // Longer names cannot match any entry, 'Nuitka_LoaderEntryCompareName'
+    // rejects entries of that length already.
+    if (length >= NUITKA_LOADER_NAME_MAX_LEN) {
+        return NULL;
+    }
+
+    char package_name[NUITKA_LOADER_NAME_MAX_LEN];
     memcpy(package_name, name, length);
     package_name[length] = '\0';
 
