@@ -13,6 +13,7 @@
 #if defined(_WIN32)
 #include <windows.h>
 #endif
+#include <assert.h>
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
@@ -20,9 +21,9 @@
 #include <stdlib.h>
 #include <string.h>
 #include <wchar.h>
-#define unlikely(x) (x)
 #endif
 
+#include "nuitka/defines.h"
 #include "nuitka/safe_string_ops.h"
 
 #include <ctype.h>
@@ -56,16 +57,15 @@ void copyStringSafeN(char *buffer, char const *source, size_t n, size_t buffer_s
 }
 
 void copyStringSafeW(wchar_t *buffer, wchar_t const *source, size_t buffer_size) {
-    while (*source != 0) {
-        if (buffer_size < 1) {
-            abort();
-        }
+    size_t source_size = wcslen(source);
 
-        *buffer++ = *source++;
-        buffer_size -= 1;
+    if (source_size >= buffer_size) {
+        abort();
     }
 
-    *buffer = 0;
+    if (buffer != source) {
+        memcpy(buffer, source, (source_size + 1) * sizeof(wchar_t));
+    }
 }
 
 void appendStringSafe(char *target, char const *source, size_t buffer_size) {
@@ -87,12 +87,17 @@ void appendWStringSafeW(wchar_t *target, wchar_t const *source, size_t buffer_si
     }
 
     while (*target != 0) {
+        if (unlikely(buffer_size == 0)) {
+            abort();
+        }
+
         target++;
         buffer_size -= 1;
     }
 
     while (*source != 0) {
-        if (unlikely(buffer_size < 1)) {
+        // Room for the character and the termination is needed.
+        if (unlikely(buffer_size < 2)) {
             abort();
         }
 
@@ -100,16 +105,25 @@ void appendWStringSafeW(wchar_t *target, wchar_t const *source, size_t buffer_si
         buffer_size -= 1;
     }
 
+    if (unlikely(buffer_size < 1)) {
+        abort();
+    }
+
     *target = 0;
 }
 
 void appendWCharSafeW(wchar_t *target, wchar_t c, size_t buffer_size) {
     while (*target != 0) {
+        if (unlikely(buffer_size == 0)) {
+            abort();
+        }
+
         target++;
         buffer_size -= 1;
     }
 
-    if (buffer_size < 1) {
+    // Room for the character and the termination is needed.
+    if (unlikely(buffer_size < 2)) {
         abort();
     }
 
