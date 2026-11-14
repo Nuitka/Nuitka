@@ -199,7 +199,7 @@ def _addActivePlugin(plugin_class, args, force=False):
             # Set if matching, set to False only if not matching and not already set.
             if is_matching:
                 control_tags[tag_name] = True
-            elif is_matching not in control_tags:
+            elif tag_name not in control_tags:
                 control_tags[tag_name] = False
 
     control_tags.update(plugin_instance.getEvaluationConditionControlTags())
