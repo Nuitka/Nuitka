@@ -589,15 +589,17 @@ def getNullInput():
 
 def filterOutputByLine(output, filter_func):
     """For use by stderr filters of executeToolChecked."""
-    non_errors = []
+    error_lines = [
+        line for line in output.splitlines() if line and not filter_func(line)
+    ]
 
-    for line in output.splitlines():
-        if line and not filter_func(line):
-            non_errors.append(line)
+    # When all output was filtered as benign, the exit code is to be ignored,
+    # but when there was no output at all, then nothing was filtered, and a
+    # silent failure must not be ignored.
+    if output.strip() and not error_lines:
+        return 0, b""
 
-    output = b"\n".join(non_errors)
-
-    return (0 if non_errors else None), output
+    return None, b"\n".join(error_lines)
 
 
 # These macOS tools of the Xcode "CommandLineTools" are only available as
