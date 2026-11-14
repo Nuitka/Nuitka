@@ -71,10 +71,12 @@ def withFileLock(reason="unknown"):
     file_lock.acquire()
     if _lock_tracing:
         my_print(getThreadIdent(), "Acquired file lock for %s" % reason)
-    yield
-    if _lock_tracing:
-        my_print(getThreadIdent(), "Released file lock for %s" % reason)
-    file_lock.release()
+    try:
+        yield
+    finally:
+        if _lock_tracing:
+            my_print(getThreadIdent(), "Released file lock for %s" % reason)
+        file_lock.release()
 
 
 @contextmanager
