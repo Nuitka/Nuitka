@@ -24,6 +24,10 @@ class NuitkaPluginNumba(NuitkaPluginBase):
     plugin_desc = "Required for 'numba' JIT compilation of functions."
     plugin_category = "package-support"
 
+    @staticmethod
+    def isAlwaysEnabled():
+        return True
+
     def __init__(self, enable_jit):
         if enable_jit is None:
             enable_jit = "no" if isStandaloneMode() else "yes"
