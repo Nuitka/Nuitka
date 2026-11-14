@@ -241,14 +241,16 @@
         'test': "'(lambda: None)'"
         'help': "'(lambda: None)'"
 
-- module-name: 'pickle' # checksum: a8cca0dd
+- module-name: 'pickle' # checksum: c6f04aa7
   anti-bloat:
     - description: 'remove module ability to run as a binary'
       change_function:
         '_test': "'(lambda: None)'"
     - description: 'better error message for pickles using missing modules'
       append_plain: |
+        import functools
         def _nuitka_pickle_wrap_load(func):
+            @functools.wraps(func)
             def wrapped(*args, **kwargs):
                 try:
                     return func(*args, **kwargs)
@@ -259,7 +261,7 @@
                         """Nuitka: Failed to load pickle data, it requires the module '%s' that is not included in the compiled program. Use '--include-module=%s' during compilation, or add 'import %s' to the program."""
                         % (module_name, module_name, module_name)
                     )
-
+            wrapped.__module__ = __name__
             return wrapped
 
         load = _nuitka_pickle_wrap_load(load)
