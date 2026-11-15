@@ -457,6 +457,7 @@ setup(
         # Nuitka standalone mode aims at distribution
         "Topic :: System :: Software Distribution",
         # Python3 supported versions.
+        "Programming Language :: Python :: 3.15",
         "Programming Language :: Python :: 3.14",
         "Programming Language :: Python :: 3.13",
         "Programming Language :: Python :: 3.12",
