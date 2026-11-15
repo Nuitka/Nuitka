@@ -114,7 +114,7 @@ void SET_ATTRIBUTE_ERROR_CONTEXT(PyThreadState *tstate, PyObject *source, PyObje
     PyObject *exception_value = tstate->current_exception;
 #endif
 
-    if (likely(PyErr_GivenExceptionMatches(exception_value, PyExc_AttributeError))) {
+    if (likely(EXCEPTION_MATCH_BOOL_SINGLE(tstate, exception_value, PyExc_AttributeError))) {
         PyAttributeErrorObject *attribute_error = (PyAttributeErrorObject *)exception_value;
 
         if (attribute_error->name == NULL && attribute_error->obj == NULL) {
@@ -172,7 +172,7 @@ int Nuitka_LookupManagedDictAttribute(PyTypeObject *type, PyObject *source, PyOb
         return 0;
     }
 
-    if (likely(PyUnicode_CheckExact(attr_name))) {
+    if (likely(Nuitka_String_CheckExact(attr_name))) {
         PyDictKeysObject *keys = ((PyHeapTypeObject *)type)->ht_cached_keys;
         assert(keys != NULL);
 
@@ -373,7 +373,7 @@ static bool SET_ATTRIBUTE_GENERIC(PyThreadState *tstate, PyTypeObject *type, PyO
         Py_XDECREF(descr);
 
         // TODO: Not possible for set, is it?
-        if (res < 0 && PyErr_ExceptionMatches(PyExc_KeyError)) {
+        if (res < 0 && CHECK_AND_CLEAR_KEY_ERROR_OCCURRED(tstate)) {
             SET_CURRENT_EXCEPTION_TYPE0_VALUE0(tstate, PyExc_AttributeError, attr_name);
             return false;
         }
@@ -416,7 +416,7 @@ static bool SET_ATTRIBUTE_GENERIC(PyThreadState *tstate, PyTypeObject *type, PyO
             int res = _PyObjectDict_SetItem(type, dict_pointer, attr_name, value);
 #endif
             // TODO: Not possible for set, is it?
-            if (res < 0 && PyErr_ExceptionMatches(PyExc_KeyError)) {
+            if (res < 0 && CHECK_AND_CLEAR_KEY_ERROR_OCCURRED(tstate)) {
                 SET_CURRENT_EXCEPTION_TYPE0_VALUE0(tstate, PyExc_AttributeError, attr_name);
                 return false;
             }
