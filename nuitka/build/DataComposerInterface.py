@@ -4,6 +4,7 @@
 """Interface to data composer"""
 
 import os
+import re
 import subprocess
 import sys
 
@@ -13,7 +14,6 @@ from nuitka.plugins.Hooks import onDataComposerResult, onDataComposerRun
 from nuitka.PythonVersions import isRunningInInterpreter
 from nuitka.States import states
 from nuitka.Tracing import data_composer_logger
-from nuitka.utils.CStrings import encodePythonIdentifierToC
 from nuitka.utils.Execution import withEnvironmentVarsOverridden
 from nuitka.utils.FileOperations import (
     changeFilenameExtension,
@@ -22,6 +22,7 @@ from nuitka.utils.FileOperations import (
     makeContainingPath,
     makePath,
 )
+from nuitka.utils.Hashing import getStringHash
 from nuitka.utils.Json import loadJsonFromFilename
 
 # Indicate not done with -1
@@ -123,7 +124,7 @@ def getConstantBlobFilenameForDataFilename(source_dir, data_filename):
 
     result = getNormalizedPathJoin(
         getConstantBlobDirectory(source_dir),
-        os.path.basename(changeFilenameExtension(data_filename, ".bin")),
+        getConstantBlobSymbolBase(data_filename) + ".bin",
     )
     makeContainingPath(result)
     return result
@@ -141,39 +142,72 @@ def getConstantBlobFilenames(source_dir):
     return tuple(sorted(result))
 
 
-def getConstantBlobSymbolBase(filename):
-    basename = os.path.basename(filename)
+def _makeConstantBlobSymbolBase(basename):
+    """Get a safe and unique symbol base for a constant data or blob filename.
 
-    if basename.endswith(".const"):
-        basename = basename[:-6]
-    elif basename.endswith(".bin"):
-        basename = basename[:-4]
-    else:
-        assert False, filename
+    Notes:
+        The symbol base is also used for the direct blob filename. Restricting
+        it to ASCII letters, digits and underscores avoids external tools
+        interpreting encoded path characters differently, e.g. the linker
+        turning every other byte into an underscore. Hashing the source
+        filename makes the result unique, while the readable part helps with
+        debugging.
 
+        This is idempotent for names that were already made safe, as blob
+        filenames are picked by this function too.
+
+    Args:
+        basename: The filename without its '.const' or '.bin' extension.
+
+    Returns:
+        str - the safe symbol base
+    """
     if basename.startswith("__"):
         basename = basename[2:]
 
-    result = _constant_blob_symbol_bases.get(basename)
+    if basename.startswith("module."):
+        return "module_%s_%s" % (
+            re.sub("[^a-zA-Z0-9_]", "_", basename[7:])[:120],
+            getStringHash(basename),
+        )
 
-    if result is None:
-        result = encodePythonIdentifierToC(basename)
+    if re.match("[a-zA-Z_][a-zA-Z0-9_]*$", basename):
+        return basename
 
-        if result[0].isdigit():
-            result = "_" + result
+    return "blob_%s_%s" % (
+        re.sub("[^a-zA-Z0-9_]", "_", basename)[:120],
+        getStringHash(basename),
+    )
 
-        origin = _constant_blob_symbol_origins.get(result)
 
-        if origin is not None and origin != basename:
-            return data_composer_logger.sysexit(
-                "Error, constant blob names '%s' and '%s' collide on symbol base '%s'."
-                % (origin, basename, result)
-            )
+def getConstantBlobSymbolBase(filename):
+    basename = os.path.basename(filename)
 
-        _constant_blob_symbol_bases[basename] = result
-        _constant_blob_symbol_origins[result] = basename
+    if basename.endswith(".bin"):
+        return _makeConstantBlobSymbolBase(basename[:-4])
+    elif basename.endswith(".const"):
+        basename = basename[:-6]
 
-    return result
+        # Collisions only need checking for source data filenames
+        result = _constant_blob_symbol_bases.get(basename)
+
+        if result is None:
+            result = _makeConstantBlobSymbolBase(basename)
+
+            origin = _constant_blob_symbol_origins.get(result)
+
+            if origin is not None and origin != basename:
+                return data_composer_logger.sysexit(
+                    "Error, constant blob names '%s' and '%s' collide on symbol base '%s'."
+                    % (origin, basename, result)
+                )
+
+            _constant_blob_symbol_bases[basename] = result
+            _constant_blob_symbol_origins[result] = basename
+
+        return result
+    else:
+        assert False, filename
 
 
 def getConstantBlobSymbolName(filename):

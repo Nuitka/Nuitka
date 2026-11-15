@@ -27,6 +27,7 @@ from nuitka.utils.FileOperations import (
     listDir,
     openTextFile,
     putTextFileContents,
+    relpath,
 )
 from nuitka.utils.InlineCopies import getInlineCopyFolderIfExists
 from nuitka.utils.PrivatePipSpace import getZigBinaryPath
@@ -986,38 +987,6 @@ def _makeLargeDataBlobObject(env, blob_filename, obj_filename):
     )
 
 
-# Symbol name bases the linker derived from the blob paths given to it so far.
-_linker_blob_symbol_names = set()
-
-
-def _getLinkerBlobFilename(blob_filename):
-    """Get the path to give the linker for a blob, and the symbol name base it derives.
-
-    Notes:
-        The linker names the symbols of a binary input after the path it is
-        given, with all characters other than letters, digits and "_" made "_",
-        so the blobs of modules named e.g. "a.b" and "a_b" would define the same
-        symbols. Another "." element in the path changes the derived name, and
-        still names the same file.
-
-    Args:
-        blob_filename: The path of the blob file.
-
-    Returns:
-        tuple - the path to use, and the symbol name base derived from it
-    """
-    while True:
-        symbol_name = "".join(re.sub("[^a-zA-Z0-9_]", "_", c) for c in blob_filename)
-
-        if symbol_name not in _linker_blob_symbol_names:
-            _linker_blob_symbol_names.add(symbol_name)
-            return blob_filename, symbol_name
-
-        blob_filename = os.path.join(
-            os.path.dirname(blob_filename), ".", os.path.basename(blob_filename)
-        )
-
-
 def _addConstantBlobFileLinker(env, blob_filename):
 
     # For 32-bit MinGW the symbol name has a leading underscore.
@@ -1030,7 +999,9 @@ def _addConstantBlobFileLinker(env, blob_filename):
     if env.source_dir == ".":
         blob_filename = "./%s" % blob_filename
 
-    blob_filename, blob_symbol_name = _getLinkerBlobFilename(blob_filename)
+    # The blob stem itself is safe now, but the linker derives its symbols
+    # from the whole path including path separators and the file extension.
+    blob_symbol_name = re.sub("[^a-zA-Z0-9_]", "_", blob_filename)
 
     if env.large_data_model:
         # Directly linking the blob would put it into the '.data' section
@@ -1113,7 +1084,13 @@ unsigned char %s_data[] =
 #endif
 """)
 
-                output.write('#embed "%s"\n' % getPathWithForwardSlashes(blob_filename))
+                # The '#embed' directive is resolved relative to the file
+                # containing it, and not the current working directory, so
+                # the blob must be referenced relative to the generated file.
+                output.write(
+                    '#embed "%s"\n'
+                    % getPathWithForwardSlashes(relpath(blob_filename, env.source_dir))
+                )
             else:
                 with open(blob_filename, "rb") as f:
                     content = f.read()
