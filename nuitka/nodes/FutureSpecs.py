@@ -60,6 +60,13 @@ class FutureSpec(object):
         return "<FutureSpec %s>" % ",".join(self.asFlags())
 
     def clone(self):
+        """Create a copy of this future spec.
+
+        Notes:
+            This is intended for future compile-time optimization of 'exec' and
+            'eval' statements, where inlined code can carry its own future
+            imports and therefore needs a separate future spec.
+        """
         result = FutureSpec(use_annotations=self.use_annotations)
 
         result.future_division = self.future_division
@@ -68,7 +75,7 @@ class FutureSpec(object):
         result.future_print = self.future_print
         result.barry_bdfl = self.barry_bdfl
         result.generator_stop = self.generator_stop
-        result.future_annotations = result.future_annotations
+        result.future_annotations = self.future_annotations
 
         return result
 
