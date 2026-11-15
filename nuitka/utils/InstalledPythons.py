@@ -11,6 +11,7 @@ from nuitka.PythonFlavors import isAnacondaPython, isMSYS2MingwPython
 from nuitka.PythonVersions import (
     getInstalledPythonRegistryPaths,
     isRunningInInterpreter,
+    python_version_full_str,
     python_version_str,
 )
 
@@ -27,6 +28,7 @@ class InstalledPython(object):
     def __init__(self, python_exe, python_version):
         self.python_exe = python_exe
         self.python_version = python_version
+        self.python_full_version = None
 
     def __repr__(self):
         return "<InstalledPython '%s' version '%s'>" % (
@@ -39,6 +41,32 @@ class InstalledPython(object):
 
     def getPythonVersion(self):
         return self.python_version
+
+    def getPythonFullVersion(self):
+        """Return the full version of the Python, e.g. "3.11.4".
+
+        Notes:
+            This is the actual version of the interpreter, rather than the
+            "major.minor" version that was asked for when finding it. It is
+            detected once and cached.
+        """
+        if self.python_full_version is None:
+            if self.python_exe == sys.executable and isRunningInInterpreter():
+                self.python_full_version = python_version_full_str
+            else:
+                self.python_full_version = (
+                    check_output(
+                        [
+                            self.python_exe,
+                            "-c",
+                            "import sys; print('%d.%d.%d' % sys.version_info[:3])",
+                        ]
+                    )
+                    .decode("utf8")
+                    .strip()
+                )
+
+        return self.python_full_version
 
     def getHexVersion(self):
         major, minor = self.python_version.split(".")

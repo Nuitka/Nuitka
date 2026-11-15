@@ -16,6 +16,7 @@ from nuitka.PythonFlavors import isAnacondaPython, isMSYS2MingwPython
 from nuitka.PythonVersions import getTestExecutionPythonVersions
 from nuitka.reports.CompilationReportReader import (
     getCompilationOutputBinary,
+    getCompilationPythonVersion,
     parseCompilationReport,
 )
 from nuitka.tools.testing.Common import extractNuitkaVersionFromFilePath
@@ -327,7 +328,12 @@ def _getReportUserDataValue(report_root, key):
 
 
 def _isCompilationNeeded(
-    case_data, case_dir, lock_filename, old_report_root, nuitka_update_mode
+    case_data,
+    case_dir,
+    lock_filename,
+    old_report_root,
+    nuitka_update_mode,
+    installed_python,
 ):
     if old_report_root is None:
         return True
@@ -381,6 +387,20 @@ def _isCompilationNeeded(
         )
 
         need_compile = False
+    elif getCompilationPythonVersion(old_report_root) not in (
+        None,
+        installed_python.getPythonFullVersion(),
+    ):
+        watch_logger.info(
+            "Recompilation with identical Nuitka for '%s' due to changed Python (%s -> %s)."
+            % (
+                lock_filename,
+                getCompilationPythonVersion(old_report_root),
+                installed_python.getPythonFullVersion(),
+            )
+        )
+
+        need_compile = True
     elif old_report_root.attrib["completion"] != "yes":
         need_compile = True
     else:
@@ -469,6 +489,7 @@ def _updateCase(
             lock_filename=lock_filename,
             old_report_root=old_report_root,
             nuitka_update_mode=nuitka_update_mode,
+            installed_python=installed_python,
         )
 
         if not need_compile:
