@@ -153,6 +153,10 @@ def _makeConstantBlobSymbolBase(basename):
         filename makes the result unique, while the readable part helps with
         debugging.
 
+        The readable part is limited to keep the blob filename short enough
+        for Windows paths, which are limited to 260 characters including the
+        build directory and its 'blobs' directory.
+
         This is idempotent for names that were already made safe, as blob
         filenames are picked by this function too.
 
@@ -165,18 +169,29 @@ def _makeConstantBlobSymbolBase(basename):
     if basename.startswith("__"):
         basename = basename[2:]
 
+    def _makeSafeName(prefix, readable_basename):
+        max_symbol_base_length = 64
+        suffix = "_" + getStringHash(basename)
+        readable_length = max_symbol_base_length - len(prefix) - len(suffix) - 1
+
+        return "%s_%s%s" % (
+            prefix,
+            readable_basename[:readable_length],
+            suffix,
+        )
+
     if basename.startswith("module."):
-        return "module_%s_%s" % (
-            re.sub("[^a-zA-Z0-9_]", "_", basename[7:])[:120],
-            getStringHash(basename),
+        return _makeSafeName(
+            prefix="module",
+            readable_basename=re.sub("[^a-zA-Z0-9_]", "_", basename[7:]),
         )
 
     if re.match("[a-zA-Z_][a-zA-Z0-9_]*$", basename):
         return basename
 
-    return "blob_%s_%s" % (
-        re.sub("[^a-zA-Z0-9_]", "_", basename)[:120],
-        getStringHash(basename),
+    return _makeSafeName(
+        prefix="blob",
+        readable_basename=re.sub("[^a-zA-Z0-9_]", "_", basename),
     )
 
 
