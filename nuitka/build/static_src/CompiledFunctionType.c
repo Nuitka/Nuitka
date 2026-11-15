@@ -976,7 +976,6 @@ static void Nuitka_Function_tp_dealloc(PyObject *self) {
 }
 
 static PyObject *Nuitka_Function_keep_alive(PyObject *self, PyObject *unused) {
-    // These are codified cases, pylint: disable=unused-argument
     (void)unused;
 
     CHECK_OBJECT(self);
@@ -1167,8 +1166,7 @@ void _initCompiledFunctionType(void) {
 #endif
 
             if (strcmp(own->name, "__compiled__") == 0 || strcmp(own->name, "__compiled_constant__") == 0) {
-                // We have to do that differently, because we do not keep this around until
-                // needed, and we make it read-only
+                // Nuitka-specific attributes not present on CPython's PyFunction_Type.
                 continue;
             }
 

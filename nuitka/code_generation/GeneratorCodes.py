@@ -1,7 +1,7 @@
 #     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-"""Code to generate and interact with compiled function objects."""
+"""Code to generate and interact with compiled generator objects."""
 
 from nuitka.PythonVersions import python_version
 

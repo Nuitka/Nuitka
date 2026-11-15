@@ -1474,10 +1474,7 @@ def createNuitkaSconsEnvironment(needs_source_dir=True):
     # Experimental indications. Do things that are not yet safe to do.
     experimental_flags = getArgumentList("experimental", "")
 
-    # Deployment mode
     deployment_mode = getArgumentBool("deployment", False)
-
-    # Experimental indications. Do things that are not yet safe to do.
     no_deployment = getArgumentList("no_deployment", "")
 
     # Debug mode indications. Do check things with fine granularity.
@@ -1991,8 +1988,9 @@ def setupCCompiler(env, pgo_mode, exe_target, onefile_compile):
     if env.mingw_mode and not env.clang_mode:
         env.Append(LINKFLAGS=["-Wl,--enable-auto-import"])
 
-    # Even if console is forced, for Win32 it means to specify Windows
-    # subsystem, we can still attach or create.
+    # Both "attach" and "disable" use the GUI subsystem so Windows does not
+    # allocate a new console upfront; "attach" attaches to a parent console at
+    # startup.
     if env.console_mode in ("attach", "disable") and env.target_os == "Windows":
         if env.mingw_mode or env.zig_mode:
             env.Append(LINKFLAGS=["-Wl,--subsystem,windows"])
@@ -2079,13 +2077,10 @@ def setupCCompiler(env, pgo_mode, exe_target, onefile_compile):
         and not getArgumentBool("full_names", False)
     ):
         if env.zig_mode:
-            # Zig cc supports it
             file_prefix_map_supported = True
         elif env.clang_mode:
-            # Clang 10+ supports --file-prefix-map
             file_prefix_map_supported = env.clang_version >= (10,)
         else:
-            # GCC supports it starting from 8.0
             file_prefix_map_supported = env.gcc_version >= (8,)
 
         if file_prefix_map_supported:
@@ -2103,13 +2098,12 @@ def setupCCompiler(env, pgo_mode, exe_target, onefile_compile):
             )
 
     if env.msvc_mode:
-        # With Clang on Windows, there is also an linker to use.
         env.Append(
             CCFLAGS=[
-                "/EHsc",  # No C++ exception handling code.
+                "/EHsc",  # Synchronous C++ exception model (assumes extern "C" does not throw).
                 "/J",  # default char type is unsigned.
                 "/Gd",  # Use C calling convention by default.
-                "/bigobj",  # Product object files with larger internal limits, spell-checker: ignore bigobj
+                "/bigobj",  # Produce object files with larger internal limits, spell-checker: ignore bigobj
             ]
         )
 
@@ -2287,10 +2281,6 @@ Error, failed to detect gcc version of backend compiler '%s'.
 Error, compiler %s is apparently a C++ compiler, specify a C compiler instead.
 """ % env.the_cc_name)
 
-    # Enforce the minimum version, selecting a potentially existing g++-4.5
-    # binary if it's not high enough. This is esp. useful under Debian which
-    # allows all compiler to exist next to each other and where g++ might not be
-    # good enough, but g++-4.5 would be.
     if env.gcc_version < (4, 4):
         scons_logger.sysexit("""\
 The gcc compiler %s (version %s) doesn't have the sufficient \

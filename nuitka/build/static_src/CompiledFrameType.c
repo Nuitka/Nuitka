@@ -460,7 +460,6 @@ static PyGetSetDef Nuitka_Frame_tp_getset[] = {
 #endif
     {NULL}};
 
-// tp_repr slot, decide how a function shall be output
 static PyObject *Nuitka_Frame_tp_repr(PyObject *self) {
     struct Nuitka_FrameObject *nuitka_frame = (struct Nuitka_FrameObject *)self;
 

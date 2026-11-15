@@ -19,7 +19,6 @@ import types
 sys.modules["nuitka"] = types.ModuleType("nuitka")
 sys.modules["nuitka"].__path__ = [os.environ["NUITKA_PACKAGE_DIR"]]
 
-# We are in the build.build package really.
 import nuitka.build  # pylint: disable=unused-import
 
 __package__ = "nuitka.build"  # pylint: disable=redefined-builtin
@@ -93,50 +92,29 @@ no_python_warnings = getArgumentBool("no_python_warnings", False)
 # Disable Python unraisable exception output if requested to.
 no_unraisable = getArgumentBool("no_unraisable", False)
 
-# python_sysflag_py3k_warning
 python_sysflag_py3k_warning = getArgumentBool("python_sysflag_py3k_warning", False)
-# python_sysflag_division_warning
 python_sysflag_division_warning = getArgumentBool(
     "python_sysflag_division_warning", False
 )
-# python_sysflag_division_warning
 python_sysflag_bytes_warning = getArgumentBool("python_sysflag_bytes_warning", False)
-# python_sysflag_no_site
 python_sysflag_no_site = getArgumentBool("python_sysflag_no_site", False)
-# python_sysflag_verbose
 python_sysflag_verbose = getArgumentBool("python_sysflag_verbose", False)
-# python_sysflag_unicode
 python_sysflag_unicode = getArgumentBool("python_sysflag_unicode", False)
-# python_sysflag_utf8
 python_sysflag_utf8 = getArgumentBool("python_sysflag_utf8", False)
-# python_sysflag_optimize
 python_sysflag_optimize = getArgumentInt("python_sysflag_optimize", 0)
-# python_flag_no_asserts
 python_flag_no_asserts = getArgumentBool("python_flag_no_asserts", False)
-# python_flag_no_docstrings
 python_flag_no_docstrings = getArgumentBool("python_flag_no_docstrings", False)
-# python_flag_no_annotations
 python_flag_no_annotations = getArgumentBool("python_flag_no_annotations", False)
-# python_sysflag_no_randomization
 python_sysflag_no_randomization = getArgumentBool(
     "python_sysflag_no_randomization", False
 )
-
-# python_sysflag_unbuffered (--python-flag=-U)
 python_sysflag_unbuffered = getArgumentBool("python_sysflag_unbuffered", False)
-
-# python_sysflag_dontwritebytecode (--python-flag=-B)
 python_sysflag_dontwritebytecode = getArgumentBool(
     "python_sysflag_dontwritebytecode", False
 )
-
-# python_sysflag_safe_path (--python-flag=-P)
 python_sysflag_safe_path = getArgumentBool("python_sysflag_safe_path", False)
-
-# python_sysflag_isolated
 python_sysflag_isolated = getArgumentBool("python_sysflag_isolated", False)
 
-# file reference mode
 file_reference_mode = getArgumentRequired("file_reference_mode")
 
 # From statically compiled modules of the Python

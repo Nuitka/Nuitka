@@ -619,8 +619,7 @@ static PyObject *%(module_dll_entry_point)s_phase2(PyObject *module) {
     }
 #else
     if (result != NULL) {
-        // Make sure we undo the change of the "__file__" attribute during importing. We do not
-        // know how to achieve it for Python2 though. TODO: Find something for Python2 too.
+        // Restore "__file__" via tp_setattro when CPython's import machinery overwrites it.
         orig_PyModule_Type_tp_setattro = PyModule_Type.tp_setattro;
         PyModule_Type.tp_setattro = Nuitka_TopLevelModule_tp_setattro;
 

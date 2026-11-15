@@ -386,13 +386,9 @@ def _setupSconsEnvironment2():
 def _setupSconsEnvironment():
     """Setup the scons execution environment.
 
-    For the target Python we provide "NUITKA_PYTHON_DLL_PATH" to see where the
-    Python DLL lives, in case it needs to be copied, and then also the
-    "NUITKA_PYTHON_EXE_PATH" to find the Python binary itself.
-
-    We also need to preserve "PYTHONPATH" and "PYTHONHOME", but remove it
-    potentially as well, so not to confuse the other Python binary used to run
-    scons.
+    Provides 'NUITKA_PYTHON_EXE_PATH' and 'NUITKA_PACKAGE_DIR', and temporarily
+    clears 'PYTHONPATH' and 'PYTHONHOME' on Python 3 so they do not confuse a
+    different Python binary running SCons.
     """
 
     # For Python2, and bad Python3 setups, avoid unicode working directory.

@@ -62,15 +62,9 @@
 
 #endif
 
-/* Due to ABI issues, it seems that on Windows the symbols used by
- * "_PyObject_GC_TRACK" were not exported before 3.8 and we need to use a
- * function that does it instead.
- *
- * The Python 3.7.0 release on at Linux doesn't work this way either, was
- * a bad CPython release apparently and between 3.7.3 and 3.7.4 these have
- * become runtime incompatible.
- *
- */
+// CPython 3.14 changed _gc_runtime_state layout and young-generation accounting
+// across point releases (3.14.0, 3.14.1, and 3.14.5), so module mode dispatches
+// on the runtime patch version.
 #if _NUITKA_MODULE_MODE && PYTHON_VERSION >= 0x3e0 && PYTHON_VERSION < 0x3f0 && !defined(Py_GIL_DISABLED)
 typedef struct {
     PyObject *trash_delete_later;
@@ -287,6 +281,9 @@ static inline void Nuitka_GC_UnTrack(void *raw_op) {
 
 #undef _PyObject_GC_TRACK
 #undef _PyObject_GC_UNTRACK
+// Before Python 3.8, symbols referenced by _PyObject_GC_TRACK were not exported
+// from the Windows Python DLL, and CPython 3.7.0 / 3.7.3->3.7.4 changed ABI on
+// Linux as well, requiring the exported C-API functions instead.
 #elif (defined(_WIN32) || defined(__MSYS__)) && PYTHON_VERSION < 0x380
 #define Nuitka_GC_Track PyObject_GC_Track
 #define Nuitka_GC_UnTrack PyObject_GC_UnTrack
@@ -455,7 +452,7 @@ static inline void _Nuitka_Py_XDECREF(PyObject *ob) {
 #undef Py_XDECREF
 #define Py_XDECREF(ob) _Nuitka_Py_XDECREF((PyObject *)(ob))
 
-// Need to make Py_XDECREF a macro again that uses our Py_DECREF
+// Make Py_CLEAR use our Py_DECREF override.
 #undef Py_CLEAR
 #define Py_CLEAR(op)                                                                                                   \
     do {                                                                                                               \

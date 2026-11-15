@@ -325,8 +325,8 @@ extern void SET_CURRENT_EXCEPTION_KEY_ERROR(PyThreadState *tstate, PyObject *key
 // on a miss. Not a silent "PyDict_GetItemWithError" equivalent.
 extern PyObject *DICT_GET_ITEM_WITH_ERROR(PyThreadState *tstate, PyObject *dict, PyObject *key);
 
-// Get a dict lookup for a key, propagating only hash errors and not creating a
-// KeyError on a miss. "_1" returns a new reference, "_0" a borrowed one.
+// Get a dict lookup for a key, returning a new reference or NULL on a miss
+// without setting KeyError (propagating only hash errors).
 extern PyObject *DICT_GET_ITEM_WITH_HASH_ERROR1(PyThreadState *tstate, PyObject *dict, PyObject *key);
 
 // Get dict lookup for a key, similar to PyDict_GetItem, 1=ref returned, 0=not
@@ -535,11 +535,11 @@ NUITKA_MAY_BE_UNUSED static void UPDATE_STRING_DICT1(PyThreadState *tstate, PyDi
 }
 
 #if PYTHON_VERSION < 0x300
-// Python2 dictionary keys, return a list of keys
+// Python2 dictionary keys list, replacement for "PyDict_Keys".
 extern PyObject *DICT_KEYS(PyObject *dict);
-// Python2 dictionary items, return a list of values
+// Python2 dictionary values list, replacement for "PyDict_Values".
 extern PyObject *DICT_VALUES(PyObject *dict);
-// Python2 dictionary items, return a list of key/value tuples
+// Python2 dictionary key/value pairs list, replacement for "PyDict_Items".
 extern PyObject *DICT_ITEMS(PyObject *dict);
 #endif
 
@@ -563,10 +563,6 @@ extern PyObject *DICT_VIEWITEMS(PyObject *dict);
 
 // Python dictionary copy, return a shallow copy of a dictionary.
 extern PyObject *DICT_COPY(PyThreadState *tstate, PyObject *dict);
-
-#if !_NUITKA_EXPERIMENTAL_DISABLE_DICT_OPT && PYTHON_VERSION >= 0x3a0 && !defined(Py_GIL_DISABLED)
-// Clone a clean, compact combined dictionary into an empty target dictionary.
-#endif
 
 // Python dictionary clear, empties the dictionary.
 extern void DICT_CLEAR(PyObject *dict);
@@ -607,10 +603,8 @@ extern PyObject *MAKE_DICT_FROM_KWARGS(PyThreadState *tstate, PyObject *kw_names
 extern PyObject *MAKE_DICT_PRESIZED(PyThreadState *tstate, Py_ssize_t size);
 // Create an empty dictionary pre-sized for the given number of string entries.
 extern PyObject *MAKE_DICT_PRESIZED_UNICODE(PyThreadState *tstate, Py_ssize_t size);
-// Create a dictionary from key/value pairs.
 // Create a dictionary from string key/value pairs.
 extern PyObject *MAKE_DICT_UNICODE(PyThreadState *tstate, PyObject **pairs, Py_ssize_t size);
-// Create a dictionary from key/value pairs (NULL value means skip)
 // Create a dictionary from string key/value pairs (NULL value means skip)
 extern PyObject *MAKE_DICT_UNICODE_X(PyThreadState *tstate, PyObject **pairs, Py_ssize_t size);
 // Create a dictionary from key/value pairs (NULL value means skip) where keys are C strings.

@@ -284,8 +284,8 @@ NUITKA_MAY_BE_UNUSED inline static struct Nuitka_ExceptionStackItem GET_CURRENT_
 #define _NUITKA_MAINTAIN_SYS_EXC_VARS 1
 #endif
 
-// Helper that sets the current thread exception, releasing the current one, for
-// use in this file only.
+// Set the published thread exception, transferring ownership from exc_state and
+// releasing the previous one.
 NUITKA_MAY_BE_UNUSED inline static void SET_CURRENT_EXCEPTION(PyThreadState *tstate,
                                                               struct Nuitka_ExceptionStackItem *exc_state) {
 #if PYTHON_VERSION < 0x3b0
@@ -642,6 +642,8 @@ NUITKA_MAY_BE_UNUSED static inline PyTracebackObject *GET_EXCEPTION_TRACEBACK(Py
 NUITKA_MAY_BE_UNUSED static bool EXCEPTION_MATCH_BOOL_SINGLE(PyThreadState *tstate, PyObject *exception_value,
                                                              PyObject *exception_checked);
 
+// Clear exception_type if matched, similar to "if (PyErr_ExceptionMatches(exception_type)) PyErr_Clear()".
+// Returns true if no exception remains set, false if another exception is active.
 NUITKA_MAY_BE_UNUSED static bool _CHECK_AND_CLEAR_EXCEPTION_OCCURRED(PyThreadState *tstate, PyObject *exception_type) {
 #if PYTHON_VERSION < 0x3c0
     PyObject *exception_current = tstate->curexc_type;
@@ -678,46 +680,34 @@ NUITKA_MAY_BE_UNUSED static bool _CHECK_AND_CLEAR_EXCEPTION_OCCURRED(PyThreadSta
     }
 }
 
-/* Special helper that checks for StopIteration and if so clears it, only
-   indicating if it was set in the return value.
-
-   Equivalent to if(PyErr_ExceptionMatches(PyExc_StopIteration) PyErr_Clear();
-
-   If error is raised by built-in function next() and an iterator's __next__()
-   method to signal that there are no further items produced by the iterator then
-   it resets the TSTATE to NULL and returns True else return False
-
-*/
+// Clear StopIteration if set, similar to "if (PyErr_ExceptionMatches(PyExc_StopIteration)) PyErr_Clear()".
+// Returns true if no exception remains set, false if another exception is active.
 NUITKA_MAY_BE_UNUSED static bool CHECK_AND_CLEAR_STOP_ITERATION_OCCURRED(PyThreadState *tstate) {
     return _CHECK_AND_CLEAR_EXCEPTION_OCCURRED(tstate, PyExc_StopIteration);
 }
 
 #if PYTHON_VERSION >= 0x350
-/* Special helper that checks for StopAsyncIteration and if so clears it, only
-   indicating if it was set in the return value.
-
-   Equivalent to if(PyErr_ExceptionMatches(PyExc_StopAsyncIteration) PyErr_Clear();
-
-*/
+// Clear StopAsyncIteration if set, similar to "if (PyErr_ExceptionMatches(PyExc_StopAsyncIteration)) PyErr_Clear()".
+// Returns true if no exception remains set, false if another exception is active.
 NUITKA_MAY_BE_UNUSED static bool CHECK_AND_CLEAR_STOP_ASYNC_ITERATION_OCCURRED(PyThreadState *tstate) {
     return _CHECK_AND_CLEAR_EXCEPTION_OCCURRED(tstate, PyExc_StopAsyncIteration);
 }
 #endif
 
-/* Special helper that checks for KeyError and if so clears it, only
-   indicating if it was set in the return value.
-
-   Equivalent to if(PyErr_ExceptionMatches(PyExc_KeyError) PyErr_Clear();
-
-*/
+// Clear KeyError if set, similar to "if (PyErr_ExceptionMatches(PyExc_KeyError)) PyErr_Clear()".
+// Returns true if no exception remains set, false if another exception is active.
 NUITKA_MAY_BE_UNUSED static bool CHECK_AND_CLEAR_KEY_ERROR_OCCURRED(PyThreadState *tstate) {
     return _CHECK_AND_CLEAR_EXCEPTION_OCCURRED(tstate, PyExc_KeyError);
 }
 
+// Clear AttributeError if set, similar to "if (PyErr_ExceptionMatches(PyExc_AttributeError)) PyErr_Clear()".
+// Returns true if no exception remains set, false if another exception is active.
 NUITKA_MAY_BE_UNUSED static bool CHECK_AND_CLEAR_ATTRIBUTE_ERROR_OCCURRED(PyThreadState *tstate) {
     return _CHECK_AND_CLEAR_EXCEPTION_OCCURRED(tstate, PyExc_AttributeError);
 }
 
+// Clear TypeError if set, similar to "if (PyErr_ExceptionMatches(PyExc_TypeError)) PyErr_Clear()".
+// Returns true if no exception remains set, false if another exception is active.
 NUITKA_MAY_BE_UNUSED static bool CHECK_AND_CLEAR_TYPE_ERROR_OCCURRED(PyThreadState *tstate) {
     return _CHECK_AND_CLEAR_EXCEPTION_OCCURRED(tstate, PyExc_TypeError);
 }

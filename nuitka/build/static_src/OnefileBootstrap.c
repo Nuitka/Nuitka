@@ -147,7 +147,6 @@ NUITKA_NO_RETURN static void fatalIOError(char const *message, error_code_t erro
     exit(2);
 }
 
-// Failure to expand the template for where to extract to.
 NUITKA_NO_RETURN static void fatalErrorTempFiles(void) {
     fatalIOError("Error, couldn't unpack file to target path.", getLastErrorCode());
 }

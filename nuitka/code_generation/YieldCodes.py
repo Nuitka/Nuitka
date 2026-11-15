@@ -135,7 +135,6 @@ def generateYieldCode(to_name, expression, emit, context):
 
     _checkDeferredReleaseYield(value_name, expression, context)
 
-    # In handlers, we must preserve/restore the exception.
     preserve_exception = expression.isExceptionPreserving()
 
     getReferenceExportCode(value_name, emit, context)
@@ -168,13 +167,8 @@ if (yield_return_value != NULL && unlikely(CONSIDER_THREADING(tstate) == false))
             context=context,
         )
 
-        # This conversion will not use it, and since it is borrowed, debug mode
-        # would otherwise complain.
         if to_name.c_type == "nuitka_void":
             result_name.maybe_unused = True
-
-        # Comes as only borrowed.
-        # context.addCleanupTempName(result_name)
 
 
 def generateYieldFromCode(to_name, expression, emit, context):

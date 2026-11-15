@@ -14,7 +14,7 @@ class CTypeBool(CTypeNotReferenceCountedMixin, CTypeBase):
 
     @classmethod
     def emitValueAccessCode(cls, value_name, emit, context):
-        # Nothing to do for this type, pylint: disable=unused-argument
+        # pylint: disable=unused-argument
         assert False
 
     @classmethod

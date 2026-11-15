@@ -114,8 +114,8 @@ class CTypeBase(object):
 
     @classmethod
     def emitReInitCode(cls, value_name, emit):
-        """Get release code for given object."""
-        # Need to overload this for each type it is used for, pylint: disable=unused-argument
+        """Reset variable storage to unassigned state without releasing."""
+        # pylint: disable=unused-argument
         assert False, cls.c_type
 
     @classmethod

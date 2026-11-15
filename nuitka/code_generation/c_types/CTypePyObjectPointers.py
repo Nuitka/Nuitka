@@ -530,9 +530,6 @@ class CTypeCellObject(CTypeBase):
         cls, value_name, needs_release, tmp_name, ref_count, inplace, emit, context
     ):
         if inplace:
-            # Releasing is not an issue here, local variable reference never
-            # gave a reference, and the in-place code deals with possible
-            # replacement/release.
             template = template_write_shared_inplace
 
         else:

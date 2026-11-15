@@ -213,7 +213,6 @@ static void prepareStandaloneEnvironment(void) {
 #endif
 
 #if PYTHON_VERSION >= 0x300
-    // Added in Python 3.4.
     old_env_pythontracemalloc = getEnvironmentVariable("PYTHONTRACEMALLOC");
     unsetEnvironmentVariable("PYTHONTRACEMALLOC");
 #endif
@@ -300,7 +299,6 @@ extern void _initCompiledFrameType();
 // Types of command line arguments are different between Python2/3.
 #if PYTHON_VERSION >= 0x300 && _NUITKA_NATIVE_WCHAR_ARGV == 0
 static wchar_t **convertCommandLineParameters(int argc, char **argv) {
-    // Originally taken from CPython3: There seems to be no sane way to use
     static wchar_t **argv_copy;
     argv_copy = (wchar_t **)malloc(sizeof(wchar_t *) * argc);
 

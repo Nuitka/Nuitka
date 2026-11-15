@@ -207,8 +207,7 @@ def generateVariableReferenceCode(to_name, expression, emit, context):
         variable_name = variable.getName()
 
         if python_version < 0x360:
-            # Python2 doesn't have the means to do it, we got some acceleration
-            # for it still, but no real caching.
+            # Dictionary version tags (ma_version_tag, PEP 509) require Python 3.6+.
             use_caching = False
         else:
             # For this it's OK the go to the containing context.
