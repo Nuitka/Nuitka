@@ -614,6 +614,9 @@ def buildAnnAssignNode(provider, node, source_ref):
         if statements[-1].isStatementAssignmentVariableName():
             variable_name = statements[-1].getVariableName()
         else:
+            # Non-name targets do not store annotations. Nuitka intentionally
+            # skips the annotation expression evaluation that CPython performs
+            # for module and class targets.
             variable_name = None
     else:
         # Only name referencing annotations are effective right now.
@@ -624,6 +627,10 @@ def buildAnnAssignNode(provider, node, source_ref):
         if kind == "Name":
             variable_name = detail
         else:
+            # Non-name targets are intentionally ignored for annotations.
+            # CPython evaluates the target base expressions for side effects,
+            # but Nuitka accepts this divergence rather than generating extra
+            # evaluation code for attribute and subscript targets.
             variable_name = None
 
     # Only annotations for modules and classes are really made, for functions
