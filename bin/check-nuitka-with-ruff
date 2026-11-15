@@ -2,4 +2,8 @@
 
 cd "$(dirname "$0")/.."
 
-ruff check nuitka/ "$@"
+if [ "$#" -eq 0 ]; then
+    ruff check nuitka/
+else
+    ruff check "$@"
+fi

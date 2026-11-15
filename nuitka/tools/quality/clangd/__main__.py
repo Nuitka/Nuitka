@@ -84,7 +84,11 @@ def _resolveFilenames(options, positional_args):
         scanTargets(positional_args, suffixes=(".c", ".h"), ignore_list=[])
     )
 
-    filenames = [filename for filename in filenames if not _isIgnoredCFile(filename)]
+    filenames = [
+        filename
+        for filename in filenames
+        if filename.endswith((".c", ".h")) and not _isIgnoredCFile(filename)
+    ]
 
     filenames.sort()
 

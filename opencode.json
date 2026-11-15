@@ -3,20 +3,36 @@
   "instructions": [
     ".agents/rules/*.md"
   ],
+  "formatter": false,
   "watcher": {
     "ignore": [
       "tests/scratch/**",
+      "tests/CPython*/**",
       "**/*.build",
       "**/*.build/**",
       "**/*.dist",
       "**/*.dist/**",
       "**/*.onefile-build",
       "**/*.onefile-build/**",
+      "**/*.installer-build",
+      "**/*.installer-build/**",
+      "**/*.optimization.log",
+      "**/*.inclusion.log",
       "**/*.bin",
+      "**/*.exe",
+      "**/*.dll",
+      "**/*.pyd",
+      "**/*.so",
+      "**/*.o",
+      "**/*.obj",
+      "**/*.pyc",
+      "**/*.pyo",
       "**/__pycache__/**",
       "**/.pytest_cache/**",
       "**/.ruff_cache/**",
-      "**/.mypy_cache/**"
+      "**/.mypy_cache/**",
+      "**/.venv/**",
+      "**/venv_*/**"
     ]
   },
   "experimental": {

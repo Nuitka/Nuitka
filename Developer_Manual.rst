@@ -370,6 +370,53 @@ that has no use, and in Nuitka, every API is internal API. One exception
 may be the ``hints`` module, which will gladly use such tricks for an
 easier write syntax.
 
+Comments and Docstrings
+=======================
+
+Comments must only state non-code reasons ("why") that cannot be
+expressed through clear identifiers, helper functions, or assertions:
+
+-  External CPython version, bytecode, AST, or C-API quirks,
+   OS/compiler/linker/tool bugs, third-party package runtime hazards,
+   licensing constraints, or deliberate counter-intuitive trade-offs
+   (for example, an intentional reference leak on shutdown or why a
+   result cannot be cached).
+
+-  Never write comments that merely narrate what the surrounding code
+   does ("what" or "how"), and never write comments speculating about or
+   restating conditions that *other* Nuitka code (callers, earlier
+   passes, other compilation modes, or callees) might or might not have.
+   Prose assumptions about remote code silently rot when that code
+   changes. When a precondition from another pass or caller must hold
+   locally, enforce it with an executable ``assert`` instead of a
+   comment.
+
+-  Do not leave commented-out code, ``# print(...)`` remnants, or ``#if
+   0`` debug blocks in the tree; ``git`` preserves history. Keep
+   ``TODO`` comments only when specific and actionable.
+
+-  In Jinja2 templates (``*.c.j2``, ``*.py.j2``), always use Jinja ``{#
+   ... #}`` comments for template notes and ``TODO`` items rather than
+   target-language comments that get stamped out across generated files.
+
+-  Whenever modifying a function, class, or template (or copying an
+   existing node, helper, or plugin), re-read all comments and
+   docstrings in the touched scope and update or remove any stale or
+   copy-pasted text in the same change.
+
+Docstrings use Google/Nuitka style with single quotes ``'...'`` around
+identifiers. Because ``PyLint`` runs with ``--no-docstring-rgx=.*``,
+docstrings (and ``Args:``/``Returns:`` sections) are optional on local
+functions, classes, and node methods whose names and parameters already
+make their behavior clear. For internal API helpers (including C runtime
+helpers in ``nuitka/build/include/``), keep a brief doc comment or
+docstring stating the purpose, any equivalent CPython API, and contract
+differences (reference ownership, error clearing, return values) rather
+than removing it outright. Reserve full docstrings for non-obvious
+contracts (ownership, mutability, tri-state return values, tuple shapes)
+and public plugin or option surfaces (``PluginBase.py``,
+``Options.py``).
+
 ****************
  Coding Rules C
 ****************
@@ -381,6 +428,11 @@ For the static C parts, e.g. compiled types, helper codes, the
 We always have blocks for conditional statements to avoid typical
 mistakes made by adding a statement to a branch, forgetting to make it a
 block.
+
+Prefer ``//`` line comments over ``/* ... */`` block comments, and
+follow the same non-code "why" comment rules as in Python code (using
+``assert(...)`` or ``CHECK_OBJECT(...)`` for invariants rather than
+prose comments about callers).
 
 **********************
  The "git flow" model
