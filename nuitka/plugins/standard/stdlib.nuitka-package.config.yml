@@ -287,7 +287,7 @@
       change_function:
         '_main': "'(lambda: None)'"
 
-- module-name: 'pydoc' # checksum: 408973d4
+- module-name: 'pydoc' # checksum: eede0068
   anti-bloat:
     - description: 'remove module ability to display GUI with tkinter and topics data'
       replacements:
@@ -296,6 +296,10 @@
         'gui': 'un-callable'
         'cli': 'un-callable'
         'browse': 'un-callable'
+    - description: 'remove module docs data used by the doc locator'
+      replacements:
+        'from pydoc_data import module_docs': "'raise ImportError'"
+      when: 'python313_or_higher'
 
 - module-name: 'quopri' # checksum: 6a44b57d
   anti-bloat:
