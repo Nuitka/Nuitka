@@ -1,13 +1,18 @@
 #     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-"""Numba plugin.
+"""Numba and CuTe DSL plugin.
 
 When the Numba JIT is enabled, it compiles functions from their Python
 bytecode, which compiled functions do not have. Therefore the modules of the
 'numba' package are compiled to bytecode, and functions in other modules using
 the common Numba decorators are left uncompiled, so that the JIT can find the
 bytecode of the functions it is given.
+
+The CuTe DSL rewrites the '__code__' attribute of functions decorated with
+'@cute.jit' or '@cute.kernel' during JIT preparation. Compiled functions do
+not allow that, so these functions are included as bytecode instead. The rest
+of their module stays compiled.
 """
 
 from nuitka.options.Options import isStandaloneMode
@@ -18,10 +23,10 @@ from nuitka.plugins.PluginBase import (
 
 
 class NuitkaPluginNumba(NuitkaPluginBase):
-    """Support for Numba JIT compiled functions."""
+    """Support for Numba JIT and CuTe DSL compiled functions."""
 
     plugin_name = "numba"
-    plugin_desc = "Required for 'numba' JIT compilation of functions."
+    plugin_desc = "Required for 'numba' JIT and CuTe DSL compilation of functions."
     plugin_category = "package-support"
 
     @staticmethod
@@ -29,6 +34,8 @@ class NuitkaPluginNumba(NuitkaPluginBase):
         return True
 
     def __init__(self, enable_jit):
+        self.enable_jit_from_option = enable_jit is not None
+
         if enable_jit is None:
             enable_jit = "no" if isStandaloneMode() else "yes"
 
@@ -52,9 +59,14 @@ and 'yes' otherwise.""",
 
     def createPreModuleLoadCode(self, module):
         if not self._isNumbaJitEnabled() and module.getFullName() == "numba":
+            if self.enable_jit_from_option:
+                reason = "According to '--numba-enable-jit' option."
+            else:
+                reason = "Disabled by default in standalone mode."
+
             yield (
                 "import os\nos.environ['NUMBA_DISABLE_JIT'] = '1'",
-                "According to '--numba-enable-jit' option.",
+                reason,
             )
 
     def decideCompilation(self, module_name):
@@ -73,6 +85,14 @@ and 'yes' otherwise.""",
             "numba.stencil",
             "numba.core.decorators.stencil",
             "numba.stencils.stencil.stencil",
+        ):
+            yield decorator_name, "bytecode"
+
+        # The CuTe DSL rewrites the function's '__code__', so real bytecode is
+        # required even though source inclusion also needs the source text.
+        for decorator_name in (
+            "cutlass.cute.jit",
+            "cutlass.cute.kernel",
         ):
             yield decorator_name, "bytecode"
 
