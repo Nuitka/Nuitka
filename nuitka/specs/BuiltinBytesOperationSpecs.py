@@ -137,11 +137,6 @@ bytes_istitle_spec = BytesMethodSpecNoKeywords(
     "istitle", arg_names=(), type_shape=tshape_bool
 )
 
-# Python2 only, Python3 this is in bytes
-bytes_decode_spec = BytesMethodSpec(
-    "decode", arg_names=("encoding", "errors"), default_count=2, type_shape=tshape_str
-)
-
 bytes_expandtabs_spec = BytesMethodSpec(
     "expandtabs", arg_names=("tabsize",), default_count=1, type_shape=tshape_bytes
 )
