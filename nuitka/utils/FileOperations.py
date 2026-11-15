@@ -355,7 +355,7 @@ def makePath(path):
             try:
                 os.makedirs(path)
             except OSError:
-                if not os.path.exists(path):
+                if not os.path.isdir(path):
                     raise
 
 

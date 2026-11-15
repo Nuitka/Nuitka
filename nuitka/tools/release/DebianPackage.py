@@ -11,12 +11,15 @@ from nuitka.utils.Execution import check_call, getNullInput
 from nuitka.utils.FileOperations import (
     copyFile,
     copyTree,
+    deleteFile,
     getFileContentByLine,
     getFileContents,
     getFileList,
     listDir,
     openTextFile,
     removeFileExecutablePermission,
+    resetDirectory,
+    resolveShellPatternToFilenames,
 )
 
 
@@ -205,11 +208,12 @@ def runPy2dsc(filename, new_name):
         "deb_dist/%s+ds.orig.tar.gz" % after_deb_name,
     )
 
-    check_call("rm -f deb_dist/*_source*", shell=True)
+    for matched_filename in resolveShellPatternToFilenames("deb_dist/*_source*"):
+        deleteFile(matched_filename, must_exist=True)
 
     # Remove the now useless input, py2dsc has copied it, and we don't
     # publish it.
-    os.unlink(new_name)
+    deleteFile(new_name, must_exist=True)
 
     # Assert that the unpacked directory is there and find it. Otherwise fail badly.
 
@@ -227,7 +231,15 @@ def runPy2dsc(filename, new_name):
 
     # Import the "debian" directory from above. It's not in the original tar and
     # overrides fully what py2dsc did.
-    check_call("rm -r deb_dist/%s/debian/*" % entry, shell=True)
+    debian_dir = "deb_dist/%s/debian" % entry
+    assert os.path.isdir(debian_dir), debian_dir
+
+    resetDirectory(
+        path=debian_dir,
+        logger=tools_logger,
+        ignore_errors=False,
+        extra_recommendation=None,
+    )
 
     check_call(
         [
@@ -236,13 +248,18 @@ def runPy2dsc(filename, new_name):
             "--exclude",
             "pbuilder-hookdir",
             "../debian/",
-            "deb_dist/%s/debian/" % entry,
+            debian_dir + "/",
         ]
     )
 
-    _fixupPy2dscDebianPermissions("deb_dist/%s/debian" % entry)
+    _fixupPy2dscDebianPermissions(debian_dir)
 
-    check_call("rm deb_dist/*.dsc deb_dist/*.debian.tar.xz", shell=True)
+    for pattern in ("deb_dist/*.dsc", "deb_dist/*.debian.tar.xz"):
+        matched_filenames = resolveShellPatternToFilenames(pattern)
+        assert matched_filenames, pattern
+
+        for matched_filename in matched_filenames:
+            deleteFile(matched_filename, must_exist=True)
 
     return entry
 
