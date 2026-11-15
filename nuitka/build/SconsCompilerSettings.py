@@ -20,6 +20,7 @@ from nuitka.utils.Download import (
 )
 from nuitka.utils.Execution import check_call
 from nuitka.utils.FileOperations import (
+    getFileContentsHash,
     getFileSize,
     getNormalizedPathJoin,
     getPathWithForwardSlashes,
@@ -873,6 +874,7 @@ def _addConstantBlobFileXcoffObj(env, blob_filename):
 def _addConstantBlobFileIncbin(env, blob_filename):
 
     symbol_name = _getSymbolName(blob_filename)
+    blob_checksum = getFileContentsHash(blob_filename)
     blob_basename = os.path.basename(blob_filename)
     assert blob_basename.endswith(".bin"), blob_basename
     constants_generated_filename = os.path.join(
@@ -907,6 +909,12 @@ def _addConstantBlobFileIncbin(env, blob_filename):
 
 INCBIN(%(symbol_name)s, "%(blob_filename)s");
 
+// Checksum of the embedded blob, so external C caching tools notice changes
+// on the embedded blob data. It is not part of the created binary.
+typedef char %(symbol_name)s_blob_checksum_check[
+    sizeof("%(blob_checksum)s") > 0 ? 1 : -1
+];
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -919,6 +927,7 @@ unsigned CONST_CONSTANT char *get%(symbol_name)sData(void) {
 """
         % {
             "blob_filename": getPathWithForwardSlashes(blob_filename),
+            "blob_checksum": blob_checksum,
             "symbol_name": symbol_name,
             "writeable_data_section": writeable_data_section,
             "read_only_data_section_define": read_only_data_section_define,
@@ -1046,6 +1055,10 @@ def _addConstantBlobFileLinker(env, blob_filename):
 
 def _addConstantBlobFileCode(env, blob_filename):
 
+    symbol_name = _getSymbolName(blob_filename)
+    blob_checksum = (
+        getFileContentsHash(blob_filename) if env.resource_mode == "c23_embed" else None
+    )
     blob_basename = os.path.basename(blob_filename)
     assert blob_basename.endswith(".bin"), blob_basename
     constants_generated_filename = getNormalizedPathJoin(
@@ -1071,7 +1084,7 @@ const
 #endif
 unsigned char %s_data[] =
 {
-""" % _getSymbolName(blob_filename))
+""" % symbol_name)
 
             if env.resource_mode == "c23_embed":
                 # The '#embed' directive is a C23 extension, and only Clang 19
@@ -1111,6 +1124,15 @@ unsigned char %s_data[] =
 
 """)
 
+            if blob_checksum is not None:
+                output.write("""\
+// Checksum of the embedded blob, so external caches notice changes.
+typedef char %s_blob_checksum_check[
+    sizeof("%s") > 0 ? 1 : -1
+];
+
+""" % (symbol_name, blob_checksum))
+
             output.write(
                 """\
 #ifdef __cplusplus
@@ -1131,7 +1153,7 @@ unsigned char *get%(symbol_name)sData(void) {
 #endif
 """
                 % {
-                    "symbol_name": _getSymbolName(blob_filename),
+                    "symbol_name": symbol_name,
                 }
             )
 
