@@ -3487,6 +3487,22 @@ def getPluginNameConsideringRenames(plugin_name):
     return plugin_name
 
 
+def getPluginsEnabledUnrenamed():
+    """*tuple*, user enabled (standard) plugins without renames applied.
+
+    Note:
+        This is for plugins that replaced other plugins, and need to know
+        which name was used to enable them.
+    """
+    result = OrderedSet()
+
+    if options:
+        for plugin_enabled in options.plugins_enabled:
+            result.update(plugin_enabled.split(","))
+
+    return tuple(result)
+
+
 def getPluginsEnabled():
     """*tuple*, user enabled (standard) plugins (not including user plugins)
 
@@ -3496,12 +3512,8 @@ def getPluginsEnabled():
     """
     result = OrderedSet()
 
-    if options:
-        for plugin_enabled in options.plugins_enabled:
-            result.update(
-                getPluginNameConsideringRenames(plugin_name)
-                for plugin_name in plugin_enabled.split(",")
-            )
+    for plugin_name in getPluginsEnabledUnrenamed():
+        result.add(getPluginNameConsideringRenames(plugin_name))
 
     return tuple(result)
 
