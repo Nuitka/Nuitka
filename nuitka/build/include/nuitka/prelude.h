@@ -349,11 +349,61 @@ NUITKA_MAY_BE_UNUSED static inline managed_static_type_state *Nuitka_PyStaticTyp
 #include "nuitka/string_functions.h"
 
 // Wrapper around CPython's private "_PyType_Lookup".
+#if PYTHON_VERSION >= 0x3b0 && PYTHON_VERSION < 0x400 && !defined(Py_GIL_DISABLED)
+#define NUITKA_TYPE_LOOKUP_CACHE
+#endif
+
+#ifdef NUITKA_TYPE_LOOKUP_CACHE
+// CPython 3.11 to 3.15 keep their per-interpreter type lookup cache in
+// "tstate->interp". Reading a hit directly avoids a call into the Python DLL
+// on Windows. The layout and hash are CPython internals, so this is gated by
+// version, and free-threaded builds keep using the API that takes the type
+// lock. CPython 3.16 moved this to a per-type cache, so it keeps using the API
+// too.
+NUITKA_MAY_BE_UNUSED static inline PyObject *Nuitka_TypeLookupFast(PyTypeObject *type, PyObject *name) {
+    PyThreadState *tstate = _PyThreadState_GET();
+    unsigned int version = type->tp_version_tag;
+
+    // A version of 0 means that the type has no valid version tag, in which
+    // case the cache has no matching entry. It would also match unused entries,
+    // which have version 0 and a name of None.
+    if (likely(version != 0)) {
+        unsigned int h = (version ^ (unsigned int)(((Py_ssize_t)name) >> 3)) & ((1 << MCACHE_SIZE_EXP) - 1);
+#if PYTHON_VERSION >= 0x3c0
+        struct type_cache_entry *entry = &tstate->interp->types.type_cache.hashtable[h];
+#else
+        struct type_cache_entry *entry = &tstate->interp->type_cache.hashtable[h];
+#endif
+
+        if (entry->version == version && entry->name == name) {
+            // The cache stores misses with a NULL value, and that is a hit
+            // too, not a reason to call "_PyType_Lookup" again.
+            return entry->value;
+        }
+    }
+
+    return _PyType_Lookup(type, name);
+}
+#endif
+
 #ifdef __NUITKA_NO_ASSERT__
+#ifdef NUITKA_TYPE_LOOKUP_CACHE
+#define Nuitka_TypeLookup(x, y) Nuitka_TypeLookupFast(x, y)
+#else
 #define Nuitka_TypeLookup(x, y) _PyType_Lookup(x, y)
+#endif
 #else
 NUITKA_MAY_BE_UNUSED static PyObject *Nuitka_TypeLookup(PyTypeObject *type, PyObject *name) {
+#ifdef NUITKA_TYPE_LOOKUP_CACHE
+    PyObject *fast_result = Nuitka_TypeLookupFast(type, name);
+    PyObject *result = _PyType_Lookup(type, name);
+
+    assert(fast_result == result);
+
+    return result;
+#else
     return _PyType_Lookup(type, name);
+#endif
 }
 #endif
 
