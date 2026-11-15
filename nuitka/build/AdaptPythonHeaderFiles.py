@@ -245,6 +245,7 @@ def adaptPythonHeaderFile(content, filename):
                     "_PyLong_SMALL_INTS",
                     "_Py_tracemalloc_config",
                     "_Py_SINGLETON",
+                    "_Py_LATIN1_CHR",
                 )
             ):
                 is_dangerous = True
@@ -352,7 +353,7 @@ def _getPythonInternalHeadersAndHash(internal_include_dir):
     header_filenames = []
 
     hash_obj.updateFromValues(
-        "adapted-python-headers",
+        "adapted-python-headers-v3",
         getNuitkaVersion(),
         "module" if shallMakeModule() else "non-module",
         "gil" if isPythonWithGil() else "no-gil",

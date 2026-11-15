@@ -536,6 +536,9 @@ createBuildDefinitionsFile()
 if env.module_mode and python_sysflag_verbose:
     env.Append(CPPDEFINES=["_NUITKA_SYSFLAG_VERBOSE=1"])
 
+if python_sysflag_no_site:
+    env.Append(CPPDEFINES=["_NUITKA_SYSFLAG_NO_SITE=1"])
+
 executeSconsBuild(
     env=env,
     target=target,

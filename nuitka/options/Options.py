@@ -1116,6 +1116,7 @@ version '%s' instead or newer Nuitka."""
     if (
         python_release_level not in ("final", "candidate")
         and python_version_str not in getNotYetSupportedPythonVersions()
+        and not isExperimental("python" + python_version_str)
     ):
         return general.sysexit("""\
 Non-final versions '%s' '%s' are not supported by Nuitka, use the \

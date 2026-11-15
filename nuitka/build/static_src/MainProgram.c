@@ -84,6 +84,13 @@
 #if PYTHON_VERSION >= 0x3f0
 PyAPI_FUNC(wchar_t *) Py_GetPath(void);
 #endif
+#if PYTHON_VERSION >= 0x400
+PyAPI_FUNC(void) Py_SetProgramName(const wchar_t *);
+PyAPI_FUNC(void) PySys_SetArgv(int, wchar_t **);
+PyAPI_DATA(int) Py_UTF8Mode;
+PyAPI_DATA(const char *) Py_FileSystemDefaultEncoding;
+PyAPI_DATA(int) Py_HasFileSystemDefaultEncoding;
+#endif
 
 #if NO_PYTHON_WARNINGS || (PYTHON_NO_UNRAISABLE && PYTHON_VERSION >= 0x380)
 #include "HelpersWarnings.c"
@@ -1378,6 +1385,33 @@ static void Nuitka_Py_Initialize(void) {
     PyConfig config;
     _PyConfig_InitCompatConfig(&config);
 
+#if PYTHON_VERSION >= 0x400
+    // Python 3.16 removed the global variables that the compatibility
+    // configuration used to read, so set these values in the configuration.
+    config.parser_debug = 0;
+    config.inspect = 0;
+    config.interactive = 0;
+    config.optimization_level = SYSFLAG_OPTIMIZE;
+    config.write_bytecode = SYSFLAG_DONTWRITEBYTECODE ? 0 : 1;
+    config.user_site_directory = SYSFLAG_NO_SITE ? 0 : 1;
+    config.use_environment = 1;
+    config.verbose = SYSFLAG_VERBOSE;
+    config.bytes_warning = SYSFLAG_BYTES_WARNING;
+    config.buffered_stdio = SYSFLAG_UNBUFFERED ? 0 : 1;
+#if SYSFLAG_NO_RANDOMIZATION == 1
+    config.use_hash_seed = 0;
+    config.hash_seed = 0;
+#endif
+
+    // This suppresses warnings from getpath.c
+    config.pathconfig_warnings = 0;
+
+    // We want to import the "site" module, but only after we finished our own
+    // setup. The "site" module import will be the first thing, the main module
+    // does.
+    config.site_import = 0;
+#endif
+
     assert(orig_argv[0]);
     status = PyConfig_SetArgv(&config, orig_argc, orig_argv);
 
@@ -1893,6 +1927,7 @@ static int Nuitka_Main(int argc, native_command_line_argument_t **argv) {
 #endif
 
     /* Initialize CPython library environment. */
+#if PYTHON_VERSION < 0x400
     Py_DebugFlag = 0;
 #if PYTHON_VERSION < 0x300
     Py_Py3kWarningFlag = SYSFLAG_PY3K_WARNING;
@@ -1916,6 +1951,7 @@ static int Nuitka_Main(int argc, native_command_line_argument_t **argv) {
 #if PYTHON_VERSION < 0x300
     // For Python2 this is all it takes to have static hashes.
     _PyRandom_Init();
+#endif
 #endif
 #endif
 #if PYTHON_VERSION >= 0x370
@@ -1975,6 +2011,7 @@ static int Nuitka_Main(int argc, native_command_line_argument_t **argv) {
     Py_InitStaticModules();
 #endif
 
+#if PYTHON_VERSION < 0x400
     /* This suppresses warnings from getpath.c */
     Py_FrozenFlag = 1;
 
@@ -1983,6 +2020,7 @@ static int Nuitka_Main(int argc, native_command_line_argument_t **argv) {
      * does.
      */
     Py_NoSiteFlag = 1;
+#endif
 
     /* Initial command line handling only. */
 
@@ -2123,10 +2161,12 @@ static int Nuitka_Main(int argc, native_command_line_argument_t **argv) {
     }
 #endif
 
+#if PYTHON_VERSION < 0x400
     /* Lie about it, believe it or not, there are "site" files, that check
      * against later imports, see below.
      */
     Py_NoSiteFlag = SYSFLAG_NO_SITE;
+#endif
 
     /* Set the command line parameters for run time usage. */
     PySys_SetArgv(argc, orig_argv);

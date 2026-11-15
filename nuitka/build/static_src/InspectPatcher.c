@@ -698,7 +698,15 @@ void patchInspectModule(PyThreadState *tstate) {
 #if _NUITKA_EXE_MODE && !_NUITKA_STANDALONE_MODE
     // May need to import the "site" module, because otherwise the patching can
     // fail with it being unable to load it (yet)
-    if (Py_NoSiteFlag == 0) {
+#if PYTHON_VERSION < 0x400
+    bool needs_site_import = Py_NoSiteFlag == 0;
+#elif defined(_NUITKA_SYSFLAG_NO_SITE)
+    bool needs_site_import = false;
+#else
+    bool needs_site_import = true;
+#endif
+
+    if (needs_site_import) {
         PyObject *site_module =
             IMPORT_MODULE5(tstate, const_str_plain_site, Py_None, Py_None, const_tuple_empty, const_int_0);
 

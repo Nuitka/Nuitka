@@ -220,7 +220,31 @@ PyObject *Nuitka_ReloadModule(PyThreadState *tstate, PyObject *module) {
 }
 
 #if _NUITKA_EXE_MODE && !SYSFLAG_ISOLATED
+#if PYTHON_VERSION >= 0x400
+static inline bool isVerbose(void) {
+    static int cached_verbose = -1;
+
+    if (cached_verbose == -1) {
+        PyThreadState *tstate = PyThreadState_GET();
+        struct Nuitka_ExceptionPreservationItem saved_exception;
+
+        // "PyConfig_GetInt()" requires that no exception is pending, so
+        // preserve any pending one across the query.
+        FETCH_ERROR_OCCURRED_STATE_UNTRACED(tstate, &saved_exception);
+
+        if (unlikely(PyConfig_GetInt("verbose", &cached_verbose) < 0)) {
+            CLEAR_ERROR_OCCURRED(tstate);
+            cached_verbose = 0;
+        }
+
+        RESTORE_ERROR_OCCURRED_STATE_UNTRACED(tstate, &saved_exception);
+    }
+
+    return cached_verbose != 0;
+}
+#else
 static inline bool isVerbose(void) { return Py_VerboseFlag != 0; }
+#endif
 #elif _NUITKA_SYSFLAG_VERBOSE
 static inline bool isVerbose(void) { return true; }
 #else
