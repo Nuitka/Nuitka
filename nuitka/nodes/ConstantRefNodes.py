@@ -190,19 +190,20 @@ class ExpressionConstantUntrackedRefBase(CompileTimeConstantExpressionBase):
 
     @staticmethod
     def isNumberConstant():
-        # This is expected to be overloaded by child classes that disagree, bool, int, long and float
+        # Overloaded by bool, int, long, and float constant classes.
         return False
 
     @staticmethod
     def isIndexConstant():
-        # This is expected to be overloaded by child classes that disagree, bool, int, long and float
+        # Overloaded by bool, int, and long constant classes.
         return False
 
     def isExpressionIntegerSubscript(self):
         return self.isIndexConstant() and abs(self.getIndexValue()) < 2**31
 
     def isKnownToBeValidIndex(self):
-        # TODO: Suspiciously this doesn't use isIndexConstant, which includes float, bug?
+        # TODO: Suspiciously this uses isNumberConstant (which includes float)
+        # instead of isIndexConstant.
         return self.constant is None or self.isNumberConstant()
 
     def isKnownToBeIterable(self, count):

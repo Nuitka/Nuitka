@@ -362,8 +362,6 @@ class StatementTry(StatementTryBase):
         return False
 
     def mayBreak(self):
-        # TODO: If we optimized return handler away, this would be not needed
-        # or even non-optimal.
         if self.subnode_tried.mayBreak():
             return True
 
@@ -391,8 +389,6 @@ class StatementTry(StatementTryBase):
         return False
 
     def mayContinue(self):
-        # TODO: If we optimized return handler away, this would be not needed
-        # or even non-optimal.
         if self.subnode_tried.mayContinue():
             return True
 

@@ -345,12 +345,8 @@ def buildWithNode(provider, node, source_ref):
 
 
 def buildAsyncWithNode(provider, node, source_ref):
-    # "with" statements are re-formulated as described in the developer
-    # manual. Catches exceptions, and provides them to "__exit__", while making
-    # the "__enter__" value available under a given name.
-
-    # Before Python3, multiple context managers are not visible in the parse
-    # tree, now we need to handle it ourselves.
+    # "async with" statements are re-formulated like "with", catching exceptions
+    # and passing them to "__aexit__" while binding the "__aenter__" result.
     context_exprs = [item.context_expr for item in node.items]
     assign_targets = [item.optional_vars for item in node.items]
 

@@ -476,7 +476,7 @@ def handleGlobalDeclarationNode(provider, node, source_ref):
 
 
 def handleNonlocalDeclarationNode(provider, node, source_ref):
-    # Need to catch the error of declaring a parameter variable as global
+    # Need to catch the error of declaring a parameter variable as nonlocal
     # ourselves here. The AST parsing doesn't catch it, but we can do it here.
     parameter_provider = provider
 
@@ -874,8 +874,6 @@ def buildParseTree(provider, ast_tree, source_ref, is_main):
     # differences for module default variables.
     # pylint: disable=too-many-branches
 
-    # Maybe one day, we do exec inlining again, that is what this is for,
-    # then is_module won't be True, for now it always is.
     pushFutureSpec(provider.getFullName())
     provider.setFutureSpec(getFutureSpec())
 

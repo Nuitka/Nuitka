@@ -14,8 +14,7 @@ Values can be seen as:
 * Assign (assignment was done)
 * Deleted (del was done, now unassigned, uninitialized)
 * Merge (result of diverged code paths, loop potentially)
-* LoopIncomplete (aggregation during loops, not yet fully known)
-* LoopComplete (complete knowledge of loop types)
+* Loop (aggregation of value shapes across loop iterations)
 """
 
 from abc import abstractmethod
@@ -151,7 +150,7 @@ class ValueTraceBase(object):
 
     @abstractmethod
     def isWritingTrace(self):
-        """Is the trace indicating a usage of the variable."""
+        """Is the trace writing to the variable."""
 
     @staticmethod
     def isAssignTrace():
@@ -219,7 +218,7 @@ class ValueTraceBase(object):
 
     @abstractmethod
     def mustNotHaveValue(self):
-        """Will this definitely have a value."""
+        """Will this definitely have no value."""
 
     def getReplacementNode(self, usage):
         # Virtual method, pylint: disable=no-self-use,unused-argument

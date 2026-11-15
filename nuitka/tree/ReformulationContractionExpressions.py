@@ -221,8 +221,6 @@ def buildDictContractionNode(provider, node, source_ref):
 
 
 def buildGeneratorExpressionNode(provider, node, source_ref):
-    # Generator expressions are dealt with by general code.
-
     assert getKind(node) == "GeneratorExp"
 
     function_body = ExpressionOutlineBody(
@@ -611,10 +609,8 @@ def _buildContractionBodyNode(  # pylint: disable=too-many-statements
 
         tmp_variables.append(tmp_value_variable)
 
-        # The first iterated value is to be calculated outside of the function
-        # and will be given as a parameter "_iterated", the others are built
-        # inside the function.
-
+        # The outermost iterable is evaluated outside the body and passed in via
+        # 'iter_tmp' ('.0'); inner iterables are built inside.
         if qual is node.generators[0]:
             iterator_ref = makeVariableRefNode(variable=iter_tmp, source_ref=source_ref)
 

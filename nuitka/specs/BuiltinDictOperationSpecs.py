@@ -33,17 +33,14 @@ class DictMethodSpecNoKeywords(BuiltinMethodParameterSpecNoKeywordsBase):
 dict_copy_spec = DictMethodSpec("copy", type_shape=tshape_dict)
 dict_clear_spec = DictMethodSpec("clear", type_shape=tshape_none)
 
-# items is the Python2 variant, iteritems is the Python3 variant of items
 dict_items_spec = DictMethodSpec("items", type_shape=tshape_list)
 dict_iteritems_spec = DictMethodSpec("iteritems")
 dict_viewitems_spec = DictMethodSpec("viewitems")
 
-# keys is the Python2 variant, iterkeys is the Python3 variant of keys
 dict_keys_spec = DictMethodSpec("keys", type_shape=tshape_list)
 dict_iterkeys_spec = DictMethodSpec("iterkeys")
 dict_viewkeys_spec = DictMethodSpec("viewkeys")
 
-# values is the Python2 variant, itervalues is the Python3 variant of keys
 dict_values_spec = DictMethodSpec("values", type_shape=tshape_list)
 dict_itervalues_spec = DictMethodSpec("itervalues")
 dict_viewvalues_spec = DictMethodSpec("viewvalues")

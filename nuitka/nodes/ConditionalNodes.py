@@ -184,7 +184,6 @@ branches.""",
 
         no_branch = self.subnode_expression_no
 
-        # Continue to execute for yes branch.
         if truth_value is not True:
             branch_no_collection = TraceCollectionBranch(
                 parent=trace_collection, name="conditional expression no branch"
@@ -267,13 +266,11 @@ Convert conditional expression with unused result into conditional statement."""
 
         yes_branch = self.subnode_expression_yes
 
-        # Handle branches that became empty behind our back
         if yes_branch is not None and yes_branch.mayRaiseException(exception_type):
             return True
 
         no_branch = self.subnode_expression_no
 
-        # Handle branches that became empty behind our back
         if no_branch is not None and no_branch.mayRaiseException(exception_type):
             return True
 

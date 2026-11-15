@@ -81,12 +81,8 @@ class ExpressionOutlineBody(
 ):
     """Outlined expression code.
 
-    This is for a call to a piece of code to be executed in a specific
-    context. It contains an exclusively owned function body, that has
-    no other references, and can be considered part of the calling
-    context.
-
-    It must return a value, to use as expression value.
+    Executes a statement sequence inline within the calling provider's
+    context and produces its expression value via return statements.
     """
 
     kind = "EXPRESSION_OUTLINE_BODY"

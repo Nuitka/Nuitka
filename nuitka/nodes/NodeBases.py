@@ -214,7 +214,7 @@ class NodeBase(NodeMetaClassBase):
         return parent
 
     def getContainingLoopNode(self):
-        """Return the parent that is module."""
+        """Return the enclosing loop node, stopping at function body boundaries."""
         parent = self.parent
 
         # TODO: Actually outline functions ought to not abort here, but we ought
@@ -458,10 +458,7 @@ class NodeBase(NodeMetaClassBase):
 
     @staticmethod
     def getVisitableNodesNamed():
-        """Named children dictionary.
-
-        For use in debugging and XML output.
-        """
+        """Sequence of (name, child) pairs for visitable children."""
 
         return ()
 
@@ -616,7 +613,7 @@ class ClosureGiverNodeMixin(CodeNodeMixin):
 
     @abstractmethod
     def createProvidedVariable(self, variable_name):
-        """Create a variable provided by this function."""
+        """Create a variable provided by this scope."""
 
     def allocateTempScope(self, name):
         self.temp_scopes[name] = self.temp_scopes.get(name, 0) + 1

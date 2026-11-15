@@ -1198,10 +1198,6 @@ class ExpressionFunctionCreationMixin(SideEffectsFromChildrenMixin):
 
         function_body = self.subnode_function_ref.getFunctionBody()
 
-        # TODO: Actually the above disables it entirely, as it is at least
-        # the empty dictionary node in any case. We will need some enhanced
-        # interfaces for "matchCall" to work on.
-
         call_spec = function_body.getParameters()
 
         try:

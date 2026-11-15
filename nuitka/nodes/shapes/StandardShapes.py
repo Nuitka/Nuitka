@@ -441,9 +441,6 @@ class ShapeBase(getMetaClassBase("Shape", require_slots=True)):
 
                 return operation_result_unknown
         else:
-            # By default, inplace add is the same as plain add, the
-            # only exception known right now is list, which extend
-            # from all iterables, but don't add with them.
             return self.getOperationBinaryBitOrShape(right_shape)
 
     matmult_shapes = {}

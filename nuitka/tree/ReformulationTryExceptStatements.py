@@ -218,11 +218,8 @@ def makeTryExceptSingleHandlerNodeWithPublish(
 
 def buildTryExceptionNode(provider, node, source_ref):
     # Try/except nodes. Re-formulated as described in the Developer Manual.
-    # Exception handlers made the assignment to variables explicit. Same for the
-    # "del" as done for Python3. Also catches always work a tuple of exception
-    # types and hides away that they may be built or not.
-
-    # For Python3.11, the is_star_try indicates "except*" usage.
+    # Exception handlers make the assignment to variables explicit, as well as
+    # the "del" as done for Python3.
 
     # Many variables and branches, due to the re-formulation that is going on
     # here, which just has the complexity, pylint: disable=too-many-branches,too-many-locals
@@ -306,7 +303,6 @@ def buildTryExceptionNode(provider, node, source_ref):
             allow_none=True,
         )
 
-        # The exception types should be a tuple, so as to be most general.
         if exception_types is None:
             if handler is not node.handlers[-1]:
                 raiseSyntaxError(

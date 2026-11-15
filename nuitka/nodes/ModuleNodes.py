@@ -111,8 +111,6 @@ class PythonModuleBase(NodeBase):
         if package_name is None or package_name.getTopLevelPackageName() == "":
             return ()
 
-        # Return the list of newly added modules.
-
         package = getModuleByName(package_name)
 
         if package_name is not None and package is None:

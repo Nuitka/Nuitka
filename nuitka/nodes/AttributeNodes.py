@@ -48,12 +48,11 @@ from .StatementBasesGenerated import (
 class StatementAssignmentAttribute(StatementAssignmentAttributeBase):
     """Assignment to an attribute.
 
-    Typically from code like: source.attribute_name = expression
+    Typically from code like: expression.attribute_name = source
 
-    Both source and expression may be complex expressions, the source
-    is evaluated first. Assigning to an attribute has its on slot on
-    the source, which gets to decide if it knows it will work or not,
-    and what value it will be.
+    Both source and expression may be complex expressions; source is
+    evaluated first. Attribute assignment dispatches to a slot on
+    expression ('computeExpressionSetAttribute').
     """
 
     kind = "STATEMENT_ASSIGNMENT_ATTRIBUTE"
@@ -81,11 +80,10 @@ class StatementAssignmentAttribute(StatementAssignmentAttributeBase):
 class StatementDelAttribute(StatementDelAttributeBase):
     """Deletion of an attribute.
 
-    Typically from code like: del source.attribute_name
+    Typically from code like: del expression.attribute_name
 
-    The source may be complex expression. Deleting an attribute has its on
-    slot on the source, which gets to decide if it knows it will work or
-    not, and what value it will be.
+    Attribute deletion dispatches to a slot on expression
+    ('computeExpressionDelAttribute').
     """
 
     kind = "STATEMENT_DEL_ATTRIBUTE"

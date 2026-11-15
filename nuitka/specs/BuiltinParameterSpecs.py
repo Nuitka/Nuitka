@@ -1,7 +1,7 @@
 #     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-"""Optimizations of built-ins to built-in calls."""
+"""Parameter specifications and call matching for built-ins."""
 
 import math
 
@@ -171,7 +171,7 @@ class BuiltinParameterSpecNoKeywords(BuiltinParameterSpec):
         return False
 
     def simulateCall(self, given_values):
-        # Using star dict call for simulation and catch any exception as really fatal,
+        # Catch any exception during compile-time call simulation as fatal,
         # pylint: disable=broad-except
 
         try:
@@ -253,9 +253,6 @@ def makeBuiltinExceptionParameterSpec(exception_name):
         is_new_import_error = False
 
     if is_new_import_error:
-        # This is currently the only known built-in exception that does it, but let's
-        # be general, as surely that list is going to expand only.
-
         return BuiltinParameterSpecExceptionsKwOnly(
             exception_name=exception_name, kw_only_args=("name", "path")
         )

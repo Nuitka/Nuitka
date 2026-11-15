@@ -320,8 +320,8 @@ class ExpressionBase(NodeBase):
     ):
         # pylint: disable=unused-argument
 
-        # By default, an subscript may change everything about the lookup
-        # source and the value is escaped.
+        # By default, a slice assignment may change everything about the target
+        # and the value escapes.
         trace_collection.removeKnowledge(value_node)
         trace_collection.removeKnowledge(self)
         trace_collection.onControlFlowEscape(self)
@@ -338,8 +338,7 @@ class ExpressionBase(NodeBase):
     def computeExpressionDelSlice(self, set_node, lower, upper, trace_collection):
         # pylint: disable=unused-argument
 
-        # By default, an subscript may change everything about the lookup
-        # source.
+        # By default, a slice deletion may change everything about the target.
         trace_collection.removeKnowledge(self)
         trace_collection.onControlFlowEscape(self)
 
@@ -895,11 +894,11 @@ class ExpressionBase(NodeBase):
 
     @staticmethod
     def getIntValue():
-        """Value that "int" or "PyNumber_Int" (sp) would give, if known.
+        """Value that 'int' or 'PyNumber_Int' would give, if known.
 
-        Otherwise it is "None" to indicate unknown. Users must not
+        Otherwise it is 'None' to indicate unknown. Users must not
         forget to take side effects into account, when replacing a
-        node with its string value.
+        node with its integer value.
         """
         return None
 

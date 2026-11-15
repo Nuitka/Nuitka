@@ -438,11 +438,7 @@ class TraceCollectionBase(object):
         printSeparator()
 
     def getVariableCurrentTrace(self, variable):
-        """Get the current value trace associated to this variable
-
-        It is also created on the fly if necessary. We create them
-        lazy so to keep the tracing branches minimal where possible.
-        """
+        """Get the current value trace associated with this variable."""
 
         return self.variable_traces[variable][self.variable_actives[variable]]
 
@@ -790,12 +786,9 @@ class TraceCollectionBase(object):
     def computedStatementResult(self, statement, change_tags, change_desc):
         """Make sure the replacement statement is computed.
 
-        Use this when a replacement expression needs to be seen by the trace
+        Use this when a replacement statement needs to be seen by the trace
         collection and be computed, without causing any duplication, but where
         otherwise there would be loss of annotated effects.
-
-        This may e.g. be true for nodes that need an initial run to know their
-        exception result and type shape.
         """
         # Need to compute the replacement still.
         new_statement = statement.computeStatement(self)

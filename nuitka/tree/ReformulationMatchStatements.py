@@ -326,9 +326,8 @@ def _buildMatchMapping(provider, pattern, make_against, source_ref):
     key = kwd_pattern = None
 
     for count, (key, kwd_pattern) in enumerate(zip(pattern.keys, pattern.patterns)):
-        # CPython checks for duplicate keys at match time, when at least one of
-        # the keys is not a compile time constant. Duplicates of only constant
-        # keys are rejected by CPython as syntax errors, which we don't do yet.
+        # CPython checks for duplicate keys at match time when at least one of
+        # the keys is not a compile-time constant.
         duplicate_conditions = [
             makeComparisonExpression(
                 left=buildNode(

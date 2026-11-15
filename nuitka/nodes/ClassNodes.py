@@ -142,8 +142,6 @@ class ExpressionClassBodyBase(ExpressionOutlineFunctionBase):
 
     @staticmethod
     def mayHaveSideEffects():
-        # The function definition has no side effects, calculating the defaults
-        # would be, but that is done outside of this.
         return False
 
     def mayRaiseException(self, exception_type):

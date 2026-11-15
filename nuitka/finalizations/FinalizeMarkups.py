@@ -1,17 +1,10 @@
 #     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-"""Finalize the markups
+"""Finalize markups on the node tree ahead of code generation.
 
-Set flags on functions and classes to indicate if a locals dict is really
-needed.
-
-Set a flag on loops if they really need to catch Continue and Break exceptions
-or if it can be more simple code.
-
-Set a flag on re-raises of exceptions if they can be simple throws or if they
-are in another context.
-
+Marks module value setters, function creation/direct-call/cross-module flags,
+in-place assignment suspects, and frame/yield exception preservation.
 """
 
 from nuitka import Tracing
