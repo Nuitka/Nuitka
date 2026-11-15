@@ -150,13 +150,19 @@ static PyDictValues *Nuitka_GetManagedDictValues(PyObject *source, PyObject **di
 
     return NULL;
 #else
+    PyObject *managed_dict = (PyObject *)_PyObject_GetManagedDict(source);
+
+    if (managed_dict != NULL) {
+        *dict = managed_dict;
+
+        return NULL;
+    }
+
     PyTypeObject *type = Py_TYPE(source);
 
     if (Nuitka_PyType_HasInlineValues(type) && _PyObject_InlineValues(source)->valid) {
         return _PyObject_InlineValues(source);
     }
-
-    *dict = (PyObject *)_PyObject_GetManagedDict(source);
 
     return NULL;
 #endif
@@ -202,6 +208,9 @@ int Nuitka_LookupManagedDictAttribute(PyTypeObject *type, PyObject *source, PyOb
 
     // CPython creates the instance dictionary for lookups with non-exact
     // strings, do the same, the object keeps a reference to it.
+    // TODO: Replace "PyObject_GenericGetDict" with our own implementation
+    // matching CPython 3.11 to 3.15. Non-string attribute names are rare, so
+    // this is a cold path.
     PyObject *new_dict = PyObject_GenericGetDict(source, NULL);
 
     if (unlikely(new_dict == NULL)) {
@@ -213,7 +222,6 @@ int Nuitka_LookupManagedDictAttribute(PyTypeObject *type, PyObject *source, PyOb
     return 0;
 }
 #endif
-
 
 int BUILTIN_HASATTR_BOOL(PyThreadState *tstate, PyObject *source, PyObject *attr_name) {
     CHECK_OBJECT(source);
