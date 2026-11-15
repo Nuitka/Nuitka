@@ -128,33 +128,45 @@ void SET_ATTRIBUTE_ERROR_CONTEXT(PyThreadState *tstate, PyObject *source, PyObje
 #endif
 
 #if PYTHON_VERSION >= 0x3b0
-int Nuitka_LookupManagedDictAttribute(PyTypeObject *type, PyObject *source, PyObject *attr_name, PyObject **dict,
-                                      PyObject **result) {
-    assert(type->tp_flags & Py_TPFLAGS_MANAGED_DICT);
-
-    PyDictValues *values = NULL;
+static PyDictValues *Nuitka_GetManagedDictValues(PyObject *source, PyObject **dict) {
+    *dict = NULL;
 
 #if PYTHON_VERSION < 0x3c0
-    values = *_PyObject_ValuesPointer(source);
+    PyDictValues *values = *_PyObject_ValuesPointer(source);
 
     if (values == NULL) {
         *dict = *_PyObject_ManagedDictPointer(source);
     }
+
+    return values;
 #elif PYTHON_VERSION < 0x3d0
     PyDictOrValues dorv = *_PyObject_DictOrValuesPointer(source);
 
     if (_PyDictOrValues_IsValues(dorv)) {
-        values = _PyDictOrValues_GetValues(dorv);
-    } else {
-        *dict = _PyDictOrValues_GetDict(dorv);
+        return _PyDictOrValues_GetValues(dorv);
     }
+
+    *dict = _PyDictOrValues_GetDict(dorv);
+
+    return NULL;
 #else
-    if ((type->tp_flags & Py_TPFLAGS_INLINE_VALUES) && _PyObject_InlineValues(source)->valid) {
-        values = _PyObject_InlineValues(source);
-    } else {
-        *dict = (PyObject *)_PyObject_GetManagedDict(source);
+    PyTypeObject *type = Py_TYPE(source);
+
+    if (Nuitka_PyType_HasInlineValues(type) && _PyObject_InlineValues(source)->valid) {
+        return _PyObject_InlineValues(source);
     }
+
+    *dict = (PyObject *)_PyObject_GetManagedDict(source);
+
+    return NULL;
 #endif
+}
+
+int Nuitka_LookupManagedDictAttribute(PyTypeObject *type, PyObject *source, PyObject *attr_name, PyObject **dict,
+                                      PyObject **result) {
+    assert(type->tp_flags & Py_TPFLAGS_MANAGED_DICT);
+
+    PyDictValues *values = Nuitka_GetManagedDictValues(source, dict);
 
     if (values == NULL) {
         return 0;
@@ -298,6 +310,36 @@ static bool SET_INSTANCE(PyThreadState *tstate, PyObject *target, PyObject *attr
 // Classes in Python3 might share keys.
 #define CACHED_KEYS(type) (((PyHeapTypeObject *)type)->ht_cached_keys)
 
+#if PYTHON_VERSION >= 0x3b0
+static int Nuitka_StoreManagedDictAttribute(PyTypeObject *type, PyObject *target, PyObject *attr_name,
+                                            PyObject *value) {
+#if PYTHON_VERSION < 0x3c0
+    PyDictValues *values = *_PyObject_ValuesPointer(target);
+
+    if (values != NULL) {
+        return _PyObject_StoreInstanceAttribute(target, values, attr_name, value);
+    }
+
+    return _PyObjectDict_SetItem(type, _PyObject_ManagedDictPointer(target), attr_name, value);
+#elif PYTHON_VERSION < 0x3d0
+    PyDictOrValues *dorv_pointer = _PyObject_DictOrValuesPointer(target);
+
+    if (_PyDictOrValues_IsValues(*dorv_pointer)) {
+        return _PyObject_StoreInstanceAttribute(target, _PyDictOrValues_GetValues(*dorv_pointer), attr_name, value);
+    }
+
+    return _PyObjectDict_SetItem(type, &dorv_pointer->dict, attr_name, value);
+#else
+    if (Nuitka_PyType_HasInlineValues(type)) {
+        return _PyObject_StoreInstanceAttribute(target, attr_name, value);
+    }
+
+    return _PyObjectDict_SetItem(type, target, (PyObject **)&_PyObject_ManagedDictPointer(target)->dict, attr_name,
+                                 value);
+#endif
+}
+#endif
+
 static bool SET_ATTRIBUTE_GENERIC(PyThreadState *tstate, PyTypeObject *type, PyObject *target, PyObject *attr_name,
                                   PyObject *value) {
     // Unfortunately this is required, although of cause rarely necessary.
@@ -326,32 +368,8 @@ static bool SET_ATTRIBUTE_GENERIC(PyThreadState *tstate, PyTypeObject *type, PyO
 
 #if PYTHON_VERSION >= 0x3b0
     if (type->tp_flags & Py_TPFLAGS_MANAGED_DICT) {
-        int res;
+        int res = Nuitka_StoreManagedDictAttribute(type, target, attr_name, value);
 
-#if PYTHON_VERSION < 0x3c0
-        PyDictValues *values = *_PyObject_ValuesPointer(target);
-
-        if (values != NULL) {
-            res = _PyObject_StoreInstanceAttribute(target, values, attr_name, value);
-        } else {
-            res = _PyObjectDict_SetItem(type, _PyObject_ManagedDictPointer(target), attr_name, value);
-        }
-#elif PYTHON_VERSION < 0x3d0
-        PyDictOrValues *dorv_pointer = _PyObject_DictOrValuesPointer(target);
-
-        if (_PyDictOrValues_IsValues(*dorv_pointer)) {
-            res = _PyObject_StoreInstanceAttribute(target, _PyDictOrValues_GetValues(*dorv_pointer), attr_name, value);
-        } else {
-            res = _PyObjectDict_SetItem(type, &dorv_pointer->dict, attr_name, value);
-        }
-#else
-        if (type->tp_flags & Py_TPFLAGS_INLINE_VALUES) {
-            res = _PyObject_StoreInstanceAttribute(target, attr_name, value);
-        } else {
-            res = _PyObjectDict_SetItem(type, target, (PyObject **)&_PyObject_ManagedDictPointer(target)->dict,
-                                        attr_name, value);
-        }
-#endif
         Py_XDECREF(descr);
 
         // TODO: Not possible for set, is it?
