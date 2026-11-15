@@ -543,26 +543,39 @@ def decoratorRetries(
                 try:
                     result = func(*args, **kwargs)
                 except exception_type as e:
+                    if attempt < attempts:
+                        retry_info = (
+                            "\nRetrying after a delay of %d seconds." % sleep_time
+                        )
+                    else:
+                        retry_info = ""
+
                     if not isinstance(e, OSError):
                         logger.warning("""\
 Failed to %s in attempt %d due to %s.
-%s
-Retrying after a second of delay.""" % (purpose, attempt, str(e), recommendation))
+%s%s""" % (purpose, attempt, str(e), recommendation, retry_info))
 
                     else:
                         if isinstance(e, OSError) and e.errno in (110, 13):
                             logger.warning("""\
 Failed to %s in attempt %d.
-%s
-Retrying after a second of delay.""" % (purpose, attempt, recommendation))
+%s%s""" % (purpose, attempt, recommendation, retry_info))
                         else:
-                            logger.warning("""\
+                            logger.warning(
+                                """\
 Failed to %s in attempt %d with error code %d.
-%s
-Retrying after a second of delay.""" % (purpose, attempt, e.errno, recommendation))
+%s%s"""
+                                % (
+                                    purpose,
+                                    attempt,
+                                    e.errno,
+                                    recommendation,
+                                    retry_info,
+                                )
+                            )
 
-                    time.sleep(sleep_time)
-                    continue
+                    if attempt < attempts:
+                        time.sleep(sleep_time)
 
                 else:
                     if attempt != 1:
