@@ -2408,17 +2408,21 @@
     - depends:
         - 'h5py.utils'
 
-- module-name: 'httpx' # checksum: 54920036
+- module-name: 'httpx' # checksum: 539d824a
   anti-bloat:
     - description: 'CLI entry point pulls in click, rich, pygments unnecessarily'
+      replacements_plain:
+        'from ._main import main': 'raise ImportError'
       no-auto-follow:
         'httpx._main': 'ignore'
 
-- module-name: 'huggingface_hub' # checksum: 21fda2b4
-  implicit-imports:
-    - depends:
-        - 'huggingface_hub.*'
-        - 'huggingface_hub.utils.*'
+- module-name: 'httpx2' # checksum: 6889cae1
+  anti-bloat:
+    - description: 'CLI entry point pulls in click, rich, pygments unnecessarily'
+      replacements_plain:
+        'from ._main import main': 'raise ImportError'
+      no-auto-follow:
+        'httpx2._main': 'ignore'
 
 - module-name: 'huggingface_hub._login' # checksum: 3c12cb9a
   anti-bloat:
