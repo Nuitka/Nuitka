@@ -7,7 +7,7 @@ For built-in name references, we check if it's one of the supported built-in
 types, and then specialize for the ones, where it makes sense.
 """
 
-from nuitka.__past__ import unicode, xrange
+from nuitka.__past__ import long, unicode, xrange
 from nuitka.Errors import NuitkaAssumptionError
 from nuitka.nodes.AttributeNodes import (
     ExpressionBuiltinGetattr,
@@ -810,10 +810,10 @@ if python_version < 0x300:
             # pylint: disable=unused-argument
 
             return makeConstantReplacementNode(
-                constant=int(), node=node, user_provided=False
+                constant=long(), node=node, user_provided=False
             )
 
-        def selectIntBuiltin(value, base, source_ref):
+        def selectLongBuiltin(value, base, source_ref):
             if base is None:
                 return ExpressionBuiltinLong1(value=value, source_ref=source_ref)
             else:
@@ -823,8 +823,8 @@ if python_version < 0x300:
 
         return BuiltinParameterSpecs.extractBuiltinArgs(
             node=node,
-            builtin_class=selectIntBuiltin,
-            builtin_spec=BuiltinParameterSpecs.builtin_int_spec,
+            builtin_class=selectLongBuiltin,
+            builtin_spec=BuiltinParameterSpecs.builtin_long_spec,
             empty_special_class=makeLong0,
         )
 
