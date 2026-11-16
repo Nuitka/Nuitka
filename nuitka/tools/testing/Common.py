@@ -273,8 +273,7 @@ tmp_dir = None
 
 
 def getTempDir():
-    # Create a temporary directory to work in, automatically remove it in case
-    # it is empty in the end.
+    """Return a temporary directory for the test run, removed recursively at exit."""
     global tmp_dir  # singleton, pylint: disable=global-statement
 
     if tmp_dir is None:

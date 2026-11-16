@@ -679,13 +679,12 @@ def getSubDirectories(path, ignore_dirs=(), ignore_permission_error=False):
 
     Args:
         path: directory to create a recursive listing from
-        ignore_dirs: directories named that like will be ignored
+        ignore_dirs: directory basenames to ignore
         ignore_permission_error: When True, permission errors from
             'os.walk' are silently ignored.
 
     Returns:
-        Sorted list of all directories below that directory,
-        relative to it.
+        Sorted list of directory paths below 'path' (prefixed with 'path').
 
     Notes:
         This function descends into directories, but does
@@ -752,26 +751,19 @@ def getDllBasename(path):
 def listDllFilesFromDirectory(
     path, prefix=None, suffixes=None, ignore_permission_error=False
 ):
-    """Give a sorted listing of DLLs filenames in a path.
+    """Yield DLL filenames in 'path' in sorted order.
 
     Args:
-        path: directory to create a DLL listing from
+        path: directory to scan for DLLs
         prefix: shell pattern to match filename start against, can be None
-        suffixes: shell patch to match filename end against, defaults to all platform ones
+        suffixes: shell patterns to match filename extension against, defaults to platform ones
         ignore_permission_error: When True, permission errors are
             silently ignored.
 
-    Returns:
-        Sorted list of tuples of full filename, and basename of
-        DLLs in that directory.
-
-    Notes:
-        Typically the full name and the basename are both needed
-        so this function simply does both, for ease of use on the
-        calling side.
+    Yields:
+        Tuples of '(fullpath, filename)' for matching DLLs in 'path'.
     """
 
-    # Accept None value as well.
     prefix = prefix or ""
 
     suffixes = suffixes or ("dll", "so.*", "so", "dylib")
@@ -788,24 +780,17 @@ def listDllFilesFromDirectory(
 
 
 def listExeFilesFromDirectory(path, prefix=None, suffixes=None):
-    """Give a sorted listing of EXE filenames in a path.
+    """Yield executable filenames in 'path' in sorted order.
 
     Args:
-        path: directory to create a DLL listing from
+        path: directory to scan for executables
         prefix: shell pattern to match filename start against, can be None
-        suffixes: shell patch to match filename end against, can be None
+        suffixes: shell patterns to match filename extension against, can be None
 
-    Returns:
-        Sorted list of tuples of full filename, and basename of
-        DLLs in that directory.
-
-    Notes:
-        Typically the full name and the basename are both needed
-        so this function simply does both, for ease of use on the
-        calling side.
+    Yields:
+        Tuples of '(fullpath, filename)' for matching executables in 'path'.
     """
 
-    # Accept None value as well.
     prefix = prefix or ""
 
     # On Windows, we check exe suffixes, on other platforms we shell all filenames,
@@ -833,18 +818,18 @@ def listExeFilesFromDirectory(path, prefix=None, suffixes=None):
 
 
 def getSubDirectoriesWithDlls(path, ignore_dirs=(), ignore_permission_error=False):
-    """Get all directories below a given path.
+    """Get all subdirectories below 'path' containing DLLs or macOS frameworks.
 
     Args:
         path: directory to create a recursive listing from
-        ignore_dirs: directories named that like will be ignored, in
-            addition to the ones ignored by default.
+        ignore_dirs: directory basenames to ignore, in addition to defaults
         ignore_permission_error: When True, permission errors are
             silently ignored.
 
     Returns:
-        Sorted tuple of all directories below that directory,
-        relative to it, that contain DLL files.
+        Sorted tuple of directory paths below 'path' (prefixed with 'path')
+        that contain DLL files or macOS frameworks, including intermediate
+        parent directories below 'path'.
 
     Notes:
         This function descends into directories, but does
@@ -886,7 +871,6 @@ def _getSubDirectoriesWithDlls(path, ignore_dirs=(), ignore_permission_error=Fal
 
             candidate = os.path.dirname(sub_directory)
 
-            # Should be string identical, no normalization in is done in "getSubDirectories"
             while candidate != path:
                 yield candidate
                 candidate = os.path.dirname(candidate)
@@ -1370,16 +1354,15 @@ def addFileContentsBOM(contents):
 
 
 def getFileFirstLine(filename, mode="r", encoding=None):
-    """Get the contents of a file.
+    """Get the first line of a file.
 
     Args:
         filename: str with the file to be read
         mode: "r" for str, "rb" for bytes result
-        encoding: optional encoding to used when reading the file, e.g. "utf8"
+        encoding: optional encoding to use when reading the file, e.g. "utf8"
 
     Returns:
         str or bytes - depending on mode.
-
     """
 
     with withFileLock("reading file %s" % filename):
@@ -1838,7 +1821,7 @@ def getWindowsShortPathName(filename):
 
 
 def getWindowsLongPathName(filename):
-    """Gets the long path name of a given long path.
+    """Gets the long path name of a given short path.
 
     Args:
         filename - short Windows filename

@@ -62,8 +62,6 @@ def enableThreading():
 class NuitkaProgressBarTqdm(object):
     def __init__(self, iterable, stage, total, min_total, unit):
         self.total = total
-
-        # The minimum may not be provided, then default to 0.
         self.min_total = min_total
 
         # No item under work yet.
@@ -201,8 +199,8 @@ class NuitkaProgressBarRich(object):
         if hasattr(rich_file, "original_stream"):
             rich_file = rich_file.original_stream
 
-        # This is for "rich" to not use the "SconsStreamRedirector" that we install
-        # for Scons, but instead use the one that really goes to the terminal.
+        # Bypass our "LineBufferedStreamRedirector" so "rich" writes directly to
+        # the underlying terminal stream.
         console = _rich_console.Console(file=rich_file)
 
         self.rich_progress = _rich_progress.Progress(

@@ -1,7 +1,7 @@
 #     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-"""Linux installer creation for standalone and onefile deployments.
+"""Linux installer creation for standalone deployments.
 
 This module collects the options, validates payload, invokes the AppImage
 backend, and fires the ``onInstallerOutput`` hook.

@@ -81,7 +81,7 @@ def getMainModule():
 
 
 def getSourceDirectoryPath(onefile, create):
-    """Return path inside the build directory."""
+    """Return path of the build directory."""
 
     # Distinct build folders for onefile mode.
     if onefile:
@@ -108,7 +108,7 @@ def getSourceDirectoryPath(onefile, create):
 
 
 def getSourceDirectoryExternalUsePath(onefile, create):
-    """Return externally usable path inside the build directory."""
+    """Return externally usable path of the build directory."""
 
     return getExternalUsePath(getSourceDirectoryPath(onefile=onefile, create=create))
 

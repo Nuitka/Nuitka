@@ -7,9 +7,8 @@ For code to be in the standard library means that it's not written by the
 user for sure. We treat code differently based on that information, by e.g.
 including as byte code.
 
-To determine if a module from the standard library, we can abuse the attribute
-"__file__" of the "os" module like it's done in "isStandardLibraryPath" of this
-module.
+To determine standard library paths, ``getStandardLibraryPaths`` inspects the
+``__file__`` attribute of the ``types`` module.
 """
 
 import os

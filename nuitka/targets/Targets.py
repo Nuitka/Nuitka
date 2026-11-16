@@ -215,7 +215,7 @@ class TargetBase(object):
         return self.c_longlong_min <= value <= self.c_longlong_max
 
     def isValidDigitValue(self, value):
-        """Return whether a Python value fits into a target float digit.
+        """Return whether a Python value fits into a target Python 'long' digit.
 
         Notes:
             Digits in long objects do not use 2-complement, but a boolean sign.
@@ -354,7 +354,7 @@ def isTargetValidCLongLongValue(value):
 
 
 def isTargetValidDigitValue(value):
-    """Return whether a Python value fits into an installed target float digit."""
+    """Return whether a Python value fits into an installed target Python 'long' digit."""
     return _target_specification.isValidDigitValue(value)
 
 

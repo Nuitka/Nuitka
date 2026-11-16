@@ -428,9 +428,9 @@ def pickSourceFilenames(source_dir, modules):
         being duplicate copies, e.g. a package named the same as the main
         binary.
 
-        Conflicts are resolved by appending @<number> with a count in the
-        list of sorted modules. We try to be reproducible here, so we get
-        still good caching for external tools.
+        Conflicts, overly long names, and unencodable names fall back to a
+        deterministic 'module.hashed_...' filename so external compiler caches
+        stay reproducible.
     """
 
     collision_filenames = set()
@@ -723,10 +723,6 @@ did the created binary run at all?""")
 
 
 def _runPythonPgoBinary(pgo_executable):
-    # Note: For exit codes, we do not insist on anything yet, maybe we could point it out
-    # or ask people to make scripts that buffer these kinds of errors, and take an error
-    # instead as a serious failure.
-
     pgo_filename = OutputDirectories.getPgoRunInputFilename()
 
     if not os.path.isfile(pgo_executable):

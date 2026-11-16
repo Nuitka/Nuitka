@@ -3,10 +3,9 @@
 
 """Installer creation dispatch.
 
-Provides the single entry point 'createInstaller' called from the end of
-compilation in 'MainControl'. It dispatches to the appropriate platform
-implementation, so macOS DMG creation and Windows installer creation share
-one call site.
+Provides the single entry point 'createInstallerDispatch' called from the end
+of compilation in 'MainControl', dispatching to macOS DMG, Windows NSIS, and
+Linux AppImage installer creation.
 """
 
 from nuitka.options.Options import (

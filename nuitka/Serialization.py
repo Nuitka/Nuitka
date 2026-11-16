@@ -112,7 +112,7 @@ def _pickleUnionType(pickler, value):
 
 
 class ConstantStreamWriter(object):
-    """Write constants to a stream and return numbers for them."""
+    """Write pickled constants and blob data to a stream while counting entries."""
 
     def __init__(self, filename):
         self.count = 0

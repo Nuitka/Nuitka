@@ -743,7 +743,6 @@ Error, the value given for '--onefile-child-grace-time' must be integer or 'infi
             options.force_stderr_spec, "--force-stderr-spec", allow_disable=True
         )
 
-    # Provide a tempdir spec implies onefile tempdir, even on Linux.
     # Standalone mode implies an executable, not importing "site" module, which is
     # only for this machine, recursing to all modules, and even including the
     # standard library.
@@ -1770,12 +1769,12 @@ def getShallFollowExtraFilePatterns():
 
 
 def getMustIncludeModules():
-    """*list*, items of ``--include-module=``"""
+    """*OrderedSet*, items of ``--include-module=``"""
     return OrderedSet(sum([_splitShellPattern(x) for x in options.include_modules], []))
 
 
 def getMustIncludePackages():
-    """*list*, items of ``--include-package=``"""
+    """*OrderedSet*, items of ``--include-package=``"""
     return OrderedSet(
         sum([_splitShellPattern(x) for x in options.include_packages], [])
     )
@@ -1789,7 +1788,7 @@ def getShallIncludeDistributionMetadata():
 
 
 def getShallIncludePackageData():
-    """*iterable of (module name, filename pattern)*, derived from ``--include-package-data=``
+    """*tuple of (ModuleName, filename pattern)*, derived from ``--include-package-data=``
 
     The filename pattern can be None if not given. Empty values give None too.
     """
@@ -1829,7 +1828,7 @@ separated by ':') as an argument, not '%s'.""" % package_name)
 
 
 def getShallIncludeDataFiles():
-    """*list*, items of ``--include-data-files=``"""
+    """*generator*, items derived from ``--include-data-files=``"""
     for data_file_desc in options.data_files:
         if data_file_desc.count("=") == 1:
             src, dest = data_file_desc.split("=", 1)
@@ -1857,7 +1856,7 @@ def getShallIncludeDataFiles():
 
 
 def getShallIncludeDataDirs():
-    """*list*, items of ``--include-data-dir=``"""
+    """*generator*, ``(src, dest)`` pairs of ``--include-data-dir=``"""
     for data_file in options.data_dirs:
         src, dest = data_file.split("=", 1)
 
@@ -1865,7 +1864,7 @@ def getShallIncludeDataDirs():
 
 
 def getShallIncludeRawDirs():
-    """*list*, items of ``--include-raw-dir=``"""
+    """*generator*, ``(src, dest)`` pairs of ``--include-raw-dir=``"""
     for data_file in options.raw_dirs:
         src, dest = data_file.split("=", 1)
 
@@ -1984,7 +1983,7 @@ def shallCreateGraph():
 
 
 def getOutputFilename():
-    """*str*, value of "-o" """
+    """*str* or *None*, value of ``-o``"""
     return (
         getUserInputNormalizedPath(options.output_filename)
         if options.output_filename is not None
@@ -1993,13 +1992,7 @@ def getOutputFilename():
 
 
 def getInstallerOutputFilename():
-    """*str* or *None*, resolved path for the installer artifact.
-
-    Notes:
-        Derives from '--windows-installer-output' if given, otherwise
-        from the program output filename with a platform specific
-        extension change.
-    """
+    """*str* or *None*, normalized value of ``--windows-installer-output``."""
     return (
         getUserInputNormalizedPath(options.windows_installer_output_filename)
         if options.windows_installer_output_filename is not None
@@ -2247,11 +2240,7 @@ def _shallUseStaticLibPython():
 
 
 def shallUseStaticLibPython():
-    """:returns: bool derived from ``--static-libpython=yes|auto`` and not module mode
-
-    Notes:
-        Currently only Anaconda on non-Windows can do this and MSYS2.
-    """
+    """:returns: bool derived from ``--static-libpython=yes|auto`` and not module mode"""
 
     global _shall_use_static_lib_python  # singleton, pylint: disable=global-statement
 
@@ -2381,7 +2370,7 @@ def isClang():
 
 
 def isMingw64():
-    """:returns: bool derived from ``--mingw64``, available only on Windows, otherwise false"""
+    """:returns: bool derived from ``--mingw64`` on Windows, otherwise None"""
     if isWin32Windows():
         return bool(options.mingw64 or isMSYS2MingwPython())
     else:
@@ -2639,9 +2628,9 @@ def shallNotFallbackBytecodeToCompiled(module_name, function_qualname, source_re
     """Decide if falling back from bytecode-backed functions to compiled C code is forbidden.
 
     Args:
-        module_name: Name of the module containing the annotate function.
-        function_qualname: Qualified name of the annotate function (Python 3).
-        source_ref: Source reference of the annotate function.
+        module_name: Name of the module containing the function.
+        function_qualname: Qualified name of the function.
+        source_ref: Source reference of the function.
     """
     # pylint: disable=unused-argument
 
@@ -2787,7 +2776,7 @@ def isPythonPgoMode():
 
 
 def getPythonPgoInput():
-    """:returns: str derived from ``--pgo-python-input``"""
+    """:returns: str or None derived from ``--pgo-python-input``"""
     return options.python_pgo_input
 
 
@@ -2810,7 +2799,7 @@ def getPgoArgs():
 
 
 def getPgoExecutable():
-    """*str* = ``--pgo-args``"""
+    """*str* or *None* = ``--pgo-executable``"""
 
     if options.pgo_executable and os.path.exists(options.pgo_executable):
         if not os.path.isabs(options.pgo_executable):
@@ -2875,7 +2864,7 @@ def _checkedIconPaths(icon_paths):
 
 
 def getWindowsIconPaths():
-    """*list of str*, values of ``--windows-icon-from-ico``"""
+    """*tuple of str*, values of ``--windows-icon-from-ico``"""
     if not isWin32Windows():
         return ()
 
@@ -2883,12 +2872,12 @@ def getWindowsIconPaths():
 
 
 def getLinuxIconPaths():
-    """*list of str*, values of ``--linux-app-icon``"""
+    """*tuple of str*, values of ``--linux-app-icon``"""
     return _checkedIconPaths(options.linux_icon_path)
 
 
 def getMacOSIconPaths():
-    """*list of str*, values of ``--macos-app-icon``"""
+    """*tuple of str*, values of ``--macos-app-icon``"""
     return _checkedIconPaths(
         icon_path for icon_path in options.macos_icon_path if icon_path != "none"
     )
@@ -2973,12 +2962,12 @@ def getFileDescription():
 
 
 def getLegalCopyright():
-    """*str* name of the product to use derived from ``--copyright``"""
+    """*str* or *None*, copyright string derived from ``--copyright``"""
     return options.legal_copyright
 
 
 def getLegalTrademarks():
-    """*str* name of the product to use derived from ``--trademarks``"""
+    """*str* or *None*, trademark string derived from ``--trademarks``"""
     return options.legal_trademarks
 
 
@@ -2995,7 +2984,7 @@ def getLegalInformation():
 
 
 def getWindowsVersionInfoStrings():
-    """*dict of str*, values of ."""
+    """*dict of str*, non-empty Windows version resource strings."""
 
     result = {}
 
@@ -3045,7 +3034,7 @@ def _parseVersionNumber(value, option_name):
 
 
 def getProductVersion():
-    """:returns: str, derived from ``--product-version``"""
+    """:returns: str or None, derived from ``--product-version``"""
     return options.product_version
 
 
@@ -3055,12 +3044,12 @@ def getProductVersionTuple():
 
 
 def getFileVersion():
-    """:returns str, derived from ``--file-version``"""
+    """:returns: str or None, derived from ``--file-version``"""
     return options.file_version
 
 
 def getFileVersionTuple():
-    """:returns tuple of 4 ints or None, derived from ``--file-version``"""
+    """:returns: tuple of 4 ints or None, derived from ``--file-version``"""
     return _parseVersionNumber(options.file_version, "--file-version")
 
 
@@ -3075,7 +3064,7 @@ def getProductFileVersion():
 
 
 def getWindowsSplashScreen():
-    """:returns: bool derived from ``--onefile-windows-splash-screen-image``"""
+    """:returns: str or None derived from ``--onefile-windows-splash-screen-image``"""
     return (
         getUserInputNormalizedPath(options.splash_screen_image)
         if options.splash_screen_image
@@ -3237,7 +3226,7 @@ _macos_protected_resource_entitlements = {
 
 
 def getMacOSAppProtectedResourcesAccesses():
-    """*list* key, value for protected resources of the app to use for bundle"""
+    """*tuple* of *(key, description, entitlement)* for protected resources of the app bundle"""
     if not shallCreateAppBundle():
         return ()
 
@@ -3318,7 +3307,7 @@ _python_flags = None
 
 
 def _getPythonFlags():
-    """*list*, values of ``--python-flag``"""
+    """*set*, values of ``--python-flag``"""
     # There is many flags, pylint: disable=too-many-branches
 
     # singleton, pylint: disable=global-statement
@@ -3571,7 +3560,7 @@ def shallCompileWithoutBuildDirectory():
 
 
 def shallRecompileExtensionModules(module_name):
-    """*bool* prefer source code over extension modules if both are there"""
+    """*tuple of (bool or None, str)*, decision and reason whether to prefer source code over extension modules"""
     if options is None:
         return None, "no user options available"
 
@@ -3600,7 +3589,7 @@ def getProgressBar():
 
 
 def getForcedStdoutPath():
-    """*str* force program stdout output into that filename"""
+    """*str*, *None*, or *False*, force program stdout output into that filename"""
     if shallCreatePythonPgoInput():
         return False
 
@@ -3608,7 +3597,7 @@ def getForcedStdoutPath():
 
 
 def getForcedStderrPath():
-    """*str* force program stderr output into that filename"""
+    """*str*, *None*, or *False*, force program stderr output into that filename"""
     if shallCreatePythonPgoInput():
         return False
 
@@ -3680,7 +3669,7 @@ def getCompilationReportUserData():
 
 
 def shallCreateDiffableCompilationReport():
-    """*bool*" derived from --report-diffable"""
+    """*bool*, derived from ``--report-diffable``"""
     return options.compilation_report_diffable
 
 
@@ -3703,7 +3692,7 @@ def _getWarningMnemonicsDisabled():
 
 
 def shallDisplayWarningMnemonic(mnemonic):
-    """*bool*" derived from --nowarn-mnemonic"""
+    """*bool*, derived from ``--nowarn-mnemonic``"""
     for pattern in _getWarningMnemonicsDisabled():
         if fnmatch.fnmatch(mnemonic, pattern):
             return False
@@ -3716,7 +3705,7 @@ def shallShowExecutedCommands():
 
 
 def getTargetPythonDescription():
-    """:returns: tuple(python_version,OS/arch) string derived from ``--target``"""
+    """:returns: tuple(int, str) or None derived from ``--target``"""
     target_description = getTargetSpecification().getDescription()
 
     if target_description != "native":
@@ -3755,7 +3744,7 @@ def getFcfProtectionMode():
 
 
 def getModuleParameter(module_name, parameter_name):
-    """:returns: string derived from ``--module-parameter``"""
+    """:returns: str or None derived from ``--module-parameter``"""
 
     module_name_prefix = module_name.getTopLevelPackageName().asString()
 

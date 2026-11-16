@@ -382,7 +382,7 @@ def isAlpinePackagePython():
 
 
 def isArchPackagePython():
-    """Is the Python from a Fedora package."""
+    """Is the Python from an Arch Linux package."""
     if not isArchBasedLinux():
         return False
 

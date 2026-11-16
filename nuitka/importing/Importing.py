@@ -14,11 +14,6 @@ load. For us unfortunately there is nothing in CPython that is easily
 accessible and gives us this functionality for packages and search paths
 exactly like CPython does, so we implement here a multi step search process
 that is compatible.
-
-This approach is much safer of course and there is no loss. To determine if
-it's from the standard library, one can abuse the attribute ``__file__`` of the
-``os`` module like it's done in ``isStandardLibraryPath`` of this module.
-
 """
 
 import collections
@@ -800,7 +795,6 @@ def findModule(module_name, parent_package, level, logger):
                 logger=logger,
             )
         except ImportError:
-            # For relative import, that is OK, we will still try absolute.
             pass
         else:
             if logger is not None:

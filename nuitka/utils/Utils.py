@@ -506,7 +506,7 @@ def withNoWarning():
 
 @contextmanager
 def withNoExceptions():
-    """Only let RuntimeError and the like escape."""
+    """Suppress 'Exception' subclasses, letting only 'BaseException' exits escape."""
     try:
         yield
     except Exception:  # pylint: disable=broad-exception-caught

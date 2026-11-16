@@ -443,16 +443,13 @@ def withEnvironmentVarsOverridden(mapping):
 
 
 def wrapCommandForDebuggerForExec(command, debugger):
-    """Wrap a command for system debugger to call exec
+    """Wrap a command for system debugger to call 'os.execl'.
 
     Args:
         command: (iterable of str) args for call to be debugged
+        debugger: debugger name ('gdb', 'lldb', 'valgrind-memcheck', None) or custom command
     Returns:
-        args tuple with debugger command inserted
-
-    Notes:
-        Currently only gdb and lldb are supported, but adding more
-        debuggers would be very welcome.
+        args tuple with executable path, argv[0] name, and debugger arguments prepended
     """
 
     # The path needs to be absolute for some debuggers to work e.g. valgrind
@@ -555,16 +552,13 @@ def wrapCommandForDebuggerForExec(command, debugger):
 
 
 def wrapCommandForDebuggerForSubprocess(command, debugger):
-    """Wrap a command for system debugger with subprocess module.
+    """Wrap a command for system debugger with 'subprocess'.
 
     Args:
-        args: (list of str) args for call to be debugged
+        command: (iterable of str) args for call to be debugged
+        debugger: debugger name ('gdb', 'lldb', 'valgrind-memcheck', None) or custom command
     Returns:
-        args tuple with debugger command inserted
-
-    Notes:
-        Currently only gdb and lldb are supported, but adding more
-        debuggers would be very welcome.
+        args tuple suitable for 'subprocess' (without the 'os.execl'-only 'argv[0]' entry)
     """
 
     args = wrapCommandForDebuggerForExec(command=command, debugger=debugger)

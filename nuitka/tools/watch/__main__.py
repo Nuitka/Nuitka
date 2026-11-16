@@ -296,7 +296,6 @@ def _updateCaseLock(
                 case_data=case_data,
             )
 
-            # Update or create lockfile of pipenv.
             lock_filename = updatePacmanLockFile(logger=watch_logger)
         elif preferred_package_type == "conda":
             updateCondaEnvironmentFile(
@@ -304,7 +303,6 @@ def _updateCaseLock(
                 case_data=case_data,
             )
 
-            # Update or create lockfile of pipenv.
             lock_filename = updateCondaEnvironmentLockFile(
                 logger=watch_logger,
                 installed_python=installed_python,

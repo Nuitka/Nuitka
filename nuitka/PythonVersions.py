@@ -54,9 +54,7 @@ def getPartiallySupportedPythonVersions():
 def getZstandardSupportingVersions():
     result = getSupportedPythonVersions() + getPartiallySupportedPythonVersions()
 
-    # This will crash if we remove versions, but it is more likely to work
-    # with newly supported versions, and to list the ones not supported by
-    # zstandard.
+    # Exclude Python versions not supported by zstandard.
     result = tuple(
         version for version in result if version not in ("2.6", "2.7", "3.4")
     )

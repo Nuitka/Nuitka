@@ -357,7 +357,7 @@ class OurOptionParser(OptionParser):
 
 class OurHelpFormatter(IndentedHelpFormatter):
     def format_option_strings(self, option):
-        """Return a comma-separated list of option strings & meta variables."""
+        """Return only the primary long option string (with meta variable if applicable)."""
 
         # Need to use private option list of our parent, pylint: disable=protected-access
         if option.takes_value():

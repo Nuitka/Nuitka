@@ -268,10 +268,6 @@ SxS
 """ % {"scan_dirs": "\n".join("UserDir %s" % dirname for dirname in scan_dirs)},
         )
 
-    # Starting the process while locked, so file handles are not duplicated.
-    # TODO: At least exit code should be checked, output goes to a filename,
-    # but errors might be interesting potentially.
-
     with withEnvironmentVarOverridden("PATH", ""):
         # TODO: At least exit code should be checked, output goes to a filename,
         # but errors might be interesting potentially.
@@ -295,8 +291,6 @@ SxS
             % binary_filename
         )
 
-    # Opening the result under lock, so it is not getting locked by new
-    # processes.
     result = parseDependsExeOutput(output_filename)
 
     if isExperimental("keep-dependency-walker-files"):

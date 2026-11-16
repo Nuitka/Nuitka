@@ -220,7 +220,7 @@ def _getDLLVersionWindows(filename):
     # This cannot really fail anymore.
     assert success
 
-    # Look for code pages
+    # Query root VS_FIXEDFILEINFO version structure.
     VerQueryValueA = ctypes.windll.version.VerQueryValueA
     VerQueryValueA.argtypes = (
         ctypes.wintypes.LPCVOID,

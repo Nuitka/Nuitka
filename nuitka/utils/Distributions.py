@@ -427,9 +427,9 @@ is typically caused by corruption of its installation."""
 
 
 def getDistributionsFromModuleName(module_name):
-    """Get the distribution names associated with a module name.
+    """Get the 'Distribution' objects associated with a module name.
 
-    This can be more than one in case of namespace modules.
+    This can be more than one in case of namespace packages.
     """
 
     distributions = getDistributions()
@@ -449,7 +449,7 @@ def getDistributionsFromModuleName(module_name):
 
 
 def _getDistributionFromModuleName(module_name, prefer_shorter_distribution_name):
-    """Get the distribution name associated with a module name."""
+    """Get the 'Distribution' object associated with a module name, or None."""
 
     distributions = getDistributionsFromModuleName(module_name)
 
@@ -498,7 +498,7 @@ _distribution_from_name_cache = {}
 
 
 def getDistributionFromModuleName(module_name, prefer_shorter_distribution_name=False):
-    """Get the distribution name associated with a module name."""
+    """Get the 'Distribution' object associated with a module name, or None."""
 
     if module_name not in _distribution_from_name_cache:
         _distribution_from_name_cache[module_name] = _getDistributionFromModuleName(

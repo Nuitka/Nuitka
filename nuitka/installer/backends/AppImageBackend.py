@@ -3,7 +3,7 @@
 
 """AppImage backend for Linux installer creation.
 
-Creates an AppImage from the compiled dist folder or onefile binary using
+Creates an AppImage from the compiled standalone dist folder using
 the ``appimagetool`` utility. The AppDir is assembled from the existing
 payload, a generated AppRun script, and the desktop file and icon already
 produced by ``LinuxApp.py``. The tool is looked up from an explicit path,
