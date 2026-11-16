@@ -460,6 +460,7 @@ def getFrameGuardHeavyCode(
             frame_exit_code=frame_exit_code,
             context_identifier=context_identifier,
             is_python3=python_version >= 0x300,
+            store_exception=0x300 <= python_version < 0x370,
         )
     )
 
@@ -564,6 +565,7 @@ def getFrameGuardGeneratorCode(
             frame_exit_code=frame_exit_code,
             is_generator=is_generator,
             is_python3=python_version >= 0x300,
+            store_exception=0x300 <= python_version < 0x370,
         )
     )
 
@@ -592,7 +594,6 @@ def getFrameGuardGeneratorCode(
                 attach_locals=getFrameAttachLocalsCode(frame_identifier),
                 frame_exception_exit=frame_exception_exit,
                 parent_exception_exit=parent_exception_exit,
-                is_python3=python_version >= 0x300,
             )
         )
 

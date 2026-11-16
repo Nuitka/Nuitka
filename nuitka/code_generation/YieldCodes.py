@@ -6,6 +6,8 @@
 The normal "yield", and the Python 3 "yield from" variant.
 """
 
+from nuitka.PythonVersions import python_version
+
 from .CodeHelpers import (
     generateChildExpressionsCode,
     withObjectCodeTemporaryAssignment,
@@ -71,9 +73,19 @@ def _getYieldPreserveCode(
         )
 
     if preserve_exception:
+        # Python 3.7+ keeps the handled exception in the generator object
+        # itself, only older versions need to swap it at the yield.
         # Expands to SAVE_GENERATOR_EXCEPTION,SAVE_COROUTINE_EXCEPTION,SAVE_ASYNCGEN_EXCEPTION
         emit(
             "SAVE_%s_EXCEPTION(tstate, %s);"
+            % (context.getContextObjectName().upper(), context.getContextObjectName())
+        )
+    elif 0x300 <= python_version < 0x370:
+        # Python 3 before 3.7 restores the caller exception and clears the
+        # frame state when yielding outside of an exception handler.
+        # Expands to RESTORE_AND_CLEAR_GENERATOR_EXCEPTION, etc.
+        emit(
+            "RESTORE_AND_CLEAR_%s_EXCEPTION(tstate, %s);"
             % (context.getContextObjectName().upper(), context.getContextObjectName())
         )
 
@@ -90,7 +102,7 @@ def _getYieldPreserveCode(
 
     emit("%(yield_return_label)s:" % {"yield_return_label": yield_return_label})
 
-    if preserve_exception:
+    if preserve_exception and not 0x300 <= python_version < 0x370:
         # Expands to RESTORE_GENERATOR_EXCEPTION,RESTORE_COROUTINE_EXCEPTION,RESTORE_ASYNCGEN_EXCEPTION
         emit(
             "RESTORE_%s_EXCEPTION(tstate, %s);"
@@ -135,7 +147,7 @@ def generateYieldCode(to_name, expression, emit, context):
 
     _checkDeferredReleaseYield(value_name, expression, context)
 
-    preserve_exception = expression.isExceptionPreserving()
+    preserve_exception = expression.isExceptionPreserving() and python_version < 0x370
 
     getReferenceExportCode(value_name, emit, context)
     if context.needsCleanup(value_name):
@@ -178,14 +190,24 @@ def generateYieldFromCode(to_name, expression, emit, context):
 
     _checkDeferredReleaseYield(value_name, expression, context)
 
-    # In handlers, we must preserve/restore the exception.
-    preserve_exception = expression.isExceptionPreserving()
+    # In handlers, older Python versions must preserve/restore the exception.
+    preserve_exception = expression.isExceptionPreserving() and python_version < 0x370
 
     getReferenceExportCode(value_name, emit, context)
     if context.needsCleanup(value_name):
         context.removeCleanupTempName(value_name)
 
-    yield_code = """\
+    if 0x300 <= python_version < 0x370:
+        yield_code = """\
+generator->m_yield_from_exception_preserving = %(preserve)d;
+generator->m_yield_from = %(yield_from)s;
+return NULL;
+""" % {
+            "preserve": preserve_exception,
+            "yield_from": value_name,
+        }
+    else:
+        yield_code = """\
 generator->m_yield_from = %(yield_from)s;
 return NULL;
 """ % {"yield_from": value_name}
@@ -205,8 +227,8 @@ return NULL;
 
 
 def generateYieldFromAwaitableCode(to_name, expression, emit, context):
-    # In handlers, we must preserve/restore the exception.
-    preserve_exception = expression.isExceptionPreserving()
+    # In handlers, older Python versions must preserve/restore the exception.
+    preserve_exception = expression.isExceptionPreserving() and python_version < 0x370
 
     (awaited_name,) = generateChildExpressionsCode(
         expression=expression, emit=emit, context=context
@@ -214,14 +236,26 @@ def generateYieldFromAwaitableCode(to_name, expression, emit, context):
 
     _checkDeferredReleaseYield(awaited_name, expression, context)
 
-    yield_code = """\
+    if 0x300 <= python_version < 0x370:
+        yield_code = """\
+%(object_name)s->m_yield_from_exception_preserving = %(preserve)d;
 %(object_name)s->m_yield_from = %(yield_from)s;
 %(object_name)s->m_awaiting = true;
 return NULL;
 """ % {
-        "object_name": context.getContextObjectName(),
-        "yield_from": awaited_name,
-    }
+            "object_name": context.getContextObjectName(),
+            "preserve": preserve_exception,
+            "yield_from": awaited_name,
+        }
+    else:
+        yield_code = """\
+%(object_name)s->m_yield_from = %(yield_from)s;
+%(object_name)s->m_awaiting = true;
+return NULL;
+""" % {
+            "object_name": context.getContextObjectName(),
+            "yield_from": awaited_name,
+        }
 
     resume_code = """\
 %(object_name)s->m_awaiting = false;

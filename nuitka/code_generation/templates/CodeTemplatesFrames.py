@@ -54,7 +54,7 @@ assert(Py_REFCNT({{frame_identifier}}) == ({{cache_claim_identifier}} != NULL ? 
 assert(Py_REFCNT({{frame_identifier}}) == 2);
 {% endif %}
 
-{% if context_identifier and is_python3 %}
+{% if context_identifier and store_exception %}
 // Store currently existing exception as the one to publish again when we
 // yield or yield from.
 STORE_{{context_identifier.upper()}}_EXCEPTION(tstate, {{context_identifier}});
@@ -63,11 +63,6 @@ STORE_{{context_identifier.upper()}}_EXCEPTION(tstate, {{context_identifier}});
 // Framed code:
 {{codes}}
 
-{% if context_identifier and is_python3 %}
-// Release exception attached to the frame
-DROP_{{context_identifier.upper()}}_EXCEPTION({{context_identifier}});
-
-{% endif %}
 {% if needs_preserve %}
 // Restore frame exception if necessary.
 RESTORE_FRAME_EXCEPTION(tstate, {{frame_identifier}});
@@ -191,12 +186,6 @@ if (!EXCEPTION_STATE_MATCH_GENERATOR(tstate, &{{exception_state_name}})) {
 
     assertFrameObject({{frame_identifier}});
 }
-
-{% if is_python3 %}
-// Release exception attached to the frame
-DROP_{{context_identifier.upper()}}_EXCEPTION({{context_identifier}});
-
-{% endif %}
 
 // Return the error.
 goto {{parent_exception_exit}};

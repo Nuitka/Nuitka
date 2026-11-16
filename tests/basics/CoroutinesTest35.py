@@ -209,6 +209,71 @@ async def class_body_reads_later_local():
 
 print(run_async(class_body_reads_later_local()))
 
+print("Coroutine exception state:")
+
+
+def current_exception():
+    return sys.exc_info()[1]
+
+
+class Suspend:
+    """Awaitable that gives control back to the caller of the coroutine."""
+
+    def __await__(self):
+        yield None
+
+
+async def coro_context():
+    try:
+        raise KeyError("coro handled")
+    except KeyError:
+        await Suspend()
+
+
+coro = coro_context()
+coro.send(None)
+try:
+    coro.throw(ValueError("coro thrown"))
+except ValueError as e:
+    print("Coroutine throw context: %r" % (e.__context__,))
+
+
+async def coro_leak():
+    await Suspend()
+    try:
+        raise KeyError("coro in generator")
+    except KeyError:
+        await Suspend()
+    await Suspend()
+
+
+coro = coro_leak()
+coro.send(None)
+try:
+    raise ValueError("coro caller")
+except ValueError:
+    coro.send(None)
+coro.send(None)
+print("Coroutine after handler: %r" % (current_exception(),))
+
+
+async def coro_after_handler():
+    try:
+        raise KeyError("coro handled")
+    except KeyError:
+        pass
+    await Suspend()
+    print("Coroutine after handler await: %r" % (current_exception(),))
+
+
+coro = coro_after_handler()
+coro.send(None)
+try:
+    coro.send(None)
+except StopIteration:
+    pass
+print("Caller after coroutine: %r" % (current_exception(),))
+
 #     Python tests originally created or extracted from other peoples work. The
 #     parts were too small to be protected.
 #

@@ -279,11 +279,89 @@ static PyObject *_Nuitka_YieldFromCore(PyThreadState *tstate, PyObject *yield_fr
     }
 }
 
+static PyObject *_Nuitka_CallCoroutineCodeC(PyThreadState *tstate, struct Nuitka_CoroutineObject *coroutine,
+                                            PyObject *send_value, bool throw_flag) {
+#if PYTHON_VERSION < 0x370
+    if (coroutine->m_frame != NULL) {
+        RESUME_COROUTINE_EXCEPTION(tstate, coroutine, throw_flag);
+    }
+
+    PyObject *result = ((coroutine_code)coroutine->m_code)(tstate, coroutine, send_value);
+
+    if (result == NULL && coroutine->m_yield_from == NULL && coroutine->m_frame != NULL) {
+        RESTORE_AND_CLEAR_COROUTINE_EXCEPTION(tstate, coroutine);
+    }
+
+    return result;
+#else
+    assert(coroutine->m_exc_state.previous_item == NULL);
+
+    coroutine->m_exc_state.previous_item = tstate->exc_info;
+    tstate->exc_info = (_PyErr_StackItem *)&coroutine->m_exc_state;
+
+#if PYTHON_VERSION >= 0x390
+    if (throw_flag) {
+        CHAIN_EXCEPTION_STACK_ITEM(tstate);
+    }
+#else
+    (void)throw_flag;
+#endif
+
+    PyObject *result = ((coroutine_code)coroutine->m_code)(tstate, coroutine, send_value);
+
+    tstate->exc_info = coroutine->m_exc_state.previous_item;
+    coroutine->m_exc_state.previous_item = NULL;
+
+    return result;
+#endif
+}
+
 static PyObject *_Nuitka_YieldFromCoroutineCore(PyThreadState *tstate, struct Nuitka_CoroutineObject *coroutine,
                                                 PyObject *send_value, bool mode) {
     CHECK_OBJECT(coroutine);
     CHECK_OBJECT_X(send_value);
 
+#if PYTHON_VERSION < 0x370
+    PyObject *yield_from = coroutine->m_yield_from;
+    bool preserve_exception = coroutine->m_yield_from_exception_preserving;
+
+    CHECK_OBJECT(yield_from);
+
+    // Need to make it unaccessible while using it.
+    coroutine->m_yield_from = NULL;
+
+    if (preserve_exception) {
+        SAVE_COROUTINE_EXCEPTION(tstate, coroutine);
+    } else {
+        SAVE_COROUTINE_EXCEPTION_FROM_THREAD(tstate, coroutine);
+    }
+
+    PyObject *returned_value;
+    PyObject *yielded = _Nuitka_YieldFromCore(tstate, yield_from, send_value, &returned_value, mode);
+
+    if (yielded != NULL) {
+        if (preserve_exception) {
+            SAVE_COROUTINE_EXCEPTION(tstate, coroutine);
+        } else {
+            RESTORE_AND_CLEAR_COROUTINE_EXCEPTION(tstate, coroutine);
+        }
+
+        coroutine->m_yield_from = yield_from;
+
+        return yielded;
+    }
+
+    assert(coroutine->m_yield_from == NULL);
+    Py_DECREF(yield_from);
+
+    yielded = ((coroutine_code)coroutine->m_code)(tstate, coroutine, returned_value);
+
+    if (yielded == NULL && coroutine->m_yield_from == NULL) {
+        RESTORE_AND_CLEAR_COROUTINE_EXCEPTION(tstate, coroutine);
+    }
+
+    return yielded;
+#else
     PyObject *yield_from = coroutine->m_yield_from;
     CHECK_OBJECT(yield_from);
 
@@ -303,13 +381,14 @@ static PyObject *_Nuitka_YieldFromCoroutineCore(PyThreadState *tstate, struct Nu
         assert(coroutine->m_yield_from == NULL);
         Py_DECREF(yield_from);
 
-        yielded = ((coroutine_code)coroutine->m_code)(tstate, coroutine, returned_value);
+        yielded = _Nuitka_CallCoroutineCodeC(tstate, coroutine, returned_value, false);
     } else {
         assert(coroutine->m_yield_from == NULL);
         coroutine->m_yield_from = yield_from;
     }
 
     return yielded;
+#endif
 }
 
 #if _DEBUG_COROUTINE
@@ -467,7 +546,7 @@ static PySendResult _Nuitka_Coroutine_sendR(PyThreadState *tstate, struct Nuitka
         PyObject *yielded;
 
         if (coroutine->m_yield_from == NULL) {
-            yielded = ((coroutine_code)coroutine->m_code)(tstate, coroutine, value);
+            yielded = _Nuitka_CallCoroutineCodeC(tstate, coroutine, value, HAS_ERROR_OCCURRED(tstate));
         } else {
             // This does not release the value if any, so we need to do it afterwards.
             yielded = Nuitka_YieldFromCoroutineInitial(tstate, coroutine, value);
@@ -517,6 +596,10 @@ static PySendResult _Nuitka_Coroutine_sendR(PyThreadState *tstate, struct Nuitka
             PRINT_NEW_LINE();
 #endif
             Nuitka_MarkCoroutineAsFinished(coroutine);
+
+#if PYTHON_VERSION >= 0x370
+            DROP_COROUTINE_EXCEPTION(coroutine);
+#endif
 
             if (coroutine->m_frame != NULL) {
                 struct Nuitka_FrameObject *release_frame = coroutine->m_frame;
@@ -731,10 +814,16 @@ static PyObject *_Nuitka_Coroutine_throw2(PyThreadState *tstate, struct Nuitka_C
 
     if (coroutine->m_yield_from != NULL) {
         if (EXCEPTION_STATE_MATCH_BOOL_SINGLE(tstate, exception_state, PyExc_GeneratorExit)) {
-            // Coroutines need to close the yield_from.
+            // Coroutines need to close the yield_from, and then receive the
+            // exception in their own frame rather than through it.
+            PyObject *yield_from = coroutine->m_yield_from;
+            coroutine->m_yield_from = NULL;
+
             Nuitka_MarkCoroutineAsRunning(coroutine);
-            bool res = Nuitka_gen_close_iter(tstate, coroutine->m_yield_from);
+            bool res = Nuitka_gen_close_iter(tstate, yield_from);
             Nuitka_MarkCoroutineAsNotRunning(coroutine);
+
+            Py_DECREF(yield_from);
 
             if (res == false) {
                 // Release exception, we are done with it now and pick up the new one.
@@ -1157,6 +1246,10 @@ static void Nuitka_Coroutine_tp_dealloc(PyObject *self) {
 #endif
 
     if (coroutine->m_frame) {
+#if 0x300 <= PYTHON_VERSION && PYTHON_VERSION < 0x370
+        DROP_COROUTINE_EXCEPTION(coroutine);
+#endif
+
         struct Nuitka_FrameObject *release_frame = coroutine->m_frame;
         coroutine->m_frame = NULL;
 
@@ -1170,6 +1263,10 @@ static void Nuitka_Coroutine_tp_dealloc(PyObject *self) {
     // TODO: Maybe push this into the freelist code and do
     // it on allocation.
     _PyGC_CLEAR_FINALIZED((PyObject *)coroutine);
+
+#if PYTHON_VERSION >= 0x370
+    DROP_COROUTINE_EXCEPTION(coroutine);
+#endif
 
     /* Put the object into free list or release to GC */
     releaseToFreeList(free_list_coroutines, coroutine, MAX_COROUTINE_FREE_LIST_COUNT);
@@ -1509,6 +1606,9 @@ PyObject *Nuitka_Coroutine_New(PyThreadState *tstate, coroutine_code code, PyObj
     Py_INCREF(qualname);
 
     result->m_yield_from = NULL;
+#if 0x300 <= PYTHON_VERSION && PYTHON_VERSION < 0x370
+    result->m_yield_from_exception_preserving = false;
+#endif
 
     memcpy(&result->m_closure[0], closure, closure_given * sizeof(struct Nuitka_CellObject *));
     result->m_closure_given = closure_given;

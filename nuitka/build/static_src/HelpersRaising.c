@@ -295,13 +295,26 @@ void RAISE_EXCEPTION_WITH_TRACEBACK(PyThreadState *tstate, struct Nuitka_Excepti
 #endif
 
 bool RERAISE_EXCEPTION(PyThreadState *tstate, struct Nuitka_ExceptionPreservationItem *exception_state) {
+#if PYTHON_VERSION >= 0x370
+    struct Nuitka_ExceptionStackItem *exc_state = GET_TOP_MOST_CURRENT_EXCEPTION_STATE(tstate);
+#endif
+
 #if PYTHON_VERSION < 0x3b0
+#if PYTHON_VERSION >= 0x370
+    exception_state->exception_type = exc_state->exception_type != NULL ? exc_state->exception_type : Py_None;
+    Py_INCREF(exception_state->exception_type);
+    exception_state->exception_value = exc_state->exception_value;
+    Py_XINCREF(exception_state->exception_value);
+    exception_state->exception_tb = exc_state->exception_tb;
+    Py_XINCREF(exception_state->exception_tb);
+#else
     exception_state->exception_type = EXC_TYPE(tstate) != NULL ? EXC_TYPE(tstate) : Py_None;
     Py_INCREF(exception_state->exception_type);
     exception_state->exception_value = EXC_VALUE(tstate);
     Py_XINCREF(exception_state->exception_value);
     exception_state->exception_tb = (PyTracebackObject *)EXC_TRACEBACK(tstate);
     Py_XINCREF(exception_state->exception_tb);
+#endif
 
     if (unlikely(exception_state->exception_type == Py_None)) {
 #if PYTHON_VERSION >= 0x300
@@ -321,7 +334,11 @@ bool RERAISE_EXCEPTION(PyThreadState *tstate, struct Nuitka_ExceptionPreservatio
         return false;
     }
 #else
+#if PYTHON_VERSION >= 0x370
+    exception_state->exception_value = exc_state->exception_value;
+#else
     exception_state->exception_value = EXC_VALUE(tstate);
+#endif
 
     if (exception_state->exception_value == Py_None || exception_state->exception_value == NULL) {
         SET_EXCEPTION_PRESERVATION_STATE_FROM_TYPE0_STR(tstate, exception_state, PyExc_RuntimeError,

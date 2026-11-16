@@ -208,6 +208,13 @@ NUITKA_MAY_BE_UNUSED static PyTracebackObject *ADD_TRACEBACK(PyTracebackObject *
 // Need some wrapper functions for accessing exception type, value, and traceback
 // due to changes in Python 3.7
 
+#if PYTHON_VERSION >= 0x370
+// Python 3.7+ keeps the handled exception state of generators, coroutines and
+// async generators in an item that may be made the current thread state one
+// while they run, with the previous item chained to it.
+#define EXC_STATE(x) ((struct Nuitka_ExceptionStackItem *)(x)->exc_info)
+#endif
+
 #if PYTHON_VERSION < 0x370
 #define EXC_TYPE(x) (x->exc_type)
 #define EXC_VALUE(x) (x->exc_value)
@@ -215,14 +222,14 @@ NUITKA_MAY_BE_UNUSED static PyTracebackObject *ADD_TRACEBACK(PyTracebackObject *
 #define EXC_TRACEBACK_PTR(x) ((PyTracebackObject **)(&x->exc_traceback))
 #define SET_EXC_TRACEBACK(x, tb) x->exc_traceback = (PyObject *)tb
 #elif PYTHON_VERSION < 0x3b0
-#define EXC_TYPE(x) (x->exc_state.exc_type)
-#define EXC_VALUE(x) (x->exc_state.exc_value)
-#define EXC_TRACEBACK(x) ((PyTracebackObject *)(x->exc_state.exc_traceback))
-#define EXC_TRACEBACK_PTR(x) ((PyTracebackObject **)(&x->exc_state.exc_traceback))
-#define SET_EXC_TRACEBACK(x, tb) x->exc_state.exc_traceback = (PyObject *)tb
+#define EXC_TYPE(x) (EXC_STATE(x)->exception_type)
+#define EXC_VALUE(x) (EXC_STATE(x)->exception_value)
+#define EXC_TRACEBACK(x) ((PyTracebackObject *)(EXC_STATE(x)->exception_tb))
+#define EXC_TRACEBACK_PTR(x) ((PyTracebackObject **)(&EXC_STATE(x)->exception_tb))
+#define SET_EXC_TRACEBACK(x, tb) EXC_STATE(x)->exception_tb = (PyTracebackObject *)(tb)
 #else
-#define EXC_TYPE(x) ((PyObject *)Py_TYPE(x->exc_state.exc_value))
-#define EXC_VALUE(x) (x->exc_state.exc_value)
+#define EXC_TYPE(x) ((PyObject *)Py_TYPE(EXC_STATE(x)->exception_value))
+#define EXC_VALUE(x) (EXC_STATE(x)->exception_value)
 #endif
 
 #if PYTHON_VERSION < 0x370
@@ -244,26 +251,58 @@ struct Nuitka_ExceptionStackItem {
     PyObject *exception_type;
     PyObject *exception_value;
     PyTracebackObject *exception_tb;
+#if PYTHON_VERSION >= 0x370
+    _PyErr_StackItem *previous_item;
+#endif
 };
 
 #if defined(__cplusplus)
+#if PYTHON_VERSION >= 0x370
+static const struct Nuitka_ExceptionStackItem Nuitka_ExceptionStackItem_Empty = {NULL, NULL, NULL, NULL};
+#else
 static const struct Nuitka_ExceptionStackItem Nuitka_ExceptionStackItem_Empty = {NULL, NULL, NULL};
+#endif
+#else
+#if PYTHON_VERSION >= 0x370
+#define Nuitka_ExceptionStackItem_Empty                                                                                \
+    (struct Nuitka_ExceptionStackItem) {                                                                               \
+        .exception_type = NULL, .exception_value = NULL, .exception_tb = NULL, .previous_item = NULL                   \
+    }
 #else
 #define Nuitka_ExceptionStackItem_Empty                                                                                \
     (struct Nuitka_ExceptionStackItem) { .exception_type = NULL, .exception_value = NULL, .exception_tb = NULL }
 #endif
+#endif
 #else
 struct Nuitka_ExceptionStackItem {
     PyObject *exception_value;
+#if PYTHON_VERSION >= 0x370
+    _PyErr_StackItem *previous_item;
+#endif
 };
 
 #if defined(__cplusplus)
-static const struct Nuitka_ExceptionStackItem Nuitka_ExceptionStackItem_Empty = {NULL};
+static const struct Nuitka_ExceptionStackItem Nuitka_ExceptionStackItem_Empty = {NULL, NULL};
 #else
 #define Nuitka_ExceptionStackItem_Empty                                                                                \
-    (struct Nuitka_ExceptionStackItem) { .exception_value = NULL }
+    (struct Nuitka_ExceptionStackItem) { .exception_value = NULL, .previous_item = NULL }
 #endif
 
+#endif
+
+#if PYTHON_VERSION >= 0x370
+STATIC_ASSERT(sizeof(struct Nuitka_ExceptionStackItem) == sizeof(_PyErr_StackItem),
+              "Exception stack item must match CPython layout");
+STATIC_ASSERT(offsetof(struct Nuitka_ExceptionStackItem, exception_value) == offsetof(_PyErr_StackItem, exc_value),
+              "Exception stack item value must match CPython layout");
+#if PYTHON_VERSION < 0x3b0
+STATIC_ASSERT(offsetof(struct Nuitka_ExceptionStackItem, exception_type) == offsetof(_PyErr_StackItem, exc_type),
+              "Exception stack item type must match CPython layout");
+STATIC_ASSERT(offsetof(struct Nuitka_ExceptionStackItem, exception_tb) == offsetof(_PyErr_StackItem, exc_traceback),
+              "Exception stack item traceback must match CPython layout");
+#endif
+STATIC_ASSERT(offsetof(struct Nuitka_ExceptionStackItem, previous_item) == offsetof(_PyErr_StackItem, previous_item),
+              "Exception stack item previous item must match CPython layout");
 #endif
 
 // Helper that gets the current thread exception, for use in exception handlers
@@ -278,6 +317,9 @@ NUITKA_MAY_BE_UNUSED inline static struct Nuitka_ExceptionStackItem GET_CURRENT_
 #if PYTHON_VERSION < 0x3b0
     result.exception_tb = (PyTracebackObject *)EXC_TRACEBACK(tstate);
     Py_XINCREF(result.exception_tb);
+#endif
+#if PYTHON_VERSION >= 0x370
+    result.previous_item = NULL;
 #endif
 
     return result;
@@ -370,6 +412,22 @@ NUITKA_MAY_BE_UNUSED static inline void PUBLISH_CURRENT_EXCEPTION_VALUE(PyThread
     struct Nuitka_ExceptionStackItem exc_state = {value};
 
     SET_CURRENT_EXCEPTION(tstate, &exc_state);
+}
+#endif
+
+#if PYTHON_VERSION >= 0x370
+// Find the stack item that CPython uses for the handled exception visible to
+// "sys.exception" and implicit exception chaining, which is the current item
+// unless it has no exception, in which case the previous items are searched.
+NUITKA_MAY_BE_UNUSED static inline struct Nuitka_ExceptionStackItem *
+GET_TOP_MOST_CURRENT_EXCEPTION_STATE(PyThreadState *tstate) {
+    struct Nuitka_ExceptionStackItem *exc_state = EXC_STATE(tstate);
+
+    while (exc_state->exception_value == NULL && exc_state->previous_item != NULL) {
+        exc_state = (struct Nuitka_ExceptionStackItem *)exc_state->previous_item;
+    }
+
+    return exc_state;
 }
 #endif
 
@@ -1453,11 +1511,62 @@ NUITKA_MAY_BE_UNUSED static inline void Nuitka_Exception_DeleteContext(PyObject 
     Py_XSETREF(_Nuitka_PyBaseExceptionObject_cast(self)->context, NULL);
 }
 
+#if PYTHON_VERSION >= 0x370
+// Set the context of the currently raised exception to the current handled
+// exception, similar to CPython's "_PyErr_ChainStackItem".
+NUITKA_MAY_BE_UNUSED static inline void CHAIN_EXCEPTION_STACK_ITEM(PyThreadState *tstate) {
+    struct Nuitka_ExceptionStackItem *exc_state = EXC_STATE(tstate);
+    PyObject *handled_exception = exc_state->exception_value;
+
+    if (handled_exception == NULL || handled_exception == Py_None) {
+        return;
+    }
+
+    struct Nuitka_ExceptionPreservationItem exception_state;
+    FETCH_ERROR_OCCURRED_STATE(tstate, &exception_state);
+
+#if PYTHON_VERSION < 0x3c0
+    NORMALIZE_EXCEPTION_STATE(tstate, &exception_state);
+#endif
+
+    PyObject *current_exception = exception_state.exception_value;
+    ASSERT_NORMALIZED_EXCEPTION_VALUE(current_exception);
+
+    if (current_exception != handled_exception) {
+        PyObject *chain_exception = handled_exception;
+
+        while (true) {
+            PyObject *context = Nuitka_Exception_GetContext(chain_exception);
+            if (context == NULL) {
+                break;
+            }
+
+            CHECK_OBJECT(context);
+
+            if (context == current_exception) {
+                Nuitka_Exception_DeleteContext(chain_exception);
+                break;
+            }
+
+            chain_exception = context;
+        }
+
+        Nuitka_Exception_SetContext(current_exception, handled_exception);
+    }
+
+    RESTORE_ERROR_OCCURRED_STATE(tstate, &exception_state);
+}
+#endif
+
 #if PYTHON_VERSION >= 0x300
 // Attach the exception context if necessary.
 NUITKA_MAY_BE_UNUSED static inline void
 ADD_EXCEPTION_CONTEXT(PyThreadState *tstate, struct Nuitka_ExceptionPreservationItem *exception_state) {
+#if PYTHON_VERSION >= 0x370
+    PyObject *context = GET_TOP_MOST_CURRENT_EXCEPTION_STATE(tstate)->exception_value;
+#else
     PyObject *context = EXC_VALUE(tstate);
+#endif
 
     if (context != NULL) {
 #if PYTHON_VERSION < 0x3c0
