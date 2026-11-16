@@ -702,6 +702,20 @@ bool {{ name }}(
 {{ set_item_wrapper("DICT_SET_ITEM_UNTRACKED1", true, false, false, false, "Untracked1") }}
 {{ set_item_wrapper("DICT_SET_ITEM_WITH_HASH_AND_EQ_UNTRACKED", false, true, true, false, "Untracked") }}
 
+{% macro set_item_wrapper_infallible(name, wrapped_name) %}
+void {{ name }}(PyThreadState *tstate, PyObject *dict, PyObject *key, PyObject *value) {
+    bool result = {{ wrapped_name }}(tstate, dict, key, value);
+
+    assert(result);
+    (void)result;
+}
+{% endmacro %}
+
+{{ set_item_wrapper_infallible("DICT_SET_ITEM_INFALLIBLE", "DICT_SET_ITEM") }}
+{{ set_item_wrapper_infallible("DICT_SET_ITEM1_INFALLIBLE", "DICT_SET_ITEM1") }}
+{{ set_item_wrapper_infallible("DICT_SET_ITEM_UNTRACKED_INFALLIBLE", "DICT_SET_ITEM_UNTRACKED") }}
+{{ set_item_wrapper_infallible("DICT_SET_ITEM_UNTRACKED1_INFALLIBLE", "DICT_SET_ITEM_UNTRACKED1") }}
+
 {#-  Part of "Nuitka", an optimizing Python compiler that is compatible and           -#}
 {#-  integrates with CPython, but also works on its own.                              -#}
 {#-                                                                                   -#}

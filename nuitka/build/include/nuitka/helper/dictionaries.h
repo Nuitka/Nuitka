@@ -267,6 +267,11 @@ extern bool DICT_SET_ITEM(PyThreadState *tstate, PyObject *dict, PyObject *key, 
 // borrowed. The value reference is consumed on success and on failure.
 extern bool DICT_SET_ITEM1(PyThreadState *tstate, PyObject *dict, PyObject *key, PyObject *value);
 
+// Variants for keys where insertion is known not to raise, asserting instead
+// of returning failure.
+extern void DICT_SET_ITEM_INFALLIBLE(PyThreadState *tstate, PyObject *dict, PyObject *key, PyObject *value);
+extern void DICT_SET_ITEM1_INFALLIBLE(PyThreadState *tstate, PyObject *dict, PyObject *key, PyObject *value);
+
 // Set a key in a dictionary using a caller supplied hash and equality
 // function. A NULL equality function selects normal key equality. This is for
 // caches with their own key rules and must not be used for ordinary Python
@@ -282,6 +287,10 @@ extern bool DICT_SET_ITEM_UNTRACKED(PyThreadState *tstate, PyObject *dict, PyObj
 // Set a key in a private dictionary without updating its garbage collection
 // tracking or notifying watchers, consuming the value reference.
 extern bool DICT_SET_ITEM_UNTRACKED1(PyThreadState *tstate, PyObject *dict, PyObject *key, PyObject *value);
+
+// Untracked variants of the infallible helpers above.
+extern void DICT_SET_ITEM_UNTRACKED_INFALLIBLE(PyThreadState *tstate, PyObject *dict, PyObject *key, PyObject *value);
+extern void DICT_SET_ITEM_UNTRACKED1_INFALLIBLE(PyThreadState *tstate, PyObject *dict, PyObject *key, PyObject *value);
 
 // Hash and equality variant of "DICT_SET_ITEM_UNTRACKED".
 extern bool DICT_SET_ITEM_WITH_HASH_AND_EQ_UNTRACKED(PyThreadState *tstate, PyObject *dict, PyObject *key,

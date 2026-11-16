@@ -2116,6 +2116,34 @@ bool DICT_SET_ITEM_WITH_HASH_AND_EQ_UNTRACKED(PyThreadState *tstate, PyObject *d
 #endif
 }
 
+void DICT_SET_ITEM_INFALLIBLE(PyThreadState *tstate, PyObject *dict, PyObject *key, PyObject *value) {
+    bool result = DICT_SET_ITEM(tstate, dict, key, value);
+
+    assert(result);
+    (void)result;
+}
+
+void DICT_SET_ITEM1_INFALLIBLE(PyThreadState *tstate, PyObject *dict, PyObject *key, PyObject *value) {
+    bool result = DICT_SET_ITEM1(tstate, dict, key, value);
+
+    assert(result);
+    (void)result;
+}
+
+void DICT_SET_ITEM_UNTRACKED_INFALLIBLE(PyThreadState *tstate, PyObject *dict, PyObject *key, PyObject *value) {
+    bool result = DICT_SET_ITEM_UNTRACKED(tstate, dict, key, value);
+
+    assert(result);
+    (void)result;
+}
+
+void DICT_SET_ITEM_UNTRACKED1_INFALLIBLE(PyThreadState *tstate, PyObject *dict, PyObject *key, PyObject *value) {
+    bool result = DICT_SET_ITEM_UNTRACKED1(tstate, dict, key, value);
+
+    assert(result);
+    (void)result;
+}
+
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
 //

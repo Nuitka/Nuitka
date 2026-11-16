@@ -229,7 +229,6 @@ def _getDictionaryCreationCode(to_name, pairs, emit, context):
                 key_needs_release, value_needs_release = generatePairCode(pair)
 
             needs_check = not is_hashable_key[count]
-            res_name = context.getBoolResName()
 
             if value_needs_release:
                 if python_version >= 0x3E0:
@@ -242,10 +241,21 @@ def _getDictionaryCreationCode(to_name, pairs, emit, context):
                 else:
                     set_item_name = "DICT_SET_ITEM"
 
-            emit(
-                "%s = %s(tstate, %s, %s, %s);"
-                % (res_name, set_item_name, to_name, dict_key_name, dict_value_name)
-            )
+            infallible = not needs_check
+            res_name = None
+
+            if infallible:
+                emit(
+                    "%s_INFALLIBLE(tstate, %s, %s, %s);"
+                    % (set_item_name, to_name, dict_key_name, dict_value_name)
+                )
+            else:
+                res_name = context.getBoolResName()
+
+                emit(
+                    "%s = %s(tstate, %s, %s, %s);"
+                    % (res_name, set_item_name, to_name, dict_key_name, dict_value_name)
+                )
 
             if key_needs_release:
                 emit("Py_DECREF(%s);" % dict_key_name)
@@ -253,12 +263,13 @@ def _getDictionaryCreationCode(to_name, pairs, emit, context):
             context.unregisterBorrowedValue(dict_key_name)
             context.unregisterBorrowedValue(dict_value_name)
 
-            getErrorExitBoolCode(
-                condition="%s == false" % res_name,
-                needs_check=needs_check,
-                emit=emit,
-                context=context,
-            )
+            if not infallible:
+                getErrorExitBoolCode(
+                    condition="%s == false" % res_name,
+                    needs_check=needs_check,
+                    emit=emit,
+                    context=context,
+                )
 
 
 def generateDictOperationUpdateCode(statement, emit, context):
