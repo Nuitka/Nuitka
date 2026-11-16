@@ -546,6 +546,9 @@ typedef union Nuitka_PyCFunctionUnion {
 #if PYTHON_VERSION >= 0x360
     _PyCFunctionFast as_function_fast;
 #endif
+#if PYTHON_VERSION >= 0x370
+    _PyCFunctionFastWithKeywords as_function_fast_kw;
+#endif
 } Nuitka_PyCFunctionUnion;
 
 // A long value that represents a signed digit on the helper interface.

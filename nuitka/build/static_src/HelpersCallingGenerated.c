@@ -170,7 +170,14 @@ PyObject *CALL_FUNCTION_NO_ARGS(PyThreadState *tstate, PyObject *called) {
             SET_CURRENT_EXCEPTION_TYPE0_FORMAT1(PyExc_TypeError, "%s() takes exactly one argument (0 given)",
                                                 ((PyCFunctionObject *)called)->m_ml->ml_name);
             return NULL;
+#if PYTHON_VERSION < 0x360
         } else if (flags & METH_VARARGS) {
+#elif PYTHON_VERSION < 0x370
+        } else if (flags == METH_VARARGS || flags == (METH_VARARGS | METH_KEYWORDS) || flags == METH_FASTCALL) {
+#else
+        } else if (flags == METH_VARARGS || flags == (METH_VARARGS | METH_KEYWORDS) || flags == METH_FASTCALL ||
+                   flags == (METH_FASTCALL | METH_KEYWORDS)) {
+#endif
 #ifdef _NUITKA_FULL_COMPAT
             if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
                 return NULL;
@@ -198,8 +205,11 @@ PyObject *CALL_FUNCTION_NO_ARGS(PyThreadState *tstate, PyObject *called) {
 #if PYTHON_VERSION < 0x370
                 result = (*method.as_function_fast)(self, NULL, 0, NULL);
 #else
-                PyObject *pos_args = const_tuple_empty;
-                result = (*method.as_function_fast)(self, &pos_args, 0);
+                result = (*method.as_function_fast)(self, NULL, 0);
+#endif
+#if PYTHON_VERSION >= 0x370
+            } else if (flags == (METH_FASTCALL | METH_KEYWORDS)) {
+                result = (*method.as_function_fast_kw)(self, NULL, 0, NULL);
 #endif
             } else {
                 PyObject *pos_args = const_tuple_empty;
@@ -296,6 +306,8 @@ PyObject *CALL_FUNCTION_NO_ARGS(PyThreadState *tstate, PyObject *called) {
                         }
 
                         if (unlikely(init_method == NULL)) {
+                            Py_DECREF(obj);
+
                             if (!HAS_ERROR_OCCURRED(tstate)) {
                                 SET_CURRENT_EXCEPTION_TYPE0_VALUE0(tstate, PyExc_AttributeError,
                                                                    const_str_plain___init__);
@@ -321,14 +333,15 @@ PyObject *CALL_FUNCTION_NO_ARGS(PyThreadState *tstate, PyObject *called) {
                             return NULL;
                         }
 
-                        Py_DECREF(result);
-
                         if (unlikely(result != Py_None)) {
                             Py_DECREF(obj);
 
                             SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("__init__() should return None, not '%s'", result);
+                            Py_DECREF(result);
                             return NULL;
                         }
+
+                        Py_DECREF(result);
                     } else {
 
                         if (unlikely(type->tp_init(obj, pos_args, NULL) < 0)) {
@@ -371,6 +384,7 @@ PyObject *CALL_FUNCTION_NO_ARGS(PyThreadState *tstate, PyObject *called) {
             PyObject *descr_method = descr_get(init_method, obj, called);
 
             if (unlikely(descr_method == NULL)) {
+                Py_DECREF(obj);
                 return NULL;
             }
 
@@ -385,15 +399,19 @@ PyObject *CALL_FUNCTION_NO_ARGS(PyThreadState *tstate, PyObject *called) {
             Py_DECREF(init_method);
         }
         if (unlikely(result == NULL)) {
+            Py_DECREF(obj);
+            return NULL;
+        }
+
+        if (unlikely(result != Py_None)) {
+            Py_DECREF(obj);
+
+            SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("__init__() should return None, not '%s'", result);
+            Py_DECREF(result);
             return NULL;
         }
 
         Py_DECREF(result);
-
-        if (unlikely(result != Py_None)) {
-            SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("__init__() should return None, not '%s'", result);
-            return NULL;
-        }
 
         CHECK_OBJECT_X(obj);
 
@@ -592,7 +610,14 @@ PyObject *CALL_FUNCTION_WITH_SINGLE_ARG(PyThreadState *tstate, PyObject *called,
             CHECK_OBJECT_X(result);
 
             return Nuitka_CheckFunctionResult(tstate, called, result);
+#if PYTHON_VERSION < 0x360
         } else if (flags & METH_VARARGS) {
+#elif PYTHON_VERSION < 0x370
+        } else if (flags == METH_VARARGS || flags == (METH_VARARGS | METH_KEYWORDS) || flags == METH_FASTCALL) {
+#else
+        } else if (flags == METH_VARARGS || flags == (METH_VARARGS | METH_KEYWORDS) || flags == METH_FASTCALL ||
+                   flags == (METH_FASTCALL | METH_KEYWORDS)) {
+#endif
 #ifdef _NUITKA_FULL_COMPAT
             if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
                 return NULL;
@@ -622,9 +647,11 @@ PyObject *CALL_FUNCTION_WITH_SINGLE_ARG(PyThreadState *tstate, PyObject *called,
 #if PYTHON_VERSION < 0x370
                 result = (*method.as_function_fast)(self, (PyObject **)args, 1, NULL);
 #else
-                PyObject *pos_args = MAKE_TUPLE(tstate, args, 1);
-                result = (*method.as_function_fast)(self, &pos_args, 1);
-                Py_DECREF(pos_args);
+                result = (*method.as_function_fast)(self, args, 1);
+#endif
+#if PYTHON_VERSION >= 0x370
+            } else if (flags == (METH_FASTCALL | METH_KEYWORDS)) {
+                result = (*method.as_function_fast_kw)(self, args, 1, NULL);
 #endif
             } else {
                 PyObject *pos_args = MAKE_TUPLE(tstate, args, 1);
@@ -732,6 +759,8 @@ PyObject *CALL_FUNCTION_WITH_SINGLE_ARG(PyThreadState *tstate, PyObject *called,
                         }
 
                         if (unlikely(init_method == NULL)) {
+                            Py_DECREF(obj);
+
                             if (!HAS_ERROR_OCCURRED(tstate)) {
                                 SET_CURRENT_EXCEPTION_TYPE0_VALUE0(tstate, PyExc_AttributeError,
                                                                    const_str_plain___init__);
@@ -757,14 +786,15 @@ PyObject *CALL_FUNCTION_WITH_SINGLE_ARG(PyThreadState *tstate, PyObject *called,
                             return NULL;
                         }
 
-                        Py_DECREF(result);
-
                         if (unlikely(result != Py_None)) {
                             Py_DECREF(obj);
 
                             SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("__init__() should return None, not '%s'", result);
+                            Py_DECREF(result);
                             return NULL;
                         }
+
+                        Py_DECREF(result);
                     } else {
                         if (pos_args == NULL) {
                             pos_args = MAKE_TUPLE(tstate, args, 1);
@@ -816,6 +846,7 @@ PyObject *CALL_FUNCTION_WITH_SINGLE_ARG(PyThreadState *tstate, PyObject *called,
             PyObject *descr_method = descr_get(init_method, obj, called);
 
             if (unlikely(descr_method == NULL)) {
+                Py_DECREF(obj);
                 return NULL;
             }
 
@@ -831,15 +862,19 @@ PyObject *CALL_FUNCTION_WITH_SINGLE_ARG(PyThreadState *tstate, PyObject *called,
             Py_DECREF(init_method);
         }
         if (unlikely(result == NULL)) {
+            Py_DECREF(obj);
+            return NULL;
+        }
+
+        if (unlikely(result != Py_None)) {
+            Py_DECREF(obj);
+
+            SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("__init__() should return None, not '%s'", result);
+            Py_DECREF(result);
             return NULL;
         }
 
         Py_DECREF(result);
-
-        if (unlikely(result != Py_None)) {
-            SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("__init__() should return None, not '%s'", result);
-            return NULL;
-        }
 
         CHECK_OBJECT_X(obj);
 
@@ -1040,7 +1075,14 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS1(PyThreadState *tstate, PyObject *called, 
             CHECK_OBJECT_X(result);
 
             return Nuitka_CheckFunctionResult(tstate, called, result);
+#if PYTHON_VERSION < 0x360
         } else if (flags & METH_VARARGS) {
+#elif PYTHON_VERSION < 0x370
+        } else if (flags == METH_VARARGS || flags == (METH_VARARGS | METH_KEYWORDS) || flags == METH_FASTCALL) {
+#else
+        } else if (flags == METH_VARARGS || flags == (METH_VARARGS | METH_KEYWORDS) || flags == METH_FASTCALL ||
+                   flags == (METH_FASTCALL | METH_KEYWORDS)) {
+#endif
 #ifdef _NUITKA_FULL_COMPAT
             if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
                 return NULL;
@@ -1066,7 +1108,11 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS1(PyThreadState *tstate, PyObject *called, 
 #if PYTHON_VERSION < 0x370
                 result = (*method.as_function_fast)(self, (PyObject **)args, 1, NULL);
 #else
-                result = (*method.as_function_fast)(self, &pos_args, 1);
+                result = (*method.as_function_fast)(self, args, 1);
+#endif
+#if PYTHON_VERSION >= 0x370
+            } else if (flags == (METH_FASTCALL | METH_KEYWORDS)) {
+                result = (*method.as_function_fast_kw)(self, args, 1, NULL);
 #endif
             } else {
                 result = (*method.as_function)(self, pos_args);
@@ -1167,6 +1213,8 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS1(PyThreadState *tstate, PyObject *called, 
                         }
 
                         if (unlikely(init_method == NULL)) {
+                            Py_DECREF(obj);
+
                             if (!HAS_ERROR_OCCURRED(tstate)) {
                                 SET_CURRENT_EXCEPTION_TYPE0_VALUE0(tstate, PyExc_AttributeError,
                                                                    const_str_plain___init__);
@@ -1192,14 +1240,15 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS1(PyThreadState *tstate, PyObject *called, 
                             return NULL;
                         }
 
-                        Py_DECREF(result);
-
                         if (unlikely(result != Py_None)) {
                             Py_DECREF(obj);
 
                             SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("__init__() should return None, not '%s'", result);
+                            Py_DECREF(result);
                             return NULL;
                         }
+
+                        Py_DECREF(result);
                     } else {
 
                         if (unlikely(type->tp_init(obj, pos_args, NULL) < 0)) {
@@ -1245,6 +1294,7 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS1(PyThreadState *tstate, PyObject *called, 
             PyObject *descr_method = descr_get(init_method, obj, called);
 
             if (unlikely(descr_method == NULL)) {
+                Py_DECREF(obj);
                 return NULL;
             }
 
@@ -1260,15 +1310,19 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS1(PyThreadState *tstate, PyObject *called, 
             Py_DECREF(init_method);
         }
         if (unlikely(result == NULL)) {
+            Py_DECREF(obj);
+            return NULL;
+        }
+
+        if (unlikely(result != Py_None)) {
+            Py_DECREF(obj);
+
+            SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("__init__() should return None, not '%s'", result);
+            Py_DECREF(result);
             return NULL;
         }
 
         Py_DECREF(result);
-
-        if (unlikely(result != Py_None)) {
-            SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("__init__() should return None, not '%s'", result);
-            return NULL;
-        }
 
         CHECK_OBJECT_X(obj);
 
@@ -1456,7 +1510,14 @@ PyObject *CALL_FUNCTION_WITH_ARGS2(PyThreadState *tstate, PyObject *called, PyOb
             SET_CURRENT_EXCEPTION_TYPE0_FORMAT1(PyExc_TypeError, "%s() takes exactly one argument (2 given)",
                                                 ((PyCFunctionObject *)called)->m_ml->ml_name);
             return NULL;
+#if PYTHON_VERSION < 0x360
         } else if (flags & METH_VARARGS) {
+#elif PYTHON_VERSION < 0x370
+        } else if (flags == METH_VARARGS || flags == (METH_VARARGS | METH_KEYWORDS) || flags == METH_FASTCALL) {
+#else
+        } else if (flags == METH_VARARGS || flags == (METH_VARARGS | METH_KEYWORDS) || flags == METH_FASTCALL ||
+                   flags == (METH_FASTCALL | METH_KEYWORDS)) {
+#endif
 #ifdef _NUITKA_FULL_COMPAT
             if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
                 return NULL;
@@ -1486,9 +1547,11 @@ PyObject *CALL_FUNCTION_WITH_ARGS2(PyThreadState *tstate, PyObject *called, PyOb
 #if PYTHON_VERSION < 0x370
                 result = (*method.as_function_fast)(self, (PyObject **)args, 2, NULL);
 #else
-                PyObject *pos_args = MAKE_TUPLE(tstate, args, 2);
-                result = (*method.as_function_fast)(self, &pos_args, 2);
-                Py_DECREF(pos_args);
+                result = (*method.as_function_fast)(self, args, 2);
+#endif
+#if PYTHON_VERSION >= 0x370
+            } else if (flags == (METH_FASTCALL | METH_KEYWORDS)) {
+                result = (*method.as_function_fast_kw)(self, args, 2, NULL);
 #endif
             } else {
                 PyObject *pos_args = MAKE_TUPLE(tstate, args, 2);
@@ -1590,6 +1653,8 @@ PyObject *CALL_FUNCTION_WITH_ARGS2(PyThreadState *tstate, PyObject *called, PyOb
                         }
 
                         if (unlikely(init_method == NULL)) {
+                            Py_DECREF(obj);
+
                             if (!HAS_ERROR_OCCURRED(tstate)) {
                                 SET_CURRENT_EXCEPTION_TYPE0_VALUE0(tstate, PyExc_AttributeError,
                                                                    const_str_plain___init__);
@@ -1614,14 +1679,15 @@ PyObject *CALL_FUNCTION_WITH_ARGS2(PyThreadState *tstate, PyObject *called, PyOb
                             return NULL;
                         }
 
-                        Py_DECREF(result);
-
                         if (unlikely(result != Py_None)) {
                             Py_DECREF(obj);
 
                             SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("__init__() should return None, not '%s'", result);
+                            Py_DECREF(result);
                             return NULL;
                         }
+
+                        Py_DECREF(result);
                     } else {
                         if (pos_args == NULL) {
                             pos_args = MAKE_TUPLE(tstate, args, 2);
@@ -1673,6 +1739,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS2(PyThreadState *tstate, PyObject *called, PyOb
             PyObject *descr_method = descr_get(init_method, obj, called);
 
             if (unlikely(descr_method == NULL)) {
+                Py_DECREF(obj);
                 return NULL;
             }
 
@@ -1688,15 +1755,19 @@ PyObject *CALL_FUNCTION_WITH_ARGS2(PyThreadState *tstate, PyObject *called, PyOb
             Py_DECREF(init_method);
         }
         if (unlikely(result == NULL)) {
+            Py_DECREF(obj);
+            return NULL;
+        }
+
+        if (unlikely(result != Py_None)) {
+            Py_DECREF(obj);
+
+            SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("__init__() should return None, not '%s'", result);
+            Py_DECREF(result);
             return NULL;
         }
 
         Py_DECREF(result);
-
-        if (unlikely(result != Py_None)) {
-            SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("__init__() should return None, not '%s'", result);
-            return NULL;
-        }
 
         CHECK_OBJECT_X(obj);
 
@@ -1887,7 +1958,14 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS2(PyThreadState *tstate, PyObject *called, 
             SET_CURRENT_EXCEPTION_TYPE0_FORMAT1(PyExc_TypeError, "%s() takes exactly one argument (2 given)",
                                                 ((PyCFunctionObject *)called)->m_ml->ml_name);
             return NULL;
+#if PYTHON_VERSION < 0x360
         } else if (flags & METH_VARARGS) {
+#elif PYTHON_VERSION < 0x370
+        } else if (flags == METH_VARARGS || flags == (METH_VARARGS | METH_KEYWORDS) || flags == METH_FASTCALL) {
+#else
+        } else if (flags == METH_VARARGS || flags == (METH_VARARGS | METH_KEYWORDS) || flags == METH_FASTCALL ||
+                   flags == (METH_FASTCALL | METH_KEYWORDS)) {
+#endif
 #ifdef _NUITKA_FULL_COMPAT
             if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
                 return NULL;
@@ -1913,7 +1991,11 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS2(PyThreadState *tstate, PyObject *called, 
 #if PYTHON_VERSION < 0x370
                 result = (*method.as_function_fast)(self, (PyObject **)args, 2, NULL);
 #else
-                result = (*method.as_function_fast)(self, &pos_args, 2);
+                result = (*method.as_function_fast)(self, args, 2);
+#endif
+#if PYTHON_VERSION >= 0x370
+            } else if (flags == (METH_FASTCALL | METH_KEYWORDS)) {
+                result = (*method.as_function_fast_kw)(self, args, 2, NULL);
 #endif
             } else {
                 result = (*method.as_function)(self, pos_args);
@@ -2008,6 +2090,8 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS2(PyThreadState *tstate, PyObject *called, 
                         }
 
                         if (unlikely(init_method == NULL)) {
+                            Py_DECREF(obj);
+
                             if (!HAS_ERROR_OCCURRED(tstate)) {
                                 SET_CURRENT_EXCEPTION_TYPE0_VALUE0(tstate, PyExc_AttributeError,
                                                                    const_str_plain___init__);
@@ -2032,14 +2116,15 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS2(PyThreadState *tstate, PyObject *called, 
                             return NULL;
                         }
 
-                        Py_DECREF(result);
-
                         if (unlikely(result != Py_None)) {
                             Py_DECREF(obj);
 
                             SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("__init__() should return None, not '%s'", result);
+                            Py_DECREF(result);
                             return NULL;
                         }
+
+                        Py_DECREF(result);
                     } else {
 
                         if (unlikely(type->tp_init(obj, pos_args, NULL) < 0)) {
@@ -2085,6 +2170,7 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS2(PyThreadState *tstate, PyObject *called, 
             PyObject *descr_method = descr_get(init_method, obj, called);
 
             if (unlikely(descr_method == NULL)) {
+                Py_DECREF(obj);
                 return NULL;
             }
 
@@ -2100,15 +2186,19 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS2(PyThreadState *tstate, PyObject *called, 
             Py_DECREF(init_method);
         }
         if (unlikely(result == NULL)) {
+            Py_DECREF(obj);
+            return NULL;
+        }
+
+        if (unlikely(result != Py_None)) {
+            Py_DECREF(obj);
+
+            SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("__init__() should return None, not '%s'", result);
+            Py_DECREF(result);
             return NULL;
         }
 
         Py_DECREF(result);
-
-        if (unlikely(result != Py_None)) {
-            SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("__init__() should return None, not '%s'", result);
-            return NULL;
-        }
 
         CHECK_OBJECT_X(obj);
 
@@ -2296,7 +2386,14 @@ PyObject *CALL_FUNCTION_WITH_ARGS3(PyThreadState *tstate, PyObject *called, PyOb
             SET_CURRENT_EXCEPTION_TYPE0_FORMAT1(PyExc_TypeError, "%s() takes exactly one argument (3 given)",
                                                 ((PyCFunctionObject *)called)->m_ml->ml_name);
             return NULL;
+#if PYTHON_VERSION < 0x360
         } else if (flags & METH_VARARGS) {
+#elif PYTHON_VERSION < 0x370
+        } else if (flags == METH_VARARGS || flags == (METH_VARARGS | METH_KEYWORDS) || flags == METH_FASTCALL) {
+#else
+        } else if (flags == METH_VARARGS || flags == (METH_VARARGS | METH_KEYWORDS) || flags == METH_FASTCALL ||
+                   flags == (METH_FASTCALL | METH_KEYWORDS)) {
+#endif
 #ifdef _NUITKA_FULL_COMPAT
             if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
                 return NULL;
@@ -2326,9 +2423,11 @@ PyObject *CALL_FUNCTION_WITH_ARGS3(PyThreadState *tstate, PyObject *called, PyOb
 #if PYTHON_VERSION < 0x370
                 result = (*method.as_function_fast)(self, (PyObject **)args, 3, NULL);
 #else
-                PyObject *pos_args = MAKE_TUPLE(tstate, args, 3);
-                result = (*method.as_function_fast)(self, &pos_args, 3);
-                Py_DECREF(pos_args);
+                result = (*method.as_function_fast)(self, args, 3);
+#endif
+#if PYTHON_VERSION >= 0x370
+            } else if (flags == (METH_FASTCALL | METH_KEYWORDS)) {
+                result = (*method.as_function_fast_kw)(self, args, 3, NULL);
 #endif
             } else {
                 PyObject *pos_args = MAKE_TUPLE(tstate, args, 3);
@@ -2430,6 +2529,8 @@ PyObject *CALL_FUNCTION_WITH_ARGS3(PyThreadState *tstate, PyObject *called, PyOb
                         }
 
                         if (unlikely(init_method == NULL)) {
+                            Py_DECREF(obj);
+
                             if (!HAS_ERROR_OCCURRED(tstate)) {
                                 SET_CURRENT_EXCEPTION_TYPE0_VALUE0(tstate, PyExc_AttributeError,
                                                                    const_str_plain___init__);
@@ -2454,14 +2555,15 @@ PyObject *CALL_FUNCTION_WITH_ARGS3(PyThreadState *tstate, PyObject *called, PyOb
                             return NULL;
                         }
 
-                        Py_DECREF(result);
-
                         if (unlikely(result != Py_None)) {
                             Py_DECREF(obj);
 
                             SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("__init__() should return None, not '%s'", result);
+                            Py_DECREF(result);
                             return NULL;
                         }
+
+                        Py_DECREF(result);
                     } else {
                         if (pos_args == NULL) {
                             pos_args = MAKE_TUPLE(tstate, args, 3);
@@ -2513,6 +2615,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS3(PyThreadState *tstate, PyObject *called, PyOb
             PyObject *descr_method = descr_get(init_method, obj, called);
 
             if (unlikely(descr_method == NULL)) {
+                Py_DECREF(obj);
                 return NULL;
             }
 
@@ -2528,15 +2631,19 @@ PyObject *CALL_FUNCTION_WITH_ARGS3(PyThreadState *tstate, PyObject *called, PyOb
             Py_DECREF(init_method);
         }
         if (unlikely(result == NULL)) {
+            Py_DECREF(obj);
+            return NULL;
+        }
+
+        if (unlikely(result != Py_None)) {
+            Py_DECREF(obj);
+
+            SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("__init__() should return None, not '%s'", result);
+            Py_DECREF(result);
             return NULL;
         }
 
         Py_DECREF(result);
-
-        if (unlikely(result != Py_None)) {
-            SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("__init__() should return None, not '%s'", result);
-            return NULL;
-        }
 
         CHECK_OBJECT_X(obj);
 
@@ -2727,7 +2834,14 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS3(PyThreadState *tstate, PyObject *called, 
             SET_CURRENT_EXCEPTION_TYPE0_FORMAT1(PyExc_TypeError, "%s() takes exactly one argument (3 given)",
                                                 ((PyCFunctionObject *)called)->m_ml->ml_name);
             return NULL;
+#if PYTHON_VERSION < 0x360
         } else if (flags & METH_VARARGS) {
+#elif PYTHON_VERSION < 0x370
+        } else if (flags == METH_VARARGS || flags == (METH_VARARGS | METH_KEYWORDS) || flags == METH_FASTCALL) {
+#else
+        } else if (flags == METH_VARARGS || flags == (METH_VARARGS | METH_KEYWORDS) || flags == METH_FASTCALL ||
+                   flags == (METH_FASTCALL | METH_KEYWORDS)) {
+#endif
 #ifdef _NUITKA_FULL_COMPAT
             if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
                 return NULL;
@@ -2753,7 +2867,11 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS3(PyThreadState *tstate, PyObject *called, 
 #if PYTHON_VERSION < 0x370
                 result = (*method.as_function_fast)(self, (PyObject **)args, 3, NULL);
 #else
-                result = (*method.as_function_fast)(self, &pos_args, 3);
+                result = (*method.as_function_fast)(self, args, 3);
+#endif
+#if PYTHON_VERSION >= 0x370
+            } else if (flags == (METH_FASTCALL | METH_KEYWORDS)) {
+                result = (*method.as_function_fast_kw)(self, args, 3, NULL);
 #endif
             } else {
                 result = (*method.as_function)(self, pos_args);
@@ -2848,6 +2966,8 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS3(PyThreadState *tstate, PyObject *called, 
                         }
 
                         if (unlikely(init_method == NULL)) {
+                            Py_DECREF(obj);
+
                             if (!HAS_ERROR_OCCURRED(tstate)) {
                                 SET_CURRENT_EXCEPTION_TYPE0_VALUE0(tstate, PyExc_AttributeError,
                                                                    const_str_plain___init__);
@@ -2872,14 +2992,15 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS3(PyThreadState *tstate, PyObject *called, 
                             return NULL;
                         }
 
-                        Py_DECREF(result);
-
                         if (unlikely(result != Py_None)) {
                             Py_DECREF(obj);
 
                             SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("__init__() should return None, not '%s'", result);
+                            Py_DECREF(result);
                             return NULL;
                         }
+
+                        Py_DECREF(result);
                     } else {
 
                         if (unlikely(type->tp_init(obj, pos_args, NULL) < 0)) {
@@ -2925,6 +3046,7 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS3(PyThreadState *tstate, PyObject *called, 
             PyObject *descr_method = descr_get(init_method, obj, called);
 
             if (unlikely(descr_method == NULL)) {
+                Py_DECREF(obj);
                 return NULL;
             }
 
@@ -2940,15 +3062,19 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS3(PyThreadState *tstate, PyObject *called, 
             Py_DECREF(init_method);
         }
         if (unlikely(result == NULL)) {
+            Py_DECREF(obj);
+            return NULL;
+        }
+
+        if (unlikely(result != Py_None)) {
+            Py_DECREF(obj);
+
+            SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("__init__() should return None, not '%s'", result);
+            Py_DECREF(result);
             return NULL;
         }
 
         Py_DECREF(result);
-
-        if (unlikely(result != Py_None)) {
-            SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("__init__() should return None, not '%s'", result);
-            return NULL;
-        }
 
         CHECK_OBJECT_X(obj);
 
@@ -3136,7 +3262,14 @@ PyObject *CALL_FUNCTION_WITH_ARGS4(PyThreadState *tstate, PyObject *called, PyOb
             SET_CURRENT_EXCEPTION_TYPE0_FORMAT1(PyExc_TypeError, "%s() takes exactly one argument (4 given)",
                                                 ((PyCFunctionObject *)called)->m_ml->ml_name);
             return NULL;
+#if PYTHON_VERSION < 0x360
         } else if (flags & METH_VARARGS) {
+#elif PYTHON_VERSION < 0x370
+        } else if (flags == METH_VARARGS || flags == (METH_VARARGS | METH_KEYWORDS) || flags == METH_FASTCALL) {
+#else
+        } else if (flags == METH_VARARGS || flags == (METH_VARARGS | METH_KEYWORDS) || flags == METH_FASTCALL ||
+                   flags == (METH_FASTCALL | METH_KEYWORDS)) {
+#endif
 #ifdef _NUITKA_FULL_COMPAT
             if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
                 return NULL;
@@ -3166,9 +3299,11 @@ PyObject *CALL_FUNCTION_WITH_ARGS4(PyThreadState *tstate, PyObject *called, PyOb
 #if PYTHON_VERSION < 0x370
                 result = (*method.as_function_fast)(self, (PyObject **)args, 4, NULL);
 #else
-                PyObject *pos_args = MAKE_TUPLE(tstate, args, 4);
-                result = (*method.as_function_fast)(self, &pos_args, 4);
-                Py_DECREF(pos_args);
+                result = (*method.as_function_fast)(self, args, 4);
+#endif
+#if PYTHON_VERSION >= 0x370
+            } else if (flags == (METH_FASTCALL | METH_KEYWORDS)) {
+                result = (*method.as_function_fast_kw)(self, args, 4, NULL);
 #endif
             } else {
                 PyObject *pos_args = MAKE_TUPLE(tstate, args, 4);
@@ -3270,6 +3405,8 @@ PyObject *CALL_FUNCTION_WITH_ARGS4(PyThreadState *tstate, PyObject *called, PyOb
                         }
 
                         if (unlikely(init_method == NULL)) {
+                            Py_DECREF(obj);
+
                             if (!HAS_ERROR_OCCURRED(tstate)) {
                                 SET_CURRENT_EXCEPTION_TYPE0_VALUE0(tstate, PyExc_AttributeError,
                                                                    const_str_plain___init__);
@@ -3294,14 +3431,15 @@ PyObject *CALL_FUNCTION_WITH_ARGS4(PyThreadState *tstate, PyObject *called, PyOb
                             return NULL;
                         }
 
-                        Py_DECREF(result);
-
                         if (unlikely(result != Py_None)) {
                             Py_DECREF(obj);
 
                             SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("__init__() should return None, not '%s'", result);
+                            Py_DECREF(result);
                             return NULL;
                         }
+
+                        Py_DECREF(result);
                     } else {
                         if (pos_args == NULL) {
                             pos_args = MAKE_TUPLE(tstate, args, 4);
@@ -3353,6 +3491,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS4(PyThreadState *tstate, PyObject *called, PyOb
             PyObject *descr_method = descr_get(init_method, obj, called);
 
             if (unlikely(descr_method == NULL)) {
+                Py_DECREF(obj);
                 return NULL;
             }
 
@@ -3368,15 +3507,19 @@ PyObject *CALL_FUNCTION_WITH_ARGS4(PyThreadState *tstate, PyObject *called, PyOb
             Py_DECREF(init_method);
         }
         if (unlikely(result == NULL)) {
+            Py_DECREF(obj);
+            return NULL;
+        }
+
+        if (unlikely(result != Py_None)) {
+            Py_DECREF(obj);
+
+            SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("__init__() should return None, not '%s'", result);
+            Py_DECREF(result);
             return NULL;
         }
 
         Py_DECREF(result);
-
-        if (unlikely(result != Py_None)) {
-            SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("__init__() should return None, not '%s'", result);
-            return NULL;
-        }
 
         CHECK_OBJECT_X(obj);
 
@@ -3567,7 +3710,14 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS4(PyThreadState *tstate, PyObject *called, 
             SET_CURRENT_EXCEPTION_TYPE0_FORMAT1(PyExc_TypeError, "%s() takes exactly one argument (4 given)",
                                                 ((PyCFunctionObject *)called)->m_ml->ml_name);
             return NULL;
+#if PYTHON_VERSION < 0x360
         } else if (flags & METH_VARARGS) {
+#elif PYTHON_VERSION < 0x370
+        } else if (flags == METH_VARARGS || flags == (METH_VARARGS | METH_KEYWORDS) || flags == METH_FASTCALL) {
+#else
+        } else if (flags == METH_VARARGS || flags == (METH_VARARGS | METH_KEYWORDS) || flags == METH_FASTCALL ||
+                   flags == (METH_FASTCALL | METH_KEYWORDS)) {
+#endif
 #ifdef _NUITKA_FULL_COMPAT
             if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
                 return NULL;
@@ -3593,7 +3743,11 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS4(PyThreadState *tstate, PyObject *called, 
 #if PYTHON_VERSION < 0x370
                 result = (*method.as_function_fast)(self, (PyObject **)args, 4, NULL);
 #else
-                result = (*method.as_function_fast)(self, &pos_args, 4);
+                result = (*method.as_function_fast)(self, args, 4);
+#endif
+#if PYTHON_VERSION >= 0x370
+            } else if (flags == (METH_FASTCALL | METH_KEYWORDS)) {
+                result = (*method.as_function_fast_kw)(self, args, 4, NULL);
 #endif
             } else {
                 result = (*method.as_function)(self, pos_args);
@@ -3688,6 +3842,8 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS4(PyThreadState *tstate, PyObject *called, 
                         }
 
                         if (unlikely(init_method == NULL)) {
+                            Py_DECREF(obj);
+
                             if (!HAS_ERROR_OCCURRED(tstate)) {
                                 SET_CURRENT_EXCEPTION_TYPE0_VALUE0(tstate, PyExc_AttributeError,
                                                                    const_str_plain___init__);
@@ -3712,14 +3868,15 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS4(PyThreadState *tstate, PyObject *called, 
                             return NULL;
                         }
 
-                        Py_DECREF(result);
-
                         if (unlikely(result != Py_None)) {
                             Py_DECREF(obj);
 
                             SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("__init__() should return None, not '%s'", result);
+                            Py_DECREF(result);
                             return NULL;
                         }
+
+                        Py_DECREF(result);
                     } else {
 
                         if (unlikely(type->tp_init(obj, pos_args, NULL) < 0)) {
@@ -3765,6 +3922,7 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS4(PyThreadState *tstate, PyObject *called, 
             PyObject *descr_method = descr_get(init_method, obj, called);
 
             if (unlikely(descr_method == NULL)) {
+                Py_DECREF(obj);
                 return NULL;
             }
 
@@ -3780,15 +3938,19 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS4(PyThreadState *tstate, PyObject *called, 
             Py_DECREF(init_method);
         }
         if (unlikely(result == NULL)) {
+            Py_DECREF(obj);
+            return NULL;
+        }
+
+        if (unlikely(result != Py_None)) {
+            Py_DECREF(obj);
+
+            SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("__init__() should return None, not '%s'", result);
+            Py_DECREF(result);
             return NULL;
         }
 
         Py_DECREF(result);
-
-        if (unlikely(result != Py_None)) {
-            SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("__init__() should return None, not '%s'", result);
-            return NULL;
-        }
 
         CHECK_OBJECT_X(obj);
 
@@ -3976,7 +4138,14 @@ PyObject *CALL_FUNCTION_WITH_ARGS5(PyThreadState *tstate, PyObject *called, PyOb
             SET_CURRENT_EXCEPTION_TYPE0_FORMAT1(PyExc_TypeError, "%s() takes exactly one argument (5 given)",
                                                 ((PyCFunctionObject *)called)->m_ml->ml_name);
             return NULL;
+#if PYTHON_VERSION < 0x360
         } else if (flags & METH_VARARGS) {
+#elif PYTHON_VERSION < 0x370
+        } else if (flags == METH_VARARGS || flags == (METH_VARARGS | METH_KEYWORDS) || flags == METH_FASTCALL) {
+#else
+        } else if (flags == METH_VARARGS || flags == (METH_VARARGS | METH_KEYWORDS) || flags == METH_FASTCALL ||
+                   flags == (METH_FASTCALL | METH_KEYWORDS)) {
+#endif
 #ifdef _NUITKA_FULL_COMPAT
             if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
                 return NULL;
@@ -4006,9 +4175,11 @@ PyObject *CALL_FUNCTION_WITH_ARGS5(PyThreadState *tstate, PyObject *called, PyOb
 #if PYTHON_VERSION < 0x370
                 result = (*method.as_function_fast)(self, (PyObject **)args, 5, NULL);
 #else
-                PyObject *pos_args = MAKE_TUPLE(tstate, args, 5);
-                result = (*method.as_function_fast)(self, &pos_args, 5);
-                Py_DECREF(pos_args);
+                result = (*method.as_function_fast)(self, args, 5);
+#endif
+#if PYTHON_VERSION >= 0x370
+            } else if (flags == (METH_FASTCALL | METH_KEYWORDS)) {
+                result = (*method.as_function_fast_kw)(self, args, 5, NULL);
 #endif
             } else {
                 PyObject *pos_args = MAKE_TUPLE(tstate, args, 5);
@@ -4110,6 +4281,8 @@ PyObject *CALL_FUNCTION_WITH_ARGS5(PyThreadState *tstate, PyObject *called, PyOb
                         }
 
                         if (unlikely(init_method == NULL)) {
+                            Py_DECREF(obj);
+
                             if (!HAS_ERROR_OCCURRED(tstate)) {
                                 SET_CURRENT_EXCEPTION_TYPE0_VALUE0(tstate, PyExc_AttributeError,
                                                                    const_str_plain___init__);
@@ -4134,14 +4307,15 @@ PyObject *CALL_FUNCTION_WITH_ARGS5(PyThreadState *tstate, PyObject *called, PyOb
                             return NULL;
                         }
 
-                        Py_DECREF(result);
-
                         if (unlikely(result != Py_None)) {
                             Py_DECREF(obj);
 
                             SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("__init__() should return None, not '%s'", result);
+                            Py_DECREF(result);
                             return NULL;
                         }
+
+                        Py_DECREF(result);
                     } else {
                         if (pos_args == NULL) {
                             pos_args = MAKE_TUPLE(tstate, args, 5);
@@ -4193,6 +4367,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS5(PyThreadState *tstate, PyObject *called, PyOb
             PyObject *descr_method = descr_get(init_method, obj, called);
 
             if (unlikely(descr_method == NULL)) {
+                Py_DECREF(obj);
                 return NULL;
             }
 
@@ -4208,15 +4383,19 @@ PyObject *CALL_FUNCTION_WITH_ARGS5(PyThreadState *tstate, PyObject *called, PyOb
             Py_DECREF(init_method);
         }
         if (unlikely(result == NULL)) {
+            Py_DECREF(obj);
+            return NULL;
+        }
+
+        if (unlikely(result != Py_None)) {
+            Py_DECREF(obj);
+
+            SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("__init__() should return None, not '%s'", result);
+            Py_DECREF(result);
             return NULL;
         }
 
         Py_DECREF(result);
-
-        if (unlikely(result != Py_None)) {
-            SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("__init__() should return None, not '%s'", result);
-            return NULL;
-        }
 
         CHECK_OBJECT_X(obj);
 
@@ -4407,7 +4586,14 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS5(PyThreadState *tstate, PyObject *called, 
             SET_CURRENT_EXCEPTION_TYPE0_FORMAT1(PyExc_TypeError, "%s() takes exactly one argument (5 given)",
                                                 ((PyCFunctionObject *)called)->m_ml->ml_name);
             return NULL;
+#if PYTHON_VERSION < 0x360
         } else if (flags & METH_VARARGS) {
+#elif PYTHON_VERSION < 0x370
+        } else if (flags == METH_VARARGS || flags == (METH_VARARGS | METH_KEYWORDS) || flags == METH_FASTCALL) {
+#else
+        } else if (flags == METH_VARARGS || flags == (METH_VARARGS | METH_KEYWORDS) || flags == METH_FASTCALL ||
+                   flags == (METH_FASTCALL | METH_KEYWORDS)) {
+#endif
 #ifdef _NUITKA_FULL_COMPAT
             if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
                 return NULL;
@@ -4433,7 +4619,11 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS5(PyThreadState *tstate, PyObject *called, 
 #if PYTHON_VERSION < 0x370
                 result = (*method.as_function_fast)(self, (PyObject **)args, 5, NULL);
 #else
-                result = (*method.as_function_fast)(self, &pos_args, 5);
+                result = (*method.as_function_fast)(self, args, 5);
+#endif
+#if PYTHON_VERSION >= 0x370
+            } else if (flags == (METH_FASTCALL | METH_KEYWORDS)) {
+                result = (*method.as_function_fast_kw)(self, args, 5, NULL);
 #endif
             } else {
                 result = (*method.as_function)(self, pos_args);
@@ -4528,6 +4718,8 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS5(PyThreadState *tstate, PyObject *called, 
                         }
 
                         if (unlikely(init_method == NULL)) {
+                            Py_DECREF(obj);
+
                             if (!HAS_ERROR_OCCURRED(tstate)) {
                                 SET_CURRENT_EXCEPTION_TYPE0_VALUE0(tstate, PyExc_AttributeError,
                                                                    const_str_plain___init__);
@@ -4552,14 +4744,15 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS5(PyThreadState *tstate, PyObject *called, 
                             return NULL;
                         }
 
-                        Py_DECREF(result);
-
                         if (unlikely(result != Py_None)) {
                             Py_DECREF(obj);
 
                             SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("__init__() should return None, not '%s'", result);
+                            Py_DECREF(result);
                             return NULL;
                         }
+
+                        Py_DECREF(result);
                     } else {
 
                         if (unlikely(type->tp_init(obj, pos_args, NULL) < 0)) {
@@ -4605,6 +4798,7 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS5(PyThreadState *tstate, PyObject *called, 
             PyObject *descr_method = descr_get(init_method, obj, called);
 
             if (unlikely(descr_method == NULL)) {
+                Py_DECREF(obj);
                 return NULL;
             }
 
@@ -4620,15 +4814,19 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS5(PyThreadState *tstate, PyObject *called, 
             Py_DECREF(init_method);
         }
         if (unlikely(result == NULL)) {
+            Py_DECREF(obj);
+            return NULL;
+        }
+
+        if (unlikely(result != Py_None)) {
+            Py_DECREF(obj);
+
+            SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("__init__() should return None, not '%s'", result);
+            Py_DECREF(result);
             return NULL;
         }
 
         Py_DECREF(result);
-
-        if (unlikely(result != Py_None)) {
-            SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("__init__() should return None, not '%s'", result);
-            return NULL;
-        }
 
         CHECK_OBJECT_X(obj);
 
@@ -4816,7 +5014,14 @@ PyObject *CALL_FUNCTION_WITH_ARGS6(PyThreadState *tstate, PyObject *called, PyOb
             SET_CURRENT_EXCEPTION_TYPE0_FORMAT1(PyExc_TypeError, "%s() takes exactly one argument (6 given)",
                                                 ((PyCFunctionObject *)called)->m_ml->ml_name);
             return NULL;
+#if PYTHON_VERSION < 0x360
         } else if (flags & METH_VARARGS) {
+#elif PYTHON_VERSION < 0x370
+        } else if (flags == METH_VARARGS || flags == (METH_VARARGS | METH_KEYWORDS) || flags == METH_FASTCALL) {
+#else
+        } else if (flags == METH_VARARGS || flags == (METH_VARARGS | METH_KEYWORDS) || flags == METH_FASTCALL ||
+                   flags == (METH_FASTCALL | METH_KEYWORDS)) {
+#endif
 #ifdef _NUITKA_FULL_COMPAT
             if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
                 return NULL;
@@ -4846,9 +5051,11 @@ PyObject *CALL_FUNCTION_WITH_ARGS6(PyThreadState *tstate, PyObject *called, PyOb
 #if PYTHON_VERSION < 0x370
                 result = (*method.as_function_fast)(self, (PyObject **)args, 6, NULL);
 #else
-                PyObject *pos_args = MAKE_TUPLE(tstate, args, 6);
-                result = (*method.as_function_fast)(self, &pos_args, 6);
-                Py_DECREF(pos_args);
+                result = (*method.as_function_fast)(self, args, 6);
+#endif
+#if PYTHON_VERSION >= 0x370
+            } else if (flags == (METH_FASTCALL | METH_KEYWORDS)) {
+                result = (*method.as_function_fast_kw)(self, args, 6, NULL);
 #endif
             } else {
                 PyObject *pos_args = MAKE_TUPLE(tstate, args, 6);
@@ -4950,6 +5157,8 @@ PyObject *CALL_FUNCTION_WITH_ARGS6(PyThreadState *tstate, PyObject *called, PyOb
                         }
 
                         if (unlikely(init_method == NULL)) {
+                            Py_DECREF(obj);
+
                             if (!HAS_ERROR_OCCURRED(tstate)) {
                                 SET_CURRENT_EXCEPTION_TYPE0_VALUE0(tstate, PyExc_AttributeError,
                                                                    const_str_plain___init__);
@@ -4974,14 +5183,15 @@ PyObject *CALL_FUNCTION_WITH_ARGS6(PyThreadState *tstate, PyObject *called, PyOb
                             return NULL;
                         }
 
-                        Py_DECREF(result);
-
                         if (unlikely(result != Py_None)) {
                             Py_DECREF(obj);
 
                             SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("__init__() should return None, not '%s'", result);
+                            Py_DECREF(result);
                             return NULL;
                         }
+
+                        Py_DECREF(result);
                     } else {
                         if (pos_args == NULL) {
                             pos_args = MAKE_TUPLE(tstate, args, 6);
@@ -5033,6 +5243,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS6(PyThreadState *tstate, PyObject *called, PyOb
             PyObject *descr_method = descr_get(init_method, obj, called);
 
             if (unlikely(descr_method == NULL)) {
+                Py_DECREF(obj);
                 return NULL;
             }
 
@@ -5048,15 +5259,19 @@ PyObject *CALL_FUNCTION_WITH_ARGS6(PyThreadState *tstate, PyObject *called, PyOb
             Py_DECREF(init_method);
         }
         if (unlikely(result == NULL)) {
+            Py_DECREF(obj);
+            return NULL;
+        }
+
+        if (unlikely(result != Py_None)) {
+            Py_DECREF(obj);
+
+            SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("__init__() should return None, not '%s'", result);
+            Py_DECREF(result);
             return NULL;
         }
 
         Py_DECREF(result);
-
-        if (unlikely(result != Py_None)) {
-            SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("__init__() should return None, not '%s'", result);
-            return NULL;
-        }
 
         CHECK_OBJECT_X(obj);
 
@@ -5247,7 +5462,14 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS6(PyThreadState *tstate, PyObject *called, 
             SET_CURRENT_EXCEPTION_TYPE0_FORMAT1(PyExc_TypeError, "%s() takes exactly one argument (6 given)",
                                                 ((PyCFunctionObject *)called)->m_ml->ml_name);
             return NULL;
+#if PYTHON_VERSION < 0x360
         } else if (flags & METH_VARARGS) {
+#elif PYTHON_VERSION < 0x370
+        } else if (flags == METH_VARARGS || flags == (METH_VARARGS | METH_KEYWORDS) || flags == METH_FASTCALL) {
+#else
+        } else if (flags == METH_VARARGS || flags == (METH_VARARGS | METH_KEYWORDS) || flags == METH_FASTCALL ||
+                   flags == (METH_FASTCALL | METH_KEYWORDS)) {
+#endif
 #ifdef _NUITKA_FULL_COMPAT
             if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
                 return NULL;
@@ -5273,7 +5495,11 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS6(PyThreadState *tstate, PyObject *called, 
 #if PYTHON_VERSION < 0x370
                 result = (*method.as_function_fast)(self, (PyObject **)args, 6, NULL);
 #else
-                result = (*method.as_function_fast)(self, &pos_args, 6);
+                result = (*method.as_function_fast)(self, args, 6);
+#endif
+#if PYTHON_VERSION >= 0x370
+            } else if (flags == (METH_FASTCALL | METH_KEYWORDS)) {
+                result = (*method.as_function_fast_kw)(self, args, 6, NULL);
 #endif
             } else {
                 result = (*method.as_function)(self, pos_args);
@@ -5368,6 +5594,8 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS6(PyThreadState *tstate, PyObject *called, 
                         }
 
                         if (unlikely(init_method == NULL)) {
+                            Py_DECREF(obj);
+
                             if (!HAS_ERROR_OCCURRED(tstate)) {
                                 SET_CURRENT_EXCEPTION_TYPE0_VALUE0(tstate, PyExc_AttributeError,
                                                                    const_str_plain___init__);
@@ -5392,14 +5620,15 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS6(PyThreadState *tstate, PyObject *called, 
                             return NULL;
                         }
 
-                        Py_DECREF(result);
-
                         if (unlikely(result != Py_None)) {
                             Py_DECREF(obj);
 
                             SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("__init__() should return None, not '%s'", result);
+                            Py_DECREF(result);
                             return NULL;
                         }
+
+                        Py_DECREF(result);
                     } else {
 
                         if (unlikely(type->tp_init(obj, pos_args, NULL) < 0)) {
@@ -5445,6 +5674,7 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS6(PyThreadState *tstate, PyObject *called, 
             PyObject *descr_method = descr_get(init_method, obj, called);
 
             if (unlikely(descr_method == NULL)) {
+                Py_DECREF(obj);
                 return NULL;
             }
 
@@ -5460,15 +5690,19 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS6(PyThreadState *tstate, PyObject *called, 
             Py_DECREF(init_method);
         }
         if (unlikely(result == NULL)) {
+            Py_DECREF(obj);
+            return NULL;
+        }
+
+        if (unlikely(result != Py_None)) {
+            Py_DECREF(obj);
+
+            SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("__init__() should return None, not '%s'", result);
+            Py_DECREF(result);
             return NULL;
         }
 
         Py_DECREF(result);
-
-        if (unlikely(result != Py_None)) {
-            SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("__init__() should return None, not '%s'", result);
-            return NULL;
-        }
 
         CHECK_OBJECT_X(obj);
 
@@ -5656,7 +5890,14 @@ PyObject *CALL_FUNCTION_WITH_ARGS7(PyThreadState *tstate, PyObject *called, PyOb
             SET_CURRENT_EXCEPTION_TYPE0_FORMAT1(PyExc_TypeError, "%s() takes exactly one argument (7 given)",
                                                 ((PyCFunctionObject *)called)->m_ml->ml_name);
             return NULL;
+#if PYTHON_VERSION < 0x360
         } else if (flags & METH_VARARGS) {
+#elif PYTHON_VERSION < 0x370
+        } else if (flags == METH_VARARGS || flags == (METH_VARARGS | METH_KEYWORDS) || flags == METH_FASTCALL) {
+#else
+        } else if (flags == METH_VARARGS || flags == (METH_VARARGS | METH_KEYWORDS) || flags == METH_FASTCALL ||
+                   flags == (METH_FASTCALL | METH_KEYWORDS)) {
+#endif
 #ifdef _NUITKA_FULL_COMPAT
             if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
                 return NULL;
@@ -5686,9 +5927,11 @@ PyObject *CALL_FUNCTION_WITH_ARGS7(PyThreadState *tstate, PyObject *called, PyOb
 #if PYTHON_VERSION < 0x370
                 result = (*method.as_function_fast)(self, (PyObject **)args, 7, NULL);
 #else
-                PyObject *pos_args = MAKE_TUPLE(tstate, args, 7);
-                result = (*method.as_function_fast)(self, &pos_args, 7);
-                Py_DECREF(pos_args);
+                result = (*method.as_function_fast)(self, args, 7);
+#endif
+#if PYTHON_VERSION >= 0x370
+            } else if (flags == (METH_FASTCALL | METH_KEYWORDS)) {
+                result = (*method.as_function_fast_kw)(self, args, 7, NULL);
 #endif
             } else {
                 PyObject *pos_args = MAKE_TUPLE(tstate, args, 7);
@@ -5790,6 +6033,8 @@ PyObject *CALL_FUNCTION_WITH_ARGS7(PyThreadState *tstate, PyObject *called, PyOb
                         }
 
                         if (unlikely(init_method == NULL)) {
+                            Py_DECREF(obj);
+
                             if (!HAS_ERROR_OCCURRED(tstate)) {
                                 SET_CURRENT_EXCEPTION_TYPE0_VALUE0(tstate, PyExc_AttributeError,
                                                                    const_str_plain___init__);
@@ -5814,14 +6059,15 @@ PyObject *CALL_FUNCTION_WITH_ARGS7(PyThreadState *tstate, PyObject *called, PyOb
                             return NULL;
                         }
 
-                        Py_DECREF(result);
-
                         if (unlikely(result != Py_None)) {
                             Py_DECREF(obj);
 
                             SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("__init__() should return None, not '%s'", result);
+                            Py_DECREF(result);
                             return NULL;
                         }
+
+                        Py_DECREF(result);
                     } else {
                         if (pos_args == NULL) {
                             pos_args = MAKE_TUPLE(tstate, args, 7);
@@ -5873,6 +6119,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS7(PyThreadState *tstate, PyObject *called, PyOb
             PyObject *descr_method = descr_get(init_method, obj, called);
 
             if (unlikely(descr_method == NULL)) {
+                Py_DECREF(obj);
                 return NULL;
             }
 
@@ -5888,15 +6135,19 @@ PyObject *CALL_FUNCTION_WITH_ARGS7(PyThreadState *tstate, PyObject *called, PyOb
             Py_DECREF(init_method);
         }
         if (unlikely(result == NULL)) {
+            Py_DECREF(obj);
+            return NULL;
+        }
+
+        if (unlikely(result != Py_None)) {
+            Py_DECREF(obj);
+
+            SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("__init__() should return None, not '%s'", result);
+            Py_DECREF(result);
             return NULL;
         }
 
         Py_DECREF(result);
-
-        if (unlikely(result != Py_None)) {
-            SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("__init__() should return None, not '%s'", result);
-            return NULL;
-        }
 
         CHECK_OBJECT_X(obj);
 
@@ -6087,7 +6338,14 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS7(PyThreadState *tstate, PyObject *called, 
             SET_CURRENT_EXCEPTION_TYPE0_FORMAT1(PyExc_TypeError, "%s() takes exactly one argument (7 given)",
                                                 ((PyCFunctionObject *)called)->m_ml->ml_name);
             return NULL;
+#if PYTHON_VERSION < 0x360
         } else if (flags & METH_VARARGS) {
+#elif PYTHON_VERSION < 0x370
+        } else if (flags == METH_VARARGS || flags == (METH_VARARGS | METH_KEYWORDS) || flags == METH_FASTCALL) {
+#else
+        } else if (flags == METH_VARARGS || flags == (METH_VARARGS | METH_KEYWORDS) || flags == METH_FASTCALL ||
+                   flags == (METH_FASTCALL | METH_KEYWORDS)) {
+#endif
 #ifdef _NUITKA_FULL_COMPAT
             if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
                 return NULL;
@@ -6113,7 +6371,11 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS7(PyThreadState *tstate, PyObject *called, 
 #if PYTHON_VERSION < 0x370
                 result = (*method.as_function_fast)(self, (PyObject **)args, 7, NULL);
 #else
-                result = (*method.as_function_fast)(self, &pos_args, 7);
+                result = (*method.as_function_fast)(self, args, 7);
+#endif
+#if PYTHON_VERSION >= 0x370
+            } else if (flags == (METH_FASTCALL | METH_KEYWORDS)) {
+                result = (*method.as_function_fast_kw)(self, args, 7, NULL);
 #endif
             } else {
                 result = (*method.as_function)(self, pos_args);
@@ -6208,6 +6470,8 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS7(PyThreadState *tstate, PyObject *called, 
                         }
 
                         if (unlikely(init_method == NULL)) {
+                            Py_DECREF(obj);
+
                             if (!HAS_ERROR_OCCURRED(tstate)) {
                                 SET_CURRENT_EXCEPTION_TYPE0_VALUE0(tstate, PyExc_AttributeError,
                                                                    const_str_plain___init__);
@@ -6232,14 +6496,15 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS7(PyThreadState *tstate, PyObject *called, 
                             return NULL;
                         }
 
-                        Py_DECREF(result);
-
                         if (unlikely(result != Py_None)) {
                             Py_DECREF(obj);
 
                             SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("__init__() should return None, not '%s'", result);
+                            Py_DECREF(result);
                             return NULL;
                         }
+
+                        Py_DECREF(result);
                     } else {
 
                         if (unlikely(type->tp_init(obj, pos_args, NULL) < 0)) {
@@ -6285,6 +6550,7 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS7(PyThreadState *tstate, PyObject *called, 
             PyObject *descr_method = descr_get(init_method, obj, called);
 
             if (unlikely(descr_method == NULL)) {
+                Py_DECREF(obj);
                 return NULL;
             }
 
@@ -6300,15 +6566,19 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS7(PyThreadState *tstate, PyObject *called, 
             Py_DECREF(init_method);
         }
         if (unlikely(result == NULL)) {
+            Py_DECREF(obj);
+            return NULL;
+        }
+
+        if (unlikely(result != Py_None)) {
+            Py_DECREF(obj);
+
+            SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("__init__() should return None, not '%s'", result);
+            Py_DECREF(result);
             return NULL;
         }
 
         Py_DECREF(result);
-
-        if (unlikely(result != Py_None)) {
-            SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("__init__() should return None, not '%s'", result);
-            return NULL;
-        }
 
         CHECK_OBJECT_X(obj);
 
@@ -6496,7 +6766,14 @@ PyObject *CALL_FUNCTION_WITH_ARGS8(PyThreadState *tstate, PyObject *called, PyOb
             SET_CURRENT_EXCEPTION_TYPE0_FORMAT1(PyExc_TypeError, "%s() takes exactly one argument (8 given)",
                                                 ((PyCFunctionObject *)called)->m_ml->ml_name);
             return NULL;
+#if PYTHON_VERSION < 0x360
         } else if (flags & METH_VARARGS) {
+#elif PYTHON_VERSION < 0x370
+        } else if (flags == METH_VARARGS || flags == (METH_VARARGS | METH_KEYWORDS) || flags == METH_FASTCALL) {
+#else
+        } else if (flags == METH_VARARGS || flags == (METH_VARARGS | METH_KEYWORDS) || flags == METH_FASTCALL ||
+                   flags == (METH_FASTCALL | METH_KEYWORDS)) {
+#endif
 #ifdef _NUITKA_FULL_COMPAT
             if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
                 return NULL;
@@ -6526,9 +6803,11 @@ PyObject *CALL_FUNCTION_WITH_ARGS8(PyThreadState *tstate, PyObject *called, PyOb
 #if PYTHON_VERSION < 0x370
                 result = (*method.as_function_fast)(self, (PyObject **)args, 8, NULL);
 #else
-                PyObject *pos_args = MAKE_TUPLE(tstate, args, 8);
-                result = (*method.as_function_fast)(self, &pos_args, 8);
-                Py_DECREF(pos_args);
+                result = (*method.as_function_fast)(self, args, 8);
+#endif
+#if PYTHON_VERSION >= 0x370
+            } else if (flags == (METH_FASTCALL | METH_KEYWORDS)) {
+                result = (*method.as_function_fast_kw)(self, args, 8, NULL);
 #endif
             } else {
                 PyObject *pos_args = MAKE_TUPLE(tstate, args, 8);
@@ -6630,6 +6909,8 @@ PyObject *CALL_FUNCTION_WITH_ARGS8(PyThreadState *tstate, PyObject *called, PyOb
                         }
 
                         if (unlikely(init_method == NULL)) {
+                            Py_DECREF(obj);
+
                             if (!HAS_ERROR_OCCURRED(tstate)) {
                                 SET_CURRENT_EXCEPTION_TYPE0_VALUE0(tstate, PyExc_AttributeError,
                                                                    const_str_plain___init__);
@@ -6654,14 +6935,15 @@ PyObject *CALL_FUNCTION_WITH_ARGS8(PyThreadState *tstate, PyObject *called, PyOb
                             return NULL;
                         }
 
-                        Py_DECREF(result);
-
                         if (unlikely(result != Py_None)) {
                             Py_DECREF(obj);
 
                             SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("__init__() should return None, not '%s'", result);
+                            Py_DECREF(result);
                             return NULL;
                         }
+
+                        Py_DECREF(result);
                     } else {
                         if (pos_args == NULL) {
                             pos_args = MAKE_TUPLE(tstate, args, 8);
@@ -6713,6 +6995,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS8(PyThreadState *tstate, PyObject *called, PyOb
             PyObject *descr_method = descr_get(init_method, obj, called);
 
             if (unlikely(descr_method == NULL)) {
+                Py_DECREF(obj);
                 return NULL;
             }
 
@@ -6728,15 +7011,19 @@ PyObject *CALL_FUNCTION_WITH_ARGS8(PyThreadState *tstate, PyObject *called, PyOb
             Py_DECREF(init_method);
         }
         if (unlikely(result == NULL)) {
+            Py_DECREF(obj);
+            return NULL;
+        }
+
+        if (unlikely(result != Py_None)) {
+            Py_DECREF(obj);
+
+            SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("__init__() should return None, not '%s'", result);
+            Py_DECREF(result);
             return NULL;
         }
 
         Py_DECREF(result);
-
-        if (unlikely(result != Py_None)) {
-            SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("__init__() should return None, not '%s'", result);
-            return NULL;
-        }
 
         CHECK_OBJECT_X(obj);
 
@@ -6927,7 +7214,14 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS8(PyThreadState *tstate, PyObject *called, 
             SET_CURRENT_EXCEPTION_TYPE0_FORMAT1(PyExc_TypeError, "%s() takes exactly one argument (8 given)",
                                                 ((PyCFunctionObject *)called)->m_ml->ml_name);
             return NULL;
+#if PYTHON_VERSION < 0x360
         } else if (flags & METH_VARARGS) {
+#elif PYTHON_VERSION < 0x370
+        } else if (flags == METH_VARARGS || flags == (METH_VARARGS | METH_KEYWORDS) || flags == METH_FASTCALL) {
+#else
+        } else if (flags == METH_VARARGS || flags == (METH_VARARGS | METH_KEYWORDS) || flags == METH_FASTCALL ||
+                   flags == (METH_FASTCALL | METH_KEYWORDS)) {
+#endif
 #ifdef _NUITKA_FULL_COMPAT
             if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
                 return NULL;
@@ -6953,7 +7247,11 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS8(PyThreadState *tstate, PyObject *called, 
 #if PYTHON_VERSION < 0x370
                 result = (*method.as_function_fast)(self, (PyObject **)args, 8, NULL);
 #else
-                result = (*method.as_function_fast)(self, &pos_args, 8);
+                result = (*method.as_function_fast)(self, args, 8);
+#endif
+#if PYTHON_VERSION >= 0x370
+            } else if (flags == (METH_FASTCALL | METH_KEYWORDS)) {
+                result = (*method.as_function_fast_kw)(self, args, 8, NULL);
 #endif
             } else {
                 result = (*method.as_function)(self, pos_args);
@@ -7048,6 +7346,8 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS8(PyThreadState *tstate, PyObject *called, 
                         }
 
                         if (unlikely(init_method == NULL)) {
+                            Py_DECREF(obj);
+
                             if (!HAS_ERROR_OCCURRED(tstate)) {
                                 SET_CURRENT_EXCEPTION_TYPE0_VALUE0(tstate, PyExc_AttributeError,
                                                                    const_str_plain___init__);
@@ -7072,14 +7372,15 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS8(PyThreadState *tstate, PyObject *called, 
                             return NULL;
                         }
 
-                        Py_DECREF(result);
-
                         if (unlikely(result != Py_None)) {
                             Py_DECREF(obj);
 
                             SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("__init__() should return None, not '%s'", result);
+                            Py_DECREF(result);
                             return NULL;
                         }
+
+                        Py_DECREF(result);
                     } else {
 
                         if (unlikely(type->tp_init(obj, pos_args, NULL) < 0)) {
@@ -7125,6 +7426,7 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS8(PyThreadState *tstate, PyObject *called, 
             PyObject *descr_method = descr_get(init_method, obj, called);
 
             if (unlikely(descr_method == NULL)) {
+                Py_DECREF(obj);
                 return NULL;
             }
 
@@ -7140,15 +7442,19 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS8(PyThreadState *tstate, PyObject *called, 
             Py_DECREF(init_method);
         }
         if (unlikely(result == NULL)) {
+            Py_DECREF(obj);
+            return NULL;
+        }
+
+        if (unlikely(result != Py_None)) {
+            Py_DECREF(obj);
+
+            SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("__init__() should return None, not '%s'", result);
+            Py_DECREF(result);
             return NULL;
         }
 
         Py_DECREF(result);
-
-        if (unlikely(result != Py_None)) {
-            SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("__init__() should return None, not '%s'", result);
-            return NULL;
-        }
 
         CHECK_OBJECT_X(obj);
 
@@ -7336,7 +7642,14 @@ PyObject *CALL_FUNCTION_WITH_ARGS9(PyThreadState *tstate, PyObject *called, PyOb
             SET_CURRENT_EXCEPTION_TYPE0_FORMAT1(PyExc_TypeError, "%s() takes exactly one argument (9 given)",
                                                 ((PyCFunctionObject *)called)->m_ml->ml_name);
             return NULL;
+#if PYTHON_VERSION < 0x360
         } else if (flags & METH_VARARGS) {
+#elif PYTHON_VERSION < 0x370
+        } else if (flags == METH_VARARGS || flags == (METH_VARARGS | METH_KEYWORDS) || flags == METH_FASTCALL) {
+#else
+        } else if (flags == METH_VARARGS || flags == (METH_VARARGS | METH_KEYWORDS) || flags == METH_FASTCALL ||
+                   flags == (METH_FASTCALL | METH_KEYWORDS)) {
+#endif
 #ifdef _NUITKA_FULL_COMPAT
             if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
                 return NULL;
@@ -7366,9 +7679,11 @@ PyObject *CALL_FUNCTION_WITH_ARGS9(PyThreadState *tstate, PyObject *called, PyOb
 #if PYTHON_VERSION < 0x370
                 result = (*method.as_function_fast)(self, (PyObject **)args, 9, NULL);
 #else
-                PyObject *pos_args = MAKE_TUPLE(tstate, args, 9);
-                result = (*method.as_function_fast)(self, &pos_args, 9);
-                Py_DECREF(pos_args);
+                result = (*method.as_function_fast)(self, args, 9);
+#endif
+#if PYTHON_VERSION >= 0x370
+            } else if (flags == (METH_FASTCALL | METH_KEYWORDS)) {
+                result = (*method.as_function_fast_kw)(self, args, 9, NULL);
 #endif
             } else {
                 PyObject *pos_args = MAKE_TUPLE(tstate, args, 9);
@@ -7470,6 +7785,8 @@ PyObject *CALL_FUNCTION_WITH_ARGS9(PyThreadState *tstate, PyObject *called, PyOb
                         }
 
                         if (unlikely(init_method == NULL)) {
+                            Py_DECREF(obj);
+
                             if (!HAS_ERROR_OCCURRED(tstate)) {
                                 SET_CURRENT_EXCEPTION_TYPE0_VALUE0(tstate, PyExc_AttributeError,
                                                                    const_str_plain___init__);
@@ -7494,14 +7811,15 @@ PyObject *CALL_FUNCTION_WITH_ARGS9(PyThreadState *tstate, PyObject *called, PyOb
                             return NULL;
                         }
 
-                        Py_DECREF(result);
-
                         if (unlikely(result != Py_None)) {
                             Py_DECREF(obj);
 
                             SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("__init__() should return None, not '%s'", result);
+                            Py_DECREF(result);
                             return NULL;
                         }
+
+                        Py_DECREF(result);
                     } else {
                         if (pos_args == NULL) {
                             pos_args = MAKE_TUPLE(tstate, args, 9);
@@ -7553,6 +7871,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS9(PyThreadState *tstate, PyObject *called, PyOb
             PyObject *descr_method = descr_get(init_method, obj, called);
 
             if (unlikely(descr_method == NULL)) {
+                Py_DECREF(obj);
                 return NULL;
             }
 
@@ -7568,15 +7887,19 @@ PyObject *CALL_FUNCTION_WITH_ARGS9(PyThreadState *tstate, PyObject *called, PyOb
             Py_DECREF(init_method);
         }
         if (unlikely(result == NULL)) {
+            Py_DECREF(obj);
+            return NULL;
+        }
+
+        if (unlikely(result != Py_None)) {
+            Py_DECREF(obj);
+
+            SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("__init__() should return None, not '%s'", result);
+            Py_DECREF(result);
             return NULL;
         }
 
         Py_DECREF(result);
-
-        if (unlikely(result != Py_None)) {
-            SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("__init__() should return None, not '%s'", result);
-            return NULL;
-        }
 
         CHECK_OBJECT_X(obj);
 
@@ -7767,7 +8090,14 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS9(PyThreadState *tstate, PyObject *called, 
             SET_CURRENT_EXCEPTION_TYPE0_FORMAT1(PyExc_TypeError, "%s() takes exactly one argument (9 given)",
                                                 ((PyCFunctionObject *)called)->m_ml->ml_name);
             return NULL;
+#if PYTHON_VERSION < 0x360
         } else if (flags & METH_VARARGS) {
+#elif PYTHON_VERSION < 0x370
+        } else if (flags == METH_VARARGS || flags == (METH_VARARGS | METH_KEYWORDS) || flags == METH_FASTCALL) {
+#else
+        } else if (flags == METH_VARARGS || flags == (METH_VARARGS | METH_KEYWORDS) || flags == METH_FASTCALL ||
+                   flags == (METH_FASTCALL | METH_KEYWORDS)) {
+#endif
 #ifdef _NUITKA_FULL_COMPAT
             if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
                 return NULL;
@@ -7793,7 +8123,11 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS9(PyThreadState *tstate, PyObject *called, 
 #if PYTHON_VERSION < 0x370
                 result = (*method.as_function_fast)(self, (PyObject **)args, 9, NULL);
 #else
-                result = (*method.as_function_fast)(self, &pos_args, 9);
+                result = (*method.as_function_fast)(self, args, 9);
+#endif
+#if PYTHON_VERSION >= 0x370
+            } else if (flags == (METH_FASTCALL | METH_KEYWORDS)) {
+                result = (*method.as_function_fast_kw)(self, args, 9, NULL);
 #endif
             } else {
                 result = (*method.as_function)(self, pos_args);
@@ -7888,6 +8222,8 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS9(PyThreadState *tstate, PyObject *called, 
                         }
 
                         if (unlikely(init_method == NULL)) {
+                            Py_DECREF(obj);
+
                             if (!HAS_ERROR_OCCURRED(tstate)) {
                                 SET_CURRENT_EXCEPTION_TYPE0_VALUE0(tstate, PyExc_AttributeError,
                                                                    const_str_plain___init__);
@@ -7912,14 +8248,15 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS9(PyThreadState *tstate, PyObject *called, 
                             return NULL;
                         }
 
-                        Py_DECREF(result);
-
                         if (unlikely(result != Py_None)) {
                             Py_DECREF(obj);
 
                             SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("__init__() should return None, not '%s'", result);
+                            Py_DECREF(result);
                             return NULL;
                         }
+
+                        Py_DECREF(result);
                     } else {
 
                         if (unlikely(type->tp_init(obj, pos_args, NULL) < 0)) {
@@ -7965,6 +8302,7 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS9(PyThreadState *tstate, PyObject *called, 
             PyObject *descr_method = descr_get(init_method, obj, called);
 
             if (unlikely(descr_method == NULL)) {
+                Py_DECREF(obj);
                 return NULL;
             }
 
@@ -7980,15 +8318,19 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS9(PyThreadState *tstate, PyObject *called, 
             Py_DECREF(init_method);
         }
         if (unlikely(result == NULL)) {
+            Py_DECREF(obj);
+            return NULL;
+        }
+
+        if (unlikely(result != Py_None)) {
+            Py_DECREF(obj);
+
+            SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("__init__() should return None, not '%s'", result);
+            Py_DECREF(result);
             return NULL;
         }
 
         Py_DECREF(result);
-
-        if (unlikely(result != Py_None)) {
-            SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("__init__() should return None, not '%s'", result);
-            return NULL;
-        }
 
         CHECK_OBJECT_X(obj);
 
@@ -8176,7 +8518,14 @@ PyObject *CALL_FUNCTION_WITH_ARGS10(PyThreadState *tstate, PyObject *called, PyO
             SET_CURRENT_EXCEPTION_TYPE0_FORMAT1(PyExc_TypeError, "%s() takes exactly one argument (10 given)",
                                                 ((PyCFunctionObject *)called)->m_ml->ml_name);
             return NULL;
+#if PYTHON_VERSION < 0x360
         } else if (flags & METH_VARARGS) {
+#elif PYTHON_VERSION < 0x370
+        } else if (flags == METH_VARARGS || flags == (METH_VARARGS | METH_KEYWORDS) || flags == METH_FASTCALL) {
+#else
+        } else if (flags == METH_VARARGS || flags == (METH_VARARGS | METH_KEYWORDS) || flags == METH_FASTCALL ||
+                   flags == (METH_FASTCALL | METH_KEYWORDS)) {
+#endif
 #ifdef _NUITKA_FULL_COMPAT
             if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
                 return NULL;
@@ -8206,9 +8555,11 @@ PyObject *CALL_FUNCTION_WITH_ARGS10(PyThreadState *tstate, PyObject *called, PyO
 #if PYTHON_VERSION < 0x370
                 result = (*method.as_function_fast)(self, (PyObject **)args, 10, NULL);
 #else
-                PyObject *pos_args = MAKE_TUPLE(tstate, args, 10);
-                result = (*method.as_function_fast)(self, &pos_args, 10);
-                Py_DECREF(pos_args);
+                result = (*method.as_function_fast)(self, args, 10);
+#endif
+#if PYTHON_VERSION >= 0x370
+            } else if (flags == (METH_FASTCALL | METH_KEYWORDS)) {
+                result = (*method.as_function_fast_kw)(self, args, 10, NULL);
 #endif
             } else {
                 PyObject *pos_args = MAKE_TUPLE(tstate, args, 10);
@@ -8310,6 +8661,8 @@ PyObject *CALL_FUNCTION_WITH_ARGS10(PyThreadState *tstate, PyObject *called, PyO
                         }
 
                         if (unlikely(init_method == NULL)) {
+                            Py_DECREF(obj);
+
                             if (!HAS_ERROR_OCCURRED(tstate)) {
                                 SET_CURRENT_EXCEPTION_TYPE0_VALUE0(tstate, PyExc_AttributeError,
                                                                    const_str_plain___init__);
@@ -8334,14 +8687,15 @@ PyObject *CALL_FUNCTION_WITH_ARGS10(PyThreadState *tstate, PyObject *called, PyO
                             return NULL;
                         }
 
-                        Py_DECREF(result);
-
                         if (unlikely(result != Py_None)) {
                             Py_DECREF(obj);
 
                             SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("__init__() should return None, not '%s'", result);
+                            Py_DECREF(result);
                             return NULL;
                         }
+
+                        Py_DECREF(result);
                     } else {
                         if (pos_args == NULL) {
                             pos_args = MAKE_TUPLE(tstate, args, 10);
@@ -8393,6 +8747,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS10(PyThreadState *tstate, PyObject *called, PyO
             PyObject *descr_method = descr_get(init_method, obj, called);
 
             if (unlikely(descr_method == NULL)) {
+                Py_DECREF(obj);
                 return NULL;
             }
 
@@ -8408,15 +8763,19 @@ PyObject *CALL_FUNCTION_WITH_ARGS10(PyThreadState *tstate, PyObject *called, PyO
             Py_DECREF(init_method);
         }
         if (unlikely(result == NULL)) {
+            Py_DECREF(obj);
+            return NULL;
+        }
+
+        if (unlikely(result != Py_None)) {
+            Py_DECREF(obj);
+
+            SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("__init__() should return None, not '%s'", result);
+            Py_DECREF(result);
             return NULL;
         }
 
         Py_DECREF(result);
-
-        if (unlikely(result != Py_None)) {
-            SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("__init__() should return None, not '%s'", result);
-            return NULL;
-        }
 
         CHECK_OBJECT_X(obj);
 
@@ -8607,7 +8966,14 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS10(PyThreadState *tstate, PyObject *called,
             SET_CURRENT_EXCEPTION_TYPE0_FORMAT1(PyExc_TypeError, "%s() takes exactly one argument (10 given)",
                                                 ((PyCFunctionObject *)called)->m_ml->ml_name);
             return NULL;
+#if PYTHON_VERSION < 0x360
         } else if (flags & METH_VARARGS) {
+#elif PYTHON_VERSION < 0x370
+        } else if (flags == METH_VARARGS || flags == (METH_VARARGS | METH_KEYWORDS) || flags == METH_FASTCALL) {
+#else
+        } else if (flags == METH_VARARGS || flags == (METH_VARARGS | METH_KEYWORDS) || flags == METH_FASTCALL ||
+                   flags == (METH_FASTCALL | METH_KEYWORDS)) {
+#endif
 #ifdef _NUITKA_FULL_COMPAT
             if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
                 return NULL;
@@ -8633,7 +8999,11 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS10(PyThreadState *tstate, PyObject *called,
 #if PYTHON_VERSION < 0x370
                 result = (*method.as_function_fast)(self, (PyObject **)args, 10, NULL);
 #else
-                result = (*method.as_function_fast)(self, &pos_args, 10);
+                result = (*method.as_function_fast)(self, args, 10);
+#endif
+#if PYTHON_VERSION >= 0x370
+            } else if (flags == (METH_FASTCALL | METH_KEYWORDS)) {
+                result = (*method.as_function_fast_kw)(self, args, 10, NULL);
 #endif
             } else {
                 result = (*method.as_function)(self, pos_args);
@@ -8728,6 +9098,8 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS10(PyThreadState *tstate, PyObject *called,
                         }
 
                         if (unlikely(init_method == NULL)) {
+                            Py_DECREF(obj);
+
                             if (!HAS_ERROR_OCCURRED(tstate)) {
                                 SET_CURRENT_EXCEPTION_TYPE0_VALUE0(tstate, PyExc_AttributeError,
                                                                    const_str_plain___init__);
@@ -8752,14 +9124,15 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS10(PyThreadState *tstate, PyObject *called,
                             return NULL;
                         }
 
-                        Py_DECREF(result);
-
                         if (unlikely(result != Py_None)) {
                             Py_DECREF(obj);
 
                             SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("__init__() should return None, not '%s'", result);
+                            Py_DECREF(result);
                             return NULL;
                         }
+
+                        Py_DECREF(result);
                     } else {
 
                         if (unlikely(type->tp_init(obj, pos_args, NULL) < 0)) {
@@ -8805,6 +9178,7 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS10(PyThreadState *tstate, PyObject *called,
             PyObject *descr_method = descr_get(init_method, obj, called);
 
             if (unlikely(descr_method == NULL)) {
+                Py_DECREF(obj);
                 return NULL;
             }
 
@@ -8820,15 +9194,19 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS10(PyThreadState *tstate, PyObject *called,
             Py_DECREF(init_method);
         }
         if (unlikely(result == NULL)) {
+            Py_DECREF(obj);
+            return NULL;
+        }
+
+        if (unlikely(result != Py_None)) {
+            Py_DECREF(obj);
+
+            SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("__init__() should return None, not '%s'", result);
+            Py_DECREF(result);
             return NULL;
         }
 
         Py_DECREF(result);
-
-        if (unlikely(result != Py_None)) {
-            SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("__init__() should return None, not '%s'", result);
-            return NULL;
-        }
 
         CHECK_OBJECT_X(obj);
 
@@ -9079,6 +9457,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS1_KW_SPLIT(PyThreadState *tstate, PyObject *cal
 PyObject *CALL_FUNCTION_WITH_POS_ARGS1_KW_SPLIT(PyThreadState *tstate, PyObject *called, PyObject *pos_args,
                                                 PyObject *const *kw_values, PyObject *kw_names) {
     assert(PyTuple_CheckExact(pos_args));
+    assert(PyTuple_GET_SIZE(pos_args) == 1);
     PyObject *const *args = &PyTuple_GET_ITEM(pos_args, 0);
     CHECK_OBJECTS(args, 1);
     CHECK_OBJECT(kw_names);
@@ -9307,6 +9686,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS2_KW_SPLIT(PyThreadState *tstate, PyObject *cal
 PyObject *CALL_FUNCTION_WITH_POS_ARGS2_KW_SPLIT(PyThreadState *tstate, PyObject *called, PyObject *pos_args,
                                                 PyObject *const *kw_values, PyObject *kw_names) {
     assert(PyTuple_CheckExact(pos_args));
+    assert(PyTuple_GET_SIZE(pos_args) == 2);
     PyObject *const *args = &PyTuple_GET_ITEM(pos_args, 0);
     CHECK_OBJECTS(args, 2);
     CHECK_OBJECT(kw_names);
@@ -9535,6 +9915,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS3_KW_SPLIT(PyThreadState *tstate, PyObject *cal
 PyObject *CALL_FUNCTION_WITH_POS_ARGS3_KW_SPLIT(PyThreadState *tstate, PyObject *called, PyObject *pos_args,
                                                 PyObject *const *kw_values, PyObject *kw_names) {
     assert(PyTuple_CheckExact(pos_args));
+    assert(PyTuple_GET_SIZE(pos_args) == 3);
     PyObject *const *args = &PyTuple_GET_ITEM(pos_args, 0);
     CHECK_OBJECTS(args, 3);
     CHECK_OBJECT(kw_names);
@@ -9763,6 +10144,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS4_KW_SPLIT(PyThreadState *tstate, PyObject *cal
 PyObject *CALL_FUNCTION_WITH_POS_ARGS4_KW_SPLIT(PyThreadState *tstate, PyObject *called, PyObject *pos_args,
                                                 PyObject *const *kw_values, PyObject *kw_names) {
     assert(PyTuple_CheckExact(pos_args));
+    assert(PyTuple_GET_SIZE(pos_args) == 4);
     PyObject *const *args = &PyTuple_GET_ITEM(pos_args, 0);
     CHECK_OBJECTS(args, 4);
     CHECK_OBJECT(kw_names);
@@ -9991,6 +10373,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS5_KW_SPLIT(PyThreadState *tstate, PyObject *cal
 PyObject *CALL_FUNCTION_WITH_POS_ARGS5_KW_SPLIT(PyThreadState *tstate, PyObject *called, PyObject *pos_args,
                                                 PyObject *const *kw_values, PyObject *kw_names) {
     assert(PyTuple_CheckExact(pos_args));
+    assert(PyTuple_GET_SIZE(pos_args) == 5);
     PyObject *const *args = &PyTuple_GET_ITEM(pos_args, 0);
     CHECK_OBJECTS(args, 5);
     CHECK_OBJECT(kw_names);
@@ -10219,6 +10602,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS6_KW_SPLIT(PyThreadState *tstate, PyObject *cal
 PyObject *CALL_FUNCTION_WITH_POS_ARGS6_KW_SPLIT(PyThreadState *tstate, PyObject *called, PyObject *pos_args,
                                                 PyObject *const *kw_values, PyObject *kw_names) {
     assert(PyTuple_CheckExact(pos_args));
+    assert(PyTuple_GET_SIZE(pos_args) == 6);
     PyObject *const *args = &PyTuple_GET_ITEM(pos_args, 0);
     CHECK_OBJECTS(args, 6);
     CHECK_OBJECT(kw_names);
@@ -10447,6 +10831,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS7_KW_SPLIT(PyThreadState *tstate, PyObject *cal
 PyObject *CALL_FUNCTION_WITH_POS_ARGS7_KW_SPLIT(PyThreadState *tstate, PyObject *called, PyObject *pos_args,
                                                 PyObject *const *kw_values, PyObject *kw_names) {
     assert(PyTuple_CheckExact(pos_args));
+    assert(PyTuple_GET_SIZE(pos_args) == 7);
     PyObject *const *args = &PyTuple_GET_ITEM(pos_args, 0);
     CHECK_OBJECTS(args, 7);
     CHECK_OBJECT(kw_names);
@@ -10675,6 +11060,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS8_KW_SPLIT(PyThreadState *tstate, PyObject *cal
 PyObject *CALL_FUNCTION_WITH_POS_ARGS8_KW_SPLIT(PyThreadState *tstate, PyObject *called, PyObject *pos_args,
                                                 PyObject *const *kw_values, PyObject *kw_names) {
     assert(PyTuple_CheckExact(pos_args));
+    assert(PyTuple_GET_SIZE(pos_args) == 8);
     PyObject *const *args = &PyTuple_GET_ITEM(pos_args, 0);
     CHECK_OBJECTS(args, 8);
     CHECK_OBJECT(kw_names);
@@ -10903,6 +11289,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS9_KW_SPLIT(PyThreadState *tstate, PyObject *cal
 PyObject *CALL_FUNCTION_WITH_POS_ARGS9_KW_SPLIT(PyThreadState *tstate, PyObject *called, PyObject *pos_args,
                                                 PyObject *const *kw_values, PyObject *kw_names) {
     assert(PyTuple_CheckExact(pos_args));
+    assert(PyTuple_GET_SIZE(pos_args) == 9);
     PyObject *const *args = &PyTuple_GET_ITEM(pos_args, 0);
     CHECK_OBJECTS(args, 9);
     CHECK_OBJECT(kw_names);
@@ -11131,6 +11518,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS10_KW_SPLIT(PyThreadState *tstate, PyObject *ca
 PyObject *CALL_FUNCTION_WITH_POS_ARGS10_KW_SPLIT(PyThreadState *tstate, PyObject *called, PyObject *pos_args,
                                                  PyObject *const *kw_values, PyObject *kw_names) {
     assert(PyTuple_CheckExact(pos_args));
+    assert(PyTuple_GET_SIZE(pos_args) == 10);
     PyObject *const *args = &PyTuple_GET_ITEM(pos_args, 0);
     CHECK_OBJECTS(args, 10);
     CHECK_OBJECT(kw_names);
@@ -11238,11 +11626,18 @@ PyObject *CALL_METHODDESCR_WITH_SINGLE_ARG(PyThreadState *tstate, PyObject *call
 #else
         return result;
 #endif
-    } else if ((flags & METH_O)) {
-        SET_CURRENT_EXCEPTION_TYPE0_FORMAT1(PyExc_TypeError, "%s() takes exactly one argument (1 given)",
+    } else if (unlikely(flags & METH_O)) {
+        SET_CURRENT_EXCEPTION_TYPE0_FORMAT1(PyExc_TypeError, "%s() takes exactly one argument (0 given)",
                                             method_def->ml_name);
         return NULL;
+#if PYTHON_VERSION < 0x360
     } else if (flags & METH_VARARGS) {
+#elif PYTHON_VERSION < 0x370
+    } else if (flags == METH_VARARGS || flags == (METH_VARARGS | METH_KEYWORDS) || flags == METH_FASTCALL) {
+#else
+    } else if (flags == METH_VARARGS || flags == (METH_VARARGS | METH_KEYWORDS) || flags == METH_FASTCALL ||
+               flags == (METH_FASTCALL | METH_KEYWORDS)) {
+#endif
         Nuitka_PyCFunctionUnion method;
         method.as_function = method_def->ml_meth;
         PyObject *self = args[0];
@@ -11260,9 +11655,13 @@ PyObject *CALL_METHODDESCR_WITH_SINGLE_ARG(PyThreadState *tstate, PyObject *call
             result = (*method.as_function_kw)(self, const_tuple_empty, NULL);
         } else if (flags == METH_FASTCALL) {
 #if PYTHON_VERSION < 0x370
-            result = (*method.as_function_fast)(self, (PyObject **)args + 1, 0, NULL);
+            result = (*method.as_function_fast)(self, NULL, 0, NULL);
 #else
-            result = (*method.as_function_fast)(self, &const_tuple_empty, 1);
+            result = (*method.as_function_fast)(self, NULL, 0);
+#endif
+#if PYTHON_VERSION >= 0x370
+        } else if (flags == (METH_FASTCALL | METH_KEYWORDS)) {
+            result = (*method.as_function_fast_kw)(self, NULL, 0, NULL);
 #endif
         } else {
             result = (*method.as_function)(self, const_tuple_empty);
@@ -11306,17 +11705,9 @@ PyObject *CALL_METHODDESCR_WITH_ARGS2(PyThreadState *tstate, PyObject *called, P
     int flags = method_def->ml_flags & ~(METH_CLASS | METH_STATIC | METH_COEXIST);
 
     if (unlikely(flags & METH_NOARGS)) {
-        PyCFunction method = method_def->ml_meth;
-        PyObject *self = args[0];
-
-        PyObject *result = (*method)(self, NULL);
-
-#ifndef __NUITKA_NO_ASSERT__
-        return Nuitka_CheckFunctionResult(tstate, called, result);
-#else
-        return result;
-#endif
-    } else if (unlikely(flags & METH_O)) {
+        SET_CURRENT_EXCEPTION_TYPE0_FORMAT1(PyExc_TypeError, "%s() takes no arguments (1 given)", method_def->ml_name);
+        return NULL;
+    } else if ((flags & METH_O)) {
         PyCFunction method = method_def->ml_meth;
         PyObject *self = args[0];
 
@@ -11327,7 +11718,14 @@ PyObject *CALL_METHODDESCR_WITH_ARGS2(PyThreadState *tstate, PyObject *called, P
 #else
         return result;
 #endif
+#if PYTHON_VERSION < 0x360
     } else if (flags & METH_VARARGS) {
+#elif PYTHON_VERSION < 0x370
+    } else if (flags == METH_VARARGS || flags == (METH_VARARGS | METH_KEYWORDS) || flags == METH_FASTCALL) {
+#else
+    } else if (flags == METH_VARARGS || flags == (METH_VARARGS | METH_KEYWORDS) || flags == METH_FASTCALL ||
+               flags == (METH_FASTCALL | METH_KEYWORDS)) {
+#endif
         Nuitka_PyCFunctionUnion method;
         method.as_function = method_def->ml_meth;
         PyObject *self = args[0];
@@ -11353,9 +11751,11 @@ PyObject *CALL_METHODDESCR_WITH_ARGS2(PyThreadState *tstate, PyObject *called, P
 #if PYTHON_VERSION < 0x370
             result = (*method.as_function_fast)(self, (PyObject **)args + 1, 1, NULL);
 #else
-            PyObject *pos_args = MAKE_TUPLE(tstate, args + 1, 1);
-            result = (*method.as_function_fast)(self, &pos_args, 2);
-            Py_DECREF(pos_args);
+            result = (*method.as_function_fast)(self, args + 1, 1);
+#endif
+#if PYTHON_VERSION >= 0x370
+        } else if (flags == (METH_FASTCALL | METH_KEYWORDS)) {
+            result = (*method.as_function_fast_kw)(self, args + 1, 1, NULL);
 #endif
         } else {
             PyObject *pos_args = MAKE_TUPLE(tstate, args + 1, 1);
@@ -11401,21 +11801,20 @@ PyObject *CALL_METHODDESCR_WITH_ARGS3(PyThreadState *tstate, PyObject *called, P
     int flags = method_def->ml_flags & ~(METH_CLASS | METH_STATIC | METH_COEXIST);
 
     if (unlikely(flags & METH_NOARGS)) {
-        PyCFunction method = method_def->ml_meth;
-        PyObject *self = args[0];
-
-        PyObject *result = (*method)(self, NULL);
-
-#ifndef __NUITKA_NO_ASSERT__
-        return Nuitka_CheckFunctionResult(tstate, called, result);
-#else
-        return result;
-#endif
+        SET_CURRENT_EXCEPTION_TYPE0_FORMAT1(PyExc_TypeError, "%s() takes no arguments (2 given)", method_def->ml_name);
+        return NULL;
     } else if (unlikely(flags & METH_O)) {
-        SET_CURRENT_EXCEPTION_TYPE0_FORMAT1(PyExc_TypeError, "%s() takes exactly one argument (3 given)",
+        SET_CURRENT_EXCEPTION_TYPE0_FORMAT1(PyExc_TypeError, "%s() takes exactly one argument (2 given)",
                                             method_def->ml_name);
         return NULL;
+#if PYTHON_VERSION < 0x360
     } else if (flags & METH_VARARGS) {
+#elif PYTHON_VERSION < 0x370
+    } else if (flags == METH_VARARGS || flags == (METH_VARARGS | METH_KEYWORDS) || flags == METH_FASTCALL) {
+#else
+    } else if (flags == METH_VARARGS || flags == (METH_VARARGS | METH_KEYWORDS) || flags == METH_FASTCALL ||
+               flags == (METH_FASTCALL | METH_KEYWORDS)) {
+#endif
         Nuitka_PyCFunctionUnion method;
         method.as_function = method_def->ml_meth;
         PyObject *self = args[0];
@@ -11441,9 +11840,11 @@ PyObject *CALL_METHODDESCR_WITH_ARGS3(PyThreadState *tstate, PyObject *called, P
 #if PYTHON_VERSION < 0x370
             result = (*method.as_function_fast)(self, (PyObject **)args + 1, 2, NULL);
 #else
-            PyObject *pos_args = MAKE_TUPLE(tstate, args + 1, 2);
-            result = (*method.as_function_fast)(self, &pos_args, 3);
-            Py_DECREF(pos_args);
+            result = (*method.as_function_fast)(self, args + 1, 2);
+#endif
+#if PYTHON_VERSION >= 0x370
+        } else if (flags == (METH_FASTCALL | METH_KEYWORDS)) {
+            result = (*method.as_function_fast_kw)(self, args + 1, 2, NULL);
 #endif
         } else {
             PyObject *pos_args = MAKE_TUPLE(tstate, args + 1, 2);
@@ -11489,21 +11890,20 @@ PyObject *CALL_METHODDESCR_WITH_ARGS4(PyThreadState *tstate, PyObject *called, P
     int flags = method_def->ml_flags & ~(METH_CLASS | METH_STATIC | METH_COEXIST);
 
     if (unlikely(flags & METH_NOARGS)) {
-        PyCFunction method = method_def->ml_meth;
-        PyObject *self = args[0];
-
-        PyObject *result = (*method)(self, NULL);
-
-#ifndef __NUITKA_NO_ASSERT__
-        return Nuitka_CheckFunctionResult(tstate, called, result);
-#else
-        return result;
-#endif
+        SET_CURRENT_EXCEPTION_TYPE0_FORMAT1(PyExc_TypeError, "%s() takes no arguments (3 given)", method_def->ml_name);
+        return NULL;
     } else if (unlikely(flags & METH_O)) {
-        SET_CURRENT_EXCEPTION_TYPE0_FORMAT1(PyExc_TypeError, "%s() takes exactly one argument (4 given)",
+        SET_CURRENT_EXCEPTION_TYPE0_FORMAT1(PyExc_TypeError, "%s() takes exactly one argument (3 given)",
                                             method_def->ml_name);
         return NULL;
+#if PYTHON_VERSION < 0x360
     } else if (flags & METH_VARARGS) {
+#elif PYTHON_VERSION < 0x370
+    } else if (flags == METH_VARARGS || flags == (METH_VARARGS | METH_KEYWORDS) || flags == METH_FASTCALL) {
+#else
+    } else if (flags == METH_VARARGS || flags == (METH_VARARGS | METH_KEYWORDS) || flags == METH_FASTCALL ||
+               flags == (METH_FASTCALL | METH_KEYWORDS)) {
+#endif
         Nuitka_PyCFunctionUnion method;
         method.as_function = method_def->ml_meth;
         PyObject *self = args[0];
@@ -11529,9 +11929,11 @@ PyObject *CALL_METHODDESCR_WITH_ARGS4(PyThreadState *tstate, PyObject *called, P
 #if PYTHON_VERSION < 0x370
             result = (*method.as_function_fast)(self, (PyObject **)args + 1, 3, NULL);
 #else
-            PyObject *pos_args = MAKE_TUPLE(tstate, args + 1, 3);
-            result = (*method.as_function_fast)(self, &pos_args, 4);
-            Py_DECREF(pos_args);
+            result = (*method.as_function_fast)(self, args + 1, 3);
+#endif
+#if PYTHON_VERSION >= 0x370
+        } else if (flags == (METH_FASTCALL | METH_KEYWORDS)) {
+            result = (*method.as_function_fast_kw)(self, args + 1, 3, NULL);
 #endif
         } else {
             PyObject *pos_args = MAKE_TUPLE(tstate, args + 1, 3);
@@ -11581,6 +11983,10 @@ PyObject *CALL_METHOD_NO_ARGS(PyThreadState *tstate, PyObject *source, PyObject 
                 if (func != NULL && Nuitka_Descr_IsData(descr)) {
                     PyObject *called_object = func(descr, source, (PyObject *)type);
                     Py_DECREF(descr);
+
+                    if (unlikely(called_object == NULL)) {
+                        return NULL;
+                    }
 
                     PyObject *result = CALL_FUNCTION_NO_ARGS(tstate, called_object);
                     Py_DECREF(called_object);
@@ -11639,9 +12045,13 @@ PyObject *CALL_METHOD_NO_ARGS(PyThreadState *tstate, PyObject *source, PyObject 
                 return result;
             } else {
                 PyObject *called_object = func(descr, source, (PyObject *)type);
-                CHECK_OBJECT(called_object);
-
                 Py_DECREF(descr);
+
+                if (unlikely(called_object == NULL)) {
+                    return NULL;
+                }
+
+                CHECK_OBJECT(called_object);
 
                 PyObject *result = CALL_FUNCTION_NO_ARGS(tstate, called_object);
                 Py_DECREF(called_object);
@@ -11800,6 +12210,10 @@ PyObject *CALL_METHOD_WITH_SINGLE_ARG(PyThreadState *tstate, PyObject *source, P
                     PyObject *called_object = func(descr, source, (PyObject *)type);
                     Py_DECREF(descr);
 
+                    if (unlikely(called_object == NULL)) {
+                        return NULL;
+                    }
+
                     PyObject *result = CALL_FUNCTION_WITH_SINGLE_ARG(tstate, called_object, args[0]);
                     Py_DECREF(called_object);
                     return result;
@@ -11857,9 +12271,13 @@ PyObject *CALL_METHOD_WITH_SINGLE_ARG(PyThreadState *tstate, PyObject *source, P
                 return result;
             } else {
                 PyObject *called_object = func(descr, source, (PyObject *)type);
-                CHECK_OBJECT(called_object);
-
                 Py_DECREF(descr);
+
+                if (unlikely(called_object == NULL)) {
+                    return NULL;
+                }
+
+                CHECK_OBJECT(called_object);
 
                 PyObject *result = CALL_FUNCTION_WITH_SINGLE_ARG(tstate, called_object, args[0]);
                 Py_DECREF(called_object);
@@ -12017,6 +12435,10 @@ PyObject *CALL_METHOD_WITH_ARGS2(PyThreadState *tstate, PyObject *source, PyObje
                     PyObject *called_object = func(descr, source, (PyObject *)type);
                     Py_DECREF(descr);
 
+                    if (unlikely(called_object == NULL)) {
+                        return NULL;
+                    }
+
                     PyObject *result = CALL_FUNCTION_WITH_ARGS2(tstate, called_object, args);
                     Py_DECREF(called_object);
                     return result;
@@ -12074,9 +12496,13 @@ PyObject *CALL_METHOD_WITH_ARGS2(PyThreadState *tstate, PyObject *source, PyObje
                 return result;
             } else {
                 PyObject *called_object = func(descr, source, (PyObject *)type);
-                CHECK_OBJECT(called_object);
-
                 Py_DECREF(descr);
+
+                if (unlikely(called_object == NULL)) {
+                    return NULL;
+                }
+
+                CHECK_OBJECT(called_object);
 
                 PyObject *result = CALL_FUNCTION_WITH_ARGS2(tstate, called_object, args);
                 Py_DECREF(called_object);
@@ -12234,6 +12660,10 @@ PyObject *CALL_METHOD_WITH_ARGS3(PyThreadState *tstate, PyObject *source, PyObje
                     PyObject *called_object = func(descr, source, (PyObject *)type);
                     Py_DECREF(descr);
 
+                    if (unlikely(called_object == NULL)) {
+                        return NULL;
+                    }
+
                     PyObject *result = CALL_FUNCTION_WITH_ARGS3(tstate, called_object, args);
                     Py_DECREF(called_object);
                     return result;
@@ -12291,9 +12721,13 @@ PyObject *CALL_METHOD_WITH_ARGS3(PyThreadState *tstate, PyObject *source, PyObje
                 return result;
             } else {
                 PyObject *called_object = func(descr, source, (PyObject *)type);
-                CHECK_OBJECT(called_object);
-
                 Py_DECREF(descr);
+
+                if (unlikely(called_object == NULL)) {
+                    return NULL;
+                }
+
+                CHECK_OBJECT(called_object);
 
                 PyObject *result = CALL_FUNCTION_WITH_ARGS3(tstate, called_object, args);
                 Py_DECREF(called_object);
@@ -12451,6 +12885,10 @@ PyObject *CALL_METHOD_WITH_ARGS4(PyThreadState *tstate, PyObject *source, PyObje
                     PyObject *called_object = func(descr, source, (PyObject *)type);
                     Py_DECREF(descr);
 
+                    if (unlikely(called_object == NULL)) {
+                        return NULL;
+                    }
+
                     PyObject *result = CALL_FUNCTION_WITH_ARGS4(tstate, called_object, args);
                     Py_DECREF(called_object);
                     return result;
@@ -12508,9 +12946,13 @@ PyObject *CALL_METHOD_WITH_ARGS4(PyThreadState *tstate, PyObject *source, PyObje
                 return result;
             } else {
                 PyObject *called_object = func(descr, source, (PyObject *)type);
-                CHECK_OBJECT(called_object);
-
                 Py_DECREF(descr);
+
+                if (unlikely(called_object == NULL)) {
+                    return NULL;
+                }
+
+                CHECK_OBJECT(called_object);
 
                 PyObject *result = CALL_FUNCTION_WITH_ARGS4(tstate, called_object, args);
                 Py_DECREF(called_object);
@@ -12668,6 +13110,10 @@ PyObject *CALL_METHOD_WITH_ARGS5(PyThreadState *tstate, PyObject *source, PyObje
                     PyObject *called_object = func(descr, source, (PyObject *)type);
                     Py_DECREF(descr);
 
+                    if (unlikely(called_object == NULL)) {
+                        return NULL;
+                    }
+
                     PyObject *result = CALL_FUNCTION_WITH_ARGS5(tstate, called_object, args);
                     Py_DECREF(called_object);
                     return result;
@@ -12725,9 +13171,13 @@ PyObject *CALL_METHOD_WITH_ARGS5(PyThreadState *tstate, PyObject *source, PyObje
                 return result;
             } else {
                 PyObject *called_object = func(descr, source, (PyObject *)type);
-                CHECK_OBJECT(called_object);
-
                 Py_DECREF(descr);
+
+                if (unlikely(called_object == NULL)) {
+                    return NULL;
+                }
+
+                CHECK_OBJECT(called_object);
 
                 PyObject *result = CALL_FUNCTION_WITH_ARGS5(tstate, called_object, args);
                 Py_DECREF(called_object);
@@ -12885,6 +13335,10 @@ PyObject *CALL_METHOD_WITH_ARGS6(PyThreadState *tstate, PyObject *source, PyObje
                     PyObject *called_object = func(descr, source, (PyObject *)type);
                     Py_DECREF(descr);
 
+                    if (unlikely(called_object == NULL)) {
+                        return NULL;
+                    }
+
                     PyObject *result = CALL_FUNCTION_WITH_ARGS6(tstate, called_object, args);
                     Py_DECREF(called_object);
                     return result;
@@ -12942,9 +13396,13 @@ PyObject *CALL_METHOD_WITH_ARGS6(PyThreadState *tstate, PyObject *source, PyObje
                 return result;
             } else {
                 PyObject *called_object = func(descr, source, (PyObject *)type);
-                CHECK_OBJECT(called_object);
-
                 Py_DECREF(descr);
+
+                if (unlikely(called_object == NULL)) {
+                    return NULL;
+                }
+
+                CHECK_OBJECT(called_object);
 
                 PyObject *result = CALL_FUNCTION_WITH_ARGS6(tstate, called_object, args);
                 Py_DECREF(called_object);
@@ -13102,6 +13560,10 @@ PyObject *CALL_METHOD_WITH_ARGS7(PyThreadState *tstate, PyObject *source, PyObje
                     PyObject *called_object = func(descr, source, (PyObject *)type);
                     Py_DECREF(descr);
 
+                    if (unlikely(called_object == NULL)) {
+                        return NULL;
+                    }
+
                     PyObject *result = CALL_FUNCTION_WITH_ARGS7(tstate, called_object, args);
                     Py_DECREF(called_object);
                     return result;
@@ -13159,9 +13621,13 @@ PyObject *CALL_METHOD_WITH_ARGS7(PyThreadState *tstate, PyObject *source, PyObje
                 return result;
             } else {
                 PyObject *called_object = func(descr, source, (PyObject *)type);
-                CHECK_OBJECT(called_object);
-
                 Py_DECREF(descr);
+
+                if (unlikely(called_object == NULL)) {
+                    return NULL;
+                }
+
+                CHECK_OBJECT(called_object);
 
                 PyObject *result = CALL_FUNCTION_WITH_ARGS7(tstate, called_object, args);
                 Py_DECREF(called_object);
@@ -13319,6 +13785,10 @@ PyObject *CALL_METHOD_WITH_ARGS8(PyThreadState *tstate, PyObject *source, PyObje
                     PyObject *called_object = func(descr, source, (PyObject *)type);
                     Py_DECREF(descr);
 
+                    if (unlikely(called_object == NULL)) {
+                        return NULL;
+                    }
+
                     PyObject *result = CALL_FUNCTION_WITH_ARGS8(tstate, called_object, args);
                     Py_DECREF(called_object);
                     return result;
@@ -13376,9 +13846,13 @@ PyObject *CALL_METHOD_WITH_ARGS8(PyThreadState *tstate, PyObject *source, PyObje
                 return result;
             } else {
                 PyObject *called_object = func(descr, source, (PyObject *)type);
-                CHECK_OBJECT(called_object);
-
                 Py_DECREF(descr);
+
+                if (unlikely(called_object == NULL)) {
+                    return NULL;
+                }
+
+                CHECK_OBJECT(called_object);
 
                 PyObject *result = CALL_FUNCTION_WITH_ARGS8(tstate, called_object, args);
                 Py_DECREF(called_object);
@@ -13536,6 +14010,10 @@ PyObject *CALL_METHOD_WITH_ARGS9(PyThreadState *tstate, PyObject *source, PyObje
                     PyObject *called_object = func(descr, source, (PyObject *)type);
                     Py_DECREF(descr);
 
+                    if (unlikely(called_object == NULL)) {
+                        return NULL;
+                    }
+
                     PyObject *result = CALL_FUNCTION_WITH_ARGS9(tstate, called_object, args);
                     Py_DECREF(called_object);
                     return result;
@@ -13593,9 +14071,13 @@ PyObject *CALL_METHOD_WITH_ARGS9(PyThreadState *tstate, PyObject *source, PyObje
                 return result;
             } else {
                 PyObject *called_object = func(descr, source, (PyObject *)type);
-                CHECK_OBJECT(called_object);
-
                 Py_DECREF(descr);
+
+                if (unlikely(called_object == NULL)) {
+                    return NULL;
+                }
+
+                CHECK_OBJECT(called_object);
 
                 PyObject *result = CALL_FUNCTION_WITH_ARGS9(tstate, called_object, args);
                 Py_DECREF(called_object);
@@ -13753,6 +14235,10 @@ PyObject *CALL_METHOD_WITH_ARGS10(PyThreadState *tstate, PyObject *source, PyObj
                     PyObject *called_object = func(descr, source, (PyObject *)type);
                     Py_DECREF(descr);
 
+                    if (unlikely(called_object == NULL)) {
+                        return NULL;
+                    }
+
                     PyObject *result = CALL_FUNCTION_WITH_ARGS10(tstate, called_object, args);
                     Py_DECREF(called_object);
                     return result;
@@ -13810,9 +14296,13 @@ PyObject *CALL_METHOD_WITH_ARGS10(PyThreadState *tstate, PyObject *source, PyObj
                 return result;
             } else {
                 PyObject *called_object = func(descr, source, (PyObject *)type);
-                CHECK_OBJECT(called_object);
-
                 Py_DECREF(descr);
+
+                if (unlikely(called_object == NULL)) {
+                    return NULL;
+                }
+
+                CHECK_OBJECT(called_object);
 
                 PyObject *result = CALL_FUNCTION_WITH_ARGS10(tstate, called_object, args);
                 Py_DECREF(called_object);

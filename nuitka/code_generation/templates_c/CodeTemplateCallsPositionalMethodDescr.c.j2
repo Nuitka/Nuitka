@@ -32,6 +32,7 @@ PyObject *CALL_METHODDESCR_WITH_ARGS{{args_count}}(PyThreadState *tstate, PyObje
     int flags = method_def->ml_flags & ~(METH_CLASS | METH_STATIC | METH_COEXIST);
 
     if ({{ unlikely_or_likely_from(args_count != 1) }}(flags & METH_NOARGS)) {
+{% if args_count == 1 %}
         PyCFunction method = method_def->ml_meth;
         PyObject *self = args[0];
 
@@ -42,7 +43,15 @@ PyObject *CALL_METHODDESCR_WITH_ARGS{{args_count}}(PyThreadState *tstate, PyObje
 #else
         return result;
 #endif
-    } else if ({{ unlikely_if(args_count != 1) }}(flags & METH_O)) {
+{% else %}
+        SET_CURRENT_EXCEPTION_TYPE0_FORMAT1(
+            PyExc_TypeError,
+            "%s() takes no arguments ({{args_count-1}} given)",
+            method_def->ml_name
+        );
+        return NULL;
+{% endif %}
+    } else if ({{ unlikely_if(args_count != 2) }}(flags & METH_O)) {
 {% if args_count == 2 %}
         PyCFunction method = method_def->ml_meth;
         PyObject *self = args[0];
@@ -56,12 +65,19 @@ PyObject *CALL_METHODDESCR_WITH_ARGS{{args_count}}(PyThreadState *tstate, PyObje
 #endif
 {% else %}
         SET_CURRENT_EXCEPTION_TYPE0_FORMAT1(PyExc_TypeError,
-            "%s() takes exactly one argument ({{args_count}} given)",
+            "%s() takes exactly one argument ({{args_count-1}} given)",
                 method_def->ml_name
         );
         return NULL;
 {% endif %}
+#if PYTHON_VERSION < 0x360
     } else if (flags & METH_VARARGS) {
+#elif PYTHON_VERSION < 0x370
+    } else if (flags == METH_VARARGS || flags == (METH_VARARGS | METH_KEYWORDS) || flags == METH_FASTCALL) {
+#else
+    } else if (flags == METH_VARARGS || flags == (METH_VARARGS | METH_KEYWORDS) || flags == METH_FASTCALL ||
+               flags == (METH_FASTCALL | METH_KEYWORDS)) {
+#endif
         Nuitka_PyCFunctionUnion method;
         method.as_function = method_def->ml_meth;
         PyObject *self = args[0];
@@ -87,7 +103,7 @@ PyObject *CALL_METHODDESCR_WITH_ARGS{{args_count}}(PyThreadState *tstate, PyObje
         Py_DECREF(pos_args);
 {% endif %}
 #else
-        if (flags == (METH_VARARGS|METH_KEYWORDS)) {
+        if (flags == (METH_VARARGS | METH_KEYWORDS)) {
 {% if args_count == 1 %}
             result = (*method.as_function_kw)(self, const_tuple_empty, NULL);
 {% else %}
@@ -97,14 +113,24 @@ PyObject *CALL_METHODDESCR_WITH_ARGS{{args_count}}(PyThreadState *tstate, PyObje
 {% endif %}
         } else if (flags == METH_FASTCALL) {
 #if PYTHON_VERSION < 0x370
-            result = (*method.as_function_fast)(self, (PyObject **)args+1, {{args_count-1}}, NULL);
+{% if args_count == 1 %}
+            result = (*method.as_function_fast)(self, NULL, 0, NULL);
+{% else %}
+            result = (*method.as_function_fast)(self, (PyObject **)args + 1, {{args_count-1}}, NULL);
+{% endif %}
 #else
 {% if args_count == 1 %}
-            result = (*method.as_function_fast)(self, &const_tuple_empty, {{args_count}});
+            result = (*method.as_function_fast)(self, NULL, 0);
 {% else %}
-            PyObject *pos_args = MAKE_TUPLE(tstate, args+1, {{args_count-1}});
-            result = (*method.as_function_fast)(self, &pos_args, {{args_count}});
-            Py_DECREF(pos_args);
+            result = (*method.as_function_fast)(self, args + 1, {{args_count-1}});
+{% endif %}
+#endif
+#if PYTHON_VERSION >= 0x370
+        } else if (flags == (METH_FASTCALL | METH_KEYWORDS)) {
+{% if args_count == 1 %}
+            result = (*method.as_function_fast_kw)(self, NULL, 0, NULL);
+{% else %}
+            result = (*method.as_function_fast_kw)(self, args + 1, {{args_count-1}}, NULL);
 {% endif %}
 #endif
         } else {

@@ -45,6 +45,10 @@ PyObject *CALL_METHOD_WITH_ARGS{{args_count}}(PyThreadState *tstate, PyObject *s
                     PyObject *called_object = func(descr, source, (PyObject *)type);
                     Py_DECREF(descr);
 
+                    if (unlikely(called_object == NULL)) {
+                        return NULL;
+                    }
+
                     PyObject *result = {{ call_function_with_args( "called_object", "args", args_count) }};
                     Py_DECREF(called_object);
                     return result;
@@ -115,9 +119,13 @@ PyObject *CALL_METHOD_WITH_ARGS{{args_count}}(PyThreadState *tstate, PyObject *s
                 return result;
             } else {
                 PyObject *called_object = func(descr, source, (PyObject *)type);
-                CHECK_OBJECT(called_object);
-
                 Py_DECREF(descr);
+
+                if (unlikely(called_object == NULL)) {
+                    return NULL;
+                }
+
+                CHECK_OBJECT(called_object);
 
                 PyObject *result = {{ call_function_with_args( "called_object", "args", args_count) }};
                 Py_DECREF(called_object);
