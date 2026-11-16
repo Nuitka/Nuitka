@@ -536,7 +536,7 @@ def wrapCommandForDebuggerForExec(command, debugger):
         ) + command
     else:
         return general.sysexit(
-            "Error, the selected debugger '%s' was not found in path."
+            "Error, the selected debugger '%s' was not found in path." % debugger
         )
 
     # Some debuggers need to be run in their architecture, e.g. the "lldb"

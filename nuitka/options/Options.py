@@ -3770,7 +3770,7 @@ def getModuleParameter(module_name, parameter_name):
         except ValueError:
             return optimization_logger.sysexit("""\
 Error, must specify module parameter name and value with a separating \
-'=' and not '%s".""" % module_option)
+'=' and not '%s'.""" % module_option)
 
         if option_name == module_option_name:
             return module_option_value
