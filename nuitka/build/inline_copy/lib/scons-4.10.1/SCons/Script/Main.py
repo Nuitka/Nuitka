@@ -308,7 +308,9 @@ class BuildTask(SCons.Taskmaster.OutOfDateTask):
         if e is None:
             e = t
 
-        buildError = SCons.Errors.convert_to_BuildError(e)
+        # Nuitka: Keep the traceback of unexpected Python exceptions that
+        # reached the task level, instead of only showing their message.
+        buildError = SCons.Errors.convert_to_BuildError(e, (t, e, tb))
         if not buildError.node:
             buildError.node = self.node
 
