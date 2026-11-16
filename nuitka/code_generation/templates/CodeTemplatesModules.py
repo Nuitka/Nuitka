@@ -676,8 +676,7 @@ NUITKA_MODULE_INIT_FUNCTION (%(module_dll_entry_point)s)(void) {
     CHECK_OBJECT(module);
 
     if ((entry_%(module_identifier)s.flags & NUITKA_INTERNAL_MODULE_FLAG) == 0) {
-        NUITKA_MAY_BE_UNUSED bool res = Nuitka_SetModuleString(tstate, module_full_name, module);
-        assert(res != false);
+        Nuitka_SetModuleString(tstate, module_full_name, module);
     }
 
 #endif

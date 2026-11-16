@@ -100,28 +100,34 @@ def assignDictOrMappingItem(
         emit: Function to emit code to.
         context: Code generation context.
     """
-    if is_dict_shape:
-        res_name = context.getBoolResName()
-
+    if is_dict_shape and not may_raise:
         emit(
-            "%s = DICT_SET_ITEM(tstate, %s, %s, %s);"
-            % (res_name, target_name, key_name, value_name)
+            "DICT_SET_ITEM_INFALLIBLE(tstate, %s, %s, %s);"
+            % (target_name, key_name, value_name)
         )
+
+        getReleaseCode(value_name, emit=emit, context=context)
     else:
         res_name = context.getBoolResName()
 
-        emit(
-            "%s = SET_SUBSCRIPT(tstate, %s, %s, %s);"
-            % (res_name, target_name, key_name, value_name)
-        )
+        if is_dict_shape:
+            emit(
+                "%s = DICT_SET_ITEM(tstate, %s, %s, %s);"
+                % (res_name, target_name, key_name, value_name)
+            )
+        else:
+            emit(
+                "%s = SET_SUBSCRIPT(tstate, %s, %s, %s);"
+                % (res_name, target_name, key_name, value_name)
+            )
 
-    getErrorExitBoolCode(
-        condition="%s == false" % res_name,
-        release_name=value_name,
-        needs_check=may_raise,
-        emit=emit,
-        context=context,
-    )
+        getErrorExitBoolCode(
+            condition="%s == false" % res_name,
+            release_name=value_name,
+            needs_check=may_raise,
+            emit=emit,
+            context=context,
+        )
 
 
 def generateLocalsDictSetCode(statement, emit, context):

@@ -1218,8 +1218,8 @@ static void setInputOutputHandles(PyThreadState *tstate) {
 #if defined(NUITKA_FORCED_STDOUT_PATH) || defined(NUITKA_FORCED_STDERR_PATH)
     PyObject *args = MAKE_DICT_EMPTY(tstate);
 
-    DICT_SET_ITEM(tstate, args, const_str_plain_encoding, Nuitka_String_FromString("utf-8"));
-    DICT_SET_ITEM(tstate, args, const_str_plain_line_buffering, Py_True);
+    DICT_SET_ITEM1_INFALLIBLE(tstate, args, const_str_plain_encoding, Nuitka_String_FromString("utf-8"));
+    DICT_SET_ITEM_INFALLIBLE(tstate, args, const_str_plain_line_buffering, Py_True);
 
 #if defined(NUITKA_FORCED_STDOUT_PATH)
     NUITKA_PRINT_TRACE("setInputOutputHandles(): Forced stdout update.");

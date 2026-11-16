@@ -409,11 +409,11 @@ NUITKA_MAY_BE_UNUSED static void UPDATE_STRING_DICT0(PyThreadState *tstate, PyDi
     CHECK_OBJECT(value);
 
 #if defined(Py_GIL_DISABLED)
-    DICT_SET_ITEM(tstate, (PyObject *)dict, (PyObject *)key, value);
+    DICT_SET_ITEM_INFALLIBLE(tstate, (PyObject *)dict, (PyObject *)key, value);
     return;
 #elif PYTHON_VERSION >= 0x3c0
     if (unlikely(NUITKA_DICT_IS_WATCHED(dict))) {
-        DICT_SET_ITEM(tstate, (PyObject *)dict, (PyObject *)key, value);
+        DICT_SET_ITEM_INFALLIBLE(tstate, (PyObject *)dict, (PyObject *)key, value);
         return;
     }
 #endif
@@ -422,7 +422,7 @@ NUITKA_MAY_BE_UNUSED static void UPDATE_STRING_DICT0(PyThreadState *tstate, PyDi
 
 #if PYTHON_VERSION >= 0x360
     if (entry == NULL) {
-        DICT_SET_ITEM(tstate, (PyObject *)dict, (PyObject *)key, value);
+        DICT_SET_ITEM_INFALLIBLE(tstate, (PyObject *)dict, (PyObject *)key, value);
         return;
     }
 #endif
@@ -445,7 +445,7 @@ NUITKA_MAY_BE_UNUSED static void UPDATE_STRING_DICT0(PyThreadState *tstate, PyDi
 
             Py_DECREF(old);
         } else {
-            DICT_SET_ITEM(tstate, (PyObject *)dict, (PyObject *)key, value);
+            DICT_SET_ITEM_INFALLIBLE(tstate, (PyObject *)dict, (PyObject *)key, value);
         }
     }
 }
@@ -455,12 +455,12 @@ NUITKA_MAY_BE_UNUSED static void UPDATE_STRING_DICT_INPLACE(PyThreadState *tstat
     CHECK_OBJECT(value);
 
 #if defined(Py_GIL_DISABLED)
-    DICT_SET_ITEM1(tstate, (PyObject *)dict, (PyObject *)key, value);
+    DICT_SET_ITEM1_INFALLIBLE(tstate, (PyObject *)dict, (PyObject *)key, value);
     CHECK_OBJECT(value);
     return;
 #elif PYTHON_VERSION >= 0x3c0
     if (unlikely(NUITKA_DICT_IS_WATCHED(dict))) {
-        DICT_SET_ITEM1(tstate, (PyObject *)dict, (PyObject *)key, value);
+        DICT_SET_ITEM1_INFALLIBLE(tstate, (PyObject *)dict, (PyObject *)key, value);
         CHECK_OBJECT(value);
         return;
     }
@@ -470,7 +470,7 @@ NUITKA_MAY_BE_UNUSED static void UPDATE_STRING_DICT_INPLACE(PyThreadState *tstat
 
 #if PYTHON_VERSION >= 0x360
     if (entry == NULL) {
-        DICT_SET_ITEM1(tstate, (PyObject *)dict, (PyObject *)key, value);
+        DICT_SET_ITEM1_INFALLIBLE(tstate, (PyObject *)dict, (PyObject *)key, value);
         CHECK_OBJECT(value);
 
         return;
@@ -480,7 +480,7 @@ NUITKA_MAY_BE_UNUSED static void UPDATE_STRING_DICT_INPLACE(PyThreadState *tstat
     PyObject *old = GET_DICT_ENTRY_VALUE(entry);
 
     if (old == NULL) {
-        DICT_SET_ITEM1(tstate, (PyObject *)dict, (PyObject *)key, value);
+        DICT_SET_ITEM1_INFALLIBLE(tstate, (PyObject *)dict, (PyObject *)key, value);
         CHECK_OBJECT(value);
     } else {
         SET_DICT_ENTRY_VALUE(entry, value);
@@ -498,12 +498,12 @@ NUITKA_MAY_BE_UNUSED static void UPDATE_STRING_DICT1(PyThreadState *tstate, PyDi
     CHECK_OBJECT(value);
 
 #if defined(Py_GIL_DISABLED)
-    DICT_SET_ITEM1(tstate, (PyObject *)dict, (PyObject *)key, value);
+    DICT_SET_ITEM1_INFALLIBLE(tstate, (PyObject *)dict, (PyObject *)key, value);
     CHECK_OBJECT(value);
     return;
 #elif PYTHON_VERSION >= 0x3c0
     if (unlikely(NUITKA_DICT_IS_WATCHED(dict))) {
-        DICT_SET_ITEM1(tstate, (PyObject *)dict, (PyObject *)key, value);
+        DICT_SET_ITEM1_INFALLIBLE(tstate, (PyObject *)dict, (PyObject *)key, value);
         CHECK_OBJECT(value);
         return;
     }
@@ -513,7 +513,7 @@ NUITKA_MAY_BE_UNUSED static void UPDATE_STRING_DICT1(PyThreadState *tstate, PyDi
 
 #if PYTHON_VERSION >= 0x360
     if (entry == NULL) {
-        DICT_SET_ITEM1(tstate, (PyObject *)dict, (PyObject *)key, value);
+        DICT_SET_ITEM1_INFALLIBLE(tstate, (PyObject *)dict, (PyObject *)key, value);
         CHECK_OBJECT(value);
 
         return;
@@ -534,7 +534,7 @@ NUITKA_MAY_BE_UNUSED static void UPDATE_STRING_DICT1(PyThreadState *tstate, PyDi
 #endif
             Py_DECREF(old);
         } else {
-            DICT_SET_ITEM1(tstate, (PyObject *)dict, (PyObject *)key, value);
+            DICT_SET_ITEM1_INFALLIBLE(tstate, (PyObject *)dict, (PyObject *)key, value);
             CHECK_OBJECT(value);
         }
     } else {

@@ -722,8 +722,7 @@ static PyObject *loadModuleFromCodeObject(PyThreadState *tstate, PyObject *modul
     bool is_package = (entry->flags & NUITKA_PACKAGE_FLAG) != 0;
 
     if (unlikely((entry->flags & NUITKA_INTERNAL_MODULE_FLAG) == 0)) {
-        NUITKA_MAY_BE_UNUSED bool b_res = Nuitka_SetModuleString(tstate, name, module);
-        assert(b_res != false);
+        Nuitka_SetModuleString(tstate, name, module);
     }
 
     // Bytecode modules also get the compiled module information. On Python
@@ -1024,7 +1023,7 @@ static bool scanModuleInPackagePath(PyThreadState *tstate, PyObject *module_name
                 fullpath = tmp;
 #endif
 
-                DICT_SET_ITEM(tstate, installed_extension_modules, module_name, fullpath);
+                DICT_SET_ITEM_INFALLIBLE(tstate, installed_extension_modules, module_name, fullpath);
 
                 result = true;
                 break;
@@ -1167,7 +1166,7 @@ static void setModuleFileValue(PyThreadState *tstate, PyObject *module, filename
     PyObject *dict = PyModule_GetDict(module);
 
     PyObject *new_file_value = Nuitka_String_FromFilename(filename);
-    DICT_SET_ITEM1(tstate, dict, const_str_plain___file__, new_file_value);
+    DICT_SET_ITEM1_INFALLIBLE(tstate, dict, const_str_plain___file__, new_file_value);
 }
 
 #if PYTHON_VERSION < 0x300
@@ -1672,7 +1671,7 @@ error:
                 PyObject *starts_with_result = UNICODE_STARTSWITH2(tstate, key, base_name_prefix);
 
                 if (CHECK_IF_TRUE(starts_with_result) == 1) {
-                    DICT_SET_ITEM(tstate, preserved_sub_modules, key, value);
+                    DICT_SET_ITEM_INFALLIBLE(tstate, preserved_sub_modules, key, value);
                 }
 
                 Py_DECREF(starts_with_result);
@@ -2190,8 +2189,7 @@ static PyObject *loadModule(PyThreadState *tstate, PyObject *module, PyObject *m
         assert(entry->python_init_func);
 
         if (unlikely((entry->flags & NUITKA_INTERNAL_MODULE_FLAG) == 0)) {
-            NUITKA_MAY_BE_UNUSED bool res = Nuitka_SetModule(tstate, module_name, module);
-            assert(res != false);
+            Nuitka_SetModule(tstate, module_name, module);
         }
 
         // Run the compiled module code, we get the module returned.
@@ -2743,8 +2741,7 @@ static PyObject *executeCompiledModule(PyThreadState *tstate, struct Nuitka_Meta
 #endif
 
     if (unlikely((entry->flags & NUITKA_INTERNAL_MODULE_FLAG) == 0)) {
-        NUITKA_MAY_BE_UNUSED bool res = Nuitka_SetModule(tstate, module_name, module);
-        assert(res != false);
+        Nuitka_SetModule(tstate, module_name, module);
     }
 
     PyObject *init_result = entry->python_init_func(tstate, module);

@@ -19,7 +19,12 @@ from .CodeHelpers import (
     withCleanupFinally,
     withObjectCodeTemporaryAssignment,
 )
-from .ErrorCodes import getErrorExitBoolCode, getErrorExitCode, getReleaseCode
+from .ErrorCodes import (
+    getErrorExitBoolCode,
+    getErrorExitCode,
+    getReleaseCode,
+    getReleaseCodes,
+)
 from .PythonAPICodes import (
     generateCAPIObjectCode,
     generateCAPIObjectCode0,
@@ -576,9 +581,7 @@ def generateDictOperationUpdate3Code(to_name, expression, emit, context):
     dict_key_name = context.allocateTempName("dictupdate_key")
     dict_value_name = context.allocateTempName("dictupdate_value")
 
-    res_name = context.getBoolResName()
-
-    for count, pair in enumerate(expression.subnode_pairs):
+    for pair in expression.subnode_pairs:
         generateExpressionCode(
             to_name=dict_key_name,
             expression=pair.getKeyNode(),
@@ -593,18 +596,30 @@ def generateDictOperationUpdate3Code(to_name, expression, emit, context):
             context=context,
         )
 
-        emit(
-            "%s = DICT_SET_ITEM(tstate, %s, %s, %s);"
-            % (res_name, dict_name, dict_key_name, dict_value_name)
-        )
+        if pair.isKnownToBeHashable():
+            emit(
+                "DICT_SET_ITEM_INFALLIBLE(tstate, %s, %s, %s);"
+                % (dict_name, dict_key_name, dict_value_name)
+            )
 
-        getErrorExitBoolCode(
-            condition="%s == false" % res_name,
-            needs_check=not expression.subnode_pairs[count].isKnownToBeHashable(),
-            release_names=(dict_key_name, dict_value_name),
-            emit=emit,
-            context=context,
-        )
+            getReleaseCodes(
+                (dict_key_name, dict_value_name), emit=emit, context=context
+            )
+        else:
+            res_name = context.getBoolResName()
+
+            emit(
+                "%s = DICT_SET_ITEM(tstate, %s, %s, %s);"
+                % (res_name, dict_name, dict_key_name, dict_value_name)
+            )
+
+            getErrorExitBoolCode(
+                condition="%s == false" % res_name,
+                needs_check=True,
+                release_names=(dict_key_name, dict_value_name),
+                emit=emit,
+                context=context,
+            )
 
     getReleaseCode(
         release_name=dict_name,
@@ -880,20 +895,30 @@ def generateDictOperationSetCode(statement, emit, context):
     )
     context.setCurrentSourceCodeReference(statement.getSourceReference())
 
-    res_name = context.getBoolResName()
+    if statement.subnode_key.isKnownToBeHashable():
+        emit("""\
+assert(PyDict_CheckExact(%s));
+DICT_SET_ITEM_INFALLIBLE(tstate, %s, %s, %s);
+""" % (dict_arg_name, dict_arg_name, key_arg_name, value_arg_name))
 
-    emit("""\
+        getReleaseCodes(
+            (value_arg_name, dict_arg_name, key_arg_name), emit=emit, context=context
+        )
+    else:
+        res_name = context.getBoolResName()
+
+        emit("""\
 assert(PyDict_CheckExact(%s));
 %s = DICT_SET_ITEM(tstate, %s, %s, %s);
 """ % (dict_arg_name, res_name, dict_arg_name, key_arg_name, value_arg_name))
 
-    getErrorExitBoolCode(
-        condition="%s == false" % res_name,
-        release_names=(value_arg_name, dict_arg_name, key_arg_name),
-        emit=emit,
-        needs_check=not statement.subnode_key.isKnownToBeHashable(),
-        context=context,
-    )
+        getErrorExitBoolCode(
+            condition="%s == false" % res_name,
+            release_names=(value_arg_name, dict_arg_name, key_arg_name),
+            emit=emit,
+            needs_check=True,
+            context=context,
+        )
 
 
 def generateDictOperationSetCodeKeyValue(statement, emit, context):
@@ -923,20 +948,30 @@ def generateDictOperationSetCodeKeyValue(statement, emit, context):
 
     context.setCurrentSourceCodeReference(statement.getSourceReference())
 
-    res_name = context.getBoolResName()
+    if statement.subnode_key.isKnownToBeHashable():
+        emit("""\
+assert(PyDict_CheckExact(%s));
+DICT_SET_ITEM_INFALLIBLE(tstate, %s, %s, %s);
+""" % (dict_arg_name, dict_arg_name, key_arg_name, value_arg_name))
 
-    emit("""\
+        getReleaseCodes(
+            (value_arg_name, dict_arg_name, key_arg_name), emit=emit, context=context
+        )
+    else:
+        res_name = context.getBoolResName()
+
+        emit("""\
 assert(PyDict_CheckExact(%s));
 %s = DICT_SET_ITEM(tstate, %s, %s, %s);
 """ % (dict_arg_name, res_name, dict_arg_name, key_arg_name, value_arg_name))
 
-    getErrorExitBoolCode(
-        condition="%s == false" % res_name,
-        release_names=(value_arg_name, dict_arg_name, key_arg_name),
-        emit=emit,
-        needs_check=not statement.subnode_key.isKnownToBeHashable(),
-        context=context,
-    )
+        getErrorExitBoolCode(
+            condition="%s == false" % res_name,
+            release_names=(value_arg_name, dict_arg_name, key_arg_name),
+            emit=emit,
+            needs_check=True,
+            context=context,
+        )
 
 
 def generateDictOperationRemoveCode(statement, emit, context):

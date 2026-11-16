@@ -761,15 +761,16 @@ static PyObject *_Nuitka_Generator_send(PyThreadState *tstate, struct Nuitka_Gen
                 Py_XDECREF(old_tb);
 
                 if (old_type != saved_exception_type) {
-                    DICT_SET_ITEM(tstate, sys_dict, const_str_plain_exc_type, saved_exception_type);
+                    DICT_SET_ITEM_INFALLIBLE(tstate, sys_dict, const_str_plain_exc_type, saved_exception_type);
                 }
                 if (saved_exception_value != old_value) {
-                    DICT_SET_ITEM(tstate, sys_dict, const_str_plain_exc_value,
-                                  saved_exception_value ? saved_exception_value : Py_None);
+                    DICT_SET_ITEM_INFALLIBLE(tstate, sys_dict, const_str_plain_exc_value,
+                                             saved_exception_value ? saved_exception_value : Py_None);
                 }
                 if (saved_exception_traceback != old_tb) {
-                    DICT_SET_ITEM(tstate, sys_dict, const_str_plain_exc_traceback,
-                                  saved_exception_traceback ? (PyObject *)saved_exception_traceback : Py_None);
+                    DICT_SET_ITEM_INFALLIBLE(tstate, sys_dict, const_str_plain_exc_traceback,
+                                             saved_exception_traceback ? (PyObject *)saved_exception_traceback
+                                                                       : Py_None);
                 }
             } else {
                 tstate->exc_type = Py_None;
@@ -785,13 +786,13 @@ static PyObject *_Nuitka_Generator_send(PyThreadState *tstate, struct Nuitka_Gen
                 Py_XDECREF(old_tb);
 
                 if (old_type != Py_None) {
-                    DICT_SET_ITEM(tstate, sys_dict, const_str_plain_exc_type, Py_None);
+                    DICT_SET_ITEM_INFALLIBLE(tstate, sys_dict, const_str_plain_exc_type, Py_None);
                 }
                 if (old_value != Py_None) {
-                    DICT_SET_ITEM(tstate, sys_dict, const_str_plain_exc_value, Py_None);
+                    DICT_SET_ITEM_INFALLIBLE(tstate, sys_dict, const_str_plain_exc_value, Py_None);
                 }
                 if (old_tb != (PyTracebackObject *)Py_None) {
-                    DICT_SET_ITEM(tstate, sys_dict, const_str_plain_exc_traceback, Py_None);
+                    DICT_SET_ITEM_INFALLIBLE(tstate, sys_dict, const_str_plain_exc_traceback, Py_None);
                 }
             }
 #endif

@@ -108,10 +108,7 @@ static PyObject *_Nuitka_FrameLocalsProxy_to_dict(Nuitka_FrameLocalsProxyObject 
             }
             if (value != NULL) {
                 PyObject *name = *var_names;
-                if (DICT_SET_ITEM(tstate, result, name, value) == false) {
-                    Py_DECREF(result);
-                    return NULL;
-                }
+                DICT_SET_ITEM_INFALLIBLE(tstate, result, name, value);
             }
             var_names++;
             offset += Nuitka_FrameLocals_Size(type);

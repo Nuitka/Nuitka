@@ -23,10 +23,7 @@ void SET_UNCOMPILED_FUNCTION_SOURCE_DICT(PyThreadState *tstate, PyObject *name, 
                                uncompiled_function_sources_dict);
     }
 
-    bool res = DICT_SET_ITEM(tstate, uncompiled_function_sources_dict, name, source);
-    if (unlikely(res == false)) {
-        NUITKA_CANNOT_GET_HERE("Failed to update uncompiled function sources");
-    }
+    DICT_SET_ITEM_INFALLIBLE(tstate, uncompiled_function_sources_dict, name, source);
 }
 
 #endif

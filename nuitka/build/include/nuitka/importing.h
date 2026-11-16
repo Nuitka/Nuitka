@@ -99,21 +99,19 @@ NUITKA_MAY_BE_UNUSED static PyObject *Nuitka_GetModuleString(PyThreadState *tsta
 }
 
 // Add a module to the modules dictionary from name object
-NUITKA_MAY_BE_UNUSED static bool Nuitka_SetModule(PyThreadState *tstate, PyObject *module_name, PyObject *module) {
+NUITKA_MAY_BE_UNUSED static void Nuitka_SetModule(PyThreadState *tstate, PyObject *module_name, PyObject *module) {
     CHECK_OBJECT(module_name);
     CHECK_OBJECT(module);
 
-    return DICT_SET_ITEM(tstate, Nuitka_GetSysModules(tstate), module_name, module);
+    DICT_SET_ITEM_INFALLIBLE(tstate, Nuitka_GetSysModules(tstate), module_name, module);
 }
 
 // Add a module to the modules dictionary from name C string
-NUITKA_MAY_BE_UNUSED static bool Nuitka_SetModuleString(PyThreadState *tstate, char const *module_name,
+NUITKA_MAY_BE_UNUSED static void Nuitka_SetModuleString(PyThreadState *tstate, char const *module_name,
                                                         PyObject *module) {
     PyObject *module_name_object = Nuitka_String_FromString(module_name);
-    bool result = Nuitka_SetModule(tstate, module_name_object, module);
+    Nuitka_SetModule(tstate, module_name_object, module);
     Py_DECREF(module_name_object);
-
-    return result;
 }
 
 // Remove a module to the modules dictionary from name object

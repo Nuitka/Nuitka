@@ -817,12 +817,12 @@ bool PRINT_ITEM_TO(PyObject *file, PyObject *obj) {
 
     // TODO: Have a helper that creates a dictionary for PyObject **
     PyObject *print_kw = MAKE_DICT_EMPTY(tstate);
-    DICT_SET_ITEM(tstate, print_kw, const_str_plain_end, const_str_empty);
+    DICT_SET_ITEM_INFALLIBLE(tstate, print_kw, const_str_plain_end, const_str_empty);
 
     if (file == NULL) {
-        DICT_SET_ITEM(tstate, print_kw, const_str_plain_file, GET_STDOUT());
+        DICT_SET_ITEM_INFALLIBLE(tstate, print_kw, const_str_plain_file, GET_STDOUT());
     } else {
-        DICT_SET_ITEM(tstate, print_kw, const_str_plain_file, file);
+        DICT_SET_ITEM_INFALLIBLE(tstate, print_kw, const_str_plain_file, file);
     }
 
     PyObject *print_args = MAKE_TUPLE1(tstate, obj);
@@ -2252,7 +2252,7 @@ void _initSlotIterNext(void) {
 
     // Note: Not using MAKE_DICT_EMPTY on purpose, this is called early on.
     PyObject *kw_args = PyDict_New();
-    DICT_SET_ITEM(tstate, kw_args, const_str_plain___iter__, Py_True);
+    DICT_SET_ITEM_INFALLIBLE(tstate, kw_args, const_str_plain___iter__, Py_True);
 
     PyObject *c =
         PyObject_CallFunctionObjArgs((PyObject *)&PyType_Type, const_str_plain___iter__, pos_args, kw_args, NULL);

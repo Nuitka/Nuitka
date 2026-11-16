@@ -5448,12 +5448,7 @@ PyObject *MAKE_DICT_FROM_KWARGS(PyThreadState *tstate, PyObject *kw_names, PyObj
         CHECK_OBJECT(key);
         CHECK_OBJECT(value);
 
-        bool res = DICT_SET_ITEM(tstate, result, key, value);
-
-        if (unlikely(res == false)) {
-            Py_DECREF(result);
-            return NULL;
-        }
+        DICT_SET_ITEM_INFALLIBLE(tstate, result, key, value);
     }
 
     return result;
@@ -5474,12 +5469,7 @@ static PyObject *_MAKE_DICT(PyThreadState *tstate, PyObject **pairs, Py_ssize_t 
         PyObject *key = pairs[i * 2];
         PyObject *value = pairs[i * 2 + 1];
 
-        bool res = DICT_SET_ITEM(tstate, result, key, value);
-
-        if (unlikely(res == false)) {
-            Py_DECREF(result);
-            return NULL;
-        }
+        DICT_SET_ITEM_INFALLIBLE(tstate, result, key, value);
     }
 
     return result;
@@ -5508,12 +5498,7 @@ static PyObject *_MAKE_DICT_X(PyThreadState *tstate, PyObject **pairs, Py_ssize_
             CHECK_OBJECT(key);
             CHECK_OBJECT(value);
 
-            bool res = DICT_SET_ITEM(tstate, result, key, value);
-
-            if (unlikely(res == false)) {
-                Py_DECREF(result);
-                return NULL;
-            }
+            DICT_SET_ITEM_INFALLIBLE(tstate, result, key, value);
         }
     }
 

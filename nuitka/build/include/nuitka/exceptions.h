@@ -18,6 +18,9 @@
 #include "nuitka/constants.h"
 #include "nuitka/printing.h"
 
+// Declared here because this header is included before the dictionary helpers.
+extern void DICT_SET_ITEM_INFALLIBLE(PyThreadState *tstate, PyObject *dict, PyObject *key, PyObject *value);
+
 // Write unraisable exceptions, unless disabled at compile time. CPython
 // internal writes still need the "sys.unraisablehook" workaround.
 #if PYTHON_NO_UNRAISABLE
@@ -338,12 +341,12 @@ NUITKA_MAY_BE_UNUSED inline static void SET_CURRENT_EXCEPTION(PyThreadState *tst
     PyObject *sys_dict = tstate->interp->sysdict;
     CHECK_OBJECT(sys_dict);
 
-    DICT_SET_ITEM(tstate, sys_dict, const_str_plain_exc_type,
-                  exc_state->exception_type ? exc_state->exception_type : Py_None);
-    DICT_SET_ITEM(tstate, sys_dict, const_str_plain_exc_value,
-                  exc_state->exception_value ? exc_state->exception_value : Py_None);
-    DICT_SET_ITEM(tstate, sys_dict, const_str_plain_exc_traceback,
-                  exc_state->exception_tb ? (PyObject *)exc_state->exception_tb : Py_None);
+    DICT_SET_ITEM_INFALLIBLE(tstate, sys_dict, const_str_plain_exc_type,
+                             exc_state->exception_type ? exc_state->exception_type : Py_None);
+    DICT_SET_ITEM_INFALLIBLE(tstate, sys_dict, const_str_plain_exc_value,
+                             exc_state->exception_value ? exc_state->exception_value : Py_None);
+    DICT_SET_ITEM_INFALLIBLE(tstate, sys_dict, const_str_plain_exc_traceback,
+                             exc_state->exception_tb ? (PyObject *)exc_state->exception_tb : Py_None);
 
     if (exc_state->exception_type) {
         assert(Py_REFCNT(exc_state->exception_type) >= 2);

@@ -649,8 +649,7 @@ static void installBuiltinFrameFunction(PyThreadState *tstate, PyObject **origin
     PyObject *replacement = makeBuiltinFunctionReplacement(replacement_def, *original, method, flags);
     CHECK_OBJECT(replacement);
 
-    NUITKA_MAY_BE_UNUSED bool dict_res = DICT_SET_ITEM(tstate, (PyObject *)dict_builtin, name, replacement);
-    assert(dict_res != false);
+    DICT_SET_ITEM_INFALLIBLE(tstate, (PyObject *)dict_builtin, name, replacement);
     Py_DECREF(replacement);
 }
 

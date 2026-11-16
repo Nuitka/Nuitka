@@ -208,12 +208,7 @@ PyObject *EVAL_CODE(PyThreadState *tstate, PyObject *code, PyObject *globals, Py
         const int res = DICT_HAS_ITEM(tstate, globals, const_str_plain___builtins__);
 
         if (res == 0) {
-            if (DICT_SET_ITEM(tstate, globals, const_str_plain___builtins__, (PyObject *)builtin_module) == false) {
-                // Not really allowed to happen, so far this was seen only with
-                // C compilers getting the value of "res" wrong.
-                assert(false);
-                return NULL;
-            }
+            DICT_SET_ITEM_INFALLIBLE(tstate, globals, const_str_plain___builtins__, (PyObject *)builtin_module);
         }
     }
 

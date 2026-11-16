@@ -812,8 +812,7 @@ static unsigned char const *_unpackBlobConstantObjectDict(PyThreadState *tstate,
     CHECK_OBJECTS(&values[0], size);
 
     for (int i = 0; i < size; i++) {
-        NUITKA_MAY_BE_UNUSED bool res = DICT_SET_ITEM(tstate, d, keys[i], values[i]);
-        assert(res != false);
+        DICT_SET_ITEM_INFALLIBLE(tstate, d, keys[i], values[i]);
     }
 
     insertToDictCacheForcedHash(tstate, dict_cache, &d, (hashfunc)our_dict_hash, (richcmpfunc)our_dict_tp_richcompare);
@@ -843,8 +842,7 @@ static unsigned char const *_unpackBlobConstantObjectFrozendict(PyThreadState *t
         CHECK_OBJECTS(&values[0], size);
 
         for (int i = 0; i < size; i++) {
-            NUITKA_MAY_BE_UNUSED bool res = DICT_SET_ITEM(tstate, d, keys[i], values[i]);
-            assert(res != false);
+            DICT_SET_ITEM_INFALLIBLE(tstate, d, keys[i], values[i]);
         }
     }
 

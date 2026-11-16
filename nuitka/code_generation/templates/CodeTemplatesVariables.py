@@ -231,13 +231,11 @@ if (%(test_code)s) {
     PyObject *value;
 %(access_code)s
 
-    bool res = DICT_SET_ITEM(tstate,
+    DICT_SET_ITEM_INFALLIBLE(tstate,
         %(dict_name)s,
         %(var_name)s,
         value
     );
-
-    assert(res == true);
 }
 """
 
