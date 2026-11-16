@@ -10,6 +10,12 @@
 #include "nuitka/cpython_api_compat.h"
 #include "nuitka/defines.h"
 #include "nuitka/exceptions.h"
+#include "nuitka/helper/dictionaries.h"
+
+#if PYTHON_VERSION >= 0x3e0
+#include "internal/pycore_list.h"
+#include "internal/pycore_tuple.h"
+#endif
 #endif
 
 #if PYTHON_VERSION >= 0x270

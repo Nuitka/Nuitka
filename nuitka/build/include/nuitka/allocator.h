@@ -306,6 +306,15 @@ static inline void Nuitka_GC_UnTrack(void *raw_op) {
 #define Nuitka_GC_UnTrack _PyObject_GC_UNTRACK
 #endif
 
+#if PYTHON_VERSION >= 0x3e0 && PYTHON_VERSION < 0x3f0 && !defined(Py_GIL_DISABLED) &&                                  \
+    (_NUITKA_MODULE_MODE || PYTHON_VERSION < 0x3e5)
+// CPython 3.14 gives '_PyObject_GC_TRACK' and '_PyObject_GC_UNTRACK' file and
+// line arguments unless NDEBUG is defined, so headers that still call them
+// must reach the Nuitka replacements instead of the inline functions.
+#define _PyObject_GC_TRACK(op) Nuitka_GC_Track(_PyObject_CAST(op))
+#define _PyObject_GC_UNTRACK(op) Nuitka_GC_UnTrack(_PyObject_CAST(op))
+#endif
+
 // Python2.6 does not provide "_PyObject_GC_IS_TRACKED" or
 // "_PyObject_GC_MAY_BE_TRACKED" yet, but we want to use it.
 #if PYTHON_VERSION < 0x270 && !defined(_PyObject_GC_IS_TRACKED)
