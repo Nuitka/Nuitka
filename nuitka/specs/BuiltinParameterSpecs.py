@@ -852,8 +852,6 @@ def extractBuiltinArgs(node, builtin_spec, builtin_class, empty_special_class=No
             side_effects=node.extractSideEffectsPreCall(),
         )
 
-    # Using list reference for passing the arguments without names where it
-    # it possible, otherwise dictionary to make those distinguishable.
     args_list = []
 
     for argument_name in builtin_spec.getArgumentNames():
@@ -865,11 +863,14 @@ def extractBuiltinArgs(node, builtin_spec, builtin_class, empty_special_class=No
     if builtin_spec.getStarDictArgumentName() is not None:
         args_list.append(args_dict[builtin_spec.getStarDictArgumentName()] or ())
 
-    for argument_name in builtin_spec.getKwOnlyParameterNames():
-        args_list.append(args_dict[argument_name])
-
-    # Using list reference for passing the arguments without names,
-    result = builtin_class(*args_list, source_ref=node.getSourceReference())
+    result = builtin_class(
+        *args_list,
+        source_ref=node.getSourceReference(),
+        **dict(
+            (argument_name, args_dict[argument_name])
+            for argument_name in builtin_spec.getKwOnlyParameterNames()
+        )
+    )
 
     if python_version < 0x380:
         result.setCompatibleSourceReference(node.getCompatibleSourceReference())

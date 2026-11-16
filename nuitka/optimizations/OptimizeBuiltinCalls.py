@@ -401,9 +401,16 @@ def frozendict_extractor(node):
 
 
 def sentinel_extractor(node):
+    def createSentinelCall(name, source_ref, **kwargs):
+        return ExpressionBuiltinSentinelCall(
+            name=name,
+            repr_value=kwargs["repr"],
+            source_ref=source_ref,
+        )
+
     return BuiltinParameterSpecs.extractBuiltinArgs(
         node=node,
-        builtin_class=ExpressionBuiltinSentinelCall,
+        builtin_class=createSentinelCall,
         builtin_spec=BuiltinParameterSpecs.builtin_sentinel_spec,
     )
 
