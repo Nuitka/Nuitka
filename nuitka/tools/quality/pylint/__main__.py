@@ -136,7 +136,7 @@ Check files one by one. Default is %default.""",
         dest="not_installed_is_no_error",
         default=False,
         help="""\
-Insist on PyLint to be installed. Default is %default.""",
+Do not treat missing PyLint installation as an error. Default is %default.""",
     )
 
     parser.add_option(
