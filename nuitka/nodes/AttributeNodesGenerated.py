@@ -534,7 +534,11 @@ class ExpressionAttributeLookupListAppend(
             builtin_spec=list_append_spec,
         )
 
-        return result, "new_expression", "Call to 'append' of list recognized."
+        return trace_collection.computedExpressionResult(
+            expression=result,
+            change_tags="new_expression",
+            change_desc="Call to 'append' of list recognized.",
+        )
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
         return self._computeExpressionCall(
@@ -636,7 +640,11 @@ class ExpressionAttributeLookupStrCapitalize(
             builtin_spec=str_capitalize_spec,
         )
 
-        return result, "new_expression", "Call to 'capitalize' of str recognized."
+        return trace_collection.computedExpressionResult(
+            expression=result,
+            change_tags="new_expression",
+            change_desc="Call to 'capitalize' of str recognized.",
+        )
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
         return self._computeExpressionCall(
@@ -690,7 +698,11 @@ class ExpressionAttributeLookupBytesCapitalize(
             builtin_spec=bytes_capitalize_spec,
         )
 
-        return result, "new_expression", "Call to 'capitalize' of bytes recognized."
+        return trace_collection.computedExpressionResult(
+            expression=result,
+            change_tags="new_expression",
+            change_desc="Call to 'capitalize' of bytes recognized.",
+        )
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
         return self._computeExpressionCall(
@@ -782,7 +794,11 @@ class ExpressionAttributeLookupStrCasefold(
             builtin_spec=str_casefold_spec,
         )
 
-        return result, "new_expression", "Call to 'casefold' of str recognized."
+        return trace_collection.computedExpressionResult(
+            expression=result,
+            change_tags="new_expression",
+            change_desc="Call to 'casefold' of str recognized.",
+        )
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
         return self._computeExpressionCall(
@@ -892,7 +908,11 @@ class ExpressionAttributeLookupStrCenter(
             builtin_spec=str_center_spec,
         )
 
-        return result, "new_expression", "Call to 'center' of str recognized."
+        return trace_collection.computedExpressionResult(
+            expression=result,
+            change_tags="new_expression",
+            change_desc="Call to 'center' of str recognized.",
+        )
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
         return self._computeExpressionCall(
@@ -954,7 +974,11 @@ class ExpressionAttributeLookupBytesCenter(
             builtin_spec=bytes_center_spec,
         )
 
-        return result, "new_expression", "Call to 'center' of bytes recognized."
+        return trace_collection.computedExpressionResult(
+            expression=result,
+            change_tags="new_expression",
+            change_desc="Call to 'center' of bytes recognized.",
+        )
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
         return self._computeExpressionCall(
@@ -1121,7 +1145,11 @@ class ExpressionAttributeLookupListClear(
             builtin_spec=list_clear_spec,
         )
 
-        return result, "new_expression", "Call to 'clear' of list recognized."
+        return trace_collection.computedExpressionResult(
+            expression=result,
+            change_tags="new_expression",
+            change_desc="Call to 'clear' of list recognized.",
+        )
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
         return self._computeExpressionCall(
@@ -1284,7 +1312,11 @@ class ExpressionAttributeLookupListCopy(
             builtin_spec=list_copy_spec,
         )
 
-        return result, "new_expression", "Call to 'copy' of list recognized."
+        return trace_collection.computedExpressionResult(
+            expression=result,
+            change_tags="new_expression",
+            change_desc="Call to 'copy' of list recognized.",
+        )
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
         return self._computeExpressionCall(
@@ -1412,7 +1444,11 @@ class ExpressionAttributeLookupStrCount(
             builtin_spec=str_count_spec,
         )
 
-        return result, "new_expression", "Call to 'count' of str recognized."
+        return trace_collection.computedExpressionResult(
+            expression=result,
+            change_tags="new_expression",
+            change_desc="Call to 'count' of str recognized.",
+        )
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
         return self._computeExpressionCall(
@@ -1479,7 +1515,11 @@ class ExpressionAttributeLookupBytesCount(
             builtin_spec=bytes_count_spec,
         )
 
-        return result, "new_expression", "Call to 'count' of bytes recognized."
+        return trace_collection.computedExpressionResult(
+            expression=result,
+            change_tags="new_expression",
+            change_desc="Call to 'count' of bytes recognized.",
+        )
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
         return self._computeExpressionCall(
@@ -1534,7 +1574,11 @@ class ExpressionAttributeLookupListCount(
             builtin_spec=list_count_spec,
         )
 
-        return result, "new_expression", "Call to 'count' of list recognized."
+        return trace_collection.computedExpressionResult(
+            expression=result,
+            change_tags="new_expression",
+            change_desc="Call to 'count' of list recognized.",
+        )
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
         return self._computeExpressionCall(
@@ -1648,7 +1692,11 @@ class ExpressionAttributeLookupStrDecode(
             builtin_spec=str_decode_spec,
         )
 
-        return result, "new_expression", "Call to 'decode' of str recognized."
+        return trace_collection.computedExpressionResult(
+            expression=result,
+            change_tags="new_expression",
+            change_desc="Call to 'decode' of str recognized.",
+        )
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
         return self._computeExpressionCall(
@@ -1714,7 +1762,11 @@ class ExpressionAttributeLookupBytesDecode(
             builtin_spec=bytes_decode_spec,
         )
 
-        return result, "new_expression", "Call to 'decode' of bytes recognized."
+        return trace_collection.computedExpressionResult(
+            expression=result,
+            change_tags="new_expression",
+            change_desc="Call to 'decode' of bytes recognized.",
+        )
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
         return self._computeExpressionCall(
@@ -1818,7 +1870,11 @@ class ExpressionAttributeLookupStrEncode(
             builtin_spec=str_encode_spec,
         )
 
-        return result, "new_expression", "Call to 'encode' of str recognized."
+        return trace_collection.computedExpressionResult(
+            expression=result,
+            change_tags="new_expression",
+            change_desc="Call to 'encode' of str recognized.",
+        )
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
         return self._computeExpressionCall(
@@ -1933,7 +1989,11 @@ class ExpressionAttributeLookupStrEndswith(
             builtin_spec=str_endswith_spec,
         )
 
-        return result, "new_expression", "Call to 'endswith' of str recognized."
+        return trace_collection.computedExpressionResult(
+            expression=result,
+            change_tags="new_expression",
+            change_desc="Call to 'endswith' of str recognized.",
+        )
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
         return self._computeExpressionCall(
@@ -2003,7 +2063,11 @@ class ExpressionAttributeLookupBytesEndswith(
             builtin_spec=bytes_endswith_spec,
         )
 
-        return result, "new_expression", "Call to 'endswith' of bytes recognized."
+        return trace_collection.computedExpressionResult(
+            expression=result,
+            change_tags="new_expression",
+            change_desc="Call to 'endswith' of bytes recognized.",
+        )
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
         return self._computeExpressionCall(
@@ -2110,7 +2174,11 @@ class ExpressionAttributeLookupStrExpandtabs(
             builtin_spec=str_expandtabs_spec,
         )
 
-        return result, "new_expression", "Call to 'expandtabs' of str recognized."
+        return trace_collection.computedExpressionResult(
+            expression=result,
+            change_tags="new_expression",
+            change_desc="Call to 'expandtabs' of str recognized.",
+        )
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
         return self._computeExpressionCall(
@@ -2169,7 +2237,11 @@ class ExpressionAttributeLookupBytesExpandtabs(
             builtin_spec=bytes_expandtabs_spec,
         )
 
-        return result, "new_expression", "Call to 'expandtabs' of bytes recognized."
+        return trace_collection.computedExpressionResult(
+            expression=result,
+            change_tags="new_expression",
+            change_desc="Call to 'expandtabs' of bytes recognized.",
+        )
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
         return self._computeExpressionCall(
@@ -2267,7 +2339,11 @@ class ExpressionAttributeLookupListExtend(
             builtin_spec=list_extend_spec,
         )
 
-        return result, "new_expression", "Call to 'extend' of list recognized."
+        return trace_collection.computedExpressionResult(
+            expression=result,
+            change_tags="new_expression",
+            change_desc="Call to 'extend' of list recognized.",
+        )
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
         return self._computeExpressionCall(
@@ -2382,7 +2458,11 @@ class ExpressionAttributeLookupStrFind(
             builtin_spec=str_find_spec,
         )
 
-        return result, "new_expression", "Call to 'find' of str recognized."
+        return trace_collection.computedExpressionResult(
+            expression=result,
+            change_tags="new_expression",
+            change_desc="Call to 'find' of str recognized.",
+        )
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
         return self._computeExpressionCall(
@@ -2449,7 +2529,11 @@ class ExpressionAttributeLookupBytesFind(
             builtin_spec=bytes_find_spec,
         )
 
-        return result, "new_expression", "Call to 'find' of bytes recognized."
+        return trace_collection.computedExpressionResult(
+            expression=result,
+            change_tags="new_expression",
+            change_desc="Call to 'find' of bytes recognized.",
+        )
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
         return self._computeExpressionCall(
@@ -2544,7 +2628,11 @@ class ExpressionAttributeLookupStrFormat(
             builtin_spec=str_format_spec,
         )
 
-        return result, "new_expression", "Call to 'format' of str recognized."
+        return trace_collection.computedExpressionResult(
+            expression=result,
+            change_tags="new_expression",
+            change_desc="Call to 'format' of str recognized.",
+        )
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
         return self._computeExpressionCall(
@@ -3059,7 +3147,11 @@ class ExpressionAttributeLookupStrIndex(
             builtin_spec=str_index_spec,
         )
 
-        return result, "new_expression", "Call to 'index' of str recognized."
+        return trace_collection.computedExpressionResult(
+            expression=result,
+            change_tags="new_expression",
+            change_desc="Call to 'index' of str recognized.",
+        )
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
         return self._computeExpressionCall(
@@ -3126,7 +3218,11 @@ class ExpressionAttributeLookupBytesIndex(
             builtin_spec=bytes_index_spec,
         )
 
-        return result, "new_expression", "Call to 'index' of bytes recognized."
+        return trace_collection.computedExpressionResult(
+            expression=result,
+            change_tags="new_expression",
+            change_desc="Call to 'index' of bytes recognized.",
+        )
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
         return self._computeExpressionCall(
@@ -3194,7 +3290,11 @@ class ExpressionAttributeLookupListIndex(
             builtin_spec=list_index_spec,
         )
 
-        return result, "new_expression", "Call to 'index' of list recognized."
+        return trace_collection.computedExpressionResult(
+            expression=result,
+            change_tags="new_expression",
+            change_desc="Call to 'index' of list recognized.",
+        )
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
         return self._computeExpressionCall(
@@ -3292,7 +3392,11 @@ class ExpressionAttributeLookupListInsert(
             builtin_spec=list_insert_spec,
         )
 
-        return result, "new_expression", "Call to 'insert' of list recognized."
+        return trace_collection.computedExpressionResult(
+            expression=result,
+            change_tags="new_expression",
+            change_desc="Call to 'insert' of list recognized.",
+        )
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
         return self._computeExpressionCall(
@@ -3392,7 +3496,11 @@ class ExpressionAttributeLookupStrIsalnum(
             builtin_spec=str_isalnum_spec,
         )
 
-        return result, "new_expression", "Call to 'isalnum' of str recognized."
+        return trace_collection.computedExpressionResult(
+            expression=result,
+            change_tags="new_expression",
+            change_desc="Call to 'isalnum' of str recognized.",
+        )
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
         return self._computeExpressionCall(
@@ -3446,7 +3554,11 @@ class ExpressionAttributeLookupBytesIsalnum(
             builtin_spec=bytes_isalnum_spec,
         )
 
-        return result, "new_expression", "Call to 'isalnum' of bytes recognized."
+        return trace_collection.computedExpressionResult(
+            expression=result,
+            change_tags="new_expression",
+            change_desc="Call to 'isalnum' of bytes recognized.",
+        )
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
         return self._computeExpressionCall(
@@ -3546,7 +3658,11 @@ class ExpressionAttributeLookupStrIsalpha(
             builtin_spec=str_isalpha_spec,
         )
 
-        return result, "new_expression", "Call to 'isalpha' of str recognized."
+        return trace_collection.computedExpressionResult(
+            expression=result,
+            change_tags="new_expression",
+            change_desc="Call to 'isalpha' of str recognized.",
+        )
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
         return self._computeExpressionCall(
@@ -3600,7 +3716,11 @@ class ExpressionAttributeLookupBytesIsalpha(
             builtin_spec=bytes_isalpha_spec,
         )
 
-        return result, "new_expression", "Call to 'isalpha' of bytes recognized."
+        return trace_collection.computedExpressionResult(
+            expression=result,
+            change_tags="new_expression",
+            change_desc="Call to 'isalpha' of bytes recognized.",
+        )
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
         return self._computeExpressionCall(
@@ -3690,7 +3810,11 @@ class ExpressionAttributeLookupStrIsascii(
             builtin_spec=str_isascii_spec,
         )
 
-        return result, "new_expression", "Call to 'isascii' of str recognized."
+        return trace_collection.computedExpressionResult(
+            expression=result,
+            change_tags="new_expression",
+            change_desc="Call to 'isascii' of str recognized.",
+        )
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
         return self._computeExpressionCall(
@@ -3782,7 +3906,11 @@ class ExpressionAttributeLookupStrIsdecimal(
             builtin_spec=str_isdecimal_spec,
         )
 
-        return result, "new_expression", "Call to 'isdecimal' of str recognized."
+        return trace_collection.computedExpressionResult(
+            expression=result,
+            change_tags="new_expression",
+            change_desc="Call to 'isdecimal' of str recognized.",
+        )
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
         return self._computeExpressionCall(
@@ -3882,7 +4010,11 @@ class ExpressionAttributeLookupStrIsdigit(
             builtin_spec=str_isdigit_spec,
         )
 
-        return result, "new_expression", "Call to 'isdigit' of str recognized."
+        return trace_collection.computedExpressionResult(
+            expression=result,
+            change_tags="new_expression",
+            change_desc="Call to 'isdigit' of str recognized.",
+        )
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
         return self._computeExpressionCall(
@@ -3936,7 +4068,11 @@ class ExpressionAttributeLookupBytesIsdigit(
             builtin_spec=bytes_isdigit_spec,
         )
 
-        return result, "new_expression", "Call to 'isdigit' of bytes recognized."
+        return trace_collection.computedExpressionResult(
+            expression=result,
+            change_tags="new_expression",
+            change_desc="Call to 'isdigit' of bytes recognized.",
+        )
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
         return self._computeExpressionCall(
@@ -4028,7 +4164,11 @@ class ExpressionAttributeLookupStrIsidentifier(
             builtin_spec=str_isidentifier_spec,
         )
 
-        return result, "new_expression", "Call to 'isidentifier' of str recognized."
+        return trace_collection.computedExpressionResult(
+            expression=result,
+            change_tags="new_expression",
+            change_desc="Call to 'isidentifier' of str recognized.",
+        )
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
         return self._computeExpressionCall(
@@ -4128,7 +4268,11 @@ class ExpressionAttributeLookupStrIslower(
             builtin_spec=str_islower_spec,
         )
 
-        return result, "new_expression", "Call to 'islower' of str recognized."
+        return trace_collection.computedExpressionResult(
+            expression=result,
+            change_tags="new_expression",
+            change_desc="Call to 'islower' of str recognized.",
+        )
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
         return self._computeExpressionCall(
@@ -4182,7 +4326,11 @@ class ExpressionAttributeLookupBytesIslower(
             builtin_spec=bytes_islower_spec,
         )
 
-        return result, "new_expression", "Call to 'islower' of bytes recognized."
+        return trace_collection.computedExpressionResult(
+            expression=result,
+            change_tags="new_expression",
+            change_desc="Call to 'islower' of bytes recognized.",
+        )
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
         return self._computeExpressionCall(
@@ -4274,7 +4422,11 @@ class ExpressionAttributeLookupStrIsnumeric(
             builtin_spec=str_isnumeric_spec,
         )
 
-        return result, "new_expression", "Call to 'isnumeric' of str recognized."
+        return trace_collection.computedExpressionResult(
+            expression=result,
+            change_tags="new_expression",
+            change_desc="Call to 'isnumeric' of str recognized.",
+        )
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
         return self._computeExpressionCall(
@@ -4366,7 +4518,11 @@ class ExpressionAttributeLookupStrIsprintable(
             builtin_spec=str_isprintable_spec,
         )
 
-        return result, "new_expression", "Call to 'isprintable' of str recognized."
+        return trace_collection.computedExpressionResult(
+            expression=result,
+            change_tags="new_expression",
+            change_desc="Call to 'isprintable' of str recognized.",
+        )
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
         return self._computeExpressionCall(
@@ -4466,7 +4622,11 @@ class ExpressionAttributeLookupStrIsspace(
             builtin_spec=str_isspace_spec,
         )
 
-        return result, "new_expression", "Call to 'isspace' of str recognized."
+        return trace_collection.computedExpressionResult(
+            expression=result,
+            change_tags="new_expression",
+            change_desc="Call to 'isspace' of str recognized.",
+        )
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
         return self._computeExpressionCall(
@@ -4520,7 +4680,11 @@ class ExpressionAttributeLookupBytesIsspace(
             builtin_spec=bytes_isspace_spec,
         )
 
-        return result, "new_expression", "Call to 'isspace' of bytes recognized."
+        return trace_collection.computedExpressionResult(
+            expression=result,
+            change_tags="new_expression",
+            change_desc="Call to 'isspace' of bytes recognized.",
+        )
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
         return self._computeExpressionCall(
@@ -4620,7 +4784,11 @@ class ExpressionAttributeLookupStrIstitle(
             builtin_spec=str_istitle_spec,
         )
 
-        return result, "new_expression", "Call to 'istitle' of str recognized."
+        return trace_collection.computedExpressionResult(
+            expression=result,
+            change_tags="new_expression",
+            change_desc="Call to 'istitle' of str recognized.",
+        )
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
         return self._computeExpressionCall(
@@ -4674,7 +4842,11 @@ class ExpressionAttributeLookupBytesIstitle(
             builtin_spec=bytes_istitle_spec,
         )
 
-        return result, "new_expression", "Call to 'istitle' of bytes recognized."
+        return trace_collection.computedExpressionResult(
+            expression=result,
+            change_tags="new_expression",
+            change_desc="Call to 'istitle' of bytes recognized.",
+        )
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
         return self._computeExpressionCall(
@@ -4774,7 +4946,11 @@ class ExpressionAttributeLookupStrIsupper(
             builtin_spec=str_isupper_spec,
         )
 
-        return result, "new_expression", "Call to 'isupper' of str recognized."
+        return trace_collection.computedExpressionResult(
+            expression=result,
+            change_tags="new_expression",
+            change_desc="Call to 'isupper' of str recognized.",
+        )
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
         return self._computeExpressionCall(
@@ -4828,7 +5004,11 @@ class ExpressionAttributeLookupBytesIsupper(
             builtin_spec=bytes_isupper_spec,
         )
 
-        return result, "new_expression", "Call to 'isupper' of bytes recognized."
+        return trace_collection.computedExpressionResult(
+            expression=result,
+            change_tags="new_expression",
+            change_desc="Call to 'isupper' of bytes recognized.",
+        )
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
         return self._computeExpressionCall(
@@ -5327,7 +5507,11 @@ class ExpressionAttributeLookupStrJoin(
             builtin_spec=str_join_spec,
         )
 
-        return result, "new_expression", "Call to 'join' of str recognized."
+        return trace_collection.computedExpressionResult(
+            expression=result,
+            change_tags="new_expression",
+            change_desc="Call to 'join' of str recognized.",
+        )
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
         return self._computeExpressionCall(
@@ -5381,7 +5565,11 @@ class ExpressionAttributeLookupBytesJoin(
             builtin_spec=bytes_join_spec,
         )
 
-        return result, "new_expression", "Call to 'join' of bytes recognized."
+        return trace_collection.computedExpressionResult(
+            expression=result,
+            change_tags="new_expression",
+            change_desc="Call to 'join' of bytes recognized.",
+        )
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
         return self._computeExpressionCall(
@@ -5594,7 +5782,11 @@ class ExpressionAttributeLookupStrLjust(
             builtin_spec=str_ljust_spec,
         )
 
-        return result, "new_expression", "Call to 'ljust' of str recognized."
+        return trace_collection.computedExpressionResult(
+            expression=result,
+            change_tags="new_expression",
+            change_desc="Call to 'ljust' of str recognized.",
+        )
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
         return self._computeExpressionCall(
@@ -5656,7 +5848,11 @@ class ExpressionAttributeLookupBytesLjust(
             builtin_spec=bytes_ljust_spec,
         )
 
-        return result, "new_expression", "Call to 'ljust' of bytes recognized."
+        return trace_collection.computedExpressionResult(
+            expression=result,
+            change_tags="new_expression",
+            change_desc="Call to 'ljust' of bytes recognized.",
+        )
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
         return self._computeExpressionCall(
@@ -5756,7 +5952,11 @@ class ExpressionAttributeLookupStrLower(
             builtin_spec=str_lower_spec,
         )
 
-        return result, "new_expression", "Call to 'lower' of str recognized."
+        return trace_collection.computedExpressionResult(
+            expression=result,
+            change_tags="new_expression",
+            change_desc="Call to 'lower' of str recognized.",
+        )
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
         return self._computeExpressionCall(
@@ -5810,7 +6010,11 @@ class ExpressionAttributeLookupBytesLower(
             builtin_spec=bytes_lower_spec,
         )
 
-        return result, "new_expression", "Call to 'lower' of bytes recognized."
+        return trace_collection.computedExpressionResult(
+            expression=result,
+            change_tags="new_expression",
+            change_desc="Call to 'lower' of bytes recognized.",
+        )
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
         return self._computeExpressionCall(
@@ -5917,7 +6121,11 @@ class ExpressionAttributeLookupStrLstrip(
             builtin_spec=str_lstrip_spec,
         )
 
-        return result, "new_expression", "Call to 'lstrip' of str recognized."
+        return trace_collection.computedExpressionResult(
+            expression=result,
+            change_tags="new_expression",
+            change_desc="Call to 'lstrip' of str recognized.",
+        )
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
         return self._computeExpressionCall(
@@ -5976,7 +6184,11 @@ class ExpressionAttributeLookupBytesLstrip(
             builtin_spec=bytes_lstrip_spec,
         )
 
-        return result, "new_expression", "Call to 'lstrip' of bytes recognized."
+        return trace_collection.computedExpressionResult(
+            expression=result,
+            change_tags="new_expression",
+            change_desc="Call to 'lstrip' of bytes recognized.",
+        )
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
         return self._computeExpressionCall(
@@ -6134,7 +6346,11 @@ class ExpressionAttributeLookupStrPartition(
             builtin_spec=str_partition_spec,
         )
 
-        return result, "new_expression", "Call to 'partition' of str recognized."
+        return trace_collection.computedExpressionResult(
+            expression=result,
+            change_tags="new_expression",
+            change_desc="Call to 'partition' of str recognized.",
+        )
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
         return self._computeExpressionCall(
@@ -6188,7 +6404,11 @@ class ExpressionAttributeLookupBytesPartition(
             builtin_spec=bytes_partition_spec,
         )
 
-        return result, "new_expression", "Call to 'partition' of bytes recognized."
+        return trace_collection.computedExpressionResult(
+            expression=result,
+            change_tags="new_expression",
+            change_desc="Call to 'partition' of bytes recognized.",
+        )
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
         return self._computeExpressionCall(
@@ -6379,7 +6599,11 @@ class ExpressionAttributeLookupListPop(
             builtin_spec=list_pop_spec,
         )
 
-        return result, "new_expression", "Call to 'pop' of list recognized."
+        return trace_collection.computedExpressionResult(
+            expression=result,
+            change_tags="new_expression",
+            change_desc="Call to 'pop' of list recognized.",
+        )
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
         return self._computeExpressionCall(
@@ -6577,7 +6801,11 @@ class ExpressionAttributeLookupListRemove(
             builtin_spec=list_remove_spec,
         )
 
-        return result, "new_expression", "Call to 'remove' of list recognized."
+        return trace_collection.computedExpressionResult(
+            expression=result,
+            change_tags="new_expression",
+            change_desc="Call to 'remove' of list recognized.",
+        )
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
         return self._computeExpressionCall(
@@ -6688,7 +6916,11 @@ class ExpressionAttributeLookupStrReplace(
             builtin_spec=str_replace_spec,
         )
 
-        return result, "new_expression", "Call to 'replace' of str recognized."
+        return trace_collection.computedExpressionResult(
+            expression=result,
+            change_tags="new_expression",
+            change_desc="Call to 'replace' of str recognized.",
+        )
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
         return self._computeExpressionCall(
@@ -6751,7 +6983,11 @@ class ExpressionAttributeLookupBytesReplace(
             builtin_spec=bytes_replace_spec,
         )
 
-        return result, "new_expression", "Call to 'replace' of bytes recognized."
+        return trace_collection.computedExpressionResult(
+            expression=result,
+            change_tags="new_expression",
+            change_desc="Call to 'replace' of bytes recognized.",
+        )
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
         return self._computeExpressionCall(
@@ -6849,7 +7085,11 @@ class ExpressionAttributeLookupListReverse(
             builtin_spec=list_reverse_spec,
         )
 
-        return result, "new_expression", "Call to 'reverse' of list recognized."
+        return trace_collection.computedExpressionResult(
+            expression=result,
+            change_tags="new_expression",
+            change_desc="Call to 'reverse' of list recognized.",
+        )
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
         return self._computeExpressionCall(
@@ -6964,7 +7204,11 @@ class ExpressionAttributeLookupStrRfind(
             builtin_spec=str_rfind_spec,
         )
 
-        return result, "new_expression", "Call to 'rfind' of str recognized."
+        return trace_collection.computedExpressionResult(
+            expression=result,
+            change_tags="new_expression",
+            change_desc="Call to 'rfind' of str recognized.",
+        )
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
         return self._computeExpressionCall(
@@ -7031,7 +7275,11 @@ class ExpressionAttributeLookupBytesRfind(
             builtin_spec=bytes_rfind_spec,
         )
 
-        return result, "new_expression", "Call to 'rfind' of bytes recognized."
+        return trace_collection.computedExpressionResult(
+            expression=result,
+            change_tags="new_expression",
+            change_desc="Call to 'rfind' of bytes recognized.",
+        )
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
         return self._computeExpressionCall(
@@ -7146,7 +7394,11 @@ class ExpressionAttributeLookupStrRindex(
             builtin_spec=str_rindex_spec,
         )
 
-        return result, "new_expression", "Call to 'rindex' of str recognized."
+        return trace_collection.computedExpressionResult(
+            expression=result,
+            change_tags="new_expression",
+            change_desc="Call to 'rindex' of str recognized.",
+        )
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
         return self._computeExpressionCall(
@@ -7213,7 +7465,11 @@ class ExpressionAttributeLookupBytesRindex(
             builtin_spec=bytes_rindex_spec,
         )
 
-        return result, "new_expression", "Call to 'rindex' of bytes recognized."
+        return trace_collection.computedExpressionResult(
+            expression=result,
+            change_tags="new_expression",
+            change_desc="Call to 'rindex' of bytes recognized.",
+        )
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
         return self._computeExpressionCall(
@@ -7323,7 +7579,11 @@ class ExpressionAttributeLookupStrRjust(
             builtin_spec=str_rjust_spec,
         )
 
-        return result, "new_expression", "Call to 'rjust' of str recognized."
+        return trace_collection.computedExpressionResult(
+            expression=result,
+            change_tags="new_expression",
+            change_desc="Call to 'rjust' of str recognized.",
+        )
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
         return self._computeExpressionCall(
@@ -7385,7 +7645,11 @@ class ExpressionAttributeLookupBytesRjust(
             builtin_spec=bytes_rjust_spec,
         )
 
-        return result, "new_expression", "Call to 'rjust' of bytes recognized."
+        return trace_collection.computedExpressionResult(
+            expression=result,
+            change_tags="new_expression",
+            change_desc="Call to 'rjust' of bytes recognized.",
+        )
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
         return self._computeExpressionCall(
@@ -7487,7 +7751,11 @@ class ExpressionAttributeLookupStrRpartition(
             builtin_spec=str_rpartition_spec,
         )
 
-        return result, "new_expression", "Call to 'rpartition' of str recognized."
+        return trace_collection.computedExpressionResult(
+            expression=result,
+            change_tags="new_expression",
+            change_desc="Call to 'rpartition' of str recognized.",
+        )
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
         return self._computeExpressionCall(
@@ -7541,7 +7809,11 @@ class ExpressionAttributeLookupBytesRpartition(
             builtin_spec=bytes_rpartition_spec,
         )
 
-        return result, "new_expression", "Call to 'rpartition' of bytes recognized."
+        return trace_collection.computedExpressionResult(
+            expression=result,
+            change_tags="new_expression",
+            change_desc="Call to 'rpartition' of bytes recognized.",
+        )
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
         return self._computeExpressionCall(
@@ -7652,7 +7924,11 @@ class ExpressionAttributeLookupStrRsplit(
             builtin_spec=str_rsplit_spec,
         )
 
-        return result, "new_expression", "Call to 'rsplit' of str recognized."
+        return trace_collection.computedExpressionResult(
+            expression=result,
+            change_tags="new_expression",
+            change_desc="Call to 'rsplit' of str recognized.",
+        )
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
         return self._computeExpressionCall(
@@ -7718,7 +7994,11 @@ class ExpressionAttributeLookupBytesRsplit(
             builtin_spec=bytes_rsplit_spec,
         )
 
-        return result, "new_expression", "Call to 'rsplit' of bytes recognized."
+        return trace_collection.computedExpressionResult(
+            expression=result,
+            change_tags="new_expression",
+            change_desc="Call to 'rsplit' of bytes recognized.",
+        )
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
         return self._computeExpressionCall(
@@ -7825,7 +8105,11 @@ class ExpressionAttributeLookupStrRstrip(
             builtin_spec=str_rstrip_spec,
         )
 
-        return result, "new_expression", "Call to 'rstrip' of str recognized."
+        return trace_collection.computedExpressionResult(
+            expression=result,
+            change_tags="new_expression",
+            change_desc="Call to 'rstrip' of str recognized.",
+        )
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
         return self._computeExpressionCall(
@@ -7884,7 +8168,11 @@ class ExpressionAttributeLookupBytesRstrip(
             builtin_spec=bytes_rstrip_spec,
         )
 
-        return result, "new_expression", "Call to 'rstrip' of bytes recognized."
+        return trace_collection.computedExpressionResult(
+            expression=result,
+            change_tags="new_expression",
+            change_desc="Call to 'rstrip' of bytes recognized.",
+        )
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
         return self._computeExpressionCall(
@@ -8161,7 +8449,11 @@ class ExpressionAttributeLookupStrSplit(
             builtin_spec=str_split_spec,
         )
 
-        return result, "new_expression", "Call to 'split' of str recognized."
+        return trace_collection.computedExpressionResult(
+            expression=result,
+            change_tags="new_expression",
+            change_desc="Call to 'split' of str recognized.",
+        )
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
         return self._computeExpressionCall(
@@ -8227,7 +8519,11 @@ class ExpressionAttributeLookupBytesSplit(
             builtin_spec=bytes_split_spec,
         )
 
-        return result, "new_expression", "Call to 'split' of bytes recognized."
+        return trace_collection.computedExpressionResult(
+            expression=result,
+            change_tags="new_expression",
+            change_desc="Call to 'split' of bytes recognized.",
+        )
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
         return self._computeExpressionCall(
@@ -8334,7 +8630,11 @@ class ExpressionAttributeLookupStrSplitlines(
             builtin_spec=str_splitlines_spec,
         )
 
-        return result, "new_expression", "Call to 'splitlines' of str recognized."
+        return trace_collection.computedExpressionResult(
+            expression=result,
+            change_tags="new_expression",
+            change_desc="Call to 'splitlines' of str recognized.",
+        )
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
         return self._computeExpressionCall(
@@ -8393,7 +8693,11 @@ class ExpressionAttributeLookupBytesSplitlines(
             builtin_spec=bytes_splitlines_spec,
         )
 
-        return result, "new_expression", "Call to 'splitlines' of bytes recognized."
+        return trace_collection.computedExpressionResult(
+            expression=result,
+            change_tags="new_expression",
+            change_desc="Call to 'splitlines' of bytes recognized.",
+        )
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
         return self._computeExpressionCall(
@@ -8508,7 +8812,11 @@ class ExpressionAttributeLookupStrStartswith(
             builtin_spec=str_startswith_spec,
         )
 
-        return result, "new_expression", "Call to 'startswith' of str recognized."
+        return trace_collection.computedExpressionResult(
+            expression=result,
+            change_tags="new_expression",
+            change_desc="Call to 'startswith' of str recognized.",
+        )
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
         return self._computeExpressionCall(
@@ -8578,7 +8886,11 @@ class ExpressionAttributeLookupBytesStartswith(
             builtin_spec=bytes_startswith_spec,
         )
 
-        return result, "new_expression", "Call to 'startswith' of bytes recognized."
+        return trace_collection.computedExpressionResult(
+            expression=result,
+            change_tags="new_expression",
+            change_desc="Call to 'startswith' of bytes recognized.",
+        )
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
         return self._computeExpressionCall(
@@ -8685,7 +8997,11 @@ class ExpressionAttributeLookupStrStrip(
             builtin_spec=str_strip_spec,
         )
 
-        return result, "new_expression", "Call to 'strip' of str recognized."
+        return trace_collection.computedExpressionResult(
+            expression=result,
+            change_tags="new_expression",
+            change_desc="Call to 'strip' of str recognized.",
+        )
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
         return self._computeExpressionCall(
@@ -8744,7 +9060,11 @@ class ExpressionAttributeLookupBytesStrip(
             builtin_spec=bytes_strip_spec,
         )
 
-        return result, "new_expression", "Call to 'strip' of bytes recognized."
+        return trace_collection.computedExpressionResult(
+            expression=result,
+            change_tags="new_expression",
+            change_desc="Call to 'strip' of bytes recognized.",
+        )
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
         return self._computeExpressionCall(
@@ -8846,7 +9166,11 @@ class ExpressionAttributeLookupStrSwapcase(
             builtin_spec=str_swapcase_spec,
         )
 
-        return result, "new_expression", "Call to 'swapcase' of str recognized."
+        return trace_collection.computedExpressionResult(
+            expression=result,
+            change_tags="new_expression",
+            change_desc="Call to 'swapcase' of str recognized.",
+        )
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
         return self._computeExpressionCall(
@@ -8900,7 +9224,11 @@ class ExpressionAttributeLookupBytesSwapcase(
             builtin_spec=bytes_swapcase_spec,
         )
 
-        return result, "new_expression", "Call to 'swapcase' of bytes recognized."
+        return trace_collection.computedExpressionResult(
+            expression=result,
+            change_tags="new_expression",
+            change_desc="Call to 'swapcase' of bytes recognized.",
+        )
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
         return self._computeExpressionCall(
@@ -9000,7 +9328,11 @@ class ExpressionAttributeLookupStrTitle(
             builtin_spec=str_title_spec,
         )
 
-        return result, "new_expression", "Call to 'title' of str recognized."
+        return trace_collection.computedExpressionResult(
+            expression=result,
+            change_tags="new_expression",
+            change_desc="Call to 'title' of str recognized.",
+        )
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
         return self._computeExpressionCall(
@@ -9054,7 +9386,11 @@ class ExpressionAttributeLookupBytesTitle(
             builtin_spec=bytes_title_spec,
         )
 
-        return result, "new_expression", "Call to 'title' of bytes recognized."
+        return trace_collection.computedExpressionResult(
+            expression=result,
+            change_tags="new_expression",
+            change_desc="Call to 'title' of bytes recognized.",
+        )
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
         return self._computeExpressionCall(
@@ -9178,7 +9514,11 @@ class ExpressionAttributeLookupStrTranslate(
             builtin_spec=builtin_spec,
         )
 
-        return result, "new_expression", "Call to 'translate' of str recognized."
+        return trace_collection.computedExpressionResult(
+            expression=result,
+            change_tags="new_expression",
+            change_desc="Call to 'translate' of str recognized.",
+        )
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
         return self._computeExpressionCall(
@@ -9240,7 +9580,11 @@ class ExpressionAttributeLookupBytesTranslate(
             builtin_spec=bytes_translate_spec,
         )
 
-        return result, "new_expression", "Call to 'translate' of bytes recognized."
+        return trace_collection.computedExpressionResult(
+            expression=result,
+            change_tags="new_expression",
+            change_desc="Call to 'translate' of bytes recognized.",
+        )
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
         return self._computeExpressionCall(
@@ -9452,7 +9796,11 @@ class ExpressionAttributeLookupStrUpper(
             builtin_spec=str_upper_spec,
         )
 
-        return result, "new_expression", "Call to 'upper' of str recognized."
+        return trace_collection.computedExpressionResult(
+            expression=result,
+            change_tags="new_expression",
+            change_desc="Call to 'upper' of str recognized.",
+        )
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
         return self._computeExpressionCall(
@@ -9506,7 +9854,11 @@ class ExpressionAttributeLookupBytesUpper(
             builtin_spec=bytes_upper_spec,
         )
 
-        return result, "new_expression", "Call to 'upper' of bytes recognized."
+        return trace_collection.computedExpressionResult(
+            expression=result,
+            change_tags="new_expression",
+            change_desc="Call to 'upper' of bytes recognized.",
+        )
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
         return self._computeExpressionCall(
@@ -10005,7 +10357,11 @@ class ExpressionAttributeLookupStrZfill(
             builtin_spec=str_zfill_spec,
         )
 
-        return result, "new_expression", "Call to 'zfill' of str recognized."
+        return trace_collection.computedExpressionResult(
+            expression=result,
+            change_tags="new_expression",
+            change_desc="Call to 'zfill' of str recognized.",
+        )
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
         return self._computeExpressionCall(
@@ -10059,7 +10415,11 @@ class ExpressionAttributeLookupBytesZfill(
             builtin_spec=bytes_zfill_spec,
         )
 
-        return result, "new_expression", "Call to 'zfill' of bytes recognized."
+        return trace_collection.computedExpressionResult(
+            expression=result,
+            change_tags="new_expression",
+            change_desc="Call to 'zfill' of bytes recognized.",
+        )
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
         return self._computeExpressionCall(

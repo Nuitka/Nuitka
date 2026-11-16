@@ -450,7 +450,11 @@ class ExpressionAttributeLookupStr{{attribute_name_class}}(SideEffectsFromChildr
 {% endif %}
         )
 
-        return result, "new_expression", "Call to '{{attribute_name}}' of str recognized."
+        return trace_collection.computedExpressionResult(
+            expression=result,
+            change_tags="new_expression",
+            change_desc="Call to '{{attribute_name}}' of str recognized.",
+        )
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
         return self._computeExpressionCall(call_node, self.subnode_expression, trace_collection)
@@ -508,16 +512,6 @@ class ExpressionAttributeLookupBytes{{attribute_name_class}}(SideEffectsFromChil
     @staticmethod
     def _computeExpressionCall(call_node, bytes_arg, trace_collection):
         def wrapExpressionBytesOperation{{attribute_name_class}}({{formatArgs(bytes_operation_args, starting=True, finishing=False)}} source_ref):
-{% if python3_operation_name %}
-            if str is bytes:
-                return ExpressionBytesOperation{{attribute_name_class}}(
-                    bytes_arg=bytes_arg, source_ref=source_ref
-                )
-            else:
-                return ExpressionBytesOperation{{python3_operation_name.title()}}(
-                    bytes_arg=bytes_arg, source_ref=source_ref
-                )
-{% else %}
 {% if bytes_operation_variation %}
 {% for count in reversed(bytes_operation_variation[1:]) %}
             {{"if" if count == bytes_operation_variation[-1] else "elif"}} {{bytes_operation_args[count-1]}} {{bytes_operation_arg_tests[count-1]}}:
@@ -535,7 +529,6 @@ class ExpressionAttributeLookupBytes{{attribute_name_class}}(SideEffectsFromChil
                 bytes_arg=bytes_arg {{formatCallArgs(bytes_operation_node_arg_mapping, bytes_operation_args, starting=False)}}, source_ref=source_ref
             )
 {% endif %}
-{% endif %}
 
         trace_collection.onExceptionRaiseExit(BaseException)
 
@@ -545,7 +538,11 @@ class ExpressionAttributeLookupBytes{{attribute_name_class}}(SideEffectsFromChil
             builtin_spec=bytes_{{attribute_name}}_spec,
         )
 
-        return result, "new_expression", "Call to '{{attribute_name}}' of bytes recognized."
+        return trace_collection.computedExpressionResult(
+            expression=result,
+            change_tags="new_expression",
+            change_desc="Call to '{{attribute_name}}' of bytes recognized.",
+        )
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
         return self._computeExpressionCall(call_node, self.subnode_expression, trace_collection)
@@ -576,10 +573,6 @@ attribute_typed_classes.add(ExpressionAttributeLookupBytes{{attribute_name_class
 
 {% if list_operation_version_presence %}
 from nuitka.specs.BuiltinListOperationSpecs import list_{{attribute_name}}_spec
-{% if python3_operation_name %}
-from .ListOperationNodes import ExpressionListOperation{{attribute_name_class}}
-from .ListOperationNodes import ExpressionListOperation{{python3_operation_name.title()}}
-{% else %}
 {% if list_operation_variation %}
 {% for count in reversed(list_operation_variation[1:]) %}
 from .ListOperationNodes import ExpressionListOperation{{attribute_name_class}}{{count+1}}
@@ -587,7 +580,6 @@ from .ListOperationNodes import ExpressionListOperation{{attribute_name_class}}{
 from .ListOperationNodes import ExpressionListOperation{{attribute_name_class}}{{list_operation_variation[0]+1}}
 {% else %}
 from .ListOperationNodes import ExpressionListOperation{{attribute_name_class}}
-{% endif %}
 {% endif %}
 {% endif %}
 
@@ -611,16 +603,6 @@ class ExpressionAttributeLookupList{{attribute_name_class}}(SideEffectsFromChild
     @staticmethod
     def _computeExpressionCall(call_node, list_arg, trace_collection):
         def wrapExpressionListOperation{{attribute_name_class}}({{formatArgs(list_operation_args, starting=True, finishing=False)}} source_ref):
-{% if python3_operation_name %}
-            if str is bytes:
-                return ExpressionListOperation{{attribute_name_class}}(
-                    list_arg=list_arg, source_ref=source_ref
-                )
-            else:
-                return ExpressionListOperation{{python3_operation_name.title()}}(
-                    list_arg=list_arg, source_ref=source_ref
-                )
-{% else %}
 {% if list_operation_variation %}
 {% for count in reversed(list_operation_variation[1:]) %}
             {{"if" if count == list_operation_variation[-1] else "elif"}} {{list_operation_args[count-1]}} {{list_operation_arg_tests[count-1]}}:
@@ -638,7 +620,6 @@ class ExpressionAttributeLookupList{{attribute_name_class}}(SideEffectsFromChild
                 list_arg=list_arg {{formatCallArgs(list_operation_node_arg_mapping, list_operation_args, starting=False)}}, source_ref=source_ref
             )
 {% endif %}
-{% endif %}
 
         trace_collection.onExceptionRaiseExit(BaseException)
         call_node.onContentEscapes(trace_collection)
@@ -649,7 +630,11 @@ class ExpressionAttributeLookupList{{attribute_name_class}}(SideEffectsFromChild
             builtin_spec=list_{{attribute_name}}_spec,
         )
 
-        return result, "new_expression", "Call to '{{attribute_name}}' of list recognized."
+        return trace_collection.computedExpressionResult(
+            expression=result,
+            change_tags="new_expression",
+            change_desc="Call to '{{attribute_name}}' of list recognized.",
+        )
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
         return self._computeExpressionCall(call_node, self.subnode_expression, trace_collection)
@@ -702,16 +687,6 @@ class ExpressionAttributeLookupType{{attribute_name_class}}(SideEffectsFromChild
     @staticmethod
     def _computeExpressionCall(call_node, type_arg, trace_collection):
         def wrapExpressionTypeOperation{{attribute_name_class}}({{formatArgs(type_operation_args, starting=True, finishing=False)}} source_ref):
-{% if python3_operation_name %}
-            if str is bytes:
-                return ExpressionTypeOperation{{attribute_name_class}}(
-                    type_arg=type_arg, source_ref=source_ref
-                )
-            else:
-                return ExpressionTypeOperation{{python3_operation_name.title()}}(
-                    type_arg=type_arg, source_ref=source_ref
-                )
-{% else %}
 {% if type_operation_variation %}
 {% for count in reversed(type_operation_variation[1:]) %}
             {{"if" if count == type_operation_variation[-1] else "elif"}} {{type_operation_args[count-1]}} {{type_operation_arg_tests[count-1]}}:
@@ -732,7 +707,6 @@ class ExpressionAttributeLookupType{{attribute_name_class}}(SideEffectsFromChild
             return {{translateNodeClassName("ExpressionTypeOperation" + attribute_name_class)}}(
                 type_arg=type_arg {{formatCallArgs(type_operation_node_arg_mapping, type_operation_args, starting=False)}}, source_ref=source_ref
             )
-{% endif %}
 {% endif %}
 
         trace_collection.onExceptionRaiseExit(BaseException)

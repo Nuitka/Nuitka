@@ -120,6 +120,9 @@ class ExpressionListOperationCount(
     # TODO: With list tracing, the size of the list should be a worthwhile first goal.
     # TODO: Is not no_raise
 
+    def computeExpression(self, trace_collection):
+        return self, None, None
+
 
 class ExpressionListOperationExtend(
     ChildrenExpressionListOperationExtendMixin, ExpressionBase

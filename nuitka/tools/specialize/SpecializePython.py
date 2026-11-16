@@ -937,8 +937,7 @@ from .Checkers import (
                 for value in children_mixins_intentions[mixin_name]
                 if (
                     not value.endswith("Base")
-                    or value.rstrip("Base")
-                    not in children_mixins_intentions[mixin_name]
+                    or value[:-4] not in children_mixins_intentions[mixin_name]
                 )
             ]
             intended_for.sort()
