@@ -1915,6 +1915,19 @@ def setupCCompiler(env, pgo_mode, exe_target, onefile_compile):
     if (env.gcc_mode or env.zig_mode) and not env.clang_mode:
         env.Append(CCFLAGS=["-Wno-psabi"])  # spell-checker: ignore psabi
 
+    # GCC bug 105585 makes "-Wstringop-overflow" warn about the NULL branch it
+    # creates for atomic operations, which free-threaded CPython uses for
+    # reference counts.
+    if (
+        not env.gil_mode
+        and not env.warn_error_mode
+        and env.gcc_mode
+        and not env.clang_mode
+        and isGccName(env.the_cc_name)
+        and env.gcc_version >= (7,)
+    ):
+        env.Append(CCFLAGS=["-Wno-stringop-overflow"])
+
     # Prevent using LTO when told not to use it, causes errors with some
     # static link libraries.
     if (
