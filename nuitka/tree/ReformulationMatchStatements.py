@@ -10,7 +10,6 @@ source code comments with Developer Manual sections.
 
 import ast
 
-from nuitka.nodes.AttributeNodes import ExpressionAttributeCheck
 from nuitka.nodes.BuiltinDictNodes import ExpressionBuiltinDict
 from nuitka.nodes.BuiltinLenNodes import ExpressionBuiltinLen
 from nuitka.nodes.BuiltinTypeNodes import ExpressionBuiltinList
@@ -482,9 +481,7 @@ def _buildMatchClass(provider, pattern, make_against, source_ref):
         class_conditions_list.append(item_conditions)
         class_assignments_list.append(item_assignments)
 
-    for count, (key, kwd_pattern) in enumerate(
-        zip(pattern.kwd_attrs, pattern.kwd_patterns)
-    ):
+    for count, kwd_pattern in enumerate(pattern.kwd_patterns):
         # It's called before return, pylint: disable=cell-var-from-loop
         item_conditions, item_assignments = _buildMatch(
             provider=provider,
@@ -500,19 +497,6 @@ def _buildMatchClass(provider, pattern, make_against, source_ref):
             pattern=kwd_pattern,
             source_ref=source_ref,
         )
-
-        item_conditions = list(item_conditions or ())
-
-        item_conditions.insert(
-            0,
-            ExpressionAttributeCheck(
-                expression=make_against(),
-                attribute_name=key,
-                source_ref=source_ref,
-            ),
-        )
-
-        item_conditions = tuple(item_conditions)
 
         class_conditions_list.append(item_conditions)
         class_assignments_list.append(item_assignments)
