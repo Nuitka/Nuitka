@@ -601,6 +601,10 @@ def runScons(
         # Pass quiet setting to scons via environment variable.
         env_values["NUITKA_QUIET"] = "1" if isQuiet() else "0"
 
+        # Scons is not (yet) free-threading safe, and with a free-threaded Python it
+        # gives sporadic errors during parallel builds.
+        env_values["PYTHON_GIL"] = "1"
+
         if isShowScons():
             env_values["NUITKA_SCONS_CHECK_MSVC_CACHE"] = "1"
 
