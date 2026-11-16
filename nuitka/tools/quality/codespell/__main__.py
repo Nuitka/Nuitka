@@ -32,6 +32,12 @@ replacements = [
 ]
 
 
+def _isIgnoredFile(filename):
+    path_parts = os.path.normpath(filename).split(os.path.sep)
+
+    return "inline_copy" in path_parts
+
+
 def _isSpellcheckerIgnoringFile(filename):
     return "spell-checker: disable" in getFileContents(filename)
 
@@ -209,10 +215,14 @@ Allow download and execution of tools if needed. Default is %default.""",
     )
 
     filenames = [
-        filename for filename in filenames if not _isSpellcheckerIgnoringFile(filename)
+        filename
+        for filename in filenames
+        if not _isIgnoredFile(filename)
+        if not _isSpellcheckerIgnoringFile(filename)
     ]
     if not filenames:
-        sys.exit("No files found.")
+        tools_logger.info("No matching files found that require codespell.")
+        return 0
 
     result = runCodespell(
         codespell_binary=codespell_binary,
