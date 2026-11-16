@@ -1359,7 +1359,7 @@ def issubclass_extractor(node):
     return BuiltinParameterSpecs.extractBuiltinArgs(
         node=node,
         builtin_class=ExpressionBuiltinIssubclass,
-        builtin_spec=BuiltinParameterSpecs.builtin_isinstance_spec,
+        builtin_spec=BuiltinParameterSpecs.builtin_issubclass_spec,
     )
 
 
