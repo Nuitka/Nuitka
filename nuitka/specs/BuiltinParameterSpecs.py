@@ -260,6 +260,10 @@ def makeBuiltinExceptionParameterSpec(exception_name):
         return BuiltinParameterSpecExceptionsKwOnly(
             exception_name=exception_name, kw_only_args=("name", "obj")
         )
+    elif exception_name == "NameError" and python_version >= 0x3A0:
+        return BuiltinParameterSpecExceptionsKwOnly(
+            exception_name=exception_name, kw_only_args=("name",)
+        )
     else:
         return BuiltinParameterSpecExceptions(exception_name=exception_name)
 

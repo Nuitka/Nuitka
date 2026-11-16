@@ -395,6 +395,178 @@ class _ChildHavingArgsTupleFinalNoRaiseMixin(ExpressionBase):
 ExpressionBuiltinMakeExceptionBase = _ChildHavingArgsTupleFinalNoRaiseMixin
 
 
+class _ChildrenHavingArgsTupleNameOptionalFinalNoRaiseForRaiseMixin(ExpressionBase):
+    # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
+    __slots__ = ()
+
+    # This is generated for use in
+    #   ExpressionBuiltinMakeExceptionNameError
+
+    def __init__(self, args, name, for_raise, source_ref):
+        assert type(args) is tuple
+
+        for val in args:
+            val.parent = self
+
+        self.subnode_args = args
+
+        if name is not None:
+            name.parent = self
+
+        self.subnode_name = name
+
+        self.for_raise = for_raise
+
+        ExpressionBase.__init__(self, source_ref)
+
+    def getDetails(self):
+        return {
+            "for_raise": self.for_raise,
+        }
+
+    def getVisitableNodes(self):
+        """The visitable nodes, with tuple values flattened."""
+
+        result = []
+        result.extend(self.subnode_args)
+        if self.subnode_name is not None:
+            result.append(self.subnode_name)
+        return result
+
+    def getVisitableNodesNamed(self):
+        """Named children dictionary.
+
+        For use in cloning nodes, debugging and XML output.
+        """
+
+        return (
+            ("args", self.subnode_args),
+            ("name", self.subnode_name),
+        )
+
+    def replaceChild(self, old_node, new_node):
+        value = self.subnode_args
+        if old_node in value:
+            if new_node is not None:
+                new_node.parent = self
+
+                self.subnode_args = tuple(
+                    (val if val is not old_node else new_node) for val in value
+                )
+            else:
+                self.subnode_args = tuple(val for val in value if val is not old_node)
+
+            return
+
+        value = self.subnode_name
+        if old_node is value:
+            if new_node is not None:
+                new_node.parent = self
+
+            self.subnode_name = new_node
+
+            return
+
+        raise AssertionError("Didn't find child", old_node, "in", self)
+
+    def getCloneArgs(self):
+        """Get clones of all children to pass for a new node.
+
+        Needs to make clones of child nodes too.
+        """
+
+        values = {
+            "args": tuple(v.makeClone() for v in self.subnode_args),
+            "name": (
+                self.subnode_name.makeClone() if self.subnode_name is not None else None
+            ),
+        }
+
+        values.update(self.getDetails())
+
+        return values
+
+    def finalize(self):
+        del self.parent
+
+        for c in self.subnode_args:
+            c.finalize()
+        del self.subnode_args
+        if self.subnode_name is not None:
+            self.subnode_name.finalize()
+        del self.subnode_name
+
+    def computeExpressionRaw(self, trace_collection):
+        """Compute an expression.
+
+        Default behavior is to just visit the child expressions first, and
+        then the node "computeExpression". For a few cases this needs to
+        be overloaded, e.g. conditional expressions.
+        """
+
+        # First apply the sub-expressions, as they are evaluated before
+        # the actual operation.
+        for count, sub_expression in enumerate(self.getVisitableNodes()):
+            expression = trace_collection.onExpression(sub_expression)
+
+            if expression.willRaiseAnyException():
+                sub_expressions = self.getVisitableNodes()
+
+                wrapped_expression = wrapExpressionWithSideEffects(
+                    side_effects=sub_expressions[:count],
+                    old_node=sub_expression,
+                    new_node=expression,
+                )
+
+                return (
+                    wrapped_expression,
+                    "new_raise",
+                    lambda: "For '%s' the child expression '%s' will raise."
+                    % (self.getChildNameNice(), expression.getChildNameNice()),
+                )
+
+        return self, None, None
+
+    @staticmethod
+    def mayRaiseExceptionOperation():
+        return False
+
+    def mayRaiseException(self, exception_type):
+        return any(
+            value.mayRaiseException(exception_type) for value in self.subnode_args
+        ) or (
+            self.subnode_name is not None
+            and self.subnode_name.mayRaiseException(exception_type)
+        )
+
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
+
+        self.undoVariableTracing()
+
+    # For overload only
+    @staticmethod
+    def undoVariableTracing():
+        pass
+
+    def collectVariableAccesses(self, emit_variable):
+        """Collect variable reads and writes of child nodes."""
+
+        for element in self.subnode_args:
+            element.collectVariableAccesses(emit_variable)
+        subnode_name = self.subnode_name
+
+        if subnode_name is not None:
+            self.subnode_name.collectVariableAccesses(emit_variable)
+
+
+# Assign the names that are easier to import with a stable name.
+ExpressionBuiltinMakeExceptionNameErrorBase = (
+    _ChildrenHavingArgsTupleNameOptionalFinalNoRaiseForRaiseMixin
+)
+
+
 class _ChildrenHavingArgsTupleNameOptionalObjOptionalFinalNoRaiseForRaiseMixin(
     ExpressionBase
 ):

@@ -12,7 +12,11 @@ from .CodeHelpers import (
     withObjectCodeTemporaryAssignment,
 )
 from .ErrorCodes import getErrorExitCode, getReleaseCode
-from .PythonAPICodes import generateCAPIObjectCode, makeArgDescFromExpression
+from .PythonAPICodes import (
+    generateCAPIObjectCode,
+    getReferenceExportCode,
+    makeArgDescFromExpression,
+)
 from .templates.CodeTemplatesExceptions import (
     template_publish_exception_to_handler,
 )
@@ -221,8 +225,6 @@ def _attachExceptionAttributeCode(
     context,
 ):
     if attribute_expression is not None:
-        from .PythonAPICodes import getReferenceExportCode
-
         exception_attribute_name = context.allocateTempName(
             base_name_str + "_" + c_attribute_name
         )
@@ -323,6 +325,17 @@ def _generateBuiltinMakeExceptionCode(to_name, expression, for_raise, emit, cont
                 base_name_str="exception_import_error",
                 c_type_name="PyImportErrorObject",
                 c_attribute_name="path",
+                emit=emit,
+                context=context,
+            )
+
+        elif expression.isExpressionBuiltinMakeExceptionNameError():
+            _attachExceptionAttributeCode(
+                to_name=to_name,
+                attribute_expression=expression.subnode_name,
+                base_name_str="exception_name_error",
+                c_type_name="PyNameErrorObject",
+                c_attribute_name="name",
                 emit=emit,
                 context=context,
             )

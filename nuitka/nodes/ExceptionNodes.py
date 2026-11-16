@@ -15,6 +15,7 @@ from .ExpressionBasesGenerated import (
     ExpressionBuiltinMakeExceptionAttributeErrorBase,
     ExpressionBuiltinMakeExceptionBase,
     ExpressionBuiltinMakeExceptionImportErrorBase,
+    ExpressionBuiltinMakeExceptionNameErrorBase,
 )
 from .NodeBases import SideEffectsFromChildrenMixin, StatementBase
 from .StatementBasesGenerated import (
@@ -331,6 +332,46 @@ class ExpressionBuiltinMakeExceptionAttributeError(
         return False
 
 
+class ExpressionBuiltinMakeExceptionNameError(
+    SideEffectsFromChildrenMixin, ExpressionBuiltinMakeExceptionNameErrorBase
+):
+    """Python3 NameError dedicated node with extra arguments."""
+
+    kind = "EXPRESSION_BUILTIN_MAKE_EXCEPTION_NAME_ERROR"
+
+    named_children = ("args|tuple", "name|optional")
+
+    node_attributes = ("for_raise",)
+
+    __slots__ = ()
+
+    @staticmethod
+    def isExpressionBuiltinCall():
+        return True
+
+    auto_compute_handling = "final,no_raise"
+
+    python_version_spec = ">= 0x3a0"
+
+    @staticmethod
+    def getExceptionName():
+        return "NameError"
+
+    def computeExpression(self, trace_collection):
+        return self, None, None
+
+    def mayRaiseException(self, exception_type):
+        for arg in self.subnode_args:
+            if arg.mayRaiseException(exception_type):
+                return True
+
+        return False
+
+    @staticmethod
+    def mayRaiseExceptionOperation():
+        return False
+
+
 class ExpressionCaughtMixin(ExpressionNoSideEffectsMixin):
     """Common things for all caught exception references."""
 
@@ -432,6 +473,13 @@ def makeBuiltinMakeExceptionNode(
             args=args,
             name=name,
             obj=obj,
+            for_raise=for_raise,
+            source_ref=source_ref,
+        )
+    elif exception_name == "NameError" and python_version >= 0x3A0:
+        return ExpressionBuiltinMakeExceptionNameError(
+            args=args,
+            name=name,
             for_raise=for_raise,
             source_ref=source_ref,
         )
