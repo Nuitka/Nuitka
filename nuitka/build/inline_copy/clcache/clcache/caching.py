@@ -445,6 +445,13 @@ class CacheLock(object):
         return CacheLock(lockName, timeoutMs)
 
 
+def isUsableObjectFile(path):
+    try:
+        return os.path.isfile(path) and os.path.getsize(path) > 0
+    except OSError:
+        return False
+
+
 class CompilerArtifactsSection(object):
     OBJECT_FILE = "object"
     STDOUT_FILE = "output.txt"
@@ -466,7 +473,21 @@ class CompilerArtifactsSection(object):
         )
 
     def hasEntry(self, key):
-        return os.path.exists(self.cacheEntryDir(key))
+        cacheEntryDir = self.cacheEntryDir(key)
+        if not os.path.exists(cacheEntryDir):
+            return False
+
+        # Nuitka: Empty or missing cached object files cannot produce a valid
+        # cache hit and using an empty one causes linker errors, so discard
+        # such entries.
+        if isUsableObjectFile(self.cachedObjectName(key)):
+            return True
+
+        printTraceStatement(
+            "Discarding cache entry {} with unusable object file".format(key)
+        )
+        rmtree(cacheEntryDir, ignore_errors=True)
+        return False
 
     def setEntry(self, key, artifacts):
         cacheEntryDir = self.cacheEntryDir(key)
@@ -2173,7 +2194,7 @@ def ensureArtifactsExist(
     cache, cachekey, reason, objectFile, sourceFile, compilerResult, extraCallable=None
 ):
     returnCode, compilerOutput, compilerStderr = compilerResult
-    correctCompiliation = returnCode == 0 and os.path.exists(objectFile)
+    correctCompiliation = returnCode == 0 and isUsableObjectFile(objectFile)
     with cache.lockFor(cachekey):
         if not cache.hasEntry(cachekey):
             with cache.statistics as stats:
