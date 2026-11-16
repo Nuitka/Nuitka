@@ -441,16 +441,18 @@ static PySendResult _Nuitka_Asyncgen_sendR(PyThreadState *tstate, struct Nuitka_
 
             PyObject *error_occurred = GET_ERROR_OCCURRED(tstate);
 
-            if (error_occurred == PyExc_StopIteration || error_occurred == PyExc_StopAsyncIteration) {
-                char const *message;
-                if (error_occurred == PyExc_StopIteration) {
-                    message = "async generator raised StopIteration";
-                } else {
-                    message = "async generator raised StopAsyncIteration";
+            if (error_occurred != NULL) {
+                if (EXCEPTION_MATCH_BOOL_SINGLE(tstate, error_occurred, PyExc_StopIteration)) {
+                    RAISE_RUNTIME_ERROR_RAISED_STOP_ITERATION(tstate, "async generator raised StopIteration");
+
+                    return PYGEN_ERROR;
                 }
 
-                RAISE_RUNTIME_ERROR_RAISED_STOP_ITERATION(tstate, message);
-                return PYGEN_ERROR;
+                if (EXCEPTION_MATCH_BOOL_SINGLE(tstate, error_occurred, PyExc_StopAsyncIteration)) {
+                    RAISE_RUNTIME_ERROR_RAISED_STOP_ITERATION(tstate, "async generator raised StopAsyncIteration");
+
+                    return PYGEN_ERROR;
+                }
             }
 
             return PYGEN_ERROR;

@@ -549,7 +549,7 @@ static PySendResult _Nuitka_Coroutine_sendR(PyThreadState *tstate, struct Nuitka
                     *result = NULL;
 
                     return PYGEN_RETURN;
-                } else if (error == PyExc_StopIteration) {
+                } else if (EXCEPTION_MATCH_BOOL_SINGLE(tstate, error, PyExc_StopIteration)) {
                     RAISE_RUNTIME_ERROR_RAISED_STOP_ITERATION(tstate, "coroutine raised StopIteration");
 
 #if _DEBUG_COROUTINE

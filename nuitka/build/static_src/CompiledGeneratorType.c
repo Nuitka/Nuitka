@@ -709,11 +709,13 @@ static PyObject *_Nuitka_Generator_send(PyThreadState *tstate, struct Nuitka_Gen
 #endif
 
 #if PYTHON_VERSION >= 0x350
+            PyObject *error = GET_ERROR_OCCURRED(tstate);
+
             if (
 #if PYTHON_VERSION < 0x370
                 generator->m_code_object->co_flags & CO_FUTURE_GENERATOR_STOP &&
 #endif
-                GET_ERROR_OCCURRED(tstate) == PyExc_StopIteration) {
+                error != NULL && EXCEPTION_MATCH_BOOL_SINGLE(tstate, error, PyExc_StopIteration)) {
                 RAISE_RUNTIME_ERROR_RAISED_STOP_ITERATION(tstate, "generator raised StopIteration");
 
                 return NULL;
