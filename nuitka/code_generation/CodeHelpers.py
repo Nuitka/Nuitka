@@ -468,12 +468,10 @@ def withCleanupFinally(name, release_name, needs_exception, emit, context):
     context.addCleanupTempName(release_name)
 
     if needs_exception:
-        no_exception_exit = context.allocateLabel("%s_no_exception" % name)
-        getGotoCode(no_exception_exit, emit)
-
         context.setExceptionEscape(old_exception_target)
 
         emit("// Exception handling pass through code for %s:" % name)
+        emit("if (0) {")
         getLabelCode(exception_target, emit)
 
         from .ErrorCodes import getErrorExitReleaseCode
@@ -482,8 +480,7 @@ def withCleanupFinally(name, release_name, needs_exception, emit, context):
 
         getGotoCode(old_exception_target, emit)
 
-        emit("// Finished with no exception for %s:" % name)
-        getLabelCode(no_exception_exit, emit)
+        emit("}")
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
