@@ -401,7 +401,6 @@ def buildRaiseNode(provider, node, source_ref):
 
 
 def handleGlobalDeclarationNode(provider, node, source_ref):
-    # On the module level, there is nothing to do.
     if provider.isCompiledPythonModule():
         if shallWarnUnusualCode():
             unusual_logger.warning(
@@ -411,8 +410,7 @@ def handleGlobalDeclarationNode(provider, node, source_ref):
 
         return None
 
-    # Need to catch the error of declaring a parameter variable as global
-    # ourselves here. The AST parsing doesn't catch it, so we check here.
+    # AST parsing does not reject declaring a parameter variable as global.
     if provider.isExpressionFunctionBody():
         parameters = provider.getParameters()
 
@@ -427,10 +425,8 @@ def handleGlobalDeclarationNode(provider, node, source_ref):
                     source_ref.atColumnNumber(node.col_offset),
                 )
 
-    # The module the "global" statement refers to.
     module = provider.getParentModule()
 
-    # Can give multiple names.
     for variable_name in node.names:
         variable_name = mangleName(variable_name, provider)
         closure_variable = None
@@ -471,13 +467,11 @@ def handleGlobalDeclarationNode(provider, node, source_ref):
                 variable=closure_variable,
             )
 
-    # Drop this, not really part of our tree.
     return None
 
 
 def handleNonlocalDeclarationNode(provider, node, source_ref):
-    # Need to catch the error of declaring a parameter variable as nonlocal
-    # ourselves here. The AST parsing doesn't catch it, but we can do it here.
+    # AST parsing does not reject declaring a parameter variable as nonlocal.
     parameter_provider = provider
 
     while (
@@ -505,7 +499,6 @@ def handleNonlocalDeclarationNode(provider, node, source_ref):
         source_ref=source_ref.atColumnNumber(node.col_offset),
     )
 
-    # Drop this, not really part of our tree.
     return None
 
 
@@ -538,8 +531,6 @@ def buildEllipsisNode(source_ref):
 def buildStatementLoopContinue(node, source_ref):
     source_ref = source_ref.atColumnNumber(node.col_offset)
 
-    # Python forbids this, although technically it's probably not much of
-    # an issue.
     if getBuildContext() == "finally" and python_version < 0x380:
         SyntaxErrors.raiseSyntaxError(
             "'continue' not supported inside 'finally' clause", source_ref
@@ -549,9 +540,7 @@ def buildStatementLoopContinue(node, source_ref):
 
 
 def buildStatementLoopBreak(provider, node, source_ref):
-    # A bit unusual, we need the provider, but not the node,
     # pylint: disable=unused-argument
-
     return StatementLoopBreak(source_ref=source_ref.atColumnNumber(node.col_offset))
 
 
@@ -971,7 +960,6 @@ def buildParseTree(provider, ast_tree, source_ref, is_main):
     )
 
     if provider.isCompiledPythonPackage():
-        # This assigns "__path__" value.
         statements.append(createPathAssignment(provider, internal_source_ref))
 
     if python_version >= 0x300 and not is_main:
@@ -1063,7 +1051,6 @@ def buildParseTree(provider, ast_tree, source_ref, is_main):
         )
         provider.deferred_annotations = []
     elif provider.needsAnnotationsDictionary():
-        # Set "__annotations__" on module level to {}
         statements.append(
             StatementAssignmentVariableName(
                 provider=provider,
@@ -1075,7 +1062,6 @@ def buildParseTree(provider, ast_tree, source_ref, is_main):
             )
         )
 
-    # Now the module body if there is any at all.
     if result is not None:
         statements.extend(result.subnode_statements)
 
@@ -1089,11 +1075,7 @@ def buildParseTree(provider, ast_tree, source_ref, is_main):
 
 
 def decideCompilationMode(is_top, module_name, module_filename, for_pgo):
-    """Decide the compilation mode for a module.
-
-    module_name - The module to decide compilation mode for.
-    for_pgo - consider PGO information or not
-    """
+    """Decide the compilation mode for a module."""
 
     is_stdlib = module_filename is not None and isStandardLibraryPath(module_filename)
 
@@ -1238,7 +1220,6 @@ def _createModule(
                 source_ref=source_ref,
             )
 
-            # Not used anymore
             source_code = None
         else:
             if is_package:
@@ -1290,9 +1271,6 @@ def createModuleTree(module, source_ref, ast_tree, is_main):
 
 
 def buildMainModuleTree(source_code):
-    # Detect to be frozen modules if any, so we can consider to not follow
-    # to them.
-
     filename = getMainEntryPointFilenames()[0]
 
     module_name = getMainModuleName()
@@ -1407,7 +1385,6 @@ def buildModule(
     is_fake,
     hide_syntax_error,
 ):
-    # Many details to deal with,
     # pylint: disable=too-many-branches,too-many-locals,too-many-statements
     (
         main_added,
@@ -1434,7 +1411,6 @@ def buildModule(
                 "Python flag -m (package_mode) only works on packages with '__main__.py'."
             )
 
-    # Handle bytecode module case immediately.
     if module_kind == "pyc":
         bytecode_filename = source_filename
 
@@ -1453,7 +1429,6 @@ def buildModule(
     # Read source code if necessary. Might give a SyntaxError due to not being proper
     # encoded source.
     if source_filename is not None and not is_namespace and module_kind == "py":
-        # For fake modules, source is provided directly.
         original_source_code = None
         contributing_plugins = ()
 
@@ -1471,7 +1446,6 @@ def buildModule(
                 if not hasattr(e, "generated_by_nuitka"):
                     raise
 
-                # Do not hide SyntaxError in main module.
                 if not hide_syntax_error:
                     raise
 
@@ -1490,7 +1464,6 @@ def buildModule(
                 line_offset=0,
             )
         except (SyntaxError, IndentationError) as e:
-            # Do not hide SyntaxError if asked not to.
             if not hide_syntax_error:
                 raise
 
@@ -1529,7 +1502,6 @@ def buildModule(
                 module_filename=module_filename,
             )
         except CodeTooComplexCode:
-            # Do not hide CodeTooComplexCode in main module.
             if is_main:
                 raise
 
@@ -1574,7 +1546,6 @@ def buildModule(
         except CodeTooComplexCode:
             clearDecoratorImportAliasesCache()
 
-            # Do not hide CodeTooComplexCode in main module.
             if is_main or is_top:
                 raise
 

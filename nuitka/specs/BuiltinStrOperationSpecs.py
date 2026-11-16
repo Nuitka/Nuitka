@@ -154,23 +154,18 @@ str_istitle_spec = StrMethodSpecNoKeywords(
     "istitle", arg_names=(), type_shape=tshape_bool
 )
 
+# TODO: Supply Python2/Python3 dependent return type_shape for encode/decode.
 str_encode_spec = StrMethodSpec(
     "encode",
     arg_names=("encoding", "errors"),
     default_count=2,
-    # TODO: Resolve Python2/Python3 runtime differences
-    #
-    # type_shape=tshape_bytes
 )
 
-# Python2 only, Python3 this is in bytes
+# Python2 only, Python3 has decode on bytes.
 str_decode_spec = StrMethodSpec(
     "decode",
     arg_names=("encoding", "errors"),
     default_count=2,
-    # TODO: Resolve Python2/Python3 runtime differences
-    #
-    # type_shape=tshape_str_or_unicode
 )
 
 str_expandtabs_spec = (StrMethodSpecNoKeywords if str is bytes else StrMethodSpec)(

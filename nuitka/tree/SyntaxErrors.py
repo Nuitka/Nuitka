@@ -122,12 +122,11 @@ def checkDebugNameTarget(node, source_ref):
 def checkExceptStarHandlerBody(body, source_ref, check_return):
     """Raise a SyntaxError for 'return', 'break', and 'continue' in an 'except*'.
 
-    Notes:
-        These statements must not escape an 'except*' block, but are allowed
-        within a nested loop body for the latter two, and within nested
-        function and class scopes for all of them. The 'return' check is
-        disabled outside of function scopes, where it is not the error that
-        CPython reports.
+    These statements must not escape an 'except*' block, but are allowed
+    within a nested loop body for the latter two, and within nested
+    function and class scopes for all of them. The 'return' check is
+    disabled outside of function scopes, where it is not the error that
+    CPython reports.
     """
 
     def raiseEscape(node):
@@ -180,30 +179,12 @@ def checkExceptStarHandlerBody(body, source_ref, check_return):
 
 
 def raiseSyntaxError(reason, source_ref, display_file=True, display_line=True):
-    col_offset = source_ref.getColumnNumber()
-
     def readSource():
-        # Cyclic dependency.
         from .SourceHandling import readSourceLine
 
         return readSourceLine(source_ref)
 
-    # Special case being asked to display.
-    if display_file and display_line:
-        source_line = readSource()
-
-        raise SyntaxError(
-            reason,
-            (
-                source_ref.getFilename(),
-                source_ref.getLineNumber(),
-                col_offset,
-                source_line,
-            ),
-        )
-
-    # Special case given source reference.
-    if source_ref is not None:
+    if source_ref is not None and display_file:
         if display_line:
             source_line = readSource()
         else:
@@ -214,12 +195,12 @@ def raiseSyntaxError(reason, source_ref, display_file=True, display_line=True):
             (
                 source_ref.getFilename(),
                 source_ref.getLineNumber(),
-                col_offset,
+                source_ref.getColumnNumber(),
                 source_line,
             ),
         )
-
-    exc = SyntaxError(reason, (None, None, None, None))
+    else:
+        exc = SyntaxError(reason, (None, None, None, None))
 
     exc.generated_by_nuitka = True
 

@@ -59,10 +59,7 @@ list_reverse_spec = ListMethodSpecNoKeywords(
     "reverse", arg_names=(), type_shape=tshape_none
 )
 
-# TODO: Version dependent with keyword only args in Python3
-# list_sort_spec = ListMethodSpec(
-#     "sort", arg_names=("key", "reverse"), default_count=2, type_shape=tshape_none
-# )
+# TODO: Add "list.sort" spec (arguments are keyword-only in Python 3).
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.

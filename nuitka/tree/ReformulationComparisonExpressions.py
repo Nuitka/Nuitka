@@ -1,12 +1,7 @@
 #     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-"""Reformulation of comparison chain expressions.
-
-Consult the Developer Manual for information. TODO: Add ability to sync
-source code comments with Developer Manual sections.
-
-"""
+"""Reformulation of comparison chain expressions."""
 
 from nuitka.nodes.ComparisonNodes import makeComparisonExpression
 from nuitka.nodes.ConditionalNodes import makeStatementConditional
@@ -34,24 +29,15 @@ def _makeComparisonNode(left, right, comparator, source_ref):
 def buildComparisonNode(provider, node, source_ref):
     assert len(node.comparators) == len(node.ops)
 
-    # Comparisons are re-formulated as described in the Developer Manual. When
-    # having multiple comparators, things require assignment expressions and
-    # references of them to work properly. Then they can become normal "and"
-    # code.
-
-    # The operands are split out in two parts strangely.
     left = buildNode(provider, node.left, source_ref)
     rights = [
         buildNode(provider, comparator, source_ref) for comparator in node.comparators
     ]
     comparators = [getKind(comparator) for comparator in node.ops]
-    # Normal, and simple case, we only have one comparison, which is what our
-    # node handles only. Then we can handle it
     if len(rights) == 1:
         return _makeComparisonNode(
             left=left,
             right=rights[0],
-            # TODO: The terminology of Nuitka might be messed up here.
             comparator=comparators[0],
             source_ref=source_ref,
         )
@@ -60,7 +46,7 @@ def buildComparisonNode(provider, node, source_ref):
 
 
 def buildComplexComparisonNode(provider, left, rights, comparators, source_ref):
-    # This is a bit complex, due to the many details, pylint: disable=too-many-locals
+    # pylint: disable=too-many-locals
 
     outline_body = ExpressionOutlineBody(
         provider=provider, name="comparison_chain", source_ref=source_ref
@@ -116,14 +102,10 @@ def buildComplexComparisonNode(provider, left, rights, comparators, source_ref):
     statements = []
     release_variables = []
 
-    # The left operand is evaluated before the right operands, so it has to be
-    # assigned to a temporary variable first.
     statements.append(makeTempAssignment(0, left))
     release_variables.append(variables[0])
 
     for count, value in enumerate(rights):
-        # Each comparison needs its own reference node, and the left operand of
-        # the current comparison is the operand assigned before it.
         left = makeTempReference(count)
 
         if value is not rights[-1]:

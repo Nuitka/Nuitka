@@ -1,19 +1,7 @@
 #     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-"""This module maintains the parameter specification classes.
-
-These are used for function, lambdas, generators. They are also a factory
-for the respective variable objects. One of the difficulty of Python and
-its parameter parsing is that they are allowed to be nested like this:
-
-(a,b), c
-
-Much like in assignments, which are very similar to parameters, except
-that parameters may also be assigned from a dictionary, they are no less
-flexible.
-
-"""
+"""Parameter specifications and call argument matching."""
 
 from nuitka.PythonVersions import python_version
 from nuitka.utils.InstanceCounters import (
@@ -35,8 +23,7 @@ class TooManyArguments(Exception):
 
 
 class ParameterSpec(object):
-    # These got many attributes, in part duplicating name and instance of
-    # variables, pylint: disable=too-many-instance-attributes
+    # pylint: disable=too-many-instance-attributes
 
     __slots__ = (
         "name",
@@ -150,7 +137,6 @@ class ParameterSpec(object):
     def checkParametersValid(self):
         arg_names = self.getParameterNames()
 
-        # Check for duplicate arguments, could happen.
         for arg_name in arg_names:
             if arg_names.count(arg_name) != 1:
                 if python_version >= 0x3F0:
@@ -288,14 +274,14 @@ class ParameterSpec(object):
         return self.kw_only_variables
 
     def allowsKeywords(self):
-        # Abstract method, pylint: disable=no-self-use
+        # pylint: disable=no-self-use
         return True
 
     def getKeywordRefusalText(self):
         return "%s() takes no keyword arguments" % self.name
 
     def getKeywordAliases(self):
-        # Default is unchanged argument names, pylint: disable=no-self-use
+        # pylint: disable=no-self-use
         return None
 
     def getArgumentNames(self):
@@ -304,11 +290,11 @@ class ParameterSpec(object):
     def getArgumentCount(self):
         return len(self.normal_args) + len(self.pos_only_args)
 
-    def getKwOnlyParameterNames(self):
-        return self.kw_only_args
-
     def getKwOnlyParameterCount(self):
         return len(self.kw_only_args)
+
+    def getKwOnlyParameterNames(self):
+        return self.kw_only_args
 
     def getPosOnlyParameterCount(self):
         return len(self.pos_only_args)
@@ -332,33 +318,13 @@ def matchCall(
     example_arguments,
     improved=False,
 ):
-    """Match a call arguments to a signature.
+    """Match call arguments to a signature (loosely based on inspect.getcallargs)."""
 
-    Args:
-        func_name - Name of the function being matched, used to construct exception texts.
-        args - normal argument names
-        kw_only_args -  keyword only argument names (Python3)
-        star_list_arg - name of star list argument if any
-        star_dict_arg - name of star dict argument if any
-        num_defaults - amount of arguments that have default values
-        num_pos_only - amount of arguments that must be given by position
-        positional - tuple of argument values given for simulated call
-        pairs - tuple of pairs arg argument name and argument values
-        improved - (bool) should we give better errors than CPython or not.
-    Returns:
-        Dictionary of argument name to value mappings
-    Notes:
-        Based loosely on "inspect.getcallargs" with corrections.
-    """
-
-    # This is of incredible code complexity, but there really is no other way to
-    # express this with less statements, branches, or variables.
     # pylint: disable=too-many-arguments,too-many-branches,too-many-locals,too-many-statements
 
     assert type(positional) is tuple, positional
     assert type(pairs) in (tuple, list), pairs
 
-    # Make a copy, we are going to modify it.
     pairs = list(pairs)
     supplied_pairs = tuple(pairs)
 
@@ -368,11 +334,8 @@ def matchCall(
 
     def assign(arg, value):
         if type(arg) is str:
-            # Normal case:
             result[arg] = value
         else:
-            # Tuple argument case:
-
             assigned_tuple_params.append(arg)
             value = iter(value.getIterationValues())
 
@@ -387,10 +350,8 @@ def matchCall(
                         )
                     )
 
-                # Recurse into tuple argument values, could be more tuples.
                 assign(sub_arg, sub_value)
 
-            # Check that not too many values we provided.
             try:
                 next(value)
             except StopIteration:
@@ -427,9 +388,7 @@ def matchCall(
         else:
             assign(star_list_arg, ())
     elif 0 < num_args < num_total:
-        # Special case for no default values.
         if num_defaults == 0:
-            # Special cases text for one argument.
             if num_args == 1:
                 raise TooManyArguments(
                     TypeError(
@@ -505,7 +464,7 @@ def matchCall(
 
             pairs = new_pairs
 
-    # Fill in any missing values with the None to indicate "default".
+    # None indicates that the default value applies.
     if num_defaults > 0:
         for arg in (args + kw_only_args)[-num_defaults:]:
             if not isAssigned(arg):
@@ -519,7 +478,6 @@ def matchCall(
     if unassigned:
         num_required = num_args - max(0, num_defaults - len(kw_only_args))
 
-        # Required positional only arguments given as keyword arguments.
         num_required_pos_only = min(num_pos_only, num_required)
         if (
             num_pos < num_required_pos_only
@@ -538,7 +496,6 @@ def matchCall(
                 )
             )
 
-        # Special case required arguments.
         if num_required > 0 or improved:
             if num_defaults == 0 and num_args != 1:
                 raise TooManyArguments(
@@ -552,8 +509,6 @@ def matchCall(
                 if example_arguments is None:
                     example_arguments = [1] * len(args)
 
-                # TODO: May have to become a lot better, but for now it works
-                # for the test suites it seems.
                 simulator_args = example_arguments[: len(positional)]
 
                 # Replay keyword arguments given, so that errors that depend

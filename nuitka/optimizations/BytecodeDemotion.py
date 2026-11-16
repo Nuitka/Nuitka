@@ -34,23 +34,7 @@ from nuitka.utils.FileOperations import getNormalizedPath
 def demoteSourceCodeToBytecode(
     module_name, source_code, filename, is_package, remove_doc_strings
 ):
-    """Compile source code as a bytecode module.
-
-    Notes:
-        The caller provides the module facts and the docstring decision, so
-        this can also be used for modules that do not exist as node objects
-        yet.
-
-    Args:
-        module_name: Name of the module being demoted.
-        source_code: Source code to compile.
-        filename: Filename to use for the compilation.
-        is_package: Whether the module is a package.
-        remove_doc_strings: Whether to remove docstrings from the source tree.
-
-    Returns:
-        Marshalled bytecode for the module.
-    """
+    """Compile source code to marshalled bytecode."""
 
     if isStandaloneMode():
         filename = module_name.asPath() + ".py"
@@ -71,7 +55,6 @@ def demoteSourceCodeToBytecode(
 
 
 def demoteCompiledModuleToBytecode(module):
-    """Demote a compiled module to uncompiled (bytecode)."""
 
     full_name = module.getFullName()
     filename = module.getCompileTimeFilename()

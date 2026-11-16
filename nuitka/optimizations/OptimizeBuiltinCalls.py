@@ -266,8 +266,6 @@ def iter_extractor(node):
 
 
 def next_extractor(node):
-    # Split up next with and without defaults, they are not going to behave
-    # really very similar.
     def selectNextBuiltinClass(iterator, default, source_ref):
         if default is None:
             return ExpressionBuiltinNext1(value=iterator, source_ref=source_ref)
@@ -324,7 +322,6 @@ def zip_extractor(node):
 
 
 def sum_extractor(node):
-    # Split up sum with and without start value, one is much easier.
     def selectSumBuiltinClass(sequence, start, source_ref):
         if start is None:
             return ExpressionBuiltinSum1(sequence=sequence, source_ref=source_ref)
@@ -354,11 +351,9 @@ def sum_extractor(node):
 
 
 def dict_extractor(node):
-    # The "dict" built-in is a bit strange in that it accepts a position
-    # parameter, or not, but won't have a default value.
+    # The "dict" built-in accepts an optional positional argument without a default value.
     def wrapExpressionBuiltinDictCreation(positional_args, dict_star_arg, source_ref):
         if positional_args:
-            # Only one allowed, the spec converted too many into an exception.
             (pos_arg,) = positional_args
         else:
             pos_arg = None
@@ -377,12 +372,10 @@ def dict_extractor(node):
 
 
 def frozendict_extractor(node):
-    # The "frozendict" built-in behaves like "dict" for its arguments.
     def wrapExpressionBuiltinFrozendictCreation(
         positional_args, dict_star_arg, source_ref
     ):
         if positional_args:
-            # Only one allowed, the spec converted too many into an exception.
             (pos_arg,) = positional_args
         else:
             pos_arg = None
@@ -505,7 +498,7 @@ def range_extractor(node):
         # pylint: disable=unused-argument
         try:
             range()
-        except Exception as e:  # We want to broad here, pylint: disable=broad-except
+        except Exception as e:  # pylint: disable=broad-except
             return makeRaiseExceptionReplacementExpressionFromInstance(
                 expression=node, exception=e
             )
@@ -535,7 +528,7 @@ def xrange_extractor(node):
         # pylint: disable=unused-argument
         try:
             xrange()
-        except Exception as e:  # We want to broad here, pylint: disable=broad-except
+        except Exception as e:  # pylint: disable=broad-except
             return makeRaiseExceptionReplacementExpressionFromInstance(
                 expression=node, exception=e
             )
@@ -1007,7 +1000,7 @@ def eval_extractor(node):
                     attribute_name="strip",
                     source_ref=source_ref,
                 ),
-                args=strip_choice,  # This is a tuple
+                args=strip_choice,
                 kw=None,
                 source_ref=source_ref,
             ),
@@ -1184,7 +1177,7 @@ def compile_extractor(node):
 
 def super_extractor(node):
     def wrapSuperBuiltin(type_arg, object_arg, source_ref):
-        # Many cases due to complex defaulting behavior, pylint: disable=too-many-branches,too-many-return-statements
+        # pylint: disable=too-many-branches,too-many-return-statements
 
         if type_arg is None and python_version >= 0x300:
             if provider.isCompiledPythonModule():
@@ -1313,7 +1306,7 @@ def super_extractor(node):
 
 
 def hasattr_extractor(node):
-    # We need to have to builtin arguments, pylint: disable=redefined-builtin
+    # pylint: disable=redefined-builtin
     def makeExpressionBuiltinHasattr(object, name, source_ref):
         return ExpressionBuiltinHasattr(
             expression=object, name=name, source_ref=source_ref
@@ -1327,7 +1320,7 @@ def hasattr_extractor(node):
 
 
 def getattr_extractor(node):
-    # We need to have to builtin arguments, pylint: disable=redefined-builtin
+    # pylint: disable=redefined-builtin
     def makeExpressionBuiltinGetattr(object, name, default, source_ref):
         return ExpressionBuiltinGetattr(
             expression=object, name=name, default=default, source_ref=source_ref
@@ -1341,7 +1334,7 @@ def getattr_extractor(node):
 
 
 def setattr_extractor(node):
-    # We need to have to builtin arguments, pylint: disable=redefined-builtin
+    # pylint: disable=redefined-builtin
     def makeExpressionBuiltinSetattr(object, name, value, source_ref):
         return ExpressionBuiltinSetattr(
             expression=object, name=name, value=value, source_ref=source_ref
@@ -1537,7 +1530,6 @@ _dispatch_dict = {
 
 
 if python_version < 0x300:
-    # These are not in Python3
     _dispatch_dict["long"] = long_extractor
     _dispatch_dict["unicode"] = unicode_extractor
     _dispatch_dict["execfile"] = execfile_extractor
@@ -1545,7 +1537,6 @@ if python_version < 0x300:
 
     _dispatch_dict["range"] = range_extractor
 else:
-    # This one is not in Python2
     _dispatch_dict["bytes"] = bytes_extractor
     _dispatch_dict["ascii"] = (
         ascii_extractor  # pylint: disable=possibly-used-before-assignment
@@ -1571,26 +1562,8 @@ def check():
 
 check()
 
-_builtin_ignore_list = (
-    # Not supporting 'print', because it could be replaced, and is not
-    # worth the effort yet.
-    # "print",
-    # TODO: This could, and should be supported, as we could e.g. lower
-    # types easily for it.
-    # "sorted",
-    # TODO: This would be most precious due to the type hint it gives
-    # "enumerate",
-    # TODO: Also worthwhile for known values.
-    # "reversed",
-    # TODO: Not sure what this really is about.
-    # "memoryview",
-)
-
 
 def _describeNewNode(new_node):
-    """Describe the change for better understanding."""
-
-    # Don't mention side effects, that's not what we care about.
     if new_node.isExpressionSideEffects():
         new_node = new_node.subnode_expression
 
@@ -1625,8 +1598,6 @@ def _describeNewNode(new_node):
 
 
 def computeBuiltinCall(builtin_name, call_node, trace_collection):
-    # There is some dispatching for how to output various types of changes,
-    # with lots of cases.
     if builtin_name in _dispatch_dict:
         extractor_function = _dispatch_dict[builtin_name]
 
@@ -1652,12 +1623,7 @@ def computeBuiltinCall(builtin_name, call_node, trace_collection):
 
         return new_node, tags, message
     else:
-        # TODO: Achieve coverage of all built-ins in at least the ignore list.
-        # if False and builtin_name not in _builtin_ignore_list:
-        #     optimization_logger.warning(
-        #         "Not handling built-in %r, consider support." % builtin_name
-        #     )
-
+        # TODO: Support remaining built-ins such as 'sorted', 'reversed', and 'memoryview'.
         return call_node, None, None
 
 

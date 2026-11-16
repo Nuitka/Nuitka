@@ -1,12 +1,7 @@
 #     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-"""Reformulation of call expressions.
-
-Consult the Developer Manual for information. TODO: Add ability to sync
-source code comments with Developer Manual sections.
-
-"""
+"""Reformulation of call expressions."""
 
 from nuitka.nodes.CallNodes import makeExpressionCall
 from nuitka.nodes.ConstantRefNodes import makeConstantRefNode
@@ -73,9 +68,9 @@ def buildCallNode(provider, node, source_ref):
 
     positional_args = []
 
-    # For Python3.5 compatibility, the error handling with star argument last
-    # is the old one, only with a starred argument before that, things use the
-    # new unpacking code.
+    # In Python 3.5+, a single trailing *args/**kwargs keeps pre-3.5 error
+    # handling; general unpacking is only used when unpacking precedes other
+    # arguments.
     for node_arg in node.args[:-1]:
         if getKind(node_arg) == "Starred":
             assert python_version >= 0x350
@@ -91,8 +86,6 @@ def buildCallNode(provider, node, source_ref):
         else:
             positional_args = buildNodeTuple(provider, node.args, source_ref)
 
-    # Only the values of keyword pairs have a real source ref, and those only
-    # really matter, so that makes sense.
     keys = []
     values = []
 
@@ -166,10 +159,6 @@ def buildCallNode(provider, node, source_ref):
 
             return outline_body
 
-    # For Python3.5 compatibility, the error handling with star argument last
-    # is the old one, only with a starred argument before that, things use the
-    # new unpacking code.
-
     if node.keywords and node.keywords[-1].arg is None:
         assert python_version >= 0x350
 
@@ -204,8 +193,6 @@ def buildCallNode(provider, node, source_ref):
 def _makeCallNode(
     called, positional_args, keys, values, list_star_arg, dict_star_arg, source_ref
 ):
-    # Many variables, but only to cover the many complex call cases.
-
     if list_star_arg is None and dict_star_arg is None:
         result = makeExpressionCall(
             called=called,
@@ -235,9 +222,6 @@ def _makeCallNode(
 
         return result
     else:
-        # Dispatch to complex helper function for each case. These do
-        # re-formulation of complex calls according to Developer Manual.
-
         key = (
             bool(positional_args),
             bool(keys),

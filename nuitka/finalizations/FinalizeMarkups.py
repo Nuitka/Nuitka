@@ -28,8 +28,7 @@ class FinalizeMarkups(VisitorNoopMixin):
             raise
 
     def _onEnterNode(self, node):
-        # This has many different things it deals with, so there need to be a
-        # lot of branches and statements, pylint: disable=too-many-branches
+        # pylint: disable=too-many-branches
 
         module_name = node.needsModuleValueSetter()
 
@@ -71,11 +70,7 @@ class FinalizeMarkups(VisitorNoopMixin):
                 ):
                     node.markAsInplaceSuspect()
                 elif left_arg.isExpressionLocalsVariableRefOrFallback():
-                    # TODO: This might be bad.
                     assign_source.removeMarkAsInplaceSuspect()
-
-            if target_var.isModuleVariable():
-                pass
 
         if python_version < 0x300 and node.isStatementPublishException():
             node.getParentStatementsFrame().markAsFrameExceptionPreserving()

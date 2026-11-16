@@ -1,12 +1,7 @@
 #     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-"""Reformulation of assert statements.
-
-Consult the Developer Manual for information. TODO: Add ability to sync
-source code comments with Developer Manual sections.
-
-"""
+"""Reformulation of assert statements."""
 
 from nuitka.nodes.BuiltinRefNodes import ExpressionBuiltinExceptionRef
 from nuitka.nodes.ConditionalNodes import makeStatementConditional
@@ -23,22 +18,8 @@ from .TreeHelpers import buildNode
 
 
 def buildAssertNode(provider, node, source_ref):
-    # Build assert statements. These are re-formulated as described in the
-    # Developer Manual too. They end up as conditional statement with raises of
-    # AssertionError exceptions.
-
     if decideAssertions(provider.getParentModule().getFullName()) is False:
         return None
-
-    # Underlying assumption:
-    #
-    # Assert x, y is the same as:
-    # if not x:
-    #     raise AssertionError, y
-
-    # Therefore assert statements are really just conditional statements with a
-    # static raise contained.
-    #
 
     asserted_value_expression = buildNode(provider, node.test, source_ref)
 
@@ -73,7 +54,6 @@ def buildAssertNode(provider, node, source_ref):
             source_ref=source_ref,
         )
 
-    # May not need a condition.
     if asserted_value_expression.isCompileTimeConstant():
         asserted_value = asserted_value_expression.getCompileTimeConstant()
 

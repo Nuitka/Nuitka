@@ -1,12 +1,7 @@
 #     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-"""Reformulation of boolean and/or expressions.
-
-Consult the Developer Manual for information. TODO: Add ability to sync
-source code comments with Developer Manual sections.
-
-"""
+"""Reformulation of boolean and/or expressions."""
 
 from nuitka.nodes.ConditionalNodes import (
     ExpressionConditionalAnd,
@@ -21,7 +16,6 @@ def buildBoolOpNode(provider, node, source_ref):
     bool_op = getKind(node.op)
 
     if bool_op == "Or":
-        # The "or" may be short circuit and is therefore not a plain operation.
         values = buildNodeList(provider, node.values, source_ref)
 
         for value in values[:-1]:
@@ -32,7 +26,6 @@ def buildBoolOpNode(provider, node, source_ref):
         return makeOrNode(values=values, source_ref=source_ref)
 
     elif bool_op == "And":
-        # The "and" may be short circuit and is therefore not a plain operation.
         values = buildNodeList(provider, node.values, source_ref)
 
         for value in values[:-1]:
@@ -42,7 +35,6 @@ def buildBoolOpNode(provider, node, source_ref):
 
         return makeAndNode(values=values, source_ref=source_ref)
     elif bool_op == "Not":
-        # The "not" is really only a unary operation and no special.
         return makeNotExpression(
             expression=buildNode(provider, node.operand, source_ref)
         )
@@ -55,7 +47,6 @@ def makeOrNode(values, source_ref):
 
     result = values.pop()
 
-    # When we encounter, "or", we expect it to be at least two values.
     assert values
 
     while values:
@@ -70,8 +61,6 @@ def makeAndNode(values, source_ref):
     values = list(values)
 
     result = values.pop()
-
-    # Unlike "or", for "and", this is used with only one value.
 
     while values:
         result = ExpressionConditionalAnd(

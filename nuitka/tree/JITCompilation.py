@@ -179,7 +179,7 @@ def _getNodeLineRange(node):
 
 
 def _getModuleSourceLines(module):
-    global _module_source_lines  # singleton, pylint: disable=global-statement
+    global _module_source_lines  # pylint: disable=global-statement
 
     if _module_source_lines is None:
         _module_source_lines = tuple(module.getSourceCode().splitlines(True))
@@ -188,12 +188,10 @@ def _getModuleSourceLines(module):
 
 
 def _getModuleSymbolTable(module):
-    global _module_symbol_table  # singleton, pylint: disable=global-statement
+    global _module_symbol_table  # pylint: disable=global-statement
 
     if _module_symbol_table is None:
         source_code = module.getSourceCode()
-
-        # Only called for functions of modules that are built from source.
         assert source_code is not None, module
 
         _module_symbol_table = symtable.symtable(
@@ -225,21 +223,11 @@ def _findFunctionSymbolTable(table, function_name, line_number):
 
 
 def _getFunctionFreeVariableNames(module, node):
-    """Get the free variable names of a function, i.e. its closure variables.
+    """Get sorted free variable names of a function via the module symbol table.
 
-    Notes:
-        This uses the module symbol table, so that functions that reference
-        names from an enclosing function are known before their body is
-        parsed, which the JIT compilation mode avoids.
-
-    Args:
-        module: The module the function is contained in.
-        node: The AST node of the function.
-
-    Returns:
-        Tuple of free variable names, sorted.
+    Using the module symbol table discovers enclosing-scope references without
+    parsing the function body into Nuitka nodes.
     """
-
     function_table = _findFunctionSymbolTable(
         table=_getModuleSymbolTable(module),
         function_name=node.name,
@@ -266,11 +254,7 @@ def _getDecoratorRegistrations(provider, decorator):
 
 
 def decideFunctionCompilationMode(provider, node, decorators):
-    """Decide how to compile a function based on decorator names.
-
-    Returns:
-        tuple of compilation mode and logger to use for related errors.
-    """
+    """Decide how to compile a function based on decorator names."""
     compilation_mode = "compiled"
     compilation_logger = general
     module = provider.getParentModule()
@@ -280,7 +264,6 @@ def decideFunctionCompilationMode(provider, node, decorators):
     for decorator in decorators:
         decorator_name = _getDecoratorSyntacticName(decorator)
 
-        # Hard coded name.
         if decorator_name == "nuitka_ignore":
             compilation_mode = "bytecode"
             compilation_logger = general
@@ -311,10 +294,9 @@ def decideFunctionCompilationMode(provider, node, decorators):
 
 
 def buildBytecodeOrSourceFunction(provider, node, compilation_mode, source_ref, logger):
-    # TODO: We should have a compile() builtin usage here, lookup "co_code" and
-    # support that as a constant value. We then would have the "bytecode" only
-    # in the binary, right now "bytecode" and "source" make no difference.
-    #  pylint: disable=unused-argument
+    # TODO: Compile to bytecode at compile time when compilation_mode == "bytecode"
+    # so source code does not need to be embedded in the binary.
+    # pylint: disable=unused-argument
     source_line = node.lineno
 
     if node.decorator_list:
@@ -331,20 +313,6 @@ def buildBytecodeOrSourceFunction(provider, node, compilation_mode, source_ref, 
         source_ref=source_ref,
         user_provided=True,
     )
-
-    # if compilation_mode == "bytecode":
-    #     source = ExpressionBuiltinCompile(
-    #         source_code=source,
-    #         filename=makeConstantRefNode(constant="<exec>", source_ref=source_ref),
-    #         mode=makeConstantRefNode(constant="exec", source_ref=source_ref),
-    #         flags=None,
-    #         dont_inherit=None,
-    #         optimize=None,
-    #         source_ref=source_ref
-    #     )
-
-    # This is actually for the globals locals usage to be default values of the
-    # scope.
 
     # Functions with closure variables are executed with a namespace that
     # contains them as globals. The "exec" creates a module level function,
@@ -448,9 +416,6 @@ def buildBytecodeOrSourceFunction(provider, node, compilation_mode, source_ref, 
         statements=(tried, tuple(exec_statements)),
         source_ref=source_ref,
     )
-
-    # Hack: Allow some APIs to work already
-    # tried.parent = provider
 
     return makeTryFinallyStatement(
         provider=provider,

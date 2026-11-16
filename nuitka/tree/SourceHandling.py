@@ -47,13 +47,12 @@ _fstrings_installed = False
 def _installFutureFStrings():
     """Install fake UTF8 handle just as future-fstrings does."""
 
-    # Singleton, pylint: disable=global-statement
+    # pylint: disable=global-statement
     global _fstrings_installed
 
     if _fstrings_installed:
         return
 
-    # TODO: Not supporting anything before that.
     if python_version >= 0x360:
         # Play trick for of "future_strings" PyPI package support. It's not needed,
         # but some people use it even on newer Python.
@@ -96,7 +95,6 @@ def _readSourceCodeFromFilename3(source_filename):
 
 
 def _detectEncoding2(source_file):
-    # Detect the encoding.
     encoding = "ascii"
     encoding_declared = False
 
@@ -104,7 +102,6 @@ def _detectEncoding2(source_file):
     line1, bom = stripFileContentsBOM(line1)
 
     if bom:
-        # BOM marker makes it clear.
         encoding = "utf-8"
         encoding_declared = True
     else:
@@ -130,7 +127,7 @@ def _detectEncoding2(source_file):
 def _readSourceCodeFromFilename2(source_filename):
     _installFutureFStrings()
 
-    # Detect the encoding, we do not know it, pylint: disable=unspecified-encoding
+    # pylint: disable=unspecified-encoding
     with open(source_filename, "rU") as source_file:
         encoding, encoding_declared = _detectEncoding2(source_file)
 
@@ -251,7 +248,7 @@ def readSourceCodeFromFilename(module_name, source_filename, pre_load=False):
 
 
 def checkPythonVersionFromCode(source_code):
-    # There is a lot of cases to consider, pylint: disable=too-many-branches,too-many-statements
+    # pylint: disable=too-many-branches,too-many-statements
 
     shebang = getShebangFromSource(source_code)
 
@@ -262,12 +259,11 @@ def checkPythonVersionFromCode(source_code):
             try:
                 if os.path.samefile(sys.executable, binary):
                     return True
-            except OSError:  # Might not exist
+            except OSError:
                 pass
 
         basename = os.path.basename(binary)
 
-        # Not sure if we should do that.
         if basename == "python":
             result = python_version < 0x300
         elif basename == "python3":
@@ -331,7 +327,7 @@ def readSourceLine(source_ref):
 
 
 def readSourceLines(source_ref):
-    """Read a source lines with linecache, for use with cached function source finding."""
+    """Read source lines with linecache, for use with cached function source finding."""
     import linecache
 
     return linecache.getlines(source_ref.filename)
@@ -373,11 +369,10 @@ def _checkAndAddModuleName(pyi_deps, pyi_filename, line_number, candidate):
 def parsePyIFile(module_name, package_name, pyi_filename):
     """Parse a pyi file for the given module name and extract imports made."""
 
-    # Complex stuff, pylint: disable=too-many-branches,too-many-statements
+    # pylint: disable=too-many-branches,too-many-statements
 
     pyi_deps = OrderedSet()
 
-    # Flag signalling multiline import handling
     in_import = False
     in_import_part = ""
     in_quote = None
@@ -454,7 +449,6 @@ def parsePyIFile(module_name, package_name, pyi_filename):
 
                 imported = parts[3].split("#", 1)[0].strip()
                 if imported.startswith("("):
-                    # Handle multiline imports
                     if not imported.endswith(")"):
                         in_import = True
                         imported = imported[1:]
@@ -480,7 +474,7 @@ def parsePyIFile(module_name, package_name, pyi_filename):
                             candidate=origin_name + "." + name,
                         )
 
-        else:  # In import
+        else:
             imported = line
             if imported.endswith(")"):
                 imported = imported[0:-1]
@@ -496,7 +490,6 @@ def parsePyIFile(module_name, package_name, pyi_filename):
                         candidate=in_import_part + "." + name,
                     )
 
-    # Rejected module names have become None.
     if None in pyi_deps:
         pyi_deps.remove(None)
 

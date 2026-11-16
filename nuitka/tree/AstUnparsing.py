@@ -7,15 +7,7 @@ import ast
 
 
 def unparseNode(node, logger):
-    """Convert an AST node back to source code.
-
-    Args:
-        node: The AST node to convert.
-        logger: Logger to report errors with.
-
-    Returns:
-        str - source code representation of the node.
-    """
+    """Convert an AST node back to source code."""
     if hasattr(ast, "unparse"):
         return ast.unparse(node)
 
@@ -28,7 +20,6 @@ def unparseNode(node, logger):
 Error, cannot convert AST to source code, the 'stubgen' inline copy with \
 'astunparse' is missing.""")
 
-    # The inline stubgen copy provides the astunparse fallback there.
     return stubgen._ast_unparse(node).strip()  # pylint: disable=protected-access
 
 

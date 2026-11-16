@@ -54,12 +54,6 @@ def getClassBodyForDeferredScope(provider):
     Annotation scopes, e.g. the ones created for type aliases, type variables,
     and deferred annotations, resolve names in the class namespace first,
     unlike normal functions nested in a class body.
-
-    Args:
-        provider: The variable provider of the deferred function.
-
-    Returns:
-        Class body node or None.
     """
 
     current = provider
@@ -128,8 +122,7 @@ def parseSourceCodeToAst(source_code, module_name, filename, line_offset):
 
 
 def detectFunctionBodyKind(nodes, start_value=None):
-    # This is a complex mess, following the scope means a lot of checks need
-    # to be done. pylint: disable=too-many-branches,too-many-statements
+    # pylint: disable=too-many-branches,too-many-statements
 
     indications = set()
     if start_value is not None:
@@ -270,7 +263,6 @@ def detectFunctionBodyKind(nodes, start_value=None):
         if "Coroutine" in indications and "Generator" in indications:
             function_kind = "Asyncgen"
         else:
-            # If we found something, make sure we agree on all clues.
             assert len(indications) == 1, indications
             function_kind = indications.pop()
     else:
@@ -285,9 +277,7 @@ build_nodes_args1 = None
 
 
 def setBuildingDispatchers(path_args3, path_args2, path_args1):
-    # Using global here, as this is really a singleton, in the form of a module,
-    # and this is to break the cyclic dependency it has, pylint: disable=global-statement
-
+    # Break cyclic dependency at initialization time, pylint: disable=global-statement
     global build_nodes_args3, build_nodes_args2, build_nodes_args1
 
     build_nodes_args3 = path_args3
@@ -296,7 +286,7 @@ def setBuildingDispatchers(path_args3, path_args2, path_args1):
 
 
 def buildNode(provider, node, source_ref, allow_none=False):
-    # too many exception handlers, pylint: disable=too-many-branches
+    # pylint: disable=too-many-branches
 
     if node is None and allow_none:
         return None
@@ -405,8 +395,7 @@ def buildAnnotationNode(provider, node, source_ref):
         python_version >= 0x370
         and provider.getParentModule().getFutureSpec().isFutureAnnotations()
     ):
-        # Using global value for cache, to avoid creating it over and over,
-        # avoiding the pylint: disable=global-statement
+        # pylint: disable=global-statement
         global _host_node
 
         if _host_node is None:
@@ -422,9 +411,9 @@ def buildAnnotationNode(provider, node, source_ref):
             dont_inherit=True,
         )
 
-        # Using exec here, to compile the ast node tree back to string,
-        # there is no accessible "ast.unparse", and this works as a hack
-        # to convert our node to a string annotation, pylint: disable=exec-used
+        # In Python 3.7/3.8 there is no accessible "ast.unparse", so compile
+        # with CO_FUTURE_ANNOTATIONS and exec to extract the stringified
+        # annotation, pylint: disable=exec-used
         m = {}
         exec(r, m)
 
@@ -458,17 +447,10 @@ def makeModuleFrame(module, statements, source_ref):
 def collectConditionalAnnotationIndices(statements):
     """Collect indices for annotations inside conditional blocks.
 
-    Notes:
-        This mirrors the CPython implementation of PEP 649, where annotations
-        that are only conditionally executed register an index in a set, and
-        the annotation function only includes such annotations if the index
-        was registered when the statement executed.
-
-    Args:
-        statements: Sequence of "ast" statements of a class or module body.
-
-    Returns:
-        Dictionary mapping annotation assignment statements to index values.
+    This mirrors the CPython implementation of PEP 649, where annotations
+    that are only conditionally executed register an index in a set, and
+    the annotation function only includes such annotations if the index
+    was registered when the statement executed.
     """
     result = {}
     next_index = [0]
@@ -510,17 +492,12 @@ def collectConditionalAnnotationIndices(statements):
 
 
 def buildStatementsNode(provider, nodes, source_ref):
-    # We are not creating empty statement sequences.
     if nodes is None:
         return None
 
-    # Build as list of statements, throw away empty ones, and remove useless
-    # nesting.
     statements = buildNodeList(provider, nodes, source_ref, allow_none=True)
     statements = mergeStatements(statements)
 
-    # We are not creating empty statement sequences. Might be empty, because
-    # e.g. a global node generates not really a statement, or pass statements.
     if not statements:
         return None
     else:
@@ -528,17 +505,12 @@ def buildStatementsNode(provider, nodes, source_ref):
 
 
 def buildFrameNode(provider, nodes, code_object, source_ref):
-    # We are not creating empty statement sequences.
     if nodes is None:
         return None
 
-    # Build as list of statements, throw away empty ones, and remove useless
-    # nesting.
     statements = buildNodeList(provider, nodes, source_ref, allow_none=True)
     statements = mergeStatements(statements)
 
-    # We are not creating empty statement sequences. Might be empty, because
-    # e.g. a global node generates not really a statement, or pass statements.
     if not statements:
         return None
 
@@ -598,12 +570,7 @@ def buildFrameNode(provider, nodes, code_object, source_ref):
 
 
 def makeStatementsSequenceOrStatement(statements, source_ref):
-    """Make a statement sequence, but only if more than one statement
-
-    Useful for when we can unroll constructs already here, but are not sure if
-    we actually did that. This avoids the branch or the pollution of doing it
-    always.
-    """
+    """Make a statement sequence, but only if more than one statement."""
 
     if len(statements) > 1:
         return StatementsSequence(
@@ -657,9 +624,6 @@ def makeStatementsSequenceFromStatements(*statements):
 
 
 def makeDictCreationOrConstant2(keys, values, source_ref):
-    # Create dictionary node. Tries to avoid it for constant values that are not
-    # mutable. Keys are Python strings here.
-
     assert len(keys) == len(values)
     for value in values:
         if not value.isExpressionConstantRef():
@@ -668,12 +632,9 @@ def makeDictCreationOrConstant2(keys, values, source_ref):
     else:
         constant = True
 
-    # Note: This would happen in optimization instead, but lets just do it
-    # immediately to save some time.
     if constant:
-        # Unless told otherwise, create the dictionary in its full size, so
-        # that no growing occurs and the constant becomes as similar as possible
-        # before being marshaled.
+        # Pre-size the constant dict so no rehashing occurs and the constant
+        # matches CPython's layout before marshaling.
         result = makeConstantRefNode(
             constant=createConstantDict(
                 keys=keys, values=[value.getCompileTimeConstant() for value in values]
@@ -714,16 +675,11 @@ def makeReraiseExceptionStatement(source_ref):
 
 
 def mangleName(name, owner):
-    """Mangle names with leading "__" for usage in a class owner.
-
-    Notes: The is the private name handling for Python classes.
-    """
+    """Mangle private class attribute names with leading '__'."""
 
     if not name.startswith("__") or name.endswith("__"):
         return name
     else:
-        # The mangling of function variable names depends on being inside a
-        # class.
         class_container = owner.getContainingClassDictCreation()
 
         if class_container is None:

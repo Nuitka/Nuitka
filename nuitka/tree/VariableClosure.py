@@ -44,21 +44,11 @@ from .SyntaxErrors import raiseSyntaxError
 
 
 def _getClassBodyForDeferredScope(provider):
-    """Return the class body if the provider is an annotation scope in it.
+    """Return the enclosing class body if provider is an annotation scope in it.
 
-    Annotation scopes, e.g. the ones created for type aliases, type
-    variables, and deferred annotations, resolve names in the class namespace
-    first, unlike normal functions nested in a class body. This finds the
-    class body for such scopes, and returns None for anything else such as
-    methods.
-
-    Args:
-        provider: The variable provider of a name reference.
-
-    Returns:
-        Class body node or None.
+    Annotation scopes (type aliases, type variables, and deferred annotations)
+    resolve names in the class namespace first, unlike normal nested functions.
     """
-
     current = provider
     seen_annotation_scope = False
 
@@ -106,8 +96,6 @@ class VariableClosureLookupVisitorPhase1(VisitorNoopMixin):
 
     @staticmethod
     def _handleNonLocal(node):
-        # Take closure variables for non-local declarations.
-
         for (
             non_local_names,
             user_provided,
@@ -183,31 +171,15 @@ class VariableClosureLookupVisitorPhase1(VisitorNoopMixin):
     def _addModuleVariableToClosureChain(provider, variable):
         """Add a module variable to the closure chain up to the module.
 
-        This is needed when a module variable is used as a fallback in a
-        class body, because the trace collection of each variable provider
-        needs to know the module variable.
-
-        Args:
-            provider: The variable provider to start at.
-            variable: The module variable to add.
+        Needed when a module variable is used as a fallback in a class body,
+        because each enclosing variable provider's trace collection must know it.
         """
-
         while not provider.isCompiledPythonModule():
             provider.addClosureVariable(variable)
             provider = provider.getParentVariableProvider()
 
     @classmethod
     def _makeClassBodyVariableRef(cls, node, provider):
-        """Make a variable reference node for a class body name.
-
-        Args:
-            node: The variable name reference.
-            provider: The class body the reference is contained in.
-
-        Returns:
-            The replacement node.
-        """
-
         variable_name = node.getVariableName()
 
         if not node.needsFallback():
@@ -362,7 +334,6 @@ class VariableClosureLookupVisitorPhase1(VisitorNoopMixin):
             parent.replaceChild(node, new_node)
 
     def onEnterNode(self, node):
-        # Mighty complex code with lots of branches, but we aim to get rid of it.
         # pylint: disable=too-many-branches
 
         if node.isExpressionVariableNameRef():
@@ -415,8 +386,6 @@ class VariableClosureLookupVisitorPhase1(VisitorNoopMixin):
             if python_version >= 0x300:
                 self._handleNonLocal(node)
                 self._handleQualnameSetup(node)
-        # Check if continue and break are properly in loops. If not, raise a
-        # syntax error.
         elif node.isStatementLoopBreak() or node.isStatementLoopContinue():
             current = node
 
@@ -448,9 +417,6 @@ class VariableClosureLookupVisitorPhase2(VisitorNoopMixin):
 
     @staticmethod
     def _attachVariable(node, provider):
-        # print("Late reference", node.getVariableName(), "for",
-        # provider.getCodeName(), "caused at", node, "of", node.getParent())
-
         variable_name = node.getVariableName()
 
         variable = provider.getVariableForReference(variable_name=variable_name)
@@ -611,9 +577,8 @@ can not delete variable '%s' referenced in nested scope""" % (variable.getName()
 
             return
 
-        # Resolve generic assignments that are artifacts of delayed resolutions
-        # esp. of variable name lookups. Need to keep this in like with what
-        # makeStatementAssignmentVariable checks for.
+        # Re-specialize generic variable assignments whose source was an
+        # unresolved variable name reference during tree building.
         if node.isStatementAssignmentVariableGeneric():
             source = node.subnode_source
 

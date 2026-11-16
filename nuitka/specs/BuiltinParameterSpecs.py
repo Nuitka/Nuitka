@@ -76,9 +76,7 @@ class BuiltinParameterSpec(ParameterSpec):
         return ParameterSpec.getKeywordRefusalText(self)
 
     def isCompileTimeComputable(self, values):
-        # By default, we make this dependent on the ability to compute the
-        # arguments, which is of course a good start for most cases, so this
-        # is for overloads, pylint: disable=no-self-use
+        # pylint: disable=no-self-use
 
         for value in values:
             if value is not None and not value.isCompileTimeConstant():
@@ -102,8 +100,7 @@ class BuiltinParameterSpec(ParameterSpec):
             return False
 
     def simulateCall(self, given_values):
-        # Using star dict call for simulation and catch any exception as really
-        # fatal, pylint: disable=broad-except,too-many-branches
+        # pylint: disable=broad-except,too-many-branches
 
         try:
             given_normal_args = given_values[: self.getArgumentCount()]
@@ -171,7 +168,6 @@ class BuiltinParameterSpecNoKeywords(BuiltinParameterSpec):
         return False
 
     def simulateCall(self, given_values):
-        # Catch any exception during compile-time call simulation as fatal,
         # pylint: disable=broad-except
 
         try:
@@ -213,7 +209,7 @@ class BuiltinParameterSpecExceptionsKwOnly(BuiltinParameterSpec):
             self,
             name=exception_name,
             arg_names=(),
-            default_count=len(kw_only_args),  # For exceptions, they will be required.
+            default_count=len(kw_only_args),
             list_star_arg="args",
             kw_only_args=kw_only_args,
         )
@@ -237,14 +233,6 @@ class BuiltinParameterSpecExceptions(BuiltinParameterSpec):
 
 
 def makeBuiltinExceptionParameterSpec(exception_name):
-    """Factory function to create parameter spec for an exception from its name.
-
-    Args:
-        exception_name - (str) name of the built-in exception
-
-    Returns:
-        ParameterSpec that can be used to evaluate calls of these exceptions.
-    """
     if exception_name == "ImportError" and python_version >= 0x300:
         is_new_import_error = True
     elif exception_name == "ModuleNotFoundError" and python_version >= 0x360:
@@ -334,7 +322,6 @@ builtin_complex_spec = BuiltinParameterSpec(
     "complex", ("real", "imag"), default_count=2
 )
 
-# This built-in have variable parameters for Python2/3
 if python_version < 0x300:
     builtin_str_spec = BuiltinParameterSpec("str", ("object",), default_count=1)
 else:
@@ -679,8 +666,7 @@ else:
 
 class BuiltinRangeSpec(BuiltinParameterSpecNoKeywords):
     def isCompileTimeComputable(self, values):
-        # For ranges, we need have many cases that can prevent the ability
-        # to pre-compute, pylint: disable=too-many-branches,too-many-return-statements
+        # pylint: disable=too-many-branches,too-many-return-statements
 
         result = BuiltinParameterSpecNoKeywords.isCompileTimeComputable(
             self, values=values
@@ -692,8 +678,7 @@ class BuiltinRangeSpec(BuiltinParameterSpecNoKeywords):
             if arg_count == 1:
                 low = values[0]
 
-                # If it's not a number constant, we can compute the exception
-                # that will be raised.
+                # Non-number constants deterministically raise TypeError at compile time.
                 if not low.isNumberConstant():
                     return True
 
@@ -701,8 +686,6 @@ class BuiltinRangeSpec(BuiltinParameterSpecNoKeywords):
             elif arg_count == 2:
                 low, high = values
 
-                # If it's not a number constant, we can compute the exception
-                # that will be raised.
                 if not low.isNumberConstant() or not high.isNumberConstant():
                     return True
 
@@ -723,7 +706,7 @@ class BuiltinRangeSpec(BuiltinParameterSpecNoKeywords):
                 high = high.getCompileTimeConstant()
                 step = step.getCompileTimeConstant()
 
-                # It's going to give a ZeroDivisionError in this case.
+                # Zero step raises ValueError at compile time; avoid dividing by zero below.
                 if step == 0:
                     return True
 
@@ -779,7 +762,7 @@ def applyKeywordAliases(builtin_spec, pairs):
 
 
 def extractBuiltinArgs(node, builtin_spec, builtin_class, empty_special_class=None):
-    # Many cases to deal with, pylint: disable=too-many-branches
+    # pylint: disable=too-many-branches
 
     # TODO: Special hack for type.__prepare__(*args, **kwargs) to work with even
     # unknown dictionaries.
@@ -908,7 +891,6 @@ class BuiltinMethodParameterSpecBase(BuiltinParameterSpec):
 class BuiltinMethodParameterSpecNoKeywordsBase(BuiltinParameterSpecNoKeywords):
     __slots__ = ()
 
-    # For overload
     method_prefix = None
 
     def __init__(
@@ -955,7 +937,7 @@ class BuiltinMethodParameterSpecNoKeywordsBase(BuiltinParameterSpecNoKeywords):
                 return "%s() takes no keyword arguments" % self.name
 
             try:
-                eval(  # These are harmless calls, pylint: disable=eval-used
+                eval(  # pylint: disable=eval-used
                     "%s.%s(x=1)" % (type_example_value, self.name.split(".")[-1])
                 )
             except TypeError as e:

@@ -1,11 +1,7 @@
 #     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-"""Reformulation of class statements.
-
-Consult the Developer Manual for information. TODO: Add ability to sync
-source code comments with Developer Manual sections.
-"""
+"""Reformulation of class statements."""
 
 from nuitka.nodes.AttributeNodes import makeExpressionAttributeLookup
 from nuitka.nodes.BuiltinRefNodes import ExpressionBuiltinAnonymousRef
@@ -62,10 +58,9 @@ from .TreeHelpers import (
 
 
 def buildClassNode2(provider, node, source_ref):
-    # This function is the Python2 special case with special re-formulation as
-    # according to Developer Manual, and it's very detailed, pylint: disable=too-many-locals
+    # pylint: disable=too-many-locals
+    assert python_version < 0x300
 
-    # First, allow plugins to modify the code if they want to.
     onClassBodyParsing(provider=provider, class_name=node.name, node=node)
 
     class_statement_nodes, class_doc = extractDocFromBody(
@@ -101,9 +96,6 @@ def buildClassNode2(provider, node, source_ref):
 
     locals_scope = function_body.getLocalsScope()
 
-    # The class body is basically a function that implicitly, at the end
-    # returns its locals and cannot have other return statements contained, and
-    # starts out with a variables "__module__" and potentially "__doc__" set.
     statements = [
         StatementSetLocalsDictionary(locals_scope=locals_scope, source_ref=source_ref),
         StatementAssignmentVariableName(
@@ -149,9 +141,6 @@ def buildClassNode2(provider, node, source_ref):
             source_ref=source_ref,
         )
     )
-
-    # The class body is basically a function that implicitly, at the end
-    # returns its locals and cannot have other return statements contained.
 
     function_body.setChildBody(body)
 
@@ -373,14 +362,11 @@ def buildClassNode2(provider, node, source_ref):
 def buildClassNode(provider, node, source_ref):
     assert getKind(node) == "ClassDef"
 
-    # There appears to be a inconsistency with the top level line number
-    # not being the one really the class has, if there are bases, and a
-    # decorator.
+    # CPython's AST attaches the decorator line number to ClassDef when bases
+    # and decorators are both present; use the last base's line number instead.
     if node.bases:
         source_ref = source_ref.atLineNumber(node.bases[-1].lineno)
 
-    # Python2 and Python3 are similar, but fundamentally different, so handle
-    # them in dedicated code.
     if python_version < 0x300:
         return buildClassNode2(provider, node, source_ref)
     else:

@@ -71,11 +71,6 @@ importlib_metadata_backport_entry_points_spec = BuiltinParameterSpec(
     "importlib_metadata.entry_points", (), default_count=0, dict_star_arg="params"
 )
 
-# TODO: Once we have selectable group under control, we can do this too.
-# importlib_metadata_backport_entry_points_spec = BuiltinParameterSpec(
-#    "importlib_metadata.entry_points", (), default_count=0, type_shape=tshape_dict
-# )
-
 # Resources:
 
 pkgutil_get_data_spec = BuiltinParameterSpec(
@@ -284,18 +279,8 @@ tensorflow_function_spec = BuiltinParameterSpec(
     default_count=11,
 )
 
-# networkx.utils.decorators
-
-# TODO: Disabled for now, keyword only arguments and star list argument are
-# having ordering issues for call matching and code generation.
-
-# networkx_argmap_spec = BuiltinParameterSpec(
-#     "networkx.utils.decorators.argmap",
-#     ("func",),
-#     default_count=1,
-#     list_star_arg="args",
-#     kw_only_args=("try_finally",),
-# )
+# TODO: Support "networkx.utils.decorators.argmap" once keyword-only arguments
+# combined with star list arguments are supported in call matching and codegen.
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.

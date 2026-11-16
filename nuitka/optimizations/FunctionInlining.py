@@ -39,14 +39,12 @@ def updateLocalsScope(provider, locals_scope, variable_translation):
 
 
 def convertFunctionCallToOutline(provider, function_body, values, call_source_ref):
-    # This has got to have pretty man details
     function_source_ref = function_body.getSourceReference()
 
     outline_body = ExpressionOutlineBody(
         provider=provider, name="inline", source_ref=function_source_ref
     )
 
-    # Make a clone first, so we do not harm other references.
     clone = function_body.subnode_body.makeClone()
 
     locals_scope_clone, variable_translation = function_body.locals_scope.makeClone(

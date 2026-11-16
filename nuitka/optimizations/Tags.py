@@ -10,30 +10,19 @@ tags to execute other steps.
 """
 
 allowed_tags = (
-    # New code means new statements.
     # Could be an inlined exec statement.
     "new_code",
-    # Added new import.
     "new_import",
-    # New statements added, removed.
     "new_statements",
-    # New expression added.
     "new_expression",
     # Loop analysis is incomplete, or only just now completed.
     "loop_analysis",
-    # Changed variable usage
     "var_usage",
-    # Detected module variable to be read only.
     "read_only_module_variable",
-    # Trusting module variables in functions.
     "trusted_module_variables",
-    # New built-in reference detected.
     "new_builtin_ref",
-    # New built-in call detected.
     "new_builtin",
-    # New raise statement detected.
     "new_raise",
-    # New constant introduced.
     "new_constant",
     # New variable introduced or variable references removed.
     "changed_variable_usage",

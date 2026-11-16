@@ -48,7 +48,6 @@ def signalChange(tags, source_ref, message):
     """Indicate a change to the optimization framework."""
     if message is not None:
         # Try hard to not call a delayed evaluation of node descriptions.
-
         if states.is_verbose:
             optimization_logger.info(
                 "%s : %s : %s"
@@ -58,8 +57,6 @@ def signalChange(tags, source_ref, message):
                     message() if inspect.isfunction(message) else message,
                 )
             )
-
-        # assert pass_count < 2
 
     tag_set.onSignal(tags)
 
@@ -82,8 +79,6 @@ def optimizeCompiledPythonModule(module):
     # that are then not yet fully seen in the traces yet until another time around, we
     # allow to continue the loop even without changes one more time.
     unchanged_count = 0
-
-    # Count the micro passes, so we can see how often we looped
     micro_pass = 0
 
     while True:
@@ -95,7 +90,6 @@ def optimizeCompiledPythonModule(module):
         tag_set.clear()
 
         try:
-            # print("Compute module")
             with withChangeIndicationsTo(signalChange):
                 scopes_were_incomplete = module.computeModule()
         except SystemExit:
@@ -122,7 +116,6 @@ in the extra micro pass that checks for that to not happen \
 that is done in debug mode: '%s'""" % (module_name, tag_set.asString()),
             )
 
-        # Search for local change tags.
         if not tag_set:
             unchanged_count += 1
 
@@ -147,7 +140,6 @@ that is done in debug mode: '%s'""" % (module_name, tag_set.asString()),
             other_logger=progress_logger,
         )
 
-        # Otherwise we did stuff, so note that for return value.
         touched = True
 
     if isShowProgress() and isShowMemory():
@@ -185,7 +177,6 @@ def optimizeExtensionModule(module):
 
 
 def optimizeModule(module):
-    # The tag set is global, so it can track changes without context.
     # pylint: disable=global-statement
     global tag_set
     tag_set = TagSet()
@@ -207,7 +198,7 @@ last_total = 0
 
 
 def _restartProgress():
-    global pass_count  # Singleton, pylint: disable=global-statement
+    global pass_count  # pylint: disable=global-statement
 
     closeProgressBar()
     pass_count += 1
@@ -269,7 +260,7 @@ def _traceProgressModuleEnd(current_module):
 
 
 def _endProgress():
-    global last_total  # Singleton, pylint: disable=global-statement
+    global last_total  # pylint: disable=global-statement
     last_total = closeProgressBar()
 
 
@@ -370,7 +361,6 @@ def _makeOptimizationPass():
 def _optimizeModules(output_filename):
     Graphs.startGraph()
 
-    # Pass 1 is unconditional.
     unfinished_modules = _makeOptimizationPass()
 
     # Demote compiled modules to bytecode, now that imports had a chance to be resolved, and
@@ -382,7 +372,6 @@ def _optimizeModules(output_filename):
         ):
             demoteCompiledModuleToBytecode(module)
 
-    # Second more more, "endless" passes.
     while unfinished_modules:
         if pass_count >= 2:
             general.info(

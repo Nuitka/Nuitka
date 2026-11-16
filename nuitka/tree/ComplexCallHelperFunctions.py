@@ -111,21 +111,6 @@ def _makeNameAttributeLookup(node, attribute_name="__name__"):
 def getCallableNameDescBody():
     helper_name = "get_callable_name_desc"
 
-    # Equivalent of:
-    #
-    # Note: The "called_type" is a temporary variable.
-    #
-    # called_type = type(BuiltinFunctionType)
-    #
-    # if isinstance(called, (FunctionType, MethodType, BuiltinFunctionType)):
-    #     return called.__name__
-    # elif python_version < 0x3 and isinstance(called, ClassType):
-    #     return called_type.__name__ + " constructor"
-    # elif python_version < 0x3 and isinstance(called, InstanceType):
-    #     return called_type.__name__ + " instance"
-    # else:
-    #     return called_type.__name__ + " object"
-
     result = makeInternalHelperFunctionBody(
         name=helper_name,
         parameters=ParameterSpec(
@@ -826,7 +811,6 @@ def _makeRaiseDuplicationItem(called_variable, tmp_key_variable):
 def _makeStarDictArgumentMergeToKwStatement(
     result, called_variable, kw_variable, star_dict_variable
 ):
-    # This is plain terribly complex
     temp_scope = result.allocateTempScope("dict")
 
     tmp_iter_variable = result.allocateTempVariable(
@@ -1048,24 +1032,7 @@ def _makeStarDictArgumentMergeToKwStatement(
 @once_decorator
 def getFunctionCallHelperStarList():
     helper_name = "complex_call_helper_star_list"
-    # Equivalent of:
-    #
-    # Note: Call in here is not the same, as it can go without checks directly
-    # to PyObject_Call.
-    #
-    # if not isinstance(star_arg_list, tuple):
-    #     try:
-    #         star_arg_list = tuple(star_arg_list)
-    #     except TypeError:
-    #         raise TypeError, "%s argument after * must be a sequence, not %s" % (
-    #             get_callable_name_desc(function),
-    #             type(star_arg_list).__name__
-    #         )
-    #
-    # return called(*star_arg_list)
 
-    # Only need to check if the star argument value is a sequence and then
-    # convert to tuple.
     result = makeInternalHelperFunctionBody(
         name=helper_name,
         parameters=ParameterSpec(
@@ -1114,24 +1081,6 @@ def getFunctionCallHelperStarList():
 def getFunctionCallHelperKeywordsStarList():
     helper_name = "complex_call_helper_keywords_star_list"
 
-    # Equivalent of:
-    #
-    # Note: Call in here is not the same, as it can go without checks directly
-    # to PyObject_Call.
-    #
-    # if not isinstance(star_arg_list, tuple):
-    #     try:
-    #         star_arg_list = tuple(star_arg_list)
-    #     except TypeError:
-    #         raise TypeError, "%s argument after * must be a sequence, not %s" % (
-    #             get_callable_name_desc(function),
-    #             type(star_arg_list).__name__
-    #         )
-    #
-    # return called(*star_arg_list)
-
-    # Only need to check if the star argument value is a sequence and then
-    # convert to tuple.
     result = makeInternalHelperFunctionBody(
         name=helper_name,
         parameters=ParameterSpec(
@@ -1185,24 +1134,6 @@ def getFunctionCallHelperKeywordsStarList():
 def getFunctionCallHelperPosStarList():
     helper_name = "complex_call_helper_pos_star_list"
 
-    # Equivalent of:
-    #
-    # Note: Call in here is not the same, as it can go without checks directly
-    # to PyObject_Call.
-    #
-    # if not isinstance(star_arg_list, tuple):
-    #     try:
-    #         star_arg_list = tuple(star_arg_list)
-    #     except TypeError:
-    #         raise TypeError, "%s argument after * must be a sequence, not %s" % (
-    #             get_callable_name_desc(function),
-    #             type(star_arg_list).__name__
-    #         )
-    #
-    # return called(*star_arg_list)
-
-    # Only need to check if the star argument value is a sequence and then
-    # convert to tuple.
     result = makeInternalHelperFunctionBody(
         name=helper_name,
         parameters=ParameterSpec(
@@ -1260,24 +1191,7 @@ def getFunctionCallHelperPosStarList():
 @once_decorator
 def getFunctionCallHelperPosKeywordsStarList():
     helper_name = "complex_call_helper_pos_keywords_star_list"
-    # Equivalent of:
-    #
-    # Note: Call in here is not the same, as it can go without checks directly
-    # to PyObject_Call.
-    #
-    # if not isinstance(star_arg_list, tuple):
-    #     try:
-    #         star_arg_list = tuple(star_arg_list)
-    #     except TypeError:
-    #         raise TypeError, "%s argument after * must be a sequence, not %s" % (
-    #             get_callable_name_desc(function),
-    #             type(star_arg_list).__name__
-    #         )
-    #
-    # return called(*star_arg_list)
 
-    # Only need to check if the star argument value is a sequence and then
-    # convert to tuple.
     result = makeInternalHelperFunctionBody(
         name=helper_name,
         parameters=ParameterSpec(
@@ -1339,37 +1253,7 @@ def getFunctionCallHelperPosKeywordsStarList():
 @once_decorator
 def getFunctionCallHelperStarDict():
     helper_name = "complex_call_helper_star_dict"
-    # Equivalent of:
-    #
-    # Note: Call in here is not the same, as it can go without checks directly
-    # to PyObject_Call.
-    #
-    # if not isinstance(star_arg_dict, dict):
-    #     try:
-    #         tmp_keys =  star_arg_dict.keys()
-    #     except AttributeError:
-    #         raise TypeError, ""%s argument after ** must be a mapping, not %s" % (
-    #             get_callable_name_desc(function),
-    #             type(star_arg_dict).__name__
-    #         )
-    #
-    #     tmp_iter = iter(keys)
-    #     tmp_dict = {}
-    #
-    #     while 1:
-    #         try:
-    #             tmp_key = tmp_iter.next()
-    #         except StopIteration:
-    #             break
-    #
-    #         tmp_dict[tmp_key] = star_dict_arg[tmp_key]
-    #
-    #     star_arg_dict = new
-    #
-    # return called(**star_arg_dict)
 
-    # Only need to check if the star argument value is a sequence and then
-    # convert to tuple.
     result = makeInternalHelperFunctionBody(
         name=helper_name,
         parameters=ParameterSpec(
@@ -1419,37 +1303,6 @@ def getFunctionCallHelperStarDict():
 def getFunctionCallHelperPosStarDict():
     helper_name = "complex_call_helper_pos_star_dict"
 
-    # Equivalent of:
-    #
-    # Note: Call in here is not the same, as it can go without checks directly
-    # to PyObject_Call.
-    #
-    # if not isinstance(star_arg_dict, dict):
-    #     try:
-    #         tmp_keys =  star_arg_dict.keys()
-    #     except AttributeError:
-    #         raise TypeError, ""%s argument after ** must be a mapping, not %s" % (
-    #             get_callable_name_desc(function),
-    #             type(star_arg_dict).__name__
-    #         )
-    #
-    #     tmp_iter = iter(keys)
-    #     tmp_dict = {}
-    #
-    #     while 1:
-    #         try:
-    #             tmp_key = tmp_iter.next()
-    #         except StopIteration:
-    #             break
-    #
-    #         tmp_dict[tmp_key] = star_dict_arg[tmp_key]
-    #
-    #     star_arg_dict = new
-    #
-    # return called(args, **star_arg_dict)
-
-    # Only need to check if the star argument value is a sequence and then
-    # convert to tuple.
     result = makeInternalHelperFunctionBody(
         name=helper_name,
         parameters=ParameterSpec(
@@ -1502,63 +1355,7 @@ def getFunctionCallHelperPosStarDict():
 @once_decorator
 def getFunctionCallHelperKeywordsStarDict():
     helper_name = "complex_call_helper_keywords_star_dict"
-    # Equivalent of:
-    #
-    # Note: Call in here is not the same, as it can go without checks directly
-    # to PyObject_Call. One goal is to avoid copying "kw" unless really
-    # necessary, and to take the slow route only for non-dictionaries.
-    #
-    # if not isinstance(star_arg_dict, dict):
-    #     try:
-    #         tmp_keys =  star_arg_dict.keys()
-    #     except AttributeError:
-    #         raise TypeError, ""%s argument after ** must be a mapping, not %s" % (
-    #             get_callable_name_desc(function),
-    #             type(star_arg_dict).__name__
-    #         )
-    #
-    #     if keys:
-    #         kw = dict(kw)
-    #
-    #         tmp_iter = iter(keys)
-    #         tmp_dict = {}
-    #
-    #         while 1:
-    #             try:
-    #                 tmp_key = tmp_iter.next()
-    #             except StopIteration:
-    #                  break
-    #
-    #             if tmp_key in kw:
-    #                 raise TypeError, "%s got multiple values for keyword argument '%s'" % (
-    #                     get_callable_name_desc(function),
-    #                     tmp_key
-    #                 )
-    #
-    #             kw[tmp_key] = star_dict_arg[tmp_key)
-    #
-    # elif star_arg_dict:
-    #    tmp_iter = star_arg_dict.iteritems()
-    #
-    #    kw = dict(kw)
-    #    while 1:
-    #        try:
-    #            tmp_key, tmp_value = tmp_iter.next()
-    #        except StopIteration:
-    #            break
-    #
-    #        if tmp_key in kw:
-    #            raise TypeError, "%s got multiple values for keyword argument '%s'" % (
-    #                 get_callable_name_desc(function),
-    #                 tmp_key
-    #            )
-    #
-    #        kw[tmp_key] = tmp_value
-    #
-    # return called(**kw)
 
-    # Only need to check if the star argument value is a sequence and then
-    # convert to tuple.
     result = makeInternalHelperFunctionBody(
         name=helper_name,
         parameters=ParameterSpec(
@@ -1610,63 +1407,7 @@ def getFunctionCallHelperKeywordsStarDict():
 @once_decorator
 def getFunctionCallHelperPosKeywordsStarDict():
     helper_name = "complex_call_helper_pos_keywords_star_dict"
-    # Equivalent of:
-    #
-    # Note: Call in here is not the same, as it can go without checks directly
-    # to PyObject_Call. One goal is to avoid copying "kw" unless really
-    # necessary, and to take the slow route only for non-dictionaries.
-    #
-    # if not isinstance(star_arg_dict, dict):
-    #     try:
-    #         tmp_keys =  star_arg_dict.keys()
-    #     except AttributeError:
-    #         raise TypeError, ""%s argument after ** must be a mapping, not %s" % (
-    #             get_callable_name_desc(function),
-    #             type(star_arg_dict).__name__
-    #         )
-    #
-    #     if keys:
-    #         kw = dict(kw)
-    #
-    #         tmp_iter = iter(keys)
-    #         tmp_dict = {}
-    #
-    #         while 1:
-    #             try:
-    #                 tmp_key = tmp_iter.next()
-    #             except StopIteration:
-    #                  break
-    #
-    #             if tmp_key in kw:
-    #                 raise TypeError, "%s got multiple values for keyword argument '%s'" % (
-    #                     get_callable_name_desc(function),
-    #                     tmp_key
-    #                 )
-    #
-    #             kw[tmp_key] = star_dict_arg[tmp_key]
-    #
-    # elif star_arg_dict:
-    #    tmp_iter = star_arg_dict.iteritems()
-    #
-    #    kw = dict(kw)
-    #    while 1:
-    #        try:
-    #            tmp_key, tmp_value = tmp_iter.next()
-    #        except StopIteration:
-    #            break
-    #
-    #        if tmp_key in kw:
-    #            raise TypeError, "%s got multiple values for keyword argument '%s'" % (
-    #                 get_callable_name_desc(function),
-    #                 tmp_key
-    #            )
-    #
-    #        kw[tmp_key] = tmp_value
-    #
-    # return called(**kw )
 
-    # Only need to check if the star argument value is a sequence and then
-    # convert to tuple.
     result = makeInternalHelperFunctionBody(
         name=helper_name,
         parameters=ParameterSpec(
@@ -1762,8 +1503,6 @@ def getDoubleStarArgsConversion(
 def getFunctionCallHelperStarListStarDict():
     helper_name = "complex_call_helper_star_list_star_dict"
 
-    # Only need to check if the star argument value is a sequence and then
-    # convert to tuple.
     result = makeInternalHelperFunctionBody(
         name=helper_name,
         parameters=ParameterSpec(
@@ -1825,8 +1564,6 @@ def getFunctionCallHelperStarListStarDict():
 def getFunctionCallHelperPosStarListStarDict():
     helper_name = "complex_call_helper_pos_star_list_star_dict"
 
-    # Only need to check if the star argument value is a sequence and then
-    # convert to tuple.
     result = makeInternalHelperFunctionBody(
         name=helper_name,
         parameters=ParameterSpec(
@@ -1900,8 +1637,6 @@ def getFunctionCallHelperPosStarListStarDict():
 def getFunctionCallHelperKeywordsStarListStarDict():
     helper_name = "complex_call_helper_keywords_star_list_star_dict"
 
-    # Only need to check if the star argument value is a sequence and then
-    # convert to tuple.
     result = makeInternalHelperFunctionBody(
         name=helper_name,
         parameters=ParameterSpec(
@@ -1965,8 +1700,6 @@ def getFunctionCallHelperKeywordsStarListStarDict():
 def getFunctionCallHelperPosKeywordsStarListStarDict():
     helper_name = "complex_call_helper_pos_keywords_star_list_star_dict"
 
-    # Only need to check if the star argument value is a sequence and then
-    # convert to tuple.
     result = makeInternalHelperFunctionBody(
         name=helper_name,
         parameters=ParameterSpec(

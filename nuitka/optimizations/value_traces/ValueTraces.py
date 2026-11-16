@@ -26,14 +26,6 @@ _merge_trace_classes = {
 
 
 def makeMergeTrace(traces):
-    """Make a merge trace for a sequence of traces.
-
-    Args:
-        traces: Sequence of value traces to merge.
-
-    Returns:
-        ValueTraceMergeBase - The merge trace.
-    """
     merge_class = _merge_trace_classes.get(len(traces))
 
     if merge_class is None:

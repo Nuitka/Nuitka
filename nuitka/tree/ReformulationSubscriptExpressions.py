@@ -1,16 +1,7 @@
 #     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-"""Reformulation of subscript into slicing.
-
-For Python2, there is a difference between x[a], x[a:b], x[a:b:c] whereas
-Python3 treats the later by making a slice object, Python2 tries to have
-special slice access, if available, or building a slice object only at the
-end.
-
-Consult the Developer Manual for information. TODO: Add ability to sync
-source code comments with Developer Manual sections.
-"""
+"""Reformulation of subscript and slicing expressions."""
 
 from nuitka.nodes.ConstantRefNodes import ExpressionConstantEllipsisRef
 from nuitka.nodes.SliceNodes import (
@@ -25,18 +16,8 @@ from .TreeHelpers import buildNode, getKind
 
 
 def buildSubscriptNode(provider, node, source_ref):
-    # Subscript expression nodes, various types are dispatched here.
-
     assert getKind(node.ctx) == "Load", source_ref
 
-    # The subscript "[]" operator is one of many different things. This is
-    # expressed by this kind, there are "slice" lookups (two values, even if one
-    # is using default), and then "index" lookups. The form with three argument
-    # is really an "index" lookup, with a slice object. And the "..." lookup is
-    # also an index loop-up, with it as the argument. So this splits things into
-    # two different operations, "subscript" with a single "subscript" object. Or
-    # a slice lookup with a lower and higher boundary. These things should
-    # behave similar, but they are different slots.
     kind = getKind(node.slice)
 
     if kind == "Index":

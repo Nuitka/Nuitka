@@ -1,12 +1,7 @@
 #     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-"""Reformulation of contraction expressions.
-
-Consult the Developer Manual for information. TODO: Add ability to sync
-source code comments with Developer Manual sections.
-
-"""
+"""Reformulation of contraction expressions."""
 
 from nuitka.__past__ import intern
 from nuitka.nodes.AsyncgenNodes import (
@@ -122,12 +117,8 @@ def _getStopIterationName(qual):
 
 
 def _buildPython2ListContraction(provider, node, source_ref):
-    # The contraction nodes are reformulated to function bodies, with loops as
-    # described in the Developer Manual. They use a lot of temporary names,
-    # nested blocks, etc. and so a lot of variable names.
+    assert python_version < 0x300
 
-    # Note: The assign_provider is only to cover Python2 list contractions,
-    # assigning one of the loop variables to the outside scope.
     function_body = ExpressionOutlineBody(
         provider=provider, name="list_contraction", source_ref=source_ref
     )
@@ -174,7 +165,6 @@ def _buildPython2ListContraction(provider, node, source_ref):
 
 
 def buildListContractionNode(provider, node, source_ref):
-    # List contractions are dealt with by general code.
     if python_version < 0x300:
         return _buildPython2ListContraction(
             provider=provider, node=node, source_ref=source_ref
@@ -191,8 +181,6 @@ def buildListContractionNode(provider, node, source_ref):
 
 
 def buildSetContractionNode(provider, node, source_ref):
-    # Set contractions are dealt with by general code.
-
     return _buildContractionNode(
         provider=provider,
         node=node,
@@ -204,8 +192,6 @@ def buildSetContractionNode(provider, node, source_ref):
 
 
 def buildDictContractionNode(provider, node, source_ref):
-    # Dict contractions are dealt with by general code.
-
     return _buildContractionNode(
         provider=provider,
         node=node,
@@ -365,13 +351,10 @@ def _buildContractionBodyNode(  # pylint: disable=too-many-statements
     for_asyncgen,
     source_ref,
 ):
-    # This uses lots of variables and branches. There is no good way
-    # around that, and we deal with many cases, due to having generator
-    # expressions sharing this code, pylint: disable=too-many-branches,too-many-locals
+    # pylint: disable=too-many-branches,too-many-locals
 
-    # Note: The assign_provider is only to cover Python2 list contractions,
-    # assigning one of the loop variables to the outside scope.
-
+    # In Python 2 list comprehensions, loop targets bind in the enclosing
+    # scope ("assign_provider=True") rather than a comprehension scope.
     tmp_variables = []
     if emit_class is not ExpressionYield:
         tmp_variables.append(iter_tmp)
@@ -381,7 +364,6 @@ def _buildContractionBodyNode(  # pylint: disable=too-many-statements
 
     statements = []
 
-    # First assign the iterator if we are an outline.
     if assign_provider:
         statements.append(
             makeStatementAssignmentVariable(
@@ -624,7 +606,6 @@ def _buildContractionBodyNode(  # pylint: disable=too-many-statements
 
             nested_statements = []
         else:
-            # First create the iterator and store it, next should be loop body
             value_iterator = _makeIteratorCreation(
                 provider=provider if assign_provider else function_body,
                 qual=qual,
@@ -722,10 +703,6 @@ def _buildContractionBodyNode(  # pylint: disable=too-many-statements
 
 
 def _buildContractionNode(provider, node, name, emit_class, start_value, source_ref):
-    # The contraction nodes are reformulated to function bodies, with loops as
-    # described in the Developer Manual. They use a lot of temporary names,
-    # nested blocks, etc. and so a lot of variable names.
-
     function_body = ExpressionOutlineFunction(
         provider=provider, name=intern(name[1:-1]), source_ref=source_ref
     )

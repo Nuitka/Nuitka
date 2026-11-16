@@ -805,8 +805,6 @@ class ValueTraceAssignBase(ValueTraceBase):
 
     @counted_init
     def __init__(self, owner, assign_node):
-        # assert assign_node.isStatementAssignmentVariable(), assign_node
-
         self.owner = owner
         self.usage_count = 0
         self.name_usage_count = 0
@@ -910,7 +908,6 @@ class ValueTraceAssignBase(ValueTraceBase):
         return self.assign_node.subnode_source
 
     def getDictInValue(self, key):
-        """Value to use for dict in decisions."""
         return self.assign_node.subnode_source.getExpressionDictInConstant(key)
 
     def inhibitsClassScopeForwardPropagation(self):
@@ -922,7 +919,6 @@ class ValueTraceAssign(ValueTraceSinglePreviousMixin, ValueTraceAssignBase):
 
     @counted_init
     def __init__(self, owner, assign_node, previous):
-        # assert assign_node.isStatementAssignmentVariable(), assign_node
         # For performance reasons, we don't do super init, but duplicate it here.
         # pylint: disable=super-init-not-called
 
@@ -1041,8 +1037,7 @@ class ValueTraceAssignIteratorPropagated(ValueTraceAssign):
 class ValueTraceMergeBase(ValueTraceBase):
     """Merge of two or more traces or start of loops."""
 
-    # Base classes can be abstract, pylint: disable=I0021,abstract-method
-    # pylint: disable=literal-comparison
+    # pylint: disable=I0021,abstract-method,literal-comparison
 
     __slots__ = ()
 
@@ -1068,7 +1063,6 @@ class ValueTraceMergeBase(ValueTraceBase):
     def addUsage(self):
         self.usage_count += 1
 
-        # Only do it once.
         if self.usage_count is 1:
             for trace in self.previous:
                 trace.addMergeUsage()
@@ -1076,7 +1070,6 @@ class ValueTraceMergeBase(ValueTraceBase):
     def removeUsage(self):
         self.usage_count -= 1
 
-        # Only do it once.
         if self.usage_count is 0:
             for trace in self.previous:
                 trace.removeMergeUsage()

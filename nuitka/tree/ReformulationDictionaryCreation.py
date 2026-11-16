@@ -1,18 +1,7 @@
 #     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-"""Reformulation of dictionary creations.
-
-Dictionary creations might be directly translated to constants, or they might
-become nodes that build dictionaries.
-
-For Python3.5, unpacking can happen while creating dictionaries, these are
-being re-formulated to an internal function.
-
-Consult the Developer Manual for information. TODO: Add ability to sync
-source code comments with Developer Manual sections.
-
-"""
+"""Reformulation of dictionary creations."""
 
 from nuitka.nodes.AttributeNodes import makeExpressionAttributeLookup
 from nuitka.nodes.BuiltinIteratorNodes import ExpressionBuiltinIter1
