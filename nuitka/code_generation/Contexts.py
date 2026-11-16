@@ -659,8 +659,15 @@ class PythonChildContextBase(PythonContextBase):
     def addFunctionCreationInfo(self, creation_info):
         return self.parent.addFunctionCreationInfo(creation_info)
 
-    def setModuleVariableAccessorCaching(self, variable_name, caching):
-        self.parent.setModuleVariableAccessorCaching(variable_name, caching)
+    def registerModuleVariableAccessor(
+        self, variable_name, caching, needs_check, needs_global_name
+    ):
+        self.parent.registerModuleVariableAccessor(
+            variable_name=variable_name,
+            caching=caching,
+            needs_check=needs_check,
+            needs_global_name=needs_global_name,
+        )
 
     def isModuleVariableAccessorCaching(self, variable_name):
         return self.parent.isModuleVariableAccessorCaching(variable_name)
@@ -848,7 +855,7 @@ class PythonModuleContext(
         "function_table_entries",
         "constant_accessor",
         "module_init_codes",
-        "module_variable_caching",
+        "module_variable_accessors",
         # FrameDeclarationsMixin
         "frame_variables_stack",
         "frame_variable_types",
@@ -908,7 +915,7 @@ class PythonModuleContext(
 
         self.module_init_codes = []
 
-        self.module_variable_caching = {}
+        self.module_variable_accessors = {}
 
     def __repr__(self):
         return "<PythonModuleContext instance for module %s>" % self.name
@@ -919,17 +926,39 @@ class PythonModuleContext(
     def getEntryPoint(self):
         return self.module
 
-    def setModuleVariableAccessorCaching(self, variable_name, caching):
+    def registerModuleVariableAccessor(
+        self, variable_name, caching, needs_check, needs_global_name
+    ):
+        accessor = self.module_variable_accessors.get(variable_name)
+
+        if accessor is None:
+            accessor = {
+                "caching": False,
+                "checked": False,
+                "checked_global": False,
+                "unchecked": False,
+            }
+
+            self.module_variable_accessors[variable_name] = accessor
+
         if caching:
-            self.module_variable_caching[variable_name] = True
-        elif variable_name not in self.module_variable_caching:
-            self.module_variable_caching[variable_name] = False
+            accessor["caching"] = True
+
+        if needs_check:
+            if needs_global_name:
+                accessor["checked_global"] = True
+            else:
+                accessor["checked"] = True
+        else:
+            accessor["unchecked"] = True
 
     def isModuleVariableAccessorCaching(self, variable_name):
-        return self.module_variable_caching.get(variable_name, False)
+        accessor = self.module_variable_accessors.get(variable_name)
+
+        return accessor is not None and accessor["caching"]
 
     def getModuleVariableAccessors(self):
-        return self.module_variable_caching
+        return self.module_variable_accessors
 
     def isCompiledPythonModule(self):
         return True

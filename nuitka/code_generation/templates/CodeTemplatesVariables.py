@@ -367,6 +367,29 @@ static PyObject *%(accessor_function_name)s(PyThreadState *tstate) {
 }
 """
 
+template_module_variable_accessor_checked_function = """\
+static PyObject *%(accessor_function_name)s(
+    PyThreadState *tstate,
+    struct Nuitka_ExceptionPreservationItem *exception_state) {
+    PyObject *result = %(core_accessor_function_name)s(tstate);
+
+    if (unlikely(result == NULL)) {
+        %(raise_name_error_helper)s(tstate, exception_state, %(var_name)s);
+    }
+
+    return result;
+}
+"""
+
+template_module_variable_accessor_infallible_function = """\
+static PyObject *%(accessor_function_name)s(PyThreadState *tstate) {
+    PyObject *result = %(core_accessor_function_name)s(tstate);
+
+    CHECK_OBJECT(result);
+    return result;
+}
+"""
+
 template_write_py_cell_inplace = """\
 PyCell_SET((PyObject *)%(identifier)s, %(tmp_name)s);
 """

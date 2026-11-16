@@ -108,57 +108,51 @@ def getModuleVariableReferenceCode(
 ):
     owner = context.getOwner()
 
-    context.setModuleVariableAccessorCaching(variable_name, use_caching)
+    needs_global_name = (
+        python_version < 0x300
+        and not owner.isCompiledPythonModule()
+        and not owner.isExpressionClassBodyBase()
+    )
+
+    context.registerModuleVariableAccessor(
+        variable_name=variable_name,
+        caching=use_caching,
+        needs_check=needs_check,
+        needs_global_name=needs_global_name,
+    )
 
     with withObjectCodeTemporaryAssignment2(
         to_name, "mvar_value", conversion_check, emit, context
     ) as value_name:
-        emit(
-            "%(value_name)s = %(module_variable_accessor)s(tstate);"
-            % {
-                "value_name": value_name,
-                "module_variable_accessor": getModuleVariableAccessorCodeName(
-                    context.getModuleCodeName(), variable_name
-                ),
-            }
+        accessor_function_name = getModuleVariableAccessorCodeName(
+            context.getModuleCodeName(), variable_name
         )
 
         if needs_check:
-            if (
-                python_version < 0x300
-                and not owner.isCompiledPythonModule()
-                and not owner.isExpressionClassBodyBase()
-            ):
-                error_helper_name = "RAISE_CURRENT_EXCEPTION_GLOBAL_NAME_ERROR"
-            else:
-                error_helper_name = "RAISE_CURRENT_EXCEPTION_NAME_ERROR"
-
             (
                 exception_state_name,
                 _exception_lineno,
             ) = context.getExceptionVariableDescriptions()
 
-            emit(
-                """\
-if (unlikely(%(value_name)s == NULL)) {
-    %(error_helper_name)s(tstate, &%(exception_state_name)s, %(var_name)s);
-}
-"""
-                % {
-                    "value_name": value_name,
-                    "error_helper_name": error_helper_name,
-                    "var_name": context.getConstantCode(constant=variable_name),
-                    "exception_state_name": exception_state_name,
-                }
+            accessor_function_name += (
+                "$checked_global" if needs_global_name else "$checked"
             )
 
-        getErrorExitCode(
-            check_name=value_name,
-            emit=emit,
-            context=context,
-            fetched_exception=True,
-            needs_check=needs_check,
-        )
+            emit(
+                "%s = %s(tstate, &%s);"
+                % (value_name, accessor_function_name, exception_state_name)
+            )
+
+            getErrorExitCode(
+                check_name=value_name,
+                emit=emit,
+                context=context,
+                fetched_exception=True,
+            )
+        else:
+            accessor_function_name += "$infallible"
+
+            emit("%s = %s(tstate);" % (value_name, accessor_function_name))
 
 
 def getNonModuleVariableReferenceCode(

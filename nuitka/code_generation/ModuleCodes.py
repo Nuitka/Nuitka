@@ -36,7 +36,9 @@ from .templates.CodeTemplatesModules import (
     template_module_no_exception_exit,
 )
 from .templates.CodeTemplatesVariables import (
+    template_module_variable_accessor_checked_function,
     template_module_variable_accessor_function,
+    template_module_variable_accessor_infallible_function,
 )
 from .VariableCodes import (
     getModuleVariableAccessorCodeName,
@@ -188,20 +190,55 @@ def getModuleCode(
         )
 
     module_variable_accessor_codes = []
-    for module_variable_name, caching in sorted(
+    for module_variable_name, accessor_info in sorted(
         context.getModuleVariableAccessors().items()
     ):
+        accessor_function_name = getModuleVariableAccessorCodeName(
+            module_identifier, module_variable_name
+        )
+        var_name = context.getConstantCode(constant=module_variable_name)
+
         module_variable_accessor_codes.append(
             template_module_variable_accessor_function
             % {
-                "accessor_function_name": getModuleVariableAccessorCodeName(
-                    module_identifier, module_variable_name
-                ),
-                "var_name": context.getConstantCode(constant=module_variable_name),
+                "accessor_function_name": accessor_function_name,
+                "var_name": var_name,
                 "module_identifier": module_identifier,
-                "caching": "1" if caching else "0",
+                "caching": "1" if accessor_info["caching"] else "0",
             }
         )
+
+        if accessor_info["checked"]:
+            module_variable_accessor_codes.append(
+                template_module_variable_accessor_checked_function
+                % {
+                    "accessor_function_name": accessor_function_name + "$checked",
+                    "core_accessor_function_name": accessor_function_name,
+                    "raise_name_error_helper": "RAISE_CURRENT_EXCEPTION_NAME_ERROR",
+                    "var_name": var_name,
+                }
+            )
+
+        if accessor_info["checked_global"]:
+            module_variable_accessor_codes.append(
+                template_module_variable_accessor_checked_function
+                % {
+                    "accessor_function_name": accessor_function_name
+                    + "$checked_global",
+                    "core_accessor_function_name": accessor_function_name,
+                    "raise_name_error_helper": "RAISE_CURRENT_EXCEPTION_GLOBAL_NAME_ERROR",
+                    "var_name": var_name,
+                }
+            )
+
+        if accessor_info["unchecked"]:
+            module_variable_accessor_codes.append(
+                template_module_variable_accessor_infallible_function
+                % {
+                    "accessor_function_name": accessor_function_name + "$infallible",
+                    "core_accessor_function_name": accessor_function_name,
+                }
+            )
 
     (
         constants_count,
