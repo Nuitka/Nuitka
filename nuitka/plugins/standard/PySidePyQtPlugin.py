@@ -190,7 +190,7 @@ from the default sensible list.""",
             dest="no_qt_translations",
             default=False,
             help="""\
-Include Qt translations with QtWebEngine if used. These can be a lot
+Don't include Qt translations with QtWebEngine if used. These can be a lot
 of files that you may not want to be included.""",
         )
 
