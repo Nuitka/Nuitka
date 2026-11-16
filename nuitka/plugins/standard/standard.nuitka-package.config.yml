@@ -10227,6 +10227,21 @@
       bloat-mode-overrides:
         'setuptools': 'allow'
 
+- module-name: 'truststore' # checksum: 8d73cc0f
+  anti-bloat:
+    - description: 'avoid macOS specific implementation on other platforms'
+      no-auto-follow:
+        'truststore._macos': 'only imported on macOS'
+      when: 'not macos'
+    - description: 'avoid Windows specific implementation on other platforms'
+      no-auto-follow:
+        'truststore._windows': 'only imported on Windows'
+      when: 'not win32'
+    - description: 'avoid OpenSSL specific implementation on Windows and macOS'
+      no-auto-follow:
+        'truststore._openssl': 'only imported on other platforms than Windows and macOS'
+      when: 'win32 or macos'
+
 - module-name: 'tsdownsample._rust' # checksum: d072aa03
   implicit-imports:
     - depends:
