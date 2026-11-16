@@ -10,6 +10,7 @@ from nuitka.code_generation import Emission
 from nuitka.options.Options import (
     getFileReferenceMode,
     getModuleForceNamespace,
+    hasNonDeploymentIndicator,
     shallMakeModule,
     shallUseDirectConstantBlobs,
 )
@@ -48,6 +49,16 @@ from .VariableCodes import (
 
 def getModuleAccessCode(context):
     return "module_%s" % context.getModuleCodeName()
+
+
+def _getModuleVariableInfallibleCheck(no_global_deletion):
+    if no_global_deletion and hasNonDeploymentIndicator("module-globals-deleted"):
+        return """\
+if (unlikely(result == NULL)) {
+    NUITKA_ERROR_EXIT("Module variable was deleted unexpectedly");
+}"""
+
+    return "CHECK_OBJECT(result);"
 
 
 def getModuleCode(
@@ -190,6 +201,7 @@ def getModuleCode(
         )
 
     module_variable_accessor_codes = []
+
     for module_variable_name, accessor_info in sorted(
         context.getModuleVariableAccessors().items()
     ):
@@ -237,6 +249,9 @@ def getModuleCode(
                 % {
                     "accessor_function_name": accessor_function_name + "$infallible",
                     "core_accessor_function_name": accessor_function_name,
+                    "infallible_check": _getModuleVariableInfallibleCheck(
+                        accessor_info["no_global_deletion"]
+                    ),
                 }
             )
 
@@ -333,12 +348,15 @@ def generateModuleAttributeDunderCompiledCode(to_name, expression, emit, context
 
 
 def generateModuleAttributeCode(to_name, expression, emit, context):
+    variable = expression.getVariable()
+
     getModuleVariableReferenceCode(
         to_name=to_name,
-        variable_name=expression.getVariable().getName(),
+        variable_name=variable.getName(),
         use_caching=False,
         needs_check=False,
         conversion_check=decideConversionCheckNeeded(to_name, expression),
+        no_global_deletion=variable.isModuleVariableNoGlobalDeletion(),
         emit=emit,
         context=context,
     )

@@ -35,7 +35,7 @@ from nuitka.utils.Importing import (
     getPackageDirFilename,
 )
 from nuitka.utils.ModuleNames import ModuleName
-from nuitka.Variables import ModuleVariable, updateVariablesFromCollection
+from nuitka.Variables import makeModuleVariable, updateVariablesFromCollection
 
 from .ChildrenHavingMixins import (
     ModuleChildrenHavingBodyOptionalStatementsOrNoneFunctionsTupleMixin,
@@ -486,7 +486,7 @@ class CompiledPythonModule(
     def createProvidedVariable(self, variable_name):
         assert variable_name not in self.variables
 
-        result = ModuleVariable(module=self, variable_name=variable_name)
+        result = makeModuleVariable(module=self, variable_name=variable_name)
 
         self.variables[variable_name] = result
 

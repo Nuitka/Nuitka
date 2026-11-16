@@ -109,7 +109,14 @@ def getModuleVariableAccessorCodeName(module_identifier, variable_name):
 
 
 def getModuleVariableReferenceCode(
-    to_name, variable_name, use_caching, needs_check, conversion_check, emit, context
+    to_name,
+    variable_name,
+    use_caching,
+    needs_check,
+    conversion_check,
+    no_global_deletion,
+    emit,
+    context,
 ):
     owner = context.getOwner()
 
@@ -124,6 +131,7 @@ def getModuleVariableReferenceCode(
         caching=use_caching,
         needs_check=needs_check,
         needs_global_name=needs_global_name,
+        no_global_deletion=no_global_deletion,
     )
 
     with withObjectCodeTemporaryAssignment2(
@@ -232,6 +240,7 @@ def generateVariableReferenceCode(to_name, expression, emit, context):
             use_caching=use_caching,
             needs_check=needs_check,
             conversion_check=decideConversionCheckNeeded(to_name, expression),
+            no_global_deletion=variable.isModuleVariableNoGlobalDeletion(),
             emit=emit,
             context=context,
         )

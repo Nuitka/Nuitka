@@ -383,7 +383,7 @@ template_module_variable_accessor_infallible_function = """\
 static PyObject *%(accessor_function_name)s(PyThreadState *tstate) {
     PyObject *result = %(core_accessor_function_name)s(tstate);
 
-    CHECK_OBJECT(result);
+%(infallible_check)s
     return result;
 }
 """

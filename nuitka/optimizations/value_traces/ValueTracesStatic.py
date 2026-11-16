@@ -755,6 +755,51 @@ class ValueTraceEscaped(ValueTraceUnknown):
         return trusted_node is not None and trusted_node.hasShapeDictionaryExact()
 
 
+class ValueTraceEscapedDefined(ValueTraceUnknown):
+    """Escaped module variable value that is still known to be assigned.
+
+    The value may have been rebound or mutated, so its type shape and attribute
+    knowledge are unknown, but the variable itself remains bound unless module
+    globals are deleted.
+    """
+
+    __slots__ = ()
+
+    def mustHaveValue(self, context=None):
+        return self.previous.mustHaveValue(context)
+
+    def isUnchangedResumeTrace(self, loop_entry_trace, context):
+        return False
+
+    def getAttributeNode(self):
+        return None
+
+    def getAttributeNodeTrusted(self):
+        return None
+
+    def getAttributeNodeVeryTrusted(self):
+        return None
+
+    def getAttributeNodeVeryTrustedMatching(self, visited):
+        return None
+
+    @staticmethod
+    def isUnknownTrace():
+        return False
+
+    @staticmethod
+    def isUnknownOrVeryTrustedTrace():
+        return False
+
+    @staticmethod
+    def isEscapeTrace():
+        return True
+
+    @staticmethod
+    def isWritingTrace():
+        return False
+
+
 class ValueTraceAssignBase(ValueTraceBase):
     __slots__ = ("assign_node",)
 

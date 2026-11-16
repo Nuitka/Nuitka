@@ -663,13 +663,14 @@ class PythonChildContextBase(PythonContextBase):
         return self.parent.addFunctionCreationInfo(creation_info)
 
     def registerModuleVariableAccessor(
-        self, variable_name, caching, needs_check, needs_global_name
+        self, variable_name, caching, needs_check, needs_global_name, no_global_deletion
     ):
         self.parent.registerModuleVariableAccessor(
             variable_name=variable_name,
             caching=caching,
             needs_check=needs_check,
             needs_global_name=needs_global_name,
+            no_global_deletion=no_global_deletion,
         )
 
     def isModuleVariableAccessorCaching(self, variable_name):
@@ -930,7 +931,7 @@ class PythonModuleContext(
         return self.module
 
     def registerModuleVariableAccessor(
-        self, variable_name, caching, needs_check, needs_global_name
+        self, variable_name, caching, needs_check, needs_global_name, no_global_deletion
     ):
         accessor = self.module_variable_accessors.get(variable_name)
 
@@ -940,12 +941,16 @@ class PythonModuleContext(
                 "checked": False,
                 "checked_global": False,
                 "unchecked": False,
+                "no_global_deletion": False,
             }
 
             self.module_variable_accessors[variable_name] = accessor
 
         if caching:
             accessor["caching"] = True
+
+        if no_global_deletion:
+            accessor["no_global_deletion"] = True
 
         if needs_check:
             if needs_global_name:

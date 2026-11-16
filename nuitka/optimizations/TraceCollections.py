@@ -44,6 +44,7 @@ from .value_traces.ValueTracesStatic import (
     ValueTraceAssignVeryTrusted,
     ValueTraceDeleted,
     ValueTraceEscaped,
+    ValueTraceEscapedDefined,
     ValueTraceLoop,
     ValueTraceStartInit,
     ValueTraceStartInitStarArgs,
@@ -478,6 +479,20 @@ class TraceCollectionBase(object):
 
             if version not in variable_traces:
                 variable_traces[version] = ValueTraceEscaped(self.owner, current)
+
+            self.markCurrentVariableTrace(variable, version)
+
+    def markActiveModuleVariableAsEscaped(self, variable):
+        version = self.variable_actives[variable]
+        variable_traces = self.variable_traces[variable]
+        current = variable_traces[version]
+
+        if current.isTraceThatNeedsEscape():
+            # Escape traces are div 3 rem 1.
+            version = version // 3 * 3 + 1
+
+            if version not in variable_traces:
+                variable_traces[version] = ValueTraceEscapedDefined(self.owner, current)
 
             self.markCurrentVariableTrace(variable, version)
 

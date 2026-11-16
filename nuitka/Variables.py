@@ -14,6 +14,7 @@ from abc import abstractmethod
 from nuitka.__past__ import iterItems
 from nuitka.nodes.shapes.BuiltinTypeShapes import tshape_dict
 from nuitka.nodes.shapes.StandardShapes import tshape_unknown
+from nuitka.options.Experimental import isExperimental
 from nuitka.utils.CStrings import encodePythonIdentifierToC
 from nuitka.utils.InstanceCounters import (
     counted_del,
@@ -383,6 +384,10 @@ class ModuleVariable(Variable):
     def isModuleVariable():
         return True
 
+    @staticmethod
+    def isModuleVariableNoGlobalDeletion():
+        return False
+
     def initVariableLate(self, trace_collection):
         """Initialize variable in trace collection state."""
         trace_collection.variable_escapable.add(self)
@@ -411,6 +416,26 @@ class ModuleVariable(Variable):
     @staticmethod
     def getVariableType():
         return "object"
+
+
+class ModuleVariableNoGlobalDeletion(ModuleVariable):
+    __slots__ = ()
+
+    @staticmethod
+    def isModuleVariableNoGlobalDeletion():
+        return True
+
+    def onControlFlowEscape(self, trace_collection):
+        trace_collection.markActiveModuleVariableAsEscaped(self)
+
+
+def makeModuleVariable(module, variable_name):
+    if isExperimental("no-module-globals-deleted"):
+        variable_class = ModuleVariableNoGlobalDeletion
+    else:
+        variable_class = ModuleVariable
+
+    return variable_class(module=module, variable_name=variable_name)
 
 
 class TempVariable(Variable):
