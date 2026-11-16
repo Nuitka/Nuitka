@@ -1,6 +1,7 @@
 //     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
-/* WARNING, this code is GENERATED. Modify the template CodeTemplateMakeListSmall.c.j2 instead! */
+/* WARNING, this code is GENERATED. Modify the templates CodeTemplateMakeListSmall.c.j2, CodeTemplateMakeListHinted.c.j2
+ * instead! */
 #pragma once
 #ifndef __NUITKA_LISTS_GENERATED_H__
 #define __NUITKA_LISTS_GENERATED_H__
@@ -10,9 +11,11 @@
 #include "nuitka/prelude.h"
 #endif
 
+/* Generated from CodeTemplateMakeListSmall.c.j2 */
 extern PyObject *MAKE_LIST1(PyThreadState *tstate, PyObject *arg0);
 extern PyObject *MAKE_LIST2(PyThreadState *tstate, PyObject *arg0, PyObject *arg1);
 extern PyObject *MAKE_LIST3(PyThreadState *tstate, PyObject *arg0, PyObject *arg1, PyObject *arg2);
+/* Generated from CodeTemplateMakeListHinted.c.j2 */
 extern PyObject *MAKE_LIST4(PyThreadState *tstate, PyObject *list);
 extern PyObject *MAKE_LIST5(PyThreadState *tstate, PyObject *list);
 extern PyObject *MAKE_LIST6(PyThreadState *tstate, PyObject *list);

@@ -12,7 +12,6 @@ bool BINARY_OPERATION_{{op_code}}_{{target.getHelperCodeName()}}_{{left.getHelpe
 
     if (left_c_usable && right_c_usable) {
 {% if target.isSimilarOrSameTypesAsOneOf(n_ilong_desc) %}
-    // Not every code path will make use of all possible results.
 #if defined(_MSC_VER)
 #pragma warning(push)
 #pragma warning(disable : 4101)

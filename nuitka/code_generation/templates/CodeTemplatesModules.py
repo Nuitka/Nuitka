@@ -138,13 +138,10 @@ NUITKA_MAY_BE_UNUSED static uint32_t _Nuitka_PyDictKeys_GetVersionForCurrentStat
 #endif
 #endif
 
-// Accessors to module variables.
 %(module_variable_accessors)s
 
-// The module function declarations.
 %(module_functions_decl)s
 
-// The module function definitions.
 %(module_functions_code)s
 
 extern void _initCompiledCellType();
@@ -239,7 +236,6 @@ static char const *module_full_name = %(module_name_cstr)s;
 
 // Internal entry point for module code.
 static PyObject *module_code_%(module_identifier)s(PyThreadState *tstate, PyObject *module) {
-    // Report entry to PGO.
     %(pgo_probe_module_enter_code)s
 
 #if _NUITKA_MODULE_MODE && %(is_top)d
@@ -257,9 +253,7 @@ static PyObject *module_code_%(module_identifier)s(PyThreadState *tstate, PyObje
     }
 #endif
 
-    // Store the module for future use.
     module_%(module_identifier)s = module;
-
     moduledict_%(module_identifier)s = MODULE_DICT(module_%(module_identifier)s);
 
     // Modules can be loaded again in case of errors, avoid the init being done again.
@@ -273,7 +267,6 @@ static PyObject *module_code_%(module_identifier)s(PyThreadState *tstate, PyObje
 #if PYTHON_VERSION > 0x350 && !defined(_NUITKA_EXPERIMENTAL_DISABLE_ALLOCATORS)
         initNuitkaAllocators();
 #endif
-        // Initialize the constant values used.
         _initBuiltinModule(tstate);
 
         PyObject *real_module_name = PyObject_GetAttrString(module, "__name__");
@@ -307,7 +300,6 @@ static PyObject *module_code_%(module_identifier)s(PyThreadState *tstate, PyObje
         patchBuiltinFrameFunctions(tstate);
 #endif
 
-        /* Initialize the compiled types of Nuitka. */
         _initCompiledCellType();
         _initCompiledGeneratorType(tstate);
         _initCompiledFunctionType();
@@ -356,8 +348,6 @@ static PyObject *module_code_%(module_identifier)s(PyThreadState *tstate, PyObje
 #if _NUITKA_MODULE_MODE && %(is_top)d
     Nuitka_LoadTriggeredModule(tstate, entry_%(module_identifier)s.m_pre_load);
 #endif
-
-    // PRINT_STRING("in init%(module_identifier)s\n");
 
 #ifdef _NUITKA_PLUGIN_DILL_ENABLED
     {
@@ -431,8 +421,6 @@ static PyObject *module_code_%(module_identifier)s(PyThreadState *tstate, PyObje
     UPDATE_STRING_DICT0(tstate, moduledict_%(module_identifier)s, (Nuitka_StringObject *)const_str_plain___loader__, module_loader);
 
 #if PYTHON_VERSION >= 0x300
-// Set the "__spec__" value
-
 #if %(is_dunder_main)s && !%(has_main_package)s
     // Main modules just get "None" as spec.
     UPDATE_STRING_DICT0(tstate, moduledict_%(module_identifier)s, (Nuitka_StringObject *)const_str_plain___spec__, Py_None);
@@ -450,18 +438,14 @@ static PyObject *module_code_%(module_identifier)s(PyThreadState *tstate, PyObje
         Py_DECREF(_spec_from_module);
 
         // We can assume this to never fail, or else we are in trouble anyway.
-        // CHECK_OBJECT(spec_value);
-
         if (spec_value == NULL) {
             PyErr_PrintEx(0);
             abort();
         }
 
-        // Mark the execution in the "__spec__" value.
         SET_ATTRIBUTE(tstate, spec_value, const_str_plain__initializing, Py_True);
 
 #if _NUITKA_MODULE_MODE && %(is_top)d && %(module_def_size)s >= 0
-        // Set our loader object in the "__spec__" value.
         SET_ATTRIBUTE(tstate, spec_value, const_str_plain_loader, module_loader);
 #endif
 
@@ -470,16 +454,12 @@ static PyObject *module_code_%(module_identifier)s(PyThreadState *tstate, PyObje
 #endif
 #endif
 
-    // Temp variables if any
 %(temps_decl)s
 
-    // Module init code if any
 %(module_init_codes)s
 
-    // Module code.
 %(module_codes)s
 
-    // Report to PGO about leaving the module without error.
     %(pgo_probe_module_exit_code)s
 
 #if _NUITKA_MODULE_MODE && %(is_top)d
@@ -732,8 +712,6 @@ template_module_no_exception_exit = """\
 template_module_set_value = """\
 static void module_set_value_%(module_identifier)s(struct Nuitka_MetaPathBasedLoaderEntry const *entry, PyObject *value, uint64_t reserved) {
     (void)entry;
-
-    // NUITKA_MODULE_SET_VALUE_RESERVED(%(module_identifier)s, reserved);
     (void)reserved;
 
     PyObject *old_value = module_value_%(module_identifier)s;

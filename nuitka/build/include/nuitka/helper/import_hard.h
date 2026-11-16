@@ -10,129 +10,94 @@
 #include "nuitka/prelude.h"
 #endif
 
-/* C helper for hard import of module "__future__" import. */
 extern PyObject *IMPORT_HARD___FUTURE__(void);
 
-/* C helper for hard import of module "_frozen_importlib" import. */
 #if PYTHON_VERSION >= 0x300
 extern PyObject *IMPORT_HARD__FROZEN_IMPORTLIB(void);
 #endif
 
-/* C helper for hard import of module "_frozen_importlib_external" import. */
 #if PYTHON_VERSION >= 0x350
 extern PyObject *IMPORT_HARD__FROZEN_IMPORTLIB_EXTERNAL(void);
 #endif
 
-/* C helper for hard import of module "_io" import. */
 extern PyObject *IMPORT_HARD__IO(void);
 
-/* C helper for hard import of module "builtins" import. */
 extern PyObject *IMPORT_HARD_BUILTINS(void);
 
-/* C helper for hard import of module "ctypes" import. */
 extern PyObject *IMPORT_HARD_CTYPES(void);
 
-/* C helper for hard import of module "ctypes._aix" import. */
 extern PyObject *IMPORT_HARD_CTYPES___AIX(void);
 
-/* C helper for hard import of module "ctypes._endian" import. */
 extern PyObject *IMPORT_HARD_CTYPES___ENDIAN(void);
 
-/* C helper for hard import of module "ctypes.macholib" import. */
 extern PyObject *IMPORT_HARD_CTYPES__MACHOLIB(void);
 
-/* C helper for hard import of module "ctypes.util" import. */
 extern PyObject *IMPORT_HARD_CTYPES__UTIL(void);
 
-/* C helper for hard import of module "ctypes.wintypes" import. */
 #if defined(_WIN32)
 extern PyObject *IMPORT_HARD_CTYPES__WINTYPES(void);
 #endif
 
-/* C helper for hard import of module "functools" import. */
 extern PyObject *IMPORT_HARD_FUNCTOOLS(void);
 
-/* C helper for hard import of module "imp" import. */
 #if PYTHON_VERSION < 0x300
 extern PyObject *IMPORT_HARD_IMP(void);
 #endif
 
-/* C helper for hard import of module "importlib" import. */
 extern PyObject *IMPORT_HARD_IMPORTLIB(void);
 
-/* C helper for hard import of module "importlib.metadata" import. */
 #if PYTHON_VERSION >= 0x380
 extern PyObject *IMPORT_HARD_IMPORTLIB__METADATA(void);
 #endif
 
-/* C helper for hard import of module "importlib.resources" import. */
 #if PYTHON_VERSION >= 0x370
 extern PyObject *IMPORT_HARD_IMPORTLIB__RESOURCES(void);
 #endif
 
-/* C helper for hard import of module "importlib_metadata" import. */
 extern PyObject *IMPORT_HARD_IMPORTLIB_METADATA(void);
 
-/* C helper for hard import of module "importlib_resources" import. */
 extern PyObject *IMPORT_HARD_IMPORTLIB_RESOURCES(void);
 
-/* C helper for hard import of module "io" import. */
 extern PyObject *IMPORT_HARD_IO(void);
 
-/* C helper for hard import of module "ntpath" import. */
 extern PyObject *IMPORT_HARD_NTPATH(void);
 
-/* C helper for hard import of module "os" import. */
 extern PyObject *IMPORT_HARD_OS(void);
 
-/* C helper for hard import of module "pathlib" import. */
 #if PYTHON_VERSION >= 0x3d0
 extern PyObject *IMPORT_HARD_PATHLIB(void);
 #endif
 
-/* C helper for hard import of module "pathlib._abc" import. */
 #if PYTHON_VERSION >= 0x3d0
 extern PyObject *IMPORT_HARD_PATHLIB___ABC(void);
 #endif
 
-/* C helper for hard import of module "pathlib._local" import. */
 #if PYTHON_VERSION >= 0x3d0
 extern PyObject *IMPORT_HARD_PATHLIB___LOCAL(void);
 #endif
 
-/* C helper for hard import of module "pkg_resources" import. */
 extern PyObject *IMPORT_HARD_PKG_RESOURCES(void);
 
-/* C helper for hard import of module "pkgutil" import. */
 extern PyObject *IMPORT_HARD_PKGUTIL(void);
 
-/* C helper for hard import of module "posixpath" import. */
 extern PyObject *IMPORT_HARD_POSIXPATH(void);
 
-/* C helper for hard import of module "site" import. */
 extern PyObject *IMPORT_HARD_SITE(void);
 
-/* C helper for hard import of module "sys" import. */
 extern PyObject *IMPORT_HARD_SYS(void);
 
-/* C helper for hard import of module "sysconfig" import. */
 extern PyObject *IMPORT_HARD_SYSCONFIG(void);
 
-/* C helper for hard import of module "tensorflow" import. */
 extern PyObject *IMPORT_HARD_TENSORFLOW(void);
 
-/* C helper for hard import of module "types" import. */
 extern PyObject *IMPORT_HARD_TYPES(void);
 
-/* C helper for hard import of module "typing" import. */
 #if PYTHON_VERSION >= 0x350
 extern PyObject *IMPORT_HARD_TYPING(void);
 #endif
 
-/* C helper for hard import of module "unittest" import. */
 extern PyObject *IMPORT_HARD_UNITTEST(void);
 
-/* C helper for hard import of module "unittest.mock" import. */
 #if PYTHON_VERSION >= 0x300
 extern PyObject *IMPORT_HARD_UNITTEST__MOCK(void);
 #endif

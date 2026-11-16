@@ -15,18 +15,12 @@
 
 /* C helpers for type specialized ">=" (GE) comparisons */
 
-/* Code referring to "NILONG" corresponds to Nuitka int/long/C long value and "CLONG" to C platform long value. */
 extern PyObject *RICH_COMPARE_GE_OBJECT_NILONG_CLONG(nuitka_ilong *operand1, long operand2);
 
-/* Code referring to "NILONG" corresponds to Nuitka int/long/C long value and "CLONG" to C platform long value. */
 extern bool RICH_COMPARE_GE_CBOOL_NILONG_CLONG(nuitka_ilong *operand1, long operand2);
 
-/* Code referring to "NILONG" corresponds to Nuitka int/long/C long value and "DIGIT" to C platform digit value for long
- * Python objects. */
 extern PyObject *RICH_COMPARE_GE_OBJECT_NILONG_DIGIT(nuitka_ilong *operand1, long operand2);
 
-/* Code referring to "NILONG" corresponds to Nuitka int/long/C long value and "DIGIT" to C platform digit value for long
- * Python objects. */
 extern bool RICH_COMPARE_GE_CBOOL_NILONG_DIGIT(nuitka_ilong *operand1, long operand2);
 
 #endif

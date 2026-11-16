@@ -29,7 +29,6 @@ static {{ target.getTypeDecl() }} COMPARE_{{op_code}}_{{target.getHelperCodeName
         bool r = true;
 {% endif %}
 
-        // Convert to target type.
         {{ target.getTypeDecl() }} result = {{target.getToValueFromBoolExpression("r")}};
         {{ target.getTakeReferenceStatement("result", immortal=True) }}
         NUITKA_COMPARE_LIST_RETURN(result);
@@ -74,7 +73,6 @@ static {{ target.getTypeDecl() }} COMPARE_{{op_code}}_{{target.getHelperCodeName
     if (found == false) {
         bool r = Py_SIZE(a) {{operator}} Py_SIZE(b);
 
-        // Convert to target type.
         {{ target.getTypeDecl() }} result = {{target.getToValueFromBoolExpression("r")}};
         {{ target.getTakeReferenceStatement("result", immortal=True) }}
         NUITKA_COMPARE_LIST_RETURN(result);
@@ -101,7 +99,6 @@ static {{ target.getTypeDecl() }} COMPARE_{{op_code}}_{{target.getHelperCodeName
     }
 {% endif %}
 
-    // Convert to target type.
     {{ target.getTypeDecl() }} result = {{target.getToValueFromBoolExpression("r")}};
     {{ target.getTakeReferenceStatement("result", immortal=True) }}
     NUITKA_COMPARE_LIST_RETURN(result);

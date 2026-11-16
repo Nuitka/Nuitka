@@ -37,7 +37,7 @@ class Expression{{module_name_title}}{{function_name_title}}Ref(
     ExpressionImportModuleNameHardExistsSpecificBase
 {% endif %}
 ):
-    """Function reference {{module_name}}.{{function_name}}"""
+    """Function reference '{{module_name}}.{{function_name}}'."""
 
     kind = "EXPRESSION_{{module_name_code.upper()}}_{{function_name_code.upper()}}_REF"
 
@@ -63,8 +63,6 @@ class Expression{{module_name_title}}{{function_name_title}}Ref(
 {% endif %}
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
-        # Anything may happen on call trace before this. On next pass, if
-        # replaced, we might be better but not now.
         trace_collection.onExceptionRaiseExit(BaseException)
 
 {% for spec in specs %}

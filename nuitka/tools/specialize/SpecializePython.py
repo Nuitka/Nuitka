@@ -308,15 +308,20 @@ def emitGenerationWarning(emit, doc_string, template_name):
 # pylint: disable=literal-comparison
 """)
 
+    if isinstance(template_name, tuple):
+        template_desc = "templates %s" % ", ".join(template_name)
+    else:
+        template_desc = "template %s" % template_name
+
     emit('''
 """%s
 
-WARNING, this code is GENERATED. Modify the template %s instead!
+WARNING, this code is GENERATED. Modify the %s instead!
 
 %s
 """
 
-''' % (doc_string, template_name, ignores))
+''' % (doc_string, template_desc, ignores))
 
 
 def formatCallArgs(operation_node_arg_mapping, args, starting=True):
@@ -339,8 +344,6 @@ def formatCallArgs(operation_node_arg_mapping, args, starting=True):
 
     if not starting and result:
         result = "," + result
-
-    # print("args", args, "->", result)
 
     return result
 
@@ -450,7 +453,9 @@ def makeBuiltinOperationNodes():
         def emit(*args):
             writeLine(output_python, *args)
 
-        emitGenerationWarning(emit, "Specialized attribute nodes", template.name)
+        emitGenerationWarning(
+            emit, "Specialized built-in operation base nodes", template.name
+        )
 
         for attribute_name, shape_names in sorted(attribute_information.items()):
             attribute_name_class = attribute_name.replace("_", "").title()
@@ -709,7 +714,6 @@ def _parseNamedChildrenSpec(named_children):
 
 def _addFromNode(node_class):
     named_children = getattr(node_class, "named_children", ())
-    # assert not hasattr(node_class, "named_child"), node_class
 
     if hasattr(node_class, "auto_compute_handling"):
         auto_compute_handling = frozenset(node_class.auto_compute_handling.split(","))
@@ -747,7 +751,6 @@ def _addFromNode(node_class):
         if base.__name__ in (mixin_name, "_" + mixin_name):
             break
     else:
-        # if named_children == ("operand",):
         print("Not done", node_class.__name__, named_children, mixin_name)
 
     addChildrenMixin(
@@ -765,7 +768,6 @@ def _addFromNode(node_class):
 
 def addFromNodes():
     for node_class in NodeCheckMetaClass.kinds.values():
-        # Find nodes with a make variant.
         if hasattr(sys.modules[node_class.__module__], "make" + node_class.__name__):
             node_factory_translations[node_class.__name__] = (
                 "make" + node_class.__name__
@@ -1073,7 +1075,11 @@ def makeHardImportNodes():
         def emit(*args):
             writeLine(output_python, *args)
 
-        emitGenerationWarning(emit, "Hard import nodes", template_ref_node.name)
+        emitGenerationWarning(
+            emit,
+            "Hard import nodes",
+            (template_ref_node.name, template_call_node.name),
+        )
 
         emit("""
 from nuitka.nodes.HardImportNodes import addHardImportNodeClass, addBuiltinRefNode
@@ -1099,9 +1105,7 @@ from nuitka.nodes.HardImportNodes import addHardImportNodeClass, addBuiltinRefNo
             )
 
             for spec_desc in spec_descriptions:
-                # Check for make factory
                 call_node_module_name = getCallModuleName(module_name, function_name)
-                # Helper to import module dynamically
                 loaded_module = importlib.import_module(
                     "nuitka.nodes." + call_node_module_name
                 )

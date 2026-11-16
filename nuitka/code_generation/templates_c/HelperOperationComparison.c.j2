@@ -13,7 +13,6 @@
 {% endif %}
 
 {% if op_code in ("EQ", "GE", "LE", "NE") and left.type_name == "object" and right.type_name == "object" %}
-    // Quick path for avoidable checks, compatible with CPython.
     if (operand1 == operand2 && {{left.getMostSpecificType(right).getSaneTypeCheckCode("operand1")}}) {
         bool r = {% if op_code == "NE" %} false {% else %} true {%endif %};
         {{ target.getTypeDecl() }} result = {{target.getToValueFromBoolExpression("r")}};
@@ -41,7 +40,6 @@
 {% endif %}
 
 #if PYTHON_VERSION < 0x300
-    // If the types are equal, we may get away immediately except for instances.
     if ({{left.getTypeIdenticalCheckExpression(right, "type1", "type2")}}
           && !{{left.getMostSpecificType(right).getInstanceCheckCode("operand1")}}
           ) {
@@ -64,7 +62,6 @@
             Py_DECREF_IMMORTAL(result);
         }
 
-        // No rich comparison worked, but maybe compare works.
 {% if left.getMostSpecificType(right) == left %}
         cmpfunc fcmp = {{left.getSlotValueExpression("type1", "tp_compare")}};
 {% else %}
@@ -111,7 +108,6 @@
         }
     }
 
-    // Fast path was not successful or not taken
     richcmpfunc f;
 
     if ({{left.getTypeNonIdenticalCheckExpression(right, "type1", "type2")}} && {{left.getRealSubTypeCheckCode(right, "type2", "type1")}}) {
@@ -175,16 +171,12 @@
 
             c = (aa < bb) ? -1 : (aa > bb) ? 1 : 0;
         } else if (operand1 == Py_None) {
-            // None is smaller than everything else
             c = -1;
         } else if (operand2 == Py_None) {
-            // None is smaller than everything else
             c = 1;
         } else if (PyNumber_Check(operand1)) {
-            // different type: compare type names but numbers are smaller than
-            // others.
+            // Different types: compare type names, except numbers sort smaller than others.
             if (PyNumber_Check(operand2)) {
-                // Both numbers, need to make a decision based on types.
                 Py_uintptr_t aa = (Py_uintptr_t){{ left.getTypeValueVariableExpression("type1") }};
                 Py_uintptr_t bb = (Py_uintptr_t){{ right.getTypeValueVariableExpression("type2") }};
 
@@ -195,7 +187,6 @@
         } else if (PyNumber_Check(operand2)) {
             c = 1;
         } else {
-            // Banking on C compile to optimize "strcmp".
             int s = strcmp({{ left.getTypeNameExpression("type1") }}, {{ right.getTypeNameExpression("type2") }});
 
             if (s < 0) {
@@ -203,7 +194,6 @@
             } else if (s > 0) {
                 c = 1;
             } else {
-                // Same type name need to make a decision based on type address.
                 Py_uintptr_t aa = (Py_uintptr_t){{ left.getTypeValueVariableExpression("type1") }};
                 Py_uintptr_t bb = (Py_uintptr_t){{ right.getTypeValueVariableExpression("type2") }};
 
@@ -297,8 +287,6 @@
 
     Py_LeaveRecursiveCall();
 
-    // If it is not implemented, do pointer identity checks as "==" and "!=" and
-    // otherwise give an error
     switch(Py_{{op_code}}) {
     case Py_EQ: {
         bool r = operand1 == operand2;

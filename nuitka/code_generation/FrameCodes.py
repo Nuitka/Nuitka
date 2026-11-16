@@ -31,11 +31,7 @@ _frame_locals_proxy_used = False
 
 
 def hasFrameLocalsProxy():
-    """Whether any frame of the program can publish a FrameLocalsProxy.
-
-    Returns:
-        bool
-    """
+    """Whether any frame of the program can publish a FrameLocalsProxy."""
     return _frame_locals_proxy_used
 
 
@@ -66,12 +62,6 @@ def _getFrameCacheClaimIdentifier(frame_identifier):
         the one of the parent frame, which MSVC warns about with C4456. The
         frame handle names are already unique per C function, so the claim
         variable name is derived from them.
-
-    Args:
-        frame_identifier: The declaration of the frame handle.
-
-    Returns:
-        The C variable name to use for the claim.
     """
     return "cache_claim_%s" % frame_identifier.code_name
 
@@ -602,8 +592,6 @@ def getFrameGuardGeneratorCode(
 
 def generateFramePreserveExceptionCode(statement, emit, context):
     if python_version < 0x300:
-        emit("// Preserve existing published exception.")
-
         emit(
             "PRESERVE_FRAME_EXCEPTION(tstate, %(frame_identifier)s);"
             % {"frame_identifier": context.getFrameHandle()}
@@ -615,13 +603,9 @@ def generateFramePreserveExceptionCode(statement, emit, context):
         exception_preserved = context.addExceptionPreserverVariables(preserver_id)
 
         emit(
-            """\
-// Preserve existing published exception id %(preserver_id)d.
-%(exception_preserved)s = GET_CURRENT_EXCEPTION(tstate);
-"""
+            "%(exception_preserved)s = GET_CURRENT_EXCEPTION(tstate);\n"
             % {
                 "exception_preserved": exception_preserved,
-                "preserver_id": preserver_id,
             }
         )
 
@@ -629,9 +613,7 @@ def generateFramePreserveExceptionCode(statement, emit, context):
 def generateFrameRestoreExceptionCode(statement, emit, context):
     if python_version < 0x300:
         emit(
-            """\
-// Restore previous exception.
-RESTORE_FRAME_EXCEPTION(%(frame_identifier)s);"""
+            "RESTORE_FRAME_EXCEPTION(%(frame_identifier)s);"
             % {"frame_identifier": context.getFrameHandle()}
         )
     else:
@@ -640,13 +622,9 @@ RESTORE_FRAME_EXCEPTION(%(frame_identifier)s);"""
         exception_preserved = context.addExceptionPreserverVariables(preserver_id)
 
         emit(
-            """\
-// Restore previous exception id %(preserver_id)d.
-SET_CURRENT_EXCEPTION(tstate, &%(exception_preserved)s);
-"""
+            "SET_CURRENT_EXCEPTION(tstate, &%(exception_preserved)s);\n"
             % {
                 "exception_preserved": exception_preserved,
-                "preserver_id": preserver_id,
             }
         )
 

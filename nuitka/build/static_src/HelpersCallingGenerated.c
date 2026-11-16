@@ -1,6 +1,7 @@
 //     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
-/* WARNING, this code is GENERATED. Modify the template CodeTemplateCallsPositional.c.j2 instead! */
+/* WARNING, this code is GENERATED. Modify the templates CodeTemplateCallsPositional.c.j2, CodeTemplateCallsMixed.c.j2,
+ * CodeTemplateCallsPositionalMethodDescr.c.j2, CodeTemplateCallsMethodPositional.c.j2 instead! */
 #pragma once
 
 /* This file is included from another C file, help IDEs to still parse it on its own. */
@@ -24,6 +25,7 @@
 #endif
 #endif
 
+/* Generated from CodeTemplateCallsPositional.c.j2 */
 PyObject *CALL_FUNCTION_NO_ARGS(PyThreadState *tstate, PyObject *called) {
     CHECK_OBJECT(called);
 
@@ -145,12 +147,9 @@ PyObject *CALL_FUNCTION_NO_ARGS(PyThreadState *tstate, PyObject *called) {
 
         return Nuitka_CheckFunctionResult(tstate, called, result);
 #else
-        // Try to be fast about wrapping the arguments.
         int flags = PyCFunction_GET_FLAGS(called) & ~(METH_CLASS | METH_STATIC | METH_COEXIST);
 
         if (likely(flags & METH_NOARGS)) {
-            // Recursion guard is not strictly necessary, as we already have
-            // one on our way to here.
 #ifdef _NUITKA_FULL_COMPAT
             if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
                 return NULL;
@@ -172,8 +171,6 @@ PyObject *CALL_FUNCTION_NO_ARGS(PyThreadState *tstate, PyObject *called) {
                                                 ((PyCFunctionObject *)called)->m_ml->ml_name);
             return NULL;
         } else if (flags & METH_VARARGS) {
-            // Recursion guard is not strictly necessary, as we already have
-            // one on our way to here.
 #ifdef _NUITKA_FULL_COMPAT
             if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
                 return NULL;
@@ -276,15 +273,12 @@ PyObject *CALL_FUNCTION_NO_ARGS(PyThreadState *tstate, PyObject *called) {
                     return obj;
                 }
 
-                // Work on produced type.
                 type = Py_TYPE(obj);
 
                 if (NuitkaType_HasFeatureClass(type) && type->tp_init != NULL) {
                     if (type->tp_init == default_tp_init_wrapper) {
 
                         PyObject *init_method = Nuitka_TypeLookup(type, const_str_plain___init__);
-
-                        // Not really allowed, since we wouldn't have the default wrapper set.
                         assert(init_method != NULL);
 
                         bool is_compiled_function = false;
@@ -419,13 +413,6 @@ PyObject *CALL_FUNCTION_NO_ARGS(PyThreadState *tstate, PyObject *called) {
 #endif
     }
 
-#if 0
-    PRINT_NEW_LINE();
-    PRINT_STRING("FALLBACK");
-    PRINT_ITEM(called);
-    PRINT_NEW_LINE();
-#endif
-
     PyObject *result = CALL_FUNCTION(tstate, called, const_tuple_empty, NULL);
 
     CHECK_OBJECT_X(result);
@@ -433,7 +420,7 @@ PyObject *CALL_FUNCTION_NO_ARGS(PyThreadState *tstate, PyObject *called) {
     return result;
 }
 PyObject *CALL_FUNCTION_WITH_SINGLE_ARG(PyThreadState *tstate, PyObject *called, PyObject *arg) {
-    PyObject *const *args = &arg; // For easier code compatibility.
+    PyObject *const *args = &arg;
     CHECK_OBJECT(called);
     CHECK_OBJECTS(args, 1);
 
@@ -581,7 +568,6 @@ PyObject *CALL_FUNCTION_WITH_SINGLE_ARG(PyThreadState *tstate, PyObject *called,
 
         return Nuitka_CheckFunctionResult(tstate, called, result);
 #else
-        // Try to be fast about wrapping the arguments.
         int flags = PyCFunction_GET_FLAGS(called) & ~(METH_CLASS | METH_STATIC | METH_COEXIST);
 
         if (unlikely(flags & METH_NOARGS)) {
@@ -589,8 +575,6 @@ PyObject *CALL_FUNCTION_WITH_SINGLE_ARG(PyThreadState *tstate, PyObject *called,
                                                 ((PyCFunctionObject *)called)->m_ml->ml_name);
             return NULL;
         } else if ((flags & METH_O)) {
-            // Recursion guard is not strictly necessary, as we already have
-            // one on our way to here.
 #ifdef _NUITKA_FULL_COMPAT
             if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
                 return NULL;
@@ -609,8 +593,6 @@ PyObject *CALL_FUNCTION_WITH_SINGLE_ARG(PyThreadState *tstate, PyObject *called,
 
             return Nuitka_CheckFunctionResult(tstate, called, result);
         } else if (flags & METH_VARARGS) {
-            // Recursion guard is not strictly necessary, as we already have
-            // one on our way to here.
 #ifdef _NUITKA_FULL_COMPAT
             if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
                 return NULL;
@@ -725,7 +707,6 @@ PyObject *CALL_FUNCTION_WITH_SINGLE_ARG(PyThreadState *tstate, PyObject *called,
                     return obj;
                 }
 
-                // Work on produced type.
                 type = Py_TYPE(obj);
 
                 if (NuitkaType_HasFeatureClass(type) && type->tp_init != NULL) {
@@ -734,8 +715,6 @@ PyObject *CALL_FUNCTION_WITH_SINGLE_ARG(PyThreadState *tstate, PyObject *called,
                         pos_args = NULL;
 
                         PyObject *init_method = Nuitka_TypeLookup(type, const_str_plain___init__);
-
-                        // Not really allowed, since we wouldn't have the default wrapper set.
                         assert(init_method != NULL);
 
                         bool is_compiled_function = false;
@@ -879,13 +858,6 @@ PyObject *CALL_FUNCTION_WITH_SINGLE_ARG(PyThreadState *tstate, PyObject *called,
         }
 #endif
     }
-
-#if 0
-    PRINT_NEW_LINE();
-    PRINT_STRING("FALLBACK");
-    PRINT_ITEM(called);
-    PRINT_NEW_LINE();
-#endif
 
     PyObject *pos_args = MAKE_TUPLE(tstate, args, 1);
 
@@ -1044,7 +1016,6 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS1(PyThreadState *tstate, PyObject *called, 
 
         return Nuitka_CheckFunctionResult(tstate, called, result);
 #else
-        // Try to be fast about wrapping the arguments.
         int flags = PyCFunction_GET_FLAGS(called) & ~(METH_CLASS | METH_STATIC | METH_COEXIST);
 
         if (unlikely(flags & METH_NOARGS)) {
@@ -1052,8 +1023,6 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS1(PyThreadState *tstate, PyObject *called, 
                                                 ((PyCFunctionObject *)called)->m_ml->ml_name);
             return NULL;
         } else if ((flags & METH_O)) {
-            // Recursion guard is not strictly necessary, as we already have
-            // one on our way to here.
 #ifdef _NUITKA_FULL_COMPAT
             if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
                 return NULL;
@@ -1072,8 +1041,6 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS1(PyThreadState *tstate, PyObject *called, 
 
             return Nuitka_CheckFunctionResult(tstate, called, result);
         } else if (flags & METH_VARARGS) {
-            // Recursion guard is not strictly necessary, as we already have
-            // one on our way to here.
 #ifdef _NUITKA_FULL_COMPAT
             if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
                 return NULL;
@@ -1177,15 +1144,12 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS1(PyThreadState *tstate, PyObject *called, 
                     return obj;
                 }
 
-                // Work on produced type.
                 type = Py_TYPE(obj);
 
                 if (NuitkaType_HasFeatureClass(type) && type->tp_init != NULL) {
                     if (type->tp_init == default_tp_init_wrapper) {
 
                         PyObject *init_method = Nuitka_TypeLookup(type, const_str_plain___init__);
-
-                        // Not really allowed, since we wouldn't have the default wrapper set.
                         assert(init_method != NULL);
 
                         bool is_compiled_function = false;
@@ -1323,13 +1287,6 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS1(PyThreadState *tstate, PyObject *called, 
         }
 #endif
     }
-
-#if 0
-    PRINT_NEW_LINE();
-    PRINT_STRING("FALLBACK");
-    PRINT_ITEM(called);
-    PRINT_NEW_LINE();
-#endif
 
     PyObject *result = CALL_FUNCTION(tstate, called, pos_args, NULL);
 
@@ -1489,7 +1446,6 @@ PyObject *CALL_FUNCTION_WITH_ARGS2(PyThreadState *tstate, PyObject *called, PyOb
 
         return Nuitka_CheckFunctionResult(tstate, called, result);
 #else
-        // Try to be fast about wrapping the arguments.
         int flags = PyCFunction_GET_FLAGS(called) & ~(METH_CLASS | METH_STATIC | METH_COEXIST);
 
         if (unlikely(flags & METH_NOARGS)) {
@@ -1501,8 +1457,6 @@ PyObject *CALL_FUNCTION_WITH_ARGS2(PyThreadState *tstate, PyObject *called, PyOb
                                                 ((PyCFunctionObject *)called)->m_ml->ml_name);
             return NULL;
         } else if (flags & METH_VARARGS) {
-            // Recursion guard is not strictly necessary, as we already have
-            // one on our way to here.
 #ifdef _NUITKA_FULL_COMPAT
             if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
                 return NULL;
@@ -1611,7 +1565,6 @@ PyObject *CALL_FUNCTION_WITH_ARGS2(PyThreadState *tstate, PyObject *called, PyOb
                     return obj;
                 }
 
-                // Work on produced type.
                 type = Py_TYPE(obj);
 
                 if (NuitkaType_HasFeatureClass(type) && type->tp_init != NULL) {
@@ -1620,8 +1573,6 @@ PyObject *CALL_FUNCTION_WITH_ARGS2(PyThreadState *tstate, PyObject *called, PyOb
                         pos_args = NULL;
 
                         PyObject *init_method = Nuitka_TypeLookup(type, const_str_plain___init__);
-
-                        // Not really allowed, since we wouldn't have the default wrapper set.
                         assert(init_method != NULL);
 
                         bool is_compiled_function = false;
@@ -1764,13 +1715,6 @@ PyObject *CALL_FUNCTION_WITH_ARGS2(PyThreadState *tstate, PyObject *called, PyOb
         }
 #endif
     }
-
-#if 0
-    PRINT_NEW_LINE();
-    PRINT_STRING("FALLBACK");
-    PRINT_ITEM(called);
-    PRINT_NEW_LINE();
-#endif
 
     PyObject *pos_args = MAKE_TUPLE(tstate, args, 2);
 
@@ -1933,7 +1877,6 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS2(PyThreadState *tstate, PyObject *called, 
 
         return Nuitka_CheckFunctionResult(tstate, called, result);
 #else
-        // Try to be fast about wrapping the arguments.
         int flags = PyCFunction_GET_FLAGS(called) & ~(METH_CLASS | METH_STATIC | METH_COEXIST);
 
         if (unlikely(flags & METH_NOARGS)) {
@@ -1945,8 +1888,6 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS2(PyThreadState *tstate, PyObject *called, 
                                                 ((PyCFunctionObject *)called)->m_ml->ml_name);
             return NULL;
         } else if (flags & METH_VARARGS) {
-            // Recursion guard is not strictly necessary, as we already have
-            // one on our way to here.
 #ifdef _NUITKA_FULL_COMPAT
             if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
                 return NULL;
@@ -2044,15 +1985,12 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS2(PyThreadState *tstate, PyObject *called, 
                     return obj;
                 }
 
-                // Work on produced type.
                 type = Py_TYPE(obj);
 
                 if (NuitkaType_HasFeatureClass(type) && type->tp_init != NULL) {
                     if (type->tp_init == default_tp_init_wrapper) {
 
                         PyObject *init_method = Nuitka_TypeLookup(type, const_str_plain___init__);
-
-                        // Not really allowed, since we wouldn't have the default wrapper set.
                         assert(init_method != NULL);
 
                         bool is_compiled_function = false;
@@ -2189,13 +2127,6 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS2(PyThreadState *tstate, PyObject *called, 
         }
 #endif
     }
-
-#if 0
-    PRINT_NEW_LINE();
-    PRINT_STRING("FALLBACK");
-    PRINT_ITEM(called);
-    PRINT_NEW_LINE();
-#endif
 
     PyObject *result = CALL_FUNCTION(tstate, called, pos_args, NULL);
 
@@ -2355,7 +2286,6 @@ PyObject *CALL_FUNCTION_WITH_ARGS3(PyThreadState *tstate, PyObject *called, PyOb
 
         return Nuitka_CheckFunctionResult(tstate, called, result);
 #else
-        // Try to be fast about wrapping the arguments.
         int flags = PyCFunction_GET_FLAGS(called) & ~(METH_CLASS | METH_STATIC | METH_COEXIST);
 
         if (unlikely(flags & METH_NOARGS)) {
@@ -2367,8 +2297,6 @@ PyObject *CALL_FUNCTION_WITH_ARGS3(PyThreadState *tstate, PyObject *called, PyOb
                                                 ((PyCFunctionObject *)called)->m_ml->ml_name);
             return NULL;
         } else if (flags & METH_VARARGS) {
-            // Recursion guard is not strictly necessary, as we already have
-            // one on our way to here.
 #ifdef _NUITKA_FULL_COMPAT
             if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
                 return NULL;
@@ -2477,7 +2405,6 @@ PyObject *CALL_FUNCTION_WITH_ARGS3(PyThreadState *tstate, PyObject *called, PyOb
                     return obj;
                 }
 
-                // Work on produced type.
                 type = Py_TYPE(obj);
 
                 if (NuitkaType_HasFeatureClass(type) && type->tp_init != NULL) {
@@ -2486,8 +2413,6 @@ PyObject *CALL_FUNCTION_WITH_ARGS3(PyThreadState *tstate, PyObject *called, PyOb
                         pos_args = NULL;
 
                         PyObject *init_method = Nuitka_TypeLookup(type, const_str_plain___init__);
-
-                        // Not really allowed, since we wouldn't have the default wrapper set.
                         assert(init_method != NULL);
 
                         bool is_compiled_function = false;
@@ -2630,13 +2555,6 @@ PyObject *CALL_FUNCTION_WITH_ARGS3(PyThreadState *tstate, PyObject *called, PyOb
         }
 #endif
     }
-
-#if 0
-    PRINT_NEW_LINE();
-    PRINT_STRING("FALLBACK");
-    PRINT_ITEM(called);
-    PRINT_NEW_LINE();
-#endif
 
     PyObject *pos_args = MAKE_TUPLE(tstate, args, 3);
 
@@ -2799,7 +2717,6 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS3(PyThreadState *tstate, PyObject *called, 
 
         return Nuitka_CheckFunctionResult(tstate, called, result);
 #else
-        // Try to be fast about wrapping the arguments.
         int flags = PyCFunction_GET_FLAGS(called) & ~(METH_CLASS | METH_STATIC | METH_COEXIST);
 
         if (unlikely(flags & METH_NOARGS)) {
@@ -2811,8 +2728,6 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS3(PyThreadState *tstate, PyObject *called, 
                                                 ((PyCFunctionObject *)called)->m_ml->ml_name);
             return NULL;
         } else if (flags & METH_VARARGS) {
-            // Recursion guard is not strictly necessary, as we already have
-            // one on our way to here.
 #ifdef _NUITKA_FULL_COMPAT
             if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
                 return NULL;
@@ -2910,15 +2825,12 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS3(PyThreadState *tstate, PyObject *called, 
                     return obj;
                 }
 
-                // Work on produced type.
                 type = Py_TYPE(obj);
 
                 if (NuitkaType_HasFeatureClass(type) && type->tp_init != NULL) {
                     if (type->tp_init == default_tp_init_wrapper) {
 
                         PyObject *init_method = Nuitka_TypeLookup(type, const_str_plain___init__);
-
-                        // Not really allowed, since we wouldn't have the default wrapper set.
                         assert(init_method != NULL);
 
                         bool is_compiled_function = false;
@@ -3055,13 +2967,6 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS3(PyThreadState *tstate, PyObject *called, 
         }
 #endif
     }
-
-#if 0
-    PRINT_NEW_LINE();
-    PRINT_STRING("FALLBACK");
-    PRINT_ITEM(called);
-    PRINT_NEW_LINE();
-#endif
 
     PyObject *result = CALL_FUNCTION(tstate, called, pos_args, NULL);
 
@@ -3221,7 +3126,6 @@ PyObject *CALL_FUNCTION_WITH_ARGS4(PyThreadState *tstate, PyObject *called, PyOb
 
         return Nuitka_CheckFunctionResult(tstate, called, result);
 #else
-        // Try to be fast about wrapping the arguments.
         int flags = PyCFunction_GET_FLAGS(called) & ~(METH_CLASS | METH_STATIC | METH_COEXIST);
 
         if (unlikely(flags & METH_NOARGS)) {
@@ -3233,8 +3137,6 @@ PyObject *CALL_FUNCTION_WITH_ARGS4(PyThreadState *tstate, PyObject *called, PyOb
                                                 ((PyCFunctionObject *)called)->m_ml->ml_name);
             return NULL;
         } else if (flags & METH_VARARGS) {
-            // Recursion guard is not strictly necessary, as we already have
-            // one on our way to here.
 #ifdef _NUITKA_FULL_COMPAT
             if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
                 return NULL;
@@ -3343,7 +3245,6 @@ PyObject *CALL_FUNCTION_WITH_ARGS4(PyThreadState *tstate, PyObject *called, PyOb
                     return obj;
                 }
 
-                // Work on produced type.
                 type = Py_TYPE(obj);
 
                 if (NuitkaType_HasFeatureClass(type) && type->tp_init != NULL) {
@@ -3352,8 +3253,6 @@ PyObject *CALL_FUNCTION_WITH_ARGS4(PyThreadState *tstate, PyObject *called, PyOb
                         pos_args = NULL;
 
                         PyObject *init_method = Nuitka_TypeLookup(type, const_str_plain___init__);
-
-                        // Not really allowed, since we wouldn't have the default wrapper set.
                         assert(init_method != NULL);
 
                         bool is_compiled_function = false;
@@ -3496,13 +3395,6 @@ PyObject *CALL_FUNCTION_WITH_ARGS4(PyThreadState *tstate, PyObject *called, PyOb
         }
 #endif
     }
-
-#if 0
-    PRINT_NEW_LINE();
-    PRINT_STRING("FALLBACK");
-    PRINT_ITEM(called);
-    PRINT_NEW_LINE();
-#endif
 
     PyObject *pos_args = MAKE_TUPLE(tstate, args, 4);
 
@@ -3665,7 +3557,6 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS4(PyThreadState *tstate, PyObject *called, 
 
         return Nuitka_CheckFunctionResult(tstate, called, result);
 #else
-        // Try to be fast about wrapping the arguments.
         int flags = PyCFunction_GET_FLAGS(called) & ~(METH_CLASS | METH_STATIC | METH_COEXIST);
 
         if (unlikely(flags & METH_NOARGS)) {
@@ -3677,8 +3568,6 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS4(PyThreadState *tstate, PyObject *called, 
                                                 ((PyCFunctionObject *)called)->m_ml->ml_name);
             return NULL;
         } else if (flags & METH_VARARGS) {
-            // Recursion guard is not strictly necessary, as we already have
-            // one on our way to here.
 #ifdef _NUITKA_FULL_COMPAT
             if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
                 return NULL;
@@ -3776,15 +3665,12 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS4(PyThreadState *tstate, PyObject *called, 
                     return obj;
                 }
 
-                // Work on produced type.
                 type = Py_TYPE(obj);
 
                 if (NuitkaType_HasFeatureClass(type) && type->tp_init != NULL) {
                     if (type->tp_init == default_tp_init_wrapper) {
 
                         PyObject *init_method = Nuitka_TypeLookup(type, const_str_plain___init__);
-
-                        // Not really allowed, since we wouldn't have the default wrapper set.
                         assert(init_method != NULL);
 
                         bool is_compiled_function = false;
@@ -3921,13 +3807,6 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS4(PyThreadState *tstate, PyObject *called, 
         }
 #endif
     }
-
-#if 0
-    PRINT_NEW_LINE();
-    PRINT_STRING("FALLBACK");
-    PRINT_ITEM(called);
-    PRINT_NEW_LINE();
-#endif
 
     PyObject *result = CALL_FUNCTION(tstate, called, pos_args, NULL);
 
@@ -4087,7 +3966,6 @@ PyObject *CALL_FUNCTION_WITH_ARGS5(PyThreadState *tstate, PyObject *called, PyOb
 
         return Nuitka_CheckFunctionResult(tstate, called, result);
 #else
-        // Try to be fast about wrapping the arguments.
         int flags = PyCFunction_GET_FLAGS(called) & ~(METH_CLASS | METH_STATIC | METH_COEXIST);
 
         if (unlikely(flags & METH_NOARGS)) {
@@ -4099,8 +3977,6 @@ PyObject *CALL_FUNCTION_WITH_ARGS5(PyThreadState *tstate, PyObject *called, PyOb
                                                 ((PyCFunctionObject *)called)->m_ml->ml_name);
             return NULL;
         } else if (flags & METH_VARARGS) {
-            // Recursion guard is not strictly necessary, as we already have
-            // one on our way to here.
 #ifdef _NUITKA_FULL_COMPAT
             if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
                 return NULL;
@@ -4209,7 +4085,6 @@ PyObject *CALL_FUNCTION_WITH_ARGS5(PyThreadState *tstate, PyObject *called, PyOb
                     return obj;
                 }
 
-                // Work on produced type.
                 type = Py_TYPE(obj);
 
                 if (NuitkaType_HasFeatureClass(type) && type->tp_init != NULL) {
@@ -4218,8 +4093,6 @@ PyObject *CALL_FUNCTION_WITH_ARGS5(PyThreadState *tstate, PyObject *called, PyOb
                         pos_args = NULL;
 
                         PyObject *init_method = Nuitka_TypeLookup(type, const_str_plain___init__);
-
-                        // Not really allowed, since we wouldn't have the default wrapper set.
                         assert(init_method != NULL);
 
                         bool is_compiled_function = false;
@@ -4362,13 +4235,6 @@ PyObject *CALL_FUNCTION_WITH_ARGS5(PyThreadState *tstate, PyObject *called, PyOb
         }
 #endif
     }
-
-#if 0
-    PRINT_NEW_LINE();
-    PRINT_STRING("FALLBACK");
-    PRINT_ITEM(called);
-    PRINT_NEW_LINE();
-#endif
 
     PyObject *pos_args = MAKE_TUPLE(tstate, args, 5);
 
@@ -4531,7 +4397,6 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS5(PyThreadState *tstate, PyObject *called, 
 
         return Nuitka_CheckFunctionResult(tstate, called, result);
 #else
-        // Try to be fast about wrapping the arguments.
         int flags = PyCFunction_GET_FLAGS(called) & ~(METH_CLASS | METH_STATIC | METH_COEXIST);
 
         if (unlikely(flags & METH_NOARGS)) {
@@ -4543,8 +4408,6 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS5(PyThreadState *tstate, PyObject *called, 
                                                 ((PyCFunctionObject *)called)->m_ml->ml_name);
             return NULL;
         } else if (flags & METH_VARARGS) {
-            // Recursion guard is not strictly necessary, as we already have
-            // one on our way to here.
 #ifdef _NUITKA_FULL_COMPAT
             if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
                 return NULL;
@@ -4642,15 +4505,12 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS5(PyThreadState *tstate, PyObject *called, 
                     return obj;
                 }
 
-                // Work on produced type.
                 type = Py_TYPE(obj);
 
                 if (NuitkaType_HasFeatureClass(type) && type->tp_init != NULL) {
                     if (type->tp_init == default_tp_init_wrapper) {
 
                         PyObject *init_method = Nuitka_TypeLookup(type, const_str_plain___init__);
-
-                        // Not really allowed, since we wouldn't have the default wrapper set.
                         assert(init_method != NULL);
 
                         bool is_compiled_function = false;
@@ -4787,13 +4647,6 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS5(PyThreadState *tstate, PyObject *called, 
         }
 #endif
     }
-
-#if 0
-    PRINT_NEW_LINE();
-    PRINT_STRING("FALLBACK");
-    PRINT_ITEM(called);
-    PRINT_NEW_LINE();
-#endif
 
     PyObject *result = CALL_FUNCTION(tstate, called, pos_args, NULL);
 
@@ -4953,7 +4806,6 @@ PyObject *CALL_FUNCTION_WITH_ARGS6(PyThreadState *tstate, PyObject *called, PyOb
 
         return Nuitka_CheckFunctionResult(tstate, called, result);
 #else
-        // Try to be fast about wrapping the arguments.
         int flags = PyCFunction_GET_FLAGS(called) & ~(METH_CLASS | METH_STATIC | METH_COEXIST);
 
         if (unlikely(flags & METH_NOARGS)) {
@@ -4965,8 +4817,6 @@ PyObject *CALL_FUNCTION_WITH_ARGS6(PyThreadState *tstate, PyObject *called, PyOb
                                                 ((PyCFunctionObject *)called)->m_ml->ml_name);
             return NULL;
         } else if (flags & METH_VARARGS) {
-            // Recursion guard is not strictly necessary, as we already have
-            // one on our way to here.
 #ifdef _NUITKA_FULL_COMPAT
             if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
                 return NULL;
@@ -5075,7 +4925,6 @@ PyObject *CALL_FUNCTION_WITH_ARGS6(PyThreadState *tstate, PyObject *called, PyOb
                     return obj;
                 }
 
-                // Work on produced type.
                 type = Py_TYPE(obj);
 
                 if (NuitkaType_HasFeatureClass(type) && type->tp_init != NULL) {
@@ -5084,8 +4933,6 @@ PyObject *CALL_FUNCTION_WITH_ARGS6(PyThreadState *tstate, PyObject *called, PyOb
                         pos_args = NULL;
 
                         PyObject *init_method = Nuitka_TypeLookup(type, const_str_plain___init__);
-
-                        // Not really allowed, since we wouldn't have the default wrapper set.
                         assert(init_method != NULL);
 
                         bool is_compiled_function = false;
@@ -5228,13 +5075,6 @@ PyObject *CALL_FUNCTION_WITH_ARGS6(PyThreadState *tstate, PyObject *called, PyOb
         }
 #endif
     }
-
-#if 0
-    PRINT_NEW_LINE();
-    PRINT_STRING("FALLBACK");
-    PRINT_ITEM(called);
-    PRINT_NEW_LINE();
-#endif
 
     PyObject *pos_args = MAKE_TUPLE(tstate, args, 6);
 
@@ -5397,7 +5237,6 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS6(PyThreadState *tstate, PyObject *called, 
 
         return Nuitka_CheckFunctionResult(tstate, called, result);
 #else
-        // Try to be fast about wrapping the arguments.
         int flags = PyCFunction_GET_FLAGS(called) & ~(METH_CLASS | METH_STATIC | METH_COEXIST);
 
         if (unlikely(flags & METH_NOARGS)) {
@@ -5409,8 +5248,6 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS6(PyThreadState *tstate, PyObject *called, 
                                                 ((PyCFunctionObject *)called)->m_ml->ml_name);
             return NULL;
         } else if (flags & METH_VARARGS) {
-            // Recursion guard is not strictly necessary, as we already have
-            // one on our way to here.
 #ifdef _NUITKA_FULL_COMPAT
             if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
                 return NULL;
@@ -5508,15 +5345,12 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS6(PyThreadState *tstate, PyObject *called, 
                     return obj;
                 }
 
-                // Work on produced type.
                 type = Py_TYPE(obj);
 
                 if (NuitkaType_HasFeatureClass(type) && type->tp_init != NULL) {
                     if (type->tp_init == default_tp_init_wrapper) {
 
                         PyObject *init_method = Nuitka_TypeLookup(type, const_str_plain___init__);
-
-                        // Not really allowed, since we wouldn't have the default wrapper set.
                         assert(init_method != NULL);
 
                         bool is_compiled_function = false;
@@ -5653,13 +5487,6 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS6(PyThreadState *tstate, PyObject *called, 
         }
 #endif
     }
-
-#if 0
-    PRINT_NEW_LINE();
-    PRINT_STRING("FALLBACK");
-    PRINT_ITEM(called);
-    PRINT_NEW_LINE();
-#endif
 
     PyObject *result = CALL_FUNCTION(tstate, called, pos_args, NULL);
 
@@ -5819,7 +5646,6 @@ PyObject *CALL_FUNCTION_WITH_ARGS7(PyThreadState *tstate, PyObject *called, PyOb
 
         return Nuitka_CheckFunctionResult(tstate, called, result);
 #else
-        // Try to be fast about wrapping the arguments.
         int flags = PyCFunction_GET_FLAGS(called) & ~(METH_CLASS | METH_STATIC | METH_COEXIST);
 
         if (unlikely(flags & METH_NOARGS)) {
@@ -5831,8 +5657,6 @@ PyObject *CALL_FUNCTION_WITH_ARGS7(PyThreadState *tstate, PyObject *called, PyOb
                                                 ((PyCFunctionObject *)called)->m_ml->ml_name);
             return NULL;
         } else if (flags & METH_VARARGS) {
-            // Recursion guard is not strictly necessary, as we already have
-            // one on our way to here.
 #ifdef _NUITKA_FULL_COMPAT
             if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
                 return NULL;
@@ -5941,7 +5765,6 @@ PyObject *CALL_FUNCTION_WITH_ARGS7(PyThreadState *tstate, PyObject *called, PyOb
                     return obj;
                 }
 
-                // Work on produced type.
                 type = Py_TYPE(obj);
 
                 if (NuitkaType_HasFeatureClass(type) && type->tp_init != NULL) {
@@ -5950,8 +5773,6 @@ PyObject *CALL_FUNCTION_WITH_ARGS7(PyThreadState *tstate, PyObject *called, PyOb
                         pos_args = NULL;
 
                         PyObject *init_method = Nuitka_TypeLookup(type, const_str_plain___init__);
-
-                        // Not really allowed, since we wouldn't have the default wrapper set.
                         assert(init_method != NULL);
 
                         bool is_compiled_function = false;
@@ -6094,13 +5915,6 @@ PyObject *CALL_FUNCTION_WITH_ARGS7(PyThreadState *tstate, PyObject *called, PyOb
         }
 #endif
     }
-
-#if 0
-    PRINT_NEW_LINE();
-    PRINT_STRING("FALLBACK");
-    PRINT_ITEM(called);
-    PRINT_NEW_LINE();
-#endif
 
     PyObject *pos_args = MAKE_TUPLE(tstate, args, 7);
 
@@ -6263,7 +6077,6 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS7(PyThreadState *tstate, PyObject *called, 
 
         return Nuitka_CheckFunctionResult(tstate, called, result);
 #else
-        // Try to be fast about wrapping the arguments.
         int flags = PyCFunction_GET_FLAGS(called) & ~(METH_CLASS | METH_STATIC | METH_COEXIST);
 
         if (unlikely(flags & METH_NOARGS)) {
@@ -6275,8 +6088,6 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS7(PyThreadState *tstate, PyObject *called, 
                                                 ((PyCFunctionObject *)called)->m_ml->ml_name);
             return NULL;
         } else if (flags & METH_VARARGS) {
-            // Recursion guard is not strictly necessary, as we already have
-            // one on our way to here.
 #ifdef _NUITKA_FULL_COMPAT
             if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
                 return NULL;
@@ -6374,15 +6185,12 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS7(PyThreadState *tstate, PyObject *called, 
                     return obj;
                 }
 
-                // Work on produced type.
                 type = Py_TYPE(obj);
 
                 if (NuitkaType_HasFeatureClass(type) && type->tp_init != NULL) {
                     if (type->tp_init == default_tp_init_wrapper) {
 
                         PyObject *init_method = Nuitka_TypeLookup(type, const_str_plain___init__);
-
-                        // Not really allowed, since we wouldn't have the default wrapper set.
                         assert(init_method != NULL);
 
                         bool is_compiled_function = false;
@@ -6519,13 +6327,6 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS7(PyThreadState *tstate, PyObject *called, 
         }
 #endif
     }
-
-#if 0
-    PRINT_NEW_LINE();
-    PRINT_STRING("FALLBACK");
-    PRINT_ITEM(called);
-    PRINT_NEW_LINE();
-#endif
 
     PyObject *result = CALL_FUNCTION(tstate, called, pos_args, NULL);
 
@@ -6685,7 +6486,6 @@ PyObject *CALL_FUNCTION_WITH_ARGS8(PyThreadState *tstate, PyObject *called, PyOb
 
         return Nuitka_CheckFunctionResult(tstate, called, result);
 #else
-        // Try to be fast about wrapping the arguments.
         int flags = PyCFunction_GET_FLAGS(called) & ~(METH_CLASS | METH_STATIC | METH_COEXIST);
 
         if (unlikely(flags & METH_NOARGS)) {
@@ -6697,8 +6497,6 @@ PyObject *CALL_FUNCTION_WITH_ARGS8(PyThreadState *tstate, PyObject *called, PyOb
                                                 ((PyCFunctionObject *)called)->m_ml->ml_name);
             return NULL;
         } else if (flags & METH_VARARGS) {
-            // Recursion guard is not strictly necessary, as we already have
-            // one on our way to here.
 #ifdef _NUITKA_FULL_COMPAT
             if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
                 return NULL;
@@ -6807,7 +6605,6 @@ PyObject *CALL_FUNCTION_WITH_ARGS8(PyThreadState *tstate, PyObject *called, PyOb
                     return obj;
                 }
 
-                // Work on produced type.
                 type = Py_TYPE(obj);
 
                 if (NuitkaType_HasFeatureClass(type) && type->tp_init != NULL) {
@@ -6816,8 +6613,6 @@ PyObject *CALL_FUNCTION_WITH_ARGS8(PyThreadState *tstate, PyObject *called, PyOb
                         pos_args = NULL;
 
                         PyObject *init_method = Nuitka_TypeLookup(type, const_str_plain___init__);
-
-                        // Not really allowed, since we wouldn't have the default wrapper set.
                         assert(init_method != NULL);
 
                         bool is_compiled_function = false;
@@ -6960,13 +6755,6 @@ PyObject *CALL_FUNCTION_WITH_ARGS8(PyThreadState *tstate, PyObject *called, PyOb
         }
 #endif
     }
-
-#if 0
-    PRINT_NEW_LINE();
-    PRINT_STRING("FALLBACK");
-    PRINT_ITEM(called);
-    PRINT_NEW_LINE();
-#endif
 
     PyObject *pos_args = MAKE_TUPLE(tstate, args, 8);
 
@@ -7129,7 +6917,6 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS8(PyThreadState *tstate, PyObject *called, 
 
         return Nuitka_CheckFunctionResult(tstate, called, result);
 #else
-        // Try to be fast about wrapping the arguments.
         int flags = PyCFunction_GET_FLAGS(called) & ~(METH_CLASS | METH_STATIC | METH_COEXIST);
 
         if (unlikely(flags & METH_NOARGS)) {
@@ -7141,8 +6928,6 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS8(PyThreadState *tstate, PyObject *called, 
                                                 ((PyCFunctionObject *)called)->m_ml->ml_name);
             return NULL;
         } else if (flags & METH_VARARGS) {
-            // Recursion guard is not strictly necessary, as we already have
-            // one on our way to here.
 #ifdef _NUITKA_FULL_COMPAT
             if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
                 return NULL;
@@ -7240,15 +7025,12 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS8(PyThreadState *tstate, PyObject *called, 
                     return obj;
                 }
 
-                // Work on produced type.
                 type = Py_TYPE(obj);
 
                 if (NuitkaType_HasFeatureClass(type) && type->tp_init != NULL) {
                     if (type->tp_init == default_tp_init_wrapper) {
 
                         PyObject *init_method = Nuitka_TypeLookup(type, const_str_plain___init__);
-
-                        // Not really allowed, since we wouldn't have the default wrapper set.
                         assert(init_method != NULL);
 
                         bool is_compiled_function = false;
@@ -7385,13 +7167,6 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS8(PyThreadState *tstate, PyObject *called, 
         }
 #endif
     }
-
-#if 0
-    PRINT_NEW_LINE();
-    PRINT_STRING("FALLBACK");
-    PRINT_ITEM(called);
-    PRINT_NEW_LINE();
-#endif
 
     PyObject *result = CALL_FUNCTION(tstate, called, pos_args, NULL);
 
@@ -7551,7 +7326,6 @@ PyObject *CALL_FUNCTION_WITH_ARGS9(PyThreadState *tstate, PyObject *called, PyOb
 
         return Nuitka_CheckFunctionResult(tstate, called, result);
 #else
-        // Try to be fast about wrapping the arguments.
         int flags = PyCFunction_GET_FLAGS(called) & ~(METH_CLASS | METH_STATIC | METH_COEXIST);
 
         if (unlikely(flags & METH_NOARGS)) {
@@ -7563,8 +7337,6 @@ PyObject *CALL_FUNCTION_WITH_ARGS9(PyThreadState *tstate, PyObject *called, PyOb
                                                 ((PyCFunctionObject *)called)->m_ml->ml_name);
             return NULL;
         } else if (flags & METH_VARARGS) {
-            // Recursion guard is not strictly necessary, as we already have
-            // one on our way to here.
 #ifdef _NUITKA_FULL_COMPAT
             if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
                 return NULL;
@@ -7673,7 +7445,6 @@ PyObject *CALL_FUNCTION_WITH_ARGS9(PyThreadState *tstate, PyObject *called, PyOb
                     return obj;
                 }
 
-                // Work on produced type.
                 type = Py_TYPE(obj);
 
                 if (NuitkaType_HasFeatureClass(type) && type->tp_init != NULL) {
@@ -7682,8 +7453,6 @@ PyObject *CALL_FUNCTION_WITH_ARGS9(PyThreadState *tstate, PyObject *called, PyOb
                         pos_args = NULL;
 
                         PyObject *init_method = Nuitka_TypeLookup(type, const_str_plain___init__);
-
-                        // Not really allowed, since we wouldn't have the default wrapper set.
                         assert(init_method != NULL);
 
                         bool is_compiled_function = false;
@@ -7826,13 +7595,6 @@ PyObject *CALL_FUNCTION_WITH_ARGS9(PyThreadState *tstate, PyObject *called, PyOb
         }
 #endif
     }
-
-#if 0
-    PRINT_NEW_LINE();
-    PRINT_STRING("FALLBACK");
-    PRINT_ITEM(called);
-    PRINT_NEW_LINE();
-#endif
 
     PyObject *pos_args = MAKE_TUPLE(tstate, args, 9);
 
@@ -7995,7 +7757,6 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS9(PyThreadState *tstate, PyObject *called, 
 
         return Nuitka_CheckFunctionResult(tstate, called, result);
 #else
-        // Try to be fast about wrapping the arguments.
         int flags = PyCFunction_GET_FLAGS(called) & ~(METH_CLASS | METH_STATIC | METH_COEXIST);
 
         if (unlikely(flags & METH_NOARGS)) {
@@ -8007,8 +7768,6 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS9(PyThreadState *tstate, PyObject *called, 
                                                 ((PyCFunctionObject *)called)->m_ml->ml_name);
             return NULL;
         } else if (flags & METH_VARARGS) {
-            // Recursion guard is not strictly necessary, as we already have
-            // one on our way to here.
 #ifdef _NUITKA_FULL_COMPAT
             if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
                 return NULL;
@@ -8106,15 +7865,12 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS9(PyThreadState *tstate, PyObject *called, 
                     return obj;
                 }
 
-                // Work on produced type.
                 type = Py_TYPE(obj);
 
                 if (NuitkaType_HasFeatureClass(type) && type->tp_init != NULL) {
                     if (type->tp_init == default_tp_init_wrapper) {
 
                         PyObject *init_method = Nuitka_TypeLookup(type, const_str_plain___init__);
-
-                        // Not really allowed, since we wouldn't have the default wrapper set.
                         assert(init_method != NULL);
 
                         bool is_compiled_function = false;
@@ -8251,13 +8007,6 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS9(PyThreadState *tstate, PyObject *called, 
         }
 #endif
     }
-
-#if 0
-    PRINT_NEW_LINE();
-    PRINT_STRING("FALLBACK");
-    PRINT_ITEM(called);
-    PRINT_NEW_LINE();
-#endif
 
     PyObject *result = CALL_FUNCTION(tstate, called, pos_args, NULL);
 
@@ -8417,7 +8166,6 @@ PyObject *CALL_FUNCTION_WITH_ARGS10(PyThreadState *tstate, PyObject *called, PyO
 
         return Nuitka_CheckFunctionResult(tstate, called, result);
 #else
-        // Try to be fast about wrapping the arguments.
         int flags = PyCFunction_GET_FLAGS(called) & ~(METH_CLASS | METH_STATIC | METH_COEXIST);
 
         if (unlikely(flags & METH_NOARGS)) {
@@ -8429,8 +8177,6 @@ PyObject *CALL_FUNCTION_WITH_ARGS10(PyThreadState *tstate, PyObject *called, PyO
                                                 ((PyCFunctionObject *)called)->m_ml->ml_name);
             return NULL;
         } else if (flags & METH_VARARGS) {
-            // Recursion guard is not strictly necessary, as we already have
-            // one on our way to here.
 #ifdef _NUITKA_FULL_COMPAT
             if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
                 return NULL;
@@ -8539,7 +8285,6 @@ PyObject *CALL_FUNCTION_WITH_ARGS10(PyThreadState *tstate, PyObject *called, PyO
                     return obj;
                 }
 
-                // Work on produced type.
                 type = Py_TYPE(obj);
 
                 if (NuitkaType_HasFeatureClass(type) && type->tp_init != NULL) {
@@ -8548,8 +8293,6 @@ PyObject *CALL_FUNCTION_WITH_ARGS10(PyThreadState *tstate, PyObject *called, PyO
                         pos_args = NULL;
 
                         PyObject *init_method = Nuitka_TypeLookup(type, const_str_plain___init__);
-
-                        // Not really allowed, since we wouldn't have the default wrapper set.
                         assert(init_method != NULL);
 
                         bool is_compiled_function = false;
@@ -8692,13 +8435,6 @@ PyObject *CALL_FUNCTION_WITH_ARGS10(PyThreadState *tstate, PyObject *called, PyO
         }
 #endif
     }
-
-#if 0
-    PRINT_NEW_LINE();
-    PRINT_STRING("FALLBACK");
-    PRINT_ITEM(called);
-    PRINT_NEW_LINE();
-#endif
 
     PyObject *pos_args = MAKE_TUPLE(tstate, args, 10);
 
@@ -8861,7 +8597,6 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS10(PyThreadState *tstate, PyObject *called,
 
         return Nuitka_CheckFunctionResult(tstate, called, result);
 #else
-        // Try to be fast about wrapping the arguments.
         int flags = PyCFunction_GET_FLAGS(called) & ~(METH_CLASS | METH_STATIC | METH_COEXIST);
 
         if (unlikely(flags & METH_NOARGS)) {
@@ -8873,8 +8608,6 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS10(PyThreadState *tstate, PyObject *called,
                                                 ((PyCFunctionObject *)called)->m_ml->ml_name);
             return NULL;
         } else if (flags & METH_VARARGS) {
-            // Recursion guard is not strictly necessary, as we already have
-            // one on our way to here.
 #ifdef _NUITKA_FULL_COMPAT
             if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
                 return NULL;
@@ -8972,15 +8705,12 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS10(PyThreadState *tstate, PyObject *called,
                     return obj;
                 }
 
-                // Work on produced type.
                 type = Py_TYPE(obj);
 
                 if (NuitkaType_HasFeatureClass(type) && type->tp_init != NULL) {
                     if (type->tp_init == default_tp_init_wrapper) {
 
                         PyObject *init_method = Nuitka_TypeLookup(type, const_str_plain___init__);
-
-                        // Not really allowed, since we wouldn't have the default wrapper set.
                         assert(init_method != NULL);
 
                         bool is_compiled_function = false;
@@ -9118,19 +8848,13 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS10(PyThreadState *tstate, PyObject *called,
 #endif
     }
 
-#if 0
-    PRINT_NEW_LINE();
-    PRINT_STRING("FALLBACK");
-    PRINT_ITEM(called);
-    PRINT_NEW_LINE();
-#endif
-
     PyObject *result = CALL_FUNCTION(tstate, called, pos_args, NULL);
 
     CHECK_OBJECT_X(result);
 
     return result;
 }
+/* Generated from CodeTemplateCallsMixed.c.j2 */
 PyObject *CALL_FUNCTION_WITH_NO_ARGS_KW_SPLIT(PyThreadState *tstate, PyObject *called, PyObject *const *kw_values,
                                               PyObject *kw_names) {
 
@@ -9167,12 +8891,6 @@ PyObject *CALL_FUNCTION_WITH_NO_ARGS_KW_SPLIT(PyThreadState *tstate, PyObject *c
         }
 #endif
     }
-
-#if 0
-    PRINT_STRING("FALLBACK");
-    PRINT_ITEM(called);
-    PRINT_NEW_LINE();
-#endif
 
     ternaryfunc call_slot = Py_TYPE(called)->tp_call;
 
@@ -9245,12 +8963,6 @@ PyObject *CALL_FUNCTION_WITH_ARGS1_VECTORCALL(PyThreadState *tstate, PyObject *c
         }
 #endif
     }
-
-#if 0
-    PRINT_STRING("FALLBACK");
-    PRINT_ITEM(called);
-    PRINT_NEW_LINE();
-#endif
 
     ternaryfunc call_slot = Py_TYPE(called)->tp_call;
 
@@ -9329,12 +9041,6 @@ PyObject *CALL_FUNCTION_WITH_ARGS1_KW_SPLIT(PyThreadState *tstate, PyObject *cal
         }
 #endif
     }
-
-#if 0
-    PRINT_STRING("FALLBACK");
-    PRINT_ITEM(called);
-    PRINT_NEW_LINE();
-#endif
 
     ternaryfunc call_slot = Py_TYPE(called)->tp_call;
 
@@ -9416,12 +9122,6 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS1_KW_SPLIT(PyThreadState *tstate, PyObject 
 #endif
     }
 
-#if 0
-    PRINT_STRING("FALLBACK");
-    PRINT_ITEM(called);
-    PRINT_NEW_LINE();
-#endif
-
     ternaryfunc call_slot = Py_TYPE(called)->tp_call;
 
     if (unlikely(call_slot == NULL)) {
@@ -9491,12 +9191,6 @@ PyObject *CALL_FUNCTION_WITH_ARGS2_VECTORCALL(PyThreadState *tstate, PyObject *c
         }
 #endif
     }
-
-#if 0
-    PRINT_STRING("FALLBACK");
-    PRINT_ITEM(called);
-    PRINT_NEW_LINE();
-#endif
 
     ternaryfunc call_slot = Py_TYPE(called)->tp_call;
 
@@ -9575,12 +9269,6 @@ PyObject *CALL_FUNCTION_WITH_ARGS2_KW_SPLIT(PyThreadState *tstate, PyObject *cal
         }
 #endif
     }
-
-#if 0
-    PRINT_STRING("FALLBACK");
-    PRINT_ITEM(called);
-    PRINT_NEW_LINE();
-#endif
 
     ternaryfunc call_slot = Py_TYPE(called)->tp_call;
 
@@ -9662,12 +9350,6 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS2_KW_SPLIT(PyThreadState *tstate, PyObject 
 #endif
     }
 
-#if 0
-    PRINT_STRING("FALLBACK");
-    PRINT_ITEM(called);
-    PRINT_NEW_LINE();
-#endif
-
     ternaryfunc call_slot = Py_TYPE(called)->tp_call;
 
     if (unlikely(call_slot == NULL)) {
@@ -9737,12 +9419,6 @@ PyObject *CALL_FUNCTION_WITH_ARGS3_VECTORCALL(PyThreadState *tstate, PyObject *c
         }
 #endif
     }
-
-#if 0
-    PRINT_STRING("FALLBACK");
-    PRINT_ITEM(called);
-    PRINT_NEW_LINE();
-#endif
 
     ternaryfunc call_slot = Py_TYPE(called)->tp_call;
 
@@ -9821,12 +9497,6 @@ PyObject *CALL_FUNCTION_WITH_ARGS3_KW_SPLIT(PyThreadState *tstate, PyObject *cal
         }
 #endif
     }
-
-#if 0
-    PRINT_STRING("FALLBACK");
-    PRINT_ITEM(called);
-    PRINT_NEW_LINE();
-#endif
 
     ternaryfunc call_slot = Py_TYPE(called)->tp_call;
 
@@ -9908,12 +9578,6 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS3_KW_SPLIT(PyThreadState *tstate, PyObject 
 #endif
     }
 
-#if 0
-    PRINT_STRING("FALLBACK");
-    PRINT_ITEM(called);
-    PRINT_NEW_LINE();
-#endif
-
     ternaryfunc call_slot = Py_TYPE(called)->tp_call;
 
     if (unlikely(call_slot == NULL)) {
@@ -9983,12 +9647,6 @@ PyObject *CALL_FUNCTION_WITH_ARGS4_VECTORCALL(PyThreadState *tstate, PyObject *c
         }
 #endif
     }
-
-#if 0
-    PRINT_STRING("FALLBACK");
-    PRINT_ITEM(called);
-    PRINT_NEW_LINE();
-#endif
 
     ternaryfunc call_slot = Py_TYPE(called)->tp_call;
 
@@ -10067,12 +9725,6 @@ PyObject *CALL_FUNCTION_WITH_ARGS4_KW_SPLIT(PyThreadState *tstate, PyObject *cal
         }
 #endif
     }
-
-#if 0
-    PRINT_STRING("FALLBACK");
-    PRINT_ITEM(called);
-    PRINT_NEW_LINE();
-#endif
 
     ternaryfunc call_slot = Py_TYPE(called)->tp_call;
 
@@ -10154,12 +9806,6 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS4_KW_SPLIT(PyThreadState *tstate, PyObject 
 #endif
     }
 
-#if 0
-    PRINT_STRING("FALLBACK");
-    PRINT_ITEM(called);
-    PRINT_NEW_LINE();
-#endif
-
     ternaryfunc call_slot = Py_TYPE(called)->tp_call;
 
     if (unlikely(call_slot == NULL)) {
@@ -10229,12 +9875,6 @@ PyObject *CALL_FUNCTION_WITH_ARGS5_VECTORCALL(PyThreadState *tstate, PyObject *c
         }
 #endif
     }
-
-#if 0
-    PRINT_STRING("FALLBACK");
-    PRINT_ITEM(called);
-    PRINT_NEW_LINE();
-#endif
 
     ternaryfunc call_slot = Py_TYPE(called)->tp_call;
 
@@ -10313,12 +9953,6 @@ PyObject *CALL_FUNCTION_WITH_ARGS5_KW_SPLIT(PyThreadState *tstate, PyObject *cal
         }
 #endif
     }
-
-#if 0
-    PRINT_STRING("FALLBACK");
-    PRINT_ITEM(called);
-    PRINT_NEW_LINE();
-#endif
 
     ternaryfunc call_slot = Py_TYPE(called)->tp_call;
 
@@ -10400,12 +10034,6 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS5_KW_SPLIT(PyThreadState *tstate, PyObject 
 #endif
     }
 
-#if 0
-    PRINT_STRING("FALLBACK");
-    PRINT_ITEM(called);
-    PRINT_NEW_LINE();
-#endif
-
     ternaryfunc call_slot = Py_TYPE(called)->tp_call;
 
     if (unlikely(call_slot == NULL)) {
@@ -10475,12 +10103,6 @@ PyObject *CALL_FUNCTION_WITH_ARGS6_VECTORCALL(PyThreadState *tstate, PyObject *c
         }
 #endif
     }
-
-#if 0
-    PRINT_STRING("FALLBACK");
-    PRINT_ITEM(called);
-    PRINT_NEW_LINE();
-#endif
 
     ternaryfunc call_slot = Py_TYPE(called)->tp_call;
 
@@ -10559,12 +10181,6 @@ PyObject *CALL_FUNCTION_WITH_ARGS6_KW_SPLIT(PyThreadState *tstate, PyObject *cal
         }
 #endif
     }
-
-#if 0
-    PRINT_STRING("FALLBACK");
-    PRINT_ITEM(called);
-    PRINT_NEW_LINE();
-#endif
 
     ternaryfunc call_slot = Py_TYPE(called)->tp_call;
 
@@ -10646,12 +10262,6 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS6_KW_SPLIT(PyThreadState *tstate, PyObject 
 #endif
     }
 
-#if 0
-    PRINT_STRING("FALLBACK");
-    PRINT_ITEM(called);
-    PRINT_NEW_LINE();
-#endif
-
     ternaryfunc call_slot = Py_TYPE(called)->tp_call;
 
     if (unlikely(call_slot == NULL)) {
@@ -10721,12 +10331,6 @@ PyObject *CALL_FUNCTION_WITH_ARGS7_VECTORCALL(PyThreadState *tstate, PyObject *c
         }
 #endif
     }
-
-#if 0
-    PRINT_STRING("FALLBACK");
-    PRINT_ITEM(called);
-    PRINT_NEW_LINE();
-#endif
 
     ternaryfunc call_slot = Py_TYPE(called)->tp_call;
 
@@ -10805,12 +10409,6 @@ PyObject *CALL_FUNCTION_WITH_ARGS7_KW_SPLIT(PyThreadState *tstate, PyObject *cal
         }
 #endif
     }
-
-#if 0
-    PRINT_STRING("FALLBACK");
-    PRINT_ITEM(called);
-    PRINT_NEW_LINE();
-#endif
 
     ternaryfunc call_slot = Py_TYPE(called)->tp_call;
 
@@ -10892,12 +10490,6 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS7_KW_SPLIT(PyThreadState *tstate, PyObject 
 #endif
     }
 
-#if 0
-    PRINT_STRING("FALLBACK");
-    PRINT_ITEM(called);
-    PRINT_NEW_LINE();
-#endif
-
     ternaryfunc call_slot = Py_TYPE(called)->tp_call;
 
     if (unlikely(call_slot == NULL)) {
@@ -10967,12 +10559,6 @@ PyObject *CALL_FUNCTION_WITH_ARGS8_VECTORCALL(PyThreadState *tstate, PyObject *c
         }
 #endif
     }
-
-#if 0
-    PRINT_STRING("FALLBACK");
-    PRINT_ITEM(called);
-    PRINT_NEW_LINE();
-#endif
 
     ternaryfunc call_slot = Py_TYPE(called)->tp_call;
 
@@ -11051,12 +10637,6 @@ PyObject *CALL_FUNCTION_WITH_ARGS8_KW_SPLIT(PyThreadState *tstate, PyObject *cal
         }
 #endif
     }
-
-#if 0
-    PRINT_STRING("FALLBACK");
-    PRINT_ITEM(called);
-    PRINT_NEW_LINE();
-#endif
 
     ternaryfunc call_slot = Py_TYPE(called)->tp_call;
 
@@ -11138,12 +10718,6 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS8_KW_SPLIT(PyThreadState *tstate, PyObject 
 #endif
     }
 
-#if 0
-    PRINT_STRING("FALLBACK");
-    PRINT_ITEM(called);
-    PRINT_NEW_LINE();
-#endif
-
     ternaryfunc call_slot = Py_TYPE(called)->tp_call;
 
     if (unlikely(call_slot == NULL)) {
@@ -11213,12 +10787,6 @@ PyObject *CALL_FUNCTION_WITH_ARGS9_VECTORCALL(PyThreadState *tstate, PyObject *c
         }
 #endif
     }
-
-#if 0
-    PRINT_STRING("FALLBACK");
-    PRINT_ITEM(called);
-    PRINT_NEW_LINE();
-#endif
 
     ternaryfunc call_slot = Py_TYPE(called)->tp_call;
 
@@ -11297,12 +10865,6 @@ PyObject *CALL_FUNCTION_WITH_ARGS9_KW_SPLIT(PyThreadState *tstate, PyObject *cal
         }
 #endif
     }
-
-#if 0
-    PRINT_STRING("FALLBACK");
-    PRINT_ITEM(called);
-    PRINT_NEW_LINE();
-#endif
 
     ternaryfunc call_slot = Py_TYPE(called)->tp_call;
 
@@ -11384,12 +10946,6 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS9_KW_SPLIT(PyThreadState *tstate, PyObject 
 #endif
     }
 
-#if 0
-    PRINT_STRING("FALLBACK");
-    PRINT_ITEM(called);
-    PRINT_NEW_LINE();
-#endif
-
     ternaryfunc call_slot = Py_TYPE(called)->tp_call;
 
     if (unlikely(call_slot == NULL)) {
@@ -11459,12 +11015,6 @@ PyObject *CALL_FUNCTION_WITH_ARGS10_VECTORCALL(PyThreadState *tstate, PyObject *
         }
 #endif
     }
-
-#if 0
-    PRINT_STRING("FALLBACK");
-    PRINT_ITEM(called);
-    PRINT_NEW_LINE();
-#endif
 
     ternaryfunc call_slot = Py_TYPE(called)->tp_call;
 
@@ -11543,12 +11093,6 @@ PyObject *CALL_FUNCTION_WITH_ARGS10_KW_SPLIT(PyThreadState *tstate, PyObject *ca
         }
 #endif
     }
-
-#if 0
-    PRINT_STRING("FALLBACK");
-    PRINT_ITEM(called);
-    PRINT_NEW_LINE();
-#endif
 
     ternaryfunc call_slot = Py_TYPE(called)->tp_call;
 
@@ -11630,12 +11174,6 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS10_KW_SPLIT(PyThreadState *tstate, PyObject
 #endif
     }
 
-#if 0
-    PRINT_STRING("FALLBACK");
-    PRINT_ITEM(called);
-    PRINT_NEW_LINE();
-#endif
-
     ternaryfunc call_slot = Py_TYPE(called)->tp_call;
 
     if (unlikely(call_slot == NULL)) {
@@ -11666,8 +11204,9 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS10_KW_SPLIT(PyThreadState *tstate, PyObject
 
     return Nuitka_CheckFunctionResult(tstate, called, result);
 }
+/* Generated from CodeTemplateCallsPositionalMethodDescr.c.j2 */
 PyObject *CALL_METHODDESCR_WITH_SINGLE_ARG(PyThreadState *tstate, PyObject *called, PyObject *arg) {
-    PyObject *const *args = &arg; // For easier code compatibility.
+    PyObject *const *args = &arg;
     CHECK_OBJECT(called);
     CHECK_OBJECTS(args, 1);
 
@@ -11686,7 +11225,6 @@ PyObject *CALL_METHODDESCR_WITH_SINGLE_ARG(PyThreadState *tstate, PyObject *call
     PyMethodDescrObject *called_descr = (PyMethodDescrObject *)called;
     PyMethodDef *method_def = called_descr->d_method;
 
-    // Try to be fast about wrapping the arguments.
     int flags = method_def->ml_flags & ~(METH_CLASS | METH_STATIC | METH_COEXIST);
 
     if (likely(flags & METH_NOARGS)) {
@@ -11737,13 +11275,6 @@ PyObject *CALL_METHODDESCR_WITH_SINGLE_ARG(PyThreadState *tstate, PyObject *call
 #endif
     }
 
-#if 0
-    PRINT_NEW_LINE();
-    PRINT_STRING("FALLBACK");
-    PRINT_ITEM(called);
-    PRINT_NEW_LINE();
-#endif
-
     PyObject *pos_args = MAKE_TUPLE(tstate, args, 1);
 
     PyObject *result = CALL_FUNCTION(tstate, called, pos_args, NULL);
@@ -11772,7 +11303,6 @@ PyObject *CALL_METHODDESCR_WITH_ARGS2(PyThreadState *tstate, PyObject *called, P
     PyMethodDescrObject *called_descr = (PyMethodDescrObject *)called;
     PyMethodDef *method_def = called_descr->d_method;
 
-    // Try to be fast about wrapping the arguments.
     int flags = method_def->ml_flags & ~(METH_CLASS | METH_STATIC | METH_COEXIST);
 
     if (unlikely(flags & METH_NOARGS)) {
@@ -11840,13 +11370,6 @@ PyObject *CALL_METHODDESCR_WITH_ARGS2(PyThreadState *tstate, PyObject *called, P
 #endif
     }
 
-#if 0
-    PRINT_NEW_LINE();
-    PRINT_STRING("FALLBACK");
-    PRINT_ITEM(called);
-    PRINT_NEW_LINE();
-#endif
-
     PyObject *pos_args = MAKE_TUPLE(tstate, args, 2);
 
     PyObject *result = CALL_FUNCTION(tstate, called, pos_args, NULL);
@@ -11875,7 +11398,6 @@ PyObject *CALL_METHODDESCR_WITH_ARGS3(PyThreadState *tstate, PyObject *called, P
     PyMethodDescrObject *called_descr = (PyMethodDescrObject *)called;
     PyMethodDef *method_def = called_descr->d_method;
 
-    // Try to be fast about wrapping the arguments.
     int flags = method_def->ml_flags & ~(METH_CLASS | METH_STATIC | METH_COEXIST);
 
     if (unlikely(flags & METH_NOARGS)) {
@@ -11936,13 +11458,6 @@ PyObject *CALL_METHODDESCR_WITH_ARGS3(PyThreadState *tstate, PyObject *called, P
 #endif
     }
 
-#if 0
-    PRINT_NEW_LINE();
-    PRINT_STRING("FALLBACK");
-    PRINT_ITEM(called);
-    PRINT_NEW_LINE();
-#endif
-
     PyObject *pos_args = MAKE_TUPLE(tstate, args, 3);
 
     PyObject *result = CALL_FUNCTION(tstate, called, pos_args, NULL);
@@ -11971,7 +11486,6 @@ PyObject *CALL_METHODDESCR_WITH_ARGS4(PyThreadState *tstate, PyObject *called, P
     PyMethodDescrObject *called_descr = (PyMethodDescrObject *)called;
     PyMethodDef *method_def = called_descr->d_method;
 
-    // Try to be fast about wrapping the arguments.
     int flags = method_def->ml_flags & ~(METH_CLASS | METH_STATIC | METH_COEXIST);
 
     if (unlikely(flags & METH_NOARGS)) {
@@ -12032,13 +11546,6 @@ PyObject *CALL_METHODDESCR_WITH_ARGS4(PyThreadState *tstate, PyObject *called, P
 #endif
     }
 
-#if 0
-    PRINT_NEW_LINE();
-    PRINT_STRING("FALLBACK");
-    PRINT_ITEM(called);
-    PRINT_NEW_LINE();
-#endif
-
     PyObject *pos_args = MAKE_TUPLE(tstate, args, 4);
 
     PyObject *result = CALL_FUNCTION(tstate, called, pos_args, NULL);
@@ -12048,6 +11555,7 @@ PyObject *CALL_METHODDESCR_WITH_ARGS4(PyThreadState *tstate, PyObject *called, P
     return result;
 #endif
 }
+/* Generated from CodeTemplateCallsMethodPositional.c.j2 */
 PyObject *CALL_METHOD_NO_ARGS(PyThreadState *tstate, PyObject *source, PyObject *attr_name) {
     CHECK_OBJECT(source);
     CHECK_OBJECT(attr_name);
@@ -12055,7 +11563,6 @@ PyObject *CALL_METHOD_NO_ARGS(PyThreadState *tstate, PyObject *source, PyObject 
     PyTypeObject *type = Py_TYPE(source);
 
     if (hasTypeGenericGetAttr(type)) {
-        // Unfortunately this is required, although of cause rarely necessary.
         if (unlikely(type->tp_dict == NULL)) {
             if (unlikely(PyType_Ready(type) < 0)) {
                 return NULL;
@@ -12162,12 +11669,9 @@ PyObject *CALL_METHOD_NO_ARGS(PyThreadState *tstate, PyObject *source, PyObject 
     else if (type == &PyInstance_Type) {
         PyInstanceObject *source_instance = (PyInstanceObject *)source;
 
-        // The special cases have their own variant on the code generation level
-        // as we are called with constants only.
         assert(attr_name != const_str_plain___dict__);
         assert(attr_name != const_str_plain___class__);
 
-        // Try the instance dict first.
         PyObject *called_object =
             GET_STRING_DICT_VALUE((PyDictObject *)source_instance->in_dict, (PyStringObject *)attr_name);
 
@@ -12177,7 +11681,6 @@ PyObject *CALL_METHOD_NO_ARGS(PyThreadState *tstate, PyObject *source, PyObject 
             return CALL_FUNCTION_NO_ARGS(tstate, called_object);
         }
 
-        // Then check the class dictionaries.
         called_object = FIND_ATTRIBUTE_IN_CLASS(source_instance->in_class, attr_name);
 
         // Note: The "called_object" was found without taking a reference,
@@ -12209,9 +11712,6 @@ PyObject *CALL_METHOD_NO_ARGS(PyThreadState *tstate, PyObject *source, PyObject 
 
             return NULL;
         } else {
-            // Finally allow the "__getattr__" override to provide it or else
-            // it's an error.
-
             PyObject *args2[] = {source, attr_name};
 
             called_object = CALL_FUNCTION_WITH_ARGS2(tstate, source_instance->in_class->cl_getattr, args2);
@@ -12272,7 +11772,7 @@ PyObject *CALL_METHOD_NO_ARGS(PyThreadState *tstate, PyObject *source, PyObject 
     }
 }
 PyObject *CALL_METHOD_WITH_SINGLE_ARG(PyThreadState *tstate, PyObject *source, PyObject *attr_name, PyObject *arg) {
-    PyObject *const *args = &arg; // For easier code compatibility.
+    PyObject *const *args = &arg;
     CHECK_OBJECT(source);
     CHECK_OBJECT(attr_name);
 
@@ -12281,7 +11781,6 @@ PyObject *CALL_METHOD_WITH_SINGLE_ARG(PyThreadState *tstate, PyObject *source, P
     PyTypeObject *type = Py_TYPE(source);
 
     if (hasTypeGenericGetAttr(type)) {
-        // Unfortunately this is required, although of cause rarely necessary.
         if (unlikely(type->tp_dict == NULL)) {
             if (unlikely(PyType_Ready(type) < 0)) {
                 return NULL;
@@ -12388,12 +11887,9 @@ PyObject *CALL_METHOD_WITH_SINGLE_ARG(PyThreadState *tstate, PyObject *source, P
     else if (type == &PyInstance_Type) {
         PyInstanceObject *source_instance = (PyInstanceObject *)source;
 
-        // The special cases have their own variant on the code generation level
-        // as we are called with constants only.
         assert(attr_name != const_str_plain___dict__);
         assert(attr_name != const_str_plain___class__);
 
-        // Try the instance dict first.
         PyObject *called_object =
             GET_STRING_DICT_VALUE((PyDictObject *)source_instance->in_dict, (PyStringObject *)attr_name);
 
@@ -12403,7 +11899,6 @@ PyObject *CALL_METHOD_WITH_SINGLE_ARG(PyThreadState *tstate, PyObject *source, P
             return CALL_FUNCTION_WITH_SINGLE_ARG(tstate, called_object, args[0]);
         }
 
-        // Then check the class dictionaries.
         called_object = FIND_ATTRIBUTE_IN_CLASS(source_instance->in_class, attr_name);
 
         // Note: The "called_object" was found without taking a reference,
@@ -12435,9 +11930,6 @@ PyObject *CALL_METHOD_WITH_SINGLE_ARG(PyThreadState *tstate, PyObject *source, P
 
             return NULL;
         } else {
-            // Finally allow the "__getattr__" override to provide it or else
-            // it's an error.
-
             PyObject *args2[] = {source, attr_name};
 
             called_object = CALL_FUNCTION_WITH_ARGS2(tstate, source_instance->in_class->cl_getattr, args2);
@@ -12506,7 +11998,6 @@ PyObject *CALL_METHOD_WITH_ARGS2(PyThreadState *tstate, PyObject *source, PyObje
     PyTypeObject *type = Py_TYPE(source);
 
     if (hasTypeGenericGetAttr(type)) {
-        // Unfortunately this is required, although of cause rarely necessary.
         if (unlikely(type->tp_dict == NULL)) {
             if (unlikely(PyType_Ready(type) < 0)) {
                 return NULL;
@@ -12613,12 +12104,9 @@ PyObject *CALL_METHOD_WITH_ARGS2(PyThreadState *tstate, PyObject *source, PyObje
     else if (type == &PyInstance_Type) {
         PyInstanceObject *source_instance = (PyInstanceObject *)source;
 
-        // The special cases have their own variant on the code generation level
-        // as we are called with constants only.
         assert(attr_name != const_str_plain___dict__);
         assert(attr_name != const_str_plain___class__);
 
-        // Try the instance dict first.
         PyObject *called_object =
             GET_STRING_DICT_VALUE((PyDictObject *)source_instance->in_dict, (PyStringObject *)attr_name);
 
@@ -12628,7 +12116,6 @@ PyObject *CALL_METHOD_WITH_ARGS2(PyThreadState *tstate, PyObject *source, PyObje
             return CALL_FUNCTION_WITH_ARGS2(tstate, called_object, args);
         }
 
-        // Then check the class dictionaries.
         called_object = FIND_ATTRIBUTE_IN_CLASS(source_instance->in_class, attr_name);
 
         // Note: The "called_object" was found without taking a reference,
@@ -12660,9 +12147,6 @@ PyObject *CALL_METHOD_WITH_ARGS2(PyThreadState *tstate, PyObject *source, PyObje
 
             return NULL;
         } else {
-            // Finally allow the "__getattr__" override to provide it or else
-            // it's an error.
-
             PyObject *args2[] = {source, attr_name};
 
             called_object = CALL_FUNCTION_WITH_ARGS2(tstate, source_instance->in_class->cl_getattr, args2);
@@ -12731,7 +12215,6 @@ PyObject *CALL_METHOD_WITH_ARGS3(PyThreadState *tstate, PyObject *source, PyObje
     PyTypeObject *type = Py_TYPE(source);
 
     if (hasTypeGenericGetAttr(type)) {
-        // Unfortunately this is required, although of cause rarely necessary.
         if (unlikely(type->tp_dict == NULL)) {
             if (unlikely(PyType_Ready(type) < 0)) {
                 return NULL;
@@ -12838,12 +12321,9 @@ PyObject *CALL_METHOD_WITH_ARGS3(PyThreadState *tstate, PyObject *source, PyObje
     else if (type == &PyInstance_Type) {
         PyInstanceObject *source_instance = (PyInstanceObject *)source;
 
-        // The special cases have their own variant on the code generation level
-        // as we are called with constants only.
         assert(attr_name != const_str_plain___dict__);
         assert(attr_name != const_str_plain___class__);
 
-        // Try the instance dict first.
         PyObject *called_object =
             GET_STRING_DICT_VALUE((PyDictObject *)source_instance->in_dict, (PyStringObject *)attr_name);
 
@@ -12853,7 +12333,6 @@ PyObject *CALL_METHOD_WITH_ARGS3(PyThreadState *tstate, PyObject *source, PyObje
             return CALL_FUNCTION_WITH_ARGS3(tstate, called_object, args);
         }
 
-        // Then check the class dictionaries.
         called_object = FIND_ATTRIBUTE_IN_CLASS(source_instance->in_class, attr_name);
 
         // Note: The "called_object" was found without taking a reference,
@@ -12885,9 +12364,6 @@ PyObject *CALL_METHOD_WITH_ARGS3(PyThreadState *tstate, PyObject *source, PyObje
 
             return NULL;
         } else {
-            // Finally allow the "__getattr__" override to provide it or else
-            // it's an error.
-
             PyObject *args2[] = {source, attr_name};
 
             called_object = CALL_FUNCTION_WITH_ARGS2(tstate, source_instance->in_class->cl_getattr, args2);
@@ -12956,7 +12432,6 @@ PyObject *CALL_METHOD_WITH_ARGS4(PyThreadState *tstate, PyObject *source, PyObje
     PyTypeObject *type = Py_TYPE(source);
 
     if (hasTypeGenericGetAttr(type)) {
-        // Unfortunately this is required, although of cause rarely necessary.
         if (unlikely(type->tp_dict == NULL)) {
             if (unlikely(PyType_Ready(type) < 0)) {
                 return NULL;
@@ -13063,12 +12538,9 @@ PyObject *CALL_METHOD_WITH_ARGS4(PyThreadState *tstate, PyObject *source, PyObje
     else if (type == &PyInstance_Type) {
         PyInstanceObject *source_instance = (PyInstanceObject *)source;
 
-        // The special cases have their own variant on the code generation level
-        // as we are called with constants only.
         assert(attr_name != const_str_plain___dict__);
         assert(attr_name != const_str_plain___class__);
 
-        // Try the instance dict first.
         PyObject *called_object =
             GET_STRING_DICT_VALUE((PyDictObject *)source_instance->in_dict, (PyStringObject *)attr_name);
 
@@ -13078,7 +12550,6 @@ PyObject *CALL_METHOD_WITH_ARGS4(PyThreadState *tstate, PyObject *source, PyObje
             return CALL_FUNCTION_WITH_ARGS4(tstate, called_object, args);
         }
 
-        // Then check the class dictionaries.
         called_object = FIND_ATTRIBUTE_IN_CLASS(source_instance->in_class, attr_name);
 
         // Note: The "called_object" was found without taking a reference,
@@ -13110,9 +12581,6 @@ PyObject *CALL_METHOD_WITH_ARGS4(PyThreadState *tstate, PyObject *source, PyObje
 
             return NULL;
         } else {
-            // Finally allow the "__getattr__" override to provide it or else
-            // it's an error.
-
             PyObject *args2[] = {source, attr_name};
 
             called_object = CALL_FUNCTION_WITH_ARGS2(tstate, source_instance->in_class->cl_getattr, args2);
@@ -13181,7 +12649,6 @@ PyObject *CALL_METHOD_WITH_ARGS5(PyThreadState *tstate, PyObject *source, PyObje
     PyTypeObject *type = Py_TYPE(source);
 
     if (hasTypeGenericGetAttr(type)) {
-        // Unfortunately this is required, although of cause rarely necessary.
         if (unlikely(type->tp_dict == NULL)) {
             if (unlikely(PyType_Ready(type) < 0)) {
                 return NULL;
@@ -13288,12 +12755,9 @@ PyObject *CALL_METHOD_WITH_ARGS5(PyThreadState *tstate, PyObject *source, PyObje
     else if (type == &PyInstance_Type) {
         PyInstanceObject *source_instance = (PyInstanceObject *)source;
 
-        // The special cases have their own variant on the code generation level
-        // as we are called with constants only.
         assert(attr_name != const_str_plain___dict__);
         assert(attr_name != const_str_plain___class__);
 
-        // Try the instance dict first.
         PyObject *called_object =
             GET_STRING_DICT_VALUE((PyDictObject *)source_instance->in_dict, (PyStringObject *)attr_name);
 
@@ -13303,7 +12767,6 @@ PyObject *CALL_METHOD_WITH_ARGS5(PyThreadState *tstate, PyObject *source, PyObje
             return CALL_FUNCTION_WITH_ARGS5(tstate, called_object, args);
         }
 
-        // Then check the class dictionaries.
         called_object = FIND_ATTRIBUTE_IN_CLASS(source_instance->in_class, attr_name);
 
         // Note: The "called_object" was found without taking a reference,
@@ -13335,9 +12798,6 @@ PyObject *CALL_METHOD_WITH_ARGS5(PyThreadState *tstate, PyObject *source, PyObje
 
             return NULL;
         } else {
-            // Finally allow the "__getattr__" override to provide it or else
-            // it's an error.
-
             PyObject *args2[] = {source, attr_name};
 
             called_object = CALL_FUNCTION_WITH_ARGS2(tstate, source_instance->in_class->cl_getattr, args2);
@@ -13406,7 +12866,6 @@ PyObject *CALL_METHOD_WITH_ARGS6(PyThreadState *tstate, PyObject *source, PyObje
     PyTypeObject *type = Py_TYPE(source);
 
     if (hasTypeGenericGetAttr(type)) {
-        // Unfortunately this is required, although of cause rarely necessary.
         if (unlikely(type->tp_dict == NULL)) {
             if (unlikely(PyType_Ready(type) < 0)) {
                 return NULL;
@@ -13513,12 +12972,9 @@ PyObject *CALL_METHOD_WITH_ARGS6(PyThreadState *tstate, PyObject *source, PyObje
     else if (type == &PyInstance_Type) {
         PyInstanceObject *source_instance = (PyInstanceObject *)source;
 
-        // The special cases have their own variant on the code generation level
-        // as we are called with constants only.
         assert(attr_name != const_str_plain___dict__);
         assert(attr_name != const_str_plain___class__);
 
-        // Try the instance dict first.
         PyObject *called_object =
             GET_STRING_DICT_VALUE((PyDictObject *)source_instance->in_dict, (PyStringObject *)attr_name);
 
@@ -13528,7 +12984,6 @@ PyObject *CALL_METHOD_WITH_ARGS6(PyThreadState *tstate, PyObject *source, PyObje
             return CALL_FUNCTION_WITH_ARGS6(tstate, called_object, args);
         }
 
-        // Then check the class dictionaries.
         called_object = FIND_ATTRIBUTE_IN_CLASS(source_instance->in_class, attr_name);
 
         // Note: The "called_object" was found without taking a reference,
@@ -13560,9 +13015,6 @@ PyObject *CALL_METHOD_WITH_ARGS6(PyThreadState *tstate, PyObject *source, PyObje
 
             return NULL;
         } else {
-            // Finally allow the "__getattr__" override to provide it or else
-            // it's an error.
-
             PyObject *args2[] = {source, attr_name};
 
             called_object = CALL_FUNCTION_WITH_ARGS2(tstate, source_instance->in_class->cl_getattr, args2);
@@ -13631,7 +13083,6 @@ PyObject *CALL_METHOD_WITH_ARGS7(PyThreadState *tstate, PyObject *source, PyObje
     PyTypeObject *type = Py_TYPE(source);
 
     if (hasTypeGenericGetAttr(type)) {
-        // Unfortunately this is required, although of cause rarely necessary.
         if (unlikely(type->tp_dict == NULL)) {
             if (unlikely(PyType_Ready(type) < 0)) {
                 return NULL;
@@ -13738,12 +13189,9 @@ PyObject *CALL_METHOD_WITH_ARGS7(PyThreadState *tstate, PyObject *source, PyObje
     else if (type == &PyInstance_Type) {
         PyInstanceObject *source_instance = (PyInstanceObject *)source;
 
-        // The special cases have their own variant on the code generation level
-        // as we are called with constants only.
         assert(attr_name != const_str_plain___dict__);
         assert(attr_name != const_str_plain___class__);
 
-        // Try the instance dict first.
         PyObject *called_object =
             GET_STRING_DICT_VALUE((PyDictObject *)source_instance->in_dict, (PyStringObject *)attr_name);
 
@@ -13753,7 +13201,6 @@ PyObject *CALL_METHOD_WITH_ARGS7(PyThreadState *tstate, PyObject *source, PyObje
             return CALL_FUNCTION_WITH_ARGS7(tstate, called_object, args);
         }
 
-        // Then check the class dictionaries.
         called_object = FIND_ATTRIBUTE_IN_CLASS(source_instance->in_class, attr_name);
 
         // Note: The "called_object" was found without taking a reference,
@@ -13785,9 +13232,6 @@ PyObject *CALL_METHOD_WITH_ARGS7(PyThreadState *tstate, PyObject *source, PyObje
 
             return NULL;
         } else {
-            // Finally allow the "__getattr__" override to provide it or else
-            // it's an error.
-
             PyObject *args2[] = {source, attr_name};
 
             called_object = CALL_FUNCTION_WITH_ARGS2(tstate, source_instance->in_class->cl_getattr, args2);
@@ -13856,7 +13300,6 @@ PyObject *CALL_METHOD_WITH_ARGS8(PyThreadState *tstate, PyObject *source, PyObje
     PyTypeObject *type = Py_TYPE(source);
 
     if (hasTypeGenericGetAttr(type)) {
-        // Unfortunately this is required, although of cause rarely necessary.
         if (unlikely(type->tp_dict == NULL)) {
             if (unlikely(PyType_Ready(type) < 0)) {
                 return NULL;
@@ -13963,12 +13406,9 @@ PyObject *CALL_METHOD_WITH_ARGS8(PyThreadState *tstate, PyObject *source, PyObje
     else if (type == &PyInstance_Type) {
         PyInstanceObject *source_instance = (PyInstanceObject *)source;
 
-        // The special cases have their own variant on the code generation level
-        // as we are called with constants only.
         assert(attr_name != const_str_plain___dict__);
         assert(attr_name != const_str_plain___class__);
 
-        // Try the instance dict first.
         PyObject *called_object =
             GET_STRING_DICT_VALUE((PyDictObject *)source_instance->in_dict, (PyStringObject *)attr_name);
 
@@ -13978,7 +13418,6 @@ PyObject *CALL_METHOD_WITH_ARGS8(PyThreadState *tstate, PyObject *source, PyObje
             return CALL_FUNCTION_WITH_ARGS8(tstate, called_object, args);
         }
 
-        // Then check the class dictionaries.
         called_object = FIND_ATTRIBUTE_IN_CLASS(source_instance->in_class, attr_name);
 
         // Note: The "called_object" was found without taking a reference,
@@ -14010,9 +13449,6 @@ PyObject *CALL_METHOD_WITH_ARGS8(PyThreadState *tstate, PyObject *source, PyObje
 
             return NULL;
         } else {
-            // Finally allow the "__getattr__" override to provide it or else
-            // it's an error.
-
             PyObject *args2[] = {source, attr_name};
 
             called_object = CALL_FUNCTION_WITH_ARGS2(tstate, source_instance->in_class->cl_getattr, args2);
@@ -14081,7 +13517,6 @@ PyObject *CALL_METHOD_WITH_ARGS9(PyThreadState *tstate, PyObject *source, PyObje
     PyTypeObject *type = Py_TYPE(source);
 
     if (hasTypeGenericGetAttr(type)) {
-        // Unfortunately this is required, although of cause rarely necessary.
         if (unlikely(type->tp_dict == NULL)) {
             if (unlikely(PyType_Ready(type) < 0)) {
                 return NULL;
@@ -14188,12 +13623,9 @@ PyObject *CALL_METHOD_WITH_ARGS9(PyThreadState *tstate, PyObject *source, PyObje
     else if (type == &PyInstance_Type) {
         PyInstanceObject *source_instance = (PyInstanceObject *)source;
 
-        // The special cases have their own variant on the code generation level
-        // as we are called with constants only.
         assert(attr_name != const_str_plain___dict__);
         assert(attr_name != const_str_plain___class__);
 
-        // Try the instance dict first.
         PyObject *called_object =
             GET_STRING_DICT_VALUE((PyDictObject *)source_instance->in_dict, (PyStringObject *)attr_name);
 
@@ -14203,7 +13635,6 @@ PyObject *CALL_METHOD_WITH_ARGS9(PyThreadState *tstate, PyObject *source, PyObje
             return CALL_FUNCTION_WITH_ARGS9(tstate, called_object, args);
         }
 
-        // Then check the class dictionaries.
         called_object = FIND_ATTRIBUTE_IN_CLASS(source_instance->in_class, attr_name);
 
         // Note: The "called_object" was found without taking a reference,
@@ -14235,9 +13666,6 @@ PyObject *CALL_METHOD_WITH_ARGS9(PyThreadState *tstate, PyObject *source, PyObje
 
             return NULL;
         } else {
-            // Finally allow the "__getattr__" override to provide it or else
-            // it's an error.
-
             PyObject *args2[] = {source, attr_name};
 
             called_object = CALL_FUNCTION_WITH_ARGS2(tstate, source_instance->in_class->cl_getattr, args2);
@@ -14306,7 +13734,6 @@ PyObject *CALL_METHOD_WITH_ARGS10(PyThreadState *tstate, PyObject *source, PyObj
     PyTypeObject *type = Py_TYPE(source);
 
     if (hasTypeGenericGetAttr(type)) {
-        // Unfortunately this is required, although of cause rarely necessary.
         if (unlikely(type->tp_dict == NULL)) {
             if (unlikely(PyType_Ready(type) < 0)) {
                 return NULL;
@@ -14413,12 +13840,9 @@ PyObject *CALL_METHOD_WITH_ARGS10(PyThreadState *tstate, PyObject *source, PyObj
     else if (type == &PyInstance_Type) {
         PyInstanceObject *source_instance = (PyInstanceObject *)source;
 
-        // The special cases have their own variant on the code generation level
-        // as we are called with constants only.
         assert(attr_name != const_str_plain___dict__);
         assert(attr_name != const_str_plain___class__);
 
-        // Try the instance dict first.
         PyObject *called_object =
             GET_STRING_DICT_VALUE((PyDictObject *)source_instance->in_dict, (PyStringObject *)attr_name);
 
@@ -14428,7 +13852,6 @@ PyObject *CALL_METHOD_WITH_ARGS10(PyThreadState *tstate, PyObject *source, PyObj
             return CALL_FUNCTION_WITH_ARGS10(tstate, called_object, args);
         }
 
-        // Then check the class dictionaries.
         called_object = FIND_ATTRIBUTE_IN_CLASS(source_instance->in_class, attr_name);
 
         // Note: The "called_object" was found without taking a reference,
@@ -14460,9 +13883,6 @@ PyObject *CALL_METHOD_WITH_ARGS10(PyThreadState *tstate, PyObject *source, PyObj
 
             return NULL;
         } else {
-            // Finally allow the "__getattr__" override to provide it or else
-            // it's an error.
-
             PyObject *args2[] = {source, attr_name};
 
             called_object = CALL_FUNCTION_WITH_ARGS2(tstate, source_instance->in_class->cl_getattr, args2);

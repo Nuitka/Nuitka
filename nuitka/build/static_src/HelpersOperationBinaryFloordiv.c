@@ -13,7 +13,6 @@
 /* C helpers for type specialized "//" (FLOORDIV) operations */
 
 #if PYTHON_VERSION < 0x300
-/* Code referring to "INT" corresponds to Python2 'int' and "INT" to Python2 'int'. */
 static PyObject *_BINARY_OPERATION_FLOORDIV_OBJECT_INT_INT(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyInt_CheckExact(operand1));
@@ -22,7 +21,6 @@ static PyObject *_BINARY_OPERATION_FLOORDIV_OBJECT_INT_INT(PyObject *operand1, P
 
     PyObject *result;
 
-    // Not every code path will make use of all possible results.
 #if defined(_MSC_VER)
 #pragma warning(push)
 #pragma warning(disable : 4101)
@@ -49,12 +47,6 @@ static PyObject *_BINARY_OPERATION_FLOORDIV_OBJECT_INT_INT(PyObject *operand1, P
         SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_ZeroDivisionError, "integer division or modulo by zero");
         goto exit_result_exception;
     }
-
-    /* TODO: Isn't this a very specific value only, of which we could
-     * hardcode the constant result. Not sure how well the C compiler
-     * optimizes UNARY_NEG_WOULD_OVERFLOW to this, but dividing by
-     * -1 has to be rare anyway.
-     */
 
     if (likely(b != -1 || !UNARY_NEG_WOULD_OVERFLOW(a))) {
         long a_div_b = a / b;
@@ -104,7 +96,6 @@ PyObject *BINARY_OPERATION_FLOORDIV_OBJECT_INT_INT(PyObject *operand1, PyObject 
 #endif
 
 #if PYTHON_VERSION < 0x300
-/* Code referring to "OBJECT" corresponds to any Python object and "INT" to Python2 'int'. */
 static HEDLEY_NEVER_INLINE PyObject *__BINARY_OPERATION_FLOORDIV_OBJECT_OBJECT_INT(PyObject *operand1,
                                                                                    PyObject *operand2) {
     PyTypeObject *type1 = Py_TYPE(operand1);
@@ -124,8 +115,6 @@ static HEDLEY_NEVER_INLINE PyObject *__BINARY_OPERATION_FLOORDIV_OBJECT_OBJECT_I
     binaryfunc slot2 = NULL;
 
     if (!(type1 == &PyInt_Type)) {
-        // Different types, need to consider second value slot.
-
         slot2 = PyInt_Type.tp_as_number->nb_floor_divide;
 
         if (slot1 == slot2) {
@@ -248,9 +237,6 @@ static PyObject *_BINARY_OPERATION_FLOORDIV_OBJECT_OBJECT_INT(PyObject *operand1
     if (type1 == &PyInt_Type) {
         PyObject *result;
 
-        // return _BINARY_OPERATION_FLOORDIV_OBJECT_INT_INT(operand1, operand2);
-
-        // Not every code path will make use of all possible results.
 #if defined(_MSC_VER)
 #pragma warning(push)
 #pragma warning(disable : 4101)
@@ -277,12 +263,6 @@ static PyObject *_BINARY_OPERATION_FLOORDIV_OBJECT_OBJECT_INT(PyObject *operand1
             SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_ZeroDivisionError, "integer division or modulo by zero");
             goto exit_result_exception;
         }
-
-        /* TODO: Isn't this a very specific value only, of which we could
-         * hardcode the constant result. Not sure how well the C compiler
-         * optimizes UNARY_NEG_WOULD_OVERFLOW to this, but dividing by
-         * -1 has to be rare anyway.
-         */
 
         if (likely(b != -1 || !UNARY_NEG_WOULD_OVERFLOW(a))) {
             long a_div_b = a / b;
@@ -335,7 +315,6 @@ PyObject *BINARY_OPERATION_FLOORDIV_OBJECT_OBJECT_INT(PyObject *operand1, PyObje
 #endif
 
 #if PYTHON_VERSION < 0x300
-/* Code referring to "INT" corresponds to Python2 'int' and "OBJECT" to any Python object. */
 static HEDLEY_NEVER_INLINE PyObject *__BINARY_OPERATION_FLOORDIV_OBJECT_INT_OBJECT(PyObject *operand1,
                                                                                    PyObject *operand2) {
     PyTypeObject *type2 = Py_TYPE(operand2);
@@ -354,8 +333,6 @@ static HEDLEY_NEVER_INLINE PyObject *__BINARY_OPERATION_FLOORDIV_OBJECT_INT_OBJE
     binaryfunc slot2 = NULL;
 
     if (!(&PyInt_Type == type2)) {
-        // Different types, need to consider second value slot.
-
         slot2 =
             (type2->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type2)) ? type2->tp_as_number->nb_floor_divide : NULL;
 
@@ -493,9 +470,6 @@ static PyObject *_BINARY_OPERATION_FLOORDIV_OBJECT_INT_OBJECT(PyObject *operand1
     if (&PyInt_Type == type2) {
         PyObject *result;
 
-        // return _BINARY_OPERATION_FLOORDIV_OBJECT_INT_INT(operand1, operand2);
-
-        // Not every code path will make use of all possible results.
 #if defined(_MSC_VER)
 #pragma warning(push)
 #pragma warning(disable : 4101)
@@ -522,12 +496,6 @@ static PyObject *_BINARY_OPERATION_FLOORDIV_OBJECT_INT_OBJECT(PyObject *operand1
             SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_ZeroDivisionError, "integer division or modulo by zero");
             goto exit_result_exception;
         }
-
-        /* TODO: Isn't this a very specific value only, of which we could
-         * hardcode the constant result. Not sure how well the C compiler
-         * optimizes UNARY_NEG_WOULD_OVERFLOW to this, but dividing by
-         * -1 has to be rare anyway.
-         */
 
         if (likely(b != -1 || !UNARY_NEG_WOULD_OVERFLOW(a))) {
             long a_div_b = a / b;
@@ -579,7 +547,6 @@ PyObject *BINARY_OPERATION_FLOORDIV_OBJECT_INT_OBJECT(PyObject *operand1, PyObje
 }
 #endif
 
-/* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "LONG" to Python2 'long', Python3 'int'. */
 static PyObject *_BINARY_OPERATION_FLOORDIV_OBJECT_LONG_LONG(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyLong_CheckExact(operand1));
@@ -588,7 +555,6 @@ static PyObject *_BINARY_OPERATION_FLOORDIV_OBJECT_LONG_LONG(PyObject *operand1,
 
     PyObject *result;
 
-    // Not every code path will make use of all possible results.
 #if defined(_MSC_VER)
 #pragma warning(push)
 #pragma warning(disable : 4101)
@@ -623,7 +589,6 @@ PyObject *BINARY_OPERATION_FLOORDIV_OBJECT_LONG_LONG(PyObject *operand1, PyObjec
     return _BINARY_OPERATION_FLOORDIV_OBJECT_LONG_LONG(operand1, operand2);
 }
 
-/* Code referring to "OBJECT" corresponds to any Python object and "LONG" to Python2 'long', Python3 'int'. */
 static HEDLEY_NEVER_INLINE PyObject *__BINARY_OPERATION_FLOORDIV_OBJECT_OBJECT_LONG(PyObject *operand1,
                                                                                     PyObject *operand2) {
     PyTypeObject *type1 = Py_TYPE(operand1);
@@ -643,8 +608,6 @@ static HEDLEY_NEVER_INLINE PyObject *__BINARY_OPERATION_FLOORDIV_OBJECT_OBJECT_L
     binaryfunc slot2 = NULL;
 
     if (!(type1 == &PyLong_Type)) {
-        // Different types, need to consider second value slot.
-
         slot2 = PyLong_Type.tp_as_number->nb_floor_divide;
 
         if (slot1 == slot2) {
@@ -771,9 +734,6 @@ static PyObject *_BINARY_OPERATION_FLOORDIV_OBJECT_OBJECT_LONG(PyObject *operand
     if (type1 == &PyLong_Type) {
         PyObject *result;
 
-        // return _BINARY_OPERATION_FLOORDIV_OBJECT_LONG_LONG(operand1, operand2);
-
-        // Not every code path will make use of all possible results.
 #if defined(_MSC_VER)
 #pragma warning(push)
 #pragma warning(disable : 4101)
@@ -811,7 +771,6 @@ PyObject *BINARY_OPERATION_FLOORDIV_OBJECT_OBJECT_LONG(PyObject *operand1, PyObj
     return _BINARY_OPERATION_FLOORDIV_OBJECT_OBJECT_LONG(operand1, operand2);
 }
 
-/* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "OBJECT" to any Python object. */
 static HEDLEY_NEVER_INLINE PyObject *__BINARY_OPERATION_FLOORDIV_OBJECT_LONG_OBJECT(PyObject *operand1,
                                                                                     PyObject *operand2) {
     PyTypeObject *type2 = Py_TYPE(operand2);
@@ -830,8 +789,6 @@ static HEDLEY_NEVER_INLINE PyObject *__BINARY_OPERATION_FLOORDIV_OBJECT_LONG_OBJ
     binaryfunc slot2 = NULL;
 
     if (!(&PyLong_Type == type2)) {
-        // Different types, need to consider second value slot.
-
         slot2 =
             (type2->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type2)) ? type2->tp_as_number->nb_floor_divide : NULL;
 
@@ -973,9 +930,6 @@ static PyObject *_BINARY_OPERATION_FLOORDIV_OBJECT_LONG_OBJECT(PyObject *operand
     if (&PyLong_Type == type2) {
         PyObject *result;
 
-        // return _BINARY_OPERATION_FLOORDIV_OBJECT_LONG_LONG(operand1, operand2);
-
-        // Not every code path will make use of all possible results.
 #if defined(_MSC_VER)
 #pragma warning(push)
 #pragma warning(disable : 4101)
@@ -1013,7 +967,6 @@ PyObject *BINARY_OPERATION_FLOORDIV_OBJECT_LONG_OBJECT(PyObject *operand1, PyObj
     return _BINARY_OPERATION_FLOORDIV_OBJECT_LONG_OBJECT(operand1, operand2);
 }
 
-/* Code referring to "FLOAT" corresponds to Python 'float' and "FLOAT" to Python 'float'. */
 static PyObject *_BINARY_OPERATION_FLOORDIV_OBJECT_FLOAT_FLOAT(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyFloat_CheckExact(operand1));
@@ -1026,7 +979,6 @@ static PyObject *_BINARY_OPERATION_FLOORDIV_OBJECT_FLOAT_FLOAT(PyObject *operand
 #pragma warning(push)
 #pragma warning(disable : 4101)
 #endif
-    // Not every code path will make use of all possible results.
     NUITKA_MAY_BE_UNUSED PyObject *obj_result;
     NUITKA_MAY_BE_UNUSED long clong_result;
     NUITKA_MAY_BE_UNUSED double cfloat_result;
@@ -1088,7 +1040,6 @@ PyObject *BINARY_OPERATION_FLOORDIV_OBJECT_FLOAT_FLOAT(PyObject *operand1, PyObj
     return _BINARY_OPERATION_FLOORDIV_OBJECT_FLOAT_FLOAT(operand1, operand2);
 }
 
-/* Code referring to "OBJECT" corresponds to any Python object and "FLOAT" to Python 'float'. */
 static HEDLEY_NEVER_INLINE PyObject *__BINARY_OPERATION_FLOORDIV_OBJECT_OBJECT_FLOAT(PyObject *operand1,
                                                                                      PyObject *operand2) {
     PyTypeObject *type1 = Py_TYPE(operand1);
@@ -1108,8 +1059,6 @@ static HEDLEY_NEVER_INLINE PyObject *__BINARY_OPERATION_FLOORDIV_OBJECT_OBJECT_F
     binaryfunc slot2 = NULL;
 
     if (!(type1 == &PyFloat_Type)) {
-        // Different types, need to consider second value slot.
-
         slot2 = PyFloat_Type.tp_as_number->nb_floor_divide;
 
         if (slot1 == slot2) {
@@ -1232,13 +1181,10 @@ static PyObject *_BINARY_OPERATION_FLOORDIV_OBJECT_OBJECT_FLOAT(PyObject *operan
     if (type1 == &PyFloat_Type) {
         PyObject *result;
 
-        // return _BINARY_OPERATION_FLOORDIV_OBJECT_FLOAT_FLOAT(operand1, operand2);
-
 #if defined(_MSC_VER)
 #pragma warning(push)
 #pragma warning(disable : 4101)
 #endif
-        // Not every code path will make use of all possible results.
         NUITKA_MAY_BE_UNUSED PyObject *obj_result;
         NUITKA_MAY_BE_UNUSED long clong_result;
         NUITKA_MAY_BE_UNUSED double cfloat_result;
@@ -1303,7 +1249,6 @@ PyObject *BINARY_OPERATION_FLOORDIV_OBJECT_OBJECT_FLOAT(PyObject *operand1, PyOb
     return _BINARY_OPERATION_FLOORDIV_OBJECT_OBJECT_FLOAT(operand1, operand2);
 }
 
-/* Code referring to "FLOAT" corresponds to Python 'float' and "OBJECT" to any Python object. */
 static HEDLEY_NEVER_INLINE PyObject *__BINARY_OPERATION_FLOORDIV_OBJECT_FLOAT_OBJECT(PyObject *operand1,
                                                                                      PyObject *operand2) {
     PyTypeObject *type2 = Py_TYPE(operand2);
@@ -1322,8 +1267,6 @@ static HEDLEY_NEVER_INLINE PyObject *__BINARY_OPERATION_FLOORDIV_OBJECT_FLOAT_OB
     binaryfunc slot2 = NULL;
 
     if (!(&PyFloat_Type == type2)) {
-        // Different types, need to consider second value slot.
-
         slot2 =
             (type2->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type2)) ? type2->tp_as_number->nb_floor_divide : NULL;
 
@@ -1461,13 +1404,10 @@ static PyObject *_BINARY_OPERATION_FLOORDIV_OBJECT_FLOAT_OBJECT(PyObject *operan
     if (&PyFloat_Type == type2) {
         PyObject *result;
 
-        // return _BINARY_OPERATION_FLOORDIV_OBJECT_FLOAT_FLOAT(operand1, operand2);
-
 #if defined(_MSC_VER)
 #pragma warning(push)
 #pragma warning(disable : 4101)
 #endif
-        // Not every code path will make use of all possible results.
         NUITKA_MAY_BE_UNUSED PyObject *obj_result;
         NUITKA_MAY_BE_UNUSED long clong_result;
         NUITKA_MAY_BE_UNUSED double cfloat_result;
@@ -1532,7 +1472,6 @@ PyObject *BINARY_OPERATION_FLOORDIV_OBJECT_FLOAT_OBJECT(PyObject *operand1, PyOb
     return _BINARY_OPERATION_FLOORDIV_OBJECT_FLOAT_OBJECT(operand1, operand2);
 }
 
-/* Code referring to "FLOAT" corresponds to Python 'float' and "LONG" to Python2 'long', Python3 'int'. */
 static PyObject *_BINARY_OPERATION_FLOORDIV_OBJECT_FLOAT_LONG(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyFloat_CheckExact(operand1));
@@ -1550,7 +1489,6 @@ static PyObject *_BINARY_OPERATION_FLOORDIV_OBJECT_FLOAT_LONG(PyObject *operand1
 #endif
 
     binaryfunc slot1 = PyFloat_Type.tp_as_number->nb_floor_divide;
-    // Slot2 ignored on purpose, type1 takes precedence.
 
     if (slot1 != NULL) {
         PyObject *x = slot1(operand1, operand2);
@@ -1562,8 +1500,6 @@ static PyObject *_BINARY_OPERATION_FLOORDIV_OBJECT_FLOAT_LONG(PyObject *operand1
 
         Py_DECREF_IMMORTAL(x);
     }
-
-    // Statically recognized that coercion is not possible with these types
 
 #if PYTHON_VERSION < 0x300
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for //: 'float' and 'long'");
@@ -1583,7 +1519,6 @@ PyObject *BINARY_OPERATION_FLOORDIV_OBJECT_FLOAT_LONG(PyObject *operand1, PyObje
     return _BINARY_OPERATION_FLOORDIV_OBJECT_FLOAT_LONG(operand1, operand2);
 }
 
-/* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "FLOAT" to Python 'float'. */
 static PyObject *_BINARY_OPERATION_FLOORDIV_OBJECT_LONG_FLOAT(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyLong_CheckExact(operand1));
@@ -1600,12 +1535,9 @@ static PyObject *_BINARY_OPERATION_FLOORDIV_OBJECT_LONG_FLOAT(PyObject *operand1
 #pragma warning(pop)
 #endif
 
-    // Slot1 ignored on purpose, type2 takes precedence.
     binaryfunc slot2 = NULL;
 
     if (!(0)) {
-        // Different types, need to consider second value slot.
-
         slot2 = PyFloat_Type.tp_as_number->nb_floor_divide;
     }
 
@@ -1619,8 +1551,6 @@ static PyObject *_BINARY_OPERATION_FLOORDIV_OBJECT_LONG_FLOAT(PyObject *operand1
 
         Py_DECREF_IMMORTAL(x);
     }
-
-    // Statically recognized that coercion is not possible with these types
 
 #if PYTHON_VERSION < 0x300
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for //: 'long' and 'float'");
@@ -1641,7 +1571,6 @@ PyObject *BINARY_OPERATION_FLOORDIV_OBJECT_LONG_FLOAT(PyObject *operand1, PyObje
 }
 
 #if PYTHON_VERSION < 0x300
-/* Code referring to "FLOAT" corresponds to Python 'float' and "INT" to Python2 'int'. */
 static PyObject *_BINARY_OPERATION_FLOORDIV_OBJECT_FLOAT_INT(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyFloat_CheckExact(operand1));
@@ -1659,7 +1588,6 @@ static PyObject *_BINARY_OPERATION_FLOORDIV_OBJECT_FLOAT_INT(PyObject *operand1,
 #endif
 
     binaryfunc slot1 = PyFloat_Type.tp_as_number->nb_floor_divide;
-    // Slot2 ignored on purpose, type1 takes precedence.
 
     if (slot1 != NULL) {
         PyObject *x = slot1(operand1, operand2);
@@ -1671,8 +1599,6 @@ static PyObject *_BINARY_OPERATION_FLOORDIV_OBJECT_FLOAT_INT(PyObject *operand1,
 
         Py_DECREF_IMMORTAL(x);
     }
-
-    // Statically recognized that coercion is not possible with these types
 
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for //: 'float' and 'int'");
     goto exit_binary_exception;
@@ -1690,7 +1616,6 @@ PyObject *BINARY_OPERATION_FLOORDIV_OBJECT_FLOAT_INT(PyObject *operand1, PyObjec
 #endif
 
 #if PYTHON_VERSION < 0x300
-/* Code referring to "INT" corresponds to Python2 'int' and "FLOAT" to Python 'float'. */
 static PyObject *_BINARY_OPERATION_FLOORDIV_OBJECT_INT_FLOAT(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyInt_CheckExact(operand1));
@@ -1707,12 +1632,9 @@ static PyObject *_BINARY_OPERATION_FLOORDIV_OBJECT_INT_FLOAT(PyObject *operand1,
 #pragma warning(pop)
 #endif
 
-    // Slot1 ignored on purpose, type2 takes precedence.
     binaryfunc slot2 = NULL;
 
     if (!(0)) {
-        // Different types, need to consider second value slot.
-
         slot2 = PyFloat_Type.tp_as_number->nb_floor_divide;
     }
 
@@ -1726,8 +1648,6 @@ static PyObject *_BINARY_OPERATION_FLOORDIV_OBJECT_INT_FLOAT(PyObject *operand1,
 
         Py_DECREF_IMMORTAL(x);
     }
-
-    // Statically recognized that coercion is not possible with these types
 
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for //: 'int' and 'float'");
     goto exit_binary_exception;
@@ -1745,7 +1665,6 @@ PyObject *BINARY_OPERATION_FLOORDIV_OBJECT_INT_FLOAT(PyObject *operand1, PyObjec
 #endif
 
 #if PYTHON_VERSION < 0x300
-/* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "INT" to Python2 'int'. */
 static PyObject *_BINARY_OPERATION_FLOORDIV_OBJECT_LONG_INT(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyLong_CheckExact(operand1));
@@ -1763,7 +1682,6 @@ static PyObject *_BINARY_OPERATION_FLOORDIV_OBJECT_LONG_INT(PyObject *operand1, 
 #endif
 
     binaryfunc slot1 = PyLong_Type.tp_as_number->nb_floor_divide;
-    // Slot2 ignored on purpose, type1 takes precedence.
 
     if (slot1 != NULL) {
         PyObject *x = slot1(operand1, operand2);
@@ -1775,8 +1693,6 @@ static PyObject *_BINARY_OPERATION_FLOORDIV_OBJECT_LONG_INT(PyObject *operand1, 
 
         Py_DECREF_IMMORTAL(x);
     }
-
-    // Statically recognized that coercion is not possible with these types
 
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for //: 'long' and 'int'");
     goto exit_binary_exception;
@@ -1794,7 +1710,6 @@ PyObject *BINARY_OPERATION_FLOORDIV_OBJECT_LONG_INT(PyObject *operand1, PyObject
 #endif
 
 #if PYTHON_VERSION < 0x300
-/* Code referring to "INT" corresponds to Python2 'int' and "LONG" to Python2 'long', Python3 'int'. */
 static PyObject *_BINARY_OPERATION_FLOORDIV_OBJECT_INT_LONG(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyInt_CheckExact(operand1));
@@ -1811,12 +1726,9 @@ static PyObject *_BINARY_OPERATION_FLOORDIV_OBJECT_INT_LONG(PyObject *operand1, 
 #pragma warning(pop)
 #endif
 
-    // Slot1 ignored on purpose, type2 takes precedence.
     binaryfunc slot2 = NULL;
 
     if (!(0)) {
-        // Different types, need to consider second value slot.
-
         slot2 = PyLong_Type.tp_as_number->nb_floor_divide;
     }
 
@@ -1830,8 +1742,6 @@ static PyObject *_BINARY_OPERATION_FLOORDIV_OBJECT_INT_LONG(PyObject *operand1, 
 
         Py_DECREF_IMMORTAL(x);
     }
-
-    // Statically recognized that coercion is not possible with these types
 
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for //: 'int' and 'long'");
     goto exit_binary_exception;
@@ -1849,14 +1759,12 @@ PyObject *BINARY_OPERATION_FLOORDIV_OBJECT_INT_LONG(PyObject *operand1, PyObject
 #endif
 
 #if PYTHON_VERSION < 0x300
-/* Code referring to "INT" corresponds to Python2 'int' and "CLONG" to C platform long value. */
 static PyObject *_BINARY_OPERATION_FLOORDIV_OBJECT_INT_CLONG(PyObject *operand1, long operand2) {
     CHECK_OBJECT(operand1);
     assert(PyInt_CheckExact(operand1));
 
     PyObject *result;
 
-    // Not every code path will make use of all possible results.
 #if defined(_MSC_VER)
 #pragma warning(push)
 #pragma warning(disable : 4101)
@@ -1881,12 +1789,6 @@ static PyObject *_BINARY_OPERATION_FLOORDIV_OBJECT_INT_CLONG(PyObject *operand1,
         SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_ZeroDivisionError, "integer division or modulo by zero");
         goto exit_result_exception;
     }
-
-    /* TODO: Isn't this a very specific value only, of which we could
-     * hardcode the constant result. Not sure how well the C compiler
-     * optimizes UNARY_NEG_WOULD_OVERFLOW to this, but dividing by
-     * -1 has to be rare anyway.
-     */
 
     if (likely(b != -1 || !UNARY_NEG_WOULD_OVERFLOW(a))) {
         long a_div_b = a / b;
@@ -1938,7 +1840,6 @@ PyObject *BINARY_OPERATION_FLOORDIV_OBJECT_INT_CLONG(PyObject *operand1, long op
 #endif
 
 #if PYTHON_VERSION < 0x300
-/* Code referring to "CLONG" corresponds to C platform long value and "INT" to Python2 'int'. */
 static PyObject *_BINARY_OPERATION_FLOORDIV_OBJECT_CLONG_INT(long operand1, PyObject *operand2) {
 
     CHECK_OBJECT(operand2);
@@ -1946,7 +1847,6 @@ static PyObject *_BINARY_OPERATION_FLOORDIV_OBJECT_CLONG_INT(long operand1, PyOb
 
     PyObject *result;
 
-    // Not every code path will make use of all possible results.
 #if defined(_MSC_VER)
 #pragma warning(push)
 #pragma warning(disable : 4101)
@@ -1971,12 +1871,6 @@ static PyObject *_BINARY_OPERATION_FLOORDIV_OBJECT_CLONG_INT(long operand1, PyOb
         SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_ZeroDivisionError, "integer division or modulo by zero");
         goto exit_result_exception;
     }
-
-    /* TODO: Isn't this a very specific value only, of which we could
-     * hardcode the constant result. Not sure how well the C compiler
-     * optimizes UNARY_NEG_WOULD_OVERFLOW to this, but dividing by
-     * -1 has to be rare anyway.
-     */
 
     if (likely(b != -1 || !UNARY_NEG_WOULD_OVERFLOW(a))) {
         long a_div_b = a / b;
@@ -2027,7 +1921,6 @@ PyObject *BINARY_OPERATION_FLOORDIV_OBJECT_CLONG_INT(long operand1, PyObject *op
 }
 #endif
 
-/* Code referring to "FLOAT" corresponds to Python 'float' and "CFLOAT" to C platform float value. */
 static PyObject *_BINARY_OPERATION_FLOORDIV_OBJECT_FLOAT_CFLOAT(PyObject *operand1, double operand2) {
     CHECK_OBJECT(operand1);
     assert(PyFloat_CheckExact(operand1));
@@ -2038,7 +1931,6 @@ static PyObject *_BINARY_OPERATION_FLOORDIV_OBJECT_FLOAT_CFLOAT(PyObject *operan
 #pragma warning(push)
 #pragma warning(disable : 4101)
 #endif
-    // Not every code path will make use of all possible results.
     NUITKA_MAY_BE_UNUSED PyObject *obj_result;
     NUITKA_MAY_BE_UNUSED long clong_result;
     NUITKA_MAY_BE_UNUSED double cfloat_result;
@@ -2098,7 +1990,6 @@ PyObject *BINARY_OPERATION_FLOORDIV_OBJECT_FLOAT_CFLOAT(PyObject *operand1, doub
     return _BINARY_OPERATION_FLOORDIV_OBJECT_FLOAT_CFLOAT(operand1, operand2);
 }
 
-/* Code referring to "CFLOAT" corresponds to C platform float value and "FLOAT" to Python 'float'. */
 static PyObject *_BINARY_OPERATION_FLOORDIV_OBJECT_CFLOAT_FLOAT(double operand1, PyObject *operand2) {
 
     CHECK_OBJECT(operand2);
@@ -2110,7 +2001,6 @@ static PyObject *_BINARY_OPERATION_FLOORDIV_OBJECT_CFLOAT_FLOAT(double operand1,
 #pragma warning(push)
 #pragma warning(disable : 4101)
 #endif
-    // Not every code path will make use of all possible results.
     NUITKA_MAY_BE_UNUSED PyObject *obj_result;
     NUITKA_MAY_BE_UNUSED long clong_result;
     NUITKA_MAY_BE_UNUSED double cfloat_result;
@@ -2170,7 +2060,6 @@ PyObject *BINARY_OPERATION_FLOORDIV_OBJECT_CFLOAT_FLOAT(double operand1, PyObjec
     return _BINARY_OPERATION_FLOORDIV_OBJECT_CFLOAT_FLOAT(operand1, operand2);
 }
 
-/* Code referring to "OBJECT" corresponds to any Python object and "OBJECT" to any Python object. */
 static PyObject *_BINARY_OPERATION_FLOORDIV_OBJECT_OBJECT_OBJECT(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     CHECK_OBJECT(operand2);
@@ -2179,7 +2068,6 @@ static PyObject *_BINARY_OPERATION_FLOORDIV_OBJECT_OBJECT_OBJECT(PyObject *opera
     if (PyInt_CheckExact(operand1) && PyInt_CheckExact(operand2)) {
         PyObject *result;
 
-        // Not every code path will make use of all possible results.
 #if defined(_MSC_VER)
 #pragma warning(push)
 #pragma warning(disable : 4101)
@@ -2206,12 +2094,6 @@ static PyObject *_BINARY_OPERATION_FLOORDIV_OBJECT_OBJECT_OBJECT(PyObject *opera
             SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_ZeroDivisionError, "integer division or modulo by zero");
             goto exit_result_exception;
         }
-
-        /* TODO: Isn't this a very specific value only, of which we could
-         * hardcode the constant result. Not sure how well the C compiler
-         * optimizes UNARY_NEG_WOULD_OVERFLOW to this, but dividing by
-         * -1 has to be rare anyway.
-         */
 
         if (likely(b != -1 || !UNARY_NEG_WOULD_OVERFLOW(a))) {
             long a_div_b = a / b;
@@ -2274,8 +2156,6 @@ static PyObject *_BINARY_OPERATION_FLOORDIV_OBJECT_OBJECT_OBJECT(PyObject *opera
     binaryfunc slot2 = NULL;
 
     if (!(type1 == type2)) {
-        // Different types, need to consider second value slot.
-
         slot2 =
             (type2->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type2)) ? type2->tp_as_number->nb_floor_divide : NULL;
 

@@ -74,7 +74,6 @@ static void _createGlobalConstants(PyThreadState *tstate, PyObject *real_module_
 #else
 static void _createGlobalConstants(PyThreadState *tstate) {
 #endif
-    // We provide the sys.version info shortcut as a global value here for ease of use.
     Py_SysVersionInfo = Nuitka_SysGetObject("version_info");
 
     // The empty name means global.
@@ -97,27 +96,22 @@ static void _createGlobalConstants(PyThreadState *tstate) {
     );
 
 #if !_NUITKA_STANDALONE_MODE
-    /* Set the "sys.prefix" path to the original one. */
     Nuitka_SysSetObject(
         "prefix",
         %(sys_prefix)s
     );
 
-    /* Set the "sys.prefix" path to the original one. */
     Nuitka_SysSetObject(
         "exec_prefix",
         %(sys_exec_prefix)s
     );
 
-
 #if PYTHON_VERSION >= 0x300
-    /* Set the "sys.base_prefix" path to the original one. */
     Nuitka_SysSetObject(
         "base_prefix",
         %(sys_base_prefix)s
     );
 
-    /* Set the "sys.exec_base_prefix" path to the original one. */
     Nuitka_SysSetObject(
         "base_exec_prefix",
         %(sys_base_exec_prefix)s

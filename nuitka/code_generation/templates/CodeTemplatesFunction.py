@@ -46,15 +46,12 @@ template_make_function = """\
 
 template_function_body = """\
 static PyObject *impl_%(function_identifier)s(PyThreadState *tstate, %(parameter_objects_decl)s) {
-    // Preserve error status for checks
 #ifndef __NUITKA_NO_ASSERT__
     NUITKA_MAY_BE_UNUSED bool had_error = HAS_ERROR_OCCURRED(tstate);
 #endif
 
-    // Local variable declarations.
 %(function_locals)s
 
-    // Actual function body.
 %(function_body)s
 
 %(function_exit)s
@@ -72,7 +69,6 @@ function_exception_exit:
 
 template_function_return_exit = """
 function_return_exit:
-   // Function cleanup code if any.
 %(function_cleanup)s
 
    // Actual function exit with return value, making sure we did not make
@@ -98,10 +94,8 @@ function_direct_body_template = """\
     assert(!had_error); // Do not enter inlined functions with error set.
 #endif
 
-    // Local variable declarations.
 %(function_locals)s
 
-    // Actual function body.
 %(function_body)s
 
 %(function_exit)s

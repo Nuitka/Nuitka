@@ -13,7 +13,6 @@
 /* C helpers for type specialized "@" (MATMULT) operations */
 
 #if PYTHON_VERSION >= 0x350
-/* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "LONG" to Python2 'long', Python3 'int'. */
 static PyObject *_BINARY_OPERATION_MATMULT_OBJECT_LONG_LONG(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyLong_CheckExact(operand1));
@@ -29,8 +28,6 @@ static PyObject *_BINARY_OPERATION_MATMULT_OBJECT_LONG_LONG(PyObject *operand1, 
 #if defined(_MSC_VER)
 #pragma warning(pop)
 #endif
-
-    // Statically recognized that coercion is not possible with Python3 only operator '@'
 
 #if PYTHON_VERSION < 0x300
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for @: 'long' and 'long'");
@@ -49,7 +46,6 @@ PyObject *BINARY_OPERATION_MATMULT_OBJECT_LONG_LONG(PyObject *operand1, PyObject
 #endif
 
 #if PYTHON_VERSION >= 0x350
-/* Code referring to "OBJECT" corresponds to any Python object and "LONG" to Python2 'long', Python3 'int'. */
 static PyObject *_BINARY_OPERATION_MATMULT_OBJECT_OBJECT_LONG(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     CHECK_OBJECT(operand2);
@@ -81,8 +77,6 @@ static PyObject *_BINARY_OPERATION_MATMULT_OBJECT_OBJECT_LONG(PyObject *operand1
         Py_DECREF_IMMORTAL(x);
     }
 
-    // Statically recognized that coercion is not possible with Python3 only operator '@'
-
 #if PYTHON_VERSION < 0x300
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for @: '%s' and 'long'", type1->tp_name);
 #else
@@ -103,7 +97,6 @@ PyObject *BINARY_OPERATION_MATMULT_OBJECT_OBJECT_LONG(PyObject *operand1, PyObje
 #endif
 
 #if PYTHON_VERSION >= 0x350
-/* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "OBJECT" to any Python object. */
 static PyObject *_BINARY_OPERATION_MATMULT_OBJECT_LONG_OBJECT(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyLong_CheckExact(operand1));
@@ -124,8 +117,6 @@ static PyObject *_BINARY_OPERATION_MATMULT_OBJECT_LONG_OBJECT(PyObject *operand1
     binaryfunc slot2 = NULL;
 
     if (!(&PyLong_Type == type2)) {
-        // Different types, need to consider second value slot.
-
         slot2 = (type2->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type2)) ? type2->tp_as_number->nb_matrix_multiply
                                                                               : NULL;
     }
@@ -140,8 +131,6 @@ static PyObject *_BINARY_OPERATION_MATMULT_OBJECT_LONG_OBJECT(PyObject *operand1
 
         Py_DECREF_IMMORTAL(x);
     }
-
-    // Statically recognized that coercion is not possible with Python3 only operator '@'
 
 #if PYTHON_VERSION < 0x300
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for @: 'long' and '%s'", type2->tp_name);
@@ -163,7 +152,6 @@ PyObject *BINARY_OPERATION_MATMULT_OBJECT_LONG_OBJECT(PyObject *operand1, PyObje
 #endif
 
 #if PYTHON_VERSION >= 0x350
-/* Code referring to "FLOAT" corresponds to Python 'float' and "FLOAT" to Python 'float'. */
 static PyObject *_BINARY_OPERATION_MATMULT_OBJECT_FLOAT_FLOAT(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyFloat_CheckExact(operand1));
@@ -180,8 +168,6 @@ static PyObject *_BINARY_OPERATION_MATMULT_OBJECT_FLOAT_FLOAT(PyObject *operand1
 #pragma warning(pop)
 #endif
 
-    // Statically recognized that coercion is not possible with Python3 only operator '@'
-
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for @: 'float' and 'float'");
     goto exit_binary_exception;
 
@@ -195,7 +181,6 @@ PyObject *BINARY_OPERATION_MATMULT_OBJECT_FLOAT_FLOAT(PyObject *operand1, PyObje
 #endif
 
 #if PYTHON_VERSION >= 0x350
-/* Code referring to "OBJECT" corresponds to any Python object and "FLOAT" to Python 'float'. */
 static PyObject *_BINARY_OPERATION_MATMULT_OBJECT_OBJECT_FLOAT(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     CHECK_OBJECT(operand2);
@@ -227,8 +212,6 @@ static PyObject *_BINARY_OPERATION_MATMULT_OBJECT_OBJECT_FLOAT(PyObject *operand
         Py_DECREF_IMMORTAL(x);
     }
 
-    // Statically recognized that coercion is not possible with Python3 only operator '@'
-
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for @: '%s' and 'float'", type1->tp_name);
     goto exit_binary_exception;
 
@@ -245,7 +228,6 @@ PyObject *BINARY_OPERATION_MATMULT_OBJECT_OBJECT_FLOAT(PyObject *operand1, PyObj
 #endif
 
 #if PYTHON_VERSION >= 0x350
-/* Code referring to "FLOAT" corresponds to Python 'float' and "OBJECT" to any Python object. */
 static PyObject *_BINARY_OPERATION_MATMULT_OBJECT_FLOAT_OBJECT(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyFloat_CheckExact(operand1));
@@ -266,8 +248,6 @@ static PyObject *_BINARY_OPERATION_MATMULT_OBJECT_FLOAT_OBJECT(PyObject *operand
     binaryfunc slot2 = NULL;
 
     if (!(&PyFloat_Type == type2)) {
-        // Different types, need to consider second value slot.
-
         slot2 = (type2->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type2)) ? type2->tp_as_number->nb_matrix_multiply
                                                                               : NULL;
     }
@@ -282,8 +262,6 @@ static PyObject *_BINARY_OPERATION_MATMULT_OBJECT_FLOAT_OBJECT(PyObject *operand
 
         Py_DECREF_IMMORTAL(x);
     }
-
-    // Statically recognized that coercion is not possible with Python3 only operator '@'
 
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for @: 'float' and '%s'", type2->tp_name);
     goto exit_binary_exception;
@@ -301,7 +279,6 @@ PyObject *BINARY_OPERATION_MATMULT_OBJECT_FLOAT_OBJECT(PyObject *operand1, PyObj
 #endif
 
 #if PYTHON_VERSION >= 0x350
-/* Code referring to "OBJECT" corresponds to any Python object and "OBJECT" to any Python object. */
 static PyObject *_BINARY_OPERATION_MATMULT_OBJECT_OBJECT_OBJECT(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     CHECK_OBJECT(operand2);
@@ -310,7 +287,6 @@ static PyObject *_BINARY_OPERATION_MATMULT_OBJECT_OBJECT_OBJECT(PyObject *operan
     if (PyInt_CheckExact(operand1) && PyInt_CheckExact(operand2)) {
         PyObject *result;
 
-        // Not every code path will make use of all possible results.
 #if defined(_MSC_VER)
 #pragma warning(push)
 #pragma warning(disable : 4101)
@@ -377,8 +353,6 @@ static PyObject *_BINARY_OPERATION_MATMULT_OBJECT_OBJECT_OBJECT(PyObject *operan
     binaryfunc slot2 = NULL;
 
     if (!(type1 == type2)) {
-        // Different types, need to consider second value slot.
-
         slot2 = (type2->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type2)) ? type2->tp_as_number->nb_matrix_multiply
                                                                               : NULL;
 
@@ -422,8 +396,6 @@ static PyObject *_BINARY_OPERATION_MATMULT_OBJECT_OBJECT_OBJECT(PyObject *operan
 
         Py_DECREF_IMMORTAL(x);
     }
-
-    // Statically recognized that coercion is not possible with Python3 only operator '@'
 
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for @: '%s' and '%s'", type1->tp_name, type2->tp_name);
     goto exit_binary_exception;

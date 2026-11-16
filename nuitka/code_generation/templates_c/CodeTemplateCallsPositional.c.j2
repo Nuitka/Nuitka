@@ -5,7 +5,7 @@
 PyObject *CALL_FUNCTION_NO_ARGS(PyThreadState *tstate, PyObject *called) {
 {% elif args_count == 1 and not has_tuple_arg %}
 PyObject *CALL_FUNCTION_WITH_SINGLE_ARG(PyThreadState *tstate, PyObject *called, PyObject *arg) {
-    PyObject *const *args = &arg; // For easier code compatibility.
+    PyObject *const *args = &arg;
 {% else %}
 {% if has_tuple_arg %}
 PyObject *CALL_FUNCTION_WITH_POS_ARGS{{args_count}}(PyThreadState *tstate, PyObject *called, PyObject *pos_args) {
@@ -206,13 +206,10 @@ PyObject *CALL_FUNCTION_WITH_ARGS{{args_count}}(PyThreadState *tstate, PyObject 
 
         return Nuitka_CheckFunctionResult(tstate, called, result);
 #else
-        // Try to be fast about wrapping the arguments.
         int flags = PyCFunction_GET_FLAGS(called) & ~(METH_CLASS | METH_STATIC | METH_COEXIST);
 
         if ({{ unlikely_or_likely_from(args_count != 0) }}(flags & METH_NOARGS)) {
 {% if args_count == 0 %}
-            // Recursion guard is not strictly necessary, as we already have
-            // one on our way to here.
 #ifdef _NUITKA_FULL_COMPAT
             if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
                 return NULL;
@@ -239,8 +236,6 @@ PyObject *CALL_FUNCTION_WITH_ARGS{{args_count}}(PyThreadState *tstate, PyObject 
 {% endif %}
         } else if ({{ unlikely_if(args_count != 1) }}(flags & METH_O)) {
 {% if args_count == 1 %}
-            // Recursion guard is not strictly necessary, as we already have
-            // one on our way to here.
 #ifdef _NUITKA_FULL_COMPAT
             if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
                 return NULL;
@@ -266,8 +261,6 @@ PyObject *CALL_FUNCTION_WITH_ARGS{{args_count}}(PyThreadState *tstate, PyObject 
             return NULL;
 {% endif %}
         } else if (flags & METH_VARARGS) {
-            // Recursion guard is not strictly necessary, as we already have
-            // one on our way to here.
 #ifdef _NUITKA_FULL_COMPAT
             if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
                 return NULL;
@@ -435,7 +428,6 @@ PyObject *CALL_FUNCTION_WITH_ARGS{{args_count}}(PyThreadState *tstate, PyObject 
                     return obj;
                 }
 
-                // Work on produced type.
                 type = Py_TYPE(obj);
 
                 if (NuitkaType_HasFeatureClass(type) && type->tp_init != NULL) {
@@ -446,8 +438,6 @@ PyObject *CALL_FUNCTION_WITH_ARGS{{args_count}}(PyThreadState *tstate, PyObject 
 {% endif %}
 
                         PyObject *init_method = Nuitka_TypeLookup(type, const_str_plain___init__);
-
-                        // Not really allowed, since we wouldn't have the default wrapper set.
                         assert(init_method != NULL);
 
                         bool is_compiled_function = false;
@@ -648,13 +638,6 @@ PyObject *CALL_FUNCTION_WITH_ARGS{{args_count}}(PyThreadState *tstate, PyObject 
         }
 #endif
     }
-
-#if 0
-    PRINT_NEW_LINE();
-    PRINT_STRING("FALLBACK");
-    PRINT_ITEM(called);
-    PRINT_NEW_LINE();
-#endif
 
 {% if args_count == 0 %}
     PyObject *result = CALL_FUNCTION(tstate, called, const_tuple_empty, NULL);

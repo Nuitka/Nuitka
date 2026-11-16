@@ -14,7 +14,7 @@ CALL_FUNCTION_WITH_ARGS{{args_count}}(tstate, {{ called }}, {{args}})
 PyObject *CALL_METHOD_NO_ARGS(PyThreadState *tstate, PyObject *source, PyObject *attr_name) {
 {% elif args_count == 1 %}
 PyObject *CALL_METHOD_WITH_SINGLE_ARG(PyThreadState *tstate, PyObject *source, PyObject *attr_name, PyObject *arg) {
-    PyObject *const *args = &arg; // For easier code compatibility.
+    PyObject *const *args = &arg;
 {% else %}
 PyObject *CALL_METHOD_WITH_ARGS{{args_count}}(PyThreadState *tstate, PyObject *source, PyObject *attr_name, PyObject *const *args) {
 {% endif %}
@@ -26,7 +26,6 @@ PyObject *CALL_METHOD_WITH_ARGS{{args_count}}(PyThreadState *tstate, PyObject *s
     PyTypeObject *type = Py_TYPE(source);
 
     if (hasTypeGenericGetAttr(type)) {
-        // Unfortunately this is required, although of cause rarely necessary.
         if (unlikely(type->tp_dict == NULL)) {
             if (unlikely(PyType_Ready(type) < 0)) {
                 return NULL;
@@ -155,12 +154,9 @@ PyObject *CALL_METHOD_WITH_ARGS{{args_count}}(PyThreadState *tstate, PyObject *s
     else if (type == &PyInstance_Type) {
         PyInstanceObject *source_instance = (PyInstanceObject *)source;
 
-        // The special cases have their own variant on the code generation level
-        // as we are called with constants only.
         assert(attr_name != const_str_plain___dict__);
         assert(attr_name != const_str_plain___class__);
 
-        // Try the instance dict first.
         PyObject *called_object = GET_STRING_DICT_VALUE(
             (PyDictObject *)source_instance->in_dict,
             (PyStringObject *)attr_name
@@ -172,7 +168,6 @@ PyObject *CALL_METHOD_WITH_ARGS{{args_count}}(PyThreadState *tstate, PyObject *s
             return {{ call_function_with_args( "called_object", "args", args_count) }};
         }
 
-        // Then check the class dictionaries.
         called_object = FIND_ATTRIBUTE_IN_CLASS(
             source_instance->in_class,
             attr_name
@@ -227,9 +222,6 @@ PyObject *CALL_METHOD_WITH_ARGS{{args_count}}(PyThreadState *tstate, PyObject *s
 
             return NULL;
         } else {
-            // Finally allow the "__getattr__" override to provide it or else
-            // it's an error.
-
             PyObject *args2[] = {
                 source,
                 attr_name

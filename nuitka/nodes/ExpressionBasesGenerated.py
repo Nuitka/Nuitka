@@ -45,20 +45,10 @@ class _NoChildHavingFinalNoRaiseMixin(ExpressionBase):
     # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
     __slots__ = ()
 
-    # This is generated for use in
-    #   ExpressionImportlibMetadataBackportEntryPointValueRef
-    #   ExpressionImportlibMetadataEntryPointValueRef
-
     def finalize(self):
         del self.parent
 
     def computeExpressionRaw(self, trace_collection):
-        """Compute an expression.
-
-        Default behavior is to just visit the child expressions first, and
-        then the node "computeExpression". For a few cases this needs to
-        be overloaded, e.g. conditional expressions.
-        """
 
         return self, None, None
 
@@ -76,16 +66,14 @@ class _NoChildHavingFinalNoRaiseMixin(ExpressionBase):
 
         self.undoVariableTracing()
 
-    # For overload only
     @staticmethod
     def undoVariableTracing():
         pass
 
     def collectVariableAccesses(self, emit_variable):
-        """Collect variable reads and writes of child nodes."""
+        pass
 
 
-# Assign the names that are easier to import with a stable name.
 ExpressionImportlibMetadataBackportEntryPointValueRefBase = (
     _NoChildHavingFinalNoRaiseMixin
 )
@@ -95,9 +83,6 @@ ExpressionImportlibMetadataEntryPointValueRefBase = _NoChildHavingFinalNoRaiseMi
 class _NoChildHavingFinalNoRaiseRelativePathMixin(ExpressionBase):
     # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
     __slots__ = ()
-
-    # This is generated for use in
-    #   ExpressionRuntimePath
 
     def __init__(self, relative_path, source_ref):
         self.relative_path = relative_path
@@ -110,27 +95,15 @@ class _NoChildHavingFinalNoRaiseRelativePathMixin(ExpressionBase):
         }
 
     def getVisitableNodes(self):
-        """The visitable nodes, with tuple values flattened."""
-
         return ()
 
     def getVisitableNodesNamed(self):
-        """Named children dictionary.
-
-        For use in cloning nodes, debugging and XML output.
-        """
-
         return ()
 
     def replaceChild(self, old_node, new_node):
         raise AssertionError("Didn't find child", old_node, "in", self)
 
     def getCloneArgs(self):
-        """Get clones of all children to pass for a new node.
-
-        Needs to make clones of child nodes too.
-        """
-
         values = {}
 
         values.update(self.getDetails())
@@ -141,12 +114,6 @@ class _NoChildHavingFinalNoRaiseRelativePathMixin(ExpressionBase):
         del self.parent
 
     def computeExpressionRaw(self, trace_collection):
-        """Compute an expression.
-
-        Default behavior is to just visit the child expressions first, and
-        then the node "computeExpression". For a few cases this needs to
-        be overloaded, e.g. conditional expressions.
-        """
 
         return self, None, None
 
@@ -164,26 +131,20 @@ class _NoChildHavingFinalNoRaiseRelativePathMixin(ExpressionBase):
 
         self.undoVariableTracing()
 
-    # For overload only
     @staticmethod
     def undoVariableTracing():
         pass
 
     def collectVariableAccesses(self, emit_variable):
-        """Collect variable reads and writes of child nodes."""
+        pass
 
 
-# Assign the names that are easier to import with a stable name.
 ExpressionRuntimePathBase = _NoChildHavingFinalNoRaiseRelativePathMixin
 
 
 class _NoChildHavingFinalNoRaiseNameMixin(ExpressionBase):
     # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
     __slots__ = ()
-
-    # This is generated for use in
-    #   ExpressionParameterSpecification
-    #   ExpressionTypeVariableTuple
 
     def __init__(self, name, source_ref):
         self.name = name
@@ -196,27 +157,15 @@ class _NoChildHavingFinalNoRaiseNameMixin(ExpressionBase):
         }
 
     def getVisitableNodes(self):
-        """The visitable nodes, with tuple values flattened."""
-
         return ()
 
     def getVisitableNodesNamed(self):
-        """Named children dictionary.
-
-        For use in cloning nodes, debugging and XML output.
-        """
-
         return ()
 
     def replaceChild(self, old_node, new_node):
         raise AssertionError("Didn't find child", old_node, "in", self)
 
     def getCloneArgs(self):
-        """Get clones of all children to pass for a new node.
-
-        Needs to make clones of child nodes too.
-        """
-
         values = {}
 
         values.update(self.getDetails())
@@ -227,12 +176,6 @@ class _NoChildHavingFinalNoRaiseNameMixin(ExpressionBase):
         del self.parent
 
     def computeExpressionRaw(self, trace_collection):
-        """Compute an expression.
-
-        Default behavior is to just visit the child expressions first, and
-        then the node "computeExpression". For a few cases this needs to
-        be overloaded, e.g. conditional expressions.
-        """
 
         return self, None, None
 
@@ -250,16 +193,14 @@ class _NoChildHavingFinalNoRaiseNameMixin(ExpressionBase):
 
         self.undoVariableTracing()
 
-    # For overload only
     @staticmethod
     def undoVariableTracing():
         pass
 
     def collectVariableAccesses(self, emit_variable):
-        """Collect variable reads and writes of child nodes."""
+        pass
 
 
-# Assign the names that are easier to import with a stable name.
 ExpressionParameterSpecificationBase = _NoChildHavingFinalNoRaiseNameMixin
 ExpressionTypeVariableTupleBase = _NoChildHavingFinalNoRaiseNameMixin
 
@@ -267,9 +208,6 @@ ExpressionTypeVariableTupleBase = _NoChildHavingFinalNoRaiseNameMixin
 class _ChildHavingArgsTupleFinalNoRaiseMixin(ExpressionBase):
     # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
     __slots__ = ()
-
-    # This is generated for use in
-    #   ExpressionBuiltinMakeException
 
     def __init__(self, args, source_ref):
         assert type(args) is tuple
@@ -282,16 +220,9 @@ class _ChildHavingArgsTupleFinalNoRaiseMixin(ExpressionBase):
         ExpressionBase.__init__(self, source_ref)
 
     def getVisitableNodes(self):
-        """The visitable nodes, with tuple values flattened."""
-
         return self.subnode_args
 
     def getVisitableNodesNamed(self):
-        """Named children dictionary.
-
-        For use in cloning nodes, debugging and XML output.
-        """
-
         return (("args", self.subnode_args),)
 
     def replaceChild(self, old_node, new_node):
@@ -311,11 +242,6 @@ class _ChildHavingArgsTupleFinalNoRaiseMixin(ExpressionBase):
         raise AssertionError("Didn't find child", old_node, "in", self)
 
     def getCloneArgs(self):
-        """Get clones of all children to pass for a new node.
-
-        Needs to make clones of child nodes too.
-        """
-
         values = {
             "args": tuple(v.makeClone() for v in self.subnode_args),
         }
@@ -332,15 +258,6 @@ class _ChildHavingArgsTupleFinalNoRaiseMixin(ExpressionBase):
         del self.subnode_args
 
     def computeExpressionRaw(self, trace_collection):
-        """Compute an expression.
-
-        Default behavior is to just visit the child expressions first, and
-        then the node "computeExpression". For a few cases this needs to
-        be overloaded, e.g. conditional expressions.
-        """
-
-        # First apply the sub-expressions, as they are evaluated before
-        # the actual operation.
         old_subnode_args = self.subnode_args
 
         for sub_expression in old_subnode_args:
@@ -379,28 +296,21 @@ class _ChildHavingArgsTupleFinalNoRaiseMixin(ExpressionBase):
 
         self.undoVariableTracing()
 
-    # For overload only
     @staticmethod
     def undoVariableTracing():
         pass
 
     def collectVariableAccesses(self, emit_variable):
-        """Collect variable reads and writes of child nodes."""
-
         for element in self.subnode_args:
             element.collectVariableAccesses(emit_variable)
 
 
-# Assign the names that are easier to import with a stable name.
 ExpressionBuiltinMakeExceptionBase = _ChildHavingArgsTupleFinalNoRaiseMixin
 
 
 class _ChildrenHavingArgsTupleNameOptionalFinalNoRaiseForRaiseMixin(ExpressionBase):
     # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
     __slots__ = ()
-
-    # This is generated for use in
-    #   ExpressionBuiltinMakeExceptionNameError
 
     def __init__(self, args, name, for_raise, source_ref):
         assert type(args) is tuple
@@ -425,8 +335,6 @@ class _ChildrenHavingArgsTupleNameOptionalFinalNoRaiseForRaiseMixin(ExpressionBa
         }
 
     def getVisitableNodes(self):
-        """The visitable nodes, with tuple values flattened."""
-
         result = []
         result.extend(self.subnode_args)
         if self.subnode_name is not None:
@@ -434,11 +342,6 @@ class _ChildrenHavingArgsTupleNameOptionalFinalNoRaiseForRaiseMixin(ExpressionBa
         return result
 
     def getVisitableNodesNamed(self):
-        """Named children dictionary.
-
-        For use in cloning nodes, debugging and XML output.
-        """
-
         return (
             ("args", self.subnode_args),
             ("name", self.subnode_name),
@@ -470,11 +373,6 @@ class _ChildrenHavingArgsTupleNameOptionalFinalNoRaiseForRaiseMixin(ExpressionBa
         raise AssertionError("Didn't find child", old_node, "in", self)
 
     def getCloneArgs(self):
-        """Get clones of all children to pass for a new node.
-
-        Needs to make clones of child nodes too.
-        """
-
         values = {
             "args": tuple(v.makeClone() for v in self.subnode_args),
             "name": (
@@ -497,15 +395,6 @@ class _ChildrenHavingArgsTupleNameOptionalFinalNoRaiseForRaiseMixin(ExpressionBa
         del self.subnode_name
 
     def computeExpressionRaw(self, trace_collection):
-        """Compute an expression.
-
-        Default behavior is to just visit the child expressions first, and
-        then the node "computeExpression". For a few cases this needs to
-        be overloaded, e.g. conditional expressions.
-        """
-
-        # First apply the sub-expressions, as they are evaluated before
-        # the actual operation.
         for count, sub_expression in enumerate(self.getVisitableNodes()):
             expression = trace_collection.onExpression(sub_expression)
 
@@ -545,14 +434,11 @@ class _ChildrenHavingArgsTupleNameOptionalFinalNoRaiseForRaiseMixin(ExpressionBa
 
         self.undoVariableTracing()
 
-    # For overload only
     @staticmethod
     def undoVariableTracing():
         pass
 
     def collectVariableAccesses(self, emit_variable):
-        """Collect variable reads and writes of child nodes."""
-
         for element in self.subnode_args:
             element.collectVariableAccesses(emit_variable)
         subnode_name = self.subnode_name
@@ -561,7 +447,6 @@ class _ChildrenHavingArgsTupleNameOptionalFinalNoRaiseForRaiseMixin(ExpressionBa
             self.subnode_name.collectVariableAccesses(emit_variable)
 
 
-# Assign the names that are easier to import with a stable name.
 ExpressionBuiltinMakeExceptionNameErrorBase = (
     _ChildrenHavingArgsTupleNameOptionalFinalNoRaiseForRaiseMixin
 )
@@ -572,9 +457,6 @@ class _ChildrenHavingArgsTupleNameOptionalObjOptionalFinalNoRaiseForRaiseMixin(
 ):
     # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
     __slots__ = ()
-
-    # This is generated for use in
-    #   ExpressionBuiltinMakeExceptionAttributeError
 
     def __init__(self, args, name, obj, for_raise, source_ref):
         assert type(args) is tuple
@@ -604,8 +486,6 @@ class _ChildrenHavingArgsTupleNameOptionalObjOptionalFinalNoRaiseForRaiseMixin(
         }
 
     def getVisitableNodes(self):
-        """The visitable nodes, with tuple values flattened."""
-
         result = []
         result.extend(self.subnode_args)
         if self.subnode_name is not None:
@@ -615,11 +495,6 @@ class _ChildrenHavingArgsTupleNameOptionalObjOptionalFinalNoRaiseForRaiseMixin(
         return result
 
     def getVisitableNodesNamed(self):
-        """Named children dictionary.
-
-        For use in cloning nodes, debugging and XML output.
-        """
-
         return (
             ("args", self.subnode_args),
             ("name", self.subnode_name),
@@ -661,11 +536,6 @@ class _ChildrenHavingArgsTupleNameOptionalObjOptionalFinalNoRaiseForRaiseMixin(
         raise AssertionError("Didn't find child", old_node, "in", self)
 
     def getCloneArgs(self):
-        """Get clones of all children to pass for a new node.
-
-        Needs to make clones of child nodes too.
-        """
-
         values = {
             "args": tuple(v.makeClone() for v in self.subnode_args),
             "name": (
@@ -694,15 +564,6 @@ class _ChildrenHavingArgsTupleNameOptionalObjOptionalFinalNoRaiseForRaiseMixin(
         del self.subnode_obj
 
     def computeExpressionRaw(self, trace_collection):
-        """Compute an expression.
-
-        Default behavior is to just visit the child expressions first, and
-        then the node "computeExpression". For a few cases this needs to
-        be overloaded, e.g. conditional expressions.
-        """
-
-        # First apply the sub-expressions, as they are evaluated before
-        # the actual operation.
         for count, sub_expression in enumerate(self.getVisitableNodes()):
             expression = trace_collection.onExpression(sub_expression)
 
@@ -747,14 +608,11 @@ class _ChildrenHavingArgsTupleNameOptionalObjOptionalFinalNoRaiseForRaiseMixin(
 
         self.undoVariableTracing()
 
-    # For overload only
     @staticmethod
     def undoVariableTracing():
         pass
 
     def collectVariableAccesses(self, emit_variable):
-        """Collect variable reads and writes of child nodes."""
-
         for element in self.subnode_args:
             element.collectVariableAccesses(emit_variable)
         subnode_name = self.subnode_name
@@ -767,7 +625,6 @@ class _ChildrenHavingArgsTupleNameOptionalObjOptionalFinalNoRaiseForRaiseMixin(
             self.subnode_obj.collectVariableAccesses(emit_variable)
 
 
-# Assign the names that are easier to import with a stable name.
 ExpressionBuiltinMakeExceptionAttributeErrorBase = (
     _ChildrenHavingArgsTupleNameOptionalObjOptionalFinalNoRaiseForRaiseMixin
 )
@@ -778,10 +635,6 @@ class _ChildrenHavingArgsTupleNameOptionalPathOptionalFinalNoRaiseForRaiseMixin(
 ):
     # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
     __slots__ = ()
-
-    # This is generated for use in
-    #   ExpressionBuiltinMakeExceptionImportError
-    #   ExpressionBuiltinMakeExceptionModuleNotFoundError
 
     def __init__(self, args, name, path, for_raise, source_ref):
         assert type(args) is tuple
@@ -811,8 +664,6 @@ class _ChildrenHavingArgsTupleNameOptionalPathOptionalFinalNoRaiseForRaiseMixin(
         }
 
     def getVisitableNodes(self):
-        """The visitable nodes, with tuple values flattened."""
-
         result = []
         result.extend(self.subnode_args)
         if self.subnode_name is not None:
@@ -822,11 +673,6 @@ class _ChildrenHavingArgsTupleNameOptionalPathOptionalFinalNoRaiseForRaiseMixin(
         return result
 
     def getVisitableNodesNamed(self):
-        """Named children dictionary.
-
-        For use in cloning nodes, debugging and XML output.
-        """
-
         return (
             ("args", self.subnode_args),
             ("name", self.subnode_name),
@@ -868,11 +714,6 @@ class _ChildrenHavingArgsTupleNameOptionalPathOptionalFinalNoRaiseForRaiseMixin(
         raise AssertionError("Didn't find child", old_node, "in", self)
 
     def getCloneArgs(self):
-        """Get clones of all children to pass for a new node.
-
-        Needs to make clones of child nodes too.
-        """
-
         values = {
             "args": tuple(v.makeClone() for v in self.subnode_args),
             "name": (
@@ -901,15 +742,6 @@ class _ChildrenHavingArgsTupleNameOptionalPathOptionalFinalNoRaiseForRaiseMixin(
         del self.subnode_path
 
     def computeExpressionRaw(self, trace_collection):
-        """Compute an expression.
-
-        Default behavior is to just visit the child expressions first, and
-        then the node "computeExpression". For a few cases this needs to
-        be overloaded, e.g. conditional expressions.
-        """
-
-        # First apply the sub-expressions, as they are evaluated before
-        # the actual operation.
         for count, sub_expression in enumerate(self.getVisitableNodes()):
             expression = trace_collection.onExpression(sub_expression)
 
@@ -954,14 +786,11 @@ class _ChildrenHavingArgsTupleNameOptionalPathOptionalFinalNoRaiseForRaiseMixin(
 
         self.undoVariableTracing()
 
-    # For overload only
     @staticmethod
     def undoVariableTracing():
         pass
 
     def collectVariableAccesses(self, emit_variable):
-        """Collect variable reads and writes of child nodes."""
-
         for element in self.subnode_args:
             element.collectVariableAccesses(emit_variable)
         subnode_name = self.subnode_name
@@ -974,7 +803,6 @@ class _ChildrenHavingArgsTupleNameOptionalPathOptionalFinalNoRaiseForRaiseMixin(
             self.subnode_path.collectVariableAccesses(emit_variable)
 
 
-# Assign the names that are easier to import with a stable name.
 ExpressionBuiltinMakeExceptionImportErrorBase = (
     _ChildrenHavingArgsTupleNameOptionalPathOptionalFinalNoRaiseForRaiseMixin
 )
@@ -988,9 +816,6 @@ class _ChildrenHavingBoundOptionalConstraintsOptionalDefaultValueAutoNoneFinalNo
 ):
     # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
     __slots__ = ()
-
-    # This is generated for use in
-    #   ExpressionTypeVariable
 
     def __init__(self, bound, constraints, default_value, name, source_ref):
         if bound is not None:
@@ -1019,8 +844,6 @@ class _ChildrenHavingBoundOptionalConstraintsOptionalDefaultValueAutoNoneFinalNo
         }
 
     def getVisitableNodes(self):
-        """The visitable nodes, with tuple values flattened."""
-
         result = []
         if self.subnode_bound is not None:
             result.append(self.subnode_bound)
@@ -1031,11 +854,6 @@ class _ChildrenHavingBoundOptionalConstraintsOptionalDefaultValueAutoNoneFinalNo
         return result
 
     def getVisitableNodesNamed(self):
-        """Named children dictionary.
-
-        For use in cloning nodes, debugging and XML output.
-        """
-
         return (
             ("bound", self.subnode_bound),
             ("constraints", self.subnode_constraints),
@@ -1074,11 +892,6 @@ class _ChildrenHavingBoundOptionalConstraintsOptionalDefaultValueAutoNoneFinalNo
         raise AssertionError("Didn't find child", old_node, "in", self)
 
     def getCloneArgs(self):
-        """Get clones of all children to pass for a new node.
-
-        Needs to make clones of child nodes too.
-        """
-
         values = {
             "bound": (
                 self.subnode_bound.makeClone()
@@ -1115,15 +928,6 @@ class _ChildrenHavingBoundOptionalConstraintsOptionalDefaultValueAutoNoneFinalNo
         del self.subnode_default_value
 
     def computeExpressionRaw(self, trace_collection):
-        """Compute an expression.
-
-        Default behavior is to just visit the child expressions first, and
-        then the node "computeExpression". For a few cases this needs to
-        be overloaded, e.g. conditional expressions.
-        """
-
-        # First apply the sub-expressions, as they are evaluated before
-        # the actual operation.
         for count, sub_expression in enumerate(self.getVisitableNodes()):
             expression = trace_collection.onExpression(sub_expression)
 
@@ -1171,14 +975,11 @@ class _ChildrenHavingBoundOptionalConstraintsOptionalDefaultValueAutoNoneFinalNo
 
         self.undoVariableTracing()
 
-    # For overload only
     @staticmethod
     def undoVariableTracing():
         pass
 
     def collectVariableAccesses(self, emit_variable):
-        """Collect variable reads and writes of child nodes."""
-
         subnode_bound = self.subnode_bound
 
         if subnode_bound is not None:
@@ -1193,16 +994,12 @@ class _ChildrenHavingBoundOptionalConstraintsOptionalDefaultValueAutoNoneFinalNo
             self.subnode_default_value.collectVariableAccesses(emit_variable)
 
 
-# Assign the names that are easier to import with a stable name.
 ExpressionTypeVariableBase = _ChildrenHavingBoundOptionalConstraintsOptionalDefaultValueAutoNoneFinalNoRaiseNameMixin
 
 
 class _ChildrenHavingCallableArgSentinelFinalMixin(ExpressionBase):
     # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
     __slots__ = ()
-
-    # This is generated for use in
-    #   ExpressionBuiltinIter2
 
     def __init__(self, callable_arg, sentinel, source_ref):
         callable_arg.parent = self
@@ -1216,19 +1013,12 @@ class _ChildrenHavingCallableArgSentinelFinalMixin(ExpressionBase):
         ExpressionBase.__init__(self, source_ref)
 
     def getVisitableNodes(self):
-        """The visitable nodes, with tuple values flattened."""
-
         return (
             self.subnode_callable_arg,
             self.subnode_sentinel,
         )
 
     def getVisitableNodesNamed(self):
-        """Named children dictionary.
-
-        For use in cloning nodes, debugging and XML output.
-        """
-
         return (
             ("callable_arg", self.subnode_callable_arg),
             ("sentinel", self.subnode_sentinel),
@@ -1254,11 +1044,6 @@ class _ChildrenHavingCallableArgSentinelFinalMixin(ExpressionBase):
         raise AssertionError("Didn't find child", old_node, "in", self)
 
     def getCloneArgs(self):
-        """Get clones of all children to pass for a new node.
-
-        Needs to make clones of child nodes too.
-        """
-
         values = {
             "callable_arg": self.subnode_callable_arg.makeClone(),
             "sentinel": self.subnode_sentinel.makeClone(),
@@ -1277,15 +1062,6 @@ class _ChildrenHavingCallableArgSentinelFinalMixin(ExpressionBase):
         del self.subnode_sentinel
 
     def computeExpressionRaw(self, trace_collection):
-        """Compute an expression.
-
-        Default behavior is to just visit the child expressions first, and
-        then the node "computeExpression". For a few cases this needs to
-        be overloaded, e.g. conditional expressions.
-        """
-
-        # First apply the sub-expressions, as they are evaluated before
-        # the actual operation.
         for count, sub_expression in enumerate(self.getVisitableNodes()):
             expression = trace_collection.onExpression(sub_expression)
 
@@ -1314,31 +1090,21 @@ class _ChildrenHavingCallableArgSentinelFinalMixin(ExpressionBase):
 
         self.undoVariableTracing()
 
-    # For overload only
     @staticmethod
     def undoVariableTracing():
         pass
 
     def collectVariableAccesses(self, emit_variable):
-        """Collect variable reads and writes of child nodes."""
-
         self.subnode_callable_arg.collectVariableAccesses(emit_variable)
         self.subnode_sentinel.collectVariableAccesses(emit_variable)
 
 
-# Assign the names that are easier to import with a stable name.
 ExpressionBuiltinIter2Base = _ChildrenHavingCallableArgSentinelFinalMixin
 
 
 class _ChildHavingCalledCodeNameExpectedValueTypeShapeMixin(ExpressionBase):
     # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
     __slots__ = ()
-
-    # This is generated for use in
-    #   ExpressionCallClassPrepare
-    #   ExpressionCallClassPrepareKnownStartValueDictAsserted
-    #   ExpressionCallClassPrepareKnownStartValueDictException
-    #   ExpressionCallClassPrepareKnownStartValueDictIgnored
 
     def __init__(self, called, type_shape, code_name, expected_value, source_ref):
         called.parent = self
@@ -1359,16 +1125,9 @@ class _ChildHavingCalledCodeNameExpectedValueTypeShapeMixin(ExpressionBase):
         }
 
     def getVisitableNodes(self):
-        """The visitable nodes, with tuple values flattened."""
-
         return (self.subnode_called,)
 
     def getVisitableNodesNamed(self):
-        """Named children dictionary.
-
-        For use in cloning nodes, debugging and XML output.
-        """
-
         return (("called", self.subnode_called),)
 
     def replaceChild(self, old_node, new_node):
@@ -1383,11 +1142,6 @@ class _ChildHavingCalledCodeNameExpectedValueTypeShapeMixin(ExpressionBase):
         raise AssertionError("Didn't find child", old_node, "in", self)
 
     def getCloneArgs(self):
-        """Get clones of all children to pass for a new node.
-
-        Needs to make clones of child nodes too.
-        """
-
         values = {
             "called": self.subnode_called.makeClone(),
         }
@@ -1403,14 +1157,6 @@ class _ChildHavingCalledCodeNameExpectedValueTypeShapeMixin(ExpressionBase):
         del self.subnode_called
 
     def computeExpressionRaw(self, trace_collection):
-        """Compute an expression.
-
-        Default behavior is to just visit the child expressions first, and
-        then the node "computeExpression". For a few cases this needs to
-        be overloaded, e.g. conditional expressions.
-        """
-
-        # First apply the sub-expression, as they it's evaluated before.
         expression = trace_collection.onExpression(self.subnode_called)
 
         if expression.willRaiseAnyException():
@@ -1421,12 +1167,11 @@ class _ChildHavingCalledCodeNameExpectedValueTypeShapeMixin(ExpressionBase):
                 % (self.getChildNameNice(), expression.getChildNameNice()),
             )
 
-        # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
     @abstractmethod
     def computeExpression(self, trace_collection):
-        """Must be overloaded for non-final node."""
+        pass
 
     def undoVariableTracingRaw(self, trace_collection):
         for child in reversed(self.getVisitableNodes()):
@@ -1434,18 +1179,14 @@ class _ChildHavingCalledCodeNameExpectedValueTypeShapeMixin(ExpressionBase):
 
         self.undoVariableTracing()
 
-    # For overload only
     @staticmethod
     def undoVariableTracing():
         pass
 
     def collectVariableAccesses(self, emit_variable):
-        """Collect variable reads and writes of child nodes."""
-
         self.subnode_called.collectVariableAccesses(emit_variable)
 
 
-# Assign the names that are easier to import with a stable name.
 ExpressionCallClassPrepareBase = _ChildHavingCalledCodeNameExpectedValueTypeShapeMixin
 ExpressionCallClassPrepareKnownStartValueDictAssertedBase = (
     _ChildHavingCalledCodeNameExpectedValueTypeShapeMixin
@@ -1462,10 +1203,6 @@ class _ChildHavingDistributionNameFinalChildrenMixin(ExpressionBase):
     # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
     __slots__ = ()
 
-    # This is generated for use in
-    #   ExpressionImportlibMetadataBackportDistributionFailedCall
-    #   ExpressionImportlibMetadataDistributionFailedCall
-
     def __init__(self, distribution_name, source_ref):
         distribution_name.parent = self
 
@@ -1474,16 +1211,9 @@ class _ChildHavingDistributionNameFinalChildrenMixin(ExpressionBase):
         ExpressionBase.__init__(self, source_ref)
 
     def getVisitableNodes(self):
-        """The visitable nodes, with tuple values flattened."""
-
         return (self.subnode_distribution_name,)
 
     def getVisitableNodesNamed(self):
-        """Named children dictionary.
-
-        For use in cloning nodes, debugging and XML output.
-        """
-
         return (("distribution_name", self.subnode_distribution_name),)
 
     def replaceChild(self, old_node, new_node):
@@ -1498,11 +1228,6 @@ class _ChildHavingDistributionNameFinalChildrenMixin(ExpressionBase):
         raise AssertionError("Didn't find child", old_node, "in", self)
 
     def getCloneArgs(self):
-        """Get clones of all children to pass for a new node.
-
-        Needs to make clones of child nodes too.
-        """
-
         values = {
             "distribution_name": self.subnode_distribution_name.makeClone(),
         }
@@ -1518,19 +1243,12 @@ class _ChildHavingDistributionNameFinalChildrenMixin(ExpressionBase):
         del self.subnode_distribution_name
 
     def computeExpressionRaw(self, trace_collection):
-        """Compute an expression.
 
-        Default behavior is to just visit the child expressions first, and
-        then the node "computeExpression". For a few cases this needs to
-        be overloaded, e.g. conditional expressions.
-        """
-
-        # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
     @abstractmethod
     def computeExpression(self, trace_collection):
-        """Must be overloaded for non-final node."""
+        pass
 
     def undoVariableTracingRaw(self, trace_collection):
         for child in reversed(self.getVisitableNodes()):
@@ -1538,18 +1256,14 @@ class _ChildHavingDistributionNameFinalChildrenMixin(ExpressionBase):
 
         self.undoVariableTracing()
 
-    # For overload only
     @staticmethod
     def undoVariableTracing():
         pass
 
     def collectVariableAccesses(self, emit_variable):
-        """Collect variable reads and writes of child nodes."""
-
         self.subnode_distribution_name.collectVariableAccesses(emit_variable)
 
 
-# Assign the names that are easier to import with a stable name.
 ExpressionImportlibMetadataBackportDistributionFailedCallBase = (
     _ChildHavingDistributionNameFinalChildrenMixin
 )
@@ -1562,10 +1276,6 @@ class _ChildHavingElementsTupleFinalNoRaiseMixin(ExpressionBase):
     # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
     __slots__ = ()
 
-    # This is generated for use in
-    #   ExpressionImportlibMetadataBackportEntryPointsValueRef
-    #   ExpressionImportlibMetadataEntryPointsValueRef
-
     def __init__(self, elements, source_ref):
         assert type(elements) is tuple
 
@@ -1577,16 +1287,9 @@ class _ChildHavingElementsTupleFinalNoRaiseMixin(ExpressionBase):
         ExpressionBase.__init__(self, source_ref)
 
     def getVisitableNodes(self):
-        """The visitable nodes, with tuple values flattened."""
-
         return self.subnode_elements
 
     def getVisitableNodesNamed(self):
-        """Named children dictionary.
-
-        For use in cloning nodes, debugging and XML output.
-        """
-
         return (("elements", self.subnode_elements),)
 
     def replaceChild(self, old_node, new_node):
@@ -1608,11 +1311,6 @@ class _ChildHavingElementsTupleFinalNoRaiseMixin(ExpressionBase):
         raise AssertionError("Didn't find child", old_node, "in", self)
 
     def getCloneArgs(self):
-        """Get clones of all children to pass for a new node.
-
-        Needs to make clones of child nodes too.
-        """
-
         values = {
             "elements": tuple(v.makeClone() for v in self.subnode_elements),
         }
@@ -1629,15 +1327,6 @@ class _ChildHavingElementsTupleFinalNoRaiseMixin(ExpressionBase):
         del self.subnode_elements
 
     def computeExpressionRaw(self, trace_collection):
-        """Compute an expression.
-
-        Default behavior is to just visit the child expressions first, and
-        then the node "computeExpression". For a few cases this needs to
-        be overloaded, e.g. conditional expressions.
-        """
-
-        # First apply the sub-expressions, as they are evaluated before
-        # the actual operation.
         old_subnode_elements = self.subnode_elements
 
         for sub_expression in old_subnode_elements:
@@ -1676,19 +1365,15 @@ class _ChildHavingElementsTupleFinalNoRaiseMixin(ExpressionBase):
 
         self.undoVariableTracing()
 
-    # For overload only
     @staticmethod
     def undoVariableTracing():
         pass
 
     def collectVariableAccesses(self, emit_variable):
-        """Collect variable reads and writes of child nodes."""
-
         for element in self.subnode_elements:
             element.collectVariableAccesses(emit_variable)
 
 
-# Assign the names that are easier to import with a stable name.
 ExpressionImportlibMetadataBackportEntryPointsValueRefBase = (
     _ChildHavingElementsTupleFinalNoRaiseMixin
 )
@@ -1700,10 +1385,6 @@ ExpressionImportlibMetadataEntryPointsValueRefBase = (
 class _ChildHavingExpressionAttributeNameMixin(ExpressionBase):
     # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
     __slots__ = ()
-
-    # This is generated for use in
-    #   ExpressionAttributeLookup
-    #   ExpressionAttributeLookupSpecial
 
     def __init__(self, expression, attribute_name, source_ref):
         expression.parent = self
@@ -1720,16 +1401,9 @@ class _ChildHavingExpressionAttributeNameMixin(ExpressionBase):
         }
 
     def getVisitableNodes(self):
-        """The visitable nodes, with tuple values flattened."""
-
         return (self.subnode_expression,)
 
     def getVisitableNodesNamed(self):
-        """Named children dictionary.
-
-        For use in cloning nodes, debugging and XML output.
-        """
-
         return (("expression", self.subnode_expression),)
 
     def replaceChild(self, old_node, new_node):
@@ -1744,11 +1418,6 @@ class _ChildHavingExpressionAttributeNameMixin(ExpressionBase):
         raise AssertionError("Didn't find child", old_node, "in", self)
 
     def getCloneArgs(self):
-        """Get clones of all children to pass for a new node.
-
-        Needs to make clones of child nodes too.
-        """
-
         values = {
             "expression": self.subnode_expression.makeClone(),
         }
@@ -1764,14 +1433,6 @@ class _ChildHavingExpressionAttributeNameMixin(ExpressionBase):
         del self.subnode_expression
 
     def computeExpressionRaw(self, trace_collection):
-        """Compute an expression.
-
-        Default behavior is to just visit the child expressions first, and
-        then the node "computeExpression". For a few cases this needs to
-        be overloaded, e.g. conditional expressions.
-        """
-
-        # First apply the sub-expression, as they it's evaluated before.
         expression = trace_collection.onExpression(self.subnode_expression)
 
         if expression.willRaiseAnyException():
@@ -1782,12 +1443,11 @@ class _ChildHavingExpressionAttributeNameMixin(ExpressionBase):
                 % (self.getChildNameNice(), expression.getChildNameNice()),
             )
 
-        # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
     @abstractmethod
     def computeExpression(self, trace_collection):
-        """Must be overloaded for non-final node."""
+        pass
 
     def undoVariableTracingRaw(self, trace_collection):
         for child in reversed(self.getVisitableNodes()):
@@ -1795,18 +1455,14 @@ class _ChildHavingExpressionAttributeNameMixin(ExpressionBase):
 
         self.undoVariableTracing()
 
-    # For overload only
     @staticmethod
     def undoVariableTracing():
         pass
 
     def collectVariableAccesses(self, emit_variable):
-        """Collect variable reads and writes of child nodes."""
-
         self.subnode_expression.collectVariableAccesses(emit_variable)
 
 
-# Assign the names that are easier to import with a stable name.
 ExpressionAttributeLookupBase = _ChildHavingExpressionAttributeNameMixin
 ExpressionAttributeLookupSpecialBase = _ChildHavingExpressionAttributeNameMixin
 
@@ -1814,9 +1470,6 @@ ExpressionAttributeLookupSpecialBase = _ChildHavingExpressionAttributeNameMixin
 class _ChildrenHavingExpressionNameRaiseWaitConstantNameMixin(ExpressionBase):
     # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
     __slots__ = ()
-
-    # This is generated for use in
-    #   ExpressionBuiltinHasattr
 
     def __init__(self, expression, name, source_ref):
         expression.parent = self
@@ -1830,19 +1483,12 @@ class _ChildrenHavingExpressionNameRaiseWaitConstantNameMixin(ExpressionBase):
         ExpressionBase.__init__(self, source_ref)
 
     def getVisitableNodes(self):
-        """The visitable nodes, with tuple values flattened."""
-
         return (
             self.subnode_expression,
             self.subnode_name,
         )
 
     def getVisitableNodesNamed(self):
-        """Named children dictionary.
-
-        For use in cloning nodes, debugging and XML output.
-        """
-
         return (
             ("expression", self.subnode_expression),
             ("name", self.subnode_name),
@@ -1868,11 +1514,6 @@ class _ChildrenHavingExpressionNameRaiseWaitConstantNameMixin(ExpressionBase):
         raise AssertionError("Didn't find child", old_node, "in", self)
 
     def getCloneArgs(self):
-        """Get clones of all children to pass for a new node.
-
-        Needs to make clones of child nodes too.
-        """
-
         values = {
             "expression": self.subnode_expression.makeClone(),
             "name": self.subnode_name.makeClone(),
@@ -1891,15 +1532,6 @@ class _ChildrenHavingExpressionNameRaiseWaitConstantNameMixin(ExpressionBase):
         del self.subnode_name
 
     def computeExpressionRaw(self, trace_collection):
-        """Compute an expression.
-
-        Default behavior is to just visit the child expressions first, and
-        then the node "computeExpression". For a few cases this needs to
-        be overloaded, e.g. conditional expressions.
-        """
-
-        # First apply the sub-expressions, as they are evaluated before
-        # the actual operation.
         for count, sub_expression in enumerate(self.getVisitableNodes()):
             expression = trace_collection.onExpression(sub_expression)
 
@@ -1925,12 +1557,11 @@ class _ChildrenHavingExpressionNameRaiseWaitConstantNameMixin(ExpressionBase):
             finally:
                 trace_collection.onExceptionRaiseExit(BaseException)
 
-        # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
     @abstractmethod
     def computeExpression(self, trace_collection):
-        """Must be overloaded for non-final node."""
+        pass
 
     def undoVariableTracingRaw(self, trace_collection):
         for child in reversed(self.getVisitableNodes()):
@@ -1938,32 +1569,25 @@ class _ChildrenHavingExpressionNameRaiseWaitConstantNameMixin(ExpressionBase):
 
         self.undoVariableTracing()
 
-    # For overload only
     @staticmethod
     def undoVariableTracing():
         pass
 
     def collectVariableAccesses(self, emit_variable):
-        """Collect variable reads and writes of child nodes."""
-
         self.subnode_expression.collectVariableAccesses(emit_variable)
         self.subnode_name.collectVariableAccesses(emit_variable)
 
     @abstractmethod
     def computeExpressionConstantName(self, trace_collection):
-        """Called when attribute name is constant."""
+        """Called when attribute 'name' is constant."""
 
 
-# Assign the names that are easier to import with a stable name.
 ExpressionBuiltinHasattrBase = _ChildrenHavingExpressionNameRaiseWaitConstantNameMixin
 
 
 class _ChildHavingInterpolationsTupleStrValuesMixin(ExpressionBase):
     # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
     __slots__ = ()
-
-    # This is generated for use in
-    #   ExpressionTemplateString
 
     def __init__(self, interpolations, str_values, source_ref):
         assert type(interpolations) is tuple
@@ -1983,16 +1607,9 @@ class _ChildHavingInterpolationsTupleStrValuesMixin(ExpressionBase):
         }
 
     def getVisitableNodes(self):
-        """The visitable nodes, with tuple values flattened."""
-
         return self.subnode_interpolations
 
     def getVisitableNodesNamed(self):
-        """Named children dictionary.
-
-        For use in cloning nodes, debugging and XML output.
-        """
-
         return (("interpolations", self.subnode_interpolations),)
 
     def replaceChild(self, old_node, new_node):
@@ -2014,11 +1631,6 @@ class _ChildHavingInterpolationsTupleStrValuesMixin(ExpressionBase):
         raise AssertionError("Didn't find child", old_node, "in", self)
 
     def getCloneArgs(self):
-        """Get clones of all children to pass for a new node.
-
-        Needs to make clones of child nodes too.
-        """
-
         values = {
             "interpolations": tuple(v.makeClone() for v in self.subnode_interpolations),
         }
@@ -2035,15 +1647,6 @@ class _ChildHavingInterpolationsTupleStrValuesMixin(ExpressionBase):
         del self.subnode_interpolations
 
     def computeExpressionRaw(self, trace_collection):
-        """Compute an expression.
-
-        Default behavior is to just visit the child expressions first, and
-        then the node "computeExpression". For a few cases this needs to
-        be overloaded, e.g. conditional expressions.
-        """
-
-        # First apply the sub-expressions, as they are evaluated before
-        # the actual operation.
         old_subnode_interpolations = self.subnode_interpolations
 
         for sub_expression in old_subnode_interpolations:
@@ -2065,12 +1668,11 @@ class _ChildHavingInterpolationsTupleStrValuesMixin(ExpressionBase):
                     % (self.getChildNameNice(), expression.getChildNameNice()),
                 )
 
-        # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
     @abstractmethod
     def computeExpression(self, trace_collection):
-        """Must be overloaded for non-final node."""
+        pass
 
     def undoVariableTracingRaw(self, trace_collection):
         for child in reversed(self.getVisitableNodes()):
@@ -2078,28 +1680,21 @@ class _ChildHavingInterpolationsTupleStrValuesMixin(ExpressionBase):
 
         self.undoVariableTracing()
 
-    # For overload only
     @staticmethod
     def undoVariableTracing():
         pass
 
     def collectVariableAccesses(self, emit_variable):
-        """Collect variable reads and writes of child nodes."""
-
         for element in self.subnode_interpolations:
             element.collectVariableAccesses(emit_variable)
 
 
-# Assign the names that are easier to import with a stable name.
 ExpressionTemplateStringBase = _ChildHavingInterpolationsTupleStrValuesMixin
 
 
 class _ChildrenHavingLeftRightFinalNoRaiseMixin(ExpressionBase):
     # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
     __slots__ = ()
-
-    # This is generated for use in
-    #   ExpressionSubtypeCheck
 
     def __init__(self, left, right, source_ref):
         left.parent = self
@@ -2113,19 +1708,12 @@ class _ChildrenHavingLeftRightFinalNoRaiseMixin(ExpressionBase):
         ExpressionBase.__init__(self, source_ref)
 
     def getVisitableNodes(self):
-        """The visitable nodes, with tuple values flattened."""
-
         return (
             self.subnode_left,
             self.subnode_right,
         )
 
     def getVisitableNodesNamed(self):
-        """Named children dictionary.
-
-        For use in cloning nodes, debugging and XML output.
-        """
-
         return (
             ("left", self.subnode_left),
             ("right", self.subnode_right),
@@ -2151,11 +1739,6 @@ class _ChildrenHavingLeftRightFinalNoRaiseMixin(ExpressionBase):
         raise AssertionError("Didn't find child", old_node, "in", self)
 
     def getCloneArgs(self):
-        """Get clones of all children to pass for a new node.
-
-        Needs to make clones of child nodes too.
-        """
-
         values = {
             "left": self.subnode_left.makeClone(),
             "right": self.subnode_right.makeClone(),
@@ -2174,15 +1757,6 @@ class _ChildrenHavingLeftRightFinalNoRaiseMixin(ExpressionBase):
         del self.subnode_right
 
     def computeExpressionRaw(self, trace_collection):
-        """Compute an expression.
-
-        Default behavior is to just visit the child expressions first, and
-        then the node "computeExpression". For a few cases this needs to
-        be overloaded, e.g. conditional expressions.
-        """
-
-        # First apply the sub-expressions, as they are evaluated before
-        # the actual operation.
         for count, sub_expression in enumerate(self.getVisitableNodes()):
             expression = trace_collection.onExpression(sub_expression)
 
@@ -2219,29 +1793,21 @@ class _ChildrenHavingLeftRightFinalNoRaiseMixin(ExpressionBase):
 
         self.undoVariableTracing()
 
-    # For overload only
     @staticmethod
     def undoVariableTracing():
         pass
 
     def collectVariableAccesses(self, emit_variable):
-        """Collect variable reads and writes of child nodes."""
-
         self.subnode_left.collectVariableAccesses(emit_variable)
         self.subnode_right.collectVariableAccesses(emit_variable)
 
 
-# Assign the names that are easier to import with a stable name.
 ExpressionSubtypeCheckBase = _ChildrenHavingLeftRightFinalNoRaiseMixin
 
 
 class _ChildHavingListArgNoRaiseMixin(ExpressionBase):
     # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
     __slots__ = ()
-
-    # This is generated for use in
-    #   ExpressionListOperationClear
-    #   ExpressionListOperationReverse
 
     def __init__(self, list_arg, source_ref):
         list_arg.parent = self
@@ -2251,16 +1817,9 @@ class _ChildHavingListArgNoRaiseMixin(ExpressionBase):
         ExpressionBase.__init__(self, source_ref)
 
     def getVisitableNodes(self):
-        """The visitable nodes, with tuple values flattened."""
-
         return (self.subnode_list_arg,)
 
     def getVisitableNodesNamed(self):
-        """Named children dictionary.
-
-        For use in cloning nodes, debugging and XML output.
-        """
-
         return (("list_arg", self.subnode_list_arg),)
 
     def replaceChild(self, old_node, new_node):
@@ -2275,11 +1834,6 @@ class _ChildHavingListArgNoRaiseMixin(ExpressionBase):
         raise AssertionError("Didn't find child", old_node, "in", self)
 
     def getCloneArgs(self):
-        """Get clones of all children to pass for a new node.
-
-        Needs to make clones of child nodes too.
-        """
-
         values = {
             "list_arg": self.subnode_list_arg.makeClone(),
         }
@@ -2295,14 +1849,6 @@ class _ChildHavingListArgNoRaiseMixin(ExpressionBase):
         del self.subnode_list_arg
 
     def computeExpressionRaw(self, trace_collection):
-        """Compute an expression.
-
-        Default behavior is to just visit the child expressions first, and
-        then the node "computeExpression". For a few cases this needs to
-        be overloaded, e.g. conditional expressions.
-        """
-
-        # First apply the sub-expression, as they it's evaluated before.
         expression = trace_collection.onExpression(self.subnode_list_arg)
 
         if expression.willRaiseAnyException():
@@ -2313,7 +1859,6 @@ class _ChildHavingListArgNoRaiseMixin(ExpressionBase):
                 % (self.getChildNameNice(), expression.getChildNameNice()),
             )
 
-        # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
     @staticmethod
@@ -2325,7 +1870,7 @@ class _ChildHavingListArgNoRaiseMixin(ExpressionBase):
 
     @abstractmethod
     def computeExpression(self, trace_collection):
-        """Must be overloaded for non-final node."""
+        pass
 
     def undoVariableTracingRaw(self, trace_collection):
         for child in reversed(self.getVisitableNodes()):
@@ -2333,18 +1878,14 @@ class _ChildHavingListArgNoRaiseMixin(ExpressionBase):
 
         self.undoVariableTracing()
 
-    # For overload only
     @staticmethod
     def undoVariableTracing():
         pass
 
     def collectVariableAccesses(self, emit_variable):
-        """Collect variable reads and writes of child nodes."""
-
         self.subnode_list_arg.collectVariableAccesses(emit_variable)
 
 
-# Assign the names that are easier to import with a stable name.
 ExpressionListOperationClearBase = _ChildHavingListArgNoRaiseMixin
 ExpressionListOperationReverseBase = _ChildHavingListArgNoRaiseMixin
 
@@ -2352,9 +1893,6 @@ ExpressionListOperationReverseBase = _ChildHavingListArgNoRaiseMixin
 class _ChildrenHavingListArgItemNoRaiseMixin(ExpressionBase):
     # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
     __slots__ = ()
-
-    # This is generated for use in
-    #   ExpressionListOperationAppend
 
     def __init__(self, list_arg, item, source_ref):
         list_arg.parent = self
@@ -2368,19 +1906,12 @@ class _ChildrenHavingListArgItemNoRaiseMixin(ExpressionBase):
         ExpressionBase.__init__(self, source_ref)
 
     def getVisitableNodes(self):
-        """The visitable nodes, with tuple values flattened."""
-
         return (
             self.subnode_list_arg,
             self.subnode_item,
         )
 
     def getVisitableNodesNamed(self):
-        """Named children dictionary.
-
-        For use in cloning nodes, debugging and XML output.
-        """
-
         return (
             ("list_arg", self.subnode_list_arg),
             ("item", self.subnode_item),
@@ -2406,11 +1937,6 @@ class _ChildrenHavingListArgItemNoRaiseMixin(ExpressionBase):
         raise AssertionError("Didn't find child", old_node, "in", self)
 
     def getCloneArgs(self):
-        """Get clones of all children to pass for a new node.
-
-        Needs to make clones of child nodes too.
-        """
-
         values = {
             "list_arg": self.subnode_list_arg.makeClone(),
             "item": self.subnode_item.makeClone(),
@@ -2429,15 +1955,6 @@ class _ChildrenHavingListArgItemNoRaiseMixin(ExpressionBase):
         del self.subnode_item
 
     def computeExpressionRaw(self, trace_collection):
-        """Compute an expression.
-
-        Default behavior is to just visit the child expressions first, and
-        then the node "computeExpression". For a few cases this needs to
-        be overloaded, e.g. conditional expressions.
-        """
-
-        # First apply the sub-expressions, as they are evaluated before
-        # the actual operation.
         for count, sub_expression in enumerate(self.getVisitableNodes()):
             expression = trace_collection.onExpression(sub_expression)
 
@@ -2457,7 +1974,6 @@ class _ChildrenHavingListArgItemNoRaiseMixin(ExpressionBase):
                     % (self.getChildNameNice(), expression.getChildNameNice()),
                 )
 
-        # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
     @staticmethod
@@ -2471,7 +1987,7 @@ class _ChildrenHavingListArgItemNoRaiseMixin(ExpressionBase):
 
     @abstractmethod
     def computeExpression(self, trace_collection):
-        """Must be overloaded for non-final node."""
+        pass
 
     def undoVariableTracingRaw(self, trace_collection):
         for child in reversed(self.getVisitableNodes()):
@@ -2479,28 +1995,21 @@ class _ChildrenHavingListArgItemNoRaiseMixin(ExpressionBase):
 
         self.undoVariableTracing()
 
-    # For overload only
     @staticmethod
     def undoVariableTracing():
         pass
 
     def collectVariableAccesses(self, emit_variable):
-        """Collect variable reads and writes of child nodes."""
-
         self.subnode_list_arg.collectVariableAccesses(emit_variable)
         self.subnode_item.collectVariableAccesses(emit_variable)
 
 
-# Assign the names that are easier to import with a stable name.
 ExpressionListOperationAppendBase = _ChildrenHavingListArgItemNoRaiseMixin
 
 
 class _ChildrenHavingListArgValueFinalNoRaiseMixin(ExpressionBase):
     # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
     __slots__ = ()
-
-    # This is generated for use in
-    #   ExpressionListOperationCount
 
     def __init__(self, list_arg, value, source_ref):
         list_arg.parent = self
@@ -2514,19 +2023,12 @@ class _ChildrenHavingListArgValueFinalNoRaiseMixin(ExpressionBase):
         ExpressionBase.__init__(self, source_ref)
 
     def getVisitableNodes(self):
-        """The visitable nodes, with tuple values flattened."""
-
         return (
             self.subnode_list_arg,
             self.subnode_value,
         )
 
     def getVisitableNodesNamed(self):
-        """Named children dictionary.
-
-        For use in cloning nodes, debugging and XML output.
-        """
-
         return (
             ("list_arg", self.subnode_list_arg),
             ("value", self.subnode_value),
@@ -2552,11 +2054,6 @@ class _ChildrenHavingListArgValueFinalNoRaiseMixin(ExpressionBase):
         raise AssertionError("Didn't find child", old_node, "in", self)
 
     def getCloneArgs(self):
-        """Get clones of all children to pass for a new node.
-
-        Needs to make clones of child nodes too.
-        """
-
         values = {
             "list_arg": self.subnode_list_arg.makeClone(),
             "value": self.subnode_value.makeClone(),
@@ -2575,15 +2072,6 @@ class _ChildrenHavingListArgValueFinalNoRaiseMixin(ExpressionBase):
         del self.subnode_value
 
     def computeExpressionRaw(self, trace_collection):
-        """Compute an expression.
-
-        Default behavior is to just visit the child expressions first, and
-        then the node "computeExpression". For a few cases this needs to
-        be overloaded, e.g. conditional expressions.
-        """
-
-        # First apply the sub-expressions, as they are evaluated before
-        # the actual operation.
         for count, sub_expression in enumerate(self.getVisitableNodes()):
             expression = trace_collection.onExpression(sub_expression)
 
@@ -2620,28 +2108,21 @@ class _ChildrenHavingListArgValueFinalNoRaiseMixin(ExpressionBase):
 
         self.undoVariableTracing()
 
-    # For overload only
     @staticmethod
     def undoVariableTracing():
         pass
 
     def collectVariableAccesses(self, emit_variable):
-        """Collect variable reads and writes of child nodes."""
-
         self.subnode_list_arg.collectVariableAccesses(emit_variable)
         self.subnode_value.collectVariableAccesses(emit_variable)
 
 
-# Assign the names that are easier to import with a stable name.
 ExpressionListOperationCountBase = _ChildrenHavingListArgValueFinalNoRaiseMixin
 
 
 class _ChildrenHavingMappingFallbackVariableNameMixin(ExpressionBase):
     # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
     __slots__ = ()
-
-    # This is generated for use in
-    #   ExpressionClassMappingVariableRefOrFallback
 
     def __init__(self, mapping, fallback, variable_name, source_ref):
         mapping.parent = self
@@ -2662,19 +2143,12 @@ class _ChildrenHavingMappingFallbackVariableNameMixin(ExpressionBase):
         }
 
     def getVisitableNodes(self):
-        """The visitable nodes, with tuple values flattened."""
-
         return (
             self.subnode_mapping,
             self.subnode_fallback,
         )
 
     def getVisitableNodesNamed(self):
-        """Named children dictionary.
-
-        For use in cloning nodes, debugging and XML output.
-        """
-
         return (
             ("mapping", self.subnode_mapping),
             ("fallback", self.subnode_fallback),
@@ -2700,11 +2174,6 @@ class _ChildrenHavingMappingFallbackVariableNameMixin(ExpressionBase):
         raise AssertionError("Didn't find child", old_node, "in", self)
 
     def getCloneArgs(self):
-        """Get clones of all children to pass for a new node.
-
-        Needs to make clones of child nodes too.
-        """
-
         values = {
             "mapping": self.subnode_mapping.makeClone(),
             "fallback": self.subnode_fallback.makeClone(),
@@ -2723,15 +2192,6 @@ class _ChildrenHavingMappingFallbackVariableNameMixin(ExpressionBase):
         del self.subnode_fallback
 
     def computeExpressionRaw(self, trace_collection):
-        """Compute an expression.
-
-        Default behavior is to just visit the child expressions first, and
-        then the node "computeExpression". For a few cases this needs to
-        be overloaded, e.g. conditional expressions.
-        """
-
-        # First apply the sub-expressions, as they are evaluated before
-        # the actual operation.
         for count, sub_expression in enumerate(self.getVisitableNodes()):
             expression = trace_collection.onExpression(sub_expression)
 
@@ -2751,12 +2211,11 @@ class _ChildrenHavingMappingFallbackVariableNameMixin(ExpressionBase):
                     % (self.getChildNameNice(), expression.getChildNameNice()),
                 )
 
-        # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
     @abstractmethod
     def computeExpression(self, trace_collection):
-        """Must be overloaded for non-final node."""
+        pass
 
     def undoVariableTracingRaw(self, trace_collection):
         for child in reversed(self.getVisitableNodes()):
@@ -2764,19 +2223,15 @@ class _ChildrenHavingMappingFallbackVariableNameMixin(ExpressionBase):
 
         self.undoVariableTracing()
 
-    # For overload only
     @staticmethod
     def undoVariableTracing():
         pass
 
     def collectVariableAccesses(self, emit_variable):
-        """Collect variable reads and writes of child nodes."""
-
         self.subnode_mapping.collectVariableAccesses(emit_variable)
         self.subnode_fallback.collectVariableAccesses(emit_variable)
 
 
-# Assign the names that are easier to import with a stable name.
 ExpressionClassMappingVariableRefOrFallbackBase = (
     _ChildrenHavingMappingFallbackVariableNameMixin
 )
@@ -2787,9 +2242,6 @@ class _ChildrenHavingMetaclassNameBasesDictArgClassDeclDictClassVariableMixin(
 ):
     # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
     __slots__ = ()
-
-    # This is generated for use in
-    #   ExpressionCallMetaclass
 
     def __init__(
         self,
@@ -2831,8 +2283,6 @@ class _ChildrenHavingMetaclassNameBasesDictArgClassDeclDictClassVariableMixin(
         }
 
     def getVisitableNodes(self):
-        """The visitable nodes, with tuple values flattened."""
-
         return (
             self.subnode_metaclass,
             self.subnode_name,
@@ -2842,11 +2292,6 @@ class _ChildrenHavingMetaclassNameBasesDictArgClassDeclDictClassVariableMixin(
         )
 
     def getVisitableNodesNamed(self):
-        """Named children dictionary.
-
-        For use in cloning nodes, debugging and XML output.
-        """
-
         return (
             ("metaclass", self.subnode_metaclass),
             ("name", self.subnode_name),
@@ -2899,11 +2344,6 @@ class _ChildrenHavingMetaclassNameBasesDictArgClassDeclDictClassVariableMixin(
         raise AssertionError("Didn't find child", old_node, "in", self)
 
     def getCloneArgs(self):
-        """Get clones of all children to pass for a new node.
-
-        Needs to make clones of child nodes too.
-        """
-
         values = {
             "metaclass": self.subnode_metaclass.makeClone(),
             "name": self.subnode_name.makeClone(),
@@ -2931,15 +2371,6 @@ class _ChildrenHavingMetaclassNameBasesDictArgClassDeclDictClassVariableMixin(
         del self.subnode_class_decl_dict
 
     def computeExpressionRaw(self, trace_collection):
-        """Compute an expression.
-
-        Default behavior is to just visit the child expressions first, and
-        then the node "computeExpression". For a few cases this needs to
-        be overloaded, e.g. conditional expressions.
-        """
-
-        # First apply the sub-expressions, as they are evaluated before
-        # the actual operation.
         for count, sub_expression in enumerate(self.getVisitableNodes()):
             expression = trace_collection.onExpression(sub_expression)
 
@@ -2959,12 +2390,11 @@ class _ChildrenHavingMetaclassNameBasesDictArgClassDeclDictClassVariableMixin(
                     % (self.getChildNameNice(), expression.getChildNameNice()),
                 )
 
-        # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
     @abstractmethod
     def computeExpression(self, trace_collection):
-        """Must be overloaded for non-final node."""
+        pass
 
     def undoVariableTracingRaw(self, trace_collection):
         for child in reversed(self.getVisitableNodes()):
@@ -2972,14 +2402,11 @@ class _ChildrenHavingMetaclassNameBasesDictArgClassDeclDictClassVariableMixin(
 
         self.undoVariableTracing()
 
-    # For overload only
     @staticmethod
     def undoVariableTracing():
         pass
 
     def collectVariableAccesses(self, emit_variable):
-        """Collect variable reads and writes of child nodes."""
-
         self.subnode_metaclass.collectVariableAccesses(emit_variable)
         self.subnode_name.collectVariableAccesses(emit_variable)
         self.subnode_bases.collectVariableAccesses(emit_variable)
@@ -2987,7 +2414,6 @@ class _ChildrenHavingMetaclassNameBasesDictArgClassDeclDictClassVariableMixin(
         self.subnode_class_decl_dict.collectVariableAccesses(emit_variable)
 
 
-# Assign the names that are easier to import with a stable name.
 ExpressionCallMetaclassBase = (
     _ChildrenHavingMetaclassNameBasesDictArgClassDeclDictClassVariableMixin
 )
@@ -2996,9 +2422,6 @@ ExpressionCallMetaclassBase = (
 class ChildrenHavingNameReprValueAutoNoneOperationMixin(object):
     # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
     __slots__ = ()
-
-    # This is generated for use in
-    #   ExpressionBuiltinSentinelCall
 
     def __init__(
         self,
@@ -3016,8 +2439,6 @@ class ChildrenHavingNameReprValueAutoNoneOperationMixin(object):
         self.subnode_repr_value = repr_value
 
     def getVisitableNodes(self):
-        """The visitable nodes, with tuple values flattened."""
-
         if self.subnode_repr_value is None:
             return (self.subnode_name,)
 
@@ -3027,11 +2448,6 @@ class ChildrenHavingNameReprValueAutoNoneOperationMixin(object):
         )
 
     def getVisitableNodesNamed(self):
-        """Named children dictionary.
-
-        For use in cloning nodes, debugging and XML output.
-        """
-
         return (
             ("name", self.subnode_name),
             ("repr_value", self.subnode_repr_value),
@@ -3059,11 +2475,6 @@ class ChildrenHavingNameReprValueAutoNoneOperationMixin(object):
         raise AssertionError("Didn't find child", old_node, "in", self)
 
     def getCloneArgs(self):
-        """Get clones of all children to pass for a new node.
-
-        Needs to make clones of child nodes too.
-        """
-
         values = {
             "name": self.subnode_name.makeClone(),
             "repr_value": (
@@ -3087,15 +2498,6 @@ class ChildrenHavingNameReprValueAutoNoneOperationMixin(object):
         del self.subnode_repr_value
 
     def computeExpressionRaw(self, trace_collection):
-        """Compute an expression.
-
-        Default behavior is to just visit the child expressions first, and
-        then the node "computeExpression". For a few cases this needs to
-        be overloaded, e.g. conditional expressions.
-        """
-
-        # First apply the sub-expressions, as they are evaluated before
-        # the actual operation.
         for count, sub_expression in enumerate(self.getVisitableNodes()):
             expression = trace_collection.onExpression(sub_expression)
 
@@ -3115,7 +2517,6 @@ class ChildrenHavingNameReprValueAutoNoneOperationMixin(object):
                     % (self.getChildNameNice(), expression.getChildNameNice()),
                 )
 
-        # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
     def mayRaiseException(self, exception_type):
@@ -3130,7 +2531,7 @@ class ChildrenHavingNameReprValueAutoNoneOperationMixin(object):
 
     @abstractmethod
     def mayRaiseExceptionOperation(self):
-        """Must be overloaded for operation nodes."""
+        pass
 
     def undoVariableTracingRaw(self, trace_collection):
         for child in reversed(self.getVisitableNodes()):
@@ -3138,14 +2539,11 @@ class ChildrenHavingNameReprValueAutoNoneOperationMixin(object):
 
         self.undoVariableTracing()
 
-    # For overload only
     @staticmethod
     def undoVariableTracing():
         pass
 
     def collectVariableAccesses(self, emit_variable):
-        """Collect variable reads and writes of child nodes."""
-
         self.subnode_name.collectVariableAccesses(emit_variable)
         subnode_repr_value = self.subnode_repr_value
 
@@ -3153,7 +2551,6 @@ class ChildrenHavingNameReprValueAutoNoneOperationMixin(object):
             self.subnode_repr_value.collectVariableAccesses(emit_variable)
 
 
-# Assign the names that are easier to import with a stable name.
 ChildrenExpressionBuiltinSentinelCallMixin = (
     ChildrenHavingNameReprValueAutoNoneOperationMixin
 )
@@ -3162,10 +2559,6 @@ ChildrenExpressionBuiltinSentinelCallMixin = (
 class _ChildHavingPairsTupleFinalNoRaiseMixin(ExpressionBase):
     # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
     __slots__ = ()
-
-    # This is generated for use in
-    #   ExpressionImportlibMetadataBackportSelectableGroupsValueRef
-    #   ExpressionImportlibMetadataSelectableGroupsValueRef
 
     def __init__(self, pairs, source_ref):
         assert type(pairs) is tuple
@@ -3178,16 +2571,9 @@ class _ChildHavingPairsTupleFinalNoRaiseMixin(ExpressionBase):
         ExpressionBase.__init__(self, source_ref)
 
     def getVisitableNodes(self):
-        """The visitable nodes, with tuple values flattened."""
-
         return self.subnode_pairs
 
     def getVisitableNodesNamed(self):
-        """Named children dictionary.
-
-        For use in cloning nodes, debugging and XML output.
-        """
-
         return (("pairs", self.subnode_pairs),)
 
     def replaceChild(self, old_node, new_node):
@@ -3207,11 +2593,6 @@ class _ChildHavingPairsTupleFinalNoRaiseMixin(ExpressionBase):
         raise AssertionError("Didn't find child", old_node, "in", self)
 
     def getCloneArgs(self):
-        """Get clones of all children to pass for a new node.
-
-        Needs to make clones of child nodes too.
-        """
-
         values = {
             "pairs": tuple(v.makeClone() for v in self.subnode_pairs),
         }
@@ -3228,15 +2609,6 @@ class _ChildHavingPairsTupleFinalNoRaiseMixin(ExpressionBase):
         del self.subnode_pairs
 
     def computeExpressionRaw(self, trace_collection):
-        """Compute an expression.
-
-        Default behavior is to just visit the child expressions first, and
-        then the node "computeExpression". For a few cases this needs to
-        be overloaded, e.g. conditional expressions.
-        """
-
-        # First apply the sub-expressions, as they are evaluated before
-        # the actual operation.
         old_subnode_pairs = self.subnode_pairs
 
         for sub_expression in old_subnode_pairs:
@@ -3275,19 +2647,15 @@ class _ChildHavingPairsTupleFinalNoRaiseMixin(ExpressionBase):
 
         self.undoVariableTracing()
 
-    # For overload only
     @staticmethod
     def undoVariableTracing():
         pass
 
     def collectVariableAccesses(self, emit_variable):
-        """Collect variable reads and writes of child nodes."""
-
         for element in self.subnode_pairs:
             element.collectVariableAccesses(emit_variable)
 
 
-# Assign the names that are easier to import with a stable name.
 ExpressionImportlibMetadataBackportSelectableGroupsValueRefBase = (
     _ChildHavingPairsTupleFinalNoRaiseMixin
 )
@@ -3300,9 +2668,6 @@ class _ChildHavingPromptOptionalFinalMixin(ExpressionBase):
     # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
     __slots__ = ()
 
-    # This is generated for use in
-    #   ExpressionBuiltinInput
-
     def __init__(self, prompt, source_ref):
         if prompt is not None:
             prompt.parent = self
@@ -3312,19 +2677,12 @@ class _ChildHavingPromptOptionalFinalMixin(ExpressionBase):
         ExpressionBase.__init__(self, source_ref)
 
     def getVisitableNodes(self):
-        """The visitable nodes, with tuple values flattened."""
-
         if self.subnode_prompt is None:
             return ()
 
         return (self.subnode_prompt,)
 
     def getVisitableNodesNamed(self):
-        """Named children dictionary.
-
-        For use in cloning nodes, debugging and XML output.
-        """
-
         return (("prompt", self.subnode_prompt),)
 
     def replaceChild(self, old_node, new_node):
@@ -3340,11 +2698,6 @@ class _ChildHavingPromptOptionalFinalMixin(ExpressionBase):
         raise AssertionError("Didn't find child", old_node, "in", self)
 
     def getCloneArgs(self):
-        """Get clones of all children to pass for a new node.
-
-        Needs to make clones of child nodes too.
-        """
-
         values = {
             "prompt": (
                 self.subnode_prompt.makeClone()
@@ -3365,14 +2718,6 @@ class _ChildHavingPromptOptionalFinalMixin(ExpressionBase):
         del self.subnode_prompt
 
     def computeExpressionRaw(self, trace_collection):
-        """Compute an expression.
-
-        Default behavior is to just visit the child expressions first, and
-        then the node "computeExpression". For a few cases this needs to
-        be overloaded, e.g. conditional expressions.
-        """
-
-        # First apply the sub-expression, as they it's evaluated before.
         expression = self.subnode_prompt
 
         if expression is not None:
@@ -3395,31 +2740,23 @@ class _ChildHavingPromptOptionalFinalMixin(ExpressionBase):
 
         self.undoVariableTracing()
 
-    # For overload only
     @staticmethod
     def undoVariableTracing():
         pass
 
     def collectVariableAccesses(self, emit_variable):
-        """Collect variable reads and writes of child nodes."""
-
         subnode_prompt = self.subnode_prompt
 
         if subnode_prompt is not None:
             self.subnode_prompt.collectVariableAccesses(emit_variable)
 
 
-# Assign the names that are easier to import with a stable name.
 ExpressionBuiltinInputBase = _ChildHavingPromptOptionalFinalMixin
 
 
 class _ChildHavingValueFinalNoRaiseMixin(ExpressionBase):
     # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
     __slots__ = ()
-
-    # This is generated for use in
-    #   ExpressionBuiltinClassmethod
-    #   ExpressionBuiltinStaticmethod
 
     def __init__(self, value, source_ref):
         value.parent = self
@@ -3429,16 +2766,9 @@ class _ChildHavingValueFinalNoRaiseMixin(ExpressionBase):
         ExpressionBase.__init__(self, source_ref)
 
     def getVisitableNodes(self):
-        """The visitable nodes, with tuple values flattened."""
-
         return (self.subnode_value,)
 
     def getVisitableNodesNamed(self):
-        """Named children dictionary.
-
-        For use in cloning nodes, debugging and XML output.
-        """
-
         return (("value", self.subnode_value),)
 
     def replaceChild(self, old_node, new_node):
@@ -3453,11 +2783,6 @@ class _ChildHavingValueFinalNoRaiseMixin(ExpressionBase):
         raise AssertionError("Didn't find child", old_node, "in", self)
 
     def getCloneArgs(self):
-        """Get clones of all children to pass for a new node.
-
-        Needs to make clones of child nodes too.
-        """
-
         values = {
             "value": self.subnode_value.makeClone(),
         }
@@ -3473,14 +2798,6 @@ class _ChildHavingValueFinalNoRaiseMixin(ExpressionBase):
         del self.subnode_value
 
     def computeExpressionRaw(self, trace_collection):
-        """Compute an expression.
-
-        Default behavior is to just visit the child expressions first, and
-        then the node "computeExpression". For a few cases this needs to
-        be overloaded, e.g. conditional expressions.
-        """
-
-        # First apply the sub-expression, as they it's evaluated before.
         expression = trace_collection.onExpression(self.subnode_value)
 
         if expression.willRaiseAnyException():
@@ -3506,18 +2823,14 @@ class _ChildHavingValueFinalNoRaiseMixin(ExpressionBase):
 
         self.undoVariableTracing()
 
-    # For overload only
     @staticmethod
     def undoVariableTracing():
         pass
 
     def collectVariableAccesses(self, emit_variable):
-        """Collect variable reads and writes of child nodes."""
-
         self.subnode_value.collectVariableAccesses(emit_variable)
 
 
-# Assign the names that are easier to import with a stable name.
 ExpressionBuiltinClassmethodBase = _ChildHavingValueFinalNoRaiseMixin
 ExpressionBuiltinStaticmethodBase = _ChildHavingValueFinalNoRaiseMixin
 
@@ -3525,9 +2838,6 @@ ExpressionBuiltinStaticmethodBase = _ChildHavingValueFinalNoRaiseMixin
 class _ChildrenHavingValueFormatSpecOptionalConversionStrValueMixin(ExpressionBase):
     # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
     __slots__ = ()
-
-    # This is generated for use in
-    #   ExpressionTemplateInterpolation
 
     def __init__(self, value, format_spec, str_value, conversion, source_ref):
         value.parent = self
@@ -3551,8 +2861,6 @@ class _ChildrenHavingValueFormatSpecOptionalConversionStrValueMixin(ExpressionBa
         }
 
     def getVisitableNodes(self):
-        """The visitable nodes, with tuple values flattened."""
-
         if self.subnode_format_spec is None:
             return (self.subnode_value,)
 
@@ -3562,11 +2870,6 @@ class _ChildrenHavingValueFormatSpecOptionalConversionStrValueMixin(ExpressionBa
         )
 
     def getVisitableNodesNamed(self):
-        """Named children dictionary.
-
-        For use in cloning nodes, debugging and XML output.
-        """
-
         return (
             ("value", self.subnode_value),
             ("format_spec", self.subnode_format_spec),
@@ -3593,11 +2896,6 @@ class _ChildrenHavingValueFormatSpecOptionalConversionStrValueMixin(ExpressionBa
         raise AssertionError("Didn't find child", old_node, "in", self)
 
     def getCloneArgs(self):
-        """Get clones of all children to pass for a new node.
-
-        Needs to make clones of child nodes too.
-        """
-
         values = {
             "value": self.subnode_value.makeClone(),
             "format_spec": (
@@ -3621,15 +2919,6 @@ class _ChildrenHavingValueFormatSpecOptionalConversionStrValueMixin(ExpressionBa
         del self.subnode_format_spec
 
     def computeExpressionRaw(self, trace_collection):
-        """Compute an expression.
-
-        Default behavior is to just visit the child expressions first, and
-        then the node "computeExpression". For a few cases this needs to
-        be overloaded, e.g. conditional expressions.
-        """
-
-        # First apply the sub-expressions, as they are evaluated before
-        # the actual operation.
         for count, sub_expression in enumerate(self.getVisitableNodes()):
             expression = trace_collection.onExpression(sub_expression)
 
@@ -3649,12 +2938,11 @@ class _ChildrenHavingValueFormatSpecOptionalConversionStrValueMixin(ExpressionBa
                     % (self.getChildNameNice(), expression.getChildNameNice()),
                 )
 
-        # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
     @abstractmethod
     def computeExpression(self, trace_collection):
-        """Must be overloaded for non-final node."""
+        pass
 
     def undoVariableTracingRaw(self, trace_collection):
         for child in reversed(self.getVisitableNodes()):
@@ -3662,14 +2950,11 @@ class _ChildrenHavingValueFormatSpecOptionalConversionStrValueMixin(ExpressionBa
 
         self.undoVariableTracing()
 
-    # For overload only
     @staticmethod
     def undoVariableTracing():
         pass
 
     def collectVariableAccesses(self, emit_variable):
-        """Collect variable reads and writes of child nodes."""
-
         self.subnode_value.collectVariableAccesses(emit_variable)
         subnode_format_spec = self.subnode_format_spec
 
@@ -3677,7 +2962,6 @@ class _ChildrenHavingValueFormatSpecOptionalConversionStrValueMixin(ExpressionBa
             self.subnode_format_spec.collectVariableAccesses(emit_variable)
 
 
-# Assign the names that are easier to import with a stable name.
 ExpressionTemplateInterpolationBase = (
     _ChildrenHavingValueFormatSpecOptionalConversionStrValueMixin
 )

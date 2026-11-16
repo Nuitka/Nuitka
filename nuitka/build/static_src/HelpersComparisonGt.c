@@ -25,7 +25,6 @@ static PyObject *COMPARE_GT_OBJECT_INT_INT(PyObject *operand1, PyObject *operand
 
     bool r = a > b;
 
-    // Convert to target type.
     PyObject *result = BOOL_FROM(r);
     Py_INCREF_IMMORTAL(result);
     return result;
@@ -43,13 +42,11 @@ static bool COMPARE_GT_CBOOL_INT_INT(PyObject *operand1, PyObject *operand2) {
 
     bool r = a > b;
 
-    // Convert to target type.
     bool result = r;
 
     return result;
 }
 #endif
-/* Code referring to "OBJECT" corresponds to any Python object and "OBJECT" to any Python object. */
 PyObject *RICH_COMPARE_GT_OBJECT_OBJECT_OBJECT(PyObject *operand1, PyObject *operand2) {
 
 #if PYTHON_VERSION < 0x300
@@ -72,7 +69,6 @@ PyObject *RICH_COMPARE_GT_OBJECT_OBJECT_OBJECT(PyObject *operand1, PyObject *ope
     PyTypeObject *type2 = Py_TYPE(operand2);
 
 #if PYTHON_VERSION < 0x300
-    // If the types are equal, we may get away immediately except for instances.
     if (type1 == type2 && !PyInstance_Check(operand1)) {
 
         richcmpfunc frich = TP_RICHCOMPARE(type1);
@@ -89,7 +85,6 @@ PyObject *RICH_COMPARE_GT_OBJECT_OBJECT_OBJECT(PyObject *operand1, PyObject *ope
             Py_DECREF_IMMORTAL(result);
         }
 
-        // No rich comparison worked, but maybe compare works.
         cmpfunc fcmp = type1->tp_compare;
 
         if (fcmp != NULL) {
@@ -132,7 +127,6 @@ PyObject *RICH_COMPARE_GT_OBJECT_OBJECT_OBJECT(PyObject *operand1, PyObject *ope
         }
     }
 
-    // Fast path was not successful or not taken
     richcmpfunc f;
 
     if (type1 != type2 && Nuitka_Type_IsSubtype(type2, type1)) {
@@ -196,16 +190,12 @@ PyObject *RICH_COMPARE_GT_OBJECT_OBJECT_OBJECT(PyObject *operand1, PyObject *ope
 
             c = (aa < bb) ? -1 : (aa > bb) ? 1 : 0;
         } else if (operand1 == Py_None) {
-            // None is smaller than everything else
             c = -1;
         } else if (operand2 == Py_None) {
-            // None is smaller than everything else
             c = 1;
         } else if (PyNumber_Check(operand1)) {
-            // different type: compare type names but numbers are smaller than
-            // others.
+            // Different types: compare type names, except numbers sort smaller than others.
             if (PyNumber_Check(operand2)) {
-                // Both numbers, need to make a decision based on types.
                 Py_uintptr_t aa = (Py_uintptr_t)type1;
                 Py_uintptr_t bb = (Py_uintptr_t)type2;
 
@@ -216,7 +206,6 @@ PyObject *RICH_COMPARE_GT_OBJECT_OBJECT_OBJECT(PyObject *operand1, PyObject *ope
         } else if (PyNumber_Check(operand2)) {
             c = 1;
         } else {
-            // Banking on C compile to optimize "strcmp".
             int s = strcmp(type1->tp_name, type2->tp_name);
 
             if (s < 0) {
@@ -224,7 +213,6 @@ PyObject *RICH_COMPARE_GT_OBJECT_OBJECT_OBJECT(PyObject *operand1, PyObject *ope
             } else if (s > 0) {
                 c = 1;
             } else {
-                // Same type name need to make a decision based on type address.
                 Py_uintptr_t aa = (Py_uintptr_t)type1;
                 Py_uintptr_t bb = (Py_uintptr_t)type2;
 
@@ -318,8 +306,6 @@ PyObject *RICH_COMPARE_GT_OBJECT_OBJECT_OBJECT(PyObject *operand1, PyObject *ope
 
     Py_LeaveRecursiveCall();
 
-    // If it is not implemented, do pointer identity checks as "==" and "!=" and
-    // otherwise give an error
     switch (Py_GT) {
     case Py_EQ: {
         bool r = operand1 == operand2;
@@ -345,7 +331,6 @@ PyObject *RICH_COMPARE_GT_OBJECT_OBJECT_OBJECT(PyObject *operand1, PyObject *ope
 #endif
 }
 
-/* Code referring to "OBJECT" corresponds to any Python object and "OBJECT" to any Python object. */
 nuitka_bool RICH_COMPARE_GT_NBOOL_OBJECT_OBJECT(PyObject *operand1, PyObject *operand2) {
 
 #if PYTHON_VERSION < 0x300
@@ -368,7 +353,6 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_OBJECT_OBJECT(PyObject *operand1, PyObject *op
     PyTypeObject *type2 = Py_TYPE(operand2);
 
 #if PYTHON_VERSION < 0x300
-    // If the types are equal, we may get away immediately except for instances.
     if (type1 == type2 && !PyInstance_Check(operand1)) {
 
         richcmpfunc frich = TP_RICHCOMPARE(type1);
@@ -393,7 +377,6 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_OBJECT_OBJECT(PyObject *operand1, PyObject *op
             Py_DECREF_IMMORTAL(result);
         }
 
-        // No rich comparison worked, but maybe compare works.
         cmpfunc fcmp = type1->tp_compare;
 
         if (fcmp != NULL) {
@@ -436,7 +419,6 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_OBJECT_OBJECT(PyObject *operand1, PyObject *op
         }
     }
 
-    // Fast path was not successful or not taken
     richcmpfunc f;
 
     if (type1 != type2 && Nuitka_Type_IsSubtype(type2, type1)) {
@@ -524,16 +506,12 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_OBJECT_OBJECT(PyObject *operand1, PyObject *op
 
             c = (aa < bb) ? -1 : (aa > bb) ? 1 : 0;
         } else if (operand1 == Py_None) {
-            // None is smaller than everything else
             c = -1;
         } else if (operand2 == Py_None) {
-            // None is smaller than everything else
             c = 1;
         } else if (PyNumber_Check(operand1)) {
-            // different type: compare type names but numbers are smaller than
-            // others.
+            // Different types: compare type names, except numbers sort smaller than others.
             if (PyNumber_Check(operand2)) {
-                // Both numbers, need to make a decision based on types.
                 Py_uintptr_t aa = (Py_uintptr_t)type1;
                 Py_uintptr_t bb = (Py_uintptr_t)type2;
 
@@ -544,7 +522,6 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_OBJECT_OBJECT(PyObject *operand1, PyObject *op
         } else if (PyNumber_Check(operand2)) {
             c = 1;
         } else {
-            // Banking on C compile to optimize "strcmp".
             int s = strcmp(type1->tp_name, type2->tp_name);
 
             if (s < 0) {
@@ -552,7 +529,6 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_OBJECT_OBJECT(PyObject *operand1, PyObject *op
             } else if (s > 0) {
                 c = 1;
             } else {
-                // Same type name need to make a decision based on type address.
                 Py_uintptr_t aa = (Py_uintptr_t)type1;
                 Py_uintptr_t bb = (Py_uintptr_t)type2;
 
@@ -670,8 +646,6 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_OBJECT_OBJECT(PyObject *operand1, PyObject *op
 
     Py_LeaveRecursiveCall();
 
-    // If it is not implemented, do pointer identity checks as "==" and "!=" and
-    // otherwise give an error
     switch (Py_GT) {
     case Py_EQ: {
         bool r = operand1 == operand2;
@@ -707,11 +681,9 @@ static PyObject *COMPARE_GT_OBJECT_STR_STR(PyObject *operand1, PyObject *operand
     PyStringObject *a = (PyStringObject *)operand1;
     PyStringObject *b = (PyStringObject *)operand2;
 
-    // Same object has fast path for all operations.
     if (operand1 == operand2) {
         bool r = false;
 
-        // Convert to target type.
         PyObject *result = BOOL_FROM(r);
         Py_INCREF_IMMORTAL(result);
         return result;
@@ -739,14 +711,12 @@ static PyObject *COMPARE_GT_OBJECT_STR_STR(PyObject *operand1, PyObject *operand
 
     c = c > 0;
 
-    // Convert to target type.
     PyObject *result = BOOL_FROM(c != 0);
     Py_INCREF_IMMORTAL(result);
     return result;
 }
 #endif
 #if PYTHON_VERSION < 0x300
-/* Code referring to "OBJECT" corresponds to any Python object and "STR" to Python2 'str'. */
 PyObject *RICH_COMPARE_GT_OBJECT_OBJECT_STR(PyObject *operand1, PyObject *operand2) {
 
     if (Py_TYPE(operand1) == &PyString_Type) {
@@ -766,7 +736,6 @@ PyObject *RICH_COMPARE_GT_OBJECT_OBJECT_STR(PyObject *operand1, PyObject *operan
     PyTypeObject *type1 = Py_TYPE(operand1);
 
 #if PYTHON_VERSION < 0x300
-    // If the types are equal, we may get away immediately except for instances.
     if (type1 == &PyString_Type && !0) {
 
         richcmpfunc frich = PyString_Type.tp_richcompare;
@@ -783,7 +752,6 @@ PyObject *RICH_COMPARE_GT_OBJECT_OBJECT_STR(PyObject *operand1, PyObject *operan
             Py_DECREF_IMMORTAL(result);
         }
 
-        // No rich comparison worked, but maybe compare works.
         cmpfunc fcmp = NULL;
 
         if (fcmp != NULL) {
@@ -826,7 +794,6 @@ PyObject *RICH_COMPARE_GT_OBJECT_OBJECT_STR(PyObject *operand1, PyObject *operan
         }
     }
 
-    // Fast path was not successful or not taken
     richcmpfunc f;
 
     if (type1 != &PyString_Type && 0) {
@@ -890,16 +857,12 @@ PyObject *RICH_COMPARE_GT_OBJECT_OBJECT_STR(PyObject *operand1, PyObject *operan
 
             c = (aa < bb) ? -1 : (aa > bb) ? 1 : 0;
         } else if (operand1 == Py_None) {
-            // None is smaller than everything else
             c = -1;
         } else if (operand2 == Py_None) {
-            // None is smaller than everything else
             c = 1;
         } else if (PyNumber_Check(operand1)) {
-            // different type: compare type names but numbers are smaller than
-            // others.
+            // Different types: compare type names, except numbers sort smaller than others.
             if (PyNumber_Check(operand2)) {
-                // Both numbers, need to make a decision based on types.
                 Py_uintptr_t aa = (Py_uintptr_t)type1;
                 Py_uintptr_t bb = (Py_uintptr_t)&PyString_Type;
 
@@ -910,7 +873,6 @@ PyObject *RICH_COMPARE_GT_OBJECT_OBJECT_STR(PyObject *operand1, PyObject *operan
         } else if (PyNumber_Check(operand2)) {
             c = 1;
         } else {
-            // Banking on C compile to optimize "strcmp".
             int s = strcmp(type1->tp_name, "str");
 
             if (s < 0) {
@@ -918,7 +880,6 @@ PyObject *RICH_COMPARE_GT_OBJECT_OBJECT_STR(PyObject *operand1, PyObject *operan
             } else if (s > 0) {
                 c = 1;
             } else {
-                // Same type name need to make a decision based on type address.
                 Py_uintptr_t aa = (Py_uintptr_t)type1;
                 Py_uintptr_t bb = (Py_uintptr_t)&PyString_Type;
 
@@ -1012,8 +973,6 @@ PyObject *RICH_COMPARE_GT_OBJECT_OBJECT_STR(PyObject *operand1, PyObject *operan
 
     Py_LeaveRecursiveCall();
 
-    // If it is not implemented, do pointer identity checks as "==" and "!=" and
-    // otherwise give an error
     switch (Py_GT) {
     case Py_EQ: {
         bool r = operand1 == operand2;
@@ -1040,7 +999,6 @@ PyObject *RICH_COMPARE_GT_OBJECT_OBJECT_STR(PyObject *operand1, PyObject *operan
 #endif
 
 #if PYTHON_VERSION < 0x300
-/* Code referring to "STR" corresponds to Python2 'str' and "OBJECT" to any Python object. */
 PyObject *RICH_COMPARE_GT_OBJECT_STR_OBJECT(PyObject *operand1, PyObject *operand2) {
 
     if (&PyString_Type == Py_TYPE(operand2)) {
@@ -1060,7 +1018,6 @@ PyObject *RICH_COMPARE_GT_OBJECT_STR_OBJECT(PyObject *operand1, PyObject *operan
     PyTypeObject *type2 = Py_TYPE(operand2);
 
 #if PYTHON_VERSION < 0x300
-    // If the types are equal, we may get away immediately except for instances.
     if (&PyString_Type == type2 && !0) {
 
         richcmpfunc frich = PyString_Type.tp_richcompare;
@@ -1077,7 +1034,6 @@ PyObject *RICH_COMPARE_GT_OBJECT_STR_OBJECT(PyObject *operand1, PyObject *operan
             Py_DECREF_IMMORTAL(result);
         }
 
-        // No rich comparison worked, but maybe compare works.
         cmpfunc fcmp = NULL;
 
         if (fcmp != NULL) {
@@ -1120,7 +1076,6 @@ PyObject *RICH_COMPARE_GT_OBJECT_STR_OBJECT(PyObject *operand1, PyObject *operan
         }
     }
 
-    // Fast path was not successful or not taken
     richcmpfunc f;
 
     if (&PyString_Type != type2 && Nuitka_Type_IsSubtype(type2, &PyString_Type)) {
@@ -1184,16 +1139,12 @@ PyObject *RICH_COMPARE_GT_OBJECT_STR_OBJECT(PyObject *operand1, PyObject *operan
 
             c = (aa < bb) ? -1 : (aa > bb) ? 1 : 0;
         } else if (operand1 == Py_None) {
-            // None is smaller than everything else
             c = -1;
         } else if (operand2 == Py_None) {
-            // None is smaller than everything else
             c = 1;
         } else if (PyNumber_Check(operand1)) {
-            // different type: compare type names but numbers are smaller than
-            // others.
+            // Different types: compare type names, except numbers sort smaller than others.
             if (PyNumber_Check(operand2)) {
-                // Both numbers, need to make a decision based on types.
                 Py_uintptr_t aa = (Py_uintptr_t)&PyString_Type;
                 Py_uintptr_t bb = (Py_uintptr_t)type2;
 
@@ -1204,7 +1155,6 @@ PyObject *RICH_COMPARE_GT_OBJECT_STR_OBJECT(PyObject *operand1, PyObject *operan
         } else if (PyNumber_Check(operand2)) {
             c = 1;
         } else {
-            // Banking on C compile to optimize "strcmp".
             int s = strcmp("str", type2->tp_name);
 
             if (s < 0) {
@@ -1212,7 +1162,6 @@ PyObject *RICH_COMPARE_GT_OBJECT_STR_OBJECT(PyObject *operand1, PyObject *operan
             } else if (s > 0) {
                 c = 1;
             } else {
-                // Same type name need to make a decision based on type address.
                 Py_uintptr_t aa = (Py_uintptr_t)&PyString_Type;
                 Py_uintptr_t bb = (Py_uintptr_t)type2;
 
@@ -1306,8 +1255,6 @@ PyObject *RICH_COMPARE_GT_OBJECT_STR_OBJECT(PyObject *operand1, PyObject *operan
 
     Py_LeaveRecursiveCall();
 
-    // If it is not implemented, do pointer identity checks as "==" and "!=" and
-    // otherwise give an error
     switch (Py_GT) {
     case Py_EQ: {
         bool r = operand1 == operand2;
@@ -1343,11 +1290,9 @@ static bool COMPARE_GT_CBOOL_STR_STR(PyObject *operand1, PyObject *operand2) {
     PyStringObject *a = (PyStringObject *)operand1;
     PyStringObject *b = (PyStringObject *)operand2;
 
-    // Same object has fast path for all operations.
     if (operand1 == operand2) {
         bool r = false;
 
-        // Convert to target type.
         bool result = r;
 
         return result;
@@ -1375,14 +1320,12 @@ static bool COMPARE_GT_CBOOL_STR_STR(PyObject *operand1, PyObject *operand2) {
 
     c = c > 0;
 
-    // Convert to target type.
     bool result = c != 0;
 
     return result;
 }
 #endif
 #if PYTHON_VERSION < 0x300
-/* Code referring to "OBJECT" corresponds to any Python object and "STR" to Python2 'str'. */
 nuitka_bool RICH_COMPARE_GT_NBOOL_OBJECT_STR(PyObject *operand1, PyObject *operand2) {
 
     if (Py_TYPE(operand1) == &PyString_Type) {
@@ -1402,7 +1345,6 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_OBJECT_STR(PyObject *operand1, PyObject *opera
     PyTypeObject *type1 = Py_TYPE(operand1);
 
 #if PYTHON_VERSION < 0x300
-    // If the types are equal, we may get away immediately except for instances.
     if (type1 == &PyString_Type && !0) {
 
         richcmpfunc frich = PyString_Type.tp_richcompare;
@@ -1427,7 +1369,6 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_OBJECT_STR(PyObject *operand1, PyObject *opera
             Py_DECREF_IMMORTAL(result);
         }
 
-        // No rich comparison worked, but maybe compare works.
         cmpfunc fcmp = NULL;
 
         if (fcmp != NULL) {
@@ -1470,7 +1411,6 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_OBJECT_STR(PyObject *operand1, PyObject *opera
         }
     }
 
-    // Fast path was not successful or not taken
     richcmpfunc f;
 
     if (type1 != &PyString_Type && 0) {
@@ -1558,16 +1498,12 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_OBJECT_STR(PyObject *operand1, PyObject *opera
 
             c = (aa < bb) ? -1 : (aa > bb) ? 1 : 0;
         } else if (operand1 == Py_None) {
-            // None is smaller than everything else
             c = -1;
         } else if (operand2 == Py_None) {
-            // None is smaller than everything else
             c = 1;
         } else if (PyNumber_Check(operand1)) {
-            // different type: compare type names but numbers are smaller than
-            // others.
+            // Different types: compare type names, except numbers sort smaller than others.
             if (PyNumber_Check(operand2)) {
-                // Both numbers, need to make a decision based on types.
                 Py_uintptr_t aa = (Py_uintptr_t)type1;
                 Py_uintptr_t bb = (Py_uintptr_t)&PyString_Type;
 
@@ -1578,7 +1514,6 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_OBJECT_STR(PyObject *operand1, PyObject *opera
         } else if (PyNumber_Check(operand2)) {
             c = 1;
         } else {
-            // Banking on C compile to optimize "strcmp".
             int s = strcmp(type1->tp_name, "str");
 
             if (s < 0) {
@@ -1586,7 +1521,6 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_OBJECT_STR(PyObject *operand1, PyObject *opera
             } else if (s > 0) {
                 c = 1;
             } else {
-                // Same type name need to make a decision based on type address.
                 Py_uintptr_t aa = (Py_uintptr_t)type1;
                 Py_uintptr_t bb = (Py_uintptr_t)&PyString_Type;
 
@@ -1704,8 +1638,6 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_OBJECT_STR(PyObject *operand1, PyObject *opera
 
     Py_LeaveRecursiveCall();
 
-    // If it is not implemented, do pointer identity checks as "==" and "!=" and
-    // otherwise give an error
     switch (Py_GT) {
     case Py_EQ: {
         bool r = operand1 == operand2;
@@ -1732,7 +1664,6 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_OBJECT_STR(PyObject *operand1, PyObject *opera
 #endif
 
 #if PYTHON_VERSION < 0x300
-/* Code referring to "STR" corresponds to Python2 'str' and "OBJECT" to any Python object. */
 nuitka_bool RICH_COMPARE_GT_NBOOL_STR_OBJECT(PyObject *operand1, PyObject *operand2) {
 
     if (&PyString_Type == Py_TYPE(operand2)) {
@@ -1752,7 +1683,6 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_STR_OBJECT(PyObject *operand1, PyObject *opera
     PyTypeObject *type2 = Py_TYPE(operand2);
 
 #if PYTHON_VERSION < 0x300
-    // If the types are equal, we may get away immediately except for instances.
     if (&PyString_Type == type2 && !0) {
 
         richcmpfunc frich = PyString_Type.tp_richcompare;
@@ -1777,7 +1707,6 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_STR_OBJECT(PyObject *operand1, PyObject *opera
             Py_DECREF_IMMORTAL(result);
         }
 
-        // No rich comparison worked, but maybe compare works.
         cmpfunc fcmp = NULL;
 
         if (fcmp != NULL) {
@@ -1820,7 +1749,6 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_STR_OBJECT(PyObject *operand1, PyObject *opera
         }
     }
 
-    // Fast path was not successful or not taken
     richcmpfunc f;
 
     if (&PyString_Type != type2 && Nuitka_Type_IsSubtype(type2, &PyString_Type)) {
@@ -1908,16 +1836,12 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_STR_OBJECT(PyObject *operand1, PyObject *opera
 
             c = (aa < bb) ? -1 : (aa > bb) ? 1 : 0;
         } else if (operand1 == Py_None) {
-            // None is smaller than everything else
             c = -1;
         } else if (operand2 == Py_None) {
-            // None is smaller than everything else
             c = 1;
         } else if (PyNumber_Check(operand1)) {
-            // different type: compare type names but numbers are smaller than
-            // others.
+            // Different types: compare type names, except numbers sort smaller than others.
             if (PyNumber_Check(operand2)) {
-                // Both numbers, need to make a decision based on types.
                 Py_uintptr_t aa = (Py_uintptr_t)&PyString_Type;
                 Py_uintptr_t bb = (Py_uintptr_t)type2;
 
@@ -1928,7 +1852,6 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_STR_OBJECT(PyObject *operand1, PyObject *opera
         } else if (PyNumber_Check(operand2)) {
             c = 1;
         } else {
-            // Banking on C compile to optimize "strcmp".
             int s = strcmp("str", type2->tp_name);
 
             if (s < 0) {
@@ -1936,7 +1859,6 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_STR_OBJECT(PyObject *operand1, PyObject *opera
             } else if (s > 0) {
                 c = 1;
             } else {
-                // Same type name need to make a decision based on type address.
                 Py_uintptr_t aa = (Py_uintptr_t)&PyString_Type;
                 Py_uintptr_t bb = (Py_uintptr_t)type2;
 
@@ -2054,8 +1976,6 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_STR_OBJECT(PyObject *operand1, PyObject *opera
 
     Py_LeaveRecursiveCall();
 
-    // If it is not implemented, do pointer identity checks as "==" and "!=" and
-    // otherwise give an error
     switch (Py_GT) {
     case Py_EQ: {
         bool r = operand1 == operand2;
@@ -2090,11 +2010,9 @@ static PyObject *COMPARE_GT_OBJECT_UNICODE_UNICODE(PyObject *operand1, PyObject 
     PyUnicodeObject *a = (PyUnicodeObject *)operand1;
     PyUnicodeObject *b = (PyUnicodeObject *)operand2;
 
-    // Same object has fast path for all operations.
     if (operand1 == operand2) {
         bool r = false;
 
-        // Convert to target type.
         PyObject *result = BOOL_FROM(r);
         Py_INCREF_IMMORTAL(result);
         return result;
@@ -2105,7 +2023,6 @@ static PyObject *COMPARE_GT_OBJECT_UNICODE_UNICODE(PyObject *operand1, PyObject 
 
     return r;
 }
-/* Code referring to "OBJECT" corresponds to any Python object and "UNICODE" to Python2 'unicode', Python3 'str'. */
 PyObject *RICH_COMPARE_GT_OBJECT_OBJECT_UNICODE(PyObject *operand1, PyObject *operand2) {
 
     if (Py_TYPE(operand1) == &PyUnicode_Type) {
@@ -2125,7 +2042,6 @@ PyObject *RICH_COMPARE_GT_OBJECT_OBJECT_UNICODE(PyObject *operand1, PyObject *op
     PyTypeObject *type1 = Py_TYPE(operand1);
 
 #if PYTHON_VERSION < 0x300
-    // If the types are equal, we may get away immediately except for instances.
     if (type1 == &PyUnicode_Type && !0) {
 
         richcmpfunc frich = PyUnicode_Type.tp_richcompare;
@@ -2142,7 +2058,6 @@ PyObject *RICH_COMPARE_GT_OBJECT_OBJECT_UNICODE(PyObject *operand1, PyObject *op
             Py_DECREF_IMMORTAL(result);
         }
 
-        // No rich comparison worked, but maybe compare works.
         cmpfunc fcmp = PyUnicode_Type.tp_compare;
 
         if (fcmp != NULL) {
@@ -2185,7 +2100,6 @@ PyObject *RICH_COMPARE_GT_OBJECT_OBJECT_UNICODE(PyObject *operand1, PyObject *op
         }
     }
 
-    // Fast path was not successful or not taken
     richcmpfunc f;
 
     if (type1 != &PyUnicode_Type && 0) {
@@ -2249,16 +2163,12 @@ PyObject *RICH_COMPARE_GT_OBJECT_OBJECT_UNICODE(PyObject *operand1, PyObject *op
 
             c = (aa < bb) ? -1 : (aa > bb) ? 1 : 0;
         } else if (operand1 == Py_None) {
-            // None is smaller than everything else
             c = -1;
         } else if (operand2 == Py_None) {
-            // None is smaller than everything else
             c = 1;
         } else if (PyNumber_Check(operand1)) {
-            // different type: compare type names but numbers are smaller than
-            // others.
+            // Different types: compare type names, except numbers sort smaller than others.
             if (PyNumber_Check(operand2)) {
-                // Both numbers, need to make a decision based on types.
                 Py_uintptr_t aa = (Py_uintptr_t)type1;
                 Py_uintptr_t bb = (Py_uintptr_t)&PyUnicode_Type;
 
@@ -2269,7 +2179,6 @@ PyObject *RICH_COMPARE_GT_OBJECT_OBJECT_UNICODE(PyObject *operand1, PyObject *op
         } else if (PyNumber_Check(operand2)) {
             c = 1;
         } else {
-            // Banking on C compile to optimize "strcmp".
             int s = strcmp(type1->tp_name, (PYTHON_VERSION < 0x300 ? "unicode" : "str"));
 
             if (s < 0) {
@@ -2277,7 +2186,6 @@ PyObject *RICH_COMPARE_GT_OBJECT_OBJECT_UNICODE(PyObject *operand1, PyObject *op
             } else if (s > 0) {
                 c = 1;
             } else {
-                // Same type name need to make a decision based on type address.
                 Py_uintptr_t aa = (Py_uintptr_t)type1;
                 Py_uintptr_t bb = (Py_uintptr_t)&PyUnicode_Type;
 
@@ -2371,8 +2279,6 @@ PyObject *RICH_COMPARE_GT_OBJECT_OBJECT_UNICODE(PyObject *operand1, PyObject *op
 
     Py_LeaveRecursiveCall();
 
-    // If it is not implemented, do pointer identity checks as "==" and "!=" and
-    // otherwise give an error
     switch (Py_GT) {
     case Py_EQ: {
         bool r = operand1 == operand2;
@@ -2399,7 +2305,6 @@ PyObject *RICH_COMPARE_GT_OBJECT_OBJECT_UNICODE(PyObject *operand1, PyObject *op
 #endif
 }
 
-/* Code referring to "UNICODE" corresponds to Python2 'unicode', Python3 'str' and "OBJECT" to any Python object. */
 PyObject *RICH_COMPARE_GT_OBJECT_UNICODE_OBJECT(PyObject *operand1, PyObject *operand2) {
 
     if (&PyUnicode_Type == Py_TYPE(operand2)) {
@@ -2419,7 +2324,6 @@ PyObject *RICH_COMPARE_GT_OBJECT_UNICODE_OBJECT(PyObject *operand1, PyObject *op
     PyTypeObject *type2 = Py_TYPE(operand2);
 
 #if PYTHON_VERSION < 0x300
-    // If the types are equal, we may get away immediately except for instances.
     if (&PyUnicode_Type == type2 && !0) {
 
         richcmpfunc frich = PyUnicode_Type.tp_richcompare;
@@ -2436,7 +2340,6 @@ PyObject *RICH_COMPARE_GT_OBJECT_UNICODE_OBJECT(PyObject *operand1, PyObject *op
             Py_DECREF_IMMORTAL(result);
         }
 
-        // No rich comparison worked, but maybe compare works.
         cmpfunc fcmp = PyUnicode_Type.tp_compare;
 
         if (fcmp != NULL) {
@@ -2479,7 +2382,6 @@ PyObject *RICH_COMPARE_GT_OBJECT_UNICODE_OBJECT(PyObject *operand1, PyObject *op
         }
     }
 
-    // Fast path was not successful or not taken
     richcmpfunc f;
 
     if (&PyUnicode_Type != type2 && Nuitka_Type_IsSubtype(type2, &PyUnicode_Type)) {
@@ -2543,16 +2445,12 @@ PyObject *RICH_COMPARE_GT_OBJECT_UNICODE_OBJECT(PyObject *operand1, PyObject *op
 
             c = (aa < bb) ? -1 : (aa > bb) ? 1 : 0;
         } else if (operand1 == Py_None) {
-            // None is smaller than everything else
             c = -1;
         } else if (operand2 == Py_None) {
-            // None is smaller than everything else
             c = 1;
         } else if (PyNumber_Check(operand1)) {
-            // different type: compare type names but numbers are smaller than
-            // others.
+            // Different types: compare type names, except numbers sort smaller than others.
             if (PyNumber_Check(operand2)) {
-                // Both numbers, need to make a decision based on types.
                 Py_uintptr_t aa = (Py_uintptr_t)&PyUnicode_Type;
                 Py_uintptr_t bb = (Py_uintptr_t)type2;
 
@@ -2563,7 +2461,6 @@ PyObject *RICH_COMPARE_GT_OBJECT_UNICODE_OBJECT(PyObject *operand1, PyObject *op
         } else if (PyNumber_Check(operand2)) {
             c = 1;
         } else {
-            // Banking on C compile to optimize "strcmp".
             int s = strcmp((PYTHON_VERSION < 0x300 ? "unicode" : "str"), type2->tp_name);
 
             if (s < 0) {
@@ -2571,7 +2468,6 @@ PyObject *RICH_COMPARE_GT_OBJECT_UNICODE_OBJECT(PyObject *operand1, PyObject *op
             } else if (s > 0) {
                 c = 1;
             } else {
-                // Same type name need to make a decision based on type address.
                 Py_uintptr_t aa = (Py_uintptr_t)&PyUnicode_Type;
                 Py_uintptr_t bb = (Py_uintptr_t)type2;
 
@@ -2665,8 +2561,6 @@ PyObject *RICH_COMPARE_GT_OBJECT_UNICODE_OBJECT(PyObject *operand1, PyObject *op
 
     Py_LeaveRecursiveCall();
 
-    // If it is not implemented, do pointer identity checks as "==" and "!=" and
-    // otherwise give an error
     switch (Py_GT) {
     case Py_EQ: {
         bool r = operand1 == operand2;
@@ -2702,11 +2596,9 @@ static bool COMPARE_GT_CBOOL_UNICODE_UNICODE(PyObject *operand1, PyObject *opera
     PyUnicodeObject *a = (PyUnicodeObject *)operand1;
     PyUnicodeObject *b = (PyUnicodeObject *)operand2;
 
-    // Same object has fast path for all operations.
     if (operand1 == operand2) {
         bool r = false;
 
-        // Convert to target type.
         bool result = r;
 
         return result;
@@ -2715,13 +2607,11 @@ static bool COMPARE_GT_CBOOL_UNICODE_UNICODE(PyObject *operand1, PyObject *opera
     PyObject *r = PyUnicode_RichCompare((PyObject *)a, (PyObject *)b, Py_GT);
     CHECK_OBJECT(r);
 
-    // Convert to target type if necessary
     bool result = r == Py_True;
     Py_DECREF_IMMORTAL(r);
 
     return result;
 }
-/* Code referring to "OBJECT" corresponds to any Python object and "UNICODE" to Python2 'unicode', Python3 'str'. */
 nuitka_bool RICH_COMPARE_GT_NBOOL_OBJECT_UNICODE(PyObject *operand1, PyObject *operand2) {
 
     if (Py_TYPE(operand1) == &PyUnicode_Type) {
@@ -2741,7 +2631,6 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_OBJECT_UNICODE(PyObject *operand1, PyObject *o
     PyTypeObject *type1 = Py_TYPE(operand1);
 
 #if PYTHON_VERSION < 0x300
-    // If the types are equal, we may get away immediately except for instances.
     if (type1 == &PyUnicode_Type && !0) {
 
         richcmpfunc frich = PyUnicode_Type.tp_richcompare;
@@ -2766,7 +2655,6 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_OBJECT_UNICODE(PyObject *operand1, PyObject *o
             Py_DECREF_IMMORTAL(result);
         }
 
-        // No rich comparison worked, but maybe compare works.
         cmpfunc fcmp = PyUnicode_Type.tp_compare;
 
         if (fcmp != NULL) {
@@ -2809,7 +2697,6 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_OBJECT_UNICODE(PyObject *operand1, PyObject *o
         }
     }
 
-    // Fast path was not successful or not taken
     richcmpfunc f;
 
     if (type1 != &PyUnicode_Type && 0) {
@@ -2897,16 +2784,12 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_OBJECT_UNICODE(PyObject *operand1, PyObject *o
 
             c = (aa < bb) ? -1 : (aa > bb) ? 1 : 0;
         } else if (operand1 == Py_None) {
-            // None is smaller than everything else
             c = -1;
         } else if (operand2 == Py_None) {
-            // None is smaller than everything else
             c = 1;
         } else if (PyNumber_Check(operand1)) {
-            // different type: compare type names but numbers are smaller than
-            // others.
+            // Different types: compare type names, except numbers sort smaller than others.
             if (PyNumber_Check(operand2)) {
-                // Both numbers, need to make a decision based on types.
                 Py_uintptr_t aa = (Py_uintptr_t)type1;
                 Py_uintptr_t bb = (Py_uintptr_t)&PyUnicode_Type;
 
@@ -2917,7 +2800,6 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_OBJECT_UNICODE(PyObject *operand1, PyObject *o
         } else if (PyNumber_Check(operand2)) {
             c = 1;
         } else {
-            // Banking on C compile to optimize "strcmp".
             int s = strcmp(type1->tp_name, (PYTHON_VERSION < 0x300 ? "unicode" : "str"));
 
             if (s < 0) {
@@ -2925,7 +2807,6 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_OBJECT_UNICODE(PyObject *operand1, PyObject *o
             } else if (s > 0) {
                 c = 1;
             } else {
-                // Same type name need to make a decision based on type address.
                 Py_uintptr_t aa = (Py_uintptr_t)type1;
                 Py_uintptr_t bb = (Py_uintptr_t)&PyUnicode_Type;
 
@@ -3043,8 +2924,6 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_OBJECT_UNICODE(PyObject *operand1, PyObject *o
 
     Py_LeaveRecursiveCall();
 
-    // If it is not implemented, do pointer identity checks as "==" and "!=" and
-    // otherwise give an error
     switch (Py_GT) {
     case Py_EQ: {
         bool r = operand1 == operand2;
@@ -3071,7 +2950,6 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_OBJECT_UNICODE(PyObject *operand1, PyObject *o
 #endif
 }
 
-/* Code referring to "UNICODE" corresponds to Python2 'unicode', Python3 'str' and "OBJECT" to any Python object. */
 nuitka_bool RICH_COMPARE_GT_NBOOL_UNICODE_OBJECT(PyObject *operand1, PyObject *operand2) {
 
     if (&PyUnicode_Type == Py_TYPE(operand2)) {
@@ -3091,7 +2969,6 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_UNICODE_OBJECT(PyObject *operand1, PyObject *o
     PyTypeObject *type2 = Py_TYPE(operand2);
 
 #if PYTHON_VERSION < 0x300
-    // If the types are equal, we may get away immediately except for instances.
     if (&PyUnicode_Type == type2 && !0) {
 
         richcmpfunc frich = PyUnicode_Type.tp_richcompare;
@@ -3116,7 +2993,6 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_UNICODE_OBJECT(PyObject *operand1, PyObject *o
             Py_DECREF_IMMORTAL(result);
         }
 
-        // No rich comparison worked, but maybe compare works.
         cmpfunc fcmp = PyUnicode_Type.tp_compare;
 
         if (fcmp != NULL) {
@@ -3159,7 +3035,6 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_UNICODE_OBJECT(PyObject *operand1, PyObject *o
         }
     }
 
-    // Fast path was not successful or not taken
     richcmpfunc f;
 
     if (&PyUnicode_Type != type2 && Nuitka_Type_IsSubtype(type2, &PyUnicode_Type)) {
@@ -3247,16 +3122,12 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_UNICODE_OBJECT(PyObject *operand1, PyObject *o
 
             c = (aa < bb) ? -1 : (aa > bb) ? 1 : 0;
         } else if (operand1 == Py_None) {
-            // None is smaller than everything else
             c = -1;
         } else if (operand2 == Py_None) {
-            // None is smaller than everything else
             c = 1;
         } else if (PyNumber_Check(operand1)) {
-            // different type: compare type names but numbers are smaller than
-            // others.
+            // Different types: compare type names, except numbers sort smaller than others.
             if (PyNumber_Check(operand2)) {
-                // Both numbers, need to make a decision based on types.
                 Py_uintptr_t aa = (Py_uintptr_t)&PyUnicode_Type;
                 Py_uintptr_t bb = (Py_uintptr_t)type2;
 
@@ -3267,7 +3138,6 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_UNICODE_OBJECT(PyObject *operand1, PyObject *o
         } else if (PyNumber_Check(operand2)) {
             c = 1;
         } else {
-            // Banking on C compile to optimize "strcmp".
             int s = strcmp((PYTHON_VERSION < 0x300 ? "unicode" : "str"), type2->tp_name);
 
             if (s < 0) {
@@ -3275,7 +3145,6 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_UNICODE_OBJECT(PyObject *operand1, PyObject *o
             } else if (s > 0) {
                 c = 1;
             } else {
-                // Same type name need to make a decision based on type address.
                 Py_uintptr_t aa = (Py_uintptr_t)&PyUnicode_Type;
                 Py_uintptr_t bb = (Py_uintptr_t)type2;
 
@@ -3393,8 +3262,6 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_UNICODE_OBJECT(PyObject *operand1, PyObject *o
 
     Py_LeaveRecursiveCall();
 
-    // If it is not implemented, do pointer identity checks as "==" and "!=" and
-    // otherwise give an error
     switch (Py_GT) {
     case Py_EQ: {
         bool r = operand1 == operand2;
@@ -3431,11 +3298,9 @@ static PyObject *COMPARE_GT_OBJECT_BYTES_BYTES(PyObject *operand1, PyObject *ope
     PyBytesObject *a = (PyBytesObject *)operand1;
     PyBytesObject *b = (PyBytesObject *)operand2;
 
-    // Same object has fast path for all operations.
     if (operand1 == operand2) {
         bool r = false;
 
-        // Convert to target type.
         PyObject *result = BOOL_FROM(r);
         Py_INCREF_IMMORTAL(result);
         return result;
@@ -3463,14 +3328,12 @@ static PyObject *COMPARE_GT_OBJECT_BYTES_BYTES(PyObject *operand1, PyObject *ope
 
     c = c > 0;
 
-    // Convert to target type.
     PyObject *result = BOOL_FROM(c != 0);
     Py_INCREF_IMMORTAL(result);
     return result;
 }
 #endif
 #if PYTHON_VERSION >= 0x300
-/* Code referring to "OBJECT" corresponds to any Python object and "BYTES" to Python3 'bytes'. */
 PyObject *RICH_COMPARE_GT_OBJECT_OBJECT_BYTES(PyObject *operand1, PyObject *operand2) {
 
     if (Py_TYPE(operand1) == &PyBytes_Type) {
@@ -3490,7 +3353,6 @@ PyObject *RICH_COMPARE_GT_OBJECT_OBJECT_BYTES(PyObject *operand1, PyObject *oper
     PyTypeObject *type1 = Py_TYPE(operand1);
 
 #if PYTHON_VERSION < 0x300
-    // If the types are equal, we may get away immediately except for instances.
     if (type1 == &PyBytes_Type && !0) {
 
         richcmpfunc frich = PyBytes_Type.tp_richcompare;
@@ -3507,7 +3369,6 @@ PyObject *RICH_COMPARE_GT_OBJECT_OBJECT_BYTES(PyObject *operand1, PyObject *oper
             Py_DECREF_IMMORTAL(result);
         }
 
-        // No rich comparison worked, but maybe compare works.
         cmpfunc fcmp = NULL;
 
         if (fcmp != NULL) {
@@ -3550,7 +3411,6 @@ PyObject *RICH_COMPARE_GT_OBJECT_OBJECT_BYTES(PyObject *operand1, PyObject *oper
         }
     }
 
-    // Fast path was not successful or not taken
     richcmpfunc f;
 
     if (type1 != &PyBytes_Type && 0) {
@@ -3614,16 +3474,12 @@ PyObject *RICH_COMPARE_GT_OBJECT_OBJECT_BYTES(PyObject *operand1, PyObject *oper
 
             c = (aa < bb) ? -1 : (aa > bb) ? 1 : 0;
         } else if (operand1 == Py_None) {
-            // None is smaller than everything else
             c = -1;
         } else if (operand2 == Py_None) {
-            // None is smaller than everything else
             c = 1;
         } else if (PyNumber_Check(operand1)) {
-            // different type: compare type names but numbers are smaller than
-            // others.
+            // Different types: compare type names, except numbers sort smaller than others.
             if (PyNumber_Check(operand2)) {
-                // Both numbers, need to make a decision based on types.
                 Py_uintptr_t aa = (Py_uintptr_t)type1;
                 Py_uintptr_t bb = (Py_uintptr_t)&PyBytes_Type;
 
@@ -3634,7 +3490,6 @@ PyObject *RICH_COMPARE_GT_OBJECT_OBJECT_BYTES(PyObject *operand1, PyObject *oper
         } else if (PyNumber_Check(operand2)) {
             c = 1;
         } else {
-            // Banking on C compile to optimize "strcmp".
             int s = strcmp(type1->tp_name, "bytes");
 
             if (s < 0) {
@@ -3642,7 +3497,6 @@ PyObject *RICH_COMPARE_GT_OBJECT_OBJECT_BYTES(PyObject *operand1, PyObject *oper
             } else if (s > 0) {
                 c = 1;
             } else {
-                // Same type name need to make a decision based on type address.
                 Py_uintptr_t aa = (Py_uintptr_t)type1;
                 Py_uintptr_t bb = (Py_uintptr_t)&PyBytes_Type;
 
@@ -3736,8 +3590,6 @@ PyObject *RICH_COMPARE_GT_OBJECT_OBJECT_BYTES(PyObject *operand1, PyObject *oper
 
     Py_LeaveRecursiveCall();
 
-    // If it is not implemented, do pointer identity checks as "==" and "!=" and
-    // otherwise give an error
     switch (Py_GT) {
     case Py_EQ: {
         bool r = operand1 == operand2;
@@ -3764,7 +3616,6 @@ PyObject *RICH_COMPARE_GT_OBJECT_OBJECT_BYTES(PyObject *operand1, PyObject *oper
 #endif
 
 #if PYTHON_VERSION >= 0x300
-/* Code referring to "BYTES" corresponds to Python3 'bytes' and "OBJECT" to any Python object. */
 PyObject *RICH_COMPARE_GT_OBJECT_BYTES_OBJECT(PyObject *operand1, PyObject *operand2) {
 
     if (&PyBytes_Type == Py_TYPE(operand2)) {
@@ -3784,7 +3635,6 @@ PyObject *RICH_COMPARE_GT_OBJECT_BYTES_OBJECT(PyObject *operand1, PyObject *oper
     PyTypeObject *type2 = Py_TYPE(operand2);
 
 #if PYTHON_VERSION < 0x300
-    // If the types are equal, we may get away immediately except for instances.
     if (&PyBytes_Type == type2 && !0) {
 
         richcmpfunc frich = PyBytes_Type.tp_richcompare;
@@ -3801,7 +3651,6 @@ PyObject *RICH_COMPARE_GT_OBJECT_BYTES_OBJECT(PyObject *operand1, PyObject *oper
             Py_DECREF_IMMORTAL(result);
         }
 
-        // No rich comparison worked, but maybe compare works.
         cmpfunc fcmp = NULL;
 
         if (fcmp != NULL) {
@@ -3844,7 +3693,6 @@ PyObject *RICH_COMPARE_GT_OBJECT_BYTES_OBJECT(PyObject *operand1, PyObject *oper
         }
     }
 
-    // Fast path was not successful or not taken
     richcmpfunc f;
 
     if (&PyBytes_Type != type2 && Nuitka_Type_IsSubtype(type2, &PyBytes_Type)) {
@@ -3908,16 +3756,12 @@ PyObject *RICH_COMPARE_GT_OBJECT_BYTES_OBJECT(PyObject *operand1, PyObject *oper
 
             c = (aa < bb) ? -1 : (aa > bb) ? 1 : 0;
         } else if (operand1 == Py_None) {
-            // None is smaller than everything else
             c = -1;
         } else if (operand2 == Py_None) {
-            // None is smaller than everything else
             c = 1;
         } else if (PyNumber_Check(operand1)) {
-            // different type: compare type names but numbers are smaller than
-            // others.
+            // Different types: compare type names, except numbers sort smaller than others.
             if (PyNumber_Check(operand2)) {
-                // Both numbers, need to make a decision based on types.
                 Py_uintptr_t aa = (Py_uintptr_t)&PyBytes_Type;
                 Py_uintptr_t bb = (Py_uintptr_t)type2;
 
@@ -3928,7 +3772,6 @@ PyObject *RICH_COMPARE_GT_OBJECT_BYTES_OBJECT(PyObject *operand1, PyObject *oper
         } else if (PyNumber_Check(operand2)) {
             c = 1;
         } else {
-            // Banking on C compile to optimize "strcmp".
             int s = strcmp("bytes", type2->tp_name);
 
             if (s < 0) {
@@ -3936,7 +3779,6 @@ PyObject *RICH_COMPARE_GT_OBJECT_BYTES_OBJECT(PyObject *operand1, PyObject *oper
             } else if (s > 0) {
                 c = 1;
             } else {
-                // Same type name need to make a decision based on type address.
                 Py_uintptr_t aa = (Py_uintptr_t)&PyBytes_Type;
                 Py_uintptr_t bb = (Py_uintptr_t)type2;
 
@@ -4030,8 +3872,6 @@ PyObject *RICH_COMPARE_GT_OBJECT_BYTES_OBJECT(PyObject *operand1, PyObject *oper
 
     Py_LeaveRecursiveCall();
 
-    // If it is not implemented, do pointer identity checks as "==" and "!=" and
-    // otherwise give an error
     switch (Py_GT) {
     case Py_EQ: {
         bool r = operand1 == operand2;
@@ -4067,11 +3907,9 @@ static bool COMPARE_GT_CBOOL_BYTES_BYTES(PyObject *operand1, PyObject *operand2)
     PyBytesObject *a = (PyBytesObject *)operand1;
     PyBytesObject *b = (PyBytesObject *)operand2;
 
-    // Same object has fast path for all operations.
     if (operand1 == operand2) {
         bool r = false;
 
-        // Convert to target type.
         bool result = r;
 
         return result;
@@ -4099,14 +3937,12 @@ static bool COMPARE_GT_CBOOL_BYTES_BYTES(PyObject *operand1, PyObject *operand2)
 
     c = c > 0;
 
-    // Convert to target type.
     bool result = c != 0;
 
     return result;
 }
 #endif
 #if PYTHON_VERSION >= 0x300
-/* Code referring to "OBJECT" corresponds to any Python object and "BYTES" to Python3 'bytes'. */
 nuitka_bool RICH_COMPARE_GT_NBOOL_OBJECT_BYTES(PyObject *operand1, PyObject *operand2) {
 
     if (Py_TYPE(operand1) == &PyBytes_Type) {
@@ -4126,7 +3962,6 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_OBJECT_BYTES(PyObject *operand1, PyObject *ope
     PyTypeObject *type1 = Py_TYPE(operand1);
 
 #if PYTHON_VERSION < 0x300
-    // If the types are equal, we may get away immediately except for instances.
     if (type1 == &PyBytes_Type && !0) {
 
         richcmpfunc frich = PyBytes_Type.tp_richcompare;
@@ -4151,7 +3986,6 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_OBJECT_BYTES(PyObject *operand1, PyObject *ope
             Py_DECREF_IMMORTAL(result);
         }
 
-        // No rich comparison worked, but maybe compare works.
         cmpfunc fcmp = NULL;
 
         if (fcmp != NULL) {
@@ -4194,7 +4028,6 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_OBJECT_BYTES(PyObject *operand1, PyObject *ope
         }
     }
 
-    // Fast path was not successful or not taken
     richcmpfunc f;
 
     if (type1 != &PyBytes_Type && 0) {
@@ -4282,16 +4115,12 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_OBJECT_BYTES(PyObject *operand1, PyObject *ope
 
             c = (aa < bb) ? -1 : (aa > bb) ? 1 : 0;
         } else if (operand1 == Py_None) {
-            // None is smaller than everything else
             c = -1;
         } else if (operand2 == Py_None) {
-            // None is smaller than everything else
             c = 1;
         } else if (PyNumber_Check(operand1)) {
-            // different type: compare type names but numbers are smaller than
-            // others.
+            // Different types: compare type names, except numbers sort smaller than others.
             if (PyNumber_Check(operand2)) {
-                // Both numbers, need to make a decision based on types.
                 Py_uintptr_t aa = (Py_uintptr_t)type1;
                 Py_uintptr_t bb = (Py_uintptr_t)&PyBytes_Type;
 
@@ -4302,7 +4131,6 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_OBJECT_BYTES(PyObject *operand1, PyObject *ope
         } else if (PyNumber_Check(operand2)) {
             c = 1;
         } else {
-            // Banking on C compile to optimize "strcmp".
             int s = strcmp(type1->tp_name, "bytes");
 
             if (s < 0) {
@@ -4310,7 +4138,6 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_OBJECT_BYTES(PyObject *operand1, PyObject *ope
             } else if (s > 0) {
                 c = 1;
             } else {
-                // Same type name need to make a decision based on type address.
                 Py_uintptr_t aa = (Py_uintptr_t)type1;
                 Py_uintptr_t bb = (Py_uintptr_t)&PyBytes_Type;
 
@@ -4428,8 +4255,6 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_OBJECT_BYTES(PyObject *operand1, PyObject *ope
 
     Py_LeaveRecursiveCall();
 
-    // If it is not implemented, do pointer identity checks as "==" and "!=" and
-    // otherwise give an error
     switch (Py_GT) {
     case Py_EQ: {
         bool r = operand1 == operand2;
@@ -4456,7 +4281,6 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_OBJECT_BYTES(PyObject *operand1, PyObject *ope
 #endif
 
 #if PYTHON_VERSION >= 0x300
-/* Code referring to "BYTES" corresponds to Python3 'bytes' and "OBJECT" to any Python object. */
 nuitka_bool RICH_COMPARE_GT_NBOOL_BYTES_OBJECT(PyObject *operand1, PyObject *operand2) {
 
     if (&PyBytes_Type == Py_TYPE(operand2)) {
@@ -4476,7 +4300,6 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_BYTES_OBJECT(PyObject *operand1, PyObject *ope
     PyTypeObject *type2 = Py_TYPE(operand2);
 
 #if PYTHON_VERSION < 0x300
-    // If the types are equal, we may get away immediately except for instances.
     if (&PyBytes_Type == type2 && !0) {
 
         richcmpfunc frich = PyBytes_Type.tp_richcompare;
@@ -4501,7 +4324,6 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_BYTES_OBJECT(PyObject *operand1, PyObject *ope
             Py_DECREF_IMMORTAL(result);
         }
 
-        // No rich comparison worked, but maybe compare works.
         cmpfunc fcmp = NULL;
 
         if (fcmp != NULL) {
@@ -4544,7 +4366,6 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_BYTES_OBJECT(PyObject *operand1, PyObject *ope
         }
     }
 
-    // Fast path was not successful or not taken
     richcmpfunc f;
 
     if (&PyBytes_Type != type2 && Nuitka_Type_IsSubtype(type2, &PyBytes_Type)) {
@@ -4632,16 +4453,12 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_BYTES_OBJECT(PyObject *operand1, PyObject *ope
 
             c = (aa < bb) ? -1 : (aa > bb) ? 1 : 0;
         } else if (operand1 == Py_None) {
-            // None is smaller than everything else
             c = -1;
         } else if (operand2 == Py_None) {
-            // None is smaller than everything else
             c = 1;
         } else if (PyNumber_Check(operand1)) {
-            // different type: compare type names but numbers are smaller than
-            // others.
+            // Different types: compare type names, except numbers sort smaller than others.
             if (PyNumber_Check(operand2)) {
-                // Both numbers, need to make a decision based on types.
                 Py_uintptr_t aa = (Py_uintptr_t)&PyBytes_Type;
                 Py_uintptr_t bb = (Py_uintptr_t)type2;
 
@@ -4652,7 +4469,6 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_BYTES_OBJECT(PyObject *operand1, PyObject *ope
         } else if (PyNumber_Check(operand2)) {
             c = 1;
         } else {
-            // Banking on C compile to optimize "strcmp".
             int s = strcmp("bytes", type2->tp_name);
 
             if (s < 0) {
@@ -4660,7 +4476,6 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_BYTES_OBJECT(PyObject *operand1, PyObject *ope
             } else if (s > 0) {
                 c = 1;
             } else {
-                // Same type name need to make a decision based on type address.
                 Py_uintptr_t aa = (Py_uintptr_t)&PyBytes_Type;
                 Py_uintptr_t bb = (Py_uintptr_t)type2;
 
@@ -4778,8 +4593,6 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_BYTES_OBJECT(PyObject *operand1, PyObject *ope
 
     Py_LeaveRecursiveCall();
 
-    // If it is not implemented, do pointer identity checks as "==" and "!=" and
-    // otherwise give an error
     switch (Py_GT) {
     case Py_EQ: {
         bool r = operand1 == operand2;
@@ -4806,7 +4619,6 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_BYTES_OBJECT(PyObject *operand1, PyObject *ope
 #endif
 
 #if PYTHON_VERSION < 0x300
-/* Code referring to "OBJECT" corresponds to any Python object and "INT" to Python2 'int'. */
 PyObject *RICH_COMPARE_GT_OBJECT_OBJECT_INT(PyObject *operand1, PyObject *operand2) {
 
     if (Py_TYPE(operand1) == &PyInt_Type) {
@@ -4826,7 +4638,6 @@ PyObject *RICH_COMPARE_GT_OBJECT_OBJECT_INT(PyObject *operand1, PyObject *operan
     PyTypeObject *type1 = Py_TYPE(operand1);
 
 #if PYTHON_VERSION < 0x300
-    // If the types are equal, we may get away immediately except for instances.
     if (type1 == &PyInt_Type && !0) {
 
         richcmpfunc frich = NULL;
@@ -4843,7 +4654,6 @@ PyObject *RICH_COMPARE_GT_OBJECT_OBJECT_INT(PyObject *operand1, PyObject *operan
             Py_DECREF_IMMORTAL(result);
         }
 
-        // No rich comparison worked, but maybe compare works.
         cmpfunc fcmp = PyInt_Type.tp_compare;
 
         if (fcmp != NULL) {
@@ -4886,7 +4696,6 @@ PyObject *RICH_COMPARE_GT_OBJECT_OBJECT_INT(PyObject *operand1, PyObject *operan
         }
     }
 
-    // Fast path was not successful or not taken
     richcmpfunc f;
 
     if (type1 != &PyInt_Type && 0) {
@@ -4950,16 +4759,12 @@ PyObject *RICH_COMPARE_GT_OBJECT_OBJECT_INT(PyObject *operand1, PyObject *operan
 
             c = (aa < bb) ? -1 : (aa > bb) ? 1 : 0;
         } else if (operand1 == Py_None) {
-            // None is smaller than everything else
             c = -1;
         } else if (operand2 == Py_None) {
-            // None is smaller than everything else
             c = 1;
         } else if (PyNumber_Check(operand1)) {
-            // different type: compare type names but numbers are smaller than
-            // others.
+            // Different types: compare type names, except numbers sort smaller than others.
             if (PyNumber_Check(operand2)) {
-                // Both numbers, need to make a decision based on types.
                 Py_uintptr_t aa = (Py_uintptr_t)type1;
                 Py_uintptr_t bb = (Py_uintptr_t)&PyInt_Type;
 
@@ -4970,7 +4775,6 @@ PyObject *RICH_COMPARE_GT_OBJECT_OBJECT_INT(PyObject *operand1, PyObject *operan
         } else if (PyNumber_Check(operand2)) {
             c = 1;
         } else {
-            // Banking on C compile to optimize "strcmp".
             int s = strcmp(type1->tp_name, "int");
 
             if (s < 0) {
@@ -4978,7 +4782,6 @@ PyObject *RICH_COMPARE_GT_OBJECT_OBJECT_INT(PyObject *operand1, PyObject *operan
             } else if (s > 0) {
                 c = 1;
             } else {
-                // Same type name need to make a decision based on type address.
                 Py_uintptr_t aa = (Py_uintptr_t)type1;
                 Py_uintptr_t bb = (Py_uintptr_t)&PyInt_Type;
 
@@ -5072,8 +4875,6 @@ PyObject *RICH_COMPARE_GT_OBJECT_OBJECT_INT(PyObject *operand1, PyObject *operan
 
     Py_LeaveRecursiveCall();
 
-    // If it is not implemented, do pointer identity checks as "==" and "!=" and
-    // otherwise give an error
     switch (Py_GT) {
     case Py_EQ: {
         bool r = operand1 == operand2;
@@ -5100,7 +4901,6 @@ PyObject *RICH_COMPARE_GT_OBJECT_OBJECT_INT(PyObject *operand1, PyObject *operan
 #endif
 
 #if PYTHON_VERSION < 0x300
-/* Code referring to "INT" corresponds to Python2 'int' and "OBJECT" to any Python object. */
 PyObject *RICH_COMPARE_GT_OBJECT_INT_OBJECT(PyObject *operand1, PyObject *operand2) {
 
     if (&PyInt_Type == Py_TYPE(operand2)) {
@@ -5120,7 +4920,6 @@ PyObject *RICH_COMPARE_GT_OBJECT_INT_OBJECT(PyObject *operand1, PyObject *operan
     PyTypeObject *type2 = Py_TYPE(operand2);
 
 #if PYTHON_VERSION < 0x300
-    // If the types are equal, we may get away immediately except for instances.
     if (&PyInt_Type == type2 && !0) {
 
         richcmpfunc frich = NULL;
@@ -5137,7 +4936,6 @@ PyObject *RICH_COMPARE_GT_OBJECT_INT_OBJECT(PyObject *operand1, PyObject *operan
             Py_DECREF_IMMORTAL(result);
         }
 
-        // No rich comparison worked, but maybe compare works.
         cmpfunc fcmp = PyInt_Type.tp_compare;
 
         if (fcmp != NULL) {
@@ -5180,7 +4978,6 @@ PyObject *RICH_COMPARE_GT_OBJECT_INT_OBJECT(PyObject *operand1, PyObject *operan
         }
     }
 
-    // Fast path was not successful or not taken
     richcmpfunc f;
 
     if (&PyInt_Type != type2 && Nuitka_Type_IsSubtype(type2, &PyInt_Type)) {
@@ -5244,16 +5041,12 @@ PyObject *RICH_COMPARE_GT_OBJECT_INT_OBJECT(PyObject *operand1, PyObject *operan
 
             c = (aa < bb) ? -1 : (aa > bb) ? 1 : 0;
         } else if (operand1 == Py_None) {
-            // None is smaller than everything else
             c = -1;
         } else if (operand2 == Py_None) {
-            // None is smaller than everything else
             c = 1;
         } else if (PyNumber_Check(operand1)) {
-            // different type: compare type names but numbers are smaller than
-            // others.
+            // Different types: compare type names, except numbers sort smaller than others.
             if (PyNumber_Check(operand2)) {
-                // Both numbers, need to make a decision based on types.
                 Py_uintptr_t aa = (Py_uintptr_t)&PyInt_Type;
                 Py_uintptr_t bb = (Py_uintptr_t)type2;
 
@@ -5264,7 +5057,6 @@ PyObject *RICH_COMPARE_GT_OBJECT_INT_OBJECT(PyObject *operand1, PyObject *operan
         } else if (PyNumber_Check(operand2)) {
             c = 1;
         } else {
-            // Banking on C compile to optimize "strcmp".
             int s = strcmp("int", type2->tp_name);
 
             if (s < 0) {
@@ -5272,7 +5064,6 @@ PyObject *RICH_COMPARE_GT_OBJECT_INT_OBJECT(PyObject *operand1, PyObject *operan
             } else if (s > 0) {
                 c = 1;
             } else {
-                // Same type name need to make a decision based on type address.
                 Py_uintptr_t aa = (Py_uintptr_t)&PyInt_Type;
                 Py_uintptr_t bb = (Py_uintptr_t)type2;
 
@@ -5366,8 +5157,6 @@ PyObject *RICH_COMPARE_GT_OBJECT_INT_OBJECT(PyObject *operand1, PyObject *operan
 
     Py_LeaveRecursiveCall();
 
-    // If it is not implemented, do pointer identity checks as "==" and "!=" and
-    // otherwise give an error
     switch (Py_GT) {
     case Py_EQ: {
         bool r = operand1 == operand2;
@@ -5394,7 +5183,6 @@ PyObject *RICH_COMPARE_GT_OBJECT_INT_OBJECT(PyObject *operand1, PyObject *operan
 #endif
 
 #if PYTHON_VERSION < 0x300
-/* Code referring to "OBJECT" corresponds to any Python object and "INT" to Python2 'int'. */
 nuitka_bool RICH_COMPARE_GT_NBOOL_OBJECT_INT(PyObject *operand1, PyObject *operand2) {
 
     if (Py_TYPE(operand1) == &PyInt_Type) {
@@ -5414,7 +5202,6 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_OBJECT_INT(PyObject *operand1, PyObject *opera
     PyTypeObject *type1 = Py_TYPE(operand1);
 
 #if PYTHON_VERSION < 0x300
-    // If the types are equal, we may get away immediately except for instances.
     if (type1 == &PyInt_Type && !0) {
 
         richcmpfunc frich = NULL;
@@ -5439,7 +5226,6 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_OBJECT_INT(PyObject *operand1, PyObject *opera
             Py_DECREF_IMMORTAL(result);
         }
 
-        // No rich comparison worked, but maybe compare works.
         cmpfunc fcmp = PyInt_Type.tp_compare;
 
         if (fcmp != NULL) {
@@ -5482,7 +5268,6 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_OBJECT_INT(PyObject *operand1, PyObject *opera
         }
     }
 
-    // Fast path was not successful or not taken
     richcmpfunc f;
 
     if (type1 != &PyInt_Type && 0) {
@@ -5570,16 +5355,12 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_OBJECT_INT(PyObject *operand1, PyObject *opera
 
             c = (aa < bb) ? -1 : (aa > bb) ? 1 : 0;
         } else if (operand1 == Py_None) {
-            // None is smaller than everything else
             c = -1;
         } else if (operand2 == Py_None) {
-            // None is smaller than everything else
             c = 1;
         } else if (PyNumber_Check(operand1)) {
-            // different type: compare type names but numbers are smaller than
-            // others.
+            // Different types: compare type names, except numbers sort smaller than others.
             if (PyNumber_Check(operand2)) {
-                // Both numbers, need to make a decision based on types.
                 Py_uintptr_t aa = (Py_uintptr_t)type1;
                 Py_uintptr_t bb = (Py_uintptr_t)&PyInt_Type;
 
@@ -5590,7 +5371,6 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_OBJECT_INT(PyObject *operand1, PyObject *opera
         } else if (PyNumber_Check(operand2)) {
             c = 1;
         } else {
-            // Banking on C compile to optimize "strcmp".
             int s = strcmp(type1->tp_name, "int");
 
             if (s < 0) {
@@ -5598,7 +5378,6 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_OBJECT_INT(PyObject *operand1, PyObject *opera
             } else if (s > 0) {
                 c = 1;
             } else {
-                // Same type name need to make a decision based on type address.
                 Py_uintptr_t aa = (Py_uintptr_t)type1;
                 Py_uintptr_t bb = (Py_uintptr_t)&PyInt_Type;
 
@@ -5716,8 +5495,6 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_OBJECT_INT(PyObject *operand1, PyObject *opera
 
     Py_LeaveRecursiveCall();
 
-    // If it is not implemented, do pointer identity checks as "==" and "!=" and
-    // otherwise give an error
     switch (Py_GT) {
     case Py_EQ: {
         bool r = operand1 == operand2;
@@ -5744,7 +5521,6 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_OBJECT_INT(PyObject *operand1, PyObject *opera
 #endif
 
 #if PYTHON_VERSION < 0x300
-/* Code referring to "INT" corresponds to Python2 'int' and "OBJECT" to any Python object. */
 nuitka_bool RICH_COMPARE_GT_NBOOL_INT_OBJECT(PyObject *operand1, PyObject *operand2) {
 
     if (&PyInt_Type == Py_TYPE(operand2)) {
@@ -5764,7 +5540,6 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_INT_OBJECT(PyObject *operand1, PyObject *opera
     PyTypeObject *type2 = Py_TYPE(operand2);
 
 #if PYTHON_VERSION < 0x300
-    // If the types are equal, we may get away immediately except for instances.
     if (&PyInt_Type == type2 && !0) {
 
         richcmpfunc frich = NULL;
@@ -5789,7 +5564,6 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_INT_OBJECT(PyObject *operand1, PyObject *opera
             Py_DECREF_IMMORTAL(result);
         }
 
-        // No rich comparison worked, but maybe compare works.
         cmpfunc fcmp = PyInt_Type.tp_compare;
 
         if (fcmp != NULL) {
@@ -5832,7 +5606,6 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_INT_OBJECT(PyObject *operand1, PyObject *opera
         }
     }
 
-    // Fast path was not successful or not taken
     richcmpfunc f;
 
     if (&PyInt_Type != type2 && Nuitka_Type_IsSubtype(type2, &PyInt_Type)) {
@@ -5920,16 +5693,12 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_INT_OBJECT(PyObject *operand1, PyObject *opera
 
             c = (aa < bb) ? -1 : (aa > bb) ? 1 : 0;
         } else if (operand1 == Py_None) {
-            // None is smaller than everything else
             c = -1;
         } else if (operand2 == Py_None) {
-            // None is smaller than everything else
             c = 1;
         } else if (PyNumber_Check(operand1)) {
-            // different type: compare type names but numbers are smaller than
-            // others.
+            // Different types: compare type names, except numbers sort smaller than others.
             if (PyNumber_Check(operand2)) {
-                // Both numbers, need to make a decision based on types.
                 Py_uintptr_t aa = (Py_uintptr_t)&PyInt_Type;
                 Py_uintptr_t bb = (Py_uintptr_t)type2;
 
@@ -5940,7 +5709,6 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_INT_OBJECT(PyObject *operand1, PyObject *opera
         } else if (PyNumber_Check(operand2)) {
             c = 1;
         } else {
-            // Banking on C compile to optimize "strcmp".
             int s = strcmp("int", type2->tp_name);
 
             if (s < 0) {
@@ -5948,7 +5716,6 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_INT_OBJECT(PyObject *operand1, PyObject *opera
             } else if (s > 0) {
                 c = 1;
             } else {
-                // Same type name need to make a decision based on type address.
                 Py_uintptr_t aa = (Py_uintptr_t)&PyInt_Type;
                 Py_uintptr_t bb = (Py_uintptr_t)type2;
 
@@ -6066,8 +5833,6 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_INT_OBJECT(PyObject *operand1, PyObject *opera
 
     Py_LeaveRecursiveCall();
 
-    // If it is not implemented, do pointer identity checks as "==" and "!=" and
-    // otherwise give an error
     switch (Py_GT) {
     case Py_EQ: {
         bool r = operand1 == operand2;
@@ -6127,12 +5892,10 @@ static PyObject *COMPARE_GT_OBJECT_LONG_LONG(PyObject *operand1, PyObject *opera
         }
     }
 
-    // Convert to target type.
     PyObject *result = BOOL_FROM(r);
     Py_INCREF_IMMORTAL(result);
     return result;
 }
-/* Code referring to "OBJECT" corresponds to any Python object and "LONG" to Python2 'long', Python3 'int'. */
 PyObject *RICH_COMPARE_GT_OBJECT_OBJECT_LONG(PyObject *operand1, PyObject *operand2) {
 
     if (Py_TYPE(operand1) == &PyLong_Type) {
@@ -6152,7 +5915,6 @@ PyObject *RICH_COMPARE_GT_OBJECT_OBJECT_LONG(PyObject *operand1, PyObject *opera
     PyTypeObject *type1 = Py_TYPE(operand1);
 
 #if PYTHON_VERSION < 0x300
-    // If the types are equal, we may get away immediately except for instances.
     if (type1 == &PyLong_Type && !0) {
 
         richcmpfunc frich = (PYTHON_VERSION < 0x300 ? NULL : PyLong_Type.tp_richcompare);
@@ -6169,7 +5931,6 @@ PyObject *RICH_COMPARE_GT_OBJECT_OBJECT_LONG(PyObject *operand1, PyObject *opera
             Py_DECREF_IMMORTAL(result);
         }
 
-        // No rich comparison worked, but maybe compare works.
         cmpfunc fcmp = PyLong_Type.tp_compare;
 
         if (fcmp != NULL) {
@@ -6212,7 +5973,6 @@ PyObject *RICH_COMPARE_GT_OBJECT_OBJECT_LONG(PyObject *operand1, PyObject *opera
         }
     }
 
-    // Fast path was not successful or not taken
     richcmpfunc f;
 
     if (type1 != &PyLong_Type && 0) {
@@ -6276,16 +6036,12 @@ PyObject *RICH_COMPARE_GT_OBJECT_OBJECT_LONG(PyObject *operand1, PyObject *opera
 
             c = (aa < bb) ? -1 : (aa > bb) ? 1 : 0;
         } else if (operand1 == Py_None) {
-            // None is smaller than everything else
             c = -1;
         } else if (operand2 == Py_None) {
-            // None is smaller than everything else
             c = 1;
         } else if (PyNumber_Check(operand1)) {
-            // different type: compare type names but numbers are smaller than
-            // others.
+            // Different types: compare type names, except numbers sort smaller than others.
             if (PyNumber_Check(operand2)) {
-                // Both numbers, need to make a decision based on types.
                 Py_uintptr_t aa = (Py_uintptr_t)type1;
                 Py_uintptr_t bb = (Py_uintptr_t)&PyLong_Type;
 
@@ -6296,7 +6052,6 @@ PyObject *RICH_COMPARE_GT_OBJECT_OBJECT_LONG(PyObject *operand1, PyObject *opera
         } else if (PyNumber_Check(operand2)) {
             c = 1;
         } else {
-            // Banking on C compile to optimize "strcmp".
             int s = strcmp(type1->tp_name, (PYTHON_VERSION < 0x300 ? "long" : "int"));
 
             if (s < 0) {
@@ -6304,7 +6059,6 @@ PyObject *RICH_COMPARE_GT_OBJECT_OBJECT_LONG(PyObject *operand1, PyObject *opera
             } else if (s > 0) {
                 c = 1;
             } else {
-                // Same type name need to make a decision based on type address.
                 Py_uintptr_t aa = (Py_uintptr_t)type1;
                 Py_uintptr_t bb = (Py_uintptr_t)&PyLong_Type;
 
@@ -6398,8 +6152,6 @@ PyObject *RICH_COMPARE_GT_OBJECT_OBJECT_LONG(PyObject *operand1, PyObject *opera
 
     Py_LeaveRecursiveCall();
 
-    // If it is not implemented, do pointer identity checks as "==" and "!=" and
-    // otherwise give an error
     switch (Py_GT) {
     case Py_EQ: {
         bool r = operand1 == operand2;
@@ -6426,7 +6178,6 @@ PyObject *RICH_COMPARE_GT_OBJECT_OBJECT_LONG(PyObject *operand1, PyObject *opera
 #endif
 }
 
-/* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "OBJECT" to any Python object. */
 PyObject *RICH_COMPARE_GT_OBJECT_LONG_OBJECT(PyObject *operand1, PyObject *operand2) {
 
     if (&PyLong_Type == Py_TYPE(operand2)) {
@@ -6446,7 +6197,6 @@ PyObject *RICH_COMPARE_GT_OBJECT_LONG_OBJECT(PyObject *operand1, PyObject *opera
     PyTypeObject *type2 = Py_TYPE(operand2);
 
 #if PYTHON_VERSION < 0x300
-    // If the types are equal, we may get away immediately except for instances.
     if (&PyLong_Type == type2 && !0) {
 
         richcmpfunc frich = (PYTHON_VERSION < 0x300 ? NULL : PyLong_Type.tp_richcompare);
@@ -6463,7 +6213,6 @@ PyObject *RICH_COMPARE_GT_OBJECT_LONG_OBJECT(PyObject *operand1, PyObject *opera
             Py_DECREF_IMMORTAL(result);
         }
 
-        // No rich comparison worked, but maybe compare works.
         cmpfunc fcmp = PyLong_Type.tp_compare;
 
         if (fcmp != NULL) {
@@ -6506,7 +6255,6 @@ PyObject *RICH_COMPARE_GT_OBJECT_LONG_OBJECT(PyObject *operand1, PyObject *opera
         }
     }
 
-    // Fast path was not successful or not taken
     richcmpfunc f;
 
     if (&PyLong_Type != type2 && Nuitka_Type_IsSubtype(type2, &PyLong_Type)) {
@@ -6570,16 +6318,12 @@ PyObject *RICH_COMPARE_GT_OBJECT_LONG_OBJECT(PyObject *operand1, PyObject *opera
 
             c = (aa < bb) ? -1 : (aa > bb) ? 1 : 0;
         } else if (operand1 == Py_None) {
-            // None is smaller than everything else
             c = -1;
         } else if (operand2 == Py_None) {
-            // None is smaller than everything else
             c = 1;
         } else if (PyNumber_Check(operand1)) {
-            // different type: compare type names but numbers are smaller than
-            // others.
+            // Different types: compare type names, except numbers sort smaller than others.
             if (PyNumber_Check(operand2)) {
-                // Both numbers, need to make a decision based on types.
                 Py_uintptr_t aa = (Py_uintptr_t)&PyLong_Type;
                 Py_uintptr_t bb = (Py_uintptr_t)type2;
 
@@ -6590,7 +6334,6 @@ PyObject *RICH_COMPARE_GT_OBJECT_LONG_OBJECT(PyObject *operand1, PyObject *opera
         } else if (PyNumber_Check(operand2)) {
             c = 1;
         } else {
-            // Banking on C compile to optimize "strcmp".
             int s = strcmp((PYTHON_VERSION < 0x300 ? "long" : "int"), type2->tp_name);
 
             if (s < 0) {
@@ -6598,7 +6341,6 @@ PyObject *RICH_COMPARE_GT_OBJECT_LONG_OBJECT(PyObject *operand1, PyObject *opera
             } else if (s > 0) {
                 c = 1;
             } else {
-                // Same type name need to make a decision based on type address.
                 Py_uintptr_t aa = (Py_uintptr_t)&PyLong_Type;
                 Py_uintptr_t bb = (Py_uintptr_t)type2;
 
@@ -6692,8 +6434,6 @@ PyObject *RICH_COMPARE_GT_OBJECT_LONG_OBJECT(PyObject *operand1, PyObject *opera
 
     Py_LeaveRecursiveCall();
 
-    // If it is not implemented, do pointer identity checks as "==" and "!=" and
-    // otherwise give an error
     switch (Py_GT) {
     case Py_EQ: {
         bool r = operand1 == operand2;
@@ -6754,12 +6494,10 @@ static bool COMPARE_GT_CBOOL_LONG_LONG(PyObject *operand1, PyObject *operand2) {
         }
     }
 
-    // Convert to target type.
     bool result = r;
 
     return result;
 }
-/* Code referring to "OBJECT" corresponds to any Python object and "LONG" to Python2 'long', Python3 'int'. */
 nuitka_bool RICH_COMPARE_GT_NBOOL_OBJECT_LONG(PyObject *operand1, PyObject *operand2) {
 
     if (Py_TYPE(operand1) == &PyLong_Type) {
@@ -6779,7 +6517,6 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_OBJECT_LONG(PyObject *operand1, PyObject *oper
     PyTypeObject *type1 = Py_TYPE(operand1);
 
 #if PYTHON_VERSION < 0x300
-    // If the types are equal, we may get away immediately except for instances.
     if (type1 == &PyLong_Type && !0) {
 
         richcmpfunc frich = (PYTHON_VERSION < 0x300 ? NULL : PyLong_Type.tp_richcompare);
@@ -6804,7 +6541,6 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_OBJECT_LONG(PyObject *operand1, PyObject *oper
             Py_DECREF_IMMORTAL(result);
         }
 
-        // No rich comparison worked, but maybe compare works.
         cmpfunc fcmp = PyLong_Type.tp_compare;
 
         if (fcmp != NULL) {
@@ -6847,7 +6583,6 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_OBJECT_LONG(PyObject *operand1, PyObject *oper
         }
     }
 
-    // Fast path was not successful or not taken
     richcmpfunc f;
 
     if (type1 != &PyLong_Type && 0) {
@@ -6935,16 +6670,12 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_OBJECT_LONG(PyObject *operand1, PyObject *oper
 
             c = (aa < bb) ? -1 : (aa > bb) ? 1 : 0;
         } else if (operand1 == Py_None) {
-            // None is smaller than everything else
             c = -1;
         } else if (operand2 == Py_None) {
-            // None is smaller than everything else
             c = 1;
         } else if (PyNumber_Check(operand1)) {
-            // different type: compare type names but numbers are smaller than
-            // others.
+            // Different types: compare type names, except numbers sort smaller than others.
             if (PyNumber_Check(operand2)) {
-                // Both numbers, need to make a decision based on types.
                 Py_uintptr_t aa = (Py_uintptr_t)type1;
                 Py_uintptr_t bb = (Py_uintptr_t)&PyLong_Type;
 
@@ -6955,7 +6686,6 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_OBJECT_LONG(PyObject *operand1, PyObject *oper
         } else if (PyNumber_Check(operand2)) {
             c = 1;
         } else {
-            // Banking on C compile to optimize "strcmp".
             int s = strcmp(type1->tp_name, (PYTHON_VERSION < 0x300 ? "long" : "int"));
 
             if (s < 0) {
@@ -6963,7 +6693,6 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_OBJECT_LONG(PyObject *operand1, PyObject *oper
             } else if (s > 0) {
                 c = 1;
             } else {
-                // Same type name need to make a decision based on type address.
                 Py_uintptr_t aa = (Py_uintptr_t)type1;
                 Py_uintptr_t bb = (Py_uintptr_t)&PyLong_Type;
 
@@ -7081,8 +6810,6 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_OBJECT_LONG(PyObject *operand1, PyObject *oper
 
     Py_LeaveRecursiveCall();
 
-    // If it is not implemented, do pointer identity checks as "==" and "!=" and
-    // otherwise give an error
     switch (Py_GT) {
     case Py_EQ: {
         bool r = operand1 == operand2;
@@ -7109,7 +6836,6 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_OBJECT_LONG(PyObject *operand1, PyObject *oper
 #endif
 }
 
-/* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "OBJECT" to any Python object. */
 nuitka_bool RICH_COMPARE_GT_NBOOL_LONG_OBJECT(PyObject *operand1, PyObject *operand2) {
 
     if (&PyLong_Type == Py_TYPE(operand2)) {
@@ -7129,7 +6855,6 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_LONG_OBJECT(PyObject *operand1, PyObject *oper
     PyTypeObject *type2 = Py_TYPE(operand2);
 
 #if PYTHON_VERSION < 0x300
-    // If the types are equal, we may get away immediately except for instances.
     if (&PyLong_Type == type2 && !0) {
 
         richcmpfunc frich = (PYTHON_VERSION < 0x300 ? NULL : PyLong_Type.tp_richcompare);
@@ -7154,7 +6879,6 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_LONG_OBJECT(PyObject *operand1, PyObject *oper
             Py_DECREF_IMMORTAL(result);
         }
 
-        // No rich comparison worked, but maybe compare works.
         cmpfunc fcmp = PyLong_Type.tp_compare;
 
         if (fcmp != NULL) {
@@ -7197,7 +6921,6 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_LONG_OBJECT(PyObject *operand1, PyObject *oper
         }
     }
 
-    // Fast path was not successful or not taken
     richcmpfunc f;
 
     if (&PyLong_Type != type2 && Nuitka_Type_IsSubtype(type2, &PyLong_Type)) {
@@ -7285,16 +7008,12 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_LONG_OBJECT(PyObject *operand1, PyObject *oper
 
             c = (aa < bb) ? -1 : (aa > bb) ? 1 : 0;
         } else if (operand1 == Py_None) {
-            // None is smaller than everything else
             c = -1;
         } else if (operand2 == Py_None) {
-            // None is smaller than everything else
             c = 1;
         } else if (PyNumber_Check(operand1)) {
-            // different type: compare type names but numbers are smaller than
-            // others.
+            // Different types: compare type names, except numbers sort smaller than others.
             if (PyNumber_Check(operand2)) {
-                // Both numbers, need to make a decision based on types.
                 Py_uintptr_t aa = (Py_uintptr_t)&PyLong_Type;
                 Py_uintptr_t bb = (Py_uintptr_t)type2;
 
@@ -7305,7 +7024,6 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_LONG_OBJECT(PyObject *operand1, PyObject *oper
         } else if (PyNumber_Check(operand2)) {
             c = 1;
         } else {
-            // Banking on C compile to optimize "strcmp".
             int s = strcmp((PYTHON_VERSION < 0x300 ? "long" : "int"), type2->tp_name);
 
             if (s < 0) {
@@ -7313,7 +7031,6 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_LONG_OBJECT(PyObject *operand1, PyObject *oper
             } else if (s > 0) {
                 c = 1;
             } else {
-                // Same type name need to make a decision based on type address.
                 Py_uintptr_t aa = (Py_uintptr_t)&PyLong_Type;
                 Py_uintptr_t bb = (Py_uintptr_t)type2;
 
@@ -7431,8 +7148,6 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_LONG_OBJECT(PyObject *operand1, PyObject *oper
 
     Py_LeaveRecursiveCall();
 
-    // If it is not implemented, do pointer identity checks as "==" and "!=" and
-    // otherwise give an error
     switch (Py_GT) {
     case Py_EQ: {
         bool r = operand1 == operand2;
@@ -7470,12 +7185,10 @@ static PyObject *COMPARE_GT_OBJECT_FLOAT_FLOAT(PyObject *operand1, PyObject *ope
 
     bool r = a > b;
 
-    // Convert to target type.
     PyObject *result = BOOL_FROM(r);
     Py_INCREF_IMMORTAL(result);
     return result;
 }
-/* Code referring to "OBJECT" corresponds to any Python object and "FLOAT" to Python 'float'. */
 PyObject *RICH_COMPARE_GT_OBJECT_OBJECT_FLOAT(PyObject *operand1, PyObject *operand2) {
 
     if (Py_TYPE(operand1) == &PyFloat_Type) {
@@ -7495,7 +7208,6 @@ PyObject *RICH_COMPARE_GT_OBJECT_OBJECT_FLOAT(PyObject *operand1, PyObject *oper
     PyTypeObject *type1 = Py_TYPE(operand1);
 
 #if PYTHON_VERSION < 0x300
-    // If the types are equal, we may get away immediately except for instances.
     if (type1 == &PyFloat_Type && !0) {
 
         richcmpfunc frich = PyFloat_Type.tp_richcompare;
@@ -7512,7 +7224,6 @@ PyObject *RICH_COMPARE_GT_OBJECT_OBJECT_FLOAT(PyObject *operand1, PyObject *oper
             Py_DECREF_IMMORTAL(result);
         }
 
-        // No rich comparison worked, but maybe compare works.
         cmpfunc fcmp = NULL;
 
         if (fcmp != NULL) {
@@ -7555,7 +7266,6 @@ PyObject *RICH_COMPARE_GT_OBJECT_OBJECT_FLOAT(PyObject *operand1, PyObject *oper
         }
     }
 
-    // Fast path was not successful or not taken
     richcmpfunc f;
 
     if (type1 != &PyFloat_Type && 0) {
@@ -7619,16 +7329,12 @@ PyObject *RICH_COMPARE_GT_OBJECT_OBJECT_FLOAT(PyObject *operand1, PyObject *oper
 
             c = (aa < bb) ? -1 : (aa > bb) ? 1 : 0;
         } else if (operand1 == Py_None) {
-            // None is smaller than everything else
             c = -1;
         } else if (operand2 == Py_None) {
-            // None is smaller than everything else
             c = 1;
         } else if (PyNumber_Check(operand1)) {
-            // different type: compare type names but numbers are smaller than
-            // others.
+            // Different types: compare type names, except numbers sort smaller than others.
             if (PyNumber_Check(operand2)) {
-                // Both numbers, need to make a decision based on types.
                 Py_uintptr_t aa = (Py_uintptr_t)type1;
                 Py_uintptr_t bb = (Py_uintptr_t)&PyFloat_Type;
 
@@ -7639,7 +7345,6 @@ PyObject *RICH_COMPARE_GT_OBJECT_OBJECT_FLOAT(PyObject *operand1, PyObject *oper
         } else if (PyNumber_Check(operand2)) {
             c = 1;
         } else {
-            // Banking on C compile to optimize "strcmp".
             int s = strcmp(type1->tp_name, "float");
 
             if (s < 0) {
@@ -7647,7 +7352,6 @@ PyObject *RICH_COMPARE_GT_OBJECT_OBJECT_FLOAT(PyObject *operand1, PyObject *oper
             } else if (s > 0) {
                 c = 1;
             } else {
-                // Same type name need to make a decision based on type address.
                 Py_uintptr_t aa = (Py_uintptr_t)type1;
                 Py_uintptr_t bb = (Py_uintptr_t)&PyFloat_Type;
 
@@ -7741,8 +7445,6 @@ PyObject *RICH_COMPARE_GT_OBJECT_OBJECT_FLOAT(PyObject *operand1, PyObject *oper
 
     Py_LeaveRecursiveCall();
 
-    // If it is not implemented, do pointer identity checks as "==" and "!=" and
-    // otherwise give an error
     switch (Py_GT) {
     case Py_EQ: {
         bool r = operand1 == operand2;
@@ -7767,7 +7469,6 @@ PyObject *RICH_COMPARE_GT_OBJECT_OBJECT_FLOAT(PyObject *operand1, PyObject *oper
 #endif
 }
 
-/* Code referring to "FLOAT" corresponds to Python 'float' and "OBJECT" to any Python object. */
 PyObject *RICH_COMPARE_GT_OBJECT_FLOAT_OBJECT(PyObject *operand1, PyObject *operand2) {
 
     if (&PyFloat_Type == Py_TYPE(operand2)) {
@@ -7787,7 +7488,6 @@ PyObject *RICH_COMPARE_GT_OBJECT_FLOAT_OBJECT(PyObject *operand1, PyObject *oper
     PyTypeObject *type2 = Py_TYPE(operand2);
 
 #if PYTHON_VERSION < 0x300
-    // If the types are equal, we may get away immediately except for instances.
     if (&PyFloat_Type == type2 && !0) {
 
         richcmpfunc frich = PyFloat_Type.tp_richcompare;
@@ -7804,7 +7504,6 @@ PyObject *RICH_COMPARE_GT_OBJECT_FLOAT_OBJECT(PyObject *operand1, PyObject *oper
             Py_DECREF_IMMORTAL(result);
         }
 
-        // No rich comparison worked, but maybe compare works.
         cmpfunc fcmp = NULL;
 
         if (fcmp != NULL) {
@@ -7847,7 +7546,6 @@ PyObject *RICH_COMPARE_GT_OBJECT_FLOAT_OBJECT(PyObject *operand1, PyObject *oper
         }
     }
 
-    // Fast path was not successful or not taken
     richcmpfunc f;
 
     if (&PyFloat_Type != type2 && Nuitka_Type_IsSubtype(type2, &PyFloat_Type)) {
@@ -7911,16 +7609,12 @@ PyObject *RICH_COMPARE_GT_OBJECT_FLOAT_OBJECT(PyObject *operand1, PyObject *oper
 
             c = (aa < bb) ? -1 : (aa > bb) ? 1 : 0;
         } else if (operand1 == Py_None) {
-            // None is smaller than everything else
             c = -1;
         } else if (operand2 == Py_None) {
-            // None is smaller than everything else
             c = 1;
         } else if (PyNumber_Check(operand1)) {
-            // different type: compare type names but numbers are smaller than
-            // others.
+            // Different types: compare type names, except numbers sort smaller than others.
             if (PyNumber_Check(operand2)) {
-                // Both numbers, need to make a decision based on types.
                 Py_uintptr_t aa = (Py_uintptr_t)&PyFloat_Type;
                 Py_uintptr_t bb = (Py_uintptr_t)type2;
 
@@ -7931,7 +7625,6 @@ PyObject *RICH_COMPARE_GT_OBJECT_FLOAT_OBJECT(PyObject *operand1, PyObject *oper
         } else if (PyNumber_Check(operand2)) {
             c = 1;
         } else {
-            // Banking on C compile to optimize "strcmp".
             int s = strcmp("float", type2->tp_name);
 
             if (s < 0) {
@@ -7939,7 +7632,6 @@ PyObject *RICH_COMPARE_GT_OBJECT_FLOAT_OBJECT(PyObject *operand1, PyObject *oper
             } else if (s > 0) {
                 c = 1;
             } else {
-                // Same type name need to make a decision based on type address.
                 Py_uintptr_t aa = (Py_uintptr_t)&PyFloat_Type;
                 Py_uintptr_t bb = (Py_uintptr_t)type2;
 
@@ -8033,8 +7725,6 @@ PyObject *RICH_COMPARE_GT_OBJECT_FLOAT_OBJECT(PyObject *operand1, PyObject *oper
 
     Py_LeaveRecursiveCall();
 
-    // If it is not implemented, do pointer identity checks as "==" and "!=" and
-    // otherwise give an error
     switch (Py_GT) {
     case Py_EQ: {
         bool r = operand1 == operand2;
@@ -8070,12 +7760,10 @@ static bool COMPARE_GT_CBOOL_FLOAT_FLOAT(PyObject *operand1, PyObject *operand2)
 
     bool r = a > b;
 
-    // Convert to target type.
     bool result = r;
 
     return result;
 }
-/* Code referring to "OBJECT" corresponds to any Python object and "FLOAT" to Python 'float'. */
 nuitka_bool RICH_COMPARE_GT_NBOOL_OBJECT_FLOAT(PyObject *operand1, PyObject *operand2) {
 
     if (Py_TYPE(operand1) == &PyFloat_Type) {
@@ -8095,7 +7783,6 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_OBJECT_FLOAT(PyObject *operand1, PyObject *ope
     PyTypeObject *type1 = Py_TYPE(operand1);
 
 #if PYTHON_VERSION < 0x300
-    // If the types are equal, we may get away immediately except for instances.
     if (type1 == &PyFloat_Type && !0) {
 
         richcmpfunc frich = PyFloat_Type.tp_richcompare;
@@ -8120,7 +7807,6 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_OBJECT_FLOAT(PyObject *operand1, PyObject *ope
             Py_DECREF_IMMORTAL(result);
         }
 
-        // No rich comparison worked, but maybe compare works.
         cmpfunc fcmp = NULL;
 
         if (fcmp != NULL) {
@@ -8163,7 +7849,6 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_OBJECT_FLOAT(PyObject *operand1, PyObject *ope
         }
     }
 
-    // Fast path was not successful or not taken
     richcmpfunc f;
 
     if (type1 != &PyFloat_Type && 0) {
@@ -8251,16 +7936,12 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_OBJECT_FLOAT(PyObject *operand1, PyObject *ope
 
             c = (aa < bb) ? -1 : (aa > bb) ? 1 : 0;
         } else if (operand1 == Py_None) {
-            // None is smaller than everything else
             c = -1;
         } else if (operand2 == Py_None) {
-            // None is smaller than everything else
             c = 1;
         } else if (PyNumber_Check(operand1)) {
-            // different type: compare type names but numbers are smaller than
-            // others.
+            // Different types: compare type names, except numbers sort smaller than others.
             if (PyNumber_Check(operand2)) {
-                // Both numbers, need to make a decision based on types.
                 Py_uintptr_t aa = (Py_uintptr_t)type1;
                 Py_uintptr_t bb = (Py_uintptr_t)&PyFloat_Type;
 
@@ -8271,7 +7952,6 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_OBJECT_FLOAT(PyObject *operand1, PyObject *ope
         } else if (PyNumber_Check(operand2)) {
             c = 1;
         } else {
-            // Banking on C compile to optimize "strcmp".
             int s = strcmp(type1->tp_name, "float");
 
             if (s < 0) {
@@ -8279,7 +7959,6 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_OBJECT_FLOAT(PyObject *operand1, PyObject *ope
             } else if (s > 0) {
                 c = 1;
             } else {
-                // Same type name need to make a decision based on type address.
                 Py_uintptr_t aa = (Py_uintptr_t)type1;
                 Py_uintptr_t bb = (Py_uintptr_t)&PyFloat_Type;
 
@@ -8397,8 +8076,6 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_OBJECT_FLOAT(PyObject *operand1, PyObject *ope
 
     Py_LeaveRecursiveCall();
 
-    // If it is not implemented, do pointer identity checks as "==" and "!=" and
-    // otherwise give an error
     switch (Py_GT) {
     case Py_EQ: {
         bool r = operand1 == operand2;
@@ -8423,7 +8100,6 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_OBJECT_FLOAT(PyObject *operand1, PyObject *ope
 #endif
 }
 
-/* Code referring to "FLOAT" corresponds to Python 'float' and "OBJECT" to any Python object. */
 nuitka_bool RICH_COMPARE_GT_NBOOL_FLOAT_OBJECT(PyObject *operand1, PyObject *operand2) {
 
     if (&PyFloat_Type == Py_TYPE(operand2)) {
@@ -8443,7 +8119,6 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_FLOAT_OBJECT(PyObject *operand1, PyObject *ope
     PyTypeObject *type2 = Py_TYPE(operand2);
 
 #if PYTHON_VERSION < 0x300
-    // If the types are equal, we may get away immediately except for instances.
     if (&PyFloat_Type == type2 && !0) {
 
         richcmpfunc frich = PyFloat_Type.tp_richcompare;
@@ -8468,7 +8143,6 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_FLOAT_OBJECT(PyObject *operand1, PyObject *ope
             Py_DECREF_IMMORTAL(result);
         }
 
-        // No rich comparison worked, but maybe compare works.
         cmpfunc fcmp = NULL;
 
         if (fcmp != NULL) {
@@ -8511,7 +8185,6 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_FLOAT_OBJECT(PyObject *operand1, PyObject *ope
         }
     }
 
-    // Fast path was not successful or not taken
     richcmpfunc f;
 
     if (&PyFloat_Type != type2 && Nuitka_Type_IsSubtype(type2, &PyFloat_Type)) {
@@ -8599,16 +8272,12 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_FLOAT_OBJECT(PyObject *operand1, PyObject *ope
 
             c = (aa < bb) ? -1 : (aa > bb) ? 1 : 0;
         } else if (operand1 == Py_None) {
-            // None is smaller than everything else
             c = -1;
         } else if (operand2 == Py_None) {
-            // None is smaller than everything else
             c = 1;
         } else if (PyNumber_Check(operand1)) {
-            // different type: compare type names but numbers are smaller than
-            // others.
+            // Different types: compare type names, except numbers sort smaller than others.
             if (PyNumber_Check(operand2)) {
-                // Both numbers, need to make a decision based on types.
                 Py_uintptr_t aa = (Py_uintptr_t)&PyFloat_Type;
                 Py_uintptr_t bb = (Py_uintptr_t)type2;
 
@@ -8619,7 +8288,6 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_FLOAT_OBJECT(PyObject *operand1, PyObject *ope
         } else if (PyNumber_Check(operand2)) {
             c = 1;
         } else {
-            // Banking on C compile to optimize "strcmp".
             int s = strcmp("float", type2->tp_name);
 
             if (s < 0) {
@@ -8627,7 +8295,6 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_FLOAT_OBJECT(PyObject *operand1, PyObject *ope
             } else if (s > 0) {
                 c = 1;
             } else {
-                // Same type name need to make a decision based on type address.
                 Py_uintptr_t aa = (Py_uintptr_t)&PyFloat_Type;
                 Py_uintptr_t bb = (Py_uintptr_t)type2;
 
@@ -8745,8 +8412,6 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_FLOAT_OBJECT(PyObject *operand1, PyObject *ope
 
     Py_LeaveRecursiveCall();
 
-    // If it is not implemented, do pointer identity checks as "==" and "!=" and
-    // otherwise give an error
     switch (Py_GT) {
     case Py_EQ: {
         bool r = operand1 == operand2;
@@ -8810,7 +8475,6 @@ static PyObject *COMPARE_GT_OBJECT_TUPLE_TUPLE(PyObject *operand1, PyObject *ope
     if (found == false) {
         bool r = len_a > len_b;
 
-        // Convert to target type.
         PyObject *result = BOOL_FROM(r);
         Py_INCREF_IMMORTAL(result);
         return result;
@@ -8818,7 +8482,6 @@ static PyObject *COMPARE_GT_OBJECT_TUPLE_TUPLE(PyObject *operand1, PyObject *ope
 
     return RICH_COMPARE_GT_OBJECT_OBJECT_OBJECT(a->ob_item[i], b->ob_item[i]);
 }
-/* Code referring to "OBJECT" corresponds to any Python object and "TUPLE" to Python 'tuple'. */
 PyObject *RICH_COMPARE_GT_OBJECT_OBJECT_TUPLE(PyObject *operand1, PyObject *operand2) {
 
     if (Py_TYPE(operand1) == &PyTuple_Type) {
@@ -8838,7 +8501,6 @@ PyObject *RICH_COMPARE_GT_OBJECT_OBJECT_TUPLE(PyObject *operand1, PyObject *oper
     PyTypeObject *type1 = Py_TYPE(operand1);
 
 #if PYTHON_VERSION < 0x300
-    // If the types are equal, we may get away immediately except for instances.
     if (type1 == &PyTuple_Type && !0) {
 
         richcmpfunc frich = PyTuple_Type.tp_richcompare;
@@ -8855,7 +8517,6 @@ PyObject *RICH_COMPARE_GT_OBJECT_OBJECT_TUPLE(PyObject *operand1, PyObject *oper
             Py_DECREF_IMMORTAL(result);
         }
 
-        // No rich comparison worked, but maybe compare works.
         cmpfunc fcmp = NULL;
 
         if (fcmp != NULL) {
@@ -8898,7 +8559,6 @@ PyObject *RICH_COMPARE_GT_OBJECT_OBJECT_TUPLE(PyObject *operand1, PyObject *oper
         }
     }
 
-    // Fast path was not successful or not taken
     richcmpfunc f;
 
     if (type1 != &PyTuple_Type && 0) {
@@ -8962,16 +8622,12 @@ PyObject *RICH_COMPARE_GT_OBJECT_OBJECT_TUPLE(PyObject *operand1, PyObject *oper
 
             c = (aa < bb) ? -1 : (aa > bb) ? 1 : 0;
         } else if (operand1 == Py_None) {
-            // None is smaller than everything else
             c = -1;
         } else if (operand2 == Py_None) {
-            // None is smaller than everything else
             c = 1;
         } else if (PyNumber_Check(operand1)) {
-            // different type: compare type names but numbers are smaller than
-            // others.
+            // Different types: compare type names, except numbers sort smaller than others.
             if (PyNumber_Check(operand2)) {
-                // Both numbers, need to make a decision based on types.
                 Py_uintptr_t aa = (Py_uintptr_t)type1;
                 Py_uintptr_t bb = (Py_uintptr_t)&PyTuple_Type;
 
@@ -8982,7 +8638,6 @@ PyObject *RICH_COMPARE_GT_OBJECT_OBJECT_TUPLE(PyObject *operand1, PyObject *oper
         } else if (PyNumber_Check(operand2)) {
             c = 1;
         } else {
-            // Banking on C compile to optimize "strcmp".
             int s = strcmp(type1->tp_name, "tuple");
 
             if (s < 0) {
@@ -8990,7 +8645,6 @@ PyObject *RICH_COMPARE_GT_OBJECT_OBJECT_TUPLE(PyObject *operand1, PyObject *oper
             } else if (s > 0) {
                 c = 1;
             } else {
-                // Same type name need to make a decision based on type address.
                 Py_uintptr_t aa = (Py_uintptr_t)type1;
                 Py_uintptr_t bb = (Py_uintptr_t)&PyTuple_Type;
 
@@ -9084,8 +8738,6 @@ PyObject *RICH_COMPARE_GT_OBJECT_OBJECT_TUPLE(PyObject *operand1, PyObject *oper
 
     Py_LeaveRecursiveCall();
 
-    // If it is not implemented, do pointer identity checks as "==" and "!=" and
-    // otherwise give an error
     switch (Py_GT) {
     case Py_EQ: {
         bool r = operand1 == operand2;
@@ -9110,7 +8762,6 @@ PyObject *RICH_COMPARE_GT_OBJECT_OBJECT_TUPLE(PyObject *operand1, PyObject *oper
 #endif
 }
 
-/* Code referring to "TUPLE" corresponds to Python 'tuple' and "OBJECT" to any Python object. */
 PyObject *RICH_COMPARE_GT_OBJECT_TUPLE_OBJECT(PyObject *operand1, PyObject *operand2) {
 
     if (&PyTuple_Type == Py_TYPE(operand2)) {
@@ -9130,7 +8781,6 @@ PyObject *RICH_COMPARE_GT_OBJECT_TUPLE_OBJECT(PyObject *operand1, PyObject *oper
     PyTypeObject *type2 = Py_TYPE(operand2);
 
 #if PYTHON_VERSION < 0x300
-    // If the types are equal, we may get away immediately except for instances.
     if (&PyTuple_Type == type2 && !0) {
 
         richcmpfunc frich = PyTuple_Type.tp_richcompare;
@@ -9147,7 +8797,6 @@ PyObject *RICH_COMPARE_GT_OBJECT_TUPLE_OBJECT(PyObject *operand1, PyObject *oper
             Py_DECREF_IMMORTAL(result);
         }
 
-        // No rich comparison worked, but maybe compare works.
         cmpfunc fcmp = NULL;
 
         if (fcmp != NULL) {
@@ -9190,7 +8839,6 @@ PyObject *RICH_COMPARE_GT_OBJECT_TUPLE_OBJECT(PyObject *operand1, PyObject *oper
         }
     }
 
-    // Fast path was not successful or not taken
     richcmpfunc f;
 
     if (&PyTuple_Type != type2 && Nuitka_Type_IsSubtype(type2, &PyTuple_Type)) {
@@ -9254,16 +8902,12 @@ PyObject *RICH_COMPARE_GT_OBJECT_TUPLE_OBJECT(PyObject *operand1, PyObject *oper
 
             c = (aa < bb) ? -1 : (aa > bb) ? 1 : 0;
         } else if (operand1 == Py_None) {
-            // None is smaller than everything else
             c = -1;
         } else if (operand2 == Py_None) {
-            // None is smaller than everything else
             c = 1;
         } else if (PyNumber_Check(operand1)) {
-            // different type: compare type names but numbers are smaller than
-            // others.
+            // Different types: compare type names, except numbers sort smaller than others.
             if (PyNumber_Check(operand2)) {
-                // Both numbers, need to make a decision based on types.
                 Py_uintptr_t aa = (Py_uintptr_t)&PyTuple_Type;
                 Py_uintptr_t bb = (Py_uintptr_t)type2;
 
@@ -9274,7 +8918,6 @@ PyObject *RICH_COMPARE_GT_OBJECT_TUPLE_OBJECT(PyObject *operand1, PyObject *oper
         } else if (PyNumber_Check(operand2)) {
             c = 1;
         } else {
-            // Banking on C compile to optimize "strcmp".
             int s = strcmp("tuple", type2->tp_name);
 
             if (s < 0) {
@@ -9282,7 +8925,6 @@ PyObject *RICH_COMPARE_GT_OBJECT_TUPLE_OBJECT(PyObject *operand1, PyObject *oper
             } else if (s > 0) {
                 c = 1;
             } else {
-                // Same type name need to make a decision based on type address.
                 Py_uintptr_t aa = (Py_uintptr_t)&PyTuple_Type;
                 Py_uintptr_t bb = (Py_uintptr_t)type2;
 
@@ -9376,8 +9018,6 @@ PyObject *RICH_COMPARE_GT_OBJECT_TUPLE_OBJECT(PyObject *operand1, PyObject *oper
 
     Py_LeaveRecursiveCall();
 
-    // If it is not implemented, do pointer identity checks as "==" and "!=" and
-    // otherwise give an error
     switch (Py_GT) {
     case Py_EQ: {
         bool r = operand1 == operand2;
@@ -9402,7 +9042,6 @@ PyObject *RICH_COMPARE_GT_OBJECT_TUPLE_OBJECT(PyObject *operand1, PyObject *oper
 #endif
 }
 
-/* Code referring to "TUPLE" corresponds to Python 'tuple' and "TUPLE" to Python 'tuple'. */
 PyObject *RICH_COMPARE_GT_OBJECT_TUPLE_TUPLE(PyObject *operand1, PyObject *operand2) {
 
     return COMPARE_GT_OBJECT_TUPLE_TUPLE(operand1, operand2);
@@ -9447,7 +9086,6 @@ static nuitka_bool COMPARE_GT_NBOOL_TUPLE_TUPLE(PyObject *operand1, PyObject *op
     if (found == false) {
         bool r = len_a > len_b;
 
-        // Convert to target type.
         nuitka_bool result = r ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
 
         return result;
@@ -9455,7 +9093,6 @@ static nuitka_bool COMPARE_GT_NBOOL_TUPLE_TUPLE(PyObject *operand1, PyObject *op
 
     return RICH_COMPARE_GT_NBOOL_OBJECT_OBJECT(a->ob_item[i], b->ob_item[i]);
 }
-/* Code referring to "OBJECT" corresponds to any Python object and "TUPLE" to Python 'tuple'. */
 nuitka_bool RICH_COMPARE_GT_NBOOL_OBJECT_TUPLE(PyObject *operand1, PyObject *operand2) {
 
     if (Py_TYPE(operand1) == &PyTuple_Type) {
@@ -9475,7 +9112,6 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_OBJECT_TUPLE(PyObject *operand1, PyObject *ope
     PyTypeObject *type1 = Py_TYPE(operand1);
 
 #if PYTHON_VERSION < 0x300
-    // If the types are equal, we may get away immediately except for instances.
     if (type1 == &PyTuple_Type && !0) {
 
         richcmpfunc frich = PyTuple_Type.tp_richcompare;
@@ -9500,7 +9136,6 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_OBJECT_TUPLE(PyObject *operand1, PyObject *ope
             Py_DECREF_IMMORTAL(result);
         }
 
-        // No rich comparison worked, but maybe compare works.
         cmpfunc fcmp = NULL;
 
         if (fcmp != NULL) {
@@ -9543,7 +9178,6 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_OBJECT_TUPLE(PyObject *operand1, PyObject *ope
         }
     }
 
-    // Fast path was not successful or not taken
     richcmpfunc f;
 
     if (type1 != &PyTuple_Type && 0) {
@@ -9631,16 +9265,12 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_OBJECT_TUPLE(PyObject *operand1, PyObject *ope
 
             c = (aa < bb) ? -1 : (aa > bb) ? 1 : 0;
         } else if (operand1 == Py_None) {
-            // None is smaller than everything else
             c = -1;
         } else if (operand2 == Py_None) {
-            // None is smaller than everything else
             c = 1;
         } else if (PyNumber_Check(operand1)) {
-            // different type: compare type names but numbers are smaller than
-            // others.
+            // Different types: compare type names, except numbers sort smaller than others.
             if (PyNumber_Check(operand2)) {
-                // Both numbers, need to make a decision based on types.
                 Py_uintptr_t aa = (Py_uintptr_t)type1;
                 Py_uintptr_t bb = (Py_uintptr_t)&PyTuple_Type;
 
@@ -9651,7 +9281,6 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_OBJECT_TUPLE(PyObject *operand1, PyObject *ope
         } else if (PyNumber_Check(operand2)) {
             c = 1;
         } else {
-            // Banking on C compile to optimize "strcmp".
             int s = strcmp(type1->tp_name, "tuple");
 
             if (s < 0) {
@@ -9659,7 +9288,6 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_OBJECT_TUPLE(PyObject *operand1, PyObject *ope
             } else if (s > 0) {
                 c = 1;
             } else {
-                // Same type name need to make a decision based on type address.
                 Py_uintptr_t aa = (Py_uintptr_t)type1;
                 Py_uintptr_t bb = (Py_uintptr_t)&PyTuple_Type;
 
@@ -9777,8 +9405,6 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_OBJECT_TUPLE(PyObject *operand1, PyObject *ope
 
     Py_LeaveRecursiveCall();
 
-    // If it is not implemented, do pointer identity checks as "==" and "!=" and
-    // otherwise give an error
     switch (Py_GT) {
     case Py_EQ: {
         bool r = operand1 == operand2;
@@ -9803,7 +9429,6 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_OBJECT_TUPLE(PyObject *operand1, PyObject *ope
 #endif
 }
 
-/* Code referring to "TUPLE" corresponds to Python 'tuple' and "OBJECT" to any Python object. */
 nuitka_bool RICH_COMPARE_GT_NBOOL_TUPLE_OBJECT(PyObject *operand1, PyObject *operand2) {
 
     if (&PyTuple_Type == Py_TYPE(operand2)) {
@@ -9823,7 +9448,6 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_TUPLE_OBJECT(PyObject *operand1, PyObject *ope
     PyTypeObject *type2 = Py_TYPE(operand2);
 
 #if PYTHON_VERSION < 0x300
-    // If the types are equal, we may get away immediately except for instances.
     if (&PyTuple_Type == type2 && !0) {
 
         richcmpfunc frich = PyTuple_Type.tp_richcompare;
@@ -9848,7 +9472,6 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_TUPLE_OBJECT(PyObject *operand1, PyObject *ope
             Py_DECREF_IMMORTAL(result);
         }
 
-        // No rich comparison worked, but maybe compare works.
         cmpfunc fcmp = NULL;
 
         if (fcmp != NULL) {
@@ -9891,7 +9514,6 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_TUPLE_OBJECT(PyObject *operand1, PyObject *ope
         }
     }
 
-    // Fast path was not successful or not taken
     richcmpfunc f;
 
     if (&PyTuple_Type != type2 && Nuitka_Type_IsSubtype(type2, &PyTuple_Type)) {
@@ -9979,16 +9601,12 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_TUPLE_OBJECT(PyObject *operand1, PyObject *ope
 
             c = (aa < bb) ? -1 : (aa > bb) ? 1 : 0;
         } else if (operand1 == Py_None) {
-            // None is smaller than everything else
             c = -1;
         } else if (operand2 == Py_None) {
-            // None is smaller than everything else
             c = 1;
         } else if (PyNumber_Check(operand1)) {
-            // different type: compare type names but numbers are smaller than
-            // others.
+            // Different types: compare type names, except numbers sort smaller than others.
             if (PyNumber_Check(operand2)) {
-                // Both numbers, need to make a decision based on types.
                 Py_uintptr_t aa = (Py_uintptr_t)&PyTuple_Type;
                 Py_uintptr_t bb = (Py_uintptr_t)type2;
 
@@ -9999,7 +9617,6 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_TUPLE_OBJECT(PyObject *operand1, PyObject *ope
         } else if (PyNumber_Check(operand2)) {
             c = 1;
         } else {
-            // Banking on C compile to optimize "strcmp".
             int s = strcmp("tuple", type2->tp_name);
 
             if (s < 0) {
@@ -10007,7 +9624,6 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_TUPLE_OBJECT(PyObject *operand1, PyObject *ope
             } else if (s > 0) {
                 c = 1;
             } else {
-                // Same type name need to make a decision based on type address.
                 Py_uintptr_t aa = (Py_uintptr_t)&PyTuple_Type;
                 Py_uintptr_t bb = (Py_uintptr_t)type2;
 
@@ -10125,8 +9741,6 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_TUPLE_OBJECT(PyObject *operand1, PyObject *ope
 
     Py_LeaveRecursiveCall();
 
-    // If it is not implemented, do pointer identity checks as "==" and "!=" and
-    // otherwise give an error
     switch (Py_GT) {
     case Py_EQ: {
         bool r = operand1 == operand2;
@@ -10151,7 +9765,6 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_TUPLE_OBJECT(PyObject *operand1, PyObject *ope
 #endif
 }
 
-/* Code referring to "TUPLE" corresponds to Python 'tuple' and "TUPLE" to Python 'tuple'. */
 nuitka_bool RICH_COMPARE_GT_NBOOL_TUPLE_TUPLE(PyObject *operand1, PyObject *operand2) {
 
     return COMPARE_GT_NBOOL_TUPLE_TUPLE(operand1, operand2);
@@ -10209,7 +9822,6 @@ static PyObject *COMPARE_GT_OBJECT_LIST_LIST(PyObject *operand1, PyObject *opera
     if (found == false) {
         bool r = Py_SIZE(a) > Py_SIZE(b);
 
-        // Convert to target type.
         PyObject *result = BOOL_FROM(r);
         Py_INCREF_IMMORTAL(result);
         NUITKA_COMPARE_LIST_RETURN(result);
@@ -10221,7 +9833,6 @@ static PyObject *COMPARE_GT_OBJECT_LIST_LIST(PyObject *operand1, PyObject *opera
 }
 
 #undef NUITKA_COMPARE_LIST_RETURN
-/* Code referring to "OBJECT" corresponds to any Python object and "LIST" to Python 'list'. */
 PyObject *RICH_COMPARE_GT_OBJECT_OBJECT_LIST(PyObject *operand1, PyObject *operand2) {
 
     if (Py_TYPE(operand1) == &PyList_Type) {
@@ -10241,7 +9852,6 @@ PyObject *RICH_COMPARE_GT_OBJECT_OBJECT_LIST(PyObject *operand1, PyObject *opera
     PyTypeObject *type1 = Py_TYPE(operand1);
 
 #if PYTHON_VERSION < 0x300
-    // If the types are equal, we may get away immediately except for instances.
     if (type1 == &PyList_Type && !0) {
 
         richcmpfunc frich = PyList_Type.tp_richcompare;
@@ -10258,7 +9868,6 @@ PyObject *RICH_COMPARE_GT_OBJECT_OBJECT_LIST(PyObject *operand1, PyObject *opera
             Py_DECREF_IMMORTAL(result);
         }
 
-        // No rich comparison worked, but maybe compare works.
         cmpfunc fcmp = NULL;
 
         if (fcmp != NULL) {
@@ -10301,7 +9910,6 @@ PyObject *RICH_COMPARE_GT_OBJECT_OBJECT_LIST(PyObject *operand1, PyObject *opera
         }
     }
 
-    // Fast path was not successful or not taken
     richcmpfunc f;
 
     if (type1 != &PyList_Type && 0) {
@@ -10365,16 +9973,12 @@ PyObject *RICH_COMPARE_GT_OBJECT_OBJECT_LIST(PyObject *operand1, PyObject *opera
 
             c = (aa < bb) ? -1 : (aa > bb) ? 1 : 0;
         } else if (operand1 == Py_None) {
-            // None is smaller than everything else
             c = -1;
         } else if (operand2 == Py_None) {
-            // None is smaller than everything else
             c = 1;
         } else if (PyNumber_Check(operand1)) {
-            // different type: compare type names but numbers are smaller than
-            // others.
+            // Different types: compare type names, except numbers sort smaller than others.
             if (PyNumber_Check(operand2)) {
-                // Both numbers, need to make a decision based on types.
                 Py_uintptr_t aa = (Py_uintptr_t)type1;
                 Py_uintptr_t bb = (Py_uintptr_t)&PyList_Type;
 
@@ -10385,7 +9989,6 @@ PyObject *RICH_COMPARE_GT_OBJECT_OBJECT_LIST(PyObject *operand1, PyObject *opera
         } else if (PyNumber_Check(operand2)) {
             c = 1;
         } else {
-            // Banking on C compile to optimize "strcmp".
             int s = strcmp(type1->tp_name, "list");
 
             if (s < 0) {
@@ -10393,7 +9996,6 @@ PyObject *RICH_COMPARE_GT_OBJECT_OBJECT_LIST(PyObject *operand1, PyObject *opera
             } else if (s > 0) {
                 c = 1;
             } else {
-                // Same type name need to make a decision based on type address.
                 Py_uintptr_t aa = (Py_uintptr_t)type1;
                 Py_uintptr_t bb = (Py_uintptr_t)&PyList_Type;
 
@@ -10487,8 +10089,6 @@ PyObject *RICH_COMPARE_GT_OBJECT_OBJECT_LIST(PyObject *operand1, PyObject *opera
 
     Py_LeaveRecursiveCall();
 
-    // If it is not implemented, do pointer identity checks as "==" and "!=" and
-    // otherwise give an error
     switch (Py_GT) {
     case Py_EQ: {
         bool r = operand1 == operand2;
@@ -10513,7 +10113,6 @@ PyObject *RICH_COMPARE_GT_OBJECT_OBJECT_LIST(PyObject *operand1, PyObject *opera
 #endif
 }
 
-/* Code referring to "LIST" corresponds to Python 'list' and "OBJECT" to any Python object. */
 PyObject *RICH_COMPARE_GT_OBJECT_LIST_OBJECT(PyObject *operand1, PyObject *operand2) {
 
     if (&PyList_Type == Py_TYPE(operand2)) {
@@ -10533,7 +10132,6 @@ PyObject *RICH_COMPARE_GT_OBJECT_LIST_OBJECT(PyObject *operand1, PyObject *opera
     PyTypeObject *type2 = Py_TYPE(operand2);
 
 #if PYTHON_VERSION < 0x300
-    // If the types are equal, we may get away immediately except for instances.
     if (&PyList_Type == type2 && !0) {
 
         richcmpfunc frich = PyList_Type.tp_richcompare;
@@ -10550,7 +10148,6 @@ PyObject *RICH_COMPARE_GT_OBJECT_LIST_OBJECT(PyObject *operand1, PyObject *opera
             Py_DECREF_IMMORTAL(result);
         }
 
-        // No rich comparison worked, but maybe compare works.
         cmpfunc fcmp = NULL;
 
         if (fcmp != NULL) {
@@ -10593,7 +10190,6 @@ PyObject *RICH_COMPARE_GT_OBJECT_LIST_OBJECT(PyObject *operand1, PyObject *opera
         }
     }
 
-    // Fast path was not successful or not taken
     richcmpfunc f;
 
     if (&PyList_Type != type2 && Nuitka_Type_IsSubtype(type2, &PyList_Type)) {
@@ -10657,16 +10253,12 @@ PyObject *RICH_COMPARE_GT_OBJECT_LIST_OBJECT(PyObject *operand1, PyObject *opera
 
             c = (aa < bb) ? -1 : (aa > bb) ? 1 : 0;
         } else if (operand1 == Py_None) {
-            // None is smaller than everything else
             c = -1;
         } else if (operand2 == Py_None) {
-            // None is smaller than everything else
             c = 1;
         } else if (PyNumber_Check(operand1)) {
-            // different type: compare type names but numbers are smaller than
-            // others.
+            // Different types: compare type names, except numbers sort smaller than others.
             if (PyNumber_Check(operand2)) {
-                // Both numbers, need to make a decision based on types.
                 Py_uintptr_t aa = (Py_uintptr_t)&PyList_Type;
                 Py_uintptr_t bb = (Py_uintptr_t)type2;
 
@@ -10677,7 +10269,6 @@ PyObject *RICH_COMPARE_GT_OBJECT_LIST_OBJECT(PyObject *operand1, PyObject *opera
         } else if (PyNumber_Check(operand2)) {
             c = 1;
         } else {
-            // Banking on C compile to optimize "strcmp".
             int s = strcmp("list", type2->tp_name);
 
             if (s < 0) {
@@ -10685,7 +10276,6 @@ PyObject *RICH_COMPARE_GT_OBJECT_LIST_OBJECT(PyObject *operand1, PyObject *opera
             } else if (s > 0) {
                 c = 1;
             } else {
-                // Same type name need to make a decision based on type address.
                 Py_uintptr_t aa = (Py_uintptr_t)&PyList_Type;
                 Py_uintptr_t bb = (Py_uintptr_t)type2;
 
@@ -10779,8 +10369,6 @@ PyObject *RICH_COMPARE_GT_OBJECT_LIST_OBJECT(PyObject *operand1, PyObject *opera
 
     Py_LeaveRecursiveCall();
 
-    // If it is not implemented, do pointer identity checks as "==" and "!=" and
-    // otherwise give an error
     switch (Py_GT) {
     case Py_EQ: {
         bool r = operand1 == operand2;
@@ -10805,7 +10393,6 @@ PyObject *RICH_COMPARE_GT_OBJECT_LIST_OBJECT(PyObject *operand1, PyObject *opera
 #endif
 }
 
-/* Code referring to "LIST" corresponds to Python 'list' and "LIST" to Python 'list'. */
 PyObject *RICH_COMPARE_GT_OBJECT_LIST_LIST(PyObject *operand1, PyObject *operand2) {
 
     return COMPARE_GT_OBJECT_LIST_LIST(operand1, operand2);
@@ -10863,7 +10450,6 @@ static nuitka_bool COMPARE_GT_NBOOL_LIST_LIST(PyObject *operand1, PyObject *oper
     if (found == false) {
         bool r = Py_SIZE(a) > Py_SIZE(b);
 
-        // Convert to target type.
         nuitka_bool result = r ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
 
         NUITKA_COMPARE_LIST_RETURN(result);
@@ -10875,7 +10461,6 @@ static nuitka_bool COMPARE_GT_NBOOL_LIST_LIST(PyObject *operand1, PyObject *oper
 }
 
 #undef NUITKA_COMPARE_LIST_RETURN
-/* Code referring to "OBJECT" corresponds to any Python object and "LIST" to Python 'list'. */
 nuitka_bool RICH_COMPARE_GT_NBOOL_OBJECT_LIST(PyObject *operand1, PyObject *operand2) {
 
     if (Py_TYPE(operand1) == &PyList_Type) {
@@ -10895,7 +10480,6 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_OBJECT_LIST(PyObject *operand1, PyObject *oper
     PyTypeObject *type1 = Py_TYPE(operand1);
 
 #if PYTHON_VERSION < 0x300
-    // If the types are equal, we may get away immediately except for instances.
     if (type1 == &PyList_Type && !0) {
 
         richcmpfunc frich = PyList_Type.tp_richcompare;
@@ -10920,7 +10504,6 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_OBJECT_LIST(PyObject *operand1, PyObject *oper
             Py_DECREF_IMMORTAL(result);
         }
 
-        // No rich comparison worked, but maybe compare works.
         cmpfunc fcmp = NULL;
 
         if (fcmp != NULL) {
@@ -10963,7 +10546,6 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_OBJECT_LIST(PyObject *operand1, PyObject *oper
         }
     }
 
-    // Fast path was not successful or not taken
     richcmpfunc f;
 
     if (type1 != &PyList_Type && 0) {
@@ -11051,16 +10633,12 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_OBJECT_LIST(PyObject *operand1, PyObject *oper
 
             c = (aa < bb) ? -1 : (aa > bb) ? 1 : 0;
         } else if (operand1 == Py_None) {
-            // None is smaller than everything else
             c = -1;
         } else if (operand2 == Py_None) {
-            // None is smaller than everything else
             c = 1;
         } else if (PyNumber_Check(operand1)) {
-            // different type: compare type names but numbers are smaller than
-            // others.
+            // Different types: compare type names, except numbers sort smaller than others.
             if (PyNumber_Check(operand2)) {
-                // Both numbers, need to make a decision based on types.
                 Py_uintptr_t aa = (Py_uintptr_t)type1;
                 Py_uintptr_t bb = (Py_uintptr_t)&PyList_Type;
 
@@ -11071,7 +10649,6 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_OBJECT_LIST(PyObject *operand1, PyObject *oper
         } else if (PyNumber_Check(operand2)) {
             c = 1;
         } else {
-            // Banking on C compile to optimize "strcmp".
             int s = strcmp(type1->tp_name, "list");
 
             if (s < 0) {
@@ -11079,7 +10656,6 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_OBJECT_LIST(PyObject *operand1, PyObject *oper
             } else if (s > 0) {
                 c = 1;
             } else {
-                // Same type name need to make a decision based on type address.
                 Py_uintptr_t aa = (Py_uintptr_t)type1;
                 Py_uintptr_t bb = (Py_uintptr_t)&PyList_Type;
 
@@ -11197,8 +10773,6 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_OBJECT_LIST(PyObject *operand1, PyObject *oper
 
     Py_LeaveRecursiveCall();
 
-    // If it is not implemented, do pointer identity checks as "==" and "!=" and
-    // otherwise give an error
     switch (Py_GT) {
     case Py_EQ: {
         bool r = operand1 == operand2;
@@ -11223,7 +10797,6 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_OBJECT_LIST(PyObject *operand1, PyObject *oper
 #endif
 }
 
-/* Code referring to "LIST" corresponds to Python 'list' and "OBJECT" to any Python object. */
 nuitka_bool RICH_COMPARE_GT_NBOOL_LIST_OBJECT(PyObject *operand1, PyObject *operand2) {
 
     if (&PyList_Type == Py_TYPE(operand2)) {
@@ -11243,7 +10816,6 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_LIST_OBJECT(PyObject *operand1, PyObject *oper
     PyTypeObject *type2 = Py_TYPE(operand2);
 
 #if PYTHON_VERSION < 0x300
-    // If the types are equal, we may get away immediately except for instances.
     if (&PyList_Type == type2 && !0) {
 
         richcmpfunc frich = PyList_Type.tp_richcompare;
@@ -11268,7 +10840,6 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_LIST_OBJECT(PyObject *operand1, PyObject *oper
             Py_DECREF_IMMORTAL(result);
         }
 
-        // No rich comparison worked, but maybe compare works.
         cmpfunc fcmp = NULL;
 
         if (fcmp != NULL) {
@@ -11311,7 +10882,6 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_LIST_OBJECT(PyObject *operand1, PyObject *oper
         }
     }
 
-    // Fast path was not successful or not taken
     richcmpfunc f;
 
     if (&PyList_Type != type2 && Nuitka_Type_IsSubtype(type2, &PyList_Type)) {
@@ -11399,16 +10969,12 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_LIST_OBJECT(PyObject *operand1, PyObject *oper
 
             c = (aa < bb) ? -1 : (aa > bb) ? 1 : 0;
         } else if (operand1 == Py_None) {
-            // None is smaller than everything else
             c = -1;
         } else if (operand2 == Py_None) {
-            // None is smaller than everything else
             c = 1;
         } else if (PyNumber_Check(operand1)) {
-            // different type: compare type names but numbers are smaller than
-            // others.
+            // Different types: compare type names, except numbers sort smaller than others.
             if (PyNumber_Check(operand2)) {
-                // Both numbers, need to make a decision based on types.
                 Py_uintptr_t aa = (Py_uintptr_t)&PyList_Type;
                 Py_uintptr_t bb = (Py_uintptr_t)type2;
 
@@ -11419,7 +10985,6 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_LIST_OBJECT(PyObject *operand1, PyObject *oper
         } else if (PyNumber_Check(operand2)) {
             c = 1;
         } else {
-            // Banking on C compile to optimize "strcmp".
             int s = strcmp("list", type2->tp_name);
 
             if (s < 0) {
@@ -11427,7 +10992,6 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_LIST_OBJECT(PyObject *operand1, PyObject *oper
             } else if (s > 0) {
                 c = 1;
             } else {
-                // Same type name need to make a decision based on type address.
                 Py_uintptr_t aa = (Py_uintptr_t)&PyList_Type;
                 Py_uintptr_t bb = (Py_uintptr_t)type2;
 
@@ -11545,8 +11109,6 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_LIST_OBJECT(PyObject *operand1, PyObject *oper
 
     Py_LeaveRecursiveCall();
 
-    // If it is not implemented, do pointer identity checks as "==" and "!=" and
-    // otherwise give an error
     switch (Py_GT) {
     case Py_EQ: {
         bool r = operand1 == operand2;
@@ -11571,7 +11133,6 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_LIST_OBJECT(PyObject *operand1, PyObject *oper
 #endif
 }
 
-/* Code referring to "LIST" corresponds to Python 'list' and "LIST" to Python 'list'. */
 nuitka_bool RICH_COMPARE_GT_NBOOL_LIST_LIST(PyObject *operand1, PyObject *operand2) {
 
     return COMPARE_GT_NBOOL_LIST_LIST(operand1, operand2);
@@ -11629,13 +11190,11 @@ static PyObject *COMPARE_GT_OBJECT_LONG_CLONG(PyObject *operand1, long operand2)
         }
     }
 
-    // Convert to target type.
     PyObject *result = BOOL_FROM(r);
     Py_INCREF_IMMORTAL(result);
     return result;
 }
 #if PYTHON_VERSION < 0x300
-/* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "INT" to Python2 'int'. */
 PyObject *RICH_COMPARE_GT_OBJECT_LONG_INT(PyObject *operand1, PyObject *operand2) {
 
     return COMPARE_GT_OBJECT_LONG_CLONG(operand1, PyInt_AS_LONG(operand1));
@@ -11694,13 +11253,11 @@ static bool COMPARE_GT_CBOOL_LONG_CLONG(PyObject *operand1, long operand2) {
         }
     }
 
-    // Convert to target type.
     bool result = r;
 
     return result;
 }
 #if PYTHON_VERSION < 0x300
-/* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "INT" to Python2 'int'. */
 bool RICH_COMPARE_GT_CBOOL_LONG_INT(PyObject *operand1, PyObject *operand2) {
 
     return COMPARE_GT_CBOOL_LONG_CLONG(operand1, PyInt_AS_LONG(operand1));
@@ -11717,14 +11274,12 @@ static PyObject *COMPARE_GT_OBJECT_INT_CLONG(PyObject *operand1, long operand2) 
 
     bool r = a > b;
 
-    // Convert to target type.
     PyObject *result = BOOL_FROM(r);
     Py_INCREF_IMMORTAL(result);
     return result;
 }
 #endif
 #if PYTHON_VERSION < 0x300
-/* Code referring to "INT" corresponds to Python2 'int' and "CLONG" to C platform long value. */
 PyObject *RICH_COMPARE_GT_OBJECT_INT_CLONG(PyObject *operand1, long operand2) {
 
     return COMPARE_GT_OBJECT_INT_CLONG(operand1, operand2);
@@ -11741,14 +11296,12 @@ static bool COMPARE_GT_CBOOL_INT_CLONG(PyObject *operand1, long operand2) {
 
     bool r = a > b;
 
-    // Convert to target type.
     bool result = r;
 
     return result;
 }
 #endif
 #if PYTHON_VERSION < 0x300
-/* Code referring to "INT" corresponds to Python2 'int' and "CLONG" to C platform long value. */
 bool RICH_COMPARE_GT_CBOOL_INT_CLONG(PyObject *operand1, long operand2) {
 
     return COMPARE_GT_CBOOL_INT_CLONG(operand1, operand2);
@@ -11783,13 +11336,10 @@ static PyObject *COMPARE_GT_OBJECT_LONG_DIGIT(PyObject *operand1, long operand2)
         }
     }
 
-    // Convert to target type.
     PyObject *result = BOOL_FROM(r);
     Py_INCREF_IMMORTAL(result);
     return result;
 }
-/* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "DIGIT" to C platform digit value for long
- * Python objects. */
 PyObject *RICH_COMPARE_GT_OBJECT_LONG_DIGIT(PyObject *operand1, long operand2) {
 
     return COMPARE_GT_OBJECT_LONG_DIGIT(operand1, operand2);
@@ -11823,13 +11373,10 @@ static bool COMPARE_GT_CBOOL_LONG_DIGIT(PyObject *operand1, long operand2) {
         }
     }
 
-    // Convert to target type.
     bool result = r;
 
     return result;
 }
-/* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "DIGIT" to C platform digit value for long
- * Python objects. */
 bool RICH_COMPARE_GT_CBOOL_LONG_DIGIT(PyObject *operand1, long operand2) {
 
     return COMPARE_GT_CBOOL_LONG_DIGIT(operand1, operand2);
@@ -11844,12 +11391,10 @@ static PyObject *COMPARE_GT_OBJECT_FLOAT_CFLOAT(PyObject *operand1, double opera
 
     bool r = a > b;
 
-    // Convert to target type.
     PyObject *result = BOOL_FROM(r);
     Py_INCREF_IMMORTAL(result);
     return result;
 }
-/* Code referring to "FLOAT" corresponds to Python 'float' and "CFLOAT" to C platform float value. */
 PyObject *RICH_COMPARE_GT_OBJECT_FLOAT_CFLOAT(PyObject *operand1, double operand2) {
 
     return COMPARE_GT_OBJECT_FLOAT_CFLOAT(operand1, operand2);
@@ -11864,12 +11409,10 @@ static bool COMPARE_GT_CBOOL_FLOAT_CFLOAT(PyObject *operand1, double operand2) {
 
     bool r = a > b;
 
-    // Convert to target type.
     bool result = r;
 
     return result;
 }
-/* Code referring to "FLOAT" corresponds to Python 'float' and "CFLOAT" to C platform float value. */
 bool RICH_COMPARE_GT_CBOOL_FLOAT_CFLOAT(PyObject *operand1, double operand2) {
 
     return COMPARE_GT_CBOOL_FLOAT_CFLOAT(operand1, operand2);

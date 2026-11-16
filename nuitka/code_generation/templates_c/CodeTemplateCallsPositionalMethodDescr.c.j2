@@ -3,7 +3,7 @@
 {% from 'HelperObjectTools.c.j2' import CHECK_OBJECTS %}
 {% if args_count == 1 %}
 PyObject *CALL_METHODDESCR_WITH_SINGLE_ARG(PyThreadState *tstate, PyObject *called, PyObject *arg) {
-    PyObject *const *args = &arg; // For easier code compatibility.
+    PyObject *const *args = &arg;
 {% else %}
 PyObject *CALL_METHODDESCR_WITH_ARGS{{args_count}}(PyThreadState *tstate, PyObject *called, PyObject *const *args) {
 {% endif %}
@@ -29,7 +29,6 @@ PyObject *CALL_METHODDESCR_WITH_ARGS{{args_count}}(PyThreadState *tstate, PyObje
     PyMethodDescrObject *called_descr = (PyMethodDescrObject *)called;
     PyMethodDef *method_def = called_descr->d_method;
 
-    // Try to be fast about wrapping the arguments.
     int flags = method_def->ml_flags & ~(METH_CLASS | METH_STATIC | METH_COEXIST);
 
     if ({{ unlikely_or_likely_from(args_count != 1) }}(flags & METH_NOARGS)) {
@@ -124,14 +123,6 @@ PyObject *CALL_METHODDESCR_WITH_ARGS{{args_count}}(PyThreadState *tstate, PyObje
         return result;
 #endif
     }
-
-
-#if 0
-    PRINT_NEW_LINE();
-    PRINT_STRING("FALLBACK");
-    PRINT_ITEM(called);
-    PRINT_NEW_LINE();
-#endif
 
 {# TODO: How come the PyCFunction call does not cover all cases, that should
    be doable. #}

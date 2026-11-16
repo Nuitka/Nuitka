@@ -60,11 +60,9 @@ assert(Py_REFCNT({{frame_identifier}}) == 2);
 STORE_{{context_identifier.upper()}}_EXCEPTION(tstate, {{context_identifier}});
 
 {% endif %}
-// Framed code:
 {{codes}}
 
 {% if needs_preserve %}
-// Restore frame exception if necessary.
 RESTORE_FRAME_EXCEPTION(tstate, {{frame_identifier}});
 {% endif %}
 
@@ -72,7 +70,6 @@ RESTORE_FRAME_EXCEPTION(tstate, {{frame_identifier}});
 {% if frame_exit_code %}
 {{frame_exit_code}}
 {% endif %}
-// Put the previous frame back on top.
 popFrameStack(tstate);
 {% if frame_cache_identifier %}
 Nuitka_FrameCache_Return({{frame_identifier}});
@@ -92,7 +89,6 @@ RESTORE_FRAME_EXCEPTION(tstate, {{frame_identifier}});
 {% if frame_exit_code %}
 {{frame_exit_code}}
 {% endif %}
-// Put the previous frame back on top.
 popFrameStack(tstate);
 {% if frame_cache_identifier %}
 Nuitka_FrameCache_Return({{frame_identifier}});
@@ -126,7 +122,6 @@ RESTORE_FRAME_EXCEPTION(tstate, {{frame_identifier}});
 }
 
 {% if attach_locals_code %}
-// Attaches locals to frame if any.
 {{attach_locals_code}}
 {% endif %}
 
@@ -138,10 +133,8 @@ Nuitka_FrameCache_DropCall({{frame_identifier}});
 
 assertFrameObject({{frame_identifier}});
 
-// Put the previous frame back on top.
 popFrameStack(tstate);
 
-// Return the error.
 goto {{parent_exception_exit}};
 """
 
@@ -187,7 +180,6 @@ if (!EXCEPTION_STATE_MATCH_GENERATOR(tstate, &{{exception_state_name}})) {
     assertFrameObject({{frame_identifier}});
 }
 
-// Return the error.
 goto {{parent_exception_exit}};
 """
 

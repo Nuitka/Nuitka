@@ -23,7 +23,6 @@ COMPARE_{{op_code}}_{{target.getHelperCodeName()}}_{{left.getDualType(left_choic
 {% else %}
         bool r = {{ compare_call(inverse_compare_op_code, c_bool_desc, left, right, "C", "C", "operand1", "operand2") }};
 
-        // Convert to target type.
         {{ target.getTypeDecl() }} result = {{target.getToValueFromBoolExpression("!r")}};
         {{ target.getTakeReferenceStatement("result", immortal=True) }}
         return result;
@@ -55,7 +54,6 @@ COMPARE_{{op_code}}_{{target.getHelperCodeName()}}_{{left.getDualType(left_choic
            r = COMPARE_{{op_code}}_CBOOL_{{left.getDualType("Python").getHelperCodeName()}}_{{right.getDualType("C").getHelperCodeName()}}({{left.getDualTypeAccessCode("Python", "operand1")}}, {{left.getDualTypeAccessCode("C", "operand2")}});
         }
 
-        // Convert to target type.
         {{ target.getTypeDecl() }} result = {{target.getToValueFromBoolExpression("r")}};
         {{ target.getTakeReferenceStatement("result", immortal=True) }}
         return result;

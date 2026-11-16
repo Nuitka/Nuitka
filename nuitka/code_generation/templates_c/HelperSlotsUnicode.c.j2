@@ -3,13 +3,12 @@
 {% from 'HelperSlotsCommon.c.j2' import goto_exit %}
 
 {% macro unicode_slot(props, operator, nb_slot, target, left, right, result, operand1, operand2, exit_result_ok, exit_result_exception) %}
-    // Not every code path will make use of all possible results.
     NUITKA_MAY_BE_UNUSED PyObject *obj_result;
 
     {# TODO: Could and should in-line and specialize this per slot too. #}
 {% if nb_slot == "nb_add" %}
 {% if left.type_name == "unicode" == right.type_name %}
-    // TODO: Have this more globally passed in
+    {# TODO: Have this more globally passed in #}
     PyThreadState *tstate = PyThreadState_GET();
 
     PyObject *x = UNICODE_CONCAT(tstate, {{ operand1 }}, {{ operand2 }});
@@ -37,7 +36,6 @@ exit_result_object:
     {{ target.getAssignFromObjectExpressionCode(result, "obj_result") }}
 {% else %}
     {# TODO: Check the reference we were handed down and do it in-place really. #}
-    // We got an object handed, that we have to release.
     Py_DECREF({{ operand1 }});
 
     {{ operand1 }} = obj_result;

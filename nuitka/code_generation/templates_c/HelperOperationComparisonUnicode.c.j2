@@ -7,7 +7,6 @@ static {{ target.getTypeDecl() }} COMPARE_{{op_code}}_{{target.getHelperCodeName
     PyUnicodeObject *a = (PyUnicodeObject *)operand1;
     PyUnicodeObject *b = (PyUnicodeObject *)operand2;
 
-    // Same object has fast path for all operations.
     if (operand1 == operand2) {
 {% if operator in ("==", ">=", "<=") %}
         bool r = true;
@@ -15,7 +14,6 @@ static {{ target.getTypeDecl() }} COMPARE_{{op_code}}_{{target.getHelperCodeName
         bool r = false;
 {% endif %}
 
-        // Convert to target type.
         {{ target.getTypeDecl() }} result = {{target.getToValueFromBoolExpression("r")}};
         {{ target.getTakeReferenceStatement("result", immortal=True) }}
         return result;
@@ -90,7 +88,6 @@ static {{ target.getTypeDecl() }} COMPARE_{{op_code}}_{{target.getHelperCodeName
 {% if target.type_name == "object" %}
     return r;
 {% else %}
-    // Convert to target type if necessary
     {{ target.getTypeDecl() }} result = {{target.getToValueFromBoolExpression("r == Py_True")}};
     Py_DECREF_IMMORTAL(r);
     {{ target.getTakeReferenceStatement("result", immortal=True) }}

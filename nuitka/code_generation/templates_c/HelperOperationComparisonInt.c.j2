@@ -10,7 +10,6 @@ static {{ target.getTypeDecl() }} COMPARE_{{op_code}}_{{target.getHelperCodeName
 
     bool r = a {{operator}} b;
 
-    // Convert to target type.
     {{ target.getTypeDecl() }} result = {{target.getToValueFromBoolExpression("r")}};
     {{ target.getTakeReferenceStatement("result", immortal=True) }}
     return result;

@@ -15,26 +15,16 @@
 
 /* C helpers for type specialized "<" (LT) comparisons */
 
-/* Code referring to "NILONG" corresponds to Nuitka int/long/C long value and "NILONG" to Nuitka int/long/C long value.
- */
 extern PyObject *RICH_COMPARE_LT_OBJECT_NILONG_NILONG(nuitka_ilong *operand1, nuitka_ilong *operand2);
 
-/* Code referring to "NILONG" corresponds to Nuitka int/long/C long value and "NILONG" to Nuitka int/long/C long value.
- */
 extern bool RICH_COMPARE_LT_CBOOL_NILONG_NILONG(nuitka_ilong *operand1, nuitka_ilong *operand2);
 
-/* Code referring to "NILONG" corresponds to Nuitka int/long/C long value and "CLONG" to C platform long value. */
 extern PyObject *RICH_COMPARE_LT_OBJECT_NILONG_CLONG(nuitka_ilong *operand1, long operand2);
 
-/* Code referring to "NILONG" corresponds to Nuitka int/long/C long value and "CLONG" to C platform long value. */
 extern bool RICH_COMPARE_LT_CBOOL_NILONG_CLONG(nuitka_ilong *operand1, long operand2);
 
-/* Code referring to "NILONG" corresponds to Nuitka int/long/C long value and "DIGIT" to C platform digit value for long
- * Python objects. */
 extern PyObject *RICH_COMPARE_LT_OBJECT_NILONG_DIGIT(nuitka_ilong *operand1, long operand2);
 
-/* Code referring to "NILONG" corresponds to Nuitka int/long/C long value and "DIGIT" to C platform digit value for long
- * Python objects. */
 extern bool RICH_COMPARE_LT_CBOOL_NILONG_DIGIT(nuitka_ilong *operand1, long operand2);
 
 #endif

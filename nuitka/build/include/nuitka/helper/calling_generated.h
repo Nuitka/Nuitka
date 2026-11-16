@@ -1,6 +1,7 @@
 //     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
-/* WARNING, this code is GENERATED. Modify the template CodeTemplateCallsPositional.c.j2 instead! */
+/* WARNING, this code is GENERATED. Modify the templates CodeTemplateCallsPositional.c.j2, CodeTemplateCallsMixed.c.j2,
+ * CodeTemplateCallsPositionalMethodDescr.c.j2, CodeTemplateCallsMethodPositional.c.j2 instead! */
 #pragma once
 #ifndef __NUITKA_CALLING_GENERATED_H__
 #define __NUITKA_CALLING_GENERATED_H__
@@ -10,6 +11,7 @@
 #include "nuitka/prelude.h"
 #endif
 
+/* Generated from CodeTemplateCallsPositional.c.j2 */
 extern PyObject *CALL_FUNCTION_NO_ARGS(PyThreadState *tstate, PyObject *called);
 extern PyObject *CALL_FUNCTION_WITH_SINGLE_ARG(PyThreadState *tstate, PyObject *called, PyObject *arg);
 extern PyObject *CALL_FUNCTION_WITH_POS_ARGS1(PyThreadState *tstate, PyObject *called, PyObject *pos_args);
@@ -31,6 +33,7 @@ extern PyObject *CALL_FUNCTION_WITH_ARGS9(PyThreadState *tstate, PyObject *calle
 extern PyObject *CALL_FUNCTION_WITH_POS_ARGS9(PyThreadState *tstate, PyObject *called, PyObject *pos_args);
 extern PyObject *CALL_FUNCTION_WITH_ARGS10(PyThreadState *tstate, PyObject *called, PyObject *const *args);
 extern PyObject *CALL_FUNCTION_WITH_POS_ARGS10(PyThreadState *tstate, PyObject *called, PyObject *pos_args);
+/* Generated from CodeTemplateCallsMixed.c.j2 */
 extern PyObject *CALL_FUNCTION_WITH_NO_ARGS_KW_SPLIT(PyThreadState *tstate, PyObject *called,
                                                      PyObject *const *kw_values, PyObject *kw_names);
 extern PyObject *CALL_FUNCTION_WITH_ARGS1_VECTORCALL(PyThreadState *tstate, PyObject *called, PyObject *const *args,
@@ -93,10 +96,12 @@ extern PyObject *CALL_FUNCTION_WITH_ARGS10_KW_SPLIT(PyThreadState *tstate, PyObj
                                                     PyObject *const *kw_values, PyObject *kw_names);
 extern PyObject *CALL_FUNCTION_WITH_POS_ARGS10_KW_SPLIT(PyThreadState *tstate, PyObject *called, PyObject *pos_args,
                                                         PyObject *const *kw_values, PyObject *kw_names);
+/* Generated from CodeTemplateCallsPositionalMethodDescr.c.j2 */
 extern PyObject *CALL_METHODDESCR_WITH_SINGLE_ARG(PyThreadState *tstate, PyObject *called, PyObject *arg);
 extern PyObject *CALL_METHODDESCR_WITH_ARGS2(PyThreadState *tstate, PyObject *called, PyObject *const *args);
 extern PyObject *CALL_METHODDESCR_WITH_ARGS3(PyThreadState *tstate, PyObject *called, PyObject *const *args);
 extern PyObject *CALL_METHODDESCR_WITH_ARGS4(PyThreadState *tstate, PyObject *called, PyObject *const *args);
+/* Generated from CodeTemplateCallsMethodPositional.c.j2 */
 extern PyObject *CALL_METHOD_NO_ARGS(PyThreadState *tstate, PyObject *source, PyObject *attr_name);
 extern PyObject *CALL_METHOD_WITH_SINGLE_ARG(PyThreadState *tstate, PyObject *source, PyObject *attr_name,
                                              PyObject *arg);

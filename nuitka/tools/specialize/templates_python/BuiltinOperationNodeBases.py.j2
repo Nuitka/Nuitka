@@ -11,6 +11,8 @@ class {{class_name}}(
 {% endfor %}
     {{bytes_operation_mixin_name}},
     ExpressionBase):
+    """Base class for 'bytes.{{attribute_name}}' operation node."""
+
     named_children = ("bytes_arg",
 {% for named_child in arg_names %}
 {% if named_child in bytes_operation_arg_types %}
@@ -92,6 +94,8 @@ class {{class_name}}(
 {% endfor %}
     {{str_operation_mixin_name}},
     ExpressionBase):
+    """Base class for 'str.{{attribute_name}}' operation node."""
+
     named_children = ("str_arg",
 {% for named_child in arg_names %}
 {% if named_child in str_operation_arg_types %}
@@ -180,6 +184,8 @@ class {{class_name}}(
 {% endfor %}
     {{dict_operation_mixin_name}},
     ExpressionBase):
+    """Base class for 'dict.{{attribute_name}}' operation node."""
+
     named_children = (
 {% for named_child in dict_operation_arg_names %}
 {% if named_child in dict_operation_arg_types %}

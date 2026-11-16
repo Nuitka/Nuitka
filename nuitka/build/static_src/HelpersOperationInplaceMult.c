@@ -13,16 +13,14 @@
 /* C helpers for type in-place "*" (MULT) operations */
 
 #if PYTHON_VERSION < 0x300
-/* Code referring to "INT" corresponds to Python2 'int' and "INT" to Python2 'int'. */
 static inline bool _INPLACE_OPERATION_MULT_INT_INT(PyObject **operand1, PyObject *operand2) {
-    assert(operand1); // Pointer must be non-null.
+    assert(operand1);
 
     CHECK_OBJECT(*operand1);
     assert(PyInt_CheckExact(*operand1));
     CHECK_OBJECT(operand2);
     assert(PyInt_CheckExact(operand2));
 
-    // Not every code path will make use of all possible results.
 #if defined(_MSC_VER)
 #pragma warning(push)
 #pragma warning(disable : 4101)
@@ -73,12 +71,7 @@ static inline bool _INPLACE_OPERATION_MULT_INT_INT(PyObject **operand1, PyObject
     }
 
 exit_result_ok_clong:
-
-    // We got an object handed, that we have to release.
     Py_DECREF(*operand1);
-
-    // That's our return value then. As we use a dedicated variable, it's
-    // OK that way.
     *operand1 = Nuitka_PyInt_FromLong(clong_result);
     goto exit_result_ok;
 
@@ -86,7 +79,6 @@ exit_result_object:
     if (unlikely(obj_result == NULL)) {
         goto exit_result_exception;
     }
-    // We got an object handed, that we have to release.
     Py_DECREF(*operand1);
 
     *operand1 = obj_result;
@@ -105,7 +97,6 @@ bool INPLACE_OPERATION_MULT_INT_INT(PyObject **operand1, PyObject *operand2) {
 #endif
 
 #if PYTHON_VERSION < 0x300
-/* Code referring to "OBJECT" corresponds to any Python object and "INT" to Python2 'int'. */
 static HEDLEY_NEVER_INLINE bool __INPLACE_OPERATION_MULT_OBJECT_INT(PyObject **operand1, PyObject *operand2) {
     PyTypeObject *type1 = Py_TYPE(*operand1);
 
@@ -139,8 +130,6 @@ static HEDLEY_NEVER_INLINE bool __INPLACE_OPERATION_MULT_OBJECT_INT(PyObject **o
         binaryfunc slot2 = NULL;
 
         if (!(type1 == &PyInt_Type)) {
-            // Different types, need to consider second value slot.
-
             slot2 = PyInt_Type.tp_as_number->nb_multiply;
 
             if (slot1 == slot2) {
@@ -245,7 +234,6 @@ static HEDLEY_NEVER_INLINE bool __INPLACE_OPERATION_MULT_OBJECT_INT(PyObject **o
 #endif
 
         {
-            // Special case for "+" and "*", also works as sequence concat/repeat.
             ssizeargfunc sq_slot = type1->tp_as_sequence != NULL ? type1->tp_as_sequence->sq_inplace_repeat : NULL;
             if (sq_slot == NULL) {
                 sq_slot = type1->tp_as_sequence != NULL ? type1->tp_as_sequence->sq_repeat : NULL;
@@ -258,7 +246,6 @@ static HEDLEY_NEVER_INLINE bool __INPLACE_OPERATION_MULT_OBJECT_INT(PyObject **o
                 goto exit_inplace_result_object;
             }
         }
-        // No sequence repeat slot sq_repeat available for this type.
 
         PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *=: '%s' and 'int'", type1->tp_name);
         goto exit_inplace_exception;
@@ -269,11 +256,7 @@ exit_inplace_result_object:
         return false;
     }
 
-    // We got an object handed, that we have to release.
     Py_DECREF(*operand1);
-
-    // That's our return value then. As we use a dedicated variable, it's
-    // OK that way.
     *operand1 = obj_result;
 
     return true;
@@ -282,7 +265,7 @@ exit_inplace_exception:
     return false;
 }
 static inline bool _INPLACE_OPERATION_MULT_OBJECT_INT(PyObject **operand1, PyObject *operand2) {
-    assert(operand1); // Pointer must be non-null.
+    assert(operand1);
 
     CHECK_OBJECT(*operand1);
     CHECK_OBJECT(operand2);
@@ -291,9 +274,7 @@ static inline bool _INPLACE_OPERATION_MULT_OBJECT_INT(PyObject **operand1, PyObj
     PyTypeObject *type1 = Py_TYPE(*operand1);
 
     if (type1 == &PyInt_Type) {
-        // return _BINARY_OPERATION_MULT_INT_INT_INPLACE(operand1, operand2);
 
-        // Not every code path will make use of all possible results.
 #if defined(_MSC_VER)
 #pragma warning(push)
 #pragma warning(disable : 4101)
@@ -344,12 +325,7 @@ static inline bool _INPLACE_OPERATION_MULT_OBJECT_INT(PyObject **operand1, PyObj
         }
 
     exit_result_ok_clong:
-
-        // We got an object handed, that we have to release.
         Py_DECREF(*operand1);
-
-        // That's our return value then. As we use a dedicated variable, it's
-        // OK that way.
         *operand1 = Nuitka_PyInt_FromLong(clong_result);
         goto exit_result_ok;
 
@@ -357,7 +333,6 @@ static inline bool _INPLACE_OPERATION_MULT_OBJECT_INT(PyObject **operand1, PyObj
         if (unlikely(obj_result == NULL)) {
             goto exit_result_exception;
         }
-        // We got an object handed, that we have to release.
         Py_DECREF(*operand1);
 
         *operand1 = obj_result;
@@ -379,7 +354,6 @@ bool INPLACE_OPERATION_MULT_OBJECT_INT(PyObject **operand1, PyObject *operand2) 
 #endif
 
 #if PYTHON_VERSION < 0x300
-/* Code referring to "INT" corresponds to Python2 'int' and "OBJECT" to any Python object. */
 static HEDLEY_NEVER_INLINE bool __INPLACE_OPERATION_MULT_INT_OBJECT(PyObject **operand1, PyObject *operand2) {
     PyTypeObject *type2 = Py_TYPE(operand2);
 
@@ -393,15 +367,11 @@ static HEDLEY_NEVER_INLINE bool __INPLACE_OPERATION_MULT_INT_OBJECT(PyObject **o
 #pragma warning(pop)
 #endif
 
-    // No inplace number slot nb_inplace_multiply available for this type.
-
     {
         binaryfunc slot1 = PyInt_Type.tp_as_number->nb_multiply;
         binaryfunc slot2 = NULL;
 
         if (!(&PyInt_Type == type2)) {
-            // Different types, need to consider second value slot.
-
             slot2 =
                 (type2->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type2)) ? type2->tp_as_number->nb_multiply : NULL;
 
@@ -521,10 +491,7 @@ static HEDLEY_NEVER_INLINE bool __INPLACE_OPERATION_MULT_INT_OBJECT(PyObject **o
 #endif
 
         {
-            // No sequence repeat slot sq_repeat available for this type.
-            // No inplace sequence repeat slot sq_inplace_repeat available for this type.
         }
-        // Special case for "*", also work with sequence repeat from right argument.
         if (true) {
             ssizeargfunc sq_slot = type2->tp_as_sequence != NULL ? type2->tp_as_sequence->sq_repeat : NULL;
 
@@ -545,11 +512,7 @@ exit_inplace_result_object:
         return false;
     }
 
-    // We got an object handed, that we have to release.
     Py_DECREF(*operand1);
-
-    // That's our return value then. As we use a dedicated variable, it's
-    // OK that way.
     *operand1 = obj_result;
 
     return true;
@@ -558,7 +521,7 @@ exit_inplace_exception:
     return false;
 }
 static inline bool _INPLACE_OPERATION_MULT_INT_OBJECT(PyObject **operand1, PyObject *operand2) {
-    assert(operand1); // Pointer must be non-null.
+    assert(operand1);
 
     CHECK_OBJECT(*operand1);
     assert(PyInt_CheckExact(*operand1));
@@ -567,9 +530,7 @@ static inline bool _INPLACE_OPERATION_MULT_INT_OBJECT(PyObject **operand1, PyObj
     PyTypeObject *type2 = Py_TYPE(operand2);
 
     if (&PyInt_Type == type2) {
-        // return _BINARY_OPERATION_MULT_INT_INT_INPLACE(operand1, operand2);
 
-        // Not every code path will make use of all possible results.
 #if defined(_MSC_VER)
 #pragma warning(push)
 #pragma warning(disable : 4101)
@@ -620,12 +581,7 @@ static inline bool _INPLACE_OPERATION_MULT_INT_OBJECT(PyObject **operand1, PyObj
         }
 
     exit_result_ok_clong:
-
-        // We got an object handed, that we have to release.
         Py_DECREF(*operand1);
-
-        // That's our return value then. As we use a dedicated variable, it's
-        // OK that way.
         *operand1 = Nuitka_PyInt_FromLong(clong_result);
         goto exit_result_ok;
 
@@ -633,7 +589,6 @@ static inline bool _INPLACE_OPERATION_MULT_INT_OBJECT(PyObject **operand1, PyObj
         if (unlikely(obj_result == NULL)) {
             goto exit_result_exception;
         }
-        // We got an object handed, that we have to release.
         Py_DECREF(*operand1);
 
         *operand1 = obj_result;
@@ -654,16 +609,14 @@ bool INPLACE_OPERATION_MULT_INT_OBJECT(PyObject **operand1, PyObject *operand2) 
 }
 #endif
 
-/* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "LONG" to Python2 'long', Python3 'int'. */
 static inline bool _INPLACE_OPERATION_MULT_LONG_LONG(PyObject **operand1, PyObject *operand2) {
-    assert(operand1); // Pointer must be non-null.
+    assert(operand1);
 
     CHECK_OBJECT(*operand1);
     assert(PyLong_CheckExact(*operand1));
     CHECK_OBJECT(operand2);
     assert(PyLong_CheckExact(operand2));
 
-    // Not every code path will make use of all possible results.
 #if defined(_MSC_VER)
 #pragma warning(push)
 #pragma warning(disable : 4101)
@@ -684,7 +637,6 @@ exit_result_object:
     if (unlikely(obj_result == NULL)) {
         goto exit_result_exception;
     }
-    // We got an object handed, that we have to release.
     Py_DECREF(*operand1);
     *operand1 = obj_result;
     goto exit_result_ok;
@@ -700,7 +652,6 @@ bool INPLACE_OPERATION_MULT_LONG_LONG(PyObject **operand1, PyObject *operand2) {
     return _INPLACE_OPERATION_MULT_LONG_LONG(operand1, operand2);
 }
 
-/* Code referring to "OBJECT" corresponds to any Python object and "LONG" to Python2 'long', Python3 'int'. */
 static HEDLEY_NEVER_INLINE bool __INPLACE_OPERATION_MULT_OBJECT_LONG(PyObject **operand1, PyObject *operand2) {
     PyTypeObject *type1 = Py_TYPE(*operand1);
 
@@ -734,8 +685,6 @@ static HEDLEY_NEVER_INLINE bool __INPLACE_OPERATION_MULT_OBJECT_LONG(PyObject **
         binaryfunc slot2 = NULL;
 
         if (!(type1 == &PyLong_Type)) {
-            // Different types, need to consider second value slot.
-
             slot2 = PyLong_Type.tp_as_number->nb_multiply;
 
             if (slot1 == slot2) {
@@ -840,7 +789,6 @@ static HEDLEY_NEVER_INLINE bool __INPLACE_OPERATION_MULT_OBJECT_LONG(PyObject **
 #endif
 
         {
-            // Special case for "+" and "*", also works as sequence concat/repeat.
             ssizeargfunc sq_slot = type1->tp_as_sequence != NULL ? type1->tp_as_sequence->sq_inplace_repeat : NULL;
             if (sq_slot == NULL) {
                 sq_slot = type1->tp_as_sequence != NULL ? type1->tp_as_sequence->sq_repeat : NULL;
@@ -853,7 +801,6 @@ static HEDLEY_NEVER_INLINE bool __INPLACE_OPERATION_MULT_OBJECT_LONG(PyObject **
                 goto exit_inplace_result_object;
             }
         }
-        // No sequence repeat slot sq_repeat available for this type.
 
 #if PYTHON_VERSION < 0x300
         PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *=: '%s' and 'long'", type1->tp_name);
@@ -868,11 +815,7 @@ exit_inplace_result_object:
         return false;
     }
 
-    // We got an object handed, that we have to release.
     Py_DECREF(*operand1);
-
-    // That's our return value then. As we use a dedicated variable, it's
-    // OK that way.
     *operand1 = obj_result;
 
     return true;
@@ -881,7 +824,7 @@ exit_inplace_exception:
     return false;
 }
 static inline bool _INPLACE_OPERATION_MULT_OBJECT_LONG(PyObject **operand1, PyObject *operand2) {
-    assert(operand1); // Pointer must be non-null.
+    assert(operand1);
 
     CHECK_OBJECT(*operand1);
     CHECK_OBJECT(operand2);
@@ -890,9 +833,6 @@ static inline bool _INPLACE_OPERATION_MULT_OBJECT_LONG(PyObject **operand1, PyOb
     PyTypeObject *type1 = Py_TYPE(*operand1);
 
     if (type1 == &PyLong_Type) {
-        // return _BINARY_OPERATION_MULT_LONG_LONG_INPLACE(operand1, operand2);
-
-        // Not every code path will make use of all possible results.
 #if defined(_MSC_VER)
 #pragma warning(push)
 #pragma warning(disable : 4101)
@@ -913,7 +853,6 @@ static inline bool _INPLACE_OPERATION_MULT_OBJECT_LONG(PyObject **operand1, PyOb
         if (unlikely(obj_result == NULL)) {
             goto exit_result_exception;
         }
-        // We got an object handed, that we have to release.
         Py_DECREF(*operand1);
         *operand1 = obj_result;
         goto exit_result_ok;
@@ -932,7 +871,6 @@ bool INPLACE_OPERATION_MULT_OBJECT_LONG(PyObject **operand1, PyObject *operand2)
     return _INPLACE_OPERATION_MULT_OBJECT_LONG(operand1, operand2);
 }
 
-/* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "OBJECT" to any Python object. */
 static HEDLEY_NEVER_INLINE bool __INPLACE_OPERATION_MULT_LONG_OBJECT(PyObject **operand1, PyObject *operand2) {
     PyTypeObject *type2 = Py_TYPE(operand2);
 
@@ -946,15 +884,11 @@ static HEDLEY_NEVER_INLINE bool __INPLACE_OPERATION_MULT_LONG_OBJECT(PyObject **
 #pragma warning(pop)
 #endif
 
-    // No inplace number slot nb_inplace_multiply available for this type.
-
     {
         binaryfunc slot1 = PyLong_Type.tp_as_number->nb_multiply;
         binaryfunc slot2 = NULL;
 
         if (!(&PyLong_Type == type2)) {
-            // Different types, need to consider second value slot.
-
             slot2 =
                 (type2->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type2)) ? type2->tp_as_number->nb_multiply : NULL;
 
@@ -1074,10 +1008,7 @@ static HEDLEY_NEVER_INLINE bool __INPLACE_OPERATION_MULT_LONG_OBJECT(PyObject **
 #endif
 
         {
-            // No sequence repeat slot sq_repeat available for this type.
-            // No inplace sequence repeat slot sq_inplace_repeat available for this type.
         }
-        // Special case for "*", also work with sequence repeat from right argument.
         if (true) {
             ssizeargfunc sq_slot = type2->tp_as_sequence != NULL ? type2->tp_as_sequence->sq_repeat : NULL;
 
@@ -1102,11 +1033,7 @@ exit_inplace_result_object:
         return false;
     }
 
-    // We got an object handed, that we have to release.
     Py_DECREF(*operand1);
-
-    // That's our return value then. As we use a dedicated variable, it's
-    // OK that way.
     *operand1 = obj_result;
 
     return true;
@@ -1115,7 +1042,7 @@ exit_inplace_exception:
     return false;
 }
 static inline bool _INPLACE_OPERATION_MULT_LONG_OBJECT(PyObject **operand1, PyObject *operand2) {
-    assert(operand1); // Pointer must be non-null.
+    assert(operand1);
 
     CHECK_OBJECT(*operand1);
     assert(PyLong_CheckExact(*operand1));
@@ -1124,9 +1051,6 @@ static inline bool _INPLACE_OPERATION_MULT_LONG_OBJECT(PyObject **operand1, PyOb
     PyTypeObject *type2 = Py_TYPE(operand2);
 
     if (&PyLong_Type == type2) {
-        // return _BINARY_OPERATION_MULT_LONG_LONG_INPLACE(operand1, operand2);
-
-        // Not every code path will make use of all possible results.
 #if defined(_MSC_VER)
 #pragma warning(push)
 #pragma warning(disable : 4101)
@@ -1147,7 +1071,6 @@ static inline bool _INPLACE_OPERATION_MULT_LONG_OBJECT(PyObject **operand1, PyOb
         if (unlikely(obj_result == NULL)) {
             goto exit_result_exception;
         }
-        // We got an object handed, that we have to release.
         Py_DECREF(*operand1);
         *operand1 = obj_result;
         goto exit_result_ok;
@@ -1166,9 +1089,8 @@ bool INPLACE_OPERATION_MULT_LONG_OBJECT(PyObject **operand1, PyObject *operand2)
     return _INPLACE_OPERATION_MULT_LONG_OBJECT(operand1, operand2);
 }
 
-/* Code referring to "FLOAT" corresponds to Python 'float' and "FLOAT" to Python 'float'. */
 static inline bool _INPLACE_OPERATION_MULT_FLOAT_FLOAT(PyObject **operand1, PyObject *operand2) {
-    assert(operand1); // Pointer must be non-null.
+    assert(operand1);
 
     CHECK_OBJECT(*operand1);
     assert(PyFloat_CheckExact(*operand1));
@@ -1179,7 +1101,6 @@ static inline bool _INPLACE_OPERATION_MULT_FLOAT_FLOAT(PyObject **operand1, PyOb
 #pragma warning(push)
 #pragma warning(disable : 4101)
 #endif
-    // Not every code path will make use of all possible results.
     NUITKA_MAY_BE_UNUSED PyObject *obj_result;
     NUITKA_MAY_BE_UNUSED long clong_result;
     NUITKA_MAY_BE_UNUSED double cfloat_result;
@@ -1204,7 +1125,6 @@ exit_result_ok_cfloat:
     if (Py_REFCNT(*operand1) == 1) {
         PyFloat_SET_DOUBLE(*operand1, cfloat_result);
     } else {
-        // We got an object handed, that we have to release.
         Py_DECREF(*operand1);
 
         *operand1 = MAKE_FLOAT_FROM_DOUBLE(cfloat_result);
@@ -1219,7 +1139,6 @@ bool INPLACE_OPERATION_MULT_FLOAT_FLOAT(PyObject **operand1, PyObject *operand2)
     return _INPLACE_OPERATION_MULT_FLOAT_FLOAT(operand1, operand2);
 }
 
-/* Code referring to "OBJECT" corresponds to any Python object and "FLOAT" to Python 'float'. */
 static HEDLEY_NEVER_INLINE bool __INPLACE_OPERATION_MULT_OBJECT_FLOAT(PyObject **operand1, PyObject *operand2) {
     PyTypeObject *type1 = Py_TYPE(*operand1);
 
@@ -1253,8 +1172,6 @@ static HEDLEY_NEVER_INLINE bool __INPLACE_OPERATION_MULT_OBJECT_FLOAT(PyObject *
         binaryfunc slot2 = NULL;
 
         if (!(type1 == &PyFloat_Type)) {
-            // Different types, need to consider second value slot.
-
             slot2 = PyFloat_Type.tp_as_number->nb_multiply;
 
             if (slot1 == slot2) {
@@ -1359,7 +1276,6 @@ static HEDLEY_NEVER_INLINE bool __INPLACE_OPERATION_MULT_OBJECT_FLOAT(PyObject *
 #endif
 
         {
-            // Special case for "+" and "*", also works as sequence concat/repeat.
             ssizeargfunc sq_slot = type1->tp_as_sequence != NULL ? type1->tp_as_sequence->sq_inplace_repeat : NULL;
             if (sq_slot == NULL) {
                 sq_slot = type1->tp_as_sequence != NULL ? type1->tp_as_sequence->sq_repeat : NULL;
@@ -1372,7 +1288,6 @@ static HEDLEY_NEVER_INLINE bool __INPLACE_OPERATION_MULT_OBJECT_FLOAT(PyObject *
                 goto exit_inplace_result_object;
             }
         }
-        // No sequence repeat slot sq_repeat available for this type.
 
         PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *=: '%s' and 'float'", type1->tp_name);
         goto exit_inplace_exception;
@@ -1383,11 +1298,7 @@ exit_inplace_result_object:
         return false;
     }
 
-    // We got an object handed, that we have to release.
     Py_DECREF(*operand1);
-
-    // That's our return value then. As we use a dedicated variable, it's
-    // OK that way.
     *operand1 = obj_result;
 
     return true;
@@ -1396,7 +1307,7 @@ exit_inplace_exception:
     return false;
 }
 static inline bool _INPLACE_OPERATION_MULT_OBJECT_FLOAT(PyObject **operand1, PyObject *operand2) {
-    assert(operand1); // Pointer must be non-null.
+    assert(operand1);
 
     CHECK_OBJECT(*operand1);
     CHECK_OBJECT(operand2);
@@ -1405,13 +1316,10 @@ static inline bool _INPLACE_OPERATION_MULT_OBJECT_FLOAT(PyObject **operand1, PyO
     PyTypeObject *type1 = Py_TYPE(*operand1);
 
     if (type1 == &PyFloat_Type) {
-        // return _BINARY_OPERATION_MULT_FLOAT_FLOAT_INPLACE(operand1, operand2);
-
 #if defined(_MSC_VER)
 #pragma warning(push)
 #pragma warning(disable : 4101)
 #endif
-        // Not every code path will make use of all possible results.
         NUITKA_MAY_BE_UNUSED PyObject *obj_result;
         NUITKA_MAY_BE_UNUSED long clong_result;
         NUITKA_MAY_BE_UNUSED double cfloat_result;
@@ -1436,7 +1344,6 @@ static inline bool _INPLACE_OPERATION_MULT_OBJECT_FLOAT(PyObject **operand1, PyO
         if (Py_REFCNT(*operand1) == 1) {
             PyFloat_SET_DOUBLE(*operand1, cfloat_result);
         } else {
-            // We got an object handed, that we have to release.
             Py_DECREF(*operand1);
 
             *operand1 = MAKE_FLOAT_FROM_DOUBLE(cfloat_result);
@@ -1454,7 +1361,6 @@ bool INPLACE_OPERATION_MULT_OBJECT_FLOAT(PyObject **operand1, PyObject *operand2
     return _INPLACE_OPERATION_MULT_OBJECT_FLOAT(operand1, operand2);
 }
 
-/* Code referring to "FLOAT" corresponds to Python 'float' and "OBJECT" to any Python object. */
 static HEDLEY_NEVER_INLINE bool __INPLACE_OPERATION_MULT_FLOAT_OBJECT(PyObject **operand1, PyObject *operand2) {
     PyTypeObject *type2 = Py_TYPE(operand2);
 
@@ -1468,15 +1374,11 @@ static HEDLEY_NEVER_INLINE bool __INPLACE_OPERATION_MULT_FLOAT_OBJECT(PyObject *
 #pragma warning(pop)
 #endif
 
-    // No inplace number slot nb_inplace_multiply available for this type.
-
     {
         binaryfunc slot1 = PyFloat_Type.tp_as_number->nb_multiply;
         binaryfunc slot2 = NULL;
 
         if (!(&PyFloat_Type == type2)) {
-            // Different types, need to consider second value slot.
-
             slot2 =
                 (type2->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type2)) ? type2->tp_as_number->nb_multiply : NULL;
 
@@ -1596,10 +1498,7 @@ static HEDLEY_NEVER_INLINE bool __INPLACE_OPERATION_MULT_FLOAT_OBJECT(PyObject *
 #endif
 
         {
-            // No sequence repeat slot sq_repeat available for this type.
-            // No inplace sequence repeat slot sq_inplace_repeat available for this type.
         }
-        // Special case for "*", also work with sequence repeat from right argument.
         if (true) {
             ssizeargfunc sq_slot = type2->tp_as_sequence != NULL ? type2->tp_as_sequence->sq_repeat : NULL;
 
@@ -1620,11 +1519,7 @@ exit_inplace_result_object:
         return false;
     }
 
-    // We got an object handed, that we have to release.
     Py_DECREF(*operand1);
-
-    // That's our return value then. As we use a dedicated variable, it's
-    // OK that way.
     *operand1 = obj_result;
 
     return true;
@@ -1633,7 +1528,7 @@ exit_inplace_exception:
     return false;
 }
 static inline bool _INPLACE_OPERATION_MULT_FLOAT_OBJECT(PyObject **operand1, PyObject *operand2) {
-    assert(operand1); // Pointer must be non-null.
+    assert(operand1);
 
     CHECK_OBJECT(*operand1);
     assert(PyFloat_CheckExact(*operand1));
@@ -1642,13 +1537,10 @@ static inline bool _INPLACE_OPERATION_MULT_FLOAT_OBJECT(PyObject **operand1, PyO
     PyTypeObject *type2 = Py_TYPE(operand2);
 
     if (&PyFloat_Type == type2) {
-        // return _BINARY_OPERATION_MULT_FLOAT_FLOAT_INPLACE(operand1, operand2);
-
 #if defined(_MSC_VER)
 #pragma warning(push)
 #pragma warning(disable : 4101)
 #endif
-        // Not every code path will make use of all possible results.
         NUITKA_MAY_BE_UNUSED PyObject *obj_result;
         NUITKA_MAY_BE_UNUSED long clong_result;
         NUITKA_MAY_BE_UNUSED double cfloat_result;
@@ -1673,7 +1565,6 @@ static inline bool _INPLACE_OPERATION_MULT_FLOAT_OBJECT(PyObject **operand1, PyO
         if (Py_REFCNT(*operand1) == 1) {
             PyFloat_SET_DOUBLE(*operand1, cfloat_result);
         } else {
-            // We got an object handed, that we have to release.
             Py_DECREF(*operand1);
 
             *operand1 = MAKE_FLOAT_FROM_DOUBLE(cfloat_result);
@@ -1691,9 +1582,8 @@ bool INPLACE_OPERATION_MULT_FLOAT_OBJECT(PyObject **operand1, PyObject *operand2
     return _INPLACE_OPERATION_MULT_FLOAT_OBJECT(operand1, operand2);
 }
 
-/* Code referring to "FLOAT" corresponds to Python 'float' and "LONG" to Python2 'long', Python3 'int'. */
 static inline bool _INPLACE_OPERATION_MULT_FLOAT_LONG(PyObject **operand1, PyObject *operand2) {
-    assert(operand1); // Pointer must be non-null.
+    assert(operand1);
 
     CHECK_OBJECT(*operand1);
     assert(PyFloat_CheckExact(*operand1));
@@ -1710,11 +1600,8 @@ static inline bool _INPLACE_OPERATION_MULT_FLOAT_LONG(PyObject **operand1, PyObj
 #pragma warning(pop)
 #endif
 
-    // No inplace number slot nb_inplace_multiply available for this type.
-
     {
         binaryfunc slot1 = PyFloat_Type.tp_as_number->nb_multiply;
-        // Slot2 ignored on purpose, type1 takes precedence.
 
         if (slot1 != NULL) {
             PyObject *x = slot1(*operand1, operand2);
@@ -1727,13 +1614,8 @@ static inline bool _INPLACE_OPERATION_MULT_FLOAT_LONG(PyObject **operand1, PyObj
             Py_DECREF_IMMORTAL(x);
         }
 
-        // Statically recognized that coercion is not possible with these types
-
         {
-            // No sequence repeat slot sq_repeat available for this type.
-            // No inplace sequence repeat slot sq_inplace_repeat available for this type.
         }
-        // No sequence repeat slot sq_repeat available for this type.
 
 #if PYTHON_VERSION < 0x300
         PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *=: 'float' and 'long'");
@@ -1748,11 +1630,7 @@ exit_inplace_result_object:
         return false;
     }
 
-    // We got an object handed, that we have to release.
     Py_DECREF(*operand1);
-
-    // That's our return value then. As we use a dedicated variable, it's
-    // OK that way.
     *operand1 = obj_result;
 
     return true;
@@ -1765,9 +1643,8 @@ bool INPLACE_OPERATION_MULT_FLOAT_LONG(PyObject **operand1, PyObject *operand2) 
     return _INPLACE_OPERATION_MULT_FLOAT_LONG(operand1, operand2);
 }
 
-/* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "FLOAT" to Python 'float'. */
 static inline bool _INPLACE_OPERATION_MULT_LONG_FLOAT(PyObject **operand1, PyObject *operand2) {
-    assert(operand1); // Pointer must be non-null.
+    assert(operand1);
 
     CHECK_OBJECT(*operand1);
     assert(PyLong_CheckExact(*operand1));
@@ -1784,15 +1661,10 @@ static inline bool _INPLACE_OPERATION_MULT_LONG_FLOAT(PyObject **operand1, PyObj
 #pragma warning(pop)
 #endif
 
-    // No inplace number slot nb_inplace_multiply available for this type.
-
     {
-        // Slot1 ignored on purpose, type2 takes precedence.
         binaryfunc slot2 = NULL;
 
         if (!(0)) {
-            // Different types, need to consider second value slot.
-
             slot2 = PyFloat_Type.tp_as_number->nb_multiply;
         }
 
@@ -1807,13 +1679,8 @@ static inline bool _INPLACE_OPERATION_MULT_LONG_FLOAT(PyObject **operand1, PyObj
             Py_DECREF_IMMORTAL(x);
         }
 
-        // Statically recognized that coercion is not possible with these types
-
         {
-            // No sequence repeat slot sq_repeat available for this type.
-            // No inplace sequence repeat slot sq_inplace_repeat available for this type.
         }
-        // No sequence repeat slot sq_repeat available for this type.
 
 #if PYTHON_VERSION < 0x300
         PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *=: 'long' and 'float'");
@@ -1828,11 +1695,7 @@ exit_inplace_result_object:
         return false;
     }
 
-    // We got an object handed, that we have to release.
     Py_DECREF(*operand1);
-
-    // That's our return value then. As we use a dedicated variable, it's
-    // OK that way.
     *operand1 = obj_result;
 
     return true;
@@ -1846,9 +1709,8 @@ bool INPLACE_OPERATION_MULT_LONG_FLOAT(PyObject **operand1, PyObject *operand2) 
 }
 
 #if PYTHON_VERSION < 0x300
-/* Code referring to "FLOAT" corresponds to Python 'float' and "INT" to Python2 'int'. */
 static inline bool _INPLACE_OPERATION_MULT_FLOAT_INT(PyObject **operand1, PyObject *operand2) {
-    assert(operand1); // Pointer must be non-null.
+    assert(operand1);
 
     CHECK_OBJECT(*operand1);
     assert(PyFloat_CheckExact(*operand1));
@@ -1865,11 +1727,8 @@ static inline bool _INPLACE_OPERATION_MULT_FLOAT_INT(PyObject **operand1, PyObje
 #pragma warning(pop)
 #endif
 
-    // No inplace number slot nb_inplace_multiply available for this type.
-
     {
         binaryfunc slot1 = PyFloat_Type.tp_as_number->nb_multiply;
-        // Slot2 ignored on purpose, type1 takes precedence.
 
         if (slot1 != NULL) {
             PyObject *x = slot1(*operand1, operand2);
@@ -1882,13 +1741,8 @@ static inline bool _INPLACE_OPERATION_MULT_FLOAT_INT(PyObject **operand1, PyObje
             Py_DECREF_IMMORTAL(x);
         }
 
-        // Statically recognized that coercion is not possible with these types
-
         {
-            // No sequence repeat slot sq_repeat available for this type.
-            // No inplace sequence repeat slot sq_inplace_repeat available for this type.
         }
-        // No sequence repeat slot sq_repeat available for this type.
 
         PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *=: 'float' and 'int'");
         goto exit_inplace_exception;
@@ -1899,11 +1753,7 @@ exit_inplace_result_object:
         return false;
     }
 
-    // We got an object handed, that we have to release.
     Py_DECREF(*operand1);
-
-    // That's our return value then. As we use a dedicated variable, it's
-    // OK that way.
     *operand1 = obj_result;
 
     return true;
@@ -1918,9 +1768,8 @@ bool INPLACE_OPERATION_MULT_FLOAT_INT(PyObject **operand1, PyObject *operand2) {
 #endif
 
 #if PYTHON_VERSION < 0x300
-/* Code referring to "INT" corresponds to Python2 'int' and "FLOAT" to Python 'float'. */
 static inline bool _INPLACE_OPERATION_MULT_INT_FLOAT(PyObject **operand1, PyObject *operand2) {
-    assert(operand1); // Pointer must be non-null.
+    assert(operand1);
 
     CHECK_OBJECT(*operand1);
     assert(PyInt_CheckExact(*operand1));
@@ -1937,15 +1786,10 @@ static inline bool _INPLACE_OPERATION_MULT_INT_FLOAT(PyObject **operand1, PyObje
 #pragma warning(pop)
 #endif
 
-    // No inplace number slot nb_inplace_multiply available for this type.
-
     {
-        // Slot1 ignored on purpose, type2 takes precedence.
         binaryfunc slot2 = NULL;
 
         if (!(0)) {
-            // Different types, need to consider second value slot.
-
             slot2 = PyFloat_Type.tp_as_number->nb_multiply;
         }
 
@@ -1960,13 +1804,8 @@ static inline bool _INPLACE_OPERATION_MULT_INT_FLOAT(PyObject **operand1, PyObje
             Py_DECREF_IMMORTAL(x);
         }
 
-        // Statically recognized that coercion is not possible with these types
-
         {
-            // No sequence repeat slot sq_repeat available for this type.
-            // No inplace sequence repeat slot sq_inplace_repeat available for this type.
         }
-        // No sequence repeat slot sq_repeat available for this type.
 
         PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *=: 'int' and 'float'");
         goto exit_inplace_exception;
@@ -1977,11 +1816,7 @@ exit_inplace_result_object:
         return false;
     }
 
-    // We got an object handed, that we have to release.
     Py_DECREF(*operand1);
-
-    // That's our return value then. As we use a dedicated variable, it's
-    // OK that way.
     *operand1 = obj_result;
 
     return true;
@@ -1996,9 +1831,8 @@ bool INPLACE_OPERATION_MULT_INT_FLOAT(PyObject **operand1, PyObject *operand2) {
 #endif
 
 #if PYTHON_VERSION < 0x300
-/* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "INT" to Python2 'int'. */
 static inline bool _INPLACE_OPERATION_MULT_LONG_INT(PyObject **operand1, PyObject *operand2) {
-    assert(operand1); // Pointer must be non-null.
+    assert(operand1);
 
     CHECK_OBJECT(*operand1);
     assert(PyLong_CheckExact(*operand1));
@@ -2015,11 +1849,8 @@ static inline bool _INPLACE_OPERATION_MULT_LONG_INT(PyObject **operand1, PyObjec
 #pragma warning(pop)
 #endif
 
-    // No inplace number slot nb_inplace_multiply available for this type.
-
     {
         binaryfunc slot1 = PyLong_Type.tp_as_number->nb_multiply;
-        // Slot2 ignored on purpose, type1 takes precedence.
 
         if (slot1 != NULL) {
             PyObject *x = slot1(*operand1, operand2);
@@ -2032,13 +1863,8 @@ static inline bool _INPLACE_OPERATION_MULT_LONG_INT(PyObject **operand1, PyObjec
             Py_DECREF_IMMORTAL(x);
         }
 
-        // Statically recognized that coercion is not possible with these types
-
         {
-            // No sequence repeat slot sq_repeat available for this type.
-            // No inplace sequence repeat slot sq_inplace_repeat available for this type.
         }
-        // No sequence repeat slot sq_repeat available for this type.
 
         PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *=: 'long' and 'int'");
         goto exit_inplace_exception;
@@ -2049,11 +1875,7 @@ exit_inplace_result_object:
         return false;
     }
 
-    // We got an object handed, that we have to release.
     Py_DECREF(*operand1);
-
-    // That's our return value then. As we use a dedicated variable, it's
-    // OK that way.
     *operand1 = obj_result;
 
     return true;
@@ -2068,9 +1890,8 @@ bool INPLACE_OPERATION_MULT_LONG_INT(PyObject **operand1, PyObject *operand2) {
 #endif
 
 #if PYTHON_VERSION < 0x300
-/* Code referring to "INT" corresponds to Python2 'int' and "LONG" to Python2 'long', Python3 'int'. */
 static inline bool _INPLACE_OPERATION_MULT_INT_LONG(PyObject **operand1, PyObject *operand2) {
-    assert(operand1); // Pointer must be non-null.
+    assert(operand1);
 
     CHECK_OBJECT(*operand1);
     assert(PyInt_CheckExact(*operand1));
@@ -2087,15 +1908,10 @@ static inline bool _INPLACE_OPERATION_MULT_INT_LONG(PyObject **operand1, PyObjec
 #pragma warning(pop)
 #endif
 
-    // No inplace number slot nb_inplace_multiply available for this type.
-
     {
-        // Slot1 ignored on purpose, type2 takes precedence.
         binaryfunc slot2 = NULL;
 
         if (!(0)) {
-            // Different types, need to consider second value slot.
-
             slot2 = PyLong_Type.tp_as_number->nb_multiply;
         }
 
@@ -2110,13 +1926,8 @@ static inline bool _INPLACE_OPERATION_MULT_INT_LONG(PyObject **operand1, PyObjec
             Py_DECREF_IMMORTAL(x);
         }
 
-        // Statically recognized that coercion is not possible with these types
-
         {
-            // No sequence repeat slot sq_repeat available for this type.
-            // No inplace sequence repeat slot sq_inplace_repeat available for this type.
         }
-        // No sequence repeat slot sq_repeat available for this type.
 
         PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *=: 'int' and 'long'");
         goto exit_inplace_exception;
@@ -2127,11 +1938,7 @@ exit_inplace_result_object:
         return false;
     }
 
-    // We got an object handed, that we have to release.
     Py_DECREF(*operand1);
-
-    // That's our return value then. As we use a dedicated variable, it's
-    // OK that way.
     *operand1 = obj_result;
 
     return true;
@@ -2146,14 +1953,12 @@ bool INPLACE_OPERATION_MULT_INT_LONG(PyObject **operand1, PyObject *operand2) {
 #endif
 
 #if PYTHON_VERSION < 0x300
-/* Code referring to "INT" corresponds to Python2 'int' and "CLONG" to C platform long value. */
 static inline bool _INPLACE_OPERATION_MULT_INT_CLONG(PyObject **operand1, long operand2) {
-    assert(operand1); // Pointer must be non-null.
+    assert(operand1);
 
     CHECK_OBJECT(*operand1);
     assert(PyInt_CheckExact(*operand1));
 
-    // Not every code path will make use of all possible results.
 #if defined(_MSC_VER)
 #pragma warning(push)
 #pragma warning(disable : 4101)
@@ -2204,12 +2009,7 @@ static inline bool _INPLACE_OPERATION_MULT_INT_CLONG(PyObject **operand1, long o
     }
 
 exit_result_ok_clong:
-
-    // We got an object handed, that we have to release.
     Py_DECREF(*operand1);
-
-    // That's our return value then. As we use a dedicated variable, it's
-    // OK that way.
     *operand1 = Nuitka_PyInt_FromLong(clong_result);
     goto exit_result_ok;
 
@@ -2217,7 +2017,6 @@ exit_result_object:
     if (unlikely(obj_result == NULL)) {
         goto exit_result_exception;
     }
-    // We got an object handed, that we have to release.
     Py_DECREF(*operand1);
 
     *operand1 = obj_result;
@@ -2235,9 +2034,8 @@ bool INPLACE_OPERATION_MULT_INT_CLONG(PyObject **operand1, long operand2) {
 }
 #endif
 
-/* Code referring to "FLOAT" corresponds to Python 'float' and "CFLOAT" to C platform float value. */
 static inline bool _INPLACE_OPERATION_MULT_FLOAT_CFLOAT(PyObject **operand1, double operand2) {
-    assert(operand1); // Pointer must be non-null.
+    assert(operand1);
 
     CHECK_OBJECT(*operand1);
     assert(PyFloat_CheckExact(*operand1));
@@ -2246,7 +2044,6 @@ static inline bool _INPLACE_OPERATION_MULT_FLOAT_CFLOAT(PyObject **operand1, dou
 #pragma warning(push)
 #pragma warning(disable : 4101)
 #endif
-    // Not every code path will make use of all possible results.
     NUITKA_MAY_BE_UNUSED PyObject *obj_result;
     NUITKA_MAY_BE_UNUSED long clong_result;
     NUITKA_MAY_BE_UNUSED double cfloat_result;
@@ -2269,7 +2066,6 @@ exit_result_ok_cfloat:
     if (Py_REFCNT(*operand1) == 1) {
         PyFloat_SET_DOUBLE(*operand1, cfloat_result);
     } else {
-        // We got an object handed, that we have to release.
         Py_DECREF(*operand1);
 
         *operand1 = MAKE_FLOAT_FROM_DOUBLE(cfloat_result);
@@ -2285,9 +2081,8 @@ bool INPLACE_OPERATION_MULT_FLOAT_CFLOAT(PyObject **operand1, double operand2) {
 }
 
 #if PYTHON_VERSION < 0x300
-/* Code referring to "STR" corresponds to Python2 'str' and "INT" to Python2 'int'. */
 static inline bool _INPLACE_OPERATION_MULT_STR_INT(PyObject **operand1, PyObject *operand2) {
-    assert(operand1); // Pointer must be non-null.
+    assert(operand1);
 
     CHECK_OBJECT(*operand1);
     assert(PyString_CheckExact(*operand1));
@@ -2304,12 +2099,7 @@ static inline bool _INPLACE_OPERATION_MULT_STR_INT(PyObject **operand1, PyObject
 #pragma warning(pop)
 #endif
 
-    // No inplace number slot nb_inplace_multiply available for this type.
-
     {
-        // Slot2 ignored on purpose, type1 takes precedence.
-
-        // Statically recognized that coercion is not possible with these types
 
         if (unlikely(!1)) {
             SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("can't multiply sequence by non-int of type '%s'", operand2);
@@ -2343,11 +2133,7 @@ exit_inplace_result_object:
         return false;
     }
 
-    // We got an object handed, that we have to release.
     Py_DECREF(*operand1);
-
-    // That's our return value then. As we use a dedicated variable, it's
-    // OK that way.
     *operand1 = obj_result;
 
     return true;
@@ -2362,9 +2148,8 @@ bool INPLACE_OPERATION_MULT_STR_INT(PyObject **operand1, PyObject *operand2) {
 #endif
 
 #if PYTHON_VERSION < 0x300
-/* Code referring to "INT" corresponds to Python2 'int' and "STR" to Python2 'str'. */
 static inline bool _INPLACE_OPERATION_MULT_INT_STR(PyObject **operand1, PyObject *operand2) {
-    assert(operand1); // Pointer must be non-null.
+    assert(operand1);
 
     CHECK_OBJECT(*operand1);
     assert(PyInt_CheckExact(*operand1));
@@ -2381,16 +2166,9 @@ static inline bool _INPLACE_OPERATION_MULT_INT_STR(PyObject **operand1, PyObject
 #pragma warning(pop)
 #endif
 
-    // No inplace number slot nb_inplace_multiply available for this type.
-
     {
-        // Slot1 ignored on purpose, type2 takes precedence.
-
-        // Statically recognized that coercion is not possible with these types
 
         {
-            // No sequence repeat slot sq_repeat available for this type.
-            // No inplace sequence repeat slot sq_inplace_repeat available for this type.
         }
         if (true) {
             if (unlikely(!1)) {
@@ -2427,11 +2205,7 @@ exit_inplace_result_object:
         return false;
     }
 
-    // We got an object handed, that we have to release.
     Py_DECREF(*operand1);
-
-    // That's our return value then. As we use a dedicated variable, it's
-    // OK that way.
     *operand1 = obj_result;
 
     return true;
@@ -2446,9 +2220,8 @@ bool INPLACE_OPERATION_MULT_INT_STR(PyObject **operand1, PyObject *operand2) {
 #endif
 
 #if PYTHON_VERSION < 0x300
-/* Code referring to "UNICODE" corresponds to Python2 'unicode', Python3 'str' and "INT" to Python2 'int'. */
 static inline bool _INPLACE_OPERATION_MULT_UNICODE_INT(PyObject **operand1, PyObject *operand2) {
-    assert(operand1); // Pointer must be non-null.
+    assert(operand1);
 
     CHECK_OBJECT(*operand1);
     assert(PyUnicode_CheckExact(*operand1));
@@ -2465,12 +2238,7 @@ static inline bool _INPLACE_OPERATION_MULT_UNICODE_INT(PyObject **operand1, PyOb
 #pragma warning(pop)
 #endif
 
-    // No inplace number slot nb_inplace_multiply available for this type.
-
     {
-        // Slot2 ignored on purpose, type1 takes precedence.
-
-        // Statically recognized that coercion is not possible with these types
 
         if (unlikely(!1)) {
             SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("can't multiply sequence by non-int of type '%s'", operand2);
@@ -2504,11 +2272,7 @@ exit_inplace_result_object:
         return false;
     }
 
-    // We got an object handed, that we have to release.
     Py_DECREF(*operand1);
-
-    // That's our return value then. As we use a dedicated variable, it's
-    // OK that way.
     *operand1 = obj_result;
 
     return true;
@@ -2523,9 +2287,8 @@ bool INPLACE_OPERATION_MULT_UNICODE_INT(PyObject **operand1, PyObject *operand2)
 #endif
 
 #if PYTHON_VERSION < 0x300
-/* Code referring to "INT" corresponds to Python2 'int' and "UNICODE" to Python2 'unicode', Python3 'str'. */
 static inline bool _INPLACE_OPERATION_MULT_INT_UNICODE(PyObject **operand1, PyObject *operand2) {
-    assert(operand1); // Pointer must be non-null.
+    assert(operand1);
 
     CHECK_OBJECT(*operand1);
     assert(PyInt_CheckExact(*operand1));
@@ -2542,16 +2305,9 @@ static inline bool _INPLACE_OPERATION_MULT_INT_UNICODE(PyObject **operand1, PyOb
 #pragma warning(pop)
 #endif
 
-    // No inplace number slot nb_inplace_multiply available for this type.
-
     {
-        // Slot1 ignored on purpose, type2 takes precedence.
-
-        // Statically recognized that coercion is not possible with these types
 
         {
-            // No sequence repeat slot sq_repeat available for this type.
-            // No inplace sequence repeat slot sq_inplace_repeat available for this type.
         }
         if (true) {
             if (unlikely(!1)) {
@@ -2588,11 +2344,7 @@ exit_inplace_result_object:
         return false;
     }
 
-    // We got an object handed, that we have to release.
     Py_DECREF(*operand1);
-
-    // That's our return value then. As we use a dedicated variable, it's
-    // OK that way.
     *operand1 = obj_result;
 
     return true;
@@ -2607,9 +2359,8 @@ bool INPLACE_OPERATION_MULT_INT_UNICODE(PyObject **operand1, PyObject *operand2)
 #endif
 
 #if PYTHON_VERSION < 0x300
-/* Code referring to "TUPLE" corresponds to Python 'tuple' and "INT" to Python2 'int'. */
 static inline bool _INPLACE_OPERATION_MULT_TUPLE_INT(PyObject **operand1, PyObject *operand2) {
-    assert(operand1); // Pointer must be non-null.
+    assert(operand1);
 
     CHECK_OBJECT(*operand1);
     assert(PyTuple_CheckExact(*operand1));
@@ -2626,12 +2377,7 @@ static inline bool _INPLACE_OPERATION_MULT_TUPLE_INT(PyObject **operand1, PyObje
 #pragma warning(pop)
 #endif
 
-    // No inplace number slot nb_inplace_multiply available for this type.
-
     {
-        // Slot2 ignored on purpose, type1 takes precedence.
-
-        // Statically recognized that coercion is not possible with these types
 
         if (unlikely(!1)) {
             SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("can't multiply sequence by non-int of type '%s'", operand2);
@@ -2665,11 +2411,7 @@ exit_inplace_result_object:
         return false;
     }
 
-    // We got an object handed, that we have to release.
     Py_DECREF(*operand1);
-
-    // That's our return value then. As we use a dedicated variable, it's
-    // OK that way.
     *operand1 = obj_result;
 
     return true;
@@ -2684,9 +2426,8 @@ bool INPLACE_OPERATION_MULT_TUPLE_INT(PyObject **operand1, PyObject *operand2) {
 #endif
 
 #if PYTHON_VERSION < 0x300
-/* Code referring to "INT" corresponds to Python2 'int' and "TUPLE" to Python 'tuple'. */
 static inline bool _INPLACE_OPERATION_MULT_INT_TUPLE(PyObject **operand1, PyObject *operand2) {
-    assert(operand1); // Pointer must be non-null.
+    assert(operand1);
 
     CHECK_OBJECT(*operand1);
     assert(PyInt_CheckExact(*operand1));
@@ -2703,16 +2444,9 @@ static inline bool _INPLACE_OPERATION_MULT_INT_TUPLE(PyObject **operand1, PyObje
 #pragma warning(pop)
 #endif
 
-    // No inplace number slot nb_inplace_multiply available for this type.
-
     {
-        // Slot1 ignored on purpose, type2 takes precedence.
-
-        // Statically recognized that coercion is not possible with these types
 
         {
-            // No sequence repeat slot sq_repeat available for this type.
-            // No inplace sequence repeat slot sq_inplace_repeat available for this type.
         }
         if (true) {
             if (unlikely(!1)) {
@@ -2749,11 +2483,7 @@ exit_inplace_result_object:
         return false;
     }
 
-    // We got an object handed, that we have to release.
     Py_DECREF(*operand1);
-
-    // That's our return value then. As we use a dedicated variable, it's
-    // OK that way.
     *operand1 = obj_result;
 
     return true;
@@ -2768,9 +2498,8 @@ bool INPLACE_OPERATION_MULT_INT_TUPLE(PyObject **operand1, PyObject *operand2) {
 #endif
 
 #if PYTHON_VERSION < 0x300
-/* Code referring to "LIST" corresponds to Python 'list' and "INT" to Python2 'int'. */
 static inline bool _INPLACE_OPERATION_MULT_LIST_INT(PyObject **operand1, PyObject *operand2) {
-    assert(operand1); // Pointer must be non-null.
+    assert(operand1);
 
     CHECK_OBJECT(*operand1);
     assert(PyList_CheckExact(*operand1));
@@ -2787,12 +2516,7 @@ static inline bool _INPLACE_OPERATION_MULT_LIST_INT(PyObject **operand1, PyObjec
 #pragma warning(pop)
 #endif
 
-    // No inplace number slot nb_inplace_multiply available for this type.
-
     {
-        // Slot2 ignored on purpose, type1 takes precedence.
-
-        // Statically recognized that coercion is not possible with these types
 
         if (unlikely(!1)) {
             SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("can't multiply sequence by non-int of type '%s'", operand2);
@@ -2826,11 +2550,7 @@ exit_inplace_result_object:
         return false;
     }
 
-    // We got an object handed, that we have to release.
     Py_DECREF(*operand1);
-
-    // That's our return value then. As we use a dedicated variable, it's
-    // OK that way.
     *operand1 = obj_result;
 
     return true;
@@ -2845,9 +2565,8 @@ bool INPLACE_OPERATION_MULT_LIST_INT(PyObject **operand1, PyObject *operand2) {
 #endif
 
 #if PYTHON_VERSION < 0x300
-/* Code referring to "INT" corresponds to Python2 'int' and "LIST" to Python 'list'. */
 static inline bool _INPLACE_OPERATION_MULT_INT_LIST(PyObject **operand1, PyObject *operand2) {
-    assert(operand1); // Pointer must be non-null.
+    assert(operand1);
 
     CHECK_OBJECT(*operand1);
     assert(PyInt_CheckExact(*operand1));
@@ -2864,16 +2583,9 @@ static inline bool _INPLACE_OPERATION_MULT_INT_LIST(PyObject **operand1, PyObjec
 #pragma warning(pop)
 #endif
 
-    // No inplace number slot nb_inplace_multiply available for this type.
-
     {
-        // Slot1 ignored on purpose, type2 takes precedence.
-
-        // Statically recognized that coercion is not possible with these types
 
         {
-            // No sequence repeat slot sq_repeat available for this type.
-            // No inplace sequence repeat slot sq_inplace_repeat available for this type.
         }
         if (true) {
             if (unlikely(!1)) {
@@ -2910,11 +2622,7 @@ exit_inplace_result_object:
         return false;
     }
 
-    // We got an object handed, that we have to release.
     Py_DECREF(*operand1);
-
-    // That's our return value then. As we use a dedicated variable, it's
-    // OK that way.
     *operand1 = obj_result;
 
     return true;
@@ -2928,10 +2636,8 @@ bool INPLACE_OPERATION_MULT_INT_LIST(PyObject **operand1, PyObject *operand2) {
 }
 #endif
 
-/* Code referring to "UNICODE" corresponds to Python2 'unicode', Python3 'str' and "LONG" to Python2 'long', Python3
- * 'int'. */
 static inline bool _INPLACE_OPERATION_MULT_UNICODE_LONG(PyObject **operand1, PyObject *operand2) {
-    assert(operand1); // Pointer must be non-null.
+    assert(operand1);
 
     CHECK_OBJECT(*operand1);
     assert(PyUnicode_CheckExact(*operand1));
@@ -2948,12 +2654,7 @@ static inline bool _INPLACE_OPERATION_MULT_UNICODE_LONG(PyObject **operand1, PyO
 #pragma warning(pop)
 #endif
 
-    // No inplace number slot nb_inplace_multiply available for this type.
-
     {
-        // Slot2 ignored on purpose, type1 takes precedence.
-
-        // Statically recognized that coercion is not possible with these types
 
         if (unlikely(!1)) {
             SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("can't multiply sequence by non-int of type '%s'", operand2);
@@ -2967,7 +2668,6 @@ static inline bool _INPLACE_OPERATION_MULT_UNICODE_LONG(PyObject **operand1, PyO
             {
                 Py_ssize_t count = CONVERT_LONG_TO_REPEAT_FACTOR(index_value);
 
-                /* Above conversion indicates an error as -1 */
                 if (unlikely(count == -1)) {
 #if PYTHON_VERSION < 0x300
                     PyErr_Format(PyExc_OverflowError, "cannot fit 'long' into an index-sized integer");
@@ -2997,11 +2697,7 @@ exit_inplace_result_object:
         return false;
     }
 
-    // We got an object handed, that we have to release.
     Py_DECREF(*operand1);
-
-    // That's our return value then. As we use a dedicated variable, it's
-    // OK that way.
     *operand1 = obj_result;
 
     return true;
@@ -3014,10 +2710,8 @@ bool INPLACE_OPERATION_MULT_UNICODE_LONG(PyObject **operand1, PyObject *operand2
     return _INPLACE_OPERATION_MULT_UNICODE_LONG(operand1, operand2);
 }
 
-/* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "UNICODE" to Python2 'unicode', Python3
- * 'str'. */
 static inline bool _INPLACE_OPERATION_MULT_LONG_UNICODE(PyObject **operand1, PyObject *operand2) {
-    assert(operand1); // Pointer must be non-null.
+    assert(operand1);
 
     CHECK_OBJECT(*operand1);
     assert(PyLong_CheckExact(*operand1));
@@ -3034,16 +2728,9 @@ static inline bool _INPLACE_OPERATION_MULT_LONG_UNICODE(PyObject **operand1, PyO
 #pragma warning(pop)
 #endif
 
-    // No inplace number slot nb_inplace_multiply available for this type.
-
     {
-        // Slot1 ignored on purpose, type2 takes precedence.
-
-        // Statically recognized that coercion is not possible with these types
 
         {
-            // No sequence repeat slot sq_repeat available for this type.
-            // No inplace sequence repeat slot sq_inplace_repeat available for this type.
         }
         if (true) {
             if (unlikely(!1)) {
@@ -3058,7 +2745,6 @@ static inline bool _INPLACE_OPERATION_MULT_LONG_UNICODE(PyObject **operand1, PyO
                 {
                     Py_ssize_t count = CONVERT_LONG_TO_REPEAT_FACTOR(index_value);
 
-                    /* Above conversion indicates an error as -1 */
                     if (unlikely(count == -1)) {
 #if PYTHON_VERSION < 0x300
                         PyErr_Format(PyExc_OverflowError, "cannot fit 'long' into an index-sized integer");
@@ -3094,11 +2780,7 @@ exit_inplace_result_object:
         return false;
     }
 
-    // We got an object handed, that we have to release.
     Py_DECREF(*operand1);
-
-    // That's our return value then. As we use a dedicated variable, it's
-    // OK that way.
     *operand1 = obj_result;
 
     return true;
@@ -3112,9 +2794,8 @@ bool INPLACE_OPERATION_MULT_LONG_UNICODE(PyObject **operand1, PyObject *operand2
 }
 
 #if PYTHON_VERSION >= 0x300
-/* Code referring to "BYTES" corresponds to Python3 'bytes' and "LONG" to Python2 'long', Python3 'int'. */
 static inline bool _INPLACE_OPERATION_MULT_BYTES_LONG(PyObject **operand1, PyObject *operand2) {
-    assert(operand1); // Pointer must be non-null.
+    assert(operand1);
 
     CHECK_OBJECT(*operand1);
     assert(PyBytes_CheckExact(*operand1));
@@ -3131,12 +2812,7 @@ static inline bool _INPLACE_OPERATION_MULT_BYTES_LONG(PyObject **operand1, PyObj
 #pragma warning(pop)
 #endif
 
-    // No inplace number slot nb_inplace_multiply available for this type.
-
     {
-        // Slot2 ignored on purpose, type1 takes precedence.
-
-        // Statically recognized that coercion is not possible with these types
 
         if (unlikely(!1)) {
             SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("can't multiply sequence by non-int of type '%s'", operand2);
@@ -3150,7 +2826,6 @@ static inline bool _INPLACE_OPERATION_MULT_BYTES_LONG(PyObject **operand1, PyObj
             {
                 Py_ssize_t count = CONVERT_LONG_TO_REPEAT_FACTOR(index_value);
 
-                /* Above conversion indicates an error as -1 */
                 if (unlikely(count == -1)) {
                     PyErr_Format(PyExc_OverflowError, "cannot fit 'int' into an index-sized integer");
                     goto exit_inplace_exception;
@@ -3176,11 +2851,7 @@ exit_inplace_result_object:
         return false;
     }
 
-    // We got an object handed, that we have to release.
     Py_DECREF(*operand1);
-
-    // That's our return value then. As we use a dedicated variable, it's
-    // OK that way.
     *operand1 = obj_result;
 
     return true;
@@ -3195,9 +2866,8 @@ bool INPLACE_OPERATION_MULT_BYTES_LONG(PyObject **operand1, PyObject *operand2) 
 #endif
 
 #if PYTHON_VERSION >= 0x300
-/* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "BYTES" to Python3 'bytes'. */
 static inline bool _INPLACE_OPERATION_MULT_LONG_BYTES(PyObject **operand1, PyObject *operand2) {
-    assert(operand1); // Pointer must be non-null.
+    assert(operand1);
 
     CHECK_OBJECT(*operand1);
     assert(PyLong_CheckExact(*operand1));
@@ -3214,16 +2884,9 @@ static inline bool _INPLACE_OPERATION_MULT_LONG_BYTES(PyObject **operand1, PyObj
 #pragma warning(pop)
 #endif
 
-    // No inplace number slot nb_inplace_multiply available for this type.
-
     {
-        // Slot1 ignored on purpose, type2 takes precedence.
-
-        // Statically recognized that coercion is not possible with these types
 
         {
-            // No sequence repeat slot sq_repeat available for this type.
-            // No inplace sequence repeat slot sq_inplace_repeat available for this type.
         }
         if (true) {
             if (unlikely(!1)) {
@@ -3238,7 +2901,6 @@ static inline bool _INPLACE_OPERATION_MULT_LONG_BYTES(PyObject **operand1, PyObj
                 {
                     Py_ssize_t count = CONVERT_LONG_TO_REPEAT_FACTOR(index_value);
 
-                    /* Above conversion indicates an error as -1 */
                     if (unlikely(count == -1)) {
                         PyErr_Format(PyExc_OverflowError, "cannot fit 'int' into an index-sized integer");
                         goto exit_inplace_exception;
@@ -3266,11 +2928,7 @@ exit_inplace_result_object:
         return false;
     }
 
-    // We got an object handed, that we have to release.
     Py_DECREF(*operand1);
-
-    // That's our return value then. As we use a dedicated variable, it's
-    // OK that way.
     *operand1 = obj_result;
 
     return true;
@@ -3284,9 +2942,8 @@ bool INPLACE_OPERATION_MULT_LONG_BYTES(PyObject **operand1, PyObject *operand2) 
 }
 #endif
 
-/* Code referring to "TUPLE" corresponds to Python 'tuple' and "LONG" to Python2 'long', Python3 'int'. */
 static inline bool _INPLACE_OPERATION_MULT_TUPLE_LONG(PyObject **operand1, PyObject *operand2) {
-    assert(operand1); // Pointer must be non-null.
+    assert(operand1);
 
     CHECK_OBJECT(*operand1);
     assert(PyTuple_CheckExact(*operand1));
@@ -3303,12 +2960,7 @@ static inline bool _INPLACE_OPERATION_MULT_TUPLE_LONG(PyObject **operand1, PyObj
 #pragma warning(pop)
 #endif
 
-    // No inplace number slot nb_inplace_multiply available for this type.
-
     {
-        // Slot2 ignored on purpose, type1 takes precedence.
-
-        // Statically recognized that coercion is not possible with these types
 
         if (unlikely(!1)) {
             SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("can't multiply sequence by non-int of type '%s'", operand2);
@@ -3322,7 +2974,6 @@ static inline bool _INPLACE_OPERATION_MULT_TUPLE_LONG(PyObject **operand1, PyObj
             {
                 Py_ssize_t count = CONVERT_LONG_TO_REPEAT_FACTOR(index_value);
 
-                /* Above conversion indicates an error as -1 */
                 if (unlikely(count == -1)) {
 #if PYTHON_VERSION < 0x300
                     PyErr_Format(PyExc_OverflowError, "cannot fit 'long' into an index-sized integer");
@@ -3352,11 +3003,7 @@ exit_inplace_result_object:
         return false;
     }
 
-    // We got an object handed, that we have to release.
     Py_DECREF(*operand1);
-
-    // That's our return value then. As we use a dedicated variable, it's
-    // OK that way.
     *operand1 = obj_result;
 
     return true;
@@ -3369,9 +3016,8 @@ bool INPLACE_OPERATION_MULT_TUPLE_LONG(PyObject **operand1, PyObject *operand2) 
     return _INPLACE_OPERATION_MULT_TUPLE_LONG(operand1, operand2);
 }
 
-/* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "TUPLE" to Python 'tuple'. */
 static inline bool _INPLACE_OPERATION_MULT_LONG_TUPLE(PyObject **operand1, PyObject *operand2) {
-    assert(operand1); // Pointer must be non-null.
+    assert(operand1);
 
     CHECK_OBJECT(*operand1);
     assert(PyLong_CheckExact(*operand1));
@@ -3388,16 +3034,9 @@ static inline bool _INPLACE_OPERATION_MULT_LONG_TUPLE(PyObject **operand1, PyObj
 #pragma warning(pop)
 #endif
 
-    // No inplace number slot nb_inplace_multiply available for this type.
-
     {
-        // Slot1 ignored on purpose, type2 takes precedence.
-
-        // Statically recognized that coercion is not possible with these types
 
         {
-            // No sequence repeat slot sq_repeat available for this type.
-            // No inplace sequence repeat slot sq_inplace_repeat available for this type.
         }
         if (true) {
             if (unlikely(!1)) {
@@ -3412,7 +3051,6 @@ static inline bool _INPLACE_OPERATION_MULT_LONG_TUPLE(PyObject **operand1, PyObj
                 {
                     Py_ssize_t count = CONVERT_LONG_TO_REPEAT_FACTOR(index_value);
 
-                    /* Above conversion indicates an error as -1 */
                     if (unlikely(count == -1)) {
 #if PYTHON_VERSION < 0x300
                         PyErr_Format(PyExc_OverflowError, "cannot fit 'long' into an index-sized integer");
@@ -3448,11 +3086,7 @@ exit_inplace_result_object:
         return false;
     }
 
-    // We got an object handed, that we have to release.
     Py_DECREF(*operand1);
-
-    // That's our return value then. As we use a dedicated variable, it's
-    // OK that way.
     *operand1 = obj_result;
 
     return true;
@@ -3465,9 +3099,8 @@ bool INPLACE_OPERATION_MULT_LONG_TUPLE(PyObject **operand1, PyObject *operand2) 
     return _INPLACE_OPERATION_MULT_LONG_TUPLE(operand1, operand2);
 }
 
-/* Code referring to "LIST" corresponds to Python 'list' and "LONG" to Python2 'long', Python3 'int'. */
 static inline bool _INPLACE_OPERATION_MULT_LIST_LONG(PyObject **operand1, PyObject *operand2) {
-    assert(operand1); // Pointer must be non-null.
+    assert(operand1);
 
     CHECK_OBJECT(*operand1);
     assert(PyList_CheckExact(*operand1));
@@ -3484,12 +3117,7 @@ static inline bool _INPLACE_OPERATION_MULT_LIST_LONG(PyObject **operand1, PyObje
 #pragma warning(pop)
 #endif
 
-    // No inplace number slot nb_inplace_multiply available for this type.
-
     {
-        // Slot2 ignored on purpose, type1 takes precedence.
-
-        // Statically recognized that coercion is not possible with these types
 
         if (unlikely(!1)) {
             SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("can't multiply sequence by non-int of type '%s'", operand2);
@@ -3503,7 +3131,6 @@ static inline bool _INPLACE_OPERATION_MULT_LIST_LONG(PyObject **operand1, PyObje
             {
                 Py_ssize_t count = CONVERT_LONG_TO_REPEAT_FACTOR(index_value);
 
-                /* Above conversion indicates an error as -1 */
                 if (unlikely(count == -1)) {
 #if PYTHON_VERSION < 0x300
                     PyErr_Format(PyExc_OverflowError, "cannot fit 'long' into an index-sized integer");
@@ -3533,11 +3160,7 @@ exit_inplace_result_object:
         return false;
     }
 
-    // We got an object handed, that we have to release.
     Py_DECREF(*operand1);
-
-    // That's our return value then. As we use a dedicated variable, it's
-    // OK that way.
     *operand1 = obj_result;
 
     return true;
@@ -3550,9 +3173,8 @@ bool INPLACE_OPERATION_MULT_LIST_LONG(PyObject **operand1, PyObject *operand2) {
     return _INPLACE_OPERATION_MULT_LIST_LONG(operand1, operand2);
 }
 
-/* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "LIST" to Python 'list'. */
 static inline bool _INPLACE_OPERATION_MULT_LONG_LIST(PyObject **operand1, PyObject *operand2) {
-    assert(operand1); // Pointer must be non-null.
+    assert(operand1);
 
     CHECK_OBJECT(*operand1);
     assert(PyLong_CheckExact(*operand1));
@@ -3569,16 +3191,9 @@ static inline bool _INPLACE_OPERATION_MULT_LONG_LIST(PyObject **operand1, PyObje
 #pragma warning(pop)
 #endif
 
-    // No inplace number slot nb_inplace_multiply available for this type.
-
     {
-        // Slot1 ignored on purpose, type2 takes precedence.
-
-        // Statically recognized that coercion is not possible with these types
 
         {
-            // No sequence repeat slot sq_repeat available for this type.
-            // No inplace sequence repeat slot sq_inplace_repeat available for this type.
         }
         if (true) {
             if (unlikely(!1)) {
@@ -3593,7 +3208,6 @@ static inline bool _INPLACE_OPERATION_MULT_LONG_LIST(PyObject **operand1, PyObje
                 {
                     Py_ssize_t count = CONVERT_LONG_TO_REPEAT_FACTOR(index_value);
 
-                    /* Above conversion indicates an error as -1 */
                     if (unlikely(count == -1)) {
 #if PYTHON_VERSION < 0x300
                         PyErr_Format(PyExc_OverflowError, "cannot fit 'long' into an index-sized integer");
@@ -3629,11 +3243,7 @@ exit_inplace_result_object:
         return false;
     }
 
-    // We got an object handed, that we have to release.
     Py_DECREF(*operand1);
-
-    // That's our return value then. As we use a dedicated variable, it's
-    // OK that way.
     *operand1 = obj_result;
 
     return true;
@@ -3647,9 +3257,8 @@ bool INPLACE_OPERATION_MULT_LONG_LIST(PyObject **operand1, PyObject *operand2) {
 }
 
 #if PYTHON_VERSION < 0x300
-/* Code referring to "STR" corresponds to Python2 'str' and "OBJECT" to any Python object. */
 static inline bool _INPLACE_OPERATION_MULT_STR_OBJECT(PyObject **operand1, PyObject *operand2) {
-    assert(operand1); // Pointer must be non-null.
+    assert(operand1);
 
     CHECK_OBJECT(*operand1);
     assert(PyString_CheckExact(*operand1));
@@ -3667,14 +3276,10 @@ static inline bool _INPLACE_OPERATION_MULT_STR_OBJECT(PyObject **operand1, PyObj
 #pragma warning(pop)
 #endif
 
-    // No inplace number slot nb_inplace_multiply available for this type.
-
     {
         binaryfunc slot2 = NULL;
 
         if (!(&PyString_Type == type2)) {
-            // Different types, need to consider second value slot.
-
             slot2 =
                 (type2->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type2)) ? type2->tp_as_number->nb_multiply : NULL;
         }
@@ -3748,7 +3353,6 @@ static inline bool _INPLACE_OPERATION_MULT_STR_OBJECT(PyObject **operand1, PyObj
 
                 Py_DECREF(index_value);
 
-                /* Above conversion indicates an error as -1 */
                 if (unlikely(count == -1)) {
                     PyErr_Format(PyExc_OverflowError, "cannot fit '%s' into an index-sized integer", type2->tp_name);
                     goto exit_inplace_exception;
@@ -3774,11 +3378,7 @@ exit_inplace_result_object:
         return false;
     }
 
-    // We got an object handed, that we have to release.
     Py_DECREF(*operand1);
-
-    // That's our return value then. As we use a dedicated variable, it's
-    // OK that way.
     *operand1 = obj_result;
 
     return true;
@@ -3792,9 +3392,8 @@ bool INPLACE_OPERATION_MULT_STR_OBJECT(PyObject **operand1, PyObject *operand2) 
 }
 #endif
 
-/* Code referring to "UNICODE" corresponds to Python2 'unicode', Python3 'str' and "OBJECT" to any Python object. */
 static inline bool _INPLACE_OPERATION_MULT_UNICODE_OBJECT(PyObject **operand1, PyObject *operand2) {
-    assert(operand1); // Pointer must be non-null.
+    assert(operand1);
 
     CHECK_OBJECT(*operand1);
     assert(PyUnicode_CheckExact(*operand1));
@@ -3812,14 +3411,10 @@ static inline bool _INPLACE_OPERATION_MULT_UNICODE_OBJECT(PyObject **operand1, P
 #pragma warning(pop)
 #endif
 
-    // No inplace number slot nb_inplace_multiply available for this type.
-
     {
         binaryfunc slot2 = NULL;
 
         if (!(&PyUnicode_Type == type2)) {
-            // Different types, need to consider second value slot.
-
             slot2 =
                 (type2->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type2)) ? type2->tp_as_number->nb_multiply : NULL;
         }
@@ -3893,7 +3488,6 @@ static inline bool _INPLACE_OPERATION_MULT_UNICODE_OBJECT(PyObject **operand1, P
 
                 Py_DECREF(index_value);
 
-                /* Above conversion indicates an error as -1 */
                 if (unlikely(count == -1)) {
                     PyErr_Format(PyExc_OverflowError, "cannot fit '%s' into an index-sized integer", type2->tp_name);
                     goto exit_inplace_exception;
@@ -3919,11 +3513,7 @@ exit_inplace_result_object:
         return false;
     }
 
-    // We got an object handed, that we have to release.
     Py_DECREF(*operand1);
-
-    // That's our return value then. As we use a dedicated variable, it's
-    // OK that way.
     *operand1 = obj_result;
 
     return true;
@@ -3937,9 +3527,8 @@ bool INPLACE_OPERATION_MULT_UNICODE_OBJECT(PyObject **operand1, PyObject *operan
 }
 
 #if PYTHON_VERSION >= 0x300
-/* Code referring to "BYTES" corresponds to Python3 'bytes' and "OBJECT" to any Python object. */
 static inline bool _INPLACE_OPERATION_MULT_BYTES_OBJECT(PyObject **operand1, PyObject *operand2) {
-    assert(operand1); // Pointer must be non-null.
+    assert(operand1);
 
     CHECK_OBJECT(*operand1);
     assert(PyBytes_CheckExact(*operand1));
@@ -3957,14 +3546,10 @@ static inline bool _INPLACE_OPERATION_MULT_BYTES_OBJECT(PyObject **operand1, PyO
 #pragma warning(pop)
 #endif
 
-    // No inplace number slot nb_inplace_multiply available for this type.
-
     {
         binaryfunc slot2 = NULL;
 
         if (!(&PyBytes_Type == type2)) {
-            // Different types, need to consider second value slot.
-
             slot2 =
                 (type2->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type2)) ? type2->tp_as_number->nb_multiply : NULL;
         }
@@ -4038,7 +3623,6 @@ static inline bool _INPLACE_OPERATION_MULT_BYTES_OBJECT(PyObject **operand1, PyO
 
                 Py_DECREF(index_value);
 
-                /* Above conversion indicates an error as -1 */
                 if (unlikely(count == -1)) {
                     PyErr_Format(PyExc_OverflowError, "cannot fit '%s' into an index-sized integer", type2->tp_name);
                     goto exit_inplace_exception;
@@ -4064,11 +3648,7 @@ exit_inplace_result_object:
         return false;
     }
 
-    // We got an object handed, that we have to release.
     Py_DECREF(*operand1);
-
-    // That's our return value then. As we use a dedicated variable, it's
-    // OK that way.
     *operand1 = obj_result;
 
     return true;
@@ -4082,9 +3662,8 @@ bool INPLACE_OPERATION_MULT_BYTES_OBJECT(PyObject **operand1, PyObject *operand2
 }
 #endif
 
-/* Code referring to "TUPLE" corresponds to Python 'tuple' and "OBJECT" to any Python object. */
 static inline bool _INPLACE_OPERATION_MULT_TUPLE_OBJECT(PyObject **operand1, PyObject *operand2) {
-    assert(operand1); // Pointer must be non-null.
+    assert(operand1);
 
     CHECK_OBJECT(*operand1);
     assert(PyTuple_CheckExact(*operand1));
@@ -4102,14 +3681,10 @@ static inline bool _INPLACE_OPERATION_MULT_TUPLE_OBJECT(PyObject **operand1, PyO
 #pragma warning(pop)
 #endif
 
-    // No inplace number slot nb_inplace_multiply available for this type.
-
     {
         binaryfunc slot2 = NULL;
 
         if (!(&PyTuple_Type == type2)) {
-            // Different types, need to consider second value slot.
-
             slot2 =
                 (type2->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type2)) ? type2->tp_as_number->nb_multiply : NULL;
         }
@@ -4183,7 +3758,6 @@ static inline bool _INPLACE_OPERATION_MULT_TUPLE_OBJECT(PyObject **operand1, PyO
 
                 Py_DECREF(index_value);
 
-                /* Above conversion indicates an error as -1 */
                 if (unlikely(count == -1)) {
                     PyErr_Format(PyExc_OverflowError, "cannot fit '%s' into an index-sized integer", type2->tp_name);
                     goto exit_inplace_exception;
@@ -4209,11 +3783,7 @@ exit_inplace_result_object:
         return false;
     }
 
-    // We got an object handed, that we have to release.
     Py_DECREF(*operand1);
-
-    // That's our return value then. As we use a dedicated variable, it's
-    // OK that way.
     *operand1 = obj_result;
 
     return true;
@@ -4226,9 +3796,8 @@ bool INPLACE_OPERATION_MULT_TUPLE_OBJECT(PyObject **operand1, PyObject *operand2
     return _INPLACE_OPERATION_MULT_TUPLE_OBJECT(operand1, operand2);
 }
 
-/* Code referring to "LIST" corresponds to Python 'list' and "OBJECT" to any Python object. */
 static inline bool _INPLACE_OPERATION_MULT_LIST_OBJECT(PyObject **operand1, PyObject *operand2) {
-    assert(operand1); // Pointer must be non-null.
+    assert(operand1);
 
     CHECK_OBJECT(*operand1);
     assert(PyList_CheckExact(*operand1));
@@ -4246,14 +3815,10 @@ static inline bool _INPLACE_OPERATION_MULT_LIST_OBJECT(PyObject **operand1, PyOb
 #pragma warning(pop)
 #endif
 
-    // No inplace number slot nb_inplace_multiply available for this type.
-
     {
         binaryfunc slot2 = NULL;
 
         if (!(&PyList_Type == type2)) {
-            // Different types, need to consider second value slot.
-
             slot2 =
                 (type2->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type2)) ? type2->tp_as_number->nb_multiply : NULL;
         }
@@ -4327,7 +3892,6 @@ static inline bool _INPLACE_OPERATION_MULT_LIST_OBJECT(PyObject **operand1, PyOb
 
                 Py_DECREF(index_value);
 
-                /* Above conversion indicates an error as -1 */
                 if (unlikely(count == -1)) {
                     PyErr_Format(PyExc_OverflowError, "cannot fit '%s' into an index-sized integer", type2->tp_name);
                     goto exit_inplace_exception;
@@ -4353,11 +3917,7 @@ exit_inplace_result_object:
         return false;
     }
 
-    // We got an object handed, that we have to release.
     Py_DECREF(*operand1);
-
-    // That's our return value then. As we use a dedicated variable, it's
-    // OK that way.
     *operand1 = obj_result;
 
     return true;
@@ -4370,9 +3930,8 @@ bool INPLACE_OPERATION_MULT_LIST_OBJECT(PyObject **operand1, PyObject *operand2)
     return _INPLACE_OPERATION_MULT_LIST_OBJECT(operand1, operand2);
 }
 
-/* Code referring to "OBJECT" corresponds to any Python object and "OBJECT" to any Python object. */
 static inline bool _INPLACE_OPERATION_MULT_OBJECT_OBJECT(PyObject **operand1, PyObject *operand2) {
-    assert(operand1); // Pointer must be non-null.
+    assert(operand1);
 
     CHECK_OBJECT(*operand1);
     CHECK_OBJECT(operand2);
@@ -4380,7 +3939,6 @@ static inline bool _INPLACE_OPERATION_MULT_OBJECT_OBJECT(PyObject **operand1, Py
 #if PYTHON_VERSION < 0x300
     if (PyInt_CheckExact(*operand1) && PyInt_CheckExact(operand2)) {
 
-        // Not every code path will make use of all possible results.
 #if defined(_MSC_VER)
 #pragma warning(push)
 #pragma warning(disable : 4101)
@@ -4431,12 +3989,7 @@ static inline bool _INPLACE_OPERATION_MULT_OBJECT_OBJECT(PyObject **operand1, Py
         }
 
     exit_result_ok_clong:
-
-        // We got an object handed, that we have to release.
         Py_DECREF(*operand1);
-
-        // That's our return value then. As we use a dedicated variable, it's
-        // OK that way.
         *operand1 = Nuitka_PyInt_FromLong(clong_result);
         goto exit_result_ok;
 
@@ -4444,7 +3997,6 @@ static inline bool _INPLACE_OPERATION_MULT_OBJECT_OBJECT(PyObject **operand1, Py
         if (unlikely(obj_result == NULL)) {
             goto exit_result_exception;
         }
-        // We got an object handed, that we have to release.
         Py_DECREF(*operand1);
 
         *operand1 = obj_result;
@@ -4502,8 +4054,6 @@ static inline bool _INPLACE_OPERATION_MULT_OBJECT_OBJECT(PyObject **operand1, Py
         binaryfunc slot2 = NULL;
 
         if (!(type1 == type2)) {
-            // Different types, need to consider second value slot.
-
             slot2 =
                 (type2->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type2)) ? type2->tp_as_number->nb_multiply : NULL;
 
@@ -4624,7 +4174,6 @@ static inline bool _INPLACE_OPERATION_MULT_OBJECT_OBJECT(PyObject **operand1, Py
 #endif
 
         {
-            // Special case for "+" and "*", also works as sequence concat/repeat.
             ssizeargfunc sq_slot = type1->tp_as_sequence != NULL ? type1->tp_as_sequence->sq_inplace_repeat : NULL;
             if (sq_slot == NULL) {
                 sq_slot = type1->tp_as_sequence != NULL ? type1->tp_as_sequence->sq_repeat : NULL;
@@ -4637,7 +4186,6 @@ static inline bool _INPLACE_OPERATION_MULT_OBJECT_OBJECT(PyObject **operand1, Py
                 goto exit_inplace_result_object;
             }
         }
-        // Special case for "*", also work with sequence repeat from right argument.
         if (type1->tp_as_sequence == NULL) {
             ssizeargfunc sq_slot = type2->tp_as_sequence != NULL ? type2->tp_as_sequence->sq_repeat : NULL;
 
@@ -4659,11 +4207,7 @@ exit_inplace_result_object:
         return false;
     }
 
-    // We got an object handed, that we have to release.
     Py_DECREF(*operand1);
-
-    // That's our return value then. As we use a dedicated variable, it's
-    // OK that way.
     *operand1 = obj_result;
 
     return true;

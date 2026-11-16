@@ -13,7 +13,6 @@
 /* C helpers for type specialized "%" (MOD) operations */
 
 #if PYTHON_VERSION < 0x300
-/* Code referring to "INT" corresponds to Python2 'int' and "INT" to Python2 'int'. */
 static PyObject *_BINARY_OPERATION_MOD_OBJECT_INT_INT(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyInt_CheckExact(operand1));
@@ -22,7 +21,6 @@ static PyObject *_BINARY_OPERATION_MOD_OBJECT_INT_INT(PyObject *operand1, PyObje
 
     PyObject *result;
 
-    // Not every code path will make use of all possible results.
 #if defined(_MSC_VER)
 #pragma warning(push)
 #pragma warning(disable : 4101)
@@ -43,16 +41,9 @@ static PyObject *_BINARY_OPERATION_MOD_OBJECT_INT_INT(PyObject *operand1, PyObje
     const long a = PyInt_AS_LONG(operand1);
     const long b = PyInt_AS_LONG(operand2);
 
-    /* TODO: Isn't this a very specific value only, of which we could
-     * hardcode the constant result. Not sure how well the C compiler
-     * optimizes UNARY_NEG_WOULD_OVERFLOW to this, but dividing by
-     * -1 has to be rare anyway.
-     */
-
     if (likely(b != -1 || !UNARY_NEG_WOULD_OVERFLOW(a))) {
         long r = a % b;
 
-        // Sign handling.
         if (r != 0 && ((b ^ r) < 0)) {
             r += b;
         }
@@ -96,7 +87,6 @@ PyObject *BINARY_OPERATION_MOD_OBJECT_INT_INT(PyObject *operand1, PyObject *oper
 #endif
 
 #if PYTHON_VERSION < 0x300
-/* Code referring to "OBJECT" corresponds to any Python object and "INT" to Python2 'int'. */
 static HEDLEY_NEVER_INLINE PyObject *__BINARY_OPERATION_MOD_OBJECT_OBJECT_INT(PyObject *operand1, PyObject *operand2) {
     PyTypeObject *type1 = Py_TYPE(operand1);
 
@@ -115,8 +105,6 @@ static HEDLEY_NEVER_INLINE PyObject *__BINARY_OPERATION_MOD_OBJECT_OBJECT_INT(Py
     binaryfunc slot2 = NULL;
 
     if (!(type1 == &PyInt_Type)) {
-        // Different types, need to consider second value slot.
-
         slot2 = PyInt_Type.tp_as_number->nb_remainder;
 
         if (slot1 == slot2) {
@@ -239,9 +227,6 @@ static PyObject *_BINARY_OPERATION_MOD_OBJECT_OBJECT_INT(PyObject *operand1, PyO
     if (type1 == &PyInt_Type) {
         PyObject *result;
 
-        // return _BINARY_OPERATION_MOD_OBJECT_INT_INT(operand1, operand2);
-
-        // Not every code path will make use of all possible results.
 #if defined(_MSC_VER)
 #pragma warning(push)
 #pragma warning(disable : 4101)
@@ -262,16 +247,9 @@ static PyObject *_BINARY_OPERATION_MOD_OBJECT_OBJECT_INT(PyObject *operand1, PyO
         const long a = PyInt_AS_LONG(operand1);
         const long b = PyInt_AS_LONG(operand2);
 
-        /* TODO: Isn't this a very specific value only, of which we could
-         * hardcode the constant result. Not sure how well the C compiler
-         * optimizes UNARY_NEG_WOULD_OVERFLOW to this, but dividing by
-         * -1 has to be rare anyway.
-         */
-
         if (likely(b != -1 || !UNARY_NEG_WOULD_OVERFLOW(a))) {
             long r = a % b;
 
-            // Sign handling.
             if (r != 0 && ((b ^ r) < 0)) {
                 r += b;
             }
@@ -318,7 +296,6 @@ PyObject *BINARY_OPERATION_MOD_OBJECT_OBJECT_INT(PyObject *operand1, PyObject *o
 #endif
 
 #if PYTHON_VERSION < 0x300
-/* Code referring to "INT" corresponds to Python2 'int' and "OBJECT" to any Python object. */
 static HEDLEY_NEVER_INLINE PyObject *__BINARY_OPERATION_MOD_OBJECT_INT_OBJECT(PyObject *operand1, PyObject *operand2) {
     PyTypeObject *type2 = Py_TYPE(operand2);
 
@@ -336,8 +313,6 @@ static HEDLEY_NEVER_INLINE PyObject *__BINARY_OPERATION_MOD_OBJECT_INT_OBJECT(Py
     binaryfunc slot2 = NULL;
 
     if (!(&PyInt_Type == type2)) {
-        // Different types, need to consider second value slot.
-
         slot2 =
             (type2->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type2)) ? type2->tp_as_number->nb_remainder : NULL;
 
@@ -475,9 +450,6 @@ static PyObject *_BINARY_OPERATION_MOD_OBJECT_INT_OBJECT(PyObject *operand1, PyO
     if (&PyInt_Type == type2) {
         PyObject *result;
 
-        // return _BINARY_OPERATION_MOD_OBJECT_INT_INT(operand1, operand2);
-
-        // Not every code path will make use of all possible results.
 #if defined(_MSC_VER)
 #pragma warning(push)
 #pragma warning(disable : 4101)
@@ -498,16 +470,9 @@ static PyObject *_BINARY_OPERATION_MOD_OBJECT_INT_OBJECT(PyObject *operand1, PyO
         const long a = PyInt_AS_LONG(operand1);
         const long b = PyInt_AS_LONG(operand2);
 
-        /* TODO: Isn't this a very specific value only, of which we could
-         * hardcode the constant result. Not sure how well the C compiler
-         * optimizes UNARY_NEG_WOULD_OVERFLOW to this, but dividing by
-         * -1 has to be rare anyway.
-         */
-
         if (likely(b != -1 || !UNARY_NEG_WOULD_OVERFLOW(a))) {
             long r = a % b;
 
-            // Sign handling.
             if (r != 0 && ((b ^ r) < 0)) {
                 r += b;
             }
@@ -554,7 +519,6 @@ PyObject *BINARY_OPERATION_MOD_OBJECT_INT_OBJECT(PyObject *operand1, PyObject *o
 #endif
 
 #if PYTHON_VERSION < 0x300
-/* Code referring to "INT" corresponds to Python2 'int' and "INT" to Python2 'int'. */
 static nuitka_bool _BINARY_OPERATION_MOD_NBOOL_INT_INT(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyInt_CheckExact(operand1));
@@ -563,7 +527,6 @@ static nuitka_bool _BINARY_OPERATION_MOD_NBOOL_INT_INT(PyObject *operand1, PyObj
 
     nuitka_bool result;
 
-    // Not every code path will make use of all possible results.
 #if defined(_MSC_VER)
 #pragma warning(push)
 #pragma warning(disable : 4101)
@@ -584,16 +547,9 @@ static nuitka_bool _BINARY_OPERATION_MOD_NBOOL_INT_INT(PyObject *operand1, PyObj
     const long a = PyInt_AS_LONG(operand1);
     const long b = PyInt_AS_LONG(operand2);
 
-    /* TODO: Isn't this a very specific value only, of which we could
-     * hardcode the constant result. Not sure how well the C compiler
-     * optimizes UNARY_NEG_WOULD_OVERFLOW to this, but dividing by
-     * -1 has to be rare anyway.
-     */
-
     if (likely(b != -1 || !UNARY_NEG_WOULD_OVERFLOW(a))) {
         long r = a % b;
 
-        // Sign handling.
         if (r != 0 && ((b ^ r) < 0)) {
             r += b;
         }
@@ -638,7 +594,6 @@ nuitka_bool BINARY_OPERATION_MOD_NBOOL_INT_INT(PyObject *operand1, PyObject *ope
 #endif
 
 #if PYTHON_VERSION < 0x300
-/* Code referring to "OBJECT" corresponds to any Python object and "INT" to Python2 'int'. */
 static HEDLEY_NEVER_INLINE nuitka_bool __BINARY_OPERATION_MOD_NBOOL_OBJECT_INT(PyObject *operand1, PyObject *operand2) {
     PyTypeObject *type1 = Py_TYPE(operand1);
 
@@ -657,8 +612,6 @@ static HEDLEY_NEVER_INLINE nuitka_bool __BINARY_OPERATION_MOD_NBOOL_OBJECT_INT(P
     binaryfunc slot2 = NULL;
 
     if (!(type1 == &PyInt_Type)) {
-        // Different types, need to consider second value slot.
-
         slot2 = PyInt_Type.tp_as_number->nb_remainder;
 
         if (slot1 == slot2) {
@@ -789,9 +742,6 @@ static nuitka_bool _BINARY_OPERATION_MOD_NBOOL_OBJECT_INT(PyObject *operand1, Py
     if (type1 == &PyInt_Type) {
         nuitka_bool result;
 
-        // return _BINARY_OPERATION_MOD_NBOOL_INT_INT(operand1, operand2);
-
-        // Not every code path will make use of all possible results.
 #if defined(_MSC_VER)
 #pragma warning(push)
 #pragma warning(disable : 4101)
@@ -812,16 +762,9 @@ static nuitka_bool _BINARY_OPERATION_MOD_NBOOL_OBJECT_INT(PyObject *operand1, Py
         const long a = PyInt_AS_LONG(operand1);
         const long b = PyInt_AS_LONG(operand2);
 
-        /* TODO: Isn't this a very specific value only, of which we could
-         * hardcode the constant result. Not sure how well the C compiler
-         * optimizes UNARY_NEG_WOULD_OVERFLOW to this, but dividing by
-         * -1 has to be rare anyway.
-         */
-
         if (likely(b != -1 || !UNARY_NEG_WOULD_OVERFLOW(a))) {
             long r = a % b;
 
-            // Sign handling.
             if (r != 0 && ((b ^ r) < 0)) {
                 r += b;
             }
@@ -869,7 +812,6 @@ nuitka_bool BINARY_OPERATION_MOD_NBOOL_OBJECT_INT(PyObject *operand1, PyObject *
 #endif
 
 #if PYTHON_VERSION < 0x300
-/* Code referring to "INT" corresponds to Python2 'int' and "OBJECT" to any Python object. */
 static HEDLEY_NEVER_INLINE nuitka_bool __BINARY_OPERATION_MOD_NBOOL_INT_OBJECT(PyObject *operand1, PyObject *operand2) {
     PyTypeObject *type2 = Py_TYPE(operand2);
 
@@ -887,8 +829,6 @@ static HEDLEY_NEVER_INLINE nuitka_bool __BINARY_OPERATION_MOD_NBOOL_INT_OBJECT(P
     binaryfunc slot2 = NULL;
 
     if (!(&PyInt_Type == type2)) {
-        // Different types, need to consider second value slot.
-
         slot2 =
             (type2->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type2)) ? type2->tp_as_number->nb_remainder : NULL;
 
@@ -1034,9 +974,6 @@ static nuitka_bool _BINARY_OPERATION_MOD_NBOOL_INT_OBJECT(PyObject *operand1, Py
     if (&PyInt_Type == type2) {
         nuitka_bool result;
 
-        // return _BINARY_OPERATION_MOD_NBOOL_INT_INT(operand1, operand2);
-
-        // Not every code path will make use of all possible results.
 #if defined(_MSC_VER)
 #pragma warning(push)
 #pragma warning(disable : 4101)
@@ -1057,16 +994,9 @@ static nuitka_bool _BINARY_OPERATION_MOD_NBOOL_INT_OBJECT(PyObject *operand1, Py
         const long a = PyInt_AS_LONG(operand1);
         const long b = PyInt_AS_LONG(operand2);
 
-        /* TODO: Isn't this a very specific value only, of which we could
-         * hardcode the constant result. Not sure how well the C compiler
-         * optimizes UNARY_NEG_WOULD_OVERFLOW to this, but dividing by
-         * -1 has to be rare anyway.
-         */
-
         if (likely(b != -1 || !UNARY_NEG_WOULD_OVERFLOW(a))) {
             long r = a % b;
 
-            // Sign handling.
             if (r != 0 && ((b ^ r) < 0)) {
                 r += b;
             }
@@ -1113,7 +1043,6 @@ nuitka_bool BINARY_OPERATION_MOD_NBOOL_INT_OBJECT(PyObject *operand1, PyObject *
 }
 #endif
 
-/* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "LONG" to Python2 'long', Python3 'int'. */
 static PyObject *_BINARY_OPERATION_MOD_OBJECT_LONG_LONG(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyLong_CheckExact(operand1));
@@ -1122,7 +1051,6 @@ static PyObject *_BINARY_OPERATION_MOD_OBJECT_LONG_LONG(PyObject *operand1, PyOb
 
     PyObject *result;
 
-    // Not every code path will make use of all possible results.
 #if defined(_MSC_VER)
 #pragma warning(push)
 #pragma warning(disable : 4101)
@@ -1157,7 +1085,6 @@ PyObject *BINARY_OPERATION_MOD_OBJECT_LONG_LONG(PyObject *operand1, PyObject *op
     return _BINARY_OPERATION_MOD_OBJECT_LONG_LONG(operand1, operand2);
 }
 
-/* Code referring to "OBJECT" corresponds to any Python object and "LONG" to Python2 'long', Python3 'int'. */
 static HEDLEY_NEVER_INLINE PyObject *__BINARY_OPERATION_MOD_OBJECT_OBJECT_LONG(PyObject *operand1, PyObject *operand2) {
     PyTypeObject *type1 = Py_TYPE(operand1);
 
@@ -1176,8 +1103,6 @@ static HEDLEY_NEVER_INLINE PyObject *__BINARY_OPERATION_MOD_OBJECT_OBJECT_LONG(P
     binaryfunc slot2 = NULL;
 
     if (!(type1 == &PyLong_Type)) {
-        // Different types, need to consider second value slot.
-
         slot2 = PyLong_Type.tp_as_number->nb_remainder;
 
         if (slot1 == slot2) {
@@ -1304,9 +1229,6 @@ static PyObject *_BINARY_OPERATION_MOD_OBJECT_OBJECT_LONG(PyObject *operand1, Py
     if (type1 == &PyLong_Type) {
         PyObject *result;
 
-        // return _BINARY_OPERATION_MOD_OBJECT_LONG_LONG(operand1, operand2);
-
-        // Not every code path will make use of all possible results.
 #if defined(_MSC_VER)
 #pragma warning(push)
 #pragma warning(disable : 4101)
@@ -1344,7 +1266,6 @@ PyObject *BINARY_OPERATION_MOD_OBJECT_OBJECT_LONG(PyObject *operand1, PyObject *
     return _BINARY_OPERATION_MOD_OBJECT_OBJECT_LONG(operand1, operand2);
 }
 
-/* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "OBJECT" to any Python object. */
 static HEDLEY_NEVER_INLINE PyObject *__BINARY_OPERATION_MOD_OBJECT_LONG_OBJECT(PyObject *operand1, PyObject *operand2) {
     PyTypeObject *type2 = Py_TYPE(operand2);
 
@@ -1362,8 +1283,6 @@ static HEDLEY_NEVER_INLINE PyObject *__BINARY_OPERATION_MOD_OBJECT_LONG_OBJECT(P
     binaryfunc slot2 = NULL;
 
     if (!(&PyLong_Type == type2)) {
-        // Different types, need to consider second value slot.
-
         slot2 =
             (type2->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type2)) ? type2->tp_as_number->nb_remainder : NULL;
 
@@ -1505,9 +1424,6 @@ static PyObject *_BINARY_OPERATION_MOD_OBJECT_LONG_OBJECT(PyObject *operand1, Py
     if (&PyLong_Type == type2) {
         PyObject *result;
 
-        // return _BINARY_OPERATION_MOD_OBJECT_LONG_LONG(operand1, operand2);
-
-        // Not every code path will make use of all possible results.
 #if defined(_MSC_VER)
 #pragma warning(push)
 #pragma warning(disable : 4101)
@@ -1545,7 +1461,6 @@ PyObject *BINARY_OPERATION_MOD_OBJECT_LONG_OBJECT(PyObject *operand1, PyObject *
     return _BINARY_OPERATION_MOD_OBJECT_LONG_OBJECT(operand1, operand2);
 }
 
-/* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "LONG" to Python2 'long', Python3 'int'. */
 static nuitka_bool _BINARY_OPERATION_MOD_NBOOL_LONG_LONG(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyLong_CheckExact(operand1));
@@ -1554,7 +1469,6 @@ static nuitka_bool _BINARY_OPERATION_MOD_NBOOL_LONG_LONG(PyObject *operand1, PyO
 
     nuitka_bool result;
 
-    // Not every code path will make use of all possible results.
 #if defined(_MSC_VER)
 #pragma warning(push)
 #pragma warning(disable : 4101)
@@ -1590,7 +1504,6 @@ nuitka_bool BINARY_OPERATION_MOD_NBOOL_LONG_LONG(PyObject *operand1, PyObject *o
     return _BINARY_OPERATION_MOD_NBOOL_LONG_LONG(operand1, operand2);
 }
 
-/* Code referring to "OBJECT" corresponds to any Python object and "LONG" to Python2 'long', Python3 'int'. */
 static HEDLEY_NEVER_INLINE nuitka_bool __BINARY_OPERATION_MOD_NBOOL_OBJECT_LONG(PyObject *operand1,
                                                                                 PyObject *operand2) {
     PyTypeObject *type1 = Py_TYPE(operand1);
@@ -1610,8 +1523,6 @@ static HEDLEY_NEVER_INLINE nuitka_bool __BINARY_OPERATION_MOD_NBOOL_OBJECT_LONG(
     binaryfunc slot2 = NULL;
 
     if (!(type1 == &PyLong_Type)) {
-        // Different types, need to consider second value slot.
-
         slot2 = PyLong_Type.tp_as_number->nb_remainder;
 
         if (slot1 == slot2) {
@@ -1746,9 +1657,6 @@ static nuitka_bool _BINARY_OPERATION_MOD_NBOOL_OBJECT_LONG(PyObject *operand1, P
     if (type1 == &PyLong_Type) {
         nuitka_bool result;
 
-        // return _BINARY_OPERATION_MOD_NBOOL_LONG_LONG(operand1, operand2);
-
-        // Not every code path will make use of all possible results.
 #if defined(_MSC_VER)
 #pragma warning(push)
 #pragma warning(disable : 4101)
@@ -1787,7 +1695,6 @@ nuitka_bool BINARY_OPERATION_MOD_NBOOL_OBJECT_LONG(PyObject *operand1, PyObject 
     return _BINARY_OPERATION_MOD_NBOOL_OBJECT_LONG(operand1, operand2);
 }
 
-/* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "OBJECT" to any Python object. */
 static HEDLEY_NEVER_INLINE nuitka_bool __BINARY_OPERATION_MOD_NBOOL_LONG_OBJECT(PyObject *operand1,
                                                                                 PyObject *operand2) {
     PyTypeObject *type2 = Py_TYPE(operand2);
@@ -1806,8 +1713,6 @@ static HEDLEY_NEVER_INLINE nuitka_bool __BINARY_OPERATION_MOD_NBOOL_LONG_OBJECT(
     binaryfunc slot2 = NULL;
 
     if (!(&PyLong_Type == type2)) {
-        // Different types, need to consider second value slot.
-
         slot2 =
             (type2->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type2)) ? type2->tp_as_number->nb_remainder : NULL;
 
@@ -1957,9 +1862,6 @@ static nuitka_bool _BINARY_OPERATION_MOD_NBOOL_LONG_OBJECT(PyObject *operand1, P
     if (&PyLong_Type == type2) {
         nuitka_bool result;
 
-        // return _BINARY_OPERATION_MOD_NBOOL_LONG_LONG(operand1, operand2);
-
-        // Not every code path will make use of all possible results.
 #if defined(_MSC_VER)
 #pragma warning(push)
 #pragma warning(disable : 4101)
@@ -1998,7 +1900,6 @@ nuitka_bool BINARY_OPERATION_MOD_NBOOL_LONG_OBJECT(PyObject *operand1, PyObject 
     return _BINARY_OPERATION_MOD_NBOOL_LONG_OBJECT(operand1, operand2);
 }
 
-/* Code referring to "FLOAT" corresponds to Python 'float' and "FLOAT" to Python 'float'. */
 static PyObject *_BINARY_OPERATION_MOD_OBJECT_FLOAT_FLOAT(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyFloat_CheckExact(operand1));
@@ -2011,7 +1912,6 @@ static PyObject *_BINARY_OPERATION_MOD_OBJECT_FLOAT_FLOAT(PyObject *operand1, Py
 #pragma warning(push)
 #pragma warning(disable : 4101)
 #endif
-    // Not every code path will make use of all possible results.
     NUITKA_MAY_BE_UNUSED PyObject *obj_result;
     NUITKA_MAY_BE_UNUSED long clong_result;
     NUITKA_MAY_BE_UNUSED double cfloat_result;
@@ -2063,7 +1963,6 @@ PyObject *BINARY_OPERATION_MOD_OBJECT_FLOAT_FLOAT(PyObject *operand1, PyObject *
     return _BINARY_OPERATION_MOD_OBJECT_FLOAT_FLOAT(operand1, operand2);
 }
 
-/* Code referring to "OBJECT" corresponds to any Python object and "FLOAT" to Python 'float'. */
 static HEDLEY_NEVER_INLINE PyObject *__BINARY_OPERATION_MOD_OBJECT_OBJECT_FLOAT(PyObject *operand1,
                                                                                 PyObject *operand2) {
     PyTypeObject *type1 = Py_TYPE(operand1);
@@ -2083,8 +1982,6 @@ static HEDLEY_NEVER_INLINE PyObject *__BINARY_OPERATION_MOD_OBJECT_OBJECT_FLOAT(
     binaryfunc slot2 = NULL;
 
     if (!(type1 == &PyFloat_Type)) {
-        // Different types, need to consider second value slot.
-
         slot2 = PyFloat_Type.tp_as_number->nb_remainder;
 
         if (slot1 == slot2) {
@@ -2207,13 +2104,10 @@ static PyObject *_BINARY_OPERATION_MOD_OBJECT_OBJECT_FLOAT(PyObject *operand1, P
     if (type1 == &PyFloat_Type) {
         PyObject *result;
 
-        // return _BINARY_OPERATION_MOD_OBJECT_FLOAT_FLOAT(operand1, operand2);
-
 #if defined(_MSC_VER)
 #pragma warning(push)
 #pragma warning(disable : 4101)
 #endif
-        // Not every code path will make use of all possible results.
         NUITKA_MAY_BE_UNUSED PyObject *obj_result;
         NUITKA_MAY_BE_UNUSED long clong_result;
         NUITKA_MAY_BE_UNUSED double cfloat_result;
@@ -2268,7 +2162,6 @@ PyObject *BINARY_OPERATION_MOD_OBJECT_OBJECT_FLOAT(PyObject *operand1, PyObject 
     return _BINARY_OPERATION_MOD_OBJECT_OBJECT_FLOAT(operand1, operand2);
 }
 
-/* Code referring to "FLOAT" corresponds to Python 'float' and "OBJECT" to any Python object. */
 static HEDLEY_NEVER_INLINE PyObject *__BINARY_OPERATION_MOD_OBJECT_FLOAT_OBJECT(PyObject *operand1,
                                                                                 PyObject *operand2) {
     PyTypeObject *type2 = Py_TYPE(operand2);
@@ -2287,8 +2180,6 @@ static HEDLEY_NEVER_INLINE PyObject *__BINARY_OPERATION_MOD_OBJECT_FLOAT_OBJECT(
     binaryfunc slot2 = NULL;
 
     if (!(&PyFloat_Type == type2)) {
-        // Different types, need to consider second value slot.
-
         slot2 =
             (type2->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type2)) ? type2->tp_as_number->nb_remainder : NULL;
 
@@ -2426,13 +2317,10 @@ static PyObject *_BINARY_OPERATION_MOD_OBJECT_FLOAT_OBJECT(PyObject *operand1, P
     if (&PyFloat_Type == type2) {
         PyObject *result;
 
-        // return _BINARY_OPERATION_MOD_OBJECT_FLOAT_FLOAT(operand1, operand2);
-
 #if defined(_MSC_VER)
 #pragma warning(push)
 #pragma warning(disable : 4101)
 #endif
-        // Not every code path will make use of all possible results.
         NUITKA_MAY_BE_UNUSED PyObject *obj_result;
         NUITKA_MAY_BE_UNUSED long clong_result;
         NUITKA_MAY_BE_UNUSED double cfloat_result;
@@ -2487,7 +2375,6 @@ PyObject *BINARY_OPERATION_MOD_OBJECT_FLOAT_OBJECT(PyObject *operand1, PyObject 
     return _BINARY_OPERATION_MOD_OBJECT_FLOAT_OBJECT(operand1, operand2);
 }
 
-/* Code referring to "FLOAT" corresponds to Python 'float' and "FLOAT" to Python 'float'. */
 static nuitka_bool _BINARY_OPERATION_MOD_NBOOL_FLOAT_FLOAT(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyFloat_CheckExact(operand1));
@@ -2500,7 +2387,6 @@ static nuitka_bool _BINARY_OPERATION_MOD_NBOOL_FLOAT_FLOAT(PyObject *operand1, P
 #pragma warning(push)
 #pragma warning(disable : 4101)
 #endif
-    // Not every code path will make use of all possible results.
     NUITKA_MAY_BE_UNUSED PyObject *obj_result;
     NUITKA_MAY_BE_UNUSED long clong_result;
     NUITKA_MAY_BE_UNUSED double cfloat_result;
@@ -2552,7 +2438,6 @@ nuitka_bool BINARY_OPERATION_MOD_NBOOL_FLOAT_FLOAT(PyObject *operand1, PyObject 
     return _BINARY_OPERATION_MOD_NBOOL_FLOAT_FLOAT(operand1, operand2);
 }
 
-/* Code referring to "OBJECT" corresponds to any Python object and "FLOAT" to Python 'float'. */
 static HEDLEY_NEVER_INLINE nuitka_bool __BINARY_OPERATION_MOD_NBOOL_OBJECT_FLOAT(PyObject *operand1,
                                                                                  PyObject *operand2) {
     PyTypeObject *type1 = Py_TYPE(operand1);
@@ -2572,8 +2457,6 @@ static HEDLEY_NEVER_INLINE nuitka_bool __BINARY_OPERATION_MOD_NBOOL_OBJECT_FLOAT
     binaryfunc slot2 = NULL;
 
     if (!(type1 == &PyFloat_Type)) {
-        // Different types, need to consider second value slot.
-
         slot2 = PyFloat_Type.tp_as_number->nb_remainder;
 
         if (slot1 == slot2) {
@@ -2704,13 +2587,10 @@ static nuitka_bool _BINARY_OPERATION_MOD_NBOOL_OBJECT_FLOAT(PyObject *operand1, 
     if (type1 == &PyFloat_Type) {
         nuitka_bool result;
 
-        // return _BINARY_OPERATION_MOD_NBOOL_FLOAT_FLOAT(operand1, operand2);
-
 #if defined(_MSC_VER)
 #pragma warning(push)
 #pragma warning(disable : 4101)
 #endif
-        // Not every code path will make use of all possible results.
         NUITKA_MAY_BE_UNUSED PyObject *obj_result;
         NUITKA_MAY_BE_UNUSED long clong_result;
         NUITKA_MAY_BE_UNUSED double cfloat_result;
@@ -2765,7 +2645,6 @@ nuitka_bool BINARY_OPERATION_MOD_NBOOL_OBJECT_FLOAT(PyObject *operand1, PyObject
     return _BINARY_OPERATION_MOD_NBOOL_OBJECT_FLOAT(operand1, operand2);
 }
 
-/* Code referring to "FLOAT" corresponds to Python 'float' and "OBJECT" to any Python object. */
 static HEDLEY_NEVER_INLINE nuitka_bool __BINARY_OPERATION_MOD_NBOOL_FLOAT_OBJECT(PyObject *operand1,
                                                                                  PyObject *operand2) {
     PyTypeObject *type2 = Py_TYPE(operand2);
@@ -2784,8 +2663,6 @@ static HEDLEY_NEVER_INLINE nuitka_bool __BINARY_OPERATION_MOD_NBOOL_FLOAT_OBJECT
     binaryfunc slot2 = NULL;
 
     if (!(&PyFloat_Type == type2)) {
-        // Different types, need to consider second value slot.
-
         slot2 =
             (type2->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type2)) ? type2->tp_as_number->nb_remainder : NULL;
 
@@ -2931,13 +2808,10 @@ static nuitka_bool _BINARY_OPERATION_MOD_NBOOL_FLOAT_OBJECT(PyObject *operand1, 
     if (&PyFloat_Type == type2) {
         nuitka_bool result;
 
-        // return _BINARY_OPERATION_MOD_NBOOL_FLOAT_FLOAT(operand1, operand2);
-
 #if defined(_MSC_VER)
 #pragma warning(push)
 #pragma warning(disable : 4101)
 #endif
-        // Not every code path will make use of all possible results.
         NUITKA_MAY_BE_UNUSED PyObject *obj_result;
         NUITKA_MAY_BE_UNUSED long clong_result;
         NUITKA_MAY_BE_UNUSED double cfloat_result;
@@ -2992,7 +2866,6 @@ nuitka_bool BINARY_OPERATION_MOD_NBOOL_FLOAT_OBJECT(PyObject *operand1, PyObject
     return _BINARY_OPERATION_MOD_NBOOL_FLOAT_OBJECT(operand1, operand2);
 }
 
-/* Code referring to "FLOAT" corresponds to Python 'float' and "LONG" to Python2 'long', Python3 'int'. */
 static PyObject *_BINARY_OPERATION_MOD_OBJECT_FLOAT_LONG(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyFloat_CheckExact(operand1));
@@ -3010,7 +2883,6 @@ static PyObject *_BINARY_OPERATION_MOD_OBJECT_FLOAT_LONG(PyObject *operand1, PyO
 #endif
 
     binaryfunc slot1 = PyFloat_Type.tp_as_number->nb_remainder;
-    // Slot2 ignored on purpose, type1 takes precedence.
 
     if (slot1 != NULL) {
         PyObject *x = slot1(operand1, operand2);
@@ -3022,8 +2894,6 @@ static PyObject *_BINARY_OPERATION_MOD_OBJECT_FLOAT_LONG(PyObject *operand1, PyO
 
         Py_DECREF_IMMORTAL(x);
     }
-
-    // Statically recognized that coercion is not possible with these types
 
 #if PYTHON_VERSION < 0x300
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'float' and 'long'");
@@ -3043,7 +2913,6 @@ PyObject *BINARY_OPERATION_MOD_OBJECT_FLOAT_LONG(PyObject *operand1, PyObject *o
     return _BINARY_OPERATION_MOD_OBJECT_FLOAT_LONG(operand1, operand2);
 }
 
-/* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "FLOAT" to Python 'float'. */
 static PyObject *_BINARY_OPERATION_MOD_OBJECT_LONG_FLOAT(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyLong_CheckExact(operand1));
@@ -3060,12 +2929,9 @@ static PyObject *_BINARY_OPERATION_MOD_OBJECT_LONG_FLOAT(PyObject *operand1, PyO
 #pragma warning(pop)
 #endif
 
-    // Slot1 ignored on purpose, type2 takes precedence.
     binaryfunc slot2 = NULL;
 
     if (!(0)) {
-        // Different types, need to consider second value slot.
-
         slot2 = PyFloat_Type.tp_as_number->nb_remainder;
     }
 
@@ -3079,8 +2945,6 @@ static PyObject *_BINARY_OPERATION_MOD_OBJECT_LONG_FLOAT(PyObject *operand1, PyO
 
         Py_DECREF_IMMORTAL(x);
     }
-
-    // Statically recognized that coercion is not possible with these types
 
 #if PYTHON_VERSION < 0x300
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'long' and 'float'");
@@ -3100,7 +2964,6 @@ PyObject *BINARY_OPERATION_MOD_OBJECT_LONG_FLOAT(PyObject *operand1, PyObject *o
     return _BINARY_OPERATION_MOD_OBJECT_LONG_FLOAT(operand1, operand2);
 }
 
-/* Code referring to "FLOAT" corresponds to Python 'float' and "LONG" to Python2 'long', Python3 'int'. */
 static nuitka_bool _BINARY_OPERATION_MOD_NBOOL_FLOAT_LONG(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyFloat_CheckExact(operand1));
@@ -3118,7 +2981,6 @@ static nuitka_bool _BINARY_OPERATION_MOD_NBOOL_FLOAT_LONG(PyObject *operand1, Py
 #endif
 
     binaryfunc slot1 = PyFloat_Type.tp_as_number->nb_remainder;
-    // Slot2 ignored on purpose, type1 takes precedence.
 
     if (slot1 != NULL) {
         PyObject *x = slot1(operand1, operand2);
@@ -3130,8 +2992,6 @@ static nuitka_bool _BINARY_OPERATION_MOD_NBOOL_FLOAT_LONG(PyObject *operand1, Py
 
         Py_DECREF_IMMORTAL(x);
     }
-
-    // Statically recognized that coercion is not possible with these types
 
 #if PYTHON_VERSION < 0x300
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'float' and 'long'");
@@ -3159,7 +3019,6 @@ nuitka_bool BINARY_OPERATION_MOD_NBOOL_FLOAT_LONG(PyObject *operand1, PyObject *
     return _BINARY_OPERATION_MOD_NBOOL_FLOAT_LONG(operand1, operand2);
 }
 
-/* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "FLOAT" to Python 'float'. */
 static nuitka_bool _BINARY_OPERATION_MOD_NBOOL_LONG_FLOAT(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyLong_CheckExact(operand1));
@@ -3176,12 +3035,9 @@ static nuitka_bool _BINARY_OPERATION_MOD_NBOOL_LONG_FLOAT(PyObject *operand1, Py
 #pragma warning(pop)
 #endif
 
-    // Slot1 ignored on purpose, type2 takes precedence.
     binaryfunc slot2 = NULL;
 
     if (!(0)) {
-        // Different types, need to consider second value slot.
-
         slot2 = PyFloat_Type.tp_as_number->nb_remainder;
     }
 
@@ -3195,8 +3051,6 @@ static nuitka_bool _BINARY_OPERATION_MOD_NBOOL_LONG_FLOAT(PyObject *operand1, Py
 
         Py_DECREF_IMMORTAL(x);
     }
-
-    // Statically recognized that coercion is not possible with these types
 
 #if PYTHON_VERSION < 0x300
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'long' and 'float'");
@@ -3225,7 +3079,6 @@ nuitka_bool BINARY_OPERATION_MOD_NBOOL_LONG_FLOAT(PyObject *operand1, PyObject *
 }
 
 #if PYTHON_VERSION < 0x300
-/* Code referring to "FLOAT" corresponds to Python 'float' and "INT" to Python2 'int'. */
 static PyObject *_BINARY_OPERATION_MOD_OBJECT_FLOAT_INT(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyFloat_CheckExact(operand1));
@@ -3243,7 +3096,6 @@ static PyObject *_BINARY_OPERATION_MOD_OBJECT_FLOAT_INT(PyObject *operand1, PyOb
 #endif
 
     binaryfunc slot1 = PyFloat_Type.tp_as_number->nb_remainder;
-    // Slot2 ignored on purpose, type1 takes precedence.
 
     if (slot1 != NULL) {
         PyObject *x = slot1(operand1, operand2);
@@ -3255,8 +3107,6 @@ static PyObject *_BINARY_OPERATION_MOD_OBJECT_FLOAT_INT(PyObject *operand1, PyOb
 
         Py_DECREF_IMMORTAL(x);
     }
-
-    // Statically recognized that coercion is not possible with these types
 
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'float' and 'int'");
     goto exit_binary_exception;
@@ -3274,7 +3124,6 @@ PyObject *BINARY_OPERATION_MOD_OBJECT_FLOAT_INT(PyObject *operand1, PyObject *op
 #endif
 
 #if PYTHON_VERSION < 0x300
-/* Code referring to "INT" corresponds to Python2 'int' and "FLOAT" to Python 'float'. */
 static PyObject *_BINARY_OPERATION_MOD_OBJECT_INT_FLOAT(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyInt_CheckExact(operand1));
@@ -3291,12 +3140,9 @@ static PyObject *_BINARY_OPERATION_MOD_OBJECT_INT_FLOAT(PyObject *operand1, PyOb
 #pragma warning(pop)
 #endif
 
-    // Slot1 ignored on purpose, type2 takes precedence.
     binaryfunc slot2 = NULL;
 
     if (!(0)) {
-        // Different types, need to consider second value slot.
-
         slot2 = PyFloat_Type.tp_as_number->nb_remainder;
     }
 
@@ -3310,8 +3156,6 @@ static PyObject *_BINARY_OPERATION_MOD_OBJECT_INT_FLOAT(PyObject *operand1, PyOb
 
         Py_DECREF_IMMORTAL(x);
     }
-
-    // Statically recognized that coercion is not possible with these types
 
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'int' and 'float'");
     goto exit_binary_exception;
@@ -3329,7 +3173,6 @@ PyObject *BINARY_OPERATION_MOD_OBJECT_INT_FLOAT(PyObject *operand1, PyObject *op
 #endif
 
 #if PYTHON_VERSION < 0x300
-/* Code referring to "FLOAT" corresponds to Python 'float' and "INT" to Python2 'int'. */
 static nuitka_bool _BINARY_OPERATION_MOD_NBOOL_FLOAT_INT(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyFloat_CheckExact(operand1));
@@ -3347,7 +3190,6 @@ static nuitka_bool _BINARY_OPERATION_MOD_NBOOL_FLOAT_INT(PyObject *operand1, PyO
 #endif
 
     binaryfunc slot1 = PyFloat_Type.tp_as_number->nb_remainder;
-    // Slot2 ignored on purpose, type1 takes precedence.
 
     if (slot1 != NULL) {
         PyObject *x = slot1(operand1, operand2);
@@ -3359,8 +3201,6 @@ static nuitka_bool _BINARY_OPERATION_MOD_NBOOL_FLOAT_INT(PyObject *operand1, PyO
 
         Py_DECREF_IMMORTAL(x);
     }
-
-    // Statically recognized that coercion is not possible with these types
 
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'float' and 'int'");
     goto exit_binary_exception;
@@ -3386,7 +3226,6 @@ nuitka_bool BINARY_OPERATION_MOD_NBOOL_FLOAT_INT(PyObject *operand1, PyObject *o
 #endif
 
 #if PYTHON_VERSION < 0x300
-/* Code referring to "INT" corresponds to Python2 'int' and "FLOAT" to Python 'float'. */
 static nuitka_bool _BINARY_OPERATION_MOD_NBOOL_INT_FLOAT(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyInt_CheckExact(operand1));
@@ -3403,12 +3242,9 @@ static nuitka_bool _BINARY_OPERATION_MOD_NBOOL_INT_FLOAT(PyObject *operand1, PyO
 #pragma warning(pop)
 #endif
 
-    // Slot1 ignored on purpose, type2 takes precedence.
     binaryfunc slot2 = NULL;
 
     if (!(0)) {
-        // Different types, need to consider second value slot.
-
         slot2 = PyFloat_Type.tp_as_number->nb_remainder;
     }
 
@@ -3422,8 +3258,6 @@ static nuitka_bool _BINARY_OPERATION_MOD_NBOOL_INT_FLOAT(PyObject *operand1, PyO
 
         Py_DECREF_IMMORTAL(x);
     }
-
-    // Statically recognized that coercion is not possible with these types
 
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'int' and 'float'");
     goto exit_binary_exception;
@@ -3449,7 +3283,6 @@ nuitka_bool BINARY_OPERATION_MOD_NBOOL_INT_FLOAT(PyObject *operand1, PyObject *o
 #endif
 
 #if PYTHON_VERSION < 0x300
-/* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "INT" to Python2 'int'. */
 static PyObject *_BINARY_OPERATION_MOD_OBJECT_LONG_INT(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyLong_CheckExact(operand1));
@@ -3467,7 +3300,6 @@ static PyObject *_BINARY_OPERATION_MOD_OBJECT_LONG_INT(PyObject *operand1, PyObj
 #endif
 
     binaryfunc slot1 = PyLong_Type.tp_as_number->nb_remainder;
-    // Slot2 ignored on purpose, type1 takes precedence.
 
     if (slot1 != NULL) {
         PyObject *x = slot1(operand1, operand2);
@@ -3479,8 +3311,6 @@ static PyObject *_BINARY_OPERATION_MOD_OBJECT_LONG_INT(PyObject *operand1, PyObj
 
         Py_DECREF_IMMORTAL(x);
     }
-
-    // Statically recognized that coercion is not possible with these types
 
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'long' and 'int'");
     goto exit_binary_exception;
@@ -3498,7 +3328,6 @@ PyObject *BINARY_OPERATION_MOD_OBJECT_LONG_INT(PyObject *operand1, PyObject *ope
 #endif
 
 #if PYTHON_VERSION < 0x300
-/* Code referring to "INT" corresponds to Python2 'int' and "LONG" to Python2 'long', Python3 'int'. */
 static PyObject *_BINARY_OPERATION_MOD_OBJECT_INT_LONG(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyInt_CheckExact(operand1));
@@ -3515,12 +3344,9 @@ static PyObject *_BINARY_OPERATION_MOD_OBJECT_INT_LONG(PyObject *operand1, PyObj
 #pragma warning(pop)
 #endif
 
-    // Slot1 ignored on purpose, type2 takes precedence.
     binaryfunc slot2 = NULL;
 
     if (!(0)) {
-        // Different types, need to consider second value slot.
-
         slot2 = PyLong_Type.tp_as_number->nb_remainder;
     }
 
@@ -3534,8 +3360,6 @@ static PyObject *_BINARY_OPERATION_MOD_OBJECT_INT_LONG(PyObject *operand1, PyObj
 
         Py_DECREF_IMMORTAL(x);
     }
-
-    // Statically recognized that coercion is not possible with these types
 
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'int' and 'long'");
     goto exit_binary_exception;
@@ -3553,7 +3377,6 @@ PyObject *BINARY_OPERATION_MOD_OBJECT_INT_LONG(PyObject *operand1, PyObject *ope
 #endif
 
 #if PYTHON_VERSION < 0x300
-/* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "INT" to Python2 'int'. */
 static nuitka_bool _BINARY_OPERATION_MOD_NBOOL_LONG_INT(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyLong_CheckExact(operand1));
@@ -3571,7 +3394,6 @@ static nuitka_bool _BINARY_OPERATION_MOD_NBOOL_LONG_INT(PyObject *operand1, PyOb
 #endif
 
     binaryfunc slot1 = PyLong_Type.tp_as_number->nb_remainder;
-    // Slot2 ignored on purpose, type1 takes precedence.
 
     if (slot1 != NULL) {
         PyObject *x = slot1(operand1, operand2);
@@ -3583,8 +3405,6 @@ static nuitka_bool _BINARY_OPERATION_MOD_NBOOL_LONG_INT(PyObject *operand1, PyOb
 
         Py_DECREF_IMMORTAL(x);
     }
-
-    // Statically recognized that coercion is not possible with these types
 
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'long' and 'int'");
     goto exit_binary_exception;
@@ -3610,7 +3430,6 @@ nuitka_bool BINARY_OPERATION_MOD_NBOOL_LONG_INT(PyObject *operand1, PyObject *op
 #endif
 
 #if PYTHON_VERSION < 0x300
-/* Code referring to "INT" corresponds to Python2 'int' and "LONG" to Python2 'long', Python3 'int'. */
 static nuitka_bool _BINARY_OPERATION_MOD_NBOOL_INT_LONG(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyInt_CheckExact(operand1));
@@ -3627,12 +3446,9 @@ static nuitka_bool _BINARY_OPERATION_MOD_NBOOL_INT_LONG(PyObject *operand1, PyOb
 #pragma warning(pop)
 #endif
 
-    // Slot1 ignored on purpose, type2 takes precedence.
     binaryfunc slot2 = NULL;
 
     if (!(0)) {
-        // Different types, need to consider second value slot.
-
         slot2 = PyLong_Type.tp_as_number->nb_remainder;
     }
 
@@ -3646,8 +3462,6 @@ static nuitka_bool _BINARY_OPERATION_MOD_NBOOL_INT_LONG(PyObject *operand1, PyOb
 
         Py_DECREF_IMMORTAL(x);
     }
-
-    // Statically recognized that coercion is not possible with these types
 
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'int' and 'long'");
     goto exit_binary_exception;
@@ -3673,14 +3487,12 @@ nuitka_bool BINARY_OPERATION_MOD_NBOOL_INT_LONG(PyObject *operand1, PyObject *op
 #endif
 
 #if PYTHON_VERSION < 0x300
-/* Code referring to "INT" corresponds to Python2 'int' and "CLONG" to C platform long value. */
 static PyObject *_BINARY_OPERATION_MOD_OBJECT_INT_CLONG(PyObject *operand1, long operand2) {
     CHECK_OBJECT(operand1);
     assert(PyInt_CheckExact(operand1));
 
     PyObject *result;
 
-    // Not every code path will make use of all possible results.
 #if defined(_MSC_VER)
 #pragma warning(push)
 #pragma warning(disable : 4101)
@@ -3699,16 +3511,9 @@ static PyObject *_BINARY_OPERATION_MOD_OBJECT_INT_CLONG(PyObject *operand1, long
     const long a = PyInt_AS_LONG(operand1);
     const long b = operand2;
 
-    /* TODO: Isn't this a very specific value only, of which we could
-     * hardcode the constant result. Not sure how well the C compiler
-     * optimizes UNARY_NEG_WOULD_OVERFLOW to this, but dividing by
-     * -1 has to be rare anyway.
-     */
-
     if (likely(b != -1 || !UNARY_NEG_WOULD_OVERFLOW(a))) {
         long r = a % b;
 
-        // Sign handling.
         if (r != 0 && ((b ^ r) < 0)) {
             r += b;
         }
@@ -3754,7 +3559,6 @@ PyObject *BINARY_OPERATION_MOD_OBJECT_INT_CLONG(PyObject *operand1, long operand
 #endif
 
 #if PYTHON_VERSION < 0x300
-/* Code referring to "CLONG" corresponds to C platform long value and "INT" to Python2 'int'. */
 static PyObject *_BINARY_OPERATION_MOD_OBJECT_CLONG_INT(long operand1, PyObject *operand2) {
 
     CHECK_OBJECT(operand2);
@@ -3762,7 +3566,6 @@ static PyObject *_BINARY_OPERATION_MOD_OBJECT_CLONG_INT(long operand1, PyObject 
 
     PyObject *result;
 
-    // Not every code path will make use of all possible results.
 #if defined(_MSC_VER)
 #pragma warning(push)
 #pragma warning(disable : 4101)
@@ -3781,16 +3584,9 @@ static PyObject *_BINARY_OPERATION_MOD_OBJECT_CLONG_INT(long operand1, PyObject 
     const long a = operand1;
     const long b = PyInt_AS_LONG(operand2);
 
-    /* TODO: Isn't this a very specific value only, of which we could
-     * hardcode the constant result. Not sure how well the C compiler
-     * optimizes UNARY_NEG_WOULD_OVERFLOW to this, but dividing by
-     * -1 has to be rare anyway.
-     */
-
     if (likely(b != -1 || !UNARY_NEG_WOULD_OVERFLOW(a))) {
         long r = a % b;
 
-        // Sign handling.
         if (r != 0 && ((b ^ r) < 0)) {
             r += b;
         }
@@ -3836,14 +3632,12 @@ PyObject *BINARY_OPERATION_MOD_OBJECT_CLONG_INT(long operand1, PyObject *operand
 #endif
 
 #if PYTHON_VERSION < 0x300
-/* Code referring to "INT" corresponds to Python2 'int' and "CLONG" to C platform long value. */
 static nuitka_bool _BINARY_OPERATION_MOD_NBOOL_INT_CLONG(PyObject *operand1, long operand2) {
     CHECK_OBJECT(operand1);
     assert(PyInt_CheckExact(operand1));
 
     nuitka_bool result;
 
-    // Not every code path will make use of all possible results.
 #if defined(_MSC_VER)
 #pragma warning(push)
 #pragma warning(disable : 4101)
@@ -3862,16 +3656,9 @@ static nuitka_bool _BINARY_OPERATION_MOD_NBOOL_INT_CLONG(PyObject *operand1, lon
     const long a = PyInt_AS_LONG(operand1);
     const long b = operand2;
 
-    /* TODO: Isn't this a very specific value only, of which we could
-     * hardcode the constant result. Not sure how well the C compiler
-     * optimizes UNARY_NEG_WOULD_OVERFLOW to this, but dividing by
-     * -1 has to be rare anyway.
-     */
-
     if (likely(b != -1 || !UNARY_NEG_WOULD_OVERFLOW(a))) {
         long r = a % b;
 
-        // Sign handling.
         if (r != 0 && ((b ^ r) < 0)) {
             r += b;
         }
@@ -3918,7 +3705,6 @@ nuitka_bool BINARY_OPERATION_MOD_NBOOL_INT_CLONG(PyObject *operand1, long operan
 #endif
 
 #if PYTHON_VERSION < 0x300
-/* Code referring to "CLONG" corresponds to C platform long value and "INT" to Python2 'int'. */
 static nuitka_bool _BINARY_OPERATION_MOD_NBOOL_CLONG_INT(long operand1, PyObject *operand2) {
 
     CHECK_OBJECT(operand2);
@@ -3926,7 +3712,6 @@ static nuitka_bool _BINARY_OPERATION_MOD_NBOOL_CLONG_INT(long operand1, PyObject
 
     nuitka_bool result;
 
-    // Not every code path will make use of all possible results.
 #if defined(_MSC_VER)
 #pragma warning(push)
 #pragma warning(disable : 4101)
@@ -3945,16 +3730,9 @@ static nuitka_bool _BINARY_OPERATION_MOD_NBOOL_CLONG_INT(long operand1, PyObject
     const long a = operand1;
     const long b = PyInt_AS_LONG(operand2);
 
-    /* TODO: Isn't this a very specific value only, of which we could
-     * hardcode the constant result. Not sure how well the C compiler
-     * optimizes UNARY_NEG_WOULD_OVERFLOW to this, but dividing by
-     * -1 has to be rare anyway.
-     */
-
     if (likely(b != -1 || !UNARY_NEG_WOULD_OVERFLOW(a))) {
         long r = a % b;
 
-        // Sign handling.
         if (r != 0 && ((b ^ r) < 0)) {
             r += b;
         }
@@ -4000,7 +3778,6 @@ nuitka_bool BINARY_OPERATION_MOD_NBOOL_CLONG_INT(long operand1, PyObject *operan
 }
 #endif
 
-/* Code referring to "FLOAT" corresponds to Python 'float' and "CFLOAT" to C platform float value. */
 static PyObject *_BINARY_OPERATION_MOD_OBJECT_FLOAT_CFLOAT(PyObject *operand1, double operand2) {
     CHECK_OBJECT(operand1);
     assert(PyFloat_CheckExact(operand1));
@@ -4011,7 +3788,6 @@ static PyObject *_BINARY_OPERATION_MOD_OBJECT_FLOAT_CFLOAT(PyObject *operand1, d
 #pragma warning(push)
 #pragma warning(disable : 4101)
 #endif
-    // Not every code path will make use of all possible results.
     NUITKA_MAY_BE_UNUSED PyObject *obj_result;
     NUITKA_MAY_BE_UNUSED long clong_result;
     NUITKA_MAY_BE_UNUSED double cfloat_result;
@@ -4061,7 +3837,6 @@ PyObject *BINARY_OPERATION_MOD_OBJECT_FLOAT_CFLOAT(PyObject *operand1, double op
     return _BINARY_OPERATION_MOD_OBJECT_FLOAT_CFLOAT(operand1, operand2);
 }
 
-/* Code referring to "CFLOAT" corresponds to C platform float value and "FLOAT" to Python 'float'. */
 static PyObject *_BINARY_OPERATION_MOD_OBJECT_CFLOAT_FLOAT(double operand1, PyObject *operand2) {
 
     CHECK_OBJECT(operand2);
@@ -4073,7 +3848,6 @@ static PyObject *_BINARY_OPERATION_MOD_OBJECT_CFLOAT_FLOAT(double operand1, PyOb
 #pragma warning(push)
 #pragma warning(disable : 4101)
 #endif
-    // Not every code path will make use of all possible results.
     NUITKA_MAY_BE_UNUSED PyObject *obj_result;
     NUITKA_MAY_BE_UNUSED long clong_result;
     NUITKA_MAY_BE_UNUSED double cfloat_result;
@@ -4123,7 +3897,6 @@ PyObject *BINARY_OPERATION_MOD_OBJECT_CFLOAT_FLOAT(double operand1, PyObject *op
     return _BINARY_OPERATION_MOD_OBJECT_CFLOAT_FLOAT(operand1, operand2);
 }
 
-/* Code referring to "FLOAT" corresponds to Python 'float' and "CFLOAT" to C platform float value. */
 static nuitka_bool _BINARY_OPERATION_MOD_NBOOL_FLOAT_CFLOAT(PyObject *operand1, double operand2) {
     CHECK_OBJECT(operand1);
     assert(PyFloat_CheckExact(operand1));
@@ -4134,7 +3907,6 @@ static nuitka_bool _BINARY_OPERATION_MOD_NBOOL_FLOAT_CFLOAT(PyObject *operand1, 
 #pragma warning(push)
 #pragma warning(disable : 4101)
 #endif
-    // Not every code path will make use of all possible results.
     NUITKA_MAY_BE_UNUSED PyObject *obj_result;
     NUITKA_MAY_BE_UNUSED long clong_result;
     NUITKA_MAY_BE_UNUSED double cfloat_result;
@@ -4184,7 +3956,6 @@ nuitka_bool BINARY_OPERATION_MOD_NBOOL_FLOAT_CFLOAT(PyObject *operand1, double o
     return _BINARY_OPERATION_MOD_NBOOL_FLOAT_CFLOAT(operand1, operand2);
 }
 
-/* Code referring to "CFLOAT" corresponds to C platform float value and "FLOAT" to Python 'float'. */
 static nuitka_bool _BINARY_OPERATION_MOD_NBOOL_CFLOAT_FLOAT(double operand1, PyObject *operand2) {
 
     CHECK_OBJECT(operand2);
@@ -4196,7 +3967,6 @@ static nuitka_bool _BINARY_OPERATION_MOD_NBOOL_CFLOAT_FLOAT(double operand1, PyO
 #pragma warning(push)
 #pragma warning(disable : 4101)
 #endif
-    // Not every code path will make use of all possible results.
     NUITKA_MAY_BE_UNUSED PyObject *obj_result;
     NUITKA_MAY_BE_UNUSED long clong_result;
     NUITKA_MAY_BE_UNUSED double cfloat_result;
@@ -4247,7 +4017,6 @@ nuitka_bool BINARY_OPERATION_MOD_NBOOL_CFLOAT_FLOAT(double operand1, PyObject *o
 }
 
 #if PYTHON_VERSION < 0x300
-/* Code referring to "STR" corresponds to Python2 'str' and "INT" to Python2 'int'. */
 static PyObject *_BINARY_OPERATION_MOD_OBJECT_STR_INT(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyString_CheckExact(operand1));
@@ -4268,8 +4037,6 @@ static PyObject *_BINARY_OPERATION_MOD_OBJECT_STR_INT(PyObject *operand1, PyObje
     binaryfunc slot2 = NULL;
 
     if (!(0)) {
-        // Different types, need to consider second value slot.
-
         slot2 = PyInt_Type.tp_as_number->nb_remainder;
     }
 
@@ -4295,8 +4062,6 @@ static PyObject *_BINARY_OPERATION_MOD_OBJECT_STR_INT(PyObject *operand1, PyObje
         Py_DECREF_IMMORTAL(x);
     }
 
-    // Statically recognized that coercion is not possible with these types
-
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'str' and 'int'");
     goto exit_binary_exception;
 
@@ -4313,7 +4078,6 @@ PyObject *BINARY_OPERATION_MOD_OBJECT_STR_INT(PyObject *operand1, PyObject *oper
 #endif
 
 #if PYTHON_VERSION < 0x300
-/* Code referring to "STR" corresponds to Python2 'str' and "LONG" to Python2 'long', Python3 'int'. */
 static PyObject *_BINARY_OPERATION_MOD_OBJECT_STR_LONG(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyString_CheckExact(operand1));
@@ -4334,8 +4098,6 @@ static PyObject *_BINARY_OPERATION_MOD_OBJECT_STR_LONG(PyObject *operand1, PyObj
     binaryfunc slot2 = NULL;
 
     if (!(0)) {
-        // Different types, need to consider second value slot.
-
         slot2 = PyLong_Type.tp_as_number->nb_remainder;
     }
 
@@ -4361,8 +4123,6 @@ static PyObject *_BINARY_OPERATION_MOD_OBJECT_STR_LONG(PyObject *operand1, PyObj
         Py_DECREF_IMMORTAL(x);
     }
 
-    // Statically recognized that coercion is not possible with these types
-
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'str' and 'long'");
     goto exit_binary_exception;
 
@@ -4379,7 +4139,6 @@ PyObject *BINARY_OPERATION_MOD_OBJECT_STR_LONG(PyObject *operand1, PyObject *ope
 #endif
 
 #if PYTHON_VERSION < 0x300
-/* Code referring to "STR" corresponds to Python2 'str' and "FLOAT" to Python 'float'. */
 static PyObject *_BINARY_OPERATION_MOD_OBJECT_STR_FLOAT(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyString_CheckExact(operand1));
@@ -4400,8 +4159,6 @@ static PyObject *_BINARY_OPERATION_MOD_OBJECT_STR_FLOAT(PyObject *operand1, PyOb
     binaryfunc slot2 = NULL;
 
     if (!(0)) {
-        // Different types, need to consider second value slot.
-
         slot2 = PyFloat_Type.tp_as_number->nb_remainder;
     }
 
@@ -4427,8 +4184,6 @@ static PyObject *_BINARY_OPERATION_MOD_OBJECT_STR_FLOAT(PyObject *operand1, PyOb
         Py_DECREF_IMMORTAL(x);
     }
 
-    // Statically recognized that coercion is not possible with these types
-
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'str' and 'float'");
     goto exit_binary_exception;
 
@@ -4445,7 +4200,6 @@ PyObject *BINARY_OPERATION_MOD_OBJECT_STR_FLOAT(PyObject *operand1, PyObject *op
 #endif
 
 #if PYTHON_VERSION < 0x300
-/* Code referring to "STR" corresponds to Python2 'str' and "STR" to Python2 'str'. */
 static PyObject *_BINARY_OPERATION_MOD_OBJECT_STR_STR(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyString_CheckExact(operand1));
@@ -4454,7 +4208,6 @@ static PyObject *_BINARY_OPERATION_MOD_OBJECT_STR_STR(PyObject *operand1, PyObje
 
     PyObject *result;
 
-    // Not every code path will make use of all possible results.
     NUITKA_MAY_BE_UNUSED PyObject *obj_result;
 
     PyObject *x = PyString_Format(operand1, operand2);
@@ -4482,7 +4235,6 @@ PyObject *BINARY_OPERATION_MOD_OBJECT_STR_STR(PyObject *operand1, PyObject *oper
 #endif
 
 #if PYTHON_VERSION < 0x300
-/* Code referring to "STR" corresponds to Python2 'str' and "UNICODE" to Python2 'unicode', Python3 'str'. */
 static PyObject *_BINARY_OPERATION_MOD_OBJECT_STR_UNICODE(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyString_CheckExact(operand1));
@@ -4503,8 +4255,6 @@ static PyObject *_BINARY_OPERATION_MOD_OBJECT_STR_UNICODE(PyObject *operand1, Py
     binaryfunc slot2 = NULL;
 
     if (!(0)) {
-        // Different types, need to consider second value slot.
-
         slot2 = PyUnicode_Type.tp_as_number->nb_remainder;
     }
 
@@ -4530,8 +4280,6 @@ static PyObject *_BINARY_OPERATION_MOD_OBJECT_STR_UNICODE(PyObject *operand1, Py
         Py_DECREF_IMMORTAL(x);
     }
 
-    // Statically recognized that coercion is not possible with these types
-
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'str' and 'unicode'");
     goto exit_binary_exception;
 
@@ -4548,7 +4296,6 @@ PyObject *BINARY_OPERATION_MOD_OBJECT_STR_UNICODE(PyObject *operand1, PyObject *
 #endif
 
 #if PYTHON_VERSION < 0x300
-/* Code referring to "STR" corresponds to Python2 'str' and "TUPLE" to Python 'tuple'. */
 static PyObject *_BINARY_OPERATION_MOD_OBJECT_STR_TUPLE(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyString_CheckExact(operand1));
@@ -4578,8 +4325,6 @@ static PyObject *_BINARY_OPERATION_MOD_OBJECT_STR_TUPLE(PyObject *operand1, PyOb
         Py_DECREF_IMMORTAL(x);
     }
 
-    // Statically recognized that coercion is not possible with these types
-
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'str' and 'tuple'");
     goto exit_binary_exception;
 
@@ -4596,7 +4341,6 @@ PyObject *BINARY_OPERATION_MOD_OBJECT_STR_TUPLE(PyObject *operand1, PyObject *op
 #endif
 
 #if PYTHON_VERSION < 0x300
-/* Code referring to "STR" corresponds to Python2 'str' and "LIST" to Python 'list'. */
 static PyObject *_BINARY_OPERATION_MOD_OBJECT_STR_LIST(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyString_CheckExact(operand1));
@@ -4626,8 +4370,6 @@ static PyObject *_BINARY_OPERATION_MOD_OBJECT_STR_LIST(PyObject *operand1, PyObj
         Py_DECREF_IMMORTAL(x);
     }
 
-    // Statically recognized that coercion is not possible with these types
-
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'str' and 'list'");
     goto exit_binary_exception;
 
@@ -4644,7 +4386,6 @@ PyObject *BINARY_OPERATION_MOD_OBJECT_STR_LIST(PyObject *operand1, PyObject *ope
 #endif
 
 #if PYTHON_VERSION < 0x300
-/* Code referring to "STR" corresponds to Python2 'str' and "DICT" to Python 'dict'. */
 static PyObject *_BINARY_OPERATION_MOD_OBJECT_STR_DICT(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyString_CheckExact(operand1));
@@ -4674,8 +4415,6 @@ static PyObject *_BINARY_OPERATION_MOD_OBJECT_STR_DICT(PyObject *operand1, PyObj
         Py_DECREF_IMMORTAL(x);
     }
 
-    // Statically recognized that coercion is not possible with these types
-
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'str' and 'dict'");
     goto exit_binary_exception;
 
@@ -4692,7 +4431,6 @@ PyObject *BINARY_OPERATION_MOD_OBJECT_STR_DICT(PyObject *operand1, PyObject *ope
 #endif
 
 #if PYTHON_VERSION < 0x300
-/* Code referring to "STR" corresponds to Python2 'str' and "OBJECT" to any Python object. */
 static HEDLEY_NEVER_INLINE PyObject *__BINARY_OPERATION_MOD_OBJECT_STR_OBJECT(PyObject *operand1, PyObject *operand2) {
     PyTypeObject *type2 = Py_TYPE(operand2);
 
@@ -4710,8 +4448,6 @@ static HEDLEY_NEVER_INLINE PyObject *__BINARY_OPERATION_MOD_OBJECT_STR_OBJECT(Py
     binaryfunc slot2 = NULL;
 
     if (!(&PyString_Type == type2)) {
-        // Different types, need to consider second value slot.
-
         slot2 =
             (type2->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type2)) ? type2->tp_as_number->nb_remainder : NULL;
 
@@ -4815,9 +4551,6 @@ static PyObject *_BINARY_OPERATION_MOD_OBJECT_STR_OBJECT(PyObject *operand1, PyO
     if (&PyString_Type == type2) {
         PyObject *result;
 
-        // return _BINARY_OPERATION_MOD_OBJECT_STR_STR(operand1, operand2);
-
-        // Not every code path will make use of all possible results.
         NUITKA_MAY_BE_UNUSED PyObject *obj_result;
 
         PyObject *x = PyString_Format(operand1, operand2);
@@ -4848,7 +4581,6 @@ PyObject *BINARY_OPERATION_MOD_OBJECT_STR_OBJECT(PyObject *operand1, PyObject *o
 #endif
 
 #if PYTHON_VERSION < 0x300
-/* Code referring to "UNICODE" corresponds to Python2 'unicode', Python3 'str' and "INT" to Python2 'int'. */
 static PyObject *_BINARY_OPERATION_MOD_OBJECT_UNICODE_INT(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyUnicode_CheckExact(operand1));
@@ -4869,8 +4601,6 @@ static PyObject *_BINARY_OPERATION_MOD_OBJECT_UNICODE_INT(PyObject *operand1, Py
     binaryfunc slot2 = NULL;
 
     if (!(0)) {
-        // Different types, need to consider second value slot.
-
         slot2 = PyInt_Type.tp_as_number->nb_remainder;
     }
 
@@ -4896,8 +4626,6 @@ static PyObject *_BINARY_OPERATION_MOD_OBJECT_UNICODE_INT(PyObject *operand1, Py
         Py_DECREF_IMMORTAL(x);
     }
 
-    // Statically recognized that coercion is not possible with these types
-
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'unicode' and 'int'");
     goto exit_binary_exception;
 
@@ -4913,8 +4641,6 @@ PyObject *BINARY_OPERATION_MOD_OBJECT_UNICODE_INT(PyObject *operand1, PyObject *
 }
 #endif
 
-/* Code referring to "UNICODE" corresponds to Python2 'unicode', Python3 'str' and "LONG" to Python2 'long', Python3
- * 'int'. */
 static PyObject *_BINARY_OPERATION_MOD_OBJECT_UNICODE_LONG(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyUnicode_CheckExact(operand1));
@@ -4935,8 +4661,6 @@ static PyObject *_BINARY_OPERATION_MOD_OBJECT_UNICODE_LONG(PyObject *operand1, P
     binaryfunc slot2 = NULL;
 
     if (!(0)) {
-        // Different types, need to consider second value slot.
-
         slot2 = PyLong_Type.tp_as_number->nb_remainder;
     }
 
@@ -4962,8 +4686,6 @@ static PyObject *_BINARY_OPERATION_MOD_OBJECT_UNICODE_LONG(PyObject *operand1, P
         Py_DECREF_IMMORTAL(x);
     }
 
-    // Statically recognized that coercion is not possible with these types
-
 #if PYTHON_VERSION < 0x300
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'unicode' and 'long'");
 #else
@@ -4982,7 +4704,6 @@ PyObject *BINARY_OPERATION_MOD_OBJECT_UNICODE_LONG(PyObject *operand1, PyObject 
     return _BINARY_OPERATION_MOD_OBJECT_UNICODE_LONG(operand1, operand2);
 }
 
-/* Code referring to "UNICODE" corresponds to Python2 'unicode', Python3 'str' and "FLOAT" to Python 'float'. */
 static PyObject *_BINARY_OPERATION_MOD_OBJECT_UNICODE_FLOAT(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyUnicode_CheckExact(operand1));
@@ -5003,8 +4724,6 @@ static PyObject *_BINARY_OPERATION_MOD_OBJECT_UNICODE_FLOAT(PyObject *operand1, 
     binaryfunc slot2 = NULL;
 
     if (!(0)) {
-        // Different types, need to consider second value slot.
-
         slot2 = PyFloat_Type.tp_as_number->nb_remainder;
     }
 
@@ -5030,8 +4749,6 @@ static PyObject *_BINARY_OPERATION_MOD_OBJECT_UNICODE_FLOAT(PyObject *operand1, 
         Py_DECREF_IMMORTAL(x);
     }
 
-    // Statically recognized that coercion is not possible with these types
-
 #if PYTHON_VERSION < 0x300
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'unicode' and 'float'");
 #else
@@ -5051,7 +4768,6 @@ PyObject *BINARY_OPERATION_MOD_OBJECT_UNICODE_FLOAT(PyObject *operand1, PyObject
 }
 
 #if PYTHON_VERSION < 0x300
-/* Code referring to "UNICODE" corresponds to Python2 'unicode', Python3 'str' and "STR" to Python2 'str'. */
 static PyObject *_BINARY_OPERATION_MOD_OBJECT_UNICODE_STR(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyUnicode_CheckExact(operand1));
@@ -5072,8 +4788,6 @@ static PyObject *_BINARY_OPERATION_MOD_OBJECT_UNICODE_STR(PyObject *operand1, Py
     binaryfunc slot2 = NULL;
 
     if (!(0)) {
-        // Different types, need to consider second value slot.
-
         slot2 = PyString_Type.tp_as_number->nb_remainder;
     }
 
@@ -5099,8 +4813,6 @@ static PyObject *_BINARY_OPERATION_MOD_OBJECT_UNICODE_STR(PyObject *operand1, Py
         Py_DECREF_IMMORTAL(x);
     }
 
-    // Statically recognized that coercion is not possible with these types
-
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'unicode' and 'str'");
     goto exit_binary_exception;
 
@@ -5117,7 +4829,6 @@ PyObject *BINARY_OPERATION_MOD_OBJECT_UNICODE_STR(PyObject *operand1, PyObject *
 #endif
 
 #if PYTHON_VERSION >= 0x300
-/* Code referring to "UNICODE" corresponds to Python2 'unicode', Python3 'str' and "BYTES" to Python3 'bytes'. */
 static PyObject *_BINARY_OPERATION_MOD_OBJECT_UNICODE_BYTES(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyUnicode_CheckExact(operand1));
@@ -5138,8 +4849,6 @@ static PyObject *_BINARY_OPERATION_MOD_OBJECT_UNICODE_BYTES(PyObject *operand1, 
     binaryfunc slot2 = NULL;
 
     if (!(0)) {
-        // Different types, need to consider second value slot.
-
         slot2 = PyBytes_Type.tp_as_number->nb_remainder;
     }
 
@@ -5165,8 +4874,6 @@ static PyObject *_BINARY_OPERATION_MOD_OBJECT_UNICODE_BYTES(PyObject *operand1, 
         Py_DECREF_IMMORTAL(x);
     }
 
-    // Statically recognized that coercion is not possible with these types
-
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'str' and 'bytes'");
     goto exit_binary_exception;
 
@@ -5182,8 +4889,6 @@ PyObject *BINARY_OPERATION_MOD_OBJECT_UNICODE_BYTES(PyObject *operand1, PyObject
 }
 #endif
 
-/* Code referring to "UNICODE" corresponds to Python2 'unicode', Python3 'str' and "UNICODE" to Python2 'unicode',
- * Python3 'str'. */
 static PyObject *_BINARY_OPERATION_MOD_OBJECT_UNICODE_UNICODE(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyUnicode_CheckExact(operand1));
@@ -5192,7 +4897,6 @@ static PyObject *_BINARY_OPERATION_MOD_OBJECT_UNICODE_UNICODE(PyObject *operand1
 
     PyObject *result;
 
-    // Not every code path will make use of all possible results.
     NUITKA_MAY_BE_UNUSED PyObject *obj_result;
 
     PyObject *x = PyUnicode_Format(operand1, operand2);
@@ -5218,7 +4922,6 @@ PyObject *BINARY_OPERATION_MOD_OBJECT_UNICODE_UNICODE(PyObject *operand1, PyObje
     return _BINARY_OPERATION_MOD_OBJECT_UNICODE_UNICODE(operand1, operand2);
 }
 
-/* Code referring to "UNICODE" corresponds to Python2 'unicode', Python3 'str' and "TUPLE" to Python 'tuple'. */
 static PyObject *_BINARY_OPERATION_MOD_OBJECT_UNICODE_TUPLE(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyUnicode_CheckExact(operand1));
@@ -5248,8 +4951,6 @@ static PyObject *_BINARY_OPERATION_MOD_OBJECT_UNICODE_TUPLE(PyObject *operand1, 
         Py_DECREF_IMMORTAL(x);
     }
 
-    // Statically recognized that coercion is not possible with these types
-
 #if PYTHON_VERSION < 0x300
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'unicode' and 'tuple'");
 #else
@@ -5268,7 +4969,6 @@ PyObject *BINARY_OPERATION_MOD_OBJECT_UNICODE_TUPLE(PyObject *operand1, PyObject
     return _BINARY_OPERATION_MOD_OBJECT_UNICODE_TUPLE(operand1, operand2);
 }
 
-/* Code referring to "UNICODE" corresponds to Python2 'unicode', Python3 'str' and "LIST" to Python 'list'. */
 static PyObject *_BINARY_OPERATION_MOD_OBJECT_UNICODE_LIST(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyUnicode_CheckExact(operand1));
@@ -5298,8 +4998,6 @@ static PyObject *_BINARY_OPERATION_MOD_OBJECT_UNICODE_LIST(PyObject *operand1, P
         Py_DECREF_IMMORTAL(x);
     }
 
-    // Statically recognized that coercion is not possible with these types
-
 #if PYTHON_VERSION < 0x300
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'unicode' and 'list'");
 #else
@@ -5318,7 +5016,6 @@ PyObject *BINARY_OPERATION_MOD_OBJECT_UNICODE_LIST(PyObject *operand1, PyObject 
     return _BINARY_OPERATION_MOD_OBJECT_UNICODE_LIST(operand1, operand2);
 }
 
-/* Code referring to "UNICODE" corresponds to Python2 'unicode', Python3 'str' and "DICT" to Python 'dict'. */
 static PyObject *_BINARY_OPERATION_MOD_OBJECT_UNICODE_DICT(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyUnicode_CheckExact(operand1));
@@ -5348,8 +5045,6 @@ static PyObject *_BINARY_OPERATION_MOD_OBJECT_UNICODE_DICT(PyObject *operand1, P
         Py_DECREF_IMMORTAL(x);
     }
 
-    // Statically recognized that coercion is not possible with these types
-
 #if PYTHON_VERSION < 0x300
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'unicode' and 'dict'");
 #else
@@ -5368,7 +5063,6 @@ PyObject *BINARY_OPERATION_MOD_OBJECT_UNICODE_DICT(PyObject *operand1, PyObject 
     return _BINARY_OPERATION_MOD_OBJECT_UNICODE_DICT(operand1, operand2);
 }
 
-/* Code referring to "UNICODE" corresponds to Python2 'unicode', Python3 'str' and "OBJECT" to any Python object. */
 static HEDLEY_NEVER_INLINE PyObject *__BINARY_OPERATION_MOD_OBJECT_UNICODE_OBJECT(PyObject *operand1,
                                                                                   PyObject *operand2) {
     PyTypeObject *type2 = Py_TYPE(operand2);
@@ -5387,8 +5081,6 @@ static HEDLEY_NEVER_INLINE PyObject *__BINARY_OPERATION_MOD_OBJECT_UNICODE_OBJEC
     binaryfunc slot2 = NULL;
 
     if (!(&PyUnicode_Type == type2)) {
-        // Different types, need to consider second value slot.
-
         slot2 =
             (type2->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type2)) ? type2->tp_as_number->nb_remainder : NULL;
 
@@ -5496,9 +5188,6 @@ static PyObject *_BINARY_OPERATION_MOD_OBJECT_UNICODE_OBJECT(PyObject *operand1,
     if (&PyUnicode_Type == type2) {
         PyObject *result;
 
-        // return _BINARY_OPERATION_MOD_OBJECT_UNICODE_UNICODE(operand1, operand2);
-
-        // Not every code path will make use of all possible results.
         NUITKA_MAY_BE_UNUSED PyObject *obj_result;
 
         PyObject *x = PyUnicode_Format(operand1, operand2);
@@ -5528,7 +5217,6 @@ PyObject *BINARY_OPERATION_MOD_OBJECT_UNICODE_OBJECT(PyObject *operand1, PyObjec
 }
 
 #if PYTHON_VERSION >= 0x300
-/* Code referring to "BYTES" corresponds to Python3 'bytes' and "LONG" to Python2 'long', Python3 'int'. */
 static PyObject *_BINARY_OPERATION_MOD_OBJECT_BYTES_LONG(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyBytes_CheckExact(operand1));
@@ -5549,8 +5237,6 @@ static PyObject *_BINARY_OPERATION_MOD_OBJECT_BYTES_LONG(PyObject *operand1, PyO
     binaryfunc slot2 = NULL;
 
     if (!(0)) {
-        // Different types, need to consider second value slot.
-
         slot2 = PyLong_Type.tp_as_number->nb_remainder;
     }
 
@@ -5576,8 +5262,6 @@ static PyObject *_BINARY_OPERATION_MOD_OBJECT_BYTES_LONG(PyObject *operand1, PyO
         Py_DECREF_IMMORTAL(x);
     }
 
-    // Statically recognized that coercion is not possible with these types
-
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'bytes' and 'int'");
     goto exit_binary_exception;
 
@@ -5594,7 +5278,6 @@ PyObject *BINARY_OPERATION_MOD_OBJECT_BYTES_LONG(PyObject *operand1, PyObject *o
 #endif
 
 #if PYTHON_VERSION >= 0x300
-/* Code referring to "BYTES" corresponds to Python3 'bytes' and "FLOAT" to Python 'float'. */
 static PyObject *_BINARY_OPERATION_MOD_OBJECT_BYTES_FLOAT(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyBytes_CheckExact(operand1));
@@ -5615,8 +5298,6 @@ static PyObject *_BINARY_OPERATION_MOD_OBJECT_BYTES_FLOAT(PyObject *operand1, Py
     binaryfunc slot2 = NULL;
 
     if (!(0)) {
-        // Different types, need to consider second value slot.
-
         slot2 = PyFloat_Type.tp_as_number->nb_remainder;
     }
 
@@ -5642,8 +5323,6 @@ static PyObject *_BINARY_OPERATION_MOD_OBJECT_BYTES_FLOAT(PyObject *operand1, Py
         Py_DECREF_IMMORTAL(x);
     }
 
-    // Statically recognized that coercion is not possible with these types
-
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'bytes' and 'float'");
     goto exit_binary_exception;
 
@@ -5660,7 +5339,6 @@ PyObject *BINARY_OPERATION_MOD_OBJECT_BYTES_FLOAT(PyObject *operand1, PyObject *
 #endif
 
 #if PYTHON_VERSION >= 0x300
-/* Code referring to "BYTES" corresponds to Python3 'bytes' and "BYTES" to Python3 'bytes'. */
 static PyObject *_BINARY_OPERATION_MOD_OBJECT_BYTES_BYTES(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyBytes_CheckExact(operand1));
@@ -5669,7 +5347,6 @@ static PyObject *_BINARY_OPERATION_MOD_OBJECT_BYTES_BYTES(PyObject *operand1, Py
 
     PyObject *result;
 
-    // Not every code path will make use of all possible results.
     NUITKA_MAY_BE_UNUSED PyObject *obj_result;
 
     PyObject *x = PyBytes_Type.tp_as_number->nb_remainder(operand1, operand2);
@@ -5698,7 +5375,6 @@ PyObject *BINARY_OPERATION_MOD_OBJECT_BYTES_BYTES(PyObject *operand1, PyObject *
 #endif
 
 #if PYTHON_VERSION >= 0x300
-/* Code referring to "BYTES" corresponds to Python3 'bytes' and "UNICODE" to Python2 'unicode', Python3 'str'. */
 static PyObject *_BINARY_OPERATION_MOD_OBJECT_BYTES_UNICODE(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyBytes_CheckExact(operand1));
@@ -5719,8 +5395,6 @@ static PyObject *_BINARY_OPERATION_MOD_OBJECT_BYTES_UNICODE(PyObject *operand1, 
     binaryfunc slot2 = NULL;
 
     if (!(0)) {
-        // Different types, need to consider second value slot.
-
         slot2 = PyUnicode_Type.tp_as_number->nb_remainder;
     }
 
@@ -5746,8 +5420,6 @@ static PyObject *_BINARY_OPERATION_MOD_OBJECT_BYTES_UNICODE(PyObject *operand1, 
         Py_DECREF_IMMORTAL(x);
     }
 
-    // Statically recognized that coercion is not possible with these types
-
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'bytes' and 'str'");
     goto exit_binary_exception;
 
@@ -5764,7 +5436,6 @@ PyObject *BINARY_OPERATION_MOD_OBJECT_BYTES_UNICODE(PyObject *operand1, PyObject
 #endif
 
 #if PYTHON_VERSION >= 0x300
-/* Code referring to "BYTES" corresponds to Python3 'bytes' and "TUPLE" to Python 'tuple'. */
 static PyObject *_BINARY_OPERATION_MOD_OBJECT_BYTES_TUPLE(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyBytes_CheckExact(operand1));
@@ -5794,8 +5465,6 @@ static PyObject *_BINARY_OPERATION_MOD_OBJECT_BYTES_TUPLE(PyObject *operand1, Py
         Py_DECREF_IMMORTAL(x);
     }
 
-    // Statically recognized that coercion is not possible with these types
-
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'bytes' and 'tuple'");
     goto exit_binary_exception;
 
@@ -5812,7 +5481,6 @@ PyObject *BINARY_OPERATION_MOD_OBJECT_BYTES_TUPLE(PyObject *operand1, PyObject *
 #endif
 
 #if PYTHON_VERSION >= 0x300
-/* Code referring to "BYTES" corresponds to Python3 'bytes' and "LIST" to Python 'list'. */
 static PyObject *_BINARY_OPERATION_MOD_OBJECT_BYTES_LIST(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyBytes_CheckExact(operand1));
@@ -5842,8 +5510,6 @@ static PyObject *_BINARY_OPERATION_MOD_OBJECT_BYTES_LIST(PyObject *operand1, PyO
         Py_DECREF_IMMORTAL(x);
     }
 
-    // Statically recognized that coercion is not possible with these types
-
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'bytes' and 'list'");
     goto exit_binary_exception;
 
@@ -5860,7 +5526,6 @@ PyObject *BINARY_OPERATION_MOD_OBJECT_BYTES_LIST(PyObject *operand1, PyObject *o
 #endif
 
 #if PYTHON_VERSION >= 0x300
-/* Code referring to "BYTES" corresponds to Python3 'bytes' and "DICT" to Python 'dict'. */
 static PyObject *_BINARY_OPERATION_MOD_OBJECT_BYTES_DICT(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyBytes_CheckExact(operand1));
@@ -5890,8 +5555,6 @@ static PyObject *_BINARY_OPERATION_MOD_OBJECT_BYTES_DICT(PyObject *operand1, PyO
         Py_DECREF_IMMORTAL(x);
     }
 
-    // Statically recognized that coercion is not possible with these types
-
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'bytes' and 'dict'");
     goto exit_binary_exception;
 
@@ -5908,7 +5571,6 @@ PyObject *BINARY_OPERATION_MOD_OBJECT_BYTES_DICT(PyObject *operand1, PyObject *o
 #endif
 
 #if PYTHON_VERSION >= 0x300
-/* Code referring to "BYTES" corresponds to Python3 'bytes' and "OBJECT" to any Python object. */
 static HEDLEY_NEVER_INLINE PyObject *__BINARY_OPERATION_MOD_OBJECT_BYTES_OBJECT(PyObject *operand1,
                                                                                 PyObject *operand2) {
     PyTypeObject *type2 = Py_TYPE(operand2);
@@ -5927,8 +5589,6 @@ static HEDLEY_NEVER_INLINE PyObject *__BINARY_OPERATION_MOD_OBJECT_BYTES_OBJECT(
     binaryfunc slot2 = NULL;
 
     if (!(&PyBytes_Type == type2)) {
-        // Different types, need to consider second value slot.
-
         slot2 =
             (type2->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type2)) ? type2->tp_as_number->nb_remainder : NULL;
 
@@ -6032,9 +5692,6 @@ static PyObject *_BINARY_OPERATION_MOD_OBJECT_BYTES_OBJECT(PyObject *operand1, P
     if (&PyBytes_Type == type2) {
         PyObject *result;
 
-        // return _BINARY_OPERATION_MOD_OBJECT_BYTES_BYTES(operand1, operand2);
-
-        // Not every code path will make use of all possible results.
         NUITKA_MAY_BE_UNUSED PyObject *obj_result;
 
         PyObject *x = PyBytes_Type.tp_as_number->nb_remainder(operand1, operand2);
@@ -6065,7 +5722,6 @@ PyObject *BINARY_OPERATION_MOD_OBJECT_BYTES_OBJECT(PyObject *operand1, PyObject 
 }
 #endif
 
-/* Code referring to "OBJECT" corresponds to any Python object and "OBJECT" to any Python object. */
 static PyObject *_BINARY_OPERATION_MOD_OBJECT_OBJECT_OBJECT(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     CHECK_OBJECT(operand2);
@@ -6074,7 +5730,6 @@ static PyObject *_BINARY_OPERATION_MOD_OBJECT_OBJECT_OBJECT(PyObject *operand1, 
     if (PyInt_CheckExact(operand1) && PyInt_CheckExact(operand2)) {
         PyObject *result;
 
-        // Not every code path will make use of all possible results.
 #if defined(_MSC_VER)
 #pragma warning(push)
 #pragma warning(disable : 4101)
@@ -6095,16 +5750,9 @@ static PyObject *_BINARY_OPERATION_MOD_OBJECT_OBJECT_OBJECT(PyObject *operand1, 
         const long a = PyInt_AS_LONG(operand1);
         const long b = PyInt_AS_LONG(operand2);
 
-        /* TODO: Isn't this a very specific value only, of which we could
-         * hardcode the constant result. Not sure how well the C compiler
-         * optimizes UNARY_NEG_WOULD_OVERFLOW to this, but dividing by
-         * -1 has to be rare anyway.
-         */
-
         if (likely(b != -1 || !UNARY_NEG_WOULD_OVERFLOW(a))) {
             long r = a % b;
 
-            // Sign handling.
             if (r != 0 && ((b ^ r) < 0)) {
                 r += b;
             }
@@ -6161,8 +5809,6 @@ static PyObject *_BINARY_OPERATION_MOD_OBJECT_OBJECT_OBJECT(PyObject *operand1, 
     binaryfunc slot2 = NULL;
 
     if (!(type1 == type2)) {
-        // Different types, need to consider second value slot.
-
         slot2 =
             (type2->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type2)) ? type2->tp_as_number->nb_remainder : NULL;
 
@@ -6296,7 +5942,6 @@ PyObject *BINARY_OPERATION_MOD_OBJECT_OBJECT_OBJECT(PyObject *operand1, PyObject
     return _BINARY_OPERATION_MOD_OBJECT_OBJECT_OBJECT(operand1, operand2);
 }
 
-/* Code referring to "OBJECT" corresponds to any Python object and "OBJECT" to any Python object. */
 static nuitka_bool _BINARY_OPERATION_MOD_NBOOL_OBJECT_OBJECT(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     CHECK_OBJECT(operand2);
@@ -6305,7 +5950,6 @@ static nuitka_bool _BINARY_OPERATION_MOD_NBOOL_OBJECT_OBJECT(PyObject *operand1,
     if (PyInt_CheckExact(operand1) && PyInt_CheckExact(operand2)) {
         nuitka_bool result;
 
-        // Not every code path will make use of all possible results.
 #if defined(_MSC_VER)
 #pragma warning(push)
 #pragma warning(disable : 4101)
@@ -6326,16 +5970,9 @@ static nuitka_bool _BINARY_OPERATION_MOD_NBOOL_OBJECT_OBJECT(PyObject *operand1,
         const long a = PyInt_AS_LONG(operand1);
         const long b = PyInt_AS_LONG(operand2);
 
-        /* TODO: Isn't this a very specific value only, of which we could
-         * hardcode the constant result. Not sure how well the C compiler
-         * optimizes UNARY_NEG_WOULD_OVERFLOW to this, but dividing by
-         * -1 has to be rare anyway.
-         */
-
         if (likely(b != -1 || !UNARY_NEG_WOULD_OVERFLOW(a))) {
             long r = a % b;
 
-            // Sign handling.
             if (r != 0 && ((b ^ r) < 0)) {
                 r += b;
             }
@@ -6393,8 +6030,6 @@ static nuitka_bool _BINARY_OPERATION_MOD_NBOOL_OBJECT_OBJECT(PyObject *operand1,
     binaryfunc slot2 = NULL;
 
     if (!(type1 == type2)) {
-        // Different types, need to consider second value slot.
-
         slot2 =
             (type2->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type2)) ? type2->tp_as_number->nb_remainder : NULL;
 

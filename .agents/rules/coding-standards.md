@@ -123,10 +123,12 @@ description: Python and C coding standards, naming conventions, docstring, and c
   debug blocks (git preserves history). Only write `TODO` comments when specific, current, and
   actionable.
 - **Templates (`*.c.j2`, `*.py.j2`, `CodeTemplates*.py`):** Use Jinja `{# ... #}` comments for
-  template rationale, disabled ideas, and `TODO`s. Never use target-language comments (`//`,
-  `/* */`, `#`, or repeated boilerplate docstrings) that get stamped out across generated files.
-  Preserve required tool directives (`WARNING, this code is GENERATED`, `# pylint: disable=...`,
-  `# spell-checker: ignore`, `# isort:start`, and `# Nuitka:` on `notest_*` in `tests/CPython*`).
+  template rationale, disabled ideas, and `TODO`s instead of target-language comments (`//`,
+  `/* */`, `#`) that get stamped out across generated files. Generated classes should have the same
+  concise docstring they would have if hand-written (without `"Generated from ..."` meta-boilerplate
+  or duplicating base-method docstrings on overrides). Preserve required tool directives
+  (`WARNING, this code is GENERATED`, `# pylint: disable=...`, `# spell-checker: ignore`,
+  `# isort:start`, and `# Nuitka:` on `notest_*` in `tests/CPython*`).
 - **Mandatory Edit-Time & Copy-Paste Audit:** Whenever editing a function, class, or template - or
   copying an existing node, helper, or plugin as a starting point - re-read **every** comment and
   docstring in the touched scope and fix or delete stale, copy-pasted, or restating text in the same

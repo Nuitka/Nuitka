@@ -392,16 +392,6 @@ def makeHelperOperations(
 
         python_requirement = _parseRequirements(op_code, target, left, right, emit)
 
-        emit(
-            '/* Code referring to "%s" corresponds to %s and "%s" to %s. */'
-            % (
-                left.getHelperCodeName(),
-                left.type_desc,
-                right.getHelperCodeName(),
-                right.type_desc,
-            )
-        )
-
         if operator == "+":
             sq_slot = "sq_concat"
         elif operator == "*":
@@ -498,16 +488,6 @@ def makeHelperComparisons(
 
         python_requirement = _parseRequirements(op_code, target, left, right, emit)
 
-        emit(
-            '/* Code referring to "%s" corresponds to %s and "%s" to %s. */'
-            % (
-                left.getHelperCodeName(),
-                left.type_desc,
-                right.getHelperCodeName(),
-                right.type_desc,
-            )
-        )
-
         if not python_requirement:
             is_py3_only = False
             is_py2_only = False
@@ -549,9 +529,13 @@ def makeHelperComparisons(
 
 
 def emitGenerationWarning(emit, template_name):
+    if isinstance(template_name, tuple):
+        template_desc = "templates %s" % ", ".join(template_name)
+    else:
+        template_desc = "template %s" % template_name
+
     emit(
-        "/* WARNING, this code is GENERATED. Modify the template %s instead! */"
-        % template_name
+        "/* WARNING, this code is GENERATED. Modify the %s instead! */" % template_desc
     )
 
     emit("#pragma once")
@@ -951,8 +935,6 @@ def makeHelpersImportHard():
 
 
 def makeHelperImportModuleHard(template, module_name, emit_h, emit_c, emit):
-    emit('/* C helper for hard import of module "%s" import. */' % module_name)
-
     python_min_max_os_version = hard_modules_version.get(module_name)
 
     if python_min_max_os_version is not None:
@@ -1017,11 +999,15 @@ def makeHelperCalls():
                 emit_h(*args)
                 emit_c(*args)
 
-            template = getTemplateC(
-                "nuitka.code_generation", "CodeTemplateCallsPositional.c.j2"
+            emitGenerationWarning(
+                emit,
+                (
+                    "CodeTemplateCallsPositional.c.j2",
+                    "CodeTemplateCallsMixed.c.j2",
+                    "CodeTemplateCallsPositionalMethodDescr.c.j2",
+                    "CodeTemplateCallsMethodPositional.c.j2",
+                ),
             )
-
-            emitGenerationWarning(emit, template.name)
 
             emitHeaderGuard(emit_h, filename_h)
 
@@ -1045,6 +1031,7 @@ def makeHelperCalls():
 #endif
 """)
 
+            emit("/* Generated from CodeTemplateCallsPositional.c.j2 */")
             for args_count in range(max_quick_call + 1):
                 code = getQuickCallCode(args_count=args_count, has_tuple_arg=False)
 
@@ -1057,9 +1044,7 @@ def makeHelperCalls():
                     emit_c(code)
                     emit_h(getTemplateCodeDeclaredFunction(code))
 
-            template = getTemplateC(
-                "nuitka.code_generation", "CodeTemplateCallsMixed.c.j2"
-            )
+            emit("/* Generated from CodeTemplateCallsMixed.c.j2 */")
 
             # Only keywords, but not positional arguments, via split args.
             code = getQuickMixedCallCode(
@@ -1074,7 +1059,6 @@ def makeHelperCalls():
             for args_count in range(1, max_quick_call + 1):
                 for has_tuple_arg in (False, True):
                     for has_dict_values in (False, True):
-                        # We do not do that.
                         if not has_dict_values and has_tuple_arg:
                             continue
 
@@ -1087,12 +1071,14 @@ def makeHelperCalls():
                         emit_c(code)
                         emit_h(getTemplateCodeDeclaredFunction(code))
 
+            emit("/* Generated from CodeTemplateCallsPositionalMethodDescr.c.j2 */")
             for args_count in range(1, 5):
                 code = getQuickMethodDescriptorCallCode(args_count=args_count)
 
                 emit_c(code)
                 emit_h(getTemplateCodeDeclaredFunction(code))
 
+            emit("/* Generated from CodeTemplateCallsMethodPositional.c.j2 */")
             for args_count in range(max_quick_call + 1):
                 code = getQuickMethodCallCode(args_count=args_count)
 
@@ -1138,30 +1124,31 @@ def makeHelperLists():
                 emit_h(*args)
                 emit_c(*args)
 
-            template = getTemplateC(
+            template_small = getTemplateC(
                 "nuitka.code_generation", "CodeTemplateMakeListSmall.c.j2"
             )
+            template_hinted = getTemplateC(
+                "nuitka.code_generation", "CodeTemplateMakeListHinted.c.j2"
+            )
 
-            emitGenerationWarning(emit, template.name)
+            emitGenerationWarning(emit, (template_small.name, template_hinted.name))
 
             emitHeaderGuard(emit_h, filename_h)
 
             emitIDE(emit)
 
+            emit("/* Generated from %s */" % template_small.name)
             for args_count in range(1, make_list_constant_direct_threshold):
-                code = template.render(args_count=args_count)
+                code = template_small.render(args_count=args_count)
 
                 emit_c(code)
                 emit_h(getTemplateCodeDeclaredFunction(code))
 
-            template = getTemplateC(
-                "nuitka.code_generation", "CodeTemplateMakeListHinted.c.j2"
-            )
-
+            emit("/* Generated from %s */" % template_hinted.name)
             for args_count in range(
                 make_list_constant_direct_threshold, make_list_constant_hinted_threshold
             ):
-                code = template.render(args_count=args_count)
+                code = template_hinted.render(args_count=args_count)
 
                 emit_c(code)
                 emit_h(getTemplateCodeDeclaredFunction(code))
@@ -1494,14 +1481,7 @@ def _getCheckForShape(shape):
 
 
 def _getArgCountConditions(spec_versions):
-    """Get the Python conditions for each argument count of a method.
-
-    Args:
-        spec_versions: List of 'SpecVersion' values.
-
-    Returns:
-        Dictionary of argument count to set of Python conditions.
-    """
+    """Get the Python conditions for each argument count of a method."""
     result = {}
 
     for spec_version in spec_versions:
@@ -1523,15 +1503,7 @@ def _getArgCountConditions(spec_versions):
 
 
 def _getHelperCondition(conditions, type_python_requirement):
-    """Get the C condition for a helper, if it is version specific.
-
-    Args:
-        conditions: Set of Python conditions for the helper.
-        type_python_requirement: Python requirement of the builtin type.
-
-    Returns:
-        C condition string or None.
-    """
+    """Get the C condition for a helper, if it is version specific."""
     if None in conditions or len(conditions) > 1:
         return None
 

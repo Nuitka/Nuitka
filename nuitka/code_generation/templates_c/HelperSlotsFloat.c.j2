@@ -282,7 +282,6 @@
 #pragma warning(push)
 #pragma warning(disable : 4101)
 #endif
-    // Not every code path will make use of all possible results.
     NUITKA_MAY_BE_UNUSED PyObject *obj_result;
     NUITKA_MAY_BE_UNUSED long clong_result;
     NUITKA_MAY_BE_UNUSED double cfloat_result;
@@ -301,7 +300,6 @@ exit_result_ok_cfloat:
     if (Py_REFCNT({{ operand1 }}) == 1) {
         PyFloat_SET_DOUBLE({{ operand1 }}, cfloat_result);
     } else {
-        // We got an object handed, that we have to release.
         Py_DECREF({{ operand1 }});
 
         {{ left.getAssignFromFloatExpressionCode(operand1, "cfloat_result") }}
@@ -319,7 +317,6 @@ exit_result_object:
     {{ target.getAssignFromObjectExpressionCode(result, "obj_result") }}
 {% else %}
     {# TODO: Check the reference we were handed down and do it in-place really. #}
-    // We got an object handed, that we have to release.
     Py_DECREF({{ operand1 }});
 
     {{ operand1 }} = obj_result;
@@ -344,7 +341,6 @@ exit_result_ok_right:
 {% if target %}
     {{ target.getAssignConversionCode(result, right, operand2) }}
 {% else %}
-    // We got an object handed, that we have to release.
     Py_DECREF({{ operand1 }});
     {{ left.getAssignConversionCode(operand1, right, operand2) }}
 {% endif %}

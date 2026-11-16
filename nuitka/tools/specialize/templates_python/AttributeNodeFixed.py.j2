@@ -253,9 +253,7 @@ class ExpressionAttributeLookupDict{{attribute_name_class}}(SideEffectsFromChild
     kind = "EXPRESSION_ATTRIBUTE_LOOKUP_DICT_{{attribute_name_class.upper()}}"
     attribute_name = "{{attribute_name}}"
 
-    # There is nothing to compute for it as a value.
-    # TODO: Enable this once we can also say removal of knowable for an argument.
-    # auto_compute_handling = "final,no_raise"
+    {# TODO: Enable auto_compute_handling = "final,no_raise" once we can also express knowledge removal for an argument. #}
 
     def computeExpression(self, trace_collection):
 {% if attribute_name not in (
@@ -263,11 +261,8 @@ class ExpressionAttributeLookupDict{{attribute_name_class}}(SideEffectsFromChild
     "iterkeys", "itervalues", "iteritems",
     "viewkeys", "viewvalues", "viewitems",
     "get", "has_key", "fromkeys") %}
-        # Might be used to modify the dict.
         trace_collection.removeKnowledge(self.subnode_expression)
 
-{% else %}
-        # Cannot be used to modify the dict.
 {% endif %}
         return self, None, None
 
@@ -339,11 +334,7 @@ class ExpressionAttributeLookupDict{{attribute_name_class}}(SideEffectsFromChild
 {% endif %}
 {% endif %}
 
-        # Anything may happen. On next pass, if replaced, we might be better
-        # but not now.
         trace_collection.onExceptionRaiseExit(BaseException)
-
-        # Make sure we wait with knowing if the content is safe to use until its time.
         call_node.onContentEscapes(trace_collection)
 
         result = extractBuiltinArgs(
@@ -374,11 +365,10 @@ class ExpressionAttributeLookupDict{{attribute_name_class}}(SideEffectsFromChild
     def computeExpressionCallViaVariable(
         self, call_node, variable_ref_node, call_args, call_kw, trace_collection
     ):
+        {# TODO: Would be nice to have the real source reference here, but it feels a bit expensive. #}
         dict_node = makeExpressionAttributeLookup(
             expression=variable_ref_node,
             attribute_name="__self__",
-            # TODO: Would be nice to have the real source reference here, but it feels
-            # a bit expensive.
             source_ref=variable_ref_node.source_ref,
         )
 
@@ -387,7 +377,7 @@ class ExpressionAttributeLookupDict{{attribute_name_class}}(SideEffectsFromChild
     def mayRaiseException(self, exception_type):
         return self.subnode_expression.mayRaiseException(exception_type)
 {% else %}
-    # No computeExpressionCall as dict operation ExpressionDictOperation{{attribute_name_class}} is not yet implemented
+    {# No computeExpressionCall as dict operation ExpressionDictOperation{{attribute_name_class}} is not yet implemented #}
 {% endif %}
 
 attribute_typed_classes.add(ExpressionAttributeLookupDict{{attribute_name_class}})
@@ -424,9 +414,7 @@ class ExpressionAttributeLookupStr{{attribute_name_class}}(SideEffectsFromChildr
     kind = "EXPRESSION_ATTRIBUTE_LOOKUP_STR_{{attribute_name_class.upper()}}"
     attribute_name = "{{attribute_name}}"
 
-    # There is nothing to compute for it as a value.
-    # TODO: Enable this
-    # auto_compute_handling = "final,no_raise"
+    {# TODO: Enable auto_compute_handling = "final,no_raise" #}
 
     def computeExpression(self, trace_collection):
         return self, None, None
@@ -447,8 +435,6 @@ class ExpressionAttributeLookupStr{{attribute_name_class}}(SideEffectsFromChildr
 {{ make_str_operation_wrapper("wrapExpressionStrOperation" + attribute_name_class, str_operation_args, str_operation_arg_tests, str_operation_variation, str_operation_node_arg_mapping, str_operation_variation is not none) }}
 {% endif %}
 
-        # Anything may happen. On next pass, if replaced, we might be better
-        # but not now.
         trace_collection.onExceptionRaiseExit(BaseException)
 
         result = extractBuiltinArgs(
@@ -472,11 +458,10 @@ class ExpressionAttributeLookupStr{{attribute_name_class}}(SideEffectsFromChildr
     def computeExpressionCallViaVariable(
         self, call_node, variable_ref_node, call_args, call_kw, trace_collection
     ):
+        {# TODO: Would be nice to have the real source reference here, but it feels a bit expensive. #}
         str_node = makeExpressionAttributeLookup(
             expression=variable_ref_node,
             attribute_name="__self__",
-            # TODO: Would be nice to have the real source reference here, but it feels
-            # a bit expensive.
             source_ref=variable_ref_node.source_ref,
         )
 
@@ -485,7 +470,7 @@ class ExpressionAttributeLookupStr{{attribute_name_class}}(SideEffectsFromChildr
     def mayRaiseException(self, exception_type):
         return self.subnode_expression.mayRaiseException(exception_type)
 {% else %}
-    # No computeExpressionCall as str operation ExpressionStrOperation{{attribute_name_class}} is not yet implemented
+    {# No computeExpressionCall as str operation ExpressionStrOperation{{attribute_name_class}} is not yet implemented #}
 {% endif %}
 
 attribute_typed_classes.add(ExpressionAttributeLookupStr{{attribute_name_class}})
@@ -514,9 +499,7 @@ class ExpressionAttributeLookupBytes{{attribute_name_class}}(SideEffectsFromChil
     kind = "EXPRESSION_ATTRIBUTE_LOOKUP_BYTES_{{attribute_name_class.upper()}}"
     attribute_name = "{{attribute_name}}"
 
-    # There is nothing to compute for it as a value.
-    # TODO: Enable this
-    # auto_compute_handling = "final,no_raise"
+    {# TODO: Enable auto_compute_handling = "final,no_raise" #}
 
     def computeExpression(self, trace_collection):
         return self, None, None
@@ -554,8 +537,6 @@ class ExpressionAttributeLookupBytes{{attribute_name_class}}(SideEffectsFromChil
 {% endif %}
 {% endif %}
 
-        # Anything may happen. On next pass, if replaced, we might be better
-        # but not now.
         trace_collection.onExceptionRaiseExit(BaseException)
 
         result = extractBuiltinArgs(
@@ -572,11 +553,10 @@ class ExpressionAttributeLookupBytes{{attribute_name_class}}(SideEffectsFromChil
     def computeExpressionCallViaVariable(
         self, call_node, variable_ref_node, call_args, call_kw, trace_collection
     ):
+        {# TODO: Would be nice to have the real source reference here, but it feels a bit expensive. #}
         bytes_node = makeExpressionAttributeLookup(
             expression=variable_ref_node,
             attribute_name="__self__",
-            # TODO: Would be nice to have the real source reference here, but it feels
-            # a bit expensive.
             source_ref=variable_ref_node.source_ref,
         )
 
@@ -585,7 +565,7 @@ class ExpressionAttributeLookupBytes{{attribute_name_class}}(SideEffectsFromChil
     def mayRaiseException(self, exception_type):
         return self.subnode_expression.mayRaiseException(exception_type)
 {% else %}
-    # No computeExpressionCall as bytes operation ExpressionBytesOperation{{attribute_name_class}} is not yet implemented
+    {# No computeExpressionCall as bytes operation ExpressionBytesOperation{{attribute_name_class}} is not yet implemented #}
 {% endif %}
 
 attribute_typed_classes.add(ExpressionAttributeLookupBytes{{attribute_name_class}})
@@ -612,7 +592,7 @@ from .ListOperationNodes import ExpressionListOperation{{attribute_name_class}}
 {% endif %}
 
 class ExpressionAttributeLookupList{{attribute_name_class}}(SideEffectsFromChildrenMixin, ExpressionAttributeLookupFixed{{attribute_name_class}}):
-    """Attribute {{attribute_name}} lookup on a list value.
+    """Attribute '{{attribute_name}}' lookup on a list value.
 
     Typically code like: some_list.{{attribute_name}}
     """
@@ -622,11 +602,8 @@ class ExpressionAttributeLookupList{{attribute_name_class}}(SideEffectsFromChild
 
     def computeExpression(self, trace_collection):
 {% if attribute_name not in ("count", "index") %}
-        # Might be used to modify the list.
         trace_collection.removeKnowledge(self.subnode_expression)
 
-{% else %}
-        # Cannot be used to modify the list.
 {% endif %}
         return self, None, None
 
@@ -663,11 +640,7 @@ class ExpressionAttributeLookupList{{attribute_name_class}}(SideEffectsFromChild
 {% endif %}
 {% endif %}
 
-        # Anything may happen. On next pass, if replaced, we might be better
-        # but not now.
         trace_collection.onExceptionRaiseExit(BaseException)
-
-        # Make sure we wait with knowing if the content is safe to use until its time.
         call_node.onContentEscapes(trace_collection)
 
         result = extractBuiltinArgs(
@@ -684,11 +657,10 @@ class ExpressionAttributeLookupList{{attribute_name_class}}(SideEffectsFromChild
     def computeExpressionCallViaVariable(
         self, call_node, variable_ref_node, call_args, call_kw, trace_collection
     ):
+        {# TODO: Would be nice to have the real source reference here, but it feels a bit expensive. #}
         list_node = makeExpressionAttributeLookup(
             expression=variable_ref_node,
             attribute_name="__self__",
-            # TODO: Would be nice to have the real source reference here, but it feels
-            # a bit expensive.
             source_ref=variable_ref_node.source_ref,
         )
 
@@ -697,7 +669,7 @@ class ExpressionAttributeLookupList{{attribute_name_class}}(SideEffectsFromChild
     def mayRaiseException(self, exception_type):
         return self.subnode_expression.mayRaiseException(exception_type)
 {% else %}
-    # No computeExpressionCall as list operation ExpressionListOperation{{attribute_name_class}} is not yet implemented
+    {# No computeExpressionCall as list operation ExpressionListOperation{{attribute_name_class}} is not yet implemented #}
 {% endif %}
 
 attribute_typed_classes.add(ExpressionAttributeLookupList{{attribute_name_class}})
@@ -721,12 +693,9 @@ class ExpressionAttributeLookupType{{attribute_name_class}}(SideEffectsFromChild
     kind = "EXPRESSION_ATTRIBUTE_LOOKUP_TYPE_{{attribute_name_class.upper()}}"
     attribute_name = "{{attribute_name}}"
 
-    # There is nothing to compute for it as a value.
-    # TODO: Enable this once we can also say removal of knowable for an argument.
-    # auto_compute_handling = "final,no_raise"
+    {# TODO: Enable auto_compute_handling = "final,no_raise" once we can also express knowledge removal for an argument. #}
 
     def computeExpression(self, trace_collection):
-        # Cannot be used to modify the type.
         return self, None, None
 
 {% if type_operation_version_presence %}
@@ -766,11 +735,7 @@ class ExpressionAttributeLookupType{{attribute_name_class}}(SideEffectsFromChild
 {% endif %}
 {% endif %}
 
-        # Anything may happen. On next pass, if replaced, we might be better
-        # but not now.
         trace_collection.onExceptionRaiseExit(BaseException)
-
-        # Make sure we wait with knowing if the content is safe to use until its time.
         call_node.onContentEscapes(trace_collection)
 
         result = extractBuiltinArgs(
@@ -794,11 +759,10 @@ class ExpressionAttributeLookupType{{attribute_name_class}}(SideEffectsFromChild
     def computeExpressionCallViaVariable(
         self, call_node, variable_ref_node, call_args, call_kw, trace_collection
     ):
+        {# TODO: Would be nice to have the real source reference here, but it feels a bit expensive. #}
         type_node = makeExpressionAttributeLookup(
             expression=variable_ref_node,
             attribute_name="__self__",
-            # TODO: Would be nice to have the real source reference here, but it feels
-            # a bit expensive.
             source_ref=variable_ref_node.source_ref,
         )
 
@@ -807,7 +771,7 @@ class ExpressionAttributeLookupType{{attribute_name_class}}(SideEffectsFromChild
     def mayRaiseException(self, exception_type):
         return self.subnode_expression.mayRaiseException(exception_type)
 {% else %}
-    # No computeExpressionCall as type operation ExpressionTypeOperation{{attribute_name_class}} is not yet implemented
+    {# No computeExpressionCall as type operation ExpressionTypeOperation{{attribute_name_class}} is not yet implemented #}
 {% endif %}
 
 attribute_typed_classes.add(ExpressionAttributeLookupType{{attribute_name_class}})

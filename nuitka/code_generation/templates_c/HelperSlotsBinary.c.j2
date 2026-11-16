@@ -108,7 +108,6 @@
             Py_DECREF(index_value);
 {% endif %}
 
-            /* Above conversion indicates an error as -1 */
             if (unlikely(count == -1)) {
                 {{ cannot_fit_to_index_size_error_exit(props, left, right, type2, exit_result_exception) }}
             }
@@ -158,14 +157,12 @@
 {% if slot1_relevant %}
     {{ left.getSlotType(nb_slot) }} slot1 = {{ left.getSlotValueExpression(type1, nb_slot) }};
 {% elif slot1_ignored %}
-    // Slot1 ignored on purpose, type2 takes precedence.
+    {# Slot1 ignored on purpose, type2 takes precedence. #}
 {% endif %}
 {% if slot2_relevant %}
     {{ left.getSlotType(nb_slot) }} slot2 = NULL;
 
     if (!({{ left.getTypeIdenticalCheckExpression(right, type1, type2) }})) {
-        // Different types, need to consider second value slot.
-
         slot2 = {{ right.getSlotValueExpression(type2, nb_slot) }};
 
 {% if slot1_relevant and (left == object_desc or right == object_desc)  %}
@@ -175,7 +172,7 @@
 {% endif %}
     }
 {% elif slot2_ignored %}
-    // Slot2 ignored on purpose, type1 takes precedence.
+    {# Slot2 ignored on purpose, type1 takes precedence. #}
 {% endif %}
 
 {% if slot1_relevant %}
@@ -294,10 +291,10 @@
     }
 #endif
 {% else %}
-// Statically recognized that coercion is not possible with these types
+{# Statically recognized that coercion is not possible with these types #}
 {% endif %}
 {% else %}
-// Statically recognized that coercion is not possible with Python3 only operator '@'
+{# Statically recognized that coercion is not possible with Python3 only operator '@' #}
 {% endif %}
 
 {# There might be a sq_slot specialization that saves the day. #}
@@ -312,20 +309,18 @@
 {% else %}
     {
 {% if sq_inplace_slot and (left == object_desc or left.hasSlot(sq_inplace_slot)) %}
-        // Special case for "+" and "*", also works as sequence concat/repeat.
         {{ left.getSlotType(sq_slot) }} sq_slot = {{ left.getSlotValueExpression(type1, sq_inplace_slot) }};
         if (sq_slot == NULL) {
             sq_slot = {{ left.getSlotValueExpression(type1, sq_slot) }};
         }
         {% set left_slot_needed = 1 %}
 {% elif left == object_desc or left.hasSlot(sq_slot) %}
-        // Special case for "+" and "*", also works as sequence concat/repeat.
         {{ left.getSlotType(sq_slot) }} sq_slot = {{ left.getSlotValueExpression(type1, sq_slot) }};
         {% set left_slot_needed = 1 %}
 {% else %}
-        // No sequence repeat slot {{ sq_slot }} available for this type.
+        {# No sequence slot {{ sq_slot }} available for this type. #}
 {% if sq_inplace_slot %}
-        // No inplace sequence repeat slot {{ sq_inplace_slot }} available for this type.
+        {# No inplace sequence slot {{ sq_inplace_slot }} available for this type. #}
 {% endif %}
         {% set left_slot_needed = 0 %}
 {% endif %}
@@ -367,7 +362,6 @@
 {% endif %}
 {% else %}
 {% if right == object_desc or right.hasSlot(sq_slot) %}
-    // Special case for "*", also work with sequence repeat from right argument.
 {% if sq_inplace_slot %}
     if ({{ left.getNoSequenceSlotAccessTestCode("type1") }})
 {% endif %}
@@ -375,7 +369,7 @@
         {{ right.getSlotType(sq_slot) }} sq_slot = {{ right.getSlotValueExpression(type2, sq_slot) }};
         {% set right_slot_needed = 1 %}
 {% else %}
-        // No sequence repeat slot {{ sq_slot }} available for this type.
+        {# No sequence slot {{ sq_slot }} available for this type. #}
         {% set right_slot_needed = 0 %}
 {% endif %}
 {% if right_slot_needed == 1 %}

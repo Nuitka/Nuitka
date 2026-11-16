@@ -1,6 +1,7 @@
 //     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
-/* WARNING, this code is GENERATED. Modify the template CodeTemplateMakeListSmall.c.j2 instead! */
+/* WARNING, this code is GENERATED. Modify the templates CodeTemplateMakeListSmall.c.j2, CodeTemplateMakeListHinted.c.j2
+ * instead! */
 #pragma once
 
 /* This file is included from another C file, help IDEs to still parse it on its own. */
@@ -8,6 +9,7 @@
 #include "nuitka/prelude.h"
 #endif
 
+/* Generated from CodeTemplateMakeListSmall.c.j2 */
 PyObject *MAKE_LIST1(PyThreadState *tstate, PyObject *arg0) {
 
     PyObject *result = MAKE_LIST_EMPTY(tstate, 1);
@@ -62,6 +64,7 @@ PyObject *MAKE_LIST3(PyThreadState *tstate, PyObject *arg0, PyObject *arg1, PyOb
 
     return result;
 }
+/* Generated from CodeTemplateMakeListHinted.c.j2 */
 PyObject *MAKE_LIST4(PyThreadState *tstate, PyObject *list) {
     CHECK_OBJECT(list);
     assert(PyList_CheckExact(list));
