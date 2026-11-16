@@ -137,6 +137,134 @@ def case11_dict_key_with_walrus():
     return len(list(mapping)[0]), list(mapping.values())[0], value
 
 
+def case12_nested_walrus_in_and_or(flag):
+    """A walrus in the right value overwrites the left value of a boolean operation."""
+
+    value = ("x" * 1000) if flag else ""
+    result = ((value or "a") and (value := "b")) + (value := "c")
+
+    return len(result), result[:1], value
+
+
+def case13_nested_walrus_in_conditional(flag):
+    """A walrus in one conditional branch overwrites the value of the other."""
+
+    value = "x" * 1000
+    result = value if flag else (value := "y")
+    result = result + (value := "z")
+
+    return len(result), result[:1], value
+
+
+def case14_nested_walrus_in_or(flag):
+    """A walrus in a boolean operation overwrites an earlier read of the variable."""
+
+    value = ("x" * 1000) if flag else ""
+    result = value + (value or (value := "y"))
+
+    return len(result), result[:1], len(value), value[:1]
+
+
+def case15_nested_walrus_in_branch(flag):
+    """A walrus in a conditional branch overwrites an earlier read of the variable."""
+
+    value = "x" * 1000
+    result = value + (value if flag else (value := "y"))
+
+    return len(result), result[:1], len(value), value[:1]
+
+
+def case16_nested_walrus_in_augmented_assignment():
+    """A walrus in the right value overwrites the target of an augmented assignment."""
+
+    string_value = "x" * 1000
+    string_value += (string_value := "y")
+
+    list_value = [1] * 1000
+    list_value += (list_value := [2])
+
+    return (
+        len(string_value),
+        string_value[:1],
+        len(list_value),
+        list_value[:2],
+    )
+
+
+def case17_nested_walrus_in_augmented_nonlocal():
+    """A walrus in the right value overwrites the nonlocal target."""
+
+    value = "x" * 1000
+
+    def inner():
+        nonlocal value
+        value += (value := "y")
+
+    inner()
+
+    return len(value), value[:1]
+
+
+def case18_nested_walrus_in_augmented_global():
+    """A walrus in the right value overwrites the global target."""
+
+    global module_augmented_value
+
+    module_augmented_value = "x" * 1000
+    module_augmented_value += (module_augmented_value := "y")
+
+    return len(module_augmented_value), module_augmented_value[:1]
+
+
+def case19_nested_walrus_in_augmented_attribute():
+    """A walrus in the right value rebinds the object of an attribute target."""
+
+    class Container:
+        pass
+
+    container = Container()
+    container.value = "x" * 1000
+    old = container
+    container.value += (container := Container()).__class__.__name__
+
+    return len(old.value), container is not old
+
+
+def case20_nested_walrus_in_augmented_subscript():
+    """A walrus in the right value overwrites the subscript target."""
+
+    mapping = {0: "x" * 1000}
+    key = 0
+    mapping[key] += (key := "y")
+
+    return len(mapping[0]), key
+
+
+def case21_nested_walrus_in_augmented_generator():
+    """A walrus in a generator expression overwrites the augmented target."""
+
+    value = [1]
+    old = value
+    value += ((value := item) for item in range(3))
+
+    return len(old), old, value
+
+
+module_augmented_value = None
+
+module_augmented_string = "x" * 1000
+module_augmented_string += (module_augmented_string := "y")
+
+module_augmented_list = [1] * 1000
+module_augmented_list += (module_augmented_list := [2])
+
+module_augmented_generator = [1]
+module_augmented_generator_old = module_augmented_generator
+module_augmented_generator += (
+    (module_augmented_generator := item) for item in range(3)
+)
+
+
 print("case1-hit", case1_pop3_unknown_key("x", x=1))
 print("case1-miss", case1_pop3_unknown_key("x"))
 
@@ -162,6 +290,36 @@ print("case8", case8_slice_with_walrus())
 print("case9", case9_operation_with_walrus())
 print("case10", case10_call_argument_with_walrus())
 print("case11", case11_dict_key_with_walrus())
+print("case12-true", case12_nested_walrus_in_and_or(True))
+print("case12-false", case12_nested_walrus_in_and_or(False))
+print("case13-true", case13_nested_walrus_in_conditional(True))
+print("case13-false", case13_nested_walrus_in_conditional(False))
+print("case14-true", case14_nested_walrus_in_or(True))
+print("case14-false", case14_nested_walrus_in_or(False))
+print("case15-true", case15_nested_walrus_in_branch(True))
+print("case15-false", case15_nested_walrus_in_branch(False))
+print("case16", case16_nested_walrus_in_augmented_assignment())
+print("case17", case17_nested_walrus_in_augmented_nonlocal())
+print("case18", case18_nested_walrus_in_augmented_global())
+print("case19", case19_nested_walrus_in_augmented_attribute())
+print("case20", case20_nested_walrus_in_augmented_subscript())
+print("case21", case21_nested_walrus_in_augmented_generator())
+print(
+    "module-augmented-string",
+    len(module_augmented_string),
+    module_augmented_string[:1],
+)
+print(
+    "module-augmented-list",
+    len(module_augmented_list),
+    module_augmented_list[:2],
+)
+print(
+    "module-augmented-generator",
+    len(module_augmented_generator_old),
+    module_augmented_generator_old,
+    module_augmented_generator,
+)
 
 
 # TODO: This is not a walrus operation, it should be a separate test case, but

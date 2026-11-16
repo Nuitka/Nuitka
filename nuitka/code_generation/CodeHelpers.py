@@ -135,6 +135,70 @@ def promoteBorrowedValuesForVariable(variable, emit, context):
         )
 
 
+def doesExpressionWriteVariable(expression, variable):
+    """Check if an expression contains an assignment to the given variable."""
+
+    nodes = [expression]
+    while nodes:
+        node = nodes.pop()
+
+        if node.isStatementAssignmentVariable() and node.variable is variable:
+            return True
+
+        if node.isExpressionMakeAsyncgenObject():
+            function_body = node.subnode_asyncgen_ref.getFunctionBody()
+        elif node.isExpressionMakeCoroutineObject():
+            function_body = node.subnode_coroutine_ref.getFunctionBody()
+        elif node.isExpressionMakeGeneratorObject():
+            function_body = node.subnode_generator_ref.getFunctionBody()
+        else:
+            function_body = None
+
+        if function_body is not None and doesExpressionWriteVariable(
+            expression=function_body, variable=variable
+        ):
+            return True
+
+        nodes.extend(node.getVisitableNodes())
+
+    return False
+
+
+def promoteBorrowedValuesForExpressionWrites(expression, emit, context):
+    """Protect borrowed references before conditionally executed writes.
+
+    A write in a conditional expression only takes its reference on the path
+    where it executes, while the release is emitted after the branches.
+    """
+
+    if not context.hasBorrowedValues():
+        return
+
+    promoted_variables = set()
+
+    nodes = [expression]
+    while nodes:
+        node = nodes.pop()
+
+        if node.isStatementAssignmentVariable():
+            variable = node.variable
+
+            if variable not in promoted_variables:
+                promoted_variables.add(variable)
+
+                for value_name, cleanup_scope in context.getBorrowedValuesForVariable(
+                    variable=variable
+                ):
+                    takeReferenceForValue(
+                        value_name=value_name,
+                        emit=emit,
+                        context=context,
+                        cleanup_scope=cleanup_scope,
+                    )
+
+        nodes.extend(node.getVisitableNodes())
+
+
 @contextmanager
 def withBorrowedValueScope(context):
     """Scope for borrowed references held while generating an expression."""

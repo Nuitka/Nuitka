@@ -845,19 +845,30 @@ def _buildInplaceAssignAttributeNode(
     tmp_variable = provider.allocateTempVariable(
         temp_scope=temp_scope, name="value", temp_type="object"
     )
+    tmp_lookup_source = provider.allocateTempVariable(
+        temp_scope=temp_scope, name="lookup_source", temp_type="object"
+    )
 
-    # First assign the target value to a temporary variable.
+    # First assign the target object to a temporary variable, so the
+    # attribute is stored on the object evaluated before the right value.
+    preserve_lookup_source = makeStatementAssignmentVariable(
+        variable=tmp_lookup_source, source=lookup_source, source_ref=source_ref
+    )
+
+    # Second assign the target value to a temporary variable.
     preserve_to_tmp = makeStatementAssignmentVariable(
         variable=tmp_variable,
         source=makeExpressionAttributeLookup(
-            expression=lookup_source.makeClone(),
+            expression=ExpressionTempVariableRef(
+                variable=tmp_lookup_source, source_ref=source_ref
+            ),
             attribute_name=attribute_name,
             source_ref=source_ref,
         ),
         source_ref=source_ref,
     )
 
-    # Second assign the in-place result to a temporary variable
+    # Third assign the in-place result to a temporary variable.
     inplace_to_tmp = makeStatementAssignmentVariable(
         variable=tmp_variable,
         source=makeExpressionOperationBinaryInplace(
@@ -871,21 +882,24 @@ def _buildInplaceAssignAttributeNode(
         source_ref=source_ref,
     )
 
-    # Third, copy it back.
+    # Fourth, copy it back.
     copy_back_from_tmp = StatementAssignmentAttribute(
-        expression=lookup_source.makeClone(),
+        expression=ExpressionTempVariableRef(
+            variable=tmp_lookup_source, source_ref=source_ref
+        ),
         attribute_name=attribute_name,
         source=ExpressionTempVariableRef(variable=tmp_variable, source_ref=source_ref),
         source_ref=source_ref,
     )
 
     return (
+        preserve_lookup_source,
         preserve_to_tmp,
-        # making sure the above temporary variable is deleted in any case.
+        # making sure the above temporary variables are deleted in any case.
         makeTryFinallyReleaseStatement(
             provider=provider,
             tried=(inplace_to_tmp, copy_back_from_tmp),
-            variables=(tmp_variable,),
+            variables=(tmp_variable, tmp_lookup_source),
             source_ref=source_ref,
         ),
     )

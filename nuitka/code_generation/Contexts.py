@@ -324,6 +324,9 @@ class TempMixin(object):
     def popBorrowedValueScope(self):
         del self.borrowed_value_scopes[-1]
 
+    def hasBorrowedValues(self):
+        return any(self.borrowed_value_scopes)
+
     def _addBorrowedValueEntry(self, scope, variable, tmp_name, cleanup_scope):
         entries = scope.setdefault(tmp_name, [])
 
@@ -1333,6 +1336,9 @@ class PythonFunctionOutlineContext(
 
     def popBorrowedValueScope(self):
         return self.parent.popBorrowedValueScope()
+
+    def hasBorrowedValues(self):
+        return self.parent.hasBorrowedValues()
 
     def registerBorrowedValue(self, variable, tmp_name):
         return self.parent.registerBorrowedValue(variable=variable, tmp_name=tmp_name)

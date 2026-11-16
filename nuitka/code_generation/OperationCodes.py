@@ -21,6 +21,7 @@ from .c_types.CTypeNuitkaVoids import CTypeNuitkaVoidEnum
 from .c_types.CTypePyObjectPointers import CTypePyObjectPtr
 from .c_types.CTypeVoids import CTypeVoid
 from .CodeHelpers import (
+    doesExpressionWriteVariable,
     generateChildExpressionsCode,
     generateExpressionCode,
     withBorrowedValueScope,
@@ -216,6 +217,12 @@ def _getBinaryOperationCode(
         "%s_expr_right" % operator.lower(), type_name=right_c_type.c_type
     )
 
+    inplace_owned_left = (
+        inplace
+        and left.isExpressionVariableRef()
+        and doesExpressionWriteVariable(expression=right, variable=left.getVariable())
+    )
+
     generateExpressionCode(
         to_name=left_name, expression=left, emit=emit, context=context
     )
@@ -224,6 +231,12 @@ def _getBinaryOperationCode(
         # The in-place code path transfers the variable reference into the
         # operation, protecting it here would conflict with that ownership.
         context.unregisterBorrowedValue(left_name)
+
+        if inplace_owned_left and not context.needsCleanup(left_name):
+            # The right value overwrites the variable, so the operation needs
+            # its own reference to the left value.
+            getTakeReferenceCode(left_name, emit)
+            context.addCleanupTempName(left_name)
 
     generateExpressionCode(
         to_name=right_name, expression=right, emit=emit, context=context
@@ -237,7 +250,11 @@ def _getBinaryOperationCode(
         res_name = context.getBoolResName()
 
         # For module variable C type to reference later.
-        if left.isExpressionVariableRef() and left.getVariable().isModuleVariable():
+        if (
+            not inplace_owned_left
+            and left.isExpressionVariableRef()
+            and left.getVariable().isModuleVariable()
+        ):
             emit(
                 "%s = %s = Py_NewRef(%s);"
                 % (context.getInplaceLeftName(), left_name, left_name)
@@ -251,7 +268,9 @@ def _getBinaryOperationCode(
 
         getErrorExitBoolCode(
             condition="%s == false" % res_name,
-            release_names=(left_name, right_name),
+            release_names=(
+                (right_name,) if inplace_owned_left else (left_name, right_name)
+            ),
             needs_check=needs_check,
             emit=emit,
             context=context,
@@ -259,7 +278,10 @@ def _getBinaryOperationCode(
 
         emit("%s = %s;" % (to_name, left_name))
 
-        if not left.isExpressionVariableRefOrTempVariableRef():
+        if inplace_owned_left:
+            context.removeCleanupTempName(left_name)
+            context.addCleanupTempName(to_name)
+        elif not left.isExpressionVariableRefOrTempVariableRef():
             context.addCleanupTempName(to_name)
     else:
         if needs_argument_swap:

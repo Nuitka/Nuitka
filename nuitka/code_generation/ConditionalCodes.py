@@ -6,7 +6,11 @@
 Branches, conditions, truth checks.
 """
 
-from .CodeHelpers import decideConversionCheckNeeded, generateExpressionCode
+from .CodeHelpers import (
+    decideConversionCheckNeeded,
+    generateExpressionCode,
+    promoteBorrowedValuesForExpressionWrites,
+)
 from .Emission import SourceCodeCollector
 from .ErrorCodes import (
     getErrorExitBoolCode,
@@ -39,6 +43,10 @@ def generateConditionalAndOrCode(to_name, expression, emit, context):
     # This is a complex beast, handling both "or" and "and" expressions,
     # and it needs to micro manage details.
     # pylint: disable=too-many-locals,too-many-statements
+    promoteBorrowedValuesForExpressionWrites(
+        expression=expression, emit=emit, context=context
+    )
+
     if expression.isExpressionConditionalOr():
         prefix = "or_"
     else:
@@ -95,10 +103,12 @@ def generateConditionalAndOrCode(to_name, expression, emit, context):
 
     # So it's not the left value, then lets release that one right away, it
     # is not needed, but we remember if it should be added above. The
-    # borrowed association is kept for the result, because the left value
-    # may still be the result.
+    # borrowed association is not moved to the result yet, because the
+    # right value may overwrite the variable the left value came from.
     if not needs_ref1:
-        context.transferBorrowedValue(left_name, to_name)
+        left_borrowed_values = context.getBorrowedValues(left_name)
+    else:
+        left_borrowed_values = ()
 
     getReleaseCode(release_name=left_name, emit=emit, context=context)
 
@@ -131,6 +141,7 @@ def generateConditionalAndOrCode(to_name, expression, emit, context):
 
     if not needs_ref2 and not needs_ref1:
         context.transferBorrowedValue(right_name, to_name)
+        context.addBorrowedValues(to_name, left_borrowed_values)
 
     getGotoCode(end_target, emit)
 
@@ -160,6 +171,10 @@ def generateConditionalAndOrCode(to_name, expression, emit, context):
 
 
 def generateConditionalCode(to_name, expression, emit, context):
+    promoteBorrowedValuesForExpressionWrites(
+        expression=expression, emit=emit, context=context
+    )
+
     true_target = context.allocateLabel("condexpr_true")
     false_target = context.allocateLabel("condexpr_false")
     end_target = context.allocateLabel("condexpr_end")
@@ -186,10 +201,11 @@ def generateConditionalCode(to_name, expression, emit, context):
     # Must not clean this up in other expression.
     if needs_ref1:
         context.removeCleanupTempName(to_name)
-        context.unregisterBorrowedValue(to_name)
         yes_borrowed_values = ()
     else:
         yes_borrowed_values = context.getBorrowedValues(to_name)
+
+    context.unregisterBorrowedValue(to_name)
 
     real_emit = emit
     emit = SourceCodeCollector()

@@ -66,12 +66,17 @@ def generateAssignmentVariableCode(statement, emit, context):
         expression=assign_source, to_name=tmp_name, emit=emit, context=context
     )
 
+    # The in-place transfer assumes the variable still owns the left value. If
+    # the operation had to take its own reference, then the result owns a
+    # reference and must be stored with normal release handling.
+    inplace = statement.isInplaceSuspect() and not context.needsCleanup(tmp_name)
+
     getVariableAssignmentCode(
         tmp_name=tmp_name,
         variable=variable,
         variable_trace=variable_trace,
         needs_release=statement.needsReleasePreviousValue(),
-        inplace=statement.isInplaceSuspect(),
+        inplace=inplace,
         emit=emit,
         context=context,
     )
