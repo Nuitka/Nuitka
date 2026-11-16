@@ -291,7 +291,7 @@ def buildConditionNode(provider, node, source_ref):
 
 
 def buildTryFinallyNode2(provider, node, source_ref):
-    # Try/finally node statements of old style.
+    assert python_version < 0x300
 
     return buildTryFinallyNode(
         provider=provider,
@@ -304,13 +304,17 @@ def buildTryFinallyNode2(provider, node, source_ref):
 
 
 def buildTryNode(provider, node, source_ref):
-    # Note: This variant is used for Python3 only, older stuff uses the above
-    # ones, this one merges try/except with try/finally in the "ast". We split
-    # it up again, as it's logically separated of course.
+    assert python_version >= 0x300
 
-    # Shortcut missing try/finally.
     if not node.handlers:
-        return buildTryFinallyNode2(provider, node, source_ref)
+        return buildTryFinallyNode(
+            provider=provider,
+            build_tried=lambda: buildStatementsNode(
+                provider=provider, nodes=node.body, source_ref=source_ref
+            ),
+            node=node,
+            source_ref=source_ref,
+        )
 
     if not node.finalbody:  # spell-checker: ignore finalbody
         return buildTryExceptionNode(
@@ -328,11 +332,7 @@ def buildTryNode(provider, node, source_ref):
 
 
 def buildTryStarNode(provider, node, source_ref):
-    # Note: This variant is used for Python3.11 or higher only, where an exception
-    # group is caught. Mixing groups and non-group catches is not allowed.
-
-    # Without handlers, this would not be used, but instead "Try" would be used,
-    # but assert against it.
+    assert python_version >= 0x3B0
     assert node.handlers
 
     if not node.finalbody:  # spell-checker: ignore finalbody
