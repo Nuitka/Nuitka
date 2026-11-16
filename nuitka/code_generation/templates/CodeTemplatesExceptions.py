@@ -17,7 +17,7 @@ template_publish_exception_to_handler = """\
 """
 
 template_error_catch_fetched_exception = """\
-if (%(condition)s) {
+if (unlikely(%(condition)s)) {
     assert(HAS_EXCEPTION_STATE(&%(exception_state_name)s));
 
 %(release_temps)s
