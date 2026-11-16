@@ -15,6 +15,7 @@ from .CodeHelpers import (
     generateChildExpressionsCode,
     generateExpressionCode,
     withBorrowedValueScope,
+    withCleanupFinally,
     withObjectCodeTemporaryAssignment,
 )
 from .ErrorCodes import getAssertionCode, getErrorExitBoolCode
@@ -39,33 +40,54 @@ def _generateSetCreationCode(to_name, expression, emit, context):
     with withObjectCodeTemporaryAssignment(
         to_name, "set_result", expression, emit, context
     ) as result_name:
-        for count, element in enumerate(elements):
-            generateExpressionCode(
-                to_name=element_name, expression=element, emit=emit, context=context
-            )
+        generateExpressionCode(
+            to_name=element_name, expression=elements[0], emit=emit, context=context
+        )
 
-            if count == 0:
-                emit("%s = PySet_New(NULL);" % (result_name,))
-                getAssertionCode(result_name, emit)
+        first_element_needs_release = context.needsCleanup(element_name)
+        if first_element_needs_release:
+            context.removeCleanupTempName(element_name)
 
-                context.addCleanupTempName(result_name)
+        emit("%s = PySet_New(NULL);" % (result_name,))
+        getAssertionCode(result_name, emit)
 
-            res_name = context.getIntResName()
+        needs_exception_exit = any(
+            element.mayRaiseException(BaseException) for element in elements[1:]
+        ) or any(not element.isKnownToBeHashable() for element in elements)
 
-            emit("%s = PySet_Add(%s, %s);" % (res_name, result_name, element_name))
+        with withCleanupFinally(
+            "set_build", result_name, needs_exception_exit, emit, context
+        ) as guarded_emit:
+            emit = guarded_emit
 
-            getErrorExitBoolCode(
-                condition="%s != 0" % res_name,
-                needs_check=not element.isKnownToBeHashable(),
-                emit=emit,
-                context=context,
-            )
+            if first_element_needs_release:
+                context.addCleanupTempName(element_name)
 
-            if context.needsCleanup(element_name):
-                emit("Py_DECREF(%s);" % element_name)
-                context.removeCleanupTempName(element_name)
+            for count, element in enumerate(elements):
+                if count > 0:
+                    generateExpressionCode(
+                        to_name=element_name,
+                        expression=element,
+                        emit=emit,
+                        context=context,
+                    )
 
-            context.unregisterBorrowedValue(element_name)
+                res_name = context.getIntResName()
+
+                emit("%s = PySet_Add(%s, %s);" % (res_name, result_name, element_name))
+
+                getErrorExitBoolCode(
+                    condition="%s != 0" % res_name,
+                    needs_check=not element.isKnownToBeHashable(),
+                    emit=emit,
+                    context=context,
+                )
+
+                if context.needsCleanup(element_name):
+                    emit("Py_DECREF(%s);" % element_name)
+                    context.removeCleanupTempName(element_name)
+
+                context.unregisterBorrowedValue(element_name)
 
 
 def generateSetLiteralCreationCode(to_name, expression, emit, context):
@@ -83,40 +105,51 @@ def _generateSetLiteralCreationCode(to_name, expression, emit, context):
         to_name, "set_result", expression, emit, context
     ) as result_name:
         emit("%s = PySet_New(NULL);" % (result_name,))
-
-        context.addCleanupTempName(result_name)
+        getAssertionCode(result_name, emit)
 
         elements = expression.subnode_elements
 
-        element_names = []
+        needs_exception_exit = any(
+            element.mayRaiseException(BaseException) for element in elements
+        ) or any(not element.isKnownToBeHashable() for element in elements)
 
-        for count, element in enumerate(elements, 1):
-            element_name = context.allocateTempName("set_element_%d" % count)
-            element_names.append(element_name)
+        with withCleanupFinally(
+            "set_literal_build", result_name, needs_exception_exit, emit, context
+        ) as guarded_emit:
+            emit = guarded_emit
 
-            generateExpressionCode(
-                to_name=element_name, expression=element, emit=emit, context=context
-            )
+            element_names = []
 
-        for count, element in enumerate(elements):
-            element_name = element_names[len(elements) - count - 1]
+            for count, element in enumerate(elements, 1):
+                element_name = context.allocateTempName("set_element_%d" % count)
+                element_names.append(element_name)
 
-            if element.isKnownToBeHashable():
-                emit("PySet_Add(%s, %s);" % (result_name, element_name))
-            else:
-                res_name = context.getIntResName()
-
-                emit("%s = PySet_Add(%s, %s);" % (res_name, result_name, element_name))
-
-                getErrorExitBoolCode(
-                    condition="%s != 0" % res_name, emit=emit, context=context
+                generateExpressionCode(
+                    to_name=element_name, expression=element, emit=emit, context=context
                 )
 
-            if context.needsCleanup(element_name):
-                emit("Py_DECREF(%s);" % element_name)
-                context.removeCleanupTempName(element_name)
+            for count, element in enumerate(elements):
+                element_name = element_names[len(elements) - count - 1]
 
-            context.unregisterBorrowedValue(element_name)
+                if element.isKnownToBeHashable():
+                    emit("PySet_Add(%s, %s);" % (result_name, element_name))
+                else:
+                    res_name = context.getIntResName()
+
+                    emit(
+                        "%s = PySet_Add(%s, %s);"
+                        % (res_name, result_name, element_name)
+                    )
+
+                    getErrorExitBoolCode(
+                        condition="%s != 0" % res_name, emit=emit, context=context
+                    )
+
+                if context.needsCleanup(element_name):
+                    emit("Py_DECREF(%s);" % element_name)
+                    context.removeCleanupTempName(element_name)
+
+                context.unregisterBorrowedValue(element_name)
 
 
 def generateSetOperationAddCode(statement, emit, context):
