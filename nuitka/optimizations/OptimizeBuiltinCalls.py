@@ -479,7 +479,7 @@ if python_version >= 0x300:
         return BuiltinParameterSpecs.extractBuiltinArgs(
             node=node,
             builtin_class=ExpressionBuiltinAscii,
-            builtin_spec=BuiltinParameterSpecs.builtin_repr_spec,
+            builtin_spec=BuiltinParameterSpecs.builtin_ascii_spec,
         )
 
 
