@@ -10290,6 +10290,13 @@
     - depends:
         - '_twofish'
 
+- module-name: 'typing_extensions' # checksum: b106c10b
+  anti-bloat:
+    - description: 'avoid asyncio inclusion for deprecated coroutine wrappers'
+      no-auto-follow:
+        'asyncio': 'only used to mark deprecated coroutine wrappers on Python before 3.12'
+      when: 'before_python312'
+
 - module-name: 'tyro' # checksum: a8dc8b82
   anti-bloat:
     - description: 'remove optional pydantic support'
