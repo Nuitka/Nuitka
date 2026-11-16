@@ -1656,8 +1656,6 @@ through incomplete set import by '%s' plugin encountered."""
     @counted_plugin_method
     def suppressUnknownImportWarning(importing, source_ref, module_name):
         """Return True if any active plugin suppresses the unknown-import warning."""
-        source_ref = importing.getSourceReference()
-
         for plugin in getActivePlugins():
             if plugin.suppressUnknownImportWarning(importing, module_name, source_ref):
                 return True

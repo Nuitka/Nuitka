@@ -828,7 +828,7 @@ class NuitkaPluginBase(getMetaClassBase("Plugin", require_slots=False)):
 
         Args:
             package_name: full package name
-            package_dir: directory of the package
+            package_dir: candidate directory path of the package
 
         Returns:
             Iterable of directory paths; non-existent ones are ignored.

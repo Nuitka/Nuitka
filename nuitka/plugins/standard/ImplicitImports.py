@@ -390,8 +390,11 @@ According to 'implicit-imports' configuration."""
                         break
 
     def _getPackageExtraScanPaths(self, package_dir, config):
-        for config_package_dir in config.get("package-dirs", ()):
-            yield os.path.normpath(os.path.join(package_dir, "..", config_package_dir))
+        if os.path.isdir(package_dir):
+            for config_package_dir in config.get("package-dirs", ()):
+                yield os.path.normpath(
+                    os.path.join(package_dir, "..", config_package_dir)
+                )
 
         for config_package_name in config.get("package-paths", ()):
             module_filename = self.locateModule(config_package_name)

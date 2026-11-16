@@ -509,7 +509,7 @@ def warnAboutNotFoundImport(importing, module_name, level, source_ref):
                     recursion_logger.warning(
                         "%s: Cannot find '%s' in package '%s' %s."
                         % (
-                            importing.getSourceReference().getAsString(),
+                            source_ref.getAsString(),
                             module_name,
                             importing.getFullName().getPackageName().asString(),
                             level_desc,
@@ -519,7 +519,7 @@ def warnAboutNotFoundImport(importing, module_name, level, source_ref):
                     recursion_logger.warning(
                         "%s: Cannot find '%s' %s."
                         % (
-                            importing.getSourceReference().getAsString(),
+                            source_ref.getAsString(),
                             module_name,
                             level_desc,
                         )
@@ -1173,33 +1173,23 @@ def getPackageSearchPath(package_name):
                 result.append(os.getcwd())
 
         result += getPythonUnpackedSearchPath() + list(_extra_paths)
-    elif "." in package_name:
-        parent_package_name, child_package_name = package_name.splitModuleBasename()
-
-        result = []
-        for element in getPackageSearchPath(parent_package_name):
-            package_dir = getNormalizedPathJoin(element, child_package_name.asPath())
-
-            if isPackageDir(package_dir):
-                result.append(package_dir)
-                # Hack for "uniconvertor". TODO: Move this to plug-in decision. This
-                # fails the above test, but at run time should be a package.
-                # spell-checker: ignore uniconvertor
-            elif package_name == "uniconvertor.app.modules":
-                result.append(package_dir)
-
-        return result
-
     else:
         preloaded_path = getPreloadedPackagePath(package_name)
 
         if preloaded_path is not None:
             return preloaded_path
 
-        def getPackageDirCandidates(element):
-            yield getNormalizedPathJoin(element, package_name.asPath()), False
+        parent_package_name, child_package_name = package_name.splitModuleBasename()
 
-            for extra_path in getPackageExtraScanPaths(package_name, element):
+        def getPackageDirCandidates(element):
+            package_dir = getNormalizedPathJoin(element, child_package_name.asPath())
+
+            # Hack for "uniconvertor". TODO: Move this to plug-in decision. This
+            # fails the package directory test, but at run time should be a package.
+            # spell-checker: ignore uniconvertor
+            yield package_dir, package_name == "uniconvertor.app.modules"
+
+            for extra_path in getPackageExtraScanPaths(package_name, package_dir):
                 yield extra_path, True
 
         result = []
@@ -1211,7 +1201,7 @@ def getPackageSearchPath(package_name):
             if setuptools_package_dir is not None:
                 result.append(setuptools_package_dir)
 
-        for element in getPackageSearchPath(None):
+        for element in getPackageSearchPath(parent_package_name):
             for package_dir, force_package in getPackageDirCandidates(element):
                 if force_package or isPackageDir(package_dir):
                     result.append(package_dir)
