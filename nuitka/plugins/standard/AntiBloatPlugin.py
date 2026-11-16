@@ -736,8 +736,6 @@ class %(class_name)s:
             single_value=True,
         )
 
-        # Single node is required, extract the generated module body with
-        # single expression only statement value or a function body.
         replacement = ast.parse(replacement).body[0]
 
         node.body[:] = replacement.body

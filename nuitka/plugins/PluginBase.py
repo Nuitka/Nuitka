@@ -458,8 +458,8 @@ else:
 class NuitkaPluginBase(getMetaClassBase("Plugin", require_slots=False)):
     """Nuitka base class for all plugins.
 
-    Derive your plugin from "NuitkaPluginBase" please.
-    For instructions, see https://github.com/Nuitka/Nuitka/blob/orsiris/UserPlugin-Creation.rst
+    Derive your plugin from 'NuitkaPluginBase' please.
+    For instructions, see https://github.com/Nuitka/Nuitka/blob/develop/UserPlugin-Creation.rst
 
     Plugins allow to adapt Nuitka's behavior in a number of ways as explained
     below at the individual methods.
@@ -810,31 +810,28 @@ class NuitkaPluginBase(getMetaClassBase("Plugin", require_slots=False)):
         )
 
     def onModuleDiscovered(self, module):
-        """Called with a module to be loaded.
+        """Called when a module has been discovered and added.
 
         Notes:
-            We may specify code to be prepended and/or appended to this module.
-            This code is stored in the appropriate dict.
-            For every imported module and each of these two options, only one plugin may do this.
-            We check this condition here.
+            Notification hook only. To run code before or after loading a
+            module, implement 'createPreModuleLoadCode' or
+            'createPostModuleLoadCode' instead.
 
         Args:
-            module: the module object
-        Returns:
-            None
+            module: module object
         """
         # Virtual method, pylint: disable=no-self-use,unused-argument
         return None
 
     def getPackageExtraScanPaths(self, package_name, package_dir):
-        """Provide other directories to consider submodules to live in.
+        """Provide extra directories to consider submodules to live in.
 
         Args:
-            module_name: full module name
+            package_name: full package name
             package_dir: directory of the package
 
         Returns:
-            Iterable list of directories, non-existent ones are ignored.
+            Iterable of directory paths; non-existent ones are ignored.
         """
 
         # Virtual method, pylint: disable=no-self-use,unused-argument
@@ -843,15 +840,20 @@ class NuitkaPluginBase(getMetaClassBase("Plugin", require_slots=False)):
     def onModuleEncounter(
         self, using_module_name, module_name, module_filename, module_kind
     ):
-        """Help decide whether to include a module.
+        """Decide whether to include an encountered module.
+
+        Notes:
+            Conflicting boolean decisions from multiple plugins abort
+            compilation with an error.
 
         Args:
-            using_module_name: module that does this (can be None if user)
+            using_module_name: importing module name, or None if user-selected
             module_name: full module name
-            module_filename: filename
-            module_kind: one of "py", "extension" (shared library)
+            module_filename: module path
+            module_kind: module kind, e.g. 'py' or 'extension'
+
         Returns:
-            True or False
+            None for no opinion (default), or tuple '(bool, reason)'.
         """
         # Virtual method, pylint: disable=no-self-use,unused-argument
         return None
@@ -933,16 +935,14 @@ class NuitkaPluginBase(getMetaClassBase("Plugin", require_slots=False)):
         return ()
 
     def onModuleCompleteSet(self, module_set):
-        """Provide extra modules to the initial root module set.
+        """Inspect the final set of included modules after recursion completes.
+
+        Notes:
+            Read-only notification for warnings, error checks, or preparing
+            later stages; the module set cannot be modified here.
 
         Args:
-            module_set - tuple of modules
-        Returns:
-            None
-        Notes:
-            You must not change anything, this is purely for warning
-            and error checking, and potentially for later stages to
-            prepare.
+            module_set: immutable tuple of included module objects
         """
 
     def onModuleCompleteSetGUI(self, module_set, plugin_binding_name):
@@ -1108,14 +1108,15 @@ Unwanted import of '%(unwanted)s' that %(problem)s '%(binding_name)s' encountere
         return ()
 
     def considerDataFiles(self, module):
-        """Yield data file names (source|func, target) for inclusion (iterator).
+        """Yield data files to include for a module.
 
         Args:
             module: module object that may need extra data files
-        Yields:
-            Data file description pairs, either (source, dest) or (func, dest)
-            where the func will be called to create the content dynamically.
 
+        Yields:
+            'IncludedDataFile' instances (created via 'makeIncludedDataFile',
+            'makeIncludedDataDirectory', 'makeIncludedGeneratedDataFile',
+            'makeIncludedPackageDataFiles', etc.), or generators yielding them.
         """
         # Virtual method, pylint: disable=no-self-use,unused-argument
         return ()
@@ -1334,31 +1335,31 @@ Unwanted import of '%(unwanted)s' that %(problem)s '%(binding_name)s' encountere
         return None
 
     def suppressUnknownImportWarning(self, importing, module_name, source_ref):
-        """Suppress import warnings for unknown modules.
+        """Decide whether to suppress an unknown-import warning.
 
         Args:
-            importing: the module object
-            module_name: name of module
-            source_ref: ???
+            importing: module object performing the import
+            module_name: full name of the unlocated module
+            source_ref: 'SourceCodeReference' of the import
+
         Returns:
-            True or False
+            bool, True to suppress the warning.
         """
         # Virtual method, pylint: disable=no-self-use,unused-argument
         return False
 
     def decideCompilation(self, module_name):
-        """Decide whether to compile a module (or just use its bytecode).
+        """Decide whether to C-compile a module or include it as bytecode.
 
         Notes:
-            The first plugin not returning None makes the decision. Thereafter,
-            no other plugins will be checked. If all plugins return None, the
-            module will be compiled.
+            All active plugins are checked; conflicting non-None decisions
+            abort compilation with an error.
 
         Args:
-            module_name: name of module
+            module_name: full module name
 
         Returns:
-            "compiled" or "bytecode" or None (no opinion, use by default)
+            'compiled', 'bytecode', or None for no opinion (default).
         """
         # Virtual method, pylint: disable=no-self-use,unused-argument
         return None
@@ -1752,11 +1753,11 @@ except Exception as e:
         return False
 
     def onClassBodyParsing(self, module_name, class_name, node):
-        # Virtual method, pylint: disable=no-self-use,unused-argument
         """Provide a different class body for the class of that module.
 
         Should return a boolean, indicating if any actual change was done.
         """
+        # Virtual method, pylint: disable=no-self-use,unused-argument
         return False
 
     def getCacheContributionValues(self, module_name):
@@ -2043,8 +2044,8 @@ Error, expression '%s' for module '%s' did not evaluate to 'tuple[str]' or 'list
         self, full_name, condition, allow_constants=True, allow_variables=True
     ):
         # Note: Caching makes no sense yet, this should all be very fast and
-        # cache themselves. TODO: Allow plugins to contribute their own control
-        # tag values during creation and during certain actions.
+        # cache themselves. TODO: Allow plugins to also update control tag
+        # values during later actions, not only at plugin creation.
         if condition == "True":
             return True
         if condition == "False":

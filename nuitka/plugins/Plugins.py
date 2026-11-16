@@ -1,16 +1,10 @@
 #     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-"""
+"""Plugin loading, activation, and hook dispatching.
 
-Plugins: Welcome to Nuitka! This is your shortest way to become part of it.
-
-This is to provide the base class for all plugins. Some of which are part of
-proper Nuitka, and some of which are waiting to be created and submitted for
-inclusion by you.
-
-The base class in PluginBase will serve as documentation of available.
-
+Plugin author documentation and hook contracts live on 'NuitkaPluginBase' in
+'PluginBase'.
 """
 
 import fnmatch
@@ -829,13 +823,7 @@ through implicit import by '%s' plugin encountered."""
     @classmethod
     @counted_plugin_method
     def considerImplicitImports(cls, module):
-        """Let plugins add implicit imports for a module.
-
-        Args:
-            module: module object
-        Returns:
-            iterable of module names
-        """
+        """Add plugin-provided implicit imports and trigger/fake dependencies for 'module'."""
 
         for plugin in active_plugins_with_implicit_imports:
             key = (module.getFullName(), plugin)
@@ -981,7 +969,6 @@ through implicit import by '%s' plugin encountered."""
 
         result = []
 
-        # TODO: This is probably something generic that only different
         def _iterateExtraBinaries(plugin, value):
             if value is None:
                 pass
@@ -1117,14 +1104,7 @@ through implicit import by '%s' plugin encountered."""
 
     @staticmethod
     def considerDataFiles(module):
-        """For a given module, ask plugins for any needed data files it may require.
-
-        Args:
-            module: module object
-        Yields:
-            Data file description pairs, either (source, dest) or (func, dest)
-            where the func will be called to create the content dynamically.
-        """
+        """Yield 'IncludedDataFile' instances required by active plugins for 'module'."""
 
         def _iterateIncludedDataFiles(plugin, value):
             if value is None:
@@ -1394,7 +1374,6 @@ through implicit import by '%s' plugin encountered."""
                     )
                 )
 
-                # Main modules do not get added to the import cache, but plugins get to see it.
                 cls.onModuleDiscovered(fake_module)
 
     @staticmethod
@@ -1676,17 +1655,7 @@ through incomplete set import by '%s' plugin encountered."""
     @staticmethod
     @counted_plugin_method
     def suppressUnknownImportWarning(importing, source_ref, module_name):
-        """Let plugins decide whether to suppress import warnings for an unknown module.
-
-        Notes:
-            If all plugins return False or None, the return will be False, else True.
-        Args:
-            importing: the module which is importing "module_name"
-            source_ref: pointer to file source code or bytecode
-            module_name: the module to be imported
-        returns:
-            True or False (default)
-        """
+        """Return True if any active plugin suppresses the unknown-import warning."""
         source_ref = importing.getSourceReference()
 
         for plugin in getActivePlugins():
@@ -1710,15 +1679,7 @@ through incomplete set import by '%s' plugin encountered."""
     @classmethod
     @counted_plugin_method
     def decideCompilation(cls, module_name):
-        """Let plugins decide whether to C compile a module or include as bytecode.
-
-        Notes:
-            The decision is made by plugins answering, with collision checks
-            if multiple plugins provide conflicting decisions.
-
-        Returns:
-            "compiled" (default) or "bytecode".
-        """
+        """Return plugin compilation mode decision ('compiled', 'bytecode', or None)."""
         return cls._decideWithoutDisagreement(
             method_name="decideCompilation",
             call_per_plugin=lambda plugin: plugin.decideCompilation(module_name),
@@ -1816,16 +1777,7 @@ through incomplete set import by '%s' plugin encountered."""
     @classmethod
     @counted_plugin_method
     def getBuildDefinitions(cls):
-        """Let plugins provide C source defines to be used in compilation.
-
-        Notes:
-            The plugins can each contribute, but are hopefully using
-            a namespace for their defines. Only specific code sees these
-            if it chooses to include "build_definitions.h" file.
-
-        Returns:
-            OrderedDict() with keys and values."
-        """
+        """Return 'OrderedDict' of C header defines for 'build_definitions.h' from active plugins."""
 
         if cls.build_definitions is None:
             cls.build_definitions = OrderedDict()
@@ -1849,15 +1801,7 @@ through incomplete set import by '%s' plugin encountered."""
     @classmethod
     @counted_plugin_method
     def getExtraIncludeDirectories(cls):
-        """Let plugins extra directories to use for C includes in compilation.
-
-        Notes:
-            The plugins can each contribute, but are hopefully not colliding,
-            order will be plugin order.
-
-        Returns:
-            tuple of paths to include as well.
-        """
+        """Return tuple of extra C include directories from active plugins."""
         if cls.extra_include_directories is None:
             cls.extra_include_directories = OrderedSet()
 
@@ -2437,7 +2381,7 @@ def listPlugins():
 
 
 def isObjectAUserPluginBaseClass(obj):
-    """Verify that a user plugin inherits from UserPluginBase."""
+    """Return whether 'obj' is a concrete 'NuitkaPluginBase' subclass."""
     try:
         return (
             obj is not NuitkaPluginBase
@@ -2450,14 +2394,11 @@ def isObjectAUserPluginBaseClass(obj):
 
 
 def loadUserPlugin(plugin_filename):
-    """Load of a user plugins and store them in list of active plugins.
+    """Import a user plugin script and return its 'NuitkaPluginBase' subclass.
 
     Notes:
-        A plugin is accepted only if it has a non-empty variable plugin_name, which
-        does not equal that of a disabled (standard) plugin.
-        Supports plugin option specifications.
-    Returns:
-        None
+        Requires a non-empty 'plugin_name' attribute that is not in the
+        disabled plugins list. Does not instantiate or activate the plugin.
     """
     if not os.path.exists(plugin_filename):
         return plugins_logger.sysexit("Error, cannot find '%s'." % plugin_filename)
@@ -2490,27 +2431,13 @@ _loaded_plugins = False
 
 
 def loadPlugins():
-    """Initialize plugin class
-
-    Notes:
-        Load user plugins provided as Python script file names, and standard
-        plugins via their class attribute 'plugin_name'.
-
-        Several checks are made, see the loader functions.
-
-        User plugins are enabled as a first step, because they themselves may
-        enable standard plugins.
-
-    Returns:
-        None
-    """
+    """Load standard plugin classes once."""
 
     # Singleton, called potentially multiple times, pylint: disable=global-statement
     global _loaded_plugins
     if not _loaded_plugins:
         _loaded_plugins = True
 
-        # now enable standard plugins
         loadStandardPluginClasses()
 
 
@@ -2548,21 +2475,7 @@ def addStandardPluginCommandLineOptions(parser, plugin_help_mode):
 
 
 def activatePlugins():
-    """Activate selected plugin classes
-
-    Args:
-        None
-
-    Notes:
-        This creates actual plugin instances, before only class objects were
-        used.
-
-        User plugins are activated as a first step, because they themselves may
-        enable standard plugins.
-
-    Returns:
-        None
-    """
+    """Instantiate and register enabled standard, user, and detector plugins."""
     # Many cases, often with UI related decisions, pylint: disable=too-many-branches
 
     loadPlugins()

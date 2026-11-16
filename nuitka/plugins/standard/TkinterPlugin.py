@@ -125,18 +125,6 @@ Please report as a issue.""" % self.tk_inter_version)
         return isStandaloneMode()
 
     def createPreModuleLoadCode(self, module):
-        """This method is called with a module that will be imported.
-
-        Notes:
-            If the word "tkinter" occurs in its full name, we know that the correct
-            setting of the TCL environment must be ensured before this happens.
-
-        Args:
-            module: the module object
-        Returns:
-            Code to insert and None (tuple)
-        """
-        # only insert code for tkinter related modules
         if _isTkInterModule(module):
             # If the original library was a zip, we provide a zip file as well.
             tcl_target = self.getTclTargetPath()
@@ -147,8 +135,6 @@ Please report as a issue.""" % self.tk_inter_version)
             if self._tk_is_zip:
                 tk_target += ".zip"
 
-            # The following code will be executed before importing the module.
-            # If required we set the respective environment values.
             code = r"""
 import os
 nuitka_info = globals().get("__uncompiled__", globals().get("__compiled__"))
@@ -161,20 +147,10 @@ os.environ["TK_LIBRARY"] = os.path.join(nuitka_info.python_runtime_dir, "%(tk_ta
             return code, "Need to make sure we set environment variables for TCL."
 
     def createPostModuleLoadCode(self, module):
-        """This method is called with a module that was imported.
-
-        Notes:
-            Starting with Tk version 9, it loads ICU DLLs dynamically, and
-            on Windows it prefers versioned DLLs found in the PATH over the
-            ICU included with Windows. For standalone mode, we do not want
-            to depend on third party software, so we temporarily remove the
-            PATH variable while the Tk interpreter is created.
-
-        Args:
-            module: the module object
-        Returns:
-            Code to insert and None (tuple)
-        """
+        # Starting with Tk 9, it loads ICU DLLs dynamically, and on Windows it
+        # prefers versioned DLLs found in PATH over the ICU included with
+        # Windows. Temporarily strip PATH during '_tkinter.create' so
+        # standalone builds do not pick up incompatible third-party ICU DLLs.
         if (
             isWin32Windows()
             and self.tk_inter_version.startswith("9.")
