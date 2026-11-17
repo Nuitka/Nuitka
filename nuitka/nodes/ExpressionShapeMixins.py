@@ -327,7 +327,7 @@ class ExpressionFrozensetShapeExactMixin(
         return tshape_frozenset
 
     @staticmethod
-    def hasShapeListExact():
+    def hasShapeFrozensetExact():
         return True
 
     @staticmethod
