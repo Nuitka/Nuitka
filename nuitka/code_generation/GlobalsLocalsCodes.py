@@ -92,7 +92,7 @@ Py_INCREF(%(to_name)s);"""
 
             initial = False
         else:
-            emit("%s = MAKE_DICT_EMPTY(tstate);" % (to_name,))
+            emit("%s = MAKE_DICT_EMPTY(tstate);" % (value_name,))
 
             initial = True
             is_dict = True
