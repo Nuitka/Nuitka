@@ -682,8 +682,8 @@ class ExpressionDictOperationItem(
         if dict_arg.isCompileTimeConstant() and key.isCompileTimeConstant():
             return trace_collection.getCompileTimeComputationResult(
                 node=self,
-                computation=lambda: self.getCompileTimeConstant()[
-                    dict_arg.getCompileTimeConstant()[key.getCompileTimeConstant()]
+                computation=lambda: dict_arg.getCompileTimeConstant()[
+                    key.getCompileTimeConstant()
                 ],
                 user_provided=dict_arg.user_provided,
                 description="Dictionary item lookup with constant key.",
@@ -878,7 +878,7 @@ class ExpressionDictOperationGet3(ExpressionDictOperationGet3Base):
             return (
                 self.subnode_dict_arg.extractSideEffects()
                 + self.subnode_key.extractSideEffects()
-                + self.subnode_defaults.extractSideEffects()
+                + self.subnode_default.extractSideEffects()
             )
 
 
