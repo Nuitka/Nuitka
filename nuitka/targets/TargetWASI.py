@@ -12,6 +12,7 @@ from nuitka.PythonVersions import python_version_str
 from nuitka.utils.FileOperations import getNormalizedPathJoin
 from nuitka.utils.WasiPython import checkWasiPreconditions, getWasiPythonPrefix
 from nuitka.utils.WasiSDK import checkWasiSDKPath
+from nuitka.utils.Wasmtime import getWasmtimePath
 
 from .TargetPython import TargetPython
 from .Targets import TargetBase
@@ -31,7 +32,7 @@ class TargetWASI(TargetBase):
             target_arch="wasm32",
             binary_format="wasm",
             rpath_using=False,
-            python_digit_bits=15,
+            python_digit_bits=30,
         )
 
         assume_yes_for_downloads = assumeYesForDownloads()
@@ -98,6 +99,15 @@ class TargetWASI(TargetBase):
     def canImportModule(self, module_name):
         """Return whether a module is importable on WASI."""
         return self._target_python.canImportModule(module_name)
+
+    @staticmethod
+    def getTargetRunCommand(executable_path):
+        """Return the command to run a WASI executable on this host."""
+        return (
+            getWasmtimePath(assume_yes_for_downloads=assumeYesForDownloads()),
+            "run",
+            executable_path,
+        )
 
     @staticmethod
     def isHardModuleSupported(module_name):

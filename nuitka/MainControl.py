@@ -208,7 +208,6 @@ from nuitka.utils.Utils import (
     isWin32OrPosixWindows,
     isWin32Windows,
 )
-from nuitka.utils.Wasmtime import getWasmtimePath
 from nuitka.Version import getCommercialVersion, getNuitkaVersion
 from nuitka.VersionCheck import checkNuitkaUpdate
 
@@ -1046,20 +1045,9 @@ def callExecPython(args, add_path, uac):
 
 
 def _executeMain(binary_filename):
-    if isWasiTarget():
-        args = (
-            getWasmtimePath(assumeYesForDownloads()),
-            "run",
-            binary_filename,
-        )
-    elif isWin32Target() and not isWin32OrPosixWindows():
-        args = getTargetSpecification().getTargetExecCommand(binary_filename)
-    else:
-        args = None
-
-    if args is not None:
+    if isWasiTarget() or (isWin32Target() and not isWin32OrPosixWindows()):
         return callExecPython(
-            args=args,
+            args=getTargetSpecification().getTargetExecCommand(binary_filename),
             add_path=False,
             uac=False,
         )

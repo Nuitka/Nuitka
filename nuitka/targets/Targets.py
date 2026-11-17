@@ -45,8 +45,8 @@ class TargetBase(object):
 
         digit_boundary = 2**python_digit_bits - 1
 
-        self.c_long_min = -(2 ** (c_long_size * 7))
-        self.c_long_max = 2 ** (c_long_size * 7) - 1
+        self.c_long_min = -(2 ** (c_long_size * 8 - 1))
+        self.c_long_max = 2 ** (c_long_size * 8 - 1) - 1
         self.c_longlong_min = -(2 ** (c_longlong_size * 8 - 1))
         self.c_longlong_max = 2 ** (c_longlong_size * 8 - 1) - 1
         self.digit_min = -digit_boundary
@@ -150,12 +150,9 @@ class TargetBase(object):
 
     def getTargetExecCommand(self, executable_path):
         """Return the command with exec-style argv[0] handling."""
-        run_command = self.getTargetRunCommand(executable_path)
+        run_command = tuple(self.getTargetRunCommand(executable_path))
 
-        if len(run_command) == 1:
-            return (executable_path, executable_path)
-
-        return tuple(run_command)
+        return (run_command[0],) + run_command
 
     def checkPreconditions(self):  # pylint: disable=no-self-use
         """Check target-specific requirements after option parsing.
