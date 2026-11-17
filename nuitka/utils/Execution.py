@@ -109,9 +109,7 @@ def quoteForShell(value):
 
 class NuitkaCalledProcessError(subprocess.CalledProcessError):
     def __init__(self, exit_code, cmd, output, stderr):
-        # False alarm, pylint: disable=super-init-not-called
-
-        subprocess.CalledProcessError(self, exit_code, cmd)
+        subprocess.CalledProcessError.__init__(self, exit_code, cmd)
 
         # Python2 doesn't have this otherwise, but needs it.
         self.stderr = stderr
