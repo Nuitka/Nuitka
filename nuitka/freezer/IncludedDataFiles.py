@@ -46,6 +46,7 @@ from nuitka.utils.FileOperations import (
     getFilenameExtension,
     getFileSize,
     getNormalizedPath,
+    hasFilenameSuffix,
     isCaseInsensitiveFileSystem,
     isFilenameBelowPath,
     isLegalPath,
@@ -363,7 +364,7 @@ def isIgnoredDataFilename(filename):
     if os.path.normcase(os.path.basename(filename)) in normalized_ignored_filenames:
         return True
 
-    if os.path.normcase(filename).endswith(default_ignored_suffixes):
+    if hasFilenameSuffix(filename, default_ignored_suffixes):
         return True
 
     if _re_versioned_shared_library_suffix.search(os.path.normcase(filename)):

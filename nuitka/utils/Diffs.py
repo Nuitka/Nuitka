@@ -11,7 +11,7 @@ This wraps difflib to keep all diffing logic centralized and isolated.
 import difflib
 import os
 
-from .FileOperations import getFileContents, listDir
+from .FileOperations import getFileContents, hasFilenameSuffix, listDir
 
 
 def getUnifiedDiff(
@@ -87,8 +87,6 @@ def compareDirectories(
 
     if ignore_suffixes is None:
         ignore_suffixes = ()
-    else:
-        ignore_suffixes = tuple(ignore_suffixes)
 
     if ignore_substrings is None:
         ignore_substrings = ()
@@ -105,7 +103,7 @@ def compareDirectories(
         path2 = os.path.join(dir2, filename)
         done.add(path1)
 
-        if filename.endswith(ignore_suffixes):
+        if hasFilenameSuffix(filename, ignore_suffixes):
             continue
 
         if any(substr in filename for substr in ignore_substrings):

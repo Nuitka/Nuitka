@@ -621,8 +621,9 @@ def getFileList(
         path: directory to create a recursive listing from
         ignore_dirs: Don't descend into these directory, ignore them
         ignore_filenames: Ignore files named exactly like this
-        ignore_suffixes: Don't return files with these suffixes
-        only_suffixes: If not empty, limit returned files to these suffixes
+        ignore_suffixes: Don't return files with these suffixes, single string allowed
+        only_suffixes: If not empty, limit returned files to these suffixes, single
+            string allowed
 
     Returns:
         Sorted list of all filenames below that directory,
@@ -635,36 +636,29 @@ def getFileList(
     # We work with a lot of details here
     result = []
 
-    # Normalize "ignore_dirs" for better matching.
-    ignore_dirs = [os.path.normcase(ignore_dir) for ignore_dir in ignore_dirs]
-    ignore_filenames = [
+    ignore_dirs = set(os.path.normcase(ignore_dir) for ignore_dir in ignore_dirs)
+    ignore_filenames = set(
         os.path.normcase(ignore_filename) for ignore_filename in ignore_filenames
-    ]
+    )
 
     for root, dirnames, filenames in os.walk(path):
         dirnames.sort()
         filenames.sort()
 
-        # Normalize dirnames for better matching.
-        dirnames_normalized = [os.path.normcase(dirname) for dirname in dirnames]
-        for ignore_dir in ignore_dirs:
-            if ignore_dir in dirnames_normalized:
-                idx = dirnames_normalized.index(ignore_dir)
-                del dirnames[idx]
-                del dirnames_normalized[idx]
-
-        # Compare to normalized filenames for better matching.
-        filenames = [
-            filename
-            for filename in filenames
-            if os.path.normcase(filename) not in ignore_filenames
+        dirnames[:] = [
+            dirname
+            for dirname in dirnames
+            if os.path.normcase(dirname) not in ignore_dirs
         ]
 
         for filename in filenames:
-            if os.path.normcase(filename).endswith(ignore_suffixes):
+            if os.path.normcase(filename) in ignore_filenames:
                 continue
 
-            if only_suffixes and not os.path.normcase(filename).endswith(only_suffixes):
+            if hasFilenameSuffix(filename, ignore_suffixes):
+                continue
+
+            if only_suffixes and not hasFilenameSuffix(filename, only_suffixes):
                 continue
 
             fullname = getNormalizedPathJoin(root, filename)
@@ -696,7 +690,7 @@ def getSubDirectories(path, ignore_dirs=(), ignore_permission_error=False):
 
     result = []
 
-    ignore_dirs = [os.path.normcase(ignore_dir) for ignore_dir in ignore_dirs]
+    ignore_dirs = set(os.path.normcase(ignore_dir) for ignore_dir in ignore_dirs)
 
     def _onError(_error):
         pass
@@ -709,11 +703,11 @@ def getSubDirectories(path, ignore_dirs=(), ignore_permission_error=False):
 
     try:
         for root, dirnames, _filenames in os.walk(path, **walk_kwargs):
-            # Normalize dirnames for better matching.
-            dirnames_normalized = [os.path.normcase(dirname) for dirname in dirnames]
-            for ignore_dir in ignore_dirs:
-                if ignore_dir in dirnames_normalized:
-                    dirnames.remove(ignore_dir)
+            dirnames[:] = [
+                dirname
+                for dirname in dirnames
+                if os.path.normcase(dirname) not in ignore_dirs
+            ]
 
             dirnames.sort()
 
@@ -1058,6 +1052,29 @@ def hasFilenameExtension(path, extensions):
         return extension == extensions
     else:
         return extension in extensions
+
+
+def hasFilenameSuffix(filename, suffixes):
+    """Check if a filename ends with one of the given suffixes.
+
+    Args:
+        filename: Filename or path to check.
+        suffixes: Suffix or iterable of suffixes, e.g. '.so'.
+
+    Returns:
+        bool: True if the filename ends with one of the suffixes.
+
+    Notes:
+        Both sides are normalized with 'os.path.normcase' before the
+        comparison, and a single string is treated as one suffix rather
+        than an iterable of characters.
+    """
+    if isinstance(suffixes, basestring):
+        suffixes = (suffixes,)
+
+    return os.path.normcase(filename).endswith(
+        tuple(os.path.normcase(suffix) for suffix in suffixes)
+    )
 
 
 def addFilenameExtension(path, extension):
