@@ -889,7 +889,7 @@ class ExpressionComplexShapeExactMixin(
 class ExpressionSliceShapeExactMixin(
     ExpressionNonIterableTypeShapeMixin, ExpressionSpecificExactMixinBase
 ):
-    """Mixin for nodes with exact complex shape."""
+    """Mixin for nodes with exact slice shape."""
 
     __slots__ = ()
 
