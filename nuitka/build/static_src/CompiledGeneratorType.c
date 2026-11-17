@@ -357,20 +357,12 @@ static PyObject *_Nuitka_YieldFromGeneratorCore(PyThreadState *tstate, struct Nu
                                                 PyObject *yield_from, PyObject *send_value) {
     // Send iteration value to the sub-generator, which may be a CPython
     // generator object, something with an iterator next, or a send method,
-    // where the later is only required if values other than "None" need to
+    // where the latter is only required if values other than "None" need to
     // be passed in.
     CHECK_OBJECT(yield_from);
     assert(send_value != NULL || HAS_ERROR_OCCURRED(tstate));
 
     PyObject *retval;
-
-#if 0
-    PRINT_STRING("YIELD CORE:");
-    PRINT_ITEM( value );
-    PRINT_ITEM( send_value );
-
-    PRINT_NEW_LINE();
-#endif
 
     struct Nuitka_ExceptionPreservationItem exception_state;
     FETCH_ERROR_OCCURRED_STATE(tstate, &exception_state);

@@ -451,13 +451,7 @@ def _getPathContribution(use_path):
 
 
 def shallIncludeVCRedistDLL(dll_filename):
-    """Decide whether 'dll_filename' passes the MSVC redistributable DLL filter.
-
-    Returns:
-        bool: False if no MSVC redistributable directory is found, or if
-        'dll_filename' resides there and Windows runtime DLL inclusion is
-        disabled; True otherwise (including for non-redistributable DLLs).
-    """
+    """Return True if 'dll_filename' is an MSVC redistributable DLL to be included."""
 
     vc_redist_path = getMSVCRedistPath(logger=inclusion_logger)
     if vc_redist_path is None:
