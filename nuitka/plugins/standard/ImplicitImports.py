@@ -664,8 +664,8 @@ tuple(
                 sub_module_name, _sub_attribute_name = attribute_desc.split(":")
 
                 if sub_module_name not in vllm_submodule_attrs:
-                    vllm_submodule_attrs[attribute_name] = []
-                vllm_submodule_attrs[attribute_name].append(sub_module_name)
+                    vllm_submodule_attrs[sub_module_name] = []
+                vllm_submodule_attrs[sub_module_name].append(attribute_name)
 
             self._addLazyLoader(
                 module_name=module_name,
