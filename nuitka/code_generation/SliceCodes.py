@@ -27,24 +27,14 @@ from .IndexCodes import (
 )
 
 
-def _isSmallNumberConstant(node):
-    if node.isNumberConstant():
-        value = node.getCompileTimeConstant()
-        return abs(int(value)) < 2**63 - 1
-    else:
-        return False
-
-
 def _generateSliceRangeIdentifier(lower, upper, scope, emit, context):
     lower_name = context.allocateTempName(scope + "slicedel_index_lower", "Py_ssize_t")
     upper_name = context.allocateTempName(scope + "_index_upper", "Py_ssize_t")
 
-    if lower is None:
+    if lower is None or lower.isExpressionConstantNoneRef():
         getMinIndexCode(to_name=lower_name, emit=emit)
-    elif lower.isExpressionConstantRef() and _isSmallNumberConstant(lower):
-        getIndexValueCode(
-            to_name=lower_name, value=int(lower.getCompileTimeConstant()), emit=emit
-        )
+    elif lower.isExpressionIntegerSubscript():
+        getIndexValueCode(to_name=lower_name, value=lower.getIndexValue(), emit=emit)
     else:
         value_name = context.allocateTempName(scope + "_lower_index_value")
 
@@ -56,12 +46,10 @@ def _generateSliceRangeIdentifier(lower, upper, scope, emit, context):
             to_name=lower_name, value_name=value_name, emit=emit, context=context
         )
 
-    if upper is None:
+    if upper is None or upper.isExpressionConstantNoneRef():
         getMaxIndexCode(to_name=upper_name, emit=emit)
-    elif upper.isExpressionConstantRef() and _isSmallNumberConstant(upper):
-        getIndexValueCode(
-            to_name=upper_name, value=int(upper.getCompileTimeConstant()), emit=emit
-        )
+    elif upper.isExpressionIntegerSubscript():
+        getIndexValueCode(to_name=upper_name, value=upper.getIndexValue(), emit=emit)
     else:
         value_name = context.allocateTempName(scope + "_upper_index_value")
 
