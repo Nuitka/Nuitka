@@ -9,8 +9,6 @@ result of it can be predicted still, and these are interesting for warnings.
 
 """
 
-import math
-
 from nuitka.PythonVersions import python_version
 from nuitka.specs import BuiltinParameterSpecs
 
@@ -171,7 +169,7 @@ class ExpressionBuiltinRange1(
         if length is None:
             return None
 
-        if element_index > length:
+        if element_index >= length:
             return None
 
         # TODO: Make sure to cast element_index to what CPython will give, for
@@ -329,14 +327,11 @@ class ExpressionBuiltinRange3(
             if step < 0:
                 estimate = 0
             else:
-                estimate = math.ceil(float(high - low) / step)
+                estimate = (high - low - 1) // step + 1
+        elif low > high and step < 0:
+            estimate = (low - high - 1) // (-step) + 1
         else:
-            if step > 0:
-                estimate = 0
-            else:
-                estimate = math.ceil(float(high - low) / step)
-
-        estimate = round(estimate)
+            estimate = 0
 
         assert estimate >= 0
 
@@ -377,9 +372,12 @@ class ExpressionBuiltinRange3(
 
         step = self.subnode_step.getIntegerValue()
 
+        if step is None or step == 0:
+            return None
+
         result = low + step * element_index
 
-        if result >= high:
+        if (result >= high) if step > 0 else (result <= high):
             return None
         else:
             return makeConstantReplacementNode(
@@ -505,7 +503,7 @@ class ExpressionBuiltinXrange1(
         if length is None:
             return None
 
-        if element_index > length:
+        if element_index >= length:
             return None
 
         # TODO: Make sure to cast element_index to what CPython will give, for
@@ -635,14 +633,11 @@ class ExpressionBuiltinXrange3(
             if step < 0:
                 estimate = 0
             else:
-                estimate = math.ceil(float(high - low) / step)
+                estimate = (high - low - 1) // step + 1
+        elif low > high and step < 0:
+            estimate = (low - high - 1) // (-step) + 1
         else:
-            if step > 0:
-                estimate = 0
-            else:
-                estimate = math.ceil(float(high - low) / step)
-
-        estimate = round(estimate)
+            estimate = 0
 
         assert estimate >= 0
 
@@ -661,9 +656,12 @@ class ExpressionBuiltinXrange3(
 
         step = self.subnode_step.getIntegerValue()
 
+        if step is None or step == 0:
+            return None
+
         result = low + step * element_index
 
-        if result >= high:
+        if (result >= high) if step > 0 else (result <= high):
             return None
         else:
             return makeConstantReplacementNode(
