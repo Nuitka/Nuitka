@@ -392,6 +392,7 @@ class CacheLock(object):
         self._mutexName = u"Local\\" + mutexName
         self._mutex = None
         self._timeoutMs = timeoutMs
+        self._acquired = False
 
     def createMutex(self):
         with CacheLock2():
@@ -417,7 +418,6 @@ class CacheLock(object):
             self._mutex, wintypes.INT(self._timeoutMs)
         )
 
-
         if result not in [0, self.WAIT_ABANDONED_CODE]:
             # Nuitka: Just give up
             return
@@ -435,8 +435,12 @@ class CacheLock(object):
                 )
             raise CacheLockException(errorString)
 
+        self._acquired = True
+
     def release(self):
-        windll.kernel32.ReleaseMutex(self._mutex)
+        if self._acquired:
+            self._acquired = False
+            windll.kernel32.ReleaseMutex(self._mutex)
 
     @staticmethod
     def forPath(path):
@@ -1618,7 +1622,9 @@ def invokeRealCompiler(
     # Environment variable set by the Visual Studio IDE to make cl.exe write
     # Unicode output to named pipes instead of stdout. Unset it to make sure
     # we can catch stdout output.
-    environment.pop("VS_UNICODE_OUTPUT", None)
+    if "VS_UNICODE_OUTPUT" in environment:
+        environment = dict(environment)
+        environment.pop("VS_UNICODE_OUTPUT", None)
 
     returnCode = None
     stdout = b""
@@ -1911,7 +1917,10 @@ def run(cache, compiler, compiler_args, env):
     printTraceStatement("Found real compiler binary at '{0!s}'".format(compiler))
 
     if "CLCACHE_DISABLE" in os.environ:
-        exit_code, out, err = invokeRealCompiler(compiler, compiler_args, env)
+        exit_code, out, err = invokeRealCompiler(
+            compiler, compiler_args, captureOutput=True, environment=env
+        )
+        printOutAndErr(out, err)
         return exit_code, [out], [err]
     else:
         return processCompileRequest(cache, compiler, compiler_args, env)
@@ -2003,7 +2012,9 @@ def processCompileRequest(cache, compiler, args, env):
         )
         updateCacheStatistics(cache, Statistics.registerCallForPreprocessing)
 
-    exitCode, out, err = invokeRealCompiler(compiler, args, env)
+    exitCode, out, err = invokeRealCompiler(
+        compiler, args, captureOutput=True, environment=env
+    )
     printOutAndErr(out, err)
     return exitCode, [out], [err]
 
@@ -2082,7 +2093,9 @@ def processSingleSource(compiler, cmdLine, sourceFile, objectFile, environment):
             )
 
     except IncludeNotFoundException:
-        return invokeRealCompiler(compiler, cmdLine, environment=environment)
+        return invokeRealCompiler(
+            compiler, cmdLine, captureOutput=True, environment=environment
+        )
     except CompilerFailedException as e:
         return e.getReturnTuple()
 
