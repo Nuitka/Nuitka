@@ -562,7 +562,7 @@ def isDistributionVendored(distribution_name):
 
 
 def isDistributionMsys2Package(distribution_name):
-    if not isAnacondaPython():
+    if not isMSYS2MingwPython() and not isPosixWindows():
         return False
 
     return getDistributionInstallerName(distribution_name).startswith("MSYS2")
