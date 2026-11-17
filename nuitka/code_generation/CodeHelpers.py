@@ -283,15 +283,16 @@ def setStatementDispatchDict(dispatch_dict, update=False):
 def generateStatementCode(statement, emit, context):
     try:
         with withBorrowedValueScope(context):
-            _statement_dispatch_dict[statement.kind](
-                statement=statement, emit=emit, context=context
-            )
+            with context.withCurrentSourceCodeReference(statement.getSourceReference()):
+                _statement_dispatch_dict[statement.kind](
+                    statement=statement, emit=emit, context=context
+                )
 
-            # Complain if any temporary was not dealt with yet.
-            assert not context.getCleanupTempNames(), (
-                statement.asXmlText(),
-                context.getCleanupTempNames(),
-            )
+                # Complain if any temporary was not dealt with yet.
+                assert not context.getCleanupTempNames(), (
+                    statement.asXmlText(),
+                    context.getCleanupTempNames(),
+                )
     except Exception:
         printError(
             "Problem with %r at %s"

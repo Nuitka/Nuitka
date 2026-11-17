@@ -93,18 +93,21 @@ def _generateExceptionNormalizeCode(to_name, exception_type, emit, context):
             context=context,
         )
 
-        emit(
-            "%s = NORMALIZE_EXCEPTION_VALUE_FOR_RAISE(tstate, %s);"
-            % (to_name, raise_type_input_name)
-        )
+        with context.withCurrentSourceCodeReference(
+            exception_type.getCompatibleSourceReference()
+        ):
+            emit(
+                "%s = NORMALIZE_EXCEPTION_VALUE_FOR_RAISE(tstate, %s);"
+                % (to_name, raise_type_input_name)
+            )
 
-        getErrorExitCode(
-            check_name=to_name,
-            release_name=raise_type_input_name,
-            needs_check=True,
-            emit=emit,
-            context=context,
-        )
+            getErrorExitCode(
+                check_name=to_name,
+                release_name=raise_type_input_name,
+                needs_check=True,
+                emit=emit,
+                context=context,
+            )
 
         context.addCleanupTempName(to_name)
 

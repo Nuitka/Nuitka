@@ -433,9 +433,10 @@ class PythonContextBase(getMetaClassBase("Context", require_slots=True)):
     def withCurrentSourceCodeReference(self, value):
         old_source_ref = self.setCurrentSourceCodeReference(value)
 
-        yield old_source_ref
-
-        self.setCurrentSourceCodeReference(value)
+        try:
+            yield old_source_ref
+        finally:
+            self.setCurrentSourceCodeReference(old_source_ref)
 
     def getInplaceLeftName(self):
         return self.allocateTempName("inplace_orig", "PyObject *", True)
@@ -1266,6 +1267,8 @@ class PythonFunctionOutlineContext(
 
         self.variable_storage = parent.variable_storage
         self.exception_variables = None
+
+        self.setCurrentSourceCodeReference(parent.getCurrentSourceCodeReference())
 
     def getOwner(self):
         return self.outline
