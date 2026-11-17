@@ -7,6 +7,7 @@ from __future__ import print_function
 
 import os
 import pickle
+import shlex
 import sys
 
 from nuitka.__past__ import (  # pylint: disable=redefined-builtin
@@ -18,7 +19,7 @@ from nuitka.containers.OrderedDicts import OrderedDict
 from nuitka.Progress import enableThreading
 from nuitka.PythonFlavors import isTermuxPython
 from nuitka.Tracing import scons_details_logger, scons_logger
-from nuitka.utils.Execution import executeProcess
+from nuitka.utils.Execution import executeProcess, quoteForShell
 from nuitka.utils.FileOperations import (
     changeFilenameExtension,
     deleteFile,
@@ -28,6 +29,7 @@ from nuitka.utils.FileOperations import (
     getFileSize,
     getNormalizedPath,
     getNormalizedPathJoin,
+    getUserInputNormalizedPath,
     listDir,
     openPickleFile,
     openTextFile,
@@ -144,51 +146,115 @@ def enableFlagSettings(env, name, experimental_flags):
             env.Append(CPPDEFINES=["_NUITKA_%s" % flag_name])
 
 
+def splitCompilerCommand(command_line):
+    """Split a compiler command line into the compiler path and its options.
+
+    Notes:
+        Native Windows paths routinely contain spaces without any quoting, e.g.
+        'CC=C:\\Program Files\\LLVM\\bin\\clang.exe' set from 'cmd.exe', which
+        'shlex' would split at the space, hence the compiler executable is
+        searched for by growing the leading part of the command line.
+
+    Args:
+        command_line: Value of 'CC' or 'CXX', may contain extra compiler options.
+
+    Returns:
+        List of command parts, the first one being the compiler path without quotes.
+    """
+    if not isWin32Windows():
+        return shlex.split(command_line)
+
+    command_parts = command_line.split()
+
+    for count in range(1, len(command_parts) + 1):
+        candidate = " ".join(command_parts[:count]).strip("\"'")
+
+        if os.path.exists(getUserInputNormalizedPath(candidate)):
+            return [candidate] + command_parts[count:]
+
+    if command_parts:
+        command_parts[0] = command_parts[0].strip("\"'")
+
+    return command_parts
+
+
+def getQuotedCompilerPath(compiler_path):
+    """Quote a compiler path for use in an SCons command line value, if needed.
+
+    Notes:
+        SCons splits values such as 'CC' into a command line, so native Windows
+        paths containing spaces have to be quoted to survive as one argument.
+    """
+    if isWin32Windows() and " " in compiler_path:
+        return '"%s"' % compiler_path
+
+    return compiler_path
+
+
 def _prepareFromEnvironmentVar(var_name):
+    """Prepare environment for the later compiler detection.
+
+    Returns:
+        Tuple of MinGW mode and the detected Zig executable path, the latter
+        is None for other compilers.
+    """
     mingw_mode = False
-    zig_mode = False
+    zig_exe_path = None
 
     # Add environment specified compilers to the PATH variable.
     if var_name in os.environ:
         scons_details_logger.info("%s='%s'" % (var_name, os.environ[var_name]))
 
-        os.environ[var_name] = os.path.normpath(
-            os.path.expanduser(os.environ[var_name])
-        )
+        command_parts = splitCompilerCommand(os.environ[var_name])
 
-        if os.path.isdir(os.environ[var_name]):
+        if not command_parts:
+            return mingw_mode, zig_exe_path
+
+        command_parts[0] = getUserInputNormalizedPath(command_parts[0])
+        compiler_path = command_parts[0]
+
+        if isWin32Windows():
+            command_parts[0] = getQuotedCompilerPath(command_parts[0])
+
+            os.environ[var_name] = " ".join(command_parts)
+        else:
+            os.environ[var_name] = " ".join(
+                quoteForShell(part) for part in command_parts
+            )
+
+        if os.path.isdir(compiler_path):
             return scons_logger.sysexit(
                 "Error, the '%s' variable must point to file, not directory." % var_name
             )
 
-        if os.path.sep in os.environ[var_name]:
-            cc_dirname = os.path.dirname(os.environ[var_name])
+        if os.path.sep in compiler_path:
+            cc_dirname = os.path.dirname(compiler_path)
             if os.path.isdir(cc_dirname):
                 addToPATH(None, cc_dirname, prefix=True)
 
-        if os.name == "nt" and isGccName(os.path.basename(os.environ[var_name])):
+        if os.name == "nt" and isGccName(os.path.basename(compiler_path)):
             scons_details_logger.info(
                 "Environment %s seems to be a gcc, enabling mingw_mode." % var_name
             )
             mingw_mode = True
 
-        if isZigName(os.path.basename(os.environ[var_name])):
+        if isZigName(os.path.basename(compiler_path)):
             scons_details_logger.info(
-                "Environment %s seems to be a gcc, enabling zig_mode." % var_name
+                "Environment %s seems to be a zig, enabling zig_mode." % var_name
             )
-            zig_mode = True
+            zig_exe_path = compiler_path
 
-    return mingw_mode, zig_mode
+    return mingw_mode, zig_exe_path
 
 
 def _prepareEnvironment(mingw_mode):
-    mingw_mode_from_env, zig_mode = _prepareFromEnvironmentVar("CC")
+    mingw_mode_from_env, zig_exe_path = _prepareFromEnvironmentVar("CC")
     _prepareFromEnvironmentVar("CXX")
 
     if mingw_mode_from_env:
         mingw_mode = True
 
-    return mingw_mode, zig_mode
+    return mingw_mode, zig_exe_path
 
 
 def createEnvironment(
@@ -212,11 +278,14 @@ def createEnvironment(
 
     # Prepare environment for compiler detection.
     if consider_environ_variables:
-        mingw_mode, zig_mode_env = _prepareEnvironment(mingw_mode=mingw_mode)
+        mingw_mode, zig_exe_path_env = _prepareEnvironment(mingw_mode=mingw_mode)
     else:
-        zig_mode_env = False
+        zig_exe_path_env = None
 
-    zig_mode = zig_mode_env or bool(zig_exe_path)
+    if zig_exe_path is None:
+        zig_exe_path = zig_exe_path_env
+
+    zig_mode = bool(zig_exe_path)
 
     wasi_sdk_path = getArgumentDefaulted("wasi_sdk_path", None)
     if wasi_sdk_path is not None:

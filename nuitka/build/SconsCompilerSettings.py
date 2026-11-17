@@ -61,6 +61,7 @@ from .SconsUtils import (
     getLinkerArch,
     getMsvcVersion,
     getMsvcVersionString,
+    getQuotedCompilerPath,
     initScons,
     isClangName,
     isGccName,
@@ -68,6 +69,7 @@ from .SconsUtils import (
     linkSystemLibrary,
     raiseNoCompilerFoundErrorExit,
     setEnvironmentVariable,
+    splitCompilerCommand,
 )
 from .WindowsObjGenerator import generateWindowsCoffObject
 
@@ -330,7 +332,13 @@ def checkWindowsCompilerFound(
 
     # On Windows, in case MSVC was not found and not previously forced, use the
     # winlibs MinGW64 or zig as a download, and use it as a fallback.
-    compiler_path = getExecutablePath(env["CC"], env=env)
+    compiler_command_parts = splitCompilerCommand(env["CC"])
+
+    compiler_path = (
+        getExecutablePath(compiler_command_parts[0], env=env)
+        if compiler_command_parts
+        else None
+    )
 
     scons_details_logger.info(
         "Checking usability of binary '%s' from environment '%s'."
@@ -513,7 +521,9 @@ For Python version %s MSVC %s or later is required, not %s which is too old."""
             )
 
             if clang_mode:
-                env["CC"] = os.path.join(os.path.dirname(compiler_path), "clang.exe")
+                env["CC"] = getQuotedCompilerPath(
+                    os.path.join(os.path.dirname(compiler_path), "clang.exe")
+                )
         elif download_mode != DOWNLOAD_MODE_NO:
             raiseNoCompilerFoundErrorExit()
         else:
@@ -597,7 +607,9 @@ def createEnvironmentAndCheckCompiler(
 
         raiseNoCompilerFoundErrorExit()
 
-    env.the_compiler = env["CC"] or env["CXX"]
+    compiler_command_parts = splitCompilerCommand(env["CC"] or env["CXX"])
+
+    env.the_compiler = compiler_command_parts[0] if compiler_command_parts else ""
     env.the_cc_name = os.path.normcase(os.path.basename(env.the_compiler))
 
     # Requested or user provided, detect if it's clang even from environment
@@ -2333,8 +2345,7 @@ version (>= 5.3).""" % (env.the_compiler, env.gcc_version))
                 env.the_compiler = the_gpp_compiler_path
                 env.the_cc_name = env.the_cc_name.replace("gcc", "g++")
 
-                env["CC"] = env.the_compiler
-                env["CXX"] = env.the_compiler
+                env["CC"] = env["CXX"] = getQuotedCompilerPath(env.the_compiler)
             else:
                 scons_logger.sysexit("""\
 Error, your gcc is too old for C11 support, and no g++ ('%s') to

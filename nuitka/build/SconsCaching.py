@@ -36,6 +36,7 @@ from .SconsUtils import (
     getExecutablePath,
     getSconsReportValue,
     setEnvironmentVariable,
+    splitCompilerCommand,
 )
 
 # Store for per-module ccache stats retrieved from the Scons build
@@ -100,7 +101,7 @@ def _getArchCcacheRunPrefixes(ccache_binary, arch_prefix):
     return ccache_run_prefix, compiler_run_prefix
 
 
-def _injectCcache(env, cc_path, python_prefix, download_mode):
+def _injectCcache(env, cc_path, cc_options, python_prefix, download_mode):
     ccache_binary = os.getenv("NUITKA_CCACHE_BINARY")
 
     # If not provided, search it in PATH and guessed directories.
@@ -180,13 +181,21 @@ def _injectCcache(env, cc_path, python_prefix, download_mode):
             link_values = arch_prefix + compiler_values
 
         # We use absolute paths for CC, pass it like this, as ccache does not like absolute.
-        env["CXX"] = env["CC"] = " ".join(
+        ccache_command = " ".join(
             '"%s"' % value
             for value in ccache_run_prefix
             + (ccache_binary,)
             + compiler_run_prefix
             + compiler_values
         )
+
+        # Compiler options from e.g. 'CC' have to reach the compiler behind the
+        # ccache, and since SCons splits the value like a shell command line,
+        # their quoting is kept as given, rather than added to.
+        if cc_options:
+            ccache_command += " " + " ".join(cc_options)
+
+        env["CXX"] = env["CC"] = ccache_command
 
         # Spare ccache the detection of the compiler, seems it will also misbehave when it's
         # prefixed with "ccache" on old gcc versions in terms of detecting need for C++ linkage.
@@ -195,6 +204,26 @@ def _injectCcache(env, cc_path, python_prefix, download_mode):
         return True
 
     return False
+
+
+def _getCompilerOptions(env):
+    """Get the compiler options from the 'CC' or 'CXX' value.
+
+    Returns:
+        List of options the compiler is invoked with.
+
+    Notes:
+        On ARM64 macOS, an x86_64 process runs the compiler with the
+        '/usr/bin/arch -arm64' prefix, which is not a compiler option.
+    """
+    command_parts = splitCompilerCommand(env["CC"] or env["CXX"] or "")
+
+    arch_prefix = getArchCommandPrefix()
+
+    if arch_prefix and tuple(command_parts[: len(arch_prefix)]) == arch_prefix:
+        command_parts = command_parts[len(arch_prefix) :]
+
+    return command_parts[1:]
 
 
 def enableCcache(env, source_dir, python_prefix):
@@ -245,6 +274,7 @@ def enableCcache(env, source_dir, python_prefix):
 
         # First check if it's not already supposed to be a ccache, then do nothing.
         cc_path = getExecutablePath(env.the_compiler, env=env)
+        cc_options = _getCompilerOptions(env=env)
 
         cc_is_link, cc_link_path = getLinkTarget(cc_path)
         if cc_is_link and os.path.basename(cc_link_path) == "ccache":
@@ -259,6 +289,7 @@ def enableCcache(env, source_dir, python_prefix):
         inject_ccache = _injectCcache(
             env=env,
             cc_path=cc_path,
+            cc_options=cc_options,
             python_prefix=python_prefix,
             download_mode=env.download_mode,
         )
