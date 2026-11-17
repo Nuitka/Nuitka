@@ -3280,7 +3280,7 @@ def parseOptions(logger):
             if arg.startswith(("--main=", "--script-name=")):
                 filename_args.append(arg.split("=", 1)[1])
 
-            if arg in ("--mode=module", "--mode=module", "--module=package"):
+            if arg in ("--module", "--mode=module", "--mode=package"):
                 module_mode = True
 
             if arg[0] != "-":
