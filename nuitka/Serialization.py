@@ -31,7 +31,7 @@ from nuitka.code_generation.SpecialConstantData import (
     SpecialConstantBase,
     getConstantCType,
 )
-from nuitka.Constants import TargetVersionInfo
+from nuitka.Constants import EllipsisType, TargetVersionInfo
 from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.OutputDirectories import getSourceDirectoryPath
 from nuitka.PythonVersions import python_version
@@ -125,7 +125,7 @@ class ConstantStreamWriter(object):
         self.file, self.pickle = openPickleFile(filename, "wb")
 
         self.pickle.dispatch[type] = _pickleAnonValues
-        self.pickle.dispatch[type(Ellipsis)] = _pickleAnonValues
+        self.pickle.dispatch[EllipsisType] = _pickleAnonValues
         self.pickle.dispatch[type(NotImplemented)] = _pickleAnonValues
 
         if type(sys.version_info) is not tuple:

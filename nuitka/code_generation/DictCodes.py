@@ -138,7 +138,7 @@ def _hasOnlyUnicodeKeys(pairs):
 
         if (
             not key_node.isCompileTimeConstant()
-            or type(key_node.getCompileTimeConstant()) is not unicode
+            or key_node.getCompileTimeConstantType() is not unicode
         ):
             return False
 
