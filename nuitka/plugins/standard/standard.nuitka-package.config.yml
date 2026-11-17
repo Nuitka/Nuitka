@@ -11260,11 +11260,10 @@
       change_function:
         '_test': 'un-callable'
 
-- module-name: 'zope.interface._compat' # checksum: 5a8f0d92
+- module-name: 'zope.interface._compat' # checksum: 1b9a8332
   anti-bloat:
     - description: 'remove unittest reference'
       change_function:
-        # TODO: For a decorator, this looks breaking
-        '_skip_under_py2': "'(lambda test_method: None)'"
-        '_skip_under_py3k': "'(lambda test_method: None)'"
+        '_skip_under_py2': "'(lambda test_method: test_method)'"
+        '_skip_under_py3k': "'(lambda test_method: test_method)'"
       when: 'not use_unittest'
