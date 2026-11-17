@@ -10,7 +10,7 @@ to read their contents.
 import struct
 from binascii import crc32
 
-from nuitka.__past__ import md5, unicode
+from nuitka.__past__ import long, md5, unicode
 from nuitka.containers.OrderedDicts import OrderedDict
 
 
@@ -19,7 +19,7 @@ class HashBase(object):
 
     def updateFromValues(self, *values):
         for value in values:
-            if type(value) is int:
+            if type(value) in (int, long):
                 value = str(value)
 
             if type(value) in (str, unicode):
@@ -29,6 +29,8 @@ class HashBase(object):
                 self.updateFromBytes(value)
             elif type(value) is bytes:
                 self.updateFromBytes(value)
+            elif type(value) is bool:
+                self.updateFromBytes(b"true" if value else b"false")
             elif type(value) is OrderedDict:
                 self.updateFromBytes(b"dict")
                 self.updateFromValues(*value.items())
