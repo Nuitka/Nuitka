@@ -685,7 +685,12 @@ def mangleName(name, owner):
         if class_container is None:
             return name
         else:
-            return "_%s%s" % (class_container.getName().lstrip("_"), name)
+            class_name = class_container.getName().lstrip("_")
+
+            if not class_name:
+                return name
+            else:
+                return "_%s%s" % (class_name, name)
 
 
 def makeCallNode(called, *args, **kwargs):
