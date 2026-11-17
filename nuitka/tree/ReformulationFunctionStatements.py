@@ -206,11 +206,10 @@ def buildFunctionNode(provider, node, source_ref):
     onFunctionBodyParsing(provider=provider, function_name=node.name, body=node.body)
 
     if compilation_mode != "compiled":
-        node.name = mangleName(node.name, provider)
-
         return buildBytecodeOrSourceFunction(
             provider=provider,
             node=node,
+            function_name=mangleName(node.name, provider),
             compilation_mode=compilation_mode,
             source_ref=source_ref,
             logger=compilation_logger,
@@ -408,6 +407,7 @@ def buildAsyncFunctionNode(provider, node, source_ref):
         return buildBytecodeOrSourceFunction(
             provider=provider,
             node=node,
+            function_name=mangleName(node.name, provider),
             compilation_mode=compilation_mode,
             source_ref=source_ref,
             logger=compilation_logger,

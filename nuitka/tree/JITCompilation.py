@@ -8,7 +8,10 @@ import symtable
 
 from nuitka.nodes.BuiltinDictNodes import ExpressionBuiltinDict
 from nuitka.nodes.ConstantRefNodes import makeConstantRefNode
-from nuitka.nodes.DictionaryNodes import StatementDictOperationSet
+from nuitka.nodes.DictionaryNodes import (
+    StatementDictOperationRemove,
+    StatementDictOperationSet,
+)
 from nuitka.nodes.ExecEvalNodes import ExpressionBuiltinExec
 from nuitka.nodes.GlobalsLocalsNodes import ExpressionBuiltinGlobals
 from nuitka.nodes.KeyValuePairNodes import (
@@ -293,10 +296,7 @@ def decideFunctionCompilationMode(provider, node, decorators):
     return compilation_mode, compilation_logger
 
 
-def buildBytecodeOrSourceFunction(provider, node, compilation_mode, source_ref, logger):
-    # TODO: Compile to bytecode at compile time when compilation_mode == "bytecode"
-    # so source code does not need to be embedded in the binary.
-    # pylint: disable=unused-argument
+def _getFunctionSourceCode(node, logger):
     source_line = node.lineno
 
     if node.decorator_list:
@@ -306,7 +306,16 @@ def buildBytecodeOrSourceFunction(provider, node, compilation_mode, source_ref, 
 
     # Preserve line numbers, so that source inspection of the bytecode
     # function finds the right lines in the module source.
-    source_code = "\n" * (source_line - 1) + unparseNode(node, logger=logger)
+    return "\n" * (source_line - 1) + unparseNode(node, logger=logger)
+
+
+def buildBytecodeOrSourceFunction(
+    provider, node, function_name, compilation_mode, source_ref, logger
+):
+    # TODO: Compile to bytecode at compile time when compilation_mode == "bytecode"
+    # so source code does not need to be embedded in the binary.
+    # pylint: disable=unused-argument
+    source_code = _getFunctionSourceCode(node=node, logger=logger)
 
     source = makeConstantRefNode(
         constant=source_code,
@@ -340,7 +349,7 @@ def buildBytecodeOrSourceFunction(provider, node, compilation_mode, source_ref, 
                         ),
                     )
                     for variable_name in free_variable_names
-                    if variable_name != node.name
+                    if variable_name != function_name
                 ),
                 source_ref=source_ref,
             )
@@ -373,15 +382,17 @@ def buildBytecodeOrSourceFunction(provider, node, compilation_mode, source_ref, 
         )
     ]
 
-    if provider.isExpressionFunctionBody():
-        # The "exec" updates the locals dictionary, but not the optimized
-        # local variable of the function body. Assign the defined name back,
-        # so that nested uncompiled functions and classes remain visible.
+    if function_name != node.name:
+        # CPython mangles class-private names for the binding, but keeps the
+        # function's '__name__' unmangled, so move the executed definition from
+        # its source name to the binding name.
         exec_statements.append(
-            StatementAssignmentVariableName(
-                provider=provider,
-                variable_name=node.name,
-                source=makeExpressionIndexLookup(
+            StatementDictOperationSet(
+                dict_arg=makeVariableRefNode(
+                    variable=locals_ref.getVariable(), source_ref=source_ref
+                ),
+                key=makeConstantRefNode(constant=function_name, source_ref=source_ref),
+                value=makeExpressionIndexLookup(
                     expression=makeVariableRefNode(
                         variable=locals_ref.getVariable(), source_ref=source_ref
                     ),
@@ -391,8 +402,36 @@ def buildBytecodeOrSourceFunction(provider, node, compilation_mode, source_ref, 
                 source_ref=source_ref,
             )
         )
+        exec_statements.append(
+            StatementDictOperationRemove(
+                dict_arg=makeVariableRefNode(
+                    variable=locals_ref.getVariable(), source_ref=source_ref
+                ),
+                key=makeConstantRefNode(constant=node.name, source_ref=source_ref),
+                source_ref=source_ref,
+            )
+        )
 
-    if node.name in free_variable_names:
+    if provider.isExpressionFunctionBody():
+        # The "exec" updates the locals dictionary, but not the optimized
+        # local variable of the function body. Assign the defined name back,
+        # so that nested uncompiled functions and classes remain visible.
+        exec_statements.append(
+            StatementAssignmentVariableName(
+                provider=provider,
+                variable_name=function_name,
+                source=makeExpressionIndexLookup(
+                    expression=makeVariableRefNode(
+                        variable=locals_ref.getVariable(), source_ref=source_ref
+                    ),
+                    index_value=function_name,
+                    source_ref=source_ref,
+                ),
+                source_ref=source_ref,
+            )
+        )
+
+    if function_name in free_variable_names:
         # Make the function itself available in its namespace, so that
         # recursive calls resolve.
         exec_statements.append(
@@ -405,7 +444,7 @@ def buildBytecodeOrSourceFunction(provider, node, compilation_mode, source_ref, 
                     expression=makeVariableRefNode(
                         variable=locals_ref.getVariable(), source_ref=source_ref
                     ),
-                    index_value=node.name,
+                    index_value=function_name,
                     source_ref=source_ref,
                 ),
                 source_ref=source_ref,
