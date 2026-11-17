@@ -1129,9 +1129,8 @@ Compile time constant float value pre-computed.""",
     def computeExpressionBytes(self, bytes_node, trace_collection):
         constant_value = self.getCompileTimeConstant()
 
-        if type(constant_value) in (int, long):
-            if constant_value > 1000:
-                return bytes_node, None, None
+        if type(constant_value) in (int, long) and constant_value > 1000:
+            return bytes_node, None, None
 
         return trace_collection.getCompileTimeComputationResult(
             node=bytes_node,

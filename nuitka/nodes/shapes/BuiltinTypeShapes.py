@@ -248,8 +248,8 @@ olddiv_shapes_dict = olddiv_shapes_none
 mod_shapes_dict = mod_shapes_none
 divmod_shapes_dict = divmod_shapes_none
 pow_shapes_dict = pow_shapes_none
-bitor_shapes_dict = dict(bitor_shapes_none)
-ibitor_shapes_dict = dict(bitor_shapes_none)
+bitor_shapes_dict = {}
+ibitor_shapes_dict = {}
 bitand_shapes_dict = bitand_shapes_none
 bitxor_shapes_dict = bitxor_shapes_none
 lshift_shapes_dict = lshift_shapes_none
@@ -2231,11 +2231,13 @@ _rejectEverything(mod_shapes_none, operation_result_unsupported_mod)
 _rejectEverything(divmod_shapes_none, operation_result_unsupported_divmod)
 _rejectEverything(pow_shapes_none, operation_result_unsupported_pow)
 _rejectEverything(bitor_shapes_none, operation_result_unsupported_bitor)
+bitor_shapes_dict.update(bitor_shapes_none)
+ibitor_shapes_dict.update(bitor_shapes_none)
 _rejectEverything(bitand_shapes_none, operation_result_unsupported_bitand)
 _rejectEverything(bitxor_shapes_none, operation_result_unsupported_bitxor)
 _rejectEverything(lshift_shapes_none, operation_result_unsupported_lshift)
 _rejectEverything(rshift_shapes_none, operation_result_unsupported_rshift)
-_rejectEverything(matmult_shapes_none, operation_result_unsupported_rshift)
+_rejectEverything(matmult_shapes_none, operation_result_unsupported_matmult)
 
 # Other shapes share "bitor_shapes_none", but only "None | type" creates a
 # "types.UnionType" value.
@@ -2558,7 +2560,7 @@ bitand_shapes_bool.update(
     cloneWithUnsupportedChange(bitor_shapes_bool, operation_result_unsupported_bitand)
 )
 bitxor_shapes_bool.update(
-    cloneWithUnsupportedChange(bitor_shapes_bool, operation_result_unsupported_bitand)
+    cloneWithUnsupportedChange(bitor_shapes_bool, operation_result_unsupported_bitxor)
 )
 
 lshift_shapes_bool.update(
@@ -2865,7 +2867,7 @@ bitand_shapes_int.update(
     cloneWithUnsupportedChange(bitor_shapes_int, operation_result_unsupported_bitand)
 )
 bitxor_shapes_int.update(
-    cloneWithUnsupportedChange(bitor_shapes_int, operation_result_unsupported_bitand)
+    cloneWithUnsupportedChange(bitor_shapes_int, operation_result_unsupported_bitxor)
 )
 
 lshift_shapes_int.update(
@@ -3171,7 +3173,7 @@ bitand_shapes_long.update(
     cloneWithUnsupportedChange(bitor_shapes_long, operation_result_unsupported_bitand)
 )
 bitxor_shapes_long.update(
-    cloneWithUnsupportedChange(bitor_shapes_long, operation_result_unsupported_bitand)
+    cloneWithUnsupportedChange(bitor_shapes_long, operation_result_unsupported_bitxor)
 )
 
 lshift_shapes_long.update(
@@ -4242,7 +4244,7 @@ mod_shapes_bytearray.update(
         tshape_tuple: operation_result_350_bytearray_mod_noescape,
         tshape_list: operation_result_350_bytearray_mod_noescape,
         tshape_set: operation_result_350_bytearray_mod_noescape,
-        tshape_frozenset: operation_result_350_bytes_mod_noescape,
+        tshape_frozenset: operation_result_350_bytearray_mod_noescape,
         tshape_dict: operation_result_350_bytearray_mod_noescape,
         tshape_type: operation_result_350_bytearray_mod_noescape,
         tshape_none: operation_result_350_bytearray_mod_noescape,

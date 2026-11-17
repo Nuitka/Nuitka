@@ -244,7 +244,7 @@ class ExpressionConstantUntrackedRefBase(CompileTimeConstantExpressionBase):
         )
 
     def getIntegerValue(self):
-        if self.isNumberConstant():
+        if self.isIndexConstant():
             return int(self.constant)
         else:
             return None
@@ -1440,6 +1440,9 @@ class ExpressionConstantSliceRef(
     @staticmethod
     def isIterableConstant():
         return False
+
+    def isKnownToBeHashable(self):
+        return isHashable(self.constant)
 
 
 class ExpressionConstantXrangeRef(ExpressionConstantUntrackedRefBase):
