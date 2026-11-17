@@ -423,7 +423,8 @@ NUITKA_MAY_BE_UNUSED static inline struct Nuitka_ExceptionStackItem *
 GET_TOP_MOST_CURRENT_EXCEPTION_STATE(PyThreadState *tstate) {
     struct Nuitka_ExceptionStackItem *exc_state = EXC_STATE(tstate);
 
-    while (exc_state->exception_value == NULL && exc_state->previous_item != NULL) {
+    while ((exc_state->exception_value == NULL || exc_state->exception_value == Py_None) &&
+           exc_state->previous_item != NULL) {
         exc_state = (struct Nuitka_ExceptionStackItem *)exc_state->previous_item;
     }
 
@@ -1568,7 +1569,7 @@ ADD_EXCEPTION_CONTEXT(PyThreadState *tstate, struct Nuitka_ExceptionPreservation
     PyObject *context = EXC_VALUE(tstate);
 #endif
 
-    if (context != NULL) {
+    if (context != NULL && context != Py_None) {
 #if PYTHON_VERSION < 0x3c0
         NORMALIZE_EXCEPTION_STATE(tstate, exception_state);
 #endif
