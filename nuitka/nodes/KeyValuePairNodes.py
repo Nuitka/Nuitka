@@ -298,8 +298,9 @@ class ExpressionKeyValuePairConstantKeyValue(
     def mayKeyRaiseException(exception_type):
         return False
 
-    def mayValueRaiseException(self, exception_type):
-        return self.subnode_value.mayRaiseException(exception_type)
+    @staticmethod
+    def mayValueRaiseException(exception_type):
+        return False
 
     def getKeyNode(self):
         return makeConstantRefNode(

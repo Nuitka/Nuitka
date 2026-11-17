@@ -492,7 +492,7 @@ class StatementLoop(StatementLoopBase):
             last_statement = statements[-1]
             if last_statement.isStatementLoopContinue():
                 if len(statements) == 1:
-                    self.subnode_body.finalize()
+                    self.subnode_loop_body.finalize()
 
                     self.clearChild("loop_body")
                     loop_body = None
