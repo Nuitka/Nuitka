@@ -39,6 +39,18 @@ from .IncludedDataFiles import (
     makeIncludedGeneratedDataFile,
 )
 
+_macos_bundle_icon_path = None
+
+
+def getMacOSBundleIconPath():
+    """*str* or *None*, path of the icon file used in the created app bundle.
+
+    Notes:
+        Set during bundle creation so that DMG creation can reuse the actual
+        ICNS file rather than converting the user provided image a second time.
+    """
+    return _macos_bundle_icon_path
+
 
 def _writePlist(filename, data):
     """Helper to write a plist file for macOS."""
@@ -56,6 +68,11 @@ def _writePlist(filename, data):
 
 def createPlistInfoFile(logger):
     # Many details, pylint: disable=too-many-branches,too-many-locals,too-many-statements
+    # Singleton, pylint: disable=global-statement
+    global _macos_bundle_icon_path
+
+    _macos_bundle_icon_path = None
+
     if isStandaloneMode():
         bundle_dir = os.path.dirname(
             getStandaloneDirectoryPath(bundle=True, real=False)
@@ -133,7 +150,10 @@ def createPlistInfoFile(logger):
         resources_dir = os.path.join(bundle_dir, "Resources")
         makePath(resources_dir)
 
-        copyFile(icon_path, os.path.join(resources_dir, icon_name))
+        bundle_icon_path = os.path.join(resources_dir, icon_name)
+        copyFile(icon_path, bundle_icon_path)
+
+        _macos_bundle_icon_path = bundle_icon_path
 
         infos["CFBundleIconFile"] = icon_name
 

@@ -2,10 +2,11 @@
 #     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-"""Runner for Windows installer tests.
+"""Runner for installer tests.
 
 Tests option validation, script generation, installer icon conversion, and
-rejection paths for the --windows-create-installer feature.
+rejection paths for the --windows-create-installer feature, as well as icon
+reuse for the macOS DMG installer.
 """
 
 import os
@@ -22,6 +23,7 @@ sys.path.insert(
 
 # isort:start
 
+from nuitka.installer.MacOSDmg import getCreateDmgPath
 from nuitka.tools.testing.Common import (
     createSearchMode,
     my_print,
@@ -30,13 +32,14 @@ from nuitka.tools.testing.Common import (
 )
 from nuitka.Tracing import installer_logger
 from nuitka.utils.FileOperations import (
+    addFileExecutablePermission,
     getFileContents,
     getNormalizedPathJoin,
     makePath,
     putTextFileContents,
 )
 from nuitka.utils.Images import convertImageToIconFormat
-from nuitka.utils.Utils import isWin32Windows
+from nuitka.utils.Utils import isMacOS, isWin32Windows
 
 _nuitka_bin = os.path.join(os.path.dirname(__file__), "..", "..", "bin", "nuitka")
 
@@ -196,6 +199,96 @@ def _shallSkipIconTest(test_name):
     return False
 
 
+def _shallSkipDmgIconTest(test_name):
+    if not isMacOS():
+        reportSkip("Not on macOS", ".", test_name)
+        return True
+
+    if getCreateDmgPath() is None:
+        reportSkip("'create-dmg' is not installed", ".", test_name)
+        return True
+
+    try:
+        import imageio  # pylint: disable=I0021,import-error,unused-import
+    except ImportError:
+        reportSkip("'imageio' is not installed", ".", test_name)
+        return True
+
+    return False
+
+
+def _getCreateDmgWrapperDir():
+    create_dmg_path = getCreateDmgPath()
+    wrapper_dir = os.path.join(_scratch_dir, "create-dmg-wrapper")
+    makePath(wrapper_dir)
+
+    wrapper_path = os.path.join(wrapper_dir, "create-dmg")
+    putTextFileContents(
+        filename=wrapper_path,
+        # Finder automation is unavailable in headless test environments.
+        contents='#!/bin/bash\nexec "%s" --sandbox-safe "$@"\n' % create_dmg_path,
+        encoding="utf8",
+    )
+    addFileExecutablePermission(wrapper_path)
+
+    return wrapper_dir
+
+
+def _mountDmg(dmg_path):
+    # pylint: disable=consider-using-with
+    process = subprocess.Popen(
+        ("hdiutil", "attach", "-nobrowse", "-readonly", dmg_path),
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+    )
+    stdout, _stderr = process.communicate()
+
+    if process.poll() != 0:
+        return None
+
+    for line in stdout.decode("utf8", errors="replace").splitlines():
+        parts = line.split("\t")
+
+        if len(parts) >= 3 and parts[-1].startswith("/Volumes/"):
+            return parts[-1]
+
+    return None
+
+
+def _checkDmgVolumeIcon(search_mode, dmg_path):
+    if not os.path.isfile(dmg_path):
+        search_mode.onErrorDetected("DMG file does not exist: %s" % dmg_path)
+        return
+
+    mount_path = _mountDmg(dmg_path)
+
+    if mount_path is None:
+        search_mode.onErrorDetected("Could not mount DMG file: %s" % dmg_path)
+        return
+
+    try:
+        volume_icon_path = os.path.join(mount_path, ".VolumeIcon.icns")
+        bundle_icon_path = os.path.join(
+            mount_path, "hello.app", "Contents", "Resources", "Icons.icns"
+        )
+
+        if not os.path.isfile(volume_icon_path):
+            search_mode.onErrorDetected("DMG has no '.VolumeIcon.icns' file")
+        elif not os.path.isfile(bundle_icon_path):
+            search_mode.onErrorDetected("DMG app bundle has no 'Icons.icns' file")
+        else:
+            volume_icon = getFileContents(filename=volume_icon_path, mode="rb")
+
+            if volume_icon[:4] != b"icns":
+                search_mode.onErrorDetected("DMG volume icon is not an ICNS file")
+            elif volume_icon != getFileContents(filename=bundle_icon_path, mode="rb"):
+                search_mode.onErrorDetected(
+                    "DMG volume icon differs from the app bundle icon"
+                )
+    finally:
+        subprocess.call(("hdiutil", "detach", mount_path))
+
+
 @register("reject_missing_product_name")
 def reject_missing_product_name(search_mode):
     args = [a for a in _BASE_VALID_ARGS if not a.startswith("--product-name")]
@@ -289,6 +382,33 @@ def generate_nsi_icon_index(search_mode):
     _invokeNuitka(search_mode, args, expected_exit_code=0)
 
     _checkInstallerIcon(search_mode, must_not_contain="#")
+
+
+@register("generate_dmg_icon_conversion")
+def generate_dmg_icon_conversion(search_mode):
+    if _shallSkipDmgIconTest("generate_dmg_icon_conversion"):
+        return
+
+    args = [
+        "--mode=app",
+        "--macos-create-installer",
+        "--macos-installer-output=test-output.dmg",
+        "--macos-app-icon=%s" % _png_icon_path,
+        "hello.py",
+    ]
+
+    wrapper_dir = _getCreateDmgWrapperDir()
+    old_path = os.environ.get("PATH", "")
+
+    os.environ["PATH"] = wrapper_dir + os.pathsep + old_path
+    try:
+        _invokeNuitka(search_mode, args, expected_exit_code=0)
+    finally:
+        os.environ["PATH"] = old_path
+
+    _checkDmgVolumeIcon(
+        search_mode, dmg_path=os.path.join(_scratch_dir, "test-output.dmg")
+    )
 
 
 def main():
