@@ -176,7 +176,7 @@ def provideStaticSourceFilesOnefile(source_dir):
     filenames = ["OnefileBootstrap.c"]
 
     if getWindowsSplashScreen():
-        filenames.append("OnefileSplashScreen.cpp")
+        filenames.append("OnefileSplashScreen.c")
 
     _provideStaticSourceFiles(source_dir, filenames)
 
