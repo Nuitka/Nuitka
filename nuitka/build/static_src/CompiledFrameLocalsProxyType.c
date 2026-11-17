@@ -369,10 +369,15 @@ static int _Nuitka_FrameLocalsProxy_ass_subscript(PyObject *self, PyObject *key,
             return 0;
         }
         case NUITKA_TYPE_DESCRIPTION_NILONG: {
+            if (!PyLong_CheckExact(value)) {
+                SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_RuntimeError,
+                                                "type-incompatible write to dual-typed local");
+                return -1;
+            }
             nuitka_ilong *nilong = (nuitka_ilong *)slot;
+            Py_INCREF(value);
             RELEASE_NILONG_VALUE(nilong);
             SET_NILONG_OBJECT_VALUE(nilong, value);
-            Py_INCREF(value);
             return 0;
         }
         case NUITKA_TYPE_DESCRIPTION_BOOL: {
