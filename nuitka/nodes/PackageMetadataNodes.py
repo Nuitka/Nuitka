@@ -784,7 +784,7 @@ class ExpressionImportlibMetadataBackportSelectableGroupsValueRef(
 
 class ExpressionImportlibMetadataEntryPointsValueRef(
     ExpressionMakeSequenceMixin,
-    ExpressionImportlibMetadataBackportEntryPointsValueRefBase,
+    ExpressionImportlibMetadataEntryPointsValueRefBase,
 ):
     kind = "EXPRESSION_IMPORTLIB_METADATA_ENTRY_POINTS_VALUE_REF"
 
@@ -810,7 +810,8 @@ class ExpressionImportlibMetadataEntryPointsValueRef(
 
 
 class ExpressionImportlibMetadataBackportEntryPointsValueRef(
-    ExpressionMakeSequenceMixin, ExpressionImportlibMetadataEntryPointsValueRefBase
+    ExpressionMakeSequenceMixin,
+    ExpressionImportlibMetadataBackportEntryPointsValueRefBase,
 ):
     kind = "EXPRESSION_IMPORTLIB_METADATA_BACKPORT_ENTRY_POINTS_VALUE_REF"
 
