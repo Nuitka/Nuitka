@@ -594,6 +594,31 @@ def _getDistributionPath(distribution):
     return getattr(distribution, "_path", None)
 
 
+def _getDistributionPathNameAndVersion(distribution):
+    """Get the name and version encoded in a '.dist-info' directory name.
+
+    Returns:
+        Tuple of name and version, or a tuple of None values if the path
+        does not follow the naming convention.
+    """
+    distribution_path = _getDistributionPath(distribution)
+
+    if distribution_path is None:
+        return None, None
+
+    dir_name = os.path.basename(distribution_path)
+
+    if not dir_name.endswith(".dist-info"):
+        return None, None
+
+    name, separator, version = dir_name[: -len(".dist-info")].rpartition("-")
+
+    if not separator:
+        return None, None
+
+    return name, version
+
+
 def isPdmPackageInstallation(distribution):
     distribution_path = _getDistributionPath(distribution)
     if distribution_path is None:
@@ -684,20 +709,15 @@ def getDistributionName(distribution):
     result = None
 
     if hasattr(distribution, "metadata"):
-        result = distribution.metadata["Name"]
+        metadata = distribution.metadata
+
+        if metadata is not None:
+            result = metadata.get("Name")
 
         if result is None:
             installer_name = _getDistributionInstallerFileContents(distribution)
             if installer_name == "debian":
-                distribution_path = _getDistributionPath(distribution)
-
-                if distribution_path is not None:
-                    dir_name = os.path.basename(distribution_path)
-
-                    if dir_name.endswith(".dist-info"):
-                        dir_name = dir_name[:-10]
-
-                        result = dir_name.rsplit("-", 1)[0]
+                result, _version = _getDistributionPathNameAndVersion(distribution)
 
     if result is None and isAnacondaPython() and hasattr(distribution, "_path"):
         result = getCondaDistributionName(distribution)
@@ -719,7 +739,15 @@ def getDistributionVersion(distribution):
     """
     # Avoiding use of public interface for pkg_resources, pylint: disable=protected-access
     if hasattr(distribution, "metadata"):
-        return distribution.metadata["Version"]
+        metadata = distribution.metadata
+
+        if metadata is not None:
+            result = metadata.get("Version")
+
+            if result is not None:
+                return result
+
+        return _getDistributionPathNameAndVersion(distribution)[1]
     else:
         return distribution._version
 
