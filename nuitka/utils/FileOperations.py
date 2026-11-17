@@ -849,6 +849,8 @@ def getSubDirectoriesWithDlls(path, ignore_dirs=(), ignore_permission_error=Fals
 
 
 def _getSubDirectoriesWithDlls(path, ignore_dirs=(), ignore_permission_error=False):
+    path = getNormalizedPath(path)
+
     ignore_dirs = ["__pycache__"] + list(ignore_dirs)
 
     # On macOS the "Resources" directories of frameworks contain no DLLs and
@@ -869,11 +871,14 @@ def _getSubDirectoriesWithDlls(path, ignore_dirs=(), ignore_permission_error=Fal
         ) or _isMacOSFramework(sub_directory):
             yield sub_directory
 
-            candidate = os.path.dirname(sub_directory)
+            candidate = getNormalizedPath(os.path.dirname(sub_directory))
 
             while candidate != path:
                 yield candidate
-                candidate = os.path.dirname(candidate)
+
+                previous_candidate = candidate
+                candidate = getNormalizedPath(os.path.dirname(candidate))
+                assert candidate != previous_candidate, (path, sub_directory)
 
 
 def _isMacOSFramework(path):
