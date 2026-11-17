@@ -392,11 +392,11 @@ static PyObject *_Nuitka_YieldFromGeneratorCore(PyThreadState *tstate, struct Nu
             }
         }
     } else if (PyGen_CheckExact(yield_from)) {
-        retval = Nuitka_PyGen_Send(tstate, (PyGenObject *)yield_from, Py_None);
+        retval = Nuitka_PyGen_Send(tstate, (PyGenObject *)yield_from, send_value);
     }
 #if PYTHON_VERSION >= 0x350
     else if (PyCoro_CheckExact(yield_from)) {
-        retval = Nuitka_PyGen_Send(tstate, (PyGenObject *)yield_from, Py_None);
+        retval = Nuitka_PyGen_Send(tstate, (PyGenObject *)yield_from, send_value);
     }
 #endif
     else if (send_value == Py_None && Py_TYPE(yield_from)->tp_iternext != NULL) {
@@ -525,6 +525,8 @@ static PyObject *Nuitka_YieldFromGeneratorNext(PyThreadState *tstate, struct Nui
 #if PYTHON_VERSION >= 0x350
     if (PyCoro_CheckExact(generator->m_yield_from) || Nuitka_Coroutine_Check(generator->m_yield_from)) {
         if (unlikely((generator->m_code_object->co_flags & CO_ITERABLE_COROUTINE) == 0)) {
+            Py_CLEAR(generator->m_yield_from);
+
             SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_TypeError,
                                             "cannot 'yield from' a coroutine object in a non-coroutine generator");
         }
@@ -532,10 +534,23 @@ static PyObject *Nuitka_YieldFromGeneratorNext(PyThreadState *tstate, struct Nui
 #endif
     {
         PyObject *new_iterator = MAKE_ITERATOR(tstate, generator->m_yield_from);
-        if (new_iterator != NULL) {
-            Py_DECREF(generator->m_yield_from);
-            generator->m_yield_from = new_iterator;
+        Py_DECREF(generator->m_yield_from);
+        generator->m_yield_from = new_iterator;
+    }
+
+    if (unlikely(generator->m_yield_from == NULL)) {
+        assert(HAS_ERROR_OCCURRED(tstate));
+#if 0x300 <= PYTHON_VERSION && PYTHON_VERSION < 0x370
+        PyObject *yielded = ((generator_code)generator->m_code)(tstate, generator, NULL);
+
+        if (yielded == NULL && generator->m_yield_from == NULL && generator->m_frame != NULL) {
+            RESTORE_AND_CLEAR_GENERATOR_EXCEPTION(tstate, generator);
         }
+
+        return yielded;
+#else
+        return _Nuitka_CallGeneratorCodeC(tstate, generator, NULL, false);
+#endif
     }
 
     return Nuitka_YieldFromGeneratorCore(tstate, generator, Py_None);
