@@ -201,9 +201,9 @@ def _getEvaluationContext():
             # Querying package properties
             "has_builtin_module": isBuiltinModuleName,
             # Architectures
-            "arch_x86": getArchitecture() == "x86",
-            "arch_amd64": getArchitecture() == "x86_64",
-            "arch_arm64": getArchitecture() == "arm64",
+            "arch_x86": getArchitecture() in ("x86", "i386", "i686"),
+            "arch_amd64": getArchitecture() in ("x86_64", "amd64"),
+            "arch_arm64": getArchitecture() in ("arm64", "aarch64"),
             # Frequent used modules
             "sys": sys,
             "os": os,
