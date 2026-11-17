@@ -392,7 +392,7 @@ def _resolveBinaryPathDLLsMacOS(
                     )
                 elif resolved_path_candidate.endswith(abi_suffix):
                     candidate = (
-                        resolved_path_candidate[: -len(specific_suffix)] + abi_suffix
+                        resolved_path_candidate[: -len(abi_suffix)] + specific_suffix
                     )
                 else:
                     candidate = None
