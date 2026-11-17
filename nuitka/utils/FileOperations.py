@@ -31,6 +31,7 @@ from nuitka.__past__ import (  # pylint: disable=redefined-builtin
     basestring,
     unicode,
 )
+from nuitka.containers.Decisions import makeDecisionClass
 from nuitka.Errors import NuitkaFilenameError
 from nuitka.PythonVersions import python_version
 from nuitka.Tracing import general, my_print, options_logger, queryUser
@@ -46,6 +47,8 @@ from .Utils import (
     isWin32Windows,
     raiseWindowsError,
 )
+
+PathValidityDecision = makeDecisionClass("PathValidityDecision")
 
 # Locking seems to be only required for Windows mostly, but we can keep
 # it for all.
@@ -849,6 +852,12 @@ def getSubDirectoriesWithDlls(path, ignore_dirs=(), ignore_permission_error=Fals
 
 
 def _getSubDirectoriesWithDlls(path, ignore_dirs=(), ignore_permission_error=False):
+    isValidPath(path).raiseExceptionUnlessPositive(
+        exception_class=NuitkaFilenameError,
+        template="Cannot scan DLL directories below '%(path)s', %(reason)s.",
+        template_args={"path": path},
+    )
+
     path = getNormalizedPath(path)
 
     ignore_dirs = ["__pycache__"] + list(ignore_dirs)
@@ -1003,15 +1012,19 @@ def changeFilenameExtension(path, extension):
         str: Path with new extension.
     """
 
-    is_legal, illegal_reason = isLegalPath(path)
-    if not is_legal:
-        raise NuitkaFilenameError(illegal_reason)
+    isLegalPath(path).raiseExceptionUnlessPositive(
+        exception_class=NuitkaFilenameError,
+        template="Cannot change filename extension of '%(path)s', %(reason)s.",
+        template_args={"path": path},
+    )
 
     result = os.path.splitext(path)[0] + extension
 
-    is_legal, illegal_reason = isLegalPath(result)
-    if not is_legal:
-        raise NuitkaFilenameError(illegal_reason)
+    isLegalPath(result).raiseExceptionUnlessPositive(
+        exception_class=NuitkaFilenameError,
+        template="Cannot change filename extension of '%(path)s', %(reason)s.",
+        template_args={"path": result},
+    )
 
     return result
 
@@ -1390,9 +1403,11 @@ def openTextFile(filename, mode, encoding=None, errors=None):
     # Do not attempt to create files with what we consider
     # illegal filenames.
     if "w" in mode:
-        is_legal, illegal_reason = isLegalPath(filename)
-        if not is_legal:
-            raise NuitkaFilenameError(illegal_reason)
+        isLegalPath(filename).raiseExceptionUnlessPositive(
+            exception_class=NuitkaFilenameError,
+            template="Cannot create file '%(filename)s', %(reason)s.",
+            template_args={"filename": filename},
+        )
 
     # Doesn't exist anymore for Python3.7 or later.
     if python_version >= 0x370:
@@ -2272,13 +2287,13 @@ def isLegalPath(path):
         path: Path to check.
 
     Returns:
-        tuple: (bool, str or None) - (is_legal, illegal_reason)
+        PathValidityDecision: Decision with 'decision' and 'reason'.
     """
     illegal_suffixes = "/\\"
     illegal_chars = "\0"
 
     if path == "":
-        return False, "is empty"
+        return PathValidityDecision.decideNo("is empty")
 
     if isWin32Windows():
         illegal_chars += r'*"/<>:|?'
@@ -2294,30 +2309,86 @@ def isLegalPath(path):
             continue
 
         if c in illegal_chars:
-            return False, "contains illegal character %r" % c
+            return PathValidityDecision.decideNo("contains illegal character %r" % c)
 
     for illegal_suffix in illegal_suffixes:
         if path.endswith(illegal_suffix):
-            return False, "contains illegal suffix %r" % illegal_suffix
+            return PathValidityDecision.decideNo(
+                "contains illegal suffix %r" % illegal_suffix
+            )
 
         for part in path.split(os.path.sep):
             if part in (".", ".."):
                 continue
 
             if part.endswith(illegal_suffix):
-                return False, "contains illegal suffix %r in path part %r" % (
-                    illegal_suffix,
-                    part,
+                return PathValidityDecision.decideNo(
+                    "contains illegal suffix %r in path part %r"
+                    % (illegal_suffix, part)
                 )
 
             part_length = len(part)
             if part_length > 255:
-                return False, "contains too long (%d) name part %r" % (
-                    part_length,
-                    part,
+                return PathValidityDecision.decideNo(
+                    "contains too long (%d) name part %r" % (part_length, part)
                 )
 
-    return True, None
+    return PathValidityDecision.decideYes()
+
+
+def isValidPath(path):
+    """Check if a path is usable without being relative to an unknown drive.
+
+    This is a syntactic check and does not test for the path existing.
+
+    Notes:
+        On Windows, 'C:', '\\', '\\foo', '/', and '/foo' are not usable,
+        while 'C:\\' and '\\\\server\\share' are complete. On POSIX, '/'
+        is complete, and '.' and '..' are valid relative directories.
+
+    Args:
+        path: Path to check.
+
+    Returns:
+        PathValidityDecision: Decision with 'decision' and 'reason'.
+    """
+    # Each rejected path shape needs its own reason, pylint: disable=too-many-return-statements
+    if not path:
+        return PathValidityDecision.decideNo("is empty")
+
+    path = getNormalizedPath(path)
+
+    if isWin32Windows():
+        drive, tail = os.path.splitdrive(path)
+
+        is_unc_path = path.startswith("\\\\")
+
+        if drive and not tail and not is_unc_path:
+            return PathValidityDecision.decideNo("is a drive without a path")
+
+        if drive and not os.path.isabs(path):
+            return PathValidityDecision.decideNo("is relative to a drive")
+
+        if len(drive) == 2 and not drive[0].isalpha():
+            return PathValidityDecision.decideNo("has an invalid drive letter")
+
+        if not drive and path.startswith("\\") and not is_unc_path:
+            return PathValidityDecision.decideNo("is a root without a drive")
+
+    check_path = path.rstrip(os.path.sep)
+
+    if not check_path:
+        if isWin32Windows():
+            return PathValidityDecision.decideNo("is a root without a path")
+
+        return PathValidityDecision.decideYes()
+
+    path_parts = check_path.split(os.path.sep)
+
+    if all(part in (".", "..") for part in path_parts):
+        return PathValidityDecision.decideYes()
+
+    return isLegalPath(check_path)
 
 
 def getParentDirectories(path):

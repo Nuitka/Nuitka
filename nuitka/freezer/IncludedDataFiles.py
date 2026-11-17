@@ -171,12 +171,11 @@ class IncludedDataFile(object):
         self.source_path = source_path
         self.dest_path = getNormalizedPath(dest_path)
 
-        is_legal, illegal_reason = isLegalPath(self.dest_path)
-        if not is_legal:
-            general.sysexit(
-                "Error, cannot add data file with '%s' path, as '%s'"
-                % (dest_path, illegal_reason)
-            )
+        isLegalPath(self.dest_path).sysexitUnlessPositive(
+            logger=general,
+            message="Error, cannot add data file with '%(path)s' path, as '%(reason)s'",
+            template_args={"path": dest_path},
+        )
 
         self.reason = reason
         self.data = data

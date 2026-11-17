@@ -363,13 +363,15 @@ def _checkFilenameOnlyArgument(option_name, filename, extra_message):
         return options_logger.sysexit("""\
 Error, '%s' value cannot contain a directory part%s.""" % (option_name, extra_message))
 
-    is_legal, reason = isLegalPath(filename)
-    if not is_legal:
-        return options_logger.sysexit(
-            """\
-Error, '%s' value '%s' is not a legal filename: %s%s."""
-            % (option_name, filename, reason, extra_message)
-        )
+    isLegalPath(filename).sysexitUnlessPositive(
+        logger=options_logger,
+        message="Error, '%(option_name)s' value '%(filename)s' is not a legal filename: %(reason)s%(extra_message)s.",
+        template_args={
+            "option_name": option_name,
+            "filename": filename,
+            "extra_message": extra_message,
+        },
+    )
 
 
 def _applyTargetSpecification(target_desc):

@@ -169,12 +169,11 @@ separator '%s=%s', just appending to these is not allowed, needs to be \
 below them.""" % (candidate, arg_name, value)
                 )
 
-    is_legal, reason = isLegalPath(value)
-    if not is_legal:
-        return options_logger.sysexit(
-            """Cannot use illegal paths '%s=%s', due to %s."""
-            % (arg_name, value, reason)
-        )
+    isLegalPath(value).sysexitUnlessPositive(
+        logger=options_logger,
+        message="Cannot use illegal paths '%(arg_name)s=%(value)s', due to %(reason)s.",
+        template_args={"arg_name": arg_name, "value": value},
+    )
 
     return value
 
