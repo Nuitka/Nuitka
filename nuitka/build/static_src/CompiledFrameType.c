@@ -485,8 +485,12 @@ static PyObject *Nuitka_Frame_tp_repr(PyObject *self) {
 // Used by frame clear/dealloc.
 static void _Nuitka_ReleaseLocalsWithDescription(char const *type_description, void *storage, int locals_count);
 
+static bool _Nuitka_Frame_OwnsLocals(struct Nuitka_FrameObject *frame) {
+    return frame->m_locals_ptr == (void *)NUITKA_FRAME_LOCALS_STORAGE(frame);
+}
+
 static void _Nuitka_Frame_tp_clear(struct Nuitka_FrameObject *frame) {
-    if (frame->m_locals_ptr != NULL && frame->m_type_description != NULL) {
+    if (frame->m_type_description != NULL && _Nuitka_Frame_OwnsLocals(frame)) {
         int locals_count = (int)Nuitka_GetCodeLocalsCount(Nuitka_GetFrameCodeObject(frame));
 
         _Nuitka_ReleaseLocalsWithDescription(frame->m_type_description, frame->m_locals_ptr, locals_count);
@@ -624,7 +628,7 @@ static int Nuitka_Frame_tp_traverse(PyObject *self, visitproc visit, void *arg) 
 #endif
 
     // Traverse attached locals too.
-    if (frame->m_type_description != NULL && frame->m_locals_ptr != NULL) {
+    if (frame->m_type_description != NULL && _Nuitka_Frame_OwnsLocals(frame)) {
         PyCodeObject *co = Nuitka_GetFrameCodeObject(frame);
         unsigned char const *w = (unsigned char const *)frame->m_type_description;
         size_t offset = 0;
