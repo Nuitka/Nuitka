@@ -23,6 +23,9 @@ from nuitka.TreeXML import convertStringToXML, convertXmlToBytes
 
 from .Utils import decoratorRetries
 
+if os.name == "nt":
+    import ctypes.wintypes
+
 # SxS manifest files resource kind
 RT_MANIFEST = 24
 # Version info
@@ -33,6 +36,57 @@ RT_RCDATA = 10
 RT_GROUP_ICON = 14
 # Icon resource kind
 RT_ICON = 3
+
+
+def _normalizeResourceName(lp_name):
+    if lp_name <= 0xFFFF:
+        return lp_name
+
+    return ctypes.string_at(lp_name)
+
+
+def _extractResourceData(hmodule, lp_type, lp_name):
+    FindResource = ctypes.windll.kernel32.FindResourceA
+    FindResource.argtypes = (
+        ctypes.wintypes.HMODULE,
+        ctypes.wintypes.LPVOID,
+        ctypes.wintypes.LPVOID,
+    )
+    FindResource.restype = ctypes.wintypes.HRSRC
+
+    SizeofResource = ctypes.windll.kernel32.SizeofResource
+    SizeofResource.argtypes = (ctypes.wintypes.HMODULE, ctypes.wintypes.HRSRC)
+    SizeofResource.restype = ctypes.wintypes.DWORD
+
+    LoadResource = ctypes.windll.kernel32.LoadResource
+    LoadResource.argtypes = (ctypes.wintypes.HMODULE, ctypes.wintypes.HRSRC)
+    LoadResource.restype = ctypes.wintypes.HGLOBAL
+
+    LockResource = ctypes.windll.kernel32.LockResource
+    LockResource.argtypes = (ctypes.wintypes.HGLOBAL,)
+    LockResource.restype = ctypes.wintypes.LPVOID
+
+    FreeResource = ctypes.windll.kernel32.FreeResource
+    FreeResource.argtypes = (ctypes.wintypes.HGLOBAL,)
+    FreeResource.restype = ctypes.wintypes.BOOL
+
+    h_resource = FindResource(hmodule, lp_name, lp_type)
+    if not h_resource:
+        raise ctypes.WinError()
+
+    size = SizeofResource(hmodule, h_resource)
+    h_data = LoadResource(hmodule, h_resource)
+    if not h_data:
+        raise ctypes.WinError()
+
+    try:
+        ptr = LockResource(h_data)
+        if not ptr and size:
+            raise ctypes.WinError()
+
+        return ctypes.string_at(ptr, size) if size else b""
+    finally:
+        FreeResource(h_data)
 
 
 def getResourcesFromDLL(filename, resource_kinds, with_data=False):
@@ -49,15 +103,26 @@ def getResourcesFromDLL(filename, resource_kinds, with_data=False):
     """
     # Quite complex stuff, pylint: disable=too-many-locals
 
-    import ctypes.wintypes  # Not really redefined, but extended, pylint: disable=redefined-outer-name
-
     if type(filename) is str and str is not bytes:
         LoadLibraryEx = ctypes.windll.kernel32.LoadLibraryExW
+        LoadLibraryEx.argtypes = (
+            ctypes.wintypes.LPCWSTR,
+            ctypes.wintypes.HANDLE,
+            ctypes.wintypes.DWORD,
+        )
     else:
         LoadLibraryEx = ctypes.windll.kernel32.LoadLibraryExA
+        LoadLibraryEx.argtypes = (
+            ctypes.wintypes.LPCSTR,
+            ctypes.wintypes.HANDLE,
+            ctypes.wintypes.DWORD,
+        )
+    LoadLibraryEx.restype = ctypes.wintypes.HMODULE
 
     EnumResourceLanguages = ctypes.windll.kernel32.EnumResourceLanguagesA
     FreeLibrary = ctypes.windll.kernel32.FreeLibrary
+    FreeLibrary.argtypes = (ctypes.wintypes.HMODULE,)
+    FreeLibrary.restype = ctypes.wintypes.BOOL
 
     # spell-checker: ignore WINFUNCTYPE
     EnumResourceNameCallback = ctypes.WINFUNCTYPE(
@@ -75,6 +140,7 @@ def getResourcesFromDLL(filename, resource_kinds, with_data=False):
         EnumResourceNameCallback,
         ctypes.wintypes.LPARAM,
     )
+    EnumResourceNames.restype = ctypes.wintypes.BOOL
 
     DONT_RESOLVE_DLL_REFERENCES = 0x1
     LOAD_LIBRARY_AS_DATAFILE_EXCLUSIVE = 0x40
@@ -82,13 +148,13 @@ def getResourcesFromDLL(filename, resource_kinds, with_data=False):
 
     hmodule = LoadLibraryEx(
         filename,
-        0,
+        None,
         DONT_RESOLVE_DLL_REFERENCES
         | LOAD_LIBRARY_AS_DATAFILE_EXCLUSIVE
         | LOAD_LIBRARY_AS_IMAGE_RESOURCE,
     )
 
-    if hmodule == 0:
+    if not hmodule:
         raise ctypes.WinError()
 
     EnumResourceLanguagesCallback = ctypes.WINFUNCTYPE(
@@ -99,14 +165,16 @@ def getResourcesFromDLL(filename, resource_kinds, with_data=False):
         ctypes.wintypes.WORD,
         ctypes.wintypes.LPARAM,
     )
+    EnumResourceLanguages.argtypes = (
+        ctypes.wintypes.HMODULE,
+        ctypes.wintypes.LPVOID,
+        ctypes.wintypes.LPVOID,
+        EnumResourceLanguagesCallback,
+        ctypes.wintypes.LPARAM,
+    )
+    EnumResourceLanguages.restype = ctypes.wintypes.BOOL
 
     result = []
-
-    def _normalizeResourceName(lp_name):
-        if lp_name <= 0xFFFF:
-            return lp_name
-
-        return ctypes.string_at(lp_name)
 
     def callback(hModule, lpType, lpName, _lParam):
         res_name = _normalizeResourceName(lpName)
@@ -133,24 +201,27 @@ def getResourcesFromDLL(filename, resource_kinds, with_data=False):
             lang_id = 0
 
         if with_data:
-            hResource = ctypes.windll.kernel32.FindResourceA(hModule, lpName, lpType)
-            size = ctypes.windll.kernel32.SizeofResource(hModule, hResource)
-            hData = ctypes.windll.kernel32.LoadResource(hModule, hResource)
-
-            try:
-                ptr = ctypes.windll.kernel32.LockResource(hData)
-                result.append((lpType, res_name, lang_id, ctypes.string_at(ptr, size)))
-            finally:
-                ctypes.windll.kernel32.FreeResource(hData)
+            result.append(
+                (
+                    lpType,
+                    res_name,
+                    lang_id,
+                    _extractResourceData(hModule, lpType, lpName),
+                )
+            )
         else:
             result.append((res_name, lang_id))
 
         return True
 
-    for resource_kind in resource_kinds:
-        EnumResourceNames(hmodule, resource_kind, EnumResourceNameCallback(callback), 0)
+    try:
+        for resource_kind in resource_kinds:
+            EnumResourceNames(
+                hmodule, resource_kind, EnumResourceNameCallback(callback), 0
+            )
+    finally:
+        FreeLibrary(hmodule)
 
-    FreeLibrary(hmodule)
     return result
 
 
@@ -202,6 +273,7 @@ def _updateWindowsResource(update_handle, resource_kind, res_name, lang_id, data
         ctypes.wintypes.LPVOID,
         ctypes.wintypes.DWORD,
     )
+    UpdateResourceA.restype = ctypes.wintypes.BOOL
 
     ret = UpdateResourceA(update_handle, resource_kind, res_name, lang_id, data, size)
 
@@ -405,6 +477,7 @@ def convertStructureToBytes(c_value):
 def _makeVersionInfoStructure(product_version, file_version, file_date, is_exe):
     return VsFixedFileInfoStructure(
         dwSignature=0xFEEF04BD,
+        dwStructVersion=0x00010000,
         dwFileVersionMS=file_version[0] << 16 | (file_version[1] & 0xFFFF),
         dwFileVersionLS=file_version[2] << 16 | (file_version[3] & 0xFFFF),
         dwProductVersionMS=product_version[0] << 16 | (product_version[1] & 0xFFFF),
@@ -433,9 +506,9 @@ def _getVersionString(value):
 
 class VersionResourceHeader(ctypes.Structure):
     _fields_ = [
-        ("full_length", ctypes.c_short),
-        ("item_size", ctypes.c_short),
-        ("type", ctypes.c_short),
+        ("full_length", ctypes.c_uint16),
+        ("item_size", ctypes.c_uint16),
+        ("type", ctypes.c_uint16),
     ]
 
 
@@ -449,10 +522,11 @@ def _makeVersionStringEntry(key, value):
     pad = b"\0\0" if key_size % 4 else b""
     full_size = key_size + len(pad) + value_size
 
+    # String.wValueLength is measured in 16-bit WCHAR words, not bytes.
     header_data = convertStructureToBytes(
         VersionResourceHeader(
             full_length=full_size,
-            item_size=value_size,
+            item_size=value_size // 2,
             type=1,
         )
     )
@@ -475,7 +549,7 @@ def _makeVersionStringTable(values):
         parts.append(chunk)
 
     block_data = b"".join(parts)
-    size += len(block_data)
+    size += len(pad) + len(block_data)
 
     header_data = convertStructureToBytes(
         VersionResourceHeader(
