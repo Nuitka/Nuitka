@@ -2221,7 +2221,7 @@ through incomplete set import by '%s' plugin encountered."""
                 plugin_name = plugin.plugin_name
 
             elif value is False:
-                if result is False:
+                if result is True:
                     return plugin.sysexit(
                         "Error, conflicting allow/disallow outside dependencies of plug-in '%s'."
                         % plugin_name
@@ -2266,7 +2266,7 @@ through incomplete set import by '%s' plugin encountered."""
                 plugin_name = plugin.plugin_name
 
             elif value is False:
-                if result is False:
+                if result is True:
                     return plugin.sysexit(
                         "Error, conflicting accept/reject missing DLLs of plug-in '%s'."
                         % plugin_name
@@ -2565,12 +2565,17 @@ def _addPluginCommandLineOptions(parser, plugin_class, plugin_help_mode):
                     # no public interface for that, pylint: disable=protected-access
                     if (
                         e.option_id in other_plugin_option._long_opts
-                        or other_plugin_option._short_opts
+                        or e.option_id in other_plugin_option._short_opts
                     ):
                         return plugins_logger.sysexit(
-                            "Plugin '%s' failed to add options due to conflict with '%s' from plugin '%s."
+                            "Plugin '%s' failed to add options due to conflict with '%s' from plugin '%s'."
                             % (plugin_name, e.option_id, other_plugin_name)
                         )
+
+            return plugins_logger.sysexit(
+                "Plugin '%s' failed to add options due to conflict with '%s'."
+                % (plugin_name, e.option_id)
+            )
 
         if option_group.option_list:
             parser.add_option_group(option_group)
