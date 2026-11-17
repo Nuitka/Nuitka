@@ -33,7 +33,7 @@ def _findMatchingChild(current, node):
         attrib_name = "name"
     elif node_tag == "optimization-time":
         attrib_name = "pass"
-    elif node_tag == "code-generation-time":
+    elif node_tag in ("code-generation-time", "performance-totals"):
         attrib_name = None
     else:
         assert False, (node, current)
@@ -82,7 +82,9 @@ def findMatchingNode(root, search_node):
 def _acceptOptimizationTimeChanges(old_report, new_report):
     changed = False
 
-    for new_node in new_report.xpath("//module/optimization-time"):
+    for new_node in new_report.xpath(
+        "//module/optimization-time | //performance-totals/optimization-time"
+    ):
         old_node = findMatchingNode(old_report, new_node)
 
         if old_node is not None:
@@ -90,7 +92,9 @@ def _acceptOptimizationTimeChanges(old_report, new_report):
             old_node.getparent().replace(old_node, new_node)
             changed = True
 
-    for new_node in new_report.xpath("//module/code-generation-time"):
+    for new_node in new_report.xpath(
+        "//module/code-generation-time | //performance-totals/code-generation-time"
+    ):
         old_node = findMatchingNode(old_report, new_node)
 
         if old_node is not None:
@@ -280,6 +284,110 @@ def _acceptPyPIChanges(old_report, new_report):
     return changed
 
 
+def _acceptPluginInfluenceChanges(old_report, new_report):
+    """Accept plugin influence records of modules present in both reports.
+
+    These records only reflect which plugin conditions were evaluated, e.g.
+    anti-bloat rules, and change when package configurations are added or
+    removed. Newly added modules themselves are left for review in the
+    working tree.
+    """
+    changed = False
+
+    old_modules = {}
+    for node in old_report.xpath("//module"):
+        old_modules[node.attrib["name"]] = node
+
+    for new_module in new_report.xpath("//module"):
+        old_module = old_modules.get(new_module.attrib["name"])
+
+        if old_module is None:
+            continue
+
+        old_rows = old_module.findall("plugin-influence")
+        new_rows = new_module.findall("plugin-influence")
+
+        if [dict(row.attrib) for row in old_rows] == [
+            dict(row.attrib) for row in new_rows
+        ]:
+            continue
+
+        row_tail = old_rows[0].tail if old_rows else "\n    "
+
+        for row in old_rows:
+            old_module.remove(row)
+
+        for index, row in enumerate(new_rows):
+            new_module.remove(row)
+            row.tail = row_tail
+
+            old_module.insert(index, row)
+
+        changed = True
+
+    return changed
+
+
+def _removeNode(node):
+    """Remove a node, keeping the formatting of its parent intact."""
+    parent = node.getparent()
+
+    if node is parent[-1] and len(parent) > 1:
+        parent[-2].tail = node.tail
+
+    parent.remove(node)
+
+
+def _acceptModuleAndDistributionRemovals(old_report, new_report):
+    """Accept removals of modules and distributions.
+
+    Removed modules and distributions are usually a result of packages no
+    longer being used or included, while removals of DLLs, extensions and
+    data files are left for review in the working tree.
+    """
+    changed = False
+
+    new_module_names = {node.attrib["name"] for node in new_report.xpath("//module")}
+
+    for old_node in list(old_report.xpath("//module")):
+        if old_node.attrib["name"] not in new_module_names:
+            _removeNode(old_node)
+            changed = True
+
+    new_distribution_names = {
+        node.attrib["name"] for node in new_report.xpath("//distributions/distribution")
+    }
+
+    for old_node in list(old_report.xpath("//distributions/distribution")):
+        if old_node.attrib["name"] not in new_distribution_names:
+            _removeNode(old_node)
+            changed = True
+
+    # Search paths are configuration, not payload, and removals of them
+    # are not interesting by themselves.
+    new_path_values = {
+        node.attrib.get("value") for node in new_report.xpath("//search_path/path")
+    }
+
+    for path_node in list(old_report.xpath("//search_path/path")):
+        if path_node.attrib.get("value") not in new_path_values:
+            _removeNode(path_node)
+            changed = True
+
+    for old_module in old_report.xpath("//module"):
+        for usages_node in old_module.findall("distribution-usages"):
+            for usage_node in list(usages_node.findall("distribution-usage")):
+                if usage_node.attrib["name"] not in new_distribution_names:
+                    _removeNode(usage_node)
+                    changed = True
+
+            if len(usages_node) == 0:
+                _removeNode(usages_node)
+                changed = True
+
+    return changed
+
+
 def onCompilationReportChange(filename, git_stage):
     print("Working on", filename)
 
@@ -300,6 +408,12 @@ def onCompilationReportChange(filename, git_stage):
 
     if options.accept_pypi_bumps:
         changed = changed | _acceptPyPIChanges(old_report, new_report)
+
+    if options.accept_report_details:
+        changed = changed | _acceptPluginInfluenceChanges(old_report, new_report)
+
+    if options.accept_removals:
+        changed = changed | _acceptModuleAndDistributionRemovals(old_report, new_report)
 
     if changed:
         new_git_contents = convertXmlToString(old_report, use_lxml=True)
@@ -378,22 +492,50 @@ def _acceptPipfileVersionBumps(old_lock, new_lock):
     return accepted
 
 
-def onPipfileLockChange(filename, git_stage):
-    """Accept version bumps of existing packages in a Pipfile.lock.
+def _acceptPipfileRemovals(old_lock, new_lock):
+    """Accept removed packages in all Pipfile.lock sections.
 
-    Newly added and removed packages, as well as any other changes, are
-    left for review in the working tree.
+    Removed packages are not of interest, only newly added ones are, as
+    they are what may become used and need anti-bloat rules.
+
+    Returns:
+        Names of the packages that were accepted.
+    """
+    accepted = []
+
+    for section_name in ("default", "develop"):
+        old_section = old_lock.get(section_name)
+        new_section = new_lock.get(section_name)
+
+        if old_section is None or new_section is None:
+            continue
+
+        for package_name in list(old_section):
+            if package_name not in new_section:
+                del old_section[package_name]
+                accepted.append(package_name)
+
+    return accepted
+
+
+def onPipfileLockChange(filename, git_stage):
+    """Accept version bumps and removals of packages in a Pipfile.lock.
+
+    Newly added packages, as well as any other changes, are left for
+    review in the working tree.
     """
     new_lock = loadJsonFromFilename(filename)
     old_lock = loadJsonFromContents(getFileHashContent(git_stage["src_hash"]))
 
     accepted = _acceptPipfileVersionBumps(old_lock, new_lock)
+    removed = _acceptPipfileRemovals(old_lock, new_lock)
 
-    if not accepted:
+    if not accepted and not removed:
         return
 
     print(
-        "Working on %s: accepting %d package version bumps." % (filename, len(accepted))
+        "Working on %s: accepting %d package version bumps and %d removals."
+        % (filename, len(accepted), len(removed))
     )
 
     output = StringIO()
@@ -418,6 +560,15 @@ def main():
     parser = makeOptionsParser(usage=None, epilog=None)
 
     parser.add_option(
+        "--accept-all",
+        action="store_true",
+        dest="accept_all",
+        default=False,
+        help="""Accept all changes that can be recognized automatically, i.e.
+everything covered by the other accept options.""",
+    )
+
+    parser.add_option(
         "--accept-optimization-time",
         action="store_true",
         dest="accept_optimization_time",
@@ -430,11 +581,35 @@ def main():
         action="store_true",
         dest="accept_pypi_bumps",
         default=False,
-        help="""Accept package version bumps in Pipfile.lock files, but keep newly
-added and removed packages in the diff.""",
+        help="""Accept package version bumps and removals in Pipfile.lock files, but
+keep newly added packages in the diff.""",
+    )
+
+    parser.add_option(
+        "--accept-report-details",
+        action="store_true",
+        dest="accept_report_details",
+        default=False,
+        help="""Accept plugin influence records in compilation reports, which only
+reflect which plugin conditions were evaluated.""",
+    )
+
+    parser.add_option(
+        "--accept-removals",
+        action="store_true",
+        dest="accept_removals",
+        default=False,
+        help="""Accept removed modules and distributions in compilation reports, but
+keep removed DLLs, extensions and data files in the diff.""",
     )
 
     options, _positional_args = parser.parse_args()
+
+    if options.accept_all:
+        options.accept_optimization_time = True
+        options.accept_pypi_bumps = True
+        options.accept_report_details = True
+        options.accept_removals = True
 
     for git_stage in getCheckoutFileChangeDesc(staged=False):
         onFileChange(git_stage=git_stage)
