@@ -214,9 +214,7 @@ def createAppImage(  # pylint: disable=unused-argument
 
     _populateAppDir(appdir, payload_dir, main_binary_name, external_files)
 
-    if output_filename is not None:
-        output_filename = changeFilenameExtension(output_filename, ".AppImage")
-    else:
+    if output_filename is None:
         output_filename = changeFilenameExtension(payload_dir, ".AppImage")
 
     deleteFile(output_filename, must_exist=False)
