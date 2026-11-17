@@ -6,6 +6,7 @@
 """Test indirect "eval" accessing locals of compiled frames."""
 
 import builtins
+import gc
 
 
 def eval_local(convert):
@@ -32,6 +33,19 @@ def frame_builtins():
 print("eval-local", eval_local(eval))
 print("exec-local", exec_local(exec))
 print("frame-builtins", frame_builtins())
+
+
+def closure_frame_gc():
+    value = []
+
+    def inner():
+        gc.collect()
+        return value
+
+    return inner
+
+
+print("closure-frame-gc", closure_frame_gc()())
 
 #     Python tests originally created or extracted from other peoples work. The
 #     parts were too small to be protected.
