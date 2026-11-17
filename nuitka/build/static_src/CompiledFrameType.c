@@ -485,7 +485,6 @@ static PyObject *Nuitka_Frame_tp_repr(PyObject *self) {
 // Used by frame clear/dealloc.
 static void _Nuitka_ReleaseLocalsWithDescription(char const *type_description, void *storage, int locals_count);
 
-// Frames only own references when the values live in their storage.
 static bool _Nuitka_Frame_OwnsLocals(struct Nuitka_FrameObject *frame) {
     return frame->m_locals_ptr == (void *)NUITKA_FRAME_LOCALS_STORAGE(frame);
 }
