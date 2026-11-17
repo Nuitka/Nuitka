@@ -242,7 +242,7 @@ def _attachExceptionAttributeCode(
             context.removeCleanupTempName(exception_attribute_name)
 
         emit(
-            "((%s *)%s)->%s = %s;"
+            "Py_XSETREF(((%s *)%s)->%s, %s);"
             % (c_type_name, to_name, c_attribute_name, exception_attribute_name)
         )
 
@@ -310,7 +310,7 @@ def _generateBuiltinMakeExceptionCode(to_name, expression, for_raise, emit, cont
             or expression.isExpressionBuiltinMakeExceptionModuleNotFoundError()
         ):
             _attachExceptionAttributeCode(
-                to_name=to_name,
+                to_name=value_name,
                 attribute_expression=expression.subnode_name,
                 base_name_str="exception_import_error",
                 c_type_name="PyImportErrorObject",
@@ -320,7 +320,7 @@ def _generateBuiltinMakeExceptionCode(to_name, expression, for_raise, emit, cont
             )
 
             _attachExceptionAttributeCode(
-                to_name=to_name,
+                to_name=value_name,
                 attribute_expression=expression.subnode_path,
                 base_name_str="exception_import_error",
                 c_type_name="PyImportErrorObject",
@@ -342,7 +342,7 @@ def _generateBuiltinMakeExceptionCode(to_name, expression, for_raise, emit, cont
 
         elif expression.isExpressionBuiltinMakeExceptionAttributeError():
             _attachExceptionAttributeCode(
-                to_name=to_name,
+                to_name=value_name,
                 attribute_expression=expression.subnode_name,
                 base_name_str="exception_import_error",
                 c_type_name="PyAttributeErrorObject",
@@ -352,7 +352,7 @@ def _generateBuiltinMakeExceptionCode(to_name, expression, for_raise, emit, cont
             )
 
             _attachExceptionAttributeCode(
-                to_name=to_name,
+                to_name=value_name,
                 attribute_expression=expression.subnode_obj,
                 base_name_str="exception_import_error",
                 c_type_name="PyAttributeErrorObject",
