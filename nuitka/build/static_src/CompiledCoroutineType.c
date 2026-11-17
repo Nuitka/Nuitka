@@ -1489,33 +1489,34 @@ static int Nuitka_PyInterpreterFrame_GetLine(_PyInterpreterFrame *frame) {
 static PyObject *computeCoroutineOrigin(PyThreadState *tstate, int origin_depth) {
     _PyInterpreterFrame *current_frame = CURRENT_TSTATE_INTERPRETER_FRAME(tstate);
 
-    // Create result tuple with correct size.
     int frame_count = 0;
     _PyInterpreterFrame *frame = current_frame;
     while (frame != NULL && frame_count < origin_depth) {
+        // CPython 3.11+ C-stack shim frames store Py_None as f_executable.
+        if (Nuitka_InterpreterFrame_GetCodeObject(frame) != (PyCodeObject *)Py_None) {
+            frame_count += 1;
+        }
         frame = frame->previous;
-        frame_count += 1;
     }
     PyObject *cr_origin = MAKE_TUPLE_EMPTY_VAR(tstate, frame_count);
 
     frame = current_frame;
-    for (int i = 0; i < frame_count; i++) {
+    int i = 0;
+    while (frame != NULL && i < frame_count) {
         PyCodeObject *code_object = Nuitka_InterpreterFrame_GetCodeObject(frame);
 
-        // TODO: Clarify why Nuitka_InterpreterFrame_GetCodeObject does return
-        // "None" sometimes.
-        if (code_object == (PyCodeObject *)Py_None) {
-            continue;
+        if (code_object != (PyCodeObject *)Py_None) {
+            int line = Nuitka_PyInterpreterFrame_GetLine(frame);
+
+            assert(code_object->co_filename != NULL);
+            assert(code_object->co_name != NULL);
+            PyObject *frame_info = Py_BuildValue("OiO", code_object->co_filename, line, code_object->co_name);
+            assert(frame_info);
+
+            PyTuple_SET_ITEM(cr_origin, i, frame_info);
+            i += 1;
         }
 
-        int line = Nuitka_PyInterpreterFrame_GetLine(frame);
-
-        assert(code_object->co_filename != NULL);
-        assert(code_object->co_name != NULL);
-        PyObject *frame_info = Py_BuildValue("OiO", code_object->co_filename, line, code_object->co_name);
-        assert(frame_info);
-
-        PyTuple_SET_ITEM(cr_origin, i, frame_info);
         frame = frame->previous;
     }
 
@@ -1529,32 +1530,33 @@ static PyObject *computeCoroutineOrigin(PyThreadState *tstate, int origin_depth)
     int frame_count = 0;
 
     while (frame != NULL && frame_count < origin_depth) {
+        if (Nuitka_Frame_GetCodeObject(frame) != (PyCodeObject *)Py_None) {
+            frame_count += 1;
+        }
         frame = frame->f_back;
-        frame_count += 1;
     }
 
     PyObject *cr_origin = MAKE_TUPLE_EMPTY_VAR(tstate, frame_count);
 
     frame = PyEval_GetFrame();
+    int i = 0;
 
-    for (int i = 0; i < frame_count; i++) {
+    while (frame != NULL && i < frame_count) {
         PyCodeObject *code_object = Nuitka_Frame_GetCodeObject(frame);
 
-        // TODO: See 3.8+ code above, this ought not to be done.
-        if (code_object == (PyCodeObject *)Py_None) {
-            continue;
+        if (code_object != (PyCodeObject *)Py_None) {
+            PyObject *filename = code_object->co_filename;
+            CHECK_OBJECT(filename);
+            PyObject *co_name = frame->f_code->co_name;
+            CHECK_OBJECT(co_name);
+
+            PyObject *frame_info = Py_BuildValue("OiO", filename, PyFrame_GetLineNumber(frame), co_name);
+
+            assert(frame_info);
+
+            PyTuple_SET_ITEM(cr_origin, i, frame_info);
+            i += 1;
         }
-
-        PyObject *filename = code_object->co_filename;
-        CHECK_OBJECT(filename);
-        PyObject *co_name = frame->f_code->co_name;
-        CHECK_OBJECT(co_name);
-
-        PyObject *frame_info = Py_BuildValue("OiO", filename, PyFrame_GetLineNumber(frame), co_name);
-
-        assert(frame_info);
-
-        PyTuple_SET_ITEM(cr_origin, i, frame_info);
 
         frame = frame->f_back;
     }

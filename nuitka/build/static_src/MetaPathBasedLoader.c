@@ -291,17 +291,17 @@ NUITKA_MAY_BE_UNUSED static void PRINT_ENTRY_STRING(struct Nuitka_MetaPathBasedL
 }
 
 static bool hasFrozenModule(char const *name) {
-    for (struct _frozen const *p = PyImport_FrozenModules; p != NULL; p++) {
-        if (p->name == NULL) {
-            return false;
-        }
+    if (PyImport_FrozenModules == NULL) {
+        return false;
+    }
 
+    for (struct _frozen const *p = PyImport_FrozenModules; p->name != NULL; p++) {
         if (strcmp(p->name, name) == 0) {
-            break;
+            return true;
         }
     }
 
-    return true;
+    return false;
 }
 
 PyObject *Nuitka_ImportModuleEntryValue(PyThreadState *tstate, struct Nuitka_MetaPathBasedLoaderEntry const *entry) {
@@ -2167,7 +2167,14 @@ static PyObject *loadModule(PyThreadState *tstate, PyObject *module, PyObject *m
         _makeModuleCFilenameValue(filename, sizeof(filename) / sizeof(filename_char_t),
                                   Nuitka_String_AsString(module_name), module_name, is_package);
 
-        callIntoExtensionModule(tstate, Nuitka_String_AsString(module_name), filename, is_package);
+        PyObject *extension_module =
+            callIntoExtensionModule(tstate, Nuitka_String_AsString(module_name), filename, is_package);
+
+        if (unlikely(extension_module == NULL)) {
+            return NULL;
+        }
+
+        Py_DECREF(extension_module);
     } else
 #endif
         if ((entry->flags & NUITKA_BYTECODE_FLAG) != 0) {
@@ -3716,8 +3723,9 @@ static PyObject *_nuitka_loader_create_module(PyObject *self, PyObject *args, Py
         PyObject *extension_module_filename = DICT_GET_ITEM0(tstate, installed_extension_modules, module_name);
 
         if (extension_module_filename != NULL) {
+            PyObject *result = callIntoInstalledExtensionModule(tstate, module_name, extension_module_filename);
             Py_DECREF(module_name);
-            return callIntoInstalledExtensionModule(tstate, module_name, extension_module_filename);
+            return result;
         }
     }
 #endif

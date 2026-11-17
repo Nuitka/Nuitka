@@ -63,9 +63,18 @@ static int Nuitka_Function_tp_traverse(PyObject *self, visitproc visit, void *ar
     assert(Nuitka_Function_Check(self));
     assert(_PyObject_GC_IS_TRACKED(self));
 
-    // TODO: Identify the impact of not visiting other owned objects. It appears
-    // to be mostly harmless, as these are strings.
     Py_VISIT(function->m_dict);
+    Py_VISIT(function->m_defaults);
+#if PYTHON_VERSION >= 0x300
+    Py_VISIT(function->m_kwdefaults);
+    Py_VISIT(function->m_annotations);
+#endif
+#if PYTHON_VERSION >= 0x3c0
+    Py_VISIT(function->m_type_params);
+#endif
+#if PYTHON_VERSION >= 0x3e0
+    Py_VISIT(function->m_annotate);
+#endif
 
     for (Py_ssize_t i = 0; i < function->m_closure_given; i++) {
         Py_VISIT(function->m_closure[i]);
@@ -828,13 +837,11 @@ static PyObject *Nuitka_Function_clone(PyObject *self, PyObject *unused) {
 
     Py_INCREF(function->m_defaults);
 
-#if PYTHON_VERSION >= 0x300
-#if 0
-    PRINT_STRING("Nuitka_Function_clone:");
-    PRINT_ITEM((PyObject *)function);
-    PRINT_NEW_LINE();
+#if PYTHON_VERSION >= 0x3c0
+    Py_XINCREF(function->m_type_params);
 #endif
 
+#if PYTHON_VERSION >= 0x300
     PyThreadState *tstate = PyThreadState_GET();
 
     PyObject *annotations = NULL;
@@ -1420,7 +1427,7 @@ struct Nuitka_FunctionObject *Nuitka_Function_CreateFunctionViaCodeIndex(
     PyObject *annotations, PyObject *func_dict, function_impl_code const *function_table, int function_table_size) {
     int offset = PyLong_AsLong(function_index);
 
-    if (offset > function_table_size || offset < -5 || offset == -1) {
+    if (offset >= function_table_size || offset < -5 || offset == -1) {
         PyThreadState *tstate = PyThreadState_GET();
 
         SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_TypeError, "Wrong offset for compiled function.");
@@ -1518,8 +1525,6 @@ struct Nuitka_FunctionObject *Nuitka_Function_CreateFunctionViaCodeIndex(
 
         Py_INCREF_IMMORTAL(constant_return_value);
     } else if (offset < 0) {
-        // Try to catch if we are missing values for the specialized shared
-        // bodies.
         NUITKA_CANNOT_GET_HERE("Compiled function un-pickle problem");
     }
 
@@ -1549,16 +1554,16 @@ PyObject *Nuitka_Function_ExtractCodeObjectDescription(PyThreadState *tstate, st
     PyTuple_SET_ITEM(code_object_desc, 4, Nuitka_PyLong_FromLong(function->m_code_object->co_argcount));
     PyTuple_SET_ITEM(code_object_desc, 5, Nuitka_PyLong_FromLong(function->m_code_object->co_flags));
 
-#if PYTHON_VERSION < 0x380
+#if PYTHON_VERSION < 0x300
     PyTuple_SET_ITEM0(code_object_desc, 6, const_int_0);
 #else
-    PyTuple_SET_ITEM(code_object_desc, 6, Nuitka_PyLong_FromLong(function->m_code_object->co_posonlyargcount));
+    PyTuple_SET_ITEM(code_object_desc, 6, Nuitka_PyLong_FromLong(function->m_code_object->co_kwonlyargcount));
 #endif
 
-#if PYTHON_VERSION < 0x3b0
+#if PYTHON_VERSION < 0x380
     PyTuple_SET_ITEM0(code_object_desc, 7, const_int_0);
 #else
-    PyTuple_SET_ITEM(code_object_desc, 7, Nuitka_PyLong_FromLong(function->m_code_object->co_kwonlyargcount));
+    PyTuple_SET_ITEM(code_object_desc, 7, Nuitka_PyLong_FromLong(function->m_code_object->co_posonlyargcount));
 #endif
 
     CHECK_OBJECT_DEEP(code_object_desc);
@@ -2569,8 +2574,9 @@ static bool _handleArgumentsPlainOnly(PyThreadState *tstate, struct Nuitka_Funct
     }
 
     for (Py_ssize_t i = 0; i < args_size; i++) {
-        if (i >= arg_count)
+        if (i >= arg_count) {
             break;
+        }
 
         assert(python_pars[i] == NULL);
 
@@ -2675,8 +2681,9 @@ static bool handleMethodArgumentsPlainOnly(PyThreadState *tstate, struct Nuitka_
     }
 
     for (Py_ssize_t i = 0; i < args_size; i++) {
-        if (i + 1 >= arg_count)
+        if (i + 1 >= arg_count) {
             break;
+        }
 
         assert(python_pars[i + 1] == NULL);
 
@@ -2979,7 +2986,11 @@ static bool parseArgumentsFullKwSplit(PyThreadState *tstate, struct Nuitka_Funct
 #if PYTHON_VERSION < 0x300
         formatErrorNoArgumentAllowed(function, args_size + kw_size);
 #else
-        formatErrorNoArgumentAllowedKwSplit(function, PyTuple_GET_ITEM(kw_names, 0), args_size);
+        if (kw_size > 0) {
+            formatErrorNoArgumentAllowedKwSplit(function, PyTuple_GET_ITEM(kw_names, 0), args_size);
+        } else {
+            formatErrorNoArgumentAllowed(function, NULL, args_size);
+        }
 #endif
 
         releaseParameters(function, python_pars);
