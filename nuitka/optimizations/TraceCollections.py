@@ -1380,10 +1380,11 @@ class TraceCollectionModule(CollectionStartPointMixin, TraceCollectionBase):
         return self.distribution_names
 
     def onDistributionUsed(self, distribution_name, node, success):
-        inclusion_logger.info_to_file_only(
-            "Cannot find distribution '%s' at '%s', expect potential run time problem, unless this is unused code."
-            % (distribution_name, node.source_ref.getAsString())
-        )
+        if not success:
+            inclusion_logger.info_to_file_only(
+                "Cannot find distribution '%s' at '%s', expect potential run time problem, unless this is unused code."
+                % (distribution_name, node.source_ref.getAsString())
+            )
 
         self.distribution_names[distribution_name] = success
 
