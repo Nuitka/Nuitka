@@ -10,7 +10,11 @@ import sys
 
 from nuitka.importing.Importing import addMainScriptDirectory
 from nuitka.utils.Execution import executeProcess
-from nuitka.utils.FileOperations import withTemporaryDirectory
+from nuitka.utils.FileOperations import (
+    getNormalizedAbsolutePath,
+    getUserInputNormalizedAbsolutePath,
+    withTemporaryDirectory,
+)
 from nuitka.utils.Json import loadJsonFromFilename
 
 from .BuildPackageCommon import (
@@ -50,9 +54,9 @@ def _handleUvConfig(logger, pyproject_data):
 
     module_root = uv_build_config.pop("module-root", None)
     if module_root is not None:
-        addMainScriptDirectory(os.path.abspath(module_root))
+        addMainScriptDirectory(getUserInputNormalizedAbsolutePath(module_root))
     elif os.path.exists("src"):
-        addMainScriptDirectory(os.path.abspath("src"))
+        addMainScriptDirectory(getNormalizedAbsolutePath("src"))
     else:
         addMainScriptDirectory(os.getcwd())
 

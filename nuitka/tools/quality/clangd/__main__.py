@@ -42,7 +42,7 @@ def _isIgnoredCFile(filename):
     if "inline_copy" in path_parts:
         return True
 
-    if os.path.basename(filename) == "OnefileSplashScreen.cpp":
+    if os.path.basename(filename) == "OnefileSplashScreen.c":
         return not isWin32Windows()
 
     # This uses ucontext and is not buildable on Windows.

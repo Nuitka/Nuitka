@@ -460,7 +460,7 @@ def shallIncludeVCRedistDLL(dll_filename):
     if isFilenameBelowPath(path=vc_redist_path, filename=dll_filename):
         return shallIncludeWindowsRuntimeDLLs()
 
-    return True
+    return False
 
 
 _include_windows_runtime_dlls = None

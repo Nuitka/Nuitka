@@ -18,7 +18,12 @@ from nuitka.__past__ import (  # pylint: disable=redefined-builtin
 )
 from nuitka.Tracing import general
 
-from .FileOperations import getNormalizedPath, makePath, removeDirectory
+from .FileOperations import (
+    getNormalizedAbsolutePath,
+    getUserInputNormalizedAbsolutePath,
+    makePath,
+    removeDirectory,
+)
 from .InlineCopies import importFromInlineCopy
 
 appdirs = importFromInlineCopy("appdirs", must_exist=False, delete_module=True)
@@ -40,34 +45,28 @@ def getAppdirsModule():
 _cache_dir = None
 
 
-def _getCacheDirNormalizedPath(cache_dir):
-    cache_dir = os.path.expanduser(cache_dir)
-    cache_dir = os.path.abspath(cache_dir)
-    cache_dir = getNormalizedPath(cache_dir)
-
-    return cache_dir
-
-
 def _getCacheDir():
     global _cache_dir  # singleton, pylint: disable=global-statement
 
     if _cache_dir is None:
         _cache_dir = os.getenv("NUITKA_CACHE_DIR")
 
-        if _cache_dir is None:
+        if _cache_dir is not None:
+            _cache_dir = getUserInputNormalizedAbsolutePath(_cache_dir)
+        else:
             if appdirs is not None:
                 _cache_dir = appdirs.user_cache_dir("Nuitka", None)
             else:
                 _cache_dir = os.path.join(os.path.expanduser("~"), ".cache", "Nuitka")
 
-        _cache_dir = _getCacheDirNormalizedPath(_cache_dir)
+            _cache_dir = getNormalizedAbsolutePath(_cache_dir)
 
         # For people that build with HOME set this, e.g. Debian, and other package
         # managers. spell-checker: ignore sbuild
         if _cache_dir.startswith(
             ("/nonexistent/", "/sbuild-nonexistent/", "/homeless-shelter/")
         ):
-            _cache_dir = _getCacheDirNormalizedPath(
+            _cache_dir = getNormalizedAbsolutePath(
                 os.path.join(tempfile.gettempdir(), "Nuitka")
             )
 
@@ -100,13 +99,18 @@ def getCacheDir(cache_basename, create=False):
     cache_basename, _sep, cache_sub_dir = cache_basename.partition("/")
 
     cache_dir = os.getenv(getCacheDirEnvironmentVariableName(cache_basename))
+    cache_dir_from_env = cache_dir is not None
+
     if cache_dir is None:
         cache_dir = os.path.join(_getCacheDir(), cache_basename)
 
     if cache_sub_dir:
         cache_dir = os.path.join(cache_dir, cache_sub_dir)
 
-    cache_dir = _getCacheDirNormalizedPath(cache_dir)
+    if cache_dir_from_env:
+        cache_dir = getUserInputNormalizedAbsolutePath(cache_dir)
+    else:
+        cache_dir = getNormalizedAbsolutePath(cache_dir)
 
     if create and cache_dir not in _created_cache_dirs:
         makePath(cache_dir)

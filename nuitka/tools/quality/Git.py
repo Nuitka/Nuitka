@@ -24,7 +24,11 @@ from nuitka.utils.Execution import (
     check_output,
     executeProcess,
 )
-from nuitka.utils.FileOperations import getPathWithForwardSlashes, openTextFile
+from nuitka.utils.FileOperations import (
+    getFileContents,
+    getPathWithForwardSlashes,
+    openTextFile,
+)
 from nuitka.utils.Utils import decoratorRetries
 
 
@@ -267,6 +271,9 @@ def updateGitFile(path, orig_object_hash, new_object_hash, staged):
     # The working tree file may be gone, e.g. a staged addition that was
     # removed from the working tree, in which case there is nothing to sync.
     if staged and not os.path.exists(path):
+        return True
+
+    if staged and getFileContents(path, "rb") == getFileHashContent(new_object_hash):
         return True
 
     patch = check_output(

@@ -49,6 +49,7 @@ from nuitka.utils.AppDirs import getCacheDir
 from nuitka.utils.FileOperations import (
     areSamePaths,
     getFileContentsHash,
+    getNormalizedAbsolutePath,
     getNormalizedPath,
     getNormalizedPathJoin,
     listDir,
@@ -1494,7 +1495,7 @@ def decideModuleSourceRef(filename, module_name, is_main, is_fake, logger):
             is_namespace = True
         else:
             source_ref = makeSourceReferenceFromFilename(
-                filename=getNormalizedPath(os.path.abspath(source_filename))
+                filename=getNormalizedAbsolutePath(source_filename)
             )
 
     else:

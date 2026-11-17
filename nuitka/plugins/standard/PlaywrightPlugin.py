@@ -10,7 +10,11 @@ import os
 
 from nuitka.options.Options import isStandaloneMode
 from nuitka.plugins.PluginBase import NuitkaPluginBase
-from nuitka.utils.FileOperations import hasDirectoryContents
+from nuitka.utils.FileOperations import (
+    getNormalizedPathJoin,
+    getUserInputNormalizedPath,
+    hasDirectoryContents,
+)
 from nuitka.utils.Utils import isMacOS, isWin32Windows
 
 # We use chrom to identify either chrome or chromium
@@ -69,30 +73,35 @@ to exclude all browsers.""",
             playwright_module_path, "driver", "package", ".local-browsers"
         )
 
-        if hasDirectoryContents(result):
-            return result
-        elif env_defined == "0":
+        if hasDirectoryContents(result) or env_defined == "0":
             return result
         elif env_defined:
-            result = os.path.normpath(env_defined)
+            result = getUserInputNormalizedPath(env_defined)
         else:
             if isWin32Windows():
                 # spell-checker: ignore LOCALAPPDATA
-                cache_directory = os.getenv(
-                    "LOCALAPPDATA", os.path.join(path_home, "AppData", "Local")
+                local_app_data = os.getenv("LOCALAPPDATA")
+                cache_directory = (
+                    getUserInputNormalizedPath(local_app_data)
+                    if local_app_data
+                    else os.path.join(path_home, "AppData", "Local")
                 )
             elif isMacOS():
                 cache_directory = os.path.join(path_home, "Library", "Caches")
             else:
-                cache_directory = os.getenv(
-                    "XDG_CACHE_HOME", os.path.join(path_home, ".cache")
+                xdg_cache_home = os.getenv("XDG_CACHE_HOME")
+                cache_directory = (
+                    getUserInputNormalizedPath(xdg_cache_home)
+                    if xdg_cache_home
+                    else os.path.join(path_home, ".cache")
                 )
 
             result = os.path.join(cache_directory, "ms-playwright")
 
         if not os.path.isabs(result):
-            init_cwd = os.getenv("INIT_CWD") or os.getcwd()
-            result = os.path.join(os.path.abspath(init_cwd), result)
+            init_cwd = os.getenv("INIT_CWD")
+            init_cwd = getUserInputNormalizedPath(init_cwd) if init_cwd else os.getcwd()
+            result = getNormalizedPathJoin(os.path.abspath(init_cwd), result)
 
         return result
 

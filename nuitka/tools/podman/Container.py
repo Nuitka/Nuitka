@@ -30,6 +30,7 @@ from nuitka.utils.FileOperations import (
     copyFile,
     copyTree,
     getFileContents,
+    getUserInputNormalizedPath,
     makePath,
     putTextFileContents,
     withTemporaryDirectory,
@@ -411,7 +412,7 @@ def getCppPath():
 
 
 def _makeMountDesc(podman_path, isolated, src_path, dst_path, flags):
-    src_path = os.path.expanduser(src_path)
+    src_path = getUserInputNormalizedPath(src_path)
 
     mount_desc = "type=bind,source=%s,dst=%s" % (src_path, dst_path)
 
@@ -445,10 +446,20 @@ def _checkIsolated(isolated, container_tag_name):
 def _checkContainerArgument(
     container_name, default_container_directory, plugin_container_files
 ):
-    if ("/" in container_name or "\\" in container_name) and os.path.exists(
-        container_name
+    candidate_container_path = (
+        getUserInputNormalizedPath(container_name)
+        if (
+            "/" in container_name
+            or "\\" in container_name
+            or container_name.startswith("~")
+        )
+        else None
+    )
+
+    if candidate_container_path is not None and os.path.exists(
+        candidate_container_path
     ):
-        container_file_path = container_name
+        container_file_path = candidate_container_path
 
         if container_file_path.endswith((".in", ".j2")):
             container_file_path_template = container_file_path
@@ -575,7 +586,7 @@ def _makePodmanRunCommand(
         else:
             src_path, dst_path, flags = path_desc.split("=", 2)
 
-        src_path = os.path.expanduser(src_path)
+        src_path = getUserInputNormalizedPath(src_path)
 
         run_command.extend(
             (

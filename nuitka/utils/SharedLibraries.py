@@ -31,7 +31,7 @@ from .FileOperations import (
     copyFile,
     copyFileWithPermissions,
     getFileList,
-    getNormalizedPath,
+    getNormalizedAbsolutePath,
     getNormalizedPathJoin,
     makeContainingPath,
     putBinaryFileContents,
@@ -89,7 +89,7 @@ def locateDLL(dll_name):
         return None
 
     if isWin32Windows() or isMacOS():
-        return getNormalizedPath(os.path.abspath(dll_name))
+        return getNormalizedAbsolutePath(dll_name)
 
     if os.path.sep in dll_name:
         # Use this from ctypes instead of rolling our own.

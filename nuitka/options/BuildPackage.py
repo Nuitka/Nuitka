@@ -15,6 +15,7 @@ from nuitka.utils.Execution import (
     withEnvironmentVarsOverridden,
 )
 from nuitka.utils.FileOperations import (
+    getUserInputNormalizedAbsolutePath,
     makePath,
     putTextFileContents,
     withDirectoryChange,
@@ -156,7 +157,9 @@ setuptools.command.egg_info.egg_info.initialize_options = new_egg_info_initializ
 
         package_dir = config.get("package_dir")
         if package_dir and "" in package_dir:
-            addMainScriptDirectory(os.path.join(os.getcwd(), package_dir.get("")))
+            addMainScriptDirectory(
+                getUserInputNormalizedAbsolutePath(package_dir.get(""))
+            )
         else:
             addMainScriptDirectory(os.getcwd())
 

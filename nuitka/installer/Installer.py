@@ -14,7 +14,6 @@ from nuitka.options.Options import (
     getWindowsInstallerLicenseFile,
     getWindowsInstallerMode,
     getWindowsInstallerNsisPath,
-    getWindowsInstallerOutputFilename,
     getWindowsInstallerShortcuts,
     isStandaloneMode,
     isWindowsInstallerAllowUserChangeInstallDir,
@@ -47,7 +46,7 @@ def wasInstallerCreated():
     return _installer_created
 
 
-def getInstallerOutputFilename():
+def computeInstallerOutputFilename():
     """Return the absolute output filename for the installer, or *None*.
 
     Covers Windows installer, macOS DMG, and Linux AppImage creation.
@@ -107,7 +106,6 @@ def createInstallerDispatch():
 
         createWindowsInstaller(
             installer_tool_path=getWindowsInstallerNsisPath(),
-            output_filename=getWindowsInstallerOutputFilename(),
             install_dir_spec=getWindowsInstallerInstallDir(),
             shortcuts=getWindowsInstallerShortcuts() or (),
             license_filename=getWindowsInstallerLicenseFile(),

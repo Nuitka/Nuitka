@@ -10,7 +10,10 @@ import sys
 
 from nuitka.importing.Importing import addMainScriptDirectory
 from nuitka.utils.Execution import executeProcess
-from nuitka.utils.FileOperations import withTemporaryDirectory
+from nuitka.utils.FileOperations import (
+    getUserInputNormalizedAbsolutePath,
+    withTemporaryDirectory,
+)
 from nuitka.utils.Json import loadJsonFromFilename
 
 from .BuildPackageCommon import applyNuitkaProjectOptions, reportBuildError
@@ -58,7 +61,9 @@ def getPoetryBuildConfiguration(logger, pyproject_data):
 
         package_dir = config.get("package_dir")
         if package_dir and "" in package_dir:
-            addMainScriptDirectory(os.path.join(os.getcwd(), package_dir.get("")))
+            addMainScriptDirectory(
+                getUserInputNormalizedAbsolutePath(package_dir.get("")),
+            )
         else:
             addMainScriptDirectory(os.getcwd())
 

@@ -25,7 +25,10 @@ from nuitka.PythonVersions import (
     python_version_full_str,
     python_version_str,
 )
-from nuitka.utils.FileOperations import getFileContentByLine
+from nuitka.utils.FileOperations import (
+    getFileContentByLine,
+    getUserInputNormalizedPath,
+)
 from nuitka.utils.InlineCopies import importFromInlineCopy
 from nuitka.utils.Utils import (
     getArchitecture,
@@ -2825,7 +2828,9 @@ to know new options.""" % plugin_names.split("=", 1)[0])
 Error, plugin options format changed. Use '--user-plugin=%s --help'
 to know new options.""" % plugin_name.split("=", 1)[0])
 
-            addUserPluginCommandLineOptions(parser=parser, filename=plugin_name)
+            addUserPluginCommandLineOptions(
+                parser=parser, filename=getUserInputNormalizedPath(plugin_name)
+            )
 
 
 run_time_variable_names = (
@@ -2922,6 +2927,8 @@ def getNuitkaProjectOptions(logger, filename_arg, module_mode):
 
     # The returns are not real, but make exception raises explicit to bytecode and pylint.
     # pylint: disable=too-many-return-statements
+
+    filename_arg = getUserInputNormalizedPath(filename_arg)
 
     if os.path.isdir(filename_arg):
         filename_dir = filename_arg
@@ -3415,10 +3422,14 @@ def runSpecialCommandsFromOptions(options):
         )
 
         createEnvironmentFromReport(
-            environment_folder=os.path.expanduser(
+            environment_folder=getUserInputNormalizedPath(
                 options.create_environment_from_report
             ),
-            report_filename=os.path.expanduser(options.compilation_report_filename),
+            report_filename=(
+                getUserInputNormalizedPath(options.compilation_report_filename)
+                if options.compilation_report_filename is not None
+                else None
+            ),
         )
         sys.exit(0)
 

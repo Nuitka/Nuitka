@@ -31,7 +31,10 @@ from nuitka.utils.FileOperations import (
     deleteFile,
     getFileContents,
     getFileContentsHash,
+    getNormalizedAbsolutePath,
     getNormalizedPath,
+    getUserInputNormalizedAbsolutePath,
+    getUserInputNormalizedPath,
     listDir,
     makePath,
     putTextFileContents,
@@ -670,7 +673,7 @@ to reserve cores.""",
     assert len(positional_args) <= 1, positional_args
 
     if positional_args:
-        base_dir = positional_args[0]
+        base_dir = getUserInputNormalizedPath(positional_args[0])
 
         if not os.path.isdir(base_dir):
             watch_logger.sysexit("Error, '%s' is not a directory" % base_dir)
@@ -686,7 +689,7 @@ to reserve cores.""",
             module_specs=(None if isAnacondaPython() else "pipenv"),
         )
 
-    nuitka_binary = os.path.abspath(os.path.expanduser(options.nuitka_binary))
+    nuitka_binary = getUserInputNormalizedAbsolutePath(options.nuitka_binary)
     assert os.path.exists(nuitka_binary)
 
     global nuitka_version  # singleton, pylint: disable=global-statement
@@ -696,7 +699,7 @@ to reserve cores.""",
 
     watch_logger.info("Working with Nuitka %s." % nuitka_version)
 
-    base_dir = os.path.abspath(base_dir)
+    base_dir = getNormalizedAbsolutePath(base_dir)
 
     if options.nuitka_pr_mode is not None:
         pr_category, pr_description = options.nuitka_pr_mode.split(",")

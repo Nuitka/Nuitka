@@ -16,7 +16,7 @@ from nuitka.PythonFlavors import (
 )
 from nuitka.PythonPrefixes import getSystemPrefixPath
 from nuitka.PythonVersions import getTkInterVersion
-from nuitka.utils.FileOperations import listDir
+from nuitka.utils.FileOperations import getUserInputNormalizedPath, listDir
 from nuitka.utils.Utils import isMacOS, isWin32Windows
 from nuitka.utils.Zipfiles import createZipFile, doesZipFileMatch, getZipFile
 
@@ -76,8 +76,16 @@ class NuitkaPluginTkinter(NuitkaPluginBase):
     _tk_ignore_dirs = ("demos",)
 
     def __init__(self, tcl_library_dir, tk_library_dir):
-        self.tcl_library_dir = tcl_library_dir
-        self.tk_library_dir = tk_library_dir
+        self.tcl_library_dir = (
+            getUserInputNormalizedPath(tcl_library_dir)
+            if tcl_library_dir is not None
+            else None
+        )
+        self.tk_library_dir = (
+            getUserInputNormalizedPath(tk_library_dir)
+            if tk_library_dir is not None
+            else None
+        )
 
         # The directories used, once detected, for reporting only.
         self.tcl_library_source_dir = None
@@ -204,8 +212,8 @@ The Tcl library dir. See comments for Tk library dir.""",
     def _getTclCandidatePaths(self):
         # Check typical locations of the dirs
         tcl_library = os.getenv("TCL_LIBRARY")
-        if tcl_library is not None:
-            yield tcl_library
+        if tcl_library:
+            yield getUserInputNormalizedPath(tcl_library)
 
         # Inside the Python install, esp. on Windows.
         for sys_prefix_path in (sys.prefix, getSystemPrefixPath()):
@@ -256,8 +264,8 @@ The Tcl library dir. See comments for Tk library dir.""",
 
     def _getTkCandidatePaths(self):
         tk_library = os.getenv("TK_LIBRARY")
-        if tk_library is not None:
-            yield tk_library
+        if tk_library:
+            yield getUserInputNormalizedPath(tk_library)
 
         for sys_prefix_path in (sys.prefix, getSystemPrefixPath()):
             yield os.path.join(sys_prefix_path, "tcl", "tk%s" % self.tk_inter_version)

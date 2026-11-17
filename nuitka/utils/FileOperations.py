@@ -149,8 +149,8 @@ def areSamePaths(path1, path2):
     if path1 == path2:
         return True
 
-    path1 = os.path.abspath(getNormalizedPath(path1))
-    path2 = os.path.abspath(getNormalizedPath(path2))
+    path1 = getNormalizedAbsolutePath(path1)
+    path2 = getNormalizedAbsolutePath(path2)
 
     if path1 == path2:
         return True
@@ -1862,7 +1862,7 @@ def getWindowsLongPathName(filename):
     while True:
         output_buf = ctypes.create_unicode_buffer(output_buf_size)
         needed = GetLongPathNameW(
-            getNormalizedPath(os.path.abspath(filename)), output_buf, output_buf_size
+            getNormalizedAbsolutePath(filename), output_buf, output_buf_size
         )
 
         if needed == 0:
@@ -2423,13 +2423,56 @@ def getNormalizedPath(path):
     return path
 
 
+def _expandUserPath(path):
+    """Expand a leading home directory shortcut.
+
+    Notes:
+        On Windows, 'ntpath.expanduser' treats any leading '~name' as
+        '~user' and guesses a sibling of the current home directory,
+        which would turn a filename like '~1.txt' into a path below the
+        home parent, and Python 2 prefers the 'HOME' variable, which
+        MSYS2 and Git Bash set to a POSIX path. Therefore only the '~'
+        home shorthand is expanded on Windows using 'USERPROFILE',
+        while POSIX also supports '~user'.
+    """
+    if isWin32Windows() and path.startswith("~"):
+        if len(path) > 1 and path[1] not in "/\\":
+            return path
+
+        user_home = os.getenv("USERPROFILE")
+
+        if user_home is None:
+            home_path = os.getenv("HOMEPATH")
+
+            if home_path is None:
+                return path
+
+            user_home = os.path.join(os.getenv("HOMEDRIVE", ""), home_path)
+
+        return user_home + path[1:]
+
+    return os.path.expanduser(path)
+
+
 def getUserInputNormalizedPath(path):
-    result = getNormalizedPath(path)
+    """Return a normalized path for a path from user or environment input."""
+    if path == "":
+        return path
 
-    if isMacOS():
-        result = os.path.expanduser(result)
+    return getNormalizedPath(_expandUserPath(path))
 
-    return result
+
+def getNormalizedAbsolutePath(path):
+    """Return an absolute normalized path for an internal path."""
+    return getNormalizedPath(os.path.abspath(path))
+
+
+def getUserInputNormalizedAbsolutePath(path):
+    """Return an absolute normalized path for a path from user or environment input."""
+    if path == "":
+        return path
+
+    return getNormalizedAbsolutePath(_expandUserPath(path))
 
 
 def getNormalizedPathJoin(*paths):

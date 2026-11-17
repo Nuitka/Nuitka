@@ -21,7 +21,7 @@ from nuitka.PythonPrefixes import getSystemPrefixPath
 from nuitka.utils.Execution import executeProcess, getEnvironmentPathAdded
 from nuitka.utils.FileOperations import (
     getFileContents,
-    getNormalizedPath,
+    getNormalizedAbsolutePath,
     getNormalizedPathJoin,
     getUserInputNormalizedPath,
     putTextFileContents,
@@ -65,7 +65,7 @@ def _getPythonIncludeDirectories(logger):
         include_dir = paths.get(key)
 
         if include_dir is not None and os.path.isdir(include_dir):
-            include_dir = getNormalizedPath(os.path.abspath(include_dir))
+            include_dir = getNormalizedAbsolutePath(include_dir)
 
             if include_dir not in result:
                 result.append(include_dir)

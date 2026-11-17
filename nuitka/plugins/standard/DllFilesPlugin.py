@@ -21,6 +21,7 @@ from nuitka.utils.Distributions import (
     isDistributionSystemPackage,
 )
 from nuitka.utils.FileOperations import (
+    getNormalizedAbsolutePath,
     getNormalizedPath,
     getNormalizedPathJoin,
     listDllFilesFromDirectory,
@@ -97,7 +98,7 @@ class NuitkaPluginDllFiles(NuitkaYamlPluginBase):
                 dest_path = os.path.join(full_name.asPath(), "..")
 
         for source_path, dest_name in zip(source_paths, dest_names):
-            source_path = getNormalizedPath(os.path.abspath(source_path))
+            source_path = getNormalizedAbsolutePath(source_path)
 
             yield self.makeDllEntryPoint(
                 source_path=source_path,
@@ -290,7 +291,7 @@ conditions are missing, or this version of the module needs treatment added."""
         for filename in filenames:
             # We are otherwise expecting absolute paths internally for DLL sources, but we
             # shall tolerate relative paths by the config.
-            filename = getNormalizedPath(os.path.abspath(filename))
+            filename = getNormalizedAbsolutePath(filename)
 
             dll_entry_point = self._handleDllConfigByCodeResult(
                 filename=filename,

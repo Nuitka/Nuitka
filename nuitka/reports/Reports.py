@@ -35,8 +35,8 @@ from nuitka.importing.Importing import (
 )
 from nuitka.importing.Recursion import getRecursionDecisions
 from nuitka.installer.Installer import (
+    computeInstallerOutputFilename,
     getInstallerBackendName,
-    getInstallerOutputFilename,
     getInstallerToolVersion,
     wasInstallerCreated,
 )
@@ -345,7 +345,7 @@ def _getReportInputData(aborted):
         onefile_resource_mode = None
 
     installer_executable = (
-        getInstallerOutputFilename() if wasInstallerCreated() else None
+        computeInstallerOutputFilename() if wasInstallerCreated() else None
     )
 
     installer_backend = getInstallerBackendName()
@@ -1408,9 +1408,7 @@ Error, plugin '%s' report value for key '%s' is not a string or boolean."""
         contents = contents.encode("utf8")
 
     try:
-        putBinaryFileContents(
-            filename=getNormalizedPath(report_filename), contents=contents
-        )
+        putBinaryFileContents(filename=report_filename, contents=contents)
     except OSError as e:
         reports_logger.warning(
             "Compilation report write to file '%s' failed due to: %s."
@@ -1532,7 +1530,7 @@ def writeCompilationReports(aborted):
                     candidate += ".rst.j2"
 
                 if os.path.exists(candidate):
-                    template_filename = candidate
+                    template_filename = getNormalizedPath(candidate)
 
             if not os.path.exists(template_filename):
                 reports_logger.warning(
@@ -1542,8 +1540,8 @@ def writeCompilationReports(aborted):
                 continue
 
             writeCompilationReportFromTemplate(
-                template_filename=getNormalizedPath(template_filename),
-                report_filename=getNormalizedPath(report_filename),
+                template_filename=template_filename,
+                report_filename=report_filename,
                 report_input_data=report_input_data,
             )
 

@@ -16,6 +16,7 @@ import sys
 from nuitka.PythonPrefixes import getSystemPrefixPath
 from nuitka.utils.FileOperations import (
     areSamePaths,
+    getUserInputNormalizedPath,
     isFilenameBelowPath,
     isFilenameSameAsOrBelowPath,
 )
@@ -231,8 +232,13 @@ def isPyenvPython():
     if isWin32Windows():
         return False
 
-    return os.getenv("PYENV_ROOT") and isFilenameSameAsOrBelowPath(
-        path=os.getenv("PYENV_ROOT"), filename=getSystemPrefixPath()
+    pyenv_root = os.getenv("PYENV_ROOT")
+    if not pyenv_root:
+        return False
+
+    return isFilenameSameAsOrBelowPath(
+        path=getUserInputNormalizedPath(pyenv_root),
+        filename=getSystemPrefixPath(),
     )
 
 

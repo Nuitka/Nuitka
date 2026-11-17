@@ -336,6 +336,12 @@ def _warnLinuxAppSpecificOption(option_name):
     _warnLinuxSpecificOption(option_name)
 
 
+def _getDataDirDescription(data_dir_desc):
+    src, dst = data_dir_desc.split("=", 1)
+
+    return getUserInputNormalizedPath(src), dst
+
+
 def _checkDataDirOptionValue(data_dir, option_name):
     if "=" not in data_dir:
         return options_logger.sysexit(
@@ -343,7 +349,7 @@ def _checkDataDirOptionValue(data_dir, option_name):
             % (option_name, data_dir)
         )
 
-    src, dst = data_dir.split("=", 1)
+    src, dst = _getDataDirDescription(data_dir)
 
     if os.path.isabs(dst):
         return options_logger.sysexit(
@@ -441,10 +447,9 @@ def parseArgs():
 
     states.report_missing_code_helpers = options.report_missing_code_helpers
 
-    if options.output_folder_name is not None:
-        _checkFilenameOnlyArgument(
-            "--output-folder-name", options.output_folder_name, ""
-        )
+    output_folder_name = getOutputFolderName()
+    if output_folder_name is not None:
+        _checkFilenameOnlyArgument("--output-folder-name", output_folder_name, "")
 
     states.report_missing_trust = options.report_missing_trust
 
@@ -509,8 +514,13 @@ longer part of Winlibs and therefore no more available this way. Use only \
             if "=" in arg:
                 arg_name, value = arg.split("=", 1)
 
-                if os.path.exists(value) and isNonLocalPath(arg):
-                    value = getReportPath(value)
+                if value:
+                    normalized_value = getUserInputNormalizedPath(value)
+
+                    if os.path.exists(normalized_value) and isNonLocalPath(
+                        normalized_value
+                    ):
+                        value = getReportPath(normalized_value)
 
                 if " " in value or value == "":
                     value = '"%s"' % value
@@ -518,12 +528,17 @@ longer part of Winlibs and therefore no more available this way. Use only \
                 return "%s=%s" % (arg_name, value)
             else:
                 return arg
-        elif os.path.exists(arg) and isNonLocalPath(arg):
-            arg = getReportPath(arg)
-            if " " in arg:
-                arg = '"%s"' % arg
+        elif arg:
+            normalized_arg = getUserInputNormalizedPath(arg)
 
-            return arg
+            if os.path.exists(normalized_arg) and isNonLocalPath(normalized_arg):
+                arg = getReportPath(normalized_arg)
+                if " " in arg:
+                    arg = '"%s"' % arg
+
+                return arg
+            else:
+                return arg
         else:
             return arg
 
@@ -706,11 +721,12 @@ Please use an 'arm64' Python to create it.""")
         _checkOnefileTargetSpec()
 
     # Check onefile splash image
-    if options.splash_screen_image:
-        if not os.path.exists(options.splash_screen_image):
+    splash_screen_filename = getWindowsSplashScreen()
+    if splash_screen_filename:
+        if not os.path.exists(splash_screen_filename):
             return options_logger.sysexit(
                 "Error, splash screen image path '%s' does not exist."
-                % options.splash_screen_image
+                % splash_screen_filename
             )
 
         _warnOnefileOnlyOption("--onefile-windows-splash-screen-image")
@@ -833,20 +849,10 @@ it before using it: '%s' (from --output-filename='%s')."""
     if isMacOS() and len(getMacOSIconPaths()) > 1:
         return options_logger.sysexit("Error, can only use one icon file on macOS.")
 
-    for icon_path in getWindowsIconPaths():
-        if "#" in icon_path and isWin32Windows():
-            icon_path, icon_index = icon_path.rsplit("#", 1)
-
-            if not icon_index.isdigit() or int(icon_index) < 0:
-                return options_logger.sysexit(
-                    "Error, icon number in '%s#%s' not valid."
-                    % (icon_path + "#" + icon_index)
-                )
-
-        if getWindowsIconExecutablePath():
-            return options_logger.sysexit(
-                "Error, can only use icons from template executable or from icon files, but not both."
-            )
+    if getWindowsIconPaths() and getWindowsIconExecutablePath():
+        return options_logger.sysexit(
+            "Error, can only use icons from template executable or from icon files, but not both."
+        )
 
     icon_exe_path = getWindowsIconExecutablePath()
     if icon_exe_path is not None and not os.path.exists(icon_exe_path):
@@ -881,8 +887,6 @@ it before using it: '%s' (from --output-filename='%s')."""
         return options_logger.sysexit(
             """Error, empty string is not an acceptable product name."""
         )
-
-    splash_screen_filename = getWindowsSplashScreen()
 
     if splash_screen_filename is not None and not os.path.isfile(
         splash_screen_filename
@@ -960,16 +964,11 @@ library from there.""")
                 "Error, malformed data file description, must specify relative target path separated with '='."
             )
 
-        if data_file_desc.count("=") == 1:
-            src, dst = data_file_desc.split("=", 1)
-            src = os.path.expanduser(src)
-            src_pattern = src
-        else:
-            src, dst, pattern = data_file_desc.split("=", 2)
-            src = os.path.expanduser(src)
-            src_pattern = os.path.join(src, pattern)
+        src, dst, src_patterns = _getDataFileSrcPatterns(data_file_desc)
 
-        filenames = resolveShellPatternToFilenames(src_pattern)
+        filenames = []
+        for src_pattern in src_patterns:
+            filenames.extend(resolveShellPatternToFilenames(src_pattern))
 
         if len(filenames) > 1 and not dst.endswith(("/", os.path.sep)):
             return options_logger.sysexit(
@@ -1010,7 +1009,7 @@ library from there.""")
             return options_logger.sysexit("""\
 Error, directory '%s' given to '--include-plugin-directory' must not be a \
 standard library path. Use '--include-module' or '--include-package' \
-options instead.""" % pattern)
+options instead.""" % directory_name)
 
     _checkLtoOptions()
 
@@ -1608,7 +1607,11 @@ def getDebuggerName():
 
 def getXMLDumpOutputFilename():
     """:returns: str derived from ``--xml``"""
-    return options.xml_output
+    return (
+        getUserInputNormalizedPath(options.xml_output)
+        if options.xml_output is not None
+        else None
+    )
 
 
 def shallOnlyExecCCompilerCall():
@@ -1735,6 +1738,25 @@ def _splitShellPattern(value):
     return value.split(",") if "{" not in value else [value]
 
 
+def _getDataFileSrcPatterns(data_file_desc):
+    if data_file_desc.count("=") == 1:
+        src, dst = data_file_desc.split("=", 1)
+
+        src_patterns = [
+            getUserInputNormalizedPath(pattern) for pattern in _splitShellPattern(src)
+        ]
+    else:
+        src, dst, pattern = data_file_desc.split("=", 2)
+        src = getUserInputNormalizedPath(src)
+
+        src_patterns = [
+            getNormalizedPathJoin(src, getUserInputNormalizedPath(p))
+            for p in _splitShellPattern(pattern)
+        ]
+
+    return src, dst, src_patterns
+
+
 def splitShellPatterns(values):
     result = []
     for value in values:
@@ -1762,12 +1784,20 @@ def getShallFollowModules():
 
 def getShallFollowExtra():
     """*list*, items of ``--include-plugin-directory=``"""
-    return sum([_splitShellPattern(x) for x in options.include_extra], [])
+    return [
+        getUserInputNormalizedPath(p)
+        for x in options.include_extra
+        for p in _splitShellPattern(x)
+    ]
 
 
 def getShallFollowExtraFilePatterns():
     """*list*, items of ``--include-plugin-files=``"""
-    return sum([_splitShellPattern(x) for x in options.include_extra_files], [])
+    return [
+        getUserInputNormalizedPath(p)
+        for x in options.include_extra_files
+        for p in _splitShellPattern(x)
+    ]
 
 
 def getMustIncludeModules():
@@ -1832,45 +1862,30 @@ separated by ':') as an argument, not '%s'.""" % package_name)
 def getShallIncludeDataFiles():
     """*generator*, items derived from ``--include-data-files=``"""
     for data_file_desc in options.data_files:
+        src, dest, src_patterns = _getDataFileSrcPatterns(data_file_desc)
+
         if data_file_desc.count("=") == 1:
-            src, dest = data_file_desc.split("=", 1)
-
-            for pattern in _splitShellPattern(src):
-                yield (
-                    getUserInputNormalizedPath(pattern),
-                    None,
-                    dest,
-                    data_file_desc,
-                )
+            for pattern in src_patterns:
+                yield pattern, None, dest, data_file_desc
         else:
-            src, dest, pattern = data_file_desc.split("=", 2)
-
-            for pattern in _splitShellPattern(pattern):
-                yield (
-                    getNormalizedPathJoin(
-                        getUserInputNormalizedPath(src),
-                        getUserInputNormalizedPath(pattern),
-                    ),
-                    src,
-                    dest,
-                    data_file_desc,
-                )
+            for pattern in src_patterns:
+                yield pattern, src, dest, data_file_desc
 
 
 def getShallIncludeDataDirs():
     """*generator*, ``(src, dest)`` pairs of ``--include-data-dir=``"""
     for data_file in options.data_dirs:
-        src, dest = data_file.split("=", 1)
+        src, dest = _getDataDirDescription(data_file)
 
-        yield getUserInputNormalizedPath(src), dest
+        yield src, dest
 
 
 def getShallIncludeRawDirs():
     """*generator*, ``(src, dest)`` pairs of ``--include-raw-dir=``"""
     for data_file in options.raw_dirs:
-        src, dest = data_file.split("=", 1)
+        src, dest = _getDataDirDescription(data_file)
 
-        yield getUserInputNormalizedPath(src), dest
+        yield src, dest
 
 
 def getShallNotIncludeDataFilePatterns():
@@ -1989,15 +2004,6 @@ def getOutputFilename():
     return (
         getUserInputNormalizedPath(options.output_filename)
         if options.output_filename is not None
-        else None
-    )
-
-
-def getInstallerOutputFilename():
-    """*str* or *None*, normalized value of ``--windows-installer-output``."""
-    return (
-        getUserInputNormalizedPath(options.windows_installer_output_filename)
-        if options.windows_installer_output_filename is not None
         else None
     )
 
@@ -2462,7 +2468,11 @@ def getContainerRequirements():
 
 def getContainerWheelsDir():
     """*str* or *None*, directory with wheels to install inside the container"""
-    return options.container_wheels_dir if options is not None else None
+    return (
+        getUserInputNormalizedPath(options.container_wheels_dir)
+        if options is not None and options.container_wheels_dir is not None
+        else None
+    )
 
 
 def getContainerPythonVersion():
@@ -2488,7 +2498,11 @@ def getContainerNoBuild():
 
 def getContainerPodmanPath():
     """*str* or *None*, podman binary path from ``--container-podman-path``"""
-    return options.container_podman_path if options is not None else None
+    return (
+        getUserInputNormalizedPath(options.container_podman_path)
+        if options is not None and options.container_podman_path is not None
+        else None
+    )
 
 
 def getContainerPodmanVerbose():
@@ -2779,7 +2793,11 @@ def isPythonPgoMode():
 
 def getPythonPgoInput():
     """:returns: str or None derived from ``--pgo-python-input``"""
-    return options.python_pgo_input
+    return (
+        getUserInputNormalizedPath(options.python_pgo_input)
+        if options.python_pgo_input is not None
+        else None
+    )
 
 
 def getPythonPgoJsonFilename():
@@ -2802,12 +2820,11 @@ def getPgoArgs():
 
 def getPgoExecutable():
     """*str* or *None* = ``--pgo-executable``"""
-
-    if options.pgo_executable and os.path.exists(options.pgo_executable):
-        if not os.path.isabs(options.pgo_executable):
-            options.pgo_executable = getUserInputNormalizedPath(options.pgo_executable)
-
-    return options.pgo_executable
+    return (
+        getUserInputNormalizedPath(options.pgo_executable)
+        if options.pgo_executable
+        else None
+    )
 
 
 def getPythonPgoUnseenModulePolicy():
@@ -2851,18 +2868,32 @@ def shallNotCompressOnefile():
     return options.onefile_no_compression
 
 
-def _checkedIconPaths(icon_paths):
-    icon_paths = tuple(getUserInputNormalizedPath(x) for x in icon_paths)
+def _checkedIconPaths(icon_paths, allow_index=False):
+    result = []
 
     for icon_path in icon_paths:
-        if not os.path.exists(icon_path):
+        if allow_index and "#" in icon_path:
+            icon_file, icon_index = icon_path.rsplit("#", 1)
+
+            if not icon_index.isdigit() or int(icon_index) < 0:
+                return options_logger.sysexit(
+                    "Error, icon number in '%s' not valid." % icon_path
+                )
+
+            icon_file = getUserInputNormalizedPath(icon_file)
+            icon_path = "%s#%s" % (icon_file, icon_index)
+        else:
+            icon_file = icon_path = getUserInputNormalizedPath(icon_path)
+
+        if not os.path.exists(icon_file):
             return options_logger.sysexit(
-                "Error, icon path '%s' does not exist." % icon_path
+                "Error, icon path '%s' does not exist." % icon_file
             )
 
-        checkIconUsage(logger=options_logger, icon_path=icon_path)
+        checkIconUsage(logger=options_logger, icon_path=icon_file)
+        result.append(icon_path)
 
-    return icon_paths
+    return tuple(result)
 
 
 def getWindowsIconPaths():
@@ -2870,7 +2901,7 @@ def getWindowsIconPaths():
     if not isWin32Windows():
         return ()
 
-    return _checkedIconPaths(options.windows_icon_path)
+    return _checkedIconPaths(options.windows_icon_path, allow_index=True)
 
 
 def getLinuxIconPaths():
@@ -2890,7 +2921,11 @@ def getWindowsIconExecutablePath():
     if not isWin32Windows():
         return None
 
-    return options.icon_exe_path
+    return (
+        getUserInputNormalizedPath(options.icon_exe_path)
+        if options.icon_exe_path is not None
+        else None
+    )
 
 
 def shallAskForWindowsAdminRights():
@@ -2910,12 +2945,20 @@ def shallCreateWindowsInstaller():
 
 def getWindowsInstallerNsisPath():
     """*str* or *None*, value of ``--windows-nsis-path``"""
-    return options.windows_installer_nsis_path
+    return (
+        getUserInputNormalizedPath(options.windows_installer_nsis_path)
+        if options.windows_installer_nsis_path is not None
+        else None
+    )
 
 
 def getWindowsInstallerOutputFilename():
     """*str* or *None*, value of ``--windows-installer-output``"""
-    return options.windows_installer_output_filename
+    return (
+        getUserInputNormalizedPath(options.windows_installer_output_filename)
+        if options.windows_installer_output_filename is not None
+        else None
+    )
 
 
 def getWindowsInstallerInstallDir():
@@ -2930,7 +2973,11 @@ def getWindowsInstallerShortcuts():
 
 def getWindowsInstallerLicenseFile():
     """*str* or *None*, value of ``--windows-installer-license-file``"""
-    return options.windows_installer_license_filename
+    return (
+        getUserInputNormalizedPath(options.windows_installer_license_filename)
+        if options.windows_installer_license_filename is not None
+        else None
+    )
 
 
 def isWindowsInstallerAllowUserChangeInstallDir():
@@ -2950,12 +2997,20 @@ def shallCreateLinuxInstaller():
 
 def getLinuxInstallerAppImagetoolPath():
     """*str* or *None*, value of ``--linux-installer-appimagetool-path``"""
-    return options.linux_installer_appimagetool_path
+    return (
+        getUserInputNormalizedPath(options.linux_installer_appimagetool_path)
+        if options.linux_installer_appimagetool_path is not None
+        else None
+    )
 
 
 def getLinuxInstallerOutputFilename():
     """*str* or *None*, value of ``--linux-installer-output``"""
-    return options.linux_installer_output_filename
+    return (
+        getUserInputNormalizedPath(options.linux_installer_output_filename)
+        if options.linux_installer_output_filename is not None
+        else None
+    )
 
 
 def getFileDescription():
@@ -3114,7 +3169,11 @@ def shallCreateDmgFile():
 
 def getMacOSInstallerOutputFilename():
     """*str* or *None*, value of ``--macos-installer-output``"""
-    return options.macos_installer_output_filename
+    return (
+        getUserInputNormalizedPath(options.macos_installer_output_filename)
+        if options.macos_installer_output_filename is not None
+        else None
+    )
 
 
 def getMacOSSigningIdentity():
@@ -3286,7 +3345,11 @@ def getMacOSSigningCertificateFilename():
     if not isMacOS():
         return None
 
-    return options.macos_sign_keyring_filename
+    return (
+        getUserInputNormalizedPath(options.macos_sign_keyring_filename)
+        if options.macos_sign_keyring_filename is not None
+        else None
+    )
 
 
 def getMacOSSigningCertificatePassword():
@@ -3535,7 +3598,9 @@ def getUserPlugins():
     if not options:
         return ()
 
-    return tuple(set(options.user_plugins))
+    return tuple(
+        OrderedSet(getUserInputNormalizedPath(p) for p in options.user_plugins)
+    )
 
 
 def shallDetectMissingPlugins():
@@ -3544,8 +3609,12 @@ def shallDetectMissingPlugins():
 
 
 def getPythonPathForScons():
-    """*str*, value of ``--python-for-scons``"""
-    return options.python_scons
+    """*str* or *None*, value of ``--python-for-scons``"""
+    return (
+        getUserInputNormalizedPath(options.python_scons)
+        if options.python_scons is not None
+        else None
+    )
 
 
 def shallCompileWithoutBuildDirectory():
@@ -3623,14 +3692,24 @@ def isLowMemory():
 
 def getCompilationReportFilename():
     """*str* filename to write XML report of compilation to"""
-    return options.compilation_report_filename
+    return (
+        getUserInputNormalizedPath(options.compilation_report_filename)
+        if options.compilation_report_filename is not None
+        else None
+    )
 
 
 def getCompilationReportTemplates():
     """*tuple of str,str* template and output filenames to write reports to"""
     result = []
     for value in options.compilation_report_templates:
-        result.append(value.split(":", 1))
+        template_filename, report_filename = value.split(":", 1)
+        result.append(
+            (
+                getUserInputNormalizedPath(template_filename),
+                getUserInputNormalizedPath(report_filename),
+            )
+        )
 
     return tuple(result)
 
@@ -3686,7 +3765,7 @@ def getOutputFolderName():
 
 def getUserProvidedYamlFiles():
     """*list* files with user provided Yaml files"""
-    return options.user_yaml_files
+    return [getUserInputNormalizedPath(f) for f in options.user_yaml_files]
 
 
 def _getWarningMnemonicsDisabled():

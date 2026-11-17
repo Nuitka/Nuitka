@@ -11,6 +11,7 @@ import tempfile
 from nuitka.freezer.DllDependenciesWin32 import detectBinaryPathDLLsWin32
 from nuitka.options.CommandLineOptionsTools import makeOptionsParser
 from nuitka.Tracing import my_print
+from nuitka.utils.FileOperations import getUserInputNormalizedPath
 from nuitka.utils.SharedLibraries import getDLLVersion, getSxsFromDLL
 from nuitka.utils.Timing import TimerReport
 
@@ -32,6 +33,8 @@ def main():
         sys.exit("No DLLs given.")
 
     for filename in positional_args:
+        filename = getUserInputNormalizedPath(filename)
+
         if not os.path.exists(filename):
             sys.exit("Error, file '%s' not found." % filename)
 

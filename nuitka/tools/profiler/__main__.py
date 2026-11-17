@@ -14,6 +14,7 @@ import sys
 import tempfile
 
 from nuitka.Tracing import my_print
+from nuitka.utils.FileOperations import getUserInputNormalizedPath
 
 
 def _namelen(e):
@@ -59,7 +60,7 @@ def main():
         vmprof.enable(prof_file.fileno(), 0.001)
 
         try:
-            program = sys.argv[1]
+            program = getUserInputNormalizedPath(sys.argv[1])
             del sys.argv[1]
 
             #            sys.argv = [args.program] + args.args

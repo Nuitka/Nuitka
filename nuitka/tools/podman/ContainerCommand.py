@@ -36,6 +36,7 @@ from nuitka.plugins.Plugins import (
 from nuitka.Tracing import containers_logger
 from nuitka.utils.Execution import quoteForShell
 from nuitka.utils.FileOperations import (
+    getNormalizedAbsolutePath,
     putTextFileContents,
     withTemporaryDirectory,
 )
@@ -100,10 +101,10 @@ def _getWheelsDir():
     """
     wheels_dir = getContainerWheelsDir()
 
-    if wheels_dir is None:
+    if not wheels_dir:
         return None
 
-    wheels_dir = os.path.abspath(os.path.expanduser(wheels_dir))
+    wheels_dir = getNormalizedAbsolutePath(wheels_dir)
 
     if not os.path.isdir(wheels_dir):
         return containers_logger.sysexit(

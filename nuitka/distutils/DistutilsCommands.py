@@ -25,7 +25,14 @@ from nuitka.reports.CompilationReportReader import (
 )
 from nuitka.Tracing import wheel_logger
 from nuitka.utils.Execution import check_call, getEnvironmentWithPathAdded
-from nuitka.utils.FileOperations import deleteFile, getFileList, renameFile
+from nuitka.utils.FileOperations import (
+    deleteFile,
+    getFileList,
+    getNormalizedAbsolutePath,
+    getNormalizedPathJoin,
+    getUserInputNormalizedPath,
+    renameFile,
+)
 from nuitka.utils.Json import writeJsonToFile, writeJsonToFilename
 from nuitka.utils.ModuleNames import ModuleName
 from nuitka.utils.Toml import loadToml
@@ -88,6 +95,9 @@ class build(distutils.command.build.build):
         # Allow to dump what we found, so it can be used for other purposes.
         dump_filename = os.getenv("NUITKA_DUMP_BUILD_CONFIG")
         if dump_filename:
+            if dump_filename != "-":
+                dump_filename = getUserInputNormalizedPath(dump_filename)
+
             self._dumpBuildConfiguration(dump_filename)
             return
 
@@ -95,19 +105,22 @@ class build(distutils.command.build.build):
         # name.
         distutils.command.build.build.run(self)
 
-        self._build(os.path.abspath(self.build_lib))
+        self._build(getNormalizedAbsolutePath(self.build_lib))
 
     def _dumpBuildConfiguration(self, dump_filename):
         # pylint: disable=too-many-branches,too-many-locals
         # We need to search in the build directory preferably, because that is where
         # the modification of sources happens.
         project_dir = os.getenv("NUITKA_PROJECT_DIR")
-        if not project_dir:
+        if project_dir:
+            project_dir = getUserInputNormalizedPath(project_dir)
+        else:
             project_dir = os.getcwd()
 
         if self.distribution.package_dir and "" in self.distribution.package_dir:
-            main_package_dir = os.path.join(
-                project_dir, self.distribution.package_dir.get("")
+            main_package_dir = getNormalizedPathJoin(
+                project_dir,
+                getUserInputNormalizedPath(self.distribution.package_dir.get("")),
             )
         else:
             main_package_dir = project_dir
@@ -133,7 +146,12 @@ class build(distutils.command.build.build):
 
         if self.distribution.scripts:
             for script in self.distribution.scripts:
-                nuitka_command.append("--main=%s" % os.path.join(project_dir, script))
+                nuitka_command.append(
+                    "--main=%s"
+                    % getNormalizedPathJoin(
+                        project_dir, getUserInputNormalizedPath(script)
+                    )
+                )
 
         if self.distribution.package_data:
             for package_name, patterns in self.distribution.package_data.items():
@@ -157,9 +175,11 @@ class build(distutils.command.build.build):
         if self.distribution.data_files:
             for dest_dir, src_files in self.distribution.data_files:
                 for src_file in src_files:
+                    src_file = getUserInputNormalizedPath(src_file)
+
                     # Make source absolute if it isn't
                     if not os.path.isabs(src_file):
-                        src_file_abs = os.path.join(project_dir, src_file)
+                        src_file_abs = getNormalizedPathJoin(project_dir, src_file)
                     else:
                         src_file_abs = src_file
 
@@ -323,11 +343,12 @@ class build(distutils.command.build.build):
         os.chdir(build_lib)
 
         if self.distribution.package_dir and "" in self.distribution.package_dir:
-            main_package_dir = os.path.join(
-                build_lib, self.distribution.package_dir.get("")
+            main_package_dir = getNormalizedPathJoin(
+                build_lib,
+                getUserInputNormalizedPath(self.distribution.package_dir.get("")),
             )
         else:
-            main_package_dir = os.path.abspath(build_lib)
+            main_package_dir = getNormalizedAbsolutePath(build_lib)
 
         # Search in the build directory preferably.
         addMainScriptDirectory(main_package_dir)
@@ -365,6 +386,7 @@ class build(distutils.command.build.build):
 
             toml_filename = os.getenv("NUITKA_TOML_FILE")
             if toml_filename:
+                toml_filename = getUserInputNormalizedPath(toml_filename)
 
                 toml_options = loadToml(toml_filename)
 
@@ -394,7 +416,9 @@ class build(distutils.command.build.build):
             report_filename = None
             for option in options:
                 if option.startswith("--report="):
-                    report_filename = option.split("=", 1)[1]
+                    report_filename = getUserInputNormalizedPath(
+                        option.split("=", 1)[1]
+                    )
 
             if report_filename is None:
                 options.append("--report=compilation-report.xml")

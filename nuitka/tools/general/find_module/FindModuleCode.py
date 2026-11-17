@@ -19,7 +19,7 @@ from nuitka.importing.Importing import (
 )
 from nuitka.Tracing import tools_logger
 from nuitka.utils.Execution import callProcess, getExecutablePath
-from nuitka.utils.FileOperations import getNormalizedPath, relpath
+from nuitka.utils.FileOperations import relpath
 from nuitka.utils.Importing import getPackageDirFilename
 from nuitka.utils.Utils import isWin32Windows
 
@@ -38,8 +38,6 @@ def editModuleCode(module_search_desc):
 
     if not isWin32Windows():
         module_search_desc = module_search_desc.replace("\\", "/")
-
-    module_search_desc = getNormalizedPath(module_search_desc)
 
     if "\\" in module_search_desc or "/" in module_search_desc:
         if os.path.exists(module_search_desc):

@@ -11,7 +11,7 @@ import os
 
 from nuitka.Tracing import tools_logger
 from nuitka.TreeXML import convertFileToXML
-from nuitka.utils.FileOperations import openTextFile
+from nuitka.utils.FileOperations import getNormalizedAbsolutePath, openTextFile
 
 from .Virtualenv import withVirtualenv
 
@@ -19,7 +19,7 @@ from .Virtualenv import withVirtualenv
 def createEnvironmentFromReport(environment_folder, report_filename):
     if os.path.exists(environment_folder):
         tools_logger.sysexit("Error, environment folder must not exist already.")
-    containing_folder = os.path.dirname(environment_folder)
+    containing_folder = os.path.dirname(getNormalizedAbsolutePath(environment_folder))
 
     if not os.path.exists(containing_folder):
         tools_logger.sysexit(
@@ -27,7 +27,7 @@ def createEnvironmentFromReport(environment_folder, report_filename):
             % containing_folder
         )
 
-    if not os.path.isfile(report_filename):
+    if not report_filename or not os.path.isfile(report_filename):
         tools_logger.sysexit("Error, no such report file '%s'." % report_filename)
 
     with openTextFile(report_filename, "r", encoding="utf8") as report_file:

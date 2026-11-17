@@ -8,6 +8,7 @@ Podman and Docker should both work, but the first one is recommended.
 
 from nuitka.options.CommandLineOptionsTools import makeOptionsParser
 from nuitka.Tracing import containers_logger
+from nuitka.utils.FileOperations import getUserInputNormalizedPath
 
 from .Container import getContainerPython, runContainer
 from .Podman import getPodmanExecutablePath
@@ -125,6 +126,8 @@ This container run should be allowed to use pbuilder.
         options.podman_path = getPodmanExecutablePath(containers_logger)
 
         assert options.podman_path is not None
+    else:
+        options.podman_path = getUserInputNormalizedPath(options.podman_path)
 
     return options
 
