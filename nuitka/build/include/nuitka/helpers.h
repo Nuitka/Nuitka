@@ -262,6 +262,9 @@ extern PyObject *BUILTIN_GETATTR(PyThreadState *tstate, PyObject *obj, PyObject 
 // For built-in setattr() functionality.
 extern PyObject *BUILTIN_SETATTR(PyObject *obj, PyObject *attribute, PyObject *value);
 
+// For built-in delattr() functionality.
+extern PyObject *BUILTIN_DELATTR(PyObject *obj, PyObject *attribute);
+
 // For built-in bytearray() functionality.
 extern PyObject *BUILTIN_BYTEARRAY1(PyObject *value);
 extern PyObject *BUILTIN_BYTEARRAY3(PyThreadState *tstate, PyObject *string_arg, PyObject *encoding, PyObject *errors);

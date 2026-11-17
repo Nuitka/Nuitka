@@ -1014,6 +1014,45 @@ for chr_value in (
 ):
     chrCheck(chr_value)
 
+
+print("Attribute built-in type errors:")
+
+
+def attributeTypeErrorCheck(name, callable):
+    try:
+        callable()
+    except TypeError as e:
+        print(name, "->", e)
+
+
+attributeTypeErrorCheck("hasattr constant", lambda: hasattr(object(), 1))
+attributeTypeErrorCheck("getattr constant", lambda: getattr(object(), 1))
+attributeTypeErrorCheck("setattr constant", lambda: setattr(object(), 1, 2))
+attributeTypeErrorCheck("delattr constant", lambda: delattr(object(), 1))
+
+# Values not known at compile time.
+attribute_error_name = int(str(len(sys.argv)))
+
+
+def attributeTypeErrorGet(getter, name):
+    try:
+        getter(object(), name)
+    except TypeError as e:
+        return e
+
+
+def attributeTypeErrorSet(name):
+    try:
+        setattr(object(), name, 2)
+    except TypeError as e:
+        return e
+
+
+print("hasattr variable ->", attributeTypeErrorGet(hasattr, attribute_error_name))
+print("getattr variable ->", attributeTypeErrorGet(getattr, attribute_error_name))
+print("setattr variable ->", attributeTypeErrorSet(attribute_error_name))
+print("delattr variable ->", attributeTypeErrorGet(delattr, attribute_error_name))
+
 #     Python tests originally created or extracted from other peoples work. The
 #     parts were too small to be protected.
 #

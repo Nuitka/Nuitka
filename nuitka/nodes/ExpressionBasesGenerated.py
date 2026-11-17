@@ -1582,7 +1582,302 @@ class _ChildrenHavingExpressionNameRaiseWaitConstantNameMixin(ExpressionBase):
         """Called when attribute 'name' is constant."""
 
 
+ExpressionBuiltinDelattrBase = _ChildrenHavingExpressionNameRaiseWaitConstantNameMixin
 ExpressionBuiltinHasattrBase = _ChildrenHavingExpressionNameRaiseWaitConstantNameMixin
+
+
+class _ChildrenHavingExpressionNameDefaultOptionalRaiseWaitConstantNameMixin(
+    ExpressionBase
+):
+    # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
+    __slots__ = ()
+
+    def __init__(self, expression, name, default, source_ref):
+        expression.parent = self
+
+        self.subnode_expression = expression
+
+        name.parent = self
+
+        self.subnode_name = name
+
+        if default is not None:
+            default.parent = self
+
+        self.subnode_default = default
+
+        ExpressionBase.__init__(self, source_ref)
+
+    def getVisitableNodes(self):
+        if self.subnode_default is None:
+            return (
+                self.subnode_expression,
+                self.subnode_name,
+            )
+
+        return (
+            self.subnode_expression,
+            self.subnode_name,
+            self.subnode_default,
+        )
+
+    def getVisitableNodesNamed(self):
+        return (
+            ("expression", self.subnode_expression),
+            ("name", self.subnode_name),
+            ("default", self.subnode_default),
+        )
+
+    def replaceChild(self, old_node, new_node):
+        value = self.subnode_expression
+        if old_node is value:
+            new_node.parent = self
+
+            self.subnode_expression = new_node
+
+            return
+
+        value = self.subnode_name
+        if old_node is value:
+            new_node.parent = self
+
+            self.subnode_name = new_node
+
+            return
+
+        value = self.subnode_default
+        if old_node is value:
+            if new_node is not None:
+                new_node.parent = self
+
+            self.subnode_default = new_node
+
+            return
+
+        raise AssertionError("Didn't find child", old_node, "in", self)
+
+    def getCloneArgs(self):
+        values = {
+            "expression": self.subnode_expression.makeClone(),
+            "name": self.subnode_name.makeClone(),
+            "default": (
+                self.subnode_default.makeClone()
+                if self.subnode_default is not None
+                else None
+            ),
+        }
+
+        values.update(self.getDetails())
+
+        return values
+
+    def finalize(self):
+        del self.parent
+
+        self.subnode_expression.finalize()
+        del self.subnode_expression
+        self.subnode_name.finalize()
+        del self.subnode_name
+        if self.subnode_default is not None:
+            self.subnode_default.finalize()
+        del self.subnode_default
+
+    def computeExpressionRaw(self, trace_collection):
+        for count, sub_expression in enumerate(self.getVisitableNodes()):
+            expression = trace_collection.onExpression(sub_expression)
+
+            if expression.willRaiseAnyException():
+                sub_expressions = self.getVisitableNodes()
+
+                wrapped_expression = wrapExpressionWithSideEffects(
+                    side_effects=sub_expressions[:count],
+                    old_node=sub_expression,
+                    new_node=expression,
+                )
+
+                return (
+                    wrapped_expression,
+                    "new_raise",
+                    lambda: "For '%s' the child expression '%s' will raise."
+                    % (self.getChildNameNice(), expression.getChildNameNice()),
+                )
+
+        if self.subnode_name.isCompileTimeConstant():
+            try:
+                return self.computeExpressionConstantName(trace_collection)
+            finally:
+                trace_collection.onExceptionRaiseExit(BaseException)
+
+        return self.computeExpression(trace_collection)
+
+    @abstractmethod
+    def computeExpression(self, trace_collection):
+        pass
+
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
+
+        self.undoVariableTracing()
+
+    @staticmethod
+    def undoVariableTracing():
+        pass
+
+    def collectVariableAccesses(self, emit_variable):
+        self.subnode_expression.collectVariableAccesses(emit_variable)
+        self.subnode_name.collectVariableAccesses(emit_variable)
+        subnode_default = self.subnode_default
+
+        if subnode_default is not None:
+            self.subnode_default.collectVariableAccesses(emit_variable)
+
+    @abstractmethod
+    def computeExpressionConstantName(self, trace_collection):
+        """Called when attribute 'name' is constant."""
+
+
+ExpressionBuiltinGetattrBase = (
+    _ChildrenHavingExpressionNameDefaultOptionalRaiseWaitConstantNameMixin
+)
+
+
+class _ChildrenHavingExpressionNameValueRaiseWaitConstantNameMixin(ExpressionBase):
+    # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
+    __slots__ = ()
+
+    def __init__(self, expression, name, value, source_ref):
+        expression.parent = self
+
+        self.subnode_expression = expression
+
+        name.parent = self
+
+        self.subnode_name = name
+
+        value.parent = self
+
+        self.subnode_value = value
+
+        ExpressionBase.__init__(self, source_ref)
+
+    def getVisitableNodes(self):
+        return (
+            self.subnode_expression,
+            self.subnode_name,
+            self.subnode_value,
+        )
+
+    def getVisitableNodesNamed(self):
+        return (
+            ("expression", self.subnode_expression),
+            ("name", self.subnode_name),
+            ("value", self.subnode_value),
+        )
+
+    def replaceChild(self, old_node, new_node):
+        value = self.subnode_expression
+        if old_node is value:
+            new_node.parent = self
+
+            self.subnode_expression = new_node
+
+            return
+
+        value = self.subnode_name
+        if old_node is value:
+            new_node.parent = self
+
+            self.subnode_name = new_node
+
+            return
+
+        value = self.subnode_value
+        if old_node is value:
+            new_node.parent = self
+
+            self.subnode_value = new_node
+
+            return
+
+        raise AssertionError("Didn't find child", old_node, "in", self)
+
+    def getCloneArgs(self):
+        values = {
+            "expression": self.subnode_expression.makeClone(),
+            "name": self.subnode_name.makeClone(),
+            "value": self.subnode_value.makeClone(),
+        }
+
+        values.update(self.getDetails())
+
+        return values
+
+    def finalize(self):
+        del self.parent
+
+        self.subnode_expression.finalize()
+        del self.subnode_expression
+        self.subnode_name.finalize()
+        del self.subnode_name
+        self.subnode_value.finalize()
+        del self.subnode_value
+
+    def computeExpressionRaw(self, trace_collection):
+        for count, sub_expression in enumerate(self.getVisitableNodes()):
+            expression = trace_collection.onExpression(sub_expression)
+
+            if expression.willRaiseAnyException():
+                sub_expressions = self.getVisitableNodes()
+
+                wrapped_expression = wrapExpressionWithSideEffects(
+                    side_effects=sub_expressions[:count],
+                    old_node=sub_expression,
+                    new_node=expression,
+                )
+
+                return (
+                    wrapped_expression,
+                    "new_raise",
+                    lambda: "For '%s' the child expression '%s' will raise."
+                    % (self.getChildNameNice(), expression.getChildNameNice()),
+                )
+
+        if self.subnode_name.isCompileTimeConstant():
+            try:
+                return self.computeExpressionConstantName(trace_collection)
+            finally:
+                trace_collection.onExceptionRaiseExit(BaseException)
+
+        return self.computeExpression(trace_collection)
+
+    @abstractmethod
+    def computeExpression(self, trace_collection):
+        pass
+
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
+
+        self.undoVariableTracing()
+
+    @staticmethod
+    def undoVariableTracing():
+        pass
+
+    def collectVariableAccesses(self, emit_variable):
+        self.subnode_expression.collectVariableAccesses(emit_variable)
+        self.subnode_name.collectVariableAccesses(emit_variable)
+        self.subnode_value.collectVariableAccesses(emit_variable)
+
+    @abstractmethod
+    def computeExpressionConstantName(self, trace_collection):
+        """Called when attribute 'name' is constant."""
+
+
+ExpressionBuiltinSetattrBase = (
+    _ChildrenHavingExpressionNameValueRaiseWaitConstantNameMixin
+)
 
 
 class _ChildHavingInterpolationsTupleStrValuesMixin(ExpressionBase):

@@ -1000,14 +1000,12 @@ class ExpressionNoSideEffectsMixin(object):
 
 
 class CompileTimeConstantExpressionBase(ExpressionNoSideEffectsMixin, ExpressionBase):
-    # TODO: Do this for all computations, do this in the base class of all
-    # nodes.
-    __slots__ = ("computed_attribute",)
+    __slots__ = ("computed_attributes",)
 
     def __init__(self, source_ref):
         ExpressionBase.__init__(self, source_ref)
 
-        self.computed_attribute = None
+        self.computed_attributes = None
 
     @staticmethod
     def isCompileTimeConstant():
@@ -1033,6 +1031,14 @@ class CompileTimeConstantExpressionBase(ExpressionNoSideEffectsMixin, Expression
 
         """
 
+    def getCompileTimeConstantType(self):
+        """Return type of compile time constant.
+
+        Notes: Only available after passing "isCompileTimeConstant()".
+
+        """
+        return type(self.getCompileTimeConstant())
+
     @staticmethod
     def isMutable():
         """Return if compile time constant is mutable.
@@ -1056,12 +1062,10 @@ class CompileTimeConstantExpressionBase(ExpressionNoSideEffectsMixin, Expression
         return False
 
     def mayRaiseExceptionAttributeLookup(self, exception_type, attribute_name):
-        # We remember it from our computation.
-        return not self.computed_attribute
+        return not self.isKnownToHaveAttribute(attribute_name)
 
     def mayRaiseExceptionAttributeLookupSpecial(self, exception_type, attribute_name):
-        # We remember it from our computation.
-        return not self.computed_attribute
+        return not self.isKnownToHaveAttribute(attribute_name)
 
     def computeExpressionOperationNot(self, not_node, trace_collection):
         return trace_collection.getCompileTimeComputationResult(
@@ -1137,12 +1141,15 @@ Compile time constant bytes value pre-computed.""",
         )
 
     def isKnownToHaveAttribute(self, attribute_name):
-        if self.computed_attribute is None:
-            self.computed_attribute = hasattr(
+        if self.computed_attributes is None:
+            self.computed_attributes = {}
+
+        if attribute_name not in self.computed_attributes:
+            self.computed_attributes[attribute_name] = hasattr(
                 self.getCompileTimeConstant(), attribute_name
             )
 
-        return self.computed_attribute
+        return self.computed_attributes[attribute_name]
 
     def getKnownAttributeValue(self, attribute_name):
         return getattr(self.getCompileTimeConstant(), attribute_name)
@@ -1150,14 +1157,9 @@ Compile time constant bytes value pre-computed.""",
     def computeExpressionAttribute(self, lookup_node, attribute_name, trace_collection):
         value = self.getCompileTimeConstant()
 
-        if self.computed_attribute is None:
-            self.computed_attribute = hasattr(value, attribute_name)
-
-        # If it raises, or the attribute itself is a compile time constant,
-        # then do execute it.
-        if not self.computed_attribute or isCompileTimeConstantValue(
-            getattr(value, attribute_name, None)
-        ):
+        if not self.isKnownToHaveAttribute(
+            attribute_name
+        ) or isCompileTimeConstantValue(getattr(value, attribute_name, None)):
             return trace_collection.getCompileTimeComputationResult(
                 node=lookup_node,
                 computation=lambda: getattr(value, attribute_name),

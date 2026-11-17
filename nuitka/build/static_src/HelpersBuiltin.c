@@ -934,7 +934,13 @@ PyObject *BUILTIN_GETATTR(PyThreadState *tstate, PyObject *obj, PyObject *attrib
     }
 #else
     if (!PyUnicode_Check(attribute)) {
+#if PYTHON_VERSION >= 0x3b0
+        SET_CURRENT_EXCEPTION_TYPE0_FORMAT1(PyExc_TypeError, "attribute name must be string, not '%s'",
+                                            Py_TYPE(attribute)->tp_name);
+#else
         SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_TypeError, "getattr(): attribute name must be string");
+#endif
+
         return NULL;
     }
 #endif
@@ -968,6 +974,21 @@ PyObject *BUILTIN_GETATTR(PyThreadState *tstate, PyObject *obj, PyObject *attrib
 
 PyObject *BUILTIN_SETATTR(PyObject *obj, PyObject *attribute, PyObject *value) {
     int res = PyObject_SetAttr(obj, attribute, value);
+
+    if (unlikely(res < 0)) {
+        return NULL;
+    }
+
+    // No reference returned.
+    return Py_None;
+}
+
+/** The "delattr" built-in.
+ *
+ **/
+
+PyObject *BUILTIN_DELATTR(PyObject *obj, PyObject *attribute) {
+    int res = PyObject_DelAttr(obj, attribute);
 
     if (unlikely(res < 0)) {
         return NULL;

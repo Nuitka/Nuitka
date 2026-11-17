@@ -490,6 +490,9 @@ builtin_getattr_spec = BuiltinParameterSpecNoKeywords(
 builtin_setattr_spec = BuiltinParameterSpecNoKeywords(
     "setattr", ("object", "name", "value"), default_count=0
 )
+builtin_delattr_spec = BuiltinParameterSpecNoKeywords(
+    "delattr", ("object", "name"), default_count=0
+)
 
 builtin_isinstance_spec = BuiltinParameterSpecNoKeywords(
     "isinstance", ("instance", "classes"), default_count=0

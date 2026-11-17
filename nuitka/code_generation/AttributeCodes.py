@@ -341,6 +341,20 @@ def generateBuiltinSetattrCode(to_name, expression, emit, context):
     )
 
 
+def generateBuiltinDelattrCode(to_name, expression, emit, context):
+    generateCAPIObjectCode0(
+        to_name=to_name,
+        capi="BUILTIN_DELATTR",
+        tstate=False,
+        arg_desc=makeArgDescFromExpression(expression),
+        may_raise=expression.mayRaiseException(BaseException),
+        conversion_check=decideConversionCheckNeeded(to_name, expression),
+        source_ref=expression.getCompatibleSourceReference(),
+        emit=emit,
+        context=context,
+    )
+
+
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
 #

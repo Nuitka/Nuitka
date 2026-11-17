@@ -505,7 +505,12 @@ int BUILTIN_HASATTR_BOOL(PyThreadState *tstate, PyObject *source, PyObject *attr
     }
 #else
     if (unlikely(!PyUnicode_Check(attr_name))) {
+#if PYTHON_VERSION >= 0x3b0
+        SET_CURRENT_EXCEPTION_TYPE0_FORMAT1(PyExc_TypeError, "attribute name must be string, not '%s'",
+                                            Py_TYPE(attr_name)->tp_name);
+#else
         SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_TypeError, "hasattr(): attribute name must be string");
+#endif
 
         return -1;
     }

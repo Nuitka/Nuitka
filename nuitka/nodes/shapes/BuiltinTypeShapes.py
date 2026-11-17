@@ -12,6 +12,8 @@ from nuitka.code_generation.c_types.CTypeNuitkaInts import (
 )
 from nuitka.code_generation.Reports import onMissingOperation
 from nuitka.Constants import (
+    EllipsisType,
+    NoneType,
     the_empty_frozendict,
     the_empty_sentinel,
     the_empty_unicode,
@@ -4435,7 +4437,7 @@ tshape_exception_class = ShapeTypeBuiltinExceptionClass()
 
 
 _shapes_by_type = {
-    type(None): tshape_none,
+    NoneType: tshape_none,
     bool: tshape_bool,
     int: tshape_int,
     float: tshape_float,
@@ -4448,7 +4450,7 @@ _shapes_by_type = {
     frozenset: tshape_frozenset,
     dict: tshape_dict,
     slice: tshape_slice,
-    type(Ellipsis): tshape_ellipsis,
+    EllipsisType: tshape_ellipsis,
     type: tshape_type,
 }
 

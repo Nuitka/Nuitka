@@ -10,6 +10,7 @@ types, and then specialize for the ones, where it makes sense.
 from nuitka.__past__ import long, unicode, xrange
 from nuitka.Errors import NuitkaAssumptionError
 from nuitka.nodes.AttributeNodes import (
+    ExpressionBuiltinDelattr,
     ExpressionBuiltinGetattr,
     ExpressionBuiltinHasattr,
     ExpressionBuiltinSetattr,
@@ -1347,6 +1348,20 @@ def setattr_extractor(node):
     )
 
 
+def delattr_extractor(node):
+    # pylint: disable=redefined-builtin
+    def makeExpressionBuiltinDelattr(object, name, source_ref):
+        return ExpressionBuiltinDelattr(
+            expression=object, name=name, source_ref=source_ref
+        )
+
+    return BuiltinParameterSpecs.extractBuiltinArgs(
+        node=node,
+        builtin_class=makeExpressionBuiltinDelattr,
+        builtin_spec=BuiltinParameterSpecs.builtin_delattr_spec,
+    )
+
+
 def isinstance_extractor(node):
     return BuiltinParameterSpecs.extractBuiltinArgs(
         node=node,
@@ -1514,6 +1529,7 @@ _dispatch_dict = {
     "hasattr": hasattr_extractor,
     "getattr": getattr_extractor,
     "setattr": setattr_extractor,
+    "delattr": delattr_extractor,
     "isinstance": isinstance_extractor,
     "issubclass": issubclass_extractor,
     "bytearray": bytearray_extractor,
