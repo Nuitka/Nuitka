@@ -189,6 +189,7 @@ from .ReformulationImportStatements import (
     buildImportFromNode,
     buildImportModulesNode,
     checkFutureImportsOnlyAtStart,
+    clearFutureImports,
 )
 from .ReformulationLambdaExpressions import buildLambdaNode
 from .ReformulationMatchStatements import buildMatchNode
@@ -858,12 +859,11 @@ def _makeModuleDeferredAnnotateStatement(provider, source_ref):
     )
 
 
-def buildParseTree(provider, ast_tree, source_ref, is_main):
+def _buildParseTree(provider, ast_tree, source_ref, is_main):
     # There are a bunch of branches here, mostly to deal with version
     # differences for module default variables.
     # pylint: disable=too-many-branches
 
-    pushFutureSpec(provider.getFullName())
     provider.setFutureSpec(getFutureSpec())
 
     body, doc = extractDocFromBody(ast_tree, module=provider)
@@ -890,10 +890,12 @@ def buildParseTree(provider, ast_tree, source_ref, is_main):
             provider=provider, nodes=body, source_ref=source_ref
         )
     except RuntimeError as e:
-        if "maximum recursion depth" in e.args[0]:
+        if e.args and "maximum recursion depth" in str(e.args[0]):
             raise CodeTooComplexCode(
                 provider.getFullName(), provider.getCompileTimeFilename()
             )
+
+        raise
 
     # After building, we can verify that all future statements were where they
     # belong, namely at the start of the module.
@@ -1069,9 +1071,22 @@ def buildParseTree(provider, ast_tree, source_ref, is_main):
         module=provider, statements=statements, source_ref=source_ref
     )
 
-    popFutureSpec()
-
     return result
+
+
+def buildParseTree(provider, ast_tree, source_ref, is_main):
+    pushFutureSpec(provider.getFullName())
+
+    try:
+        return _buildParseTree(
+            provider=provider,
+            ast_tree=ast_tree,
+            source_ref=source_ref,
+            is_main=is_main,
+        )
+    finally:
+        popFutureSpec()
+        clearFutureImports()
 
 
 def decideCompilationMode(is_top, module_name, module_filename, for_pgo):

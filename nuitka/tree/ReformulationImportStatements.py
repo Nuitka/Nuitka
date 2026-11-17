@@ -38,6 +38,10 @@ from .TreeHelpers import makeStatementsSequenceOrStatement, mangleName
 _future_import_nodes = []
 
 
+def clearFutureImports():
+    del _future_import_nodes[:]
+
+
 def checkFutureImportsOnlyAtStart(body):
     # Check if a __future__ imports really were at the beginning of the file.
     for node in body:

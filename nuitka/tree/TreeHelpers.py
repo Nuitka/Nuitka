@@ -340,7 +340,7 @@ def buildNode(provider, node, source_ref, allow_none=False):
     except SystemExit:
         optimization_logger.warning("Problem at '%s'." % source_ref.getAsString())
         raise
-    except:
+    except Exception:
         optimization_logger.warning(
             "Problem at '%s' with %s." % (source_ref.getAsString(), ast.dump(node))
         )
