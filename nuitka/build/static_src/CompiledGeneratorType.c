@@ -950,8 +950,42 @@ static bool DROP_ERROR_OCCURRED_GENERATOR_EXIT_OR_STOP_ITERATION(PyThreadState *
     return false;
 }
 
+// Note: Used for coroutines too, as CPython's 'gen_close' is shared by both.
+static PyObject *Nuitka_GetGeneratorCloseResult(PyThreadState *tstate) {
+    PyObject *error = GET_ERROR_OCCURRED(tstate);
+
+    if (error == NULL) {
+        Py_INCREF_IMMORTAL(Py_None);
+        return Py_None;
+    }
+
+    if (EXCEPTION_MATCH_BOOL_SINGLE(tstate, error, PyExc_GeneratorExit)) {
+        CLEAR_ERROR_OCCURRED(tstate);
+
+        Py_INCREF_IMMORTAL(Py_None);
+        return Py_None;
+    }
+
+#if PYTHON_VERSION >= 0x3d0
+    // Since Python 3.13, close() returns the value of the StopIteration that a
+    // generator or coroutine raises by returning while handling GeneratorExit.
+    PyObject *value;
+
+    if (Nuitka_PyGen_FetchStopIterationValue(tstate, &value)) {
+        return value;
+    }
+#else
+    if (DROP_ERROR_OCCURRED_GENERATOR_EXIT_OR_STOP_ITERATION(tstate)) {
+        Py_INCREF_IMMORTAL(Py_None);
+        return Py_None;
+    }
+#endif
+
+    return NULL;
+}
+
 // Note: Used by compiled frames.
-static bool _Nuitka_Generator_close(PyThreadState *tstate, struct Nuitka_GeneratorObject *generator) {
+static PyObject *_Nuitka_Generator_close(PyThreadState *tstate, struct Nuitka_GeneratorObject *generator) {
 #if _DEBUG_GENERATOR
     PRINT_GENERATOR_STATUS("Enter", generator);
 #endif
@@ -963,7 +997,8 @@ static bool _Nuitka_Generator_close(PyThreadState *tstate, struct Nuitka_Generat
 #endif
         Nuitka_MarkGeneratorAsFinished(generator);
 
-        return true;
+        Py_INCREF_IMMORTAL(Py_None);
+        return Py_None;
     }
 
     if (generator->m_status == status_Running) {
@@ -976,36 +1011,18 @@ static bool _Nuitka_Generator_close(PyThreadState *tstate, struct Nuitka_Generat
             Py_DECREF(result);
 
             SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_RuntimeError, "generator ignored GeneratorExit");
-            return false;
-        } else {
-            PyObject *error = GET_ERROR_OCCURRED(tstate);
-
-            // StopIteration as exception.
-            if (error == NULL) {
-                return true;
-            }
-
-            // Maybe another acceptable exception for generator exit.
-            return DROP_ERROR_OCCURRED_GENERATOR_EXIT_OR_STOP_ITERATION(tstate);
+            return NULL;
         }
+
+        return Nuitka_GetGeneratorCloseResult(tstate);
     }
 
-    return true;
+    Py_INCREF_IMMORTAL(Py_None);
+    return Py_None;
 }
 
 static PyObject *Nuitka_Generator_close(PyObject *self, PyObject *unused) {
-    struct Nuitka_GeneratorObject *generator = (struct Nuitka_GeneratorObject *)self;
-
-    PyThreadState *tstate = PyThreadState_GET();
-
-    bool r = _Nuitka_Generator_close(tstate, generator);
-
-    if (unlikely(r == false)) {
-        return NULL;
-    } else {
-        Py_INCREF_IMMORTAL(Py_None);
-        return Py_None;
-    }
+    return _Nuitka_Generator_close(PyThreadState_GET(), (struct Nuitka_GeneratorObject *)self);
 }
 
 #if PYTHON_VERSION >= 0x3c0
@@ -1187,7 +1204,15 @@ static bool Nuitka_gen_close_iter(PyThreadState *tstate, PyObject *yield_from) {
 #if _DEBUG_GENERATOR
         PRINT_STRING("Nuitka_gen_close_iter: Defer to _Nuitka_Generator_close\n");
 #endif
-        return _Nuitka_Generator_close(tstate, (struct Nuitka_GeneratorObject *)yield_from);
+        PyObject *result = _Nuitka_Generator_close(tstate, (struct Nuitka_GeneratorObject *)yield_from);
+
+        if (unlikely(result == NULL)) {
+            return false;
+        }
+
+        Py_DECREF(result);
+
+        return true;
     }
 
 #if PYTHON_VERSION >= 0x350
@@ -1195,7 +1220,15 @@ static bool Nuitka_gen_close_iter(PyThreadState *tstate, PyObject *yield_from) {
 #if _DEBUG_GENERATOR
         PRINT_STRING("Nuitka_gen_close_iter: Defer to _Nuitka_Coroutine_close\n");
 #endif
-        return _Nuitka_Coroutine_close(tstate, (struct Nuitka_CoroutineObject *)yield_from);
+        PyObject *result = _Nuitka_Coroutine_close(tstate, (struct Nuitka_CoroutineObject *)yield_from);
+
+        if (unlikely(result == NULL)) {
+            return false;
+        }
+
+        Py_DECREF(result);
+
+        return true;
     }
 #endif
 
@@ -1566,10 +1599,12 @@ static void Nuitka_Generator_tp_finalizer(PyObject *self) {
     struct Nuitka_ExceptionPreservationItem saved_exception_state;
     FETCH_ERROR_OCCURRED_STATE(tstate, &saved_exception_state);
 
-    bool close_result = _Nuitka_Generator_close(tstate, generator);
+    PyObject *close_result = _Nuitka_Generator_close(tstate, generator);
 
-    if (unlikely(close_result == false)) {
+    if (unlikely(close_result == NULL)) {
         Nuitka_WriteUnraisable((PyObject *)generator);
+    } else {
+        Py_DECREF(close_result);
     }
 
     // Restore the saved exception if any.
@@ -1619,11 +1654,13 @@ static void Nuitka_Generator_tp_dealloc(PyObject *self) {
     FETCH_ERROR_OCCURRED_STATE(tstate, &saved_exception_state);
 
     if (generator->m_status == status_Running) {
-        bool close_result = _Nuitka_Generator_close(tstate, generator);
+        PyObject *close_result = _Nuitka_Generator_close(tstate, generator);
         CHECK_OBJECT(generator);
 
-        if (unlikely(close_result == false)) {
+        if (unlikely(close_result == NULL)) {
             Nuitka_WriteUnraisable((PyObject *)generator);
+        } else {
+            Py_DECREF(close_result);
         }
     }
 

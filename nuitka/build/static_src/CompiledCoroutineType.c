@@ -738,7 +738,7 @@ static PyObject *Nuitka_Coroutine_send(PyObject *coroutine_obj, PyObject *value)
 }
 
 // Note: Used by compiled frames.
-static bool _Nuitka_Coroutine_close(PyThreadState *tstate, struct Nuitka_CoroutineObject *coroutine) {
+static PyObject *_Nuitka_Coroutine_close(PyThreadState *tstate, struct Nuitka_CoroutineObject *coroutine) {
 #if _DEBUG_COROUTINE
     PRINT_COROUTINE_STATUS("Enter", coroutine);
 #endif
@@ -750,7 +750,8 @@ static bool _Nuitka_Coroutine_close(PyThreadState *tstate, struct Nuitka_Corouti
 #endif
         Nuitka_MarkCoroutineAsFinished(coroutine);
 
-        return true;
+        Py_INCREF_IMMORTAL(Py_None);
+        return Py_None;
     }
 
     if (coroutine->m_status == status_Running) {
@@ -763,26 +764,18 @@ static bool _Nuitka_Coroutine_close(PyThreadState *tstate, struct Nuitka_Corouti
             Py_DECREF(result);
 
             SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_RuntimeError, "coroutine ignored GeneratorExit");
-            return false;
-        } else {
-            return DROP_ERROR_OCCURRED_GENERATOR_EXIT_OR_STOP_ITERATION(tstate);
+            return NULL;
         }
+
+        return Nuitka_GetGeneratorCloseResult(tstate);
     }
 
-    return true;
+    Py_INCREF_IMMORTAL(Py_None);
+    return Py_None;
 }
 
 static PyObject *_Nuitka_Coroutine_close_api(struct Nuitka_CoroutineObject *coroutine, PyObject *args) {
-    PyThreadState *tstate = PyThreadState_GET();
-
-    bool r = _Nuitka_Coroutine_close(tstate, coroutine);
-
-    if (unlikely(r == false)) {
-        return NULL;
-    } else {
-        Py_INCREF_IMMORTAL(Py_None);
-        return Py_None;
-    }
+    return _Nuitka_Coroutine_close(PyThreadState_GET(), coroutine);
 }
 
 static PyObject *Nuitka_Coroutine_close(PyObject *coroutine_obj, PyObject *args) {
@@ -1191,10 +1184,12 @@ static void Nuitka_Coroutine_tp_finalize(PyObject *self) {
     struct Nuitka_ExceptionPreservationItem saved_exception_state;
     FETCH_ERROR_OCCURRED_STATE(tstate, &saved_exception_state);
 
-    bool close_result = _Nuitka_Coroutine_close(tstate, coroutine);
+    PyObject *close_result = _Nuitka_Coroutine_close(tstate, coroutine);
 
-    if (unlikely(close_result == false)) {
+    if (unlikely(close_result == NULL)) {
         Nuitka_WriteUnraisable((PyObject *)coroutine);
+    } else {
+        Py_DECREF(close_result);
     }
 
     /* Restore the saved exception if any. */

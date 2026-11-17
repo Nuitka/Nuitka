@@ -64,6 +64,7 @@ static PyObject *_Nuitka_Generator_throw2(PyThreadState *tstate, struct Nuitka_G
 static void SET_CURRENT_EXCEPTION_STOP_ITERATION_EMPTY(PyThreadState *tstate);
 static void _Nuitka_GeneratorPopFrame(PyThreadState *tstate, Nuitka_ThreadStateFrameType *return_frame);
 static bool DROP_ERROR_OCCURRED_GENERATOR_EXIT_OR_STOP_ITERATION(PyThreadState *tstate);
+static PyObject *Nuitka_GetGeneratorCloseResult(PyThreadState *tstate);
 static bool _Nuitka_Generator_make_throw_exception_state(PyThreadState *tstate,
                                                          struct Nuitka_ExceptionPreservationItem *exception_state,
                                                          PyObject *exception_type, PyObject *exception_value,
@@ -71,7 +72,7 @@ static bool _Nuitka_Generator_make_throw_exception_state(PyThreadState *tstate,
 static void _Nuitka_Generator_add_throw_traceback_frame(PyThreadState *tstate,
                                                         struct Nuitka_ExceptionPreservationItem *exception_state,
                                                         PyCodeObject *code_object, PyObject *module);
-static bool _Nuitka_Generator_close(PyThreadState *tstate, struct Nuitka_GeneratorObject *generator);
+static PyObject *_Nuitka_Generator_close(PyThreadState *tstate, struct Nuitka_GeneratorObject *generator);
 
 #if PYTHON_VERSION >= 0x350
 static void RAISE_RUNTIME_ERROR_RAISED_STOP_ITERATION(PyThreadState *tstate, char const *message);
@@ -79,7 +80,7 @@ static PyObject *_Nuitka_YieldFromCore(PyThreadState *tstate, PyObject *yield_fr
                                        PyObject **returned_value, bool mode);
 static PyObject *_Nuitka_Coroutine_throw2(PyThreadState *tstate, struct Nuitka_CoroutineObject *coroutine, bool closing,
                                           struct Nuitka_ExceptionPreservationItem *exception_state);
-static bool _Nuitka_Coroutine_close(PyThreadState *tstate, struct Nuitka_CoroutineObject *coroutine);
+static PyObject *_Nuitka_Coroutine_close(PyThreadState *tstate, struct Nuitka_CoroutineObject *coroutine);
 static void _initCompiledCoroutineTypes(void);
 #endif
 
