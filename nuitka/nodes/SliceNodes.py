@@ -279,10 +279,7 @@ class ExpressionBuiltinSlice3(
         ExpressionBase.__init__(self, source_ref)
 
     def computeExpression(self, trace_collection):
-        if (
-            self.subnode_step.isExpressionConstantNoneRef()
-            or self.subnode_step.getIndexValue() == 1
-        ):
+        if self.subnode_step.isExpressionConstantNoneRef():
             return trace_collection.computedExpressionResult(
                 wrapExpressionWithSideEffects(
                     old_node=self,
