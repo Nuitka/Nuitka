@@ -11197,7 +11197,7 @@ static PyObject *COMPARE_GT_OBJECT_LONG_CLONG(PyObject *operand1, long operand2)
 #if PYTHON_VERSION < 0x300
 PyObject *RICH_COMPARE_GT_OBJECT_LONG_INT(PyObject *operand1, PyObject *operand2) {
 
-    return COMPARE_GT_OBJECT_LONG_CLONG(operand1, PyInt_AS_LONG(operand1));
+    return COMPARE_GT_OBJECT_LONG_CLONG(operand1, PyInt_AS_LONG(operand2));
 }
 #endif
 
@@ -11260,7 +11260,7 @@ static bool COMPARE_GT_CBOOL_LONG_CLONG(PyObject *operand1, long operand2) {
 #if PYTHON_VERSION < 0x300
 bool RICH_COMPARE_GT_CBOOL_LONG_INT(PyObject *operand1, PyObject *operand2) {
 
-    return COMPARE_GT_CBOOL_LONG_CLONG(operand1, PyInt_AS_LONG(operand1));
+    return COMPARE_GT_CBOOL_LONG_CLONG(operand1, PyInt_AS_LONG(operand2));
 }
 #endif
 

@@ -603,7 +603,7 @@ return %(return_value)s;""" % {
                 operand1 = int_desc.getAsLongValueExpression(operand1)
                 candidate1 = c_long_desc
             elif candidate2 == int_desc:
-                operand2 = int_desc.getAsLongValueExpression(operand1)
+                operand2 = int_desc.getAsLongValueExpression(operand2)
                 candidate2 = c_long_desc
             else:
                 assert False
