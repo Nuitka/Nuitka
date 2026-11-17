@@ -138,6 +138,10 @@ class ExpressionSpecificDerivedMixinBase(object):
     def hasShapeSliceExact():
         return False
 
+    @staticmethod
+    def hasShapeTypeExact():
+        return False
+
 
 class ExpressionSpecificExactMixinBase(ExpressionSpecificDerivedMixinBase):
     """Mixin that provides attribute knowledge for exact type shapes.
@@ -935,7 +939,7 @@ class ExpressionTypeShapeExactMixin(
 
     @staticmethod
     def isKnownToBeHashable():
-        return False
+        return True
 
 
 class ExpressionStrDerivedShapeMixin(ExpressionSpecificDerivedMixinBase):
