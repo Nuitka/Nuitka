@@ -8,7 +8,6 @@ This also includes writing back to locals for exec statements.
 
 from .CodeHelpers import (
     decideConversionCheckNeeded,
-    withCleanupFinally,
     withObjectCodeTemporaryAssignment,
 )
 from .Emission import SourceCodeCollector
@@ -94,28 +93,21 @@ Py_INCREF(%(to_name)s);"""
         else:
             emit("%s = MAKE_DICT_EMPTY(tstate);" % (value_name,))
 
+            context.addCleanupTempName(value_name)
+
             initial = True
             is_dict = True
 
-        def generateUpdateCode(emit):
-            for local_var, variable_trace in _sorted(variable_traces):
-                _getVariableDictUpdateCode(
-                    target_name=value_name,
-                    variable=local_var,
-                    variable_trace=variable_trace,
-                    is_dict=is_dict,
-                    initial=initial,
-                    emit=emit,
-                    context=context,
-                )
-
-        if updated:
-            generateUpdateCode(emit)
-        else:
-            with withCleanupFinally(
-                "locals_dict_build", value_name, True, emit, context
-            ) as guarded_emit:
-                generateUpdateCode(guarded_emit)
+        for local_var, variable_trace in _sorted(variable_traces):
+            _getVariableDictUpdateCode(
+                target_name=value_name,
+                variable=local_var,
+                variable_trace=variable_trace,
+                is_dict=is_dict,
+                initial=initial,
+                emit=emit,
+                context=context,
+            )
 
 
 def generateBuiltinGlobalsCode(to_name, expression, emit, context):
