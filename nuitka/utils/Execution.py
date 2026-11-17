@@ -671,7 +671,7 @@ def executeToolChecked(
     if not isExecutableCommand(tool):
         if optional:
             logger.warning(absence_message)
-            return b"" if decoding else ""
+            return "" if decoding else b""
         else:
             return logger.sysexit(absence_message)
 
