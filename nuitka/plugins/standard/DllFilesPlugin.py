@@ -282,6 +282,7 @@ DLL configuration by filename code for '%s' did not give a result. Either \
 conditions are missing, or this version of the module needs treatment added."""
                 % full_name.asString()
             )
+            return
 
         if type(filename) in (tuple, list):
             filenames = filename
@@ -485,7 +486,7 @@ conditions are missing, or this version of the module needs treatment added."""
                     # consider those as well, spell-checker: ignore dylibs
                     dylib_directory = os.path.join(package_directory, ".dylibs")
 
-                    if os.path.isdir(package_directory):
+                    if os.path.isdir(dylib_directory):
                         yield dylib_directory
 
     def decideRecompileExtensionModules(self, module_name):
