@@ -508,7 +508,7 @@ class ImportlibMetadataDistributionCallMixin(object):
             )
         else:
             trace_collection.onDistributionUsed(
-                distribution_name=arg, node=self, success=False
+                distribution_name=arg, node=self, success=True
             )
 
             # Remember the original name, distributions can other names.
