@@ -159,11 +159,17 @@ class InstalledPython(object):
             if str is not bytes:
                 module_version = module_version.encode("utf8")
 
-            for detected_part, wanted_part in zip(
-                detected_version, module_version.split(b".")
-            ):
+            wanted_version = module_version.split(b".")
+            if len(detected_version) < len(wanted_version):
+                detected_version.extend(
+                    [b"0"] * (len(wanted_version) - len(detected_version))
+                )
+
+            for detected_part, wanted_part in zip(detected_version, wanted_version):
                 if int(detected_part) < int(wanted_part):
                     return False
+                if int(detected_part) > int(wanted_part):
+                    break
 
         return True
 
