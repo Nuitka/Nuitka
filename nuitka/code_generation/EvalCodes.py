@@ -369,7 +369,7 @@ def _generateEvalCode(to_name, node, emit, context):
         filename = "<execfile>"
 
     if (
-        python_version >= 0x31B
+        python_version >= 0x3B0
         and node.isExpressionBuiltinExec()
         and node.subnode_closure is not None
     ):
@@ -443,6 +443,8 @@ def generateLocalsDictSyncCode(statement, emit, context):
             emit=emit,
             context=context,
         )
+
+    getReleaseCode(release_name=locals_name, emit=emit, context=context)
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and

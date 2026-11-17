@@ -513,9 +513,6 @@ class StatementLocalsDictOperationDel(StatementBase):
         "tolerant",
     )
 
-    # TODO: Specialize for Python3 maybe to save attribute for Python2.
-    may_raise_del = python_version >= 0x300
-
     def __init__(self, locals_scope, variable_name, tolerant, source_ref):
         assert type(variable_name) is str
 
@@ -542,13 +539,18 @@ class StatementLocalsDictOperationDel(StatementBase):
         return {
             "locals_scope": self.locals_scope,
             "variable_name": self.getVariableName(),
+            "tolerant": self.tolerant,
         }
 
     def getDetailsForDisplay(self):
         return {
             "locals_scope": self.locals_scope.getCodeName(),
             "variable_name": self.getVariableName(),
+            "tolerant": self.tolerant,
         }
+
+    def isTolerant(self):
+        return self.tolerant
 
     def getVariableName(self):
         return self.variable.getName()
@@ -563,7 +565,7 @@ class StatementLocalsDictOperationDel(StatementBase):
             variable = self.locals_scope.allocateTempReplacementVariable(variable_name)
 
             result = makeStatementDelVariable(
-                variable=variable, tolerant=False, source_ref=self.source_ref
+                variable=variable, tolerant=self.tolerant, source_ref=self.source_ref
             )
 
             return (
@@ -585,7 +587,7 @@ class StatementLocalsDictOperationDel(StatementBase):
 
         # We may not exception exit now during the __del__ unless there is no value.
         # TODO: In which case, there is doing to be a NameError or UnboundLocalError.
-        if not self.previous_trace.mustHaveValue():
+        if not self.tolerant and not self.previous_trace.mustHaveValue():
             trace_collection.onExceptionRaiseExit(BaseException)
 
         # Record the deletion, needs to start a new version then.
@@ -599,7 +601,7 @@ class StatementLocalsDictOperationDel(StatementBase):
         return self, None, None
 
     def mayRaiseException(self, exception_type):
-        return self.may_raise_del and not self.tolerant
+        return not self.tolerant
 
     @staticmethod
     def getStatementNiceName():

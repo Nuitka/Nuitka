@@ -159,45 +159,42 @@ def generateLocalsDictSetCode(statement, emit, context):
 def generateLocalsDictDelCode(statement, emit, context):
     locals_scope = statement.getLocalsDictScope()
 
-    dict_arg_name = locals_scope.getCodeName()
+    dict_arg_name = context.addLocalsDictName(locals_scope.getCodeName())
 
     is_dict = locals_scope.hasShapeDictionaryExact()
+    variable_name = statement.getVariableName()
+    key_code = context.getConstantCode(variable_name)
 
     context.setCurrentSourceCodeReference(statement.getSourceReference())
 
     if is_dict:
-        res_name = context.getBoolResName()
+        del_expr = "DICT_REMOVE_ITEM(tstate, %s, %s)" % (dict_arg_name, key_code)
+    else:
+        del_expr = "DEL_SUBSCRIPT(%s, %s)" % (dict_arg_name, key_code)
 
-        emit(
-            "%s = DICT_REMOVE_ITEM(tstate, %s, %s);"
-            % (
-                res_name,
-                dict_arg_name,
-                context.getConstantCode(statement.getVariableName()),
-            )
-        )
-
-        getErrorExitBoolCode(
-            condition="%s == false" % res_name,
-            needs_check=statement.mayRaiseException(BaseException),
-            emit=emit,
-            context=context,
-        )
+    if statement.isTolerant() or not statement.mayRaiseException(BaseException):
+        emit("""\
+if (%s == false) {
+    CLEAR_ERROR_OCCURRED(tstate);
+}""" % del_expr)
     else:
         res_name = context.getBoolResName()
 
         emit(
-            "%s = DEL_SUBSCRIPT(%s, %s);"
-            % (
-                res_name,
-                dict_arg_name,
-                context.getConstantCode(statement.getVariableName()),
-            )
+            """\
+%(res_name)s = %(del_expr)s;
+if (%(res_name)s == false) {
+    CLEAR_ERROR_OCCURRED(tstate);
+}"""
+            % {
+                "res_name": res_name,
+                "del_expr": del_expr,
+            }
         )
 
-        getErrorExitBoolCode(
+        getNameReferenceErrorCode(
+            variable_name=variable_name,
             condition="%s == false" % res_name,
-            needs_check=statement.mayRaiseException(BaseException),
             emit=emit,
             context=context,
         )
