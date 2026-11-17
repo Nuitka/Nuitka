@@ -331,7 +331,7 @@ def _generateBuiltinMakeExceptionCode(to_name, expression, for_raise, emit, cont
 
         elif expression.isExpressionBuiltinMakeExceptionNameError():
             _attachExceptionAttributeCode(
-                to_name=to_name,
+                to_name=value_name,
                 attribute_expression=expression.subnode_name,
                 base_name_str="exception_name_error",
                 c_type_name="PyNameErrorObject",
