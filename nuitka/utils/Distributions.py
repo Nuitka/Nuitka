@@ -553,11 +553,10 @@ def isDistributionVendored(distribution_name):
     if getDistributionInstallerName(distribution_name) == "uv":
         path = _getDistributionPath(getDistribution(distribution_name))
 
-        if path is not None:
-            if os.path.dirname(path).endswith(
-                (r"setuptools\_vendor", "setuptools/vendor")
-            ):
-                return True
+        if path is not None and os.path.dirname(path).endswith(
+            (r"setuptools\_vendor", "setuptools/_vendor")
+        ):
+            return True
 
     return False
 
