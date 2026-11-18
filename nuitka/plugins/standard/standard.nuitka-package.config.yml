@@ -1335,6 +1335,21 @@
     - dirs:
         - 'templates'
 
+- module-name: 'dask_ml' # checksum: 131d6683
+  anti-bloat:
+    - description: 'avoid eager model selection import'
+      replacements_plain:
+        'from dask_ml.model_selection import _normalize': ''
+      when: 'version("dask_ml") >= (2021, 11, 30)'
+
+- module-name: 'dask_ml._compat' # checksum: 907a3712
+  anti-bloat:
+    - description: 'avoid importing distributed only for its version'
+      replacements_plain:
+        'import distributed': 'from importlib.metadata import version as _dist_version'
+        'DISTRIBUTED_VERSION = packaging.version.parse(distributed.__version__)': 'DISTRIBUTED_VERSION = packaging.version.parse(_dist_version("distributed"))'
+      when: 'version("dask_ml") >= (2021, 11, 30) and python38_or_higher'
+
 - module-name: 'datasets' # checksum: 3659422e
   options:
     checks:
