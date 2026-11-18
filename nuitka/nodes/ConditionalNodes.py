@@ -24,8 +24,10 @@ from .NodeMakingHelpers import (
     wrapExpressionWithSideEffects,
     wrapStatementWithSideEffects,
 )
-from .OperatorNodesUnary import ExpressionOperationNot
-from .shapes.BuiltinTypeShapes import tshape_bool
+from .OperatorNodesUnary import (
+    ExpressionOperationNot,
+    makeExpressionOperationUnary,
+)
 from .shapes.StandardShapes import tshape_unknown
 from .StatementBasesGenerated import StatementConditionalBase
 from .StatementNodes import StatementsSequence
@@ -836,20 +838,15 @@ Empty 'yes' branch for conditional statement treated with inverted condition che
         return "branch statement"
 
 
-def makeNotExpression(expression):
-    if expression.isExpressionComparison() and expression.getTypeShape() is tshape_bool:
-        return expression.makeInverseComparison()
-    else:
-        return ExpressionOperationNot(
-            operand=expression, source_ref=expression.getSourceReference()
-        )
-
-
 def makeStatementConditional(condition, yes_branch, no_branch, source_ref):
     """Create conditional statement, inverting condition if 'yes_branch' is None."""
 
     if yes_branch is None:
-        condition = makeNotExpression(expression=condition)
+        condition = makeExpressionOperationUnary(
+            operator="Not",
+            operand=condition,
+            source_ref=condition.getSourceReference(),
+        )
 
         yes_branch, no_branch = no_branch, yes_branch
 

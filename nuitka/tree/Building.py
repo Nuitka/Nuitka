@@ -602,16 +602,10 @@ def buildExprOnlyNode(provider, node, source_ref):
 
 
 def buildUnaryOpNode(provider, node, source_ref):
-    operator = getKind(node.op)
-
-    # Delegate this one to boolean operation code.
-    if operator == "Not":
-        return buildBoolOpNode(provider=provider, node=node, source_ref=source_ref)
-
-    operand = buildNode(provider, node.operand, source_ref)
-
     return makeExpressionOperationUnary(
-        operator=operator, operand=operand, source_ref=source_ref
+        operator=getKind(node.op),
+        operand=buildNode(provider, node.operand, source_ref),
+        source_ref=source_ref,
     )
 
 

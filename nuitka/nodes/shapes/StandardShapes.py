@@ -451,7 +451,7 @@ class ShapeBase(getMetaClassBase("Shape", require_slots=True)):
         else:
             right_shape_type = type(right_shape)
             if right_shape_type is ShapeLoopCompleteAlternative:
-                return right_shape.getOperationBinaryBitMatMultLShape(self)
+                return right_shape.getOperationBinaryMatMultLShape(self)
 
             if right_shape_type is ShapeLoopInitialAlternative:
                 return operation_result_unknown
@@ -488,7 +488,7 @@ class ShapeBase(getMetaClassBase("Shape", require_slots=True)):
         return self.getComparisonLtShape(right_shape)
 
     def getComparisonNeqShape(self, right_shape):
-        return self.getComparisonLtShape(right_shape)
+        return self.getComparisonEqShape(right_shape)
 
     @abstractmethod
     def getOperationUnaryReprEscape(self):
@@ -932,10 +932,20 @@ class ShapeLoopInitialAlternative(ShapeBase):
         return self.getComparisonLtShape(right_shape)
 
     def getComparisonEqShape(self, right_shape):
-        return self.getComparisonLtShape(right_shape)
+        if right_shape is tshape_unknown:
+            return operation_result_unknown
+        else:
+            return (
+                self._collectInitialShape(
+                    operation=lambda left_shape: left_shape.getComparisonEqShape(
+                        right_shape
+                    )
+                ),
+                ControlFlowDescriptionFullEscape,
+            )
 
     def getComparisonNeqShape(self, right_shape):
-        return self.getComparisonLtShape(right_shape)
+        return self.getComparisonEqShape(right_shape)
 
     @staticmethod
     def getOperationUnaryReprEscape():
@@ -1310,10 +1320,20 @@ class ShapeLoopCompleteAlternative(ShapeBase):
         return self.getComparisonLtShape(right_shape)
 
     def getComparisonEqShape(self, right_shape):
-        return self.getComparisonLtShape(right_shape)
+        if right_shape is tshape_unknown:
+            return operation_result_unknown
+
+        return self._collectShapeOperation(
+            operation=lambda left_shape: left_shape.getComparisonEqShape(right_shape)
+        )
+
+    def getComparisonEqLShape(self, left_shape):
+        assert left_shape is not tshape_unknown
+
+        return self._collectShapeOperation(operation=left_shape.getComparisonEqShape)
 
     def getComparisonNeqShape(self, right_shape):
-        return self.getComparisonLtShape(right_shape)
+        return self.getComparisonEqShape(right_shape)
 
     @staticmethod
     def getOperationUnaryReprEscape():

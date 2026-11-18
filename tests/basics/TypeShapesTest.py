@@ -83,6 +83,127 @@ def typeOrNone(value):
         print("type | None:", r)
 
 
+class NonBoolTruth(object):
+    def __bool__(self):
+        print("NonBoolTruth truth check")
+        return False
+
+    __nonzero__ = __bool__
+
+
+class NonBoolEq(object):
+    def __eq__(self, other):
+        print("NonBoolEq equality check")
+        return NonBoolTruth()
+
+    def __ne__(self, other):
+        print("NonBoolEq inequality check")
+        return "inequality"
+
+    __hash__ = None
+
+
+class WeirdContains(object):
+    def __contains__(self, other):
+        print("WeirdContains containment check")
+        return []
+
+
+def negationOfComparisons():
+    obj = object()
+
+    print("not is:", not (obj is obj), not (obj is None))
+    print("not is not:", not (obj is not None), not (obj is not obj))
+    print("not in:", not (1 in [1]), not (2 in [1]))
+    print("not not in:", not (1 not in [1]), not (2 not in [1]))
+    print("not eq:", not (1 == 1), not (1 == 2))
+    print("not lt:", not (1 < 2), not (2 < 1))
+    print("not chain:", not (1 < 2 < 3), not (1 < 2 > 3))
+
+    print("not non-bool eq:", not (NonBoolEq() == 1))
+    print("not weird contains:", not (1 in WeirdContains()))
+
+
+def loopCompleteAlternativeComparisons(steps):
+    it = iter(steps)
+    x = 1
+    y = None
+    results = []
+    while True:
+        results.append(
+            (
+                None == x,
+                None != x,
+                x == None,  # pylint: disable=singleton-comparison
+                x != None,  # pylint: disable=singleton-comparison
+                not (None == x),  # pylint: disable=unneeded-not
+                y == 1,
+                y != 1,
+                not (y == 1),  # pylint: disable=unneeded-not
+                y == x,
+                y != x,
+            )
+        )
+        if next(it):
+            x = "a"
+            y = 1
+        else:
+            break
+
+    print("loop eq/neq:", results)
+
+
+def strOrUnicodeOperations(flag, arg):
+    s = (b"hello %s" if flag else b"hi %s").decode("ascii")
+    formatted = s % arg
+    print("decoded mod upper:", formatted.upper())
+
+    s_int = (b"num %d" if flag else b"n=%d").decode("ascii")
+    formatted_int = s_int % 42
+    print("decoded int mod upper:", formatted_int.upper())
+
+    state = ["before"]
+
+    class SideEffectArg(object):
+        def __str__(self):
+            state[0] = "after"
+            return "val"
+
+        def __unicode__(self):
+            state[0] = "after"
+            return "val"
+
+    before = state[0]
+    formatted_side = s % SideEffectArg()
+    print("decoded mod side effect:", before, state[0], formatted_side)
+
+    bad_s = (b"%d" if flag else b"%i").decode("ascii")
+    try:
+        print("decoded bad mod:", bad_s % "not-an-int")
+    except TypeError as e:
+        print("decoded bad mod TypeError:", type(e).__name__)
+
+    try:
+        print("decoded floordiv:", s // 2)
+    except TypeError as e:
+        print("decoded floordiv TypeError:", type(e).__name__)
+
+    try:
+        print("decoded div:", s / 2)
+    except TypeError as e:
+        print("decoded div TypeError:", type(e).__name__)
+
+    try:
+        print("decoded divmod:", divmod(s, 2))
+    except TypeError as e:
+        print("decoded divmod TypeError:", type(e).__name__)
+
+    try:
+        print("decoded pow:", s**2)
+    except TypeError as e:
+        print("decoded pow TypeError:", type(e).__name__)
+
+
 bytesAddBytearray("12")
 typeLessThanType(1, 2)
 typeLessThanType(OrderedA(), OrderedB())
@@ -92,6 +213,11 @@ typeLessThanTypeValue(OrderedB(), OrderedA())
 numberFromBytearray("12")
 noneOrType(1)
 typeOrNone(1)
+negationOfComparisons()
+loopCompleteAlternativeComparisons((False,))
+loopCompleteAlternativeComparisons((True, False))
+strOrUnicodeOperations(True, "world")
+strOrUnicodeOperations(False, 42)
 
 #     Python tests originally created or extracted from other peoples work. The
 #     parts were too small to be protected.

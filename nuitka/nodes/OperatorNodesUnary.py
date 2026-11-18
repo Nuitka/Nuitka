@@ -342,7 +342,13 @@ class ExpressionOperationUnaryAbs(ExpressionOperationUnaryBase):
 
 
 def makeExpressionOperationUnary(operator, operand, source_ref):
-    if operator == "Repr":
+    if operator == "Not":
+        # Inverted comparisons are cheaper than negating their result.
+        if operand.isExpressionComparison() and operand.hasShapeBoolExact():
+            return operand.makeInverseComparison()
+
+        unary_class = ExpressionOperationNot
+    elif operator == "Repr":
         unary_class = ExpressionOperationUnaryRepr
     elif operator == "USub":
         unary_class = ExpressionOperationUnarySub

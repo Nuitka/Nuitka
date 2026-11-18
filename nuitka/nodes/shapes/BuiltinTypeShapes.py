@@ -1519,10 +1519,15 @@ if python_version < 0x300:
         def hasShapeTrustedAttributes():
             return True
 
-        # TODO: There seem to be missing a few here.
         add_shapes = add_shapes_strorunicode
         sub_shapes = sub_shapes_strorunicode
         mult_shapes = mult_shapes_strorunicode
+        floordiv_shapes = floordiv_shapes_strorunicode
+        truediv_shapes = truediv_shapes_strorunicode
+        olddiv_shapes = olddiv_shapes_strorunicode
+        mod_shapes = mod_shapes_strorunicode
+        divmod_shapes = divmod_shapes_strorunicode
+        pow_shapes = pow_shapes_strorunicode
         bitor_shapes = bitor_shapes_strorunicode
         bitand_shapes = bitand_shapes_strorunicode
         bitxor_shapes = bitxor_shapes_strorunicode
@@ -2176,6 +2181,10 @@ operation_result_valueerror_long = (
 operation_result_str_formaterror = (tshape_str, ControlFlowDescriptionFormatError)
 operation_result_unicode_formaterror = (
     tshape_unicode,
+    ControlFlowDescriptionFormatError,
+)
+operation_result_strorunicode_formaterror = (
+    tshape_str_or_unicode,
     ControlFlowDescriptionFormatError,
 )
 operation_result_bytes_formaterror = (tshape_bytes, ControlFlowDescriptionFormatError)
@@ -4360,17 +4369,14 @@ def mergeStrOrUnicode(op_shapes_str, op_shapes_unicode):
 
             r[key] = value
         elif value[0] is tshape_str and value2[0] is tshape_unicode:
-            # Actually as intended, pylint: disable=bad-chained-comparison
-            assert (
-                value[1]
-                is value2[1]
-                in (
-                    operation_result_strorunicode_noescape[1],
-                    ControlFlowDescriptionFormatError,
-                )
-            ), (value, value2)
+            assert value[1] is value2[1], (value, value2)
 
-            r[key] = operation_result_strorunicode_noescape
+            if value[1] is operation_result_strorunicode_noescape[1]:
+                r[key] = operation_result_strorunicode_noescape
+            elif value[1] is ControlFlowDescriptionFormatError:
+                r[key] = operation_result_strorunicode_formaterror
+            else:
+                assert False, value
         elif key == tshape_bytearray:
             # They differ here on Python2
             r[key] = operation_result_unknown
