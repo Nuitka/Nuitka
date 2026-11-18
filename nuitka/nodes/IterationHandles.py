@@ -3,10 +3,8 @@
 
 """Iteration handles for compile-time sequence and range simulation."""
 
-import math
 from abc import abstractmethod
 
-from nuitka.__past__ import xrange
 from nuitka.utils.SlotMetaClasses import getMetaClassBase
 
 
@@ -174,76 +172,71 @@ class ListAndTupleContainerMakingIterationHandle(IterationHandleBase):
 
 
 class RangeIterationHandleBase(IterationHandleBase):
+    low = 0
     step = 1
 
-    __slots__ = ("low", "iter", "source_ref")
+    __slots__ = ("high", "index", "source_ref")
 
-    def __init__(self, low_value, range_value, source_ref):
-        self.low = low_value
-        self.iter = iter(range_value)
+    def __init__(self, high_value, source_ref):
+        self.high = high_value
+        self.index = 0
         self.source_ref = source_ref
 
     def getNextValueExpression(self):
-        try:
-            from .ConstantRefNodes import makeConstantRefNode
-
-            return makeConstantRefNode(
-                constant=next(self.iter), source_ref=self.source_ref
-            )
-        except StopIteration:
-            return None
+        result = self.getIterationValueWithIndex(self.index)
+        if result is not None:
+            self.index += 1
+        return result
 
     @abstractmethod
     def getIterationLength(self):
         pass
 
     def getIterationValueWithIndex(self, value_index):
-        if value_index < self.getIterationLength():
+        length = self.getIterationLength()
+
+        if value_index < 0:
+            value_index += length
+
+        if 0 <= value_index < length:
             from .ConstantRefNodes import makeConstantRefNode
 
             return makeConstantRefNode(
-                constant=value_index * self.step + self.low, source_ref=self.source_ref
+                constant=self.low + value_index * self.step,
+                source_ref=self.source_ref,
             )
         else:
-            return IndexError
+            return None
 
     def getNextValueTruth(self):
-        try:
-            iteration_value = next(self.iter)
-        except StopIteration:
+        if self.index >= self.getIterationLength():
             return StopIteration
+
+        iteration_value = self.low + self.index * self.step
+        self.index += 1
         return bool(iteration_value)
 
-    @staticmethod
-    def getAllElementTruthValue():
-        return True
+    def getAllElementTruthValue(self):
+        if self.step > 0:
+            return not (self.low <= 0 < self.high and self.low % self.step == 0)
+        else:
+            return not (self.high < 0 <= self.low and self.low % self.step == 0)
 
 
 class IterationHandleRange1(RangeIterationHandleBase):
     __slots__ = ()
 
-    def __init__(self, low_value, source_ref):
-        RangeIterationHandleBase.__init__(
-            self, low_value, xrange(low_value), source_ref
-        )
-
     def getIterationLength(self):
-        return max(0, self.low)
-
-    @staticmethod
-    def getAllElementTruthValue():
-        return False
+        return max(0, self.high)
 
 
 class IterationHandleRange2(RangeIterationHandleBase):
-    __slots__ = ("high",)
+    __slots__ = ("low",)
 
     def __init__(self, low_value, high_value, source_ref):
-        RangeIterationHandleBase.__init__(
-            self, low_value, xrange(low_value, high_value), source_ref
-        )
+        RangeIterationHandleBase.__init__(self, high_value, source_ref)
 
-        self.high = high_value
+        self.low = low_value
 
     def getIterationLength(self):
         return max(0, self.high - self.low)
@@ -251,15 +244,16 @@ class IterationHandleRange2(RangeIterationHandleBase):
 
 class IterationHandleRange3(RangeIterationHandleBase):
     __slots__ = (
-        "high",
+        "low",
         "step",
     )
 
     def __init__(self, low_value, high_value, step_value, source_ref):
-        RangeIterationHandleBase.__init__(
-            self, low_value, xrange(low_value, high_value, step_value), source_ref
-        )
-        self.high = high_value
+        assert step_value != 0
+
+        RangeIterationHandleBase.__init__(self, high_value, source_ref)
+
+        self.low = low_value
         self.step = step_value
 
     def getIterationLength(self):
@@ -267,12 +261,11 @@ class IterationHandleRange3(RangeIterationHandleBase):
             if self.step < 0:
                 estimate = 0
             else:
-                estimate = math.ceil(float(self.high - self.low) / self.step)
+                estimate = (self.high - self.low - 1) // self.step + 1
+        elif self.low > self.high and self.step < 0:
+            estimate = (self.low - self.high - 1) // (-self.step) + 1
         else:
-            if self.step > 0:
-                estimate = 0
-            else:
-                estimate = math.ceil(float(self.high - self.low) / self.step)
+            estimate = 0
 
         assert estimate >= 0
 
