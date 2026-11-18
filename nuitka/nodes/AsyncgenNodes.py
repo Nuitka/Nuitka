@@ -35,6 +35,10 @@ class ExpressionMakeAsyncgenObject(
     def _getRefBody(self):
         return self.subnode_asyncgen_ref.getFunctionBody()
 
+    @staticmethod
+    def isKnownToBeAsyncIterable(count):
+        return count is None
+
     def getDetailsForDisplay(self):
         return {"asyncgen": self.subnode_asyncgen_ref.getFunctionBody().getCodeName()}
 

@@ -613,15 +613,20 @@ class ExpressionAsyncIter(ExpressionBuiltinSingleArgBase):
         return self.subnode_value.getIterationLength()
 
     def extractSideEffects(self):
-        # Iterator making is the side effect itself.
-        if self.subnode_value.isCompileTimeConstant():
-            return ()
+        # Async iterator making is the side effect itself unless the value is
+        # known to be async-iterable without side effects in '__aiter__'.
+        value = self.subnode_value
+
+        if value.isKnownToBeAsyncIterable(None) is True:
+            return value.extractSideEffects()
         else:
             return (self,)
 
     def mayHaveSideEffects(self):
-        if self.subnode_value.isCompileTimeConstant():
-            return self.subnode_value.isKnownToBeIterable(None)
+        value = self.subnode_value
+
+        if value.isKnownToBeAsyncIterable(None) is True:
+            return value.mayHaveSideEffects()
 
         return True
 
@@ -631,7 +636,7 @@ class ExpressionAsyncIter(ExpressionBuiltinSingleArgBase):
         if value.mayRaiseException(exception_type):
             return True
 
-        if value.isKnownToBeIterable(None):
+        if value.isKnownToBeAsyncIterable(None) is True:
             return False
 
         return True
@@ -640,10 +645,9 @@ class ExpressionAsyncIter(ExpressionBuiltinSingleArgBase):
         assert type(count) is int
 
         iter_length = self.subnode_value.getIterationMinLength()
-        return iter_length is not None and iter_length < count
+        return iter_length is not None and count <= iter_length
 
     def onRelease(self, trace_collection):
-        # print "onRelease", self
         pass
 
 

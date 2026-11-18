@@ -84,58 +84,49 @@ class ExpressionBase(NodeBase):
 
     @staticmethod
     def isMappingWithConstantStringKeys():
-        """Is this a mapping with constant string keys. Used for call optimization."""
         return False
 
     @staticmethod
     def isKnownToBeIterable(count):
-        """Can be iterated at all (count is None) or exactly count times.
+        """Can be iterated at all ('count is None') or exactly 'count' times."""
+        # pylint: disable=unused-argument
+        return False
 
-        Yes or no. If it can be iterated a known number of times, it may
-        be asked to unpack itself.
-        """
-
-        # Virtual method, pylint: disable=unused-argument
+    @staticmethod
+    def isKnownToBeAsyncIterable(count):
+        """Can be async-iterated at all ('count is None') or 'count' times."""
+        # pylint: disable=unused-argument
         return False
 
     @staticmethod
     def isKnownToBeIterableAtMin(count):
-        # Virtual method, pylint: disable=unused-argument
+        # pylint: disable=unused-argument
         return False
 
     def getIterationLength(self):
-        """Value that "len" or "PyObject_Size" would give, if known.
-
-        Otherwise it is "None" to indicate unknown.
-        """
-
-        # Virtual method, pylint: disable=no-self-use
+        """Value that 'len' or 'PyObject_Size' would give, or 'None' if unknown."""
+        # pylint: disable=no-self-use
         return None
 
     def getIterationMinLength(self):
-        """Value that "len" or "PyObject_Size" would give at minimum, if known.
-
-        Otherwise it is "None" to indicate unknown.
-        """
-
+        """Minimum value that 'len' or 'PyObject_Size' would give, or 'None' if unknown."""
         return self.getIterationLength()
 
     @staticmethod
     def getStringValue():
-        """Node as string value, if possible."""
+        """Return compile-time 'str' value, or 'None' if unknown."""
         return None
 
     def getStrValue(self):
-        """Value that "str" or "PyObject_Str" would give, if known.
+        """Constant node for what 'str' or 'PyObject_Str' would give, or 'None'.
 
-        Otherwise it is "None" to indicate unknown. Users must not
-        forget to take side effects into account, when replacing a
-        node with its string value.
+        Notes:
+            Callers must preserve side effects when replacing a node with its
+            string value.
         """
         string_value = self.getStringValue()
 
         if string_value is not None:
-            # Those that are user provided, need to overload this.
             return makeConstantReplacementNode(
                 node=self, constant=string_value, user_provided=False
             )

@@ -65,6 +65,32 @@ async def caller_agen_leak():
 
 run_async(caller_agen_leak())
 
+
+async def check_invalid_asyncgen_iterables():
+    try:
+        _ = (x async for x in [1, 2, 3])
+    except Exception as e:
+        print("Asyncgen over list raised:", type(e).__name__)
+    else:
+        print("Asyncgen over list did not raise.")
+
+    try:
+        _ = ((x async for x in 42), 1)[1]
+    except Exception as e:
+        print("Asyncgen side effect over int raised:", type(e).__name__, e)
+    else:
+        print("Asyncgen side effect over int did not raise.")
+
+    try:
+        _ = (y async for y in (x async for x in agen_leak()))
+    except Exception as e:
+        print("Nested asyncgen expression raised:", type(e).__name__, e)
+    else:
+        print("Nested asyncgen expression created OK.")
+
+
+run_async(check_invalid_asyncgen_iterables())
+
 #     Python tests originally created or extracted from other peoples work. The
 #     parts were too small to be protected.
 #
