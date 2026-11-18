@@ -28,7 +28,6 @@ PyObject *LOOKUP_ATTRIBUTE(PyThreadState *tstate, PyObject *source, PyObject *at
         descrgetfunc func = NULL;
 
         if (descr != NULL) {
-            // Hold a refcount, Nuitka_TypeLookup does not give any.
             Py_INCREF(descr);
 
             if (NuitkaType_HasFeatureClass(Py_TYPE(descr))) {
@@ -44,33 +43,6 @@ PyObject *LOOKUP_ATTRIBUTE(PyThreadState *tstate, PyObject *source, PyObject *at
         }
 
         PyObject *dict = NULL;
-
-// TODO: This is what Python 3.11 requires us to add.
-#if PYTHON_VERSION >= 0x3b0 && 0
-        if ((type->tp_flags & Py_TPFLAGS_MANAGED_DICT) && *_PyObject_ValuesPointer(source)) {
-            PyObject **dict_pointer;
-
-            PyDictValues **values_ptr = _PyObject_ValuesPointer(source);
-
-            // TODO: Seems we would benefit by knowing this on the outside.
-            if (PyUnicode_CheckExact(attr_name)) {
-                assert(*_PyObject_DictPointer(source) == NULL);
-                PyObject *result = _PyObject_GetInstanceAttribute(source, *values_ptr, attr_name);
-                if (result != NULL) {
-                    return result;
-                }
-            } else {
-                dict_pointer = _PyObject_DictPointer(source);
-                assert(dict_pointer != NULL && *dict_pointer == NULL);
-
-                *dict_pointer = dict = _PyObject_MakeDictFromInstanceAttributes(source, *values_ptr);
-                if (unlikely(dict == NULL)) {
-                    return NULL;
-                }
-                *values_ptr = NULL;
-            }
-        }
-#endif
 
         if (dict == NULL) {
             Py_ssize_t dict_offset = type->tp_dictoffset;
@@ -98,7 +70,6 @@ PyObject *LOOKUP_ATTRIBUTE(PyThreadState *tstate, PyObject *source, PyObject *at
         if (dict != NULL) {
             CHECK_OBJECT(dict);
 
-            // TODO: If this is an exact dict, we don't have to hold a reference, is it?
             Py_INCREF(dict);
 
             PyObject *result = DICT_GET_ITEM1(tstate, dict, attr_name);
@@ -180,7 +151,6 @@ PyObject *LOOKUP_ATTRIBUTE_DICT_SLOT(PyThreadState *tstate, PyObject *source) {
         descrgetfunc func = NULL;
 
         if (descr != NULL) {
-            // Hold a refcount, Nuitka_TypeLookup does not give any.
             Py_INCREF(descr);
 
             if (NuitkaType_HasFeatureClass(Py_TYPE(descr))) {
@@ -299,7 +269,6 @@ PyObject *LOOKUP_ATTRIBUTE_CLASS_SLOT(PyThreadState *tstate, PyObject *source) {
         descrgetfunc func = NULL;
 
         if (descr != NULL) {
-            // Hold a refcount, Nuitka_TypeLookup does not give any.
             Py_INCREF(descr);
 
             if (NuitkaType_HasFeatureClass(Py_TYPE(descr))) {
@@ -420,7 +389,6 @@ bool HAS_ATTR_BOOL(PyThreadState *tstate, PyObject *source, PyObject *attr_name)
         descrgetfunc func = NULL;
 
         if (descr != NULL) {
-            // Hold a refcount, Nuitka_TypeLookup does not give any.
             Py_INCREF(descr);
 
             if (NuitkaType_HasFeatureClass(Py_TYPE(descr))) {
@@ -467,7 +435,6 @@ bool HAS_ATTR_BOOL(PyThreadState *tstate, PyObject *source, PyObject *attr_name)
         if (dict != NULL) {
             CHECK_OBJECT(dict);
 
-            // TODO: If this is an exact dict, we don't have to hold a reference, is it?
             Py_INCREF(dict);
 
             PyObject *result = DICT_GET_ITEM1(tstate, dict, attr_name);
@@ -587,7 +554,6 @@ int HAS_ATTR_BOOL2(PyThreadState *tstate, PyObject *source, PyObject *attr_name)
         descrgetfunc func = NULL;
 
         if (descr != NULL) {
-            // Hold a refcount, Nuitka_TypeLookup does not give any.
             Py_INCREF(descr);
 
             if (NuitkaType_HasFeatureClass(Py_TYPE(descr))) {
@@ -634,7 +600,6 @@ int HAS_ATTR_BOOL2(PyThreadState *tstate, PyObject *source, PyObject *attr_name)
         if (dict != NULL) {
             CHECK_OBJECT(dict);
 
-            // TODO: If this is an exact dict, we don't have to hold a reference, is it?
             Py_INCREF(dict);
 
             PyObject *result = DICT_GET_ITEM1(tstate, dict, attr_name);

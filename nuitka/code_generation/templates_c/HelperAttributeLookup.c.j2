@@ -39,7 +39,6 @@
         descrgetfunc func = NULL;
 
         if (descr != NULL) {
-            // Hold a refcount, Nuitka_TypeLookup does not give any.
             Py_INCREF(descr);
 
             if (NuitkaType_HasFeatureClass(Py_TYPE(descr))) {
@@ -66,7 +65,9 @@
 {% if result_kind == "object" and not slot_name %}
         PyObject *dict = NULL;
 
-// TODO: This is what Python 3.11 requires us to add.
+{#
+TODO: This is what Python 3.11 requires us to add.
+
 #if PYTHON_VERSION >= 0x3b0 && 0
         if ((type->tp_flags & Py_TPFLAGS_MANAGED_DICT) && *_PyObject_ValuesPointer(source)) {
             PyObject **dict_pointer;
@@ -92,6 +93,7 @@
             }
         }
 #endif
+#}
 
         if (dict == NULL) {
 {% endif %}
@@ -126,7 +128,7 @@
             CHECK_OBJECT(dict);
 
 {% if not slot_name %}
-            // TODO: If this is an exact dict, we don't have to hold a reference, is it?
+            {# TODO: If this is an exact dict, we don't have to hold a reference, is it? #}
 {% endif %}
             Py_INCREF(dict);
 
