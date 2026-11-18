@@ -106,7 +106,23 @@ NUITKA_MAY_BE_UNUSED static inline void Nuitka_GC_UnTrack(void *raw_op);
 #ifndef Py_BUILD_CORE
 #define Py_BUILD_CORE
 #endif
-#if PYTHON_VERSION >= 0x3f0
+#if PYTHON_VERSION >= 0x3c0 && defined(_NUITKA_USE_UNEXPOSED_API) && defined(WITH_THREAD)
+#ifndef _Py_thread_local
+#ifdef thread_local
+#define _Py_thread_local thread_local
+#elif defined(__STDC_VERSION__) && __STDC_VERSION__ >= 201112L && !defined(__STDC_NO_THREADS__)
+#define _Py_thread_local _Thread_local
+#elif defined(_MSC_VER)
+#define _Py_thread_local __declspec(thread)
+#elif defined(__GNUC__)
+#define _Py_thread_local __thread
+#endif
+#endif
+#if defined(_Py_thread_local) && !defined(HAVE_THREAD_LOCAL)
+#define HAVE_THREAD_LOCAL 1
+#endif
+#endif
+#if PYTHON_VERSION >= 0x3f0 && !defined(_NUITKA_USE_UNEXPOSED_API)
 #define Py_BUILD_CORE_MODULE
 #endif
 #undef _PyGC_FINALIZED
@@ -232,6 +248,7 @@ NUITKA_MAY_BE_UNUSED static inline managed_static_type_state *Nuitka_PyStaticTyp
 #ifndef __IDE_ONLY__
 // IDEs keep the define, so they can still parse private headers included later.
 #undef Py_BUILD_CORE
+#undef Py_BUILD_CORE_MODULE
 #endif
 
 #endif
@@ -243,12 +260,35 @@ NUITKA_MAY_BE_UNUSED static inline managed_static_type_state *Nuitka_PyStaticTyp
 #include "nuitka/python_internals_access.h"
 #else
 #if PYTHON_VERSION >= 0x3c0
+#define _Nuitka_PyRuntime_PTR (&_PyRuntime)
 #define Nuitka_PyRuntime__imports (&_PyRuntime.imports)
 #define Nuitka_PyRuntime__static_objects (&_PyRuntime.static_objects)
 #endif
 #endif
 
 #if PYTHON_VERSION >= 0x3c0
+// Avoid a C-API DLL call for thread state lookup on Python 3.12+, spell-checker: ignore ceval,tss
+NUITKA_MAY_BE_UNUSED static inline PyThreadState *Nuitka_PyThreadState_GET(void) {
+#if defined(_NUITKA_USE_UNEXPOSED_API) && defined(HAVE_THREAD_LOCAL)
+    return _Py_tss_tstate;
+#elif !defined(Py_GIL_DISABLED) && !defined(_NUITKA_EXPERIMENTAL_SUBINTERPRETERS)
+    struct _gil_runtime_state *gil = _Nuitka_PyRuntime_PTR->interpreters.main->ceval.gil;
+#if PYTHON_VERSION < 0x3d0
+    PyThreadState *tstate = (PyThreadState *)_Py_atomic_load_relaxed(&gil->last_holder);
+#else
+    PyThreadState *tstate = gil->last_holder;
+#endif
+    return tstate;
+#else
+    return _PyThreadState_GetCurrent();
+#endif
+}
+
+#undef PyThreadState_GET
+#define PyThreadState_GET() Nuitka_PyThreadState_GET()
+#undef _PyThreadState_GET
+#define _PyThreadState_GET() Nuitka_PyThreadState_GET()
+
 static inline size_t Nuitka_static_builtin_index_get(PyTypeObject *self) { return (size_t)self->tp_subclasses - 1; }
 
 static inline struct types_state *Nuitka_PyInterpreterState_GetTypesState(PyInterpreterState *interp) {
