@@ -27,6 +27,14 @@ from nuitka.Version import getNuitkaVersion
 
 parser = OptionParser()
 
+parser.add_option(
+    "--assume-yes-for-downloads",
+    action="store_true",
+    dest="assume_yes_for_downloads",
+    default=False,
+    help="Allow download and execution of tools if needed. Default is %default.",
+)
+
 options, positional_args = parser.parse_args()
 
 assert not positional_args, positional_args
@@ -54,7 +62,7 @@ else:
 shutil.rmtree("dist", ignore_errors=True)
 shutil.rmtree("build", ignore_errors=True)
 
-checkReleaseDocumentation()
+checkReleaseDocumentation(assume_yes_for_downloads=options.assume_yes_for_downloads)
 
 dist_filename = makeNuitkaSourceDistribution(sign=True)
 

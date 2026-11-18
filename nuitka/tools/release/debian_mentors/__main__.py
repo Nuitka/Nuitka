@@ -29,7 +29,7 @@ def main():
 
     cleanupSourceDistributionState()
 
-    checkReleaseDocumentation()
+    checkReleaseDocumentation(assume_yes_for_downloads=False)
 
     assert os.system("%s setup.py sdist --formats=gztar" % sys.executable) == 0
 
