@@ -868,16 +868,20 @@ def getUnmetRequirements(requirements):
 
     Returns:
         List of requirement descriptions that are missing or have an
-        unsatisfied version.
+        unsatisfied version, or None if neither "packaging" nor "pip" is
+        available to parse them.
     """
     try:
         from packaging.requirements import InvalidRequirement, Requirement
     except ImportError:
         # Keep the packaging dependency optional, use pip's copy otherwise.
-        from pip._vendor.packaging.requirements import (
-            InvalidRequirement,
-            Requirement,
-        )
+        try:
+            from pip._vendor.packaging.requirements import (
+                InvalidRequirement,
+                Requirement,
+            )
+        except ImportError:
+            return None
 
     missing = []
 

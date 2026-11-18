@@ -3885,11 +3885,18 @@ def getPyProjectRequiredPackages():
 def _checkProjectRequirements():
     assert options.is_project_mode
 
-    unmet_requirements = getUnmetRequirements(
-        filterInstallRequires(options.project_requires)
-    )
+    requirements = filterInstallRequires(options.project_requires)
 
-    if unmet_requirements:
+    if not requirements:
+        return
+
+    unmet_requirements = getUnmetRequirements(requirements)
+
+    if unmet_requirements is None:
+        options_logger.warning(
+            "Cannot check the project requirements, neither 'packaging' nor 'pip' is installed."
+        )
+    elif unmet_requirements:
         return options_logger.sysexit("""\
 Error, project requirements are not installed:
   %s
