@@ -62,6 +62,19 @@
 
 #endif
 
+// '_PyObject_IsUniquelyReferenced' was only added in Python 3.13.4.
+#if PYTHON_VERSION < 0x3d4
+static inline int Nuitka_PyObject_IsUniquelyReferenced(PyObject *ob) {
+#if !defined(Py_GIL_DISABLED)
+    return Py_REFCNT(ob) == 1;
+#else
+    return _Py_IsOwnedByCurrentThread(ob) && _Py_atomic_load_uint32_relaxed(&ob->ob_ref_local) == 1 &&
+           _Py_atomic_load_ssize_relaxed(&ob->ob_ref_shared) == 0;
+#endif
+}
+#define _PyObject_IsUniquelyReferenced(ob) Nuitka_PyObject_IsUniquelyReferenced(ob)
+#endif
+
 // CPython 3.14 changed _gc_runtime_state layout and young-generation accounting
 // across point releases (3.14.0, 3.14.1, and 3.14.5), so module mode dispatches
 // on the runtime patch version.

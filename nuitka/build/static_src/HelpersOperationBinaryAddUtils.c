@@ -332,7 +332,7 @@ Py_ssize_t Nuitka_PyLong_AsSsize_t(PyThreadState *tstate, PyObject *value) {
 }
 
 static void Nuitka_LongUpdateFromCLong(PyObject **value, long ival) {
-    assert(Py_REFCNT(*value) == 1);
+    assert(_PyObject_IsUniquelyReferenced(*value));
 
 #if PYTHON_VERSION < 0x300
     if (ival == 0) {

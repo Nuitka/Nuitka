@@ -182,7 +182,7 @@ static inline bool _INPLACE_OPERATION_POW_FLOAT_FLOAT(PyObject **operand1, PyObj
     }
 
 exit_result_ok_cfloat:
-    if (Py_REFCNT(*operand1) == 1) {
+    if (_PyObject_IsUniquelyReferenced(*operand1)) {
         PyFloat_SET_DOUBLE(*operand1, cfloat_result);
     } else {
         Py_DECREF(*operand1);
@@ -583,7 +583,7 @@ static inline bool _INPLACE_OPERATION_POW_OBJECT_FLOAT(PyObject **operand1, PyOb
         }
 
     exit_result_ok_cfloat:
-        if (Py_REFCNT(*operand1) == 1) {
+        if (_PyObject_IsUniquelyReferenced(*operand1)) {
             PyFloat_SET_DOUBLE(*operand1, cfloat_result);
         } else {
             Py_DECREF(*operand1);
@@ -971,7 +971,7 @@ static inline bool _INPLACE_OPERATION_POW_FLOAT_OBJECT(PyObject **operand1, PyOb
         }
 
     exit_result_ok_cfloat:
-        if (Py_REFCNT(*operand1) == 1) {
+        if (_PyObject_IsUniquelyReferenced(*operand1)) {
             PyFloat_SET_DOUBLE(*operand1, cfloat_result);
         } else {
             Py_DECREF(*operand1);

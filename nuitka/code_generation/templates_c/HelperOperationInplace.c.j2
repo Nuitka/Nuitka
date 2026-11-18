@@ -96,7 +96,7 @@ static inline bool _INPLACE_OPERATION_{{op_code}}_{{left.getHelperCodeName()}}_{
 {% endif %}
 
 {% if operator == "+" and (left.mayBothHaveType(right, "str") or left.mayBothHaveType(right, "unicode") or left.hasOneOrBothType(right, "bytes")) %}
-    if (Py_REFCNT(*operand1) == 1) {
+    if (_PyObject_IsUniquelyReferenced(*operand1)) {
 {% if operator == "+" and left.mayBothHaveType(right, "str") %}
 #if PYTHON_VERSION < 0x300
         if ({{left.getStringCheckExpression("*operand1")}} && !PyString_CHECK_INTERNED(*operand1) && {{right.getStringCheckExpression("operand2")}}) {

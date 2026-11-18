@@ -574,7 +574,7 @@ static inline bool _INPLACE_OPERATION_SUB_LONG_LONG(PyObject **operand1, PyObjec
     if (Nuitka_LongGetDigitSize(operand1_long_object) <= 1 && Nuitka_LongGetDigitSize(operand2_long_object) <= 1) {
         long r = (long)(MEDIUM_VALUE(operand1_long_object) - MEDIUM_VALUE(operand2_long_object));
 
-        if (Py_REFCNT(*operand1) == 1) {
+        if (_PyObject_IsUniquelyReferenced(*operand1)) {
             Nuitka_LongUpdateFromCLong(&*operand1, r);
             goto exit_result_ok;
         } else {
@@ -587,7 +587,7 @@ static inline bool _INPLACE_OPERATION_SUB_LONG_LONG(PyObject **operand1, PyObjec
         goto exit_result_ok_clong;
     }
 
-    if (Py_REFCNT(*operand1) == 1) {
+    if (_PyObject_IsUniquelyReferenced(*operand1)) {
         digit const *b_digits = Nuitka_LongGetDigitPointer(operand2_long_object);
         Py_ssize_t b_digit_count = Nuitka_LongGetDigitSize(operand2_long_object);
 
@@ -849,7 +849,7 @@ static inline bool _INPLACE_OPERATION_SUB_OBJECT_LONG(PyObject **operand1, PyObj
         if (Nuitka_LongGetDigitSize(operand1_long_object) <= 1 && Nuitka_LongGetDigitSize(operand2_long_object) <= 1) {
             long r = (long)(MEDIUM_VALUE(operand1_long_object) - MEDIUM_VALUE(operand2_long_object));
 
-            if (Py_REFCNT(*operand1) == 1) {
+            if (_PyObject_IsUniquelyReferenced(*operand1)) {
                 Nuitka_LongUpdateFromCLong(&*operand1, r);
                 goto exit_result_ok;
             } else {
@@ -862,7 +862,7 @@ static inline bool _INPLACE_OPERATION_SUB_OBJECT_LONG(PyObject **operand1, PyObj
             goto exit_result_ok_clong;
         }
 
-        if (Py_REFCNT(*operand1) == 1) {
+        if (_PyObject_IsUniquelyReferenced(*operand1)) {
             digit const *b_digits = Nuitka_LongGetDigitPointer(operand2_long_object);
             Py_ssize_t b_digit_count = Nuitka_LongGetDigitSize(operand2_long_object);
 
@@ -1127,7 +1127,7 @@ static inline bool _INPLACE_OPERATION_SUB_LONG_OBJECT(PyObject **operand1, PyObj
         if (Nuitka_LongGetDigitSize(operand1_long_object) <= 1 && Nuitka_LongGetDigitSize(operand2_long_object) <= 1) {
             long r = (long)(MEDIUM_VALUE(operand1_long_object) - MEDIUM_VALUE(operand2_long_object));
 
-            if (Py_REFCNT(*operand1) == 1) {
+            if (_PyObject_IsUniquelyReferenced(*operand1)) {
                 Nuitka_LongUpdateFromCLong(&*operand1, r);
                 goto exit_result_ok;
             } else {
@@ -1140,7 +1140,7 @@ static inline bool _INPLACE_OPERATION_SUB_LONG_OBJECT(PyObject **operand1, PyObj
             goto exit_result_ok_clong;
         }
 
-        if (Py_REFCNT(*operand1) == 1) {
+        if (_PyObject_IsUniquelyReferenced(*operand1)) {
             digit const *b_digits = Nuitka_LongGetDigitPointer(operand2_long_object);
             Py_ssize_t b_digit_count = Nuitka_LongGetDigitSize(operand2_long_object);
 
@@ -1254,7 +1254,7 @@ static inline bool _INPLACE_OPERATION_SUB_FLOAT_FLOAT(PyObject **operand1, PyObj
     goto exit_result_ok_cfloat;
 
 exit_result_ok_cfloat:
-    if (Py_REFCNT(*operand1) == 1) {
+    if (_PyObject_IsUniquelyReferenced(*operand1)) {
         PyFloat_SET_DOUBLE(*operand1, cfloat_result);
     } else {
         Py_DECREF(*operand1);
@@ -1459,7 +1459,7 @@ static inline bool _INPLACE_OPERATION_SUB_OBJECT_FLOAT(PyObject **operand1, PyOb
         goto exit_result_ok_cfloat;
 
     exit_result_ok_cfloat:
-        if (Py_REFCNT(*operand1) == 1) {
+        if (_PyObject_IsUniquelyReferenced(*operand1)) {
             PyFloat_SET_DOUBLE(*operand1, cfloat_result);
         } else {
             Py_DECREF(*operand1);
@@ -1667,7 +1667,7 @@ static inline bool _INPLACE_OPERATION_SUB_FLOAT_OBJECT(PyObject **operand1, PyOb
         goto exit_result_ok_cfloat;
 
     exit_result_ok_cfloat:
-        if (Py_REFCNT(*operand1) == 1) {
+        if (_PyObject_IsUniquelyReferenced(*operand1)) {
             PyFloat_SET_DOUBLE(*operand1, cfloat_result);
         } else {
             Py_DECREF(*operand1);
@@ -2132,7 +2132,7 @@ static inline bool _INPLACE_OPERATION_SUB_LONG_DIGIT(PyObject **operand1, long o
     if (Nuitka_LongGetDigitSize(operand1_long_object) <= 1 && (operand2 == 0 ? 0 : 1) <= 1) {
         long r = (long)(MEDIUM_VALUE(operand1_long_object) - (sdigit)operand2);
 
-        if (Py_REFCNT(*operand1) == 1) {
+        if (_PyObject_IsUniquelyReferenced(*operand1)) {
             Nuitka_LongUpdateFromCLong(&*operand1, r);
             goto exit_result_ok;
         } else {
@@ -2145,7 +2145,7 @@ static inline bool _INPLACE_OPERATION_SUB_LONG_DIGIT(PyObject **operand1, long o
         goto exit_result_ok_clong;
     }
 
-    if (Py_REFCNT(*operand1) == 1) {
+    if (_PyObject_IsUniquelyReferenced(*operand1)) {
         digit const *b_digits = (digit *)&operand2;
         Py_ssize_t b_digit_count = (operand2 == 0 ? 0 : 1);
 
@@ -2272,7 +2272,7 @@ static inline bool _INPLACE_OPERATION_SUB_LONG_CLONG(PyObject **operand1, long o
     if (Nuitka_LongGetDigitSize(operand1_long_object) <= 1 && operand2_digit_count <= 1) {
         long r = (long)(MEDIUM_VALUE(operand1_long_object) - (sdigit)operand2);
 
-        if (Py_REFCNT(*operand1) == 1) {
+        if (_PyObject_IsUniquelyReferenced(*operand1)) {
             Nuitka_LongUpdateFromCLong(&*operand1, r);
             goto exit_result_ok;
         } else {
@@ -2285,7 +2285,7 @@ static inline bool _INPLACE_OPERATION_SUB_LONG_CLONG(PyObject **operand1, long o
         goto exit_result_ok_clong;
     }
 
-    if (Py_REFCNT(*operand1) == 1) {
+    if (_PyObject_IsUniquelyReferenced(*operand1)) {
         digit const *b_digits = operand2_digits;
         Py_ssize_t b_digit_count = operand2_digit_count;
 
@@ -2392,7 +2392,7 @@ static inline bool _INPLACE_OPERATION_SUB_FLOAT_CFLOAT(PyObject **operand1, doub
     goto exit_result_ok_cfloat;
 
 exit_result_ok_cfloat:
-    if (Py_REFCNT(*operand1) == 1) {
+    if (_PyObject_IsUniquelyReferenced(*operand1)) {
         PyFloat_SET_DOUBLE(*operand1, cfloat_result);
     } else {
         Py_DECREF(*operand1);

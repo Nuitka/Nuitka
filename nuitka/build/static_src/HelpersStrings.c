@@ -284,13 +284,16 @@ static void _NuitkaUnicode_FastCopyCharacters(PyObject *to, Py_ssize_t to_start,
 }
 
 static int _NuitkaUnicode_modifiable(PyObject *unicode) {
-    if (Py_REFCNT(unicode) != 1)
+    if (!_PyObject_IsUniquelyReferenced(unicode)) {
         return 0;
-    if (_PyUnicode_HASH(unicode) != -1)
+    }
+    if (_PyUnicode_HASH(unicode) != -1) {
         return 0;
+    }
     // TODO: That ought to be impossible with refcnt 1.
-    if (PyUnicode_CHECK_INTERNED(unicode))
+    if (PyUnicode_CHECK_INTERNED(unicode)) {
         return 0;
+    }
     return 1;
 }
 
@@ -455,7 +458,7 @@ static PyObject *_NuitkaUnicode_resize_compact(PyObject *unicode, Py_ssize_t len
 
 static int _NuitkaUnicode_resize_inplace(PyObject *unicode, Py_ssize_t length) {
     assert(!PyUnicode_IS_COMPACT(unicode));
-    assert(Py_REFCNT(unicode) == 1);
+    assert(_PyObject_IsUniquelyReferenced(unicode));
 
     if (PyUnicode_IS_READY(unicode)) {
         void *data = _PyUnicode_DATA_ANY(unicode);
@@ -637,7 +640,7 @@ static PyObject *_NuitkaUnicode_resize_compact(PyObject *unicode, Py_ssize_t len
 
 static int _NuitkaUnicode_resize_inplace(PyObject *unicode, Py_ssize_t length) {
     assert(!PyUnicode_IS_COMPACT(unicode));
-    assert(Py_REFCNT(unicode) == 1);
+    assert(_PyObject_IsUniquelyReferenced(unicode));
 
 #ifndef __NUITKA_NO_ASSERT__
     Py_ssize_t old_length = _PyUnicode_LENGTH(unicode);
