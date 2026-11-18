@@ -17,9 +17,8 @@ void *(*python_mem_malloc)(void *ctx, size_t size) = NULL;
 void *(*python_mem_calloc)(void *ctx, size_t nelem, size_t elsize) = NULL;
 #ifndef Py_GIL_DISABLED
 void *(*python_mem_realloc)(void *ctx, void *ptr, size_t new_size) = NULL;
-#else
-void (*python_mem_free)(void *ctx, void *ptr) = NULL;
 #endif
+void (*python_mem_free)(void *ctx, void *ptr) = NULL;
 
 #if _NUITKA_STANDALONE_MODE && !defined(Py_DEBUG)
 // Standalone mode ignores allocator settings from the environment, and only
@@ -54,12 +53,12 @@ static void *NuitkaMem_ReallocAPI(void *ctx, void *ptr, size_t new_size) {
     (void)ctx;
     return PyMem_Realloc(ptr, new_size);
 }
-#else
+#endif
+
 static void NuitkaMem_FreeAPI(void *ctx, void *ptr) {
     (void)ctx;
     PyMem_Free(ptr);
 }
-#endif
 
 void initNuitkaAllocators(void) {
     PyMemAllocatorEx allocators;
@@ -80,9 +79,8 @@ void initNuitkaAllocators(void) {
     assert(allocators.calloc != NULL);
 #ifndef Py_GIL_DISABLED
     assert(allocators.realloc != NULL);
-#else
-    assert(allocators.free != NULL);
 #endif
+    assert(allocators.free != NULL);
 
 #if NUITKA_ALLOCATORS_DEFAULT_ONLY
     assert(allocators.ctx == NULL);
@@ -93,17 +91,15 @@ void initNuitkaAllocators(void) {
         python_mem_calloc = allocators.calloc;
 #ifndef Py_GIL_DISABLED
         python_mem_realloc = allocators.realloc;
-#else
-        python_mem_free = allocators.free;
 #endif
+        python_mem_free = allocators.free;
     } else {
         python_mem_malloc = NuitkaMem_MallocAPI;
         python_mem_calloc = NuitkaMem_CallocAPI;
 #ifndef Py_GIL_DISABLED
         python_mem_realloc = NuitkaMem_ReallocAPI;
-#else
-        python_mem_free = NuitkaMem_FreeAPI;
 #endif
+        python_mem_free = NuitkaMem_FreeAPI;
     }
 }
 

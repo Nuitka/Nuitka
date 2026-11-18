@@ -80,9 +80,8 @@ void *(*python_mem_malloc)(void *ctx, size_t size) = concurrencyMemMalloc;
 void *(*python_mem_calloc)(void *ctx, size_t nelem, size_t elsize) = concurrencyMemCalloc;
 #ifndef Py_GIL_DISABLED
 void *(*python_mem_realloc)(void *ctx, void *ptr, size_t new_size) = concurrencyMemRealloc;
-#else
-void (*python_mem_free)(void *ctx, void *ptr) = concurrencyMemFree;
 #endif
+void (*python_mem_free)(void *ctx, void *ptr) = concurrencyMemFree;
 
 void SET_CURRENT_EXCEPTION_TYPE_COMPLAINT(char const *format, PyObject *mistyped) {
     PyErr_Format(PyExc_TypeError, format, Py_TYPE(mistyped)->tp_name);

@@ -830,11 +830,7 @@ static bool _LIST_DEL_SLICE_LOCK_HELD(PyObject *target, Py_ssize_t lower, Py_ssi
     }
 
     if (recycle != recycle_on_stack) {
-#ifdef Py_GIL_DISABLED
         NuitkaMem_Free(recycle);
-#else
-        PyMem_Free(recycle);
-#endif
     }
 
     return result;
