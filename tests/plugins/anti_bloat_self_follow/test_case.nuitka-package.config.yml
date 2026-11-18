@@ -1,0 +1,11 @@
+# yamllint disable rule:line-length
+# yamllint disable rule:indentation
+# yamllint disable rule:comments-indentation
+# yamllint disable rule:comments
+# too many spelling things, spell-checker: disable
+---
+- module-name: 'self_follow_package' # checksum: ce598461
+  anti-bloat:
+    - description: 'test that a no-auto-follow rule does not suppress the target own submodules'
+      no-auto-follow:
+        'self_follow_package.sub': 'ignore'

@@ -1,0 +1,17 @@
+# yamllint disable rule:line-length
+# yamllint disable rule:indentation
+# yamllint disable rule:comments-indentation
+# yamllint disable rule:comments
+# too many spelling things, spell-checker: disable
+---
+- module-name: 'allow_override_package' # checksum: c10370e5
+  anti-bloat:
+    - description: 'test suppression from the parent package'
+      no-auto-follow:
+        'allow_override_package.target': 'ignore'
+
+- module-name: 'allow_override_package.child' # checksum: b867ab67
+  anti-bloat:
+    - description: 'test allow override in the child module'
+      no-auto-follow:
+        'allow_override_package.target': 'allow'

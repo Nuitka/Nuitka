@@ -1011,10 +1011,50 @@ slow down compilation."""
 
                         self.warnings_given.add(key)
 
+    def _decideNoAutoFollow(self, using_module_name, module_name):
+        """Decide about YAML 'no-auto-follow' for an import.
+
+        Notes:
+            An 'allow' value overrides a rule from a less specific config.
+        """
+
+        def decideRelevant(key, value):
+            # Only checking keys of configs, pylint: disable=unused-argument
+
+            # Do not suppress a module's own submodules.
+            is_own_submodule = using_module_name.hasNamespace(key)
+
+            return module_name.hasNamespace(key) and not is_own_submodule
+
+        for (
+            config_of_module_name,
+            no_auto_follow,
+            description,
+        ) in self.getYamlConfigItemItems(
+            module_name=using_module_name,
+            section="anti-bloat",
+            item_name="no-auto-follow",
+            decide_relevant=decideRelevant,
+            recursive=True,
+        ):
+            assert module_name.hasNamespace(no_auto_follow), no_auto_follow
+
+            if description == "allow":
+                return None
+
+            self.no_auto_follows[no_auto_follow] = description
+
+            return (
+                False,
+                "according to yaml 'no-auto-follow' configuration of '%s' for '%s'"
+                % (config_of_module_name, no_auto_follow),
+            )
+
+        return None
+
     def onModuleEncounter(
         self, using_module_name, module_name, module_filename, module_kind
     ):
-        # We need this many variables, pylint: disable=too-many-locals
         for handled_module_name, (
             mode,
             intended_module_name,
@@ -1035,32 +1075,13 @@ slow down compilation."""
                     )
 
         if using_module_name is not None:
+            no_auto_follow_decision = self._decideNoAutoFollow(
+                using_module_name=using_module_name,
+                module_name=module_name,
+            )
 
-            def decideRelevant(key, value):
-                # Only checking keys of configs, pylint: disable=unused-argument
-
-                return module_name.hasNamespace(key)
-
-            for (
-                config_of_module_name,
-                no_auto_follow,
-                description,
-            ) in self.getYamlConfigItemItems(
-                module_name=using_module_name,
-                section="anti-bloat",
-                item_name="no-auto-follow",
-                decide_relevant=decideRelevant,
-                recursive=True,
-            ):
-                assert module_name.hasNamespace(no_auto_follow), no_auto_follow
-
-                self.no_auto_follows[no_auto_follow] = description
-
-                return (
-                    False,
-                    "according to yaml 'no-auto-follow' configuration of '%s' for '%s'"
-                    % (config_of_module_name, no_auto_follow),
-                )
+            if no_auto_follow_decision is not None:
+                return no_auto_follow_decision
 
             # Do checking of "limit-auto-follow"
             limit_auto_follows = self.getYamlConfigItemSet(

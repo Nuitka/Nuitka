@@ -1279,13 +1279,18 @@
         '"_pytest" in sys.modules': 'False'
       when: 'not use_pytest'
 
-- module-name: 'dask' # checksum: 75dc90c8
+- module-name: 'dask' # checksum: 2db3ea00
   data-files:
     - patterns:
         - 'dask.yaml'
     - include-metadata:
         - 'pandas'
         - 'pyarrow'
+
+  anti-bloat:
+    - description: 'avoid optional distributed auto-follow'
+      no-auto-follow:
+        'distributed': 'ignore'
 
 - module-name: 'dask.dataframe' # checksum: 54d2aebf
   anti-bloat:
@@ -1310,6 +1315,13 @@
     - description: 'remove pandas.testing reference'
       replacements_plain:
         'from dask.dataframe._compat import PANDAS_GE_150, tm': ''
+
+- module-name: 'dask.distributed' # checksum: ce0308a9
+  anti-bloat:
+    - description: 'distributed is required by the dask.distributed shim'
+      # "allow" overrides the no-auto-follow rule from the parent module.
+      no-auto-follow:
+        'distributed': 'allow'
 
 - module-name: 'dask.dot' # checksum: ddcb31f2
   anti-bloat:
