@@ -121,13 +121,30 @@ class StatementReleaseVariableBase(StatementBase):
 class StatementReleaseVariableTemp(StatementReleaseVariableBase):
     kind = "STATEMENT_RELEASE_VARIABLE_TEMP"
 
+    def setVariable(self, variable):
+        assert variable.isTempVariable(), variable
+
+        StatementReleaseVariableBase.setVariable(self, variable)
+
 
 class StatementReleaseVariableLocal(StatementReleaseVariableBase):
     kind = "STATEMENT_RELEASE_VARIABLE_LOCAL"
 
+    def setVariable(self, variable):
+        assert (
+            not variable.isTempVariable() and not variable.isParameterVariable()
+        ), variable
+
+        StatementReleaseVariableBase.setVariable(self, variable)
+
 
 class StatementReleaseVariableParameter(StatementReleaseVariableLocal):
     kind = "STATEMENT_RELEASE_VARIABLE_PARAMETER"
+
+    def setVariable(self, variable):
+        assert variable.isParameterVariable(), variable
+
+        StatementReleaseVariableBase.setVariable(self, variable)
 
     def computeStatement(self, trace_collection):
         if self.variable.getOwner().isAutoReleaseVariable(self.variable):

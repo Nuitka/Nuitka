@@ -7,66 +7,94 @@ Done by assigning the argument values to variables, and producing an outline
 from the in-lined function.
 """
 
-from nuitka.nodes.OutlineNodes import ExpressionOutlineBody
+from nuitka.nodes.FunctionNodes import updateFunctionBodyReferences
+from nuitka.nodes.OutlineNodes import ExpressionOutlineFunction
+from nuitka.nodes.ReturnNodes import StatementReturnNone
 from nuitka.nodes.VariableAssignNodes import makeStatementAssignmentVariable
-from nuitka.tree.Operations import VisitorNoopMixin, visitTree
+from nuitka.tree.Extractions import updateVariableUsage
 from nuitka.tree.ReformulationTryFinallyStatements import (
     makeTryFinallyReleaseStatement,
 )
-from nuitka.tree.TreeHelpers import makeStatementsSequence
-
-
-class VariableScopeUpdater(VisitorNoopMixin):
-    def __init__(self, locals_scope, variable_translation):
-        self.locals_scope = locals_scope
-        self.variable_translation = variable_translation
-
-    def onEnterNode(self, node):
-        if hasattr(node, "variable"):
-            if node.variable in self.variable_translation:
-                node.variable = self.variable_translation[node.variable]
-
-        if hasattr(node, "locals_scope"):
-            node.locals_scope = self.locals_scope
-
-
-def updateLocalsScope(provider, locals_scope, variable_translation):
-    visitor = VariableScopeUpdater(
-        locals_scope=locals_scope, variable_translation=variable_translation
-    )
-
-    visitTree(provider, visitor)
+from nuitka.tree.TreeHelpers import (
+    makeStatementsSequence,
+    makeStatementsSequenceFromStatement,
+)
+from nuitka.Variables import LocalVariable
 
 
 def convertFunctionCallToOutline(provider, function_body, values, call_source_ref):
+    # Many details to translate for the inlined scope, pylint: disable=too-many-locals
     function_source_ref = function_body.getSourceReference()
 
-    outline_body = ExpressionOutlineBody(
-        provider=provider, name="inline", source_ref=function_source_ref
+    outline_body = ExpressionOutlineFunction(
+        provider=provider, name="inline", source_ref=call_source_ref
     )
 
-    clone = function_body.subnode_body.makeClone()
+    if function_body.subnode_body is None:
+        clone = makeStatementsSequenceFromStatement(
+            statement=StatementReturnNone(source_ref=function_source_ref)
+        )
+    else:
+        clone = function_body.subnode_body.makeClone()
 
-    locals_scope_clone, variable_translation = function_body.locals_scope.makeClone(
-        clone
+    parameter_variables = function_body.getParameters().getAllVariables()
+    assert len(parameter_variables) == len(values), (parameter_variables, values)
+
+    # Parameters of the called function become ordinary local variables of the
+    # outline, assigned from the call argument expressions below.
+    variable_translations = {}
+    for parameter_variable in parameter_variables:
+        variable_translations[parameter_variable] = LocalVariable(
+            owner=outline_body, variable_name=parameter_variable.getName()
+        )
+
+    outline_body.locals_scope, variable_translations = (
+        function_body.locals_scope.makeCloneWithVariableTranslations(
+            new_owner=outline_body,
+            variable_translations=variable_translations,
+        )
     )
 
-    # TODO: Lets update all at once maybe, it would take less visits.
-    updateLocalsScope(
-        clone,
-        locals_scope=locals_scope_clone,
-        variable_translation=variable_translation,
+    for parameter_variable in parameter_variables:
+        outline_body.locals_scope.local_variables[parameter_variable.getName()] = (
+            variable_translations[parameter_variable]
+        )
+
+    for temp_variable in function_body.getTempVariables(None):
+        variable_translations[temp_variable] = outline_body.allocateTempVariable(
+            temp_scope=None,
+            name=temp_variable.getName(),
+            temp_type=temp_variable.getVariableType(),
+            late=True,
+        )
+
+    for taken_variable in function_body.taken:
+        outline_body.taken.add(
+            variable_translations.get(taken_variable, taken_variable)
+        )
+
+    updateVariableUsage(
+        provider=clone,
+        old_locals_scope=function_body.locals_scope,
+        new_locals_scope=outline_body.locals_scope,
+        variable_translations=variable_translations,
     )
 
-    argument_names = function_body.getParameters().getParameterNames()
-    assert len(argument_names) == len(values), (argument_names, values)
+    updateFunctionBodyReferences(
+        provider=clone,
+        old_provider=function_body,
+        variable_translations=variable_translations,
+        code_name_translations={
+            function_body.getCodeName(): outline_body.getCodeName()
+        },
+    )
 
     statements = []
 
-    for argument_name, value in zip(argument_names, values):
+    for parameter_variable, value in zip(parameter_variables, values):
         statements.append(
             makeStatementAssignmentVariable(
-                variable=variable_translation[argument_name],
+                variable=variable_translations[parameter_variable],
                 source=value,
                 source_ref=call_source_ref,
             )
@@ -78,13 +106,16 @@ def convertFunctionCallToOutline(provider, function_body, values, call_source_re
 
     auto_releases = function_body.getFunctionVariablesWithAutoReleases()
 
-    # TODO: Not possible to auto release with outline bodies too?
     if auto_releases:
-        body = makeTryFinallyReleaseStatement(
-            provider=outline_body,
-            tried=body,
-            variables=auto_releases,
-            source_ref=function_source_ref,
+        body = makeStatementsSequenceFromStatement(
+            statement=makeTryFinallyReleaseStatement(
+                provider=outline_body,
+                tried=body,
+                variables=tuple(
+                    variable_translations[variable] for variable in auto_releases
+                ),
+                source_ref=function_source_ref,
+            )
         )
 
     outline_body.setChildBody(body)

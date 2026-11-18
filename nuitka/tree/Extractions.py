@@ -19,24 +19,41 @@ class VariableUsageUpdater(VisitorNoopMixin):
         self.variable_translations = variable_translations
 
     def onEnterNode(self, node):
-        if hasattr(node, "variable"):
-            if node.variable in self.variable_translations:
-                node.setVariable(self.variable_translations[node.variable])
+        if hasattr(node, "variable") and node.variable in self.variable_translations:
+            new_variable = self.variable_translations[node.variable]
 
-        if hasattr(node, "loop_variables") and node.loop_variables is not None:
-            if any(
+            if node.isStatementReleaseVariable():
+                from nuitka.nodes.VariableReleaseNodes import (
+                    makeStatementReleaseVariable,
+                )
+
+                new_node = makeStatementReleaseVariable(
+                    variable=new_variable,
+                    source_ref=node.getSourceReference(),
+                )
+
+                if new_node.__class__ is not node.__class__:
+                    node.parent.replaceChild(node, new_node)
+                    node.finalize()
+                    return
+
+            node.setVariable(new_variable)
+
+        if (
+            hasattr(node, "loop_variables")
+            and node.loop_variables is not None
+            and any(
                 variable in self.variable_translations
                 for variable in node.loop_variables
-            ):
-                node.loop_variables = None
+            )
+        ):
+            node.loop_variables = None
 
-        if hasattr(node, "locals_scope"):
-            if node.locals_scope is self.old_locals_scope:
-                node.locals_scope = self.new_locals_scope
+        if hasattr(node, "locals_scope") and node.locals_scope is self.old_locals_scope:
+            node.locals_scope = self.new_locals_scope
 
-        if hasattr(node, "provider"):
-            if node.provider is self.old_locals_scope.owner:
-                node.provider = self.new_locals_scope.owner
+        if hasattr(node, "provider") and node.provider is self.old_locals_scope.owner:
+            node.provider = self.new_locals_scope.owner
 
 
 def updateVariableUsage(
