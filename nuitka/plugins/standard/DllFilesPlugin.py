@@ -523,22 +523,16 @@ conditions are missing, or this version of the module needs treatment added."""
         return None
 
     def decideAllowOutsideDependencies(self, module_name):
-        distribution = None
+        for _config_module_name, package_system_dlls in self.getYamlConfigItem(
+            module_name=module_name,
+            section="import-hacks",
+            item_name="package-system-dlls",
+            decide_relevant=None,
+            recursive=True,
+        ):
+            return package_system_dlls == "yes"
 
-        while 1:
-            for entry in self.config.get(module_name, section="import-hacks"):
-                if "package-system-dlls" in entry:
-                    if self.evaluateCondition(
-                        full_name=module_name, condition=entry.get("when", "True")
-                    ):
-                        return entry["package-system-dlls"] == "yes"
-
-            if distribution is None:
-                distribution = getDistributionFromModuleName(module_name)
-
-            module_name = module_name.getPackageName()
-            if not module_name:
-                break
+        distribution = getDistributionFromModuleName(module_name)
 
         if distribution is None:
             return None

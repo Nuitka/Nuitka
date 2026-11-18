@@ -760,80 +760,88 @@ tuple(
     def createPreModuleLoadCode(self, module):
         full_name = module.getFullName()
 
-        for entry in self.config.get(full_name, section="implicit-imports"):
-            if "pre-import-code" in entry:
-                if self.evaluateCondition(
-                    full_name=full_name, condition=entry.get("when", "True")
-                ):
-                    code = "\n".join(entry.get("pre-import-code"))
+        for pre_import_code in self.getYamlConfigItem(
+            module_name=full_name,
+            section="implicit-imports",
+            item_name="pre-import-code",
+            decide_relevant=bool,
+            recursive=False,
+        ):
+            code = "\n".join(pre_import_code)
 
-                    # TODO: Add a description to the Yaml file.
-                    yield code, """\
+            # TODO: Add a description to the Yaml file.
+            yield code, """\
 According to Yaml 'pre-import-code' configuration."""
 
-        for entry in self.config.get(full_name, section="import-hacks"):
-            if "force-environment-variables" in entry:
-                if self.evaluateCondition(
-                    full_name=full_name, condition=entry.get("when", "True")
-                ):
-                    for (
-                        environment_variable_name,
-                        environment_variable_value,
-                    ) in entry.get("force-environment-variables").items():
-                        code = """\
+        for (
+            environment_variable_name,
+            environment_variable_value,
+        ) in self.getYamlConfigItemItems(
+            module_name=full_name,
+            section="import-hacks",
+            item_name="force-environment-variables",
+            decide_relevant=None,
+            recursive=False,
+        ):
+            code = """\
 import os
 os.environ['%(environment_variable_name)s'] = "%(environment_variable_value)s"
 """ % {
-                            "environment_variable_name": environment_variable_name,
-                            "environment_variable_value": environment_variable_value,
-                        }
-                        yield code, """\
+                "environment_variable_name": environment_variable_name,
+                "environment_variable_value": environment_variable_value,
+            }
+            yield code, """\
 According to Yaml 'force-environment-variables' configuration."""
 
-        for entry in self.config.get(full_name, section="import-hacks"):
-            if "overridden-environment-variables" in entry:
-                if self.evaluateCondition(
-                    full_name=full_name, condition=entry.get("when", "True")
-                ):
-                    for (
-                        environment_variable_name,
-                        environment_variable_value,
-                    ) in entry.get("overridden-environment-variables").items():
-                        code = """\
+        for (
+            environment_variable_name,
+            environment_variable_value,
+        ) in self.getYamlConfigItemItems(
+            module_name=full_name,
+            section="import-hacks",
+            item_name="overridden-environment-variables",
+            decide_relevant=None,
+            recursive=False,
+        ):
+            code = """\
 import os
 if os.getenv("%(environment_variable_name)s") is not None:
     os.environ["%(environment_variable_name)s" + "_OLD"] = os.getenv("%(environment_variable_name)s")
 os.environ['%(environment_variable_name)s'] = "%(environment_variable_value)s"
 """ % {
-                            "environment_variable_name": environment_variable_name,
-                            "environment_variable_value": environment_variable_value,
-                        }
-                        yield code, """\
+                "environment_variable_name": environment_variable_name,
+                "environment_variable_value": environment_variable_value,
+            }
+            yield code, """\
 According to Yaml 'overridden-environment-variables' configuration."""
 
     def createPostModuleLoadCode(self, module):
         full_name = module.getFullName()
 
-        for entry in self.config.get(full_name, section="implicit-imports"):
-            if "post-import-code" in entry:
-                if self.evaluateCondition(
-                    full_name=full_name, condition=entry.get("when", "True")
-                ):
-                    code = "\n".join(entry.get("post-import-code"))
+        for post_import_code in self.getYamlConfigItem(
+            module_name=full_name,
+            section="implicit-imports",
+            item_name="post-import-code",
+            decide_relevant=bool,
+            recursive=False,
+        ):
+            code = "\n".join(post_import_code)
 
-                    # TODO: Add a description to the Yaml file.
-                    yield code, """\
+            # TODO: Add a description to the Yaml file.
+            yield code, """\
 According to Yaml 'post-import-code' configuration."""
 
-        for entry in self.config.get(full_name, section="import-hacks"):
-            if "overridden-environment-variables" in entry:
-                if self.evaluateCondition(
-                    full_name=full_name, condition=entry.get("when", "True")
-                ):
-                    for environment_variable_name in entry.get(
-                        "overridden-environment-variables"
-                    ):
-                        code = """\
+        for (
+            environment_variable_name,
+            _environment_variable_value,
+        ) in self.getYamlConfigItemItems(
+            module_name=full_name,
+            section="import-hacks",
+            item_name="overridden-environment-variables",
+            decide_relevant=None,
+            recursive=False,
+        ):
+            code = """\
 import os
 if os.getenv("%(environment_variable_name)s" + "_OLD") is None:
     del os.environ["%(environment_variable_name)s"]
@@ -842,7 +850,7 @@ else:
     del os.environ["%(environment_variable_name)s" + "_OLD"]
 """ % {"environment_variable_name": environment_variable_name}
 
-                        yield code, """\
+            yield code, """\
 According to Yaml 'overridden-environment-variables' configuration."""
 
     unworthy_namespaces = (
