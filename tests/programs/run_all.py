@@ -188,6 +188,7 @@ def main():
             "import_variants",
             "package_init_import",
             "pkgutil_iter_modules",
+            "stdlib_overload",
         ):
             extra_flags.append("ignore_warnings")
 

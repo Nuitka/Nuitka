@@ -1318,7 +1318,7 @@ class ExpressionBuiltinImport(ChildrenExpressionBuiltinImportMixin, ExpressionBa
                             % (
                                 self.source_ref.getAsString(),
                                 imported_module_name.asString(),
-                                self.module_filename,
+                                module_filename,
                             )
                         )
 
