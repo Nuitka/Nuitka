@@ -27,7 +27,7 @@ class NuitkaPluginResources(NuitkaPluginBase):
         with withNoWarning():
             try:
                 import pkg_resources
-            except (ImportError, RuntimeError, PermissionError):
+            except (ImportError, RuntimeError, PermissionError, SyntaxError):
                 self.pkg_resources = None
             else:
                 self.pkg_resources = pkg_resources
