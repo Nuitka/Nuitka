@@ -9,6 +9,7 @@ module_value2 = "2000"
 
 loop_count = 50000 if len(sys.argv) < 2 else int(sys.argv[1])
 
+
 def calledRepeatedly(cond, value, str1):
     if cond:
         if str1 == "1000":
@@ -18,9 +19,11 @@ def calledRepeatedly(cond, value, str1):
 
     return value
 
+
 def makeSame(value):
     new_value = "".join(list(value))
     assert new_value is not value
+
 
 module_value1_copy = makeSame(module_value1)
 

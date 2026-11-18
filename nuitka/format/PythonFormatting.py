@@ -17,6 +17,7 @@ from nuitka.utils.AppDirs import getCacheDir
 from nuitka.utils.Execution import check_call, check_output
 from nuitka.utils.FileOperations import (
     getFileContents,
+    getNormalizedPath,
     putBinaryFileContents,
     putTextFileContents,
 )
@@ -31,30 +32,29 @@ from nuitka.utils.PrivatePipSpace import (
 from .FileFormatting import _dash_characters, cleanupWindowsNewlines
 
 BLACK_SKIP_LIST = [
-    "tests/basics/ClassesTest_2.py",
-    "tests/basics/ExecEvalTest_2.py",
-    "tests/basics/HelloWorldTest_2.py",
-    "tests/basics/OverflowFunctionsTest_2.py",
-    "tests/basics/PrintingTest_2.py",
     "tests/benchmarks/binary-trees.py",
     "tests/benchmarks/comparisons/GeneratorFunctionVsGeneratorExpression.py",
-    "tests/benchmarks/constructs/InplaceOperationLongAdd_27.py",
-    "tests/benchmarks/constructs/InplaceOperationUnicodeAdd_27.py",
-    "tests/benchmarks/constructs/RichComparisonConditionStrings.py",
     "tests/programs/syntax_errors/IndentationErroring.py",
-    "tests/syntax/ClosureDel_2.py",
-    "tests/syntax/ExecWithNesting_2.py",
-    "tests/syntax/EncodingProblemTest.py",
-    "tests/syntax/IndentationError.py",
-    "tests/syntax/StarImportExtra.py",
-    "tests/syntax/SyntaxError.py",
     "tests/type_inference/Test1.py",
     "tests/type_inference/Test2.py",
     "tests/type_inference/Test3.py",
     "tests/type_inference/Test4.py",
     "tests/benchmarks/pystone.py",
 ]
-BLACK_SKIP_LIST = tuple(os.path.normpath(path) for path in BLACK_SKIP_LIST)
+BLACK_SKIP_LIST = tuple(getNormalizedPath(path) for path in BLACK_SKIP_LIST)
+
+
+def _shouldSkipBlack(effective_filename):
+    """Check if black should not format a file.
+
+    Notes:
+        Python 2 test variants use '_2.py' or '_27.py' suffixes and may contain
+        syntax black cannot parse.
+    """
+    if os.path.basename(effective_filename).endswith(("_2.py", "_27.py")):
+        return True
+
+    return getNormalizedPath(effective_filename) in BLACK_SKIP_LIST
 
 
 def _getAutoformatCacheFilename(logger, tool_name, args, contents):
@@ -408,7 +408,7 @@ def formatPython(
 
     _cleanupDashesInComments(filename=filename)
 
-    if effective_filename not in BLACK_SKIP_LIST:
+    if not _shouldSkipBlack(effective_filename):
         black_path = getBlackBinaryPath(
             logger=logger, assume_yes_for_downloads=assume_yes_for_downloads
         )
