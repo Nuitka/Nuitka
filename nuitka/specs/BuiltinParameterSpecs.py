@@ -30,6 +30,10 @@ class BuiltinParameterSpec(ParameterSpec):
         variations=None,
         example_arguments=None,
     ):
+        assert type(arg_names) is tuple, arg_names
+        assert type(pos_only_args) is tuple, pos_only_args
+        assert type(kw_only_args) is tuple, kw_only_args
+
         ParameterSpec.__init__(
             self,
             ps_name=name,

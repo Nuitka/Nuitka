@@ -197,7 +197,7 @@ str_translate_since_3_spec = StrMethodSpecNoKeywords(
     type_shape=tshape_str,
 )
 str_splitlines_spec = (StrMethodSpecNoKeywords if str is bytes else StrMethodSpec)(
-    "splitlines", arg_names=("keepends"), default_count=1, type_shape=tshape_list
+    "splitlines", arg_names=("keepends",), default_count=1, type_shape=tshape_list
 )
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and

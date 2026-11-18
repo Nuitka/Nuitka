@@ -56,19 +56,17 @@ class ParameterSpec(object):
         ps_is_list_star_arg_single=False,
         type_shape=None,
     ):
-        if type(ps_normal_args) is str:
-            if ps_normal_args == "":
-                ps_normal_args = ()
-            else:
-                ps_normal_args = ps_normal_args.split(",")
+        assert type(ps_normal_args) in (tuple, list), ps_normal_args
+        assert type(ps_pos_only_args) in (tuple, list), ps_pos_only_args
+        assert type(ps_kw_only_args) in (tuple, list), ps_kw_only_args
 
-        if type(ps_kw_only_args) is str:
-            if ps_kw_only_args == "":
-                ps_kw_only_args = ()
-            else:
-                ps_kw_only_args = ps_kw_only_args.split(",")
-
-        assert None not in ps_normal_args
+        assert all(type(arg_name) is str for arg_name in ps_normal_args), ps_normal_args
+        assert all(
+            type(arg_name) is str for arg_name in ps_pos_only_args
+        ), ps_pos_only_args
+        assert all(
+            type(arg_name) is str for arg_name in ps_kw_only_args
+        ), ps_kw_only_args
 
         self.owner = None
 

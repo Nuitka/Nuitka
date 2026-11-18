@@ -115,7 +115,7 @@ unicode_translate_since_3_spec = UnicodeMethodSpecNoKeywords(
     "translate", arg_names=("table",)
 )
 unicode_splitlines_spec = UnicodeMethodSpecNoKeywords(
-    "splitlines", arg_names=("keepends"), default_count=1
+    "splitlines", arg_names=("keepends",), default_count=1
 )
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and

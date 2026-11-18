@@ -1,10 +1,7 @@
 #     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-"""Bytes operation specs.
-
-Python3 only, Python2 has no bytes, but only str
-"""
+"""Bytes operation specs."""
 
 from nuitka.nodes.shapes.BuiltinTypeShapes import (
     tshape_bool,
@@ -169,7 +166,7 @@ else:
         type_shape=tshape_bytes,
     )
 bytes_splitlines_spec = BytesMethodSpec(
-    "splitlines", arg_names=("keepends"), default_count=1, type_shape=tshape_list
+    "splitlines", arg_names=("keepends",), default_count=1, type_shape=tshape_list
 )
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
