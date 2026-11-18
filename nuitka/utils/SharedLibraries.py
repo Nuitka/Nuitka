@@ -63,6 +63,7 @@ from .WindowsResources import (
     deleteWindowsResources,
     getResourcesFromDLL,
 )
+from .Zipfiles import withPreservedZipFileOverlay
 
 
 def locateDLLFromFilesystem(name, paths):
@@ -1555,30 +1556,32 @@ def copyDllFile(source_path, dist_dir, dest_path, executable, other_entry_points
         if isMachOTarget():
             makeMacOSThinBinary(dest_path=target_filename, original_path=source_path)
 
-        if (isElfTarget() or isMachOTarget()) and not isUnstripped():
-            stripBinarySymbols(target_filename)
+        if isElfTarget() or isMachOTarget():
+            with withPreservedZipFileOverlay(target_filename):
+                if not isUnstripped():
+                    stripBinarySymbols(target_filename)
 
-        if isElfTarget():
-            rpaths = getStandaloneEntryPointRPATHs(
-                dest_path=dest_path,
-                other_entry_points=other_entry_points,
-                rpath_mode="parents",
-            )
+                if isElfTarget():
+                    rpaths = getStandaloneEntryPointRPATHs(
+                        dest_path=dest_path,
+                        other_entry_points=other_entry_points,
+                        rpath_mode="parents",
+                    )
 
-            # Make sure, sub-folders use by the original DLL are actually still
-            # included.
-            #
-            # TODO: Actually it would be nice if these were trimmed to what actually
-            # exists and is used, but that's pretty complex and maybe not worth the
-            # effort. This would look like "fixupBinaryDLLPathsMacOS" somewhat, and
-            # actually this code is indeed kind of misplaced here.
-            rpaths.update(
-                rpath
-                for rpath in getSharedLibraryRPATHs(source_path, elements=True)
-                if rpath.startswith("$ORIGIN")
-            )
+                    # Make sure, sub-folders use by the original DLL are actually still
+                    # included.
+                    #
+                    # TODO: Actually it would be nice if these were trimmed to what actually
+                    # exists and is used, but that's pretty complex and maybe not worth the
+                    # effort. This would look like "fixupBinaryDLLPathsMacOS" somewhat, and
+                    # actually this code is indeed kind of misplaced here.
+                    rpaths.update(
+                        rpath
+                        for rpath in getSharedLibraryRPATHs(source_path, elements=True)
+                        if rpath.startswith("$ORIGIN")
+                    )
 
-            setSharedLibraryRPATH(target_filename, ":".join(rpaths))
+                    setSharedLibraryRPATH(target_filename, ":".join(rpaths))
 
     if executable:
         addFileExecutablePermission(target_filename)
@@ -1726,19 +1729,20 @@ def cleanupHeaderForAndroid(filename):
     created by default.
     """
 
-    executeToolChecked(
-        logger=postprocessing_logger,
-        command=("patchelf", "--shrink-rpath", filename),
-        stderr_filter=_filterPatchelfErrorOutput,
-        absence_message=_patchelf_usage,
-    )
+    with withPreservedZipFileOverlay(filename):
+        executeToolChecked(
+            logger=postprocessing_logger,
+            command=("patchelf", "--shrink-rpath", filename),
+            stderr_filter=_filterPatchelfErrorOutput,
+            absence_message=_patchelf_usage,
+        )
 
-    executeToolChecked(
-        logger=postprocessing_logger,
-        command=("termux-elf-cleaner", "--quiet", filename),
-        absence_message=_termux_elf_cleaner_usage,
-        optional=True,
-    )
+        executeToolChecked(
+            logger=postprocessing_logger,
+            command=("termux-elf-cleaner", "--quiet", filename),
+            absence_message=_termux_elf_cleaner_usage,
+            optional=True,
+        )
 
 
 _nm_usage = """\
