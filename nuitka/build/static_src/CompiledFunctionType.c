@@ -3365,13 +3365,31 @@ PyObject *Nuitka_CallMethodFunctionPosArgs(PyThreadState *tstate, struct Nuitka_
 PyObject *Nuitka_CallMethodFunctionPosArgsKwArgs(PyThreadState *tstate, struct Nuitka_FunctionObject const *function,
                                                  PyObject *obj, PyObject *const *args, Py_ssize_t args_size,
                                                  PyObject *kw) {
-    NUITKA_DYNAMIC_ARRAY_DECL(new_args, PyObject *, args_size + 1);
+    PyObject *small_stack[_PY_FASTCALL_SMALL_STACK];
+    PyObject **new_args;
+
+    if (likely(args_size + 1 <= (Py_ssize_t)(sizeof(small_stack) / sizeof(small_stack[0])))) {
+        new_args = small_stack;
+    } else {
+        new_args = (PyObject **)NuitkaMem_Malloc((args_size + 1) * sizeof(PyObject *));
+        if (unlikely(new_args == NULL)) {
+            return PyErr_NoMemory();
+        }
+    }
 
     new_args[0] = obj;
-    memcpy(new_args + 1, args, args_size * sizeof(PyObject *));
+    if (args_size > 0) {
+        memcpy(new_args + 1, args, args_size * sizeof(PyObject *));
+    }
 
     // TODO: Specialize implementation for massive gains.
-    return Nuitka_CallFunctionPosArgsKwArgs(tstate, function, new_args, args_size + 1, kw);
+    PyObject *result = Nuitka_CallFunctionPosArgsKwArgs(tstate, function, new_args, args_size + 1, kw);
+
+    if (unlikely(new_args != small_stack)) {
+        NuitkaMem_Free(new_args);
+    }
+
+    return result;
 }
 
 static Py_ssize_t _handleVectorcallKeywordArgs(PyThreadState *tstate, struct Nuitka_FunctionObject const *function,
@@ -3709,6 +3727,39 @@ static bool parseArgumentsVectorcall(PyThreadState *tstate, struct Nuitka_Functi
 PyObject *Nuitka_CallFunctionVectorcall(PyThreadState *tstate, struct Nuitka_FunctionObject const *function,
                                         PyObject *const *args, Py_ssize_t args_size, PyObject *const *kw_names,
                                         Py_ssize_t kw_size) {
+    if (kw_size == 0) {
+        if (function->m_args_simple && args_size == function->m_args_positional_count) {
+            for (Py_ssize_t i = 0; i < args_size; i++) {
+                Py_INCREF(args[i]);
+            }
+
+            return function->m_c_code(tstate, function, (PyObject **)args);
+        } else if (function->m_args_simple &&
+                   args_size + function->m_defaults_given == function->m_args_positional_count) {
+            NUITKA_DYNAMIC_ARRAY_DECL(python_pars, PyObject *, function->m_args_overall_count);
+            if (args_size > 0) {
+                memcpy(python_pars, args, args_size * sizeof(PyObject *));
+            }
+            memcpy(python_pars + args_size, &PyTuple_GET_ITEM(function->m_defaults, 0),
+                   function->m_defaults_given * sizeof(PyObject *));
+
+            for (Py_ssize_t i = 0; i < function->m_args_overall_count; i++) {
+                Py_INCREF(python_pars[i]);
+            }
+
+            return function->m_c_code(tstate, function, python_pars);
+        } else {
+            NUITKA_DYNAMIC_ARRAY_DECL(python_pars, PyObject *, function->m_args_overall_count);
+            memset(python_pars, 0, function->m_args_overall_count * sizeof(PyObject *));
+
+            if (parseArgumentsPos(tstate, function, python_pars, args, args_size)) {
+                return function->m_c_code(tstate, function, python_pars);
+            } else {
+                return NULL;
+            }
+        }
+    }
+
     NUITKA_DYNAMIC_ARRAY_DECL(python_pars, PyObject *, function->m_args_overall_count);
     memset(python_pars, 0, function->m_args_overall_count * sizeof(PyObject *));
 
@@ -3776,9 +3827,17 @@ static PyObject *Nuitka_Function_tp_vectorcall(PyObject *self, PyObject *const *
     assert(nargs >= 0);
     assert((nargs == 0 && kwargs_count == 0) || stack != NULL);
 
+    if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
+        return NULL;
+    }
+
     PyThreadState *tstate = PyThreadState_GET();
-    return Nuitka_CallFunctionVectorcall(tstate, function, stack, nargs,
-                                         kw_names ? &PyTuple_GET_ITEM(kw_names, 0) : NULL, kwargs_count);
+    PyObject *result = Nuitka_CallFunctionVectorcall(tstate, function, stack, nargs,
+                                                     kw_names ? &PyTuple_GET_ITEM(kw_names, 0) : NULL, kwargs_count);
+
+    Py_LeaveRecursiveCall();
+
+    return result;
 }
 #endif
 

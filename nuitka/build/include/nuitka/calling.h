@@ -9,6 +9,11 @@
 #include "nuitka/prelude.h"
 #endif
 
+// Added in Python 3.7 (abstract.h, moved to internal/pycore_call.h in 3.13+).
+#if PYTHON_VERSION < 0x370
+#define _PY_FASTCALL_SMALL_STACK 5
+#endif
+
 // For exception test formatting and call code mostly.
 extern char const *GET_CALLABLE_NAME(PyObject *obj);
 extern char const *GET_CALLABLE_DESC(PyObject *obj);

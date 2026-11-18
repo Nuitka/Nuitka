@@ -93,7 +93,13 @@ PyObject *CALL_FUNCTION_WITH_ARGS{{args_count}}(PyThreadState *tstate, PyObject 
                 return NULL;
             }
 
+            if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
+                return NULL;
+            }
+
             PyObject *result = Nuitka_CallFunctionPosArgs(tstate, method->m_function, args, {{args_count}});
+
+            Py_LeaveRecursiveCall();
 
             CHECK_OBJECT_X(result);
 
@@ -476,31 +482,25 @@ PyObject *CALL_FUNCTION_WITH_ARGS{{args_count}}(PyThreadState *tstate, PyObject 
                         }
 
                         PyObject *result;
+                        if (is_compiled_function) {
+                            if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
+                                Py_DECREF(obj);
+                                return NULL;
+                            }
 {% if args_count == 0 %}
-                        if (is_compiled_function) {
                             result = Nuitka_CallMethodFunctionNoArgs(tstate, (struct Nuitka_FunctionObject const *)init_method, obj);
-                        } else {
-                            result = CALL_FUNCTION_NO_ARGS(tstate, init_method);
-
-                            if (init_method_needs_release) {
-                                Py_DECREF(init_method);
-                            }
-                        }
 {% elif args_count == 1 %}
-                        if (is_compiled_function) {
                             result = Nuitka_CallMethodFunctionPosArgs(tstate, (struct Nuitka_FunctionObject const *)init_method, obj, args, 1);
-                        } else {
-                            result = CALL_FUNCTION_WITH_SINGLE_ARG(tstate, init_method, args[0]);
-
-                            if (init_method_needs_release) {
-                                Py_DECREF(init_method);
-                            }
-                        }
 {% else %}
-                        if (is_compiled_function) {
                             result = Nuitka_CallMethodFunctionPosArgs(tstate, (struct Nuitka_FunctionObject const *)init_method, obj, args, {{args_count}});
+{% endif %}
+                            Py_LeaveRecursiveCall();
                         } else {
-{% if has_tuple_arg %}
+{% if args_count == 0 %}
+                            result = CALL_FUNCTION_NO_ARGS(tstate, init_method);
+{% elif args_count == 1 %}
+                            result = CALL_FUNCTION_WITH_SINGLE_ARG(tstate, init_method, args[0]);
+{% elif has_tuple_arg %}
                             result = CALL_FUNCTION_WITH_POS_ARGS{{args_count}}(tstate, init_method, pos_args);
 {% else %}
                             result = CALL_FUNCTION_WITH_ARGS{{args_count}}(tstate, init_method, args);
@@ -509,7 +509,6 @@ PyObject *CALL_FUNCTION_WITH_ARGS{{args_count}}(PyThreadState *tstate, PyObject 
                                 Py_DECREF(init_method);
                             }
                         }
-{% endif %}
 
                         if (unlikely(result == NULL)) {
                             Py_DECREF(obj);
@@ -594,32 +593,31 @@ PyObject *CALL_FUNCTION_WITH_ARGS{{args_count}}(PyThreadState *tstate, PyObject 
         }
 
         PyObject *result;
+        if (is_compiled_function) {
+            if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
+                Py_DECREF(obj);
+                return NULL;
+            }
 {% if args_count == 0 %}
-        if (is_compiled_function) {
             result = Nuitka_CallMethodFunctionNoArgs(tstate, (struct Nuitka_FunctionObject const *)init_method, obj);
-        } else {
-            result = CALL_FUNCTION_NO_ARGS(tstate, init_method);
-            Py_DECREF(init_method);
-        }
 {% elif args_count == 1 %}
-        if (is_compiled_function) {
             result = Nuitka_CallMethodFunctionPosArgs(tstate, (struct Nuitka_FunctionObject const *)init_method, obj, args, 1);
-        } else {
-            result = CALL_FUNCTION_WITH_SINGLE_ARG(tstate, init_method, args[0]);
-            Py_DECREF(init_method);
-        }
 {% else %}
-        if (is_compiled_function) {
             result = Nuitka_CallMethodFunctionPosArgs(tstate, (struct Nuitka_FunctionObject const *)init_method, obj, args, {{args_count}});
+{% endif %}
+            Py_LeaveRecursiveCall();
         } else {
-{% if has_tuple_arg %}
+{% if args_count == 0 %}
+            result = CALL_FUNCTION_NO_ARGS(tstate, init_method);
+{% elif args_count == 1 %}
+            result = CALL_FUNCTION_WITH_SINGLE_ARG(tstate, init_method, args[0]);
+{% elif has_tuple_arg %}
             result = CALL_FUNCTION_WITH_POS_ARGS{{args_count}}(tstate, init_method, pos_args);
 {% else %}
             result = CALL_FUNCTION_WITH_ARGS{{args_count}}(tstate, init_method, args);
 {% endif %}
             Py_DECREF(init_method);
         }
-{% endif %}
         if (unlikely(result == NULL)) {
             Py_DECREF(obj);
             return NULL;

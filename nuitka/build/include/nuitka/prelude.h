@@ -202,6 +202,7 @@ NUITKA_MAY_BE_UNUSED static inline managed_static_type_state *Nuitka_PyStaticTyp
 #endif
 
 #if PYTHON_VERSION >= 0x3d0
+#include <internal/pycore_call.h>
 #include <internal/pycore_critical_section.h>
 #include <internal/pycore_freelist.h>
 #include <internal/pycore_intrinsics.h>

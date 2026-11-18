@@ -172,11 +172,11 @@ static PyObject *Nuitka_Method_tp_vectorcall(PyObject *self, PyObject *const *st
             PyObject *self_arg = stack[0];
             CHECK_OBJECT(self_arg);
 
-            int result = Nuitka_Object_IsInstance(tstate, self_arg, method->m_class);
+            int res = Nuitka_Object_IsInstance(tstate, self_arg, method->m_class);
 
-            if (unlikely(result < 0)) {
+            if (unlikely(res < 0)) {
                 return NULL;
-            } else if (unlikely(result == 0)) {
+            } else if (unlikely(res == 0)) {
                 PyErr_Format(PyExc_TypeError,
                              "unbound compiled_method %s%s must be called with %s instance as first argument (got %s "
                              "instance instead)",
@@ -188,24 +188,29 @@ static PyObject *Nuitka_Method_tp_vectorcall(PyObject *self, PyObject *const *st
             }
         }
 
-        return Nuitka_CallFunctionVectorcall(tstate, method->m_function, stack, nargs,
-                                             kw_names ? &PyTuple_GET_ITEM(kw_names, 0) : NULL, kwargs_count);
+        if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
+            return NULL;
+        }
+
+        PyObject *result = Nuitka_CallFunctionVectorcall(
+            tstate, method->m_function, stack, nargs, kw_names ? &PyTuple_GET_ITEM(kw_names, 0) : NULL, kwargs_count);
+
+        Py_LeaveRecursiveCall();
+
+        return result;
+    }
+
+    if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
+        return NULL;
     }
 
     Py_ssize_t totalargs = nargs + kwargs_count;
+    PyObject *result;
 
     // Shortcut possible, no args.
     if (totalargs == 0) {
-        return Nuitka_CallMethodFunctionNoArgs(tstate, method->m_function, method->m_object);
-    }
-
-    PyObject *result;
-
-    if (nargs_f & PY_VECTORCALL_ARGUMENTS_OFFSET) {
-        /* We are allowed to mutate the stack. TODO: Is this the normal case, so
-           we can consider the else branch irrelevant? Also does it not make sense
-           to check pos arg and kw counts and shortcut somewhat. */
-
+        result = Nuitka_CallMethodFunctionNoArgs(tstate, method->m_function, method->m_object);
+    } else if (nargs_f & PY_VECTORCALL_ARGUMENTS_OFFSET) {
         PyObject **new_args = (PyObject **)stack - 1;
 
         PyObject *tmp = new_args[0];
@@ -216,14 +221,30 @@ static PyObject *Nuitka_Method_tp_vectorcall(PyObject *self, PyObject *const *st
         result = Nuitka_CallFunctionVectorcall(tstate, method->m_function, new_args, nargs + 1,
                                                kw_names ? &PyTuple_GET_ITEM(kw_names, 0) : NULL, kwargs_count);
 
-        CHECK_OBJECTS(new_args, totalargs + 1);
-
         new_args[0] = tmp;
+    } else if (kwargs_count == 0 && totalargs >= _PY_FASTCALL_SMALL_STACK) {
+        assert(stack != NULL);
+        CHECK_OBJECT(method->m_object);
+        CHECK_OBJECTS(stack, nargs);
+
+        result = Nuitka_CallMethodFunctionPosArgs(tstate, method->m_function, method->m_object, stack, nargs);
     } else {
         /* Definitely having args at this point. */
         assert(stack != NULL);
 
-        NUITKA_DYNAMIC_ARRAY_DECL(new_args, PyObject *, totalargs + 1);
+        PyObject *small_stack[_PY_FASTCALL_SMALL_STACK];
+        PyObject **new_args;
+
+        if (likely(totalargs + 1 <= (Py_ssize_t)(sizeof(small_stack) / sizeof(small_stack[0])))) {
+            new_args = small_stack;
+        } else {
+            new_args = (PyObject **)NuitkaMem_Malloc((totalargs + 1) * sizeof(PyObject *));
+            if (unlikely(new_args == NULL)) {
+                Py_LeaveRecursiveCall();
+                return PyErr_NoMemory();
+            }
+        }
+
         new_args[0] = method->m_object;
         memcpy(&new_args[1], stack, totalargs * sizeof(PyObject *));
 
@@ -232,8 +253,12 @@ static PyObject *Nuitka_Method_tp_vectorcall(PyObject *self, PyObject *const *st
         result = Nuitka_CallFunctionVectorcall(tstate, method->m_function, new_args, nargs + 1,
                                                kw_names ? &PyTuple_GET_ITEM(kw_names, 0) : NULL, kwargs_count);
 
-        CHECK_OBJECTS(new_args, totalargs + 1);
+        if (unlikely(new_args != small_stack)) {
+            NuitkaMem_Free(new_args);
+        }
     }
+
+    Py_LeaveRecursiveCall();
 
     return result;
 }

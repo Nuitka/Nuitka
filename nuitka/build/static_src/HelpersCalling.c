@@ -181,9 +181,17 @@ PyObject *CALL_METHOD_WITH_POS_ARGS(PyThreadState *tstate, PyObject *source, PyO
             descrgetfunc descr_get = Py_TYPE(called_object)->tp_descr_get;
 
             if (descr_get == Nuitka_Function_Type.tp_descr_get) {
-                return Nuitka_CallMethodFunctionPosArgs(tstate, (struct Nuitka_FunctionObject const *)called_object,
-                                                        source, &PyTuple_GET_ITEM(positional_args, 0),
-                                                        PyTuple_GET_SIZE(positional_args));
+                if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
+                    return NULL;
+                }
+
+                PyObject *result = Nuitka_CallMethodFunctionPosArgs(
+                    tstate, (struct Nuitka_FunctionObject const *)called_object, source,
+                    &PyTuple_GET_ITEM(positional_args, 0), PyTuple_GET_SIZE(positional_args));
+
+                Py_LeaveRecursiveCall();
+
+                return result;
             } else if (descr_get != NULL) {
                 PyObject *method = descr_get(called_object, source, (PyObject *)source_instance->in_class);
 

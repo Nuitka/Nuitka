@@ -121,6 +121,11 @@ PyObject *CALL_METHOD_WITH_ARGS{{args_count}}(PyThreadState *tstate, PyObject *s
 
         if (func != NULL) {
             if (func == Nuitka_Function_Type.tp_descr_get) {
+                if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
+                    Py_DECREF(descr);
+                    return NULL;
+                }
+
 {% if args_count != 0 %}
                 PyObject *result = Nuitka_CallMethodFunctionPosArgs(
                     tstate,
@@ -136,6 +141,8 @@ PyObject *CALL_METHOD_WITH_ARGS{{args_count}}(PyThreadState *tstate, PyObject *s
                     source
                 );
 {% endif %}
+                Py_LeaveRecursiveCall();
+
                 Py_DECREF(descr);
 
                 return result;
@@ -212,8 +219,12 @@ PyObject *CALL_METHOD_WITH_ARGS{{args_count}}(PyThreadState *tstate, PyObject *s
             descrgetfunc descr_get = Py_TYPE(called_object)->tp_descr_get;
 
             if (descr_get == Nuitka_Function_Type.tp_descr_get) {
+                if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
+                    return NULL;
+                }
+
 {% if args_count != 0 %}
-                return Nuitka_CallMethodFunctionPosArgs(
+                PyObject *result = Nuitka_CallMethodFunctionPosArgs(
                     tstate,
                     (struct Nuitka_FunctionObject const *)called_object,
                     source,
@@ -221,12 +232,15 @@ PyObject *CALL_METHOD_WITH_ARGS{{args_count}}(PyThreadState *tstate, PyObject *s
                     {{ args_count }}
                 );
 {% else %}
-                return Nuitka_CallMethodFunctionNoArgs(
+                PyObject *result = Nuitka_CallMethodFunctionNoArgs(
                     tstate,
                     (struct Nuitka_FunctionObject const *)called_object,
                     source
                 );
 {% endif %}
+                Py_LeaveRecursiveCall();
+
+                return result;
             } else if (descr_get != NULL) {
                 PyObject *method = descr_get(
                     called_object,

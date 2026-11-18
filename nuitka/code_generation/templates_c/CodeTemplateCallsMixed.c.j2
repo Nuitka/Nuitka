@@ -64,12 +64,13 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS{{args_count}}_KW_SPLIT(PyThreadState *tsta
 {% elif not has_dict_values %}
             PyObject *result = func(called, args, {{args_count}}, kw_names);
 {% else %}
-            NUITKA_DYNAMIC_ARRAY_DECL(vectorcall_args, PyObject *, {{args_count}} + kwargs_count);
+            NUITKA_DYNAMIC_ARRAY_DECL(vectorcall_args, PyObject *, 1 + {{args_count}} + kwargs_count);
+            vectorcall_args[0] = NULL;
 
-            memcpy(vectorcall_args, args, {{args_count}}*sizeof(PyObject *));
-            memcpy(&vectorcall_args[{{args_count}}], kw_values, kwargs_count*sizeof(PyObject *));
+            memcpy(&vectorcall_args[1], args, {{args_count}} * sizeof(PyObject *));
+            memcpy(&vectorcall_args[1 + {{args_count}}], kw_values, kwargs_count * sizeof(PyObject *));
 
-            PyObject *result = func(called, vectorcall_args, {{args_count}}, kw_names);
+            PyObject *result = func(called, &vectorcall_args[1], {{args_count}} | PY_VECTORCALL_ARGUMENTS_OFFSET, kw_names);
 {% endif %}
 
             CHECK_OBJECT_X(result);
