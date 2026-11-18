@@ -332,8 +332,8 @@ char const *GET_INSTANCE_CLASS_NAME(PyThreadState *tstate, PyObject *instance) {
     return result;
 }
 
-static PyObject *_getTypeAbstractMethods(PyThreadState *tstate, PyTypeObject *type, void *context) {
-    PyObject *result = DICT_GET_ITEM_WITH_ERROR(tstate, type->tp_dict, const_str_plain___abstractmethods__);
+static PyObject *_getTypeAbstractMethods(PyThreadState *tstate, PyTypeObject *type) {
+    PyObject *result = DICT_GET_ITEM1(tstate, type->tp_dict, const_str_plain___abstractmethods__);
 
     if (unlikely(result == NULL)) {
         if (!HAS_ERROR_OCCURRED(tstate)) {
@@ -346,7 +346,7 @@ static PyObject *_getTypeAbstractMethods(PyThreadState *tstate, PyTypeObject *ty
 }
 
 void formatCannotInstantiateAbstractClass(PyThreadState *tstate, PyTypeObject *type) {
-    PyObject *abstract_methods = _getTypeAbstractMethods(tstate, type, NULL);
+    PyObject *abstract_methods = _getTypeAbstractMethods(tstate, type);
     if (unlikely(abstract_methods == NULL)) {
         return;
     }
@@ -360,29 +360,47 @@ void formatCannotInstantiateAbstractClass(PyThreadState *tstate, PyTypeObject *t
         Py_DECREF(sorted_methods);
         return;
     }
+
+#if PYTHON_VERSION < 0x3c0
     PyObject *comma = Nuitka_String_FromString(", ");
+#else
+    PyObject *comma = Nuitka_String_FromString("', '");
+#endif
     CHECK_OBJECT(comma);
 #if PYTHON_VERSION < 0x300
     PyObject *joined = CALL_METHOD_WITH_SINGLE_ARG(tstate, comma, const_str_plain_join, sorted_methods);
-
-    char const *joined_str = Nuitka_String_AsString(joined);
-    if (unlikely(joined_str == NULL)) {
-        Py_DECREF(joined);
-        return;
-    }
 #else
     PyObject *joined = PyUnicode_Join(comma, sorted_methods);
+#endif
+    Py_DECREF(comma);
+#if PYTHON_VERSION >= 0x390
+    Py_ssize_t method_count = PyList_GET_SIZE(sorted_methods);
 #endif
     Py_DECREF(sorted_methods);
     if (unlikely(joined == NULL)) {
         return;
     }
 
-    Py_ssize_t method_count = PyList_GET_SIZE(sorted_methods);
+#if PYTHON_VERSION < 0x300
+    char const *joined_str = Nuitka_String_AsString(joined);
+    if (unlikely(joined_str == NULL)) {
+        Py_DECREF(joined);
+        return;
+    }
 
-    SET_CURRENT_EXCEPTION_TYPE0_FORMAT3(PyExc_TypeError,
-                                        "Can't instantiate abstract class %s with abstract method%s %s", type->tp_name,
-                                        method_count > 1 ? "s" : "", Nuitka_String_AsString(joined));
+    SET_CURRENT_EXCEPTION_TYPE0_FORMAT2(PyExc_TypeError, "Can't instantiate abstract class %s with abstract methods %s",
+                                        type->tp_name, joined_str);
+#elif PYTHON_VERSION < 0x390
+    PyErr_Format(PyExc_TypeError, "Can't instantiate abstract class %s with abstract methods %U", type->tp_name,
+                 joined);
+#elif PYTHON_VERSION < 0x3c0
+    PyErr_Format(PyExc_TypeError, "Can't instantiate abstract class %s with abstract method%s %U", type->tp_name,
+                 method_count > 1 ? "s" : "", joined);
+#else
+    PyErr_Format(PyExc_TypeError,
+                 "Can't instantiate abstract class %s without an implementation for abstract method%s '%U'",
+                 type->tp_name, method_count > 1 ? "s" : "", joined);
+#endif
 
     Py_DECREF(joined);
 }
