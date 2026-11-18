@@ -61,6 +61,11 @@ if __name__ == "__main__":
 
         hashlib.md5 = md5
 
+    # SCons imports "readline" for its interactive mode at module level, which
+    # pulls in libedit on some Python builds and emits termcap warnings on
+    # stderr. Nuitka only runs SCons non-interactively.
+    sys.modules["readline"] = None
+
     import SCons.Script  # pylint: disable=import-error
 
     # this does all the work, and calls sys.exit
