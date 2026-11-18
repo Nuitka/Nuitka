@@ -219,9 +219,7 @@ class GlobalConstantAccessor(object):
         if constant_type is type:
             # TODO: Maybe make this a mapping in nuitka.Builtins
 
-            if constant is None:
-                return "(PyObject *)Py_TYPE(Py_None)"
-            elif constant is object:
+            if constant is object:
                 return "(PyObject *)&PyBaseObject_Type"
             elif constant is staticmethod:
                 return "(PyObject *)&PyStaticMethod_Type"

@@ -1058,8 +1058,9 @@ static char **getCommandLineToArgvA(char *lpCmdline) {
                 }
                 s++;
             }
-            if (quote_count == 2)
+            if (quote_count == 2) {
                 quote_count = 0;
+            }
         } else {
             *d++ = *s++;
             slash_count = 0;

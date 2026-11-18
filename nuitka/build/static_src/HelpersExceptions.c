@@ -202,10 +202,11 @@ error:
 
     assert(*exc != NULL);
     if (initial_tb != NULL) {
-        if (*tb == NULL)
+        if (*tb == NULL) {
             *tb = initial_tb;
-        else
+        } else {
             Py_DECREF(initial_tb);
+        }
     }
     if (recursion_depth >= 32 + 2) {
         if (PyErr_GivenExceptionMatches(*exc, PyExc_MemoryError)) {

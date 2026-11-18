@@ -204,7 +204,9 @@ template_read_locals_mapping_without_fallback = """\
 # TODO: Have DICT_REMOVE_ITEM_WITHOUT_ERROR and use that instead.
 template_del_global_unclear = """\
 %(result)s = DICT_REMOVE_ITEM(tstate, (PyObject *)moduledict_%(module_identifier)s, %(var_name)s);
-if (%(result)s == false) CLEAR_ERROR_OCCURRED(tstate);
+if (%(result)s == false) {
+    CLEAR_ERROR_OCCURRED(tstate);
+}
 """
 
 template_del_global_known = """\

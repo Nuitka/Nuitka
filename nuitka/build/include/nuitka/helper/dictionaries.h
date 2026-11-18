@@ -456,12 +456,10 @@ NUITKA_MAY_BE_UNUSED static void UPDATE_STRING_DICT_INPLACE(PyThreadState *tstat
 
 #if defined(Py_GIL_DISABLED)
     DICT_SET_ITEM1_INFALLIBLE(tstate, (PyObject *)dict, (PyObject *)key, value);
-    CHECK_OBJECT(value);
     return;
 #elif PYTHON_VERSION >= 0x3c0
     if (unlikely(NUITKA_DICT_IS_WATCHED(dict))) {
         DICT_SET_ITEM1_INFALLIBLE(tstate, (PyObject *)dict, (PyObject *)key, value);
-        CHECK_OBJECT(value);
         return;
     }
 #endif
@@ -499,12 +497,10 @@ NUITKA_MAY_BE_UNUSED static void UPDATE_STRING_DICT1(PyThreadState *tstate, PyDi
 
 #if defined(Py_GIL_DISABLED)
     DICT_SET_ITEM1_INFALLIBLE(tstate, (PyObject *)dict, (PyObject *)key, value);
-    CHECK_OBJECT(value);
     return;
 #elif PYTHON_VERSION >= 0x3c0
     if (unlikely(NUITKA_DICT_IS_WATCHED(dict))) {
         DICT_SET_ITEM1_INFALLIBLE(tstate, (PyObject *)dict, (PyObject *)key, value);
-        CHECK_OBJECT(value);
         return;
     }
 #endif
