@@ -100,8 +100,8 @@ if [[ "$(uname)" == "Linux" ]]; then
         SUDO="sudo"
     fi
 
-    APT_PACKAGES="curl wget build-essential zlib1g-dev libncurses5-dev libgdbm-dev libnss3-dev libsqlite3-dev libssl-dev libreadline-dev libffi-dev gdb ccache xz-utils libbz2-dev liblzma-dev libexpat1-dev tk-dev tcl-dev"
-    RPM_PACKAGES="curl wget gcc gcc-c++ make zlib-devel ncurses-devel gdbm-devel nss-devel sqlite-devel openssl-devel readline-devel libffi-devel gdb ccache xz bzip2-devel xz-devel expat-devel tk-devel tcl-devel"
+    APT_PACKAGES="curl wget build-essential pkg-config zlib1g-dev libncurses5-dev libgdbm-dev libnss3-dev libsqlite3-dev libssl-dev libreadline-dev libffi-dev gdb ccache xz-utils libbz2-dev liblzma-dev libexpat1-dev tk-dev tcl-dev"
+    RPM_PACKAGES="curl wget gcc gcc-c++ make pkgconfig zlib-devel ncurses-devel gdbm-devel nss-devel sqlite-devel openssl-devel readline-devel libffi-devel gdb ccache xz bzip2-devel xz-devel expat-devel tk-devel tcl-devel"
 
     # --- Linux Dependencies ---
     if command -v apt-get >/dev/null 2>&1; then
@@ -147,6 +147,111 @@ else
     exit 1
 fi
 
+download_file() {
+    local url="$1"
+    local output="$2"
+
+    if command -v wget >/dev/null 2>&1; then
+        echo "Using wget to download $output..."
+        wget -q -O "$output" "$url"
+    elif command -v curl >/dev/null 2>&1; then
+        echo "wget not found. Using curl to download $output..."
+        curl -sSL -o "$output" "$url"
+    else
+        echo "Error: Neither wget nor curl is available on this system." >&2
+        exit 1
+    fi
+}
+
+PY_MAJOR=$(echo "$PY_VER" | cut -d. -f1)
+PY_MINOR=$(echo "$PY_VER" | cut -d. -f2)
+PY_PATCH=$(echo "$PY_VER" | cut -d. -f3 | sed 's/[^0-9].*//')
+PY_PATCH=${PY_PATCH:-0}
+
+# Python 3.12.5+ and 3.13+ support Tcl/Tk 9.0, which embeds tcl_library and
+# tk_library directly into libtcl9.0.so and libtcl9tk9.0.so via --enable-zipfs.
+BUILD_TCLTK_9=false
+TCLTK_VER="9.0.4"
+TCL_TARBALL="tcl-core${TCLTK_VER}-src.tar.gz"
+TCL_SHA256="5d265f3499b588681825d8093177830707b7035ad866b17189a3a6ab6dade0ff"
+TK_TARBALL="tk${TCLTK_VER}-src.tar.gz"
+TK_SHA256="d7a146d2917eb8b5cc95276dbf0e3d03c7464d2b19c1675357857c989301dbb4"
+
+if [ -n "$INSTALL_PREFIX" ]; then
+    if [ "$PY_MAJOR" -gt 3 ] || \
+       { [ "$PY_MAJOR" -eq 3 ] && [ "$PY_MINOR" -ge 13 ]; } || \
+       { [ "$PY_MAJOR" -eq 3 ] && [ "$PY_MINOR" -eq 12 ] && [ "$PY_PATCH" -ge 5 ]; }; then
+        BUILD_TCLTK_9=true
+    fi
+fi
+
+PYTHON_LDFLAGS="-Xlinker -export-dynamic -rdynamic"
+
+if [ "$BUILD_TCLTK_9" = true ]; then
+    if [ "$BUILD_TARGET" != "Rebuild" ] && \
+       [ -f "$INSTALL_PREFIX/lib/libtcl9.0.so" ] && \
+       [ -f "$INSTALL_PREFIX/lib/libtcl9tk9.0.so" ]; then
+        echo "Using existing Tcl/Tk $TCLTK_VER in $INSTALL_PREFIX..."
+    else
+        echo "--- Building Tcl/Tk $TCLTK_VER with ZipFS ---"
+        if [ ! -f "$TCL_TARBALL" ]; then
+            download_file "https://prdownloads.sourceforge.net/tcl/$TCL_TARBALL" "$TCL_TARBALL"
+        fi
+        if [ ! -f "$TK_TARBALL" ]; then
+            download_file "https://prdownloads.sourceforge.net/tcl/$TK_TARBALL" "$TK_TARBALL"
+        fi
+
+        echo "$TCL_SHA256  $TCL_TARBALL" | sha256sum -c -
+        echo "$TK_SHA256  $TK_TARBALL" | sha256sum -c -
+
+        rm -rf "tcl${TCLTK_VER}" "tk${TCLTK_VER}"
+        tar -xzf "$TCL_TARBALL"
+        tar -xzf "$TK_TARBALL"
+
+        (
+            cd "tcl${TCLTK_VER}/unix"
+            $SCL_ENABLE ./configure \
+                --prefix="$INSTALL_PREFIX" \
+                --libdir="$INSTALL_PREFIX/lib" \
+                --enable-shared \
+                --enable-zipfs
+            $SCL_ENABLE env LD_LIBRARY_PATH="$PWD:$INSTALL_PREFIX/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}" \
+                make -j$MAKE_JOBS
+            if [ -w "$INSTALL_PREFIX" ] || { [ ! -e "$INSTALL_PREFIX" ] && [ -w "$(dirname "$INSTALL_PREFIX")" ]; }; then
+                $SCL_ENABLE env LD_LIBRARY_PATH="$PWD:$INSTALL_PREFIX/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}" \
+                    make install
+            else
+                $SUDO $SCL_ENABLE env LD_LIBRARY_PATH="$PWD:$INSTALL_PREFIX/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}" \
+                    make install
+            fi
+        )
+
+        (
+            cd "tk${TCLTK_VER}/unix"
+            $SCL_ENABLE env LD_LIBRARY_PATH="$PWD:$INSTALL_PREFIX/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}" \
+                ./configure \
+                --prefix="$INSTALL_PREFIX" \
+                --libdir="$INSTALL_PREFIX/lib" \
+                --with-tcl="$INSTALL_PREFIX/lib" \
+                --enable-shared \
+                --enable-zipfs
+            $SCL_ENABLE env LD_LIBRARY_PATH="$PWD:$INSTALL_PREFIX/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}" \
+                make -j$MAKE_JOBS
+            if [ -w "$INSTALL_PREFIX" ] || [ -w "$(dirname "$INSTALL_PREFIX")" ]; then
+                $SCL_ENABLE env LD_LIBRARY_PATH="$PWD:$INSTALL_PREFIX/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}" \
+                    make install
+            else
+                $SUDO $SCL_ENABLE env LD_LIBRARY_PATH="$PWD:$INSTALL_PREFIX/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}" \
+                    make install
+            fi
+        )
+    fi
+
+    export PKG_CONFIG_PATH="$INSTALL_PREFIX/lib/pkgconfig${PKG_CONFIG_PATH:+:$PKG_CONFIG_PATH}"
+    export LD_LIBRARY_PATH="$INSTALL_PREFIX/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+    PYTHON_LDFLAGS="$PYTHON_LDFLAGS -Wl,-rpath,$INSTALL_PREFIX/lib"
+fi
+
 # Keep frame pointers for debug builds, so C-level backtraces are reliable.
 # Release builds explicitly omit them.
 if [[ "$BUILD_CONFIG" == "Debug" ]]; then
@@ -175,18 +280,7 @@ fi
 # --- 2. Download and Extract Source ---
 if [ ! -f "$TARBALL" ]; then
     echo "Downloading $TARBALL..."
-    URL="https://www.python.org/ftp/python/$PY_VER/$TARBALL"
-
-    if command -v wget >/dev/null 2>&1; then
-        echo "Using wget to download..."
-        wget -q -O "$TARBALL" "$URL"
-    elif command -v curl >/dev/null 2>&1; then
-        echo "wget not found. Using curl to download..."
-        curl -sL -o "$TARBALL" "$URL"
-    else
-        echo "Error: Neither wget nor curl is available on this system." >&2
-        exit 1
-    fi
+    download_file "https://www.python.org/ftp/python/$PY_VER/$TARBALL" "$TARBALL"
 else
     echo "Using existing $TARBALL..."
 fi
@@ -222,9 +316,6 @@ fi
 if [ ! -f "Makefile" ]; then
     echo "Configuring build with optimizations and static linking..."
 
-    PY_MAJOR=$(echo "$PY_VER" | cut -d. -f1)
-    PY_MINOR=$(echo "$PY_VER" | cut -d. -f2)
-
     if [ "$PY_MAJOR" -gt 3 ] || { [ "$PY_MAJOR" -eq 3 ] && [ "$PY_MINOR" -ge 6 ]; }; then
         if [[ "$BUILD_CONFIG" == "Release" ]]; then
             EXTRA_CONFIGURE_OPTS="$EXTRA_CONFIGURE_OPTS --with-assertions"
@@ -250,7 +341,7 @@ if [ ! -f "Makefile" ]; then
         --disable-shared \
         --enable-ipv6 \
         --with-ensurepip=install \
-        LDFLAGS="-Xlinker -export-dynamic -rdynamic" \
+        LDFLAGS="$PYTHON_LDFLAGS" \
         $EXTRA_CONFIGURE_OPTS
 else
     echo "Makefile exists, skipping configure for incremental build..."
@@ -258,9 +349,9 @@ fi
 
 # --- 4. Build and Install ---
 echo "Building Python... This will take a long time due to PGO."
-$SCL_ENABLE make -j$MAKE_JOBS LDFLAGS="-Xlinker -export-dynamic -rdynamic"
+$SCL_ENABLE make -j$MAKE_JOBS LDFLAGS="$PYTHON_LDFLAGS"
 if [ -n "$INSTALL_PREFIX" ]; then
-    if [ -w "$INSTALL_PREFIX" ] || [ -w "$(dirname "$INSTALL_PREFIX")" ]; then
+    if [ -w "$INSTALL_PREFIX" ] || { [ ! -e "$INSTALL_PREFIX" ] && [ -w "$(dirname "$INSTALL_PREFIX")" ]; }; then
         $SCL_ENABLE make install
     else
         $SUDO $SCL_ENABLE make install
@@ -286,7 +377,7 @@ fi
 
 if [ "$CLEANUP" = true ]; then
     echo "--- Cleaning up ---"
-    rm -rf "$SOURCE_DIR" "$TARBALL"
+    rm -rf "$SOURCE_DIR" "$TARBALL" "tcl${TCLTK_VER}" "tk${TCLTK_VER}" "$TCL_TARBALL" "$TK_TARBALL"
 fi
 
 echo "--- Build Complete ---"
