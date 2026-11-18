@@ -309,6 +309,23 @@ imports = %r
 failed = set()
 
 class ImportBlocker(object):
+    def find_spec(self, fullname, path=None, target=None):
+        if fullname in failed:
+            if "_frozen_importlib" in sys.modules:
+                ModuleSpec = sys.modules["_frozen_importlib"].ModuleSpec
+            else:
+                from importlib.machinery import ModuleSpec
+
+            return ModuleSpec(fullname, self)
+
+        return None
+
+    def create_module(self, spec):
+        raise ImportError("%%s has failed before" %% spec.name)
+
+    def exec_module(self, module):
+        raise ImportError("%%s has failed before" %% module.__name__)
+
     def find_module(self, fullname, path = None):
         if fullname in failed:
             return self
