@@ -66,10 +66,6 @@ from nuitka.Tracing import (
     progress_logger,
     setQuiet,
 )
-from nuitka.utils.Distributions import (
-    filterInstallRequires,
-    getUnmetRequirements,
-)
 from nuitka.utils.Download import getPythonBuildStandaloneFullBuildHint
 from nuitka.utils.Execution import getExecutablePath
 from nuitka.utils.FileOperations import (
@@ -84,6 +80,10 @@ from nuitka.utils.FileOperations import (
 )
 from nuitka.utils.Images import checkIconUsage
 from nuitka.utils.ModuleNames import ModuleName, checkModuleName
+from nuitka.utils.Requirements import (
+    filterInstallRequires,
+    getUnmetRequirements,
+)
 from nuitka.utils.Utils import (
     getArchitecture,
     getCPUCoreCount,
@@ -3891,7 +3891,7 @@ def _checkProjectRequirements():
 
     if unmet_requirements:
         return options_logger.sysexit("""\
-Error, project requirements are not installed:
+Error, project requirements are not satisfied:
   %s
 
 Install them in the active Python environment, e.g. with 'pip install -e .', \
