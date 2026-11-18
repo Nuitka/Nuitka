@@ -1,10 +1,10 @@
 #     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-"""Nodes for "sys.modules" operations.
+"""Nodes for 'sys.modules' operations.
 
 The nodes exist in every compilation mode. For a statically resolved included
-module, the loader entry value is the source of truth, and "sys.modules" is the
+module, the loader entry value is the source of truth, and 'sys.modules' is the
 public side effect or the fallback for modules without an entry.
 """
 
@@ -27,14 +27,7 @@ from .SubscriptNodes import (
 
 
 def _resolveSysModulesModuleName(subscript):
-    """Resolve a statically known "sys.modules" key to a module name.
-
-    Args:
-        subscript: Node of the subscript or method key.
-
-    Returns:
-        ModuleName of the target, or None if the key is not statically known.
-    """
+    """Resolve a statically known 'sys.modules' key to a ModuleName or None."""
     # In module mode, the default runtime name mode keeps "__name__" as a
     # module attribute reference, so constant folding cannot resolve it. The
     # module it belongs to is still known, which is what the loader entry needs.
@@ -93,8 +86,6 @@ def makeExpressionSysModulesRef(source_ref):
 
 
 class ExpressionSysModulesRef(ExpressionBase):
-    """The "sys.modules" dictionary value."""
-
     kind = "EXPRESSION_SYS_MODULES_REF"
 
     __slots__ = ()
@@ -175,8 +166,6 @@ class ExpressionSysModulesRef(ExpressionBase):
 
 
 class ExpressionSysModulesLookup(ExpressionSubscriptLookup):
-    """A "sys.modules[subscript]" lookup with a statically known target."""
-
     kind = "EXPRESSION_SYS_MODULES_LOOKUP"
 
     __slots__ = ("module_name",)
@@ -214,7 +203,7 @@ class ExpressionSysModulesLookup(ExpressionSubscriptLookup):
 
 
 class _ExpressionSysModulesCallMixin(object):
-    # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
+    # pylint: disable=assigning-non-slot
     __slots__ = ()
 
     def _initSysModulesCall(self, module_name):
@@ -235,8 +224,6 @@ class _ExpressionSysModulesCallMixin(object):
 class ExpressionSysModulesGet2(
     _ExpressionSysModulesCallMixin, ExpressionDictOperationGet2
 ):
-    """A "sys.modules.get(key)" call."""
-
     kind = "EXPRESSION_SYS_MODULES_GET2"
 
     __slots__ = ("module_name",)
@@ -252,8 +239,6 @@ class ExpressionSysModulesGet2(
 class ExpressionSysModulesGet3(
     _ExpressionSysModulesCallMixin, ExpressionDictOperationGet3
 ):
-    """A "sys.modules.get(key, default)" call."""
-
     kind = "EXPRESSION_SYS_MODULES_GET3"
 
     __slots__ = ("module_name",)
@@ -273,8 +258,6 @@ class ExpressionSysModulesGet3(
 class ExpressionSysModulesPop2(
     _ExpressionSysModulesCallMixin, ExpressionDictOperationPop2
 ):
-    """A "sys.modules.pop(key)" call."""
-
     kind = "EXPRESSION_SYS_MODULES_POP2"
 
     __slots__ = ("module_name",)
@@ -298,8 +281,6 @@ class ExpressionSysModulesPop2(
 class ExpressionSysModulesPop3(
     _ExpressionSysModulesCallMixin, ExpressionDictOperationPop3
 ):
-    """A "sys.modules.pop(key, default)" call."""
-
     kind = "EXPRESSION_SYS_MODULES_POP3"
 
     __slots__ = ("module_name",)
@@ -325,8 +306,6 @@ class ExpressionSysModulesPop3(
 
 
 class StatementAssignmentSysModulesSubscript(StatementAssignmentSubscript):
-    """A "sys.modules[subscript] = value" assignment."""
-
     kind = "STATEMENT_ASSIGNMENT_SYS_MODULES_SUBSCRIPT"
 
     __slots__ = ("module_name",)
@@ -364,8 +343,6 @@ class StatementAssignmentSysModulesSubscript(StatementAssignmentSubscript):
 
 
 class StatementDelSysModulesSubscript(StatementDelSubscript):
-    """A "del sys.modules[subscript]" deletion."""
-
     kind = "STATEMENT_DEL_SYS_MODULES_SUBSCRIPT"
 
     __slots__ = ("module_name",)

@@ -26,7 +26,6 @@ class StatementsSequenceMixin(object):
         return True
 
     def computeStatement(self, trace_collection):
-        # Don't want to be called like this.
         assert False, self
 
     def removeStatement(self, statement):
@@ -55,7 +54,6 @@ class StatementsSequenceMixin(object):
         self.setChildStatements(new_statements)
 
     def mayHaveSideEffects(self):
-        # Statement sequences have a side effect if one of the statements does.
         for statement in self.subnode_statements:
             if statement.mayHaveSideEffects():
                 return True
@@ -114,7 +112,6 @@ class StatementsSequence(StatementsSequenceMixin, StatementsSequenceBase):
         assert statements, self
 
         for count, statement in enumerate(statements):
-            # May be frames embedded.
             if statement.isStatementsFrame():
                 new_statement = statement.computeStatementsSequence(trace_collection)
             else:

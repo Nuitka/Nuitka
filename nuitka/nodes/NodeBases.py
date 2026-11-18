@@ -1,15 +1,7 @@
 #     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-"""Node base classes.
-
-These classes provide the generic base classes available for nodes,
-statements or expressions alike. There is a dedicated module for
-expression only stuff.
-
-"""
-
-# from abc import abstractmethod
+"""Generic base classes and mixins for statement and expression nodes."""
 
 import ast
 from abc import abstractmethod
@@ -37,27 +29,19 @@ from .NodeMetaClasses import NodeCheckMetaClass, NodeMetaClassBase
 class NodeBase(NodeMetaClassBase):
     __slots__ = "parent", "source_ref"
 
-    # This can trigger if this is included to early.
     assert states.is_full_compat is not None
 
-    # Avoid the attribute unless it's really necessary.
     if states.is_full_compat:
         __slots__ += ("effective_source_ref",)
 
-    # String to identify the node class, to be consistent with its name.
     kind = None
 
     @counted_init
     def __init__(self, source_ref):
-        # The base class has no __init__ worth calling.
-
-        # Check source reference to meet basic standards, so we note errors
-        # when they occur.
         assert source_ref is not None
         assert source_ref.line is not None
 
         self.parent = None
-
         self.source_ref = source_ref
 
     if isCountingInstances():
@@ -65,19 +49,14 @@ class NodeBase(NodeMetaClassBase):
 
     @abstractmethod
     def finalize(self):
-        """Finalize the node, intended to release memory and make it un-usable.
-
-        This is to break reference cycles and allow for garbage collection of
-        variables, functions and other stuff that holds a lot of memory
-        potentially, and to make sure that we catch use after free errors.
-        """
+        """Break reference cycles to release memory and catch use-after-finalize accesses."""
 
     def isConnected(self):
         current = self
         while current.parent is not None:
             if not hasattr(current, "parent"):
-                # If current is not self, this is indicating we might have made
-                # an error by not calling finalize() on a node.
+                # If current is not self, this indicates an error from not
+                # calling 'finalize()' on a node.
                 break
 
             if current not in current.parent.getVisitableNodes():
@@ -102,10 +81,6 @@ class NodeBase(NodeMetaClassBase):
         return "<Node %s>" % (self.getDescription())
 
     def getDescription(self):
-        """Description of the node, intended for use in __repr__ and
-        graphical display.
-
-        """
         details = self.getDetailsForDisplay()
 
         if details:
@@ -114,21 +89,12 @@ class NodeBase(NodeMetaClassBase):
             return "'%s'" % self.kind
 
     def getDetails(self):
-        """Details of the node, intended for re-creation.
-
-        We are not using the pickle mechanisms, but this is basically
-        part of what the constructor call needs. Real children will
-        also be added.
-
-        """
-        # Virtual method, pylint: disable=no-self-use
+        """Return non-child constructor keyword arguments for cloning and serialization."""
+        # pylint: disable=no-self-use
         return {}
 
     def getDetailsForDisplay(self):
-        """Details of the node, intended for use in __repr__ and dumps.
-
-        This is also used for XML.
-        """
+        """Return node attribute details for display and XML serialization."""
         return self.getDetails()
 
     def getCloneArgs(self):
@@ -136,7 +102,6 @@ class NodeBase(NodeMetaClassBase):
 
     def makeClone(self):
         try:
-            # Using star dictionary arguments here for generic use.
             result = self.__class__(source_ref=self.source_ref, **self.getCloneArgs())
         except TypeError as e:
             raise NuitkaNodeError("Problem cloning node", self, e)
@@ -153,7 +118,6 @@ class NodeBase(NodeMetaClassBase):
         args.update(self.getVisitableNodesNamed())
 
         try:
-            # Using star dictionary arguments here for generic use.
             result = self.__class__(source_ref=self.source_ref, **args)
         except TypeError as e:
             raise NuitkaNodeError("Problem cloning node", self, e)
@@ -166,8 +130,6 @@ class NodeBase(NodeMetaClassBase):
         return result
 
     def getParent(self):
-        """Parent of the node. Every node except modules has to have a parent."""
-
         if self.parent is None and not self.isCompiledPythonModule():
             assert False, (self, self.source_ref)
 
@@ -178,7 +140,7 @@ class NodeBase(NodeMetaClassBase):
         return self, None, None
 
     def getChildName(self):
-        """Return the role in the current parent, subject to changes."""
+        """Return the child's role name (or '(role, index)' for tuple children) in its parent."""
         parent = self.getParent()
 
         for key, value in parent.getVisitableNodesNamed():
@@ -200,13 +162,10 @@ class NodeBase(NodeMetaClassBase):
             return child_name
 
     def getParentModule(self):
-        """Return the parent that is module."""
         parent = self
 
         while not parent.isCompiledPythonModule():
             if hasattr(parent, "provider"):
-                # After we checked, we can use it, will be much faster route
-                # to take.
                 parent = parent.provider
             else:
                 parent = parent.getParent()
@@ -218,7 +177,7 @@ class NodeBase(NodeMetaClassBase):
         parent = self.parent
 
         # TODO: Actually outline functions ought to not abort here, but we ought
-        # to get rid of the this function entirely in favor of a finalization
+        # to get rid of this function entirely in favor of a finalization
         # annotation.
         while parent is not None and not parent.isExpressionFunctionBodyBase():
             if parent.isStatementLoop():
@@ -230,7 +189,6 @@ class NodeBase(NodeMetaClassBase):
 
     @staticmethod
     def isParentVariableProvider():
-        """Closure givers are providing variables."""
         return False
 
     def getParentVariableProvider(self):
@@ -260,34 +218,21 @@ class NodeBase(NodeMetaClassBase):
         return self.source_ref
 
     def setCompatibleSourceReference(self, source_ref):
-        """Bug compatible line numbers information.
+        """Record CPython-compatible line number when an operation spans multiple lines.
 
-        As CPython outputs the last bit of bytecode executed, and not the
-        line of the operation. For example calls, output the line of the
-        last argument, as opposed to the line of the operation start.
-
-        For tests, we wants to be compatible. In improved more, we are
-        not being fully compatible, and just drop it altogether.
+        CPython attributes multi-line operations (such as calls) to the last
+        bytecode line rather than the start of the operation; full compatibility
+        mode preserves that line separately.
         """
-
-        # Getting the same source reference can be dealt with quickly, so do
-        # this first.
         if (
             self.source_ref is not source_ref
             and states.is_full_compat
             and self.source_ref != source_ref
         ):
-            # An attribute outside of "__init__", so we save one memory for the
-            # most cases. Very few cases involve splitting across lines.
-            # false alarm for non-slot:
             # pylint: disable=I0021,assigning-non-slot,attribute-defined-outside-init
             self.effective_source_ref = source_ref
 
     def getCompatibleSourceReference(self):
-        """Bug compatible line numbers information.
-
-        See above.
-        """
         return getattr(self, "effective_source_ref", self.source_ref)
 
     def asXml(self):
@@ -322,7 +267,7 @@ class NodeBase(NodeMetaClassBase):
 
     @classmethod
     def fromXML(cls, provider, source_ref, **args):
-        # Only some things need a provider, pylint: disable=unused-argument
+        # pylint: disable=unused-argument
         return cls(source_ref=source_ref, **args)
 
     def asXmlText(self):
@@ -353,12 +298,11 @@ class NodeBase(NodeMetaClassBase):
 
     @staticmethod
     def isCompiledPythonModule():
-        # For overload by module nodes
         return False
 
     @staticmethod
     def needsModuleValueSetter():
-        # Virtual method for nodes that modify "sys.modules" for a module.
+        """Return whether this node modifies 'sys.modules' for a module."""
         return None
 
     @staticmethod
@@ -462,51 +406,35 @@ class NodeBase(NodeMetaClassBase):
 
     @staticmethod
     def getVisitableNodesNamed():
-        """Sequence of (name, child) pairs for visitable children."""
-
+        """Return sequence of '(name, child)' pairs for visitable children."""
         return ()
 
     @staticmethod
     def undoVariableTracingRaw(trace_collection):
-        """Undo the effects of a computation on the trace collection.
-
-        This is needed for the case of a node being removed from the tree,
-        such that e.g. variable usages remain correct and are no longer
-        counted. The default is to do nothing, and node kinds override this
-        as needed.
-        """
+        """Undo trace collection effects when removing an already-computed node from the tree."""
 
     @staticmethod
     def collectVariableAccesses(emit_variable):
-        """Collect variable reads and writes of child nodes."""
+        """Emit variables read or written by child nodes."""
 
     @staticmethod
     def getName():
-        """Name of the node if any."""
-
         return None
 
     @staticmethod
     def mayHaveSideEffects():
-        """Unless we are told otherwise, everything may have a side effect."""
-
         return True
 
     def extractSideEffects(self):
-        """Unless defined otherwise, the expression is the side effect."""
-
         return (self,)
 
     @staticmethod
     def mayRaiseException(exception_type):
-        """Unless we are told otherwise, everything may raise everything."""
-        # Virtual method, pylint: disable=unused-argument
-
+        # pylint: disable=unused-argument
         return True
 
     @staticmethod
     def mayReturn():
-        """May this node do a return exit, to be overloaded for things that might."""
         return False
 
     @staticmethod
@@ -518,8 +446,6 @@ class NodeBase(NodeMetaClassBase):
         return False
 
     def needsFrame(self):
-        """Unless we are told otherwise, this depends on exception raise."""
-
         return self.mayRaiseException(BaseException)
 
     @staticmethod
@@ -528,12 +454,12 @@ class NodeBase(NodeMetaClassBase):
 
     @staticmethod
     def isStatementAborting():
-        """Is the node aborting, control flow doesn't continue after this node."""
+        """Return whether control flow never continues past this statement."""
         return False
 
 
 class CodeNodeMixin(object):
-    # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
+    # pylint: disable=assigning-non-slot
     __slots__ = ()
 
     def __init__(self, name, code_prefix):
@@ -541,11 +467,7 @@ class CodeNodeMixin(object):
 
         self.name = name
         self.code_prefix = code_prefix
-
-        # The code name is determined on demand only.
         self.code_name = None
-
-        # The "UUID" values of children kinds are kept here.
         self.uuids = {}
 
     def getName(self):
@@ -585,7 +507,7 @@ class CodeNodeMixin(object):
 class ClosureGiverNodeMixin(CodeNodeMixin):
     """Base class for nodes that provide variables for closure takers."""
 
-    # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
+    # pylint: disable=assigning-non-slot
     __slots__ = ()
 
     def __init__(self, name, code_prefix):
@@ -634,7 +556,6 @@ class ClosureGiverNodeMixin(CodeNodeMixin):
 
             full_name = name
 
-        # No duplicates please.
         assert full_name not in self.temp_variables, full_name
 
         result = self.createTempVariable(
@@ -708,9 +629,7 @@ class ClosureGiverNodeMixin(CodeNodeMixin):
 
 
 class ClosureTakerMixin(object):
-    """Mixin for nodes that accept variables from closure givers."""
-
-    # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
+    # pylint: disable=assigning-non-slot
     __slots__ = ()
 
     def __init__(self, provider):
@@ -779,30 +698,22 @@ class ClosureTakerMixin(object):
 
 
 class StatementBase(NodeBase):
-    """Base class for all statement nodes."""
+    # pylint: disable=abstract-method
 
-    # Base classes can be abstract, pylint: disable=abstract-method
-
-    # TODO: Have them all.
-    # @abstractmethod
+    # TODO: Require all statement classes to override 'getStatementNiceName'.
     @staticmethod
     def getStatementNiceName():
         return "un-described statement"
 
     def computeStatementSubExpressions(self, trace_collection):
-        """Compute a statement.
-
-        Default behavior is to just visit the child expressions first, and
-        then the node "computeStatement". For a few cases this needs to
-        be overloaded.
-        """
+        """Compute child expressions of a statement before the statement itself."""
         expressions = self.getVisitableNodes()
 
         for count, expression in enumerate(expressions):
             expression = trace_collection.onExpression(expression)
 
             if expression.willRaiseAnyException():
-                # They probably have changed.
+                # Re-fetch visitable nodes as earlier child computations may have replaced children.
                 expressions = self.getVisitableNodes()
 
                 wrapped_expression = makeStatementOnlyNodesFromExpressions(
@@ -822,7 +733,6 @@ class StatementBase(NodeBase):
 
 
 class SideEffectsFromChildrenMixin(object):
-    # Mixins are not allowed to specify slots.
     __slots__ = ()
 
     def mayHaveSideEffects(self):
@@ -832,7 +742,6 @@ class SideEffectsFromChildrenMixin(object):
         return False
 
     def extractSideEffects(self):
-        # No side effects at all but from the children.
         result = []
 
         for child in self.getVisitableNodes():
@@ -841,8 +750,7 @@ class SideEffectsFromChildrenMixin(object):
         return tuple(result)
 
     def computeExpressionDrop(self, statement, trace_collection):
-        # Expression only statement plays no role, pylint: disable=unused-argument
-
+        # pylint: disable=unused-argument
         side_effects = self.extractSideEffects()
 
         # TODO: Have a method for nicer output and remove existing overloads
@@ -929,9 +837,7 @@ def fromXML(provider, xml, source_ref=None):
 
         child_name = child.attrib["name"]
 
-        # Might want to want until provider is updated with some
-        # children. In these cases, we pass the XML node, rather
-        # than a Nuitka node.
+        # Pass the raw XML node for children whose provider must be initialized first.
         if child_name not in delayed:
             args[child_name] = makeChild(provider, child, source_ref)
         else:

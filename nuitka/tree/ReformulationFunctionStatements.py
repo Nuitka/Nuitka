@@ -1,12 +1,7 @@
 #     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-"""Reformulation of function statements.
-
-Consult the Developer Manual for information. TODO: Add ability to sync
-source code comments with Developer Manual sections.
-
-"""
+"""Reformulation of function statements."""
 
 from nuitka.nodes.AsyncgenNodes import (
     ExpressionAsyncgenObjectBody,
@@ -190,7 +185,6 @@ def _maybeWrapWithAnnotations(function_provider, node, function_creation, source
 
 
 def buildFunctionNode(provider, node, source_ref):
-    # Functions have way too many details,
     # pylint: disable=too-many-branches,too-many-locals
 
     assert getKind(node) == "FunctionDef"
@@ -295,7 +289,6 @@ def buildFunctionNode(provider, node, source_ref):
     )
 
     if function_kind == "Function":
-        # TODO: Generators might have to raise GeneratorExit instead.
         function_statements_body = _insertFinalReturnStatement(
             function_statements_body=function_statements_body,
             return_statement=StatementReturnNone(source_ref=source_ref),
@@ -354,7 +347,6 @@ def buildFunctionNode(provider, node, source_ref):
             decorators, "staticmethod", ("staticmethod", "classmethod"), source_ref
         )
 
-    # Add the "classmethod" decorator to __init_subclass__ methods if not provided.
     if (
         python_version >= 0x360
         and node.name == "__init_subclass__"
@@ -389,8 +381,7 @@ def buildFunctionNode(provider, node, source_ref):
 
 
 def buildAsyncFunctionNode(provider, node, source_ref):
-    # We are creating a function here that creates coroutine objects, with
-    # many details each, pylint: disable=too-many-locals
+    # pylint: disable=too-many-locals
     assert getKind(node) == "AsyncFunctionDef"
 
     decorators = buildNodeList(
@@ -548,17 +539,13 @@ def buildAsyncFunctionNode(provider, node, source_ref):
 
     function_body.qualname_setup = result.getVariableName()
 
-    # Share the non-local declarations. TODO: This may also apply to generators
-    # and async generators.
+    # TODO: This may also apply to generators.
     creator_function_body.non_local_declarations = function_body.non_local_declarations
 
     return result
 
 
 def buildParameterKwDefaults(provider, node, function_body, source_ref):
-    # Build keyword only arguments default values. We are hiding here, that it
-    # is a Python3 only feature.
-
     if python_version >= 0x300:
         kw_only_names = function_body.getParameters().getKwOnlyParameterNames()
 
@@ -596,8 +583,7 @@ def makeDeferredAnnotateFunctionBody(provider, source_ref):
     class_body = getClassBodyForDeferredScope(provider)
 
     if class_body is not None:
-        # Make the class namespace available to the deferred function, it is
-        # initialized at the start of the class body.
+        # Ensure the enclosing class body captures its namespace for deferred lookups.
         class_body.getDeferredClassDictVariable()
 
     # Not using the CPython parameter name "format" here, since following
@@ -697,16 +683,11 @@ def makeDeferredAnnotationsReturnExpression(outer_body, annotations, source_ref)
     Notes:
         Unconditionally executed annotations become a simple dictionary, while
         conditionally executed ones (PEP 649) are only included if their index
-        was registered in the "__conditional_annotations__" set of the class or
+        was registered in the '__conditional_annotations__' set of the class or
         module body when the statement executed.
 
     Args:
-        outer_body: Function body node of the annotation function.
         annotations: Sequence of (key, value_node, conditional_index) tuples.
-        source_ref: Source reference to use.
-
-    Returns:
-        Expression for the annotations dictionary.
     """
     if all(conditional_index is None for _, _, conditional_index in annotations):
         keys = []
@@ -764,13 +745,10 @@ def makeDeferredAnnotationsReturnExpression(outer_body, annotations, source_ref)
 
 
 def buildParameterAnnotations(provider, node, source_ref):
-    # Too many branches, because there is too many cases, pylint: disable=too-many-branches,too-many-locals,too-many-statements
-
-    # The ast uses funny names a bunch.
+    # pylint: disable=too-many-branches,too-many-locals,too-many-statements
     # spell-checker: ignore elts,kwargannotation,kwonlyargs,posonlyargs,vararg
     # spell-checker: ignore varargannotation
 
-    # Build annotations. We are hiding here, that it is a Python3 only feature.
     if not getFutureSpec().use_annotations:
         return None
 
@@ -1049,7 +1027,6 @@ def _wrapFunctionWithSpecialNestedArgs(
 def buildFunctionWithParsing(
     provider, function_kind, name, function_doc, flags, node, source_ref
 ):
-    # This contains a complex re-formulation for nested parameter functions.
     # pylint: disable=too-many-locals
 
     kind = getKind(node)
@@ -1067,7 +1044,6 @@ def buildFunctionWithParsing(
         elif getKind(arg) == "arg":
             arg_name = arg.arg
         elif getKind(arg) == "Tuple":
-            # These are to be re-formulated on the outside.
             assert False
         else:
             assert False, getKind(arg)
@@ -1146,7 +1122,6 @@ def buildFunctionWithParsing(
         source_ref=source_ref,
     )
 
-    # Wrap if necessary for special nested arguments.
     if special_args:
         code_body = _wrapFunctionWithSpecialNestedArgs(
             name=name,
@@ -1167,11 +1142,9 @@ def addFunctionVariableReleases(function):
 
     release_variables = []
 
-    # We attach everything to the function definition source location.
     source_ref = function.getSourceReference()
 
     for variable in function.getLocalVariables():
-        # Shared variables are freed by function attachment.
         if variable.getOwner() is not function:
             continue
 

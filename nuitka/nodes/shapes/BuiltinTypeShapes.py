@@ -1883,7 +1883,7 @@ else:
 
 
 class ShapeTypeTypeBase(ShapeNotNumberMixin, ShapeBase):
-    # Base classes can be abstract, pylint: disable=abstract-method
+    # pylint: disable=abstract-method
 
     __slots__ = ()
 
@@ -3753,7 +3753,7 @@ iadd_shapes_list.update(
         tshape_bool: operation_result_unsupported_add,
         tshape_float: operation_result_unsupported_add,
         tshape_complex: operation_result_unsupported_add,
-        # Sequence concat mixing is not allowed
+        # List in-place add extends from any iterable.
         tshape_str: operation_result_list_noescape,
         tshape_bytes: operation_result_list_noescape,
         tshape_bytearray: operation_result_list_noescape,
@@ -3840,7 +3840,7 @@ add_shapes_set.update(
         tshape_str_derived: operation_result_unknown,
         tshape_unicode_derived: operation_result_unknown,
         tshape_bytes_derived: operation_result_unknown,
-        # Sets to do not multiply
+        # Unsupported:
         tshape_int: operation_result_unsupported_add,
         tshape_long: operation_result_unsupported_add,
         tshape_int_or_long: operation_result_unsupported_add,
@@ -3886,7 +3886,7 @@ add_shapes_frozenset.update(
         tshape_str_derived: operation_result_unknown,
         tshape_unicode_derived: operation_result_unknown,
         tshape_bytes_derived: operation_result_unknown,
-        # Sets to do not multiply
+        # Unsupported:
         tshape_int: operation_result_unsupported_add,
         tshape_long: operation_result_unsupported_add,
         tshape_int_or_long: operation_result_unsupported_add,
@@ -3936,7 +3936,7 @@ add_shapes_dict.update(
         tshape_str_derived: operation_result_unknown,
         tshape_unicode_derived: operation_result_unknown,
         tshape_bytes_derived: operation_result_unknown,
-        # Sets to do not multiply
+        # Unsupported:
         tshape_int: operation_result_unsupported_add,
         tshape_long: operation_result_unsupported_add,
         tshape_int_or_long: operation_result_unsupported_add,
@@ -4127,7 +4127,7 @@ else:
 
 mod_shapes_bytes.update(
     {
-        # Standard, TODO: should be string, but may escape with exception.
+        # Standard, TODO: should be bytes, but may escape with exception.
         tshape_unknown: operation_result_unknown,
         tshape_long_derived: operation_result_unknown,
         tshape_int_or_long_derived: operation_result_unknown,
@@ -4234,7 +4234,7 @@ mod_shapes_bytearray.update(
         tshape_str_derived: operation_result_unknown,
         tshape_unicode_derived: operation_result_unknown,
         tshape_bytes_derived: operation_result_unknown,
-        # bytes formatting with all kinds of values
+        # bytearray formatting with all kinds of values
         tshape_int: operation_result_350_bytearray_mod_noescape,
         tshape_bool: operation_result_350_bytearray_mod_noescape,
         tshape_float: operation_result_350_bytearray_mod_noescape,
@@ -4326,7 +4326,7 @@ mod_shapes_unicode.update(
         tshape_str_derived: operation_result_unknown,
         tshape_unicode_derived: operation_result_unknown,
         tshape_bytes_derived: operation_result_unknown,
-        # str formatting with all kinds of values
+        # unicode formatting with all kinds of values
         tshape_int: operation_result_unicode_formaterror,
         tshape_long: operation_result_unicode_formaterror,
         tshape_int_or_long: operation_result_unicode_formaterror,
@@ -4470,14 +4470,7 @@ if python_version >= 0x3F0:
 
 
 def getTypeShapeFromValue(value):
-    """Get the type shape of a value.
-
-    Args:
-        value: The value to get the type shape for.
-
-    Returns:
-        Type shape of the value, or None if there is no shape for it.
-    """
+    """Return the type shape of 'value', or 'None' if untracked."""
 
     return _shapes_by_type.get(type(value))
 

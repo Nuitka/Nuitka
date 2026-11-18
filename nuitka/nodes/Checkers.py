@@ -1,12 +1,7 @@
 #     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-"""Node children checkers.
-
-The role of checkers is to make sure that node children have specific value
-types only.
-
-"""
+"""Validation and canonicalization helpers for node children."""
 
 
 def checkStatementsSequenceOrNone(value):

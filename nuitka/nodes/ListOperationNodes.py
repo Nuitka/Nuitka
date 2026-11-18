@@ -3,7 +3,6 @@
 
 """Nodes that build and operate on lists."""
 
-# from .ExpressionBasesGenerated import ChildrenExpressionListOperationExtendMixin
 from .ChildrenHavingMixins import (
     ChildHavingListArgMixin,
     ChildrenExpressionListOperationExtendMixin,
@@ -27,36 +26,28 @@ from .NodeBases import SideEffectsFromChildrenMixin
 
 
 class ExpressionListOperationAppend(ExpressionListOperationAppendBase):
-    """This operation represents l.append(object)."""
-
     kind = "EXPRESSION_LIST_OPERATION_APPEND"
 
     named_children = ("list_arg", "item")
     auto_compute_handling = "no_raise"
 
     def computeExpression(self, trace_collection):
-        # The state of the object changes, and we not yet trace list state.
+        # TODO: Until we have proper list tracing.
         trace_collection.removeKnowledge(self.subnode_list_arg)
-
-        # This lets the value added to the list escape.
         self.subnode_item.onContentEscapes(trace_collection)
 
-        # No exception is raised, we ignore MemoryError.
-
+        # MemoryError is ignored for list allocations.
         return self, None, None
 
 
 class ExpressionListOperationClear(ExpressionListOperationClearBase):
-    """This operation represents l.clear()."""
-
     kind = "EXPRESSION_LIST_OPERATION_CLEAR"
 
     named_children = ("list_arg",)
     auto_compute_handling = "no_raise"
 
     def computeExpression(self, trace_collection):
-        # The state of the object changes, and we not yet trace list state, but this would
-        # now of course be empty.
+        # TODO: Until we have proper list tracing.
         trace_collection.removeKnowledge(self.subnode_list_arg)
 
         return self, None, None
@@ -65,8 +56,6 @@ class ExpressionListOperationClear(ExpressionListOperationClearBase):
 class ExpressionListOperationCopy(
     SideEffectsFromChildrenMixin, ChildHavingListArgMixin, ExpressionBase
 ):
-    """This operation represents l.copy()."""
-
     kind = "EXPRESSION_LIST_OPERATION_COPY"
 
     named_children = ("list_arg",)
@@ -80,7 +69,6 @@ class ExpressionListOperationCopy(
         ExpressionBase.__init__(self, source_ref)
 
     def computeExpression(self, trace_collection):
-        # This lets the value previously in that list escape.
         self.subnode_list_arg.onContentEscapes(trace_collection)
 
         if self.mayRaiseExceptionOperation():
@@ -96,7 +84,7 @@ class ExpressionListOperationCopy(
 
     @staticmethod
     def mayRaiseExceptionOperation():
-        # We do not count MemoryError, the code generation ignores it.
+        # Code generation ignores MemoryError here.
         return False
 
 
@@ -106,8 +94,6 @@ class ExpressionListOperationCount(
     ExpressionIntOrLongExactMixin,
     ExpressionListOperationCountBase,
 ):
-    """This operation represents l.count()."""
-
     kind = "EXPRESSION_LIST_OPERATION_COUNT"
 
     named_children = (
@@ -143,15 +129,8 @@ class ExpressionListOperationExtend(
     def computeExpression(self, trace_collection):
         # TODO: Until we have proper list tracing.
         trace_collection.removeKnowledge(self.subnode_list_arg)
-
-        # This lets the value added to the list escape.
         self.subnode_value.onContentEscapes(trace_collection)
-
-        # Iteration could escape or raise, but of course not for
-        # all shapes.
         trace_collection.onControlFlowEscape(self)
-
-        # raises ValueError when the value is not found
         trace_collection.onExceptionRaiseExit(BaseException)
 
         return self, None, None
@@ -165,8 +144,6 @@ class ExpressionListOperationExtendForUnpack(ExpressionListOperationExtend):
 class ExpressionListOperationIndex2(
     ExpressionIntOrLongExactMixin, ChildrenHavingListArgValueMixin, ExpressionBase
 ):
-    """This operation represents l.index(value)."""
-
     kind = "EXPRESSION_LIST_OPERATION_INDEX2"
     named_children = ("list_arg", "value")
 
@@ -176,13 +153,8 @@ class ExpressionListOperationIndex2(
         ExpressionBase.__init__(self, source_ref)
 
     def computeExpression(self, trace_collection):
-        # Calling "__index__" may not have to do this for all shapes.
         self.subnode_value.onContentEscapes(trace_collection)
-
-        # All code could be run when searching it does compare items, note that.
         trace_collection.onControlFlowEscape(self)
-
-        # raises ValueError when the value is not found
         trace_collection.onExceptionRaiseExit(BaseException)
 
         return self, None, None
@@ -197,8 +169,6 @@ class ExpressionListOperationIndex2(
 class ExpressionListOperationIndex3(
     ExpressionIntOrLongExactMixin, ChildrenHavingListArgValueStartMixin, ExpressionBase
 ):
-    """This operation represents l.index(value, start)."""
-
     kind = "EXPRESSION_LIST_OPERATION_INDEX3"
     named_children = ("list_arg", "value", "start")
 
@@ -211,11 +181,7 @@ class ExpressionListOperationIndex3(
 
     def computeExpression(self, trace_collection):
         self.subnode_value.onContentEscapes(trace_collection)
-
-        # All code could be run when searching it does compare items, note that.
         trace_collection.onControlFlowEscape(self)
-
-        # raises ValueError when the value is not found
         trace_collection.onExceptionRaiseExit(BaseException)
 
         return self, None, None
@@ -232,8 +198,6 @@ class ExpressionListOperationIndex4(
     ChildrenHavingListArgValueStartStopMixin,
     ExpressionBase,
 ):
-    """This operation represents l.index(value, start, stop)."""
-
     kind = "EXPRESSION_LIST_OPERATION_INDEX4"
     named_children = ("list_arg", "value", "start", "stop")
 
@@ -250,11 +214,7 @@ class ExpressionListOperationIndex4(
 
     def computeExpression(self, trace_collection):
         self.subnode_value.onContentEscapes(trace_collection)
-
-        # All code could be run when searching it does compare items, note that.
         trace_collection.onControlFlowEscape(self)
-
-        # raises ValueError when the value is not found
         trace_collection.onExceptionRaiseExit(BaseException)
 
         return self, None, None
@@ -268,8 +228,6 @@ class ExpressionListOperationIndex4(
 class ExpressionListOperationInsert(
     ChildrenHavingListArgIndexItemMixin, ExpressionBase
 ):
-    """This operation represents l.insert(index, item)."""
-
     kind = "EXPRESSION_LIST_OPERATION_INSERT"
     named_children = ("list_arg", "index", "item")
 
@@ -286,16 +244,12 @@ class ExpressionListOperationInsert(
     def computeExpression(self, trace_collection):
         # TODO: Until we have proper list tracing.
         trace_collection.removeKnowledge(self.subnode_list_arg)
-
-        # This lets the value added to the list escape.
         self.subnode_item.onContentEscapes(trace_collection)
 
-        # The index can be an arbitrary object, whose "__index__" may raise
-        # any exception, and conversion may also raise "OverflowError".
+        # '__index__' or integer overflow may raise, while out-of-bounds indices clamp without IndexError.
         if self.mayRaiseExceptionOperation():
             trace_collection.onExceptionRaiseExit(BaseException)
 
-        # it raises no index error, just appends
         return self, None, None
 
     def mayRaiseException(self, exception_type):
@@ -311,8 +265,6 @@ class ExpressionListOperationInsert(
 
 
 class ExpressionListOperationPop1(ChildHavingListArgMixin, ExpressionBase):
-    """This operation represents l.pop()."""
-
     kind = "EXPRESSION_LIST_OPERATION_POP1"
     named_children = ("list_arg",)
 
@@ -330,7 +282,6 @@ class ExpressionListOperationPop1(ChildHavingListArgMixin, ExpressionBase):
         # TODO: Until we have proper list tracing.
         trace_collection.removeKnowledge(self.subnode_list_arg)
 
-        # raises "IndexError" from empty list only
         if not non_empty:
             trace_collection.onExceptionRaiseExit(IndexError)
 
@@ -342,8 +293,6 @@ class ExpressionListOperationPop1(ChildHavingListArgMixin, ExpressionBase):
 
 
 class ExpressionListOperationPop2(ChildrenHavingListArgIndexMixin, ExpressionBase):
-    """This operation represents l.pop(index)."""
-
     kind = "EXPRESSION_LIST_OPERATION_POP2"
     named_children = ("list_arg", "index")
 
@@ -359,8 +308,6 @@ class ExpressionListOperationPop2(ChildrenHavingListArgIndexMixin, ExpressionBas
     def computeExpression(self, trace_collection):
         # TODO: Until we have proper list tracing.
         trace_collection.removeKnowledge(self.subnode_list_arg)
-
-        # raises "IndexError" from our of range
         trace_collection.onExceptionRaiseExit(BaseException)
 
         return self, None, None
@@ -371,8 +318,6 @@ class ExpressionListOperationPop2(ChildrenHavingListArgIndexMixin, ExpressionBas
 
 
 class ExpressionListOperationRemove(ChildrenHavingListArgValueMixin, ExpressionBase):
-    """This operation represents l.remove(value)."""
-
     kind = "EXPRESSION_LIST_OPERATION_REMOVE"
     named_children = ("list_arg", "value")
 
@@ -384,11 +329,7 @@ class ExpressionListOperationRemove(ChildrenHavingListArgValueMixin, ExpressionB
     def computeExpression(self, trace_collection):
         # TODO: Until we have proper list tracing.
         trace_collection.removeKnowledge(self.subnode_list_arg)
-
-        # All code could be run when searching it does compare items, note that.
         trace_collection.onControlFlowEscape(self)
-
-        # raises ValueError if the value is not found
         trace_collection.onExceptionRaiseExit(BaseException)
 
         return self, None, None
@@ -399,8 +340,6 @@ class ExpressionListOperationRemove(ChildrenHavingListArgValueMixin, ExpressionB
 
 
 class ExpressionListOperationReverse(ExpressionListOperationReverseBase):
-    """This operation represents l.reverse()."""
-
     kind = "EXPRESSION_LIST_OPERATION_REVERSE"
 
     named_children = ("list_arg",)
@@ -418,8 +357,6 @@ class ExpressionListOperationReverse(ExpressionListOperationReverseBase):
 
 
 class ExpressionListOperationSort1(ChildHavingListArgMixin, ExpressionBase):
-    """This operation represents l.sort()."""
-
     kind = "EXPRESSION_LIST_OPERATION_SORT1"
 
     named_children = ("list_arg",)
@@ -435,23 +372,17 @@ class ExpressionListOperationSort1(ChildHavingListArgMixin, ExpressionBase):
     def computeExpression(self, trace_collection):
         # TODO: Until we have proper list tracing.
         trace_collection.removeKnowledge(self.subnode_list_arg)
-
-        # All code could be run when searching it does compare items, note that.
         trace_collection.onControlFlowEscape(self)
-
         trace_collection.onExceptionRaiseExit(BaseException)
 
         return self, None, None
 
     @staticmethod
     def mayRaiseExceptionOperation():
-        # Only with no knowledge of list values
         return True
 
 
 class ExpressionListOperationSort2(ChildrenHavingListArgKeyMixin, ExpressionBase):
-    """This operation represents l.sort(key)."""
-
     kind = "EXPRESSION_LIST_OPERATION_SORT2"
 
     named_children = ("list_arg", "key")
@@ -468,25 +399,19 @@ class ExpressionListOperationSort2(ChildrenHavingListArgKeyMixin, ExpressionBase
     def computeExpression(self, trace_collection):
         # TODO: Until we have proper list tracing.
         trace_collection.removeKnowledge(self.subnode_list_arg)
-
-        # All code could be run when searching it does compare items, note that.
         trace_collection.onControlFlowEscape(self)
-
         trace_collection.onExceptionRaiseExit(BaseException)
 
         return self, None, None
 
     @staticmethod
     def mayRaiseExceptionOperation():
-        # Only with no knowledge of list values
         return True
 
 
 class ExpressionListOperationSort3(
     ChildrenHavingListArgKeyOptionalReverseMixin, ExpressionBase
 ):
-    """This operation represents l.sort(key, reversed)."""
-
     kind = "EXPRESSION_LIST_OPERATION_SORT3"
 
     named_children = ("list_arg", "key|optional", "reverse")
@@ -504,17 +429,13 @@ class ExpressionListOperationSort3(
     def computeExpression(self, trace_collection):
         # TODO: Until we have proper list tracing.
         trace_collection.removeKnowledge(self.subnode_list_arg)
-
-        # All code could be run when searching it does compare items, note that.
         trace_collection.onControlFlowEscape(self)
-
         trace_collection.onExceptionRaiseExit(BaseException)
 
         return self, None, None
 
     @staticmethod
     def mayRaiseExceptionOperation():
-        # Only with no knowledge of list values
         return True
 
 

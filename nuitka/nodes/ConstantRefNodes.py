@@ -121,19 +121,15 @@ class ExpressionConstantUntrackedRefBase(CompileTimeConstantExpressionBase):
         return True
 
     def computeExpressionRaw(self, trace_collection):
-        # Cannot compute any further, this is already the best.
         return self, None, None
 
     # Note: For computedExpressionResult to work, TODO: needed more generally?
     def computeExpression(self, trace_collection):
-        # Cannot compute any further, this is already the best.
         return self, None, None
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
         trace_collection.onExceptionRaiseExit(TypeError)
 
-        # The arguments don't matter. All constant values cannot be called, and
-        # we just need to make and error out of that.
         new_node = wrapExpressionWithSideEffects(
             new_node=makeRaiseExceptionReplacementExpression(
                 expression=self,
@@ -177,11 +173,9 @@ class ExpressionConstantUntrackedRefBase(CompileTimeConstantExpressionBase):
         return None
 
     def isMutable(self):
-        # This is expected to be overloaded by child classes.
         assert False, self
 
     def isKnownToBeHashable(self):
-        # This is expected to be overloaded by child classes.
         assert False, self
 
     def extractUnhashableNodeType(self):
@@ -252,11 +246,8 @@ class ExpressionConstantUntrackedRefBase(CompileTimeConstantExpressionBase):
     @abstractmethod
     def isIterableConstant(self):
         """Is the constant type iterable."""
-        # This is expected to be overloaded by child classes, but it's actually wasteful
-        # to use it, we should have overloads of using methods too.
 
     def getIterationLength(self):
-        # This is expected to be overloaded by child classes if they are iterable
         assert not self.isIterableConstant(), self
 
         return None
@@ -269,7 +260,6 @@ class ExpressionConstantUntrackedRefBase(CompileTimeConstantExpressionBase):
         )
 
     def computeExpressionIter1(self, iter_node, trace_collection):
-        # Note, this is overloaded for all the others.
         assert not self.isIterableConstant()
 
         # TODO: Raise static exception.
@@ -284,7 +274,7 @@ class ExpressionConstantRefBase(ExpressionConstantUntrackedRefBase):
     large lists are from computation or from user literals.
     """
 
-    # Base classes can be abstract, pylint: disable=I0021,abstract-method
+    # pylint: disable=I0021,abstract-method
 
     __slots__ = ("user_provided",)
 
@@ -421,8 +411,6 @@ class ExpressionConstantTrueRef(ExpressionConstantBoolRefBase):
 
     @staticmethod
     def getTruthValue():
-        """Return known truth value."""
-
         return True
 
     @staticmethod
@@ -442,8 +430,6 @@ class ExpressionConstantFalseRef(ExpressionConstantBoolRefBase):
 
     @staticmethod
     def getTruthValue():
-        """Return known truth value."""
-
         return False
 
     @staticmethod
@@ -554,11 +540,6 @@ class ExpressionConstantDictRef(
 
     @staticmethod
     def getTruthValue():
-        """Return known truth value.
-
-        The empty dict is not allowed here, so we can hardcode it.
-        """
-
         return True
 
     def getExpressionDictInConstant(self, value):
@@ -577,11 +558,6 @@ class EmptyContainerMixin(object):
 
     @staticmethod
     def getTruthValue():
-        """Return known truth value.
-
-        The empty container is false, so we can hardcode it.
-        """
-
         return False
 
 
@@ -692,11 +668,6 @@ class ExpressionConstantFrozendictRef(
 
     @staticmethod
     def getTruthValue():
-        """Return known truth value.
-
-        The empty frozendict is not allowed here, so we can hardcode it.
-        """
-
         return True
 
     def getExpressionDictInConstant(self, value):
@@ -766,16 +737,10 @@ class ExpressionConstantTupleRef(
         return len(self.constant)
 
     def computeExpressionIter1(self, iter_node, trace_collection):
-        # Note: Tuples are as good as it gets.
         return iter_node, None, None
 
     @staticmethod
     def getTruthValue():
-        """Return known truth value.
-
-        The empty dict is not allowed here, so we can hardcode it.
-        """
-
         return True
 
 
@@ -867,7 +832,6 @@ class ExpressionConstantListRef(
         self.parent.replaceChild(self, result)
         self.finalize()
 
-        # We did not know this before
         trace_collection.onExceptionRaiseExit(BaseException)
 
         return (
@@ -953,7 +917,6 @@ class ExpressionConstantSetRef(ExpressionSetShapeExactMixin, ExpressionConstantR
         self.parent.replaceChild(self, result)
         self.finalize()
 
-        # We did not know this before
         trace_collection.onExceptionRaiseExit(BaseException)
 
         return (
@@ -1169,7 +1132,6 @@ class ExpressionConstantStrRef(ExpressionStrShapeExactMixin, ExpressionConstantR
         return self.constant
 
     def computeExpressionIter1(self, iter_node, trace_collection):
-        # Note: str are as good as it gets.
         return iter_node, None, None
 
 
@@ -1226,7 +1188,6 @@ class ExpressionConstantUnicodeRef(
         return len(self.constant)
 
     def computeExpressionIter1(self, iter_node, trace_collection):
-        # Note: unicode are as good as it gets
         return iter_node, None, None
 
 
@@ -1279,7 +1240,6 @@ class ExpressionConstantBytesRef(
         return len(self.constant)
 
     def computeExpressionIter1(self, iter_node, trace_collection):
-        # Note: bytes are as good as it gets
         return iter_node, None, None
 
 
@@ -1486,7 +1446,6 @@ class ExpressionConstantXrangeRef(ExpressionConstantUntrackedRefBase):
         return len(self.constant)
 
     def computeExpressionIter1(self, iter_node, trace_collection):
-        # Note: xrange are as good as it gets.
         return iter_node, None, None
 
 
@@ -1665,10 +1624,7 @@ class ExpressionConstantTypeTypeRef(
 
 
 def makeConstantRefNode(constant, source_ref, user_provided=False):
-    # This is dispatching per constant value and types, every case
-    # to be a return statement, pylint: disable=too-many-branches,too-many-return-statements,too-many-statements
-
-    # Dispatch based on constants first.
+    # pylint: disable=too-many-branches,too-many-return-statements,too-many-statements
     if constant is None:
         return ExpressionConstantNoneRef(source_ref=source_ref)
     elif constant is True:
@@ -1678,7 +1634,6 @@ def makeConstantRefNode(constant, source_ref, user_provided=False):
     elif constant is Ellipsis:
         return ExpressionConstantEllipsisRef(source_ref=source_ref)
 
-    # Next, dispatch based on type.
     constant_type = type(constant)
 
     if constant_type is int:
@@ -1903,7 +1858,6 @@ def makeConstantRefNode(constant, source_ref, user_provided=False):
             exception_name=exception_name, source_ref=source_ref
         )
     else:
-        # Missing constant type, ought to not happen, please report.
         assert False, (constant, constant_type)
 
 
@@ -1940,7 +1894,6 @@ class ExpressionConstantSysVersionInfoRef(ExpressionConstantUntrackedRefBase):
         return len(self.constant)
 
     def computeExpressionIter1(self, iter_node, trace_collection):
-        # For iteration, we are just a normal tuple.
         result = makeConstantRefNode(
             constant=tuple(self.constant),
             user_provided=True,

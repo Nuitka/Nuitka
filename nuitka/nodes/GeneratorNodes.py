@@ -1,12 +1,7 @@
 #     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-"""Nodes for generator objects and their creations.
-
-Generators are turned into normal functions that create generator objects,
-whose implementation lives here. The creation itself also lives here.
-
-"""
+"""Nodes for generator objects and their creations."""
 
 from abc import abstractmethod
 
@@ -22,7 +17,7 @@ from .ReturnNodes import StatementReturn, StatementReturnNone
 class MakeGeneratorLikeMixin(ExpressionNoSideEffectsMixin):
     """Mixin for make-(generator|coroutine|asyncgen)-object expressions."""
 
-    # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
+    # pylint: disable=assigning-non-slot
     __slots__ = ()
 
     def __init__(self):
@@ -47,7 +42,6 @@ class MakeGeneratorLikeMixin(ExpressionNoSideEffectsMixin):
         return self.variable_closure_traces
 
     def mayRaiseException(self, exception_type):
-        # The generator/coroutine/asyncgen creation itself never raises.
         return False
 
 
@@ -116,7 +110,6 @@ class ExpressionGeneratorObjectBody(
         return False
 
     def getConstantReturnValue(self):
-        """Special function that checks if code generation allows to use common C code."""
         body = self.subnode_body
 
         if body is None:

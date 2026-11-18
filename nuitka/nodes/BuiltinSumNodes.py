@@ -1,12 +1,7 @@
 #     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-"""Node the calls to the 'sum' built-in.
-
-This is a rather challenging case for optimization, as it has C code behind
-it that could be in-lined sometimes for more static analysis.
-
-"""
+"""Nodes for calls to the 'sum' built-in."""
 
 from nuitka.specs import BuiltinParameterSpecs
 
@@ -18,7 +13,6 @@ from .ExpressionBases import ExpressionBase
 
 
 class ExpressionBuiltinSumMixin(object):
-    # Mixins are required to define empty slots
     __slots__ = ()
 
     builtin_spec = BuiltinParameterSpecs.builtin_sum_spec
@@ -32,8 +26,6 @@ class ExpressionBuiltinSumMixin(object):
 
         if not self.builtin_spec.isCompileTimeComputable(given_values):
             trace_collection.onExceptionRaiseExit(BaseException)
-
-            # TODO: Raise exception known step 0.
 
             return self, None, None
 

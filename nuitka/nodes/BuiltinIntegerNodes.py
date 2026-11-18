@@ -53,7 +53,6 @@ class ExpressionBuiltinInt1(ChildHavingValueMixin, ExpressionBase):
 
     @staticmethod
     def mayRaiseExceptionIndex(exception_type):
-        # The result is an exact int or long, both usable as an index.
         return False
 
     def computeExpression(self, trace_collection):
@@ -84,7 +83,6 @@ class ExpressionBuiltinIntLong2Base(
     else:
         base_only_value = True
 
-    # To be overloaded by child classes with int/long.
     builtin = int
 
     def __init__(self, value, base, source_ref):
@@ -154,7 +152,6 @@ class ExpressionBuiltinLong1(ChildHavingValueMixin, ExpressionBase):
 
     @staticmethod
     def mayRaiseExceptionIndex(exception_type):
-        # The result is an exact long, usable as an index.
         return False
 
     def computeExpression(self, trace_collection):

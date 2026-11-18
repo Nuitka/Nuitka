@@ -38,9 +38,8 @@ class ExpressionBuiltinSentinelCall(
         return self, None, None
 
     def mayRaiseExceptionOperation(self):
-        # The sentinel constructor only rejects a non-string name or a repr
-        # that is neither str nor None. Allocation failures are not tracked
-        # here, matching the other built-in constructor nodes.
+        # Sentinel creation only raises TypeError when 'name' is not 'str' or
+        # 'repr' is neither 'str' nor 'None'.
         if not self.subnode_name.hasShapeStrExact():
             return True
 

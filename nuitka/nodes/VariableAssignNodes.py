@@ -3,17 +3,16 @@
 
 """Assignment related nodes.
 
-The most simple assignment statement ``a = b`` is what we have here. All others
-are either re-formulated using temporary variables, e.g. ``a, b = c`` or are
+The most simple assignment statement 'a = b' is what we have here. All others
+are either re-formulated using temporary variables, e.g. 'a, b = c' or are
 attribute, slice, subscript assignments.
 
-The deletion is a separate node unlike in CPython where assigning to ``NULL`` is
+The deletion is a separate node unlike in CPython where assigning to 'NULL' is
 internally what deletion is. But deleting is something entirely different to us
 during code generation, which is why we keep them separate.
 
 Tracing assignments in SSA form is the core of optimization for which we use
 the traces.
-
 """
 
 from abc import abstractmethod
@@ -43,8 +42,6 @@ from .StatementBasesGenerated import (
 )
 from .VariableDelNodes import makeStatementDelVariable
 
-# Assignment tracing state is kept in the computeStatement methods.
-
 
 class StatementAssignmentVariableMixin(object):
     """Assignment to a variable from an expression.
@@ -60,7 +57,7 @@ class StatementAssignmentVariableMixin(object):
     it can be determined.
     """
 
-    # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
+    # pylint: disable=assigning-non-slot
     __slots__ = ()
 
     @staticmethod
@@ -83,7 +80,7 @@ class StatementAssignmentVariableMixin(object):
 
     @classmethod
     def fromXML(cls, provider, source_ref, **args):
-        # Virtual method overload, pylint: disable=unused-argument
+        # pylint: disable=unused-argument
         owner = getOwnerFromCodeName(args["owner"])
 
         # TODO: Need to also provide "outline" for best effect
@@ -286,14 +283,10 @@ class StatementAssignmentVariableGeneric(
         return ControlFlowDescriptionFullEscape
 
     def computeStatement(self, trace_collection):
-        # TODO: Way too ugly to have global trace kinds just here, and needs to
-        # be abstracted somehow. But for now we let it live here.
         old_source = self.subnode_source
         variable = self.variable
 
         if old_source.isExpressionSideEffects():
-            # If the assignment source has side effects, we can put them into a
-            # sequence and compute that instead.
             statements = [
                 makeStatementExpressionOnlyReplacementNode(side_effect, self)
                 for side_effect in old_source.subnode_side_effects
@@ -301,11 +294,8 @@ class StatementAssignmentVariableGeneric(
 
             statements.append(self)
 
-            # Remember out parent, we will assign it for the sequence to use.
             parent = self.parent
 
-            # Need to update ourselves to no longer reference the side effects,
-            # but go to the wrapped thing.
             self.setChildSource(old_source.subnode_expression)
 
             result = makeStatementsSequenceReplacementNode(
@@ -320,11 +310,8 @@ class StatementAssignmentVariableGeneric(
 Side effects of assignments promoted to statements.""",
             )
 
-        # Let assignment source may re-compute first.
         source = trace_collection.onExpression(self.subnode_source)
 
-        # No assignment will occur, if the assignment source raises, so give up
-        # on this, and return it as the only side effect.
         if source.willRaiseAnyException():
             result = makeStatementExpressionOnlyReplacementNode(
                 expression=source, node=self
@@ -339,22 +326,15 @@ Side effects of assignments promoted to statements.""",
 Assignment raises exception in assigned value, removed assignment.""",
             )
 
-        # Assigning from and to the same variable, can be optimized away
-        # immediately, there is no point in doing it. Exceptions are of course
-        # module variables that collide with built-in names.
-
+        # Module variables may shadow built-in names, so 'x = x' is not a no-op for them.
         # TODO: The variable type checks ought to become unnecessary, as they
         # are to be a feature of the trace. Assigning from known assigned is
-        # supposed to be possible to eliminate. If we get that wrong, we are
-        # doing it wrong.
+        # supposed to be possible to eliminate.
         if (
             not variable.isModuleVariable()
             and source.isExpressionVariableRef()
             and source.getVariable() is variable
         ):
-            # A variable access that has a side effect, must be preserved,
-            # so it can e.g. raise an exception, otherwise we can be fully
-            # removed.
             if source.mayHaveSideEffects():
                 result = makeStatementExpressionOnlyReplacementNode(
                     expression=source, node=self
@@ -387,8 +367,6 @@ Removed assignment of %s from itself which is known to be defined."""
         return result
 
     def computeStatementAssignmentTraceUpdate(self, trace_collection, source):
-        # Set-up the trace to the trace collection, so future references will
-        # find this assignment.
         self.variable_trace = trace_collection.onVariableSet(
             variable=self.variable, version=self.variable_version, assign_node=self
         )
@@ -415,15 +393,12 @@ Removed assignment of %s from itself which is known to be defined."""
                         break
 
     def hasVeryTrustedValue(self):
-        """Does this assignment node have a very trusted value."""
         return self.subnode_source.hasVeryTrustedValue()
 
 
 class StatementAssignmentVariableIterator(
     StatementAssignmentVariableMixin, StatementAssignmentVariableIteratorBase
 ):
-    # Carries state for propagating iterators potentially.
-
     kind = "STATEMENT_ASSIGNMENT_VARIABLE_ITERATOR"
 
     named_children = ("source",)
@@ -445,15 +420,9 @@ class StatementAssignmentVariableIterator(
     def postInitNode(self):
         self.variable_trace = None
         self.inplace_suspect = None
-
-        # Have a valid start value, later this will become more specific.
         self.type_shape = tshape_iterator
-
-        # For replacing with indexing potentially.
         self.temp_scope = None
         self.tmp_iterated_variable = None
-
-        # When found non-indexable, we do not try again.
         self.is_indexable = None
 
     def getTypeShape(self):
@@ -477,9 +446,6 @@ class StatementAssignmentVariableIterator(
         The temp variable is allocated as late, so that its usage is forced
         and it is not removed due to being unused before the replacement in
         the next pass introduces its real usages.
-
-        Args:
-            node: The node the delayed work is done for, which is ``self``.
         """
 
         assert node is self
@@ -552,11 +518,8 @@ class StatementAssignmentVariableIterator(
 
         provider = trace_collection.getOwner()
 
-        # Let assignment source may re-compute first.
         source = trace_collection.onExpression(self.subnode_source)
 
-        # No assignment will occur, if the assignment source raises, so give up
-        # on this, and return it as the only side effect.
         if source.willRaiseAnyException():
             result = makeStatementExpressionOnlyReplacementNode(
                 expression=source, node=self
@@ -585,14 +548,9 @@ Assignment raises exception in assigned value, removed assignment.""",
             last_trace = variable.getMatchingUnescapedAssignTrace(self)
 
             if last_trace is not None:
-                # Might not be allowed, remember if it's not allowed, otherwise retry.
                 self.is_indexable = source.subnode_value.isKnownToBeIndexable()
 
                 if self.is_indexable:
-                    # Delay the allocation of the temp variable to after
-                    # the trace collection, so that no temps are introduced
-                    # during branching merges, the replacement is then
-                    # done on the next pass without delayed work.
                     trace_collection.signalChange(
                         tags="changed_variable_usage",
                         source_ref=self.source_ref,
@@ -610,13 +568,8 @@ Assignment raises exception in assigned value, removed assignment.""",
                         describe_new_node=lambda new_node: (None, None),
                     )
 
-                    # Process normally the iterator trace, but for the last time, all usages will cease to exist.
-
         self.type_shape = source.getTypeShape()
 
-        # Set-up the trace to the trace collection, so future references will
-        # find this assignment.
-        # Note: Keep this aligned with computeStatementAssignmentTraceUpdate
         self.variable_trace = trace_collection.onVariableSet(
             variable=variable, version=self.variable_version, assign_node=self
         )
@@ -630,7 +583,6 @@ Assignment raises exception in assigned value, removed assignment.""",
 
     @staticmethod
     def hasVeryTrustedValue():
-        """Does this assignment node have a very trusted value."""
         return False
 
 
@@ -667,10 +619,6 @@ class StatementAssignmentVariableConstantMutable(
         variable = self.variable
         last_trace = self.variable_trace
 
-        # Set-up the trace to the trace collection, so future references will
-        # find this assignment.
-        # Note: Keep this aligned with computeStatementAssignmentTraceUpdate
-
         provider = trace_collection.getOwner()
 
         if (
@@ -686,7 +634,6 @@ class StatementAssignmentVariableConstantMutable(
                 # TODO: We do not trust these yet a lot, but more might be
                 pass
             else:
-                # Unused constants can be eliminated in any case.
                 if not last_trace.getUsageCount():
                     if last_trace.previous.isUnassignedTrace():
                         return (
@@ -722,7 +669,6 @@ class StatementAssignmentVariableConstantMutable(
 
     @staticmethod
     def hasVeryTrustedValue():
-        """Does this assignment node have a very trusted value."""
         return False
 
 
@@ -759,8 +705,6 @@ class StatementAssignmentVariableConstantImmutable(
         variable = self.variable
         last_trace = self.variable_trace
 
-        # Set-up the trace to the trace collection, so future references will
-        # find this assignment.
         provider = trace_collection.getOwner()
 
         if (
@@ -776,7 +720,6 @@ class StatementAssignmentVariableConstantImmutable(
                 # TODO: We do not trust these yet a lot, but more might be
                 pass
             else:
-                # Unused constants can be eliminated in any case.
                 if not last_trace.getUsageCount():
                     if last_trace.previous.isUnassignedTrace():
                         return (
@@ -798,8 +741,7 @@ class StatementAssignmentVariableConstantImmutable(
                             % self.getVariableName(),
                         )
 
-                # Still trace or assignment, for the last time. TODO: Maybe this can be
-                # used for the keeping of the "replacement node" as well.
+                # TODO: Maybe this can be used for keeping the replacement node as well.
                 self.variable_trace = trace_collection.onVariableSetToUnescapablePropagatedValue(
                     variable=variable,
                     version=self.variable_version,
@@ -824,7 +766,6 @@ class StatementAssignmentVariableConstantImmutable(
                     % self.getVariableName(),
                 )
 
-        # Note: Keep this aligned with computeStatementAssignmentTraceUpdate
         self.variable_trace = trace_collection.onVariableSetToUnescapableValue(
             variable=variable, version=self.variable_version, assign_node=self
         )
@@ -838,7 +779,6 @@ class StatementAssignmentVariableConstantImmutable(
 
     @staticmethod
     def hasVeryTrustedValue():
-        """Does this assignment node have a very trusted value."""
         return False
 
 
@@ -888,15 +828,10 @@ class StatementAssignmentVariableHardValue(
         return ControlFlowDescriptionNoEscape
 
     def computeStatement(self, trace_collection):
-        # TODO: Way too ugly to have global trace kinds just here, and needs to
-        # be abstracted somehow. But for now we let it live here.
         variable = self.variable
 
-        # Let assignment source may re-compute first.
         source = trace_collection.onExpression(self.subnode_source)
 
-        # No assignment will occur, if the assignment source raises, so give up
-        # on this, and return it as the only side effect.
         if source.willRaiseAnyException():
             result = makeStatementExpressionOnlyReplacementNode(
                 expression=source, node=self
@@ -913,7 +848,6 @@ Assignment raises exception in assigned value, removed assignment.""",
 
         current_trace = trace_collection.getVariableCurrentTrace(variable)
 
-        # If the variable was already assigned to the same value, we can drop this.
         if current_trace.isAssignTraceVeryTrusted() and (
             source.isExpressionImportModuleHard()
             or source.isExpressionImportModuleFixed()
@@ -943,7 +877,6 @@ Assignment raises exception in assigned value, removed assignment.""",
                     % variable.getDescription(),
                 )
 
-        # Note: Keep this aligned with computeStatementAssignmentTraceUpdate
         self.variable_trace = trace_collection.onVariableSetToVeryTrustedValue(
             variable=variable, version=self.variable_version, assign_node=self
         )
@@ -957,7 +890,6 @@ Assignment raises exception in assigned value, removed assignment.""",
 
     @staticmethod
     def hasVeryTrustedValue():
-        """Does this assignment node have a very trusted value."""
         return True
 
 
@@ -988,24 +920,16 @@ class StatementAssignmentVariableFromVariable(
         return ControlFlowDescriptionFullEscape
 
     def computeStatement(self, trace_collection):
-        # TODO: Way too ugly to have global trace kinds just here, and needs to
-        # be abstracted somehow. But for now we let it live here.
         old_source = self.subnode_source
         variable = self.variable
 
-        # Assigning from and to the same variable, can be optimized away
-        # immediately, there is no point in doing it. Exceptions are of course
-        # module variables that collide with built-in names. TODO: In
-        # specialization this could be considered right away as its own node
-        # type, waiting for it to compute like this.
+        # Module variables may shadow built-in names, so 'x = x' is not a no-op for them.
+        # TODO: Specialize self-assignment directly into its own node type.
         if (
             not variable.isModuleVariable()
             and old_source.isExpressionVariableRefOrTempVariableRef()
             and old_source.getVariable() is variable
         ):
-            # A variable access that has a side effect, must be preserved,
-            # so it can e.g. raise an exception, otherwise we can be fully
-            # removed.
             if old_source.mayHaveSideEffects():
                 result = makeStatementExpressionOnlyReplacementNode(
                     expression=old_source, node=self
@@ -1029,7 +953,6 @@ Removed assignment of %s from itself which is known to be defined."""
                     % variable.getDescription(),
                 )
 
-        # Let assignment source may re-compute first.
         source = trace_collection.onExpression(self.subnode_source)
 
         if source is old_source:
@@ -1088,7 +1011,6 @@ Assignment raises exception in assigned variable access, removed assignment.""",
 
     @staticmethod
     def hasVeryTrustedValue():
-        """Does this assignment node have a very trusted value."""
         return False
 
 
@@ -1119,14 +1041,9 @@ class StatementAssignmentVariableFromTempVariable(
         return ControlFlowDescriptionFullEscape
 
     def computeStatement(self, trace_collection):
-        # TODO: Way too ugly to have global trace kinds just here, and needs to
-        # be abstracted somehow. But for now we let it live here.
         old_source = self.subnode_source
         variable = self.variable
 
-        # Assigning from and to the same variable, can be optimized away
-        # immediately, there is no point in doing it. Exceptions are of course
-        # module variables that collide with built-in names.
         if (
             old_source.isExpressionVariableRefOrTempVariableRef()
             and old_source.getVariable() is variable
@@ -1139,7 +1056,6 @@ Removed assignment of %s from itself which is known to be defined."""
                 % variable.getDescription(),
             )
 
-        # Let assignment source may re-compute first.
         source = trace_collection.onExpression(self.subnode_source)
 
         if source is old_source:
@@ -1166,8 +1082,6 @@ Removed assignment of %s from itself which is known to be defined."""
         return result
 
     def computeStatementAssignmentTraceUpdate(self, trace_collection, source):
-        # Set-up the trace to the trace collection, so future references will
-        # find this assignment.
         self.variable_trace = trace_collection.onVariableSet(
             variable=self.variable, version=self.variable_version, assign_node=self
         )
@@ -1177,7 +1091,6 @@ Removed assignment of %s from itself which is known to be defined."""
 
     @staticmethod
     def hasVeryTrustedValue():
-        """Does this assignment node have a very trusted value."""
         return False
 
 

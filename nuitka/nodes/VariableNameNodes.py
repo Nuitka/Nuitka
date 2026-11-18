@@ -38,10 +38,7 @@ class StatementAssignmentVariableName(StatementAssignmentVariableNameBase):
         return self.variable_name
 
     def computeStatement(self, trace_collection):
-        # Only for abc, pylint: disable=no-self-use
-
-        # These must not enter real optimization, they only live during the
-        # tree building.
+        # pylint: disable=no-self-use
         assert False
 
     @staticmethod
@@ -82,10 +79,7 @@ class StatementDelVariableName(StatementBase):
         return self.variable_name
 
     def computeStatement(self, trace_collection):
-        # Only for abc, pylint: disable=no-self-use
-
-        # These must not enter real optimization, they only live during the
-        # tree building.
+        # pylint: disable=no-self-use
         assert False
 
 
@@ -128,13 +122,7 @@ class ExpressionVariableNameRef(ExpressionBase):
 
 
 class ExpressionVariableLocalNameRef(ExpressionVariableNameRef):
-    """These are used before the actual variable object is known from VariableClosure.
-
-    The special thing about this as opposed to ExpressionVariableNameRef is that
-    these must remain local names and cannot fallback to outside scopes. This is
-    used for "__annotations__".
-
-    """
+    """Precursor variable reference restricted to local scope (e.g. '__annotations__') without outer-scope fallback."""
 
     kind = "EXPRESSION_VARIABLE_LOCAL_NAME_REF"
 

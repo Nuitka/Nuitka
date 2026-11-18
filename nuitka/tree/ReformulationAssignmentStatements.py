@@ -1,12 +1,7 @@
 #     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-"""Reformulation of assignment statements.
-
-Consult the Developer Manual for information. TODO: Add ability to sync
-source code comments with Developer Manual sections.
-
-"""
+"""Reformulation of assignment statements."""
 
 from nuitka.nodes.AttributeNodes import (
     StatementAssignmentAttribute,
@@ -136,10 +131,6 @@ def buildExtSliceNode(provider, node, source_ref):
 
 
 def buildAssignmentStatementsFromDecoded(provider, kind, detail, source, source_ref):
-    # This is using many variable names on purpose, so as to give names to the
-    # unpacked detail values, and has many branches due to the many cases dealt
-    # with and it is return driven.
-
     # pylint: disable=too-many-branches,too-many-locals,too-many-statements
 
     if kind == "Name":
@@ -359,8 +350,6 @@ not enough values to unpack (expected at least %d, got %%d)""" % (len(statements
             ),
         ]
 
-        # When all is done, copy over to the actual assignment targets, starred
-        # or not makes no difference here anymore.
         for element_index, element in enumerate(detail):
             if element[0] == "Starred":
                 element = element[1]
@@ -379,8 +368,6 @@ not enough values to unpack (expected at least %d, got %%d)""" % (len(statements
                 )
             )
 
-            # Need to release temporary variables right after successful
-            # usage.
             statements.append(
                 makeStatementDelVariable(
                     variable=element_var, tolerant=True, source_ref=source_ref
@@ -425,7 +412,6 @@ def buildAssignmentStatements(
 
 
 def decodeAssignTarget(provider, node, source_ref, allow_none=False):
-    # Many cases to deal with, because of the different assign targets,
     # pylint: disable=too-many-branches,too-many-return-statements
 
     if node is None and allow_none:
@@ -504,7 +490,7 @@ def decodeAssignTarget(provider, node, source_ref, allow_none=False):
         else:
             assert False, slice_kind
     elif kind in ("Tuple", "List"):
-        # That is the ast names, spell-checker: ignore elts
+        # spell-checker: ignore elts
         return (
             "Tuple",
             tuple(
@@ -534,13 +520,9 @@ def decodeAssignTarget(provider, node, source_ref, allow_none=False):
 def buildAssignNode(provider, node, source_ref):
     assert len(node.targets) >= 1, source_ref
 
-    # Evaluate the right hand side first, so it can get names provided
-    # before the left hand side exists.
     source = buildNode(provider, node.value, source_ref)
 
     if len(node.targets) == 1:
-        # Simple assignment case, one source, one target.
-
         return buildAssignmentStatements(
             provider=provider,
             node=node.targets[0],
@@ -548,10 +530,6 @@ def buildAssignNode(provider, node, source_ref):
             source_ref=source_ref,
         )
     else:
-        # Complex assignment case, one source, but multiple targets. We keep the
-        # source in a temporary variable, and then assign from it multiple
-        # times.
-
         temp_scope = provider.allocateTempScope("assign_unpack")
 
         tmp_source = provider.allocateTempVariable(
@@ -585,8 +563,7 @@ def buildAssignNode(provider, node, source_ref):
 
 
 def buildAnnAssignNode(provider, node, source_ref):
-    """Python3.6 annotation assignment."""
-    # There are many cases to deal with here, pylint: disable=too-many-branches
+    # pylint: disable=too-many-branches
 
     use_annotations = getFutureSpec().shallUseAnnotations()
 
@@ -594,8 +571,6 @@ def buildAnnAssignNode(provider, node, source_ref):
         if provider.isCompiledPythonModule() or provider.isExpressionClassBodyBase():
             provider.markAsNeedsAnnotationsDictionary()
 
-    # Evaluate the right hand side first, so it can get names provided
-    # before the left hand side exists.
     statements = []
 
     if node.value is not None:
@@ -610,7 +585,6 @@ def buildAnnAssignNode(provider, node, source_ref):
             )
         )
 
-        # Only name referencing annotations are effective right now.
         if statements[-1].isStatementAssignmentVariableName():
             variable_name = statements[-1].getVariableName()
         else:
@@ -619,7 +593,6 @@ def buildAnnAssignNode(provider, node, source_ref):
             # for module and class targets.
             variable_name = None
     else:
-        # Only name referencing annotations are effective right now.
         kind, detail = decodeAssignTarget(
             provider=provider, node=node.target, source_ref=source_ref
         )
@@ -633,8 +606,6 @@ def buildAnnAssignNode(provider, node, source_ref):
             # evaluation code for attribute and subscript targets.
             variable_name = None
 
-    # Only annotations for modules and classes are really made, for functions
-    # they are ignored like comments.
     if variable_name is not None:
         if use_annotations and (
             provider.isExpressionClassBodyBase() or provider.isCompiledPythonModule()
@@ -710,7 +681,7 @@ def buildAnnAssignNode(provider, node, source_ref):
                     )
                 )
         else:
-            # Functions or disabled.
+            # PEP 526: simple annotations without a value still mark the name as local.
             if node.simple:
                 provider.getVariableForAssignment(variable_name)
 
@@ -718,7 +689,7 @@ def buildAnnAssignNode(provider, node, source_ref):
 
 
 def buildDeleteStatementFromDecoded(provider, kind, detail, source_ref):
-    # This function is a case driven by returns, pylint: disable=too-many-return-statements
+    # pylint: disable=too-many-return-statements
 
     if kind in ("Name", "Name_Exception"):
         # Note: Name_Exception is a "del" for exception handlers that doesn't
@@ -788,13 +759,6 @@ def buildDeleteStatementFromDecoded(provider, kind, detail, source_ref):
 
 
 def buildDeleteNode(provider, node, source_ref):
-    # Build "del" statements.
-
-    # Note: Each delete is sequential. It can succeed, and the failure of a
-    # later one does not prevent the former to succeed. We can therefore have a
-    # simple sequence of "del" statements that each only delete one thing
-    # therefore. In output tree "del" therefore only ever has single arguments.
-
     statements = []
 
     for target in node.targets:
@@ -849,13 +813,10 @@ def _buildInplaceAssignAttributeNode(
         temp_scope=temp_scope, name="lookup_source", temp_type="object"
     )
 
-    # First assign the target object to a temporary variable, so the
-    # attribute is stored on the object evaluated before the right value.
     preserve_lookup_source = makeStatementAssignmentVariable(
         variable=tmp_lookup_source, source=lookup_source, source_ref=source_ref
     )
 
-    # Second assign the target value to a temporary variable.
     preserve_to_tmp = makeStatementAssignmentVariable(
         variable=tmp_variable,
         source=makeExpressionAttributeLookup(
@@ -868,7 +829,6 @@ def _buildInplaceAssignAttributeNode(
         source_ref=source_ref,
     )
 
-    # Third assign the in-place result to a temporary variable.
     inplace_to_tmp = makeStatementAssignmentVariable(
         variable=tmp_variable,
         source=makeExpressionOperationBinaryInplace(
@@ -882,7 +842,6 @@ def _buildInplaceAssignAttributeNode(
         source_ref=source_ref,
     )
 
-    # Fourth, copy it back.
     copy_back_from_tmp = StatementAssignmentAttribute(
         expression=ExpressionTempVariableRef(
             variable=tmp_lookup_source, source_ref=source_ref
@@ -895,7 +854,6 @@ def _buildInplaceAssignAttributeNode(
     return (
         preserve_lookup_source,
         preserve_to_tmp,
-        # making sure the above temporary variables are deleted in any case.
         makeTryFinallyReleaseStatement(
             provider=provider,
             tried=(inplace_to_tmp, copy_back_from_tmp),
@@ -916,11 +874,9 @@ def _buildInplaceAssignSubscriptNode(
     expression,
     source_ref,
 ):
-    # First assign the subscribed value to a temporary variable.
     preserve_to_tmp1 = makeStatementAssignmentVariable(
         variable=tmp_variable1, source=subscribed, source_ref=source_ref
     )
-    # Second assign the subscript value to a temporary variable
     statements = (
         makeStatementAssignmentVariable(
             variable=tmp_variable2, source=subscript, source_ref=source_ref
@@ -988,11 +944,8 @@ def _buildInplaceAssignSliceNode(
     expression,
     source_ref,
 ):
-    # Due to the 3 inputs, which we need to also put into temporary variables,
-    # there are too many variables here, but they are needed.
     # pylint: disable=too-many-locals
 
-    # First assign the target value, lower and upper to temporary variables.
     copy_to_tmp = makeStatementAssignmentVariable(
         variable=tmp_variable1, source=lookup_source, source_ref=source_ref
     )
@@ -1040,7 +993,6 @@ def _buildInplaceAssignSliceNode(
 
     use_slice_object = python_version >= 0x300
 
-    # Second assign the in-place result over the original value.
     if use_slice_object:
         statements += (
             makeStatementAssignmentVariable(
@@ -1137,8 +1089,6 @@ def _buildInplaceAssignSliceNode(
 
 
 def buildInplaceAssignNode(provider, node, source_ref):
-    # There are many inplace assignment variables, and the detail is unpacked
-    # into names, so we end up with a lot of variables, which is on purpose,
     # pylint: disable=too-many-locals
 
     operator = getKind(node.op)
@@ -1244,16 +1194,12 @@ def buildInplaceAssignNode(provider, node, source_ref):
 
 
 def _isGeneratorExpressionBody(node):
-    """Generator expressions, asynchronous ones are a node kind of their own."""
-
     return (
         node.isExpressionGeneratorObjectBody() or node.isExpressionAsyncgenObjectBody()
     ) and node.name == "<genexpr>"
 
 
 def buildNamedExprNode(provider, node, source_ref):
-    """Assignment expressions, Python3.8 or higher only."""
-
     outline_body = ExpressionOutlineBody(
         provider=provider, name="assignment_expr", source_ref=source_ref
     )
@@ -1404,8 +1350,7 @@ def _makeDeferredEvaluationFunction(
     class_body = getClassBodyForDeferredScope(provider)
 
     if class_body is not None:
-        # Make the class namespace available to the deferred function, it is
-        # initialized at the start of the class body.
+        # Ensure the enclosing class body captures its namespace for deferred lookups.
         class_body.getDeferredClassDictVariable()
 
     parameters = ParameterSpec(
@@ -1523,8 +1468,6 @@ def _createTypeExpression(provider, node, source_ref):
 
 
 def buildTypeAliasNode(provider, node, source_ref):
-    """Python3.12 or higher, type alias statements."""
-
     checkDebugNameAssignment(name=node.name.id, source_ref=source_ref)
 
     type_alias_name = mangleName(node.name.id, provider)

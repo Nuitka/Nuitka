@@ -1,11 +1,7 @@
 #     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-"""Module/Package nodes
-
-The top of the tree. Packages are also modules. Modules are what hold a program
-together and cross-module optimizations are the most difficult to tackle.
-"""
+"""Module and package nodes."""
 
 import os
 
@@ -53,7 +49,7 @@ from .NodeBases import (
 
 
 class PythonModuleBase(NodeBase):
-    # Base classes can be abstract, pylint: disable=abstract-method
+    # pylint: disable=abstract-method
 
     __slots__ = (
         "module_name",
@@ -106,7 +102,6 @@ class PythonModuleBase(NodeBase):
         return False
 
     def attemptRecursion(self):
-        # Make sure the package is recursed to if any
         package_name = self.module_name.getPackageName()
         if package_name is None or package_name.getTopLevelPackageName() == "":
             return ()
@@ -125,8 +120,7 @@ class PythonModuleBase(NodeBase):
                 level=0,
             )
 
-            # If we can't find the package for Python3 that is semi-OK, it might be in a
-            # namespace package, these have no init code.
+            # Python 3 namespace packages have no '__init__.py' file.
             if python_version >= 0x300 and not package_filename:
                 return ()
 
@@ -172,35 +166,15 @@ class PythonModuleBase(NodeBase):
             )
 
     def getCodeName(self):
-        # Virtual method, pylint: disable=no-self-use
+        # pylint: disable=no-self-use
         return None
 
     def getCompileTimeFilename(self):
-        """The compile time filename for the module.
-
-        Returns:
-            Full path to module file at compile time.
-        Notes:
-            We are getting the absolute path here, since we do
-            not want to have to deal with resolving paths at
-            all.
-
-        """
+        """Return the absolute compile-time path to the module file."""
         return os.path.abspath(self.source_ref.getFilename())
 
     def getCompileTimeDirectory(self):
-        """The compile time directory for the module.
-
-        Returns:
-            Full path to module directory at compile time.
-        Notes:
-            For packages, we let the package directory be
-            the result, otherwise the containing directory
-            is the result.
-        Notes:
-            Use this to find files nearby a module, mainly
-            in plugin code.
-        """
+        """Return the compile-time package directory or containing directory for the module."""
         result = self.getCompileTimeFilename()
         if not os.path.isdir(result):
             result = os.path.dirname(result)
@@ -233,7 +207,6 @@ class PythonModuleBase(NodeBase):
 
                 result = os.path.join(os.path.basename(current), result)
 
-            # Avoid unnecessary unicode path values
             if str is not bytes:
                 try:
                     result = str(result)
@@ -254,9 +227,7 @@ class CompiledPythonModule(
     EntryPointMixin,
     PythonModuleBase,
 ):
-    """Compiled Python Module"""
-
-    # This one has a few indicators, pylint: disable=too-many-instance-attributes
+    # pylint: disable=too-many-instance-attributes
 
     kind = "COMPILED_PYTHON_MODULE"
 
@@ -304,7 +275,7 @@ class CompiledPythonModule(
 
         ModuleChildrenHavingBodyOptionalStatementsOrNoneFunctionsTupleMixin.__init__(
             self,
-            body=None,  # delayed
+            body=None,
             functions=(),
         )
 
@@ -313,7 +284,6 @@ class CompiledPythonModule(
         # Deferred module-level annotations (3.14+), same mechanism as class bodies.
         self.deferred_annotations = []
 
-        # Conditional annotations, set during tree building.
         self.conditional_annotation_indices = None
         self.conditional_annotations_variable = None
 
@@ -325,20 +295,11 @@ class CompiledPythonModule(
 
         self.variables = {}
 
-        # Functions that have been used.
         self.active_functions = OrderedSet()
-
-        # Functions that should be visited again.
         self.visited_functions = set()
-
         self.cross_used_functions = OrderedSet()
-
         self.used_modules = OrderedSet()
-
-        # Often "None" until tree building finishes its part.
         self.future_spec = future_spec
-
-        # The source code of the module if changed or not from disk.
         self.source_code = None
 
         self.module_dict_name = "globals_%s" % (self.getCodeName(),)
@@ -372,7 +333,6 @@ class CompiledPythonModule(
 
     @classmethod
     def fromXML(cls, provider, source_ref, **args):
-        # Modules are not having any provider, must not be used,
         assert False
 
     def getFutureSpec(self):
@@ -388,10 +348,6 @@ class CompiledPythonModule(
         graph = graph.add_subgraph(
             name="cluster_%s" % desc, comment="Graph for %s" % self.getName()
         )
-
-        #        graph.body.append("style=filled")
-        #        graph.body.append("color=lightgrey")
-        #        graph.body.append("label=Iteration_%d" % desc)
 
         def makeTraceNodeName(variable, version, variable_trace):
             return "%s/ %s %s %s" % (
@@ -448,7 +404,6 @@ class CompiledPythonModule(
         if self.source_code is not None:
             return self.source_code
         else:
-            # This should of course give same result as before.
             return readSourceCodeFromFilename(
                 module_name=self.getFullName(),
                 source_filename=self.getCompileTimeFilename(),
@@ -458,11 +413,9 @@ class CompiledPythonModule(
         self.source_code = code
 
     def getParent(self):
-        # We have never have a parent
         return None
 
     def getParentVariableProvider(self):
-        # We have never have a provider
         return None
 
     def hasVariableName(self, variable_name):
@@ -505,9 +458,6 @@ class CompiledPythonModule(
         return self
 
     def getCodeName(self):
-        # For code name of modules, we need to translate to C identifiers,
-        # removing characters illegal for that.
-
         if self.code_name is None:
             self.code_name = encodePythonIdentifierToC(self.module_name)
 
@@ -533,25 +483,16 @@ class CompiledPythonModule(
 
     def getUsedModules(self):
         if self.trace_collection is None:
-            # Optimization is not yet done at all, but report writing for error
-            # exit may happen.
             return ()
 
         return self.trace_collection.getModuleUsageAttempts()
 
     def addUsedModuleAttempt(self, module_usage_attempt):
-        """Add an additional module usage attempt to the module.
-
-        Notes:
-            This is used for plugin provided implicit imports, which are not
-            part of the module code and therefore not traced.
-        """
+        """Record a plugin-provided implicit import not present in module source."""
         self.trace_collection.onModuleUsageAttempt(module_usage_attempt)
 
     def getUsedDistributions(self):
         if self.trace_collection is None:
-            # Optimization is not yet done at all, but report writing for error
-            # exit may happen.
             return ()
 
         return self.trace_collection.getUsedDistributions()
@@ -604,8 +545,7 @@ class CompiledPythonModule(
         else:
             result = main_filename
 
-        # There are some characters that somehow are passed to shell, by
-        # Scons or unknown, so lets avoid them for now.
+        # SCons passes some characters to the shell, so avoid parentheses.
         return result.replace(")", "").replace("(", "")
 
     def computeModule(self):
@@ -637,7 +577,6 @@ class CompiledPythonModule(
 
         self.attemptRecursion()
 
-        # We determine the trusted module variable for use on next turnaround to provide functions with traces for them.
         very_trusted_module_variables = {}
         for module_variable in self.locals_scope.getLocalsRelevantVariables():
             very_trusted_node = self.trace_collection.getVariableCurrentTrace(
@@ -663,15 +602,12 @@ class CompiledPythonModule(
             old_collection, self.trace_collection, self.source_ref
         )
 
-        # Indicate if this is pass 1 for the module as return value.
         was_complete = not self.locals_scope.complete
 
         propagated_scopes = OrderedSet()
 
-        # Finalize locals scopes previously determined for removal in last pass.
         def markAsComplete(body, trace_collection):
             if body.locals_scope is not None:
-                # Make sure the propagated stuff releases memory.
                 if body.locals_scope.isMarkedForPropagation():
                     body.locals_scope.onPropagationComplete()
 
@@ -726,20 +662,19 @@ class CompiledPythonModule(
             yield function.trace_collection
 
     def isUnoptimized(self):
-        # Modules don't do this, pylint: disable=no-self-use
+        # pylint: disable=no-self-use
         return False
 
     def getLocalVariables(self):
-        # Modules don't do this, pylint: disable=no-self-use
+        # pylint: disable=no-self-use
         return ()
 
     def getUserLocalVariables(self):
-        # Modules don't do this, pylint: disable=no-self-use
+        # pylint: disable=no-self-use
         return ()
 
     @staticmethod
     def getFunctionVariablesWithAutoReleases():
-        """Return the list of function variables that should be released at exit."""
         return ()
 
     def getOutlineLocalVariables(self):
@@ -756,7 +691,7 @@ class CompiledPythonModule(
         return result
 
     def hasClosureVariable(self, variable):
-        # Modules don't do this, pylint: disable=no-self-use,unused-argument
+        # pylint: disable=no-self-use,unused-argument
         return False
 
     def removeUserVariable(self, variable):
@@ -773,7 +708,6 @@ class CompiledPythonModule(
         return self.locals_scope
 
     def getRuntimePackageValue(self):
-        # Many cases for main, package and forced namespace variants.
         # pylint: disable=too-many-return-statements
         force_namespace = getModuleForceNamespace()
 
@@ -861,7 +795,6 @@ class CompiledPythonNamespacePackage(CompiledPythonPackage):
     def isCompiledPythonNamespacePackage():
         return True
 
-    # These have no source code obviously.
     @staticmethod
     def getSourceCode():
         return None
@@ -893,8 +826,6 @@ def makeUncompiledPythonModule(
 
 
 class UncompiledPythonModule(PythonModuleBase):
-    """Uncompiled Python Module"""
-
     kind = "UNCOMPILED_PYTHON_MODULE"
 
     __slots__ = (
@@ -957,12 +888,6 @@ class UncompiledPythonModule(PythonModuleBase):
         self.used_modules = used_modules
 
     def addUsedModuleAttempt(self, module_usage_attempt):
-        """Add an additional module usage attempt to the module.
-
-        Notes:
-            This is used for plugin provided implicit imports, which are not
-            part of the module code and therefore not traced.
-        """
         if not isinstance(self.used_modules, OrderedSet):
             self.used_modules = OrderedSet(self.used_modules)
 
@@ -984,7 +909,7 @@ class UncompiledPythonPackage(UncompiledPythonModule):
 
 
 class PythonMainModule(CompiledPythonModule):
-    """Main module of a program, typically "__main__" but can be inside a package too."""
+    """Main module of a program, typically '__main__' unless inside a package."""
 
     kind = "PYTHON_MAIN_MODULE"
 
@@ -993,7 +918,7 @@ class PythonMainModule(CompiledPythonModule):
     def __init__(self, module_name, main_added, mode, future_spec, source_ref):
         assert not shallMakeModule()
 
-        # Is this one from a "__main__.py" file
+        # True when loaded from a '__main__.py' file.
         self.main_added = main_added
 
         CompiledPythonModule.__init__(
@@ -1052,7 +977,6 @@ class PythonMainModule(CompiledPythonModule):
 
             function = node_class.fromXML(source_ref=source_ref, **func_args)
 
-            # Could do more checks for look up of body here, but so what...
             function_work.append((function, iter(iter(xml).next()).next()))
 
         for function, xml in function_work:
@@ -1095,7 +1019,6 @@ class PythonMainModule(CompiledPythonModule):
                 level=0,
             )
 
-            # Technically required, but not found must not happen
             assert finding != "not-found", early_module_name
 
             self.standard_library_modules.add(
@@ -1137,18 +1060,11 @@ class PythonExtensionModule(PythonModuleBase):
             source_ref=source_ref,
         )
 
-        # That would be a mistake we just made.
         assert os.path.basename(source_ref.getFilename()) != "<frozen>"
-
-        # That is too likely a bug.
         assert module_name != "__main__"
-
-        # Duplicates should be avoided by us caching elsewhere before creating
-        # the object.
         assert self.getFullName() not in self.avoid_duplicates, self.getFullName()
         self.avoid_duplicates.add(self.getFullName())
 
-        # Required to startup
         self.technical = technical
 
         self.used_modules = None
@@ -1184,8 +1100,6 @@ class PythonExtensionModule(PythonModuleBase):
         return self.technical
 
     def _getPyIFilename(self):
-        """Get Python type description filename."""
-
         path = self.getFilename()
 
         for extension_module_suffix in getExtensionModuleSuffixes():
@@ -1203,8 +1117,6 @@ class PythonExtensionModule(PythonModuleBase):
         return None
 
     def _readPyIFile(self):
-        """Read the .pyi file if present and scan for dependencies."""
-
         if self.used_modules is None:
             # TODO: Make this a locatePyIFilename function instead.
             pyi_filename = self._getPyIFilename()
@@ -1220,17 +1132,14 @@ class PythonExtensionModule(PythonModuleBase):
                     pyi_filename=pyi_filename,
                 )
 
-                # These are not to be taken serious.
                 if "typing" in pyi_deps:
                     pyi_deps.discard("typing")
                 if "__future__" in pyi_deps:
                     pyi_deps.discard("__future__")
 
-                # Dependency on itself makes no sense.
                 if self.getFullName() in pyi_deps:
                     pyi_deps.discard(self.getFullName())
 
-                # Dependency on containing package makes no sense.
                 if self.getFullName().getPackageName() in pyi_deps:
                     pyi_deps.discard(self.getFullName().getPackageName())
 
@@ -1246,16 +1155,9 @@ class PythonExtensionModule(PythonModuleBase):
         return self.used_modules
 
     def getUsedModules(self):
-        # The PyI contents is currently delivered via implicit imports plugin.
         return self.implicit_used_modules
 
     def addUsedModuleAttempt(self, module_usage_attempt):
-        """Add an additional module usage attempt to the module.
-
-        Notes:
-            This is used for plugin provided implicit imports, which are not
-            part of the module code and therefore not traced.
-        """
         self.implicit_used_modules.add(module_usage_attempt)
 
     @staticmethod

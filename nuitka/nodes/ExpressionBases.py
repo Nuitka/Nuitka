@@ -6,7 +6,6 @@
 These classes provide the generic base classes available for
 expressions. They have a richer interface, mostly related to
 abstract execution, and different from statements.
-
 """
 
 from abc import abstractmethod
@@ -51,24 +50,17 @@ class ExpressionBase(NodeBase):
 
     @staticmethod
     def isCompileTimeConstant():
-        """Has a value that we can use at compile time.
-
-        Yes or no. If it has such a value, simulations can be applied at
-        compile time and e.g. operations or conditions, or even calls may
-        be executed against it.
-        """
+        """Whether this expression has a value usable at compile time."""
         return False
 
     @staticmethod
     def getTruthValue():
-        """Return known truth value. The "None" value indicates unknown."""
-
+        """Return known truth value, or 'None' if unknown."""
         return None
 
     @staticmethod
     def getComparisonValue():
-        """Return known value used for compile time comparison. The "None" value indicates unknown."""
-
+        """Return '(is_known, value)' for compile-time comparison."""
         return False, None
 
     @staticmethod
@@ -134,8 +126,6 @@ class ExpressionBase(NodeBase):
         return None
 
     def getTypeValue(self):
-        """Type of the node."""
-
         from .TypeNodes import ExpressionBuiltinType1
 
         return ExpressionBuiltinType1(
@@ -143,29 +133,24 @@ class ExpressionBase(NodeBase):
         )
 
     def getIterationHandle(self):
-        # Virtual method, pylint: disable=no-self-use
+        # pylint: disable=no-self-use
         return None
 
     @staticmethod
     def isKnownToBeHashable():
-        """Is the value hashable, i.e. suitable for dictionary/set key usage."""
-
-        # Unknown by default.
+        """Whether the value is hashable ('True', 'False', or 'None' if unknown)."""
         return None
 
     @staticmethod
     def extractUnhashableNodeType():
-        """Return the value type that is not hashable, if isKnownToBeHashable() returns False."""
-
-        # Not available by default.
+        """Return the unhashable type node when 'isKnownToBeHashable()' is 'False'."""
         return None
 
     def onRelease(self, trace_collection):
-        # print "onRelease", self
         pass
 
     def isKnownToHaveAttribute(self, attribute_name):
-        # Virtual method, pylint: disable=no-self-use,unused-argument
+        # pylint: disable=no-self-use,unused-argument
         return None
 
     @abstractmethod
@@ -185,15 +170,11 @@ class ExpressionBase(NodeBase):
         """
 
     def computeExpressionAttribute(self, lookup_node, attribute_name, trace_collection):
-        # By default, an attribute lookup may change everything about the lookup
-        # source.
-        # trace_collection.onValueEscapeAttributeLookup(self, attribute_name)
         trace_collection.removeKnowledge(self)
 
         if self.mayRaiseExceptionAttributeLookup(BaseException, attribute_name):
             trace_collection.onExceptionRaiseExit(BaseException)
 
-        # Any code could be run, note that.
         trace_collection.onControlFlowEscape(self)
 
         return lookup_node, None, None
@@ -201,9 +182,6 @@ class ExpressionBase(NodeBase):
     def computeExpressionAttributeSpecial(
         self, lookup_node, attribute_name, trace_collection
     ):
-        # By default, an attribute lookup may change everything about the lookup
-        # source. Virtual method.
-        # trace_collection.onValueEscapeAttributeLookup(self, attribute_name)
         trace_collection.removeKnowledge(self)
 
         if self.mayRaiseExceptionAttributeLookup(BaseException, attribute_name):
@@ -215,7 +193,6 @@ class ExpressionBase(NodeBase):
         if self.mayRaiseExceptionImportName(BaseException, import_name):
             trace_collection.onExceptionRaiseExit(BaseException)
 
-        # Any code could be run, note that.
         trace_collection.onControlFlowEscape(self)
 
         return import_node, None, None
@@ -223,41 +200,28 @@ class ExpressionBase(NodeBase):
     def computeExpressionSetAttribute(
         self, set_node, attribute_name, value_node, trace_collection
     ):
-        # Virtual method, pylint: disable=unused-argument
-
-        # By default, an attribute lookup may change everything about the lookup
-        # source and any code could run.
+        # pylint: disable=unused-argument
         trace_collection.removeKnowledge(self)
         trace_collection.removeKnowledge(value_node)
         trace_collection.onControlFlowEscape(self)
 
         trace_collection.onExceptionRaiseExit(BaseException)
 
-        # Better mechanics?
         return set_node, None, None
 
     def computeExpressionDelAttribute(self, set_node, attribute_name, trace_collection):
-        # By default, an attribute lookup may change everything about the lookup
-        # source. Virtual method, pylint: disable=unused-argument
+        # pylint: disable=unused-argument
         trace_collection.removeKnowledge(self)
-
-        # Any code could be run, note that.
         trace_collection.onControlFlowEscape(self)
 
         trace_collection.onExceptionRaiseExit(BaseException)
 
-        # Better mechanics?
         return set_node, None, None
 
     def computeExpressionSubscript(self, lookup_node, subscript, trace_collection):
-        # By default, an subscript can execute any code and change all values
-        # that escaped. This is a virtual method that may consider the subscript
-        # but generally we don't know what to do. pylint: disable=unused-argument
+        # pylint: disable=unused-argument
         trace_collection.removeKnowledge(self)
-
         trace_collection.onControlFlowEscape(self)
-
-        # Any exception may be raised.
         trace_collection.onExceptionRaiseExit(BaseException)
 
         return lookup_node, None, None
@@ -265,43 +229,26 @@ class ExpressionBase(NodeBase):
     def computeExpressionSetSubscript(
         self, set_node, subscript, value_node, trace_collection
     ):
-        # By default, an subscript can execute any code and change all values
-        # that escaped. This is a virtual method that may consider the subscript
-        # but generally we don't know what to do.
         trace_collection.removeKnowledge(self)
         trace_collection.removeKnowledge(value_node)
         trace_collection.removeKnowledge(subscript)
         trace_collection.onControlFlowEscape(self)
-
-        # Any exception may be raised.
         trace_collection.onExceptionRaiseExit(BaseException)
 
         return set_node, None, None
 
     def computeExpressionDelSubscript(self, del_node, subscript, trace_collection):
-        # By default, an subscript can execute any code and change all values
-        # that escaped. This is a virtual method that may consider the subscript
-        # but generally we don't know what to do.
         trace_collection.removeKnowledge(self)
         trace_collection.removeKnowledge(subscript)
         trace_collection.onControlFlowEscape(self)
-
-        # Any exception may be raised.
         trace_collection.onExceptionRaiseExit(BaseException)
 
         return del_node, None, None
 
     def computeExpressionSlice(self, lookup_node, lower, upper, trace_collection):
         # pylint: disable=unused-argument
-
-        # By default, a slicing may change everything about the lookup source.
         trace_collection.removeKnowledge(self)
-        # trace_collection.onValueEscapeSliceOperation(self, lower, upper)
-
-        # Any code could be run, note that.
         trace_collection.onControlFlowEscape(self)
-
-        # Any exception may be raised.
         trace_collection.onExceptionRaiseExit(BaseException)
 
         return lookup_node, None, None
@@ -310,46 +257,25 @@ class ExpressionBase(NodeBase):
         self, set_node, lower, upper, value_node, trace_collection
     ):
         # pylint: disable=unused-argument
-
-        # By default, a slice assignment may change everything about the target
-        # and the value escapes.
         trace_collection.removeKnowledge(value_node)
         trace_collection.removeKnowledge(self)
         trace_collection.onControlFlowEscape(self)
-
-        # trace_collection.onValueEscapeSliceArguments(self, lower, upper)
-
-        # trace_collection.onValueEscapeSliceSetSource(self, lower, upper)
-
-        # Any exception may be raised.
         trace_collection.onExceptionRaiseExit(BaseException)
 
         return set_node, None, None
 
     def computeExpressionDelSlice(self, set_node, lower, upper, trace_collection):
         # pylint: disable=unused-argument
-
-        # By default, a slice deletion may change everything about the target.
         trace_collection.removeKnowledge(self)
         trace_collection.onControlFlowEscape(self)
-
-        # trace_collection.onValueEscapeSliceArguments(self, lower, upper)
-
-        # Any exception may be raised.
         trace_collection.onExceptionRaiseExit(BaseException)
 
         return set_node, None, None
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
-        # Virtual method, pylint: disable=unused-argument
-
-        # The called and the arguments escape for good.
+        # pylint: disable=unused-argument
         call_node.onContentEscapes(trace_collection)
-
-        # Any code could be run, note that.
         trace_collection.onControlFlowEscape(self)
-
-        # Any exception may be raised.
         trace_collection.onExceptionRaiseExit(BaseException)
 
         return call_node, None, None
@@ -357,19 +283,14 @@ class ExpressionBase(NodeBase):
     def computeExpressionCallViaVariable(
         self, call_node, variable_ref_node, call_args, call_kw, trace_collection
     ):
-        # Virtual method, pylint: disable=unused-argument
-
-        # The called and the arguments escape for good.
+        # pylint: disable=unused-argument
         self.onContentEscapes(trace_collection)
         if call_args is not None:
             call_args.onContentEscapes(trace_collection)
         if call_kw is not None:
             call_kw.onContentEscapes(trace_collection)
 
-        # Any code could be run, note that.
         trace_collection.onControlFlowEscape(self)
-
-        # Any exception may be raised.
         trace_collection.onExceptionRaiseExit(BaseException)
 
         return call_node, None, None
@@ -380,7 +301,6 @@ class ExpressionBase(NodeBase):
         has_len = shape.hasShapeSlotLen()
 
         if has_len is False:
-            # An exception may be raised.
             trace_collection.onExceptionRaiseExit(BaseException)
 
             return makeRaiseTypeErrorExceptionReplacementFromTemplateAndValue(
@@ -396,7 +316,7 @@ class ExpressionBase(NodeBase):
                 from .ConstantRefNodes import makeConstantRefNode
 
                 result = makeConstantRefNode(
-                    constant=int(iter_length),  # make sure to downcast long
+                    constant=int(iter_length),
                     source_ref=len_node.getSourceReference(),
                 )
 
@@ -411,11 +331,7 @@ class ExpressionBase(NodeBase):
                 )
 
         self.onContentEscapes(trace_collection)
-
-        # Any code could be run, note that.
         trace_collection.onControlFlowEscape(self)
-
-        # Any exception may be raised.
         trace_collection.onExceptionRaiseExit(BaseException)
 
         return len_node, None, None
@@ -424,7 +340,6 @@ class ExpressionBase(NodeBase):
         shape = self.getTypeShape()
 
         if shape.hasShapeSlotAbs() is False:
-            # Any exception may be raised.
             trace_collection.onExceptionRaiseExit(BaseException)
 
             return makeRaiseTypeErrorExceptionReplacementFromTemplateAndValue(
@@ -435,11 +350,7 @@ class ExpressionBase(NodeBase):
             )
 
         self.onContentEscapes(trace_collection)
-
-        # Any code could be run, note that.
         trace_collection.onControlFlowEscape(self)
-
-        # Any exception may be raised.
         trace_collection.onExceptionRaiseExit(BaseException)
 
         return abs_node, None, None
@@ -448,7 +359,6 @@ class ExpressionBase(NodeBase):
         shape = self.getTypeShape()
 
         if shape.hasShapeSlotInt() is False:
-            # Any exception may be raised.
             trace_collection.onExceptionRaiseExit(BaseException)
 
             return makeRaiseTypeErrorExceptionReplacementFromTemplateAndValue(
@@ -463,11 +373,7 @@ class ExpressionBase(NodeBase):
             )
 
         self.onContentEscapes(trace_collection)
-
-        # Any code could be run, note that.
         trace_collection.onControlFlowEscape(self)
-
-        # Any exception may be raised.
         trace_collection.onExceptionRaiseExit(BaseException)
 
         return int_node, None, None
@@ -476,7 +382,6 @@ class ExpressionBase(NodeBase):
         shape = self.getTypeShape()
 
         if shape.hasShapeSlotLong() is False:
-            # Any exception may be raised.
             trace_collection.onExceptionRaiseExit(BaseException)
 
             return makeRaiseTypeErrorExceptionReplacementFromTemplateAndValue(
@@ -487,11 +392,7 @@ class ExpressionBase(NodeBase):
             )
 
         self.onContentEscapes(trace_collection)
-
-        # Any code could be run, note that.
         trace_collection.onControlFlowEscape(self)
-
-        # Any exception may be raised.
         trace_collection.onExceptionRaiseExit(BaseException)
 
         return long_node, None, None
@@ -500,7 +401,6 @@ class ExpressionBase(NodeBase):
         shape = self.getTypeShape()
 
         if shape.hasShapeSlotFloat() is False:
-            # Any exception may be raised.
             trace_collection.onExceptionRaiseExit(BaseException)
 
             return makeRaiseTypeErrorExceptionReplacementFromTemplateAndValue(
@@ -515,11 +415,7 @@ class ExpressionBase(NodeBase):
             )
 
         self.onContentEscapes(trace_collection)
-
-        # Any code could be run, note that.
         trace_collection.onControlFlowEscape(self)
-
-        # Any exception may be raised.
         trace_collection.onExceptionRaiseExit(BaseException)
 
         return float_node, None, None
@@ -532,7 +428,6 @@ class ExpressionBase(NodeBase):
             and shape.hasShapeSlotInt() is False
             and shape.hasShapeSlotIter() is False
         ):
-            # An exception is raised.
             trace_collection.onExceptionRaiseExit(BaseException)
 
             return makeRaiseTypeErrorExceptionReplacementFromTemplateAndValue(
@@ -543,11 +438,7 @@ class ExpressionBase(NodeBase):
             )
 
         self.onContentEscapes(trace_collection)
-
-        # Any code could be run, note that.
         trace_collection.onControlFlowEscape(self)
-
-        # Any exception may be raised.
         trace_collection.onExceptionRaiseExit(BaseException)
 
         return bytes_node, None, None
@@ -556,7 +447,6 @@ class ExpressionBase(NodeBase):
         shape = self.getTypeShape()
 
         if shape.hasShapeSlotComplex() is False:
-            # Any exception may be raised.
             trace_collection.onExceptionRaiseExit(BaseException)
 
             return makeRaiseTypeErrorExceptionReplacementFromTemplateAndValue(
@@ -571,11 +461,7 @@ class ExpressionBase(NodeBase):
             )
 
         self.onContentEscapes(trace_collection)
-
-        # Any code could be run, note that.
         trace_collection.onControlFlowEscape(self)
-
-        # Any exception may be raised.
         trace_collection.onExceptionRaiseExit(BaseException)
 
         return complex_node, None, None
@@ -584,7 +470,6 @@ class ExpressionBase(NodeBase):
         shape = self.getTypeShape()
 
         if shape.hasShapeSlotIter() is False:
-            # An exception may be raised.
             trace_collection.onExceptionRaiseExit(BaseException)
 
             return makeRaiseTypeErrorExceptionReplacementFromTemplateAndValue(
@@ -595,11 +480,7 @@ class ExpressionBase(NodeBase):
             )
 
         self.onContentEscapes(trace_collection)
-
-        # Any code could be run, note that.
         trace_collection.onControlFlowEscape(self)
-
-        # Any exception may be raised.
         trace_collection.onExceptionRaiseExit(BaseException)
 
         return iter_node, None, None
@@ -607,39 +488,25 @@ class ExpressionBase(NodeBase):
     def computeExpressionNext1(self, next_node, trace_collection):
         # TODO: This is only true for a few value types, use type shape to tell if
         # it might escape or raise.
-
         self.onContentEscapes(trace_collection)
 
-        # Any code could be run, note that.
         if self.mayHaveSideEffectsNext():
             trace_collection.onControlFlowEscape(self)
 
-        # Any exception may be raised.
         trace_collection.onExceptionRaiseExit(BaseException)
 
         return True, (next_node, None, None)
 
     def computeExpressionAsyncIter(self, iter_node, trace_collection):
         self.onContentEscapes(trace_collection)
-
-        # Any code could be run, note that.
         trace_collection.onControlFlowEscape(self)
-
-        # Any exception may be raised.
         trace_collection.onExceptionRaiseExit(BaseException)
 
         return iter_node, None, None
 
     def computeExpressionOperationNot(self, not_node, trace_collection):
-        # Virtual method, pylint: disable=no-self-use
-
-        # The value of that node escapes and could change its contents.
-        # trace_collection.onValueEscapeNot(self)
-
-        # Any code could be run, note that.
+        # pylint: disable=no-self-use
         trace_collection.onControlFlowEscape(not_node)
-
-        # Any exception may be raised.
         trace_collection.onExceptionRaiseExit(BaseException)
 
         return not_node, None, None
@@ -649,32 +516,25 @@ class ExpressionBase(NodeBase):
 
         escape_desc = type_shape.getOperationUnaryReprEscape()
 
-        # Annotate if exceptions might be raised.
         exception_raise_exit = escape_desc.getExceptionExit()
         if exception_raise_exit is not None:
             trace_collection.onExceptionRaiseExit(exception_raise_exit)
 
         if escape_desc.isValueEscaping():
-            # The value of that node escapes and could change its contents during repr
-            # only, which might be more limited.
-            # trace_collection.onValueEscapeRepr(self)
             trace_collection.removeKnowledge(self)
 
         if escape_desc.isControlFlowEscape():
-            # Any code could be run, note that.
             trace_collection.onControlFlowEscape(self)
 
         return (repr_node, None, None), escape_desc
 
     def computeExpressionComparisonIn(self, in_node, value_node, trace_collection):
-        # Virtual method, pylint: disable=unused-argument
-
+        # pylint: disable=unused-argument
         shape = self.getTypeShape()
 
         assert shape is not None, self
 
         if shape.hasShapeSlotContains() is False:
-            # An exception may be raised.
             trace_collection.onExceptionRaiseExit(BaseException)
 
             return makeRaiseTypeErrorExceptionReplacementFromTemplateAndValue(
@@ -684,10 +544,7 @@ class ExpressionBase(NodeBase):
                 value_node=self,
             )
 
-        # Any code could be run, note that.
         trace_collection.onControlFlowEscape(in_node)
-
-        # Any exception may be raised.
         trace_collection.onExceptionRaiseExit(BaseException)
 
         return in_node, None, None
@@ -706,12 +563,12 @@ class ExpressionBase(NodeBase):
         return statement, None, None
 
     def computeExpressionBool(self, trace_collection):
+        """Return '(truth_value, replacement_node, change_desc)' for boolean evaluation."""
         if not self.mayRaiseException(BaseException) and self.mayRaiseExceptionBool(
             BaseException
         ):
             trace_collection.onExceptionRaiseExit(BaseException)
 
-        # None indicates no replacement action.
         return None, None, None
 
     @staticmethod
@@ -724,13 +581,11 @@ class ExpressionBase(NodeBase):
 
     @staticmethod
     def mayRaiseExceptionBool(exception_type):
-        """Unless we are told otherwise, everything may raise being checked."""
-        # Virtual method, pylint: disable=unused-argument
+        # pylint: disable=unused-argument
         return True
 
     def mayRaiseExceptionIter(self, exception_type):
-        """May creating an iterator from this value raise?"""
-        # Virtual method, pylint: disable=unused-argument
+        # pylint: disable=unused-argument
         shape = self.getTypeShape()
 
         return (
@@ -739,8 +594,7 @@ class ExpressionBase(NodeBase):
         )
 
     def mayRaiseExceptionIndex(self, exception_type):
-        """May converting this value with PyNumber_Index() raise?"""
-        # Virtual method, pylint: disable=unused-argument
+        # pylint: disable=unused-argument
         shape = self.getTypeShape()
 
         return (
@@ -750,122 +604,87 @@ class ExpressionBase(NodeBase):
 
     @staticmethod
     def mayRaiseExceptionAbs(exception_type):
-        """Unless we are told otherwise, everything may raise in 'abs'."""
-        # Virtual method, pylint: disable=unused-argument
-
+        # pylint: disable=unused-argument
         return True
 
     @staticmethod
     def mayRaiseExceptionInt(exception_type):
-        """Unless we are told otherwise, everything may raise in __int__."""
-        # Virtual method, pylint: disable=unused-argument
-
+        # pylint: disable=unused-argument
         return True
 
     @staticmethod
     def mayRaiseExceptionLong(exception_type):
-        """Unless we are told otherwise, everything may raise in __long__."""
-        # Virtual method, pylint: disable=unused-argument
-
+        # pylint: disable=unused-argument
         return True
 
     @staticmethod
     def mayRaiseExceptionFloat(exception_type):
-        """Unless we are told otherwise, everything may raise in __float__."""
-        # Virtual method, pylint: disable=unused-argument
-
+        # pylint: disable=unused-argument
         return True
 
     @staticmethod
     def mayRaiseExceptionBytes(exception_type):
-        """Unless we are told otherwise, everything may raise in __bytes__."""
-        # Virtual method, pylint: disable=unused-argument
-
+        # pylint: disable=unused-argument
         return True
 
     @staticmethod
     def mayRaiseExceptionIn(exception_type, checked_value):
-        """Unless we are told otherwise, everything may raise being iterated."""
-        # Virtual method, pylint: disable=unused-argument
-
+        # pylint: disable=unused-argument
         return True
 
     @staticmethod
     def mayRaiseExceptionAttributeLookup(exception_type, attribute_name):
-        """Unless we are told otherwise, everything may raise for attribute access."""
-        # Virtual method, pylint: disable=unused-argument
-
+        # pylint: disable=unused-argument
         return True
 
     @staticmethod
     def mayRaiseExceptionAttributeLookupSpecial(exception_type, attribute_name):
-        """Unless we are told otherwise, everything may raise for attribute access."""
-        # Virtual method, pylint: disable=unused-argument
-
+        # pylint: disable=unused-argument
         return True
 
     @staticmethod
     def mayRaiseExceptionAttributeLookupObject(exception_type, attribute):
-        """Unless we are told otherwise, everything may raise for attribute access."""
-        # Virtual method, pylint: disable=unused-argument
-
+        # pylint: disable=unused-argument
         return True
 
     @staticmethod
     def mayRaiseExceptionImportName(exception_type, import_name):
-        """Unless we are told otherwise, everything may raise for name import."""
-        # Virtual method, pylint: disable=unused-argument
+        # pylint: disable=unused-argument
         return True
 
     @staticmethod
     def mayHaveSideEffectsBool():
-        """Unless we are told otherwise, everything may have a side effect for bool check."""
-
         return True
 
     @staticmethod
     def mayHaveSideEffectsAbs():
-        """Unless we are told otherwise, everything may have a side effect for abs check."""
-
         # TODO: Bonus points for check type shapes that will be good
         # for abs, i.e. number shapes like Int, Long, Float, Complex.
-
         return True
 
     def mayHaveSideEffectsNext(self):
-        """The type shape tells us, if "next" may execute code."""
-
         return self.getTypeShape().hasShapeSlotNextCode()
 
     def hasShapeSlotLen(self):
-        """The type shape tells us, if "len" is available."""
         return self.getTypeShape().hasShapeSlotLen()
 
     def hasShapeSlotIter(self):
-        """The type shape tells us, if "iter" is available."""
         return self.getTypeShape().hasShapeSlotIter()
 
     def hasShapeSlotNext(self):
-        """The type shape tells us, if "next" is available."""
         return self.getTypeShape().hasShapeSlotNext()
 
     # TODO: Maybe this is a shape slot thing.
     @staticmethod
     def isKnownToBeValidIndex():
-        """Unless we are told otherwise, the value is not a valid index."""
-
         return False
 
     def isKnownToBeIndexable(self):
-        """Value supports index lookup, based on type shape."""
-
         return self.getTypeShape().hasShapeIndexLookup()
 
     # TODO: There ought to be a type shape check for that too.
     @staticmethod
     def getIntegerValue():
-        """Node as integer value, if possible."""
-
         return None
 
     # TODO: There ought to be a type shape check for that too.
@@ -873,14 +692,13 @@ class ExpressionBase(NodeBase):
     def getIndexValue():
         """Node as index value, if possible.
 
-        This should only work for int, bool, and long values, but e.g. not floats.
+        This should only work for 'int', 'bool', and 'long' values, but e.g. not floats.
         """
 
         return None
 
     @staticmethod
     def isExpressionIntegerSubscript():
-        """Can this be used directly as an integer subscript?"""
         return False
 
     @staticmethod
@@ -894,16 +712,9 @@ class ExpressionBase(NodeBase):
         return None
 
     def getExpressionDictInConstant(self, value):
-        """Value that the dict "in" operation would give, if known.
+        """Value that the dict 'in' operation would give, if known, else 'None'."""
 
-        This is only called for values with known dict type shape. And those
-        nodes who are known to do it, have to overload it.
-        """
-
-        # Virtual method, pylint: disable=unused-argument
-
-        # We want to have them all overloaded, so lets report cases where that
-        # has not been happening.
+        # pylint: disable=unused-argument
         if states.is_debug:
             onMissingOverload(method_name="getExpressionDictInConstant", node=self)
 
@@ -913,26 +724,18 @@ class ExpressionBase(NodeBase):
         return self.getTypeShape().hasShapeTrustedAttributes()
 
     def hasShapeTypeExact(self):
-        """Does a node have exactly a 'type' shape."""
-
         return self.getTypeShape() is tshape_type
 
     def hasShapeListExact(self):
-        """Does a node have exactly a list shape."""
-
         return self.getTypeShape() is tshape_list
 
     def hasShapeDictionaryExact(self):
-        """Does a node have exactly a dictionary shape."""
-
         return self.getTypeShape() is tshape_dict
 
     def hasShapeStrExact(self):
-        """Does an expression have exactly a string shape."""
         return self.getTypeShape() is tshape_str
 
     def hasShapeUnicodeExact(self):
-        """Does an expression have exactly a unicode shape."""
         return self.getTypeShape() is tshape_unicode
 
     if str is bytes:
@@ -946,11 +749,9 @@ class ExpressionBase(NodeBase):
             return self.getTypeShape() is tshape_str
 
     def hasShapeBytesExact(self):
-        """Does an expression have exactly a bytes shape."""
         return self.getTypeShape() is tshape_bytes
 
     def hasShapeBoolExact(self):
-        """Does an expression have exactly a bool shape."""
         return self.getTypeShape() is tshape_bool
 
     @staticmethod
@@ -964,18 +765,14 @@ class ExpressionNoSideEffectsMixin(object):
 
     @staticmethod
     def mayHaveSideEffects():
-        # Virtual method overload
         return False
 
     @staticmethod
     def extractSideEffects():
-        # Virtual method overload, we said we have no effects.
         return ()
 
     def computeExpressionDrop(self, statement, trace_collection):
-        # Virtual method overload, pylint: disable=unused-argument
-        #
-        # We said we have no effects, so we can be removed.
+        # pylint: disable=unused-argument
         return (
             None,
             "new_statements",
@@ -984,9 +781,7 @@ class ExpressionNoSideEffectsMixin(object):
 
     @staticmethod
     def mayRaiseException(exception_type):
-        # Virtual method overload, pylint: disable=unused-argument
-
-        # An exception would be considered a side effect too.
+        # pylint: disable=unused-argument
         return False
 
 
@@ -1000,12 +795,7 @@ class CompileTimeConstantExpressionBase(ExpressionNoSideEffectsMixin, Expression
 
     @staticmethod
     def isCompileTimeConstant():
-        """Has a value that we can use at compile time.
-
-        Yes or no. If it has such a value, simulations can be applied at
-        compile time and e.g. operations or conditions, or even calls may
-        be executed against it.
-        """
+        """Return whether the expression has a value usable for compile-time simulation."""
         return True
 
     def getTruthValue(self):
@@ -1016,36 +806,21 @@ class CompileTimeConstantExpressionBase(ExpressionNoSideEffectsMixin, Expression
 
     @abstractmethod
     def getCompileTimeConstant(self):
-        """Return compile time constant.
-
-        Notes: Only available after passing "isCompileTimeConstant()".
-
-        """
+        """Return compile time constant; only valid when 'isCompileTimeConstant()' is 'True'."""
 
     def getCompileTimeConstantType(self):
-        """Return type of compile time constant.
-
-        Notes: Only available after passing "isCompileTimeConstant()".
-
-        """
         return type(self.getCompileTimeConstant())
 
     @staticmethod
     def isMutable():
-        """Return if compile time constant is mutable.
-
-        Notes: Only useful after passing "isCompileTimeConstant()".
-        """
         return False
 
     @staticmethod
     def hasShapeTrustedAttributes():
-        # All compile time constants must be fixed for attributes.
         return True
 
     @staticmethod
     def mayHaveSideEffectsBool():
-        # Virtual method overload
         return False
 
     @staticmethod
@@ -1169,9 +944,7 @@ Compile time constant bytes value pre-computed.""",
             )
 
         # TODO: Look-up of subscript to index may happen.
-        # Any code could be run due to that, note that.
         trace_collection.onControlFlowEscape(self)
-
         trace_collection.onExceptionRaiseExit(BaseException)
 
         return lookup_node, None, None
@@ -1219,7 +992,6 @@ Compile time constant bytes value pre-computed.""",
                     user_provided=False,
                 )
 
-        # Any exception might be raised, although it's not likely.
         trace_collection.onExceptionRaiseExit(BaseException)
 
         return lookup_node, None, None
@@ -1244,7 +1016,6 @@ Predicted '%s' on compiled time constant values.""" % in_node.comparator,
     def computeExpressionBool(self, trace_collection):
         constant = self.getCompileTimeConstant()
 
-        # Dealt with through dedicated nodes.
         assert type(constant) is not bool
         truth_value = bool(constant)
 
@@ -1256,7 +1027,6 @@ Predicted '%s' on compiled time constant values.""" % in_node.comparator,
 
 
 class ExpressionSpecBasedComputationMixin(object):
-    # Mixins are not allowed to specify slots.
     __slots__ = ()
 
     builtin_spec = None
@@ -1279,7 +1049,6 @@ class ExpressionSpecBasedComputationMixin(object):
 
 
 class ExpressionSpecBasedComputationNoRaiseMixin(object):
-    # Mixins are not allowed to specify slots.
     __slots__ = ()
 
     builtin_spec = None

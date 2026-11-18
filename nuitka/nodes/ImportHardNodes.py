@@ -14,8 +14,7 @@ from .ExpressionBases import ExpressionBase
 
 
 class ExpressionImportHardBase(ExpressionBase):
-    # Base classes can be abstract, pylint: disable=abstract-method
-    #
+    # pylint: disable=abstract-method
     __slots__ = (
         "module_name",
         "finding",
@@ -40,7 +39,6 @@ class ExpressionImportHardBase(ExpressionBase):
             level=0,
         )
 
-        # Expect to find them and to match the name of course.
         assert self.finding != "not-found", self.module_name
         assert _module_name == self.module_name, (self.module_name, _module_name)
 
@@ -61,9 +59,7 @@ class ExpressionImportHardBase(ExpressionBase):
 
 
 class ExpressionImportModuleNameHardBase(ExpressionImportHardBase):
-    """Hard import names base class."""
-
-    # Base classes can be abstract, pylint: disable=I0021,abstract-method
+    # pylint: disable=I0021,abstract-method
 
     __slots__ = ("import_name", "finding", "module_filename", "module_guaranteed")
 
@@ -103,18 +99,12 @@ class ExpressionImportModuleNameHardBase(ExpressionImportHardBase):
 
 
 class ExpressionImportModuleNameHardMaybeExists(ExpressionImportModuleNameHardBase):
-    """Hard coded import names, e.g. of "site.something"
-
-    These are created for attributes of hard imported modules that are not know if
-    they exist or not.
-    """
+    """Hard-coded attribute import (e.g. 'site.something') that may not exist at runtime."""
 
     kind = "EXPRESSION_IMPORT_MODULE_NAME_HARD_MAYBE_EXISTS"
 
     def computeExpressionRaw(self, trace_collection):
         trace_collection.onExceptionRaiseExit(AttributeError)
-
-        # Trace the module usage attempt.
         trace_collection.onModuleUsageAttempts(self.getModuleUsageAttempts())
 
         return self, None, None
@@ -129,10 +119,7 @@ class ExpressionImportModuleNameHardMaybeExists(ExpressionImportModuleNameHardBa
 
 
 class ExpressionImportModuleNameHardExists(ExpressionImportModuleNameHardBase):
-    """Hard coded import names, e.g. of "sys.stdout"
-
-    These are directly created for some Python mechanics.
-    """
+    """Hard-coded attribute import (e.g. 'sys.stdout') known to exist."""
 
     kind = "EXPRESSION_IMPORT_MODULE_NAME_HARD_EXISTS"
 
@@ -140,10 +127,8 @@ class ExpressionImportModuleNameHardExists(ExpressionImportModuleNameHardBase):
         if not self.module_guaranteed:
             trace_collection.onExceptionRaiseExit(ImportError)
 
-        # Trace the module usage attempt.
         trace_collection.onModuleUsageAttempts(self.getModuleUsageAttempts())
 
-        # As good as it gets.
         return self, None, None
 
     def mayHaveSideEffects(self):
@@ -167,7 +152,7 @@ class ExpressionImportModuleNameHardExists(ExpressionImportModuleNameHardBase):
 class ExpressionImportModuleNameHardExistsSpecificBase(
     ExpressionImportModuleNameHardExists
 ):
-    """Base class for nodes that hard coded import names, e.g. of "importlib.import_module" name."""
+    """Base class for dedicated hard-coded import attribute nodes (e.g. 'importlib.import_module')."""
 
     @staticmethod
     def getDetails():

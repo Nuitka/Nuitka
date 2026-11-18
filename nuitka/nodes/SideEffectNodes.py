@@ -100,8 +100,6 @@ class ExpressionSideEffects(
         )
 
     def computeExpressionDrop(self, statement, trace_collection):
-        # Side effects can  become statements.
-
         expressions = self.subnode_side_effects + (self.subnode_expression,)
 
         result = makeStatementOnlyNodesFromExpressions(expressions=expressions)

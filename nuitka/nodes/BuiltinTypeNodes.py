@@ -1,11 +1,7 @@
 #     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-"""Built-in type nodes tuple/list/set/float/str/unicode etc.
-
-These are all very simple and have predictable properties, because we know their type and
-that should allow some important optimizations.
-"""
+"""Built-in type nodes for 'tuple', 'list', 'set', 'float', 'str', 'bytes', etc."""
 
 from nuitka.specs import BuiltinParameterSpecs
 
@@ -53,7 +49,6 @@ class ExpressionBuiltinTypeBase(ExpressionBuiltinSingleArgBase):
 class ExpressionBuiltinContainerBase(
     ExpressionSpecBasedComputationMixin, ChildHavingValueMixin, ExpressionBase
 ):
-    # For overload.
     builtin_spec = None
 
     named_children = ("value",)
@@ -84,7 +79,6 @@ class ExpressionBuiltinContainerBase(
 
                 return self, None, None
         else:
-            # They take over the variable content, exposing it to currently untraced usages.
             value.onContentEscapes(trace_collection)
 
             return self.computeBuiltinSpec(
@@ -218,11 +212,9 @@ class ExpressionBuiltinUnicodeBase(
         while args and args[-1] is None:
             del args[-1]
 
-        # The value of that node escapes and could change its contents.
         if self.subnode_value is not None:
             trace_collection.onValueEscapeStr(self.subnode_value)
 
-        # Any code could be run, note that.
         trace_collection.onControlFlowEscape(self)
 
         return self.computeBuiltinSpec(
@@ -233,8 +225,6 @@ class ExpressionBuiltinUnicodeBase(
 class ExpressionBuiltinStrP2(
     ExpressionStrOrUnicodeDerivedShapeMixin, ExpressionBuiltinTypeBase
 ):
-    """Python2 built-in str call."""
-
     kind = "EXPRESSION_BUILTIN_STR_P2"
 
     builtin_spec = BuiltinParameterSpecs.builtin_str_spec
@@ -265,8 +255,6 @@ class ExpressionBuiltinStrP2(
 
 
 class ExpressionBuiltinUnicodeP2(ExpressionBuiltinUnicodeBase):
-    """Python2 built-in unicode call."""
-
     kind = "EXPRESSION_BUILTIN_UNICODE_P2"
 
     builtin_spec = BuiltinParameterSpecs.builtin_unicode_p2_spec
@@ -279,8 +267,6 @@ class ExpressionBuiltinUnicodeP2(ExpressionBuiltinUnicodeBase):
 class ExpressionBuiltinStrP3(
     ExpressionStrDerivedShapeMixin, ExpressionBuiltinUnicodeBase
 ):
-    """Python3 built-in str call."""
-
     kind = "EXPRESSION_BUILTIN_STR_P3"
 
     builtin_spec = BuiltinParameterSpecs.builtin_str_spec
@@ -399,7 +385,6 @@ class ExpressionConstantGenericAlias(CompileTimeConstantExpressionBase):
         )
 
     def computeExpressionRaw(self, trace_collection):
-        # Nothing much to do.
         return self, None, None
 
 
@@ -430,7 +415,6 @@ class ExpressionConstantUnionType(CompileTimeConstantExpressionBase):
         )
 
     def computeExpressionRaw(self, trace_collection):
-        # Nothing much to do.
         return self, None, None
 
 
@@ -467,7 +451,6 @@ class ExpressionBuiltinsMemoryviewCall(ExpressionBuiltinsMemoryviewCallBase):
     kind = "EXPRESSION_BUILTINS_MEMORYVIEW_CALL"
 
     def replaceWithCompileTimeValue(self, trace_collection):
-        # TODO: Implement actual optimization logic
         trace_collection.onExceptionRaiseExit(BaseException)
         return self, None, None
 

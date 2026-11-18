@@ -51,55 +51,33 @@ class ExpressionYieldBase(ChildHavingExpressionMixin, ExpressionBase):
         # TODO: That's actually only needed if the value is mutable.
         trace_collection.removeKnowledge(self.subnode_expression)
 
-        # Any code could be run, note that.
         trace_collection.onControlFlowEscape(self)
 
         trace_collection.onExceptionRaiseExit(BaseException)
-        # Nothing possible really here.
+
         return self, None, None
 
 
 class ExpressionYield(ExpressionYieldBase):
-    """Yielding an expression.
-
-    Typical code: yield expression
-
-    Can only happen in a generator. Kind of explicitly suspends and
-    resumes the execution. The user may inject any kind of exception
-    or give any return value. The value of "None" is the most common
-    though, esp. if it's not used.
-
-    """
+    """Generator 'yield expression'."""
 
     kind = "EXPRESSION_YIELD"
 
 
 class ExpressionYieldFrom(ExpressionYieldBase):
-    """Yielding from an expression.
+    """Python 3 generator 'yield from expression'.
 
-    Typical code: yield from expression (Python3)
-
-    Can only happen in a generator and only in Python3. Similar to yield,
-    but implies a loop and exception propagation to the yield from generator
-    if such. Kind of explicitly suspends and resumes the execution. The
-    user may inject any kind of exception or give any return value. Having
-    a return value is what makes Python3 generators special, and with yield
-    from, that value is the expression result.
+    Delegates iteration and injected values/exceptions to the sub-iterator,
+    evaluating to the sub-generator's return value.
     """
 
     kind = "EXPRESSION_YIELD_FROM"
 
 
 class ExpressionYieldFromAwaitable(ExpressionYieldBase):
-    """Yielding from an expression.
+    """Python 3.5+ coroutine or async-generator suspension ('await', 'async for', 'async with').
 
-    Typical code: await x, async for ..., async with (Python3.5)
-
-    Can only happen in a coroutine or asyncgen and only in Python3.5
-    or higher.
-
-    Similar to yield from. The actual lookups of awaitable go through
-    slots and have dedicated nodes.
+    Operates like 'yield from' on an already-resolved awaitable slot result.
     """
 
     kind = "EXPRESSION_YIELD_FROM_AWAITABLE"

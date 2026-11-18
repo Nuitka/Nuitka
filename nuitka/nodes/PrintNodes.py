@@ -1,14 +1,9 @@
 #     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-"""Print nodes.
+"""Print statement and built-in function nodes.
 
-Right now there is only the print statement, but in principle, there should
-also be the print function here. These perform output, which can be combined
-if possible, and could be detected to fail, which would be perfect.
-
-Predicting the behavior of 'print' is not trivial at all, due to many special
-cases.
+Predicting the behavior of 'print' is not trivial due to many special cases.
 """
 
 from .HardImportNodesGenerated import (
@@ -104,7 +99,6 @@ class ExpressionBuiltinsPrintSince3Call1(ExpressionBuiltinsPrintSince3Call1Base)
         return True
 
     def replaceWithCompileTimeValue(self, trace_collection):
-        # TODO: Implement actual optimization logic
         trace_collection.onExceptionRaiseExit(BaseException)
         return self, None, None
 
@@ -120,7 +114,6 @@ class ExpressionBuiltinsPrintSince3Call(ExpressionBuiltinsPrintSince3CallBase):
         return True
 
     def replaceWithCompileTimeValue(self, trace_collection):
-        # TODO: Implement actual optimization logic
         trace_collection.onExceptionRaiseExit(BaseException)
         return self, None, None
 
@@ -152,7 +145,6 @@ class ExpressionBuiltinsPrintBefore3Call(ExpressionBuiltinsPrintBefore3CallBase)
         return True
 
     def replaceWithCompileTimeValue(self, trace_collection):
-        # TODO: Implement actual optimization logic
         trace_collection.onExceptionRaiseExit(BaseException)
         return self, None, None
 

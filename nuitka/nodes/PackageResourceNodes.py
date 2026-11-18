@@ -1,7 +1,7 @@
 #     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-"""Nodes the represent ways to access package data for pkglib, pkg_resources, etc."""
+"""Nodes that represent ways to access package data for pkgutil, pkg_resources, importlib.resources, etc."""
 
 from nuitka.importing.Importing import (
     importFromCompileTime,
@@ -101,8 +101,6 @@ class ExpressionImportlibResourcesReadBinaryCall(
     SideEffectsFromChildrenMixin,
     ExpressionImportlibResourcesReadBinaryCallBase,
 ):
-    """Call to "importlib.resources.read_binary" """
-
     kind = "EXPRESSION_IMPORTLIB_RESOURCES_READ_BINARY_CALL"
 
     python_version_spec = ">= 0x370"
@@ -125,8 +123,6 @@ class ExpressionImportlibResourcesOpenBinaryCall(
     SideEffectsFromChildrenMixin,
     ExpressionImportlibResourcesOpenBinaryCallBase,
 ):
-    """Call to "importlib.resources.open_binary" """
-
     kind = "EXPRESSION_IMPORTLIB_RESOURCES_OPEN_BINARY_CALL"
 
     def __init__(self, package, resource, source_ref):
@@ -147,8 +143,6 @@ class ExpressionImportlibResourcesBackportOpenBinaryCall(
     SideEffectsFromChildrenMixin,
     ExpressionImportlibResourcesBackportOpenBinaryCallBase,
 ):
-    """Call to "importlib_resources.open_binary" """
-
     kind = "EXPRESSION_IMPORTLIB_RESOURCES_BACKPORT_OPEN_BINARY_CALL"
 
     def __init__(self, package, resource, source_ref):
@@ -186,8 +180,6 @@ class ExpressionImportlibResourcesOpenTextCall(
     SideEffectsFromChildrenMixin,
     ExpressionImportlibResourcesOpenTextCallBase,
 ):
-    """Call to "importlib.resources.open_text" """
-
     kind = "EXPRESSION_IMPORTLIB_RESOURCES_OPEN_TEXT_CALL"
 
     def replaceWithCompileTimeValue(self, trace_collection):
@@ -217,8 +209,6 @@ class ExpressionImportlibResourcesBackportOpenTextCall(
     SideEffectsFromChildrenMixin,
     ExpressionImportlibResourcesBackportOpenTextCallBase,
 ):
-    """Call to "importlib_resources.open_text" """
-
     kind = "EXPRESSION_IMPORTLIB_RESOURCES_BACKPORT_OPEN_TEXT_CALL"
 
     def replaceWithCompileTimeValue(self, trace_collection):
@@ -231,8 +221,6 @@ class ExpressionImportlibResourcesBackportReadBinaryCall(
     SideEffectsFromChildrenMixin,
     ExpressionImportlibResourcesBackportReadBinaryCallBase,
 ):
-    """Call to "importlib.resources.read_binary" """
-
     kind = "EXPRESSION_IMPORTLIB_RESOURCES_BACKPORT_READ_BINARY_CALL"
 
     def __init__(self, package, resource, source_ref):
@@ -252,7 +240,6 @@ class ExpressionImportlibResourcesBackportReadBinaryCall(
 def makeExpressionImportlibResourcesReadTextBefore313Call(
     package, resource, encoding, errors, source_ref
 ):
-    # Avoid making things optional.
     if encoding is None:
         encoding = makeConstantRefNode(constant="utf-8", source_ref=source_ref)
     if errors is None:
@@ -270,7 +257,6 @@ def makeExpressionImportlibResourcesReadTextBefore313Call(
 def makeExpressionImportlibResourcesReadTextSince313Call(
     package, resources, encoding, errors, source_ref
 ):
-    # Avoid making things optional.
     if encoding is None:
         encoding = makeConstantRefNode(constant="utf-8", source_ref=source_ref)
     if errors is None:
@@ -289,8 +275,6 @@ class ExpressionImportlibResourcesReadTextBefore313Call(
     SideEffectsFromChildrenMixin,
     ExpressionImportlibResourcesReadTextBefore313CallBase,
 ):
-    """Call to "importlib.resources.read_text" """
-
     kind = "EXPRESSION_IMPORTLIB_RESOURCES_READ_TEXT_BEFORE_313_CALL"
 
     python_version_spec = ">= 0x370"
@@ -305,8 +289,6 @@ class ExpressionImportlibResourcesReadTextSince313Call(
     SideEffectsFromChildrenMixin,
     ExpressionImportlibResourcesReadTextSince313CallBase,
 ):
-    """Call to "importlib.resources.read_text" """
-
     kind = "EXPRESSION_IMPORTLIB_RESOURCES_READ_TEXT_SINCE_313_CALL"
 
     python_version_spec = ">= 0x3D0"
@@ -320,7 +302,6 @@ class ExpressionImportlibResourcesReadTextSince313Call(
 def makeExpressionImportlibResourcesBackportReadTextCall(
     package, resource, encoding, errors, source_ref
 ):
-    # Avoid making things optional.
     if encoding is None:
         encoding = makeConstantRefNode(constant="utf-8", source_ref=source_ref)
     if errors is None:
@@ -339,8 +320,6 @@ class ExpressionImportlibResourcesBackportReadTextCall(
     SideEffectsFromChildrenMixin,
     ExpressionImportlibResourcesBackportReadTextCallBase,
 ):
-    """Call to "importlib_resources.read_text" """
-
     kind = "EXPRESSION_IMPORTLIB_RESOURCES_BACKPORT_READ_TEXT_CALL"
 
     def replaceWithCompileTimeValue(self, trace_collection):
@@ -378,7 +357,6 @@ class ExpressionImportlibResourcesFilesCallMixin:
     def mayRaiseExceptionOperation():
         return True
 
-    # Only for the not fixed ones.
     def replaceWithCompileTimeValue(self, trace_collection):
         trace_collection.onExceptionRaiseExit(BaseException)
 

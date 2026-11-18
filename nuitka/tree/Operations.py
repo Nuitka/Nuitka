@@ -11,8 +11,6 @@ _visit_depth_threshold = sys.getrecursionlimit() // 2
 
 
 def _visitorIsEnterOnly(visitor):
-    # Visitors without their own leave callback only need the entering nodes,
-    # which can be done much faster without post-order handling.
     return type(visitor).onLeaveNode is VisitorNoopMixin.onLeaveNode
 
 
@@ -24,8 +22,8 @@ def visitTree(tree, visitor):
 
 
 def _visitTreeEnterOnly(tree, visitor):
-    # Iterative pre-order entering using an explicit stack, so that very
-    # deeply nested node trees do not exceed the Python recursion limit.
+    # Explicit stack avoids hitting the Python recursion limit on deeply nested
+    # node trees without needing post-order tracking.
     stack = [tree]
 
     while stack:
@@ -46,13 +44,10 @@ def _visitTreeRecursive(tree, visitor, depth):
         visitor.onLeaveNode(tree)
 
 
-# Stack indicator for the leave call of a node, when its children are done.
 _leave_indicator = object()
 
 
 def _visitTreeIterative(tree, visitor):
-    # Iterative pre-/post-order traversal using an explicit stack, so that very
-    # deeply nested node trees do not exceed the Python recursion limit.
     stack = [tree]
 
     while stack:
@@ -65,8 +60,6 @@ def _visitTreeIterative(tree, visitor):
             children = item.getVisitableNodes()
 
             if children:
-                # Revisit this node for the leave call once its children are
-                # done, then push the reversed children.
                 stack.append(item)
                 stack.append(_leave_indicator)
                 stack.extend(reversed(children))
@@ -76,10 +69,10 @@ def _visitTreeIterative(tree, visitor):
 
 class VisitorNoopMixin(object):
     def onEnterNode(self, node):
-        """Overloaded for operation before the node children were done."""
+        pass
 
     def onLeaveNode(self, node):
-        """Overloaded for operation after the node children were done."""
+        pass
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and

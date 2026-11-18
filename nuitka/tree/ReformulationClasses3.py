@@ -1,12 +1,7 @@
 #     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-"""Reformulation of Python3 class statements.
-
-Consult the Developer Manual for information. TODO: Add ability to sync
-source code comments with Developer Manual sections.
-
-"""
+"""Reformulation of Python3 class statements."""
 
 from nuitka.nodes.AttributeNodes import (
     ExpressionAttributeCheck,
@@ -154,8 +149,6 @@ from .TreeHelpers import (
 
 
 def _buildBasesTupleCreationNode(provider, elements, source_ref):
-    """For use in Python3 classes for the bases."""
-
     for element in elements:
         if getKind(element) == "Starred":
             return buildTupleUnpacking(
@@ -269,20 +262,12 @@ def makeExpressionClassPrepareCall(
 
 
 def buildClassNode3(provider, node, source_ref):
-    # Many variables, due to the huge re-formulation that is going on here,
-    # which just has the complexity and optimization checks:
     # pylint: disable=too-many-branches,too-many-locals,too-many-statements
 
-    # This function is the Python3 special case with special re-formulation as
-    # according to Developer Manual.
-
-    # First, allow plugins to modify the code if they want to.
     onClassBodyParsing(provider=provider, class_name=node.name, node=node)
 
-    # We need a container for the temporary variables to not pollute the outside.
     helper_name = "class_container"
 
-    # TODO: Make this a statement of some sorts.
     outline_body = ExpressionOutlineBody(
         provider=provider, name=helper_name, source_ref=source_ref
     )
@@ -294,7 +279,6 @@ def buildClassNode3(provider, node, source_ref):
     has_type_params = python_version >= 0x3C0 and bool(node.type_params)
 
     if has_type_params:
-        # We need a separate enclosing scope for type parameters
         type_params_scope = ExpressionOutlineFunction(
             provider=provider, name="class_type_params", source_ref=source_ref
         )
@@ -305,7 +289,6 @@ def buildClassNode3(provider, node, source_ref):
         class_provider = provider
         class_body = outline_body
 
-    # We need a scope for the temporary variables, and they might be closured.
     temp_scope = class_body.allocateTempScope(name="class_creation")
 
     tmp_class_decl_dict = class_body.allocateTempVariable(
@@ -327,7 +310,6 @@ def buildClassNode3(provider, node, source_ref):
             data = (type_param, type_var)
             type_variables.append(data)
 
-    # Can be overridden, but for code object creation, we use that.
     static_qualname = provider.getChildQualname(node.name)
 
     class_dict_creation_function = ExpressionClassMappingBody(
@@ -336,7 +318,6 @@ def buildClassNode3(provider, node, source_ref):
 
     class_locals_scope = class_dict_creation_function.getLocalsScope()
 
-    # Only local variable, for provision to methods.
     class_variable = class_locals_scope.getLocalVariable(
         owner=class_dict_creation_function,
         variable_name="__class__",
@@ -431,7 +412,6 @@ def buildClassNode3(provider, node, source_ref):
             )
         )
 
-    # The "__qualname__" attribute has a dedicated node.
     qualname_ref = ExpressionFunctionQualnameRef(
         function_body=class_dict_creation_function, source_ref=source_ref
     )
@@ -715,7 +695,6 @@ def buildClassNode3(provider, node, source_ref):
         StatementReturn(expression=class_variable_ref, source_ref=source_ref)
     )
 
-    # TODO: Is this something similar to makeTryFinallyReleaseStatement
     body = makeStatementsSequenceFromStatement(
         statement=makeTryFinallyStatement(
             provider=class_dict_creation_function,
@@ -727,13 +706,7 @@ def buildClassNode3(provider, node, source_ref):
         )
     )
 
-    # The class body is basically a function that implicitly, at the end
-    # returns its locals and cannot have other return statements contained.
     class_dict_creation_function.setChildBody(body)
-
-    # The class body is basically a function that implicitly, at the end
-    # returns its created class and cannot have other return statements
-    # contained.
 
     decorated_body = class_dict_creation_function
 
@@ -808,8 +781,6 @@ def buildClassNode3(provider, node, source_ref):
     for keyword in node.keywords:
         checkDebugNameAssignment(name=keyword.arg, source_ref=source_ref)
 
-    # TODO: It's not really clear, since when those in the middle keywords are accepted
-    # and not a SyntaxError, and if then we might have to raise it.
     keyword_keys = tuple(keyword.arg for keyword in node.keywords)
     keyword_values = tuple(keyword.value for keyword in node.keywords)
 
@@ -847,9 +818,6 @@ def buildClassNode3(provider, node, source_ref):
         )
     )
 
-    # Check if there are bases, and if there are, go with the type of the
-    # first base class as a metaclass unless it was specified in the class
-    # decl dict of course.
     if node.bases:
         unspecified_metaclass_expression = ExpressionBuiltinType1(
             value=makeExpressionIndexLookup(
@@ -1386,7 +1354,6 @@ subclass of the metaclasses of all its bases""",
     )
 
 
-# Note: This emulates selection of meta class based on base classes
 @once_decorator
 def getClassSelectMetaClassHelper():
     helper_name = "_select_metaclass"
@@ -1470,7 +1437,7 @@ def getClassSelectMetaClassHelper():
                 ),
                 source_ref=internal_source_ref,
             ),
-            yes_branch=None,  # Ignore if current winner is already a subtype.
+            yes_branch=None,
             no_branch=makeStatementConditional(
                 condition=ExpressionSubtypeCheck(
                     left=ExpressionTempVariableRef(

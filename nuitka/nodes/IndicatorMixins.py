@@ -1,23 +1,13 @@
 #     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-"""Module for node class mixins that indicate runtime determined node facts.
-
-These come into play after finalization only. All of the these attributes (and
-we could use properties instead) are determined once or from a default and then
-used like this.
-
-"""
+"""Node class mixins for flags and optimization state."""
 
 
 class MarkUnoptimizedFunctionIndicatorMixin(object):
-    """Mixin for indication that a function contains an exec or star import.
+    """Mixin indicating a function contains 'exec' or star import and checks locals before globals."""
 
-    These do not access global variables directly, but check a locals dictionary
-    first, because they do.
-    """
-
-    # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
+    # pylint: disable=assigning-non-slot
     __slots__ = ()
 
     def __init__(self, flags):
@@ -32,23 +22,22 @@ class MarkUnoptimizedFunctionIndicatorMixin(object):
 
 
 class MarkNeedsAnnotationsMixin(object):
-    # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
+    # pylint: disable=assigning-non-slot
     __slots__ = ()
 
     def __init__(self):
         self.needs_annotations_dict = False
 
     def markAsNeedsAnnotationsDictionary(self):
-        """For use during building only. Indicate "__annotations__" need."""
+        """For use during tree building only."""
         self.needs_annotations_dict = True
 
     def needsAnnotationsDictionary(self):
-        """For use during building only. Indicate "__annotations__" need."""
         return self.needs_annotations_dict
 
 
 class EntryPointMixin(object):
-    # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
+    # pylint: disable=assigning-non-slot
     __slots__ = ()
 
     def __init__(self):

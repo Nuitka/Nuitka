@@ -1,12 +1,7 @@
 #     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-"""Nodes for coroutine objects and their creations.
-
-Coroutines are turned into normal functions that create generator objects,
-whose implementation lives here. The creation itself also lives here.
-
-"""
+"""Nodes for coroutine objects, their creation, and 'await' expressions."""
 
 from .ChildrenHavingMixins import (
     ChildHavingCoroutineRefMixin,
@@ -92,7 +87,7 @@ class ExpressionAsyncWait(ChildHavingExpressionMixin, ExpressionBase):
         return True
 
     def computeExpression(self, trace_collection):
-        # TODO: Might be predictable based awaitable analysis or for constants.
+        # TODO: Might be predictable based on awaitable analysis or for constants.
 
         trace_collection.onExceptionRaiseExit(BaseException)
 

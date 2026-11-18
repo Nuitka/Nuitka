@@ -3,16 +3,8 @@
 
 """Nodes for functions and their creations.
 
-Lambdas are functions too. The functions are at the core of the language and
-have their complexities.
-
-Creating a CPython function object is an optional thing. Some things might
-only be used to be called directly, while knowing exactly what it is. So
-the "ExpressionFunctionCreation" might be used to provide that kind of
-CPython reference, and may escape.
-
-Coroutines and generators live in their dedicated module and share base
-classes.
+Creating a CPython function object via 'ExpressionFunctionCreation' is optional
+when a function is only called directly.
 """
 
 import inspect
@@ -93,7 +85,6 @@ class ExpressionFunctionBodyBase(
     if python_version >= 0x300:
         __slots__ += ("qualname_provider", "non_local_declarations")
 
-    # Might be None initially in some cases.
     named_children = ("body|optional+setter",)
 
     def __init__(self, provider, name, body, code_prefix, flags, source_ref):
@@ -128,7 +119,6 @@ class ExpressionFunctionBodyBase(
             # TODO: Make this class only code.
             self.qualname_provider = provider
 
-            # Non-local declarations if any.
             self.non_local_declarations = None
 
     def getCloneArgs(self):
@@ -146,7 +136,6 @@ class ExpressionFunctionBodyBase(
 
         Normally ourselves. Only outlines will refer to their parent which
         technically owns them.
-
         """
 
         return self
@@ -155,10 +144,7 @@ class ExpressionFunctionBodyBase(
         """Does a return of the function body need an exit point.
 
         This is not the case if no return can complete, e.g. when all of them
-        are contained in a "finally" block that raises.
-
-        Returns:
-            bool
+        are contained in a 'finally' block that raises.
         """
 
         body = self.subnode_body
@@ -252,7 +238,6 @@ class ExpressionFunctionBodyBase(
         return result
 
     def removeClosureVariable(self, variable):
-        # Do not remove parameter variables of ours.
         assert not variable.isParameterVariable() or variable.getOwner() is not self
 
         self.locals_scope.unregisterClosureVariable(variable)
@@ -270,8 +255,6 @@ class ExpressionFunctionBodyBase(
         return variable in self.taken
 
     def getVariableForAssignment(self, variable_name):
-        # print("ASS func", self, variable_name)
-
         if self.hasProvidedVariable(variable_name):
             result = self.getProvidedVariable(variable_name)
         elif self.hasTakenVariable(variable_name):
@@ -287,9 +270,6 @@ class ExpressionFunctionBodyBase(
         This makes function locals known before early closure lookups of
         class bodies are resolved. Nonlocal names are left for phase 1 to
         take from their provider.
-
-        Args:
-            variable_name: The variable name bound in this scope.
         """
 
         if not self.hasProvidedVariable(
@@ -298,8 +278,6 @@ class ExpressionFunctionBodyBase(
             self.getProvidedVariable(variable_name)
 
     def getVariableForReference(self, variable_name):
-        # print( "REF func", self, variable_name )
-
         if self.hasProvidedVariable(variable_name):
             result = self.getProvidedVariable(variable_name)
         else:
@@ -330,8 +308,6 @@ class ExpressionFunctionBodyBase(
         return result
 
     def getVariableForClosure(self, variable_name):
-        # print( "getVariableForClosure", self.getCodeName(), variable_name, self.isUnoptimized() )
-
         if self.hasProvidedVariable(variable_name):
             return self.getProvidedVariable(variable_name)
 
@@ -343,8 +319,6 @@ class ExpressionFunctionBodyBase(
         return result
 
     def createProvidedVariable(self, variable_name):
-        # print("createProvidedVariable", self, variable_name)
-
         assert self.locals_scope, self
 
         return self.locals_scope.getLocalVariable(
@@ -355,8 +329,8 @@ class ExpressionFunctionBodyBase(
         """Add a nonlocal declared name.
 
         This happens during tree building, and is a Python3 only
-        feature. We remember the names for later use through the
-        function @consumeNonlocalDeclarations
+        feature. We remember the names for later use through
+        'consumeNonlocalDeclarations'.
         """
         if self.non_local_declarations is None:
             self.non_local_declarations = []
@@ -364,17 +338,7 @@ class ExpressionFunctionBodyBase(
         self.non_local_declarations.append((names, user_provided, source_ref))
 
     def hasNonlocalDeclaration(self, variable_name):
-        """Check if a name is declared nonlocal.
-
-        This has to be used before the nonlocal declarations are consumed, e.g.
-        when creating local variables upfront.
-
-        Args:
-            variable_name: The variable name to check.
-
-        Returns:
-            bool
-        """
+        """Check if a name is declared nonlocal before declarations are consumed."""
 
         if python_version < 0x300 or self.non_local_declarations is None:
             return False
@@ -386,13 +350,6 @@ class ExpressionFunctionBodyBase(
         return False
 
     def consumeNonlocalDeclarations(self):
-        """Return the nonlocal declared names for this function.
-
-        There may not be any, which is why we assigned it to
-        None originally and now check and return empty tuple
-        in that case.
-        """
-
         result = self.non_local_declarations or ()
         self.non_local_declarations = None
         return result
@@ -401,11 +358,7 @@ class ExpressionFunctionBodyBase(
         return self.name
 
     def getFunctionQualname(self):
-        """Function __qualname__ new in CPython3.3
-
-        Should contain some kind of full name descriptions for the closure to
-        recognize and will be used for outputs.
-        """
+        """Function '__qualname__' (introduced in CPython 3.3)."""
 
         function_name = self.getFunctionName()
 
@@ -419,7 +372,6 @@ class ExpressionFunctionBodyBase(
     def computeExpression(self, trace_collection):
         assert False
 
-        # Function body is quite irreplaceable.
         return self, None, None
 
     def mayRaiseException(self, exception_type):
@@ -431,12 +383,9 @@ class ExpressionFunctionBodyBase(
             return self.subnode_body.mayRaiseException(exception_type)
 
     def getFunctionInlineCost(self, values):
-        """Cost of inlining this function with given arguments
+        """Cost of inlining this function with given arguments, or 'None' if not possible."""
 
-        Returns: None or integer values, None means don't do it.
-        """
-
-        # For overload, pylint: disable=no-self-use,unused-argument
+        # pylint: disable=no-self-use,unused-argument
         return None
 
     def optimizeUnusedClosureVariables(self):
@@ -464,8 +413,6 @@ class ExpressionFunctionBodyBase(
                 self.removeClosureVariable(closure_variable)
 
     def optimizeUnusedVeryTrustedModuleVariables(self, very_trusted_module_variables):
-        """Optimize module variables that are very trusted."""
-
         for module_variable in very_trusted_module_variables:
             if module_variable not in self.taken:
                 continue
@@ -528,7 +475,6 @@ class ExpressionFunctionEntryPointBase(EntryPointMixin, ExpressionFunctionBodyBa
             "locals_%s" % self.getCodeName(), locals_kind, self
         )
 
-        # Automatic parameter variable releases.
         self.auto_release = auto_release or None
 
     def getDetails(self):
@@ -586,11 +532,7 @@ class ExpressionFunctionEntryPointBase(EntryPointMixin, ExpressionFunctionBodyBa
         self.auto_release.add(variable)
 
     def getParameterVariablesWithManualRelease(self):
-        """Return the list of parameter variables that have release statements.
-
-        These are for consideration if these can be dropped, and if so, they
-        are releases automatically by function code.
-        """
+        """Return parameter variables that still use explicit release statements."""
         return tuple(
             variable
             for variable in self.locals_scope.getProvidedVariables()
@@ -600,11 +542,9 @@ class ExpressionFunctionEntryPointBase(EntryPointMixin, ExpressionFunctionBodyBa
         )
 
     def isAutoReleaseVariable(self, variable):
-        """Is this variable to be automatically released."""
         return self.auto_release is not None and variable in self.auto_release
 
     def getFunctionVariablesWithAutoReleases(self):
-        """Return the list of function variables that should be released at exit."""
         if self.auto_release is None:
             return ()
 
@@ -616,12 +556,7 @@ class ExpressionFunctionEntryPointBase(EntryPointMixin, ExpressionFunctionBodyBa
 
     @staticmethod
     def getConstantReturnValue():
-        """Special function that checks if code generation allows to use common C code.
-
-        Notes:
-            This is only done for standard functions.
-
-        """
+        """Return '(True, constant_value)' if common constant-return C code can be used, else '(False, False)'."""
         return False, False
 
 
@@ -674,14 +609,8 @@ class ExpressionFunctionBody(
         MarkUnoptimizedFunctionIndicatorMixin.__init__(self, flags)
 
         self.doc = doc
-
-        # Indicator if the function needs to be created as a function object.
         self.needs_creation = False
-
-        # Indicator if the function is called directly.
         self.needs_direct = False
-
-        # Indicator if the function is used outside of where it's defined.
         self.cross_module_use = False
 
         if python_version >= 0x300:
@@ -807,7 +736,6 @@ class ExpressionFunctionBody(
         return body is not None and body.mayRaiseException(exception_type)
 
     def getConstantReturnValue(self):
-        """Special function that checks if code generation allows to use common C code."""
         body = self.subnode_body
 
         if body is None:
@@ -831,10 +759,7 @@ class ExpressionFunctionBody(
 class ExpressionFunctionPureBody(ExpressionFunctionBody):
     kind = "EXPRESSION_FUNCTION_PURE_BODY"
 
-    __slots__ = (
-        # These need only one optimization ever.
-        "optimization_done",
-    )
+    __slots__ = ("optimization_done",)
 
     def __init__(
         self,
@@ -1077,14 +1002,7 @@ class _FunctionBodyRefCloneVisitor(VisitorNoopMixin):
 def updateFunctionBodyReferences(
     provider, old_provider, variable_translations, code_name_translations
 ):
-    """Update function body references after cloning their scope.
-
-    Args:
-        provider: Root of the cloned expression tree.
-        old_provider: Original provider whose variables were cloned.
-        variable_translations: Mapping of old to new variables.
-        code_name_translations: Mapping of old to new code names.
-    """
+    """Update function body references after cloning their scope."""
 
     visitTree(
         provider,
@@ -1125,7 +1043,7 @@ def makeExpressionFunctionCreation(
 
 
 class ExpressionFunctionCreationMixin(SideEffectsFromChildrenMixin):
-    # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
+    # pylint: disable=assigning-non-slot
     __slots__ = ()
 
     @staticmethod
@@ -1285,15 +1203,8 @@ class ExpressionFunctionCreationOld(
     kind = "EXPRESSION_FUNCTION_CREATION_OLD"
 
     python_version_spec = "< 0x300"
-    # Note: The order of evaluation for these is a bit unexpected, but
-    # true. Keyword defaults go first, then normal defaults, and annotations of
-    # all kinds go last.
 
-    # A bug of CPython3.x was not fixed before version 3.4, this is to allow
-    # code generation to detect which one is used. bugs.python.org/issue16967
     kw_defaults_before_defaults = True
-
-    # So the can share code generation with the new version.
     subnode_annotations = None
     subnode_kw_defaults = None
     subnode_type_params = None
@@ -1326,8 +1237,7 @@ class ExpressionFunctionCreation(
 
     python_version_spec = ">= 0x340"
 
-    # A bug of CPython3.x was not fixed before version 3.4, this is to allow
-    # code generation to detect which one is used. bugs.python.org/issue16967
+    # CPython < 3.4 evaluated kw_defaults before defaults (bugs.python.org/issue16967).
     kw_defaults_before_defaults = False
 
     named_children = (
@@ -1455,12 +1365,7 @@ def makeExpressionFunctionCall(function, values, source_ref):
 
 
 class ExpressionFunctionCall(ChildrenHavingFunctionValuesTupleMixin, ExpressionBase):
-    """Shared function call.
-
-    This is for calling created function bodies with multiple users. Not
-    clear if such a thing should exist. But what this will do is to have
-    respect for the fact that there are multiple such calls.
-    """
+    """Direct call to a created function body."""
 
     kind = "EXPRESSION_FUNCTION_CALL"
 
@@ -1491,7 +1396,6 @@ class ExpressionFunctionCall(ChildrenHavingFunctionValuesTupleMixin, ExpressionB
         for value in values:
             value.onContentEscapes(trace_collection)
 
-        # Ask for function for its cost.
         cost = function_body.getFunctionInlineCost(values)
 
         if cost is not None and cost < 50:

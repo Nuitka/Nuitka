@@ -5,7 +5,7 @@
 
 A source reference also implies a specific set of future flags in use by the
 parser at that location. Can be different inside a module due to e.g. the
-in-lining of "exec" statements with their own future imports, or in-lining of
+in-lining of 'exec' statements with their own future imports, or in-lining of
 code from other modules.
 """
 
@@ -18,7 +18,6 @@ from nuitka.utils.InstanceCounters import (
     isCountingInstances,
 )
 
-# These defaults have changed with Python versions.
 _future_division_default = python_version >= 0x300
 _future_absolute_import_default = python_version >= 0x300
 _future_generator_stop_default = python_version >= 0x370
@@ -26,8 +25,7 @@ _future_annotations_default = python_version >= 0x400
 
 
 class FutureSpec(object):
-    # We are using a bunch of flags here, Python decides them and then we add
-    # even more modes ourselves, pylint: disable=too-many-instance-attributes
+    # pylint: disable=too-many-instance-attributes
 
     __slots__ = (
         "future_division",
@@ -49,8 +47,6 @@ class FutureSpec(object):
         self.barry_bdfl = False
         self.generator_stop = _future_generator_stop_default
         self.future_annotations = _future_annotations_default
-
-        # Attaching our special modes here still.
         self.use_annotations = use_annotations
 
     if isCountingInstances():
@@ -119,11 +115,7 @@ class FutureSpec(object):
         return self.future_annotations
 
     def asFlags(self):
-        """Create a list of C identifiers to represent the flag values.
-
-        This is for use in code generation and to restore from
-        saved modules.
-        """
+        """Create a tuple of C identifiers representing active future flags."""
 
         result = []
 

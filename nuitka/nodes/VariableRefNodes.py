@@ -38,7 +38,7 @@ from .SubscriptNodes import ExpressionSubscriptLookupForUnpack
 
 
 class ExpressionVariableRefBase(ExpressionBase):
-    # Base classes can be abstract, pylint: disable=abstract-method
+    # pylint: disable=abstract-method
 
     __slots__ = "variable", "variable_trace"
 
@@ -85,7 +85,6 @@ class ExpressionVariableRefBase(ExpressionBase):
             has_len = shape.hasShapeSlotLen()
 
             if has_len is False:
-                # Any exception may be raised.
                 trace_collection.onExceptionRaiseExit(BaseException)
 
                 return makeRaiseTypeErrorExceptionReplacementFromTemplateAndValue(
@@ -110,13 +109,8 @@ class ExpressionVariableRefBase(ExpressionBase):
                         % self.getVariableName(),
                     )
 
-        # The variable itself is to be considered escaped.
         trace_collection.markActiveVariableAsEscaped(self.variable)
-
-        # Any code could be run, note that.
         trace_collection.onControlFlowEscape(self)
-
-        # Any exception may be raised.
         trace_collection.onExceptionRaiseExit(BaseException)
 
         return len_node, None, None
@@ -138,10 +132,7 @@ class ExpressionVariableRefBase(ExpressionBase):
                     trace_collection=trace_collection,
                 )
 
-        # Any code could be run, note that.
         trace_collection.onControlFlowEscape(self)
-
-        # The variable itself is to be considered escaped.
         trace_collection.markActiveVariableAsEscaped(self.variable)
 
         if not self.isKnownToHaveAttribute(attribute_name):
@@ -179,10 +170,7 @@ class ExpressionVariableRefBase(ExpressionBase):
                     trace_collection=trace_collection,
                 )
 
-        # Any code could be run, note that.
         trace_collection.onControlFlowEscape(self)
-
-        # The variable itself is to be considered escaped.
         trace_collection.markActiveVariableAsEscaped(self.variable)
 
         if not self.isKnownToHaveAttribute(import_name):
@@ -194,7 +182,6 @@ class ExpressionVariableRefBase(ExpressionBase):
         tags = None
         message = None
 
-        # Any code could be run, note that.
         trace_collection.onControlFlowEscape(in_node)
 
         # TODO: Add "set" shape here as well.
@@ -219,7 +206,6 @@ Check '%s' on dictionary lowered to dictionary '%s'.""" % (
                     source_ref=in_node.getSourceReference(),
                 )
 
-        # Any exception may be raised.
         if in_node.mayRaiseException(BaseException):
             trace_collection.onExceptionRaiseExit(BaseException)
 
@@ -234,8 +220,6 @@ Check '%s' on dictionary lowered to dictionary '%s'.""" % (
         tags = None
         message = None
 
-        # By default, an subscript may change everything about the lookup
-        # source.
         if self.variable_trace.hasShapeDictionaryExact():
             result = StatementDictOperationSet(
                 dict_arg=self,
@@ -265,13 +249,9 @@ Subscript assignment to dictionary lowered to dictionary assignment."""
                 return result, change_tags, change_desc
 
         trace_collection.removeKnowledge(self)
-
         trace_collection.removeKnowledge(value_node)
-
-        # Any code could be run, note that.
         trace_collection.onControlFlowEscape(self)
 
-        # Any exception might be raised.
         if set_node.mayRaiseException(BaseException):
             trace_collection.onExceptionRaiseExit(BaseException)
 
@@ -308,15 +288,10 @@ Subscript del to dictionary lowered to dictionary del."""
             else:
                 return result, change_tags, change_desc
 
-        # Any code could be run, note that.
         trace_collection.onControlFlowEscape(self)
-
-        # By default, an subscript may change everything about the lookup
-        # source and even the subscript.
         trace_collection.removeKnowledge(self)
         trace_collection.removeKnowledge(subscript)
 
-        # Any exception might be raised.
         if del_node.mayRaiseException(BaseException):
             trace_collection.onExceptionRaiseExit(BaseException)
 
@@ -355,13 +330,9 @@ Subscript look-up to dictionary lowered to dictionary look-up.""",
                         description="Subscript of variable immutable value.",
                     )
 
-        # The subscript may execute any code and change the value.
         trace_collection.removeKnowledge(self)
-
-        # Any code could be run, note that.
         trace_collection.onControlFlowEscape(self)
 
-        # Any exception might be raised.
         if lookup_node.mayRaiseException(BaseException):
             trace_collection.onExceptionRaiseExit(BaseException)
 
@@ -382,7 +353,6 @@ Subscript look-up to dictionary lowered to dictionary look-up.""",
             if statement.isStatementAssignmentVariable():
                 statement.removeMarkAsInplaceSuspect()
 
-        # Need to compute the replacement still.
         return replacement.computeExpressionRaw(trace_collection)
 
     def getTruthValue(self):
@@ -448,7 +418,7 @@ class ExpressionVariableRef(ExpressionVariableRefBase):
         return cls(variable=variable, source_ref=source_ref)
 
     def computeExpressionRaw(self, trace_collection):
-        # Terribly detailed, pylint: disable=too-many-branches,too-many-statements
+        # pylint: disable=too-many-branches,too-many-statements
 
         variable = self.variable
         assert variable is not None
@@ -569,7 +539,6 @@ Replaced read-only module attribute '__spec__' with module attribute reference."
             else:
                 self.variable_trace.addUsage()
 
-                # Probably should give a warning once about it.
                 new_node = self
                 change_tags = None
                 change_desc = None
@@ -619,24 +588,19 @@ Replaced read-only module attribute '__spec__' with module attribute reference."
                     trace_collection=trace_collection,
                 )
 
-        # The called and the arguments escape for good.
         self.onContentEscapes(trace_collection)
         if call_args is not None:
             call_args.onContentEscapes(trace_collection)
         if call_kw is not None:
             call_kw.onContentEscapes(trace_collection)
 
-        # Any code could be run, note that.
         trace_collection.onControlFlowEscape(self)
-
-        # Any exception may be raised.
         trace_collection.onExceptionRaiseExit(BaseException)
 
         if (
             self.variable.getName() in _hard_names
             and self.variable.isIncompleteModuleVariable()
         ):
-            # Just inform the collection that all escaped.
             trace_collection.onLocalsUsage(locals_scope=self.getFunctionsLocalsScope())
 
         return call_node, None, None
@@ -809,7 +773,6 @@ class ExpressionTempVariableRef(
 
         self.variable_trace.addUsage()
 
-        # Nothing to do here.
         return self, None, None
 
     def computeExpressionNext1(self, next_node, trace_collection):
@@ -846,11 +809,9 @@ class ExpressionTempVariableRef(
         else:
             self.onContentEscapes(trace_collection)
 
-            # Any code could be run, note that.
             if self.mayHaveSideEffectsNext():
                 trace_collection.onControlFlowEscape(self)
 
-        # Any exception may be raised.
         trace_collection.onExceptionRaiseExit(BaseException)
 
         return True, (next_node, None, None)

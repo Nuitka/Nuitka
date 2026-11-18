@@ -1,13 +1,7 @@
 #     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-"""Dictionary pairs, for use in dictionary building, calls, etc.
-
-These represent the a=b part, as they occur in calls, and dictionary
-values, but they do not form a dictionary. As a sequence, they can
-have order.
-
-"""
+"""Key-value pair nodes for dictionary creation and keyword calls."""
 
 from abc import abstractmethod
 
@@ -56,7 +50,6 @@ class ExpressionKeyValuePairNonConstantMixin(ExpressionKeyValuePairMixin):
 
         hashable = key.isKnownToBeHashable()
 
-        # If not known to be hashable, that can raise an exception.
         if not hashable:
             trace_collection.onExceptionRaiseExit(TypeError)
 
@@ -100,7 +93,7 @@ class ExpressionKeyValuePairNonConstantMixin(ExpressionKeyValuePairMixin):
         self.subnode_value.onContentEscapes(trace_collection)
 
     def isCompileTimeConstant(self):
-        # Note: Values are more often not constant, short circuits faster this way around
+        # Values are more often non-constant, so checking value first short-circuits faster.
         return (
             self.subnode_value.isCompileTimeConstant()
             and self.subnode_key.isCompileTimeConstant()
@@ -141,7 +134,7 @@ class ExpressionKeyValuePairOld(
 
     python_version_spec = "< 0x350"
 
-    # They changed the order of evaluation only with Python >=3.5 to what you normally would expect.
+    # Before Python 3.5, dict literals evaluated the value before the key.
     named_children = ("value", "key")
 
     def __init__(self, value, key, source_ref):
@@ -164,7 +157,6 @@ class ExpressionKeyValuePairNew(
 
     python_version_spec = ">= 0x350"
 
-    # They changed the order of evaluation with 3.5 to what you normally would expect.
     named_children = ("key", "value")
 
     def __init__(self, key, value, source_ref):
@@ -177,7 +169,6 @@ class ExpressionKeyValuePairNew(
         ExpressionBase.__init__(self, source_ref)
 
 
-# Allow other code to forget about it.
 if python_version < 0x350:
     ExpressionKeyValuePair = ExpressionKeyValuePairOld
 else:
@@ -211,7 +202,6 @@ class ExpressionKeyValuePairConstantKey(
         return True
 
     def computeExpression(self, trace_collection):
-        # Nothing to do, we are hashable and everything.
         return self, None, None
 
     def mayRaiseException(self, exception_type):
@@ -237,7 +227,6 @@ class ExpressionKeyValuePairConstantKey(
 
     @staticmethod
     def mayKeyRaiseException(exception_type):
-        # pylint: disable
         return False
 
     def mayValueRaiseException(self, exception_type):
@@ -278,7 +267,6 @@ class ExpressionKeyValuePairConstantKeyValue(
         return True
 
     def computeExpressionRaw(self, trace_collection):
-        # Nothing to do, we are hashable and everything.
         return self, None, None
 
     @staticmethod
@@ -325,7 +313,6 @@ def makeExpressionPairs(keys, values):
 
 
 def makeExpressionKeyValuePair(key, value):
-    # Detect constant key value that is hashable and use preferred node type for that.
     if key.isCompileTimeConstant() and key.isKnownToBeHashable():
         return makeExpressionKeyValuePairConstantKey(
             key=key.getCompileTimeConstant(), value=value

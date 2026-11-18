@@ -18,16 +18,6 @@ from .shapes.BuiltinTypeShapes import tshape_str, tshape_unicode
 class ExpressionBuiltinAll(
     ExpressionBoolShapeExactMixin, ExpressionBuiltinSingleArgBase
 ):
-    """Builtin All Node class.
-
-    Args:
-        ExpressionBase: 'all - expression'
-
-    Returns:
-        Node that represents built-in 'all' call.
-
-    """
-
     kind = "EXPRESSION_BUILTIN_ALL"
 
     builtin_spec = BuiltinParameterSpecs.builtin_all_spec
@@ -36,7 +26,6 @@ class ExpressionBuiltinAll(
         value = self.subnode_value
         shape = value.getTypeShape()
         if shape.hasShapeSlotIter() is False:
-            # An exception is raised.
             trace_collection.onExceptionRaiseExit(BaseException)
 
             return makeRaiseTypeErrorExceptionReplacementFromTemplateAndValue(
@@ -78,17 +67,12 @@ class ExpressionBuiltinAll(
                 )
 
         self.onContentEscapes(trace_collection)
-
-        # All code could be run, note that.
         trace_collection.onControlFlowEscape(self)
-
-        # All exception may be raised.
         trace_collection.onExceptionRaiseExit(BaseException)
 
         return self, None, None
 
     def mayRaiseException(self, exception_type):
-        """returns boolean True if try/except/finally is needed else False"""
         value = self.subnode_value
 
         if value.mayRaiseException(exception_type):

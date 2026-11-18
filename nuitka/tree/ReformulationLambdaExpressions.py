@@ -1,12 +1,7 @@
 #     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-"""Reformulation of lambda expressions.
-
-Consult the Developer Manual for information. TODO: Add ability to sync
-source code comments with Developer Manual sections.
-
-"""
+"""Reformulation of lambda expressions."""
 
 from nuitka.nodes.ComparisonNodes import ExpressionComparisonIsNot
 from nuitka.nodes.ConditionalNodes import makeStatementConditional
@@ -48,7 +43,7 @@ from .TreeHelpers import (
 
 
 def buildLambdaNode(provider, node, source_ref):
-    # Many details to deal with, pylint: disable=too-many-locals
+    # pylint: disable=too-many-locals
 
     assert getKind(node) == "Lambda"
 

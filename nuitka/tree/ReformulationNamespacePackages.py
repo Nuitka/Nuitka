@@ -1,10 +1,7 @@
 #     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-"""
-Namespace packages of Python3
-
-"""
+"""Reformulation of namespace packages."""
 
 import os
 
@@ -61,8 +58,6 @@ def _makeCall(module_name, import_name, attribute_name, source_ref, *args):
 
 
 def _getNameSpacePathExpression(package, source_ref):
-    """Create the __path__ expression for a package."""
-
     reference_mode = getFileReferenceMode()
 
     if reference_mode == "original":

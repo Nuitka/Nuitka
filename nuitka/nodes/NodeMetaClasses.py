@@ -1,12 +1,7 @@
 #     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-"""Node meta classes.
-
-This provides meta classes for nodes, currently only one. These do all kinds
-of checks, and add methods automatically.
-
-"""
+"""Node meta classes."""
 
 from abc import ABCMeta
 
@@ -16,10 +11,8 @@ from nuitka.PythonVersions import python_version
 
 
 def _checkBases(name, bases):
-    # Avoid duplicate base classes.
     assert len(bases) == len(set(bases)), (name, bases)
 
-    # Insist on mixins being in proper place for inheritance.
     last_mixin = None
     for base in bases:
         base_name = base.__name__
@@ -88,7 +81,7 @@ class NodeCheckMetaClass(ABCMeta):
             )
             assert condition, python_version_spec
 
-            # We trust our node class files, pylint: disable=eval-used
+            # pylint: disable=eval-used
             if not eval(condition):
 
                 def __init__(self, *args, **kwargs):
@@ -96,7 +89,6 @@ class NodeCheckMetaClass(ABCMeta):
 
                 dictionary["__init__"] = __init__
 
-        # Not a method:
         if "checker" in dictionary:
             dictionary["checker"] = staticmethod(dictionary["checker"])
 
@@ -122,11 +114,8 @@ class NodeCheckMetaClass(ABCMeta):
             kind_to_name_part = "".join([x.capitalize() for x in kind.split("_")])
             assert name.endswith(kind_to_name_part), (name, kind_to_name_part)
 
-            # Automatically add checker methods for everything to the common
-            # base class
             checker_method_name = "is" + kind_to_name_part
 
-            # Add automatic checker "False" to the node base class.
             from .NodeBases import NodeBase
 
             if not hasattr(NodeBase, checker_method_name):
@@ -135,7 +124,6 @@ class NodeCheckMetaClass(ABCMeta):
         ABCMeta.__init__(cls, name, bases, dictionary)
 
         if not name.endswith(("Base", "Mixin")):
-            # Add automatic checker "True" to the node class.
             if getattr(cls, checker_method_name) is returnFalseSharedFunction:
 
                 def checkKind(self):
@@ -143,8 +131,6 @@ class NodeCheckMetaClass(ABCMeta):
 
                 setattr(cls, checker_method_name, checkKind)
 
-
-# For every node type, there is a test, and then some more members,
 
 # For Python2/3 compatible source, we create a base class that has the metaclass
 # used and doesn't require making a syntax choice.

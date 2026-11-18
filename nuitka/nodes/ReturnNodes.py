@@ -38,8 +38,6 @@ class StatementReturn(StatementReturnMixin, StatementReturnBase):
         return self.subnode_expression.mayRaiseException(exception_type)
 
     def computeStatement(self, trace_collection):
-        # This happens so many times, until we also do "trace_collection.onFunctionReturn()" injection, and
-        # can wait for constant values from "operation", we do not use it yet.
         expression = trace_collection.onExpression(self.subnode_expression)
 
         if expression.mayRaiseException(BaseException):
@@ -227,8 +225,6 @@ def makeStatementReturnConstant(constant, source_ref):
 
 
 def makeStatementReturn(expression, source_ref):
-    """Create the best return statement variant."""
-
     if expression is None:
         return StatementReturnNone(source_ref=source_ref)
     elif expression.isCompileTimeConstant():

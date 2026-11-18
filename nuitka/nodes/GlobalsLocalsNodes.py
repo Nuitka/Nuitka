@@ -1,13 +1,11 @@
 #     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-"""Globals/locals/single arg dir nodes
+"""Globals, locals, and single-arg 'dir' nodes.
 
-These nodes give access to variables, highly problematic, because using them,
-the code may change or access anything about them, so nothing can be trusted
-anymore, if we start to not know where their value goes.
-
-The "dir()" call without arguments is reformulated to locals or globals calls.
+These nodes expose scope dictionaries directly, requiring variable escape
+tracking unless statically resolved. Parameterless 'dir()' is reformulated to
+locals or globals calls.
 """
 
 from .DictionaryNodes import makeExpressionMakeDict
@@ -38,7 +36,7 @@ class ExpressionBuiltinGlobals(ExpressionNoSideEffectsMixin, ExpressionBase):
 
 
 class ExpressionBuiltinLocalsBase(ExpressionNoSideEffectsMixin, ExpressionBase):
-    # Base classes can be abstract, pylint: disable=abstract-method
+    # pylint: disable=abstract-method
 
     __slots__ = ("variable_traces", "locals_scope")
 
@@ -77,7 +75,6 @@ class ExpressionBuiltinLocalsUpdated(ExpressionBuiltinLocalsBase):
         assert locals_scope is not None
 
     def computeExpressionRaw(self, trace_collection):
-        # Just inform the collection that all escaped.
         self.variable_traces = trace_collection.onLocalsUsage(self.locals_scope)
 
         return self, None, None
@@ -97,7 +94,6 @@ class ExpressionBuiltinLocalsRef(ExpressionBuiltinLocalsBase):
     def getLocalsScope(self):
         return self.locals_scope
 
-    # For overload.
     def isFinalUseOfLocals(self):
         return self.parent.isStatementReturn()
 
@@ -126,8 +122,6 @@ class ExpressionBuiltinLocalsRef(ExpressionBuiltinLocalsBase):
         return self, None, None
 
     def computeExpressionRaw(self, trace_collection):
-        # Just inform the collection that all escaped unless it is aborting or for
-        # a locals dict.
         if not self.isFinalUseOfLocals():
             trace_collection.onLocalsUsage(locals_scope=self.locals_scope)
 
@@ -138,8 +132,6 @@ class ExpressionBuiltinLocalsCopy(ExpressionBuiltinLocalsBase):
     kind = "EXPRESSION_BUILTIN_LOCALS_COPY"
 
     def computeExpressionRaw(self, trace_collection):
-        # Just inform the collection that all escaped.
-
         self.variable_traces = trace_collection.onLocalsUsage(
             locals_scope=self.locals_scope
         )
@@ -151,7 +143,6 @@ class ExpressionBuiltinLocalsCopy(ExpressionBuiltinLocalsBase):
             ):
                 return self, None, None
 
-            # Other locals elsewhere.
             if variable_trace.getNameUsageCount() > 1:
                 return self, None, None
 
@@ -164,7 +155,6 @@ class ExpressionBuiltinLocalsCopy(ExpressionBuiltinLocalsBase):
             if variable_trace.mustHaveValue()
         )
 
-        # Locals is sorted of course.
         def _sorted(pairs):
             name_order = dict(
                 (variable.getName(), count)
@@ -197,11 +187,7 @@ class ExpressionBuiltinDir1(ExpressionBuiltinSingleArgBase):
     def computeExpression(self, trace_collection):
         # TODO: Quite some cases should be possible to predict and this
         # should be using a slot, with "__dir__" being overloaded or not.
-
-        # Any code could be run, note that.
         trace_collection.onControlFlowEscape(self)
-
-        # Any exception may be raised.
         trace_collection.onExceptionRaiseExit(BaseException)
 
         return self, None, None

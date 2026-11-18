@@ -1,7 +1,7 @@
 #     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-"""Nodes the represent ways to access os and sys functions."""
+"""Nodes that represent ways to access os and sys functions."""
 
 import os
 
@@ -235,8 +235,6 @@ class ExpressionOsPathAbspathCall(ExpressionOsPathAbspathCallBase):
     kind = "EXPRESSION_OS_PATH_ABSPATH_CALL"
 
     def replaceWithCompileTimeValue(self, trace_collection):
-        # Nothing we can do really
-
         trace_collection.onExceptionRaiseExit(BaseException)
 
         return self, None, None
@@ -278,8 +276,6 @@ class ExpressionOsListdirCall(ExpressionOsListdirCallBase):
     kind = "EXPRESSION_OS_LISTDIR_CALL"
 
     def replaceWithCompileTimeValue(self, trace_collection):
-        # Nothing we can do really
-
         trace_collection.onExceptionRaiseExit(BaseException)
 
         return self, None, None
@@ -289,8 +285,6 @@ class ExpressionOsStatCall(ExpressionOsStatCallBase):
     kind = "EXPRESSION_OS_STAT_CALL"
 
     def replaceWithCompileTimeValue(self, trace_collection):
-        # Nothing we can do really
-
         trace_collection.onExceptionRaiseExit(BaseException)
 
         return self, None, None
@@ -300,8 +294,6 @@ class ExpressionOsLstatCall(ExpressionOsLstatCallBase):
     kind = "EXPRESSION_OS_LSTAT_CALL"
 
     def replaceWithCompileTimeValue(self, trace_collection):
-        # Nothing we can do really
-
         trace_collection.onExceptionRaiseExit(BaseException)
 
         return self, None, None

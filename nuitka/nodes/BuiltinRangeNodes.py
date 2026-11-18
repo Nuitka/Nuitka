@@ -1,13 +1,7 @@
 #     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-"""Node the calls to the 'range' built-in.
-
-This is a rather complex beast as it has many cases, is difficult to know if
-it's sizable enough to compute, and there are complex cases, where the bad
-result of it can be predicted still, and these are interesting for warnings.
-
-"""
+"""Nodes for calls to the 'range' and 'xrange' built-ins."""
 
 from nuitka.PythonVersions import python_version
 from nuitka.specs import BuiltinParameterSpecs
@@ -29,9 +23,6 @@ from .shapes.BuiltinTypeShapes import tshape_xrange
 
 
 class ExpressionBuiltinRangeMixin(ExpressionListShapeExactMixin):
-    """Mixin class for range nodes with 1/2/3 arguments."""
-
-    # Mixins are required to define empty slots
     __slots__ = ()
 
     builtin_spec = BuiltinParameterSpecs.builtin_range_spec
@@ -75,7 +66,6 @@ class ExpressionBuiltinRangeMixin(ExpressionListShapeExactMixin):
 
         step = self.subnode_step
 
-        # A step of 0 will raise.
         if step is not None and step.getIntegerValue() == 0:
             return True
 
@@ -191,7 +181,6 @@ class ExpressionBuiltinRange2(
 
     named_children = ("low", "high")
 
-    # For the mixing to work generically
     subnode_step = None
 
     def __init__(self, low, high, source_ref):
@@ -319,7 +308,6 @@ class ExpressionBuiltinRange3(
         if step is None:
             return None
 
-        # Give up on this, will raise ValueError.
         if step == 0:
             return None
 
@@ -353,7 +341,6 @@ class ExpressionBuiltinRange3(
         if step is None:
             return None
 
-        # Give up on this, will raise ValueError.
         if step == 0:
             return None
 
@@ -389,9 +376,6 @@ class ExpressionBuiltinRange3(
 
 
 class ExpressionBuiltinXrangeMixin(object):
-    """Mixin class for xrange nodes with 1/2/3 arguments."""
-
-    # Mixins are required to define empty slots
     __slots__ = ()
 
     builtin_spec = BuiltinParameterSpecs.builtin_xrange_spec
@@ -436,7 +420,6 @@ class ExpressionBuiltinXrangeMixin(object):
 
         step = self.subnode_step
 
-        # A step of 0 will raise.
         if step is not None and step.getIntegerValue() == 0:
             return True
 
@@ -460,9 +443,7 @@ class ExpressionBuiltinXrangeMixin(object):
         )
 
     def computeExpressionIter1(self, iter_node, trace_collection):
-        # No exception will be raised on xrange iteration, but there is nothing to
-        # lower for, virtual method: pylint: disable=no-self-use
-
+        # pylint: disable=no-self-use
         return iter_node, None, None
 
 
@@ -625,7 +606,6 @@ class ExpressionBuiltinXrange3(
         if step is None:
             return None
 
-        # Give up on this, will raise ValueError.
         if step == 0:
             return None
 

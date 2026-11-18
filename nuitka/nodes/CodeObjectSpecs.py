@@ -67,7 +67,6 @@ class CodeObjectSpec(object):
         self.future_spec = future_spec
         assert future_spec
 
-        # Strings happens from XML parsing, make sure to convert them.
         if type(co_varnames) is str:
             if co_varnames == "":
                 co_varnames = ()
@@ -147,7 +146,7 @@ class CodeObjectSpec(object):
     def getCodeObjectKind(self):
         return self.co_kind
 
-    # Follow CPython naming, spell-checker: ignore freevar
+    # spell-checker: ignore freevar
     def updateLocalNames(self, local_names, freevar_names):
         """Move detected local variables after closure has been decided."""
 
@@ -155,11 +154,9 @@ class CodeObjectSpec(object):
             local_name
             for local_name in local_names
             if local_name not in self.co_varnames
-            # TODO: This is actually a bug, but we have a hard time without it to know
-            # frame locals easily. We use this in compiled function run time, that all
-            # variables, including closure variables are found there. This would have to
-            # be cleaned up, for potentially little gain.
-            # if local_name not in freevar_names
+            # TODO: Closure variables in freevar_names should be excluded from
+            # co_varnames, but compiled function runtime relies on finding all
+            # frame variables (including closure variables) in co_varnames.
         )
 
         self.co_freevars = tuple(freevar_names)
@@ -303,8 +300,6 @@ class CodeObjectSpecClass(CodeObjectSpec):
         return "<CodeObjectSpecClass '%s' line %d>" % (self.co_name, self.line_number)
 
     def getDetails(self):
-        # Only the values needed for the constructor are persisted, the
-        # fixed values are implied by this class.
         return {
             "class_name": self.co_name,
             "co_qualname": self.co_qualname,
@@ -315,8 +310,6 @@ class CodeObjectSpecClass(CodeObjectSpec):
         }
 
     def updateLocalNames(self, local_names, freevar_names):
-        # Class bodies never have free variables in Nuitka, their captured
-        # values are frame variables instead.
         assert not freevar_names, freevar_names
 
         CodeObjectSpec.updateLocalNames(self, local_names, ())
@@ -378,8 +371,6 @@ class CodeObjectSpecGeneratorExpression(CodeObjectSpec):
         )
 
     def getDetails(self):
-        # Only the values needed for the constructor are persisted, the
-        # fixed values are implied by this class.
         return {
             "co_is_async": self.co_kind == "Asyncgen",
             "co_qualname": self.co_qualname,

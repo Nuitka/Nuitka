@@ -4,10 +4,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-"""Hard import nodes registry.
-
-This provides the registry for hard import nodes and builtin reference nodes.
-"""
+"""Registry for hard import nodes and built-in reference nodes."""
 
 _hard_import_node_classes = {}
 _builtin_ref_nodes = {}

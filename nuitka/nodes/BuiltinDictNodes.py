@@ -1,7 +1,7 @@
 #     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-"""Node for the calls to the 'dict' built-in."""
+"""Nodes for calls to the 'dict' and 'frozendict' built-ins."""
 
 from nuitka.specs.BuiltinParameterSpecs import (
     builtin_dict_spec,
@@ -78,7 +78,6 @@ class ExpressionBuiltinDict(
                 pairs=self.subnode_pairs, source_ref=self.source_ref
             )
 
-            # Maintain potential side effects from the positional arguments.
             new_node = wrapExpressionWithNodeSideEffects(
                 old_node=ExpressionBuiltinIter1(
                     value=pos_arg, source_ref=self.source_ref
@@ -86,7 +85,6 @@ class ExpressionBuiltinDict(
                 new_node=new_node,
             )
 
-            # Just in case, the iteration may do that.
             if not pos_arg.hasShapeSlotIter():
                 trace_collection.onExceptionRaiseExit(BaseException)
 
@@ -121,7 +119,6 @@ class ExpressionBuiltinDict(
     def mayRaiseException(self, exception_type):
         pos_arg = self.subnode_pos_arg
 
-        # TODO: Determining if it's sufficient is not easy but possible.
         if pos_arg is not None:
             return True
 
@@ -201,7 +198,6 @@ class ExpressionBuiltinFrozendict(
     def mayRaiseException(self, exception_type):
         pos_arg = self.subnode_pos_arg
 
-        # TODO: Determining if it's sufficient is not easy but possible.
         if pos_arg is not None:
             return True
 

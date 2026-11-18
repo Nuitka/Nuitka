@@ -84,7 +84,6 @@ class ExpressionBuiltinType1(ExpressionBuiltinSingleArgBase):
                     )
 
         if value.isCompileTimeConstant():
-            # The above code is supposed to catch these in a better way.
             value = value.getCompileTimeConstant()
 
             if type(value) is GenericAlias:
@@ -141,8 +140,6 @@ Removed type taking for unused result.""",
 
 
 class ExpressionBuiltinSuper1(ChildrenExpressionBuiltinSuper1Mixin, ExpressionBase):
-    """Two arguments form of super."""
-
     kind = "EXPRESSION_BUILTIN_SUPER1"
 
     named_children = ("type_arg",)
@@ -167,8 +164,6 @@ class ExpressionBuiltinSuper1(ChildrenExpressionBuiltinSuper1Mixin, ExpressionBa
 
 
 class ExpressionBuiltinSuper2(ChildrenExpressionBuiltinSuper2Mixin, ExpressionBase):
-    """Two arguments form of super."""
-
     kind = "EXPRESSION_BUILTIN_SUPER2"
 
     named_children = ("type_arg", "object_arg")
@@ -194,7 +189,7 @@ class ExpressionBuiltinSuper2(ChildrenExpressionBuiltinSuper2Mixin, ExpressionBa
 
 
 class ExpressionBuiltinSuper0(ChildrenExpressionBuiltinSuper0Mixin, ExpressionBase):
-    """Python3 form of super, arguments determined from cells and function arguments."""
+    """Python3 argumentless 'super()', using cell and function argument nodes."""
 
     kind = "EXPRESSION_BUILTIN_SUPER0"
 
@@ -257,7 +252,6 @@ class ExpressionBuiltinIsinstance(ChildrenHavingInstanceClassesMixin, Expression
 
             return self, None, None
 
-        # So if both are compile time constant, we are able to compute it.
         return trace_collection.getCompileTimeComputationResult(
             node=self,
             computation=lambda: isinstance(
@@ -306,7 +300,6 @@ class ExpressionBuiltinIssubclass(
 
             return self, None, None
 
-        # So if both are compile time constant, we are able to compute it.
         return trace_collection.getCompileTimeComputationResult(
             node=self,
             computation=lambda: issubclass(

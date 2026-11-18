@@ -1,15 +1,7 @@
 #     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-"""Call node
-
-Function calls and generally calling expressions are the same thing. This is
-very important, because it allows to predict most things, and avoid expensive
-operations like parameter parsing at run time.
-
-There will be a method "computeExpressionCall" to aid predicting them in other
-nodes.
-"""
+"""Call nodes for general callable invocations."""
 
 from .ChildrenHavingMixins import (
     ChildrenExpressionCallEmptyMixin,
@@ -180,11 +172,6 @@ class ExpressionCallEmpty(
 
 
 def makeExpressionCall(called, args, kw, source_ref):
-    """Make the most simple call node possible.
-
-    By avoiding the more complex classes, we can achieve that there is
-    less work to do for analysis.
-    """
     has_kw = kw is not None and not kw.isExpressionConstantDictEmptyRef()
 
     has_args = args is not None and not args.isExpressionConstantTupleEmptyRef()

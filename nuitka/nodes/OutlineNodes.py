@@ -24,7 +24,7 @@ from .LocalsScopes import getLocalsDictHandle
 
 
 class ExpressionOutlineMixin(object):
-    # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
+    # pylint: disable=assigning-non-slot
     __slots__ = ()
 
     def getDetails(self):
@@ -47,7 +47,7 @@ class ExpressionOutlineMixin(object):
         """Does a return of the outline body need an exit point.
 
         This is not the case if no return can complete, e.g. when all of them
-        are contained in a "finally" block that raises.
+        are contained in a 'finally' block that raises.
 
         Returns:
             bool
@@ -58,15 +58,12 @@ class ExpressionOutlineMixin(object):
         return body is not None and body.mayReturn()
 
     def getOutlineTempScope(self):
-        # We use our own name as a temp_scope, cached from the parent, if the
-        # scope is None.
         if self.temp_scope is None:
             self.temp_scope = self.provider.allocateTempScope(self.name)
 
         return self.temp_scope
 
     def allocateTempScope(self, name):
-        # Let's scope the temporary scopes by the outline they come from.
         return self.provider.allocateTempScope(name=self.name + "$" + name)
 
     def mayRaiseException(self, exception_type):
@@ -183,8 +180,6 @@ class ExpressionOutlineBody(
             )
 
         if first_statement.isStatementRaiseException():
-            # Exception exit was already annotated, need not repeat it.
-
             assert first_statement.subnode_exception_value is None, first_statement
             result = ExpressionRaiseException(
                 exception_type=first_statement.subnode_exception_type,
@@ -202,8 +197,6 @@ class ExpressionOutlineBody(
         return self, None, None
 
     def collectVariableAccesses(self, emit_variable):
-        """Collect variable reads and writes of child nodes."""
-
         local_temp_variables = self.getEntryPoint().getTempVariables(self)
 
         def local_emit(variable):
@@ -258,7 +251,7 @@ class ExpressionOutlineFunctionBase(ExpressionOutlineMixin, ExpressionFunctionBo
 
         entry_point = self.getEntryPoint()
 
-        # False alarm, pylint doesn't see the actual type, pylint: disable=assigning-non-slot
+        # pylint: disable=assigning-non-slot
         result.locals_scope, variable_translations = self.locals_scope.makeClone(
             new_owner=result
         )
@@ -319,9 +312,7 @@ class ExpressionOutlineFunctionBase(ExpressionOutlineMixin, ExpressionFunctionBo
         return result
 
     def computeExpressionRaw(self, trace_collection):
-        # Need to insert and remove a whole new context for evaluation.
         # pylint: disable=too-many-branches
-
         need_removal = set()
 
         for variable in self.locals_scope.variables.values():
@@ -348,7 +339,6 @@ class ExpressionOutlineFunctionBase(ExpressionOutlineMixin, ExpressionFunctionBo
 
         trace_collection.addOutlineFunction(self)
 
-        # Catch exceptions, so we can remove unwanted variables.
         catch_exceptions = (
             need_removal and trace_collection.getExceptionRaiseCollections() is not None
         )
@@ -382,7 +372,6 @@ class ExpressionOutlineFunctionBase(ExpressionOutlineMixin, ExpressionFunctionBo
 
                 trace_collection.removeCurrentVariableTrace(variable)
 
-        # Pass exception collections on if necessary.
         if catch_exceptions:
             for exception_collection in exception_collections:
                 trace_collection.onExceptionRaiseExit(None, exception_collection)
@@ -410,8 +399,6 @@ class ExpressionOutlineFunctionBase(ExpressionOutlineMixin, ExpressionFunctionBo
             )
 
         if first_statement.isStatementRaiseException():
-            # Exception exit was already annotated, need not repeat it.
-
             assert first_statement.subnode_exception_value is None, first_statement
             result = ExpressionRaiseException(
                 exception_type=first_statement.subnode_exception_type,
@@ -429,8 +416,6 @@ class ExpressionOutlineFunctionBase(ExpressionOutlineMixin, ExpressionFunctionBo
         return self, None, None
 
     def collectVariableAccesses(self, emit_variable):
-        """Collect variable reads and writes of child nodes."""
-
         local_variable_values = self.getLocalsScope().local_variables.values()
         local_temp_variables = self.getEntryPoint().getTempVariables(self)
 
@@ -447,7 +432,6 @@ class ExpressionOutlineFunctionBase(ExpressionOutlineMixin, ExpressionFunctionBo
         return self.provider.getTraceCollection()
 
     def getClosureVariable(self, variable_name):
-        # Simply try and get from our parent.
         return self.provider.getVariableForReference(variable_name=variable_name)
 
     def getLocalsScope(self):

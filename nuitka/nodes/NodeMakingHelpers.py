@@ -1,16 +1,7 @@
 #     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-"""These are just helpers to create nodes, often to replace existing nodes
-
-These are for use in optimizations and computations, and therefore cover
-mostly exceptions and constants.
-
-Often cyclic dependencies kicks in, which is why this module is mostly only
-imported locally. Note: It's intended to be reversed, this module will make
-the local imports instead, as these local imports look ugly everywhere else,
-making it more difficult to use.
-"""
+"""Helpers for creating nodes, often to replace existing nodes during optimization."""
 
 from nuitka.__past__ import GenericAlias, UnionType
 from nuitka.Builtins import builtin_names
@@ -234,7 +225,6 @@ def makeRaiseTypeErrorExceptionReplacementFromTemplateAndValue(
 
 
 def makeCompileTimeConstantReplacementNode(value, node, user_provided):
-    # This needs to match code in isCompileTimeConstantValue
     if isConstant(value):
         return makeConstantReplacementNode(
             constant=value, node=node, user_provided=user_provided
@@ -243,8 +233,6 @@ def makeCompileTimeConstantReplacementNode(value, node, user_provided):
         if value.__name__ in builtin_names:
             from .BuiltinRefNodes import makeExpressionBuiltinRef
 
-            # Need not provide locals_scope, not used for these kinds of built-in refs that
-            # refer to types.
             return makeExpressionBuiltinRef(
                 builtin_name=value.__name__,
                 locals_scope=None,
@@ -272,12 +260,8 @@ def makeCompileTimeConstantReplacementNode(value, node, user_provided):
 
 
 def getComputationResult(node, computation, description, user_provided):
-    """With a computation function, execute it and return constant result or
-    exception node.
-
-    """
-
-    # Try and turn raised exceptions into static raises. pylint: disable=broad-except
+    """Execute 'computation' and return a constant or static raise replacement tuple."""
+    # pylint: disable=broad-except
     try:
         result = computation()
     except Exception as e:
@@ -314,7 +298,7 @@ def makeStatementExpressionOnlyReplacementNode(expression, node):
 
 
 def mergeStatements(statements):
-    """Helper function that merges nested statement sequences."""
+    """Flatten nested statement sequences without unwrapping frame sequences."""
     merged_statements = []
 
     for statement in statements:
@@ -329,7 +313,7 @@ def mergeStatements(statements):
 
 
 def mergeStatementsWithNone(statements):
-    """Helper function that merges nested statement sequences filtering out None statements."""
+    """Flatten nested statement sequences, dropping 'None' entries without unwrapping frames."""
     merged_statements = []
 
     for statement in statements:

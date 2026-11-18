@@ -1,11 +1,7 @@
 #     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-"""Nodes for unary and binary operations.
-
-No short-circuit involved, boolean 'not' is an unary operation like '-' is,
-no real difference.
-"""
+"""Nodes for binary and inplace operations."""
 
 import copy
 from abc import abstractmethod
@@ -145,9 +141,6 @@ def _isTooLargeLshift(left_value, right_value):
 
 
 class ExpressionPropertiesFromTypeShapeMixin(object):
-    """Given a self.type_shape, this can derive default properties from there."""
-
-    # Mixins are required to define empty slots
     __slots__ = ()
 
     def isKnownToBeHashable(self):
@@ -157,8 +150,6 @@ class ExpressionPropertiesFromTypeShapeMixin(object):
 class ExpressionOperationBinaryBase(
     ExpressionPropertiesFromTypeShapeMixin, ChildrenHavingLeftRightMixin, ExpressionBase
 ):
-    """Base class for all binary operation expression."""
-
     __slots__ = ("type_shape", "escape_desc", "inplace_suspect", "shape")
 
     named_children = ("left", "right")
@@ -169,7 +160,6 @@ class ExpressionOperationBinaryBase(
 
         ExpressionBase.__init__(self, source_ref)
 
-        # Question might be asked early on, later this is cached from last computation.
         self.type_shape = tshape_unknown
 
         self.escape_desc = None
@@ -255,8 +245,6 @@ class ExpressionOperationBinaryBase(
 
     @staticmethod
     def getTooLargeShape():
-        """Shape of the operation, if it is too large to compute at compile time."""
-
         return None
 
     def _simulateOperation(self, trace_collection):
@@ -274,7 +262,6 @@ class ExpressionOperationBinaryBase(
         )
 
     def computeExpression(self, trace_collection):
-        # Nothing to do anymore for large constants.
         if self.shape is not None and self.shape.isConstant():
             exception_raise_exit = self.escape_desc.getExceptionExit()
             if exception_raise_exit is not None:
@@ -325,12 +312,10 @@ class ExpressionOperationBinaryBase(
                 )
 
         if self.escape_desc.isValueEscaping():
-            # The value of these nodes escaped and could change its contents.
             trace_collection.removeKnowledge(left)
             trace_collection.removeKnowledge(right)
 
         if self.escape_desc.isControlFlowEscape():
-            # Any code could be run, note that.
             trace_collection.onControlFlowEscape(self)
 
         return self, None, None
@@ -342,7 +327,6 @@ class ExpressionOperationBinaryBase(
 
 
 class ExpressionOperationAddMixin(object):
-    # Mixins are not allowed to specify slots.
     __slots__ = ()
 
     def getValueShape(self):
@@ -361,7 +345,7 @@ class ExpressionOperationAddMixin(object):
                 # TODO: Actually could make a predictor, but we don't use it yet.
                 return ShapeLargeConstantValuePredictable(
                     size=size,
-                    predictor=None,  # predictValuesFromRightAndLeftValue,
+                    predictor=None,
                     shape=self.subnode_left.getTypeShape(),
                 )
 
@@ -398,7 +382,6 @@ class ExpressionOperationBinarySub(ExpressionOperationBinaryBase):
 
 
 class ExpressionOperationMultMixin(object):
-    # Mixins are not allowed to specify slots.
     __slots__ = ()
 
     def getValueShape(self):
@@ -419,7 +402,7 @@ class ExpressionOperationMultMixin(object):
 
             return ShapeLargeConstantValuePredictable(
                 size=size,
-                predictor=None,  # predictValuesFromRightAndLeftValue,
+                predictor=None,
                 shape=self.subnode_right.getTypeShape(),
             )
         elif right_type in _INT_TYPES and left_type not in _INT_TYPES:
@@ -427,7 +410,7 @@ class ExpressionOperationMultMixin(object):
 
             return ShapeLargeConstantValuePredictable(
                 size=size,
-                predictor=None,  # predictValuesFromRightAndLeftValue,
+                predictor=None,
                 shape=self.subnode_left.getTypeShape(),
             )
         else:
@@ -532,7 +515,6 @@ class ExpressionOperationBinaryTrueDiv(ExpressionOperationBinaryBase):
 
 
 class ExpressionOperationModMixin(object):
-    # Mixins are not allowed to specify slots.
     __slots__ = ()
 
     def getValueShape(self):
@@ -611,7 +593,6 @@ class ExpressionOperationBinaryDivmod(ExpressionOperationBinaryBase):
 
 
 class ExpressionOperationPowMixin(object):
-    # Mixins are not allowed to specify slots.
     __slots__ = ()
 
     def getValueShape(self):
@@ -641,7 +622,6 @@ class ExpressionOperationBinaryPow(
 
 
 class ExpressionOperationLshiftMixin(object):
-    # Mixins are not allowed to specify slots.
     __slots__ = ()
 
     def getValueShape(self):
@@ -766,7 +746,7 @@ def makeBinaryOperationNode(operator, left, right, source_ref):
             constant = node.simulator(
                 left.getCompileTimeConstant(), right.getCompileTimeConstant()
             )
-        except Exception:  # Catch all the things, pylint: disable=broad-except
+        except Exception:  # pylint: disable=broad-except
             # Compile time detectable error, postpone these, so they get traced.
             pass
         else:
@@ -780,8 +760,7 @@ def makeBinaryOperationNode(operator, left, right, source_ref):
 
 
 class ExpressionOperationBinaryInplaceBase(ExpressionOperationBinaryBase):
-    # Base classes can be abstract, pylint: disable=abstract-method
-    """Base class for all inplace operations."""
+    # pylint: disable=abstract-method
 
     def __init__(self, left, right, source_ref):
         ExpressionOperationBinaryBase.__init__(
@@ -795,7 +774,6 @@ class ExpressionOperationBinaryInplaceBase(ExpressionOperationBinaryBase):
         return True
 
     def computeExpression(self, trace_collection):
-        # Nothing to do anymore for large constants.
         if self.shape is not None and self.shape.isConstant():
             exception_raise_exit = self.escape_desc.getExceptionExit()
             if exception_raise_exit is not None:
@@ -847,12 +825,10 @@ class ExpressionOperationBinaryInplaceBase(ExpressionOperationBinaryBase):
                 )
 
         if self.escape_desc.isValueEscaping():
-            # The value of these nodes escaped and could change its contents.
             trace_collection.removeKnowledge(left)
             trace_collection.removeKnowledge(right)
 
         if self.escape_desc.isControlFlowEscape():
-            # Any code could be run, note that.
             trace_collection.onControlFlowEscape(self)
 
         if left_shape is tshape_bool:

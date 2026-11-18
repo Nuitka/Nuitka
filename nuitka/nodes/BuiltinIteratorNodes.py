@@ -1,14 +1,7 @@
 #     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-"""Built-in iterator nodes.
-
-These play a role in for loops, and in unpacking. They can something be
-predicted to succeed or fail, in which case, code can become less complex.
-
-The length of things is an important optimization issue for these to be
-good.
-"""
+"""Built-in iterator and unpacking check nodes."""
 
 from nuitka.PythonVersions import python_version
 from nuitka.specs import BuiltinParameterSpecs
@@ -92,10 +85,8 @@ class ExpressionBuiltinIter1(ExpressionBuiltinSingleArgBase):
         self.onContentEscapes(trace_collection)
 
         if value.mayHaveSideEffectsNext():
-            # Any code could be run, note that.
             trace_collection.onControlFlowEscape(self)
 
-        # Any exception may be raised.
         trace_collection.onExceptionRaiseExit(BaseException)
 
         return True, (next_node, None, None)
@@ -156,7 +147,6 @@ class ExpressionBuiltinIter1(ExpressionBuiltinSingleArgBase):
         return value.mayRaiseExceptionIter(BaseException)
 
     def onRelease(self, trace_collection):
-        # print "onRelease", self
         pass
 
 
@@ -169,7 +159,6 @@ class ExpressionBuiltinEnumerateMixin(object):
 
     @staticmethod
     def mayRaiseExceptionIter(exception_type):
-        # The resulting enumerate object is an iterator itself.
         # pylint: disable=unused-argument
         return False
 
@@ -251,7 +240,6 @@ class ExpressionBuiltinEnumerate2(
         if start.mayRaiseException(exception_type):
             return True
 
-        # The start value must be usable as an index.
         if start.mayRaiseExceptionIndex(exception_type):
             return True
 
@@ -275,7 +263,6 @@ class ExpressionBuiltinZipMixin(object):
 
     @staticmethod
     def mayRaiseExceptionIter(exception_type):
-        # The resulting list (Python2) or zip object (Python3) is safely iterable.
         # pylint: disable=unused-argument
         return False
 
@@ -402,7 +389,6 @@ class ExpressionBuiltinIterForUnpack(ExpressionBuiltinIter1):
 
         result_node = result[0]
 
-        # Rewrite exceptions to correct message.
         if (
             result_node.isExpressionRaiseException()
             and result_node.subnode_exception_type.isExpressionBuiltinMakeException()
@@ -585,7 +571,6 @@ class ExpressionBuiltinIter2(ExpressionBuiltinIter2Base):
 
     @staticmethod
     def mayRaiseExceptionIter(exception_type):
-        # The resulting callable iterator is an iterator itself.
         return False
 
     def computeExpressionIter1(self, iter_node, trace_collection):
@@ -661,10 +646,8 @@ class ExpressionAsyncNext(ExpressionBuiltinSingleArgBase):
 
     def computeExpression(self, trace_collection):
         # TODO: Predict iteration result if possible via SSA variable trace of
-        # the iterator state.
-
-        # Assume exception is possible. TODO: We might query the next from the
-        # source with a computeExpressionAsyncNext slot, but we delay that.
+        # the iterator state, or query the source via a
+        # computeExpressionAsyncNext slot.
         trace_collection.onExceptionRaiseExit(BaseException)
 
         return self, None, None
@@ -674,7 +657,6 @@ class ExpressionBuiltinsReversedCall(ExpressionBuiltinsReversedCallBase):
     kind = "EXPRESSION_BUILTINS_REVERSED_CALL"
 
     def replaceWithCompileTimeValue(self, trace_collection):
-        # TODO: Implement actual optimization logic
         trace_collection.onExceptionRaiseExit(BaseException)
         return self, None, None
 
@@ -686,7 +668,6 @@ class ExpressionBuiltinsSortedSince3Call1(
     kind = "EXPRESSION_BUILTINS_SORTED_SINCE3_CALL1"
 
     def replaceWithCompileTimeValue(self, trace_collection):
-        # TODO: Implement actual optimization logic
         trace_collection.onExceptionRaiseExit(BaseException)
         return self, None, None
 
@@ -700,7 +681,6 @@ class ExpressionBuiltinsSortedSince3Call(
     def replaceWithCompileTimeValue(self, trace_collection):
         trace_collection.onExceptionRaiseExit(BaseException)
 
-        # TODO: Implement actual optimization logic
         return self, None, None
 
 
@@ -724,7 +704,6 @@ class ExpressionBuiltinsSortedBefore3Call(
     def replaceWithCompileTimeValue(self, trace_collection):
         trace_collection.onExceptionRaiseExit(BaseException)
 
-        # TODO: Implement actual optimization logic
         return self, None, None
 
 

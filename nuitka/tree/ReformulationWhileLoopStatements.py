@@ -1,44 +1,7 @@
 #     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-"""Reformulation of while loop statements.
-
-Loops in Nuitka have no condition attached anymore, so while loops are
-re-formulated like this:
-
-.. code-block:: python
-
-    while condition:
-        something()
-
-.. code-block:: python
-
-    while 1:
-        if not condition:
-            break
-
-        something()
-
-This is to totally remove the specialization of loops, with the condition moved
-to the loop body in an initial conditional statement, which contains a ``break``
-statement.
-
-That achieves, that only ``break`` statements exit the loop, and allow for
-optimization to remove always true loop conditions, without concerning code
-generation about it, and to detect such a situation, consider e.g. endless
-loops.
-
-.. note::
-
-   Loop analysis (not yet done) can then work on a reduced problem (which
-   ``break`` statements are executed under what conditions) and is then
-   automatically very general.
-
-   The fact that the loop body may not be entered at all, is still optimized,
-   but also in the general sense. Explicit breaks at the loop start and loop
-   conditions are the same.
-
-"""
+"""Reformulation of while loop statements."""
 
 from nuitka.nodes.ComparisonNodes import ExpressionComparisonIs
 from nuitka.nodes.ConditionalNodes import makeStatementConditional
@@ -60,11 +23,6 @@ from .TreeHelpers import (
 
 
 def buildWhileLoopNode(provider, node, source_ref):
-    # The while loop is re-formulated according to Developer Manual. The
-    # condition becomes an early condition to break the loop. The else block is
-    # taken if a while loop exits normally, i.e. because of condition not being
-    # true. We do this by introducing an indicator variable.
-
     else_block = buildStatementsNode(
         provider=provider,
         nodes=node.orelse if node.orelse else None,  # spell-checker: ignore orelse
@@ -74,7 +32,6 @@ def buildWhileLoopNode(provider, node, source_ref):
     if else_block is not None:
         temp_scope = provider.allocateTempScope("while_loop")
 
-        # Indicator variable, will end up with C bool type, and need not be released.
         tmp_break_indicator = provider.allocateTempVariable(
             temp_scope=temp_scope, name="break_indicator", temp_type="bool"
         )
@@ -96,8 +53,6 @@ def buildWhileLoopNode(provider, node, source_ref):
     )
     popBuildContext()
 
-    # The loop body contains a conditional statement at the start that breaks
-    # the loop if it fails.
     loop_body = makeStatementsSequenceWithNone(
         statements=(
             makeStatementConditional(

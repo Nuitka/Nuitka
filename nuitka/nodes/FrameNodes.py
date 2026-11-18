@@ -9,7 +9,6 @@ cached are essential.
 
 Otherwise, they are similar to statement sequences, so they inherit from
 them.
-
 """
 
 from abc import abstractmethod
@@ -27,11 +26,6 @@ from .StatementNodes import StatementsSequenceMixin
 
 
 def checkFrameStatements(value):
-    """Check that frames statements list value proper.
-
-    Must not be None, must not contain None, may be empty though.
-    """
-
     assert value is not None
     assert None not in value
 
@@ -75,19 +69,9 @@ class StatementsFrameBase(StatementsSequenceMixin, StatementsSequenceBase):
         self.needs_proxy = needs_frame_locals and python_version >= 0x3D0
 
     def needsFrameLocals(self):
-        """Whether the frame needs observable local variables.
-
-        Returns:
-            bool
-        """
         return self.needs_frame_locals
 
     def needsFrameLocalsProxy(self):
-        """Whether the frame needs a frame locals proxy.
-
-        Returns:
-            bool
-        """
         return self.needs_proxy
 
     @staticmethod
@@ -155,7 +139,6 @@ class StatementsFrameBase(StatementsSequenceMixin, StatementsSequenceBase):
         return self.code_object.getVarNames()
 
     def updateLocalNames(self):
-        """For use during variable closure phase. Finalize attributes."""
         provider = self.getParentVariableProvider()
 
         if not provider.isCompiledPythonModule():
@@ -212,8 +195,7 @@ class StatementsFrameBase(StatementsSequenceMixin, StatementsSequenceBase):
         return self.code_object
 
     def computeStatementsSequence(self, trace_collection):
-        # The extraction of parts of the frame that can be moved before or after
-        # the frame scope, takes it toll to complexity, pylint: disable=too-many-branches
+        # pylint: disable=too-many-branches
         new_statements = []
 
         statements = self.subnode_statements
@@ -224,7 +206,6 @@ class StatementsFrameBase(StatementsSequenceMixin, StatementsSequenceBase):
         trace_collection.setNeedsFrameLocalsProxy(self.needsFrameLocals())
 
         for count, statement in enumerate(statements):
-            # May be frames embedded.
             if statement.isStatementsFrame():
                 new_statement = statement.computeStatementsSequence(
                     trace_collection=trace_collection
@@ -276,10 +257,7 @@ class StatementsFrameBase(StatementsSequenceMixin, StatementsSequenceBase):
         # TODO: It might be worth to do the step that is done when nothing
         # changes in one go, avoiding the 2 micro passes here.
 
-        # If our statements changed just now, they are not immediately usable,
-        # so do this in two steps. Next time we can reduce the frame scope just
-        # as well. The same applies if any node changes were signalled, as
-        # replacements are only traced in the next micro pass, and the frame
+        # Replacements are only traced in the next micro pass, and the frame
         # decision must not be based on their untraced state.
         new_statements_tuple = tuple(new_statements)
         if (
@@ -289,8 +267,6 @@ class StatementsFrameBase(StatementsSequenceMixin, StatementsSequenceBase):
             self.setChildStatements(new_statements_tuple)
             return self
 
-        # Determine statements inside the frame, that need not be in a frame,
-        # because they wouldn't raise an exception.
         outside_pre = []
         while new_statements and not new_statements[0].needsFrame():
             outside_pre.append(new_statements[0])
@@ -331,10 +307,10 @@ class StatementsFrameBase(StatementsSequenceMixin, StatementsSequenceBase):
 
     @abstractmethod
     def hasStructureMember(self):
-        """Does the frame have a structure associated, like e.g. generator objects need."""
+        """Whether the frame is stored in an object struct (e.g. generator objects)."""
 
     def getStructureMember(self):
-        """Get the frame structure member code name, generator, coroutine, asyncgen."""
+        """Return the C struct member name for the frame, if any."""
         assert not self.hasStructureMember()
 
         return None
@@ -343,7 +319,6 @@ class StatementsFrameBase(StatementsSequenceMixin, StatementsSequenceBase):
     def getStatementNiceName():
         return "frame statements sequence"
 
-    # TODO: Proper names for all of them?
     def getFrameCodeName(self):
         return "frame_" + self.owner_code_name
 

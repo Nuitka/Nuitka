@@ -1,12 +1,7 @@
 #     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-"""Reformulation of "yield" and "yield from" expressions.
-
-Consult the Developer Manual for information. TODO: Add ability to sync
-source code comments with Developer Manual sections.
-
-"""
+"""Reformulation of 'yield', 'yield from', and 'await' expressions."""
 
 import ast
 
@@ -24,7 +19,7 @@ from .TreeHelpers import buildNode
 
 
 def _getErrorMessageYieldFromOutsideFunction():
-    # Need to use "exec" to detect the syntax error, pylint: disable=W0122
+    # pylint: disable=W0122
 
     try:
         exec("""yield from ()""")
@@ -38,7 +33,7 @@ def _getErrorMessageYieldFromOutsideFunction():
 def _checkInsideGenerator(construct_name, provider, node, source_ref):
 
     if provider.isCompiledPythonModule():
-        # Bug compatibility
+        # Match CPython's exact SyntaxError wording, which varies across versions.
         if construct_name == "yield from":
             construct_error_name = _getErrorMessageYieldFromOutsideFunction()
         else:
@@ -49,8 +44,8 @@ def _checkInsideGenerator(construct_name, provider, node, source_ref):
             source_ref.atColumnNumber(node.col_offset),
         )
 
-    # This yield is forbidden in 3.5, but allowed in 3.6, but "yield from"
-    # is neither.
+    # PEP 525 allows "yield" in async functions (3.6+), while "yield from"
+    # remains a SyntaxError rejected after parsing.
     if provider.isExpressionAsyncgenObjectBody() and construct_name == "yield from":
         raiseSyntaxError(
             "'%s' inside async function"

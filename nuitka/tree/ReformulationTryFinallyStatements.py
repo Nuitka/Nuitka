@@ -1,12 +1,7 @@
 #     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-"""Reformulation of try/finally statements.
-
-Consult the Developer Manual for information. TODO: Add ability to sync
-source code comments with Developer Manual sections.
-
-"""
+"""Reformulation of try/finally statements."""
 
 from nuitka.nodes.LoopNodes import StatementLoopBreak, StatementLoopContinue
 from nuitka.nodes.ReturnNodes import StatementReturnReturnedValue
@@ -68,7 +63,7 @@ def makeTryFinallyReleaseStatement(provider, tried, variables, source_ref):
 
 
 def makeTryFinallyStatement(provider, tried, final, source_ref, public_exc=False):
-    # Complex handling, due to the many variants, pylint: disable=too-many-branches
+    # pylint: disable=too-many-branches
 
     if type(tried) in (tuple, list):
         if tried:
@@ -88,21 +83,17 @@ def makeTryFinallyStatement(provider, tried, final, source_ref, public_exc=False
     if final is not None and not final.isStatementsSequence():
         final = makeStatementsSequenceFromStatement(final)
 
-    # Trivial case, nothing tried needs only do the final stuff.
     if tried is None:
         return final
 
-    # Trivial case, nothing final needs nothing but the tried stuff.
     if final is None:
         return tried
 
-    # Parent them to us already.
     if provider is not None:
         tried.parent = provider
         final.parent = provider
 
     def getFinal():
-        # Make a clone of "final" only if necessary.
         if hasattr(getFinal, "used"):
             return final.makeClone()
         else:
@@ -189,7 +180,6 @@ def makeTryFinallyStatement(provider, tried, final, source_ref, public_exc=False
 
 def buildTryFinallyNode(provider, build_tried, node, source_ref):
     if python_version < 0x300:
-        # Prevent "continue" statements in the final blocks
         pushBuildContext("finally")
         final = buildStatementsNode(
             provider=provider,
@@ -208,8 +198,6 @@ def buildTryFinallyNode(provider, build_tried, node, source_ref):
     else:
         tried = build_tried()
 
-        # Prevent "continue" statements in the final blocks, these have to
-        # become "SyntaxError".
         pushBuildContext("finally")
         final = buildStatementsNode(
             provider=provider, nodes=node.finalbody, source_ref=source_ref

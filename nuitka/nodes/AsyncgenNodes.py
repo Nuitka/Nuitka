@@ -1,12 +1,7 @@
 #     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-"""Nodes for async generator objects and their creations.
-
-Async generator are turned into normal functions that create generator objects,
-whose implementation lives here. The creation itself also lives here.
-
-"""
+"""Nodes for async generator objects and their creation."""
 
 from .ChildrenHavingMixins import ChildHavingAsyncgenRefMixin
 from .ExpressionBases import ExpressionBase

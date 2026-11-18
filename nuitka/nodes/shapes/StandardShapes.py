@@ -150,7 +150,6 @@ class ShapeBase(getMetaClassBase("Shape", require_slots=True)):
     iadd_shapes = {}
 
     def getOperationInplaceAddShape(self, right_shape):
-        """Inplace add operation shape, for overload."""
         if self.iadd_shapes:
             result = self.iadd_shapes.get(right_shape)
 
@@ -423,7 +422,6 @@ class ShapeBase(getMetaClassBase("Shape", require_slots=True)):
     ibitor_shapes = {}
 
     def getOperationInplaceBitOrShape(self, right_shape):
-        """Inplace bitor operation shape, for overload."""
         if self.ibitor_shapes:
             result = self.ibitor_shapes.get(right_shape)
 
@@ -498,8 +496,7 @@ class ShapeBase(getMetaClassBase("Shape", require_slots=True)):
 
     @staticmethod
     def isKnownToHaveAttribute(attribute_name):
-        # Virtual method, pylint: disable=unused-argument
-
+        # pylint: disable=unused-argument
         return None
 
     def emitAlternatives(self, emit):
@@ -610,11 +607,9 @@ class ValueShapeUnknown(ValueShapeBase):
 
     @staticmethod
     def isConstant():
-        """Can't say if it's constant, we don't know anything."""
         return None
 
 
-# Singleton value for sharing.
 vshape_unknown = ValueShapeUnknown()
 
 
@@ -951,11 +946,8 @@ class ShapeLoopCompleteAlternative(ShapeBase):
     """Merge of loop wrap around with loop start value.
 
     Happens at the start of loop blocks. This is for loop closed SSA, to
-    make it clear, that the entered value, can be one of multiple types,
+    make it clear that the entered value can be one of multiple types,
     but only those.
-
-    They will start out with just one previous, and later be updated with
-    all of the variable versions at loop continue times.
     """
 
     __slots__ = ("type_shapes",)
@@ -990,11 +982,9 @@ class ShapeLoopCompleteAlternative(ShapeBase):
 
             if single:
                 if result is None:
-                    # First entry, fine.
                     result = entry
                     escape_description = description
                 else:
-                    # Second entry, not the same, convert to set.
                     if result is not entry:
                         single = False
                         result = set((result, entry))
@@ -1197,8 +1187,6 @@ class ShapeLoopCompleteAlternative(ShapeBase):
             operation=left_shape.getOperationBinaryAddShape
         )
 
-    # Special method to be called by other shapes encountering this type on
-    # the right side.
     def getOperationBinarySubLShape(self, left_shape):
         assert left_shape is not tshape_unknown
 

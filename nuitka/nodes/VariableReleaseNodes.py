@@ -108,7 +108,6 @@ class StatementReleaseVariableBase(StatementBase):
         assert escape_desc is not None, self.variable_trace
 
         if escape_desc.isControlFlowEscape():
-            # Any code could be run, note that.
             trace_collection.onControlFlowEscape(self)
 
         return self, None, None

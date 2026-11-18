@@ -1,11 +1,7 @@
 #     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-"""Nodes for classes and their creations.
-
-The classes are are at the core of the language and have their complexities.
-
-"""
+"""Nodes for classes and their creation."""
 
 from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.PythonVersions import python_version
@@ -53,11 +49,9 @@ class ExpressionClassBodyBase(ExpressionOutlineFunctionBase):
 
         self.doc = doc
 
-        # Conditional annotations, set during tree building on 3.14 or higher.
+        # Python 3.14+ PEP 649 conditional annotations.
         self.conditional_annotation_indices = None
         self.conditional_annotations_variable = None
-
-        # Class namespace for annotation scopes created during tree building.
         self.deferred_class_dict = None
 
         self.locals_scope = getLocalsDictHandle(
@@ -105,12 +99,9 @@ class ExpressionClassBodyBase(ExpressionOutlineFunctionBase):
         self.getLocalsScope().registerBoundVariableName(variable_name)
 
     def getVariableForClosure(self, variable_name):
-        # print( "getVariableForClosure", self, variable_name )
-
         # The class bodies provide no closure, except under CPython3.x, there
         # they provide "__class__" and the "__conditional_annotations__" for 3.14
         # but nothing else.
-
         if variable_name in ("__class__", "__conditional_annotations__"):
             if python_version < 0x300:
                 return self.provider.getVariableForClosure(variable_name)
@@ -148,12 +139,11 @@ class ExpressionClassBodyBase(ExpressionOutlineFunctionBase):
         return self.subnode_body.mayRaiseException(exception_type)
 
     def isUnoptimized(self):
-        # Classes all are that.
         return True
 
 
 class ExpressionClassMappingBody(MarkNeedsAnnotationsMixin, ExpressionClassBodyBase):
-    """For use in cases, where the Python3 class is possibly a mapping."""
+    """Python 3 class body whose namespace may be an arbitrary mapping."""
 
     kind = "EXPRESSION_CLASS_MAPPING_BODY"
 
@@ -164,7 +154,6 @@ class ExpressionClassMappingBody(MarkNeedsAnnotationsMixin, ExpressionClassBodyB
         "deferred_annotations",
     )
 
-    # Force creation with proper type.
     locals_kind = "python_mapping_class"
 
     def __init__(self, provider, name, doc, source_ref):
@@ -207,7 +196,7 @@ class ExpressionClassDictBodyP2(ExpressionDictShapeExactMixin, ExpressionClassBo
 
 
 class ExpressionClassDictBody(MarkNeedsAnnotationsMixin, ExpressionClassDictBodyP2):
-    """For use in cases, where it's compile time pre-optimization determined to be a dictionary."""
+    """Python 3 class body whose namespace is known to be an exact dict."""
 
     kind = "EXPRESSION_CLASS_DICT_BODY"
 
@@ -345,15 +334,9 @@ class ExpressionBuiltinType3(ChildrenExpressionBuiltinType3Mixin, ExpressionBase
         return True
 
     def computeExpression(self, trace_collection):
-        # TODO: Can use this to specialize to the correct metaclass at compile
-        # time.
-        # meta_class = self._calculateMetaClass()
-
-        # TODO: Should be compile time computable if bases and dict are
-        # allowing that to happen into a dedicated class creation node,
-        # with known metaclass selection.
-
-        # Any exception may be raised.
+        # TODO: Specialize to a dedicated class creation node with compile-time
+        # metaclass selection via _calculateMetaClass() when bases and dict
+        # allow it.
         if self.mayRaiseException(BaseException):
             trace_collection.onExceptionRaiseExit(BaseException)
 
@@ -388,7 +371,6 @@ class ExpressionCallMetaclass(ExpressionCallMetaclassBase):
         )
 
     def computeExpression(self, trace_collection):
-        # Any exception may be raised by metaclass call.
         trace_collection.onExceptionRaiseExit(BaseException)
 
         return self, None, None
@@ -398,8 +380,6 @@ class ExpressionCallMetaclass(ExpressionCallMetaclassBase):
 
 
 class ExpressionCallClassPrepareCommonBase(ExpressionCallClassPrepareBase):
-    """Common base for the class prepare nodes."""
-
     def computeExpression(self, trace_collection):
         if self.subnode_called.isCompileTimeConstant():
             return (
@@ -466,8 +446,6 @@ class ExpressionCallClassPrepare(ExpressionCallClassPrepareCommonBase):
         return False, None
 
     def getExpressionDictInConstant(self, value):
-        # The PGO value is asserted at run time, so it can be used for
-        # compile time decisions.
         if self.expected_value is not None:
             return value in self.expected_value
 
@@ -487,8 +465,6 @@ class ExpressionCallClassPrepare(ExpressionCallClassPrepareCommonBase):
 class ExpressionCallClassPrepareKnownStartValueDictBase(
     ExpressionDictShapeExactMixin, ExpressionCallClassPrepareCommonBase
 ):
-    """Base for class prepare nodes with a known start value."""
-
     named_children = ("called",)
     node_attributes = (
         "type_shape",

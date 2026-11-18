@@ -1,14 +1,7 @@
 #     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-"""Tree nodes for built-in references.
-
-There is 2 major types of built-in references. One is the values from
-built-ins, the other is built-in exceptions. They work differently and
-mean different things, but they have similar origin, that is, access
-to variables only ever read.
-
-"""
+"""Tree nodes for built-in value and exception references."""
 
 from nuitka.Builtins import (
     builtin_anon_names,
@@ -32,7 +25,7 @@ from .shapes.BuiltinTypeShapes import tshape_exception_class
 
 
 class ExpressionBuiltinRefBase(CompileTimeConstantExpressionBase):
-    # Base classes can be abstract, pylint: disable=abstract-method
+    # pylint: disable=abstract-method
 
     __slots__ = ("builtin_name",)
 
@@ -145,7 +138,6 @@ class ExpressionBuiltinRef(ExpressionBuiltinRefBase):
 
     __slots__ = ()
 
-    # For overload
     locals_scope = None
 
     @staticmethod
@@ -179,7 +171,6 @@ class ExpressionBuiltinRef(ExpressionBuiltinRefBase):
         )
 
         if self.builtin_name in ("dir", "eval", "exec", "execfile", "locals", "vars"):
-            # Just inform the collection that all has escaped.
             trace_collection.onLocalsUsage(locals_scope=self.getLocalsScope())
 
         return new_node, tags, message
@@ -201,8 +192,6 @@ class ExpressionBuiltinRef(ExpressionBuiltinRefBase):
 
 
 class ExpressionBuiltinWithContextRef(ExpressionBuiltinRef):
-    """Same as ExpressionBuiltinRef, but with a context it refers to."""
-
     kind = "EXPRESSION_BUILTIN_WITH_CONTEXT_REF"
 
     __slots__ = ("locals_scope",)
@@ -269,7 +258,6 @@ class ExpressionBuiltinExceptionRef(ExpressionBuiltinRefBase):
         return builtin_exception_values[self.builtin_name]
 
     def computeExpressionRaw(self, trace_collection):
-        # Not much that can be done here.
         return self, None, None
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):

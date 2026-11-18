@@ -36,7 +36,6 @@ def getLocalsDictType(kind):
 
 
 def getLocalsDictHandle(locals_name, kind, owner):
-    # Duplicates are bad and cannot be tolerated.
     if locals_name in locals_dict_handles:
         raise NuitkaOptimizationError(
             "duplicate locals name",
@@ -77,10 +76,7 @@ class LocalsDictHandleBase(object):
         self.locals_name = locals_name
         self.owner = owner
 
-        # For locals dict variables in this scope.
         self.variables = {}
-
-        # For local variables in this scope.
         self.local_variables = {}
         self.providing = OrderedDict()
 
@@ -93,16 +89,14 @@ class LocalsDictHandleBase(object):
         self.mark_for_propagation = False
 
         self.propagation = None
-
         self.complete = False
-
         self.start_value = None
 
     if isCountingInstances():
         __del__ = counted_del()
 
     def setStartValue(self, value):
-        # The value known for the scope from config or PGO.
+        # Known initial scope value from configuration or PGO.
         self.start_value = value
 
     def getStartValue(self):
@@ -120,20 +114,10 @@ class LocalsDictHandleBase(object):
         )
 
     def makeCloneWithVariableTranslations(self, new_owner, variable_translations):
-        """Clone the locals scope, reusing given variable translations.
-
-        Args:
-            new_owner: The new owner of the cloned locals scope.
-            variable_translations: Dictionary of old to new variables, will
-                be updated with the cloned variables.
-
-        Returns:
-            Tuple of cloned locals scope and variable translations.
-        """
+        """Clone the locals scope, updating and returning 'variable_translations'."""
 
         count = 1
 
-        # Make it unique.
         while 1:
             locals_name = self.locals_name + "_inline_%d" % count
 
@@ -144,7 +128,6 @@ class LocalsDictHandleBase(object):
 
         result = self.__class__(locals_name=locals_name, owner=new_owner)
 
-        # Clone variables as well.
         for variable_name, variable in self.variables.items():
             if variable in variable_translations:
                 new_variable = variable_translations[variable]
@@ -221,8 +204,6 @@ class LocalsDictHandleBase(object):
         self.providing[variable_name] = variable
 
     def unregisterProvidedVariable(self, variable):
-        """Remove provided variable, e.g. because it became unused."""
-
         variable_name = variable.getName()
 
         if variable_name in self.providing:
@@ -232,13 +213,9 @@ class LocalsDictHandleBase(object):
     unregisterClosureVariable = unregisterProvidedVariable
 
     def hasProvidedVariable(self, variable_name):
-        """Test if a variable is provided."""
-
         return variable_name in self.providing
 
     def getProvidedVariable(self, variable_name):
-        """Test if a variable is provided."""
-
         return self.providing[variable_name]
 
     def registerBoundVariableName(self, variable_name):
@@ -248,8 +225,6 @@ class LocalsDictHandleBase(object):
         return variable_name in self.bound_variable_names
 
     def getLocalsRelevantVariables(self):
-        """The variables relevant to locals."""
-
         return self.providing.values()
 
     def getLocalsDictVariable(self, variable_name):
@@ -304,7 +279,6 @@ class LocalsDictHandleBase(object):
         return self.propagation
 
     def finalize(self):
-        # Make it unusable when it's become empty, not used.
         self.owner.locals_scope = None
         del self.owner
 
@@ -331,11 +305,7 @@ class LocalsDictHandleBase(object):
     # ought to be abstract and have variants with TODOs for each of them.
     @staticmethod
     def _considerPropagation(trace_collection):
-        """For overload by scope type. Check if this can be replaced.
-
-        Returns:
-            Scope to propagate or None.
-        """
+        """Return scope if eligible for replacement with temporary variables, else 'None'."""
         return None
 
     def onPropagationComplete(self):
@@ -343,8 +313,6 @@ class LocalsDictHandleBase(object):
         self.mark_for_propagation = False
 
     def _considerUnusedUserLocalVariables(self, trace_collection):
-        """Check scope for unused variables."""
-
         provided = self.getProvidedVariables()
         removals = []
 
@@ -436,9 +404,8 @@ class LocalsMappingHandle(LocalsDictHandle):
         return self.type_shape is tshape_dict
 
     def markAsComplete(self, trace_collection):
-        # For this run, it cannot be done yet.
         if self.prevented_propagation:
-            # False alarm, this is available.
+            # Reset per-pass inhibition for the next optimization pass.
             self.prevented_propagation = False
             return None
 

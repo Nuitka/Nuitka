@@ -17,12 +17,6 @@ from .NodeMakingHelpers import (
 class ExpressionBuiltinAny(
     ExpressionBoolShapeExactMixin, ExpressionBuiltinSingleArgBase
 ):
-    """Builtin Any Node class.
-
-    Node that represents built-in 'any' call.
-
-    """
-
     kind = "EXPRESSION_BUILTIN_ANY"
 
     builtin_spec = BuiltinParameterSpecs.builtin_any_spec
@@ -31,7 +25,6 @@ class ExpressionBuiltinAny(
         value = self.subnode_value
         shape = value.getTypeShape()
         if shape.hasShapeSlotIter() is False:
-            # An exception is raised.
             trace_collection.onExceptionRaiseExit(BaseException)
 
             return makeRaiseTypeErrorExceptionReplacementFromTemplateAndValue(
@@ -87,17 +80,12 @@ class ExpressionBuiltinAny(
                 )
 
         self.onContentEscapes(trace_collection)
-
-        # Any code could be run, note that.
         trace_collection.onControlFlowEscape(self)
-
-        # Any exception may be raised.
         trace_collection.onExceptionRaiseExit(BaseException)
 
         return self, None, None
 
     def mayRaiseException(self, exception_type):
-        """returns boolean True if exception is raised else False"""
         value = self.subnode_value
 
         if value.mayRaiseException(exception_type):

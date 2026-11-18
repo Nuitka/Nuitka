@@ -1,23 +1,12 @@
 #     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-"""Attribute nodes
+"""Attribute assignment, deletion, check, and built-in access nodes.
 
-Knowing attributes of an object is very important, esp. when it comes to 'self'
-and objects and classes.
-
-There will be a methods "computeExpression*Attribute" to aid predicting them,
-with many variants for setting, deleting, and accessing. Also there is some
-complication in the form of special lookups, that won't go through the normal
-path, but just check slots.
-
-Due to ``getattr``, ``setattr``, and ``delattr`` built-ins, there is also a
-different in the computations for objects and for compile time known strings.
-This reflects what CPython also does with "tp_getattr" and "tp_getattro".
-
-These nodes are therefore mostly delegating the work to expressions they
-work on, and let them decide and do the heavy lifting of optimization
-and annotation is happening in the nodes that implement these compute slots.
+Attribute operations delegate prediction and optimization to
+'computeExpression*Attribute' slots on the target expression, mirroring
+CPython's 'tp_getattr'/'tp_getattro' split between compile-time known
+attribute names and dynamic 'getattr'/'setattr'/'delattr'/'hasattr' calls.
 """
 
 from nuitka.PythonVersions import python_version
@@ -124,9 +113,9 @@ def makeExpressionAttributeLookup(expression, attribute_name, source_ref):
 
 
 class ExpressionBuiltinGetattr(ExpressionBuiltinGetattrBase):
-    """Built-in "getattr".
+    """Built-in 'getattr'.
 
-    Typical code like this: getattr(object_arg, name, default)
+    Typical code like this: getattr(expression, name, default)
 
     The default is optional, but computed before the lookup is done.
     """
@@ -189,10 +178,6 @@ class ExpressionBuiltinGetattr(ExpressionBuiltinGetattrBase):
 
             source = self.subnode_expression
             if source.isKnownToHaveAttribute(attribute_name):
-                # If source has side effects, they must be evaluated, before
-                # the lookup, meaning, a temporary variable should be assigned.
-                # For now, we give up in this case.
-
                 side_effects = source.extractSideEffects()
 
                 if not side_effects:
@@ -220,11 +205,6 @@ attribute '%s' to mere attribute lookup""" % attribute_name,
 class ExpressionBuiltinSetattr(
     ExpressionNoneShapeExactMixin, ExpressionBuiltinSetattrBase
 ):
-    """Built-in "setattr".
-
-    Typical code like this: setattr(expression, name, value)
-    """
-
     kind = "EXPRESSION_BUILTIN_SETATTR"
 
     named_children = ("expression", "name", "value")
@@ -295,11 +275,6 @@ class ExpressionBuiltinSetattr(
 class ExpressionBuiltinDelattr(
     ExpressionNoneShapeExactMixin, ExpressionBuiltinDelattrBase
 ):
-    """Built-in "delattr".
-
-    Typical code like this: delattr(expression, name)
-    """
-
     kind = "EXPRESSION_BUILTIN_DELATTR"
 
     named_children = ("expression", "name")
@@ -455,15 +430,12 @@ class ExpressionAttributeCheck(
     def computeExpression(self, trace_collection):
         source = self.subnode_expression
 
-        # For things that know their attributes, we can statically optimize this
-        # into true or false, preserving side effects of course.
         has_attribute = source.isKnownToHaveAttribute(self.attribute_name)
         if has_attribute is not None:
             result = makeCompileTimeConstantReplacementNode(
                 value=has_attribute, node=self, user_provided=False
             )
 
-            # If source has side effects, they must be evaluated.
             result = wrapExpressionWithNodeSideEffects(new_node=result, old_node=source)
 
             return (
@@ -472,7 +444,6 @@ class ExpressionAttributeCheck(
                 "Attribute check has been pre-computed to '%s'." % has_attribute,
             )
 
-        # Attribute check does not raise is implemented by getting an attribute.
         if self.mayRaiseExceptionOperation():
             trace_collection.onExceptionRaiseExit(BaseException)
 
@@ -484,6 +455,7 @@ class ExpressionAttributeCheck(
             or self.mayRaiseExceptionOperation()
         )
 
+    # Python2 'hasattr' swallows all exceptions, while Python3 only catches 'AttributeError'.
     if str is bytes:
 
         @staticmethod
