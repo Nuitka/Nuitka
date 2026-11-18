@@ -460,6 +460,15 @@ def makeExpressionBuiltinLocals(locals_scope, source_ref):
             return ExpressionBuiltinLocalsRef(
                 locals_scope=locals_scope, source_ref=source_ref
             )
+        elif python_version >= 0x3D0:
+            assert locals_scope.isFunctionScope(), locals_scope
+
+            # Python 3.13 made "locals()" return a fresh snapshot in optimized
+            # scopes rather than a dictionary that is updated and reused, see
+            # PEP 667.
+            return ExpressionBuiltinLocalsCopy(
+                locals_scope=locals_scope, source_ref=source_ref
+            )
         elif python_version >= 0x300 or locals_scope.isUnoptimizedFunctionScope():
             assert locals_scope.isFunctionScope(), locals_scope
 
