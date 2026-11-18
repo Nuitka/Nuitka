@@ -50,7 +50,7 @@ from nuitka.utils.PrivatePipSpace import (
 
 def _shouldNotFormatCode(filename, effective_filename):
     """Check if a file should not be formatted."""
-    # pylint: disable=too-many-branches,too-many-return-statements
+    # pylint: disable=too-many-return-statements
 
     parts = os.path.normpath(effective_filename).split(os.path.sep)
 
@@ -60,8 +60,6 @@ def _shouldNotFormatCode(filename, effective_filename):
 
         return True
     if "pybench" in parts:  # spell-checker: ignore pybench
-        return True
-    if "mercurial" in parts:
         return True
     if "tests" in parts and parts[parts.index("tests") + 1].startswith("CPython"):
         return True
