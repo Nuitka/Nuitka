@@ -249,7 +249,6 @@ def _prepareFromEnvironmentVar(var_name):
 
 def _prepareEnvironment(mingw_mode):
     mingw_mode_from_env, zig_exe_path = _prepareFromEnvironmentVar("CC")
-    _prepareFromEnvironmentVar("CXX")
 
     if mingw_mode_from_env:
         mingw_mode = True
