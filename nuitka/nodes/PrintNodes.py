@@ -39,14 +39,15 @@ class StatementPrintValue(StatementPrintValueBase):
         trace_collection.onExceptionRaiseExit(BaseException)
 
         if self.subnode_dest is None and self.subnode_value.isExpressionSideEffects():
-            self.setChildValue(self.subnode_value.value.subnode_expression)
+            old_value = self.subnode_value
 
             statements = [
                 makeStatementExpressionOnlyReplacementNode(side_effect, self)
-                for side_effect in self.subnode_value.value.subnode_side_effects
+                for side_effect in old_value.subnode_side_effects
             ]
-
             statements.append(self)
+
+            self.setChildValue(old_value.subnode_expression)
 
             result = makeStatementsSequenceReplacementNode(
                 statements=statements, node=self
