@@ -506,8 +506,9 @@ def getTkInterVersion():
             return str(__import__("Tkinter").TkVersion)
         else:
             return str(__import__("tkinter").TkVersion)
-    except ImportError:
-        # This should lead to no action taken ideally.
+    except (ImportError, AttributeError):
+        # A partially removed tkinter installation imports as an empty
+        # namespace package, so the version attribute is missing.
         return None
 
 
