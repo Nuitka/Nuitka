@@ -1032,8 +1032,11 @@ PyTypeObject Nuitka_Function_Type = {
 #if PYTHON_VERSION < 0x300
         Py_TPFLAGS_HAVE_WEAKREFS |
 #endif
+#if PYTHON_VERSION >= 0x380 && !defined(_NUITKA_EXPERIMENTAL_DISABLE_VECTORCALL_SLOT)
+        _Py_TPFLAGS_HAVE_VECTORCALL |
+#endif
 #if PYTHON_VERSION >= 0x380
-        _Py_TPFLAGS_HAVE_VECTORCALL | Py_TPFLAGS_METHOD_DESCRIPTOR |
+        Py_TPFLAGS_METHOD_DESCRIPTOR |
 #endif
         Py_TPFLAGS_HAVE_GC,                             // tp_flags
     0,                                                  // tp_doc

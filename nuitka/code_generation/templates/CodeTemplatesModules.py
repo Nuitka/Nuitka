@@ -772,7 +772,9 @@ template_helper_impl_decl = """\
 
 #include "nuitka/prelude.h"
 
+#if PYTHON_VERSION < 0x380 && !defined(_NUITKA_EXPERIMENTAL_DISABLE_UNCOMPILED_FUNCTION_CALL_OPT)
 extern PyObject *callPythonFunction(PyObject *func, PyObject *const *args, int count);
+#endif
 
 """
 

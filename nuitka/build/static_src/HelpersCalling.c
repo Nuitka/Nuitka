@@ -6,7 +6,7 @@
 #include "nuitka/prelude.h"
 #endif
 
-#if PYTHON_VERSION < 0x3b0
+#if PYTHON_VERSION < 0x380 && !defined(_NUITKA_EXPERIMENTAL_DISABLE_UNCOMPILED_FUNCTION_CALL_OPT)
 PyObject *callPythonFunction(PyObject *func, PyObject *const *args, int count) {
     PyCodeObject *co = (PyCodeObject *)PyFunction_GET_CODE(func);
     PyObject *globals = PyFunction_GET_GLOBALS(func);

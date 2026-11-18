@@ -617,7 +617,7 @@ PyTypeObject Nuitka_Method_Type = {
 #if PYTHON_VERSION < 0x300
         Py_TPFLAGS_HAVE_WEAKREFS |
 #endif
-#if PYTHON_VERSION >= 0x380
+#if PYTHON_VERSION >= 0x380 && !defined(_NUITKA_EXPERIMENTAL_DISABLE_VECTORCALL_SLOT)
         _Py_TPFLAGS_HAVE_VECTORCALL |
 #endif
         Py_TPFLAGS_HAVE_GC,
