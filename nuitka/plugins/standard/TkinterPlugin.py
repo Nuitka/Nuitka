@@ -3,7 +3,6 @@
 
 """Details see below in class definition."""
 
-import io
 import os
 import sys
 
@@ -18,9 +17,9 @@ from nuitka.PythonPrefixes import getSystemPrefixPath
 from nuitka.PythonVersions import getTkInterVersion
 from nuitka.utils.FileOperations import getUserInputNormalizedPath, listDir
 from nuitka.utils.Utils import isMacOS, isWin32Windows
-from nuitka.utils.Zipfiles import createZipFile, doesZipFileMatch, getZipFile
+from nuitka.utils.Zipfiles import doesZipFileMatch, hasZipFileOverlay
 
-# spell-checker: ignore tcltest,tcltk
+# spell-checker: ignore libtcl,libtk,tcltest,tcltk
 
 
 def _isTkInterModule(module):
@@ -87,15 +86,15 @@ class NuitkaPluginTkinter(NuitkaPluginBase):
             else None
         )
 
-        # The directories used, once detected, for reporting only.
+        # The directories or DLL zip overlays used, once detected.
         self.tcl_library_source_dir = None
         self.tk_library_source_dir = None
 
         # ensure one-time action, we deal with several names for the execution,
         # yet we only want to do it once.
         self.files_copied = False
-        self._tcl_is_zip = False
-        self._tk_is_zip = False
+        self._tcl_uses_zip_overlay = False
+        self._tk_uses_zip_overlay = False
 
         self.tk_inter_version = getTkInterVersion()
 
@@ -134,25 +133,37 @@ Please report as a issue.""" % self.tk_inter_version)
 
     def createPreModuleLoadCode(self, module):
         if _isTkInterModule(module):
-            # If the original library was a zip, we provide a zip file as well.
-            tcl_target = self.getTclTargetPath()
-            tk_target = self.getTkTargetPath()
+            # Detect Tcl/Tk locations early so directory vs. DLL zip overlay
+            # handling matches what considerDataFiles will later package.
+            self._detectTclTkLibraries()
 
-            if self._tcl_is_zip:
-                tcl_target += ".zip"
-            if self._tk_is_zip:
-                tk_target += ".zip"
+            lines = ["import os"]
 
-            code = r"""
-import os
-nuitka_info = globals().get("__uncompiled__", globals().get("__compiled__"))
-os.environ["TCL_LIBRARY"] = os.path.join(nuitka_info.python_runtime_dir, "%(tcl_target_path)s")
-os.environ["TK_LIBRARY"] = os.path.join(nuitka_info.python_runtime_dir, "%(tk_target_path)s")""" % {
-                "tcl_target_path": tcl_target,
-                "tk_target_path": tk_target,
-            }
+            if not self._tcl_uses_zip_overlay or not self._tk_uses_zip_overlay:
+                lines.append(
+                    'nuitka_info = globals().get("__uncompiled__", globals().get("__compiled__"))'
+                )
 
-            return code, "Need to make sure we set environment variables for TCL."
+            if self._tcl_uses_zip_overlay:
+                lines.append('os.environ.pop("TCL_LIBRARY", None)')
+            else:
+                lines.append(
+                    'os.environ["TCL_LIBRARY"] = os.path.join(nuitka_info.python_runtime_dir, "%s")'
+                    % self.getTclTargetPath()
+                )
+
+            if self._tk_uses_zip_overlay:
+                lines.append('os.environ.pop("TK_LIBRARY", None)')
+            else:
+                lines.append(
+                    'os.environ["TK_LIBRARY"] = os.path.join(nuitka_info.python_runtime_dir, "%s")'
+                    % self.getTkTargetPath()
+                )
+
+            return (
+                "\n".join(lines),
+                "Need to make sure we set environment variables for TCL.",
+            )
 
     def createPostModuleLoadCode(self, module):
         # Starting with Tk 9, it loads ICU DLLs dynamically, and on Windows it
@@ -209,109 +220,168 @@ override it here. Default is automatic detection.""",
 The Tcl library dir. See comments for Tk library dir.""",
         )
 
-    def _getTclCandidatePaths(self):
-        # Check typical locations of the dirs
-        tcl_library = os.getenv("TCL_LIBRARY")
-        if tcl_library:
-            yield getUserInputNormalizedPath(tcl_library)
+    def _getTclCandidatePaths(self, system_locations):
+        if not system_locations:
+            # Check typical locations of the dirs
+            tcl_library = os.getenv("TCL_LIBRARY")
+            if tcl_library:
+                yield getUserInputNormalizedPath(tcl_library)
 
-        # Inside the Python install, esp. on Windows.
-        for sys_prefix_path in (sys.prefix, getSystemPrefixPath()):
-            yield os.path.join(sys_prefix_path, "tcl", "tcl%s" % self.tk_inter_version)
-            yield os.path.join(sys_prefix_path, "lib", "tcl%s" % self.tk_inter_version)
-
-            # Newer Anaconda.
-            yield os.path.join(
-                sys_prefix_path, "Library", "lib", "tcl%s" % self.tk_inter_version
-            )
-
-        # System installs on non-Windows
-        if not isWin32Windows():
-            yield "/usr/share/tcltk/tcl%s" % self.tk_inter_version
-            yield "/usr/share/tcl%s" % self.tk_inter_version
-            yield "/usr/lib64/tcl/tcl%s" % self.tk_inter_version
-            yield "/usr/lib/tcl%s" % self.tk_inter_version
-
-        if isHomebrewPython() or isPyenvHomebrewPython():
-            yield os.path.normpath(
-                os.path.join(
-                    getHomebrewInstallPath(),
-                    "lib",
-                    "tcl%s" % self.tk_inter_version,
+            # Inside the Python install, esp. on Windows.
+            for sys_prefix_path in (sys.prefix, getSystemPrefixPath()):
+                yield os.path.join(
+                    sys_prefix_path, "tcl", "tcl%s" % self.tk_inter_version
                 )
-            )
-
-            # Homebrew is compiled to think it's 8.6, but it might actually
-            # be the version 9.
-            yield os.path.normpath(
-                os.path.join(
-                    getHomebrewInstallPath(),
-                    "lib",
-                    "tcl9",
+                yield os.path.join(
+                    sys_prefix_path, "lib", "tcl%s" % self.tk_inter_version
                 )
-            )
 
-        if isMacOS():
-            yield os.path.normpath(
-                os.path.join(
-                    getSystemPrefixPath(),
-                    "Frameworks",
-                    "Tcl.framework",
-                    "Resources",
-                    "Scripts",
+                # Newer Anaconda.
+                yield os.path.join(
+                    sys_prefix_path, "Library", "lib", "tcl%s" % self.tk_inter_version
                 )
-            )
+        else:
+            # System installs on non-Windows
+            if not isWin32Windows():
+                yield "/usr/share/tcltk/tcl%s" % self.tk_inter_version
+                yield "/usr/share/tcl%s" % self.tk_inter_version
+                yield "/usr/lib64/tcl/tcl%s" % self.tk_inter_version
+                yield "/usr/lib/tcl%s" % self.tk_inter_version
 
-    def _getTkCandidatePaths(self):
-        tk_library = os.getenv("TK_LIBRARY")
-        if tk_library:
-            yield getUserInputNormalizedPath(tk_library)
-
-        for sys_prefix_path in (sys.prefix, getSystemPrefixPath()):
-            yield os.path.join(sys_prefix_path, "tcl", "tk%s" % self.tk_inter_version)
-            yield os.path.join(sys_prefix_path, "lib", "tk%s" % self.tk_inter_version)
-
-            # Newer Anaconda.
-            yield os.path.join(
-                sys_prefix_path, "Library", "lib", "tk%s" % self.tk_inter_version
-            )
-
-        if not isWin32Windows():
-            yield "/usr/share/tcltk/tk%s" % self.tk_inter_version
-            yield "/usr/share/tk%s" % self.tk_inter_version
-            yield "/usr/lib64/tcl/tk%s" % self.tk_inter_version
-            yield "/usr/lib/tk%s" % self.tk_inter_version
-
-        if isHomebrewPython() or isPyenvHomebrewPython():
-            yield os.path.normpath(
-                os.path.join(
-                    getHomebrewInstallPath(),
-                    "lib",
-                    "tk%s" % self.tk_inter_version,
+            if isHomebrewPython() or isPyenvHomebrewPython():
+                yield os.path.normpath(
+                    os.path.join(
+                        getHomebrewInstallPath(),
+                        "lib",
+                        "tcl%s" % self.tk_inter_version,
+                    )
                 )
-            )
 
-            if self.tk_inter_version == "8.6":
                 # Homebrew is compiled to think it's 8.6, but it might actually
                 # be the version 9.
                 yield os.path.normpath(
                     os.path.join(
                         getHomebrewInstallPath(),
                         "lib",
-                        "tk9.0",
+                        "tcl9",
                     )
                 )
 
-        if isMacOS():
-            yield os.path.normpath(
-                os.path.join(
-                    getSystemPrefixPath(),
-                    "Frameworks",
-                    "Tk.framework",
-                    "Resources",
-                    "Scripts",
+            if isMacOS():
+                yield os.path.normpath(
+                    os.path.join(
+                        getSystemPrefixPath(),
+                        "Frameworks",
+                        "Tcl.framework",
+                        "Resources",
+                        "Scripts",
+                    )
                 )
-            )
+
+    def _getTkCandidatePaths(self, system_locations):
+        if not system_locations:
+            tk_library = os.getenv("TK_LIBRARY")
+            if tk_library:
+                yield getUserInputNormalizedPath(tk_library)
+
+            for sys_prefix_path in (sys.prefix, getSystemPrefixPath()):
+                yield os.path.join(
+                    sys_prefix_path, "tcl", "tk%s" % self.tk_inter_version
+                )
+                yield os.path.join(
+                    sys_prefix_path, "lib", "tk%s" % self.tk_inter_version
+                )
+
+                # Newer Anaconda.
+                yield os.path.join(
+                    sys_prefix_path, "Library", "lib", "tk%s" % self.tk_inter_version
+                )
+        else:
+            if not isWin32Windows():
+                yield "/usr/share/tcltk/tk%s" % self.tk_inter_version
+                yield "/usr/share/tk%s" % self.tk_inter_version
+                yield "/usr/lib64/tcl/tk%s" % self.tk_inter_version
+                yield "/usr/lib/tk%s" % self.tk_inter_version
+
+            if isHomebrewPython() or isPyenvHomebrewPython():
+                yield os.path.normpath(
+                    os.path.join(
+                        getHomebrewInstallPath(),
+                        "lib",
+                        "tk%s" % self.tk_inter_version,
+                    )
+                )
+
+                if self.tk_inter_version == "8.6":
+                    # Homebrew is compiled to think it's 8.6, but it might actually
+                    # be the version 9.
+                    yield os.path.normpath(
+                        os.path.join(
+                            getHomebrewInstallPath(),
+                            "lib",
+                            "tk9.0",
+                        )
+                    )
+
+            if isMacOS():
+                yield os.path.normpath(
+                    os.path.join(
+                        getSystemPrefixPath(),
+                        "Frameworks",
+                        "Tk.framework",
+                        "Resources",
+                        "Scripts",
+                    )
+                )
+
+    @staticmethod
+    def _getOverlayDllCandidatePaths(prefixes, system_locations):
+        candidate_dirs = []
+
+        if not system_locations:
+            for sys_prefix_path in (sys.prefix, getSystemPrefixPath()):
+                if isWin32Windows():
+                    candidate_dirs.extend(
+                        (
+                            os.path.join(sys_prefix_path, "DLLs"),
+                            os.path.join(sys_prefix_path, "Library", "bin"),
+                            sys_prefix_path,
+                        )
+                    )
+                else:
+                    candidate_dirs.extend(
+                        (
+                            os.path.join(sys_prefix_path, "lib"),
+                            os.path.join(sys_prefix_path, "lib64"),
+                        )
+                    )
+        elif not isWin32Windows():
+            candidate_dirs.extend(("/usr/lib64", "/usr/lib"))
+
+        seen_dirs = set()
+        for candidate_dir in candidate_dirs:
+            if (
+                not candidate_dir
+                or candidate_dir in seen_dirs
+                or not os.path.isdir(candidate_dir)
+            ):
+                continue
+            seen_dirs.add(candidate_dir)
+
+            for full_path, filename in listDir(candidate_dir):
+                filename_lower = filename.lower()
+                if not filename_lower.startswith(prefixes):
+                    continue
+
+                if isWin32Windows():
+                    is_shared_lib = filename_lower.endswith(".dll")
+                else:
+                    is_shared_lib = ".so" in filename_lower or filename_lower.endswith(
+                        ".dylib"
+                    )
+
+                if is_shared_lib and hasZipFileOverlay(full_path):
+                    yield full_path
 
     @staticmethod
     def _getZipCandidatePaths(candidate_paths, prefixes):
@@ -333,67 +403,20 @@ The Tcl library dir. See comments for Tk library dir.""",
                     if filename.endswith(".zip") and filename.startswith(prefixes):
                         yield full_path
 
-    def _getTclZipCandidatePaths(self):
-        for candidate in self._getZipCandidatePaths(
-            candidate_paths=self._getTclCandidatePaths(), prefixes=("libtcl", "tcl")
-        ):
-            yield candidate
-
-    def _getTkZipCandidatePaths(self):
-        for candidate in self._getZipCandidatePaths(
-            candidate_paths=self._getTkCandidatePaths(), prefixes=("libtk", "tk")
-        ):
-            yield candidate
-
-    def _makeIncludedFromZip(
-        self, source_path, dest_path, reason, tags, ignore_dirs, ignore_filenames
+    def _getZipAndOverlayCandidates(
+        self, candidate_paths, dll_prefixes, zip_prefixes, system_locations
     ):
-        # TODO: Currently we cannot ignore anything in zip files, we should make
-        # this a proper included data file type, or apply the options for no-include
-        # manually.
+        for candidate in self._getOverlayDllCandidatePaths(
+            prefixes=dll_prefixes,
+            system_locations=system_locations,
+        ):
+            yield candidate
 
-        # Create a filtered zip file ourselves, do not expand to many individual
-        # data files. Follows argument ordering of makeIncludedDataDirectory.
-        out = io.BytesIO()
-
-        with getZipFile(
-            zip_path=source_path, error_exit=True, logger=self
-        ) as source_zip:
-            target_zip = createZipFile(file_obj=out)
-            for zip_info in source_zip.infolist():
-                filename = zip_info.filename
-
-                if filename.endswith("/"):
-                    continue
-
-                parts = filename.split("/")
-                if len(parts) > 1 and parts[0].endswith("_library"):
-                    filename_relative = "/".join(parts[1:])
-                else:
-                    filename_relative = filename
-
-                if not filename_relative:
-                    continue
-
-                rel_parts = filename_relative.split("/")
-                if any(part in ignore_dirs for part in rel_parts[:-1]):
-                    continue
-
-                if os.path.basename(filename_relative) in ignore_filenames:
-                    continue
-
-                target_zip.writestr(
-                    filename_relative, source_zip.read(zip_info.filename)
-                )
-
-            target_zip.close()
-
-        yield self.makeIncludedGeneratedDataFile(
-            data=out.getvalue(),
-            dest_path=dest_path + ".zip",
-            reason=reason,
-            tags=tags,
-        )
+        for candidate in self._getZipCandidatePaths(
+            candidate_paths=candidate_paths,
+            prefixes=zip_prefixes,
+        ):
+            yield candidate
 
     @staticmethod
     def getTclTargetPath():
@@ -409,122 +432,113 @@ The Tcl library dir. See comments for Tk library dir.""",
         else:
             return "tk"
 
-    def considerDataFiles(self, module):  # pylint: disable=too-many-branches
-        """Provide TCL libraries to the dist folder.
+    def _findLibrarySource(
+        self,
+        explicit_dir,
+        get_candidate_paths,
+        dll_prefixes,
+        zip_prefixes,
+        marker_filename,
+    ):
+        def _matchesZipMarker(candidate):
+            return doesZipFileMatch(
+                zip_path=candidate,
+                decide_filename=lambda filename: filename == marker_filename
+                or filename.endswith("/" + marker_filename),
+                error_exit=False,
+                logger=self,
+            )
 
-        Notes:
-            We will provide the copy the TCL/TK directories to the program's root directory,
-            that might be shiftable with some work.
+        if explicit_dir is not None:
+            uses_zip = hasZipFileOverlay(explicit_dir) or (
+                os.path.isfile(explicit_dir) and explicit_dir.endswith(".zip")
+            )
+            return explicit_dir, uses_zip
 
-        Args:
-            module: the module in question, maybe ours
+        # First check explicit environment variable and Python prefix locations
+        # (both filesystem directories and ZipFS overlays) so a self-contained
+        # Python build does not fall back to unrelated system /usr/share files.
+        for system_locations in (False, True):
+            candidate_paths = tuple(
+                get_candidate_paths(system_locations=system_locations)
+            )
 
-        Yields:
-            IncludedDataFile objects.
-        """
+            for candidate_dir in candidate_paths:
+                if os.path.exists(os.path.join(candidate_dir, marker_filename)):
+                    return candidate_dir, False
 
-        if not _isTkInterModule(module) or self.files_copied:
+                if hasZipFileOverlay(candidate_dir) and _matchesZipMarker(
+                    candidate_dir
+                ):
+                    return candidate_dir, True
+
+            for candidate in self._getZipAndOverlayCandidates(
+                candidate_paths=candidate_paths,
+                dll_prefixes=dll_prefixes,
+                zip_prefixes=zip_prefixes,
+                system_locations=system_locations,
+            ):
+                if _matchesZipMarker(candidate):
+                    return candidate, True
+
+        return None, False
+
+    def _detectTclTkLibraries(self):
+        if self.tcl_library_source_dir is not None:
             return
 
-        tcl_library_dir = self.tcl_library_dir
-        tcl_is_zip = False
-        if tcl_library_dir is None:
-            for tcl_library_dir in self._getTclCandidatePaths():
-                if os.path.exists(os.path.join(tcl_library_dir, "init.tcl")):
-                    break
-            else:
-                tcl_library_dir = None
-
-            if tcl_library_dir is None or not os.path.exists(tcl_library_dir):
-                for candidate in self._getTclZipCandidatePaths():
-                    if doesZipFileMatch(
-                        zip_path=candidate,
-                        decide_filename=lambda filename: filename == "init.tcl"
-                        or filename.endswith("/init.tcl"),
-                        error_exit=False,
-                        logger=self,
-                    ):
-                        tcl_library_dir = candidate
-                        tcl_is_zip = True
-                        break
-        else:
-            if os.path.isfile(tcl_library_dir) and tcl_library_dir.endswith(".zip"):
-                tcl_is_zip = True
+        tcl_library_dir, tcl_uses_zip_overlay = self._findLibrarySource(
+            explicit_dir=self.tcl_library_dir,
+            get_candidate_paths=self._getTclCandidatePaths,
+            dll_prefixes=("tcl", "libtcl"),
+            zip_prefixes=("libtcl", "tcl"),
+            marker_filename="init.tcl",
+        )
 
         if tcl_library_dir is None or not os.path.exists(tcl_library_dir):
             self.sysexit("""\
 Could not find Tcl, you might need to use '--tcl-library-dir' and if \
 that works, report a bug so it can be added to Nuitka.""")
 
-        tk_library_dir = self.tk_library_dir
-        tk_is_zip = False
-        if tk_library_dir is None:
-            for tk_library_dir in self._getTkCandidatePaths():
-                if os.path.exists(os.path.join(tk_library_dir, "dialog.tcl")):
-                    break
-            else:
-                tk_library_dir = None
-
-            if tk_library_dir is None or not os.path.exists(tk_library_dir):
-                for candidate in self._getTkZipCandidatePaths():
-                    if doesZipFileMatch(
-                        zip_path=candidate,
-                        decide_filename=lambda filename: filename == "dialog.tcl"
-                        or filename.endswith("/dialog.tcl"),
-                        error_exit=False,
-                        logger=self,
-                    ):
-                        tk_library_dir = candidate
-                        tk_is_zip = True
-                        break
-        else:
-            if os.path.isfile(tk_library_dir) and tk_library_dir.endswith(".zip"):
-                tk_is_zip = True
+        tk_library_dir, tk_uses_zip_overlay = self._findLibrarySource(
+            explicit_dir=self.tk_library_dir,
+            get_candidate_paths=self._getTkCandidatePaths,
+            dll_prefixes=("tcl", "tk", "libtcl", "libtk"),
+            zip_prefixes=("libtk", "tk"),
+            marker_filename="dialog.tcl",
+        )
 
         if tk_library_dir is None or not os.path.exists(tk_library_dir):
             self.sysexit("""\
 Could not find Tk, you might need to use '--tk-library-dir' and if \
 that works, report a bug.""")
 
-        # survived the above, now do provide the locations
+        # Survived the above, now record the locations.
         self.tcl_library_source_dir = tcl_library_dir
         self.tk_library_source_dir = tk_library_dir
 
-        self._tcl_is_zip = tcl_is_zip
-        self._tk_is_zip = tk_is_zip
+        self._tcl_uses_zip_overlay = tcl_uses_zip_overlay
+        self._tk_uses_zip_overlay = tk_uses_zip_overlay
 
-        if tk_is_zip:
-            for included in self._makeIncludedFromZip(
-                source_path=tk_library_dir,
-                dest_path=self.getTkTargetPath(),
-                reason="Tk needed for tkinter usage",
-                tags="tk",
-                ignore_dirs=self._tk_ignore_dirs,
-                ignore_filenames=(),
-            ):
-                yield included
-        else:
+    def considerDataFiles(self, module):
+        """Provide TCL libraries to the dist folder when not embedded in the DLLs."""
+        if not _isTkInterModule(module) or self.files_copied:
+            return
+
+        self._detectTclTkLibraries()
+
+        if not self._tk_uses_zip_overlay:
             yield self.makeIncludedDataDirectory(
-                source_path=tk_library_dir,
+                source_path=self.tk_library_source_dir,
                 dest_path=self.getTkTargetPath(),
                 reason="Tk needed for tkinter usage",
                 ignore_dirs=self._tk_ignore_dirs,
                 tags="tk",
             )
 
-        if tcl_is_zip:
-            for included in self._makeIncludedFromZip(
-                source_path=tcl_library_dir,
-                dest_path=self.getTclTargetPath(),
-                reason="Tcl needed for tkinter usage",
-                tags="tcl",
-                ignore_dirs=self._tcl_ignore_dirs,
-                ignore_filenames=self._tcl_ignore_filenames,
-            ):
-                yield included
-        else:
+        if not self._tcl_uses_zip_overlay:
             yield self.makeIncludedDataDirectory(
-                source_path=tcl_library_dir,
+                source_path=self.tcl_library_source_dir,
                 ignore_dirs=self._tcl_ignore_dirs
                 + (self._tcl_ignore_dirs_appbundle if shallCreateAppBundle() else ()),
                 ignore_filenames=self._tcl_ignore_filenames,
@@ -533,15 +547,15 @@ that works, report a bug.""")
                 tags="tcl",
             )
 
-        if isWin32Windows() and not tcl_is_zip:
-            tcl8_path = os.path.join(tcl_library_dir, "..", "tcl8")
-            if os.path.isdir(tcl8_path):
-                yield self.makeIncludedDataDirectory(
-                    source_path=tcl8_path,
-                    dest_path="tcl8",
-                    reason="Tcl needed for tkinter usage",
-                    tags="tcl",
-                )
+            if isWin32Windows():
+                tcl8_path = os.path.join(self.tcl_library_source_dir, "..", "tcl8")
+                if os.path.isdir(tcl8_path):
+                    yield self.makeIncludedDataDirectory(
+                        source_path=tcl8_path,
+                        dest_path="tcl8",
+                        reason="Tcl needed for tkinter usage",
+                        tags="tcl",
+                    )
 
         self.files_copied = True
 

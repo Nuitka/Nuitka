@@ -503,7 +503,7 @@ def getTkInterVersion():
     """Get the tk-inter version or None if not installed."""
     try:
         if str is bytes:
-            return str(__import__("TkInter").TkVersion)
+            return str(__import__("Tkinter").TkVersion)
         else:
             return str(__import__("tkinter").TkVersion)
     except ImportError:
