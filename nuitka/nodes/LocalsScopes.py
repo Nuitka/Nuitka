@@ -132,7 +132,7 @@ class LocalsDictHandleBase(object):
             if variable in variable_translations:
                 new_variable = variable_translations[variable]
             else:
-                new_variable = variable.makeClone(new_owner=new_owner)
+                new_variable = variable.makeClone(new_owner=result)
 
                 variable_translations[variable] = new_variable
 

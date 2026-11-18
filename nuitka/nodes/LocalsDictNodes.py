@@ -54,6 +54,15 @@ class ExpressionLocalsVariableRefOrFallback(ChildHavingFallbackMixin, Expression
     def getVariableName(self):
         return self.variable.getName()
 
+    def getVariable(self):
+        return self.variable
+
+    def setVariable(self, variable):
+        assert variable.isLocalsDictVariable(), variable
+
+        self.variable = variable
+        self.variable_trace = None
+
     def getLocalsDictScope(self):
         return self.locals_scope
 
@@ -292,6 +301,15 @@ class ExpressionLocalsVariableRef(ExpressionBase):
     def getVariableName(self):
         return self.variable.getName()
 
+    def getVariable(self):
+        return self.variable
+
+    def setVariable(self, variable):
+        assert variable.isLocalsDictVariable(), variable
+
+        self.variable = variable
+        self.variable_trace = None
+
     def getLocalsDictScope(self):
         return self.locals_scope
 
@@ -419,6 +437,17 @@ class StatementLocalsDictOperationSet(StatementLocalsDictOperationSetBase):
     def getVariableName(self):
         return self.variable.getName()
 
+    def getVariable(self):
+        return self.variable
+
+    def setVariable(self, variable):
+        assert variable.isLocalsDictVariable(), variable
+
+        self.variable = variable
+        self.variable_name = variable.getName()
+        self.variable_version = variable.allocateTargetNumber()
+        self.variable_trace = None
+
     def getLocalsDictScope(self):
         return self.locals_scope
 
@@ -539,6 +568,16 @@ class StatementLocalsDictOperationDel(StatementBase):
 
     def getVariableName(self):
         return self.variable.getName()
+
+    def getVariable(self):
+        return self.variable
+
+    def setVariable(self, variable):
+        assert variable.isLocalsDictVariable(), variable
+
+        self.variable = variable
+        self.variable_version = variable.allocateTargetNumber()
+        self.previous_trace = None
 
     def getLocalsDictScope(self):
         return self.locals_scope

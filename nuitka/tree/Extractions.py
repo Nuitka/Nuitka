@@ -40,6 +40,12 @@ class VariableUsageUpdater(VisitorNoopMixin):
             node.setVariable(new_variable)
 
         if (
+            hasattr(node, "class_variable")
+            and node.class_variable in self.variable_translations
+        ):
+            node.setClassVariable(self.variable_translations[node.class_variable])
+
+        if (
             hasattr(node, "loop_variables")
             and node.loop_variables is not None
             and any(

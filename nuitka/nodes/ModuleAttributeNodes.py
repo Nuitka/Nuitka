@@ -36,6 +36,11 @@ class ExpressionModuleAttributeBase(ExpressionBase):
     def getVariable(self):
         return self.variable
 
+    def setVariable(self, variable):
+        assert variable.isModuleVariable(), variable
+
+        self.variable = variable
+
     @staticmethod
     def mayRaiseException(exception_type):
         return False

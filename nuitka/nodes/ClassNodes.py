@@ -349,26 +349,12 @@ class ExpressionCallMetaclass(ExpressionCallMetaclassBase):
     named_children = ("metaclass", "name", "bases", "dict_arg", "class_decl_dict")
     node_attributes = ("class_variable",)
 
-    def __init__(
-        self,
-        metaclass,
-        name,
-        bases,
-        dict_arg,
-        class_decl_dict,
-        class_variable,
-        source_ref,
-    ):
-        ExpressionCallMetaclassBase.__init__(
-            self,
-            metaclass=metaclass,
-            name=name,
-            bases=bases,
-            dict_arg=dict_arg,
-            class_decl_dict=class_decl_dict,
-            class_variable=class_variable,
-            source_ref=source_ref,
-        )
+    def getClassVariable(self):
+        return self.class_variable
+
+    def setClassVariable(self, variable):
+        # pylint: disable=I0021,attribute-defined-outside-init
+        self.class_variable = variable
 
     def computeExpression(self, trace_collection):
         trace_collection.onExceptionRaiseExit(BaseException)

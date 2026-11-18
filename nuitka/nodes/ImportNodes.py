@@ -1411,6 +1411,9 @@ class StatementImportStar(StatementImportStarBase):
     def getTargetDictScope(self):
         return self.target_scope
 
+    def setTargetDictScope(self, target_scope):
+        self.target_scope = target_scope
+
     def computeStatementOperation(self, trace_collection):
         trace_collection.onLocalsDictEscaped(self.target_scope)
         trace_collection.removeAllKnowledge()

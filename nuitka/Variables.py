@@ -477,6 +477,9 @@ class LocalsDictVariable(Variable):
     def __init__(self, owner, variable_name):
         Variable.__init__(self, owner=owner, variable_name=variable_name)
 
+    def makeClone(self, new_owner):
+        return LocalsDictVariable(owner=new_owner, variable_name=self.variable_name)
+
     @staticmethod
     def isLocalsDictVariable():
         return True

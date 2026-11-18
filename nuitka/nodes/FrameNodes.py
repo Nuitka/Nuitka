@@ -403,6 +403,23 @@ class StatementsFrameClass(StatementsFrameBase):
 
         self.locals_scope = locals_scope
 
+    def finalize(self):
+        StatementsFrameBase.finalize(self)
+
+        del self.locals_scope
+
+    def getDetails(self):
+        result = StatementsFrameBase.getDetails(self)
+        result["locals_scope"] = self.locals_scope
+
+        return result
+
+    def getDetailsForDisplay(self):
+        result = StatementsFrameBase.getDetailsForDisplay(self)
+        result["locals_scope"] = self.locals_scope.getCodeName()
+
+        return result
+
     @staticmethod
     def hasStructureMember():
         return False
