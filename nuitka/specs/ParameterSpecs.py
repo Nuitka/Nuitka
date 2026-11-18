@@ -122,7 +122,7 @@ class ParameterSpec(object):
         return {
             "ps_name": self.name,
             "ps_normal_args": ",".join(self.normal_args),
-            "ps_pos_only_args": self.pos_only_args,
+            "ps_pos_only_args": ",".join(self.pos_only_args),
             "ps_kw_only_args": ",".join(self.kw_only_args),
             "ps_list_star_arg": (
                 self.list_star_arg if self.list_star_arg is not None else ""
@@ -133,6 +133,18 @@ class ParameterSpec(object):
             "ps_default_count": self.default_count,
             "type_shape": self.type_shape,
         }
+
+    @classmethod
+    def fromDetails(cls, **details):
+        for key in ("ps_normal_args", "ps_pos_only_args", "ps_kw_only_args"):
+            value = details[key]
+            if type(value) is str:
+                details[key] = tuple(value.split(",")) if value else ()
+
+        if "ps_default_count" in details:
+            details["ps_default_count"] = int(details["ps_default_count"])
+
+        return cls(**details)
 
     def checkParametersValid(self):
         arg_names = self.getParameterNames()

@@ -739,7 +739,7 @@ class ExpressionFunctionBody(
             else:
                 other_args[key] = value
 
-        parameters = ParameterSpec(**parameter_spec_args)
+        parameters = ParameterSpec.fromDetails(**parameter_spec_args)
         code_object = CodeObjectSpec(**code_object_args)
 
         # The empty doc string and no doc string are distinguished by presence. The

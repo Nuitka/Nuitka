@@ -16,9 +16,10 @@ from nuitka.utils.InstanceCounters import (
     isCountingInstances,
 )
 
+from .FutureSpecs import fromFlags
+
 
 class CodeObjectSpec(object):
-    # One attribute for each code object aspect, and even flags,
     # pylint: disable=too-many-arguments,too-many-instance-attributes
     __slots__ = (
         "co_name",
@@ -119,6 +120,7 @@ class CodeObjectSpec(object):
     def getDetails(self):
         return {
             "co_name": self.co_name,
+            "co_qualname": self.co_qualname,
             "co_kind": self.co_kind,
             "co_varnames": ",".join(self.co_varnames),
             "co_freevars": ",".join(self.co_freevars),
@@ -217,25 +219,17 @@ class CodeObjectSpec(object):
 
     @classmethod
     def fromXML(cls, **args):
-        """Reconstruct from XML details.
+        if "code_flags" in args:
+            args["future_spec"] = fromFlags(args.pop("code_flags"))
 
-        Args:
-            args: the code object details as needed by the constructor.
-
-        Returns:
-            Instance of the code object spec class.
-        """
         return cls(**args)
 
 
 class CodeObjectSpecModule(CodeObjectSpec):
     """Code object specification of a module frame.
 
-    Notes:
-        Module code objects have fixed values for all details except the
-        filename and future spec, even the line number is always 1. The
-        module name is only used for display purposes, not for the code
-        object itself.
+    The module name is only used for display purposes, not for the code
+    object itself.
     """
 
     __slots__ = ("module_name",)
@@ -266,43 +260,19 @@ class CodeObjectSpecModule(CodeObjectSpec):
         return "<CodeObjectSpecModule '<module>' of module '%s'>" % self.module_name
 
     def getDetails(self):
-        # Only the values needed for the constructor are persisted, the
-        # fixed values are implied by this class.
         return {
             "module_name": self.module_name,
             "co_filename": self.filename,
             "code_flags": ",".join(self.future_spec.asFlags()),
         }
 
-    @classmethod
-    def fromXML(cls, module_name, co_filename, future_spec):
-        """Reconstruct from XML details.
-
-        Args:
-            module_name: the name of the module for display purposes.
-            co_filename: the filename of the module code.
-            future_spec: the future spec of the module.
-
-        Returns:
-            Instance of 'CodeObjectSpecModule'.
-        """
-        return cls(
-            module_name=module_name,
-            co_filename=co_filename,
-            future_spec=future_spec,
-        )
-
 
 class CodeObjectSpecClass(CodeObjectSpec):
     """Code object specification of a class frame.
 
-    Notes:
-        Class code objects have fixed values for all argument related details
-        and flags, only the name, qualname, variable names, line number,
-        filename and future spec vary. In Nuitka they never have free
-        variables, captured values are frame variables instead. On Python2
-        class code objects are unoptimized, but do get new locals, unlike on
-        Python3.
+    In Nuitka class code objects never have free variables; captured values
+    are frame variables instead. On Python 2 class code objects are
+    unoptimized, but do get new locals, unlike on Python 3.
     """
 
     __slots__ = ()
@@ -363,43 +333,9 @@ class CodeObjectSpecClass(CodeObjectSpec):
     def getFlagNewLocalsValue(self):
         return python_version < 0x300
 
-    @classmethod
-    def fromXML(
-        cls, class_name, co_qualname, co_varnames, co_filename, co_lineno, future_spec
-    ):
-        """Reconstruct from XML details.
-
-        Args:
-            class_name: the name of the class for display purposes.
-            co_qualname: the qualified name of the class code.
-            co_varnames: the variable names of the class code.
-            co_filename: the filename of the class code.
-            co_lineno: the line number of the class code.
-            future_spec: the future spec of the module.
-
-        Returns:
-            Instance of 'CodeObjectSpecClass'.
-        """
-        return cls(
-            class_name=class_name,
-            co_qualname=co_qualname,
-            co_varnames=co_varnames,
-            co_filename=co_filename,
-            co_lineno=co_lineno,
-            future_spec=future_spec,
-        )
-
 
 class CodeObjectSpecGeneratorExpression(CodeObjectSpec):
-    """Code object specification of a generator expression frame.
-
-    Notes:
-        Generator expression code objects have fixed values for their name and
-        all argument related details, only whether it is an async generator
-        expression and the qualname, variable names, free variables, filename,
-        line number and future spec vary. They are optimized and have new
-        locals on all versions.
-    """
+    """Code object specification of a generator or async generator expression frame."""
 
     __slots__ = ()
 
@@ -413,6 +349,9 @@ class CodeObjectSpecGeneratorExpression(CodeObjectSpec):
         co_lineno,
         future_spec,
     ):
+        if type(co_is_async) is not bool:
+            co_is_async = co_is_async != "False"
+
         CodeObjectSpec.__init__(
             self,
             co_name="<genexpr>",
@@ -462,41 +401,6 @@ class CodeObjectSpecGeneratorExpression(CodeObjectSpec):
 
     def getFlagNewLocalsValue(self):
         return True
-
-    @classmethod
-    def fromXML(
-        cls,
-        co_is_async,
-        co_qualname,
-        co_varnames,
-        co_freevars,
-        co_filename,
-        co_lineno,
-        future_spec,
-    ):
-        """Reconstruct from XML details.
-
-        Args:
-            co_is_async: whether this is an async generator expression.
-            co_qualname: the qualified name of the code.
-            co_varnames: the variable names of the code.
-            co_freevars: the free variable names of the code.
-            co_filename: the filename of the code.
-            co_lineno: the line number of the code.
-            future_spec: the future spec of the module.
-
-        Returns:
-            Instance of 'CodeObjectSpecGeneratorExpression'.
-        """
-        return cls(
-            co_is_async=co_is_async,
-            co_qualname=co_qualname,
-            co_varnames=co_varnames,
-            co_freevars=co_freevars,
-            co_filename=co_filename,
-            co_lineno=co_lineno,
-            future_spec=future_spec,
-        )
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and

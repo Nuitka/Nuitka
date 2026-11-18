@@ -183,13 +183,14 @@ def fromFlags(flags):
     if "CO_FUTURE_GENERATOR_STOP" in flags:
         result.enableGeneratorStop()
 
-    # Check if we are going to give similar results than what we got.
+    if "CO_FUTURE_ANNOTATIONS" in flags:
+        result.enableFutureAnnotations()
+
     assert tuple(result.asFlags()) == tuple(flags), (result, result.asFlags(), flags)
 
     return result
 
 
-# Relevance of future flags.
 _future_version_specific_flags = OrderedDict(
     (
         ("CO_FUTURE_DIVISION", python_version < 0x300),
