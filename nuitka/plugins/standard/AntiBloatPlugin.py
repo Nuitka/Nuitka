@@ -572,6 +572,8 @@ Error, cannot exec module '%s', context code '%s' due to: %s"""
             if replace_src in source_code:
                 return True
 
+        # Intentionally not pre-matching regexes so "display-anti-bloat-mismatches"
+        # can still report non-matching regex replacements.
         if anti_bloat_config.get(config_prefix + "replacements_re"):
             return True
 
@@ -879,15 +881,17 @@ class %(class_name)s:
 
         qualified_name = QualifiedName(code_qualname)
 
-        for _config_module_name, patterns in self.getYamlConfigItem(
+        for _config_module_name, _patterns in self.getYamlConfigItem(
             module_name=module_name,
             section="anti-bloat",
             item_name="frame_locals",
-            decide_relevant=bool,
+            decide_relevant=(
+                lambda patterns: bool(patterns)
+                and qualified_name.matchesToShellPatterns(patterns).is_match
+            ),
             recursive=True,
         ):
-            if qualified_name.matchesToShellPatterns(patterns).is_match:
-                return True
+            return True
 
         return None
 
@@ -900,7 +904,7 @@ class %(class_name)s:
             module_name=module_name,
             section="anti-bloat",
             item_name="no-follow",
-            decide_relevant=lambda key, value: True,
+            decide_relevant=None,
             recursive=True,
         ):
             self.no_follows[no_follow_pattern] = (config_of_module_name, description)
@@ -1108,7 +1112,7 @@ slow down compilation."""
 
         for no_follow_pattern, (
             config_of_module_name,
-            description,
+            _description,
         ) in self.no_follows.items():
             if module_name.matchesToShellPattern(no_follow_pattern).is_match:
                 self.suppressed_modules.add(module_name)
@@ -1140,26 +1144,40 @@ slow down compilation."""
             return "compiled"
 
     def onIncompleteModuleSet(self, module_names):
+        if not self.suppressed_modules:
+            return
+
+        def decideRelevant(module_to_check, module_namespace_to_add):
+            if ModuleName(module_to_check) not in module_names:
+                return False
+
+            module_namespace_to_add = ModuleName(module_namespace_to_add)
+
+            return any(
+                suppressed_module == module_namespace_to_add
+                or suppressed_module.hasNamespace(module_namespace_to_add)
+                for suppressed_module in self.suppressed_modules
+            )
+
         for module_name in module_names:
             for (
                 config_of_module_name,
-                module_to_check,
+                _module_to_check,
                 module_namespace_to_add,
             ) in self.getYamlConfigItemItems(
                 module_name=module_name,
                 section="anti-bloat",
                 item_name="conditional-auto-follow",
-                decide_relevant=lambda key, value: True,
+                decide_relevant=decideRelevant,
                 recursive=True,
             ):
-                if ModuleName(module_to_check) in module_names:
-                    module_namespace_to_add = ModuleName(module_namespace_to_add)
-                    for suppressed_module in self.suppressed_modules:
-                        if (
-                            suppressed_module == module_namespace_to_add
-                            or suppressed_module.hasNamespace(module_namespace_to_add)
-                        ):
-                            yield config_of_module_name, suppressed_module
+                module_namespace_to_add = ModuleName(module_namespace_to_add)
+                for suppressed_module in self.suppressed_modules:
+                    if (
+                        suppressed_module == module_namespace_to_add
+                        or suppressed_module.hasNamespace(module_namespace_to_add)
+                    ):
+                        yield config_of_module_name, suppressed_module
 
     def onModuleCompleteSet(self, module_set):
         # TODO: Maybe have an entry point that works on the set of names
