@@ -18,7 +18,6 @@ from .ExpressionBases import ExpressionBase
 from .ExpressionBasesGenerated import (
     ExpressionListOperationAppendBase,
     ExpressionListOperationClearBase,
-    ExpressionListOperationCountBase,
     ExpressionListOperationReverseBase,
 )
 from .ExpressionShapeMixins import ExpressionIntOrLongExactMixin
@@ -90,9 +89,7 @@ class ExpressionListOperationCopy(
 
 # TODO: The generator doesn't handle int or long yet.
 class ExpressionListOperationCount(
-    SideEffectsFromChildrenMixin,
-    ExpressionIntOrLongExactMixin,
-    ExpressionListOperationCountBase,
+    ExpressionIntOrLongExactMixin, ChildrenHavingListArgValueMixin, ExpressionBase
 ):
     kind = "EXPRESSION_LIST_OPERATION_COUNT"
 
@@ -101,13 +98,22 @@ class ExpressionListOperationCount(
         "value",
     )
 
-    auto_compute_handling = "final,no_raise"
+    def __init__(self, list_arg, value, source_ref):
+        ChildrenHavingListArgValueMixin.__init__(self, list_arg=list_arg, value=value)
+
+        ExpressionBase.__init__(self, source_ref)
 
     # TODO: With list tracing, the size of the list should be a worthwhile first goal.
-    # TODO: Is not no_raise
-
     def computeExpression(self, trace_collection):
+        self.subnode_value.onContentEscapes(trace_collection)
+        trace_collection.onControlFlowEscape(self)
+        trace_collection.onExceptionRaiseExit(BaseException)
+
         return self, None, None
+
+    @staticmethod
+    def mayRaiseExceptionOperation():
+        return True
 
 
 class ExpressionListOperationExtend(

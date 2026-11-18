@@ -9474,6 +9474,7 @@ class ChildrenHavingListArgValueMixin(object):
         self.subnode_value.collectVariableAccesses(emit_variable)
 
 
+ChildrenExpressionListOperationCountMixin = ChildrenHavingListArgValueMixin
 ChildrenExpressionListOperationExtendMixin = ChildrenHavingListArgValueMixin
 ChildrenExpressionListOperationExtendForUnpackMixin = ChildrenHavingListArgValueMixin
 ChildrenExpressionListOperationIndex2Mixin = ChildrenHavingListArgValueMixin

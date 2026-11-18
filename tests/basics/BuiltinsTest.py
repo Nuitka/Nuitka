@@ -1016,6 +1016,55 @@ listMethodCheck("index bad __index__ stop", listIndexBadStopValue, [1, 2])
 listMethodCheck("index bad stop", listIndexBadStop, [1, 2], list_method_big, None)
 
 
+class RaisingEq(object):
+    def __eq__(self, other):
+        raise ValueError("bad eq")
+
+
+class MutatingEq(object):
+    def __init__(self, seen):
+        self.seen = seen
+
+    def __eq__(self, other):
+        other.append(2)
+        self.seen.append("compared")
+        return True
+
+
+def listCountRaisingEq(elem, target):
+    a = [elem]
+    state = "before"
+    try:
+        state = "during"
+        return a.count(target)
+    except ValueError as e:
+        return (state, str(e))
+
+
+def listCountRaisingEqDropped(elem, target):
+    a = [elem]
+    try:
+        a.count(target)
+    except ValueError as e:
+        return str(e)
+    return "did not raise"
+
+
+def listCountEscapeAndSideEffects():
+    seen = []
+    target = [1]
+    a = [MutatingEq(seen)]
+    a.count(target)
+    return (len(target), seen, [1, 2, 1, 3].count(1), [].count(RaisingEq()))
+
+
+listMethodCheck("count raising __eq__", listCountRaisingEq, RaisingEq(), 0)
+listMethodCheck(
+    "count raising __eq__ dropped", listCountRaisingEqDropped, RaisingEq(), 0
+)
+listMethodCheck("count escape and side effects", listCountEscapeAndSideEffects)
+
+
 class Index(object):
     def __index__(self):
         return 65
