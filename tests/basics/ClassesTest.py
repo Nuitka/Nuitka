@@ -560,6 +560,23 @@ print(
     sorted(slots_with_dict.__dict__),
 )
 
+
+class ClassBodyDeletion:
+    __iop__ = "iop"
+    __iadd__ = __iop__
+    del __iop__
+
+    def method(self):
+        return 1
+
+
+print(
+    "Class body deletion:",
+    ClassBodyDeletion.__iadd__,
+    "__iop__" in ClassBodyDeletion.__dict__,
+    ClassBodyDeletion().method(),
+)
+
 #     Python tests originally created or extracted from other peoples work. The
 #     parts were too small to be protected.
 #

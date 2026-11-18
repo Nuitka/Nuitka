@@ -1,12 +1,7 @@
 #     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-"""Nodes that deal with locals, as dict or mapping.
-
-The mapping types can be optimized into dict types, and the ones with
-fallback can be optimized to no fallback variants.
-
-"""
+"""Nodes that deal with locals, as dict or mapping."""
 
 from nuitka.optimizations.TraceCollections import TraceCollectionBranch
 from nuitka.PythonVersions import python_version
@@ -80,7 +75,6 @@ class ExpressionLocalsVariableRefOrFallback(ChildHavingFallbackMixin, Expression
                 ),
             )
 
-            # Need to compute the replacement still.
             return replacement.computeExpressionRaw(trace_collection)
 
         # TODO: Split exec locals variable references out to distinct node type.
@@ -116,7 +110,6 @@ class ExpressionLocalsVariableRefOrFallback(ChildHavingFallbackMixin, Expression
                                 % self.variable.getName(),
                             )
             else:
-                # If we can be sure it doesn't have a value set, go to the fallback directly.
                 if no_exec and variable_trace.mustNotHaveValue():
                     return trace_collection.computedExpressionResultRaw(
                         expression=self.subnode_fallback,
@@ -125,8 +118,6 @@ class ExpressionLocalsVariableRefOrFallback(ChildHavingFallbackMixin, Expression
                         % self.variable.getName(),
                     )
 
-                # If we cannot be sure if the value is set, then we need the fallback,
-                # otherwise we could remove it simply.
                 if no_exec and variable_trace.mustHaveValue():
                     trace_collection.signalChange(
                         "new_expression",
@@ -140,7 +131,6 @@ class ExpressionLocalsVariableRefOrFallback(ChildHavingFallbackMixin, Expression
                         source_ref=self.source_ref,
                     )
 
-                    # Need to compute the replacement still.
                     return result.computeExpressionRaw(trace_collection)
 
         # This reference remains undecided and needs the class dictionary at
@@ -170,7 +160,6 @@ class ExpressionLocalsVariableRefOrFallback(ChildHavingFallbackMixin, Expression
             and self.subnode_fallback.isExpressionVariableRef()
             and self.subnode_fallback.getVariable().isIncompleteModuleVariable()
         ):
-            # Just inform the collection that all escaped.
             trace_collection.onLocalsUsage(self.getLocalsDictScope())
 
         if (
@@ -187,10 +176,8 @@ class ExpressionLocalsVariableRefOrFallback(ChildHavingFallbackMixin, Expression
                 "locals",
                 "vars",
             ):
-                # Just inform the collection that all escaped.
                 trace_collection.onLocalsUsage(self.getLocalsDictScope())
 
-                # Create a cloned node with the locals variable.
                 call_node_clone = call_node.makeClone()
                 call_node_clone.setChildCalled(
                     ExpressionLocalsVariableRef(
@@ -200,7 +187,6 @@ class ExpressionLocalsVariableRefOrFallback(ChildHavingFallbackMixin, Expression
                     )
                 )
 
-                # Make the original one for the fallback
                 call_node = call_node.makeCloneShallow()
                 call_node.setChildCalled(self.subnode_fallback)
 
@@ -346,7 +332,6 @@ class ExpressionLocalsVariableRef(ExpressionBase):
                 ),
             )
 
-            # Need to compute the replacement still.
             return replacement.computeExpressionRaw(trace_collection)
 
         if not self.variable_trace.mustHaveValue():
@@ -578,30 +563,35 @@ class StatementLocalsDictOperationDel(StatementBase):
         return self, None, None
 
     def computeStatement(self, trace_collection):
-        # Conversion from dictionary to normal nodes is done here.
         self.previous_trace = trace_collection.getVariableCurrentTrace(self.variable)
 
         # Deleting is usage of the value, and may call code on it. This is to inhibit
         # just removing it.
         self.previous_trace.addUsage()
 
-        # We may not exception exit now during the __del__ unless there is no value.
-        # TODO: In which case, there is doing to be a NameError or UnboundLocalError.
-        if not self.tolerant and not self.previous_trace.mustHaveValue():
+        # Mappings can raise from the deletion itself, while an exact dictionary
+        # only raises NameError for a name that was never set. Exceptions from
+        # the value destructor are ignored by CPython.
+        if not self.tolerant and (
+            not self.locals_scope.hasShapeDictionaryExact()
+            or not self.previous_trace.mustHaveValue()
+        ):
             trace_collection.onExceptionRaiseExit(BaseException)
 
-        # Record the deletion, needs to start a new version then.
         _variable_trace = trace_collection.onVariableDel(
             variable=self.variable, version=self.variable_version, del_node=self
         )
 
-        # Any code could be run, note that.
         trace_collection.onControlFlowEscape(self)
 
         return self, None, None
 
     def mayRaiseException(self, exception_type):
-        return not self.tolerant
+        return not self.tolerant and (
+            not self.locals_scope.hasShapeDictionaryExact()
+            or self.previous_trace is None
+            or not self.previous_trace.mustHaveValue()
+        )
 
     @staticmethod
     def getStatementNiceName():
@@ -700,7 +690,6 @@ class StatementSetLocalsDictionary(
 class ExpressionLocalsDictRef(ExpressionBuiltinLocalsRef):
     kind = "EXPRESSION_LOCALS_DICT_REF"
 
-    # Only way we use it.
     @staticmethod
     def isFinalUseOfLocals():
         return True
@@ -813,7 +802,6 @@ class LocalsScopePropagationVisitor(object):
 
             node = new_node
 
-        # Recurse
         for child in node.getVisitableNodes():
             self.onNode(child)
 
