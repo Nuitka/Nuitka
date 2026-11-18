@@ -9,6 +9,7 @@ of Nuitka changes on PyPI packages.
 
 import os
 import subprocess
+import sys
 
 from nuitka.containers.OrderedDicts import OrderedDict
 from nuitka.options.CommandLineOptionsTools import makeOptionsParser
@@ -24,6 +25,7 @@ from nuitka.Tracing import OurLogger
 from nuitka.TreeXML import convertFileToXML
 from nuitka.utils.Execution import (
     check_call,
+    check_output,
     executeProcess,
     withEnvironmentVarsOverridden,
 )
@@ -61,6 +63,24 @@ from .Pipenv import (
 )
 
 watch_logger = OurLogger("", base_style="blue")
+
+
+def _getNuitkaFlavor(binary_filename):
+    version_output = check_output(
+        [sys.executable, binary_filename, "--update-check=never", "--version"],
+        logger=watch_logger,
+    )
+
+    for line in version_output.splitlines():
+        if line.startswith(b"Commercial: "):
+            if line == b"Commercial: None":
+                return "standard"
+
+            return "commercial"
+
+    return watch_logger.sysexit(
+        "Error, no commercial version information in output of '%s'." % binary_filename
+    )
 
 
 def _compareNuitkaVersions(version_a, version_b, consider_rc):
@@ -553,9 +573,10 @@ def updateCase(
         watch_logger.info("Consider with Python %s." % installed_python)
 
         result_path = getNormalizedPath(
-            "result/%(case_name)s/%(python_version)s-%(os_name)s"
+            "result/%(nuitka_flavor)s/%(case_name)s/%(python_version)s-%(os_name)s"
             % {
                 "case_name": case_name,
+                "nuitka_flavor": nuitka_flavor,
                 "os_name": os_name,
                 "python_version": installed_python.getPythonVersion(),
             }
@@ -593,6 +614,7 @@ installed_pythons = OrderedDict()
 
 nuitka_binary = None
 nuitka_version = None
+nuitka_flavor = None
 
 
 def main():
@@ -697,7 +719,12 @@ to reserve cores.""",
         os.path.join(os.path.dirname(nuitka_binary), "..", "nuitka", "Version.py")
     )
 
-    watch_logger.info("Working with Nuitka %s." % nuitka_version)
+    global nuitka_flavor  # singleton, pylint: disable=global-statement
+    nuitka_flavor = _getNuitkaFlavor(nuitka_binary)
+
+    watch_logger.info(
+        "Working with Nuitka %s (%s flavor)." % (nuitka_version, nuitka_flavor)
+    )
 
     base_dir = getNormalizedAbsolutePath(base_dir)
 
