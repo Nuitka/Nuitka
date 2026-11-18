@@ -3,6 +3,8 @@
 
 """Tests to cover parameter error messages."""
 
+import abc
+import functools
 import os
 import sys
 import warnings
@@ -370,6 +372,109 @@ if sys.version_info >= (3, 9):
         "resources.files package=",
         lambda: type(importlib.resources.files(package="json")),
     )
+
+
+print("Call functions with non-string keyword keys:")
+
+for label, call_fn in (
+    ("0-arg non-str kw", lambda: functionNoParameters(**{1: 2})),
+    ("1-arg non-str kw", lambda: functionOneParameter(**{1: 2})),
+    (
+        "0-arg vectorcall non-str kw",
+        lambda: eval("lambda fn: fn(**{1: 2})")(functionNoParameters),
+    ),
+    (
+        "method vectorcall kw",
+        lambda: eval("lambda m: m(z=1)")(obj.methodNoParameters),
+    ),
+):
+    try:
+        call_fn()
+    except TypeError as e:
+        print(label, repr(e))
+
+if sys.version_info >= (3, 7):
+    for label, call_fn in (
+        (
+            "0-arg str+non-str kw",
+            lambda: functionNoParameters(**{"a": 1, 2: 3}),
+        ),
+        (
+            "1-arg unexpected+non-str kw",
+            lambda: functionOneParameter(**{"z": 1, 2: 3}),
+        ),
+    ):
+        try:
+            call_fn()
+        except TypeError as e:
+            print(label, repr(e))
+
+print("Call functions with duplicate str-subclass keyword keys:")
+
+
+class EvilStr(str):
+    def __hash__(self):
+        return str.__hash__(self) ^ 1
+
+
+def functionWithStarKw(a, b=0, **kw):
+    return a, b, kw
+
+
+def makePartialDuplicateKw(fn):
+    p = functools.partial(fn, a=1)
+    p.keywords[EvilStr("a")] = 2
+    return p
+
+
+evil_kw = {"a": 1, EvilStr("a"): 2}
+
+for label, call_fn in (
+    ("star dict dup", lambda: functionWithDefaults(1, 2, **{"c": 3, EvilStr("c"): 4})),
+    (
+        "split kw dup",
+        lambda: functionWithDefaults(1, 2, d=5, **{"c": 3, EvilStr("c"): 4}),
+    ),
+    ("star kw dict dup", lambda: functionWithStarKw(**evil_kw)),
+    ("star kw split dup", lambda: functionWithStarKw(b=5, **evil_kw)),
+    ("partial vectorcall dup", makePartialDuplicateKw(functionOneParameter)),
+    ("partial vectorcall star kw dup", makePartialDuplicateKw(functionWithStarKw)),
+):
+    try:
+        call_fn()
+    except TypeError as e:
+        print(label, repr(e))
+
+print(
+    "Duplicate str-subclass keys in **kw:",
+    len(functionWithStarKw(1, **{"z": 2, EvilStr("z"): 3})[2]),
+)
+
+print("Instantiate abstract classes:")
+
+AbstractOne = abc.ABCMeta(
+    "AbstractOne",
+    (object,),
+    {"m1": abc.abstractmethod(lambda self: None)},
+)
+AbstractTwo = abc.ABCMeta(
+    "AbstractTwo",
+    (object,),
+    {
+        "m2": abc.abstractmethod(lambda self: None),
+        "m1": abc.abstractmethod(lambda self: None),
+    },
+)
+
+for cls in (AbstractOne, AbstractTwo):
+    try:
+        cls()
+    except TypeError as e:
+        print(repr(e))
+    try:
+        eval("lambda c: c()")(cls)
+    except TypeError as e:
+        print(repr(e))
 
 #     Python tests originally created or extracted from other peoples work. The
 #     parts were too small to be protected.

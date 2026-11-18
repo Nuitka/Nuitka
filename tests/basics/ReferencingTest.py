@@ -30,6 +30,8 @@ from nuitka.tools.testing.Common import executeReferenceChecked, sync_iterate
 # pylint: disable=broad-except,eval-used,redefined-outer-name,unused-argument,unused-variable
 # pylint: disable=attribute-defined-outside-init,bare-except,lost-exception,pointless-statement
 # pylint: disable=exec-used,global-statement,invalid-name,not-callable,super-init-not-called
+import abc
+import functools
 
 x = 17
 
@@ -1351,6 +1353,81 @@ def no_simpleFunction136():
         yield localFuncUsingClosureValue
 
     return list(someGenWithClosureGiven())
+
+
+class _EvilStrRef(str):
+    def __hash__(self):
+        return str.__hash__(self) ^ 1
+
+
+_AbstractRef = abc.ABCMeta(
+    "_AbstractRef",
+    (object,),
+    {
+        "m2": abc.abstractmethod(lambda self: None),
+        "m1": abc.abstractmethod(lambda self: None),
+    },
+)
+
+
+def _refNoArgs():
+    pass
+
+
+def _refWithDefaults(a, b=1):
+    return a, b
+
+
+def _refWithStarKw(a, b=1, **kw):
+    return a, b, kw
+
+
+_partial_dup_1 = functools.partial(_refWithDefaults, a=[1])
+_partial_dup_1.keywords[_EvilStrRef("a")] = [2]
+_partial_dup_2 = functools.partial(_refWithStarKw, a=[1])
+_partial_dup_2.keywords[_EvilStrRef("a")] = [2]
+
+
+class _RefManyArgsMethod(object):
+    def m(self, *args, **kw):
+        return args, kw
+
+
+_ref_bound_method = _RefManyArgsMethod().m
+_partial_method_pos = functools.partial(_ref_bound_method, 1, 2, 3, 4, 5, 6)
+_partial_method_kw = functools.partial(_ref_bound_method, 1, 2, 3, 4, 5, 6, x=7)
+
+
+def simpleFunction137():
+    try:
+        _AbstractRef()
+    except TypeError:
+        pass
+
+    try:
+        _refNoArgs(**{1: [2]})
+    except TypeError:
+        pass
+
+    evil_kw = {"a": [1], _EvilStrRef("a"): [2]}
+
+    for call_fn in (
+        lambda: _refWithDefaults(**evil_kw),
+        lambda: _refWithDefaults(b=[3], **evil_kw),
+        lambda: _refWithStarKw(**evil_kw),
+        lambda: _refWithStarKw(b=[3], **evil_kw),
+        _partial_dup_1,
+        _partial_dup_2,
+    ):
+        try:
+            call_fn()
+        except TypeError:
+            pass
+
+    many_args = ([1], [2], [3], [4], [5], [6])
+    _ref_bound_method(*many_args, **{"x": [7]})
+    _partial_method_pos()
+    _partial_method_kw()
 
 
 ####################################
