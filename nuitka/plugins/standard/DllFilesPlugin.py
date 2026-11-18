@@ -228,13 +228,15 @@ class NuitkaPluginDllFiles(NuitkaYamlPluginBase):
                 return None
 
             if os.path.isdir(module_filename):
+                module_directory = module_filename
                 dest_path = full_name.asPath()
             else:
+                module_directory = os.path.dirname(module_filename)
                 dest_path = getNormalizedPathJoin(full_name.asPath(), "..")
 
             dest_path = getNormalizedPathJoin(
                 dest_path,
-                os.path.relpath(filename, os.path.dirname(module_filename)),
+                os.path.relpath(filename, module_directory),
             )
         else:
             dest_path = getNormalizedPathJoin(
@@ -496,7 +498,6 @@ conditions are missing, or this version of the module needs treatment added."""
             item_name="recompile-extensions",
             decide_relevant=None,
             recursive=True,
-            default=None,
         ):
             return (
                 recompile_extensions,
@@ -508,27 +509,16 @@ conditions are missing, or this version of the module needs treatment added."""
         if package_name is None:
             return None
 
-        # Config is to be attached to top level package.
-        package_name = package_name.getTopLevelPackageName()
-
-        for entry in self.config.get(package_name, section="import-hacks"):
-            if self.evaluateCondition(
-                full_name=package_name, condition=entry.get("when", "True")
-            ):
-                result = self._isAcceptableMissingDLL(
-                    config=entry, dll_basename=dll_basename
-                )
-
-                if result is not None:
-                    return result
-
-        return None
-
-    @staticmethod
-    def _isAcceptableMissingDLL(config, dll_basename):
-        for config_dll_name in config.get("acceptable-missing-dlls", ()):
-            if fnmatch.fnmatch(dll_basename, config_dll_name):
-                return True
+        for _config_module_name, _config_dll_name in self.getYamlConfigItemSet(
+            module_name=package_name,
+            section="import-hacks",
+            item_name="acceptable-missing-dlls",
+            decide_relevant=lambda config_dll_name: fnmatch.fnmatch(
+                dll_basename, config_dll_name
+            ),
+            recursive=True,
+        ):
+            return True
 
         return None
 
@@ -537,10 +527,10 @@ conditions are missing, or this version of the module needs treatment added."""
 
         while 1:
             for entry in self.config.get(module_name, section="import-hacks"):
-                if self.evaluateCondition(
-                    full_name=module_name, condition=entry.get("when", "True")
-                ):
-                    if "package-system-dlls" in entry:
+                if "package-system-dlls" in entry:
+                    if self.evaluateCondition(
+                        full_name=module_name, condition=entry.get("when", "True")
+                    ):
                         return entry["package-system-dlls"] == "yes"
 
             if distribution is None:

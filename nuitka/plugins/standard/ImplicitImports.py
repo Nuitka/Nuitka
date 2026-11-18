@@ -148,7 +148,7 @@ class NuitkaPluginImplicitImports(NuitkaYamlPluginBase):
 
         # Checking for config, but also allowing fall through.
         for entry in self.config.get(full_name, section="implicit-imports"):
-            if self.evaluateCondition(
+            if entry.get("depends") and self.evaluateCondition(
                 full_name=full_name, condition=entry.get("when", "True")
             ):
                 for dependency in self._handleImplicitImportsConfig(
@@ -407,7 +407,10 @@ According to 'implicit-imports' configuration."""
 
     def getPackageExtraScanPaths(self, package_name, package_dir):
         for entry in self.config.get(package_name, section="import-hacks"):
-            if self.evaluateCondition(
+            if (
+                (os.path.isdir(package_dir) and entry.get("package-dirs"))
+                or entry.get("package-paths")
+            ) and self.evaluateCondition(
                 full_name=package_name, condition=entry.get("when", "True")
             ):
                 for item in self._getPackageExtraScanPaths(
@@ -429,7 +432,7 @@ According to 'implicit-imports' configuration."""
 
     def getModuleSysPathAdditions(self, module_name):
         for entry in self.config.get(module_name, section="import-hacks"):
-            if self.evaluateCondition(
+            if entry.get("global-sys-path") and self.evaluateCondition(
                 full_name=module_name, condition=entry.get("when", "True")
             ):
                 for item in self._getModuleSysPathAdditions(

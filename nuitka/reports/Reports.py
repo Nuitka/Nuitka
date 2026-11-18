@@ -574,7 +574,12 @@ def _addModulesToReport(root, report_input_data, diffable):
             )
 
             if influence == "condition-used":
-                condition, condition_tags_used, condition_result = detail
+                (
+                    condition,
+                    condition_tags_used,
+                    condition_result,
+                    config_module_name,
+                ) = detail
 
                 influence_xml_node.attrib["condition"] = condition
                 if condition_tags_used:
@@ -582,6 +587,9 @@ def _addModulesToReport(root, report_input_data, diffable):
                         condition_tags_used
                     )
                 influence_xml_node.attrib["result"] = str(condition_result).lower()
+
+                if module_name != config_module_name:
+                    influence_xml_node.attrib["config_module"] = config_module_name
             elif influence == "variable-used":
                 (
                     variable_name,
@@ -601,7 +609,12 @@ def _addModulesToReport(root, report_input_data, diffable):
                     influence_xml_node.attrib["config_module"] = config_module_name
 
             elif influence == "parameter-used":
-                parameter_name, condition_tags_used, parameter_value = detail
+                (
+                    parameter_name,
+                    condition_tags_used,
+                    parameter_value,
+                    config_module_name,
+                ) = detail
 
                 influence_xml_node.attrib["parameter"] = parameter_name
                 if condition_tags_used:
@@ -609,6 +622,9 @@ def _addModulesToReport(root, report_input_data, diffable):
                         condition_tags_used
                     )
                 influence_xml_node.attrib["value"] = repr(parameter_value)
+
+                if module_name != config_module_name:
+                    influence_xml_node.attrib["config_module"] = config_module_name
             elif influence == "detection":
                 detection_name, detection_value = detail
 

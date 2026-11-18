@@ -109,12 +109,18 @@ possible.""" % full_name)
 
         for options_config in self.config.get(full_name, section="options"):
             for check in options_config.get("checks", ()):
+                support_info = check.get("support_info", "ignore")
+                macos_bundle = check.get("macos_bundle", "no")
+
+                if support_info == "ignore" and (not isMacOS() or macos_bundle == "no"):
+                    continue
+
                 condition = check.get("when", "True")
 
                 if self.evaluateCondition(full_name=full_name, condition=condition):
                     self._checkSupportedVersion(
                         full_name=full_name,
-                        support_info=check.get("support_info", "ignore"),
+                        support_info=support_info,
                         description=check.get("description", "not given"),
                         condition=condition,
                     )
@@ -122,7 +128,7 @@ possible.""" % full_name)
                     if isMacOS():
                         self._checkMacOSBundleMode(
                             full_name=full_name,
-                            macos_bundle=check.get("macos_bundle", "no"),
+                            macos_bundle=macos_bundle,
                         )
 
 

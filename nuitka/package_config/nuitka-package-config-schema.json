@@ -441,7 +441,6 @@
             "annotations": {
               "type": "string",
               "enum": [
-                "default",
                 "yes",
                 "no"
               ]
@@ -449,7 +448,6 @@
             "doc_strings": {
               "type": "string",
               "enum": [
-                "default",
                 "yes",
                 "no"
               ]
@@ -457,7 +455,6 @@
             "asserts": {
               "type": "string",
               "enum": [
-                "default",
                 "yes",
                 "no"
               ]
@@ -610,7 +607,6 @@
             "recompile-extensions": {
               "type": "string",
               "enum": [
-                "default",
                 "never",
                 "yes",
                 "no"

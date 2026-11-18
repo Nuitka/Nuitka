@@ -147,8 +147,13 @@ def _getImportLibModule():
         return importlib
 
 
-def _makeEvaluationContext(logger, full_name, config_name):
-    context = TagContext(logger=logger, full_name=full_name, config_name=config_name)
+def _makeEvaluationContext(logger, full_name, config_module_name, config_name):
+    context = TagContext(
+        logger=logger,
+        full_name=full_name,
+        config_module_name=config_module_name,
+        config_name=config_name,
+    )
     context.update(control_tags)
 
     context.update(_getEvaluationContext())
@@ -1926,17 +1931,19 @@ except Exception as e:
 
         return _module_config_variables[full_name]
 
-    def evaluateExpression(
+    def _makeConfigEvaluationContext(
         self,
         config_module_name,
         module_name,
-        expression,
         config_name,
-        extra_context,
-        single_value,
+        allow_constants=True,
+        allow_variables=True,
     ):
         context = _makeEvaluationContext(
-            logger=self, full_name=config_module_name, config_name=config_name
+            logger=self,
+            full_name=module_name,
+            config_module_name=config_module_name,
+            config_name=config_name,
         )
 
         def get_variable(variable_name):
@@ -1968,8 +1975,10 @@ except Exception as e:
 
             return result
 
-        context["get_variable"] = get_variable
-        context["get_constant"] = get_constant
+        if allow_constants:
+            context["get_constant"] = get_constant
+        if allow_variables:
+            context["get_variable"] = get_variable
 
         def get_parameter(parameter_name, default):
             result = getModuleParameter(config_module_name, parameter_name)
@@ -1978,15 +1987,33 @@ except Exception as e:
                 result = default
 
             self.addModuleInfluencingParameter(
-                module_name=config_module_name,
+                module_name=module_name,
                 parameter_name=parameter_name,
                 condition_tags_used=context.used_tags,
                 result=result,
+                config_module_name=config_module_name,
             )
 
             return result
 
         context["get_parameter"] = get_parameter
+
+        return context
+
+    def evaluateExpression(
+        self,
+        config_module_name,
+        module_name,
+        expression,
+        config_name,
+        extra_context,
+        single_value,
+    ):
+        context = self._makeConfigEvaluationContext(
+            config_module_name=config_module_name,
+            module_name=module_name,
+            config_name=config_name,
+        )
 
         if extra_context:
             context.update(extra_context)
@@ -2041,7 +2068,12 @@ Error, expression '%s' for module '%s' did not evaluate to 'tuple[str]' or 'list
             )
 
     def evaluateCondition(
-        self, full_name, condition, allow_constants=True, allow_variables=True
+        self,
+        full_name,
+        condition,
+        config_module_name=None,
+        allow_constants=True,
+        allow_variables=True,
     ):
         # Note: Caching makes no sense yet, this should all be very fast and
         # cache themselves. TODO: Allow plugins to also update control tag
@@ -2051,57 +2083,20 @@ Error, expression '%s' for module '%s' did not evaluate to 'tuple[str]' or 'list
         if condition == "False":
             return False
 
+        full_name = ModuleName(full_name)
+        if config_module_name is None:
+            config_module_name = full_name
+        else:
+            config_module_name = ModuleName(config_module_name)
+
         # TODO: Maybe add module name to config name?
-        context = _makeEvaluationContext(
-            logger=self, full_name=full_name, config_name="'when' configuration"
+        context = self._makeConfigEvaluationContext(
+            config_module_name=config_module_name,
+            module_name=full_name,
+            config_name="'when' configuration",
+            allow_constants=allow_constants,
+            allow_variables=allow_variables,
         )
-
-        def get_variable(variable_name):
-            assert type(variable_name) is str, variable_name
-
-            result = self.getExpressionVariables(full_name=full_name)[variable_name]
-
-            addModuleInfluencingVariable(
-                module_name=full_name,
-                config_module_name=full_name,
-                plugin_name=self.plugin_name,
-                variable_name=variable_name,
-                control_tags=context.used_tags,
-                result=result,
-            )
-
-            return result
-
-        def get_constant(constant_name):
-            assert type(constant_name) is str, constant_name
-
-            result = self.getExpressionConstants(full_name=full_name)[constant_name]
-
-            # TODO: Record the constant value in report.
-
-            return result
-
-        if allow_constants:
-            context["get_constant"] = get_constant
-        if allow_variables:
-            context["get_variable"] = get_variable
-
-        def get_parameter(parameter_name, default):
-            result = getModuleParameter(full_name, parameter_name)
-
-            if result is None:
-                result = default
-
-            self.addModuleInfluencingParameter(
-                module_name=full_name,
-                parameter_name=parameter_name,
-                condition_tags_used=context.used_tags,
-                result=result,
-            )
-
-            return result
-
-        context["get_parameter"] = get_parameter
 
         with withNoWarning():
             # We trust the yaml files, pylint: disable=eval-used
@@ -2119,11 +2114,12 @@ Error, expression '%s' for module '%s' did not evaluate to 'tuple[str]' or 'list
         if type(result) is not bool:
             return self.sysexit(
                 "Error, condition '%s' for module '%s' did not evaluate to boolean result."
-                % (condition, full_name)
+                % (condition, config_module_name)
             )
 
         addModuleInfluencingCondition(
             module_name=full_name,
+            config_module_name=config_module_name,
             plugin_name=self.plugin_name,
             condition=condition,
             control_tags=context.used_tags,
@@ -2133,10 +2129,16 @@ Error, expression '%s' for module '%s' did not evaluate to 'tuple[str]' or 'list
         return result
 
     def addModuleInfluencingParameter(
-        self, module_name, parameter_name, condition_tags_used, result
+        self,
+        module_name,
+        parameter_name,
+        condition_tags_used,
+        result,
+        config_module_name=None,
     ):
         addModuleInfluencingParameter(
             module_name=module_name,
+            config_module_name=config_module_name or module_name,
             plugin_name=self.plugin_name,
             parameter_name=parameter_name,
             condition_tags_used=condition_tags_used,
@@ -2216,11 +2218,12 @@ class NuitkaNamespaceDetectorPluginBase(NuitkaDetectorPluginBase):
 
 
 class TagContext(dict):
-    def __init__(self, logger, full_name, config_name):
+    def __init__(self, logger, full_name, config_module_name, config_name):
         dict.__init__(self)
 
         self.logger = logger
         self.full_name = full_name
+        self.config_module_name = config_module_name
         self.config_name = config_name
 
         self.used_tags = OrderedSet()
@@ -2246,7 +2249,7 @@ class TagContext(dict):
 
             return self.logger.sysexit(
                 "Identifier '%s' in %s of module '%s' is unknown."
-                % (key, self.config_name, self.full_name)
+                % (key, self.config_name, self.config_module_name)
             )
 
 

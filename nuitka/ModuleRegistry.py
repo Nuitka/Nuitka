@@ -240,12 +240,16 @@ module_influencing_plugins = {}
 
 
 def addModuleInfluencingCondition(
-    module_name, plugin_name, condition, control_tags, result
+    module_name, config_module_name, plugin_name, condition, control_tags, result
 ):
     if module_name not in module_influencing_plugins:
         module_influencing_plugins[module_name] = OrderedSet()
     module_influencing_plugins[module_name].add(
-        (plugin_name, "condition-used", (condition, tuple(control_tags), result))
+        (
+            plugin_name,
+            "condition-used",
+            (condition, tuple(control_tags), result, config_module_name),
+        )
     )
 
 
@@ -264,7 +268,12 @@ def addModuleInfluencingVariable(
 
 
 def addModuleInfluencingParameter(
-    module_name, plugin_name, parameter_name, condition_tags_used, result
+    module_name,
+    config_module_name,
+    plugin_name,
+    parameter_name,
+    condition_tags_used,
+    result,
 ):
     if module_name not in module_influencing_plugins:
         module_influencing_plugins[module_name] = OrderedSet()
@@ -272,7 +281,12 @@ def addModuleInfluencingParameter(
         (
             plugin_name,
             "parameter-used",
-            (parameter_name, tuple(condition_tags_used), result),
+            (
+                parameter_name,
+                tuple(condition_tags_used),
+                result,
+                config_module_name,
+            ),
         )
     )
 

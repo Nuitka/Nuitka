@@ -216,7 +216,8 @@ class NuitkaPluginTransformers(NuitkaPluginBase):
                 if (
                     sub_module_name == "transformers.testing_utils"
                     and not self.evaluateCondition(
-                        full_name="transformers", condition="use_pytest"
+                        full_name=module_name,
+                        condition="use_pytest",
                     )
                 ):
                     continue

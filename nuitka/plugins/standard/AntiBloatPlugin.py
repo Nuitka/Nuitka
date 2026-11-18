@@ -477,7 +477,7 @@ Error, cannot exec module '%s', context code '%s' due to: %s"""
                 source_code=source_code,
                 config_name=config_prefix + "replacements",
                 extra_context=self._getContextCode(
-                    module_name=module_name, anti_bloat_config=anti_bloat_config
+                    module_name=config_module_name, anti_bloat_config=anti_bloat_config
                 ),
                 replace_src=replace_src,
                 replace_code=replace_code,
@@ -558,6 +558,32 @@ Error, cannot exec module '%s', context code '%s' due to: %s"""
 
         return source_code
 
+    @staticmethod
+    def _hasModuleSourceCodeConfiguration(
+        anti_bloat_config, config_prefix, source_code
+    ):
+        for replace_src in anti_bloat_config.get(config_prefix + "replacements") or ():
+            if replace_src in source_code:
+                return True
+
+        for replace_src in (
+            anti_bloat_config.get(config_prefix + "replacements_plain") or ()
+        ):
+            if replace_src in source_code:
+                return True
+
+        if anti_bloat_config.get(config_prefix + "replacements_re"):
+            return True
+
+        if config_prefix == "":
+            return bool(
+                anti_bloat_config.get("append_result")
+                or anti_bloat_config.get("append_plain")
+                or anti_bloat_config.get("module_code") is not None
+            )
+
+        return False
+
     def onModuleSourceCode(self, module_name, source_filename, source_code):
         config_module_name = module_name
 
@@ -565,11 +591,26 @@ Error, cannot exec module '%s', context code '%s' due to: %s"""
             for anti_bloat_config in self.config.get(
                 config_module_name, section="anti-bloat"
             ):
-                if self.evaluateCondition(
-                    full_name=config_module_name,
+                has_local = (
+                    config_module_name == module_name
+                    and self._hasModuleSourceCodeConfiguration(
+                        anti_bloat_config=anti_bloat_config,
+                        config_prefix="",
+                        source_code=source_code,
+                    )
+                )
+                has_global = self._hasModuleSourceCodeConfiguration(
+                    anti_bloat_config=anti_bloat_config,
+                    config_prefix="global_",
+                    source_code=source_code,
+                )
+
+                if (has_local or has_global) and self.evaluateCondition(
+                    full_name=module_name,
                     condition=anti_bloat_config.get("when", "True"),
+                    config_module_name=config_module_name,
                 ):
-                    if config_module_name == module_name:
+                    if has_local:
                         source_code = self._onModuleSourceCode(
                             config_module_name=config_module_name,
                             module_name=module_name,
@@ -578,13 +619,19 @@ Error, cannot exec module '%s', context code '%s' due to: %s"""
                             source_code=source_code,
                         )
 
-                    source_code = self._onModuleSourceCode(
-                        config_module_name=config_module_name,
-                        module_name=module_name,
+                    # Re-check in case local replacements changed source_code.
+                    if self._hasModuleSourceCodeConfiguration(
                         anti_bloat_config=anti_bloat_config,
                         config_prefix="global_",
                         source_code=source_code,
-                    )
+                    ):
+                        source_code = self._onModuleSourceCode(
+                            config_module_name=config_module_name,
+                            module_name=module_name,
+                            anti_bloat_config=anti_bloat_config,
+                            config_prefix="global_",
+                            source_code=source_code,
+                        )
 
             config_module_name = config_module_name.getPackageName()
 
@@ -618,23 +665,30 @@ Error, cannot exec module '%s', context code '%s' due to: %s"""
                 function_qualname
             )
 
+        if replace_code is None:
+            return False
+
+        if not self.evaluateCondition(
+            full_name=module_name,
+            condition=anti_bloat_config.get("when", "True"),
+            config_module_name=config_module_name,
+        ):
+            return False
+
         if replace_code == "un-callable":
             replace_code = """'raise RuntimeError("Must not call %s.%s")'""" % (
                 module_name,
                 function_qualname,
             )
 
-        if replace_code is None:
-            return False
-
         replacement = self.evaluateExpression(
             config_module_name=config_module_name,
             module_name=module_name,
             expression=replace_code,
             config_name="module '%s' config '%s' of '%s'"
-            % (module_name, config_item_name, function_name),
+            % (config_module_name, config_item_name, function_name),
             extra_context=self._getContextCode(
-                module_name=module_name, anti_bloat_config=anti_bloat_config
+                module_name=config_module_name, anti_bloat_config=anti_bloat_config
             ),
             single_value=True,
         )
@@ -672,32 +726,28 @@ Error, cannot exec module '%s', context code '%s' due to: %s"""
             for anti_bloat_config in self.config.get(
                 config_module_name, section="anti-bloat"
             ):
-                if self.evaluateCondition(
-                    full_name=config_module_name,
-                    condition=anti_bloat_config.get("when", "True"),
-                ):
-                    if config_module_name == module_name:
-                        if self._onFunctionBodyParsing(
-                            config_module_name=config_module_name,
-                            module_name=module_name,
-                            anti_bloat_config=anti_bloat_config,
-                            config_prefix="",
-                            function_qualname=function_qualname,
-                            function_name=function_name,
-                            body=body,
-                        ):
-                            result = True
-
+                if config_module_name == module_name:
                     if self._onFunctionBodyParsing(
                         config_module_name=config_module_name,
                         module_name=module_name,
                         anti_bloat_config=anti_bloat_config,
-                        config_prefix="global_",
+                        config_prefix="",
                         function_qualname=function_qualname,
                         function_name=function_name,
                         body=body,
                     ):
                         result = True
+
+                if self._onFunctionBodyParsing(
+                    config_module_name=config_module_name,
+                    module_name=module_name,
+                    anti_bloat_config=anti_bloat_config,
+                    config_prefix="global_",
+                    function_qualname=function_qualname,
+                    function_name=function_name,
+                    body=body,
+                ):
+                    result = True
 
             config_module_name = config_module_name.getPackageName()
 
@@ -708,6 +758,14 @@ Error, cannot exec module '%s', context code '%s' due to: %s"""
 
     def _onClassBodyParsing(self, module_name, anti_bloat_config, class_name, node):
         replace_code = anti_bloat_config.get("change_class", {}).get(class_name)
+
+        if replace_code is None:
+            return False
+
+        if not self.evaluateCondition(
+            full_name=module_name, condition=anti_bloat_config.get("when", "True")
+        ):
+            return False
 
         if replace_code == "un-usable":
             replace_code = """
@@ -720,9 +778,6 @@ class %(class_name)s:
                 "module_name": module_name,
                 "class_name": class_name,
             }
-
-        if replace_code is None:
-            return False
 
         replacement = self.evaluateExpression(
             config_module_name=module_name,
@@ -752,16 +807,13 @@ class %(class_name)s:
         result = False
 
         for anti_bloat_config in self.config.get(module_name, section="anti-bloat"):
-            if self.evaluateCondition(
-                full_name=module_name, condition=anti_bloat_config.get("when", "True")
+            if self._onClassBodyParsing(
+                module_name=module_name,
+                anti_bloat_config=anti_bloat_config,
+                class_name=class_name,
+                node=node,
             ):
-                if self._onClassBodyParsing(
-                    module_name=module_name,
-                    anti_bloat_config=anti_bloat_config,
-                    class_name=class_name,
-                    node=node,
-                ):
-                    result = True
+                result = True
 
         return result
 
@@ -772,7 +824,6 @@ class %(class_name)s:
             module_name=using_module_name,
             section="anti-bloat",
             item_name="bloat-mode-overrides",
-            default={},
             decide_relevant=(lambda config_item: intended_module_name in config_item),
             recursive=True,
         ):
@@ -787,8 +838,7 @@ class %(class_name)s:
             module_name=module_name,
             section="anti-bloat",
             item_name="annotations",
-            default=None,
-            decide_relevant=(lambda config_item: config_item in ("yes", "no")),
+            decide_relevant=None,
             recursive=True,
         ):
             return annotations_config_value == "yes"
@@ -802,8 +852,7 @@ class %(class_name)s:
             module_name=module_name,
             section="anti-bloat",
             item_name="doc_strings",
-            default=None,
-            decide_relevant=(lambda config_item: config_item in ("yes", "no")),
+            decide_relevant=None,
             recursive=True,
         ):
             return doc_strings_config_value == "yes"
@@ -817,8 +866,7 @@ class %(class_name)s:
             module_name=module_name,
             section="anti-bloat",
             item_name="asserts",
-            default=None,
-            decide_relevant=(lambda config_item: config_item in ("yes", "no")),
+            decide_relevant=None,
             recursive=True,
         ):
             return asserts_config_value == "yes"
@@ -835,7 +883,6 @@ class %(class_name)s:
             module_name=module_name,
             section="anti-bloat",
             item_name="frame_locals",
-            default=(),
             decide_relevant=bool,
             recursive=True,
         ):
