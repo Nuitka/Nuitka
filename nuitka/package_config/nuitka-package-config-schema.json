@@ -522,13 +522,6 @@
                     "recommend"
                   ]
                 },
-                "macos_bundle_as_onefile": {
-                  "type": "string",
-                  "enum": [
-                    "yes",
-                    "no"
-                  ]
-                },
                 "support_info": {
                   "type": "string",
                   "enum": [
