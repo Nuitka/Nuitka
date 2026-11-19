@@ -3264,6 +3264,11 @@ static PyObject *_nuitka_loader_iter_modules(PyObject *self_obj, PyObject *args,
             continue;
         }
 
+        // Trigger and protection helper modules are private to the build.
+        if ((current->flags & NUITKA_INTERNAL_MODULE_FLAG) != 0) {
+            continue;
+        }
+
         char current_buffer[NUITKA_LOADER_NAME_MAX_LEN];
         Nuitka_LoaderEntryName(current, current_buffer, sizeof(current_buffer));
         char const *current_name = current_buffer;
@@ -3285,8 +3290,13 @@ static PyObject *_nuitka_loader_iter_modules(PyObject *self_obj, PyObject *args,
 
         if (CHECK_IF_TRUE(prefix)) {
             PyObject *old = name;
-            name = PyUnicode_Concat(prefix, name);
+            name = UNICODE_CONCAT(tstate, prefix, name);
             Py_DECREF(old);
+
+            if (unlikely(name == NULL)) {
+                Py_DECREF(result);
+                return NULL;
+            }
         }
 
         PyObject *r = MAKE_TUPLE_EMPTY(tstate, 2);
