@@ -759,6 +759,12 @@ NUITKA_MAY_BE_UNUSED static bool CHECK_AND_CLEAR_STOP_ASYNC_ITERATION_OCCURRED(P
 }
 #endif
 
+// Clear GeneratorExit if set, similar to "if (PyErr_ExceptionMatches(PyExc_GeneratorExit)) PyErr_Clear()".
+// Returns true if no exception remains set, false if another exception is active.
+NUITKA_MAY_BE_UNUSED static bool CHECK_AND_CLEAR_GENERATOR_EXIT_OCCURRED(PyThreadState *tstate) {
+    return _CHECK_AND_CLEAR_EXCEPTION_OCCURRED(tstate, PyExc_GeneratorExit);
+}
+
 // Clear KeyError if set, similar to "if (PyErr_ExceptionMatches(PyExc_KeyError)) PyErr_Clear()".
 // Returns true if no exception remains set, false if another exception is active.
 NUITKA_MAY_BE_UNUSED static bool CHECK_AND_CLEAR_KEY_ERROR_OCCURRED(PyThreadState *tstate) {

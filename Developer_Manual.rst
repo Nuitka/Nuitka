@@ -2430,14 +2430,17 @@ call of the functions below is a hint that it should be replaced.
 
    -  -  ``PyErr_ExceptionMatches``
 
-      -  ``EXCEPTION_MATCH_BOOL_SINGLE`` with ``GET_ERROR_OCCURRED``
+      -  ``EXCEPTION_MATCH_BOOL_SINGLE`` with ``GET_ERROR_OCCURRED``,
+         ``CHECK_AND_CLEAR_*_OCCURRED``
 
       -  ``exceptions.h``
 
-      -  Guard with ``HAS_ERROR_OCCURRED``; matches the current
-         exception without clearing it. The
-         ``CHECK_AND_CLEAR_*_OCCURRED`` helpers combine matching and
-         clearing for common exception types.
+      -  For non-clearing checks, guard with ``HAS_ERROR_OCCURRED`` and
+         pass ``GET_ERROR_OCCURRED`` to ``EXCEPTION_MATCH_BOOL_SINGLE``.
+         ``CHECK_AND_CLEAR_*_OCCURRED`` combines matching and clearing
+         for common exception types, but returns ``true`` whenever no
+         exception remains set, including when no exception was set on
+         entry.
 
    -  -  ``PyErr_Clear``
       -  ``CLEAR_ERROR_OCCURRED``
@@ -2522,6 +2525,18 @@ Practical caveats
 -  ``Nuitka_Bytes_AsString``/``Nuitka_Bytes_AsStringAndSize`` assert
    bytes compatibility instead of reporting a type error; use them only
    after establishing the type.
+
+-  ``CHECK_AND_CLEAR_*_OCCURRED`` (and
+   ``CHECK_AND_CLEAR_STOP_ITERATION_STATE``) return ``true`` whenever no
+   exception remains set, including when **no exception was set on
+   entry**, and ``false`` only when a non-matching exception stays
+   active. This matches ``tp_iternext`` and dictionary fast paths where
+   a ``NULL`` result without an active exception already signals
+   exhaustion or a missing key, but differs from
+   ``PyErr_ExceptionMatches`` (which returns ``0`` when no exception is
+   set). Call them only after failure when an exception is known to be
+   set, or when the no-exception case is meant to take the same branch
+   as a cleared match.
 
 Constant Preparation
 ====================
