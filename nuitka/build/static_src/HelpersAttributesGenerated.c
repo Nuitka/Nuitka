@@ -44,27 +44,46 @@ PyObject *LOOKUP_ATTRIBUTE(PyThreadState *tstate, PyObject *source, PyObject *at
 
         PyObject *dict = NULL;
 
-        if (dict == NULL) {
-            Py_ssize_t dict_offset = type->tp_dictoffset;
+        Py_ssize_t dict_offset = type->tp_dictoffset;
 
-            if (dict_offset != 0) {
-                // Negative dictionary offsets have special meaning.
-                if (dict_offset < 0) {
-                    Py_ssize_t tsize;
-                    size_t size;
+#if PYTHON_VERSION >= 0x3b0
+        if (type->tp_flags & Py_TPFLAGS_MANAGED_DICT) {
+            PyObject *result;
+            int found = Nuitka_LookupManagedDictAttribute(type, source, attr_name, &dict, &result);
 
-                    tsize = ((PyVarObject *)source)->ob_size;
-                    if (tsize < 0) {
-                        tsize = -tsize;
-                    }
-                    size = _PyObject_VAR_SIZE(type, tsize);
+            if (found != 0) {
+                Py_XDECREF(descr);
 
-                    dict_offset += (long)size;
+                if (unlikely(found < 0)) {
+                    return NULL;
                 }
 
-                PyObject **dict_pointer = (PyObject **)((char *)source + dict_offset);
-                dict = *dict_pointer;
+                CHECK_OBJECT(result);
+                return result;
             }
+
+            // Dictionary offsets are not usable with managed dictionaries.
+            dict_offset = 0;
+        }
+#endif
+
+        if (dict_offset != 0) {
+            // Negative dictionary offsets have special meaning.
+            if (dict_offset < 0) {
+                Py_ssize_t tsize;
+                size_t size;
+
+                tsize = ((PyVarObject *)source)->ob_size;
+                if (tsize < 0) {
+                    tsize = -tsize;
+                }
+                size = _PyObject_VAR_SIZE(type, tsize);
+
+                dict_offset += (long)size;
+            }
+
+            PyObject **dict_pointer = (PyObject **)((char *)source + dict_offset);
+            dict = *dict_pointer;
         }
 
         if (dict != NULL) {
@@ -102,6 +121,9 @@ PyObject *LOOKUP_ATTRIBUTE(PyThreadState *tstate, PyObject *source, PyObject *at
                      PyString_AS_STRING(attr_name));
 #else
         PyErr_Format(PyExc_AttributeError, "'%s' object has no attribute '%U'", type->tp_name, attr_name);
+#endif
+#if PYTHON_VERSION >= 0x3a0
+        SET_ATTRIBUTE_ERROR_CONTEXT(tstate, source, attr_name);
 #endif
         return NULL;
     }
@@ -165,8 +187,30 @@ PyObject *LOOKUP_ATTRIBUTE_DICT_SLOT(PyThreadState *tstate, PyObject *source) {
             }
         }
 
-        Py_ssize_t dict_offset = type->tp_dictoffset;
         PyObject *dict = NULL;
+
+        Py_ssize_t dict_offset = type->tp_dictoffset;
+
+#if PYTHON_VERSION >= 0x3b0
+        if (type->tp_flags & Py_TPFLAGS_MANAGED_DICT) {
+            PyObject *result;
+            int found = Nuitka_LookupManagedDictAttribute(type, source, const_str_plain___dict__, &dict, &result);
+
+            if (found != 0) {
+                Py_XDECREF(descr);
+
+                if (unlikely(found < 0)) {
+                    return NULL;
+                }
+
+                CHECK_OBJECT(result);
+                return result;
+            }
+
+            // Dictionary offsets are not usable with managed dictionaries.
+            dict_offset = 0;
+        }
+#endif
 
         if (dict_offset != 0) {
             // Negative dictionary offsets have special meaning.
@@ -219,6 +263,9 @@ PyObject *LOOKUP_ATTRIBUTE_DICT_SLOT(PyThreadState *tstate, PyObject *source) {
         }
 
         PyErr_Format(PyExc_AttributeError, "'%s' object has no attribute '__dict__'", type->tp_name);
+#if PYTHON_VERSION >= 0x3a0
+        SET_ATTRIBUTE_ERROR_CONTEXT(tstate, source, const_str_plain___dict__);
+#endif
         return NULL;
     }
 #if PYTHON_VERSION < 0x300
@@ -283,8 +330,30 @@ PyObject *LOOKUP_ATTRIBUTE_CLASS_SLOT(PyThreadState *tstate, PyObject *source) {
             }
         }
 
-        Py_ssize_t dict_offset = type->tp_dictoffset;
         PyObject *dict = NULL;
+
+        Py_ssize_t dict_offset = type->tp_dictoffset;
+
+#if PYTHON_VERSION >= 0x3b0
+        if (type->tp_flags & Py_TPFLAGS_MANAGED_DICT) {
+            PyObject *result;
+            int found = Nuitka_LookupManagedDictAttribute(type, source, const_str_plain___class__, &dict, &result);
+
+            if (found != 0) {
+                Py_XDECREF(descr);
+
+                if (unlikely(found < 0)) {
+                    return NULL;
+                }
+
+                CHECK_OBJECT(result);
+                return result;
+            }
+
+            // Dictionary offsets are not usable with managed dictionaries.
+            dict_offset = 0;
+        }
+#endif
 
         if (dict_offset != 0) {
             // Negative dictionary offsets have special meaning.
@@ -337,6 +406,9 @@ PyObject *LOOKUP_ATTRIBUTE_CLASS_SLOT(PyThreadState *tstate, PyObject *source) {
         }
 
         PyErr_Format(PyExc_AttributeError, "'%s' object has no attribute '__class__'", type->tp_name);
+#if PYTHON_VERSION >= 0x3a0
+        SET_ATTRIBUTE_ERROR_CONTEXT(tstate, source, const_str_plain___class__);
+#endif
         return NULL;
     }
 #if PYTHON_VERSION < 0x300
@@ -410,8 +482,31 @@ bool HAS_ATTR_BOOL(PyThreadState *tstate, PyObject *source, PyObject *attr_name)
             }
         }
 
-        Py_ssize_t dict_offset = type->tp_dictoffset;
         PyObject *dict = NULL;
+
+        Py_ssize_t dict_offset = type->tp_dictoffset;
+
+#if PYTHON_VERSION >= 0x3b0
+        if (type->tp_flags & Py_TPFLAGS_MANAGED_DICT) {
+            PyObject *result;
+            int found = Nuitka_LookupManagedDictAttribute(type, source, attr_name, &dict, &result);
+
+            if (found != 0) {
+                Py_XDECREF(descr);
+
+                if (unlikely(found < 0)) {
+                    DROP_ERROR_OCCURRED(tstate);
+                    return false;
+                }
+
+                Py_DECREF(result);
+                return true;
+            }
+
+            // Dictionary offsets are not usable with managed dictionaries.
+            dict_offset = 0;
+        }
+#endif
 
         if (dict_offset != 0) {
             // Negative dictionary offsets have special meaning.
@@ -575,8 +670,30 @@ int HAS_ATTR_BOOL2(PyThreadState *tstate, PyObject *source, PyObject *attr_name)
             }
         }
 
-        Py_ssize_t dict_offset = type->tp_dictoffset;
         PyObject *dict = NULL;
+
+        Py_ssize_t dict_offset = type->tp_dictoffset;
+
+#if PYTHON_VERSION >= 0x3b0
+        if (type->tp_flags & Py_TPFLAGS_MANAGED_DICT) {
+            PyObject *result;
+            int found = Nuitka_LookupManagedDictAttribute(type, source, attr_name, &dict, &result);
+
+            if (found != 0) {
+                Py_XDECREF(descr);
+
+                if (unlikely(found < 0)) {
+                    return -1;
+                }
+
+                Py_DECREF(result);
+                return 1;
+            }
+
+            // Dictionary offsets are not usable with managed dictionaries.
+            dict_offset = 0;
+        }
+#endif
 
         if (dict_offset != 0) {
             // Negative dictionary offsets have special meaning.

@@ -5,6 +5,7 @@ from __future__ import print_function
 
 import inspect
 import pprint
+import sys
 
 
 def displayDir(l):
@@ -457,6 +458,107 @@ def classBodyInGenerator():
 
 
 print(list(classBodyInGenerator()))
+
+print("Instances with managed dictionaries:")
+
+
+class ManagedDictClass:
+    class_attribute = "class"
+
+    def method(self, value):
+        return "method", value
+
+    @property
+    def prop(self):
+        return "prop"
+
+
+managed = ManagedDictClass()
+managed.alpha = 1
+managed.beta = 2
+
+print("attribute:", managed.alpha, managed.beta)
+print("dict:", sorted(managed.__dict__))
+print("class:", managed.__class__.__name__)
+print("hasattr:", hasattr(managed, "alpha"), hasattr(managed, "missing"))
+print("getattr:", getattr(managed, "missing", "default"))
+
+managed.method = lambda value: ("instance-method", value)
+print("method:", managed.method(3))
+del managed.method
+print("method class:", managed.method(4))
+
+managed.__dict__["prop"] = "shadowed"
+print("property:", managed.prop)
+
+try:
+    managed.missing
+except AttributeError as e:
+    if sys.version_info >= (3, 10):
+        print("error context:", e.name, e.obj is managed)
+    else:
+        print("error context: missing")
+
+
+print("Instances with managed dictionaries converted to a real dict:")
+
+
+class ManyAttributes:
+    def method(self, value):
+        return "many-method", value
+
+
+many = ManyAttributes()
+
+for i in range(50):
+    setattr(many, "attr%d" % i, i)
+
+many.direct = 99
+
+print("attribute:", many.attr0, many.attr49, many.direct)
+print("hasattr:", hasattr(many, "attr25"), hasattr(many, "missing"))
+print("class:", many.__class__.__name__)
+print("dict:", len(many.__dict__))
+
+many.method = lambda value: ("many-instance-method", value)
+print("method:", many.method(5))
+del many.method
+print("method class:", many.method(6))
+
+del many.attr0
+print("deleted:", hasattr(many, "attr0"))
+
+
+print("Slots only and slots with dictionary:")
+
+
+class SlotsOnly:
+    __slots__ = ("slot",)
+
+
+slots_only = SlotsOnly()
+slots_only.slot = 1
+print("slots only:", slots_only.slot, hasattr(slots_only, "missing"))
+
+try:
+    slots_only.missing = 2
+except AttributeError:
+    print("slots only set: AttributeError")
+
+
+class SlotsWithDict:
+    __slots__ = ("slot", "__dict__")
+
+
+slots_with_dict = SlotsWithDict()
+slots_with_dict.slot = 1
+slots_with_dict.extra = 2
+print(
+    "slots dict:",
+    slots_with_dict.slot,
+    slots_with_dict.extra,
+    sorted(slots_with_dict.__dict__),
+)
 
 #     Python tests originally created or extracted from other peoples work. The
 #     parts were too small to be protected.
