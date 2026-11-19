@@ -458,6 +458,24 @@ class LocalsDictExecHandle(LocalsDictHandleBase):
 
         self.closure_variables = None
 
+    def makeCloneWithVariableTranslations(self, new_owner, variable_translations):
+        result, variable_translations = (
+            LocalsDictHandleBase.makeCloneWithVariableTranslations(
+                self,
+                new_owner=new_owner,
+                variable_translations=variable_translations,
+            )
+        )
+
+        if self.closure_variables is not None:
+            # pylint: disable=assigning-non-slot
+            result.closure_variables = set(
+                variable_translations.get(variable, variable)
+                for variable in self.closure_variables
+            )
+
+        return result, variable_translations
+
     @staticmethod
     def isFunctionScope():
         return True
@@ -489,10 +507,8 @@ class LocalsDictExecHandle(LocalsDictHandleBase):
     def unregisterClosureVariable(self, variable):
         self.unregisterProvidedVariable(variable)
 
-        variable_name = variable.getName()
-
-        if variable_name in self.providing:
-            del self.providing[variable_name]
+        if self.closure_variables is not None:
+            self.closure_variables.discard(variable)
 
 
 class LocalsDictFunctionHandle(LocalsDictHandleBase):
