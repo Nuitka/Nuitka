@@ -56,12 +56,20 @@
 {% if result_kind == "object" %}
                     return result;
 {% else %}
-                    if (result) {
+                    if (result != NULL) {
                         {{ lookup_result(result_kind) }}
                     }
 
-                    DROP_ERROR_OCCURRED(tstate);
-                    return {{ "false" if result_kind == "bool" else "0" }};
+{% if result_kind == "bool" %}
+                    CLEAR_ERROR_OCCURRED(tstate);
+                    return false;
+{% else %}
+                    if (CHECK_AND_CLEAR_ATTRIBUTE_ERROR_OCCURRED(tstate) == false) {
+                        return -1;
+                    }
+
+                    return 0;
+{% endif %}
 {% endif %}
                 }
             }
@@ -135,15 +143,6 @@
             Py_INCREF(dict);
 
             PyObject *result = DICT_GET_ITEM1(tstate, dict, {{ attr_name }});
-{% if result_kind == "bool" %}
-            DROP_ERROR_OCCURRED(tstate);
-{% elif result_kind == "int" %}
-
-            if (CHECK_AND_CLEAR_ATTRIBUTE_ERROR_OCCURRED(tstate) == false) {
-                return -1;
-            }
-{% endif %}
-
 {% if not slot_name %}
             Py_DECREF(dict);
 {% endif %}
@@ -160,6 +159,24 @@
 
             Py_DECREF(dict);
 {% endif %}
+{% if result_kind == "bool" %}
+
+#if PYTHON_VERSION < 0x300
+            DROP_ERROR_OCCURRED(tstate);
+#else
+            if (unlikely(CHECK_AND_CLEAR_ATTRIBUTE_ERROR_OCCURRED(tstate) == false)) {
+                CLEAR_ERROR_OCCURRED(tstate);
+                Py_XDECREF(descr);
+                return false;
+            }
+#endif
+{% elif result_kind == "int" %}
+
+            if (unlikely(CHECK_AND_CLEAR_ATTRIBUTE_ERROR_OCCURRED(tstate) == false)) {
+                Py_XDECREF(descr);
+                return -1;
+            }
+{% endif %}
         }
 
         if (func != NULL) {
@@ -174,10 +191,16 @@
                 {{ lookup_result(result_kind) }}
             }
 
+{% if result_kind == "bool" %}
+            CLEAR_ERROR_OCCURRED(tstate);
+            return false;
+{% else %}
             if (CHECK_AND_CLEAR_ATTRIBUTE_ERROR_OCCURRED(tstate) == false) {
-                return {{ "false" if result_kind == "bool" else "-1" }};
+                return -1;
             }
-            return {{ "true" if result_kind == "bool" else "0" }};
+
+            return 0;
+{% endif %}
 {% endif %}
         }
 
@@ -211,14 +234,18 @@
         if (result == NULL) {
 {% if result_kind == "bool" %}
             CLEAR_ERROR_OCCURRED(tstate);
+
+            return false;
+{% else %}
+            if (CHECK_AND_CLEAR_ATTRIBUTE_ERROR_OCCURRED(tstate) == false) {
+                return -1;
+            }
+
+            return 0;
 {% endif %}
-            return {{ "false" if result_kind == "bool" else "-1" }};
         }
 
-        CHECK_OBJECT(result);
-
-        Py_DECREF(result);
-        return true;
+        {{ lookup_result(result_kind) }}
 {% endif %}
 {% endif %}
     }
@@ -229,10 +256,14 @@
 {% if result_kind == "object" %}
         if (unlikely(result == NULL)) {
             return NULL;
+        }
+
+        CHECK_OBJECT(result);
+        return result;
 {% else %}
         if (result == NULL) {
 {% if result_kind == "bool" %}
-            DROP_ERROR_OCCURRED(tstate);
+            CLEAR_ERROR_OCCURRED(tstate);
 
             return false;
 {% else %}
@@ -242,15 +273,9 @@
 
             return 0;
 {% endif %}
-{% endif %}
         }
 
-        CHECK_OBJECT(result);
-{% if result_kind == "object" %}
-        return result;
-{% else %}
-        Py_DECREF(result);
-        return true;
+        {{ lookup_result(result_kind) }}
 {% endif %}
     } else if (type->tp_getattr != NULL) {
         PyObject *result = (*type->tp_getattr)(source, (char *){{ '"' + slot_name + '"' if slot_name else 'Nuitka_String_AsString_Unchecked(' + attr_name + ')' }});
@@ -305,18 +330,16 @@
 {% else %}
     PyObject *result = PyObject_GetAttr(source, {{ attr_name }});
 
-    if (CHECK_AND_CLEAR_ATTRIBUTE_ERROR_OCCURRED(tstate) == false) {
-        return -1;
-    }
-
     if (result == NULL) {
+        if (CHECK_AND_CLEAR_ATTRIBUTE_ERROR_OCCURRED(tstate) == false) {
+            return -1;
+        }
+
         return 0;
     }
 
-    int result_bool = CHECK_IF_TRUE(result);
     Py_DECREF(result);
-
-    return result_bool;
+    return 1;
 {% endif %}
 #else
 {% if result_kind == "object" and not slot_name %}

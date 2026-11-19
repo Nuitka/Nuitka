@@ -2078,11 +2078,11 @@ call of the functions below is a hint that it should be replaced.
 
       -  ``helper/attributes.h``
 
-      -  Existence-only helpers. The
-         ``_NUITKA_EXPERIMENTAL_DISABLE_ATTR_OPT`` fallback in
-         ``HAS_ATTR_BOOL2`` is currently broken: it returns -1 and leaks
-         the result for existing attributes. Do not rely on that
-         experimental path.
+      -  Existence-only helpers. ``HAS_ATTR_BOOL`` clears any exception
+         and returns ``bool`` (like ``PyObject_HasAttr``);
+         ``HAS_ATTR_BOOL2`` and ``BUILTIN_HASATTR_BOOL`` clear only
+         ``AttributeError`` and return ``-1`` / ``0`` / ``1`` (Python 3
+         ``hasattr`` semantics).
 
    -  -  ``_PyObject_LookupSpecial`` / special-method lookup
 
