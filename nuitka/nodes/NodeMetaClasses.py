@@ -26,6 +26,11 @@ def _checkBases(name, bases):
 
         last_mixin = is_mixin
 
+        if not isinstance(base, type):
+            raise NuitkaNodeDesignError(
+                name, "All bases must inherit from object.", base
+            )
+
         if base is not object and "__slots__" not in base.__dict__:
             raise NuitkaNodeDesignError(name, "All bases must set __slots__.", base)
 

@@ -326,7 +326,7 @@ class ExpressionImportlibResourcesBackportReadTextCall(
         return self, None, None
 
 
-class ExpressionImportlibResourcesFilesCallMixin:
+class ExpressionImportlibResourcesFilesCallMixin(object):
     __slots__ = ()
 
     def _getImportlibResourcesModule(self):
