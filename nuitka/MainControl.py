@@ -10,6 +10,7 @@ a distribution folder.
 
 """
 
+import gc
 import os
 import sys
 
@@ -1143,6 +1144,11 @@ def compileTree():
             ),
         )
 
+        # The module trees remain needed until the end of code generation, but
+        # are not mutated during it, so keep the collector from traversing them.
+        if python_version >= 0x370:
+            gc.freeze()
+
         # Now build the target language code for the whole tree.
         with withProfiling(
             name="code-generation",
@@ -1576,6 +1582,12 @@ exist, out e.g. '--output-dir=output' to sure is importable.""" % base_path,
 
 
 def main():
+    # Large builds keep tens of thousands of module trees alive, and the
+    # default thresholds cause full collections of all of them repeatedly.
+    # Higher young-generation limits let per-module working objects die before
+    # they reach the oldest generation and trigger such a collection.
+    gc.set_threshold(50000, 20, 10)
+
     try:
         _main()
     except BaseException:
