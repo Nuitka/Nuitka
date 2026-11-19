@@ -100,7 +100,7 @@ class ExpressionKeyValuePairNonConstantMixin(ExpressionKeyValuePairMixin):
         )
 
     def isKeyExpressionConstantStrRef(self):
-        return self.subnode_key.isKeyExpressionConstantStrRef()
+        return self.subnode_key.isExpressionConstantStrRef()
 
     def getKeyCompileTimeConstant(self):
         return self.subnode_key.getCompileTimeConstant()
