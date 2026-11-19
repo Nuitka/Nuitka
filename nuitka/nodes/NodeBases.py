@@ -173,19 +173,19 @@ class NodeBase(NodeMetaClassBase):
         return parent
 
     def getContainingLoopNode(self):
-        """Return the enclosing loop node, stopping at function body boundaries."""
+        """Return the enclosing loop node, stopping at function entry point boundaries."""
         parent = self.parent
 
-        # TODO: Actually outline functions ought to not abort here, but we ought
-        # to get rid of this function entirely in favor of a finalization
-        # annotation.
-        while parent is not None and not parent.isExpressionFunctionBodyBase():
+        while parent is not None and (
+            not parent.isExpressionFunctionBodyBase()
+            or parent.isExpressionOutlineFunctionBase()
+        ):
             if parent.isStatementLoop():
                 return parent
 
             parent = parent.getParent()
 
-        return parent
+        return None
 
     @staticmethod
     def isParentVariableProvider():
