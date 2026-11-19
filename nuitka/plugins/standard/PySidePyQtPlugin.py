@@ -9,6 +9,9 @@ own dependencies.
 
 import os
 
+from nuitka.__past__ import (  # pylint: disable=redefined-builtin
+    PermissionError,
+)
 from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.options.Options import (
     getWindowsIconExecutablePath,
