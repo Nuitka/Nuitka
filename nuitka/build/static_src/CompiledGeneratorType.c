@@ -205,9 +205,9 @@ static PyObject *_Nuitka_CallGeneratorCodeC(PyThreadState *tstate, struct Nuitka
 
 #if PYTHON_VERSION >= 0x300
 
-// Note: Shared with coroutines and asyncgen code.
 static PyObject *ERROR_GET_STOP_ITERATION_VALUE(PyThreadState *tstate) {
-    assert(PyErr_ExceptionMatches(PyExc_StopIteration));
+    assert(HAS_ERROR_OCCURRED(tstate) &&
+           EXCEPTION_MATCH_BOOL_SINGLE(tstate, GET_ERROR_OCCURRED(tstate), PyExc_StopIteration));
 
     struct Nuitka_ExceptionPreservationItem saved_exception_state;
     FETCH_ERROR_OCCURRED_STATE(tstate, &saved_exception_state);
@@ -217,7 +217,6 @@ static PyObject *ERROR_GET_STOP_ITERATION_VALUE(PyThreadState *tstate) {
     Py_XDECREF(saved_exception_state.exception_tb);
 #endif
 
-    // We own a reference, and we mean to return it.
     PyObject *exception_value = saved_exception_state.exception_value;
 
     PyObject *value = NULL;
@@ -1181,7 +1180,6 @@ failed_throw:
 
 #if PYTHON_VERSION >= 0x300
 
-// Note: This is also used for coroutines and asyncgen
 static bool Nuitka_gen_close_iter(PyThreadState *tstate, PyObject *yield_from) {
 #if _DEBUG_GENERATOR
     PRINT_STRING("Nuitka_gen_close_iter: Enter\n");
@@ -1189,9 +1187,7 @@ static bool Nuitka_gen_close_iter(PyThreadState *tstate, PyObject *yield_from) {
 
     CHECK_OBJECT(yield_from);
 
-    // TODO: Could specialize depending in yield_from type for performance. Many
-    // times these will be our own ones, or known ones like uncompiled
-    // generators.
+    // TODO: Could also specialize uncompiled generators for performance.
     if (Nuitka_Generator_Check(yield_from)) {
 #if _DEBUG_GENERATOR
         PRINT_STRING("Nuitka_gen_close_iter: Defer to _Nuitka_Generator_close\n");
@@ -1236,14 +1232,13 @@ static bool Nuitka_gen_close_iter(PyThreadState *tstate, PyObject *yield_from) {
     PyObject *meth = LOOKUP_ATTRIBUTE(tstate, yield_from, const_str_plain_close);
 
     if (unlikely(meth == NULL)) {
-        if (unlikely(!PyErr_ExceptionMatches(PyExc_AttributeError))) {
+        if (unlikely(!CHECK_AND_CLEAR_ATTRIBUTE_ERROR_OCCURRED(tstate))) {
 #if _DEBUG_GENERATOR
             PRINT_STRING("Nuitka_gen_close_iter: Strange error while looking up close method.\n");
 #endif
             Nuitka_WriteUnraisable(yield_from);
+            CLEAR_ERROR_OCCURRED(tstate);
         }
-
-        CLEAR_ERROR_OCCURRED(tstate);
 
 #if _DEBUG_GENERATOR
         PRINT_STRING("Nuitka_gen_close_iter: Leave, has no close method.\n");

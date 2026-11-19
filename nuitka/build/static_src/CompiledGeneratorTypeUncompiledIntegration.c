@@ -310,6 +310,46 @@ static void Nuitka_PyErr_ChainStackItem(PyThreadState *tstate) {
 }
 #endif
 
+#if PYTHON_VERSION >= 0x350 && PYTHON_VERSION < 0x3c0
+NUITKA_MAY_BE_UNUSED static void Nuitka_PyGen_HandleRaisedStopIteration(PyThreadState *tstate, PyGenObject *gen) {
+    PyObject *error = GET_ERROR_OCCURRED(tstate);
+
+    if (error != NULL) {
+        if (EXCEPTION_MATCH_BOOL_SINGLE(tstate, error, PyExc_StopIteration)) {
+#if PYTHON_VERSION < 0x370
+            const int check_stop_iter_error_flags = CO_FUTURE_GENERATOR_STOP | CO_COROUTINE |
+#if PYTHON_VERSION >= 0x360
+                                                    CO_ASYNC_GENERATOR |
+#endif
+                                                    CO_ITERABLE_COROUTINE;
+
+            if (unlikely(gen->gi_code != NULL &&
+                         ((PyCodeObject *)gen->gi_code)->co_flags & check_stop_iter_error_flags))
+#endif
+            {
+                char const *msg = "generator raised StopIteration";
+
+                if (PyCoro_CheckExact(gen)) {
+                    msg = "coroutine raised StopIteration";
+                }
+#if PYTHON_VERSION >= 0x360
+                else if (PyAsyncGen_CheckExact(gen)) {
+                    msg = "async generator raised StopIteration";
+                }
+#endif
+
+                RAISE_RUNTIME_ERROR_RAISED_STOP_ITERATION(tstate, msg);
+            }
+        }
+#if PYTHON_VERSION >= 0x360
+        else if (PyAsyncGen_CheckExact(gen) && EXCEPTION_MATCH_BOOL_SINGLE(tstate, error, PyExc_StopAsyncIteration)) {
+            RAISE_RUNTIME_ERROR_RAISED_STOP_ITERATION(tstate, "async generator raised StopAsyncIteration");
+        }
+#endif
+    }
+}
+#endif
+
 // This is for CPython iterator objects, the respective code is not exported as
 // API, so we need to redo it. This is an re-implementation that closely follows
 // what it does. It's unrelated to compiled generators, and used from coroutines
@@ -361,7 +401,6 @@ static PyObject *Nuitka_PyGen_Send(PyThreadState *tstate, PyGenObject *gen, PyOb
 #else
     if (gen->gi_frame_state >= FRAME_COMPLETED) {
 #endif
-        // Set exception if called from send()
         if (arg != NULL) {
             SET_CURRENT_EXCEPTION_STOP_ITERATION_EMPTY(tstate);
         }
@@ -378,14 +417,12 @@ static PyObject *Nuitka_PyGen_Send(PyThreadState *tstate, PyGenObject *gen, PyOb
             return NULL;
         }
     } else {
-        // Put arg on top of the value stack
         PyObject *tmp = arg ? arg : Py_None;
 
         Py_INCREF(tmp);
         *(f->f_stacktop++) = tmp;
     }
 #else
-    // CPython assertions, check them
     assert(_PyFrame_IsRunnable(f));
     assert(f->f_lasti >= 0 || ((unsigned char *)PyBytes_AS_STRING(f->f_code->co_code))[0] == 129);
 
@@ -448,8 +485,6 @@ static PyObject *Nuitka_PyGen_Send(PyThreadState *tstate, PyGenObject *gen, PyOb
 
     if (result == NULL || f->f_stacktop == NULL) {
 #if PYTHON_VERSION < 0x370
-        // Generator is finished, remove exception from frame before releasing
-        // it.
         PyObject *type = f->f_exc_type;
         PyObject *value = f->f_exc_value;
         PyObject *traceback = f->f_exc_traceback;
@@ -463,7 +498,6 @@ static PyObject *Nuitka_PyGen_Send(PyThreadState *tstate, PyGenObject *gen, PyOb
         Nuitka_PyGen_exc_state_clear(&gen->gi_exc_state);
 #endif
 
-        // Now release frame.
 #if PYTHON_VERSION >= 0x300
         gen->gi_frame->f_gen = NULL;
 #endif
@@ -482,18 +516,9 @@ static PyObject *Nuitka_PyGen_Send(PyThreadState *tstate, PyGenObject *gen, PyOb
             result = NULL;
         }
     } else {
-        if (PyErr_ExceptionMatches(PyExc_StopIteration)) {
-            const char *msg = "generator raised StopIteration";
-            if (PyCoro_CheckExact(gen)) {
-                msg = "coroutine raised StopIteration";
-            } else if (PyAsyncGen_CheckExact(gen)) {
-                msg = "async generator raised StopIteration";
-            }
-            _PyErr_FormatFromCause(PyExc_RuntimeError, "%s", msg);
-        } else if (PyAsyncGen_CheckExact(gen) && PyErr_ExceptionMatches(PyExc_StopAsyncIteration)) {
-            const char *msg = "async generator raised StopAsyncIteration";
-            _PyErr_FormatFromCause(PyExc_RuntimeError, "%s", msg);
-        }
+#if PYTHON_VERSION < 0x3c0
+        Nuitka_PyGen_HandleRaisedStopIteration(tstate, gen);
+#endif
 
         result = NULL;
     }
@@ -2161,7 +2186,6 @@ static PySendResult Nuitka_PyGen_gen_send_ex2(PyThreadState *tstate, PyGenObject
     assert(gen->gi_frame_state < FRAME_EXECUTING);
 #endif
 
-    // Put arg on the frame's stack
     result = arg ? arg : Py_None;
 #if PYTHON_VERSION >= 0x3e0
     _PyFrame_StackPush(frame, PyStackRef_FromPyObjectNew(result));
@@ -2225,22 +2249,12 @@ static PySendResult Nuitka_PyGen_gen_send_ex2(PyThreadState *tstate, PyGenObject
         }
     } else {
 #if PYTHON_VERSION < 0x3c0
-        if (PyErr_ExceptionMatches(PyExc_StopIteration)) {
-            const char *msg = "generator raised StopIteration";
-            if (PyCoro_CheckExact(gen)) {
-                msg = "coroutine raised StopIteration";
-            } else if (PyAsyncGen_CheckExact(gen)) {
-                msg = "async generator raised StopIteration";
-            }
-            _PyErr_FormatFromCause(PyExc_RuntimeError, "%s", msg);
-        } else if (PyAsyncGen_CheckExact(gen) && PyErr_ExceptionMatches(PyExc_StopAsyncIteration)) {
-            const char *msg = "async generator raised StopAsyncIteration";
-            _PyErr_FormatFromCause(PyExc_RuntimeError, "%s", msg);
-        }
+        Nuitka_PyGen_HandleRaisedStopIteration(tstate, gen);
 #else
-        assert(!PyErr_ExceptionMatches(PyExc_StopIteration));
-        assert(!PyAsyncGen_CheckExact(gen) || !PyErr_ExceptionMatches(PyExc_StopAsyncIteration));
-
+        assert(!HAS_ERROR_OCCURRED(tstate) ||
+               !EXCEPTION_MATCH_BOOL_SINGLE(tstate, GET_ERROR_OCCURRED(tstate), PyExc_StopIteration));
+        assert(!HAS_ERROR_OCCURRED(tstate) || !PyAsyncGen_CheckExact(gen) ||
+               !EXCEPTION_MATCH_BOOL_SINGLE(tstate, GET_ERROR_OCCURRED(tstate), PyExc_StopAsyncIteration));
 #endif
     }
 
@@ -2522,13 +2536,11 @@ static PyObject *Nuitka_PyGen_gen_send_ex(PyThreadState *tstate, PyGenObject *ge
             return NULL;
         }
     } else {
-        // Put arg on the frame's stack
         result = arg ? arg : Py_None;
         Py_INCREF(result);
         *(f->f_stacktop++) = result;
     }
 #else
-    // CPython assertions, check them
     assert(_PyFrame_IsRunnable(f));
     assert(f->f_lasti >= 0 || ((unsigned char *)PyBytes_AS_STRING(f->f_code->co_code))[0] == GEN_START);
 
@@ -2582,41 +2594,8 @@ static PyObject *Nuitka_PyGen_gen_send_ex(PyThreadState *tstate, PyGenObject *ge
         Py_CLEAR(result);
     }
 #if PYTHON_VERSION >= 0x350
-    else if (result == NULL && PyErr_ExceptionMatches(PyExc_StopIteration)) {
-#if PYTHON_VERSION < 0x370
-        const int check_stop_iter_error_flags = CO_FUTURE_GENERATOR_STOP | CO_COROUTINE |
-#if PYTHON_VERSION >= 0x360
-                                                CO_ASYNC_GENERATOR |
-#endif
-                                                CO_ITERABLE_COROUTINE;
-
-        if (unlikely(gen->gi_code != NULL && ((PyCodeObject *)gen->gi_code)->co_flags & check_stop_iter_error_flags))
-#endif
-        {
-            char const *msg = "generator raised StopIteration";
-
-            if (PyCoro_CheckExact(gen)) {
-                msg = "coroutine raised StopIteration";
-            }
-#if PYTHON_VERSION >= 0x360
-            else if (PyAsyncGen_CheckExact(gen)) {
-                msg = "async generator raised StopIteration";
-            }
-#endif
-
-#if PYTHON_VERSION >= 0x360
-            _PyErr_FormatFromCause(
-#else
-            PyErr_Format(
-#endif
-                PyExc_RuntimeError, "%s", msg);
-        }
-    }
-#endif
-#if PYTHON_VERSION >= 0x360
-    else if (result == NULL && PyAsyncGen_CheckExact(gen) && PyErr_ExceptionMatches(PyExc_StopAsyncIteration)) {
-        char const *msg = "async generator raised StopAsyncIteration";
-        _PyErr_FormatFromCause(PyExc_RuntimeError, "%s", msg);
+    else if (result == NULL) {
+        Nuitka_PyGen_HandleRaisedStopIteration(tstate, gen);
     }
 #endif
 
@@ -2658,20 +2637,7 @@ static PyObject *Nuitka_PyGen_gen_send_ex(PyThreadState *tstate, PyGenObject *ge
         // TODO: Add Py_CLEAR_IMMORTAL maybe
         Py_CLEAR(result);
     } else {
-        if (PyErr_ExceptionMatches(PyExc_StopIteration)) {
-            const char *msg = "generator raised StopIteration";
-            if (PyCoro_CheckExact(gen)) {
-                msg = "coroutine raised StopIteration";
-            } else if (PyAsyncGen_CheckExact(gen)) {
-                msg = "async generator raised StopIteration";
-            }
-            _PyErr_FormatFromCause(PyExc_RuntimeError, "%s", msg);
-        } else if (PyAsyncGen_CheckExact(gen) && PyErr_ExceptionMatches(PyExc_StopAsyncIteration)) {
-            const char *msg = "async generator raised StopAsyncIteration";
-
-            // TODO: Have our own variant of this.
-            _PyErr_FormatFromCause(PyExc_RuntimeError, "%s", msg);
-        }
+        Nuitka_PyGen_HandleRaisedStopIteration(tstate, gen);
     }
 
     Nuitka_PyGen_exc_state_clear(&gen->gi_exc_state);
@@ -2866,11 +2832,10 @@ static int Nuitka_PyGen_gen_close_iter(PyThreadState *tstate, PyObject *yf) {
         PyObject *meth = LOOKUP_ATTRIBUTE(tstate, yf, const_str_plain_close);
 
         if (meth == NULL) {
-            if (!PyErr_ExceptionMatches(PyExc_AttributeError)) {
+            if (unlikely(!CHECK_AND_CLEAR_ATTRIBUTE_ERROR_OCCURRED(tstate))) {
                 Nuitka_WriteUnraisable(yf);
+                CLEAR_ERROR_OCCURRED(tstate);
             }
-
-            CLEAR_ERROR_OCCURRED(tstate);
         } else {
             retval = CALL_FUNCTION_NO_ARGS(tstate, meth);
 

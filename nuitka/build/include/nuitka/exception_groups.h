@@ -297,7 +297,7 @@ static int _makeExceptionGroupSubset(PyThreadState *tstate, PyObject *orig, PyOb
     PyObject *notes = LOOKUP_ATTRIBUTE(tstate, orig, const_str_plain___notes__);
 
     if (notes == NULL) {
-        if (unlikely(!_CHECK_AND_CLEAR_EXCEPTION_OCCURRED(tstate, PyExc_AttributeError))) {
+        if (unlikely(!CHECK_AND_CLEAR_ATTRIBUTE_ERROR_OCCURRED(tstate))) {
             Py_DECREF(eg);
             return -1;
         }
