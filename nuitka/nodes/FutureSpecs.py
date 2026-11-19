@@ -23,7 +23,6 @@ from nuitka.utils.InstanceCounters import (
 _future_division_default = python_version >= 0x300
 _future_absolute_import_default = python_version >= 0x300
 _future_generator_stop_default = python_version >= 0x370
-_future_annotations_default = python_version >= 0x400
 
 
 class FutureSpec(object):
@@ -48,7 +47,7 @@ class FutureSpec(object):
         self.future_print = False
         self.barry_bdfl = False
         self.generator_stop = _future_generator_stop_default
-        self.future_annotations = _future_annotations_default
+        self.future_annotations = False
         self.use_annotations = use_annotations
 
     if isCountingInstances():
@@ -139,7 +138,7 @@ class FutureSpec(object):
         if 0x350 <= python_version < 0x370 and self.generator_stop:
             result.append("CO_FUTURE_GENERATOR_STOP")
 
-        if 0x370 <= python_version < 0x3E0 and self.future_annotations:
+        if python_version >= 0x370 and self.future_annotations:
             result.append("CO_FUTURE_ANNOTATIONS")
 
         return tuple(result)
@@ -202,7 +201,7 @@ _future_version_specific_flags = OrderedDict(
         ("CO_FUTURE_PRINT_FUNCTION", python_version < 0x300),
         ("CO_FUTURE_ABSOLUTE_IMPORT", python_version < 0x300),
         ("CO_FUTURE_GENERATOR_STOP", 0x350 <= python_version < 0x370),
-        ("CO_FUTURE_ANNOTATIONS", 0x370 <= python_version < 0x3E0),
+        ("CO_FUTURE_ANNOTATIONS", python_version >= 0x370),
         ("CO_FUTURE_BARRY_AS_BDFL", python_version >= 0x300),
     )
 )
