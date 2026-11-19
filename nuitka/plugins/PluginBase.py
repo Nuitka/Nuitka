@@ -1824,11 +1824,17 @@ except Exception as e:
         return '"' in expression or "'" in expression or "(" in expression
 
     def evaluateExpressionOrConstant(
-        self, full_name, expression, config_name, extra_context, single_value
+        self,
+        full_name,
+        expression,
+        config_name,
+        extra_context,
+        single_value,
+        config_module_name=None,
     ):
         if self.isValueForEvaluation(expression):
             return self.evaluateExpression(
-                config_module_name=full_name,
+                config_module_name=config_module_name,
                 module_name=full_name,
                 expression=expression,
                 config_name=config_name,
@@ -1874,9 +1880,11 @@ except Exception as e:
                 self.config.get(full_name, section="variables")
             ):
                 environment = variable_config.get("environment", {})
-                setup_codes = variable_config.get("setup_code", [])
+                setup_codes = variable_config.get("setup_code", ())
                 if type(setup_codes) is str:
                     setup_codes = setup_codes.splitlines()
+                else:
+                    setup_codes = list(setup_codes)
                 declarations = variable_config.get("declarations", {})
 
                 if len(declarations) < 1:
@@ -2009,6 +2017,12 @@ except Exception as e:
         extra_context,
         single_value,
     ):
+        module_name = ModuleName(module_name)
+        if config_module_name is None:
+            config_module_name = module_name
+        else:
+            config_module_name = ModuleName(config_module_name)
+
         context = self._makeConfigEvaluationContext(
             config_module_name=config_module_name,
             module_name=module_name,
