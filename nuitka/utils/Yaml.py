@@ -866,29 +866,50 @@ Error, 'include-config' of module '%s' cannot use 'when' or 'key-map' with non-d
     def items(self):
         return self.data.items()
 
-    def _mergeConfigSection(self, module_name, existing, new_value, section):
-        new_entries = new_value.pop(section, None)
+    @staticmethod
+    def _asSectionEntryList(entries):
+        if type(entries) in (dict, OrderedDict):
+            return [entries]
+        if type(entries) is list:
+            return list(entries)
+        return None
 
+    def _mergeConfigSection(self, module_name, existing, new_entries, section):
         if not new_entries:
             return
 
         existing_entries = existing.get(section, None)
 
         if existing_entries is None:
-            existing[section] = new_entries
+            existing[section] = (
+                list(new_entries) if type(new_entries) is list else new_entries
+            )
+            return
+
+        if section in ("options", "variables", "constants"):
+            existing_list = self._asSectionEntryList(existing_entries)
+            new_list = self._asSectionEntryList(new_entries)
+
+            if existing_list is not None and new_list is not None:
+                existing[section] = existing_list + new_list
+                return
         elif type(existing_entries) is list and type(new_entries) is list:
-            existing_entries.extend(new_entries)
+            existing[section] = existing_entries + new_entries
+            return
         elif type(existing_entries) in (dict, OrderedDict) and type(new_entries) in (
             dict,
             OrderedDict,
         ):
-            existing_entries.update(new_entries)
-        else:
-            return self.logger.sysexit(
-                """\
+            merged_entries = OrderedDict(existing_entries)
+            merged_entries.update(new_entries)
+            existing[section] = merged_entries
+            return
+
+        self.logger.sysexit(
+            """\
 Error, duplicate config for module name '%s' section '%s' with mismatching type encountered in '%s'."""
-                % (module_name, section, self.name)
-            )
+            % (module_name, section, self.name)
+        )
 
     def update(self, other):
         # Merging of configurations is done for all sections, so that an entry
@@ -896,17 +917,31 @@ Error, duplicate config for module name '%s' section '%s' with mismatching type 
         # by a user file, rather than requiring the sections to be disjoint.
         for key, value in other.items():
             if key in self.data:
-                for section in tuple(value):
+                existing = OrderedDict(self.data[key])
+                self.data[key] = existing
+
+                for section, new_entries in value.items():
+                    self.checked_sections.discard((key, section))
                     self._mergeConfigSection(
                         module_name=key,
-                        existing=self.data[key],
-                        new_value=value,
+                        existing=existing,
+                        new_entries=new_entries,
                         section=section,
                     )
 
                 general.info("Merged configuration for '%s'." % key)
             else:
-                self.data[key] = value
+                self.data[key] = OrderedDict(
+                    (
+                        section,
+                        (
+                            list(section_entries)
+                            if type(section_entries) is list
+                            else section_entries
+                        ),
+                    )
+                    for section, section_entries in value.items()
+                )
 
     @classmethod
     def getYamlPackageConfiguration(
