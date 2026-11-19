@@ -10,9 +10,9 @@ the common Numba decorators are left uncompiled, so that the JIT can find the
 bytecode of the functions it is given.
 
 The CuTe DSL rewrites the '__code__' attribute of functions decorated with
-'@cute.jit' or '@cute.kernel' during JIT preparation. Compiled functions do
-not allow that, so these functions are included as bytecode instead. The rest
-of their module stays compiled.
+'@cute.jit', '@cute.kernel', or their 'cute.experimental' variants during JIT
+preparation. Compiled functions do not allow that, so these functions are
+included as bytecode instead. The rest of their module stays compiled.
 """
 
 from nuitka.options.Options import isStandaloneMode
@@ -93,6 +93,8 @@ and 'yes' otherwise.""",
         for decorator_name in (
             "cutlass.cute.jit",
             "cutlass.cute.kernel",
+            "cutlass.cute.experimental.jit",
+            "cutlass.cute.experimental.kernel",
         ):
             yield decorator_name, "bytecode"
 
