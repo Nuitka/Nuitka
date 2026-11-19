@@ -4,7 +4,7 @@
 """Test Python 3.14 function '__annotate__' behavior."""
 
 import io
-from annotationlib import Format, call_annotate_function
+from annotationlib import Format, call_annotate_function, get_annotations
 from functools import singledispatch
 
 
@@ -152,6 +152,54 @@ class TestMethodAnnotationsForward:
 print(
     "Method annotations with forward reference:",
     displayDict(TestMethodAnnotationsForward.method.__annotations__),
+)
+
+
+class _Box:
+    def __class_getitem__(cls, item):
+        return (cls, item)
+
+
+class _AltBox:
+    def __class_getitem__(cls, item):
+        return (cls, item)
+
+
+_flag = True
+_false_flag = False
+_key_type = int
+_val_type = str
+
+
+def _precedenceAndDictAnnotations(
+    sub_cond: (_Box if _flag else _AltBox)[int],
+    sub_bitor: (_key_type | _val_type).__args__,
+    int_attr_call: (1).bit_length(),
+    neg_int_attr_call: (-1).bit_length(),
+    neg_pow: (-2) ** _key_type,
+    bool_or_and: (_false_flag or _flag) and _key_type,
+    cond_nested: (int if _flag else str) if _false_flag else bytes,
+    cmp_nested: (_key_type == _val_type) == _flag,
+    dict_non_const_keys: {int: str, io.BytesIO: _val_type},
+    slice_sub: _Box[1:_key_type, 2:3],
+) -> {str: (_Box if _flag else _AltBox)[int]}:
+    return (
+        sub_cond,
+        sub_bitor,
+        int_attr_call,
+        neg_int_attr_call,
+        neg_pow,
+        bool_or_and,
+        cond_nested,
+        cmp_nested,
+        dict_non_const_keys,
+        slice_sub,
+    )
+
+
+print(
+    "Format.STRING precedence and dict annotations:",
+    displayDict(get_annotations(_precedenceAndDictAnnotations, format=Format.STRING)),
 )
 
 #     Python tests originally created or extracted from other peoples work. The

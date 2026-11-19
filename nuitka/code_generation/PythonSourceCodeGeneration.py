@@ -31,6 +31,26 @@ class PythonSourceGenerationError(Exception):
     """Raised when a Nuitka node cannot be converted to Python source."""
 
 
+# Operator precedence levels from lowest to highest, matching the Python
+# grammar so sub-expressions are parenthesized precisely when needed.
+_PREC_LAMBDA = 1
+_PREC_CONDITIONAL = 2
+_PREC_OR = 3
+_PREC_AND = 4
+_PREC_NOT = 5
+_PREC_CMP = 6
+_PREC_BIT_OR = 7
+_PREC_BIT_XOR = 8
+_PREC_BIT_AND = 9
+_PREC_SHIFT = 10
+_PREC_ADD = 11
+_PREC_MULT = 12
+_PREC_UNARY = 13
+_PREC_POW = 14
+_PREC_POSTFIX = 15
+_PREC_ATOM = 16
+
+
 # ---------------------------------------------------------------------------
 # Per-kind generators
 
@@ -63,7 +83,10 @@ def _formatTypeSource(value, expression):
 
 
 def _generateConstantTypeRefSource(expression):
-    return _formatTypeSource(expression.getCompileTimeConstant(), expression)
+    return (
+        _formatTypeSource(expression.getCompileTimeConstant(), expression),
+        _PREC_POSTFIX,
+    )
 
 
 def _formatConstantFloat(value, expression):
@@ -115,6 +138,22 @@ def _formatFunctionValue(value, expression):
     # The expression argument is for the uniform dispatch only.
     # pylint: disable=unused-argument
     return value.__name__
+
+
+def _formatConstantSlice(value, expression):
+    parts = [
+        _formatConstantElement(value.start, expression),
+        _formatConstantElement(value.stop, expression),
+        _formatConstantElement(value.step, expression),
+    ]
+
+    # Omit trailing None components while keeping at least one argument
+    # (e.g. `slice(None, 5)` rather than `slice(None, 5, None)`, and
+    # `slice(None)` for `slice(None, None, None)`).
+    while len(parts) > 1 and parts[-1] == "None":
+        parts.pop()
+
+    return "slice(%s)" % ", ".join(parts)
 
 
 def _formatConstantTuple(value, expression):
@@ -177,6 +216,7 @@ _constant_formatters = {
     complex: _formatConstantComplex,
     NoneType: _formatConstantRepr,
     EllipsisType: _formatEllipsisValue,
+    slice: _formatConstantSlice,
     GenericAlias: _formatConstantStr,
     UnionType: _formatConstantStr,
     types.BuiltinFunctionType: _formatFunctionValue,
@@ -209,28 +249,43 @@ def _formatConstantElement(value, expression):
 
 
 def _generateListConstantSource(expression):
-    return _formatConstantList(expression.getCompileTimeConstant(), expression)
+    return (
+        _formatConstantList(expression.getCompileTimeConstant(), expression),
+        _PREC_ATOM,
+    )
 
 
 def _generateSetConstantSource(expression):
-    return _formatConstantSet(expression.getCompileTimeConstant(), expression)
+    return (
+        _formatConstantSet(expression.getCompileTimeConstant(), expression),
+        _PREC_POSTFIX,
+    )
 
 
 def _generateFrozensetConstantSource(expression):
-    return _formatConstantFrozenset(expression.getCompileTimeConstant(), expression)
+    return (
+        _formatConstantFrozenset(expression.getCompileTimeConstant(), expression),
+        _PREC_POSTFIX,
+    )
 
 
 def _generateDictConstantSource(expression):
-    return _formatConstantDict(expression.getCompileTimeConstant(), expression)
+    return (
+        _formatConstantDict(expression.getCompileTimeConstant(), expression),
+        _PREC_ATOM,
+    )
 
 
 def _generateFrozendictConstantSource(expression):
     constant_value = expression.getCompileTimeConstant()
 
     if not constant_value:
-        return "frozendict()"
+        return "frozendict()", _PREC_POSTFIX
 
-    return "frozendict(%s)" % _formatConstantDict(constant_value, expression)
+    return (
+        "frozendict(%s)" % _formatConstantDict(constant_value, expression),
+        _PREC_POSTFIX,
+    )
 
 
 def _findAliasForModule(module, target):
@@ -303,53 +358,61 @@ def _generateGenericAliasSource(expression):
 
         return match.group(0)
 
-    return re_sub(r"\b([^\W\d]\w*)\.", _replaceAlias, s, flags=re.UNICODE)
+    source = re_sub(r"\b([^\W\d]\w*)\.", _replaceAlias, s, flags=re.UNICODE)
+    precedence = (
+        _PREC_BIT_OR
+        if expression.kind == "EXPRESSION_CONSTANT_UNION_TYPE"
+        else _PREC_POSTFIX
+    )
+    return source, precedence
 
 
 def _generateTupleConstantSource(expression):
-    return _formatConstantTuple(expression.getCompileTimeConstant(), expression)
+    return (
+        _formatConstantTuple(expression.getCompileTimeConstant(), expression),
+        _PREC_ATOM,
+    )
 
 
 def _generateConstantStrRefSource(expression):
-    return repr(expression.getCompileTimeConstant())
+    return repr(expression.getCompileTimeConstant()), _PREC_ATOM
 
 
 def _generateConstantBytesRefSource(expression):
-    return repr(expression.getCompileTimeConstant())
+    return repr(expression.getCompileTimeConstant()), _PREC_ATOM
+
+
+def _getNumericLiteralPrecedence(source):
+    if source.startswith("-"):
+        return _PREC_UNARY
+
+    return _PREC_ATOM
 
 
 def _generateConstantIntRefSource(expression):
-    return repr(expression.getCompileTimeConstant())
+    source = repr(expression.getCompileTimeConstant())
+    return source, _getNumericLiteralPrecedence(source)
 
 
 def _generateConstantFloatRefSource(expression):
-    return _formatConstantFloat(expression.getCompileTimeConstant(), expression)
+    source = _formatConstantFloat(expression.getCompileTimeConstant(), expression)
+    return source, _getNumericLiteralPrecedence(source)
 
 
 def _generateConstantComplexRefSource(expression):
-    return _formatConstantComplex(expression.getCompileTimeConstant(), expression)
+    source = _formatConstantComplex(expression.getCompileTimeConstant(), expression)
+    return source, _getNumericLiteralPrecedence(source)
 
 
 def _generateConstantBytearrayRefSource(expression):
-    return repr(expression.getCompileTimeConstant())
+    return repr(expression.getCompileTimeConstant()), _PREC_POSTFIX
 
 
 def _generateConstantSliceRefSource(expression):
-    value = expression.getCompileTimeConstant()
-
-    parts = [
-        _formatConstantElement(value.start, expression),
-        _formatConstantElement(value.stop, expression),
-        _formatConstantElement(value.step, expression),
-    ]
-
-    # Omit trailing None components to match the canonical slice literal form
-    # (e.g. `slice(None, 5)` rather than `slice(None, 5, None)`), since repr()
-    # itself is not valid as a bare expression.
-    while parts and parts[-1] == "None":
-        parts.pop()
-
-    return "slice(%s)" % ", ".join(parts)
+    return (
+        _formatConstantSlice(expression.getCompileTimeConstant(), expression),
+        _PREC_POSTFIX,
+    )
 
 
 def _generateConstantXrangeRefSource(expression):
@@ -364,41 +427,151 @@ def _generateConstantXrangeRefSource(expression):
     if step != "1":
         parts.append(step)
 
-    return "range(%s)" % ", ".join(parts)
+    return "range(%s)" % ", ".join(parts), _PREC_POSTFIX
 
 
 def _generateConstantBoolRefSource(expression):
     constant = expression.getCompileTimeConstant()
     assert constant is True or constant is False
-    return "True" if constant is True else "False"
+    return ("True" if constant is True else "False"), _PREC_ATOM
 
 
 def _generateConstantNoneRefSource(_expression):
-    return "None"
+    return "None", _PREC_ATOM
 
 
 def _generateAttributeLookupSource(expression):
-    left = generateExpressionSource(expression.subnode_expression)
+    left = _generateSubExpressionSource(expression.subnode_expression, _PREC_POSTFIX)
+
+    # Decimal integer literals followed immediately by "." are lexed as floats
+    # in Python (e.g. "1.__class__" is a SyntaxError), so parenthesize them.
+    if left.isdigit():
+        left = "(%s)" % left
+
     attr = expression.getAttributeName()
-    return "%s.%s" % (left, attr)
+    return "%s.%s" % (left, attr), _PREC_POSTFIX
+
+
+def _formatConstantSliceSubscript(value, expression):
+    start_source = (
+        "" if value.start is None else _formatConstantElement(value.start, expression)
+    )
+    stop_source = (
+        "" if value.stop is None else _formatConstantElement(value.stop, expression)
+    )
+
+    if value.step is None:
+        return "%s:%s" % (start_source, stop_source)
+
+    step_source = _formatConstantElement(value.step, expression)
+    return "%s:%s:%s" % (start_source, stop_source, step_source)
+
+
+def _formatConstantSubscriptElement(value, expression):
+    if type(value) is slice:
+        return _formatConstantSliceSubscript(value, expression)
+
+    return _formatConstantElement(value, expression)
+
+
+def _generateSubscriptItemSource(expression):
+    kind = expression.kind
+
+    if kind == "EXPRESSION_BUILTIN_SLICE1":
+        stop = expression.subnode_stop
+        stop_source = (
+            "" if stop.isExpressionConstantNoneRef() else generateExpressionSource(stop)
+        )
+        return ":%s" % stop_source
+    elif kind == "EXPRESSION_BUILTIN_SLICE2":
+        start = expression.subnode_start
+        stop = expression.subnode_stop
+        start_source = (
+            ""
+            if start.isExpressionConstantNoneRef()
+            else generateExpressionSource(start)
+        )
+        stop_source = (
+            "" if stop.isExpressionConstantNoneRef() else generateExpressionSource(stop)
+        )
+        return "%s:%s" % (start_source, stop_source)
+    elif kind == "EXPRESSION_BUILTIN_SLICE3":
+        start = expression.subnode_start
+        stop = expression.subnode_stop
+        step = expression.subnode_step
+        start_source = (
+            ""
+            if start.isExpressionConstantNoneRef()
+            else generateExpressionSource(start)
+        )
+        stop_source = (
+            "" if stop.isExpressionConstantNoneRef() else generateExpressionSource(stop)
+        )
+        step_source = (
+            "" if step.isExpressionConstantNoneRef() else generateExpressionSource(step)
+        )
+        return "%s:%s:%s" % (start_source, stop_source, step_source)
+    elif kind == "EXPRESSION_CONSTANT_SLICE_REF":
+        return _formatConstantSliceSubscript(
+            expression.getCompileTimeConstant(), expression
+        )
+    else:
+        return generateExpressionSource(expression)
+
+
+def _formatSubscriptTupleItems(item_sources):
+    if not item_sources:
+        return "()"
+    elif len(item_sources) == 1:
+        return "%s," % item_sources[0]
+    else:
+        return ", ".join(item_sources)
+
+
+def _generateSubscriptArgumentSource(subscript):
+    if subscript.isExpressionMakeTuple():
+        return _formatSubscriptTupleItems(
+            [
+                _generateSubscriptItemSource(element)
+                for element in subscript.subnode_elements
+            ]
+        )
+    elif subscript.kind in (
+        "EXPRESSION_CONSTANT_TUPLE_REF",
+        "EXPRESSION_CONSTANT_TUPLE_MUTABLE_REF",
+        "EXPRESSION_CONSTANT_TUPLE_EMPTY_REF",
+    ):
+        return _formatSubscriptTupleItems(
+            [
+                _formatConstantSubscriptElement(element, subscript)
+                for element in subscript.getCompileTimeConstant()
+            ]
+        )
+    else:
+        return _generateSubscriptItemSource(subscript)
 
 
 def _generateSubscriptLookupSource(expression):
-    looked_up = generateExpressionSource(expression.subnode_expression)
-    subscript = generateExpressionSource(expression.subnode_subscript)
-    return "%s[%s]" % (looked_up, subscript)
+    looked_up = _generateSubExpressionSource(
+        expression.subnode_expression, _PREC_POSTFIX
+    )
+    subscript = _generateSubscriptArgumentSource(expression.subnode_subscript)
+    return "%s[%s]" % (looked_up, subscript), _PREC_POSTFIX
 
 
 def _generateImportlibReloadRefSource(_expression):
-    return "importlib.reload"
+    return "importlib.reload", _PREC_POSTFIX
 
 
 def _generateImportlibReloadCallSource(expression):
-    return "importlib.reload(%s)" % generateExpressionSource(expression.subnode_module)
+    return (
+        "importlib.reload(%s)" % generateExpressionSource(expression.subnode_module),
+        _PREC_POSTFIX,
+    )
 
 
 def _generateSysModulesRefSource(_expression):
-    return "sys.modules"
+    return "sys.modules", _PREC_POSTFIX
 
 
 def _generateSysModulesCallSource(expression):
@@ -411,94 +584,83 @@ def _generateSysModulesCallSource(expression):
 
     method_name = "get" if "GET" in expression.kind else "pop"
 
-    return "sys.modules.%s(%s)" % (method_name, ", ".join(arguments))
+    return "sys.modules.%s(%s)" % (method_name, ", ".join(arguments)), _PREC_POSTFIX
 
 
-_binary_operator_symbols = {
-    "Add": "+",
-    "Sub": "-",
-    "Mult": "*",
-    "MatMult": "@",
-    "TrueDiv": "/",
-    "FloorDiv": "//",
-    "Mod": "%",
-    "Pow": "**",
-    "LShift": "<<",
-    "RShift": ">>",
-    "BitAnd": "&",
-    "BitOr": "|",
-    "BitXor": "^",
+_binary_operator_info = {
+    "BitOr": ("|", _PREC_BIT_OR),
+    "BitXor": ("^", _PREC_BIT_XOR),
+    "BitAnd": ("&", _PREC_BIT_AND),
+    "LShift": ("<<", _PREC_SHIFT),
+    "RShift": (">>", _PREC_SHIFT),
+    "Add": ("+", _PREC_ADD),
+    "Sub": ("-", _PREC_ADD),
+    "Mult": ("*", _PREC_MULT),
+    "MatMult": ("@", _PREC_MULT),
+    "TrueDiv": ("/", _PREC_MULT),
+    "FloorDiv": ("//", _PREC_MULT),
+    "Mod": ("%", _PREC_MULT),
+    "Pow": ("**", _PREC_POW),
 }
 
 
 def _generateBinaryOpSource(expression):
     operator = expression.getOperator()
 
-    symbol = _binary_operator_symbols.get(operator)
+    operator_info = _binary_operator_info.get(operator)
 
-    if symbol is None:
+    if operator_info is None:
         raise PythonSourceGenerationError(
             "Unsupported binary operator for source generation: %s" % operator
         )
 
-    left = _maybeParens(expression.subnode_left)
-    right = _maybeParens(expression.subnode_right)
-    return "%s %s %s" % (left, symbol, right)
+    symbol, precedence = operator_info
+
+    if operator == "Pow":
+        # Exponentiation is right-associative and binds tighter than unary
+        # operators on its left operand (e.g. "(-2) ** 2" vs "-2 ** 2").
+        left = _generateSubExpressionSource(expression.subnode_left, _PREC_POSTFIX)
+        right = _generateSubExpressionSource(expression.subnode_right, _PREC_POW)
+    else:
+        left = _generateSubExpressionSource(expression.subnode_left, precedence)
+        right = _generateSubExpressionSource(expression.subnode_right, precedence + 1)
+
+    return "%s %s %s" % (left, symbol, right), precedence
 
 
-# Node kinds that bind tighter than binary operators and need no parens.
-_atomic_kinds = frozenset(
-    (
-        "EXPRESSION_CONSTANT_TYPE_REF",
-        "EXPRESSION_VARIABLE_REF",
-        "EXPRESSION_CONSTANT_STR_REF",
-        "EXPRESSION_CONSTANT_STR_EMPTY_REF",
-        "EXPRESSION_CONSTANT_UNICODE_REF",
-        "EXPRESSION_CONSTANT_UNICODE_EMPTY_REF",
-        "EXPRESSION_CONSTANT_BYTES_REF",
-        "EXPRESSION_CONSTANT_BYTES_EMPTY_REF",
-        "EXPRESSION_CONSTANT_BYTEARRAY_REF",
-        "EXPRESSION_CONSTANT_INT_REF",
-        "EXPRESSION_CONSTANT_LONG_REF",
-        "EXPRESSION_CONSTANT_FLOAT_REF",
-        "EXPRESSION_CONSTANT_COMPLEX_REF",
-        "EXPRESSION_CONSTANT_NONE_REF",
-        "EXPRESSION_CONSTANT_TRUE_REF",
-        "EXPRESSION_CONSTANT_FALSE_REF",
-        "EXPRESSION_CONSTANT_ELLIPSIS_REF",
-        "EXPRESSION_CONSTANT_SLICE_REF",
-        "EXPRESSION_CONSTANT_XRANGE_REF",
-        "EXPRESSION_ATTRIBUTE_LOOKUP",
-        "EXPRESSION_SUBSCRIPT_LOOKUP",
-        "EXPRESSION_FUNCTION_CALL",
-        "EXPRESSION_MAKE_TUPLE",
-        "EXPRESSION_MAKE_LIST",
-        "EXPRESSION_MAKE_SET",
-        "EXPRESSION_MAKE_SET_LITERAL",
-        "EXPRESSION_TEMPLATE_STRING",
-    )
-)
+def _generatePairKeySource(pair):
+    if pair.kind in (
+        "EXPRESSION_KEY_VALUE_PAIR_CONSTANT_KEY",
+        "EXPRESSION_KEY_VALUE_PAIR_CONSTANT_KEY_VALUE",
+    ):
+        return _formatConstantElement(pair.getKeyCompileTimeConstant(), pair)
+
+    return generateExpressionSource(pair.subnode_key)
 
 
-def _maybeParens(expression):
-    source = generateExpressionSource(expression)
-    if expression.kind in _atomic_kinds:
-        return source
-    return "(%s)" % source
+def _generatePairValueSource(pair):
+    if pair.kind == "EXPRESSION_KEY_VALUE_PAIR_CONSTANT_KEY_VALUE":
+        return _formatConstantElement(pair.getValueCompileTimeConstant(), pair)
+
+    return generateExpressionSource(pair.subnode_value)
 
 
 def _generateFunctionCallSource(expression):
-    called_source = generateExpressionSource(expression.subnode_function)
+    called_source = _generateSubExpressionSource(
+        expression.subnode_function, _PREC_POSTFIX
+    )
 
     arg_sources = []
     for arg in expression.subnode_values:
         arg_sources.append(generateExpressionSource(arg))
 
-    return "%s(%s)" % (called_source, ", ".join(arg_sources))
+    return "%s(%s)" % (called_source, ", ".join(arg_sources)), _PREC_POSTFIX
 
 
 def _generateCallSource(expression):
-    called_source = generateExpressionSource(expression.subnode_called)
+    called_source = _generateSubExpressionSource(
+        expression.subnode_called, _PREC_POSTFIX
+    )
 
     argument_sources = []
 
@@ -516,7 +678,7 @@ def _generateCallSource(expression):
         if kwargs.isExpressionMakeDict():
             for pair in kwargs.subnode_pairs:
                 key = pair.getKeyCompileTimeConstant()
-                value = generateExpressionSource(pair.getValueNode())
+                value = _generatePairValueSource(pair)
                 argument_sources.append("%s=%s" % (key, value))
         else:
             for key, value in kwargs.getCompileTimeConstant().items():
@@ -524,7 +686,7 @@ def _generateCallSource(expression):
                     "%s=%s" % (key, _formatConstantElement(value, expression))
                 )
 
-    return "%s(%s)" % (called_source, ", ".join(argument_sources))
+    return "%s(%s)" % (called_source, ", ".join(argument_sources)), _PREC_POSTFIX
 
 
 def _generateListSource(expression):
@@ -532,7 +694,7 @@ def _generateListSource(expression):
     for element in expression.subnode_elements:
         elements.append(generateExpressionSource(element))
 
-    return "[%s]" % ", ".join(elements)
+    return "[%s]" % ", ".join(elements), _PREC_ATOM
 
 
 def _generateTupleSource(expression):
@@ -541,20 +703,23 @@ def _generateTupleSource(expression):
         elements.append(generateExpressionSource(element))
 
     if len(elements) == 0:
-        return "()"
+        return "()", _PREC_ATOM
     elif len(elements) == 1:
-        return "(%s,)" % elements[0]
+        return "(%s,)" % elements[0], _PREC_ATOM
     else:
-        return "(%s)" % ", ".join(elements)
+        return "(%s)" % ", ".join(elements), _PREC_ATOM
 
 
 def _generateMakeSetSource(expression):
     elements = expression.subnode_elements
 
     if not elements:
-        return "set()"
+        return "set()", _PREC_POSTFIX
 
-    return "{%s}" % ", ".join(generateExpressionSource(element) for element in elements)
+    return (
+        "{%s}" % ", ".join(generateExpressionSource(element) for element in elements),
+        _PREC_ATOM,
+    )
 
 
 _template_string_conversion_characters = {
@@ -591,7 +756,12 @@ def _escapeTemplateStringText(value):
 
 
 def _generateTemplateInterpolationSource(interpolation):
-    value_source = generateExpressionSource(interpolation.subnode_value)
+    value_source = _generateSubExpressionSource(
+        interpolation.subnode_value, _PREC_CONDITIONAL
+    )
+
+    if value_source.startswith("{"):
+        value_source = " %s " % value_source
 
     conversion = interpolation.conversion
 
@@ -629,9 +799,9 @@ def _generateTemplateStringSource(expression):
 
     if not interpolations:
         if not str_values:
-            return 't""'
+            return 't""', _PREC_ATOM
 
-        return 't"%s"' % _escapeTemplateStringText(str_values[0])
+        return 't"%s"' % _escapeTemplateStringText(str_values[0]), _PREC_ATOM
 
     if len(str_values) != len(interpolations) + 1:
         raise PythonSourceGenerationError(
@@ -647,31 +817,38 @@ def _generateTemplateStringSource(expression):
     parts.append(_escapeTemplateStringText(str_values[-1]))
     parts.append('"')
 
-    return "".join(parts)
+    return "".join(parts), _PREC_ATOM
 
 
-def _generateDictSource(expression):
+def _generateDictLiteralSource(expression):
     items = []
     for pair in expression.subnode_pairs:
-        key_source = repr(pair.getKeyCompileTimeConstant())
-        value_source = generateExpressionSource(pair.getValueNode())
+        key_source = _generatePairKeySource(pair)
+        value_source = _generatePairValueSource(pair)
         items.append("%s: %s" % (key_source, value_source))
 
     return "{%s}" % ", ".join(items)
+
+
+def _generateDictSource(expression):
+    return _generateDictLiteralSource(expression), _PREC_ATOM
 
 
 def _generateBuiltinMappingSource(expression, name):
     pos_arg = expression.subnode_pos_arg
 
     if pos_arg is None:
-        return "%s(%s)" % (name, _generateDictSource(expression))
+        return "%s(%s)" % (name, _generateDictLiteralSource(expression)), _PREC_POSTFIX
 
     pos_arg_source = generateExpressionSource(pos_arg)
 
     if not expression.subnode_pairs:
-        return "%s(%s)" % (name, pos_arg_source)
+        return "%s(%s)" % (name, pos_arg_source), _PREC_POSTFIX
 
-    return "%s(%s, **%s)" % (name, pos_arg_source, _generateDictSource(expression))
+    return (
+        "%s(%s, **%s)" % (name, pos_arg_source, _generateDictLiteralSource(expression)),
+        _PREC_POSTFIX,
+    )
 
 
 def _generateBuiltinDictSource(expression):
@@ -683,39 +860,52 @@ def _generateBuiltinFrozendictSource(expression):
 
 
 def _generateBuiltinFrozensetSource(expression):
-    return "frozenset(%s)" % generateExpressionSource(expression.subnode_value)
+    return (
+        "frozenset(%s)" % generateExpressionSource(expression.subnode_value),
+        _PREC_POSTFIX,
+    )
 
 
 def _generateBuiltinSentinelSource(expression):
     if expression.subnode_repr_value is None:
-        return "sentinel(%s)" % generateExpressionSource(expression.subnode_name)
+        return (
+            "sentinel(%s)" % generateExpressionSource(expression.subnode_name),
+            _PREC_POSTFIX,
+        )
 
-    return "sentinel(%s, repr=%s)" % (
-        generateExpressionSource(expression.subnode_name),
-        generateExpressionSource(expression.subnode_repr_value),
+    return (
+        "sentinel(%s, repr=%s)"
+        % (
+            generateExpressionSource(expression.subnode_name),
+            generateExpressionSource(expression.subnode_repr_value),
+        ),
+        _PREC_POSTFIX,
     )
 
 
 def _generateBuiltinType1Source(expression):
-    return "type(%s)" % generateExpressionSource(expression.subnode_value)
+    return (
+        "type(%s)" % generateExpressionSource(expression.subnode_value),
+        _PREC_POSTFIX,
+    )
 
 
 def _generateSliceSource(expression):
-    lower = expression.subnode_lower
-    upper = expression.subnode_upper
-    step = expression.subnode_step
+    if expression.kind == "EXPRESSION_BUILTIN_SLICE1":
+        arguments = [generateExpressionSource(expression.subnode_stop)]
+    elif expression.kind == "EXPRESSION_BUILTIN_SLICE2":
+        arguments = [
+            generateExpressionSource(expression.subnode_start),
+            generateExpressionSource(expression.subnode_stop),
+        ]
+    else:
+        arguments = [
+            generateExpressionSource(expression.subnode_start),
+            generateExpressionSource(expression.subnode_stop),
+            generateExpressionSource(expression.subnode_step),
+        ]
 
-    if lower is None and upper is None and step is None:
-        return ":"
-
-    parts = []
-    for part in (lower, upper, step):
-        if part is not None:
-            parts.append(generateExpressionSource(part))
-        else:
-            parts.append("")
-
-    return "%s:%s:%s" % tuple(parts)
+    return "slice(%s)" % ", ".join(arguments), _PREC_POSTFIX
 
 
 def _generateComparisonSource(expression):
@@ -739,38 +929,70 @@ def _generateComparisonSource(expression):
     if op is None:
         raise PythonSourceGenerationError("Unsupported comparison: %s" % comparator)
 
-    left = generateExpressionSource(expression.subnode_left)
-    right = generateExpressionSource(expression.subnode_right)
-    return "%s %s %s" % (left, op, right)
+    left = _generateSubExpressionSource(expression.subnode_left, _PREC_CMP + 1)
+    right = _generateSubExpressionSource(expression.subnode_right, _PREC_CMP + 1)
+    return "%s %s %s" % (left, op, right), _PREC_CMP
 
 
 def _generateConditionalAndOrSource(expression):
-    left = generateExpressionSource(expression.subnode_left)
-    right = generateExpressionSource(expression.subnode_right)
-    op = "and" if expression.kind == "EXPRESSION_CONDITIONAL_AND" else "or"
-    return "%s %s %s" % (left, op, right)
+    if expression.kind == "EXPRESSION_CONDITIONAL_AND":
+        op = "and"
+        precedence = _PREC_AND
+    else:
+        op = "or"
+        precedence = _PREC_OR
+
+    left = _generateSubExpressionSource(expression.subnode_left, precedence)
+    right = _generateSubExpressionSource(expression.subnode_right, precedence)
+    return "%s %s %s" % (left, op, right), precedence
 
 
 def _generateConditionalSourceExpression(expression):
-    cond = generateExpressionSource(expression.subnode_condition)
-    yes = generateExpressionSource(expression.subnode_expression_yes)
-    no = generateExpressionSource(expression.subnode_expression_no)
-    return "%s if %s else %s" % (yes, cond, no)
+    cond = _generateSubExpressionSource(
+        expression.subnode_condition, _PREC_CONDITIONAL + 1
+    )
+    yes = _generateSubExpressionSource(
+        expression.subnode_expression_yes, _PREC_CONDITIONAL + 1
+    )
+    no = _generateSubExpressionSource(expression.subnode_expression_no, _PREC_LAMBDA)
+    return "%s if %s else %s" % (yes, cond, no), _PREC_CONDITIONAL
 
 
 def _generateUnaryOperationSource(expression):
     if expression.isExpressionOperationNot():
-        return "not %s" % _maybeParens(expression.subnode_operand)
+        return (
+            "not %s"
+            % _generateSubExpressionSource(expression.subnode_operand, _PREC_NOT),
+            _PREC_NOT,
+        )
     elif expression.isExpressionOperationUnarySub():
-        return "-%s" % _maybeParens(expression.subnode_operand)
+        return (
+            "-%s"
+            % _generateSubExpressionSource(expression.subnode_operand, _PREC_UNARY),
+            _PREC_UNARY,
+        )
     elif expression.isExpressionOperationUnaryAdd():
-        return "+%s" % _maybeParens(expression.subnode_operand)
+        return (
+            "+%s"
+            % _generateSubExpressionSource(expression.subnode_operand, _PREC_UNARY),
+            _PREC_UNARY,
+        )
     elif expression.isExpressionOperationUnaryInvert():
-        return "~%s" % _maybeParens(expression.subnode_operand)
+        return (
+            "~%s"
+            % _generateSubExpressionSource(expression.subnode_operand, _PREC_UNARY),
+            _PREC_UNARY,
+        )
     elif expression.isExpressionOperationUnaryAbs():
-        return "abs(%s)" % generateExpressionSource(expression.subnode_operand)
+        return (
+            "abs(%s)" % generateExpressionSource(expression.subnode_operand),
+            _PREC_POSTFIX,
+        )
     elif expression.isExpressionOperationUnaryRepr():
-        return "repr(%s)" % generateExpressionSource(expression.subnode_operand)
+        return (
+            "repr(%s)" % generateExpressionSource(expression.subnode_operand),
+            _PREC_POSTFIX,
+        )
     else:
         raise PythonSourceGenerationError(
             "Unsupported unary operation for source generation: %s" % expression.kind
@@ -781,13 +1003,13 @@ def _generateYieldSource(expression):
     value = expression.subnode_value
 
     if value is None:
-        return "(yield)"
-    return "(yield %s)" % generateExpressionSource(value)
+        return "(yield)", _PREC_ATOM
+    return "(yield %s)" % generateExpressionSource(value), _PREC_ATOM
 
 
 def _generateYieldFromSource(expression):
     value = expression.subnode_value
-    return "(yield from %s)" % generateExpressionSource(value)
+    return "(yield from %s)" % generateExpressionSource(value), _PREC_ATOM
 
 
 def _generateLambdaSource(expression):
@@ -810,7 +1032,10 @@ def _generateLambdaSource(expression):
         stmt_src = generateStatementSequenceSource(body, indent="")
         assert stmt_src.startswith("return "), stmt_src
         expr_src = stmt_src[len("return ") :]
-        return "lambda %s: %s" % (", ".join(param_names), expr_src)
+        if param_names:
+            return "lambda %s: %s" % (", ".join(param_names), expr_src), _PREC_LAMBDA
+
+        return "lambda: %s" % expr_src, _PREC_LAMBDA
 
     raise PythonSourceGenerationError(
         "Unsupported lambda body statement for source generation: %s" % stmt.kind
@@ -842,8 +1067,8 @@ def generateStatementSequenceSource(statement_seq, indent=""):
 def _generateSysModulesAssignmentSource(statement, indent):
     return "%s%s[%s] = %s" % (
         indent,
-        generateExpressionSource(statement.subnode_subscribed),
-        generateExpressionSource(statement.subnode_subscript),
+        _generateSubExpressionSource(statement.subnode_subscribed, _PREC_POSTFIX),
+        _generateSubscriptArgumentSource(statement.subnode_subscript),
         generateExpressionSource(statement.subnode_source),
     )
 
@@ -851,8 +1076,8 @@ def _generateSysModulesAssignmentSource(statement, indent):
 def _generateSysModulesDelSource(statement, indent):
     return "%sdel %s[%s]" % (
         indent,
-        generateExpressionSource(statement.subnode_subscribed),
-        generateExpressionSource(statement.subnode_subscript),
+        _generateSubExpressionSource(statement.subnode_subscribed, _PREC_POSTFIX),
+        _generateSubscriptArgumentSource(statement.subnode_subscript),
     )
 
 
@@ -1073,14 +1298,14 @@ def getFunctionCodeObjectFromSource(function_body, compiled):
 
 def _generateBuiltinNext1Source(expression):
     inner = generateExpressionSource(expression.subnode_value)
-    return "next(iter(%s))" % inner
+    return "next(iter(%s))" % inner, _PREC_POSTFIX
 
 
 def _generateVariableRefSource(expression):
     variable = expression.variable
 
     if variable.isParameterVariable() and not variable.getName().isidentifier():
-        return _annotate_argument_name
+        return _annotate_argument_name, _PREC_ATOM
 
     if variable.getName() == _annotate_argument_name:
         raise PythonSourceGenerationError(
@@ -1088,28 +1313,32 @@ def _generateVariableRefSource(expression):
             % _annotate_argument_name
         )
 
-    return getAnnotateSourceVariableName(variable)
+    return getAnnotateSourceVariableName(variable), _PREC_ATOM
 
 
 def _generateClassMappingVariableRefOrFallbackSource(expression):
-    mapping = generateExpressionSource(expression.subnode_mapping)
+    mapping = _generateSubExpressionSource(expression.subnode_mapping, _PREC_POSTFIX)
     fallback = generateExpressionSource(expression.subnode_fallback)
 
     variable_name = repr(expression.getVariableName())
 
-    return "(%(mapping)s[%(name)s] if %(name)s in %(mapping)s else %(fallback)s)" % {
-        "mapping": mapping,
-        "name": variable_name,
-        "fallback": fallback,
-    }
+    return (
+        "(%(mapping)s[%(name)s] if %(name)s in %(mapping)s else %(fallback)s)"
+        % {
+            "mapping": mapping,
+            "name": variable_name,
+            "fallback": fallback,
+        },
+        _PREC_ATOM,
+    )
 
 
 def _generateEllipsisSource(_expression):
-    return "..."
+    return "...", _PREC_ATOM
 
 
 def _generateBuiltinRefSource(expression):
-    return expression.getBuiltinName()
+    return expression.getBuiltinName(), _PREC_ATOM
 
 
 # Anonymous builtin references, e.g. "NoneType" or "function" do not have
@@ -1140,11 +1369,11 @@ def _generateBuiltinAnonymousRefSource(expression):
             % expression.getBuiltinName()
         )
 
-    return source
+    return source, _PREC_POSTFIX
 
 
 def _generateBuiltinPatchableTypeRefSource(expression):
-    return expression.getImportName()
+    return expression.getImportName(), _PREC_ATOM
 
 
 def _generateImportModuleHardSource(expression):
@@ -1156,9 +1385,9 @@ def _generateImportModuleHardSource(expression):
     alias = _findAliasForModule(module, target)
 
     if alias:
-        return alias
+        return alias, _PREC_ATOM
 
-    return "__import__(%r)" % target
+    return "__import__(%r)" % target, _PREC_POSTFIX
 
 
 def _generateImportModuleNameHardSource(expression):
@@ -1172,9 +1401,9 @@ def _generateImportModuleNameHardSource(expression):
     alias = _findAliasForModule(module, target)
 
     if alias:
-        return "%s.%s" % (alias, import_name)
+        return "%s.%s" % (alias, import_name), _PREC_POSTFIX
 
-    return "__import__(%r).%s" % (target, import_name)
+    return "__import__(%r).%s" % (target, import_name), _PREC_POSTFIX
 
 
 # ---------------------------------------------------------------------------
@@ -1354,12 +1583,7 @@ def _checkDispatchKinds():
     _checked_dispatch_kinds = True
 
 
-def generateExpressionSource(expression):
-    """Generate Python source code for a Nuitka expression node.
-
-    Returns a string of valid Python source.
-    Raises PythonSourceGenerationError for unsupported node kinds.
-    """
+def _generateExpressionSourceWithPrecedence(expression):
     _checkDispatchKinds()
 
     kind = expression.kind
@@ -1371,6 +1595,25 @@ def generateExpressionSource(expression):
         )
 
     return handler(expression)
+
+
+def _generateSubExpressionSource(expression, min_precedence):
+    source, precedence = _generateExpressionSourceWithPrecedence(expression)
+
+    if precedence < min_precedence:
+        return "(%s)" % source
+
+    return source
+
+
+def generateExpressionSource(expression):
+    """Generate Python source code for a Nuitka expression node.
+
+    Returns a string of valid Python source.
+    Raises PythonSourceGenerationError for unsupported node kinds.
+    """
+    source, _precedence = _generateExpressionSourceWithPrecedence(expression)
+    return source
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
