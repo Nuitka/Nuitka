@@ -574,7 +574,7 @@ class ClosureGiverNodeMixin(CodeNodeMixin):
 
     def createTempVariable(self, temp_name, temp_type, outline):
         if temp_name in self.temp_variables:
-            return self.temp_variables[temp_name]
+            return self.temp_variables[temp_name][0]
 
         result = TempVariable(
             owner=self,
