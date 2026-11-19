@@ -51,6 +51,7 @@ class ExpressionBuiltinLocalsBase(ExpressionNoSideEffectsMixin, ExpressionBase):
         self.locals_scope = locals_scope
 
     def finalize(self):
+        del self.parent
         del self.locals_scope
         del self.variable_traces
 

@@ -256,6 +256,7 @@ class ExpressionKeyValuePairConstantKeyValue(
         ExpressionBase.__init__(self, source_ref)
 
     def finalize(self):
+        del self.parent
         del self.key
         del self.value
 
