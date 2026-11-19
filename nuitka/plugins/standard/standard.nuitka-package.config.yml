@@ -9822,11 +9822,12 @@
           - 'libjpeg'
           - 'libpng*'
 
-- module-name: 'torchvision.extension' # checksum: 9de523e5
+- module-name: 'torchvision.extension' # checksum: ff5fca7c
   implicit-imports:
     - depends:
-        # This is really only a DLL, but named according to extension module rules.
+        # These are really only DLLs, but named according to extension module rules.
         - '._C'
+        - '._C_stable'
 
 - module-name: 'torchvision.io.image' # checksum: 2f2fb05c
   implicit-imports:
