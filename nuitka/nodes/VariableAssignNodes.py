@@ -65,6 +65,7 @@ class StatementAssignmentVariableMixin(object):
         return True
 
     def finalize(self):
+        del self.parent
         del self.variable
         del self.variable_trace
         self.subnode_source.finalize()

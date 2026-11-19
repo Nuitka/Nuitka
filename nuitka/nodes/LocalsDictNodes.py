@@ -45,6 +45,13 @@ class ExpressionLocalsVariableRefOrFallback(ChildHavingFallbackMixin, Expression
 
         self.variable_trace = None
 
+    def finalize(self):
+        ChildHavingFallbackMixin.finalize(self)
+
+        del self.locals_scope
+        del self.variable
+        del self.variable_trace
+
     def getDetails(self):
         return {
             "locals_scope": self.locals_scope,
@@ -285,6 +292,7 @@ class ExpressionLocalsVariableRef(ExpressionBase):
         del self.parent
         del self.locals_scope
         del self.variable
+        del self.variable_trace
 
     def getDetails(self):
         return {
