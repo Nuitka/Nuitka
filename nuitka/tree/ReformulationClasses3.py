@@ -356,12 +356,19 @@ def buildClassNode3(provider, node, source_ref):
 
     parent_module = provider.getParentModule()
 
+    # CPython uses the first decorator line for the class body code object and
+    # for '__firstlineno__'.
+    if node.decorator_list:
+        first_lineno = node.decorator_list[0].lineno
+    else:
+        first_lineno = node.lineno
+
     code_object = CodeObjectSpecClass(
         class_name=node.name,
         co_qualname=static_qualname,
         co_varnames=(),
         co_filename=parent_module.getRunTimeFilename(),
-        co_lineno=source_ref.getLineNumber(),
+        co_lineno=first_lineno,
         future_spec=parent_module.getFutureSpec(),
     )
 
@@ -434,7 +441,7 @@ def buildClassNode3(provider, node, source_ref):
                 provider=class_dict_creation_function,
                 variable_name="__firstlineno__",
                 source=ExpressionConstantIntRef(
-                    constant=node.lineno,
+                    constant=first_lineno,
                     source_ref=source_ref,
                 ),
                 source_ref=source_ref,
