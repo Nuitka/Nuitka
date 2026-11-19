@@ -881,13 +881,12 @@ class %(class_name)s:
 
         qualified_name = QualifiedName(code_qualname)
 
-        for _config_module_name, _patterns in self.getYamlConfigItem(
+        for _config_module_name, _pattern in self.getYamlConfigItemSet(
             module_name=module_name,
             section="anti-bloat",
             item_name="frame_locals",
             decide_relevant=(
-                lambda patterns: bool(patterns)
-                and qualified_name.matchesToShellPatterns(patterns).is_match
+                lambda pattern: qualified_name.matchesToShellPattern(pattern).is_match
             ),
             recursive=True,
         ):

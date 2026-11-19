@@ -163,18 +163,21 @@
             },
             "dirs": {
               "type": "array",
+              "uniqueItems": true,
               "items": {
                 "type": "string"
               }
             },
             "raw_dirs": {
               "type": "array",
+              "uniqueItems": true,
               "items": {
                 "type": "string"
               }
             },
             "patterns": {
               "type": "array",
+              "uniqueItems": true,
               "items": {
                 "type": "string"
               }
@@ -187,12 +190,14 @@
             },
             "empty_dirs": {
               "type": "array",
+              "uniqueItems": true,
               "items": {
                 "type": "string"
               }
             },
             "empty_dir_structures": {
               "type": "array",
+              "uniqueItems": true,
               "items": {
                 "type": "string"
               }
@@ -206,6 +211,7 @@
             },
             "include-metadata": {
               "type": "array",
+              "uniqueItems": true,
               "items": {
                 "type": "string"
               }
@@ -255,12 +261,14 @@
                 },
                 "prefixes": {
                   "type": "array",
+                  "uniqueItems": true,
                   "items": {
                     "type": "string"
                   }
                 },
                 "suffixes": {
                   "type": "array",
+                  "uniqueItems": true,
                   "items": {
                     "type": "string",
                     "pattern": "^[^.]\\w*$"
@@ -410,6 +418,7 @@
             },
             "limit-auto-follow": {
               "type": "array",
+              "uniqueItems": true,
               "items": {
                 "$ref": "#/definitions/module-pattern"
               }
@@ -461,6 +470,7 @@
             },
             "frame_locals": {
               "type": "array",
+              "uniqueItems": true,
               "items": {
                 "$ref": "#/definitions/non-empty-string"
               }
@@ -479,6 +489,7 @@
           "properties": {
             "depends": {
               "type": "array",
+              "uniqueItems": true,
               "items": {
                 "$ref": "#/definitions/module-pattern-or-expression"
               }
@@ -562,30 +573,35 @@
             },
             "package-paths": {
               "type": "array",
+              "uniqueItems": true,
               "items": {
                 "$ref": "#/definitions/module-name"
               }
             },
             "package-dirs": {
               "type": "array",
+              "uniqueItems": true,
               "items": {
                 "type": "string"
               }
             },
             "find-dlls-near-module": {
               "type": "array",
+              "uniqueItems": true,
               "items": {
                 "$ref": "#/definitions/module-name"
               }
             },
             "acceptable-missing-dlls": {
               "type": "array",
+              "uniqueItems": true,
               "items": {
                 "type": "string"
               }
             },
             "global-sys-path": {
               "type": "array",
+              "uniqueItems": true,
               "items": {
                 "type": "string"
               }

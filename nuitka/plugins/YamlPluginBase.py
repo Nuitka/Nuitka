@@ -100,33 +100,35 @@ class NuitkaYamlPluginBase(NuitkaPluginBase):
     def getYamlConfigItemSet(
         self, module_name, section, item_name, decide_relevant, recursive
     ):
-        def set_decide_relevant(item_set):
+        seen = set()
+
+        def isRelevantValue(value):
+            return value not in seen and (
+                decide_relevant is None or decide_relevant(value)
+            )
+
+        def decideRelevantForSet(item_set):
             if not item_set:
                 return False
 
-            if decide_relevant is None:
-                return True
-
-            for value in item_set:
-                if decide_relevant(value):
-                    return True
-
-            return False
+            return any(isRelevantValue(value) for value in item_set)
 
         for item_config in self.getYamlConfigItem(
             module_name=module_name,
             section=section,
             item_name=item_name,
-            decide_relevant=set_decide_relevant,
+            decide_relevant=decideRelevantForSet,
             recursive=recursive,
         ):
             if recursive:
                 for value in item_config[1]:
-                    if decide_relevant is None or decide_relevant(value):
+                    if isRelevantValue(value):
+                        seen.add(value)
                         yield item_config[0], value
             else:
                 for value in item_config:
-                    if decide_relevant is None or decide_relevant(value):
+                    if isRelevantValue(value):
+                        seen.add(value)
                         yield value
 
 

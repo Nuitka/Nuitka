@@ -418,27 +418,26 @@ According to 'implicit-imports' configuration."""
                 ):
                     yield item
 
-    def _getModuleSysPathAdditions(self, module_name, config):
-        module_filename = self.locateModule(module_name)
+    def getModuleSysPathAdditions(self, module_name):
+        module_filename = None
 
-        if os.path.isfile(module_filename):
-            module_filename = os.path.dirname(module_filename)
+        for relative_path in self.getYamlConfigItemSet(
+            module_name=module_name,
+            section="import-hacks",
+            item_name="global-sys-path",
+            decide_relevant=None,
+            recursive=False,
+        ):
+            if module_filename is None:
+                module_filename = self.locateModule(module_name)
 
-        for relative_path in config.get("global-sys-path", ()):
+                if os.path.isfile(module_filename):
+                    module_filename = os.path.dirname(module_filename)
+
             candidate = os.path.abspath(os.path.join(module_filename, relative_path))
 
             if os.path.isdir(candidate):
                 yield candidate
-
-    def getModuleSysPathAdditions(self, module_name):
-        for entry in self.config.get(module_name, section="import-hacks"):
-            if entry.get("global-sys-path") and self.evaluateCondition(
-                full_name=module_name, condition=entry.get("when", "True")
-            ):
-                for item in self._getModuleSysPathAdditions(
-                    module_name=module_name, config=entry
-                ):
-                    yield item
 
     def onModuleSourceCode(self, module_name, source_filename, source_code):
         # TODO: Move the ones that would be possible to yaml config, or a
