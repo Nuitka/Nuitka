@@ -70,7 +70,8 @@ def buildLambdaNode(provider, node, source_ref):
             auto_release=None,
             source_ref=source_ref,
         )
-        code_body.qualname_provider = provider
+        if python_version >= 0x300:
+            code_body.qualname_provider = provider
 
     if function_kind == "Generator":
         function_body.setChildBody(

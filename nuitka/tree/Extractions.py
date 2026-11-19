@@ -61,6 +61,12 @@ class VariableUsageUpdater(VisitorNoopMixin):
         if hasattr(node, "provider") and node.provider is self.old_locals_scope.owner:
             node.provider = self.new_locals_scope.owner
 
+        if (
+            hasattr(node, "qualname_provider")
+            and node.qualname_provider is self.old_locals_scope.owner
+        ):
+            node.qualname_provider = self.new_locals_scope.owner
+
 
 def updateVariableUsage(
     provider, old_locals_scope, new_locals_scope, variable_translations

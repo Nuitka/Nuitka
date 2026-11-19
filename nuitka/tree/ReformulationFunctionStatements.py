@@ -251,7 +251,8 @@ def buildFunctionNode(provider, node, source_ref):
 
             maker_class = ExpressionMakeGeneratorObject
 
-        code_body.qualname_provider = provider
+        if python_version >= 0x300:
+            code_body.qualname_provider = provider
 
         for variable in function_body.getProvidedVariables():
             code_body.getVariableForReference(variable.getName())

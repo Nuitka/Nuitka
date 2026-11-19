@@ -963,12 +963,20 @@ class _FunctionBodyRefCloneVisitor(VisitorNoopMixin):
 
     __slots__ = (
         "old_provider",
+        "new_provider",
         "variable_translations",
         "code_name_translations",
     )
 
-    def __init__(self, old_provider, variable_translations, code_name_translations):
+    def __init__(
+        self,
+        old_provider,
+        new_provider,
+        variable_translations,
+        code_name_translations,
+    ):
         self.old_provider = old_provider
+        self.new_provider = new_provider
         self.variable_translations = variable_translations
         self.code_name_translations = code_name_translations
 
@@ -982,6 +990,9 @@ class _FunctionBodyRefCloneVisitor(VisitorNoopMixin):
             node.owner_code_name = self.code_name_translations.get(
                 node.owner_code_name, node.owner_code_name
             )
+        elif node.isExpressionFunctionQualnameRef():
+            if node.function_body is self.old_provider:
+                node.function_body = self.new_provider
         elif node.isExpressionFunctionRef():
             function_body = node.getFunctionBody()
 
@@ -1008,6 +1019,7 @@ def updateFunctionBodyReferences(
         provider,
         _FunctionBodyRefCloneVisitor(
             old_provider=old_provider,
+            new_provider=provider,
             variable_translations=variable_translations,
             code_name_translations=code_name_translations,
         ),

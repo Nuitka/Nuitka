@@ -222,14 +222,14 @@ class ExpressionOutlineFunctionBase(ExpressionOutlineMixin, ExpressionFunctionBo
 
     __slots__ = ("temp_scope",)
 
-    def __init__(self, provider, name, body, code_prefix, source_ref):
+    def __init__(self, provider, name, body, code_prefix, source_ref, flags=None):
         ExpressionFunctionBodyBase.__init__(
             self,
             provider=provider,
             name=name,
             body=body,
             code_prefix=code_prefix,
-            flags=None,
+            flags=flags,
             source_ref=source_ref,
         )
 
@@ -302,12 +302,9 @@ class ExpressionOutlineFunctionBase(ExpressionOutlineMixin, ExpressionFunctionBo
         )
 
         if self.isExpressionClassBodyBase():
-            deferred_class_dict = self.deferred_class_dict
-
-            if deferred_class_dict is not None:
-                result.deferred_class_dict = variable_translations.get(
-                    deferred_class_dict, deferred_class_dict
-                )
+            self._copyClassBodyCloneState(
+                result=result, variable_translations=variable_translations
+            )
 
         return result
 

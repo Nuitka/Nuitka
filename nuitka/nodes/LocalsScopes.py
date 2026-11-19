@@ -127,6 +127,7 @@ class LocalsDictHandleBase(getMetaClassBase("LocalsDictHandle", require_slots=Tr
             count += 1
 
         result = self.__class__(locals_name=locals_name, owner=new_owner)
+        locals_dict_handles[locals_name] = result
 
         for variable_name, variable in self.variables.items():
             if variable in variable_translations:

@@ -7,6 +7,7 @@ from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.PythonVersions import python_version
 
 from .ChildrenHavingMixins import (
+    ChildHavingBodyOptionalMixin,
     ChildrenExpressionBuiltinType3Mixin,
     ChildrenHavingMetaclassBasesMixin,
 )
@@ -26,6 +27,42 @@ from .shapes.BuiltinTypeShapes import tshape_dict
 from .shapes.StandardShapes import tshape_unknown
 
 
+def _translateClonedDescendant(old_root, new_root, target_node):
+    """Find the node corresponding to 'target_node' in a cloned tree.
+
+    Notes:
+        'target_node' must be a descendant of 'old_root', and 'new_root' must
+        be its 'makeClone' result, which clones children in
+        'getVisitableNodes' order. The result has the same 'kind' as
+        'target_node'.
+    """
+
+    assert new_root.__class__ is old_root.__class__, (old_root, new_root)
+
+    path = []
+    current = target_node
+
+    while current is not old_root:
+        parent = current.parent
+        assert parent is not None, (target_node, old_root)
+
+        for index, child in enumerate(parent.getVisitableNodes()):
+            if child is current:
+                path.append(index)
+                break
+        else:
+            assert False, (current, parent)
+
+        current = parent
+
+    result = new_root
+    for index in reversed(path):
+        result = result.getVisitableNodes()[index]
+
+    assert result.kind == target_node.kind, (result, target_node)
+    return result
+
+
 class ExpressionClassBodyBase(ExpressionOutlineFunctionBase):
     kind = "EXPRESSION_CLASS_BODY"
 
@@ -37,13 +74,14 @@ class ExpressionClassBodyBase(ExpressionOutlineFunctionBase):
         "deferred_class_dict",
     )
 
-    def __init__(self, provider, name, doc, source_ref):
+    def __init__(self, provider, name, doc, source_ref, body=None, flags=None):
         ExpressionOutlineFunctionBase.__init__(
             self,
             provider=provider,
             name=name,
-            body=None,
+            body=body,
             code_prefix="class",
+            flags=flags,
             source_ref=source_ref,
         )
 
@@ -66,11 +104,15 @@ class ExpressionClassBodyBase(ExpressionOutlineFunctionBase):
 
     def getDetails(self):
         return {
-            "name": self.getFunctionName(),
-            "provider": self.provider.getCodeName(),
+            "provider": self.provider,
+            "name": self.name,
             "doc": self.doc,
-            "flags": self.flags,
+            "flags": None if self.flags is None else set(self.flags),
         }
+
+    def getCloneArgs(self):
+        # Preserve the Python class name instead of appending "_clone".
+        return ChildHavingBodyOptionalMixin.getCloneArgs(self)
 
     def getDetailsForDisplay(self):
         result = {
@@ -86,7 +128,36 @@ class ExpressionClassBodyBase(ExpressionOutlineFunctionBase):
 
     @classmethod
     def fromXML(cls, provider, source_ref, **args):
+        if "doc" not in args:
+            args["doc"] = None
+
+        if "flags" in args and isinstance(args["flags"], str):
+            args["flags"] = set(args["flags"].split(",")) if args["flags"] else None
+
         return cls(provider=provider, source_ref=source_ref, **args)
+
+    def _copyClassBodyCloneState(self, result, variable_translations):
+        if python_version >= 0x300:
+            result.qualname_provider = self.qualname_provider
+
+            if self.non_local_declarations is not None:
+                result.non_local_declarations = list(self.non_local_declarations)
+
+        if self.deferred_class_dict is not None:
+            result.deferred_class_dict = variable_translations.get(
+                self.deferred_class_dict, self.deferred_class_dict
+            )
+
+        if self.conditional_annotation_indices is not None:
+            result.conditional_annotation_indices = dict(
+                self.conditional_annotation_indices
+            )
+
+        if self.conditional_annotations_variable is not None:
+            result.conditional_annotations_variable = variable_translations.get(
+                self.conditional_annotations_variable,
+                self.conditional_annotations_variable,
+            )
 
     def getDoc(self):
         return self.doc
@@ -142,7 +213,27 @@ class ExpressionClassBodyBase(ExpressionOutlineFunctionBase):
         return True
 
 
-class ExpressionClassMappingBody(MarkNeedsAnnotationsMixin, ExpressionClassBodyBase):
+class ExpressionClassBodyQualnameSetupMixin(object):
+    """Mixin for class bodies whose '__qualname__' assignment must follow clones."""
+
+    __slots__ = ()
+
+    def _copyClassBodyQualnameSetup(self, result):
+        if self.qualname_setup is not None:
+            class_variable_name, qualname_assign = self.qualname_setup
+            result.qualname_setup = (
+                class_variable_name,
+                _translateClonedDescendant(
+                    old_root=self, new_root=result, target_node=qualname_assign
+                ),
+            )
+
+
+class ExpressionClassMappingBody(
+    MarkNeedsAnnotationsMixin,
+    ExpressionClassBodyQualnameSetupMixin,
+    ExpressionClassBodyBase,
+):
     """Python 3 class body whose namespace may be an arbitrary mapping."""
 
     kind = "EXPRESSION_CLASS_MAPPING_BODY"
@@ -156,12 +247,14 @@ class ExpressionClassMappingBody(MarkNeedsAnnotationsMixin, ExpressionClassBodyB
 
     locals_kind = "python_mapping_class"
 
-    def __init__(self, provider, name, doc, source_ref):
+    def __init__(self, provider, name, doc, source_ref, body=None, flags=None):
         ExpressionClassBodyBase.__init__(
             self,
             provider=provider,
             name=name,
             doc=doc,
+            body=body,
+            flags=flags,
             source_ref=source_ref,
         )
 
@@ -170,6 +263,20 @@ class ExpressionClassMappingBody(MarkNeedsAnnotationsMixin, ExpressionClassBodyB
         self.qualname_setup = None
         self.static_attributes = OrderedSet() if python_version >= 0x3D0 else None
         self.deferred_annotations = []
+
+    def _copyClassBodyCloneState(self, result, variable_translations):
+        ExpressionClassBodyBase._copyClassBodyCloneState(
+            self, result=result, variable_translations=variable_translations
+        )
+
+        result.needs_annotations_dict = self.needs_annotations_dict
+
+        self._copyClassBodyQualnameSetup(result=result)
+
+        if self.static_attributes is not None:
+            result.static_attributes = OrderedSet(self.static_attributes)
+
+        result.deferred_annotations = list(self.deferred_annotations)
 
     def addStaticAttribute(self, static_attribute):
         self.static_attributes.add(static_attribute)
@@ -185,35 +292,52 @@ class ExpressionClassDictBodyP2(ExpressionDictShapeExactMixin, ExpressionClassBo
 
     locals_kind = "python_dict_class"
 
-    def __init__(self, provider, name, doc, source_ref):
+    def __init__(self, provider, name, doc, source_ref, body=None, flags=None):
         ExpressionClassBodyBase.__init__(
             self,
             provider=provider,
             name=name,
             doc=doc,
+            body=body,
+            flags=flags,
             source_ref=source_ref,
         )
 
 
-class ExpressionClassDictBody(MarkNeedsAnnotationsMixin, ExpressionClassDictBodyP2):
+class ExpressionClassDictBody(  # pylint: disable=too-many-ancestors
+    MarkNeedsAnnotationsMixin,
+    ExpressionClassBodyQualnameSetupMixin,
+    ExpressionClassDictBodyP2,
+):
     """Python 3 class body whose namespace is known to be an exact dict."""
 
     kind = "EXPRESSION_CLASS_DICT_BODY"
 
     __slots__ = ("needs_annotations_dict", "qualname_setup")
 
-    def __init__(self, provider, name, doc, source_ref):
+    def __init__(self, provider, name, doc, source_ref, body=None, flags=None):
         ExpressionClassDictBodyP2.__init__(
             self,
             provider=provider,
             name=name,
             doc=doc,
+            body=body,
+            flags=flags,
             source_ref=source_ref,
         )
 
         MarkNeedsAnnotationsMixin.__init__(self)
 
         self.qualname_setup = None
+
+    def _copyClassBodyCloneState(self, result, variable_translations):
+        ExpressionClassDictBodyP2._copyClassBodyCloneState(
+            self, result=result, variable_translations=variable_translations
+        )
+
+        result.needs_annotations_dict = self.needs_annotations_dict
+
+        self._copyClassBodyQualnameSetup(result=result)
 
 
 class ExpressionClassDictFromClass(ExpressionBase):
