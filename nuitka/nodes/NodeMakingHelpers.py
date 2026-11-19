@@ -157,9 +157,13 @@ def makeRaiseExceptionExpressionFromTemplate(
     from .OperatorNodes import makeBinaryOperationNode
 
     if type(template_args) is tuple:
+        assert template.replace("%%", "").count("%") == len(template_args), template
+
         template_args = makeExpressionMakeTupleOrConstant(
             elements=template_args, user_provided=False, source_ref=source_ref
         )
+    else:
+        assert template.replace("%%", "").count("%") == 1, template
 
     return ExpressionRaiseException(
         exception_type=makeBuiltinMakeExceptionNode(
@@ -188,39 +192,58 @@ def makeRaiseTypeErrorExceptionReplacementFromTemplateAndValue(
 
     type_name = shape.getTypeName()
 
-    if type_name is not None:
+    arg_count = template.count("%s")
+    assert template.count("%") == arg_count, template
+
+    if arg_count == 0:
+        assert states.is_full_compat and python_version < 0x300, template
+
         result = makeRaiseExceptionReplacementExpressionFromInstance(
             expression=original_node,
-            exception=TypeError(template % type_name if "%" in template else template),
+            exception=TypeError(template),
         )
 
         result = wrapExpressionWithNodeSideEffects(new_node=result, old_node=value_node)
     else:
-        from .AttributeNodes import makeExpressionAttributeLookup
-        from .TypeNodes import ExpressionBuiltinType1
+        assert arg_count == 1, template
 
-        source_ref = original_node.getSourceReference()
+        if type_name is not None:
+            result = makeRaiseExceptionReplacementExpressionFromInstance(
+                expression=original_node,
+                exception=TypeError(template % type_name),
+            )
 
-        result = makeRaiseExceptionExpressionFromTemplate(
-            exception_type="TypeError",
-            template=template,
-            template_args=makeExpressionAttributeLookup(
-                expression=ExpressionBuiltinType1(
-                    value=value_node.makeClone(), source_ref=source_ref
+            result = wrapExpressionWithNodeSideEffects(
+                new_node=result, old_node=value_node
+            )
+        else:
+            from .AttributeNodes import makeExpressionAttributeLookup
+            from .TypeNodes import ExpressionBuiltinType1
+
+            source_ref = original_node.getSourceReference()
+
+            result = makeRaiseExceptionExpressionFromTemplate(
+                exception_type="TypeError",
+                template=template,
+                template_args=makeExpressionAttributeLookup(
+                    expression=ExpressionBuiltinType1(
+                        value=value_node.makeClone(), source_ref=source_ref
+                    ),
+                    attribute_name="__name__",
+                    source_ref=source_ref,
                 ),
-                attribute_name="__name__",
                 source_ref=source_ref,
-            ),
-            source_ref=source_ref,
-        )
-
-        type_name = shape.__name__
+            )
 
     return (
         result,
         "new_raise",
         "Raising for use of '%s' on %s '%s'."
-        % (operation, "type" if type_name is not None else "shape", type_name),
+        % (
+            operation,
+            "type" if type_name is not None else "shape",
+            type_name if type_name is not None else shape.__name__,
+        ),
     )
 
 
@@ -355,6 +378,10 @@ def wrapExpressionWithSideEffects(side_effects, old_node, new_node):
             raise
 
         if side_effects:
+            if new_node.isExpressionSideEffects():
+                side_effects += new_node.subnode_side_effects
+                new_node = new_node.subnode_expression
+
             new_node = ExpressionSideEffects(
                 expression=new_node,
                 side_effects=side_effects,

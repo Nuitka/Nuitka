@@ -228,6 +228,54 @@ def dictClearKnowledgeAndEscape():
     print("dict.clear finalizer escape:", before, after, bool(d2))
 
 
+def inAndFloatTypeErrorShapes(flag):
+    x = 1 if flag else 2
+    try:
+        print("in int:", 1 in x)
+    except TypeError as e:
+        print("in int TypeError:", repr(e))
+
+    try:
+        print("not in int:", 1 not in x)
+    except TypeError as e:
+        print("not in int TypeError:", repr(e))
+
+    y = 1 if flag else (1 << 100)
+    try:
+        print("in int_or_long:", 1 in y)
+    except TypeError as e:
+        print("in int_or_long TypeError:", repr(e))
+
+    events = []
+
+    def leftSideEffect():
+        events.append("left")
+        return 1
+
+    def rightSideEffect():
+        events.append("right")
+        return 2
+
+    try:
+        print(
+            "in side effects:",
+            leftSideEffect() in (rightSideEffect() if flag else 3),
+        )
+    except TypeError as e:
+        print("in side effects TypeError:", events, repr(e))
+
+    float_events = []
+
+    def listSideEffect():
+        float_events.append("arg")
+        return [1]
+
+    try:
+        print("float(list):", float(listSideEffect() if flag else [2]))
+    except TypeError as e:
+        print("float(list) TypeError:", float_events, repr(e))
+
+
 def dictUnhashableOperations(flag):
     d = {"a": 1}
     k = [1] if flag else [2]
@@ -258,6 +306,8 @@ loopCompleteAlternativeComparisons((True, False))
 strOrUnicodeOperations(True, "world")
 strOrUnicodeOperations(False, 42)
 dictClearKnowledgeAndEscape()
+inAndFloatTypeErrorShapes(True)
+inAndFloatTypeErrorShapes(False)
 dictUnhashableOperations(True)
 dictUnhashableOperations(False)
 

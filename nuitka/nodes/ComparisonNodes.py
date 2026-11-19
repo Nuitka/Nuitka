@@ -139,8 +139,8 @@ class ExpressionComparisonRichBase(ExpressionComparisonBase):
         else:
             raise NuitkaAssumptionError(
                 "Unexpected no-exception doing comparison simulation",
-                self.operator,
-                self.simulator,
+                self.comparator,
+                self.getSimulator(),
                 self.subnode_left.getTypeShape(),
                 self.subnode_right.getTypeShape(),
                 repr(left),

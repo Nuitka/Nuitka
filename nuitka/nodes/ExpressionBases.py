@@ -404,12 +404,16 @@ class ExpressionBase(NodeBase):
             trace_collection.onExceptionRaiseExit(BaseException)
 
             return makeRaiseTypeErrorExceptionReplacementFromTemplateAndValue(
-                (
+                template=(
                     "float() argument must be a string or a number"
                     if states.is_full_compat and python_version < 0x300
-                    else "float() argument must be a string or a number, not '%s'"
+                    else (
+                        "float() argument must be a string or a number, not '%s'"
+                        if python_version < 0x3A0
+                        else "float() argument must be a string or a real number, not '%s'"
+                    )
                 ),
-                operation="long",
+                operation="float",
                 original_node=float_node,
                 value_node=self,
             )
@@ -529,7 +533,6 @@ class ExpressionBase(NodeBase):
         return (repr_node, None, None), escape_desc
 
     def computeExpressionComparisonIn(self, in_node, value_node, trace_collection):
-        # pylint: disable=unused-argument
         shape = self.getTypeShape()
 
         assert shape is not None, self
@@ -537,12 +540,24 @@ class ExpressionBase(NodeBase):
         if shape.hasShapeSlotContains() is False:
             trace_collection.onExceptionRaiseExit(BaseException)
 
-            return makeRaiseTypeErrorExceptionReplacementFromTemplateAndValue(
-                template="argument of type '%s' object is not iterable",
-                operation="in",
-                original_node=in_node,
-                value_node=self,
+            result, change_tags, message = (
+                makeRaiseTypeErrorExceptionReplacementFromTemplateAndValue(
+                    template=(
+                        "argument of type '%s' is not iterable"
+                        if python_version < 0x3E0
+                        else "argument of type '%s' is not a container or iterable"
+                    ),
+                    operation=in_node.comparator.lower(),
+                    original_node=in_node,
+                    value_node=self,
+                )
             )
+
+            result = wrapExpressionWithNodeSideEffects(
+                new_node=result, old_node=value_node
+            )
+
+            return result, change_tags, message
 
         trace_collection.onControlFlowEscape(in_node)
         trace_collection.onExceptionRaiseExit(BaseException)
