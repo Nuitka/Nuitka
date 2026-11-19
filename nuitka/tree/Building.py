@@ -35,8 +35,6 @@ catching and passing in exceptions raised.
 
 """
 
-import marshal
-
 from nuitka import ModuleRegistry, OutputDirectories, SourceCodeReferences
 from nuitka.__past__ import long, unicode
 from nuitka.BytecodeCaching import (
@@ -1371,16 +1369,26 @@ Cannot compile module '%s' because its code is too complex, included as bytecode
                 % module_name
             )
 
-    return makeUncompiledPythonModule(
+    result = makeUncompiledPythonModule(
         module_name=module_name,
         reason=reason,
         filename=module_filename,
-        bytecode=marshal.dumps(
-            compile(source_code, module_filename, "exec", dont_inherit=True)
-        ),
+        bytecode=None,
         is_package=is_package,
         technical=module_name in detectEarlyImports(),
     )
+
+    result.setByteCode(
+        demoteSourceCodeToBytecode(
+            module_name=module_name,
+            source_code=source_code,
+            filename=module_filename,
+            is_package=is_package,
+            remove_doc_strings=not decideDocStrings(result),
+        )
+    )
+
+    return result
 
 
 def buildModule(
