@@ -86,12 +86,21 @@ bytes_endswith_spec = BytesMethodSpecNoKeywords(
     type_shape=tshape_bool,
 )
 
-bytes_replace_spec = BytesMethodSpecNoKeywords(
-    "replace",
-    arg_names=("old", "new", "count"),
-    default_count=1,
-    type_shape=tshape_bytes,
-)
+if python_version < 0x3F0:
+    bytes_replace_spec = BytesMethodSpecNoKeywords(
+        "replace",
+        arg_names=("old", "new", "count"),
+        default_count=1,
+        type_shape=tshape_bytes,
+    )
+else:
+    bytes_replace_spec = BytesMethodSpec(
+        "replace",
+        pos_only_args=("old", "new"),
+        arg_names=("count",),
+        default_count=1,
+        type_shape=tshape_bytes,
+    )
 
 bytes_count_spec = BytesMethodSpecNoKeywords(
     "count", arg_names=("sub", "start", "end"), default_count=2, type_shape=tshape_int
