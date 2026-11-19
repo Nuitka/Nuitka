@@ -103,6 +103,7 @@ print("Return value", r)
 
 class NonContextManager1:
     def __enter__(self):
+        print("Called __enter__ despite missing __exit__")
         return self
 
 

@@ -1,7 +1,10 @@
 #     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-"""Tests for coroutine throw() and cancel/await bridge handling."""
+"""Tests for coroutine throw() and cancel/await bridge handling.
+
+Also covers the ordering of special method lookups in "async with" statements.
+"""
 
 import asyncio
 import inspect
@@ -273,6 +276,60 @@ try:
 except StopIteration:
     pass
 print("Caller after coroutine: %r" % (current_exception(),))
+
+print("Async with statement special method ordering:")
+
+
+class NonContextManager1:
+    async def __aenter__(self):
+        print("Called __aenter__ despite missing __aexit__")
+        return self
+
+
+class NonContextManager2:
+    async def __aexit__(self, exc_type, exc_value, traceback):
+        print("Called __aexit__ despite missing __aenter__")
+        return False
+
+
+class NotAtAllContextManager:
+    pass
+
+
+class AsyncContextManager(object):
+    async def __aenter__(self):
+        print("Entered async context manager")
+        return 42
+
+    async def __aexit__(self, exc_type, exc_value, traceback):
+        print("Async context manager exit sees", exc_type, exc_value)
+        return False
+
+
+async def useAsyncWithStatements():
+    try:
+        async with NonContextManager1():
+            pass
+    except Exception as e:
+        print("Caught for async context manager without __aexit__", repr(e))
+
+    try:
+        async with NonContextManager2():
+            pass
+    except Exception as e:
+        print("Caught for async context manager without __aenter__", repr(e))
+
+    try:
+        async with NotAtAllContextManager():
+            pass
+    except Exception as e:
+        print("Caught for async context manager without any special methods", repr(e))
+
+    async with AsyncContextManager() as value:
+        print("Async context manager value", value)
+
+
+run_async(useAsyncWithStatements())
 
 #     Python tests originally created or extracted from other peoples work. The
 #     parts were too small to be protected.

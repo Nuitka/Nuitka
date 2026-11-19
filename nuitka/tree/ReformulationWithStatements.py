@@ -110,8 +110,9 @@ def _buildWithNode(provider, context_expr, assign_target, body, sync, source_ref
     else:
         attribute_lookup_maker = ExpressionAttributeLookupSpecial
 
-    enter_value = ExpressionCallEmpty(
-        called=attribute_lookup_maker(
+    enter_lookup_assignment = makeStatementAssignmentVariable(
+        variable=tmp_enter_variable,
+        source=attribute_lookup_maker(
             expression=ExpressionTempVariableRef(
                 variable=tmp_source_variable, source_ref=source_ref
             ),
@@ -164,20 +165,28 @@ def _buildWithNode(provider, context_expr, assign_target, body, sync, source_ref
         )
     ]
 
-    # Before 3.9, __aenter__ is immediately awaited, after we first do __aexit__ lookup.
+    enter_call_value = ExpressionCallEmpty(
+        called=ExpressionTempVariableRef(
+            variable=tmp_enter_variable, source_ref=source_ref
+        ),
+        source_ref=source_ref,
+    )
+
+    # Before 3.9, "__aenter__" is immediately awaited, with "__aexit__" looked up
+    # first.
     if not sync and python_version < 0x390:
-        enter_value = ExpressionYieldFromAwaitable(
+        enter_call_value = ExpressionYieldFromAwaitable(
             expression=ExpressionAsyncWaitEnter(
-                expression=enter_value, source_ref=source_ref
+                expression=enter_call_value, source_ref=source_ref
             ),
             source_ref=source_ref,
         )
 
-    attribute_enter_assignment = makeStatementAssignmentVariable(
-        variable=tmp_enter_variable, source=enter_value, source_ref=source_ref
+    enter_call_assignment = makeStatementAssignmentVariable(
+        variable=tmp_enter_variable, source=enter_call_value, source_ref=source_ref
     )
 
-    attribute_exit_assignment = makeStatementAssignmentVariable(
+    exit_lookup_assignment = makeStatementAssignmentVariable(
         variable=tmp_exit_variable,
         source=attribute_lookup_maker(
             expression=ExpressionTempVariableRef(
@@ -189,9 +198,18 @@ def _buildWithNode(provider, context_expr, assign_target, body, sync, source_ref
         source_ref=source_ref,
     )
 
-    # Normal "with" statements are enter, exit ordered after 3.6, and "async with"
-    # are since 3.9, and since 3.9 the enter is not awaited, until an exit is present.
-    if python_version >= 0x390 and not sync:
+    # CPython looks up both special methods before calling "__enter__", but the
+    # order of the lookups changed over versions: 3.6 for "with", 3.9 for
+    # "async with", and 3.14 both returned to "__exit__" first.
+    if (sync and 0x360 <= python_version < 0x3E0) or (
+        not sync and 0x390 <= python_version < 0x3E0
+    ):
+        attribute_assignments = (enter_lookup_assignment, exit_lookup_assignment)
+    else:
+        attribute_assignments = (exit_lookup_assignment, enter_lookup_assignment)
+
+    # Since 3.9, "__aenter__" is not awaited until "__aexit__" was looked up.
+    if not sync and python_version >= 0x390:
         enter_await_statement = makeStatementAssignmentVariable(
             variable=tmp_enter_variable,
             source=ExpressionYieldFromAwaitable(
@@ -206,26 +224,11 @@ def _buildWithNode(provider, context_expr, assign_target, body, sync, source_ref
             source_ref=source_ref,
         )
 
-        # It's weird, but 3.14 looks up "__aexit__" before "__aenter__".
-        if python_version >= 0x3E0:
-            attribute_assignments = (
-                attribute_exit_assignment,
-                attribute_enter_assignment,
-                enter_await_statement,
-            )
-        else:
-            attribute_assignments = (
-                attribute_enter_assignment,
-                attribute_exit_assignment,
-                enter_await_statement,
-            )
-    # It's weird, but 3.14 looks up __exit__ before __enter__
-    elif 0x360 <= python_version < 0x3E0 and sync:
-        attribute_assignments = (attribute_enter_assignment, attribute_exit_assignment)
+        statements.extend(
+            attribute_assignments + (enter_call_assignment, enter_await_statement)
+        )
     else:
-        attribute_assignments = (attribute_exit_assignment, attribute_enter_assignment)
-
-    statements.extend(attribute_assignments)
+        statements.extend(attribute_assignments + (enter_call_assignment,))
 
     statements.append(
         makeStatementAssignmentVariable(
