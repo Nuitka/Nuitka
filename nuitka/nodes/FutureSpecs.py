@@ -9,6 +9,8 @@ in-lining of 'exec' statements with their own future imports, or in-lining of
 code from other modules.
 """
 
+import __future__
+
 from nuitka.containers.OrderedDicts import OrderedDict
 from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.PythonVersions import python_version
@@ -141,6 +143,16 @@ class FutureSpec(object):
             result.append("CO_FUTURE_ANNOTATIONS")
 
         return tuple(result)
+
+    def getCompilerFlags(self):
+        """Return active future flags as an integer for the 'compile' built-in."""
+
+        result = 0
+
+        for future_flag_name in self.asFlags():
+            result |= getattr(__future__, future_flag_name)
+
+        return result
 
     def encode(self):
         # TODO: Maybe asFlags becomes unnecessary.

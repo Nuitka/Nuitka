@@ -39,6 +39,16 @@ def _removeLineNumbersFromTree(tree):
             node.end_col_offset = 0
 
 
+def removeDocStringsFromTree(tree):
+    """Remove module, class, and function docstrings from a parsed tree."""
+
+    _removeDocFromBody(tree)
+
+    for node in ast.walk(tree):
+        if isinstance(node, doc_having):
+            _removeDocFromBody(node)
+
+
 def compileSourceToBytecode(
     source_code, filename, remove_doc_strings, remove_asserts, remove_line_numbers
 ):
@@ -61,32 +71,26 @@ def compileSourceToBytecode(
     # For Python2, we need to do this manually.
     remove_asserts_from_tree = remove_asserts and str is bytes
 
-    if remove_doc_strings or remove_asserts_from_tree:
-        # Module level docstring.
-        if remove_doc_strings:
-            _removeDocFromBody(tree)
+    if remove_doc_strings:
+        removeDocStringsFromTree(tree)
 
+    if remove_asserts_from_tree:
         for node in ast.walk(tree):
-            if remove_asserts_from_tree:
-                node_type = type(node)
+            node_type = type(node)
 
-                if node_type is ast.Name:
-                    if node.id == "__debug__":
-                        node.id = "False"
+            if node_type is ast.Name:
+                if node.id == "__debug__":
+                    node.id = "False"
 
-                elif node_type is ast.Assert:
-                    # Cannot really remove the assertion node easily, lets just replace it with
-                    # "assert 1" and remove the assert msg. Probably not worth more effort for
-                    # Python2 at this time.
-                    node.test = ast.Num()
-                    node.test.n = 1
-                    node.test.lineno = node.lineno
-                    node.test.col_offset = node.col_offset
-                    node.msg = None
-
-            # Check if it's a docstring having node type.
-            if remove_doc_strings and isinstance(node, doc_having):
-                _removeDocFromBody(node)
+            elif node_type is ast.Assert:
+                # Cannot really remove the assertion node easily, lets just replace it with
+                # "assert 1" and remove the assert msg. Probably not worth more effort for
+                # Python2 at this time.
+                node.test = ast.Num()
+                node.test.n = 1
+                node.test.lineno = node.lineno
+                node.test.col_offset = node.col_offset
+                node.msg = None
 
     if str is bytes:
         bytecode = compile(

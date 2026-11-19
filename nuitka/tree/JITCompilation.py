@@ -6,13 +6,17 @@
 import ast
 import symtable
 
+from nuitka.Bytecodes import removeDocStringsFromTree
 from nuitka.nodes.BuiltinDictNodes import ExpressionBuiltinDict
 from nuitka.nodes.ConstantRefNodes import makeConstantRefNode
 from nuitka.nodes.DictionaryNodes import (
     StatementDictOperationRemove,
     StatementDictOperationSet,
 )
-from nuitka.nodes.ExecEvalNodes import ExpressionBuiltinExec
+from nuitka.nodes.ExecEvalNodes import (
+    ExpressionBuiltinCompile,
+    ExpressionBuiltinExec,
+)
 from nuitka.nodes.GlobalsLocalsNodes import ExpressionBuiltinGlobals
 from nuitka.nodes.KeyValuePairNodes import (
     makeExpressionKeyValuePairConstantKey,
@@ -27,7 +31,7 @@ from nuitka.nodes.VariableNameNodes import (
     ExpressionVariableNameRef,
     StatementAssignmentVariableName,
 )
-from nuitka.plugins.Hooks import getJITDecoratorRegistrations
+from nuitka.plugins.Hooks import decideDocStrings, getJITDecoratorRegistrations
 from nuitka.Tracing import general
 
 from .AstUnparsing import unparseNode
@@ -309,18 +313,42 @@ def _getFunctionSourceCode(node, logger):
     return "\n" * (source_line - 1) + unparseNode(node, logger=logger)
 
 
+def _removeFunctionDocString(module, node):
+    if decideDocStrings(module) is False:
+        removeDocStringsFromTree(node)
+
+
 def buildBytecodeOrSourceFunction(
     provider, node, function_name, compilation_mode, source_ref, logger
 ):
     # TODO: Compile to bytecode at compile time when compilation_mode == "bytecode"
     # so source code does not need to be embedded in the binary.
     # pylint: disable=unused-argument
+    _removeFunctionDocString(module=provider.getParentModule(), node=node)
+
     source_code = _getFunctionSourceCode(node=node, logger=logger)
 
-    source = makeConstantRefNode(
-        constant=source_code,
+    # Kernel compilers read the source of a function by its code filename, so
+    # compile with the module filename instead of the '<string>' of "exec".
+    # The module's future flags and no inherited flags keep the parsing rules
+    # of the module, e.g. no annotation evaluation with postponed annotations.
+    source = ExpressionBuiltinCompile(
+        source=makeConstantRefNode(
+            constant=source_code,
+            source_ref=source_ref,
+            user_provided=True,
+        ),
+        filename=ExpressionVariableNameRef(
+            provider=provider, variable_name="__file__", source_ref=source_ref
+        ),
+        mode=makeConstantRefNode(constant="exec", source_ref=source_ref),
+        flags=makeConstantRefNode(
+            constant=provider.getParentModule().getFutureSpec().getCompilerFlags(),
+            source_ref=source_ref,
+        ),
+        dont_inherit=makeConstantRefNode(constant=True, source_ref=source_ref),
+        optimize=None,
         source_ref=source_ref,
-        user_provided=True,
     )
 
     # Functions with closure variables are executed with a namespace that
