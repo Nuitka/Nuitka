@@ -21,6 +21,7 @@ from string import Formatter
 from nuitka.PythonFlavors import getPythonFlavorName
 from nuitka.PythonVersions import (
     displayRecommendedVersion,
+    isPythonIdentifier,
     isPythonWithGil,
     python_version_full_str,
     python_version_str,
@@ -3047,8 +3048,7 @@ def getNuitkaProjectOptions(logger, filename_arg, module_mode):
                 key = key.strip()
                 val_expr = val_expr.strip()
 
-                # TODO: Use isPythonIdentifier starting with 4.1 development for Python2 compatibility.
-                if not key.isidentifier():
+                if not isPythonIdentifier(key):
                     return sysexit(
                         line_number,
                         "Error, 'nuitka-project-set' key '%s' is not a valid Python identifier."
