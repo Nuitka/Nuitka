@@ -2291,6 +2291,16 @@ call of the functions below is a hint that it should be replaced.
       -  Assert an exact ``unicode`` receiver; narrower than the
          subtype-friendly CPython API.
 
+   -  -  ``PyUnicode_Concat``
+
+      -  ``UNICODE_CONCAT``
+
+      -  ``helper/operations.h``
+
+      -  Same new-reference and ``NULL``-on-error contract; on Python 3
+         it fast-paths empty operands and copies Unicode data directly.
+         Python 2 delegates to ``PyUnicode_Concat``.
+
    -  -  ``PyUnicode_CompareWithASCIIString``
 
       -  ``Nuitka_Unicode_CompareWithASCIIString``
