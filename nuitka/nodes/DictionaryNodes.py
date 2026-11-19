@@ -469,7 +469,7 @@ class ExpressionDictOperationPop3(ExpressionDictOperationPop3Base):
         return self, None, None
 
     def mayRaiseException(self, exception_type):
-        if self.known_hashable_key is None:
+        if self.known_hashable_key is not True:
             return True
         else:
             return (
@@ -706,7 +706,7 @@ class ExpressionDictOperationGet2(ExpressionDictOperationGet2Base):
         return self, None, None
 
     def mayRaiseException(self, exception_type):
-        if self.known_hashable_key is None:
+        if self.known_hashable_key is not True:
             return True
         else:
             return self.subnode_dict_arg.mayRaiseException(
@@ -714,7 +714,7 @@ class ExpressionDictOperationGet2(ExpressionDictOperationGet2Base):
             ) or self.subnode_key.mayRaiseException(exception_type)
 
     def mayHaveSideEffects(self):
-        if self.known_hashable_key is None:
+        if self.known_hashable_key is not True:
             return True
         else:
             return (
@@ -723,7 +723,7 @@ class ExpressionDictOperationGet2(ExpressionDictOperationGet2Base):
             )
 
     def extractSideEffects(self):
-        if self.known_hashable_key is None:
+        if self.known_hashable_key is not True:
             return (self,)
         else:
             return (
@@ -801,7 +801,7 @@ class ExpressionDictOperationGet3(ExpressionDictOperationGet3Base):
         return self, None, None
 
     def mayRaiseException(self, exception_type):
-        if self.known_hashable_key is None:
+        if self.known_hashable_key is not True:
             return True
         else:
             return (
@@ -811,7 +811,7 @@ class ExpressionDictOperationGet3(ExpressionDictOperationGet3Base):
             )
 
     def mayHaveSideEffects(self):
-        if self.known_hashable_key is None:
+        if self.known_hashable_key is not True:
             return True
         else:
             return (
@@ -821,7 +821,7 @@ class ExpressionDictOperationGet3(ExpressionDictOperationGet3Base):
             )
 
     def extractSideEffects(self):
-        if self.known_hashable_key is None:
+        if self.known_hashable_key is not True:
             return (self,)
         else:
             return (
@@ -865,7 +865,9 @@ class ExpressionDictOperationClear(ExpressionDictOperationClearBase):
     kind = "EXPRESSION_DICT_OPERATION_CLEAR"
 
     def computeExpression(self, trace_collection):
-        # TODO: Track dictionary clearing in 'trace_collection'.
+        trace_collection.removeKnowledge(self.subnode_dict_arg)
+        trace_collection.onControlFlowEscape(self)
+
         return self, None, None
 
     def mayRaiseException(self, exception_type):

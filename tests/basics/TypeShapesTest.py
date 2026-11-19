@@ -204,6 +204,45 @@ def strOrUnicodeOperations(flag, arg):
         print("decoded pow TypeError:", type(e).__name__)
 
 
+clear_escape_state = "init"
+
+
+class ClearFinalizer(object):
+    def __del__(self):
+        global clear_escape_state
+        clear_escape_state = "finalized"
+
+
+def dictClearKnowledgeAndEscape():
+    global clear_escape_state
+
+    d = {"a": 1}
+    d.clear()
+    print("dict.clear membership/truth:", "a" in d, bool(d), len(d))
+
+    clear_escape_state = "before"
+    d2 = {"k": ClearFinalizer()}
+    before = clear_escape_state
+    d2.clear()
+    after = clear_escape_state
+    print("dict.clear finalizer escape:", before, after, bool(d2))
+
+
+def dictUnhashableOperations(flag):
+    d = {"a": 1}
+    k = [1] if flag else [2]
+
+    for label, fn in (
+        ("get2", lambda: d.get(k)),
+        ("get3", lambda: d.get(k, 9)),
+        ("pop3", lambda: d.pop(k, 9)),
+    ):
+        try:
+            fn()
+        except TypeError as e:
+            print("dict unhashable", label, type(e).__name__)
+
+
 bytesAddBytearray("12")
 typeLessThanType(1, 2)
 typeLessThanType(OrderedA(), OrderedB())
@@ -218,6 +257,9 @@ loopCompleteAlternativeComparisons((False,))
 loopCompleteAlternativeComparisons((True, False))
 strOrUnicodeOperations(True, "world")
 strOrUnicodeOperations(False, 42)
+dictClearKnowledgeAndEscape()
+dictUnhashableOperations(True)
+dictUnhashableOperations(False)
 
 #     Python tests originally created or extracted from other peoples work. The
 #     parts were too small to be protected.
