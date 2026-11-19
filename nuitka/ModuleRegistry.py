@@ -35,6 +35,9 @@ ActiveModuleInfo = collections.namedtuple(
 # Already traversed modules
 done_modules = set()
 
+# Lookup by full name for the active and done modules.
+modules_by_name = {}
+
 
 def addRootModule(module):
     root_modules.add(module)
@@ -72,6 +75,10 @@ def replaceRootModule(old, new):
     assert len(root_modules) == len(new_root_modules)
 
     root_modules = new_root_modules
+
+    full_name = new.getFullName()
+    if modules_by_name.get(full_name) is old:
+        modules_by_name[full_name] = new
 
 
 def getUncompiledModules():
@@ -135,9 +142,10 @@ def _normalizeModuleFilename(filename):
 def startTraversal():
     # Using global here, as this is really a singleton, in the form of a module,
     # pylint: disable=global-statement
-    global active_modules, done_modules, active_modules_info
+    global active_modules, done_modules, active_modules_info, modules_by_name
 
     active_modules = OrderedSet(root_modules)
+    modules_by_name = dict((module.getFullName(), module) for module in active_modules)
 
     active_modules_info = {}
     for root_module in root_modules:
@@ -156,6 +164,7 @@ def startTraversal():
 def addUsedModule(module, using_module, usage_tag, reason, source_ref):
     if module not in done_modules and module not in active_modules:
         active_modules.add(module)
+        modules_by_name[module.getFullName()] = module
 
         active_modules_info[module] = ActiveModuleInfo(
             using_module=using_module,
@@ -225,15 +234,7 @@ def getOwnerFromCodeName(code_name):
 
 
 def getModuleByName(module_name):
-    for module in active_modules:
-        if module.getFullName() == module_name:
-            return module
-
-    for module in done_modules:
-        if module.getFullName() == module_name:
-            return module
-
-    return None
+    return modules_by_name.get(module_name)
 
 
 module_influencing_plugins = {}
