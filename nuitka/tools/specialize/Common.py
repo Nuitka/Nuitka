@@ -350,6 +350,7 @@ def _getSpecVersionsDict(spec_module):
                 (0x3D0, "313"),
                 (0x3E0, "314"),
                 (0x3F0, "315"),
+                (0x400, "316"),
             ):
                 if spec_name.endswith("_since_%s_spec" % str_version):
                     python_criterion = ">= 0x%x" % version
