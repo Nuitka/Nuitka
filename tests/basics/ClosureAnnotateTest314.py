@@ -229,6 +229,38 @@ print(
     ),
 )
 
+
+def makeShadowedBuiltinsAndFStringAnnotation():
+    vars = complex
+    dir = bytearray
+    str = set
+    format = dict
+    ascii = frozenset
+    mapping = {"tag": "ok"}
+    num = 7
+    non_ascii = "\xe9"
+
+    def inner(
+        a: vars,
+        b: dir,
+        c: str,
+        d: format,
+        e: ascii,
+        f_multi: f"v={num!s}/{non_ascii!a}",
+        f_single: f"{num}",
+        f_ascii: f"{non_ascii!a}",
+        attr_val: mapping.get("tag"),
+    ):
+        return (a, b, c, d, e, f_multi, f_single, f_ascii, attr_val)
+
+    return inner
+
+
+print(
+    "Closure shadowed builtins and f-strings:",
+    displayDict(makeShadowedBuiltinsAndFStringAnnotation().__annotations__),
+)
+
 #     Python tests originally created or extracted from other peoples work. The
 #     parts were too small to be protected.
 #

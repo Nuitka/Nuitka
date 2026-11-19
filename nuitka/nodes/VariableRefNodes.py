@@ -447,8 +447,7 @@ class ExpressionVariableRef(ExpressionVariableRefBase):
 
         # TODO: Change '__file__' handling so that it does not need this exception.
         if variable.isModuleVariable() and (
-            variable.hasDefiniteWrites() is False
-            or variable.getName() in ("super", "__file__")
+            variable.hasDefiniteWrites() is False or variable.getName() == "__file__"
         ):
             variable_name = self.variable.getName()
 

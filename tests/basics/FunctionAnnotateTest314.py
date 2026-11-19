@@ -202,6 +202,164 @@ print(
     displayDict(get_annotations(_precedenceAndDictAnnotations, format=Format.STRING)),
 )
 
+
+class _AttrHolder:
+    get = "custom_get"
+    replace = "custom_replace"
+    __prepare__ = "custom_prepare"
+
+
+_attr_holder = _AttrHolder()
+_known_dict = {"k": 1}
+_known_list = [1, 2]
+_known_str = "abc"
+_known_bytes = b"xyz"
+_num = 42
+_width = 5
+_non_ascii = "\xe9"
+
+
+def _attributeLookupAnnotations(
+    fixed_get: _attr_holder.get,
+    fixed_replace: _attr_holder.replace,
+    special_prepare: _attr_holder.__prepare__,
+    dict_get: _known_dict.get,
+    dict_items: _known_dict.items,
+    dict_fromkeys: dict.fromkeys,
+    list_append: _known_list.append,
+    str_replace: _known_str.replace,
+    str_format: _known_str.format,
+    bytes_decode: _known_bytes.decode,
+    type_prepare: type.__prepare__,
+    cond_get: (_attr_holder if _flag else _known_dict).get,
+):
+    return (
+        fixed_get,
+        fixed_replace,
+        special_prepare,
+        dict_get,
+        dict_items,
+        dict_fromkeys,
+        list_append,
+        str_replace,
+        str_format,
+        bytes_decode,
+        type_prepare,
+        cond_get,
+    )
+
+
+print(
+    "Attribute lookup annotations (VALUE):",
+    [
+        (
+            key,
+            type(value).__name__,
+            value if isinstance(value, str) else value.__qualname__,
+        )
+        for key, value in sorted(
+            get_annotations(_attributeLookupAnnotations, format=Format.VALUE).items()
+        )
+    ],
+)
+print(
+    "Attribute lookup annotations (STRING):",
+    displayDict(get_annotations(_attributeLookupAnnotations, format=Format.STRING)),
+)
+
+
+def _fstringAnnotations(
+    multi: f"val={_num}, str={_known_str}",
+    conversions: f"s={_num!s} r={_known_str!r} a={_non_ascii!a}",
+    single_plain: f"{_num}",
+    single_s: f"{_num!s}",
+    single_r: f"{_known_str!r}",
+    single_a: f"{_non_ascii!a}",
+    static_spec: f"{_num:05d}",
+    nested_spec: f"{_num:>{_width}}",
+    brace_spec: f"{_known_str:{'{'}<5}",
+    literal_braces: f"{{lit}}={_num}",
+    dict_in_fstring: f"{ {'a': _num}['a'] }",
+    cond_in_fstring: f"pick={_num if _flag else 0}",
+):
+    return (
+        multi,
+        conversions,
+        single_plain,
+        single_s,
+        single_r,
+        single_a,
+        static_spec,
+        nested_spec,
+        brace_spec,
+        literal_braces,
+        dict_in_fstring,
+        cond_in_fstring,
+    )
+
+
+print(
+    "f-string annotations (VALUE):",
+    displayDict(get_annotations(_fstringAnnotations, format=Format.VALUE)),
+)
+
+try:
+    get_annotations(_fstringAnnotations, format=Format.STRING)
+except TypeError as exc:
+    print("f-string annotations (STRING) TypeError:", exc)
+
+
+def _stringBuiltinCallAnnotations(
+    call_str1: str(_num),
+    call_str2: str(_known_bytes, "ascii"),
+    call_str3: str(_known_bytes, errors="ignore"),
+    call_ascii: ascii(_non_ascii),
+    call_format: format(_num, "04d"),
+):
+    return (call_str1, call_str2, call_str3, call_ascii, call_format)
+
+
+print(
+    "String builtin call annotations (VALUE):",
+    displayDict(get_annotations(_stringBuiltinCallAnnotations, format=Format.VALUE)),
+)
+print(
+    "String builtin call annotations (STRING):",
+    displayDict(get_annotations(_stringBuiltinCallAnnotations, format=Format.STRING)),
+)
+
+
+# Shadow hard and ordinary builtin names at module level (kept at end of file).
+vars = int
+dir = str
+locals = float
+eval = bytes
+exec = tuple
+super = list
+format = dict
+ascii = frozenset
+
+
+def _shadowedModuleBuiltinAnnotations(
+    a: vars,
+    b: dir,
+    c: locals,
+    d: eval,
+    e: exec,
+    g: super,
+    h: format,
+    i: ascii,
+) -> f"{_num}/{_non_ascii!a}":
+    return (a, b, c, d, e, g, h, i)
+
+
+print(
+    "Shadowed module builtin annotations (VALUE):",
+    displayDict(
+        get_annotations(_shadowedModuleBuiltinAnnotations, format=Format.VALUE)
+    ),
+)
+
 #     Python tests originally created or extracted from other peoples work. The
 #     parts were too small to be protected.
 #

@@ -13,6 +13,10 @@ import types
 from nuitka.__past__ import GenericAlias, UnionType, frozendict, re_sub
 from nuitka.Constants import EllipsisType, NoneType
 from nuitka.Errors import NuitkaCodeDeficit
+from nuitka.nodes.AttributeNodesGenerated import (
+    attribute_classes,
+    attribute_typed_classes,
+)
 from nuitka.nodes.HardImportNodes import getBuiltinRefNodes
 from nuitka.Tracing import code_generation_logger
 
@@ -51,6 +55,62 @@ _PREC_POSTFIX = 15
 _PREC_ATOM = 16
 
 
+def _isBuiltinNameShadowed(node, builtin_name):
+    """Check whether `builtin_name` is shadowed in the node's generated scope."""
+    current = node.getParent()
+
+    while current is not None and not current.isParentVariableProvider():
+        current = current.getParent()
+
+    if current is None:
+        return False
+
+    if current.isExpressionFunctionBodyBase():
+        for parameter_name in current.getParameters().getParameterNames():
+            source_name = (
+                parameter_name
+                if parameter_name.isidentifier()
+                else _annotate_argument_name
+            )
+            if source_name == builtin_name:
+                return True
+
+        for closure_variable in current.getClosureVariables():
+            if getAnnotateSourceVariableName(closure_variable) == builtin_name:
+                return True
+
+        if current.getClosureVariables() and current.getFunctionName() == builtin_name:
+            return True
+
+        module = current.getParentModule()
+    elif current.isCompiledPythonModule():
+        module = current
+    else:
+        module = current.getParentModule()
+
+    if (
+        builtin_name in module.variables
+        and module.variables[builtin_name].hasDefiniteWrites() is not False
+    ):
+        return True
+
+    return False
+
+
+def _getBuiltinCallableSource(node, builtin_name):
+    """Return `builtin_name`, or `builtins` lookup if shadowed in scope."""
+    if _isBuiltinNameShadowed(node, builtin_name):
+        if _isBuiltinNameShadowed(node, "__import__"):
+            raise PythonSourceGenerationError(
+                "Shadowed builtin '%s' cannot be accessed when '__import__' is also shadowed"
+                % builtin_name
+            )
+
+        return "__import__('builtins').%s" % builtin_name
+
+    return builtin_name
+
+
 # ---------------------------------------------------------------------------
 # Per-kind generators
 
@@ -71,7 +131,7 @@ def _formatTypeSource(value, expression):
         The type name as a Python source string.
     """
     if value.__module__ in ("builtins", None):
-        return value.__name__
+        return _getBuiltinCallableSource(expression, value.__name__)
 
     module = expression.getParentModule()
     alias = _findAliasForModule(module, value.__module__)
@@ -360,9 +420,7 @@ def _generateGenericAliasSource(expression):
 
     source = re_sub(r"\b([^\W\d]\w*)\.", _replaceAlias, s, flags=re.UNICODE)
     precedence = (
-        _PREC_BIT_OR
-        if expression.kind == "EXPRESSION_CONSTANT_UNION_TYPE"
-        else _PREC_POSTFIX
+        _PREC_BIT_OR if expression.isExpressionConstantUnionType() else _PREC_POSTFIX
     )
     return source, precedence
 
@@ -475,15 +533,13 @@ def _formatConstantSubscriptElement(value, expression):
 
 
 def _generateSubscriptItemSource(expression):
-    kind = expression.kind
-
-    if kind == "EXPRESSION_BUILTIN_SLICE1":
+    if expression.isExpressionBuiltinSlice1():
         stop = expression.subnode_stop
         stop_source = (
             "" if stop.isExpressionConstantNoneRef() else generateExpressionSource(stop)
         )
         return ":%s" % stop_source
-    elif kind == "EXPRESSION_BUILTIN_SLICE2":
+    elif expression.isExpressionBuiltinSlice2():
         start = expression.subnode_start
         stop = expression.subnode_stop
         start_source = (
@@ -495,7 +551,7 @@ def _generateSubscriptItemSource(expression):
             "" if stop.isExpressionConstantNoneRef() else generateExpressionSource(stop)
         )
         return "%s:%s" % (start_source, stop_source)
-    elif kind == "EXPRESSION_BUILTIN_SLICE3":
+    elif expression.isExpressionBuiltinSlice3():
         start = expression.subnode_start
         stop = expression.subnode_stop
         step = expression.subnode_step
@@ -511,7 +567,7 @@ def _generateSubscriptItemSource(expression):
             "" if step.isExpressionConstantNoneRef() else generateExpressionSource(step)
         )
         return "%s:%s:%s" % (start_source, stop_source, step_source)
-    elif kind == "EXPRESSION_CONSTANT_SLICE_REF":
+    elif expression.isExpressionConstantSliceRef():
         return _formatConstantSliceSubscript(
             expression.getCompileTimeConstant(), expression
         )
@@ -536,11 +592,7 @@ def _generateSubscriptArgumentSource(subscript):
                 for element in subscript.subnode_elements
             ]
         )
-    elif subscript.kind in (
-        "EXPRESSION_CONSTANT_TUPLE_REF",
-        "EXPRESSION_CONSTANT_TUPLE_MUTABLE_REF",
-        "EXPRESSION_CONSTANT_TUPLE_EMPTY_REF",
-    ):
+    elif subscript.isExpressionConstantTupleRef():
         return _formatSubscriptTupleItems(
             [
                 _formatConstantSubscriptElement(element, subscript)
@@ -582,7 +634,14 @@ def _generateSysModulesCallSource(expression):
     if default is not None:
         arguments.append(generateExpressionSource(default))
 
-    method_name = "get" if "GET" in expression.kind else "pop"
+    method_name = (
+        "get"
+        if (
+            expression.isExpressionSysModulesGet2()
+            or expression.isExpressionSysModulesGet3()
+        )
+        else "pop"
+    )
 
     return "sys.modules.%s(%s)" % (method_name, ", ".join(arguments)), _PREC_POSTFIX
 
@@ -629,9 +688,9 @@ def _generateBinaryOpSource(expression):
 
 
 def _generatePairKeySource(pair):
-    if pair.kind in (
-        "EXPRESSION_KEY_VALUE_PAIR_CONSTANT_KEY",
-        "EXPRESSION_KEY_VALUE_PAIR_CONSTANT_KEY_VALUE",
+    if (
+        pair.isExpressionKeyValuePairConstantKey()
+        or pair.isExpressionKeyValuePairConstantKeyValue()
     ):
         return _formatConstantElement(pair.getKeyCompileTimeConstant(), pair)
 
@@ -639,7 +698,7 @@ def _generatePairKeySource(pair):
 
 
 def _generatePairValueSource(pair):
-    if pair.kind == "EXPRESSION_KEY_VALUE_PAIR_CONSTANT_KEY_VALUE":
+    if pair.isExpressionKeyValuePairConstantKeyValue():
         return _formatConstantElement(pair.getValueCompileTimeConstant(), pair)
 
     return generateExpressionSource(pair.subnode_value)
@@ -729,14 +788,16 @@ _template_string_conversion_characters = {
 }
 
 
-def _escapeTemplateStringText(value):
+def _escapeFormattedStringText(value, in_format_spec=False):
     parts = []
 
     for char in value:
+        code_point = ord(char)
+
         if char == "{":
-            parts.append("{{")
+            parts.append('{"{"}' if in_format_spec else "{{")
         elif char == "}":
-            parts.append("}}")
+            parts.append('{"}"}' if in_format_spec else "}}")
         elif char == "\\":
             parts.append("\\\\")
         elif char == '"':
@@ -747,12 +808,18 @@ def _escapeTemplateStringText(value):
             parts.append("\\r")
         elif char == "\t":
             parts.append("\\t")
-        elif ord(char) < 32 or ord(char) == 127:
-            parts.append("\\x%02x" % ord(char))
+        elif code_point < 32 or code_point == 127:
+            parts.append("\\x%02x" % code_point)
+        elif 0xD800 <= code_point <= 0xDFFF:
+            parts.append("\\u%04x" % code_point)
         else:
             parts.append(char)
 
     return "".join(parts)
+
+
+def _escapeTemplateStringText(value):
+    return _escapeFormattedStringText(value, in_format_spec=False)
 
 
 def _generateTemplateInterpolationSource(interpolation):
@@ -786,8 +853,8 @@ def _generateTemplateInterpolationSource(interpolation):
                 "Unsupported dynamic format specifier for template string source generation"
             )
 
-        value_source += ":" + _escapeTemplateStringText(
-            format_spec.getCompileTimeConstant()
+        value_source += ":" + _escapeFormattedStringText(
+            format_spec.getCompileTimeConstant(), in_format_spec=True
         )
 
     return "{%s}" % value_source
@@ -820,6 +887,147 @@ def _generateTemplateStringSource(expression):
     return "".join(parts), _PREC_ATOM
 
 
+def _unwrapFormattedValueConversion(inner):
+    if (
+        inner.isExpressionBuiltinStrP3()
+        and inner.subnode_value is not None
+        and inner.subnode_encoding is None
+        and inner.subnode_errors is None
+    ):
+        return inner.subnode_value, "!s", "str"
+    elif inner.isExpressionOperationUnaryRepr():
+        return inner.subnode_operand, "!r", "repr"
+    elif inner.isExpressionBuiltinAscii():
+        return inner.subnode_value, "!a", "ascii"
+    else:
+        return inner, "", None
+
+
+def _generateFStringPartSource(part, in_format_spec=False):
+    if part.isExpressionConstantStrOrUnicodeRef():
+        return _escapeFormattedStringText(
+            part.getCompileTimeConstant(), in_format_spec=in_format_spec
+        )
+    elif part.isExpressionStringConcatenation():
+        return "".join(
+            _generateFStringPartSource(value, in_format_spec=in_format_spec)
+            for value in part.subnode_values
+        )
+    elif part.isExpressionBuiltinFormat():
+        value_node, conversion, _builtin_name = _unwrapFormattedValueConversion(
+            part.subnode_value
+        )
+
+        value_source = _generateSubExpressionSource(value_node, _PREC_CONDITIONAL)
+        if value_source.startswith("{"):
+            value_source = " %s " % value_source
+
+        format_spec = part.subnode_format_spec
+        if format_spec is None:
+            spec_source = ""
+        else:
+            spec_source = ":" + _generateFStringPartSource(
+                format_spec, in_format_spec=True
+            )
+
+        return "{%s%s%s}" % (value_source, conversion, spec_source)
+    elif part.isExpressionBuiltinAscii():
+        value_source = _generateSubExpressionSource(
+            part.subnode_value, _PREC_CONDITIONAL
+        )
+        if value_source.startswith("{"):
+            value_source = " %s " % value_source
+
+        return "{%s!a}" % value_source
+    else:
+        value_source = _generateSubExpressionSource(part, _PREC_CONDITIONAL)
+        if value_source.startswith("{"):
+            value_source = " %s " % value_source
+
+        return "{%s}" % value_source
+
+
+def _generateStringConcatenationSource(expression):
+    parts = [_generateFStringPartSource(value) for value in expression.subnode_values]
+    return 'f"%s"' % "".join(parts), _PREC_ATOM
+
+
+def _generateBuiltinFormatSource(expression):
+    _value_node, _conversion, conversion_builtin = _unwrapFormattedValueConversion(
+        expression.subnode_value
+    )
+
+    if _isBuiltinNameShadowed(expression, "format") or (
+        conversion_builtin is not None
+        and _isBuiltinNameShadowed(expression, conversion_builtin)
+    ):
+        return 'f"%s"' % _generateFStringPartSource(expression), _PREC_ATOM
+
+    value_source = generateExpressionSource(expression.subnode_value)
+    format_spec = expression.subnode_format_spec
+
+    if format_spec is None:
+        return "format(%s)" % value_source, _PREC_POSTFIX
+
+    return (
+        "format(%s, %s)" % (value_source, generateExpressionSource(format_spec)),
+        _PREC_POSTFIX,
+    )
+
+
+def _generateBuiltinStrSource(expression):
+    callable_source = _getBuiltinCallableSource(expression, "str")
+    value = expression.subnode_value
+
+    if expression.isExpressionBuiltinStrP2():
+        if value is None:
+            return "%s()" % callable_source, _PREC_POSTFIX
+
+        return (
+            "%s(%s)" % (callable_source, generateExpressionSource(value)),
+            _PREC_POSTFIX,
+        )
+
+    encoding = expression.subnode_encoding
+    errors = expression.subnode_errors
+
+    arguments = []
+
+    if value is not None:
+        arguments.append(generateExpressionSource(value))
+
+        if encoding is not None:
+            arguments.append(generateExpressionSource(encoding))
+            if errors is not None:
+                arguments.append(generateExpressionSource(errors))
+        elif errors is not None:
+            arguments.append("errors=%s" % generateExpressionSource(errors))
+    else:
+        if encoding is not None:
+            arguments.append("encoding=%s" % generateExpressionSource(encoding))
+        if errors is not None:
+            arguments.append("errors=%s" % generateExpressionSource(errors))
+
+    return "%s(%s)" % (callable_source, ", ".join(arguments)), _PREC_POSTFIX
+
+
+def _generateBuiltinAsciiSource(expression):
+    if _isBuiltinNameShadowed(expression, "ascii"):
+        return 'f"%s"' % _generateFStringPartSource(expression), _PREC_ATOM
+
+    return (
+        "ascii(%s)" % generateExpressionSource(expression.subnode_value),
+        _PREC_POSTFIX,
+    )
+
+
+def _generateDictOperationFromkeysRefSource(expression):
+    return (
+        "%s.fromkeys" % _getBuiltinCallableSource(expression, "dict"),
+        _PREC_POSTFIX,
+    )
+
+
 def _generateDictLiteralSource(expression):
     items = []
     for pair in expression.subnode_pairs:
@@ -835,18 +1043,23 @@ def _generateDictSource(expression):
 
 
 def _generateBuiltinMappingSource(expression, name):
+    callable_source = _getBuiltinCallableSource(expression, name)
     pos_arg = expression.subnode_pos_arg
 
     if pos_arg is None:
-        return "%s(%s)" % (name, _generateDictLiteralSource(expression)), _PREC_POSTFIX
+        return (
+            "%s(%s)" % (callable_source, _generateDictLiteralSource(expression)),
+            _PREC_POSTFIX,
+        )
 
     pos_arg_source = generateExpressionSource(pos_arg)
 
     if not expression.subnode_pairs:
-        return "%s(%s)" % (name, pos_arg_source), _PREC_POSTFIX
+        return "%s(%s)" % (callable_source, pos_arg_source), _PREC_POSTFIX
 
     return (
-        "%s(%s, **%s)" % (name, pos_arg_source, _generateDictLiteralSource(expression)),
+        "%s(%s, **%s)"
+        % (callable_source, pos_arg_source, _generateDictLiteralSource(expression)),
         _PREC_POSTFIX,
     )
 
@@ -861,7 +1074,11 @@ def _generateBuiltinFrozendictSource(expression):
 
 def _generateBuiltinFrozensetSource(expression):
     return (
-        "frozenset(%s)" % generateExpressionSource(expression.subnode_value),
+        "%s(%s)"
+        % (
+            _getBuiltinCallableSource(expression, "frozenset"),
+            generateExpressionSource(expression.subnode_value),
+        ),
         _PREC_POSTFIX,
     )
 
@@ -885,15 +1102,19 @@ def _generateBuiltinSentinelSource(expression):
 
 def _generateBuiltinType1Source(expression):
     return (
-        "type(%s)" % generateExpressionSource(expression.subnode_value),
+        "%s(%s)"
+        % (
+            _getBuiltinCallableSource(expression, "type"),
+            generateExpressionSource(expression.subnode_value),
+        ),
         _PREC_POSTFIX,
     )
 
 
 def _generateSliceSource(expression):
-    if expression.kind == "EXPRESSION_BUILTIN_SLICE1":
+    if expression.isExpressionBuiltinSlice1():
         arguments = [generateExpressionSource(expression.subnode_stop)]
-    elif expression.kind == "EXPRESSION_BUILTIN_SLICE2":
+    elif expression.isExpressionBuiltinSlice2():
         arguments = [
             generateExpressionSource(expression.subnode_start),
             generateExpressionSource(expression.subnode_stop),
@@ -905,7 +1126,11 @@ def _generateSliceSource(expression):
             generateExpressionSource(expression.subnode_step),
         ]
 
-    return "slice(%s)" % ", ".join(arguments), _PREC_POSTFIX
+    return (
+        "%s(%s)"
+        % (_getBuiltinCallableSource(expression, "slice"), ", ".join(arguments)),
+        _PREC_POSTFIX,
+    )
 
 
 def _generateComparisonSource(expression):
@@ -935,7 +1160,7 @@ def _generateComparisonSource(expression):
 
 
 def _generateConditionalAndOrSource(expression):
-    if expression.kind == "EXPRESSION_CONDITIONAL_AND":
+    if expression.isExpressionConditionalAnd():
         op = "and"
         precedence = _PREC_AND
     else:
@@ -985,12 +1210,20 @@ def _generateUnaryOperationSource(expression):
         )
     elif expression.isExpressionOperationUnaryAbs():
         return (
-            "abs(%s)" % generateExpressionSource(expression.subnode_operand),
+            "%s(%s)"
+            % (
+                _getBuiltinCallableSource(expression, "abs"),
+                generateExpressionSource(expression.subnode_operand),
+            ),
             _PREC_POSTFIX,
         )
     elif expression.isExpressionOperationUnaryRepr():
         return (
-            "repr(%s)" % generateExpressionSource(expression.subnode_operand),
+            "%s(%s)"
+            % (
+                _getBuiltinCallableSource(expression, "repr"),
+                generateExpressionSource(expression.subnode_operand),
+            ),
             _PREC_POSTFIX,
         )
     else:
@@ -1338,7 +1571,12 @@ def _generateEllipsisSource(_expression):
 
 
 def _generateBuiltinRefSource(expression):
-    return expression.getBuiltinName(), _PREC_ATOM
+    builtin_name = expression.getBuiltinName()
+
+    if _isBuiltinNameShadowed(expression, builtin_name):
+        return _getBuiltinCallableSource(expression, builtin_name), _PREC_POSTFIX
+
+    return builtin_name, _PREC_ATOM
 
 
 # Anonymous builtin references, e.g. "NoneType" or "function" do not have
@@ -1373,7 +1611,17 @@ def _generateBuiltinAnonymousRefSource(expression):
 
 
 def _generateBuiltinPatchableTypeRefSource(expression):
-    return expression.getImportName(), _PREC_ATOM
+    import_name = expression.getImportName()
+    module = expression.getParentModule()
+    alias = _findAliasForModule(module, "builtins")
+
+    if alias is not None:
+        return "%s.%s" % (alias, import_name), _PREC_POSTFIX
+
+    if _isBuiltinNameShadowed(expression, import_name):
+        return _getBuiltinCallableSource(expression, import_name), _PREC_POSTFIX
+
+    return import_name, _PREC_ATOM
 
 
 def _generateImportModuleHardSource(expression):
@@ -1421,6 +1669,7 @@ _expression_source_dispatch = {
     "EXPRESSION_CLASS_MAPPING_VARIABLE_REF_OR_FALLBACK": _generateClassMappingVariableRefOrFallbackSource,
     "EXPRESSION_TEMP_VARIABLE_REF": _generateVariableRefSource,
     "EXPRESSION_VARIABLE_REF": _generateVariableRefSource,
+    "EXPRESSION_VARIABLE_OR_BUILTIN_REF": _generateVariableRefSource,
     "EXPRESSION_CONSTANT_STR_REF": _generateConstantStrRefSource,
     "EXPRESSION_CONSTANT_STR_EMPTY_REF": _generateConstantStrRefSource,
     "EXPRESSION_CONSTANT_UNICODE_REF": _generateConstantStrRefSource,
@@ -1439,6 +1688,8 @@ _expression_source_dispatch = {
     "EXPRESSION_CONSTANT_SLICE_REF": _generateConstantSliceRefSource,
     "EXPRESSION_CONSTANT_XRANGE_REF": _generateConstantXrangeRefSource,
     "EXPRESSION_ATTRIBUTE_LOOKUP": _generateAttributeLookupSource,
+    "EXPRESSION_ATTRIBUTE_LOOKUP_SPECIAL": _generateAttributeLookupSource,
+    "EXPRESSION_DICT_OPERATION_FROMKEYS_REF": _generateDictOperationFromkeysRefSource,
     "EXPRESSION_SUBSCRIPT_LOOKUP": _generateSubscriptLookupSource,
     "EXPRESSION_IMPORTLIB_RELOAD_REF": _generateImportlibReloadRefSource,
     "EXPRESSION_IMPORTLIB_RELOAD_CALL": _generateImportlibReloadCallSource,
@@ -1470,6 +1721,7 @@ _expression_source_dispatch = {
     "EXPRESSION_MAKE_LIST": _generateListSource,
     "EXPRESSION_MAKE_SET": _generateMakeSetSource,
     "EXPRESSION_MAKE_SET_LITERAL": _generateMakeSetSource,
+    "EXPRESSION_STRING_CONCATENATION": _generateStringConcatenationSource,
     "EXPRESSION_TEMPLATE_STRING": _generateTemplateStringSource,
     "EXPRESSION_CONSTANT_UNION_TYPE": _generateGenericAliasSource,
     "EXPRESSION_CONSTANT_GENERIC_ALIAS": _generateGenericAliasSource,
@@ -1487,10 +1739,14 @@ _expression_source_dispatch = {
     "EXPRESSION_CONSTANT_FROZENSET_REF": _generateFrozensetConstantSource,
     "EXPRESSION_CONSTANT_FROZENSET_EMPTY_REF": _generateFrozensetConstantSource,
     "EXPRESSION_MAKE_DICT": _generateDictSource,
+    "EXPRESSION_BUILTIN_ASCII": _generateBuiltinAsciiSource,
     "EXPRESSION_BUILTIN_DICT": _generateBuiltinDictSource,
+    "EXPRESSION_BUILTIN_FORMAT": _generateBuiltinFormatSource,
     "EXPRESSION_BUILTIN_FROZENDICT": _generateBuiltinFrozendictSource,
     "EXPRESSION_BUILTIN_FROZENSET": _generateBuiltinFrozensetSource,
     "EXPRESSION_BUILTIN_SENTINEL_CALL": _generateBuiltinSentinelSource,
+    "EXPRESSION_BUILTIN_STR_P2": _generateBuiltinStrSource,
+    "EXPRESSION_BUILTIN_STR_P3": _generateBuiltinStrSource,
     "EXPRESSION_BUILTIN_TYPE1": _generateBuiltinType1Source,
     "EXPRESSION_BUILTIN_SLICE1": _generateSliceSource,
     "EXPRESSION_BUILTIN_SLICE2": _generateSliceSource,
@@ -1530,6 +1786,18 @@ _expression_source_dispatch = {
     "EXPRESSION_IMPORT_MODULE_NAME_HARD_MAYBE_EXISTS": _generateImportModuleNameHardSource,
     "EXPRESSION_CTYPES_CDLL_REF": _generateImportModuleNameHardSource,
 }
+
+# Fixed-name attribute lookups, e.g. ".get", ".copy", ".format", ".replace",
+# and their type-specialized variants for dict, list, str, bytes, and type.
+_expression_source_dispatch.update(
+    (attribute_class.kind, _generateAttributeLookupSource)
+    for attribute_class in attribute_classes.values()
+)
+
+_expression_source_dispatch.update(
+    (attribute_class.kind, _generateAttributeLookupSource)
+    for attribute_class in attribute_typed_classes
+)
 
 # Hard import builtin reference nodes, e.g. "memoryview", "open", "print",
 # "reversed" and "sorted" use specialized classes with their own kinds, and
