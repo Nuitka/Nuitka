@@ -24,6 +24,7 @@ from .CodeHelpers import (
     doesExpressionWriteVariable,
     generateChildExpressionsCode,
     generateExpressionCode,
+    promoteBorrowedValue,
     withBorrowedValueScope,
     withObjectCodeTemporaryAssignment,
 )
@@ -226,6 +227,14 @@ def _getBinaryOperationCode(
     generateExpressionCode(
         to_name=left_name, expression=left, emit=emit, context=context
     )
+
+    if not inplace:
+        promoteBorrowedValue(
+            value_name=left_name,
+            later_expressions=(right,),
+            emit=emit,
+            context=context,
+        )
 
     if inplace and left.isExpressionVariableRef():
         # The in-place code path transfers the variable reference into the

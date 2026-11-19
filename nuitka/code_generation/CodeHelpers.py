@@ -135,6 +135,51 @@ def promoteBorrowedValuesForVariable(variable, emit, context):
         )
 
 
+def _mayExpressionWriteVariable(expression, variable, may_be_released):
+    """Check if an expression can rebind a variable a value borrows from.
+
+    Notes:
+        Module variables and variables with writers outside of the current
+        scope can have their value released by arbitrary code, so any
+        expression executing Python code may do so. For other variables only
+        direct writes in the expression matter.
+    """
+
+    if may_be_released:
+        return expression.mayHaveSideEffects()
+
+    return doesExpressionWriteVariable(expression, variable)
+
+
+def promoteBorrowedValue(value_name, later_expressions, emit, context):
+    """Protect a generated value against writes from later expressions."""
+
+    entry_point = context.getEntryPoint()
+
+    for variable, cleanup_scope in context.getBorrowedValues(value_name):
+        # TODO: Module variables should be able to tell if they have writes in
+        # the program, so that ones without writes need no protection here.
+        may_be_released = (
+            variable.isModuleVariable()
+            or variable.hasWritersOutsideOf(entry_point) is not False
+        )
+
+        for later_expression in later_expressions:
+            if _mayExpressionWriteVariable(
+                expression=later_expression,
+                variable=variable,
+                may_be_released=may_be_released,
+            ):
+                takeReferenceForValue(
+                    value_name=value_name,
+                    emit=emit,
+                    context=context,
+                    cleanup_scope=cleanup_scope,
+                )
+
+                return
+
+
 def doesExpressionWriteVariable(expression, variable):
     """Check if an expression contains an assignment to the given variable."""
 

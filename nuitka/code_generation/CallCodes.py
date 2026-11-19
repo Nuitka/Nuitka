@@ -15,6 +15,7 @@ from nuitka.utils.Jinja2 import getTemplateC
 from .CodeHelpers import (
     generateChildExpressionCode,
     generateExpressionCode,
+    promoteBorrowedValue,
     withBorrowedValueScope,
     withObjectCodeTemporaryAssignment,
 )
@@ -123,11 +124,19 @@ def _generateCallCodePosOnly(
                 )
     elif call_args.isExpressionMakeTuple():
         call_arg_names = []
+        call_arg_elements = call_args.subnode_elements
 
-        for call_arg_element in call_args.subnode_elements:
+        for count, call_arg_element in enumerate(call_arg_elements):
             call_arg_name = generateChildExpressionCode(
                 child_name=call_args.getChildName() + "_element",
                 expression=call_arg_element,
+                emit=emit,
+                context=context,
+            )
+
+            promoteBorrowedValue(
+                value_name=call_arg_name,
+                later_expressions=call_arg_elements[count + 1 :],
                 emit=emit,
                 context=context,
             )
@@ -298,6 +307,15 @@ def getCallCodeKwPairs(
             allow_none=False,
         )
 
+        promoteBorrowedValue(
+            value_name=dict_value_name,
+            later_expressions=[
+                later_pair.getValueNode() for later_pair in pairs[count + 1 :]
+            ],
+            emit=emit,
+            context=context,
+        )
+
         dict_value_names.append(dict_value_name)
 
     emitLineNumberUpdateCode(expression, emit, context)
@@ -415,6 +433,15 @@ def _generateCallCode(to_name, expression, emit, context):
         called_name = generateChildExpressionCode(
             expression=called, emit=emit, context=context
         )
+
+    promoteBorrowedValue(
+        value_name=called_name,
+        later_expressions=[
+            call_child for call_child in (call_args, call_kw) if call_child is not None
+        ],
+        emit=emit,
+        context=context,
+    )
 
     with withObjectCodeTemporaryAssignment(
         to_name, "call_result", expression, emit, context
@@ -853,8 +880,9 @@ def _getCallCodePosConstKeywordVariableArgs(
     kw_names = []
 
     dict_value_names = []
+    pairs = call_kw.subnode_pairs
 
-    for count, pair in enumerate(call_kw.subnode_pairs):
+    for count, pair in enumerate(pairs):
         kw_names.append(pair.getKeyCompileTimeConstant())
 
         dict_value_name = context.allocateTempName("kw_call_value_%d" % count)
@@ -865,6 +893,15 @@ def _getCallCodePosConstKeywordVariableArgs(
             emit=emit,
             context=context,
             allow_none=False,
+        )
+
+        promoteBorrowedValue(
+            value_name=dict_value_name,
+            later_expressions=[
+                later_pair.getValueNode() for later_pair in pairs[count + 1 :]
+            ],
+            emit=emit,
+            context=context,
         )
 
         dict_value_names.append(dict_value_name)
@@ -933,12 +970,21 @@ def _getCallCodePosVariableKeywordConstArgs(
 
     call_arg_names = []
 
-    for count, call_arg_element in enumerate(call_args.subnode_elements):
+    call_arg_elements = call_args.subnode_elements
+
+    for count, call_arg_element in enumerate(call_arg_elements):
         call_arg_name = context.allocateTempName("kw_call_arg_value_%d" % count)
 
         generateExpressionCode(
             to_name=call_arg_name,
             expression=call_arg_element,
+            emit=emit,
+            context=context,
+        )
+
+        promoteBorrowedValue(
+            value_name=call_arg_name,
+            later_expressions=call_arg_elements[count + 1 :],
             emit=emit,
             context=context,
         )
@@ -1021,6 +1067,14 @@ def getCallCodePosVariableKeywordVariableArgs(
             context=context,
         )
 
+        promoteBorrowedValue(
+            value_name=call_arg_name,
+            later_expressions=list(call_args[count + 1 :])
+            + [pair.getValueNode() for pair in pairs],
+            emit=emit,
+            context=context,
+        )
+
         call_arg_names.append(call_arg_name)
 
     if not pairs:
@@ -1046,6 +1100,15 @@ def getCallCodePosVariableKeywordVariableArgs(
             emit=emit,
             context=context,
             allow_none=False,
+        )
+
+        promoteBorrowedValue(
+            value_name=dict_value_name,
+            later_expressions=[
+                later_pair.getValueNode() for later_pair in pairs[count + 1 :]
+            ],
+            emit=emit,
+            context=context,
         )
 
         dict_value_names.append(dict_value_name)

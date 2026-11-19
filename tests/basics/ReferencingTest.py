@@ -1430,6 +1430,25 @@ def simpleFunction137():
     _partial_method_kw()
 
 
+_call_arg_value = ["x"] * 1000
+
+
+def _changeCallArgValue():
+    global _call_arg_value
+
+    _call_arg_value = ["y"]
+
+    return "changed"
+
+
+def _collectCallArgs(first, second):
+    return len(first), first[:1], second
+
+
+def simpleFunction138():
+    _collectCallArgs(_call_arg_value, _changeCallArgValue())
+
+
 ####################################
 
 # These need stderr to be wrapped.
