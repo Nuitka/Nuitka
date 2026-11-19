@@ -233,6 +233,33 @@ print(
 print("Strs from constants", str("3.3"), str(object=9.1), str())
 print("Found during optimization", str(float("3.3")), str(object=float(12.0)))
 
+
+def makeBuiltinArgument(value):
+    return value
+
+
+try:
+    text_type = unicode
+except NameError:
+    text_type = str
+
+print(
+    "Text without object",
+    repr(text_type(encoding=makeBuiltinArgument("utf-8"))),
+    repr(text_type(errors=makeBuiltinArgument("strict"))),
+    repr(
+        text_type(
+            encoding=makeBuiltinArgument("utf-8"),
+            errors=makeBuiltinArgument("strict"),
+        )
+    ),
+)
+
+try:
+    text_type(encoding=makeBuiltinArgument(3))
+except TypeError:
+    print("Text without object type check: TypeError")
+
 print("Bools from constants", bool("3.3"), bool(0), bool())
 print("Found during optimization", bool(float("3.3")), bool(range(0)))
 

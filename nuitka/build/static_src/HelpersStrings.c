@@ -982,7 +982,7 @@ PyObject *BUILTIN_UNICODE1(PyObject *value) {
 }
 
 PyObject *BUILTIN_UNICODE3(PyObject *value, PyObject *encoding, PyObject *errors) {
-    CHECK_OBJECT(value);
+    CHECK_OBJECT_X(value);
     CHECK_OBJECT_X(encoding);
     CHECK_OBJECT_X(errors);
 
@@ -1024,6 +1024,12 @@ PyObject *BUILTIN_UNICODE3(PyObject *value, PyObject *encoding, PyObject *errors
     else {
         SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("unicode() argument 3 must be string, not %s", errors);
         return NULL;
+    }
+
+    if (value == NULL) {
+        // CPython converts 'encoding' and 'errors' to strings before its
+        // no-object early exit that returns the empty string.
+        return Nuitka_Unicode_New(0, 0);
     }
 
     PyObject *result = PyUnicode_FromEncodedObject(value, encoding_str, errors_str);
@@ -1104,8 +1110,12 @@ PyObject *BUILTIN_STR(PyObject *value) {
 
 PyObject *Nuitka_Unicode_New(Py_ssize_t size, Py_UCS4 max_char) {
     if (size == 0) {
+#if PYTHON_VERSION < 0x300
+        return PyUnicode_FromUnicode(NULL, 0);
+#else
         Py_INCREF_IMMORTAL(const_str_empty);
         return const_str_empty;
+#endif
     }
 
 #ifndef MAX_UNICODE
