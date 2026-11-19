@@ -2019,12 +2019,33 @@
     - patterns:
         - 'VERSION'
 
-- module-name: 'fsspec.transaction' # checksum: f49a0729
+- module-name: 'fsspec.transaction' # checksum: e5fe5de1
   anti-bloat:
     - description: 'remove optional dask usage'
       replacements_plain:
         'import distributed': 'raise ImportError'
       when: 'not use_dask'
+
+    - description: 'avoid optional distributed transaction'
+      no-auto-follow:
+        'distributed': 'ignore'
+    - description: 'helpful error when DaskTransaction lacks distributed'
+      append_plain: |
+        if "DaskTransaction" in globals():
+            _nuitka_dask_transaction_init = DaskTransaction.__init__
+
+            def _nuitka_dask_transaction_init_wrapper(self, *args, **kwargs):
+                try:
+                    import distributed
+                except ImportError:
+                    raise RuntimeError(
+                        "Nuitka: fsspec DaskTransaction requires distributed; "
+                        "use --include-module=distributed."
+                    ) from None
+                return _nuitka_dask_transaction_init(self, *args, **kwargs)
+
+            DaskTransaction.__init__ = _nuitka_dask_transaction_init_wrapper
+      when: 'not deployment'
 
 - module-name: 'future.standard_library' # checksum: 27611f9
   anti-bloat:
@@ -2669,7 +2690,7 @@
     - depends:
         - 'jinxed.terminfo.*'
 
-- module-name: 'joblib._dask' # checksum: e3ae7a22
+- module-name: 'joblib._dask' # checksum: 46c3d817
   anti-bloat:
     - description: 'remove optional dask usage'
       replacements_plain:
@@ -2677,18 +2698,42 @@
         'import dask': 'raise ImportError'
       when: 'not use_dask'
 
+    - description: 'avoid optional distributed backend'
+      no-auto-follow:
+        'distributed': 'ignore'
+        'dask.distributed': 'ignore'
+    - description: 'helpful error when joblib dask backend lacks distributed'
+      append_plain: |
+        if "DaskDistributedBackend" in globals():
+            _nuitka_dask_backend_init = DaskDistributedBackend.__init__
+
+            def _nuitka_dask_backend_init_wrapper(self, *args, **kwargs):
+                if distributed is None:
+                    raise RuntimeError(
+                        "Nuitka: joblib dask backend requires distributed; "
+                        "use --include-module=dask.distributed."
+                    )
+                return _nuitka_dask_backend_init(self, *args, **kwargs)
+
+            DaskDistributedBackend.__init__ = _nuitka_dask_backend_init_wrapper
+      when: 'not deployment'
+
 - module-name: 'joblib._memmapping_reducer' # checksum: 685c89b4
   anti-bloat:
     - description: 'workaround incorrect warning'
       replacements_plain:
         'warnings.warn': ''
 
-- module-name: 'joblib._parallel_backends' # checksum: 850f2858
+- module-name: 'joblib._parallel_backends' # checksum: c29c27ce
   anti-bloat:
     - description: 'remove optional dask usage'
       replacements_plain:
         'from distributed import get_worker': 'raise ImportError'
       when: 'not use_dask'
+
+    - description: 'avoid optional distributed worker check'
+      no-auto-follow:
+        'distributed': 'ignore'
 
 - module-name: 'joblib.externals.cloudpickle.cloudpickle' # checksum: 1d738df0
   anti-bloat:
@@ -11003,7 +11048,7 @@
     - dirs:
         - 'static'
 
-- module-name: 'xarray.backends.locks' # checksum: 3d3302db
+- module-name: 'xarray.backends.locks' # checksum: e8580567
   anti-bloat:
     - description: 'remove optional dask usage'
       replacements_plain:
@@ -11013,6 +11058,10 @@
         'from dask.distributed import Lock as DistributedLock': 'raise ImportError'
         'import dask': 'raise ImportError'
       when: 'not use_dask'
+
+    - description: 'avoid optional dask.distributed auto-follow'
+      no-auto-follow:
+        'dask.distributed': 'ignore'
 
 - module-name: 'xarray.coding.variables' # checksum: a79667c9
   anti-bloat:
