@@ -340,6 +340,16 @@ checkBuiltinMethodRejected("str.replace old=", lambda: "aaa".replace(old="a", ne
 checkBuiltinMethodCall("str.replace positional", lambda: "aaa".replace("a", "x", 2))
 
 checkBuiltinMethodCall(
+    "bytes.replace count=", lambda: b"aaa".replace(b"a", b"x", count=1)
+)
+checkBuiltinMethodRejected(
+    "bytes.replace old=", lambda: b"aaa".replace(old=b"a", new=b"x")
+)
+checkBuiltinMethodCall(
+    "bytes.replace positional", lambda: b"aaa".replace(b"a", b"x", 2)
+)
+
+checkBuiltinMethodCall(
     "bytes.translate delete=", lambda: b"abc".translate(None, delete=b"a")
 )
 checkBuiltinMethodRejected(
