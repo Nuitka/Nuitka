@@ -21,10 +21,7 @@ from .CodeHelpers import (
 )
 from .ErrorCodes import getErrorExitCode
 from .LineNumberCodes import emitLineNumberUpdateCode
-from .templates.CodeTemplatesModules import (
-    template_header_guard,
-    template_helper_impl_decl,
-)
+from .templates.CodeTemplatesModules import template_helper_impl_decl
 
 
 def _generateCallCodePosOnly(
@@ -646,6 +643,7 @@ def _getInstanceCallCodePosArgsQuick(
         )
     else:
         quick_instance_calls_used.add(arg_size)
+        context.addCallHelper(("method", arg_size))
 
         emit(
             """\
@@ -696,6 +694,7 @@ def getCallCodePosArgsQuick(to_name, called_name, arg_names, expression, emit, c
         )
     else:
         quick_calls_used.add(arg_size)
+        context.addCallHelper(("function", arg_size))
 
         emit(
             """\
@@ -734,6 +733,7 @@ def _getInstanceCallCodeFromTuple(
     context,
 ):
     quick_instance_calls_used.add(arg_size)
+    context.addCallHelper(("method", arg_size))
 
     # For 0 arguments, NOARGS is supposed to be used.
     assert arg_size > 0
@@ -808,6 +808,7 @@ def _getCallCodeFromTuple(to_name, called_name, expression, args_value, emit, co
         args_name = None
 
     quick_tuple_calls_used.add(arg_size)
+    context.addCallHelper(("function_tuple", arg_size))
 
     emit("""\
 %s = CALL_FUNCTION_WITH_POS_ARGS%d(tstate, %s, %s);
@@ -909,6 +910,7 @@ def _getCallCodePosConstKeywordVariableArgs(
     args_count = len(args)
 
     quick_mixed_calls_used.add((args_count, True, True))
+    context.addCallHelper(("mixed", args_count, True, True))
 
     if isMutable(args):
         args_value_name = context.allocateTempName("call_pos_args_values")
@@ -994,6 +996,7 @@ def _getCallCodePosVariableKeywordConstArgs(
     args_count = len(call_arg_names)
 
     quick_mixed_calls_used.add((args_count, False, True))
+    context.addCallHelper(("mixed", args_count, False, True))
 
     if isMutable(kw_values):
         kw_values_name = context.allocateTempName("call_kw_split_values")
@@ -1116,6 +1119,7 @@ def getCallCodePosVariableKeywordVariableArgs(
     args_count = len(call_args)
 
     quick_mixed_calls_used.add((args_count, False, True))
+    context.addCallHelper(("mixed", args_count, False, True))
 
     emitLineNumberUpdateCode(expression, emit, context)
 
@@ -1165,6 +1169,7 @@ def _getCallCodePosConstantKeywordConstArgs(
 
     arg_size = len(args)
     quick_mixed_calls_used.add((arg_size, False, False))
+    context.addCallHelper(("mixed", arg_size, False, False))
 
     if isMutable(values):
         args_values_name = context.allocateTempName("call_args_values")
@@ -1277,59 +1282,74 @@ def getTemplateCodeDeclaredFunction(code):
     )
 
 
+def _getCallHelperCode(helper):
+    helper_kind = helper[0]
+
+    if helper_kind == "function":
+        return getQuickCallCode(
+            args_count=helper[1],
+            has_tuple_arg=False,
+        )
+    elif helper_kind == "function_tuple":
+        return getQuickCallCode(
+            args_count=helper[1],
+            has_tuple_arg=True,
+        )
+    elif helper_kind == "method":
+        return getQuickMethodCallCode(
+            args_count=helper[1],
+        )
+    else:
+        assert helper_kind == "mixed", helper
+
+        return getQuickMixedCallCode(
+            args_count=helper[1],
+            has_tuple_arg=helper[2],
+            has_dict_values=helper[3],
+        )
+
+
+def getCallsDeclCode(call_helpers):
+    result = []
+
+    for helper in sorted(call_helpers):
+        if helper[1] > max_quick_call:
+            result.append(getTemplateCodeDeclaredFunction(_getCallHelperCode(helper)))
+
+    return "\n".join(result)
+
+
 def getCallsCode():
-    header_codes = []
+    """Get the helper implementations for the quick calls that were used.
+
+    Returns:
+        List of C code chunks for the helpers source file.
+    """
+
     body_codes = []
 
     body_codes.append(template_helper_impl_decl % {})
 
-    for quick_call_used in sorted(quick_calls_used.union(quick_instance_calls_used)):
-        if quick_call_used <= max_quick_call:
-            continue
+    all_helpers = set()
 
-        code = getQuickCallCode(args_count=quick_call_used, has_tuple_arg=False)
-        body_codes.append(code)
-        header_codes.append(getTemplateCodeDeclaredFunction(code))
+    for quick_call_used in quick_calls_used:
+        all_helpers.add(("function", quick_call_used))
 
-    for quick_tuple_call_used in sorted(quick_tuple_calls_used):
-        if quick_tuple_call_used <= max_quick_call:
-            continue
+    for quick_tuple_call_used in quick_tuple_calls_used:
+        all_helpers.add(("function_tuple", quick_tuple_call_used))
 
-        code = getQuickCallCode(args_count=quick_tuple_call_used, has_tuple_arg=True)
-        body_codes.append(code)
-        header_codes.append(getTemplateCodeDeclaredFunction(code))
+    for quick_mixed_call_used in quick_mixed_calls_used:
+        all_helpers.add(("mixed",) + quick_mixed_call_used)
 
-    for quick_mixed_call_used, has_tuple_arg, has_dict_values in sorted(
-        quick_mixed_calls_used
-    ):
-        if quick_mixed_call_used <= max_quick_call:
-            continue
+    for quick_instance_call_used in quick_instance_calls_used:
+        all_helpers.add(("method", quick_instance_call_used))
+        all_helpers.add(("function", quick_instance_call_used))
 
-        code = getQuickMixedCallCode(
-            args_count=quick_mixed_call_used,
-            has_tuple_arg=has_tuple_arg,
-            has_dict_values=has_dict_values,
-        )
-        body_codes.append(code)
-        header_codes.append(getTemplateCodeDeclaredFunction(code))
+    for helper in sorted(all_helpers):
+        if helper[1] > max_quick_call:
+            body_codes.append(_getCallHelperCode(helper))
 
-    for quick_instance_call_used in sorted(quick_instance_calls_used):
-        if quick_instance_call_used <= max_quick_call:
-            continue
-
-        code = getQuickMethodCallCode(args_count=quick_instance_call_used)
-
-        body_codes.append(code)
-        header_codes.append(getTemplateCodeDeclaredFunction(code))
-
-    return (
-        template_header_guard
-        % {
-            "header_guard_name": "__NUITKA_CALLS_H__",
-            "header_body": "\n".join(header_codes),
-        },
-        "\n".join(body_codes),
-    )
+    return body_codes
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and

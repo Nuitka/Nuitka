@@ -699,13 +699,12 @@ def generateModuleCode(module, data_filename):
 
 
 def generateHelpersCode():
-    calls_decl_code, calls_body_code = getCallsCode()
+    calls_body_codes = getCallsCode()
 
     constants_header_code, constants_body_code = getConstantsDefinitionCode()
 
     return (
-        calls_decl_code,
-        calls_body_code,
+        calls_body_codes,
         constants_header_code,
         constants_body_code,
     )

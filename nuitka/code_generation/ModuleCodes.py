@@ -19,6 +19,7 @@ from nuitka.PythonVersions import python_version
 from nuitka.utils.CStrings import encodePythonStringToC
 from nuitka.Version import getNuitkaVersion, getNuitkaVersionYear
 
+from .CallCodes import getCallsDeclCode
 from .CodeHelpers import (
     decideConversionCheckNeeded,
     generateStatementSequenceCode,
@@ -106,6 +107,11 @@ def getModuleCode(
 
     for _identifier, code in sorted(iterItems(context.getDeclarations())):
         function_decl_codes.append(code)
+
+    call_decl_code = getCallsDeclCode(context.getCallHelpers())
+
+    if call_decl_code:
+        function_decl_codes.append(call_decl_code)
 
     function_body_codes = "\n\n".join(function_body_codes)
     function_decl_codes = "\n\n".join(function_decl_codes)

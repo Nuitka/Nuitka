@@ -648,6 +648,12 @@ class PythonChildContextBase(PythonContextBase):
     def hasDeclaration(self, key):
         return self.parent.hasDeclaration(key)
 
+    def addCallHelper(self, helper):
+        self.parent.addCallHelper(helper)
+
+    def getCallHelpers(self):
+        return self.parent.getCallHelpers()
+
     def getTypeDescriptionCode(self, type_description_value):
         return self.parent.getTypeDescriptionCode(type_description_value)
 
@@ -861,6 +867,7 @@ class PythonModuleContext(
         "constant_accessor",
         "module_init_codes",
         "module_variable_accessors",
+        "call_helpers",
         # FrameDeclarationsMixin
         "frame_variables_stack",
         "frame_variable_types",
@@ -921,6 +928,14 @@ class PythonModuleContext(
         self.module_init_codes = []
 
         self.module_variable_accessors = {}
+
+        self.call_helpers = set()
+
+    def addCallHelper(self, helper):
+        self.call_helpers.add(helper)
+
+    def getCallHelpers(self):
+        return self.call_helpers
 
     def __repr__(self):
         return "<PythonModuleContext instance for module %s>" % self.name

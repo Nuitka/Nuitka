@@ -35,8 +35,6 @@ template_module_body_template = r"""
 
 #include "nuitka/unfreezing.h"
 
-#include "__helpers.h"
-
 %(module_includes)s
 
 /* The loader entry of this module, defined at the bottom of this file, but

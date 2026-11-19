@@ -596,22 +596,14 @@ def makeSourceDirectory():
             )
 
     (
-        helper_decl_code,
-        helper_impl_code,
+        helper_impl_codes,
         constants_header_code,
         constants_body_code,
     ) = generateHelpersCode()
 
     writeSourceCode(
-        filename=getNormalizedPathJoin(source_dir, "__helpers.h"),
-        source_code=helper_decl_code,
-        logger=code_generation_logger,
-        assume_yes_for_downloads=assumeYesForDownloads(),
-    )
-
-    writeSourceCode(
         filename=getNormalizedPathJoin(source_dir, "__helpers.c"),
-        source_code=helper_impl_code,
+        source_code=helper_impl_codes,
         logger=code_generation_logger,
         assume_yes_for_downloads=assumeYesForDownloads(),
     )
@@ -1181,7 +1173,7 @@ def compileTree():
             onefile=False, create=False
         )
 
-        if not os.path.isfile(os.path.join(source_dir, "__helpers.h")):
+        if not os.path.isfile(os.path.join(source_dir, "__helpers.c")):
             return general.sysexit("Error, no previous build directory exists.")
 
     reportMemoryUsage(
