@@ -53,8 +53,6 @@ class ExpressionPkgutilGetDataCall(
 ):
     kind = "EXPRESSION_PKGUTIL_GET_DATA_CALL"
 
-    named_children = ("package", "resource")
-
     def replaceWithCompileTimeValue(self, trace_collection):
         trace_collection.onExceptionRaiseExit(BaseException)
 
@@ -498,7 +496,6 @@ class ExpressionImportlibResourcesFilesSince312Call(
     makeImportlibResourcesFilesCallFixedExpression = (
         ExpressionImportlibResourcesFilesCallFixed
     )
-    named_children = ("anchor|optional", "package|optional")
 
     def getPackageNameUsed(self):
         if self.subnode_anchor is not None:
@@ -517,7 +514,6 @@ class ExpressionImportlibResourcesFilesSince315Call(
     makeImportlibResourcesFilesCallFixedExpression = (
         ExpressionImportlibResourcesFilesCallFixed
     )
-    named_children = ("anchor|optional",)
 
     def getPackageNameUsed(self):
         return self.subnode_anchor
@@ -533,8 +529,6 @@ class ExpressionImportlibResourcesFilesCall(
     makeImportlibResourcesFilesCallFixedExpression = (
         ExpressionImportlibResourcesFilesCallFixed
     )
-
-    named_children = ("package",)
 
     __slots__ = ("module_usage_attempt",)
 
@@ -558,8 +552,6 @@ class ExpressionImportlibResourcesBackportFilesCall(
     makeImportlibResourcesFilesCallFixedExpression = (
         ExpressionImportlibResourcesBackportFilesCallFixed
     )
-
-    named_children = ("package",)
 
     __slots__ = ("module_usage_attempt",)
 

@@ -655,8 +655,6 @@ class ExpressionDictOperationGet2(ExpressionDictOperationGet2Base):
 
     kind = "EXPRESSION_DICT_OPERATION_GET2"
 
-    named_children = ("dict_arg", "key")
-
     __slots__ = ("known_hashable_key",)
 
     def __init__(self, dict_arg, key, source_ref):
@@ -738,8 +736,6 @@ class ExpressionDictOperationGet3(ExpressionDictOperationGet3Base):
     """This operation represents d.get(key, default) with no exception for missing key but default value."""
 
     kind = "EXPRESSION_DICT_OPERATION_GET3"
-
-    named_children = ("dict_arg", "key", "default")
 
     __slots__ = ("known_hashable_key",)
 
@@ -1352,11 +1348,9 @@ class ExpressionDictOperationHaskey(
 ):
     kind = "EXPRESSION_DICT_OPERATION_HASKEY"
 
-    # Different order of arguments.
-    named_children = ("dict_arg", "key")
-
     __slots__ = ("known_hashable_key",)
 
+    # Different order of arguments.
     def __init__(self, key, dict_arg, source_ref):
         ExpressionDictOperationHaskeyBase.__init__(
             self, key=key, dict_arg=dict_arg, source_ref=source_ref

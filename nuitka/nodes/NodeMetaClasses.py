@@ -8,6 +8,7 @@ from abc import ABCMeta
 from nuitka.__past__ import intern
 from nuitka.Errors import NuitkaAssumptionError, NuitkaNodeDesignError
 from nuitka.PythonVersions import python_version
+from nuitka.utils.SlotMetaClasses import checkSlots
 
 
 def _checkBases(name, bases):
@@ -44,9 +45,22 @@ class NodeCheckMetaClass(ABCMeta):
 
         if "__slots__" not in dictionary:
             dictionary["__slots__"] = ()
+        elif type(dictionary["__slots__"]) is not tuple:
+            raise NuitkaNodeDesignError(
+                name, "Class __slots__ must be a tuple.", dictionary["__slots__"]
+            )
 
         if "named_children" in dictionary:
             assert type(dictionary["named_children"]) is tuple
+
+            for base in bases:
+                for ancestor in base.__mro__:
+                    if "named_children" in ancestor.__dict__:
+                        raise NuitkaNodeDesignError(
+                            name,
+                            "Redeclared 'named_children' from %s." % ancestor.__name__,
+                            dictionary["named_children"],
+                        )
 
             dictionary["__slots__"] += tuple(
                 intern("subnode_" + named_child.split("|", 1)[0])
@@ -67,9 +81,7 @@ class NodeCheckMetaClass(ABCMeta):
         if "node_attributes" in dictionary:
             dictionary["__slots__"] += dictionary["node_attributes"]
 
-        assert len(dictionary["__slots__"]) == len(
-            set(dictionary["__slots__"])
-        ), dictionary["__slots__"]
+        checkSlots(name=name, bases=bases, dictionary=dictionary)
 
         python_version_spec = dictionary.get("python_version_spec")
 

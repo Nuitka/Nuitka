@@ -10,6 +10,7 @@ from nuitka.utils.InstanceCounters import (
     counted_init,
     isCountingInstances,
 )
+from nuitka.utils.SlotMetaClasses import getMetaClassBase
 from nuitka.Variables import LocalsDictVariable, LocalVariable
 
 from .shapes.BuiltinTypeShapes import tshape_dict
@@ -53,7 +54,7 @@ def getLocalsDictHandle(locals_name, kind, owner):
     return locals_dict_handles[locals_name]
 
 
-class LocalsDictHandleBase(object):
+class LocalsDictHandleBase(getMetaClassBase("LocalsDictHandle", require_slots=True)):
     # TODO: Might remove some of these later, pylint: disable=too-many-instance-attributes
 
     __slots__ = (
@@ -64,7 +65,6 @@ class LocalsDictHandleBase(object):
         "providing",
         "bound_variable_names",
         "mark_for_propagation",
-        "prevented_propagation",
         "propagation",
         "owner",
         "complete",

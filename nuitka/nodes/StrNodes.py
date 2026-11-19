@@ -709,8 +709,6 @@ class ExpressionStrOperationCount4(ExpressionStrOperationCount4Base):
 
 
 class ExpressionStrOperationFormat(ExpressionStrOperationFormatBase):
-    named_children = ("str_arg", "args|tuple", "pairs|tuple")
-
     kind = "EXPRESSION_STR_OPERATION_FORMAT"
 
     def computeExpression(self, trace_collection):

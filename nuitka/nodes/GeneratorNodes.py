@@ -77,7 +77,6 @@ class ExpressionGeneratorObjectBody(
     __slots__ = (
         "unoptimized_locals",
         "unqualified_exec",
-        "qualname_provider",
     )
 
     if python_version >= 0x300:

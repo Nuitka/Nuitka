@@ -61,7 +61,7 @@ class ExpressionImportHardBase(ExpressionBase):
 class ExpressionImportModuleNameHardBase(ExpressionImportHardBase):
     # pylint: disable=I0021,abstract-method
 
-    __slots__ = ("import_name", "finding", "module_filename", "module_guaranteed")
+    __slots__ = ("import_name", "module_guaranteed")
 
     def __init__(self, module_name, import_name, module_guaranteed, source_ref):
         ExpressionImportHardBase.__init__(
