@@ -172,6 +172,9 @@ class ExpressionSubscriptLookupForUnpack(ExpressionSubscriptLookup):
 
         self.expected = expected
 
+    def getDetails(self):
+        return {"expected": self.expected}
+
     def computeExpression(self, trace_collection):
         result = self.subnode_expression.computeExpressionSubscript(
             lookup_node=self,

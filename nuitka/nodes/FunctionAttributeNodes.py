@@ -31,6 +31,12 @@ class ExpressionFunctionQualnameRef(CompileTimeConstantExpressionBase):
         del self.parent
         del self.function_body
 
+    def getDetails(self):
+        return {"function_body": self.function_body}
+
+    def getDetailsForDisplay(self):
+        return {"function_body": self.function_body.getCodeName()}
+
     def computeExpressionRaw(self, trace_collection):
         result = makeConstantReplacementNode(
             node=self,

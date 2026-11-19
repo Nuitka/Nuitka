@@ -253,8 +253,13 @@ class ExpressionPkgResourcesDistributionValueRef(
         self.distribution = distribution
         self.computed_attributes = {}
 
+    def getDetails(self):
+        return {"distribution": self.distribution}
+
     def finalize(self):
+        del self.parent
         del self.distribution
+        del self.computed_attributes
 
     @staticmethod
     def isKnownToBeHashable():
@@ -322,7 +327,9 @@ class ExpressionImportlibMetadataDistributionValueRef(
         return {"distribution": self.distribution, "original_name": self.original_name}
 
     def finalize(self):
+        del self.parent
         del self.distribution
+        del self.computed_attributes
 
     @staticmethod
     def isKnownToBeHashable():
@@ -419,7 +426,11 @@ class ExpressionPkgResourcesEntryPointValueRef(
         self.entry_point = entry_point
         self.computed_attributes = {}
 
+    def getDetails(self):
+        return {"entry_point": self.entry_point}
+
     def finalize(self):
+        del self.parent
         del self.entry_point
         del self.computed_attributes
 
@@ -617,7 +628,11 @@ class ExpressionImportlibMetadataEntryPointValueMixin(object):
     def _getImportlibMetadataModule(self):
         return importFromCompileTime(self.importlib_metadata_name, must_exist=True)
 
+    def getDetails(self):
+        return {"entry_point": self.entry_point}
+
     def finalize(self):
+        del self.parent
         del self.entry_point
         del self.computed_attributes
 

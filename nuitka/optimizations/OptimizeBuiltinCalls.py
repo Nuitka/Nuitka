@@ -1157,10 +1157,10 @@ if python_version >= 0x300:
 
 def compile_extractor(node):
     def wrapExpressionBuiltinCompileCreation(
-        source_code, filename, mode, flags, dont_inherit, optimize=None, source_ref=None
+        source, filename, mode, flags, dont_inherit, optimize=None, source_ref=None
     ):
         return ExpressionBuiltinCompile(
-            source_code=source_code,
+            source=source,
             filename=filename,
             mode=mode,
             flags=flags,

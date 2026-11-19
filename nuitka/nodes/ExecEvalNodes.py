@@ -195,11 +195,11 @@ class ExpressionBuiltinCompile(ChildrenExpressionBuiltinCompileMixin, Expression
         return True
 
     def __init__(
-        self, source_code, filename, mode, flags, dont_inherit, optimize, source_ref
+        self, source, filename, mode, flags, dont_inherit, optimize, source_ref
     ):
         ChildrenExpressionBuiltinCompileMixin.__init__(
             self,
-            source=source_code,
+            source=source,
             filename=filename,
             mode=mode,
             flags=flags,

@@ -74,6 +74,9 @@ class ExpressionBuiltinPatchableTypeRef(ExpressionNoSideEffectsMixin, Expression
     def finalize(self):
         del self.parent
 
+    def getDetails(self):
+        return {"builtin_name": self.builtin_name}
+
     def computeExpressionRaw(self, trace_collection):
         if self.parent.isExpressionCall():
             result = makeExpressionBuiltinTypeRef(

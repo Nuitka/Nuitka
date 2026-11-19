@@ -403,11 +403,15 @@ class ExpressionImportlibResourcesFilesCallFixed(
         self.package_name = resolveModuleName(package_name)
 
         self.module_usage_attempt = self.makeModuleUsageAttempt(
-            package_name=package_name
+            package_name=self.package_name
         )
 
     def finalize(self):
+        del self.parent
         del self.module_usage_attempt
+
+    def getDetails(self):
+        return {"package_name": self.package_name}
 
     def getPackageNameUsed(self):
         return makeConstantRefNode(
@@ -439,11 +443,15 @@ class ExpressionImportlibResourcesBackportFilesCallFixed(
         self.package_name = resolveModuleName(package_name)
 
         self.module_usage_attempt = self.makeModuleUsageAttempt(
-            package_name=package_name
+            package_name=self.package_name
         )
 
     def finalize(self):
+        del self.parent
         del self.module_usage_attempt
+
+    def getDetails(self):
+        return {"package_name": self.package_name}
 
     def getPackageNameUsed(self):
         return makeConstantRefNode(

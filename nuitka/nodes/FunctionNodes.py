@@ -1291,10 +1291,19 @@ class ExpressionFunctionRef(ExpressionNoSideEffectsMixin, ExpressionBase):
         return self.function_body.getName()
 
     def getDetails(self):
-        return {"function_body": self.function_body}
+        return {
+            "function_body": self.function_body,
+            "code_name": self.code_name,
+        }
 
     def getDetailsForDisplay(self):
-        return {"code_name": self.getFunctionBody().getCodeName()}
+        return {
+            "code_name": (
+                self.code_name
+                if self.function_body is None
+                else self.function_body.getCodeName()
+            )
+        }
 
     def getFunctionBody(self):
         if self.function_body is None:
