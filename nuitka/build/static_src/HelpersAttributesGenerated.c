@@ -92,7 +92,6 @@ PyObject *LOOKUP_ATTRIBUTE(PyThreadState *tstate, PyObject *source, PyObject *at
             Py_INCREF(dict);
 
             PyObject *result = DICT_GET_ITEM1(tstate, dict, attr_name);
-
             Py_DECREF(dict);
 
             if (result != NULL) {
@@ -470,13 +469,13 @@ bool HAS_ATTR_BOOL(PyThreadState *tstate, PyObject *source, PyObject *attr_name)
                     PyObject *result = func(descr, source, (PyObject *)type);
                     Py_DECREF(descr);
 
-                    if (result) {
+                    if (result != NULL) {
                         CHECK_OBJECT(result);
                         Py_DECREF(result);
                         return true;
                     }
 
-                    DROP_ERROR_OCCURRED(tstate);
+                    CLEAR_ERROR_OCCURRED(tstate);
                     return false;
                 }
             }
@@ -533,8 +532,6 @@ bool HAS_ATTR_BOOL(PyThreadState *tstate, PyObject *source, PyObject *attr_name)
             Py_INCREF(dict);
 
             PyObject *result = DICT_GET_ITEM1(tstate, dict, attr_name);
-            DROP_ERROR_OCCURRED(tstate);
-
             Py_DECREF(dict);
 
             if (result != NULL) {
@@ -544,6 +541,16 @@ bool HAS_ATTR_BOOL(PyThreadState *tstate, PyObject *source, PyObject *attr_name)
                 Py_DECREF(result);
                 return true;
             }
+
+#if PYTHON_VERSION < 0x300
+            DROP_ERROR_OCCURRED(tstate);
+#else
+            if (unlikely(CHECK_AND_CLEAR_ATTRIBUTE_ERROR_OCCURRED(tstate) == false)) {
+                CLEAR_ERROR_OCCURRED(tstate);
+                Py_XDECREF(descr);
+                return false;
+            }
+#endif
         }
 
         if (func != NULL) {
@@ -556,10 +563,8 @@ bool HAS_ATTR_BOOL(PyThreadState *tstate, PyObject *source, PyObject *attr_name)
                 return true;
             }
 
-            if (CHECK_AND_CLEAR_ATTRIBUTE_ERROR_OCCURRED(tstate) == false) {
-                return false;
-            }
-            return true;
+            CLEAR_ERROR_OCCURRED(tstate);
+            return false;
         }
 
         if (descr != NULL) {
@@ -577,11 +582,11 @@ bool HAS_ATTR_BOOL(PyThreadState *tstate, PyObject *source, PyObject *attr_name)
 
         if (result == NULL) {
             CLEAR_ERROR_OCCURRED(tstate);
+
             return false;
         }
 
         CHECK_OBJECT(result);
-
         Py_DECREF(result);
         return true;
     }
@@ -590,7 +595,7 @@ bool HAS_ATTR_BOOL(PyThreadState *tstate, PyObject *source, PyObject *attr_name)
         PyObject *result = (*type->tp_getattro)(source, attr_name);
 
         if (result == NULL) {
-            DROP_ERROR_OCCURRED(tstate);
+            CLEAR_ERROR_OCCURRED(tstate);
 
             return false;
         }
@@ -623,18 +628,16 @@ int HAS_ATTR_BOOL2(PyThreadState *tstate, PyObject *source, PyObject *attr_name)
 #if _NUITKA_EXPERIMENTAL_DISABLE_ATTR_OPT
     PyObject *result = PyObject_GetAttr(source, attr_name);
 
-    if (CHECK_AND_CLEAR_ATTRIBUTE_ERROR_OCCURRED(tstate) == false) {
-        return -1;
-    }
-
     if (result == NULL) {
+        if (CHECK_AND_CLEAR_ATTRIBUTE_ERROR_OCCURRED(tstate) == false) {
+            return -1;
+        }
+
         return 0;
     }
 
-    int result_bool = CHECK_IF_TRUE(result);
     Py_DECREF(result);
-
-    return result_bool;
+    return 1;
 #else
     PyTypeObject *type = Py_TYPE(source);
 
@@ -658,13 +661,16 @@ int HAS_ATTR_BOOL2(PyThreadState *tstate, PyObject *source, PyObject *attr_name)
                     PyObject *result = func(descr, source, (PyObject *)type);
                     Py_DECREF(descr);
 
-                    if (result) {
+                    if (result != NULL) {
                         CHECK_OBJECT(result);
                         Py_DECREF(result);
                         return 1;
                     }
 
-                    DROP_ERROR_OCCURRED(tstate);
+                    if (CHECK_AND_CLEAR_ATTRIBUTE_ERROR_OCCURRED(tstate) == false) {
+                        return -1;
+                    }
+
                     return 0;
                 }
             }
@@ -720,11 +726,6 @@ int HAS_ATTR_BOOL2(PyThreadState *tstate, PyObject *source, PyObject *attr_name)
             Py_INCREF(dict);
 
             PyObject *result = DICT_GET_ITEM1(tstate, dict, attr_name);
-
-            if (CHECK_AND_CLEAR_ATTRIBUTE_ERROR_OCCURRED(tstate) == false) {
-                return -1;
-            }
-
             Py_DECREF(dict);
 
             if (result != NULL) {
@@ -733,6 +734,11 @@ int HAS_ATTR_BOOL2(PyThreadState *tstate, PyObject *source, PyObject *attr_name)
                 CHECK_OBJECT(result);
                 Py_DECREF(result);
                 return 1;
+            }
+
+            if (unlikely(CHECK_AND_CLEAR_ATTRIBUTE_ERROR_OCCURRED(tstate) == false)) {
+                Py_XDECREF(descr);
+                return -1;
             }
         }
 
@@ -749,6 +755,7 @@ int HAS_ATTR_BOOL2(PyThreadState *tstate, PyObject *source, PyObject *attr_name)
             if (CHECK_AND_CLEAR_ATTRIBUTE_ERROR_OCCURRED(tstate) == false) {
                 return -1;
             }
+
             return 0;
         }
 
@@ -766,13 +773,16 @@ int HAS_ATTR_BOOL2(PyThreadState *tstate, PyObject *source, PyObject *attr_name)
         PyObject *result = LOOKUP_INSTANCE(tstate, source, attr_name);
 
         if (result == NULL) {
-            return -1;
+            if (CHECK_AND_CLEAR_ATTRIBUTE_ERROR_OCCURRED(tstate) == false) {
+                return -1;
+            }
+
+            return 0;
         }
 
         CHECK_OBJECT(result);
-
         Py_DECREF(result);
-        return true;
+        return 1;
     }
 #endif
     else if (type->tp_getattro != NULL) {
@@ -788,7 +798,7 @@ int HAS_ATTR_BOOL2(PyThreadState *tstate, PyObject *source, PyObject *attr_name)
 
         CHECK_OBJECT(result);
         Py_DECREF(result);
-        return true;
+        return 1;
     } else if (type->tp_getattr != NULL) {
         PyObject *result = (*type->tp_getattr)(source, (char *)Nuitka_String_AsString_Unchecked(attr_name));
 
