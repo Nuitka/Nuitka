@@ -2416,6 +2416,29 @@ call of the functions below is a hint that it should be replaced.
       -  ``exceptions.h``
       -  Checks the thread state; equivalent behavior.
 
+   -  -  ``PyErr_GivenExceptionMatches``
+
+      -  ``EXCEPTION_MATCH_BOOL_SINGLE``,
+         ``EXCEPTION_STATE_MATCH_BOOL_SINGLE``
+
+      -  ``exceptions.h``
+
+      -  Single exception class only, without tuple support. Accepts a
+         class or instance, preserves the current exception state, and
+         returns ``bool``. ``EXCEPTION_MATCH_BOOL`` adds tuple matching
+         for node-tree comparisons.
+
+   -  -  ``PyErr_ExceptionMatches``
+
+      -  ``EXCEPTION_MATCH_BOOL_SINGLE`` with ``GET_ERROR_OCCURRED``
+
+      -  ``exceptions.h``
+
+      -  Guard with ``HAS_ERROR_OCCURRED``; matches the current
+         exception without clearing it. The
+         ``CHECK_AND_CLEAR_*_OCCURRED`` helpers combine matching and
+         clearing for common exception types.
+
    -  -  ``PyErr_Clear``
       -  ``CLEAR_ERROR_OCCURRED``
       -  ``exceptions.h``

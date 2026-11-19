@@ -209,12 +209,10 @@ error:
         }
     }
     if (recursion_depth >= 32 + 2) {
-        if (PyErr_GivenExceptionMatches(*exc, PyExc_MemoryError)) {
-            Py_FatalError("Cannot recover from MemoryErrors "
-                          "while normalizing exceptions.");
+        if (EXCEPTION_MATCH_BOOL_SINGLE(tstate, *exc, PyExc_MemoryError)) {
+            Py_FatalError("Cannot recover from MemoryErrors while normalizing exceptions.");
         } else {
-            Py_FatalError("Cannot recover from the recursive normalization "
-                          "of an exception.");
+            Py_FatalError("Cannot recover from the recursive normalization of an exception.");
         }
     }
     goto restart;

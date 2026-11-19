@@ -701,6 +701,9 @@ NUITKA_MAY_BE_UNUSED static inline PyTracebackObject *GET_EXCEPTION_TRACEBACK(Py
 
 #endif
 
+// Match an exception value or class against a single exception class, similar to
+// "PyErr_GivenExceptionMatches(exception_value, exception_checked)" without tuple support.
+// Returns true on a match, false otherwise, and preserves the current exception state.
 NUITKA_MAY_BE_UNUSED static bool EXCEPTION_MATCH_BOOL_SINGLE(PyThreadState *tstate, PyObject *exception_value,
                                                              PyObject *exception_checked);
 
