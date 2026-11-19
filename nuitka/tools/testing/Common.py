@@ -1478,6 +1478,42 @@ def someGeneratorRaising():
     raise TypeError(2)
 
 
+def _getSkipUnlessExpressionErrorMessage(expression):
+    """Evaluate a test requirement expression, returning a skip reason or None."""
+    expression_code = """\
+import sys, os
+
+try:
+    result = bool(%s)
+except Exception as e:
+    sys.stdout.write("%%s: %%s" %% (type(e).__name__, e))
+    sys.exit(2)
+
+sys.exit(not result)""" % expression
+
+    with getNullOutput() as null_output:
+        process = subprocess.Popen(
+            (os.environ["PYTHON"], "-c", expression_code),
+            stdout=subprocess.PIPE,
+            stderr=null_output,
+        )
+        expression_output, _unused = process.communicate()
+
+    if process.returncode == 0:
+        return None
+
+    if process.returncode == 2:
+        if str is not bytes:
+            expression_output = expression_output.decode("utf8", "replace")
+
+        return "Expression '%s' raised %s" % (
+            expression,
+            expression_output.strip() or "an exception",
+        )
+
+    return "Expression '%s' evaluated to false" % expression
+
+
 # checks requirements needed to run each test module, according to the specified special comment
 # special comments are in the following formats:
 #     "# nuitka-skip-unless-expression: expression to be evaluated"
@@ -1502,20 +1538,10 @@ def checkTestRequirements(filename):
     for line in readSourceCodeFromFilename(None, filename).splitlines():
         if line.startswith("# nuitka-skip-unless-"):
             if line[21:33] == "expression: ":
-                expression = line[33:]
+                error_message = _getSkipUnlessExpressionErrorMessage(line[33:])
 
-                with getNullOutput() as null_output:
-                    result = subprocess.call(
-                        (
-                            os.environ["PYTHON"],
-                            "-c",
-                            "import sys, os; sys.exit(not bool(%s))" % expression,
-                        ),
-                        stdout=null_output,
-                        stderr=subprocess.STDOUT,
-                    )
-                if result != 0:
-                    return (False, "Expression '%s' evaluated to false" % expression)
+                if error_message is not None:
+                    return (False, error_message)
 
             elif line[21:30] == "imports: ":
                 imports_needed = line[30:].rstrip().split(",")

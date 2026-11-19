@@ -1,7 +1,7 @@
 #     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-# nuitka-skip-unless-expression: __import__("Tkinter" if sys.version_info[0] < 3 else "tkinter")
+# nuitka-skip-unless-expression: __import__("Tkinter" if sys.version_info[0] < 3 else "tkinter").TkVersion
 # nuitka-skip-unless-imports: Pmw
 
 # nuitka-project: --mode=standalone
