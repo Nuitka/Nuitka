@@ -2,14 +2,7 @@
 #     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-"""
-The Onefile scons file for the bootstrap binary, check out Backend.scons for
-where the actual compiled binaries are build. If you have Scons or Windows
-platform knowledge, please be especially invited and contribute improvements.
-
-This file is used to build a bootstrap binary that only unpacks the distribution
-contents to have a launch it.
-"""
+"""Onefile SCons file for building the bootstrap binary."""
 
 # Make nuitka package importable from calling installation
 
@@ -48,9 +41,8 @@ from .SconsUtils import (
 
 # spell-checker: ignore cppdefines,cpppath
 
-# Set up the basic stuff.
 env = createNuitkaSconsEnvironment()
-assert env.low_memory is False  # Never a concern in this case.
+assert env.low_memory is False
 
 static_src = os.path.join(env.source_dir, "static")
 
@@ -58,38 +50,26 @@ result_exe = getArgumentDefaulted("result_exe", None)
 
 module_mode = getArgumentBool("module_mode", False)
 env.module_mode = module_mode
-# In onefile-dll mode, common SCons options pass dll_mode=true for the payload
-# DLL, whereas Onefile.scons always builds the outer bootstrap executable.
-# TODO: Don't pass the wrong thing to this invocation.
+# TODO: Stop passing dll_mode=true from common SCons options to Onefile.scons.
 env.dll_mode = False
 
 debug_mode = env.debug_mode
 target_arch = env.target_arch
 
-# Home of Python to be compiled against, used to find tools like clcache and
-# ccache, no linking against Python is needed here.
 python_prefix = getArgumentRequired("python_prefix")
-
 python_prefix_external = getExternalUsePath(python_prefix)
 
 onefile_splash_screen = getArgumentBool("onefile_splash_screen", False)
-
-# Onefile payload compression is optional, and will use zstd for decompression
-# in the bootstrap binary when enabled.
 onefile_compression = getArgumentBool("onefile_compression", False)
 
-# Report the C compiler used.
 reportCCompiler(env, "Onefile", output_func=scons_logger.info)
 
-
-# Set up C compiler settings.
 setupCCompiler(
     env=env,
-    pgo_mode="no",  # Bootstrap doesn't use PGO
+    pgo_mode="no",
     exe_target=True,
     onefile_compile=True,
 )
-
 
 if debug_mode:
     env.Append(CPPDEFINES=["_NUITKA_DEBUG"])
@@ -97,8 +77,6 @@ if debug_mode:
 if env.trace_mode:
     env.Append(CPPDEFINES=["_NUITKA_TRACE"])
 
-# The static include files reside in Nuitka installation, which may be where
-# the "nuitka.build" package lives.
 nuitka_include = os.path.join(env.nuitka_src, "include")
 
 if not os.path.exists(os.path.join(nuitka_include, "nuitka", "prelude.h")):
@@ -107,8 +85,6 @@ if not os.path.exists(os.path.join(nuitka_include, "nuitka", "prelude.h")):
         % nuitka_include
     )
 
-# We have include files in the build directory and the static include directory
-# that is located inside Nuitka installation.
 env.Append(
     CPPPATH=[
         env.source_dir,
@@ -117,9 +93,8 @@ env.Append(
     ],
 )
 
-# For decompression of the payload, we use an inline copy of zstd. For some
-# packages, e.g. Debian, it is removed from the source, and the system installed
-# zstd should be used instead.
+# Downstream packages (e.g. Debian) strip the inline copy of zstd and link the
+# system library instead.
 if onefile_compression:
     zstd_inline_copy_dir = getInlineCopyFolderIfExists("zstd")
 
@@ -130,23 +105,14 @@ if onefile_compression:
 
         linkSystemLibrary(env=env, library_name="zstd")
 
-# Indicate, that the common code is used to build an executable.
 env.Append(CPPDEFINES=["_NUITKA_EXE_MODE"])
 
-
 source_filenames = getSourceFilenamesFromIndex(env=env, source_dir=env.source_dir)
-
-# Remove the target file to avoid cases where it falsely doesn't get rebuild and
-# then lingers from previous builds, and also workaround for MinGW64 not
-# supporting unicode result paths for "-o" basename.
 result_exe = makeResultPathFileSystemEncodable(env=env, result_exe=result_exe)
 
 # For scons internal use, we use Python native paths as MSYS2 does wrong things otherwise.
 target = env.Program(os.path.normpath(result_exe), source_filenames)
 
-
-# Remove the target file to avoid cases where it falsely doesn't get rebuild
-# and then lingers from previous builds,
 if os.path.exists(target[0].abspath):
     os.unlink(target[0].abspath)
 

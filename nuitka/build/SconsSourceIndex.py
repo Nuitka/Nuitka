@@ -22,32 +22,11 @@ from nuitka.utils.Utils import isWin32Windows
 
 
 def getSourceFilesIndexFilename(source_dir):
-    """Return the filename of the source files index.
-
-    Args:
-        source_dir: Directory containing the generated C sources.
-
-    Returns:
-        Filename of the source files index.
-    """
     return getNormalizedPathJoin(source_dir, "source_files_index.txt")
 
 
 def _getSourceDirFilenames(source_dir):
-    """Get C, C++, and header filenames in a source directory.
-
-    Notes:
-        The directory must exist. If both a C and a C++ file exist for the same
-        name, this is an error.
-
-    Args:
-        source_dir: Directory to scan.
-
-    Yields:
-        Source and header filenames.
-    """
     for full_filename, filename_base in listDir(source_dir):
-        # Only C, C++ and header files are of interest here.
         if not hasFilenameExtension(filename_base, (".c", ".cpp", ".h")):
             continue
 
@@ -64,14 +43,10 @@ def _getSourceDirFilenames(source_dir):
 
 
 def createSourceFilesIndex(source_dir):
-    """Create the source files index for the Scons build.
+    """Create the authoritative source and header file index for the Scons build.
 
     Notes:
-        The index is authoritative for the set and order of source and header
-        files. Plugins may reorder its lines before Scons runs.
-
-    Args:
-        source_dir: Directory containing the generated C sources.
+        Plugins may reorder lines in this file before Scons runs.
     """
     index_filenames = []
 
@@ -100,18 +75,6 @@ def createSourceFilesIndex(source_dir):
 
 
 def _makeSourceFilenameFileSystemEncodable(filename):
-    """Make a source filename usable with the C compiler.
-
-    Notes:
-        On Windows, non-encodable filenames are replaced with their short path
-        equivalent, and the extension is lowercased for compiler detection.
-
-    Args:
-        filename: Source filename to make encodable.
-
-    Returns:
-        The source filename to use.
-    """
     filename_base = os.path.basename(filename)
 
     if isWin32Windows() and not isFilesystemEncodable(filename_base):
@@ -126,13 +89,6 @@ def _makeSourceFilenameFileSystemEncodable(filename):
 
 
 def _renameSourceFile(source_filename, target_filename, index_filename):
-    """Rename a source file, replacing an existing target.
-
-    Args:
-        source_filename: Source filename to rename.
-        target_filename: Target filename to rename to.
-        index_filename: Filename of the source files index, for error messages.
-    """
     try:
         replaceFileAtomic(source_filename, target_filename)
     except OSError as e:
@@ -143,16 +99,6 @@ def _renameSourceFile(source_filename, target_filename, index_filename):
 
 
 def _resolveSourceFilenameForC11(source_filename, index_filename, filename):
-    """Resolve a source filename for a C11 compiler.
-
-    Args:
-        source_filename: Source filename to resolve.
-        index_filename: Filename of the source files index, for error messages.
-        filename: Filename from the source files index.
-
-    Returns:
-        The resolved source filename.
-    """
     if os.path.exists(source_filename):
         return _makeSourceFilenameFileSystemEncodable(source_filename)
 
@@ -163,16 +109,6 @@ def _resolveSourceFilenameForC11(source_filename, index_filename, filename):
 
 
 def _resolveSourceFilenameForNonC11C(source_filename, index_filename, filename):
-    """Resolve a C source filename for a non-C11 compiler.
-
-    Args:
-        source_filename: Source filename to resolve.
-        index_filename: Filename of the source files index, for error messages.
-        filename: Filename from the source files index.
-
-    Returns:
-        The resolved C++ source filename.
-    """
     cpp_filename = source_filename + "pp"
 
     if os.path.exists(source_filename):
@@ -194,16 +130,6 @@ def _resolveSourceFilenameForNonC11C(source_filename, index_filename, filename):
 
 
 def _resolveSourceFilenameForNonC11Cpp(source_filename, index_filename, filename):
-    """Resolve a C++ source filename for a non-C11 compiler.
-
-    Args:
-        source_filename: Source filename to resolve.
-        index_filename: Filename of the source files index, for error messages.
-        filename: Filename from the source files index.
-
-    Returns:
-        The resolved C++ source filename.
-    """
     if os.path.exists(source_filename):
         return _makeSourceFilenameFileSystemEncodable(source_filename)
 
@@ -225,22 +151,7 @@ def _resolveSourceFilenameForNonC11Cpp(source_filename, index_filename, filename
 
 
 def _resolveSourceFilenameFromIndex(env, source_dir, index_filename, filename):
-    """Resolve a source filename from the source files index.
-
-    Notes:
-        The index is authoritative for the set and order of source files. In
-        non-C11 mode, C files are renamed to C++ files, and the index may
-        contain either the source or the already renamed filename.
-
-    Args:
-        env: The Scons environment of the build.
-        source_dir: Directory containing the generated C sources.
-        index_filename: Filename of the source files index, for error messages.
-        filename: Filename from the source files index.
-
-    Returns:
-        The resolved source filename.
-    """
+    """Resolve an indexed source filename, renaming '.c' files to '.cpp' in non-C11 mode."""
     source_filename = getNormalizedPathJoin(source_dir, filename)
 
     if not hasFilenameExtension(source_filename, (".c", ".cpp")):
@@ -271,21 +182,11 @@ def _resolveSourceFilenameFromIndex(env, source_dir, index_filename, filename):
 
 
 def getSourceFilenamesFromIndex(env, source_dir):
-    """Get source filenames from the source files index.
+    """Resolve source filenames in index order and append header directories to 'CPPPATH'.
 
     Notes:
-        The index file is mandatory and authoritative for the set and order of
-        source files, and no directory scan is performed. Source files generated
-        during Scons setup are taken from 'env.generated_source_filenames' and
-        appended. Header entries are used only to add their directories to the
-        include path.
-
-    Args:
-        env: The Scons environment of the build.
-        source_dir: Directory containing the generated C sources.
-
-    Returns:
-        List of source filenames.
+        Appends files from 'env.generated_source_filenames' created during Scons
+        setup, without scanning 'source_dir'.
     """
     index_filename = getSourceFilesIndexFilename(source_dir)
 

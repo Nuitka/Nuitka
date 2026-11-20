@@ -2,16 +2,11 @@
 #     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-"""
-The Offset scons file. If you have Scons or platform knowledge, please be
-especially invited and contribute improvements.
+"""SCons file for building the CPython internal struct offset extractor.
 
-This file is used to build an executable that outputs data about offsets, it is
-needed to make up for differences in offsets of structures for the Python
-headers between MSVC and MinGW64, that can only be accounted for with a
-structure that is generated and achieves same layout for MinGW64 despite the
-internals being different. As of Python3.13, internal only structures do not
-enforce layouts of all structures anymore.
+Builds an executable that outputs CPython internal structure offsets so MinGW64
+can match MSVC layouts on Python 3.13+, where internal headers no longer enforce
+identical struct layouts across compilers.
 """
 
 # Make nuitka package importable from calling installation
@@ -23,7 +18,6 @@ import types
 sys.modules["nuitka"] = types.ModuleType("nuitka")
 sys.modules["nuitka"].__path__ = [os.environ["NUITKA_PACKAGE_DIR"]]
 
-# We are in the build.build package really.
 import nuitka.build  # pylint: disable=unused-import
 
 __package__ = "nuitka.build"  # pylint: disable=redefined-builtin
@@ -53,8 +47,6 @@ from .SconsUtils import (
 
 # spell-checker: ignore cppdefines,cpppath
 
-# Set up the basic stuff.
-# Set up the basic stuff.
 env = createNuitkaSconsEnvironment()
 env.low_memory = False
 env.debug_mode = False
@@ -63,22 +55,13 @@ env.unstripped_mode = False
 env.console_mode = "force"
 env.resource_mode = "absent"
 
-# The directory used for building.
-
-# The name of executable that we are supposed to produce.
 result_exe = getArgumentRequired("result_exe")
 
-# Python version to target.
 python_version_str = getArgumentRequired("python_version")
 python_version = tuple(int(d) for d in python_version_str.split("."))
 
-# Python debug mode: reference count checking, assertions in CPython core.
-
-
-# Report the C compiler used.
 reportCCompiler(env, "Backend", scons_logger.info)
 
-# Set up C compiler settings.
 setupCCompiler(
     env=env,
     pgo_mode="no",
@@ -86,15 +69,9 @@ setupCCompiler(
     onefile_compile=False,
 )
 
-
-# Home of Python to be compiled against, used to find tools like clcache and
-# ccache, no linking against Python is needed here.
 python_prefix = getArgumentRequired("python_prefix")
-
 python_prefix_external = getExternalUsePath(python_prefix)
 
-
-# From statically compiled modules of the Python
 link_module_libs = getArgumentList("link_module_libs", "")
 
 if env.target_os != "WASI" and not env.msvc_mode:
@@ -130,8 +107,6 @@ if env.gcc_mode and env.static_libpython:
 elif os.name == "nt":
     addWin32PythonLib(env)
 
-# The static include files reside in Nuitka installation, which may be where
-# the "nuitka.build" package lives.
 nuitka_include = os.path.join(env.nuitka_src, "include")
 
 if not os.path.exists(os.path.join(nuitka_include, "nuitka", "prelude.h")):
@@ -140,8 +115,6 @@ if not os.path.exists(os.path.join(nuitka_include, "nuitka", "prelude.h")):
         % nuitka_include
     )
 
-# We have include files in the build directory and the static include directory
-# that is located inside Nuitka installation.
 env.Append(
     CPPPATH=[
         env.source_dir,
@@ -151,12 +124,7 @@ env.Append(
     ]
 )
 
-
 source_filenames = getSourceFilenamesFromIndex(env=env, source_dir=env.source_dir)
-
-# Remove the target file to avoid cases where it falsely doesn't get rebuild and
-# then lingers from previous builds, and also workaround for MinGW64 not
-# supporting unicode result paths for "-o" basename.
 result_exe = makeResultPathFileSystemEncodable(env=env, result_exe=result_exe)
 
 target = env.Program(result_exe, source_filenames)

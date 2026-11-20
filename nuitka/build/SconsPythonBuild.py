@@ -121,7 +121,6 @@ def applyPythonBuildSettings(env):
     if not env.gil_mode:
         env.Append(CPPDEFINES="Py_GIL_DISABLED")
 
-    # We need "dl" in accelerated mode.
     if env.target_os == "Linux":
         env.Append(LIBS=["dl"])
 
@@ -214,8 +213,6 @@ def addPythonHaclLib(env, link_module_libs):
             )
 
             env.Append(CPPDEFINES=["_NUITKA_INLINE_COPY_HACL"])
-
-            # env.Append(CPPDEFINES=["HACL_CAN_COMPILE_VEC128"])
             env.Append(CPPDEFINES=["HACL_CAN_COMPILE_VEC256"])
 
     # Remove it from static link libraries unconditionally - libHacl_Hash_SHA2

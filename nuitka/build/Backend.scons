@@ -2,13 +2,7 @@
 #     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-"""
-The Nuitka scons file. If you have Scons or platform knowledge, please be
-especially invited and contribute improvements.
-
-This file is used to build an executable or shared library. Nuitka needs no
-build process for itself, although it can be compiled using the same method.
-"""
+"""Backend SCons file for building executables, shared libraries, and extension modules."""
 
 # Make nuitka package importable from calling installation
 
@@ -67,29 +61,13 @@ from .SconsUtils import (
 
 # spell-checker: ignore cflags,cppdefines,cpppath,libflags,libpath,linkflags
 
-# Set up the basic stuff.
 env = createNuitkaSconsEnvironment()
 
-
-# The name of executable that we are supposed to produce.
 result_exe = getArgumentRequired("result_exe")
-
-# Name of the main program (in executable mode, typically __main__ but can be in a package too.)
 main_module_name = getArgumentDefaulted("main_module_name", "__main__")
-
-
-# Full compatibility, even where it's stupid, i.e. do not provide information,
-# even if available, in order to assert maximum compatibility. Intended to
-# control level of compatibility to absurd.
 full_compat_mode = getArgumentBool("full_compat", False)
-
-# Profiling mode: Outputs vmprof based information from program run.
 profile_mode = getArgumentBool("profile_mode", False)
-
-# sys.flags values to pass along
 no_python_warnings = getArgumentBool("no_python_warnings", False)
-
-# Disable Python unraisable exception output if requested to.
 no_unraisable = getArgumentBool("no_unraisable", False)
 
 python_sysflag_py3k_warning = getArgumentBool("python_sysflag_py3k_warning", False)
@@ -116,15 +94,10 @@ python_sysflag_safe_path = getArgumentBool("python_sysflag_safe_path", False)
 python_sysflag_isolated = getArgumentBool("python_sysflag_isolated", False)
 
 file_reference_mode = getArgumentRequired("file_reference_mode")
-
-# From statically compiled modules of the Python
 link_module_libs = getArgumentList("link_module_libs", "")
 
-
-# Report the C compiler used.
 reportCCompiler(env, "Backend", scons_logger.info)
 
-# Set up C compiler settings.
 setupCCompiler(
     env=env,
     pgo_mode=env.pgo_mode,
@@ -176,18 +149,14 @@ if env.target_os == "Windows" and not env.msys2_posix_python:
     elif env.gcc_mode and env.static_libpython:
         env.Append(LIBS=[env.File(env.static_libpython)])
     else:
-        # All Python flavors on Windows have this.
         addWin32PythonLib(env)
 elif env.exe_mode or env.dll_mode:
-    # Add the python library path to the library path
     if env.self_compiled_python_uninstalled:
         python_lib_path = env.python_prefix_external
     else:
         python_lib_path = os.path.join(env.python_prefix_external, "lib")
 
     env.Append(LIBPATH=[python_lib_path])
-
-    # Any module libs that are for self-compiled Python to be static.
     env.Append(_LIBFLAGS=["-l" + lib_desc for lib_desc in link_module_libs])
 
     if env.monolithpy:
@@ -277,7 +246,7 @@ elif env.exe_mode or env.dll_mode:
 
 if isMacOS():
     if env.module_mode or env.dll_mode:
-        # Dynamic lookup needed for extension modules.
+        # Allow unresolved symbols to be resolved at dynamic load time.
         env.Append(LINKFLAGS=["-undefined", "dynamic_lookup"])
     if not env.module_mode:
         # For macOS we need to make sure install_name_tool can do its work
@@ -290,8 +259,6 @@ if env.module_mode and (env.android_termux_python or isAIX()):
     # spell-checker: ignore lpython
     env.Append(_LIBFLAGS=["-lpython%s" % env.python_version_str])
 
-# The static include files reside in Nuitka installation, which may be where
-# the "nuitka.build" package lives.
 nuitka_include = os.path.join(env.nuitka_src, "include")
 
 if not os.path.exists(os.path.join(nuitka_include, "nuitka", "prelude.h")):
@@ -300,8 +267,6 @@ if not os.path.exists(os.path.join(nuitka_include, "nuitka", "prelude.h")):
         % nuitka_include
     )
 
-# We have include files in the build directory and the static include directory
-# that is located inside Nuitka installation.
 env.Append(
     CPPPATH=[
         env.source_dir,
@@ -311,7 +276,6 @@ env.Append(
     ]
 )
 
-# Set load libpython from binary directory default
 if (
     env.gcc_mode
     and env.rpath_using_platform
@@ -342,9 +306,6 @@ source_filenames = getSourceFilenamesFromIndex(env=env, source_dir=env.source_di
 
 
 def _addLinkerMapOutput():
-    # Add a linker flag to generate a .map file. Triggered by the
-    # 'generate-debug-symbols' experimental flag.
-
     if "generate-debug-symbols" not in env.experimental_flags:
         return
 
@@ -362,9 +323,6 @@ def _addLinkerMapOutput():
         )
 
 
-# Remove the target file to avoid cases where it falsely doesn't get rebuild and
-# then lingers from previous builds, and also workaround for MinGW64 not
-# supporting unicode result paths for "-o" basename.
 result_exe = makeResultPathFileSystemEncodable(env=env, result_exe=result_exe)
 
 # On Windows onefile DLL mode, we try to avoid the overhead of entry point
@@ -531,8 +489,6 @@ if file_reference_mode == "original":
 
 createBuildDefinitionsFile()
 
-# The meta path based loader might want to respect that, so it does verbose traces in module
-# mode, mostly for debugging purposes only.
 if env.module_mode and python_sysflag_verbose:
     env.Append(CPPDEFINES=["_NUITKA_SYSFLAG_VERBOSE=1"])
 

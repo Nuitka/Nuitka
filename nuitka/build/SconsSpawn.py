@@ -35,7 +35,7 @@ from .SconsUtils import (
 # the main thread when running under a compiled binary.
 if str is bytes:
     try:
-        import resource  # Ensure in sys.modules before spawning threads, pylint: disable=unused-import
+        import resource  # pylint: disable=unused-import
     except ImportError:
         pass
 
@@ -52,7 +52,6 @@ SubprocessSpawnResult = makeNamedtupleClass(
 )
 
 
-# Thread class to run a command
 class SubprocessThread(threading.Thread):
     def __init__(self, cmdline, env):
         threading.Thread.__init__(self)
@@ -71,7 +70,6 @@ class SubprocessThread(threading.Thread):
 
     def run(self):
         try:
-            # execute the command, queue the result
             with self.timer_report:
                 process_result = executeProcess(
                     command=self.cmdline,
@@ -83,7 +81,7 @@ class SubprocessThread(threading.Thread):
                     exception=None, **process_result.asDict()
                 )
 
-        except Exception as e:  # will rethrow all, pylint: disable=broad-except
+        except Exception as e:  # pylint: disable=broad-except
             self.process_result = SubprocessSpawnResult(
                 exit_code=None,
                 stdout=None,
@@ -100,7 +98,6 @@ def _runProcessMonitored(env, cmdline, os_env, source_filename):
     thread = SubprocessThread(cmdline, os_env)
     thread.start()
 
-    # Allow 6 minutes before warning for long compile time.
     thread.join(360)
 
     if thread.is_alive():
@@ -118,7 +115,7 @@ def _runProcessMonitored(env, cmdline, os_env, source_filename):
 
 
 def _filterMsvcLinkOutput(env, data, exit_code):
-    # Training newline in some cases, esp. LTO it seems.
+    # Trailing newline in some cases, esp. LTO it seems.
     data = data.rstrip()
 
     # It might be saying it's creating a link library.
@@ -144,7 +141,6 @@ def _filterMsvcLinkOutput(env, data, exit_code):
 
 
 def _raiseCorruptedObjectFilesExit(cache_name):
-    """Error exit due to corrupt object files and point to cache cleanup."""
     scons_logger.sysexit("""\
 Error, the C linker reported a corrupt object file. You may need to run
 Nuitka with '--clean-cache=%s' once to repair it, or else will
@@ -158,15 +154,6 @@ def _getNoSuchCommandErrorMessage():
 
 
 def _getSourceFilename(args):
-    """Get the C source filename from compiler command arguments.
-
-    Args:
-        args: List of compiler command arguments.
-
-    Returns:
-        Filename of C source or None if not found.
-    """
-
     for arg in args[1:]:
         if arg[:1] == '"' and arg[-1:] == '"':
             arg = arg[1:-1]
@@ -183,12 +170,11 @@ def _getSourceFilename(args):
 # To work around Windows not supporting command lines of greater than 10K by
 # default:
 def _getWindowsSpawnFunction(env, source_filenames):
-    # Too much error handling error, pylint: disable=too-many-branches
+    # pylint: disable=too-many-branches
 
     def spawnWindowsCommand(
         sh, escape, cmd, args, os_env
     ):  # pylint: disable=unused-argument
-        """Our own spawn implementation for use on Windows."""
         assert type(args) in (list, tuple)
 
         # The "del" appears to not work reliably, but is used with large amounts of
@@ -213,7 +199,6 @@ def _getWindowsSpawnFunction(env, source_filenames):
 
         source_filename = _getSourceFilename(args)
 
-        # Special hook for clcache inline copy
         if cmd == "<clcache>":
             process_result = runClCache(
                 args=args,
@@ -322,17 +307,17 @@ def _formatForOutput(arg):
 
 
 def isIgnoredError(line):
-    # Many cases and return driven, pylint: disable=too-many-branches,too-many-return-statements
+    # pylint: disable=too-many-branches,too-many-return-statements
 
     # spell-checker: ignore bytearrayobject,structseq,tempnam,tmpnam
 
-    # Debian Python2 static libpython lto warnings:
+    # Debian Python2 static libpython LTO warnings:
     if "function `posix_tmpnam':" in line:
         return True
     if "function `posix_tempnam':" in line:
         return True
 
-    # Self compiled Python2 static libpython lot warnings:
+    # Self-compiled Python2 static libpython LTO warnings:
     if "the use of `tmpnam_r' is dangerous" in line:
         return True
     if "the use of `tempnam' is dangerous" in line:
@@ -395,10 +380,9 @@ class SpawnThread(threading.Thread):
 
     def run(self):
         try:
-            # execute the command, queue the result
             with self.timer_report:
                 self.process_result = self.spawnSubprocess(env=self.env)
-        except Exception as e:  # will rethrow all, pylint: disable=broad-except
+        except Exception as e:  # pylint: disable=broad-except
             self.process_result = SubprocessSpawnResult(
                 stdout=None, stderr=None, exit_code=None, exception=e, rusage=None
             )
@@ -467,7 +451,7 @@ def _stopOtherThreads():
     if _stop_threads_lock.acquire(False):
 
         current_thread = threading.current_thread()
-        for thread in list(_threads):  # Iterate over a copy
+        for thread in list(_threads):
             if thread is not current_thread:
                 thread.stopThread()
 
@@ -494,7 +478,6 @@ def _runSpawnMonitored(env, args, os_env, source_filename):
     try:
         thread.start()
 
-        # Allow 6 minutes before warning for long compile time.
         thread.join(360)
 
         if thread.is_alive():
@@ -519,7 +502,7 @@ def _runSpawnMonitored(env, args, os_env, source_filename):
 
 def _getWrappedSpawnFunction(env):
     def spawnCommand(sh, escape, cmd, args, os_env):
-        # Signature needed towards Scons core, pylint: disable=unused-argument
+        # pylint: disable=unused-argument
         assert type(args) in (list, tuple)
 
         args = [reverseShQuoting(arg) for arg in args]
@@ -551,7 +534,6 @@ def _getWrappedSpawnFunction(env):
             closeSconsProgressBar()
             _stopOtherThreads()
 
-        # Segmentation fault should give a clear error.
         if spawn_result.exit_code == -11:
             scons_logger.sysexit("""\
 Error, the C compiler '%s' crashed with segfault. Consider upgrading \

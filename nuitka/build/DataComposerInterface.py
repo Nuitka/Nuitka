@@ -1,7 +1,7 @@
 #     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-"""Interface to data composer"""
+"""Interface to the data composer."""
 
 import os
 import re
@@ -25,7 +25,6 @@ from nuitka.utils.FileOperations import (
 from nuitka.utils.Hashing import getStringHash
 from nuitka.utils.Json import loadJsonFromFilename
 
-# Indicate not done with -1
 _data_composer_size = None
 _data_composer_stats = None
 _constant_blob_symbol_bases = {}
@@ -37,7 +36,7 @@ def getDataComposerReportValues():
 
 
 def runDataComposer(source_dir):
-    # This module is a singleton, pylint: disable=global-statement
+    # pylint: disable=global-statement
     global _data_composer_stats
 
     onDataComposerRun()
@@ -68,8 +67,6 @@ def _runDataComposer(source_dir):
         mapping["NUITKA_USE_DIRECT_CONSTANT_BLOBS"] = "1"
 
     blob_filename = getConstantBlobFilename(source_dir)
-
-    # This ends up being "__constants.txt" right now.
     stats_filename = changeFilenameExtension(blob_filename, ".txt")
 
     with withEnvironmentVarsOverridden(mapping):
@@ -161,10 +158,7 @@ def _makeConstantBlobSymbolBase(basename):
         filenames are picked by this function too.
 
     Args:
-        basename: The filename without its '.const' or '.bin' extension.
-
-    Returns:
-        str - the safe symbol base
+        basename: Filename without its '.const' or '.bin' extension.
     """
     if basename.startswith("__"):
         basename = basename[2:]
@@ -203,7 +197,6 @@ def getConstantBlobSymbolBase(filename):
     elif basename.endswith(".const"):
         basename = basename[:-6]
 
-        # Collisions only need checking for source data filenames
         result = _constant_blob_symbol_bases.get(basename)
 
         if result is None:
@@ -241,7 +234,6 @@ def deriveModuleConstantsBlobName(filename):
     elif basename == "__files":
         return ".files"
     else:
-        # Strip "module." prefix"
         basename = basename[7:]
 
         return basename
