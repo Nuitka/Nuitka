@@ -100,6 +100,15 @@ PyObject *LOOKUP_ATTRIBUTE(PyThreadState *tstate, PyObject *source, PyObject *at
                 CHECK_OBJECT(result);
                 return result;
             }
+
+#if PYTHON_VERSION < 0x300
+            DROP_ERROR_OCCURRED(tstate);
+#else
+            if (unlikely(HAS_ERROR_OCCURRED(tstate))) {
+                Py_XDECREF(descr);
+                return NULL;
+            }
+#endif
         }
 
         if (func != NULL) {
@@ -246,6 +255,15 @@ PyObject *LOOKUP_ATTRIBUTE_DICT_SLOT(PyThreadState *tstate, PyObject *source) {
             }
 
             Py_DECREF(dict);
+
+#if PYTHON_VERSION < 0x300
+            DROP_ERROR_OCCURRED(tstate);
+#else
+            if (unlikely(HAS_ERROR_OCCURRED(tstate))) {
+                Py_XDECREF(descr);
+                return NULL;
+            }
+#endif
         }
 
         if (func != NULL) {
@@ -389,6 +407,15 @@ PyObject *LOOKUP_ATTRIBUTE_CLASS_SLOT(PyThreadState *tstate, PyObject *source) {
             }
 
             Py_DECREF(dict);
+
+#if PYTHON_VERSION < 0x300
+            DROP_ERROR_OCCURRED(tstate);
+#else
+            if (unlikely(HAS_ERROR_OCCURRED(tstate))) {
+                Py_XDECREF(descr);
+                return NULL;
+            }
+#endif
         }
 
         if (func != NULL) {
@@ -736,10 +763,14 @@ int HAS_ATTR_BOOL2(PyThreadState *tstate, PyObject *source, PyObject *attr_name)
                 return 1;
             }
 
+#if PYTHON_VERSION < 0x300
+            DROP_ERROR_OCCURRED(tstate);
+#else
             if (unlikely(CHECK_AND_CLEAR_ATTRIBUTE_ERROR_OCCURRED(tstate) == false)) {
                 Py_XDECREF(descr);
                 return -1;
             }
+#endif
         }
 
         if (func != NULL) {
