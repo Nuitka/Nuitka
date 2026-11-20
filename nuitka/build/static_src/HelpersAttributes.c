@@ -255,9 +255,13 @@ int BUILTIN_HASATTR_BOOL(PyThreadState *tstate, PyObject *source, PyObject *attr
     PyObject *value = PyObject_GetAttr(source, attr_name);
 
     if (value == NULL) {
+#if PYTHON_VERSION < 0x300
+        CLEAR_ERROR_OCCURRED(tstate);
+#else
         if (CHECK_AND_CLEAR_ATTRIBUTE_ERROR_OCCURRED(tstate) == false) {
             return -1;
         }
+#endif
         return 0;
     }
 
