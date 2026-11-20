@@ -22,6 +22,23 @@ then
     exit 0
 fi
 
+# Reject executable bit changes on existing files, as they are easy to
+# introduce accidentally on platforms that ignore file modes.
+if [ "$GIT_COMMIT" != "unchecked" ]
+then
+    mode_changes=$(git diff --cached --summary $against | grep -E '^ mode change 100644 => 100755 |^ mode change 100755 => 100644 ' || true)
+
+    if [ -n "$mode_changes" ]
+    then
+        echo "Error, executable bit changes detected:"
+        echo "$mode_changes"
+        echo "This check is only intended to catch accidental changes."
+        echo "If this change is intended, use 'GIT_COMMIT=unchecked git commit ...'."
+        echo "To restore the mode instead, use 'git update-index --chmod=+x <file>' or '--chmod=-x <file>'."
+        exit 1
+    fi
+fi
+
 # Autoformat the files.
 if [ "$COMMIT_UNCHECKED" != "1" ]
 then
