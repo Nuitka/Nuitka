@@ -22,7 +22,9 @@ the touched files during iteration:
 - **Spellcheck & comment directives:** Run `./bin/check-nuitka-with-codespell <file>` (on Windows:
   `.\bin\check-nuitka-with-codespell.cmd <file>`) whenever adding, editing, or deleting comments,
   docstrings, or string literals (`codespell` fails if deleting a comment leaves an unused word in
-  `# spell-checker: ignore`).
+  `# spell-checker: ignore`). When deleting or rewording comments in `nuitka/build/static_src/` or
+  `nuitka/code_generation/templates/`, verify first that the comment text is not matched by
+  `injectCodeAtMarker` or `.replace(...)` in `nuitka/plugins/` or `nuitka/tools/`.
 
 ### Mandatory Final Verification Gate
 

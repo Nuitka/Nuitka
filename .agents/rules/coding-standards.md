@@ -119,12 +119,27 @@ description: Python and C coding standards, naming conventions, docstring, and c
     `assert source_code is not None, module`
   - **Correct (non-code "why"):**
     `// Python 3.12 stores dict-watcher flags in the low bits of ma_version_tag, so step by DICT_VERSION_INCREMENT.`
-- **No Dead Code or Vague `TODO`s:** Delete commented-out code, `# print(...)` calls, and `#if 0`
-  debug blocks (git preserves history). Only write `TODO` comments when specific, current, and
-  actionable.
+- **Dead Debug Prints vs. `TODO` / WIP Code:** Delete leftover `# print(...)` calls and pure debug
+  trace blocks (`#if 0 PRINT_STRING(...); #endif` without a `TODO`), and do not leave new dead code
+  behind (git preserves history). However, **preserve** existing `TODO` comments and disabled /
+  work-in-progress code (`#if ... && 0`, `#if 0` draft implementations, or commented-out `assert`
+  checks) that document an unfinished feature, optimization, or invariant check. Only write new
+  `TODO` comments when specific, current, and actionable.
+- **Preserve Plugin Replacement-Hook Comments:** Never delete, reword, or reformat comments in C
+  runtime files (`nuitka/build/static_src/*.c`) or code templates
+  (`nuitka/code_generation/templates/*.py`) that serve as string-replacement hooks for commercial
+  plugins (`injectCodeAtMarker` in `nuitka/tools/commercial/SourceModification.py` or
+  `.replace(...)` in `nuitka/plugins/commercial/`). These include both `// NUITKA_...` markers
+  (e.g., `// NUITKA_INIT_PROGRAM_EARLY(argc, argv);`,
+  `// NUITKA_MODULE_SET_VALUE_RESERVED(%(module_identifier)s, reserved);`) and prose stage markers
+  in `OnefileBootstrap.c` (`// The onefile bootstrap is setup now.`,
+  `// We are done with the unpacking now.`, `// The onefile program is finished now and can exit.`).
+  Before removing comments in C runtime or template files, search `nuitka/plugins/` and
+  `nuitka/tools/` for literal matches.
 - **Templates (`*.c.j2`, `*.py.j2`, `CodeTemplates*.py`):** Use Jinja `{# ... #}` comments for
   template rationale, disabled ideas, and `TODO`s instead of target-language comments (`//`,
-  `/* */`, `#`) that get stamped out across generated files. Generated classes should have the same
+  `/* */`, `#`) that get stamped out across generated files (except intentional replacement-hook
+  markers like `// NUITKA_...` in `CodeTemplates*.py`). Generated classes should have the same
   concise docstring they would have if hand-written (without `"Generated from ..."` meta-boilerplate
   or duplicating base-method docstrings on overrides). Preserve required tool directives
   (`WARNING, this code is GENERATED`, `# pylint: disable=...`, `# spell-checker: ignore`,
