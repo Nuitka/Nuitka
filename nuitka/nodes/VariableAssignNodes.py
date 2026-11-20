@@ -87,18 +87,21 @@ class StatementAssignmentVariableMixin(object):
         # TODO: Need to also provide "outline" for best effect
         if args["is_temp"] == "True":
             variable = owner.createTempVariable(
-                args["variable_name"], temp_type=["var_type"], outline=None
+                args["variable_name"], temp_type=args["var_type"], outline=None
             )
         else:
             variable = owner.getProvidedVariable(args["variable_name"])
 
+        del args["variable_name"]
         del args["is_temp"]
         del args["var_type"]
         del args["owner"]
 
         version = variable.allocateTargetNumber()
 
-        return cls(variable=variable, version=version, source_ref=source_ref, **args)
+        return cls(
+            variable=variable, variable_version=version, source_ref=source_ref, **args
+        )
 
     def makeClone(self):
         version = self.variable.allocateTargetNumber()
