@@ -745,14 +745,21 @@ static PyObject *Nuitka_Function_get_module(PyObject *self, void *data) {
 
     PyThreadState *tstate = PyThreadState_GET();
 
-    // The __dict__ might overrule this.
     struct Nuitka_FunctionObject *function = (struct Nuitka_FunctionObject *)self;
-    if (function->m_dict) {
+    if (function->m_dict != NULL) {
         result = DICT_GET_ITEM1(tstate, function->m_dict, const_str_plain___module__);
 
         if (result != NULL) {
             return result;
         }
+
+#if PYTHON_VERSION < 0x300
+        DROP_ERROR_OCCURRED(tstate);
+#else
+        if (unlikely(HAS_ERROR_OCCURRED(tstate))) {
+            return NULL;
+        }
+#endif
     }
 
     result = MODULE_NAME1(tstate, function->m_module);
