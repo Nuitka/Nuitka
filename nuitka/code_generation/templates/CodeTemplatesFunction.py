@@ -78,8 +78,12 @@ function_return_exit:
    return tmp_return_value;"""
 
 template_annotate_function_closure_setup = """\
-PyObject *closure_tuple = MAKE_TUPLE_VAR0(tstate, (PyObject *const *)closure, %(closure_count)d);
+PyObject *closure_tuple = MAKE_TUPLE_EMPTY(tstate, %(closure_count)d);
 assert(closure_tuple != NULL);
+
+for (Py_ssize_t closure_index = 0; closure_index < %(closure_count)d; closure_index++) {
+    PyTuple_SET_ITEM(closure_tuple, closure_index, (PyObject *)closure[closure_index]);
+}
 
 NUITKA_MAY_BE_UNUSED int set_closure_result = PyFunction_SetClosure(result, closure_tuple);
 assert(set_closure_result == 0);

@@ -338,7 +338,15 @@ static PyObject *Nuitka_Function_get_closure(PyObject *self, void *data) {
     struct Nuitka_FunctionObject *function = (struct Nuitka_FunctionObject *)self;
     if (function->m_closure_given > 0) {
         NUITKA_MAY_BE_UNUSED PyThreadState *tstate = PyThreadState_GET();
-        return MAKE_TUPLE(tstate, (PyObject *const *)function->m_closure, function->m_closure_given);
+
+        PyObject *result = MAKE_TUPLE_EMPTY(tstate, function->m_closure_given);
+        assert(result != NULL);
+
+        for (Py_ssize_t closure_index = 0; closure_index < function->m_closure_given; closure_index++) {
+            PyTuple_SET_ITEM0(result, closure_index, (PyObject *)function->m_closure[closure_index]);
+        }
+
+        return result;
     } else {
         Py_INCREF_IMMORTAL(Py_None);
         return Py_None;
