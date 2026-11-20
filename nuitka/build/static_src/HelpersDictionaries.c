@@ -202,11 +202,7 @@ PyObject *DICT_GET_ITEM0(PyThreadState *tstate, PyObject *dict, PyObject *key) {
         hash = ((PyStringObject *)key)->ob_shash;
 
         if (unlikely(hash == -1)) {
-            hash = HASH_VALUE_WITHOUT_ERROR(tstate, key);
-        }
-
-        if (unlikely(hash == -1)) {
-            return NULL;
+            hash = PyString_Type.tp_hash(key);
         }
     } else {
         hash = HASH_VALUE_WITHOUT_ERROR(tstate, key);
@@ -226,7 +222,13 @@ PyObject *DICT_GET_ITEM0(PyThreadState *tstate, PyObject *dict, PyObject *key) {
     CHECK_OBJECT(entry->me_value);
     return entry->me_value;
 #else
-    if (!PyUnicode_CheckExact(key) || (hash = ((PyASCIIObject *)key)->hash) == -1) {
+    if (PyUnicode_CheckExact(key)) {
+        hash = Nuitka_Py_unicode_get_hash(key);
+
+        if (unlikely(hash == -1)) {
+            hash = PyUnicode_Type.tp_hash(key);
+        }
+    } else {
         hash = HASH_VALUE_WITHOUT_ERROR(tstate, key);
 
         if (unlikely(hash == -1)) {
@@ -301,11 +303,7 @@ PyObject *DICT_GET_ITEM1(PyThreadState *tstate, PyObject *dict, PyObject *key) {
         hash = ((PyStringObject *)key)->ob_shash;
 
         if (unlikely(hash == -1)) {
-            hash = HASH_VALUE_WITHOUT_ERROR(tstate, key);
-        }
-
-        if (unlikely(hash == -1)) {
-            return NULL;
+            hash = PyString_Type.tp_hash(key);
         }
     } else {
         hash = HASH_VALUE_WITHOUT_ERROR(tstate, key);
@@ -326,7 +324,13 @@ PyObject *DICT_GET_ITEM1(PyThreadState *tstate, PyObject *dict, PyObject *key) {
     Py_INCREF(entry->me_value);
     return entry->me_value;
 #else
-    if (!PyUnicode_CheckExact(key) || (hash = ((PyASCIIObject *)key)->hash) == -1) {
+    if (PyUnicode_CheckExact(key)) {
+        hash = Nuitka_Py_unicode_get_hash(key);
+
+        if (unlikely(hash == -1)) {
+            hash = PyUnicode_Type.tp_hash(key);
+        }
+    } else {
         hash = HASH_VALUE_WITHOUT_ERROR(tstate, key);
 
         if (unlikely(hash == -1)) {
