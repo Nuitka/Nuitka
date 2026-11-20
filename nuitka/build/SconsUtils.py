@@ -72,8 +72,11 @@ def _setArguments(arguments):
     arg_encoding = arguments.get("argument_encoding")
 
     for key, value in arguments.items():
-        if arg_encoding is not None:
-            value = decodeData(value)
+        if arg_encoding is not None and str is bytes:
+            try:
+                value = value.decode(arg_encoding)
+            except UnicodeDecodeError:
+                value = decodeData(value)
         scons_arguments[key] = value
 
 
@@ -514,15 +517,18 @@ def createEnvironment(
 
 def decodeData(data):
     """Our own decode tries to workaround MSVC misbehavior."""
-    try:
-        return data.decode(sys.__stdout__.encoding)
-    except UnicodeDecodeError:
-        import locale
-
+    if sys.__stdout__.encoding:
         try:
-            return data.decode(locale.getpreferredencoding())
+            return data.decode(sys.__stdout__.encoding)
         except UnicodeDecodeError:
-            return data.decode("utf8", "backslashreplace")
+            pass
+
+    import locale
+
+    try:
+        return data.decode(locale.getpreferredencoding())
+    except UnicodeDecodeError:
+        return data.decode("utf8", "backslashreplace")
 
 
 def getExecutablePath(filename, env):
@@ -567,15 +573,21 @@ Error, scons environment variable '%s' is not set, this ought to never happen. P
 
 
 def setEnvironmentVariable(env, key, value):
+    # Otherwise subprocess will complain in Python2
+    if str is bytes and type(value) is unicode:
+        value = value.encode("utf8")
+
     if value is None:
-        del os.environ[key]
-    elif key in os.environ:
+        if key in os.environ:
+            del os.environ[key]
+    else:
         os.environ[key] = value
 
     if env is not None:
         # pylint: disable=protected-access
         if value is None:
-            del env._dict["ENV"][key]
+            if key in env._dict["ENV"]:
+                del env._dict["ENV"][key]
         else:
             env._dict["ENV"][key] = value
 
