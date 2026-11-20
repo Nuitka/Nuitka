@@ -24,6 +24,35 @@ def simpleFunction1():
     print({**a for a in [{1: 2}, {3: 4}]})
 
 
+class _SimpleMapping(object):
+    def __init__(self, data):
+        self.data = data
+
+    def keys(self):
+        return (k for k in self.data)
+
+    def __getitem__(self, key):
+        return self.data[key]
+
+
+class _NonIterableKeys(object):
+    def keys(self):
+        return object()
+
+
+def simpleFunction2():
+    m1 = _SimpleMapping({"a": 1, "b": 2})
+    m2 = _SimpleMapping({"b": 3, "c": 4})
+    res = {**m for m in [m1, m2]}
+    assert res == {"a": 1, "b": 3, "c": 4}
+
+    for bad in ([("a", 1)], _NonIterableKeys()):
+        try:
+            {**m for m in [m1, bad]}
+        except TypeError:
+            pass
+
+
 # These need stderr to be wrapped.
 tests_stderr = ()
 

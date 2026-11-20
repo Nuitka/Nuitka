@@ -299,7 +299,7 @@ def generateDictOperationUpdateCode(statement, emit, context):
 
         emit("assert(PyDict_Check(%s));" % dict_arg_name)
         emit(
-            "%s = DICT_UPDATE_FROM(tstate, %s, %s);"
+            "%s = DICT_UNPACK_FROM(tstate, %s, %s);"
             % (res_name, dict_arg_name, value_arg_name)
         )
 

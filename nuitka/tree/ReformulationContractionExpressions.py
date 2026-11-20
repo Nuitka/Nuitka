@@ -16,18 +16,15 @@ from nuitka.nodes.BuiltinIteratorNodes import (
 from nuitka.nodes.BuiltinNextNodes import ExpressionBuiltinNext1
 from nuitka.nodes.CodeObjectSpecs import CodeObjectSpecGeneratorExpression
 from nuitka.nodes.ConditionalNodes import makeStatementConditional
-from nuitka.nodes.ConstantRefNodes import (
-    ExpressionConstantIntRef,
-    makeConstantRefNode,
-)
+from nuitka.nodes.ConstantRefNodes import makeConstantRefNode
 from nuitka.nodes.ContainerOperationNodes import (
     StatementListOperationAppend,
     StatementSetOperationAdd,
 )
 from nuitka.nodes.DictionaryNodes import (
-    ExpressionDictOperationIteritems,
     StatementDictOperationSet,
     StatementDictOperationSetKeyValue,
+    StatementDictOperationUpdate,
 )
 from nuitka.nodes.FrameNodes import (
     StatementsFrameAsyncgen,
@@ -50,7 +47,6 @@ from nuitka.nodes.StatementNodes import (
     StatementExpressionOnly,
     StatementsSequence,
 )
-from nuitka.nodes.SubscriptNodes import ExpressionSubscriptLookup
 from nuitka.nodes.VariableAssignNodes import makeStatementAssignmentVariable
 from nuitka.nodes.VariableRefNodes import ExpressionTempVariableRef
 from nuitka.nodes.VariableReleaseNodes import makeStatementReleaseVariable
@@ -487,77 +483,19 @@ def _buildContractionBodyNode(  # pylint: disable=too-many-statements
                 source_ref=source_ref,
             )
     else:
+        # Only 'DictComp' lacks 'node.elt'. In Python 3.15+ (PEP 798),
+        # '{**m for m in items}' is represented as 'DictComp(key=m, value=None)'
+        # (opposite of 'ast.Dict', where '**m' has 'key=None, value=m').
         if node.value is None:
-            tmp_dict_iterator = item_provider.allocateTempVariable(
-                temp_scope=None, name="dict_iterator", temp_type="object"
-            )
-            tmp_dict_item = item_provider.allocateTempVariable(
-                temp_scope=None, name="subitem", temp_type="object"
-            )
-
-            emit_item = emit_class(
+            current_body = StatementDictOperationUpdate(
                 dict_arg=ExpressionTempVariableRef(
                     variable=container_tmp, source_ref=source_ref
                 ),
-                key=ExpressionSubscriptLookup(
-                    expression=ExpressionTempVariableRef(tmp_dict_item, source_ref),
-                    subscript=ExpressionConstantIntRef(0, source_ref),
+                value=buildNode(
+                    provider=item_provider,
+                    node=node.key,
                     source_ref=source_ref,
                 ),
-                value=ExpressionSubscriptLookup(
-                    expression=ExpressionTempVariableRef(tmp_dict_item, source_ref),
-                    subscript=ExpressionConstantIntRef(1, source_ref),
-                    source_ref=source_ref,
-                ),
-                source_ref=source_ref,
-            )
-
-            loop_body = makeStatementsSequenceFromStatements(
-                makeTryExceptSingleHandlerNode(
-                    tried=makeStatementAssignmentVariable(
-                        variable=tmp_dict_item,
-                        source=ExpressionBuiltinNext1(
-                            value=ExpressionTempVariableRef(
-                                variable=tmp_dict_iterator,
-                                source_ref=source_ref,
-                            ),
-                            source_ref=source_ref,
-                        ),
-                        source_ref=source_ref,
-                    ),
-                    exception_name="StopIteration",
-                    handler_body=StatementLoopBreak(source_ref=source_ref),
-                    source_ref=source_ref,
-                ),
-                emit_item,
-            )
-
-            loop = StatementLoop(
-                loop_body=loop_body,
-                source_ref=source_ref,
-            )
-
-            current_body = makeTryFinallyReleaseStatement(
-                provider=item_provider,
-                tried=makeStatementsSequenceFromStatements(
-                    [
-                        makeStatementAssignmentVariable(
-                            variable=tmp_dict_iterator,
-                            source=ExpressionBuiltinIter1(
-                                value=ExpressionDictOperationIteritems(
-                                    dict_arg=buildNode(
-                                        item_provider, node.key, source_ref
-                                    ),
-                                    source_ref=source_ref,
-                                ),
-                                source_ref=source_ref,
-                            ),
-                            source_ref=source_ref,
-                        ),
-                        loop,
-                    ]
-                ),
-                variables=(tmp_dict_iterator, tmp_dict_item),
                 source_ref=source_ref,
             )
         else:
