@@ -46,7 +46,7 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
