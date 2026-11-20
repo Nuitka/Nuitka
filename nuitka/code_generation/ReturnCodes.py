@@ -1,13 +1,7 @@
 #     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-"""Return codes
-
-This handles code generation for return statements of normal functions and of
-generator functions. Also the value currently being returned, and intercepted
-by a try statement is accessible this way.
-
-"""
+"""Code generation for return statements in functions and generators."""
 
 from nuitka.Constants import isConstantImmortal
 from nuitka.PythonVersions import python_version
@@ -56,7 +50,7 @@ def generateReturnCode(statement, emit, context):
 
 
 def generateReturnedValueCode(statement, emit, context):
-    # We don't need the statement, pylint: disable=unused-argument
+    # pylint: disable=unused-argument
 
     getExceptionUnpublishedReleaseCode(emit, context)
 
@@ -120,7 +114,7 @@ def generateGeneratorReturnValueCode(statement, emit, context):
 
 
 def generateGeneratorReturnNoneCode(statement, emit, context):
-    # We don't need the statement, pylint: disable=unused-argument
+    # pylint: disable=unused-argument
 
     if context.getOwner().isExpressionAsyncgenObjectBody():
         pass

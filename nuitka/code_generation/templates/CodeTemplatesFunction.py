@@ -71,8 +71,6 @@ template_function_return_exit = """
 function_return_exit:
 %(function_cleanup)s
 
-   // Actual function exit with return value, making sure we did not make
-   // the error status worse despite non-NULL return.
    CHECK_OBJECT(tmp_return_value);
    assert(had_error || !HAS_ERROR_OCCURRED(tstate));
    return tmp_return_value;"""
@@ -95,7 +93,7 @@ function_direct_body_template = """\
 %(file_scope)s PyObject *impl_%(function_identifier)s(PyThreadState *tstate, %(direct_call_arg_spec)s) {
 #ifndef __NUITKA_NO_ASSERT__
     NUITKA_MAY_BE_UNUSED bool had_error = HAS_ERROR_OCCURRED(tstate);
-    assert(!had_error); // Do not enter inlined functions with error set.
+    assert(!had_error);
 #endif
 
 %(function_locals)s

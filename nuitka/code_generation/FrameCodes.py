@@ -67,12 +67,9 @@ def _getFrameCacheClaimIdentifier(frame_identifier):
 
 
 def generateStatementsFrameCode(statement_sequence, emit, context):
-    # This is a wrapper that provides also handling of frames. The standard
-    # and generator frame variety ought to be merged once generators are
-    # possible to inline.
-    # TODO: This will get simpler, pylint: disable=too-many-locals
-    # Many branches and statements for the nested frame handling, which
-    # includes the exception line number handover, pylint: disable=too-many-branches,too-many-statements
+    # TODO: Merge standard and generator frame varieties once generators can be
+    # inlined.
+    # pylint: disable=too-many-branches,too-many-locals,too-many-statements
     context.pushCleanupScope()
 
     guard_mode = statement_sequence.getGuardMode()
@@ -84,12 +81,10 @@ def generateStatementsFrameCode(statement_sequence, emit, context):
 
     parent_exception_exit = context.getExceptionEscape()
 
-    # For nested frames, make sure to restore set the type description.
     if context.getFrameHandle() is not None:
         real_parent_exception_exit = parent_exception_exit
         parent_exception_exit = context.allocateLabel("nested_frame_exit")
 
-    # Allow stacking of frame handles.
     context.pushFrameHandle(
         statement_sequence.getFrameCodeName(), statement_sequence.hasStructureMember()
     )
@@ -118,8 +113,6 @@ def generateStatementsFrameCode(statement_sequence, emit, context):
         )
     )
 
-    # Now generate the statements code into a local buffer, to we can wrap
-    # the frame stuff around it.
     local_emit = SourceCodeCollector()
 
     _generateStatementSequenceCode(
@@ -173,7 +166,6 @@ def generateStatementsFrameCode(statement_sequence, emit, context):
     context.popFrameVariables()
     context.popFrameHandle()
 
-    # For nested frames, make sure to restore set the type description.
     if context.getFrameHandle() is not None:
         label = context.allocateLabel("skip_nested_handling")
         getGotoCode(label, emit)
@@ -311,7 +303,7 @@ def _getFrameGuardHeavyFunctionCode(
             if frame_node.needsFrameLocalsProxy():
                 assert python_version >= 0x3D0
 
-                # Singleton, pylint: disable=global-statement
+                # pylint: disable=global-statement
                 global _frame_locals_proxy_used
                 _frame_locals_proxy_used = True
 
@@ -383,7 +375,6 @@ def getFrameGuardHeavyCode(
     emit,
     context,
 ):
-    # A lot of details go into the frame guard code,
     # pylint: disable=too-many-locals
 
     no_exception_exit = context.allocateLabel("frame_no_exception")
@@ -504,8 +495,7 @@ def getFrameGuardGeneratorCode(
     emit,
     context,
 ):
-    # We really need this many parameters here and it gets very
-    # detail rich, pylint: disable=too-many-locals
+    # pylint: disable=too-many-locals
     (
         exception_state_name,
         exception_lineno,

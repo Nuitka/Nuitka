@@ -85,7 +85,6 @@ template_generator_exception_exit = """\
 """
 
 template_generator_no_exception_exit = """\
-    // Return statement need not be present.
 %(function_cleanup)s
     return NULL;
 """

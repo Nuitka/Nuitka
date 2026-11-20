@@ -117,9 +117,6 @@ def generatePkgResourcesDistributionValueCode(to_name, expression, emit, context
             for kw_name in kw_names
         ]
 
-        # Standalone mode has a different location, it is the directory the
-        # program runs from, while otherwise the compile time location is
-        # used.
         if "location" not in kw_names:
             kw_names += ("location",)
 
@@ -708,15 +705,7 @@ def generatePkgResourcesResourceStringCallCode(to_name, expression, emit, contex
 
 
 def _getImportlibResourcesModuleName(expression):
-    """Get the module name of an 'importlib.resources' call.
-
-    Args:
-        expression: The call expression.
-
-    Returns:
-        str: The module name, e.g. 'importlib.resources' or
-        'importlib_resources' for the backport.
-    """
+    """Return 'importlib.resources' or 'importlib_resources' from the call spec."""
     return expression.spec.name.rsplit(".", 1)[0]
 
 

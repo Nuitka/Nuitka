@@ -1,7 +1,7 @@
 #     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-"""Code generation for networkx module specific stuff."""
+"""Code generation for 'networkx' module specific calls."""
 
 from .BuiltinCodes import getBuiltinCallViaSpecCode
 from .ImportCodes import getImportModuleNameHardCode
@@ -9,8 +9,6 @@ from .JitCodes import addUncompiledFunctionSourceDict
 
 
 def generateNetworkxUtilsDecoratorsArgmapCallCode(to_name, expression, emit, context):
-    """This is for networkx.utils.decorators.argmap calls."""
-
     # TODO: Have global cached forms of hard attribute lookup results too.
     argmap_class_name = context.allocateTempName("argmap_class", unique=True)
 

@@ -1,7 +1,7 @@
 #     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-"""CType classes for nuitka_ilong, a struct to represent long values."""
+"""CType classes for 'nuitka_ilong', a struct to represent long values."""
 
 from nuitka.code_generation.templates.CodeTemplatesVariables import (
     template_release_object_clear,
@@ -83,7 +83,7 @@ class CTypeNuitkaIntOrLongStruct(CTypeBase):
 
     @classmethod
     def emitValueAccessCode(cls, value_name, emit, context):
-        # Nothing to do for this type, pylint: disable=unused-argument
+        # pylint: disable=unused-argument
         return value_name
 
     @classmethod
@@ -166,8 +166,7 @@ class CTypeNuitkaIntOrLongStruct(CTypeBase):
     def emitAssignmentCodeFromConstant(
         cls, to_name, constant, may_escape, emit, context
     ):
-        # No escaping matters with integer values, as they are immutable
-        # the do not have to make copies of the prepared values.
+        # Immutable integer constants can be shared even if they escape.
         # pylint: disable=unused-argument
 
         assert type(constant) is int, repr(constant)
@@ -182,8 +181,6 @@ class CTypeNuitkaIntOrLongStruct(CTypeBase):
 
     @classmethod
     def getTakeReferenceCode(cls, value_name, emit):
-        """Take reference code for given object."""
-
         emit("INCREF_NILONG_VALUE(&%s);" % value_name)
 
     @classmethod

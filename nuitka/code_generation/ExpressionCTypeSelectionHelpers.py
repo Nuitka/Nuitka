@@ -111,7 +111,7 @@ _bytes_argument_normalization = {
 
 
 def decideExpressionCTypes(left, right, may_swap_arguments, context):
-    # Complex stuff with many cases, pylint: disable=too-many-branches
+    # pylint: disable=too-many-branches
 
     left_shape = left.getTypeShape()
     right_shape = right.getTypeShape()
@@ -141,7 +141,6 @@ def decideExpressionCTypes(left, right, may_swap_arguments, context):
         left_c_type = _pickFloatFamilyType(left)
         right_c_type = _pickFloatFamilyType(right)
 
-        # Arguments might be swapped because of normalization.
         needs_argument_swap = (
             may_swap_arguments
             and left_c_type is not right_c_type
@@ -161,7 +160,6 @@ def decideExpressionCTypes(left, right, may_swap_arguments, context):
         left_c_type = _pickStrFamilyType(left)
         right_c_type = _pickStrFamilyType(right)
 
-        # Arguments might be swapped because of normalization.
         needs_argument_swap = (
             may_swap_arguments
             and left_c_type is not right_c_type
@@ -181,7 +179,6 @@ def decideExpressionCTypes(left, right, may_swap_arguments, context):
         left_c_type = _pickBytesFamilyType(left)
         right_c_type = _pickBytesFamilyType(right)
 
-        # Arguments might be swapped because of normalization.
         needs_argument_swap = (
             may_swap_arguments
             and left_c_type is not right_c_type

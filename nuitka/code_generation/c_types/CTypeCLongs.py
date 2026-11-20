@@ -1,7 +1,7 @@
 #     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-"""CType classes for C "long", and C "digit" (used in conjunction with PyLongObject *)"""
+"""CType classes for C 'long' and 'nuitka_digit' (used in conjunction with 'PyLongObject *')."""
 
 from .CTypeBases import CTypeBase, CTypeNotReferenceCountedMixin
 
@@ -11,7 +11,7 @@ class CTypeCLongMixin(CTypeNotReferenceCountedMixin, CTypeBase):
     def emitAssignmentCodeFromConstant(
         cls, to_name, constant, may_escape, emit, context
     ):
-        # No context needed, pylint: disable=unused-argument
+        # pylint: disable=unused-argument
         emit("%s = %s;" % (to_name, constant))
 
 

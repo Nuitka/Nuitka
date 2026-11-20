@@ -34,7 +34,6 @@ def getErrorExitReleaseCode(context):
     temp_release = []
 
     for tmp_name in context.getCleanupTempNames():
-        # Drop the owning reference.
         temp_release.append("Py_DECREF(%s);" % tmp_name)
 
         # The shared function exception exit releases the return value as
@@ -43,7 +42,6 @@ def getErrorExitReleaseCode(context):
             temp_release.append("%s = NULL;" % tmp_name)
 
         if context.isDeferredReleaseName(tmp_name):
-            # Release the deferred reference.
             deferred_code = getDeferredReleaseErrorCode(
                 context=context,
                 tmp_name=tmp_name,
@@ -79,18 +77,8 @@ def getErrorExitBoolCode(
 ):
     """Emit error exit code based on a condition.
 
-    Args:
-        condition: C boolean expression checking for error.
-        emit: Function to emit code.
-        context: Code generation context.
-        release_names: Tuple/list of variable names to release, None entries are allowed.
-        release_name: Single variable name to release.
-        fetched_exception: Whether exception is already fetched.
-        needs_check: Whether validation of condition is needed.
-
-    Notes:
-        `release_name` and `release_names` are mutually exclusive.
-        Use `release_name` for a single variable, `release_names` for multiple.
+    'release_name' and 'release_names' are mutually exclusive; 'release_names'
+    allows 'None' entries.
     """
     assert not condition.endswith(";")
 
@@ -158,16 +146,6 @@ def getErrorExitBoolCode(
 
 
 def getErrorExitRaiseCode(condition, set_exception, emit, context):
-    """Emit error exit code raising an exception when a condition is met.
-
-    Args:
-        condition: C boolean expression that indicates the error case.
-        set_exception: Code that sets the exception, multiple statements may
-            be joined with newlines.
-        emit: Function to emit code.
-        context: Code generation context.
-    """
-
     emit(
         template_error_format_string_exception
         % {
@@ -181,17 +159,6 @@ def getErrorExitRaiseCode(condition, set_exception, emit, context):
 
 
 def getRaiseExceptionStateCode(exception_type_name, exception_message, context):
-    """Get C code that sets the exception state to a new exception.
-
-    Args:
-        exception_type_name: Name of the exception type, e.g. "RuntimeError".
-        exception_message: Message to use for the exception.
-        context: Code generation context.
-
-    Returns:
-        Code that sets the exception state.
-    """
-
     (
         exception_state_name,
         _exception_lineno,
@@ -212,20 +179,9 @@ def getErrorExitCode(
     fetched_exception=False,
     needs_check=True,
 ):
-    """Emit error exit code by checking a variable.
+    """Emit error exit code by checking 'check_name'.
 
-    Args:
-        check_name: Variable to check for error condition.
-        emit: Function to emit code.
-        context: Code generation context.
-        release_names: Tuple/list of variable names to release.
-        release_name: Single variable name to release.
-        fetched_exception: Whether exception is already fetched.
-        needs_check: Whether validation of condition is needed.
-
-    Notes:
-        `release_name` and `release_names` are mutually exclusive.
-        Use `release_name` for a single variable, `release_names` for multiple.
+    'release_name' and 'release_names' are mutually exclusive.
     """
     getErrorExitBoolCode(
         condition=check_name.getCType().getExceptionCheckCondition(check_name),
@@ -246,7 +202,6 @@ def getReleaseCode(release_name, emit, context):
     context.unregisterBorrowedValue(release_name)
 
     if context.needsCleanup(release_name):
-        # Drop the owning reference.
         release_name.getCType().getReleaseCode(
             value_name=release_name, needs_check=False, emit=emit
         )
@@ -279,21 +234,11 @@ def _getFrameVariableErrorCode(
     frame_identifier,
     context,
 ):
-    """Get the exception setting for a variable with a frame, or None.
+    """Get the exception setting for a variable with a frame, or 'None'.
 
     The variable name is resolved from the frame's code object, using the
     local variable index or the closure variable index, depending on where
     the variable is found, so no string constant is needed.
-
-    Args:
-        variable: Variable that is accessed.
-        exception_state_name: Name of the exception state variable.
-        keeper_exception_state_code: Code for the keeper exception state, or "NULL".
-        frame_identifier: Variable declaration of the frame object, or None.
-        context: Code generation context.
-
-    Returns:
-        Code that sets the exception, or None if unavailable.
     """
     owner = variable.getOwner()
 
@@ -330,17 +275,6 @@ def _getFrameVariableErrorCode(
 
 
 def _getSimpleVariableErrorCode(variable, exception_state_name, context):
-    """Get a plain unbound local or closure variable error code.
-
-    Args:
-        variable: Variable that is accessed.
-        exception_state_name: Name of the exception state variable.
-        context: Code generation context.
-
-    Returns:
-        Code that sets the exception.
-    """
-
     variable_owner = variable.getOwner()
 
     if variable_owner.isExpressionOutlineFunctionBase():

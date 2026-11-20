@@ -18,8 +18,7 @@ from .LabelCodes import getGotoCode, getLabelCode
 
 
 def generateLoopBreakCode(statement, emit, context):
-    # Functions used for generation all accept statement, but this one does
-    # not use it. pylint: disable=unused-argument
+    # pylint: disable=unused-argument
 
     getExceptionUnpublishedReleaseCode(emit, context)
 
@@ -32,8 +31,7 @@ def generateLoopBreakCode(statement, emit, context):
 
 
 def generateLoopContinueCode(statement, emit, context):
-    # Functions used for generation all accept statement, but this one does
-    # not use it. pylint: disable=unused-argument
+    # pylint: disable=unused-argument
 
     getExceptionUnpublishedReleaseCode(emit, context)
 

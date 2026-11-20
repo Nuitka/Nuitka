@@ -43,7 +43,6 @@ if (%s) {
 
 
 def getStatementTrace(source_desc, statement_repr):
-    # return r'PRINT_STRING("Execute: " %s "\n");' % (
     return 'NUITKA_PRINT_TRACE("Execute: " %s);' % (
         encodePythonStringToC(source_desc + b" " + statement_repr),
     )

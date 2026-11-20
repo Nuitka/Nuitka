@@ -1,7 +1,7 @@
 #     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-"""Code generation for tensorflow module specific stuff."""
+"""Code generation for 'tensorflow' module specific operations."""
 
 from .BuiltinCodes import getBuiltinCallViaSpecCode
 from .ImportCodes import getImportModuleNameHardCode
@@ -9,8 +9,6 @@ from .JitCodes import addUncompiledFunctionSourceDict
 
 
 def generateTensorflowFunctionCallCode(to_name, expression, emit, context):
-    """This is for tensorflow.function calls."""
-
     # TODO: Have global cached forms of hard attribute lookup results too.
     tensorflow_function_name = context.allocateTempName(
         "tensorflow_function", unique=True
@@ -25,7 +23,6 @@ def generateTensorflowFunctionCallCode(to_name, expression, emit, context):
         context=context,
     )
 
-    # Include source code of "tensorflow.function" decorated functions.
     addUncompiledFunctionSourceDict(func_value=expression.subnode_func, context=context)
 
     getBuiltinCallViaSpecCode(

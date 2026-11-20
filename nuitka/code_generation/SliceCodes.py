@@ -1,12 +1,7 @@
 #     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-"""Code generation for slicing.
-
-This is about slice lookups, assignments, and deletions. There is also a
-special case, for using index values instead of objects. The slice objects
-are also created here, and can be used for indexing.
-"""
+"""Code generation for slicing and slice objects."""
 
 from nuitka.PythonVersions import python_version
 from nuitka.States import states
@@ -261,7 +256,7 @@ def generateBuiltinSlice3Code(to_name, expression, emit, context):
             getErrorExitCode(
                 check_name=result_name,
                 release_names=(lower_name, upper_name, step_name),
-                needs_check=False,  # Note: Cannot fail
+                needs_check=False,
                 emit=emit,
                 context=context,
             )
@@ -290,7 +285,7 @@ def generateBuiltinSlice2Code(to_name, expression, emit, context):
             getErrorExitCode(
                 check_name=result_name,
                 release_names=(lower_name, upper_name),
-                needs_check=False,  # Note: Cannot fail
+                needs_check=False,
                 emit=emit,
                 context=context,
             )
@@ -317,7 +312,7 @@ def generateBuiltinSlice1Code(to_name, expression, emit, context):
         getErrorExitCode(
             check_name=result_name,
             release_name=upper_name,
-            needs_check=False,  # Note: Cannot fail
+            needs_check=False,
             emit=emit,
             context=context,
         )

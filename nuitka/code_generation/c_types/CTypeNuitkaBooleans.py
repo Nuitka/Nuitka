@@ -46,7 +46,7 @@ class CTypeNuitkaBoolEnum(CTypeNotReferenceCountedMixin, CTypeBase):
 
     @classmethod
     def emitValueAccessCode(cls, value_name, emit, context):
-        # Nothing to do for this type, pylint: disable=unused-argument
+        # pylint: disable=unused-argument
         return value_name
 
     @classmethod
@@ -72,7 +72,7 @@ class CTypeNuitkaBoolEnum(CTypeNotReferenceCountedMixin, CTypeBase):
     def emitAssignmentCodeFromConstant(
         cls, to_name, constant, may_escape, emit, context
     ):
-        # No context needed, pylint: disable=unused-argument
+        # pylint: disable=unused-argument
         emit(
             "%s = %s;"
             % (to_name, "NUITKA_BOOL_TRUE" if constant else "NUITKA_BOOL_FALSE")
@@ -115,7 +115,7 @@ class CTypeNuitkaBoolEnum(CTypeNotReferenceCountedMixin, CTypeBase):
 
     @classmethod
     def emitAssignInplaceNegatedValueCode(cls, to_name, needs_check, emit, context):
-        # Half way, virtual method: pylint: disable=unused-argument
+        # pylint: disable=unused-argument
         cls.emitValueAssertionCode(to_name, emit=emit)
         emit("assert(%s != NUITKA_BOOL_EXCEPTION);" % to_name)
 

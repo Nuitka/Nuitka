@@ -60,7 +60,7 @@ def getGeneratorObjectCode(
     needs_exception_exit,
     needs_generator_return,
 ):
-    # A bit of details going on here, pylint: disable=too-many-locals
+    # pylint: disable=too-many-locals
 
     setupFunctionLocalVariables(
         context=context,
@@ -174,7 +174,6 @@ def generateMakeGeneratorObjectCode(to_name, expression, emit, context):
     if closure_name:
         args.append(closure_name)
 
-    # Special case empty generators.
     if generator_object_body.subnode_body is None:
         emit(
             template_make_empty_generator

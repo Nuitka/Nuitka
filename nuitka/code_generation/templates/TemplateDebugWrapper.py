@@ -1,10 +1,7 @@
 #     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-"""Nuitka templates can have more checks that the normal '%' operation.
-
-This wraps strings with a class derived from "str" that does more checks.
-"""
+"""Debug wrapper for '%' string templates that checks for unused keys."""
 
 from nuitka.__past__ import iterItems
 from nuitka.States import states
@@ -12,12 +9,6 @@ from nuitka.Tracing import optimization_logger
 
 
 class TemplateWrapper(object):
-    """Wrapper around templates.
-
-    To better trace and control template usage.
-
-    """
-
     def __init__(self, name, value):
         self.name = name
         self.value = value
@@ -50,8 +41,6 @@ def enableDebug(globals_dict):
     templates = dict(globals_dict)
 
     for template_name, template_value in iterItems(templates):
-        # Ignore internal attribute like "__name__" that the module will also
-        # have of course.
         if template_name.startswith("_"):
             continue
 

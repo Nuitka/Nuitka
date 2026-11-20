@@ -3,8 +3,8 @@
 
 """Comparison related codes.
 
-Rich comparisons, "in", and "not in", also "is", and "is not", and the
-"isinstance" check as used in conditions, as well as exception matching.
+Rich comparisons, 'in', 'not in', 'is', 'is not', 'isinstance' checks as used
+in conditions, as well as exception matching.
 """
 
 from nuitka.nodes.shapes.BuiltinTypeShapes import (
@@ -64,8 +64,6 @@ def _handleArgumentSwapAndInversion(
 def getRichComparisonCode(
     to_name, comparator, left, right, needs_check, source_ref, emit, context
 ):
-    # This is detail rich stuff, encoding the complexity of what helpers are
-    # available, and can be used as a fallback.
     # pylint: disable=too-many-branches,too-many-locals,too-many-statements
 
     # TODO: Move the value_name to a context generator, then this will be
@@ -88,33 +86,25 @@ def getRichComparisonCode(
         assert not needs_argument_swap
         needs_result_inversion = False
     else:
-        # Same types, we can swap too, but this time to avoid the comparator variety.
         comparator, needs_result_inversion = _handleArgumentSwapAndInversion(
             comparator, needs_argument_swap, left_c_type, right_c_type
         )
 
-    # If a more specific C type was picked that "PyObject *" then we can use that to have the helper.
     helper_type = target_type = to_name.getCType()
 
     if needs_check:
-        # If an exception may occur, we do not have the "NVOID" helpers though, we
-        # instead can use the CTypeNuitkaBoolEnum that will easily convert to
-        # it.
+        # 'NVOID' comparison helpers are not generated; use 'NBOOL' and convert
+        # when an exception may occur.
         if helper_type is CTypeNuitkaVoidEnum:
             helper_type = CTypeNuitkaBoolEnum
 
-        # Need to represent the intermediate exception, so we cannot have that.
         if helper_type is CTypeBool:
             helper_type = CTypeNuitkaBoolEnum
 
         report_missing = True
     else:
-        # If no exception can occur, do not require a helper that can indicate
-        # it, but use the one that produces simpler code, this means we can
-        # avoid the CTypeNuitkaBoolEnum (NBOOL) helpers except for things that
-        # can really raise. Once we have expression for types depending on the
-        # value to raise or not, this will get us into trouble, due to using a
-        # fallback
+        # Prefer C 'bool' helpers when no exception can occur, avoiding 'NBOOL'
+        # overhead for infallible comparisons.
         helper_type = CTypeBool
         report_missing = False
 
@@ -137,7 +127,6 @@ def getRichComparisonCode(
         source_ref=source_ref,
     )
 
-    # If we failed to find CTypeBool, that should be OK.
     if helper_function is None and not report_missing:
         helper_type, helper_function = selectCodeHelper(
             prefix=prefix,
@@ -153,10 +142,7 @@ def getRichComparisonCode(
             source_ref=source_ref,
         )
 
-    # print("PICKED", left, right, left_c_type, right_c_type, helper_function)
-
     if helper_function is None:
-        # Give up and warn about it.
         left_c_type = CTypePyObjectPtr
         right_c_type = CTypePyObjectPtr
 
@@ -199,7 +185,6 @@ def getRichComparisonCode(
         arg1_c_type = left_c_type
         arg2_c_type = right_c_type
 
-    # May need to convert return value.
     if helper_type is not target_type:
         value_name = context.allocateTempName(
             to_name.code_name + "_" + helper_type.helper_code.lower(),
@@ -230,7 +215,6 @@ def getRichComparisonCode(
             context=context,
         )
     else:
-        # Otherwise we picked the wrong kind of helper.
         assert not needs_check, (
             to_name,
             left_shape,
@@ -265,7 +249,6 @@ def getRichComparisonCode(
     if needs_result_inversion:
         target_type.emitAssignInplaceNegatedValueCode(
             to_name=to_name,
-            # We only do get here, target_type doesn't cause issues.
             needs_check=False,
             emit=emit,
             context=context,

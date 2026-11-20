@@ -13,18 +13,16 @@ _deferred_release_emitter = None
 
 
 def registerDeferredReleaseEmitter(emitter):
-    # Singleton, pylint: disable=global-statement
+    # pylint: disable=global-statement
     global _deferred_release_emitter
     _deferred_release_emitter = emitter
 
 
 def addDeferredRelease(context, tmp_name, release_info):
-    """Register a value for a custom release."""
     context.addDeferredReleaseName(tmp_name, release_info)
 
 
 def emitDeferredRelease(emit, context, tmp_name):
-    """Emit the release of one registered value and unregister it."""
     if _deferred_release_emitter is not None:
         _deferred_release_emitter.emitRelease(
             emit=emit, context=context, tmp_name=tmp_name
@@ -32,7 +30,6 @@ def emitDeferredRelease(emit, context, tmp_name):
 
 
 def getDeferredReleaseErrorCode(context, tmp_name, release_info):
-    """Get the error exit release code for a registered value, or None."""
     if _deferred_release_emitter is None:
         return None
 
@@ -42,7 +39,6 @@ def getDeferredReleaseErrorCode(context, tmp_name, release_info):
 
 
 def checkDeferredReleaseUse(usage, tmp_name, context, detail):
-    """Check if the usage of a registered value is disallowed."""
     if _deferred_release_emitter is not None and context.isDeferredReleaseName(
         tmp_name
     ):

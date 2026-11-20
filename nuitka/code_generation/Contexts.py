@@ -21,14 +21,11 @@ from nuitka.utils.SlotMetaClasses import getMetaClassBase
 from .SpecialConstantData import BlobData
 from .VariableDeclarations import VariableDeclaration, VariableStorage
 
-# Many methods won't use self, but it's the interface. pylint: disable=no-self-use
+# pylint: disable=no-self-use
 
 
 class TempMixin(object):
-    # Lots of details, everything gets to store bits here, to indicate
-    # code generation states, and there are many, pylint: disable=too-many-instance-attributes
-
-    # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
+    # pylint: disable=assigning-non-slot,too-many-instance-attributes
     __slots__ = ()
 
     def __init__(self):
@@ -36,12 +33,10 @@ class TempMixin(object):
 
         self.labels = {}
 
-        # For exception and loop handling
         self.exception_escape = None
         self.loop_continue = None
         self.loop_break = None
 
-        # For branches
         self.true_target = None
         self.false_target = None
 
@@ -76,10 +71,9 @@ class TempMixin(object):
         self.allocateTempNumber(base_name)
 
     def allocateTempName(self, base_name, type_name="PyObject *", unique=False):
-        # We might be hard coding too many details for special temps
-        # here, pylint: disable=too-many-branches
+        # pylint: disable=too-many-branches
 
-        # TODO: This should be achieved.
+        # TODO: Enforce that base_name does not start with 'tmp_'.
         # assert not base_name.startswith("tmp_"), base_name
 
         if unique:
@@ -609,7 +603,7 @@ class PythonContextBase(getMetaClassBase("Context", require_slots=True)):
 
 
 class PythonChildContextBase(PythonContextBase):
-    # Base classes can be abstract, pylint: disable=I0021,abstract-method
+    # pylint: disable=I0021,abstract-method
 
     __slots__ = ("parent",)
 
@@ -685,21 +679,14 @@ class PythonChildContextBase(PythonContextBase):
 
 
 class FrameDeclarationsMixin(object):
-    # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
+    # pylint: disable=assigning-non-slot
     __slots__ = ()
 
     def __init__(self):
-        # Frame is active or not, default not.
         self.frame_variables_stack = [""]
-
-        # Types of variables for current frame.
         self.frame_variable_types = {}
-
         self.frames_used = 0
-
-        # Currently active frame stack inside the context.
         self.frame_stack = [None]
-
         self.locals_dict_names = None
 
     def getFrameHandle(self):
@@ -740,11 +727,9 @@ class FrameDeclarationsMixin(object):
         return self.frames_used
 
     def pushFrameVariables(self, frame_variables):
-        """Set current the frame variables."""
         self.frame_variables_stack.append(frame_variables)
 
     def popFrameVariables(self):
-        """End of frame, restore previous ones."""
         del self.frame_variables_stack[-1]
 
     def getFrameVariables(self):
@@ -779,7 +764,7 @@ class FrameDeclarationsMixin(object):
 
 
 class ReturnReleaseModeMixin(object):
-    # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
+    # pylint: disable=assigning-non-slot
     __slots__ = ()
 
     def __init__(self):
@@ -827,7 +812,7 @@ class ReturnReleaseModeMixin(object):
 
 
 class ReturnValueNameMixin(object):
-    # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
+    # pylint: disable=assigning-non-slot
     __slots__ = ()
 
     def __init__(self):
@@ -852,7 +837,6 @@ class PythonModuleContext(
     ReturnValueNameMixin,
     PythonContextBase,
 ):
-    # Plenty of attributes, because it's storing so many different things.
     # pylint: disable=too-many-instance-attributes
 
     __slots__ = (
@@ -868,13 +852,11 @@ class PythonModuleContext(
         "module_init_codes",
         "module_variable_accessors",
         "call_helpers",
-        # FrameDeclarationsMixin
         "frame_variables_stack",
         "frame_variable_types",
         "frames_used",
         "frame_stack",
         "locals_dict_names",
-        # TempMixin:
         "tmp_names",
         "labels",
         "exception_escape",
@@ -888,12 +870,10 @@ class PythonModuleContext(
         "cleanup_names",
         "borrowed_value_scopes",
         "deferred_release_names",
-        # ReturnReleaseModeMixin
         "return_release_mode",
         "return_release_loop_break",
         "return_release_loop_continue",
         "return_exit",
-        # ReturnValueNameMixin
         "return_name",
     )
 
@@ -1081,8 +1061,6 @@ class PythonModuleContext(
 
     def getFunctionCreationInfos(self):
         result = self.function_table_entries
-
-        # Release the memory once possible.
         del self.function_table_entries
         return result
 
@@ -1101,13 +1079,11 @@ class PythonFunctionContext(
     __slots__ = (
         "function",
         "variable_storage",
-        # FrameDeclarationsMixin
         "frame_variables_stack",
         "frame_variable_types",
         "frames_used",
         "frame_stack",
         "locals_dict_names",
-        # TempMixin:
         "tmp_names",
         "labels",
         "exception_escape",
@@ -1121,12 +1097,10 @@ class PythonFunctionContext(
         "cleanup_names",
         "borrowed_value_scopes",
         "deferred_release_names",
-        # ReturnReleaseModeMixin
         "return_release_mode",
         "return_release_loop_break",
         "return_release_loop_continue",
         "return_exit",
-        # ReturnValueNameMixin
         "return_name",
     )
 
@@ -1263,12 +1237,10 @@ class PythonFunctionOutlineContext(
         "outline",
         "variable_storage",
         "exception_variables",
-        # ReturnReleaseModeMixin
         "return_release_mode",
         "return_release_loop_break",
         "return_release_loop_continue",
         "return_exit",
-        # ReturnValueNameMixin
         "return_name",
     )
 
@@ -1449,7 +1421,6 @@ class PythonFunctionOutlineContext(
         return self.parent.isForDirectCall()
 
     def mayRecurse(self):
-        # The outline is only accessible via its parent.
         return self.parent.mayRecurse()
 
     def getLocalsDictNames(self):

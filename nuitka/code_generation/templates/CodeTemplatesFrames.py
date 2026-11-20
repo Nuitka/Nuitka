@@ -41,8 +41,6 @@ Nuitka_SetFrameGenerator({{context_identifier}}->m_frame, (PyObject *){{context_
 assert({{context_identifier}}->m_frame->m_frame.f_back == NULL);
 {% endif %}
 
-// Push the new frame as the currently active one, and we should be exclusively
-// owning it.
 {% if context_identifier %}
 pushFrameStackGeneratorCompiledFrame(tstate, {{frame_identifier}});
 {% else %}
@@ -55,8 +53,6 @@ assert(Py_REFCNT({{frame_identifier}}) == 2);
 {% endif %}
 
 {% if context_identifier and store_exception %}
-// Store currently existing exception as the one to publish again when we
-// yield or yield from.
 STORE_{{context_identifier.upper()}}_EXCEPTION(tstate, {{context_identifier}});
 
 {% endif %}
@@ -138,7 +134,6 @@ popFrameStack(tstate);
 goto {{parent_exception_exit}};
 """
 
-# Coroutines and asyncgen do this
 template_frame_guard_generator_return_handler = """\
 %(frame_return_exit)s:;
 
@@ -159,7 +154,6 @@ goto %(return_exit)s;
 template_frame_guard_generator_exception_handler = """\
 {{frame_exception_exit}}:;
 
-// If it's not an exit exception, consider and create a traceback for it.
 if (!EXCEPTION_STATE_MATCH_GENERATOR(tstate, &{{exception_state_name}})) {
     PyTracebackObject *exception_tb = GET_EXCEPTION_STATE_TRACEBACK(&{{exception_state_name}});
     if (exception_tb == NULL) {

@@ -12,19 +12,16 @@ from nuitka.States import states
 
 from .CTypeBases import CTypeBase, CTypeNotReferenceCountedMixin
 
-# This is going to not use arguments very commonly. For now disable
-# the warning all around, specialize one done, pylint: disable=unused-argument
+# pylint: disable=unused-argument
 
 
 class CTypeNuitkaVoidEnum(CTypeNotReferenceCountedMixin, CTypeBase):
     c_type = "nuitka_void"
 
-    # Return value only obviously.
     helper_code = "NVOID"
 
     @classmethod
     def emitValueAccessCode(cls, value_name, emit, context):
-        # Nothing to do for this type, pylint: disable=unused-argument
         assert False
 
     @classmethod
@@ -37,12 +34,11 @@ class CTypeNuitkaVoidEnum(CTypeNotReferenceCountedMixin, CTypeBase):
 
     @classmethod
     def emitAssignConversionCode(cls, to_name, value_name, needs_check, emit, context):
-        # We have no storage, the original user will cleanup after itself. This
-        # is the main point of the whole type.
+        # Discard the value immediately since 'nuitka_void' has no value storage.
         getReleaseCode(value_name, emit, context)
 
-        # The only possible value, and in this case never read, but the compiler hates
-        # it being defined which is hard for us to know ahead of time.
+        # Debug mode assertions check 'NUITKA_VOID_OK', while non-debug avoids
+        # unused-assignment warnings on an unread variable.
         if states.is_debug:
             emit("%s = NUITKA_VOID_OK;" % to_name)
 
@@ -50,11 +46,8 @@ class CTypeNuitkaVoidEnum(CTypeNotReferenceCountedMixin, CTypeBase):
     def emitAssignmentCodeFromConstant(
         cls, to_name, constant, may_escape, emit, context
     ):
-        # Everything else expresses missed compiled time optimization.
         assert constant is None
 
-        # The only possible value, and in this case never read, but the compiler hates
-        # it being defined which is hard for us to know ahead of time.
         if states.is_debug:
             emit("%s = NUITKA_VOID_OK;" % to_name)
 
@@ -70,15 +63,11 @@ class CTypeNuitkaVoidEnum(CTypeNotReferenceCountedMixin, CTypeBase):
 
     @classmethod
     def emitAssignmentCodeFromBoolCondition(cls, to_name, condition, emit):
-        # The only possible value, and in this case never read, but the compiler hates
-        # it being defined which is hard for us to know ahead of time.
         if states.is_debug:
             emit("%s = NUITKA_VOID_OK;" % to_name)
 
     @classmethod
     def emitAssignInplaceNegatedValueCode(cls, to_name, needs_check, emit, context):
-        # The only possible value, and in this case never read, but the compiler hates
-        # it being defined which is hard for us to know ahead of time.
         if states.is_debug:
             emit("%s = NUITKA_VOID_OK;" % to_name)
 

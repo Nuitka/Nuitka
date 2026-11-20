@@ -24,18 +24,7 @@ _template_string_conversion_codes = {
 
 
 def _getTemplateInterpolationConversionCode(conversion):
-    """Get the conversion code for a template interpolation.
-
-    Notes:
-        The '_PyInterpolation_Build' API uses the FVC values rather than the
-        conversion characters from the AST.
-
-    Args:
-        conversion: The conversion character from the AST, or -1 for none.
-
-    Returns:
-        The FVC conversion code.
-    """
+    """Map AST conversion ordinal (-1 for none) to '_PyInterpolation_Build' FVC code."""
     if conversion == -1:
         return 0
 

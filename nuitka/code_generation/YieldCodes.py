@@ -1,10 +1,7 @@
 #     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-"""Yield related codes.
-
-The normal "yield", and the Python 3 "yield from" variant.
-"""
+"""Code generation for 'yield', 'yield from', and 'await' expressions."""
 
 from nuitka.PythonVersions import python_version
 
@@ -46,7 +43,6 @@ def _getYieldPreserveCode(
         if not context.needsCleanup(name):
             locals_preserved.remove(name)
 
-    # Target name is not assigned, no need to preserve it.
     if to_name in locals_preserved:
         locals_preserved.remove(to_name)
 
@@ -135,7 +131,6 @@ def _getYieldPreserveCode(
 
     getErrorExitCode(check_name=yield_return_name, emit=emit, context=context)
 
-    # Called with object, so we can simply do this.
     emit("%s = %s;" % (to_name, yield_return_name))
     context.addCleanupTempName(to_name)
 
@@ -190,7 +185,6 @@ def generateYieldFromCode(to_name, expression, emit, context):
 
     _checkDeferredReleaseYield(value_name, expression, context)
 
-    # In handlers, older Python versions must preserve/restore the exception.
     preserve_exception = expression.isExceptionPreserving() and python_version < 0x370
 
     getReferenceExportCode(value_name, emit, context)
@@ -227,7 +221,6 @@ return NULL;
 
 
 def generateYieldFromAwaitableCode(to_name, expression, emit, context):
-    # In handlers, older Python versions must preserve/restore the exception.
     preserve_exception = expression.isExceptionPreserving() and python_version < 0x370
 
     (awaited_name,) = generateChildExpressionsCode(

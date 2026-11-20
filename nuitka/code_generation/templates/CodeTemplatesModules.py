@@ -1,12 +1,7 @@
 #     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-"""Main module code templates
-
-This for the main program in case of executables, the module templates and
-stuff related to importing, and of course the generated code license.
-
-"""
+"""Templates for compiled Python modules and generated file headers."""
 
 template_global_copyright = """\
 /* Generated code for Python module '%(module_identifier)s'
@@ -37,27 +32,15 @@ template_module_body_template = r"""
 
 %(module_includes)s
 
-/* The loader entry of this module, defined at the bottom of this file, but
- * referenced by the module code, so declare it up front. */
 extern struct Nuitka_MetaPathBasedLoaderEntry entry_%(module_identifier)s;
 
 #if _NUITKA_MODULE_MODE && %(is_top)d
-/* The published value of the loader entry, set by the module code when the
- * interpreter has already published the extension module in "sys.modules". */
 static void module_set_published_value_%(module_identifier)s(PyObject *module);
 #endif
-
-/* The "module_%(module_identifier)s" is a Python object pointer of module type.
- *
- * Note: For full compatibility with CPython, every module variable access
- * needs to go through it except for cases where the module cannot possibly
- * have changed in the mean time.
- */
 
 PyObject *module_%(module_identifier)s;
 PyDictObject *moduledict_%(module_identifier)s;
 
-/* The declarations of module constants used, if any. */
 static struct ModuleConstants {
 %(module_constants_decl)s
 } mod_consts;
@@ -67,7 +50,6 @@ static Py_hash_t mod_consts_hash[%(constants_count)d];
 
 static PyObject *module_filename_obj = NULL;
 
-/* Indicator if this modules private constants were created yet. */
 static bool constants_created = false;
 
 NUITKA_DECLARE_CONSTANT_BLOB(
@@ -76,7 +58,6 @@ NUITKA_DECLARE_CONSTANT_BLOB(
     const
 );
 
-/* Function to create module private constants. */
 static void createModuleConstants(PyThreadState *tstate) {
     if (constants_created == false) {
 #if %(use_direct_constant_blobs)d
@@ -92,24 +73,20 @@ static void createModuleConstants(PyThreadState *tstate) {
     }
 }
 
-// We want to be able to initialize the "__main__" constants in any case.
 #if %(is_dunder_main)s
 void createMainModuleConstants(PyThreadState *tstate) {
     createModuleConstants(tstate);
 }
 #endif
 
-/* Function to verify module private constants for non-corruption. */
 #ifndef __NUITKA_NO_ASSERT__
 void checkModuleConstants_%(module_identifier)s(PyThreadState *tstate) {
-    // The module may not have been used at all, then ignore this.
     if (constants_created == false) return;
 
 %(module_constants_check_object)s
 }
 #endif
 
-// Helper to preserving module variables for Python3.11+
 #if %(module_variable_accessors_count)d
 #if PYTHON_VERSION >= 0x3c0
 NUITKA_MAY_BE_UNUSED static uint32_t _Nuitka_PyDictKeys_GetVersionForCurrentState(PyInterpreterState *interp, PyDictKeysObject *dk)
@@ -151,8 +128,6 @@ extern void _initCompiledFrameType();
 extern PyTypeObject Nuitka_Loader_Type;
 
 #ifdef _NUITKA_PLUGIN_DILL_ENABLED
-// Provide a way to create find a function via its C code and create it back
-// in another process, useful for multiprocessing extensions like dill
 extern void registerDillPluginTables(PyThreadState *tstate, char const *module_name, PyMethodDef *reduce_compiled_function, PyMethodDef *create_compiled_function);
 
 static function_impl_code const function_table_%(module_identifier)s[] = {
@@ -232,7 +207,6 @@ static PyMethodDef _method_def_create_compiled_function = {
 static char const *module_full_name = %(module_name_cstr)s;
 #endif
 
-// Internal entry point for module code.
 static PyObject *module_code_%(module_identifier)s(PyThreadState *tstate, PyObject *module) {
     %(pgo_probe_module_enter_code)s
 
@@ -259,9 +233,8 @@ static PyObject *module_code_%(module_identifier)s(PyThreadState *tstate, PyObje
 
     if (init_done == false) {
 #if _NUITKA_MODULE_MODE && %(is_top)d
-        // In case of an extension module loaded into a process, we need to call
-        // initialization here because that's the first and potentially only time
-        // we are going called.
+        // Extension modules do not run Nuitka's main program, so runtime
+        // initialization happens on first entry here.
 #if PYTHON_VERSION > 0x350 && !defined(_NUITKA_EXPERIMENTAL_DISABLE_ALLOCATORS)
         initNuitkaAllocators();
 #endif
@@ -311,7 +284,6 @@ static PyObject *module_code_%(module_identifier)s(PyThreadState *tstate, PyObje
 
         patchTypeComparison();
 
-        // Enable meta path based loader if not already done.
 #ifdef _NUITKA_TRACE
         PRINT_STRING("%(module_identifier)s: Calling setupMetaPathBasedLoader().\n");
 #endif
@@ -330,7 +302,6 @@ static PyObject *module_code_%(module_identifier)s(PyThreadState *tstate, PyObje
 
 #endif
 
-        /* The constants only used by this module are created now. */
         NUITKA_PRINT_TRACE("%(module_identifier)s: Calling createModuleConstants().\n");
         createModuleConstants(tstate);
 
@@ -367,7 +338,6 @@ static PyObject *module_code_%(module_identifier)s(PyThreadState *tstate, PyObje
     );
 #endif
 
-    // Update "__package__" value to what it ought to be.
     {
 #if %(is_dunder_main)s
         UPDATE_STRING_DICT0(tstate,
@@ -401,9 +371,8 @@ static PyObject *module_code_%(module_identifier)s(PyThreadState *tstate, PyObje
     CHECK_OBJECT(module_%(module_identifier)s);
 
     // For deep importing of a module we need to have "__builtins__", so we set
-    // it ourselves in the same way than CPython does. Note: This must be done
-    // before the frame object is allocated, or else it may fail.
-
+    // it ourselves in the same way as CPython does. This must be done before
+    // the frame object is allocated, or else it may fail.
     if (GET_STRING_DICT_VALUE(moduledict_%(module_identifier)s, (Nuitka_StringObject *)const_str_plain___builtins__) == NULL) {
         PyObject *value = (PyObject *)builtin_module;
 
@@ -435,7 +404,6 @@ static PyObject *module_code_%(module_identifier)s(PyThreadState *tstate, PyObje
         PyObject *spec_value = CALL_FUNCTION_WITH_SINGLE_ARG(tstate, _spec_from_module, module_%(module_identifier)s);
         Py_DECREF(_spec_from_module);
 
-        // We can assume this to never fail, or else we are in trouble anyway.
         if (spec_value == NULL) {
             PyErr_PrintEx(0);
             abort();
@@ -516,7 +484,6 @@ static PyObject *orig_dunder_file_value;
 #if PYTHON_VERSION >= 0x300
 static setattrofunc orig_PyModule_Type_tp_setattro;
 
-/* This is used one time only. */
 static int Nuitka_TopLevelModule_tp_setattro(PyObject *module, PyObject *name, PyObject *value) {
     PyThreadState *tstate = PyThreadState_GET();
 
@@ -530,7 +497,7 @@ static int Nuitka_TopLevelModule_tp_setattro(PyObject *module, PyObject *name, P
         );
     }
 
-    // Prevent "__spec__" update as well.
+    // Keep Nuitka's loader "__spec__" instead of CPython's ExtensionFileLoader spec.
 #if PYTHON_VERSION >= 0x300
     if (PyUnicode_Check(name) && PyUnicode_Compare(name, const_str_plain___spec__) == 0) {
         return 0;
@@ -568,11 +535,6 @@ static void onModuleFileValueRelease(void *v) {
     }
 }
 #endif
-
-/* The exported interface to CPython. On import of the module, this function
- * gets called. It has to have an exact function name, in cases it's a shared
- * library export.
- */
 
 static PyObject *%(module_dll_entry_point)s_phase2(PyObject *module) {
     PyThreadState *tstate = PyThreadState_GET();
@@ -710,6 +672,8 @@ template_module_no_exception_exit = """\
 template_module_set_value = """\
 static void module_set_value_%(module_identifier)s(struct Nuitka_MetaPathBasedLoaderEntry const *entry, PyObject *value, uint64_t reserved) {
     (void)entry;
+
+    // NUITKA_MODULE_SET_VALUE_RESERVED(%(module_identifier)s, reserved);
     (void)reserved;
 
     PyObject *old_value = module_value_%(module_identifier)s;

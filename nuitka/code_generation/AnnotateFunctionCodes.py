@@ -3,9 +3,9 @@
 
 """Code generation for annotate functions.
 
-Annotate functions (marked with flag "annotate") are backed by real Python
-bytecode instead of compiled C code.  This allows `annotationlib` to re-wrap
-them with `_StringifierDict` globals for FORWARDREF resolution.
+Annotate functions (marked with flag 'annotate') are backed by real Python
+bytecode instead of compiled C code. This allows 'annotationlib' to re-wrap
+them with '_StringifierDict' globals for FORWARDREF resolution.
 """
 
 import marshal
@@ -29,16 +29,8 @@ from .VariableCodes import getClosureCopyCode
 def isBytecodeBackedFunction(function_body):
     """Decide if a function is backed by Python bytecode, not compiled C code.
 
-    Notes:
-        This is true for function bodies created by the source backed
-        machinery, e.g. "annotate" functions. We mean to add more plugin and
-        user control though.
-
-    Args:
-        function_body: Function body node to check.
-
-    Returns:
-        True if bytecode backed
+    This is true for function bodies created by the source backed machinery,
+    e.g. 'annotate' functions.
     """
     return function_body.hasFlag("python_source") and not function_body.hasFlag(
         "force_c"
@@ -49,7 +41,6 @@ def generateAnnotateFunctionCreationCode(to_name, expression, emit, context):
     function_body = expression.subnode_function_ref.getFunctionBody()
     function_identifier = function_body.getCodeName()
 
-    # Only need to generate the maker once.
     if not context.hasHelperCode(function_identifier):
         _generateAnnotateFunctionMaker(function_body, function_identifier, context)
 
@@ -90,7 +81,6 @@ def generateAnnotateFunctionCreationCode(to_name, expression, emit, context):
 
 
 def _getClosureSetupCode(closure_variables):
-    """Get the C parameter and setup code for attaching closure cells."""
     if not closure_variables:
         return "", ""
 
@@ -111,13 +101,8 @@ def _getCodeObjectCreationCode(context, marshalled, function_identifier):
     between every function created from it, as CPython does, and must then
     not release it, while one that is executed once creates and releases it.
 
-    Args:
-        context: Code generation context to get the blob constant with.
-        marshalled: Marshalled data of the code object.
-        function_identifier: Name of the function, for error messages.
-
     Returns:
-        Tuple of the C code providing the "code" variable, and the C code
+        Tuple of the C code providing the 'code' variable, and the C code
         releasing it, which is empty when it is cached.
     """
     marshalled_code = context.getBlobConstantCode(
@@ -158,7 +143,6 @@ def _getCodeObjectCreationCode(context, marshalled, function_identifier):
 
 
 def _generateAnnotateFunctionMaker(function_body, function_identifier, context):
-    """Generate a C maker function that creates a PyFunctionObject from bytecode."""
     maker_identifier = getFunctionMakerIdentifier(function_identifier)
 
     source = generateFunctionSourceFromBody(function_body)

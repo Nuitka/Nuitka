@@ -76,7 +76,7 @@ template_metapath_loader_body = r"""
 #include "nuitka/tracing.h"
 #include "nuitka/unfreezing.h"
 
-/* Type bool, spell-checker: ignore stdbool */
+// spell-checker: ignore stdbool
 #ifndef __cplusplus
 #include <stdbool.h>
 #endif
@@ -98,10 +98,6 @@ NUITKA_DECLARE_CONSTANT_BLOB(bytecode_bin, bytecode_bin, const);
 #define NUITKA_CAST_INIT_REASON(x) (module_init_func)(x)
 #endif
 
-/* Table for lookup to find compiled or bytecode modules included in this
- * binary or module, or put along this binary as extension modules. We do
- * our own loading for each of these.
- */
 %(metapath_loader_decls)s
 
 %(metapath_loader_inittab)s
@@ -117,7 +113,6 @@ static void _loadBytesCodesBlob(PyThreadState *tstate) {
 #if %(use_direct_constant_blobs)d
         LOAD_DIRECT_CONSTANTS_BLOB(tstate, bytecode_data, bytecode_bin);
 #else
-        // Note needed for mere data.
         loadConstantsBlob(tstate, bytecode_data, ".bytecode");
 #endif
 
@@ -135,15 +130,8 @@ void setupMetaPathBasedLoader(PyThreadState *tstate) {
     }
 }
 
-// This provides the frozen (compiled bytecode) files that are included if
-// any.
-
-// These modules should be loaded as bytecode. They may e.g. have to be loadable
-// during "Py_Initialize" already, or for irrelevance, they are only included
-// in this un-optimized form. These are not compiled by Nuitka, and therefore
-// are not accelerated at all, merely bundled with the binary or module, so
-// that CPython library can start out finding them.
-
+// Frozen bytecode modules required early during "Py_Initialize" before Nuitka's
+// meta-path loader is active.
 struct frozen_desc {
     char const *name;
     int index;

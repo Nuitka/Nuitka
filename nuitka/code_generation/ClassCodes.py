@@ -1,11 +1,7 @@
 #     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-"""Codes for classes.
-
-Most the class specific stuff is solved in re-formulation. Only the selection
-of the metaclass remains as specific.
-"""
+"""Code generation for class creation, metaclass selection, and 'super'."""
 
 from nuitka.PythonVersions import python_version
 
@@ -26,7 +22,6 @@ def generateSelectMetaclassCode(to_name, expression, emit, context):
         expression=expression, emit=emit, context=context
     )
 
-    # This is used for Python3 only.
     assert python_version >= 0x300
 
     arg_names = [metaclass_name, bases_name]
@@ -131,7 +126,6 @@ def generateTypeOperationPrepareCode(to_name, expression, emit, context):
         to_name=prepare_func_name,
         source_name=type_name,
         attribute_name="__prepare__",
-        # Types have it.
         needs_check=False,
         emit=emit,
         context=context,

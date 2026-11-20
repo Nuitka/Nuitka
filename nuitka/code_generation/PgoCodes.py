@@ -81,29 +81,10 @@ else:
 
 
 def getPGOProbeModuleEnterCode(module_name):
-    """Get the PGO probe code for entering a module.
-
-    Args:
-        module_name: Module name of the module, a `ModuleName` object.
-
-    Returns:
-        Code for the probe.
-    """
-
     return "PGO_onModuleEntered(%s);" % module_name.asCString()
 
 
 def getPGOProbeModuleExitCode(module_name, had_error):
-    """Get the PGO probe code for leaving a module.
-
-    Args:
-        module_name: Module name of the module, a `ModuleName` object.
-        had_error: Whether the module was left with an error.
-
-    Returns:
-        Code for the probe.
-    """
-
     return "PGO_onModuleExit(%s, %s);" % (
         module_name.asCString(),
         "true" if had_error else "false",
@@ -111,16 +92,6 @@ def getPGOProbeModuleExitCode(module_name, had_error):
 
 
 def _getValueTypeCheckCode(type_shape_to_check, value_name):
-    """Get the C condition for the type check of a value shape.
-
-    Args:
-        type_shape_to_check: The type shape the value should have.
-        value_name: Name of the value to check.
-
-    Returns:
-        C condition for the type check.
-    """
-
     check_code = _value_type_check_codes.get(type_shape_to_check)
 
     if check_code is None:
@@ -130,21 +101,7 @@ def _getValueTypeCheckCode(type_shape_to_check, value_name):
 
 
 def _getValueSizeCheckCode(type_shape_to_check, value_name):
-    """Get the C condition for the size check of a value shape.
-
-    Args:
-        type_shape_to_check: The type shape the value should have.
-        value_name: Name of the value to check.
-
-    Returns:
-        C condition for the size check.
-
-    Notes:
-        Only empty values are used from PGO data for now, so sizes are
-        compared against 0, and this must only be used after the type check
-        has passed.
-    """
-
+    """Return C size-check condition, assuming the exact type check already passed."""
     check_code = _value_size_check_codes.get(type_shape_to_check)
 
     if check_code is None:
@@ -156,21 +113,10 @@ def _getValueSizeCheckCode(type_shape_to_check, value_name):
 def checkPGOValueShape(
     type_shape_to_check, value_name, description, may_raise, emit, context
 ):
-    """Check that a value has the type shape known from PGO data.
+    """Emit runtime check that 'value_name' matches the PGO-recorded empty shape.
 
     Args:
-        type_shape_to_check: The type shape to check for.
-        value_name: Name of the value to check.
-        description: Description of the value for error messages.
-        may_raise: Whether a PGO mismatch may raise an exception, otherwise
-            the check can only be a `NUITKA_CANNOT_GET_HERE`.
-        emit: Function to emit code.
-        context: Code generation context.
-
-    Notes:
-        The type and size conditions to check are produced by
-        `_getValueTypeCheckCode` and `_getValueSizeCheckCode`, this only
-        handles their failure.
+        may_raise: Emit a 'RuntimeError' on mismatch if True, else 'NUITKA_CANNOT_GET_HERE'.
     """
 
     assert type_shape_to_check is not tshape_unknown, type_shape_to_check

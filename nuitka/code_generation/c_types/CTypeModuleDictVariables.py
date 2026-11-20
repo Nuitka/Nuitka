@@ -1,13 +1,7 @@
 #     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-"""Pseudo CType for module variables, object values contained in a dictionary.
-
-These are to integrate module variables with what is normally local
-stuff. Going from an to "PyObject *" is mostly its trick, then put
-into the dict.
-
-"""
+"""Pseudo CType for module variables stored in the module dictionary."""
 
 from nuitka.code_generation.templates.CodeTemplatesVariables import (
     template_del_global_known,
