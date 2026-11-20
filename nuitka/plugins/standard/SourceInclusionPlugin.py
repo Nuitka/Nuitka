@@ -208,6 +208,7 @@ class NuitkaPluginSourceInclusion(NuitkaPluginBase):
             "--source-inclusion-args",
             action="append",
             dest="source_inclusion_arg_sets",
+            metavar="ARGS",
             default=[],
             help="""\
 Run the program being compiled during compilation with this shell-style
@@ -218,6 +219,7 @@ additional probe run, e.g. '--source-inclusion-args="subcommand --help"'.""",
             "--source-inclusion-timeout",
             action="store",
             dest="source_inclusion_timeout",
+            metavar="SECONDS",
             type="int",
             default=None,
             help="""\
@@ -236,6 +238,7 @@ Display the recorded source inclusion modules from the probe run.""",
             "--source-inclusion-main",
             action="store",
             dest="source_inclusion_main",
+            metavar="PATH",
             default=None,
             help="""\
 Filename of a program to execute during compilation for recording source \

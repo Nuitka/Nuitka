@@ -205,6 +205,7 @@ if not getattr(_tkinter.create, "_nuitka_clean_path", False):
             "--tk-library-dir",
             action="store",
             dest="tk_library_dir",
+            metavar="DIRECTORY",
             default=None,
             help="""\
 The Tk library dir. Nuitka is supposed to automatically detect it, but you can
@@ -215,6 +216,7 @@ override it here. Default is automatic detection.""",
             "--tcl-library-dir",
             action="store",
             dest="tcl_library_dir",
+            metavar="DIRECTORY",
             default=None,
             help="""\
 The Tcl library dir. See comments for Tk library dir.""",

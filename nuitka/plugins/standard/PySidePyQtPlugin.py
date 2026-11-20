@@ -168,6 +168,7 @@ newer, or downgrade to patchelf 0.9.""" % (patchelf_version, self.binding_name))
             "--include-qt-plugins",
             action="append_comma",
             dest="include_qt_plugins",
+            metavar="PLUGIN_NAME",
             default=[],
             help="""\
 Which Qt plugins to include. These can be big with dependencies, so
@@ -180,6 +181,7 @@ not exist, a list of all available will be given.""",
             "--noinclude-qt-plugins",
             action="append_comma",
             dest="noinclude_qt_plugins",
+            metavar="PLUGIN_NAME",
             default=[],
             help="""\
 Which Qt plugins to not include. This removes things, so you can

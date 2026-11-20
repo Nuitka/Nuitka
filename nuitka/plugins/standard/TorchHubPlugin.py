@@ -39,6 +39,7 @@ class NuitkaPluginTorchHub(NuitkaPluginBase):
             "--torch-hub-model",
             action="append",
             dest="torch_hub_models",
+            metavar="MODEL_SPEC",
             default=[],
             help="""\
 Specify a Torch Hub model to scan for hidden imports. Use the form

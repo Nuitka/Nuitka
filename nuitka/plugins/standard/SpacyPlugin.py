@@ -44,6 +44,7 @@ class NuitkaPluginSpacy(NuitkaPluginBase):
             "--spacy-language-model",
             action="append",
             dest="include_language_models",
+            metavar="MODEL_NAME",
             default=[],
             help="""\
 Spacy language models to use. Can be specified multiple times. Use 'all' to

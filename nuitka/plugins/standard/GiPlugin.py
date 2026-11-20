@@ -83,6 +83,7 @@ class NuitkaPluginGi(NuitkaPluginBase):
             "--gi-version",
             action="append",
             dest="gi_versions",
+            metavar="KEY_VALUE",
             default=[],
             help="""\
 Specify the version of a gi namespace to compile against, e.g. "Gtk=3.0".
