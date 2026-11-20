@@ -38,7 +38,7 @@ from . import SyntaxErrors
 from .InternalModule import (
     internal_source_ref,
     makeInternalHelperFunctionBody,
-    once_decorator,
+    onceDecorator,
 )
 from .ReformulationTryExceptStatements import makeTryExceptSingleHandlerNode
 from .ReformulationTryFinallyStatements import makeTryFinallyReleaseStatement
@@ -112,7 +112,7 @@ def buildSetCreationNode(provider, node, source_ref):
     )
 
 
-@once_decorator
+@onceDecorator
 def getListUnpackingHelper():
     helper_name = "_unpack_list"
 
@@ -223,7 +223,7 @@ def getListUnpackingHelper():
     return result
 
 
-@once_decorator
+@onceDecorator
 def getSetUnpackingHelper():
     helper_name = "_unpack_set"
 

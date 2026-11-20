@@ -13,7 +13,7 @@ from nuitka.SourceCodeReferences import makeSourceReferenceFromFilename
 internal_source_ref = makeSourceReferenceFromFilename("internal").atInternal()
 
 
-def once_decorator(func):
+def onceDecorator(func):
     """Cache result of a function call without arguments."""
     func.cached_value = None
 
