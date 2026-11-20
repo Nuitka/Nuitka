@@ -414,7 +414,7 @@ def _buildSconsCommand(options, scons_filename):
 
     # Python2, make argument encoding recognizable.
     if str is bytes:
-        scons_command.append("arg_encoding=utf8")
+        scons_command.append("argument_encoding=utf8")
 
     return scons_command
 
