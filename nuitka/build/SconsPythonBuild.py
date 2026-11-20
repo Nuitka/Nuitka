@@ -20,7 +20,7 @@ def _addPythonIncludePaths(env):
         "adapted_python_header_files_dir", ""
     )
     if adapted_python_header_files_dir:
-        python_include_paths.append(adapted_python_header_files_dir)
+        env.Prepend(CPPPATH=[adapted_python_header_files_dir])
         env.Append(CPPDEFINES=["_NUITKA_ADAPTED_PYTHON_HEADERS"])
 
     python_include_path = getArgumentRequired("python_include_path")
