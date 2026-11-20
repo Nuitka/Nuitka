@@ -2045,10 +2045,13 @@ static void loadPostLoadCode(PyThreadState *tstate, PyObject *module_name, char 
             parent_module = Nuitka_GetModule(tstate, parent_name_obj);
         }
 
+        DROP_ERROR_OCCURRED(tstate);
+
         if (parent_module != NULL) {
             base_name_obj = Nuitka_String_FromString(dot + 1);
 
             bound_module = Nuitka_GetModule(tstate, module_name);
+            DROP_ERROR_OCCURRED(tstate);
 
             if (bound_module == NULL) {
                 bound_module = module;
@@ -2060,7 +2063,9 @@ static void loadPostLoadCode(PyThreadState *tstate, PyObject *module_name, char 
                 PySys_WriteStderr("Binding submodule '%s' to parent module temporarily for -postLoad.\n", name);
             }
 
-            SET_ATTRIBUTE(tstate, parent_module, base_name_obj, bound_module);
+            if (unlikely(SET_ATTRIBUTE(tstate, parent_module, base_name_obj, bound_module) == false)) {
+                CLEAR_ERROR_OCCURRED(tstate);
+            }
         }
     }
 

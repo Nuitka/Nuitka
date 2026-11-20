@@ -307,6 +307,7 @@ static PyObject *resolveParentModuleName(PyThreadState *tstate, PyObject *module
         }
 
         if (unlikely(!PyUnicode_Check(package))) {
+            Py_DECREF(package);
             SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_TypeError, "__spec__.parent must be a string");
             return NULL;
         }
@@ -320,8 +321,10 @@ static PyObject *resolveParentModuleName(PyThreadState *tstate, PyObject *module
 
         package = DICT_GET_ITEM0(tstate, globals, const_str_plain___name__);
 
-        if (unlikely(package == NULL && !HAS_ERROR_OCCURRED(tstate))) {
-            SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_KeyError, "'__name__' not in globals");
+        if (unlikely(package == NULL)) {
+            if (!HAS_ERROR_OCCURRED(tstate)) {
+                SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_KeyError, "'__name__' not in globals");
+            }
             return NULL;
         }
 
@@ -330,7 +333,13 @@ static PyObject *resolveParentModuleName(PyThreadState *tstate, PyObject *module
             return NULL;
         }
 
-        if (DICT_HAS_ITEM(tstate, globals, const_str_plain___path__) == 1) {
+        int has_path = DICT_HAS_ITEM(tstate, globals, const_str_plain___path__);
+
+        if (unlikely(has_path == -1)) {
+            return NULL;
+        }
+
+        if (has_path == 0) {
             Py_ssize_t dot = PyUnicode_FindChar(package, '.', 0, PyUnicode_GET_LENGTH(package), -1);
 
             if (unlikely(dot == -2)) {
@@ -553,10 +562,21 @@ bool IMPORT_FIXED_MODULE_FROMLIST_ELEMENT(PyThreadState *tstate, PyObject *modul
     CHECK_OBJECT(import_name);
     CHECK_OBJECT(module_name);
 
-    // If the attribute already exists, no submodule import is attempted.
+#if PYTHON_VERSION < 0x300
     if (HAS_ATTR_BOOL(tstate, module, import_name)) {
         return true;
     }
+#else
+    int has_attr = HAS_ATTR_BOOL2(tstate, module, import_name);
+
+    if (unlikely(has_attr == -1)) {
+        return false;
+    }
+
+    if (has_attr == 1) {
+        return true;
+    }
+#endif
 
     PyObject *result = IMPORT_MODULE_FIXED(tstate, module_name, module_name);
 

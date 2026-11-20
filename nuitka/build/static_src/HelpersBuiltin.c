@@ -189,6 +189,10 @@ PyObject *EVAL_CODE(PyThreadState *tstate, PyObject *code, PyObject *globals, Py
     if (PyDict_Check(globals)) {
         const int res = DICT_HAS_ITEM(tstate, globals, const_str_plain___builtins__);
 
+        if (unlikely(res == -1)) {
+            return NULL;
+        }
+
         if (res == 0) {
             DICT_SET_ITEM_INFALLIBLE(tstate, globals, const_str_plain___builtins__, (PyObject *)builtin_module);
         }

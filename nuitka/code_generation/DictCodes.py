@@ -494,11 +494,21 @@ def _generateDictOperationUpdateCommonCode(
         renderTemplateFromString(
             r"""
 {% if has_keys_attribute == None %}
-if (HAS_ATTR_BOOL(tstate, %(iterable_name)s, const_str_plain_keys)){
+{% if is_python2 %}
+if (HAS_ATTR_BOOL(tstate, %(iterable_name)s, const_str_plain_keys)) {
     %(res_name)s = DICT_UPDATE_FROM(tstate, %(dict_name)s, %(iterable_name)s);
 } else {
     %(res_name)s = DICT_UPDATE_FROM_SEQ(tstate, %(dict_name)s, %(iterable_name)s);
 }
+{% else %}
+%(res_name)s = HAS_ATTR_BOOL2(tstate, %(iterable_name)s, const_str_plain_keys);
+
+if (%(res_name)s == 1) {
+    %(res_name)s = DICT_UPDATE_FROM(tstate, %(dict_name)s, %(iterable_name)s);
+} else if (%(res_name)s == 0) {
+    %(res_name)s = DICT_UPDATE_FROM_SEQ(tstate, %(dict_name)s, %(iterable_name)s);
+}
+{% endif %}
 {% elif has_keys_attribute == True %}
     %(res_name)s = DICT_UPDATE_FROM(tstate, %(dict_name)s, %(iterable_name)s);
 {% else %}
@@ -508,6 +518,7 @@ if (HAS_ATTR_BOOL(tstate, %(iterable_name)s, const_str_plain_keys)){
             has_keys_attribute=expression.subnode_iterable.isKnownToHaveAttribute(
                 "keys"
             ),
+            is_python2=python_version < 0x300,
         )
         % {
             "res_name": res_name,

@@ -639,11 +639,7 @@ int DICT_HAS_ITEM(PyThreadState *tstate, PyObject *dict, PyObject *key) {
         hash = ((PyStringObject *)key)->ob_shash;
 
         if (unlikely(hash == -1)) {
-            hash = HASH_VALUE_WITHOUT_ERROR(tstate, key);
-        }
-
-        if (unlikely(hash == -1)) {
-            return -1;
+            hash = PyString_Type.tp_hash(key);
         }
     } else {
         hash = HASH_VALUE_WITH_ERROR(tstate, key);
@@ -656,7 +652,11 @@ int DICT_HAS_ITEM(PyThreadState *tstate, PyObject *dict, PyObject *key) {
     PyDictObject *dict_object = (PyDictObject *)dict;
     PyDictEntry *entry = Nuitka_DictLookupLegacy(dict_object, key, hash);
 
-    if (unlikely(entry == NULL || entry->me_value == NULL)) {
+    if (unlikely(entry == NULL)) {
+        return -1;
+    }
+
+    if (entry->me_value == NULL) {
         return 0;
     }
 
@@ -675,7 +675,11 @@ int DICT_HAS_ITEM(PyThreadState *tstate, PyObject *dict, PyObject *key) {
     PyObject **value_addr;
     PyDictKeyEntry *entry = Nuitka_DictLookup34(dict_object, key, hash, &value_addr);
 
-    if (unlikely(entry == NULL || *value_addr == NULL)) {
+    if (unlikely(entry == NULL)) {
+        return -1;
+    }
+
+    if (*value_addr == NULL) {
         return 0;
     }
 
