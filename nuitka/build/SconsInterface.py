@@ -1,12 +1,7 @@
 #     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-"""Scons interface.
-
-Interaction with scons. Find the binary, and run it with a set of given
-options.
-
-"""
+"""Scons interface."""
 
 import contextlib
 import copy
@@ -162,7 +157,6 @@ def _provideStaticSourceFiles(source_dir, filenames):
 
 
 def provideStaticSourceFilesBackend(source_dir):
-    """Provide static source files for the backend build."""
     filenames = ["CompiledFunctionType.c"]
 
     if shallMakeExe() or shallMakeDll():
@@ -172,7 +166,6 @@ def provideStaticSourceFilesBackend(source_dir):
 
 
 def provideStaticSourceFilesOnefile(source_dir):
-    """Provide static source files for the onefile build."""
     filenames = ["OnefileBootstrap.c"]
 
     if getWindowsSplashScreen():
@@ -203,8 +196,6 @@ for source filenames within the safe 240 character limit. Use a shorter \
 
 
 def _getSconsInlinePath():
-    """Return path to inline copy of scons."""
-
     return getNormalizedPathJoin(getSconsDataPath(), "inline_copy")
 
 
@@ -223,25 +214,19 @@ def _getInlineSconsVersionForPythonVersion(python_version_info):
         # Non-Windows, Python 2.6, mostly older RHEL
         return "scons-2.3.2"
     elif python_version_info >= (3, 7):
-        # Python 3.7+ can use latest
         return "scons-4.10.1"
     elif os.name == "nt" and python_version_info >= (3, 5):
         # Windows supports MSVC 2022 this way
         return "scons-4.3.0"
     else:
-        # Everything else 2.7 or higher works with this.
         return "scons-3.1.2"
 
 
 def getInlineSconsVersion():
-    """Return Scons inline copy version for current Python runtime."""
-
     return _getInlineSconsVersionForPythonVersion(sys.version_info)
 
 
 def getInlineSconsLibPath():
-    """Return path to inline copy of selected Scons package."""
-
     return getNormalizedPathJoin(_getSconsInlinePath(), "lib", getInlineSconsVersion())
 
 
@@ -262,11 +247,7 @@ def _getCompiledSconsBinaryCall():
 
 
 def _getSconsBinaryCall():
-    """Return a way to execute Scons.
-
-    Using potentially in-line copy if no system Scons is available
-    or if we are on Windows, there it is mandatory.
-    """
+    """Return command list to execute Scons, preferring the inline copy over a system binary."""
 
     # Handle the case where we are running from a compiled binary,
     # and Scons is included as multidist binary.
@@ -332,9 +313,6 @@ uninstalled Anaconda Python.
 def _setupSconsEnvironment2():
     os.environ["NUITKA_PYTHON_EXE_PATH"] = sys.executable
 
-    # Remove environment variables that can only harm if we have to switch
-    # major Python versions, these cannot help Python2 to execute scons, this
-    # is a bit of noise, but helpful.
     old_pythonpath = None
     old_pythonhome = None
 
@@ -351,7 +329,6 @@ def _setupSconsEnvironment2():
         os.path.join(getSconsDataPath(), "..")
     )
 
-    # When downloading in Scons, use the external path.
     if isWin32Windows():
         download_cache_dir = getDownloadCacheDir()
         makePath(download_cache_dir)
@@ -403,27 +380,17 @@ def _setupSconsEnvironment():
 
 
 def _buildSconsCommand(options, scons_filename):
-    """Build the scons command to run.
-
-    The options are a dictionary to be passed to scons as a command line,
-    and other scons stuff is set.
-    """
-
     scons_command = _getSconsBinaryCall()
 
     if not isShowScons():
         scons_command.append("--quiet")
 
     scons_command += [
-        # The scons file
         "-f",
         getExternalUsePath(os.path.join(getSconsDataPath(), scons_filename)),
-        # Parallel compilation.
         "--jobs",
         str(getJobLimit()),
-        # Do not warn about deprecation from Scons
         "--warn=no-deprecated",
-        # Don't load "site_scons" at all.
         "--no-site-dir",
     ]
 
@@ -437,7 +404,6 @@ def _buildSconsCommand(options, scons_filename):
         else:
             return value
 
-    # Option values to provide to scons. Find these in the caller.
     for key, value in options.items():
         if value is None:
             return scons_logger.sysexit(
@@ -454,7 +420,6 @@ def _buildSconsCommand(options, scons_filename):
 
 
 def _createSconsDebugScript(source_dir, scons_command):
-    # we wrote debug shell script only if build process called, not "--version" call.
     scons_debug_python_name = "scons-debug.py"
 
     # Reduce environment variables from unusable stuff that is also very runtime
@@ -552,9 +517,7 @@ def runScons(
     source_dir,
     source_dir_external,
 ):
-    # We are handling quite a few error cases, as this contains transfer of
-    # exceptions, workarounds for non-encodable filenames, and other error
-    # handling. pylint: disable=too-many-branches,too-many-statements
+    # pylint: disable=too-many-branches,too-many-statements
 
     with _setupSconsEnvironment():
         env_values["_NUITKA_BUILD_DEFINITIONS_CATALOG"] = ",".join(env_values.keys())
@@ -598,7 +561,6 @@ def runScons(
         if isWin32Windows():
             env_values["VSCMD_SKIP_SENDTELEMETRY"] = "1"
 
-        # Pass quiet setting to scons via environment variable.
         env_values["NUITKA_QUIET"] = "1" if isQuiet() else "0"
 
         # Scons is not (yet) free-threading safe, and with a free-threaded Python it
@@ -618,7 +580,6 @@ def runScons(
         flushStandardOutputs()
 
         with withEnvironmentVarsOverridden(env_values):
-            # Create debug script to quickly re-run this step only.
             if compile_without_build_directory:
                 assert source_dir_external is not None
 
@@ -694,14 +655,10 @@ def runScons(
 
 
 def asBoolStr(value):
-    """Encode booleans for transfer via command line."""
-
     return "true" if value else "false"
 
 
 def cleanSconsDirectory(source_dir):
-    """Clean scons build directory."""
-
     # spell-checker: ignore gcda
     extensions = (
         ".bin",
@@ -755,8 +712,6 @@ def cleanSconsDirectory(source_dir):
 
 
 def getCommonSconsOptions():
-    # Scons gets transported many details, that we express as variables, and
-    # have checks for them, leading to many branches and statements.
     # pylint: disable=too-many-branches,too-many-statements
 
     scons_options = OrderedDict()

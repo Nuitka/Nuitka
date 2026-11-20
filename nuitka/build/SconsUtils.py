@@ -41,7 +41,6 @@ from nuitka.utils.Utils import isLinux, isMacOS, isWin32Windows
 
 
 def initScons(arguments):
-    # Set the arguments.
     _setArguments(arguments)
 
     # Avoid localized outputs, spell-checker: ignore VSLANG
@@ -49,7 +48,7 @@ def initScons(arguments):
     os.environ["VSLANG"] = "1033"
 
     def no_sync(self):
-        # That's a noop, pylint: disable=unused-argument
+        # pylint: disable=unused-argument
         pass
 
     # Avoid scons writing the scons database at all, we don't care for it,
@@ -70,8 +69,6 @@ scons_arguments = {}
 
 
 def _setArguments(arguments):
-    """Decode command line arguments."""
-
     arg_encoding = arguments.get("argument_encoding")
 
     for key, value in arguments.items():
@@ -81,17 +78,14 @@ def _setArguments(arguments):
 
 
 def getArgumentRequired(name):
-    """Helper for string options without default value."""
     return scons_arguments[name]
 
 
 def getArgumentDefaulted(name, default):
-    """Helper for string options with default value."""
     return scons_arguments.get(name, default)
 
 
 def getArgumentInt(option_name, default=None):
-    """Small helper for integer options."""
     if default is None:
         value = scons_arguments[option_name]
     else:
@@ -101,7 +95,6 @@ def getArgumentInt(option_name, default=None):
 
 
 def getArgumentBool(option_name, default=None):
-    """Small helper for boolean mode flags."""
     if default is None:
         value = scons_arguments[option_name]
     else:
@@ -111,7 +104,7 @@ def getArgumentBool(option_name, default=None):
 
 
 def getArgumentList(option_name, default=None):
-    """Small helper for list mode options, default should be command separated str."""
+    """Parse a comma-separated Scons argument into a list of strings."""
     if default is None:
         value = scons_arguments[option_name]
     else:
@@ -135,11 +128,9 @@ def enableFlagSettings(env, name, experimental_flags):
         else:
             value = None
 
-        # Allowing for nice names on command line, but using identifiers for C.
         flag_name = flag_name.upper().replace("-", "_").replace(".", "_")
 
-        # Experimental without a value is done as mere define, otherwise
-        # the value is passed. spell-checker: ignore cppdefines
+        # spell-checker: ignore cppdefines
         if value:
             env.Append(CPPDEFINES=[("_NUITKA_%s" % flag_name, value)])
         else:
@@ -201,7 +192,6 @@ def _prepareFromEnvironmentVar(var_name):
     mingw_mode = False
     zig_exe_path = None
 
-    # Add environment specified compilers to the PATH variable.
     if var_name in os.environ:
         scons_details_logger.info("%s='%s'" % (var_name, os.environ[var_name]))
 
@@ -268,14 +258,11 @@ def createEnvironment(
     experimental_flags,
     source_dir,
 ):
-    # Many settings are directly handled here, getting us a lot of code in here.
     # pylint: disable=too-many-branches,too-many-locals,too-many-statements
 
-    # Zig compiler mode usually from the option --zig.
     if zig_exe_path is None:
         zig_exe_path = getArgumentDefaulted("zig_exe_path", None)
 
-    # Prepare environment for compiler detection.
     if consider_environ_variables:
         mingw_mode, zig_exe_path_env = _prepareEnvironment(mingw_mode=mingw_mode)
     else:
@@ -315,8 +302,8 @@ def createEnvironment(
             % ",".join(repr(v) for v in SCons.Tool.MSCommon.vc.get_installed_vcs()),
         )
 
-    # If we are on Windows, and MinGW is not enforced, lets see if we can
-    # find "cl.exe", and if we do, disable automatic scan.
+    # Skip SCons's registry/vcvarsall scan when cl.exe is already in PATH
+    # (e.g. an active Visual Studio developer prompt).
     if (
         os.name == "nt"
         and not mingw_mode
@@ -328,10 +315,9 @@ def createEnvironment(
         args["MSVC_USE_SCRIPT"] = False
 
     if mingw_mode or zig_mode:
-        # Force usage of MinGW64, not using MSVC tools.
         tools = ["mingw"]
 
-        # This code would be running anyway, make it do not thing by monkey patching.
+        # SCons still probes MSVC during Environment() setup unless disabled here.
         import SCons.Tool.MSCommon.vc  # pylint: disable=I0021,import-error
         import SCons.Tool.msvc  # pylint: disable=I0021,import-error
 
@@ -345,9 +331,7 @@ def createEnvironment(
         tools = ["default"]
 
     env = Environment(
-        # We want the outside environment to be passed through.
         ENV=os.environ,
-        # Extra tools configuration for scons.
         tools=tools,
         # The shared libraries should not be named "lib...", because CPython
         # requires the filename "module_name.so/pyd" to load it, with no
@@ -356,7 +340,6 @@ def createEnvironment(
         # Under windows, specify the target architecture is needed for Scons
         # to pick up MSVC.
         TARGET_ARCH=target_arch,
-        # The MSVC version might be fixed by the user.
         MSVC_VERSION=msvc_version if msvc_version != "latest" else None,
         **args
     )
@@ -371,7 +354,7 @@ def createEnvironment(
         env["LINK"] = zig_exe_path
         env["CCVERSION"] = None
 
-        # escape backslashes for SCons string interpolation^
+        # Escape backslashes for SCons string interpolation.
         safe_zig_path = zig_exe_path.replace("\\", "\\\\")
 
         # spell-checker: ignore CCCOM,CCCOMCOM,CCFLAGS,CFLAGS,CXXCOM,CXXFLAGS,LIBDIRFLAGS
@@ -411,22 +394,16 @@ def createEnvironment(
         )
 
         if "CC" in os.environ:
-            # If the environment variable CC is set, use that.
             env["CC"] = os.environ["CC"]
             env["CCVERSION"] = None
 
             scons_details_logger.info("Overridden with environment CC: %r" % env["CC"])
         elif clangcl_mode:
-            # If possible, add Clang directory from MSVC if available.
             addClangClPathFromMSVC(env=env)
         elif clang_mode and not mingw_mode:
-            # If requested by the user, use the clang compiler, overriding what was
-            # said in environment.
-
             env["CC"] = "clang"
             env["CCVERSION"] = None
 
-    # Various flavors could influence builds.
     env.monolithpy = getArgumentBool("monolithpy", False)
     env.debian_python = getArgumentBool("debian_python", False)
     env.fedora_python = getArgumentBool("fedora_python", False)
@@ -445,116 +422,83 @@ def createEnvironment(
     # Pythons for scons.
     env.android_termux_python = isTermuxPython()
 
-    # Non-elf binary, important for linker settings.
     env.binary_format = getArgumentRequired("binary_format")
     env.target_os = getArgumentRequired("target_os")
     env.rpath_using_platform = getArgumentBool("rpath_using_platform", False)
 
-    # Python specific modes have to influence some decisions.
     env.static_libpython = getArgumentDefaulted("static_libpython", "")
     if env.static_libpython:
         assert os.path.exists(env.static_libpython), env.static_libpython
 
-    # Python version we are working on.
     env.python_version_str = getArgumentDefaulted("python_version", None)
     if env.python_version_str is not None:
         env.python_version = tuple(int(d) for d in env.python_version_str.split("."))
         env.python_version_full_str = getArgumentRequired("python_version_full_str")
 
-        # Do we have a GIL build, or no-GIL (free-threading)
         env.gil_mode = getArgumentBool("gil_mode")
-
-        # Python debug mode: reference count checking, assertions in CPython core.
         env.python_debug = getArgumentBool("python_debug", False)
 
-        # The Python ABI flags to target.
         abiflags = getArgumentDefaulted("abiflags", "")
 
         if not env.gil_mode and "t" not in abiflags:
             abiflags = "t" + abiflags
 
-        # Python version with ABI included.
         env.python_abi_version = env.python_version_str + abiflags
-
-        # Home of Python to be compiled against, used to find include files and
-        # libraries to link against.
         env.python_prefix = getArgumentRequired("python_prefix")
-
         env.python_prefix_external = getExternalUsePath(env.python_prefix)
     else:
         env.python_version = None
-
         env.gil_mode = None
-
         env.python_debug = None
-
         env.python_abi_version = None
-
         env.python_prefix = None
         env.python_prefix_external = None
 
-    # Modules count, determines if this is a large compilation.
     env.compiled_module_count = getArgumentInt("compiled_module_count", 0)
-
     env.wasi_sdk_path = getArgumentDefaulted("wasi_sdk_path", None)
-
-    # Target arch for some decisions
     env.target_arch = target_arch
 
-    # Standalone mode
     env.standalone_mode = getArgumentBool("standalone_mode", False)
     if env.standalone_mode:
         env.Append(CPPDEFINES=["_NUITKA_STANDALONE_MODE"])
 
-    # Provide rusage from the subprocess if requested.
     env.collect_resources = getArgumentBool("collect_resources", False)
 
-    # Onefile mode: Create suitable for use in a bootstrap with either dll or
-    # exe mode.
     env.onefile_mode = getArgumentBool("onefile_mode", False)
     if env.onefile_mode:
         env.Append(CPPDEFINES=["_NUITKA_ONEFILE_MODE"])
 
-    # Onefile temporary mode: The files are cleaned up after program exit.
     env.onefile_temp_mode = getArgumentBool("onefile_temp_mode", False)
     if env.onefile_temp_mode:
         env.Append(CPPDEFINES=["_NUITKA_ONEFILE_TEMP_BOOL"])
 
-    # Requested resource mode for the constants blob, if any.
     env.requested_resource_mode = getArgumentDefaulted("resource_mode", None)
 
-    # Module (or package) mode: Create a Python extension module
     env.module_mode = getArgumentBool("module_mode", False)
     if env.module_mode:
         env.Append(CPPDEFINES=["_NUITKA_MODULE_MODE"])
 
-    # DLL mode: Create a DLL using Python
     env.dll_mode = getArgumentBool("dll_mode", False)
     if env.dll_mode:
         env.Append(CPPDEFINES=["_NUITKA_DLL_MODE"])
 
-    # Python flag isolated: -I mode
     env.python_flag_isolated = getArgumentBool("python_sysflag_isolated", False)
     if env.python_flag_isolated:
         env.Append(CPPDEFINES=["_NUITKA_FLAG_ISOLATED"])
 
-    # EXE mode: Create an EXE (using Python for this config)
     env.exe_mode = getArgumentBool("exe_mode", False)
     if env.exe_mode:
         env.Append(CPPDEFINES=["_NUITKA_EXE_MODE"])
 
-    # Frame locals proxy: Any frame of the program can publish one.
     env.frame_locals_proxy = getArgumentBool("frame_locals_proxy", False)
     if env.frame_locals_proxy:
         env.Append(CPPDEFINES=["_NUITKA_FRAME_LOCALS_PROXY"])
 
-    # MacOS bundle: Create an .app on macOS
     env.macos_bundle_mode = getArgumentBool("macos_bundle_mode", False)
     if env.macos_bundle_mode:
         env.Append(CPPDEFINES=["_NUITKA_MACOS_BUNDLE_MODE"])
         env.Append(LINKFLAGS=["-framework", "CoreFoundation"])
 
-    # Announce combination of DLL mode and onefile mode.
     env.onefile_dll_mode = env.onefile_mode and env.dll_mode
     if env.onefile_dll_mode:
         env.Append(CPPDEFINES=["_NUITKA_ONEFILE_DLL_MODE"])
@@ -582,7 +526,7 @@ def decodeData(data):
 
 
 def getExecutablePath(filename, env):
-    """Find an execute in either normal PATH, or Scons detected PATH."""
+    """Find an executable in either normal 'PATH' or Scons-detected 'PATH'."""
 
     if os.path.exists(filename):
         return filename
@@ -601,18 +545,14 @@ Error, scons environment variable '%s' is not set, this ought to never happen. P
                 % variable_name
             )
 
-    # Append ".exe" suffix  on Windows if not already present.
     if os.name == "nt" and not filename.lower().endswith(".exe"):
         filename += ".exe"
 
-    # Either look at the initial "PATH" as given from the outside or look at the
-    # current environment.
     if env is None:
         search_path = os.environ["PATH"]
     else:
         search_path = env._dict["ENV"]["PATH"]  # pylint: disable=protected-access
 
-    # Now check in each path element, much like the shell will.
     path_elements = search_path.split(os.pathsep)
 
     for path_element in path_elements:
@@ -662,10 +602,6 @@ def linkSystemLibrary(env, library_name):
         The static variant is selected with the literal syntax of GNU linkers,
         which keeps bootstrap binaries free from a runtime dependency on the
         library.
-
-    Args:
-        env: SCons environment to modify.
-        library_name: Name of the library to link, e.g. 'zstd'.
     """
     if env.get("LIBLITERALPREFIX") == ":":
         env.Append(LIBS=[":lib%s.a" % library_name])
@@ -677,7 +613,7 @@ def writeSconsReport(env, target):
     with openTextFile(
         _getSconsReportFilename(env.source_dir), "w", encoding="utf8"
     ) as report_file:
-        # We are friends to get at this debug info, pylint: disable=protected-access
+        # pylint: disable=protected-access
         for key, value in sorted(env._dict.items()):
             if type(value) is list and all(isinstance(v, basestring) for v in value):
                 value = repr(value)
@@ -725,7 +661,7 @@ _checked_msvc_language_pack = False
 
 
 def reportSconsUnexpectedOutput(env, cmdline, stdout, stderr):
-    # Singleton, pylint: disable=global-statement
+    # pylint: disable=global-statement
     global _checked_msvc_language_pack
 
     if not _checked_msvc_language_pack and env.msvc_mode and (stderr or stdout):
@@ -808,9 +744,10 @@ def readSconsReport(source_dir):
 def getSconsReportValue(source_dir, key, default=Ellipsis):
     """Get a value from the SCons report.
 
-    Note: The default value is only used if the report does not exist,
-    e.g. due to an error in compilation. If the report exists but is
-    missing the key, no default is used and `None` is returned.
+    Notes:
+        'default' is only used if the report file does not exist, e.g. due to
+        an error in compilation. If the report exists without 'key', 'None' is
+        returned.
     """
     try:
         return readSconsReport(source_dir).get(key)
@@ -822,8 +759,6 @@ def getSconsReportValue(source_dir, key, default=Ellipsis):
 
 
 def getSconsReportValueBool(source_dir, key, default=Ellipsis):
-    """Get a boolean value from the SCons report."""
-
     value = getSconsReportValue(source_dir, key, default=default)
 
     if value is None:
@@ -836,8 +771,6 @@ def getSconsReportValueBool(source_dir, key, default=Ellipsis):
 
 
 def getSconsCompilerUsed(source_dir):
-    """Get the compiler used according to the SCons report."""
-
     for key, compiler_used in (
         ("zig_mode", "zig"),
         ("clangcl_mode", "ClangCL"),

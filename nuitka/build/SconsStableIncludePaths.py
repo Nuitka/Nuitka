@@ -7,7 +7,7 @@ Nuitka adds absolute include paths derived from its own installation location
 and the Python installation to the compiler command lines. When those
 locations differ between machines, e.g. due to per-run package caches or
 virtual environments, identical sources produce different compiler command
-lines. That prevents sharing of "ccache" results between machines and makes
+lines. That prevents sharing of 'ccache' results between machines and makes
 builds less reproducible.
 
 This module replaces those paths with build directory local paths that go
@@ -31,15 +31,6 @@ stable_includes_dirname = "stable_includes"
 
 
 def _isPathBelow(path, parent_path):
-    """Check if a path is the parent path or located below it.
-
-    Args:
-        path: Path to check.
-        parent_path: Potential parent path.
-
-    Returns:
-        bool: True if path is the parent path or below it.
-    """
     path = os.path.normcase(os.path.normpath(path))
     parent_path = os.path.normcase(os.path.normpath(parent_path))
 
@@ -47,14 +38,6 @@ def _isPathBelow(path, parent_path):
 
 
 def _getSafeIncludeLinkName(name):
-    """Get a file name that is safe to use as an include link name.
-
-    Args:
-        name: Base name to sanitize.
-
-    Returns:
-        str: Sanitized name.
-    """
     result = "".join(
         character if character.isalnum() or character in "._-" else "_"
         for character in name
@@ -64,16 +47,6 @@ def _getSafeIncludeLinkName(name):
 
 
 def _createIncludeLink(stable_includes_dir, link_name, target_path):
-    """Create a symbolic link for an include directory.
-
-    Args:
-        stable_includes_dir: Directory to create the link in.
-        link_name: Name of the link below the directory.
-        target_path: Absolute path the link points to.
-
-    Returns:
-        bool: True if the link was created, False otherwise.
-    """
     try:
         os.symlink(target_path, getNormalizedPathJoin(stable_includes_dir, link_name))
     except (AttributeError, OSError):
@@ -85,14 +58,6 @@ def _createIncludeLink(stable_includes_dir, link_name, target_path):
 
 
 def _getIncludeRoots(env):
-    """Get the roots of include paths that get stable names.
-
-    Args:
-        env: The Scons environment to work with.
-
-    Returns:
-        list of tuples of stable name and absolute directory.
-    """
     roots = [("nuitka", os.path.dirname(env.nuitka_src))]
 
     python_include_path = getArgumentDefaulted("python_include_path", None)
@@ -103,16 +68,7 @@ def _getIncludeRoots(env):
 
 
 def _getIncludeRootName(include_roots, include_path):
-    """Get names to use for an include path below a known root.
-
-    Args:
-        include_roots: Sequence of stable name and absolute directory tuples.
-        include_path: Absolute include path to check.
-
-    Returns:
-        Tuple of link name, link target and local name, or None if the include
-        path is not below one of the roots.
-    """
+    """Map an include path below a known root to '(link_name, link_target, local_name)', or 'None'."""
     for root_name, root_path in include_roots:
         if not _isPathBelow(include_path, root_path):
             continue
@@ -134,17 +90,7 @@ def _getIncludeRootName(include_roots, include_path):
 def _getIncludeFallbackName(
     include_path, reserved_link_names, failed_link_names, link_targets
 ):
-    """Get names to use for an include path without a known root.
-
-    Args:
-        include_path: Absolute include path to check.
-        reserved_link_names: Names that must not be used for fallbacks.
-        failed_link_names: Names that already failed to be linked.
-        link_targets: Mapping of created link names to their target path.
-
-    Returns:
-        Tuple of link name, link target and local name.
-    """
+    """Assign a unique '(link_name, link_target, local_name)' for an include path outside known roots."""
     base_name = _getSafeIncludeLinkName(
         os.path.basename(getNormalizedPath(include_path))
     )
@@ -168,22 +114,11 @@ def _getIncludeFallbackName(
 
 
 def makeIncludePathsStable(env):
-    """Replace external include paths with build directory local ones.
-
-    Notes:
-        This creates a "stable_includes" directory in the build directory with
-        symbolic links, and uses those relative paths instead of the original
-        absolute paths in the compiler command lines. The link names are
-        derived from stable roots and base names only, so they are the same on
-        every machine, while the linked to directories are not.
-
-    Args:
-        env: The Scons environment to work with.
-    """
+    """Replace absolute 'CPPPATH' entries with build-local 'stable_includes' symlinks."""
     if env.msvc_mode:
         return
 
-    # Debugger mode insists on full names for a better debugging experience.
+    # Debuggers resolve header paths better without build-local symlinks.
     if getArgumentBool("full_names", False):
         return
 
@@ -199,8 +134,6 @@ def makeIncludePathsStable(env):
     )
 
     include_roots = _getIncludeRoots(env)
-
-    # Names of the roots are not available for base name derived links.
     reserved_link_names = set(root_name for root_name, _root_path in include_roots)
 
     link_targets = {}

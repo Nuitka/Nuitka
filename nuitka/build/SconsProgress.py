@@ -1,11 +1,7 @@
 #     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-"""Progress bar for Scons compilation part.
-
-This does only the interfacing with tracing and collection of information.
-
-"""
+"""Progress bar handling for SCons compilation."""
 
 from nuitka.Progress import (
     closeProgressBar,
@@ -31,7 +27,7 @@ _stage = None
 
 
 def setSconsProgressBarTotal(name, total):
-    # keep track of how many files there are to know when link comes, pylint: disable=global-statement
+    # pylint: disable=global-statement
     global _total, _stage
     _total = total
     _stage = name
@@ -40,7 +36,7 @@ def setSconsProgressBarTotal(name, total):
 
 
 def updateSconsProgressBar():
-    # Check if link is next, pylint: disable=global-statement
+    # pylint: disable=global-statement
     global _current
     _current += 1
 

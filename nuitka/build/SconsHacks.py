@@ -1,15 +1,10 @@
 #     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-"""Hacks for scons that we apply.
+"""Hacks applied to SCons tool and version detection.
 
-We block some tools from the standard scan, there is e.g. no need to ask
-what fortran version we have installed to compile with Nuitka.
-
-Also we hack the gcc version detection to fix some bugs in it, and to avoid
-scanning for g++ when we have a gcc installer, but only if that is not too
-version.
-
+Blocks irrelevant default tool scans (e.g. Fortran, TeX) and overrides GCC/Clang
+version detection to fix SCons bugs and support Conda/Zig toolchains.
 """
 
 import os
@@ -36,7 +31,6 @@ from .SconsUtils import (
     isZigName,
 )
 
-# Cache for detected versions.
 v_cache = {}
 
 # spell-checker: ignore dumpfullversion,dumpversion,dvipdf,dvips,gfortran,ifort,javah,nasm
@@ -143,7 +137,7 @@ def _myDetectVersion(cc):
 
 
 def myDetectVersion(env, cc):
-    """Return the version of the GNU compiler, or None if it is not a GNU compiler."""
+    """Return the detected version tuple of 'cc', or 'None'."""
     cc = env.subst(cc)
     if not cc:
         return None
@@ -164,8 +158,6 @@ def myDetectVersion(env, cc):
 
 
 def myDetect(self, progs):
-    # Don't consider Fortran, tar, D, c++, we don't need it. We do manual
-    # fallback
     for blocked_tool in _blocked_tools:
         if blocked_tool in progs:
             return None
@@ -180,7 +172,6 @@ def myDetect(self, progs):
     return orig_detect(self, progs)
 
 
-# The original value will be used in our form.
 orig_detect = Environment.Detect
 
 
@@ -200,16 +191,7 @@ def getEnhancedToolDetect():
 
 
 def makeLinkerUseResponseFile(env, source_filenames):
-    """Make the linker use a response file instead of direct invocations.
-
-    Notes:
-        This avoids command line length limits for linker invocations, which
-        can make linking fail with many modules otherwise.
-
-    Args:
-        env: The SCons environment of the linker invocation.
-        source_filenames: The source filenames to link.
-    """
+    """Make the linker use a response file to avoid OS command-line length limits."""
     linker_response_filename = getNormalizedPathJoin(env.source_dir, "@link_input.txt")
 
     if env.exe_mode:

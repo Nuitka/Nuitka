@@ -95,35 +95,21 @@ def setupScons(env, source_dir):
 def executeSconsBuild(
     env, target, source_filenames, progressbar_name, stable_include_paths
 ):
-    """Execute the Scons build by preparing and launching the target.
-
-    Notes:
-        This makes the include paths stable across machines if requested,
-        enables the spawn monitoring, turns keyboard interrupts into error
-        exits, writes the Scons report, sets the progress bar total, and
-        launches the target.
+    """Finalize environment settings and register the default SCons build target.
 
     Args:
-        env: The Scons environment to work with.
-        target: The Scons target to build.
-        source_filenames: The source filenames being built.
-        progressbar_name: Name of the progress bar to use.
-        stable_include_paths: Whether to make include paths stable across
-            machines by replacing absolute ones with build local paths.
+        stable_include_paths: Whether to replace external absolute include paths
+            with build-local symlinks for cross-machine cache stability.
     """
-    # Plugin contributed C defines should be used too.
     cpp_defines = getArgumentList("cpp_defines", "")
     env.Append(CPPDEFINES=cpp_defines)
 
-    # Plugin contributed C include directories should be used too.
     cpp_include_dirs = getArgumentList("cpp_include_dirs", "")
     env.Prepend(CPPPATH=cpp_include_dirs)
 
-    # Plugin contributed link dirs should be used too.
     link_dirs = getArgumentList("link_dirs", "")
     env.Append(LIBPATH=link_dirs)
 
-    # Plugin contributed link libraries should be used too.
     link_libraries = getArgumentList("link_libraries", "")
     env.Append(LIBS=link_libraries)
 
@@ -141,15 +127,11 @@ def executeSconsBuild(
             source_filenames=source_filenames,
         )
 
-    # Work around windows bugs and use watchdogs to track progress of
-    # compilation.
     enableSpawnMonitoring(
         env=env,
         source_filenames=source_filenames,
     )
 
-    # Before we go, also lets turn KeyboardInterrupt into a mere error exit as
-    # the scons traceback is not going to be very interesting to us.
     _changeKeyboardInterruptToErrorExit()
 
     writeSconsReport(env=env, target=target)

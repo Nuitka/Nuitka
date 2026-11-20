@@ -2,15 +2,7 @@
 #     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-"""
-The CCompileVersion scons file is for version output of the C compiler used with
-given flags only. Check out Backend.scons for where the actual compiled binaries
-are build.
-
-This is supposed to output compiler related information and then quit. It should
-actually compile anything.
-
-"""
+"""SCons file to report the selected C compiler version without compiling anything."""
 
 # Make nuitka package importable from calling installation
 
@@ -21,7 +13,6 @@ import types
 sys.modules["nuitka"] = types.ModuleType("nuitka")
 sys.modules["nuitka"].__path__ = [os.environ["NUITKA_PACKAGE_DIR"]]
 
-# We are in the build.build package really.
 import nuitka.build  # pylint: disable=unused-import
 
 __package__ = "nuitka.build"  # pylint: disable=redefined-builtin
@@ -35,7 +26,6 @@ from .SconsCompilerSettings import (
     reportCCompiler,
 )
 
-# Set up the basic stuff.
 env = createNuitkaSconsEnvironment(needs_source_dir=False)
 
 if env.no_usable_compiler:
@@ -43,8 +33,6 @@ if env.no_usable_compiler:
 
     sys.exit(0)
 
-
-# Report the C compiler used.
 reportCCompiler(env, "Version", my_print)
 
 # TODO: Report modes.
