@@ -1,10 +1,6 @@
 //     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
-/* These slots are still manually coded and are used by the generated code.
- *
- * The plan should be to generate these as well, so e.g. we can have a slot
- * SLOT_nb_multiply_LONG_INT that is optimal too.
- */
+// TODO: Generate specialized multiplication slots too, e.g. SLOT_nb_multiply_LONG_INT.
 
 // This file is included from another C file, help IDEs to still parse it on
 // its own.
@@ -42,7 +38,6 @@ static Py_ssize_t CONVERT_LONG_TO_REPEAT_FACTOR(PyObject *value) {
         size_t prev = result;
         result = (result << PyLong_SHIFT) | digits[digits_count];
 
-        // Overflow detection.
         if ((result >> PyLong_SHIFT) != prev) {
             return (Py_ssize_t)-1;
         }
@@ -72,7 +67,7 @@ static Py_ssize_t CONVERT_TO_REPEAT_FACTOR(PyObject *value) {
     if (PyInt_Check(value)) {
         Py_ssize_t result = PyInt_AS_LONG(value);
 
-        /* A -1 value could indicate error, so we avoid it. */
+        // Return 0 rather than -1, which signals overflow.
         if (result < 0) {
             return 0;
         } else {
@@ -82,9 +77,6 @@ static Py_ssize_t CONVERT_TO_REPEAT_FACTOR(PyObject *value) {
         return CONVERT_LONG_TO_REPEAT_FACTOR(value);
     }
 #else
-    /* For Python3 we know for a fact that it's a long, or else it's an
-     * exception.
-     */
     assert(PyLong_Check(value));
 
     return CONVERT_LONG_TO_REPEAT_FACTOR(value);
@@ -108,7 +100,6 @@ static PyObject *SEQUENCE_REPEAT(ssizeargfunc repeatfunc, PyObject *seq, PyObjec
 
     Py_DECREF(index_value);
 
-    /* Above conversion indicates an error as -1 */
     if (unlikely(count == -1)) {
         PyErr_Format(PyExc_OverflowError, "cannot fit '%s' into an index-sized integer", Py_TYPE(n)->tp_name);
         return NULL;

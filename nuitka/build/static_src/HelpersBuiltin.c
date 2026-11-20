@@ -1,13 +1,7 @@
 //     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
-/** For calling built-ins, calls it and uses keyword dictionary if necessary.
- *
- * This helper simplifies calling built-ins with optional arguments that can
- * be given as keyword arguments. We basically re-construct the minimal call
- * using keywords here. This obviously is for inefficient calls to the original
- * built-in and should be avoided.
- *
- **/
+// Reconstruct minimal positional + keyword argument calls for built-ins with
+// optional keyword-passable parameters.
 
 // This file is included from another C file, help IDEs to still parse it on
 // its own.
@@ -56,10 +50,6 @@ PyObject *CALL_BUILTIN_KW_ARGS(PyThreadState *tstate, PyObject *callable, PyObje
 
     return result;
 }
-
-/** The "compile" built-in.
- *
- */
 
 NUITKA_DEFINE_BUILTIN(compile)
 
@@ -144,10 +134,6 @@ PyObject *COMPILE_CODE_EXEC(PyThreadState *tstate, PyObject *source_code, PyObje
     return result;
 }
 
-/**
- * Helper used to deal with exec statement
- */
-
 #if PYTHON_VERSION < 0x300
 
 bool EXEC_FILE_ARG_HANDLING(PyThreadState *tstate, PyObject **prog, PyObject **name) {
@@ -177,10 +163,7 @@ bool EXEC_FILE_ARG_HANDLING(PyThreadState *tstate, PyObject **prog, PyObject **n
 }
 #endif
 
-/**
- *  The "eval" implementation, used for "exec" too.
- */
-
+// Shared by both "eval" and "exec".
 PyObject *EVAL_CODE(PyThreadState *tstate, PyObject *code, PyObject *globals, PyObject *locals, PyObject *closure) {
     CHECK_OBJECT(code);
     CHECK_OBJECT(globals);
@@ -191,7 +174,6 @@ PyObject *EVAL_CODE(PyThreadState *tstate, PyObject *code, PyObject *globals, Py
         return NULL;
     }
 
-    // TODO: Our re-formulation prevents this externally, doesn't it.
     if (locals == Py_None) {
         locals = globals;
     }
@@ -232,13 +214,6 @@ PyObject *EVAL_CODE(PyThreadState *tstate, PyObject *code, PyObject *globals, Py
 
     return result;
 }
-
-/** The "open" built-in.
- *
- * Different for Python2 and Python3, the later has more arguments and
- * both accept keyword arguments.
- *
- **/
 
 NUITKA_DEFINE_BUILTIN(open);
 
@@ -310,10 +285,6 @@ PyObject *BUILTIN_INPUT(PyThreadState *tstate, PyObject *prompt) {
     }
 }
 
-/** The "staticmethod" built-in.
- *
- **/
-
 NUITKA_DEFINE_BUILTIN(staticmethod)
 
 PyObject *BUILTIN_STATICMETHOD(PyThreadState *tstate, PyObject *value) {
@@ -321,10 +292,6 @@ PyObject *BUILTIN_STATICMETHOD(PyThreadState *tstate, PyObject *value) {
 
     return CALL_FUNCTION_WITH_SINGLE_ARG(tstate, NUITKA_ACCESS_BUILTIN(staticmethod), value);
 }
-
-/** The "classmethod" built-in.
- *
- **/
 
 NUITKA_DEFINE_BUILTIN(classmethod)
 
@@ -336,17 +303,10 @@ PyObject *BUILTIN_CLASSMETHOD(PyThreadState *tstate, PyObject *value) {
 
 #if PYTHON_VERSION >= 0x300
 
-/** The "bytes" built-in.
- *
- * Only for Python3. There is not BYTES_BUILTIN1 yet, this only delegates to
- * the actual built-in which is wasteful. TODO: Have dedicated implementation
- * for this.
- *
- **/
-
 NUITKA_DEFINE_BUILTIN(bytes);
 
 PyObject *BUILTIN_BYTES1(PyThreadState *tstate, PyObject *value) {
+    // TODO: Have a dedicated implementation instead of delegating to the built-in.
     NUITKA_ASSIGN_BUILTIN(bytes);
 
     return CALL_FUNCTION_WITH_SINGLE_ARG(tstate, NUITKA_ACCESS_BUILTIN(bytes), value);
@@ -363,12 +323,7 @@ PyObject *BUILTIN_BYTES3(PyThreadState *tstate, PyObject *value, PyObject *encod
 }
 #endif
 
-/** The "bin" built-in.
- *
- **/
-
 PyObject *BUILTIN_BIN(PyObject *value) {
-    // Note: I don't really know why "oct" and "hex" don't use this as well.
     PyObject *result = PyNumber_ToBase(value, 2);
 
     if (unlikely(result == NULL)) {
@@ -377,10 +332,6 @@ PyObject *BUILTIN_BIN(PyObject *value) {
 
     return result;
 }
-
-/** The "oct" built-in.
- *
- **/
 
 PyObject *BUILTIN_OCT(PyThreadState *tstate, PyObject *value) {
 #if PYTHON_VERSION >= 0x300
@@ -419,10 +370,6 @@ PyObject *BUILTIN_OCT(PyThreadState *tstate, PyObject *value) {
 #endif
 }
 
-/** The "hex" built-in.
- *
- **/
-
 PyObject *BUILTIN_HEX(PyThreadState *tstate, PyObject *value) {
 #if PYTHON_VERSION >= 0x300
     PyObject *result = PyNumber_ToBase(value, 16);
@@ -459,10 +406,6 @@ PyObject *BUILTIN_HEX(PyThreadState *tstate, PyObject *value) {
     return result;
 #endif
 }
-
-/** The "hash" built-in.
- *
- **/
 
 static void SET_HASH_NOT_IMPLEMENTED_ERROR(PyThreadState *tstate, PyObject *value) {
     // TODO: Use our own formatting code.
@@ -553,14 +496,6 @@ Py_hash_t HASH_VALUE_WITHOUT_ERROR(PyThreadState *tstate, PyObject *value) {
     return -1;
 }
 
-/** The "bytearray" built-in.
- *
- * These should be more in-lined maybe, as a lot of checks are not necessary
- * and the error checking for the 3 arguments variant may even not be enough,
- * as it could be keyword arguments.
- *
- **/
-
 PyObject *BUILTIN_BYTEARRAY1(PyObject *value) {
     PyObject *result = PyByteArray_FromObject(value);
 
@@ -582,18 +517,10 @@ PyObject *BUILTIN_BYTEARRAY3(PyThreadState *tstate, PyObject *string_arg, PyObje
     return CALL_BUILTIN_KW_ARGS(tstate, NUITKA_ACCESS_BUILTIN(bytearray), args, arg_names, 3, 0);
 }
 
-/** The "iter" built-in.
- *
- * This comes in two flavors, with one or two arguments. The second one
- * creates a "calliterobject" that is private to CPython. We define it here
- * for ourselves. The one argument version is in headers for in-lining of
- * the code. spell-checker: ignore calliterobject
- *
- **/
-
-// From CPython:
+// Two-argument "iter(callable, sentinel)" allocates CPython's private
+// "calliterobject"; single-argument "iter" is inlined in headers.
+// spell-checker: ignore calliterobject
 typedef struct {
-    /* Python object folklore: */
     PyObject_HEAD
 
         PyObject *it_callable;
@@ -607,7 +534,6 @@ PyObject *BUILTIN_ITER2(PyObject *callable, PyObject *sentinel) {
         return NULL;
     }
 
-    // Note: References were taken at call site already.
     result->it_callable = callable;
     Py_INCREF(callable);
     result->it_sentinel = sentinel;
@@ -618,10 +544,6 @@ PyObject *BUILTIN_ITER2(PyObject *callable, PyObject *sentinel) {
     return (PyObject *)result;
 }
 
-/** The "reversed" built-in.
- *
- **/
-
 NUITKA_DEFINE_BUILTIN(reversed);
 
 PyObject *BUILTIN_REVERSED(PyThreadState *tstate, PyObject *value) {
@@ -630,10 +552,6 @@ PyObject *BUILTIN_REVERSED(PyThreadState *tstate, PyObject *value) {
 
     return CALL_FUNCTION_WITH_SINGLE_ARG(tstate, NUITKA_ACCESS_BUILTIN(reversed), value);
 }
-
-/** The "sorted" built-in.
- *
- **/
 
 NUITKA_DEFINE_BUILTIN(sorted);
 
@@ -661,10 +579,6 @@ PyObject *BUILTIN_SORTED1(PyThreadState *tstate, PyObject *iterable) {
 }
 #endif
 
-/** The "memoryview" built-in.
- *
- **/
-
 NUITKA_DEFINE_BUILTIN(memoryview);
 
 PyObject *BUILTIN_MEMORYVIEW(PyThreadState *tstate, PyObject *value) {
@@ -672,10 +586,6 @@ PyObject *BUILTIN_MEMORYVIEW(PyThreadState *tstate, PyObject *value) {
 
     return CALL_FUNCTION_WITH_SINGLE_ARG(tstate, NUITKA_ACCESS_BUILTIN(memoryview), value);
 }
-
-/** The "print" built-in.
- *
- **/
 
 NUITKA_DEFINE_BUILTIN(print);
 
@@ -729,13 +639,6 @@ PyObject *BUILTIN_PRINT(PyThreadState *tstate, PyObject **values, int count, PyO
 }
 #endif
 
-/** The "type" built-in.
- *
- * This comes in two flavors, one being the detection of a values type,
- * and 3 argument variant creates a new type.
- *
- **/
-
 PyObject *BUILTIN_TYPE1(PyObject *arg) {
     CHECK_OBJECT(arg);
 
@@ -785,12 +688,9 @@ PyObject *BUILTIN_TYPE3(PyThreadState *tstate, PyObject *module_name, PyObject *
 }
 
 #if PYTHON_VERSION >= 0x3f0
-/** The "sentinel" built-in.
- *
- * CPython determines the module from the current frame's function object.
- * Compiled frames do not have one, so the caller passes the module dictionary
- * instead and the helper fills in the correct module name.
- **/
+// CPython determines the module from the current frame's function object.
+// Compiled frames do not have one, so the caller passes the module dictionary
+// instead and the helper fills in the correct module name.
 PyObject *BUILTIN_SENTINEL(PyThreadState *tstate, PyObject *name, PyObject *repr, PyDictObject *module_dict) {
     CHECK_OBJECT(name);
     CHECK_OBJECT(module_dict);
@@ -827,11 +727,6 @@ PyObject *BUILTIN_SENTINEL(PyThreadState *tstate, PyObject *name, PyObject *repr
     return result;
 }
 #endif
-
-/** The "super" built-in.
- *
- *
- **/
 
 NUITKA_DEFINE_BUILTIN(super);
 
@@ -897,10 +792,6 @@ PyObject *BUILTIN_SUPER0(PyThreadState *tstate, PyDictObject *module_dict, PyObj
     return CALL_FUNCTION_WITH_SINGLE_ARG(tstate, super_value, type);
 }
 
-/** The "callable" built-in.
- *
- **/
-
 PyObject *BUILTIN_CALLABLE(PyObject *value) {
     int res = Nuitka_PyCheckCallable(value);
     PyObject *result = BOOL_FROM(res != 0);
@@ -908,12 +799,7 @@ PyObject *BUILTIN_CALLABLE(PyObject *value) {
     return result;
 }
 
-/* The "getattr" built-in with default value.
- *
- * We might want to split it off for a variant without default value.
- *
- **/
-
+// TODO: Split off a dedicated helper variant without default_value.
 PyObject *BUILTIN_GETATTR(PyThreadState *tstate, PyObject *obj, PyObject *attribute, PyObject *default_value) {
     CHECK_OBJECT(obj);
     CHECK_OBJECT(attribute);
@@ -968,10 +854,6 @@ PyObject *BUILTIN_GETATTR(PyThreadState *tstate, PyObject *obj, PyObject *attrib
     }
 }
 
-/** The "setattr" built-in.
- *
- **/
-
 PyObject *BUILTIN_SETATTR(PyObject *obj, PyObject *attribute, PyObject *value) {
     int res = PyObject_SetAttr(obj, attribute, value);
 
@@ -982,10 +864,6 @@ PyObject *BUILTIN_SETATTR(PyObject *obj, PyObject *attribute, PyObject *value) {
     // No reference returned.
     return Py_None;
 }
-
-/** The "delattr" built-in.
- *
- **/
 
 PyObject *BUILTIN_DELATTR(PyObject *obj, PyObject *attribute) {
     int res = PyObject_DelAttr(obj, attribute);
@@ -1065,7 +943,7 @@ PyObject *BUILTIN_INT2(PyThreadState *tstate, PyObject *value, PyObject *base) {
     if (PyUnicode_Check(value)) {
         return PyLong_FromUnicodeObject(value, (int)base_int);
     } else if (PyBytes_Check(value) || PyByteArray_Check(value)) {
-        // Check for "NUL" as PyLong_FromString has no length parameter,
+        // Check for "NUL" as PyLong_FromString has no length parameter.
         Py_ssize_t size = Py_SIZE(value);
         char const *value_str;
 
@@ -1096,7 +974,6 @@ PyObject *BUILTIN_INT2(PyThreadState *tstate, PyObject *value, PyObject *base) {
 }
 
 #if PYTHON_VERSION < 0x300
-// Note: Python3 uses TO_INT2 function.
 PyObject *BUILTIN_LONG2(PyThreadState *tstate, PyObject *value, PyObject *base) {
     long base_int = PyInt_AsLong(base);
 

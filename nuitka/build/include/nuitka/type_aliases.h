@@ -9,7 +9,6 @@
 #include "nuitka/prelude.h"
 #endif
 
-// Helpers for type aliases, type variables, and generic base classes.
 extern PyObject *MAKE_TYPE_ALIAS(PyObject *name, PyObject *type_params, PyObject *value, PyObject *module_name);
 #if PYTHON_VERSION >= 0x3d0
 extern PyObject *MAKE_TYPE_VAR(PyThreadState *tstate, PyObject *name, PyObject *evaluate_bound,

@@ -20,7 +20,7 @@
 
 #if PYTHON_VERSION >= 0x270
 // Initialize value for "tp_iternext" to compare with, needed by HAS_ITERNEXT
-// which emulates "PyCheck_Iter" but is bug free.
+// which emulates "PyIter_Check" but is bug free.
 extern iternextfunc default_iternext;
 extern void _initSlotIterNext(void);
 #endif
@@ -274,7 +274,6 @@ NUITKA_MAY_BE_UNUSED static PyObject *BUILTIN_NEXT2_ITERATOR(PyThreadState *tsta
     return _BUILTIN_NEXT2_COMMON(tstate, iterator, default_value);
 }
 
-// For cases, where no exception raising is needed, because we know it at compile time.
 NUITKA_MAY_BE_UNUSED static PyObject *UNPACK_NEXT_INFALLIBLE(PyObject *iterator) {
     CHECK_OBJECT(iterator);
     assert(HAS_ITERNEXT(iterator));

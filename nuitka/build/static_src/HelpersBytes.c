@@ -1,9 +1,5 @@
 //     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
-/* This helpers is used to quickly create a bytes objects.
-
-*/
-
 // This file is included from another C file, help IDEs to still parse it on
 // its own.
 #ifdef __IDE_ONLY__
@@ -12,7 +8,7 @@
 
 #if PYTHON_VERSION >= 0x300
 
-// Custom allocation to save bytes at the end.
+// Avoid trailing struct alignment padding after ob_sval[1]; +1 reserves the NUL terminator.
 #define PyBytesObject_SIZE (offsetof(PyBytesObject, ob_sval) + 1)
 
 #if NUITKA_BYTES_HAS_FREELIST

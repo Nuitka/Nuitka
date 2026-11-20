@@ -13,13 +13,10 @@
 
 #if PYTHON_VERSION >= 0x300
 NUITKA_MAY_BE_UNUSED static void CHAIN_EXCEPTION(PyThreadState *tstate, PyObject *exception_value) {
-    // Implicit chain of exception already existing.
-
 #if PYTHON_VERSION >= 0x370
     struct Nuitka_ExceptionStackItem *exc_state = GET_TOP_MOST_CURRENT_EXCEPTION_STATE(tstate);
 #endif
 
-    // Normalize existing published exception first.
 #if PYTHON_VERSION < 0x3b0
     {
         // TODO: Revert to using NORMALIZE_EXCEPTION
@@ -119,7 +116,6 @@ SET_EXCEPTION_PRESERVATION_STATE_STOP_ITERATION_EMPTY(PyThreadState *tstate,
 #endif
 }
 
-// Create an exception value object from type and value input.
 extern PyObject *MAKE_EXCEPTION_WITH_VALUE(PyThreadState *tstate, PyObject *exception_type, PyObject *value);
 
 // Raise a RuntimeError with the value and set context with the error given

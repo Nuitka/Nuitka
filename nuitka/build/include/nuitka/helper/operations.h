@@ -50,7 +50,6 @@ NUITKA_MAY_BE_UNUSED static PyObject *UNARY_OPERATION(unary_api api, PyObject *o
     return result;
 }
 
-// Generated helpers to execute operations on fully or partially known types.
 #include "nuitka/helper/operations_binary_add.h"
 #include "nuitka/helper/operations_binary_bitand.h"
 #include "nuitka/helper/operations_binary_bitor.h"
@@ -65,7 +64,6 @@ NUITKA_MAY_BE_UNUSED static PyObject *UNARY_OPERATION(unary_api api, PyObject *o
 #include "nuitka/helper/operations_binary_sub.h"
 #include "nuitka/helper/operations_binary_truediv.h"
 
-// Generated helpers to execute operations on dual types.
 #include "nuitka/helper/operations_binary_dual_add.h"
 
 #include "nuitka/helper/operations_inplace_add.h"
@@ -82,12 +80,10 @@ NUITKA_MAY_BE_UNUSED static PyObject *UNARY_OPERATION(unary_api api, PyObject *o
 #include "nuitka/helper/operations_inplace_truediv.h"
 
 #if PYTHON_VERSION < 0x300
-// Classical division is Python2 only.
 #include "nuitka/helper/operations_binary_olddiv.h"
 #include "nuitka/helper/operations_inplace_olddiv.h"
 #endif
 #if PYTHON_VERSION >= 0x350
-// Matrix multiplication is Python3.5 or higher only.
 #include "nuitka/helper/operations_binary_matmult.h"
 #include "nuitka/helper/operations_inplace_matmult.h"
 #endif

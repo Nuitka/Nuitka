@@ -688,7 +688,6 @@ int Nuitka_Object_IsInstance(PyThreadState *tstate, PyObject *instance, PyObject
         }
 
 #if PYTHON_VERSION >= 0x3a0 && PYTHON_VERSION < 0x3b0
-        // Validate that no arg is a parameterized generic.
         for (Py_ssize_t i = 0; i < n; i++) {
             PyObject *arg = PyTuple_GET_ITEM(args, i);
 

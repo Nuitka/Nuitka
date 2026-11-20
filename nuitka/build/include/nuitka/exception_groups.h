@@ -4,8 +4,6 @@
 #ifndef __NUITKA_EXCEPTION_GROUPS_H__
 #define __NUITKA_EXCEPTION_GROUPS_H__
 
-// Exception group helpers for generated code and compiled code helpers.
-
 /* This file is included from another C file, help IDEs to still parse it on its own. */
 #ifdef __IDE_ONLY__
 #include "nuitka/cpython_api_compat.h"
@@ -85,7 +83,6 @@ NUITKA_MAY_BE_UNUSED static int CHECK_EXCEPTION_STAR_VALID(PyThreadState *tstate
     return 0;
 }
 
-// This is copied directly from CPython
 NUITKA_MAY_BE_UNUSED static inline PyObject *CREATE_EXCEPTION_GROUP(PyThreadState *tstate, PyObject *excs) {
     CHECK_OBJECT(excs);
     PyObject *args[2] = {const_str_empty, excs};
@@ -93,7 +90,6 @@ NUITKA_MAY_BE_UNUSED static inline PyObject *CREATE_EXCEPTION_GROUP(PyThreadStat
     return CALL_FUNCTION_WITH_ARGS2(tstate, PyExc_BaseExceptionGroup, args);
 }
 
-// This is copied directly from CPython
 NUITKA_MAY_BE_UNUSED static inline int EXCEPTION_GROUP_MATCH_BOOL(PyThreadState *tstate, PyObject *exc_value,
                                                                   PyObject *match_type, PyObject **match,
                                                                   PyObject **rest) {
@@ -122,13 +118,11 @@ NUITKA_MAY_BE_UNUSED static inline int EXCEPTION_GROUP_MATCH_BOOL(PyThreadState 
     }
 
     if (is_match) {
-        /* Full match of exc itself */
         bool is_eg = _PyBaseExceptionGroup_Check(exc_value);
 
         if (is_eg) {
             *match = Py_NewRef(exc_value);
         } else {
-            /* naked exception, we need to wrap it */
             PyObject *excs = MAKE_TUPLE1(tstate, exc_value);
             CHECK_OBJECT(excs);
 
@@ -165,9 +159,6 @@ NUITKA_MAY_BE_UNUSED static inline int EXCEPTION_GROUP_MATCH_BOOL(PyThreadState 
         return 0;
     }
 
-    /* exc_value does not match match_type.
-     * Check for partial match if it's an exception group.
-     */
     if (_PyBaseExceptionGroup_Check(exc_value)) {
         PyObject *pair = CALL_METHOD_WITH_SINGLE_ARG(tstate, exc_value, const_str_plain_split, match_type);
         if (unlikely(pair == NULL)) {
@@ -195,7 +186,6 @@ NUITKA_MAY_BE_UNUSED static inline int EXCEPTION_GROUP_MATCH_BOOL(PyThreadState 
         return 0;
     }
 
-    /* no match */
     Py_INCREF_IMMORTAL(Py_None);
     *match = Py_None;
     *rest = Py_NewRef(exc_value);
@@ -551,8 +541,6 @@ NUITKA_MAY_BE_UNUSED static PyObject *EXCEPTION_GROUP_PREPARE_RERAISE(PyThreadSt
     PyObject *result = NULL;
     PyObject *reraised_eg = NULL;
 
-    // Split into raised and reraised, by checking for being derived from the
-    // original exception group.
     for (Py_ssize_t i = 0; i < numexcs; i++) {
         PyObject *element = PyList_GET_ITEM(excs, i);
 

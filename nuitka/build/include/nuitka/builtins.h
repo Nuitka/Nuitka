@@ -14,6 +14,7 @@ extern PyDictObject *dict_builtin;
 
 #include "nuitka/calling.h"
 
+// Returns a borrowed reference; aborts if the builtin is missing.
 NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_BUILTIN(PyObject *name) {
     CHECK_OBJECT(dict_builtin);
     CHECK_OBJECT(name);
@@ -21,7 +22,6 @@ NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_BUILTIN(PyObject *name) {
 
     PyObject *result = GET_STRING_DICT_VALUE(dict_builtin, (Nuitka_StringObject *)name);
 
-    // This is assumed to not fail, abort if it does.
     if (unlikely(result == NULL)) {
         PyErr_PrintEx(0);
         Py_Exit(1);
@@ -32,13 +32,12 @@ NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_BUILTIN(PyObject *name) {
     return result;
 }
 
-// Returns a reference.
+// Returns a new reference; aborts if the builtin is missing.
 NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_BUILTIN_STR(PyThreadState *tstate, char const *name) {
     CHECK_OBJECT(dict_builtin);
 
     PyObject *result = DICT_GET_ITEM_STRING(tstate, (PyObject *)dict_builtin, name);
 
-    // This is assumed to not fail, abort if it does.
     if (unlikely(result == NULL)) {
         PyErr_PrintEx(0);
         Py_Exit(1);
@@ -61,7 +60,6 @@ extern void _initBuiltinModule(PyThreadState *tstate);
 #define NUITKA_ACCESS_BUILTIN(name) (_python_original_builtin_value_##name)
 
 #if !_NUITKA_MODULE_MODE
-// Original builtin values, currently only used for assertions.
 NUITKA_DECLARE_BUILTIN(type);
 NUITKA_DECLARE_BUILTIN(len);
 NUITKA_DECLARE_BUILTIN(range);

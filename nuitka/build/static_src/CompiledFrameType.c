@@ -12,14 +12,12 @@
 #include "CompiledFrameLocalsProxyType.c"
 #endif
 
-// For reporting about reference counts per type.
 #if _DEBUG_REFCOUNTS
 int count_active_Nuitka_Frame_Type = 0;
 int count_allocated_Nuitka_Frame_Type = 0;
 int count_released_Nuitka_Frame_Type = 0;
 #endif
 
-// For reporting about frame cache usage
 #if _DEBUG_REFCOUNTS
 int count_active_frame_cache_instances = 0;
 int count_allocated_frame_cache_instances = 0;
@@ -301,7 +299,6 @@ static PyObject *_Nuitka_Frame_get_locals(PyObject *self, void *data) {
     } else {
 #if PYTHON_VERSION >= 0x3d0 && _NUITKA_FRAME_LOCALS_PROXY
         if (nuitka_frame->m_locals_writable) {
-            // Return a FrameLocalsProxy.
             return _Nuitka_FrameLocalsProxy_New(nuitka_frame);
         }
 #endif
@@ -312,7 +309,6 @@ static PyObject *_Nuitka_Frame_get_locals(PyObject *self, void *data) {
     }
 }
 
-// Attach an exposed locals mapping to a compiled frame, with Python2 class fallback.
 void Nuitka_Frame_AssignLocals(struct Nuitka_FrameObject *frame_object, PyObject *locals_value) {
     assert(Nuitka_Frame_CheckExact((PyObject *)frame_object));
     CHECK_OBJECT((PyObject *)frame_object);
@@ -346,7 +342,6 @@ void Nuitka_Frame_AssignLocals(struct Nuitka_FrameObject *frame_object, PyObject
     Py_INCREF(locals_owner->f_locals);
 }
 
-// Drop an exposed locals mapping from a compiled frame.
 void Nuitka_Frame_ClearLocals(struct Nuitka_FrameObject *frame_object) {
     assert(Nuitka_Frame_CheckExact((PyObject *)frame_object));
     CHECK_OBJECT((PyObject *)frame_object);
@@ -481,8 +476,6 @@ static PyObject *Nuitka_Frame_tp_repr(PyObject *self) {
 #endif
 }
 
-// Release the values in a locals storage given an explicit type description.
-// Used by frame clear/dealloc.
 static void _Nuitka_ReleaseLocalsWithDescription(char const *type_description, void *storage, int locals_count);
 
 static bool _Nuitka_Frame_OwnsLocals(struct Nuitka_FrameObject *frame) {
@@ -514,7 +507,6 @@ static int Nuitka_Frame_tp_clear(PyObject *frame_obj) {
     return 0;
 }
 
-// Freelist setup
 #define MAX_FRAME_FREE_LIST_COUNT 100
 static struct Nuitka_FrameObject *free_list_frames = NULL;
 static int free_list_frames_count = 0;
@@ -627,7 +619,6 @@ static int Nuitka_Frame_tp_traverse(PyObject *self, visitproc visit, void *arg) 
     Py_VISIT(frame->m_frame.f_exc_traceback);
 #endif
 
-    // Traverse attached locals too.
     if (frame->m_type_description != NULL && _Nuitka_Frame_OwnsLocals(frame)) {
         PyCodeObject *co = Nuitka_GetFrameCodeObject(frame);
         unsigned char const *w = (unsigned char const *)frame->m_type_description;
@@ -704,7 +695,7 @@ static PyObject *Nuitka_Frame_clear(PyObject *self, PyObject *unused) {
     }
 
 #if PYTHON_VERSION >= 0x3d0
-    // CPython 3.13+ only rejects clearing a generated-owned suspended frame.
+    // CPython 3.13+ only rejects clearing a generator-owned suspended frame.
     // Frame-object-owned frames can always be cleared, matching CPython's
     // frame_clear logic.
     PyObject *frame_gen = Nuitka_GetFrameGenerator(frame);
@@ -932,7 +923,6 @@ static struct Nuitka_FrameObject *_MAKE_COMPILED_FRAME(PyCodeObject *code, PyObj
     Py_ssize_t total_locals_size = locals_size;
 #endif
 
-    // Macro to assign result memory from GC or free list.
     allocateFromFreeList(free_list_frames, struct Nuitka_FrameObject, Nuitka_Frame_Type, total_locals_size);
 
     result->m_type_description = type_description;
@@ -951,7 +941,6 @@ static struct Nuitka_FrameObject *_MAKE_COMPILED_FRAME(PyCodeObject *code, PyObj
 #endif
 
     PyFrameObject *frame = &result->m_frame;
-    // Globals and locals are stored differently before Python 3.11
 #if PYTHON_VERSION < 0x3b0
     PyFrameObject *locals_owner = frame;
 #else
@@ -997,7 +986,7 @@ static struct Nuitka_FrameObject *_MAKE_COMPILED_FRAME(PyCodeObject *code, PyObj
     Py_INCREF(globals);
     locals_owner->f_globals = globals;
 
-    // Note: Reference taking happens in calling function.
+    // Takes ownership of any non-NULL f_locals reference passed by caller.
     CHECK_OBJECT_X(f_locals);
     locals_owner->f_locals = f_locals;
 
@@ -1076,7 +1065,6 @@ struct Nuitka_FrameObject *MAKE_FUNCTION_FRAME(PyThreadState *tstate, PyCodeObje
 
 struct Nuitka_FrameObject *MAKE_CLASS_FRAME(PyThreadState *tstate, PyCodeObject *code, PyObject *module,
                                             PyObject *f_locals, Py_ssize_t locals_size, char const *type_description) {
-    // The frame template sets f_locals on usage itself.
     if (f_locals != NULL) {
         Py_INCREF(f_locals);
     }
@@ -1084,7 +1072,6 @@ struct Nuitka_FrameObject *MAKE_CLASS_FRAME(PyThreadState *tstate, PyCodeObject 
     return _MAKE_COMPILED_FRAME(code, module, f_locals, locals_size, type_description);
 }
 
-// This is the backend of MAKE_CODE_OBJECT macro.
 PyCodeObject *makeCodeObject(PyObject *filename, int line, int flags, PyObject *function_name,
 #if PYTHON_VERSION >= 0x3b0
                              PyObject *function_qualname,
@@ -1163,9 +1150,7 @@ PyCodeObject *makeCodeObject(PyObject *filename, int line, int flags, PyObject *
     CHECK_OBJECT(free_vars);
     assert(PyTuple_Check(free_vars));
 
-    // The PyCode_New has funny code that interns, mutating the tuple that owns
-    // it. Really serious non-immutable shit. We have triggered that changes
-    // behind our back in the past.
+    // PyCode_New interns strings in-place, mutating the tuple passed to it.
 #ifndef __NUITKA_NO_ASSERT__
     // TODO: Reactivate once code object creation becomes un-streaming driven
     // and we can pass the extra args with no worries.
@@ -1198,7 +1183,6 @@ PyCodeObject *makeCodeObject(PyObject *filename, int line, int flags, PyObject *
     static int stacksize = 0;
 
     if (empty_code == NULL) {
-        // Only needed once here.
         PyThreadState *tstate = PyThreadState_GET();
 
         PyObject *empty_code_module_object = Py_CompileString(
@@ -1256,7 +1240,7 @@ PyCodeObject *makeCodeObject(PyObject *filename, int line, int flags, PyObject *
     int nlocals = 0;
 #endif
 
-    // Not using PyCode_NewEmpty, it doesn't given us much beyond this
+    // Not using PyCode_NewEmpty, it doesn't give us much beyond this
     // and is not available for Python2.
 
 #if PYTHON_VERSION >= 0x380

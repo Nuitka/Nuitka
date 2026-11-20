@@ -1,12 +1,5 @@
 //     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
-/** For creating classes.
- *
- * Currently only the Python3 meta class selection is here, but more will be
- * added later, should be choose to have our own "__slots__" special metaclass.
- *
- **/
-
 // This file is included from another C file, help IDEs to still parse it on
 // its own.
 #ifdef __IDE_ONLY__
@@ -19,7 +12,6 @@ PyObject *SELECT_METACLASS(PyThreadState *tstate, PyObject *metaclass, PyObject 
     CHECK_OBJECT(bases);
 
     if (likely(PyType_Check(metaclass))) {
-        // Determine the proper metaclass type
         Py_ssize_t nbases = PyTuple_GET_SIZE(bases);
         PyTypeObject *winner = (PyTypeObject *)metaclass;
 
@@ -35,10 +27,8 @@ PyObject *SELECT_METACLASS(PyThreadState *tstate, PyObject *metaclass, PyObject 
             PyTypeObject *base_type = Py_TYPE(base);
 
             if (Nuitka_Type_IsSubtype(winner, base_type)) {
-                // Ignore if current winner is already a subtype.
                 continue;
             } else if (Nuitka_Type_IsSubtype(base_type, winner)) {
-                // Use if, if it's a subtype of the current winner.
                 winner = base_type;
                 continue;
             } else {

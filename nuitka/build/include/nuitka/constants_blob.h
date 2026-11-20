@@ -4,17 +4,6 @@
 #ifndef __NUITKA_CONSTANTS_BLOB_H__
 #define __NUITKA_CONSTANTS_BLOB_H__
 
-/** Declaration of the constants binary blob.
- *
- * There are multiple ways, the constants binary is accessed, and its
- * definition depends on how that is done.
- *
- * It could be a Windows resource, then it must be a pointer. If it's defined
- * externally in a C file, or at link time with "ld", it must be an array. This
- * hides these facts.
- *
- */
-
 #ifdef __IDE_ONLY__
 #include "nuitka/prelude.h"
 #endif
@@ -22,9 +11,6 @@
 extern void loadConstantsBlob(PyThreadState *tstate, void *, char const *name);
 extern void loadConstantsBlobData(PyThreadState *tstate, void *output, unsigned char const *data);
 
-// We define a macro that declares the external symbols and provides accessor functions.
-// For INCBIN/C23, the generating C file already defines these functions, so we just declare them.
-// For Linker/Code/CoffObj, we provide inline functions that map to the C arrays.
 #if _NUITKA_EXPERIMENTAL_WRITEABLE_CONSTANTS
 #define CONST_CONSTANT
 #endif

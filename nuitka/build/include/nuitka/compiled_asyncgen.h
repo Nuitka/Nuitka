@@ -4,11 +4,6 @@
 #ifndef __NUITKA_COMPILED_ASYNCGEN_H__
 #define __NUITKA_COMPILED_ASYNCGEN_H__
 
-// Compiled async generator type, asyncgen in short.
-
-// Another cornerstone of the integration into CPython. Try to behave as well as
-// normal asyncgen objects do or even better.
-
 #if PYTHON_VERSION >= 0x360
 
 /* This file is included from another C file, help IDEs to still parse it on its own. */
@@ -16,10 +11,7 @@
 #include "nuitka/prelude.h"
 #endif
 
-// The Nuitka_AsyncgenObject is the storage associated with a compiled
-// async generator object instance of which there can be many for each code.
 struct Nuitka_AsyncgenObject {
-    /* Python object folklore: */
     PyObject_VAR_HEAD
 
         PyObject *m_name;
@@ -31,35 +23,27 @@ struct Nuitka_AsyncgenObject {
     PyObject *m_yield_from;
 
 #if 0x300 <= PYTHON_VERSION && PYTHON_VERSION < 0x370
-    // Whether the await happened inside an exception handler.
     bool m_yield_from_exception_preserving;
 #endif
 
-    // Weak references are supported for asyncgen objects in CPython.
     PyObject *m_weakrefs;
 
     int m_running;
-
-    // When an asyncgen is awaiting, this flag is set.
     int m_awaiting;
 
 #if PYTHON_VERSION >= 0x380
-    // When an asyncgen is running, this is set
     int m_running_async;
 #endif
 
     void *m_code;
 
-    // The parent frame of the asyncgen, if created.
     struct Nuitka_FrameObject *m_frame;
 
     PyCodeObject *m_code_object;
 
-    // While yielding, this was the frame currently active, restore when
-    // resuming.
+    // Active caller frame saved across yields and restored when resuming.
     Nuitka_ThreadStateFrameType *m_resume_frame;
 
-    // Was it ever used, is it still running, or already finished.
     Generator_Status m_status;
 
 #if PYTHON_VERSION >= 0x370
@@ -69,25 +53,16 @@ struct Nuitka_AsyncgenObject {
     // The label index to resume after yield.
     int m_yield_return_index;
 
-    // The finalizer associated through a hook
     PyObject *m_finalizer;
-
-    // The hooks were initialized
     bool m_hooks_init_done;
-
-    // It is closed, and cannot be closed again.
     bool m_closed;
 
-    // A kind of uuid for the generator object, used in comparisons.
+    // Unique per-instance identifier used in comparisons.
     long m_counter;
 
-    /* The heap of generator objects at run time. */
     void *m_heap_storage;
 
-    /* Closure variables given, if any, we reference cells here. The last
-     * part is dynamically allocated, the array size differs per asyncgen
-     * and includes the heap storage.
-     */
+    // Trailing flexible array allocated with space for m_closure_given cells plus heap storage.
     Py_ssize_t m_closure_given;
     struct Nuitka_CellObject *m_closure[1];
 };
@@ -274,7 +249,6 @@ NUITKA_MAY_BE_UNUSED static void DROP_ASYNCGEN_EXCEPTION(struct Nuitka_AsyncgenO
 #endif
 }
 
-// For reference count debugging.
 #if _DEBUG_REFCOUNTS
 extern int count_active_Nuitka_Asyncgen_Type;
 extern int count_allocated_Nuitka_Asyncgen_Type;

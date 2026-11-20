@@ -25,7 +25,6 @@ int count_allocated_Nuitka_Function_Type;
 int count_released_Nuitka_Function_Type;
 #endif
 
-// tp_descr_get slot, bind a function to an object.
 static PyObject *Nuitka_Function_descr_get(PyObject *function, PyObject *obj, PyObject *class_object) {
     assert(Nuitka_Function_Check(function));
     CHECK_OBJECT((PyObject *)function);
@@ -41,7 +40,6 @@ static PyObject *Nuitka_Function_descr_get(PyObject *function, PyObject *obj, Py
     return Nuitka_Method_New((struct Nuitka_FunctionObject *)function, obj == Py_None ? NULL : obj, class_object);
 }
 
-// tp_repr slot, decide how compiled function shall be output to "repr" built-in
 static PyObject *Nuitka_Function_tp_repr(PyObject *self) {
     struct Nuitka_FunctionObject *function = (struct Nuitka_FunctionObject *)self;
 
@@ -914,7 +912,6 @@ static PyObject *Nuitka_Function_clone(PyObject *self, PyObject *unused) {
     return (PyObject *)result;
 }
 
-// Freelist setup
 #define MAX_FUNCTION_FREE_LIST_COUNT 100
 static struct Nuitka_FunctionObject *free_list_functions = NULL;
 static int free_list_functions_count = 0;
@@ -978,7 +975,6 @@ static void Nuitka_Function_tp_dealloc(PyObject *self) {
         // a full copy, doing the init.
     }
 
-    /* Put the object into free list or release to GC */
     releaseToFreeList(free_list_functions, function, MAX_FUNCTION_FREE_LIST_COUNT);
 
 #ifndef __NUITKA_NO_ASSERT__
@@ -1348,11 +1344,6 @@ int Nuitka_Function_GetFunctionCodeIndex(PyThreadState *tstate, struct Nuitka_Fu
     }
 
     if (*current == NULL) {
-#if 0
-        PRINT_STRING("Looking for:");
-        PRINT_ITEM((PyObject *)function);
-        PRINT_NEW_LINE();
-#endif
         SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_TypeError, "Cannot find compiled function in module.");
         return -1;
     }
@@ -1367,11 +1358,6 @@ PyObject *Nuitka_Function_GetFunctionState(struct Nuitka_FunctionObject *functio
     int offset = Nuitka_Function_GetFunctionCodeIndex(tstate, function, function_table);
 
     if (unlikely(offset == -1)) {
-#if 0
-    PRINT_STRING("Looking for:");
-    PRINT_ITEM(func);
-    PRINT_NEW_LINE();
-#endif
         SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_TypeError, "Cannot find compiled function in module.");
         return NULL;
     }
@@ -1588,7 +1574,6 @@ static PyObject *Nuitka_Function_tp_vectorcall(PyObject *self, PyObject *const *
                                                PyObject *kw_names);
 #endif
 
-// Make a function with closure.
 #if PYTHON_VERSION < 0x300
 struct Nuitka_FunctionObject *Nuitka_Function_New(function_impl_code c_code, PyObject *name, PyCodeObject *code_object,
                                                   PyObject *defaults, PyObject *module, PyObject *doc,
@@ -1607,7 +1592,6 @@ Nuitka_Function_New(function_impl_code c_code, PyObject *name, PyObject *qualnam
 
     struct Nuitka_FunctionObject *result;
 
-    // Macro to assign result memory from GC or free list.
     allocateFromFreeList(free_list_functions, struct Nuitka_FunctionObject, Nuitka_Function_Type, closure_given);
 
     assert(closure_given == 0 || closure != NULL);
@@ -3000,7 +2984,6 @@ static bool _handleArgumentsPlain(PyThreadState *tstate, struct Nuitka_FunctionO
     return true;
 }
 
-// Release them all in case of an error.
 static void releaseParameters(struct Nuitka_FunctionObject const *function, PyObject *const *python_pars) {
     Py_ssize_t arg_count = function->m_args_overall_count;
 
@@ -3627,7 +3610,7 @@ static bool parseArgumentsVectorcall(PyThreadState *tstate, struct Nuitka_Functi
 
     Py_ssize_t arg_count = function->m_args_keywords_count;
 
-    // TODO: Create different the vector call slot entries for different function types for extra
+    // TODO: Create different vectorcall slot entries for different function types for extra
     // performance.
 
     if (unlikely(arg_count == 0 && function->m_args_simple && args_size + kw_size > 0)) {

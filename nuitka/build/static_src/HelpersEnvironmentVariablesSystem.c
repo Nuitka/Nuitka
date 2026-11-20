@@ -14,7 +14,6 @@ environment_char_t const *getEnvironmentVariableW(wchar_t const *name) {
     wchar_t buffer[32768];
     buffer[0] = 0;
 
-    // Size must be in bytes apparently, not in characters. Cannot be larger anyway.
     DWORD res = GetEnvironmentVariableW(name, buffer, 65536);
 
     if (res == 0 || res > sizeof(buffer)) {

@@ -24,7 +24,6 @@ int count_allocated_Nuitka_Cell_Type;
 int count_released_Nuitka_Cell_Type;
 #endif
 
-// Freelist setup
 #define MAX_CELL_FREE_LIST_COUNT 1000
 static struct Nuitka_CellObject *free_list_cells = NULL;
 static int free_list_cells_count = 0;
@@ -80,8 +79,6 @@ static PyObject *Nuitka_Cell_tp_richcompare(PyObject *a, PyObject *b, int op) {
         return result;
     }
 
-    // Now just dereference cell value, and compare from there by contents, which can
-    // be NULL however.
     a = ((struct Nuitka_CellObject *)a)->ob_ref;
     b = ((struct Nuitka_CellObject *)b)->ob_ref;
 

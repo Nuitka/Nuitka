@@ -1,13 +1,5 @@
 //     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
-/** For making imports work.
- *
- * These make the actual built-in importing mechanic work with Nuitka. We
- * provide code to import modules and names from modules, also the mechanic
- * for star imports to look at "__all__".
- *
- **/
-
 // This file is included from another C file, help IDEs to still parse it on
 // its own.
 #ifdef __IDE_ONLY__
@@ -104,9 +96,9 @@ PyObject *IMPORT_MODULE5(PyThreadState *tstate, PyObject *module_name, PyObject 
     NUITKA_ASSIGN_BUILTIN(__import__);
     PyObject *import_function = NUITKA_ACCESS_BUILTIN(__import__);
 
-// TODO: This should be reserved for the import statements, but not for
-// the import built-in, we have to make a difference there with 3.10 to
-// be compatible.
+    // TODO: This should be reserved for the import statements, but not for
+    // the import built-in, we have to make a difference there with 3.10 to
+    // be compatible.
 #if PYTHON_VERSION >= 0x3a0 && 0
     // Fast path for default "__import__" avoids function call.
     if (import_function == tstate->interp->import_func) {
@@ -126,7 +118,6 @@ PyObject *IMPORT_MODULE5(PyThreadState *tstate, PyObject *module_name, PyObject 
 }
 
 bool IMPORT_MODULE_STAR(PyThreadState *tstate, PyObject *target, bool is_module, PyObject *module) {
-    // Check parameters.
     CHECK_OBJECT(module);
     CHECK_OBJECT(target);
 
@@ -285,7 +276,6 @@ static PyObject *resolveParentModuleName(PyThreadState *tstate, PyObject *module
             return NULL;
         }
 
-        // Compare with spec.
         if (spec != NULL && spec != Py_None) {
             PyObject *parent = PyObject_GetAttr(spec, const_str_plain_parent);
 
@@ -340,7 +330,6 @@ static PyObject *resolveParentModuleName(PyThreadState *tstate, PyObject *module
             return NULL;
         }
 
-        // Detect package from __path__ presence.
         if (DICT_HAS_ITEM(tstate, globals, const_str_plain___path__) == 1) {
             Py_ssize_t dot = PyUnicode_FindChar(package, '.', 0, PyUnicode_GET_LENGTH(package), -1);
 
@@ -451,7 +440,8 @@ PyObject *IMPORT_NAME_OR_MODULE(PyThreadState *tstate, PyObject *module, PyObjec
                     if (result != NULL) {
                         Py_DECREF(result);
 
-                        // Look up in "sys.modules", because we will have returned the
+                        // Look up in "sys.modules", because IMPORT_MODULE5
+                        // returns the top-level package when fromlist is empty.
                         result = Nuitka_GetModule(tstate, name);
                         Py_DECREF(name);
                     }

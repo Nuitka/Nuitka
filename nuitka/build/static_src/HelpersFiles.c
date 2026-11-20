@@ -1,14 +1,11 @@
 //     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
-/* Small helpers to access files and their contents */
-
 // This file is included from another C file, help IDEs to still parse it on
 // its own.
 #ifdef __IDE_ONLY__
 #include "nuitka/prelude.h"
 #endif
 
-// Small helper to open files with few arguments.
 PyObject *BUILTIN_OPEN_SIMPLE(PyThreadState *tstate, PyObject *filename, char const *mode, bool buffering,
                               PyObject *encoding) {
     PyObject *mode_obj = Nuitka_String_FromString(mode);
@@ -73,7 +70,6 @@ PyObject *BUILTIN_OPEN_BINARY_READ_SIMPLE(PyThreadState *tstate, PyObject *filen
     PyObject *result;
 
 #if PYTHON_VERSION < 0x300
-    // On Windows, it seems that line buffering is actually the default.
     result = BUILTIN_OPEN(tstate, filename, const_str_plain_rb, const_int_0);
 #else
     result = BUILTIN_OPEN(tstate, filename, const_str_plain_rb, const_int_0, NULL, NULL, NULL, NULL, NULL);

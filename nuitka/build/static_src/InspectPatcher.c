@@ -113,14 +113,13 @@ static PyObject *_types_coroutine_replacement(PyObject *self, PyObject *args, Py
     if (Nuitka_Function_Check(func)) {
         struct Nuitka_FunctionObject *function = (struct Nuitka_FunctionObject *)func;
 
-        // Check if "func" is a coroutine function, then return it unchanged.
+        // CO_COROUTINE | CO_ITERABLE_COROUTINE (0x180)
         if (function->m_code_object->co_flags & 0x180) {
             return Py_NewRef(func);
         }
 
-        // Check if "func" is a generator function, then make it an iterable
-        // coroutine and return it unchanged.
         if (function->m_code_object->co_flags & CO_GENERATOR) {
+            // CO_ITERABLE_COROUTINE (0x100)
             function->m_code_object->co_flags |= 0x100;
 
             return Py_NewRef(func);
@@ -725,7 +724,6 @@ void patchInspectModule(PyThreadState *tstate) {
     }
     CHECK_OBJECT(module_inspect);
 
-    // Patch "inspect.getgeneratorstate" unless it is already patched.
     old_getgeneratorstate = PyObject_GetAttrString(module_inspect, "getgeneratorstate");
     CHECK_OBJECT(old_getgeneratorstate);
 
@@ -947,7 +945,6 @@ void patchTypeComparison(void) {
 
 #include "nuitka/freelists.h"
 
-// Freelist setup
 #define MAX_TRACEBACK_FREE_LIST_COUNT 1000
 static PyTracebackObject *free_list_tracebacks = NULL;
 static int free_list_tracebacks_count = 0;
@@ -972,14 +969,6 @@ static bool useTracebackFreeList(void) {
 // Create a traceback for a given frame, using a free list hacked into the
 // existing type.
 PyTracebackObject *MAKE_TRACEBACK(struct Nuitka_FrameObject *frame, int lineno) {
-#if 0
-    PRINT_STRING("MAKE_TRACEBACK: Enter");
-    PRINT_ITEM((PyObject *)frame);
-    PRINT_NEW_LINE();
-
-    dumpFrameStack();
-#endif
-
     CHECK_OBJECT(frame);
     if (lineno == 0) {
         lineno = frame->m_frame.f_lineno;

@@ -54,7 +54,6 @@
 #pragma warning(disable : 4244)
 #endif
 
-/* Include the relevant Python C-API header files. */
 #include <frameobject.h>
 #include <marshal.h>
 #include <methodobject.h>
@@ -357,7 +356,6 @@ NUITKA_MAY_BE_UNUSED static inline managed_static_type_state *Nuitka_PyStaticTyp
 #pragma warning(pop)
 #endif
 
-/* Include the C header files most often used. */
 #include <stdio.h>
 
 #if defined(_MSC_VER)
@@ -389,7 +387,6 @@ NUITKA_MAY_BE_UNUSED static inline managed_static_type_state *Nuitka_PyStaticTyp
 
 #include "nuitka/string_functions.h"
 
-// Wrapper around CPython's private "_PyType_Lookup".
 #if PYTHON_VERSION >= 0x3b0 && PYTHON_VERSION < 0x400 && !defined(Py_GIL_DISABLED)
 #define NUITKA_TYPE_LOOKUP_CACHE
 #endif

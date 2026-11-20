@@ -214,7 +214,6 @@ static void prepareStandaloneEnvironment(void) {
     // Ignore allocator and interpreter mode settings from the environment, the
     // standalone binary should use its build time defaults.
 #if PYTHON_VERSION >= 0x360
-    // Added in Python 3.6.
     old_env_pythonmalloc = getEnvironmentVariable("PYTHONMALLOC");
     unsetEnvironmentVariable("PYTHONMALLOC");
 #endif
@@ -225,7 +224,6 @@ static void prepareStandaloneEnvironment(void) {
 #endif
 
 #if PYTHON_VERSION >= 0x370
-    // Added in Python 3.7.
     old_env_pythondevmode = getEnvironmentVariable("PYTHONDEVMODE");
     unsetEnvironmentVariable("PYTHONDEVMODE");
 #endif
@@ -264,14 +262,12 @@ static void prepareStandaloneEnvironment(void) {
 }
 
 static void restoreStandaloneEnvironment(void) {
-    /* Make sure to use the optimal value for standalone mode only. */
+    // Make sure to use the optimal value for standalone mode only.
 #if PYTHON_VERSION < 0x300
     PySys_SetPath((char *)getBinaryDirectoryHostEncoded(true));
-    // NUITKA_PRINTF_TRACE("Final PySys_GetPath is 's'.\n", PySys_GetPath());
 #elif PYTHON_VERSION < 0x370
     PySys_SetPath(getBinaryDirectoryWideChars(true));
     Py_SetPath(getBinaryDirectoryWideChars(true));
-    // NUITKA_PRINTF_TRACE("Final Py_GetPath is '%ls'.\n", Py_GetPath());
 #endif
 
 #ifdef _NUITKA_EXPERIMENTAL_DUMP_PY_PATH_CONFIG
@@ -641,9 +637,7 @@ void SvcStopPython(void) { PyErr_SetInterrupt(); }
 
 #endif
 
-// This is a multiprocessing fork
 static bool is_multiprocessing_fork = false;
-// This is a multiprocessing forkserver
 static bool is_multiprocessing_forkserver = false;
 static int multiprocessing_forkserver_fd1 = -1;
 static int multiprocessing_forkserver_fd2 = -1;
@@ -652,11 +646,9 @@ static int multiprocessing_forkserver_authkey_fd = -1;
 static int multiprocessing_forkserver_argv_offset = -1;
 #endif
 
-// This is a multiprocessing resource or semaphore tracker if not -1
 static int multiprocessing_resource_tracker_arg = -1;
 static char const *multiprocessing_tracker_module_name = NULL;
 
-// This is a joblib loky fork
 #ifdef _WIN32
 static bool is_joblib_popen_loky_win32 = false;
 static int loky_joblib_pipe_handle_arg = 0;
@@ -665,10 +657,8 @@ static int loky_joblib_parent_pid_arg = 0;
 static bool is_joblib_popen_loky_posix = false;
 #endif
 
-// This is a joblib resource tracker if not -1
 static int loky_resource_tracker_arg = -1;
 
-// This is a "anyio.to_process" fork
 static bool is_anyio_to_process = false;
 
 // Parse the command line parameters to decide if it's a multiprocessing usage
@@ -1652,26 +1642,22 @@ native_command_line_argument_t const *getOriginalArgv0(void) {
 #include <CoreFoundation/CoreFoundation.h>
 
 bool _setLANGSystemLocaleMacOS(void) {
-    // 1. Get preferred languages
     CFArrayRef preferred_languages = CFLocaleCopyPreferredLanguages();
     if (unlikely(!preferred_languages)) {
         return false;
     }
 
-    // 2. Pick the first one.
     CFStringRef preferred_language = (CFStringRef)CFArrayGetValueAtIndex(preferred_languages, 0);
     if (unlikely(!preferred_language)) {
         return false;
     }
 
-    // 3. Create canonical Locale Identifier
     CFStringRef canonical_locale_id =
         CFLocaleCreateCanonicalLocaleIdentifierFromString(kCFAllocatorDefault, preferred_language);
     if (unlikely(!canonical_locale_id)) {
         return false;
     }
 
-    // 3. Get C String from Canonical Identifier (Robustly)
     char locale_buffer[256];
     const char *locale_c_string = CFStringGetCStringPtr(canonical_locale_id, kCFStringEncodingUTF8);
 
@@ -1687,7 +1673,6 @@ bool _setLANGSystemLocaleMacOS(void) {
     CFRelease(canonical_locale_id);
     CFRelease(preferred_languages);
 
-    // 4. Attempt to set the locale created naively.
     if (setlocale(LC_ALL, locale_c_string) == NULL) {
         // Replace hyphens with underscores and append ".UTF-8" if that failed.
         char fallback_locale[256];
@@ -1804,7 +1789,6 @@ static int Nuitka_Main(int argc, native_command_line_argument_t **argv) {
     hideConsoleIfSpawned();
 #endif
 
-    // Installer a segfault handler that outputs a helpful message.
 #if !defined(_NUITKA_DEPLOYMENT_MODE) && !defined(_NUITKA_NO_DEPLOYMENT_SEGFAULT)
 #if defined(_WIN32)
     signal(SIGSEGV, nuitka_segfault_handler);
@@ -1820,7 +1804,6 @@ static int Nuitka_Main(int argc, native_command_line_argument_t **argv) {
 #ifdef _NUITKA_EXPERIMENTAL_DUMP_C_TRACEBACKS
     INIT_C_BACKTRACES();
 #endif
-    // Trace when the process exits.
 #if defined(_NUITKA_EXPERIMENTAL_SHOW_STARTUP_TIME)
     atexit(Nuitka_at_exit);
 #endif
@@ -1865,7 +1848,6 @@ static int Nuitka_Main(int argc, native_command_line_argument_t **argv) {
     }
 #endif
 
-    // Set up stdout/stderr according to user specification.
 #if NUITKA_STANDARD_HANDLES_EARLY == 1
 #if defined(NUITKA_FORCED_STDOUT_PATH)
 #ifdef _WIN32
@@ -1927,7 +1909,6 @@ static int Nuitka_Main(int argc, native_command_line_argument_t **argv) {
     prepareFrozenModules();
 #endif
 
-    /* Initialize CPython library environment. */
 #if PYTHON_VERSION < 0x400
     Py_DebugFlag = 0;
 #if PYTHON_VERSION < 0x300
@@ -2023,8 +2004,6 @@ static int Nuitka_Main(int argc, native_command_line_argument_t **argv) {
     Py_NoSiteFlag = 1;
 #endif
 
-    /* Initial command line handling only. */
-
 #if _NUITKA_ONEFILE_MODE
     {
         environment_char_t const *parent_original_argv0 = getEnvironmentVariable("NUITKA_ORIGINAL_ARGV0");
@@ -2062,7 +2041,6 @@ static int Nuitka_Main(int argc, native_command_line_argument_t **argv) {
 
     orig_argc = argc;
 
-    // Early command line parsing.
     NUITKA_PRINT_TRACE("main(): Calling setCommandLineParameters.");
     setCommandLineParameters(argc, argv);
 
@@ -2090,7 +2068,6 @@ static int Nuitka_Main(int argc, native_command_line_argument_t **argv) {
     }
 #endif
 
-    /* Disable CPython warnings if requested to. */
 #if NO_PYTHON_WARNINGS
     setupWarningsEarly();
 #endif
@@ -2113,7 +2090,6 @@ static int Nuitka_Main(int argc, native_command_line_argument_t **argv) {
     }
 #endif
 
-    /* Initialize the embedded CPython interpreter. */
     NUITKA_PRINT_TIMING("main(): Calling Nuitka_Py_Initialize to initialize interpreter.");
     Nuitka_Py_Initialize();
 
@@ -2169,7 +2145,6 @@ static int Nuitka_Main(int argc, native_command_line_argument_t **argv) {
     Py_NoSiteFlag = SYSFLAG_NO_SITE;
 #endif
 
-    /* Set the command line parameters for run time usage. */
     PySys_SetArgv(argc, orig_argv);
 
     // Empty or reduce "sys.path" again, the above adds program directory to it.
@@ -2227,7 +2202,6 @@ static int Nuitka_Main(int argc, native_command_line_argument_t **argv) {
 #endif
 #endif
 
-    /* Initialize the compiled types of Nuitka. */
     _initCompiledCellType();
     _initCompiledGeneratorType(tstate);
     _initCompiledFunctionType();
@@ -2342,11 +2316,9 @@ static int Nuitka_Main(int argc, native_command_line_argument_t **argv) {
     PGO_Initialize();
 #endif
 
-    /* Enable meta path based loader. */
     setupMetaPathBasedLoader(tstate);
 
 #if PYTHON_VERSION < 0x3d0
-    /* Initialize warnings module. */
     _PyWarnings_Init();
 #endif
 
@@ -2591,7 +2563,6 @@ static int Nuitka_Main(int argc, native_command_line_argument_t **argv) {
         SvcLaunchService(_NUITKA_WINDOWS_SERVICE_NAME_WIDE_STRING, _NUITKA_WINDOWS_SERVICE_GRACE_TIME_INT,
                          _NUITKA_WINDOWS_SERVICE_CLI_BOOL == 1);
 #else
-    /* Execute the "__main__" module. */
     NUITKA_PRINT_TIMING("main(): Calling " NUITKA_MAIN_MODULE_NAME ".");
     EXECUTE_MAIN_MODULE(tstate, Nuitka_MainModuleEntry, NUITKA_MAIN_MODULE_NAME, NUITKA_MAIN_IS_PACKAGE_BOOL);
     NUITKA_PRINT_TIMING("main(): Exited from " NUITKA_MAIN_MODULE_NAME ".");
@@ -2625,7 +2596,6 @@ static int Nuitka_Main(int argc, native_command_line_argument_t **argv) {
     NUITKA_PRINT_TIMING("main(): Calling Py_Exit.");
     Py_Exit(exit_code);
 
-    // The "Py_Exit()" calls is not supposed to return.
     NUITKA_CANNOT_GET_HERE("Py_Exit does not return");
 }
 
@@ -2635,20 +2605,13 @@ int __stdcall wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, wchar_t *lp
     int argc = __argc;
     wchar_t **argv = __wargv;
 
-    // Call the Nuitka main code.
     return Nuitka_Main(argc, argv);
 }
 #else
 #if defined(_WIN32)
-int wmain(int argc, wchar_t **argv) {
-    // Call the Nuitka main code.
-    return Nuitka_Main(argc, argv);
-}
+int wmain(int argc, wchar_t **argv) { return Nuitka_Main(argc, argv); }
 #else
-int main(int argc, char **argv) {
-    // Call the Nuitka main code.
-    return Nuitka_Main(argc, argv);
-}
+int main(int argc, char **argv) { return Nuitka_Main(argc, argv); }
 #endif
 #endif
 
@@ -2677,7 +2640,6 @@ NUITKA_DLL_FUNCTION int run_code(int argc, native_command_line_argument_t **argv
         setDllFilename(dll_filename);
     }
 
-    // Call the Nuitka main code.
     return Nuitka_Main(argc, argv);
 }
 

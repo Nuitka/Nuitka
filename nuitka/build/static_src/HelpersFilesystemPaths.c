@@ -60,7 +60,6 @@ void normalizePath(filename_char_t *filename) {
     filename_char_t *w = filename;
 
     while (*w != 0) {
-        // Eliminate duplicate slashes.
         if (*w == FILENAME_SEP_CHAR) {
             while (*(w + 1) == FILENAME_SEP_CHAR) {
                 filename_char_t *f = w;
@@ -136,7 +135,6 @@ filename_char_t *stripBaseFilename(filename_char_t const *filename) {
 #if defined(_WIN32)
 static void makeShortFilename(wchar_t *filename, size_t buffer_size) {
 #ifndef _NUITKA_EXPERIMENTAL_AVOID_SHORT_PATH
-    // Query length of result first.
     DWORD length = GetShortPathNameW(filename, NULL, 0);
     if (length == 0) {
         return;
@@ -254,20 +252,16 @@ filename_char_t *_getBinaryPath2(void) {
     }
 
     if (success == true) {
-        // fprintf(stderr, "Did resolve binary path %s from PATH %s.\n", comm, binary_filename);
-
         // TODO: Once it's fully capable, we ought to use this for all methods
         // for consistency.
         normalizePath(binary_filename);
-        // fprintf(stderr, "Did normalize binary path %s from PATH %s.\n", comm, binary_filename);
     } else {
         fprintf(stderr, "Error, cannot resolve binary path %s from PATH or current directory.\n", comm);
         abort();
     }
 #elif defined(__FreeBSD__)
-    /* Not all of FreeBSD has /proc file system, so use the appropriate
-     * "sysctl" instead.
-     */
+    // Not all of FreeBSD has /proc file system, so use the appropriate
+    // "sysctl" instead.
     int mib[4];
     mib[0] = CTL_KERN;
     mib[1] = KERN_PROC;
@@ -283,10 +277,7 @@ filename_char_t *_getBinaryPath2(void) {
     const char *wasi_filename = "program.wasm";
     copyStringSafe(binary_filename, wasi_filename, buffer_size);
 #else
-    /* The remaining platforms, mostly Linux or compatible. */
-
-    /* The "readlink" call does not terminate result, so fill zeros there, then
-     * it is a proper C string right away. */
+    // "readlink" does not NUL-terminate its output, so zero-fill first.
     memset(binary_filename, 0, buffer_size);
     ssize_t res = readlink("/proc/self/exe", binary_filename, buffer_size - 1);
 
@@ -318,8 +309,6 @@ filename_char_t const *getBinaryPath(void) {
 }
 
 bool readFileChunk(FILE_HANDLE file_handle, void *buffer, size_t size) {
-    // printf("Reading %d\n", size);
-
 #if defined(_WIN32)
     DWORD read_size;
     BOOL bool_res = ReadFile(file_handle, buffer, (DWORD)size, &read_size, NULL);
@@ -750,9 +739,6 @@ static DWORD Nuitka_GetFinalPathNameByHandleW(HANDLE hFile, LPWSTR FilePath, DWO
 
 static void resolveFileSymbolicLink(wchar_t *resolved_filename, wchar_t const *filename, DWORD resolved_filename_size,
                                     bool resolve_symlinks) {
-    // Resolve any symbolic links in the filename.
-    // Copies the resolved path over the top of the parameter.
-
     if (resolve_symlinks) {
         // Open the file in the most non-exclusive way possible
         HANDLE file_handle = CreateFileW(filename, 0, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, NULL,
@@ -844,7 +830,6 @@ wchar_t const *getBinaryFilenameWideChars(bool resolve_symlinks) {
             assert(res != 0);
         }
 
-        // Resolve any symlinks we were invoked via
         resolveFileSymbolicLink(buffer, buffer, sizeof(binary_filename) / sizeof(wchar_t), resolve_symlinks);
         makeShortDirFilename(binary_filename, sizeof(binary_filename) / sizeof(wchar_t));
     }
@@ -916,19 +901,17 @@ char const *getBinaryFilenameHostEncoded(bool resolve_symlinks) {
 #endif
 
 static void generateXorShift32RandomBytes(unsigned int state, unsigned char *buffer, size_t length) {
-    /* Xorshift breaks if the state is exactly 0.
-       While astronomically unlikely here, it's safe to enforce a non-zero start. */
+    // Xorshift breaks if the state is exactly 0.
     if (state == 0) {
         state = 1;
     }
 
-    /* Fill the buffer using a local, inline Xorshift32 PRNG */
     for (size_t i = 0; i < length; i++) {
         state ^= state << 13;
         state ^= state >> 17;
         state ^= state << 5;
 
-        /* The lower bits of Xorshift are high quality, so direct casting is safe */
+        // The lower bits of Xorshift are high quality, so direct casting is safe.
         buffer[i] = (unsigned char)state;
     }
 }

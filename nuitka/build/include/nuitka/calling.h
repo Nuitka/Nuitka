@@ -14,18 +14,15 @@
 #define _PY_FASTCALL_SMALL_STACK 5
 #endif
 
-// For exception test formatting and call code mostly.
 extern char const *GET_CALLABLE_NAME(PyObject *obj);
 extern char const *GET_CALLABLE_DESC(PyObject *obj);
 extern char const *GET_CLASS_NAME(PyObject *class_object);
 extern char const *GET_INSTANCE_CLASS_NAME(PyThreadState *tstate, PyObject *instance);
 
-// Also used in generated helper code.
 NUITKA_MAY_BE_UNUSED static inline bool Nuitka_PyCheckCallable(PyObject *obj) {
     CHECK_OBJECT(obj);
 
 #if PYTHON_VERSION < 0x300
-    // Python2: old-style classes and their instances.
     if (PyClass_Check(obj) || PyInstance_Check(obj)) {
         return true;
     }
@@ -69,8 +66,6 @@ NUITKA_MAY_BE_UNUSED static inline PyObject *Nuitka_CheckFunctionResult(PyThread
 
 NUITKA_MAY_BE_UNUSED static PyObject *CALL_FUNCTION(PyThreadState *tstate, PyObject *function_object,
                                                     PyObject *positional_args, PyObject *named_args) {
-    // Not allowed to enter with an error set. This often catches leaked errors from
-    // elsewhere.
     assert(!HAS_ERROR_OCCURRED(tstate));
 
     CHECK_OBJECT(function_object);
@@ -96,16 +91,13 @@ NUITKA_MAY_BE_UNUSED static PyObject *CALL_FUNCTION(PyThreadState *tstate, PyObj
     return Nuitka_CheckFunctionResult(tstate, function_object, result);
 }
 
-// Function call variant with no arguments provided at all.
 extern PyObject *CALL_FUNCTION_NO_ARGS(PyThreadState *tstate, PyObject *called);
 
-// Function call variants with positional arguments tuple.
 NUITKA_MAY_BE_UNUSED static PyObject *CALL_FUNCTION_WITH_POS_ARGS(PyThreadState *tstate, PyObject *function_object,
                                                                   PyObject *positional_args) {
     return CALL_FUNCTION(tstate, function_object, positional_args, NULL);
 }
 
-// Method call variants with positional arguments tuple.
 extern PyObject *CALL_METHOD_WITH_POS_ARGS(PyThreadState *tstate, PyObject *source, PyObject *attr_name,
                                            PyObject *positional_args);
 
@@ -115,11 +107,11 @@ NUITKA_MAY_BE_UNUSED static PyObject *CALL_FUNCTION_WITH_KW_ARGS(PyThreadState *
     return CALL_FUNCTION(tstate, function_object, const_tuple_empty, named_args);
 }
 
-// Call built-in functions with using defaulted values.
+// NULL entries in args denote omitted optional arguments; arguments after the
+// first NULL or in the trailing kw_only_args slots are passed by keyword.
 extern PyObject *CALL_BUILTIN_KW_ARGS(PyThreadState *tstate, PyObject *callable, PyObject **args,
                                       char const **arg_names, int max_args, int kw_only_args);
 
-// For abstract class instantiation error message, during call.
 extern void formatCannotInstantiateAbstractClass(PyThreadState *tstate, PyTypeObject *type);
 
 #include "nuitka/helper/calling_generated.h"

@@ -1,10 +1,6 @@
 //     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
-/** For making "yield" and "yield from" capable of persisting current C stack.
- *
- * These copy objects pointed to into an array foreseen for this task.
- *
- **/
+// Helpers for persisting and restoring C stack state across yield/yield-from.
 
 // This file is included from another C file, help IDEs to still parse it on
 // its own.

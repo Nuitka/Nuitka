@@ -1,10 +1,5 @@
 //     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
-/** Helpers for matching values with 3.10 or higher
- *
- *
- **/
-
 // This file is included from another C file, help IDEs to still parse it on
 // its own.
 #ifdef __IDE_ONLY__
@@ -32,7 +27,6 @@ PyObject *MATCH_CLASS_ARGS(PyThreadState *tstate, PyObject *matched, PyObject *m
 
     assert(positional_count + keywords_count > 0);
 
-    // First, the positional sub-patterns if any.
     if (positional_count > 0) {
         match_args = LOOKUP_ATTRIBUTE(tstate, (PyObject *)type, const_str_plain___match_args__);
         Py_ssize_t actual;
@@ -92,7 +86,6 @@ PyObject *MATCH_CLASS_ARGS(PyThreadState *tstate, PyObject *matched, PyObject *m
         if (needs_check) {
             if (PySet_Contains(seen, arg_name) || PySet_Add(seen, arg_name)) {
                 if (!HAS_ERROR_OCCURRED(tstate)) {
-                    // Seen it before!
                     _PyErr_Format(tstate, PyExc_TypeError, "%s() got multiple sub-patterns for attribute %R",
                                   ((PyTypeObject *)type)->tp_name, arg_name);
                 }
@@ -124,7 +117,6 @@ PyObject *MATCH_CLASS_ARGS(PyThreadState *tstate, PyObject *matched, PyObject *m
         if (needs_check) {
             if (PySet_Contains(seen, arg_name) || PySet_Add(seen, arg_name)) {
                 if (!HAS_ERROR_OCCURRED(tstate)) {
-                    // Seen it before!
                     _PyErr_Format(tstate, PyExc_TypeError, "%s() got multiple sub-patterns for attribute %R",
                                   ((PyTypeObject *)type)->tp_name, arg_name);
                 }

@@ -152,12 +152,9 @@ PyObject *CALL_METHOD_WITH_POS_ARGS(PyThreadState *tstate, PyObject *source, PyO
     if (PyInstance_Check(source)) {
         PyInstanceObject *source_instance = (PyInstanceObject *)source;
 
-        // The special cases have their own variant on the code generation level
-        // as we are called with constants only.
         assert(attr_name != const_str_plain___dict__);
         assert(attr_name != const_str_plain___class__);
 
-        // Try the instance dict first.
         PyObject *called_object =
             GET_STRING_DICT_VALUE((PyDictObject *)source_instance->in_dict, (PyStringObject *)attr_name);
 
@@ -166,7 +163,7 @@ PyObject *CALL_METHOD_WITH_POS_ARGS(PyThreadState *tstate, PyObject *source, PyO
         if (called_object != NULL) {
             return CALL_FUNCTION_WITH_POS_ARGS(tstate, called_object, positional_args);
         }
-        // Then check the class dictionaries.
+
         called_object = FIND_ATTRIBUTE_IN_CLASS(source_instance->in_class, attr_name);
 
         // Note: The "called_object" was found without taking a reference,
@@ -205,9 +202,6 @@ PyObject *CALL_METHOD_WITH_POS_ARGS(PyThreadState *tstate, PyObject *source, PyO
 
             return NULL;
         } else {
-            // Finally allow the "__getattr__" override to provide it or else
-            // it's an error.
-
             PyObject *args[] = {source, attr_name};
 
             called_object = CALL_FUNCTION_WITH_ARGS2(tstate, source_instance->in_class->cl_getattr, args);
