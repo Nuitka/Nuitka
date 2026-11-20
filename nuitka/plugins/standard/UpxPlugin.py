@@ -56,6 +56,7 @@ as double compression going to give larger and slower results.""")
             "--upx-binary",
             action="store",
             dest="upx_path",
+            metavar="PATH",
             default=None,
             help="""\
 The UPX binary to use or the directory it lives in, by default `upx` from PATH is used.""",

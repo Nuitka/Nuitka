@@ -46,6 +46,7 @@ class NuitkaPluginPlaywright(NuitkaPluginBase):
             "--playwright-include-browser",
             action="append",
             dest="include_browsers",
+            metavar="BROWSER_NAME",
             default=[],
             help="""\
 Playwright browser to include by name. Can be specified multiple

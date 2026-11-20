@@ -47,6 +47,7 @@ class NuitkaPluginNumba(NuitkaPluginBase):
             "--numba-enable-jit",
             action="store",
             dest="enable_jit",
+            metavar="CHOICE",
             choices=("yes", "no"),
             default=None,
             help="""\

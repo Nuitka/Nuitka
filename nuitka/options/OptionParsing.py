@@ -403,7 +403,7 @@ include_group.add_option(
     "--include-plugin-directory",
     action="append",
     dest="include_extra",
-    metavar="MODULE/PACKAGE",
+    metavar="DIRECTORY",
     default=[],
     help="""\
 Include also the code found in that directory, considering as if
@@ -472,7 +472,7 @@ follow_group.add_option(
     "--follow-import-to",
     action="append",
     dest="follow_modules",
-    metavar="MODULE/PACKAGE",
+    metavar="MODULE_PATTERN",
     default=[],
     help="""\
 Follow to that module if used, or if a package, to the whole package. Can be given
@@ -483,7 +483,7 @@ follow_group.add_option(
     "--nofollow-import-to",
     action="append",
     dest="follow_not_modules",
-    metavar="MODULE/PACKAGE",
+    metavar="MODULE_PATTERN",
     default=[],
     help="""\
 Do not follow to that module name even if used, or if a package name, to the
@@ -534,7 +534,7 @@ onefile_group.add_option(
     "--onefile-cache-mode",
     action="store",
     dest="onefile_cached_mode",
-    metavar="ONEFILE_CACHED_MODE",
+    metavar="MODE",
     choices=("auto", "cached", "temporary"),
     default="auto",
     help="""\
@@ -630,7 +630,7 @@ data_group.add_option(
     "--include-data-file",
     action="append",
     dest="data_files",
-    metavar="DESC",
+    metavar="PATH_SPEC",
     default=[],
     help="""\
 Include data files by filenames in the distribution. There are many
@@ -688,6 +688,7 @@ data_group.add_option(
     "--list-package-data",
     action="store",
     dest="list_package_data",
+    metavar="PACKAGE",
     default="",
     require_compiling=False,
     help="""\
@@ -757,7 +758,7 @@ dll_group.add_option(
     "--include-windows-runtime-dlls",
     action="store",
     dest="include_windows_runtime_dlls",
-    metavar="choice",
+    metavar="CHOICE",
     choices=("auto", "yes", "no"),
     default="auto",
     help="""\
@@ -771,6 +772,7 @@ dll_group.add_option(
     "--list-package-dlls",
     action="store",
     dest="list_package_dlls",
+    metavar="PACKAGE",
     default="",
     require_compiling=False,
     help="""\
@@ -781,6 +783,7 @@ dll_group.add_option(
     "--list-package-exe",
     action="store",
     dest="list_package_exe",
+    metavar="PACKAGE",
     default="",
     require_compiling=False,
     help="""\
@@ -829,6 +832,7 @@ warnings_group.add_option(
     type="choice",
     choices=("never", "force", "error", "warning", "info"),
     dest="update_check",
+    metavar="MODE",
     default="warning",
     environment_variable_name="NUITKA_UPDATE_CHECK",
     help="""\
@@ -882,6 +886,7 @@ environment variable or the '--debugger-choice' flag. Defaults to off.""",
 execute_group.add_option(
     "--debugger-choice",
     dest="debugger_choice",
+    metavar="DEBUGGER",
     default=None,
     help="""\
 Choose the debugger to use.""",
@@ -1390,6 +1395,7 @@ debug_group.add_option(
     "--create-environment-from-report",
     action="store",
     dest="create_environment_from_report",
+    metavar="DIRECTORY",
     default="",
     require_compiling=False,
     help="""\
@@ -1606,6 +1612,7 @@ c_compiler_group.add_option(
     "--msvc",
     action="store",
     dest="msvc_version",
+    metavar="VERSION",
     default=None,
     help="""\
 Enforce the use of specific MSVC version on Windows. Allowed values
@@ -1633,7 +1640,7 @@ c_compiler_group.add_option(
     "--reproducible",
     action="store",
     dest="reproducible",
-    metavar="choice",
+    metavar="CHOICE",
     default="auto",
     choices=("yes", "no", "auto"),
     help="""\
@@ -1645,7 +1652,7 @@ c_compiler_group.add_option(
     "--lto",
     action="store",
     dest="lto",
-    metavar="choice",
+    metavar="CHOICE",
     default="auto",
     choices=("yes", "no", "auto"),
     help="""\
@@ -1667,7 +1674,7 @@ c_compiler_group.add_option(
     "--static-libpython",
     action="store",
     dest="static_libpython",
-    metavar="choice",
+    metavar="CHOICE",
     default="auto",
     choices=("yes", "no", "auto"),
     help="""\
@@ -1721,6 +1728,7 @@ caching_group.add_option(
     "--disable-cache",
     action="append",
     dest="disabled_caches",
+    metavar="CACHE_NAME",
     choices=_cache_names,
     default=[],
     help="""\
@@ -1733,6 +1741,7 @@ caching_group.add_option(
     "--clean-cache",
     action="append",
     dest="clean_caches",
+    metavar="CACHE_NAME",
     choices=_cache_names,
     default=[],
     require_compiling=False,
@@ -1817,6 +1826,7 @@ pgo_group.add_option(
     "--pgo-json",
     action="store",
     dest="python_pgo_json",
+    metavar="FILENAME",
     default=None,
     help="""\
 Write the PGO input file contents to the given JSON file while reading it, for \
@@ -1836,6 +1846,7 @@ pgo_group.add_option(
     "--pgo-python-error-exit",
     action="store",
     dest="python_pgo_error_exit",
+    metavar="CHOICE",
     choices=("yes", "no"),
     default="no",
     help="""\
@@ -1848,6 +1859,7 @@ pgo_group.add_option(
     "--pgo-args",
     action="store",
     dest="pgo_args",
+    metavar="ARGS",
     default="",
     help="""\
 Arguments to be passed in case of profile guided optimization. These are passed to the special
@@ -1858,6 +1870,7 @@ pgo_group.add_option(
     "--pgo-executable",
     action="store",
     dest="pgo_executable",
+    metavar="PATH",
     default=None,
     help="""\
 Command to execute when collecting profile information. Use this only, if you need to
@@ -1887,7 +1900,6 @@ tracing_group.add_option(
     "--report-diffable",
     action="store_true",
     dest="compilation_report_diffable",
-    metavar="REPORT_DIFFABLE",
     default=False,
     help="""\
 Report data in diffable form, i.e. no timing or memory usage values that vary from run
@@ -1912,7 +1924,7 @@ tracing_group.add_option(
     "--report-template",
     action="append",
     dest="compilation_report_templates",
-    metavar="REPORT_DESC",
+    metavar="TEMPLATE_SPEC",
     default=[],
     help="""\
 Report via template. Provide template and output filename 'template.rst.j2:output.rst'. For
@@ -2118,6 +2130,7 @@ windows_group.add_option(
     "--onefile-windows-splash-screen-image",
     action="store",
     dest="splash_screen_image",
+    metavar="FILENAME",
     default=None,
     help="""\
 When compiling for Windows and onefile, show this while loading the application. Defaults to off.
@@ -2129,7 +2142,6 @@ windows_group.add_option(
     "--windows-uac-admin",
     action="store_true",
     dest="windows_uac_admin",
-    metavar="WINDOWS_UAC_ADMIN",
     default=False,
     help="Request Windows User Control, to grant admin rights on execution. (Windows only). Defaults to off.",
 )
@@ -2138,7 +2150,6 @@ windows_group.add_option(
     "--windows-uac-uiaccess",  # spell-checker: ignore uiaccess
     action="store_true",
     dest="windows_uac_uiaccess",
-    metavar="WINDOWS_UAC_UIACCESS",
     default=False,
     help="""\
 Request Windows User Control, to enforce running from a few folders only, remote
@@ -2277,7 +2288,7 @@ macos_group.add_option(
     "--macos-sign-identity",
     action="store",
     dest="macos_sign_identity",
-    metavar="MACOS_APP_VERSION",
+    metavar="IDENTITY",
     default=None,
     help="""\
 When signing on macOS, by default an ad-hoc identify will be used, but with this
@@ -2334,7 +2345,7 @@ macos_group.add_option(
     "--macos-app-protected-resource",
     action="append",
     dest="macos_protected_resources",
-    metavar="RESOURCE_DESC",
+    metavar="RESOURCE_SPEC",
     default=[],
     help="""\
 Request an entitlement for access to a macOS protected resources, e.g.
@@ -2716,6 +2727,7 @@ plugin_group.add_option(
     "--module-parameter",
     action="append",
     dest="module_parameters",
+    metavar="KEY_VALUE",
     default=[],
     help="""\
 Provide a module parameter. You are asked by some packages
@@ -2728,6 +2740,7 @@ plugin_group.add_option(
     "--show-source-changes",
     action="append",
     dest="show_source_changes",
+    metavar="PATTERN",
     default=[],
     github_action=False,
     help="""\

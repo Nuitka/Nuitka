@@ -63,6 +63,7 @@ class NuitkaPluginDillWorkarounds(NuitkaPluginBase):
             "--include-pickle-support-module",
             action="append",
             dest="pickle_supported_modules",
+            metavar="MODULE",
             choices=("all",) + cls.pickle_package_names,
             default=[],
             help="""\
