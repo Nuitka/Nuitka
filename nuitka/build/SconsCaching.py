@@ -67,7 +67,8 @@ def _getCcacheGuessedPaths(python_prefix):
         for python_dir in _getPythonDirCandidates(python_prefix):
             yield getNormalizedPathJoin(python_dir, "bin", "ccache")
 
-        yield "/usr/local/opt/ccache"
+        yield "/usr/local/opt/ccache/bin/ccache"
+        yield "/usr/local/bin/ccache"
         yield "/opt/homebrew/bin/ccache"
 
 
@@ -108,7 +109,7 @@ def _injectCcache(env, cc_path, cc_options, python_prefix, download_mode):
                     "Checking if ccache is at '%s' guessed path." % candidate
                 )
 
-                if os.path.exists(candidate):
+                if os.path.isfile(candidate):
                     ccache_binary = candidate
 
                     scons_details_logger.info(
@@ -144,7 +145,7 @@ def _injectCcache(env, cc_path, cc_options, python_prefix, download_mode):
             % ccache_binary
         )
 
-    if ccache_binary is not None and os.path.exists(ccache_binary):
+    if ccache_binary is not None and os.path.isfile(ccache_binary):
         assert areSamePaths(
             getExecutablePath(os.path.basename(env.the_compiler), env=env), cc_path
         )
@@ -234,12 +235,6 @@ def enableCcache(env, source_dir, python_prefix):
             setEnvironmentVariable(env, "CCACHE_DIR", ccache_dir)
             env["CCACHE_DIR"] = ccache_dir
 
-        if "CLCACHE_MEMCACHED" in os.environ:
-            scons_logger.warning(
-                "The setting of 'CLCACHE_MEMCACHED' environment is not supported with clcache."
-            )
-            setEnvironmentVariable(env, "CLCACHE_MEMCACHED", None)
-
         # Generated headers get fresh timestamps on each build; ignore header
         # ctime/mtime while preserving any user-provided settings.
         ccache_sloppiness_value = os.environ.get("CCACHE_SLOPPINESS", "")
@@ -328,6 +323,12 @@ def enableClcache(env, source_dir):
     env["CXX"] = env["CC"] = "<clcache>"
 
     setEnvironmentVariable(env, "CLCACHE_HIDE_OUTPUTS", "1")
+
+    if "CLCACHE_MEMCACHED" in os.environ:
+        scons_logger.warning(
+            "The setting of 'CLCACHE_MEMCACHED' environment is not supported with clcache."
+        )
+        setEnvironmentVariable(env, "CLCACHE_MEMCACHED", None)
 
     # Use the mode of "clcache" that is not dependent on MSVC filenames output
     # spell-checker: ignore CLCACHE_NODIRECT
