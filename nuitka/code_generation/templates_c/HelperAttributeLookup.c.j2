@@ -159,24 +159,28 @@
 
             Py_DECREF(dict);
 {% endif %}
-{% if result_kind == "bool" %}
 
 #if PYTHON_VERSION < 0x300
             DROP_ERROR_OCCURRED(tstate);
 #else
+{% if result_kind == "object" %}
+            if (unlikely(HAS_ERROR_OCCURRED(tstate))) {
+                Py_XDECREF(descr);
+                return NULL;
+            }
+{% elif result_kind == "bool" %}
             if (unlikely(CHECK_AND_CLEAR_ATTRIBUTE_ERROR_OCCURRED(tstate) == false)) {
                 CLEAR_ERROR_OCCURRED(tstate);
                 Py_XDECREF(descr);
                 return false;
             }
-#endif
-{% elif result_kind == "int" %}
-
+{% else %}
             if (unlikely(CHECK_AND_CLEAR_ATTRIBUTE_ERROR_OCCURRED(tstate) == false)) {
                 Py_XDECREF(descr);
                 return -1;
             }
 {% endif %}
+#endif
         }
 
         if (func != NULL) {
