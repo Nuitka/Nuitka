@@ -371,7 +371,7 @@ hard_modules_trust = {
     "pathlib": {},
     "pathlib._abc": {},
     "pathlib._local": {},
-    "pkgutil": {"get_data": trust_node},
+    "pkgutil": {"get_data": trust_node, "iter_modules": trust_node},
     "functools": {"partial": trust_exist},
     "sysconfig": {},
     "unittest": {"mock": trust_module, "main": trust_exist},

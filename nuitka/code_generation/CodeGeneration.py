@@ -338,6 +338,7 @@ from .PackageResourceCodes import (
     generatePkgResourcesRequireCallCode,
     generatePkgResourcesResourceStreamCallCode,
     generatePkgResourcesResourceStringCallCode,
+    generatePkgutilIterModulesCallCode,
 )
 from .PrintCodes import generatePrintNewlineCode, generatePrintValueCode
 from .RaisingCodes import (
@@ -1041,6 +1042,7 @@ addExpressionDispatchDict(
         "EXPRESSION_LOCALS_VARIABLE_REF": generateLocalsDictVariableRefCode,
         "EXPRESSION_RAISE_EXCEPTION": generateRaiseExpressionCode,
         "EXPRESSION_PKGUTIL_GET_DATA_REF": generateImportModuleNameHardCode,
+        "EXPRESSION_PKGUTIL_ITER_MODULES_REF": generateImportModuleNameHardCode,
         "EXPRESSION_PKG_RESOURCES_REQUIRE_REF": generateImportModuleNameHardCode,
         "EXPRESSION_PKG_RESOURCES_GET_DISTRIBUTION_REF": generateImportModuleNameHardCode,
         "EXPRESSION_PKG_RESOURCES_ITER_ENTRY_POINTS_REF": generateImportModuleNameHardCode,
@@ -1093,6 +1095,7 @@ addExpressionDispatchDict(
         "EXPRESSION_CTYPES_CDLL_SINCE38_CALL": generateCtypesCdllCallCode,
         "EXPRESSION_CTYPES_CDLL_BEFORE38_CALL": generateCtypesCdllCallCode,
         "EXPRESSION_PKGUTIL_GET_DATA_CALL": generatePkglibGetDataCallCode,
+        "EXPRESSION_PKGUTIL_ITER_MODULES_CALL": generatePkgutilIterModulesCallCode,
         "EXPRESSION_PKG_RESOURCES_REQUIRE_CALL": generatePkgResourcesRequireCallCode,
         "EXPRESSION_PKG_RESOURCES_GET_DISTRIBUTION_CALL": generatePkgResourcesGetDistributionCallCode,
         "EXPRESSION_PKG_RESOURCES_ITER_ENTRY_POINTS_CALL": generatePkgResourcesIterEntryPointsCallCode,

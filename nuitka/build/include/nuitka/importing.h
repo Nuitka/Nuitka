@@ -44,6 +44,10 @@ extern bool IMPORT_FIXED_MODULE_FROMLIST_ELEMENT(PyThreadState *tstate, PyObject
 // is kept alive through its "sys.modules" entry and its load state.
 extern PyObject *IMPORT_EMBEDDED_MODULE(PyThreadState *tstate, char const *name, bool internal);
 
+// Enumerate the children of a package through its loader, without using
+// "pkgutil.iter_modules" for compiled packages.
+extern PyObject *NUITKA_PKGUTIL_ITER_MODULES(PyThreadState *tstate, PyObject *package, PyObject *prefix);
+
 // Execute a module, the module object is prepared empty, but with __name__.
 extern PyObject *EXECUTE_EMBEDDED_MODULE(PyThreadState *tstate, PyObject *module);
 

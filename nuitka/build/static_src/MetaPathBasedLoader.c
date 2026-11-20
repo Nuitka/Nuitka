@@ -3290,7 +3290,11 @@ static PyObject *_nuitka_loader_iter_modules(PyObject *self_obj, PyObject *args,
 
         if (CHECK_IF_TRUE(prefix)) {
             PyObject *old = name;
+#if PYTHON_VERSION < 0x300
+            name = STR_CONCAT(tstate, prefix, name);
+#else
             name = UNICODE_CONCAT(tstate, prefix, name);
+#endif
             Py_DECREF(old);
 
             if (unlikely(name == NULL)) {
@@ -3309,6 +3313,269 @@ static PyObject *_nuitka_loader_iter_modules(PyObject *self_obj, PyObject *args,
     return result;
 }
 #endif
+
+#if PYTHON_VERSION >= 0x360
+static PyObject *getPkgutilModuleInfoClass(PyThreadState *tstate) {
+    static PyObject *module_info_class = NULL;
+
+    if (module_info_class == NULL) {
+        PyObject *pkgutil_module = IMPORT_HARD_PKGUTIL();
+        module_info_class = LOOKUP_ATTRIBUTE(tstate, pkgutil_module, const_str_plain_ModuleInfo);
+
+        if (unlikely(module_info_class == NULL)) {
+            NUITKA_ERROR_EXIT("Unexpected failure to find 'pkgutil.ModuleInfo'");
+        }
+    }
+
+    return module_info_class;
+}
+#endif
+
+static PyObject *makePkgutilModuleInfo(PyThreadState *tstate, PyObject *finder, PyObject *name, PyObject *is_package) {
+#if PYTHON_VERSION >= 0x360
+    PyObject *module_info_class = getPkgutilModuleInfoClass(tstate);
+    PyObject *args[3] = {finder, name, is_package};
+
+    return CALL_FUNCTION_WITH_ARGS3(tstate, module_info_class, args);
+#else
+    return MAKE_TUPLE3(tstate, finder, name, is_package);
+#endif
+}
+
+static struct Nuitka_MetaPathBasedLoaderEntry *findPackageEntryForPath(PyThreadState *tstate, PyObject *path,
+                                                                       bool internal) {
+    for (int entry_index = 0; entry_index < loader_entry_count; entry_index++) {
+        struct Nuitka_MetaPathBasedLoaderEntry const *current = loader_entries[entry_index];
+
+        if ((current->flags & NUITKA_PACKAGE_FLAG) == 0) {
+            continue;
+        }
+
+        if (internal == false && (current->flags & NUITKA_INTERNAL_MODULE_FLAG) != 0) {
+            continue;
+        }
+
+        PyObject *module_directory = getModuleDirectory(tstate, current, NULL);
+
+        if (unlikely(module_directory == NULL)) {
+            return NULL;
+        }
+
+        nuitka_bool cmp_res = compareFilePaths(tstate, module_directory, path);
+
+        Py_DECREF(module_directory);
+
+        if (unlikely(cmp_res == NUITKA_BOOL_EXCEPTION)) {
+            return NULL;
+        }
+
+        if (cmp_res == NUITKA_BOOL_TRUE) {
+            return (struct Nuitka_MetaPathBasedLoaderEntry *)current;
+        }
+    }
+
+    return NULL;
+}
+
+static bool addPkgutilImporterEntries(PyThreadState *tstate, PyObject *result, PyObject *seen, PyObject *importer,
+                                      PyObject *prefix) {
+    if (importer == NULL || importer == Py_None) {
+        return true;
+    }
+
+    PyObject *pkgutil_module = IMPORT_HARD_PKGUTIL();
+    PyObject *iter_importer_modules = LOOKUP_ATTRIBUTE(tstate, pkgutil_module, const_str_plain_iter_importer_modules);
+
+    if (unlikely(iter_importer_modules == NULL)) {
+        return false;
+    }
+
+    PyObject *call_args[2] = {importer, prefix};
+    PyObject *entries = CALL_FUNCTION_WITH_ARGS2(tstate, iter_importer_modules, call_args);
+
+    Py_DECREF(iter_importer_modules);
+
+    if (unlikely(entries == NULL)) {
+        return false;
+    }
+
+    PyObject *iterator = MAKE_ITERATOR(tstate, entries);
+
+    Py_DECREF(entries);
+
+    if (unlikely(iterator == NULL)) {
+        return false;
+    }
+
+    PyObject *item;
+
+    while (true) {
+        item = ITERATOR_NEXT(iterator);
+
+        if (item == NULL) {
+            break;
+        }
+
+        if (unlikely(PyTuple_Check(item) == false || PyTuple_GET_SIZE(item) != 2)) {
+            SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_TypeError,
+                                            "iter_importer_modules() returned an invalid entry");
+            Py_DECREF(item);
+            Py_DECREF(iterator);
+
+            return false;
+        }
+
+        PyObject *info = makePkgutilModuleInfo(tstate, importer, PyTuple_GET_ITEM(item, 0), PyTuple_GET_ITEM(item, 1));
+
+        Py_DECREF(item);
+
+        if (unlikely(info == NULL)) {
+            Py_DECREF(iterator);
+
+            return false;
+        }
+
+        PyObject *name = PyTuple_GET_ITEM(info, 1);
+        int contains = PySet_Contains(seen, name);
+
+        if (unlikely(contains == -1)) {
+            Py_DECREF(info);
+            Py_DECREF(iterator);
+
+            return false;
+        }
+
+        if (contains != 0) {
+            Py_DECREF(info);
+
+            continue;
+        }
+
+        if (unlikely(PySet_Add(seen, name) < 0)) {
+            Py_DECREF(info);
+            Py_DECREF(iterator);
+
+            return false;
+        }
+
+        if (unlikely(LIST_APPEND0(result, info) == false)) {
+            Py_DECREF(info);
+            Py_DECREF(iterator);
+
+            return false;
+        }
+
+        Py_DECREF(info);
+    }
+
+    Py_DECREF(iterator);
+
+    return HAS_ERROR_OCCURRED(tstate) == false;
+}
+
+static PyObject *callPkgutilIterModules(PyThreadState *tstate, PyObject *path, PyObject *prefix) {
+    PyObject *pkgutil_module = IMPORT_HARD_PKGUTIL();
+    PyObject *iter_modules = LOOKUP_ATTRIBUTE(tstate, pkgutil_module, const_str_plain_iter_modules);
+
+    if (unlikely(iter_modules == NULL)) {
+        return NULL;
+    }
+
+    PyObject *call_args[2] = {path == NULL ? Py_None : path, prefix};
+    PyObject *result = CALL_FUNCTION_WITH_ARGS2(tstate, iter_modules, call_args);
+
+    Py_DECREF(iter_modules);
+
+    return result;
+}
+
+PyObject *NUITKA_PKGUTIL_ITER_MODULES(PyThreadState *tstate, PyObject *path, PyObject *prefix) {
+    CHECK_OBJECT_X(path);
+    CHECK_OBJECT(prefix);
+
+    if (path == NULL || path == Py_None || Nuitka_String_Check(path)) {
+        return callPkgutilIterModules(tstate, path, prefix);
+    }
+
+    PyObject *path_list = MAKE_LIST(tstate, path);
+
+    if (unlikely(path_list == NULL)) {
+        return NULL;
+    }
+
+    PyObject *result = MAKE_LIST_EMPTY(tstate, 0);
+    PyObject *seen = PySet_New(NULL);
+    PyObject *iterator = MAKE_ITERATOR(tstate, path_list);
+
+    PyObject *path_item;
+
+    while (true) {
+        path_item = ITERATOR_NEXT(iterator);
+
+        if (path_item == NULL) {
+            break;
+        }
+
+        struct Nuitka_MetaPathBasedLoaderEntry *entry = findPackageEntryForPath(tstate, path_item, true);
+
+        if (unlikely(HAS_ERROR_OCCURRED(tstate))) {
+            Py_DECREF(path_item);
+            Py_DECREF(iterator);
+            Py_DECREF(path_list);
+            Py_DECREF(seen);
+            Py_DECREF(result);
+
+            return NULL;
+        }
+
+        if (entry == NULL) {
+            Py_DECREF(path_item);
+            Py_DECREF(iterator);
+            Py_DECREF(seen);
+            Py_DECREF(result);
+
+            PyObject *fallback_result = callPkgutilIterModules(tstate, path_list, prefix);
+
+            Py_DECREF(path_list);
+
+            return fallback_result;
+        }
+
+        PyObject *loader = Nuitka_Loader_New(entry);
+
+        bool res = addPkgutilImporterEntries(tstate, result, seen, loader, prefix);
+
+        Py_DECREF(loader);
+        Py_DECREF(path_item);
+
+        if (unlikely(res == false)) {
+            Py_DECREF(iterator);
+            Py_DECREF(path_list);
+            Py_DECREF(seen);
+            Py_DECREF(result);
+
+            return NULL;
+        }
+    }
+
+    Py_DECREF(iterator);
+    Py_DECREF(path_list);
+
+    if (unlikely(HAS_ERROR_OCCURRED(tstate))) {
+        Py_DECREF(seen);
+        Py_DECREF(result);
+
+        return NULL;
+    }
+
+    Py_DECREF(seen);
+
+    PyObject *result_iterator = MAKE_ITERATOR_INFALLIBLE(result);
+
+    Py_DECREF(result);
+
+    return result_iterator;
+}
 
 static PyObject *getModuleDirectory(PyThreadState *tstate, struct Nuitka_MetaPathBasedLoaderEntry const *entry,
                                     PyObject *module_name) {
@@ -4022,6 +4289,11 @@ static PyObject *_nuitka_loader_sys_path_hook(PyObject *self, PyObject *args, Py
 
     for (int entry_index = 0; entry_index < loader_entry_count; entry_index++) {
         struct Nuitka_MetaPathBasedLoaderEntry *current = loader_entries[entry_index];
+
+        // Internal modules are not reachable through the path hook.
+        if ((current->flags & NUITKA_INTERNAL_MODULE_FLAG) != 0) {
+            continue;
+        }
 
         if ((current->flags & NUITKA_PACKAGE_FLAG) != 0) {
             PyObject *module_directory = getModuleDirectory(tstate, current, NULL);
