@@ -103,7 +103,9 @@ def _cleanupPyLintComments(logger, filename, effective_filename):
             )
         )
 
-    new_code = re_sub(r"(pylint\: disable=)\s*(.*)", replacer, new_code, flags=re.M)
+    new_code = re_sub(
+        r"(pylint\: disable=)\s*(.*)", replacer, new_code, flags=re.MULTILINE
+    )
 
     if new_code != old_code:
         putTextFileContents(filename, new_code, encoding="utf8")

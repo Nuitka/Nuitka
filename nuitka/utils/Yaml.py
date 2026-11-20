@@ -91,7 +91,7 @@ def _checkRegexp(logger, filename, module_name, section, k, regexp, replacement)
         return False
 
     try:
-        _unused = re_sub(regexp, replacement, "", flags=re.S)
+        _unused = re_sub(regexp, replacement, "", flags=re.DOTALL)
     except re.error as e:
         logger.info(
             """\
