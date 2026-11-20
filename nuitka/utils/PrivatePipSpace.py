@@ -1025,6 +1025,21 @@ def getIsortBinaryPath(logger, assume_yes_for_downloads):
     return binary_path
 
 
+def getRuffBinaryPath(logger, assume_yes_for_downloads):
+    """Get the path of the ruff binary from the private pip space."""
+    binary_path, _site_packages_folder, _download_mode = _getPrivatePipBinaryPath(
+        logger=logger,
+        binary_name="ruff",
+        package_name="ruff",
+        module_name="ruff",
+        dependencies=(),
+        check_binary=None,
+        assume_yes_for_downloads=assume_yes_for_downloads,
+        reject_message="Source code checking needs to use 'ruff'.",
+    )
+    return binary_path
+
+
 def _checkMdformatUsability(logger, binary_path):
     """Check if mdformat can format a minimal markdown file."""
     # Not logging these calls, pylint: disable=unused-argument
@@ -1287,7 +1302,14 @@ def _checkRequiredVersion(logger, tool, tool_call, dependencies):
         line = line.strip()
 
         if line.startswith(
-            ("black, ", "python -m black,", "__main__.py, ", "mdformat ", "VERSION ")
+            (
+                "black, ",
+                "python -m black,",
+                "__main__.py, ",
+                "mdformat ",
+                "ruff ",
+                "VERSION ",
+            )
         ):
             if "(" in line:
                 line = line[: line.rfind("(")].strip()

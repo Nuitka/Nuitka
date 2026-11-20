@@ -1,9 +1,16 @@
-#!/bin/sh
+#!/usr/bin/env python3
 
-cd "$(dirname "$0")/.."
+"""Launcher for ruff checker tool."""
 
-if [ "$#" -eq 0 ]; then
-    ruff check nuitka/
-else
-    ruff check "$@"
-fi
+import os
+import sys
+
+# Unchanged, running from checkout, use the parent directory, the nuitka
+# package ought to be there.
+sys.path.insert(0, os.path.normpath(os.path.join(os.path.dirname(__file__), "..")))
+
+# isort:start
+
+from nuitka.tools.quality.ruff.__main__ import main
+
+sys.exit(main())

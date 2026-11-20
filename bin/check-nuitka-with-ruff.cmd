@@ -3,50 +3,23 @@ rem     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text 
 
 setlocal
 
-pushd "%~dp0.."
+set "SCRIPT=%~dp0check-nuitka-with-ruff"
 
-where ruff >nul 2>nul
-if not errorlevel 1 goto :run_ruff
-
-python -m ruff --version >nul 2>nul
+python -c "" >nul 2>nul
 if not errorlevel 1 (
-    set "PYTHON_EXE=python"
-    goto :run_py_ruff
+    python "%SCRIPT%" %*
+    exit /b
 )
 
-set "PYTHON_EXE="
-if exist ".vscode\.python_alias_path" (
-    for /f "usebackq delims=" %%p in (".vscode\.python_alias_path") do set "PYTHON_EXE=%%p"
+if exist "%~dp0..\.vscode\.python_alias_path" (
+    for /f "usebackq delims=" %%p in ("%~dp0..\.vscode\.python_alias_path") do (
+        "%%p" "%SCRIPT%" %*
+        exit /b
+    )
 )
 
-if defined PYTHON_EXE (
-    "%PYTHON_EXE%" -m ruff --version >nul 2>nul
-    if not errorlevel 1 goto :run_py_ruff
-)
-
-popd
-echo Error: ruff not found. Install 'ruff' or add it to PATH.
+echo Error: Python not found. Please run 'misc/vscode_config_gen.py' or add Python to PATH.
 exit /b 1
-
-:run_ruff
-if "%~1"=="" (
-    ruff check nuitka/
-) else (
-    ruff check %*
-)
-set "RC=%errorlevel%"
-popd
-exit /b %RC%
-
-:run_py_ruff
-if "%~1"=="" (
-    "%PYTHON_EXE%" -m ruff check nuitka/
-) else (
-    "%PYTHON_EXE%" -m ruff check %*
-)
-set "RC=%errorlevel%"
-popd
-exit /b %RC%
 
 rem     Part of "Nuitka", an optimizing Python compiler that is compatible and
 rem     integrates with CPython, but also works on its own.
