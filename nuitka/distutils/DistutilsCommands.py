@@ -403,8 +403,8 @@ class build(distutils.command.build.build):
                 for option, value in self.distribution.command_options[
                     "nuitka"
                 ].items():
-                    for option in self._parseOptionsEntry(option, value):
-                        options.append(option)
+                    for parsed_option in self._parseOptionsEntry(option, value):
+                        options.append(parsed_option)
 
             for option in options:
                 if option.startswith(("--standalone", "--onefile", "--mode=")):

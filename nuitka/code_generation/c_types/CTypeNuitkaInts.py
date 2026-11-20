@@ -147,9 +147,7 @@ class CTypeNuitkaIntOrLongStruct(CTypeBase):
     def getDeleteObjectCode(
         cls, to_name, value_name, needs_check, tolerant, emit, context
     ):
-        if not needs_check:
-            emit("RELEASE_NILONG_VALUE(&%s);" % value_name)
-        elif tolerant:
+        if not needs_check or tolerant:
             emit("RELEASE_NILONG_VALUE(&%s);" % value_name)
         else:
             emit("%s = %s.validity != NUITKA_ILONG_UNASSIGNED;" % (to_name, value_name))

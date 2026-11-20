@@ -367,7 +367,7 @@ def makeExpressionMakeSetLiteral(elements, source_ref):
 
 @functools.wraps(set)
 def reversed_set(value):
-    return set(reversed(tuple(value)))
+    return set(reversed(tuple(value)))  # noqa: C414
 
 
 def makeExpressionMakeSetLiteralOrConstant(elements, user_provided, source_ref):

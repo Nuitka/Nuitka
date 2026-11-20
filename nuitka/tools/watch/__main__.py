@@ -104,7 +104,7 @@ def scanCases(path):
 
 
 def selectPythons(python_version_req, anaconda, msys2_mingw64):
-    for _python_version_str, installed_python_for_version in installed_pythons.items():
+    for installed_python_for_version in installed_pythons.values():
         for installed_python in installed_python_for_version:
             if anaconda and not installed_python.isAnacondaPython():
                 continue

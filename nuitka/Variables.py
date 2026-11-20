@@ -272,15 +272,13 @@ class Variable(getMetaClassBase("Variable", require_slots=True)):
             for trace in traces.values():
                 if trace.isAssignTrace():
                     result.add(trace.getAssignNode().getTypeShape())
-                elif trace.isUnknownTrace():
+                elif (
+                    trace.isUnknownTrace()
+                    or trace.isEscapeTrace()
+                    or trace.isInitTrace()
+                ):
                     result.add(tshape_unknown)
-                elif trace.isEscapeTrace():
-                    result.add(tshape_unknown)
-                elif trace.isInitTrace():
-                    result.add(tshape_unknown)
-                elif trace.isUnassignedTrace():
-                    pass
-                elif trace.isMergeTrace():
+                elif trace.isUnassignedTrace() or trace.isMergeTrace():
                     pass
                 # TODO: Remove this and be not unknown.
                 elif trace.isLoopTrace():

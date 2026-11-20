@@ -82,9 +82,10 @@ except ImportError:
                 yield full_name.getChildNamed(module_name)
         elif full_name == "kivy.core.window.window_sdl2":
             yield "kivy.core.window._window_sdl2"
-        elif full_name == "kivy.core.window._window_sdl2":
-            yield "kivy.core.window.window_info"
-        elif full_name == "kivy.core.window.window_x11":
+        elif full_name in (
+            "kivy.core.window._window_sdl2",
+            "kivy.core.window.window_x11",
+        ):
             yield "kivy.core.window.window_info"
         elif full_name == "kivy.graphics.cgl":
             yield "kivy.graphics.cgl_backend"

@@ -122,7 +122,7 @@ def main():
         )
         nuitka_id = nuitka_id.strip()
 
-        if sys.version_info > (3,):
+        if sys.version_info >= (3,):
             nuitka_id = nuitka_id.decode()
 
         my_print("NUITKA_COMMIT='%s'" % nuitka_id)

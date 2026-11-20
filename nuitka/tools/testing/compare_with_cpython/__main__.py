@@ -466,11 +466,13 @@ def main():
     if "--mode=onefile" in extra_options:
         extra_options.remove("--mode=onefile")
 
-    if os.path.normcase(os.environ["PYTHON"]).endswith(
-        ("-dbg", "-debug", "d", "_d.exe")
+    if (
+        os.path.normcase(os.environ["PYTHON"]).endswith(
+            ("-dbg", "-debug", "d", "_d.exe")
+        )
+        or "--python-debug" in extra_options
+        or "--python-dbg" in extra_options
     ):
-        python_debug = True
-    elif "--python-debug" in extra_options or "--python-dbg" in extra_options:
         python_debug = True
 
     if python_debug:

@@ -1143,14 +1143,16 @@ def writeCompilationReport(report_filename, report_input_data, diffable):
         timing_xml_node.attrib["module_count"] = str(
             performance_totals["optimization_passes"][pass_num]["count"]
         )
-        if performance_totals["optimization_passes"][pass_num]["cpu_instr"] is not None:
-            if not diffable:
-                timing_xml_node.attrib["cpu_instr"] = str(
-                    performance_totals["optimization_passes"][pass_num]["cpu_instr"]
-                )
-                timing_xml_node.attrib["cpu_cycles"] = str(
-                    performance_totals["optimization_passes"][pass_num]["cpu_cycles"]
-                )
+        if (
+            performance_totals["optimization_passes"][pass_num]["cpu_instr"] is not None
+            and not diffable
+        ):
+            timing_xml_node.attrib["cpu_instr"] = str(
+                performance_totals["optimization_passes"][pass_num]["cpu_instr"]
+            )
+            timing_xml_node.attrib["cpu_cycles"] = str(
+                performance_totals["optimization_passes"][pass_num]["cpu_cycles"]
+            )
 
     timing_xml_node = appendTreeElement(
         performance_totals_node,
@@ -1163,14 +1165,13 @@ def writeCompilationReport(report_filename, report_input_data, diffable):
     timing_xml_node.attrib["module_count"] = str(
         performance_totals["all_passes"]["count"]
     )
-    if performance_totals["all_passes"]["cpu_instr"] is not None:
-        if not diffable:
-            timing_xml_node.attrib["cpu_instr"] = str(
-                performance_totals["all_passes"]["cpu_instr"]
-            )
-            timing_xml_node.attrib["cpu_cycles"] = str(
-                performance_totals["all_passes"]["cpu_cycles"]
-            )
+    if performance_totals["all_passes"]["cpu_instr"] is not None and not diffable:
+        timing_xml_node.attrib["cpu_instr"] = str(
+            performance_totals["all_passes"]["cpu_instr"]
+        )
+        timing_xml_node.attrib["cpu_cycles"] = str(
+            performance_totals["all_passes"]["cpu_cycles"]
+        )
 
     timing_xml_node = appendTreeElement(
         performance_totals_node,
@@ -1184,14 +1185,13 @@ def writeCompilationReport(report_filename, report_input_data, diffable):
     timing_xml_node.attrib["module_count"] = str(
         performance_totals["code_generation"]["count"]
     )
-    if performance_totals["code_generation"]["cpu_instr"] is not None:
-        if not diffable:
-            timing_xml_node.attrib["cpu_instr"] = str(
-                performance_totals["code_generation"]["cpu_instr"]
-            )
-            timing_xml_node.attrib["cpu_cycles"] = str(
-                performance_totals["code_generation"]["cpu_cycles"]
-            )
+    if performance_totals["code_generation"]["cpu_instr"] is not None and not diffable:
+        timing_xml_node.attrib["cpu_instr"] = str(
+            performance_totals["code_generation"]["cpu_instr"]
+        )
+        timing_xml_node.attrib["cpu_cycles"] = str(
+            performance_totals["code_generation"]["cpu_cycles"]
+        )
 
     if performance_totals["c_compilation"] is not None:
         c_comp_node = appendTreeElement(

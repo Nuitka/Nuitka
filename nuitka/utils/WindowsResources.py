@@ -485,7 +485,7 @@ def _makeVersionInfoStructure(product_version, file_version, file_date, is_exe):
         dwFileFlagsMask=0x3F,
         dwFileFlags=0,  # TODO: Could be interesting VS_FF_DEBUG and VS_FF_PRERELEASE.
         dwFileOS=4,  # NT or higher, hasn't been changed in a long time.
-        dwFileType=1 if is_exe else 2,  #
+        dwFileType=1 if is_exe else 2,
         dwFileSubtype=0,  # Not applicable for DLL or EXE, only drivers use this.
         dwFileDateMS=file_date[0],
         dwFileDateLS=file_date[1],

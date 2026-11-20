@@ -313,9 +313,7 @@ def _addLinkerMapOutput():
 
     if env.msvc_mode or env.clangcl_mode:
         env.Append(LINKFLAGS=["/MAP:%s" % map_filename])
-    elif env.mingw_mode:
-        env.Append(LINKFLAGS=["-Wl,-Map,%s" % map_filename])
-    elif (env.gcc_mode or env.clang_mode) and not isMacOS():
+    elif env.mingw_mode or ((env.gcc_mode or env.clang_mode) and not isMacOS()):
         env.Append(LINKFLAGS=["-Wl,-Map,%s" % map_filename])
     else:
         scons_logger.warning(

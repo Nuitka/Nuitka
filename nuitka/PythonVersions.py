@@ -163,7 +163,6 @@ def getErrorMessageDebugDeletion():
             exec("del __debug__", {"__debug__": None})
         except SyntaxError as e:
             result = e.msg
-        #
         getErrorMessageDebugDeletion.result = result
 
     return getErrorMessageDebugDeletion.result

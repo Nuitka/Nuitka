@@ -71,8 +71,6 @@ class TempMixin(object):
         self.allocateTempNumber(base_name)
 
     def allocateTempName(self, base_name, type_name="PyObject *", unique=False):
-        # pylint: disable=too-many-branches
-
         # TODO: Enforce that base_name does not start with 'tmp_'.
         # assert not base_name.startswith("tmp_"), base_name
 
@@ -88,9 +86,7 @@ class TempMixin(object):
             result = self.variable_storage.getVariableDeclarationTop(formatted_name)
 
             if result is None:
-                if base_name == "outline_return_value":
-                    init_value = "NULL"
-                elif base_name == "return_value":
+                if base_name in ("outline_return_value", "return_value"):
                     init_value = "NULL"
                 elif base_name == "generator_return":
                     init_value = "false"

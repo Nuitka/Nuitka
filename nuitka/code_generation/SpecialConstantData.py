@@ -9,7 +9,7 @@ PyObject values, e.g. raw binary blobs.
 
 
 def _isBlobConstant(name):
-    return name.startswith("blob_") or name.startswith("const_blob_")
+    return name.startswith(("blob_", "const_blob_"))
 
 
 def getConstantCType(name):

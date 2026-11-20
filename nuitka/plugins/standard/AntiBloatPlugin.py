@@ -728,17 +728,16 @@ Error, cannot exec module '%s', context code '%s' due to: %s"""
             for anti_bloat_config in self.config.get(
                 config_module_name, section="anti-bloat"
             ):
-                if config_module_name == module_name:
-                    if self._onFunctionBodyParsing(
-                        config_module_name=config_module_name,
-                        module_name=module_name,
-                        anti_bloat_config=anti_bloat_config,
-                        config_prefix="",
-                        function_qualname=function_qualname,
-                        function_name=function_name,
-                        body=body,
-                    ):
-                        result = True
+                if config_module_name == module_name and self._onFunctionBodyParsing(
+                    config_module_name=config_module_name,
+                    module_name=module_name,
+                    anti_bloat_config=anti_bloat_config,
+                    config_prefix="",
+                    function_qualname=function_qualname,
+                    function_name=function_name,
+                    body=body,
+                ):
+                    result = True
 
                 if self._onFunctionBodyParsing(
                     config_module_name=config_module_name,
@@ -1062,20 +1061,19 @@ slow down compilation."""
             mode,
             intended_module_name,
         ) in self.handled_modules.items():
-            if module_name.hasNamespace(handled_module_name):
+            if module_name.hasNamespace(handled_module_name) and mode == "nofollow":
                 # Either issue a warning, or pretend the module doesn't exist for standalone or
                 # at least will not be included.
-                if mode == "nofollow":
-                    if self.show_changes:
-                        self.info(
-                            "Forcing import of '%s' (intending to avoid '%s') to not be followed."
-                            % (module_name, intended_module_name)
-                        )
-                    return (
-                        False,
-                        "user requested to not follow '%s' (intending to avoid '%s') import"
-                        % (module_name, intended_module_name),
+                if self.show_changes:
+                    self.info(
+                        "Forcing import of '%s' (intending to avoid '%s') to not be followed."
+                        % (module_name, intended_module_name)
                     )
+                return (
+                    False,
+                    "user requested to not follow '%s' (intending to avoid '%s') import"
+                    % (module_name, intended_module_name),
+                )
 
         if using_module_name is not None:
             no_auto_follow_decision = self._decideNoAutoFollow(

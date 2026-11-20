@@ -1024,7 +1024,7 @@ from .Checkers import (
                 single_optional=single_optional,
                 named_children_checkers=named_children_checkers,
                 children_mixing_setters_needed=sorted(
-                    tuple(children_mixing_setters_needed.get(mixin_name, ()))
+                    children_mixing_setters_needed.get(mixin_name, ())
                 ),
                 intended_for=intended_for,
                 is_compute_final=is_compute_final,

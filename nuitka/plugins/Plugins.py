@@ -135,7 +135,7 @@ def _addActivePlugin(plugin_class, args, force=False):
 
     # No duplicates please.
     if not force:
-        assert plugin_name not in active_plugins.keys(), (
+        assert plugin_name not in active_plugins, (
             plugin_name,
             active_plugins[plugin_name],
         )
@@ -337,8 +337,7 @@ def getActiveQtPlugin():
     """Get active Qt plugin name."""
     for plugin_name in getQtPluginNames():
         if hasActivePlugin(plugin_name):
-            if hasActivePlugin(plugin_name):
-                return plugin_name
+            return plugin_name
 
     return None
 
@@ -1433,22 +1432,26 @@ through implicit import by '%s' plugin encountered."""
                     "Error, onModuleEncounter code failed to return a None or tuple(bool, reason) result."
                 )
 
-            if result is not None:
-                if result[0] != must_recurse[0]:
-                    plugin.sysexit(
-                        """\
+            if result is None:
+                deciding_plugins.append(plugin)
+                result = must_recurse
+                continue
+
+            if result[0] != must_recurse[0]:
+                return plugin.sysexit(
+                    """\
 Error, follow decision '%s' for module '%s' of plugin '%s' does not match other plugin '%s' decision '%s'."""
-                        % (
-                            must_recurse[0],
-                            module_name,
-                            plugin.plugin_name,
-                            ".".join(
-                                deciding_plugin.plugin_name
-                                for deciding_plugin in deciding_plugins
-                            ),
-                            result[0],
-                        )
+                    % (
+                        must_recurse[0],
+                        module_name,
+                        plugin.plugin_name,
+                        ".".join(
+                            deciding_plugin.plugin_name
+                            for deciding_plugin in deciding_plugins
+                        ),
+                        result[0],
                     )
+                )
 
             deciding_plugins.append(plugin)
             result = must_recurse
@@ -1762,9 +1765,9 @@ through incomplete set import by '%s' plugin encountered."""
 
                     # We order per plugin, but from the plugins, lets just take a dict
                     # and achieve determinism by ordering the defines by name.
-                    for key, value in sorted(value.items()):
+                    for key, define_value in sorted(value.items()):
                         # False alarm, pylint: disable=I0021,unsupported-assignment-operation
-                        symbols[key] = value
+                        symbols[key] = define_value
 
             cls.preprocessor_symbols[onefile] = symbols
 
@@ -1788,9 +1791,9 @@ through incomplete set import by '%s' plugin encountered."""
 
                     # We order per plugin, but from the plugins themselves, lets just assume
                     # unordered dict and achieve determinism by ordering the defines by name.
-                    for key, value in sorted(value.items()):
+                    for key, definition in sorted(value.items()):
                         # False alarm, pylint: disable=I0021,unsupported-assignment-operation
-                        cls.build_definitions[key] = value
+                        cls.build_definitions[key] = definition
 
         return cls.build_definitions
 
@@ -1835,7 +1838,7 @@ through incomplete set import by '%s' plugin encountered."""
 
                 # We order per plugin, but from the plugins, lets just take a dict
                 # and achieve determinism by ordering the files by name.
-                for key, value in sorted(value.items()):
+                for key, source_code in sorted(value.items()):
                     if (for_onefile and "onefile_" not in key) or (
                         not for_onefile and "onefile_" in key
                     ):
@@ -1845,7 +1848,7 @@ through incomplete set import by '%s' plugin encountered."""
                         key = "plugin." + plugin.plugin_name + "." + key
 
                     assert key not in result, key
-                    result[key] = value
+                    result[key] = source_code
 
         return result
 
@@ -2648,12 +2651,11 @@ def getPluginOptions(plugin_name):
 
         arg_value = getattr(getUserOptions(), option.dest)
 
-        if "[REQUIRED]" in option.help:
-            if not arg_value:
-                return plugins_logger.sysexit(
-                    "Error, required plugin argument '%s' of Nuitka plugin '%s' not given."
-                    % (option_name, plugin_name)
-                )
+        if "[REQUIRED]" in option.help and not arg_value:
+            return plugins_logger.sysexit(
+                "Error, required plugin argument '%s' of Nuitka plugin '%s' not given."
+                % (option_name, plugin_name)
+            )
 
         result[option.dest] = arg_value
 

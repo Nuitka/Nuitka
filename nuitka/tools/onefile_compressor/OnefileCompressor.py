@@ -398,8 +398,7 @@ def _getInputFileList(dist_dir, start_binary, include_start_binary, expected_fil
         start_binary_relative_norm = os.path.normcase(
             os.path.normpath(os.path.relpath(start_binary, dist_dir))
         )
-        if start_binary_relative_norm in expected_files_set:
-            expected_files_set.remove(start_binary_relative_norm)
+        expected_files_set.discard(start_binary_relative_norm)
 
         for filename in file_list:
             filename_relative = os.path.relpath(filename, dist_dir)

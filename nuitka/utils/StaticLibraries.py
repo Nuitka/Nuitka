@@ -64,7 +64,6 @@ def locateStaticLinkLibrary(dll_name):
 def _locateStaticLinkLibrary(dll_name):
     # singleton, pylint: disable=global-statement
 
-    #
     global _ldconf_paths
 
     if _ldconf_paths is None:

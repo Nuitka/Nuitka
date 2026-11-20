@@ -268,9 +268,7 @@ def checkPythonVersionFromCode(source_code):
             result = python_version < 0x300
         elif basename == "python3":
             result = python_version >= 0x300
-        elif basename == "python2":
-            result = python_version < 0x300
-        elif basename == "python2.7":
+        elif basename in ("python2", "python2.7"):
             result = python_version < 0x300
         elif basename == "python2.6":
             result = python_version < 0x270
