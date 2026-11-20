@@ -69,7 +69,7 @@ from nuitka.specs.ParameterSpecs import ParameterSpec
 from .InternalModule import (
     internal_source_ref,
     makeInternalHelperFunctionBody,
-    once_decorator,
+    onceDecorator,
 )
 from .ReformulationTryExceptStatements import makeTryExceptSingleHandlerNode
 from .ReformulationTryFinallyStatements import makeTryFinallyReleaseStatement
@@ -107,7 +107,7 @@ def _makeNameAttributeLookup(node, attribute_name="__name__"):
     )
 
 
-@once_decorator
+@onceDecorator
 def getCallableNameDescBody():
     helper_name = "get_callable_name_desc"
 
@@ -1029,7 +1029,7 @@ def _makeStarDictArgumentMergeToKwStatement(
     )
 
 
-@once_decorator
+@onceDecorator
 def getFunctionCallHelperStarList():
     helper_name = "complex_call_helper_star_list"
 
@@ -1077,7 +1077,7 @@ def getFunctionCallHelperStarList():
     return result
 
 
-@once_decorator
+@onceDecorator
 def getFunctionCallHelperKeywordsStarList():
     helper_name = "complex_call_helper_keywords_star_list"
 
@@ -1130,7 +1130,7 @@ def getFunctionCallHelperKeywordsStarList():
     return result
 
 
-@once_decorator
+@onceDecorator
 def getFunctionCallHelperPosStarList():
     helper_name = "complex_call_helper_pos_star_list"
 
@@ -1188,7 +1188,7 @@ def getFunctionCallHelperPosStarList():
     return result
 
 
-@once_decorator
+@onceDecorator
 def getFunctionCallHelperPosKeywordsStarList():
     helper_name = "complex_call_helper_pos_keywords_star_list"
 
@@ -1250,7 +1250,7 @@ def getFunctionCallHelperPosKeywordsStarList():
     return result
 
 
-@once_decorator
+@onceDecorator
 def getFunctionCallHelperStarDict():
     helper_name = "complex_call_helper_star_dict"
 
@@ -1299,7 +1299,7 @@ def getFunctionCallHelperStarDict():
     return result
 
 
-@once_decorator
+@onceDecorator
 def getFunctionCallHelperPosStarDict():
     helper_name = "complex_call_helper_pos_star_dict"
 
@@ -1352,7 +1352,7 @@ def getFunctionCallHelperPosStarDict():
     return result
 
 
-@once_decorator
+@onceDecorator
 def getFunctionCallHelperKeywordsStarDict():
     helper_name = "complex_call_helper_keywords_star_dict"
 
@@ -1404,7 +1404,7 @@ def getFunctionCallHelperKeywordsStarDict():
     return result
 
 
-@once_decorator
+@onceDecorator
 def getFunctionCallHelperPosKeywordsStarDict():
     helper_name = "complex_call_helper_pos_keywords_star_dict"
 
@@ -1499,7 +1499,7 @@ def getDoubleStarArgsConversion(
     return statements
 
 
-@once_decorator
+@onceDecorator
 def getFunctionCallHelperStarListStarDict():
     helper_name = "complex_call_helper_star_list_star_dict"
 
@@ -1560,7 +1560,7 @@ def getFunctionCallHelperStarListStarDict():
     return result
 
 
-@once_decorator
+@onceDecorator
 def getFunctionCallHelperPosStarListStarDict():
     helper_name = "complex_call_helper_pos_star_list_star_dict"
 
@@ -1633,7 +1633,7 @@ def getFunctionCallHelperPosStarListStarDict():
     return result
 
 
-@once_decorator
+@onceDecorator
 def getFunctionCallHelperKeywordsStarListStarDict():
     helper_name = "complex_call_helper_keywords_star_list_star_dict"
 
@@ -1696,7 +1696,7 @@ def getFunctionCallHelperKeywordsStarListStarDict():
     return result
 
 
-@once_decorator
+@onceDecorator
 def getFunctionCallHelperPosKeywordsStarListStarDict():
     helper_name = "complex_call_helper_pos_keywords_star_list_star_dict"
 
@@ -1773,7 +1773,7 @@ def getFunctionCallHelperPosKeywordsStarListStarDict():
     return result
 
 
-@once_decorator
+@onceDecorator
 def getFunctionCallHelperDictionaryUnpacking():
     helper_name = "complex_call_helper_dict_unpacking_checks"
 

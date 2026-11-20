@@ -116,7 +116,7 @@ from .FutureSpecState import getFutureSpec
 from .InternalModule import (
     internal_source_ref,
     makeInternalHelperFunctionBody,
-    once_decorator,
+    onceDecorator,
 )
 from .ReformulationDictionaryCreation import (
     buildDictionaryUnpacking,
@@ -1094,7 +1094,7 @@ def buildClassNode3(provider, node, source_ref):
 
 # Note: This emulates "Python/bltinmodule.c/update_bases" function. We have it
 # here, so we can hope to statically optimize it later on. spell-checker: ignore bltinmodule
-@once_decorator
+@onceDecorator
 def getClassBasesMroConversionHelper():
     helper_name = "_mro_entries_conversion"
 
@@ -1361,7 +1361,7 @@ subclass of the metaclasses of all its bases""",
     )
 
 
-@once_decorator
+@onceDecorator
 def getClassSelectMetaClassHelper():
     helper_name = "_select_metaclass"
 

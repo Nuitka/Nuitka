@@ -35,7 +35,7 @@ from nuitka.specs.ParameterSpecs import ParameterSpec
 from .InternalModule import (
     internal_source_ref,
     makeInternalHelperFunctionBody,
-    once_decorator,
+    onceDecorator,
 )
 from .ReformulationTryExceptStatements import makeTryExceptSingleHandlerNode
 from .ReformulationTryFinallyStatements import makeTryFinallyReleaseStatement
@@ -68,7 +68,7 @@ def buildDictionaryNode(provider, node, source_ref):
     )
 
 
-@once_decorator
+@onceDecorator
 def _getDictUnpackingHelper():
     helper_name = "_unpack_dict"
 
