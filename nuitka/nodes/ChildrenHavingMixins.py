@@ -13405,6 +13405,137 @@ ChildrenExpressionOsStatMixin = (
 )
 
 
+class ChildrenHavingPathOptionalPrefixOptionalMixin(object):
+    # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
+    __slots__ = ()
+
+    def __init__(
+        self,
+        path,
+        prefix,
+    ):
+        if path is not None:
+            path.parent = self
+
+        self.subnode_path = path
+
+        if prefix is not None:
+            prefix.parent = self
+
+        self.subnode_prefix = prefix
+
+    def getVisitableNodes(self):
+        result = []
+        if self.subnode_path is not None:
+            result.append(self.subnode_path)
+        if self.subnode_prefix is not None:
+            result.append(self.subnode_prefix)
+        return result
+
+    def getVisitableNodesNamed(self):
+        return (
+            ("path", self.subnode_path),
+            ("prefix", self.subnode_prefix),
+        )
+
+    def replaceChild(self, old_node, new_node):
+        value = self.subnode_path
+        if old_node is value:
+            if new_node is not None:
+                new_node.parent = self
+
+            self.subnode_path = new_node
+
+            return
+
+        value = self.subnode_prefix
+        if old_node is value:
+            if new_node is not None:
+                new_node.parent = self
+
+            self.subnode_prefix = new_node
+
+            return
+
+        raise AssertionError("Didn't find child", old_node, "in", self)
+
+    def getCloneArgs(self):
+        values = {
+            "path": (
+                self.subnode_path.makeClone() if self.subnode_path is not None else None
+            ),
+            "prefix": (
+                self.subnode_prefix.makeClone()
+                if self.subnode_prefix is not None
+                else None
+            ),
+        }
+
+        values.update(self.getDetails())
+
+        return values
+
+    def finalize(self):
+        del self.parent
+
+        if self.subnode_path is not None:
+            self.subnode_path.finalize()
+        del self.subnode_path
+        if self.subnode_prefix is not None:
+            self.subnode_prefix.finalize()
+        del self.subnode_prefix
+
+    def computeExpressionRaw(self, trace_collection):
+        for count, sub_expression in enumerate(self.getVisitableNodes()):
+            expression = trace_collection.onExpression(sub_expression)
+
+            if expression.willRaiseAnyException():
+                sub_expressions = self.getVisitableNodes()
+
+                wrapped_expression = wrapExpressionWithSideEffects(
+                    side_effects=sub_expressions[:count],
+                    old_node=sub_expression,
+                    new_node=expression,
+                )
+
+                return (
+                    wrapped_expression,
+                    "new_raise",
+                    lambda: "For '%s' the child expression '%s' will raise."
+                    % (self.getChildNameNice(), expression.getChildNameNice()),
+                )
+
+        return self.computeExpression(trace_collection)
+
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
+
+        self.undoVariableTracing()
+
+    @staticmethod
+    def undoVariableTracing():
+        pass
+
+    def collectVariableAccesses(self, emit_variable):
+        subnode_path = self.subnode_path
+
+        if subnode_path is not None:
+            self.subnode_path.collectVariableAccesses(emit_variable)
+        subnode_prefix = self.subnode_prefix
+
+        if subnode_prefix is not None:
+            self.subnode_prefix.collectVariableAccesses(emit_variable)
+
+
+ChildrenExpressionPkgutilIterModulesMixin = (
+    ChildrenHavingPathOptionalPrefixOptionalMixin
+)
+ChildrenExpressionPkgutilIterModulesCallMixin = (
+    ChildrenHavingPathOptionalPrefixOptionalMixin
+)
+
+
 class ChildHavingPathsTupleMixin(object):
     # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
     __slots__ = ()

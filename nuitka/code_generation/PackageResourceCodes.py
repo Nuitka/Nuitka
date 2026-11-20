@@ -58,6 +58,42 @@ def generatePkglibGetDataCallCode(to_name, expression, emit, context):
         )
 
 
+def generatePkgutilIterModulesCallCode(to_name, expression, emit, context):
+    path_name, prefix_name = generateChildExpressionsCode(
+        expression=expression, emit=emit, context=context
+    )
+
+    release_names = []
+
+    if path_name is None:
+        path_name = "Py_None"
+    else:
+        release_names.append(path_name)
+
+    if prefix_name is None:
+        prefix_name = context.getConstantCode(constant="")
+    else:
+        release_names.append(prefix_name)
+
+    with withObjectCodeTemporaryAssignment(
+        to_name, "iter_modules_value", expression, emit, context
+    ) as result_name:
+        emit(
+            "%s = NUITKA_PKGUTIL_ITER_MODULES(tstate, %s, %s);"
+            % (result_name, path_name, prefix_name)
+        )
+
+        getErrorExitCode(
+            check_name=result_name,
+            release_names=release_names,
+            needs_check=True,
+            emit=emit,
+            context=context,
+        )
+
+        context.addCleanupTempName(result_name)
+
+
 def generatePkgResourcesDistributionValueCode(to_name, expression, emit, context):
     with withObjectCodeTemporaryAssignment(
         to_name, "distribution_value", expression, emit, context

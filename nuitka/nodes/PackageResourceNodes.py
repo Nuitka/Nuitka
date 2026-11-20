@@ -37,6 +37,7 @@ from .HardImportNodesGenerated import (
     ExpressionPkgResourcesResourceStreamCallBase,
     ExpressionPkgResourcesResourceStringCallBase,
     ExpressionPkgutilGetDataCallBase,
+    ExpressionPkgutilIterModulesCallBase,
 )
 from .NodeBases import SideEffectsFromChildrenMixin
 from .NodeMakingHelpers import wrapExpressionWithSideEffects
@@ -52,6 +53,17 @@ class ExpressionPkgutilGetDataCall(
     ExpressionPkgutilGetDataCallBase,
 ):
     kind = "EXPRESSION_PKGUTIL_GET_DATA_CALL"
+
+    def replaceWithCompileTimeValue(self, trace_collection):
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        return self, None, None
+
+
+class ExpressionPkgutilIterModulesCall(
+    SideEffectsFromChildrenMixin, ExpressionPkgutilIterModulesCallBase
+):
+    kind = "EXPRESSION_PKGUTIL_ITER_MODULES_CALL"
 
     def replaceWithCompileTimeValue(self, trace_collection):
         trace_collection.onExceptionRaiseExit(BaseException)

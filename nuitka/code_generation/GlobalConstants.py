@@ -151,6 +151,9 @@ def getConstantDefaultPopulation():
         # Module lock handling of direct imports.
         result += ("acquire", "release")
 
+    # For the pkgutil.iter_modules replacement helper.
+    result += ("ModuleInfo", "iter_importer_modules", "iter_modules")
+
     # For meta path based loader, iter_modules and Python3 "__name__" to
     # "__package__" parsing
     result.append(".")

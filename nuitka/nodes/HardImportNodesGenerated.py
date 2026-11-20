@@ -90,6 +90,7 @@ from nuitka.specs.HardImportSpecs import (
     pkg_resources_resource_stream_spec,
     pkg_resources_resource_string_spec,
     pkgutil_get_data_spec,
+    pkgutil_iter_modules_spec,
     sys_exit_spec,
     tensorflow_function_spec,
 )
@@ -128,6 +129,7 @@ from .ChildrenHavingMixins import (
     ChildrenHavingPackageResourceMixin,
     ChildrenHavingPathOptionalDirFdOptionalFollowSymlinksOptionalMixin,
     ChildrenHavingPathOptionalDirFdOptionalMixin,
+    ChildrenHavingPathOptionalPrefixOptionalMixin,
 )
 from .ExpressionBases import ExpressionBase
 from .ExpressionShapeMixins import (
@@ -4636,6 +4638,92 @@ class ExpressionPkgutilGetDataCallBase(
             (
                 self.subnode_package,
                 self.subnode_resource,
+            )
+        ):
+            trace_collection.onExceptionRaiseExit(BaseException)
+
+            return self, None, None
+
+        try:
+            return self.replaceWithCompileTimeValue(trace_collection)
+        finally:
+            self.attempted = True
+
+    @abstractmethod
+    def replaceWithCompileTimeValue(self, trace_collection):
+        pass
+
+    @staticmethod
+    def mayRaiseExceptionOperation():
+        return True
+
+
+class ExpressionPkgutilIterModulesRef(ExpressionImportModuleNameHardExistsSpecificBase):
+    """Function reference 'pkgutil.iter_modules'."""
+
+    kind = "EXPRESSION_PKGUTIL_ITER_MODULES_REF"
+
+    def __init__(self, source_ref):
+        ExpressionImportModuleNameHardExistsSpecificBase.__init__(
+            self,
+            module_name="pkgutil",
+            import_name="iter_modules",
+            module_guaranteed=True,
+            source_ref=source_ref,
+        )
+
+    def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        from .PackageResourceNodes import ExpressionPkgutilIterModulesCall
+
+        result = extractBuiltinArgs(
+            node=call_node,
+            builtin_class=ExpressionPkgutilIterModulesCall,
+            builtin_spec=pkgutil_iter_modules_spec,
+        )
+
+        return (
+            result,
+            "new_expression",
+            "Call to 'pkgutil.iter_modules' recognized.",
+        )
+
+
+addHardImportNodeClass(ExpressionPkgutilIterModulesRef, pkgutil_iter_modules_spec)
+
+
+class ExpressionPkgutilIterModulesCallBase(
+    ChildrenHavingPathOptionalPrefixOptionalMixin, ExpressionBase
+):
+    """Base class for 'pkgutil.iter_modules' call node."""
+
+    named_children = (
+        "path|optional",
+        "prefix|optional",
+    )
+
+    __slots__ = ("attempted",)
+
+    spec = pkgutil_iter_modules_spec
+
+    def __init__(self, path, prefix, source_ref):
+
+        ChildrenHavingPathOptionalPrefixOptionalMixin.__init__(
+            self,
+            path=path,
+            prefix=prefix,
+        )
+
+        ExpressionBase.__init__(self, source_ref)
+
+        self.attempted = False
+
+    def computeExpression(self, trace_collection):
+        if self.attempted or not pkgutil_iter_modules_spec.isCompileTimeComputable(
+            (
+                self.subnode_path,
+                self.subnode_prefix,
             )
         ):
             trace_collection.onExceptionRaiseExit(BaseException)

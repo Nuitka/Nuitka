@@ -76,6 +76,9 @@ importlib_metadata_backport_entry_points_spec = BuiltinParameterSpec(
 pkgutil_get_data_spec = BuiltinParameterSpec(
     "pkgutil.get_data", ("package", "resource"), default_count=0
 )
+pkgutil_iter_modules_spec = BuiltinParameterSpec(
+    "pkgutil.iter_modules", ("path", "prefix"), default_count=2
+)
 pkg_resources_resource_string_spec = BuiltinParameterSpec(
     "pkg_resources.resource_string",
     ("package_or_requirement", "resource_name"),
