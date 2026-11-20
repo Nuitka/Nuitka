@@ -2992,6 +2992,42 @@ static void releaseParameters(struct Nuitka_FunctionObject const *function, PyOb
     }
 }
 
+#if PYTHON_VERSION >= 0x300
+static bool resolveKwOnlyDefaults(PyThreadState *tstate, struct Nuitka_FunctionObject const *function,
+                                  PyObject **python_pars) {
+    // Python 3 reports all missing keyword-only arguments at once.
+    bool kw_only_error = false;
+
+    for (Py_ssize_t i = function->m_args_positional_count; i < function->m_args_keywords_count; i++) {
+        if (python_pars[i] == NULL) {
+            PyObject *arg_name = function->m_varnames[i];
+
+            if (function->m_kwdefaults != NULL) {
+                python_pars[i] = DICT_GET_ITEM1(tstate, function->m_kwdefaults, arg_name);
+
+                if (unlikely(python_pars[i] == NULL && HAS_ERROR_OCCURRED(tstate))) {
+                    releaseParameters(function, python_pars);
+                    return false;
+                }
+            }
+
+            if (unlikely(python_pars[i] == NULL)) {
+                kw_only_error = true;
+            }
+        }
+    }
+
+    if (unlikely(kw_only_error)) {
+        formatErrorTooFewKwOnlyArguments(tstate, function, &python_pars[function->m_args_positional_count]);
+
+        releaseParameters(function, python_pars);
+        return false;
+    }
+
+    return true;
+}
+#endif
+
 static bool parseArgumentsPos(PyThreadState *tstate, struct Nuitka_FunctionObject const *function,
                               PyObject **python_pars, PyObject *const *args, Py_ssize_t args_size) {
     Py_ssize_t arg_count = function->m_args_positional_count;
@@ -3015,30 +3051,9 @@ static bool parseArgumentsPos(PyThreadState *tstate, struct Nuitka_FunctionObjec
     }
 
 #if PYTHON_VERSION >= 0x300
-    // For Python3 the keyword only errors are all reported at once.
-    bool kw_only_error = false;
-
-    for (Py_ssize_t i = function->m_args_positional_count; i < function->m_args_keywords_count; i++) {
-        if (python_pars[i] == NULL) {
-            PyObject *arg_name = function->m_varnames[i];
-
-            if (function->m_kwdefaults != NULL) {
-                python_pars[i] = DICT_GET_ITEM1(tstate, function->m_kwdefaults, arg_name);
-            }
-
-            if (unlikely(python_pars[i] == NULL)) {
-                kw_only_error = true;
-            }
-        }
-    }
-
-    if (unlikely(kw_only_error)) {
-        formatErrorTooFewKwOnlyArguments(tstate, function, &python_pars[function->m_args_positional_count]);
-
-        releaseParameters(function, python_pars);
+    if (unlikely(resolveKwOnlyDefaults(tstate, function, python_pars) == false)) {
         return false;
     }
-
 #endif
 
     if (function->m_args_star_dict_index != -1) {
@@ -3067,30 +3082,9 @@ static bool parseArgumentsMethodPos(PyThreadState *tstate, struct Nuitka_Functio
     }
 
 #if PYTHON_VERSION >= 0x300
-    // For Python3 the keyword only errors are all reported at once.
-    bool kw_only_error = false;
-
-    for (Py_ssize_t i = function->m_args_positional_count; i < function->m_args_keywords_count; i++) {
-        if (python_pars[i] == NULL) {
-            PyObject *arg_name = function->m_varnames[i];
-
-            if (function->m_kwdefaults != NULL) {
-                python_pars[i] = DICT_GET_ITEM1(tstate, function->m_kwdefaults, arg_name);
-            }
-
-            if (unlikely(python_pars[i] == NULL)) {
-                kw_only_error = true;
-            }
-        }
-    }
-
-    if (unlikely(kw_only_error)) {
-        formatErrorTooFewKwOnlyArguments(tstate, function, &python_pars[function->m_args_positional_count]);
-
-        releaseParameters(function, python_pars);
+    if (unlikely(resolveKwOnlyDefaults(tstate, function, python_pars) == false)) {
         return false;
     }
-
 #endif
 
     if (function->m_args_star_dict_index != -1) {
@@ -3164,30 +3158,9 @@ static bool parseArgumentsFullKwSplit(PyThreadState *tstate, struct Nuitka_Funct
     }
 
 #if PYTHON_VERSION >= 0x300
-    // For Python3 the keyword only errors are all reported at once.
-    bool kw_only_error = false;
-
-    for (Py_ssize_t i = function->m_args_positional_count; i < function->m_args_keywords_count; i++) {
-        if (python_pars[i] == NULL) {
-            PyObject *arg_name = function->m_varnames[i];
-
-            if (function->m_kwdefaults != NULL) {
-                python_pars[i] = DICT_GET_ITEM1(tstate, function->m_kwdefaults, arg_name);
-            }
-
-            if (unlikely(python_pars[i] == NULL)) {
-                kw_only_error = true;
-            }
-        }
-    }
-
-    if (unlikely(kw_only_error)) {
-        formatErrorTooFewKwOnlyArguments(tstate, function, &python_pars[function->m_args_positional_count]);
-
-        releaseParameters(function, python_pars);
+    if (unlikely(resolveKwOnlyDefaults(tstate, function, python_pars) == false)) {
         return false;
     }
-
 #endif
 
     return true;
@@ -3255,30 +3228,9 @@ static bool parseArgumentsFull(PyThreadState *tstate, struct Nuitka_FunctionObje
     }
 
 #if PYTHON_VERSION >= 0x300
-    // For Python3 the keyword only errors are all reported at once.
-    bool kw_only_error = false;
-
-    for (Py_ssize_t i = function->m_args_positional_count; i < function->m_args_keywords_count; i++) {
-        if (python_pars[i] == NULL) {
-            PyObject *arg_name = function->m_varnames[i];
-
-            if (function->m_kwdefaults != NULL) {
-                python_pars[i] = DICT_GET_ITEM1(tstate, function->m_kwdefaults, arg_name);
-            }
-
-            if (unlikely(python_pars[i] == NULL)) {
-                kw_only_error = true;
-            }
-        }
-    }
-
-    if (unlikely(kw_only_error)) {
-        formatErrorTooFewKwOnlyArguments(tstate, function, &python_pars[function->m_args_positional_count]);
-
-        releaseParameters(function, python_pars);
+    if (unlikely(resolveKwOnlyDefaults(tstate, function, python_pars) == false)) {
         return false;
     }
-
 #endif
 
     return true;
@@ -3690,27 +3642,7 @@ static bool parseArgumentsVectorcall(PyThreadState *tstate, struct Nuitka_Functi
     }
 
 #if PYTHON_VERSION >= 0x300
-    // For Python3 the keyword only errors are all reported at once.
-    bool kw_only_error = false;
-
-    for (Py_ssize_t i = function->m_args_positional_count; i < function->m_args_keywords_count; i++) {
-        if (python_pars[i] == NULL) {
-            PyObject *arg_name = function->m_varnames[i];
-
-            if (function->m_kwdefaults != NULL) {
-                python_pars[i] = DICT_GET_ITEM1(tstate, function->m_kwdefaults, arg_name);
-            }
-
-            if (unlikely(python_pars[i] == NULL)) {
-                kw_only_error = true;
-            }
-        }
-    }
-
-    if (unlikely(kw_only_error)) {
-        formatErrorTooFewKwOnlyArguments(tstate, function, &python_pars[function->m_args_positional_count]);
-
-        releaseParameters(function, python_pars);
+    if (unlikely(resolveKwOnlyDefaults(tstate, function, python_pars) == false)) {
         return false;
     }
 #endif
