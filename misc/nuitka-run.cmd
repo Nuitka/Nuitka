@@ -3,7 +3,13 @@ rem     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text 
 
 setlocal
 
-"%~dp0nuitka.cmd --run %*"
+if exist "%~dp0..\python.exe" (
+"%~dp0..\python" -m nuitka --run %*
+) else if exist "%~dp0python.exe" (
+"%~dp0python" -m nuitka --run %*
+) else (
+"python" -m nuitka --run %*
+)
 
 endlocal
 
