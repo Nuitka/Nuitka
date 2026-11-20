@@ -391,9 +391,19 @@ expressed through clear identifiers, helper functions, or assertions:
    locally, enforce it with an executable ``assert`` instead of a
    comment.
 
--  Do not leave commented-out code, ``# print(...)`` remnants, or ``#if
-   0`` debug blocks in the tree; ``git`` preserves history. Keep
-   ``TODO`` comments only when specific and actionable.
+-  Do not leave leftover ``# print(...)`` calls or pure ``#if 0`` debug
+   print blocks in the tree; ``git`` preserves history. However, keep
+   disabled or work-in-progress blocks (such as ``#if ... && 0``, ``#if
+   0`` draft helpers, or commented-out ``assert`` checks) that carry a
+   ``TODO`` or document unfinished optimization/check work, and write
+   new ``TODO`` comments only when specific and actionable.
+
+-  Never delete or reword comments in C runtime files
+   (``nuitka/build/static_src/*.c``) or code templates
+   (``nuitka/code_generation/templates/*.py``) that serve as string
+   replacement hooks for commercial plugins (via ``injectCodeAtMarker``
+   or ``.replace(...)``, including ``// NUITKA_...`` markers and stage
+   marker comments in ``OnefileBootstrap.c``).
 
 -  In Jinja2 templates (``*.c.j2``, ``*.py.j2``), always use Jinja ``{#
    ... #}`` comments for template notes and ``TODO`` items rather than
