@@ -1079,6 +1079,7 @@ addExpressionDispatchDict(
         "EXPRESSION_OS_PATH_BASENAME_REF": generateImportModuleNameHardCode,
         "EXPRESSION_OS_PATH_ABSPATH_REF": generateImportModuleNameHardCode,
         "EXPRESSION_OS_PATH_NORMPATH_REF": generateImportModuleNameHardCode,
+        "EXPRESSION_OS_PATH_ISABS_REF": generateImportModuleNameHardCode,
         "EXPRESSION_CTYPES_CDLL_REF": generateImportModuleNameHardCode,
         "EXPRESSION_CTYPES_CDLL_SINCE38_CALL": generateCtypesCdllCallCode,
         "EXPRESSION_CTYPES_CDLL_BEFORE38_CALL": generateCtypesCdllCallCode,
