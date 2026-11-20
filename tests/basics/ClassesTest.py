@@ -577,6 +577,105 @@ print(
     ClassBodyDeletion().method(),
 )
 
+
+print("Attribute assignment KeyError handling:")
+
+
+class BadAttrKey(str):
+    def __hash__(self):
+        return hash("x")
+
+    def __eq__(self, other):
+        raise KeyError("boom")
+
+
+class NonDataDescr(object):
+    def __get__(self, instance, owner=None):
+        return 42
+
+
+class CustomDataDescr(object):
+    def __get__(self, instance, owner=None):
+        return 1
+
+    def __set__(self, instance, value):
+        raise KeyError("from_descr_set")
+
+
+class DescriptorKeyErrorHolder(object):
+    @property
+    def prop(self):
+        return 1
+
+    @prop.setter
+    def prop(self, value):
+        raise KeyError("from_property_setter")
+
+    data_descr = CustomDataDescr()
+
+
+class ManagedKeyErrorObj(object):
+    x = NonDataDescr()
+
+
+class DictSubclassKeyErrorObj(dict):
+    x = NonDataDescr()
+
+
+def reportAttributeException(label, func, target):
+    try:
+        func()
+    except Exception as e:
+        print(
+            label,
+            type(e).__name__,
+            e.args,
+            getattr(e, "name", None),
+            getattr(e, "obj", None) is target,
+        )
+    else:
+        print(label, "no exception")
+
+
+descr_holder = DescriptorKeyErrorHolder()
+
+
+def assignProperty():
+    descr_holder.prop = 2
+
+
+def assignDataDescriptor():
+    descr_holder.data_descr = 2
+
+
+reportAttributeException(
+    "property setattr:", lambda: setattr(descr_holder, "prop", 2), descr_holder
+)
+reportAttributeException("property direct:", assignProperty, descr_holder)
+reportAttributeException("data descr direct:", assignDataDescriptor, descr_holder)
+
+managed_key_error_obj = ManagedKeyErrorObj()
+managed_key_error_obj.__dict__[BadAttrKey("x")] = 1
+
+
+def assignManagedDict():
+    managed_key_error_obj.x = 2
+
+
+reportAttributeException("managed dict set:", assignManagedDict, managed_key_error_obj)
+
+dict_subclass_key_error_obj = DictSubclassKeyErrorObj()
+dict_subclass_key_error_obj.__dict__[BadAttrKey("x")] = 1
+
+
+def assignGenericDict():
+    dict_subclass_key_error_obj.x = 2
+
+
+reportAttributeException(
+    "generic dict set:", assignGenericDict, dict_subclass_key_error_obj
+)
+
 #     Python tests originally created or extracted from other peoples work. The
 #     parts were too small to be protected.
 #

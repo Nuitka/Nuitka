@@ -344,6 +344,22 @@ static int Nuitka_StoreManagedDictAttribute(PyTypeObject *type, PyObject *target
 }
 #endif
 
+static void setAttributeKeyErrorConverted(PyThreadState *tstate, PyTypeObject *type, PyObject *target,
+                                          PyObject *attr_name) {
+#if PYTHON_VERSION < 0x3b0
+    (void)type;
+    (void)target;
+    SET_CURRENT_EXCEPTION_TYPE0_VALUE0(tstate, PyExc_AttributeError, attr_name);
+#else
+    PyErr_Format(PyExc_AttributeError, "'%s' object has no attribute '%U'", type->tp_name, attr_name);
+#if PYTHON_VERSION >= 0x3d0
+    SET_ATTRIBUTE_ERROR_CONTEXT(tstate, target, attr_name);
+#else
+    (void)target;
+#endif
+#endif
+}
+
 static bool SET_ATTRIBUTE_GENERIC(PyThreadState *tstate, PyTypeObject *type, PyObject *target, PyObject *attr_name,
                                   PyObject *value) {
     if (unlikely(type->tp_dict == NULL)) {
@@ -375,9 +391,10 @@ static bool SET_ATTRIBUTE_GENERIC(PyThreadState *tstate, PyTypeObject *type, PyO
 
         Py_XDECREF(descr);
 
-        // TODO: CPython only converts KeyError to AttributeError when deleting (value == NULL).
+        // CPython's _PyObject_GenericSetAttrWithDict converts KeyError to
+        // AttributeError unconditionally, not only for deletion.
         if (res < 0 && CHECK_AND_CLEAR_KEY_ERROR_OCCURRED(tstate)) {
-            SET_CURRENT_EXCEPTION_TYPE0_VALUE0(tstate, PyExc_AttributeError, attr_name);
+            setAttributeKeyErrorConverted(tstate, type, target, attr_name);
             return false;
         }
 
@@ -395,7 +412,6 @@ static bool SET_ATTRIBUTE_GENERIC(PyThreadState *tstate, PyTypeObject *type, PyO
     PyObject *dict = NULL;
 
     if (dict_offset != 0) {
-        // Negative dictionary offsets have special meaning.
         if (dict_offset < 0) {
             Py_ssize_t tsize;
             size_t size;
@@ -418,9 +434,10 @@ static bool SET_ATTRIBUTE_GENERIC(PyThreadState *tstate, PyTypeObject *type, PyO
 #else
             int res = _PyObjectDict_SetItem(type, dict_pointer, attr_name, value);
 #endif
-            // TODO: CPython only converts KeyError to AttributeError when deleting (value == NULL).
+            Py_XDECREF(descr);
+
             if (res < 0 && CHECK_AND_CLEAR_KEY_ERROR_OCCURRED(tstate)) {
-                SET_CURRENT_EXCEPTION_TYPE0_VALUE0(tstate, PyExc_AttributeError, attr_name);
+                setAttributeKeyErrorConverted(tstate, type, target, attr_name);
                 return false;
             }
 
@@ -449,8 +466,15 @@ static bool SET_ATTRIBUTE_GENERIC(PyThreadState *tstate, PyTypeObject *type, PyO
         Py_DECREF(dict);
         Py_XDECREF(descr);
 
+        if (unlikely(res == false) && CHECK_AND_CLEAR_KEY_ERROR_OCCURRED(tstate)) {
+            setAttributeKeyErrorConverted(tstate, type, target, attr_name);
+            return false;
+        }
+
         return res;
     }
+
+    Py_XDECREF(descr);
 
 #if PYTHON_VERSION < 0x300
     PyErr_Format(PyExc_AttributeError, "'%s' object has no attribute '%s'", type->tp_name,
