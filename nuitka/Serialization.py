@@ -95,9 +95,7 @@ def _pickleAnonValues(pickler, value):
         pickler.save(BuiltinSpecialValue("Ellipsis"))
     elif value is NotImplemented:
         pickler.save(BuiltinSpecialValue("NotImplemented"))
-    elif value is sys.version_info:
-        pickler.save(BuiltinSpecialValue("Py_SysVersionInfo"))
-    elif type(value) is TargetVersionInfo:
+    elif value is sys.version_info or type(value) is TargetVersionInfo:
         pickler.save(BuiltinSpecialValue("Py_SysVersionInfo"))
     else:
         pickler.save_global(value)

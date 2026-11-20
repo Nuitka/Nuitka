@@ -495,8 +495,6 @@ Repository = gi.Repository.get_default()""",
             # Support various name forms in MSYS2 over time.
             dll_path = self.locateDLL(dll_name)
             if dll_path is None:
-                dll_path = self.locateDLL("%s" % dll_name)
-            if dll_path is None:
                 dll_path = self.locateDLL("lib%s" % dll_name)
 
             if dll_path is not None:

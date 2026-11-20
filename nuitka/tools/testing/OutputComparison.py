@@ -190,9 +190,13 @@ def makeDiffable(output, ignore_warnings, syntax_errors):
 
         # TODO: Maybe we need Nuitka-Prompt as a logger used there?
         if (
-            line.startswith("Nuitka depends on '")
-            or line.startswith("Nuitka will make use of ccache")
-            or line.startswith("Fully automatic, cached.")
+            line.startswith(
+                (
+                    "Nuitka depends on '",
+                    "Nuitka will make use of ccache",
+                    "Fully automatic, cached.",
+                )
+            )
             or "Is it OK to download" in line
         ):
             continue
@@ -403,7 +407,7 @@ exceeded while calling a Python object' in \
 
 def colorizeDiff(lines):
     for line in lines:
-        if line.startswith("+++") or line.startswith("---"):
+        if line.startswith(("+++", "---")):
             yield wrapWithStyles(line, ("yellow", "bold"))
         elif line.startswith("+"):
             yield wrapWithStyles(line, ("green",))

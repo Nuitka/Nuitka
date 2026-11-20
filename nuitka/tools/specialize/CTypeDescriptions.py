@@ -1031,9 +1031,7 @@ class IntDesc(ConcreteNonSequenceTypeBase):
             return False
         elif slot.startswith("nb_"):
             return slot != "nb_matrix_multiply"
-        elif slot.startswith("sq_"):
-            return False
-        elif slot == "tp_richcompare":
+        elif slot.startswith("sq_") or slot == "tp_richcompare":
             return False
         elif slot == "tp_compare":
             return True
@@ -1124,9 +1122,7 @@ assert(PyUnicode_CheckExact(%(operand)s));""" % {"operand": operand}
             return slot == "nb_remainder"
         elif slot.startswith("sq_"):
             return "ass" not in slot and "inplace" not in slot
-        elif slot == "tp_richcompare":
-            return True
-        elif slot == "tp_compare":
+        elif slot in ("tp_richcompare", "tp_compare"):
             return True
         else:
             assert False, slot
@@ -1230,9 +1226,7 @@ class ListDesc(ConcreteSequenceTypeBase):
     def hasSlot(self, slot):
         if slot.startswith("nb_"):
             return False
-        elif slot.startswith("sq_"):
-            return True
-        elif slot == "tp_richcompare":
+        elif slot.startswith("sq_") or slot == "tp_richcompare":
             return True
         elif slot == "tp_compare":
             return False

@@ -202,12 +202,7 @@ def _isIgnorableConstantBlobSpecLine(line):
     ):
         return True
 
-    if (
-        line.startswith("//")
-        or line.startswith("/*")
-        or line.startswith("*")
-        or line == "*/"
-    ):
+    if line.startswith(("//", "/*", "*")) or line == "*/":
         return True
 
     return False

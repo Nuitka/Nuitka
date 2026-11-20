@@ -51,20 +51,16 @@ def _clearSystemEnvironment(environment_variable_name):
 
 
 def _delEnv(environment_variable_name):
-    if environment_variable_name in _delayed_environment_updates:
-        del _delayed_environment_updates[environment_variable_name]
-
     if os is None:
-        if environment_variable_name in _environment_module.environ:
-            del _environment_module.environ[environment_variable_name]
+        _environment_module.environ.pop(environment_variable_name, None)
 
         _clearSystemEnvironment(environment_variable_name)
 
         _delayed_environment_updates[environment_variable_name] = None
         return
 
-    if environment_variable_name in os.environ:
-        del os.environ[environment_variable_name]
+    _delayed_environment_updates.pop(environment_variable_name, None)
+    os.environ.pop(environment_variable_name, None)
 
     _clearSystemEnvironment(environment_variable_name)
 
@@ -75,8 +71,7 @@ def _applyDelayedEnvironmentUpdates():
 
     for environment_variable_name, value in _delayed_environment_updates.items():
         if value is None:
-            if environment_variable_name in os.environ:
-                del os.environ[environment_variable_name]
+            os.environ.pop(environment_variable_name, None)
 
             _clearSystemEnvironment(environment_variable_name)
         else:

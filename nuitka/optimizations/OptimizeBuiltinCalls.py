@@ -658,9 +658,7 @@ def float_extractor(node):
     def makeFloat0(source_ref):
         # pylint: disable=unused-argument
 
-        return makeConstantReplacementNode(
-            constant=float(), node=node, user_provided=False
-        )
+        return makeConstantReplacementNode(constant=0.0, node=node, user_provided=False)
 
     return BuiltinParameterSpecs.extractBuiltinArgs(
         node=node,
@@ -674,9 +672,7 @@ def complex_extractor(node):
     def makeComplex0(source_ref):
         # pylint: disable=unused-argument
 
-        return makeConstantReplacementNode(
-            constant=complex(), node=node, user_provided=False
-        )
+        return makeConstantReplacementNode(constant=0j, node=node, user_provided=False)
 
     def selectComplexBuiltin(real, imag, source_ref):
         if imag is None:
@@ -698,9 +694,7 @@ def str_extractor(node):
     def makeStr0(source_ref):
         # pylint: disable=unused-argument
 
-        return makeConstantReplacementNode(
-            constant=str(), node=node, user_provided=False
-        )
+        return makeConstantReplacementNode(constant="", node=node, user_provided=False)
 
     builtin_class = ExpressionBuiltinStrP2 if str is bytes else ExpressionBuiltinStrP3
 
@@ -740,7 +734,7 @@ else:
             # pylint: disable=unused-argument
 
             return makeConstantReplacementNode(
-                constant=bytes(), node=node, user_provided=False
+                constant=b"", node=node, user_provided=False
             )
 
         def selectBytesBuiltin(string, encoding, errors, source_ref):
@@ -767,7 +761,7 @@ def bool_extractor(node):
         # pylint: disable=unused-argument
 
         return makeConstantReplacementNode(
-            constant=bool(), node=node, user_provided=False
+            constant=False, node=node, user_provided=False
         )
 
     return BuiltinParameterSpecs.extractBuiltinArgs(
@@ -782,9 +776,7 @@ def int_extractor(node):
     def makeInt0(source_ref):
         # pylint: disable=unused-argument
 
-        return makeConstantReplacementNode(
-            constant=int(), node=node, user_provided=False
-        )
+        return makeConstantReplacementNode(constant=0, node=node, user_provided=False)
 
     def selectIntBuiltin(value, base, source_ref):
         if base is None:

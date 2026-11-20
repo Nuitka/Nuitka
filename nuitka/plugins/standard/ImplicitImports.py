@@ -190,9 +190,6 @@ According to 'implicit-imports' configuration."""
             elif full_name == crypto_module_name + ".Cipher.ARC2":
                 yield crypto_module_name + ".Cipher._raw_arc2"
 
-            elif full_name == crypto_module_name + ".Cipher.DES3":
-                yield crypto_module_name + ".Cipher._raw_des3"
-
             elif full_name == crypto_module_name + ".Cipher._mode_ocb":
                 yield crypto_module_name + ".Cipher._raw_ocb"
 

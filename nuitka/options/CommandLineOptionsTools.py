@@ -236,10 +236,9 @@ class OurOptionParser(OptionParser):
                 return opt
 
         for option_name, option_obj in self._long_opt.items():
-            if option_name.startswith(opt):
-                if option_obj not in matched_options:
-                    matched_options.add(option_obj)
-                    possibilities.append(option_name)
+            if option_name.startswith(opt) and option_obj not in matched_options:
+                matched_options.add(option_obj)
+                possibilities.append(option_name)
 
         # No exact match, so there had better be just one possibility.
         if len(matched_options) > 1:
@@ -268,9 +267,8 @@ class OurOptionParser(OptionParser):
         if environment_variable_name is not None:
             assert result.action == "store", result
 
-        if result.dest is not None:
-            if hasattr(default_values, result.dest):
-                assert result.default == getattr(default_values, result.dest)
+        if result.dest is not None and hasattr(default_values, result.dest):
+            assert result.default == getattr(default_values, result.dest)
 
         return result
 

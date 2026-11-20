@@ -174,28 +174,29 @@ def isConstant(constant):
             return False
 
         return True
-    elif constant_type in (
-        str,
-        unicode,
-        complex,
-        int,
-        long,
-        bool,
-        float,
-        NoneType,
-        range,
-        bytes,
-        set,
-        frozenset,
-        xrange,
-        bytearray,
-        EllipsisType,
-        TargetVersionInfo,
+    elif (
+        constant_type
+        in (
+            str,
+            unicode,
+            complex,
+            int,
+            long,
+            bool,
+            float,
+            NoneType,
+            range,
+            bytes,
+            set,
+            frozenset,
+            xrange,
+            bytearray,
+            EllipsisType,
+            TargetVersionInfo,
+        )
+        or constant in (NoneType, NotImplemented)
+        or constant in builtin_anon_value_list
     ):
-        return True
-    elif constant in (NoneType, NotImplemented):
-        return True
-    elif constant in builtin_anon_value_list:
         return True
     elif constant_type is type:
         # Maybe pre-build this as a set for quicker testing.
@@ -208,11 +209,11 @@ def isConstant(constant):
         # then probably should go into other node types, e.g. str.join is
         # a candidate.
         return True
-    elif constant_type is GenericAlias:
-        return True
-    elif constant_type is UnionType:
-        return True
-    elif constant is sys.version_info:
+    elif (
+        constant_type is GenericAlias
+        or constant_type is UnionType
+        or constant is sys.version_info
+    ):
         return True
     else:
         return False
@@ -430,12 +431,7 @@ def createConstantDict(keys, values):
 def isCompileTimeConstantValue(value):
     """Determine if a value will be usable at compile time."""
     # This needs to match code in makeCompileTimeConstantReplacementNode
-    if isConstant(value):
-        return True
-    elif type(value) is type:
-        return True
-    else:
-        return False
+    return isConstant(value) or type(value) is type
 
 
 if python_version < 0x3C0:

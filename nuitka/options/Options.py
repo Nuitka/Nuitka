@@ -1096,22 +1096,23 @@ directory but, not the '__main__.py' itself, also consider if
 '--python-flag=-m' should be used.""")
 
     # Inform the user about potential issues with the running version. e.g. unsupported
-    # version.
-    if python_version_str not in getSupportedPythonVersions():
-        # Do not disturb run of automatic tests with, detected from the presence of
-        # that environment variable.
-        if "PYTHON" not in os.environ:
-            general.warning(
-                """\
+    # version. Do not disturb run of automatic tests with, detected from the presence of
+    # that "PYTHON" environment variable.
+    if (
+        python_version_str not in getSupportedPythonVersions()
+        and "PYTHON" not in os.environ
+    ):
+        general.warning(
+            """\
 The Python version '%s' is only experimentally supported by Nuitka '%s', \
 but an upcoming release will change that. In the mean time use Python \
 version '%s' instead or newer Nuitka."""
-                % (
-                    python_version_str,
-                    getNuitkaVersion(),
-                    getSupportedPythonVersions()[-1],
-                )
+            % (
+                python_version_str,
+                getNuitkaVersion(),
+                getSupportedPythonVersions()[-1],
             )
+        )
 
     if (
         python_release_level not in ("final", "candidate")
@@ -1335,14 +1336,18 @@ require '--company-name' and '--product-name' to be given.""",
                 "Requesting both Windows specific compilers makes no sense."
             )
 
-    if getMsvcVersion() and getMsvcVersion() not in ("list", "latest"):
-        if getMsvcVersion().count(".") != 1 or not all(
-            x.isdigit() for x in getMsvcVersion().split(".")
-        ):
-            return options_logger.sysexit(
-                "For '--msvc' only values 'latest', 'info', and 'X.Y' values are allowed, but not '%s'."
-                % getMsvcVersion()
-            )
+    if (
+        getMsvcVersion()
+        and getMsvcVersion() not in ("list", "latest")
+        and (
+            getMsvcVersion().count(".") != 1
+            or not all(x.isdigit() for x in getMsvcVersion().split("."))
+        )
+    ):
+        return options_logger.sysexit(
+            "For '--msvc' only values 'latest', 'info', and 'X.Y' values are allowed, but not '%s'."
+            % getMsvcVersion()
+        )
 
     try:
         getJobLimit()
@@ -1464,11 +1469,10 @@ working. Expect errors.""" % getCompilationMode())
 but errors may happen."""
         )
 
-    if not shallExecuteImmediately():
-        if shallRunInDebugger():
-            options_logger.warning(
-                "The '--debugger' option has no effect outside of '--debug' without '--run' option."
-            )
+    if not shallExecuteImmediately() and shallRunInDebugger():
+        options_logger.warning(
+            "The '--debugger' option has no effect outside of '--debug' without '--run' option."
+        )
 
     if shallUsePythonDebug() and not isDebugPython():
         return general.sysexit("""\
@@ -3314,16 +3318,15 @@ needs to be one of the following: %s."""
 
         entitlement = _macos_protected_resource_entitlements[resource_description_name]
 
-        if type(entitlement) is tuple:
-            # If we have a tuple of size 2, checking for "read-only" and "read-write"
-            # in description allows to select one.
-            if len(entitlement) == 2:
-                for entitlement_name in entitlement:
-                    if entitlement_name.rsplit(".")[-1] in description.lower():
-                        entitlement = entitlement_name
-                        break
+        # If we have a tuple of size 2, checking for "read-only" and "read-write"
+        # in description allows to select one.
+        if type(entitlement) is tuple and len(entitlement) == 2:
+            for entitlement_name in entitlement:
+                if entitlement_name.rsplit(".")[-1] in description.lower():
+                    entitlement = entitlement_name
+                    break
 
-            # We still can put all values, that's fine, we support that now.
+        # We still can put all values, that's fine, we support that now.
 
         result.append((resource_description_name, description, entitlement))
 

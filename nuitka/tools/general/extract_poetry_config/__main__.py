@@ -65,7 +65,7 @@ def _getPackagesAndModules(package):
 
     package_dir = {}
     if len(source_roots) == 1:
-        package_dir[""] = list(source_roots)[0]
+        package_dir[""] = next(iter(source_roots))
 
     return arguments, package_dir
 

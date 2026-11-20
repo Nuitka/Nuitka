@@ -127,19 +127,18 @@ def _cleanupDashesInComments(filename):
     ):
         tok_type, tok_string, (start_row, start_col), (_end_row, end_col), _line = t
 
-        if tok_type == tokenize.COMMENT:
-            if any(dash_character in tok_string for dash_character in _dash_characters):
-                line_idx = start_row - 1
-                line = source_lines[line_idx]
+        if tok_type == tokenize.COMMENT and any(
+            dash_character in tok_string for dash_character in _dash_characters
+        ):
+            line_idx = start_row - 1
+            line = source_lines[line_idx]
 
-                new_tok_string = tok_string
-                for dash_character in _dash_characters:
-                    new_tok_string = new_tok_string.replace(dash_character, "-")
+            new_tok_string = tok_string
+            for dash_character in _dash_characters:
+                new_tok_string = new_tok_string.replace(dash_character, "-")
 
-                source_lines[line_idx] = (
-                    line[:start_col] + new_tok_string + line[end_col:]
-                )
-                changed = True
+            source_lines[line_idx] = line[:start_col] + new_tok_string + line[end_col:]
+            changed = True
 
     if changed:
         new_code = "\n".join(source_lines)

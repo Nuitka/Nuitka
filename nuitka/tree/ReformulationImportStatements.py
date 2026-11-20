@@ -83,9 +83,7 @@ def buildImportFromNode(provider, node, source_ref):
 
     level = node.level
 
-    if level == -1:
-        level = None
-    elif level == 0 and not getFutureSpec().isAbsoluteImport():
+    if level == -1 or (level == 0 and not getFutureSpec().isAbsoluteImport()):
         level = None
 
     if level is not None:

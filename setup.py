@@ -322,7 +322,7 @@ def get_script_args(dist, executable=os.path.normpath(sys.executable), wininst=F
     """Yield write_script() argument tuples for a distribution's entrypoints"""
     header = easy_install.get_script_header("", executable, wininst)
     for group in "console_scripts", "gui_scripts":
-        for name, _ep in dist.get_entry_map(group).items():
+        for name in dist.get_entry_map(group):
             script_text = runner_script_template
             if sys.platform == "win32" or wininst:
                 # On Windows/wininst, add a .py extension and an .exe launcher

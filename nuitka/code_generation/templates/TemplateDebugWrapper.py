@@ -22,7 +22,7 @@ class TemplateWrapper(object):
     def __mod__(self, other):
         assert type(other) is dict, self.name
 
-        for key in other.keys():
+        for key in other:
             if "%%(%s)" % key not in self.value:
                 optimization_logger.warning(
                     "Extra value %r provided to template %r." % (key, self.name)

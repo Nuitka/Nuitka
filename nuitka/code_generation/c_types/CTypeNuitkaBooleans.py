@@ -98,9 +98,7 @@ class CTypeNuitkaBoolEnum(CTypeNotReferenceCountedMixin, CTypeBase):
     def getDeleteObjectCode(
         cls, to_name, value_name, needs_check, tolerant, emit, context
     ):
-        if not needs_check:
-            emit("%s = NUITKA_BOOL_UNASSIGNED;" % value_name)
-        elif tolerant:
+        if not needs_check or tolerant:
             emit("%s = NUITKA_BOOL_UNASSIGNED;" % value_name)
         else:
             emit("%s = %s != NUITKA_BOOL_UNASSIGNED;" % (to_name, value_name))

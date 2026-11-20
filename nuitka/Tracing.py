@@ -132,22 +132,21 @@ def hasTerminalLinkSupport():
 
     terminal_name = os.getenv("TERM_PROGRAM")
 
-    if terminal_name is not None:
-        if terminal_name == "vscode":
-            return True
+    if terminal_name is not None and terminal_name == "vscode":
+        return True
 
     # Windows terminal, in some cases, but not on Windows 11 unfortunately there
     # is no difference between CMD with its own terminal and CMD in Windows
     # Terminal, not even parent processes.
-    if isWin32Windows():
-        if "WT_SESSION" in os.environ or "WT_PROFILE_ID" in os.environ:
-            return True
+    if isWin32Windows() and (
+        "WT_SESSION" in os.environ or "WT_PROFILE_ID" in os.environ
+    ):
+        return True
 
     # Powershell, should be used in new terminals only. Also hard to detect,
     # although here we could search parent process names to determine it.
-    if isWin32Windows():
-        if "PSModulePath" in os.environ:
-            return True
+    if isWin32Windows() and "PSModulePath" in os.environ:
+        return True
 
     return False
 

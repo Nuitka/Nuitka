@@ -16,12 +16,9 @@ def checkIconUsage(logger, icon_path):
         return logger.sysexit("""\
 Cannot detect the icon format from filename extension of '%s'.""" % (icon_path))
 
-    if icon_format != ".icns" and isMacOS():
-        needs_conversion = True
-    elif icon_format != ".ico" and isWin32Windows():
-        needs_conversion = True
-    else:
-        needs_conversion = False
+    needs_conversion = (icon_format != ".icns" and isMacOS()) or (
+        icon_format != ".ico" and isWin32Windows()
+    )
 
     if needs_conversion:
         try:

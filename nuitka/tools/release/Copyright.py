@@ -127,8 +127,6 @@ def getCopyrightClaim(filename, claim):
 
 
 def _formatComments(filename, comments):
-    # All cases in one, pylint: disable=too-many-branches
-
     assert all(type(comment) is bytes for comment in comments), comments
     assert not any(b"\n" in comment for comment in comments), comments
 
@@ -175,26 +173,16 @@ def _formatComments(filename, comments):
         template = b"{#-  %%-%ds -#}" % max_len
         comments = [(template % comment.strip()) for comment in comments]
     elif (
-        filename.endswith(".txt")
-        and "tests/commercial" in filename
+        (filename.endswith(".txt") and "tests/commercial" in filename)
         or "LICENSE" in filename
+        or filename.endswith((".rst", ".json", ".svg", ".png", ".zip"))
     ):
-        comments = []
-    elif filename.endswith(".rst"):
         comments = []
     elif filename.endswith(".md"):
         comments = [
             (b"<!-- %s -->" % comment if comment != b"" else b"<!-- -->")
             for comment in comments
         ]
-    elif filename.endswith(".json"):
-        comments = []
-    elif filename.endswith(".svg"):
-        comments = []
-    elif filename.endswith(".png"):
-        comments = []
-    elif filename.endswith(".zip"):
-        comments = []
     else:
         assert False, filename
 
@@ -202,11 +190,7 @@ def _formatComments(filename, comments):
 
 
 def _isEncodingIndicatorLine(line):
-    return (
-        line.startswith(b"# -*-")
-        or line.startswith(b"# coding:")
-        or line.startswith(b"# encoding:")
-    )
+    return line.startswith((b"# -*-", b"# coding:", b"# encoding:"))
 
 
 def _pickLeadingLines(old_lines):

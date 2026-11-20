@@ -43,11 +43,7 @@ def main():
     makePath(os.path.expanduser("~/rpmbuild/SOURCES"))
 
     # Upload stable releases to OpenSUSE Build Service:
-    if (
-        branch_name.startswith("release")
-        or branch_name.startswith("hotfix")
-        or branch_name == "main"
-    ):
+    if branch_name.startswith(("release", "hotfix")) or branch_name == "main":
         rpm_project_name = "Nuitka"
         spec_suffix = ""
     elif branch_name == "develop":

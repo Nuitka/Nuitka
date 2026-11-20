@@ -61,22 +61,22 @@ def _handleUvConfig(logger, pyproject_data):
         addMainScriptDirectory(os.getcwd())
 
     if uv_build_config:
-        for unhandled_key in uv_build_config:
+        for unhandled_key, unhandled_value in uv_build_config.items():
             logger.warning(
                 """\
 Unhandled UV build backend config key '%s' in [tool.uv.build-backend] of the \
 'pyproject.toml', we might have to ignore list or handle it: %s"""
-                % (unhandled_key, uv_build_config[unhandled_key])
+                % (unhandled_key, unhandled_value)
             )
 
     if uv_config:
-        for unhandled_key in uv_config:
+        for unhandled_key, unhandled_value in uv_config.items():
             if unhandled_key in _uv_config_ignore_list:
                 continue
 
             logger.warning("""\
 Unhandled UV config key '%s' in [tool.uv] of the 'pyproject.toml', Nuitka might \
-have to ignore list or handle it: %s""" % (unhandled_key, uv_config[unhandled_key]))
+have to ignore list or handle it: %s""" % (unhandled_key, unhandled_value))
 
 
 def getUvBuildConfiguration(logger, pyproject_data):

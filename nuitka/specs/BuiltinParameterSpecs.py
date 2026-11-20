@@ -155,9 +155,7 @@ class BuiltinParameterSpec(ParameterSpec):
             return self.builtin(
                 *(
                     arg_list
-                    + list(
-                        value.getCompileTimeConstant() for value in given_list_star_args
-                    )
+                    + [value.getCompileTimeConstant() for value in given_list_star_args]
                 ),
                 **arg_dict
             )
@@ -237,12 +235,9 @@ class BuiltinParameterSpecExceptions(BuiltinParameterSpec):
 
 
 def makeBuiltinExceptionParameterSpec(exception_name):
-    if exception_name == "ImportError" and python_version >= 0x300:
-        is_new_import_error = True
-    elif exception_name == "ModuleNotFoundError" and python_version >= 0x360:
-        is_new_import_error = True
-    else:
-        is_new_import_error = False
+    is_new_import_error = (
+        exception_name == "ImportError" and python_version >= 0x300
+    ) or (exception_name == "ModuleNotFoundError" and python_version >= 0x360)
 
     if is_new_import_error:
         return BuiltinParameterSpecExceptionsKwOnly(

@@ -179,9 +179,7 @@ def checkSectionValues(logger, filename, module_name, section, value):
                 for m, d in v.items():
                     if not _checkNotEmptyString(
                         logger, filename, module_name, section, k, m
-                    ):
-                        result = False
-                    elif not _checkParsable(
+                    ) or not _checkParsable(
                         logger, filename, module_name, section, k, d
                     ):
                         result = False

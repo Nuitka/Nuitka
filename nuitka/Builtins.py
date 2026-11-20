@@ -13,19 +13,14 @@ from nuitka.PythonVersions import python_version
 
 def _getBuiltinExceptionNames():
     def isExceptionName(builtin_name):
-        if builtin_name.endswith("Error") or builtin_name.endswith("Exception"):
-            return True
-        elif builtin_name in (
+        return builtin_name.endswith(("Error", "Exception")) or builtin_name in (
             "StopIteration",
             "GeneratorExit",
             "SystemExit",
             "NotImplemented",
             "KeyboardInterrupt",
             "StopAsyncIteration",
-        ):
-            return True
-        else:
-            return False
+        )
 
     exceptions = OrderedDict()
 

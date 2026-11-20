@@ -373,13 +373,11 @@ class VariableClosureLookupVisitorPhase1(VisitorNoopMixin):
             if python_version >= 0x300:
                 self._handleNonLocal(node)
                 self._handleQualnameSetup(node)
-        elif node.isExpressionCoroutineObjectBody():
-            self._handleNonLocal(node)
-            self._handleQualnameSetup(node)
-        elif node.isExpressionAsyncgenObjectBody():
-            self._handleNonLocal(node)
-            self._handleQualnameSetup(node)
-        elif node.isExpressionClassMappingBody():
+        elif (
+            node.isExpressionCoroutineObjectBody()
+            or node.isExpressionAsyncgenObjectBody()
+            or node.isExpressionClassMappingBody()
+        ):
             self._handleNonLocal(node)
             self._handleQualnameSetup(node)
         elif node.isExpressionFunctionBody():

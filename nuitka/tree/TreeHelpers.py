@@ -133,9 +133,9 @@ def detectFunctionBodyKind(nodes, start_value=None):
     def _check(node):
         node_class = node.__class__
 
-        if node_class is ast.Yield:
-            indications.add("Generator")
-        elif python_version >= 0x300 and node_class is ast.YieldFrom:
+        if node_class is ast.Yield or (
+            python_version >= 0x300 and node_class is ast.YieldFrom
+        ):
             indications.add("Generator")
         elif python_version >= 0x350 and node_class in (ast.Await, ast.AsyncWith):
             indications.add("Coroutine")
@@ -148,10 +148,7 @@ def detectFunctionBodyKind(nodes, start_value=None):
                 elif name in ("bases", "decorator_list", "keywords", "type_params"):
                     for child in field:
                         _check(child)
-                elif name == "starargs":  # spell-checker: ignore starargs
-                    if field is not None:
-                        _check(field)
-                elif name == "kwargs":
+                elif name in ("starargs", "kwargs"):  # spell-checker: ignore starargs
                     if field is not None:
                         _check(field)
                 else:
@@ -463,10 +460,7 @@ def collectConditionalAnnotationIndices(statements):
                 if in_conditional and getKind(statement.target) == "Name":
                     result[statement] = next_index[0]
                     next_index[0] += 1
-            elif kind == "If":
-                visitStatements(statement.body, True)
-                visitStatements(statement.orelse, True)
-            elif kind in ("For", "AsyncFor", "While"):
+            elif kind in ("If", "For", "AsyncFor", "While"):
                 visitStatements(statement.body, True)
                 visitStatements(statement.orelse, True)
             elif kind in ("With", "AsyncWith"):

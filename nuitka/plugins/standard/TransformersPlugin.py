@@ -225,8 +225,8 @@ class NuitkaPluginTransformers(NuitkaPluginBase):
                 yield sub_module_name
 
         if module_name in self._define_structure_modules:
-            for sub_module_name in (
-                self._define_structure_modules[module_name].get(frozenset(), {}).keys()
+            for sub_module_name in self._define_structure_modules[module_name].get(
+                frozenset(), {}
             ):
                 yield module_name.getChildNamed(sub_module_name)
 
