@@ -499,7 +499,7 @@ Error, cannot exec module '%s', context code '%s' due to: %s"""
             anti_bloat_config.get(config_prefix + "replacements_re") or {}
         ).items():
             old = source_code
-            source_code = re_sub(replace_src, replace_dst, source_code, flags=re.S)
+            source_code = re_sub(replace_src, replace_dst, source_code, flags=re.DOTALL)
 
             if old != source_code:
                 change_count += 1

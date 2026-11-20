@@ -198,7 +198,7 @@ def namifyConstant(constant):
         raise ExceptionCannotNamify("%r" % (constant,), constant_type)
 
 
-_re_str_needs_no_digest = re.compile(r"^([a-z]|[A-Z]|[0-9]|_){1,40}$", re.S)
+_re_str_needs_no_digest = re.compile(r"^([a-z]|[A-Z]|[0-9]|_){1,40}$", re.DOTALL)
 
 
 def _namifyString(string):
