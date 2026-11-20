@@ -1,7 +1,7 @@
 #     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-"""Code generation for "sys.modules" operations."""
+"""Code generation for 'sys.modules' operations."""
 
 from nuitka.ModuleRegistry import getModuleByName
 
@@ -17,15 +17,7 @@ from .LoaderCodes import getModuleEntryCodeName
 
 
 def _getSysModulesEntryRef(module_name, context):
-    """Get C code for the loader entry of a statically known module.
-
-    Args:
-        module_name: ModuleName of the target, or None.
-        context: Code generation context.
-
-    Returns:
-        C code for the entry pointer, or "NULL" if there is no included entry.
-    """
+    """Return '&entry_...' C expression for an included 'module_name', or 'NULL'."""
     if module_name is None:
         return "NULL"
 

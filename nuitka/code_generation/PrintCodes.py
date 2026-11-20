@@ -1,13 +1,7 @@
 #     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-"""Print related codes.
-
-This is broken down to to level on printing one individual item, and
-a new line potentially. The heavy lifting for 'softspace', etc. is
-happening in the C helper functions.
-
-"""
+"""Code generation for Python 2 'print' statements."""
 
 from .CodeHelpers import generateExpressionCode
 from .ErrorCodes import getErrorExitBoolCode

@@ -145,9 +145,6 @@ template_read_shared_known = """\
 %(tmp_name)s = Nuitka_Cell_GET(%(identifier)s);
 """
 
-# For module variable values, need to lookup in module dictionary or in
-# built-in dictionary.
-
 # TODO: Only provide fallback for known actually possible values. Do this
 # by keeping track of things that were added by "site.py" mechanisms. Then
 # we can avoid the second call entirely for most cases.
@@ -289,10 +286,10 @@ if (%(test_code)s) {
 }
 """
 
+# The static cache variables are not safe to update from multiple threads
+# without the GIL, as another thread can observe them out of order.
 template_module_variable_accessor_function = """\
 static PyObject *%(accessor_function_name)s(PyThreadState *tstate) {
-// The static cache variables are not safe to update from multiple threads
-// without the GIL, as another thread can observe them out of order.
 #if %(caching)s && !defined(Py_GIL_DISABLED)
     PyObject *result;
 

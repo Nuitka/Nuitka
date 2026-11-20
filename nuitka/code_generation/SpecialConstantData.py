@@ -9,13 +9,10 @@ PyObject values, e.g. raw binary blobs.
 
 
 def _isBlobConstant(name):
-    """Check if a constant name denotes blob data (raw bytes, not PyObject)."""
-
     return name.startswith("blob_") or name.startswith("const_blob_")
 
 
 def getConstantCType(name):
-    """Return the C type for a constant slot given its name key."""
     if _isBlobConstant(name):
         return "char const *"
 
@@ -23,7 +20,6 @@ def getConstantCType(name):
 
 
 def hasSpecialDetails(name):
-    """Return True if the named constant carries extra metadata."""
     return _isBlobConstant(name)
 
 

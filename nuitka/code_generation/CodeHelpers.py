@@ -59,8 +59,6 @@ def generateExpressionCode(to_name, expression, emit, context, allow_none=False)
 
 
 def _generateExpressionCode(to_name, expression, emit, context, allow_none=False):
-    # This is a dispatching function for every expression.
-
     if expression is None and allow_none:
         return None
 
@@ -138,11 +136,10 @@ def promoteBorrowedValuesForVariable(variable, emit, context):
 def _mayExpressionWriteVariable(expression, variable, may_be_released):
     """Check if an expression can rebind a variable a value borrows from.
 
-    Notes:
-        Module variables and variables with writers outside of the current
-        scope can have their value released by arbitrary code, so any
-        expression executing Python code may do so. For other variables only
-        direct writes in the expression matter.
+    Module variables and variables with writers outside of the current scope
+    can have their value released by arbitrary code, so any expression
+    executing Python code may do so. For other variables only direct writes in
+    the expression matter.
     """
 
     if may_be_released:
@@ -277,7 +274,6 @@ def generateChildExpressionsCode(expression, emit, context):
 
             value_names.append(tuple(child_names))
         elif child_value is not None:
-            # Allocate anyway, so names are aligned.
             value_name = context.allocateTempName(child_name + "_value")
 
             generateExpressionCode(
@@ -286,7 +282,7 @@ def generateChildExpressionsCode(expression, emit, context):
 
             value_names.append(value_name)
         else:
-            # Allocate anyway, so names are aligned.
+            # Skip counter anyway, so temporary names remain aligned.
             context.skipTempName(child_name + "_value")
 
             value_names.append(None)
@@ -300,7 +296,6 @@ def generateChildExpressionCode(expression, emit, context, child_name=None):
     if child_name is None:
         child_name = expression.getChildName()
 
-    # Allocate anyway, so names are aligned.
     value_name = context.allocateTempName(
         child_name + "_value",
     )
@@ -320,7 +315,6 @@ def getStatementDispatchDict():
 
 
 def setStatementDispatchDict(dispatch_dict, update=False):
-    # Please call us only once or explicitly for update.
     assert not _statement_dispatch_dict or update
     _statement_dispatch_dict.update(dispatch_dict)
 
@@ -333,7 +327,6 @@ def generateStatementCode(statement, emit, context):
                     statement=statement, emit=emit, context=context
                 )
 
-                # Complain if any temporary was not dealt with yet.
                 assert not context.getCleanupTempNames(), (
                     statement.asXmlText(),
                     context.getCleanupTempNames(),
@@ -363,7 +356,6 @@ def _generateStatementSequenceCode(statement_sequence, emit, context):
 
             emit(getStatementTrace(source_repr, statement_repr))
 
-        # Might contain frame statement sequences as children.
         if statement.isStatementsFrame():
             from .FrameCodes import generateStatementsFrameCode
 

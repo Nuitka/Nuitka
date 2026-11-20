@@ -1,11 +1,7 @@
 #     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-"""Reports about code generation.
-
-Initially this is about missing optimization only, but it should expand into
-real stuff.
-"""
+"""Reports about missing code generation helpers and optimizations."""
 
 from nuitka.containers.OrderedDicts import OrderedDict
 from nuitka.containers.OrderedSets import OrderedSet
@@ -21,7 +17,6 @@ _missing_trust = OrderedDict()
 _missing_overloads = OrderedDict()
 
 _error_for_missing = False
-# _error_for_missing = True
 
 
 def doMissingOptimizationReport():

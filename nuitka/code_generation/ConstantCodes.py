@@ -3,14 +3,8 @@
 
 """Low level constant code generation.
 
-This deals with constants, there creation, there access, and some checks about
-them. Even mutable constants should not change during the course of the
-program.
-
-There are shared constants, which are created for multiple modules to use, you
-can think of them as globals. And there are module local constants, which are
-for a single module only.
-
+Deals with shared global constants, module-local constants, and deep-hash
+integrity checks.
 """
 
 import os
@@ -44,12 +38,10 @@ from .templates.CodeTemplatesModules import template_header_guard
 
 
 def generateConstantReferenceCode(to_name, expression, emit, context):
-    """Assign the constant behind the expression to to_name."""
-
     to_name.getCType().emitAssignmentCodeFromConstant(
         to_name=to_name,
         constant=expression.getCompileTimeConstant(),
-        # Derive this from context.
+        # TODO: Derive this from context.
         may_escape=True,
         emit=emit,
         context=context,
@@ -104,19 +96,13 @@ def getTypeDescriptionDefinitionCodes(type_description_values):
 
     All descriptions are exported as pointer variables, so that generated
     modules can declare the ones they use uniformly, whether they are a host
-    array or an alias to one. Each definition is preceded by an "extern"
+    array or an alias to one. Each definition is preceded by an 'extern'
     declaration, because a namespace scope const object would otherwise have
     internal linkage in C++ and not be visible to the modules there.
 
     The description contents are indicator tokens, while the emitted arrays
-    use the "NUITKA_FRAME_LOCALS_TYPE_*" macros of the active spec header, so
+    use the 'NUITKA_FRAME_LOCALS_TYPE_*' macros of the active spec header, so
     their actual byte values do not matter here.
-
-    Args:
-        type_description_values: set of all type descriptions used program wide.
-
-    Returns:
-        List of definition lines.
     """
     # Type description indicators to macros of "constants_blob_spec.h".
     indicator_codes = {
@@ -194,13 +180,8 @@ def getTypeDescriptionDefinitionCodes(type_description_values):
 
 
 def getConstantsDefinitionCode():
-    """Create the code code "__constants.c" and "__constants.h" files.
-
-    This needs to create code to make all global constants (used in more
-    than one module) and create them.
-
-    """
-    # Somewhat detail rich, pylint: disable=too-many-locals
+    """Create the code for '__constants.c' and '__constants.h'."""
+    # pylint: disable=too-many-locals
 
     constant_accessor = GlobalConstantAccessor(
         data_filename="__constants.const", top_level_name="global_constants"
@@ -378,9 +359,7 @@ _metadata_values = {}
 def addDistributionMetadataValue(distribution_name, distribution, reason):
     assert type(distribution_name) in (str, unicode), distribution_name
 
-    # Extract what we need to from the distribution object.
     if distribution_name not in _metadata_values:
-        # The user doesn't have this handy.
         if distribution is None:
             distribution = getDistribution(distribution_name)
 

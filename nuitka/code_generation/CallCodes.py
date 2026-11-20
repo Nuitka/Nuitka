@@ -27,7 +27,7 @@ from .templates.CodeTemplatesModules import template_helper_impl_decl
 def _generateCallCodePosOnly(
     to_name, expression, called_name, called_attribute_name, emit, context
 ):
-    # We have many variants for this to deal with, pylint: disable=too-many-branches
+    # pylint: disable=too-many-branches
 
     assert called_name is not None
     # TODO: Not yet specialized for method calls.
@@ -294,7 +294,7 @@ def getCallCodeKwPairs(
 
         dict_value_name = context.allocateTempName("kw_call_value_%d" % count)
 
-        # TODO: Need to make it easier to generator constant values here without
+        # TODO: Need to make it easier to generate constant values here without
         # going through nodes.
         generateExpressionCode(
             to_name=dict_value_name,
@@ -330,7 +330,7 @@ def getCallCodeKwPairs(
             context=context,
         )
     else:
-        # This is called on generic pairs in some cases. TODO: Make passing expression and needs_check propagate more up.
+        # TODO: Make passing expression and needs_check propagate more up.
         getCallCodeNoArgs(
             to_name=to_name,
             called_name=called_name,
@@ -391,9 +391,7 @@ def generateCallCode(to_name, expression, emit, context):
 
 
 def _generateCallCode(to_name, expression, emit, context):
-    # There is a whole lot of different cases, for each of which, we create
-    # optimized code, constant, with and without positional or keyword arguments
-    # each, so there is lots of branches involved. pylint: disable=too-many-branches
+    # pylint: disable=too-many-branches
 
     called = expression.subnode_called
     call_kw = expression.subnode_kwargs
@@ -457,7 +455,6 @@ def _generateCallCode(to_name, expression, emit, context):
 
             if call_args is None or call_args.isExpressionConstantTupleEmptyRef():
                 if call_kw.isExpressionConstantDictRef():
-                    # Optimization should have turned that into a raise exception.
                     assert call_kw.isMappingWithConstantStringKeys()
 
                     _getCallCodeKwSplitFromConstant(
@@ -498,7 +495,6 @@ def _generateCallCode(to_name, expression, emit, context):
                     call_kw.isExpressionConstantDictRef()
                     and call_args.isExpressionConstantTupleRef()
                 ):
-                    # Both are constant, merge values into one tuple and pass it on.
                     _getCallCodePosConstantKeywordConstArgs(
                         to_name=result_name,
                         called_name=called_name,
@@ -512,7 +508,6 @@ def _generateCallCode(to_name, expression, emit, context):
                     call_kw.isExpressionMakeDict()
                     and call_args.isExpressionConstantTupleRef()
                 ):
-                    # Only positional args are constant, create tuple and split keyword values.
                     _getCallCodePosConstKeywordVariableArgs(
                         to_name=result_name,
                         called_name=called_name,
@@ -526,7 +521,6 @@ def _generateCallCode(to_name, expression, emit, context):
                     call_kw.isExpressionConstantDictRef()
                     and call_args.isExpressionMakeTuple()
                 ):
-                    # Only keyword args are constant, split them from variable positional args.
                     _getCallCodePosVariableKeywordConstArgs(
                         to_name=result_name,
                         called_name=called_name,
@@ -539,7 +533,6 @@ def _generateCallCode(to_name, expression, emit, context):
                 elif (
                     call_kw.isExpressionMakeDict() and call_args.isExpressionMakeTuple()
                 ):
-                    # None are constant, pass as args array split keyword values.
                     getCallCodePosVariableKeywordVariableArgs(
                         to_name=result_name,
                         expression=expression,
@@ -550,8 +543,6 @@ def _generateCallCode(to_name, expression, emit, context):
                         context=context,
                     )
                 else:
-                    # Otherwise, pass as tuple and dict
-
                     call_args_name = generateChildExpressionCode(
                         expression=call_args, emit=emit, context=context
                     )
@@ -628,14 +619,10 @@ def _getInstanceCallCodePosArgsQuick(
     context,
 ):
     arg_size = len(arg_names)
-
-    # For 0 arguments, NOARGS is supposed to be used.
     assert arg_size > 0
 
     emitLineNumberUpdateCode(expression, emit, context)
 
-    # For one argument, we have a dedicated helper function that might
-    # be more efficient.
     if arg_size == 1:
         emit(
             """%s = CALL_METHOD_WITH_SINGLE_ARG(tstate, %s, %s, %s);"""
@@ -679,14 +666,10 @@ def _getInstanceCallCodePosArgsQuick(
 
 def getCallCodePosArgsQuick(to_name, called_name, arg_names, expression, emit, context):
     arg_size = len(arg_names)
-
-    # For 0 arguments, NOARGS is supposed to be used.
     assert arg_size > 0
 
     emitLineNumberUpdateCode(expression, emit, context)
 
-    # For one argument, we have a dedicated helper function that might
-    # be more efficient.
     if arg_size == 1:
         emit(
             """%s = CALL_FUNCTION_WITH_SINGLE_ARG(tstate, %s, %s);"""
@@ -735,7 +718,6 @@ def _getInstanceCallCodeFromTuple(
     quick_instance_calls_used.add(arg_size)
     context.addCallHelper(("method", arg_size))
 
-    # For 0 arguments, NOARGS is supposed to be used.
     assert arg_size > 0
 
     emitLineNumberUpdateCode(expression, emit, context)
@@ -783,15 +765,12 @@ def _getInstanceCallCodeFromTuple(
 
 def _getCallCodeFromTuple(to_name, called_name, expression, args_value, emit, context):
     arg_size = len(args_value)
-
-    # For 0 arguments, NOARGS is supposed to be used.
     assert arg_size > 0
 
     emitLineNumberUpdateCode(expression, emit, context)
 
-    # We create a tuple for the call, as this can be prepared and might have to be
-    # recreated for cases, e.g. when calling C functions, so this is a good way of
-    # having them.
+    # Mutable elements in the constant tuple require copying before passing, as
+    # C functions might mutate or retain them.
     if isMutable(args_value):
         arg_tuple_name = context.allocateTempName("call_args_tuple")
 
@@ -874,7 +853,7 @@ def _getCallCodePosArgs(to_name, called_name, expression, args_name, emit, conte
 def _getCallCodePosConstKeywordVariableArgs(
     to_name, called_name, expression, call_args, call_kw, emit, context
 ):
-    # More details, pylint: disable=too-many-locals
+    # pylint: disable=too-many-locals
 
     args = call_args.getCompileTimeConstant()
 
@@ -964,7 +943,7 @@ tstate, %(called_name)s, %(pos_args)s, kw_values, %(kw_names)s);
 def _getCallCodePosVariableKeywordConstArgs(
     to_name, called_name, expression, call_args, call_kw, emit, context
 ):
-    # Many details for this call variant, pylint: disable=too-many-locals
+    # pylint: disable=too-many-locals
     kw_items = tuple(call_kw.getCompileTimeConstant().items())
 
     kw_names = tuple(item[0] for item in kw_items)
@@ -1054,7 +1033,7 @@ def _getCallCodePosVariableKeywordConstArgs(
 def getCallCodePosVariableKeywordVariableArgs(
     to_name, expression, called_name, call_args, pairs, emit, context
 ):
-    # Many details for this call variant, pylint: disable=too-many-locals
+    # pylint: disable=too-many-locals
 
     kw_names = []
 

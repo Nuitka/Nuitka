@@ -4,7 +4,7 @@
 """Code generation for Python source from Nuitka node tree.
 
 Used for generating bytecode-backed functions, if so decided. The main
-important use is "__annotate__" functions.
+important use is '__annotate__' functions.
 """
 
 import re
@@ -32,7 +32,7 @@ def getFunctionMakerIdentifier(function_identifier):
 
 
 class PythonSourceGenerationError(Exception):
-    """Raised when a Nuitka node cannot be converted to Python source."""
+    pass
 
 
 # Operator precedence levels from lowest to highest, matching the Python
@@ -56,7 +56,6 @@ _PREC_ATOM = 16
 
 
 def _isBuiltinNameShadowed(node, builtin_name):
-    """Check whether `builtin_name` is shadowed in the node's generated scope."""
     current = node.getParent()
 
     while current is not None and not current.isParentVariableProvider():
@@ -98,7 +97,6 @@ def _isBuiltinNameShadowed(node, builtin_name):
 
 
 def _getBuiltinCallableSource(node, builtin_name):
-    """Return `builtin_name`, or `builtins` lookup if shadowed in scope."""
     if _isBuiltinNameShadowed(node, builtin_name):
         if _isBuiltinNameShadowed(node, "__import__"):
             raise PythonSourceGenerationError(
@@ -111,25 +109,8 @@ def _getBuiltinCallableSource(node, builtin_name):
     return builtin_name
 
 
-# ---------------------------------------------------------------------------
-# Per-kind generators
-
-
 def _formatTypeSource(value, expression):
-    """Return the source representation of a type constant.
-
-    Only built-in types (int, str, list, dict, etc.) are available as bare
-    names in module globals.  Types from imported modules (e.g. io.BytesIO)
-    are emitted as `module_alias.TypeName` when an alias can be found, or
-    via `__import__()` otherwise.
-
-    Args:
-        value: The type to format.
-        expression: Nuitka expression node for alias resolution.
-
-    Returns:
-        The type name as a Python source string.
-    """
+    """Format a type constant as Python source via module alias or '__import__'."""
     if value.__module__ in ("builtins", None):
         return _getBuiltinCallableSource(expression, value.__name__)
 
@@ -150,7 +131,6 @@ def _generateConstantTypeRefSource(expression):
 
 
 def _formatConstantFloat(value, expression):
-    # The expression argument is for the uniform dispatch only.
     # pylint: disable=unused-argument
     # "repr" gives bare "inf", "-inf" and "nan", which are names, not literals.
     result = repr(value)
@@ -166,8 +146,6 @@ def _formatConstantComplex(value, expression):
 
     # "repr" of complex numbers with nan/inf components yields bare
     # "nan"/"inf" tokens (e.g. "(nan+1j)"), which are names, not literals.
-    # For such values fall back to "complex(real, imag)" so each component
-    # is formatted via '_formatConstantFloat'.
     if repr(real) in ("inf", "-inf", "nan") or repr(imag) in ("inf", "-inf", "nan"):
         return "complex(%s, %s)" % (
             _formatConstantFloat(real, expression),
@@ -178,24 +156,21 @@ def _formatConstantComplex(value, expression):
 
 
 def _formatConstantRepr(value, expression):
-    # The expression argument is for the uniform dispatch only.
     # pylint: disable=unused-argument
     return repr(value)
 
 
 def _formatConstantStr(value, expression):
-    # The expression argument is for the uniform dispatch only.
     # pylint: disable=unused-argument
     return str(value)
 
 
 def _formatEllipsisValue(value, expression):
-    # We insist on this value that is not the repr, pylint: disable=unused-argument
+    # pylint: disable=unused-argument
     return "..."
 
 
 def _formatFunctionValue(value, expression):
-    # The expression argument is for the uniform dispatch only.
     # pylint: disable=unused-argument
     return value.__name__
 
@@ -207,9 +182,6 @@ def _formatConstantSlice(value, expression):
         _formatConstantElement(value.step, expression),
     ]
 
-    # Omit trailing None components while keeping at least one argument
-    # (e.g. `slice(None, 5)` rather than `slice(None, 5, None)`, and
-    # `slice(None)` for `slice(None, None, None)`).
     while len(parts) > 1 and parts[-1] == "None":
         parts.pop()
 
@@ -349,12 +321,7 @@ def _generateFrozendictConstantSource(expression):
 
 
 def _findAliasForModule(module, target):
-    """Find the module variable name for `target` via trace collection.
-
-    Returns the variable name (the alias, or the module name itself when it
-    was imported without a rename) if a module variable for `target` exists,
-    else None.
-    """
+    """Return module variable name imported for 'target', or 'None'."""
     trace_collection = module.getTraceCollection()
 
     for variable, traces in trace_collection.variable_traces.items():
@@ -380,7 +347,6 @@ def _findAliasForModule(module, target):
                 if module_name.asString() == target:
                     return variable.getName()
             elif node.isExpressionBuiltinImport():
-                # General import `import mymod as mm` -> `__import__('mymod')`
                 name_node = node.subnode_name
 
                 if name_node is None or not name_node.isExpressionConstantRef():
@@ -402,7 +368,6 @@ def _generateGenericAliasSource(expression):
 
     module = expression.getParentModule()
 
-    # Cache alias lookups per module/target.
     alias_cache = {}
 
     def _replaceAlias(match):
@@ -1134,7 +1099,6 @@ def _generateSliceSource(expression):
 
 
 def _generateComparisonSource(expression):
-    # Comparison nodes have a 'comparator' class attribute, e.g. "Gt", "GtE".
     comparator = type(expression).comparator
 
     operators = {
@@ -1246,7 +1210,6 @@ def _generateYieldFromSource(expression):
 
 
 def _generateLambdaSource(expression):
-    # `lambda x: y` - `EXPRESSION_FUNCTION_CREATION` with `FunctionRef` for `<lambda>`
     assert expression.isExpressionFunctionCreation()
     func_body = expression.subnode_function_ref.getFunctionBody()
 
@@ -1275,12 +1238,7 @@ def _generateLambdaSource(expression):
     )
 
 
-# ---------------------------------------------------------------------------
-# Statement-level source generation
-
-
 def generateStatementSequenceSource(statement_seq, indent=""):
-    """Generate Python source for a StatementsSequence."""
     lines = []
 
     for statement in statement_seq.subnode_statements:
@@ -1376,21 +1334,7 @@ _annotate_argument_name = "_annotate_argument"
 
 
 def getAnnotateSourceVariableName(variable):
-    """Get a valid Python identifier for an annotate function variable.
-
-    Notes:
-        Nuitka internal variable names can contain characters that are not
-        valid in Python identifiers, e.g. for temporary variables of class
-        bodies with type parameters. These need translated names in the
-        generated Python source of annotate functions.
-
-    Args:
-        variable: The variable to get a source name for.
-
-    Returns:
-        Source code name for the variable.
-    """
-
+    """Translate a Nuitka variable name (e.g. containing '$') into a valid Python identifier."""
     variable_name = variable.getName()
 
     if variable_name.isidentifier():
@@ -1410,15 +1354,6 @@ def getAnnotateSourceVariableName(variable):
 
 
 def getAnnotateClosureVariables(function_body):
-    """Get closure variables sorted by their source code names.
-
-    Args:
-        function_body: Function body node to get closure variables for.
-
-    Returns:
-        Tuple of closure variables in source code name order.
-    """
-
     return tuple(
         sorted(
             function_body.getClosureVariables(),
@@ -1498,19 +1433,7 @@ def generateFunctionSourceFromBody(function_body):
 
 
 def getFunctionCodeObjectFromSource(function_body, compiled):
-    """Get the code object for a function generated from source.
-
-    Notes:
-        With closure variables, the source is wrapped in a factory, and the
-        function code object is nested inside the factory's code object.
-
-    Args:
-        function_body: Function body node the source was generated for.
-        compiled: Compiled source (module code object) to extract from.
-
-    Returns:
-        The code object of the generated function.
-    """
+    """Extract the generated function code object (unwrapping closure factory if used)."""
     result = compiled.co_consts[0]
 
     if not function_body.getClosureVariables():
@@ -1625,9 +1548,6 @@ def _generateBuiltinPatchableTypeRefSource(expression):
 
 
 def _generateImportModuleHardSource(expression):
-    # Hard imports (e.g. `typing`) may be optimized away and not kept as a
-    # global variable (e.g. `t` for `import typing as t` can be dead).
-    # Try to find the original alias via trace collection.
     target = expression.getModuleName().asString()
     module = expression.getParentModule()
     alias = _findAliasForModule(module, target)
@@ -1639,9 +1559,6 @@ def _generateImportModuleHardSource(expression):
 
 
 def _generateImportModuleNameHardSource(expression):
-    # These are `from module import name` names, e.g. `from typing import List`.
-    # The import name is the local name, which is the module global resolved by
-    # annotationlib, unless an `as` alias was used.
     import_name = expression.getImportName()
     module_name = expression.getModuleName()
     target = module_name.asString() if hasattr(module_name, "asString") else module_name
@@ -1653,9 +1570,6 @@ def _generateImportModuleNameHardSource(expression):
 
     return "__import__(%r).%s" % (target, import_name), _PREC_POSTFIX
 
-
-# ---------------------------------------------------------------------------
-# Dispatch table
 
 _expression_source_dispatch = {
     "EXPRESSION_CONSTANT_TYPE_REF": _generateConstantTypeRefSource,
@@ -1787,8 +1701,6 @@ _expression_source_dispatch = {
     "EXPRESSION_CTYPES_CDLL_REF": _generateImportModuleNameHardSource,
 }
 
-# Fixed-name attribute lookups, e.g. ".get", ".copy", ".format", ".replace",
-# and their type-specialized variants for dict, list, str, bytes, and type.
 _expression_source_dispatch.update(
     (attribute_class.kind, _generateAttributeLookupSource)
     for attribute_class in attribute_classes.values()
@@ -1799,9 +1711,6 @@ _expression_source_dispatch.update(
     for attribute_class in attribute_typed_classes
 )
 
-# Hard import builtin reference nodes, e.g. "memoryview", "open", "print",
-# "reversed" and "sorted" use specialized classes with their own kinds, and
-# are to be treated like the generic builtin references.
 _expression_source_dispatch.update(
     (builtin_ref_class.kind, _generateBuiltinRefSource)
     for builtin_ref_class in getBuiltinRefNodes().values()
@@ -1822,7 +1731,7 @@ _checked_dispatch_kinds = False
 
 def _checkDispatchKinds():
     """Verify all source-generation kinds exist in C code generation."""
-    # Singleton, pylint: disable=global-statement
+    # pylint: disable=global-statement
     global _checked_dispatch_kinds
 
     if _checked_dispatch_kinds:
@@ -1838,8 +1747,6 @@ def _checkDispatchKinds():
             )
 
     for kind in _statement_source_dispatch:
-        # Frame statements are not in the dispatch dictionary, the C code
-        # generation handles them manually in "_generateStatementSequenceCode".
         if kind == "STATEMENTS_FRAME_FUNCTION":
             continue
 
@@ -1875,11 +1782,7 @@ def _generateSubExpressionSource(expression, min_precedence):
 
 
 def generateExpressionSource(expression):
-    """Generate Python source code for a Nuitka expression node.
-
-    Returns a string of valid Python source.
-    Raises PythonSourceGenerationError for unsupported node kinds.
-    """
+    """Generate Python source for 'expression', raising 'PythonSourceGenerationError' if unsupported."""
     source, _precedence = _generateExpressionSourceWithPrecedence(expression)
     return source
 

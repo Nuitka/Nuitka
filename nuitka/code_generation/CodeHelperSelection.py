@@ -58,8 +58,6 @@ def selectCodeHelper(
         ):
             onMissingHelper(helper_function, source_ref)
 
-        # print(helper_function, source_ref, len(specialized_helpers_set))
-
         helper_function = None
 
     return result_type, helper_function

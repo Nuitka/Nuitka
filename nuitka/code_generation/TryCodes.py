@@ -19,17 +19,11 @@ from .VariableCodes import getVariableAssignmentCode
 
 
 def generateTryCode(statement, emit, context):
-    # The try construct is the most complex for code generation. We may need to
-    # react on break, continue, return, raise in the handlers. For exception
-    # and return handlers, we need to be able to re-raise or re-return.
-    # So this is full of detail stuff, pylint: disable=too-many-branches,too-many-locals,too-many-statements
+    # pylint: disable=too-many-branches,too-many-locals,too-many-statements
 
     if generateTryNextExceptStopIterationCode(statement, emit, context):
         return
 
-    # Get the statement sequences involved. All except the tried block can be
-    # None. For the tried block it would be a missed optimization. Also not all
-    # the handlers must be None, then it's also a missed optimization.
     tried_block = statement.subnode_tried
 
     except_handler = statement.subnode_except_handler
@@ -46,35 +40,26 @@ def generateTryCode(statement, emit, context):
         or return_handler is not None
     ), statement.asXmlText()
 
-    # The tried statements might raise, for which we define an escape.
     tried_handler_escape = context.allocateLabel("try_except_handler")
     if tried_block_may_raise:
         old_exception_escape = context.setExceptionEscape(tried_handler_escape)
 
-    # The tried statements might continue, for which we define an escape.
     continue_handler_escape = context.allocateLabel("try_continue_handler")
     if continue_handler is not None:
         old_continue_target = context.setLoopContinueTarget(continue_handler_escape)
 
-    # The tried statements might break, for which we define an escape.
     break_handler_escape = context.allocateLabel("try_break_handler")
     if break_handler is not None:
         old_break_target = context.setLoopBreakTarget(break_handler_escape)
 
-    # The tried statements might return, for which we define an escape.
     return_handler_escape = context.allocateLabel("try_return_handler")
     if return_handler is not None:
         old_return_target = context.setReturnTarget(return_handler_escape)
 
-    # Now the tried block can be generated, cannot be "None" or else the
-    # optimization failed.
-    emit("// Tried code:")
     generateStatementSequenceCode(
         statement_sequence=tried_block, emit=emit, allow_none=False, context=context
     )
 
-    # Restore the old escape targets as preserved above, during the handlers,
-    # the parent handlers should be back in effect.
     if tried_block_may_raise:
         context.setExceptionEscape(old_exception_escape)
 
@@ -100,12 +85,10 @@ def generateTryCode(statement, emit, context):
     if return_handler is not None:
         assert tried_block.mayReturn()
 
-        emit("// Return handler code:")
         getLabelCode(return_handler_escape, emit)
 
-        # During the return value, the value being returned is in a variable,
-        # and therefore needs to be released before being updated with a new
-        # return value.
+        # During the return handler, the pending return value is held in a
+        # variable and must be released if overwritten by a new return.
         old_return_value_release = context.setReturnReleaseMode(True)
         old_return_release_loop_targets = context.setReturnReleaseLoopTargets(
             break_target=context.getLoopBreakTarget(),
@@ -151,10 +134,8 @@ def generateTryCode(statement, emit, context):
         assert return_handler.isStatementAborting()
 
     if tried_block_may_raise:
-        emit("// Exception handler code:")
         getLabelCode(tried_handler_escape, emit)
 
-        # Need to preserve exception state.
         (
             keeper_exception_state_name,
             keeper_lineno,
@@ -210,7 +191,6 @@ INIT_ERROR_OCCURRED_STATE(&%(exception_state_name)s);
     if break_handler is not None:
         assert tried_block.mayBreak()
 
-        emit("// try break handler code:")
         getLabelCode(break_handler_escape, emit)
 
         generateStatementSequenceCode(
@@ -225,7 +205,6 @@ INIT_ERROR_OCCURRED_STATE(&%(exception_state_name)s);
     if continue_handler is not None:
         assert tried_block.mayContinue()
 
-        emit("// try continue handler code:")
         getLabelCode(continue_handler_escape, emit)
 
         generateStatementSequenceCode(
@@ -237,15 +216,12 @@ INIT_ERROR_OCCURRED_STATE(&%(exception_state_name)s);
 
         assert continue_handler.isStatementAborting()
 
-    emit("// End of try:")
-
     if post_label is not None:
         getLabelCode(post_label, emit)
 
 
 def generateTryNextExceptStopIterationCode(statement, emit, context):
-    # This has many branches which mean this optimized code generation is not
-    # applicable, we return each time. pylint: disable=too-many-branches,too-many-return-statements
+    # pylint: disable=too-many-branches,too-many-return-statements
 
     except_handler = statement.subnode_except_handler
 

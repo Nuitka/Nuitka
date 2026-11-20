@@ -70,10 +70,8 @@ def getModuleCode(
     module_const_blob_symbol_name,
     context,
 ):
-    # For the module code, lots of arguments and attributes come together.
     # pylint: disable=too-many-branches,too-many-locals,too-many-statements
 
-    # Temporary variable initializations
     # TODO: Move that to a place outside of functions.
     from .FunctionCodes import (
         finalizeFunctionLocalVariables,
@@ -154,11 +152,10 @@ def getModuleCode(
 
     module_init_codes = context.getModuleInitCodes()
 
-    # Create the always identical, but dynamic filename first thing.
     module_filename = module.getRunTimeFilename()
 
-    # We do not care about release of this object, as code object live
-    # forever anyway.
+    # Intentionally never released, as module code objects reference it for the
+    # process lifetime.
     if getFileReferenceMode() == "frozen" or os.path.isabs(module_filename):
         module_filename_obj_code = context.getConstantCode(constant=module_filename)
     else:

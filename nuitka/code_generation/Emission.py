@@ -28,7 +28,6 @@ def withSubCollector(emit, context):
     with context.variable_storage.withLocalStorage():
         sub_emit = SourceCodeCollector()
 
-        # To use the collector and put code in it and C declarations on the context.
         yield sub_emit
 
         local_declarations = context.variable_storage.makeCLocalDeclarations()

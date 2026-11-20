@@ -329,8 +329,6 @@ def generateExecCode(statement, emit, context):
             context=context,
         )
 
-        # Immediately release the exec result, no point in keeping it, it's a
-        # statement.
         context.addCleanupTempName(to_name)
         getReleaseCode(release_name=to_name, emit=emit, context=context)
 

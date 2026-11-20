@@ -63,7 +63,7 @@ def getCoroutineObjectCode(
     needs_exception_exit,
     needs_generator_return,
 ):
-    # A bit of details going on here, pylint: disable=too-many-locals
+    # pylint: disable=too-many-locals
 
     setupFunctionLocalVariables(
         context=context,

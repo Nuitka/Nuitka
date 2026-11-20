@@ -1,16 +1,7 @@
 #     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-"""The code generation.
-
-No language specifics at all are supposed to be present here. Instead it is
-using primitives from the given generator to build code sequences (list of
-strings).
-
-As such this is the place that knows how to take a condition and two code
-branches and make a code block out of it. But it doesn't contain any target
-language syntax.
-"""
+"""Top-level C code generation entry points and node dispatch registration."""
 
 from nuitka.build.DataComposerInterface import getConstantBlobSymbolName
 from nuitka.ModuleRegistry import addModuleCodeGenerationTimeInformation
@@ -582,8 +573,6 @@ def generateFunctionBodyCode(function_body, context):
 
 
 def _generateModuleCode(module, data_filename):
-    # As this not only creates all modules, but also functions, it deals
-    # also with its functions.
     assert module.isCompiledPythonModule(), module
 
     context = PythonModuleContext(
@@ -598,7 +587,6 @@ def _generateModuleCode(module, data_filename):
 
     for function_body in module.getUsedFunctions():
         if function_body.needsCreation():
-            # Constant function returners get no code.
             (
                 is_constant_returning,
                 _constant_return_value,
@@ -1146,26 +1134,21 @@ addExpressionDispatchDict(
         # TODO: Should have all of these generically or not. This one is required for now.
         "EXPRESSION_DICT_OPERATION_FROMKEYS_REF": generateDictOperationFromkeysRefCode,
         "EXPRESSION_TYPE_OPERATION_PREPARE": generateTypeOperationPrepareCode,
-        # PyPI module "tensorflow" specific stuff
         "EXPRESSION_TENSORFLOW_FUNCTION_REF": generateImportModuleNameHardCode,
         "EXPRESSION_TENSORFLOW_FUNCTION_CALL": generateTensorflowFunctionCallCode,
-        # PyPI module "networkx" specific stuff
         "EXPRESSION_NETWORKX_UTILS_DECORATORS_ARGMAP_REF": generateImportModuleNameHardCode,
         "EXPRESSION_NETWORKX_UTILS_DECORATORS_ARGMAP_CALL": generateNetworkxUtilsDecoratorsArgmapCallCode,
     }
 )
 
-# Add code generation for the EXPRESSION_ATTRIBUTE_LOOKUP_FIXED_* variety
 addExpressionDispatchDict(
     dict((cls.kind, generateAttributeLookupCode) for cls in attribute_classes.values())
 )
 
-# Add code generation for the EXPRESSION_ATTRIBUTE_LOOKUP_DICT|LIST|STR_* variety
 addExpressionDispatchDict(
     dict((cls.kind, generateAttributeLookupCode) for cls in attribute_typed_classes)
 )
 
-# Add code generation for the EXPRESSION_STR_OPERATION_* nodes.
 addExpressionDispatchDict(
     dict(
         (cls.kind, generateStrOperationCode)
@@ -1174,13 +1157,10 @@ addExpressionDispatchDict(
     )
 )
 
-# Add code generation for the EXPRESSION_BYTES_OPERATION_* nodes.
 addExpressionDispatchDict(
     dict((cls.kind, generateBytesOperationCode) for cls in getBytesOperationClasses())
 )
 
-
-# Add code generation for the EXPRESSION_BUILTINS_*_REF nodes.
 addExpressionDispatchDict(
     dict((cls.kind, generateBuiltinRefCode) for cls in getBuiltinRefNodes().values())
 )

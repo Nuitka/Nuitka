@@ -1,7 +1,7 @@
 #     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-"""CType classes for PyObject *, PyObject **, and struct Nuitka_CellObject *"""
+"""CType classes for 'PyObject *', 'PyObject **', and 'struct Nuitka_CellObject *'."""
 
 from nuitka.__past__ import frozendict, iterItems, xrange
 from nuitka.code_generation.ErrorCodes import (
@@ -122,7 +122,7 @@ class CPythonPyObjectPtrBase(CTypeBase):
 
     @classmethod
     def emitAssignInplaceNegatedValueCode(cls, to_name, needs_check, emit, context):
-        # Half way, virtual method: pylint: disable=unused-argument
+        # pylint: disable=unused-argument
 
         update_code = "%(to_name)s = (%(truth_check)s) ? Py_False : Py_True" % {
             "truth_check": cls.getTruthCheckCode(to_name),
@@ -177,7 +177,7 @@ class CPythonPyObjectPtrBase(CTypeBase):
     def emitAssignmentCodeFromConstant(
         cls, to_name, constant, may_escape, emit, context
     ):
-        # Many cases to deal with, pylint: disable=too-many-branches,too-many-statements
+        # pylint: disable=too-many-branches,too-many-statements
 
         if type(constant) is dict:
             if not may_escape:
@@ -185,7 +185,6 @@ class CPythonPyObjectPtrBase(CTypeBase):
                 ref_count = 0
             elif constant:
                 for key, value in iterItems(constant):
-                    # key cannot be mutable.
                     assert not isMutable(key)
                     if isMutable(value):
                         needs_deep = True
@@ -345,7 +344,6 @@ class CTypePyObjectPtr(CPythonPyObjectPtrBase):
 
     @classmethod
     def holdsObjectReference(cls):
-        # The value itself is the Python object reference.
         return True
 
     @classmethod
@@ -394,7 +392,7 @@ class CTypePyObjectPtr(CPythonPyObjectPtrBase):
 
     @classmethod
     def emitValueAccessCode(cls, value_name, emit, context):
-        # Nothing to do for this type, pylint: disable=unused-argument
+        # pylint: disable=unused-argument
         return value_name
 
     @classmethod
@@ -441,8 +439,6 @@ class CTypePyObjectPtr(CPythonPyObjectPtrBase):
 
     @classmethod
     def getTakeReferenceCode(cls, value_name, emit):
-        """Take reference code for given object."""
-
         emit("Py_INCREF(%s);" % value_name)
 
 
@@ -474,10 +470,9 @@ class CTypePyObjectPtrPtr(CPythonPyObjectPtrBase):
 
     @classmethod
     def emitValueAccessCode(cls, value_name, emit, context):
-        # No code needed for this type, pylint: disable=unused-argument
+        # pylint: disable=unused-argument
         from ..VariableDeclarations import VariableDeclaration
 
-        # Use the object pointed to.
         return VariableDeclaration(
             c_type="PyObject *",
             code_name="*%s" % value_name,
@@ -551,10 +546,9 @@ class CTypeCellObject(CTypeBase):
 
     @classmethod
     def emitValueAccessCode(cls, value_name, emit, context):
-        # No code needed for this type, pylint: disable=unused-argument
+        # pylint: disable=unused-argument
         from ..VariableDeclarations import VariableDeclaration
 
-        # Use the object pointed to.
         return VariableDeclaration(
             c_type="PyObject *",
             code_name="Nuitka_Cell_GET(%s)" % value_name,

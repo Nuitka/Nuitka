@@ -13,19 +13,19 @@ from nuitka.targets.Targets import isWin32Target
 
 
 def getConstantDefaultPopulation():
-    """These are values for non-trivial constants.
+    """Return values for non-trivial constants.
 
-    Constants that have a direct name, e.g. Py_True are trivial, these are for things that must
-    be constructed through code.
+    Constants that have a direct name (e.g. 'Py_True') are trivial; these are
+    for things that must be constructed through code.
     """
 
-    # Lots of cases, pylint: disable=too-many-branches,too-many-statements
+    # pylint: disable=too-many-branches,too-many-statements
 
     # Note: Can't work with set here, because we need to put in some values that
     # cannot be hashed.
 
     result = [
-        # Basic values that the helper code uses all the times.
+        # Basic values that the helper code uses all the time.
         (),
         {},
         0,
@@ -55,8 +55,7 @@ def getConstantDefaultPopulation():
         "__abstractmethods__",
         "__closure__",
         "__instancecheck__",
-        # TODO: For PyObject_IsSubClass one day
-        # "__subclasscheck__",
+        # TODO: Add "__subclasscheck__" for PyObject_IsSubClass.
         "__dict__",
         "__doc__",
         "__file__",
@@ -138,14 +137,12 @@ def getConstantDefaultPopulation():
         result += ("getattr",)
 
     if python_version >= 0x300:
-        # For Python3 modules
         result += ("__cached__",)
 
     if python_version >= 0x300:
         # For Python3 print
         result += ("end", "file")
 
-        # For Python3 "bytes" built-in.
         result.append("bytes")
 
         # Module lock handling of direct imports.
@@ -164,9 +161,7 @@ def getConstantDefaultPopulation():
         result.append("_")
 
     if python_version >= 0x300:
-        # Modules have that attribute starting with Python3
         result.append("__loader__")
-        # Also very unavoidable with Python3
         result.append("__annotations__")
 
         # YIELD_FROM uses this
@@ -185,11 +180,9 @@ def getConstantDefaultPopulation():
         # For setting Python2 "sys" attributes for current exception
         result += ("exc_type", "exc_value", "exc_traceback")
 
-    # The xrange built-in is Python2 only.
     if python_version < 0x300:
         result.append("xrange")
 
-    # Executables only
     if not shallMakeModule():
         # The "site" module is referenced in inspect patching.
         result.append("site")
@@ -232,7 +225,6 @@ def getConstantDefaultPopulation():
         result.append("register")
 
     if python_version >= 0x370:
-        # New class method
         result.append("__class_getitem__")
 
     if python_version >= 0x370:

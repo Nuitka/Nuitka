@@ -139,8 +139,7 @@ def getFunctionMakerCode(
     type_params_name,
     context,
 ):
-    # We really need this many parameters here and functions have many details,
-    # that we express as variables, pylint: disable=too-many-locals
+    # pylint: disable=too-many-locals
     function_creation_args = getFunctionCreationArgs(
         defaults_name=defaults_name,
         kw_defaults_name=kw_defaults_name,
@@ -163,7 +162,7 @@ def getFunctionMakerCode(
         function_impl_identifier = "NULL"
 
         if constant_return_value is None:
-            # Default value, spare the code for common case.
+            # Default value in the function struct, no explicit setup needed.
             constant_return_code = ""
         elif constant_return_value is True:
             constant_return_code = "Nuitka_Function_EnableConstReturnTrue(result);"
@@ -249,7 +248,6 @@ Error, bytecode-to-compiled fallback is disallowed for annotate function '%s' at
 
 
 def generateFunctionCreationCode(to_name, expression, emit, context):
-    # This is about creating functions, which is detail ridden stuff,
     # pylint: disable=too-many-locals
 
     function_body = expression.subnode_function_ref.getFunctionBody()
@@ -330,7 +328,6 @@ def generateFunctionCreationCode(to_name, expression, emit, context):
 
     function_identifier = function_body.getCodeName()
 
-    # Creation code needs to be done only once.
     if not context.hasHelperCode(function_identifier):
         closure_variables = function_body.getClosureVariables()
 
@@ -432,7 +429,6 @@ def getFunctionCreationCode(
     if context.needsCleanup(type_params_name):
         context.removeCleanupTempName(type_params_name)
 
-    # No error checks, this supposedly, cannot fail.
     context.addCleanupTempName(to_name)
 
 
@@ -548,8 +544,7 @@ def setupFunctionLocalVariables(
     outline_variables,
     temp_variables,
 ):
-    # Parameter variable initializations
-    # Many cases due to the various local variable kinds, pylint: disable=too-many-branches,too-many-locals
+    # pylint: disable=too-many-branches,too-many-locals
     if parameters is not None:
         for count, variable in enumerate(parameters.getAllVariables()):
             variable_code_name, variable_c_type = decideLocalVariableCodeType(
@@ -698,7 +693,6 @@ def finalizeFunctionLocalVariables(context):
             "Py_XDECREF(%(locals_dict)s);\n" % {"locals_dict": locals_declaration}
         )
 
-    # Automatic variable releases if any.
     for variable in context.getOwner().getFunctionVariablesWithAutoReleases():
         variable_declaration = getLocalVariableDeclaration(
             context=context,
@@ -770,8 +764,7 @@ def _getFunctionCode(
     file_scope,
     needs_exception_exit,
 ):
-    # Functions have many details, that we express as variables, with many
-    # branches to decide, pylint: disable=too-many-locals
+    # pylint: disable=too-many-locals
 
     setupFunctionLocalVariables(
         context=context,
@@ -940,8 +933,7 @@ def generateFunctionCallCode(to_name, expression, emit, context):
 
 
 def generateFunctionOutlineCode(to_name, expression, emit, context):
-    # Many details for the outline code, including the exception line number
-    # handover, pylint: disable=too-many-locals
+    # pylint: disable=too-many-locals
     assert (
         expression.isExpressionOutlineBody()
         or expression.isExpressionOutlineFunctionBase()
@@ -963,8 +955,6 @@ def generateFunctionOutlineCode(to_name, expression, emit, context):
                         variable_declaration.getCType().getInitValue(None),
                     )
                 )
-
-    # Need to set return target, to assign to_name from.
 
     return_target = context.allocateLabel("outline_result")
     old_return_target = context.setReturnTarget(return_target)
@@ -1026,7 +1016,6 @@ def generateFunctionOutlineCode(to_name, expression, emit, context):
         if expression.needsReturnExit():
             getLabelCode(return_target, emit)
 
-    # Restore previous "return" handling.
     context.setReturnTarget(old_return_target)
     context.setReturnReleaseMode(old_return_release_mode)
     context.setReturnValueName(old_return_value_name)
@@ -1035,7 +1024,7 @@ def generateFunctionOutlineCode(to_name, expression, emit, context):
 def generateFunctionErrorStrCode(to_name, expression, emit, context):
     generateCAPIObjectCode(
         to_name=to_name,
-        # TODO: Should be inline this for
+        # TODO: Inline _PyObject_FunctionStr.
         capi="_PyObject_FunctionStr",
         tstate=False,
         arg_desc=(("func_arg", expression.subnode_value),),

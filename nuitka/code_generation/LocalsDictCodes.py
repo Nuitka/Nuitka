@@ -82,23 +82,10 @@ Py_DECREF(%(locals_dict)s);
 def assignDictOrMappingItem(
     target_name, key_name, value_name, is_dict_shape, may_raise, emit, context
 ):
-    """Set a key and value in a mapping.
+    """Set 'key_name' to 'value_name' in 'target_name' and consume 'value_name'.
 
-    Notes:
-        For exact dictionary shapes, the faster dictionary API is used, while
-        for mappings "SET_SUBSCRIPT" is used, and error checking is done when
-        setting is known to possibly raise.
-
-    Args:
-        target_name: Code name of the mapping to set in.
-        key_name: Code name of the key to set.
-        value_name: Code name of the value to set, the caller has to own a
-            reference for it.
-        is_dict_shape: Whether the mapping is known to be an exact dictionary.
-        may_raise: Whether setting the item may raise, e.g. for custom
-            mappings, and then error checking is done.
-        emit: Function to emit code to.
-        context: Code generation context.
+    Uses the exact-dict API when 'is_dict_shape' is true and 'SET_SUBSCRIPT'
+    otherwise; the caller must own a reference to 'value_name'.
     """
     if is_dict_shape and not may_raise:
         emit(

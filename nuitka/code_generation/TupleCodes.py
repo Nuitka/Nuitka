@@ -1,7 +1,7 @@
 #     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-"""Tuple codes"""
+"""Code generation for tuples."""
 
 from .CodeHelpers import (
     decideConversionCheckNeeded,
@@ -60,7 +60,6 @@ def getTupleCreationCode(to_name, elements, emit, context):
                     context=context,
                 )
 
-                # Use helper that makes sure we provide a reference.
                 if context.needsCleanup(element_name):
                     context.removeCleanupTempName(element_name)
                     helper_code = "PyTuple_SET_ITEM"

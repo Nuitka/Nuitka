@@ -33,8 +33,6 @@ from .PythonAPICodes import (
 
 
 def _generateBuiltinDictValueCode(to_name, expression, emit, context):
-    # Generated a plain dictionary for the arguments of the "dict" and
-    # "frozendict" built-ins.
     if expression.subnode_pos_arg:
         seq_name = context.allocateTempName("dict_seq")
 
@@ -49,9 +47,6 @@ def _generateBuiltinDictValueCode(to_name, expression, emit, context):
         seq_name = None
 
     if expression.subnode_pairs:
-        # If there is no sequence to mix in, then directly generate
-        # into to_name.
-
         if seq_name is None:
             getDictionaryCreationCode(
                 to_name=to_name,
@@ -153,11 +148,9 @@ def getDictionaryCreationCode(to_name, pairs, emit, context):
 
 
 def _getDictionaryCreationCode(to_name, pairs, emit, context):
-    # Detailed, and verbose code, pylint: disable=too-many-branches,too-many-locals,too-many-statements
+    # pylint: disable=too-many-branches,too-many-locals,too-many-statements
 
     pairs_count = len(pairs)
-
-    # Empty dictionaries should not get to this function, but be constant value instead.
     assert pairs_count > 0
 
     # Unique per dictionary, they might be nested, but used for all of them.
@@ -166,7 +159,6 @@ def _getDictionaryCreationCode(to_name, pairs, emit, context):
 
     is_hashable_key = [pair.isKeyKnownToBeHashable() for pair in pairs]
 
-    # Does this dictionary build need an exception handling at all.
     if all(is_hashable_key):
         for pair in pairs[1:]:
             if pair.mayRaiseException(BaseException):
@@ -218,7 +210,6 @@ def _getDictionaryCreationCode(to_name, pairs, emit, context):
 
     key_needs_release, value_needs_release = generatePairCode(pairs[0])
 
-    # Create dictionary pre-sized, using unicode-only keys when possible.
     if python_version >= 0x3B0 and _hasOnlyUnicodeKeys(pairs):
         emit("%s = MAKE_DICT_PRESIZED_UNICODE(tstate, %d);" % (to_name, pairs_count))
     else:
@@ -577,7 +568,6 @@ def generateDictOperationUpdate3Code(to_name, expression, emit, context):
             context=context,
         )
 
-    # Unique values per build here, but nested.
     dict_key_name = context.allocateTempName("dictupdate_key")
     dict_value_name = context.allocateTempName("dictupdate_value")
 
@@ -657,7 +647,6 @@ def generateDictOperationClearCode(to_name, expression, emit, context):
         context=context,
     )
 
-    # None result if wanted.
     assignConstantNoneResult(to_name, emit, context)
 
 

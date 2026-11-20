@@ -63,26 +63,11 @@ from .templates.CodeTemplatesModules import (
 
 
 def getModuleEntryIdentifier(module_name):
-    """Get the C identifier for the loader entry of a module name.
-
-    Args:
-        module_name: ModuleName of the module.
-
-    Returns:
-        C identifier of the entry, without the 'entry_' prefix.
-    """
+    """Return the C identifier for 'module_name' without the 'entry_' prefix."""
     return encodePythonIdentifierToC(module_name)
 
 
 def getModuleEntryCodeName(module_name):
-    """Get the C symbol name of the loader entry of a module name.
-
-    Args:
-        module_name: ModuleName of the module.
-
-    Returns:
-        C symbol name of the loader entry.
-    """
     return "entry_" + getModuleEntryIdentifier(module_name)
 
 
@@ -281,7 +266,7 @@ def getModuleMetaPathLoaderEntryCode(module, bytecode_accessor, entry_name):
 
 
 def getMetaPathLoaderBodyCode(bytecode_accessor):
-    # Somewhat detail rich, pylint: disable=too-many-locals
+    # pylint: disable=too-many-locals
     metapath_loader_inittab = []
     metapath_loader_decls = []
     metapath_loader_refs = []
@@ -374,7 +359,6 @@ def getMetaPathLoaderBodyCode(bytecode_accessor):
 
     frozen_defs = []
 
-    # Only the non-technical ones need to be there.
     for uncompiled_module in getUncompiledTechnicalModules():
         module_name = uncompiled_module.getFullName()
         code_data = uncompiled_module.getByteCode()
@@ -420,10 +404,7 @@ def getMetaPathLoaderBodyCode(bytecode_accessor):
             get_name_func = _getGetNameFuncCode()
             reason_c_string = encodePythonStringToC(reason.encode("utf8"))
 
-            # Check for "excluded by user" or similar reason if necessary,
-            # but for now we include all rejected modules that have a reason.
-            # We might want to filter this better, e.g. only if it starts with "Module ... instructed by user"
-            # For now, let's include all explicit 'False' decisions where we have a module name.
+            # TODO: Consider filtering excluded module entries by exclusion reason.
             metapath_loader_inittab.append(
                 template_metapath_loader_excluded_module_entry
                 % {

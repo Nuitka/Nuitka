@@ -1,10 +1,7 @@
 #     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-"""Code generation for lists.
-
-Right now only the creation is done here. But more should be added later on.
-"""
+"""Code generation for lists."""
 
 from .CodeHelpers import (
     assignConstantNoneResult,
@@ -50,7 +47,6 @@ def _generateListCreationCode(to_name, expression, emit, context):
                 to_name=element_name, expression=element, emit=emit, context=context
             )
 
-            # Use helper that makes sure we provide a reference.
             if context.needsCleanup(element_name):
                 context.removeCleanupTempName(element_name)
                 helper_code = "PyList_SET_ITEM"

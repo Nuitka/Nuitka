@@ -1,11 +1,7 @@
 #     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-"""Code generation for sets.
-
-Right now only the creation, and set add code is done here. But more should be
-added later on.
-"""
+"""Code generation for set creation and operations."""
 
 from nuitka.PythonVersions import needsSetLiteralReverseInsertion
 
@@ -34,7 +30,6 @@ def _generateSetCreationCode(to_name, expression, emit, context):
 
     elements = expression.subnode_elements
 
-    # Supposed to optimize empty set to constant value.
     assert elements, expression
 
     with withObjectCodeTemporaryAssignment(

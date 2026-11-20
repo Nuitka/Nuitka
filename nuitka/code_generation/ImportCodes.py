@@ -26,7 +26,7 @@ from .ModuleCodes import getModuleAccessCode
 
 
 def generateBuiltinImportCode(to_name, expression, emit, context):
-    # We know that 5 expressions are created, pylint: disable=W0632
+    # pylint: disable=W0632
     (
         module_name,
         globals_name,
@@ -71,7 +71,6 @@ def _getCountedArgumentsHelperCallCode(
             )
         )
     else:
-        # Check that no following arguments are not None.
         assert len(args) >= min_args
 
         emit(
@@ -118,27 +117,10 @@ def _getBuiltinImportCode(
 
 
 def _getIncludedModule(module_name):
-    """Get the module object of an included module.
-
-    Args:
-        module_name: ModuleName of the module to check.
-
-    Returns:
-        Module object, or None if the module is not included.
-    """
     return getModuleByName(module_name)
 
 
 def _getIncludedModuleEntryRef(module, context):
-    """Get C code referencing the loader entry of an included module.
-
-    Args:
-        module: Module object of the included module.
-        context: Code generation context to add the entry declaration to.
-
-    Returns:
-        C code naming the entry.
-    """
     loader_entry_ref = getModuleEntryCodeName(module.getFullName())
 
     if not context.hasDeclaration(loader_entry_ref):
@@ -152,15 +134,7 @@ def _getIncludedModuleEntryRef(module, context):
 
 
 def _getIncludedModuleImportCall(loader_entry_ref):
-    """Get C code importing an included module through its loader entry.
-
-    Args:
-        loader_entry_ref: C code naming the entry of the module.
-
-    Returns:
-        C code calling the entry importer, using the entry value that includes
-        recognized "sys.modules" replacements.
-    """
+    """Return C code importing an included module, honoring recognized 'sys.modules' replacements."""
     return "Nuitka_ImportModuleEntryValue(tstate, &%(loader_entry_ref)s)" % {
         "loader_entry_ref": loader_entry_ref
     }
@@ -172,11 +146,6 @@ def _emitParentModuleBindings(module, emit, context):
     The loader entry of a private module has a synthetic name, so the binding
     cannot be derived at runtime. The import site knows the compile time names
     and can bind the values that the entry importers returned.
-
-    Args:
-        module: Included module to bind, or None.
-        emit: Emission function.
-        context: Code generation context.
     """
     if module is None:
         return
@@ -413,8 +382,6 @@ def generateImportModuleFixedCode(to_name, expression, emit, context):
 
 
 def getImportModuleHardCodeName(module_name):
-    """Encoding hard module name for code name."""
-
     module_name = ModuleName(module_name)
 
     return "IMPORT_HARD_%s" % module_name.asPath().replace(os.path.sep, "__").upper()
