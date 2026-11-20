@@ -356,44 +356,32 @@ def generateLocalsDictVariableCheckCode(to_name, expression, emit, context):
 
     locals_declaration = context.addLocalsDictName(locals_scope.getCodeName())
 
-    is_dict = locals_scope.hasShapeDictionaryExact()
+    tmp_name = context.getIntResName()
 
-    if is_dict:
-        to_name.getCType().emitAssignmentCodeFromBoolCondition(
-            to_name=to_name,
-            condition="DICT_HAS_ITEM(tstate, %(locals_dict)s, %(var_name)s) == 1"
-            % {
-                "locals_dict": locals_declaration,
-                "var_name": context.getConstantCode(constant=variable_name),
-            },
-            emit=emit,
+    emit(
+        "%s = %s(tstate, %s, %s);"
+        % (
+            tmp_name,
+            (
+                "DICT_HAS_ITEM"
+                if locals_scope.hasShapeDictionaryExact()
+                else "MAPPING_HAS_ITEM"
+            ),
+            locals_declaration,
+            context.getConstantCode(constant=variable_name),
         )
-    else:
-        tmp_name = context.getIntResName()
+    )
 
-        template = """\
-%(tmp_name)s = MAPPING_HAS_ITEM(tstate, %(locals_dict)s, %(var_name)s);
-"""
+    getErrorExitBoolCode(
+        condition="%s == -1" % tmp_name,
+        needs_check=expression.mayRaiseException(BaseException),
+        emit=emit,
+        context=context,
+    )
 
-        emit(
-            template
-            % {
-                "locals_dict": locals_declaration,
-                "var_name": context.getConstantCode(constant=variable_name),
-                "tmp_name": tmp_name,
-            }
-        )
-
-        getErrorExitBoolCode(
-            condition="%s == -1" % tmp_name,
-            needs_check=expression.mayRaiseException(BaseException),
-            emit=emit,
-            context=context,
-        )
-
-        to_name.getCType().emitAssignmentCodeFromBoolCondition(
-            to_name=to_name, condition="%s == 1" % tmp_name, emit=emit
-        )
+    to_name.getCType().emitAssignmentCodeFromBoolCondition(
+        to_name=to_name, condition="%s == 1" % tmp_name, emit=emit
+    )
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
