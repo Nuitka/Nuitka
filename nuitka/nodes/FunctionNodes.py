@@ -841,7 +841,9 @@ class ExpressionFunctionPureInlineConstBody(ExpressionFunctionBody):
         return 0
 
 
-def _makeFunctionBodyClone(function_body, new_provider, variable_translations):
+def _makeFunctionBodyClone(
+    function_body, new_provider, variable_translations, provider_translations=None
+):
     """Make a clone of a function body whose provider scope was cloned.
 
     Notes:
@@ -851,6 +853,8 @@ def _makeFunctionBodyClone(function_body, new_provider, variable_translations):
         translated to the clones as well.
     """
 
+    flags = None if function_body.flags is None else set(function_body.flags)
+
     if function_body.isExpressionFunctionBody():
         result = function_body.__class__(
             provider=new_provider,
@@ -858,11 +862,14 @@ def _makeFunctionBodyClone(function_body, new_provider, variable_translations):
             code_object=function_body.code_object,
             doc=function_body.doc,
             parameters=function_body.parameters.makeClone(),
-            flags=function_body.flags,
-            auto_release=function_body.auto_release,
+            flags=flags,
+            auto_release=None,
             code_prefix=function_body.code_prefix,
             source_ref=function_body.source_ref,
         )
+
+        result.needs_creation = function_body.needs_creation
+        result.needs_direct = function_body.needs_direct
 
         parameter_variable_translations = dict(
             zip(
@@ -870,46 +877,26 @@ def _makeFunctionBodyClone(function_body, new_provider, variable_translations):
                 result.parameters.getAllVariables(),
             )
         )
-    else:
-        # Importing these here avoids a circular dependency, as these modules
-        # themselves import from this module.
-        from .AsyncgenNodes import ExpressionAsyncgenObjectBody
-        from .CoroutineNodes import ExpressionCoroutineObjectBody
-        from .GeneratorNodes import ExpressionGeneratorObjectBody
-
-        if function_body.isExpressionGeneratorObjectBody():
-            result = ExpressionGeneratorObjectBody(
-                provider=new_provider,
-                name=function_body.name,
-                code_object=function_body.code_object,
-                flags=function_body.flags,
-                auto_release=function_body.auto_release,
-                source_ref=function_body.source_ref,
-            )
-        elif function_body.isExpressionAsyncgenObjectBody():
-            result = ExpressionAsyncgenObjectBody(
-                provider=new_provider,
-                name=function_body.name,
-                code_object=function_body.code_object,
-                flags=function_body.flags,
-                auto_release=function_body.auto_release,
-                source_ref=function_body.source_ref,
-            )
-        elif function_body.isExpressionCoroutineObjectBody():
-            result = ExpressionCoroutineObjectBody(
-                provider=new_provider,
-                name=function_body.name,
-                code_object=function_body.code_object,
-                flags=function_body.flags,
-                auto_release=function_body.auto_release,
-                source_ref=function_body.source_ref,
-            )
-        else:
-            return None
+    elif (
+        function_body.isExpressionGeneratorObjectBody()
+        or function_body.isExpressionAsyncgenObjectBody()
+        or function_body.isExpressionCoroutineObjectBody()
+    ):
+        result = function_body.__class__(
+            provider=new_provider,
+            name=function_body.name,
+            code_object=function_body.code_object,
+            flags=flags,
+            auto_release=None,
+            source_ref=function_body.source_ref,
+        )
 
         parameter_variable_translations = {}
+    else:
+        return None
 
-    result.setChildBody(function_body.subnode_body.makeClone())
+    if function_body.subnode_body is not None:
+        result.setChildBody(function_body.subnode_body.makeClone())
 
     all_variable_translations = dict(variable_translations)
     all_variable_translations.update(parameter_variable_translations)
@@ -928,7 +915,7 @@ def _makeFunctionBodyClone(function_body, new_provider, variable_translations):
         )
 
     if function_body.auto_release is not None:
-        result.auto_release = tuple(
+        result.auto_release = set(
             all_variable_translations.get(variable, variable)
             for variable in function_body.auto_release
         )
@@ -936,10 +923,20 @@ def _makeFunctionBodyClone(function_body, new_provider, variable_translations):
     for variable in function_body.taken:
         result.taken.add(all_variable_translations.get(variable, variable))
 
-    if python_version >= 0x300 and function_body.qualname_setup is not None:
-        result.qualname_setup = all_variable_translations.get(
-            function_body.qualname_setup, function_body.qualname_setup
-        )
+    if python_version >= 0x300:
+        result.qualname_setup = function_body.qualname_setup
+
+        if function_body.qualname_provider is not function_body.provider:
+            result.qualname_provider = (
+                provider_translations.get(
+                    function_body.qualname_provider, function_body.qualname_provider
+                )
+                if provider_translations is not None
+                else function_body.qualname_provider
+            )
+
+        if function_body.non_local_declarations is not None:
+            result.non_local_declarations = list(function_body.non_local_declarations)
 
     updateVariableUsage(
         provider=result,
@@ -953,6 +950,7 @@ def _makeFunctionBodyClone(function_body, new_provider, variable_translations):
         old_provider=function_body,
         variable_translations=all_variable_translations,
         code_name_translations={function_body.getCodeName(): result.getCodeName()},
+        provider_translations=provider_translations,
     )
 
     return result
@@ -966,6 +964,7 @@ class _FunctionBodyRefCloneVisitor(VisitorNoopMixin):
         "new_provider",
         "variable_translations",
         "code_name_translations",
+        "provider_translations",
     )
 
     def __init__(
@@ -974,11 +973,13 @@ class _FunctionBodyRefCloneVisitor(VisitorNoopMixin):
         new_provider,
         variable_translations,
         code_name_translations,
+        provider_translations,
     ):
         self.old_provider = old_provider
         self.new_provider = new_provider
         self.variable_translations = variable_translations
         self.code_name_translations = code_name_translations
+        self.provider_translations = provider_translations
 
     def onEnterNode(self, node):
         if node.isExpressionFunctionBodyBase():
@@ -1004,6 +1005,7 @@ class _FunctionBodyRefCloneVisitor(VisitorNoopMixin):
                     function_body=function_body,
                     new_provider=node.getParentVariableProvider(),
                     variable_translations=self.variable_translations,
+                    provider_translations=self.provider_translations,
                 )
 
                 if function_body_clone is not None:
@@ -1011,9 +1013,19 @@ class _FunctionBodyRefCloneVisitor(VisitorNoopMixin):
 
 
 def updateFunctionBodyReferences(
-    provider, old_provider, variable_translations, code_name_translations
+    provider,
+    old_provider,
+    variable_translations,
+    code_name_translations,
+    provider_translations=None,
 ):
     """Update function body references after cloning their scope."""
+
+    all_provider_translations = (
+        {} if provider_translations is None else dict(provider_translations)
+    )
+    if provider.isExpressionFunctionBodyBase():
+        all_provider_translations[old_provider] = provider
 
     visitTree(
         provider,
@@ -1022,6 +1034,7 @@ def updateFunctionBodyReferences(
             new_provider=provider,
             variable_translations=variable_translations,
             code_name_translations=code_name_translations,
+            provider_translations=all_provider_translations,
         ),
     )
 
