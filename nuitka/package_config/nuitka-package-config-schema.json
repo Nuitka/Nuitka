@@ -513,42 +513,36 @@
         }
       },
       "options": {
-        "type": "object",
-        "additionalProperties": false,
-        "properties": {
-          "checks": {
-            "type": "array",
-            "items": {
-              "type": "object",
-              "additionalProperties": false,
-              "properties": {
-                "description": {
-                  "$ref": "#/definitions/non-empty-string"
-                },
-                "macos_bundle": {
-                  "type": "string",
-                  "enum": [
-                    "yes",
-                    "no",
-                    "recommend"
-                  ]
-                },
-                "support_info": {
-                  "type": "string",
-                  "enum": [
-                    "error",
-                    "warning",
-                    "info",
-                    "parameter",
-                    "plugin-warning",
-                    "plugin-error",
-                    "perfect"
-                  ]
-                },
-                "when": {
-                  "$ref": "#/definitions/python-expression"
-                }
-              }
+        "type": "array",
+        "items": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "description": {
+              "$ref": "#/definitions/non-empty-string"
+            },
+            "macos_bundle": {
+              "type": "string",
+              "enum": [
+                "yes",
+                "no",
+                "recommend"
+              ]
+            },
+            "support_info": {
+              "type": "string",
+              "enum": [
+                "error",
+                "warning",
+                "info",
+                "parameter",
+                "plugin-warning",
+                "plugin-error",
+                "perfect"
+              ]
+            },
+            "when": {
+              "$ref": "#/definitions/python-expression"
             }
           }
         }

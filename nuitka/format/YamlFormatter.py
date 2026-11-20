@@ -31,7 +31,6 @@ DLLS_FROM_FILENAMES_KEYS = None
 ANTI_BLOAT_KEYS = None
 IMPLICIT_IMPORTS_KEYS = None
 OPTIONS_KEYS = None
-OPTIONS_CHECKS_KEYS = None
 IMPORT_HACK_KEYS = None
 
 SINGLE_QUOTE = "'"
@@ -51,7 +50,7 @@ def _initNuitkaPackageSchema():
     # Singleton, pylint: disable=global-statement
     global MASTER_KEYS, VARIABLE_KEYS, DATA_FILES_KEYS, DLLS_KEYS, DLLS_BY_CODE_KEYS
     global DLLS_FROM_FILENAMES_KEYS, ANTI_BLOAT_KEYS, IMPLICIT_IMPORTS_KEYS
-    global OPTIONS_KEYS, OPTIONS_CHECKS_KEYS, IMPORT_HACK_KEYS
+    global OPTIONS_KEYS, IMPORT_HACK_KEYS
 
     with openTextFile(
         getYamlPackageConfigurationSchemaFilename(),
@@ -85,11 +84,8 @@ def _initNuitkaPackageSchema():
     IMPLICIT_IMPORTS_KEYS = tuple(
         schema["items"]["properties"]["implicit-imports"]["items"]["properties"].keys()
     )
-    OPTIONS_KEYS = tuple(schema["items"]["properties"]["options"]["properties"].keys())
-    OPTIONS_CHECKS_KEYS = tuple(
-        schema["items"]["properties"]["options"]["properties"]["checks"]["items"][
-            "properties"
-        ].keys()
+    OPTIONS_KEYS = tuple(
+        schema["items"]["properties"]["options"]["items"]["properties"].keys()
     )
     IMPORT_HACK_KEYS = tuple(
         schema["items"]["properties"]["import-hacks"]["items"]["properties"].keys()
@@ -105,7 +101,7 @@ def _decideStrFormat(string_value):
     Returns:
         str: SINGLE_QUOTE, DOUBLE_QUOTE or empty string (for plain)
     """
-    # Singleton, pylint: disable=too-many-boolean-expressions,too-many-return-statements
+    # Singleton, pylint: disable=too-many-return-statements
     if (
         string_value not in MASTER_KEYS
         and string_value not in DATA_FILES_KEYS
@@ -117,7 +113,6 @@ def _decideStrFormat(string_value):
         and string_value not in IMPLICIT_IMPORTS_KEYS
         and string_value not in OPTIONS_KEYS
         and string_value not in IMPORT_HACK_KEYS
-        and string_value not in OPTIONS_CHECKS_KEYS
     ):
         single_quote_left_pos = string_value.find("'")
         single_quote_right_pos = string_value.rfind("'")
@@ -385,8 +380,8 @@ def formatYaml(logger, path, assume_yes_for_downloads, ignore_diff=False):
             )
 
         if "options" in sorted_entry:
-            sorted_entry["options"]["checks"] = _reorderDictionaryList(
-                sorted_entry["options"]["checks"], OPTIONS_CHECKS_KEYS
+            sorted_entry["options"] = _reorderDictionaryList(
+                sorted_entry["options"], OPTIONS_KEYS
             )
 
         if "import-hacks" in sorted_entry:
