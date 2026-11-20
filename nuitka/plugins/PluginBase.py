@@ -1975,13 +1975,9 @@ except Exception as e:
         def get_constant(constant_name):
             assert type(constant_name) is str, constant_name
 
-            result = self.getExpressionConstants(full_name=config_module_name)[
+            return self.getExpressionConstants(full_name=config_module_name)[
                 constant_name
             ]
-
-            # TODO: Record the constant value in report.
-
-            return result
 
         if allow_constants:
             context["get_constant"] = get_constant
