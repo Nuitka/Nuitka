@@ -3,9 +3,16 @@
 
 """Test Python 3.14 function '__annotate__' behavior."""
 
+import importlib
+import importlib.metadata
+import importlib.resources as _ir
 import io
+import os
+import os.path as _osp
 from annotationlib import Format, call_annotate_function, get_annotations
 from functools import singledispatch
+from os.path import join as _osp_join
+from typing import TypeVarTuple
 
 
 def displayDict(d):
@@ -327,6 +334,406 @@ print(
     "String builtin call annotations (STRING):",
     displayDict(get_annotations(_stringBuiltinCallAnnotations, format=Format.STRING)),
 )
+
+
+def _opaque(value):
+    return value
+
+
+_Ts = TypeVarTuple("_Ts")
+_op_true = _opaque(True)
+_op_false = _opaque(False)
+_op_num = _opaque(42)
+_op_hex = _opaque("ff")
+_op_float_str = _opaque("1.5")
+_op_str = _opaque("hello_world")
+_op_bytes = _opaque(b"hello_world")
+_op_list = _opaque([1, 2, 3])
+_op_dict = _opaque({"a": int, "b": str})
+_op_char = _opaque("A")
+_op_code = _opaque(65)
+
+
+class _SuperBase:
+    T = int
+
+
+class _SuperSub(_SuperBase):
+    T = str
+
+    def method(self, x: super(_SuperSub, _SuperSub).T) -> list:
+        def inner(y: super(_SuperSub, self).T):
+            return y
+
+        return inner
+
+
+_inner_super_fn = _SuperSub().method(1)
+print(
+    "Super method annotations (method VALUE + inner VALUE/STRING):",
+    displayDict(get_annotations(_SuperSub.method, format=Format.VALUE)),
+    displayDict(get_annotations(_inner_super_fn, format=Format.VALUE)),
+    displayDict(get_annotations(_inner_super_fn, format=Format.STRING)),
+)
+
+
+def _outsideSuperAnnotations(
+    x: super(_SuperSub, _SuperSub).T,
+    y: type(super(_SuperSub)),
+):
+    return (x, y)
+
+
+print(
+    "Outside super annotations (VALUE/STRING):",
+    displayDict(get_annotations(_outsideSuperAnnotations, format=Format.VALUE)),
+    displayDict(get_annotations(_outsideSuperAnnotations, format=Format.STRING)),
+)
+
+
+def _varCallHelper(*args, **kwargs):
+    return (args, sorted(kwargs.items()))
+
+
+def _builtinCallAnnotations1(
+    a_getattr2: getattr(_attr_holder, _opaque("get")),
+    a_getattr3: getattr(_attr_holder, _opaque("missing"), str),
+    a_hasattr: hasattr(_attr_holder, _opaque("get")),
+    a_isinstance: isinstance(_op_num, (int, str)),
+    a_issubclass: issubclass(_opaque(bool), int),
+    a_callable: callable(_opaque(len)),
+    a_len: len(_op_list),
+    a_int1: int(_opaque("42")),
+    a_int2: int(_op_hex, 16),
+    a_bool: bool(_op_num),
+    a_float: float(_op_float_str),
+    a_complex1: complex(_opaque(2)),
+    a_complex2: complex(_opaque(2), _opaque(3)),
+    a_bytes1: bytes(_opaque(3)),
+    a_bytes2: bytes(_opaque("abc"), "utf-8"),
+    a_bytes3: bytes(_opaque("abc"), "utf-8", "strict"),
+    a_bytearray1: bytearray(_opaque(2)),
+    a_bytearray2: bytearray(_opaque("abc"), "utf-8"),
+    a_list: list(_opaque((1, 2))),
+    a_tuple: tuple(_op_list),
+    a_set: sorted(set(_opaque([2, 1, 2]))),
+    a_range1: range(_opaque(4)),
+    a_range2: range(_opaque(1), _opaque(4)),
+    a_range3: range(_opaque(1), _opaque(6), _opaque(2)),
+) -> type("DynAnnotType", (object,), {"tag": 7}).tag:
+    return (
+        a_getattr2,
+        a_getattr3,
+        a_hasattr,
+        a_isinstance,
+        a_issubclass,
+        a_callable,
+        a_len,
+        a_int1,
+        a_int2,
+        a_bool,
+        a_float,
+        a_complex1,
+        a_complex2,
+        a_bytes1,
+        a_bytes2,
+        a_bytes3,
+        a_bytearray1,
+        a_bytearray2,
+        a_list,
+        a_tuple,
+        a_set,
+        a_range1,
+        a_range2,
+        a_range3,
+    )
+
+
+print(
+    "Builtin call annotations 1 (VALUE):",
+    displayDict(get_annotations(_builtinCallAnnotations1, format=Format.VALUE)),
+)
+print(
+    "Builtin call annotations 1 (STRING):",
+    displayDict(get_annotations(_builtinCallAnnotations1, format=Format.STRING)),
+)
+
+
+def _builtinCallAnnotations2(
+    b_next1: next(iter(_op_list)),
+    b_next2: next(iter(_opaque(())), float),
+    b_any: any(_opaque([0, 1])),
+    b_all: all(_op_list),
+    b_sum1: sum(_op_list),
+    b_sum2: sum(_op_list, 10),
+    b_ord: ord(_op_char),
+    b_chr: chr(_op_code),
+    b_bin: bin(_op_num),
+    b_oct: oct(_op_num),
+    b_hex: hex(_op_num),
+    b_id_is_int: isinstance(id(_op_str), int),
+    b_hash: hash(_op_num),
+    b_divmod: divmod(_op_num, 5),
+    b_pow3: pow(_opaque(2), _opaque(5), _opaque(3)),
+    b_round1: round(_opaque(3.6)),
+    b_round2: round(_opaque(3.14159), 2),
+    b_enum: list(enumerate(_opaque(["x", "y"]), 1)),
+    b_zip: list(zip(_opaque([1, 2]), _opaque(["a", "b"]), strict=True)),
+    b_rev: list(reversed(_op_list)),
+    b_sorted: sorted(_opaque([3, 1, 2]), reverse=True),
+    b_memview: bytes(memoryview(_op_bytes)),
+    b_exc_val: ValueError("bad"),
+    b_exc_imp: (
+        ImportError("imp", name="pkg", path="/p").name,
+        ImportError("imp", name="pkg", path="/p").path,
+    ),
+    b_exc_attr: AttributeError("ae", name="attr_x").name,
+    b_exc_name: NameError("ne", name="var_y").name,
+):
+    return (
+        b_next1,
+        b_next2,
+        b_any,
+        b_all,
+        b_sum1,
+        b_sum2,
+        b_ord,
+        b_chr,
+        b_bin,
+        b_oct,
+        b_hex,
+        b_id_is_int,
+        b_hash,
+        b_divmod,
+        b_pow3,
+        b_round1,
+        b_round2,
+        b_enum,
+        b_zip,
+        b_rev,
+        b_sorted,
+        b_memview,
+        b_exc_val,
+        b_exc_imp,
+        b_exc_attr,
+        b_exc_name,
+    )
+
+
+print(
+    "Builtin call annotations 2 (VALUE):",
+    displayDict(get_annotations(_builtinCallAnnotations2, format=Format.VALUE)),
+)
+print(
+    "Builtin call annotations 2 (STRING):",
+    displayDict(get_annotations(_builtinCallAnnotations2, format=Format.STRING)),
+)
+
+
+def _unpackAndVarCallAnnotations(
+    u_list: [*_Ts],
+    u_tuple: (*_Ts,),
+    u_set: {*_Ts},
+    u_dict: {**_op_dict, "c": float},
+    u_call: _varCallHelper(1, *_op_list, k=2),
+    *args: *_Ts,
+) -> tuple[int, *_Ts, str]:
+    return (u_list, u_tuple, u_set, u_dict, u_call, args)
+
+
+def _starKwargsCallAnnotation(
+    u_call_kw: _varCallHelper(1, *_op_list, k=2, **_op_dict),
+):
+    return u_call_kw
+
+
+print(
+    "Unpack and var-call annotations (VALUE):",
+    displayDict(get_annotations(_unpackAndVarCallAnnotations, format=Format.VALUE)),
+    displayDict(get_annotations(_starKwargsCallAnnotation, format=Format.VALUE)),
+)
+print(
+    "Unpack and var-call annotations (STRING):",
+    displayDict(get_annotations(_unpackAndVarCallAnnotations, format=Format.STRING)),
+)
+
+
+def _forwardUnpackAnnotations(*args: *_UndefinedTuple) -> tuple[int, *_UndefinedTuple]:
+    return args
+
+
+_fwd_unpack = get_annotations(_forwardUnpackAnnotations, format=Format.FORWARDREF)
+print(
+    "Forward unpack annotations (FORWARDREF/STRING):",
+    repr(_fwd_unpack["args"].__forward_arg__),
+    len(_fwd_unpack["return"].__args__),
+    displayDict(get_annotations(_forwardUnpackAnnotations, format=Format.STRING)),
+)
+
+
+def _containerAndStrBytesOpAnnotations(
+    d_get2: {"k": _op_str}.get("k"),
+    d_get3: {"k": _op_str}.get("z", int),
+    d_in: "k" in {"k": _op_str},
+    d_notin: "z" not in {"k": _op_str},
+    d_copy: {"k": _op_str}.copy(),
+    d_keys: list({"k": _op_str}.keys()),
+    d_vals: list({"k": _op_str}.values()),
+    d_items: list({"k": _op_str}.items()),
+    d_fromkeys: dict.fromkeys([_op_char], int),
+    l_count: [_op_char, "B"].count("A"),
+    l_index: [_op_char, "B"].index("B"),
+    s_split: ("pre_" + str(_op_str)).split("_", 1),
+    s_strip: ("__" + str(_op_str) + "__").strip("_"),
+    s_join: "-".join([str(_op_char), "Z"]),
+    s_replace: ("pre_" + str(_op_str)).replace("_", "-", 1),
+    s_encode: ("pre_" + str(_op_char)).encode("ascii"),
+    s_format: "{0}:{k}".format(_op_char, k=_op_num),
+    s_upper: ("pre_" + str(_op_str)).upper(),
+    s_starts: ("pre_" + str(_op_str)).startswith("pre_"),
+    b_decode: (b"pre_" + bytes(_op_bytes)).decode("ascii"),
+    b_split: (b"pre_" + bytes(_op_bytes)).split(b"_", 1),
+    b_strip: (b"__" + bytes(_op_bytes) + b"__").strip(b"_"),
+    b_join: b"-".join([bytes(_op_bytes), b"end"]),
+    b_replace: (b"pre_" + bytes(_op_bytes)).replace(b"_", b"-", 1),
+) -> NotImplemented:
+    return (
+        d_get2,
+        d_get3,
+        d_in,
+        d_notin,
+        d_copy,
+        d_keys,
+        d_vals,
+        d_items,
+        d_fromkeys,
+        l_count,
+        l_index,
+        s_split,
+        s_strip,
+        s_join,
+        s_replace,
+        s_encode,
+        s_format,
+        s_upper,
+        s_starts,
+        b_decode,
+        b_split,
+        b_strip,
+        b_join,
+        b_replace,
+    )
+
+
+print(
+    "Container/str/bytes op annotations (VALUE):",
+    displayDict(
+        get_annotations(_containerAndStrBytesOpAnnotations, format=Format.VALUE)
+    ),
+)
+
+
+def _containerAndStrBytesStringAnnotations(
+    d_get: _op_dict.get("a", int),
+    l_idx: _op_list.index(2),
+    s_split: _op_str.split("_", 1),
+    s_rep: _op_str.replace("_", "-"),
+    b_dec: _op_bytes.decode("ascii"),
+    b_split: _op_bytes.split(b"_"),
+) -> NotImplemented:
+    return (d_get, l_idx, s_split, s_rep, b_dec, b_split)
+
+
+print(
+    "Container/str/bytes op annotations (STRING):",
+    displayDict(
+        get_annotations(_containerAndStrBytesStringAnnotations, format=Format.STRING)
+    ),
+)
+
+
+def _hardImportAnnotations(
+    p_dirname: _osp.dirname(_opaque("dir/leaf")),
+    p_basename: _osp.basename(_opaque("dir/leaf")),
+    p_normpath: _osp.normpath(_opaque("dir//leaf")),
+    p_isabs: _osp.isabs(_opaque("/abs/path")),
+    p_exists: _osp.exists(_opaque(".")),
+    p_from_join: _osp_join(_opaque("x"), "y"),
+    m_import: importlib.import_module(_opaque("math")).__name__,
+    m_meta_ver: callable(importlib.metadata.version),
+    m_res_files: callable(_ir.files),
+):
+    return (
+        p_dirname,
+        p_basename,
+        p_normpath,
+        p_isabs,
+        p_exists,
+        p_from_join,
+        m_import,
+        m_meta_ver,
+        m_res_files,
+    )
+
+
+print(
+    "Hard import annotations (VALUE):",
+    displayDict(get_annotations(_hardImportAnnotations, format=Format.VALUE)),
+)
+print(
+    "Hard import annotations (STRING):",
+    displayDict(get_annotations(_hardImportAnnotations, format=Format.STRING)),
+)
+
+
+def _moduleAttrAnnotations(
+    p_os_join: os.path.join(_opaque("dir"), "leaf"),
+    dunder_name: __name__,
+    dunder_pkg: __package__,
+    dunder_spec: __spec__,
+    dunder_loader: __loader__ is not None,
+    dunder_file: bool(__file__),
+):
+    return (
+        p_os_join,
+        dunder_name,
+        dunder_pkg,
+        dunder_spec,
+        dunder_loader,
+        dunder_file,
+    )
+
+
+print(
+    "Module attr annotations (VALUE):",
+    displayDict(get_annotations(_moduleAttrAnnotations, format=Format.VALUE)),
+)
+
+
+_side_log = []
+
+
+def _raiseInElseAnnotation(
+    x: int if _op_true else (_side_log.append("else_hit"), 1 / 0)[-1],
+):
+    return x
+
+
+def _raiseInIfAnnotation(
+    x: (_side_log.append("if_hit"), 1 / 0)[-1] if _op_true else int,
+):
+    return x
+
+
+print(
+    "Raise branch annotation (STRING, no side effects):",
+    displayDict(get_annotations(_raiseInElseAnnotation, format=Format.STRING)),
+    _side_log,
+)
+try:
+    get_annotations(_raiseInIfAnnotation, format=Format.VALUE)
+except ZeroDivisionError as exc:
+    print("Raise branch annotation (VALUE) ZeroDivisionError:", exc, _side_log)
 
 
 # Shadow hard and ordinary builtin names at module level (kept at end of file).

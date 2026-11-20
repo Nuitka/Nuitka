@@ -7,20 +7,26 @@ Used for generating bytecode-backed functions, if so decided. The main
 important use is '__annotate__' functions.
 """
 
+import keyword
+import os
 import re
 import types
 
 from nuitka.__past__ import GenericAlias, UnionType, frozendict, re_sub
-from nuitka.Constants import EllipsisType, NoneType
+from nuitka.Constants import EllipsisType, NoneType, NotImplementedType
 from nuitka.Errors import NuitkaCodeDeficit
 from nuitka.nodes.AttributeNodesGenerated import (
     attribute_classes,
     attribute_typed_classes,
 )
-from nuitka.nodes.HardImportNodes import getBuiltinRefNodes
+from nuitka.nodes.HardImportNodes import (
+    getBuiltinRefNodes,
+    getHardImportNodeClasses,
+)
 from nuitka.Tracing import code_generation_logger
 
 from .CodeHelpers import getExpressionDispatchDict, getStatementDispatchDict
+from .ConstantCodes import addDistributionMetadataValue
 
 
 def getFunctionEntryPointIdentifier(function_identifier):
@@ -55,37 +61,48 @@ _PREC_POSTFIX = 15
 _PREC_ATOM = 16
 
 
-def _isBuiltinNameShadowed(node, builtin_name):
+def _getEnclosingVariableProvider(node):
     current = node.getParent()
 
     while current is not None and not current.isParentVariableProvider():
         current = current.getParent()
 
+    return current
+
+
+def _isNameShadowedInLocalOrClosureScope(node, name):
+    current = _getEnclosingVariableProvider(node)
+
+    if current is None or not current.isExpressionFunctionBodyBase():
+        return False
+
+    for parameter_name in current.getParameters().getParameterNames():
+        source_name = (
+            parameter_name if parameter_name.isidentifier() else _annotate_argument_name
+        )
+        if source_name == name:
+            return True
+
+    for closure_variable in current.getClosureVariables():
+        if getAnnotateSourceVariableName(closure_variable) == name:
+            return True
+
+    if current.getClosureVariables() and current.getFunctionName() == name:
+        return True
+
+    return False
+
+
+def _isBuiltinNameShadowed(node, builtin_name):
+    current = _getEnclosingVariableProvider(node)
+
     if current is None:
         return False
 
-    if current.isExpressionFunctionBodyBase():
-        for parameter_name in current.getParameters().getParameterNames():
-            source_name = (
-                parameter_name
-                if parameter_name.isidentifier()
-                else _annotate_argument_name
-            )
-            if source_name == builtin_name:
-                return True
+    if _isNameShadowedInLocalOrClosureScope(node, builtin_name):
+        return True
 
-        for closure_variable in current.getClosureVariables():
-            if getAnnotateSourceVariableName(closure_variable) == builtin_name:
-                return True
-
-        if current.getClosureVariables() and current.getFunctionName() == builtin_name:
-            return True
-
-        module = current.getParentModule()
-    elif current.isCompiledPythonModule():
-        module = current
-    else:
-        module = current.getParentModule()
+    module = current if current.isCompiledPythonModule() else current.getParentModule()
 
     if (
         builtin_name in module.variables
@@ -114,13 +131,10 @@ def _formatTypeSource(value, expression):
     if value.__module__ in ("builtins", None):
         return _getBuiltinCallableSource(expression, value.__name__)
 
-    module = expression.getParentModule()
-    alias = _findAliasForModule(module, value.__module__)
-
-    if alias is not None:
-        return "%s.%s" % (alias, value.__name__)
-
-    return "__import__(%r).%s" % (value.__module__, value.__name__)
+    source, _precedence = _formatHardImportRefSource(
+        expression, value.__module__, value.__name__
+    )
+    return source
 
 
 def _generateConstantTypeRefSource(expression):
@@ -168,6 +182,10 @@ def _formatConstantStr(value, expression):
 def _formatEllipsisValue(value, expression):
     # pylint: disable=unused-argument
     return "..."
+
+
+def _formatNotImplementedValue(_value, expression):
+    return _getBuiltinCallableSource(expression, "NotImplemented")
 
 
 def _formatFunctionValue(value, expression):
@@ -248,6 +266,7 @@ _constant_formatters = {
     complex: _formatConstantComplex,
     NoneType: _formatConstantRepr,
     EllipsisType: _formatEllipsisValue,
+    NotImplementedType: _formatNotImplementedValue,
     slice: _formatConstantSlice,
     GenericAlias: _formatConstantStr,
     UnionType: _formatConstantStr,
@@ -320,46 +339,160 @@ def _generateFrozendictConstantSource(expression):
     )
 
 
-def _findAliasForModule(module, target):
-    """Return module variable name imported for 'target', or 'None'."""
+def _getImportedAttributePath(node):
+    """Return dotted module/attribute path represented by an import node, or 'None'."""
+    if (
+        node.isExpressionImportModuleHard()
+        or node.isExpressionImportModuleFixed()
+        or node.isExpressionImportModuleBuiltin()
+    ):
+        value_name = (
+            node.getValueName()
+            if hasattr(node, "getValueName")
+            else node.getModuleName()
+        )
+        return value_name.asString() if hasattr(value_name, "asString") else value_name
+    elif node.isExpressionImportName():
+        parent_path = _getImportedAttributePath(node.subnode_module)
+        if parent_path is not None:
+            return "%s.%s" % (parent_path, node.getImportName())
+    elif node.isExpressionBuiltinImport():
+        name_node = node.subnode_name
+
+        if name_node is not None and name_node.isExpressionConstantRef():
+            module_name_str = name_node.getCompileTimeConstant()
+            if isinstance(module_name_str, str):
+                fromlist_node = node.subnode_fromlist
+                has_fromlist = fromlist_node is not None and (
+                    not fromlist_node.isCompileTimeConstant()
+                    or bool(fromlist_node.getCompileTimeConstant())
+                )
+                return (
+                    module_name_str if has_fromlist else module_name_str.split(".")[0]
+                )
+    elif node.isExpressionSysModulesRef():
+        return "sys.modules"
+    elif hasattr(node, "getModuleName") and hasattr(node, "getImportName"):
+        module_name = node.getModuleName()
+        module_str = (
+            module_name.asString() if hasattr(module_name, "asString") else module_name
+        )
+        return "%s.%s" % (module_str, node.getImportName())
+
+    return None
+
+
+def _findModuleScopeAliasForPath(module, target_path, expression=None):
+    """Return non-shadowed module variable name bound to 'target_path', or 'None'."""
     trace_collection = module.getTraceCollection()
 
     for variable, traces in trace_collection.variable_traces.items():
         if not variable.isModuleVariable():
             continue
 
+        var_name = variable.getName()
+        if expression is not None and _isNameShadowedInLocalOrClosureScope(
+            expression, var_name
+        ):
+            continue
+
+        matched = False
         for trace in traces.values():
-            if trace.getAttributeNode() is None:
-                continue
-
             node = trace.getAttributeNode()
-
             if node is None:
                 continue
 
-            if (
-                node.isExpressionImportModuleHard()
-                or node.isExpressionImportModuleFixed()
-                or node.isExpressionImportModuleBuiltin()
-            ):
-                module_name = node.getModuleName()
+            imported_path = _getImportedAttributePath(node)
+            if imported_path != target_path:
+                matched = False
+                break
 
-                if module_name.asString() == target:
-                    return variable.getName()
-            elif node.isExpressionBuiltinImport():
-                name_node = node.subnode_name
+            matched = True
 
-                if name_node is None or not name_node.isExpressionConstantRef():
-                    continue
-
-                module_name_str = name_node.getCompileTimeConstant()
-
-                if module_name_str != target:
-                    continue
-
-                return variable.getName()
+        if matched:
+            return var_name
 
     return None
+
+
+def _findAliasForModule(module, target):
+    """Return module variable name imported for 'target', or 'None'."""
+    return _findModuleScopeAliasForPath(module, target)
+
+
+def _findModuleAccessAliasOnly(expression, target):
+    module = expression.getParentModule()
+
+    direct_alias = _findModuleScopeAliasForPath(module, target, expression)
+    if direct_alias is not None:
+        return direct_alias, _PREC_ATOM
+
+    if "." in target:
+        parts = target.split(".")
+        for index in range(len(parts) - 1, 0, -1):
+            prefix = ".".join(parts[:index])
+            alias = _findModuleScopeAliasForPath(module, prefix, expression)
+            if alias is not None:
+                tail = parts[index:]
+                dotted_expr = "%s.%s" % (alias, ".".join(tail))
+                if target == "os.path":
+                    return dotted_expr, _PREC_POSTFIX
+
+                hasattr_fn = _getBuiltinCallableSource(expression, "hasattr")
+                import_fn = _getBuiltinCallableSource(expression, "__import__")
+                checks = " and ".join(
+                    "%s(%s, %r)"
+                    % (hasattr_fn, ".".join([alias] + tail[:pos]), tail[pos])
+                    for pos in range(len(tail))
+                )
+                return (
+                    "%s if %s else %s(%r, None, None, ('*',))"
+                    % (dotted_expr, checks, import_fn, target),
+                    _PREC_CONDITIONAL,
+                )
+
+    return None
+
+
+def _formatModuleAccessSource(expression, target, module_to_import=None):
+    found = _findModuleAccessAliasOnly(expression, target)
+    if found is not None:
+        return found
+
+    if target in ("ntpath", "posixpath"):
+        found_os_path = _findModuleAccessAliasOnly(expression, "os.path")
+        if found_os_path is not None:
+            return found_os_path
+
+    import_fn = _getBuiltinCallableSource(expression, "__import__")
+    imported_module_name = module_to_import if module_to_import is not None else target
+
+    if imported_module_name != target:
+        return "%s(%r)" % (import_fn, imported_module_name), _PREC_POSTFIX
+
+    if "." in target:
+        return "%s(%r, None, None, ('*',))" % (import_fn, target), _PREC_POSTFIX
+
+    return "%s(%r)" % (import_fn, target), _PREC_POSTFIX
+
+
+def _formatHardImportRefSource(expression, target, import_name):
+    module = expression.getParentModule()
+
+    direct_symbol = _findModuleScopeAliasForPath(
+        module, "%s.%s" % (target, import_name), expression
+    )
+    if direct_symbol is None and target in ("ntpath", "posixpath"):
+        direct_symbol = _findModuleScopeAliasForPath(
+            module, "os.path.%s" % import_name, expression
+        )
+    if direct_symbol is not None:
+        return direct_symbol, _PREC_ATOM
+
+    module_source, precedence = _formatModuleAccessSource(expression, target)
+    if precedence < _PREC_POSTFIX:
+        module_source = "(%s)" % module_source
+    return "%s.%s" % (module_source, import_name), _PREC_POSTFIX
 
 
 def _generateGenericAliasSource(expression):
@@ -463,14 +596,19 @@ def _generateConstantNoneRefSource(_expression):
     return "None", _PREC_ATOM
 
 
-def _generateAttributeLookupSource(expression):
-    left = _generateSubExpressionSource(expression.subnode_expression, _PREC_POSTFIX)
+def _formatMethodReceiverSource(expression):
+    left = _generateSubExpressionSource(expression, _PREC_POSTFIX)
 
     # Decimal integer literals followed immediately by "." are lexed as floats
     # in Python (e.g. "1.__class__" is a SyntaxError), so parenthesize them.
     if left.isdigit():
         left = "(%s)" % left
 
+    return left
+
+
+def _generateAttributeLookupSource(expression):
+    left = _formatMethodReceiverSource(expression.subnode_expression)
     attr = expression.getAttributeName()
     return "%s.%s" % (left, attr), _PREC_POSTFIX
 
@@ -564,6 +702,12 @@ def _generateSubscriptArgumentSource(subscript):
                 for element in subscript.getCompileTimeConstant()
             ]
         )
+    elif subscript.isExpressionBuiltinTuple() and _isUnpackListCall(
+        subscript.subnode_value
+    ):
+        return _formatSubscriptTupleItems(
+            _formatSequenceUnpackItems(subscript.subnode_value.subnode_values[0])
+        )
     else:
         return _generateSubscriptItemSource(subscript)
 
@@ -576,19 +720,38 @@ def _generateSubscriptLookupSource(expression):
     return "%s[%s]" % (looked_up, subscript), _PREC_POSTFIX
 
 
-def _generateImportlibReloadRefSource(_expression):
-    return "importlib.reload", _PREC_POSTFIX
+def _generateSubscriptForUnpackSource(expression):
+    return _generateSubscriptLookupSource(expression)
+
+
+def _generateSliceLookupSource(expression):
+    looked_up = _generateSubExpressionSource(
+        expression.subnode_expression, _PREC_POSTFIX
+    )
+    lower = expression.subnode_lower
+    upper = expression.subnode_upper
+    lower_source = "" if lower is None else generateExpressionSource(lower)
+    upper_source = "" if upper is None else generateExpressionSource(upper)
+    return "%s[%s:%s]" % (looked_up, lower_source, upper_source), _PREC_POSTFIX
+
+
+def _generateImportlibReloadRefSource(expression):
+    return _formatHardImportRefSource(expression, "importlib", "reload")
 
 
 def _generateImportlibReloadCallSource(expression):
+    callable_source, _precedence = _formatHardImportRefSource(
+        expression, "importlib", "reload"
+    )
     return (
-        "importlib.reload(%s)" % generateExpressionSource(expression.subnode_module),
+        "%s(%s)"
+        % (callable_source, generateExpressionSource(expression.subnode_module)),
         _PREC_POSTFIX,
     )
 
 
-def _generateSysModulesRefSource(_expression):
-    return "sys.modules", _PREC_POSTFIX
+def _generateSysModulesRefSource(expression):
+    return _formatHardImportRefSource(expression, "sys", "modules")
 
 
 def _generateSysModulesCallSource(expression):
@@ -608,7 +771,13 @@ def _generateSysModulesCallSource(expression):
         else "pop"
     )
 
-    return "sys.modules.%s(%s)" % (method_name, ", ".join(arguments)), _PREC_POSTFIX
+    sys_modules_source, _precedence = _formatHardImportRefSource(
+        expression, "sys", "modules"
+    )
+    return (
+        "%s.%s(%s)" % (sys_modules_source, method_name, ", ".join(arguments)),
+        _PREC_POSTFIX,
+    )
 
 
 _binary_operator_info = {
@@ -623,9 +792,22 @@ _binary_operator_info = {
     "MatMult": ("@", _PREC_MULT),
     "TrueDiv": ("/", _PREC_MULT),
     "FloorDiv": ("//", _PREC_MULT),
+    "OldDiv": ("/", _PREC_MULT),
     "Mod": ("%", _PREC_MULT),
     "Pow": ("**", _PREC_POW),
 }
+
+
+def _generateDivmodSource(expression):
+    return (
+        "%s(%s, %s)"
+        % (
+            _getBuiltinCallableSource(expression, "divmod"),
+            generateExpressionSource(expression.subnode_left),
+            generateExpressionSource(expression.subnode_right),
+        ),
+        _PREC_POSTFIX,
+    )
 
 
 def _generateBinaryOpSource(expression):
@@ -669,7 +851,206 @@ def _generatePairValueSource(pair):
     return generateExpressionSource(pair.subnode_value)
 
 
+def _formatKeywordPairsArguments(pairs):
+    arguments = []
+
+    for pair in pairs:
+        if (
+            pair.isExpressionKeyValuePairConstantKey()
+            or pair.isExpressionKeyValuePairConstantKeyValue()
+        ):
+            key = pair.getKeyCompileTimeConstant()
+            if (
+                isinstance(key, str)
+                and key.isidentifier()
+                and not keyword.iskeyword(key)
+            ):
+                arguments.append("%s=%s" % (key, _generatePairValueSource(pair)))
+                continue
+
+        arguments.append(
+            "**{%s: %s}"
+            % (_generatePairKeySource(pair), _generatePairValueSource(pair))
+        )
+
+    return arguments
+
+
+def _getInternalHelperFunctionBody(expression):
+    if expression.isExpressionFunctionCall():
+        func = expression.subnode_function
+        if func.isExpressionFunctionCreation():
+            func_body = func.subnode_function_ref.getFunctionBody()
+            if func_body.isExpressionFunctionPureBody():
+                return func_body
+
+    return None
+
+
+def _isUnpackListCall(expression):
+    helper_body = _getInternalHelperFunctionBody(expression)
+    return helper_body is not None and helper_body.getFunctionName() == "_unpack_list"
+
+
+def _formatSequenceUnpackItems(tuple_arg):
+    items = []
+
+    if tuple_arg.isExpressionMakeTuple():
+        for item in tuple_arg.subnode_elements:
+            if item.isExpressionMakeTuple() and len(item.subnode_elements) == 1:
+                items.append(generateExpressionSource(item.subnode_elements[0]))
+            elif (
+                item.isExpressionConstantTupleRef()
+                and len(item.getCompileTimeConstant()) == 1
+            ):
+                items.append(
+                    _formatConstantElement(item.getCompileTimeConstant()[0], tuple_arg)
+                )
+            else:
+                items.append("*" + _generateSubExpressionSource(item, _PREC_BIT_OR))
+    else:
+        for item in tuple_arg.getCompileTimeConstant():
+            if type(item) is tuple and len(item) == 1:
+                items.append(_formatConstantElement(item[0], tuple_arg))
+            else:
+                items.append("*" + _formatConstantElement(item, tuple_arg))
+
+    return items
+
+
+def _formatDictUnpackItems(tuple_arg):
+    items = []
+
+    if tuple_arg.isExpressionMakeDict():
+        items.extend(
+            "%s: %s" % (_generatePairKeySource(pair), _generatePairValueSource(pair))
+            for pair in tuple_arg.subnode_pairs
+        )
+    elif tuple_arg.isExpressionMakeTuple():
+        for item in tuple_arg.subnode_elements:
+            if item.isExpressionMakeDict() and len(item.subnode_pairs) == 1:
+                pair = item.subnode_pairs[0]
+                items.append(
+                    "%s: %s"
+                    % (_generatePairKeySource(pair), _generatePairValueSource(pair))
+                )
+            elif (
+                item.isExpressionConstantDictRef()
+                and len(item.getCompileTimeConstant()) == 1
+            ):
+                key, value = next(iter(item.getCompileTimeConstant().items()))
+                items.append(
+                    "%s: %s"
+                    % (
+                        _formatConstantElement(key, tuple_arg),
+                        _formatConstantElement(value, tuple_arg),
+                    )
+                )
+            else:
+                items.append("**" + _generateSubExpressionSource(item, _PREC_BIT_OR))
+    else:
+        for item in tuple_arg.getCompileTimeConstant():
+            if type(item) is dict and len(item) == 1:
+                key, value = next(iter(item.items()))
+                items.append(
+                    "%s: %s"
+                    % (
+                        _formatConstantElement(key, tuple_arg),
+                        _formatConstantElement(value, tuple_arg),
+                    )
+                )
+            else:
+                items.append("**" + _formatConstantElement(item, tuple_arg))
+
+    return items
+
+
+def _appendPositionalCallArgs(argument_sources, args, context_node):
+    if args.isExpressionMakeTuple():
+        for element in args.subnode_elements:
+            argument_sources.append(generateExpressionSource(element))
+    else:
+        for element in args.getCompileTimeConstant():
+            argument_sources.append(_formatConstantElement(element, context_node))
+
+
+def _appendKeywordCallArgs(argument_sources, kwargs, context_node):
+    if kwargs.isExpressionMakeDict():
+        argument_sources.extend(_formatKeywordPairsArguments(kwargs.subnode_pairs))
+    else:
+        for key, value in kwargs.getCompileTimeConstant().items():
+            value_source = _formatConstantElement(value, context_node)
+            if (
+                isinstance(key, str)
+                and key.isidentifier()
+                and not keyword.iskeyword(key)
+            ):
+                argument_sources.append("%s=%s" % (key, value_source))
+            else:
+                argument_sources.append(
+                    "**{%s: %s}"
+                    % (_formatConstantElement(key, context_node), value_source)
+                )
+
+
+def _generateComplexCallHelperSource(expression, helper_body):
+    param_names = helper_body.getParameters().getParameterNames()
+    param_map = dict(zip(param_names, expression.subnode_values))
+
+    called_source = _generateSubExpressionSource(param_map["called"], _PREC_POSTFIX)
+    argument_sources = []
+
+    if "args" in param_map:
+        _appendPositionalCallArgs(argument_sources, param_map["args"], expression)
+
+    if "star_arg_list" in param_map:
+        star_list = param_map["star_arg_list"]
+        if _isUnpackListCall(star_list):
+            argument_sources.extend(
+                _formatSequenceUnpackItems(star_list.subnode_values[0])
+            )
+        else:
+            argument_sources.append(
+                "*" + _generateSubExpressionSource(star_list, _PREC_BIT_OR)
+            )
+
+    if "kw" in param_map:
+        _appendKeywordCallArgs(argument_sources, param_map["kw"], expression)
+
+    if "star_arg_dict" in param_map:
+        star_dict = param_map["star_arg_dict"]
+        argument_sources.append(
+            "**" + _generateSubExpressionSource(star_dict, _PREC_BIT_OR)
+        )
+
+    return "%s(%s)" % (called_source, ", ".join(argument_sources)), _PREC_POSTFIX
+
+
 def _generateFunctionCallSource(expression):
+    helper_body = _getInternalHelperFunctionBody(expression)
+    if helper_body is not None:
+        helper_name = helper_body.getFunctionName()
+        if helper_name == "_unpack_list":
+            return (
+                "[%s]"
+                % ", ".join(_formatSequenceUnpackItems(expression.subnode_values[0])),
+                _PREC_ATOM,
+            )
+        if helper_name == "_unpack_set":
+            return (
+                "{%s}"
+                % ", ".join(_formatSequenceUnpackItems(expression.subnode_values[0])),
+                _PREC_ATOM,
+            )
+        if helper_name == "_unpack_dict":
+            return (
+                "{%s}"
+                % ", ".join(_formatDictUnpackItems(expression.subnode_values[0])),
+                _PREC_ATOM,
+            )
+        if helper_name.startswith("complex_call_helper_"):
+            return _generateComplexCallHelperSource(expression, helper_body)
+
     called_source = _generateSubExpressionSource(
         expression.subnode_function, _PREC_POSTFIX
     )
@@ -690,25 +1071,11 @@ def _generateCallSource(expression):
 
     args = expression.subnode_args
     if args is not None:
-        if args.isExpressionMakeTuple():
-            for element in args.subnode_elements:
-                argument_sources.append(generateExpressionSource(element))
-        else:
-            for element in args.getCompileTimeConstant():
-                argument_sources.append(_formatConstantElement(element, expression))
+        _appendPositionalCallArgs(argument_sources, args, expression)
 
     kwargs = expression.subnode_kwargs
     if kwargs is not None:
-        if kwargs.isExpressionMakeDict():
-            for pair in kwargs.subnode_pairs:
-                key = pair.getKeyCompileTimeConstant()
-                value = _generatePairValueSource(pair)
-                argument_sources.append("%s=%s" % (key, value))
-        else:
-            for key, value in kwargs.getCompileTimeConstant().items():
-                argument_sources.append(
-                    "%s=%s" % (key, _formatConstantElement(value, expression))
-                )
+        _appendKeywordCallArgs(argument_sources, kwargs, expression)
 
     return "%s(%s)" % (called_source, ", ".join(argument_sources)), _PREC_POSTFIX
 
@@ -1217,7 +1584,7 @@ def _generateLambdaSource(expression):
 
     body = func_body.subnode_body
 
-    if len(body.subnode_statements) != 1:
+    if body is None or len(body.subnode_statements) != 1:
         raise PythonSourceGenerationError(
             "Unsupported lambda body for source generation: %s" % body
         )
@@ -1239,6 +1606,9 @@ def _generateLambdaSource(expression):
 
 
 def generateStatementSequenceSource(statement_seq, indent=""):
+    assert statement_seq is not None
+    assert statement_seq.subnode_statements, statement_seq
+
     lines = []
 
     for statement in statement_seq.subnode_statements:
@@ -1274,16 +1644,21 @@ def _generateSysModulesDelSource(statement, indent):
 
 def _generateConditionalSource(statement, indent):
     condition = generateExpressionSource(statement.subnode_condition)
-    yes_body = generateStatementSequenceSource(
-        statement.subnode_yes_branch, indent=indent + "    "
-    )
-    no_body = generateStatementSequenceSource(
-        statement.subnode_no_branch, indent=indent + "    "
-    )
 
-    if no_body == "pass":
+    if statement.subnode_yes_branch is None:
+        yes_body = "%s    pass" % indent
+    else:
+        yes_body = generateStatementSequenceSource(
+            statement.subnode_yes_branch, indent=indent + "    "
+        )
+
+    if statement.subnode_no_branch is None:
         return "%sif %s:\n%s" % (indent, condition, yes_body)
     else:
+        no_body = generateStatementSequenceSource(
+            statement.subnode_no_branch, indent=indent + "    "
+        )
+
         return "%sif %s:\n%s\n%selse:\n%s" % (
             indent,
             condition,
@@ -1399,6 +1774,8 @@ def generateFunctionSourceFromBody(function_body):
 
     parameter_spec = ", ".join(parameter_source_names)
 
+    assert function_body.subnode_body is not None, function_body
+
     body_source = generateStatementSequenceSource(
         function_body.subnode_body, indent=indent
     )
@@ -1453,8 +1830,607 @@ def getFunctionCodeObjectFromSource(function_body, compiled):
 
 
 def _generateBuiltinNext1Source(expression):
-    inner = generateExpressionSource(expression.subnode_value)
-    return "next(iter(%s))" % inner, _PREC_POSTFIX
+    value = expression.subnode_value
+
+    if value.isExpressionBuiltinIterForUnpack():
+        return (
+            "(lambda _v: [e for (e,) in (_v,)][0])(%s)"
+            % generateExpressionSource(value.subnode_value),
+            _PREC_POSTFIX,
+        )
+
+    return (
+        "%s(%s)"
+        % (
+            _getBuiltinCallableSource(expression, "next"),
+            generateExpressionSource(value),
+        ),
+        _PREC_POSTFIX,
+    )
+
+
+def _generateBuiltinNext2Source(expression):
+    return (
+        "%s(%s, %s)"
+        % (
+            _getBuiltinCallableSource(expression, "next"),
+            generateExpressionSource(expression.subnode_iterator),
+            generateExpressionSource(expression.subnode_default),
+        ),
+        _PREC_POSTFIX,
+    )
+
+
+def _makeSingleArgBuiltinSourceHandler(builtin_name, child_attr="subnode_value"):
+    def _handler(expression):
+        return (
+            "%s(%s)"
+            % (
+                _getBuiltinCallableSource(expression, builtin_name),
+                generateExpressionSource(getattr(expression, child_attr)),
+            ),
+            _PREC_POSTFIX,
+        )
+
+    return _handler
+
+
+def _generateBuiltinTupleSource(expression):
+    value = expression.subnode_value
+    if _isUnpackListCall(value):
+        items = _formatSequenceUnpackItems(value.subnode_values[0])
+        if len(items) == 1:
+            return "(%s,)" % items[0], _PREC_ATOM
+        return "(%s)" % ", ".join(items), _PREC_ATOM
+
+    return (
+        "%s(%s)"
+        % (
+            _getBuiltinCallableSource(expression, "tuple"),
+            generateExpressionSource(value),
+        ),
+        _PREC_POSTFIX,
+    )
+
+
+def _generateBuiltinGlobalsSource(expression):
+    return "%s()" % _getBuiltinCallableSource(expression, "globals"), _PREC_POSTFIX
+
+
+def _generateBuiltinLocalsSource(expression):
+    return "%s()" % _getBuiltinCallableSource(expression, "locals"), _PREC_POSTFIX
+
+
+def _generateBuiltinInputSource(expression):
+    callable_source = _getBuiltinCallableSource(expression, "input")
+    prompt = expression.subnode_prompt
+
+    if prompt is None:
+        return "%s()" % callable_source, _PREC_POSTFIX
+
+    return (
+        "%s(%s)" % (callable_source, generateExpressionSource(prompt)),
+        _PREC_POSTFIX,
+    )
+
+
+def _formatOptionalArgumentsCall(callable_source, arg_specs):
+    """Format positional/optional arguments, switching to 'name=val' once a 'None' is skipped."""
+    arguments = []
+    use_keyword = False
+
+    for name, node in arg_specs:
+        if node is None:
+            use_keyword = True
+            continue
+
+        value_source = generateExpressionSource(node)
+        if use_keyword:
+            arguments.append("%s=%s" % (name, value_source))
+        else:
+            arguments.append(value_source)
+
+    return "%s(%s)" % (callable_source, ", ".join(arguments)), _PREC_POSTFIX
+
+
+def _generateBuiltinInt2Source(expression):
+    builtin_name = (
+        "long" if (str is bytes and expression.isExpressionBuiltinLong2()) else "int"
+    )
+    callable_source = _getBuiltinCallableSource(expression, builtin_name)
+    value = expression.subnode_value
+    base_source = generateExpressionSource(expression.subnode_base)
+
+    if value is None:
+        return "%s(base=%s)" % (callable_source, base_source), _PREC_POSTFIX
+
+    return (
+        "%s(%s, %s)" % (callable_source, generateExpressionSource(value), base_source),
+        _PREC_POSTFIX,
+    )
+
+
+def _generateBuiltinComplex2Source(expression):
+    callable_source = _getBuiltinCallableSource(expression, "complex")
+    real = expression.subnode_real
+    imag_source = generateExpressionSource(expression.subnode_imag)
+
+    if real is None:
+        return "%s(imag=%s)" % (callable_source, imag_source), _PREC_POSTFIX
+
+    return (
+        "%s(%s, %s)" % (callable_source, generateExpressionSource(real), imag_source),
+        _PREC_POSTFIX,
+    )
+
+
+def _generateBuiltinBytes3Source(expression):
+    callable_source = _getBuiltinCallableSource(expression, "bytes")
+    return _formatOptionalArgumentsCall(
+        callable_source,
+        (
+            ("source", expression.subnode_value),
+            ("encoding", expression.subnode_encoding),
+            ("errors", expression.subnode_errors),
+        ),
+    )
+
+
+def _generateBuiltinUnicodeP2Source(expression):
+    callable_source = _getBuiltinCallableSource(
+        expression, "unicode" if str is bytes else "str"
+    )
+    return _formatOptionalArgumentsCall(
+        callable_source,
+        (
+            ("string", expression.subnode_value),
+            ("encoding", expression.subnode_encoding),
+            ("errors", expression.subnode_errors),
+        ),
+    )
+
+
+def _generateBuiltinBytearray3Source(expression):
+    callable_source = _getBuiltinCallableSource(expression, "bytearray")
+    return _formatOptionalArgumentsCall(
+        callable_source,
+        (
+            ("source", expression.subnode_string),
+            ("encoding", expression.subnode_encoding),
+            ("errors", expression.subnode_errors),
+        ),
+    )
+
+
+def _generateBuiltinRangeSource(expression):
+    is_xrange_p2 = str is bytes and (
+        expression.isExpressionBuiltinXrange1()
+        or expression.isExpressionBuiltinXrange2()
+        or expression.isExpressionBuiltinXrange3()
+    )
+    callable_source = _getBuiltinCallableSource(
+        expression, "xrange" if is_xrange_p2 else "range"
+    )
+
+    arguments = [generateExpressionSource(expression.subnode_low)]
+    high = getattr(expression, "subnode_high", None)
+    if high is not None:
+        arguments.append(generateExpressionSource(high))
+        step = getattr(expression, "subnode_step", None)
+        if step is not None:
+            arguments.append(generateExpressionSource(step))
+
+    return "%s(%s)" % (callable_source, ", ".join(arguments)), _PREC_POSTFIX
+
+
+def _generateBuiltinIter2Source(expression):
+    return (
+        "%s(%s, %s)"
+        % (
+            _getBuiltinCallableSource(expression, "iter"),
+            generateExpressionSource(expression.subnode_callable_arg),
+            generateExpressionSource(expression.subnode_sentinel),
+        ),
+        _PREC_POSTFIX,
+    )
+
+
+def _generateBuiltinSumSource(expression):
+    callable_source = _getBuiltinCallableSource(expression, "sum")
+    arguments = [generateExpressionSource(expression.subnode_sequence)]
+    start = getattr(expression, "subnode_start", None)
+    if start is not None:
+        arguments.append(generateExpressionSource(start))
+
+    return "%s(%s)" % (callable_source, ", ".join(arguments)), _PREC_POSTFIX
+
+
+def _generateBuiltinEnumerateSource(expression):
+    callable_source = _getBuiltinCallableSource(expression, "enumerate")
+    arguments = [generateExpressionSource(expression.subnode_sequence)]
+    start = getattr(expression, "subnode_start", None)
+    if start is not None:
+        arguments.append(generateExpressionSource(start))
+
+    return "%s(%s)" % (callable_source, ", ".join(arguments)), _PREC_POSTFIX
+
+
+def _generateBuiltinZipSource(expression):
+    callable_source = _getBuiltinCallableSource(expression, "zip")
+    arguments = [
+        generateExpressionSource(element) for element in expression.subnode_values
+    ]
+    strict = getattr(expression, "subnode_strict", None)
+    if strict is not None:
+        arguments.append("strict=%s" % generateExpressionSource(strict))
+
+    return "%s(%s)" % (callable_source, ", ".join(arguments)), _PREC_POSTFIX
+
+
+def _generateBuiltinGetattrSource(expression):
+    callable_source = _getBuiltinCallableSource(expression, "getattr")
+    arguments = [
+        generateExpressionSource(expression.subnode_expression),
+        generateExpressionSource(expression.subnode_name),
+    ]
+    default = expression.subnode_default
+    if default is not None:
+        arguments.append(generateExpressionSource(default))
+
+    return "%s(%s)" % (callable_source, ", ".join(arguments)), _PREC_POSTFIX
+
+
+def _generateBuiltinSetattrSource(expression):
+    return (
+        "%s(%s, %s, %s)"
+        % (
+            _getBuiltinCallableSource(expression, "setattr"),
+            generateExpressionSource(expression.subnode_expression),
+            generateExpressionSource(expression.subnode_name),
+            generateExpressionSource(expression.subnode_value),
+        ),
+        _PREC_POSTFIX,
+    )
+
+
+def _generateBuiltinHasattrSource(expression):
+    return (
+        "%s(%s, %s)"
+        % (
+            _getBuiltinCallableSource(expression, "hasattr"),
+            generateExpressionSource(expression.subnode_expression),
+            generateExpressionSource(expression.subnode_name),
+        ),
+        _PREC_POSTFIX,
+    )
+
+
+def _generateBuiltinDelattrSource(expression):
+    return (
+        "%s(%s, %s)"
+        % (
+            _getBuiltinCallableSource(expression, "delattr"),
+            generateExpressionSource(expression.subnode_expression),
+            generateExpressionSource(expression.subnode_name),
+        ),
+        _PREC_POSTFIX,
+    )
+
+
+def _generateAttributeCheckSource(expression):
+    return (
+        "%s(%s, %r)"
+        % (
+            _getBuiltinCallableSource(expression, "hasattr"),
+            generateExpressionSource(expression.subnode_expression),
+            expression.getAttributeName(),
+        ),
+        _PREC_POSTFIX,
+    )
+
+
+def _generateBuiltinIsinstanceSource(expression):
+    return (
+        "%s(%s, %s)"
+        % (
+            _getBuiltinCallableSource(expression, "isinstance"),
+            generateExpressionSource(expression.subnode_instance),
+            generateExpressionSource(expression.subnode_classes),
+        ),
+        _PREC_POSTFIX,
+    )
+
+
+def _generateBuiltinIssubclassSource(expression):
+    return (
+        "%s(%s, %s)"
+        % (
+            _getBuiltinCallableSource(expression, "issubclass"),
+            generateExpressionSource(expression.subnode_cls),
+            generateExpressionSource(expression.subnode_classes),
+        ),
+        _PREC_POSTFIX,
+    )
+
+
+def _generateTypeCheckSource(expression):
+    return (
+        "%s(%s, %s)"
+        % (
+            _getBuiltinCallableSource(expression, "isinstance"),
+            generateExpressionSource(expression.subnode_cls),
+            _getBuiltinCallableSource(expression, "type"),
+        ),
+        _PREC_POSTFIX,
+    )
+
+
+def _generateSubtypeCheckSource(expression):
+    return (
+        "%s(%s, %s)"
+        % (
+            _getBuiltinCallableSource(expression, "issubclass"),
+            generateExpressionSource(expression.subnode_left),
+            generateExpressionSource(expression.subnode_right),
+        ),
+        _PREC_POSTFIX,
+    )
+
+
+def _generateBuiltinType3Source(expression):
+    return (
+        "%s(%s, %s, %s)"
+        % (
+            _getBuiltinCallableSource(expression, "type"),
+            generateExpressionSource(expression.subnode_type_name),
+            generateExpressionSource(expression.subnode_bases),
+            generateExpressionSource(expression.subnode_dict_arg),
+        ),
+        _PREC_POSTFIX,
+    )
+
+
+def _generateBuiltinSuper0Source(expression):
+    type_arg = expression.subnode_type_arg
+    object_arg = expression.subnode_object_arg
+    enclosing_provider = _getEnclosingVariableProvider(expression)
+
+    if (
+        not _isBuiltinNameShadowed(expression, "super")
+        and enclosing_provider is not None
+        and enclosing_provider.isExpressionFunctionBodyBase()
+        and type_arg.isExpressionVariableRef()
+        and type_arg.variable.getName() == "__class__"
+        and object_arg.isExpressionVariableRef()
+        and object_arg.variable.isParameterVariable()
+        and object_arg.variable.getOwner() is enclosing_provider
+    ):
+        parameter_names = enclosing_provider.getParameters().getParameterNames()
+        if parameter_names and object_arg.variable.getName() == parameter_names[0]:
+            return "super()", _PREC_POSTFIX
+
+    return (
+        "%s(%s, %s)"
+        % (
+            _getBuiltinCallableSource(expression, "super"),
+            generateExpressionSource(type_arg),
+            generateExpressionSource(object_arg),
+        ),
+        _PREC_POSTFIX,
+    )
+
+
+def _generateBuiltinSuper1Source(expression):
+    return (
+        "%s(%s)"
+        % (
+            _getBuiltinCallableSource(expression, "super"),
+            generateExpressionSource(expression.subnode_type_arg),
+        ),
+        _PREC_POSTFIX,
+    )
+
+
+def _generateBuiltinSuper2Source(expression):
+    return (
+        "%s(%s, %s)"
+        % (
+            _getBuiltinCallableSource(expression, "super"),
+            generateExpressionSource(expression.subnode_type_arg),
+            generateExpressionSource(expression.subnode_object_arg),
+        ),
+        _PREC_POSTFIX,
+    )
+
+
+def _generateBuiltinMakeExceptionSource(expression):
+    callable_source = _getBuiltinCallableSource(
+        expression, expression.getExceptionName()
+    )
+    arguments = [generateExpressionSource(arg) for arg in expression.subnode_args]
+
+    for kw_name in ("name", "path", "obj"):
+        kw_node = getattr(expression, "subnode_" + kw_name, None)
+        if kw_node is not None:
+            arguments.append("%s=%s" % (kw_name, generateExpressionSource(kw_node)))
+
+    return "%s(%s)" % (callable_source, ", ".join(arguments)), _PREC_POSTFIX
+
+
+def _generateBuiltinCompileSource(expression):
+    callable_source = _getBuiltinCallableSource(expression, "compile")
+    return _formatOptionalArgumentsCall(
+        callable_source,
+        (
+            ("source", expression.subnode_source),
+            ("filename", expression.subnode_filename),
+            ("mode", expression.subnode_mode),
+            ("flags", expression.subnode_flags),
+            ("dont_inherit", expression.subnode_dont_inherit),
+            ("optimize", expression.subnode_optimize),
+        ),
+    )
+
+
+def _generateBuiltinEvalExecSource(expression):
+    if expression.isExpressionBuiltinEval():
+        builtin_name = "eval"
+    elif expression.isExpressionBuiltinExec():
+        builtin_name = "exec"
+    else:
+        builtin_name = "execfile"
+
+    callable_source = _getBuiltinCallableSource(expression, builtin_name)
+    arg_specs = [
+        ("source", expression.subnode_source_code),
+        ("globals", expression.subnode_globals_arg),
+        ("locals", expression.subnode_locals_arg),
+    ]
+    closure = getattr(expression, "subnode_closure", None)
+    if closure is not None:
+        arg_specs.append(("closure", closure))
+
+    return _formatOptionalArgumentsCall(callable_source, arg_specs)
+
+
+def _generateBuiltinImportSource(expression):
+    callable_source = _getBuiltinCallableSource(expression, "__import__")
+    return _formatOptionalArgumentsCall(
+        callable_source,
+        (
+            ("name", expression.subnode_name),
+            ("globals", expression.subnode_globals_arg),
+            ("locals", expression.subnode_locals_arg),
+            ("fromlist", expression.subnode_fromlist),
+            ("level", expression.subnode_level),
+        ),
+    )
+
+
+def _generateDictOperationItemSource(expression):
+    dict_source = _generateSubExpressionSource(
+        expression.subnode_dict_arg, _PREC_POSTFIX
+    )
+    key_source = generateExpressionSource(expression.subnode_key)
+    return "%s[%s]" % (dict_source, key_source), _PREC_POSTFIX
+
+
+def _generateDictOperationInSource(expression):
+    op = "not in" if expression.isExpressionDictOperationNotIn() else "in"
+    key_source = _generateSubExpressionSource(expression.subnode_key, _PREC_CMP + 1)
+    dict_source = _generateSubExpressionSource(
+        expression.subnode_dict_arg, _PREC_CMP + 1
+    )
+    return "%s %s %s" % (key_source, op, dict_source), _PREC_CMP
+
+
+def _generateDictOperationHaskeySource(expression):
+    if str is bytes:
+        receiver = _formatMethodReceiverSource(expression.subnode_dict_arg)
+        return (
+            "%s.has_key(%s)"
+            % (receiver, generateExpressionSource(expression.subnode_key)),
+            _PREC_POSTFIX,
+        )
+
+    key_source = _generateSubExpressionSource(expression.subnode_key, _PREC_CMP + 1)
+    dict_source = _generateSubExpressionSource(
+        expression.subnode_dict_arg, _PREC_CMP + 1
+    )
+    return "%s in %s" % (key_source, dict_source), _PREC_CMP
+
+
+_method_operation_source_handlers = {}
+
+
+def _makeMethodOperationSourceHandler(method_name):
+    handler = _method_operation_source_handlers.get(method_name)
+    if handler is not None:
+        return handler
+
+    def _handler(expression):
+        visitable = expression.getVisitableNodes()
+        receiver = _formatMethodReceiverSource(visitable[0])
+        arguments = [generateExpressionSource(node) for node in visitable[1:]]
+        return (
+            "%s.%s(%s)" % (receiver, method_name, ", ".join(arguments)),
+            _PREC_POSTFIX,
+        )
+
+    _method_operation_source_handlers[method_name] = _handler
+    return _handler
+
+
+def _makeDictCollectionOperationSourceHandler(part_name, mode):
+    def _handler(expression):
+        receiver = _formatMethodReceiverSource(expression.subnode_dict_arg)
+        if str is bytes:
+            prefix = "" if mode == "list" else mode
+            return "%s.%s%s()" % (receiver, prefix, part_name), _PREC_POSTFIX
+
+        view_call = "%s.%s()" % (receiver, part_name)
+        if mode == "view":
+            return view_call, _PREC_POSTFIX
+        if mode == "iter":
+            return (
+                "%s(%s)" % (_getBuiltinCallableSource(expression, "iter"), view_call),
+                _PREC_POSTFIX,
+            )
+        return (
+            "%s(%s)" % (_getBuiltinCallableSource(expression, "list"), view_call),
+            _PREC_POSTFIX,
+        )
+
+    return _handler
+
+
+def _generateDictOperationUpdateSource(expression):
+    receiver = _formatMethodReceiverSource(expression.subnode_dict_arg)
+    arguments = []
+
+    iterable = getattr(expression, "subnode_iterable", None)
+    if iterable is not None:
+        arguments.append(generateExpressionSource(iterable))
+
+    pairs = getattr(expression, "subnode_pairs", None)
+    if pairs:
+        arguments.extend(_formatKeywordPairsArguments(pairs))
+
+    return "%s.update(%s)" % (receiver, ", ".join(arguments)), _PREC_POSTFIX
+
+
+def _generateDictOperationFromkeysSource(expression):
+    dict_source = _getBuiltinCallableSource(expression, "dict")
+    arguments = [generateExpressionSource(expression.subnode_iterable)]
+    value = getattr(expression, "subnode_value", None)
+    if value is not None:
+        arguments.append(generateExpressionSource(value))
+
+    return "%s.fromkeys(%s)" % (dict_source, ", ".join(arguments)), _PREC_POSTFIX
+
+
+def _generateListOperationSortSource(expression):
+    receiver = _formatMethodReceiverSource(expression.subnode_list_arg)
+    arguments = []
+
+    key_node = getattr(expression, "subnode_key", None)
+    if key_node is not None:
+        arguments.append("key=%s" % generateExpressionSource(key_node))
+
+    reverse_node = getattr(expression, "subnode_reverse", None)
+    if reverse_node is not None:
+        arguments.append("reverse=%s" % generateExpressionSource(reverse_node))
+
+    return "%s.sort(%s)" % (receiver, ", ".join(arguments)), _PREC_POSTFIX
+
+
+def _generateStrOperationFormatSource(expression):
+    receiver = _formatMethodReceiverSource(expression.subnode_str_arg)
+    arguments = [generateExpressionSource(arg) for arg in expression.subnode_args]
+    if expression.subnode_pairs:
+        arguments.extend(_formatKeywordPairsArguments(expression.subnode_pairs))
+
+    return "%s.format(%s)" % (receiver, ", ".join(arguments)), _PREC_POSTFIX
 
 
 def _generateVariableRefSource(expression):
@@ -1536,7 +2512,7 @@ def _generateBuiltinAnonymousRefSource(expression):
 def _generateBuiltinPatchableTypeRefSource(expression):
     import_name = expression.getImportName()
     module = expression.getParentModule()
-    alias = _findAliasForModule(module, "builtins")
+    alias = _findModuleScopeAliasForPath(module, "builtins", expression)
 
     if alias is not None:
         return "%s.%s" % (alias, import_name), _PREC_POSTFIX
@@ -1548,27 +2524,348 @@ def _generateBuiltinPatchableTypeRefSource(expression):
 
 
 def _generateImportModuleHardSource(expression):
-    target = expression.getModuleName().asString()
-    module = expression.getParentModule()
-    alias = _findAliasForModule(module, target)
-
-    if alias:
-        return alias, _PREC_ATOM
-
-    return "__import__(%r)" % target, _PREC_POSTFIX
+    module_name = expression.getModuleName().asString()
+    value_name = (
+        expression.getValueName().asString()
+        if hasattr(expression, "getValueName")
+        else module_name
+    )
+    return _formatModuleAccessSource(
+        expression, value_name, module_to_import=module_name
+    )
 
 
 def _generateImportModuleNameHardSource(expression):
     import_name = expression.getImportName()
     module_name = expression.getModuleName()
     target = module_name.asString() if hasattr(module_name, "asString") else module_name
+    return _formatHardImportRefSource(expression, target, import_name)
+
+
+def _generateImportNameSource(expression):
+    import_name = expression.getImportName()
+
+    if import_name.isidentifier() and not keyword.iskeyword(import_name):
+        return (
+            "%s.%s"
+            % (_formatMethodReceiverSource(expression.subnode_module), import_name),
+            _PREC_POSTFIX,
+        )
+
+    return (
+        "%s(%s, %r)"
+        % (
+            _getBuiltinCallableSource(expression, "getattr"),
+            generateExpressionSource(expression.subnode_module),
+            import_name,
+        ),
+        _PREC_POSTFIX,
+    )
+
+
+def _isModuleAttributeRebound(expression, attr_name):
+    if _isNameShadowedInLocalOrClosureScope(expression, attr_name):
+        return True
+
     module = expression.getParentModule()
-    alias = _findAliasForModule(module, target)
+    variable = module.variables.get(attr_name)
+    if variable is not None:
+        trace_collection = module.getTraceCollection()
+        for version, trace in trace_collection.variable_traces.get(
+            variable, {}
+        ).items():
+            if version <= 0:
+                continue
+            if (
+                trace.isAssignTrace()
+                and not trace.getAssignNode().getSourceReference().isInternal()
+            ):
+                return True
+            if trace.mustNotHaveValue():
+                return True
 
-    if alias:
-        return "%s.%s" % (alias, import_name), _PREC_POSTFIX
+    return False
 
-    return "__import__(%r).%s" % (target, import_name), _PREC_POSTFIX
+
+def _generateModuleAttributeRefSource(expression):
+    attr_name = expression.getVariable().getName()
+
+    if _isModuleAttributeRebound(expression, attr_name):
+        raise PythonSourceGenerationError(
+            "Shadowed module attribute '%s' cannot be referenced in generated source"
+            % attr_name
+        )
+
+    return attr_name, _PREC_ATOM
+
+
+def _generateRuntimePathSource(expression):
+    if _isModuleAttributeRebound(expression, "__file__"):
+        raise PythonSourceGenerationError(
+            "Shadowed '__file__' cannot be used to reconstruct runtime path"
+        )
+
+    relative_path = expression.getRelativePath()
+    module_runtime_filename = expression.getParentModule().getRunTimeFilename()
+
+    if relative_path == module_runtime_filename:
+        return "__file__", _PREC_ATOM
+
+    dirname_callable, _precedence = _formatHardImportRefSource(
+        expression, "os.path", "dirname"
+    )
+    base_expr = "%s(__file__)" % dirname_callable
+    parent_dir = os.path.dirname(module_runtime_filename)
+    while parent_dir:
+        base_expr = "%s(%s)" % (dirname_callable, base_expr)
+        parent_dir = os.path.dirname(parent_dir)
+
+    if not relative_path:
+        return base_expr, _PREC_POSTFIX
+
+    join_callable, _precedence = _formatHardImportRefSource(
+        expression, "os.path", "join"
+    )
+    return "%s(%s, %r)" % (join_callable, base_expr, relative_path), _PREC_POSTFIX
+
+
+def _generateSysVersionInfoRefSource(expression):
+    return _formatHardImportRefSource(expression, "sys", "version_info")
+
+
+def _generateSpecArgumentsSource(expression, spec):
+    arguments = []
+    use_keyword = False
+
+    for arg_name in spec.getArgumentNames():
+        arg_node = getattr(expression, "subnode_" + arg_name, None)
+        if arg_node is None:
+            use_keyword = True
+            continue
+
+        value_source = generateExpressionSource(arg_node)
+        if use_keyword:
+            arguments.append("%s=%s" % (arg_name, value_source))
+        else:
+            arguments.append(value_source)
+
+    star_list_name = spec.getStarListArgumentName()
+    if star_list_name:
+        star_items = getattr(expression, "subnode_" + star_list_name, ())
+        assert type(star_items) is tuple, star_items
+        if star_items:
+            assert not use_keyword
+            for item in star_items:
+                arguments.append(generateExpressionSource(item))
+
+    for kw_only_name in spec.getKwOnlyParameterNames():
+        kw_node = getattr(expression, "subnode_" + kw_only_name, None)
+        if kw_node is not None:
+            arguments.append(
+                "%s=%s" % (kw_only_name, generateExpressionSource(kw_node))
+            )
+
+    star_dict_name = spec.getStarDictArgumentName()
+    if star_dict_name:
+        pairs = getattr(expression, "subnode_" + star_dict_name, ())
+        assert type(pairs) is tuple, pairs
+        if pairs:
+            arguments.extend(_formatKeywordPairsArguments(pairs))
+
+    return arguments
+
+
+def _generateBuiltinSpecCallSource(expression):
+    spec = expression.spec
+    callable_source = _getBuiltinCallableSource(expression, spec.getName())
+    arguments = _generateSpecArgumentsSource(expression, spec)
+    return "%s(%s)" % (callable_source, ", ".join(arguments)), _PREC_POSTFIX
+
+
+def _generateHardImportSpecCallSource(expression):
+    spec = expression.spec
+    module_name, import_name = spec.getName().rsplit(".", 1)
+    callable_source, _precedence = _formatHardImportRefSource(
+        expression, module_name, import_name
+    )
+    arguments = _generateSpecArgumentsSource(expression, spec)
+    return "%s(%s)" % (callable_source, ", ".join(arguments)), _PREC_POSTFIX
+
+
+def _generateOsPathNormpathCallSource(expression):
+    callable_source, _precedence = _formatHardImportRefSource(
+        expression, "os.path", "normpath"
+    )
+    arguments = _generateSpecArgumentsSource(expression, expression.spec)
+    return "%s(%s)" % (callable_source, ", ".join(arguments)), _PREC_POSTFIX
+
+
+def _generateImportlibMetadataBackportDistributionCallSource(expression):
+    callable_source, _precedence = _formatHardImportRefSource(
+        expression, "importlib_metadata", "distribution"
+    )
+    arguments = _generateSpecArgumentsSource(expression, expression.spec)
+    return "%s(%s)" % (callable_source, ", ".join(arguments)), _PREC_POSTFIX
+
+
+def _generateMetadataDistFailedCallSource(expression):
+    callable_source, _precedence = _formatHardImportRefSource(
+        expression, expression.importlib_metadata_name, "distribution"
+    )
+    return (
+        "%s(%s)"
+        % (
+            callable_source,
+            generateExpressionSource(expression.subnode_distribution_name),
+        ),
+        _PREC_POSTFIX,
+    )
+
+
+def _generateImportlibResourcesFilesCallFixedSource(expression):
+    callable_source, _precedence = _formatHardImportRefSource(
+        expression, expression.importlib_resources_name, "files"
+    )
+    return (
+        "%s(%r)" % (callable_source, expression.package_name.asString()),
+        _PREC_POSTFIX,
+    )
+
+
+def _generateImportlibImportModuleCallSource(expression):
+    callable_source, _precedence = _formatHardImportRefSource(
+        expression, "importlib", "import_module"
+    )
+    return _formatOptionalArgumentsCall(
+        callable_source,
+        (
+            ("name", expression.subnode_name),
+            ("package", expression.subnode_package),
+        ),
+    )
+
+
+def _generateImportlibMetadataDistributionValueRefSource(expression):
+    addDistributionMetadataValue(
+        distribution_name=expression.original_name,
+        distribution=expression.distribution,
+        reason="static analysis",
+    )
+
+    target = "importlib.metadata"
+    if (
+        _findModuleAccessAliasOnly(expression, "importlib.metadata") is None
+        and _findModuleAccessAliasOnly(expression, "importlib_metadata") is not None
+    ):
+        target = "importlib_metadata"
+
+    callable_source, _precedence = _formatHardImportRefSource(
+        expression, target, "distribution"
+    )
+    return "%s(%r)" % (callable_source, expression.original_name), _PREC_POSTFIX
+
+
+def _generatePkgResourcesDistributionValueRefSource(expression):
+    callable_source, _precedence = _formatHardImportRefSource(
+        expression, "pkg_resources", "Distribution"
+    )
+    attr_names = list(expression.preserved_attributes)
+    if (
+        "location" not in attr_names
+        and getattr(expression.distribution, "location", None) is not None
+    ):
+        attr_names.append("location")
+
+    kw_args = [
+        "%s=%s"
+        % (
+            attr_name,
+            _formatConstantElement(
+                getattr(expression.distribution, attr_name), expression
+            ),
+        )
+        for attr_name in attr_names
+    ]
+    return "%s(%s)" % (callable_source, ", ".join(kw_args)), _PREC_POSTFIX
+
+
+def _generatePkgResourcesEntryPointValueRefSource(expression):
+    callable_source, _precedence = _formatHardImportRefSource(
+        expression, "pkg_resources", "EntryPoint"
+    )
+    kw_args = [
+        "%s=%s"
+        % (
+            attr_name,
+            _formatConstantElement(
+                getattr(expression.entry_point, attr_name), expression
+            ),
+        )
+        for attr_name in expression.preserved_attributes
+    ]
+    return "%s(%s)" % (callable_source, ", ".join(kw_args)), _PREC_POSTFIX
+
+
+def _generateImportlibMetadataEntryPointValueRefSource(expression):
+    callable_source, _precedence = _formatHardImportRefSource(
+        expression, expression.importlib_metadata_name, "EntryPoint"
+    )
+    kw_args = [
+        "%s=%s"
+        % (
+            attr_name,
+            _formatConstantElement(
+                getattr(expression.entry_point, attr_name), expression
+            ),
+        )
+        for attr_name in expression.preserved_attributes
+    ]
+    return "%s(%s)" % (callable_source, ", ".join(kw_args)), _PREC_POSTFIX
+
+
+def _generateMetadataSelectableGroupsSource(expression):
+    module_name = (
+        "importlib_metadata"
+        if expression.isExpressionImportlibMetadataBackportSelectableGroupsValueRef()
+        else "importlib.metadata"
+    )
+    callable_source, _precedence = _formatHardImportRefSource(
+        expression, module_name, "SelectableGroups"
+    )
+    return (
+        "%s(%s)" % (callable_source, _generateDictLiteralSource(expression)),
+        _PREC_POSTFIX,
+    )
+
+
+def _generateImportlibMetadataEntryPointsValueRefSource(expression):
+    module_name = (
+        "importlib_metadata"
+        if expression.isExpressionImportlibMetadataBackportEntryPointsValueRef()
+        else "importlib.metadata"
+    )
+    callable_source, _precedence = _formatHardImportRefSource(
+        expression, module_name, "EntryPoints"
+    )
+    tuple_source, _tuple_prec = _generateTupleSource(expression)
+    return "%s(%s)" % (callable_source, tuple_source), _PREC_POSTFIX
+
+
+def _generateSideEffectsSource(expression):
+    parts = [
+        generateExpressionSource(side_effect)
+        for side_effect in expression.subnode_side_effects
+    ]
+    parts.append(generateExpressionSource(expression.subnode_expression))
+    return "(%s)[-1]" % ", ".join(parts), _PREC_POSTFIX
+
+
+def _generateRaiseExpressionSource(expression):
+    return (
+        "(lambda _e: _e if _e.__class__.__name__ == '_Stringifier' else (_ for _ in ()).throw(_e))(%s)"
+        % generateExpressionSource(expression.subnode_exception_type),
+        _PREC_POSTFIX,
+    )
 
 
 _expression_source_dispatch = {
@@ -1601,12 +2898,17 @@ _expression_source_dispatch = {
     "EXPRESSION_CONSTANT_ELLIPSIS_REF": _generateEllipsisSource,
     "EXPRESSION_CONSTANT_SLICE_REF": _generateConstantSliceRefSource,
     "EXPRESSION_CONSTANT_XRANGE_REF": _generateConstantXrangeRefSource,
+    "EXPRESSION_CONSTANT_SYS_VERSION_INFO_REF": _generateSysVersionInfoRefSource,
+    "EXPRESSION_ATTRIBUTE_CHECK": _generateAttributeCheckSource,
     "EXPRESSION_ATTRIBUTE_LOOKUP": _generateAttributeLookupSource,
     "EXPRESSION_ATTRIBUTE_LOOKUP_SPECIAL": _generateAttributeLookupSource,
-    "EXPRESSION_DICT_OPERATION_FROMKEYS_REF": _generateDictOperationFromkeysRefSource,
     "EXPRESSION_SUBSCRIPT_LOOKUP": _generateSubscriptLookupSource,
+    "EXPRESSION_SUBSCRIPT_LOOKUP_FOR_UNPACK": _generateSubscriptForUnpackSource,
+    "EXPRESSION_SLICE_LOOKUP": _generateSliceLookupSource,
     "EXPRESSION_IMPORTLIB_RELOAD_REF": _generateImportlibReloadRefSource,
     "EXPRESSION_IMPORTLIB_RELOAD_CALL": _generateImportlibReloadCallSource,
+    "EXPRESSION_IMPORTLIB_IMPORT_MODULE_REF": _generateImportModuleNameHardSource,
+    "EXPRESSION_IMPORTLIB_IMPORT_MODULE_CALL": _generateImportlibImportModuleCallSource,
     "EXPRESSION_SYS_MODULES_REF": _generateSysModulesRefSource,
     "EXPRESSION_SYS_MODULES_LOOKUP": _generateSubscriptLookupSource,
     "EXPRESSION_SYS_MODULES_GET2": _generateSysModulesCallSource,
@@ -1619,6 +2921,8 @@ _expression_source_dispatch = {
     "EXPRESSION_OPERATION_BINARY_MAT_MULT": _generateBinaryOpSource,
     "EXPRESSION_OPERATION_BINARY_TRUE_DIV": _generateBinaryOpSource,
     "EXPRESSION_OPERATION_BINARY_FLOOR_DIV": _generateBinaryOpSource,
+    "EXPRESSION_OPERATION_BINARY_OLD_DIV": _generateBinaryOpSource,
+    "EXPRESSION_OPERATION_BINARY_DIVMOD": _generateDivmodSource,
     "EXPRESSION_OPERATION_BINARY_MOD": _generateBinaryOpSource,
     "EXPRESSION_OPERATION_BINARY_POW": _generateBinaryOpSource,
     "EXPRESSION_OPERATION_BINARY_LSHIFT": _generateBinaryOpSource,
@@ -1653,19 +2957,385 @@ _expression_source_dispatch = {
     "EXPRESSION_CONSTANT_FROZENSET_REF": _generateFrozensetConstantSource,
     "EXPRESSION_CONSTANT_FROZENSET_EMPTY_REF": _generateFrozensetConstantSource,
     "EXPRESSION_MAKE_DICT": _generateDictSource,
+    "EXPRESSION_BUILTIN_ALL": _makeSingleArgBuiltinSourceHandler("all"),
+    "EXPRESSION_BUILTIN_ANY": _makeSingleArgBuiltinSourceHandler("any"),
     "EXPRESSION_BUILTIN_ASCII": _generateBuiltinAsciiSource,
+    "EXPRESSION_BUILTIN_BIN": _makeSingleArgBuiltinSourceHandler("bin"),
+    "EXPRESSION_BUILTIN_BOOL": _makeSingleArgBuiltinSourceHandler("bool"),
+    "EXPRESSION_BUILTIN_BYTEARRAY1": _makeSingleArgBuiltinSourceHandler("bytearray"),
+    "EXPRESSION_BUILTIN_BYTEARRAY3": _generateBuiltinBytearray3Source,
+    "EXPRESSION_BUILTIN_BYTES1": _makeSingleArgBuiltinSourceHandler("bytes"),
+    "EXPRESSION_BUILTIN_BYTES3": _generateBuiltinBytes3Source,
+    "EXPRESSION_BUILTIN_CHR": _makeSingleArgBuiltinSourceHandler("chr"),
+    "EXPRESSION_BUILTIN_CLASSMETHOD": _makeSingleArgBuiltinSourceHandler("classmethod"),
+    "EXPRESSION_BUILTIN_COMPILE": _generateBuiltinCompileSource,
+    "EXPRESSION_BUILTIN_COMPLEX1": _makeSingleArgBuiltinSourceHandler("complex"),
+    "EXPRESSION_BUILTIN_COMPLEX2": _generateBuiltinComplex2Source,
+    "EXPRESSION_BUILTIN_DELATTR": _generateBuiltinDelattrSource,
     "EXPRESSION_BUILTIN_DICT": _generateBuiltinDictSource,
+    "EXPRESSION_BUILTIN_DIR1": _makeSingleArgBuiltinSourceHandler("dir"),
+    "EXPRESSION_BUILTIN_ENUMERATE1": _generateBuiltinEnumerateSource,
+    "EXPRESSION_BUILTIN_ENUMERATE2": _generateBuiltinEnumerateSource,
+    "EXPRESSION_BUILTIN_EVAL": _generateBuiltinEvalExecSource,
+    "EXPRESSION_BUILTIN_EXEC": _generateBuiltinEvalExecSource,
+    "EXPRESSION_BUILTIN_EXECFILE": _generateBuiltinEvalExecSource,
+    "EXPRESSION_BUILTIN_FLOAT": _makeSingleArgBuiltinSourceHandler("float"),
     "EXPRESSION_BUILTIN_FORMAT": _generateBuiltinFormatSource,
     "EXPRESSION_BUILTIN_FROZENDICT": _generateBuiltinFrozendictSource,
     "EXPRESSION_BUILTIN_FROZENSET": _generateBuiltinFrozensetSource,
+    "EXPRESSION_BUILTIN_GETATTR": _generateBuiltinGetattrSource,
+    "EXPRESSION_BUILTIN_GLOBALS": _generateBuiltinGlobalsSource,
+    "EXPRESSION_BUILTIN_HASATTR": _generateBuiltinHasattrSource,
+    "EXPRESSION_BUILTIN_HASH": _makeSingleArgBuiltinSourceHandler("hash"),
+    "EXPRESSION_BUILTIN_HEX": _makeSingleArgBuiltinSourceHandler("hex"),
+    "EXPRESSION_BUILTIN_ID": _makeSingleArgBuiltinSourceHandler("id"),
+    "EXPRESSION_BUILTIN_IMPORT": _generateBuiltinImportSource,
+    "EXPRESSION_BUILTIN_INPUT": _generateBuiltinInputSource,
+    "EXPRESSION_BUILTIN_INT1": _makeSingleArgBuiltinSourceHandler("int"),
+    "EXPRESSION_BUILTIN_INT2": _generateBuiltinInt2Source,
+    "EXPRESSION_BUILTIN_ISINSTANCE": _generateBuiltinIsinstanceSource,
+    "EXPRESSION_BUILTIN_ISSUBCLASS": _generateBuiltinIssubclassSource,
+    "EXPRESSION_BUILTIN_ITER1": _makeSingleArgBuiltinSourceHandler("iter"),
+    "EXPRESSION_BUILTIN_ITER2": _generateBuiltinIter2Source,
+    "EXPRESSION_BUILTIN_ITER_FOR_UNPACK": _makeSingleArgBuiltinSourceHandler("iter"),
+    "EXPRESSION_BUILTIN_LEN": _makeSingleArgBuiltinSourceHandler("len"),
+    "EXPRESSION_BUILTIN_LIST": _makeSingleArgBuiltinSourceHandler("list"),
+    "EXPRESSION_BUILTIN_LOCALS_COPY": _generateBuiltinLocalsSource,
+    "EXPRESSION_BUILTIN_LOCALS_REF": _generateBuiltinLocalsSource,
+    "EXPRESSION_BUILTIN_LOCALS_UPDATED": _generateBuiltinLocalsSource,
+    "EXPRESSION_BUILTIN_LONG1": _makeSingleArgBuiltinSourceHandler(
+        "long" if str is bytes else "int"
+    ),
+    "EXPRESSION_BUILTIN_LONG2": _generateBuiltinInt2Source,
+    "EXPRESSION_BUILTIN_MAKE_EXCEPTION": _generateBuiltinMakeExceptionSource,
+    "EXPRESSION_BUILTIN_MAKE_EXCEPTION_ATTRIBUTE_ERROR": _generateBuiltinMakeExceptionSource,
+    "EXPRESSION_BUILTIN_MAKE_EXCEPTION_IMPORT_ERROR": _generateBuiltinMakeExceptionSource,
+    "EXPRESSION_BUILTIN_MAKE_EXCEPTION_MODULE_NOT_FOUND_ERROR": _generateBuiltinMakeExceptionSource,
+    "EXPRESSION_BUILTIN_MAKE_EXCEPTION_NAME_ERROR": _generateBuiltinMakeExceptionSource,
+    "EXPRESSION_BUILTIN_NEXT1": _generateBuiltinNext1Source,
+    "EXPRESSION_BUILTIN_NEXT2": _generateBuiltinNext2Source,
+    "EXPRESSION_BUILTIN_OCT": _makeSingleArgBuiltinSourceHandler("oct"),
+    "EXPRESSION_BUILTIN_ORD": _makeSingleArgBuiltinSourceHandler("ord"),
+    "EXPRESSION_BUILTIN_RANGE1": _generateBuiltinRangeSource,
+    "EXPRESSION_BUILTIN_RANGE2": _generateBuiltinRangeSource,
+    "EXPRESSION_BUILTIN_RANGE3": _generateBuiltinRangeSource,
     "EXPRESSION_BUILTIN_SENTINEL_CALL": _generateBuiltinSentinelSource,
-    "EXPRESSION_BUILTIN_STR_P2": _generateBuiltinStrSource,
-    "EXPRESSION_BUILTIN_STR_P3": _generateBuiltinStrSource,
-    "EXPRESSION_BUILTIN_TYPE1": _generateBuiltinType1Source,
+    "EXPRESSION_BUILTIN_SET": _makeSingleArgBuiltinSourceHandler("set"),
+    "EXPRESSION_BUILTIN_SETATTR": _generateBuiltinSetattrSource,
     "EXPRESSION_BUILTIN_SLICE1": _generateSliceSource,
     "EXPRESSION_BUILTIN_SLICE2": _generateSliceSource,
     "EXPRESSION_BUILTIN_SLICE3": _generateSliceSource,
-    "EXPRESSION_BUILTIN_NEXT1": _generateBuiltinNext1Source,
+    "EXPRESSION_BUILTIN_STATICMETHOD": _makeSingleArgBuiltinSourceHandler(
+        "staticmethod"
+    ),
+    "EXPRESSION_BUILTIN_STR_P2": _generateBuiltinStrSource,
+    "EXPRESSION_BUILTIN_STR_P3": _generateBuiltinStrSource,
+    "EXPRESSION_BUILTIN_SUM1": _generateBuiltinSumSource,
+    "EXPRESSION_BUILTIN_SUM2": _generateBuiltinSumSource,
+    "EXPRESSION_BUILTIN_SUPER0": _generateBuiltinSuper0Source,
+    "EXPRESSION_BUILTIN_SUPER1": _generateBuiltinSuper1Source,
+    "EXPRESSION_BUILTIN_SUPER2": _generateBuiltinSuper2Source,
+    "EXPRESSION_BUILTIN_TUPLE": _generateBuiltinTupleSource,
+    "EXPRESSION_BUILTIN_TYPE1": _generateBuiltinType1Source,
+    "EXPRESSION_BUILTIN_TYPE3": _generateBuiltinType3Source,
+    "EXPRESSION_BUILTIN_UNICODE_P2": _generateBuiltinUnicodeP2Source,
+    "EXPRESSION_BUILTIN_VARS": _makeSingleArgBuiltinSourceHandler(
+        "vars", child_attr="subnode_source"
+    ),
+    "EXPRESSION_BUILTIN_XRANGE1": _generateBuiltinRangeSource,
+    "EXPRESSION_BUILTIN_XRANGE2": _generateBuiltinRangeSource,
+    "EXPRESSION_BUILTIN_XRANGE3": _generateBuiltinRangeSource,
+    "EXPRESSION_BUILTIN_ZIP": _generateBuiltinZipSource,
+    "EXPRESSION_BUILTIN_ZIP310": _generateBuiltinZipSource,
+    "EXPRESSION_BUILTINS_MEMORYVIEW_CALL": _generateBuiltinSpecCallSource,
+    "EXPRESSION_BUILTINS_OPEN_BEFORE3_CALL": _generateBuiltinSpecCallSource,
+    "EXPRESSION_BUILTINS_OPEN_SINCE3_CALL": _generateBuiltinSpecCallSource,
+    "EXPRESSION_BUILTINS_PRINT_BEFORE3_CALL": _generateBuiltinSpecCallSource,
+    "EXPRESSION_BUILTINS_PRINT_SINCE3_CALL": _generateBuiltinSpecCallSource,
+    "EXPRESSION_BUILTINS_PRINT_SINCE3_CALL1": _generateBuiltinSpecCallSource,
+    "EXPRESSION_BUILTINS_REVERSED_CALL": _generateBuiltinSpecCallSource,
+    "EXPRESSION_BUILTINS_SORTED_BEFORE3_CALL": _generateBuiltinSpecCallSource,
+    "EXPRESSION_BUILTINS_SORTED_SINCE3_CALL": _generateBuiltinSpecCallSource,
+    "EXPRESSION_BUILTINS_SORTED_SINCE3_CALL1": _generateBuiltinSpecCallSource,
+    "EXPRESSION_TYPE_CHECK": _generateTypeCheckSource,
+    "EXPRESSION_SUBTYPE_CHECK": _generateSubtypeCheckSource,
+    "EXPRESSION_SPECIAL_UNPACK": _generateBuiltinNext1Source,
+    "EXPRESSION_DICT_OPERATION_FROMKEYS_REF": _generateDictOperationFromkeysRefSource,
+    "EXPRESSION_DICT_OPERATION_ITEM": _generateDictOperationItemSource,
+    "EXPRESSION_DICT_OPERATION_GET2": _makeMethodOperationSourceHandler("get"),
+    "EXPRESSION_DICT_OPERATION_GET3": _makeMethodOperationSourceHandler("get"),
+    "EXPRESSION_DICT_OPERATION_HASKEY": _generateDictOperationHaskeySource,
+    "EXPRESSION_DICT_OPERATION_IN": _generateDictOperationInSource,
+    "EXPRESSION_DICT_OPERATION_NOT_IN": _generateDictOperationInSource,
+    "EXPRESSION_DICT_OPERATION_COPY": _makeMethodOperationSourceHandler("copy"),
+    "EXPRESSION_DICT_OPERATION_CLEAR": _makeMethodOperationSourceHandler("clear"),
+    "EXPRESSION_DICT_OPERATION_ITEMS": _makeDictCollectionOperationSourceHandler(
+        "items", "list"
+    ),
+    "EXPRESSION_DICT_OPERATION_ITERITEMS": _makeDictCollectionOperationSourceHandler(
+        "items", "iter"
+    ),
+    "EXPRESSION_DICT_OPERATION_VIEWITEMS": _makeDictCollectionOperationSourceHandler(
+        "items", "view"
+    ),
+    "EXPRESSION_DICT_OPERATION_KEYS": _makeDictCollectionOperationSourceHandler(
+        "keys", "list"
+    ),
+    "EXPRESSION_DICT_OPERATION_ITERKEYS": _makeDictCollectionOperationSourceHandler(
+        "keys", "iter"
+    ),
+    "EXPRESSION_DICT_OPERATION_VIEWKEYS": _makeDictCollectionOperationSourceHandler(
+        "keys", "view"
+    ),
+    "EXPRESSION_DICT_OPERATION_VALUES": _makeDictCollectionOperationSourceHandler(
+        "values", "list"
+    ),
+    "EXPRESSION_DICT_OPERATION_ITERVALUES": _makeDictCollectionOperationSourceHandler(
+        "values", "iter"
+    ),
+    "EXPRESSION_DICT_OPERATION_VIEWVALUES": _makeDictCollectionOperationSourceHandler(
+        "values", "view"
+    ),
+    "EXPRESSION_DICT_OPERATION_SETDEFAULT2": _makeMethodOperationSourceHandler(
+        "setdefault"
+    ),
+    "EXPRESSION_DICT_OPERATION_SETDEFAULT3": _makeMethodOperationSourceHandler(
+        "setdefault"
+    ),
+    "EXPRESSION_DICT_OPERATION_POP2": _makeMethodOperationSourceHandler("pop"),
+    "EXPRESSION_DICT_OPERATION_POP3": _makeMethodOperationSourceHandler("pop"),
+    "EXPRESSION_DICT_OPERATION_POPITEM": _makeMethodOperationSourceHandler("popitem"),
+    "EXPRESSION_DICT_OPERATION_UPDATE2": _generateDictOperationUpdateSource,
+    "EXPRESSION_DICT_OPERATION_UPDATE3": _generateDictOperationUpdateSource,
+    "EXPRESSION_DICT_OPERATION_UPDATE_PAIRS": _generateDictOperationUpdateSource,
+    "EXPRESSION_DICT_OPERATION_FROMKEYS2": _generateDictOperationFromkeysSource,
+    "EXPRESSION_DICT_OPERATION_FROMKEYS3": _generateDictOperationFromkeysSource,
+    "EXPRESSION_LIST_OPERATION_APPEND": _makeMethodOperationSourceHandler("append"),
+    "EXPRESSION_LIST_OPERATION_EXTEND": _makeMethodOperationSourceHandler("extend"),
+    "EXPRESSION_LIST_OPERATION_EXTEND_FOR_UNPACK": _makeMethodOperationSourceHandler(
+        "extend"
+    ),
+    "EXPRESSION_LIST_OPERATION_CLEAR": _makeMethodOperationSourceHandler("clear"),
+    "EXPRESSION_LIST_OPERATION_COPY": _makeMethodOperationSourceHandler("copy"),
+    "EXPRESSION_LIST_OPERATION_COUNT": _makeMethodOperationSourceHandler("count"),
+    "EXPRESSION_LIST_OPERATION_INSERT": _makeMethodOperationSourceHandler("insert"),
+    "EXPRESSION_LIST_OPERATION_INDEX2": _makeMethodOperationSourceHandler("index"),
+    "EXPRESSION_LIST_OPERATION_INDEX3": _makeMethodOperationSourceHandler("index"),
+    "EXPRESSION_LIST_OPERATION_INDEX4": _makeMethodOperationSourceHandler("index"),
+    "EXPRESSION_LIST_OPERATION_POP1": _makeMethodOperationSourceHandler("pop"),
+    "EXPRESSION_LIST_OPERATION_POP2": _makeMethodOperationSourceHandler("pop"),
+    "EXPRESSION_LIST_OPERATION_REMOVE": _makeMethodOperationSourceHandler("remove"),
+    "EXPRESSION_LIST_OPERATION_REVERSE": _makeMethodOperationSourceHandler("reverse"),
+    "EXPRESSION_LIST_OPERATION_SORT1": _generateListOperationSortSource,
+    "EXPRESSION_LIST_OPERATION_SORT2": _generateListOperationSortSource,
+    "EXPRESSION_LIST_OPERATION_SORT3": _generateListOperationSortSource,
+    "EXPRESSION_SET_OPERATION_UPDATE": _makeMethodOperationSourceHandler("update"),
+    "EXPRESSION_STR_OPERATION_CAPITALIZE": _makeMethodOperationSourceHandler(
+        "capitalize"
+    ),
+    "EXPRESSION_STR_OPERATION_CASEFOLD": _makeMethodOperationSourceHandler("casefold"),
+    "EXPRESSION_STR_OPERATION_CENTER2": _makeMethodOperationSourceHandler("center"),
+    "EXPRESSION_STR_OPERATION_CENTER3": _makeMethodOperationSourceHandler("center"),
+    "EXPRESSION_STR_OPERATION_COUNT2": _makeMethodOperationSourceHandler("count"),
+    "EXPRESSION_STR_OPERATION_COUNT3": _makeMethodOperationSourceHandler("count"),
+    "EXPRESSION_STR_OPERATION_COUNT4": _makeMethodOperationSourceHandler("count"),
+    "EXPRESSION_STR_OPERATION_DECODE1": _makeMethodOperationSourceHandler("decode"),
+    "EXPRESSION_STR_OPERATION_DECODE2": _makeMethodOperationSourceHandler("decode"),
+    "EXPRESSION_STR_OPERATION_DECODE3": _makeMethodOperationSourceHandler("decode"),
+    "EXPRESSION_STR_OPERATION_ENCODE1": _makeMethodOperationSourceHandler("encode"),
+    "EXPRESSION_STR_OPERATION_ENCODE2": _makeMethodOperationSourceHandler("encode"),
+    "EXPRESSION_STR_OPERATION_ENCODE3": _makeMethodOperationSourceHandler("encode"),
+    "EXPRESSION_STR_OPERATION_ENDSWITH2": _makeMethodOperationSourceHandler("endswith"),
+    "EXPRESSION_STR_OPERATION_ENDSWITH3": _makeMethodOperationSourceHandler("endswith"),
+    "EXPRESSION_STR_OPERATION_ENDSWITH4": _makeMethodOperationSourceHandler("endswith"),
+    "EXPRESSION_STR_OPERATION_EXPANDTABS1": _makeMethodOperationSourceHandler(
+        "expandtabs"
+    ),
+    "EXPRESSION_STR_OPERATION_EXPANDTABS2": _makeMethodOperationSourceHandler(
+        "expandtabs"
+    ),
+    "EXPRESSION_STR_OPERATION_FIND2": _makeMethodOperationSourceHandler("find"),
+    "EXPRESSION_STR_OPERATION_FIND3": _makeMethodOperationSourceHandler("find"),
+    "EXPRESSION_STR_OPERATION_FIND4": _makeMethodOperationSourceHandler("find"),
+    "EXPRESSION_STR_OPERATION_FORMAT": _generateStrOperationFormatSource,
+    "EXPRESSION_STR_OPERATION_INDEX2": _makeMethodOperationSourceHandler("index"),
+    "EXPRESSION_STR_OPERATION_INDEX3": _makeMethodOperationSourceHandler("index"),
+    "EXPRESSION_STR_OPERATION_INDEX4": _makeMethodOperationSourceHandler("index"),
+    "EXPRESSION_STR_OPERATION_ISALNUM": _makeMethodOperationSourceHandler("isalnum"),
+    "EXPRESSION_STR_OPERATION_ISALPHA": _makeMethodOperationSourceHandler("isalpha"),
+    "EXPRESSION_STR_OPERATION_ISASCII": _makeMethodOperationSourceHandler("isascii"),
+    "EXPRESSION_STR_OPERATION_ISDECIMAL": _makeMethodOperationSourceHandler(
+        "isdecimal"
+    ),
+    "EXPRESSION_STR_OPERATION_ISDIGIT": _makeMethodOperationSourceHandler("isdigit"),
+    "EXPRESSION_STR_OPERATION_ISIDENTIFIER": _makeMethodOperationSourceHandler(
+        "isidentifier"
+    ),
+    "EXPRESSION_STR_OPERATION_ISLOWER": _makeMethodOperationSourceHandler("islower"),
+    "EXPRESSION_STR_OPERATION_ISNUMERIC": _makeMethodOperationSourceHandler(
+        "isnumeric"
+    ),
+    "EXPRESSION_STR_OPERATION_ISPRINTABLE": _makeMethodOperationSourceHandler(
+        "isprintable"
+    ),
+    "EXPRESSION_STR_OPERATION_ISSPACE": _makeMethodOperationSourceHandler("isspace"),
+    "EXPRESSION_STR_OPERATION_ISTITLE": _makeMethodOperationSourceHandler("istitle"),
+    "EXPRESSION_STR_OPERATION_ISUPPER": _makeMethodOperationSourceHandler("isupper"),
+    "EXPRESSION_STR_OPERATION_JOIN": _makeMethodOperationSourceHandler("join"),
+    "EXPRESSION_STR_OPERATION_LJUST2": _makeMethodOperationSourceHandler("ljust"),
+    "EXPRESSION_STR_OPERATION_LJUST3": _makeMethodOperationSourceHandler("ljust"),
+    "EXPRESSION_STR_OPERATION_LOWER": _makeMethodOperationSourceHandler("lower"),
+    "EXPRESSION_STR_OPERATION_LSTRIP1": _makeMethodOperationSourceHandler("lstrip"),
+    "EXPRESSION_STR_OPERATION_LSTRIP2": _makeMethodOperationSourceHandler("lstrip"),
+    "EXPRESSION_STR_OPERATION_PARTITION": _makeMethodOperationSourceHandler(
+        "partition"
+    ),
+    "EXPRESSION_STR_OPERATION_REPLACE3": _makeMethodOperationSourceHandler("replace"),
+    "EXPRESSION_STR_OPERATION_REPLACE4": _makeMethodOperationSourceHandler("replace"),
+    "EXPRESSION_STR_OPERATION_RFIND2": _makeMethodOperationSourceHandler("rfind"),
+    "EXPRESSION_STR_OPERATION_RFIND3": _makeMethodOperationSourceHandler("rfind"),
+    "EXPRESSION_STR_OPERATION_RFIND4": _makeMethodOperationSourceHandler("rfind"),
+    "EXPRESSION_STR_OPERATION_RINDEX2": _makeMethodOperationSourceHandler("rindex"),
+    "EXPRESSION_STR_OPERATION_RINDEX3": _makeMethodOperationSourceHandler("rindex"),
+    "EXPRESSION_STR_OPERATION_RINDEX4": _makeMethodOperationSourceHandler("rindex"),
+    "EXPRESSION_STR_OPERATION_RJUST2": _makeMethodOperationSourceHandler("rjust"),
+    "EXPRESSION_STR_OPERATION_RJUST3": _makeMethodOperationSourceHandler("rjust"),
+    "EXPRESSION_STR_OPERATION_RPARTITION": _makeMethodOperationSourceHandler(
+        "rpartition"
+    ),
+    "EXPRESSION_STR_OPERATION_RSPLIT1": _makeMethodOperationSourceHandler("rsplit"),
+    "EXPRESSION_STR_OPERATION_RSPLIT2": _makeMethodOperationSourceHandler("rsplit"),
+    "EXPRESSION_STR_OPERATION_RSPLIT3": _makeMethodOperationSourceHandler("rsplit"),
+    "EXPRESSION_STR_OPERATION_RSTRIP1": _makeMethodOperationSourceHandler("rstrip"),
+    "EXPRESSION_STR_OPERATION_RSTRIP2": _makeMethodOperationSourceHandler("rstrip"),
+    "EXPRESSION_STR_OPERATION_SPLIT1": _makeMethodOperationSourceHandler("split"),
+    "EXPRESSION_STR_OPERATION_SPLIT2": _makeMethodOperationSourceHandler("split"),
+    "EXPRESSION_STR_OPERATION_SPLIT3": _makeMethodOperationSourceHandler("split"),
+    "EXPRESSION_STR_OPERATION_SPLITLINES1": _makeMethodOperationSourceHandler(
+        "splitlines"
+    ),
+    "EXPRESSION_STR_OPERATION_SPLITLINES2": _makeMethodOperationSourceHandler(
+        "splitlines"
+    ),
+    "EXPRESSION_STR_OPERATION_STARTSWITH2": _makeMethodOperationSourceHandler(
+        "startswith"
+    ),
+    "EXPRESSION_STR_OPERATION_STARTSWITH3": _makeMethodOperationSourceHandler(
+        "startswith"
+    ),
+    "EXPRESSION_STR_OPERATION_STARTSWITH4": _makeMethodOperationSourceHandler(
+        "startswith"
+    ),
+    "EXPRESSION_STR_OPERATION_STRIP1": _makeMethodOperationSourceHandler("strip"),
+    "EXPRESSION_STR_OPERATION_STRIP2": _makeMethodOperationSourceHandler("strip"),
+    "EXPRESSION_STR_OPERATION_SWAPCASE": _makeMethodOperationSourceHandler("swapcase"),
+    "EXPRESSION_STR_OPERATION_TITLE": _makeMethodOperationSourceHandler("title"),
+    "EXPRESSION_STR_OPERATION_TRANSLATE2": _makeMethodOperationSourceHandler(
+        "translate"
+    ),
+    "EXPRESSION_STR_OPERATION_TRANSLATE3": _makeMethodOperationSourceHandler(
+        "translate"
+    ),
+    "EXPRESSION_STR_OPERATION_UPPER": _makeMethodOperationSourceHandler("upper"),
+    "EXPRESSION_STR_OPERATION_ZFILL": _makeMethodOperationSourceHandler("zfill"),
+    "EXPRESSION_BYTES_OPERATION_CAPITALIZE": _makeMethodOperationSourceHandler(
+        "capitalize"
+    ),
+    "EXPRESSION_BYTES_OPERATION_CENTER2": _makeMethodOperationSourceHandler("center"),
+    "EXPRESSION_BYTES_OPERATION_CENTER3": _makeMethodOperationSourceHandler("center"),
+    "EXPRESSION_BYTES_OPERATION_COUNT2": _makeMethodOperationSourceHandler("count"),
+    "EXPRESSION_BYTES_OPERATION_COUNT3": _makeMethodOperationSourceHandler("count"),
+    "EXPRESSION_BYTES_OPERATION_COUNT4": _makeMethodOperationSourceHandler("count"),
+    "EXPRESSION_BYTES_OPERATION_DECODE1": _makeMethodOperationSourceHandler("decode"),
+    "EXPRESSION_BYTES_OPERATION_DECODE2": _makeMethodOperationSourceHandler("decode"),
+    "EXPRESSION_BYTES_OPERATION_DECODE3": _makeMethodOperationSourceHandler("decode"),
+    "EXPRESSION_BYTES_OPERATION_ENDSWITH2": _makeMethodOperationSourceHandler(
+        "endswith"
+    ),
+    "EXPRESSION_BYTES_OPERATION_ENDSWITH3": _makeMethodOperationSourceHandler(
+        "endswith"
+    ),
+    "EXPRESSION_BYTES_OPERATION_ENDSWITH4": _makeMethodOperationSourceHandler(
+        "endswith"
+    ),
+    "EXPRESSION_BYTES_OPERATION_EXPANDTABS1": _makeMethodOperationSourceHandler(
+        "expandtabs"
+    ),
+    "EXPRESSION_BYTES_OPERATION_EXPANDTABS2": _makeMethodOperationSourceHandler(
+        "expandtabs"
+    ),
+    "EXPRESSION_BYTES_OPERATION_FIND2": _makeMethodOperationSourceHandler("find"),
+    "EXPRESSION_BYTES_OPERATION_FIND3": _makeMethodOperationSourceHandler("find"),
+    "EXPRESSION_BYTES_OPERATION_FIND4": _makeMethodOperationSourceHandler("find"),
+    "EXPRESSION_BYTES_OPERATION_INDEX2": _makeMethodOperationSourceHandler("index"),
+    "EXPRESSION_BYTES_OPERATION_INDEX3": _makeMethodOperationSourceHandler("index"),
+    "EXPRESSION_BYTES_OPERATION_INDEX4": _makeMethodOperationSourceHandler("index"),
+    "EXPRESSION_BYTES_OPERATION_ISALNUM": _makeMethodOperationSourceHandler("isalnum"),
+    "EXPRESSION_BYTES_OPERATION_ISALPHA": _makeMethodOperationSourceHandler("isalpha"),
+    "EXPRESSION_BYTES_OPERATION_ISDIGIT": _makeMethodOperationSourceHandler("isdigit"),
+    "EXPRESSION_BYTES_OPERATION_ISLOWER": _makeMethodOperationSourceHandler("islower"),
+    "EXPRESSION_BYTES_OPERATION_ISSPACE": _makeMethodOperationSourceHandler("isspace"),
+    "EXPRESSION_BYTES_OPERATION_ISTITLE": _makeMethodOperationSourceHandler("istitle"),
+    "EXPRESSION_BYTES_OPERATION_ISUPPER": _makeMethodOperationSourceHandler("isupper"),
+    "EXPRESSION_BYTES_OPERATION_JOIN": _makeMethodOperationSourceHandler("join"),
+    "EXPRESSION_BYTES_OPERATION_LJUST2": _makeMethodOperationSourceHandler("ljust"),
+    "EXPRESSION_BYTES_OPERATION_LJUST3": _makeMethodOperationSourceHandler("ljust"),
+    "EXPRESSION_BYTES_OPERATION_LOWER": _makeMethodOperationSourceHandler("lower"),
+    "EXPRESSION_BYTES_OPERATION_LSTRIP1": _makeMethodOperationSourceHandler("lstrip"),
+    "EXPRESSION_BYTES_OPERATION_LSTRIP2": _makeMethodOperationSourceHandler("lstrip"),
+    "EXPRESSION_BYTES_OPERATION_PARTITION": _makeMethodOperationSourceHandler(
+        "partition"
+    ),
+    "EXPRESSION_BYTES_OPERATION_REPLACE3": _makeMethodOperationSourceHandler("replace"),
+    "EXPRESSION_BYTES_OPERATION_REPLACE4": _makeMethodOperationSourceHandler("replace"),
+    "EXPRESSION_BYTES_OPERATION_RFIND2": _makeMethodOperationSourceHandler("rfind"),
+    "EXPRESSION_BYTES_OPERATION_RFIND3": _makeMethodOperationSourceHandler("rfind"),
+    "EXPRESSION_BYTES_OPERATION_RFIND4": _makeMethodOperationSourceHandler("rfind"),
+    "EXPRESSION_BYTES_OPERATION_RINDEX2": _makeMethodOperationSourceHandler("rindex"),
+    "EXPRESSION_BYTES_OPERATION_RINDEX3": _makeMethodOperationSourceHandler("rindex"),
+    "EXPRESSION_BYTES_OPERATION_RINDEX4": _makeMethodOperationSourceHandler("rindex"),
+    "EXPRESSION_BYTES_OPERATION_RJUST2": _makeMethodOperationSourceHandler("rjust"),
+    "EXPRESSION_BYTES_OPERATION_RJUST3": _makeMethodOperationSourceHandler("rjust"),
+    "EXPRESSION_BYTES_OPERATION_RPARTITION": _makeMethodOperationSourceHandler(
+        "rpartition"
+    ),
+    "EXPRESSION_BYTES_OPERATION_RSPLIT1": _makeMethodOperationSourceHandler("rsplit"),
+    "EXPRESSION_BYTES_OPERATION_RSPLIT2": _makeMethodOperationSourceHandler("rsplit"),
+    "EXPRESSION_BYTES_OPERATION_RSPLIT3": _makeMethodOperationSourceHandler("rsplit"),
+    "EXPRESSION_BYTES_OPERATION_RSTRIP1": _makeMethodOperationSourceHandler("rstrip"),
+    "EXPRESSION_BYTES_OPERATION_RSTRIP2": _makeMethodOperationSourceHandler("rstrip"),
+    "EXPRESSION_BYTES_OPERATION_SPLIT1": _makeMethodOperationSourceHandler("split"),
+    "EXPRESSION_BYTES_OPERATION_SPLIT2": _makeMethodOperationSourceHandler("split"),
+    "EXPRESSION_BYTES_OPERATION_SPLIT3": _makeMethodOperationSourceHandler("split"),
+    "EXPRESSION_BYTES_OPERATION_SPLITLINES1": _makeMethodOperationSourceHandler(
+        "splitlines"
+    ),
+    "EXPRESSION_BYTES_OPERATION_SPLITLINES2": _makeMethodOperationSourceHandler(
+        "splitlines"
+    ),
+    "EXPRESSION_BYTES_OPERATION_STARTSWITH2": _makeMethodOperationSourceHandler(
+        "startswith"
+    ),
+    "EXPRESSION_BYTES_OPERATION_STARTSWITH3": _makeMethodOperationSourceHandler(
+        "startswith"
+    ),
+    "EXPRESSION_BYTES_OPERATION_STARTSWITH4": _makeMethodOperationSourceHandler(
+        "startswith"
+    ),
+    "EXPRESSION_BYTES_OPERATION_STRIP1": _makeMethodOperationSourceHandler("strip"),
+    "EXPRESSION_BYTES_OPERATION_STRIP2": _makeMethodOperationSourceHandler("strip"),
+    "EXPRESSION_BYTES_OPERATION_SWAPCASE": _makeMethodOperationSourceHandler(
+        "swapcase"
+    ),
+    "EXPRESSION_BYTES_OPERATION_TITLE": _makeMethodOperationSourceHandler("title"),
+    "EXPRESSION_BYTES_OPERATION_TRANSLATE2": _makeMethodOperationSourceHandler(
+        "translate"
+    ),
+    "EXPRESSION_BYTES_OPERATION_TRANSLATE3": _makeMethodOperationSourceHandler(
+        "translate"
+    ),
+    "EXPRESSION_BYTES_OPERATION_UPPER": _makeMethodOperationSourceHandler("upper"),
+    "EXPRESSION_BYTES_OPERATION_ZFILL": _makeMethodOperationSourceHandler("zfill"),
     "EXPRESSION_COMPARISON_GT": _generateComparisonSource,
     "EXPRESSION_COMPARISON_GTE": _generateComparisonSource,
     "EXPRESSION_COMPARISON_LT": _generateComparisonSource,
@@ -1693,12 +3363,78 @@ _expression_source_dispatch = {
     "EXPRESSION_BUILTIN_ANONYMOUS_REF": _generateBuiltinAnonymousRefSource,
     "EXPRESSION_BUILTIN_PATCHABLE_TYPE_REF": _generateBuiltinPatchableTypeRefSource,
     "EXPRESSION_BUILTIN_EXCEPTION_REF": _generateBuiltinRefSource,
+    "EXPRESSION_MODULE_ATTRIBUTE_DUNDER_COMPILED_REF": _generateModuleAttributeRefSource,
+    "EXPRESSION_MODULE_ATTRIBUTE_FILE_REF": _generateModuleAttributeRefSource,
+    "EXPRESSION_MODULE_ATTRIBUTE_NAME_REF": _generateModuleAttributeRefSource,
+    "EXPRESSION_MODULE_ATTRIBUTE_PACKAGE_REF": _generateModuleAttributeRefSource,
+    "EXPRESSION_MODULE_ATTRIBUTE_LOADER_REF": _generateModuleAttributeRefSource,
+    "EXPRESSION_MODULE_ATTRIBUTE_SPEC_REF": _generateModuleAttributeRefSource,
+    "EXPRESSION_RUNTIME_PATH": _generateRuntimePathSource,
+    "EXPRESSION_IMPORT_NAME": _generateImportNameSource,
     "EXPRESSION_IMPORT_MODULE_HARD": _generateImportModuleHardSource,
     "EXPRESSION_IMPORT_MODULE_FIXED": _generateImportModuleHardSource,
     "EXPRESSION_IMPORT_MODULE_BUILTIN": _generateImportModuleHardSource,
     "EXPRESSION_IMPORT_MODULE_NAME_HARD_EXISTS": _generateImportModuleNameHardSource,
     "EXPRESSION_IMPORT_MODULE_NAME_HARD_MAYBE_EXISTS": _generateImportModuleNameHardSource,
-    "EXPRESSION_CTYPES_CDLL_REF": _generateImportModuleNameHardSource,
+    "EXPRESSION_CTYPES_CDLL_SINCE38_CALL": _generateHardImportSpecCallSource,
+    "EXPRESSION_CTYPES_CDLL_BEFORE38_CALL": _generateHardImportSpecCallSource,
+    "EXPRESSION_PKGUTIL_GET_DATA_CALL": _generateHardImportSpecCallSource,
+    "EXPRESSION_PKGUTIL_ITER_MODULES_CALL": _generateHardImportSpecCallSource,
+    "EXPRESSION_PKG_RESOURCES_REQUIRE_CALL": _generateHardImportSpecCallSource,
+    "EXPRESSION_PKG_RESOURCES_GET_DISTRIBUTION_CALL": _generateHardImportSpecCallSource,
+    "EXPRESSION_PKG_RESOURCES_ITER_ENTRY_POINTS_CALL": _generateHardImportSpecCallSource,
+    "EXPRESSION_PKG_RESOURCES_RESOURCE_STRING_CALL": _generateHardImportSpecCallSource,
+    "EXPRESSION_PKG_RESOURCES_RESOURCE_STREAM_CALL": _generateHardImportSpecCallSource,
+    "EXPRESSION_PKG_RESOURCES_DISTRIBUTION_VALUE_REF": _generatePkgResourcesDistributionValueRefSource,
+    "EXPRESSION_PKG_RESOURCES_ENTRY_POINT_VALUE_REF": _generatePkgResourcesEntryPointValueRefSource,
+    "EXPRESSION_IMPORTLIB_RESOURCES_OPEN_BINARY_CALL": _generateHardImportSpecCallSource,
+    "EXPRESSION_IMPORTLIB_RESOURCES_OPEN_TEXT_CALL": _generateHardImportSpecCallSource,
+    "EXPRESSION_IMPORTLIB_RESOURCES_READ_BINARY_CALL": _generateHardImportSpecCallSource,
+    "EXPRESSION_IMPORTLIB_RESOURCES_READ_TEXT_BEFORE_313_CALL": _generateHardImportSpecCallSource,
+    "EXPRESSION_IMPORTLIB_RESOURCES_READ_TEXT_SINCE_313_CALL": _generateHardImportSpecCallSource,
+    "EXPRESSION_IMPORTLIB_RESOURCES_FILES_CALL": _generateHardImportSpecCallSource,
+    "EXPRESSION_IMPORTLIB_RESOURCES_FILES_SINCE312_CALL": _generateHardImportSpecCallSource,
+    "EXPRESSION_IMPORTLIB_RESOURCES_FILES_SINCE315_CALL": _generateHardImportSpecCallSource,
+    "EXPRESSION_IMPORTLIB_RESOURCES_BACKPORT_FILES_CALL": _generateHardImportSpecCallSource,
+    "EXPRESSION_IMPORTLIB_RESOURCES_FILES_CALL_FIXED": _generateImportlibResourcesFilesCallFixedSource,
+    "EXPRESSION_IMPORTLIB_RESOURCES_BACKPORT_FILES_CALL_FIXED": _generateImportlibResourcesFilesCallFixedSource,
+    "EXPRESSION_IMPORTLIB_RESOURCES_BACKPORT_OPEN_BINARY_CALL": _generateHardImportSpecCallSource,
+    "EXPRESSION_IMPORTLIB_RESOURCES_BACKPORT_OPEN_TEXT_CALL": _generateHardImportSpecCallSource,
+    "EXPRESSION_IMPORTLIB_RESOURCES_BACKPORT_READ_BINARY_CALL": _generateHardImportSpecCallSource,
+    "EXPRESSION_IMPORTLIB_RESOURCES_BACKPORT_READ_TEXT_CALL": _generateHardImportSpecCallSource,
+    "EXPRESSION_IMPORTLIB_METADATA_VERSION_CALL": _generateHardImportSpecCallSource,
+    "EXPRESSION_IMPORTLIB_METADATA_BACKPORT_VERSION_CALL": _generateHardImportSpecCallSource,
+    "EXPRESSION_IMPORTLIB_METADATA_DISTRIBUTION_CALL": _generateHardImportSpecCallSource,
+    "EXPRESSION_IMPORTLIB_METADATA_BACKPORT_DISTRIBUTION_CALL": _generateImportlibMetadataBackportDistributionCallSource,
+    "EXPRESSION_IMPORTLIB_METADATA_DISTRIBUTION_FAILED_CALL": _generateMetadataDistFailedCallSource,
+    "EXPRESSION_IMPORTLIB_METADATA_BACKPORT_DISTRIBUTION_FAILED_CALL": _generateMetadataDistFailedCallSource,
+    "EXPRESSION_IMPORTLIB_METADATA_ENTRY_POINTS_BEFORE310_CALL": _generateHardImportSpecCallSource,
+    "EXPRESSION_IMPORTLIB_METADATA_ENTRY_POINTS_SINCE310_CALL": _generateHardImportSpecCallSource,
+    "EXPRESSION_IMPORTLIB_METADATA_BACKPORT_ENTRY_POINTS_CALL": _generateHardImportSpecCallSource,
+    "EXPRESSION_IMPORTLIB_METADATA_DISTRIBUTION_VALUE_REF": _generateImportlibMetadataDistributionValueRefSource,
+    "EXPRESSION_IMPORTLIB_METADATA_ENTRY_POINT_VALUE_REF": _generateImportlibMetadataEntryPointValueRefSource,
+    "EXPRESSION_IMPORTLIB_METADATA_BACKPORT_ENTRY_POINT_VALUE_REF": _generateImportlibMetadataEntryPointValueRefSource,
+    "EXPRESSION_IMPORTLIB_METADATA_SELECTABLE_GROUPS_VALUE_REF": _generateMetadataSelectableGroupsSource,
+    "EXPRESSION_IMPORTLIB_METADATA_BACKPORT_SELECTABLE_GROUPS_VALUE_REF": _generateMetadataSelectableGroupsSource,
+    "EXPRESSION_IMPORTLIB_METADATA_ENTRY_POINTS_VALUE_REF": _generateImportlibMetadataEntryPointsValueRefSource,
+    "EXPRESSION_IMPORTLIB_METADATA_BACKPORT_ENTRY_POINTS_VALUE_REF": _generateImportlibMetadataEntryPointsValueRefSource,
+    "EXPRESSION_OS_UNAME_CALL": _generateHardImportSpecCallSource,
+    "EXPRESSION_OS_PATH_EXISTS_CALL": _generateHardImportSpecCallSource,
+    "EXPRESSION_OS_PATH_ISFILE_CALL": _generateHardImportSpecCallSource,
+    "EXPRESSION_OS_PATH_ISDIR_CALL": _generateHardImportSpecCallSource,
+    "EXPRESSION_OS_PATH_BASENAME_CALL": _generateHardImportSpecCallSource,
+    "EXPRESSION_OS_PATH_DIRNAME_CALL": _generateHardImportSpecCallSource,
+    "EXPRESSION_OS_PATH_JOIN_CALL": _generateHardImportSpecCallSource,
+    "EXPRESSION_OS_PATH_ABSPATH_CALL": _generateHardImportSpecCallSource,
+    "EXPRESSION_OS_PATH_NORMPATH_CALL": _generateOsPathNormpathCallSource,
+    "EXPRESSION_OS_PATH_ISABS_CALL": _generateHardImportSpecCallSource,
+    "EXPRESSION_OS_LISTDIR_CALL": _generateHardImportSpecCallSource,
+    "EXPRESSION_OS_STAT_CALL": _generateHardImportSpecCallSource,
+    "EXPRESSION_OS_LSTAT_CALL": _generateHardImportSpecCallSource,
+    "EXPRESSION_TENSORFLOW_FUNCTION_CALL": _generateHardImportSpecCallSource,
+    "EXPRESSION_NETWORKX_UTILS_DECORATORS_ARGMAP_CALL": _generateHardImportSpecCallSource,
+    "EXPRESSION_SIDE_EFFECTS": _generateSideEffectsSource,
+    "EXPRESSION_RAISE_EXCEPTION": _generateRaiseExpressionSource,
 }
 
 _expression_source_dispatch.update(
@@ -1709,6 +3445,11 @@ _expression_source_dispatch.update(
 _expression_source_dispatch.update(
     (attribute_class.kind, _generateAttributeLookupSource)
     for attribute_class in attribute_typed_classes
+)
+
+_expression_source_dispatch.update(
+    (hard_import_class.kind, _generateImportModuleNameHardSource)
+    for hard_import_class in getHardImportNodeClasses()
 )
 
 _expression_source_dispatch.update(
