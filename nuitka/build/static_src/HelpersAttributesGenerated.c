@@ -48,7 +48,7 @@ PyObject *LOOKUP_ATTRIBUTE(PyThreadState *tstate, PyObject *source, PyObject *at
 
 #if PYTHON_VERSION >= 0x3b0
         if (type->tp_flags & Py_TPFLAGS_MANAGED_DICT) {
-            PyObject *result;
+            PyObject *result = NULL;
             int found = Nuitka_LookupManagedDictAttribute(type, source, attr_name, &dict, &result);
 
             if (found != 0) {
@@ -192,7 +192,7 @@ PyObject *LOOKUP_ATTRIBUTE_DICT_SLOT(PyThreadState *tstate, PyObject *source) {
 
 #if PYTHON_VERSION >= 0x3b0
         if (type->tp_flags & Py_TPFLAGS_MANAGED_DICT) {
-            PyObject *result;
+            PyObject *result = NULL;
             int found = Nuitka_LookupManagedDictAttribute(type, source, const_str_plain___dict__, &dict, &result);
 
             if (found != 0) {
@@ -335,7 +335,7 @@ PyObject *LOOKUP_ATTRIBUTE_CLASS_SLOT(PyThreadState *tstate, PyObject *source) {
 
 #if PYTHON_VERSION >= 0x3b0
         if (type->tp_flags & Py_TPFLAGS_MANAGED_DICT) {
-            PyObject *result;
+            PyObject *result = NULL;
             int found = Nuitka_LookupManagedDictAttribute(type, source, const_str_plain___class__, &dict, &result);
 
             if (found != 0) {
@@ -487,7 +487,7 @@ bool HAS_ATTR_BOOL(PyThreadState *tstate, PyObject *source, PyObject *attr_name)
 
 #if PYTHON_VERSION >= 0x3b0
         if (type->tp_flags & Py_TPFLAGS_MANAGED_DICT) {
-            PyObject *result;
+            PyObject *result = NULL;
             int found = Nuitka_LookupManagedDictAttribute(type, source, attr_name, &dict, &result);
 
             if (found != 0) {
@@ -682,7 +682,7 @@ int HAS_ATTR_BOOL2(PyThreadState *tstate, PyObject *source, PyObject *attr_name)
 
 #if PYTHON_VERSION >= 0x3b0
         if (type->tp_flags & Py_TPFLAGS_MANAGED_DICT) {
-            PyObject *result;
+            PyObject *result = NULL;
             int found = Nuitka_LookupManagedDictAttribute(type, source, attr_name, &dict, &result);
 
             if (found != 0) {

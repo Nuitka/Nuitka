@@ -81,7 +81,7 @@
 
 #if PYTHON_VERSION >= 0x3b0
         if (type->tp_flags & Py_TPFLAGS_MANAGED_DICT) {
-            PyObject *result;
+            PyObject *result = NULL;
             int found = Nuitka_LookupManagedDictAttribute(type, source, {{ attr_name }}, &dict, &result);
 
             if (found != 0) {
