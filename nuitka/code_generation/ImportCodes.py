@@ -227,8 +227,6 @@ def _emitFromlistModuleImports(expression, module_value_name, emit, context):
     # Emulate the fromlist handling of "__import__", which imports the real
     # submodules before the values are looked up on the imported module.
     for fromlist_module_name in expression.getFromlistModuleNames():
-        res_name = context.getBoolResName()
-
         fromlist_module = _getIncludedModule(module_name=fromlist_module_name)
 
         if fromlist_module is not None:
@@ -236,11 +234,14 @@ def _emitFromlistModuleImports(expression, module_value_name, emit, context):
                 _getIncludedModuleEntryRef(fromlist_module, context)
             )
 
-            emit(
-                """\
+            if python_version < 0x300:
+                res_name = context.getBoolResName()
+
+                emit(
+                    """\
 %(res_name)s = HAS_ATTR_BOOL(tstate, %(module_value_name)s, %(attribute_name)s);
 
-if (%(res_name)s == false && HAS_ERROR_OCCURRED(tstate) == false) {
+if (%(res_name)s == false) {
     PyObject *fromlist_module = %(submodule_import_call)s;
 
     if (unlikely(fromlist_module == NULL)) {
@@ -251,16 +252,49 @@ if (%(res_name)s == false && HAS_ERROR_OCCURRED(tstate) == false) {
     }
 }
 """
-                % {
-                    "res_name": res_name,
-                    "module_value_name": module_value_name,
-                    "attribute_name": context.getConstantCode(
-                        fromlist_module_name.getBasename().asString()
-                    ),
-                    "submodule_import_call": submodule_import_call,
-                }
-            )
+                    % {
+                        "res_name": res_name,
+                        "module_value_name": module_value_name,
+                        "attribute_name": context.getConstantCode(
+                            fromlist_module_name.getBasename().asString()
+                        ),
+                        "submodule_import_call": submodule_import_call,
+                    }
+                )
+
+                error_condition = "%s == false" % res_name
+            else:
+                res_name = context.getIntResName()
+
+                emit(
+                    """\
+%(res_name)s = HAS_ATTR_BOOL2(tstate, %(module_value_name)s, %(attribute_name)s);
+
+if (%(res_name)s == 0) {
+    PyObject *fromlist_module = %(submodule_import_call)s;
+
+    if (unlikely(fromlist_module == NULL)) {
+        %(res_name)s = -1;
+    } else {
+        Py_DECREF(fromlist_module);
+        %(res_name)s = 1;
+    }
+}
+"""
+                    % {
+                        "res_name": res_name,
+                        "module_value_name": module_value_name,
+                        "attribute_name": context.getConstantCode(
+                            fromlist_module_name.getBasename().asString()
+                        ),
+                        "submodule_import_call": submodule_import_call,
+                    }
+                )
+
+                error_condition = "%s == -1" % res_name
         else:
+            res_name = context.getBoolResName()
+
             emit(
                 """%s = IMPORT_FIXED_MODULE_FROMLIST_ELEMENT(tstate, %s, %s, %s);"""
                 % (
@@ -273,9 +307,9 @@ if (%(res_name)s == false && HAS_ERROR_OCCURRED(tstate) == false) {
                 )
             )
 
-        getErrorExitBoolCode(
-            condition="%s == false" % res_name, emit=emit, context=context
-        )
+            error_condition = "%s == false" % res_name
+
+        getErrorExitBoolCode(condition=error_condition, emit=emit, context=context)
 
         if fromlist_module is not None:
             _emitParentModuleBindings(fromlist_module, emit=emit, context=context)

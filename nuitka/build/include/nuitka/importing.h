@@ -82,7 +82,14 @@ NUITKA_MAY_BE_UNUSED static PyObject *Nuitka_GetSysModules(PyThreadState *tstate
 }
 
 NUITKA_MAY_BE_UNUSED static bool Nuitka_HasModule(PyThreadState *tstate, PyObject *module_name) {
-    return DICT_HAS_ITEM(tstate, Nuitka_GetSysModules(tstate), module_name) == 1;
+    int res = DICT_HAS_ITEM(tstate, Nuitka_GetSysModules(tstate), module_name);
+
+    if (unlikely(res == -1)) {
+        CLEAR_ERROR_OCCURRED(tstate);
+        return false;
+    }
+
+    return res == 1;
 }
 
 // Returns a new reference, or NULL without setting an exception if missing.
