@@ -88,19 +88,23 @@ class StatementDelVariableBase(StatementBase):
         # TODO: Need to also provide "outline" for best effect
         if args["is_temp"] == "True":
             variable = owner.createTempVariable(
-                args["variable_name"], temp_type=args["var_type"]
+                args["variable_name"], temp_type=args["var_type"], outline=None
             )
         else:
             variable = owner.getProvidedVariable(args["variable_name"])
 
+        del args["variable_name"]
         del args["is_temp"]
         del args["var_type"]
         del args["owner"]
 
-        version = variable.allocateTargetNumber()
-        variable.version_number = max(variable.version_number, version)
+        if "version" in args:
+            version = int(args.pop("version"))
+            variable.version_number = max(variable.version_number, version)
+        else:
+            version = variable.allocateTargetNumber()
 
-        return cls(variable=variable, source_ref=source_ref, **args)
+        return cls(variable=variable, version=version, source_ref=source_ref, **args)
 
     def makeClone(self):
         if self.variable is not None:
