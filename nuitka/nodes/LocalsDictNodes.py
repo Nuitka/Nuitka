@@ -230,7 +230,7 @@ class ExpressionLocalsVariableRefOrFallback(ChildHavingFallbackMixin, Expression
     may_raise_access = python_version >= 0x300
 
     def mayRaiseException(self, exception_type):
-        if self.may_raise_access and self.locals_scope.hasShapeDictionaryExact():
+        if self.may_raise_access or not self.locals_scope.hasShapeDictionaryExact():
             return True
 
         return self.subnode_fallback.mayRaiseException(exception_type)
@@ -404,6 +404,7 @@ class ExpressionLocalsVariableCheck(ExpressionBase):
         # This check requires the locals dict at runtime, escaping it prevents
         # forward propagation for both dict and mapping based class scopes.
         trace_collection.onLocalsDictEscaped(self.locals_scope)
+        trace_collection.onExceptionRaiseExit(BaseException)
 
         assert not self.locals_scope.isMarkedForPropagation()
         return self, None, None
