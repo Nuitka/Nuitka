@@ -676,6 +676,40 @@ reportAttributeException(
     "generic dict set:", assignGenericDict, dict_subclass_key_error_obj
 )
 
+
+print("Custom __getattribute__ returning callable data descriptor:")
+
+
+class CallableDataDescr(object):
+    def __init__(self, name):
+        self.name = name
+
+    def __get__(self, instance, owner=None):
+        return lambda *args: ("unexpected_descr_get", self.name, args)
+
+    def __set__(self, instance, value):
+        pass
+
+    def __call__(self, *args):
+        return ("direct_call", self.name, args)
+
+
+class CustomGetattributeDataDescrHolder(object):
+    def __getattribute__(self, name):
+        return CallableDataDescr(name)
+
+
+def callCustomGetattributeMethods(obj):
+    return (
+        obj.m0(),
+        obj.m1(1),
+        obj.m2(1, 2),
+        obj.m11(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11),
+    )
+
+
+print(callCustomGetattributeMethods(CustomGetattributeDataDescrHolder()))
+
 #     Python tests originally created or extracted from other peoples work. The
 #     parts were too small to be protected.
 #

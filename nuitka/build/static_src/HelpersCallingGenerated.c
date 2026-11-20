@@ -12278,13 +12278,11 @@ PyObject *CALL_METHOD_NO_ARGS(PyThreadState *tstate, PyObject *source, PyObject 
                 return result;
             }
 
-            // Dictionary offsets are not usable with managed dictionaries.
             dictoffset = 0;
         }
 #endif
 
         if (dictoffset != 0) {
-            // Negative dictionary offsets have special meaning.
             if (dictoffset < 0) {
                 Py_ssize_t tsize;
                 size_t size;
@@ -12319,6 +12317,15 @@ PyObject *CALL_METHOD_NO_ARGS(PyThreadState *tstate, PyObject *source, PyObject 
             }
 
             Py_DECREF(dict);
+
+#if PYTHON_VERSION < 0x300
+            DROP_ERROR_OCCURRED(tstate);
+#else
+            if (unlikely(HAS_ERROR_OCCURRED(tstate))) {
+                Py_XDECREF(descr);
+                return NULL;
+            }
+#endif
         }
 
         if (func != NULL) {
@@ -12380,16 +12387,12 @@ PyObject *CALL_METHOD_NO_ARGS(PyThreadState *tstate, PyObject *source, PyObject 
         PyObject *called_object =
             GET_STRING_DICT_VALUE((PyDictObject *)source_instance->in_dict, (PyStringObject *)attr_name);
 
-        // Note: The "called_object" was found without taking a reference,
-        // so we need not release it in this branch.
         if (called_object != NULL) {
             return CALL_FUNCTION_NO_ARGS(tstate, called_object);
         }
 
         called_object = FIND_ATTRIBUTE_IN_CLASS(source_instance->in_class, attr_name);
 
-        // Note: The "called_object" was found without taking a reference,
-        // so we need not release it in this branch.
         if (called_object != NULL) {
             descrgetfunc descr_get = Py_TYPE(called_object)->tp_descr_get;
 
@@ -12439,32 +12442,14 @@ PyObject *CALL_METHOD_NO_ARGS(PyThreadState *tstate, PyObject *source, PyObject 
     }
 #endif
     else if (type->tp_getattro != NULL) {
-        PyObject *descr = (*type->tp_getattro)(source, attr_name);
+        PyObject *called_object = (*type->tp_getattro)(source, attr_name);
 
-        if (unlikely(descr == NULL)) {
+        if (unlikely(called_object == NULL)) {
             return NULL;
         }
 
-        descrgetfunc func = NULL;
-        if (NuitkaType_HasFeatureClass(Py_TYPE(descr))) {
-            func = Py_TYPE(descr)->tp_descr_get;
-
-            if (func != NULL && Nuitka_Descr_IsData(descr)) {
-                PyObject *called_object = func(descr, source, (PyObject *)type);
-                Py_DECREF(descr);
-
-                if (unlikely(called_object == NULL)) {
-                    return NULL;
-                }
-
-                PyObject *result = CALL_FUNCTION_NO_ARGS(tstate, called_object);
-                Py_DECREF(called_object);
-                return result;
-            }
-        }
-
-        PyObject *result = CALL_FUNCTION_NO_ARGS(tstate, descr);
-        Py_DECREF(descr);
+        PyObject *result = CALL_FUNCTION_NO_ARGS(tstate, called_object);
+        Py_DECREF(called_object);
         return result;
     } else if (type->tp_getattr != NULL) {
         PyObject *called_object = (*type->tp_getattr)(source, (char *)Nuitka_String_AsString_Unchecked(attr_name));
@@ -12543,13 +12528,11 @@ PyObject *CALL_METHOD_WITH_SINGLE_ARG(PyThreadState *tstate, PyObject *source, P
                 return result;
             }
 
-            // Dictionary offsets are not usable with managed dictionaries.
             dictoffset = 0;
         }
 #endif
 
         if (dictoffset != 0) {
-            // Negative dictionary offsets have special meaning.
             if (dictoffset < 0) {
                 Py_ssize_t tsize;
                 size_t size;
@@ -12584,6 +12567,15 @@ PyObject *CALL_METHOD_WITH_SINGLE_ARG(PyThreadState *tstate, PyObject *source, P
             }
 
             Py_DECREF(dict);
+
+#if PYTHON_VERSION < 0x300
+            DROP_ERROR_OCCURRED(tstate);
+#else
+            if (unlikely(HAS_ERROR_OCCURRED(tstate))) {
+                Py_XDECREF(descr);
+                return NULL;
+            }
+#endif
         }
 
         if (func != NULL) {
@@ -12645,16 +12637,12 @@ PyObject *CALL_METHOD_WITH_SINGLE_ARG(PyThreadState *tstate, PyObject *source, P
         PyObject *called_object =
             GET_STRING_DICT_VALUE((PyDictObject *)source_instance->in_dict, (PyStringObject *)attr_name);
 
-        // Note: The "called_object" was found without taking a reference,
-        // so we need not release it in this branch.
         if (called_object != NULL) {
             return CALL_FUNCTION_WITH_SINGLE_ARG(tstate, called_object, args[0]);
         }
 
         called_object = FIND_ATTRIBUTE_IN_CLASS(source_instance->in_class, attr_name);
 
-        // Note: The "called_object" was found without taking a reference,
-        // so we need not release it in this branch.
         if (called_object != NULL) {
             descrgetfunc descr_get = Py_TYPE(called_object)->tp_descr_get;
 
@@ -12704,32 +12692,14 @@ PyObject *CALL_METHOD_WITH_SINGLE_ARG(PyThreadState *tstate, PyObject *source, P
     }
 #endif
     else if (type->tp_getattro != NULL) {
-        PyObject *descr = (*type->tp_getattro)(source, attr_name);
+        PyObject *called_object = (*type->tp_getattro)(source, attr_name);
 
-        if (unlikely(descr == NULL)) {
+        if (unlikely(called_object == NULL)) {
             return NULL;
         }
 
-        descrgetfunc func = NULL;
-        if (NuitkaType_HasFeatureClass(Py_TYPE(descr))) {
-            func = Py_TYPE(descr)->tp_descr_get;
-
-            if (func != NULL && Nuitka_Descr_IsData(descr)) {
-                PyObject *called_object = func(descr, source, (PyObject *)type);
-                Py_DECREF(descr);
-
-                if (unlikely(called_object == NULL)) {
-                    return NULL;
-                }
-
-                PyObject *result = CALL_FUNCTION_WITH_SINGLE_ARG(tstate, called_object, args[0]);
-                Py_DECREF(called_object);
-                return result;
-            }
-        }
-
-        PyObject *result = CALL_FUNCTION_WITH_SINGLE_ARG(tstate, descr, args[0]);
-        Py_DECREF(descr);
+        PyObject *result = CALL_FUNCTION_WITH_SINGLE_ARG(tstate, called_object, args[0]);
+        Py_DECREF(called_object);
         return result;
     } else if (type->tp_getattr != NULL) {
         PyObject *called_object = (*type->tp_getattr)(source, (char *)Nuitka_String_AsString_Unchecked(attr_name));
@@ -12807,13 +12777,11 @@ PyObject *CALL_METHOD_WITH_ARGS2(PyThreadState *tstate, PyObject *source, PyObje
                 return result;
             }
 
-            // Dictionary offsets are not usable with managed dictionaries.
             dictoffset = 0;
         }
 #endif
 
         if (dictoffset != 0) {
-            // Negative dictionary offsets have special meaning.
             if (dictoffset < 0) {
                 Py_ssize_t tsize;
                 size_t size;
@@ -12848,6 +12816,15 @@ PyObject *CALL_METHOD_WITH_ARGS2(PyThreadState *tstate, PyObject *source, PyObje
             }
 
             Py_DECREF(dict);
+
+#if PYTHON_VERSION < 0x300
+            DROP_ERROR_OCCURRED(tstate);
+#else
+            if (unlikely(HAS_ERROR_OCCURRED(tstate))) {
+                Py_XDECREF(descr);
+                return NULL;
+            }
+#endif
         }
 
         if (func != NULL) {
@@ -12909,16 +12886,12 @@ PyObject *CALL_METHOD_WITH_ARGS2(PyThreadState *tstate, PyObject *source, PyObje
         PyObject *called_object =
             GET_STRING_DICT_VALUE((PyDictObject *)source_instance->in_dict, (PyStringObject *)attr_name);
 
-        // Note: The "called_object" was found without taking a reference,
-        // so we need not release it in this branch.
         if (called_object != NULL) {
             return CALL_FUNCTION_WITH_ARGS2(tstate, called_object, args);
         }
 
         called_object = FIND_ATTRIBUTE_IN_CLASS(source_instance->in_class, attr_name);
 
-        // Note: The "called_object" was found without taking a reference,
-        // so we need not release it in this branch.
         if (called_object != NULL) {
             descrgetfunc descr_get = Py_TYPE(called_object)->tp_descr_get;
 
@@ -12968,32 +12941,14 @@ PyObject *CALL_METHOD_WITH_ARGS2(PyThreadState *tstate, PyObject *source, PyObje
     }
 #endif
     else if (type->tp_getattro != NULL) {
-        PyObject *descr = (*type->tp_getattro)(source, attr_name);
+        PyObject *called_object = (*type->tp_getattro)(source, attr_name);
 
-        if (unlikely(descr == NULL)) {
+        if (unlikely(called_object == NULL)) {
             return NULL;
         }
 
-        descrgetfunc func = NULL;
-        if (NuitkaType_HasFeatureClass(Py_TYPE(descr))) {
-            func = Py_TYPE(descr)->tp_descr_get;
-
-            if (func != NULL && Nuitka_Descr_IsData(descr)) {
-                PyObject *called_object = func(descr, source, (PyObject *)type);
-                Py_DECREF(descr);
-
-                if (unlikely(called_object == NULL)) {
-                    return NULL;
-                }
-
-                PyObject *result = CALL_FUNCTION_WITH_ARGS2(tstate, called_object, args);
-                Py_DECREF(called_object);
-                return result;
-            }
-        }
-
-        PyObject *result = CALL_FUNCTION_WITH_ARGS2(tstate, descr, args);
-        Py_DECREF(descr);
+        PyObject *result = CALL_FUNCTION_WITH_ARGS2(tstate, called_object, args);
+        Py_DECREF(called_object);
         return result;
     } else if (type->tp_getattr != NULL) {
         PyObject *called_object = (*type->tp_getattr)(source, (char *)Nuitka_String_AsString_Unchecked(attr_name));
@@ -13071,13 +13026,11 @@ PyObject *CALL_METHOD_WITH_ARGS3(PyThreadState *tstate, PyObject *source, PyObje
                 return result;
             }
 
-            // Dictionary offsets are not usable with managed dictionaries.
             dictoffset = 0;
         }
 #endif
 
         if (dictoffset != 0) {
-            // Negative dictionary offsets have special meaning.
             if (dictoffset < 0) {
                 Py_ssize_t tsize;
                 size_t size;
@@ -13112,6 +13065,15 @@ PyObject *CALL_METHOD_WITH_ARGS3(PyThreadState *tstate, PyObject *source, PyObje
             }
 
             Py_DECREF(dict);
+
+#if PYTHON_VERSION < 0x300
+            DROP_ERROR_OCCURRED(tstate);
+#else
+            if (unlikely(HAS_ERROR_OCCURRED(tstate))) {
+                Py_XDECREF(descr);
+                return NULL;
+            }
+#endif
         }
 
         if (func != NULL) {
@@ -13173,16 +13135,12 @@ PyObject *CALL_METHOD_WITH_ARGS3(PyThreadState *tstate, PyObject *source, PyObje
         PyObject *called_object =
             GET_STRING_DICT_VALUE((PyDictObject *)source_instance->in_dict, (PyStringObject *)attr_name);
 
-        // Note: The "called_object" was found without taking a reference,
-        // so we need not release it in this branch.
         if (called_object != NULL) {
             return CALL_FUNCTION_WITH_ARGS3(tstate, called_object, args);
         }
 
         called_object = FIND_ATTRIBUTE_IN_CLASS(source_instance->in_class, attr_name);
 
-        // Note: The "called_object" was found without taking a reference,
-        // so we need not release it in this branch.
         if (called_object != NULL) {
             descrgetfunc descr_get = Py_TYPE(called_object)->tp_descr_get;
 
@@ -13232,32 +13190,14 @@ PyObject *CALL_METHOD_WITH_ARGS3(PyThreadState *tstate, PyObject *source, PyObje
     }
 #endif
     else if (type->tp_getattro != NULL) {
-        PyObject *descr = (*type->tp_getattro)(source, attr_name);
+        PyObject *called_object = (*type->tp_getattro)(source, attr_name);
 
-        if (unlikely(descr == NULL)) {
+        if (unlikely(called_object == NULL)) {
             return NULL;
         }
 
-        descrgetfunc func = NULL;
-        if (NuitkaType_HasFeatureClass(Py_TYPE(descr))) {
-            func = Py_TYPE(descr)->tp_descr_get;
-
-            if (func != NULL && Nuitka_Descr_IsData(descr)) {
-                PyObject *called_object = func(descr, source, (PyObject *)type);
-                Py_DECREF(descr);
-
-                if (unlikely(called_object == NULL)) {
-                    return NULL;
-                }
-
-                PyObject *result = CALL_FUNCTION_WITH_ARGS3(tstate, called_object, args);
-                Py_DECREF(called_object);
-                return result;
-            }
-        }
-
-        PyObject *result = CALL_FUNCTION_WITH_ARGS3(tstate, descr, args);
-        Py_DECREF(descr);
+        PyObject *result = CALL_FUNCTION_WITH_ARGS3(tstate, called_object, args);
+        Py_DECREF(called_object);
         return result;
     } else if (type->tp_getattr != NULL) {
         PyObject *called_object = (*type->tp_getattr)(source, (char *)Nuitka_String_AsString_Unchecked(attr_name));
@@ -13335,13 +13275,11 @@ PyObject *CALL_METHOD_WITH_ARGS4(PyThreadState *tstate, PyObject *source, PyObje
                 return result;
             }
 
-            // Dictionary offsets are not usable with managed dictionaries.
             dictoffset = 0;
         }
 #endif
 
         if (dictoffset != 0) {
-            // Negative dictionary offsets have special meaning.
             if (dictoffset < 0) {
                 Py_ssize_t tsize;
                 size_t size;
@@ -13376,6 +13314,15 @@ PyObject *CALL_METHOD_WITH_ARGS4(PyThreadState *tstate, PyObject *source, PyObje
             }
 
             Py_DECREF(dict);
+
+#if PYTHON_VERSION < 0x300
+            DROP_ERROR_OCCURRED(tstate);
+#else
+            if (unlikely(HAS_ERROR_OCCURRED(tstate))) {
+                Py_XDECREF(descr);
+                return NULL;
+            }
+#endif
         }
 
         if (func != NULL) {
@@ -13437,16 +13384,12 @@ PyObject *CALL_METHOD_WITH_ARGS4(PyThreadState *tstate, PyObject *source, PyObje
         PyObject *called_object =
             GET_STRING_DICT_VALUE((PyDictObject *)source_instance->in_dict, (PyStringObject *)attr_name);
 
-        // Note: The "called_object" was found without taking a reference,
-        // so we need not release it in this branch.
         if (called_object != NULL) {
             return CALL_FUNCTION_WITH_ARGS4(tstate, called_object, args);
         }
 
         called_object = FIND_ATTRIBUTE_IN_CLASS(source_instance->in_class, attr_name);
 
-        // Note: The "called_object" was found without taking a reference,
-        // so we need not release it in this branch.
         if (called_object != NULL) {
             descrgetfunc descr_get = Py_TYPE(called_object)->tp_descr_get;
 
@@ -13496,32 +13439,14 @@ PyObject *CALL_METHOD_WITH_ARGS4(PyThreadState *tstate, PyObject *source, PyObje
     }
 #endif
     else if (type->tp_getattro != NULL) {
-        PyObject *descr = (*type->tp_getattro)(source, attr_name);
+        PyObject *called_object = (*type->tp_getattro)(source, attr_name);
 
-        if (unlikely(descr == NULL)) {
+        if (unlikely(called_object == NULL)) {
             return NULL;
         }
 
-        descrgetfunc func = NULL;
-        if (NuitkaType_HasFeatureClass(Py_TYPE(descr))) {
-            func = Py_TYPE(descr)->tp_descr_get;
-
-            if (func != NULL && Nuitka_Descr_IsData(descr)) {
-                PyObject *called_object = func(descr, source, (PyObject *)type);
-                Py_DECREF(descr);
-
-                if (unlikely(called_object == NULL)) {
-                    return NULL;
-                }
-
-                PyObject *result = CALL_FUNCTION_WITH_ARGS4(tstate, called_object, args);
-                Py_DECREF(called_object);
-                return result;
-            }
-        }
-
-        PyObject *result = CALL_FUNCTION_WITH_ARGS4(tstate, descr, args);
-        Py_DECREF(descr);
+        PyObject *result = CALL_FUNCTION_WITH_ARGS4(tstate, called_object, args);
+        Py_DECREF(called_object);
         return result;
     } else if (type->tp_getattr != NULL) {
         PyObject *called_object = (*type->tp_getattr)(source, (char *)Nuitka_String_AsString_Unchecked(attr_name));
@@ -13599,13 +13524,11 @@ PyObject *CALL_METHOD_WITH_ARGS5(PyThreadState *tstate, PyObject *source, PyObje
                 return result;
             }
 
-            // Dictionary offsets are not usable with managed dictionaries.
             dictoffset = 0;
         }
 #endif
 
         if (dictoffset != 0) {
-            // Negative dictionary offsets have special meaning.
             if (dictoffset < 0) {
                 Py_ssize_t tsize;
                 size_t size;
@@ -13640,6 +13563,15 @@ PyObject *CALL_METHOD_WITH_ARGS5(PyThreadState *tstate, PyObject *source, PyObje
             }
 
             Py_DECREF(dict);
+
+#if PYTHON_VERSION < 0x300
+            DROP_ERROR_OCCURRED(tstate);
+#else
+            if (unlikely(HAS_ERROR_OCCURRED(tstate))) {
+                Py_XDECREF(descr);
+                return NULL;
+            }
+#endif
         }
 
         if (func != NULL) {
@@ -13701,16 +13633,12 @@ PyObject *CALL_METHOD_WITH_ARGS5(PyThreadState *tstate, PyObject *source, PyObje
         PyObject *called_object =
             GET_STRING_DICT_VALUE((PyDictObject *)source_instance->in_dict, (PyStringObject *)attr_name);
 
-        // Note: The "called_object" was found without taking a reference,
-        // so we need not release it in this branch.
         if (called_object != NULL) {
             return CALL_FUNCTION_WITH_ARGS5(tstate, called_object, args);
         }
 
         called_object = FIND_ATTRIBUTE_IN_CLASS(source_instance->in_class, attr_name);
 
-        // Note: The "called_object" was found without taking a reference,
-        // so we need not release it in this branch.
         if (called_object != NULL) {
             descrgetfunc descr_get = Py_TYPE(called_object)->tp_descr_get;
 
@@ -13760,32 +13688,14 @@ PyObject *CALL_METHOD_WITH_ARGS5(PyThreadState *tstate, PyObject *source, PyObje
     }
 #endif
     else if (type->tp_getattro != NULL) {
-        PyObject *descr = (*type->tp_getattro)(source, attr_name);
+        PyObject *called_object = (*type->tp_getattro)(source, attr_name);
 
-        if (unlikely(descr == NULL)) {
+        if (unlikely(called_object == NULL)) {
             return NULL;
         }
 
-        descrgetfunc func = NULL;
-        if (NuitkaType_HasFeatureClass(Py_TYPE(descr))) {
-            func = Py_TYPE(descr)->tp_descr_get;
-
-            if (func != NULL && Nuitka_Descr_IsData(descr)) {
-                PyObject *called_object = func(descr, source, (PyObject *)type);
-                Py_DECREF(descr);
-
-                if (unlikely(called_object == NULL)) {
-                    return NULL;
-                }
-
-                PyObject *result = CALL_FUNCTION_WITH_ARGS5(tstate, called_object, args);
-                Py_DECREF(called_object);
-                return result;
-            }
-        }
-
-        PyObject *result = CALL_FUNCTION_WITH_ARGS5(tstate, descr, args);
-        Py_DECREF(descr);
+        PyObject *result = CALL_FUNCTION_WITH_ARGS5(tstate, called_object, args);
+        Py_DECREF(called_object);
         return result;
     } else if (type->tp_getattr != NULL) {
         PyObject *called_object = (*type->tp_getattr)(source, (char *)Nuitka_String_AsString_Unchecked(attr_name));
@@ -13863,13 +13773,11 @@ PyObject *CALL_METHOD_WITH_ARGS6(PyThreadState *tstate, PyObject *source, PyObje
                 return result;
             }
 
-            // Dictionary offsets are not usable with managed dictionaries.
             dictoffset = 0;
         }
 #endif
 
         if (dictoffset != 0) {
-            // Negative dictionary offsets have special meaning.
             if (dictoffset < 0) {
                 Py_ssize_t tsize;
                 size_t size;
@@ -13904,6 +13812,15 @@ PyObject *CALL_METHOD_WITH_ARGS6(PyThreadState *tstate, PyObject *source, PyObje
             }
 
             Py_DECREF(dict);
+
+#if PYTHON_VERSION < 0x300
+            DROP_ERROR_OCCURRED(tstate);
+#else
+            if (unlikely(HAS_ERROR_OCCURRED(tstate))) {
+                Py_XDECREF(descr);
+                return NULL;
+            }
+#endif
         }
 
         if (func != NULL) {
@@ -13965,16 +13882,12 @@ PyObject *CALL_METHOD_WITH_ARGS6(PyThreadState *tstate, PyObject *source, PyObje
         PyObject *called_object =
             GET_STRING_DICT_VALUE((PyDictObject *)source_instance->in_dict, (PyStringObject *)attr_name);
 
-        // Note: The "called_object" was found without taking a reference,
-        // so we need not release it in this branch.
         if (called_object != NULL) {
             return CALL_FUNCTION_WITH_ARGS6(tstate, called_object, args);
         }
 
         called_object = FIND_ATTRIBUTE_IN_CLASS(source_instance->in_class, attr_name);
 
-        // Note: The "called_object" was found without taking a reference,
-        // so we need not release it in this branch.
         if (called_object != NULL) {
             descrgetfunc descr_get = Py_TYPE(called_object)->tp_descr_get;
 
@@ -14024,32 +13937,14 @@ PyObject *CALL_METHOD_WITH_ARGS6(PyThreadState *tstate, PyObject *source, PyObje
     }
 #endif
     else if (type->tp_getattro != NULL) {
-        PyObject *descr = (*type->tp_getattro)(source, attr_name);
+        PyObject *called_object = (*type->tp_getattro)(source, attr_name);
 
-        if (unlikely(descr == NULL)) {
+        if (unlikely(called_object == NULL)) {
             return NULL;
         }
 
-        descrgetfunc func = NULL;
-        if (NuitkaType_HasFeatureClass(Py_TYPE(descr))) {
-            func = Py_TYPE(descr)->tp_descr_get;
-
-            if (func != NULL && Nuitka_Descr_IsData(descr)) {
-                PyObject *called_object = func(descr, source, (PyObject *)type);
-                Py_DECREF(descr);
-
-                if (unlikely(called_object == NULL)) {
-                    return NULL;
-                }
-
-                PyObject *result = CALL_FUNCTION_WITH_ARGS6(tstate, called_object, args);
-                Py_DECREF(called_object);
-                return result;
-            }
-        }
-
-        PyObject *result = CALL_FUNCTION_WITH_ARGS6(tstate, descr, args);
-        Py_DECREF(descr);
+        PyObject *result = CALL_FUNCTION_WITH_ARGS6(tstate, called_object, args);
+        Py_DECREF(called_object);
         return result;
     } else if (type->tp_getattr != NULL) {
         PyObject *called_object = (*type->tp_getattr)(source, (char *)Nuitka_String_AsString_Unchecked(attr_name));
@@ -14127,13 +14022,11 @@ PyObject *CALL_METHOD_WITH_ARGS7(PyThreadState *tstate, PyObject *source, PyObje
                 return result;
             }
 
-            // Dictionary offsets are not usable with managed dictionaries.
             dictoffset = 0;
         }
 #endif
 
         if (dictoffset != 0) {
-            // Negative dictionary offsets have special meaning.
             if (dictoffset < 0) {
                 Py_ssize_t tsize;
                 size_t size;
@@ -14168,6 +14061,15 @@ PyObject *CALL_METHOD_WITH_ARGS7(PyThreadState *tstate, PyObject *source, PyObje
             }
 
             Py_DECREF(dict);
+
+#if PYTHON_VERSION < 0x300
+            DROP_ERROR_OCCURRED(tstate);
+#else
+            if (unlikely(HAS_ERROR_OCCURRED(tstate))) {
+                Py_XDECREF(descr);
+                return NULL;
+            }
+#endif
         }
 
         if (func != NULL) {
@@ -14229,16 +14131,12 @@ PyObject *CALL_METHOD_WITH_ARGS7(PyThreadState *tstate, PyObject *source, PyObje
         PyObject *called_object =
             GET_STRING_DICT_VALUE((PyDictObject *)source_instance->in_dict, (PyStringObject *)attr_name);
 
-        // Note: The "called_object" was found without taking a reference,
-        // so we need not release it in this branch.
         if (called_object != NULL) {
             return CALL_FUNCTION_WITH_ARGS7(tstate, called_object, args);
         }
 
         called_object = FIND_ATTRIBUTE_IN_CLASS(source_instance->in_class, attr_name);
 
-        // Note: The "called_object" was found without taking a reference,
-        // so we need not release it in this branch.
         if (called_object != NULL) {
             descrgetfunc descr_get = Py_TYPE(called_object)->tp_descr_get;
 
@@ -14288,32 +14186,14 @@ PyObject *CALL_METHOD_WITH_ARGS7(PyThreadState *tstate, PyObject *source, PyObje
     }
 #endif
     else if (type->tp_getattro != NULL) {
-        PyObject *descr = (*type->tp_getattro)(source, attr_name);
+        PyObject *called_object = (*type->tp_getattro)(source, attr_name);
 
-        if (unlikely(descr == NULL)) {
+        if (unlikely(called_object == NULL)) {
             return NULL;
         }
 
-        descrgetfunc func = NULL;
-        if (NuitkaType_HasFeatureClass(Py_TYPE(descr))) {
-            func = Py_TYPE(descr)->tp_descr_get;
-
-            if (func != NULL && Nuitka_Descr_IsData(descr)) {
-                PyObject *called_object = func(descr, source, (PyObject *)type);
-                Py_DECREF(descr);
-
-                if (unlikely(called_object == NULL)) {
-                    return NULL;
-                }
-
-                PyObject *result = CALL_FUNCTION_WITH_ARGS7(tstate, called_object, args);
-                Py_DECREF(called_object);
-                return result;
-            }
-        }
-
-        PyObject *result = CALL_FUNCTION_WITH_ARGS7(tstate, descr, args);
-        Py_DECREF(descr);
+        PyObject *result = CALL_FUNCTION_WITH_ARGS7(tstate, called_object, args);
+        Py_DECREF(called_object);
         return result;
     } else if (type->tp_getattr != NULL) {
         PyObject *called_object = (*type->tp_getattr)(source, (char *)Nuitka_String_AsString_Unchecked(attr_name));
@@ -14391,13 +14271,11 @@ PyObject *CALL_METHOD_WITH_ARGS8(PyThreadState *tstate, PyObject *source, PyObje
                 return result;
             }
 
-            // Dictionary offsets are not usable with managed dictionaries.
             dictoffset = 0;
         }
 #endif
 
         if (dictoffset != 0) {
-            // Negative dictionary offsets have special meaning.
             if (dictoffset < 0) {
                 Py_ssize_t tsize;
                 size_t size;
@@ -14432,6 +14310,15 @@ PyObject *CALL_METHOD_WITH_ARGS8(PyThreadState *tstate, PyObject *source, PyObje
             }
 
             Py_DECREF(dict);
+
+#if PYTHON_VERSION < 0x300
+            DROP_ERROR_OCCURRED(tstate);
+#else
+            if (unlikely(HAS_ERROR_OCCURRED(tstate))) {
+                Py_XDECREF(descr);
+                return NULL;
+            }
+#endif
         }
 
         if (func != NULL) {
@@ -14493,16 +14380,12 @@ PyObject *CALL_METHOD_WITH_ARGS8(PyThreadState *tstate, PyObject *source, PyObje
         PyObject *called_object =
             GET_STRING_DICT_VALUE((PyDictObject *)source_instance->in_dict, (PyStringObject *)attr_name);
 
-        // Note: The "called_object" was found without taking a reference,
-        // so we need not release it in this branch.
         if (called_object != NULL) {
             return CALL_FUNCTION_WITH_ARGS8(tstate, called_object, args);
         }
 
         called_object = FIND_ATTRIBUTE_IN_CLASS(source_instance->in_class, attr_name);
 
-        // Note: The "called_object" was found without taking a reference,
-        // so we need not release it in this branch.
         if (called_object != NULL) {
             descrgetfunc descr_get = Py_TYPE(called_object)->tp_descr_get;
 
@@ -14552,32 +14435,14 @@ PyObject *CALL_METHOD_WITH_ARGS8(PyThreadState *tstate, PyObject *source, PyObje
     }
 #endif
     else if (type->tp_getattro != NULL) {
-        PyObject *descr = (*type->tp_getattro)(source, attr_name);
+        PyObject *called_object = (*type->tp_getattro)(source, attr_name);
 
-        if (unlikely(descr == NULL)) {
+        if (unlikely(called_object == NULL)) {
             return NULL;
         }
 
-        descrgetfunc func = NULL;
-        if (NuitkaType_HasFeatureClass(Py_TYPE(descr))) {
-            func = Py_TYPE(descr)->tp_descr_get;
-
-            if (func != NULL && Nuitka_Descr_IsData(descr)) {
-                PyObject *called_object = func(descr, source, (PyObject *)type);
-                Py_DECREF(descr);
-
-                if (unlikely(called_object == NULL)) {
-                    return NULL;
-                }
-
-                PyObject *result = CALL_FUNCTION_WITH_ARGS8(tstate, called_object, args);
-                Py_DECREF(called_object);
-                return result;
-            }
-        }
-
-        PyObject *result = CALL_FUNCTION_WITH_ARGS8(tstate, descr, args);
-        Py_DECREF(descr);
+        PyObject *result = CALL_FUNCTION_WITH_ARGS8(tstate, called_object, args);
+        Py_DECREF(called_object);
         return result;
     } else if (type->tp_getattr != NULL) {
         PyObject *called_object = (*type->tp_getattr)(source, (char *)Nuitka_String_AsString_Unchecked(attr_name));
@@ -14655,13 +14520,11 @@ PyObject *CALL_METHOD_WITH_ARGS9(PyThreadState *tstate, PyObject *source, PyObje
                 return result;
             }
 
-            // Dictionary offsets are not usable with managed dictionaries.
             dictoffset = 0;
         }
 #endif
 
         if (dictoffset != 0) {
-            // Negative dictionary offsets have special meaning.
             if (dictoffset < 0) {
                 Py_ssize_t tsize;
                 size_t size;
@@ -14696,6 +14559,15 @@ PyObject *CALL_METHOD_WITH_ARGS9(PyThreadState *tstate, PyObject *source, PyObje
             }
 
             Py_DECREF(dict);
+
+#if PYTHON_VERSION < 0x300
+            DROP_ERROR_OCCURRED(tstate);
+#else
+            if (unlikely(HAS_ERROR_OCCURRED(tstate))) {
+                Py_XDECREF(descr);
+                return NULL;
+            }
+#endif
         }
 
         if (func != NULL) {
@@ -14757,16 +14629,12 @@ PyObject *CALL_METHOD_WITH_ARGS9(PyThreadState *tstate, PyObject *source, PyObje
         PyObject *called_object =
             GET_STRING_DICT_VALUE((PyDictObject *)source_instance->in_dict, (PyStringObject *)attr_name);
 
-        // Note: The "called_object" was found without taking a reference,
-        // so we need not release it in this branch.
         if (called_object != NULL) {
             return CALL_FUNCTION_WITH_ARGS9(tstate, called_object, args);
         }
 
         called_object = FIND_ATTRIBUTE_IN_CLASS(source_instance->in_class, attr_name);
 
-        // Note: The "called_object" was found without taking a reference,
-        // so we need not release it in this branch.
         if (called_object != NULL) {
             descrgetfunc descr_get = Py_TYPE(called_object)->tp_descr_get;
 
@@ -14816,32 +14684,14 @@ PyObject *CALL_METHOD_WITH_ARGS9(PyThreadState *tstate, PyObject *source, PyObje
     }
 #endif
     else if (type->tp_getattro != NULL) {
-        PyObject *descr = (*type->tp_getattro)(source, attr_name);
+        PyObject *called_object = (*type->tp_getattro)(source, attr_name);
 
-        if (unlikely(descr == NULL)) {
+        if (unlikely(called_object == NULL)) {
             return NULL;
         }
 
-        descrgetfunc func = NULL;
-        if (NuitkaType_HasFeatureClass(Py_TYPE(descr))) {
-            func = Py_TYPE(descr)->tp_descr_get;
-
-            if (func != NULL && Nuitka_Descr_IsData(descr)) {
-                PyObject *called_object = func(descr, source, (PyObject *)type);
-                Py_DECREF(descr);
-
-                if (unlikely(called_object == NULL)) {
-                    return NULL;
-                }
-
-                PyObject *result = CALL_FUNCTION_WITH_ARGS9(tstate, called_object, args);
-                Py_DECREF(called_object);
-                return result;
-            }
-        }
-
-        PyObject *result = CALL_FUNCTION_WITH_ARGS9(tstate, descr, args);
-        Py_DECREF(descr);
+        PyObject *result = CALL_FUNCTION_WITH_ARGS9(tstate, called_object, args);
+        Py_DECREF(called_object);
         return result;
     } else if (type->tp_getattr != NULL) {
         PyObject *called_object = (*type->tp_getattr)(source, (char *)Nuitka_String_AsString_Unchecked(attr_name));
@@ -14919,13 +14769,11 @@ PyObject *CALL_METHOD_WITH_ARGS10(PyThreadState *tstate, PyObject *source, PyObj
                 return result;
             }
 
-            // Dictionary offsets are not usable with managed dictionaries.
             dictoffset = 0;
         }
 #endif
 
         if (dictoffset != 0) {
-            // Negative dictionary offsets have special meaning.
             if (dictoffset < 0) {
                 Py_ssize_t tsize;
                 size_t size;
@@ -14960,6 +14808,15 @@ PyObject *CALL_METHOD_WITH_ARGS10(PyThreadState *tstate, PyObject *source, PyObj
             }
 
             Py_DECREF(dict);
+
+#if PYTHON_VERSION < 0x300
+            DROP_ERROR_OCCURRED(tstate);
+#else
+            if (unlikely(HAS_ERROR_OCCURRED(tstate))) {
+                Py_XDECREF(descr);
+                return NULL;
+            }
+#endif
         }
 
         if (func != NULL) {
@@ -15021,16 +14878,12 @@ PyObject *CALL_METHOD_WITH_ARGS10(PyThreadState *tstate, PyObject *source, PyObj
         PyObject *called_object =
             GET_STRING_DICT_VALUE((PyDictObject *)source_instance->in_dict, (PyStringObject *)attr_name);
 
-        // Note: The "called_object" was found without taking a reference,
-        // so we need not release it in this branch.
         if (called_object != NULL) {
             return CALL_FUNCTION_WITH_ARGS10(tstate, called_object, args);
         }
 
         called_object = FIND_ATTRIBUTE_IN_CLASS(source_instance->in_class, attr_name);
 
-        // Note: The "called_object" was found without taking a reference,
-        // so we need not release it in this branch.
         if (called_object != NULL) {
             descrgetfunc descr_get = Py_TYPE(called_object)->tp_descr_get;
 
@@ -15080,32 +14933,14 @@ PyObject *CALL_METHOD_WITH_ARGS10(PyThreadState *tstate, PyObject *source, PyObj
     }
 #endif
     else if (type->tp_getattro != NULL) {
-        PyObject *descr = (*type->tp_getattro)(source, attr_name);
+        PyObject *called_object = (*type->tp_getattro)(source, attr_name);
 
-        if (unlikely(descr == NULL)) {
+        if (unlikely(called_object == NULL)) {
             return NULL;
         }
 
-        descrgetfunc func = NULL;
-        if (NuitkaType_HasFeatureClass(Py_TYPE(descr))) {
-            func = Py_TYPE(descr)->tp_descr_get;
-
-            if (func != NULL && Nuitka_Descr_IsData(descr)) {
-                PyObject *called_object = func(descr, source, (PyObject *)type);
-                Py_DECREF(descr);
-
-                if (unlikely(called_object == NULL)) {
-                    return NULL;
-                }
-
-                PyObject *result = CALL_FUNCTION_WITH_ARGS10(tstate, called_object, args);
-                Py_DECREF(called_object);
-                return result;
-            }
-        }
-
-        PyObject *result = CALL_FUNCTION_WITH_ARGS10(tstate, descr, args);
-        Py_DECREF(descr);
+        PyObject *result = CALL_FUNCTION_WITH_ARGS10(tstate, called_object, args);
+        Py_DECREF(called_object);
         return result;
     } else if (type->tp_getattr != NULL) {
         PyObject *called_object = (*type->tp_getattr)(source, (char *)Nuitka_String_AsString_Unchecked(attr_name));
