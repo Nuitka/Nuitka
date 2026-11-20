@@ -428,7 +428,12 @@ class StatementLocalsDictOperationSet(StatementLocalsDictOperationSetBase):
     def finalize(self):
         del self.parent
         del self.locals_scope
+        del self.variable
         del self.variable_trace
+
+        if self.subnode_source is not None:
+            self.subnode_source.finalize()
+        del self.subnode_source
 
     def getDetails(self):
         return {
@@ -468,8 +473,11 @@ class StatementLocalsDictOperationSet(StatementLocalsDictOperationSetBase):
 
             variable = self.locals_scope.allocateTempReplacementVariable(variable_name)
 
+            source = self.subnode_source
+            self.subnode_source = None
+
             result = makeStatementAssignmentVariable(
-                source=self.subnode_source,
+                source=source,
                 variable=variable,
                 source_ref=self.source_ref,
             )
