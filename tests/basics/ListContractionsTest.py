@@ -160,6 +160,45 @@ def clonedFinallyContractionWithClosure(xs, ys):
 print(clonedFinallyContractionWithClosure([1, 2, 3], [2]))
 print(clonedFinallyContractionWithClosure([], [2]))
 
+print("Cloned generator expression directly in a 'finally' block:")
+
+
+def clonedFinallyGenexpr(xs, ys):
+    try:
+        if not xs:
+            return "returned"
+
+        print("body")
+    finally:
+        found = any(y in xs for y in ys)
+        print("finally", found)
+
+
+print(clonedFinallyGenexpr([1, 2, 3], [2]))
+print(clonedFinallyGenexpr([], [2]))
+
+print(
+    "Cloned contraction with a lambda inside a generator expression in a 'finally' block:"
+)
+
+
+def clonedFinallyContractionWithLambdaInGenexpr(xs, ys):
+    try:
+        if not xs:
+            return "returned"
+
+        print("body")
+    finally:
+        a, b = (
+            [x for x in xs if any((lambda: x == y)() for y in ys)],
+            0,
+        )
+        print("finally", a, b)
+
+
+print(clonedFinallyContractionWithLambdaInGenexpr([1, 2, 3], [2]))
+print(clonedFinallyContractionWithLambdaInGenexpr([], [2]))
+
 #     Python tests originally created or extracted from other peoples work. The
 #     parts were too small to be protected.
 #

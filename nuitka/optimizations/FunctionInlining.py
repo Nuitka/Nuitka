@@ -73,6 +73,10 @@ def convertFunctionCallToOutline(provider, function_body, values, call_source_re
             variable_translations.get(taken_variable, taken_variable)
         )
 
+    # Attach clone temporarily so getParentVariableProvider() resolves to
+    # outline_body while updating nested function body references.
+    clone.parent = outline_body
+
     updateVariableUsage(
         provider=clone,
         old_locals_scope=function_body.locals_scope,

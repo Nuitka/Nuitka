@@ -22,6 +22,11 @@ class VariableUsageUpdater(VisitorNoopMixin):
         if hasattr(node, "variable") and node.variable in self.variable_translations:
             new_variable = self.variable_translations[node.variable]
 
+            # Temp variables are not recorded as users by closure resolution
+            # either, and must keep their raw object C type.
+            if not new_variable.isTempVariable():
+                new_variable.addVariableUser(node.getParentVariableProvider())
+
             if node.isStatementReleaseVariable():
                 from nuitka.nodes.VariableReleaseNodes import (
                     makeStatementReleaseVariable,
@@ -55,17 +60,24 @@ class VariableUsageUpdater(VisitorNoopMixin):
         ):
             node.loop_variables = None
 
-        if hasattr(node, "locals_scope") and node.locals_scope is self.old_locals_scope:
-            node.locals_scope = self.new_locals_scope
+        if self.old_locals_scope is not None:
+            if (
+                hasattr(node, "locals_scope")
+                and node.locals_scope is self.old_locals_scope
+            ):
+                node.locals_scope = self.new_locals_scope
 
-        if hasattr(node, "provider") and node.provider is self.old_locals_scope.owner:
-            node.provider = self.new_locals_scope.owner
+            if (
+                hasattr(node, "provider")
+                and node.provider is self.old_locals_scope.owner
+            ):
+                node.provider = self.new_locals_scope.owner
 
-        if (
-            hasattr(node, "qualname_provider")
-            and node.qualname_provider is self.old_locals_scope.owner
-        ):
-            node.qualname_provider = self.new_locals_scope.owner
+            if (
+                hasattr(node, "qualname_provider")
+                and node.qualname_provider is self.old_locals_scope.owner
+            ):
+                node.qualname_provider = self.new_locals_scope.owner
 
 
 def updateVariableUsage(

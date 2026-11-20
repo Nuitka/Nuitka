@@ -279,6 +279,22 @@ def testLenEscapeDel():
     print(len(lst), lst)
 
 
+def testClonedFinallyUnpack(xs, ys):
+    try:
+        if not xs:
+            return "returned"
+
+        print("body")
+    finally:
+        a, b = ([x for x in xs if x in ys], 0)
+        print("finally", a, b)
+
+
+def testNestedUnpackInRhs(pairs):
+    a, b = ([u + v for u, v in pairs], 0)
+    print("nested unpack", a, b)
+
+
 someFunction()
 varargsFunction(1, 2, 3, 4)
 otherFunction()
@@ -293,6 +309,9 @@ complexDel()
 sliceDel()
 globalErrors()
 testLenEscapeDel()
+print(testClonedFinallyUnpack([1, 2, 3], [2]))
+print(testClonedFinallyUnpack([], [2]))
+testNestedUnpackInRhs([(1, 2), (3, 4)])
 
 #     Python tests originally created or extracted from other peoples work. The
 #     parts were too small to be protected.
