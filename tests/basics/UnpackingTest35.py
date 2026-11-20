@@ -78,6 +78,25 @@ def keywordUnpackingError():
         return e
 
 
+class NonIterableKeys:
+    def keys(self):
+        return 2.0
+
+
+def dictUnpackingKeysError():
+    try:
+        return {"a": 1, **NonIterableKeys()}
+    except Exception as e:
+        return e
+
+
+def dictConstructorKeysError():
+    try:
+        return dict(NonIterableKeys())
+    except Exception as e:
+        return e
+
+
 def mappingUnpacking(key_a, key_b):
     key1, key2 = {key_a: 1, key_b: 2}
     return key1, key2
@@ -88,6 +107,8 @@ print("List unpacked error:", listUnpackingError())
 print("Set unpacked error:", setUnpackingError())
 print("Dict unpacked error:", dictUnpackingError())
 print("Keyword unpacked error:", keywordUnpackingError())
+print("Dict unpacked keys error:", dictUnpackingKeysError())
+print("Dict constructor keys error:", dictConstructorKeysError())
 print("Mapping unpacked:", sorted(mappingUnpacking("a", "b")))
 
 #     Python tests originally created or extracted from other peoples work. The

@@ -1197,11 +1197,11 @@ class ExpressionDictOperationUpdatePairs(
 
 
 class StatementDictOperationUpdate(StatementDictOperationUpdateBase):
-    """Update dict value.
+    """Update dict value for '**' mapping unpacking.
 
-    This is mainly used for re-formulations, where a dictionary
-    update will be performed on what is known not to be a
-    general mapping.
+    Used by dictionary display and dictionary comprehension unpacking,
+    updating an exact 'dict' from an arbitrary mapping and raising
+    'TypeError' on non-mappings.
     """
 
     kind = "STATEMENT_DICT_OPERATION_UPDATE"

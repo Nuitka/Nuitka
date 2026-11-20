@@ -5113,7 +5113,7 @@ static bool DICT_CLONE_INTO(PyThreadState *tstate, PyObject *target, PyObject *d
 }
 #endif
 
-int DICT_UPDATE_FROM(PyThreadState *tstate, PyObject *dict, PyObject *other) {
+static int _DICT_UPDATE_FROM(PyThreadState *tstate, PyObject *dict, PyObject *other, bool for_unpack) {
     CHECK_OBJECT(dict);
     assert(PyDict_Check(dict));
     CHECK_OBJECT(other);
@@ -5201,18 +5201,83 @@ int DICT_UPDATE_FROM(PyThreadState *tstate, PyObject *dict, PyObject *other) {
         return 0;
     }
 
-    PyObject *keys = Nuitka_Mapping_Keys(tstate, other);
+    PyObject *keys;
+#if PYTHON_VERSION >= 0x3f0
+    if (for_unpack) {
+        PyObject *keys_func = LOOKUP_ATTRIBUTE(tstate, other, const_str_plain_keys);
 
-    if (keys == NULL) {
-        return -1;
+        if (unlikely(keys_func == NULL)) {
+            if (CHECK_AND_CLEAR_ATTRIBUTE_ERROR_OCCURRED(tstate)) {
+                SET_CURRENT_EXCEPTION_TYPE_COMPLAINT_QUALIFIED("'%s' object is not a mapping", other);
+            }
+
+            return -1;
+        }
+
+        PyObject *keys_iterable = CALL_FUNCTION_NO_ARGS(tstate, keys_func);
+        Py_DECREF(keys_func);
+
+        if (unlikely(keys_iterable == NULL)) {
+            return -1;
+        }
+
+        if (PyList_CheckExact(keys_iterable) || PyTuple_CheckExact(keys_iterable)) {
+            keys = keys_iterable;
+        } else {
+            PyObject *keys_iter = MAKE_ITERATOR(tstate, keys_iterable);
+
+            if (unlikely(keys_iter == NULL)) {
+                if (CHECK_AND_CLEAR_TYPE_ERROR_OCCURRED(tstate)) {
+                    SET_CURRENT_EXCEPTION_TYPE_COMPLAINT_QUALIFIED2("%s.keys() must return an iterable, not %s", other,
+                                                                    keys_iterable);
+                }
+
+                Py_DECREF(keys_iterable);
+                return -1;
+            }
+
+            Py_DECREF(keys_iterable);
+
+            keys = PySequence_List(keys_iter);
+            Py_DECREF(keys_iter);
+
+            if (unlikely(keys == NULL)) {
+                return -1;
+            }
+        }
+    } else
+#else
+    (void)for_unpack;
+#endif
+    {
+        keys = Nuitka_Mapping_Keys(tstate, other);
+
+        if (keys == NULL) {
+            return -1;
+        }
     }
 
     PyObject *iter = MAKE_ITERATOR(tstate, keys);
-    Py_DECREF(keys);
 
-    if (iter == NULL) {
+    if (unlikely(iter == NULL)) {
+#if PYTHON_VERSION >= 0x340
+        if (CHECK_AND_CLEAR_TYPE_ERROR_OCCURRED(tstate)) {
+#if PYTHON_VERSION >= 0x3f0
+            SET_CURRENT_EXCEPTION_TYPE_COMPLAINT_QUALIFIED2("%s.keys() must return an iterable, not %s", other, keys);
+#elif PYTHON_VERSION >= 0x370
+            SET_CURRENT_EXCEPTION_TYPE0_FORMAT2(PyExc_TypeError, "%s.keys() returned a non-iterable (type %s)",
+                                                Py_TYPE(other)->tp_name, Py_TYPE(keys)->tp_name);
+#else
+            SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_TypeError, "o.keys() are not iterable");
+#endif
+        }
+#endif
+
+        Py_DECREF(keys);
         return -1;
     }
+
+    Py_DECREF(keys);
 
     PyObject *key;
 
@@ -5245,6 +5310,24 @@ int DICT_UPDATE_FROM(PyThreadState *tstate, PyObject *dict, PyObject *other) {
     }
 
     return 0;
+}
+
+int DICT_UPDATE_FROM(PyThreadState *tstate, PyObject *dict, PyObject *other) {
+    return _DICT_UPDATE_FROM(tstate, dict, other, false);
+}
+
+int DICT_UNPACK_FROM(PyThreadState *tstate, PyObject *dict, PyObject *other) {
+    int res = _DICT_UPDATE_FROM(tstate, dict, other, true);
+
+#if PYTHON_VERSION < 0x3f0
+    if (unlikely(res == -1)) {
+        if (CHECK_AND_CLEAR_ATTRIBUTE_ERROR_OCCURRED(tstate)) {
+            SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("'%s' object is not a mapping", other);
+        }
+    }
+#endif
+
+    return res;
 }
 
 int DICT_UPDATE_FROM_SEQ(PyThreadState *tstate, PyObject *dict, PyObject *seq) {
