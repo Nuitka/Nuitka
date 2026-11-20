@@ -439,7 +439,6 @@ static int _Nuitka_visit_move(PyObject *op, void *to_list_arg) {
         }
     }
 
-    // Required for traverseproc
     return 0;
 }
 
@@ -819,7 +818,6 @@ void Nuitka_PyObject_GC_Link(PyObject *op) {
     // TODO: This is not the no-GIL implementation
     PyGC_Head *gc = _Py_AS_GC(op);
 
-    // gc must be correctly aligned
     _PyObject_ASSERT(op, ((uintptr_t)gc & (sizeof(uintptr_t) - 1)) == 0);
 
     // TODO: Have this passed.
@@ -840,7 +838,6 @@ void Nuitka_PyObject_GC_Link(PyObject *op) {
     // TODO: This is not the no-GIL implementation
     PyGC_Head *gc = _Py_AS_GC(op);
 
-    // gc must be correctly aligned
     _PyObject_ASSERT(op, ((uintptr_t)gc & (sizeof(uintptr_t) - 1)) == 0);
 
     // TODO: Have this passed.
@@ -876,7 +873,6 @@ void Nuitka_PyObject_GC_Link(PyObject *op) {
     // TODO: This is not the no-GIL implementation
     PyGC_Head *gc = _Py_AS_GC(op);
 
-    // gc must be correctly aligned
     _PyObject_ASSERT(op, ((uintptr_t)gc & (sizeof(uintptr_t) - 1)) == 0);
 
     // TODO: Have this passed.
@@ -899,7 +895,6 @@ void Nuitka_PyObject_GC_Link(PyObject *op) {
     // TODO: This is not the no-GIL implementation
     PyGC_Head *gc = _Py_AS_GC(op);
 
-    // gc must be correctly aligned
     _PyObject_ASSERT(op, ((uintptr_t)gc & (sizeof(uintptr_t) - 1)) == 0);
 
     // TODO: Have this passed.
@@ -943,8 +938,8 @@ struct _mem_work_item {
 struct _mem_work_chunk {
     struct llist_node node;
 
-    Py_ssize_t rd_idx; // index of next item to read
-    Py_ssize_t wr_idx; // index of next item to write
+    Py_ssize_t rd_idx;
+    Py_ssize_t wr_idx;
     struct _mem_work_item array[WORK_ITEMS_PER_CHUNK];
 };
 
@@ -1093,7 +1088,6 @@ PyLockStatus _NuitkaMutex_LockTimed(PyMutex *m) {
         }
 
         if (!(v & _Py_HAS_PARKED) && spin_count < MAX_SPIN_COUNT) {
-            // Spin for a bit.
             _Nuitka_yield();
 
             spin_count++;
@@ -1124,30 +1118,23 @@ void _NuitkaMem_ProcessDelayed(PyThreadState *tstate) {
     PyInterpreterState *interp = tstate->interp;
     _PyThreadStateImpl *tstate_impl = (_PyThreadStateImpl *)tstate;
 
-    // Release thread-local queue
     _Nuitka_process_queue(&tstate_impl->mem_free_queue, tstate_impl->qsbr, true);
-
-    // Release interpreter queue
     _Nuitka_process_interp_queue(Nuitka_PyInterpreterState_GetMemFreeQueue(interp), tstate_impl->qsbr);
 }
 
 static void _NuitkaMem_FreeDelayed2(uintptr_t ptr) {
-    // Free immediately if possible.
     if (Nuitka_GetStopTheWorld()->world_stopped) {
         _NuitkaMem_free_work_item(ptr);
         return;
     }
 
-    // Allocate an entry for later processing.
     _PyThreadStateImpl *tstate = (_PyThreadStateImpl *)_PyThreadState_GET();
     struct llist_node *head = &tstate->mem_free_queue;
 
     struct _mem_work_chunk *buf = NULL;
     if (!llist_empty(head)) {
-        // Try to reuse the last buffer
         buf = llist_data(head->prev, struct _mem_work_chunk, node);
         if (buf->wr_idx == WORK_ITEMS_PER_CHUNK) {
-            // already full
             buf = NULL;
         }
     }

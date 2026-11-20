@@ -19,7 +19,6 @@
 #include <structmember.h>
 #endif
 
-// For reporting about reference counts per type.
 #if _DEBUG_REFCOUNTS
 int count_active_Nuitka_Coroutine_Type = 0;
 int count_allocated_Nuitka_Coroutine_Type = 0;
@@ -196,7 +195,7 @@ static PyObject *_Nuitka_YieldFromCore(PyThreadState *tstate, PyObject *yield_fr
                                        PyObject **returned_value, bool mode) {
     // Send iteration value to the sub-generator, which may be a CPython
     // generator object, something with an iterator next, or a send method,
-    // where the later is only required if values other than "None" need to
+    // where the latter is only required if values other than "None" need to
     // be passed in.
     CHECK_OBJECT(yield_from);
     CHECK_OBJECT_X(send_value);
@@ -212,8 +211,6 @@ static PyObject *_Nuitka_YieldFromCore(PyThreadState *tstate, PyObject *yield_fr
     if (HAS_EXCEPTION_STATE(&exception_state)) {
         // Exception, was thrown into us, need to send that to sub-generator.
         // We acquired ownership of the published exception and need to release it potentially.
-
-        // Transfer exception owner this.
         retval = _Nuitka_YieldFromPassExceptionTo(tstate, yield_from, &exception_state);
 
         // TODO: This wants to look at retval most definitely, send_value is going to be NULL.
@@ -460,12 +457,10 @@ static PyObject *Nuitka_YieldFromCoroutineInitial(PyThreadState *tstate, struct 
     return result;
 }
 
-// This function is called when sending a value or exception to be handled in the coroutine
+// This function is called when sending a value or exception to be handled in the coroutine.
 // Note:
-//   Exception arguments are passed for ownership and must be released before returning. The
-//   value of exception_type may be NULL, and the actual exception will not necessarily
-//   be normalized.
-
+//   Exception state is passed for ownership and must be released before returning; it may
+//   be empty, and if non-empty will not necessarily be normalized.
 static PySendResult _Nuitka_Coroutine_sendR(PyThreadState *tstate, struct Nuitka_CoroutineObject *coroutine,
                                             PyObject *value, bool closing,
                                             struct Nuitka_ExceptionPreservationItem *exception_state,
@@ -506,10 +501,8 @@ static PySendResult _Nuitka_Coroutine_sendR(PyThreadState *tstate, struct Nuitka
             return PYGEN_ERROR;
         }
 
-        // Put the coroutine back on the frame stack.
         Nuitka_ThreadStateFrameType *return_frame = _Nuitka_GetThreadStateFrame(tstate);
 
-        // Consider it as running.
         if (coroutine->m_status == status_Unused) {
             coroutine->m_status = status_Running;
             assert(coroutine->m_resume_frame == NULL);
@@ -524,7 +517,6 @@ static PySendResult _Nuitka_Coroutine_sendR(PyThreadState *tstate, struct Nuitka
             coroutine->m_resume_frame = NULL;
         }
 
-        // Continue the yielder function while preventing recursion.
         Nuitka_MarkCoroutineAsRunning(coroutine);
 
         // Check for thrown exception, publish it to the coroutine code.
@@ -540,7 +532,6 @@ static PySendResult _Nuitka_Coroutine_sendR(PyThreadState *tstate, struct Nuitka
         PRINT_COROUTINE_VALUE("value", value);
         PRINT_CURRENT_EXCEPTION();
         PRINT_NEW_LINE();
-        // dumpFrameStack();
 #endif
 
         PyObject *yielded;
@@ -563,7 +554,6 @@ static PySendResult _Nuitka_Coroutine_sendR(PyThreadState *tstate, struct Nuitka
 
         // Remove the back frame from coroutine if it's there.
         if (coroutine->m_frame) {
-            // assert(tstate->frame == &coroutine->m_frame->m_frame);
             assertFrameObject(coroutine->m_frame);
 
             Py_CLEAR(coroutine->m_frame->m_frame.f_back);
@@ -577,7 +567,6 @@ static PySendResult _Nuitka_Coroutine_sendR(PyThreadState *tstate, struct Nuitka
 
 #if _DEBUG_COROUTINE
         PRINT_COROUTINE_STATUS("Returned from coroutine", coroutine);
-        // dumpFrameStack();
 #endif
 
 #ifndef __NUITKA_NO_ASSERT__
@@ -654,11 +643,9 @@ static PySendResult _Nuitka_Coroutine_sendR(PyThreadState *tstate, struct Nuitka
         // Release exception if any, we are finished with it and will raise another.
         RELEASE_ERROR_OCCURRED_STATE_X(exception_state);
 
-        /* This is for status_Finished */
         assert(coroutine->m_status == status_Finished);
-        /* This check got added in Python 3.5.2 only. It's good to do it, but
-         * not fully compatible, therefore guard it.
-         */
+        // This check got added in Python 3.5.2 only. It's good to do it, but
+        // not fully compatible, therefore guard it.
 #if PYTHON_VERSION >= 0x352 || !defined(_NUITKA_FULL_COMPAT)
         if (closing == false) {
 #if _DEBUG_COROUTINE
@@ -788,9 +775,8 @@ static bool _Nuitka_Generator_check_throw(PyThreadState *tstate,
 // This function is called when yielding to a coroutine through "_Nuitka_YieldFromPassExceptionTo"
 // and potentially wrapper objects used by generators, or by the throw method itself.
 // Note:
-//   Exception arguments are passed for ownership and must be released before returning. The
-//   value of exception_type will not be NULL, but the actual exception will not necessarily
-//   be normalized.
+//   Exception state is passed for ownership and must be released before returning; it is
+//   non-empty, but not necessarily normalized.
 static PyObject *_Nuitka_Coroutine_throw2(PyThreadState *tstate, struct Nuitka_CoroutineObject *coroutine, bool closing,
                                           struct Nuitka_ExceptionPreservationItem *exception_state) {
     CHECK_OBJECT(coroutine);
@@ -1192,11 +1178,9 @@ static void Nuitka_Coroutine_tp_finalize(PyObject *self) {
         Py_DECREF(close_result);
     }
 
-    /* Restore the saved exception if any. */
     RESTORE_ERROR_OCCURRED_STATE(tstate, &saved_exception_state);
 }
 
-// Freelist setup
 #define MAX_COROUTINE_FREE_LIST_COUNT 100
 static struct Nuitka_CoroutineObject *free_list_coroutines = NULL;
 static int free_list_coroutines_count = 0;
@@ -1263,7 +1247,6 @@ static void Nuitka_Coroutine_tp_dealloc(PyObject *self) {
     DROP_COROUTINE_EXCEPTION(coroutine);
 #endif
 
-    /* Put the object into free list or release to GC */
     releaseToFreeList(free_list_coroutines, coroutine, MAX_COROUTINE_FREE_LIST_COUNT);
 }
 
@@ -1578,10 +1561,8 @@ PyObject *Nuitka_Coroutine_New(PyThreadState *tstate, coroutine_code code, PyObj
     // TODO: Change the var part of the type to 1 maybe
     Py_ssize_t full_size = closure_given + (heap_storage_size + sizeof(void *) - 1) / sizeof(void *);
 
-    // Macro to assign result memory from GC or free list.
     allocateFromFreeList(free_list_coroutines, struct Nuitka_CoroutineObject, Nuitka_Coroutine_Type, full_size);
 
-    // For quicker access of generator heap.
     result->m_heap_storage = &result->m_closure[closure_given];
 
     result->m_code = (void *)code;
@@ -1806,9 +1787,8 @@ PyObject *ASYNC_AWAIT(PyThreadState *tstate, PyObject *awaitable, int await_kind
 
 #if PYTHON_VERSION >= 0x352
 
-/* Our "aiter" wrapper clone */
+// Our "aiter" wrapper clone.
 struct Nuitka_AIterWrapper {
-    /* Python object folklore: */
     PyObject_HEAD
 
         PyObject *aw_aiter;
@@ -1878,7 +1858,6 @@ static void Nuitka_AIterWrapper_dealloc(PyObject *self) {
     CHECK_OBJECT(aw->aw_aiter);
     Py_DECREF(aw->aw_aiter);
 
-    /* Put the object into free list or release to GC */
     releaseToFreeList(free_list_coroutine_aiter_wrappers, aw, MAX_COROUTINE_FREE_LIST_COUNT);
 }
 
@@ -2081,7 +2060,7 @@ static void _initCompiledCoroutineTypes(void) {
                         false                   // await_self_aiter
     );
 
-    // Be a paranoid subtype of uncompiled function, we want nothing shared.
+    // Be a paranoid subtype of uncompiled coroutine, we want nothing shared.
     assert(Nuitka_Coroutine_Type.tp_doc != PyCoro_Type.tp_doc || PyCoro_Type.tp_doc == NULL);
     assert(Nuitka_Coroutine_Type.tp_traverse != PyCoro_Type.tp_traverse);
     assert(Nuitka_Coroutine_Type.tp_clear != PyCoro_Type.tp_clear || PyCoro_Type.tp_clear == NULL);

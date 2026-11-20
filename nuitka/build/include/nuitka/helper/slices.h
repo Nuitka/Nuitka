@@ -4,7 +4,6 @@
 #ifndef __NUITKA_HELPER_SLICES_H__
 #define __NUITKA_HELPER_SLICES_H__
 
-/* This file is included from another C file, help IDEs to still parse it on its own. */
 #ifdef __IDE_ONLY__
 #include "nuitka/checkers.h"
 #include "nuitka/cpython_api_compat.h"
@@ -17,7 +16,6 @@ extern PyObject *Nuitka_Slice_New(PyThreadState *tstate, PyObject *start, PyObje
 #define Nuitka_Slice_New(tstate, start, stop, step) PySlice_New(start, stop, step)
 #endif
 
-// Note: Cannot these cannot fail, PySlice_New does not return errors.
 NUITKA_MAY_BE_UNUSED static PyObject *MAKE_SLICE_OBJECT3(PyThreadState *tstate, PyObject *start, PyObject *stop,
                                                          PyObject *step) {
     CHECK_OBJECT(start);

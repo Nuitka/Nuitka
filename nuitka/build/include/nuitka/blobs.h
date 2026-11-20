@@ -4,16 +4,7 @@
 #ifndef __NUITKA_BLOBS_H__
 #define __NUITKA_BLOBS_H__
 
-/** Declaration of binary blobs.
- *
- * There are multiple ways, the blobs are accessed, and their
- * definition depends on how that is done.
- *
- * It could be a Windows resource, then it must be a pointer. If it's defined
- * externally in a C file, or at link time with "ld", it must be an array. This
- * hides these facts.
- *
- */
+// Declare binary blob accessors across incbin/C23 #embed, Mach-O sections, and C/linker symbol arrays.
 
 #include "nuitka/defines.h"
 
@@ -55,7 +46,6 @@
 #define NUITKA_CONSTANTS_EXTERN_C_END
 #endif
 
-// Helper to find the mach header of the current module or executable
 NUITKA_MAY_BE_UNUSED static inline const struct mach_header_arch *_getNuitkaMachHeader(void) {
 #if _NUITKA_EXE_MODE
     return &_mh_execute_header;
@@ -115,7 +105,7 @@ NUITKA_MAY_BE_UNUSED static inline const struct mach_header_arch *_getNuitkaMach
         return (unsigned modifier char *)(blob_name##_data);                                                           \
     }
 
-#endif // INCBIN
+#endif
 
 #endif
 

@@ -1,13 +1,11 @@
 //     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
-/* The main program for onefile bootstrap.
- *
- * It needs to unpack the attached files and and then loads and executes
- * the compiled program as a separate process.
- *
- * spell-checker: ignore HINSTANCE
- *
- */
+// The main program for onefile bootstrap.
+//
+// It needs to unpack the attached files and then loads and executes
+// the compiled program as a separate process.
+//
+// spell-checker: ignore HINSTANCE
 
 #define _CRT_SECURE_NO_WARNINGS
 
@@ -34,7 +32,6 @@
 // Note: Keep this separate line, must be included before other Windows headers.
 #include <windows.h>
 
-// Other windows header files.
 #include <psapi.h>
 
 #endif
@@ -49,7 +46,6 @@
 #include <time.h>
 #include <wchar.h>
 
-/* Type bool */
 #ifndef __cplusplus
 #include <stdbool.h>
 #endif
@@ -109,7 +105,6 @@
 // Need to make sure this is last in common as it depends on the others.
 #include "common/entropy_common.c"
 
-// Decompression stuff.
 #include "decompress/huf_decompress.c"
 #include "decompress/zstd_ddict.c"
 #include "decompress/zstd_decompress.c"
@@ -159,12 +154,10 @@ NUITKA_NO_RETURN static void fatalErrorHeaderAttachedData(void) {
     fatalError("Error, couldn't find attached data header.");
 }
 
-// Out of memory error.
 #if !defined(_WIN32) || _NUITKA_ONEFILE_COMPRESSION_BOOL == 1
 NUITKA_NO_RETURN static void fatalErrorMemory(void) { fatalError("Error, couldn't allocate memory."); }
 #endif
 
-// Could not launch child process.
 NUITKA_NO_RETURN static void fatalErrorChild(char const *message, error_code_t error_code) {
     fatalIOError(message, error_code);
 }
@@ -628,11 +621,9 @@ static void readPayloadChunk(void *buffer, size_t size) {
 #if _NUITKA_ONEFILE_COMPRESSION_BOOL == 1
     bool end_of_buffer = false;
 
-    // Loop until finished with asked chunk.
     while (size > 0) {
         size_t available = output.size - output.pos;
 
-        // Consider available data.
         if (available != 0) {
             size_t use = available;
             if (size < use) {
@@ -648,7 +639,6 @@ static void readPayloadChunk(void *buffer, size_t size) {
             continue;
         }
 
-        // Nothing available, make sure to make it available from existing input.
         if (input.pos < input.size || end_of_buffer) {
             output.pos = 0;
             output.size = ZSTD_DStreamOutSize();
@@ -1078,7 +1068,6 @@ static int removeDirectory(char const *path) {
 
             size_t len;
 
-            // Ignore special names
             if (!strcmp(p->d_name, ".") || !strcmp(p->d_name, "..")) {
                 continue;
             }
@@ -1287,7 +1276,6 @@ BOOL WINAPI ourConsoleCtrlHandler(DWORD fdwCtrlType) {
     NUITKA_PRINT_TIMING("ONEFILE: ourConsoleCtrlHandler().");
 
     switch (fdwCtrlType) {
-        // Handle the CTRL-C signal.
     case CTRL_C_EVENT:
 #ifdef _NUITKA_EXPERIMENTAL_DEBUG_ONEFILE_HANDLING
         puts("Ctrl-C event");
@@ -1295,7 +1283,6 @@ BOOL WINAPI ourConsoleCtrlHandler(DWORD fdwCtrlType) {
         cleanupChildProcess(false);
         return FALSE;
 
-        // CTRL-CLOSE: confirm that the user wants to exit.
     case CTRL_CLOSE_EVENT:
 #ifdef _NUITKA_EXPERIMENTAL_DEBUG_ONEFILE_HANDLING
         puts("Ctrl-Close event");
@@ -1303,7 +1290,6 @@ BOOL WINAPI ourConsoleCtrlHandler(DWORD fdwCtrlType) {
         cleanupChildProcess(false);
         return FALSE;
 
-        // Pass other signals to the next handler.
     case CTRL_BREAK_EVENT:
 #ifdef _NUITKA_EXPERIMENTAL_DEBUG_ONEFILE_HANDLING
         puts("Ctrl-Break event");
@@ -1557,7 +1543,6 @@ int main(int argc, char **argv) {
     original_argv0 = argv[0];
 #endif
 
-    // Hide the console window if asked to do so.
 #if defined(_NUITKA_HIDE_CONSOLE_WINDOW)
     hideConsoleIfSpawned();
 #endif
@@ -1649,9 +1634,6 @@ int main(int argc, char **argv) {
     makeAbsolutePath(payload_path, sizeof(payload_path) / sizeof(filename_char_t));
 #endif
 
-    // _putws(payload_path);
-
-    // If we are the onefile initial bootstrap binary, show the splash screen.
 #if _NUITKA_ONEFILE_SPLASH_SCREEN
     if (process_role == NULL) {
         initSplashScreen();
@@ -1671,7 +1653,6 @@ int main(int argc, char **argv) {
     appendStringSafeFilename(first_filename, _NUITKA_ONEFILE_MAIN_FILENAME,
                              sizeof(first_filename) / sizeof(filename_char_t));
 
-    // Run the Python code DLL if we are the child process, no unpacking needed
 #if _NUITKA_ONEFILE_DLL_MODE
     if (process_role != NULL) {
         return runPythonCodeDLL(first_filename, argc, argv);
@@ -1769,7 +1750,6 @@ int main(int argc, char **argv) {
             if (first_filename[0] == 0) {
                 appendStringSafeFilename(first_filename, target_path, sizeof(first_filename) / sizeof(filename_char_t));
 
-                // Run the Python code DLL if it's already unpacked.
 #if _NUITKA_ONEFILE_DLL_MODE
                 if (process_role != NULL) {
                     return runPythonCodeDLL(first_filename, argc, argv);
@@ -1984,7 +1964,6 @@ int main(int argc, char **argv) {
     DWORD wait_time = INFINITE;
 #endif
 
-    // Loop with splash screen, otherwise this will be only once.
     while (handle_process != 0) {
         WaitForSingleObject(handle_process, wait_time);
 
@@ -2024,8 +2003,6 @@ int main(int argc, char **argv) {
         fatalErrorChild("Error, couldn't launch child (fork)", error_code);
         exit_code = 2;
     } else if (pid == 0) {
-        // Child process
-
         // Make sure, we use the absolute program path for argv[0]
         argv[0] = (char *)getBinaryPath();
 
@@ -2046,7 +2023,6 @@ int main(int argc, char **argv) {
         fatalErrorChild("Error, couldn't launch child (exec)", errno);
         exit_code = 2;
     } else {
-        // Onefile bootstrap process
         handle_process = pid;
 
         int status;

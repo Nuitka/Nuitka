@@ -1,10 +1,6 @@
 //     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
-/* These slots are still manually coded and are used by the generated code.
- *
- * The plan should be to generate these as well, so e.g. we can have a slot
- * SLOT_nb_add_LONG_INT that is optimal too.
- */
+// TODO: Generate specialized addition/subtraction slots too, e.g. SLOT_nb_add_LONG_INT.
 
 #include "nuitka/helper/long_helpers.h"
 
@@ -14,14 +10,14 @@
 #include "nuitka/prelude.h"
 #endif
 
-// Our version of _PyLong_New(size);
+// Our version of "_PyLong_New(size)".
 static PyLongObject *Nuitka_LongNew(Py_ssize_t size) {
     // TODO: The assertion may be a bit to strong, could be <= for at least < 3.12
     assert(size < (Py_ssize_t)MAX_LONG_DIGITS);
     assert(size >= 0);
 
 #if PYTHON_VERSION >= 0x3c0
-    // The zero now is a single digit number.
+    // Python 3.12+ allocates at least one digit even for zero.
     Py_ssize_t ndigits = size ? size : 1;
 
     PyLongObject *result =
@@ -76,8 +72,7 @@ static PyObject *Nuitka_LongFromCLong(long ival) {
     }
 #endif
 
-    // We go via unsigned long to avoid overflows when shifting and we need
-    // the sign separate in the end anyway.
+    // Convert via unsigned long to avoid signed overflow on LONG_MIN.
     unsigned long abs_ival;
     bool negative;
 
@@ -89,7 +84,6 @@ static PyObject *Nuitka_LongFromCLong(long ival) {
         negative = false;
     }
 
-    // Fast path for single digit values
     if (!(abs_ival >> PyLong_SHIFT)) {
         PyLongObject *result = Nuitka_LongNew(1);
         assert(result != NULL);
@@ -103,7 +97,6 @@ static PyObject *Nuitka_LongFromCLong(long ival) {
         return (PyObject *)result;
     }
 
-    // Fast path for two digit values on suitable platforms.
 #if PyLong_SHIFT == 15
     if (!(abs_ival >> 2 * PyLong_SHIFT)) {
         PyLongObject *result = Nuitka_LongNew(2);
@@ -121,11 +114,9 @@ static PyObject *Nuitka_LongFromCLong(long ival) {
     }
 #endif
 
-    // Slow path for the rest.
     unsigned long t = abs_ival;
     Py_ssize_t ndigits = 0;
 
-    // First determine the number of digits needed.
     while (t != 0) {
         ++ndigits;
         t >>= PyLong_SHIFT;
@@ -138,7 +129,6 @@ static PyObject *Nuitka_LongFromCLong(long ival) {
 
     digit *d = Nuitka_LongGetDigitPointer(result);
 
-    // Now copy the digits
     t = abs_ival;
     while (t != 0) {
         *d++ = (digit)(t & PyLong_MASK);
@@ -148,7 +138,6 @@ static PyObject *Nuitka_LongFromCLong(long ival) {
     return (PyObject *)result;
 }
 
-// Our "PyLong_FromLong" replacement.
 PyObject *Nuitka_PyLong_FromLong(long ival) { return Nuitka_LongFromCLong(ival); }
 
 // Our "PyLong_AsLongAndOverflow" replacement with a fast path for exact long values.
@@ -356,8 +345,7 @@ static void Nuitka_LongUpdateFromCLong(PyObject **value, long ival) {
     }
 #endif
 
-    // We go via unsigned long to avoid overflows when shifting and we need
-    // the sign separate in the end anyway.
+    // Convert via unsigned long to avoid signed overflow on LONG_MIN.
     unsigned long abs_ival;
     bool negative;
 
@@ -369,7 +357,6 @@ static void Nuitka_LongUpdateFromCLong(PyObject **value, long ival) {
         negative = false;
     }
 
-    // Fast path for single digit values
     if (!(abs_ival >> PyLong_SHIFT)) {
         PyLongObject *result;
 
@@ -393,7 +380,6 @@ static void Nuitka_LongUpdateFromCLong(PyObject **value, long ival) {
         return;
     }
 
-    // Fast path for two digit values on suitable platforms, e.g. armv7l
 #if PyLong_SHIFT == 15
     if (!(abs_ival >> 2 * PyLong_SHIFT)) {
         PyLongObject *result;
@@ -419,11 +405,9 @@ static void Nuitka_LongUpdateFromCLong(PyObject **value, long ival) {
     }
 #endif
 
-    // Slow path for the rest.
     unsigned long t = abs_ival;
     Py_ssize_t ndigits = 0;
 
-    // First determine the number of digits needed.
     while (t != 0) {
         ndigits++;
         t >>= PyLong_SHIFT;
@@ -439,7 +423,6 @@ static void Nuitka_LongUpdateFromCLong(PyObject **value, long ival) {
 
     digit *d = Nuitka_LongGetDigitPointer(*value);
 
-    // Now copy the digits
     t = abs_ival;
     while (t) {
         *d++ = (digit)(t & PyLong_MASK);
@@ -468,7 +451,6 @@ static PyLongObject *Nuitka_LongStripZeros(PyLongObject *v) {
 #endif
 
 static PyLongObject *_Nuitka_LongAddDigits(digit const *a, Py_ssize_t size_a, digit const *b, Py_ssize_t size_b) {
-    // Make sure we know a is the longest value.
     if (size_a < size_b) {
         {
             digit const *temp = a;
@@ -483,7 +465,6 @@ static PyLongObject *_Nuitka_LongAddDigits(digit const *a, Py_ssize_t size_a, di
         }
     }
 
-    // We do not know ahead of time, if we need a new digit, lets just allocate it.
     PyLongObject *result = Nuitka_LongNew(size_a + 1);
     CHECK_OBJECT(result);
 
@@ -491,25 +472,22 @@ static PyLongObject *_Nuitka_LongAddDigits(digit const *a, Py_ssize_t size_a, di
 
     digit carry = 0;
 
-    // First common digits.
     Py_ssize_t i;
     for (i = 0; i < size_b; i++) {
         carry += a[i] + b[i];
         r[i] = carry & PyLong_MASK;
         carry >>= PyLong_SHIFT;
     }
-    // Digits from longest one only.
     for (; i < size_a; i++) {
         carry += a[i];
         r[i] = carry & PyLong_MASK;
         carry >>= PyLong_SHIFT;
     }
 
-    // Only the top digit can be zero, so we can strip this faster.
     if (carry) {
         r[i] = carry;
     } else {
-        // Note: Beware, this looses the sign value.
+        // Beware, this resets the sign to positive.
         Nuitka_LongSetDigitSizeAndNegative(result, Nuitka_LongGetDigitSize(result) - 1, false);
     }
 
@@ -523,7 +501,6 @@ static PyObject *_Nuitka_LongAddInplaceDigits(PyObject *left, digit const *b, Py
     digit const *aa = a;
     digit const *bb = b;
 
-    // Make sure we know aa is the longest value by swapping a/b attributes.
     if (size_a < size_b) {
         {
             aa = b;
@@ -539,32 +516,28 @@ static PyObject *_Nuitka_LongAddInplaceDigits(PyObject *left, digit const *b, Py
 
     digit carry = 0;
 
-    // First common digits.
     Py_ssize_t i;
     for (i = 0; i < size_b; i++) {
         carry += aa[i] + bb[i];
         carry >>= PyLong_SHIFT;
     }
 
-    // Digits from longest one only might cause a new digit through carry.
     Py_ssize_t needed = size_a;
 
     for (; i < size_a; i++) {
         carry += aa[i];
         carry >>= PyLong_SHIFT;
 
-        // No more carry, that means size cannot increase.
         if (carry == 0) {
             break;
         }
     }
 
-    // Final digit needs to be added.
     if (carry) {
         needed = i + 1;
     }
 
-    // Need to keep the old value around, or else we commit use after free potentially.
+    // Keep "old" alive until reading from "aa" / "bb" finishes, since "b" may alias "left".
     PyObject *old = left;
 
     if (needed > Nuitka_LongGetDigitSize(left)) {
@@ -575,23 +548,19 @@ static PyObject *_Nuitka_LongAddInplaceDigits(PyObject *left, digit const *b, Py
 
     digit *r = Nuitka_LongGetDigitPointer(left);
 
-    // Now do the real thing, with actual storage to left digits.
     carry = 0;
 
-    // First common digits.
     for (i = 0; i < size_b; i++) {
         carry += aa[i] + bb[i];
         r[i] = carry & PyLong_MASK;
         carry >>= PyLong_SHIFT;
     }
-    // Digits from longest one only.
     for (; i < size_a; i++) {
         carry += aa[i];
         r[i] = carry & PyLong_MASK;
         carry >>= PyLong_SHIFT;
     }
 
-    // Final digit from the carry.
     if (carry != 0) {
         r[i] = carry;
 
@@ -600,17 +569,14 @@ static PyObject *_Nuitka_LongAddInplaceDigits(PyObject *left, digit const *b, Py
         Nuitka_LongSetDigitSizeAndNegative((PyLongObject *)left, i, false);
     }
 
-    // Release reference to old value
     Py_DECREF(old);
 
     return left;
 }
 
 static PyLongObject *_Nuitka_LongSubDigits(digit const *a, Py_ssize_t size_a, digit const *b, Py_ssize_t size_b) {
-    // Sign of the result.
     int sign = 1;
 
-    // Make sure we know a is the largest value.
     if (size_a < size_b) {
         sign = -1;
 
@@ -626,7 +592,6 @@ static PyLongObject *_Nuitka_LongSubDigits(digit const *a, Py_ssize_t size_a, di
             size_b = temp;
         }
     } else if (size_a == size_b) {
-        // Find highest digit where a and b differ:
         Py_ssize_t i = size_a;
         while (--i >= 0 && a[i] == b[i]) {
         }
@@ -635,7 +600,6 @@ static PyLongObject *_Nuitka_LongSubDigits(digit const *a, Py_ssize_t size_a, di
 #if PYTHON_VERSION < 0x300
             return (PyLongObject *)Nuitka_LongFromCLong(0);
 #else
-            // For Python3, we have this prepared.
             PyObject *result = Nuitka_Long_GetSmallValue(0);
             Py_INCREF(result);
             return (PyLongObject *)result;
@@ -663,14 +627,12 @@ static PyLongObject *_Nuitka_LongSubDigits(digit const *a, Py_ssize_t size_a, di
     digit borrow = 0;
 
     Py_ssize_t i;
-    // First common digits.
     for (i = 0; i < size_b; i++) {
         borrow = a[i] - b[i] - borrow;
         r[i] = borrow & PyLong_MASK;
         borrow >>= PyLong_SHIFT;
         borrow &= 1;
     }
-    // Digits from largest one only.
     for (; i < size_a; i++) {
         borrow = a[i] - borrow;
         r[i] = borrow & PyLong_MASK;
@@ -679,7 +641,6 @@ static PyLongObject *_Nuitka_LongSubDigits(digit const *a, Py_ssize_t size_a, di
     }
     assert(borrow == 0);
 
-    // Strip leading zeros.
     while (i > 0 && r[i - 1] == 0) {
         i -= 1;
     }
@@ -687,7 +648,6 @@ static PyLongObject *_Nuitka_LongSubDigits(digit const *a, Py_ssize_t size_a, di
     Nuitka_LongSetDigitSizeAndNegative(result, i, sign < 0);
 
 #if PYTHON_VERSION >= 0x300
-    // Normalize small integers.
     if (i <= 1) {
         medium_result_value_t ival = MEDIUM_VALUE(result);
 
@@ -710,9 +670,7 @@ static PyObject *_Nuitka_LongSubInplaceDigits(PyObject *left, digit const *b, Py
     digit const *aa = a;
     digit const *bb = b;
 
-    // Make sure we know a is the largest value.
     if (size_a < size_b) {
-        // Invert the sign of the result by swapping the order.
         sign *= -1;
 
         {
@@ -726,7 +684,6 @@ static PyObject *_Nuitka_LongSubInplaceDigits(PyObject *left, digit const *b, Py
             size_b = temp;
         }
     } else if (size_a == size_b) {
-        // Find highest digit where a and b differ:
         Py_ssize_t i = size_a;
         while (--i >= 0 && a[i] == b[i]) {
         }
@@ -758,7 +715,7 @@ static PyObject *_Nuitka_LongSubInplaceDigits(PyObject *left, digit const *b, Py
 
     Py_ssize_t needed = size_a;
 
-    // Need to keep the old value around, or else we commit use after free potentially.
+    // Keep "old" alive until reading from "aa" / "bb" finishes, since "b" may alias "left".
     PyObject *old = left;
 
     if (needed > Nuitka_LongGetDigitSize(left)) {
@@ -772,14 +729,12 @@ static PyObject *_Nuitka_LongSubInplaceDigits(PyObject *left, digit const *b, Py
     digit borrow = 0;
 
     Py_ssize_t i;
-    // First common digits.
     for (i = 0; i < size_b; i++) {
         borrow = aa[i] - bb[i] - borrow;
         r[i] = borrow & PyLong_MASK;
         borrow >>= PyLong_SHIFT;
         borrow &= 1;
     }
-    // Digits from largest one only.
     for (; i < size_a; i++) {
         borrow = aa[i] - borrow;
         r[i] = borrow & PyLong_MASK;
@@ -788,18 +743,15 @@ static PyObject *_Nuitka_LongSubInplaceDigits(PyObject *left, digit const *b, Py
     }
     assert(borrow == 0);
 
-    // Strip leading zeros.
     while (i > 0 && r[i - 1] == 0) {
         i -= 1;
     }
 
     Nuitka_LongSetDigitSizeAndNegative((PyLongObject *)left, i, (sign < 0));
 
-    // Release reference to old value
     Py_DECREF(old);
 
 #if PYTHON_VERSION >= 0x300
-    // Normalize small integers.
     if (i <= 1) {
         medium_result_value_t ival = MEDIUM_VALUE(left);
 

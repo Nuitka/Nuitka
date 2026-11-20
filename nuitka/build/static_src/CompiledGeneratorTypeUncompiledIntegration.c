@@ -2,8 +2,8 @@
 
 /** Uncompiled generator integration
  *
- * This is for use in compiled generator, coroutine, async types. The file in
- * included for compiled generator, and in part exports functions as necessary.
+ * This is for use in compiled generator, coroutine, async types. This file is
+ * included for compiled generators, and in part exports functions as necessary.
  *
  */
 
@@ -2294,9 +2294,8 @@ static PyObject *Nuitka_PyGen_gen_send_ex(PyThreadState *tstate, PyGenObject *ge
 // This function is called when throwing to an uncompiled generator. Coroutines and generators
 // do this in their yielding from.
 // Note:
-//   Exception arguments are passed for ownership and must be released before returning. The
-//   value of exception_type will not be NULL, but the actual exception will not necessarily
-//   be normalized.
+//   Exception state is passed for ownership and must be released before returning; it is
+//   non-empty, but not necessarily normalized.
 static PyObject *Nuitka_UncompiledGenerator_throw(PyThreadState *tstate, PyGenObject *gen, int close_on_genexit,
                                                   struct Nuitka_ExceptionPreservationItem *exception_state) {
 #if _DEBUG_GENERATOR
@@ -2653,9 +2652,8 @@ static PyObject *Nuitka_PyGen_gen_send_ex(PyThreadState *tstate, PyGenObject *ge
 // This function is called when throwing to an uncompiled generator. Coroutines and generators
 // do this in their yielding from.
 // Note:
-//   Exception arguments are passed for ownership and must be released before returning. The
-//   value of exception_type will not be NULL, but the actual exception will not necessarily
-//   be normalized.
+//   Exception state is passed for ownership and must be released before returning; it is
+//   non-empty, but not necessarily normalized.
 static PyObject *Nuitka_UncompiledGenerator_throw(PyThreadState *tstate, PyGenObject *gen, int close_on_genexit,
                                                   struct Nuitka_ExceptionPreservationItem *exception_state) {
 #if _DEBUG_GENERATOR

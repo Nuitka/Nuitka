@@ -44,12 +44,9 @@ static PyObject *LOOKUP_INSTANCE(PyThreadState *tstate, PyObject *source, PyObje
 
     PyInstanceObject *source_instance = (PyInstanceObject *)source;
 
-    // The special cases have their own variant on the code generation level
-    // as we are called with constants only.
     assert(attr_name != const_str_plain___dict__);
     assert(attr_name != const_str_plain___class__);
 
-    // Try the instance dict first.
     PyObject *result = GET_STRING_DICT_VALUE((PyDictObject *)source_instance->in_dict, (PyStringObject *)attr_name);
 
     if (result) {
@@ -57,7 +54,6 @@ static PyObject *LOOKUP_INSTANCE(PyThreadState *tstate, PyObject *source, PyObje
         return result;
     }
 
-    // Next see if a class has it
     result = FIND_ATTRIBUTE_IN_CLASS(source_instance->in_class, attr_name);
 
     if (result != NULL) {
@@ -79,7 +75,6 @@ static PyObject *LOOKUP_INSTANCE(PyThreadState *tstate, PyObject *source, PyObje
         }
     }
 
-    // Finally allow a __getattr__ to handle it or else it's an error.
     if (unlikely(source_instance->in_class->cl_getattr == NULL)) {
         PyErr_Format(PyExc_AttributeError, "%s instance has no attribute '%s'",
                      PyString_AS_STRING(source_instance->in_class->cl_name), PyString_AS_STRING(attr_name));
@@ -284,9 +279,6 @@ static bool SET_INSTANCE(PyThreadState *tstate, PyObject *target, PyObject *attr
 
     PyInstanceObject *target_instance = (PyInstanceObject *)target;
 
-    // The special cases should get their own SET_ATTRIBUTE_xxxx_SLOT variants
-    // on the code generation level as SET_ATTRIBUTE is called with constants
-    // only.
     assert(attr_name != const_str_plain___dict__);
     assert(attr_name != const_str_plain___class__);
 
@@ -350,7 +342,6 @@ static int Nuitka_StoreManagedDictAttribute(PyTypeObject *type, PyObject *target
 
 static bool SET_ATTRIBUTE_GENERIC(PyThreadState *tstate, PyTypeObject *type, PyObject *target, PyObject *attr_name,
                                   PyObject *value) {
-    // Unfortunately this is required, although of cause rarely necessary.
     if (unlikely(type->tp_dict == NULL)) {
         if (unlikely(PyType_Ready(type) < 0)) {
             return false;
@@ -380,7 +371,7 @@ static bool SET_ATTRIBUTE_GENERIC(PyThreadState *tstate, PyTypeObject *type, PyO
 
         Py_XDECREF(descr);
 
-        // TODO: Not possible for set, is it?
+        // TODO: CPython only converts KeyError to AttributeError when deleting (value == NULL).
         if (res < 0 && CHECK_AND_CLEAR_KEY_ERROR_OCCURRED(tstate)) {
             SET_CURRENT_EXCEPTION_TYPE0_VALUE0(tstate, PyExc_AttributeError, attr_name);
             return false;
@@ -423,7 +414,7 @@ static bool SET_ATTRIBUTE_GENERIC(PyThreadState *tstate, PyTypeObject *type, PyO
 #else
             int res = _PyObjectDict_SetItem(type, dict_pointer, attr_name, value);
 #endif
-            // TODO: Not possible for set, is it?
+            // TODO: CPython only converts KeyError to AttributeError when deleting (value == NULL).
             if (res < 0 && CHECK_AND_CLEAR_KEY_ERROR_OCCURRED(tstate)) {
                 SET_CURRENT_EXCEPTION_TYPE0_VALUE0(tstate, PyExc_AttributeError, attr_name);
                 return false;
@@ -445,7 +436,8 @@ static bool SET_ATTRIBUTE_GENERIC(PyThreadState *tstate, PyTypeObject *type, PyO
     if (dict != NULL) {
         CHECK_OBJECT(dict);
 
-        // TODO: If this is an exact dict, we don't have to hold a reference, is it?
+        // Hold a reference across DICT_SET_ITEM in case replacing an old value
+        // triggers a destructor that reassigns or clears the instance __dict__.
         Py_INCREF(dict);
 
         bool res = DICT_SET_ITEM(tstate, dict, attr_name, value);
@@ -530,7 +522,7 @@ bool SET_ATTRIBUTE_DICT_SLOT(PyThreadState *tstate, PyObject *target, PyObject *
     if (likely(PyInstance_Check(target))) {
         PyInstanceObject *target_instance = (PyInstanceObject *)target;
 
-        /* Note seems this doesn't have to be an exact dictionary. */
+        // Does not need to be an exact dict; dict subclasses are accepted.
         if (unlikely(!PyDict_Check(value))) {
             SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_TypeError, "__dict__ must be set to a dictionary");
             return false;

@@ -7,10 +7,8 @@
 #include "stdint.h"
 #endif
 
-// Comment in to disable outside zlib usage for code size, very slow though,
-// since it doesn't use assembly to use CPU crc32 instructions.
-// #define _NUITKA_USE_OWN_CRC32
-
+// Define _NUITKA_USE_OWN_CRC32 to avoid external zlib for smaller code size,
+// at the cost of speed since it does not use CPU crc32 instructions.
 #ifdef _NUITKA_USE_OWN_CRC32
 uint32_t _initCRC32(void) { return 0xFFFFFFFF; }
 

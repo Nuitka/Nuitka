@@ -1,6 +1,6 @@
 //     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
-// This implements the resource reader for of C compiled modules and
+// This implements the resource reader of C compiled modules and
 // shared library extension modules bundled for standalone mode with
 // newer Python.
 
@@ -17,14 +17,12 @@ static PyObject *getModuleDirectory(PyThreadState *tstate, struct Nuitka_MetaPat
                                     PyObject *module_name);
 static char const *_kw_list_get_data[2];
 
-// Just for the IDE to know, this file is not included otherwise.
 #if PYTHON_VERSION >= 0x370
 
 struct Nuitka_ResourceReaderObject {
-    /* Python object folklore: */
     PyObject_HEAD
 
-        /* The loader entry, to know this is about exactly. */
+        // The loader entry, to know what this is about exactly.
         struct Nuitka_MetaPathBasedLoaderEntry const *m_loader_entry;
 
     // The runtime name of the module, if known.
@@ -48,7 +46,7 @@ static PyObject *Nuitka_ResourceReader_tp_repr(PyObject *self) {
     return PyUnicode_FromFormat("<nuitka_resource_reader for '%s'>", display_name);
 }
 
-// Obligatory, even if we have nothing to own
+// TODO: Should visit m_module_name.
 static int Nuitka_ResourceReader_tp_traverse(PyObject *self, visitproc visit, void *arg) { return 0; }
 
 static PyObject *_Nuitka_ResourceReader_resource_path(PyThreadState *tstate, struct Nuitka_ResourceReaderObject *reader,

@@ -134,7 +134,6 @@ static PyObject *Nuitka_Method_deepcopy(PyObject *self, PyObject *memo) {
     }
 
     PyObject *result = Nuitka_Method_New(method->m_function, obj, method->m_class);
-    // Nuitka_Method_New took a reference to the object.
     Py_DECREF(obj);
     return result;
 }
@@ -207,7 +206,6 @@ static PyObject *Nuitka_Method_tp_vectorcall(PyObject *self, PyObject *const *st
     Py_ssize_t totalargs = nargs + kwargs_count;
     PyObject *result;
 
-    // Shortcut possible, no args.
     if (totalargs == 0) {
         result = Nuitka_CallMethodFunctionNoArgs(tstate, method->m_function, method->m_object);
     } else if (nargs_f & PY_VECTORCALL_ARGUMENTS_OFFSET) {
@@ -229,7 +227,6 @@ static PyObject *Nuitka_Method_tp_vectorcall(PyObject *self, PyObject *const *st
 
         result = Nuitka_CallMethodFunctionPosArgs(tstate, method->m_function, method->m_object, stack, nargs);
     } else {
-        /* Definitely having args at this point. */
         assert(stack != NULL);
 
         PyObject *small_stack[_PY_FASTCALL_SMALL_STACK];
@@ -318,14 +315,13 @@ static PyObject *Nuitka_Method_tp_call(PyObject *self, PyObject *args, PyObject 
 static PyObject *Nuitka_Method_tp_descr_get(PyObject *self, PyObject *obj, PyObject *class_object) {
     struct Nuitka_MethodObject *method = (struct Nuitka_MethodObject *)self;
 
-    // Don't rebind already bound methods.
     if (method->m_object != NULL) {
         Py_INCREF(method);
         return (PyObject *)method;
     }
 
     if (method->m_class != NULL && class_object != NULL) {
-        // Quick subclass test, bound methods remain the same if the class is a sub class
+        // Unbound methods remain unchanged if class_object is not a subclass of m_class.
         int result = PyObject_IsSubclass(class_object, method->m_class);
 
         if (unlikely(result < 0)) {
@@ -354,7 +350,6 @@ static PyObject *Nuitka_Method_tp_getattro(PyObject *self, PyObject *name) {
         }
     }
 
-    // Delegate all other attributes to the underlying function.
     // TODO: Could be a bit more direct here, and know this is generic lookup.
     return PyObject_GetAttr((PyObject *)method->m_function, name);
 }
@@ -369,7 +364,6 @@ static int Nuitka_Method_tp_traverse(PyObject *self, visitproc visit, void *arg)
     return 0;
 }
 
-// tp_repr slot, decide how a function shall be output
 static PyObject *Nuitka_Method_tp_repr(PyObject *self) {
     struct Nuitka_MethodObject *method = (struct Nuitka_MethodObject *)self;
 
@@ -454,8 +448,6 @@ static PyObject *Nuitka_Method_tp_richcompare(PyObject *object_a, PyObject *obje
 
     bool b_res = a->m_function->m_counter == b->m_function->m_counter;
 
-    // If the underlying function objects are the same, check the objects, which
-    // may be NULL in case of unbound methods, which would be the same again.
     if (b_res) {
 #if PYTHON_VERSION < 0x380
         if (a->m_object == NULL) {
@@ -495,7 +487,6 @@ static Py_hash_t Nuitka_Method_tp_hash(PyObject *self) {
     return method->m_function->m_counter;
 }
 
-// Freelist setup
 #define MAX_METHOD_FREE_LIST_COUNT 100
 static struct Nuitka_MethodObject *free_list_methods = NULL;
 static int free_list_methods_count = 0;
@@ -529,7 +520,6 @@ static void Nuitka_Method_tp_dealloc(PyObject *self) {
 
     Py_DECREF((PyObject *)method->m_function);
 
-    /* Put the object into free list or release to GC */
     releaseToFreeList(free_list_methods, method, MAX_METHOD_FREE_LIST_COUNT);
 
 #ifndef __NUITKA_NO_ASSERT__

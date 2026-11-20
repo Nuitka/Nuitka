@@ -4,8 +4,6 @@
 #ifndef __NUITKA_EXCEPTIONS_H__
 #define __NUITKA_EXCEPTIONS_H__
 
-// Exception helpers for generated code and compiled code helpers.
-
 #ifdef __IDE_ONLY__
 #include "nuitka/cpython_api_compat.h"
 #include "nuitka/defines.h"
@@ -31,7 +29,6 @@ extern void DICT_SET_ITEM_INFALLIBLE(PyThreadState *tstate, PyObject *dict, PyOb
 #define Nuitka_WriteUnraisableMsg(message, object) _PyErr_WriteUnraisableMsg(message, object)
 #endif
 
-// Did an error occur.
 NUITKA_MAY_BE_UNUSED static inline bool HAS_ERROR_OCCURRED(PyThreadState const *tstate) {
 #if PYTHON_VERSION < 0x3c0
     return tstate->curexc_type != NULL;
@@ -49,13 +46,11 @@ NUITKA_MAY_BE_UNUSED static inline PyObject *GET_ERROR_OCCURRED(PyThreadState co
 #endif
 }
 
-// Checks that an exception value is normalized or NULL.
 NUITKA_MAY_BE_UNUSED static inline void ASSERT_NORMALIZED_EXCEPTION_VALUE_X(PyObject const *const exception_value) {
     CHECK_OBJECT_X(exception_value);
     assert(exception_value == NULL || PyExceptionInstance_Check(exception_value));
 }
 
-// Checks that an exception value is normalized and not NULL.
 NUITKA_MAY_BE_UNUSED static inline void ASSERT_NORMALIZED_EXCEPTION_VALUE(PyObject *exception_value) {
     CHECK_OBJECT(exception_value);
     assert(PyExceptionInstance_Check(exception_value));
@@ -138,7 +133,6 @@ NUITKA_MAY_BE_UNUSED static void FETCH_ERROR_OCCURRED(PyThreadState *tstate, PyO
     tstate->curexc_traceback = NULL;
 }
 
-// Fetch the current error into object variables.
 NUITKA_MAY_BE_UNUSED static void FETCH_ERROR_OCCURRED_UNTRACED(PyThreadState *tstate, PyObject **exception_type,
                                                                PyObject **exception_value,
                                                                PyTracebackObject **exception_traceback) {
@@ -193,7 +187,6 @@ struct Nuitka_FrameObject;
 
 extern PyTracebackObject *MAKE_TRACEBACK(struct Nuitka_FrameObject *frame, int lineno);
 
-// Add a frame to an existing exception trace-back.
 NUITKA_MAY_BE_UNUSED static PyTracebackObject *ADD_TRACEBACK(PyTracebackObject *exception_tb,
                                                              struct Nuitka_FrameObject *frame, int lineno) {
     CHECK_OBJECT(exception_tb);
@@ -578,7 +571,6 @@ NUITKA_MAY_BE_UNUSED inline static void SET_CURRENT_EXCEPTION_TYPE0_STR(PyThread
     SET_CURRENT_EXCEPTION_TYPE0_VALUE1(tstate, exception_type, exception_value);
 }
 
-// Helper that sets the current thread exception with format of one or two arg, and has no reference passed.
 extern void SET_CURRENT_EXCEPTION_TYPE0_FORMAT1(PyObject *exception_type, char const *format, char const *value);
 extern void SET_CURRENT_EXCEPTION_TYPE0_FORMAT2(PyObject *exception_type, char const *format, char const *value1,
                                                 char const *value2);
@@ -593,12 +585,10 @@ extern void SET_CURRENT_EXCEPTION_TYPE_COMPLAINT_NICE(char const *format, PyObje
 
 #if PYTHON_VERSION < 0x300
 
-// Preserve the current exception as the frame to restore.
 NUITKA_MAY_BE_UNUSED static inline void PRESERVE_FRAME_EXCEPTION(PyThreadState *tstate,
                                                                  struct Nuitka_FrameObject *frame_object) {
     PyFrameObject *frame = (PyFrameObject *)frame_object;
 
-    // Setting exception for frame if not already done.
     if (frame->f_exc_type == NULL) {
         if (tstate->exc_type != NULL && tstate->exc_type != Py_None) {
 #if _DEBUG_EXCEPTIONS
@@ -631,7 +621,6 @@ NUITKA_MAY_BE_UNUSED static inline void PRESERVE_FRAME_EXCEPTION(PyThreadState *
 #endif
 }
 
-// Restore a previously preserved exception to the frame.
 NUITKA_MAY_BE_UNUSED static inline void RESTORE_FRAME_EXCEPTION(PyThreadState *tstate,
                                                                 struct Nuitka_FrameObject *frame_object) {
     PyFrameObject *frame = (PyFrameObject *)frame_object;
@@ -745,40 +734,28 @@ NUITKA_MAY_BE_UNUSED static bool _CHECK_AND_CLEAR_EXCEPTION_OCCURRED(PyThreadSta
     }
 }
 
-// Clear StopIteration if set, similar to "if (PyErr_ExceptionMatches(PyExc_StopIteration)) PyErr_Clear()".
-// Returns true if no exception remains set, false if another exception is active.
 NUITKA_MAY_BE_UNUSED static bool CHECK_AND_CLEAR_STOP_ITERATION_OCCURRED(PyThreadState *tstate) {
     return _CHECK_AND_CLEAR_EXCEPTION_OCCURRED(tstate, PyExc_StopIteration);
 }
 
 #if PYTHON_VERSION >= 0x350
-// Clear StopAsyncIteration if set, similar to "if (PyErr_ExceptionMatches(PyExc_StopAsyncIteration)) PyErr_Clear()".
-// Returns true if no exception remains set, false if another exception is active.
 NUITKA_MAY_BE_UNUSED static bool CHECK_AND_CLEAR_STOP_ASYNC_ITERATION_OCCURRED(PyThreadState *tstate) {
     return _CHECK_AND_CLEAR_EXCEPTION_OCCURRED(tstate, PyExc_StopAsyncIteration);
 }
 #endif
 
-// Clear GeneratorExit if set, similar to "if (PyErr_ExceptionMatches(PyExc_GeneratorExit)) PyErr_Clear()".
-// Returns true if no exception remains set, false if another exception is active.
 NUITKA_MAY_BE_UNUSED static bool CHECK_AND_CLEAR_GENERATOR_EXIT_OCCURRED(PyThreadState *tstate) {
     return _CHECK_AND_CLEAR_EXCEPTION_OCCURRED(tstate, PyExc_GeneratorExit);
 }
 
-// Clear KeyError if set, similar to "if (PyErr_ExceptionMatches(PyExc_KeyError)) PyErr_Clear()".
-// Returns true if no exception remains set, false if another exception is active.
 NUITKA_MAY_BE_UNUSED static bool CHECK_AND_CLEAR_KEY_ERROR_OCCURRED(PyThreadState *tstate) {
     return _CHECK_AND_CLEAR_EXCEPTION_OCCURRED(tstate, PyExc_KeyError);
 }
 
-// Clear AttributeError if set, similar to "if (PyErr_ExceptionMatches(PyExc_AttributeError)) PyErr_Clear()".
-// Returns true if no exception remains set, false if another exception is active.
 NUITKA_MAY_BE_UNUSED static bool CHECK_AND_CLEAR_ATTRIBUTE_ERROR_OCCURRED(PyThreadState *tstate) {
     return _CHECK_AND_CLEAR_EXCEPTION_OCCURRED(tstate, PyExc_AttributeError);
 }
 
-// Clear TypeError if set, similar to "if (PyErr_ExceptionMatches(PyExc_TypeError)) PyErr_Clear()".
-// Returns true if no exception remains set, false if another exception is active.
 NUITKA_MAY_BE_UNUSED static bool CHECK_AND_CLEAR_TYPE_ERROR_OCCURRED(PyThreadState *tstate) {
     return _CHECK_AND_CLEAR_EXCEPTION_OCCURRED(tstate, PyExc_TypeError);
 }
@@ -1193,24 +1170,20 @@ NUITKA_MAY_BE_UNUSED static bool EXCEPTION_MATCH_GENERATOR(PyThreadState *tstate
 
     // TODO: For Python3.12 this must be done differently to be a lot better.
 
-    // We need to check the class.
     if (PyExceptionInstance_Check(exception_value)) {
         exception_value = PyExceptionInstance_Class(exception_value);
     }
 
-    // Lets be optimistic. If it matches, we would be wasting our time.
     if (exception_value == PyExc_GeneratorExit || exception_value == PyExc_StopIteration) {
         return true;
     }
 
     if (PyExceptionClass_Check(exception_value)) {
-        // Save the current exception, if any, we must preserve it.
         struct Nuitka_ExceptionPreservationItem saved_exception_state;
         FETCH_ERROR_OCCURRED_STATE(tstate, &saved_exception_state);
 
         int res = PyObject_IsSubclass(exception_value, PyExc_GeneratorExit);
 
-        // This function must not fail, so print the error here */
         if (unlikely(res == -1)) {
             Nuitka_WriteUnraisable(exception_value);
         }
@@ -1221,7 +1194,6 @@ NUITKA_MAY_BE_UNUSED static bool EXCEPTION_MATCH_GENERATOR(PyThreadState *tstate
 
         res = PyObject_IsSubclass(exception_value, PyExc_StopIteration);
 
-        // This function must not fail, so print the error here */
         if (unlikely(res == -1)) {
             Nuitka_WriteUnraisable(exception_value);
         }
@@ -1248,27 +1220,23 @@ NUITKA_MAY_BE_UNUSED static bool EXCEPTION_MATCH_BOOL_SINGLE(PyThreadState *tsta
     CHECK_OBJECT(exception_value);
     CHECK_OBJECT(exception_checked);
 
-    // We need to check the class.
     if (PyExceptionInstance_Check(exception_value)) {
         exception_value = PyExceptionInstance_Class(exception_value);
     }
 
-    // Lets be optimistic. If it matches, we would be wasting our time.
     if (exception_value == exception_checked) {
         return true;
     }
 
     if (PyExceptionClass_Check(exception_value)) {
 #if PYTHON_VERSION < 0x300
-        // Save the current exception, if any, we must preserve it.
         struct Nuitka_ExceptionPreservationItem saved_exception_state;
         FETCH_ERROR_OCCURRED_STATE(tstate, &saved_exception_state);
 
-        // Python3.10 at least uses PyType_IsSubtype and needs no
-        // fetch restore.
+        // Python 2 old-style class exceptions require PyObject_IsSubclass;
+        // Python 3 BaseException subclasses use Nuitka_Type_IsSubtype directly.
         int res = PyObject_IsSubclass(exception_value, exception_checked);
 
-        // This function must not fail, so print the error here */
         if (unlikely(res == -1)) {
             Nuitka_WriteUnraisable(exception_value);
         }
@@ -1290,7 +1258,7 @@ NUITKA_MAY_BE_UNUSED static inline int _EXCEPTION_MATCH_BOOL(PyThreadState *tsta
     CHECK_OBJECT(exception_value);
     CHECK_OBJECT(exception_checked);
 
-    // Reduce to exception class actually. TODO: Can this not be an instance from called code?!
+    // TODO: Can this not be an instance from called code?!
     PyObject *exception_class;
     if (PyExceptionInstance_Check(exception_value)) {
         exception_class = PyExceptionInstance_Class(exception_value);
@@ -1300,7 +1268,6 @@ NUITKA_MAY_BE_UNUSED static inline int _EXCEPTION_MATCH_BOOL(PyThreadState *tsta
 
 #if PYTHON_VERSION < 0x300
     if (PyExceptionClass_Check(exception_class) && PyExceptionClass_Check(exception_checked)) {
-        // Save the current exception, if any, we must preserve it.
         struct Nuitka_ExceptionPreservationItem saved_exception_state;
         FETCH_ERROR_OCCURRED_STATE(tstate, &saved_exception_state);
 
@@ -1314,7 +1281,6 @@ NUITKA_MAY_BE_UNUSED static inline int _EXCEPTION_MATCH_BOOL(PyThreadState *tsta
 
         Py_SetRecursionLimit(recursion_limit);
 
-        // This function must not fail, so print the error here */
         if (unlikely(res == -1)) {
             Nuitka_WriteUnraisable(exception_value);
             res = 0;
@@ -1344,8 +1310,8 @@ NUITKA_MAY_BE_UNUSED static inline int EXCEPTION_MATCH_BOOL(PyThreadState *tstat
     CHECK_OBJECT(exception_checked);
 
 #if PYTHON_VERSION >= 0x300
-    /* Note: Exact matching tuples seems to needed, despite using GET_ITEM later
-       on, this probably cannot be overloaded that deep. */
+    // Validate all tuple elements inherit from BaseException before matching
+    // earlier elements, matching Python 3 semantics.
     if (PyTuple_Check(exception_checked)) {
         Py_ssize_t length = PyTuple_GET_SIZE(exception_checked);
 
@@ -1384,8 +1350,6 @@ NUITKA_MAY_BE_UNUSED static inline int EXCEPTION_MATCH_BOOL(PyThreadState *tstat
     }
 }
 
-// Normalize an exception type to a value.
-
 extern void Nuitka_Err_NormalizeException(PyThreadState *tstate, PyObject **exc, PyObject **val,
                                           PyTracebackObject **tb);
 
@@ -1416,8 +1380,6 @@ NUITKA_MAY_BE_UNUSED static inline void NORMALIZE_EXCEPTION(PyThreadState *tstat
 }
 
 #if PYTHON_VERSION < 0x3c0
-// Normalize an exception, may release old values and replace them, expects
-// references passed and returns them.
 static inline void NORMALIZE_EXCEPTION_STATE(PyThreadState *tstate,
                                              struct Nuitka_ExceptionPreservationItem *exception_state) {
     CHECK_EXCEPTION_STATE_X(exception_state);
@@ -1569,7 +1531,6 @@ NUITKA_MAY_BE_UNUSED static inline void CHAIN_EXCEPTION_STACK_ITEM(PyThreadState
 #endif
 
 #if PYTHON_VERSION >= 0x300
-// Attach the exception context if necessary.
 NUITKA_MAY_BE_UNUSED static inline void
 ADD_EXCEPTION_CONTEXT(PyThreadState *tstate, struct Nuitka_ExceptionPreservationItem *exception_state) {
 #if PYTHON_VERSION >= 0x370

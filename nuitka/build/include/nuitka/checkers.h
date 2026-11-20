@@ -7,11 +7,9 @@
 #ifdef __IDE_ONLY__
 #include "nuitka/cpython_api_compat.h"
 #endif
-// Helper to check that an object is valid and has positive reference count.
 #define CHECK_OBJECT(value) (assert((value) != NULL), assert(Py_REFCNT(value) > 0))
 #define CHECK_OBJECT_X(value) (assert((value) == NULL || Py_REFCNT(value) > 0))
 
-// Helper to check an array of objects with CHECK_OBJECT
 #ifndef __NUITKA_NO_ASSERT__
 #define CHECK_OBJECTS(values, count)                                                                                   \
     {                                                                                                                  \
@@ -27,11 +25,9 @@ extern void CHECK_OBJECT_DEEP(PyObject *value);
 extern void CHECK_OBJECT_DEEP_NAMED(char const *name, PyObject *value);
 extern void CHECK_OBJECTS_DEEP(PyObject *const *values, Py_ssize_t size);
 
-// Our replacement for "PyType_IsSubtype"
 extern bool Nuitka_Type_IsSubtype(PyTypeObject *a, PyTypeObject *b);
 
 #if PYTHON_VERSION >= 0x3e0
-// Our replacement for CPython's private "_PyType_GetFullyQualifiedName"
 extern PyObject *Nuitka_PyType_GetFullyQualifiedName(PyTypeObject *type);
 #endif
 
@@ -39,7 +35,6 @@ static inline int Nuitka_PyObject_TypeCheck(PyObject *obj, PyTypeObject *type) {
     return Py_TYPE(obj) == type || Nuitka_Type_IsSubtype(Py_TYPE(obj), type);
 }
 
-// Our replacement for "PyObject_IsInstance"
 extern int Nuitka_Object_IsInstance(PyThreadState *tstate, PyObject *instance, PyObject *cls);
 
 #endif

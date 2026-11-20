@@ -1,8 +1,6 @@
 //     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
-/**
- * This is responsible for profiling Nuitka using "vmprof".
- */
+// Profiling Nuitka using "vmprof".
 
 #if _NUITKA_PROFILE
 
@@ -32,13 +30,10 @@ static struct timespec time1, time2;
 void startProfiling(void) {
     tempfile_profile = fopen("nuitka-performance.dat", "w+b");
 
-    // Might be necessary to import "site" module to find "vmprof", lets just
-    // hope we don't suffer too much from that. If we do, what might be done
-    // is to try and just have the "PYTHONPATH" from it from out user.
+    // Importing "site" may be needed to locate "vmprof" on sys.path.
     PyImport_ImportModule("site");
     vmprof_module = PyImport_ImportModule("vmprof");
 
-    // Abort if it's not there.
     if (vmprof_module == NULL) {
         PyErr_Print();
         abort();
@@ -60,7 +55,6 @@ void startProfiling(void) {
 void stopProfiling(void) {
     clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &time2);
 
-    // Save the current exception, if any, we must preserve it.
     PyThreadState *tstate = PyThreadState_GET();
 
     struct Nuitka_ExceptionPreservationItem saved_exception_state;

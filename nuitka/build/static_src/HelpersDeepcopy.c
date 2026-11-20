@@ -1,9 +1,5 @@
 //     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
-/**
- * This is responsible for deep copy and hashing of constants.
- */
-
 // This file is included from another C file, help IDEs to still parse it on
 // its own.
 #ifdef __IDE_ONLY__
@@ -167,7 +163,6 @@ PyTypeObject *Nuitka_PyUnion_Type;
 static PyObject *_makeDeepCopyFunctionCapsule(copy_func func) { return Nuitka_CapsuleNew((void *)func); }
 
 static void _initDeepCopy(PyThreadState *tstate) {
-    // Once only
     assert(_deep_copy_dispatch == NULL);
 
     _deep_copy_dispatch = PyDict_New();
@@ -501,10 +496,6 @@ Py_hash_t DEEP_HASH(PyThreadState *tstate, PyObject *value) {
         PyBool_Check(value) || PyRange_Check(value) || PySlice_Check(value) || PyCFunction_Check(value)) {
         Py_hash_t result = DEEP_HASH_INIT(tstate, value);
 
-#if 0
-        printf("Too simple deep hash: %s\n", Py_TYPE(value)->tp_name);
-#endif
-
         return result;
 #if PYTHON_VERSION >= 0x390
     } else if (Py_TYPE(value) == &Py_GenericAliasType) {
@@ -750,7 +741,6 @@ static PyObject *_DEEP_COPY_TUPLE_GUIDED(PyThreadState *tstate, PyObject *value,
 
     Py_ssize_t size = PyTuple_GET_SIZE(value);
 
-    // We cannot have size 0, so this is safe.
     assert(size > 0);
     PyObject *result = MAKE_TUPLE_EMPTY(tstate, size);
 

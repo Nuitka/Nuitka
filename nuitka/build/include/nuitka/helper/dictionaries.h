@@ -38,8 +38,6 @@ static inline PyDictObject *MODULE_DICT(PyObject *module) {
 }
 
 #if PYTHON_VERSION < 0x300
-// Quick dictionary lookup for a string value.
-
 typedef PyDictEntry *Nuitka_DictEntryHandle;
 
 static PyDictEntry *GET_STRING_DICT_ENTRY(PyDictObject *dict, Nuitka_StringObject *key) {
@@ -75,10 +73,6 @@ static PyObject *GET_STRING_DICT_VALUE(PyDictObject *dict, Nuitka_StringObject *
 }
 
 #else
-
-// Python3
-
-// Quick dictionary lookup for a string value.
 
 #if PYTHON_VERSION < 0x3b0
 typedef struct {
@@ -324,6 +318,9 @@ extern PyObject *DICT_GET_ITEM_STRING(PyThreadState *tstate, PyObject *dict, cha
 // Update a dictionary from a mapping, semantically identical to "PyDict_Update".
 extern int DICT_UPDATE_FROM(PyThreadState *tstate, PyObject *dict, PyObject *other);
 
+// Update a dictionary from a mapping for '**' unpacking, raising TypeError on non-mappings.
+extern int DICT_UNPACK_FROM(PyThreadState *tstate, PyObject *dict, PyObject *other);
+
 // Update a dictionary from an iterable of key/value pairs, semantically
 // identical to "PyDict_MergeFromSeq2" with override enabled.
 extern int DICT_UPDATE_FROM_SEQ(PyThreadState *tstate, PyObject *dict, PyObject *seq);
@@ -540,56 +537,37 @@ NUITKA_MAY_BE_UNUSED static void UPDATE_STRING_DICT1(PyThreadState *tstate, PyDi
 }
 
 #if PYTHON_VERSION < 0x300
-// Python2 dictionary keys list, replacement for "PyDict_Keys".
 extern PyObject *DICT_KEYS(PyObject *dict);
-// Python2 dictionary values list, replacement for "PyDict_Values".
 extern PyObject *DICT_VALUES(PyObject *dict);
-// Python2 dictionary key/value pairs list, replacement for "PyDict_Items".
 extern PyObject *DICT_ITEMS(PyObject *dict);
 #endif
 
-// Python3 dictionary keys, Python2 iterkeys returns dictionary keys iterator
+// Return dictionary keys/values/items iterators (not Python 3 views).
 extern PyObject *DICT_ITERKEYS(PyThreadState *tstate, PyObject *dict);
-
-// Python3 dictionary values, Python2 itervalues returns dictionary values iterator
 extern PyObject *DICT_ITERVALUES(PyThreadState *tstate, PyObject *dict);
-
-// Python3 dictionary items, Python2 iteritems returns dictionary items iterator
 extern PyObject *DICT_ITERITEMS(PyThreadState *tstate, PyObject *dict);
 
-// Python dictionary keys view
 extern PyObject *DICT_VIEWKEYS(PyObject *dict);
-
-// Python dictionary values view
 extern PyObject *DICT_VIEWVALUES(PyObject *dict);
-
-// Python dictionary items view
 extern PyObject *DICT_VIEWITEMS(PyObject *dict);
 
-// Python dictionary copy, return a shallow copy of a dictionary.
 extern PyObject *DICT_COPY(PyThreadState *tstate, PyObject *dict);
-
-// Python dictionary clear, empties the dictionary.
 extern void DICT_CLEAR(PyObject *dict);
 
-// Replacement for PyDict_Next that is faster (to call).
 extern bool Nuitka_DictNext(PyObject *dict, Py_ssize_t *pos, PyObject **key_ptr, PyObject **value_ptr);
 
 #if PYTHON_VERSION >= 0x3b0 && PYTHON_VERSION < 0x3d0
-// Replacement for CPython's private _PyDict_MaybeUntrack.
 extern void Nuitka_DictMaybeUntrack(PyObject *op);
 #endif
 
 #if PYTHON_VERSION >= 0x3f0
-// Replacement for PyDict_Next for frozendicts, that are always combined dicts.
+// Frozendicts are always combined dicts.
 extern bool Nuitka_FrozenDictNext(PyObject *frozendict, Py_ssize_t *pos, PyObject **key_ptr, PyObject **value_ptr);
 #endif
 
 #if PYTHON_VERSION >= 0x3a0 && !defined(_NUITKA_EXPERIMENTAL_DISABLE_FREELIST_ALL) &&                                  \
     !defined(_NUITKA_EXPERIMENTAL_DISABLE_FREELIST_DICT)
 #define NUITKA_DICT_HAS_FREELIST 1
-
-// Replacement for PyDict_New that is faster
 extern PyObject *MAKE_DICT_EMPTY(PyThreadState *tstate);
 #else
 #define NUITKA_DICT_HAS_FREELIST 0
@@ -602,20 +580,16 @@ static inline PyObject *MAKE_DICT_EMPTY(PyThreadState *tstate) {
 }
 #endif
 
-// Create a dictionary from keyword argument names and their values.
 extern PyObject *MAKE_DICT_FROM_KWARGS(PyThreadState *tstate, PyObject *kw_names, PyObject *const *kw_values);
-// Create an empty dictionary pre-sized for the given number of entries.
 extern PyObject *MAKE_DICT_PRESIZED(PyThreadState *tstate, Py_ssize_t size);
-// Create an empty dictionary pre-sized for the given number of string entries.
 extern PyObject *MAKE_DICT_PRESIZED_UNICODE(PyThreadState *tstate, Py_ssize_t size);
-// Create a dictionary from string key/value pairs.
 extern PyObject *MAKE_DICT_UNICODE(PyThreadState *tstate, PyObject **pairs, Py_ssize_t size);
-// Create a dictionary from string key/value pairs (NULL value means skip)
+// Entries with a NULL value are skipped.
 extern PyObject *MAKE_DICT_UNICODE_X(PyThreadState *tstate, PyObject **pairs, Py_ssize_t size);
-// Create a dictionary from key/value pairs (NULL value means skip) where keys are C strings.
 extern PyObject *MAKE_DICT_CSTR_X(PyThreadState *tstate, char const **keys, PyObject **values, Py_ssize_t size);
 
-// It's probably unchanged across all Python versions 2.6-3.15
+// Mirrors CPython's private dictiterobject; needed by UNPACK_ITERATOR_CHECK on 3.14+.
+// spell-checker: ignore dictiterobject
 #if PYTHON_VERSION >= 0x3e0
 typedef struct {
     PyObject_HEAD PyDictObject *di_dict;

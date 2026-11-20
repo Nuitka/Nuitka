@@ -35,7 +35,7 @@
 #include <windows.h>
 static inline void PRINT_TIME_STAMP(void) {
     SYSTEMTIME t;
-    GetSystemTime(&t); // or GetLocalTime(&t)
+    GetSystemTime(&t);
     printf("%02d:%02d:%02d.%03d:", t.wHour, t.wMinute, t.wSecond, t.wMilliseconds);
 }
 #else

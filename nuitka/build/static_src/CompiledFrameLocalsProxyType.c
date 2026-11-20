@@ -28,8 +28,6 @@ static PyObject *_Nuitka_FrameLocalsProxy_iter(PyObject *self);
 static PyObject *_Nuitka_FrameLocalsProxy_repr(PyObject *self);
 static void *_Nuitka_FrameLocalsProxy_lookup(Nuitka_FrameLocalsProxyObject *proxy, PyObject *key, int *type_out);
 
-// ---------- FrameLocalsProxy ----------
-
 // TODO: Below is not CPython's localsplus order. Nuitka code objects have no
 // "co_cellvars" (cell locals are plain "co_varnames" entries) and real free
 // variables are in "co_freevars" after "co_nlocals", while CPython's proxy
@@ -202,7 +200,6 @@ static void *_Nuitka_FrameLocalsProxy_lookup(Nuitka_FrameLocalsProxyObject *prox
         offset = Nuitka_FrameLocals_AlignUp(offset, Nuitka_FrameLocals_Align(type));
 
         if (type == NUITKA_TYPE_DESCRIPTION_NULL) {
-            // No storage exists for this frame variable.
             var_names++;
             offset += Nuitka_FrameLocals_Size(type);
             continue;
@@ -451,7 +448,6 @@ static PyObject *_Nuitka_FrameLocalsProxy_repr(PyObject *self) {
     return result;
 }
 
-// Build a snapshot dict and delegate the non-mutating view methods to it.
 static PyObject *_Nuitka_FrameLocalsProxy_copy(PyObject *self, PyObject *Py_UNUSED(ignored)) {
     return _Nuitka_FrameLocalsProxy_to_dict((Nuitka_FrameLocalsProxyObject *)self);
 }
@@ -705,7 +701,6 @@ static PyObject *_Nuitka_FrameLocalsProxy_inplace_or(PyObject *self, PyObject *o
     return self;
 }
 
-// Mapping protocol
 static PyMappingMethods Nuitka_FrameLocalsProxy_as_mapping = {
     (lenfunc)_Nuitka_FrameLocalsProxy_length,              // mp_length
     (binaryfunc)_Nuitka_FrameLocalsProxy_subscript,        // mp_subscript
@@ -800,7 +795,6 @@ static PyTypeObject Nuitka_FrameLocalsProxy_Type = {
     0,                                                            // tp_free
 };
 
-// Create a new FrameLocalsProxy for the given frame.
 static PyObject *_Nuitka_FrameLocalsProxy_New(struct Nuitka_FrameObject *frame) {
     Nuitka_FrameLocalsProxyObject *proxy = Nuitka_GC_New(&Nuitka_FrameLocalsProxy_Type);
     if (proxy == NULL) {

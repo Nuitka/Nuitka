@@ -172,7 +172,6 @@ void inheritAttachedConsole(void) {
             CreateFileW(L"CONIN$", GENERIC_READ | GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE,
                         &security_attributes, OPEN_EXISTING, 0, NULL);
 
-        // Get the current mode of the console input buffer if possible.
         DWORD console_mode = 0;
         GetConsoleMode(win_handle, &console_mode);
 
@@ -201,13 +200,12 @@ void inheritAttachedConsole(void) {
 void hideConsoleIfSpawned(void) {
     HWND hWnd = GetConsoleWindow();
 
+    // Only hide the console if this process owns a freshly created console
+    // rather than inheriting an existing parent shell window.
     DWORD consoleProcesses[2];
-    // detect if we were spawned from an existing cmdline window
     DWORD numProcesses = GetConsoleProcessList(consoleProcesses, 2);
 
-    // if we have just one process that's us alone
     if (hWnd && numProcesses <= 1) {
-        // then let's hide the console
         ShowWindow(hWnd, SW_HIDE);
     }
 }

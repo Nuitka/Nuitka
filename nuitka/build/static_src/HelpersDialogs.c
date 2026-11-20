@@ -8,7 +8,6 @@
 
 #if defined(_WIN32)
 
-// Define control IDs and custom messages
 #define ID_EDIT_INPUT 101
 #define ID_STATIC_PROMPT 102
 #define NUITKA_INPUT_DIALOG_CLASS L"NuitkaInputDialogClass"
@@ -21,7 +20,6 @@ static HWND our_input_dialog = NULL;
 // spell-checker: ignore LOWORD,WNDCLASSW,WNDPROC,WS_EX_DLGMODALFRAME,lpfnWndProc
 // spell-checker: ignore lpszClassName
 
-// Structure to hold all necessary data for the dialog window
 struct DialogState {
     HWND hDlg;
     HWND hPrompt;
@@ -29,56 +27,48 @@ struct DialogState {
     wchar_t *result_buffer;
     int result_buffer_size;
     BOOL success;
-    WNDPROC old_edit_proc; // To store the original edit control procedure
+    WNDPROC old_edit_proc;
 };
 
-// Console control handler to catch CTRL-C from the terminal.
 static BOOL WINAPI ourDialogCtrlCHandler(DWORD dwCtrlType) {
     if (dwCtrlType == CTRL_C_EVENT) {
-        // If our dialog is active, just post a message to it to close.
-        // The main thread will handle the Python-specific parts.
+        // SetConsoleCtrlHandler runs on a separate OS thread; post to the
+        // dialog window so the main thread handles the Python exception state.
         if (our_input_dialog != NULL) {
             PostMessage(our_input_dialog, WM_USER_INTERRUPT, 0, 0);
         }
 
-        // Return TRUE to indicate that we have handled the event.
         return TRUE;
     }
 
-    // Return FALSE for other events to allow default processing.
     return FALSE;
 }
 
-// This is a custom window procedure for the Edit control to capture the Enter key.
+// Subclass the Edit control to intercept VK_RETURN and submit the dialog.
 static LRESULT CALLBACK dialogEditSubclassProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) {
     struct DialogState *state = (struct DialogState *)GetWindowLongPtrW(GetParent(hWnd), GWLP_USERDATA);
 
     if (message == WM_KEYDOWN && wParam == VK_RETURN) {
-        // User pressed Enter. Post an OK command to the parent dialog.
         PostMessage(GetParent(hWnd), WM_COMMAND, IDOK, 0);
-        return 0; // We handled the message.
+        return 0;
     }
 
-    // For all other messages, pass them to the original Edit control procedure.
     return CallWindowProc(state->old_edit_proc, hWnd, message, wParam, lParam);
 }
 
-// This is the window procedure that handles messages for our custom dialog.
 static LRESULT CALLBACK ourDialogManualInputDialogProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) {
     struct DialogState *state = (struct DialogState *)GetWindowLongPtrW(hWnd, GWLP_USERDATA);
 
     switch (message) {
     case WM_CREATE:
-        // Store the state pointer passed from CreateWindowEx
         SetWindowLongPtrW(hWnd, GWLP_USERDATA, (LONG_PTR)((CREATESTRUCT *)lParam)->lpCreateParams);
         return 0;
 
     case WM_COMMAND:
-        // This is triggered by the Enter key in the subclassed edit control.
         if (LOWORD(wParam) == IDOK) {
             GetWindowTextW(state->hEdit, state->result_buffer, state->result_buffer_size);
             state->success = TRUE;
-            DestroyWindow(hWnd); // This will cause the message loop to exit
+            DestroyWindow(hWnd);
             return 0;
         }
         break;
@@ -96,16 +86,13 @@ static LRESULT CALLBACK ourDialogManualInputDialogProc(HWND hWnd, UINT message, 
         return 0;
 
     case WM_DESTROY:
-        // Signal the message loop to terminate.
         PostQuitMessage(0);
         return 0;
     }
     return DefWindowProcW(hWnd, message, wParam, lParam);
 }
 
-// Main function to create and show the input dialog.
 PyObject *Nuitka_Win32_InputDialog(PyThreadState *tstate, PyObject *prompt) {
-    // Convert Python prompt to wide C string
     PyObject *prompt_str = BUILTIN_UNICODE1(prompt);
     if (prompt_str == NULL) {
         return NULL;
@@ -121,7 +108,6 @@ PyObject *Nuitka_Win32_InputDialog(PyThreadState *tstate, PyObject *prompt) {
         return NULL;
     }
 
-    // Allocate buffer for the result
     const int buffer_size = 2048;
     wchar_t *result_buffer = (wchar_t *)calloc(buffer_size, sizeof(wchar_t));
     if (result_buffer == NULL) {
@@ -131,7 +117,6 @@ PyObject *Nuitka_Win32_InputDialog(PyThreadState *tstate, PyObject *prompt) {
 
     HINSTANCE hInstance = GetModuleHandle(NULL);
 
-    // --- Register the Window Class (if not already done) ---
     WNDCLASSW wc = {0};
     wc.lpfnWndProc = ourDialogManualInputDialogProc;
     wc.hInstance = hInstance;
@@ -140,7 +125,6 @@ PyObject *Nuitka_Win32_InputDialog(PyThreadState *tstate, PyObject *prompt) {
     wc.lpszClassName = NUITKA_INPUT_DIALOG_CLASS;
     RegisterClassW(&wc);
 
-    // --- Create the Dialog Window ---
     struct DialogState state = {0};
     state.result_buffer = result_buffer;
     state.result_buffer_size = buffer_size;
@@ -158,7 +142,6 @@ PyObject *Nuitka_Win32_InputDialog(PyThreadState *tstate, PyObject *prompt) {
                                  hInstance, &state);
 
     if (state.hDlg == NULL) {
-        // Handle window creation failure
         PyMem_Free((void *)prompt_text);
         free(result_buffer);
 
@@ -166,28 +149,23 @@ PyObject *Nuitka_Win32_InputDialog(PyThreadState *tstate, PyObject *prompt) {
         return NULL;
     }
 
-    // --- Setup for CTRL-C handling ---
     our_input_dialog = state.hDlg;
     SetConsoleCtrlHandler(ourDialogCtrlCHandler, TRUE);
 
-    // --- Create Controls as Child Windows ---
     state.hPrompt = CreateWindowW(L"STATIC", prompt_text, WS_CHILD | WS_VISIBLE, 10, 10, 220, 20, state.hDlg,
                                   (HMENU)ID_STATIC_PROMPT, hInstance, NULL);
     state.hEdit = CreateWindowW(L"EDIT", L"", WS_CHILD | WS_VISIBLE | WS_BORDER | ES_AUTOHSCROLL, 10, 35, 220, 20,
                                 state.hDlg, (HMENU)ID_EDIT_INPUT, hInstance, NULL);
 
-    // --- Subclass the Edit control to capture Enter key ---
     state.old_edit_proc = (WNDPROC)SetWindowLongPtrW(state.hEdit, GWLP_WNDPROC, (LONG_PTR)dialogEditSubclassProc);
     SetFocus(state.hEdit);
 
-    // --- Run a Modal Message Loop ---
     MSG msg;
     while (GetMessageW(&msg, NULL, 0, 0)) {
         TranslateMessage(&msg);
         DispatchMessageW(&msg);
     }
 
-    // --- Process the Result ---
     PyObject *result_obj = NULL;
     if (state.success) {
         result_obj = PyUnicode_FromWideChar(result_buffer, wcslen(result_buffer));
@@ -195,12 +173,10 @@ PyObject *Nuitka_Win32_InputDialog(PyThreadState *tstate, PyObject *prompt) {
         PRINT_ITEM_LINE(result_obj);
         FLUSH_STDOUT();
     } else {
-        // CTRL-C happened.
         PyErr_SetNone(PyExc_KeyboardInterrupt);
         result_obj = NULL;
     }
 
-    // Cleanup for exit.
     our_input_dialog = NULL;
     SetConsoleCtrlHandler(ourDialogCtrlCHandler, FALSE);
     UnregisterClassW(NUITKA_INPUT_DIALOG_CLASS, hInstance);

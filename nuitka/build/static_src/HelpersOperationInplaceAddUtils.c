@@ -1,10 +1,6 @@
 //     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
-/* These slots are still manually coded and are used by the generated code.
- *
- * The plan should be to generate these as well. Currently also naming is
- * very inconsistent.
- */
+// TODO: Generate specialized in-place add slots too.
 
 #if defined(__IDE_ONLY__)
 #include "nuitka/prelude.h"
@@ -70,13 +66,11 @@ NUITKA_MAY_BE_UNUSED static bool BYTES_ADD_INCREMENTAL(PyObject **operand1, PyOb
     assert(PyBytes_CheckExact(*operand1));
     assert(PyBytes_CheckExact(operand2));
 
-    // Buffer of operand2
     Py_buffer wb;
     wb.len = -1;
 
     {
         NUITKA_MAY_BE_UNUSED int res = PyObject_GetBuffer(operand2, &wb, PyBUF_SIMPLE);
-        // Has to work.
         assert(res == 0);
     }
     assert(wb.len >= 0);

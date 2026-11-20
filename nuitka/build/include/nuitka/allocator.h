@@ -362,27 +362,23 @@ NUITKA_MAY_BE_UNUSED static void *NuitkaObject_Malloc(size_t size) {
     return python_obj_malloc(NULL, size);
 }
 
-// Our version of "PyMem_Malloc".
 NUITKA_MAY_BE_UNUSED static void *NuitkaMem_Malloc(size_t size) {
     assert(python_mem_malloc != NULL);
     return python_mem_malloc(NULL, size);
 }
 
-// Our version of "PyMem_Calloc".
 NUITKA_MAY_BE_UNUSED static void *NuitkaMem_Calloc(size_t nelem, size_t elsize) {
     assert(python_mem_calloc != NULL);
     return python_mem_calloc(NULL, nelem, elsize);
 }
 
 #ifndef Py_GIL_DISABLED
-// Our version of "PyMem_Realloc".
 NUITKA_MAY_BE_UNUSED static void *NuitkaMem_Realloc(void *ptr, size_t new_size) {
     assert(python_mem_realloc != NULL);
     return python_mem_realloc(NULL, ptr, new_size);
 }
 #endif
 
-// Our version of "PyMem_Free".
 NUITKA_MAY_BE_UNUSED static void NuitkaMem_Free(void *ptr) {
     assert(python_mem_free != NULL);
     python_mem_free(NULL, ptr);
@@ -794,14 +790,12 @@ static PyObject *Nuitka_PyType_AllocNoTrackVar(PyTypeObject *type, Py_ssize_t ni
     // is supposed to be.
     memset(obj, 0, size);
 
-    // This is the "var" branch, we already know we are variable size here.
     assert(type->tp_itemsize != 0);
 #if PYTHON_VERSION >= 0x3e0
     _PyObject_InitVar((PyVarObject *)obj, type, nitems);
 #else
     Py_SET_SIZE((PyVarObject *)obj, nitems);
 
-    // Initialize the object references.
     Py_SET_TYPE(obj, type);
     if (Nuitka_PyType_HasFeature(type, Py_TPFLAGS_HEAPTYPE)) {
         Py_INCREF(type);
@@ -851,7 +845,6 @@ static PyObject *Nuitka_PyType_AllocNoTrack(PyTypeObject *type) {
     Nuitka_PyObject_GC_Link(obj);
 #endif
 
-    // Initialize the object references.
 #if PYTHON_VERSION >= 0x3e0
     _PyObject_Init(obj, type);
 #else
@@ -1008,9 +1001,6 @@ static inline void Py_SET_REFCNT_IMMORTAL(PyObject *obj) {
 #endif
 
 #ifndef Py_XSETREF
-/* Py_XSETREF() is a variant of Py_SETREF() that uses Py_XDECREF() instead of
- * Py_DECREF().
- */
 #ifdef _Py_TYPEOF
 #define Py_XSETREF(dst, src)                                                                                           \
     do {                                                                                                               \

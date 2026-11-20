@@ -8,16 +8,10 @@
 #include "nuitka/cpython_api_compat.h"
 #endif
 
-// Attribute lookup except special slots below.
 extern PyObject *LOOKUP_ATTRIBUTE(PyThreadState *tstate, PyObject *source, PyObject *attr_name);
-
-// Attribute lookup of attribute slot "__dict__".
 extern PyObject *LOOKUP_ATTRIBUTE_DICT_SLOT(PyThreadState *tstate, PyObject *source);
-
-// Attribute lookup of attribute slot "__class__".
 extern PyObject *LOOKUP_ATTRIBUTE_CLASS_SLOT(PyThreadState *tstate, PyObject *source);
 
-// For built-in "hasattr" functionality.
 extern int BUILTIN_HASATTR_BOOL(PyThreadState *tstate, PyObject *source, PyObject *attr_name);
 
 // Check for an attribute, cannot raise an exception.
@@ -26,23 +20,16 @@ extern bool HAS_ATTR_BOOL(PyThreadState *tstate, PyObject *source, PyObject *att
 // Check for an attribute, can raise an exception.
 extern int HAS_ATTR_BOOL2(PyThreadState *tstate, PyObject *source, PyObject *attr_name);
 
-// Set an attribute except for attribute slots below.
 extern bool SET_ATTRIBUTE(PyThreadState *tstate, PyObject *target, PyObject *attr_name, PyObject *value);
-
-// Set the "__dict__" special attribute slot.
 extern bool SET_ATTRIBUTE_DICT_SLOT(PyThreadState *tstate, PyObject *target, PyObject *value);
-
-// Set the "__class__" special attribute slot.
 extern bool SET_ATTRIBUTE_CLASS_SLOT(PyThreadState *tstate, PyObject *target, PyObject *value);
 
 #if PYTHON_VERSION >= 0x3a0
 extern void SET_ATTRIBUTE_ERROR_CONTEXT(PyThreadState *tstate, PyObject *source, PyObject *attr_name);
 #endif
 
-// Special attribute lookups, e.g. "__enter__".
 extern PyObject *LOOKUP_SPECIAL(PyThreadState *tstate, PyObject *source, PyObject *attr_name);
 
-// Find an attribute in a class, Python2 only.
 #if PYTHON_VERSION < 0x300
 extern PyObject *FIND_ATTRIBUTE_IN_CLASS(PyClassObject *class_object, PyObject *attr_name);
 #endif

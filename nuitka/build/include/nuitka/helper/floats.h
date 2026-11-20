@@ -10,8 +10,6 @@
 
 #if PYTHON_VERSION >= 0x3a0
 #define NUITKA_FLOAT_HAS_FREELIST 1
-
-// Replacement for PyFloat_FromDouble that is faster
 extern PyObject *MAKE_FLOAT_FROM_DOUBLE(double value);
 #else
 #define NUITKA_FLOAT_HAS_FREELIST 0

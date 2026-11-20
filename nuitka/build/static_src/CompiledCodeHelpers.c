@@ -444,7 +444,7 @@ static PyObject *MAKE_XRANGE(PyThreadState *tstate, PyObject *start, PyObject *s
 }
 #endif
 
-/* Built-in xrange (Python2) or xrange (Python3) with one argument. */
+// Built-in xrange (Python2) or range (Python3) with one argument.
 PyObject *BUILTIN_XRANGE1(PyThreadState *tstate, PyObject *high) {
 #if PYTHON_VERSION < 0x300
     if (unlikely(PyFloat_Check(high))) {
@@ -489,7 +489,7 @@ PyObject *BUILTIN_XRANGE1(PyThreadState *tstate, PyObject *high) {
 #endif
 }
 
-/* Built-in xrange (Python2) or xrange (Python3) with two arguments. */
+// Built-in xrange (Python2) or range (Python3) with two arguments.
 PyObject *BUILTIN_XRANGE2(PyThreadState *tstate, PyObject *low, PyObject *high) {
 #if PYTHON_VERSION < 0x300
     if (unlikely(PyFloat_Check(low))) {
@@ -522,7 +522,7 @@ PyObject *BUILTIN_XRANGE2(PyThreadState *tstate, PyObject *low, PyObject *high) 
 #endif
 }
 
-/* Built-in xrange (Python2) or xrange (Python3) with three arguments. */
+// Built-in xrange (Python2) or range (Python3) with three arguments.
 PyObject *BUILTIN_XRANGE3(PyThreadState *tstate, PyObject *low, PyObject *high, PyObject *step) {
 #if PYTHON_VERSION < 0x300
     if (unlikely(PyFloat_Check(low))) {
@@ -1464,7 +1464,6 @@ PyObject *BUILTIN_SUM1(PyThreadState *tstate, PyObject *sequence) {
 
         CHECK_OBJECT(item);
 
-// For Python2 int objects:
 #if PYTHON_VERSION < 0x300
         if (PyInt_CheckExact(item)) {
             long b = PyInt_AS_LONG(item);
@@ -1479,7 +1478,6 @@ PyObject *BUILTIN_SUM1(PyThreadState *tstate, PyObject *sequence) {
         }
 #endif
 
-// For Python2 long, Python3 int objects
 #if PYTHON_VERSION >= 0x270
         if (PyLong_CheckExact(item)) {
             int overflow;
@@ -1893,10 +1891,7 @@ char const *getBinaryDirectoryHostEncoded(bool resolve_symlinks) {
         return binary_directory_target;
     }
 
-    // Get the filename first.
     copyStringSafe(binary_directory_target, getBinaryFilenameHostEncoded(resolve_symlinks), buffer_size);
-
-    // We want the directory name, the above gives the full executable name.
     copyStringSafe(binary_directory_target, dirname(binary_directory_target), buffer_size);
 
     return binary_directory_target;
@@ -1941,7 +1936,6 @@ PyObject *getBinaryFilenameObject(bool resolve_symlinks) {
         abort();
     }
 
-    // Make sure it's usable for caching.
     Py_INCREF(*binary_object_target);
 
     return *binary_object_target;
@@ -1984,7 +1978,6 @@ PyObject *getBinaryDirectoryObject(bool resolve_symlinks) {
         abort();
     }
 
-    // Make sure it's usable for caching.
     Py_INCREF(*binary_object_target);
 
     return *binary_object_target;
@@ -2094,7 +2087,6 @@ PyObject *getContainingDirectoryObject(bool resolve_symlinks) {
 }
 
 #if _NUITKA_STANDALONE_MODE
-// Helper function to create path.
 PyObject *getStandaloneSysExecutablePath(PyObject *basename) {
 #if _NUITKA_EXE_MODE
     PyObject *dir_name = getBinaryDirectoryObject(false);

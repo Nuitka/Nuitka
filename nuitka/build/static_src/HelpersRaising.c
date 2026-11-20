@@ -1,9 +1,5 @@
 //     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
-/* This helpers is used to work with lists.
-
-*/
-
 // This file is included from another C file, help IDEs to still parse it on
 // its own.
 #ifdef __IDE_ONLY__
@@ -36,7 +32,6 @@ static void FORMAT_TYPE_ERROR2(PyThreadState *tstate, struct Nuitka_ExceptionPre
 #define WRONG_EXCEPTION_TYPE_ERROR_MESSAGE "exceptions must derive from BaseException"
 #endif
 
-// Next, replace a tuple in exception type creation with its first item
 #if PYTHON_VERSION < 0x3c0
 static void UNPACK_TUPLE_EXCEPTION_TYPE(struct Nuitka_ExceptionPreservationItem *exception_state) {
     while (unlikely(PyTuple_Check(exception_state->exception_type)) &&
@@ -55,7 +50,6 @@ void RAISE_EXCEPTION_WITH_TYPE(PyThreadState *tstate, struct Nuitka_ExceptionPre
     exception_state->exception_tb = NULL;
 
 #if PYTHON_VERSION < 0x300
-    // Next, repeatedly, replace a tuple exception with its first item
     UNPACK_TUPLE_EXCEPTION_TYPE(exception_state);
 #endif
 
@@ -75,7 +69,6 @@ void RAISE_EXCEPTION_WITH_TYPE(PyThreadState *tstate, struct Nuitka_ExceptionPre
 #if PYTHON_VERSION >= 0x300
         CHAIN_EXCEPTION(tstate, exception_state->exception_value);
 
-        // Note: Cannot be assigned here.
         assert(exception_state->exception_tb == NULL);
         exception_state->exception_tb = GET_EXCEPTION_TRACEBACK(exception_state->exception_value);
         Py_XINCREF(exception_state->exception_tb);
@@ -100,7 +93,6 @@ void RAISE_EXCEPTION_WITH_TYPE_AND_VALUE(PyThreadState *tstate,
 
     exception_state->exception_tb = NULL;
 
-    // Non-empty tuple exceptions are the first element.
     UNPACK_TUPLE_EXCEPTION_TYPE(exception_state);
 
     if (PyExceptionClass_Check(exception_state->exception_type)) {
@@ -128,7 +120,6 @@ void RAISE_EXCEPTION_WITH_TYPE_AND_VALUE(PyThreadState *tstate,
             return;
         }
 
-        // The type is rather a value, so we are overriding it here.
         exception_state->exception_value = exception_state->exception_type;
         exception_state->exception_type = PyExceptionInstance_Class(exception_state->exception_type);
         Py_INCREF(exception_state->exception_type);
@@ -164,7 +155,6 @@ void RAISE_EXCEPTION_WITH_CAUSE(PyThreadState *tstate, struct Nuitka_ExceptionPr
     exception_state->exception_tb = NULL;
 #endif
 
-    // None is not a cause.
     if (exception_cause == Py_None) {
         Py_DECREF_IMMORTAL(exception_cause);
         exception_cause = NULL;
@@ -249,7 +239,6 @@ void RAISE_EXCEPTION_WITH_TRACEBACK(PyThreadState *tstate, struct Nuitka_Excepti
         exception_state->exception_tb = NULL;
     }
 
-    // Non-empty tuple exceptions are the first element.
     UNPACK_TUPLE_EXCEPTION_TYPE(exception_state);
 
     if (PyExceptionClass_Check(exception_state->exception_type)) {
@@ -279,7 +268,6 @@ void RAISE_EXCEPTION_WITH_TRACEBACK(PyThreadState *tstate, struct Nuitka_Excepti
             return;
         }
 
-        // The type is rather a value, so we are overriding it here.
         exception_state->exception_value = exception_state->exception_type;
         exception_state->exception_type = PyExceptionInstance_Class(exception_state->exception_type);
         Py_INCREF(exception_state->exception_type);
@@ -357,14 +345,12 @@ bool RERAISE_EXCEPTION(PyThreadState *tstate, struct Nuitka_ExceptionPreservatio
     }
 #endif
 
-    // Check for value to be present as well.
     CHECK_EXCEPTION_STATE(exception_state);
     CHECK_OBJECT(exception_state->exception_value);
 
     return true;
 }
 
-// Raise NameError for a given variable name.
 void RAISE_CURRENT_EXCEPTION_NAME_ERROR(PyThreadState *tstate, struct Nuitka_ExceptionPreservationItem *exception_state,
                                         PyObject *variable_name) {
 #if PYTHON_VERSION < 0x300

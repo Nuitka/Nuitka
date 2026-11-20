@@ -67,10 +67,8 @@ extern PyTypeObject Nuitka_Loader_Type;
 PyObject *Nuitka_Loader_New(struct Nuitka_MetaPathBasedLoaderEntry const *entry);
 
 struct Nuitka_LoaderObject {
-    /* Python object folklore: */
     PyObject_HEAD
 
-        /* The loader entry, to know what was loaded exactly. */
         struct Nuitka_MetaPathBasedLoaderEntry const *m_loader_entry;
 };
 
@@ -596,7 +594,6 @@ PyObject *Nuitka_PopSysModulesValue(PyThreadState *tstate, PyObject *sys_modules
 }
 
 static char *appendModuleNameAsPath(char *buffer, char const *module_name, size_t buffer_size) {
-    // Skip to the end
     while (*buffer != 0) {
         buffer++;
         buffer_size -= 1;
@@ -982,14 +979,6 @@ static bool scanModuleInPackagePath(PyThreadState *tstate, PyObject *module_name
         }
     }
 
-#if 0
-    PRINT_STRING("CANDIDATES:");
-    PRINT_STRING(Nuitka_String_AsString(module_name));
-    PRINT_STRING(module_relative_name_str);
-    PRINT_ITEM(candidates);
-    PRINT_NEW_LINE();
-#endif
-
     // Look up C-extension suffixes, these are used with highest priority.
     PyObject *suffix_list = getExtensionModuleSuffixesByPriority(tstate);
 
@@ -1316,7 +1305,6 @@ linking, e.g. with '-static', does not allow dynamic loading of extension module
 
 static entrypoint_t _loadExtensionModuleInitAddress(PyThreadState *tstate, char const *full_name,
                                                     const filename_char_t *filename, bool *is_export_hook) {
-    // Determine the basename of the module to load.
     char const *dot = strrchr(full_name, '.');
     char const *name;
 
@@ -1620,7 +1608,6 @@ error:
     return NULL;
 
 #else
-    // Determine the package name and basename of the module to load.
     char const *dot = strrchr(full_name, '.');
     char const *package;
 
@@ -1684,7 +1671,6 @@ error:
     }
 #endif
 
-    // Finally call into the DLL.
     PGO_onModuleEntered(full_name);
 
     if (isVerbose()) {
@@ -1702,12 +1688,6 @@ error:
     if (isVerbose()) {
         PySys_WriteStderr("import %s # return from entrypoint\n", full_name);
     }
-
-#if 0
-    PRINT_FORMAT("import %s # create module as ", full_name);
-    PRINT_ITEM(module);
-    PRINT_NEW_LINE();
-#endif
 
     NuitkaImport_SwapPackageContext(old_context);
 
@@ -2133,7 +2113,6 @@ static void _fixupSpecAttribute(PyThreadState *tstate, PyObject *module) {
 }
 #endif
 
-// Pointers to bytecode data.
 static char **_bytecode_data = NULL;
 
 #if _NUITKA_STANDALONE_MODE && !defined(_NUITKA_DEPLOYMENT_MODE) &&                                                    \
@@ -2178,7 +2157,7 @@ static PyObject *loadModule(PyThreadState *tstate, PyObject *module, PyObject *m
     } else
 #endif
         if ((entry->flags & NUITKA_BYTECODE_FLAG) != 0) {
-        // TODO: Do node use marshal, but our own stuff, once we
+        // TODO: Do not use marshal, but our own stuff, once we
         // can do code objects too.
 
         PyCodeObject *code_object =
@@ -2199,7 +2178,6 @@ static PyObject *loadModule(PyThreadState *tstate, PyObject *module, PyObject *m
             Nuitka_SetModule(tstate, module_name, module);
         }
 
-        // Run the compiled module code, we get the module returned.
 #if PYTHON_VERSION < 0x300
         NUITKA_MAY_BE_UNUSED
 #endif
@@ -2260,7 +2238,7 @@ static PyObject *_EXECUTE_EMBEDDED_MODULE_ENTRY(PyThreadState *tstate,
 
     if (entry != NULL || frozen_import) {
         // Execute the "preLoad" code produced for the module potentially. This
-        // is from plugins typically, that want to modify things for the the
+        // is from plugins typically, that want to modify things for the
         // module before loading, to e.g. set a plug-in path, or do some monkey
         // patching in order to make things compatible.
         Nuitka_LoadTriggeredModule(tstate, entry != NULL ? entry->m_pre_load : NULL);
@@ -2504,7 +2482,7 @@ PyObject *IMPORT_EMBEDDED_MODULE_STATE(PyThreadState *tstate, struct Nuitka_Meta
 
     if (module == NULL) {
         // Fast path for an already loaded or currently loading module. The
-        // alone state decides this.
+        // state alone decides this.
         if (*module_state == NULL) {
             PyObject *result = entry->m_get_module_value(tstate, entry, false);
 
@@ -3641,8 +3619,8 @@ PyObject *getImportLibBootstrapModule(void) {
 }
 #endif
 
-static PyObject *getModuleFileValue(PyThreadState *tstate, struct Nuitka_MetaPathBasedLoaderEntry const *entry,
-                                    PyObject *module_name) {
+NUITKA_MAY_BE_UNUSED static PyObject *
+getModuleFileValue(PyThreadState *tstate, struct Nuitka_MetaPathBasedLoaderEntry const *entry, PyObject *module_name) {
     PyObject *dir_name = getModuleDirectory(tstate, entry, module_name);
 
     char filename_buffer[1024];
@@ -3982,7 +3960,6 @@ static PyObject *_nuitka_loader_create_module(PyObject *self, PyObject *args, Py
         return NULL;
     }
 
-    // Check if module name is a proper string.
     char const *name = Nuitka_String_AsString(module_name);
     if (unlikely(name == NULL)) {
         Py_DECREF(module_name);
@@ -4064,7 +4041,6 @@ static PyObject *_nuitka_loader_exec_module(PyObject *self, PyObject *args, PyOb
         return NULL;
     }
 
-    // Check if module name is a proper string.
     char const *name = Nuitka_String_AsString(module_name);
     if (unlikely(name == NULL)) {
         Py_DECREF(module_name);
@@ -4082,7 +4058,6 @@ static PyObject *_nuitka_loader_exec_module(PyObject *self, PyObject *args, PyOb
         PyObject *extension_module_filename = DICT_GET_ITEM0(tstate, installed_extension_modules, module_name);
 
         if (extension_module_filename != NULL) {
-            // Set filename attribute
             bool b_res = SET_ATTRIBUTE(tstate, module, const_str_plain___file__, extension_module_filename);
 
             if (unlikely(b_res == false)) {
@@ -4247,7 +4222,6 @@ static PyObject *_nuitka_loader_find_distributions(PyObject *self, PyObject *arg
         }
 
         if (include) {
-            // Create a distribution object from our data.
             PyObject *distribution = Nuitka_Distribution_New(tstate, distribution_name);
 
             if (distribution == NULL) {
@@ -4281,12 +4255,6 @@ static PyObject *_nuitka_loader_sys_path_hook(PyObject *self, PyObject *args, Py
 
     PyThreadState *tstate = PyThreadState_GET();
 
-#if 0
-    PRINT_STRING("CONSIDER PATH:");
-    PRINT_ITEM(path);
-    PRINT_NEW_LINE();
-#endif
-
     for (int entry_index = 0; entry_index < loader_entry_count; entry_index++) {
         struct Nuitka_MetaPathBasedLoaderEntry *current = loader_entries[entry_index];
 
@@ -4298,42 +4266,17 @@ static PyObject *_nuitka_loader_sys_path_hook(PyObject *self, PyObject *args, Py
         if ((current->flags & NUITKA_PACKAGE_FLAG) != 0) {
             PyObject *module_directory = getModuleDirectory(tstate, current, NULL);
 
-#if 0
-            PRINT_ENTRY_STRING(current);
-            PRINT_STRING(" ");
-            PRINT_ITEM(module_directory);
-            PRINT_NEW_LINE();
-#endif
-
             nuitka_bool cmp_res = compareFilePaths(tstate, module_directory, path);
 
             if (unlikely(cmp_res == NUITKA_BOOL_EXCEPTION)) {
                 return NULL;
             }
 
-            // Create the loader for the module.
             if (cmp_res == NUITKA_BOOL_TRUE) {
-#if 0
-                PRINT_STRING("Success:");
-                PRINT_ENTRY_STRING(current);
-                PRINT_NEW_LINE();
-#endif
                 return Nuitka_Loader_New(current);
             }
-        } else {
-#if 0
-            PRINT_ENTRY_STRING(current);
-            PRINT_STRING(" not a package ");
-            PRINT_NEW_LINE();
-#endif
         }
     }
-
-#if 0
-    PRINT_STRING("Not responsible:");
-    PRINT_ITEM(path);
-    PRINT_NEW_LINE();
-#endif
 
     SET_CURRENT_EXCEPTION_TYPE0(tstate, PyExc_ImportError);
     return NULL;
@@ -4391,7 +4334,6 @@ static PyObject *Nuitka_Loader_tp_repr(PyObject *self) {
 // no big harm too, but make it small, maybe be allowing a toggle that makes a specific macro not
 // use the free list mechanism at all.
 
-// Freelist setup
 #define MAX_LOADER_FREE_LIST_COUNT 10
 static struct Nuitka_LoaderObject *free_list_loaders = NULL;
 static int free_list_loaders_count = 0;
@@ -4540,7 +4482,6 @@ void updateMetaPathBasedLoaderModuleRoot(char const *module_root_name) {
 
 void registerMetaPathBasedLoader(struct Nuitka_MetaPathBasedLoaderEntry **_loader_entries,
                                  unsigned char **bytecode_data, int entry_count) {
-    // Do it only once.
     if (loader_entries) {
         assert(_loader_entries == loader_entries);
         assert(entry_count == loader_entry_count);
@@ -4583,7 +4524,6 @@ void registerMetaPathBasedLoader(struct Nuitka_MetaPathBasedLoaderEntry **_loade
     );
 #endif
 
-    // Register it as a meta path loader.
     PyObject *global_loader = Nuitka_Loader_New(NULL);
 
     LIST_INSERT_CONST(Nuitka_SysGetObject("meta_path"),
@@ -4615,7 +4555,7 @@ void registerMetaPathBasedLoader(struct Nuitka_MetaPathBasedLoaderEntry **_loade
 
 #if _NUITKA_STANDALONE_MODE
 // This is called for the technical module imported early on during interpreter
-// into, to still get compatible "__file__" attributes.
+// init, to still get compatible "__file__" attributes.
 void setEarlyFrozenModulesFileAttribute(PyThreadState *tstate) {
     PyObject *sys_modules = Nuitka_GetSysModules(tstate);
     Py_ssize_t pos = 0;

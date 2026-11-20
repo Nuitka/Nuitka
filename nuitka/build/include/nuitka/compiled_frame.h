@@ -41,7 +41,6 @@ typedef PyFrameObject Nuitka_ThreadStateFrameType;
 typedef _PyInterpreterFrame Nuitka_ThreadStateFrameType;
 #endif
 
-// Print a description of given frame objects in frame debug mode
 #if _DEBUG_FRAME
 extern void PRINT_TOP_FRAME(char const *prefix);
 extern void PRINT_PYTHON_FRAME(char const *prefix, PyFrameObject *frame);
@@ -54,7 +53,6 @@ extern void PRINT_INTERPRETER_FRAME(char const *prefix, Nuitka_ThreadStateFrameT
 #define PRINT_INTERPRETER_FRAME(prefix, frame)
 #endif
 
-// Create a frame object for the given code object, frame or module.
 extern struct Nuitka_FrameObject *MAKE_MODULE_FRAME(PyCodeObject *code, PyObject *module);
 extern struct Nuitka_FrameObject *MAKE_FUNCTION_FRAME(PyThreadState *tstate, PyCodeObject *code, PyObject *module,
                                                       Py_ssize_t locals_size, char const *type_description);
@@ -85,8 +83,6 @@ extern void Nuitka_Frame_FormatUnboundClosureError(PyThreadState *tstate,
                                                    struct Nuitka_ExceptionPreservationItem *exception_state,
                                                    struct Nuitka_ExceptionPreservationItem *keeper_exception_state,
                                                    struct Nuitka_FrameObject *frame_object, int variable_index);
-
-// Create a code object for the given filename and function name
 
 #if PYTHON_VERSION < 0x300
 #define MAKE_CODE_OBJECT(filename, line, flags, function_name, function_qualname, arg_names, free_vars, arg_count,     \
@@ -172,7 +168,7 @@ struct Nuitka_FrameObject {
 
     // In Python 3.11, the frame object is no longer variable size, and as such
     // we inherit the wrong kind of header, not PyVarObject, leading to f_back
-    // the PyFrameObject and and ob_size aliasing, which is not good, but we
+    // on PyFrameObject and ob_size aliasing, which is not good, but we
     // want to expose the same binary interface, while still being variable size,
     // so what we do is to preserve the size in this field instead.
     Py_ssize_t m_ob_size;
@@ -184,7 +180,6 @@ struct Nuitka_FrameObject {
     // pointers, so that the pre-3.11 "m_locals_storage" below stays aligned.
     unsigned char m_locals_writable;
 
-    // Our own extra stuff, attached variables.
     char const *m_type_description;
     // Pointer to the current locals storage: stack context struct while alive,
     // or the frame's heap buffer after copy-with-INCREF detach.
@@ -215,17 +210,12 @@ inline static void CHECK_CODE_OBJECT(PyCodeObject *code_object) { CHECK_OBJECT(c
 NUITKA_MAY_BE_UNUSED static inline bool isFrameUnusable(struct Nuitka_FrameObject *frame_object) {
     CHECK_OBJECT_X(frame_object);
 
-    bool result =
-        // Never used.
-        frame_object == NULL ||
-        // Still in use
-        Py_REFCNT(frame_object) > 1 ||
+    bool result = frame_object == NULL || Py_REFCNT(frame_object) > 1 ||
 #if PYTHON_VERSION < 0x300
-        // Last used by another thread (TODO: Could just set it when reusing)
-        frame_object->m_frame.f_tstate != PyThreadState_GET() ||
+                  // Last used by another thread (TODO: Could just set it when reusing)
+                  frame_object->m_frame.f_tstate != PyThreadState_GET() ||
 #endif
-        // Not currently linked.
-        frame_object->m_frame.f_back != NULL;
+                  frame_object->m_frame.f_back != NULL;
 
 #if _DEBUG_REFRAME
     if (result && frame_object != NULL) {
@@ -273,9 +263,8 @@ inline static PyCodeObject *Nuitka_Frame_GetCodeObject(PyFrameObject *frame) {
 }
 
 inline static void assertPythonFrameObject(PyFrameObject *frame_object) {
-
     // TODO: Need to do this manually, as this is making frame caching code
-    // vulnerable to mistakes, but so far the compiled frame type is private
+    // vulnerable to mistakes, but so far the compiled frame type is private.
     // assert(PyObject_IsInstance((PyObject *)frame_object, (PyObject *)&PyFrame_Type));
     CHECK_OBJECT(frame_object);
 
@@ -286,7 +275,7 @@ inline static void assertFrameObject(struct Nuitka_FrameObject *frame_object) {
     CHECK_OBJECT(frame_object);
 
     // TODO: Need to do this manually, as this is making frame caching code
-    // vulnerable to mistakes, but so far the compiled frame type is private
+    // vulnerable to mistakes, but so far the compiled frame type is private.
     // assert(PyObject_IsInstance((PyObject *)frame_object, (PyObject *)&PyFrame_Type));
 
     assertPythonFrameObject(&frame_object->m_frame);
@@ -304,10 +293,7 @@ inline static void assertThreadFrameObject(Nuitka_ThreadStateFrameType *frame) {
 #endif
 }
 
-// Mark frame as currently executed. Starting with Python 3 that means it
-// can or cannot be cleared, or should lead to a generator close. For Python2
-// this is a no-op. Using a define to spare the compile from inlining an empty
-// function.
+// Python 3+ tracks frame execution state to guard frame.clear() and generator close.
 #if PYTHON_VERSION >= 0x300
 
 #if PYTHON_VERSION < 0x3b0
@@ -394,12 +380,10 @@ NUITKA_MAY_BE_UNUSED inline static void pushFrameStackInterpreterFrame(PyThreadS
     }
 }
 #else
-// Put frame at the top of the frame stack and mark as executing.
 NUITKA_MAY_BE_UNUSED inline static void pushFrameStackPythonFrame(PyThreadState *tstate, PyFrameObject *frame_object) {
     PRINT_TOP_FRAME("Normal push entry top frame:");
     PRINT_COMPILED_FRAME("Pushing:", frame_object);
 
-    // Make sure it's healthy.
     assertPythonFrameObject(frame_object);
 
     PyFrameObject *old = tstate->frame;
@@ -410,13 +394,11 @@ NUITKA_MAY_BE_UNUSED inline static void pushFrameStackPythonFrame(PyThreadState 
         CHECK_CODE_OBJECT(Nuitka_Frame_GetCodeObject(old));
     }
 
-    // No recursion with identical frames allowed, assert against it.
     assert(old != frame_object);
 
-    // Push the new frame as the currently active one.
     tstate->frame = frame_object;
 
-    // Transfer ownership of old frame.
+    // Transfer ownership of old frame to f_back without changing its refcount.
     if (old != NULL) {
         frame_object->f_back = old;
     }
@@ -454,7 +436,6 @@ NUITKA_MAY_BE_UNUSED inline static void popFrameStack(PyThreadState *tstate) {
            Nuitka_String_AsString(PyObject_Repr((PyObject *)Nuitka_Frame_GetCodeObject(&frame_object->m_frame))));
 #endif
 
-    // Put previous frame on top.
     tstate->frame = frame_object->m_frame.f_back;
     frame_object->m_frame.f_back = NULL;
 
@@ -493,7 +474,6 @@ NUITKA_MAY_BE_UNUSED static void Nuitka_SetFrameGenerator(struct Nuitka_FrameObj
     nuitka_frame->m_generator = generator;
 #endif
 
-    // Mark the frame as executing
     if (generator) {
         Nuitka_Frame_MarkAsExecuting(nuitka_frame);
     }
@@ -767,14 +747,14 @@ NUITKA_MAY_BE_UNUSED static PyObject **Nuitka_GetCodeVarNames(PyCodeObject *code
 #if PYTHON_VERSION < 0x3b0
     return &PyTuple_GET_ITEM(code_object->co_varnames, 0);
 #else
-    // TODO: Might get away with co_names which will be much faster, that functions
+    // TODO: Might get away with co_names which will be much faster, than functions
     // that build a new tuple, that we would have to keep around, but it might be
-    // merged with closure variable names, etc. as as such might become wrong.
+    // merged with closure variable names, etc. and as such might become wrong.
     return &PyTuple_GET_ITEM(code_object->co_localsplusnames, 0);
 #endif
 }
 
-// Attach locals to a frame object. TODO: Upper case, this is for generated code only.
+// TODO: Upper case, this is for generated code only.
 extern void Nuitka_Frame_AttachLocals(struct Nuitka_FrameObject *frame);
 
 NUITKA_MAY_BE_UNUSED static Nuitka_ThreadStateFrameType *_Nuitka_GetThreadStateFrame(PyThreadState *tstate) {
@@ -791,7 +771,6 @@ NUITKA_MAY_BE_UNUSED inline static void pushFrameStackGenerator(PyThreadState *t
     Nuitka_ThreadStateFrameType *return_frame = _Nuitka_GetThreadStateFrame(tstate);
 
     Py_XINCREF(return_frame);
-    // Put the generator back on the frame stack.
     pushFrameStackPythonFrame(tstate, frame_object);
     Py_DECREF(frame_object);
 #else

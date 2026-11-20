@@ -1,10 +1,6 @@
 //     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
-/** For setting exceptions.
- *
- * These are non-inline variants for exception raises, done so to avoid the code bloat.
- *
- **/
+// Non-inline helpers for formatting and normalizing exceptions to avoid code bloat.
 
 // This file is included from another C file, help IDEs to still parse it on
 // its own.
@@ -123,10 +119,6 @@ PyObject *MAKE_EXCEPTION_WITH_VALUE(PyThreadState *tstate, PyObject *exception_t
     return _Nuitka_Err_CreateException(tstate, exception_type, value);
 }
 
-// Our replacement for PyErr_NormalizeException, that however does not attempt
-// to deal with recursion, i.e. exception during normalization, we just avoid
-// the API call overhead in the normal case.
-
 #if PYTHON_VERSION >= 0x3d0
 // TODO: Merge with old branch for enhancements.
 void Nuitka_Err_NormalizeException(PyThreadState *tstate, PyObject **exc, PyObject **val, PyTracebackObject **tb) {
@@ -218,21 +210,21 @@ error:
     goto restart;
 }
 #else
+// Replacement for PyErr_NormalizeException that avoids the C API call overhead
+// in the normal case and delegates recursive normalization errors to CPython.
 void Nuitka_Err_NormalizeException(PyThreadState *tstate, PyObject **exc, PyObject **val, PyTracebackObject **tb) {
     PyObject *type = *exc;
 
-    // Dealt with in NORMALIZE_EXCEPTION
     assert(type != NULL && type != Py_None);
 
     PyObject *value = *val;
 
-    // Allow setting the value to NULL for time savings with quick type only errors
+    // Allow setting the value to NULL for time savings with quick type only errors.
     if (value == NULL) {
         value = Py_None;
         Py_INCREF_IMMORTAL(value);
     }
 
-    // Normalize the exception from class to instance
     if (PyExceptionClass_Check(type)) {
         PyObject *instance_class = NULL;
 
@@ -248,8 +240,6 @@ void Nuitka_Err_NormalizeException(PyThreadState *tstate, PyObject **exc, PyObje
             }
         }
 
-        // If the value was not an instance, or is not an instance of derived
-        // type, then call it
         if (!is_subclass) {
             PyObject *fixed_value = _Nuitka_Err_CreateException(tstate, type, value);
 
@@ -260,7 +250,6 @@ void Nuitka_Err_NormalizeException(PyThreadState *tstate, PyObject **exc, PyObje
             Py_DECREF(value);
             value = fixed_value;
         } else if (instance_class != type) {
-            // Switch to given type then
             Py_INCREF(instance_class);
             Py_DECREF(type);
 

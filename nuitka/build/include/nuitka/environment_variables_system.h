@@ -33,7 +33,6 @@ extern bool getEnvironmentVariableValueAsLong(environment_char_t const *value, l
 extern void setEnvironmentVariableFromFilename(char const *name, filename_char_t const *value);
 extern void unsetEnvironmentVariable(char const *name);
 
-// Get the original argv0 value.
 extern native_command_line_argument_t const *getOriginalArgv0(void);
 
 #endif

@@ -15,15 +15,10 @@
 // The file format constants, shared with the Python reader.
 #include "nuitka/python_pgo_spec.h"
 
-// Initialize PGO data collection.
 extern void PGO_Initialize(void);
-
-// At end of program, write tables.
 extern void PGO_Finalize(void);
 
-// When a module is entered.
 extern void PGO_onModuleEntered(char const *module_name);
-// When a module is exited.
 extern void PGO_onModuleExit(char const *module_name, bool had_error);
 
 // When the result of a class "__prepare__" call is available, and the class

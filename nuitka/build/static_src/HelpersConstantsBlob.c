@@ -1,13 +1,6 @@
 //     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
-/** Providing access to the constants binary blob.
- *
- * There are multiple ways, the constants binary is accessed, and its
- * definition depends on how that is done.
- *
- * This deals with loading the resource from a DLL under Windows.
- *
- */
+// Unpacking and deduplication of the constants binary blob.
 
 // This file is included from another C file, help IDEs to still parse it on
 // its own.
@@ -194,8 +187,6 @@ static Py_hash_t our_set_hash(PyObject *set) {
     Py_ssize_t pos = 0;
 
 #if PYTHON_VERSION < 0x300
-    // Same sized set, simply check if values are identical. Other reductions should
-    // make it identical, or else this won't have the effect intended.
     while (_PySet_Next(set, &pos, &key)) {
         result *= 1000003;
         result ^= Nuitka_FastHashBytes(&key, sizeof(PyObject *));
@@ -247,7 +238,7 @@ static PyObject *our_set_tp_richcompare(PyObject *set1, PyObject *set2, int op) 
 #else
         Py_hash_t unused1, unused2;
 
-        // Same sized dictionary, simply check if values are identical. Other reductions should
+        // Same sized set, simply check if values are identical. Other reductions should
         // make it identical, or else this won't have the effect intended.
         while (_PySet_NextEntry(set1, &pos1, &key1, &unused1)) {
             {
@@ -394,7 +385,7 @@ static PyObject *our_frozendict_tp_richcompare(PyObject *a, PyObject *b, int op)
 }
 #endif
 
-// For creation of small long singleton long values as required by Python3.
+// For creation of small long singleton values as required by Python3.
 #if PYTHON_VERSION < 0x3b0
 #if PYTHON_VERSION >= 0x390
 PyObject **Nuitka_Long_SmallValues;
@@ -480,7 +471,7 @@ static void initConstantsCaches(PyThreadState *tstate) {
     Nuitka_Long_SmallValues = (PyObject **)_PyInterpreterState_GET()->small_ints;
 #elif PYTHON_VERSION >= 0x300
     for (long i = NUITKA_STATIC_SMALLINT_VALUE_MIN; i < NUITKA_STATIC_SMALLINT_VALUE_MAX; i++) {
-        // Have to use the original API here since out "Nuitka_PyLong_FromLong"
+        // Have to use the original API here since our "Nuitka_PyLong_FromLong"
         // would insist on using "Nuitka_Long_SmallValues" to produce it.
         PyObject *value = PyLong_FromLong(i);
         Nuitka_Long_SmallValues[NUITKA_TO_SMALL_VALUE_OFFSET(i)] = value;
@@ -706,7 +697,6 @@ static PyObject *_Nuitka_Unicode_ImmortalFromStringAndSize(PyThreadState *tstate
     insertToDictCache(tstate, unicode_cache, &u);
 #endif
 
-    // Make sure our strings are consistent.
     // TODO: Check with an assertion making build of Python 3.13.0 if this is really true,
     // for 3.14 it ought to not be done.
 #if PYTHON_VERSION >= 0x3c0 && PYTHON_VERSION < 0x3e0 && !defined(__NUITKA_NO_ASSERT__)
@@ -1647,7 +1637,7 @@ static unsigned char const *_unpackBlobConstant(PyThreadState *tstate, void **ou
         break;
     }
 #if PYTHON_VERSION >= 0x300
-    case NUITKA_CONSTANT_BLOB_TAG_ATTRIBUTE_NAME: // Python3 attributes
+    case NUITKA_CONSTANT_BLOB_TAG_ATTRIBUTE_NAME:
 #endif
     case NUITKA_CONSTANT_BLOB_TAG_TEXT_UTF8_ZERO_TERMINATED: {
         data = _unpackBlobConstantObjectAttributeNameOrTextUtf8ZeroTerminated(tstate, output, data, c);
@@ -1843,7 +1833,6 @@ void loadConstantsBlob(PyThreadState *tstate, void *output, char const *name) {
             break;
         }
 
-        // Skip other module data.
         w += size;
     }
 

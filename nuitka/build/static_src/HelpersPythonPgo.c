@@ -1,13 +1,8 @@
 //     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
-/**
- * This is responsible for collection of Nuitka Python PGO information. It writes
- * traces to files, for reuse in a future Python compilation of the same program.
- *
- * The file uses the "PGO File Format v2": entries are content deduplicated and
- * written as their own records before the records that reference them, so all
- * references are by ID and point backward.
- */
+// Collection of Nuitka Python PGO trace files ("PGO File Format v2"): entries
+// are content-deduplicated and written before the records referencing them, so
+// all ID references point backward.
 
 // This file is included from another C file, help IDEs to still parse it on
 // its own.
@@ -171,7 +166,6 @@ static uint32_t PGO_getKeyIDForCString(uint32_t scope_kind, char const *value, b
     return PGO_getKeyID(scope_kind, string_id, is_new);
 }
 
-// Write a key reference, the definition is written before use.
 static void PGO_writeKeyReferenceByID(uint32_t key_id) { PGO_writeUvarint(key_id); }
 
 static void PGO_valueOpsAppendRaw(uint8_t const *data, uint32_t length) {
@@ -756,7 +750,6 @@ static bool PGO_serializeValue(PyThreadState *tstate, PyObject *value, uint32_t 
         return PGO_serializeGlobal(tstate, value);
     }
 
-    // Generic fallback for everything else, using "__reduce_ex__".
     return PGO_serializeReduced(tstate, value, depth);
 }
 
@@ -931,8 +924,6 @@ static uint32_t PGO_getClassKeyID(char const *code_name) {
 }
 
 void PGO_Initialize(void) {
-    // We expect an environment variable to guide us to where the PGO information
-    // shall be written to.
     char const *output_filename = getenv("NUITKA_PGO_OUTPUT");
 
     if (unlikely(output_filename == NULL)) {
@@ -947,8 +938,6 @@ void PGO_Initialize(void) {
     }
 
     fputs("KAY.PGO", pgo_output);
-
-    // The format version of this file.
     PGO_writeUvarint(2);
 
     pgo_string_entries_size = 1024;

@@ -1,11 +1,5 @@
 //     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
-/* This helpers is used to quickly create a string object from C char.
-
-   Currently this is used for string subscript code, but may also be used
-   for the "char" C type in the future.
-*/
-
 // This file is included from another C file, help IDEs to still parse it on
 // its own.
 #ifdef __IDE_ONLY__
@@ -21,12 +15,7 @@ PyObject *STRING_FROM_CHAR(unsigned char c) {
     return Nuitka_String_FromStringAndSize(s, 1);
 }
 
-/* The "chr" built-in.
-
-   This could also use a table for the interned single char strings, to be
-   faster on Python2. For Python3 no such table is reasonable.
-*/
-
+// TODO: Consider an interned single-char string table on Python 2.
 PyObject *BUILTIN_CHR(PyThreadState *tstate, PyObject *value) {
 #if PYTHON_VERSION >= 0x300
 #if PYTHON_VERSION < 0x3a0
@@ -120,10 +109,6 @@ PyObject *BUILTIN_CHR(PyThreadState *tstate, PyObject *value) {
     return result;
 #endif
 }
-
-/* The "ord" built-in.
-
-*/
 
 PyObject *BUILTIN_ORD(PyObject *value) {
     long result;
@@ -680,7 +665,6 @@ static int _NuitkaUnicode_resize_inplace(PyObject *unicode, Py_ssize_t length) {
     _Nuitka_unicode_fill_invalid(unicode, old_length);
 #endif
 
-    /* check for integer overflow */
     if (length > PY_SSIZE_T_MAX / (Py_ssize_t)sizeof(wchar_t) - 1) {
         PyErr_NoMemory();
         return -1;
@@ -875,7 +859,6 @@ PyObject *STR_CONCAT(PyThreadState *tstate, PyObject *left, PyObject *right) {
         return NULL;
     }
 
-    // Optimize cases with empty left or right operand.
     if ((PyString_GET_SIZE(left) == 0 || PyString_GET_SIZE(right) == 0) && PyString_CheckExact(left) &&
         PyString_CheckExact(right)) {
         if (PyString_GET_SIZE(left) == 0) {
@@ -887,9 +870,6 @@ PyObject *STR_CONCAT(PyThreadState *tstate, PyObject *left, PyObject *right) {
         return left;
     }
 
-    // Check that string sizes are not negative, to prevent an overflow in
-    // cases where we are passed incorrectly created strings with negative
-    // lengths (due to a bug in other code).
     if (PyString_GET_SIZE(left) < 0 || PyString_GET_SIZE(right) < 0 ||
         PyString_GET_SIZE(left) > PY_SSIZE_T_MAX - PyString_GET_SIZE(right)) {
         SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_OverflowError, "strings are too large to concat");
@@ -946,8 +926,7 @@ PyObject *BUILTIN_UNICODE1(PyObject *value) {
         return PyObject_Repr(value);
     }
 
-    /* It is possible for a type to have a tp_str representation that loops
-       infinitely. */
+    // Guard against custom "tp_str" implementations recursing infinitely.
     if (Py_EnterRecursiveCall((char *)" while getting the str of an object")) {
         return NULL;
     }
@@ -1052,8 +1031,7 @@ PyObject *_BUILTIN_STR(PyObject *value) {
         return value;
     }
 
-    /* It is possible for a type to have a tp_str representation that loops
-       infinitely. */
+    // Guard against custom "tp_str" implementations recursing infinitely.
     if (Py_EnterRecursiveCall((char *)" while getting the str of an object")) {
         return NULL;
     }
@@ -1123,7 +1101,6 @@ PyObject *Nuitka_Unicode_New(Py_ssize_t size, Py_UCS4 max_char) {
 #endif
 
 #if PYTHON_VERSION >= 0x300 && defined(_NUITKA_EXE_MODE)
-    // Implementation of PyUnicode_New for Python 3.
     if (max_char < 128) {
         PyASCIIObject *ascii = (PyASCIIObject *)NuitkaObject_Malloc(sizeof(PyASCIIObject) + size + 1);
         if (unlikely(ascii == NULL)) {
@@ -1173,12 +1150,7 @@ PyObject *Nuitka_Unicode_New(Py_ssize_t size, Py_UCS4 max_char) {
         char_size = 4;
     }
 
-    // Ensure we won't overflow the size.
     assert(size >= 0);
-
-    // We are not checking for overflow of size > ((PY_SSIZE_T_MAX -
-    // sizeof(PyCompactUnicodeObject)) / char_size - 1) because we assume the
-    // caller has done that already and we are only called with valid sizes.
     assert(size <= ((PY_SSIZE_T_MAX - (Py_ssize_t)sizeof(PyCompactUnicodeObject)) / char_size - 1));
 
     Py_ssize_t struct_size = sizeof(PyCompactUnicodeObject) + (size + 1) * char_size;
@@ -1246,32 +1218,25 @@ PyObject *Nuitka_Unicode_New(Py_ssize_t size, Py_UCS4 max_char) {
 
     return result;
 #elif PYTHON_VERSION >= 0x300
-    // Python3 < 3.12
     return PyUnicode_New(size, max_char);
 #else
-    // Python 2
     return PyUnicode_FromUnicode(NULL, size);
 #endif
 }
 
 int Nuitka_Unicode_CompareWithASCIIString(PyObject *unicode, char const *ascii) {
-    // Our own version of "PyUnicode_CompareWithASCIIString", see there for
-    // the result contract, but not encoding anything internally.
+    // Replacement for "PyUnicode_CompareWithASCIIString" that avoids internal encoding.
     if (unlikely(!PyUnicode_Check(unicode))) {
         return -1;
     }
 
 #ifndef __NUITKA_NO_ASSERT__
-    // Make sure the argument is ASCII, for anything else this helper would
-    // not compare in a compatible way.
     for (char const *ascii_char = ascii; *ascii_char != 0; ascii_char++) {
         assert((unsigned char)*ascii_char < 128);
     }
 #endif
 
 #if PYTHON_VERSION >= 0x300
-    // Non-ASCII strings cannot be equal to an ASCII string, no need to
-    // inspect the characters then.
     if (!PyUnicode_IS_ASCII(unicode)) {
         return 1;
     }
@@ -1283,7 +1248,6 @@ int Nuitka_Unicode_CompareWithASCIIString(PyObject *unicode, char const *ascii) 
         unsigned char c = (unsigned char)ascii[i];
 
         if (c == 0) {
-            // The ASCII string ended before the unicode one.
             return 1;
         }
 
@@ -1301,7 +1265,6 @@ int Nuitka_Unicode_CompareWithASCIIString(PyObject *unicode, char const *ascii) 
         unsigned char c = (unsigned char)ascii[i];
 
         if (c == 0) {
-            // The ASCII string ended before the unicode one.
             return 1;
         }
 

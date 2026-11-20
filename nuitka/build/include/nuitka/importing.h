@@ -51,10 +51,9 @@ extern PyObject *NUITKA_PKGUTIL_ITER_MODULES(PyThreadState *tstate, PyObject *pa
 // Execute a module, the module object is prepared empty, but with __name__.
 extern PyObject *EXECUTE_EMBEDDED_MODULE(PyThreadState *tstate, PyObject *module);
 
-// Import a name from a module.
 extern PyObject *IMPORT_NAME_FROM_MODULE(PyThreadState *tstate, PyObject *module, PyObject *import_name);
 
-// import a name from a module, potentially making an import of it if necessary.
+// Import a name from a module, importing a submodule if necessary.
 #if PYTHON_VERSION >= 0x350
 extern PyObject *IMPORT_NAME_OR_MODULE(PyThreadState *tstate, PyObject *module, PyObject *globals,
                                        PyObject *import_name, PyObject *level);
@@ -74,7 +73,6 @@ static inline struct _import_state *Nuitka_PyInterpreterState_GetImportsState(Py
 }
 #endif
 
-// Replacement for "PyImport_GetModuleDict"
 NUITKA_MAY_BE_UNUSED static PyObject *Nuitka_GetSysModules(PyThreadState *tstate) {
 #if PYTHON_VERSION < 0x3c0
     return tstate->interp->modules;
@@ -83,17 +81,15 @@ NUITKA_MAY_BE_UNUSED static PyObject *Nuitka_GetSysModules(PyThreadState *tstate
 #endif
 }
 
-// Check if a module is in "sys.modules"
 NUITKA_MAY_BE_UNUSED static bool Nuitka_HasModule(PyThreadState *tstate, PyObject *module_name) {
     return DICT_HAS_ITEM(tstate, Nuitka_GetSysModules(tstate), module_name) == 1;
 }
 
-// Replacement for "PyImport_GetModule" working across all versions and less checks.
+// Returns a new reference, or NULL without setting an exception if missing.
 NUITKA_MAY_BE_UNUSED static PyObject *Nuitka_GetModule(PyThreadState *tstate, PyObject *module_name) {
     return DICT_GET_ITEM1(tstate, Nuitka_GetSysModules(tstate), module_name);
 }
 
-// Replacement for PyImport_GetModule working across all versions and less checks.
 NUITKA_MAY_BE_UNUSED static PyObject *Nuitka_GetModuleString(PyThreadState *tstate, char const *module_name) {
     PyObject *module_name_object = Nuitka_String_FromString(module_name);
     PyObject *result = Nuitka_GetModule(tstate, module_name_object);
@@ -102,7 +98,6 @@ NUITKA_MAY_BE_UNUSED static PyObject *Nuitka_GetModuleString(PyThreadState *tsta
     return result;
 }
 
-// Add a module to the modules dictionary from name object
 NUITKA_MAY_BE_UNUSED static void Nuitka_SetModule(PyThreadState *tstate, PyObject *module_name, PyObject *module) {
     CHECK_OBJECT(module_name);
     CHECK_OBJECT(module);
@@ -110,7 +105,6 @@ NUITKA_MAY_BE_UNUSED static void Nuitka_SetModule(PyThreadState *tstate, PyObjec
     DICT_SET_ITEM_INFALLIBLE(tstate, Nuitka_GetSysModules(tstate), module_name, module);
 }
 
-// Add a module to the modules dictionary from name C string
 NUITKA_MAY_BE_UNUSED static void Nuitka_SetModuleString(PyThreadState *tstate, char const *module_name,
                                                         PyObject *module) {
     PyObject *module_name_object = Nuitka_String_FromString(module_name);
@@ -118,7 +112,6 @@ NUITKA_MAY_BE_UNUSED static void Nuitka_SetModuleString(PyThreadState *tstate, c
     Py_DECREF(module_name_object);
 }
 
-// Remove a module to the modules dictionary from name object
 NUITKA_MAY_BE_UNUSED static bool Nuitka_DelModule(PyThreadState *tstate, PyObject *module_name) {
     CHECK_OBJECT(module_name);
 
@@ -132,7 +125,6 @@ NUITKA_MAY_BE_UNUSED static bool Nuitka_DelModule(PyThreadState *tstate, PyObjec
     return result;
 }
 
-// Remove a module to the modules dictionary from name C string
 NUITKA_MAY_BE_UNUSED static bool Nuitka_DelModuleString(PyThreadState *tstate, char const *module_name) {
     PyObject *module_name_object = Nuitka_String_FromString(module_name);
     bool result = Nuitka_DelModule(tstate, module_name_object);

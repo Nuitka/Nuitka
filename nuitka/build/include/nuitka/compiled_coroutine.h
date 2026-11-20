@@ -4,11 +4,6 @@
 #ifndef __NUITKA_COMPILED_COROUTINE_H__
 #define __NUITKA_COMPILED_COROUTINE_H__
 
-// Compiled coroutine type.
-
-// Another cornerstone of the integration into CPython. Try to behave as well as
-// normal coroutine objects do or even better.
-
 #if PYTHON_VERSION >= 0x350
 
 /* This file is included from another C file, help IDEs to still parse it on its own. */
@@ -18,9 +13,9 @@
 
 #ifdef __cplusplus
 enum Await_Kind {
-    await_normal, // user provided "await"
-    await_enter,  // async with statement "__enter__"
-    await_exit    // async with statement "__enter__"
+    await_normal, // user "await"
+    await_enter,  // "async with" __aenter__
+    await_exit    // "async with" __aexit__
 };
 #else
 typedef int Await_Kind;
@@ -29,10 +24,7 @@ static const int await_enter = 1;
 static const int await_exit = 2;
 #endif
 
-// The Nuitka_CoroutineObject is the storage associated with a compiled
-// coroutine object instance of which there can be many for each code.
 struct Nuitka_CoroutineObject {
-    /* Python object folklore: */
     PyObject_VAR_HEAD
 
         PyObject *m_name;
@@ -44,30 +36,23 @@ struct Nuitka_CoroutineObject {
     PyObject *m_yield_from;
 
 #if 0x300 <= PYTHON_VERSION && PYTHON_VERSION < 0x370
-    // Whether the await happened inside an exception handler.
     bool m_yield_from_exception_preserving;
 #endif
 
-    // Weak references are supported for coroutine objects in CPython.
     PyObject *m_weakrefs;
 
     int m_running;
-
-    // When a coroutine is awaiting, this flag is set.
     int m_awaiting;
 
     void *m_code;
 
-    // The parent frame of the coroutine, if created.
     struct Nuitka_FrameObject *m_frame;
 
     PyCodeObject *m_code_object;
 
-    // While yielding, this was the frame currently active, restore when
-    // resuming.
+    // Active caller frame saved across yields and restored when resuming.
     Nuitka_ThreadStateFrameType *m_resume_frame;
 
-    // Was it ever used, is it still running, or already finished.
     Generator_Status m_status;
 
 #if PYTHON_VERSION == 0x3c0
@@ -79,28 +64,21 @@ struct Nuitka_CoroutineObject {
 
 #if PYTHON_VERSION >= 0x370
     struct Nuitka_ExceptionStackItem m_exc_state;
-
-    // The cr_origin attribute.
     PyObject *m_origin;
 #endif
 
     // The label index to resume after yield.
     int m_yield_return_index;
 
-    // Returned value if yielded value is NULL, is
-    // NULL if not a return
+    // Return value when coroutine finishes (yielded value is NULL); NULL while yielding.
     PyObject *m_returned;
 
-    // A kind of uuid for the coroutine object, used in comparisons.
+    // Unique per-instance identifier used in comparisons.
     long m_counter;
 
-    /* The heap of coroutine objects at run time. */
     void *m_heap_storage;
 
-    /* Closure variables given, if any, we reference cells here. The last
-     * part is dynamically allocated, the array size differs per coroutine
-     * and includes the heap storage.
-     */
+    // Trailing flexible array allocated with space for m_closure_given cells plus heap storage.
     Py_ssize_t m_closure_given;
     struct Nuitka_CellObject *m_closure[1];
 };
@@ -116,7 +94,6 @@ extern PyObject *Nuitka_Coroutine_New(PyThreadState *tstate, coroutine_code code
 static inline bool Nuitka_Coroutine_Check(PyObject *obj) { return Py_TYPE(obj) == &Nuitka_Coroutine_Type; }
 
 struct Nuitka_CoroutineWrapperObject {
-    /* Python object folklore: */
     PyObject_HEAD
 
         struct Nuitka_CoroutineObject *m_coroutine;
@@ -235,13 +212,10 @@ static inline void RESTORE_AND_CLEAR_COROUTINE_EXCEPTION(PyThreadState *tstate,
 }
 #endif
 
-// Create the object to await for async for "iter".
 extern PyObject *ASYNC_MAKE_ITERATOR(PyThreadState *tstate, PyObject *value);
 
-// Create the object to await for async for "next".
 extern PyObject *ASYNC_ITERATOR_NEXT(PyThreadState *tstate, PyObject *value);
 
-// Create the object for plain "await".
 extern PyObject *ASYNC_AWAIT(PyThreadState *tstate, PyObject *awaitable, Await_Kind await_kind);
 
 NUITKA_MAY_BE_UNUSED static void STORE_COROUTINE_EXCEPTION(PyThreadState *tstate,
@@ -277,7 +251,6 @@ NUITKA_MAY_BE_UNUSED static void DROP_COROUTINE_EXCEPTION(struct Nuitka_Coroutin
 #endif
 }
 
-// For reference count debugging.
 #if _DEBUG_REFCOUNTS
 extern int count_active_Nuitka_Coroutine_Type;
 extern int count_allocated_Nuitka_Coroutine_Type;

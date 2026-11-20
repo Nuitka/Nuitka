@@ -551,12 +551,6 @@ static PyObject *Nuitka_YieldFromGeneratorInitial(PyThreadState *tstate, struct 
                                                   PyObject *send_value) {
     PyObject *result = Nuitka_YieldFromGeneratorCore(tstate, generator, send_value);
 
-#if 0
-    PRINT_STRING("RES:");
-    PRINT_ITEM( result );
-    PRINT_NEW_LINE();
-#endif
-
     return result;
 }
 
@@ -640,7 +634,6 @@ static PyObject *_Nuitka_Generator_send(PyThreadState *tstate, struct Nuitka_Gen
         }
 #endif
 
-        // Put the generator back on the frame stack.
         Nuitka_ThreadStateFrameType *return_frame = _Nuitka_GetThreadStateFrame(tstate);
 
         if (generator->m_status == status_Unused) {
@@ -670,7 +663,6 @@ static PyObject *_Nuitka_Generator_send(PyThreadState *tstate, struct Nuitka_Gen
         PRINT_COROUTINE_VALUE("value", value);
         PRINT_CURRENT_EXCEPTION();
         PRINT_NEW_LINE();
-        // dumpFrameStack();
 #endif
 
         PyObject *yielded;
@@ -698,7 +690,6 @@ static PyObject *_Nuitka_Generator_send(PyThreadState *tstate, struct Nuitka_Gen
 
         // Remove the generator from the frame stack.
         if (generator->m_frame) {
-            // assert(tstate->frame == &generator->m_frame->m_frame);
             assertFrameObject(generator->m_frame);
 
             if (generator->m_frame->m_frame.f_back) {
@@ -711,7 +702,6 @@ static PyObject *_Nuitka_Generator_send(PyThreadState *tstate, struct Nuitka_Gen
 
 #if _DEBUG_GENERATOR
         PRINT_GENERATOR_STATUS("Returned from generator", generator);
-        // dumpFrameStack();
 #endif
 
         if (yielded == NULL) {
@@ -1594,12 +1584,10 @@ static void Nuitka_Generator_tp_finalizer(PyObject *self) {
         Py_DECREF(close_result);
     }
 
-    // Restore the saved exception if any.
     RESTORE_ERROR_OCCURRED_STATE(tstate, &saved_exception_state);
 }
 #endif
 
-// Freelist setup
 #define MAX_GENERATOR_FREE_LIST_COUNT 100
 static struct Nuitka_GeneratorObject *free_list_generators = NULL;
 static int free_list_generators_count = 0;
@@ -1695,7 +1683,6 @@ static void Nuitka_Generator_tp_dealloc(PyObject *self) {
     DROP_GENERATOR_EXCEPTION(generator);
 #endif
 
-    /* Put the object into free list or release to GC */
     releaseToFreeList(free_list_generators, generator, MAX_GENERATOR_FREE_LIST_COUNT);
 
 #if PYTHON_VERSION < 0x300
@@ -1861,7 +1848,7 @@ static PyMethodDef Nuitka_Generator_methods[] = {{"send", (PyCFunction)Nuitka_Ge
                                                  {"close", (PyCFunction)Nuitka_Generator_close, METH_NOARGS, NULL},
                                                  {NULL}};
 
-// This is only used.
+// Used for "@types.coroutine" decorated generators (CO_ITERABLE_COROUTINE).
 #if PYTHON_VERSION >= 0x350
 static PyObject *Nuitka_Generator_am_await(PyObject *self) {
     struct Nuitka_GeneratorObject *generator = (struct Nuitka_GeneratorObject *)self;
@@ -1963,7 +1950,7 @@ void _initCompiledGeneratorType(PyThreadState *tstate) {
                         false                   // await_self_aiter
     );
 
-    // Be a paranoid subtype of uncompiled function, we want nothing shared.
+    // Be a paranoid subtype of uncompiled generator, we want nothing shared.
     assert(Nuitka_Generator_Type.tp_doc != PyGen_Type.tp_doc || PyGen_Type.tp_doc == NULL);
     assert(Nuitka_Generator_Type.tp_traverse != PyGen_Type.tp_traverse);
     assert(Nuitka_Generator_Type.tp_clear != PyGen_Type.tp_clear || PyGen_Type.tp_clear == NULL);
@@ -2008,12 +1995,10 @@ void _initCompiledGeneratorType(PyThreadState *tstate) {
         assert(res);
     }
 
-    // Also initialize coroutines if necessary
     _initCompiledCoroutineTypes();
 #endif
 
 #if PYTHON_VERSION >= 0x360
-    // Also initialize asyncgen if necessary
     _initCompiledAsyncgenTypes();
 #endif
 }
@@ -2034,10 +2019,8 @@ PyObject *Nuitka_Generator_New(generator_code code, PyObject *module, PyObject *
     // TODO: Change the var part of the type to 1 maybe
     Py_ssize_t full_size = closure_given + (heap_storage_size + sizeof(void *) - 1) / sizeof(void *);
 
-    // Macro to assign result memory from GC or free list.
     allocateFromFreeList(free_list_generators, struct Nuitka_GeneratorObject, Nuitka_Generator_Type, full_size);
 
-    // For quicker access of generator heap.
     result->m_heap_storage = &result->m_closure[closure_given];
 
     assert(result != NULL);

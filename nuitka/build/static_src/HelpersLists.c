@@ -1,8 +1,6 @@
 //     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
-/* This helpers is used to work with lists.
-
-*/
+// Helpers for working with lists.
 
 // This file is included from another C file, help IDEs to still parse it on
 // its own.
@@ -12,8 +10,6 @@
 #endif
 
 #include "nuitka/helper/long_helpers.h"
-
-// #include "richcomparisons.h"
 
 #ifdef Py_GIL_DISABLED
 #define NUITKA_LIST_BEGIN(list) Py_BEGIN_CRITICAL_SECTION(list)
@@ -109,7 +105,6 @@ PyObject *MAKE_LIST_EMPTY(PyThreadState *tstate, Py_ssize_t size) {
     assert(result_list != NULL);
     assert(PyList_CheckExact(result_list));
 
-    // Elements are allocated separately.
     if (size > 0) {
 #ifdef Py_GIL_DISABLED
         _PyListArray *list_array = Nuitka_AllocateListArray(size);
@@ -384,7 +379,6 @@ bool LIST_EXTEND_FROM_LIST(PyObject *list, PyObject *other) {
 static bool _LIST_EXTEND_FROM_ITERABLE_LOCK_HELD(PyThreadState *tstate, PyListObject *list, PyObject *other) {
     assert((PyObject *)list != other);
 
-    // First attempt those things that occur most often.
     PyObject **src;
     Py_ssize_t src_size;
 
@@ -408,7 +402,6 @@ static bool _LIST_EXTEND_FROM_ITERABLE_LOCK_HELD(PyThreadState *tstate, PyListOb
 
         Py_ssize_t list_size = PyList_GET_SIZE(list);
 
-        // Overflow is not really realistic, so we only assert against it.
         assert(list_size <= PY_SSIZE_T_MAX - src_size);
         NUITKA_MAY_BE_UNUSED bool resize_result = _LIST_RESIZE(list, list_size + src_size);
         assert(resize_result);
@@ -425,7 +418,6 @@ static bool _LIST_EXTEND_FROM_ITERABLE_LOCK_HELD(PyThreadState *tstate, PyListOb
         return true;
     }
 
-    // Slow path needs to use iterator.
     PyObject *iter = MAKE_ITERATOR(tstate, other);
 
     if (iter == NULL) {
@@ -434,7 +426,6 @@ static bool _LIST_EXTEND_FROM_ITERABLE_LOCK_HELD(PyThreadState *tstate, PyListOb
     PyObject *(*iternext)(PyObject *) = *Py_TYPE(iter)->tp_iternext;
 
 #if PYTHON_VERSION >= 0x300
-    // Guess a iterator size if possible
     src_size = PyObject_LengthHint(other, 8);
 
     if (src_size < 0) {
@@ -444,16 +435,13 @@ static bool _LIST_EXTEND_FROM_ITERABLE_LOCK_HELD(PyThreadState *tstate, PyListOb
 
     Py_ssize_t list_size = PyList_GET_SIZE(list);
 
-    if (list_size > PY_SSIZE_T_MAX - src_size) {
-        // Overflow is not really realistic, hope is, it will not come true.
-    } else {
-        // Allocate the space in one go.
+    if (list_size <= PY_SSIZE_T_MAX - src_size) {
         if (_LIST_RESIZE(list, list_size + src_size) == false) {
             Py_DECREF(iter);
             return false;
         }
 
-        // Restore validity of the object for the time being.
+        // Keep Py_SIZE valid until items are actually stored.
         Py_SET_SIZE(list, list_size);
     }
 #endif
@@ -486,7 +474,6 @@ static bool _LIST_EXTEND_FROM_ITERABLE_LOCK_HELD(PyThreadState *tstate, PyListOb
         Py_ssize_t cur_size = PyList_GET_SIZE(list);
 
         if (cur_size < list->allocated) {
-            // Already allocated, so we can just set it.
             NUITKA_LIST_STORE_PTR(&list->ob_item[cur_size], item);
             Py_SET_SIZE(list, cur_size + 1);
         } else {
@@ -501,7 +488,6 @@ static bool _LIST_EXTEND_FROM_ITERABLE_LOCK_HELD(PyThreadState *tstate, PyListOb
         }
     }
 
-    /* Cut back result list if initial guess was too large. */
     Py_ssize_t cur_size = PyList_GET_SIZE(list);
 
     if (cur_size < list->allocated) {
@@ -592,7 +578,6 @@ static bool _LIST_APPEND1_LOCK_HELD(PyObject *target, PyObject *item) {
 
     Py_ssize_t cur_size = PyList_GET_SIZE(list);
 
-    // Overflow is not really realistic, so we only assert against it.
     assert(cur_size <= PY_SSIZE_T_MAX);
 
     if (_LIST_RESIZE(list, cur_size + 1) == false) {
@@ -629,7 +614,6 @@ static bool _LIST_APPEND0_LOCK_HELD(PyObject *target, PyObject *item) {
 
     Py_ssize_t cur_size = PyList_GET_SIZE(list);
 
-    // Overflow is not really realistic, so we only assert against it.
     assert(cur_size <= PY_SSIZE_T_MAX);
 
     if (_LIST_RESIZE(list, cur_size + 1) == false) {
@@ -676,7 +660,6 @@ static bool _LIST_REMOVE_LOCK_HELD(PyObject *target, PyObject *item) {
             Py_ssize_t cur_size = Py_SIZE(list);
 
             if (i >= cur_size) {
-                // The item was already removed by the comparison code.
                 return true;
             }
 
@@ -865,15 +848,12 @@ static PyObject *_LIST_COUNT_LOCK_HELD(PyObject *list, PyObject *item) {
     for (Py_ssize_t i = 0; i < Py_SIZE(list); i++) {
         PyObject *element = PyList_GET_ITEM(list, i);
 
-        // Fast path, is identical
         if (element == item) {
             count++;
             continue;
         }
 
-        // Rich compare element while holding a reference. TODO: If we knew the type
-        // of "item" we could be faster by picking variants that know stuff, but
-        // maybe it is not as important.
+        // TODO: Specialize when the type of "item" is known.
         Py_INCREF(element);
         nuitka_bool nbool_res = RICH_COMPARE_EQ_NBOOL_OBJECT_OBJECT(element, item);
         Py_DECREF(element);
@@ -883,7 +863,6 @@ static PyObject *_LIST_COUNT_LOCK_HELD(PyObject *list, PyObject *item) {
             continue;
         }
 
-        // Pass on exceptions from comparisons.
         if (unlikely(nbool_res == NUITKA_BOOL_EXCEPTION)) {
             return NULL;
         }
@@ -903,7 +882,6 @@ PyObject *LIST_COUNT(PyObject *list, PyObject *item) {
 
 static PyObject *_LIST_INDEX_COMMON(PyThreadState *tstate, PyListObject *list, PyObject *item, Py_ssize_t start,
                                     Py_ssize_t stop) {
-    // Negative values for start/stop are handled here.
     if (start < 0) {
         start += Py_SIZE(list);
 
@@ -931,7 +909,6 @@ static PyObject *_LIST_INDEX_COMMON(PyThreadState *tstate, PyListObject *list, P
             return getListIndexObject(i);
         }
 
-        // Pass on exceptions from comparisons.
         if (unlikely(nbool_res == NUITKA_BOOL_EXCEPTION)) {
             return NULL;
         }
@@ -1124,12 +1101,10 @@ static void _LIST_INSERT_CONST_LOCK_HELD(PyObject *list, Py_ssize_t index, PyObj
 
     Py_ssize_t n = Py_SIZE(list_object);
 
-    // Expand the list by needed space.
     if (_LIST_RESIZE(list_object, n + 1) == false) {
         abort();
     }
 
-    // Negative values and overflow for for index are handled here.
     if (index < 0) {
         index += n;
         if (index < 0) {
@@ -1140,7 +1115,6 @@ static void _LIST_INSERT_CONST_LOCK_HELD(PyObject *list, Py_ssize_t index, PyObj
         index = n;
     }
 
-    // Shift the items behind the insert index.
     PyObject **items = list_object->ob_item;
 
     for (Py_ssize_t i = n; --i >= index;) {

@@ -4,11 +4,6 @@
 #ifndef __NUITKA_COMPILED_GENERATOR_H__
 #define __NUITKA_COMPILED_GENERATOR_H__
 
-// Compiled generator function type.
-
-// Another cornerstone of the integration into CPython. Try to behave as well as
-// normal generator objects do or even better.
-
 /* This file is included from another C file, help IDEs to still parse it on its own. */
 #ifdef __IDE_ONLY__
 #include "nuitka/cpython_api_compat.h"
@@ -16,13 +11,8 @@
 #include "nuitka/exceptions.h"
 #endif
 
-// Status of the generator/coroutine/asyncgen object.
 #ifdef __cplusplus
-enum Generator_Status {
-    status_Unused,  // Not used so far
-    status_Running, // Running, used but didn't stop yet
-    status_Finished // Stopped, no more values to come
-};
+enum Generator_Status { status_Unused, status_Running, status_Finished };
 #else
 typedef int Generator_Status;
 static const int status_Unused = 0;
@@ -30,7 +20,7 @@ static const int status_Running = 1;
 static const int status_Finished = 2;
 #endif
 
-// We use this even before Python3.10
+// Backported for Python < 3.10.
 #if PYTHON_VERSION < 0x3a0
 typedef enum {
     PYGEN_RETURN = 0,
@@ -39,10 +29,7 @@ typedef enum {
 } PySendResult;
 #endif
 
-// The Nuitka_GeneratorObject is the storage associated with a compiled
-// generator object instance of which there can be many for each code.
 struct Nuitka_GeneratorObject {
-    /* Python object folklore: */
     PyObject_VAR_HEAD
 
         PyObject *m_name;
@@ -54,15 +41,12 @@ struct Nuitka_GeneratorObject {
     PyObject *m_qualname;
 #endif
 #if PYTHON_VERSION >= 0x300
-    // The value currently yielded from.
     PyObject *m_yield_from;
 #endif
 #if 0x300 <= PYTHON_VERSION && PYTHON_VERSION < 0x370
-    // Whether the yield from happened inside an exception handler.
     bool m_yield_from_exception_preserving;
 #endif
 
-    // Weak references are supported for generator objects in CPython.
     PyObject *m_weakrefs;
 
     int m_running;
@@ -72,7 +56,6 @@ struct Nuitka_GeneratorObject {
     struct Nuitka_FrameObject *m_frame;
     PyCodeObject *m_code_object;
 
-    // Was it ever used, is it still running, or already finished.
     Generator_Status m_status;
 
 #if PYTHON_VERSION == 0x3c0
@@ -89,22 +72,17 @@ struct Nuitka_GeneratorObject {
     // The label index to resume after yield.
     int m_yield_return_index;
 
-    // Returned value if yielded value is NULL, is
-    // NULL if not a return
+    // Return value when generator finishes (yielded value is NULL); NULL while yielding.
 #if PYTHON_VERSION >= 0x300
     PyObject *m_returned;
 #endif
 
-    // A kind of uuid for the generator object, used in comparisons.
+    // Unique per-instance identifier used in comparisons.
     long m_counter;
 
-    /* The heap of generator objects at run time. */
     void *m_heap_storage;
 
-    /* Closure variables given, if any, we reference cells here. The last
-     * part is dynamically allocated, the array size differs per generator
-     * and includes the heap storage.
-     */
+    // Trailing flexible array allocated with space for m_closure_given cells plus heap storage.
     Py_ssize_t m_closure_given;
     struct Nuitka_CellObject *m_closure[1];
 };
@@ -263,9 +241,8 @@ static inline void RESTORE_AND_CLEAR_GENERATOR_EXCEPTION(PyThreadState *tstate,
 }
 #endif
 
-// Functions to preserver and restore from heap area temporary values during
-// yield/yield from/await exits of generator functions. The capacity argument
-// is only passed and checked in debug mode.
+// Save and restore C locals in generator heap storage across yields; capacity
+// is checked only in debug mode.
 #ifndef __NUITKA_NO_ASSERT__
 extern void Nuitka_PreserveHeap(size_t capacity, void *dest, ...);
 extern void Nuitka_RestoreHeap(size_t capacity, void *source, ...);
