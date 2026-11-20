@@ -836,7 +836,6 @@ Error, 'include-config' of module '%s' cannot use 'when' or 'key-map' with non-d
             result = ()
 
         if section in (
-            "options",
             "variables",
             "constants",
         ) and type(
@@ -886,7 +885,7 @@ Error, 'include-config' of module '%s' cannot use 'when' or 'key-map' with non-d
             )
             return
 
-        if section in ("options", "variables", "constants"):
+        if section in ("variables", "constants"):
             existing_list = self._asSectionEntryList(existing_entries)
             new_list = self._asSectionEntryList(new_entries)
 

@@ -56,7 +56,7 @@
       replacements_plain:
         "getattr(sys, 'frozen', False)": 'True'
 
-- module-name: 'tkinter' # checksum: 481f7b98
+- module-name: 'tkinter' # checksum: a9847c0c
   anti-bloat:
     - description: 'enhanced tk-inter in case of missing tcl'
       context:
@@ -73,9 +73,8 @@
           """, "        ")
       when: 'not deployment and not plugin("tk-inter")'
   options:
-    checks:
-      - macos_bundle: 'recommend'
-        when: 'plugin("tk-inter")'
+    - macos_bundle: 'recommend'
+      when: 'plugin("tk-inter")'
 
 - module-name: 'xmlrpc.server' # checksum: 57da2566
   anti-bloat:

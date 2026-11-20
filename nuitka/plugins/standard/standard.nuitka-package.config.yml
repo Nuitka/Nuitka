@@ -383,12 +383,11 @@
     - depends:
         - 'gobject'
 
-- module-name: 'attr' # checksum: bcbcb80
+- module-name: 'attr' # checksum: 41685a53
   options:
-    checks:
-      - description: "'attrs' is not fully supported before version 23.1.0"
-        support_info: 'warning'
-        when: 'version("attrs") < (23,1)'
+    - description: "'attrs' is not fully supported before version 23.1.0"
+      support_info: 'warning'
+      when: 'version("attrs") < (23,1)'
 
 - module-name: 'autoit' # checksum: f4a80874
   dlls:
@@ -830,7 +829,7 @@
     - patterns:
         - 'cacert.pem'
 
-- module-name: 'certifi.core' # checksum: 87b26833
+- module-name: 'certifi.core' # checksum: 1da4ba6d
   anti-bloat:
     - description: 'avoid using importlib.resources without need'
       replacements_plain:
@@ -841,10 +840,9 @@
       when: 'version("certifi") < (2025,)'
 
   options:
-    checks:
-      - description: 'should always work'
-        support_info: 'perfect'
-        when: 'standalone'
+    - description: 'should always work'
+      support_info: 'perfect'
+      when: 'standalone'
 
 - module-name: 'cffi.api' # checksum: 4743eaca
   anti-bloat:
@@ -1155,7 +1153,7 @@
         # The filename is chosen by the toolkit version at run time.
         - 'cutlass._mlir._mlir_libs._cutlass_ir_version_cu*'
 
-- module-name: 'cv2' # checksum: 536d0e49
+- module-name: 'cv2' # checksum: 75420eb8
   variables:
     setup_code:
       - 'import cv2'
@@ -1222,13 +1220,12 @@
           os.environ['QT_QPA_FONTDIR'] = os.path.join(os.path.dirname(__file__), 'qt/fonts')
       when: 'linux and standalone and not (use_pyqt5 or use_pyqt6 or use_pyside2 or use_pyside6)'
   options:
-    checks:
-      - description: 'OpenCV2 is best supported with 4.6 or later (earlier versions may lack support for implicit import of cv2 extra submodules)'
-        support_info: 'warning'
-        when: 'version(get_dist_name("cv2")) < (4,6)'
-      - description: 'Non-headless "opencv-python" bundles its own Qt plugins that conflict with the enabled Qt binding. Uninstall "opencv-python" and install "opencv-python-headless" instead, or do not enable the Qt binding plugin.'
-        support_info: 'plugin-warning'
-        when: 'get_dist_name("cv2") == "opencv-python" and (use_pyqt5 or use_pyqt6 or use_pyside2 or use_pyside6)'
+    - description: 'OpenCV2 is best supported with 4.6 or later (earlier versions may lack support for implicit import of cv2 extra submodules)'
+      support_info: 'warning'
+      when: 'version(get_dist_name("cv2")) < (4,6)'
+    - description: 'Non-headless "opencv-python" bundles its own Qt plugins that conflict with the enabled Qt binding. Uninstall "opencv-python" and install "opencv-python-headless" instead, or do not enable the Qt binding plugin.'
+      support_info: 'plugin-warning'
+      when: 'get_dist_name("cv2") == "opencv-python" and (use_pyqt5 or use_pyqt6 or use_pyside2 or use_pyside6)'
 
 - module-name: 'cvxpy.utilities.key_utils' # checksum: fc2bb323
   anti-bloat:
@@ -1255,15 +1252,14 @@
     - depends:
         - 'cytoolz.utils'
 
-- module-name: 'dash' # checksum: a5144a01
+- module-name: 'dash' # checksum: c1238167
   data-files:
     - dirs:
         - '.'
   options:
-    checks:
-      - description: "The 'dash.long_callback' managers use 'inspect.getsource()' for callback caching, which fails for callbacks defined in compiled modules. Consider '--enable-plugin=source-inclusion'; in module mode also give '--source-inclusion-main=<program that registers the callbacks>'."
-        support_info: 'plugin-warning'
-        when: '(standalone or module_mode) and not plugin("source-inclusion")'
+    - description: "The 'dash.long_callback' managers use 'inspect.getsource()' for callback caching, which fails for callbacks defined in compiled modules. Consider '--enable-plugin=source-inclusion'; in module mode also give '--source-inclusion-main=<program that registers the callbacks>'."
+      support_info: 'plugin-warning'
+      when: '(standalone or module_mode) and not plugin("source-inclusion")'
 
 - module-name: 'dash._jupyter' # checksum: 681007fe
   anti-bloat:
@@ -1350,12 +1346,11 @@
         'DISTRIBUTED_VERSION = packaging.version.parse(distributed.__version__)': 'DISTRIBUTED_VERSION = packaging.version.parse(_dist_version("distributed"))'
       when: 'version("dask_ml") >= (2021, 11, 30) and python38_or_higher'
 
-- module-name: 'datasets' # checksum: 3659422e
+- module-name: 'datasets' # checksum: 99c04e2c
   options:
-    checks:
-      - description: 'datasets 2.7.1+ fingerprints dataset state using dill; compiled functions require the dill-compat plugin to be serializable'
-        support_info: 'plugin-warning'
-        when: 'None is not version("datasets") >= (2, 7, 1) and not plugin("dill-compat")'
+    - description: 'datasets 2.7.1+ fingerprints dataset state using dill; compiled functions require the dill-compat plugin to be serializable'
+      support_info: 'plugin-warning'
+      when: 'None is not version("datasets") >= (2, 7, 1) and not plugin("dill-compat")'
 
 - module-name: 'datasets.packaged_modules' # checksum: 4c45e344
   anti-bloat:
@@ -1556,7 +1551,7 @@
     - dirs:
         - 'locale/en'
 
-- module-name: 'django.core.management' # checksum: 5ac4f83f
+- module-name: 'django.core.management' # checksum: 407d4a76
   parameters:
     - 'name': 'settings-module'
       'values': 'checkModuleName(value)'
@@ -1605,10 +1600,9 @@
         - 'django.contrib.sessions.middleware'
 
   options:
-    checks:
-      - description: "Django settings module must be specified with '--module-parameter=django-settings-module=<settings_module_name>'"
-        support_info: 'parameter'
-        when: 'get_parameter("settings-module", None) is None'
+    - description: "Django settings module must be specified with '--module-parameter=django-settings-module=<settings_module_name>'"
+      support_info: 'parameter'
+      when: 'get_parameter("settings-module", None) is None'
 
 - module-name: 'django.core.management.commands.shell' # checksum: 271ed2ec
   anti-bloat:
@@ -2001,12 +1995,11 @@
     - depends:
         - 'fontTools.cu2qu.errors'
 
-- module-name: 'Foundation' # checksum: f269907b
+- module-name: 'Foundation' # checksum: cdea9a1f
   options:
-    checks:
-      - description: "The 'Foundation' module requires bundle module"
-        macos_bundle: 'yes'
-        when: 'macos'
+    - description: "The 'Foundation' module requires bundle module"
+      macos_bundle: 'yes'
+      when: 'macos'
 
 - module-name: 'freetype' # checksum: 5a9431c2
   dlls:
@@ -2862,7 +2855,7 @@
     - no-follow:
         'kfactory.widgets': 'disable jupyterhub'
 
-- module-name: 'kivy' # checksum: 648dc799
+- module-name: 'kivy' # checksum: b11baac8
   data-files:
     - dirs:
         - 'data'
@@ -2871,9 +2864,8 @@
         - 'kivy.uix.*'
 
   options:
-    checks:
-      - description: 'Kivy is a GUI framework'
-        macos_bundle: 'recommend'
+    - description: 'Kivy is a GUI framework'
+      macos_bundle: 'recommend'
 
 - module-name: 'kivy._clock' # checksum: fbb1ca92
   implicit-imports:
@@ -3149,7 +3141,7 @@
         '_test': 'un-callable'
         'main': 'un-callable'
 
-- module-name: 'matplotlib' # checksum: d1f67a9f
+- module-name: 'matplotlib' # checksum: b74c609e
   anti-bloat:
     - description: 'remove setuptools and pytest testing framework reference'
       replacements_plain:
@@ -3182,10 +3174,9 @@
         - 'matplotlib.backend_bases'
         - 'mpl_toolkits'
   options:
-    checks:
-      - description: "For matplotlib a GUI tooltkit selection might be needed use, use '--enable-plugin=tk-inter|PySide6|PySide2|PyQt6|PyQt5', or use '--enable-plugin=no-qt' for headless mode."
-        support_info: 'plugin-warning'
-        when: 'not macos and not (use_noqt or use_tkinter or use_pyqt5 or use_pyqt6 or use_pyside2 or use_pyside6)'
+    - description: "For matplotlib a GUI tooltkit selection might be needed use, use '--enable-plugin=tk-inter|PySide6|PySide2|PyQt6|PyQt5', or use '--enable-plugin=no-qt' for headless mode."
+      support_info: 'plugin-warning'
+      when: 'not macos and not (use_noqt or use_tkinter or use_pyqt5 or use_pyqt6 or use_pyside2 or use_pyside6)'
 
 - module-name: 'matplotlib.backend_bases' # checksum: 5954e33d
   anti-bloat:
@@ -3709,7 +3700,7 @@
     - patterns:
         - 'usage.txt'
 
-- module-name: 'numba' # checksum: e7be040c
+- module-name: 'numba' # checksum: 206e30de
   variables:
     # TODO: Limit this to the versions of numba doing it, eventually it will go
     # away.
@@ -3728,10 +3719,9 @@
       global_replacements_re:
         '(_RedirectSubpackage\s*\(\s*.*?\s*"(numba.*?)"\s*\))': '\1; import \2'
   options:
-    checks:
-      - description: 'Numba support is incomplete, JIT compilation of functions without decorators and on-disk caching are not supported in standalone mode.'
-        support_info: 'warning'
-        when: 'not use_numba and standalone'
+    - description: 'Numba support is incomplete, JIT compilation of functions without decorators and on-disk caching are not supported in standalone mode.'
+      support_info: 'warning'
+      when: 'not use_numba and standalone'
   import-hacks:
     # This is for "numba.np.ufunc.omppool".
     - acceptable-missing-dlls:
@@ -3796,7 +3786,7 @@
       replacements_plain:
         'type(attr) is types.MethodType': 'isinstance(attr, types.MethodType)'
 
-- module-name: 'numpy' # checksum: 2c28405f
+- module-name: 'numpy' # checksum: 20e7a56e
   dlls:
     - from_filenames:
         relative_path: '.libs'
@@ -3852,10 +3842,9 @@
         - 'numpy.matrixlib'
 
   options:
-    checks:
-      - description: 'should always work'
-        support_info: 'perfect'
-        when: 'standalone'
+    - description: 'should always work'
+      support_info: 'perfect'
+      when: 'standalone'
 
 - module-name: 'numpy._core' # checksum: b24c40a6
   anti-bloat:
@@ -4168,12 +4157,11 @@
     - depends:
         - '.cynvshmem'
 
-- module-name: 'objc' # checksum: 5c6f45a7
+- module-name: 'objc' # checksum: 6f3abee2
   options:
-    checks:
-      - description: 'pyobjc is not supported before 9.0 or later'
-        support_info: 'error'
-        when: 'version("pyobjc") < (9,)'
+    - description: 'pyobjc is not supported before 9.0 or later'
+      support_info: 'error'
+      when: 'version("pyobjc") < (9,)'
 
 - module-name: 'onnxruntime' # checksum: ec84b6
   dlls:
@@ -5430,7 +5418,7 @@
     - dirs:
         - '.'
 
-- module-name: 'pygame' # checksum: db7d5ddb
+- module-name: 'pygame' # checksum: ee84f0f5
   data-files:
     - patterns:
         - 'freesansbold.ttf'
@@ -5459,9 +5447,8 @@
         - 'pygame.*'
 
   options:
-    checks:
-      - description: 'PyGame is a GUI framework'
-        macos_bundle: 'recommend'
+    - description: 'PyGame is a GUI framework'
+      macos_bundle: 'recommend'
 
 - module-name: 'pygame_menu' # checksum: ae5ca038
   data-files:
@@ -5652,20 +5639,19 @@
         - '_genicam'
       when: 'macos'
 
-- module-name: 'PyQt5' # checksum: d5071a1a
+- module-name: 'PyQt5' # checksum: 7eca4e36
   data-files:
     - empty_dirs:
         - 'Qt5'
         - 'Qt'
 
   options:
-    checks:
-      - description: 'PyQt5 is a GUI framework'
-        macos_bundle: 'recommend'
-        when: 'use_pyqt5'
-      - description: 'PyQt5 cannot be used without bundle'
-        macos_bundle: 'yes'
-        when: 'macos and not is_conda_package("pyqt5") and use_pyqt5'
+    - description: 'PyQt5 is a GUI framework'
+      macos_bundle: 'recommend'
+      when: 'use_pyqt5'
+    - description: 'PyQt5 cannot be used without bundle'
+      macos_bundle: 'yes'
+      when: 'macos and not is_conda_package("pyqt5") and use_pyqt5'
 
   import-hacks:
     - acceptable-missing-dlls:
@@ -5806,12 +5792,11 @@
               _nuitka_orig_single_shot = QtCore.QTimer.singleShot
               QtCore.QTimer.singleShot = staticmethod(_nuitka_patched_single_shot)
 
-- module-name: 'PyQt6' # checksum: c9bc7d1e
+- module-name: 'PyQt6' # checksum: 8327b9b
   options:
-    checks:
-      - description: 'PyQt6 is a GUI framework'
-        macos_bundle: 'recommend'
-        when: 'use_pyqt6'
+    - description: 'PyQt6 is a GUI framework'
+      macos_bundle: 'recommend'
+      when: 'use_pyqt6'
 
   import-hacks:
     - acceptable-missing-dlls:
@@ -6145,7 +6130,7 @@
         prefixes:
           - 'libcvhf'
 
-- module-name: 'PySide2' # checksum: 9a5f77a0
+- module-name: 'PySide2' # checksum: 8e693248
   implicit-imports:
     - post-import-code:
         - |
@@ -6162,10 +6147,9 @@
           QtCore.SignalInstance.disconnect = patched_disconnect
 
   options:
-    checks:
-      - description: 'PySide2 is a GUI framework'
-        macos_bundle: 'recommend'
-        when: 'use_pyside2'
+    - description: 'PySide2 is a GUI framework'
+      macos_bundle: 'recommend'
+      when: 'use_pyside2'
   import-hacks:
     - find-dlls-near-module:
         - 'shiboken2'
@@ -6189,7 +6173,7 @@
         - 'libqsqlmimer'
         - 'libqtvkbplugin'
 
-- module-name: 'PySide6' # checksum: df84aca7
+- module-name: 'PySide6' # checksum: 238eb9be
   implicit-imports:
     # Non-limited API Shiboken builds call "PyFunction_GetDefaults" on
     # compiled functions and leak the resulting SystemError, so they get a
@@ -6357,10 +6341,9 @@
           QtCore.QTimer.singleShot = patched_singleShot
 
   options:
-    checks:
-      - description: 'PySide6 is a GUI framework'
-        macos_bundle: 'recommend'
-        when: 'use_pyside6'
+    - description: 'PySide6 is a GUI framework'
+      macos_bundle: 'recommend'
+      when: 'use_pyside6'
 
   import-hacks:
     - find-dlls-near-module:
@@ -7160,15 +7143,14 @@
         'sys.excepthook =': '# sys.excepthook ='
       when: 'standalone'
 
-- module-name: 'seleniumbase.drivers' # checksum: 63813ab
+- module-name: 'seleniumbase.drivers' # checksum: 51600b59
   data-files:
     - empty_dirs:
         - '.'
   options:
-    checks:
-      - description: "need to use cached onefile mode with 'seleniumbase.drivers' to download persistently"
-        support_info: 'warning'
-        when: 'onefile and not onefile_cached'
+    - description: "need to use cached onefile mode with 'seleniumbase.drivers' to download persistently"
+      support_info: 'warning'
+      when: 'onefile and not onefile_cached'
 
 - module-name: 'sentence_transformers.SentenceTransformer' # checksum: c6062648
   implicit-imports:
@@ -8064,12 +8046,11 @@
         - 'spacy.lang.norm_exceptions'
         - 'spacy.lexeme'
 
-- module-name: 'sparse' # checksum: 7a56f74f
+- module-name: 'sparse' # checksum: e938d933
   options:
-    checks:
-      - description: "Numba (via sparse) is not yet working with Nuitka standalone, recommended to use '--noinclude-numba-mode'."
-        support_info: 'warning'
-        when: 'not use_numba and standalone'
+    - description: "Numba (via sparse) is not yet working with Nuitka standalone, recommended to use '--noinclude-numba-mode'."
+      support_info: 'warning'
+      when: 'not use_numba and standalone'
 
 - module-name: 'sparse._coo.core' # checksum: 6ac5aa4f
   anti-bloat:
@@ -8599,13 +8580,12 @@
         'from tenacity.tornadoweb import TornadoRetrying': 'pass'
       when: 'not use_tornado'
 
-- module-name: 'tendo.singleton' # checksum: ca7e6fc2
+- module-name: 'tendo.singleton' # checksum: 20bd7047
   options:
-    checks:
-      # TODO: Actually change the default to product name, file version, etc. from __compiled__ or from plugin variables
-      - description: "need to use cached onefile mode with 'tendo.singleton' to work correctly"
-        support_info: 'warning'
-        when: 'onefile and not onefile_cached'
+    # TODO: Actually change the default to product name, file version, etc. from __compiled__ or from plugin variables
+    - description: "need to use cached onefile mode with 'tendo.singleton' to work correctly"
+      support_info: 'warning'
+      when: 'onefile and not onefile_cached'
 
 - module-name: 'tensorboard' # checksum: 5e3de759
   anti-bloat:
@@ -8615,7 +8595,7 @@
         'notebook': "'(lambda: None)'"
       when: 'not use_ipython'
 
-- module-name: 'tensorflow' # checksum: 7bd997cd
+- module-name: 'tensorflow' # checksum: 30364e4e
   dlls:
     - from_filenames:
         relative_path: 'core/platform'
@@ -8665,13 +8645,12 @@
       when: 'version("keras") >= (3,)'
 
   options:
-    checks:
-      - description: "'tensorflow' is not fully supported before version 2.16"
-        support_info: 'warning'
-        when: 'version("tensorflow") < (2,16)'
-      - description: "'tensorflow' is not fully supported with legacy keras"
-        support_info: 'warning'
-        when: 'os.getenv("TF_USE_LEGACY_KERAS", None) is not None'
+    - description: "'tensorflow' is not fully supported before version 2.16"
+      support_info: 'warning'
+      when: 'version("tensorflow") < (2,16)'
+    - description: "'tensorflow' is not fully supported with legacy keras"
+      support_info: 'warning'
+      when: 'os.getenv("TF_USE_LEGACY_KERAS", None) is not None'
 
 - module-name: 'tensorflow._api.v1.compat.v1' # checksum: 3e84bd8b
   anti-bloat:
@@ -9527,7 +9506,7 @@
   import-hacks:
     - recompile-extensions: 'no'
 
-- module-name: 'torch' # checksum: 759b45ba
+- module-name: 'torch' # checksum: 49660d42
   parameters:
     - 'name': 'disable-jit'
       'values': 'value in ("yes", "no")'
@@ -9573,10 +9552,9 @@
         - 'nvidia'
       when: 'standalone and linux'
   options:
-    checks:
-      - description: "Torch JIT is disabled by default in standalone mode, make a choice explicit with '--module-parameter=torch-disable-jit=yes|no'"
-        support_info: 'parameter'
-        when: 'standalone and get_parameter("disable-jit", None) is None'
+    - description: "Torch JIT is disabled by default in standalone mode, make a choice explicit with '--module-parameter=torch-disable-jit=yes|no'"
+      support_info: 'parameter'
+      when: 'standalone and get_parameter("disable-jit", None) is None'
   import-hacks:
     - force-environment-variables:
         'PYTORCH_JIT': '0'
@@ -10224,7 +10202,7 @@
         'boolean_sparse': 'un-callable'
       when: 'not use_numba'
 
-- module-name: 'trio._core._ki' # checksum: 40560a43
+- module-name: 'trio._core._ki' # checksum: f01b157c
   anti-bloat:
     - description: 'workaround for trio compatibility'
       # The only incompatibility in Trio is the way it handles KeyboardInterrupt exceptions (ctrl+C):
@@ -10243,9 +10221,8 @@
         def disable_ki_protection(fn):
           return fn
   options:
-    checks:
-      - description: "Disabled careful handling of KeyboardInterrupt in 'trio'"
-        support_info: 'info'
+    - description: "Disabled careful handling of KeyboardInterrupt in 'trio'"
+      support_info: 'info'
 
 - module-name: 'trio._core._multierror' # checksum: 15c0e7fc
   anti-bloat:
@@ -10375,7 +10352,7 @@
         'asyncio': 'only used to mark deprecated coroutine wrappers on Python before 3.12'
       when: 'before_python312'
 
-- module-name: 'tyro' # checksum: a8dc8b82
+- module-name: 'tyro' # checksum: 6eca2763
   anti-bloat:
     - description: 'remove optional pydantic support'
       no-auto-follow:
@@ -10386,10 +10363,9 @@
         'msgspec': 'ignore'
         'pydantic.v1': 'ignore'
   options:
-    checks:
-      - description: "Uses 'inspect.getsource()' for help text generation in standalone mode. Consider '--enable-plugin=source-inclusion' together with '--source-inclusion-args=--help' or repeated '--source-inclusion-args=\"<subcommand> --help\"' values."
-        support_info: 'plugin-warning'
-        when: 'standalone and not plugin("source-inclusion")'
+    - description: "Uses 'inspect.getsource()' for help text generation in standalone mode. Consider '--enable-plugin=source-inclusion' together with '--source-inclusion-args=--help' or repeated '--source-inclusion-args=\"<subcommand> --help\"' values."
+      support_info: 'plugin-warning'
+      when: 'standalone and not plugin("source-inclusion")'
 
 - module-name: 'tzdata' # checksum: c364567b
   data-files:
@@ -11031,15 +11007,14 @@
     - dirs:
         - 'resources'
 
-- module-name: 'wx' # checksum: 9a4d4164
+- module-name: 'wx' # checksum: fea7ab54
   options:
-    checks:
-      - description: 'wx will crash in console mode during startup'
-        macos_bundle: 'yes'
-        when: 'macos'
-      - description: 'wx requires program to be in bundle form'
-        macos_bundle: 'yes'
-        when: 'macos'
+    - description: 'wx will crash in console mode during startup'
+      macos_bundle: 'yes'
+      when: 'macos'
+    - description: 'wx requires program to be in bundle form'
+      macos_bundle: 'yes'
+      when: 'macos'
 
 - module-name: 'wx.html2' # checksum: bc8985c4
   dlls:
