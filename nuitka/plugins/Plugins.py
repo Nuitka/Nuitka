@@ -2460,12 +2460,11 @@ def addStandardPluginCommandLineOptions(parser, plugin_help_mode):
         plugin_name2plugin_classes.items(), key=_keyPluginForSort2
     ):
         if plugin_class.isAlwaysEnabled():
-            if not plugin_help_mode or not plugin_class.hasCategory("package-support"):
-                _addPluginCommandLineOptions(
-                    parser=parser,
-                    plugin_class=plugin_class,
-                    plugin_help_mode=plugin_help_mode,
-                )
+            _addPluginCommandLineOptions(
+                parser=parser,
+                plugin_class=plugin_class,
+                plugin_help_mode=plugin_help_mode,
+            )
         else:
             if plugin_help_mode:
                 _addPluginCommandLineOptions(

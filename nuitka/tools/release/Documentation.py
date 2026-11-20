@@ -237,7 +237,7 @@ def updateManPages():
         _fixupManPageContents("doc/nuitka.1.tmp")
         replaceFileAtomic("doc/nuitka.1.tmp", "doc/nuitka.1")
 
-        cmd[-1] += " -run"
+        cmd[-1] = "%s ./bin/nuitka-run --help-plugins" % sys.executable
         with openTextFile(os.path.join("doc", "nuitka-run.1.tmp"), "wb") as output:
             check_call(cmd, stdout=output)
         _fixupManPageContents("doc/nuitka-run.1.tmp")
