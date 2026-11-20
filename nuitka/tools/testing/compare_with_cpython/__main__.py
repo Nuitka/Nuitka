@@ -96,11 +96,12 @@ def _getCPythonResults(cpython_cmd, send_kill):
             process = createProcess(command=cpython_cmd, new_group=send_kill)
 
         if send_kill:
-            # Doing it per loop iteration hopefully, pylint: disable=cell-var-from-loop
             executeAfterTimePassed(
                 message="Scheduling process kill in %.02fs",
                 timeout=2.0,
-                func=lambda: killProcessGroup("Uncompiled Python program", process.pid),
+                func=lambda process=process: killProcessGroup(
+                    "Uncompiled Python program", process.pid
+                ),
             )
 
         stdout_cpython, stderr_cpython = process.communicate()
@@ -893,11 +894,10 @@ Stderr was:
                     process = createProcess(command=nuitka_cmd2, new_group=send_kill)
 
                     if send_kill:
-                        # Lambda is used immediately in same loop, pylint: disable=cell-var-from-loop
                         executeAfterTimePassed(
                             message="Scheduling process kill in %.02fs",
                             timeout=2.0,
-                            func=lambda: killProcessGroup(
+                            func=lambda process=process: killProcessGroup(
                                 "Nuitka compiled program", process.pid
                             ),
                         )
