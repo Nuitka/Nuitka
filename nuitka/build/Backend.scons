@@ -119,10 +119,6 @@ if env.trace_mode:
 
 applyPythonBuildSettings(env)
 
-adapted_python_header_files_dir = env.get("adapted_python_header_files_dir")
-if adapted_python_header_files_dir:
-    env.Prepend(CPPPATH=[adapted_python_header_files_dir])
-
 # TODO: This ought to be decided outside of scons and per flavor maybe.
 if env.static_libpython and ((os.name != "nt" and not isMacOS()) or env.monolithpy):
     env.Append(CPPDEFINES=["_NUITKA_USE_UNEXPOSED_API"])
@@ -424,10 +420,6 @@ def createBuildDefinitionsFile():
     env.build_definitions["SYSFLAG_UTF8"] = 1 if python_sysflag_utf8 else 0
 
     env.build_definitions["SYSFLAG_OPTIMIZE"] = python_sysflag_optimize
-
-    env.build_definitions["SYSFLAG_DONTWRITEBYTECODE"] = (
-        1 if python_sysflag_dontwritebytecode else 0
-    )
 
     env.build_definitions["_NUITKA_NO_ASSERTS"] = 1 if python_flag_no_asserts else 0
 
