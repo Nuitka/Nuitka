@@ -474,14 +474,24 @@ static bool SET_ATTRIBUTE_GENERIC(PyThreadState *tstate, PyTypeObject *type, PyO
         return res;
     }
 
-    Py_XDECREF(descr);
+    if (descr == NULL) {
+#if PYTHON_VERSION < 0x300
+        PyErr_Format(PyExc_AttributeError, "'%s' object has no attribute '%s'", type->tp_name,
+                     PyString_AS_STRING(attr_name));
+#else
+        PyErr_Format(PyExc_AttributeError, "'%s' object has no attribute '%U'", type->tp_name, attr_name);
+#endif
+    } else {
+        Py_DECREF(descr);
 
 #if PYTHON_VERSION < 0x300
-    PyErr_Format(PyExc_AttributeError, "'%s' object has no attribute '%s'", type->tp_name,
-                 PyString_AS_STRING(attr_name));
+        PyErr_Format(PyExc_AttributeError, "'%s' object attribute '%s' is read-only", type->tp_name,
+                     PyString_AS_STRING(attr_name));
 #else
-    PyErr_Format(PyExc_AttributeError, "'%s' object has no attribute '%U'", type->tp_name, attr_name);
+        PyErr_Format(PyExc_AttributeError, "'%s' object attribute '%U' is read-only", type->tp_name, attr_name);
 #endif
+    }
+
     return false;
 }
 
