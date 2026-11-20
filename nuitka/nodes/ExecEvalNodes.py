@@ -154,6 +154,12 @@ class StatementLocalsDictSync(StatementLocalsDictSyncBase):
         self.previous_traces = None
         self.variable_traces = None
 
+    def finalize(self):
+        StatementLocalsDictSyncBase.finalize(self)
+
+        del self.previous_traces
+        del self.variable_traces
+
     def getPreviousVariablesTraces(self):
         return self.previous_traces
 

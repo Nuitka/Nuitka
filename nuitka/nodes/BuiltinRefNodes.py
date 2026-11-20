@@ -206,6 +206,11 @@ class ExpressionBuiltinWithContextRef(ExpressionBuiltinRef):
 
         self.locals_scope = locals_scope
 
+    def finalize(self):
+        ExpressionBuiltinRef.finalize(self)
+
+        del self.locals_scope
+
     def getDetails(self):
         return {"builtin_name": self.builtin_name, "locals_scope": self.locals_scope}
 

@@ -704,6 +704,11 @@ class ExpressionVariableOrBuiltinRef(ExpressionVariableRef):
 
         self.locals_scope = locals_scope
 
+    def finalize(self):
+        ExpressionVariableRef.finalize(self)
+
+        del self.locals_scope
+
     def getDetails(self):
         return {"variable": self.variable, "locals_scope": self.locals_scope}
 
