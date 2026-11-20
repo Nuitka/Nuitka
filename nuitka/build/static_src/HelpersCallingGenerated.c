@@ -12263,7 +12263,7 @@ PyObject *CALL_METHOD_NO_ARGS(PyThreadState *tstate, PyObject *source, PyObject 
 
 #if PYTHON_VERSION >= 0x3b0
         if (type->tp_flags & Py_TPFLAGS_MANAGED_DICT) {
-            PyObject *called_object;
+            PyObject *called_object = NULL;
             int found = Nuitka_LookupManagedDictAttribute(type, source, attr_name, &dict, &called_object);
 
             if (found != 0) {
@@ -12528,7 +12528,7 @@ PyObject *CALL_METHOD_WITH_SINGLE_ARG(PyThreadState *tstate, PyObject *source, P
 
 #if PYTHON_VERSION >= 0x3b0
         if (type->tp_flags & Py_TPFLAGS_MANAGED_DICT) {
-            PyObject *called_object;
+            PyObject *called_object = NULL;
             int found = Nuitka_LookupManagedDictAttribute(type, source, attr_name, &dict, &called_object);
 
             if (found != 0) {
@@ -12792,7 +12792,7 @@ PyObject *CALL_METHOD_WITH_ARGS2(PyThreadState *tstate, PyObject *source, PyObje
 
 #if PYTHON_VERSION >= 0x3b0
         if (type->tp_flags & Py_TPFLAGS_MANAGED_DICT) {
-            PyObject *called_object;
+            PyObject *called_object = NULL;
             int found = Nuitka_LookupManagedDictAttribute(type, source, attr_name, &dict, &called_object);
 
             if (found != 0) {
@@ -13056,7 +13056,7 @@ PyObject *CALL_METHOD_WITH_ARGS3(PyThreadState *tstate, PyObject *source, PyObje
 
 #if PYTHON_VERSION >= 0x3b0
         if (type->tp_flags & Py_TPFLAGS_MANAGED_DICT) {
-            PyObject *called_object;
+            PyObject *called_object = NULL;
             int found = Nuitka_LookupManagedDictAttribute(type, source, attr_name, &dict, &called_object);
 
             if (found != 0) {
@@ -13320,7 +13320,7 @@ PyObject *CALL_METHOD_WITH_ARGS4(PyThreadState *tstate, PyObject *source, PyObje
 
 #if PYTHON_VERSION >= 0x3b0
         if (type->tp_flags & Py_TPFLAGS_MANAGED_DICT) {
-            PyObject *called_object;
+            PyObject *called_object = NULL;
             int found = Nuitka_LookupManagedDictAttribute(type, source, attr_name, &dict, &called_object);
 
             if (found != 0) {
@@ -13584,7 +13584,7 @@ PyObject *CALL_METHOD_WITH_ARGS5(PyThreadState *tstate, PyObject *source, PyObje
 
 #if PYTHON_VERSION >= 0x3b0
         if (type->tp_flags & Py_TPFLAGS_MANAGED_DICT) {
-            PyObject *called_object;
+            PyObject *called_object = NULL;
             int found = Nuitka_LookupManagedDictAttribute(type, source, attr_name, &dict, &called_object);
 
             if (found != 0) {
@@ -13848,7 +13848,7 @@ PyObject *CALL_METHOD_WITH_ARGS6(PyThreadState *tstate, PyObject *source, PyObje
 
 #if PYTHON_VERSION >= 0x3b0
         if (type->tp_flags & Py_TPFLAGS_MANAGED_DICT) {
-            PyObject *called_object;
+            PyObject *called_object = NULL;
             int found = Nuitka_LookupManagedDictAttribute(type, source, attr_name, &dict, &called_object);
 
             if (found != 0) {
@@ -14112,7 +14112,7 @@ PyObject *CALL_METHOD_WITH_ARGS7(PyThreadState *tstate, PyObject *source, PyObje
 
 #if PYTHON_VERSION >= 0x3b0
         if (type->tp_flags & Py_TPFLAGS_MANAGED_DICT) {
-            PyObject *called_object;
+            PyObject *called_object = NULL;
             int found = Nuitka_LookupManagedDictAttribute(type, source, attr_name, &dict, &called_object);
 
             if (found != 0) {
@@ -14376,7 +14376,7 @@ PyObject *CALL_METHOD_WITH_ARGS8(PyThreadState *tstate, PyObject *source, PyObje
 
 #if PYTHON_VERSION >= 0x3b0
         if (type->tp_flags & Py_TPFLAGS_MANAGED_DICT) {
-            PyObject *called_object;
+            PyObject *called_object = NULL;
             int found = Nuitka_LookupManagedDictAttribute(type, source, attr_name, &dict, &called_object);
 
             if (found != 0) {
@@ -14640,7 +14640,7 @@ PyObject *CALL_METHOD_WITH_ARGS9(PyThreadState *tstate, PyObject *source, PyObje
 
 #if PYTHON_VERSION >= 0x3b0
         if (type->tp_flags & Py_TPFLAGS_MANAGED_DICT) {
-            PyObject *called_object;
+            PyObject *called_object = NULL;
             int found = Nuitka_LookupManagedDictAttribute(type, source, attr_name, &dict, &called_object);
 
             if (found != 0) {
@@ -14904,7 +14904,7 @@ PyObject *CALL_METHOD_WITH_ARGS10(PyThreadState *tstate, PyObject *source, PyObj
 
 #if PYTHON_VERSION >= 0x3b0
         if (type->tp_flags & Py_TPFLAGS_MANAGED_DICT) {
-            PyObject *called_object;
+            PyObject *called_object = NULL;
             int found = Nuitka_LookupManagedDictAttribute(type, source, attr_name, &dict, &called_object);
 
             if (found != 0) {

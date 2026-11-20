@@ -61,7 +61,7 @@ PyObject *CALL_METHOD_WITH_ARGS{{args_count}}(PyThreadState *tstate, PyObject *s
 
 #if PYTHON_VERSION >= 0x3b0
         if (type->tp_flags & Py_TPFLAGS_MANAGED_DICT) {
-            PyObject *called_object;
+            PyObject *called_object = NULL;
             int found = Nuitka_LookupManagedDictAttribute(type, source, attr_name, &dict, &called_object);
 
             if (found != 0) {
