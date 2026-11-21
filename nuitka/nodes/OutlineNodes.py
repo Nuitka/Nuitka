@@ -10,7 +10,11 @@ expressions, or multiple returns, without running in a too different context.
 """
 
 from nuitka.ModuleRegistry import addUsedModule
-from nuitka.tree.Extractions import updateVariableUsage
+from nuitka.tree.Extractions import (
+    getClonedProvider,
+    updateVariableUsage,
+    withClonedProvider,
+)
 
 from .ChildrenHavingMixins import ChildHavingBodyOptionalMixin
 from .ConstantRefNodes import makeConstantRefNode
@@ -246,34 +250,56 @@ class ExpressionOutlineFunctionBase(ExpressionOutlineMixin, ExpressionFunctionBo
         # cannot raise by itself.
         return False
 
-    def makeClone(self):
-        result = ExpressionFunctionBodyBase.makeClone(self)
+    def _getCloneDetails(self):
+        result = self.getDetails()
+        result["provider"] = getClonedProvider(result["provider"])
+        result["name"] += "_clone"
 
-        entry_point = self.getEntryPoint()
+        return result
+
+    def makeClone(self):
+        result = self.__class__(
+            source_ref=self.source_ref, body=None, **self._getCloneDetails()
+        )
+
+        effective_source_ref = self.getCompatibleSourceReference()
+        if effective_source_ref is not self.source_ref:
+            result.setCompatibleSourceReference(effective_source_ref)
+
+        if self.subnode_body is not None:
+            with withClonedProvider(self, result):
+                result.setChildBody(self.subnode_body.makeClone())
+
+        old_entry_point = self.getEntryPoint()
+        new_entry_point = result.getEntryPoint()
 
         # pylint: disable=assigning-non-slot
         result.locals_scope, variable_translations = self.locals_scope.makeClone(
             new_owner=result
         )
 
-        for temp_variable in entry_point.getTempVariables(self):
-            clone_number = 1
+        for temp_variable in old_entry_point.getTempVariables(self):
+            new_temp_name = temp_variable.getName()
 
-            while True:
-                clone_suffix = (
-                    "_clone" if clone_number == 1 else "_clone_%d" % clone_number
-                )
-                new_temp_name = temp_variable.getName() + clone_suffix
+            if new_entry_point.hasTempVariable(new_temp_name):
+                clone_number = 1
 
-                if not entry_point.hasTempVariable(new_temp_name):
-                    break
+                while True:
+                    clone_suffix = (
+                        "_clone" if clone_number == 1 else "_clone_%d" % clone_number
+                    )
+                    candidate_name = new_temp_name + clone_suffix
 
-                clone_number += 1
+                    if not new_entry_point.hasTempVariable(candidate_name):
+                        new_temp_name = candidate_name
+                        break
+
+                    clone_number += 1
 
             # Make the clone own separate temporary variables, without
             # registering them in a trace collection, the clone will
             # initialize them when it gets computed.
-            new_temp_variable = entry_point.createTempVariable(
+            new_temp_variable = new_entry_point.createTempVariable(
                 temp_name=new_temp_name,
                 temp_type=temp_variable.getVariableType(),
                 outline=result,

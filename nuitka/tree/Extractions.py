@@ -3,7 +3,31 @@
 
 """Visitors that update variable, scope, and provider references in cloned trees."""
 
+from contextlib import contextmanager
+
 from .Operations import VisitorNoopMixin, visitTree
+
+_clone_provider_translations = {}
+
+
+@contextmanager
+def withClonedProvider(old_provider, new_provider):
+    """Map a cloned provider to its replacement while cloning its body."""
+
+    has_previous = old_provider in _clone_provider_translations
+    previous = _clone_provider_translations.get(old_provider)
+    _clone_provider_translations[old_provider] = new_provider
+    try:
+        yield
+    finally:
+        if has_previous:
+            _clone_provider_translations[old_provider] = previous
+        else:
+            del _clone_provider_translations[old_provider]
+
+
+def getClonedProvider(provider):
+    return _clone_provider_translations.get(provider, provider)
 
 
 class VariableUsageUpdater(VisitorNoopMixin):
