@@ -24,6 +24,7 @@ from .ConstantCodes import addDistributionMetadataValue
 from .DictCodes import getDictionaryCreationCode
 from .ErrorCodes import getErrorExitCode
 from .ImportCodes import getImportModuleNameHardCode
+from .LineNumberCodes import emitLineNumberUpdateCode
 from .PythonAPICodes import generateCAPIObjectCode
 from .TupleCodes import getTupleCreationCode
 
@@ -1018,21 +1019,31 @@ def generateOsPathJoinCallCode(to_name, expression, emit, context):
                 context=context,
             )
         elif path_names:
+            emitLineNumberUpdateCode(expression, emit, context)
+
             emit(
-                "PyObject *os_path_join_paths[] = {%s};"
-                % ", ".join(str(name) for name in path_names)
-            )
-            emit(
-                "%s = OS_PATH_JOIN(tstate, os_path_join_paths, %d);"
-                % (result_name, len(path_names))
+                """\
+{
+    PyObject *os_path_join_paths[] = {%s};
+    %s = OS_PATH_JOIN(tstate, os_path_join_paths, %d);
+}
+"""
+                % (
+                    ", ".join(str(name) for name in path_names),
+                    result_name,
+                    len(path_names),
+                )
             )
 
             getErrorExitCode(
                 check_name=result_name,
                 release_names=path_names,
+                needs_check=expression.mayRaiseExceptionOperation(),
                 emit=emit,
                 context=context,
             )
+
+            context.addCleanupTempName(result_name)
         else:
             join_func = context.allocateTempName("os_path_join_func", unique=True)
 
