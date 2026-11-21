@@ -3777,9 +3777,10 @@ static Py_ssize_t Nuitka_DictLookupCompact(PyDictObject *mp, PyObject *key, Py_h
     return Nuitka_DictLookupCompactWithEq(mp, key, hash, value_addr, NULL);
 }
 
+#if PYTHON_VERSION >= 0x370
 static Py_ssize_t Nuitka_DictLookupCompactResultWithEq(PyDictObject *mp, PyObject *key, Py_hash_t hash,
                                                        PyObject **result, richcmpfunc equal_func) {
-    PyObject **value_addr;
+    PyObject **value_addr = NULL;
     Py_ssize_t ix = Nuitka_DictLookupCompactWithEq(mp, key, hash, &value_addr, equal_func);
 
     *result = value_addr != NULL ? *value_addr : NULL;
@@ -3789,6 +3790,7 @@ static Py_ssize_t Nuitka_DictLookupCompactResultWithEq(PyDictObject *mp, PyObjec
 static Py_ssize_t Nuitka_DictLookupCompactResult(PyDictObject *mp, PyObject *key, Py_hash_t hash, PyObject **result) {
     return Nuitka_DictLookupCompactResultWithEq(mp, key, hash, result, NULL);
 }
+#endif
 
 static Py_ssize_t Nuitka_DictFindEmptySlot(PyDictKeysObject *keys, Py_hash_t hash) {
     size_t mask = (size_t)DK_MASK(keys);

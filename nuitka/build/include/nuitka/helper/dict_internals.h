@@ -95,9 +95,11 @@ static Py_ssize_t Nuitka_DictGrowthRate(PyDictObject *mp);
 static Py_ssize_t Nuitka_DictLookupCompact(PyDictObject *mp, PyObject *key, Py_hash_t hash, PyObject ***value_addr);
 static Py_ssize_t Nuitka_DictLookupCompactWithEq(PyDictObject *mp, PyObject *key, Py_hash_t hash,
                                                  PyObject ***value_addr, richcmpfunc equal_func);
+#if PYTHON_VERSION >= 0x370
 static Py_ssize_t Nuitka_DictLookupCompactResult(PyDictObject *mp, PyObject *key, Py_hash_t hash, PyObject **result);
 static Py_ssize_t Nuitka_DictLookupCompactResultWithEq(PyDictObject *mp, PyObject *key, Py_hash_t hash,
                                                        PyObject **result, richcmpfunc equal_func);
+#endif
 static void Nuitka_DictKeysSetIndex(PyDictKeysObject *keys, Py_ssize_t i, Py_ssize_t ix);
 static Py_ssize_t Nuitka_DictFindEmptySlot(PyDictKeysObject *keys, Py_hash_t hash);
 static int Nuitka_DictResize(PyThreadState *tstate, PyDictObject *mp, Py_ssize_t new_size);
