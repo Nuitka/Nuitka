@@ -622,7 +622,8 @@ static PyObject *_Nuitka_Asyncgen_throw2(PyThreadState *tstate, struct Nuitka_As
 #endif
 
     if (asyncgen->m_yield_from != NULL) {
-        // TODO: This check is not done for coroutines, correct?
+        // Matching CPython's _gen_throw: aclose() and asend/athrow.throw() pass
+        // close_on_genexit=true, whereas athrow().send() passes false.
         if (close_on_genexit) {
             if (EXCEPTION_STATE_MATCH_BOOL_SINGLE(tstate, exception_state, PyExc_GeneratorExit)) {
                 // Asynchronous generators need to close the yield_from, and
@@ -641,9 +642,12 @@ static PyObject *_Nuitka_Asyncgen_throw2(PyThreadState *tstate, struct Nuitka_As
                     // Release exception, we are done with it now and pick up the new one.
                     RELEASE_ERROR_OCCURRED_STATE(exception_state);
                     FETCH_ERROR_OCCURRED_STATE(tstate, exception_state);
+
+                    return _Nuitka_Asyncgen_send(tstate, asyncgen, NULL, false, exception_state);
                 }
 
-                return _Nuitka_Asyncgen_send(tstate, asyncgen, NULL, false, exception_state);
+                // Handing exception ownership to "throw_here" so it gets checked/normalized.
+                goto throw_here;
             }
         }
 
@@ -860,7 +864,7 @@ static PyObject *Nuitka_Asyncgen_throw(PyThreadState *tstate, struct Nuitka_Asyn
         return NULL;
     }
 
-    PyObject *result = _Nuitka_Asyncgen_throw2(tstate, asyncgen, false, &exception_state);
+    PyObject *result = _Nuitka_Asyncgen_throw2(tstate, asyncgen, true, &exception_state);
 
     if (result == NULL) {
         if (HAS_ERROR_OCCURRED(tstate) == false) {
@@ -1747,7 +1751,7 @@ static PyObject *_Nuitka_AsyncgenAsend_throw2(PyThreadState *tstate, struct Nuit
         return NULL;
     }
 
-    PyObject *result = _Nuitka_Asyncgen_throw2(tstate, asyncgen_asend->m_gen, false, exception_state);
+    PyObject *result = _Nuitka_Asyncgen_throw2(tstate, asyncgen_asend->m_gen, true, exception_state);
 
     // TODO: This might not be all that necessary as this is not directly outside facing,
     // but there were tests failing when this was not the specific value.

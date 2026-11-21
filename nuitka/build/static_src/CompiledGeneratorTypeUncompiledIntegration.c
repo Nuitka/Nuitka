@@ -2820,7 +2820,6 @@ static int Nuitka_PyGen_gen_close_iter(PyThreadState *tstate, PyObject *yf) {
         || PyCoro_CheckExact(yf)
 #endif
     ) {
-        assert(false);
         retval = Nuitka_PyGen_gen_close(tstate, (PyGenObject *)yf, NULL);
 
         if (retval == NULL) {
