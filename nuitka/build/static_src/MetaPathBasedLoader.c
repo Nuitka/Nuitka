@@ -937,19 +937,26 @@ static bool scanModuleInPackagePath(PyThreadState *tstate, PyObject *module_name
     PyObject *sys_modules = Nuitka_GetSysModules(tstate);
 
     PyObject *parent_module = DICT_GET_ITEM_STRING(tstate, sys_modules, parent_module_name);
-    CHECK_OBJECT(parent_module);
+    if (parent_module == NULL) {
+        CLEAR_ERROR_OCCURRED(tstate);
+        return false;
+    }
 
     PyObject *parent_path = LOOKUP_ATTRIBUTE(tstate, parent_module, const_str_plain___path__);
+    if (parent_path == NULL) {
+        CLEAR_ERROR_OCCURRED(tstate);
+        return false;
+    }
 
-    // Accept that it might be deleted.
-    if (parent_path == NULL || !PyList_Check(parent_path)) {
+    if (!PyList_Check(parent_path)) {
+        Py_DECREF(parent_path);
         return false;
     }
 
     PyObject *candidates = MAKE_LIST_EMPTY(tstate, 0);
 
-    // Search only relative to the parent name of course.
     char const *module_relative_name_str = Nuitka_String_AsString(module_name) + strlen(parent_module_name) + 1;
+    size_t module_relative_name_len = strlen(module_relative_name_str);
 
     Py_ssize_t parent_path_size = PyList_GET_SIZE(parent_path);
 
@@ -971,15 +978,18 @@ static bool scanModuleInPackagePath(PyThreadState *tstate, PyObject *module_name
             if (Nuitka_String_CheckExact(filename)) {
                 char const *filename_str = Nuitka_String_AsString(filename);
 
-                if (strncmp(filename_str, module_relative_name_str, strlen(module_relative_name_str)) == 0 &&
-                    filename_str[strlen(module_relative_name_str)] == '.') {
+                if (strncmp(filename_str, module_relative_name_str, module_relative_name_len) == 0 &&
+                    filename_str[module_relative_name_len] == '.') {
                     LIST_APPEND1(candidates, MAKE_TUPLE2(tstate, path_element, filename));
                 }
             }
         }
+
+        Py_DECREF(filenames_list);
     }
 
-    // Look up C-extension suffixes, these are used with highest priority.
+    Py_DECREF(parent_path);
+
     PyObject *suffix_list = getExtensionModuleSuffixesByPriority(tstate);
 
     bool result = false;
@@ -997,15 +1007,14 @@ static bool scanModuleInPackagePath(PyThreadState *tstate, PyObject *module_name
 
             char const *candidate_str = Nuitka_String_AsString(candidate);
 
-            if (strcmp(suffix_str, candidate_str + strlen(module_relative_name_str)) == 0) {
+            if (strcmp(suffix_str, candidate_str + module_relative_name_len) == 0) {
                 PyObject *fullpath = JOIN_PATH2(directory, candidate);
 
                 if (installed_extension_modules == NULL) {
                     installed_extension_modules = MAKE_DICT_EMPTY(tstate);
                 }
 
-// Force path to unicode, to have easier consumption, as we need a wchar_t or char *
-// from it later, and we don't want to test there.
+// Normalize to unicode on Python 2 Windows so callIntoInstalledExtensionModule can expect PyUnicode_CheckExact.
 #if PYTHON_VERSION < 0x300 && defined(_WIN32)
                 PyObject *tmp = PyUnicode_FromObject(fullpath);
                 Py_DECREF(fullpath);
@@ -1013,10 +1022,15 @@ static bool scanModuleInPackagePath(PyThreadState *tstate, PyObject *module_name
 #endif
 
                 DICT_SET_ITEM_INFALLIBLE(tstate, installed_extension_modules, module_name, fullpath);
+                Py_DECREF(fullpath);
 
                 result = true;
                 break;
             }
+        }
+
+        if (result) {
+            break;
         }
     }
 
