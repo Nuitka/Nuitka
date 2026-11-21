@@ -6,6 +6,7 @@
 import importlib
 import importlib.metadata
 import importlib.resources as _ir
+import inspect
 import io
 import os
 import os.path as _osp
@@ -734,6 +735,65 @@ try:
     get_annotations(_raiseInIfAnnotation, format=Format.VALUE)
 except ZeroDivisionError as exc:
     print("Raise branch annotation (VALUE) ZeroDivisionError:", exc, _side_log)
+
+
+def _lambdaAnnotations(
+    l_empty: lambda: 1,
+    l_pos_only: lambda a, b=1, /: (a, b),
+    l_pos_and_normal: lambda a=1, /, b=2: (a, b),
+    l_full: lambda a, b=1, *args, c, d=2, **kw: (a, b, args, c, d, sorted(kw.items())),
+    l_kw_only_bare: lambda a, *, b=1, c: (a, b, c),
+    l_kw_only_no_defaults: lambda *, x, y: (x, y),
+    l_dynamic_defaults: lambda a=_op_num, *, b=_op_str: a + len(b),
+    l_varargs_only: lambda *args, **kw: (args, sorted(kw.items())),
+):
+    return (
+        l_empty,
+        l_pos_only,
+        l_pos_and_normal,
+        l_full,
+        l_kw_only_bare,
+        l_kw_only_no_defaults,
+        l_dynamic_defaults,
+        l_varargs_only,
+    )
+
+
+_lambda_annots = get_annotations(_lambdaAnnotations, format=Format.VALUE)
+print(
+    "Lambda annotation signatures (VALUE):",
+    displayDict(
+        {
+            key: (
+                str(inspect.signature(fn)),
+                fn.__defaults__,
+                fn.__kwdefaults__,
+                fn.__code__.co_posonlyargcount,
+                fn.__code__.co_argcount,
+                fn.__code__.co_kwonlyargcount,
+                bool(fn.__code__.co_flags & inspect.CO_VARARGS),
+                bool(fn.__code__.co_flags & inspect.CO_VARKEYWORDS),
+            )
+            for key, fn in _lambda_annots.items()
+        }
+    ),
+)
+print(
+    "Lambda annotation calls:",
+    _lambda_annots["l_empty"](),
+    _lambda_annots["l_pos_only"](10),
+    _lambda_annots["l_pos_and_normal"](),
+    _lambda_annots["l_pos_and_normal"](3, b=4),
+    _lambda_annots["l_full"](1, 2, 3, 4, c=5, extra=6),
+    _lambda_annots["l_kw_only_bare"](7, c=8),
+    _lambda_annots["l_kw_only_no_defaults"](x=1, y=2),
+    _lambda_annots["l_dynamic_defaults"](),
+    _lambda_annots["l_varargs_only"](1, 2, z=3),
+)
+try:
+    _lambda_annots["l_pos_only"](a=1)
+except TypeError as exc:
+    print("Lambda pos-only TypeError:", type(exc).__name__)
 
 
 # Shadow hard and ordinary builtin names at module level (kept at end of file).

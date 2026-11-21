@@ -1576,33 +1576,135 @@ def _generateYieldFromSource(expression):
     return "(yield from %s)" % generateExpressionSource(value), _PREC_ATOM
 
 
+def _extractLambdaKwDefaultSources(kw_defaults, expression):
+    if kw_defaults is None:
+        return {}
+
+    if kw_defaults.isExpressionMakeDict():
+        kw_default_sources = {}
+
+        for pair in kw_defaults.subnode_pairs:
+            if (
+                pair.isExpressionKeyValuePairConstantKey()
+                or pair.isExpressionKeyValuePairConstantKeyValue()
+            ):
+                key = pair.getKeyCompileTimeConstant()
+            elif pair.subnode_key.isCompileTimeConstant():
+                key = pair.subnode_key.getCompileTimeConstant()
+            else:
+                raise PythonSourceGenerationError(
+                    "Unsupported non-constant lambda keyword default key: %s"
+                    % pair.kind
+                )
+
+            kw_default_sources[key] = _generatePairValueSource(pair)
+
+        return kw_default_sources
+
+    if kw_defaults.isCompileTimeConstant():
+        kw_defaults_value = kw_defaults.getCompileTimeConstant()
+        if type(kw_defaults_value) is dict:
+            return {
+                key: _formatConstantElement(value, expression)
+                for key, value in kw_defaults_value.items()
+            }
+
+    raise PythonSourceGenerationError(
+        "Unsupported lambda kw_defaults node for source generation: %s"
+        % kw_defaults.kind
+    )
+
+
+def _formatLambdaParameters(expression, func_body):
+    parameters = func_body.getParameters()
+
+    pos_only_count = parameters.getPosOnlyParameterCount()
+    all_pos_args = parameters.getArgumentNames()
+    defaults = expression.subnode_defaults
+    assert len(defaults) <= len(all_pos_args), (defaults, all_pos_args)
+    first_default_idx = len(all_pos_args) - len(defaults)
+
+    param_sources = []
+
+    for idx, name in enumerate(all_pos_args):
+        if idx < first_default_idx:
+            param_sources.append(name)
+        else:
+            param_sources.append(
+                "%s=%s"
+                % (name, generateExpressionSource(defaults[idx - first_default_idx]))
+            )
+
+        if pos_only_count and idx == pos_only_count - 1:
+            param_sources.append("/")
+
+    list_star_arg = parameters.getStarListArgumentName()
+    kw_only_args = parameters.getKwOnlyParameterNames()
+
+    if list_star_arg is not None:
+        param_sources.append("*%s" % list_star_arg)
+    elif kw_only_args:
+        param_sources.append("*")
+
+    kw_default_sources = _extractLambdaKwDefaultSources(
+        expression.subnode_kw_defaults, expression
+    )
+
+    for name in kw_only_args:
+        if name in kw_default_sources:
+            param_sources.append("%s=%s" % (name, kw_default_sources[name]))
+        else:
+            param_sources.append(name)
+
+    dict_star_arg = parameters.getStarDictArgumentName()
+    if dict_star_arg is not None:
+        param_sources.append("**%s" % dict_star_arg)
+
+    return param_sources
+
+
 def _generateLambdaSource(expression):
     assert expression.isExpressionFunctionCreation()
+
     func_body = expression.subnode_function_ref.getFunctionBody()
 
-    param_names = func_body.getParameters().getParameterNames()
+    if (
+        expression.subnode_annotations is not None
+        or expression.subnode_type_params is not None
+        or func_body.getFunctionName() != "<lambda>"
+    ):
+        raise PythonSourceGenerationError(
+            "Unsupported function creation for lambda source generation: %s"
+            % func_body.getFunctionName()
+        )
 
     body = func_body.subnode_body
 
-    if body is None or len(body.subnode_statements) != 1:
+    while body is not None and len(body.subnode_statements) == 1:
+        stmt = body.subnode_statements[0]
+        if stmt.isStatementsFrameFunction():
+            body = stmt
+        else:
+            break
+    else:
         raise PythonSourceGenerationError(
             "Unsupported lambda body for source generation: %s" % body
         )
 
-    stmt = body.subnode_statements[0]
+    if stmt.isStatementReturnConstant():
+        expr_src = _formatConstantElement(stmt.getConstant(), stmt)
+    elif stmt.isStatementReturn():
+        expr_src = generateExpressionSource(stmt.subnode_expression)
+    else:
+        raise PythonSourceGenerationError(
+            "Unsupported lambda body statement for source generation: %s" % stmt.kind
+        )
 
-    if stmt.isStatementReturn() or stmt.isStatementReturnConstant():
-        stmt_src = generateStatementSequenceSource(body, indent="")
-        assert stmt_src.startswith("return "), stmt_src
-        expr_src = stmt_src[len("return ") :]
-        if param_names:
-            return "lambda %s: %s" % (", ".join(param_names), expr_src), _PREC_LAMBDA
+    param_sources = _formatLambdaParameters(expression, func_body)
+    if param_sources:
+        return "lambda %s: %s" % (", ".join(param_sources), expr_src), _PREC_LAMBDA
 
-        return "lambda: %s" % expr_src, _PREC_LAMBDA
-
-    raise PythonSourceGenerationError(
-        "Unsupported lambda body statement for source generation: %s" % stmt.kind
-    )
+    return "lambda: %s" % expr_src, _PREC_LAMBDA
 
 
 def generateStatementSequenceSource(statement_seq, indent=""):
