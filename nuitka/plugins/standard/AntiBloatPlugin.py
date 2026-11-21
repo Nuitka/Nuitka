@@ -830,56 +830,56 @@ class %(class_name)s:
     def _getModuleBloatModeOverrides(self, using_module_name, intended_module_name):
         # Finding a matching configuration aborts the search, not finding one
         # means default behavior should apply.
-        for _config_module_name, bloat_mode_overrides in self.getYamlConfigItem(
+        for config_item in self.getYamlConfigItem(
             module_name=using_module_name,
             section="anti-bloat",
             item_name="bloat-mode-overrides",
             decide_relevant=(lambda config_item: intended_module_name in config_item),
             recursive=True,
         ):
-            return bloat_mode_overrides[intended_module_name]
+            return config_item.value[intended_module_name]
 
         return None
 
     def decideAnnotations(self, module_name):
         # Finding a matching configuration aborts the search, not finding one
         # means default behavior should apply.
-        for _config_module_name, annotations_config_value in self.getYamlConfigItem(
+        for config_item in self.getYamlConfigItem(
             module_name=module_name,
             section="anti-bloat",
             item_name="annotations",
             decide_relevant=None,
             recursive=True,
         ):
-            return annotations_config_value == "yes"
+            return config_item.value == "yes"
 
         return None
 
     def decideDocStrings(self, module_name):
         # Finding a matching configuration aborts the search, not finding one
         # means default behavior should apply.
-        for _config_module_name, doc_strings_config_value in self.getYamlConfigItem(
+        for config_item in self.getYamlConfigItem(
             module_name=module_name,
             section="anti-bloat",
             item_name="doc_strings",
             decide_relevant=None,
             recursive=True,
         ):
-            return doc_strings_config_value == "yes"
+            return config_item.value == "yes"
 
         return None
 
     def decideAssertions(self, module_name):
         # Finding a matching configuration aborts the search, not finding one
         # means default behavior should apply.
-        for _config_module_name, asserts_config_value in self.getYamlConfigItem(
+        for config_item in self.getYamlConfigItem(
             module_name=module_name,
             section="anti-bloat",
             item_name="asserts",
             decide_relevant=None,
             recursive=True,
         ):
-            return asserts_config_value == "yes"
+            return config_item.value == "yes"
 
         return None
 
@@ -889,7 +889,7 @@ class %(class_name)s:
 
         qualified_name = QualifiedName(code_qualname)
 
-        for _config_module_name, _pattern in self.getYamlConfigItemSet(
+        for _config_item in self.getYamlConfigItemSet(
             module_name=module_name,
             section="anti-bloat",
             item_name="frame_locals",
@@ -903,18 +903,17 @@ class %(class_name)s:
         return None
 
     def _applyNoFollowConfiguration(self, module_name):
-        for (
-            config_of_module_name,
-            no_follow_pattern,
-            description,
-        ) in self.getYamlConfigItemItems(
+        for config_item in self.getYamlConfigItemItems(
             module_name=module_name,
             section="anti-bloat",
             item_name="no-follow",
             decide_relevant=None,
             recursive=True,
         ):
-            self.no_follows[no_follow_pattern] = (config_of_module_name, description)
+            self.no_follows[config_item.key] = (
+                config_item.config_module_name,
+                config_item.value,
+            )
 
     def _needsWarning(self, key):
         if key in self.warnings_given:
@@ -1037,28 +1036,24 @@ slow down compilation."""
 
             return module_name.hasNamespace(key) and not is_own_submodule
 
-        for (
-            config_of_module_name,
-            no_auto_follow,
-            description,
-        ) in self.getYamlConfigItemItems(
+        for config_item in self.getYamlConfigItemItems(
             module_name=using_module_name,
             section="anti-bloat",
             item_name="no-auto-follow",
             decide_relevant=decideRelevant,
             recursive=True,
         ):
-            assert module_name.hasNamespace(no_auto_follow), no_auto_follow
+            assert module_name.hasNamespace(config_item.key), config_item.key
 
-            if description == "allow":
+            if config_item.value == "allow":
                 return None
 
-            self.no_auto_follows[no_auto_follow] = description
+            self.no_auto_follows[config_item.key] = config_item.value
 
             return (
                 False,
                 "according to yaml 'no-auto-follow' configuration of '%s' for '%s'"
-                % (config_of_module_name, no_auto_follow),
+                % (config_item.config_module_name, config_item.key),
             )
 
         return None
@@ -1102,18 +1097,17 @@ slow down compilation."""
                 recursive=True,
             )
 
-            has_limits = False
-            for config_of_module_name, limit_pattern in limit_auto_follows:
-                has_limits = True
-                if module_name.matchesToShellPattern(limit_pattern).is_match:
+            config_item = None
+            for config_item in limit_auto_follows:
+                if module_name.matchesToShellPattern(config_item.value).is_match:
                     break
             else:
-                if has_limits:
+                if config_item is not None:
                     self.suppressed_modules.add(module_name)
                     return (
                         False,
                         "according to yaml 'limit-auto-follow' configuration of '%s'"
-                        % config_of_module_name,
+                        % config_item.config_module_name,
                     )
 
         for no_follow_pattern, (
@@ -1166,24 +1160,20 @@ slow down compilation."""
             )
 
         for module_name in module_names:
-            for (
-                config_of_module_name,
-                _module_to_check,
-                module_namespace_to_add,
-            ) in self.getYamlConfigItemItems(
+            for config_item in self.getYamlConfigItemItems(
                 module_name=module_name,
                 section="anti-bloat",
                 item_name="conditional-auto-follow",
                 decide_relevant=decideRelevant,
                 recursive=True,
             ):
-                module_namespace_to_add = ModuleName(module_namespace_to_add)
+                module_namespace_to_add = ModuleName(config_item.value)
                 for suppressed_module in self.suppressed_modules:
                     if (
                         suppressed_module == module_namespace_to_add
                         or suppressed_module.hasNamespace(module_namespace_to_add)
                     ):
-                        yield config_of_module_name, suppressed_module
+                        yield config_item.config_module_name, suppressed_module
 
     def onModuleCompleteSet(self, module_set):
         # TODO: Maybe have an entry point that works on the set of names

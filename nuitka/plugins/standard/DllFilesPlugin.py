@@ -46,12 +46,6 @@ class NuitkaPluginDllFiles(NuitkaYamlPluginBase):
         return isStandaloneMode()
 
     def _handleDllConfigBySources(self, dll_config, full_name, dest_path):
-        # The "when" is at that level too for these.
-        if not self.evaluateCondition(
-            full_name=full_name, condition=dll_config.get("when", "True")
-        ):
-            return
-
         config_name = "module '%s' DLL config" % full_name
 
         source_paths = []
@@ -114,12 +108,6 @@ class NuitkaPluginDllFiles(NuitkaYamlPluginBase):
             )
 
     def _handleDllConfigFromFilenames(self, dll_config, full_name, dest_path):
-        # The "when" is at that level too for these.
-        if not self.evaluateCondition(
-            full_name=full_name, condition=dll_config.get("when", "True")
-        ):
-            return
-
         config_name = "module '%s' DLL config" % full_name
 
         relative_path = self.evaluateExpressionOrConstant(
@@ -262,12 +250,6 @@ class NuitkaPluginDllFiles(NuitkaYamlPluginBase):
             )
 
     def _handleDllConfigByCode(self, dll_config, full_name, dest_path, count):
-        # The "when" is at that level too for these.
-        if not self.evaluateCondition(
-            full_name=full_name, condition=dll_config.get("when", "True")
-        ):
-            return
-
         setup_codes = dll_config.get("setup_code")
         filename_code = dll_config.get("filename_code")
 
@@ -466,14 +448,14 @@ conditions are missing, or this version of the module needs treatment added."""
                         )
 
     def getModuleSpecificDllPaths(self, module_name):
-        for _config_module_name, near_module_name in self.getYamlConfigItemSet(
+        for config_item in self.getYamlConfigItemSet(
             module_name=module_name,
             section="import-hacks",
             item_name="find-dlls-near-module",
             decide_relevant=None,
             recursive=True,
         ):
-            module_filename = self.locateModule(near_module_name)
+            module_filename = self.locateModule(config_item.value)
 
             if module_filename is not None:
                 if os.path.isfile(module_filename):
@@ -492,7 +474,7 @@ conditions are missing, or this version of the module needs treatment added."""
                         yield dylib_directory
 
     def decideRecompileExtensionModules(self, module_name):
-        for config_module_name, recompile_extensions in self.getYamlConfigItem(
+        for config_item in self.getYamlConfigItem(
             module_name=module_name,
             section="import-hacks",
             item_name="recompile-extensions",
@@ -500,16 +482,16 @@ conditions are missing, or this version of the module needs treatment added."""
             recursive=True,
         ):
             return (
-                recompile_extensions,
+                config_item.value,
                 "package configuration for '%s' module says '%s'"
-                % (config_module_name, recompile_extensions),
+                % (config_item.config_module_name, config_item.value),
             )
 
     def isAcceptableMissingDLL(self, package_name, dll_basename):
         if package_name is None:
             return None
 
-        for _config_module_name, _config_dll_name in self.getYamlConfigItemSet(
+        for _config_item in self.getYamlConfigItemSet(
             module_name=package_name,
             section="import-hacks",
             item_name="acceptable-missing-dlls",
@@ -523,14 +505,14 @@ conditions are missing, or this version of the module needs treatment added."""
         return None
 
     def decideAllowOutsideDependencies(self, module_name):
-        for _config_module_name, package_system_dlls in self.getYamlConfigItem(
+        for config_item in self.getYamlConfigItem(
             module_name=module_name,
             section="import-hacks",
             item_name="package-system-dlls",
             decide_relevant=None,
             recursive=True,
         ):
-            return package_system_dlls == "yes"
+            return config_item.value == "yes"
 
         distribution = getDistributionFromModuleName(module_name)
 

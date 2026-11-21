@@ -418,7 +418,7 @@ According to 'implicit-imports' configuration."""
     def getModuleSysPathAdditions(self, module_name):
         module_filename = None
 
-        for relative_path in self.getYamlConfigItemSet(
+        for config_item in self.getYamlConfigItemSet(
             module_name=module_name,
             section="import-hacks",
             item_name="global-sys-path",
@@ -431,7 +431,9 @@ According to 'implicit-imports' configuration."""
                 if os.path.isfile(module_filename):
                     module_filename = os.path.dirname(module_filename)
 
-            candidate = os.path.abspath(os.path.join(module_filename, relative_path))
+            candidate = os.path.abspath(
+                os.path.join(module_filename, config_item.value)
+            )
 
             if os.path.isdir(candidate):
                 yield candidate
@@ -756,23 +758,20 @@ tuple(
     def createPreModuleLoadCode(self, module):
         full_name = module.getFullName()
 
-        for pre_import_code in self.getYamlConfigItem(
+        for config_item in self.getYamlConfigItem(
             module_name=full_name,
             section="implicit-imports",
             item_name="pre-import-code",
             decide_relevant=bool,
             recursive=False,
         ):
-            code = "\n".join(pre_import_code)
+            code = "\n".join(config_item.value)
 
             # TODO: Add a description to the Yaml file.
             yield code, """\
 According to Yaml 'pre-import-code' configuration."""
 
-        for (
-            environment_variable_name,
-            environment_variable_value,
-        ) in self.getYamlConfigItemItems(
+        for config_item in self.getYamlConfigItemItems(
             module_name=full_name,
             section="import-hacks",
             item_name="force-environment-variables",
@@ -783,16 +782,13 @@ According to Yaml 'pre-import-code' configuration."""
 import os
 os.environ['%(environment_variable_name)s'] = "%(environment_variable_value)s"
 """ % {
-                "environment_variable_name": environment_variable_name,
-                "environment_variable_value": environment_variable_value,
+                "environment_variable_name": config_item.key,
+                "environment_variable_value": config_item.value,
             }
             yield code, """\
 According to Yaml 'force-environment-variables' configuration."""
 
-        for (
-            environment_variable_name,
-            environment_variable_value,
-        ) in self.getYamlConfigItemItems(
+        for config_item in self.getYamlConfigItemItems(
             module_name=full_name,
             section="import-hacks",
             item_name="overridden-environment-variables",
@@ -805,8 +801,8 @@ if os.getenv("%(environment_variable_name)s") is not None:
     os.environ["%(environment_variable_name)s" + "_OLD"] = os.getenv("%(environment_variable_name)s")
 os.environ['%(environment_variable_name)s'] = "%(environment_variable_value)s"
 """ % {
-                "environment_variable_name": environment_variable_name,
-                "environment_variable_value": environment_variable_value,
+                "environment_variable_name": config_item.key,
+                "environment_variable_value": config_item.value,
             }
             yield code, """\
 According to Yaml 'overridden-environment-variables' configuration."""
@@ -814,23 +810,20 @@ According to Yaml 'overridden-environment-variables' configuration."""
     def createPostModuleLoadCode(self, module):
         full_name = module.getFullName()
 
-        for post_import_code in self.getYamlConfigItem(
+        for config_item in self.getYamlConfigItem(
             module_name=full_name,
             section="implicit-imports",
             item_name="post-import-code",
             decide_relevant=bool,
             recursive=False,
         ):
-            code = "\n".join(post_import_code)
+            code = "\n".join(config_item.value)
 
             # TODO: Add a description to the Yaml file.
             yield code, """\
 According to Yaml 'post-import-code' configuration."""
 
-        for (
-            environment_variable_name,
-            _environment_variable_value,
-        ) in self.getYamlConfigItemItems(
+        for config_item in self.getYamlConfigItemItems(
             module_name=full_name,
             section="import-hacks",
             item_name="overridden-environment-variables",
@@ -844,7 +837,7 @@ if os.getenv("%(environment_variable_name)s" + "_OLD") is None:
 else:
     os.environ["%(environment_variable_name)s"] = os.environ["%(environment_variable_name)s" + "_OLD"]
     del os.environ["%(environment_variable_name)s" + "_OLD"]
-""" % {"environment_variable_name": environment_variable_name}
+""" % {"environment_variable_name": config_item.key}
 
             yield code, """\
 According to Yaml 'overridden-environment-variables' configuration."""
