@@ -452,7 +452,9 @@ class StatementLoop(StatementLoopBase):
         )
 
         if break_collections:
-            outer_trace_collection.mergeMultipleBranches(break_collections)
+            outer_trace_collection.mergeMultipleBranches(
+                break_collections, base_pos=None
+            )
 
         if loop_body is not None:
             assert loop_body.isStatementsSequence()

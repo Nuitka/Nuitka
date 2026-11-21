@@ -158,7 +158,7 @@ class ExpressionOutlineBody(
             return_collections = trace_collection.getFunctionReturnCollections()
 
         if return_collections:
-            trace_collection.mergeMultipleBranches(return_collections)
+            trace_collection.mergeMultipleBranches(return_collections, base_pos=None)
 
         first_statement = body.subnode_statements[0]
 
@@ -374,7 +374,7 @@ class ExpressionOutlineFunctionBase(ExpressionOutlineMixin, ExpressionFunctionBo
                 trace_collection.onExceptionRaiseExit(None, exception_collection)
 
         if return_collections:
-            trace_collection.mergeMultipleBranches(return_collections)
+            trace_collection.mergeMultipleBranches(return_collections, base_pos=None)
 
         first_statement = body.subnode_statements[0]
 

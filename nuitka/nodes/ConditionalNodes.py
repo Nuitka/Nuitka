@@ -161,6 +161,9 @@ branches.""",
         # and to not true for no branch, the branch should know that.
         yes_branch = self.subnode_expression_yes
 
+        # Both branches start from here, for merging only what they changed.
+        base_pos = trace_collection.getWritePosition()
+
         if truth_value is not False:
             branch_yes_collection = TraceCollectionBranch(
                 parent=trace_collection, name="conditional expression yes branch"
@@ -192,7 +195,9 @@ branches.""",
         elif truth_value is False:
             trace_collection.replaceBranch(branch_no_collection)
         else:
-            trace_collection.mergeBranches(branch_yes_collection, branch_no_collection)
+            trace_collection.mergeBranches(
+                branch_yes_collection, branch_no_collection, base_pos=base_pos
+            )
 
         if truth_value is True:
             return (
@@ -347,7 +352,11 @@ branches.""" % self.conditional_kind,
             branch_yes_collection = None
 
         if branch_yes_collection:
-            trace_collection.mergeBranches(branch_yes_collection, None)
+            trace_collection.mergeBranches(
+                branch_yes_collection,
+                None,
+                base_pos=branch_yes_collection.fork_pos,
+            )
 
         if truth_value is truth_value_use_left:
             return (
@@ -665,6 +674,9 @@ branches.""",
 
         needs_merge = True
 
+        # Both branches start from here, for merging only what they changed.
+        base_pos = trace_collection.getWritePosition()
+
         if yes_branch is not None:
             branch_yes_collection = TraceCollectionBranch(
                 parent=trace_collection, name="conditional yes branch"
@@ -700,7 +712,7 @@ branches.""",
         else:
             if needs_merge:
                 trace_collection.mergeBranches(
-                    branch_yes_collection, branch_no_collection
+                    branch_yes_collection, branch_no_collection, base_pos=base_pos
                 )
             else:
                 if branch_yes_collection is not None:
