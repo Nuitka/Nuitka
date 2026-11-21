@@ -3779,7 +3779,7 @@ static Py_ssize_t Nuitka_DictLookupCompact(PyDictObject *mp, PyObject *key, Py_h
 
 static Py_ssize_t Nuitka_DictLookupCompactResultWithEq(PyDictObject *mp, PyObject *key, Py_hash_t hash,
                                                        PyObject **result, richcmpfunc equal_func) {
-    PyObject **value_addr;
+    PyObject **value_addr = NULL;
     Py_ssize_t ix = Nuitka_DictLookupCompactWithEq(mp, key, hash, &value_addr, equal_func);
 
     *result = value_addr != NULL ? *value_addr : NULL;
