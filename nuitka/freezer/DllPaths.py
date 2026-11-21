@@ -11,7 +11,6 @@ from nuitka.importing.Importing import (
 from nuitka.PythonFlavors import (
     getHomebrewInstallPath,
     getMacPortsInstallPath,
-    isAnacondaPython,
     isCPythonOfficialPackage,
     isHomebrewPython,
     isMacPortsPython,
@@ -19,7 +18,7 @@ from nuitka.PythonFlavors import (
     isPyenvHomebrewPython,
     isPythonBuildStandalonePython,
 )
-from nuitka.PythonPrefixes import getSystemPrefixPath
+from nuitka.PythonPrefixes import getCondaPrefixPath, getSystemPrefixPath
 from nuitka.utils.FileOperations import (
     getNormalizedPathJoin,
     isFilenameBelowPath,
@@ -48,8 +47,10 @@ def _getInsidePaths():
         inside_paths.extend(getMainScriptDirectories())
         inside_paths.extend(getExtraSysPaths())
 
-        if isAnacondaPython():
-            inside_paths.insert(0, getSystemPrefixPath())
+        conda_prefix_path = getCondaPrefixPath()
+
+        if conda_prefix_path is not None:
+            inside_paths.insert(0, conda_prefix_path)
 
         if isMacOS() and (
             isCPythonOfficialPackage() or isPythonBuildStandalonePython()

@@ -22,6 +22,7 @@ from nuitka.options.Options import (
 from nuitka.plugins.Hooks import getPluginsCacheContributionValues
 from nuitka.PythonFlavors import isAnacondaPython, isMSYS2MingwPython
 from nuitka.PythonPrefixes import (
+    getCondaPrefixPath,
     getSystemPrefixExecutable,
     getSystemPrefixPath,
 )
@@ -542,6 +543,14 @@ def _getScanDirectories(package_name, original_dir, use_path):
     # the "sys.executable", which for uninstalled Python is the "PCbuild"
     # directory, and otherwise the installation root.
     scan_dirs.add(os.path.dirname(getSystemPrefixExecutable()))
+
+    conda_prefix_path = getCondaPrefixPath()
+
+    if conda_prefix_path is not None:
+        # Conda keeps the DLLs of its packages below "Library/bin", which is
+        # not necessarily in "PATH", e.g. when using a virtual environment
+        # created from a conda installation.
+        scan_dirs.add(getNormalizedPathJoin(conda_prefix_path, "Library", "bin"))
 
     if isMSYS2MingwPython():
         scan_dirs.add(getNormalizedPathJoin(getSystemPrefixPath(), "bin"))
