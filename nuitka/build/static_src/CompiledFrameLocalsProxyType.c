@@ -540,32 +540,92 @@ static PyObject *_Nuitka_FrameLocalsProxy_pop(PyObject *self, PyObject *args) {
 }
 #endif
 
+static bool _Nuitka_FrameLocalsProxy_is_updatable_from(PyObject *other) {
+    return PyDict_Check(other) || Nuitka_PyObject_TypeCheck(other, &Nuitka_FrameLocalsProxy_Type) ||
+           PyFrameLocalsProxy_Check(other);
+}
+
+static int _Nuitka_FrameLocalsProxy_merge(PyThreadState *tstate, PyObject *self, PyObject *other) {
+    if (Nuitka_PyObject_TypeCheck(other, &Nuitka_FrameLocalsProxy_Type)) {
+        if (((Nuitka_FrameLocalsProxyObject *)self)->frame == ((Nuitka_FrameLocalsProxyObject *)other)->frame) {
+            return 0;
+        }
+
+        PyObject *snapshot_dict = _Nuitka_FrameLocalsProxy_to_dict((Nuitka_FrameLocalsProxyObject *)other);
+        if (unlikely(snapshot_dict == NULL)) {
+            return -1;
+        }
+
+        Py_ssize_t pos = 0;
+        PyObject *key, *value;
+
+        while (Nuitka_DictNext(snapshot_dict, &pos, &key, &value)) {
+            if (unlikely(_Nuitka_FrameLocalsProxy_ass_subscript(self, key, value) < 0)) {
+                Py_DECREF(snapshot_dict);
+                return -1;
+            }
+        }
+
+        Py_DECREF(snapshot_dict);
+        return 0;
+    }
+
+    PyObject *keys = Nuitka_Mapping_Keys(tstate, other);
+    if (unlikely(keys == NULL)) {
+        return -1;
+    }
+
+    PyObject *iter = MAKE_ITERATOR(tstate, keys);
+    Py_DECREF(keys);
+
+    if (unlikely(iter == NULL)) {
+        return -1;
+    }
+
+    PyObject *key;
+
+    while ((key = ITERATOR_NEXT(iter)) != NULL) {
+        PyObject *value = LOOKUP_SUBSCRIPT(tstate, other, key);
+
+        if (unlikely(value == NULL)) {
+            Py_DECREF(key);
+            Py_DECREF(iter);
+            return -1;
+        }
+
+        int res = _Nuitka_FrameLocalsProxy_ass_subscript(self, key, value);
+        Py_DECREF(key);
+        Py_DECREF(value);
+
+        if (unlikely(res < 0)) {
+            Py_DECREF(iter);
+            return -1;
+        }
+    }
+
+    Py_DECREF(iter);
+
+    if (unlikely(HAS_ERROR_OCCURRED(tstate))) {
+        if (!CHECK_AND_CLEAR_STOP_ITERATION_OCCURRED(tstate)) {
+            return -1;
+        }
+    }
+
+    return 0;
+}
+
 static PyObject *_Nuitka_FrameLocalsProxy_update(PyObject *self, PyObject *other) {
     PyThreadState *tstate = PyThreadState_GET();
 
-    if (!PyDict_Check(other) && !Nuitka_PyObject_TypeCheck(other, &Nuitka_FrameLocalsProxy_Type)) {
+    if (!_Nuitka_FrameLocalsProxy_is_updatable_from(other)) {
         SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_TypeError,
                                         "update() argument must be dict or another FrameLocalsProxy");
         return NULL;
     }
 
-    PyObject *items = PyMapping_Items(other);
-    if (items == NULL) {
+    if (unlikely(_Nuitka_FrameLocalsProxy_merge(tstate, self, other) < 0)) {
         return NULL;
     }
-
-    for (Py_ssize_t i = 0; i < PyList_GET_SIZE(items); i++) {
-        PyObject *pair = PyList_GET_ITEM(items, i);
-        PyObject *key = PyTuple_GET_ITEM(pair, 0);
-        PyObject *value = PyTuple_GET_ITEM(pair, 1);
-
-        if (_Nuitka_FrameLocalsProxy_ass_subscript(self, key, value) < 0) {
-            Py_DECREF(items);
-            return NULL;
-        }
-    }
-
-    Py_DECREF(items);
 
     Py_RETURN_NONE;
 }
@@ -689,11 +749,13 @@ static PyObject *_Nuitka_FrameLocalsProxy_or(PyObject *self, PyObject *other) {
 }
 
 static PyObject *_Nuitka_FrameLocalsProxy_inplace_or(PyObject *self, PyObject *other) {
-    if (!PyDict_Check(other) && !Nuitka_PyObject_TypeCheck(other, &Nuitka_FrameLocalsProxy_Type)) {
+    PyThreadState *tstate = PyThreadState_GET();
+
+    if (!_Nuitka_FrameLocalsProxy_is_updatable_from(other)) {
         Py_RETURN_NOTIMPLEMENTED;
     }
 
-    if (_Nuitka_FrameLocalsProxy_update(self, other) == NULL) {
+    if (unlikely(_Nuitka_FrameLocalsProxy_merge(tstate, self, other) < 0)) {
         return NULL;
     }
 
