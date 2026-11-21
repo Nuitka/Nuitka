@@ -146,9 +146,6 @@
             "additionalProperties": {
               "$ref": "#/definitions/python-expression"
             }
-          },
-          "when": {
-            "$ref": "#/definitions/python-expression"
           }
         }
       },

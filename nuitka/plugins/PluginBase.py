@@ -1853,12 +1853,7 @@ except Exception as e:
             ):
                 declarations = constant_config.get("declarations")
 
-                if declarations and self.evaluateCondition(
-                    full_name=full_name,
-                    condition=constant_config.get("when", "True"),
-                    allow_constants=False,
-                    allow_variables=False,
-                ):
+                if declarations:
                     for constant_name, constant_value in declarations.items():
                         constants[constant_name] = self.evaluateExpressionOrConstant(
                             full_name=full_name,
@@ -1893,47 +1888,41 @@ except Exception as e:
                         % full_name
                     )
 
-                if self.evaluateCondition(
-                    full_name=full_name,
-                    condition=variable_config.get("when", "True"),
-                    allow_constants=True,
-                    allow_variables=False,
-                ):
-                    setup_codes[0:0] = (
-                        "%s=%r" % (constant_name, constant_value)
-                        for (
-                            constant_name,
-                            constant_value,
-                        ) in self.getExpressionConstants(full_name=full_name).items()
+                setup_codes[0:0] = (
+                    "%s=%r" % (constant_name, constant_value)
+                    for (
+                        constant_name,
+                        constant_value,
+                    ) in self.getExpressionConstants(full_name=full_name).items()
+                )
+
+                env_variables = {}
+
+                for env_name, env_value in environment.items():
+                    env_variables[env_name] = self.evaluateExpressionOrConstant(
+                        full_name=full_name,
+                        expression=env_value,
+                        config_name="variables config #%d" % count,
+                        extra_context=None,
+                        single_value=True,
                     )
 
-                    env_variables = {}
+                with withEnvironmentVarsOverridden(env_variables):
+                    info = self.queryRuntimeInformationMultiple(
+                        "%s_variables_%s" % (full_name.asString(), count),
+                        setup_codes=setup_codes,
+                        values=tuple(declarations.items()),
+                    )
 
-                    for env_name, env_value in environment.items():
-                        env_variables[env_name] = self.evaluateExpressionOrConstant(
-                            full_name=full_name,
-                            expression=env_value,
-                            config_name="variables config #%d" % count,
-                            extra_context=None,
-                            single_value=True,
-                        )
+                if isExperimental("display-yaml-variables"):
+                    self.info("Evaluated %r" % info)
 
-                    with withEnvironmentVarsOverridden(env_variables):
-                        info = self.queryRuntimeInformationMultiple(
-                            "%s_variables_%s" % (full_name.asString(), count),
-                            setup_codes=setup_codes,
-                            values=tuple(declarations.items()),
-                        )
+                if info is None:
+                    return self.sysexit(
+                        "Error, failed to evaluate variables for '%s'." % full_name
+                    )
 
-                    if isExperimental("display-yaml-variables"):
-                        self.info("Evaluated %r" % info)
-
-                    if info is None:
-                        return self.sysexit(
-                            "Error, failed to evaluate variables for '%s'." % full_name
-                        )
-
-                    variables.update(info.asDict())
+                variables.update(info.asDict())
 
             _module_config_variables[full_name] = variables
 
@@ -1944,8 +1933,6 @@ except Exception as e:
         config_module_name,
         module_name,
         config_name,
-        allow_constants=True,
-        allow_variables=True,
     ):
         context = _makeEvaluationContext(
             logger=self,
@@ -1979,10 +1966,8 @@ except Exception as e:
                 constant_name
             ]
 
-        if allow_constants:
-            context["get_constant"] = get_constant
-        if allow_variables:
-            context["get_variable"] = get_variable
+        context["get_constant"] = get_constant
+        context["get_variable"] = get_variable
 
         def get_parameter(parameter_name, default):
             result = getModuleParameter(config_module_name, parameter_name)
@@ -2082,8 +2067,6 @@ Error, expression '%s' for module '%s' did not evaluate to 'tuple[str]' or 'list
         full_name,
         condition,
         config_module_name=None,
-        allow_constants=True,
-        allow_variables=True,
     ):
         # Note: Caching makes no sense yet, this should all be very fast and
         # cache themselves. TODO: Allow plugins to also update control tag
@@ -2104,8 +2087,6 @@ Error, expression '%s' for module '%s' did not evaluate to 'tuple[str]' or 'list
             config_module_name=config_module_name,
             module_name=full_name,
             config_name="'when' configuration",
-            allow_constants=allow_constants,
-            allow_variables=allow_variables,
         )
 
         with withNoWarning():

@@ -1153,13 +1153,12 @@
         # The filename is chosen by the toolkit version at run time.
         - 'cutlass._mlir._mlir_libs._cutlass_ir_version_cu*'
 
-- module-name: 'cv2' # checksum: 75420eb8
+- module-name: 'cv2' # checksum: 27392978
   variables:
     setup_code:
       - 'import cv2'
     declarations:
       'cv2_extra_sub_modules': 'tuple(m for m in cv2.__collect_extra_submodules(False) if m != ".dylibs")'
-    when: 'not is_conda_package("cv2") and not version(get_dist_name("cv2")) < (4,6)'
   data-files:
     - dirs:
         - 'qt/fonts'
@@ -3562,7 +3561,7 @@
         'runtests': 'un-callable'
       when: 'not use_pytest'
 
-- module-name: 'mssql_python' # checksum: 4cd7d5fd
+- module-name: 'mssql_python' # checksum: 2d967685
   variables:
     setup_code:
       - 'import platform, os'
@@ -3570,7 +3569,6 @@
     declarations:
       'linux_arch': "'arm64' if machine in ('arm64', 'aarch64') else 'x86_64'"
       'linux_distro': "'alpine' if os.path.exists('/etc/alpine-release') else 'suse' if os.path.exists('/etc/SuSE-release') or os.path.exists('/etc/SUSE-brand') else 'rhel' if os.path.exists('/etc/redhat-release') else 'debian_ubuntu'"
-    when: 'linux'
   dlls:
     - from_filenames:
         prefixes:
