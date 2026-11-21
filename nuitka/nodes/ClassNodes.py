@@ -5,6 +5,7 @@
 
 from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.PythonVersions import python_version
+from nuitka.tree.Extractions import getClonedProvider
 
 from .ChildrenHavingMixins import (
     ChildHavingBodyOptionalMixin,
@@ -110,6 +111,13 @@ class ExpressionClassBodyBase(ExpressionOutlineFunctionBase):
             "flags": None if self.flags is None else set(self.flags),
         }
 
+    def _getCloneDetails(self):
+        # Preserve the Python class name instead of appending "_clone".
+        result = self.getDetails()
+        result["provider"] = getClonedProvider(result["provider"])
+
+        return result
+
     def getCloneArgs(self):
         # Preserve the Python class name instead of appending "_clone".
         return ChildHavingBodyOptionalMixin.getCloneArgs(self)
@@ -138,7 +146,8 @@ class ExpressionClassBodyBase(ExpressionOutlineFunctionBase):
 
     def _copyClassBodyCloneState(self, result, variable_translations):
         if python_version >= 0x300:
-            result.qualname_provider = self.qualname_provider
+            if self.qualname_provider is not self.provider:
+                result.qualname_provider = getClonedProvider(self.qualname_provider)
 
             if self.non_local_declarations is not None:
                 result.non_local_declarations = list(self.non_local_declarations)

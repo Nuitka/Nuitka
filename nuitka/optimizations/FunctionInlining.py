@@ -11,7 +11,7 @@ from nuitka.nodes.FunctionNodes import updateFunctionBodyReferences
 from nuitka.nodes.OutlineNodes import ExpressionOutlineFunction
 from nuitka.nodes.ReturnNodes import StatementReturnNone
 from nuitka.nodes.VariableAssignNodes import makeStatementAssignmentVariable
-from nuitka.tree.Extractions import updateVariableUsage
+from nuitka.tree.Extractions import updateVariableUsage, withClonedProvider
 from nuitka.tree.ReformulationTryFinallyStatements import (
     makeTryFinallyReleaseStatement,
 )
@@ -35,7 +35,8 @@ def convertFunctionCallToOutline(provider, function_body, values, call_source_re
             statement=StatementReturnNone(source_ref=function_source_ref)
         )
     else:
-        clone = function_body.subnode_body.makeClone()
+        with withClonedProvider(function_body, outline_body):
+            clone = function_body.subnode_body.makeClone()
 
     parameter_variables = function_body.getParameters().getAllVariables()
     assert len(parameter_variables) == len(values), (parameter_variables, values)

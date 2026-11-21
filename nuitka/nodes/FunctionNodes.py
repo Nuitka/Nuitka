@@ -24,7 +24,11 @@ from nuitka.specs.ParameterSpecs import (
 )
 from nuitka.States import states
 from nuitka.Tracing import optimization_logger, printError
-from nuitka.tree.Extractions import updateVariableUsage
+from nuitka.tree.Extractions import (
+    getClonedProvider,
+    updateVariableUsage,
+    withClonedProvider,
+)
 from nuitka.tree.Operations import VisitorNoopMixin, visitTree
 from nuitka.tree.SourceHandling import readSourceLines
 from nuitka.tree.TreeHelpers import makeDictCreationOrConstant2
@@ -896,7 +900,8 @@ def _makeFunctionBodyClone(
         return None
 
     if function_body.subnode_body is not None:
-        result.setChildBody(function_body.subnode_body.makeClone())
+        with withClonedProvider(function_body, result):
+            result.setChildBody(function_body.subnode_body.makeClone())
 
     all_variable_translations = dict(variable_translations)
     all_variable_translations.update(parameter_variable_translations)
@@ -927,13 +932,14 @@ def _makeFunctionBodyClone(
         result.qualname_setup = function_body.qualname_setup
 
         if function_body.qualname_provider is not function_body.provider:
-            result.qualname_provider = (
+            qualname_provider = (
                 provider_translations.get(
                     function_body.qualname_provider, function_body.qualname_provider
                 )
                 if provider_translations is not None
                 else function_body.qualname_provider
             )
+            result.qualname_provider = getClonedProvider(qualname_provider)
 
         if function_body.non_local_declarations is not None:
             result.non_local_declarations = list(function_body.non_local_declarations)
