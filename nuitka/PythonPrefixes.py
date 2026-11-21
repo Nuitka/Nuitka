@@ -110,6 +110,23 @@ def getSystemPrefixPath():
     return _the_sys_prefix
 
 
+def getCondaPrefixPath():
+    """Return the prefix of the conda installation, or None if not using one.
+
+    Notes:
+        Virtual environments created from a conda installation do not have
+        the "conda-meta" directory themselves, but the base installation
+        they were created from has it.
+    """
+
+    system_prefix = getSystemPrefixPath()
+
+    if os.path.exists(getNormalizedPathJoin(system_prefix, "conda-meta")):
+        return system_prefix
+
+    return None
+
+
 def getSystemPrefixExecutable():
     """Return the sys.executable of the system prefix, i.e. breaking out of virtualenv.
 
