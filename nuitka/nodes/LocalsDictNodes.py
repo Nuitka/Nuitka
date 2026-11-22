@@ -5,16 +5,31 @@
 
 from nuitka.optimizations.TraceCollections import TraceCollectionBranch
 from nuitka.PythonVersions import python_version
-from nuitka.tree.TreeHelpers import makeStatementsSequence
+from nuitka.tree.ReformulationTryFinallyStatements import (
+    makeTryFinallyStatement,
+)
+from nuitka.tree.TreeHelpers import (
+    makeStatementsSequence,
+    makeStatementsSequenceFromStatement,
+)
 
+from .CallNodes import makeExpressionCall
 from .ChildrenHavingMixins import ChildHavingFallbackMixin
-from .ConditionalNodes import ExpressionConditional
+from .ConditionalNodes import ExpressionConditional, makeStatementConditional
+from .ContainerMakingNodes import makeExpressionMakeTuple
+from .DictionaryNodes import makeExpressionMakeDict
 from .ExpressionBases import ExpressionBase
 from .ExpressionBasesGenerated import (
     ExpressionClassMappingVariableRefOrFallbackBase,
 )
 from .GlobalsLocalsNodes import ExpressionBuiltinLocalsRef
+from .KeyValuePairNodes import (
+    makeExpressionKeyValuePair,
+    makeExpressionKeyValuePairConstantKey,
+)
 from .NodeBases import StatementBase
+from .OutlineNodes import ExpressionOutlineBody
+from .ReturnNodes import makeStatementReturn
 from .StatementBasesGenerated import (
     StatementLocalsDictOperationSetBase,
     StatementSetLocalsBase,
@@ -23,7 +38,10 @@ from .StatementBasesGenerated import (
 from .VariableAssignNodes import makeStatementAssignmentVariable
 from .VariableDelNodes import makeStatementDelVariable
 from .VariableRefNodes import ExpressionTempVariableRef
-from .VariableReleaseNodes import makeStatementReleaseVariable
+from .VariableReleaseNodes import (
+    makeStatementReleaseVariable,
+    makeStatementsReleaseVariables,
+)
 
 
 class ExpressionLocalsVariableRefOrFallback(ChildHavingFallbackMixin, ExpressionBase):
@@ -66,9 +84,9 @@ class ExpressionLocalsVariableRefOrFallback(ChildHavingFallbackMixin, Expression
 
     def setVariable(self, variable):
         assert variable.isLocalsDictVariable(), variable
+        assert self.variable_trace is None, self
 
         self.variable = variable
-        self.variable_trace = None
 
     def getLocalsDictScope(self):
         return self.locals_scope
@@ -170,59 +188,45 @@ class ExpressionLocalsVariableRefOrFallback(ChildHavingFallbackMixin, Expression
 
         trace_collection.onControlFlowEscape(self)
 
-        if (
-            self.variable.getName()
-            in ("dir", "eval", "exec", "execfile", "locals", "vars")
-            and self.subnode_fallback.isExpressionVariableRef()
-            and self.subnode_fallback.getVariable().isIncompleteModuleVariable()
-        ):
-            trace_collection.onLocalsUsage(self.getLocalsDictScope())
+        variable_name = self.variable.getName()
 
-        if (
-            self.subnode_fallback.isExpressionBuiltinRef()
-            or self.subnode_fallback.isExpressionConstantTypeRef()
+        if variable_name in (
+            "dir",
+            "eval",
+            "exec",
+            "execfile",
+            "locals",
+            "vars",
         ):
-            variable_name = self.variable.getName()
-
-            if variable_name in (
-                "dir",
-                "eval",
-                "exec",
-                "execfile",
-                "locals",
-                "vars",
+            if (
+                self.subnode_fallback.isExpressionVariableRef()
+                and self.subnode_fallback.getVariable().isIncompleteModuleVariable()
+            ):
+                trace_collection.onLocalsUsage(self.getLocalsDictScope())
+            elif (
+                self.subnode_fallback.isExpressionBuiltinRef()
+                or self.subnode_fallback.isExpressionConstantTypeRef()
             ):
                 trace_collection.onLocalsUsage(self.getLocalsDictScope())
 
-                call_node_clone = call_node.makeClone()
-                call_node_clone.setChildCalled(
-                    ExpressionLocalsVariableRef(
-                        locals_scope=self.locals_scope,
-                        variable_name=variable_name,
-                        source_ref=self.source_ref,
+                if (call_args is None or call_args.isExpressionConstantRef()) and (
+                    call_kw is None or call_kw.isExpressionConstantRef()
+                ):
+                    result = _makeUncertainLocalsDictCallConditional(call_node)
+
+                    return (
+                        result,
+                        "new_expression",
+                        "Moved call of uncertain dict variable '%s' to inside."
+                        % variable_name,
                     )
-                )
-
-                call_node = call_node.makeCloneShallow()
-                call_node.setChildCalled(self.subnode_fallback)
-
-                result = ExpressionConditional(
-                    condition=ExpressionLocalsVariableCheck(
-                        locals_scope=self.locals_scope,
-                        variable_name=variable_name,
-                        source_ref=self.source_ref,
-                    ),
-                    expression_yes=call_node_clone,
-                    expression_no=call_node,
-                    source_ref=self.source_ref,
-                )
-
-                return (
-                    result,
-                    "new_expression",
-                    "Moved call of uncertain dict variable '%s' to inside."
-                    % variable_name,
-                )
+                else:
+                    trace_collection.onDelayedWork(
+                        call_node,
+                        _makeUncertainLocalsDictCallOutline,
+                        "call of uncertain dict variable '%s'" % variable_name,
+                        _describeUncertainLocalsDictCallOutline,
+                    )
 
         return call_node, None, None
 
@@ -234,6 +238,265 @@ class ExpressionLocalsVariableRefOrFallback(ChildHavingFallbackMixin, Expression
             return True
 
         return self.subnode_fallback.mayRaiseException(exception_type)
+
+
+def _bindCallExpr(name, expr, bind_temp):
+    if expr.isExpressionConstantRef():
+        return expr.makeClone(), expr
+
+    tmp_var = bind_temp(name, expr)
+    source_ref = expr.getSourceReference()
+
+    return (
+        ExpressionTempVariableRef(variable=tmp_var, source_ref=source_ref),
+        ExpressionTempVariableRef(variable=tmp_var, source_ref=source_ref),
+    )
+
+
+def _bindCallArgs(call_args, bind_temp):
+    if call_args is None:
+        return None, None
+    elif call_args.isExpressionConstantRef():
+        return call_args.makeClone(), call_args
+    elif call_args.isExpressionMakeTuple():
+        yes_elements = []
+        no_elements = []
+
+        for count, element in enumerate(call_args.subnode_elements, 1):
+            yes_el, no_el = _bindCallExpr("arg_%d" % count, element, bind_temp)
+            yes_elements.append(yes_el)
+            no_elements.append(no_el)
+
+        return (
+            makeExpressionMakeTuple(
+                elements=tuple(yes_elements), source_ref=call_args.source_ref
+            ),
+            makeExpressionMakeTuple(
+                elements=tuple(no_elements), source_ref=call_args.source_ref
+            ),
+        )
+    else:
+        return _bindCallExpr("args", call_args, bind_temp)
+
+
+def _bindCallKw(call_kw, bind_temp):
+    if call_kw is None:
+        return None, None
+    elif call_kw.isExpressionConstantRef():
+        return call_kw.makeClone(), call_kw
+    elif call_kw.isExpressionMakeDict():
+        yes_pairs = []
+        no_pairs = []
+
+        for count, pair in enumerate(call_kw.subnode_pairs, 1):
+            if pair.isExpressionKeyValuePairConstantKeyValue():
+                yes_pairs.append(pair.makeClone())
+                no_pairs.append(pair)
+            elif pair.isExpressionKeyValuePairConstantKey():
+                key = pair.getKeyCompileTimeConstant()
+                yes_val, no_val = _bindCallExpr(
+                    "kw_val_%d" % count, pair.subnode_value, bind_temp
+                )
+                yes_pairs.append(
+                    makeExpressionKeyValuePairConstantKey(key=key, value=yes_val)
+                )
+                no_pairs.append(
+                    makeExpressionKeyValuePairConstantKey(key=key, value=no_val)
+                )
+            else:
+                if python_version < 0x350:
+                    yes_val, no_val = _bindCallExpr(
+                        "kw_val_%d" % count, pair.subnode_value, bind_temp
+                    )
+                    yes_key, no_key = _bindCallExpr(
+                        "kw_key_%d" % count, pair.subnode_key, bind_temp
+                    )
+                else:
+                    yes_key, no_key = _bindCallExpr(
+                        "kw_key_%d" % count, pair.subnode_key, bind_temp
+                    )
+                    yes_val, no_val = _bindCallExpr(
+                        "kw_val_%d" % count, pair.subnode_value, bind_temp
+                    )
+
+                yes_pairs.append(makeExpressionKeyValuePair(key=yes_key, value=yes_val))
+                no_pairs.append(makeExpressionKeyValuePair(key=no_key, value=no_val))
+
+        return (
+            makeExpressionMakeDict(
+                pairs=tuple(yes_pairs), source_ref=call_kw.source_ref
+            ),
+            makeExpressionMakeDict(
+                pairs=tuple(no_pairs), source_ref=call_kw.source_ref
+            ),
+        )
+    else:
+        return _bindCallExpr("kw", call_kw, bind_temp)
+
+
+def _makeUncertainLocalsDictCallConditional(call_node):
+    called = call_node.subnode_called
+    locals_scope = called.locals_scope
+    variable_name = called.variable.getName()
+    source_ref = called.source_ref
+
+    call_args = call_node.subnode_args
+    call_kw = call_node.subnode_kwargs
+
+    yes_call = makeExpressionCall(
+        called=ExpressionLocalsVariableRef(
+            locals_scope=locals_scope,
+            variable_name=variable_name,
+            source_ref=source_ref,
+        ),
+        args=call_args.makeClone() if call_args is not None else None,
+        kw=call_kw.makeClone() if call_kw is not None else None,
+        source_ref=call_node.source_ref,
+    )
+
+    no_call = makeExpressionCall(
+        called=called.subnode_fallback,
+        args=call_args,
+        kw=call_kw,
+        source_ref=call_node.source_ref,
+    )
+
+    return ExpressionConditional(
+        condition=ExpressionLocalsVariableCheck(
+            locals_scope=locals_scope,
+            variable_name=variable_name,
+            source_ref=source_ref,
+        ),
+        expression_yes=yes_call,
+        expression_no=no_call,
+        source_ref=source_ref,
+    )
+
+
+def _makeUncertainLocalsDictCallOutline(call_node):
+    called = call_node.subnode_called
+    source_ref = called.source_ref
+
+    outline_body = ExpressionOutlineBody(
+        provider=call_node.getParentVariableProvider(),
+        name="locals_dict_call",
+        source_ref=call_node.source_ref,
+    )
+    temp_scope = outline_body.getOutlineTempScope()
+
+    temp_variables = []
+    statements = []
+
+    def bindTemp(name, value_node):
+        tmp_var = outline_body.allocateTempVariable(
+            temp_scope=temp_scope,
+            name=name,
+            temp_type="object",
+            late=True,
+        )
+        temp_variables.append(tmp_var)
+        statements.append(
+            makeStatementAssignmentVariable(
+                variable=tmp_var,
+                source=value_node,
+                source_ref=value_node.getSourceReference(),
+            )
+        )
+        return tmp_var
+
+    tmp_is_local = bindTemp(
+        "is_local",
+        ExpressionLocalsVariableCheck(
+            locals_scope=called.locals_scope,
+            variable_name=called.variable.getName(),
+            source_ref=source_ref,
+        ),
+    )
+
+    tmp_called = outline_body.allocateTempVariable(
+        temp_scope=temp_scope,
+        name="called",
+        temp_type="object",
+        late=True,
+    )
+    temp_variables.append(tmp_called)
+
+    statements.append(
+        makeStatementConditional(
+            condition=ExpressionTempVariableRef(
+                variable=tmp_is_local, source_ref=source_ref
+            ),
+            yes_branch=makeStatementAssignmentVariable(
+                variable=tmp_called,
+                source=ExpressionLocalsVariableRef(
+                    locals_scope=called.locals_scope,
+                    variable_name=called.variable.getName(),
+                    source_ref=source_ref,
+                ),
+                source_ref=source_ref,
+            ),
+            no_branch=None,
+            source_ref=source_ref,
+        )
+    )
+
+    yes_args, no_args = _bindCallArgs(call_node.subnode_args, bindTemp)
+    yes_kw, no_kw = _bindCallKw(call_node.subnode_kwargs, bindTemp)
+
+    statements.append(
+        makeStatementConditional(
+            condition=ExpressionTempVariableRef(
+                variable=tmp_is_local, source_ref=source_ref
+            ),
+            yes_branch=makeStatementReturn(
+                expression=makeExpressionCall(
+                    called=ExpressionTempVariableRef(
+                        variable=tmp_called, source_ref=source_ref
+                    ),
+                    args=yes_args,
+                    kw=yes_kw,
+                    source_ref=call_node.source_ref,
+                ),
+                source_ref=call_node.source_ref,
+            ),
+            no_branch=makeStatementReturn(
+                expression=makeExpressionCall(
+                    called=called.subnode_fallback,
+                    args=no_args,
+                    kw=no_kw,
+                    source_ref=call_node.source_ref,
+                ),
+                source_ref=call_node.source_ref,
+            ),
+            source_ref=call_node.source_ref,
+        )
+    )
+
+    outline_body.setChildBody(
+        makeStatementsSequenceFromStatement(
+            statement=makeTryFinallyStatement(
+                provider=outline_body,
+                tried=makeStatementsSequence(
+                    statements=statements, source_ref=call_node.source_ref
+                ),
+                final=makeStatementsSequence(
+                    statements=makeStatementsReleaseVariables(
+                        variables=tuple(reversed(temp_variables)),
+                        source_ref=call_node.source_ref,
+                    ),
+                    source_ref=call_node.source_ref,
+                ),
+                source_ref=call_node.source_ref,
+            )
+        )
+    )
+
+    return outline_body
+
+
+def _describeUncertainLocalsDictCallOutline(new_node):
+    assert new_node.isExpressionOutlineBody(), new_node
+    return "changed_variable_usage", "outlined conditional call"
 
 
 class ExpressionClassMappingVariableRefOrFallback(
@@ -314,9 +577,9 @@ class ExpressionLocalsVariableRef(ExpressionBase):
 
     def setVariable(self, variable):
         assert variable.isLocalsDictVariable(), variable
+        assert self.variable_trace is None, self
 
         self.variable = variable
-        self.variable_trace = None
 
     def getLocalsDictScope(self):
         return self.locals_scope
@@ -456,11 +719,11 @@ class StatementLocalsDictOperationSet(StatementLocalsDictOperationSetBase):
 
     def setVariable(self, variable):
         assert variable.isLocalsDictVariable(), variable
+        assert self.variable_trace is None, self
 
         self.variable = variable
         self.variable_name = variable.getName()
         self.variable_version = variable.allocateTargetNumber()
-        self.variable_trace = None
 
     def getLocalsDictScope(self):
         return self.locals_scope
@@ -591,10 +854,10 @@ class StatementLocalsDictOperationDel(StatementBase):
 
     def setVariable(self, variable):
         assert variable.isLocalsDictVariable(), variable
+        assert self.previous_trace is None, self
 
         self.variable = variable
         self.variable_version = variable.allocateTargetNumber()
-        self.previous_trace = None
 
     def getLocalsDictScope(self):
         return self.locals_scope

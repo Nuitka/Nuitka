@@ -710,6 +710,87 @@ def callCustomGetattributeMethods(obj):
 
 print(callCustomGetattributeMethods(CustomGetattributeDataDescrHolder()))
 
+
+def testUncertainLocalsDictCalls(shadow, xs, ys):
+    log = []
+
+    def custom_eval(src, *args, **kwargs):
+        log.append(("custom_eval", src, args, kwargs))
+        return "custom:" + str(src)
+
+    def gen(items):
+        for item in items:
+            log.append(("gen", item))
+            yield item
+
+    def boom():
+        log.append("boom")
+        raise ValueError("arg boom")
+
+    class C:
+        a = 10
+        if shadow:
+            eval = custom_eval
+
+        r_locals = locals()
+        r_eval_const = eval("a + 5")
+        # Python 2 assigns list comprehension variables in the class scope, and
+        # nested generator expressions cannot see class scopes.
+        if sys.version_info >= (3,):
+            r_eval_comp = eval(
+                "+".join(
+                    str(x) for x in [v for v in gen(xs) if any(v == w for w in ys)]
+                )
+            )
+        else:
+            r_eval_comp = eval(
+                "+".join(str(x) for x in [v for v in gen(xs) if v in ys])
+            )
+        r_eval_two_args = eval("b + 1", {"b": (lambda z: z * 2)(20)})
+
+        r_loop = []
+        for idx in range(2):
+            r_loop.append(eval("a + " + str(idx)))
+
+        try:
+            r_err = eval("a + 1", boom())
+        except ValueError as e:
+            r_err = str(e)
+
+        if not shadow:
+            if xs == [-999]:
+                eval = custom_eval
+            r_order = eval((locals().__setitem__("eval", custom_eval), "a + 7")[1])
+            r_after = eval("a + 8")
+        else:
+            r_order = eval((locals().pop("eval"), "a + 2")[1])
+            r_after = eval("a + 3")
+
+    class C2:
+        a = 10
+        if shadow:
+            locals = lambda: {"custom_locals": True}
+        r_locals = locals()
+
+    print(
+        "Uncertain locals dict call shadow=%s:" % shadow,
+        "a" in C.r_locals,
+        "a" in C2.r_locals,
+        "custom_locals" in C2.r_locals,
+        C.r_eval_const,
+        C.r_eval_comp,
+        C.r_eval_two_args,
+        C.r_loop,
+        C.r_err,
+        C.r_order,
+        C.r_after,
+        log,
+    )
+
+
+testUncertainLocalsDictCalls(False, [1, 2, 3], [2, 3, 4])
+testUncertainLocalsDictCalls(True, [1, 2, 3], [2, 3, 4])
+
 #     Python tests originally created or extracted from other peoples work. The
 #     parts were too small to be protected.
 #

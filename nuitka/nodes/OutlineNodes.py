@@ -70,6 +70,137 @@ class ExpressionOutlineMixin(object):
     def allocateTempScope(self, name):
         return self.provider.allocateTempScope(name=self.name + "$" + name)
 
+    def allocateTempVariable(self, temp_scope, name, temp_type, late=False):
+        if temp_scope is None:
+            temp_scope = self.getOutlineTempScope()
+
+        entry_point = self.getEntryPoint()
+
+        return entry_point.allocateTempVariable(
+            temp_scope=temp_scope,
+            name=name,
+            temp_type=temp_type,
+            late=late,
+            outline=self,
+        )
+
+    def _cloneTempVariables(self, result):
+        old_entry_point = self.getEntryPoint()
+        new_entry_point = result.getEntryPoint()
+
+        assert new_entry_point.trace_collection is None, new_entry_point
+
+        variable_translations = {}
+
+        for temp_variable in old_entry_point.getTempVariables(self):
+            new_temp_name = temp_variable.getName()
+
+            if new_entry_point.hasTempVariable(new_temp_name):
+                clone_number = 1
+
+                while True:
+                    clone_suffix = (
+                        "_clone" if clone_number == 1 else "_clone_%d" % clone_number
+                    )
+                    candidate_name = new_temp_name + clone_suffix
+
+                    if not new_entry_point.hasTempVariable(candidate_name):
+                        new_temp_name = candidate_name
+                        break
+
+                    clone_number += 1
+
+            # Make the clone own separate temporary variables; cloning only
+            # happens before trace collection starts.
+            new_temp_variable = new_entry_point.createTempVariable(
+                temp_name=new_temp_name,
+                temp_type=temp_variable.getVariableType(),
+                outline=result,
+            )
+
+            variable_translations[temp_variable] = new_temp_variable
+
+        return variable_translations
+
+    def _computeOutlineBody(self, trace_collection, need_removal, outline_description):
+        catch_exceptions = (
+            need_removal and trace_collection.getExceptionRaiseCollections() is not None
+        )
+
+        abort_context = trace_collection.makeAbortStackContext(
+            catch_breaks=False,
+            catch_continues=False,
+            catch_returns=True,
+            catch_exceptions=catch_exceptions,
+        )
+
+        with abort_context:
+            body = self.subnode_body
+
+            result = body.computeStatementsSequence(trace_collection=trace_collection)
+
+            if result is not body:
+                self.setChildBody(result)
+                body = result
+
+            return_collections = trace_collection.getFunctionReturnCollections()
+            exception_collections = trace_collection.getExceptionRaiseCollections()
+
+            for variable in need_removal:
+                for return_collection in return_collections:
+                    return_collection.removeCurrentVariableTrace(variable)
+
+                if catch_exceptions:
+                    for exception_collection in exception_collections:
+                        exception_collection.removeCurrentVariableTrace(variable)
+
+                trace_collection.removeCurrentVariableTrace(variable)
+
+        if catch_exceptions:
+            for exception_collection in exception_collections:
+                trace_collection.onExceptionRaiseExit(None, exception_collection)
+
+        if return_collections:
+            trace_collection.mergeMultipleBranches(return_collections)
+
+        first_statement = body.subnode_statements[0]
+
+        if first_statement.isStatementReturnConstant():
+            return (
+                makeConstantRefNode(
+                    constant=first_statement.getConstant(),
+                    source_ref=first_statement.source_ref,
+                ),
+                "new_expression",
+                "%s '%s' is now simple return, use directly."
+                % (outline_description, self.name),
+            )
+
+        if first_statement.isStatementReturn():
+            return (
+                first_statement.subnode_expression,
+                "new_expression",
+                "%s '%s' is now simple return, use directly."
+                % (outline_description, self.name),
+            )
+
+        if first_statement.isStatementRaiseException():
+            assert first_statement.subnode_exception_value is None, first_statement
+            result = ExpressionRaiseException(
+                exception_type=first_statement.subnode_exception_type,
+                source_ref=first_statement.getSourceReference(),
+            )
+
+            return (
+                result,
+                "new_expression",
+                "%s is now exception raise, use directly." % outline_description,
+            )
+
+        # TODO: Function outline may become too trivial to outline and return
+        # collections may tell us something.
+        return self, None, None
+
     def mayRaiseException(self, exception_type):
         return self.subnode_body.mayRaiseException(exception_type)
 
@@ -115,19 +246,40 @@ class ExpressionOutlineBody(
     def getContainingClassDictCreation(self):
         return self.getParentVariableProvider().getContainingClassDictCreation()
 
-    def allocateTempVariable(self, temp_scope, name, temp_type, late=False):
-        if temp_scope is None:
-            temp_scope = self.getOutlineTempScope()
-
-        entry_point = self.getEntryPoint()
-
-        return entry_point.allocateTempVariable(
-            temp_scope=temp_scope,
-            name=name,
-            temp_type=temp_type,
-            late=late,
-            outline=None,
+    def makeClone(self):
+        result = self.__class__(
+            provider=getClonedProvider(self.provider),
+            name=self.name,
+            body=None,
+            source_ref=self.source_ref,
         )
+
+        effective_source_ref = self.getCompatibleSourceReference()
+        if effective_source_ref is not self.source_ref:
+            result.setCompatibleSourceReference(effective_source_ref)
+
+        if self.subnode_body is not None:
+            with withClonedProvider(self, result):
+                result.setChildBody(self.subnode_body.makeClone())
+
+        variable_translations = self._cloneTempVariables(result)
+
+        if variable_translations:
+            updateVariableUsage(
+                provider=result,
+                old_locals_scope=None,
+                new_locals_scope=None,
+                variable_translations=variable_translations,
+            )
+
+            updateFunctionBodyReferences(
+                provider=result,
+                old_provider=self,
+                variable_translations=variable_translations,
+                code_name_translations={},
+            )
+
+        return result
 
     def computeExpressionRaw(self, trace_collection):
         owning_module = self.getParentModule()
@@ -143,62 +295,14 @@ class ExpressionOutlineBody(
             source_ref=self.source_ref,
         )
 
-        abort_context = trace_collection.makeAbortStackContext(
-            catch_breaks=False,
-            catch_continues=False,
-            catch_returns=True,
-            catch_exceptions=False,
+        # The outline body executes inline within the calling context, and the
+        # expression it returns can reference its temporary variables, so those
+        # cannot be removed from the trace collection after the body was computed.
+        return self._computeOutlineBody(
+            trace_collection=trace_collection,
+            need_removal=(),
+            outline_description="Outline",
         )
-
-        with abort_context:
-            body = self.subnode_body
-
-            result = body.computeStatementsSequence(trace_collection=trace_collection)
-
-            if result is not body:
-                self.setChildBody(result)
-                body = result
-
-            return_collections = trace_collection.getFunctionReturnCollections()
-
-        if return_collections:
-            trace_collection.mergeMultipleBranches(return_collections)
-
-        first_statement = body.subnode_statements[0]
-
-        if first_statement.isStatementReturnConstant():
-            return (
-                makeConstantRefNode(
-                    constant=first_statement.getConstant(),
-                    source_ref=first_statement.source_ref,
-                ),
-                "new_expression",
-                "Outline '%s' is now simple return, use directly." % self.name,
-            )
-
-        if first_statement.isStatementReturn():
-            return (
-                first_statement.subnode_expression,
-                "new_expression",
-                "Outline '%s' is now simple return, use directly." % self.name,
-            )
-
-        if first_statement.isStatementRaiseException():
-            assert first_statement.subnode_exception_value is None, first_statement
-            result = ExpressionRaiseException(
-                exception_type=first_statement.subnode_exception_type,
-                source_ref=first_statement.getSourceReference(),
-            )
-
-            return (
-                result,
-                "new_expression",
-                "Outline is now exception raise, use directly.",
-            )
-
-        # TODO: Function outline may become too trivial to outline and return
-        # collections may tell us something.
-        return self, None, None
 
     def collectVariableAccesses(self, emit_variable):
         local_temp_variables = self.getEntryPoint().getTempVariables(self)
@@ -270,42 +374,12 @@ class ExpressionOutlineFunctionBase(ExpressionOutlineMixin, ExpressionFunctionBo
             with withClonedProvider(self, result):
                 result.setChildBody(self.subnode_body.makeClone())
 
-        old_entry_point = self.getEntryPoint()
-        new_entry_point = result.getEntryPoint()
-
         # pylint: disable=assigning-non-slot
         result.locals_scope, variable_translations = self.locals_scope.makeClone(
             new_owner=result
         )
 
-        for temp_variable in old_entry_point.getTempVariables(self):
-            new_temp_name = temp_variable.getName()
-
-            if new_entry_point.hasTempVariable(new_temp_name):
-                clone_number = 1
-
-                while True:
-                    clone_suffix = (
-                        "_clone" if clone_number == 1 else "_clone_%d" % clone_number
-                    )
-                    candidate_name = new_temp_name + clone_suffix
-
-                    if not new_entry_point.hasTempVariable(candidate_name):
-                        new_temp_name = candidate_name
-                        break
-
-                    clone_number += 1
-
-            # Make the clone own separate temporary variables, without
-            # registering them in a trace collection, the clone will
-            # initialize them when it gets computed.
-            new_temp_variable = new_entry_point.createTempVariable(
-                temp_name=new_temp_name,
-                temp_type=temp_variable.getVariableType(),
-                outline=result,
-            )
-
-            variable_translations[temp_variable] = new_temp_variable
+        variable_translations.update(self._cloneTempVariables(result))
 
         # Taken variables are not owned by the outline either, replicate
         # them for the clone, translating the temporary variables, which
@@ -335,7 +409,6 @@ class ExpressionOutlineFunctionBase(ExpressionOutlineMixin, ExpressionFunctionBo
         return result
 
     def computeExpressionRaw(self, trace_collection):
-        # pylint: disable=too-many-branches
         need_removal = set()
 
         for variable in self.locals_scope.variables.values():
@@ -362,81 +435,11 @@ class ExpressionOutlineFunctionBase(ExpressionOutlineMixin, ExpressionFunctionBo
 
         trace_collection.addOutlineFunction(self)
 
-        catch_exceptions = (
-            need_removal and trace_collection.getExceptionRaiseCollections() is not None
+        return self._computeOutlineBody(
+            trace_collection=trace_collection,
+            need_removal=need_removal,
+            outline_description="Outline function",
         )
-
-        abort_context = trace_collection.makeAbortStackContext(
-            catch_breaks=False,
-            catch_continues=False,
-            catch_returns=True,
-            catch_exceptions=catch_exceptions,
-        )
-
-        with abort_context:
-            body = self.subnode_body
-
-            result = body.computeStatementsSequence(trace_collection=trace_collection)
-
-            if result is not body:
-                self.setChildBody(result)
-                body = result
-
-            return_collections = trace_collection.getFunctionReturnCollections()
-            exception_collections = trace_collection.getExceptionRaiseCollections()
-
-            for variable in need_removal:
-                for return_collection in return_collections:
-                    return_collection.removeCurrentVariableTrace(variable)
-
-                if catch_exceptions:
-                    for exception_collection in exception_collections:
-                        exception_collection.removeCurrentVariableTrace(variable)
-
-                trace_collection.removeCurrentVariableTrace(variable)
-
-        if catch_exceptions:
-            for exception_collection in exception_collections:
-                trace_collection.onExceptionRaiseExit(None, exception_collection)
-
-        if return_collections:
-            trace_collection.mergeMultipleBranches(return_collections)
-
-        first_statement = body.subnode_statements[0]
-
-        if first_statement.isStatementReturnConstant():
-            return (
-                makeConstantRefNode(
-                    constant=first_statement.getConstant(),
-                    source_ref=first_statement.source_ref,
-                ),
-                "new_expression",
-                "Outline function '%s' is now simple return, use directly." % self.name,
-            )
-
-        if first_statement.isStatementReturn():
-            return (
-                first_statement.subnode_expression,
-                "new_expression",
-                "Outline function '%s' is now simple return, use directly." % self.name,
-            )
-
-        if first_statement.isStatementRaiseException():
-            assert first_statement.subnode_exception_value is None, first_statement
-            result = ExpressionRaiseException(
-                exception_type=first_statement.subnode_exception_type,
-                source_ref=first_statement.getSourceReference(),
-            )
-
-            return (
-                result,
-                "new_expression",
-                "Outline function is now exception raise, use directly.",
-            )
-
-        # TODO: Function outline may become too trivial to outline and return
-        # collections may tell us something.
-        return self, None, None
 
     def collectVariableAccesses(self, emit_variable):
         local_variable_values = self.getLocalsScope().local_variables.values()
@@ -467,20 +470,6 @@ class ExpressionOutlineFunctionBase(ExpressionOutlineMixin, ExpressionFunctionBo
 
     def isUnoptimized(self):
         return self.provider.isUnoptimized()
-
-    def allocateTempVariable(self, temp_scope, name, temp_type, late=False):
-        if temp_scope is None:
-            temp_scope = self.getOutlineTempScope()
-
-        entry_point = self.getEntryPoint()
-
-        return entry_point.allocateTempVariable(
-            temp_scope=temp_scope,
-            name=name,
-            temp_type=temp_type,
-            late=late,
-            outline=self,
-        )
 
 
 class ExpressionOutlineFunction(ExpressionOutlineFunctionBase):

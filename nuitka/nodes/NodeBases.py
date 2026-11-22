@@ -606,6 +606,20 @@ class ClosureGiverNodeMixin(CodeNodeMixin):
         assert self.getEntryPoint() is self
         return tuple(x[0] for x in self.temp_variables.values() if x[1] is outline)
 
+    def getTempVariablesInline(self):
+        """Temporary variables to initialize when a trace collection is started.
+
+        Temporary variables of outline bodies are initialized together with the
+        other variables of the scope, since their code executes inline, while
+        those of outline functions only become active when these are computed.
+        """
+        assert self.getEntryPoint() is self
+        return tuple(
+            variable
+            for variable, outline in self.temp_variables.values()
+            if outline is None or not outline.isExpressionOutlineFunctionBase()
+        )
+
     def _removeTempVariable(self, variable):
         del self.temp_variables[variable.getName()]
 

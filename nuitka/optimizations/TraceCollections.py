@@ -1252,7 +1252,7 @@ class TraceCollectionFunction(CollectionStartPointMixin, TraceCollectionBase):
             self.initVariableModule(module_variable, old_collection)
             self.variable_escapable.add(module_variable)
 
-        for temp_variable in function_body.getTempVariables(outline=None):
+        for temp_variable in function_body.getTempVariablesInline():
             self.initVariableUninitialized(temp_variable, old_collection)
 
         # TODO: Have special function type for exec functions stuff.
@@ -1351,7 +1351,7 @@ class TraceCollectionModule(CollectionStartPointMixin, TraceCollectionBase):
             self.initVariableModule(module_variable, old_collection)
             self.variable_escapable.add(module_variable)
 
-        for temp_variable in module.getTempVariables(outline=None):
+        for temp_variable in module.getTempVariablesInline():
             self.initVariableUninitialized(temp_variable, old_collection)
 
         self.has_unescaped_variables = True
