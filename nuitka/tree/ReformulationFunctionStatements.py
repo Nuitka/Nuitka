@@ -17,6 +17,7 @@ from nuitka.nodes.BuiltinNextNodes import (
     ExpressionSpecialUnpack,
 )
 from nuitka.nodes.BuiltinRefNodes import (
+    ExpressionBuiltinAnonymousRef,
     ExpressionBuiltinExceptionRef,
     makeExpressionBuiltinTypeRef,
 )
@@ -56,8 +57,15 @@ from nuitka.nodes.KeyValuePairNodes import (
 )
 from nuitka.nodes.LocalsDictNodes import StatementSetLocalsDictionary
 from nuitka.nodes.OperatorNodes import makeBinaryOperationNode
-from nuitka.nodes.OutlineNodes import ExpressionOutlineFunction
+from nuitka.nodes.OutlineNodes import (
+    ExpressionOutlineBody,
+    ExpressionOutlineFunction,
+)
 from nuitka.nodes.ReturnNodes import StatementReturn, StatementReturnNone
+from nuitka.nodes.TypeNodes import (
+    ExpressionBuiltinType1,
+    ExpressionSubtypeCheck,
+)
 from nuitka.nodes.VariableAssignNodes import makeStatementAssignmentVariable
 from nuitka.nodes.VariableNameNodes import (
     ExpressionVariableNameRef,
@@ -145,6 +153,93 @@ def _injectDecorator(decorators, inject, acceptable, source_ref):
         decorators.append(
             makeExpressionBuiltinTypeRef(builtin_name=inject, source_ref=source_ref)
         )
+
+
+def _maybeWrapClassMethod(provider, node, decorators, decorated_function, source_ref):
+    if not provider.isExpressionClassBodyBase():
+        return decorated_function
+
+    if not (
+        (python_version >= 0x360 and node.name == "__init_subclass__")
+        or (python_version >= 0x370 and node.name == "__class_getitem__")
+    ):
+        return decorated_function
+
+    # CPython's type_new wraps __init_subclass__ and __class_getitem__ in
+    # classmethod only when the final class dict entry is a plain function.
+    # For undecorated compiled functions that is always true, so wrap directly
+    # to preserve optimization visibility.
+    if not decorators:
+        return makeCallNode(
+            makeExpressionBuiltinTypeRef(
+                builtin_name="classmethod", source_ref=source_ref
+            ),
+            decorated_function,
+            source_ref,
+        )
+
+    # When decorators are present, only wrap if the decorated result is still
+    # a function (e.g. @typing.override or a function wrapper), leaving
+    # @staticmethod, @classmethod, and custom descriptors untouched.
+    outline_body = ExpressionOutlineBody(
+        provider=provider,
+        name="wrap_classmethod",
+        source_ref=source_ref,
+    )
+
+    tmp_func = outline_body.allocateTempVariable(
+        temp_scope=None, name="decorated_func", temp_type="object"
+    )
+
+    outline_body.setChildBody(
+        makeStatementsSequenceFromStatements(
+            makeStatementAssignmentVariable(
+                variable=tmp_func,
+                source=decorated_function,
+                source_ref=source_ref,
+            ),
+            makeTryFinallyReleaseStatement(
+                provider=outline_body,
+                tried=makeStatementConditional(
+                    condition=ExpressionSubtypeCheck(
+                        left=ExpressionBuiltinType1(
+                            value=ExpressionTempVariableRef(
+                                variable=tmp_func, source_ref=source_ref
+                            ),
+                            source_ref=source_ref,
+                        ),
+                        right=ExpressionBuiltinAnonymousRef(
+                            builtin_name="function", source_ref=source_ref
+                        ),
+                        source_ref=source_ref,
+                    ),
+                    yes_branch=StatementReturn(
+                        expression=makeCallNode(
+                            makeExpressionBuiltinTypeRef(
+                                builtin_name="classmethod", source_ref=source_ref
+                            ),
+                            ExpressionTempVariableRef(
+                                variable=tmp_func, source_ref=source_ref
+                            ),
+                            source_ref,
+                        ),
+                        source_ref=source_ref,
+                    ),
+                    no_branch=StatementReturn(
+                        expression=ExpressionTempVariableRef(
+                            variable=tmp_func, source_ref=source_ref
+                        ),
+                        source_ref=source_ref,
+                    ),
+                    source_ref=source_ref,
+                ),
+                variables=(tmp_func,),
+                source_ref=source_ref,
+            ),
+        )
+    )
+
+    return outline_body
 
 
 def _getFunctionProvider(provider, node, source_ref):
@@ -348,25 +443,19 @@ def buildFunctionNode(provider, node, source_ref):
             decorators, "staticmethod", ("staticmethod", "classmethod"), source_ref
         )
 
-    if (
-        python_version >= 0x360
-        and node.name == "__init_subclass__"
-        and provider.isExpressionClassBodyBase()
-    ):
-        _injectDecorator(decorators, "classmethod", ("classmethod",), source_ref)
-
-    if (
-        python_version >= 0x370
-        and node.name == "__class_getitem__"
-        and provider.isExpressionClassBodyBase()
-    ):
-        _injectDecorator(decorators, "classmethod", ("classmethod",), source_ref)
-
     decorated_function = function_creation
     for decorator in decorators:
         decorated_function = makeCallNode(
             decorator, decorated_function, decorator.getSourceReference()
         )
+
+    decorated_function = _maybeWrapClassMethod(
+        provider=provider,
+        node=node,
+        decorators=decorators,
+        decorated_function=decorated_function,
+        source_ref=source_ref,
+    )
 
     result = StatementAssignmentVariableName(
         provider=provider,
@@ -530,6 +619,14 @@ def buildAsyncFunctionNode(provider, node, source_ref):
         decorated_function = makeCallNode(
             decorator, decorated_function, decorator.getSourceReference()
         )
+
+    decorated_function = _maybeWrapClassMethod(
+        provider=provider,
+        node=node,
+        decorators=decorators,
+        decorated_function=decorated_function,
+        source_ref=source_ref,
+    )
 
     result = StatementAssignmentVariableName(
         provider=provider,
