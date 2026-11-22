@@ -242,9 +242,11 @@ def _getBinaryOperationCode(
                 % (context.getInplaceLeftName(), left_name, left_name)
             )
 
-        if not left.isExpressionVariableRefOrTempVariableRef():
-            if not context.needsCleanup(left_name):
-                getTakeReferenceCode(left_name, emit)
+        if (
+            not left.isExpressionVariableRefOrTempVariableRef()
+            and not context.needsCleanup(left_name)
+        ):
+            getTakeReferenceCode(left_name, emit)
 
         emit("%s = %s(&%s, %s);" % (res_name, helper_function, left_name, right_name))
 
