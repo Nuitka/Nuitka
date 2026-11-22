@@ -171,9 +171,10 @@ def checkSectionValues(logger, filename, module_name, section, value):
                 )
                 result = False
 
-            if k in ("when", "append_result"):
-                if not _checkParsable(logger, filename, module_name, section, k, v):
-                    result = False
+            if k in ("when", "append_result") and not _checkParsable(
+                logger, filename, module_name, section, k, v
+            ):
+                result = False
 
             if k in ("replacements", "global_replacements"):
                 for m, d in v.items():
@@ -235,11 +236,10 @@ def checkSectionValues(logger, filename, module_name, section, value):
 
             if k == "parameters":
                 for item in v:
-                    if "values" in item:
-                        if not _checkParsable(
-                            logger, filename, module_name, section, k, item["values"]
-                        ):
-                            result = False
+                    if "values" in item and not _checkParsable(
+                        logger, filename, module_name, section, k, item["values"]
+                    ):
+                        result = False
 
             if k == "no-auto-follow":
                 for m, d in v.items():
@@ -269,9 +269,10 @@ if you want no message.""" % (filename, module_name, section, k, m),
                     if not _checkParsable(logger, filename, module_name, section, k, d):
                         result = False
 
-            if k == "append_plain":
-                if not _checkParsable(logger, filename, module_name, section, k, v):
-                    result = False
+            if k == "append_plain" and not _checkParsable(
+                logger, filename, module_name, section, k, v
+            ):
+                result = False
 
             if k == "setup_code":
                 if type(v) is list:
@@ -892,14 +893,6 @@ Error, 'include-config' of module '%s' cannot use 'when' or 'key-map' with non-d
                 return
         elif type(existing_entries) is list and type(new_entries) is list:
             existing[section] = existing_entries + new_entries
-            return
-        elif type(existing_entries) in (dict, OrderedDict) and type(new_entries) in (
-            dict,
-            OrderedDict,
-        ):
-            merged_entries = OrderedDict(existing_entries)
-            merged_entries.update(new_entries)
-            existing[section] = merged_entries
             return
 
         self.logger.sysexit(
