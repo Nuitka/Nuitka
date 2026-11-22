@@ -463,7 +463,9 @@ class ExpressionBuiltinType3(ChildrenExpressionBuiltinType3Mixin, ExpressionBase
     def mayRaiseException(self, exception_type):
         # TODO: In many cases, this will not raise for compile time knowable
         # case classes. We might ask the bases for the metaclass selected by
-        # compile time inspection.
+        # compile time inspection. Note that CPython's type_new resolves
+        # "__module__" from the active frame's globals, so ensure a frame is
+        # still present if exception raising is ever narrowed here.
         return True
 
     def computeExpression(self, trace_collection):

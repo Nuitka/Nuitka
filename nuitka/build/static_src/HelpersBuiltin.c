@@ -679,12 +679,31 @@ PyObject *BUILTIN_TYPE3(PyThreadState *tstate, PyObject *module_name, PyObject *
 
     Py_DECREF(pos_args);
 
-    if (HAS_ATTR_BOOL(tstate, result, const_str_plain___module__) == false) {
-        bool b_res = SET_ATTRIBUTE(tstate, result, const_str_plain___module__, module_name);
+    bool has_frame_globals = _Nuitka_GetThreadStateFrameGlobals(tstate) != NULL;
 
-        if (b_res == false) {
+    // When a frame is active, PyType_Type.tp_new already resolved "__module__"
+    // from its globals (including intentionally leaving it unset when "__name__"
+    // is absent). Only fall back to the compile-time module name if there were
+    // no active frame globals and the metaclass returned a type object.
+    if (unlikely(has_frame_globals == false) && likely(Nuitka_Type_IsSubtype(type, &PyType_Type))) {
+#if PYTHON_VERSION < 0x300
+        int has_module = HAS_ATTR_BOOL(tstate, result, const_str_plain___module__) ? 1 : 0;
+#else
+        int has_module = HAS_ATTR_BOOL2(tstate, result, const_str_plain___module__);
+
+        if (unlikely(has_module == -1)) {
             Py_DECREF(result);
             return NULL;
+        }
+#endif
+
+        if (has_module == 0) {
+            bool b_res = SET_ATTRIBUTE(tstate, result, const_str_plain___module__, module_name);
+
+            if (b_res == false) {
+                Py_DECREF(result);
+                return NULL;
+            }
         }
     }
 

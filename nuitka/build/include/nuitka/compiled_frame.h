@@ -765,6 +765,30 @@ NUITKA_MAY_BE_UNUSED static Nuitka_ThreadStateFrameType *_Nuitka_GetThreadStateF
 #endif
 }
 
+NUITKA_MAY_BE_UNUSED static PyObject *_Nuitka_GetThreadStateFrameGlobals(PyThreadState *tstate) {
+#if PYTHON_VERSION < 0x3b0
+    PyFrameObject *frame = tstate->frame;
+
+    if (frame == NULL) {
+        return NULL;
+    }
+
+    return frame->f_globals;
+#else
+    _PyInterpreterFrame *frame = CURRENT_TSTATE_INTERPRETER_FRAME(tstate);
+
+    while (frame != NULL && _PyFrame_IsIncomplete(frame)) {
+        frame = frame->previous;
+    }
+
+    if (frame == NULL) {
+        return NULL;
+    }
+
+    return frame->f_globals;
+#endif
+}
+
 NUITKA_MAY_BE_UNUSED inline static void pushFrameStackGenerator(PyThreadState *tstate,
                                                                 Nuitka_ThreadStateFrameType *frame_object) {
 #if PYTHON_VERSION < 0x3b0

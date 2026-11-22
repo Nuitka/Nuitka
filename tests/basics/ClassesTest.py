@@ -711,6 +711,92 @@ def callCustomGetattributeMethods(obj):
 print(callCustomGetattributeMethods(CustomGetattributeDataDescrHolder()))
 
 
+print("3-arg type() metaclass and globals __name__ handling:")
+
+
+class MetaRaisingModuleGetattr(type):
+    def __getattribute__(cls, name):
+        if name == "__module__":
+            raise RuntimeError("unexpected __module__ lookup")
+        return type.__getattribute__(cls, name)
+
+
+class MetaReturningNonType(type):
+    def __new__(mcs, name, bases, namespace):
+        if bases:
+            return "not-a-type:" + name
+        return type.__new__(mcs, name, bases, namespace)
+
+
+BaseRaisingModuleGetattr = MetaRaisingModuleGetattr(
+    "BaseRaisingModuleGetattr", (object,), {}
+)
+BaseReturningNonType = MetaReturningNonType("BaseReturningNonType", (object,), {})
+
+
+def reportType3(label, fn):
+    try:
+        res = fn()
+    except Exception as e:
+        print(label, "raised", type(e).__name__, e.args)
+    else:
+        if isinstance(res, type):
+            print(
+                label,
+                "type",
+                res.__name__,
+                "__module__" in res.__dict__,
+                res.__dict__.get("__module__"),
+            )
+        else:
+            print(label, "non-type", repr(res))
+
+
+reportType3(
+    "metaclass raising on __module__ getattr:",
+    lambda: type("DynamicRaisingModule", (BaseRaisingModuleGetattr,), {}),
+)
+reportType3(
+    "metaclass returning non-type:",
+    lambda: type("DynamicNonType", (BaseReturningNonType,), {}),
+)
+
+
+def makeDynamicClass(name, namespace):
+    return type(name, (), namespace)
+
+
+orig_module_name = globals().get("__name__")
+try:
+    reportType3("normal module-level:", lambda: type("DynNormal", (), {}))
+    reportType3("normal function-level:", lambda: makeDynamicClass("DynNormalFn", {}))
+
+    globals()["__name__"] = "renamed_test_module"
+    reportType3("renamed module-level:", lambda: type("DynRenamed", (), {}))
+    reportType3("renamed function-level:", lambda: makeDynamicClass("DynRenamedFn", {}))
+
+    del globals()["__name__"]
+    cls_no_name = type("DynNoName", (), {})
+    print(
+        "deleted __name__ module-level:",
+        hasattr(cls_no_name, "__module__"),
+        "__module__" in cls_no_name.__dict__,
+    )
+    cls_no_name_fn = makeDynamicClass("DynNoNameFn", {})
+    print(
+        "deleted __name__ function-level:",
+        hasattr(cls_no_name_fn, "__module__"),
+        "__module__" in cls_no_name_fn.__dict__,
+    )
+    reportType3(
+        "deleted __name__ explicit __module__:",
+        lambda: makeDynamicClass("DynExplicit", {"__module__": "explicit_mod"}),
+    )
+finally:
+    if orig_module_name is not None:
+        globals()["__name__"] = orig_module_name
+
+
 def testUncertainLocalsDictCalls(shadow, xs, ys):
     log = []
 
