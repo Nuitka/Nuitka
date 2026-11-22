@@ -75,8 +75,11 @@
       "format_on_save": "on",
       "formatter": {
         "external": {
-          "command": "./bin/autoformat-nuitka-source-stdio",
+          "command": "git",
           "arguments": [
+            "-c",
+            "alias.autoformat-nuitka=!sh bin/autoformat-nuitka-source-stdio-wrapper",
+            "autoformat-nuitka",
             "{buffer_path}"
           ]
         }
@@ -86,8 +89,11 @@
       "format_on_save": "on",
       "formatter": {
         "external": {
-          "command": "./bin/autoformat-nuitka-source-stdio",
+          "command": "git",
           "arguments": [
+            "-c",
+            "alias.autoformat-nuitka=!sh bin/autoformat-nuitka-source-stdio-wrapper",
+            "autoformat-nuitka",
             "{buffer_path}"
           ]
         }
@@ -97,8 +103,11 @@
       "format_on_save": "on",
       "formatter": {
         "external": {
-          "command": "./bin/autoformat-nuitka-source-stdio",
+          "command": "git",
           "arguments": [
+            "-c",
+            "alias.autoformat-nuitka=!sh bin/autoformat-nuitka-source-stdio-wrapper",
+            "autoformat-nuitka",
             "{buffer_path}"
           ]
         }

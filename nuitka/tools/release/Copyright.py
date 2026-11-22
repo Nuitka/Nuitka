@@ -68,6 +68,7 @@ _plain_files = (
     "check-reference-counts",
     "autoformat-nuitka-source",
     "autoformat-nuitka-source-stdio",
+    "autoformat-nuitka-source-stdio-wrapper",
     "nuitka-linux-container",
     "generate-specialized-c-code",
     "generate-specialized-python-code",
