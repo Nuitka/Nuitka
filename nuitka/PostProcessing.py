@@ -280,9 +280,9 @@ def createScriptFileForExecution(result_filename):
         script_contents = """
 @echo off
 rem This script was created by Nuitka to execute '%(exe_filename)s' with Python DLL being found.
-set PATH=%(dll_directory)s;%%PATH%%
-set PYTHONHOME=%(python_home)s
-set NUITKA_PYTHONPATH=%(python_path)s
+set "PATH=%(dll_directory)s;%%PATH%%"
+set "PYTHONHOME=%(python_home)s"
+set "NUITKA_PYTHONPATH=%(python_path)s"
 %(debugger_call)s"%%~dp0%(exe_filename)s" %%*
 """ % {
             "debugger_call": debugger_call,

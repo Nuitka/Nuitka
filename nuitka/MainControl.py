@@ -1058,9 +1058,6 @@ def _executeMain(binary_filename):
             makeFilesystemEncodable(path) for path in sys.path
         )
 
-    # Windows does not search the current directory for a bare name when
-    # NoDefaultCurrentDirectoryInExePath is defined, which only apply if
-    # no slash is given, which we enforce this way.
     if isWin32Windows() and not os.path.dirname(binary_filename):
         binary_filename = ".\\" + binary_filename
 

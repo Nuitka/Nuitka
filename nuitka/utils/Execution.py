@@ -226,6 +226,9 @@ def callExecProcess(args, shell, logger):
         args = list(args)
         del args[1]
 
+        if not os.path.dirname(args[0]) and os.path.isfile(args[0]):
+            args[0] = ".\\" + args[0]
+
         args = expandProcessCallForWindows(command=args, shell=shell)
 
         try:
@@ -249,18 +252,17 @@ def callExecProcess(args, shell, logger):
             os._exit(2)
 
     else:
-        # The star arguments is the API of execl
         os.execl(*args)
 
 
 def executeCompiledBinary(args, shell, logger):
-    """Run a compiled binary and return its exit code.
-
-    On Windows handles .cmd/.bat wrappers through expandProcessCallForWindows.
-    """
+    """Run a compiled binary and return its exit code."""
     args = list(args)
 
     if os.name == "nt":
+        if not os.path.dirname(args[0]) and os.path.isfile(args[0]):
+            args[0] = ".\\" + args[0]
+
         args = expandProcessCallForWindows(command=args, shell=shell)
 
     # Build an explicit environment that strips Nuitka variables which may
@@ -759,10 +761,7 @@ def _checkEnvironment(env):
 
 
 def expandProcessCallForWindows(command, shell):
-    """On Windows, if the command is a batch file, we need to run
-    it with cmd.exe and our own flags to disable auto-run
-    and other side effects.
-    """
+    """Wrap a Windows batch command for 'subprocess.Popen' via 'cmd.exe'."""
     # spell-checker: ignore COMSPEC
     if (
         not shell
@@ -770,7 +769,28 @@ def expandProcessCallForWindows(command, shell):
         and type(command) in (list, tuple)
         and hasFilenameExtension(command[0], (".cmd", ".bat"))
     ):
-        return [os.getenv("COMSPEC", "cmd.exe"), "/d", "/c"] + list(command)
+        batch_filename = command[0]
+        assert '"' not in batch_filename, batch_filename
+
+        # CPython 3.12+ sets 'NoDefaultCurrentDirectoryInExePath=1' on Windows,
+        # preventing 'cmd.exe' from resolving a bare batch filename in the
+        # current directory without an explicit path prefix.
+        if not os.path.dirname(batch_filename) and os.path.isfile(batch_filename):
+            batch_filename = ".\\" + batch_filename
+
+        batch_command = '"%s"' % batch_filename
+        if len(command) > 1:
+            batch_command += " " + subprocess.list2cmdline(command[1:])
+
+        # 'cmd.exe /c' strips quotes around the batch path when arguments are
+        # also quoted or the path contains parentheses unless '/s' and an outer
+        # quote pair are used; returning a string prevents 'subprocess.Popen'
+        # from escaping those outer quotes as '\"'.
+        comspec = os.getenv("COMSPEC") or "cmd.exe"
+        return '%s /d /s /c "%s"' % (
+            subprocess.list2cmdline([comspec]),
+            batch_command,
+        )
 
     return command
 
