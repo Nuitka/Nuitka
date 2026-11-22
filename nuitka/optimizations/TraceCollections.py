@@ -836,18 +836,19 @@ class TraceCollectionBase(object):
 
         _merge_counts[2] += 1
 
-        if states.is_debug:
-            # They must have the same content only or else some bug occurred.
-            if len(collection1.variable_actives) != len(collection2.variable_actives):
-                for variable, version in iterItems(collection1.variable_actives):
-                    if variable not in collection2.variable_actives:
-                        print("Only in collection1", variable, version)
+        # They must have the same content only or else some bug occurred.
+        if states.is_debug and len(collection1.variable_actives) != len(
+            collection2.variable_actives
+        ):
+            for variable, version in iterItems(collection1.variable_actives):
+                if variable not in collection2.variable_actives:
+                    print("Only in collection1", variable, version)
 
-                for variable, version in iterItems(collection2.variable_actives):
-                    if variable not in collection1.variable_actives:
-                        print("Only in collection2", variable, version)
+            for variable, version in iterItems(collection2.variable_actives):
+                if variable not in collection1.variable_actives:
+                    print("Only in collection2", variable, version)
 
-                assert False
+            assert False
 
         has_unescaped_variables = (
             collection1.has_unescaped_variables or collection2.has_unescaped_variables

@@ -1115,15 +1115,6 @@ PyCodeObject *makeCodeObject(PyObject *filename, int line, int flags, PyObject *
     assert(flags >= 0);
     assert(arg_count >= 0);
 
-// TODO: On macOS with zig, libpython asserts against values failing, but only if
-// debug mode is not on, these check without using the disabled assert.
-#if 0
-    if (pos_only_count < 0) abort();
-    if (kw_only_count < 0) abort();
-    if (flags < 0) abort();
-    if (arg_count < 0) abort();
-#endif
-
 #if PYTHON_VERSION < 0x300
     PyObject *filename_str = NULL;
 

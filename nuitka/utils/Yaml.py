@@ -4,8 +4,8 @@
 """Nuitka yaml utility functions.
 
 Because we want to work with Python2.6 or higher, we play a few tricks with
-what library to use for what Python. We have an 2 inline copy of PyYAML, one
-that still does 2.6 and one for newer Pythons.
+what library to use for what Python. We have inline copies of PyYAML, and
+pick the one matching the Python version.
 
 Also we put loading for specific packages in here and a few helpers to work
 with these config files.

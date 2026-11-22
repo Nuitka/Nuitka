@@ -430,24 +430,6 @@ static void Nuitka_LongUpdateFromCLong(PyObject **value, long ival) {
     return;
 }
 
-#if 0
-// Note: We are manually inlining this so far.
-static PyLongObject *Nuitka_LongStripZeros(PyLongObject *v) {
-    Py_ssize_t j = Py_ABS(Py_SIZE(v));
-
-    Py_ssize_t i = j;
-    while (i > 0 && v->ob_digit[i - 1] == 0) {
-        i -= 1;
-    }
-
-    if (i != j) {
-        Py_SIZE(v) = (Py_SIZE(v) < 0) ? -i : i;
-    }
-
-    return v;
-}
-#endif
-
 static PyLongObject *_Nuitka_LongAddDigits(digit const *a, Py_ssize_t size_a, digit const *b, Py_ssize_t size_b) {
     if (size_a < size_b) {
         {
