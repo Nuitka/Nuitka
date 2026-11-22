@@ -393,6 +393,8 @@ static PyObject *_Nuitka_YieldFromGeneratorCore(PyThreadState *tstate, struct Nu
     else if (send_value == Py_None && Py_TYPE(yield_from)->tp_iternext != NULL) {
         retval = Py_TYPE(yield_from)->tp_iternext(yield_from);
     } else {
+        NUITKA_PRINT_SLOW_PATH_OBJECT("generator yield_from send", yield_from);
+
         // Bug compatibility here, before Python3 tuples were unrolled in calls, which is what
         // PyObject_CallMethod does.
 #if PYTHON_VERSION >= 0x300
@@ -1369,11 +1371,7 @@ static PyObject *_Nuitka_Generator_throw2(PyThreadState *tstate, struct Nuitka_G
 
             CHECK_EXCEPTION_STATE(exception_state);
 
-#if 0
-            // TODO: Add slow mode traces.
-            PRINT_ITEM(coroutine->m_yield_from);
-            PRINT_NEW_LINE();
-#endif
+            NUITKA_PRINT_SLOW_PATH_OBJECT("generator yield_from throw", generator->m_yield_from);
             Nuitka_MarkGeneratorAsRunning(generator);
             ret = Nuitka_CallGeneratorThrowMethod(meth, exception_state);
             Nuitka_MarkGeneratorAsNotRunning(generator);

@@ -65,6 +65,40 @@ static inline void PRINT_TIME_STAMP(void) {
 
 #endif
 
+#ifdef _NUITKA_DEVEL_SHOW_SLOW_PATHS
+
+#define NUITKA_PRINT_SLOW_PATH(context)                                                                                \
+    do {                                                                                                               \
+        fprintf(stderr, "Nuitka-SlowPath: %s (%s)\n", context, __FUNCTION__);                                          \
+        fflush(stderr);                                                                                                \
+    } while (0)
+
+#define NUITKA_PRINTF_SLOW_PATH(context, fmt, ...)                                                                     \
+    do {                                                                                                               \
+        fprintf(stderr, "Nuitka-SlowPath: %s (%s): " fmt "\n", context, __FUNCTION__, __VA_ARGS__);                    \
+        fflush(stderr);                                                                                                \
+    } while (0)
+
+#ifdef Py_PYTHON_H
+#define NUITKA_PRINT_SLOW_PATH_OBJECT(context, obj)                                                                    \
+    do {                                                                                                               \
+        PyObject *_nuitka_slow_obj = (PyObject *)(obj);                                                                \
+        fprintf(stderr, "Nuitka-SlowPath: %s (%s): type='%s'\n", context, __FUNCTION__,                                \
+                _nuitka_slow_obj != NULL ? Py_TYPE(_nuitka_slow_obj)->tp_name : "<NULL>");                             \
+        fflush(stderr);                                                                                                \
+    } while (0)
+#endif
+
+#else
+
+#define NUITKA_PRINT_SLOW_PATH(context) ((void)0)
+#define NUITKA_PRINTF_SLOW_PATH(context, fmt, ...) ((void)0)
+#ifdef Py_PYTHON_H
+#define NUITKA_PRINT_SLOW_PATH_OBJECT(context, obj) ((void)0)
+#endif
+
+#endif
+
 #endif
 
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and

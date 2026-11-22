@@ -2351,11 +2351,7 @@ static PyObject *Nuitka_UncompiledGenerator_throw(PyThreadState *tstate, PyGenOb
             CURRENT_TSTATE_INTERPRETER_FRAME(tstate) = prev;
             frame->previous = NULL;
         } else {
-#if 0
-            // TODO: Add slow mode traces.
-            PRINT_ITEM(yf);
-            PRINT_NEW_LINE();
-#endif
+            NUITKA_PRINT_SLOW_PATH_OBJECT("uncompiled generator yield_from throw", yf);
 
             PyObject *meth = LOOKUP_ATTRIBUTE(tstate, yf, const_str_plain_throw);
 
@@ -2720,11 +2716,7 @@ static PyObject *Nuitka_UncompiledGenerator_throw(PyThreadState *tstate, PyGenOb
             gen->gi_frame->f_state = state;
 #endif
         } else {
-#if 0
-            // TODO: Add slow mode traces.
-            PRINT_ITEM(yf);
-            PRINT_NEW_LINE();
-#endif
+            NUITKA_PRINT_SLOW_PATH_OBJECT("uncompiled generator yield_from throw", yf);
 
             // TODO: Use faster code here too.
             PyObject *meth = LOOKUP_ATTRIBUTE(tstate, yf, const_str_plain_throw);

@@ -2667,6 +2667,9 @@ def getDevelModeIndications():
     if options.devel_remote_debug:
         result.append("remote-debug")
 
+    if options.devel_show_slow_paths:
+        result.append("show-slow-paths")
+
     return tuple(result)
 
 

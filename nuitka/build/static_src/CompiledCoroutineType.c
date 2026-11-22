@@ -240,11 +240,7 @@ static PyObject *_Nuitka_YieldFromCore(PyThreadState *tstate, PyObject *yield_fr
     } else if (send_value == Py_None && Py_TYPE(yield_from)->tp_iternext != NULL) {
         retval = Py_TYPE(yield_from)->tp_iternext(yield_from);
     } else {
-#if 0
-        // TODO: Add slow mode traces.
-        PRINT_ITEM(yield_from);
-        PRINT_NEW_LINE();
-#endif
+        NUITKA_PRINT_SLOW_PATH_OBJECT("coroutine yield_from send", yield_from);
 
         retval = PyObject_CallMethodObjArgs(yield_from, const_str_plain_send, send_value, NULL);
     }
@@ -878,11 +874,7 @@ static PyObject *_Nuitka_Coroutine_throw2(PyThreadState *tstate, struct Nuitka_C
 
             CHECK_EXCEPTION_STATE(exception_state);
 
-#if 0
-            // TODO: Add slow mode traces.
-            PRINT_ITEM(coroutine->m_yield_from);
-            PRINT_NEW_LINE();
-#endif
+            NUITKA_PRINT_SLOW_PATH_OBJECT("coroutine yield_from throw", coroutine->m_yield_from);
             Nuitka_MarkCoroutineAsRunning(coroutine);
             ret = Nuitka_CallGeneratorThrowMethod(meth, exception_state);
             Nuitka_MarkCoroutineAsNotRunning(coroutine);

@@ -714,11 +714,7 @@ static PyObject *_Nuitka_Asyncgen_throw2(PyThreadState *tstate, struct Nuitka_As
 
             CHECK_EXCEPTION_STATE(exception_state);
 
-#if 0
-            // TODO: Add slow mode traces.
-            PRINT_ITEM(coroutine->m_yield_from);
-            PRINT_NEW_LINE();
-#endif
+            NUITKA_PRINT_SLOW_PATH_OBJECT("asyncgen yield_from throw", asyncgen->m_yield_from);
 
             Nuitka_MarkAsyncgenAsRunning(asyncgen);
             ret = Nuitka_CallGeneratorThrowMethod(meth, exception_state);
