@@ -58,6 +58,9 @@ description: Python and C coding standards, naming conventions, docstring, and c
 
   - **List Comprehensions:** PREFERRED over `map`, `filter`, `apply`.
 
+  - **Regular Expressions:** Do not use `re.VERBOSE` (or `(?x)`); comments do not belong inside
+    regular expressions. Keep patterns compact and explain them, if needed, in normal comments.
+
   - **Properties:** Avoid using properties for internal APIs; use explicit getters/setters.
 
   - **Imports:** Sort imports using `isort` (handled by auto-format).

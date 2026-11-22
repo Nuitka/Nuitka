@@ -16,7 +16,7 @@ a specific bug (e.g., a compiler crash).
   keep temporary reduction artifacts out of the repository root.
 - **Identify the specific command** that triggers the issue if possible.
 - **For macOS issues that may depend on Python distribution or CI packaging**, establish the Python
-  flavor matrix before reducing. Follow `.agents/skills/reproduce-macos-python-flavors/SKILL.md`.
+  flavor matrix before reducing. Follow the `reproduce-macos-python-flavors` skill.
 - **Augment the reproduction command** so it always writes
   `--report=tests/scratch/compilation-report.xml`. If the command already uses `--report=...`,
   redirect it to this path. Keep the rest of the invocation as close as possible to the original

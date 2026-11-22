@@ -33,8 +33,6 @@ description: Strict Python 2.6/2.7 compatibility rules for Nuitka source code.
   - Do NOT use `print(...)` with Python 3 keyword arguments (`file=`, `flush=`, `end=`); use
     `nuitka.Tracing` (`my_print` or loggers) instead.
   - Do NOT use bare `except:` (use `except Exception:` or `except BaseException:` if intended).
-  - Do NOT use `re.VERBOSE` (avoid regular expressions that require runtime overhead or large
-    definitions).
   - Do NOT use keyword-only arguments separator `*` (e.g. `def foo(a, *, b)`) - *required for Python
     2 compatibility*.
   - Do NOT use positional-only arguments separator `/` (e.g. `def foo(a, /, b)`) - *required for

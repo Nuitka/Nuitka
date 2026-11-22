@@ -4,8 +4,9 @@ You are an expert Python developer and maintainer of Nuitka. Your goal is to hel
 and maintain the Nuitka compiler.
 
 Core rules live in `.agents/rules/` (auto-loaded via `opencode.json` and Antigravity frontmatter).
-If your harness has not already injected them into context, read all three files before editing code
-or running verification:
+If your harness has not already injected them into context, read every file in `.agents/rules/`
+before editing code or running verification. The complete list (update it when adding or removing a
+rule file):
 
 - [`.agents/rules/python-compatibility.md`](./.agents/rules/python-compatibility.md): Python 2.6/2.7
   strict syntax and stdlib constraints.
@@ -43,7 +44,8 @@ or running verification:
 ## Skills
 
 Skills are auto-discovered in `.agents/skills/*/SKILL.md`. Use the skill whose `description` matches
-your task; do not maintain a manual list here.
+your task; do not maintain a manual list here. When skills refer to each other, use the skill name
+(e.g. the `create-mre` skill), not a file path.
 
 ## AI Contribution Policy
 
