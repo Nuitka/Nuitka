@@ -372,7 +372,7 @@ static void Nuitka_LongUpdateFromCLong(PyObject **value, long ival) {
             result = (PyLongObject *)(*value);
         }
 
-        Nuitka_LongSetSign(result, !negative);
+        Nuitka_LongSetDigitSizeAndNegative(result, 1, negative);
 
         digit *digits = Nuitka_LongGetDigitPointer(result);
         digits[0] = (digit)abs_ival;
@@ -392,9 +392,7 @@ static void Nuitka_LongUpdateFromCLong(PyObject **value, long ival) {
             result = (PyLongObject *)(*value);
         }
 
-        if (negative) {
-            Nuitka_LongSetSignNegative(result);
-        }
+        Nuitka_LongSetDigitSizeAndNegative(result, 2, negative);
 
         digit *digits = Nuitka_LongGetDigitPointer(result);
 

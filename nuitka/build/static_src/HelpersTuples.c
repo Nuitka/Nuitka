@@ -148,7 +148,7 @@ PyObject *TUPLE_COPY(PyThreadState *tstate, PyObject *tuple) {
     for (Py_ssize_t i = 0; i < size; i++) {
         PyObject *item = PyTuple_GET_ITEM(tuple, i);
         Py_INCREF(item);
-        PyList_SET_ITEM(result, i, item);
+        PyTuple_SET_ITEM(result, i, item);
     }
 
     return result;

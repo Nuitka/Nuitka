@@ -32,11 +32,12 @@
 #define Nuitka_LongGetDigitPointer(value) (&(((PyLongObject *)value)->long_value.ob_digit[0]))
 #define Nuitka_LongGetDigitSize(value) (_PyLong_DigitCount((PyLongObject const *)(value)))
 #define Nuitka_LongGetSignedDigitSize(value) (_PyLong_SignedDigitCount((PyLongObject const *)(value)))
-#define Nuitka_LongIsNegative(value) (((PyLongObject *)value)->long_value.lv_tag & SIGN_NEGATIVE)
+#define Nuitka_LongIsNegative(value) ((((PyLongObject *)value)->long_value.lv_tag & SIGN_MASK) == SIGN_NEGATIVE)
 #define Nuitka_LongSetSignNegative(value)                                                                              \
-    ((PyLongObject *)value)->long_value.lv_tag = ((PyLongObject *)value)->long_value.lv_tag | SIGN_NEGATIVE;
+    ((PyLongObject *)value)->long_value.lv_tag =                                                                       \
+        (((PyLongObject *)value)->long_value.lv_tag & ~(size_t)SIGN_MASK) | SIGN_NEGATIVE;
 #define Nuitka_LongSetSignPositive(value)                                                                              \
-    ((PyLongObject *)value)->long_value.lv_tag = ((PyLongObject *)value)->long_value.lv_tag & ~(SIGN_NEGATIVE);
+    ((PyLongObject *)value)->long_value.lv_tag = ((PyLongObject *)value)->long_value.lv_tag & ~(size_t)SIGN_MASK;
 #define Nuitka_LongSetSign(value, positive)                                                                            \
     if (positive) {                                                                                                    \
         Nuitka_LongSetSignPositive(value);                                                                             \
