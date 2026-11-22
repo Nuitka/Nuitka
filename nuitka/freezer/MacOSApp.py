@@ -225,7 +225,7 @@ def createEntitlementsInfoFile():
     return entitlements_filename
 
 
-_macos_app_console_script = """
+_macos_app_console_script = """\
 #!/bin/bash
 
 # 1. Derive the binary name from this script's name
