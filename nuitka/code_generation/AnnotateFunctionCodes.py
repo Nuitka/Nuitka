@@ -93,7 +93,7 @@ def _getClosureSetupCode(closure_variables):
     )
 
 
-def _getCodeObjectCreationCode(context, marshalled, function_identifier):
+def _getCodeObjectCreationCode(context, marshalled, function_identifier, first_lineno):
     """Get the C code to create the annotate code object, and to release it.
 
     A definition that can be executed repeatedly, e.g. a nested function on
@@ -120,11 +120,13 @@ def _getCodeObjectCreationCode(context, marshalled, function_identifier):
             %(marshalled)s,
             %(marshalled_size)d);
         assert(code != NULL);
+        USE_CODE_OBJECT_WITH_LINE(code, module_filename_obj, %(first_lineno)d);
         code_cache = code;
     }
 """ % {
             "marshalled": marshalled_code,
             "marshalled_size": len(marshalled),
+            "first_lineno": first_lineno,
         }
         code_object_release = ""
     else:
@@ -133,9 +135,11 @@ def _getCodeObjectCreationCode(context, marshalled, function_identifier):
         %(marshalled)s,
         %(marshalled_size)d);
     assert(code != NULL);
+    USE_CODE_OBJECT_WITH_LINE(code, module_filename_obj, %(first_lineno)d);
 """ % {
             "marshalled": marshalled_code,
             "marshalled_size": len(marshalled),
+            "first_lineno": first_lineno,
         }
         code_object_release = "    Py_DECREF(code);\n"
 
@@ -147,7 +151,7 @@ def _generateAnnotateFunctionMaker(function_body, function_identifier, context):
 
     source = generateFunctionSourceFromBody(function_body)
 
-    compiled = compile(source, function_identifier, "exec")
+    compiled = compile(source, "", "exec")
 
     annotate_code = getFunctionCodeObjectFromSource(
         function_body=function_body, compiled=compiled
@@ -171,6 +175,7 @@ def _generateAnnotateFunctionMaker(function_body, function_identifier, context):
         context=context,
         marshalled=marshalled,
         function_identifier=function_identifier,
+        first_lineno=function_body.getCodeObject().getLineNumber(),
     )
 
     maker_code = """\

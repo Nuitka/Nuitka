@@ -795,6 +795,29 @@ try:
 except TypeError as exc:
     print("Lambda pos-only TypeError:", type(exc).__name__)
 
+print(
+    "Annotate code object locations:",
+    (
+        _lambdaAnnotations.__annotate__.__code__.co_filename == __file__,
+        _lambdaAnnotations.__annotate__.__code__.co_firstlineno
+        == _lambdaAnnotations.__code__.co_firstlineno,
+    ),
+    (
+        _inner_super_fn.__annotate__.__code__.co_filename == __file__,
+        _inner_super_fn.__annotate__.__code__.co_firstlineno
+        == _inner_super_fn.__code__.co_firstlineno,
+    ),
+    (
+        TestClassAnnotations.__annotate__.__code__.co_filename == __file__,
+        TestClassAnnotations.__annotate__.__code__.co_firstlineno,
+    ),
+    (
+        _lambda_annots["l_full"].__code__.co_filename == __file__,
+        _lambda_annots["l_full"].__code__.co_firstlineno
+        >= _lambdaAnnotations.__code__.co_firstlineno,
+    ),
+)
+
 
 # Shadow hard and ordinary builtin names at module level (kept at end of file).
 vars = int

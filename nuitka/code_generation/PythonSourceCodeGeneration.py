@@ -23,6 +23,7 @@ from nuitka.nodes.HardImportNodes import (
     getBuiltinRefNodes,
     getHardImportNodeClasses,
 )
+from nuitka.PythonVersions import python_version
 from nuitka.Tracing import code_generation_logger
 
 from .CodeHelpers import getExpressionDispatchDict, getStatementDispatchDict
@@ -1770,9 +1771,82 @@ def _generateConditionalSource(statement, indent):
         )
 
 
+def _formatRaiseExceptionWithValueSource(
+    statement, exception_type_node, exception_value
+):
+    if python_version < 0x300:
+        return "%s, %s" % (
+            generateExpressionSource(exception_type_node),
+            generateExpressionSource(exception_value),
+        )
+
+    exception_type = _generateSubExpressionSource(exception_type_node, _PREC_POSTFIX)
+
+    if exception_value.isExpressionMakeTuple():
+        arg_sources = [
+            generateExpressionSource(element)
+            for element in exception_value.subnode_elements
+        ]
+        return "%s(%s)" % (exception_type, ", ".join(arg_sources))
+
+    if (
+        exception_value.isCompileTimeConstant()
+        and type(exception_value.getCompileTimeConstant()) is tuple
+    ):
+        arg_sources = [
+            _formatConstantElement(element, statement)
+            for element in exception_value.getCompileTimeConstant()
+        ]
+        return "%s(%s)" % (exception_type, ", ".join(arg_sources))
+
+    if exception_value.isExpressionConstantNoneRef():
+        return "%s()" % exception_type
+
+    return "%s(%s)" % (exception_type, generateExpressionSource(exception_value))
+
+
 def _generateRaiseExceptionSource(statement, indent):
-    exception_type = generateExpressionSource(statement.subnode_exception_type)
-    return "%sraise %s" % (indent, exception_type)
+    exception_type_node = statement.subnode_exception_type
+    exception_value = statement.subnode_exception_value
+    exception_trace = statement.subnode_exception_trace
+    exception_cause = statement.subnode_exception_cause
+
+    if exception_cause is not None:
+        assert exception_value is None
+        assert exception_trace is None
+        return "%sraise %s from %s" % (
+            indent,
+            generateExpressionSource(exception_type_node),
+            generateExpressionSource(exception_cause),
+        )
+
+    if exception_trace is not None:
+        if python_version < 0x300:
+            value_source = (
+                "None"
+                if exception_value is None
+                else generateExpressionSource(exception_value)
+            )
+            return "%sraise %s, %s, %s" % (
+                indent,
+                generateExpressionSource(exception_type_node),
+                value_source,
+                generateExpressionSource(exception_trace),
+            )
+
+        raise PythonSourceGenerationError(
+            "Unsupported raise statement with traceback for source generation"
+        )
+
+    if exception_value is not None:
+        return "%sraise %s" % (
+            indent,
+            _formatRaiseExceptionWithValueSource(
+                statement, exception_type_node, exception_value
+            ),
+        )
+
+    return "%sraise %s" % (indent, generateExpressionSource(exception_type_node))
 
 
 def _generateStatementsFrameSource(statement, indent):

@@ -1317,6 +1317,38 @@ PyCodeObject *USE_CODE_OBJECT(PyThreadState *tstate, PyObject *code_object, PyOb
     return co;
 }
 
+static void _patchCodeObjectFilenameAndLine(PyCodeObject *co, PyObject *module_filename_obj, int line_offset) {
+    CHECK_OBJECT(co);
+    CHECK_OBJECT(module_filename_obj);
+
+    Py_SETREF(co->co_filename, Py_NewRef(module_filename_obj));
+    co->co_firstlineno += line_offset;
+
+    Py_ssize_t consts_count = PyTuple_GET_SIZE(co->co_consts);
+
+    for (Py_ssize_t i = 0; i < consts_count; i++) {
+        PyObject *constant_value = PyTuple_GET_ITEM(co->co_consts, i);
+
+        if (PyCode_Check(constant_value)) {
+            _patchCodeObjectFilenameAndLine((PyCodeObject *)constant_value, module_filename_obj, line_offset);
+        }
+    }
+}
+
+PyCodeObject *USE_CODE_OBJECT_WITH_LINE(PyObject *code_object, PyObject *module_filename_obj, int first_lineno) {
+    assert(PyCode_Check(code_object));
+    CHECK_OBJECT(module_filename_obj);
+
+    PyCodeObject *co = (PyCodeObject *)code_object;
+
+    if (co->co_filename != module_filename_obj || co->co_firstlineno != first_lineno) {
+        int line_offset = first_lineno - co->co_firstlineno;
+        _patchCodeObjectFilenameAndLine(co, module_filename_obj, line_offset);
+    }
+
+    return co;
+}
+
 void Nuitka_Frame_AttachLocals(struct Nuitka_FrameObject *frame_object) {
     assert(Nuitka_Frame_CheckExact((PyObject *)frame_object));
     CHECK_OBJECT((PyObject *)frame_object);
