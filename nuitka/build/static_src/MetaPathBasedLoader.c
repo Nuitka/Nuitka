@@ -2917,7 +2917,9 @@ static PyObject *IMPORT_COMPILED_MODULE_DIRECT(PyThreadState *tstate,
 
             SET_MODULE_VALUE_STATE(value_state, NULL);
 
-            Nuitka_DelModule(tstate, module_name);
+            if (unlikely((entry->flags & NUITKA_INTERNAL_MODULE_FLAG) == 0)) {
+                Nuitka_DelModule(tstate, module_name);
+            }
 
             Py_DECREF(created_module);
         }
