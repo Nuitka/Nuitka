@@ -157,10 +157,6 @@ class ValueTraceBase(object):
         return False
 
     @staticmethod
-    def isIteratorPropagationTrace():
-        return False
-
-    @staticmethod
     def isUnassignedTrace():
         return False
 
@@ -224,6 +220,14 @@ class ValueTraceBase(object):
         # Virtual method, pylint: disable=no-self-use,unused-argument
 
         return None
+
+    @staticmethod
+    def onReleaseUsage(release_node):
+        pass
+
+    @staticmethod
+    def onDelUsage(del_node):
+        pass
 
     @staticmethod
     def hasShapeListExact():
@@ -1001,18 +1005,15 @@ class ValueTraceAssignUnescapablePropagated(ValueTraceAssignUnescapable):
         return self.replacement(usage)
 
 
-class ValueTraceAssignIteratorPropagated(ValueTraceAssign):
-    """Assignment of iterator that is replaced by direct access to the iterated value.
+class ValueTraceAssignTracked(ValueTraceAssign):
+    """Assignment trace that records accessing nodes for delayed work."""
 
-    The iterator variable itself becomes unused, only the temp variable
-    holding the iterated value remains, references to the iterator replace
-    themselves with subscripts of it.
-    """
+    # This one has many attributes, pylint: disable=too-many-instance-attributes
 
-    __slots__ = ("tmp_iterated",)
+    __slots__ = ("usages", "releases", "dels")
 
     @counted_init
-    def __init__(self, owner, assign_node, previous, tmp_iterated):
+    def __init__(self, owner, assign_node, previous):
         # For performance reasons, we don't do super init, but duplicate it here.
         # pylint: disable=super-init-not-called
 
@@ -1024,14 +1025,28 @@ class ValueTraceAssignIteratorPropagated(ValueTraceAssign):
         self.previous = previous
         self.assign_node = assign_node
 
-        self.tmp_iterated = tmp_iterated
+        self.usages = []
+        self.releases = []
+        self.dels = []
 
-    @staticmethod
-    def isIteratorPropagationTrace():
-        return True
+    def getReplacementNode(self, usage):
+        if self.usages is not None:
+            self.usages.append(usage)
 
-    def getIteratedTempVariable(self):
-        return self.tmp_iterated
+        return None
+
+    def onReleaseUsage(self, release_node):
+        if self.releases is not None:
+            self.releases.append(release_node)
+
+    def onDelUsage(self, del_node):
+        if self.dels is not None:
+            self.dels.append(del_node)
+
+    def clearTrackedNodes(self):
+        self.usages = None
+        self.releases = None
+        self.dels = None
 
 
 class ValueTraceMergeBase(ValueTraceBase):

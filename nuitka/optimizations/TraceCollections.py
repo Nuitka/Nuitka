@@ -37,8 +37,8 @@ from .value_traces.ValueTraces import makeMergeTrace
 from .value_traces.ValueTracesGenerated import ValueTraceMerge2
 from .value_traces.ValueTracesStatic import (
     ValueTraceAssign,
-    ValueTraceAssignIteratorPropagated,
     ValueTraceAssignStartVeryTrusted,
+    ValueTraceAssignTracked,
     ValueTraceAssignUnescapable,
     ValueTraceAssignUnescapablePropagated,
     ValueTraceAssignVeryTrusted,
@@ -671,14 +671,11 @@ class TraceCollectionBase(object):
 
         return variable_trace
 
-    def onVariableSetToIteratorPropagated(
-        self, variable, version, assign_node, tmp_iterated
-    ):
-        variable_trace = ValueTraceAssignIteratorPropagated(
+    def onVariableSetTracked(self, variable, version, assign_node):
+        variable_trace = ValueTraceAssignTracked(
             self.owner,
             assign_node,
             self.getVariableCurrentTrace(variable),
-            tmp_iterated,
         )
 
         self.variable_traces[variable][version] = variable_trace
@@ -688,6 +685,8 @@ class TraceCollectionBase(object):
 
     def onVariableDel(self, variable, version, del_node):
         old_trace = self.getVariableCurrentTrace(variable)
+
+        old_trace.onDelUsage(del_node)
 
         # TODO: Annotate value content as escaped.
         variable_trace = ValueTraceDeleted(

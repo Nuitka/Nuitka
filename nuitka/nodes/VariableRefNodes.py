@@ -34,7 +34,6 @@ from .NodeMakingHelpers import (
     makeRaiseTypeErrorExceptionReplacementFromTemplateAndValue,
 )
 from .shapes.StandardShapes import tshape_unknown
-from .SubscriptNodes import ExpressionSubscriptLookupForUnpack
 
 
 class ExpressionVariableRefBase(ExpressionBase):
@@ -780,28 +779,6 @@ class ExpressionTempVariableRef(
         return self, None, None
 
     def computeExpressionNext1(self, next_node, trace_collection):
-        if self.variable_trace.isIteratorPropagationTrace():
-            assert next_node.isExpressionSpecialUnpack(), next_node
-
-            source = ExpressionSubscriptLookupForUnpack(
-                expression=ExpressionTempVariableRef(
-                    variable=self.variable_trace.getIteratedTempVariable(),
-                    source_ref=self.source_ref,
-                ),
-                subscript=makeConstantRefNode(
-                    constant=next_node.getCount() - 1, source_ref=self.source_ref
-                ),
-                expected=next_node.getExpected(),
-                source_ref=self.source_ref,
-            )
-
-            return False, trace_collection.computedExpressionResultRaw(
-                source,
-                change_tags="new_expression",
-                change_desc=lambda: "Iterator 'next' converted to direct access of iterated value '%s'."
-                % self.variable_trace.getIteratedTempVariable().getName(),
-            )
-
         iteration_source_node = self.variable_trace.getIterationSourceNode()
 
         if iteration_source_node is not None:

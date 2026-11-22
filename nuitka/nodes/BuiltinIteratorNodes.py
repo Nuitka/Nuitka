@@ -520,27 +520,6 @@ class StatementSpecialUnpackCheck(StatementSpecialUnpackCheckBase):
         return self.count
 
     def computeStatementOperation(self, trace_collection):
-        iterator = self.subnode_iterator
-
-        if iterator.isExpressionTempVariableRef():
-            variable_trace = iterator.variable_trace
-
-            if variable_trace.isIteratorPropagationTrace():
-                tmp_iterated_variable = variable_trace.getIteratedTempVariable()
-
-                result = makeStatementSpecialUnpackCheckFromIterated(
-                    tmp_iterated_variable=tmp_iterated_variable,
-                    count=self.count,
-                    source_ref=self.source_ref,
-                )
-
-                return trace_collection.computedStatementResult(
-                    result,
-                    change_tags="new_statements",
-                    change_desc=lambda: "Iterator check of changed to iterated size check using '%s'."
-                    % tmp_iterated_variable.getName(),
-                )
-
         trace_collection.onExceptionRaiseExit(BaseException)
 
         return self, None, None

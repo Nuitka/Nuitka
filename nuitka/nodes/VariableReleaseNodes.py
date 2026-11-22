@@ -73,25 +73,6 @@ class StatementReleaseVariableBase(StatementBase):
                 self.variable
             )
 
-            if self.variable_trace.isIteratorPropagationTrace():
-                # The iterator variable was replaced with direct access to the
-                # iterated value, retarget the release to the temp variable
-                # holding it.
-                result = makeStatementReleaseVariable(
-                    variable=self.variable_trace.getIteratedTempVariable(),
-                    source_ref=self.source_ref,
-                )
-
-                return trace_collection.computedStatementResult(
-                    result,
-                    "new_statements",
-                    "Retargeted release of iterator '%s' to iterated value '%s'."
-                    % (
-                        self.variable.getName(),
-                        self.variable_trace.getIteratedTempVariable().getName(),
-                    ),
-                )
-
             must_not_have_value = self.variable_trace.mustNotHaveValue()
         else:
             must_not_have_value = True
@@ -102,6 +83,8 @@ class StatementReleaseVariableBase(StatementBase):
                 "new_statements",
                 "Uninitialized %s is not released." % (self.variable.getDescription()),
             )
+
+        self.variable_trace.onReleaseUsage(self)
 
         escape_desc = self.variable_trace.getReleaseEscape()
 
