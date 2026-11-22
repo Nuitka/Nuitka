@@ -241,7 +241,7 @@ def buildGeneratorExpressionNode(provider, node, source_ref):
             code_object=code_object,
             flags=None,
             auto_release=None,
-            source_ref=source_ref,
+            source_ref=source_ref.atColumnNumber(node.col_offset + 1),
         )
 
         maker_class = ExpressionMakeAsyncgenObject
