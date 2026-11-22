@@ -820,6 +820,39 @@ print(any("unicode"))
 print(any(b"bytes"))
 print(any(b"bytes\0"))
 
+
+class RaisingBool(object):
+    def __bool__(self):
+        raise ValueError("bool failed")
+
+    __nonzero__ = __bool__
+
+
+def raisingGenerator(first_value):
+    yield first_value
+    raise RuntimeError("next failed")
+
+
+print("all/any with raising __bool__ and __next__:")
+for label, func in (
+    ("all list", lambda: all([RaisingBool()])),
+    ("any list", lambda: any([RaisingBool()])),
+    ("all tuple", lambda: all((RaisingBool(),))),
+    ("any tuple", lambda: any((RaisingBool(),))),
+    ("all list before False", lambda: all([RaisingBool(), False])),
+    ("any list before True", lambda: any([RaisingBool(), True])),
+    ("all list after False", lambda: all([False, RaisingBool()])),
+    ("any list after True", lambda: any([True, RaisingBool()])),
+    ("all gen", lambda: all(raisingGenerator(True))),
+    ("any gen", lambda: any(raisingGenerator(False))),
+    ("all iter(gen)", lambda: all(iter(raisingGenerator(True)))),
+    ("any iter(gen)", lambda: any(iter(raisingGenerator(False)))),
+):
+    try:
+        print(label, func())
+    except Exception as e:
+        print(label, "raised", repr(e))
+
 print("Tests for zip():")
 print(zip("abc", "cdd"))
 print(zip([1, 2, 3], [2, 3, 4]))

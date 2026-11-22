@@ -48,6 +48,28 @@ class IterationHandleBase(getMetaClassBase("IterationHandle", require_slots=True
 
         return all_true
 
+    def getAnyElementTruthValue(self):
+        """Return tri-state 'any()' truth value across up to 256 elements, or 'None' if unknown."""
+        all_false = True
+        count = 0
+        while True:
+            truth_value = self.getNextValueTruth()
+            if truth_value is StopIteration:
+                break
+
+            if count > 256:
+                return None
+
+            if truth_value is True:
+                return True
+
+            if truth_value is None:
+                all_false = False
+
+            count += 1
+
+        return False if all_false else None
+
 
 class ConstantIterationHandleBase(IterationHandleBase):
     __slots__ = (
@@ -170,6 +192,40 @@ class ListAndTupleContainerMakingIterationHandle(IterationHandleBase):
         except IndexError:
             return None
 
+    def getAllElementTruthValue(self):
+        all_true = True
+        for count, element in enumerate(self.elements):
+            if count > 256:
+                return None
+
+            truth_value = element.getTruthValue()
+            if truth_value is False:
+                return False
+
+            if truth_value is None:
+                if element.mayHaveSideEffectsBool():
+                    return None
+                all_true = None
+
+        return all_true
+
+    def getAnyElementTruthValue(self):
+        all_false = True
+        for count, element in enumerate(self.elements):
+            if count > 256:
+                return None
+
+            truth_value = element.getTruthValue()
+            if truth_value is True:
+                return True
+
+            if truth_value is None:
+                if element.mayHaveSideEffectsBool():
+                    return None
+                all_false = False
+
+        return False if all_false else None
+
 
 class RangeIterationHandleBase(IterationHandleBase):
     low = 0
@@ -221,6 +277,14 @@ class RangeIterationHandleBase(IterationHandleBase):
             return not (self.low <= 0 < self.high and self.low % self.step == 0)
         else:
             return not (self.high < 0 <= self.low and self.low % self.step == 0)
+
+    def getAnyElementTruthValue(self):
+        length = self.getIterationLength()
+        if length == 0:
+            return False
+        if length == 1:
+            return self.low != 0
+        return True
 
 
 class IterationHandleRange1(RangeIterationHandleBase):

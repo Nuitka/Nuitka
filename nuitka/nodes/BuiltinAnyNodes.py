@@ -12,6 +12,25 @@ from .NodeMakingHelpers import (
     makeRaiseTypeErrorExceptionReplacementFromTemplateAndValue,
     wrapExpressionWithNodeSideEffects,
 )
+from .shapes.BuiltinTypeShapes import (
+    tshape_bytearray,
+    tshape_bytes,
+    tshape_str,
+    tshape_str_or_unicode,
+    tshape_unicode,
+    tshape_xrange,
+)
+
+# Exact built-in sequences whose iteration and element truth checks cannot
+# execute user code or raise exceptions.
+_non_raising_truth_iterable_shapes = (
+    tshape_str,
+    tshape_unicode,
+    tshape_str_or_unicode,
+    tshape_bytes,
+    tshape_bytearray,
+    tshape_xrange,
+)
 
 
 class ExpressionBuiltinAny(
@@ -37,38 +56,12 @@ class ExpressionBuiltinAny(
         iteration_handle = value.getIterationHandle()
 
         if iteration_handle is not None:
-            all_false = True
-            count = 0
-            while True:
-                truth_value = iteration_handle.getNextValueTruth()
-                if truth_value is StopIteration:
-                    break
-                if count > 256:
-                    all_false = False
-                    break
+            any_true = iteration_handle.getAnyElementTruthValue()
 
-                if truth_value is True:
-                    result = wrapExpressionWithNodeSideEffects(
-                        new_node=makeConstantReplacementNode(
-                            constant=True, node=self, user_provided=False
-                        ),
-                        old_node=value,
-                    )
-
-                    return (
-                        result,
-                        "new_constant",
-                        "Predicted truth value of built-in any argument",
-                    )
-                elif truth_value is None:
-                    all_false = False
-
-                count += 1
-
-            if all_false is True:
+            if any_true is not None:
                 result = wrapExpressionWithNodeSideEffects(
                     new_node=makeConstantReplacementNode(
-                        constant=False, node=self, user_provided=False
+                        constant=any_true, node=self, user_provided=False
                     ),
                     old_node=value,
                 )
@@ -79,9 +72,10 @@ class ExpressionBuiltinAny(
                     "Predicted truth value of built-in any argument",
                 )
 
-        self.onContentEscapes(trace_collection)
-        trace_collection.onControlFlowEscape(self)
-        trace_collection.onExceptionRaiseExit(BaseException)
+        if shape not in _non_raising_truth_iterable_shapes:
+            self.onContentEscapes(trace_collection)
+            trace_collection.onControlFlowEscape(self)
+            trace_collection.onExceptionRaiseExit(BaseException)
 
         return self, None, None
 
@@ -91,7 +85,7 @@ class ExpressionBuiltinAny(
         if value.mayRaiseException(exception_type):
             return True
 
-        return not value.getTypeShape().hasShapeSlotIter()
+        return value.getTypeShape() not in _non_raising_truth_iterable_shapes
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and

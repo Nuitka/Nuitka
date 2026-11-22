@@ -12,7 +12,25 @@ from .NodeMakingHelpers import (
     makeRaiseTypeErrorExceptionReplacementFromTemplateAndValue,
     wrapExpressionWithNodeSideEffects,
 )
-from .shapes.BuiltinTypeShapes import tshape_str, tshape_unicode
+from .shapes.BuiltinTypeShapes import (
+    tshape_bytearray,
+    tshape_bytes,
+    tshape_str,
+    tshape_str_or_unicode,
+    tshape_unicode,
+    tshape_xrange,
+)
+
+# Exact built-in sequences whose iteration and element truth checks cannot
+# execute user code or raise exceptions.
+_non_raising_truth_iterable_shapes = (
+    tshape_str,
+    tshape_unicode,
+    tshape_str_or_unicode,
+    tshape_bytes,
+    tshape_bytearray,
+    tshape_xrange,
+)
 
 
 class ExpressionBuiltinAll(
@@ -35,7 +53,7 @@ class ExpressionBuiltinAll(
                 value_node=value,
             )
 
-        if shape in (tshape_str, tshape_unicode):
+        if shape in (tshape_str, tshape_unicode, tshape_str_or_unicode):
             return (
                 wrapExpressionWithNodeSideEffects(
                     new_node=makeConstantReplacementNode(
@@ -66,9 +84,10 @@ class ExpressionBuiltinAll(
                     "Predicted truth value of built-in 'all' argument",
                 )
 
-        self.onContentEscapes(trace_collection)
-        trace_collection.onControlFlowEscape(self)
-        trace_collection.onExceptionRaiseExit(BaseException)
+        if shape not in _non_raising_truth_iterable_shapes:
+            self.onContentEscapes(trace_collection)
+            trace_collection.onControlFlowEscape(self)
+            trace_collection.onExceptionRaiseExit(BaseException)
 
         return self, None, None
 
@@ -78,7 +97,7 @@ class ExpressionBuiltinAll(
         if value.mayRaiseException(exception_type):
             return True
 
-        return not value.getTypeShape().hasShapeSlotIter()
+        return value.getTypeShape() not in _non_raising_truth_iterable_shapes
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
