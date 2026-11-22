@@ -1177,7 +1177,7 @@ static int waitpid_timeout(pid_t pid) {
     // Seconds, nanoseconds from our milliseconds value.
     struct timespec timeout = {
         _NUITKA_ONEFILE_CHILD_GRACE_TIME_INT / 1000,
-        (_NUITKA_ONEFILE_CHILD_GRACE_TIME_INT % 1000) * 1000,
+        (_NUITKA_ONEFILE_CHILD_GRACE_TIME_INT % 1000) * 1000000L,
     };
     struct timespec delay = {0, ns};
     struct timespec elapsed = {0, 0};
