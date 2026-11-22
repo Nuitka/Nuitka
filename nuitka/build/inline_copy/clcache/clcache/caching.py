@@ -422,19 +422,6 @@ class CacheLock(object):
             # Nuitka: Just give up
             return
 
-            if result == self.WAIT_TIMEOUT_CODE:
-                errorString = (
-                    "Failed to acquire lock {} after {}ms; "
-                    "try setting CLCACHE_OBJECT_CACHE_TIMEOUT_MS environment variable to a larger value.".format(
-                        self._mutexName, self._timeoutMs
-                    )
-                )
-            else:
-                errorString = "Error! WaitForSingleObject returns {result}, last error {error}".format(
-                    result=result, error=windll.kernel32.GetLastError()
-                )
-            raise CacheLockException(errorString)
-
         self._acquired = True
 
     def release(self):
