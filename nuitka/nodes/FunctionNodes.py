@@ -1304,11 +1304,37 @@ class ExpressionFunctionCreationMixin(SideEffectsFromChildrenMixin):
                     source_ref=call_node.source_ref,
                 )
 
+            side_effects = self.extractSideEffects()
+
+            if (
+                self.subnode_defaults
+                or self.subnode_kw_defaults is not None
+                or self.subnode_annotations is not None
+                or self.subnode_type_params is not None
+            ):
+                function = makeExpressionFunctionCreation(
+                    function_ref=self.subnode_function_ref,
+                    defaults=(),
+                    kw_defaults=None,
+                    annotations=None,
+                    type_params=None,
+                    source_ref=self.source_ref,
+                )
+            else:
+                function = self
+
             result = makeExpressionFunctionCall(
-                function=self.makeClone(),
+                function=function,
                 values=values,
                 source_ref=call_node.source_ref,
             )
+
+            if side_effects:
+                result = wrapExpressionWithSideEffects(
+                    side_effects=side_effects,
+                    old_node=call_node,
+                    new_node=result,
+                )
 
             return (
                 result,
@@ -1324,7 +1350,9 @@ Replaced call to created function body '%s' with direct function call."""
                     expression=call_node, exception=e.getRealException()
                 ),
                 old_node=call_node,
-                side_effects=call_node.extractSideEffectsPreCall(),
+                side_effects=(
+                    self.extractSideEffects() + call_node.extractSideEffectsPreCall()
+                ),
             )
 
             return (
@@ -1510,6 +1538,10 @@ class ExpressionFunctionRef(ExpressionNoSideEffectsMixin, ExpressionBase):
 
 def makeExpressionFunctionCall(function, values, source_ref):
     assert function.isExpressionFunctionCreation()
+    assert not function.subnode_defaults
+    assert function.subnode_kw_defaults is None
+    assert function.subnode_annotations is None
+    assert function.subnode_type_params is None
 
     return ExpressionFunctionCall(
         function=function, values=tuple(values), source_ref=source_ref
