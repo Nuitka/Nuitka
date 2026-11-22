@@ -53,6 +53,7 @@ extern PyObject **global_constants;
 #define const_str_plain___abstractmethods__ global_constants[0]
 #define const_str_plain___closure__ global_constants[0]
 #define const_str_plain___instancecheck__ global_constants[0]
+#define const_str_plain___subclasscheck__ global_constants[0]
 #define const_str_plain___dict__ global_constants[0]
 #define const_str_plain___doc__ global_constants[0]
 #define const_str_plain___file__ global_constants[0]
@@ -182,7 +183,6 @@ extern PyObject **global_constants;
 
 // Referenced by helper code, but not part of the default population on all
 // versions or configurations.
-#define const_str_plain___subclasscheck__ global_constants[0]
 #define const_str_plain___dir__ global_constants[0]
 
 #define _NUITKA_CONSTANTS_SIZE 27

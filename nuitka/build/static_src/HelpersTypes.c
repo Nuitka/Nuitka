@@ -169,12 +169,10 @@ static int _Nuitka_abstract_issubclass(PyThreadState *tstate, PyObject *derived,
             continue;
         }
 
-#ifdef _NUITKA_FULL_COMPAT
-        if (Py_EnterRecursiveCall((char *)" in __issubclass__")) {
+        if (unlikely(Py_EnterRecursiveCall((char *)" in __issubclass__"))) {
             Py_DECREF(bases);
             return -1;
         }
-#endif
 
         for (Py_ssize_t i = 0; i < n; i++) {
             r = _Nuitka_abstract_issubclass(tstate, PyTuple_GET_ITEM(bases, i), cls);
@@ -184,9 +182,7 @@ static int _Nuitka_abstract_issubclass(PyThreadState *tstate, PyObject *derived,
             }
         }
 
-#ifdef _NUITKA_FULL_COMPAT
         Py_LeaveRecursiveCall();
-#endif
         Py_DECREF(bases);
 
         return r;
@@ -346,11 +342,9 @@ int Nuitka_Object_IsInstance(PyThreadState *tstate, PyObject *instance, PyObject
     }
 
     if (PyTuple_Check(cls)) {
-#ifdef _NUITKA_FULL_COMPAT
-        if (Py_EnterRecursiveCall((char *)" in __instancecheck__")) {
+        if (unlikely(Py_EnterRecursiveCall((char *)" in __instancecheck__"))) {
             return -1;
         }
-#endif
 
         Py_ssize_t n = PyTuple_GET_SIZE(cls);
         int r = 0;
@@ -363,9 +357,7 @@ int Nuitka_Object_IsInstance(PyThreadState *tstate, PyObject *instance, PyObject
             }
         }
 
-#ifdef _NUITKA_FULL_COMPAT
         Py_LeaveRecursiveCall();
-#endif
 
         return r;
     }
@@ -376,18 +368,14 @@ int Nuitka_Object_IsInstance(PyThreadState *tstate, PyObject *instance, PyObject
         if (checker != NULL) {
             int ok = -1;
 
-#ifdef _NUITKA_FULL_COMPAT
-            if (Py_EnterRecursiveCall((char *)" in __instancecheck__")) {
+            if (unlikely(Py_EnterRecursiveCall((char *)" in __instancecheck__"))) {
                 Py_DECREF(checker);
                 return ok;
             }
-#endif
 
             PyObject *res = CALL_FUNCTION_WITH_SINGLE_ARG(tstate, checker, instance);
 
-#ifdef _NUITKA_FULL_COMPAT
             Py_LeaveRecursiveCall();
-#endif
             Py_DECREF(checker);
 
             if (res != NULL) {
@@ -413,11 +401,9 @@ int Nuitka_Object_IsInstance(PyThreadState *tstate, PyObject *instance, PyObject
     }
 
     if (PyTuple_Check(cls)) {
-#ifdef _NUITKA_FULL_COMPAT
-        if (Py_EnterRecursiveCall((char *)" in __instancecheck__")) {
+        if (unlikely(Py_EnterRecursiveCall((char *)" in __instancecheck__"))) {
             return -1;
         }
-#endif
 
         Py_ssize_t n = PyTuple_GET_SIZE(cls);
         int r = 0;
@@ -430,9 +416,7 @@ int Nuitka_Object_IsInstance(PyThreadState *tstate, PyObject *instance, PyObject
             }
         }
 
-#ifdef _NUITKA_FULL_COMPAT
         Py_LeaveRecursiveCall();
-#endif
 
         return r;
     }
@@ -446,18 +430,14 @@ int Nuitka_Object_IsInstance(PyThreadState *tstate, PyObject *instance, PyObject
     if (checker != NULL) {
         int ok = -1;
 
-#ifdef _NUITKA_FULL_COMPAT
-        if (Py_EnterRecursiveCall((char *)" in __instancecheck__")) {
+        if (unlikely(Py_EnterRecursiveCall((char *)" in __instancecheck__"))) {
             Py_DECREF(checker);
             return ok;
         }
-#endif
 
         PyObject *res = CALL_FUNCTION_WITH_SINGLE_ARG(tstate, checker, instance);
 
-#ifdef _NUITKA_FULL_COMPAT
         Py_LeaveRecursiveCall();
-#endif
         Py_DECREF(checker);
 
         if (res != NULL) {
@@ -526,11 +506,9 @@ int Nuitka_Object_IsInstance(PyThreadState *tstate, PyObject *instance, PyObject
     }
 
     if (PyTuple_Check(cls)) {
-#ifdef _NUITKA_FULL_COMPAT
-        if (Py_EnterRecursiveCall((char *)" in __instancecheck__")) {
+        if (unlikely(Py_EnterRecursiveCall((char *)" in __instancecheck__"))) {
             return -1;
         }
-#endif
 
         Py_ssize_t n = PyTuple_GET_SIZE(cls);
         int r = 0;
@@ -543,9 +521,7 @@ int Nuitka_Object_IsInstance(PyThreadState *tstate, PyObject *instance, PyObject
             }
         }
 
-#ifdef _NUITKA_FULL_COMPAT
         Py_LeaveRecursiveCall();
-#endif
 
         return r;
     }
@@ -555,18 +531,14 @@ int Nuitka_Object_IsInstance(PyThreadState *tstate, PyObject *instance, PyObject
     if (checker != NULL) {
         int ok = -1;
 
-#ifdef _NUITKA_FULL_COMPAT
-        if (Py_EnterRecursiveCall((char *)" in __instancecheck__")) {
+        if (unlikely(Py_EnterRecursiveCall((char *)" in __instancecheck__"))) {
             Py_DECREF(checker);
             return ok;
         }
-#endif
 
         PyObject *res = CALL_FUNCTION_WITH_SINGLE_ARG(tstate, checker, instance);
 
-#ifdef _NUITKA_FULL_COMPAT
         Py_LeaveRecursiveCall();
-#endif
         Py_DECREF(checker);
 
         if (res != NULL) {
@@ -596,11 +568,9 @@ int Nuitka_Object_IsInstance(PyThreadState *tstate, PyObject *instance, PyObject
     }
 
     if (PyTuple_Check(cls)) {
-#ifdef _NUITKA_FULL_COMPAT
-        if (Py_EnterRecursiveCall((char *)" in __instancecheck__")) {
+        if (unlikely(Py_EnterRecursiveCall((char *)" in __instancecheck__"))) {
             return -1;
         }
-#endif
 
         Py_ssize_t n = PyTuple_GET_SIZE(cls);
         int r = 0;
@@ -613,9 +583,7 @@ int Nuitka_Object_IsInstance(PyThreadState *tstate, PyObject *instance, PyObject
             }
         }
 
-#ifdef _NUITKA_FULL_COMPAT
         Py_LeaveRecursiveCall();
-#endif
 
         return r;
     }
@@ -625,18 +593,14 @@ int Nuitka_Object_IsInstance(PyThreadState *tstate, PyObject *instance, PyObject
     if (checker != NULL) {
         int ok = -1;
 
-#ifdef _NUITKA_FULL_COMPAT
-        if (Py_EnterRecursiveCall((char *)" in __instancecheck__")) {
+        if (unlikely(Py_EnterRecursiveCall((char *)" in __instancecheck__"))) {
             Py_DECREF(checker);
             return ok;
         }
-#endif
 
         PyObject *res = CALL_FUNCTION_WITH_SINGLE_ARG(tstate, checker, instance);
 
-#ifdef _NUITKA_FULL_COMPAT
         Py_LeaveRecursiveCall();
-#endif
         Py_DECREF(checker);
 
         if (res != NULL) {
@@ -717,11 +681,9 @@ int Nuitka_Object_IsInstance(PyThreadState *tstate, PyObject *instance, PyObject
 #endif
 
     if (PyTuple_Check(cls)) {
-#ifdef _NUITKA_FULL_COMPAT
-        if (Py_EnterRecursiveCall((char *)" in __instancecheck__")) {
+        if (unlikely(Py_EnterRecursiveCall((char *)" in __instancecheck__"))) {
             return -1;
         }
-#endif
 
         Py_ssize_t n = PyTuple_GET_SIZE(cls);
         int r = 0;
@@ -734,9 +696,7 @@ int Nuitka_Object_IsInstance(PyThreadState *tstate, PyObject *instance, PyObject
             }
         }
 
-#ifdef _NUITKA_FULL_COMPAT
         Py_LeaveRecursiveCall();
-#endif
 
         return r;
     }
@@ -746,18 +706,14 @@ int Nuitka_Object_IsInstance(PyThreadState *tstate, PyObject *instance, PyObject
     if (checker != NULL) {
         int ok = -1;
 
-#ifdef _NUITKA_FULL_COMPAT
-        if (Py_EnterRecursiveCall((char *)" in __instancecheck__")) {
+        if (unlikely(Py_EnterRecursiveCall((char *)" in __instancecheck__"))) {
             Py_DECREF(checker);
             return ok;
         }
-#endif
 
         PyObject *res = CALL_FUNCTION_WITH_SINGLE_ARG(tstate, checker, instance);
 
-#ifdef _NUITKA_FULL_COMPAT
         Py_LeaveRecursiveCall();
-#endif
         Py_DECREF(checker);
 
         if (res != NULL) {
@@ -776,40 +732,112 @@ int Nuitka_Object_IsInstance(PyThreadState *tstate, PyObject *instance, PyObject
 #endif
 #endif
 
-// TODO: We cannot really do this, until Nuitka_TypeLookup (_PyType_Lookup) is
-// not also a call to an API, we just become wasteful here. What will make sense
-// is to make specialized variants for not sub class checks, like
-// PyExc_GeneratorExit and PyExc_StopIteration by caching the descriptor
-// "checker" for them and then calling the "func" behind them more or less
-// directly. These could be created during startup and be very fast to use.
+static int _Nuitka_recursive_issubclass(PyThreadState *tstate, PyObject *derived, PyObject *cls) {
+    if (PyType_Check(cls) && PyType_Check(derived)) {
+        return Nuitka_Type_IsSubtype((PyTypeObject *)derived, (PyTypeObject *)cls);
+    }
 
-#if 0
-int Nuitka_Object_IsSubclass(PyThreadState *tstate, PyObject *derived, PyObject *cls)
-{
-    // TODO: Checking for a type is nothing the core does, could have a second variant
+#if PYTHON_VERSION < 0x300
+    if (PyClass_Check(cls) && PyClass_Check(derived)) {
+        return Nuitka_PyClass_IsSubclass(derived, cls);
+    }
+#endif
+
+    if (!_Nuitka_check_class(tstate, derived, "issubclass() arg 1 must be a class")) {
+        return -1;
+    }
+
+#if PYTHON_VERSION < 0x3a0
+    if (!_Nuitka_check_class(tstate, cls, "issubclass() arg 2 must be a class or tuple of classes")) {
+#else
+    if (!_Nuitka_check_class(tstate, cls, "issubclass() arg 2 must be a class, a tuple of classes, or a union")) {
+#endif
+        return -1;
+    }
+
+    return _Nuitka_abstract_issubclass(tstate, derived, cls);
+}
+
+int Nuitka_Object_IsSubclass(PyThreadState *tstate, PyObject *derived, PyObject *cls) {
+    CHECK_OBJECT(derived);
+    CHECK_OBJECT(cls);
+
     if (PyType_CheckExact(cls)) {
-        // Only a quick test for an exact match, but then give up.
         if (derived == cls) {
             return 1;
         }
 
-        // Too hard for us.
-        return PyObject_IsSubclass(derived, cls);
+        return _Nuitka_recursive_issubclass(tstate, derived, cls);
     }
 
-    // TODO: Checking for a tuple is nothing the core does, could have a second variant
+#if PYTHON_VERSION >= 0x3a0
+    if (Py_TYPE(cls) == Nuitka_PyUnion_Type) {
+#if PYTHON_VERSION < 0x3b0
+        if (!PyType_Check(derived)) {
+            SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_TypeError, "issubclass() arg 1 must be a class");
+            return -1;
+        }
+#endif
+
+        PyObject *args = LOOKUP_ATTRIBUTE(tstate, cls, const_str_plain___args__);
+
+        if (args == NULL) {
+            return -1;
+        }
+
+        if (unlikely(!PyTuple_Check(args))) {
+            Py_DECREF(args);
+            return -1;
+        }
+
+        Py_ssize_t n = PyTuple_GET_SIZE(args);
+
+        if (n == 0) {
+            Py_DECREF(args);
+            SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_TypeError,
+                                            "issubclass() argument 2 cannot be an empty union");
+            return -1;
+        }
+
+#if PYTHON_VERSION < 0x3b0
+        for (Py_ssize_t i = 0; i < n; i++) {
+            PyObject *arg = PyTuple_GET_ITEM(args, i);
+
+            if (Nuitka_Type_IsSubtype(Py_TYPE(arg), &Py_GenericAliasType)) {
+                Py_DECREF(args);
+                SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_TypeError,
+                                                "issubclass() argument 2 cannot contain a parameterized generic");
+                return -1;
+            }
+        }
+#endif
+
+        int r = 0;
+
+        for (Py_ssize_t i = 0; i < n; i++) {
+            r = Nuitka_Object_IsSubclass(tstate, derived, PyTuple_GET_ITEM(args, i));
+
+            if (r != 0) {
+                break;
+            }
+        }
+
+        Py_DECREF(args);
+
+        return r;
+    }
+#endif
+
     if (PyTuple_Check(cls)) {
-        if (Py_EnterRecursiveCall((char *)" in __subclasscheck__")) {
+        if (unlikely(Py_EnterRecursiveCall((char *)" in __subclasscheck__"))) {
             return -1;
         }
 
         Py_ssize_t n = PyTuple_GET_SIZE(cls);
         int r = 0;
 
-        for (Py_ssize_t i = 0; i < n; ++i) {
-            PyObject *item = PyTuple_GET_ITEM(cls, i);
-
-            r = Nuitka_Object_IsSubclass(tstate, derived, item);
+        for (Py_ssize_t i = 0; i < n; i++) {
+            r = Nuitka_Object_IsSubclass(tstate, derived, PyTuple_GET_ITEM(cls, i));
 
             if (r != 0) {
                 break;
@@ -821,46 +849,47 @@ int Nuitka_Object_IsSubclass(PyThreadState *tstate, PyObject *derived, PyObject 
         return r;
     }
 
-    // TODO: For many of our uses, we know it.
-    PyObject *checker = Nuitka_TypeLookup((PyTypeObject *)cls, const_str_plain___subclasscheck__);
+#if PYTHON_VERSION < 0x270
+    PyObject *checker = LOOKUP_ATTRIBUTE(tstate, cls, const_str_plain___subclasscheck__);
 
-    if (checker != NULL) {
-        descrgetfunc f = Py_TYPE(checker)->tp_descr_get;
-
-        if (f == NULL) {
-            Py_INCREF(checker);
-        } else {
-            checker = f(checker, cls, (PyObject *)(Py_TYPE(cls)));
-        }
+    if (checker == NULL && HAS_ERROR_OCCURRED(tstate)) {
+        CLEAR_ERROR_OCCURRED(tstate);
     }
+#elif PYTHON_VERSION < 0x300
+    PyObject *checker = NULL;
+
+    if (!(PyClass_Check(cls) || PyInstance_Check(cls))) {
+        checker = lookupSpecialNoError(cls, const_str_plain___subclasscheck__);
+    }
+#else
+    PyObject *checker = lookupSpecialNoError(cls, const_str_plain___subclasscheck__);
+#endif
 
     if (checker != NULL) {
         int ok = -1;
 
-        if (Py_EnterRecursiveCall((char *)" in __subclasscheck__")) {
+        if (unlikely(Py_EnterRecursiveCall((char *)" in __subclasscheck__"))) {
             Py_DECREF(checker);
             return ok;
         }
 
-        PyObject *res = CALL_FUNCTION_WITH_SINGLE_ARG(checker, derived);
+        PyObject *res = CALL_FUNCTION_WITH_SINGLE_ARG(tstate, checker, derived);
 
         Py_LeaveRecursiveCall();
-
         Py_DECREF(checker);
 
         if (res != NULL) {
             ok = CHECK_IF_TRUE(res);
             Py_DECREF(res);
         }
+
         return ok;
     } else if (HAS_ERROR_OCCURRED(tstate)) {
         return -1;
     }
 
-    // Too hard for us.
-    return PyObject_IsSubclass(derived, cls);
+    return _Nuitka_recursive_issubclass(tstate, derived, cls);
 }
-#endif
 
 getattrofunc PyObject_GenericGetAttr_resolved;
 setattrofunc PyObject_GenericSetAttr_resolved;

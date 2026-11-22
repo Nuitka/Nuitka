@@ -1183,14 +1183,14 @@ NUITKA_MAY_BE_UNUSED static bool EXCEPTION_MATCH_GENERATOR(PyThreadState *tstate
         struct Nuitka_ExceptionPreservationItem saved_exception_state;
         FETCH_ERROR_OCCURRED_STATE(tstate, &saved_exception_state);
 
-        int res = PyObject_IsSubclass(exception_value, PyExc_GeneratorExit);
+        int res = Nuitka_Object_IsSubclass(tstate, exception_value, PyExc_GeneratorExit);
 
         if (unlikely(res == -1)) {
             Nuitka_WriteUnraisable(exception_value);
         }
 
         if (res != 1) {
-            res = PyObject_IsSubclass(exception_value, PyExc_StopIteration);
+            res = Nuitka_Object_IsSubclass(tstate, exception_value, PyExc_StopIteration);
 
             if (unlikely(res == -1)) {
                 Nuitka_WriteUnraisable(exception_value);
@@ -1236,9 +1236,9 @@ NUITKA_MAY_BE_UNUSED static bool EXCEPTION_MATCH_BOOL_SINGLE(PyThreadState *tsta
         struct Nuitka_ExceptionPreservationItem saved_exception_state;
         FETCH_ERROR_OCCURRED_STATE(tstate, &saved_exception_state);
 
-        // Python 2 old-style class exceptions require PyObject_IsSubclass;
+        // Python 2 old-style class exceptions require Nuitka_Object_IsSubclass;
         // Python 3 BaseException subclasses use Nuitka_Type_IsSubtype directly.
-        int res = PyObject_IsSubclass(exception_value, exception_checked);
+        int res = Nuitka_Object_IsSubclass(tstate, exception_value, exception_checked);
 
         if (unlikely(res == -1)) {
             Nuitka_WriteUnraisable(exception_value);
@@ -1280,7 +1280,7 @@ NUITKA_MAY_BE_UNUSED static inline int _EXCEPTION_MATCH_BOOL(PyThreadState *tsta
             Py_SetRecursionLimit(recursion_limit + 5);
         }
 
-        int res = PyObject_IsSubclass(exception_class, exception_checked);
+        int res = Nuitka_Object_IsSubclass(tstate, exception_class, exception_checked);
 
         Py_SetRecursionLimit(recursion_limit);
 

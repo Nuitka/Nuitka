@@ -322,7 +322,8 @@ static PyObject *Nuitka_Method_tp_descr_get(PyObject *self, PyObject *obj, PyObj
 
     if (method->m_class != NULL && class_object != NULL) {
         // Unbound methods remain unchanged if class_object is not a subclass of m_class.
-        int result = PyObject_IsSubclass(class_object, method->m_class);
+        PyThreadState *tstate = PyThreadState_GET();
+        int result = Nuitka_Object_IsSubclass(tstate, class_object, method->m_class);
 
         if (unlikely(result < 0)) {
             return NULL;

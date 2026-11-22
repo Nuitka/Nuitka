@@ -435,7 +435,10 @@ def generateBuiltinIssubclassCode(to_name, expression, emit, context):
 
     res_name = context.getIntResName()
 
-    emit("%s = PyObject_IsSubclass(%s, %s);" % (res_name, cls_name, classes_name))
+    emit(
+        "%s = Nuitka_Object_IsSubclass(tstate, %s, %s);"
+        % (res_name, cls_name, classes_name)
+    )
 
     getErrorExitBoolCode(
         condition="%s == -1" % res_name,

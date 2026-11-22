@@ -49,29 +49,25 @@ NUITKA_MAY_BE_UNUSED static int CHECK_EXCEPTION_STAR_VALID(PyThreadState *tstate
         return -1;
     }
 
-    int is_subclass = 0;
+    bool is_subclass = false;
 
     if (PyTuple_Check(right)) {
         Py_ssize_t length = PyTuple_GET_SIZE(right);
 
         for (Py_ssize_t i = 0; i < length; i++) {
             PyObject *exc = PyTuple_GET_ITEM(right, i);
-            is_subclass = PyObject_IsSubclass(exc, PyExc_BaseExceptionGroup);
+            assert(PyType_Check(exc));
 
-            if (unlikely(is_subclass < 0)) {
-                return -1;
-            }
+            is_subclass = Nuitka_Type_IsSubtype((PyTypeObject *)exc, (PyTypeObject *)PyExc_BaseExceptionGroup);
 
             if (unlikely(is_subclass)) {
                 break;
             }
         }
     } else {
-        is_subclass = PyObject_IsSubclass(right, PyExc_BaseExceptionGroup);
+        assert(PyType_Check(right));
 
-        if (unlikely(is_subclass < 0)) {
-            return -1;
-        }
+        is_subclass = Nuitka_Type_IsSubtype((PyTypeObject *)right, (PyTypeObject *)PyExc_BaseExceptionGroup);
     }
 
     if (unlikely(is_subclass)) {

@@ -55,7 +55,7 @@ def getConstantDefaultPopulation():
         "__abstractmethods__",
         "__closure__",
         "__instancecheck__",
-        # TODO: Add "__subclasscheck__" for PyObject_IsSubClass.
+        "__subclasscheck__",
         "__dict__",
         "__doc__",
         "__file__",

@@ -151,7 +151,7 @@ restart:
         if (PyExceptionInstance_Check(value)) {
             instance_class = PyExceptionInstance_Class(value);
 
-            is_subclass = PyObject_IsSubclass(instance_class, type);
+            is_subclass = Nuitka_Object_IsSubclass(tstate, instance_class, type);
             if (is_subclass < 0) {
                 goto error;
             }
@@ -233,7 +233,7 @@ void Nuitka_Err_NormalizeException(PyThreadState *tstate, PyObject **exc, PyObje
         if (PyExceptionInstance_Check(value)) {
             instance_class = PyExceptionInstance_Class(value);
 
-            is_subclass = PyObject_IsSubclass(instance_class, type);
+            is_subclass = Nuitka_Object_IsSubclass(tstate, instance_class, type);
 
             if (is_subclass < 0) {
                 goto error;

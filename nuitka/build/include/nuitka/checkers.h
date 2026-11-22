@@ -36,6 +36,7 @@ static inline int Nuitka_PyObject_TypeCheck(PyObject *obj, PyTypeObject *type) {
 }
 
 extern int Nuitka_Object_IsInstance(PyThreadState *tstate, PyObject *instance, PyObject *cls);
+extern int Nuitka_Object_IsSubclass(PyThreadState *tstate, PyObject *derived, PyObject *cls);
 
 #endif
 
