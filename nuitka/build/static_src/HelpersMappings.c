@@ -12,9 +12,7 @@ Py_ssize_t Nuitka_PyMapping_Size(PyObject *mapping) {
     PyMappingMethods *tp_as_mapping = Py_TYPE(mapping)->tp_as_mapping;
 
     if (tp_as_mapping != NULL && tp_as_mapping->mp_length) {
-        Py_ssize_t result = tp_as_mapping->mp_length(mapping);
-        assert(result >= 0);
-        return result;
+        return tp_as_mapping->mp_length(mapping);
     }
 
     if (Py_TYPE(mapping)->tp_as_sequence && Py_TYPE(mapping)->tp_as_sequence->sq_length) {

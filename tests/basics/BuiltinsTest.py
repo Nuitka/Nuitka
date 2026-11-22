@@ -1196,6 +1196,34 @@ print("getattr variable ->", attributeTypeErrorGet(getattr, attribute_error_name
 print("setattr variable ->", attributeTypeErrorSet(attribute_error_name))
 print("delattr variable ->", attributeTypeErrorGet(delattr, attribute_error_name))
 
+
+print("Mapping __len__ error handling:")
+
+
+class RaisingMappingLen(dict):
+    def __len__(self):
+        raise RuntimeError("mapping len error")
+
+
+class NegativeMappingLen(dict):
+    def __len__(self):
+        return -1
+
+
+def reportMappingLen(label, fn):
+    try:
+        res = fn()
+    except Exception as e:
+        print(label, "raised", type(e).__name__, str(e))
+    else:
+        print(label, "returned", res)
+
+
+reportMappingLen("len(RaisingMappingLen()):", lambda: len(RaisingMappingLen()))
+reportMappingLen("len(NegativeMappingLen()):", lambda: len(NegativeMappingLen()))
+reportMappingLen("list(RaisingMappingLen()):", lambda: list(RaisingMappingLen()))
+reportMappingLen("list(NegativeMappingLen()):", lambda: list(NegativeMappingLen()))
+
 #     Python tests originally created or extracted from other peoples work. The
 #     parts were too small to be protected.
 #
