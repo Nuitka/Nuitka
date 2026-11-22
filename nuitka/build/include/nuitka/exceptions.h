@@ -1179,6 +1179,7 @@ NUITKA_MAY_BE_UNUSED static bool EXCEPTION_MATCH_GENERATOR(PyThreadState *tstate
     }
 
     if (PyExceptionClass_Check(exception_value)) {
+#if PYTHON_VERSION < 0x300
         struct Nuitka_ExceptionPreservationItem saved_exception_state;
         FETCH_ERROR_OCCURRED_STATE(tstate, &saved_exception_state);
 
@@ -1188,19 +1189,21 @@ NUITKA_MAY_BE_UNUSED static bool EXCEPTION_MATCH_GENERATOR(PyThreadState *tstate
             Nuitka_WriteUnraisable(exception_value);
         }
 
-        if (res == 1) {
-            return true;
-        }
+        if (res != 1) {
+            res = PyObject_IsSubclass(exception_value, PyExc_StopIteration);
 
-        res = PyObject_IsSubclass(exception_value, PyExc_StopIteration);
-
-        if (unlikely(res == -1)) {
-            Nuitka_WriteUnraisable(exception_value);
+            if (unlikely(res == -1)) {
+                Nuitka_WriteUnraisable(exception_value);
+            }
         }
 
         RESTORE_ERROR_OCCURRED_STATE(tstate, &saved_exception_state);
 
         return res == 1;
+#else
+        return Nuitka_Type_IsSubtype((PyTypeObject *)exception_value, (PyTypeObject *)PyExc_GeneratorExit) ||
+               Nuitka_Type_IsSubtype((PyTypeObject *)exception_value, (PyTypeObject *)PyExc_StopIteration);
+#endif
     }
 
     return false;
