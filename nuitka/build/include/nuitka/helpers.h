@@ -54,6 +54,11 @@ extern void stopProfiling(void);
 static inline bool Nuitka_Function_Check(PyObject *obj);
 static inline PyObject *Nuitka_Function_GetName(PyObject *obj);
 
+struct Nuitka_FunctionObject;
+extern PyObject *Nuitka_CallFunctionNoArgs(PyThreadState *tstate, struct Nuitka_FunctionObject const *function);
+extern PyObject *Nuitka_CallFunctionPosArgs(PyThreadState *tstate, struct Nuitka_FunctionObject const *function,
+                                            PyObject *const *args, Py_ssize_t args_size);
+
 static inline bool Nuitka_Generator_Check(PyObject *obj);
 static inline PyObject *Nuitka_Generator_GetName(PyObject *obj);
 
@@ -87,6 +92,12 @@ NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_VARS(PyThreadState *tstate, PyObjec
 
 NUITKA_MAY_BE_UNUSED static PyObject *CALL_FUNCTION_WITH_ARGS(PyThreadState *tstate, PyObject *function_object,
                                                               PyObject *const *args, Py_ssize_t count) {
+    if (count == 0) {
+        return CALL_FUNCTION_NO_ARGS(tstate, function_object);
+    } else if (count == 1) {
+        return CALL_FUNCTION_WITH_SINGLE_ARG(tstate, function_object, args[0]);
+    }
+
 #if PYTHON_VERSION >= 0x380 && !defined(_NUITKA_EXPERIMENTAL_DISABLE_VECTORCALL_USAGE)
     if (PyType_HasFeature(Py_TYPE(function_object), _Py_TPFLAGS_HAVE_VECTORCALL)) {
         vectorcallfunc func =
@@ -101,6 +112,29 @@ NUITKA_MAY_BE_UNUSED static PyObject *CALL_FUNCTION_WITH_ARGS(PyThreadState *tst
         }
     }
 #endif
+
+    if (Nuitka_Function_Check(function_object)) {
+        if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
+            return NULL;
+        }
+
+        PyObject *result =
+            Nuitka_CallFunctionPosArgs(tstate, (struct Nuitka_FunctionObject const *)function_object, args, count);
+
+        Py_LeaveRecursiveCall();
+
+        CHECK_OBJECT_X(result);
+
+        return result;
+#if PYTHON_VERSION < 0x380 && !defined(_NUITKA_EXPERIMENTAL_DISABLE_UNCOMPILED_FUNCTION_CALL_OPT)
+    } else if (PyFunction_Check(function_object)) {
+        PyObject *result = callPythonFunction(function_object, args, (int)count);
+
+        CHECK_OBJECT_X(result);
+
+        return result;
+#endif
+    }
 
     PyObject *args_tuple = MAKE_TUPLE_VAR(tstate, args, count);
 

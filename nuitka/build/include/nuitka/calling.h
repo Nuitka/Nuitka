@@ -14,6 +14,10 @@
 #define _PY_FASTCALL_SMALL_STACK 5
 #endif
 
+#if PYTHON_VERSION < 0x380 && !defined(_NUITKA_EXPERIMENTAL_DISABLE_UNCOMPILED_FUNCTION_CALL_OPT)
+extern PyObject *callPythonFunction(PyObject *func, PyObject *const *args, int count);
+#endif
+
 extern char const *GET_CALLABLE_NAME(PyObject *obj);
 extern char const *GET_CALLABLE_DESC(PyObject *obj);
 extern char const *GET_CLASS_NAME(PyObject *class_object);

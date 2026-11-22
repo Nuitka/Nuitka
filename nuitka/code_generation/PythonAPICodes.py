@@ -48,7 +48,8 @@ def generateCAPIObjectCodeCommon(
 
     Args:
         arg_desc: Tuple of '(arg_name, expression_or_tuple)' pairs; a tuple of
-            expressions expands into a 'PyObject *[]' array and length pair.
+            expressions expands into a 'PyObject *[]' array (or '&elem' for a
+            single element) and length pair.
         ref_count: '1' for a new reference return, '0' for a borrowed return.
         none_null: If True, 'None' expressions pass 'NULL'; otherwise a
             container of 'arg_name' strings allowed to pass 'NULL' when 'None'.
@@ -84,7 +85,11 @@ def generateCAPIObjectCodeCommon(
 
                 sub_names.append(sub_name)
 
-            if sub_names:
+            if len(sub_names) == 1:
+                arg_names.append("&%s" % sub_names[0])
+                arg_names.append("1")
+                release_names.extend(sub_names)
+            elif sub_names:
                 arg_name = "tmp_%s_array_%d" % (
                     arg_name,
                     context.allocateTempNumber(arg_name),

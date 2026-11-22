@@ -816,7 +816,7 @@ def _getInstanceCallCodePosArgs(
     emitLineNumberUpdateCode(expression, emit, context)
 
     emit(
-        "%s = CALL_METHOD_WITH_POS_ARGS(%s, %s, %s);"
+        "%s = CALL_METHOD_WITH_POS_ARGS(tstate, %s, %s, %s);"
         % (to_name, called_name, called_attribute_name, args_name)
     )
 
