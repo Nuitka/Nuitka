@@ -7,6 +7,7 @@
 #ifdef __IDE_ONLY__
 #include "nuitka/prelude.h"
 
+// Includes below require definitions from the prelude.
 #include "HelpersComparisonEqUtils.c"
 #include "nuitka/helper/long_helpers.h"
 #endif

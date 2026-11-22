@@ -9,6 +9,7 @@
 #ifdef __IDE_ONLY__
 #include "nuitka/prelude.h"
 
+// Includes below require definitions from the prelude.
 #include "nuitka/helper/boolean.h"
 #include "nuitka/helper/ints.h"
 #endif

@@ -550,6 +550,9 @@ def emitIDE(emit, extra_includes=()):
     emit('#include "nuitka/prelude.h"')
     if extra_includes:
         emit("")
+        # The comment keeps clang-format from sorting these includes before the
+        # prelude, which they depend on.
+        emit("// Includes below require definitions from the prelude.")
         for include in extra_includes:
             emit('#include "%s"' % include)
     emit("#endif")
