@@ -44,6 +44,7 @@ from nuitka.utils.FileOperations import (
     removeDirectory,
     withDirectoryChange,
 )
+from nuitka.utils.Hashing import getStringHash
 from nuitka.utils.InstalledPythons import findPythons
 from nuitka.utils.Utils import isLinux, isMacOS, isWin32Windows
 from nuitka.utils.Yaml import parseYaml
@@ -258,6 +259,12 @@ def _compileCase(case_data, case_dir, installed_python, lock_filename, jobs):
             "--report-user-provided=case_version=%s" % case_data["version"]
         )
 
+    if nuitka_extra_options:
+        report_user_options.append(
+            "--report-user-provided=nuitka_extra_options=%s"
+            % _getNuitkaExtraOptionsHash(nuitka_extra_options)
+        )
+
     check_call(
         run_command
         + [
@@ -348,6 +355,42 @@ def _getReportUserDataValue(report_root, key):
     return None
 
 
+def _getNuitkaExtraOptionsHash(nuitka_extra_options):
+    if not nuitka_extra_options:
+        return None
+
+    return getStringHash(nuitka_extra_options)
+
+
+def _getReportCommandLineOptions(report_root):
+    command_line = report_root.find("command_line")
+    if command_line is None:
+        return set()
+
+    return set(
+        option.attrib["value"]
+        for option in command_line.findall("option")
+        if "value" in option.attrib
+    )
+
+
+def _hasChangedNuitkaExtraOptions(old_report_root, nuitka_extra_options):
+    current_hash = _getNuitkaExtraOptionsHash(nuitka_extra_options)
+    old_hash = _getReportUserDataValue(old_report_root, "nuitka_extra_options")
+
+    if old_hash is not None:
+        return old_hash != current_hash
+
+    # Older reports predate the user data entry; use the recorded command
+    # line to tell whether the options were already active.
+    if not nuitka_extra_options:
+        return False
+
+    old_options = _getReportCommandLineOptions(old_report_root)
+
+    return any(option not in old_options for option in nuitka_extra_options.split())
+
+
 def _isCompilationNeeded(
     case_data,
     case_dir,
@@ -408,6 +451,16 @@ def _isCompilationNeeded(
         )
 
         need_compile = False
+    elif _hasChangedNuitkaExtraOptions(
+        old_report_root=old_report_root,
+        nuitka_extra_options=os.getenv("NUITKA_EXTRA_OPTIONS"),
+    ):
+        watch_logger.info(
+            "Recompilation with identical Nuitka for '%s' due to changed Nuitka extra options."
+            % lock_filename
+        )
+
+        need_compile = True
     elif getCompilationPythonVersion(old_report_root) not in (
         None,
         installed_python.getPythonFullVersion(),
