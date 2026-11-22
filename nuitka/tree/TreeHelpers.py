@@ -195,34 +195,53 @@ def detectFunctionBodyKind(nodes, start_value=None):
                     if python_version < 0x3B0:
                         _check(field[0].iter)
                     else:
-                        _check(field[0])
+                        for child in field:
+                            _check(child)
                 elif name in ("body", "elt"):
                     _check(field)
                 else:
                     assert False, (name, field, ast.dump(node))
         elif python_version >= 0x270 and node_class is ast.SetComp:
             for name, field in ast.iter_fields(node):
-                if name in ("name", "body", "comparators", "elt"):
+                if name in ("name", "body", "comparators"):
                     pass
+                elif name == "elt":
+                    if python_version >= 0x3B0:
+                        _check(field)
                 elif name == "generators":
-                    _check(field[0].iter)
+                    if python_version < 0x3B0:
+                        _check(field[0].iter)
+                    else:
+                        for child in field:
+                            _check(child)
                 else:
                     assert False, (name, field, ast.dump(node))
         elif python_version >= 0x270 and node_class is ast.DictComp:
             for name, field in ast.iter_fields(node):
-                if name in ("name", "body", "comparators", "key", "value"):
+                if name in ("name", "body", "comparators"):
                     pass
+                elif name in ("key", "value"):
+                    if python_version >= 0x3B0:
+                        if field is not None:
+                            _check(field)
                 elif name == "generators":
-                    _check(field[0].iter)
+                    if python_version < 0x3B0:
+                        _check(field[0].iter)
+                    else:
+                        for child in field:
+                            _check(child)
                 else:
                     assert False, (name, field, ast.dump(node))
         elif python_version >= 0x370 and node_class is ast.comprehension:
             for name, field in ast.iter_fields(node):
-                if name in ("name", "target"):
+                if name == "name":
                     pass
+                elif name == "target":
+                    _check(field)
                 elif name == "iter":
-                    # Top level comprehension iterators do not influence those.
-                    if node not in nodes:
+                    # Top level generator expression's first iterator is evaluated
+                    # in the enclosing scope, not inside the generator expression.
+                    if node is not nodes[0]:
                         _check(field)
                 elif name == "ifs":
                     for child in field:
