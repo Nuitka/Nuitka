@@ -250,6 +250,21 @@ def case21_nested_walrus_in_augmented_generator():
     return len(old), old, value
 
 
+def case22_walrus_attribute_in_and():
+    """Attribute access on a walrus target in a boolean operation's right value."""
+
+    class Container:
+        def method(self):
+            return "value"
+
+    container = Container()
+
+    if (result := container.method()) and result.upper() == "VALUE":
+        return result
+
+    return None
+
+
 module_augmented_value = None
 
 module_augmented_string = "x" * 1000
@@ -304,6 +319,7 @@ print("case18", case18_nested_walrus_in_augmented_global())
 print("case19", case19_nested_walrus_in_augmented_attribute())
 print("case20", case20_nested_walrus_in_augmented_subscript())
 print("case21", case21_nested_walrus_in_augmented_generator())
+print("case22", case22_walrus_attribute_in_and())
 print(
     "module-augmented-string",
     len(module_augmented_string),
