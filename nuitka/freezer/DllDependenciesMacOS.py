@@ -236,24 +236,23 @@ def _parseOtoolListingOutput(output):
 def _getNonVersionedDllFilenames2(filename):
     yield filename
 
-    if filename.endswith(".dylib"):
-        if getArchitecture() == "arm64":
-            yield filename[:-6] + "_arm64.dylib"
-        else:
-            yield filename[:-6] + "_x86_64.dylib"
+    arch_suffix = "_arm64" if getArchitecture() == "arm64" else "_x86_64"
 
-    match = re.match(r"^(.*?)(\.\d+)+\.dylib$", filename)
+    if filename.endswith(".dylib"):
+        yield filename[:-6] + arch_suffix + ".dylib"
+
+    match = re.match(r"^(.*?)((?:\.\d+)+)\.dylib$", filename)
 
     if match:
-        yield match.group(1) + ".dylib"
+        base_filename = match.group(1)
+        version = match.group(2)
 
-        # TODO: The versioned filename, might do the same, and so could the
-        # "x86_64" specific DLL be a thing too, but we should have actual
-        # examples to be sure they are covered with tests.
-        if getArchitecture() == "arm64":
-            yield match.group(1) + "_arm64.dylib"
-        else:
-            yield match.group(1) + "_x86_64.dylib"
+        yield base_filename + ".dylib"
+
+        # Versioned DLLs may carry the architecture before the version, e.g.
+        # 'libgcc_s_x86_64.1.dylib' for 'libgcc_s.1.dylib'.
+        yield base_filename + arch_suffix + version + ".dylib"
+        yield base_filename + arch_suffix + ".dylib"
 
     if filename.endswith(".so"):
         yield changeFilenameExtension(filename, ".dylib")
