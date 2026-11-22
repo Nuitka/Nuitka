@@ -386,7 +386,7 @@ class ExpressionTypeVariable(ExpressionTypeVariableBase, ExpressionBase):
     named_children = (
         "bound|optional",
         "constraints|optional",
-        "default_value|auto_none",
+        "default_value|optional",
     )
     node_attributes = ("name",)
 
@@ -397,6 +397,7 @@ class ExpressionTypeVariableTuple(ExpressionTypeVariableTupleBase, ExpressionBas
     kind = "EXPRESSION_TYPE_VARIABLE_TUPLE"
 
     auto_compute_handling = "final,no_raise"
+    named_children = ("default_value|optional",)
     node_attributes = ("name",)
 
     python_version_spec = ">= 0x3c0"
@@ -408,6 +409,7 @@ class ExpressionParameterSpecification(
     kind = "EXPRESSION_PARAMETER_SPECIFICATION"
 
     auto_compute_handling = "final,no_raise"
+    named_children = ("default_value|optional",)
     node_attributes = ("name",)
 
     python_version_spec = ">= 0x3c0"

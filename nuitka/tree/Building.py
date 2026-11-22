@@ -791,6 +791,8 @@ setBuildingDispatchers(
         "Match": buildMatchNode,
         "TypeAlias": buildTypeAliasNode,
         "TypeVar": buildTypeVarNode,
+        "TypeVarTuple": buildTypeVarTupleNode,
+        "ParamSpec": buildTypeParamSpec,
         "TemplateStr": buildTemplateStringNode,
         "Interpolation": buildInterpolationNode,
     },
@@ -801,8 +803,6 @@ setBuildingDispatchers(
         "Num": buildNumberNode,
         "Bytes": buildBytesNode,
         "Continue": buildStatementLoopContinue,
-        "TypeVarTuple": buildTypeVarTupleNode,
-        "ParamSpec": buildTypeParamSpec,
     },
     path_args1={"Ellipsis": buildEllipsisNode},
 )

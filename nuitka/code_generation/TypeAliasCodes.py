@@ -96,19 +96,34 @@ def generateTypeVarCode(to_name, expression, emit, context):
 
 
 def generateTypeVarTupleCode(to_name, expression, emit, context):
+    (default_value_name,) = generateChildExpressionsCode(
+        expression=expression, emit=emit, context=context
+    )
+
     with withObjectCodeTemporaryAssignment(
         to_name, "type_var_tuple_value", expression, emit, context
     ) as value_name:
-        emit(
-            "%s = MAKE_TYPE_VAR_TUPLE(tstate, %s);"
-            % (
-                value_name,
-                context.getConstantCode(constant=expression.name),
+        if python_version >= 0x3D0:
+            emit(
+                "%s = MAKE_TYPE_VAR_TUPLE(tstate, %s, %s);"
+                % (
+                    value_name,
+                    context.getConstantCode(constant=expression.name),
+                    default_value_name if default_value_name is not None else "NULL",
+                )
             )
-        )
+        else:
+            emit(
+                "%s = MAKE_TYPE_VAR_TUPLE(tstate, %s);"
+                % (
+                    value_name,
+                    context.getConstantCode(constant=expression.name),
+                )
+            )
 
         getErrorExitCode(
             check_name=value_name,
+            release_name=default_value_name,
             emit=emit,
             context=context,
             needs_check=False,
@@ -118,19 +133,34 @@ def generateTypeVarTupleCode(to_name, expression, emit, context):
 
 
 def generateParamSpecCode(to_name, expression, emit, context):
+    (default_value_name,) = generateChildExpressionsCode(
+        expression=expression, emit=emit, context=context
+    )
+
     with withObjectCodeTemporaryAssignment(
         to_name, "param_spec_value", expression, emit, context
     ) as value_name:
-        emit(
-            "%s = MAKE_PARAM_SPEC(tstate, %s);"
-            % (
-                value_name,
-                context.getConstantCode(constant=expression.name),
+        if python_version >= 0x3D0:
+            emit(
+                "%s = MAKE_PARAM_SPEC(tstate, %s, %s);"
+                % (
+                    value_name,
+                    context.getConstantCode(constant=expression.name),
+                    default_value_name if default_value_name is not None else "NULL",
+                )
             )
-        )
+        else:
+            emit(
+                "%s = MAKE_PARAM_SPEC(tstate, %s);"
+                % (
+                    value_name,
+                    context.getConstantCode(constant=expression.name),
+                )
+            )
 
         getErrorExitCode(
             check_name=value_name,
+            release_name=default_value_name,
             emit=emit,
             context=context,
             needs_check=False,

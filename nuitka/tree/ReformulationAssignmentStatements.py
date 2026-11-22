@@ -1284,6 +1284,103 @@ def _isConstantTupleNode(node):
     )
 
 
+def _buildStarredTypeParamDefault(provider, value_node, source_ref):
+    outline_body = ExpressionOutlineBody(
+        provider=provider,
+        name="unpack_typevar_tuple_default",
+        source_ref=source_ref,
+    )
+
+    iter_var = outline_body.allocateTempVariable(
+        temp_scope=None, name="iter", temp_type="object"
+    )
+    item_var = outline_body.allocateTempVariable(
+        temp_scope=None, name="item", temp_type="object"
+    )
+
+    outline_body.setChildBody(
+        makeStatementsSequenceFromStatements(
+            makeStatementAssignmentVariable(
+                variable=iter_var,
+                source=ExpressionBuiltinIterForUnpack(
+                    value=buildNode(provider, value_node, source_ref),
+                    source_ref=source_ref,
+                ),
+                source_ref=source_ref,
+            ),
+            makeTryFinallyReleaseStatement(
+                provider=outline_body,
+                tried=makeStatementsSequenceFromStatements(
+                    makeStatementAssignmentVariable(
+                        variable=item_var,
+                        source=ExpressionSpecialUnpack(
+                            value=ExpressionTempVariableRef(
+                                variable=iter_var, source_ref=source_ref
+                            ),
+                            count=1,
+                            expected=1,
+                            starred=False,
+                            source_ref=source_ref,
+                        ),
+                        source_ref=source_ref,
+                    ),
+                    makeTryFinallyReleaseStatement(
+                        provider=outline_body,
+                        tried=makeStatementsSequenceFromStatements(
+                            StatementSpecialUnpackCheck(
+                                iterator=ExpressionTempVariableRef(
+                                    variable=iter_var, source_ref=source_ref
+                                ),
+                                count=1,
+                                source_ref=source_ref,
+                            ),
+                            StatementReturn(
+                                expression=ExpressionTempVariableRef(
+                                    variable=item_var, source_ref=source_ref
+                                ),
+                                source_ref=source_ref,
+                            ),
+                        ),
+                        variables=(item_var,),
+                        source_ref=source_ref,
+                    ),
+                ),
+                variables=(iter_var,),
+                source_ref=source_ref,
+            ),
+        )
+    )
+
+    return outline_body
+
+
+def _buildTypeParamDefaultFunction(provider, node, source_ref, allow_starred=False):
+    if python_version < 0x3D0 or node.default_value is None:
+        return None
+
+    if allow_starred and getKind(node.default_value) == "Starred":
+
+        def createExpression(inner_provider):
+            return _buildStarredTypeParamDefault(
+                provider=inner_provider,
+                value_node=node.default_value.value,
+                source_ref=source_ref,
+            )
+
+    else:
+
+        def createExpression(inner_provider):
+            return buildNode(inner_provider, node.default_value, source_ref)
+
+    return _makeDeferredEvaluationFunction(
+        provider=provider,
+        function_name=node.name,
+        create_expression=createExpression,
+        flags=_typevar_flags,
+        source_ref=source_ref,
+    )
+
+
 def buildTypeVarNode(provider, node, source_ref):
     evaluate_bound = None
     evaluate_constraints = None
@@ -1306,31 +1403,48 @@ def buildTypeVarNode(provider, node, source_ref):
         else:
             evaluate_bound = evaluate
 
-    if python_version >= 0x3D0:
-        default_value = buildNode(
-            provider,
-            node.default_value,
-            source_ref,
-            allow_none=True,
-        )
-    else:
-        default_value = None
+    evaluate_default = _buildTypeParamDefaultFunction(
+        provider=provider,
+        node=node,
+        source_ref=source_ref,
+    )
 
     return ExpressionTypeVariable(
         name=node.name,
         bound=evaluate_bound,
         constraints=evaluate_constraints,
-        default_value=default_value,
+        default_value=evaluate_default,
         source_ref=source_ref,
     )
 
 
-def buildTypeVarTupleNode(node, source_ref):
-    return ExpressionTypeVariableTuple(node.name, source_ref=source_ref)
+def buildTypeVarTupleNode(provider, node, source_ref):
+    evaluate_default = _buildTypeParamDefaultFunction(
+        provider=provider,
+        node=node,
+        source_ref=source_ref,
+        allow_starred=True,
+    )
+
+    return ExpressionTypeVariableTuple(
+        name=node.name,
+        default_value=evaluate_default,
+        source_ref=source_ref,
+    )
 
 
-def buildTypeParamSpec(node, source_ref):
-    return ExpressionParameterSpecification(node.name, source_ref=source_ref)
+def buildTypeParamSpec(provider, node, source_ref):
+    evaluate_default = _buildTypeParamDefaultFunction(
+        provider=provider,
+        node=node,
+        source_ref=source_ref,
+    )
+
+    return ExpressionParameterSpecification(
+        name=node.name,
+        default_value=evaluate_default,
+        source_ref=source_ref,
+    )
 
 
 # TODO: Marked with the "generic" flag, for later treating these functions similar

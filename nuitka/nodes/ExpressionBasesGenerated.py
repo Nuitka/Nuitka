@@ -142,69 +142,6 @@ class _NoChildHavingFinalNoRaiseRelativePathMixin(ExpressionBase):
 ExpressionRuntimePathBase = _NoChildHavingFinalNoRaiseRelativePathMixin
 
 
-class _NoChildHavingFinalNoRaiseNameMixin(ExpressionBase):
-    # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
-    __slots__ = ()
-
-    def __init__(self, name, source_ref):
-        self.name = name
-
-        ExpressionBase.__init__(self, source_ref)
-
-    def getDetails(self):
-        return {
-            "name": self.name,
-        }
-
-    def getVisitableNodes(self):
-        return ()
-
-    def getVisitableNodesNamed(self):
-        return ()
-
-    def replaceChild(self, old_node, new_node):
-        raise AssertionError("Didn't find child", old_node, "in", self)
-
-    def getCloneArgs(self):
-        values = {}
-
-        values.update(self.getDetails())
-
-        return values
-
-    def finalize(self):
-        del self.parent
-
-    def computeExpressionRaw(self, trace_collection):
-
-        return self, None, None
-
-    @staticmethod
-    def mayRaiseExceptionOperation():
-        return False
-
-    @staticmethod
-    def mayRaiseException(exception_type):
-        return False
-
-    def undoVariableTracingRaw(self, trace_collection):
-        for child in reversed(self.getVisitableNodes()):
-            child.undoVariableTracingRaw(trace_collection)
-
-        self.undoVariableTracing()
-
-    @staticmethod
-    def undoVariableTracing():
-        pass
-
-    def collectVariableAccesses(self, emit_variable):
-        pass
-
-
-ExpressionParameterSpecificationBase = _NoChildHavingFinalNoRaiseNameMixin
-ExpressionTypeVariableTupleBase = _NoChildHavingFinalNoRaiseNameMixin
-
-
 class _ChildHavingArgsTupleFinalNoRaiseMixin(ExpressionBase):
     # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
     __slots__ = ()
@@ -811,7 +748,7 @@ ExpressionBuiltinMakeExceptionModuleNotFoundErrorBase = (
 )
 
 
-class _ChildrenHavingBoundOptionalConstraintsOptionalDefaultValueAutoNoneFinalNoRaiseNameMixin(
+class _ChildrenHavingBoundOptionalConstraintsOptionalDefaultValueOptionalFinalNoRaiseNameMixin(
     ExpressionBase
 ):
     # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
@@ -828,7 +765,6 @@ class _ChildrenHavingBoundOptionalConstraintsOptionalDefaultValueAutoNoneFinalNo
 
         self.subnode_constraints = constraints
 
-        default_value = convertNoneConstantToNone(default_value)
         if default_value is not None:
             default_value.parent = self
 
@@ -881,7 +817,6 @@ class _ChildrenHavingBoundOptionalConstraintsOptionalDefaultValueAutoNoneFinalNo
 
         value = self.subnode_default_value
         if old_node is value:
-            new_node = convertNoneConstantToNone(new_node)
             if new_node is not None:
                 new_node.parent = self
 
@@ -994,7 +929,7 @@ class _ChildrenHavingBoundOptionalConstraintsOptionalDefaultValueAutoNoneFinalNo
             self.subnode_default_value.collectVariableAccesses(emit_variable)
 
 
-ExpressionTypeVariableBase = _ChildrenHavingBoundOptionalConstraintsOptionalDefaultValueAutoNoneFinalNoRaiseNameMixin
+ExpressionTypeVariableBase = _ChildrenHavingBoundOptionalConstraintsOptionalDefaultValueOptionalFinalNoRaiseNameMixin
 
 
 class _ChildrenHavingCallableArgSentinelFinalMixin(ExpressionBase):
@@ -1197,6 +1132,115 @@ ExpressionCallClassPrepareKnownStartValueDictExceptionBase = (
 ExpressionCallClassPrepareKnownStartValueDictIgnoredBase = (
     _ChildHavingCalledCodeNameExpectedValueTypeShapeMixin
 )
+
+
+class _ChildHavingDefaultValueOptionalFinalNoRaiseNameMixin(ExpressionBase):
+    # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
+    __slots__ = ()
+
+    def __init__(self, default_value, name, source_ref):
+        if default_value is not None:
+            default_value.parent = self
+
+        self.subnode_default_value = default_value
+
+        self.name = name
+
+        ExpressionBase.__init__(self, source_ref)
+
+    def getDetails(self):
+        return {
+            "name": self.name,
+        }
+
+    def getVisitableNodes(self):
+        if self.subnode_default_value is None:
+            return ()
+
+        return (self.subnode_default_value,)
+
+    def getVisitableNodesNamed(self):
+        return (("default_value", self.subnode_default_value),)
+
+    def replaceChild(self, old_node, new_node):
+        value = self.subnode_default_value
+        if old_node is value:
+            if new_node is not None:
+                new_node.parent = self
+
+            self.subnode_default_value = new_node
+
+            return
+
+        raise AssertionError("Didn't find child", old_node, "in", self)
+
+    def getCloneArgs(self):
+        values = {
+            "default_value": (
+                self.subnode_default_value.makeClone()
+                if self.subnode_default_value is not None
+                else None
+            ),
+        }
+
+        values.update(self.getDetails())
+
+        return values
+
+    def finalize(self):
+        del self.parent
+
+        if self.subnode_default_value is not None:
+            self.subnode_default_value.finalize()
+        del self.subnode_default_value
+
+    def computeExpressionRaw(self, trace_collection):
+        expression = self.subnode_default_value
+
+        if expression is not None:
+            expression = trace_collection.onExpression(expression)
+
+            if expression.willRaiseAnyException():
+                return (
+                    expression,
+                    "new_raise",
+                    lambda: "For '%s' the child expression '%s' will raise."
+                    % (self.getChildNameNice(), expression.getChildNameNice()),
+                )
+
+        return self, None, None
+
+    @staticmethod
+    def mayRaiseExceptionOperation():
+        return False
+
+    def mayRaiseException(self, exception_type):
+        return (
+            self.subnode_default_value is not None
+            and self.subnode_default_value.mayRaiseException(exception_type)
+        )
+
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
+
+        self.undoVariableTracing()
+
+    @staticmethod
+    def undoVariableTracing():
+        pass
+
+    def collectVariableAccesses(self, emit_variable):
+        subnode_default_value = self.subnode_default_value
+
+        if subnode_default_value is not None:
+            self.subnode_default_value.collectVariableAccesses(emit_variable)
+
+
+ExpressionParameterSpecificationBase = (
+    _ChildHavingDefaultValueOptionalFinalNoRaiseNameMixin
+)
+ExpressionTypeVariableTupleBase = _ChildHavingDefaultValueOptionalFinalNoRaiseNameMixin
 
 
 class _ChildHavingDistributionNameFinalChildrenMixin(ExpressionBase):
