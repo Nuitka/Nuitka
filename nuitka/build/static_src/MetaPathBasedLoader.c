@@ -312,6 +312,25 @@ PyObject *Nuitka_ImportModuleEntryValue(PyThreadState *tstate, struct Nuitka_Met
     if (value != NULL) {
         PyThreadState *owner = entry->m_owner_state != NULL ? *entry->m_owner_state : NULL;
 
+        // Extension modules are created by the import machinery, while the
+        // entry value is only a placeholder until their initialization
+        // finishes. Reentrant fixed imports during that initialization, e.g.
+        // PySide6 support importing from the Shiboken extension module while
+        // it is being loaded, must see the real module in "sys.modules".
+        if (owner == tstate && (entry->flags & NUITKA_EXTENSION_MODULE_FLAG) != 0 &&
+            (entry->flags & NUITKA_INTERNAL_MODULE_FLAG) == 0) {
+            char module_name_buffer[NUITKA_LOADER_NAME_MAX_LEN];
+            Nuitka_LoaderEntryName(entry, module_name_buffer, sizeof(module_name_buffer));
+
+            PyObject *sys_modules_value = Nuitka_GetModuleString(tstate, module_name_buffer);
+
+            if (sys_modules_value != NULL) {
+                Py_DECREF(value);
+
+                return sys_modules_value;
+            }
+        }
+
         // A value without an owner is either a recognized pre-seed or a
         // loaded module. While another thread owns the load, go through the
         // importer to wait for the module lock.
