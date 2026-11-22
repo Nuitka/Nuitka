@@ -88,8 +88,6 @@ class ExpressionOutlineMixin(object):
         old_entry_point = self.getEntryPoint()
         new_entry_point = result.getEntryPoint()
 
-        assert new_entry_point.trace_collection is None, new_entry_point
-
         variable_translations = {}
 
         for temp_variable in old_entry_point.getTempVariables(self):
@@ -110,11 +108,11 @@ class ExpressionOutlineMixin(object):
 
                     clone_number += 1
 
-            # Make the clone own separate temporary variables; cloning only
-            # happens before trace collection starts.
-            new_temp_variable = new_entry_point.createTempVariable(
-                temp_name=new_temp_name,
+            new_temp_variable = new_entry_point.allocateTempVariable(
+                temp_scope=None,
+                name=new_temp_name,
                 temp_type=temp_variable.getVariableType(),
+                late=True,
                 outline=result,
             )
 

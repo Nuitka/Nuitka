@@ -169,6 +169,11 @@ class LocalsDictHandleBase(getMetaClassBase("LocalsDictHandle", require_slots=Tr
 
         return result, variable_translations
 
+    def translateClosureVariables(self, variable_translations):
+        for variable_name, variable in self.providing.items():
+            if variable in variable_translations:
+                self.providing[variable_name] = variable_translations[variable]
+
     @staticmethod
     def getTypeShape():
         return tshape_dict
@@ -475,6 +480,15 @@ class LocalsDictExecHandle(LocalsDictHandleBase):
             )
 
         return result, variable_translations
+
+    def translateClosureVariables(self, variable_translations):
+        LocalsDictHandleBase.translateClosureVariables(self, variable_translations)
+
+        if self.closure_variables is not None:
+            self.closure_variables = set(
+                variable_translations.get(variable, variable)
+                for variable in self.closure_variables
+            )
 
     @staticmethod
     def isFunctionScope():

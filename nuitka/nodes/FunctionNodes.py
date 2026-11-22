@@ -1020,6 +1020,18 @@ def _functionBodyUsesVariables(function_body, variable_translations):
     return False
 
 
+def _isProviderWithinScope(provider, scope):
+    current = provider
+
+    while current is not None:
+        if current is scope:
+            return True
+
+        current = current.getParentVariableProvider()
+
+    return False
+
+
 def _updateFunctionBodyInPlace(
     function_body,
     old_provider,
@@ -1038,6 +1050,18 @@ def _updateFunctionBodyInPlace(
         variable_translations.get(variable, variable)
         for variable in function_body.taken
     )
+
+    if function_body.locals_scope is not None:
+        function_body.locals_scope.translateClosureVariables(variable_translations)
+
+    if (
+        python_version >= 0x300
+        and provider_translations
+        and function_body.qualname_provider in provider_translations
+    ):
+        function_body.qualname_provider = provider_translations[
+            function_body.qualname_provider
+        ]
 
     updateVariableUsage(
         provider=function_body,
@@ -1090,13 +1114,15 @@ class _FunctionBodyRefCloneVisitor(VisitorNoopMixin):
                 self.variable_translations.get(variable, variable)
                 for variable in node.taken
             )
+            if node.locals_scope is not None:
+                node.locals_scope.translateClosureVariables(self.variable_translations)
         elif node.isStatementsFrame():
             node.owner_code_name = self.code_name_translations.get(
                 node.owner_code_name, node.owner_code_name
             )
         elif node.isExpressionFunctionQualnameRef():
-            if node.function_body is self.old_provider:
-                node.function_body = self.new_provider
+            if node.function_body in self.provider_translations:
+                node.function_body = self.provider_translations[node.function_body]
         elif node.isExpressionFunctionRef():
             function_body = node.getFunctionBody()
             body_provider = function_body.getParentVariableProvider()
@@ -1104,8 +1130,8 @@ class _FunctionBodyRefCloneVisitor(VisitorNoopMixin):
             if body_provider is self.old_provider or _functionBodyUsesVariables(
                 function_body, self.variable_translations
             ):
-                if body_provider is self.new_provider:
-                    cache_key = (function_body, self.new_provider)
+                if _isProviderWithinScope(body_provider, self.new_provider):
+                    cache_key = (function_body, body_provider)
 
                     if cache_key not in self.cloned_function_bodies:
                         self.cloned_function_bodies[cache_key] = function_body
@@ -1143,11 +1169,17 @@ def updateFunctionBodyReferences(
     provider_translations=None,
 ):
     """Update function body references after cloning their scope."""
+    assert (
+        provider.isExpressionFunctionBodyBase() or provider.isExpressionOutlineBody()
+    ), provider
 
     all_provider_translations = (
         {} if provider_translations is None else dict(provider_translations)
     )
-    if provider.isExpressionFunctionBodyBase():
+    if (
+        provider.isExpressionFunctionBodyBase()
+        and old_provider not in all_provider_translations
+    ):
         all_provider_translations[old_provider] = provider
 
     visitTree(
@@ -1553,6 +1585,11 @@ def makeExpressionFunctionCall(function, values, source_ref):
     )
 
 
+def _describeInlinedFunctionOutline(new_node):
+    assert new_node.isExpressionOutlineFunction(), new_node
+    return "changed_variable_usage", "in-lined function"
+
+
 class ExpressionFunctionCall(ChildrenHavingFunctionValuesTupleMixin, ExpressionBase):
     """Direct call to a created function body."""
 
@@ -1592,17 +1629,11 @@ class ExpressionFunctionCall(ChildrenHavingFunctionValuesTupleMixin, ExpressionB
                 convertFunctionCallToOutline,
             )
 
-            result = convertFunctionCallToOutline(
-                provider=self.getParentVariableProvider(),
-                function_body=function_body,
-                values=values,
-                call_source_ref=self.source_ref,
-            )
-
-            return (
-                result,
-                "new_statements",
-                lambda: "Function call to '%s' in-lined." % function_body.getCodeName(),
+            trace_collection.onDelayedWork(
+                node=self,
+                function=convertFunctionCallToOutline,
+                old_desc="function call to '%s'" % function_body.getCodeName(),
+                describe_new_node=_describeInlinedFunctionOutline,
             )
 
         self.variable_closure_traces = []

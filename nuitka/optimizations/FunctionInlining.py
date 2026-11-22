@@ -22,8 +22,13 @@ from nuitka.tree.TreeHelpers import (
 from nuitka.Variables import LocalVariable
 
 
-def convertFunctionCallToOutline(provider, function_body, values, call_source_ref):
+def convertFunctionCallToOutline(call_node):
     # Many details to translate for the inlined scope, pylint: disable=too-many-locals
+    provider = call_node.getParentVariableProvider()
+    function_body = call_node.subnode_function.subnode_function_ref.getFunctionBody()
+    values = call_node.subnode_values
+    call_source_ref = call_node.source_ref
+
     function_source_ref = function_body.getSourceReference()
 
     outline_body = ExpressionOutlineFunction(
@@ -41,8 +46,6 @@ def convertFunctionCallToOutline(provider, function_body, values, call_source_re
     parameter_variables = function_body.getParameters().getAllVariables()
     assert len(parameter_variables) == len(values), (parameter_variables, values)
 
-    # Parameters of the called function become ordinary local variables of the
-    # outline, assigned from the call argument expressions below.
     variable_translations = {}
     for parameter_variable in parameter_variables:
         variable_translations[parameter_variable] = LocalVariable(
@@ -74,9 +77,7 @@ def convertFunctionCallToOutline(provider, function_body, values, call_source_re
             variable_translations.get(taken_variable, taken_variable)
         )
 
-    # Attach clone temporarily so getParentVariableProvider() resolves to
-    # outline_body while updating nested function body references.
-    clone.parent = outline_body
+    outline_body.setChildBody(clone)
 
     updateVariableUsage(
         provider=clone,
@@ -86,7 +87,7 @@ def convertFunctionCallToOutline(provider, function_body, values, call_source_re
     )
 
     updateFunctionBodyReferences(
-        provider=clone,
+        provider=outline_body,
         old_provider=function_body,
         variable_translations=variable_translations,
         code_name_translations={
