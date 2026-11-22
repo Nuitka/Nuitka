@@ -183,6 +183,65 @@ def deletingClosureVariable():
 
 print("Using deleted non-local variable:", deletingClosureVariable())
 
+
+print("Keyword argument matching with str subclass raising in __eq__:")
+
+
+class RaisingEqStr(str):
+    def __eq__(self, other):
+        raise RuntimeError("bad kw eq: %s vs %s" % (str(self), other))
+
+    def __hash__(self):
+        return str.__hash__(self)
+
+
+def kw_plain_func(a, b=0):
+    return a, b
+
+
+def kw_star_func(a, **kw):
+    return a, kw
+
+
+def kw_only_eq_func(*, a=0):
+    return a
+
+
+def kw_only_star_eq_func(*, a=0, **kw):
+    return a, kw
+
+
+def reportKwCall(label, fn):
+    try:
+        res = fn()
+    except Exception as e:
+        print(label, "raised", type(e).__name__, e.args)
+    else:
+        print(label, "returned", res)
+
+
+reportKwCall("plain match:", lambda: kw_plain_func(**{RaisingEqStr("a"): 1}))
+reportKwCall("plain unexpected:", lambda: kw_plain_func(**{RaisingEqStr("z"): 1}))
+reportKwCall("plain pos+kw dup:", lambda: kw_plain_func(1, **{RaisingEqStr("a"): 2}))
+reportKwCall("star match:", lambda: kw_star_func(**{RaisingEqStr("a"): 1}))
+reportKwCall("star extra:", lambda: kw_star_func(1, **{RaisingEqStr("z"): 2}))
+reportKwCall("kwonly match:", lambda: kw_only_eq_func(**{RaisingEqStr("a"): 1}))
+reportKwCall("kwonly unexpected:", lambda: kw_only_eq_func(**{RaisingEqStr("z"): 1}))
+reportKwCall(
+    "kwonly star match:", lambda: kw_only_star_eq_func(**{RaisingEqStr("a"): 1})
+)
+reportKwCall(
+    "kwonly star extra:", lambda: kw_only_star_eq_func(**{RaisingEqStr("z"): 2})
+)
+reportKwCall(
+    "eval plain match:",
+    lambda: eval("fn(**d)", {"fn": kw_plain_func, "d": {RaisingEqStr("a"): 1}}),
+)
+reportKwCall(
+    "eval star extra:",
+    lambda: eval("fn(1, **d)", {"fn": kw_star_func, "d": {RaisingEqStr("z"): 2}}),
+)
+
 #     Python tests originally created or extracted from other peoples work. The
 #     parts were too small to be protected.
 #

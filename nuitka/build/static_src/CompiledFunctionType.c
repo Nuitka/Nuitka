@@ -2111,27 +2111,17 @@ static void formatErrorTooFewKwOnlyArguments(PyThreadState *tstate, struct Nuitk
 }
 #endif
 
-static inline bool RICH_COMPARE_EQ_CBOOL_ARG_NAMES(PyObject *operand1, PyObject *operand2) {
+static inline nuitka_bool RICH_COMPARE_EQ_NBOOL_ARG_NAMES(PyObject *operand1, PyObject *operand2) {
     // Compare with argument name. We know our type, but from the outside, it
     // can be a derived type, or in case of Python2, a unicode value to compare
     // with a string. These half sided comparisons will make the switch to the
     // special one immediately if possible though.
 
 #if PYTHON_VERSION < 0x300
-    nuitka_bool result = RICH_COMPARE_EQ_NBOOL_STR_OBJECT(operand1, operand2);
+    return RICH_COMPARE_EQ_NBOOL_STR_OBJECT(operand1, operand2);
 #else
-    nuitka_bool result = RICH_COMPARE_EQ_NBOOL_UNICODE_OBJECT(operand1, operand2);
+    return RICH_COMPARE_EQ_NBOOL_UNICODE_OBJECT(operand1, operand2);
 #endif
-
-    // Should be close to impossible, we will have to ignore it though.
-    if (unlikely(result == NUITKA_BOOL_EXCEPTION)) {
-        PyThreadState *tstate = PyThreadState_GET();
-
-        CLEAR_ERROR_OCCURRED(tstate);
-        return false;
-    }
-
-    return result == NUITKA_BOOL_TRUE;
 }
 
 #if PYTHON_VERSION < 0x300
@@ -2200,7 +2190,15 @@ static Py_ssize_t handleKeywordArgs(PyThreadState *tstate, struct Nuitka_Functio
             PyObject **var_names = function->m_varnames;
 
             for (Py_ssize_t i = kw_arg_start; i < keywords_count; i++) {
-                if (RICH_COMPARE_EQ_CBOOL_ARG_NAMES(var_names[i], key)) {
+                nuitka_bool eq = RICH_COMPARE_EQ_NBOOL_ARG_NAMES(var_names[i], key);
+
+                if (unlikely(eq == NUITKA_BOOL_EXCEPTION)) {
+                    Py_DECREF(key);
+                    Py_DECREF(value);
+                    return -1;
+                }
+
+                if (eq == NUITKA_BOOL_TRUE) {
 #if defined(_NUITKA_FULL_COMPAT) || defined(_NUITKA_MODULE_MODE)
                     if (unlikely(python_pars[i] != NULL)) {
                         formatErrorMultipleValuesGiven(function, i);
@@ -2242,8 +2240,15 @@ static Py_ssize_t handleKeywordArgs(PyThreadState *tstate, struct Nuitka_Functio
 
             for (Py_ssize_t i = 0; i < kw_arg_start; i++) {
                 PyObject **var_names = function->m_varnames;
+                nuitka_bool eq = RICH_COMPARE_EQ_NBOOL_ARG_NAMES(var_names[i], key);
 
-                if (RICH_COMPARE_EQ_CBOOL_ARG_NAMES(var_names[i], key)) {
+                if (unlikely(eq == NUITKA_BOOL_EXCEPTION)) {
+                    Py_DECREF(key);
+                    Py_DECREF(value);
+                    return -1;
+                }
+
+                if (eq == NUITKA_BOOL_TRUE) {
                     pos_only_error = true;
                     break;
                 }
@@ -2352,7 +2357,14 @@ static Py_ssize_t handleKeywordArgsSplit(PyThreadState *tstate, struct Nuitka_Fu
 
             for (Py_ssize_t i = kw_arg_start; i < keywords_count; i++) {
                 // TODO: Could do better here, STR/UNICODE key knowledge being there.
-                if (RICH_COMPARE_EQ_CBOOL_ARG_NAMES(var_names[i], key)) {
+                nuitka_bool eq = RICH_COMPARE_EQ_NBOOL_ARG_NAMES(var_names[i], key);
+
+                if (unlikely(eq == NUITKA_BOOL_EXCEPTION)) {
+                    Py_DECREF(value);
+                    return -1;
+                }
+
+                if (eq == NUITKA_BOOL_TRUE) {
 #if defined(_NUITKA_FULL_COMPAT) || defined(_NUITKA_MODULE_MODE)
                     if (unlikely(python_pars[i] != NULL)) {
                         formatErrorMultipleValuesGiven(function, i);
@@ -2391,8 +2403,14 @@ static Py_ssize_t handleKeywordArgsSplit(PyThreadState *tstate, struct Nuitka_Fu
 
             for (Py_ssize_t i = 0; i < kw_arg_start; i++) {
                 PyObject **var_names = function->m_varnames;
+                nuitka_bool eq = RICH_COMPARE_EQ_NBOOL_ARG_NAMES(var_names[i], key);
 
-                if (RICH_COMPARE_EQ_CBOOL_ARG_NAMES(var_names[i], key)) {
+                if (unlikely(eq == NUITKA_BOOL_EXCEPTION)) {
+                    Py_DECREF(value);
+                    return -1;
+                }
+
+                if (eq == NUITKA_BOOL_TRUE) {
                     pos_only_error = true;
                     break;
                 }
@@ -2496,7 +2514,13 @@ static Py_ssize_t handleKeywordArgsWithStarDict(PyThreadState *tstate, struct Nu
 
         if (found == false) {
             for (Py_ssize_t i = kw_arg_start; i < keywords_count; i++) {
-                if (RICH_COMPARE_EQ_CBOOL_ARG_NAMES(var_names[i], key)) {
+                nuitka_bool eq = RICH_COMPARE_EQ_NBOOL_ARG_NAMES(var_names[i], key);
+
+                if (unlikely(eq == NUITKA_BOOL_EXCEPTION)) {
+                    return -1;
+                }
+
+                if (eq == NUITKA_BOOL_TRUE) {
 #if defined(_NUITKA_FULL_COMPAT) || defined(_NUITKA_MODULE_MODE)
                     if (unlikely(python_pars[i] != NULL)) {
                         formatErrorMultipleValuesGiven(function, i);
@@ -2604,7 +2628,13 @@ static Py_ssize_t handleKeywordArgsSplitWithStarDict(PyThreadState *tstate,
 
         if (found == false) {
             for (Py_ssize_t i = kw_arg_start; i < keywords_count; i++) {
-                if (RICH_COMPARE_EQ_CBOOL_ARG_NAMES(var_names[i], key)) {
+                nuitka_bool eq = RICH_COMPARE_EQ_NBOOL_ARG_NAMES(var_names[i], key);
+
+                if (unlikely(eq == NUITKA_BOOL_EXCEPTION)) {
+                    return -1;
+                }
+
+                if (eq == NUITKA_BOOL_TRUE) {
 #if defined(_NUITKA_FULL_COMPAT) || defined(_NUITKA_MODULE_MODE)
                     if (unlikely(python_pars[i] != NULL)) {
                         formatErrorMultipleValuesGiven(function, i);
@@ -3399,7 +3429,13 @@ static Py_ssize_t _handleVectorcallKeywordArgs(PyThreadState *tstate, struct Nui
             PyObject **var_names = function->m_varnames;
 
             for (Py_ssize_t i = kw_arg_start; i < keywords_count; i++) {
-                if (RICH_COMPARE_EQ_CBOOL_ARG_NAMES(var_names[i], key)) {
+                nuitka_bool eq = RICH_COMPARE_EQ_NBOOL_ARG_NAMES(var_names[i], key);
+
+                if (unlikely(eq == NUITKA_BOOL_EXCEPTION)) {
+                    return -1;
+                }
+
+                if (eq == NUITKA_BOOL_TRUE) {
 #if defined(_NUITKA_FULL_COMPAT) || defined(_NUITKA_MODULE_MODE)
                     if (unlikely(python_pars[i] != NULL)) {
                         formatErrorMultipleValuesGiven(function, i);
@@ -3435,8 +3471,13 @@ static Py_ssize_t _handleVectorcallKeywordArgs(PyThreadState *tstate, struct Nui
 
             for (Py_ssize_t i = 0; i < kw_arg_start; i++) {
                 PyObject **var_names = function->m_varnames;
+                nuitka_bool eq = RICH_COMPARE_EQ_NBOOL_ARG_NAMES(var_names[i], key);
 
-                if (RICH_COMPARE_EQ_CBOOL_ARG_NAMES(var_names[i], key)) {
+                if (unlikely(eq == NUITKA_BOOL_EXCEPTION)) {
+                    return -1;
+                }
+
+                if (eq == NUITKA_BOOL_TRUE) {
                     pos_only_error = true;
                     break;
                 }
@@ -3526,7 +3567,13 @@ static Py_ssize_t handleVectorcallKeywordArgsWithStarDict(PyThreadState *tstate,
 
         if (found == false) {
             for (Py_ssize_t i = kw_arg_start; i < keywords_count; i++) {
-                if (RICH_COMPARE_EQ_CBOOL_ARG_NAMES(var_names[i], key)) {
+                nuitka_bool eq = RICH_COMPARE_EQ_NBOOL_ARG_NAMES(var_names[i], key);
+
+                if (unlikely(eq == NUITKA_BOOL_EXCEPTION)) {
+                    return -1;
+                }
+
+                if (eq == NUITKA_BOOL_TRUE) {
 #if defined(_NUITKA_FULL_COMPAT) || defined(_NUITKA_MODULE_MODE)
                     if (unlikely(python_pars[i] != NULL)) {
                         formatErrorMultipleValuesGiven(function, i);
