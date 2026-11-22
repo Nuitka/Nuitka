@@ -816,7 +816,7 @@ wchar_t const *getBinaryFilenameWideChars(bool resolve_symlinks) {
     static wchar_t binary_filename[MAXPATHLEN + 1] = {0};
     static wchar_t binary_filename_resolved[MAXPATHLEN + 1] = {0};
 
-    wchar_t *buffer = resolve_symlinks ? binary_filename : binary_filename_resolved;
+    wchar_t *buffer = resolve_symlinks ? binary_filename_resolved : binary_filename;
     STATIC_ASSERT(sizeof(binary_filename) == sizeof(binary_filename_resolved), "Arrays must have same size");
 
     if (buffer[0] == 0) {
@@ -831,7 +831,7 @@ wchar_t const *getBinaryFilenameWideChars(bool resolve_symlinks) {
         }
 
         resolveFileSymbolicLink(buffer, buffer, sizeof(binary_filename) / sizeof(wchar_t), resolve_symlinks);
-        makeShortDirFilename(binary_filename, sizeof(binary_filename) / sizeof(wchar_t));
+        makeShortDirFilename(buffer, sizeof(binary_filename) / sizeof(wchar_t));
     }
 
     return buffer;
@@ -845,33 +845,33 @@ char const *getBinaryFilenameHostEncoded(bool resolve_symlinks) {
     static char *binary_filename = NULL;
     static char *binary_filename_resolved = NULL;
 
-    char *binary_filename_target;
+    char **binary_filename_target;
 
     if (resolve_symlinks) {
-        binary_filename_target = binary_filename_resolved;
+        binary_filename_target = &binary_filename_resolved;
     } else {
-        binary_filename_target = binary_filename;
+        binary_filename_target = &binary_filename;
     }
 
-    if (binary_filename_target != NULL) {
-        return binary_filename_target;
+    if (*binary_filename_target != NULL) {
+        return *binary_filename_target;
     }
     wchar_t const *w = getBinaryFilenameWideChars(resolve_symlinks);
 
     DWORD bufsize = WideCharToMultiByte(CP_ACP, 0, w, -1, NULL, 0, NULL, NULL);
     assert(bufsize != 0);
 
-    binary_filename_target = (char *)malloc(bufsize + 1);
-    assert(binary_filename_target);
+    *binary_filename_target = (char *)malloc(bufsize + 1);
+    assert(*binary_filename_target);
 
-    DWORD res2 = WideCharToMultiByte(CP_ACP, 0, w, -1, binary_filename_target, bufsize, NULL, NULL);
+    DWORD res2 = WideCharToMultiByte(CP_ACP, 0, w, -1, *binary_filename_target, bufsize, NULL, NULL);
     assert(res2 != 0);
 
     if (unlikely(res2 > bufsize)) {
         abort();
     }
 
-    return (char const *)binary_filename_target;
+    return (char const *)*binary_filename_target;
 }
 
 #else

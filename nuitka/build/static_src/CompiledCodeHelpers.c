@@ -727,7 +727,7 @@ bool PRINT_NEW_LINE_TO(PyObject *file) {
     if (likely(file == NULL)) {
         result = CALL_FUNCTION_NO_ARGS(tstate, NUITKA_ACCESS_BUILTIN(print));
     } else {
-        PyObject *kw_pairs[2] = {const_str_plain_file, GET_STDOUT()};
+        PyObject *kw_pairs[2] = {const_str_plain_file, file};
         PyObject *kw_args = MAKE_DICT_UNICODE(tstate, kw_pairs, 1);
 
         // TODO: This should use something that does not build a dictionary at all, and not
@@ -1141,7 +1141,7 @@ static bool set_bases(PyClassObject *class_object, PyObject *value) {
 }
 
 static bool set_name(PyClassObject *class_object, PyObject *value) {
-    if (value == NULL || !PyDict_Check(value)) {
+    if (value == NULL || !PyString_Check(value)) {
         PyThreadState *tstate = PyThreadState_GET();
 
         SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_TypeError, "__name__ must be a string object");
@@ -1815,26 +1815,24 @@ PyObject *JOIN_PATH2(PyObject *dirname, PyObject *filename) {
 #if _NUITKA_EXE_MODE || _NUITKA_DLL_MODE
 
 wchar_t const *getBinaryDirectoryWideChars(bool resolve_symlinks) {
-    static wchar_t binary_directory[MAXPATHLEN + 1];
-    static bool init_done = false;
+    static wchar_t binary_directory[MAXPATHLEN + 1] = {0};
+    static wchar_t binary_directory_resolved[MAXPATHLEN + 1] = {0};
 
-    if (init_done == false) {
-        binary_directory[0] = 0;
+    wchar_t *buffer = resolve_symlinks ? binary_directory_resolved : binary_directory;
 
+    if (buffer[0] == 0) {
 #if defined(_WIN32)
-        copyStringSafeW(binary_directory, getBinaryFilenameWideChars(resolve_symlinks),
+        copyStringSafeW(buffer, getBinaryFilenameWideChars(resolve_symlinks),
                         sizeof(binary_directory) / sizeof(wchar_t));
 
-        stripFilenameW(binary_directory);
-        makeShortFilename(binary_directory, sizeof(binary_directory) / sizeof(wchar_t));
+        stripFilenameW(buffer);
+        makeShortFilename(buffer, sizeof(binary_directory) / sizeof(wchar_t));
 #else
-        appendStringSafeW(binary_directory, getBinaryDirectoryHostEncoded(true),
+        appendStringSafeW(buffer, getBinaryDirectoryHostEncoded(resolve_symlinks),
                           sizeof(binary_directory) / sizeof(wchar_t));
 #endif
-
-        init_done = true;
     }
-    return (wchar_t const *)binary_directory;
+    return (wchar_t const *)buffer;
 }
 
 #if defined(_WIN32)
@@ -1842,33 +1840,33 @@ char const *getBinaryDirectoryHostEncoded(bool resolve_symlinks) {
     static char *binary_directory = NULL;
     static char *binary_directory_resolved = NULL;
 
-    char *binary_directory_target;
+    char **binary_directory_target;
 
     if (resolve_symlinks) {
-        binary_directory_target = binary_directory_resolved;
+        binary_directory_target = &binary_directory_resolved;
     } else {
-        binary_directory_target = binary_directory;
+        binary_directory_target = &binary_directory;
     }
 
-    if (binary_directory_target != NULL) {
-        return binary_directory_target;
+    if (*binary_directory_target != NULL) {
+        return *binary_directory_target;
     }
     wchar_t const *w = getBinaryDirectoryWideChars(resolve_symlinks);
 
     DWORD bufsize = WideCharToMultiByte(CP_ACP, 0, w, -1, NULL, 0, NULL, NULL);
     assert(bufsize != 0);
 
-    binary_directory_target = (char *)malloc(bufsize + 1);
-    assert(binary_directory_target);
+    *binary_directory_target = (char *)malloc(bufsize + 1);
+    assert(*binary_directory_target);
 
-    DWORD res2 = WideCharToMultiByte(CP_ACP, 0, w, -1, binary_directory_target, bufsize, NULL, NULL);
+    DWORD res2 = WideCharToMultiByte(CP_ACP, 0, w, -1, *binary_directory_target, bufsize, NULL, NULL);
     assert(res2 != 0);
 
     if (unlikely(res2 > bufsize)) {
         abort();
     }
 
-    return (char const *)binary_directory_target;
+    return (char const *)*binary_directory_target;
 }
 
 #else
