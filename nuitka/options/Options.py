@@ -2923,6 +2923,19 @@ def getMacOSIconPaths():
     )
 
 
+def getMacOSBundleIconFilename():
+    """*str* or *None* filename of the icon inside the created application bundle."""
+    icon_paths = getMacOSIconPaths()
+
+    if not icon_paths:
+        return None
+
+    if icon_paths[0].endswith(".icns"):
+        return os.path.basename(icon_paths[0])
+
+    return "Icons.icns"
+
+
 def getWindowsIconExecutablePath():
     """*str* or *None* if not given, value of ``--windows-icon-from-exe``"""
     if not isWin32Windows():

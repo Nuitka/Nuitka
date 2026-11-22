@@ -14,6 +14,8 @@ from nuitka.__past__ import (  # pylint: disable=redefined-builtin
 )
 from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.options.Options import (
+    getMacOSBundleIconFilename,
+    getMacOSIconPaths,
     getWindowsIconExecutablePath,
     getWindowsIconPaths,
     isStandaloneMode,
@@ -816,15 +818,14 @@ the directory.""" % (qt_plugins_dir, self.binding_name))
         and therefore makes sure it's updated properly.
 
         Also, for QApplication we try and load icons automatically.
-        TODO: Currently only for Windows, but we could add icons from macOS too
         """
 
         full_name = module.getFullName()
 
-        # We do this for PySide6 only.
+        # Windows icon loading is done for PySide6 only.
         if (
-            full_name == "%s" % self.binding_name
-            and self.binding_name == "PySide6"
+            self.binding_name == "PySide6"
+            and full_name == "%s" % self.binding_name
             and (getWindowsIconPaths() or getWindowsIconExecutablePath())
         ):
             # TODO: Ideally we would know the icons count and not be confused by
@@ -876,6 +877,51 @@ OurQApplication.__doc__ = orig_QApplication.__doc__
 """ % {"binding_name": self.binding_name}
 
             yield (code, "Loading Qt application icon from Windows resources.")
+
+        if (
+            full_name == "%s" % self.binding_name
+            and isMacOS()
+            and shallCreateAppBundle()
+            and getMacOSIconPaths()
+        ):
+            icon_name = getMacOSBundleIconFilename()
+            assert icon_name is not None
+
+            code = """\
+import os
+import sys
+import %(binding_name)s.QtWidgets
+orig_QApplication = %(binding_name)s.QtWidgets.QApplication
+
+from %(binding_name)s.QtGui import QIcon
+
+class OurQApplication(orig_QApplication):
+    def __init__(self, *args, **kwargs):
+        orig_QApplication.__init__(self, *args, **kwargs)
+
+        main_filename = os.path.realpath(sys.argv[0])
+        icon_path = os.path.join(
+            os.path.dirname(os.path.dirname(main_filename)),
+            "Resources",
+            %(icon_name)r
+        )
+
+        if os.path.exists(icon_path):
+            self.setWindowIcon(QIcon(icon_path))
+
+OurQApplication.__module__ = orig_QApplication.__module__
+OurQApplication.__name__ = orig_QApplication.__name__
+if str is not bytes:
+    OurQApplication.__qualname__ = orig_QApplication.__qualname__
+OurQApplication.__doc__ = orig_QApplication.__doc__
+
+%(binding_name)s.QtWidgets.QApplication = OurQApplication
+""" % {"binding_name": self.binding_name, "icon_name": icon_name}
+
+            yield (
+                code,
+                "Loading Qt application icon from macOS application bundle.",
+            )
 
         # Only in standalone mode, this will be needed.
         if full_name == "%s.QtCore" % self.binding_name and isStandaloneMode():

@@ -15,6 +15,7 @@ from nuitka.options.Options import (
     getMacOSAppName,
     getMacOSAppProtectedResourcesAccesses,
     getMacOSAppVersion,
+    getMacOSBundleIconFilename,
     getMacOSIconPaths,
     getMacOSSignedAppName,
     isMacOSBackgroundApp,
@@ -122,6 +123,8 @@ def createPlistInfoFile(logger):
         assert len(icon_paths) == 1
         icon_path = icon_paths[0]
 
+        icon_name = getMacOSBundleIconFilename()
+
         # Convert to single macOS .icns file if necessary
         # spell-checker: ignore icns
         if not icon_path.endswith(".icns"):
@@ -136,7 +139,7 @@ def createPlistInfoFile(logger):
             makePath(icon_build_path)
             converted_icon_path = os.path.join(
                 icon_build_path,
-                "Icons.icns",
+                icon_name,
             )
 
             convertImageToIconFormat(
@@ -146,7 +149,6 @@ def createPlistInfoFile(logger):
             )
             icon_path = converted_icon_path
 
-        icon_name = os.path.basename(icon_path)
         resources_dir = os.path.join(bundle_dir, "Resources")
         makePath(resources_dir)
 
