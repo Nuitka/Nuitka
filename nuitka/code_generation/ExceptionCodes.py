@@ -49,17 +49,13 @@ def generateExceptionCaughtTypeCode(to_name, expression, emit, context):
     ) as value_name:
         if keeper_exception_state_name is None:
             emit("%s = EXC_TYPE(tstate);" % (value_name,))
+        elif python_version < 0x3C0:
+            emit("%s = %s.exception_type;" % (value_name, keeper_exception_state_name))
         else:
-            if python_version < 0x3C0:
-                emit(
-                    "%s = %s.exception_type;"
-                    % (value_name, keeper_exception_state_name)
-                )
-            else:
-                emit(
-                    "%s = %s.exception_value;"
-                    % (value_name, keeper_exception_state_name)
-                )
+            emit(
+                "%s = (PyObject *)Py_TYPE(%s.exception_value);"
+                % (value_name, keeper_exception_state_name)
+            )
 
 
 def generateExceptionCaughtValueCode(to_name, expression, emit, context):
