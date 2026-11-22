@@ -295,6 +295,169 @@ def testNestedUnpackInRhs(pairs):
     print("nested unpack", a, b)
 
 
+def testTooManyValuesToUnpack(n):
+    class MyTuple(tuple):
+        pass
+
+    class MyList(list):
+        pass
+
+    class MyDict(dict):
+        pass
+
+    def unpack_two(val):
+        try:
+            a, b = val
+            return (a, b)
+        except ValueError as e:
+            return repr(e)
+
+    # Runtime unpack via parameter (exercises UNPACK_ITERATOR_CHECK)
+    for label, val in (
+        ("const tuple", (1, 2, 3)),
+        ("const list", [1, 2, 3]),
+        ("const dict", {1: 2, 3: 4, 5: 6}),
+        ("const str", "abc"),
+        ("const bytes", b"abc"),
+        ("const bytearray", bytearray(b"abc")),
+        ("const range", range(3)),
+        ("version_info", sys.version_info),
+        ("MyTuple", MyTuple((1, 2, 3))),
+        ("MyList", MyList([1, 2, 3])),
+        ("MyDict", MyDict({1: 2, 3: 4, 5: 6})),
+    ):
+        print("runtime unpack", label, unpack_two(val))
+
+    # Direct unpacking so compile-time length folding and direct-access paths are exercised
+    try:
+        a, b = (1, 2, 3)
+    except ValueError as e:
+        print("direct const tuple", repr(e))
+
+    try:
+        a, b = [1, 2, 3]
+    except ValueError as e:
+        print("direct const list", repr(e))
+
+    try:
+        a, b = {1: 2, 3: 4, 5: 6}
+    except ValueError as e:
+        print("direct const dict", repr(e))
+
+    try:
+        a, b = "abc"
+    except ValueError as e:
+        print("direct const str", repr(e))
+
+    try:
+        a, b = b"abc"
+    except ValueError as e:
+        print("direct const bytes", repr(e))
+
+    try:
+        a, b = bytearray(b"abc")
+    except ValueError as e:
+        print("direct const bytearray", repr(e))
+
+    try:
+        a, b = range(3)
+    except ValueError as e:
+        print("direct const range", repr(e))
+
+    try:
+        a, b = MyTuple((1, 2, 3))
+    except ValueError as e:
+        print("direct MyTuple", repr(e))
+
+    try:
+        a, b = MyList([1, 2, 3])
+    except ValueError as e:
+        print("direct MyList", repr(e))
+
+    try:
+        a, b = MyDict({1: 2, 3: 4, 5: 6})
+    except ValueError as e:
+        print("direct MyDict", repr(e))
+
+    # Runtime-length direct unpacking (hits UNPACK_ITERATED_CHECK at runtime)
+    try:
+        a, b = (n,) * n
+    except ValueError as e:
+        print("direct runtime tuple", repr(e))
+
+    try:
+        a, b = [n] * n
+    except ValueError as e:
+        print("direct runtime list", repr(e))
+
+    try:
+        a, b = "a" * n
+    except ValueError as e:
+        print("direct runtime str", repr(e))
+
+    try:
+        a, b = b"a" * n
+    except ValueError as e:
+        print("direct runtime bytes", repr(e))
+
+    try:
+        a, b = bytearray(n)
+    except ValueError as e:
+        print("direct runtime bytearray", repr(e))
+
+    try:
+        a, b = range(n)
+    except ValueError as e:
+        print("direct runtime range", repr(e))
+
+    # Exact-length runtime unpacking (must succeed)
+    a, b = (n,) * (n - 1)
+    print("direct runtime tuple ok", a, b)
+    a, b = [n] * (n - 1)
+    print("direct runtime list ok", a, b)
+    a, b = "a" * (n - 1)
+    print("direct runtime str ok", a, b)
+
+    # Too-short runtime direct-access unpacking (hits LOOKUP_SUBSCRIPT_CONST_FOR_UNPACK)
+    try:
+        a, b = (n,) * (n - 2)
+    except ValueError as e:
+        print("direct runtime tuple short 1", repr(e))
+
+    try:
+        a, b = (n,) * (n - 3)
+    except ValueError as e:
+        print("direct runtime tuple short 0", repr(e))
+
+    try:
+        a, b = [n] * (n - 2)
+    except ValueError as e:
+        print("direct runtime list short 1", repr(e))
+
+    try:
+        a, b = "a" * (n - 2)
+    except ValueError as e:
+        print("direct runtime str short 1", repr(e))
+
+    try:
+        a, b = range(n - 2)
+    except ValueError as e:
+        print("direct runtime range short 1", repr(e))
+
+    # Variable-propagated direct-access unpacking (requires tshape_iterator.isShapeIterator())
+    v_tuple = (n,) * n
+    try:
+        a, b = v_tuple
+    except ValueError as e:
+        print("var runtime tuple too many", repr(e))
+
+    v_short = (n,) * (n - 2)
+    try:
+        a, b = v_short
+    except ValueError as e:
+        print("var runtime tuple short", repr(e))
+
+
 someFunction()
 varargsFunction(1, 2, 3, 4)
 otherFunction()
@@ -312,6 +475,7 @@ testLenEscapeDel()
 print(testClonedFinallyUnpack([1, 2, 3], [2]))
 print(testClonedFinallyUnpack([], [2]))
 testNestedUnpackInRhs([(1, 2), (3, 4)])
+testTooManyValuesToUnpack(3)
 
 #     Python tests originally created or extracted from other peoples work. The
 #     parts were too small to be protected.

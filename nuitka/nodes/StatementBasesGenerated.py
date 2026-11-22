@@ -1077,89 +1077,6 @@ StatementDelSliceBase = (
 )
 
 
-class _StatementChildHavingIteratedLengthOperationCountMixin(StatementBase):
-    # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
-    __slots__ = ()
-
-    def __init__(self, iterated_length, count, source_ref):
-        iterated_length.parent = self
-
-        self.subnode_iterated_length = iterated_length
-
-        self.count = count
-
-        StatementBase.__init__(self, source_ref)
-
-    def getDetails(self):
-        return {
-            "count": self.count,
-        }
-
-    def getVisitableNodes(self):
-        return (self.subnode_iterated_length,)
-
-    def getVisitableNodesNamed(self):
-        return (("iterated_length", self.subnode_iterated_length),)
-
-    def replaceChild(self, old_node, new_node):
-        value = self.subnode_iterated_length
-        if old_node is value:
-            new_node.parent = self
-
-            self.subnode_iterated_length = new_node
-
-            return
-
-        raise AssertionError("Didn't find child", old_node, "in", self)
-
-    def getCloneArgs(self):
-        values = {
-            "iterated_length": self.subnode_iterated_length.makeClone(),
-        }
-
-        values.update(self.getDetails())
-
-        return values
-
-    def finalize(self):
-        del self.parent
-
-        self.subnode_iterated_length.finalize()
-        del self.subnode_iterated_length
-
-    def undoVariableTracingRaw(self, trace_collection):
-        for child in reversed(self.getVisitableNodes()):
-            child.undoVariableTracingRaw(trace_collection)
-
-        self.undoVariableTracing()
-
-    @staticmethod
-    def undoVariableTracing():
-        pass
-
-    def computeStatement(self, trace_collection):
-        result, change_tags, change_desc = self.computeStatementSubExpressions(
-            trace_collection=trace_collection
-        )
-
-        if result is not self:
-            return result, change_tags, change_desc
-
-        return self.computeStatementOperation(trace_collection)
-
-    @abstractmethod
-    def computeStatementOperation(self, trace_collection):
-        pass
-
-    def collectVariableAccesses(self, emit_variable):
-        self.subnode_iterated_length.collectVariableAccesses(emit_variable)
-
-
-StatementSpecialUnpackCheckFromIteratedBase = (
-    _StatementChildHavingIteratedLengthOperationCountMixin
-)
-
-
 class _StatementChildHavingIteratedValueOperationCountMixin(StatementBase):
     # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
     __slots__ = ()
@@ -1238,7 +1155,7 @@ class _StatementChildHavingIteratedValueOperationCountMixin(StatementBase):
         self.subnode_iterated_value.collectVariableAccesses(emit_variable)
 
 
-StatementSpecialUnpackCheckFromIteratedValueBase = (
+StatementSpecialUnpackCheckFromIteratedBase = (
     _StatementChildHavingIteratedValueOperationCountMixin
 )
 

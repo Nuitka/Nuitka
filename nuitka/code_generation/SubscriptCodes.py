@@ -145,6 +145,60 @@ def _generateSubscriptLookupCode(to_name, expression, emit, context):
             )
 
 
+def generateSubscriptLookupForUnpackCode(to_name, expression, emit, context):
+    with withBorrowedValueScope(context):
+        _generateSubscriptLookupForUnpackCode(
+            to_name=to_name, expression=expression, emit=emit, context=context
+        )
+
+
+def _generateSubscriptLookupForUnpackCode(to_name, expression, emit, context):
+    subscribed = expression.subnode_expression
+    subscript = expression.subnode_subscript
+
+    assert subscript.isExpressionIntegerSubscript(), subscript
+
+    subscribed_name = generateChildExpressionCode(
+        expression=subscribed, emit=emit, context=context
+    )
+
+    subscript_name = generateChildExpressionCode(
+        expression=subscript, emit=emit, context=context
+    )
+
+    subscript_value = subscript.getIndexValue()
+
+    (
+        exception_state_name,
+        _exception_lineno,
+    ) = context.getExceptionVariableDescriptions()
+
+    with withObjectCodeTemporaryAssignment(
+        to_name, "subscript_result", expression, emit, context
+    ) as value_name:
+        emit(
+            "%s = LOOKUP_SUBSCRIPT_CONST_FOR_UNPACK(tstate, &%s, %s, %s, %s, %d);"
+            % (
+                value_name,
+                exception_state_name,
+                subscribed_name,
+                subscript_name,
+                subscript_value,
+                expression.expected,
+            )
+        )
+
+        getErrorExitCode(
+            check_name=value_name,
+            release_names=(subscribed_name, subscript_name),
+            fetched_exception=True,
+            emit=emit,
+            context=context,
+        )
+
+        context.addCleanupTempName(value_name)
+
+
 def generateMatchSubscriptCheckCode(to_name, expression, emit, context):
     with withBorrowedValueScope(context):
         _generateMatchSubscriptCheckCode(

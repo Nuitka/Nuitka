@@ -11,6 +11,7 @@
 #include "nuitka/exceptions.h"
 #include "nuitka/helper/attributes.h"
 #include "nuitka/helper/indexes.h"
+#include "nuitka/helper/iterators.h"
 #include "nuitka/helper/sequences.h"
 #endif
 
@@ -218,6 +219,27 @@ NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_SUBSCRIPT_CONST(PyThreadState *tsta
 
     return result;
 #endif
+}
+
+NUITKA_MAY_BE_UNUSED static PyObject *
+LOOKUP_SUBSCRIPT_CONST_FOR_UNPACK(PyThreadState *tstate, struct Nuitka_ExceptionPreservationItem *exception_state,
+                                  PyObject *source, PyObject *const_subscript, Py_ssize_t int_subscript, int expected) {
+    PyObject *result = LOOKUP_SUBSCRIPT_CONST(tstate, source, const_subscript, int_subscript);
+
+    if (unlikely(result == NULL)) {
+        PyObject *error = GET_ERROR_OCCURRED(tstate);
+        assert(error != NULL);
+
+        if (EXCEPTION_MATCH_BOOL_SINGLE(tstate, error, PyExc_IndexError)) {
+            CLEAR_ERROR_OCCURRED(tstate);
+
+            SET_UNPACK_NOT_ENOUGH_VALUES_ERROR(tstate, exception_state, (int)int_subscript, expected);
+        } else {
+            FETCH_ERROR_OCCURRED_STATE(tstate, exception_state);
+        }
+    }
+
+    return result;
 }
 
 NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_SUBSCRIPT(PyThreadState *tstate, PyObject *source, PyObject *subscript) {

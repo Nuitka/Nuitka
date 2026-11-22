@@ -184,38 +184,53 @@ class ExpressionSubscriptLookupForUnpack(ExpressionSubscriptLookup):
 
         result_node = result[0]
 
+        if result_node.isExpressionSideEffects():
+            raise_node = result_node.subnode_expression
+        else:
+            raise_node = result_node
+
         if (
-            result_node.isExpressionRaiseException()
-            and result_node.subnode_exception_type.isExpressionBuiltinMakeException()
-            and result_node.subnode_exception_type.getExceptionName() == "IndexError"
+            raise_node.isExpressionRaiseException()
+            and raise_node.subnode_exception_type.isExpressionBuiltinMakeException()
+            and raise_node.subnode_exception_type.getExceptionName() == "IndexError"
         ):
-            if python_version >= 0x360:
-                return (
-                    makeRaiseExceptionExpressionFromTemplate(
-                        exception_type="ValueError",
-                        template="not enough values to unpack (expected %d, got %d)",
-                        template_args=(
-                            makeConstantRefNode(
-                                constant=self.expected, source_ref=self.source_ref
-                            ),
-                            self.subnode_subscript,
+            if python_version >= 0x350:
+                new_raise = makeRaiseExceptionExpressionFromTemplate(
+                    exception_type="ValueError",
+                    template="not enough values to unpack (expected %d, got %d)",
+                    template_args=(
+                        makeConstantRefNode(
+                            constant=self.expected, source_ref=self.source_ref
                         ),
-                        source_ref=self.source_ref,
+                        self.subnode_subscript,
                     ),
-                    "new_raise",
-                    "Raising for unpack too short iterator.",
+                    source_ref=self.source_ref,
+                )
+            elif self.subnode_subscript.getIntegerValue() == 1:
+                new_raise = makeRaiseExceptionExpressionFromTemplate(
+                    exception_type="ValueError",
+                    template="need more than %d value to unpack",
+                    template_args=self.subnode_subscript,
+                    source_ref=self.source_ref,
                 )
             else:
-                return (
-                    makeRaiseExceptionExpressionFromTemplate(
-                        exception_type="ValueError",
-                        template="need more than %d value to unpack",
-                        template_args=self.subnode_subscript,
-                        source_ref=self.source_ref,
-                    ),
-                    "new_raise",
-                    "Raising for unpack too short iterator.",
+                new_raise = makeRaiseExceptionExpressionFromTemplate(
+                    exception_type="ValueError",
+                    template="need more than %d values to unpack",
+                    template_args=self.subnode_subscript,
+                    source_ref=self.source_ref,
                 )
+
+            if result_node.isExpressionSideEffects():
+                new_raise = wrapExpressionWithNodeSideEffects(
+                    new_node=new_raise, old_node=result_node
+                )
+
+            return (
+                new_raise,
+                "new_raise",
+                "Raising for unpack too short iterator.",
+            )
 
         return result
 

@@ -4,34 +4,29 @@
 """Iterator shapes that commonly appear."""
 
 from .ControlFlowDescriptions import ControlFlowDescriptionFullEscape
-from .ShapeMixins import ShapeIteratorMixin
 from .StandardShapes import ShapeBase, tshape_unknown
 
 
-class ShapeIterator(ShapeBase, ShapeIteratorMixin):
+class ShapeIterator(ShapeBase):
     """Generic iterator, e.g. created by iter() with unknown argument type."""
 
     __slots__ = ()
 
     @staticmethod
-    def hasShapeSlotBool():
-        return None
+    def isShapeIterator():
+        return True
 
     @staticmethod
-    def hasShapeSlotLen():
-        return None
+    def hasShapeSlotIter():
+        return True
 
     @staticmethod
-    def hasShapeSlotInt():
-        return None
+    def hasShapeSlotNext():
+        return True
 
     @staticmethod
-    def hasShapeSlotLong():
-        return None
-
-    @staticmethod
-    def hasShapeSlotFloat():
-        return None
+    def hasShapeSlotContains():
+        return True
 
     @staticmethod
     def getShapeIter():

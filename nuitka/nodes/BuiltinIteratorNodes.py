@@ -6,7 +6,6 @@
 from nuitka.PythonVersions import python_version
 from nuitka.specs import BuiltinParameterSpecs
 
-from .BuiltinLenNodes import ExpressionBuiltinLen
 from .ChildrenHavingMixins import (
     ChildHavingSequenceMixin,
     ChildHavingValuesTupleMixin,
@@ -25,14 +24,14 @@ from .HardImportNodesGenerated import (
 from .NodeMakingHelpers import (
     makeRaiseExceptionReplacementStatement,
     makeRaiseTypeErrorExceptionReplacementFromTemplateAndValue,
+    makeStatementOnlyNodesFromExpressions,
     wrapExpressionWithSideEffects,
 )
-from .shapes.BuiltinTypeShapes import tshape_list
+from .shapes.BuiltinTypeShapes import tshape_dict, tshape_list, tshape_tuple
 from .shapes.IteratorShapes import tshape_iterator
 from .StatementBasesGenerated import (
     StatementSpecialUnpackCheckBase,
     StatementSpecialUnpackCheckFromIteratedBase,
-    StatementSpecialUnpackCheckFromIteratedValueBase,
 )
 from .VariableRefNodes import ExpressionTempVariableRef
 
@@ -416,70 +415,91 @@ class ExpressionBuiltinIterForUnpack(ExpressionBuiltinIter1):
 class StatementSpecialUnpackCheckFromIterated(
     StatementSpecialUnpackCheckFromIteratedBase
 ):
-    kind = "STATEMENT_SPECIAL_UNPACK_CHECK_FROM_ITERATED"
-
-    named_children = ("iterated_length",)
-    node_attributes = ("count",)
-    auto_compute_handling = "operation"
-
-    def computeStatementOperation(self, trace_collection):
-        if self.subnode_iterated_length.isCompileTimeConstant():
-            iterated_length_value = (
-                self.subnode_iterated_length.getCompileTimeConstant()
-            )
-
-            if iterated_length_value <= self.count:
-                return (
-                    None,
-                    "new_statements",
-                    lambda: "Determined iteration length check to be always true, because %d <= %d."
-                    % (iterated_length_value, self.count),
-                )
-            else:
-                if python_version >= 0x300:
-                    exception_value = (
-                        "too many values to unpack (expected %d)" % self.count
-                    )
-                else:
-                    exception_value = "too many values to unpack"
-
-                result = makeRaiseExceptionReplacementStatement(
-                    statement=self,
-                    exception_type="ValueError",
-                    exception_value=exception_value,
-                )
-
-                trace_collection.onExceptionRaiseExit(TypeError)
-
-                return (
-                    result,
-                    "new_raise",
-                    """\
-Determined iteration end check to always raise.""",
-                )
-
-        trace_collection.onExceptionRaiseExit(BaseException)
-
-        return self, None, None
-
-
-class StatementSpecialUnpackCheckFromIteratedValue(
-    StatementSpecialUnpackCheckFromIteratedValueBase
-):
     """Check iterated value for too many values to unpack.
 
     The check is done with the iterated value at hand, so that the error
-    message can include the count for types where it is available, like
-    CPython does for the iterator based check.
+    message can include the count for types where it is available on
+    Python 3.14+.
     """
 
-    kind = "STATEMENT_SPECIAL_UNPACK_CHECK_FROM_ITERATED_VALUE"
+    kind = "STATEMENT_SPECIAL_UNPACK_CHECK_FROM_ITERATED"
 
     named_children = ("iterated_value",)
     node_attributes = ("count",)
     auto_compute_handling = "operation"
 
+    def getCount(self):
+        return self.count
+
+    def _getTooManyValuesExceptionMessage(self, iterated_value, iterated_length_value):
+        if python_version < 0x300:
+            return "too many values to unpack"
+        elif python_version < 0x3E0:
+            return "too many values to unpack (expected %d)" % self.count
+        else:
+            value_shape = iterated_value.getTypeShape()
+
+            if value_shape in (tshape_tuple, tshape_list, tshape_dict):
+                return "too many values to unpack (expected %d, got %d)" % (
+                    self.count,
+                    iterated_length_value,
+                )
+            elif value_shape.getTypeName() is not None:
+                return "too many values to unpack (expected %d)" % self.count
+            else:
+                return None
+
     def computeStatementOperation(self, trace_collection):
+        iterated_value = self.subnode_iterated_value
+        iterated_length_value = iterated_value.getIterationLength()
+
+        if (
+            iterated_length_value is None
+            and iterated_value.isExpressionVariableRefOrTempVariableRef()
+            and iterated_value.variable_trace is not None
+            and iterated_value.variable_trace.isAssignTrace()
+        ):
+            assign_source = iterated_value.variable_trace.getAssignNode().subnode_source
+
+            if assign_source.getValueShape().hasShapeSlotLen() is True:
+                iterated_length_value = assign_source.getIterationLength()
+
+        if iterated_length_value is not None:
+            if iterated_length_value <= self.count:
+                return (
+                    makeStatementOnlyNodesFromExpressions(
+                        iterated_value.extractSideEffects()
+                    ),
+                    "new_statements",
+                    lambda: "Determined iteration length check to be always true, because %d <= %d."
+                    % (iterated_length_value, self.count),
+                )
+            else:
+                exception_value = self._getTooManyValuesExceptionMessage(
+                    iterated_value=iterated_value,
+                    iterated_length_value=iterated_length_value,
+                )
+
+                if exception_value is not None:
+                    result = makeRaiseExceptionReplacementStatement(
+                        statement=self,
+                        exception_type="ValueError",
+                        exception_value=exception_value,
+                    )
+
+                    trace_collection.onExceptionRaiseExit(ValueError)
+
+                    return (
+                        result,
+                        "new_raise",
+                        """\
+Determined iteration end check to always raise.""",
+                    )
+
+        if iterated_value.getTypeShape().getTypeName() is None:
+            iterated_value.onContentEscapes(trace_collection)
+            trace_collection.onControlFlowEscape(self)
+
         trace_collection.onExceptionRaiseExit(BaseException)
 
         return self, None, None
@@ -488,21 +508,9 @@ class StatementSpecialUnpackCheckFromIteratedValue(
 def makeStatementSpecialUnpackCheckFromIterated(
     tmp_iterated_variable, count, source_ref
 ):
-    tmp_iterated_ref = ExpressionTempVariableRef(
-        variable=tmp_iterated_variable, source_ref=source_ref
-    )
-
-    if python_version >= 0x3E0:
-        return StatementSpecialUnpackCheckFromIteratedValue(
-            iterated_value=tmp_iterated_ref,
-            count=count,
-            source_ref=source_ref,
-        )
-
     return StatementSpecialUnpackCheckFromIterated(
-        iterated_length=ExpressionBuiltinLen(
-            tmp_iterated_ref,
-            source_ref=source_ref,
+        iterated_value=ExpressionTempVariableRef(
+            variable=tmp_iterated_variable, source_ref=source_ref
         ),
         count=count,
         source_ref=source_ref,
