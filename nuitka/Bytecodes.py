@@ -19,8 +19,10 @@ def _removeDocFromBody(node):
     if node.body and getKind(node.body[0]) == "Expr":
         if getKind(node.body[0].value) == "Str":  # python3.7 or earlier
             node.body[0].value.s = ""
-        elif getKind(node.body[0].value) == "Constant":  # python3.8+
-            # Other constants have no effect, so no need to check for strings only.
+        elif (
+            getKind(node.body[0].value) == "Constant"
+            and type(node.body[0].value.value) is str
+        ):  # python3.8+
             node.body[0].value.value = ""
 
 
