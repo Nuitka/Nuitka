@@ -281,6 +281,73 @@ if sys.version_info >= (3, 7):
         ClassGetItemAsyncIdentity.__dict__["__class_getitem__"].__func__.marked,
     )
 
+    print("Testing __class_getitem__ error handling and edge cases:")
+
+    class MetaClassGetItemRuntimeError(type):
+        def __getattribute__(cls, name):
+            if name == "__class_getitem__":
+                raise RuntimeError("meta class_getitem error")
+            return super().__getattribute__(name)
+
+    class MetaClassGetItemAttributeError(type):
+        def __getattribute__(cls, name):
+            if name == "__class_getitem__":
+                raise AttributeError("meta class_getitem missing")
+            return super().__getattribute__(name)
+
+    class DescrClassGetItemError:
+        def __get__(self, instance, owner=None):
+            raise RuntimeError("descriptor class_getitem error")
+
+    class ClassGetItemMetaRuntimeError(metaclass=MetaClassGetItemRuntimeError):
+        pass
+
+    class ClassGetItemMetaAttributeError(metaclass=MetaClassGetItemAttributeError):
+        pass
+
+    class ClassGetItemDescrError:
+        __class_getitem__ = DescrClassGetItemError()
+
+    class ClassGetItemNone:
+        __class_getitem__ = None
+
+    class ClassGetItemNonCallable:
+        __class_getitem__ = 42
+
+    class ClassGetItemPlainMissing:
+        pass
+
+    class ClassGetItemKeyType:
+        def __class_getitem__(cls, item):
+            return (type(item).__name__, item)
+
+    def reportClassSubscript(label, fn):
+        try:
+            res = fn()
+        except Exception as e:
+            print(label, "raised", type(e).__name__, str(e))
+        else:
+            print(label, "returned", res)
+
+    reportClassSubscript("meta runtime [0]:", lambda: ClassGetItemMetaRuntimeError[0])
+    reportClassSubscript(
+        "meta runtime [int]:", lambda: ClassGetItemMetaRuntimeError[int]
+    )
+    reportClassSubscript("meta attr [0]:", lambda: ClassGetItemMetaAttributeError[0])
+    reportClassSubscript(
+        "meta attr [int]:", lambda: ClassGetItemMetaAttributeError[int]
+    )
+    reportClassSubscript("descr error [0]:", lambda: ClassGetItemDescrError[0])
+    reportClassSubscript("descr error [int]:", lambda: ClassGetItemDescrError[int])
+    reportClassSubscript("none [0]:", lambda: ClassGetItemNone[0])
+    reportClassSubscript("none [int]:", lambda: ClassGetItemNone[int])
+    reportClassSubscript("non-callable [0]:", lambda: ClassGetItemNonCallable[0])
+    reportClassSubscript("non-callable [int]:", lambda: ClassGetItemNonCallable[int])
+    reportClassSubscript("missing [0]:", lambda: ClassGetItemPlainMissing[0])
+    reportClassSubscript("missing [int]:", lambda: ClassGetItemPlainMissing[int])
+    reportClassSubscript("key type [0]:", lambda: ClassGetItemKeyType[0])
+    reportClassSubscript("key type [True]:", lambda: ClassGetItemKeyType[True])
+
 #     Python tests originally created or extracted from other peoples work. The
 #     parts were too small to be protected.
 #

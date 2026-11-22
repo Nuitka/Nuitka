@@ -40,6 +40,43 @@ static void formatNotSubscriptableError(PyObject *source) {
 }
 #endif
 
+#if !defined(_NUITKA_EXPERIMENTAL_DISABLE_SUBSCRIPT_OPT) && PYTHON_VERSION >= 0x370
+static PyObject *_LOOKUP_SUBSCRIPT_TYPE(PyThreadState *tstate, PyObject *source, PyObject *subscript) {
+#if PYTHON_VERSION >= 0x390
+    if (source == (PyObject *)&PyType_Type) {
+        return Py_GenericAlias(source, subscript);
+    }
+#endif
+
+    PyObject *meth = LOOKUP_ATTRIBUTE(tstate, source, const_str_plain___class_getitem__);
+
+    if (meth == NULL) {
+        if (unlikely(!CHECK_AND_CLEAR_ATTRIBUTE_ERROR_OCCURRED(tstate))) {
+            return NULL;
+        }
+    } else {
+        // Python 3.11+: CPython treats __class_getitem__ = None as non-subscriptable.
+#if PYTHON_VERSION >= 0x3b0
+        if (meth == Py_None) {
+            Py_DECREF_IMMORTAL(meth);
+            formatNotSubscriptableTypeError(source);
+            return NULL;
+        }
+#endif
+        PyObject *result = CALL_FUNCTION_WITH_SINGLE_ARG(tstate, meth, subscript);
+        Py_DECREF(meth);
+        return result;
+    }
+
+#if PYTHON_VERSION >= 0x3b0
+    formatNotSubscriptableTypeError(source);
+#else
+    formatNotSubscriptableError(source);
+#endif
+    return NULL;
+}
+#endif
+
 #if PYTHON_VERSION < 0x370
 #define HAS_SEQUENCE_ITEM_SLOT(type) (type->tp_as_sequence != NULL)
 #else
@@ -180,32 +217,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_SUBSCRIPT_CONST(PyThreadState *tsta
     } else {
 #if PYTHON_VERSION >= 0x370
         if (PyType_Check(source)) {
-#if PYTHON_VERSION >= 0x390
-            if (source == (PyObject *)&PyType_Type) {
-                PyObject *subscript = PyLong_FromSsize_t(int_subscript);
-                result = Py_GenericAlias(source, subscript);
-                Py_DECREF(subscript);
-
-                return result;
-            }
-#endif
-
-            PyObject *meth = LOOKUP_ATTRIBUTE(tstate, source, const_str_plain___class_getitem__);
-
-            if (meth) {
-                PyObject *subscript = PyLong_FromSsize_t(int_subscript);
-                result = CALL_FUNCTION_WITH_SINGLE_ARG(tstate, meth, subscript);
-                Py_DECREF(meth);
-                Py_DECREF(subscript);
-
-                return result;
-            }
-
-            // Different error against types for Python3.11+
-#if PYTHON_VERSION >= 0x3b0
-            formatNotSubscriptableTypeError(source);
-            return NULL;
-#endif
+            return _LOOKUP_SUBSCRIPT_TYPE(tstate, source, const_subscript);
         }
 #endif
 
@@ -276,34 +288,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_SUBSCRIPT(PyThreadState *tstate, Py
 
 #if PYTHON_VERSION >= 0x370
     if (PyType_Check(source)) {
-#if PYTHON_VERSION >= 0x390
-        if (source == (PyObject *)&PyType_Type) {
-            return Py_GenericAlias(source, subscript);
-        }
-#endif
-
-        PyObject *meth = LOOKUP_ATTRIBUTE(tstate, source, const_str_plain___class_getitem__);
-
-        // Python3.11+: CPython treats "__class_getitem__" set to a
-        // non-callable the same as not having one - the type is not
-        // subscriptable. (3.9-3.10 only give "'NoneType' not callable")
-#if PYTHON_VERSION >= 0x3b0
-        if (meth != NULL && meth != Py_None && Nuitka_PyCheckCallable(meth)) {
-#else
-        if (meth) {
-#endif
-            PyObject *result = CALL_FUNCTION_WITH_SINGLE_ARG(tstate, meth, subscript);
-            Py_DECREF(meth);
-            return result;
-        }
-
-        Py_XDECREF(meth);
-
-        // Different error against types for Python3.11+
-#if PYTHON_VERSION >= 0x3b0
-        formatNotSubscriptableTypeError(source);
-        return NULL;
-#endif
+        return _LOOKUP_SUBSCRIPT_TYPE(tstate, source, subscript);
     }
 #endif
 
