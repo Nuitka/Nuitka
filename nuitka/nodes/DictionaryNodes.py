@@ -64,6 +64,7 @@ from .StatementBasesGenerated import (
     StatementDictOperationSetKeyValueBase,
     StatementDictOperationUpdateBase,
 )
+from .TypeNodes import ExpressionBuiltinType1
 
 
 def makeExpressionMakeDict(pairs, source_ref):
@@ -185,6 +186,85 @@ Removed sequence creation for unused sequence.""",
             pair.onContentEscapes(trace_collection)
 
 
+def _makeUnhashableKeyRaise(pairs, pair):
+    key = pair.subnode_key
+    unhashable_type_node = key.extractUnhashableNodeType()
+
+    if unhashable_type_node is None:
+        return None
+
+    unhashable_type_name = unhashable_type_node.getCompileTimeConstant().__name__
+
+    key_type_name = key.getTypeShape().getTypeName()
+    if key_type_name is None and key.isCompileTimeConstant():
+        key_type_name = key.getCompileTimeConstant().__class__.__name__
+
+    need_runtime_key_type = python_version >= 0x3E0 and key_type_name is None
+
+    if (
+        need_runtime_key_type
+        and key.mayHaveSideEffects()
+        and pair.subnode_value.mayHaveSideEffects()
+    ):
+        return None
+
+    side_effects = []
+
+    for pair2 in pairs:
+        if pair2 is pair:
+            if need_runtime_key_type:
+                side_effects.extend(pair2.subnode_value.extractSideEffects())
+            elif python_version < 0x350:
+                side_effects.extend(pair2.subnode_value.extractSideEffects())
+                side_effects.extend(key.extractSideEffects())
+            else:
+                side_effects.extend(key.extractSideEffects())
+                side_effects.extend(pair2.subnode_value.extractSideEffects())
+            break
+
+        side_effects.extend(pair2.extractSideEffects())
+
+    if need_runtime_key_type:
+        result = makeRaiseExceptionExpressionFromTemplate(
+            exception_type="TypeError",
+            template="cannot use '%s' as a dict key (unhashable type: '%s')",
+            template_args=(
+                makeExpressionAttributeLookup(
+                    expression=ExpressionBuiltinType1(
+                        value=key, source_ref=key.source_ref
+                    ),
+                    attribute_name="__name__",
+                    source_ref=key.source_ref,
+                ),
+                makeConstantReplacementNode(
+                    constant=unhashable_type_name,
+                    node=key,
+                    user_provided=False,
+                ),
+            ),
+            source_ref=key.source_ref,
+        )
+    elif python_version >= 0x3E0:
+        result = makeRaiseExceptionReplacementExpression(
+            expression=key,
+            exception_type="TypeError",
+            exception_value="cannot use '%s' as a dict key (unhashable type: '%s')"
+            % (key_type_name, unhashable_type_name),
+        )
+    else:
+        result = makeRaiseExceptionReplacementExpression(
+            expression=key,
+            exception_type="TypeError",
+            exception_value="unhashable type: '%s'" % unhashable_type_name,
+        )
+
+    return wrapExpressionWithSideEffects(
+        side_effects=side_effects,
+        old_node=key,
+        new_node=result,
+    )
+
+
 class ExpressionMakeDict(
     ExpressionDictShapeExactMixin,
     SideEffectsFromChildrenMixin,
@@ -215,58 +295,17 @@ class ExpressionMakeDict(
 
         for pair in pairs:
             if pair.isKeyKnownToBeHashable() is False:
-                key = pair.subnode_key
+                result = _makeUnhashableKeyRaise(pairs=pairs, pair=pair)
 
-                side_effects = []
-
-                for pair2 in pairs:
-                    if pair2 is pair:
-                        side_effects.extend(pair2.subnode_value.extractSideEffects())
-                        break
-
-                    side_effects.extend(pair2.extractSideEffects())
-
-                if python_version >= 0x3E0:
-                    result = makeRaiseExceptionExpressionFromTemplate(
-                        exception_type="TypeError",
-                        template="cannot use '%s' as a dict key (unhashable type: '%s')",
-                        template_args=(
-                            makeExpressionAttributeLookup(
-                                expression=key.getTypeValue(),
-                                attribute_name="__name__",
-                                source_ref=key.source_ref,
-                            ),
-                            makeExpressionAttributeLookup(
-                                expression=key.extractUnhashableNodeType(),
-                                attribute_name="__name__",
-                                source_ref=key.source_ref,
-                            ),
-                        ),
-                        source_ref=key.source_ref,
-                    )
-                else:
-                    result = makeRaiseExceptionExpressionFromTemplate(
-                        exception_type="TypeError",
-                        template="unhashable type: '%s'",
-                        template_args=makeExpressionAttributeLookup(
-                            expression=key.extractUnhashableNodeType(),
-                            attribute_name="__name__",
-                            source_ref=key.source_ref,
-                        ),
-                        source_ref=key.source_ref,
+                if result is not None:
+                    return (
+                        result,
+                        "new_raise",
+                        "Dictionary key is known to not be hashable.",
                     )
 
-                result = wrapExpressionWithSideEffects(
-                    side_effects=side_effects,
-                    old_node=key,
-                    new_node=result,
-                )
-
-                return (
-                    result,
-                    "new_raise",
-                    "Dictionary key is known to not be hashable.",
-                )
+                is_constant = False
+                continue
 
             if is_constant and not pair.isCompileTimeConstant():
                 is_constant = False

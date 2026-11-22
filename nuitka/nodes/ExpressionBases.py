@@ -125,13 +125,6 @@ class ExpressionBase(NodeBase):
 
         return None
 
-    def getTypeValue(self):
-        from .TypeNodes import ExpressionBuiltinType1
-
-        return ExpressionBuiltinType1(
-            value=self.makeClone(), source_ref=self.source_ref
-        )
-
     def getIterationHandle(self):
         # pylint: disable=no-self-use
         return None

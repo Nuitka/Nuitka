@@ -227,7 +227,7 @@ def makeRaiseTypeErrorExceptionReplacementFromTemplateAndValue(
                 template=template,
                 template_args=makeExpressionAttributeLookup(
                     expression=ExpressionBuiltinType1(
-                        value=value_node.makeClone(), source_ref=source_ref
+                        value=value_node, source_ref=source_ref
                     ),
                     attribute_name="__name__",
                     source_ref=source_ref,

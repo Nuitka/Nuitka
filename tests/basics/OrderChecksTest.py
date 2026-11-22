@@ -34,6 +34,21 @@ def dictOrderCheck():
     print({key1(): value1(), key2(): value2()})
 
     try:
+        print({[key1()]: value1()})
+    except TypeError as e:
+        print("Expected unhashable list key caught:", repr(e))
+
+    try:
+        print({[key1(), [x for x in (key2(),)]]: value1()})
+    except TypeError as e:
+        print("Expected unhashable listcomp key caught:", repr(e))
+
+    try:
+        print({([],): value1()})
+    except TypeError as e:
+        print("Expected unhashable tuple key caught:", repr(e))
+
+    try:
         (1 / 0)[1.0j / 0] = 1.0 / 0
     except ZeroDivisionError as e:
         print("Expected exception caught:", repr(e))
