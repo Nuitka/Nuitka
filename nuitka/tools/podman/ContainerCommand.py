@@ -27,11 +27,11 @@ from nuitka.options.Options import (
     getMainArgs,
     shallExecuteImmediately,
 )
+from nuitka.plugins.Hooks import redactCommandLineArg
 from nuitka.plugins.Plugins import (
     activatePlugins,
     getContainerFileContents,
     onContainerSelection,
-    redactCommandLineArg,
 )
 from nuitka.Tracing import containers_logger
 from nuitka.utils.Execution import quoteForShell

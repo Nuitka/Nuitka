@@ -201,18 +201,6 @@ def _addActivePlugin(plugin_class, args, force=False):
     control_tags.update(plugin_instance.getEvaluationConditionControlTags())
 
 
-def redactCommandLineArg(arg):
-    """Redact the value of sensitive command line options.
-
-    Args:
-        arg: Command line argument to potentially redact.
-
-    Returns:
-        The argument, with value redacted if sensitive.
-    """
-    return Plugins.redactCommandLineArg(arg)
-
-
 def _getFullLongOptionName(option_name):
     """Get the full long option name for an abbreviation.
 

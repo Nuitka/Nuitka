@@ -64,7 +64,8 @@ from nuitka.OutputDirectories import (
     getSourceDirectoryPath,
     hasMainModule,
 )
-from nuitka.plugins.Plugins import getActivePlugins, redactCommandLineArg
+from nuitka.plugins.Hooks import redactCommandLineArg
+from nuitka.plugins.Plugins import getActivePlugins
 from nuitka.PythonFlavors import getPythonFlavorName
 from nuitka.PythonPrefixes import (
     getLaunchingSystemPrefixPath,
