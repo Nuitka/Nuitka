@@ -9,7 +9,7 @@
 static void FORMAT_MATCH_MISMATCH_ERROR(PyTypeObject *type, Py_ssize_t max_allowed, Py_ssize_t actual) {
     const char *plural_form = (max_allowed == 1) ? "" : "s";
 
-    PyErr_Format(PyExc_TypeError, "%s() accepts %d positional sub-pattern%s (%d given)",
+    PyErr_Format(PyExc_TypeError, "%s() accepts %zd positional sub-pattern%s (%zd given)",
                  ((PyTypeObject *)type)->tp_name, max_allowed, plural_form, actual);
 }
 
@@ -29,7 +29,7 @@ PyObject *MATCH_CLASS_ARGS(PyThreadState *tstate, PyObject *matched, PyObject *m
 
     if (positional_count > 0) {
         match_args = LOOKUP_ATTRIBUTE(tstate, (PyObject *)type, const_str_plain___match_args__);
-        Py_ssize_t actual;
+        Py_ssize_t max_allowed;
 
         if (match_args) {
             if (unlikely(!PyTuple_CheckExact(match_args))) {
@@ -40,11 +40,11 @@ PyObject *MATCH_CLASS_ARGS(PyThreadState *tstate, PyObject *matched, PyObject *m
                 return NULL;
             }
 
-            actual = PyTuple_GET_SIZE(match_args);
+            max_allowed = PyTuple_GET_SIZE(match_args);
         } else if (CHECK_AND_CLEAR_ATTRIBUTE_ERROR_OCCURRED(tstate)) {
             if (PyType_HasFeature(type, _Py_TPFLAGS_MATCH_SELF)) {
                 if (positional_count > 1) {
-                    FORMAT_MATCH_MISMATCH_ERROR(type, positional_count, 1);
+                    FORMAT_MATCH_MISMATCH_ERROR(type, 1, positional_count);
                     Py_XDECREF(seen);
                     return NULL;
                 }
@@ -55,14 +55,14 @@ PyObject *MATCH_CLASS_ARGS(PyThreadState *tstate, PyObject *matched, PyObject *m
                 return MAKE_TUPLE1(tstate, matched);
             }
 
-            actual = 0;
+            max_allowed = 0;
         } else {
             Py_XDECREF(seen);
             return NULL;
         }
 
-        if (positional_count > actual) {
-            FORMAT_MATCH_MISMATCH_ERROR(type, positional_count, actual);
+        if (positional_count > max_allowed) {
+            FORMAT_MATCH_MISMATCH_ERROR(type, max_allowed, positional_count);
             Py_XDECREF(match_args);
             Py_XDECREF(seen);
             return NULL;
