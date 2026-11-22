@@ -158,6 +158,16 @@ class ExpressionOsPathJoinCall(ExpressionOsPathJoinCallBase):
     kind = "EXPRESSION_OS_PATH_JOIN_CALL"
 
     def computeExpression(self, trace_collection):
+        if len(self.subnode_paths) == 1 and (
+            self.subnode_paths[0].hasShapeStrOrUnicodeExact()
+            or self.subnode_paths[0].hasShapeBytesExact()
+        ):
+            return (
+                self.subnode_paths[0],
+                "new_expression",
+                "Eliminated single exact string argument 'os.path.join' call.",
+            )
+
         current = None
         current_is_runtime_path = False
 
@@ -168,20 +178,16 @@ class ExpressionOsPathJoinCall(ExpressionOsPathJoinCallBase):
             elif path.isCompileTimeConstant() and path.hasShapeStrOrUnicodeExact():
                 value = path.getCompileTimeConstant()
 
-                if current is None:
+                if current is None or (
+                    current_is_runtime_path and os.path.isabs(value)
+                ):
                     current = value
                     current_is_runtime_path = False
                 elif current_is_runtime_path:
-                    if os.path.isabs(value):
-                        current = value
-                        current_is_runtime_path = False
-                    else:
-                        current = ExpressionRuntimePath(
-                            relative_path=os.path.join(
-                                current.getRelativePath(), value
-                            ),
-                            source_ref=self.source_ref,
-                        )
+                    current = ExpressionRuntimePath(
+                        relative_path=os.path.join(current.getRelativePath(), value),
+                        source_ref=self.source_ref,
+                    )
                 else:
                     current = os.path.join(current, value)
             else:

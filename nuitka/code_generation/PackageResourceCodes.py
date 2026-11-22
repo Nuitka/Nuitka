@@ -3,8 +3,6 @@
 
 """Code generation for package resources access."""
 
-import os
-
 from nuitka.options.Options import isStandaloneMode, shallMakeModule
 
 from .BuiltinCodes import getBuiltinCallViaSpecCode
@@ -24,8 +22,7 @@ from .ConstantCodes import addDistributionMetadataValue
 from .DictCodes import getDictionaryCreationCode
 from .ErrorCodes import getErrorExitCode
 from .ImportCodes import getImportModuleNameHardCode
-from .LineNumberCodes import emitLineNumberUpdateCode
-from .PythonAPICodes import generateCAPIObjectCode
+from .PythonAPICodes import generateCAPIObjectCode, makeArgDescFromExpression
 from .TupleCodes import getTupleCreationCode
 
 
@@ -991,78 +988,17 @@ def generateOsPathDirnameCallCode(to_name, expression, emit, context):
 
 
 def generateOsPathJoinCallCode(to_name, expression, emit, context):
-    with withObjectCodeTemporaryAssignment(
-        to_name, "os_path_join_result", expression, emit, context
-    ) as result_name:
-        (path_names,) = generateChildExpressionsCode(
-            expression=expression, emit=emit, context=context
-        )
-
-        if path_names and len(path_names) <= 10:
-            join_func = context.allocateTempName("os_path_join_func", unique=True)
-
-            getImportModuleNameHardCode(
-                to_name=join_func,
-                module_name=os.path.__name__,
-                import_name="join",
-                needs_check=False,
-                emit=emit,
-                context=context,
-            )
-
-            getCallCodePosArgsQuick(
-                to_name=result_name,
-                called_name=join_func,
-                arg_names=path_names,
-                expression=expression,
-                emit=emit,
-                context=context,
-            )
-        elif path_names:
-            emitLineNumberUpdateCode(expression, emit, context)
-
-            emit(
-                """\
-{
-    PyObject *os_path_join_paths[] = {%s};
-    %s = OS_PATH_JOIN(tstate, os_path_join_paths, %d);
-}
-"""
-                % (
-                    ", ".join(str(name) for name in path_names),
-                    result_name,
-                    len(path_names),
-                )
-            )
-
-            getErrorExitCode(
-                check_name=result_name,
-                release_names=path_names,
-                needs_check=expression.mayRaiseExceptionOperation(),
-                emit=emit,
-                context=context,
-            )
-
-            context.addCleanupTempName(result_name)
-        else:
-            join_func = context.allocateTempName("os_path_join_func", unique=True)
-
-            getImportModuleNameHardCode(
-                to_name=join_func,
-                module_name=os.path.__name__,
-                import_name="join",
-                needs_check=False,
-                emit=emit,
-                context=context,
-            )
-
-            getCallCodeNoArgs(
-                to_name=result_name,
-                called_name=join_func,
-                expression=expression,
-                emit=emit,
-                context=context,
-            )
+    generateCAPIObjectCode(
+        to_name=to_name,
+        capi="OS_PATH_JOIN",
+        tstate=True,
+        arg_desc=makeArgDescFromExpression(expression),
+        may_raise=expression.mayRaiseException(BaseException),
+        conversion_check=decideConversionCheckNeeded(to_name, expression),
+        source_ref=expression.getCompatibleSourceReference(),
+        emit=emit,
+        context=context,
+    )
 
 
 def generateOsPathNormpathCallCode(to_name, expression, emit, context):
