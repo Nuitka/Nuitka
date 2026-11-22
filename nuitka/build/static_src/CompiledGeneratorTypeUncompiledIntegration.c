@@ -2358,11 +2358,11 @@ static PyObject *Nuitka_UncompiledGenerator_throw(PyThreadState *tstate, PyGenOb
             if (unlikely(meth == NULL)) {
                 Py_DECREF(yf);
 
-                goto failed_throw;
-            }
+                if (!CHECK_AND_CLEAR_ATTRIBUTE_ERROR_OCCURRED(tstate)) {
+                    goto failed_throw;
+                }
 
-            if (meth == NULL) {
-                Py_DECREF(yf);
+                // Handing exception ownership to this code.
                 goto throw_here;
             }
 

@@ -98,6 +98,58 @@ try:
 except RuntimeError as e:
     print("Yield from close context: %r" % (e.__context__,))
 
+
+# Throwing through a compiled generator delegating to an uncompiled generator
+# that itself delegates via yield from to an iterator without a .throw method.
+class PlainIter:
+    def __iter__(self):
+        return self
+
+    def __next__(self):
+        return "plain"
+
+
+class BadThrowAttrIter:
+    def __iter__(self):
+        return self
+
+    def __next__(self):
+        return "bad-attr"
+
+    def __getattr__(self, name):
+        if name == "throw":
+            raise RuntimeError("lookup failed")
+        raise AttributeError(name)
+
+
+_uncomp_ns = {}
+exec(
+    """
+def uncomp_delegator(it):
+    try:
+        yield from it
+    except Exception as e:
+        yield ("caught", type(e).__name__, e.args)
+""",
+    _uncomp_ns,
+)
+
+
+def comp_outer_delegator(it):
+    yield from _uncomp_ns["uncomp_delegator"](it)
+
+
+g = comp_outer_delegator(PlainIter())
+print("Uncompiled yf plain iter first:", next(g))
+print("Uncompiled yf plain iter throw:", g.throw(ValueError("boom")))
+
+g = comp_outer_delegator(BadThrowAttrIter())
+print("Uncompiled yf bad attr first:", next(g))
+try:
+    g.throw(ValueError("boom"))
+except RuntimeError as e:
+    print("Uncompiled yf bad attr throw:", type(e).__name__, e.args)
+
 #     Python tests originally created or extracted from other peoples work. The
 #     parts were too small to be protected.
 #
