@@ -80,12 +80,26 @@ def _runLddCommand(dll_filename, package_name, python_rpaths, original_dir):
     return process_result, stderr
 
 
-def detectBinaryPathDLLsPosix(dll_filename, package_name, original_dir):
-    # This is complex, as it also includes the caching mechanism
-    # pylint: disable=too-many-branches,too-many-locals
+def _getLddDirectDependencies(dll_filename, package_name, original_dir):
+    """Get the direct dependencies of a DLL, using cached 'ldd' results.
 
-    if ldd_result_cache.get(dll_filename):
-        return ldd_result_cache[dll_filename]
+    Args:
+        dll_filename: The DLL to inspect.
+        package_name: Name of the package the DLL belongs to.
+        original_dir: Directory of the original DLL file.
+
+    Returns:
+        OrderedSet of absolute dependency filenames, not including transitive
+        dependencies.
+    """
+    # Many details to check, pylint: disable=too-many-branches
+
+    # The 'ldd' result depends on the 'LD_LIBRARY_PATH' built from the package
+    # name and original directory, so both are part of the cache key.
+    cache_key = (dll_filename, package_name, original_dir)
+
+    if cache_key in ldd_result_cache:
+        return ldd_result_cache[cache_key]
 
     # Ask "ldd" about the libraries being used by the created binary, these
     # are the ones that interest us.
@@ -103,12 +117,7 @@ def detectBinaryPathDLLsPosix(dll_filename, package_name, original_dir):
                 elements=True,
             )
 
-            if os.path.islink(sys.executable):
-                sys_executable = os.readlink(sys.executable)
-            else:
-                sys_executable = sys.executable
-
-            sys_executable_dir = os.path.dirname(sys_executable)
+            sys_executable_dir = os.path.dirname(os.path.realpath(sys.executable))
 
             _detected_python_rpaths = [
                 _resolveOriginValue(
@@ -188,20 +197,57 @@ def detectBinaryPathDLLsPosix(dll_filename, package_name, original_dir):
 
         result_set.add(filename)
 
-    ldd_result_cache[dll_filename] = result_set
+    ldd_result_cache[cache_key] = result_set
+
+    return result_set
+
+
+def _detectBinaryPathDLLsPosixRecursive(
+    dll_filename, package_name, original_dir, recursive_dlls
+):
+    if dll_filename in recursive_dlls:
+        return OrderedSet()
+
+    recursive_dlls.add(dll_filename)
+
+    result_set = _getLddDirectDependencies(
+        dll_filename=dll_filename,
+        package_name=package_name,
+        original_dir=original_dir,
+    )
 
     complete_result = OrderedSet(result_set)
 
     for sub_dll_filename in result_set:
         complete_result.update(
-            detectBinaryPathDLLsPosix(
+            _detectBinaryPathDLLsPosixRecursive(
                 dll_filename=sub_dll_filename,
                 package_name=package_name,
                 original_dir=original_dir,
+                recursive_dlls=recursive_dlls,
             )
         )
 
     return complete_result
+
+
+def detectBinaryPathDLLsPosix(dll_filename, package_name, original_dir):
+    """Detect all DLLs used by a DLL, including transitive dependencies.
+
+    Args:
+        dll_filename: The DLL to inspect.
+        package_name: Name of the package the DLL belongs to.
+        original_dir: Directory of the original DLL file.
+
+    Returns:
+        OrderedSet of absolute dependency filenames.
+    """
+    return _detectBinaryPathDLLsPosixRecursive(
+        dll_filename=dll_filename,
+        package_name=package_name,
+        original_dir=original_dir,
+        recursive_dlls=OrderedSet(),
+    )
 
 
 _linux_dll_ignore_list = [
