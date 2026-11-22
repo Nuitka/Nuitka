@@ -31,7 +31,7 @@ non_ascii_error_rt = re.compile(r"(SyntaxError: Non-ASCII character.*? on line) 
 python_win_lib_re = re.compile(r"[a-zA-Z]:\\\\?[Pp]ython(.*?\\\\?)[Ll]ib")
 local_port_re = re.compile(r"(127\.0\.0\.1):\d{2,5}")
 
-traceback_re = re.compile(r'(F|f)ile "(.*?)", line (\d+)')
+traceback_re = re.compile(r'(F|f)ile "(.*?)", line (\?|\d+)')
 importerror_re = re.compile(
     r"""(ImportError(?:\("|: )cannot import name '\w+' from '.*?' )\((.*?)\)"""
 )
