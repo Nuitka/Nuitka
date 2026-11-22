@@ -38,19 +38,32 @@ def _isIgnoredCFile(filename):
         bool - True if the file should be ignored.
     """
     path_parts = getPathWithForwardSlashes(os.path.normpath(filename)).split("/")
+    basename = os.path.basename(filename)
 
     if "inline_copy" in path_parts:
         return True
 
-    if os.path.basename(filename) == "OnefileSplashScreen.c":
+    if basename == "OnefileSplashScreen.c":
         return not isWin32Windows()
 
     # This uses ucontext and is not buildable on Windows.
-    if os.path.basename(filename) == "HelpersDumpBacktraces.c":
+    if basename == "HelpersDumpBacktraces.c":
         return isWin32Windows()
 
     # Kept for reference only, not part of any build.
-    if os.path.basename(filename) == "MetaPathBasedLoaderSource.c":
+    if basename == "MetaPathBasedLoaderSource.c":
+        return True
+
+    # Windows-only sources use a "Windows" prefix or suffix in their basename,
+    # or are located in a "windows" folder.
+    stem = os.path.splitext(basename)[0].lower()
+    is_windows_only = (
+        any(path_part.lower() == "windows" for path_part in path_parts)
+        or stem.startswith("windows")
+        or stem.endswith("windows")
+    )
+
+    if not isWin32Windows() and is_windows_only:
         return True
 
     return False
@@ -72,6 +85,7 @@ def _resolveFilenames(options, positional_args):
         default_positional_args=(
             "nuitka/build/static_src",
             "nuitka/build/include",
+            "nuitka/plugins",
         ),
     )
 
