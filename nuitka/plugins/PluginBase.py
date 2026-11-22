@@ -1872,7 +1872,7 @@ except Exception as e:
             variables = {}
 
             for count, variable_config in enumerate(
-                self.config.get(full_name, section="variables")
+                self.config.get(full_name, section="variables"), start=1
             ):
                 environment = variable_config.get("environment", {})
                 setup_codes = variable_config.get("setup_code", ())
