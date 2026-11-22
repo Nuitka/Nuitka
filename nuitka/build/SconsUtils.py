@@ -957,9 +957,9 @@ def _getVisualStudioInstallerComponentTitles():
         component_titles = {}
 
         if os.path.isdir(vs_instances_dir):
-            for instance_name in os.listdir(vs_instances_dir):
+            for instance_dir, _instance_name in listDir(vs_instances_dir):
                 components_filename = getNormalizedPathJoin(
-                    vs_instances_dir, instance_name, "components.json"
+                    instance_dir, "components.json"
                 )
 
                 if not os.path.exists(components_filename):
@@ -1161,16 +1161,14 @@ def makeCLiteral(value):
 
 
 def createDefinitionsFile(source_dir, filename, definitions):
-    for env_name in os.environ["_NUITKA_BUILD_DEFINITIONS_CATALOG"].split(","):
-        definitions[env_name] = os.environ[env_name]
+    for env_name in os.getenv("_NUITKA_BUILD_DEFINITIONS_CATALOG", "").split(","):
+        if env_name:
+            definitions[env_name] = os.environ[env_name]
 
     build_definitions_filename = getNormalizedPathJoin(source_dir, filename)
 
     with openTextFile(build_definitions_filename, "w", encoding="utf8") as f:
         for key, value in sorted(definitions.items()):
-            if key == "_NUITKA_BUILD_DEFINITIONS_CATALOG":
-                continue
-
             if type(value) is int or key.endswith(("_BOOL", "_INT")):
                 if type(value) is bool:
                     value = int(value)

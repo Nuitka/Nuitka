@@ -1755,21 +1755,16 @@ through incomplete set import by '%s' plugin encountered."""
         # spell-checker: ignore -Dkey
 
         if onefile not in cls.preprocessor_symbols:
-            symbols = OrderedDict()
+            symbols = {}
 
             for plugin in getActivePlugins():
                 value = plugin.getPreprocessorSymbols(onefile=onefile)
 
                 if value is not None:
                     assert type(value) is dict, value
+                    symbols.update(value)
 
-                    # We order per plugin, but from the plugins, lets just take a dict
-                    # and achieve determinism by ordering the defines by name.
-                    for key, define_value in sorted(value.items()):
-                        # False alarm, pylint: disable=I0021,unsupported-assignment-operation
-                        symbols[key] = define_value
-
-            cls.preprocessor_symbols[onefile] = symbols
+            cls.preprocessor_symbols[onefile] = OrderedDict(sorted(symbols.items()))
 
         return cls.preprocessor_symbols[onefile]
 
@@ -1809,7 +1804,8 @@ through incomplete set import by '%s' plugin encountered."""
             for plugin in getActivePlugins():
                 value = plugin.getExtraIncludeDirectories()
 
-                if value:
+                if value is not None:
+                    assert not isinstance(value, (set, frozenset)), (plugin, value)
                     cls.extra_include_directories.update(value)
 
         return tuple(cls.extra_include_directories)
@@ -1888,6 +1884,8 @@ through incomplete set import by '%s' plugin encountered."""
                 value = plugin.getExtraLinkLibraries()
 
                 if value is not None:
+                    assert not isinstance(value, (set, frozenset)), (plugin, value)
+
                     if isinstance(value, basestring):
                         cls.extra_link_libraries.add(os.path.normcase(value))
                     else:
@@ -1908,6 +1906,8 @@ through incomplete set import by '%s' plugin encountered."""
                 value = plugin.getExtraLinkDirectories()
 
                 if value is not None:
+                    assert not isinstance(value, (set, frozenset)), (plugin, value)
+
                     if isinstance(value, basestring):
                         cls.extra_link_directories.add(value)
                     else:

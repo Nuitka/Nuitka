@@ -761,7 +761,7 @@ def runSconsBackend():
     target_python_scons_options = getTargetPythonSconsOptions()
 
     if target_python_scons_options is not None:
-        scons_options.update(target_python_scons_options)
+        scons_options.update(sorted(target_python_scons_options.items()))
 
     source_dir = OutputDirectories.getSourceDirectoryPath(
         onefile=False,

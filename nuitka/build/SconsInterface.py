@@ -426,7 +426,7 @@ def _createSconsDebugScript(source_dir, scons_command):
     # dependent, spell-checker: ignore COLORTERM
     env = OrderedDict(
         (key, value)
-        for (key, value) in os.environ.items()
+        for (key, value) in sorted(os.environ.items())
         if not key.startswith(("VSCODE", "GIT", "WSL", "COLORTERM", "TERM"))
     )
 
@@ -520,7 +520,6 @@ def runScons(
     # pylint: disable=too-many-branches,too-many-statements
 
     with _setupSconsEnvironment():
-        env_values["_NUITKA_BUILD_DEFINITIONS_CATALOG"] = ",".join(env_values.keys())
         compile_without_build_directory = (
             source_dir is not None and shallCompileWithoutBuildDirectory()
         )
@@ -550,7 +549,7 @@ def runScons(
                     scons_options["result_exe"], only_dirname=True
                 )
 
-        env_values = OrderedDict(env_values)
+        env_values = OrderedDict(sorted(env_values.items()))
         env_values["_NUITKA_BUILD_DEFINITIONS_CATALOG"] = ",".join(env_values.keys())
 
         if "zig_exe_path" in scons_options and "CC" not in env_values:
