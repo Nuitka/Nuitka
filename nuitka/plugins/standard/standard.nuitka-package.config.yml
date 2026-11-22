@@ -24,11 +24,11 @@
     - depends:
         - '_dbus_bindings'
 
-- module-name: '_distutils_hack' # checksum: 8ed94606
+- module-name: '_distutils_hack' # checksum: 84d34a8
   anti-bloat:
     - description: 'disable distutils hacks'
       change_function:
-        'warn_distutils_present': "'(lambda : Mone)'"
+        'warn_distutils_present': "'(lambda : None)'"
 
 - module-name: '_distutils_hack.override' # checksum: f6295952
   anti-bloat:
