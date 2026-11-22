@@ -1520,12 +1520,21 @@ sys.exit(not result)""" % expression
 #       OR
 #     "# nuitka-skip-unless-imports: module1,module2,..."
 def checkTestRequirements(filename):
-    # Windows only tests are identified by their name prefix.
+    test_basename = os.path.basename(filename)
+
+    # Windows only tests are identified by their name prefix or suffix.
     if (
-        os.path.basename(filename).startswith(("Win", "windows_"))
-        and not isWin32Windows()
-    ):
+        test_basename.startswith(("Win", "windows_"))
+        or test_basename.endswith(("Windows.py", "_windows.py"))
+    ) and not isWin32Windows():
         return (False, "Windows only test")
+
+    # macOS only tests are identified by their name prefix or suffix.
+    if (
+        test_basename.startswith(("MacOS", "macos_"))
+        or test_basename.endswith(("MacOS.py", "_macos.py"))
+    ) and not isMacOS():
+        return (False, "macOS only test")
 
     if os.path.isdir(filename):
         candidate = os.path.join(filename, "__main__.py")

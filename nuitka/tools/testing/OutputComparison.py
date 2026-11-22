@@ -15,6 +15,8 @@ import sys
 
 from nuitka.Tracing import canUseColor, my_print, wrapWithStyles
 from nuitka.utils.Diffs import getUnifiedDiff
+from nuitka.utils.FileOperations import getWindowsLongPathName
+from nuitka.utils.Utils import isWin32Windows
 
 # spell-checker:disable
 ran_tests_re = re.compile(r"^(Ran \d+ tests? in )\-?\d+\.\d+s$")
@@ -71,11 +73,30 @@ site_initialization_re = re.compile(
 # spell-checker:enable
 
 
+def _getNormalizedFilename(path):
+    path = os.path.realpath(os.path.abspath(path))
+
+    if isWin32Windows():
+        # Before Python 3.8, 'os.path.realpath' on Windows does not expand 8.3
+        # short file names.
+        try:
+            long_path = getWindowsLongPathName(path)
+        except OSError:
+            pass
+        else:
+            if type(path) is bytes:
+                long_path = long_path.encode("utf8")
+
+            path = long_path
+
+    return path
+
+
 def traceback_re_callback(match):
     # spell-checker: disable-next-line
     return r'%sile "%s", line %s' % (
         match.group(1),
-        os.path.realpath(os.path.abspath(match.group(2))),
+        _getNormalizedFilename(match.group(2)),
         match.group(3),
     )
 
@@ -85,7 +106,7 @@ def import_re_callback(match):
 
     return r"%s( >> %s)" % (
         match.group(1),
-        os.path.realpath(os.path.abspath(match.group(2))),
+        _getNormalizedFilename(match.group(2)),
     )
 
 
