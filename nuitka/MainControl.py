@@ -154,12 +154,14 @@ from nuitka.PythonFlavors import (
     isPythonBuildStandalonePython,
 )
 from nuitka.PythonVersions import (
+    freezeGc,
     getModuleLinkerLibs,
     getPythonABI,
     getSupportedPythonVersions,
     isPythonWithGil,
     python_version,
     python_version_str,
+    unfreezeGc,
 )
 from nuitka.Serialization import ConstantAccessor
 from nuitka.targets.Targets import (
@@ -1138,8 +1140,7 @@ def compileTree():
 
         # The module trees remain needed until the end of code generation, but
         # are not mutated during it, so keep the collector from traversing them.
-        if python_version >= 0x370:
-            gc.freeze()
+        freezeGc()
 
         # Now build the target language code for the whole tree.
         with withProfiling(
@@ -1597,6 +1598,10 @@ Report writing was prevented by exception %r, use option \
                 raise
 
         raise
+    finally:
+        # CPython 3.11 debug builds assert if struct sequence types are still
+        # referenced during finalization, which frozen cycles otherwise cause.
+        unfreezeGc()
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and

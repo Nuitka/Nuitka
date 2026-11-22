@@ -12,6 +12,7 @@ should attempt to make run time detections.
 import __future__
 
 import ctypes
+import gc
 import os
 import re
 import sys
@@ -533,6 +534,31 @@ def getModuleLinkerLibs():
 
 def isPythonWithGil():
     return python_version < 0x3D0 or sys.flags.gil
+
+
+def hasWorkingFreeGc():
+    if python_version < 0x370:
+        return False
+
+    # CPython 3.13.0 free-threaded builds corrupt object state when freezing,
+    # see gh-126312, fixed in 3.13.1. The free-threaded GC is used also when
+    # the GIL gets enabled at runtime.
+    if (3, 13, 0) <= python_version_full < (3, 13, 1):
+        import sysconfig
+
+        return not sysconfig.get_config_var("Py_GIL_DISABLED")
+
+    return True
+
+
+def freezeGc():
+    if hasWorkingFreeGc():
+        gc.freeze()
+
+
+def unfreezeGc():
+    if hasWorkingFreeGc():
+        gc.unfreeze()
 
 
 def getSitePackageCandidateNames():
