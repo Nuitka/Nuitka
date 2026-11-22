@@ -35,6 +35,108 @@ def _checkBases(name, bases):
             raise NuitkaNodeDesignError(name, "All bases must set __slots__.", base)
 
 
+def _getUnboundFunction(method):
+    # Python 2 wraps methods as unbound instancemethods whose identity differs per class.
+    return getattr(method, "__func__", method)
+
+
+def _collectCloningSpec(cls):
+    named_children = ()
+    node_attributes = []
+
+    for base in cls.__mro__:
+        if not named_children and "named_children" in base.__dict__:
+            named_children = base.__dict__["named_children"]
+
+        if "node_attributes" in base.__dict__:
+            node_attributes.extend(base.__dict__["node_attributes"])
+
+    child_param_names = set(
+        "object_arg" if nc.split("|", 1)[0] == "object" else nc.split("|", 1)[0]
+        for nc in named_children
+    )
+
+    return named_children, child_param_names, tuple(node_attributes)
+
+
+def _checkInitParameters(name, all_args, has_varkw, expected_names, label):
+    if has_varkw:
+        return
+
+    missing = sorted(expected_names - all_args)
+    if missing:
+        raise NuitkaNodeDesignError(
+            name,
+            "Node '__init__' does not accept '%s' parameters." % label,
+            tuple(missing),
+        )
+
+
+def _checkCloningInterface(cls, name):
+    from .NodeBases import NodeBase
+
+    if _getUnboundFunction(cls.makeClone) is not _getUnboundFunction(
+        NodeBase.makeClone
+    ):
+        return
+
+    init_func = _getUnboundFunction(cls.__init__)
+    if getattr(init_func, "is_version_disabled", False):
+        return
+
+    code = getattr(init_func, "__code__", None)
+    if code is None:
+        return
+
+    arg_names = code.co_varnames[1 : code.co_argcount]
+    defaults = getattr(init_func, "__defaults__", None) or ()
+    required_args = set(arg_names[: len(arg_names) - len(defaults)])
+    all_args = set(arg_names)
+    has_varkw = bool(code.co_flags & 0x08)
+
+    named_children, child_param_names, node_attributes = _collectCloningSpec(cls)
+
+    if named_children:
+        if _getUnboundFunction(cls.getCloneArgs) is _getUnboundFunction(
+            NodeBase.getCloneArgs
+        ):
+            raise NuitkaNodeDesignError(
+                name,
+                "Node defines 'named_children' without overriding 'getCloneArgs'.",
+                named_children,
+            )
+
+        _checkInitParameters(
+            name, all_args, has_varkw, child_param_names, "named_children"
+        )
+
+    uses_default_get_details = _getUnboundFunction(
+        cls.getDetails
+    ) is _getUnboundFunction(NodeBase.getDetails)
+
+    if node_attributes:
+        if uses_default_get_details:
+            raise NuitkaNodeDesignError(
+                name,
+                "Node defines 'node_attributes' without overriding 'getDetails'.",
+                node_attributes,
+            )
+
+        _checkInitParameters(
+            name, all_args, has_varkw, set(node_attributes), "node_attributes"
+        )
+
+    non_child_required = sorted(
+        required_args - child_param_names - set(("source_ref",))
+    )
+    if non_child_required and uses_default_get_details:
+        raise NuitkaNodeDesignError(
+            name,
+            "Node '__init__' requires non-child parameters without overriding 'getDetails'.",
+            tuple(non_child_required),
+        )
+
+
 def returnFalseSharedFunction():
     return False
 
@@ -104,6 +206,7 @@ class NodeCheckMetaClass(ABCMeta):
                 def __init__(self, *args, **kwargs):
                     raise NuitkaAssumptionError(name, "assumption violated", condition)
 
+                __init__.is_version_disabled = True
                 dictionary["__init__"] = __init__
 
         if "checker" in dictionary:
@@ -147,6 +250,8 @@ class NodeCheckMetaClass(ABCMeta):
                     return self.kind == kind
 
                 setattr(cls, checker_method_name, checkKind)
+
+            _checkCloningInterface(cls, name)
 
 
 # For Python2/3 compatible source, we create a base class that has the metaclass

@@ -113,22 +113,6 @@ class NodeBase(NodeMetaClassBase):
 
         return result
 
-    def makeCloneShallow(self):
-        args = self.getDetails()
-        args.update(self.getVisitableNodesNamed())
-
-        try:
-            result = self.__class__(source_ref=self.source_ref, **args)
-        except TypeError as e:
-            raise NuitkaNodeError("Problem cloning node", self, e)
-
-        effective_source_ref = self.getCompatibleSourceReference()
-
-        if effective_source_ref is not self.source_ref:
-            result.setCompatibleSourceReference(effective_source_ref)
-
-        return result
-
     def getParent(self):
         if self.parent is None and not self.isCompiledPythonModule():
             assert False, (self, self.source_ref)

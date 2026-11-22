@@ -72,8 +72,14 @@ class PythonModuleBase(NodeBase):
         self.is_internal_module = False
         self.needs_module_value_setter = False
 
+    def makeClone(self):
+        assert False, self
+
     def getDetails(self):
-        return {"module_name": self.module_name}
+        return {
+            "module_name": self.module_name,
+            "reason": self.reason,
+        }
 
     def markAsInternalModule(self):
         self.is_internal_module = True
@@ -316,12 +322,18 @@ class CompiledPythonModule(
 
     def getDetails(self):
         return {
-            "filename": self.source_ref.getFilename(),
             "module_name": self.module_name,
+            "reason": self.reason,
+            "is_top": self.is_top,
+            "mode": self.mode,
+            "future_spec": self.future_spec,
         }
 
     def getDetailsForDisplay(self):
-        result = self.getDetails()
+        result = {
+            "filename": self.source_ref.getFilename(),
+            "module_name": self.module_name,
+        }
 
         if self.future_spec is not None:
             result["code_flags"] = ",".join(self.future_spec.asFlags())
@@ -860,7 +872,25 @@ class UncompiledPythonModule(PythonModuleBase):
         self.used_modules = ()
         self.distribution_names = ()
 
+    def getDetails(self):
+        return {
+            "module_name": self.module_name,
+            "reason": self.reason,
+            "bytecode": self.bytecode,
+            "filename": self.filename,
+            "technical": self.technical,
+        }
+
+    def getDetailsForDisplay(self):
+        return {
+            "module_name": self.module_name,
+            "filename": self.filename,
+            "reason": self.reason,
+            "technical": self.technical,
+        }
+
     def finalize(self):
+        # Not deleting 'self.parent' since it is always None on module nodes.
         del self.used_modules
         del self.bytecode
 
@@ -935,11 +965,18 @@ class PythonMainModule(CompiledPythonModule):
 
     def getDetails(self):
         return {
-            "filename": self.source_ref.getFilename(),
             "module_name": self.module_name,
             "main_added": self.main_added,
             "mode": self.mode,
+            "future_spec": self.future_spec,
         }
+
+    def getDetailsForDisplay(self):
+        result = CompiledPythonModule.getDetailsForDisplay(self)
+        result["main_added"] = self.main_added
+        result["mode"] = self.mode
+
+        return result
 
     @classmethod
     def fromXML(cls, provider, source_ref, **args):
@@ -1084,7 +1121,16 @@ class PythonExtensionModule(PythonModuleBase):
     def isExtensionModulePackage(self):
         return self.is_package
 
+    def getDetails(self):
+        return {
+            "module_name": self.module_name,
+            "module_filename": self.module_filename,
+            "reason": self.reason,
+            "technical": self.technical,
+        }
+
     def finalize(self):
+        # Not deleting 'self.parent' since it is always None on module nodes.
         del self.used_modules
         del self.implicit_used_modules
 

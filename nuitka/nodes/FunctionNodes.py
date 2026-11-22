@@ -481,10 +481,30 @@ class ExpressionFunctionEntryPointBase(EntryPointMixin, ExpressionFunctionBodyBa
 
         self.auto_release = auto_release or None
 
-    def getDetails(self):
-        result = ExpressionFunctionBodyBase.getDetails(self)
+    def makeClone(self):
+        assert False, self
 
-        result["auto_release"] = tuple(sorted(self.auto_release or ()))
+    def getDetails(self):
+        return {
+            "provider": self.provider,
+            "name": self.name,
+            "code_object": self.code_object,
+            "flags": None if self.flags is None else set(self.flags),
+            "auto_release": (
+                None if self.auto_release is None else set(self.auto_release)
+            ),
+        }
+
+    def getDetailsForDisplay(self):
+        result = {
+            "name": self.getFunctionName(),
+            "provider": self.provider.getCodeName(),
+            "flags": self.flags,
+            "auto_release": tuple(sorted(self.auto_release or ())),
+        }
+
+        if self.code_object:
+            result.update(self.code_object.getDetails())
 
         return result
 
@@ -627,15 +647,12 @@ class ExpressionFunctionBody(
             self.locals_scope.registerProvidedVariable(variable)
 
     def getDetails(self):
-        return {
-            "name": self.getFunctionName(),
-            "ref_name": self.getCodeName(),
-            "parameters": self.getParameters(),
-            "code_object": self.code_object,
-            "provider": self.provider.getCodeName(),
-            "doc": self.doc,
-            "flags": self.flags,
-        }
+        result = ExpressionFunctionEntryPointBase.getDetails(self)
+        result["doc"] = self.doc
+        result["parameters"] = self.parameters
+        result["code_prefix"] = self.code_prefix
+
+        return result
 
     def getDetailsForDisplay(self):
         result = {
