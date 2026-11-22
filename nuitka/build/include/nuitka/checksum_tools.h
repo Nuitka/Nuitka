@@ -11,6 +11,7 @@
 #endif
 
 extern uint32_t calcCRC32(unsigned char const *message, uint32_t size);
+extern uint32_t calcCRC32With64BitSize(unsigned char const *message, uint64_t size);
 
 #endif
 

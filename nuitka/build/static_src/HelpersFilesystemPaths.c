@@ -364,12 +364,13 @@ bool closeFile(FILE_HANDLE target_file) {
 
 int64_t getFileSize(FILE_HANDLE file_handle) {
 #if defined(_WIN32)
-    // TODO: File size is truncated here, but maybe an OK thing.
-    DWORD file_size = GetFileSize(file_handle, NULL);
+    LARGE_INTEGER file_size;
 
-    if (file_size == INVALID_FILE_SIZE) {
+    if (unlikely(GetFileSizeEx(file_handle, &file_size) == 0)) {
         return -1;
     }
+
+    return (int64_t)file_size.QuadPart;
 #else
     int res = fseek(file_handle, 0, SEEK_END);
 
@@ -384,9 +385,9 @@ int64_t getFileSize(FILE_HANDLE file_handle) {
     if (unlikely(res != 0)) {
         return -1;
     }
-#endif
 
     return (int64_t)file_size;
+#endif
 }
 
 #if defined(__MSYS__) || defined(__HAIKU__) || defined(__OpenBSD__) || defined(__FreeBSD__) || defined(_AIX) ||        \
@@ -581,9 +582,19 @@ static struct MapFileToMemoryInfo mapFileToMemory(filename_char_t const *filenam
     if (result.file_size == -1) {
         result.error = true;
         result.error_code = GetLastError();
-        result.erroring_function = "GetFileSize";
+        result.erroring_function = "GetFileSizeEx";
 
         CloseHandle(result.file_handle);
+
+        return result;
+    }
+
+    if (result.file_size == 0) {
+        // CreateFileMappingW fails for empty files with ERROR_FILE_INVALID.
+        result.data = NULL;
+        result.handle_mapping = NULL;
+        result.error = false;
+        result.error_code = 0;
 
         return result;
     }
@@ -622,8 +633,11 @@ static struct MapFileToMemoryInfo mapFileToMemory(filename_char_t const *filenam
 static void unmapFileFromMemory(struct MapFileToMemoryInfo *mapped_file) {
     assert(!mapped_file->error);
 
-    UnmapViewOfFile(mapped_file->data);
-    CloseHandle(mapped_file->handle_mapping);
+    if (mapped_file->file_size != 0) {
+        UnmapViewOfFile(mapped_file->data);
+        CloseHandle(mapped_file->handle_mapping);
+    }
+
     CloseHandle(mapped_file->file_handle);
 }
 #else
@@ -672,6 +686,14 @@ static struct MapFileToMemoryInfo mapFileToMemory(filename_char_t const *filenam
         return result;
     }
 
+    if (result.file_size == 0) {
+        // mmap fails for empty files with EINVAL.
+        result.data = NULL;
+        result.error = false;
+
+        return result;
+    }
+
     result.data = (unsigned char const *)mmap(NULL, result.file_size, PROT_READ, MAP_PRIVATE, result.file_handle, 0);
 
     if (unlikely(result.data == MAP_FAILED)) {
@@ -691,7 +713,10 @@ static struct MapFileToMemoryInfo mapFileToMemory(filename_char_t const *filenam
 static void unmapFileFromMemory(struct MapFileToMemoryInfo *mapped_file) {
     assert(!mapped_file->error);
 
-    munmap((void *)mapped_file->data, mapped_file->file_size);
+    if (mapped_file->file_size != 0) {
+        munmap((void *)mapped_file->data, mapped_file->file_size);
+    }
+
     close(mapped_file->file_handle);
 }
 #endif
@@ -702,7 +727,7 @@ uint32_t getFileCRC32(filename_char_t const *filename) {
     if (mapped_file.error) {
         return 0;
     }
-    uint32_t result = calcCRC32(mapped_file.data, (long)mapped_file.file_size);
+    uint32_t result = calcCRC32With64BitSize(mapped_file.data, (uint64_t)mapped_file.file_size);
 
     // Lets reserve "0" value for error indication.
     if (result == 0) {
