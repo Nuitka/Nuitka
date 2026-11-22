@@ -61,7 +61,7 @@ from nuitka.nodes.BuiltinNextNodes import (
     ExpressionBuiltinNext1,
     ExpressionBuiltinNext2,
 )
-from nuitka.nodes.BuiltinOpenNodes import ExpressionBuiltinsOpenBefore3Call
+from nuitka.nodes.BuiltinOpenNodes import makeExpressionBuiltinsOpenCall
 from nuitka.nodes.BuiltinRangeNodes import (
     ExpressionBuiltinRange1,
     ExpressionBuiltinRange2,
@@ -879,8 +879,8 @@ if python_version < 0x300:
                             in_class_body=node.getParentVariableProvider().isExpressionClassBodyBase(),
                             source_code=makeCallNode(
                                 makeExpressionAttributeLookup(
-                                    expression=ExpressionBuiltinsOpenBefore3Call(
-                                        name=ExpressionTempVariableRef(
+                                    expression=makeExpressionBuiltinsOpenCall(
+                                        filename=ExpressionTempVariableRef(
                                             variable=filename_variable,
                                             source_ref=source_ref,
                                         ),
@@ -888,6 +888,11 @@ if python_version < 0x300:
                                             constant="rU", source_ref=source_ref
                                         ),
                                         buffering=None,
+                                        encoding=None,
+                                        errors=None,
+                                        newline=None,
+                                        closefd=None,
+                                        opener=None,
                                         source_ref=source_ref,
                                     ),
                                     attribute_name="read",
