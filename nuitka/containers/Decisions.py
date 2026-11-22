@@ -9,15 +9,15 @@ from .Namedtuples import makeNamedtupleClass
 class DecisionBase(makeNamedtupleClass("DecisionBase", ("decision", "reason"))):
     """Base class for a decision with a reason.
 
-    Use 'decideYes()' for positive decisions and 'decideNo(reason)' for
-    negative ones. Testing a decision as a boolean returns its 'decision'
-    value.
+    Use 'decideYes()' for positive decisions, 'decideNo(reason)' for negative
+    ones, and 'decideAbstain()' when there is no opinion. Testing a decision as
+    a boolean returns its 'decision' value.
     """
 
     __slots__ = ()
 
     def __nonzero__(self):
-        return self.decision
+        return bool(self.decision)
 
     __bool__ = __nonzero__
 
@@ -29,14 +29,19 @@ class DecisionBase(makeNamedtupleClass("DecisionBase", ("decision", "reason"))):
         )
 
     @classmethod
-    def decideYes(cls):
-        """Create a positive decision without a reason."""
-        return cls(True, None)
+    def decideYes(cls, reason=None):
+        """Create a positive decision with an optional reason."""
+        return cls(True, reason)
 
     @classmethod
     def decideNo(cls, reason):
         """Create a negative decision with a reason."""
         return cls(False, reason)
+
+    @classmethod
+    def decideAbstain(cls, reason=None):
+        """Create a decision without an opinion, optionally with a reason."""
+        return cls(None, reason)
 
     @classmethod
     def decideFrom(cls, decision):

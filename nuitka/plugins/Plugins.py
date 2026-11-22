@@ -18,6 +18,7 @@ from optparse import OptionConflictError
 import nuitka.plugins.Hooks
 from nuitka.__past__ import basestring, iter_modules
 from nuitka.build.DataComposerInterface import deriveModuleConstantsBlobName
+from nuitka.containers.Decisions import makeDecisionClass
 from nuitka.containers.Namedtuples import makeNamedtupleClass
 from nuitka.containers.OrderedDicts import OrderedDict
 from nuitka.containers.OrderedSets import OrderedSet
@@ -102,6 +103,7 @@ fake_modules = {}
 has_active_gui_toolkit_plugin = False
 
 FakeModuleInfo = makeNamedtupleClass("FakeModuleInfo", ("module", "plugin", "reason"))
+MissingDLLDecision = makeDecisionClass("MissingDLLDecision")
 
 
 @contextmanager
@@ -2243,12 +2245,18 @@ through incomplete set import by '%s' plugin encountered."""
     @classmethod
     @counted_plugin_method
     def isAcceptableMissingDLL(cls, package_name, filename):
+        """Get the aggregated plug-in decision for a missing DLL.
+
+        Returns:
+            MissingDLLDecision: Tri-state 'decision' (True, False, or None) and
+            a 'reason' explaining it, e.g. the deciding plug-in.
+        """
         dll_basename = getDllBasename(os.path.basename(filename))
 
         # Not a DLL filename, then it cannot be true, but it's kind of strange
         # to get asked.
         if dll_basename is None:
-            return None, None
+            return MissingDLLDecision.decideAbstain("not a DLL filename")
 
         result = None
         plugin_name = None
@@ -2283,7 +2291,18 @@ through incomplete set import by '%s' plugin encountered."""
                     % value
                 )
 
-        return result, plugin_name
+        if result is True:
+            decision = MissingDLLDecision.decideYes(
+                "accepted by plug-in '%s'" % plugin_name
+            )
+        elif result is False:
+            decision = MissingDLLDecision.decideNo(
+                "rejected by plug-in '%s'" % plugin_name
+            )
+        else:
+            decision = MissingDLLDecision.decideAbstain()
+
+        return decision
 
     @staticmethod
     def getReportRedactedOptions():
