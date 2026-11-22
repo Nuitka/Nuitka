@@ -10,7 +10,7 @@ when a function is only called directly.
 import inspect
 import re
 
-from nuitka.Constants import isMutable
+from nuitka.Constants import isConstantKnownRuntimeImmortal, isMutable
 from nuitka.optimizations.TraceCollections import (
     TraceCollectionFunction,
     TraceCollectionPureFunction,
@@ -751,8 +751,13 @@ class ExpressionFunctionBody(
             constant_value = first_statement.getConstant()
 
             # TODO: For mutable constants, we could also have something, but it would require an indicator
-            # flag to make a deep copy.
-            if not isMutable(constant_value):
+            # flag to make a deep copy. On Python 3.12+, generic constant return uses
+            # Py_INCREF_IMMORTAL so the constant must also be immortal.
+            if (
+                isConstantKnownRuntimeImmortal(constant_value)
+                if python_version >= 0x3C0
+                else not isMutable(constant_value)
+            ):
                 return True, constant_value
             else:
                 return False, False

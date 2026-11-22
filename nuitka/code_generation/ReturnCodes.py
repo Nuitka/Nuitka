@@ -3,7 +3,7 @@
 
 """Code generation for return statements in functions and generators."""
 
-from nuitka.Constants import isConstantImmortal
+from nuitka.Constants import isConstantKnownRuntimeImmortal
 from nuitka.PythonVersions import python_version
 
 from .CodeHelpers import generateExpressionCode
@@ -79,7 +79,7 @@ def generateReturnConstantCode(statement, emit, context):
     if context.needsCleanup(return_value_name):
         context.removeCleanupTempName(return_value_name)
     else:
-        if isConstantImmortal(constant):
+        if isConstantKnownRuntimeImmortal(constant):
             emit("Py_INCREF_IMMORTAL(%s);" % return_value_name)
         else:
             emit("Py_INCREF(%s);" % return_value_name)

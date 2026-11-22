@@ -14,7 +14,8 @@ from nuitka.Builtins import builtin_type_names
 from nuitka.containers.Namedtuples import makeNamedtupleClass
 from nuitka.PythonVersions import python_version
 
-from .__past__ import (
+from .__past__ import (  # pylint: disable=I0021,redefined-builtin
+    ExceptionGroup,
     GenericAlias,
     UnionType,
     frozendict,
@@ -436,15 +437,38 @@ def isCompileTimeConstantValue(value):
 
 if python_version < 0x3C0:
 
-    def isConstantImmortal(value):
+    def isConstantKnownRuntimeImmortal(value):
+        """Return whether a constant is known to be immortal at runtime.
+
+        Returns True if guaranteed immortal at runtime, False if definitely
+        not immortal, and None if not known to be immortal (e.g. could be
+        made immortal by Nuitka or a future CPython version).
+        """
         # Not happening before 3.12, pylint: disable=unused-argument
         return False
 
 else:
 
-    def isConstantImmortal(value):
-        # TODO: Add way more than these few ones.
-        return value in (True, False, None)
+    def isConstantKnownRuntimeImmortal(value):
+        """Return whether a constant is known to be immortal at runtime.
+
+        Returns True if guaranteed immortal at runtime, False if definitely
+        not immortal, and None if not known to be immortal (e.g. could be
+        made immortal by Nuitka or a future CPython version).
+        """
+        if isMutable(value):
+            return False
+
+        # Mutable GC-tracked heap type in CPython, must not be immortalized.
+        if value is ExceptionGroup:
+            return False
+
+        # Direct C-API constant bypassing the constants blob; not currently
+        # immortal in CPython, though Nuitka might make it immortal.
+        if value is sys.version_info or type(value) is TargetVersionInfo:
+            return None
+
+        return True
 
 
 # Shared empty values, it would cost time to create them locally.

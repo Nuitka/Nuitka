@@ -540,8 +540,8 @@ static inline void _Nuitka_Py_XDECREF(PyObject *ob) {
 #elif defined(_NUITKA_DEBUG_DEBUG_IMMORTAL)
 // We strive for Nuitka to never harm these, the assertion is going to fail with
 // third party extension modules.
-#define Py_INCREF_IMMORTAL(value) assert(Py_REFCNT(value) == _Py_IMMORTAL_INITIAL_REFCNT)
-#define Py_DECREF_IMMORTAL(value) assert(Py_REFCNT(value) == _Py_IMMORTAL_INITIAL_REFCNT)
+#define Py_INCREF_IMMORTAL(value) assert(_Py_IsImmortal(value))
+#define Py_DECREF_IMMORTAL(value) assert(_Py_IsImmortal(value))
 #else
 #define Py_INCREF_IMMORTAL(value)
 #define Py_DECREF_IMMORTAL(value)
@@ -949,7 +949,11 @@ static inline void Py_SET_REFCNT_IMMORTAL(PyObject *obj) {
 
 #ifdef Py_GIL_DISABLED
     obj->ob_tid = _Py_UNOWNED_TID;
+#if PYTHON_VERSION >= 0x3e0
+    obj->ob_ref_local = _Py_IMMORTAL_REFCNT_LOCAL;
+#else
     obj->ob_ref_local = _Py_IMMORTAL_INITIAL_REFCNT;
+#endif
     obj->ob_ref_shared = 0;
 #if PYTHON_VERSION >= 0x3e0
     _Py_atomic_or_uint8(&obj->ob_gc_bits, _PyGC_BITS_DEFERRED);

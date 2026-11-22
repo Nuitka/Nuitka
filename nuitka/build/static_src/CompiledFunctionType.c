@@ -1314,6 +1314,9 @@ void Nuitka_Function_EnableConstReturnFalse(struct Nuitka_FunctionObject *functi
 }
 
 void Nuitka_Function_EnableConstReturnGeneric(struct Nuitka_FunctionObject *function, PyObject *value) {
+#if PYTHON_VERSION >= 0x3c0
+    assert(_Py_IsImmortal(value));
+#endif
     function->m_constant_return_value = value;
     function->m_c_code = _Nuitka_FunctionEmptyCodeGenericImpl;
 }
@@ -1524,6 +1527,8 @@ struct Nuitka_FunctionObject *Nuitka_Function_CreateFunctionViaCodeIndex(
         result->m_c_code = _Nuitka_FunctionEmptyCodeNoneImpl;
     } else if (offset == -5) {
         CHECK_OBJECT(constant_return_value);
+
+        Py_SET_REFCNT_IMMORTAL(constant_return_value);
 
         Nuitka_Function_EnableConstReturnGeneric(result, constant_return_value);
 
