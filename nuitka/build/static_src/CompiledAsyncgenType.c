@@ -2237,13 +2237,14 @@ static PyObject *_Nuitka_AsyncgenAthrow_throw(struct Nuitka_AsyncgenAthrowObject
             asyncgen_athrow->m_state = AWAITABLE_STATE_CLOSED;
 #endif
 
-#if PYTHON_VERSION >= 0x370
-            // CPython 3.7 and later turn these into StopIteration for aclose().
+#if PYTHON_VERSION >= 0x381 || (PYTHON_VERSION >= 0x376 && PYTHON_VERSION < 0x380)
+            // CPython 3.7.6 and 3.8.1 changed aclose() to turn these into
+            // StopIteration, earlier versions still propagated them.
             if (CHECK_AND_CLEAR_STOP_ASYNC_ITERATION_OCCURRED(tstate) ||
                 CHECK_AND_CLEAR_GENERATOR_EXIT_OCCURRED(tstate)) {
                 SET_CURRENT_EXCEPTION_STOP_ITERATION_EMPTY(tstate);
             }
-#else
+#elif PYTHON_VERSION < 0x370
             if (!HAS_ERROR_OCCURRED(tstate)) {
                 SET_CURRENT_EXCEPTION_STOP_ASYNC_ITERATION(tstate);
             }
