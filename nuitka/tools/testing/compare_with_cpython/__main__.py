@@ -753,7 +753,7 @@ Taking coverage of '{filename}' using '{python}' with flags {args} ...""".format
             else:
                 nuitka_cmd2 = [os.path.join(output_dir, exe_filename)]
 
-        pdb_filename = exe_filename[:-4] + ".pdb"
+        pdb_filename = nuitka_cmd2[0][:-4] + ".pdb"
 
     if trace_command:
         traceExecutedCommand("CPython command", cpython_cmd)
@@ -884,14 +884,24 @@ Stderr was:
 
                 # No execution second step for coverage mode.
                 if comparison_mode:
-                    if os.path.exists(nuitka_cmd2[0][:-4] + ".cmd"):
-                        nuitka_cmd2[0] = nuitka_cmd2[0][:-4] + ".cmd"  # type: ignore
+                    nuitka_run_cmd = list(nuitka_cmd2)
+
+                    if os.name == "nt" and os.path.exists(
+                        nuitka_run_cmd[0][:-4] + ".cmd"
+                    ):
+                        nuitka_run_cmd[0] = nuitka_run_cmd[0][:-4] + ".cmd"
+                    elif os.name != "nt" and os.path.exists(
+                        nuitka_run_cmd[0][:-4] + ".sh"
+                    ):
+                        nuitka_run_cmd[0] = nuitka_run_cmd[0][:-4] + ".sh"
+
+                    if os.name == "nt" and not os.path.dirname(nuitka_run_cmd[0]):
+                        nuitka_run_cmd[0] = ".\\" + nuitka_run_cmd[0]
 
                     if trace_command:
-                        my_print("Nuitka command 2:", nuitka_cmd2)
+                        my_print("Nuitka command 2:", nuitka_run_cmd)
 
-                    # Need full manual control
-                    process = createProcess(command=nuitka_cmd2, new_group=send_kill)
+                    process = createProcess(command=nuitka_run_cmd, new_group=send_kill)
 
                     if send_kill:
                         executeAfterTimePassed(
@@ -1099,6 +1109,12 @@ Stderr was:
                         os.unlink(pdb_filename)
                 else:
                     os.unlink(nuitka_cmd2[0])
+
+            if remove_binary:
+                deleteFile(
+                    nuitka_cmd2[0][:-4] + (".cmd" if os.name == "nt" else ".sh"),
+                    must_exist=False,
+                )
         else:
             module_filename = os.path.basename(filename) + getExtensionModuleSuffix(
                 preferred=True
