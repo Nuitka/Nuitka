@@ -471,27 +471,20 @@ def _resolveBinaryPathDLLsMacOS(
                                     resolved_path = binary_filename
 
         if not os.path.exists(resolved_path):
-            acceptable, plugin_name = isAcceptableMissingDLL(
-                package_name=package_name,
-                filename=binary_filename,
-            )
-
-            # TODO: Missing DLLs that are accepted, are not really forbidden, we
-            # should instead acknowledge them as missing, and treat that properly
-            # in using code.
-            if acceptable is True:
-                raise NuitkaForbiddenDLLEncounter(binary_filename, plugin_name)
-
-            # We check both the user and the used DLL if they are listed. This
-            # might be a form of bug hiding, that the later is not sufficient,
-            # that we should address later.
-            acceptable, plugin_name = isAcceptableMissingDLL(
+            if isAcceptableMissingDLL(
                 package_name=package_name,
                 filename=resolved_path,
-            )
+            ):
+                continue
 
-            if acceptable is True:
-                raise NuitkaForbiddenDLLEncounter(binary_filename, plugin_name)
+            # Qt plugins have private dependencies that the bindings wheels do
+            # not always ship, so the plugin is excluded entirely instead of
+            # failing on its dependency.
+            if isAcceptableMissingDLL(
+                package_name=package_name,
+                filename=binary_filename,
+            ):
+                raise NuitkaForbiddenDLLEncounter(binary_filename)
 
             if not path.startswith(("@", "/")):
                 continue
