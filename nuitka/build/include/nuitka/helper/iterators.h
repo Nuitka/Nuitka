@@ -11,6 +11,7 @@
 #include "nuitka/defines.h"
 #include "nuitka/exceptions.h"
 #include "nuitka/helper/dictionaries.h"
+#include "nuitka/helper/sequences.h"
 
 #if PYTHON_VERSION >= 0x3e0
 #include "internal/pycore_list.h"
