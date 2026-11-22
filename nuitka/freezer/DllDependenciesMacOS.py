@@ -49,16 +49,45 @@ from .IncludedDataFiles import getIncludedFrameworkDistPathFromSourcePath
 # Detected Python rpath is cached.
 _detected_python_rpaths = None
 
-# Cached DLL dependency scan results.
+# Cached DLL dependency scan results, keyed with the package rpaths state that
+# was used for resolving them.
 _detect_binary_path_dlls_cache = {}
+
+# First scan result per binary, used when fixing up copied binaries, so that
+# the result matches what was copied.
+_detected_binary_path_dlls_results = {}
+
+# Detected rpaths per package, accumulated across binary scans.
+_package_rpaths = {}
+
+
+def _getPackageRPathsSnapshot(package_name):
+    if package_name is None:
+        return ()
+
+    return tuple(_package_rpaths.get(package_name, ()))
+
+
+def _getDetectedBinaryPathDLLsMacOS(
+    original_dir, binary_filename, package_name, parent_rpaths
+):
+    """Get the first detection result for a binary, or None if not scanned yet."""
+
+    return _detected_binary_path_dlls_results.get(
+        (original_dir, binary_filename, package_name, tuple(parent_rpaths))
+    )
 
 
 def _clearBinaryPathDLLsMacOSCache(binary_filename):
     binary_filename = getNormalizedPath(binary_filename)
 
-    for cache_key in list(_detect_binary_path_dlls_cache):
-        if areSamePaths(cache_key[1], binary_filename):
-            del _detect_binary_path_dlls_cache[cache_key]
+    for cache in (
+        _detect_binary_path_dlls_cache,
+        _detected_binary_path_dlls_results,
+    ):
+        for cache_key in list(cache):
+            if areSamePaths(cache_key[1], binary_filename):
+                del cache[cache_key]
 
 
 def _detectPythonRpaths():
@@ -126,12 +155,13 @@ def detectBinaryPathDLLsMacOS(
     recursive_dlls,
     parent_rpaths,
 ):
-    cache_key = (
+    detection_cache_key = (
         original_dir,
         binary_filename,
         package_name,
         tuple(parent_rpaths),
     )
+    cache_key = detection_cache_key + (_getPackageRPathsSnapshot(package_name),)
 
     if cache_key in _detect_binary_path_dlls_cache:
         had_self, resolved_result_items, rpaths = _detect_binary_path_dlls_cache[
@@ -151,6 +181,10 @@ def detectBinaryPathDLLsMacOS(
             tuple(resolved_result.items()),
             tuple(rpaths),
         )
+
+    _detected_binary_path_dlls_results.setdefault(
+        detection_cache_key, _detect_binary_path_dlls_cache[cache_key]
+    )
 
     if recursive_dlls is not None:
         merged_result = OrderedDict(resolved_result)
@@ -277,9 +311,6 @@ def _getNonVersionedDllFilenames(dll_filename, package_name):
                 yield filename
 
 
-_package_rpaths = {}
-
-
 def _resolveBinaryPathDLLsMacOS(
     original_dir,
     binary_filename,
@@ -299,16 +330,11 @@ def _resolveBinaryPathDLLsMacOS(
     rpaths.update(parent_rpaths)
 
     if package_name is not None:
-        package_name_str = (
-            package_name.asString()
-            if hasattr(package_name, "asString")
-            else str(package_name)
-        )
-        if package_name_str not in _package_rpaths:
-            _package_rpaths[package_name_str] = OrderedSet()
+        if package_name not in _package_rpaths:
+            _package_rpaths[package_name] = OrderedSet()
 
-        rpaths.update(_package_rpaths[package_name_str])
-        _package_rpaths[package_name_str].update(rpaths)
+        rpaths.update(_package_rpaths[package_name])
+        _package_rpaths[package_name].update(rpaths)
 
     rpaths.update(package_specific_dirs)
 
@@ -563,15 +589,26 @@ def fixupBinaryDLLPathsMacOS(
     if areSamePaths(binary_filename, original_location):
         _clearBinaryPathDLLsMacOSCache(original_location)
 
+    detected_result = _getDetectedBinaryPathDLLsMacOS(
+        original_dir=os.path.dirname(original_location),
+        binary_filename=original_location,
+        package_name=package_name,
+        parent_rpaths=(),
+    )
+
     try:
-        had_self, rpath_map = detectBinaryPathDLLsMacOS(
-            original_dir=os.path.dirname(original_location),
-            binary_filename=original_location,
-            package_name=package_name,
-            keep_unresolved=True,
-            recursive_dlls=None,
-            parent_rpaths=(),
-        )
+        if detected_result is not None:
+            had_self, resolved_result_items = detected_result[:2]
+            rpath_map = OrderedDict(resolved_result_items)
+        else:
+            had_self, rpath_map = detectBinaryPathDLLsMacOS(
+                original_dir=os.path.dirname(original_location),
+                binary_filename=original_location,
+                package_name=package_name,
+                keep_unresolved=True,
+                recursive_dlls=None,
+                parent_rpaths=(),
+            )
     except NuitkaForbiddenDLLEncounter:
         inclusion_logger.info("Not copying forbidden DLL '%s'." % binary_filename)
     else:
