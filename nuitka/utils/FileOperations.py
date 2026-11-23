@@ -15,6 +15,7 @@ import errno
 import fnmatch
 import glob
 import io
+import ntpath
 import os
 import pickle
 import shutil
@@ -509,10 +510,16 @@ def _restoreWindowsPath(orig_path, path):
         drive, _remaining_path = os.path.splitdrive(orig_path)
 
         if drive and not drive.startswith("\\\\"):
-            drive_real_path = os.path.realpath(drive + "\\")
-            assert path.startswith(drive_real_path)
+            drive_real_path = os.path.realpath(drive + "\\").rstrip("\\/")
 
-            path = drive + "\\" + path[len(drive_real_path) :]
+            # Windows drive letters and share names are case insensitive
+            if os.path.normcase(path).startswith(os.path.normcase(drive_real_path)):
+                remainder = path[len(drive_real_path) :]
+
+                # Do not turn a UNC path into a drive path unless the share
+                # root is actually a prefix and not just a prefix by name.
+                if not remainder or remainder[0] in ("\\", "/"):
+                    path = getNormalizedPath(drive + "\\" + remainder)
     else:
         path = path.strip(os.path.sep)
 
@@ -1756,10 +1763,14 @@ def getWindowsDrive(path):
 
     Returns:
         str: Drive letter with colon, normalized.
+
+    Notes:
+        The 'ntpath' module is used, because POSIX Python variants like MSYS2
+        do not split or normalize drive letters properly.
     """
 
-    drive, _ = os.path.splitdrive(os.path.abspath(path))
-    return os.path.normcase(drive)
+    drive, _ = ntpath.splitdrive(ntpath.abspath(path))
+    return ntpath.normcase(drive)
 
 
 def _isPathBelow(path, filename):
