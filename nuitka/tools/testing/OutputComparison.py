@@ -34,8 +34,8 @@ python_win_lib_re = re.compile(r"[a-zA-Z]:\\\\?[Pp]ython(.*?\\\\?)[Ll]ib")
 local_port_re = re.compile(r"(127\.0\.0\.1):\d{2,5}")
 
 traceback_re = re.compile(r'(F|f)ile "(.*?)", line (\?|\d+)')
-importerror_re = re.compile(
-    r"""(ImportError(?:\("|: )cannot import name '\w+' from '.*?' )\((.*?)\)"""
+import_name_error_re = re.compile(
+    r"""(cannot import name '\w+' from '.*?' )\((.*?)\)"""
 )
 tempfile_posix_re = re.compile(r"/tmp/tmp[a-z0-9_]*")
 tempfile_win_re = re.compile(r"([Tt]emp)[\\/]+[^'\\/]*")
@@ -101,9 +101,7 @@ def traceback_re_callback(match):
     )
 
 
-def import_re_callback(match):
-    #    print (match.groups(), os.path.abspath(match.group(2)))
-
+def import_name_error_re_callback(match):
     return r"%s( >> %s)" % (
         match.group(1),
         _getNormalizedFilename(match.group(2)),
@@ -276,7 +274,7 @@ def makeDiffable(output, ignore_warnings, syntax_errors):
 
         line = traceback_re.sub(traceback_re_callback, line)
 
-        line = importerror_re.sub(import_re_callback, line)
+        line = import_name_error_re.sub(import_name_error_re_callback, line)
 
         # spell-checker: disable-next-line
         line = tempfile_posix_re.sub(r"/tmp/tmpxxxxxxx", line)
