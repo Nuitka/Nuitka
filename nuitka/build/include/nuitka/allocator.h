@@ -31,7 +31,6 @@
 #define FT_ATOMIC_LOAD_SSIZE(value) value
 #define FT_ATOMIC_LOAD_SSIZE_ACQUIRE(value) value
 #define FT_ATOMIC_LOAD_SSIZE_RELAXED(value) value
-#define FT_ATOMIC_STORE_PTR(value, new_value) value = new_value
 #define FT_ATOMIC_LOAD_PTR_ACQUIRE(value) value
 #define FT_ATOMIC_LOAD_UINTPTR_ACQUIRE(value) value
 #define FT_ATOMIC_LOAD_PTR_RELAXED(value) value
@@ -865,8 +864,6 @@ static PyObject *Nuitka_PyType_AllocNoTrack(PyTypeObject *type) {
 }
 #endif
 
-#endif
-
 NUITKA_MAY_BE_UNUSED static void *Nuitka_GC_NewVar(PyTypeObject *type, Py_ssize_t nitems) {
     assert(nitems >= 0);
 
@@ -1023,6 +1020,8 @@ static inline void Py_SET_REFCNT_IMMORTAL(PyObject *obj) {
         Py_XDECREF(_tmp_old_dst);                                                                                      \
     } while (0)
 #endif
+#endif
+
 #endif
 
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
