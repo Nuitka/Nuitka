@@ -1975,7 +1975,7 @@ void _initCompiledGeneratorType(PyThreadState *tstate) {
     assert(Nuitka_Generator_Type.tp_bases != PyGen_Type.tp_bases);
     assert(Nuitka_Generator_Type.tp_mro != PyGen_Type.tp_mro);
     assert(Nuitka_Generator_Type.tp_cache != PyGen_Type.tp_cache || PyGen_Type.tp_cache == NULL);
-    assert(Nuitka_Generator_Type.tp_subclasses != PyGen_Type.tp_subclasses || PyGen_Type.tp_cache == NULL);
+    assert(Nuitka_Generator_Type.tp_subclasses != PyGen_Type.tp_subclasses || PyGen_Type.tp_subclasses == NULL);
     assert(Nuitka_Generator_Type.tp_weaklist != PyGen_Type.tp_weaklist);
     assert(Nuitka_Generator_Type.tp_del != PyGen_Type.tp_del || PyGen_Type.tp_del == NULL);
 #if PYTHON_VERSION >= 0x300

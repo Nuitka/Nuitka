@@ -2077,7 +2077,7 @@ static void _initCompiledCoroutineTypes(void) {
     assert(Nuitka_Coroutine_Type.tp_bases != PyCoro_Type.tp_bases);
     assert(Nuitka_Coroutine_Type.tp_mro != PyCoro_Type.tp_mro);
     assert(Nuitka_Coroutine_Type.tp_cache != PyCoro_Type.tp_cache || PyCoro_Type.tp_cache == NULL);
-    assert(Nuitka_Coroutine_Type.tp_subclasses != PyCoro_Type.tp_subclasses || PyCoro_Type.tp_cache == NULL);
+    assert(Nuitka_Coroutine_Type.tp_subclasses != PyCoro_Type.tp_subclasses || PyCoro_Type.tp_subclasses == NULL);
     assert(Nuitka_Coroutine_Type.tp_weaklist != PyCoro_Type.tp_weaklist);
     assert(Nuitka_Coroutine_Type.tp_del != PyCoro_Type.tp_del || PyCoro_Type.tp_del == NULL);
     assert(Nuitka_Coroutine_Type.tp_finalize != PyCoro_Type.tp_finalize || PyCoro_Type.tp_finalize == NULL);

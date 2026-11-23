@@ -2422,7 +2422,8 @@ static void _initCompiledAsyncgenTypes(void) {
     assert(Nuitka_Asyncgen_Type.tp_bases != PyAsyncGen_Type.tp_bases);
     assert(Nuitka_Asyncgen_Type.tp_mro != PyAsyncGen_Type.tp_mro);
     assert(Nuitka_Asyncgen_Type.tp_cache != PyAsyncGen_Type.tp_cache || PyAsyncGen_Type.tp_cache == NULL);
-    assert(Nuitka_Asyncgen_Type.tp_subclasses != PyAsyncGen_Type.tp_subclasses || PyAsyncGen_Type.tp_cache == NULL);
+    assert(Nuitka_Asyncgen_Type.tp_subclasses != PyAsyncGen_Type.tp_subclasses ||
+           PyAsyncGen_Type.tp_subclasses == NULL);
     assert(Nuitka_Asyncgen_Type.tp_weaklist != PyAsyncGen_Type.tp_weaklist);
     assert(Nuitka_Asyncgen_Type.tp_del != PyAsyncGen_Type.tp_del || PyAsyncGen_Type.tp_del == NULL);
     assert(Nuitka_Asyncgen_Type.tp_finalize != PyAsyncGen_Type.tp_finalize || PyAsyncGen_Type.tp_finalize == NULL);

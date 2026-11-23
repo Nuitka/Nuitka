@@ -685,7 +685,7 @@ static PyObject *Nuitka_Function_get_builtins(PyObject *self, void *data) {
 #if PYTHON_VERSION >= 0x3c0
 static int Nuitka_Function_set_type_params(PyObject *self, PyObject *value, void *data) {
     CHECK_OBJECT(self);
-    CHECK_OBJECT_X(self);
+    CHECK_OBJECT_X(value);
     assert(Nuitka_Function_Check(self));
     assert(_PyObject_GC_IS_TRACKED(self));
 
@@ -1118,7 +1118,8 @@ void _initCompiledFunctionType(void) {
     assert(Nuitka_Function_Type.tp_bases != PyFunction_Type.tp_bases);
     assert(Nuitka_Function_Type.tp_mro != PyFunction_Type.tp_mro);
     assert(Nuitka_Function_Type.tp_cache != PyFunction_Type.tp_cache || PyFunction_Type.tp_cache == NULL);
-    assert(Nuitka_Function_Type.tp_subclasses != PyFunction_Type.tp_subclasses || PyFunction_Type.tp_cache == NULL);
+    assert(Nuitka_Function_Type.tp_subclasses != PyFunction_Type.tp_subclasses ||
+           PyFunction_Type.tp_subclasses == NULL);
     assert(Nuitka_Function_Type.tp_weaklist != PyFunction_Type.tp_weaklist);
     assert(Nuitka_Function_Type.tp_del != PyFunction_Type.tp_del || PyFunction_Type.tp_del == NULL);
 #if PYTHON_VERSION >= 0x300

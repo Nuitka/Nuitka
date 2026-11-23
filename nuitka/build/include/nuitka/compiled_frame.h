@@ -385,7 +385,7 @@ NUITKA_MAY_BE_UNUSED inline static void pushFrameStackInterpreterFrame(PyThreadS
 #else
 NUITKA_MAY_BE_UNUSED inline static void pushFrameStackPythonFrame(PyThreadState *tstate, PyFrameObject *frame_object) {
     PRINT_TOP_FRAME("Normal push entry top frame:");
-    PRINT_COMPILED_FRAME("Pushing:", frame_object);
+    PRINT_PYTHON_FRAME("Pushing:", frame_object);
 
     assertPythonFrameObject(frame_object);
 

@@ -878,7 +878,7 @@ void _initCompiledFrameType(void) {
     assert(Nuitka_Frame_Type.tp_bases != PyFrame_Type.tp_bases);
     assert(Nuitka_Frame_Type.tp_mro != PyFrame_Type.tp_mro);
     assert(Nuitka_Frame_Type.tp_cache != PyFrame_Type.tp_cache || PyFrame_Type.tp_cache == NULL);
-    assert(Nuitka_Frame_Type.tp_subclasses != PyFrame_Type.tp_subclasses || PyFrame_Type.tp_cache == NULL);
+    assert(Nuitka_Frame_Type.tp_subclasses != PyFrame_Type.tp_subclasses || PyFrame_Type.tp_subclasses == NULL);
     assert(Nuitka_Frame_Type.tp_del != PyFrame_Type.tp_del || PyFrame_Type.tp_del == NULL);
 #if PYTHON_VERSION >= 0x300
     assert(Nuitka_Frame_Type.tp_finalize != PyFrame_Type.tp_finalize || PyFrame_Type.tp_finalize == NULL);
