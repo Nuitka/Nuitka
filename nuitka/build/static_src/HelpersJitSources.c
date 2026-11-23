@@ -15,15 +15,17 @@ void SET_UNCOMPILED_FUNCTION_SOURCE_DICT(PyThreadState *tstate, PyObject *name, 
         PyObject_GetAttrString((PyObject *)builtin_module, uncompiled_sources_dict_attribute_name);
 
     if (uncompiled_function_sources_dict == NULL) {
-        DROP_ERROR_OCCURRED(tstate);
+        CLEAR_ERROR_OCCURRED(tstate);
 
         uncompiled_function_sources_dict = MAKE_DICT_EMPTY(tstate);
 
-        PyObject_SetAttrString((PyObject *)builtin_module, uncompiled_sources_dict_attribute_name,
-                               uncompiled_function_sources_dict);
+        NUITKA_MAY_BE_UNUSED int res = PyObject_SetAttrString(
+            (PyObject *)builtin_module, uncompiled_sources_dict_attribute_name, uncompiled_function_sources_dict);
+        assert(res != -1);
     }
 
     DICT_SET_ITEM_INFALLIBLE(tstate, uncompiled_function_sources_dict, name, source);
+    Py_DECREF(uncompiled_function_sources_dict);
 }
 
 #endif
