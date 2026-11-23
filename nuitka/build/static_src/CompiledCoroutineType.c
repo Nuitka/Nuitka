@@ -177,7 +177,7 @@ static int Nuitka_Coroutine_set_frame(PyObject *self, PyObject *value, void *dat
 
     PyThreadState *tstate = PyThreadState_GET();
 
-    SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_RuntimeError, "gi_frame is not writable in Nuitka");
+    SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_RuntimeError, "cr_frame is not writable in Nuitka");
     return -1;
 }
 
