@@ -1287,16 +1287,12 @@
       no-auto-follow:
         'distributed': 'ignore'
 
-- module-name: 'dask.dataframe' # checksum: 54d2aebf
+- module-name: 'dask.dataframe' # checksum: 285671ed
   anti-bloat:
     - description: 'remove pytest testing framework'
       replacements_plain:
         'from dask.dataframe._testing import test_dataframe': 'test_dataframe = None'
       when: 'not use_pytest'
-
-  implicit-imports:
-    - depends:
-        - 'pyarrow._*'
 
 - module-name: 'dask.dataframe._compat' # checksum: 33e9840c
   anti-bloat:
