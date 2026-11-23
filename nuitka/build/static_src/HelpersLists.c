@@ -425,26 +425,42 @@ static bool _LIST_EXTEND_FROM_ITERABLE_LOCK_HELD(PyThreadState *tstate, PyListOb
     }
     PyObject *(*iternext)(PyObject *) = *Py_TYPE(iter)->tp_iternext;
 
-#if PYTHON_VERSION >= 0x300
+#if PYTHON_VERSION < 0x300
+    // Python 2 only offers the private length hint API, and its list extension
+    // uses it as well.
+    src_size = _PyObject_LengthHint(other, 8);
+
+    // Python 2 length hints may return -1 without setting an exception, where
+    // CPython then raises a 'SystemError' at the call site.
+    bool length_hint_failed = src_size == -1;
+#else
     src_size = PyObject_LengthHint(other, 8);
 
-    if (src_size < 0) {
+    bool length_hint_failed = src_size < 0;
+#endif
+
+    if (length_hint_failed) {
+        if (unlikely(!HAS_ERROR_OCCURRED(tstate))) {
+            SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_SystemError, "NULL result without error from call");
+        }
+
         Py_DECREF(iter);
         return false;
     }
 
-    Py_ssize_t list_size = PyList_GET_SIZE(list);
+    if (src_size > 0) {
+        Py_ssize_t list_size = PyList_GET_SIZE(list);
 
-    if (list_size <= PY_SSIZE_T_MAX - src_size) {
-        if (_LIST_RESIZE(list, list_size + src_size) == false) {
-            Py_DECREF(iter);
-            return false;
+        if (list_size <= PY_SSIZE_T_MAX - src_size) {
+            if (_LIST_RESIZE(list, list_size + src_size) == false) {
+                Py_DECREF(iter);
+                return false;
+            }
+
+            // Keep Py_SIZE valid until items are actually stored.
+            Py_SET_SIZE(list, list_size);
         }
-
-        // Keep Py_SIZE valid until items are actually stored.
-        Py_SET_SIZE(list, list_size);
     }
-#endif
 
     for (;;) {
         PyObject *item = iternext(iter);
