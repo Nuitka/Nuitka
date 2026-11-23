@@ -41,6 +41,7 @@ from .InlineCopies import importFromInlineCopy
 from .ThreadedExecutor import RLock, getThreadIdent
 from .Utils import (
     decoratorRetries,
+    isCaseInsensitiveOS,
     isLinux,
     isMacOS,
     isWin32OrPosixWindows,
@@ -128,6 +129,18 @@ def withTemporaryDirectory(
         )
 
 
+def _normalizePathCase(path):
+    """Normalize path casing for comparisons on case insensitive file systems."""
+    path = os.path.normcase(path)
+
+    # 'os.path.normcase' is a no-op on macOS and MSYS2 POSIX Python, despite
+    # their file systems being case insensitive.
+    if isCaseInsensitiveOS():
+        path = path.lower()
+
+    return path
+
+
 def areSamePaths(path1, path2):
     """Decide if two paths the same.
 
@@ -165,8 +178,8 @@ def areSamePaths(path1, path2):
         path1 = getExternalUsePath(path1)
         path2 = getExternalUsePath(path2)
 
-    path1 = os.path.normcase(path1)
-    path2 = os.path.normcase(path2)
+    path1 = _normalizePathCase(path1)
+    path2 = _normalizePathCase(path2)
 
     return path1 == path2
 
@@ -185,7 +198,7 @@ def isCaseInsensitiveFileSystem(path):
     Returns:
         bool: True if the file system is case insensitive.
     """
-    if isMacOS() or isWin32OrPosixWindows():
+    if isCaseInsensitiveOS():
         return True
 
     file_descriptor, filename = tempfile.mkstemp(prefix=".nuitka_case_check_", dir=path)
@@ -1749,6 +1762,13 @@ def getWindowsDrive(path):
     return os.path.normcase(drive)
 
 
+def _isPathBelow(path, filename):
+    path = _normalizePathCase(path)
+    filename = _normalizePathCase(filename)
+
+    return os.path.relpath(filename, path).split(os.path.sep, 1)[0] != ".."
+
+
 def isFilenameBelowPath(path, filename, consider_short=True):
     """Is a filename inside of a given directory path.
 
@@ -1784,7 +1804,7 @@ def isFilenameBelowPath(path, filename, consider_short=True):
         if getWindowsDrive(path) != getWindowsDrive(filename):
             return False
 
-    result = os.path.relpath(filename, path).split(os.path.sep, 1)[0] != ".."
+    result = _isPathBelow(path, filename)
 
     if (
         not result
@@ -1798,7 +1818,7 @@ def isFilenameBelowPath(path, filename, consider_short=True):
         if isWin32Windows() and getWindowsDrive(path) != getWindowsDrive(filename):
             return False
 
-        result = os.path.relpath(filename, path).split(os.path.sep, 1)[0] != ".."
+        result = _isPathBelow(path, filename)
 
     return result
 

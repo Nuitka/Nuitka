@@ -71,8 +71,8 @@ from nuitka.utils.SharedLibraries import (
 )
 from nuitka.utils.Utils import (
     getLaunchingNuitkaProcessEnvironmentValue,
+    isCaseInsensitiveOS,
     isMacOS,
-    isWin32OrPosixWindows,
     withNoDeprecationWarning,
 )
 from nuitka.utils.Zipfiles import getZipFile
@@ -816,7 +816,7 @@ def findModule(module_name, parent_package, level, logger):
 
 
 # Some platforms are case insensitive.
-case_sensitive = not isMacOS() and not isWin32OrPosixWindows()
+_case_sensitive = not isCaseInsensitiveOS()
 
 ImportScanFinding = collections.namedtuple(
     "ImportScanFinding",
@@ -1025,7 +1025,7 @@ def _pickBestModuleScanCandidate(candidates):
     candidates = _sortModuleScanCandidates(candidates)
 
     # On case sensitive systems, no resolution needed.
-    if case_sensitive:
+    if _case_sensitive:
         return candidates[0]
 
     for candidate in candidates:

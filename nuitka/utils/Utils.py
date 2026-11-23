@@ -287,6 +287,11 @@ def isMacOS():
     return getOS() == "Darwin"
 
 
+def isCaseInsensitiveOS():
+    """Check if the OS uses case insensitive file names by default."""
+    return isMacOS() or isWin32OrPosixWindows()
+
+
 def isAIX():
     """The AIX platform."""
     return getOS() == "AIX"
