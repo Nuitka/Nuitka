@@ -50,6 +50,199 @@ Py_ssize_t Nuitka_PyObject_Size(PyObject *sequence) {
     return Nuitka_PyMapping_Size(sequence);
 }
 
+#if PYTHON_VERSION >= 0x270 && PYTHON_VERSION < 0x300
+// Python 2.7's "PyInt_AsSsize_t" falls back to "__int__" for numbers that are
+// neither "int" nor "long", with platform specific handling in CPython.
+static Py_ssize_t _CONVERT_NUMBER_TO_SSIZE_T(PyThreadState *tstate, PyObject *value) {
+    CHECK_OBJECT(value);
+
+    if (PyInt_Check(value)) {
+        return (Py_ssize_t)PyInt_AS_LONG(value);
+    }
+
+    if (PyLong_Check(value)) {
+        return Nuitka_PyLong_AsSsize_t(tstate, value);
+    }
+
+    PyNumberMethods *number_methods = Py_TYPE(value)->tp_as_number;
+    PyObject *int_value;
+
+#if SIZEOF_SIZE_T == SIZEOF_LONG
+    if (number_methods == NULL || number_methods->nb_int == NULL) {
+        SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_TypeError, "an integer is required");
+        return -1;
+    }
+
+    int_value = (*number_methods->nb_int)(value);
+#else
+    if (number_methods != NULL && number_methods->nb_long != NULL) {
+        int_value = (*number_methods->nb_long)(value);
+    } else if (number_methods != NULL && number_methods->nb_int != NULL) {
+        int_value = (*number_methods->nb_int)(value);
+    } else {
+        SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_TypeError, "an integer is required");
+        return -1;
+    }
+#endif
+
+    if (int_value == NULL) {
+        return -1;
+    }
+
+    Py_ssize_t result;
+
+    if (PyInt_Check(int_value)) {
+        result = (Py_ssize_t)PyInt_AS_LONG(int_value);
+    } else if (PyLong_Check(int_value)) {
+        result = Nuitka_PyLong_AsSsize_t(tstate, int_value);
+    } else {
+        SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_TypeError, "__int__ method should return an integer");
+        result = -1;
+    }
+
+    Py_DECREF(int_value);
+
+    return result;
+}
+#endif
+
+static bool checkAndClearLengthHintError(PyThreadState *tstate) {
+#if PYTHON_VERSION < 0x300
+    return CHECK_AND_CLEAR_TYPE_ERROR_OCCURRED(tstate) || CHECK_AND_CLEAR_ATTRIBUTE_ERROR_OCCURRED(tstate);
+#else
+    return CHECK_AND_CLEAR_TYPE_ERROR_OCCURRED(tstate);
+#endif
+}
+
+// CPython's length hint API, matching "PyObject_LengthHint" from Python 3.4
+// onwards and "_PyObject_LengthHint" before that, but implemented as Nuitka
+// helper code instead of a call into the Python DLL.
+Py_ssize_t Nuitka_PyObject_LengthHint(PyObject *sequence, Py_ssize_t default_value) {
+    CHECK_OBJECT(sequence);
+
+    PyThreadState *tstate = PyThreadState_GET();
+
+    Py_ssize_t result = Nuitka_PyObject_Size(sequence);
+
+    if (result >= 0) {
+        return result;
+    }
+
+    if (unlikely(HAS_ERROR_OCCURRED(tstate))) {
+        if (!checkAndClearLengthHintError(tstate)) {
+            return -1;
+        }
+    }
+#if PYTHON_VERSION >= 0x300
+    else {
+        // CPython 3 does not try "__length_hint__" when "PyObject_Length" fails
+        // without setting an exception.
+        return -1;
+    }
+#endif
+
+    PyObject *hint_method;
+
+#if PYTHON_VERSION < 0x270
+    // Python 2.6 looks up "__length_hint__" like any other attribute.
+    hint_method = LOOKUP_ATTRIBUTE(tstate, sequence, const_str_plain___length_hint__);
+
+    if (hint_method == NULL) {
+        if (checkAndClearLengthHintError(tstate)) {
+            return default_value;
+        }
+
+        return -1;
+    }
+#else
+#if PYTHON_VERSION < 0x300
+    // Python 2.7 does not use "__length_hint__" of old-style instances.
+    if (PyInstance_Check(sequence)) {
+        return default_value;
+    }
+#endif
+
+    // Python 2.7 and 3.x look up "__length_hint__" on the type only.
+    hint_method = LOOKUP_SPECIAL_NO_ERROR(sequence, const_str_plain___length_hint__);
+
+    if (hint_method == NULL) {
+        if (HAS_ERROR_OCCURRED(tstate)) {
+            return -1;
+        }
+
+        return default_value;
+    }
+#endif
+
+    PyObject *hint_value = CALL_FUNCTION_NO_ARGS(tstate, hint_method);
+    Py_DECREF(hint_method);
+
+    if (unlikely(hint_value == NULL)) {
+        if (checkAndClearLengthHintError(tstate)) {
+            return default_value;
+        }
+
+        return -1;
+    }
+
+#if PYTHON_VERSION < 0x270
+    if (!PyLong_Check(hint_value)) {
+        Py_DECREF(hint_value);
+        return default_value;
+    }
+
+    result = Nuitka_PyLong_AsSsize_t(tstate, hint_value);
+    Py_DECREF(hint_value);
+
+    return result;
+#elif PYTHON_VERSION < 0x300
+    if (PyInt_Check(hint_value)) {
+        result = (Py_ssize_t)PyInt_AS_LONG(hint_value);
+    } else if (PyLong_Check(hint_value)) {
+        result = Nuitka_PyLong_AsSsize_t(tstate, hint_value);
+    } else {
+        PyNumberMethods *number_methods = Py_TYPE(hint_value)->tp_as_number;
+
+        if (number_methods != NULL && (number_methods->nb_int != NULL || number_methods->nb_float != NULL)) {
+            result = _CONVERT_NUMBER_TO_SSIZE_T(tstate, hint_value);
+        } else {
+            result = default_value;
+        }
+    }
+
+    Py_DECREF(hint_value);
+
+    return result;
+#else
+    if (hint_value == Py_NotImplemented) {
+        Py_DECREF(hint_value);
+        return default_value;
+    }
+
+    if (unlikely(!PyLong_Check(hint_value))) {
+        SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("__length_hint__ must be an integer, not %.100s", hint_value);
+        Py_DECREF(hint_value);
+
+        return -1;
+    }
+
+    result = Nuitka_PyLong_AsSsize_t(tstate, hint_value);
+    Py_DECREF(hint_value);
+
+    if (unlikely(result < 0)) {
+        if (HAS_ERROR_OCCURRED(tstate)) {
+            return -1;
+        }
+
+        SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_ValueError, "__length_hint__() should return >= 0");
+
+        return -1;
+    }
+
+    return result;
+#endif
+}
+
 PyObject *Nuitka_Number_Index(PyObject *item) {
     CHECK_OBJECT(item);
 

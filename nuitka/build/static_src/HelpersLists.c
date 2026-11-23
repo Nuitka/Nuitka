@@ -425,17 +425,13 @@ static bool _LIST_EXTEND_FROM_ITERABLE_LOCK_HELD(PyThreadState *tstate, PyListOb
     }
     PyObject *(*iternext)(PyObject *) = *Py_TYPE(iter)->tp_iternext;
 
-#if PYTHON_VERSION < 0x300
-    // Python 2 only offers the private length hint API, and its list extension
-    // uses it as well.
-    src_size = _PyObject_LengthHint(other, 8);
+    src_size = Nuitka_PyObject_LengthHint(other, 8);
 
+#if PYTHON_VERSION < 0x300
     // Python 2 length hints may return -1 without setting an exception, where
     // CPython then raises a 'SystemError' at the call site.
     bool length_hint_failed = src_size == -1;
 #else
-    src_size = PyObject_LengthHint(other, 8);
-
     bool length_hint_failed = src_size < 0;
 #endif
 
