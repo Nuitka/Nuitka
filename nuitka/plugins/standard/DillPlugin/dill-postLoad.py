@@ -123,7 +123,7 @@ else:
                     # In the case that the globals are copied, we need to ensure that
                     # the globals dictionary is updated when all objects in the
                     # dictionary are already created.
-                    glob_ids = {id(g) for g in globs_copy.values()}
+                    glob_ids = set(id(g) for g in globs_copy.values())
                     for stack_element in _postproc:
                         if stack_element in glob_ids:
                             _postproc[stack_element].append(
