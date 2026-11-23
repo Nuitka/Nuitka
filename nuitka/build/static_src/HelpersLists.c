@@ -1227,6 +1227,8 @@ PyObject *MAKE_LIST(PyThreadState *tstate, PyObject *iterable) {
     Py_INCREF(iterable);
 
 #if PYTHON_VERSION >= 0x300
+    // CPython's list constructor preallocates from the length, and their test suite checks
+    // the resulting 'sys.getsizeof' values.
     if (Nuitka_PyObject_HasLen(iterable)) {
         Py_ssize_t iter_len = Nuitka_PyObject_Size(iterable);
 
