@@ -1605,10 +1605,10 @@ def _extractLambdaKwDefaultSources(kw_defaults, expression):
     if kw_defaults.isCompileTimeConstant():
         kw_defaults_value = kw_defaults.getCompileTimeConstant()
         if type(kw_defaults_value) is dict:
-            return {
-                key: _formatConstantElement(value, expression)
+            return dict(
+                (key, _formatConstantElement(value, expression))
                 for key, value in kw_defaults_value.items()
-            }
+            )
 
     raise PythonSourceGenerationError(
         "Unsupported lambda kw_defaults node for source generation: %s"
