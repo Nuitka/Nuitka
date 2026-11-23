@@ -719,6 +719,36 @@ PyObject *LOOKUP_SPECIAL(PyThreadState *tstate, PyObject *source, PyObject *attr
     return NULL;
 }
 
+#if PYTHON_VERSION >= 0x270
+PyObject *LOOKUP_SPECIAL_NO_ERROR(PyObject *source, PyObject *attr_name) {
+    CHECK_OBJECT(source);
+    CHECK_OBJECT(attr_name);
+
+    PyTypeObject *type = Py_TYPE(source);
+
+    if (unlikely(type->tp_dict == NULL)) {
+        if (unlikely(PyType_Ready(type) < 0)) {
+            return NULL;
+        }
+    }
+
+    PyObject *descr = Nuitka_TypeLookup(type, attr_name);
+
+    if (descr == NULL) {
+        return NULL;
+    }
+
+    descrgetfunc func = Py_TYPE(descr)->tp_descr_get;
+
+    if (func == NULL) {
+        Py_INCREF(descr);
+        return descr;
+    }
+
+    return func(descr, source, (PyObject *)type);
+}
+#endif
+
 PyObject *LOOKUP_MODULE_VALUE(PyDictObject *module_dict, PyObject *var_name) {
     PyObject *result = GET_STRING_DICT_VALUE(module_dict, (Nuitka_StringObject *)var_name);
 

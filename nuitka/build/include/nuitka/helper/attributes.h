@@ -30,6 +30,12 @@ extern void SET_ATTRIBUTE_ERROR_CONTEXT(PyThreadState *tstate, PyObject *source,
 
 extern PyObject *LOOKUP_SPECIAL(PyThreadState *tstate, PyObject *source, PyObject *attr_name);
 
+#if PYTHON_VERSION >= 0x270
+// Like "LOOKUP_SPECIAL", but returns NULL without an exception for a missing
+// attribute.
+extern PyObject *LOOKUP_SPECIAL_NO_ERROR(PyObject *source, PyObject *attr_name);
+#endif
+
 #if PYTHON_VERSION < 0x300
 extern PyObject *FIND_ATTRIBUTE_IN_CLASS(PyClassObject *class_object, PyObject *attr_name);
 #endif

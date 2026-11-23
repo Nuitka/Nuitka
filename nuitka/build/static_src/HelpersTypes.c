@@ -86,36 +86,6 @@ bool Nuitka_Type_IsSubtype(PyTypeObject *a, PyTypeObject *b) {
     }
 }
 
-#if PYTHON_VERSION >= 0x270
-static PyObject *lookupSpecialNoError(PyObject *source, PyObject *attr_name) {
-    CHECK_OBJECT(source);
-    CHECK_OBJECT(attr_name);
-
-    PyTypeObject *type = Py_TYPE(source);
-
-    if (unlikely(type->tp_dict == NULL)) {
-        if (unlikely(PyType_Ready(type) < 0)) {
-            return NULL;
-        }
-    }
-
-    PyObject *descr = Nuitka_TypeLookup(type, attr_name);
-
-    if (descr == NULL) {
-        return NULL;
-    }
-
-    descrgetfunc func = Py_TYPE(descr)->tp_descr_get;
-
-    if (func == NULL) {
-        Py_INCREF(descr);
-        return descr;
-    } else {
-        return func(descr, source, (PyObject *)type);
-    }
-}
-#endif
-
 static PyObject *_Nuitka_abstract_get_bases(PyThreadState *tstate, PyObject *cls) {
     PyObject *bases = LOOKUP_ATTRIBUTE(tstate, cls, const_str_plain___bases__);
 
@@ -363,7 +333,7 @@ int Nuitka_Object_IsInstance(PyThreadState *tstate, PyObject *instance, PyObject
     }
 
     if (!(PyClass_Check(cls) || PyInstance_Check(cls))) {
-        PyObject *checker = lookupSpecialNoError(cls, const_str_plain___instancecheck__);
+        PyObject *checker = LOOKUP_SPECIAL_NO_ERROR(cls, const_str_plain___instancecheck__);
 
         if (checker != NULL) {
             int ok = -1;
@@ -526,7 +496,7 @@ int Nuitka_Object_IsInstance(PyThreadState *tstate, PyObject *instance, PyObject
         return r;
     }
 
-    PyObject *checker = lookupSpecialNoError(cls, const_str_plain___instancecheck__);
+    PyObject *checker = LOOKUP_SPECIAL_NO_ERROR(cls, const_str_plain___instancecheck__);
 
     if (checker != NULL) {
         int ok = -1;
@@ -588,7 +558,7 @@ int Nuitka_Object_IsInstance(PyThreadState *tstate, PyObject *instance, PyObject
         return r;
     }
 
-    PyObject *checker = lookupSpecialNoError(cls, const_str_plain___instancecheck__);
+    PyObject *checker = LOOKUP_SPECIAL_NO_ERROR(cls, const_str_plain___instancecheck__);
 
     if (checker != NULL) {
         int ok = -1;
@@ -701,7 +671,7 @@ int Nuitka_Object_IsInstance(PyThreadState *tstate, PyObject *instance, PyObject
         return r;
     }
 
-    PyObject *checker = lookupSpecialNoError(cls, const_str_plain___instancecheck__);
+    PyObject *checker = LOOKUP_SPECIAL_NO_ERROR(cls, const_str_plain___instancecheck__);
 
     if (checker != NULL) {
         int ok = -1;
@@ -859,10 +829,10 @@ int Nuitka_Object_IsSubclass(PyThreadState *tstate, PyObject *derived, PyObject 
     PyObject *checker = NULL;
 
     if (!(PyClass_Check(cls) || PyInstance_Check(cls))) {
-        checker = lookupSpecialNoError(cls, const_str_plain___subclasscheck__);
+        checker = LOOKUP_SPECIAL_NO_ERROR(cls, const_str_plain___subclasscheck__);
     }
 #else
-    PyObject *checker = lookupSpecialNoError(cls, const_str_plain___subclasscheck__);
+    PyObject *checker = LOOKUP_SPECIAL_NO_ERROR(cls, const_str_plain___subclasscheck__);
 #endif
 
     if (checker != NULL) {
