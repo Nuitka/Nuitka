@@ -7,6 +7,8 @@
 #
 # pylint: disable=redefined-outer-name,used-before-assignment
 
+from typing import ParamSpec, TypeAliasType, TypeVar, TypeVarTuple
+
 
 def someGenericFunction[T]():
     print("hello", T)
@@ -317,6 +319,27 @@ Undefined = "defined"
 print("Type variable constraints after definition")
 for type_param in TypeVarConstraintsLazyEvaluation.__type_params__:
     print(type_param.__bound__, type_param.__constraints__)
+
+print("Module attribution of typing objects")
+
+print("TypeVar:", TypeVar("T").__module__)
+print("ParamSpec:", ParamSpec("P").__module__)
+print("TypeVarTuple:", TypeVarTuple("Ts").__module__)
+print("TypeAliasType:", TypeAliasType("Alias", int).__module__)
+
+
+def makeTypeAliasType():
+    return TypeAliasType("FunctionAlias", int)
+
+
+print("Function alias:", makeTypeAliasType().__module__)
+
+
+class TypeAliasTypeContainer:
+    Alias = TypeAliasType("ClassAlias", int)
+
+
+print("Class alias:", TypeAliasTypeContainer.Alias.__module__)
 
 #     Python tests originally created or extracted from other peoples work. The
 #     parts were too small to be protected.

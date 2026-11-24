@@ -228,16 +228,16 @@ static PyObject *_sys_getframemodulename_replacement(PyObject *self, PyObject *a
 static PyMethodDef _method_def_sys_getframemodulename_replacement = {
     "_getframemodulename", CAST_METHOD_KW(_sys_getframemodulename_replacement), METH_VARARGS | METH_KEYWORDS, NULL};
 
-// The "_typing" types derive the module of their user from the current frame
-// function object, which compiled frames do not have, so we fill it in from
-// the compiled frame ourselves.
+// CPython 3.12 through 3.14 "_typing" types take the module from the function
+// object of the calling frame, which compiled frames lack, and
+// "TypeAliasType.__module__" is read-only until Python 3.15.
 #define MAX_TYPING_TYPES 4
 
 static PyTypeObject *typing_types[MAX_TYPING_TYPES];
 static newfunc typing_types_original_new[MAX_TYPING_TYPES];
 static int typing_types_count = 0;
 
-static PyObject *getCompiledCallerModuleName(PyThreadState *tstate) {
+static _PyInterpreterFrame *getCompiledCallerFrame(PyThreadState *tstate) {
     _PyInterpreterFrame *frame = CURRENT_TSTATE_INTERPRETER_FRAME(tstate);
 
     while ((frame != NULL) && Nuitka_FrameIsIncomplete(frame)) {
@@ -245,7 +245,7 @@ static PyObject *getCompiledCallerModuleName(PyThreadState *tstate) {
     }
 
     if ((frame != NULL) && Nuitka_FrameIsCompiled(frame)) {
-        return DICT_GET_ITEM1(tstate, frame->f_globals, const_str_plain___name__);
+        return frame;
     }
 
     return NULL;
@@ -263,22 +263,41 @@ static PyObject *Nuitka_typing_type_new(PyTypeObject *type, PyObject *args, PyOb
 
     assert(original_new != NULL);
 
-    PyObject *result = original_new(type, args, kwds);
+    PyThreadState *tstate = PyThreadState_GET();
+    _PyInterpreterFrame *caller_frame = getCompiledCallerFrame(tstate);
 
-    if (result != NULL) {
-        PyThreadState *tstate = PyThreadState_GET();
+    PyObject *caller_function = NULL;
 
-        PyObject *module_name = getCompiledCallerModuleName(tstate);
+    if (caller_frame != NULL) {
+#if PYTHON_VERSION >= 0x3e0
+        if (PyStackRef_IsNull(caller_frame->f_funcobj)) {
+#else
+        if (caller_frame->f_funcobj == NULL) {
+#endif
+            caller_function = PyFunction_New((PyObject *)Nuitka_InterpreterFrame_GetCodeObject(caller_frame),
+                                             caller_frame->f_globals);
 
-        if (module_name != NULL) {
-            if (SET_ATTRIBUTE(tstate, result, const_str_plain___module__, module_name) == false) {
-                CLEAR_ERROR_OCCURRED(tstate);
+            if (unlikely(caller_function == NULL)) {
+                return NULL;
             }
 
-            Py_DECREF(module_name);
-        } else {
-            CLEAR_ERROR_OCCURRED(tstate);
+#if PYTHON_VERSION >= 0x3e0
+            caller_frame->f_funcobj = PyStackRef_FromPyObjectSteal(caller_function);
+#else
+            caller_frame->f_funcobj = caller_function;
+#endif
         }
+    }
+
+    PyObject *result = original_new(type, args, kwds);
+
+    if (caller_function != NULL) {
+#if PYTHON_VERSION >= 0x3e0
+        PyStackRef_CLEAR(caller_frame->f_funcobj);
+#else
+        caller_frame->f_funcobj = NULL;
+        Py_DECREF(caller_function);
+#endif
     }
 
     return result;
@@ -311,6 +330,7 @@ static void patchTypingModule(void) {
     patchTypingType("TypeVar");
     patchTypingType("ParamSpec");
     patchTypingType("TypeVarTuple");
+    patchTypingType("TypeAliasType");
 }
 
 #endif
