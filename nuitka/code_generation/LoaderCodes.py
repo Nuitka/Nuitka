@@ -191,12 +191,15 @@ def getModuleLoaderEntryCode(module):
     template_args["entry_name"] = getModuleEntryCodeName(module.getFullName())
     template_args["module_identifier"] = module_identifier
     template_args["module_loader_entry_body"] = ""
-    template_args.update(
-        _getModuleSetValueArgs(module=module, module_identifier=module_identifier)
+    module_set_value_args = _getModuleSetValueArgs(
+        module=module, module_identifier=module_identifier
     )
+    template_args["module_set_value_ref"] = module_set_value_args[
+        "module_set_value_ref"
+    ]
     template_args["module_importer_wrapper"] = template_module_compiled_importer % {
         "module_identifier": module_identifier,
-        "module_set_value_code": template_args["module_set_value_code"],
+        "module_set_value_code": module_set_value_args["module_set_value_code"],
         "is_top": 1 if module.isTopModule() else 0,
     }
     template_args["template"] = template_module_loader_entry
@@ -223,12 +226,15 @@ def getModuleMetaPathLoaderEntryCode(module, bytecode_accessor, entry_name):
     # modules, their code name is derived from the full name only.
     module_identifier = getModuleEntryIdentifier(module.getFullName())
     template_args["module_identifier"] = module_identifier
-    template_args.update(
-        _getModuleSetValueArgs(module=module, module_identifier=module_identifier)
+    module_set_value_args = _getModuleSetValueArgs(
+        module=module, module_identifier=module_identifier
     )
+    template_args["module_set_value_ref"] = module_set_value_args[
+        "module_set_value_ref"
+    ]
     template_args["module_state_decls"] = template_metapath_loader_module_state % {
         "module_identifier": module_identifier,
-        "module_set_value_code": template_args["module_set_value_code"],
+        "module_set_value_code": module_set_value_args["module_set_value_code"],
     }
 
     if module.isUncompiledPythonModule():
