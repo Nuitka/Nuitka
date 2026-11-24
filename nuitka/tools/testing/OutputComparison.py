@@ -37,6 +37,8 @@ traceback_re = re.compile(r'(F|f)ile "(.*?)", line (\?|\d+)')
 import_name_error_re = re.compile(
     r"""(cannot import name '\w+' from '.*?' )\((.*?)\)"""
 )
+warning_message_filename_re = re.compile(r"(filename : ')([A-Za-z]:\\.*?)(')")
+warning_message_truncation_re = re.compile(r"\[\d+ chars\]")
 tempfile_posix_re = re.compile(r"/tmp/tmp[a-z0-9_]*")
 tempfile_win_re = re.compile(r"([Tt]emp)[\\/]+[^'\\/]*")
 test_tmp_re = re.compile(r"(%40|@)test_\d+_tmp")
@@ -105,6 +107,17 @@ def import_name_error_re_callback(match):
     return r"%s( >> %s)" % (
         match.group(1),
         _getNormalizedFilename(match.group(2)),
+    )
+
+
+def warning_message_filename_re_callback(match):
+    # 'WarningMessage' reprs escape backslashes in the filename.
+    path = match.group(2).replace("\\\\", "\\")
+
+    return "%s%s%s" % (
+        match.group(1),
+        _getNormalizedFilename(path).replace("\\", "\\\\"),
+        match.group(3),
     )
 
 
@@ -275,6 +288,16 @@ def makeDiffable(output, ignore_warnings, syntax_errors):
         line = traceback_re.sub(traceback_re_callback, line)
 
         line = import_name_error_re.sub(import_name_error_re_callback, line)
+
+        if "WarningMessage" in line:
+            line = warning_message_filename_re.sub(
+                warning_message_filename_re_callback, line
+            )
+
+            # The truncation count of "unittest" reprs varies with the length
+            # of the file paths they contain, e.g. short paths that Nuitka
+            # binaries report on Windows.
+            line = warning_message_truncation_re.sub("[xxxxx chars]", line)
 
         # spell-checker: disable-next-line
         line = tempfile_posix_re.sub(r"/tmp/tmpxxxxxxx", line)
