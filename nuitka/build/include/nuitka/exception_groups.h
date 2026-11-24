@@ -13,6 +13,7 @@
 #include "nuitka/calling.h"
 #include "nuitka/defines.h"
 #include "nuitka/exceptions.h"
+#include "nuitka/helper/sequences.h"
 #include "nuitka/helper/tuples.h"
 #endif
 
@@ -287,7 +288,7 @@ static int _makeExceptionGroupSubset(PyThreadState *tstate, PyObject *orig, PyOb
             Py_DECREF(eg);
             return -1;
         }
-    } else if (PySequence_Check(notes)) {
+    } else if (Nuitka_PySequence_Check(notes)) {
         PyObject *notes_copy = PySequence_List(notes);
         Py_DECREF(notes);
 

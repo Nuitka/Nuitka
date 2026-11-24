@@ -34,7 +34,11 @@ extern void _initSlotIterNext(void);
 NUITKA_MAY_BE_UNUSED static bool IS_ITERABLE(PyObject *value) {
     CHECK_OBJECT(value);
 
-    return Py_TYPE(value)->tp_iter != NULL || PySequence_Check(value);
+    if (Py_TYPE(value)->tp_iter != NULL) {
+        return true;
+    }
+
+    return Nuitka_PySequence_Check(value) != 0;
 }
 #endif
 
@@ -89,7 +93,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *MAKE_ITERATOR_INFALLIBLE(PyObject *iterate
 
         return result;
     } else {
-        assert(PySequence_Check(iterated));
+        assert(Nuitka_PySequence_Check(iterated));
 
         seqiterobject *result = (seqiterobject *)Nuitka_GC_New(&PySeqIter_Type);
         assert(result);
@@ -134,7 +138,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *MAKE_ITERATOR(PyThreadState *tstate, PyObj
         } else {
             return result;
         }
-    } else if (PySequence_Check(iterated)) {
+    } else if (Nuitka_PySequence_Check(iterated)) {
         seqiterobject *result = (seqiterobject *)Nuitka_GC_New(&PySeqIter_Type);
         assert(result);
 
@@ -174,7 +178,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *MAKE_UNPACK_ITERATOR(PyObject *iterated) {
         } else {
             return result;
         }
-    } else if (PySequence_Check(iterated)) {
+    } else if (Nuitka_PySequence_Check(iterated)) {
         seqiterobject *result = (seqiterobject *)Nuitka_GC_New(&PySeqIter_Type);
         assert(result);
 

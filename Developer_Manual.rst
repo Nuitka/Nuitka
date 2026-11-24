@@ -2116,6 +2116,16 @@ call of the functions below is a hint that it should be replaced.
       -  Still the CPython function; a lower-overhead variant is
          planned.
 
+   -  -  ``PySequence_Check``
+
+      -  ``Nuitka_PySequence_Check``
+
+      -  ``helper/sequences.h``
+
+      -  Same result; handles Python 2 old-style instances and the
+         per-version dictionary exclusion, and uses the sequence slot
+         and type flags directly instead of the shared-library API call.
+
    -  -  ``PyObject_IsTrue``
       -  ``CHECK_IF_TRUE``, ``CHECK_IF_FALSE``
       -  ``helper/boolean.h``

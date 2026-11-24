@@ -3872,7 +3872,7 @@ static inline bool _INPLACE_OPERATION_ADD_TUPLE_OBJECT(PyObject **operand1, PyOb
     assert(PyTuple_CheckExact(*operand1));
     CHECK_OBJECT(operand2);
 
-    if (1 && (PyTuple_CheckExact(operand2) || PySequence_Check(operand2)) &&
+    if (1 && (PyTuple_CheckExact(operand2) || Nuitka_PySequence_Check(operand2)) &&
         (Py_TYPE(operand2)->tp_as_number == NULL || Py_TYPE(operand2)->tp_as_number->nb_add == NULL)) {
         PyObject *result = PySequence_InPlaceConcat(*operand1, operand2);
 
@@ -4248,7 +4248,7 @@ static inline bool _INPLACE_OPERATION_ADD_LIST_OBJECT(PyObject **operand1, PyObj
         return LIST_EXTEND_FROM_LIST(*operand1, operand2);
     }
 
-    if (1 && PySequence_Check(operand2) &&
+    if (1 && Nuitka_PySequence_Check(operand2) &&
         (Py_TYPE(operand2)->tp_as_number == NULL || Py_TYPE(operand2)->tp_as_number->nb_add == NULL)) {
         PyObject *result = PySequence_InPlaceConcat(*operand1, operand2);
 

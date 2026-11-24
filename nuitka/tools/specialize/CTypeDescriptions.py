@@ -233,12 +233,12 @@ class TypeDescBase(getMetaClassBase("Type", require_slots=False)):
             return "0"
         elif self.type_name == "object":
             if right.type_name == "tuple":
-                return "(PyTuple_CheckExact(%s) || PySequence_Check(%s))" % (
+                return "(PyTuple_CheckExact(%s) || Nuitka_PySequence_Check(%s))" % (
                     operand,
                     operand,
                 )
             else:
-                return "PySequence_Check(%s)" % operand
+                return "Nuitka_PySequence_Check(%s)" % operand
         elif self.hasSlot("sq_item"):
             return "1"
         else:
