@@ -73,10 +73,13 @@
       bloat-mode-overrides:
         'unittest': 'allow'
 
-- module-name: 'accessible_output2' # checksum: 27cd20b7
-  data-files:
-    - dirs:
-        - 'lib'
+- module-name: 'accessible_output2' # checksum: 225d57e6
+  dlls:
+    - from_filenames:
+        relative_path: 'lib'
+        prefixes:
+          - ''
+      when: 'win32'
 
 - module-name: 'aenum' # checksum: 1241f0d1
   anti-bloat:
