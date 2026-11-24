@@ -497,44 +497,45 @@ static int HANDLE_PROGRAM_EXIT(PyThreadState *tstate) {
 #else
         PyObject *exception_value = tstate->current_exception;
 #endif
-        PyTypeObject *exception_type = Py_TYPE(exception_value);
-        char const *exception_name = exception_type->tp_name;
 
-        assert(HAS_ERROR_OCCURRED(tstate));
+        if (exception_value != NULL) {
+            PyTypeObject *exception_type = Py_TYPE(exception_value);
+            char const *exception_name = exception_type->tp_name;
 
-        if (unlikely(strcmp(exception_name, "DistributionNotFound") == 0)
+            if (unlikely(strcmp(exception_name, "DistributionNotFound") == 0)
 #if SYSFLAG_NO_SITE == 1 && !defined(_NUITKA_NO_DEPLOYMENT_SITE_BUILTINS)
-            || strcmp(exception_name, "NameError") == 0
+                || strcmp(exception_name, "NameError") == 0
 #endif
-        ) {
-            struct Nuitka_ExceptionPreservationItem saved_exception;
-            FETCH_ERROR_OCCURRED_STATE(tstate, &saved_exception);
+            ) {
+                struct Nuitka_ExceptionPreservationItem saved_exception;
+                FETCH_ERROR_OCCURRED_STATE(tstate, &saved_exception);
 
-            if (unlikely(strcmp(exception_name, "DistributionNotFound") == 0)) {
-                PyObject *exception_arg = PyUnicode_FromFormat("\
+                if (unlikely(strcmp(exception_name, "DistributionNotFound") == 0)) {
+                    PyObject *exception_arg = PyUnicode_FromFormat("\
 Nuitka: Distribution metadata not found, use --include-distribution-metadata to avoid '%R' \
 and for 3rd party packages doing it, please raise a Nuitka issue so we can make this be \
 included by default",
-                                                               saved_exception.exception_value);
+                                                                   saved_exception.exception_value);
 
-                CHECK_OBJECT(exception_arg);
-
-                raiseReplacementRuntimeError(tstate, &saved_exception, exception_arg);
-#if SYSFLAG_NO_SITE == 1 && !defined(_NUITKA_NO_DEPLOYMENT_SITE_BUILTINS)
-            } else {
-                bool global_name_error = false;
-                char const *missing_name =
-                    getNoSiteBuiltinNameFromException(tstate, saved_exception.exception_value, &global_name_error);
-
-                if (missing_name != NULL) {
-                    PyObject *exception_arg = makeNoSiteBuiltinNameErrorMessage(missing_name, global_name_error);
                     CHECK_OBJECT(exception_arg);
 
-                    raiseReplacementNameError(tstate, &saved_exception, exception_arg);
+                    raiseReplacementRuntimeError(tstate, &saved_exception, exception_arg);
+#if SYSFLAG_NO_SITE == 1 && !defined(_NUITKA_NO_DEPLOYMENT_SITE_BUILTINS)
                 } else {
-                    RESTORE_ERROR_OCCURRED_STATE(tstate, &saved_exception);
-                }
+                    bool global_name_error = false;
+                    char const *missing_name =
+                        getNoSiteBuiltinNameFromException(tstate, saved_exception.exception_value, &global_name_error);
+
+                    if (missing_name != NULL) {
+                        PyObject *exception_arg = makeNoSiteBuiltinNameErrorMessage(missing_name, global_name_error);
+                        CHECK_OBJECT(exception_arg);
+
+                        raiseReplacementNameError(tstate, &saved_exception, exception_arg);
+                    } else {
+                        RESTORE_ERROR_OCCURRED_STATE(tstate, &saved_exception);
+                    }
 #endif
+                }
             }
         }
 #endif
