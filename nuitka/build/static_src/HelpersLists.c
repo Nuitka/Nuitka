@@ -575,8 +575,7 @@ bool LIST_EXTEND_FOR_UNPACK(PyThreadState *tstate, PyObject *list, PyObject *oth
 
     assert(error != NULL);
 
-    if (EXCEPTION_MATCH_BOOL_SINGLE(tstate, error, PyExc_TypeError) &&
-        (Py_TYPE(other)->tp_iter == NULL && !PySequence_Check(other))) {
+    if (EXCEPTION_MATCH_BOOL_SINGLE(tstate, error, PyExc_TypeError) && !IS_ITERABLE(other)) {
         CLEAR_ERROR_OCCURRED(tstate);
         PyErr_Format(PyExc_TypeError, "Value after * must be an iterable, not %s", Py_TYPE(other)->tp_name);
     }

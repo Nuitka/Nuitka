@@ -392,6 +392,23 @@ def generateBuiltinNext2Code(to_name, expression, emit, context):
     )
 
 
+def generateIsIterableCode(to_name, expression, emit, context):
+    (value_name,) = generateChildExpressionsCode(
+        expression=expression, emit=emit, context=context
+    )
+    context.setCurrentSourceCodeReference(expression.getCompatibleSourceReference())
+
+    res_name = context.getBoolResName()
+
+    emit("%s = IS_ITERABLE(%s);" % (res_name, value_name))
+
+    getReleaseCode(release_name=value_name, emit=emit, context=context)
+
+    to_name.getCType().emitAssignmentCodeFromBoolCondition(
+        to_name=to_name, condition=res_name, emit=emit
+    )
+
+
 def generateBuiltinIter1Code(to_name, expression, emit, context):
     may_raise = expression.mayRaiseExceptionOperation()
 

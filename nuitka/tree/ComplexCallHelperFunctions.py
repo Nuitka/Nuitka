@@ -5,12 +5,12 @@
 
 One for each type of call."""
 
-from nuitka.nodes.AttributeNodes import (
-    ExpressionAttributeCheck,
-    makeExpressionAttributeLookup,
-)
+from nuitka.nodes.AttributeNodes import makeExpressionAttributeLookup
 from nuitka.nodes.BuiltinDictNodes import ExpressionBuiltinDict
-from nuitka.nodes.BuiltinIteratorNodes import ExpressionBuiltinIter1
+from nuitka.nodes.BuiltinIteratorNodes import (
+    ExpressionBuiltinIter1,
+    ExpressionIsIterable,
+)
 from nuitka.nodes.BuiltinNextNodes import ExpressionBuiltinNext1
 from nuitka.nodes.BuiltinRefNodes import (
     ExpressionBuiltinAnonymousRef,
@@ -22,10 +22,7 @@ from nuitka.nodes.ComparisonNodes import (
     ExpressionComparisonIn,
     ExpressionComparisonIsNot,
 )
-from nuitka.nodes.ConditionalNodes import (
-    ExpressionConditionalOr,
-    makeStatementConditional,
-)
+from nuitka.nodes.ConditionalNodes import makeStatementConditional
 from nuitka.nodes.ConstantRefNodes import makeConstantRefNode
 from nuitka.nodes.ContainerMakingNodes import makeExpressionMakeTuple
 from nuitka.nodes.DictionaryNodes import (
@@ -387,20 +384,9 @@ def _makeStarListArgumentToTupleStatement(
 ):
     if python_version >= 0x350:
         non_tuple_code = makeStatementConditional(
-            condition=ExpressionConditionalOr(
-                left=ExpressionAttributeCheck(
-                    expression=ExpressionVariableRef(
-                        variable=star_list_variable, source_ref=internal_source_ref
-                    ),
-                    attribute_name="__iter__",
-                    source_ref=internal_source_ref,
-                ),
-                right=ExpressionAttributeCheck(
-                    expression=ExpressionVariableRef(
-                        variable=star_list_variable, source_ref=internal_source_ref
-                    ),
-                    attribute_name="__getitem__",
-                    source_ref=internal_source_ref,
+            condition=ExpressionIsIterable(
+                value=ExpressionVariableRef(
+                    variable=star_list_variable, source_ref=internal_source_ref
                 ),
                 source_ref=internal_source_ref,
             ),

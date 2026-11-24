@@ -8,23 +8,30 @@ from nuitka.specs import BuiltinParameterSpecs
 
 from .ChildrenHavingMixins import (
     ChildHavingSequenceMixin,
+    ChildHavingValueMixin,
     ChildHavingValuesTupleMixin,
     ChildrenHavingSequenceStartMixin,
     ChildrenHavingStrictOptionalValuesTupleMixin,
 )
 from .ExpressionBases import ExpressionBase, ExpressionBuiltinSingleArgBase
 from .ExpressionBasesGenerated import ExpressionBuiltinIter2Base
-from .ExpressionShapeMixins import ExpressionListShapeExactMixin
+from .ExpressionShapeMixins import (
+    ExpressionBoolShapeExactMixin,
+    ExpressionListShapeExactMixin,
+)
 from .HardImportNodesGenerated import (
     ExpressionBuiltinsReversedCallBase,
     ExpressionBuiltinsSortedBefore3CallBase,
     ExpressionBuiltinsSortedSince3Call1Base,
     ExpressionBuiltinsSortedSince3CallBase,
 )
+from .NodeBases import SideEffectsFromChildrenMixin
 from .NodeMakingHelpers import (
+    makeConstantReplacementNode,
     makeRaiseExceptionReplacementStatement,
     makeRaiseTypeErrorExceptionReplacementFromTemplateAndValue,
     makeStatementOnlyNodesFromExpressions,
+    wrapExpressionWithNodeSideEffects,
     wrapExpressionWithSideEffects,
 )
 from .shapes.BuiltinTypeShapes import tshape_dict, tshape_list, tshape_tuple
@@ -410,6 +417,43 @@ class ExpressionBuiltinIterForUnpack(ExpressionBuiltinIter1):
             raise TypeError(
                 "cannot unpack non-iterable %s object" % (type(value).__name__)
             )
+
+
+class ExpressionIsIterable(
+    ExpressionBoolShapeExactMixin,
+    SideEffectsFromChildrenMixin,
+    ChildHavingValueMixin,
+    ExpressionBase,
+):
+    kind = "EXPRESSION_IS_ITERABLE"
+
+    named_children = ("value",)
+
+    def __init__(self, value, source_ref):
+        ChildHavingValueMixin.__init__(self, value=value)
+
+        ExpressionBase.__init__(self, source_ref)
+
+    def computeExpression(self, trace_collection):
+        value = self.subnode_value
+        has_iter_slot = value.getTypeShape().hasShapeSlotIter()
+
+        if has_iter_slot is None:
+            return self, None, None
+
+        result = makeConstantReplacementNode(
+            constant=has_iter_slot, node=self, user_provided=False
+        )
+        result = wrapExpressionWithNodeSideEffects(new_node=result, old_node=value)
+
+        return (
+            result,
+            "new_constant",
+            "Iterability of value pre-computed to '%s'." % has_iter_slot,
+        )
+
+    def mayRaiseException(self, exception_type):
+        return self.subnode_value.mayRaiseException(exception_type)
 
 
 class StatementSpecialUnpackCheckFromIterated(

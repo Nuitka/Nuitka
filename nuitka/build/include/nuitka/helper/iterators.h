@@ -26,6 +26,18 @@ extern iternextfunc default_iternext;
 extern void _initSlotIterNext(void);
 #endif
 
+#if PYTHON_VERSION >= 0x350
+// Whether the object has the slots needed for iteration, which is what
+// CPython uses to decide between the generic "not iterable" error and
+// errors raised by iteration itself. This inspects type slots only, so it
+// does not invoke user code and is not affected by "__getattribute__".
+NUITKA_MAY_BE_UNUSED static bool IS_ITERABLE(PyObject *value) {
+    CHECK_OBJECT(value);
+
+    return Py_TYPE(value)->tp_iter != NULL || PySequence_Check(value);
+}
+#endif
+
 // This is like "PyIter_Check" but without bugs due to shared library pointers.
 NUITKA_MAY_BE_UNUSED static inline bool HAS_ITERNEXT(PyObject *value) {
 #if PYTHON_VERSION < 0x300
