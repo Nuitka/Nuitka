@@ -484,7 +484,7 @@ class CTypePyObjectPtrPtr(CPythonPyObjectPtrBase):
     @classmethod
     def emitAssignmentCodeFromBoolCondition(cls, to_name, condition, emit):
         emit(
-            "*%(to_name)s = (%(condition)s) ? Py_True : Py_False;"
+            "Py_XSETREF(*%(to_name)s, Py_NewRef_IMMORTAL((%(condition)s) ? Py_True : Py_False));"
             % {"to_name": to_name, "condition": condition}
         )
 
@@ -567,10 +567,12 @@ class CTypeCellObject(CTypeBase):
 
     @classmethod
     def emitAssignmentCodeFromBoolCondition(cls, to_name, condition, emit):
-        emit(
-            "%(to_name)s->ob_ref = (%(condition)s) ? Py_True : Py_False;"
-            % {"to_name": to_name, "condition": condition}
-        )
+        emit("""\
+{
+    PyObject *old = Nuitka_Cell_GET(%(to_name)s);
+    Nuitka_Cell_SET(%(to_name)s, Py_NewRef_IMMORTAL((%(condition)s) ? Py_True : Py_False));
+    Py_XDECREF(old);
+}""" % {"to_name": to_name, "condition": condition})
 
     @classmethod
     def getDeleteObjectCode(
@@ -671,10 +673,12 @@ class CTypePyCellObject(CTypeCellObject):
 
     @classmethod
     def emitAssignmentCodeFromBoolCondition(cls, to_name, condition, emit):
-        emit(
-            "PyCell_SET((PyObject *)%(to_name)s, (%(condition)s) ? Py_True : Py_False);"
-            % {"to_name": to_name, "condition": condition}
-        )
+        emit("""\
+{
+    PyObject *old = PyCell_GET((PyObject *)%(to_name)s);
+    PyCell_SET((PyObject *)%(to_name)s, Py_NewRef_IMMORTAL((%(condition)s) ? Py_True : Py_False));
+    Py_XDECREF(old);
+}""" % {"to_name": to_name, "condition": condition})
 
     @classmethod
     def getDeleteObjectCode(

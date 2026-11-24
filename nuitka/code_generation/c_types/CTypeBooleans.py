@@ -3,6 +3,8 @@
 
 """CType classes for C bool, this cannot represent unassigned, nor indicate exception."""
 
+from nuitka.code_generation.ErrorCodes import getReleaseCode
+
 from .CTypeBases import CTypeBase, CTypeNotReferenceCountedMixin
 
 
@@ -32,6 +34,8 @@ class CTypeBool(CTypeNotReferenceCountedMixin, CTypeBase):
                     value_name.getCType().getTruthCheckCode(value_name=value_name),
                 )
             )
+
+            getReleaseCode(value_name, emit, context)
 
     @classmethod
     def emitAssignmentCodeFromConstant(

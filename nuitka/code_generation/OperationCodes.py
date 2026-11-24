@@ -217,7 +217,9 @@ def _getBinaryOperationCode(
         # operation, protecting it here would conflict with that ownership.
         context.unregisterBorrowedValue(left_name)
 
-        if inplace_owned_left and not context.needsCleanup(left_name):
+        if context.needsCleanup(left_name):
+            inplace_owned_left = True
+        elif inplace_owned_left:
             # The right value overwrites the variable, so the operation needs
             # its own reference to the left value.
             getTakeReferenceCode(left_name, emit)
@@ -232,15 +234,18 @@ def _getBinaryOperationCode(
 
         res_name = context.getBoolResName()
 
-        if (
+        inplace_module_var = (
             not inplace_owned_left
             and left.isExpressionVariableRef()
             and left.getVariable().isModuleVariable()
-        ):
+        )
+
+        if inplace_module_var:
             emit(
                 "%s = %s = Py_NewRef(%s);"
                 % (context.getInplaceLeftName(), left_name, left_name)
             )
+            context.addCleanupTempName(left_name)
 
         if (
             not left.isExpressionVariableRefOrTempVariableRef()
@@ -253,7 +258,9 @@ def _getBinaryOperationCode(
         getErrorExitBoolCode(
             condition="%s == false" % res_name,
             release_names=(
-                (right_name,) if inplace_owned_left else (left_name, right_name)
+                (right_name,)
+                if (inplace_owned_left or inplace_module_var)
+                else (left_name, right_name)
             ),
             needs_check=needs_check,
             emit=emit,
@@ -265,6 +272,8 @@ def _getBinaryOperationCode(
         if inplace_owned_left:
             context.removeCleanupTempName(left_name)
             context.addCleanupTempName(to_name)
+        elif inplace_module_var:
+            context.removeCleanupTempName(left_name)
         elif not left.isExpressionVariableRefOrTempVariableRef():
             context.addCleanupTempName(to_name)
     else:

@@ -546,6 +546,12 @@ static inline void _Nuitka_Py_XDECREF(PyObject *ob) {
 #define Py_DECREF_IMMORTAL(value)
 #endif
 
+NUITKA_MAY_BE_UNUSED static inline PyObject *_Py_NewRef_Immortal(PyObject *value) {
+    Py_INCREF_IMMORTAL(value);
+    return value;
+}
+#define Py_NewRef_IMMORTAL(value) _Py_NewRef_Immortal((PyObject *)(value))
+
 // Macro introduced with Python3.9 or higher, make it generally available.
 #ifndef Py_SET_TYPE
 static inline void _Py_SET_TYPE(PyObject *ob, PyTypeObject *type) { ob->ob_type = type; }
