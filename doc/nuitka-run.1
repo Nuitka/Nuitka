@@ -888,6 +888,9 @@ Obfuscate source line numbers in the generated code. In 'original' mode, line nu
 .TP
 \fB\-\-private\-import\-patterns\fR=\fI\,PATTERN\/\fR
 Shell pattern of module names to treat as private hard imports. Matching modules are compiled as dynamic hard imports and hidden from sys.modules. Can be given multiple times.
+.TP
+\fB\-\-no\-private\-import\-patterns\fR=\fI\,PATTERN\/\fR
+Shell pattern of module names to exclude from private hard imports. This takes precedence over \fB\-\-private\-import\-patterns\fR. Can be given multiple times.
 .IP
 Plugin options of 'anti\-bloat' (categories: core, feature, package\-support):
 .TP

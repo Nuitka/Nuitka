@@ -128,8 +128,8 @@ extern PyObject **global_constants;
 #define const_str_plain_file global_constants[0]
 #define const_str_plain_bytes global_constants[0]
 #define const_str_plain_ModuleInfo global_constants[0]
+#define const_str_plain_get_importer global_constants[0]
 #define const_str_plain_iter_importer_modules global_constants[0]
-#define const_str_plain_iter_modules global_constants[0]
 // '.'
 #define const_str_dot global_constants[0]
 // '_'

@@ -3254,19 +3254,7 @@ static PyObject *_nuitka_loader_is_package(PyObject *self, PyObject *args, PyObj
     return result;
 }
 
-#ifndef _NUITKA_DISABLE_ITER_MODULES
-static char const *_kw_list_iter_modules[] = {"package", NULL};
-
-static PyObject *_nuitka_loader_iter_modules(PyObject *self_obj, PyObject *args, PyObject *kwds) {
-    struct Nuitka_LoaderObject *self = (struct Nuitka_LoaderObject *)self_obj;
-    PyObject *prefix;
-
-    int res = PyArg_ParseTupleAndKeywords(args, kwds, "O:iter_modules", (char **)_kw_list_iter_modules, &prefix);
-
-    if (unlikely(res == 0)) {
-        return NULL;
-    }
-
+static PyObject *loaderIterModules(struct Nuitka_LoaderObject *self, PyObject *prefix, bool internal) {
     NUITKA_MAY_BE_UNUSED PyThreadState *tstate = PyThreadState_GET();
 
     PyObject *result = MAKE_LIST_EMPTY(tstate, 0);
@@ -3282,8 +3270,7 @@ static PyObject *_nuitka_loader_iter_modules(PyObject *self_obj, PyObject *args,
             continue;
         }
 
-        // Trigger and protection helper modules are private to the build.
-        if ((current->flags & NUITKA_INTERNAL_MODULE_FLAG) != 0) {
+        if (internal == false && (current->flags & NUITKA_INTERNAL_MODULE_FLAG) != 0) {
             continue;
         }
 
@@ -3329,6 +3316,21 @@ static PyObject *_nuitka_loader_iter_modules(PyObject *self_obj, PyObject *args,
     }
 
     return result;
+}
+
+#ifndef _NUITKA_DISABLE_ITER_MODULES
+static char const *_kw_list_iter_modules[] = {"package", NULL};
+
+static PyObject *_nuitka_loader_iter_modules(PyObject *self_obj, PyObject *args, PyObject *kwds) {
+    PyObject *prefix;
+
+    int res = PyArg_ParseTupleAndKeywords(args, kwds, "O:iter_modules", (char **)_kw_list_iter_modules, &prefix);
+
+    if (unlikely(res == 0)) {
+        return NULL;
+    }
+
+    return loaderIterModules((struct Nuitka_LoaderObject *)self_obj, prefix, false);
 }
 #endif
 
@@ -3401,17 +3403,25 @@ static bool addPkgutilImporterEntries(PyThreadState *tstate, PyObject *result, P
         return true;
     }
 
-    PyObject *pkgutil_module = IMPORT_HARD_PKGUTIL();
-    PyObject *iter_importer_modules = LOOKUP_ATTRIBUTE(tstate, pkgutil_module, const_str_plain_iter_importer_modules);
+    PyObject *entries;
 
-    if (unlikely(iter_importer_modules == NULL)) {
-        return false;
+    if (Py_TYPE(importer) == &Nuitka_Loader_Type) {
+        // Nuitka's own packages are enumerated from the loader entry table.
+        entries = loaderIterModules((struct Nuitka_LoaderObject *)importer, prefix, true);
+    } else {
+        PyObject *pkgutil_module = IMPORT_HARD_PKGUTIL();
+        PyObject *iter_importer_modules =
+            LOOKUP_ATTRIBUTE(tstate, pkgutil_module, const_str_plain_iter_importer_modules);
+
+        if (unlikely(iter_importer_modules == NULL)) {
+            return false;
+        }
+
+        PyObject *call_args[2] = {importer, prefix};
+        entries = CALL_FUNCTION_WITH_ARGS2(tstate, iter_importer_modules, call_args);
+
+        Py_DECREF(iter_importer_modules);
     }
-
-    PyObject *call_args[2] = {importer, prefix};
-    PyObject *entries = CALL_FUNCTION_WITH_ARGS2(tstate, iter_importer_modules, call_args);
-
-    Py_DECREF(iter_importer_modules);
 
     if (unlikely(entries == NULL)) {
         return false;
@@ -3488,105 +3498,174 @@ static bool addPkgutilImporterEntries(PyThreadState *tstate, PyObject *result, P
 
     Py_DECREF(iterator);
 
-    return HAS_ERROR_OCCURRED(tstate) == false;
-}
-
-static PyObject *callPkgutilIterModules(PyThreadState *tstate, PyObject *path, PyObject *prefix) {
-    PyObject *pkgutil_module = IMPORT_HARD_PKGUTIL();
-    PyObject *iter_modules = LOOKUP_ATTRIBUTE(tstate, pkgutil_module, const_str_plain_iter_modules);
-
-    if (unlikely(iter_modules == NULL)) {
-        return NULL;
+    if (unlikely(HAS_ERROR_OCCURRED(tstate))) {
+        return CHECK_AND_CLEAR_STOP_ITERATION_OCCURRED(tstate);
     }
 
-    PyObject *call_args[2] = {path == NULL ? Py_None : path, prefix};
-    PyObject *result = CALL_FUNCTION_WITH_ARGS2(tstate, iter_modules, call_args);
+    return true;
+}
 
-    Py_DECREF(iter_modules);
+static bool addPkgutilPathEntries(PyThreadState *tstate, PyObject *result, PyObject *seen, PyObject *path,
+                                  PyObject *prefix) {
+    struct Nuitka_MetaPathBasedLoaderEntry *entry = findPackageEntryForPath(tstate, path, true);
 
-    return result;
+    if (unlikely(HAS_ERROR_OCCURRED(tstate))) {
+        return false;
+    }
+
+    if (entry != NULL) {
+        PyObject *loader = Nuitka_Loader_New(entry);
+
+        bool res = addPkgutilImporterEntries(tstate, result, seen, loader, prefix);
+
+        Py_DECREF(loader);
+
+        return res;
+    }
+
+    PyObject *pkgutil_module = IMPORT_HARD_PKGUTIL();
+    PyObject *get_importer = LOOKUP_ATTRIBUTE(tstate, pkgutil_module, const_str_plain_get_importer);
+
+    if (unlikely(get_importer == NULL)) {
+        return false;
+    }
+
+    PyObject *importer = CALL_FUNCTION_WITH_SINGLE_ARG(tstate, get_importer, path);
+
+    Py_DECREF(get_importer);
+
+    if (unlikely(importer == NULL)) {
+        return false;
+    }
+
+    bool res = addPkgutilImporterEntries(tstate, result, seen, importer, prefix);
+
+    Py_DECREF(importer);
+
+    return res;
+}
+
+static bool addPkgutilImporterListEntries(PyThreadState *tstate, PyObject *result, PyObject *seen, PyObject *importers,
+                                          PyObject *prefix) {
+    PyObject *iterator = MAKE_ITERATOR(tstate, importers);
+
+    if (unlikely(iterator == NULL)) {
+        return false;
+    }
+
+    PyObject *importer;
+
+    while (true) {
+        importer = ITERATOR_NEXT(iterator);
+
+        if (importer == NULL) {
+            break;
+        }
+
+        bool res = addPkgutilImporterEntries(tstate, result, seen, importer, prefix);
+
+        Py_DECREF(importer);
+
+        if (unlikely(res == false)) {
+            Py_DECREF(iterator);
+
+            return false;
+        }
+    }
+
+    Py_DECREF(iterator);
+
+    if (unlikely(HAS_ERROR_OCCURRED(tstate))) {
+        return CHECK_AND_CLEAR_STOP_ITERATION_OCCURRED(tstate);
+    }
+
+    return true;
+}
+
+static bool addPkgutilPathListEntries(PyThreadState *tstate, PyObject *result, PyObject *seen, PyObject *paths,
+                                      PyObject *prefix) {
+    PyObject *iterator = MAKE_ITERATOR(tstate, paths);
+
+    if (unlikely(iterator == NULL)) {
+        return false;
+    }
+
+    PyObject *path;
+
+    while (true) {
+        path = ITERATOR_NEXT(iterator);
+
+        if (path == NULL) {
+            break;
+        }
+
+        bool res = addPkgutilPathEntries(tstate, result, seen, path, prefix);
+
+        Py_DECREF(path);
+
+        if (unlikely(res == false)) {
+            Py_DECREF(iterator);
+
+            return false;
+        }
+    }
+
+    Py_DECREF(iterator);
+
+    if (unlikely(HAS_ERROR_OCCURRED(tstate))) {
+        return CHECK_AND_CLEAR_STOP_ITERATION_OCCURRED(tstate);
+    }
+
+    return true;
+}
+
+static bool addPkgutilPathArgumentEntries(PyThreadState *tstate, PyObject *result, PyObject *seen, PyObject *path,
+                                          PyObject *prefix) {
+#if PYTHON_VERSION >= 0x300
+    if (Nuitka_String_Check(path)) {
+        SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_ValueError,
+                                        "path must be None or list of paths to look for modules in");
+
+        return false;
+    }
+#endif
+
+    return addPkgutilPathListEntries(tstate, result, seen, path, prefix);
 }
 
 PyObject *NUITKA_PKGUTIL_ITER_MODULES(PyThreadState *tstate, PyObject *path, PyObject *prefix) {
     CHECK_OBJECT_X(path);
     CHECK_OBJECT(prefix);
 
-    if (path == NULL || path == Py_None || Nuitka_String_Check(path)) {
-        return callPkgutilIterModules(tstate, path, prefix);
-    }
+    PyObject *result = MAKE_LIST_EMPTY(tstate, 0);
+    PyObject *seen = PySet_New(NULL);
 
-    PyObject *path_list = MAKE_LIST(tstate, path);
+    if (unlikely(result == NULL || seen == NULL)) {
+        Py_XDECREF(result);
+        Py_XDECREF(seen);
 
-    if (unlikely(path_list == NULL)) {
         return NULL;
     }
 
-    PyObject *result = MAKE_LIST_EMPTY(tstate, 0);
-    PyObject *seen = PySet_New(NULL);
-    PyObject *iterator = MAKE_ITERATOR(tstate, path_list);
+    bool res;
 
-    PyObject *path_item;
+    if (path == NULL || path == Py_None) {
+        res = addPkgutilImporterListEntries(tstate, result, seen, Nuitka_SysGetObject("meta_path"), prefix);
 
-    while (true) {
-        path_item = ITERATOR_NEXT(iterator);
-
-        if (path_item == NULL) {
-            break;
+        if (likely(res)) {
+            res = addPkgutilPathListEntries(tstate, result, seen, Nuitka_SysGetObject("path"), prefix);
         }
-
-        struct Nuitka_MetaPathBasedLoaderEntry *entry = findPackageEntryForPath(tstate, path_item, true);
-
-        if (unlikely(HAS_ERROR_OCCURRED(tstate))) {
-            Py_DECREF(path_item);
-            Py_DECREF(iterator);
-            Py_DECREF(path_list);
-            Py_DECREF(seen);
-            Py_DECREF(result);
-
-            return NULL;
-        }
-
-        if (entry == NULL) {
-            Py_DECREF(path_item);
-            Py_DECREF(iterator);
-            Py_DECREF(seen);
-            Py_DECREF(result);
-
-            PyObject *fallback_result = callPkgutilIterModules(tstate, path_list, prefix);
-
-            Py_DECREF(path_list);
-
-            return fallback_result;
-        }
-
-        PyObject *loader = Nuitka_Loader_New(entry);
-
-        bool res = addPkgutilImporterEntries(tstate, result, seen, loader, prefix);
-
-        Py_DECREF(loader);
-        Py_DECREF(path_item);
-
-        if (unlikely(res == false)) {
-            Py_DECREF(iterator);
-            Py_DECREF(path_list);
-            Py_DECREF(seen);
-            Py_DECREF(result);
-
-            return NULL;
-        }
+    } else {
+        res = addPkgutilPathArgumentEntries(tstate, result, seen, path, prefix);
     }
 
-    Py_DECREF(iterator);
-    Py_DECREF(path_list);
+    Py_DECREF(seen);
 
-    if (unlikely(HAS_ERROR_OCCURRED(tstate))) {
-        Py_DECREF(seen);
+    if (unlikely(res == false)) {
         Py_DECREF(result);
 
         return NULL;
     }
-
-    Py_DECREF(seen);
 
     PyObject *result_iterator = MAKE_ITERATOR_INFALLIBLE(result);
 
