@@ -661,9 +661,8 @@ static PyObject *makeBuiltinFunctionReplacement(PyMethodDef *replacement_def, Py
 
 static void installBuiltinFrameFunction(PyThreadState *tstate, PyObject **original, PyObject *name,
                                         PyMethodDef *replacement_def, PyCFunction method, int flags) {
-    *original = LOOKUP_BUILTIN(name);
+    *original = LOOKUP_BUILTIN1(tstate, name);
     CHECK_OBJECT(*original);
-    Py_INCREF(*original);
 
     PyObject *replacement = makeBuiltinFunctionReplacement(replacement_def, *original, method, flags);
     CHECK_OBJECT(replacement);

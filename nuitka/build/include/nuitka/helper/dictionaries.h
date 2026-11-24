@@ -72,6 +72,15 @@ static PyObject *GET_STRING_DICT_VALUE(PyDictObject *dict, Nuitka_StringObject *
     return GET_STRING_DICT_ENTRY(dict, key)->me_value;
 }
 
+NUITKA_MAY_BE_UNUSED static PyObject *GET_STRING_DICT_VALUE1(PyThreadState *tstate, PyDictObject *dict,
+                                                             Nuitka_StringObject *key) {
+    (void)tstate;
+
+    PyObject *result = GET_STRING_DICT_VALUE(dict, key);
+    Py_XINCREF(result);
+    return result;
+}
+
 #else
 
 #if PYTHON_VERSION < 0x3b0
@@ -170,6 +179,13 @@ static inline Py_hash_t Nuitka_Py_unicode_get_hash(PyObject *o) {
     return FT_ATOMIC_LOAD_SSIZE_RELAXED(((PyUnicodeObject *)o)->_base._base.hash);
 }
 
+#if defined(Py_GIL_DISABLED)
+
+extern PyObject *GET_STRING_DICT_VALUE(PyDictObject *dict, Nuitka_StringObject *key);
+extern PyObject *GET_STRING_DICT_VALUE1(PyThreadState *tstate, PyDictObject *dict, Nuitka_StringObject *key);
+
+#else
+
 static Nuitka_DictEntryHandle GET_STRING_DICT_ENTRY(PyDictObject *dict, Nuitka_StringObject *key) {
     assert(PyDict_CheckExact(dict));
     assert(Nuitka_String_CheckExact(key));
@@ -250,6 +266,17 @@ NUITKA_MAY_BE_UNUSED static PyObject *GET_STRING_DICT_VALUE(PyDictObject *dict, 
 
     return GET_DICT_ENTRY_VALUE(handle);
 }
+
+NUITKA_MAY_BE_UNUSED static PyObject *GET_STRING_DICT_VALUE1(PyThreadState *tstate, PyDictObject *dict,
+                                                             Nuitka_StringObject *key) {
+    (void)tstate;
+
+    PyObject *result = GET_STRING_DICT_VALUE(dict, key);
+    Py_XINCREF(result);
+    return result;
+}
+
+#endif
 
 #endif
 
@@ -407,8 +434,8 @@ NUITKA_MAY_BE_UNUSED static void UPDATE_STRING_DICT0(PyThreadState *tstate, PyDi
 
 #if defined(Py_GIL_DISABLED)
     DICT_SET_ITEM_INFALLIBLE(tstate, (PyObject *)dict, (PyObject *)key, value);
-    return;
-#elif PYTHON_VERSION >= 0x3c0
+#else
+#if PYTHON_VERSION >= 0x3c0
     if (unlikely(NUITKA_DICT_IS_WATCHED(dict))) {
         DICT_SET_ITEM_INFALLIBLE(tstate, (PyObject *)dict, (PyObject *)key, value);
         return;
@@ -445,6 +472,7 @@ NUITKA_MAY_BE_UNUSED static void UPDATE_STRING_DICT0(PyThreadState *tstate, PyDi
             DICT_SET_ITEM_INFALLIBLE(tstate, (PyObject *)dict, (PyObject *)key, value);
         }
     }
+#endif
 }
 
 NUITKA_MAY_BE_UNUSED static void UPDATE_STRING_DICT_INPLACE(PyThreadState *tstate, PyDictObject *dict,
@@ -453,8 +481,8 @@ NUITKA_MAY_BE_UNUSED static void UPDATE_STRING_DICT_INPLACE(PyThreadState *tstat
 
 #if defined(Py_GIL_DISABLED)
     DICT_SET_ITEM1_INFALLIBLE(tstate, (PyObject *)dict, (PyObject *)key, value);
-    return;
-#elif PYTHON_VERSION >= 0x3c0
+#else
+#if PYTHON_VERSION >= 0x3c0
     if (unlikely(NUITKA_DICT_IS_WATCHED(dict))) {
         DICT_SET_ITEM1_INFALLIBLE(tstate, (PyObject *)dict, (PyObject *)key, value);
         return;
@@ -485,6 +513,7 @@ NUITKA_MAY_BE_UNUSED static void UPDATE_STRING_DICT_INPLACE(PyThreadState *tstat
 #endif
         Py_DECREF(old);
     }
+#endif
 }
 
 NUITKA_MAY_BE_UNUSED static void UPDATE_STRING_DICT1(PyThreadState *tstate, PyDictObject *dict,
@@ -494,8 +523,8 @@ NUITKA_MAY_BE_UNUSED static void UPDATE_STRING_DICT1(PyThreadState *tstate, PyDi
 
 #if defined(Py_GIL_DISABLED)
     DICT_SET_ITEM1_INFALLIBLE(tstate, (PyObject *)dict, (PyObject *)key, value);
-    return;
-#elif PYTHON_VERSION >= 0x3c0
+#else
+#if PYTHON_VERSION >= 0x3c0
     if (unlikely(NUITKA_DICT_IS_WATCHED(dict))) {
         DICT_SET_ITEM1_INFALLIBLE(tstate, (PyObject *)dict, (PyObject *)key, value);
         return;
@@ -534,6 +563,7 @@ NUITKA_MAY_BE_UNUSED static void UPDATE_STRING_DICT1(PyThreadState *tstate, PyDi
         Py_DECREF(value);
         CHECK_OBJECT(value);
     }
+#endif
 }
 
 #if PYTHON_VERSION < 0x300

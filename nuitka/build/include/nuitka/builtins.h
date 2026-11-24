@@ -33,10 +33,12 @@ NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_BUILTIN(PyObject *name) {
 }
 
 // Returns a new reference; aborts if the builtin is missing.
-NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_BUILTIN_STR(PyThreadState *tstate, char const *name) {
+NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_BUILTIN1(PyThreadState *tstate, PyObject *name) {
     CHECK_OBJECT(dict_builtin);
+    CHECK_OBJECT(name);
+    assert(Nuitka_String_CheckExact(name));
 
-    PyObject *result = DICT_GET_ITEM_STRING(tstate, (PyObject *)dict_builtin, name);
+    PyObject *result = GET_STRING_DICT_VALUE1(tstate, dict_builtin, (Nuitka_StringObject *)name);
 
     if (unlikely(result == NULL)) {
         PyErr_PrintEx(0);
@@ -45,7 +47,21 @@ NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_BUILTIN_STR(PyThreadState *tstate, 
 
     CHECK_OBJECT(result);
 
-    Py_INCREF(result);
+    return result;
+}
+
+// Returns a new reference; aborts if the builtin is missing.
+NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_BUILTIN_STR(PyThreadState *tstate, char const *name) {
+    PyObject *name_str = Nuitka_String_FromString(name);
+
+    if (unlikely(name_str == NULL)) {
+        PyErr_PrintEx(0);
+        Py_Exit(1);
+    }
+
+    PyObject *result = LOOKUP_BUILTIN1(tstate, name_str);
+    Py_DECREF(name_str);
+
     return result;
 }
 
@@ -53,11 +69,29 @@ extern void _initBuiltinModule(PyThreadState *tstate);
 
 #define NUITKA_DECLARE_BUILTIN(name) extern PyObject *_python_original_builtin_value_##name;
 #define NUITKA_DEFINE_BUILTIN(name) PyObject *_python_original_builtin_value_##name = NULL;
+#if defined(Py_GIL_DISABLED)
 #define NUITKA_ASSIGN_BUILTIN(name)                                                                                    \
-    if (_python_original_builtin_value_##name == NULL)                                                                 \
-        _python_original_builtin_value_##name = LOOKUP_BUILTIN_STR(tstate, #name);
+    do {                                                                                                               \
+        if (_Py_atomic_load_ptr_acquire(&_python_original_builtin_value_##name) == NULL) {                             \
+            PyObject *_nuitka_builtin_tmp = LOOKUP_BUILTIN_STR(tstate, #name);                                         \
+            PyObject *_nuitka_builtin_expected = NULL;                                                                 \
+            if (!_Py_atomic_compare_exchange_ptr(&_python_original_builtin_value_##name, &_nuitka_builtin_expected,    \
+                                                 _nuitka_builtin_tmp)) {                                               \
+                Py_DECREF(_nuitka_builtin_tmp);                                                                        \
+            }                                                                                                          \
+        }                                                                                                              \
+    } while (0)
+#define NUITKA_UPDATE_BUILTIN(name, value)                                                                             \
+    _Py_atomic_store_ptr_release(&_python_original_builtin_value_##name, (value));
+#define NUITKA_ACCESS_BUILTIN(name) ((PyObject *)_Py_atomic_load_ptr_acquire(&_python_original_builtin_value_##name))
+#else
+#define NUITKA_ASSIGN_BUILTIN(name)                                                                                    \
+    if (_python_original_builtin_value_##name == NULL) {                                                               \
+        _python_original_builtin_value_##name = LOOKUP_BUILTIN_STR(tstate, #name);                                     \
+    }
 #define NUITKA_UPDATE_BUILTIN(name, value) _python_original_builtin_value_##name = value;
 #define NUITKA_ACCESS_BUILTIN(name) (_python_original_builtin_value_##name)
+#endif
 
 #if !_NUITKA_MODULE_MODE
 NUITKA_DECLARE_BUILTIN(type);

@@ -286,11 +286,13 @@ if (%(test_code)s) {
 }
 """
 
-# The static cache variables are not safe to update from multiple threads
-# without the GIL, as another thread can observe them out of order.
+# Without the GIL, another thread can concurrently mutate or resize module and
+# builtin dictionaries, so free-threaded builds cannot use unlocked static
+# caches or borrowed dictionary references and return a strong reference.
 template_module_variable_accessor_function = """\
 static PyObject *%(accessor_function_name)s(PyThreadState *tstate) {
-#if %(caching)s && !defined(Py_GIL_DISABLED)
+#if !defined(Py_GIL_DISABLED)
+#if %(caching)s
     PyObject *result;
 
 #if PYTHON_VERSION < 0x3b0
@@ -361,6 +363,15 @@ static PyObject *%(accessor_function_name)s(PyThreadState *tstate) {
     }
 
     return result;
+#else
+    PyObject *result = GET_STRING_DICT_VALUE1(tstate, moduledict_%(module_identifier)s, (Nuitka_StringObject *)%(var_name)s);
+
+    if (unlikely(result == NULL)) {
+        result = GET_STRING_DICT_VALUE1(tstate, dict_builtin, (Nuitka_StringObject *)%(var_name)s);
+    }
+
+    return result;
+#endif
 }
 """
 

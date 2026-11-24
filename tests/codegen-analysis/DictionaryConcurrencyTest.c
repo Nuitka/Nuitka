@@ -91,6 +91,11 @@ void SET_CURRENT_EXCEPTION_TYPE0_FORMAT1(PyObject *exception_type, char const *f
     PyErr_Format(exception_type, format, value);
 }
 
+void SET_CURRENT_EXCEPTION_TYPE0_FORMAT2(PyObject *exception_type, char const *format, char const *value1,
+                                         char const *value2) {
+    PyErr_Format(exception_type, format, value1, value2);
+}
+
 PyObject *CALL_FUNCTION_WITH_SINGLE_ARG(PyThreadState *tstate, PyObject *called, PyObject *arg) {
     (void)tstate;
     return PyObject_CallFunctionObjArgs(called, arg, NULL);
@@ -880,11 +885,188 @@ static int runBorrowedGetTest(void) {
         errors++;
     }
 
+    PyObject *string_borrowed = GET_STRING_DICT_VALUE((PyDictObject *)dict, (Nuitka_StringObject *)key);
+
+    if (string_borrowed != value || Py_REFCNT(value) != refcount_before) {
+        errors++;
+    }
+
+    PyObject *string_owned =
+        GET_STRING_DICT_VALUE1(PyThreadState_GET(), (PyDictObject *)dict, (Nuitka_StringObject *)key);
+
+    if (string_owned != value || Py_REFCNT(value) != refcount_before + 1) {
+        errors++;
+    }
+
+    Py_XDECREF(string_owned);
+
+    PyObject *missing_key = PyUnicode_FromString("missing_string_key");
+
+    if (missing_key == NULL) {
+        PyErr_Clear();
+        errors++;
+    } else {
+        if (GET_STRING_DICT_VALUE((PyDictObject *)dict, (Nuitka_StringObject *)missing_key) != NULL ||
+            GET_STRING_DICT_VALUE1(PyThreadState_GET(), (PyDictObject *)dict, (Nuitka_StringObject *)missing_key) !=
+                NULL ||
+            PyErr_Occurred()) {
+            PyErr_Clear();
+            errors++;
+        }
+
+        Py_DECREF(missing_key);
+    }
+
     Py_DECREF(dict);
     Py_DECREF(key);
     Py_DECREF(value);
 
     return errors;
+}
+
+typedef struct {
+    int thread_id;
+    PyDictObject *dict;
+    Nuitka_StringObject *target_key;
+    Nuitka_StringObject *missing_key;
+    atomic_int *error_count;
+} StringDictConcurrencyArgs;
+
+static void *stringDictStressWorker(void *argument) {
+    StringDictConcurrencyArgs *args = (StringDictConcurrencyArgs *)argument;
+    PyGILState_STATE gil_state = PyGILState_Ensure();
+    PyThreadState *tstate = PyThreadState_GET();
+
+    for (int i = 0; i < ITERATIONS; i++) {
+        if (args->thread_id % 2 == 0) {
+            PyObject *box = PyList_New(1);
+            PyObject *item = PyLong_FromLong(i);
+
+            if (box == NULL || item == NULL) {
+                Py_XDECREF(box);
+                Py_XDECREF(item);
+                recordError(args->error_count);
+                PyErr_Clear();
+                continue;
+            }
+
+            PyList_SET_ITEM(box, 0, item);
+
+            if (i % 3 == 0) {
+                UPDATE_STRING_DICT1(tstate, args->dict, args->target_key, box);
+            } else if (i % 3 == 1) {
+                UPDATE_STRING_DICT_INPLACE(tstate, args->dict, args->target_key, box);
+            } else {
+                UPDATE_STRING_DICT0(tstate, args->dict, args->target_key, box);
+                Py_DECREF(box);
+            }
+
+            PyObject *resize_key = makeKey("mvar_resize", args->thread_id, i % KEY_COUNT);
+
+            if (resize_key == NULL) {
+                recordError(args->error_count);
+                PyErr_Clear();
+                continue;
+            }
+
+            if ((i / KEY_COUNT) % 2 == 0) {
+                PyObject *extra = PyList_New(0);
+
+                if (extra == NULL) {
+                    recordError(args->error_count);
+                    PyErr_Clear();
+                } else {
+                    UPDATE_STRING_DICT1(tstate, args->dict, (Nuitka_StringObject *)resize_key, extra);
+                }
+            } else {
+                if (!DICT_REMOVE_ITEM(tstate, (PyObject *)args->dict, resize_key)) {
+                    PyErr_Clear();
+                }
+            }
+
+            Py_DECREF(resize_key);
+        } else {
+            PyObject *owned = GET_STRING_DICT_VALUE1(tstate, args->dict, args->target_key);
+
+            if (owned == NULL || !PyList_CheckExact(owned) || PyList_GET_SIZE(owned) != 1 ||
+                PyLong_AsLong(PyList_GET_ITEM(owned, 0)) < 0 || PyErr_Occurred()) {
+                recordError(args->error_count);
+                PyErr_Clear();
+            }
+
+            Py_XDECREF(owned);
+
+            PyObject *missing = GET_STRING_DICT_VALUE1(tstate, args->dict, args->missing_key);
+
+            if (missing != NULL || PyErr_Occurred()) {
+                Py_XDECREF(missing);
+                recordError(args->error_count);
+                PyErr_Clear();
+            }
+        }
+    }
+
+    PyGILState_Release(gil_state);
+
+    return NULL;
+}
+
+static int runStringDictConcurrencyTest(void) {
+    PyObject *dict = PyDict_New();
+    PyObject *target_key = PyUnicode_FromString("target_mvar");
+    PyObject *missing_key = PyUnicode_FromString("missing_mvar");
+    PyObject *initial_box = PyList_New(1);
+    PyObject *initial_item = PyLong_FromLong(0);
+
+    if (dict == NULL || target_key == NULL || missing_key == NULL || initial_box == NULL || initial_item == NULL) {
+        Py_XDECREF(dict);
+        Py_XDECREF(target_key);
+        Py_XDECREF(missing_key);
+        Py_XDECREF(initial_box);
+        Py_XDECREF(initial_item);
+        PyErr_Clear();
+        return 1;
+    }
+
+    PyList_SET_ITEM(initial_box, 0, initial_item);
+    UPDATE_STRING_DICT1(PyThreadState_GET(), (PyDictObject *)dict, (Nuitka_StringObject *)target_key, initial_box);
+
+    pthread_t threads[THREAD_COUNT];
+    StringDictConcurrencyArgs args[THREAD_COUNT];
+    atomic_int error_count = 0;
+
+    for (int i = 0; i < THREAD_COUNT; i++) {
+        args[i].thread_id = i;
+        args[i].dict = (PyDictObject *)dict;
+        args[i].target_key = (Nuitka_StringObject *)target_key;
+        args[i].missing_key = (Nuitka_StringObject *)missing_key;
+        args[i].error_count = &error_count;
+    }
+
+    PyThreadState *main_tstate = PyEval_SaveThread();
+    bool thread_created[THREAD_COUNT] = {false};
+
+    for (int i = 0; i < THREAD_COUNT; i++) {
+        if (pthread_create(&threads[i], NULL, stringDictStressWorker, &args[i]) != 0) {
+            atomic_fetch_add(&error_count, 1);
+        } else {
+            thread_created[i] = true;
+        }
+    }
+
+    for (int i = 0; i < THREAD_COUNT; i++) {
+        if (thread_created[i] && pthread_join(threads[i], NULL) != 0) {
+            atomic_fetch_add(&error_count, 1);
+        }
+    }
+
+    PyEval_RestoreThread(main_tstate);
+
+    Py_DECREF(dict);
+    Py_DECREF(target_key);
+    Py_DECREF(missing_key);
+
+    return atomic_load(&error_count);
 }
 
 static bool DICT_REMOVE_ITEM_WITH_HASH_AND_EQ(PyThreadState *tstate, PyObject *dict, PyObject *key, Py_hash_t hash,
@@ -1135,6 +1317,7 @@ int main(void) {
 
     RUN_TEST(runCombinedStressTest);
     RUN_TEST(runSplitStressTest);
+    RUN_TEST(runStringDictConcurrencyTest);
     RUN_TEST(runCollisionTest);
     RUN_TEST(runBorrowedGetTest);
     RUN_TEST(runConsumeSetTest);

@@ -460,7 +460,7 @@ PyObject *DICT_GET_ITEM_WITH_ERROR(PyThreadState *tstate, PyObject *dict, PyObje
     Py_INCREF(entry->me_value);
     return entry->me_value;
 #else
-    if (!PyUnicode_CheckExact(key) || (hash = ((PyASCIIObject *)key)->hash) == -1) {
+    if (!PyUnicode_CheckExact(key) || (hash = Nuitka_Py_unicode_get_hash(key)) == -1) {
         hash = HASH_VALUE_WITH_ERROR(tstate, key);
         if (unlikely(hash == -1)) {
             return NULL;
@@ -573,7 +573,7 @@ PyObject *DICT_GET_ITEM_WITH_HASH_ERROR1(PyThreadState *tstate, PyObject *dict, 
     Py_INCREF(entry->me_value);
     return entry->me_value;
 #else
-    if (!PyUnicode_CheckExact(key) || (hash = ((PyASCIIObject *)key)->hash) == -1) {
+    if (!PyUnicode_CheckExact(key) || (hash = Nuitka_Py_unicode_get_hash(key)) == -1) {
         hash = HASH_VALUE_WITH_ERROR(tstate, key);
         if (unlikely(hash == -1)) {
             return NULL;
@@ -666,7 +666,7 @@ int DICT_HAS_ITEM(PyThreadState *tstate, PyObject *dict, PyObject *key) {
 
     return 1;
 #else
-    if (!PyUnicode_CheckExact(key) || (hash = ((PyASCIIObject *)key)->hash) == -1) {
+    if (!PyUnicode_CheckExact(key) || (hash = Nuitka_Py_unicode_get_hash(key)) == -1) {
         hash = HASH_VALUE_WITH_ERROR(tstate, key);
         if (unlikely(hash == -1)) {
             return -1;
@@ -1805,6 +1805,72 @@ static PyObject *Nuitka_Py_dict_lookup_threadsafe_borrowedWithEq(PyDictObject *m
 
 static PyObject *Nuitka_Py_dict_lookup_threadsafe_borrowed(PyDictObject *mp, PyObject *key, Py_hash_t hash) {
     return Nuitka_Py_dict_lookup_threadsafe_borrowedWithEq(mp, key, hash, NULL);
+}
+
+PyObject *GET_STRING_DICT_VALUE1(PyThreadState *tstate, PyDictObject *dict, Nuitka_StringObject *key) {
+    CHECK_OBJECT(dict);
+    assert(PyDict_CheckExact(dict));
+    CHECK_OBJECT(key);
+    assert(Nuitka_String_CheckExact(key));
+
+    Py_hash_t hash = Nuitka_Py_unicode_get_hash((PyObject *)key);
+
+    if (unlikely(hash == -1)) {
+        hash = PyUnicode_Type.tp_hash((PyObject *)key);
+    }
+
+    PyObject *result;
+    Py_ssize_t ix = Nuitka_Py_dict_lookup_threadsafe(dict, (PyObject *)key, hash, &result);
+
+    if (unlikely(ix < 0)) {
+        // Non-string keys placed into a module dictionary can raise during
+        // general-table key comparisons; string-dict value lookups suppress
+        // comparison errors like 'PyDict_GetItem'.
+        if (unlikely(ix == DKIX_ERROR)) {
+            CLEAR_ERROR_OCCURRED(tstate);
+        }
+
+        return NULL;
+    }
+
+    CHECK_OBJECT_X(result);
+    return result;
+}
+
+PyObject *GET_STRING_DICT_VALUE(PyDictObject *dict, Nuitka_StringObject *key) {
+    CHECK_OBJECT(dict);
+    assert(PyDict_CheckExact(dict));
+    CHECK_OBJECT(key);
+    assert(Nuitka_String_CheckExact(key));
+
+    Py_hash_t hash = Nuitka_Py_unicode_get_hash((PyObject *)key);
+
+    if (unlikely(hash == -1)) {
+        hash = PyUnicode_Type.tp_hash((PyObject *)key);
+    }
+
+    Nuitka_Py_dict_ensure_shared_on_read(dict);
+
+    PyObject *result;
+    Py_ssize_t ix;
+
+    Py_BEGIN_CRITICAL_SECTION(dict);
+    PyObject **value_addr = NULL;
+    ix = Nuitka_PyDictLookup(dict, (PyObject *)key, hash, &value_addr);
+    if (ix >= 0 && value_addr != NULL) {
+        result = *value_addr;
+    } else {
+        result = NULL;
+    }
+    Py_END_CRITICAL_SECTION();
+
+    if (unlikely(ix == DKIX_ERROR)) {
+        PyThreadState *tstate = PyThreadState_GET();
+        CLEAR_ERROR_OCCURRED(tstate);
+    }
+
+    CHECK_OBJECT_X(result);
+    return result;
 }
 
 #else // Py_GIL_DISABLED

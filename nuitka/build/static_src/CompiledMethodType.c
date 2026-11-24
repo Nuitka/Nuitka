@@ -64,7 +64,7 @@ static PyObject *Nuitka_Method_reduce(PyObject *self, PyObject *unused) {
     return NULL;
 #else
     PyObject *result = MAKE_TUPLE_EMPTY(tstate, 2);
-    PyTuple_SET_ITEM0(result, 0, LOOKUP_BUILTIN(const_str_plain_getattr));
+    PyTuple_SET_ITEM(result, 0, LOOKUP_BUILTIN1(tstate, const_str_plain_getattr));
     PyObject *arg_tuple = MAKE_TUPLE2(tstate, method->m_object, method->m_function->m_name);
     PyTuple_SET_ITEM(result, 1, arg_tuple);
 

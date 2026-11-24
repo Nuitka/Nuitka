@@ -7,7 +7,7 @@ from nuitka.nodes.shapes.BuiltinTypeShapes import (
     tshape_bool,
     tshape_int_or_long,
 )
-from nuitka.PythonVersions import python_version
+from nuitka.PythonVersions import isPythonWithGil, python_version
 from nuitka.States import states
 from nuitka.utils.CStrings import encodePythonIdentifierToC
 
@@ -164,6 +164,9 @@ def getModuleVariableReferenceCode(
             accessor_function_name += "$infallible"
 
             emit("%s = %s(tstate);" % (value_name, accessor_function_name))
+
+        if not isPythonWithGil():
+            context.addCleanupTempName(value_name)
 
 
 def getNonModuleVariableReferenceCode(

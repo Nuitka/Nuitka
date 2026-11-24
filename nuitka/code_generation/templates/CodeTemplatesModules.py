@@ -647,10 +647,11 @@ template_module_exception_exit = """\
 
 #if _NUITKA_MODULE_MODE && %(is_top)d
     if (module_state_was_set == false) {
-        PyObject *module_name = GET_STRING_DICT_VALUE(moduledict_%(module_identifier)s, (Nuitka_StringObject *)const_str_plain___name__);
+        PyObject *module_name = GET_STRING_DICT_VALUE1(tstate, moduledict_%(module_identifier)s, (Nuitka_StringObject *)const_str_plain___name__);
 
         if (module_name != NULL) {
             Nuitka_DelModule(tstate, module_name);
+            Py_DECREF(module_name);
         }
 
         // The failed module of a first load is not published and the
