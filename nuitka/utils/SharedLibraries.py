@@ -314,6 +314,24 @@ def _getCoffDumpOutput2(dump_filename):
     )
 
 
+def _isCoffArchive(filename):
+    """Check if a file is an archive in AIX format.
+
+    Args:
+        filename: Path to the file to check.
+
+    Returns:
+        True if the file starts with regular or AIX big archive magic.
+    """
+    try:
+        with open(filename, "rb") as archive_file:
+            magic = archive_file.read(8)
+    except (IOError, OSError):
+        return False
+
+    return magic in (b"!<arch>\n", b"<bigaf>\n")
+
+
 def _getCoffDumpOutput(filename):
     """Get 'dump -H' output for a COFF file, avoiding .imp members.
 
@@ -323,12 +341,16 @@ def _getCoffDumpOutput(filename):
     .o members is valid.  Instead list members with 'ar -X 32_64 t' and
     dump each object member individually.
 
+    IBM i PASE names shared libraries like libz.so.1, but these are also
+    archives with shr_64.o and shr_64.imp members, so detecting by the
+    '.a' extension is not sufficient.
+
     Neither 'dump -n member archive.a' nor 'dump archive.a[member]'
     is portable on AIX 7.3 (both give 0654-106 Cannot open), so we
     extract each .o member with 'ar -X 32_64 p' to a temp file and
     dump that file.
     """
-    if filename.endswith(".a"):
+    if _isCoffArchive(filename):
         ar_output = executeToolChecked(
             logger=postprocessing_logger,
             command=("ar", "-X", "32_64", "t", filename),
