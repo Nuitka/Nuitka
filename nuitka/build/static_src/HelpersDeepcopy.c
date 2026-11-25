@@ -523,6 +523,12 @@ Py_hash_t DEEP_HASH(PyThreadState *tstate, PyObject *value) {
 #endif
     } else if (PyCode_Check(value)) {
         return DEEP_HASH_INIT(tstate, value);
+#if PYTHON_VERSION < 0x300
+    } else if (value == Py_SysVersionInfo) {
+        // Python 2.7 exposes "sys.version_info" as a struct sequence rather
+        // than a tuple, and the constants blob can contain it in tuples.
+        return DEEP_HASH_INIT(tstate, value);
+#endif
     } else {
         NUITKA_CANNOT_GET_HERE("Unknown type hashed");
 
