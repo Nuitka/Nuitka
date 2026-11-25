@@ -671,6 +671,13 @@ nuitka_flavor = None
 
 
 def main():
+    # Avoid localized output of compilers and tools for reproducible reports,
+    # and avoid pipenv warning about a missing 'LANG' environment variable.
+    # spell-checker: ignore VSLANG
+    os.environ["LC_ALL"] = "C"
+    os.environ["LANG"] = "C"
+    os.environ["VSLANG"] = "1033"
+
     global nuitka_binary  # shared for all run, pylint: disable=global-statement
     nuitka_binary = os.path.normpath(
         os.path.join(os.path.dirname(__file__), "..", "..", "..", "bin", "nuitka")
