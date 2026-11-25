@@ -33,7 +33,9 @@ static void REPLACE_WITH_TYPE_ERROR1(PyThreadState *tstate, struct Nuitka_Except
     RELEASE_ERROR_OCCURRED_STATE(exception_state);
     SET_EXCEPTION_PRESERVATION_STATE_FROM_TYPE0_VALUE1(tstate, exception_state, PyExc_TypeError, exception_value);
 }
+#endif
 
+#if PYTHON_VERSION >= 0x270 && PYTHON_VERSION < 0x3c0
 static void REPLACE_WITH_TYPE_ERROR2(PyThreadState *tstate, struct Nuitka_ExceptionPreservationItem *exception_state,
                                      char const *format, char const *arg1, char const *arg2) {
     PyObject *exception_value = Nuitka_String_FromFormat(format, arg1, arg2);
