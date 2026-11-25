@@ -33,7 +33,7 @@ uint32_t calcCRC32With64BitSize(unsigned char const *message, uint64_t size) {
     uint32_t crc = _initCRC32();
 
     while (size > 0) {
-        uint32_t chunk_size = size > UINT32_MAX ? UINT32_MAX : (uint32_t)size;
+        uint32_t chunk_size = size > 0xFFFFFFFFU ? 0xFFFFFFFFU : (uint32_t)size;
         crc = _updateCRC32(crc, message, chunk_size);
         message += chunk_size;
         size -= chunk_size;
@@ -61,7 +61,7 @@ uint32_t calcCRC32With64BitSize(unsigned char const *message, uint64_t size) {
     uLong crc = 0;
 
     while (size > 0) {
-        uInt chunk_size = size > UINT32_MAX ? (uInt)UINT32_MAX : (uInt)size;
+        uInt chunk_size = size > 0xFFFFFFFFU ? (uInt)0xFFFFFFFFU : (uInt)size;
         crc = crc32(crc, message, chunk_size);
         message += chunk_size;
         size -= chunk_size;
