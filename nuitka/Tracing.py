@@ -14,6 +14,7 @@ to "print for_debug" without much hassle (braces).
 
 from __future__ import print_function
 
+import errno
 import inspect
 import os
 import struct
@@ -65,14 +66,29 @@ def printError(message):
     my_print(message, file=sys.stderr)
 
 
-def flushStandardOutputs():
-    if hasattr(sys.stdout, "flush_buffer"):
-        sys.stdout.flush_buffer()
-    sys.stdout.flush()
+def _isIgnoredOutputError(exception):
+    # Broken pipes, e.g. when piping into 'head', are not a reason to abort.
+    if isinstance(exception, BrokenPipeError):
+        return True
 
-    if hasattr(sys.stderr, "flush_buffer"):
-        sys.stderr.flush_buffer()
-    sys.stderr.flush()
+    # Windows can reject a flush of special handles, e.g. a detached
+    # console or a handle already invalidated by the launcher.
+    return exception.errno == errno.EINVAL
+
+
+def _flushStream(stream):
+    try:
+        if hasattr(stream, "flush_buffer"):
+            stream.flush_buffer()
+        stream.flush()
+    except OSError as e:
+        if not _isIgnoredOutputError(e):
+            raise
+
+
+def flushStandardOutputs():
+    _flushStream(sys.stdout)
+    _flushStream(sys.stderr)
 
 
 def getEnableStyleCode(style):
@@ -277,8 +293,9 @@ def _my_print(is_atty, args, kwargs):
 
         # Flush the output.
         file_output.flush()
-    except BrokenPipeError:
-        pass
+    except OSError as e:
+        if not _isIgnoredOutputError(e):
+            raise
 
 
 def _my_print2(is_atty, args, kwargs):
@@ -723,17 +740,27 @@ class LineBufferedStreamRedirector(object):
 
             if progress and self.original_stream.isatty():
                 with progress.withExternalWritingPause():
-                    self.original_stream.write(to_print)
-                    self.original_stream.flush()
+                    self._writeAndFlush(to_print)
             else:
-                self.original_stream.write(to_print)
-                self.original_stream.flush()
+                self._writeAndFlush(to_print)
+
+    def _writeAndFlush(self, message):
+        try:
+            self.original_stream.write(message)
+            self.original_stream.flush()
+        except OSError as e:
+            if not _isIgnoredOutputError(e):
+                raise
 
     def flush(self):
         # We don't flush the buffer, as that would cause partial lines to be
         # printed, which then get overwritten by the progress bar. We wait
         # for the newline to print it.
-        self.original_stream.flush()
+        try:
+            self.original_stream.flush()
+        except OSError as e:
+            if not _isIgnoredOutputError(e):
+                raise
 
     def flush_buffer(self):
         if self.buffer:
