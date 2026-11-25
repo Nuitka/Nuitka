@@ -24,7 +24,12 @@ from nuitka.PythonVersions import python_version
 from nuitka.targets.Targets import isElfTarget, isMachOTarget
 from nuitka.Tracing import inclusion_logger, postprocessing_logger
 
-from .Execution import executeToolChecked, filterOutputByLine
+from .Execution import (
+    NuitkaCalledProcessError,
+    check_output,
+    executeToolChecked,
+    filterOutputByLine,
+)
 from .FileOperations import (
     addFileExecutablePermission,
     areSamePaths,
@@ -42,6 +47,7 @@ from .FileOperations import (
     withTemporaryFilename,
 )
 from .InlineCopies import importFromInlineCopy
+from .PrivatePipSpace import getPatchElfBinaryPath
 from .Utils import (
     getOS,
     isAlpineLinux,
@@ -871,12 +877,28 @@ Error, needs 'patchelf' on your system, to modify 'RPATH' settings that \
 need to be updated."""
 
 _patch_elf_version = None
+_patch_elf_path = None
+
+
+def _getPatchElfCommand():
+    return _patch_elf_path if _patch_elf_path is not None else "patchelf"
+
+
+def _parsePatchElfVersionOutput(output):
+    version = output.split()[1]
+
+    if str is not bytes:
+        version = version.decode("utf8")
+
+    return version, tuple(
+        int("".join(d for d in part if d.isdigit())) for part in version.split(".")
+    )
 
 
 def _getPatchElfVersionOutput(logger):
     return executeToolChecked(
         logger=logger,
-        command=("patchelf", "--version"),
+        command=(_getPatchElfCommand(), "--version"),
         absence_message="""\
 Error, '%s' mode on %s requires 'patchelf' to be \
 installed. Use 'apt/dnf/yum install patchelf' first."""
@@ -893,16 +915,74 @@ def getPatchElfVersion(logger):
     if result is None:
         output = _getPatchElfVersionOutput(logger)
 
-        version = output.split()[1]
+        result = _parsePatchElfVersionOutput(output)
+        _patch_elf_version = result
 
-        if str is not bytes:
-            version = version.decode("utf8")
+    return result
 
-        result = version, tuple(
-            int("".join(d for d in part if d.isdigit())) for part in version.split(".")
+
+def _isPatchElfVersionUsable(version_tuple):
+    # These distributions have backports or a safe enough package build by now.
+    return not (
+        version_tuple == (0, 18, 0)
+        and not isDebianBasedLinux()
+        and not isAndroidBasedLinux()
+        and not isFedoraBasedLinux()
+        and not isSuseBasedLinux()
+    )
+
+
+def _checkPatchElfBinaryForQt(logger, binary_path):
+    try:
+        output = check_output((binary_path, "--version"))
+    except (OSError, NuitkaCalledProcessError):
+        return False, None
+
+    version, version_tuple = _parsePatchElfVersionOutput(output)
+
+    # Qt reads plugin metadata from ELF notes, which patchelf before 0.12
+    # can move out of the note segment when rewriting the RPATH.
+    if version_tuple < (0, 12) or not _isPatchElfVersionUsable(version_tuple):
+        if logger is not None:
+            logger.info(
+                "Rejecting 'patchelf' binary '%s' with version '%s' for Qt plugins."
+                % (binary_path, version)
+            )
+
+        return False, "patchelf version %s is not usable for Qt plugins." % version
+
+    return True, None
+
+
+def getPatchElfPathForQt(logger, assume_yes_for_downloads):
+    """Get a 'patchelf' binary suitable for Qt plugin binaries.
+
+    Args:
+        assume_yes_for_downloads: bool, whether a download may happen without
+            asking the user.
+
+    Returns:
+        Path of the binary, or None if no suitable binary could be obtained.
+    """
+    # Singleton, pylint: disable=global-statement
+    global _patch_elf_path, _patch_elf_version
+
+    result = _patch_elf_path
+
+    if result is None:
+        result = getPatchElfBinaryPath(
+            logger=logger,
+            check_binary=_checkPatchElfBinaryForQt,
+            assume_yes_for_downloads=assume_yes_for_downloads,
+            reject_message="""\
+Error, needs 'patchelf' version 0.12 or newer for Qt plugin support, and \
+downloading it into the private pip space was not allowed. Use patchelf \
+0.12 or newer, or downgrade to patchelf 0.9.""",
         )
 
-        _patch_elf_version = result
+        if result is not None:
+            _patch_elf_path = result
+            _patch_elf_version = None
 
     return result
 
@@ -912,14 +992,7 @@ def checkPatchElfPresenceAndUsability(logger):
 
     version, version_tuple = getPatchElfVersion(logger)
 
-    # These have backports or a safe enough package build by now.
-    if (
-        version_tuple == (0, 18, 0)
-        and not isDebianBasedLinux()
-        and not isAndroidBasedLinux()
-        and not isFedoraBasedLinux()
-        and not isSuseBasedLinux()
-    ):
+    if not _isPatchElfVersionUsable(version_tuple):
         return logger.sysexit(
             "Error, patchelf version %s is a known buggy release and cannot be used. Please upgrade or downgrade it."
             % version
@@ -929,7 +1002,13 @@ def checkPatchElfPresenceAndUsability(logger):
 def _setSharedLibraryRPATHElf(filename, rpath):
     executeToolChecked(
         logger=postprocessing_logger,
-        command=("patchelf", "--force-rpath", "--set-rpath", rpath, filename),
+        command=(
+            _getPatchElfCommand(),
+            "--force-rpath",
+            "--set-rpath",
+            rpath,
+            filename,
+        ),
         stderr_filter=_filterPatchelfErrorOutput,
         absence_message=_patchelf_usage,
     )
@@ -1732,7 +1811,7 @@ def cleanupHeaderForAndroid(filename):
     with withPreservedZipFileOverlay(filename):
         executeToolChecked(
             logger=postprocessing_logger,
-            command=("patchelf", "--shrink-rpath", filename),
+            command=(_getPatchElfCommand(), "--shrink-rpath", filename),
             stderr_filter=_filterPatchelfErrorOutput,
             absence_message=_patchelf_usage,
         )

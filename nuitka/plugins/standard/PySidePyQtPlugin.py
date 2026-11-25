@@ -14,6 +14,7 @@ from nuitka.__past__ import (  # pylint: disable=redefined-builtin
 )
 from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.options.Options import (
+    assumeYesForDownloads,
     getMacOSBundleIconFilename,
     getMacOSIconPaths,
     getWindowsIconExecutablePath,
@@ -41,7 +42,10 @@ from nuitka.utils.FileOperations import (
     listDir,
 )
 from nuitka.utils.ModuleNames import ModuleName
-from nuitka.utils.SharedLibraries import getPatchElfVersion
+from nuitka.utils.SharedLibraries import (
+    getPatchElfPathForQt,
+    getPatchElfVersion,
+)
 from nuitka.utils.Utils import (
     getArchitecture,
     isElfUsingPlatform,
@@ -112,7 +116,7 @@ class NuitkaPluginQtBindingsPluginBase(NuitkaPluginBase):
                 "Error, failed to locate the '%s' installation." % self.binding_name
             )
 
-        if isElfUsingPlatform():
+        if isStandaloneMode() and isElfUsingPlatform():
             self._checkPatchElfVersion()
 
         sensible_qt_plugins = self._getSensiblePlugins()
@@ -156,10 +160,17 @@ class NuitkaPluginQtBindingsPluginBase(NuitkaPluginBase):
         )
 
     def _checkPatchElfVersion(self):
-        patchelf_version, patchelf_version_tuple = getPatchElfVersion(self)
+        patchelf_path = getPatchElfPathForQt(
+            logger=self,
+            assume_yes_for_downloads=assumeYesForDownloads(),
+        )
 
-        if (0, 10) <= patchelf_version_tuple < (0, 12):
-            return self.sysexit("""\
+        if patchelf_path is not None:
+            return
+
+        patchelf_version, _patchelf_version_tuple = getPatchElfVersion(self)
+
+        return self.sysexit("""\
 Error, patchelf version '%s' is known to corrupt Qt plugin metadata \
 for standalone '%s' binaries on this platform. Use patchelf 0.12 or \
 newer, or downgrade to patchelf 0.9.""" % (patchelf_version, self.binding_name))

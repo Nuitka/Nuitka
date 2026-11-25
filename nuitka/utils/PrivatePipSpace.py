@@ -13,6 +13,7 @@ from nuitka.containers.OrderedDicts import OrderedDict
 from nuitka.PythonPrefixes import getSystemPrefixExecutable
 from nuitka.PythonVersions import (
     getSitePackageCandidateNames,
+    python_version,
     python_version_str,
 )
 
@@ -114,6 +115,9 @@ def _removePrivatePipInstalledPath(logger, path):
 
 def _cleanupPrivatePipModuleState(logger, site_packages_folder, module_name):
     """Remove stale module files for a package refresh."""
+    if module_name is None:
+        return False
+
     removed = False
 
     if site_packages_folder is not None and os.path.isdir(site_packages_folder):
@@ -605,6 +609,22 @@ def _isPackageInstalled(site_packages_folder, package_name, package_version):
     return True
 
 
+def _isPackageMetadataPresent(site_packages_folder, package_name):
+    """Check if a package has metadata in the given site-packages folder."""
+    normalized_name = _normalizePrivatePipPackageName(package_name) + "-"
+
+    try:
+        filenames = os.listdir(site_packages_folder)
+    except OSError:
+        return False
+
+    return any(
+        filename.startswith(normalized_name)
+        and filename.endswith((".dist-info", ".egg-info"))
+        for filename in filenames
+    )
+
+
 def _findPrivatePipSitePackagesDir(
     package_name,
     module_name,
@@ -616,16 +636,26 @@ def _findPrivatePipSitePackagesDir(
         Folders where the requested version of the package is installed are
         preferred, but a folder with a different version is used as fallback,
         so that packages in stale layouts can be found and refreshed.
+
+        Packages that only install binaries, e.g. 'patchelf', have no module,
+        and are found by their metadata instead.
     """
     fallback = None
 
     for site_packages_folder in _getPrivatePipSitePackagesDirs():
-        module_path = getNormalizedPathJoin(
-            site_packages_folder, module_name.replace(".", os.path.sep)
-        )
+        if module_name is None:
+            if not _isPackageMetadataPresent(
+                site_packages_folder=site_packages_folder,
+                package_name=package_name,
+            ):
+                continue
+        else:
+            module_path = getNormalizedPathJoin(
+                site_packages_folder, module_name.replace(".", os.path.sep)
+            )
 
-        if not os.path.exists(module_path):
-            continue
+            if not os.path.exists(module_path):
+                continue
 
         if _isPackageInstalled(
             site_packages_folder=site_packages_folder,
@@ -943,6 +973,55 @@ def getZigBinaryPath(logger, download_mode, reject_message):
 
         if os.path.exists(zig_exe_path):
             return zig_exe_path
+
+    return None
+
+
+def getPatchElfBinaryPath(
+    logger, check_binary, assume_yes_for_downloads, reject_message
+):
+    """Get a 'patchelf' binary, downloading one if the system version is unsuitable.
+
+    Args:
+        check_binary: Callable taking 'logger' and 'binary_path', returning a
+            tuple of bool and reason for rejection.
+        reject_message: Error message to use if the download is not permitted.
+
+    Returns:
+        Path of the binary, or None if no suitable binary could be obtained.
+    """
+    binary_path = getExecutablePath("patchelf")
+
+    if binary_path is not None:
+        ok, _message = check_binary(logger=logger, binary_path=binary_path)
+
+        if ok:
+            return binary_path
+
+    # The PyPI package version uses a fourth component, while the binary
+    # reports e.g. 0.19.3. Release 0.18.0 is known to be broken, and newer
+    # releases require Python 3.7, so older Python uses 0.17.2.1.
+    package_version = "0.19.3.0" if python_version >= 0x370 else "0.17.2.1"
+
+    site_packages_folder, _download_mode = tryDownloadPackageName(
+        logger=logger,
+        package_name="patchelf",
+        module_name=None,
+        package_version=package_version,
+        force_update=False,
+        download_mode=getDownloadMode(assume_yes_for_downloads),
+        reject_message=reject_message,
+    )
+
+    if site_packages_folder:
+        for candidate in _getCandidateBinPaths(site_packages=site_packages_folder):
+            possible = os.path.join(candidate, "patchelf")
+
+            if os.path.exists(possible):
+                ok, _message = check_binary(logger=logger, binary_path=possible)
+
+                if ok:
+                    return possible
 
     return None
 
