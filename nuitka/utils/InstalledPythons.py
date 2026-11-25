@@ -10,6 +10,7 @@ from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.PythonFlavors import isAnacondaPython, isMSYS2MingwPython
 from nuitka.PythonVersions import (
     getInstalledPythonRegistryPaths,
+    is32BitPython,
     isRunningInInterpreter,
     python_version_full_str,
     python_version_str,
@@ -29,6 +30,7 @@ class InstalledPython(object):
         self.python_exe = python_exe
         self.python_version = python_version
         self.python_full_version = None
+        self.python_is_64bit = None
 
     def __repr__(self):
         return "<InstalledPython '%s' version '%s'>" % (
@@ -67,6 +69,35 @@ class InstalledPython(object):
                 )
 
         return self.python_full_version
+
+    def is64BitPython(self):
+        """Return True if this Python interpreter is 64 bits.
+
+        Notes:
+            Detected once and cached, by asking the interpreter itself, so
+            this also works for interpreters other than the running one.
+        """
+        if self.python_is_64bit is None:
+            if self.python_exe == sys.executable and isRunningInInterpreter():
+                self.python_is_64bit = not is32BitPython()
+            else:
+                try:
+                    self.python_is_64bit = (
+                        check_output(
+                            [
+                                self.python_exe,
+                                "-c",
+                                "import struct; print(struct.calcsize('P'))",
+                            ]
+                        )
+                        .decode("utf8")
+                        .strip()
+                        == "8"
+                    )
+                except (NuitkaCalledProcessError, OSError):
+                    self.python_is_64bit = False
+
+        return self.python_is_64bit
 
     def getHexVersion(self):
         major, minor = self.python_version.split(".")
@@ -259,7 +290,10 @@ def findPythons(python_version, module_specs=None):
                     module_specs=module_specs,
                 )
             ),
-            key=lambda c: c.getPythonExe(),
+            # Prefer 64 bit interpreters when both architectures are installed,
+            # as 32 bit ones lack address space and some packages have no 32
+            # bit wheels at all. Keep the path ordering for equal architecture.
+            key=lambda c: (not c.is64BitPython(), c.getPythonExe()),
         )
     )
 
