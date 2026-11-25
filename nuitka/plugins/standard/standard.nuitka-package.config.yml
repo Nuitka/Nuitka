@@ -1877,6 +1877,12 @@
         '__parse_starttag': 'textwrap.dedent(inspect.getsource(sgmllib.SGMLParser.parse_starttag))'
         'goahead': 'textwrap.dedent(inspect.getsource(sgmllib.SGMLParser.goahead))'
 
+- module-name: 'filelock' # checksum: 175e832a
+  implicit-imports:
+    - depends:
+        - 'filelock.asyncio'
+      when: 'version("filelock") >= (3, 15)'
+
 - module-name: 'fiona' # checksum: 5b806e55
   data-files:
     - dirs:

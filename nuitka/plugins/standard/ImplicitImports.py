@@ -674,6 +674,85 @@ tuple(
                 submodule_attrs=vllm_submodule_attrs,
             )
 
+        # Filelock has its own lazy loading, spell-checker: ignore filelock
+        if module_name == "filelock" and "_LAZY_ATTRIBUTES" in source_code:
+            filelock_lazy_loader_info = self.queryRuntimeInformationSingle(
+                setup_codes="import filelock",
+                value="filelock._LAZY_ATTRIBUTES",
+                info_name="filelock_lazy_loader",
+            )
+
+            filelock_submodule_attrs = {}
+
+            for attribute_name, sub_module_name in filelock_lazy_loader_info.items():
+                # The "asyncio" attribute is the module itself, and
+                # "AsyncFileLock" resolves to a class named after the lock
+                # implementation, so neither can use the attribute factory.
+                if attribute_name in ("asyncio", "AsyncFileLock"):
+                    continue
+
+                filelock_submodule_attrs.setdefault(sub_module_name, []).append(
+                    attribute_name
+                )
+
+            self._addLazyLoader(
+                module_name=module_name,
+                submodules=(),
+                submodule_attrs=filelock_submodule_attrs,
+            )
+
+        if module_name == "filelock._soft" and "_EXPORTS" in source_code:
+            filelock_soft_lazy_loader_info = self.queryRuntimeInformationSingle(
+                setup_codes="import filelock._soft",
+                value="dict(filelock._soft._EXPORTS)",
+                info_name="filelock_soft_lazy_loader",
+            )
+
+            filelock_soft_submodule_attrs = {}
+
+            for (
+                attribute_name,
+                sub_module_name,
+            ) in filelock_soft_lazy_loader_info.items():
+                filelock_soft_submodule_attrs.setdefault(sub_module_name, []).append(
+                    attribute_name
+                )
+
+            self._addLazyLoader(
+                module_name=module_name,
+                submodules=(),
+                submodule_attrs=filelock_soft_submodule_attrs,
+            )
+
+        if (
+            module_name == "filelock._soft._read_write"
+            and "def __getattr__(" in source_code
+        ):
+            filelock_read_write_lazy_loader_info = self.queryRuntimeInformationSingle(
+                setup_codes="import filelock._soft._read_write",
+                value="tuple(name for name in filelock._soft._read_write.__all__ if name.startswith('Async'))",
+                info_name="filelock_soft_read_write_lazy_loader",
+            )
+
+            self._addLazyLoader(
+                module_name=module_name,
+                submodules=(),
+                submodule_attrs={"._async": filelock_read_write_lazy_loader_info},
+            )
+
+        if module_name == "filelock._sqlite" and "def __getattr__(" in source_code:
+            filelock_sqlite_lazy_loader_info = self.queryRuntimeInformationSingle(
+                setup_codes="import filelock._sqlite",
+                value="tuple(name for name in filelock._sqlite.__all__ if name.startswith('Async'))",
+                info_name="filelock_sqlite_lazy_loader",
+            )
+
+            self._addLazyLoader(
+                module_name=module_name,
+                submodules=(),
+                submodule_attrs={"._async": filelock_sqlite_lazy_loader_info},
+            )
+
         return source_code
 
     def _addLazyLoader(self, module_name, submodules, submodule_attrs):
