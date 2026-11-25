@@ -1290,12 +1290,19 @@
       no-auto-follow:
         'distributed': 'ignore'
 
-- module-name: 'dask.dataframe' # checksum: 285671ed
+- module-name: 'dask.dataframe' # checksum: 74790f5d
   anti-bloat:
     - description: 'remove pytest testing framework'
       replacements_plain:
         'from dask.dataframe._testing import test_dataframe': 'test_dataframe = None'
       when: 'not use_pytest'
+
+  implicit-imports:
+    - depends:
+        - 'pyarrow._substrait'
+        - 'pyarrow._parquet_encryption'
+        - 'pyarrow.substrait'
+        - 'pyarrow.parquet.encryption'
 
 - module-name: 'dask.dataframe._compat' # checksum: 33e9840c
   anti-bloat:
