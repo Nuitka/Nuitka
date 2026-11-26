@@ -2781,6 +2781,86 @@
       patterns:
         - '../org.jpype.jar'
 
+# 'Eval' needs 'arguments, var' as its last two parameters so js2py's wrapper
+# detection leaves it alone, and 'var' keeps its JavaScript argument count at 1.
+- module-name: 'js2py.host.jseval' # checksum: b6c8adaf
+  anti-bloat:
+    - description: 'give Eval explicit scope arguments'
+      replacements_plain:
+        'def Eval(code):': 'def Eval(code, this=None, arguments=None, var=None):'
+      when: 'version("js2py") < (0, 75)'
+
+- module-name: 'js2py.translators.translator' # checksum: a9095a4c
+  implicit-imports:
+    - depends:
+        - 'js2py.pyjs'
+
+# Nuitka compiled functions have fake code objects that cannot be re-created,
+# and js2py derives the argument count from 'co_argcount', so a wrapper with
+# the exact positional signature is used for them.
+- module-name: 'js2py.utils.injector' # checksum: c62d7ce
+  anti-bloat:
+    - description: 'support compiled functions in fix_js_args'
+      append_plain: |
+        _MISSING = object()
+
+        def _call_with_scope(func, args, this, arguments):
+            func_globals = six.get_function_globals(func)
+            old_this = func_globals.get('this', _MISSING)
+            old_arguments = func_globals.get('arguments', _MISSING)
+            func_globals['this'] = this
+            func_globals['arguments'] = arguments
+            try:
+                return func(*args)
+            finally:
+                if old_this is _MISSING:
+                    del func_globals['this']
+                else:
+                    func_globals['this'] = old_this
+                if old_arguments is _MISSING:
+                    del func_globals['arguments']
+                else:
+                    func_globals['arguments'] = old_arguments
+
+        def fix_js_args(func):
+            fcode = six.get_function_code(func)
+            fargs = fcode.co_varnames[fcode.co_argcount - 2:fcode.co_argcount]
+            if fargs == ('this', 'arguments') or fargs == ('arguments', 'var'):
+                return func
+
+            if hasattr(func, '__compiled__'):
+                argcount = fcode.co_argcount
+                arg_names = ['_arg%d' % i for i in range(argcount)]
+                params = ', '.join(arg_names + ['this', 'arguments'])
+                call_args = ', '.join(arg_names)
+                args_tuple = '(%s)' % call_args
+                if argcount == 1:
+                    args_tuple = '(%s,)' % call_args
+                namespace = {'_func': func, '_call_with_scope': _call_with_scope}
+                wrapper = eval(
+                    compile(
+                        'lambda %s: _call_with_scope(_func, %s, this, arguments)'
+                        % (params, args_tuple),
+                        '<js2py-fix-js-args>',
+                        'eval',
+                    ),
+                    namespace,
+                )
+                wrapper.__name__ = func.__name__
+                wrapper.__qualname__ = getattr(func, '__qualname__', func.__name__)
+                wrapper.__doc__ = func.__doc__
+                wrapper.__module__ = func.__module__
+                return wrapper
+
+            code = append_arguments(fcode, ('this', 'arguments'))
+            return types.FunctionType(
+                code,
+                six.get_function_globals(func),
+                func.__name__,
+                closure=six.get_function_closure(func),
+            )
+      when: 'version("js2py") < (0, 75)'
+
 - module-name: 'jsonrpcserver.main' # checksum: 245e25bc
   data-files:
     - patterns:
