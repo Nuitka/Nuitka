@@ -830,22 +830,44 @@ static void resolveFileSymbolicLink(wchar_t *resolved_filename, wchar_t const *f
 static void resolveFileSymbolicLink(char *resolved_filename, char const *filename, size_t resolved_filename_size,
                                     bool resolve_symlinks) {
 #ifdef __wasi__
-    copyStringSafe(resolved_filename, filename, resolved_filename_size);
+    if (resolved_filename != filename) {
+        copyStringSafe(resolved_filename, filename, resolved_filename_size);
+    }
 #else
     if (resolve_symlinks) {
-        // At least on macOS, realpath cannot allocate a buffer, itself, so lets
-        // use a local one, only on Linux we could use NULL argument and have a
-        // malloc of the resulting value.
-        char buffer[MAXPATHLEN];
+        // At least on macOS, realpath cannot allocate a buffer itself, so use a
+        // local one.
+        char buffer[MAXPATHLEN + 1];
 
         char *result = realpath(filename, buffer);
 
         if (unlikely(result == NULL)) {
-            abort();
+            if (errno != ENOENT) {
+                abort();
+            }
+
+            // In case of non-existent path, degrade gracefully still.
+            char const *last_sep = strrchr(filename, '/');
+            if (last_sep != NULL && last_sep != filename) {
+                char dir_part[MAXPATHLEN + 1];
+                copyStringSafeN(dir_part, filename, (size_t)(last_sep - filename), sizeof(dir_part));
+
+                if (realpath(dir_part, buffer) != NULL) {
+                    appendCharSafe(buffer, '/', sizeof(buffer));
+                    appendStringSafe(buffer, last_sep + 1, sizeof(buffer));
+                    copyStringSafe(resolved_filename, buffer, resolved_filename_size);
+                    return;
+                }
+            }
+
+            if (resolved_filename != filename) {
+                copyStringSafe(resolved_filename, filename, resolved_filename_size);
+            }
+            return;
         }
 
         copyStringSafe(resolved_filename, buffer, resolved_filename_size);
-    } else {
+    } else if (resolved_filename != filename) {
         copyStringSafe(resolved_filename, filename, resolved_filename_size);
     }
 #endif
@@ -854,28 +876,47 @@ static void resolveFileSymbolicLink(char *resolved_filename, char const *filenam
 
 #ifdef _WIN32
 wchar_t const *getBinaryFilenameWideChars(bool resolve_symlinks) {
+    static wchar_t raw_binary_filename[MAXPATHLEN + 1] = {0};
     static wchar_t binary_filename[MAXPATHLEN + 1] = {0};
-    static wchar_t binary_filename_resolved[MAXPATHLEN + 1] = {0};
+    static wchar_t binary_filename_resolved_buf[MAXPATHLEN + 1] = {0};
+    static wchar_t const *binary_filename_resolved = NULL;
 
-    wchar_t *buffer = resolve_symlinks ? binary_filename_resolved : binary_filename;
-    STATIC_ASSERT(sizeof(binary_filename) == sizeof(binary_filename_resolved), "Arrays must have same size");
+    STATIC_ASSERT(sizeof(binary_filename) == sizeof(binary_filename_resolved_buf), "Arrays must have same size");
 
-    if (buffer[0] == 0) {
+    if (raw_binary_filename[0] == 0) {
 #if _NUITKA_DLL_MODE || _NUITKA_MODULE_MODE
-        if (_pseudo_dll_filename != NULL) {
-            copyStringSafeW(buffer, _pseudo_dll_filename, sizeof(binary_filename) / sizeof(wchar_t));
-        } else
+        copyStringSafeW(raw_binary_filename, getDllFilename(), sizeof(raw_binary_filename) / sizeof(wchar_t));
+#else
+        DWORD res = GetModuleFileNameW(NULL, raw_binary_filename, sizeof(raw_binary_filename) / sizeof(wchar_t));
+        assert(res != 0);
 #endif
-        {
-            DWORD res = GetModuleFileNameW(NULL, buffer, sizeof(binary_filename) / sizeof(wchar_t));
-            assert(res != 0);
-        }
-
-        resolveFileSymbolicLink(buffer, buffer, sizeof(binary_filename) / sizeof(wchar_t), resolve_symlinks);
-        makeShortDirFilename(buffer, sizeof(binary_filename) / sizeof(wchar_t));
     }
 
-    return buffer;
+    if (resolve_symlinks) {
+        if (binary_filename_resolved == NULL) {
+            resolveFileSymbolicLink(binary_filename_resolved_buf, raw_binary_filename,
+                                    sizeof(binary_filename_resolved_buf) / sizeof(wchar_t), true);
+
+            if (wcscmp(binary_filename_resolved_buf, raw_binary_filename) == 0) {
+                binary_filename_resolved = getBinaryFilenameWideChars(false);
+            } else {
+                makeShortDirFilename(binary_filename_resolved_buf,
+                                     sizeof(binary_filename_resolved_buf) / sizeof(wchar_t));
+                binary_filename_resolved = binary_filename_resolved_buf;
+            }
+        }
+
+        return binary_filename_resolved;
+    }
+
+    if (binary_filename[0] == 0) {
+        copyStringSafeW(binary_filename, raw_binary_filename, sizeof(binary_filename) / sizeof(wchar_t));
+#if !(_NUITKA_DLL_MODE || _NUITKA_MODULE_MODE)
+        makeShortDirFilename(binary_filename, sizeof(binary_filename) / sizeof(wchar_t));
+#endif
+    }
+
+    return binary_filename;
 }
 #endif
 
@@ -897,7 +938,14 @@ char const *getBinaryFilenameHostEncoded(bool resolve_symlinks) {
     if (*binary_filename_target != NULL) {
         return *binary_filename_target;
     }
+
     wchar_t const *w = getBinaryFilenameWideChars(resolve_symlinks);
+    char *other_target = resolve_symlinks ? binary_filename : binary_filename_resolved;
+
+    if (other_target != NULL && w == getBinaryFilenameWideChars(!resolve_symlinks)) {
+        *binary_filename_target = other_target;
+        return *binary_filename_target;
+    }
 
     DWORD bufsize = WideCharToMultiByte(CP_ACP, 0, w, -1, NULL, 0, NULL, NULL);
     assert(bufsize != 0);
@@ -920,24 +968,33 @@ char const *getBinaryFilenameHostEncoded(bool resolve_symlinks) {
     const int buffer_size = MAXPATHLEN + 1;
 
     static char binary_filename[MAXPATHLEN + 1] = {0};
-    static char binary_filename_resolved[MAXPATHLEN + 1] = {0};
-
-    char *binary_filename_target;
+    static char binary_filename_resolved_buf[MAXPATHLEN + 1] = {0};
+    static char const *binary_filename_resolved = NULL;
 
     if (resolve_symlinks) {
-        binary_filename_target = binary_filename_resolved;
-    } else {
-        binary_filename_target = binary_filename;
+        if (binary_filename_resolved == NULL) {
+            char const *unresolved = getBinaryFilenameHostEncoded(false);
+            resolveFileSymbolicLink(binary_filename_resolved_buf, unresolved, buffer_size, true);
+
+            if (strcmp(binary_filename_resolved_buf, unresolved) == 0) {
+                binary_filename_resolved = unresolved;
+            } else {
+                binary_filename_resolved = binary_filename_resolved_buf;
+            }
+        }
+
+        return binary_filename_resolved;
     }
 
-    if (*binary_filename_target != 0) {
-        return binary_filename_target;
+    if (binary_filename[0] == 0) {
+#if _NUITKA_DLL_MODE || _NUITKA_MODULE_MODE
+        copyStringSafe(binary_filename, getDllFilename(), buffer_size);
+#else
+        copyStringSafe(binary_filename, _getBinaryPath2(), buffer_size);
+#endif
     }
 
-    copyStringSafe(binary_filename_target, _getBinaryPath2(), buffer_size);
-    resolveFileSymbolicLink(binary_filename_target, binary_filename_target, buffer_size, resolve_symlinks);
-
-    return binary_filename_target;
+    return binary_filename;
 }
 #endif
 
@@ -1345,7 +1402,7 @@ bool expandTemplatePath(char *target, char const *source, size_t buffer_size) {
                 appendStringSafe(target, tmp_dir, buffer_size);
                 is_path = true;
             } else if (strcasecmp(var_name, "PROGRAM") == 0) {
-                char const *exe_name = getBinaryFilenameHostEncoded(false);
+                char const *exe_name = getBinaryPath();
 
                 appendStringSafe(target, exe_name, buffer_size);
             } else if (strcasecmp(var_name, "PROGRAM_BASE") == 0) {

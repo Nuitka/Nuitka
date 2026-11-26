@@ -1816,24 +1816,46 @@ PyObject *JOIN_PATH2(PyObject *dirname, PyObject *filename) {
 #if _NUITKA_EXE_MODE || _NUITKA_DLL_MODE
 
 wchar_t const *getBinaryDirectoryWideChars(bool resolve_symlinks) {
-    static wchar_t binary_directory[MAXPATHLEN + 1] = {0};
-    static wchar_t binary_directory_resolved[MAXPATHLEN + 1] = {0};
+    static wchar_t binary_directory_buf[MAXPATHLEN + 1] = {0};
+    static wchar_t binary_directory_resolved_buf[MAXPATHLEN + 1] = {0};
+    static wchar_t const *binary_directory = NULL;
+    static wchar_t const *binary_directory_resolved = NULL;
 
-    wchar_t *buffer = resolve_symlinks ? binary_directory_resolved : binary_directory;
+    wchar_t const **target = resolve_symlinks ? &binary_directory_resolved : &binary_directory;
 
-    if (buffer[0] == 0) {
+    if (*target == NULL) {
+        wchar_t const *other_dir = resolve_symlinks ? binary_directory : binary_directory_resolved;
+
 #if defined(_WIN32)
-        copyStringSafeW(buffer, getBinaryFilenameWideChars(resolve_symlinks),
-                        sizeof(binary_directory) / sizeof(wchar_t));
+        wchar_t const *exe_filename = getBinaryFilenameWideChars(resolve_symlinks);
 
-        stripFilenameW(buffer);
-        makeShortFilename(buffer, sizeof(binary_directory) / sizeof(wchar_t));
+        if (other_dir != NULL && exe_filename == getBinaryFilenameWideChars(!resolve_symlinks)) {
+            *target = other_dir;
+        } else {
+            wchar_t *buffer = resolve_symlinks ? binary_directory_resolved_buf : binary_directory_buf;
+            copyStringSafeW(buffer, exe_filename, sizeof(binary_directory_buf) / sizeof(wchar_t));
+            stripFilenameW(buffer);
+
+            if (other_dir != NULL && wcscmp(buffer, other_dir) == 0) {
+                *target = other_dir;
+            } else {
+                *target = buffer;
+            }
+        }
 #else
-        appendStringSafeW(buffer, getBinaryDirectoryHostEncoded(resolve_symlinks),
-                          sizeof(binary_directory) / sizeof(wchar_t));
+        char const *dir_host = getBinaryDirectoryHostEncoded(resolve_symlinks);
+
+        if (other_dir != NULL && dir_host == getBinaryDirectoryHostEncoded(!resolve_symlinks)) {
+            *target = other_dir;
+        } else {
+            wchar_t *buffer = resolve_symlinks ? binary_directory_resolved_buf : binary_directory_buf;
+            appendStringSafeW(buffer, dir_host, sizeof(binary_directory_buf) / sizeof(wchar_t));
+            *target = buffer;
+        }
 #endif
     }
-    return (wchar_t const *)buffer;
+
+    return *target;
 }
 
 #if defined(_WIN32)
@@ -1853,6 +1875,12 @@ char const *getBinaryDirectoryHostEncoded(bool resolve_symlinks) {
         return *binary_directory_target;
     }
     wchar_t const *w = getBinaryDirectoryWideChars(resolve_symlinks);
+    char *other_target = resolve_symlinks ? binary_directory : binary_directory_resolved;
+
+    if (other_target != NULL && w == getBinaryDirectoryWideChars(!resolve_symlinks)) {
+        *binary_directory_target = other_target;
+        return *binary_directory_target;
+    }
 
     DWORD bufsize = WideCharToMultiByte(CP_ACP, 0, w, -1, NULL, 0, NULL, NULL);
     assert(bufsize != 0);
@@ -1875,25 +1903,36 @@ char const *getBinaryDirectoryHostEncoded(bool resolve_symlinks) {
 char const *getBinaryDirectoryHostEncoded(bool resolve_symlinks) {
     const int buffer_size = MAXPATHLEN + 1;
 
-    static char binary_directory[MAXPATHLEN + 1] = {0};
-    static char binary_directory_resolved[MAXPATHLEN + 1] = {0};
+    static char binary_directory_buf[MAXPATHLEN + 1] = {0};
+    static char binary_directory_resolved_buf[MAXPATHLEN + 1] = {0};
+    static char const *binary_directory = NULL;
+    static char const *binary_directory_resolved = NULL;
 
-    char *binary_directory_target;
+    char const **target = resolve_symlinks ? &binary_directory_resolved : &binary_directory;
 
-    if (resolve_symlinks) {
-        binary_directory_target = binary_directory_resolved;
+    if (*target != NULL) {
+        return *target;
+    }
+
+    char const *exe_filename = getBinaryFilenameHostEncoded(resolve_symlinks);
+    char const *other_dir = resolve_symlinks ? binary_directory : binary_directory_resolved;
+
+    if (other_dir != NULL && exe_filename == getBinaryFilenameHostEncoded(!resolve_symlinks)) {
+        *target = other_dir;
+        return *target;
+    }
+
+    char *buffer = resolve_symlinks ? binary_directory_resolved_buf : binary_directory_buf;
+    copyStringSafe(buffer, exe_filename, buffer_size);
+    copyStringSafe(buffer, dirname(buffer), buffer_size);
+
+    if (other_dir != NULL && strcmp(buffer, other_dir) == 0) {
+        *target = other_dir;
     } else {
-        binary_directory_target = binary_directory;
+        *target = buffer;
     }
 
-    if (*binary_directory_target != 0) {
-        return binary_directory_target;
-    }
-
-    copyStringSafe(binary_directory_target, getBinaryFilenameHostEncoded(resolve_symlinks), buffer_size);
-    copyStringSafe(binary_directory_target, dirname(binary_directory_target), buffer_size);
-
-    return binary_directory_target;
+    return *target;
 }
 
 #endif
@@ -1917,17 +1956,36 @@ PyObject *getBinaryFilenameObject(bool resolve_symlinks) {
         return *binary_object_target;
     }
 
+    PyObject *other_object = resolve_symlinks ? binary_filename : binary_filename_resolved;
+
 // On Python3, this must be a unicode object, it cannot be on Python2,
 // there e.g. code objects expect Python2 strings.
 #if PYTHON_VERSION >= 0x300
 #ifdef _WIN32
     wchar_t const *exe_filename = getBinaryFilenameWideChars(resolve_symlinks);
+    if (other_object != NULL && exe_filename == getBinaryFilenameWideChars(!resolve_symlinks)) {
+        *binary_object_target = other_object;
+        Py_INCREF(*binary_object_target);
+        return *binary_object_target;
+    }
     *binary_object_target = NuitkaUnicode_FromWideChar(exe_filename, -1);
 #else
-    *binary_object_target = PyUnicode_DecodeFSDefault(getBinaryFilenameHostEncoded(resolve_symlinks));
+    char const *exe_filename = getBinaryFilenameHostEncoded(resolve_symlinks);
+    if (other_object != NULL && exe_filename == getBinaryFilenameHostEncoded(!resolve_symlinks)) {
+        *binary_object_target = other_object;
+        Py_INCREF(*binary_object_target);
+        return *binary_object_target;
+    }
+    *binary_object_target = PyUnicode_DecodeFSDefault(exe_filename);
 #endif
 #else
-    *binary_object_target = PyString_FromString(getBinaryFilenameHostEncoded(resolve_symlinks));
+    char const *exe_filename = getBinaryFilenameHostEncoded(resolve_symlinks);
+    if (other_object != NULL && exe_filename == getBinaryFilenameHostEncoded(!resolve_symlinks)) {
+        *binary_object_target = other_object;
+        Py_INCREF(*binary_object_target);
+        return *binary_object_target;
+    }
+    *binary_object_target = PyString_FromString(exe_filename);
 #endif
 
     if (unlikely(*binary_object_target == NULL)) {
@@ -1959,17 +2017,36 @@ PyObject *getBinaryDirectoryObject(bool resolve_symlinks) {
         return *binary_object_target;
     }
 
+    PyObject *other_object = resolve_symlinks ? binary_directory : binary_directory_resolved;
+
 // On Python3, this must be a unicode object, it cannot be on Python2,
 // there e.g. code objects expect Python2 strings.
 #if PYTHON_VERSION >= 0x300
 #ifdef _WIN32
     wchar_t const *bin_directory = getBinaryDirectoryWideChars(resolve_symlinks);
+    if (other_object != NULL && bin_directory == getBinaryDirectoryWideChars(!resolve_symlinks)) {
+        *binary_object_target = other_object;
+        Py_INCREF(*binary_object_target);
+        return *binary_object_target;
+    }
     *binary_object_target = NuitkaUnicode_FromWideChar(bin_directory, -1);
 #else
-    *binary_object_target = PyUnicode_DecodeFSDefault(getBinaryDirectoryHostEncoded(resolve_symlinks));
+    char const *bin_directory = getBinaryDirectoryHostEncoded(resolve_symlinks);
+    if (other_object != NULL && bin_directory == getBinaryDirectoryHostEncoded(!resolve_symlinks)) {
+        *binary_object_target = other_object;
+        Py_INCREF(*binary_object_target);
+        return *binary_object_target;
+    }
+    *binary_object_target = PyUnicode_DecodeFSDefault(bin_directory);
 #endif
 #else
-    *binary_object_target = PyString_FromString(getBinaryDirectoryHostEncoded(resolve_symlinks));
+    char const *bin_directory = getBinaryDirectoryHostEncoded(resolve_symlinks);
+    if (other_object != NULL && bin_directory == getBinaryDirectoryHostEncoded(!resolve_symlinks)) {
+        *binary_object_target = other_object;
+        Py_INCREF(*binary_object_target);
+        return *binary_object_target;
+    }
+    *binary_object_target = PyString_FromString(bin_directory);
 #endif
 
     if (unlikely(*binary_object_target == NULL)) {
