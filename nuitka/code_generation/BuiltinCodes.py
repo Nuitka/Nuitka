@@ -8,7 +8,7 @@ bin, etc.
 """
 
 from nuitka.Builtins import builtin_anon_codes
-from nuitka.PythonVersions import isPythonWithGil
+from nuitka.options.Options import hasGuaranteedRuntimeGil
 
 from .CodeHelpers import (
     decideConversionCheckNeeded,
@@ -43,7 +43,7 @@ def generateBuiltinRefCode(to_name, expression, emit, context):
     with withObjectCodeTemporaryAssignment(
         to_name, "builtin_value", expression, emit, context
     ) as value_name:
-        if isPythonWithGil():
+        if hasGuaranteedRuntimeGil():
             emit(
                 "%s = LOOKUP_BUILTIN(%s);"
                 % (value_name, context.getConstantCode(constant=builtin_name))

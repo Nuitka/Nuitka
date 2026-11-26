@@ -38,6 +38,7 @@ from nuitka.PythonVersions import (
     getNotYetSupportedPythonVersions,
     getSupportedPythonVersions,
     isDebugPython,
+    isFreeThreadedPython,
     isPythonWithGil,
     python_release_level,
     python_version,
@@ -1144,7 +1145,7 @@ release will add it. In the mean time use '%s' instead."""
                 )
             )
 
-    if not isPythonWithGil():
+    if isFreeThreadedPython():
         general.warning("""\
 The Python without GIL (free-threaded) is only experimentally supported \
 by Nuitka.""")
@@ -3538,6 +3539,12 @@ def hasPythonFlagPackageMode():
     """*bool* = "package_mode", "-m" in python flags given"""
 
     return "package_mode" in _getPythonFlags()
+
+
+def hasGuaranteedRuntimeGil():
+    """Whether compiled code is guaranteed to execute under the GIL at runtime."""
+
+    return not isFreeThreadedPython() or (not shallMakeModule() and isPythonWithGil())
 
 
 def shallNotUseDependsExeCachedResults():
