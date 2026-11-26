@@ -1648,17 +1648,18 @@ void dumpFrameStack(void) {
 
     while (current) {
 #if PYTHON_VERSION < 0x3b0
-        PyObject *current_repr = PyObject_Str((PyObject *)current);
-        PyObject *code_repr = PyObject_Str((PyObject *)current->f_code);
+        PyObject *current_repr = BUILTIN_STR_OR_UNICODE1((PyObject *)current);
+        PyObject *code_repr = BUILTIN_STR_OR_UNICODE1((PyObject *)current->f_code);
 #else
         PyObject *current_repr = NULL;
         if (current->current_frame->frame_obj != NULL) {
-            current_repr = PyObject_Str((PyObject *)current->current_frame->frame_obj);
+            current_repr = BUILTIN_STR_OR_UNICODE1((PyObject *)current->current_frame->frame_obj);
         } else {
             current_repr = const_str_empty;
             Py_INCREF(const_str_empty);
         }
-        PyObject *code_repr = PyObject_Str((PyObject *)Nuitka_InterpreterFrame_GetCodeObject(current->current_frame));
+        PyObject *code_repr =
+            BUILTIN_STR_OR_UNICODE1((PyObject *)Nuitka_InterpreterFrame_GetCodeObject(current->current_frame));
 #endif
 
         PRINT_FORMAT("Frame stack %d: %s %d %s\n", total--, Nuitka_String_AsString(current_repr), Py_REFCNT(current),
@@ -1684,7 +1685,7 @@ static void PRINT_UNCOMPILED_FRAME(char const *prefix, PyFrameObject *frame) {
     PRINT_STRING(" ");
 
     if (frame) {
-        PyObject *frame_str = PyObject_Str((PyObject *)frame);
+        PyObject *frame_str = BUILTIN_STR_OR_UNICODE1((PyObject *)frame);
         PRINT_ITEM(frame_str);
         Py_DECREF(frame_str);
 

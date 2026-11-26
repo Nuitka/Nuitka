@@ -386,7 +386,7 @@ static void PRINT_REFCOUNTS(void) {
 #if SYSFLAG_NO_SITE == 1 && !defined(_NUITKA_DEPLOYMENT_MODE) && !defined(_NUITKA_NO_DEPLOYMENT_SITE_BUILTINS)
 static char const *getNoSiteBuiltinNameFromException(PyThreadState *tstate, PyObject *exception_value,
                                                      bool *global_name_error) {
-    PyObject *exception_text = PyObject_Str(exception_value);
+    PyObject *exception_text = BUILTIN_STR_OR_UNICODE1(exception_value);
 
     if (unlikely(exception_text == NULL)) {
         CLEAR_ERROR_OCCURRED(tstate);

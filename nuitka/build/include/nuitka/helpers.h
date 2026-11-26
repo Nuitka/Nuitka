@@ -171,8 +171,13 @@ extern PyObject *COMPILE_CODE_EXEC(PyThreadState *tstate, PyObject *source_code,
 extern bool EXEC_FILE_ARG_HANDLING(PyThreadState *tstate, PyObject **prog, PyObject **name);
 #endif
 
+#if PYTHON_VERSION < 0x300
 // Python 2 str() built-in.
 extern PyObject *BUILTIN_STR(PyObject *value);
+#define BUILTIN_STR_OR_UNICODE1(value) BUILTIN_STR(value)
+#else
+#define BUILTIN_STR_OR_UNICODE1(value) BUILTIN_UNICODE1(value)
+#endif
 
 // Python 3 str() / Python 2 unicode() built-in.
 extern PyObject *BUILTIN_UNICODE1(PyObject *value);

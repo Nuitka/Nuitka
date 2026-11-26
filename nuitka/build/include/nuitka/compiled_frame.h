@@ -435,7 +435,7 @@ NUITKA_MAY_BE_UNUSED inline static void popFrameStack(PyThreadState *tstate) {
     CHECK_OBJECT(frame_object);
 
 #if _DEBUG_FRAME
-    printf("Taking off frame %s %s\n", Nuitka_String_AsString(PyObject_Str((PyObject *)frame_object)),
+    printf("Taking off frame %s %s\n", Nuitka_String_AsString(BUILTIN_STR_OR_UNICODE1((PyObject *)frame_object)),
            Nuitka_String_AsString(PyObject_Repr((PyObject *)Nuitka_Frame_GetCodeObject(&frame_object->m_frame))));
 #endif
 

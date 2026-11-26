@@ -293,7 +293,7 @@ static bool PGO_getStringIDFromTextObject(PyObject *value, uint32_t *string_id) 
 // decimal string, so the value is preserved exactly, and a py2 "long" and a
 // py3 big "int" produce the same output.
 static bool PGO_serializeBigInt(PyThreadState *tstate, PyObject *value) {
-    PyObject *decimal = PyObject_Str(value);
+    PyObject *decimal = BUILTIN_STR_OR_UNICODE1(value);
 
     if (decimal == NULL) {
         DROP_ERROR_OCCURRED(tstate);

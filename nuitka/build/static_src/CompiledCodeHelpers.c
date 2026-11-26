@@ -1003,7 +1003,8 @@ void PRINT_TRACEBACK(PyTracebackObject *traceback) {
         PyFrameObject *frame = traceback->tb_frame;
 
         while (frame != NULL) {
-            printf("  Frame at %s\n", PyString_AsString(PyObject_Str((PyObject *)Nuitka_Frame_GetCodeObject(frame))));
+            printf("  Frame at %s\n",
+                   Nuitka_String_AsString(BUILTIN_STR_OR_UNICODE1((PyObject *)Nuitka_Frame_GetCodeObject(frame))));
 
             frame = frame->f_back;
         }

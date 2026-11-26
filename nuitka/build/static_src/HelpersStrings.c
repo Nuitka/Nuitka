@@ -948,6 +948,7 @@ PyObject *BUILTIN_UNICODE1(PyObject *value) {
 
 #if !defined(Py_DEBUG) && PYTHON_VERSION >= 0x300
     if (PyUnicode_READY(result) < 0) {
+        Py_DECREF(result);
         return NULL;
     }
 #endif
