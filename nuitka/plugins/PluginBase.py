@@ -61,8 +61,10 @@ from nuitka.options.Options import (
 )
 from nuitka.PythonFlavors import (
     isAnacondaPython,
+    isCygwinPython,
     isDebianPackagePython,
     isMonolithPy,
+    isMSYS2PosixPython,
 )
 from nuitka.PythonVersions import (
     getTestExecutionPythonVersions,
@@ -111,6 +113,7 @@ from nuitka.utils.Utils import (
     isAndroidBasedLinux,
     isLinux,
     isMacOS,
+    isPosixWindows,
     isWin32Windows,
     withNoWarning,
 )
@@ -170,6 +173,7 @@ def _getEvaluationContext():
         _context_dict = {
             "macos": isMacOS(),
             "win32": isWin32Windows(),
+            "posix_windows": isPosixWindows(),
             "linux": isLinux(),
             "android": isAndroidBasedLinux(),
             "android32": isAndroidBasedLinux() and is32BitPython(),
@@ -178,6 +182,8 @@ def _getEvaluationContext():
             "is_conda_package": _isCondaPackage,
             "debian_python": isDebianPackagePython(),
             "monolithpy": isMonolithPy(),
+            "cygwin": isCygwinPython(),
+            "msys2_posix": isMSYS2PosixPython(),
             "standalone": isStandaloneMode(),
             "onefile": isOnefileMode(),
             "onefile_cached": not isOnefileTempDirMode(),

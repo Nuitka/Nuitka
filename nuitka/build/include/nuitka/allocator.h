@@ -296,7 +296,7 @@ static inline void Nuitka_GC_UnTrack(void *raw_op) {
 // Before Python 3.8, symbols referenced by _PyObject_GC_TRACK were not exported
 // from the Windows Python DLL, and CPython 3.7.0 / 3.7.3->3.7.4 changed ABI on
 // Linux as well, requiring the exported C-API functions instead.
-#elif (defined(_WIN32) || defined(__MSYS__)) && PYTHON_VERSION < 0x380
+#elif (defined(_WIN32) || defined(__MSYS__) || defined(__CYGWIN__)) && PYTHON_VERSION < 0x380
 #define Nuitka_GC_Track PyObject_GC_Track
 #define Nuitka_GC_UnTrack PyObject_GC_UnTrack
 #undef _PyObject_GC_TRACK

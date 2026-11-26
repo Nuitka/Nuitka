@@ -37,6 +37,8 @@ static char const *module_root_leaf = NULL;
 #define _NUITKA_EXTENSION_MODULE_SUFFIX "_d.pyd"
 #elif defined(_WIN32)
 #define _NUITKA_EXTENSION_MODULE_SUFFIX ".pyd"
+#elif defined(__CYGWIN__) || defined(__MSYS__)
+#define _NUITKA_EXTENSION_MODULE_SUFFIX ".dll"
 #else
 #define _NUITKA_EXTENSION_MODULE_SUFFIX ".so"
 #endif

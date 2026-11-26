@@ -25,8 +25,8 @@ def getOS():
     elif os.name == "posix":
         result = os.uname()[0]
 
-        # Handle msys2 posix nature still meaning it's Windows.
-        if result.startswith(("MSYS_NT-", "MINGW64_NT-")):
+        # Handle MSYS2 and Cygwin POSIX variants still meaning Windows.
+        if result.startswith(("MSYS_NT-", "MINGW64_NT-", "CYGWIN_NT-")):
             result = "Windows"
 
         # OS400 (IBM i) is effectively AIX when using the native
@@ -138,26 +138,25 @@ def getLinuxDistribution():
     return _linux_distribution_info
 
 
-def getWindowsRelease():
-    if not isWin32OrPosixWindows():
-        return None
+def _getPosixWindowsVersionInfo():
+    from .FileOperations import getFileContents
 
-    if isPosixWindows():
-        from .FileOperations import getFileContents
+    # Cygwin and MSYS2 format '/proc/version' as e.g. 'MSYS_NT-10.0-26300' and
+    # may append non-numeric suffixes such as '-WOW64' or '-ARM64' after the
+    # build number.
+    version_parts = getFileContents("/proc/version").split(" ")[0].split("-")
+    major_str, minor_str = version_parts[1].split(".")
 
-        build_number = int(
-            getFileContents("/proc/version").split(" ")[0].rsplit("-")[-1]
-        )
+    build_number = 0
+    for part in version_parts[2:]:
+        if part.isdigit():
+            build_number = int(part)
+            break
 
-        if build_number >= 21996:
-            return 11
-        elif build_number >= 10240:
-            return 10
-        elif build_number >= 9200:
-            return 8
-        else:
-            return 7
+    return int(major_str), int(minor_str), build_number
 
+
+def _getWin32WindowsVersionInfo():
     class OsVersionInfoEx(ctypes.Structure):
         _fields_ = [
             ("dwOSVersionInfoSize", ctypes.c_ulong),
@@ -184,12 +183,30 @@ def getWindowsRelease():
     if result != 0:
         raiseWindowsError("Failed to get OS version")
 
-    version = os_version_value.dwMajorVersion
+    return (
+        os_version_value.dwMajorVersion,
+        os_version_value.dwMinorVersion,
+        os_version_value.dwBuildNumber,
+    )
 
-    if os_version_value.dwBuildNumber >= 21996 and version == 10:
-        version = 11
 
-    return version
+def getWindowsRelease():
+    if isWin32Windows():
+        major, minor, build_number = _getWin32WindowsVersionInfo()
+    elif isPosixWindows():
+        major, minor, build_number = _getPosixWindowsVersionInfo()
+    else:
+        return None
+
+    if major == 10 and build_number >= 21996:
+        return 11
+    elif major == 6:
+        if minor >= 2:
+            return 8
+        elif minor == 1:
+            return 7
+
+    return major
 
 
 def getMacOSRelease():
@@ -249,7 +266,7 @@ def isWin32Windows():
 
 
 def isPosixWindows():
-    """The MSYS2 variant of Python does have posix only, not Win32."""
+    """Python uses a POSIX ABI on Windows (e.g. MSYS2 POSIX or Cygwin), not Win32."""
     return os.name == "posix" and getOS() == "Windows"
 
 
@@ -407,7 +424,7 @@ def isAlpineLinux():
 
 
 def getArchitecture():
-    if getOS() == "Windows":
+    if isWin32Windows():
         if "AMD64" in sys.version:
             return "x86_64"
         elif "ARM64" in sys.version:
@@ -447,7 +464,7 @@ def getCPUCoreCount():
 
 def hasOnefileSupportedOS():
     """Is onefile supported on this OS. Please help to add more."""
-    return hasStandaloneSupportedOS()
+    return hasStandaloneSupportedOS() and not isPosixWindows()
 
 
 def hasStandaloneSupportedOS():
@@ -607,7 +624,7 @@ def raiseWindowsError(message):
 def getLaunchingNuitkaProcessEnvironmentValue(environment_variable_name):
     # Hack, we need this to bootstrap and it's actually living in __main__
     # module of nuitka package and renamed to where we can get at easily for
-    # other uses. pylint: disable=no-name-in-module,redefined-outer-name
+    # other uses. pylint: disable=redefined-outer-name
     from nuitka import getLaunchingNuitkaProcessEnvironmentValue
 
     return getLaunchingNuitkaProcessEnvironmentValue(environment_variable_name)

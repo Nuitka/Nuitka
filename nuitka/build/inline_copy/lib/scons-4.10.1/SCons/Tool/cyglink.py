@@ -37,7 +37,7 @@ from . import gnulink
 
 
 def cyglink_lib_emitter(target, source, env, **kw):
-    verbose = True
+    verbose = False
 
     if 'variable_prefix' in kw:
         var_prefix = kw['variable_prefix']
@@ -83,7 +83,7 @@ def cyglink_shlib_symlink_emitter(target, source, env, **kw):
     :param kw:
     :return:
     """
-    verbose = True
+    verbose = False
 
     if 'variable_prefix' in kw:
         var_prefix = kw['variable_prefix']

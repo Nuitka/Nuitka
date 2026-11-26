@@ -454,7 +454,7 @@ template_module_external_entry_point = r"""
 
 #if PYTHON_VERSION < 0x300
 
-#if defined(_WIN32)
+#if defined(_WIN32) || defined(__CYGWIN__) || defined(__MSYS__)
 #define NUITKA_MODULE_INIT_FUNCTION __declspec(dllexport) PyMODINIT_FUNC
 #else
 #define NUITKA_MODULE_INIT_FUNCTION PyMODINIT_FUNC __attribute__((visibility("default")))
@@ -462,8 +462,12 @@ template_module_external_entry_point = r"""
 
 #else
 
-#if defined(_WIN32)
+#if defined(_WIN32) || defined(__CYGWIN__) || defined(__MSYS__)
+#ifdef __cplusplus
+#define NUITKA_MODULE_INIT_FUNCTION extern "C" __declspec(dllexport) PyObject *
+#else
 #define NUITKA_MODULE_INIT_FUNCTION __declspec(dllexport) PyObject *
+#endif
 #else
 
 #ifdef __cplusplus

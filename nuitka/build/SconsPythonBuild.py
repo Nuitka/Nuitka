@@ -139,6 +139,10 @@ def applyPythonBuildSettings(env):
                 "/IMPLIB:%s" % os.path.join(env.source_dir, "import.lib"),
             ]
         )
+    elif env.target_os == "PosixWindows" and (env.module_mode or env.dll_mode):
+        # Prevent SCons 'cyglink' from emitting a sidecar '.dll.a' import
+        # library and adding '--export-all-symbols --whole-archive'.
+        env.no_import_lib = True
     else:
         env.no_import_lib = False
 

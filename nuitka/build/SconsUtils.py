@@ -403,7 +403,7 @@ def createEnvironment(
             scons_details_logger.info("Overridden with environment CC: %r" % env["CC"])
         elif clangcl_mode:
             addClangClPathFromMSVC(env=env)
-        elif clang_mode and not mingw_mode:
+        elif clang_mode:
             env["CC"] = "clang"
             env["CCVERSION"] = None
 
@@ -412,7 +412,6 @@ def createEnvironment(
     env.fedora_python = getArgumentBool("fedora_python", False)
     env.arch_python = getArgumentBool("arch_python", False)
     env.msys2_mingw_python = getArgumentBool("msys2_mingw_python", False)
-    env.msys2_posix_python = getArgumentBool("msys2_posix_python", False)
     env.anaconda_python = getArgumentBool("anaconda_python", False)
     env.pyenv_python = getArgumentBool("pyenv_python", False)
     env.apple_python = getArgumentBool("apple_python", False)

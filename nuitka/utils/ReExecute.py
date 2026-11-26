@@ -31,6 +31,11 @@ def reExecuteNuitka(pgo_filename):
     if sys.version_info >= (3, 11):
         args += ["-X", "frozen_modules=off"]
 
+    # Preserve command-line '-X gil=...' across Nuitka's '-S' re-execution,
+    # pylint: disable=protected-access
+    if sys.version_info >= (3, 13) and "gil" in sys._xoptions:
+        args += ["-X", "gil=%s" % sys._xoptions["gil"]]
+
     if "nuitka.__main__" in sys.modules:
         our_filename = sys.modules["nuitka.__main__"].__file__
     else:

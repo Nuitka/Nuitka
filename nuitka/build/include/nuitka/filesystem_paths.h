@@ -84,6 +84,7 @@ extern bool closeFile(FILE_HANDLE target_file);
 extern error_code_t getLastErrorCode(void);
 
 extern bool isExecutableFile(filename_char_t const *filename);
+extern bool isExistingDirectory(filename_char_t const *filename);
 extern int getFileMode(filename_char_t const *filename);
 extern bool copyFile(filename_char_t const *source, filename_char_t const *dest, int mode);
 extern bool deleteFile(filename_char_t const *filename);

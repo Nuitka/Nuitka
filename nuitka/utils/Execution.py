@@ -17,15 +17,13 @@ from contextlib import contextmanager
 
 from nuitka.__past__ import iterItems, selectors, subprocess
 from nuitka.containers.Namedtuples import makeNamedtupleClass
-from nuitka.options.Experimental import isExperimental
 from nuitka.Tracing import general
 
-from .Download import getCachedDownloadedMinGW64, getDownloadMode
 from .FileOperations import getExternalUsePath, hasFilenameExtension
 from .Utils import (
     getArchCommandPrefix,
-    getArchitecture,
     isMacOS,
+    isPosixWindows,
     isWin32OrPosixWindows,
     isWin32Windows,
 )
@@ -45,11 +43,17 @@ _executable_command_cache = {}
 
 
 def _getExecutablePath(filename, search_path):
-    # Append ".exe" suffix  on Windows if not already present.
+    # Append ".exe" suffix on Windows if not already present; on POSIX Windows
+    # check both with and without ".exe" to also find extensionless scripts.
     if isWin32OrPosixWindows() and not filename.lower().endswith(
         (".exe", ".cmd", ".bat")
     ):
-        filename += ".exe"
+        if isPosixWindows():
+            filenames = (filename + ".exe", filename)
+        else:
+            filenames = (filename + ".exe",)
+    else:
+        filenames = (filename,)
 
     # Now check in each path element, much like the shell will.
     path_elements = search_path.split(os.pathsep)
@@ -58,21 +62,24 @@ def _getExecutablePath(filename, search_path):
         path_element = path_element.strip('"')
         path_element = os.path.expanduser(path_element)
 
-        candidate = None
+        is_file = os.path.isfile(path_element)
 
-        if os.path.isfile(path_element):
-            if os.path.normcase(os.path.basename(path_element)) == os.path.normcase(
-                filename
-            ):
-                candidate = path_element
-        else:
-            full = os.path.join(path_element, filename)
+        for candidate_filename in filenames:
+            candidate = None
 
-            if os.path.exists(full):
-                candidate = full
+            if is_file:
+                if os.path.normcase(os.path.basename(path_element)) == os.path.normcase(
+                    candidate_filename
+                ):
+                    candidate = path_element
+            else:
+                full = os.path.join(path_element, candidate_filename)
 
-        if candidate is not None and os.access(candidate, os.X_OK):
-            return candidate
+                if os.path.exists(full):
+                    candidate = full
+
+            if candidate is not None and os.access(candidate, os.X_OK):
+                return candidate
 
 
 def getExecutablePath(filename, extra_dir=None):
@@ -476,21 +483,6 @@ def wrapCommandForDebuggerForExec(command, debugger):
                 % debugger_name
             )
         return (debugger_path, debugger) + rest + command
-
-    # Windows extra ball, attempt the downloaded one.
-    if isWin32Windows() and gdb_path is None and lldb_path is None:
-        # Local import to avoid a cycle: Options imports this module.
-        from nuitka.options.Options import assumeYesForDownloads
-
-        mingw64_gcc_path = getCachedDownloadedMinGW64(
-            target_arch=getArchitecture(),
-            download_mode=getDownloadMode(assumeYesForDownloads()),
-            experimental=isExperimental("winlibs-new"),
-        )
-
-        lldb_path = getExecutablePath(
-            "lldb", extra_dir=os.path.dirname(mingw64_gcc_path)
-        )
 
     if gdb_path is None and lldb_path is None and valgrind_path is None:
         return general.sysexit(

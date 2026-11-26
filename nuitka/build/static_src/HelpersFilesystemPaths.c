@@ -52,6 +52,8 @@
 #if _NUITKA_DLL_MODE || _NUITKA_MODULE_MODE
 static filename_char_t const *_pseudo_dll_filename = NULL;
 
+static filename_char_t const *getDllFilename(void);
+
 void setDllFilename(filename_char_t const *filename) { _pseudo_dll_filename = filename; }
 
 #endif
@@ -135,23 +137,21 @@ filename_char_t *stripBaseFilename(filename_char_t const *filename) {
 #if defined(_WIN32)
 static void makeShortFilename(wchar_t *filename, size_t buffer_size) {
 #ifndef _NUITKA_EXPERIMENTAL_AVOID_SHORT_PATH
-    DWORD length = GetShortPathNameW(filename, NULL, 0);
-    if (length == 0) {
+    wchar_t short_filename[MAXPATHLEN + 1];
+
+    DWORD res = GetShortPathNameW(filename, short_filename, (DWORD)(sizeof(short_filename) / sizeof(wchar_t)));
+    if (res == 0) {
         return;
     }
 
-    wchar_t *short_filename = (wchar_t *)malloc((length + 1) * sizeof(wchar_t));
-    DWORD res = GetShortPathNameW(filename, short_filename, length);
-    assert(res != 0);
-
-    if (unlikely(res > length)) {
+    if (unlikely(res >= sizeof(short_filename) / sizeof(wchar_t))) {
         abort();
     }
 
-    filename[0] = 0;
-    appendWStringSafeW(filename, short_filename, buffer_size);
-
-    free(short_filename);
+    copyStringSafeW(filename, short_filename, buffer_size);
+#else
+    NUITKA_UNREFERENCED_PARAMETER(filename);
+    NUITKA_UNREFERENCED_PARAMETER(buffer_size);
 #endif
 }
 
@@ -390,8 +390,8 @@ int64_t getFileSize(FILE_HANDLE file_handle) {
 #endif
 }
 
-#if defined(__MSYS__) || defined(__HAIKU__) || defined(__OpenBSD__) || defined(__FreeBSD__) || defined(_AIX) ||        \
-    defined(__wasi__)
+#if defined(__MSYS__) || defined(__CYGWIN__) || defined(__HAIKU__) || defined(__OpenBSD__) || defined(__FreeBSD__) ||  \
+    defined(_AIX) || defined(__wasi__)
 #define NUITKA_SENDFILE_FALLBACK
 #endif
 
@@ -463,6 +463,22 @@ bool isExecutableFile(filename_char_t const *filename) {
     return mode & S_IXUSR;
 }
 #endif
+
+bool isExistingDirectory(filename_char_t const *filename) {
+#if !defined(_WIN32)
+    int mode = getFileMode(filename);
+
+    if (mode == -1) {
+        return false;
+    }
+
+    return S_ISDIR(mode);
+#else
+    DWORD attributes = GetFileAttributesW(filename);
+
+    return attributes != INVALID_FILE_ATTRIBUTES && (attributes & FILE_ATTRIBUTE_DIRECTORY) != 0;
+#endif
+}
 
 int getFileMode(filename_char_t const *filename) {
 #if !defined(_WIN32)
@@ -1339,9 +1355,15 @@ bool expandTemplatePath(char *target, char const *source, size_t buffer_size) {
 
                 size_t length = strlen(target);
 
+#if defined(__CYGWIN__) || defined(__MSYS__)
+                if ((length >= 4) && (strcasecmp(target + length - 4, ".exe") == 0)) {
+                    target[length - 4] = 0;
+                }
+#else
                 if ((length >= 4) && (strcasecmp(target + length - 4, ".bin") == 0)) {
                     target[length - 4] = 0;
                 }
+#endif
             } else if (strcasecmp(var_name, "PROGRAM_DIR") == 0) {
                 if (expandTemplatePath(target, "{PROGRAM}", buffer_size - strlen(target)) == false) {
                     return false;
@@ -1571,30 +1593,53 @@ static HMODULE getDllModuleHandle(void) {
 #endif
 
 static filename_char_t const *getDllFilename(void) {
-    if (_pseudo_dll_filename != NULL) {
-        return _pseudo_dll_filename;
-    }
-
 #if defined(_WIN32)
     static WCHAR dll_filename[MAXPATHLEN + 1] = {0};
 
     if (dll_filename[0] == 0) {
-        int res = GetModuleFileNameW(getDllModuleHandle(), dll_filename, MAXPATHLEN);
-        assert(res != 0);
+        if (_pseudo_dll_filename != NULL) {
+            copyStringSafeW(dll_filename, _pseudo_dll_filename, MAXPATHLEN);
+            makeAbsolutePath(dll_filename, MAXPATHLEN);
+        } else {
+            int res = GetModuleFileNameW(getDllModuleHandle(), dll_filename, MAXPATHLEN);
+            assert(res != 0);
+        }
 
         makeShortDirFilename(dll_filename, sizeof(dll_filename) / sizeof(wchar_t));
     }
 
     return dll_filename;
 #else
-    Dl_info where;
+    static char dll_filename[MAXPATHLEN + 1] = {0};
 
-    {
-        NUITKA_MAY_BE_UNUSED int res = dladdr((void *)getDllDirectory, &where);
-        assert(res != 0);
+    if (dll_filename[0] == 0) {
+        // Cygwin and MSYS2 store 'dli_fname' as an inline array in 'Dl_info',
+        // so keep 'where' in scope until it is copied into static storage.
+        Dl_info where;
+        char const *raw_filename = _pseudo_dll_filename;
+
+        if (raw_filename == NULL) {
+            NUITKA_MAY_BE_UNUSED int res = dladdr((void *)getDllDirectory, &where);
+            assert(res != 0);
+
+            raw_filename = where.dli_fname;
+        }
+
+        if (raw_filename[0] == '/') {
+            copyStringSafe(dll_filename, raw_filename, sizeof(dll_filename));
+        } else {
+            if (unlikely(getcwd(dll_filename, sizeof(dll_filename)) == NULL)) {
+                abort();
+            }
+
+            appendCharSafe(dll_filename, '/', sizeof(dll_filename));
+            appendStringSafe(dll_filename, raw_filename, sizeof(dll_filename));
+        }
+
+        normalizePath(dll_filename);
     }
 
-    return where.dli_fname;
+    return dll_filename;
 #endif
 }
 
@@ -1608,21 +1653,15 @@ filename_char_t const *getDllDirectory(void) {
 
     return path;
 #else
-    // Need to cache it, as dirname modifies stuff.
-    static char const *result = NULL;
+    static char path[MAXPATHLEN + 1] = {0};
 
-    if (result == NULL) {
-        Dl_info where;
-
-        {
-            NUITKA_MAY_BE_UNUSED int res = dladdr((void *)getDllDirectory, &where);
-            assert(res != 0);
-        }
-
-        result = dirname((char *)strdup(where.dli_fname));
+    if (path[0] == 0) {
+        char temp[MAXPATHLEN + 1];
+        copyStringSafe(temp, getDllFilename(), sizeof(temp));
+        copyStringSafe(path, dirname(temp), sizeof(path));
     }
 
-    return result;
+    return path;
 #endif
 }
 #endif

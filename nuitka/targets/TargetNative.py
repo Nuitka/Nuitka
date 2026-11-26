@@ -18,11 +18,23 @@ from nuitka.utils.Utils import (
     getOS,
     isAIX,
     isMacOS,
+    isPosixWindows,
     isRPathUsingPlatform,
     isWin32OrPosixWindows,
+    isWin32Windows,
 )
 
 from .Targets import TargetBase
+
+
+def _getTargetOS():
+    if isWin32Windows():
+        return "Win32"
+
+    if isPosixWindows():
+        return "PosixWindows"
+
+    return getOS()
 
 
 def _getBinaryFormat():
@@ -57,7 +69,7 @@ class TargetNative(TargetBase):
             c_long_size=ctypes.sizeof(ctypes.c_long),
             c_longlong_size=ctypes.sizeof(ctypes.c_longlong),
             c_pointer_size=ctypes.sizeof(ctypes.c_void_p),
-            target_os=getOS(),
+            target_os=_getTargetOS(),
             target_arch=getArchitecture(),
             binary_format=_getBinaryFormat(),
             rpath_using=isRPathUsingPlatform(),

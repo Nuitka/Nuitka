@@ -255,6 +255,16 @@ def isMSYS2MingwPython():
         return "-mingw_" in sysconfig.get_config_var("SO")
 
 
+def isCygwinPython():
+    """Cygwin POSIX Python on Windows."""
+    return isPosixWindows() and os.uname()[0].startswith("CYGWIN_NT-")
+
+
+def isMSYS2PosixPython():
+    """MSYS2 POSIX Python on Windows."""
+    return isPosixWindows() and not isCygwinPython()
+
+
 def isTermuxPython():
     """Is this Termux Android Python."""
     # spell-checker: ignore termux
@@ -519,7 +529,9 @@ def getPythonFlavorName():
         return "Python Build Standalone"
     elif isApplePython():
         return "Apple Python"
-    elif isPosixWindows():
+    elif isCygwinPython():
+        return "Cygwin Python"
+    elif isMSYS2PosixPython():
         return "MSYS2 Posix"
     elif isMSYS2MingwPython():
         return "MSYS2 MinGW"

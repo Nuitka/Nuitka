@@ -85,8 +85,16 @@ class TargetBase(object):
         return self.target_os == "WASI"
 
     def isWin32Target(self):
-        """Return whether this target uses the Windows ABI."""
-        return self.target_os == "Windows"
+        """Return whether this target uses the Win32 ABI."""
+        return self.target_os == "Win32"
+
+    def isPosixWindowsTarget(self):
+        """Return whether this target uses the POSIX Windows ABI."""
+        return self.target_os == "PosixWindows"
+
+    def isWin32OrPosixWindowsTarget(self):
+        """Return whether this target is Windows-like."""
+        return self.target_os in ("Win32", "PosixWindows")
 
     def isElfTarget(self):
         """Return whether this target uses the ELF file format."""
@@ -288,8 +296,13 @@ def isNativeTarget():
 
 
 def isWin32Target():
-    """Return whether the installed target uses the Windows ABI."""
+    """Return whether the installed target uses the Win32 ABI."""
     return _target_specification.isWin32Target()
+
+
+def isPosixWindowsTarget():
+    """Return whether the installed target uses the POSIX Windows ABI."""
+    return _target_specification.isPosixWindowsTarget()
 
 
 def isElfTarget():
@@ -304,7 +317,7 @@ def isMachOTarget():
 
 def isWin32OrPosixWindowsTarget():
     """Return whether the installed target is Windows-like."""
-    return _target_specification.isWin32Target()
+    return _target_specification.isWin32OrPosixWindowsTarget()
 
 
 def isRPathUsingTarget():
@@ -314,15 +327,21 @@ def isRPathUsingTarget():
 
 _onefile_supported_target_os = (
     "Linux",
-    "Windows",
+    "Win32",
     "Darwin",
     "FreeBSD",
     "OpenBSD",
     "AIX",
 )
 
-# WASI supports standalone builds, but not onefile.
-_standalone_supported_target_os = _onefile_supported_target_os + ("WASI",)
+# WASI and PosixWindows support standalone builds, but not onefile.
+# TODO: PosixWindows could support onefile by compiling the onefile bootstrap
+# as a native Win32 binary (e.g. with WinLibs MinGW64) that unpacks the
+# POSIX Windows runtime DLLs and launches the unpacked binary via CreateProcessW.
+_standalone_supported_target_os = _onefile_supported_target_os + (
+    "WASI",
+    "PosixWindows",
+)
 
 
 def isStandaloneSupportedTarget():

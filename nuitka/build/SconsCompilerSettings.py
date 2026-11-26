@@ -209,9 +209,6 @@ def _enableLtoSettings(
         else:
             lto_mode = True
             reason = "known to be supported (macOS clang)"
-    elif env.mingw_mode and env.clang_mode:
-        lto_mode = False
-        reason = "known to not be supported (new MinGW64 Clang)"
     elif env.gcc_mode and env.mingw_mode and env.gcc_version >= (11, 2):
         lto_mode = True
         reason = "known to be supported (new MinGW64)"
@@ -308,7 +305,6 @@ def checkWindowsCompilerFound(
     env,
     target_arch,
     mingw_mode,
-    clang_mode,
     msvc_version,
     download_mode,
 ):
@@ -359,13 +355,6 @@ def checkWindowsCompilerFound(
                 )
             )
         ):
-            compiler_path = None
-            env["CC"] = None
-
-    if compiler_path is not None:
-        the_cc_name = os.path.basename(compiler_path)
-
-        if clang_mode and not isClangName(the_cc_name):
             compiler_path = None
             env["CC"] = None
 
@@ -489,11 +478,6 @@ For Python version %s MSVC %s or later is required, not %s which is too old."""
                 experimental_flags=env.experimental_flags,
                 source_dir=env.source_dir,
             )
-
-            if clang_mode:
-                env["CC"] = getQuotedCompilerPath(
-                    os.path.join(os.path.dirname(compiler_path), "clang.exe")
-                )
         elif download_mode != DOWNLOAD_MODE_NO:
             raiseNoCompilerFoundErrorExit()
         else:
@@ -558,7 +542,6 @@ def createEnvironmentAndCheckCompiler(
         env=env,
         target_arch=target_arch,
         mingw_mode=mingw_mode,
-        clang_mode=clang_mode,
         msvc_version=msvc_version,
         download_mode=download_mode,
     )
@@ -710,9 +693,9 @@ def _checkBlobResourceMode(env, resource_mode):
 
     mode_platform_names = {
         "mac_section": (isMacOS(), "macOS"),
-        "coff_obj": (env.target_os == "Windows", "Windows"),
+        "coff_obj": (env.binary_format == "coff", "COFF"),
         "xcoff_obj": (isAIX(), "AIX"),
-        "overlay": (env.target_os == "Windows", "Windows"),
+        "overlay": (env.target_os == "Win32", "Win32"),
     }
 
     if resource_mode in mode_platform_names:
@@ -753,9 +736,9 @@ def _decideBlobResourceMode(env):
         else:
             resource_mode = "coff_obj"
             reason = "default for Windows for non-ClangCL"
-    elif env.msys2_posix_python:
+    elif env.target_os == "PosixWindows":
         resource_mode = "linker"
-        reason = "default MSYS2 Posix"
+        reason = "default for POSIX Windows"
     elif isMacOS():
         if env.clang_mode and env.clang_version >= (19,):
             resource_mode = "c23_embed"
@@ -926,7 +909,7 @@ def _makeLargeDataBlobObject(env, blob_filename, obj_filename):
 
     output_format = getLinkerArch(
         target_arch=env.target_arch,
-        mingw_mode=env.mingw_mode or env.msys2_posix_python,
+        mingw_mode=env.mingw_mode or env.target_os == "PosixWindows",
     )
 
     if output_format is None:
@@ -997,7 +980,7 @@ def _addConstantBlobFileLinker(env, blob_filename):
                 "-Wl,%s"
                 % getLinkerArch(
                     target_arch=env.target_arch,
-                    mingw_mode=env.mingw_mode or env.msys2_posix_python,
+                    mingw_mode=env.mingw_mode or env.target_os == "PosixWindows",
                 ),
             ]
         )
@@ -1317,7 +1300,7 @@ def _enableWasiTargetSettings(env):
 
 
 def _enableWin32TargetSettings(env):
-    assert env.target_os == "Windows"
+    assert env.target_os == "Win32"
 
     if env.zig_mode:
         target_triple = {
@@ -1345,7 +1328,11 @@ def _enableWindowsStackSize(env, target_arch):
     if env.msvc_mode:
         env.Append(LINKFLAGS=["/STACK:%d" % stack_size])
 
-    if env.mingw_mode or (env.zig_mode and env.target_os == "Windows"):
+    if (
+        env.mingw_mode
+        or env.target_os == "PosixWindows"
+        or (env.zig_mode and env.target_os == "Win32")
+    ):
         env.Append(LINKFLAGS=["-Wl,--stack,%d" % stack_size])
 
 
@@ -1426,10 +1413,9 @@ def createNuitkaSconsEnvironment(needs_source_dir=True):
     mingw_mode = getArgumentBool("mingw_mode", False)
     clang_mode = getArgumentBool("clang_mode", False)
 
-    # Clang on Windows with no requirement to use MinGW64 or using MSYS2 MinGW flavor,
-    # is changed to ClangCL from Visual Studio.
+    # Clang on Windows is always ClangCL from Visual Studio.
     clangcl_mode = False
-    if os.name == "nt" and not mingw_mode and clang_mode:
+    if os.name == "nt" and clang_mode:
         clang_mode = False
         clangcl_mode = True
 
@@ -1727,13 +1713,13 @@ def setupCCompiler(env, pgo_mode, exe_target, onefile_compile):
         if env.standalone_mode:
             env.Append(LINKFLAGS=["-Wl,-blibpath:/usr/lib:/lib"])
 
-    if env.target_os == "Windows":
+    if env.target_os == "Win32":
         _enableWin32TargetSettings(env)
 
     if env.target_os == "WASI":
         _enableWasiTargetSettings(env)
 
-    if env.target_os == "Windows" and (env.mingw_mode or env.zig_mode):
+    if env.target_os == "Win32" and (env.mingw_mode or env.zig_mode):
         env.Append(LINKFLAGS=["-municode"])
 
     # Older g++ complains about aliasing with Py_True and Py_False, but we don't
@@ -1868,34 +1854,33 @@ def setupCCompiler(env, pgo_mode, exe_target, onefile_compile):
 
     # MinGW64 requires auto-import for data symbols imported from DLLs without
     # '__declspec(dllimport)'.
-    if env.mingw_mode and not env.clang_mode:
+    if env.mingw_mode:
         env.Append(LINKFLAGS=["-Wl,--enable-auto-import"])
 
-    # Both "attach" and "disable" use the GUI subsystem so Windows does not
-    # allocate a new console upfront; "attach" attaches to a parent console at
-    # startup.
-    if env.console_mode in ("attach", "disable") and env.target_os == "Windows":
-        if env.mingw_mode or env.zig_mode:
-            env.Append(LINKFLAGS=["-Wl,--subsystem,windows"])
-            env.Append(CPPDEFINES=["_NUITKA_WINMAIN_ENTRY_POINT"])
-        elif env.msvc_mode:
-            env.Append(LINKFLAGS=["/SUBSYSTEM:windows"])
-            env.Append(CPPDEFINES=["_NUITKA_WINMAIN_ENTRY_POINT"])
+    if env.target_os == "Win32":
+        # Both "attach" and "disable" use the GUI subsystem so Windows does not
+        # allocate a new console upfront; "attach" attaches to a parent console at
+        # startup.
+        if env.console_mode in ("attach", "disable"):
+            if env.mingw_mode or env.zig_mode:
+                env.Append(LINKFLAGS=["-Wl,--subsystem,windows"])
+                env.Append(CPPDEFINES=["_NUITKA_WINMAIN_ENTRY_POINT"])
+            elif env.msvc_mode:
+                env.Append(LINKFLAGS=["/SUBSYSTEM:windows"])
+                env.Append(CPPDEFINES=["_NUITKA_WINMAIN_ENTRY_POINT"])
 
-    if env.console_mode == "attach" and env.target_os == "Windows":
-        env.Append(CPPDEFINES=["_NUITKA_ATTACH_CONSOLE_WINDOW"])
-        env.Append(LIBS=["User32"])
-
-    if env.console_mode == "disable" and env.target_os == "Windows":
-        env.Append(CPPDEFINES=["_NUITKA_DISABLE_CONSOLE_WINDOW"])
-        env.Append(LIBS=["User32"])
-
-    if env.console_mode == "hide" and env.target_os == "Windows":
-        env.Append(CPPDEFINES=["_NUITKA_HIDE_CONSOLE_WINDOW"])
-        env.Append(LIBS=["User32"])
+        if env.console_mode == "attach":
+            env.Append(CPPDEFINES=["_NUITKA_ATTACH_CONSOLE_WINDOW"])
+            env.Append(LIBS=["User32"])
+        elif env.console_mode == "disable":
+            env.Append(CPPDEFINES=["_NUITKA_DISABLE_CONSOLE_WINDOW"])
+            env.Append(LIBS=["User32"])
+        elif env.console_mode == "hide":
+            env.Append(CPPDEFINES=["_NUITKA_HIDE_CONSOLE_WINDOW"])
+            env.Append(LIBS=["User32"])
 
     # Avoid dependency on MinGW libraries, spell-checker: ignore libgcc
-    if env.mingw_mode and not env.clang_mode:
+    if env.mingw_mode:
         env.Append(LINKFLAGS=["-static-libgcc"])
 
     # MinGW64 and Zig for 64 bits need MSVC ABI compatibility for older

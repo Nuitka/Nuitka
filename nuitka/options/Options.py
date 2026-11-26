@@ -1450,6 +1450,16 @@ make sure that is intended."""
             "Error, using PGO with '%s' mode is not supported." % getCompilationMode()
         )
 
+    if shallExecuteImmediately() and isPosixWindows():
+        return options_logger.sysexit("""\
+Error, cannot use '--run' on POSIX Windows (%s), execute the compiled binary \
+directly instead.""" % getPythonFlavorName())
+
+    if shallExecuteImmediately() and isPosixWindows():
+        return options_logger.sysexit("""\
+Error, cannot use '--run' on POSIX Windows (%s), execute the compiled binary \
+directly instead.""" % getPythonFlavorName())
+
     if isCPgoMode() and shallMakeModule():
         optimization_logger.warning("""\
 Using C level PGO with '%s' mode is not currently \

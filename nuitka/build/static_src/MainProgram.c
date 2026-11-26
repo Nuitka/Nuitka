@@ -80,6 +80,10 @@
 #include "HelpersDialogs.c"
 #endif
 
+#if _NUITKA_STANDALONE_MODE && (defined(__CYGWIN__) || defined(__MSYS__))
+#include "HelpersPosixWindows.c"
+#endif
+
 // No longer in header files, but still usable.
 #if PYTHON_VERSION >= 0x3f0
 PyAPI_FUNC(wchar_t *) Py_GetPath(void);
@@ -196,6 +200,10 @@ static environment_char_t const *old_env_pythongil;
 #endif
 
 static void prepareStandaloneEnvironment(void) {
+#if defined(__CYGWIN__) || defined(__MSYS__)
+    ensurePosixWindowsMounts();
+#endif
+
     /* Setup environment variables to tell CPython that we would like it to use
      * the provided binary directory as the place to look for DLLs and for
      * extension modules.
@@ -2653,7 +2661,7 @@ NUITKA_DLL_FUNCTION int run_code(int argc, native_command_line_argument_t **argv
 /* This is an unofficial API, not available on Windows, but on Linux and others
  * it is exported, and has been used by some code.
  */
-#if !defined(_WIN32) && !defined(__MSYS__)
+#if !defined(_WIN32) && !defined(__MSYS__) && !defined(__CYGWIN__)
 #ifdef __cplusplus
 extern "C" {
 #endif

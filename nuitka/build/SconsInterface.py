@@ -75,7 +75,7 @@ from nuitka.PythonPrefixes import (
 )
 from nuitka.PythonVersions import (
     getSconsSupportingVersions,
-    isPythonWithGil,
+    isFreeThreadedPython,
     isRunningInInterpreter,
     python_version,
     python_version_full_str,
@@ -86,7 +86,7 @@ from nuitka.targets.Targets import (
     getTargetSpecification,
     isRPathUsingTarget,
     isWasiTarget,
-    isWin32OrPosixWindowsTarget,
+    isWin32Target,
 )
 from nuitka.Tracing import flushStandardOutputs, general, isQuiet, scons_logger
 from nuitka.utils.AppDirs import (
@@ -126,12 +126,7 @@ from nuitka.utils.InstalledPythons import findInstalledPython
 from nuitka.utils.Json import loadJsonFromFilename
 from nuitka.utils.PrivatePipSpace import getZigBinaryPath
 from nuitka.utils.SharedLibraries import detectBinaryMinMacOS
-from nuitka.utils.Utils import (
-    isMacOS,
-    isPosixWindows,
-    isWin32OrPosixWindows,
-    isWin32Windows,
-)
+from nuitka.utils.Utils import isMacOS, isWin32OrPosixWindows, isWin32Windows
 from nuitka.utils.WasiSDK import getWasiSDKPath
 
 from .SconsCaching import checkCachingSuccess
@@ -741,7 +736,7 @@ def getCommonSconsOptions():
     ):
         scons_options["collect_resources"] = asBoolStr(True)
 
-    scons_options["gil_mode"] = asBoolStr(isPythonWithGil())
+    scons_options["gil_mode"] = asBoolStr(not isFreeThreadedPython())
 
     scons_options["devel_modes"] = ",".join(getDevelModeIndications())
 
@@ -800,7 +795,7 @@ def getCommonSconsOptions():
     if shallDisableCCacheUsage():
         scons_options["disable_ccache"] = asBoolStr(True)
 
-    if isWin32OrPosixWindowsTarget() and getWindowsConsoleMode() != "attach":
+    if isWin32Target() and getWindowsConsoleMode() != "attach":
         scons_options["console_mode"] = getWindowsConsoleMode()
 
     if getLtoMode() != "auto":
@@ -820,9 +815,6 @@ def getCommonSconsOptions():
 
     if isMSYS2MingwPython():
         scons_options["msys2_mingw_python"] = asBoolStr(True)
-
-    if isPosixWindows():
-        scons_options["msys2_posix_python"] = asBoolStr(True)
 
     if isSelfCompiledPythonUninstalled():
         scons_options["self_compiled_python_uninstalled"] = asBoolStr(True)
