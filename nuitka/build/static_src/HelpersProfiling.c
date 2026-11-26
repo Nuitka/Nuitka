@@ -30,8 +30,16 @@ static struct timespec time1, time2;
 void startProfiling(void) {
     tempfile_profile = fopen("nuitka-performance.dat", "w+b");
 
+    PyThreadState *tstate = PyThreadState_GET();
+
     // Importing "site" may be needed to locate "vmprof" on sys.path.
-    PyImport_ImportModule("site");
+    PyObject *site_module = PyImport_ImportModule("site");
+    if (site_module == NULL) {
+        CLEAR_ERROR_OCCURRED(tstate);
+    } else {
+        Py_DECREF(site_module);
+    }
+
     vmprof_module = PyImport_ImportModule("vmprof");
 
     if (vmprof_module == NULL) {
@@ -39,15 +47,28 @@ void startProfiling(void) {
         abort();
     }
 
-    PyThreadState *tstate = PyThreadState_GET();
+    PyObject *enable_func = PyObject_GetAttrString(vmprof_module, "enable");
+    if (enable_func == NULL) {
+        PyErr_Print();
+        abort();
+    }
 
-    PyObject *result = CALL_FUNCTION_WITH_SINGLE_ARG(tstate, PyObject_GetAttrString(vmprof_module, "enable"),
-                                                     Nuitka_PyInt_FromLong(fileno(tempfile_profile)));
+    PyObject *fd_arg = Nuitka_PyInt_FromLong(fileno(tempfile_profile));
+    if (fd_arg == NULL) {
+        Py_DECREF(enable_func);
+        PyErr_Print();
+        abort();
+    }
+
+    PyObject *result = CALL_FUNCTION_WITH_SINGLE_ARG(tstate, enable_func, fd_arg);
+    Py_DECREF(enable_func);
+    Py_DECREF(fd_arg);
 
     if (result == NULL) {
         PyErr_Print();
         abort();
     }
+    Py_DECREF(result);
 
     clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &time1);
 }
@@ -60,10 +81,18 @@ void stopProfiling(void) {
     struct Nuitka_ExceptionPreservationItem saved_exception_state;
     FETCH_ERROR_OCCURRED_STATE(tstate, &saved_exception_state);
 
-    PyObject *result = CALL_FUNCTION_NO_ARGS(tstate, PyObject_GetAttrString(vmprof_module, "disable"));
-
-    if (result == NULL) {
+    PyObject *disable_func = PyObject_GetAttrString(vmprof_module, "disable");
+    if (disable_func == NULL) {
         CLEAR_ERROR_OCCURRED(tstate);
+    } else {
+        PyObject *result = CALL_FUNCTION_NO_ARGS(tstate, disable_func);
+        Py_DECREF(disable_func);
+
+        if (result == NULL) {
+            CLEAR_ERROR_OCCURRED(tstate);
+        } else {
+            Py_DECREF(result);
+        }
     }
 
     fclose(tempfile_profile);
