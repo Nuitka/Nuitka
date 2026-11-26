@@ -4,12 +4,22 @@
 """Finalize markups on the node tree ahead of code generation.
 
 Marks module value setters, function creation/direct-call/cross-module flags,
-in-place assignment suspects, and frame/yield exception preservation.
+in-place assignment suspects, and frame/yield exception preservation, and
+decides which function bodies need C code.
 """
 
 from nuitka import Tracing
+from nuitka.code_generation.AnnotateFunctionCodes import (
+    checkAnnotateFunction,
+    isBytecodeBackedFunction,
+)
+from nuitka.code_generation.PythonSourceCodeGeneration import (
+    PythonSourceGenerationError,
+)
 from nuitka.ModuleRegistry import getModuleByName
+from nuitka.options.Options import shallNotFallbackBytecodeToCompiled
 from nuitka.PythonVersions import python_version
+from nuitka.Tracing import code_generation_logger
 from nuitka.tree.Operations import VisitorNoopMixin
 
 
@@ -100,6 +110,63 @@ class FinalizeMarkups(VisitorNoopMixin):
                 ):
                     node.markAsExceptionPreserving()
                     break
+
+
+def decideAnnotateFunctionFallbacks(module):
+    """Decide which Python source backed annotate functions must use C code."""
+    module_name = module.getFullName()
+
+    for function_body in module.getUsedFunctions():
+        if not isBytecodeBackedFunction(function_body):
+            continue
+
+        try:
+            checkAnnotateFunction(function_body)
+        except PythonSourceGenerationError as e:
+            function_qualname = function_body.getFunctionQualname()
+            source_ref = function_body.getSourceReference()
+
+            if shallNotFallbackBytecodeToCompiled(
+                module_name=module_name,
+                function_qualname=function_qualname,
+                source_ref=source_ref,
+            ):
+                return code_generation_logger.sysexit(
+                    """\
+Error, bytecode-to-compiled fallback is disallowed for annotate function '%s' at %s: %s"""
+                    % (function_qualname, source_ref.getAsString(), e)
+                )
+
+            function_body.addFlag("force_c")
+
+
+def markFunctionsNeededForCCode(module):
+    """Mark function bodies that are created or called from compiled C code.
+
+    Notes:
+        Function creations inside Python source backed function bodies are not
+        part of the C code and are therefore not followed.
+    """
+    stack = [module.subnode_body]
+
+    while stack:
+        node = stack.pop()
+
+        if node is None:
+            continue
+
+        if node.isExpressionFunctionRef():
+            function_body = node.getFunctionBody()
+
+            if not function_body.needsCCode() and not isBytecodeBackedFunction(
+                function_body
+            ):
+                function_body.markAsNeedsCCode()
+                stack.append(function_body.subnode_body)
+
+            continue
+
+        stack.extend(node.getVisitableNodes())
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and

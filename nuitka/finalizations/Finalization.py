@@ -5,12 +5,20 @@
 
 from nuitka.tree import Operations
 
-from .FinalizeMarkups import FinalizeMarkups
+from .FinalizeMarkups import (
+    FinalizeMarkups,
+    decideAnnotateFunctionFallbacks,
+    markFunctionsNeededForCCode,
+)
 
 
 def prepareCodeGeneration(module):
+    decideAnnotateFunctionFallbacks(module)
+
     visitor = FinalizeMarkups(module)
     Operations.visitTree(module, visitor)
+
+    markFunctionsNeededForCCode(module)
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and

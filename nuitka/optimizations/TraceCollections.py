@@ -317,7 +317,7 @@ class CollectionStartPointMixin(CollectionUpdateMixin):
             source_ref=owning_module.source_ref,
         )
 
-        needs_visit = owning_module.addUsedFunction(function_body)
+        needs_visit = owning_module.addUsedFunction(function_body=function_body)
 
         if needs_visit or function_body.isExpressionFunctionPureBody():
             function_body.computeFunctionRaw(self)

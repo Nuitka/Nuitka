@@ -146,9 +146,7 @@ def _getCodeObjectCreationCode(context, marshalled, function_identifier, first_l
     return code_object_setup, code_object_release
 
 
-def _generateAnnotateFunctionMaker(function_body, function_identifier, context):
-    maker_identifier = getFunctionMakerIdentifier(function_identifier)
-
+def _getAnnotateCodeAndClosureVariables(function_body, function_identifier):
     source = generateFunctionSourceFromBody(function_body)
 
     compiled = compile(source, "", "exec")
@@ -166,6 +164,28 @@ def _generateAnnotateFunctionMaker(function_body, function_identifier, context):
             "Closure variables of annotate function '%s' do not match its free variables"
             % function_identifier
         )
+
+    return annotate_code, closure_variables
+
+
+def checkAnnotateFunction(function_body):
+    """Check that an annotate function can be created from generated source.
+
+    Raises:
+        PythonSourceGenerationError: If the function has to use compiled C code instead.
+    """
+    _getAnnotateCodeAndClosureVariables(
+        function_body=function_body,
+        function_identifier=function_body.getCodeName(),
+    )
+
+
+def _generateAnnotateFunctionMaker(function_body, function_identifier, context):
+    maker_identifier = getFunctionMakerIdentifier(function_identifier)
+
+    annotate_code, closure_variables = _getAnnotateCodeAndClosureVariables(
+        function_body=function_body, function_identifier=function_identifier
+    )
 
     marshalled = marshal.dumps(annotate_code)
 

@@ -3,7 +3,6 @@
 
 """Code to generate and interact with compiled function objects."""
 
-from nuitka.options.Options import shallNotFallbackBytecodeToCompiled
 from nuitka.PythonVersions import python_version
 from nuitka.Tracing import code_generation_logger
 
@@ -215,52 +214,31 @@ def getFunctionMakerCode(
     return result
 
 
-def _tryGenerateAnnotateFunctionCreationCode(
-    to_name, expression, emit, context, function_body
-):
-    try:
-        generateAnnotateFunctionCreationCode(
-            to_name=to_name,
-            expression=expression,
-            emit=emit,
-            context=context,
-        )
-    except PythonSourceGenerationError as e:
-        function_body.addFlag("force_c")
-
-        function_qualname = function_body.getFunctionQualname()
-        source_ref = expression.getSourceReference()
-
-        if shallNotFallbackBytecodeToCompiled(
-            module_name=context.getModuleName(),
-            function_qualname=function_qualname,
-            source_ref=source_ref,
-        ):
-            return code_generation_logger.sysexit(
-                """\
-Error, bytecode-to-compiled fallback is disallowed for annotate function '%s' at %s: %s"""
-                % (function_qualname, source_ref.getAsString(), e)
-            )
-
-        return False
-
-    return True
-
-
 def generateFunctionCreationCode(to_name, expression, emit, context):
     # pylint: disable=too-many-locals
 
     function_body = expression.subnode_function_ref.getFunctionBody()
 
     if isBytecodeBackedFunction(function_body):
-        if _tryGenerateAnnotateFunctionCreationCode(
-            to_name=to_name,
-            expression=expression,
-            emit=emit,
-            context=context,
-            function_body=function_body,
-        ):
-            return
+        try:
+            generateAnnotateFunctionCreationCode(
+                to_name=to_name,
+                expression=expression,
+                emit=emit,
+                context=context,
+            )
+        except PythonSourceGenerationError as e:
+            return code_generation_logger.sysexit(
+                """\
+Error, bytecode-to-compiled fallback was not decided for annotate function '%s' at %s: %s"""
+                % (
+                    function_body.getFunctionQualname(),
+                    expression.getSourceReference().getAsString(),
+                    e,
+                )
+            )
+
+        return
 
     defaults = expression.subnode_defaults
     kw_defaults = expression.subnode_kw_defaults

@@ -84,6 +84,7 @@ class ExpressionFunctionBodyBase(
         "temp_scopes",
         "preserver_id",
         "flags",
+        "needs_c_code",
     )
 
     if python_version >= 0x300:
@@ -113,6 +114,8 @@ class ExpressionFunctionBodyBase(
         # Special things, "has_super" indicates presence of "super" in variable
         # usage, which modifies some behaviors.
         self.flags = flags or None
+
+        self.needs_c_code = False
 
         # Hack: This allows some APIs to work although this is not yet
         # officially a child yet. Important during building.
@@ -168,6 +171,12 @@ class ExpressionFunctionBodyBase(
 
     def hasFlag(self, flag):
         return self.flags is not None and flag in self.flags
+
+    def markAsNeedsCCode(self):
+        self.needs_c_code = True
+
+    def needsCCode(self):
+        return self.needs_c_code
 
     def addFlag(self, flag):
         if self.flags is None:

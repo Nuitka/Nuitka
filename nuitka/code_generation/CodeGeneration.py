@@ -12,10 +12,7 @@ from nuitka.nodes.AttributeNodesGenerated import (
 from nuitka.nodes.BytesNodes import getBytesOperationClasses
 from nuitka.nodes.HardImportNodes import getBuiltinRefNodes
 from nuitka.nodes.StrNodes import getStrOperationClasses
-from nuitka.options.Options import (
-    isCompileTimeProfile,
-    shallNotFallbackBytecodeToCompiled,
-)
+from nuitka.options.Options import isCompileTimeProfile
 from nuitka.plugins.Hooks import deriveModuleConstantsBlobName
 from nuitka.Tracing import code_generation_logger
 from nuitka.utils.CStrings import encodePythonStringToC
@@ -586,7 +583,15 @@ def _generateModuleCode(module, data_filename):
     function_decl_codes = []
     function_body_codes = []
 
+    function_bodies = []
+
     for function_body in module.getUsedFunctions():
+        if isBytecodeBackedFunction(function_body):
+            continue
+
+        if not function_body.needsCCode():
+            continue
+
         if function_body.needsCreation():
             (
                 is_constant_returning,
@@ -595,31 +600,9 @@ def _generateModuleCode(module, data_filename):
             if is_constant_returning:
                 continue
 
-        if isBytecodeBackedFunction(function_body):
-            from .PythonSourceCodeGeneration import (
-                PythonSourceGenerationError,
-                generateFunctionSourceFromBody,
-            )
+        function_bodies.append(function_body)
 
-            try:
-                generateFunctionSourceFromBody(function_body)
-            except PythonSourceGenerationError as e:
-                function_qualname = function_body.getFunctionQualname()
-                source_ref = function_body.getSourceReference()
-
-                if shallNotFallbackBytecodeToCompiled(
-                    module_name=context.getModuleName(),
-                    function_qualname=function_qualname,
-                    source_ref=source_ref,
-                ):
-                    return code_generation_logger.sysexit(
-                        """\
-Error, bytecode-to-compiled fallback is disallowed for annotate function '%s' at %s: %s"""
-                        % (function_qualname, source_ref.getAsString(), e)
-                    )
-
-                function_body.addFlag("force_c")
-
+    for function_body in function_bodies:
         function_code, function_decl = generateFunctionBodyCode(
             function_body=function_body, context=context
         )
