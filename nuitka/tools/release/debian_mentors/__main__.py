@@ -4,6 +4,7 @@ import os
 import shutil
 import sys
 
+from nuitka.options.CommandLineOptionsTools import makeOptionsParser
 from nuitka.tools.release.DebianPackage import (
     cleanupTarfileForDebian,
     copySourceForDebianBuild,
@@ -14,11 +15,35 @@ from nuitka.tools.release.Release import (
     checkBranchName,
     cleanupSourceDistributionState,
 )
-from nuitka.Tracing import my_print
+from nuitka.Tracing import my_print, tools_logger
 from nuitka.utils.FileOperations import listDir
 
 
+def parseArgs():
+    parser = makeOptionsParser(usage=None, epilog=None)
+
+    parser.add_option(
+        "--assume-yes-for-downloads",
+        action="store_true",
+        dest="assume_yes_for_downloads",
+        default=False,
+        help="""\
+Allow download and execution of tools if needed. Default is %default.""",
+    )
+
+    options, positional_args = parser.parse_args()
+
+    if positional_args:
+        return tools_logger.sysexit(
+            "This command takes no positional arguments, check help output."
+        )
+
+    return options
+
+
 def main():
+    options = parseArgs()
+
     branch_name = checkBranchName()
     assert branch_name == "main"
 
@@ -29,7 +54,7 @@ def main():
 
     cleanupSourceDistributionState()
 
-    checkReleaseDocumentation(assume_yes_for_downloads=False)
+    checkReleaseDocumentation(assume_yes_for_downloads=options.assume_yes_for_downloads)
 
     assert os.system("%s setup.py sdist --formats=gztar" % sys.executable) == 0
 
