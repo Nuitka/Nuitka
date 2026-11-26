@@ -51,6 +51,10 @@ include tests/onefile/external-data/*.txt
 recursive-include tests/optimizations *.py
 recursive-include tests/standalone *.py
 recursive-include tests/onefile *.py
+recursive-include tests/dll *.py
+recursive-include tests/dll *.c
+recursive-include tests/dll *.scons
+include tests/dll/basic_dll/bundled_data.txt
 recursive-include tests/reflected *.py
 recursive-include tests/type_inference *.py
 recursive-include tests/plugins *.py

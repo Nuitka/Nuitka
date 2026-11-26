@@ -92,6 +92,8 @@ if "__compiled__" in globals():
     assert site.__file__ == os.path.join(
         __compiled__.python_runtime_dir, "site.py"
     ), site.__file__
+    assert __compiled__.dll is False, __compiled__
+    assert __compiled__.dll_filename is None, __compiled__
 
     if sys.version_info[:2] == (3, 11):
         import dataclasses

@@ -1,0 +1,91 @@
+# -*- python -*-
+#     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+
+
+"""SCons file for building standalone C host executables in DLL mode tests."""
+
+import os
+import sys
+import types
+
+sys.modules["nuitka"] = types.ModuleType("nuitka")
+sys.modules["nuitka"].__path__ = [os.environ["NUITKA_PACKAGE_DIR"]]
+
+import nuitka.build  # pylint: disable=unused-import
+
+__package__ = "nuitka.build"  # pylint: disable=redefined-builtin
+
+# isort:start
+
+from nuitka.build.SconsCompilerSettings import (
+    createNuitkaSconsEnvironment,
+    reportCCompiler,
+    setupCCompiler,
+)
+from nuitka.build.SconsControl import executeSconsBuild
+from nuitka.build.SconsSourceIndex import getSourceFilenamesFromIndex
+from nuitka.build.SconsUtils import (
+    getArgumentRequired,
+    makeResultPathFileSystemEncodable,
+)
+from nuitka.Tracing import scons_logger
+
+env = createNuitkaSconsEnvironment()
+env.low_memory = False
+env.debug_mode = False
+env.debugger_mode = False
+env.unstripped_mode = False
+env.console_mode = "force"
+env.resource_mode = "absent"
+env.dll_mode = False
+env.module_mode = False
+
+result_exe = getArgumentRequired("result_exe")
+header_dir = getArgumentRequired("header_dir")
+
+reportCCompiler(env, "Host", scons_logger.info)
+
+setupCCompiler(
+    env=env,
+    pgo_mode="no",
+    exe_target=True,
+    onefile_compile=False,
+)
+
+env.Append(CPPPATH=[header_dir])
+
+if env.target_os == "Linux":
+    env.Append(LIBS=["dl", "pthread"])
+elif "BSD" in env.target_os:
+    env.Append(LIBS=["pthread"])
+
+source_filenames = getSourceFilenamesFromIndex(env=env, source_dir=env.source_dir)
+result_exe = makeResultPathFileSystemEncodable(env=env, result_exe=result_exe)
+
+# MSYS2 Python paths need native normalization inside SCons.
+target = env.Program(os.path.normpath(result_exe), source_filenames)
+
+executeSconsBuild(
+    env=env,
+    target=target,
+    source_filenames=source_filenames,
+    progressbar_name="Host",
+    stable_include_paths=False,
+)
+
+#     Python test originally created or extracted from other peoples work. The
+#     parts from me are licensed as below. It is at least Free Software where
+#     it's copied from other people. In these cases, that will normally be
+#     indicated.
+#
+#     Licensed under the Apache License, Version 2.0 (the "License");
+#     you may not use this file except in compliance with the License.
+#     You may obtain a copy of the License at
+#
+#         http://www.apache.org/licenses/LICENSE-2.0
+#
+#     Unless required by applicable law or agreed to in writing, software
+#     distributed under the License is distributed on an "AS IS" BASIS,
+#     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#     See the License for the specific language governing permissions and
+#     limitations under the License.

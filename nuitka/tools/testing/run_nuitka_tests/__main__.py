@@ -116,6 +116,16 @@ Default is %default.""",
     )
 
     parser.add_option(
+        "--skip-dll-tests",
+        action="store_false",
+        dest="dll_tests",
+        default=hasStandaloneSupportedOS(),
+        help="""\
+The DLL mode tests, execute these to check if Nuitka works in '--mode=dll'
+when loaded from a native C host program. Default is %default.""",
+    )
+
+    parser.add_option(
         "--skip-reflection-test",
         action="store_false",
         dest="reflection_test",
@@ -846,6 +856,17 @@ def main():
                     executeSubTest("./tests/onefile/run_all.py search")
             else:
                 my_print("The onefile tests are not run due to missing requirements.")
+
+        if options.dll_tests and not options.coverage:
+            if hasStandaloneSupportedOS():
+                my_print(
+                    "Running the dll tests with options '%s' with '%s':"
+                    % (flags, use_python)
+                )
+                with withExtendedExtraOptions(*getExtraFlags(None, "dll", flags)):
+                    executeSubTest("./tests/dll/run_all.py search")
+            else:
+                my_print("The dll tests are not run due to missing requirements.")
 
         if options.reflection_test and not options.coverage:
             my_print(

@@ -688,6 +688,9 @@ For fine grained control, it has the following options:
                          standalone mode, e.g. not referring to outside,
                          important 3rd library packages like PyQt fine. Default
                          is True.
+   --skip-dll-tests      The DLL mode tests, execute these to check if Nuitka
+                         works in '--mode=dll' when loaded from a native C host
+                         program. Default is True.
    --skip-reflection-test
                          The reflection test compiles Nuitka with Nuitka, and
                          then Nuitka with the compile Nuitka and compares the
@@ -843,6 +846,19 @@ constants. These can be run like this:
 .. code:: bash
 
    ./tests/generated/run_all.py search
+
+DLL Tests
+=========
+
+There are tests and complete C host examples for ``--mode=dll`` in
+``tests/dll``. Each subdirectory pairs a Python main program with a
+standalone C host executable that loads the produced shared library and
+invokes ``run_code`` (including host threading and ``multiprocessing``
+via ``fork_only``):
+
+.. code:: bash
+
+   ./tests/dll/run_all.py search
 
 Compile Nuitka with Nuitka
 ==========================
@@ -2013,9 +2029,11 @@ call of the functions below is a hint that it should be replaced.
          1/0/-1 contract, no exception suppression.
 
    -  -  ``PyDict_New``
-      -  ``MAKE_DICT_EMPTY``, ``MAKE_DICT``
+      -  ``MAKE_DICT_EMPTY``, ``MAKE_DICT_EMPTY_UNTRACKED``,
+         ``MAKE_DICT``
       -  ``helper/dictionaries.h``
-      -  ``MAKE_DICT`` fills from a C array, no per-item C-API calls.
+      -  ``MAKE_DICT_EMPTY_UNTRACKED`` leaves private dicts out of GC;
+         ``MAKE_DICT`` fills from a C array, no per-item C-API calls.
 
    -  -  string dict keys
 
@@ -2103,12 +2121,6 @@ call of the functions below is a hint that it should be replaced.
       -  Binds descriptors manually; on a miss raises ``AttributeError``
          or the context-manager protocol complaint instead of a silent
          not-found.
-
-   -  -  module/global lookup
-      -  ``LOOKUP_MODULE_VALUE``
-      -  ``helper/attributes.h``
-      -  Assumes an exact string-key module dict fast path and falls
-         back to the builtins dict; returns a borrowed reference.
 
    -  -  ``PySequence_Contains``
       -  no enhanced form yet, see the TODO
