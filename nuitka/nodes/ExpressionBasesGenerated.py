@@ -41,45 +41,6 @@ from .ExpressionBases import ExpressionBase
 from .NodeMakingHelpers import wrapExpressionWithSideEffects
 
 
-class _NoChildHavingFinalNoRaiseMixin(ExpressionBase):
-    # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
-    __slots__ = ()
-
-    def finalize(self):
-        del self.parent
-
-    def computeExpressionRaw(self, trace_collection):
-
-        return self, None, None
-
-    @staticmethod
-    def mayRaiseExceptionOperation():
-        return False
-
-    @staticmethod
-    def mayRaiseException(exception_type):
-        return False
-
-    def undoVariableTracingRaw(self, trace_collection):
-        for child in reversed(self.getVisitableNodes()):
-            child.undoVariableTracingRaw(trace_collection)
-
-        self.undoVariableTracing()
-
-    @staticmethod
-    def undoVariableTracing():
-        pass
-
-    def collectVariableAccesses(self, emit_variable):
-        pass
-
-
-ExpressionImportlibMetadataBackportEntryPointValueRefBase = (
-    _NoChildHavingFinalNoRaiseMixin
-)
-ExpressionImportlibMetadataEntryPointValueRefBase = _NoChildHavingFinalNoRaiseMixin
-
-
 class _NoChildHavingFinalNoRaiseRelativePathMixin(ExpressionBase):
     # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
     __slots__ = ()
@@ -140,6 +101,45 @@ class _NoChildHavingFinalNoRaiseRelativePathMixin(ExpressionBase):
 
 
 ExpressionRuntimePathBase = _NoChildHavingFinalNoRaiseRelativePathMixin
+
+
+class _NoChildHavingFinalNoRaiseMixin(ExpressionBase):
+    # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
+    __slots__ = ()
+
+    def finalize(self):
+        del self.parent
+
+    def computeExpressionRaw(self, trace_collection):
+
+        return self, None, None
+
+    @staticmethod
+    def mayRaiseExceptionOperation():
+        return False
+
+    @staticmethod
+    def mayRaiseException(exception_type):
+        return False
+
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
+
+        self.undoVariableTracing()
+
+    @staticmethod
+    def undoVariableTracing():
+        pass
+
+    def collectVariableAccesses(self, emit_variable):
+        pass
+
+
+ExpressionImportlibMetadataBackportEntryPointValueRefBase = (
+    _NoChildHavingFinalNoRaiseMixin
+)
+ExpressionImportlibMetadataEntryPointValueRefBase = _NoChildHavingFinalNoRaiseMixin
 
 
 class _ChildHavingArgsTupleFinalNoRaiseMixin(ExpressionBase):

@@ -18,7 +18,9 @@ import nuitka.code_generation.BinaryOperationHelperDefinitions
 import nuitka.code_generation.CodeGeneration
 import nuitka.code_generation.ComparisonCodes
 import nuitka.code_generation.Namify
+import nuitka.nodes.CtypesNodes
 import nuitka.nodes.NetworkxNodes
+import nuitka.nodes.OsSysNodes
 import nuitka.nodes.PackageMetadataNodes
 import nuitka.nodes.PackageResourceNodes
 import nuitka.nodes.SideEffectNodes
@@ -1098,11 +1100,6 @@ from nuitka.nodes.HardImportNodes import addHardImportNodeClass, addBuiltinRefNo
             module_name_title = makeTitleCased(adaptModuleName(module_name))
             function_name_title = makeTitleCased(function_name)
 
-            node_class_name = "Expression%s%s" % (
-                module_name_title,
-                function_name_title,
-            )
-
             for spec_desc in spec_descriptions:
                 call_node_module_name = getCallModuleName(module_name, function_name)
                 loaded_module = importlib.import_module(
@@ -1190,10 +1187,17 @@ from nuitka.nodes.HardImportNodes import addHardImportNodeClass, addBuiltinRefNo
                             named_children_types[kw_only_name] = "optional"
 
                     if parameter_names:
+                        call_node_base_name = "Expression%s%s%sCall%sBase" % (
+                            module_name_title,
+                            function_name_title,
+                            spec_desc.suffix,
+                            variation_suffix,
+                        )
+
                         mixin_name = addChildrenMixin(
                             True,
                             False,
-                            node_class_name,
+                            call_node_base_name,
                             parameter_names,
                             named_children_types,
                             named_children_checkers,

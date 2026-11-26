@@ -262,7 +262,6 @@ class ChildHavingAnchorOptionalMixin(object):
             self.subnode_anchor.collectVariableAccesses(emit_variable)
 
 
-ChildrenExpressionImportlibResourcesFilesMixin = ChildHavingAnchorOptionalMixin
 ChildrenExpressionImportlibResourcesFilesSince315CallMixin = (
     ChildHavingAnchorOptionalMixin
 )
@@ -393,9 +392,6 @@ class ChildrenHavingAnchorOptionalPackageOptionalMixin(object):
             self.subnode_package.collectVariableAccesses(emit_variable)
 
 
-ChildrenExpressionImportlibResourcesFilesMixin = (
-    ChildrenHavingAnchorOptionalPackageOptionalMixin
-)
 ChildrenExpressionImportlibResourcesFilesSince312CallMixin = (
     ChildrenHavingAnchorOptionalPackageOptionalMixin
 )
@@ -5332,7 +5328,6 @@ class ChildHavingDistMixin(object):
         self.subnode_dist.collectVariableAccesses(emit_variable)
 
 
-ChildrenExpressionPkgResourcesGetDistributionMixin = ChildHavingDistMixin
 ChildrenExpressionPkgResourcesGetDistributionCallMixin = ChildHavingDistMixin
 
 
@@ -5407,27 +5402,21 @@ class ChildHavingDistributionNameMixin(object):
         self.subnode_distribution_name.collectVariableAccesses(emit_variable)
 
 
-ChildrenExpressionImportlibMetadataBackportDistributionMixin = (
-    ChildHavingDistributionNameMixin
-)
 ChildrenExpressionImportlibMetadataBackportDistributionCallMixin = (
     ChildHavingDistributionNameMixin
 )
-ChildrenExpressionImportlibMetadataBackportMetadataMixin = (
-    ChildHavingDistributionNameMixin
-)
-ChildrenExpressionImportlibMetadataBackportVersionMixin = (
+ChildrenExpressionImportlibMetadataBackportMetadataCallBaseMixin = (
     ChildHavingDistributionNameMixin
 )
 ChildrenExpressionImportlibMetadataBackportVersionCallMixin = (
     ChildHavingDistributionNameMixin
 )
-ChildrenExpressionImportlibMetadataDistributionMixin = ChildHavingDistributionNameMixin
 ChildrenExpressionImportlibMetadataDistributionCallMixin = (
     ChildHavingDistributionNameMixin
 )
-ChildrenExpressionImportlibMetadataMetadataMixin = ChildHavingDistributionNameMixin
-ChildrenExpressionImportlibMetadataVersionMixin = ChildHavingDistributionNameMixin
+ChildrenExpressionImportlibMetadataMetadataCallBaseMixin = (
+    ChildHavingDistributionNameMixin
+)
 ChildrenExpressionImportlibMetadataVersionCallMixin = ChildHavingDistributionNameMixin
 
 
@@ -5904,7 +5893,7 @@ class ChildHavingExitCodeOptionalMixin(object):
             self.subnode_exit_code.collectVariableAccesses(emit_variable)
 
 
-ChildrenExpressionSysExitMixin = ChildHavingExitCodeOptionalMixin
+ChildrenExpressionSysExitCallBaseMixin = ChildHavingExitCodeOptionalMixin
 
 
 class ChildHavingExpressionMixin(object):
@@ -6909,7 +6898,6 @@ class ChildrenHavingFileModeOptionalBufferingOptionalEncodingOptionalErrorsOptio
             self.subnode_opener.collectVariableAccesses(emit_variable)
 
 
-ChildrenExpressionBuiltinsOpenMixin = ChildrenHavingFileModeOptionalBufferingOptionalEncodingOptionalErrorsOptionalNewlineOptionalClosefdOptionalOpenerOptionalMixin
 ChildrenExpressionBuiltinsOpenSince3CallMixin = ChildrenHavingFileModeOptionalBufferingOptionalEncodingOptionalErrorsOptionalNewlineOptionalClosefdOptionalOpenerOptionalMixin
 
 
@@ -7324,7 +7312,6 @@ class ChildrenHavingFuncOptionalInputSignatureOptionalAutographOptionalJitCompil
             )
 
 
-ChildrenExpressionTensorflowFunctionMixin = ChildrenHavingFuncOptionalInputSignatureOptionalAutographOptionalJitCompileOptionalReduceRetracingOptionalExperimentalImplementsOptionalExperimentalAutographOptionsOptionalExperimentalAttributesOptionalExperimentalRelaxShapesOptionalExperimentalCompileOptionalExperimentalFollowTypeHintsOptionalMixin
 ChildrenExpressionTensorflowFunctionCallMixin = ChildrenHavingFuncOptionalInputSignatureOptionalAutographOptionalJitCompileOptionalReduceRetracingOptionalExperimentalImplementsOptionalExperimentalAutographOptionsOptionalExperimentalAttributesOptionalExperimentalRelaxShapesOptionalExperimentalCompileOptionalExperimentalFollowTypeHintsOptionalMixin
 
 
@@ -7629,9 +7616,6 @@ class ChildrenHavingGroupNameOptionalMixin(object):
             self.subnode_name.collectVariableAccesses(emit_variable)
 
 
-ChildrenExpressionPkgResourcesIterEntryPointsMixin = (
-    ChildrenHavingGroupNameOptionalMixin
-)
 ChildrenExpressionPkgResourcesIterEntryPointsCallMixin = (
     ChildrenHavingGroupNameOptionalMixin
 )
@@ -7904,7 +7888,6 @@ class ChildHavingIterableOptionalMixin(object):
             self.subnode_iterable.collectVariableAccesses(emit_variable)
 
 
-ChildrenExpressionBuiltinsSortedMixin = ChildHavingIterableOptionalMixin
 ChildrenExpressionBuiltinsSortedSince3Call1Mixin = ChildHavingIterableOptionalMixin
 
 
@@ -8079,9 +8062,6 @@ class ChildrenHavingIterableCmpOptionalKeyOptionalReverseOptionalMixin(object):
             self.subnode_reverse.collectVariableAccesses(emit_variable)
 
 
-ChildrenExpressionBuiltinsSortedMixin = (
-    ChildrenHavingIterableCmpOptionalKeyOptionalReverseOptionalMixin
-)
 ChildrenExpressionBuiltinsSortedBefore3CallMixin = (
     ChildrenHavingIterableCmpOptionalKeyOptionalReverseOptionalMixin
 )
@@ -8240,9 +8220,6 @@ class ChildrenHavingIterableOptionalKeyOptionalReverseOptionalMixin(object):
             self.subnode_reverse.collectVariableAccesses(emit_variable)
 
 
-ChildrenExpressionBuiltinsSortedMixin = (
-    ChildrenHavingIterableOptionalKeyOptionalReverseOptionalMixin
-)
 ChildrenExpressionBuiltinsSortedSince3CallMixin = (
     ChildrenHavingIterableOptionalKeyOptionalReverseOptionalMixin
 )
@@ -10605,9 +10582,6 @@ class ChildrenHavingNameOptionalModeOptionalBufferingOptionalMixin(object):
             self.subnode_buffering.collectVariableAccesses(emit_variable)
 
 
-ChildrenExpressionBuiltinsOpenMixin = (
-    ChildrenHavingNameOptionalModeOptionalBufferingOptionalMixin
-)
 ChildrenExpressionBuiltinsOpenBefore3CallMixin = (
     ChildrenHavingNameOptionalModeOptionalBufferingOptionalMixin
 )
@@ -10818,7 +10792,7 @@ class ChildrenHavingNameModeOptionalHandleOptionalUseErrnoOptionalUseLastErrorOp
             self.subnode_use_last_error.collectVariableAccesses(emit_variable)
 
 
-ChildrenExpressionCtypesCdllMixin = ChildrenHavingNameModeOptionalHandleOptionalUseErrnoOptionalUseLastErrorOptionalMixin
+ChildrenExpressionCtypesCdllBefore38CallMixin = ChildrenHavingNameModeOptionalHandleOptionalUseErrnoOptionalUseLastErrorOptionalMixin
 
 
 class ChildrenHavingNameModeOptionalHandleOptionalUseErrnoOptionalUseLastErrorOptionalWinmodeOptionalMixin(
@@ -11056,7 +11030,7 @@ class ChildrenHavingNameModeOptionalHandleOptionalUseErrnoOptionalUseLastErrorOp
             self.subnode_winmode.collectVariableAccesses(emit_variable)
 
 
-ChildrenExpressionCtypesCdllMixin = ChildrenHavingNameModeOptionalHandleOptionalUseErrnoOptionalUseLastErrorOptionalWinmodeOptionalMixin
+ChildrenExpressionCtypesCdllSince38CallMixin = ChildrenHavingNameModeOptionalHandleOptionalUseErrnoOptionalUseLastErrorOptionalWinmodeOptionalMixin
 
 
 class ChildrenHavingNamePackageOptionalMixin(object):
@@ -11384,9 +11358,7 @@ class ChildHavingObjectMixin(object):
         self.subnode_object.collectVariableAccesses(emit_variable)
 
 
-ChildrenExpressionBuiltinsMemoryviewMixin = ChildHavingObjectMixin
 ChildrenExpressionBuiltinsMemoryviewCallMixin = ChildHavingObjectMixin
-ChildrenExpressionBuiltinsReversedMixin = ChildHavingObjectMixin
 ChildrenExpressionBuiltinsReversedCallMixin = ChildHavingObjectMixin
 
 
@@ -11484,7 +11456,6 @@ class ChildHavingObjectsTupleMixin(object):
             element.collectVariableAccesses(emit_variable)
 
 
-ChildrenExpressionBuiltinsPrintMixin = ChildHavingObjectsTupleMixin
 ChildrenExpressionBuiltinsPrintSince3Call1Mixin = ChildHavingObjectsTupleMixin
 
 
@@ -11668,9 +11639,6 @@ class ChildrenHavingObjectsTupleSepOptionalEndOptionalFileOptionalMixin(object):
             self.subnode_file.collectVariableAccesses(emit_variable)
 
 
-ChildrenExpressionBuiltinsPrintMixin = (
-    ChildrenHavingObjectsTupleSepOptionalEndOptionalFileOptionalMixin
-)
 ChildrenExpressionBuiltinsPrintBefore3CallMixin = (
     ChildrenHavingObjectsTupleSepOptionalEndOptionalFileOptionalMixin
 )
@@ -11888,9 +11856,6 @@ class ChildrenHavingObjectsTupleSepOptionalEndOptionalFileOptionalFlushOptionalM
             self.subnode_flush.collectVariableAccesses(emit_variable)
 
 
-ChildrenExpressionBuiltinsPrintMixin = (
-    ChildrenHavingObjectsTupleSepOptionalEndOptionalFileOptionalFlushOptionalMixin
-)
 ChildrenExpressionBuiltinsPrintSince3CallMixin = (
     ChildrenHavingObjectsTupleSepOptionalEndOptionalFileOptionalFlushOptionalMixin
 )
@@ -12046,8 +12011,8 @@ class ChildHavingPMixin(object):
         self.subnode_p.collectVariableAccesses(emit_variable)
 
 
-ChildrenExpressionOsPathBasenameMixin = ChildHavingPMixin
-ChildrenExpressionOsPathDirnameMixin = ChildHavingPMixin
+ChildrenExpressionOsPathBasenameCallMixin = ChildHavingPMixin
+ChildrenExpressionOsPathDirnameCallMixin = ChildHavingPMixin
 
 
 class ChildHavingPackageMixin(object):
@@ -12121,9 +12086,7 @@ class ChildHavingPackageMixin(object):
         self.subnode_package.collectVariableAccesses(emit_variable)
 
 
-ChildrenExpressionImportlibResourcesBackportFilesMixin = ChildHavingPackageMixin
 ChildrenExpressionImportlibResourcesBackportFilesCallMixin = ChildHavingPackageMixin
-ChildrenExpressionImportlibResourcesFilesMixin = ChildHavingPackageMixin
 ChildrenExpressionImportlibResourcesFilesCallMixin = ChildHavingPackageMixin
 
 
@@ -12230,27 +12193,18 @@ class ChildrenHavingPackageResourceMixin(object):
         self.subnode_resource.collectVariableAccesses(emit_variable)
 
 
-ChildrenExpressionImportlibResourcesBackportOpenBinaryMixin = (
-    ChildrenHavingPackageResourceMixin
-)
 ChildrenExpressionImportlibResourcesBackportOpenBinaryCallMixin = (
-    ChildrenHavingPackageResourceMixin
-)
-ChildrenExpressionImportlibResourcesBackportReadBinaryMixin = (
     ChildrenHavingPackageResourceMixin
 )
 ChildrenExpressionImportlibResourcesBackportReadBinaryCallMixin = (
     ChildrenHavingPackageResourceMixin
 )
-ChildrenExpressionImportlibResourcesOpenBinaryMixin = ChildrenHavingPackageResourceMixin
 ChildrenExpressionImportlibResourcesOpenBinaryCallMixin = (
     ChildrenHavingPackageResourceMixin
 )
-ChildrenExpressionImportlibResourcesReadBinaryMixin = ChildrenHavingPackageResourceMixin
 ChildrenExpressionImportlibResourcesReadBinaryCallMixin = (
     ChildrenHavingPackageResourceMixin
 )
-ChildrenExpressionPkgutilGetDataMixin = ChildrenHavingPackageResourceMixin
 ChildrenExpressionPkgutilGetDataCallMixin = ChildrenHavingPackageResourceMixin
 
 
@@ -12418,25 +12372,13 @@ class ChildrenHavingPackageResourceEncodingOptionalErrorsOptionalMixin(object):
             self.subnode_errors.collectVariableAccesses(emit_variable)
 
 
-ChildrenExpressionImportlibResourcesBackportOpenTextMixin = (
-    ChildrenHavingPackageResourceEncodingOptionalErrorsOptionalMixin
-)
 ChildrenExpressionImportlibResourcesBackportOpenTextCallMixin = (
-    ChildrenHavingPackageResourceEncodingOptionalErrorsOptionalMixin
-)
-ChildrenExpressionImportlibResourcesBackportReadTextMixin = (
     ChildrenHavingPackageResourceEncodingOptionalErrorsOptionalMixin
 )
 ChildrenExpressionImportlibResourcesBackportReadTextCallMixin = (
     ChildrenHavingPackageResourceEncodingOptionalErrorsOptionalMixin
 )
-ChildrenExpressionImportlibResourcesOpenTextMixin = (
-    ChildrenHavingPackageResourceEncodingOptionalErrorsOptionalMixin
-)
 ChildrenExpressionImportlibResourcesOpenTextCallMixin = (
-    ChildrenHavingPackageResourceEncodingOptionalErrorsOptionalMixin
-)
-ChildrenExpressionImportlibResourcesReadTextMixin = (
     ChildrenHavingPackageResourceEncodingOptionalErrorsOptionalMixin
 )
 ChildrenExpressionImportlibResourcesReadTextBefore313CallMixin = (
@@ -12632,9 +12574,6 @@ class ChildrenHavingPackageOptionalResourcesTupleEncodingOptionalErrorsOptionalM
             self.subnode_errors.collectVariableAccesses(emit_variable)
 
 
-ChildrenExpressionImportlibResourcesReadTextMixin = (
-    ChildrenHavingPackageOptionalResourcesTupleEncodingOptionalErrorsOptionalMixin
-)
 ChildrenExpressionImportlibResourcesReadTextSince313CallMixin = (
     ChildrenHavingPackageOptionalResourcesTupleEncodingOptionalErrorsOptionalMixin
 )
@@ -12743,13 +12682,7 @@ class ChildrenHavingPackageOrRequirementResourceNameMixin(object):
         self.subnode_resource_name.collectVariableAccesses(emit_variable)
 
 
-ChildrenExpressionPkgResourcesResourceStreamMixin = (
-    ChildrenHavingPackageOrRequirementResourceNameMixin
-)
 ChildrenExpressionPkgResourcesResourceStreamCallMixin = (
-    ChildrenHavingPackageOrRequirementResourceNameMixin
-)
-ChildrenExpressionPkgResourcesResourceStringMixin = (
     ChildrenHavingPackageOrRequirementResourceNameMixin
 )
 ChildrenExpressionPkgResourcesResourceStringCallMixin = (
@@ -12944,13 +12877,9 @@ class ChildHavingParamsTupleMixin(object):
             element.collectVariableAccesses(emit_variable)
 
 
-ChildrenExpressionImportlibMetadataBackportEntryPointsMixin = (
-    ChildHavingParamsTupleMixin
-)
 ChildrenExpressionImportlibMetadataBackportEntryPointsCallMixin = (
     ChildHavingParamsTupleMixin
 )
-ChildrenExpressionImportlibMetadataEntryPointsMixin = ChildHavingParamsTupleMixin
 ChildrenExpressionImportlibMetadataEntryPointsSince310CallMixin = (
     ChildHavingParamsTupleMixin
 )
@@ -13027,10 +12956,10 @@ class ChildHavingPathMixin(object):
         self.subnode_path.collectVariableAccesses(emit_variable)
 
 
-ChildrenExpressionOsPathAbspathMixin = ChildHavingPathMixin
-ChildrenExpressionOsPathExistsMixin = ChildHavingPathMixin
-ChildrenExpressionOsPathIsfileMixin = ChildHavingPathMixin
-ChildrenExpressionOsPathNormpathMixin = ChildHavingPathMixin
+ChildrenExpressionOsPathAbspathCallMixin = ChildHavingPathMixin
+ChildrenExpressionOsPathExistsCallMixin = ChildHavingPathMixin
+ChildrenExpressionOsPathIsfileCallMixin = ChildHavingPathMixin
+ChildrenExpressionOsPathNormpathCallMixin = ChildHavingPathMixin
 
 
 class ChildHavingPathOptionalMixin(object):
@@ -13118,7 +13047,7 @@ class ChildHavingPathOptionalMixin(object):
             self.subnode_path.collectVariableAccesses(emit_variable)
 
 
-ChildrenExpressionOsListdirMixin = ChildHavingPathOptionalMixin
+ChildrenExpressionOsListdirCallMixin = ChildHavingPathOptionalMixin
 
 
 class ChildrenHavingPathOptionalDirFdOptionalMixin(object):
@@ -13244,7 +13173,7 @@ class ChildrenHavingPathOptionalDirFdOptionalMixin(object):
             self.subnode_dir_fd.collectVariableAccesses(emit_variable)
 
 
-ChildrenExpressionOsLstatMixin = ChildrenHavingPathOptionalDirFdOptionalMixin
+ChildrenExpressionOsLstatCallMixin = ChildrenHavingPathOptionalDirFdOptionalMixin
 
 
 class ChildrenHavingPathOptionalDirFdOptionalFollowSymlinksOptionalMixin(object):
@@ -13400,7 +13329,7 @@ class ChildrenHavingPathOptionalDirFdOptionalFollowSymlinksOptionalMixin(object)
             self.subnode_follow_symlinks.collectVariableAccesses(emit_variable)
 
 
-ChildrenExpressionOsStatMixin = (
+ChildrenExpressionOsStatCallMixin = (
     ChildrenHavingPathOptionalDirFdOptionalFollowSymlinksOptionalMixin
 )
 
@@ -13528,9 +13457,6 @@ class ChildrenHavingPathOptionalPrefixOptionalMixin(object):
             self.subnode_prefix.collectVariableAccesses(emit_variable)
 
 
-ChildrenExpressionPkgutilIterModulesMixin = (
-    ChildrenHavingPathOptionalPrefixOptionalMixin
-)
 ChildrenExpressionPkgutilIterModulesCallMixin = (
     ChildrenHavingPathOptionalPrefixOptionalMixin
 )
@@ -13628,7 +13554,7 @@ class ChildHavingPathsTupleMixin(object):
             element.collectVariableAccesses(emit_variable)
 
 
-ChildrenExpressionOsPathJoinMixin = ChildHavingPathsTupleMixin
+ChildrenExpressionOsPathJoinCallMixin = ChildHavingPathsTupleMixin
 
 
 class ChildrenHavingPosArgOptionalPairsTupleMixin(object):
@@ -13970,7 +13896,6 @@ class ChildHavingRequirementsTupleMixin(object):
             element.collectVariableAccesses(emit_variable)
 
 
-ChildrenExpressionPkgResourcesRequireMixin = ChildHavingRequirementsTupleMixin
 ChildrenExpressionPkgResourcesRequireCallMixin = ChildHavingRequirementsTupleMixin
 
 
@@ -14045,8 +13970,8 @@ class ChildHavingSMixin(object):
         self.subnode_s.collectVariableAccesses(emit_variable)
 
 
-ChildrenExpressionOsPathIsabsMixin = ChildHavingSMixin
-ChildrenExpressionOsPathIsdirMixin = ChildHavingSMixin
+ChildrenExpressionOsPathIsabsCallMixin = ChildHavingSMixin
+ChildrenExpressionOsPathIsdirCallMixin = ChildHavingSMixin
 
 
 class ChildHavingSequenceMixin(object):
