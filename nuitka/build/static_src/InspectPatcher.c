@@ -206,7 +206,7 @@ static PyObject *_sys_getframemodulename_replacement(PyObject *self, PyObject *a
     }
 
     if ((frame != NULL) && (Nuitka_FrameIsCompiled(frame))) {
-        PyObject *result = DICT_GET_ITEM0(tstate, frame->f_globals, const_str_plain___name__);
+        PyObject *result = DICT_GET_ITEM_WITH_HASH_ERROR1(tstate, frame->f_globals, const_str_plain___name__);
 
         if (result == NULL) {
             if (unlikely(HAS_ERROR_OCCURRED(tstate))) {
@@ -217,7 +217,6 @@ static PyObject *_sys_getframemodulename_replacement(PyObject *self, PyObject *a
             return Py_None;
         }
 
-        Py_INCREF(result);
         return result;
     }
 
