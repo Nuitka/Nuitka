@@ -40,7 +40,8 @@ def _isIgnoredCFile(filename):
     path_parts = getPathWithForwardSlashes(os.path.normpath(filename)).split("/")
     basename = os.path.basename(filename)
 
-    if "inline_copy" in path_parts:
+    # Host C examples include headers generated at test time by '--mode=dll'.
+    if "inline_copy" in path_parts or path_parts[:2] == ["tests", "dll"]:
         return True
 
     if basename == "OnefileSplashScreen.c":
