@@ -181,7 +181,10 @@ def _getVersionInformationValues():
     yield "Python: %s" % sys.version.split("\n", 1)[0]
     yield "Flavor: %s" % getPythonFlavorName()
     if python_version >= 0x3D0:
-        yield "GIL: %s" % ("yes" if isPythonWithGil() else "no")
+        if isFreeThreadedPython() and isPythonWithGil():
+            yield "GIL: yes (free-threaded build)"
+        else:
+            yield "GIL: %s" % ("yes" if isPythonWithGil() else "no")
     yield "Executable: %s" % getReportPath(sys.executable)
     yield "OS: %s" % getOS()
     yield "Arch: %s" % getArchitecture()
