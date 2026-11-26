@@ -46,8 +46,15 @@ static PyObject *Nuitka_ResourceReader_tp_repr(PyObject *self) {
     return PyUnicode_FromFormat("<nuitka_resource_reader for '%s'>", display_name);
 }
 
-// TODO: Should visit m_module_name.
-static int Nuitka_ResourceReader_tp_traverse(PyObject *self, visitproc visit, void *arg) { return 0; }
+static int Nuitka_ResourceReader_tp_traverse(PyObject *self, visitproc visit, void *arg) {
+    struct Nuitka_ResourceReaderObject *reader = (struct Nuitka_ResourceReaderObject *)self;
+
+    if (reader->m_module_name != NULL && !Nuitka_String_CheckExact(reader->m_module_name)) {
+        Py_VISIT(reader->m_module_name);
+    }
+
+    return 0;
+}
 
 static PyObject *_Nuitka_ResourceReader_resource_path(PyThreadState *tstate, struct Nuitka_ResourceReaderObject *reader,
                                                       PyObject *resource) {
@@ -91,8 +98,13 @@ static PyObject *Nuitka_ResourceReader_open_resource(PyObject *reader_obj, PyObj
     PyThreadState *tstate = PyThreadState_GET();
 
     PyObject *filename = _Nuitka_ResourceReader_resource_path(tstate, reader, resource);
+    if (unlikely(filename == NULL)) {
+        return NULL;
+    }
 
-    return BUILTIN_OPEN_BINARY_READ_SIMPLE(tstate, filename);
+    PyObject *result = BUILTIN_OPEN_BINARY_READ_SIMPLE(tstate, filename);
+    Py_DECREF(filename);
+    return result;
 }
 
 static PyObject *Nuitka_ResourceReader_is_resource(PyObject *reader_obj, PyObject *args, PyObject *kwds) {

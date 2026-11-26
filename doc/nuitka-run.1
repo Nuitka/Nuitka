@@ -14,7 +14,7 @@ show this help message and exit
 Show version information and important details for bug reports, then exit. Defaults to off.
 .TP
 \fB\-\-mode\fR=\fI\,COMPILATION_MODE\/\fR
-Mode in which to compile. "accelerated" runs in your Python installation and depends on it. "standalone" creates a folder with an executable contained to run it. "onefile" creates a single self extracting executable to deploy. "app" is "onefile" except on macOS where it creates an app bundle. "app\-dist" is "standalone" except on macOS where it creates an app bundle. "module" makes an extension module from a single module and "package" compiles a whole package into an extension module. "dll" is currently under development and not for users yet. Default is 'accelerated'.
+Mode in which to compile. "accelerated" runs in your Python installation and depends on it. "standalone" creates a folder with an executable contained to run it. "onefile" creates a single self extracting executable to deploy. "app" is "onefile" except on macOS where it creates an app bundle. "app\-dist" is "standalone" except on macOS where it creates an app bundle. "module" makes an extension module from a single module and "package" compiles a whole package into an extension module. "dll" creates a folder with a shared library contained to load and run from a host program. Default is 'accelerated'.
 .TP
 \fB\-\-python\-flag\fR=\fI\,FLAG\/\fR
 Python flags to use. Default is what you are using to run Nuitka, this enforces a specific mode. These are options that also exist to standard Python executable. Currently supported: "\-S" (alias "no_site"), "static_hashes" (do not use hash randomization), "no_warnings" (do not give Python run time warnings), "no_unraisable" (do not give Python unraisable exception output), "\-O" (alias "no_asserts"), "no_docstrings" (do not use doc strings), "\-u" (alias "unbuffered"), "isolated" (do not load outside code), "\-P" (alias "safe_path", do not used current directory in module search) and "\-m" (package mode, compile as "package.__main__"). Default empty.
@@ -232,6 +232,9 @@ Do not create a '.pyi' file for extension modules created by Nuitka. This is use
 .TP
 \fB\-\-no\-pyi\-stubs\fR
 Do not use stubgen when creating a '.pyi' file for extension modules created by Nuitka. They expose your API, but stubgen may cause issues. Defaults to off.
+.TP
+\fB\-\-dll\-header\-language\fR=\fI\,LANGUAGE_LIST\/\fR
+Comma separated list of host binding languages to generate alongside '\-\-mode=dll' builds. Supported values are "c" (C/C++ '.h' header, also usable from Zig '@cImport'), "rust" ('.rs' module), and "none". Defaults to "c".
 .IP
 Deployment control:
 .TP
@@ -629,6 +632,17 @@ Debug automatic updates at runtime printing messages. Default False.
 .TP
 \fB\-\-auto\-update\-toml\-file\fR=\fI\,FILENAME\/\fR
 Path to generate a TOML update config for the compiled binary. Default empty, i.e. do not generate.
+.IP
+Plugin options of 'file\-analysis' (categories: commercial, feature):
+.TP
+\fB\-\-file\-analysis\-output\-spec\fR=\fI\,PATH\/\fR
+Path specification for the JSON file\-analysis report written at exit. Supports runtime placeholders such as '{PROGRAM_BASE}', '{PROGRAM_DIR}', '{TEMP}', and '{PID}', and can be overridden at runtime via 'NUITKA_FILE_ANALYSIS_OUTPUT'. Default is '{PROGRAM_BASE}.file\-analysis.json'.
+.TP
+\fB\-\-file\-analysis\-scope\fR=\fI\,FILE_ANALYSIS_SCOPE\/\fR
+Select which path scopes to record: 'all' (bundle, system, external), 'non\-system' (bundle and external), or 'external' (only paths outside the bundle and OS system directories). Can be overridden at runtime via 'NUITKA_FILE_ANALYSIS_SCOPE'. Default is 'all'.
+.TP
+\fB\-\-file\-analysis\-stderr\fR
+Also print recorded file accesses to 'stderr' when the program exits. Can be enabled at runtime via 'NUITKA_FILE_ANALYSIS_STDERR=1'. Default is False.
 .IP
 Plugin options of 'windows\-service' (categories: commercial, feature):
 .TP

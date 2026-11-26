@@ -1994,7 +1994,7 @@ static PyObject *getDllDirectoryObject(void) {
 
 #if PYTHON_VERSION < 0x300
         // Avoid unnecessary unicode values.
-        PyObject *decoded_dll_directory = PyObject_Str(dll_directory);
+        PyObject *decoded_dll_directory = BUILTIN_STR(dll_directory);
 
         if (decoded_dll_directory == NULL) {
             PyThreadState *tstate = PyThreadState_GET();
@@ -2021,7 +2021,7 @@ PyObject *getDllFilenameObject(void) {
 
 #if PYTHON_VERSION < 0x300
         // Avoid unnecessary unicode values.
-        PyObject *decoded_dll_filename = PyObject_Str(dll_filename);
+        PyObject *decoded_dll_filename = BUILTIN_STR(dll_filename);
 
         if (decoded_dll_filename == NULL) {
             PyThreadState *tstate = PyThreadState_GET();

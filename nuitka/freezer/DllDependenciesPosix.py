@@ -9,7 +9,12 @@ import sys
 from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.PythonFlavors import isAnacondaPython
 from nuitka.Tracing import inclusion_logger
-from nuitka.utils.Execution import executeProcess, getEnvironmentWithPathAdded
+from nuitka.utils.Execution import (
+    check_output,
+    executeProcess,
+    getEnvironmentWithPathAdded,
+)
+from nuitka.utils.FileOperations import isFilenameBelowPath
 from nuitka.utils.SharedLibraries import getSharedLibraryRPATHs
 from nuitka.utils.Utils import (
     isAlpineLinux,
@@ -22,8 +27,37 @@ from .DllDependenciesCommon import getLdLibraryPath
 # Detected Python rpath is cached.
 _detected_python_rpaths = None
 
+# Cached POSIX path for Windows SYSTEMROOT on Cygwin/MSYS2.
+_posix_windows_system_root = None
+
 # Cached ldd results.
 ldd_result_cache = {}
+
+
+def _getPosixWindowsSystemRoot():
+    # singleton, pylint: disable=global-statement
+    global _posix_windows_system_root
+
+    if _posix_windows_system_root is None:
+        windows_system_root = os.getenv("SYSTEMROOT") or os.getenv("WINDIR")
+        assert windows_system_root, "Expected SYSTEMROOT or WINDIR on POSIX Windows."
+
+        output = check_output(("cygpath", "-u", windows_system_root))
+        if str is not bytes:
+            output = output.decode("utf8", "replace")
+
+        _posix_windows_system_root = os.path.normpath(output.strip()).lower()
+
+    return _posix_windows_system_root
+
+
+def _isWindowsSystemDll(filename):
+    # Windows paths under Cygwin/MSYS2 are case-insensitive ('/c/Windows' vs
+    # '/c/WINDOWS'), whereas POSIX 'isFilenameBelowPath' is case-sensitive.
+    return isFilenameBelowPath(
+        path=_getPosixWindowsSystemRoot(),
+        filename=filename.lower(),
+    )
 
 
 def _resolveOriginValue(rpath, origin):
@@ -45,16 +79,22 @@ def _runLddCommand(dll_filename, package_name, python_rpaths, original_dir):
     Returns:
         Tuple of the process result and the filtered stderr output.
     """
+    ld_library_paths = getLdLibraryPath(
+        package_name=package_name,
+        python_rpaths=python_rpaths,
+        original_dir=original_dir,
+    )
+
+    if isPosixWindows():
+        # Cygwin/MSYS2 'ldd' delegates DLL resolution to the Windows loader,
+        # which searches 'PATH' rather than 'LD_LIBRARY_PATH'.
+        env = getEnvironmentWithPathAdded("PATH", *ld_library_paths, prefix=True)
+    else:
+        env = getEnvironmentWithPathAdded("LD_LIBRARY_PATH", *ld_library_paths)
+
     process_result = executeProcess(
         command=("ldd", dll_filename),
-        env=getEnvironmentWithPathAdded(
-            "LD_LIBRARY_PATH",
-            *getLdLibraryPath(
-                package_name=package_name,
-                python_rpaths=python_rpaths,
-                original_dir=original_dir,
-            )
-        ),
+        env=env,
     )
 
     # This warning is harmless, the DLL is still analyzed.
@@ -179,6 +219,10 @@ def _getLddDirectDependencies(dll_filename, package_name, original_dir):
         # Normalize, sometimes the DLLs produce "something/../", this has
         # been seen with Qt at least.
         filename = os.path.normpath(filename)
+
+        # Do not include Windows OS DLLs resolved by Cygwin/MSYS2 'ldd'.
+        if isPosixWindows() and _isWindowsSystemDll(filename):
+            continue
 
         # Do not include kernel DLLs on the ignore list.
         filename_base = os.path.basename(filename)

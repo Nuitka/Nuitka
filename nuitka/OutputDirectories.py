@@ -18,11 +18,12 @@ from nuitka.options.Options import (
     getOutputPath,
     getPgoExecutable,
     getProjectName,
+    isDllMode,
+    isMakeOnefileDllMode,
     isOnefileMode,
     isStandaloneMode,
     shallCreateAppBundle,
     shallCreateScriptFileForExecution,
-    shallMakeDll,
     shallMakeModule,
 )
 from nuitka.targets.Targets import isWasiTarget, isWin32OrPosixWindowsTarget
@@ -149,6 +150,12 @@ def needsStandaloneDirectoryWorkaround():
     )
 
 
+def getStandaloneDirectoryFolderName(bundle):
+    assert isStandaloneMode()
+
+    return _getActualOutputFolderName(bundle=bundle)
+
+
 def getStandaloneDirectoryPath(bundle, real):
     assert isStandaloneMode()
 
@@ -223,6 +230,66 @@ def getResultBasePath(onefile=False, real=False):
         return getOutputPath(path=file_path)
 
 
+def _getExecutableResultFullpath(result, onefile, real):
+    output_filename = getOutputFilename()
+
+    if isOnefileMode() and output_filename is not None:
+        if onefile:
+            result = getOutputPath(path=output_filename)
+        else:
+            result = getNormalizedPathJoin(
+                getStandaloneDirectoryPath(bundle=True, real=real),
+                os.path.basename(output_filename),
+            )
+    elif isStandaloneMode() and output_filename is not None:
+        result = getNormalizedPathJoin(
+            getStandaloneDirectoryPath(bundle=True, real=real),
+            os.path.basename(output_filename),
+        )
+    elif output_filename is not None:
+        result = getOutputPath(path=output_filename)
+    elif isWasiTarget():
+        result = addFilenameExtension(path=result, extension=".wasm")
+    elif not isWin32OrPosixWindowsTarget() and not shallCreateAppBundle():
+        result = addFilenameExtension(path=result, extension=".bin")
+
+    if isWin32OrPosixWindowsTarget():
+        result = addFilenameExtension(path=result, extension=".exe")
+
+    if (
+        not isWin32OrPosixWindowsTarget()
+        and isOnefileMode()
+        and not onefile
+        and not isWasiTarget()
+    ):
+        result = addFilenameExtension(path=result, extension=".bin")
+
+    return result
+
+
+def _getDllStem():
+    assert isDllMode()
+
+    output_filename = getOutputFilename()
+    if output_filename is not None:
+        dll_name = os.path.basename(output_filename)
+        dll_suffix = getDllSuffix()
+        if hasFilenameExtension(path=dll_name, extensions=dll_suffix):
+            dll_name = dll_name[: -len(dll_suffix)]
+
+        return dll_name
+
+    return _getResultBaseName(suffix="")
+
+
+def getDllBasename():
+    return _getDllStem() + getDllSuffix()
+
+
+def getDllHeaderBasePath():
+    return getOutputPath(path=_getDllStem())
+
+
 def getResultFullpath(onefile, real):
     """Get the final output binary result full path."""
 
@@ -230,43 +297,15 @@ def getResultFullpath(onefile, real):
 
     if shallMakeModule():
         result += getExtensionModuleSuffix(preferred=True)
-    elif shallMakeDll() and not onefile:
-        # TODO: Could actually respect getOutputFilename() for DLLs, these don't
-        # need to be named in a specific way.
+    elif isDllMode():
+        result = getNormalizedPathJoin(
+            getStandaloneDirectoryPath(bundle=False, real=real),
+            getDllBasename(),
+        )
+    elif isMakeOnefileDllMode() and not onefile:
         result += getDllSuffix()
     else:
-        output_filename = getOutputFilename()
-
-        if isOnefileMode() and output_filename is not None:
-            if onefile:
-                result = getOutputPath(path=output_filename)
-            else:
-                result = getNormalizedPathJoin(
-                    getStandaloneDirectoryPath(bundle=True, real=real),
-                    os.path.basename(output_filename),
-                )
-        elif isStandaloneMode() and output_filename is not None:
-            result = getNormalizedPathJoin(
-                getStandaloneDirectoryPath(bundle=True, real=real),
-                os.path.basename(output_filename),
-            )
-        elif output_filename is not None:
-            result = getOutputPath(path=output_filename)
-        elif isWasiTarget():
-            result = addFilenameExtension(path=result, extension=".wasm")
-        elif not isWin32OrPosixWindowsTarget() and not shallCreateAppBundle():
-            result = addFilenameExtension(path=result, extension=".bin")
-
-        if isWin32OrPosixWindowsTarget():
-            result = addFilenameExtension(path=result, extension=".exe")
-
-        if (
-            not isWin32OrPosixWindowsTarget()
-            and isOnefileMode()
-            and not onefile
-            and not isWasiTarget()
-        ):
-            result = addFilenameExtension(path=result, extension=".bin")
+        result = _getExecutableResultFullpath(result=result, onefile=onefile, real=real)
 
     return getNormalizedPath(path=result)
 

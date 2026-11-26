@@ -277,6 +277,46 @@ when '--target=i686-w64-mingw32' is not specified.""" % option_name
             options_logger.warning(message)
 
 
+DLL_HEADER_LANGUAGES = ("c", "rust")
+
+
+def _warnDllModeOnlyOption(option_name):
+    if not isDllMode():
+        message = """\
+Using DLL mode specific option '%s' has no effect \
+when '--mode=dll' is not specified.""" % option_name
+
+        if options.github_workflow_options:
+            options_logger.info(message)
+        else:
+            options_logger.warning(message)
+
+
+def _normalizeDllHeaderLanguages(raw_values):
+    result = OrderedSet()
+
+    for raw_entry in raw_values:
+        for item in raw_entry.split(","):
+            normalized = item.strip().lower()
+            if not normalized:
+                continue
+
+            if normalized == "none":
+                result.clear()
+            elif normalized in DLL_HEADER_LANGUAGES:
+                result.add(normalized)
+            else:
+                options_logger.sysexit(
+                    "Error, unsupported '--dll-header-language' value '%s', choose from %s, or 'none'."
+                    % (
+                        item.strip(),
+                        ", ".join("'%s'" % lang for lang in DLL_HEADER_LANGUAGES),
+                    )
+                )
+
+    return tuple(result)
+
+
 def _warningModuleModeOnlyOption(option_name):
     if options.compilation_mode not in ("module", "package"):
         if options.github_workflow_options:
@@ -289,6 +329,21 @@ specified.""" % option_name)
 Using module mode specific option '%s' has no effect \
 when neither '--mode=module' or --mode='package' is \
 specified.""" % option_name)
+
+
+def _warnExecutableOnlyOption(option_name):
+    if shallMakeModule() or isDllMode():
+        message = """\
+Using executable specific option '%s' has no effect \
+in '%s' mode.""" % (
+            option_name,
+            getCompilationMode(),
+        )
+
+        if options.github_workflow_options:
+            options_logger.info(message)
+        else:
+            options_logger.warning(message)
 
 
 def _warnProjectOnlyOption(option_name):
@@ -497,6 +552,11 @@ def parseArgs():
 Error, conflicting options '--mingw64' and '--clang'. Note that Clang is no \
 longer part of Winlibs and therefore no more available this way. Use only \
 --clang to use it from a MSVC installation.""")
+
+    if isMSYS2MingwPython() and options.clang:
+        return options_logger.sysexit(
+            "Error, cannot use '--clang' with MSYS2 MinGW64 Python."
+        )
 
     if (
         isWin32Windows()
@@ -754,6 +814,14 @@ Error, the value given for '--onefile-child-grace-time' must be integer or 'infi
         _warningModuleModeOnlyOption("--no-pyi-file")
     if not shallCreatePyiFileContainStubs():
         _warningModuleModeOnlyOption("--no-pyi-stubs")
+
+    if options.dll_header_languages:
+        _warnDllModeOnlyOption("--dll-header-language")
+        options.dll_header_languages = _normalizeDllHeaderLanguages(
+            options.dll_header_languages
+        )
+    else:
+        options.dll_header_languages = None
 
     if options.force_stdout_spec:
         options.force_stdout_spec = checkPathSpec(
@@ -1191,12 +1259,18 @@ library. Please upgrade/downgrade to a supported micro version.""")
             % default_mode_name_mode
         )
 
-    if getWindowsIconExecutablePath():
+    if options.icon_exe_path is not None:
         _warnWindowsSpecificOption("--windows-icon-from-exe")
-    if shallAskForWindowsAdminRights():
+        _warnExecutableOnlyOption("--windows-icon-from-exe")
+    if options.windows_icon_path:
+        _warnWindowsSpecificOption("--windows-icon-from-ico")
+        _warnExecutableOnlyOption("--windows-icon-from-ico")
+    if options.windows_uac_admin:
         _warnWindowsSpecificOption("--windows-uac-admin")
-    if shallAskForWindowsUIAccessRights():
+        _warnExecutableOnlyOption("--windows-uac-admin")
+    if options.windows_uac_uiaccess:
         _warnWindowsSpecificOption("--windows-uac-uiaccess")
+        _warnExecutableOnlyOption("--windows-uac-uiaccess")
     if getWindowsSplashScreen():
         _warnWindowsSpecificOption("--onefile-windows-splash-screen-image")
     if options.mingw64 is not None:
@@ -1243,7 +1317,7 @@ library. Please upgrade/downgrade to a supported micro version.""")
     if options.windows_create_installer:
         _warnWindowsSpecificOption("--windows-create-installer")
 
-        if not isStandaloneMode():
+        if not isStandaloneMode() or isDllMode():
             return options_logger.sysexit(
                 "Error, Windows installer creation requires standalone or onefile mode, not '%s' mode."
                 % getCompilationMode()
@@ -1278,7 +1352,7 @@ library. Please upgrade/downgrade to a supported micro version.""")
     if options.linux_create_installer:
         _warnLinuxSpecificOption("--linux-create-installer")
 
-        if not isStandaloneMode():
+        if not isStandaloneMode() or isDllMode():
             return options_logger.sysexit(
                 "Error, Linux installer creation requires standalone or onefile mode, not '%s' mode."
                 % getCompilationMode()
@@ -1333,7 +1407,9 @@ require '--company-name' and '--product-name' to be given.""",
 
     if options.msvc_version:
         if isMSYS2MingwPython() or isPosixWindows():
-            return options_logger.sysexit("Requesting MSVC on MSYS2 is not allowed.")
+            return options_logger.sysexit(
+                "Requesting MSVC on %s is not allowed." % getPythonFlavorName()
+            )
 
         if isMingw64():
             return options_logger.sysexit(
@@ -1449,15 +1525,17 @@ make sure that is intended."""
             "Providing PGO arguments without enabling PGO mode has no effect."
         )
 
-    if (isCPgoMode() or isPythonPgoMode()) and shallMakeDll():
+    if (isCPgoMode() or isPythonPgoMode()) and (
+        isDllMode() or (isCPgoMode() and isMakeOnefileDllMode())
+    ):
         return options_logger.sysexit(
             "Error, using PGO with '%s' mode is not supported." % getCompilationMode()
         )
 
-    if shallExecuteImmediately() and isPosixWindows():
+    if shallExecuteImmediately() and isDllMode():
         return options_logger.sysexit("""\
-Error, cannot use '--run' on POSIX Windows (%s), execute the compiled binary \
-directly instead.""" % getPythonFlavorName())
+Error, cannot use '--run' with '--mode=dll', a host program is required to \
+load and execute the created shared library.""")
 
     if shallExecuteImmediately() and isPosixWindows():
         return options_logger.sysexit("""\
@@ -1512,6 +1590,8 @@ to work.""")
 
     if (
         isWin32Windows()
+        and not shallMakeModule()
+        and not isDllMode()
         and 0x340 <= python_version < 0x380
         and getWindowsConsoleMode() != "disable"
     ):
@@ -1525,17 +1605,21 @@ console window for deployment.
             mnemonic="old-python-windows-console",
         )
 
-    if shallMakeModule() and (getForcedStderrPath() or getForcedStdoutPath()):
+    if (shallMakeModule() or isDllMode()) and (
+        options.force_stdout_spec or options.force_stderr_spec
+    ):
         general.warning("""\
-Extension modules do not control process outputs, therefore the \
-options '--force-stdout-spec' and '--force-stderr-spec' have no \
-impact and should not be specified.""")
+In '%s' mode, the host process controls process outputs, therefore the \
+options '--force-stdout-spec' and '--force-stderr-spec' have no impact \
+and should not be specified.""" % getCompilationMode())
 
-    if shallMakeModule() and options.console_mode is not None:
-        general.warning("""\
-Extension modules are not binaries, and therefore the option \
-'--windows-console-mode' does not have an impact and should \
-not be specified.""")
+    if (shallMakeModule() or isDllMode()) and options.console_mode is not None:
+        general.warning(
+            """\
+In '%s' mode, the host process controls the console, therefore the option \
+'--windows-console-mode' has no impact and should not be specified."""
+            % getCompilationMode()
+        )
 
     if options.disable_console in (True, False):
         if isWin32Windows():
@@ -1693,10 +1777,7 @@ def isMakeOnefileDllMode():
 
     if isExperimental("onefile-dll"):
         return True
-    if isExperimental("onefile-no-dll"):
-        return False
-
-    if options is not None and options.onefile_no_dll:
+    if isExperimental("onefile-no-dll") or isCPgoMode() or options.onefile_no_dll:
         return False
 
     if isWin32Windows() and isOnefileTempDirMode():
@@ -1707,11 +1788,14 @@ def isMakeOnefileDllMode():
     return False
 
 
+def isDllMode():
+    """*bool* derived from ``--mode=dll`` (DLL execution mode)."""
+    return options is not None and options.compilation_mode == "dll"
+
+
 def shallMakeDll():
-    """:returns: bool derived from ``--mode=dll``."""
-    return options is not None and (
-        options.compilation_mode == "dll" or isMakeOnefileDllMode()
-    )
+    """*bool*, whether Python code is compiled as a shared library (``--mode=dll`` or onefile DLL mode)."""
+    return isDllMode() or isMakeOnefileDllMode()
 
 
 def shallMakeExe():
@@ -1727,6 +1811,14 @@ def shallCreatePyiFile():
 def shallCreatePyiFileContainStubs():
     """*bool* = **not** ``--no-pyi-stubs``"""
     return options.pyi_stubs
+
+
+def getDllHeaderLanguages():
+    """*tuple* of host binding languages from ``--dll-header-language``."""
+    if options is None or options.dll_header_languages is None:
+        return ("c",)
+
+    return options.dll_header_languages
 
 
 def isAllowedToReexecute():
@@ -2314,8 +2406,8 @@ def shallCreateScriptFileForExecution():
     mode too.
     """
 
-    # WASI binaries are executed by a WASI runtime, not a shell script.
-    if isWasiTarget():
+    # WASI binaries and shared libraries/modules are not executed via a wrapper script.
+    if isWasiTarget() or shallMakeModule() or isDllMode():
         return False
 
     # AIX standalone, but not onefile mode.
@@ -2447,6 +2539,8 @@ def shallDisableBytecodeCacheUsage():
 
 def getWindowsConsoleMode():
     """:returns: str from ``--windows-console-mode``"""
+    if shallMakeModule() or isDllMode():
+        return "force"
     if options.disable_console is True:
         return "disable"
     if options.disable_console is False:
@@ -2919,7 +3013,7 @@ def _checkedIconPaths(icon_paths, allow_index=False):
 
 def getWindowsIconPaths():
     """*tuple of str*, values of ``--windows-icon-from-ico``"""
-    if not isWin32Windows():
+    if not isWin32Windows() or shallMakeModule() or isDllMode():
         return ()
 
     return _checkedIconPaths(options.windows_icon_path, allow_index=True)
@@ -2952,7 +3046,7 @@ def getMacOSBundleIconFilename():
 
 def getWindowsIconExecutablePath():
     """*str* or *None* if not given, value of ``--windows-icon-from-exe``"""
-    if not isWin32Windows():
+    if not isWin32Windows() or shallMakeModule() or isDllMode():
         return None
 
     return (
@@ -2964,17 +3058,17 @@ def getWindowsIconExecutablePath():
 
 def shallAskForWindowsAdminRights():
     """*bool*, value of ``--windows-uac-admin`` or ``--windows-uac-uiaccess``"""
-    return options.windows_uac_admin
+    return options.windows_uac_admin and not shallMakeModule() and not isDllMode()
 
 
 def shallAskForWindowsUIAccessRights():
     """*bool*, value of ``--windows-uac-uiaccess``"""
-    return options.windows_uac_uiaccess
+    return options.windows_uac_uiaccess and not shallMakeModule() and not isDllMode()
 
 
 def shallCreateWindowsInstaller():
     """*bool*, value of ``--windows-create-installer``"""
-    return options.windows_create_installer and isWin32Windows()
+    return options.windows_create_installer and isWin32Windows() and not isDllMode()
 
 
 def getWindowsInstallerNsisPath():
@@ -3026,7 +3120,7 @@ def getWindowsInstallerMode():
 
 def shallCreateLinuxInstaller():
     """*bool*, value of ``--linux-create-installer``"""
-    return options.linux_create_installer and isLinux()
+    return options.linux_create_installer and isLinux() and not isDllMode()
 
 
 def getLinuxInstallerAppImagetoolPath():
@@ -3198,7 +3292,7 @@ def shallCreateAppBundle():
 
 def shallCreateDmgFile():
     """*bool* shall create a DMG file, derived from ``--macos-installer`` value"""
-    return options.macos_create_dmg and isMacOS()
+    return options.macos_create_dmg and shallCreateAppBundle()
 
 
 def getMacOSInstallerOutputFilename():
@@ -3700,7 +3794,7 @@ def getProgressBar():
 
 def getForcedStdoutPath():
     """*str*, *None*, or *False*, force program stdout output into that filename"""
-    if shallCreatePythonPgoInput():
+    if shallCreatePythonPgoInput() or shallMakeModule() or isDllMode():
         return False
 
     return options.force_stdout_spec
@@ -3708,7 +3802,7 @@ def getForcedStdoutPath():
 
 def getForcedStderrPath():
     """*str*, *None*, or *False*, force program stderr output into that filename"""
-    if shallCreatePythonPgoInput():
+    if shallCreatePythonPgoInput() or shallMakeModule() or isDllMode():
         return False
 
     return options.force_stderr_spec
@@ -3910,7 +4004,7 @@ def getCompilationMode():
         return "app"
     elif isOnefileMode():
         return "onefile"
-    elif shallMakeDll():
+    elif isDllMode():
         return "dll"
     elif isStandaloneMode():
         return "standalone"

@@ -74,6 +74,7 @@ extern filename_char_t const *getBinaryPath(void);
 
 extern void setDllFilename(filename_char_t const *filename);
 extern filename_char_t const *getDllDirectory(void);
+extern void promoteDllToGlobalScope(void);
 
 extern FILE_HANDLE openFileForReading(filename_char_t const *filename);
 extern FILE_HANDLE createFileForWriting(filename_char_t const *filename);

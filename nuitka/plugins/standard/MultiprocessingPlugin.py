@@ -17,11 +17,7 @@ from nuitka.ModuleRegistry import (
     getModuleInclusionInfoByName,
     getRootTopModule,
 )
-from nuitka.options.Options import (
-    isMakeOnefileDllMode,
-    shallMakeDll,
-    shallMakeModule,
-)
+from nuitka.options.Options import isDllMode, shallMakeModule
 from nuitka.plugins.PluginBase import NuitkaPluginBase
 from nuitka.PythonVersions import python_version
 from nuitka.tree.SourceHandling import readSourceCodeFromFilename
@@ -82,7 +78,7 @@ if "--multiprocessing-fork" in sys.argv:
             )
 
         if full_name in ("multiprocessing", "anyio"):
-            if shallMakeDll() and not isMakeOnefileDllMode():
+            if isDllMode():
                 # Plain DLL mode has no process executable of its own, the host
                 # process is what gets spawned, so use its argv[0].
                 code = """\

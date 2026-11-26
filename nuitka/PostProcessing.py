@@ -7,6 +7,7 @@ import ctypes
 import os
 import sys
 
+from nuitka.freezer.Dll import createDllHeaderFiles
 from nuitka.freezer.LinuxApp import createLinuxAppFiles
 from nuitka.freezer.MacOSApp import (
     createEntitlementsInfoFile,
@@ -22,6 +23,7 @@ from nuitka.options.Options import (
     getWindowsSplashScreen,
     getWindowsVersionInfoStrings,
     isAcceleratedMode,
+    isDllMode,
     isOnefileMode,
     isStandaloneMode,
     shallAskForWindowsAdminRights,
@@ -32,6 +34,8 @@ from nuitka.options.Options import (
     shallCreatePyiFileContainStubs,
     shallCreatePythonPgoInput,
     shallCreateScriptFileForExecution,
+    shallMakeDll,
+    shallMakeExe,
     shallMakeModule,
     shallRunInDebugger,
     shallUseStaticLibPython,
@@ -51,6 +55,7 @@ from nuitka.Tracing import postprocessing_logger
 from nuitka.utils.Execution import wrapCommandForDebuggerForSubprocess
 from nuitka.utils.FileOperations import (
     addFileExecutablePermission,
+    changeFilenameExtension,
     deleteFile,
     getFileContents,
     getFileSize,
@@ -74,6 +79,7 @@ from nuitka.utils.Utils import (
     isAndroidBasedLinux,
     isMacOS,
     isMacOSRosetta,
+    isWin32OrPosixWindows,
     isWin32Windows,
 )
 from nuitka.utils.WindowsResources import (
@@ -352,16 +358,20 @@ def executePostProcessingResources(result_filename, manifest, onefile):
 
     Used for both onefile and not onefile binary, potentially two times.
     """
-    if manifest is None:
-        manifest = getDefaultWindowsExecutableManifest()
+    is_exe = onefile or shallMakeExe()
 
-    if shallAskForWindowsAdminRights():
-        manifest.addUacAdmin()
+    if is_exe:
+        if manifest is None:
+            manifest = getDefaultWindowsExecutableManifest()
 
-    if shallAskForWindowsUIAccessRights():
-        manifest.addUacUiAccess()
+        if shallAskForWindowsAdminRights():
+            manifest.addUacAdmin()
 
-    manifest.addResourceToFile(result_filename, logger=postprocessing_logger)
+        if shallAskForWindowsUIAccessRights():
+            manifest.addUacUiAccess()
+
+    if manifest is not None:
+        manifest.addResourceToFile(result_filename, logger=postprocessing_logger)
 
     if (
         getWindowsVersionInfoStrings()
@@ -373,44 +383,45 @@ def executePostProcessingResources(result_filename, manifest, onefile):
             product_version=getProductVersionTuple(),
             file_version=getFileVersionTuple(),
             file_date=(0, 0),
-            is_exe=not shallMakeModule(),
+            is_exe=is_exe,
             result_filename=result_filename,
             logger=postprocessing_logger,
         )
 
-    # Attach icons from template file if given.
-    template_exe = getWindowsIconExecutablePath()
-    if template_exe is not None:
-        res_copied = copyResourcesFromFileToFile(
-            template_exe,
-            target_filename=result_filename,
-            resource_kinds=(RT_ICON, RT_GROUP_ICON),
-        )
-
-        if res_copied == 0:
-            postprocessing_logger.warning(
-                "The specified icon template executable '%s' didn't contain anything to copy."
-                % template_exe
+    if is_exe:
+        # Attach icons from template file if given.
+        template_exe = getWindowsIconExecutablePath()
+        if template_exe is not None:
+            res_copied = copyResourcesFromFileToFile(
+                template_exe,
+                target_filename=result_filename,
+                resource_kinds=(RT_ICON, RT_GROUP_ICON),
             )
+
+            if res_copied == 0:
+                postprocessing_logger.warning(
+                    "The specified icon template executable '%s' didn't contain anything to copy."
+                    % template_exe
+                )
+            else:
+                postprocessing_logger.warning(
+                    "Copied %d icon resources from '%s'." % (res_copied, template_exe)
+                )
         else:
-            postprocessing_logger.warning(
-                "Copied %d icon resources from '%s'." % (res_copied, template_exe)
+            _addWindowsIconFromIcons(onefile=onefile)
+
+        splash_screen_filename = getWindowsSplashScreen()
+        if splash_screen_filename is not None:
+            splash_data = getFileContents(splash_screen_filename, mode="rb")
+
+            addResourceToFile(
+                target_filename=result_filename,
+                data=splash_data,
+                resource_kind=RT_RCDATA,
+                lang_id=0,
+                res_name=28,
+                logger=postprocessing_logger,
             )
-    else:
-        _addWindowsIconFromIcons(onefile=onefile)
-
-    splash_screen_filename = getWindowsSplashScreen()
-    if splash_screen_filename is not None:
-        splash_data = getFileContents(splash_screen_filename, mode="rb")
-
-        addResourceToFile(
-            target_filename=result_filename,
-            data=splash_data,
-            resource_kind=RT_RCDATA,
-            lang_id=0,
-            res_name=28,
-            logger=postprocessing_logger,
-        )
 
     onPostProcessingResources(result_filename=result_filename, onefile=onefile)
 
@@ -499,19 +510,18 @@ def executePostProcessing(result_filename):
     # Lots of cases to deal with,
     # pylint: disable=too-many-branches
 
-    if isWin32Windows():
-        if not shallMakeModule():
-            if python_version < 0x300:
-                # Copy the Windows manifest from the CPython binary to the created
-                # executable, so it finds "MSCRT.DLL". This is needed for Python2
-                # only, for Python3 newer MSVC doesn't hide the C runtime.
-                manifest = getWindowsExecutableManifest(sys.executable)
-            else:
-                manifest = None
+    if isWin32Windows() and not shallMakeModule():
+        if python_version < 0x300:
+            # Copy the Windows manifest from the CPython binary to the created
+            # executable, so it finds "MSCRT.DLL". This is needed for Python2
+            # only, for Python3 newer MSVC doesn't hide the C runtime.
+            manifest = getWindowsExecutableManifest(sys.executable)
+        else:
+            manifest = None
 
-            executePostProcessingResources(
-                result_filename=result_filename, manifest=manifest, onefile=False
-            )
+        executePostProcessingResources(
+            result_filename=result_filename, manifest=manifest, onefile=False
+        )
 
     # On macOS, we update the executable path for searching the "libpython"
     # library.
@@ -572,15 +582,16 @@ Error, expected 'libpython dependency not found. Please report the bug.""")
     ):
         createLinuxAppFiles(logger=postprocessing_logger, onefile=False)
 
-    # Modules should not be executable, but Scons creates them like it, fix
-    # it up here.
-    if not isWin32Windows() and shallMakeModule():
+    # Modules and shared libraries should not be executable on ELF/Mach-O, but
+    # Windows PE loaders require execute permission on DLLs (including
+    # Cygwin/MSYS2 POSIX).
+    if not isWin32OrPosixWindows() and (shallMakeModule() or shallMakeDll()):
         removeFileExecutablePermission(result_filename)
 
-    if isWin32Windows() and shallMakeModule():
+    if isWin32Windows() and (shallMakeModule() or shallMakeDll()):
         candidate = os.path.join(
             os.path.dirname(result_filename),
-            "lib" + os.path.basename(result_filename)[:-4] + ".a",
+            "lib" + changeFilenameExtension(os.path.basename(result_filename), ".a"),
         )
 
         deleteFile(candidate, must_exist=False)
@@ -596,7 +607,10 @@ Error, expected 'libpython dependency not found. Please report the bug.""")
     if shallMakeModule() and shallCreatePyiFile():
         _createModulePyiFile()
 
-    if isWin32Windows() and getFileSize(result_filename) > 2**30 * 1.8:
+    if isDllMode():
+        createDllHeaderFiles()
+
+    if isWin32OrPosixWindows() and getFileSize(result_filename) > 2**30 * 1.8:
         postprocessing_logger.warning("""\
 The created compiled binary is larger than 1.8GB and therefore may not be
 executable by Windows due to its limitations.""")

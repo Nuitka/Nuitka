@@ -59,7 +59,9 @@ from .Utils import (
     isFedoraBasedLinux,
     isLinux,
     isMacOS,
+    isPosixWindows,
     isSuseBasedLinux,
+    isWin32OrPosixWindows,
     isWin32Windows,
     raiseWindowsError,
 )
@@ -77,6 +79,23 @@ def locateDLLFromFilesystem(name, paths):
         for root, _dirs, files in os.walk(path):
             if name in files:
                 return os.path.join(root, name)
+
+
+def _locateDLLOnPath(dll_name):
+    search_dirs = [
+        path_dir for path_dir in os.getenv("PATH", "").split(os.pathsep) if path_dir
+    ]
+
+    for fallback_dir in ("/usr/bin", "/usr/local/bin"):
+        if fallback_dir not in search_dirs:
+            search_dirs.append(fallback_dir)
+
+    for path_dir in search_dirs:
+        candidate = os.path.join(path_dir, dll_name)
+        if os.path.isfile(candidate):
+            return getNormalizedAbsolutePath(candidate)
+
+    return None
 
 
 _ldconfig_usage = "The 'ldconfig' is used to analyze dependencies on ELF using systems and required to be found."
@@ -113,6 +132,9 @@ def locateDLL(dll_name):
         return locateDLLFromFilesystem(
             name=dll_name, paths=["/lib", "/usr/lib", "/usr/local/lib"]
         )
+
+    if isPosixWindows():
+        return _locateDLLOnPath(dll_name)
 
     # TODO: Could and probably should cache "ldconfig -p" output to avoid forks
     output = executeToolChecked(
@@ -1623,7 +1645,7 @@ def copyDllFile(source_path, dist_dir, dest_path, executable, other_entry_points
     makeContainingPath(target_filename)
 
     if (
-        not isWin32Windows()
+        not isWin32OrPosixWindows()
         and os.path.islink(source_path)
         and _isSymlinkTargetEntryPoint(
             source_path=source_path,
@@ -1684,7 +1706,9 @@ def copyDllFile(source_path, dist_dir, dest_path, executable, other_entry_points
 
                     setSharedLibraryRPATH(target_filename, ":".join(rpaths))
 
-    if executable:
+    # On Cygwin/MSYS2 POSIX, NTFS ACLs derived from POSIX mode bits require
+    # execute permission for Windows 'LoadLibrary' to map copied DLLs.
+    if executable or isPosixWindows():
         addFileExecutablePermission(target_filename)
 
 
@@ -1899,7 +1923,7 @@ def getPEFileUsedDllNames(filename):
 
 
 def getDllExportedSymbols(logger, filename):
-    if isWin32Windows():
+    if isWin32OrPosixWindows():
         pefile = importFromInlineCopy("pefile", must_exist=True)
 
         try:
@@ -1939,7 +1963,7 @@ def getDllExportedSymbols(logger, filename):
 
 
 def getDllSuffix():
-    if isWin32Windows():
+    if isWin32OrPosixWindows():
         return ".dll"
     elif isMacOS():
         return ".dylib"

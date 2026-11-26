@@ -919,6 +919,149 @@ this should then be a bundle.
    This is best expressed with ``nuitka-project: --mode=app`` which
    encapsulates these options.
 
+Use Case 8 - Shared Library (DLL) Compilation
+=============================================
+
+If you want to embed a compiled Python program inside a native host
+application without linking against CPython or using the Python C-API,
+you can build a standalone shared library with ``--mode=dll``:
+
+.. code:: bash
+
+   python -m nuitka --mode=dll program.py
+
+This creates a ``program.dist`` folder containing the compiled shared
+library (``program.dll`` on Windows, ``program.dylib`` on macOS, or
+``program.so`` on Linux and other platforms) alongside its bundled
+Python runtime, extension modules, and data files, plus a companion
+``program.h`` C/C++ header file next to ``program.dist`` (also directly
+usable from Zig via ``@cImport``). Distribute ``program.dist`` together
+with your compiled host program.
+
+You can select which host binding files are generated with
+``--dll-header-language`` (for example ``--dll-header-language=rust,C``,
+or ``--dll-header-language=none`` to disable binding generation; default
+is ``c``).
+
+The shared library exports a single ``extern "C"`` entry point using a
+plain C ABI:
+
+-  ``run_code(argc, argv, dll_filename, fork_only)``:
+
+   -  On Windows: ``int run_code(int argc, wchar_t **argv, wchar_t const
+      *dll_filename, bool fork_only)``
+
+   -  On other platforms: ``int run_code(int argc, char **argv, char
+      const *dll_filename, bool fork_only)``
+
+   -  ``argc`` and ``argv`` populate ``sys.argv`` (with ``argv[0]``
+      identifying the host executable). Passing ``0`` and ``NULL``
+      defaults ``sys.argv`` to a single-element list containing the host
+      executable path.
+
+   -  ``dll_filename`` may be ``NULL`` (in which case Nuitka resolves
+      the loaded shared library path automatically) or the path used to
+      load the shared library.
+
+   -  ``fork_only`` controls when the compiled ``__main__`` module runs:
+
+      -  When ``true``, ``run_code`` performs Nuitka's command line and
+         subprocess fork checks (such as ``multiprocessing``,
+         ``joblib``/``loky``, or ``anyio.to_process``). If the host
+         binary was re-launched as a Python child worker, it executes
+         that worker immediately and exits via ``Py_Exit``; otherwise it
+         returns ``0`` so the host program can continue its own startup
+         and command line parsing.
+
+      -  When ``false``, ``run_code`` initializes the bundled Python
+         runtime, executes the compiled ``__main__`` module, finalizes
+         the Python runtime (running ``atexit`` handlers and flushing
+         standard streams), and returns the resulting exit status to the
+         host without terminating the process.
+
+At runtime in Python, ``__compiled__.dll`` is ``True`` and
+``__compiled__.dll_filename`` holds the path to the loaded shared
+library.
+
+.. important::
+
+   ``run_code`` with ``fork_only = false`` may only be called **once**
+   per process; once entered or after it returns, any subsequent call to
+   ``run_code`` is rejected and returns ``-1``. If your host program
+   needs native logic to run alongside Python and continue after Python
+   finishes, invoke ``run_code`` on a dedicated native thread (after
+   calling ``run_code`` with ``fork_only = true`` early on startup if
+   Python subprocesses are used), and do not call ``run_code`` again
+   once that thread returns. Note that GUI toolkits requiring the main
+   OS thread still need ``run_code`` to be called on the main thread.
+
+Minimal cross-platform C host example using the generated ``program.h``
+header to load ``program.dist`` located next to the host executable:
+
+.. code:: c
+
+   #if defined(_WIN32)
+   #include <windows.h>
+   #else
+   #include <dlfcn.h>
+   #endif
+   #include <stdio.h>
+   #include <stdlib.h>
+
+   #include "program.h"
+
+   #if defined(_WIN32)
+   int wmain(int argc, wchar_t **argv) {
+       AddDllDirectory(NUITKA_DLL_DIST_DIR);
+       HMODULE handle = LoadLibraryExW(
+           NUITKA_DLL_RELATIVE_PATH,
+           NULL,
+           LOAD_LIBRARY_SEARCH_DLL_LOAD_DIR | LOAD_LIBRARY_SEARCH_SYSTEM32 | LOAD_LIBRARY_SEARCH_USER_DIRS
+       );
+       if (handle == NULL) {
+           fprintf(stderr, "Failed to load DLL (%lu)\n", GetLastError());
+           return EXIT_FAILURE;
+       }
+
+       nuitka_dll_run_code_fn run_code_ptr =
+           (nuitka_dll_run_code_fn)GetProcAddress(handle, "run_code");
+       if (run_code_ptr == NULL) {
+           fprintf(stderr, "Missing 'run_code' export\n");
+           return EXIT_FAILURE;
+       }
+
+       // Handle spawned Python child workers before any host-only startup.
+       run_code_ptr(argc, argv, NULL, true);
+
+       return run_code_ptr(argc, argv, NULL, false);
+   }
+   #else
+   int main(int argc, char **argv) {
+       void *handle = dlopen(NUITKA_DLL_RELATIVE_PATH, RTLD_LOCAL | RTLD_NOW);
+       if (handle == NULL) {
+           fprintf(stderr, "Failed to load shared library: %s\n", dlerror());
+           return EXIT_FAILURE;
+       }
+
+       nuitka_dll_run_code_fn run_code_ptr =
+           (nuitka_dll_run_code_fn)dlsym(handle, "run_code");
+       if (run_code_ptr == NULL) {
+           fprintf(stderr, "Missing 'run_code' export\n");
+           return EXIT_FAILURE;
+       }
+
+       // Handle spawned Python child workers before any host-only startup.
+       run_code_ptr(argc, argv, NULL, true);
+
+       return run_code_ptr(argc, argv, NULL, false);
+   }
+   #endif
+
+Complete self-contained examples covering basic loading, bundled data
+files, running host threads alongside Python on the main thread, and
+``multiprocessing`` support are available in the repository under
+``tests/dll/``.
+
 ********
  Tweaks
 ********
@@ -1488,6 +1631,10 @@ the compiled binary, in onefile mode the unpacked executable, and in
 onefile DLL mode the outer launcher executable, which is the one that
 can be spawned, rather than the loaded DLL. In module and plain DLL mode
 the field is ``None``, as there is no executable of the program itself.
+In plain DLL mode, ``__compiled__.dll`` is ``True`` and
+``__compiled__.dll_filename`` gives the loaded shared library path
+(mirroring ``__compiled__.module`` and
+``__compiled__.extension_filename`` for extension modules).
 
 Windows Programs without console give no errors
 ===============================================

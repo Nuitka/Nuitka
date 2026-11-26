@@ -23,7 +23,7 @@ from nuitka.utils.FileOperations import (
     getNormalizedPathJoin,
     isFilenameBelowPath,
 )
-from nuitka.utils.Utils import isMacOS, isWin32Windows
+from nuitka.utils.Utils import isMacOS, isPosixWindows, isWin32Windows
 
 from .DllDependenciesWin32 import shallIncludeVCRedistDLL
 
@@ -63,7 +63,7 @@ def _getInsidePaths():
         if isHomebrewPython() or isPyenvHomebrewPython():
             inside_paths.insert(0, getHomebrewInstallPath())
 
-        if isMSYS2MingwPython():
+        if isMSYS2MingwPython() or isPosixWindows():
             inside_paths.insert(0, getNormalizedPathJoin(getSystemPrefixPath(), "bin"))
 
         _inside_paths = tuple(inside_paths)

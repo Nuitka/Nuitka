@@ -198,6 +198,9 @@ static environment_char_t const *old_env_pythondevmode;
 #if defined(Py_GIL_DISABLED)
 static environment_char_t const *old_env_pythongil;
 #endif
+#if defined(_WIN32) && _NUITKA_DLL_MODE && !defined(_NUITKA_ONEFILE_DLL_MODE)
+static DLL_DIRECTORY_COOKIE dll_directory_cookie = NULL;
+#endif
 
 static void prepareStandaloneEnvironment(void) {
 #if defined(__CYGWIN__) || defined(__MSYS__)
@@ -245,8 +248,11 @@ static void prepareStandaloneEnvironment(void) {
 #if defined(_WIN32)
 #if _NUITKA_EXE_MODE
     SetDllDirectoryW(L"");
-#else
+#elif defined(_NUITKA_ONEFILE_DLL_MODE)
     SetDllDirectoryW(getDllDirectory());
+#else
+    dll_directory_cookie = AddDllDirectory(getDllDirectory());
+    assert(dll_directory_cookie != NULL);
 #endif
 #endif
 
@@ -460,6 +466,75 @@ static void raiseReplacementNameError(PyThreadState *tstate, struct Nuitka_Excep
 }
 #endif
 
+#if _NUITKA_DLL_MODE && !defined(_NUITKA_ONEFILE_DLL_MODE)
+// CPython's "PyErr_PrintEx" terminates the whole process via "Py_Exit" when
+// "PyExc_SystemExit" is active, so extract the status and print any non-integer
+// payload without exiting the host process.
+static int handleSystemExitWithoutProcessExit(PyThreadState *tstate) {
+    struct Nuitka_ExceptionPreservationItem exception_state;
+    FETCH_ERROR_OCCURRED_STATE(tstate, &exception_state);
+
+#if PYTHON_VERSION < 0x3c0
+    NORMALIZE_EXCEPTION_STATE(tstate, &exception_state);
+#endif
+
+    PyObject *code_value = exception_state.exception_value;
+    PyObject *extracted_code = NULL;
+
+    if (code_value != NULL && PyExceptionInstance_Check(code_value)) {
+        extracted_code = PyObject_GetAttrString(code_value, "code");
+        if (extracted_code != NULL) {
+            code_value = extracted_code;
+        } else {
+            CLEAR_ERROR_OCCURRED(tstate);
+        }
+    }
+
+    int exit_code;
+
+    if (code_value == NULL || code_value == Py_None) {
+        exit_code = 0;
+    } else if (
+#if PYTHON_VERSION < 0x300
+        PyInt_Check(code_value) || PyLong_Check(code_value)
+#else
+        PyLong_Check(code_value)
+#endif
+    ) {
+        exit_code = (int)PyLong_AsLong(code_value);
+        DROP_ERROR_OCCURRED(tstate);
+    } else {
+        PyObject *stdout_file = Nuitka_SysGetObject("stdout");
+        if (stdout_file != NULL && stdout_file != Py_None) {
+            PyObject *flush_result = PyObject_CallMethod(stdout_file, (char *)"flush", NULL);
+            if (flush_result == NULL) {
+                CLEAR_ERROR_OCCURRED(tstate);
+            } else {
+                Py_DECREF(flush_result);
+            }
+        }
+
+        PyObject *stderr_file = Nuitka_SysGetObject("stderr");
+        if (stderr_file != NULL && stderr_file != Py_None) {
+            PyFile_WriteObject(code_value, stderr_file, Py_PRINT_RAW);
+        } else {
+            PyObject_Print(code_value, stderr, Py_PRINT_RAW);
+            fflush(stderr);
+        }
+
+        PySys_WriteStderr("\n");
+        DROP_ERROR_OCCURRED(tstate);
+
+        exit_code = 1;
+    }
+
+    Py_XDECREF(extracted_code);
+    RELEASE_ERROR_OCCURRED_STATE(&exception_state);
+
+    return exit_code;
+}
+#endif
+
 static int HANDLE_PROGRAM_EXIT(PyThreadState *tstate) {
 #if _DEBUG_REFCOUNTS
     PRINT_REFCOUNTS();
@@ -468,6 +543,11 @@ static int HANDLE_PROGRAM_EXIT(PyThreadState *tstate) {
     int exit_code;
 
     if (HAS_ERROR_OCCURRED(tstate)) {
+#if _NUITKA_DLL_MODE && !defined(_NUITKA_ONEFILE_DLL_MODE)
+        if (EXCEPTION_MATCH_BOOL_SINGLE(tstate, GET_ERROR_OCCURRED(tstate), PyExc_SystemExit)) {
+            return handleSystemExitWithoutProcessExit(tstate);
+        }
+#endif
 #if PYTHON_VERSION >= 0x380
         // Since Python 3.8, CPython reports an unhandled KeyboardInterrupt
         // like a SIGINT driven exit, or "STATUS_CONTROL_C_EXIT" on Windows.
@@ -670,8 +750,8 @@ static int loky_resource_tracker_arg = -1;
 
 static bool is_anyio_to_process = false;
 
-// Parse the command line parameters to decide if it's a multiprocessing usage
-// or something else special.
+static bool command_line_parameters_set = false;
+
 #if _NUITKA_NATIVE_WCHAR_ARGV == 0
 static void setCommandLineParameters(int argc, char **argv) {
 #else
@@ -691,13 +771,6 @@ static void setCommandLineParameters(int argc, wchar_t **argv) {
     wprintf(L"Command line: '%lS' %d\n", GetCommandLineW(), argc);
 #endif
 #endif
-
-    // We might need to handle special parameters from plugins that are
-    // very deeply woven into command line handling. These are right now
-    // multiprocessing, which indicates that it's forking via extra
-
-    // command line argument. And Windows Service indicates need to
-    //   install and exit here too.
 
     for (int i = 1; i < argc; i++) {
         if ((i + 1 < argc) && (strcmpFilename(argv[i], FILENAME_EMPTY_STR "--multiprocessing-fork")) == 0) {
@@ -1794,7 +1867,7 @@ static void _ourSigintDeduplicationHandler(int sig, siginfo_t *info, void *ucont
 #endif
 
 static int Nuitka_Main(int argc, native_command_line_argument_t **argv) {
-#if defined(_NUITKA_HIDE_CONSOLE_WINDOW)
+#if defined(_WIN32) && defined(_NUITKA_HIDE_CONSOLE_WINDOW) && (!_NUITKA_DLL_MODE || defined(_NUITKA_ONEFILE_DLL_MODE))
     hideConsoleIfSpawned();
 #endif
 
@@ -1826,14 +1899,13 @@ static int Nuitka_Main(int argc, native_command_line_argument_t **argv) {
     inheritAttachedConsole();
 #endif
 
-#if defined(_WIN32) && defined(NUITKA_APP_MODEL_USER_ID)
+#if defined(_WIN32) && defined(NUITKA_APP_MODEL_USER_ID) && (!_NUITKA_DLL_MODE || defined(_NUITKA_ONEFILE_DLL_MODE))
     setCurrentProcessExplicitAppUserModelID(NUITKA_APP_MODEL_USER_ID);
 #endif
 
-// Make sure, we use the absolute program path for argv[0] for standalone mode
 #if _NUITKA_NATIVE_WCHAR_ARGV == 0
     original_argv0 = argv[0];
-#if !_NUITKA_ONEFILE_MODE
+#if !_NUITKA_ONEFILE_MODE && !_NUITKA_DLL_MODE
     argv[0] = (char *)getBinaryFilenameHostEncoded(false);
 #endif
 #endif
@@ -2037,10 +2109,9 @@ static int Nuitka_Main(int argc, native_command_line_argument_t **argv) {
     orig_argv = argv;
 #endif
 
-// Make sure, we use the absolute program path for argv[0] for standalone mode
 #if _NUITKA_NATIVE_WCHAR_ARGV == 1
     original_argv0 = argv[0];
-#if PYTHON_VERSION >= 0x300 && !defined(_NUITKA_ONEFILE_MODE)
+#if PYTHON_VERSION >= 0x300 && !defined(_NUITKA_ONEFILE_MODE) && !_NUITKA_DLL_MODE
     orig_argv[0] = (wchar_t *)getBinaryFilenameWideChars(false);
 #endif
 #endif
@@ -2050,8 +2121,10 @@ static int Nuitka_Main(int argc, native_command_line_argument_t **argv) {
 
     orig_argc = argc;
 
-    NUITKA_PRINT_TRACE("main(): Calling setCommandLineParameters.");
-    setCommandLineParameters(argc, argv);
+    if (!command_line_parameters_set) {
+        NUITKA_PRINT_TRACE("main(): Calling setCommandLineParameters.");
+        setCommandLineParameters(argc, argv);
+    }
 
     /* For Python installations that need the home set, we inject it back here. */
 #if defined(PYTHON_HOME_PATH)
@@ -2241,7 +2314,8 @@ static int Nuitka_Main(int argc, native_command_line_argument_t **argv) {
     }
 #endif
 
-#if defined(_WIN32) && defined(_NUITKA_ATTACH_CONSOLE_WINDOW)
+#if defined(_WIN32) && defined(_NUITKA_ATTACH_CONSOLE_WINDOW) &&                                                       \
+    (!_NUITKA_DLL_MODE || defined(_NUITKA_ONEFILE_DLL_MODE))
     if (needs_stdout_attaching) {
         PyObject *filename = Nuitka_String_FromString("CONOUT$");
         // This defaults to "utf-8" internally. We may add an argument of use
@@ -2602,10 +2676,30 @@ static int Nuitka_Main(int argc, native_command_line_argument_t **argv) {
 
     int exit_code = HANDLE_PROGRAM_EXIT(tstate);
 
+#if _NUITKA_DLL_MODE && !defined(_NUITKA_ONEFILE_DLL_MODE)
+    NUITKA_PRINT_TIMING("main(): Calling Py_Finalize.");
+#if PYTHON_VERSION >= 0x360
+    if (Py_FinalizeEx() < 0) {
+        exit_code = 120;
+    }
+#else
+    Py_Finalize();
+#endif
+
+#if defined(_WIN32) && _NUITKA_STANDALONE_MODE
+    if (dll_directory_cookie != NULL) {
+        RemoveDllDirectory(dll_directory_cookie);
+        dll_directory_cookie = NULL;
+    }
+#endif
+
+    return exit_code;
+#else
     NUITKA_PRINT_TIMING("main(): Calling Py_Exit.");
     Py_Exit(exit_code);
 
     NUITKA_CANNOT_GET_HERE("Py_Exit does not return");
+#endif
 }
 
 #ifdef _NUITKA_WINMAIN_ENTRY_POINT
@@ -2634,19 +2728,104 @@ int main(int argc, char **argv) { return Nuitka_Main(argc, argv); }
 #else
 #define NUITKA_DLL_FUNCTION
 #endif
-#elif defined(_WIN32)
+#elif defined(_WIN32) || defined(__CYGWIN__) || defined(__MSYS__)
 #define NUITKA_DLL_FUNCTION __declspec(dllexport)
 #else
 #define NUITKA_DLL_FUNCTION __attribute__((visibility("default")))
 #endif
 
+static bool isForkingChildProcess(void) {
+    return is_multiprocessing_fork || is_multiprocessing_forkserver || multiprocessing_resource_tracker_arg != -1 ||
+           loky_resource_tracker_arg != -1 || is_anyio_to_process ||
+#if defined(_WIN32)
+           is_joblib_popen_loky_win32;
+#else
+           is_joblib_popen_loky_posix;
+#endif
+}
+
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-NUITKA_DLL_FUNCTION int run_code(int argc, native_command_line_argument_t **argv, filename_char_t const *dll_filename) {
+#include "nuitka/dll_export.h"
+
+#if !defined(_NUITKA_ONEFILE_DLL_MODE)
+static bool claimDllExecution(bool check_only) {
+#if defined(_WIN32)
+    static volatile LONG dll_execution_started = 0;
+
+    if (check_only) {
+        return InterlockedCompareExchange(&dll_execution_started, 0, 0) == 0;
+    }
+
+    return InterlockedCompareExchange(&dll_execution_started, 1, 0) == 0;
+#elif defined(__GNUC__) || defined(__clang__)
+    static volatile int dll_execution_started = 0;
+
+    if (check_only) {
+        return __sync_fetch_and_add(&dll_execution_started, 0) == 0;
+    }
+
+    return __sync_bool_compare_and_swap(&dll_execution_started, 0, 1);
+#else
+    static volatile bool dll_execution_started = false;
+
+    if (dll_execution_started) {
+        return false;
+    }
+
+    if (!check_only) {
+        dll_execution_started = true;
+    }
+
+    return true;
+#endif
+}
+
+static int rejectRepeatedDllExecution(void) {
+    fputs("Nuitka: Error, 'run_code' cannot be called more than once.\n", stderr);
+    fflush(stderr);
+    return -1;
+}
+#endif
+
+NUITKA_DLL_FUNCTION int run_code(int argc, nuitka_dll_char_t **argv, nuitka_dll_char_t const *dll_filename,
+                                 bool fork_only) {
+#if !defined(_NUITKA_ONEFILE_DLL_MODE)
+    if (!claimDllExecution(fork_only)) {
+        return rejectRepeatedDllExecution();
+    }
+#endif
+
     if (dll_filename != NULL) {
         setDllFilename(dll_filename);
+    }
+
+    promoteDllToGlobalScope();
+
+    static native_command_line_argument_t *default_argv[2];
+    if (argc <= 0 || argv == NULL || argv[0] == NULL) {
+        default_argv[0] = (native_command_line_argument_t *)getBinaryPath();
+        default_argv[1] = NULL;
+        argc = 1;
+        argv = default_argv;
+    }
+
+    if (fork_only) {
+        setCommandLineParameters(argc, argv);
+
+        if (!isForkingChildProcess()) {
+            return 0;
+        }
+
+#if !defined(_NUITKA_ONEFILE_DLL_MODE)
+        if (!claimDllExecution(false)) {
+            return rejectRepeatedDllExecution();
+        }
+#endif
+
+        command_line_parameters_set = true;
     }
 
     return Nuitka_Main(argc, argv);

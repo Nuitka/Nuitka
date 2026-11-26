@@ -1262,7 +1262,7 @@ static void _fillExtensionModuleDllEntryFunctionName(PyThreadState *tstate, char
 static void _makeModuleCFilenameValue(filename_char_t *filename, size_t filename_size, char const *module_name_cstr,
                                       PyObject *module_name, bool is_package) {
 #ifdef _WIN32
-#if _NUITKA_ONEFILE_DLL_MODE
+#if _NUITKA_DLL_MODE
     filename_char_t const *base_directory = getDllDirectory();
 #else
     filename_char_t const *base_directory = getBinaryDirectoryWideChars(true);
@@ -1276,7 +1276,7 @@ static void _makeModuleCFilenameValue(filename_char_t *filename, size_t filename
     }
     appendStringSafeW(filename, _NUITKA_EXTENSION_MODULE_SUFFIX, filename_size);
 #else
-#if _NUITKA_ONEFILE_DLL_MODE
+#if _NUITKA_DLL_MODE
     filename_char_t const *base_directory = getDllDirectory();
 #else
     filename_char_t const *base_directory = getBinaryDirectoryHostEncoded(true);
@@ -1375,8 +1375,9 @@ static entrypoint_t _loadExtensionModuleInitAddress(PyThreadState *tstate, char 
 #if PYTHON_VERSION >= 0x380
     Py_BEGIN_ALLOW_THREADS;
     hDLL = LoadLibraryExW(filename, NULL,
-// Where the onefile bootstrap is ran, we don't have anything to load from.
-#if !_NUITKA_ONEFILE_DLL_MODE
+    // LOAD_LIBRARY_SEARCH_APPLICATION_DIR searches the host executable's
+    // directory rather than the loaded DLL's distribution directory.
+#if !_NUITKA_DLL_MODE
                           LOAD_LIBRARY_SEARCH_APPLICATION_DIR |
 #endif
                               LOAD_LIBRARY_SEARCH_SYSTEM32 | LOAD_LIBRARY_SEARCH_USER_DIRS |
@@ -4321,11 +4322,15 @@ static PyObject *_nuitka_loader_find_distributions(PyObject *self, PyObject *arg
         } else {
             PyObject *name_lower = CALL_METHOD_NO_ARGS(tstate, name, const_str_plain_lower);
             if (unlikely(name_lower == NULL)) {
+                Py_DECREF(name);
+                Py_DECREF(temp);
                 return NULL;
             }
             PyObject *distribution_name_lower = CALL_METHOD_NO_ARGS(tstate, distribution_name, const_str_plain_lower);
             if (unlikely(distribution_name_lower == NULL)) {
                 Py_DECREF(name_lower);
+                Py_DECREF(name);
+                Py_DECREF(temp);
                 return NULL;
             }
 
@@ -4336,6 +4341,7 @@ static PyObject *_nuitka_loader_find_distributions(PyObject *self, PyObject *arg
 
             if (unlikely(cmp_res == NUITKA_BOOL_EXCEPTION)) {
                 Py_DECREF(name);
+                Py_DECREF(temp);
                 return NULL;
             }
 
@@ -4345,7 +4351,8 @@ static PyObject *_nuitka_loader_find_distributions(PyObject *self, PyObject *arg
         if (include) {
             PyObject *distribution = Nuitka_Distribution_New(tstate, distribution_name);
 
-            if (distribution == NULL) {
+            if (unlikely(distribution == NULL)) {
+                Py_DECREF(name);
                 Py_DECREF(temp);
                 return NULL;
             }
@@ -4353,6 +4360,8 @@ static PyObject *_nuitka_loader_find_distributions(PyObject *self, PyObject *arg
             LIST_APPEND1(temp, distribution);
         }
     }
+
+    Py_DECREF(name);
 
     // We are expected to return an iterator.
     PyObject *result = MAKE_ITERATOR_INFALLIBLE(temp);
@@ -4386,8 +4395,12 @@ static PyObject *_nuitka_loader_sys_path_hook(PyObject *self, PyObject *args, Py
 
         if ((current->flags & NUITKA_PACKAGE_FLAG) != 0) {
             PyObject *module_directory = getModuleDirectory(tstate, current, NULL);
+            if (unlikely(module_directory == NULL)) {
+                return NULL;
+            }
 
             nuitka_bool cmp_res = compareFilePaths(tstate, module_directory, path);
+            Py_DECREF(module_directory);
 
             if (unlikely(cmp_res == NUITKA_BOOL_EXCEPTION)) {
                 return NULL;

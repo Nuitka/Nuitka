@@ -72,6 +72,7 @@ from nuitka.PythonPrefixes import (
     getSystemPrefixPath,
 )
 from nuitka.PythonVersions import (
+    isFreeThreadedPython,
     isPythonWithGil,
     python_version,
     python_version_full_str,
@@ -265,6 +266,7 @@ def _getReportInputData(aborted):
     arch_name = getArchitecture()
 
     gil = isPythonWithGil()
+    free_threaded = isFreeThreadedPython()
 
     # Record system encoding, spell-checker: ignore getfilesystemencoding
     filesystem_encoding = sys.getfilesystemencoding()
@@ -1380,6 +1382,9 @@ Error, plugin '%s' report value for key '%s' is not a string or boolean."""
 
     if python_version >= 0x3D0:
         python_xml_node.attrib["gil"] = "yes" if report_input_data["gil"] else "no"
+        python_xml_node.attrib["free_threaded"] = (
+            "yes" if report_input_data["free_threaded"] else "no"
+        )
 
     search_path = getPackageSearchPath(None)
 

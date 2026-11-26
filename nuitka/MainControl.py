@@ -158,6 +158,7 @@ from nuitka.PythonVersions import (
     getModuleLinkerLibs,
     getPythonABI,
     getSupportedPythonVersions,
+    isFreeThreadedPython,
     isPythonWithGil,
     python_version,
     python_version_str,
@@ -1370,7 +1371,11 @@ def _main():
             % (
                 python_version_str,
                 getPythonFlavorName(),
-                ("" if isPythonWithGil() else " no GIL"),
+                (
+                    " free-threaded with GIL"
+                    if isFreeThreadedPython() and isPythonWithGil()
+                    else ("" if isPythonWithGil() else " no GIL")
+                ),
             ),
             "commercial grade '%s'" % (getCommercialVersion() or "not installed"),
         ),

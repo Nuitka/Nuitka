@@ -324,11 +324,18 @@
       change_function:
         'test': "'(lambda: None)'"
 
-- module-name: 'sysconfig' # checksum: f2059e78
+- module-name: 'sysconfig' # checksum: 59e0512e
   anti-bloat:
     - replacements:
         'osname, host, release, version, machine = os.uname()': "'osname, host, release, version, machine = os.uname(); osname = %r' % os.uname()[0]"
       when: 'not win32'
+    - description: 'avoid probing CPython source tree layout and non-existent sys.executable in standalone mode'
+      replacements_plain:
+        '_safe_realpath(sys.executable)': 'os.path.abspath(sys.executable)'
+        '_safe_realpath(_PROJECT_BASE).startswith(': 'False and ('
+        'for fn in ("Setup", "Setup.local"):': 'for fn in ():'
+        'for fn in ("Setup.dist", "Setup.local"):': 'for fn in ():'
+      when: 'standalone'
 
 - module-name: 'tabnanny' # checksum: 6a44b57d
   anti-bloat:

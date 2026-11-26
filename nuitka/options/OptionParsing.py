@@ -164,7 +164,8 @@ except on macOS where it creates an app bundle. "app-dist" is
 "standalone" except on macOS where it creates an app bundle.
 "module" makes an extension module from a single module and
 "package" compiles a whole package into an extension module.
-"dll" is currently under development and not for users yet.
+"dll" creates a folder with a shared library contained to load
+and run from a host program.
 Default is 'accelerated'.""",
 )
 
@@ -1187,6 +1188,19 @@ output_group.add_option(
 Do not use stubgen when creating a '.pyi' file for extension modules
 created by Nuitka. They expose your API, but stubgen may cause issues.
 Defaults to off.""",
+)
+
+output_group.add_option(
+    "--dll-header-language",
+    action="append",
+    dest="dll_header_languages",
+    metavar="LANGUAGE_LIST",
+    default=[],
+    help="""\
+Comma separated list of host binding languages to generate alongside
+'--mode=dll' builds. Supported values are "c" (C/C++ '.h' header, also
+usable from Zig '@cImport'), "rust" ('.rs' module), and "none".
+Defaults to "c".""",
 )
 
 

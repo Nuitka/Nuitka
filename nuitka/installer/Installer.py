@@ -15,6 +15,7 @@ from nuitka.options.Options import (
     getWindowsInstallerMode,
     getWindowsInstallerNsisPath,
     getWindowsInstallerShortcuts,
+    isDllMode,
     isStandaloneMode,
     isWindowsInstallerAllowUserChangeInstallDir,
     shallCreateDmgFile,
@@ -102,7 +103,7 @@ def createInstallerDispatch():
         _installer_created = True
 
     if shallCreateWindowsInstaller():
-        assert isStandaloneMode()
+        assert isStandaloneMode() and not isDllMode()
 
         createWindowsInstaller(
             installer_tool_path=getWindowsInstallerNsisPath(),
@@ -116,7 +117,7 @@ def createInstallerDispatch():
         _installer_created = True
 
     if shallCreateLinuxInstaller():
-        assert isStandaloneMode()
+        assert isStandaloneMode() and not isDllMode()
 
         createLinuxInstaller(
             installer_tool_path=getLinuxInstallerAppImagetoolPath(),

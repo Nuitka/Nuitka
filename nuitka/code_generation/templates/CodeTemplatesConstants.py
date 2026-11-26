@@ -131,9 +131,11 @@ static void _createGlobalConstants(PyThreadState *tstate) {
         {(char *)"no_docstrings", (char *)"boolean indicating --python-flag=no_docstrings usage"},
         {(char *)"no_annotations", (char *)"boolean indicating --python-flag=no_annotations usage"},
         {(char *)"module", (char *)"boolean indicating --module usage"},
+        {(char *)"dll", (char *)"boolean indicating --mode=dll usage"},
         {(char *)"main", (char *)"name of main module at runtime"},
         {(char *)"original_argv0", (char *)"original argv[0] as received by the onefile binary, None otherwise"},
         {(char *)"extension_filename", (char *)"loaded extension filename in module/package mode, None otherwise"},
+        {(char *)"dll_filename", (char *)"loaded shared library filename in dll mode, None otherwise"},
         {(char *)"python_runtime_dir", (char *)"directory the runtime files are in"},
         {(char *)"process_exe", (char *)"process executable, None otherwise"},
         {0}
@@ -219,30 +221,49 @@ static void _createGlobalConstants(PyThreadState *tstate) {
 #endif
     PyStructSequence_SET_ITEM(Nuitka_dunder_compiled_value, 11, is_module_mode);
 
+#if _NUITKA_DLL_MODE && !defined(_NUITKA_ONEFILE_DLL_MODE)
+    PyObject *is_dll_mode = Py_True;
+#else
+    PyObject *is_dll_mode = Py_False;
+#endif
+    Py_INCREF_IMMORTAL(is_dll_mode);
+    PyStructSequence_SET_ITEM(Nuitka_dunder_compiled_value, 12, is_dll_mode);
+
 #if _NUITKA_MODULE_MODE
     PyObject *main_name = real_module_name;
     Py_INCREF(real_module_name);
 #else
     PyObject *main_name = Nuitka_String_FromString("__main__");
 #endif
-    PyStructSequence_SET_ITEM(Nuitka_dunder_compiled_value, 12, main_name);
+    PyStructSequence_SET_ITEM(Nuitka_dunder_compiled_value, 13, main_name);
 
 #if _NUITKA_EXE_MODE || _NUITKA_DLL_MODE
     PyObject *original_argv0 = getOriginalArgv0Object();
 #else
     PyObject *original_argv0 = Py_None;
 # endif
-    PyStructSequence_SET_ITEM(Nuitka_dunder_compiled_value, 13, original_argv0);
+    PyStructSequence_SET_ITEM(Nuitka_dunder_compiled_value, 14, original_argv0);
 
 #if _NUITKA_MODULE_MODE
     PyObject *extension_filename = getDllFilenameObject();
+    Py_INCREF(extension_filename);
 #else
     PyObject *extension_filename = Py_None;
+    Py_INCREF_IMMORTAL(extension_filename);
 #endif
-    PyStructSequence_SET_ITEM(Nuitka_dunder_compiled_value, 14, extension_filename);
+    PyStructSequence_SET_ITEM(Nuitka_dunder_compiled_value, 15, extension_filename);
 
-    PyStructSequence_SET_ITEM(Nuitka_dunder_compiled_value, 15, getPythonRuntimeDirObject());
-    PyStructSequence_SET_ITEM(Nuitka_dunder_compiled_value, 16, getProcessExeObject());
+#if _NUITKA_DLL_MODE && !defined(_NUITKA_ONEFILE_DLL_MODE)
+    PyObject *dll_filename = getDllFilenameObject();
+    Py_INCREF(dll_filename);
+#else
+    PyObject *dll_filename = Py_None;
+    Py_INCREF_IMMORTAL(dll_filename);
+#endif
+    PyStructSequence_SET_ITEM(Nuitka_dunder_compiled_value, 16, dll_filename);
+
+    PyStructSequence_SET_ITEM(Nuitka_dunder_compiled_value, 17, getPythonRuntimeDirObject());
+    PyStructSequence_SET_ITEM(Nuitka_dunder_compiled_value, 18, getProcessExeObject());
 
     // Prevent users from creating the Nuitka version type object.
     Nuitka_VersionInfoType.tp_init = NULL;

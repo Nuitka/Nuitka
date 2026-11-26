@@ -18,8 +18,9 @@ from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.options.Experimental import isExperimental
 from nuitka.PythonFlavors import (
     isAnacondaPython,
+    isCygwinPython,
     isMSYS2MingwPython,
-    isPosixWindows,
+    isMSYS2PosixPython,
 )
 from nuitka.PythonVersions import python_version, python_version_str
 from nuitka.Tracing import metadata_logger
@@ -562,7 +563,7 @@ def isDistributionVendored(distribution_name):
 
 
 def isDistributionMsys2Package(distribution_name):
-    if not isMSYS2MingwPython() and not isPosixWindows():
+    if not isMSYS2MingwPython() and not isMSYS2PosixPython():
         return False
 
     return getDistributionInstallerName(distribution_name).startswith("MSYS2")
@@ -671,7 +672,9 @@ or poetry virtualenv.""")
                 _distribution_to_installer[distribution_name] = "pip"
             elif isMSYS2MingwPython():
                 _distribution_to_installer[distribution_name] = "MSYS2 MinGW"
-            elif isPosixWindows():
+            elif isCygwinPython():
+                _distribution_to_installer[distribution_name] = "Cygwin"
+            elif isMSYS2PosixPython():
                 _distribution_to_installer[distribution_name] = "MSYS2 Posix"
             else:
                 distribution_path = _getDistributionPath(distribution)

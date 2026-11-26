@@ -1643,6 +1643,27 @@ static filename_char_t const *getDllFilename(void) {
 #endif
 }
 
+#if _NUITKA_DLL_MODE
+void promoteDllToGlobalScope(void) {
+#if defined(__linux__) || defined(__APPLE__) || defined(__FreeBSD__) || defined(__NetBSD__) || defined(__OpenBSD__) || \
+    defined(__DragonFly__)
+    static bool promoted = false;
+
+    if (promoted) {
+        return;
+    }
+
+    // CPython extension modules do not link against libpython and resolve its symbols through the
+    // global scope. Reopening a DLL that the host loaded with "RTLD_LOCAL" promotes it and its
+    // dependencies to that scope.
+    void *handle = dlopen(getDllFilename(), RTLD_GLOBAL | RTLD_NOW);
+    assert(handle != NULL);
+
+    promoted = true;
+#endif
+}
+#endif
+
 filename_char_t const *getDllDirectory(void) {
 #if defined(_WIN32)
     static WCHAR path[MAXPATHLEN + 1] = {0};

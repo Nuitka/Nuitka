@@ -1445,6 +1445,8 @@ static wchar_t *getCommandLineForChildProcess(void) {
 #endif
 
 #if _NUITKA_ONEFILE_DLL_MODE
+#include "nuitka/dll_export.h"
+
 static int runPythonCodeDLL(filename_char_t const *dll_filename, int argc, native_command_line_argument_t **argv) {
 
 #if defined(_WIN32)
@@ -1458,8 +1460,6 @@ static int runPythonCodeDLL(filename_char_t const *dll_filename, int argc, nativ
     if (!hGetProcIDDLL) {
         fatalIOError("Error, load DLL.", getLastErrorCode());
     }
-
-    typedef int(__stdcall * nuitka_dll_function_ptr)(int, wchar_t **, wchar_t const *);
 
     // Avoid a cast between incompatible function types, which newer compilers
     // warn about.
@@ -1478,10 +1478,8 @@ static int runPythonCodeDLL(filename_char_t const *dll_filename, int argc, nativ
         fatalError("Error, DLL entry point not found.");
     }
 
-    return (*dll_function.as_function)(argc, argv, dll_filename);
+    return (*dll_function.as_function)(argc, argv, dll_filename, false);
 #else
-    typedef int (*nuitka_dll_function_ptr)(int, native_command_line_argument_t **, filename_char_t const *);
-
     void *handle = dlopen(dll_filename, RTLD_LOCAL | RTLD_NOW);
 
     if (unlikely(handle == NULL)) {
@@ -1497,7 +1495,7 @@ static int runPythonCodeDLL(filename_char_t const *dll_filename, int argc, nativ
     nuitka_dll_function_ptr nuitka_dll_function = (nuitka_dll_function_ptr)dlsym(handle, "run_code");
     assert(nuitka_dll_function);
 
-    return (*nuitka_dll_function)(argc, argv, dll_filename);
+    return (*nuitka_dll_function)(argc, argv, dll_filename, false);
 #endif
 }
 #endif
@@ -1543,7 +1541,7 @@ int main(int argc, char **argv) {
     original_argv0 = argv[0];
 #endif
 
-#if defined(_NUITKA_HIDE_CONSOLE_WINDOW)
+#if defined(_WIN32) && defined(_NUITKA_HIDE_CONSOLE_WINDOW)
     hideConsoleIfSpawned();
 #endif
 
