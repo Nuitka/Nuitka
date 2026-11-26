@@ -73,33 +73,14 @@ static PyObject *Nuitka_Cell_tp_richcompare(PyObject *a, PyObject *b, int op) {
     CHECK_OBJECT(b);
 
     if (unlikely(!Nuitka_Cell_Check(a) || !Nuitka_Cell_Check(b))) {
-        result = Py_NotImplemented;
-        Py_INCREF(result);
-
-        return result;
+        return Py_NewRef_IMMORTAL(Py_NotImplemented);
     }
 
     a = ((struct Nuitka_CellObject *)a)->ob_ref;
     b = ((struct Nuitka_CellObject *)b)->ob_ref;
 
     if (a != NULL && b != NULL) {
-        switch (op) {
-        case Py_EQ:
-            return RICH_COMPARE_EQ_OBJECT_OBJECT_OBJECT(a, b);
-        case Py_NE:
-            return RICH_COMPARE_NE_OBJECT_OBJECT_OBJECT(a, b);
-        case Py_LE:
-            return RICH_COMPARE_LE_OBJECT_OBJECT_OBJECT(a, b);
-        case Py_GE:
-            return RICH_COMPARE_GE_OBJECT_OBJECT_OBJECT(a, b);
-        case Py_LT:
-            return RICH_COMPARE_LT_OBJECT_OBJECT_OBJECT(a, b);
-        case Py_GT:
-            return RICH_COMPARE_GT_OBJECT_OBJECT_OBJECT(a, b);
-        default:
-            PyErr_BadArgument();
-            return NULL;
-        }
+        return RICH_COMPARE_OBJECT_OBJECT_OBJECT(a, b, op);
     }
 
     int res = (b == NULL) - (a == NULL);
@@ -123,8 +104,7 @@ static PyObject *Nuitka_Cell_tp_richcompare(PyObject *a, PyObject *b, int op) {
         result = BOOL_FROM(res > 0);
         break;
     default:
-        PyErr_BadArgument();
-        return NULL;
+        NUITKA_CANNOT_GET_HERE("Invalid richcompare op");
     }
 
     Py_INCREF_IMMORTAL(result);

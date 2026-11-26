@@ -699,8 +699,17 @@ static PyMethodDef Nuitka_FrameLocalsProxy_methods[] = {
 };
 
 static PyObject *_Nuitka_FrameLocalsProxy_richcompare(PyObject *self, PyObject *other, int op_id) {
-    if (op_id != Py_EQ && op_id != Py_NE) {
-        Py_RETURN_NOTIMPLEMENTED;
+    switch (op_id) {
+    case Py_EQ:
+    case Py_NE:
+        break;
+    case Py_LT:
+    case Py_LE:
+    case Py_GT:
+    case Py_GE:
+        return Py_NewRef_IMMORTAL(Py_NotImplemented);
+    default:
+        NUITKA_CANNOT_GET_HERE("Invalid richcompare op");
     }
 
     if (Nuitka_PyObject_TypeCheck(other, &Nuitka_FrameLocalsProxy_Type)) {
@@ -713,19 +722,19 @@ static PyObject *_Nuitka_FrameLocalsProxy_richcompare(PyObject *self, PyObject *
         if (snapshot_dict == NULL) {
             return NULL;
         }
-        PyObject *result = PyObject_RichCompare(snapshot_dict, other, op_id);
+        PyObject *result = RICH_COMPARE_OBJECT_OBJECT_OBJECT(snapshot_dict, other, op_id);
         Py_DECREF(snapshot_dict);
         return result;
     }
 
-    Py_RETURN_NOTIMPLEMENTED;
+    return Py_NewRef_IMMORTAL(Py_NotImplemented);
 }
 
 static PyObject *_Nuitka_FrameLocalsProxy_or(PyObject *self, PyObject *other) {
     PyThreadState *tstate = PyThreadState_GET();
 
     if (!PyDict_Check(other) && !Nuitka_PyObject_TypeCheck(other, &Nuitka_FrameLocalsProxy_Type)) {
-        Py_RETURN_NOTIMPLEMENTED;
+        return Py_NewRef_IMMORTAL(Py_NotImplemented);
     }
 
     // For '__ror__' the arguments arrive swapped, so 'self' may be the other
@@ -752,7 +761,7 @@ static PyObject *_Nuitka_FrameLocalsProxy_inplace_or(PyObject *self, PyObject *o
     PyThreadState *tstate = PyThreadState_GET();
 
     if (!_Nuitka_FrameLocalsProxy_is_updatable_from(other)) {
-        Py_RETURN_NOTIMPLEMENTED;
+        return Py_NewRef_IMMORTAL(Py_NotImplemented);
     }
 
     if (unlikely(_Nuitka_FrameLocalsProxy_merge(tstate, self, other) < 0)) {

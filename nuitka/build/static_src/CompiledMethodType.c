@@ -437,14 +437,21 @@ static PyObject *Nuitka_Method_tp_richcompare(PyObject *object_a, PyObject *obje
     struct Nuitka_MethodObject *a = (struct Nuitka_MethodObject *)object_a;
     struct Nuitka_MethodObject *b = (struct Nuitka_MethodObject *)object_b;
 
-    if (op != Py_EQ && op != Py_NE) {
-        Py_INCREF(Py_NotImplemented);
-        return Py_NotImplemented;
+    switch (op) {
+    case Py_EQ:
+    case Py_NE:
+        break;
+    case Py_LT:
+    case Py_LE:
+    case Py_GT:
+    case Py_GE:
+        return Py_NewRef_IMMORTAL(Py_NotImplemented);
+    default:
+        NUITKA_CANNOT_GET_HERE("Invalid richcompare op");
     }
 
     if (Nuitka_Method_Check((PyObject *)a) == false || Nuitka_Method_Check((PyObject *)b) == false) {
-        Py_INCREF(Py_NotImplemented);
-        return Py_NotImplemented;
+        return Py_NewRef_IMMORTAL(Py_NotImplemented);
     }
 
     bool b_res = a->m_function->m_counter == b->m_function->m_counter;

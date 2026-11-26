@@ -2033,10 +2033,82 @@ static PyObject *COMPARE_LT_OBJECT_UNICODE_UNICODE(PyObject *operand1, PyObject 
         return result;
     }
 
-    PyObject *r = PyUnicode_RichCompare((PyObject *)a, (PyObject *)b, Py_LT);
-    CHECK_OBJECT(r);
+#if PYTHON_VERSION >= 0x300
+    int kind1 = PyUnicode_KIND(a);
+#if PYTHON_VERSION < 0x3c0
+    if (unlikely(kind1 == 0)) {
+        NUITKA_MAY_BE_UNUSED int res = _PyUnicode_Ready((PyObject *)a);
+        assert(res != -1);
+        kind1 = PyUnicode_KIND(a);
+        assert(kind1 != 0);
+    }
+#endif
 
-    return r;
+    int kind2 = PyUnicode_KIND(b);
+#if PYTHON_VERSION < 0x3c0
+    if (unlikely(kind2 == 0)) {
+        NUITKA_MAY_BE_UNUSED int res = _PyUnicode_Ready((PyObject *)b);
+        assert(res != -1);
+        kind2 = PyUnicode_KIND(b);
+        assert(kind2 != 0);
+    }
+#endif
+
+    Py_ssize_t len_a = PyUnicode_GET_LENGTH(a);
+    Py_ssize_t len_b = PyUnicode_GET_LENGTH(b);
+    Py_ssize_t min_len = (len_a < len_b) ? len_a : len_b;
+    int c = 0;
+
+    if (min_len > 0) {
+        const void *data1 = PyUnicode_DATA(a);
+        const void *data2 = PyUnicode_DATA(b);
+
+        if (likely(kind1 == PyUnicode_1BYTE_KIND && kind2 == PyUnicode_1BYTE_KIND)) {
+            const Py_UCS1 *d1 = (const Py_UCS1 *)data1;
+            const Py_UCS1 *d2 = (const Py_UCS1 *)data2;
+
+            c = (int)d1[0] - (int)d2[0];
+            if (c == 0) {
+                c = memcmp(d1, d2, min_len);
+            }
+        } else {
+            for (Py_ssize_t i = 0; i < min_len; i++) {
+                Py_UCS4 ch1 = PyUnicode_READ(kind1, data1, i);
+                Py_UCS4 ch2 = PyUnicode_READ(kind2, data2, i);
+
+                if (ch1 != ch2) {
+                    c = (ch1 < ch2) ? -1 : 1;
+                    break;
+                }
+            }
+        }
+    }
+#else
+    Py_ssize_t len_a = PyUnicode_GET_LENGTH(a);
+    Py_ssize_t len_b = PyUnicode_GET_LENGTH(b);
+    Py_ssize_t min_len = (len_a < len_b) ? len_a : len_b;
+    int c = 0;
+
+    const Py_UNICODE *data1 = a->str;
+    const Py_UNICODE *data2 = b->str;
+
+    for (Py_ssize_t i = 0; i < min_len; i++) {
+        if (data1[i] != data2[i]) {
+            c = ((Py_UCS4)data1[i] < (Py_UCS4)data2[i]) ? -1 : 1;
+            break;
+        }
+    }
+#endif
+
+    if (c == 0) {
+        c = (len_a < len_b) ? -1 : (len_a > len_b) ? 1 : 0;
+    }
+
+    bool r = c < 0;
+
+    PyObject *result = BOOL_FROM(r);
+    Py_INCREF_IMMORTAL(result);
+    return result;
 }
 PyObject *RICH_COMPARE_LT_OBJECT_OBJECT_UNICODE(PyObject *operand1, PyObject *operand2) {
 
@@ -2624,11 +2696,80 @@ static bool COMPARE_LT_CBOOL_UNICODE_UNICODE(PyObject *operand1, PyObject *opera
         return result;
     }
 
-    PyObject *r = PyUnicode_RichCompare((PyObject *)a, (PyObject *)b, Py_LT);
-    CHECK_OBJECT(r);
+#if PYTHON_VERSION >= 0x300
+    int kind1 = PyUnicode_KIND(a);
+#if PYTHON_VERSION < 0x3c0
+    if (unlikely(kind1 == 0)) {
+        NUITKA_MAY_BE_UNUSED int res = _PyUnicode_Ready((PyObject *)a);
+        assert(res != -1);
+        kind1 = PyUnicode_KIND(a);
+        assert(kind1 != 0);
+    }
+#endif
 
-    bool result = r == Py_True;
-    Py_DECREF_IMMORTAL(r);
+    int kind2 = PyUnicode_KIND(b);
+#if PYTHON_VERSION < 0x3c0
+    if (unlikely(kind2 == 0)) {
+        NUITKA_MAY_BE_UNUSED int res = _PyUnicode_Ready((PyObject *)b);
+        assert(res != -1);
+        kind2 = PyUnicode_KIND(b);
+        assert(kind2 != 0);
+    }
+#endif
+
+    Py_ssize_t len_a = PyUnicode_GET_LENGTH(a);
+    Py_ssize_t len_b = PyUnicode_GET_LENGTH(b);
+    Py_ssize_t min_len = (len_a < len_b) ? len_a : len_b;
+    int c = 0;
+
+    if (min_len > 0) {
+        const void *data1 = PyUnicode_DATA(a);
+        const void *data2 = PyUnicode_DATA(b);
+
+        if (likely(kind1 == PyUnicode_1BYTE_KIND && kind2 == PyUnicode_1BYTE_KIND)) {
+            const Py_UCS1 *d1 = (const Py_UCS1 *)data1;
+            const Py_UCS1 *d2 = (const Py_UCS1 *)data2;
+
+            c = (int)d1[0] - (int)d2[0];
+            if (c == 0) {
+                c = memcmp(d1, d2, min_len);
+            }
+        } else {
+            for (Py_ssize_t i = 0; i < min_len; i++) {
+                Py_UCS4 ch1 = PyUnicode_READ(kind1, data1, i);
+                Py_UCS4 ch2 = PyUnicode_READ(kind2, data2, i);
+
+                if (ch1 != ch2) {
+                    c = (ch1 < ch2) ? -1 : 1;
+                    break;
+                }
+            }
+        }
+    }
+#else
+    Py_ssize_t len_a = PyUnicode_GET_LENGTH(a);
+    Py_ssize_t len_b = PyUnicode_GET_LENGTH(b);
+    Py_ssize_t min_len = (len_a < len_b) ? len_a : len_b;
+    int c = 0;
+
+    const Py_UNICODE *data1 = a->str;
+    const Py_UNICODE *data2 = b->str;
+
+    for (Py_ssize_t i = 0; i < min_len; i++) {
+        if (data1[i] != data2[i]) {
+            c = ((Py_UCS4)data1[i] < (Py_UCS4)data2[i]) ? -1 : 1;
+            break;
+        }
+    }
+#endif
+
+    if (c == 0) {
+        c = (len_a < len_b) ? -1 : (len_a > len_b) ? 1 : 0;
+    }
+
+    bool r = c < 0;
+
+    bool result = r;
 
     return result;
 }
