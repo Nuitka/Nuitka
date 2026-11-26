@@ -50,6 +50,12 @@
     fprintf(stderr, "%s : %s\n", __FUNCTION__, #NAME);                                                                 \
     abort();
 
+#if !defined(Py_GIL_DISABLED) || (!_NUITKA_MODULE_MODE && defined(_NUITKA_SYSFLAG_GIL))
+#define _NUITKA_GIL_PROTECTED 1
+#else
+#define _NUITKA_GIL_PROTECTED 0
+#endif
+
 #endif
 
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and

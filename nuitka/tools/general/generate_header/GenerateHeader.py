@@ -14,7 +14,7 @@ from nuitka.build.SconsInterface import (
 from nuitka.build.SconsSourceIndex import createSourceFilesIndex
 from nuitka.PythonVersions import (
     isDebugPython,
-    isPythonWithGil,
+    isFreeThreadedPython,
     python_version_str,
 )
 from nuitka.tools.quality.auto_format.AutoFormat import (
@@ -61,7 +61,7 @@ def makePythonInternalsOffsetId(python_debug):
         python_version_str,
         getOS(),
         getArchitecture(),
-        "gil" if isPythonWithGil() else "no-gil",
+        "no-gil" if isFreeThreadedPython() else "gil",
         "-debug" if python_debug else "",
     )
 

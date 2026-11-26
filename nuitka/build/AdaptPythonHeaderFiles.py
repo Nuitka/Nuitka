@@ -18,7 +18,7 @@ from nuitka.options.Options import (
 from nuitka.PythonFlavors import isSelfCompiledPythonUninstalled
 from nuitka.PythonPrefixes import getTargetPythonIncludePath
 from nuitka.PythonVersions import (
-    isPythonWithGil,
+    isFreeThreadedPython,
     python_version,
     python_version_str,
 )
@@ -147,7 +147,7 @@ def _applyExpectedAdaptedPythonHeaderReplacements(adapted, filename):
             replacement="#  define _Py_DEC_REFTOTAL(interp) \\\n    _Py_DecRefTotal(_PyThreadState_GET())",
         )
 
-        if shallMakeModule() and isPythonWithGil():
+        if shallMakeModule() and not isFreeThreadedPython():
             adapted = _replaceExpectedInAdaptedPythonHeaderFile(
                 content=adapted,
                 filename=filename,
@@ -302,7 +302,7 @@ def ensurePythonInternalsOffsets(cache_dir):
         python_version_str,
         getOS(),
         getArchitecture(),
-        "gil" if isPythonWithGil() else "no-gil",
+        "no-gil" if isFreeThreadedPython() else "gil",
         "-debug" if shallUsePythonDebug() else "",
     )
 
@@ -348,7 +348,7 @@ def _getPythonInternalHeadersAndHash(internal_include_dir):
         "adapted-python-headers-v3",
         getNuitkaVersion(),
         "module" if shallMakeModule() else "non-module",
-        "gil" if isPythonWithGil() else "no-gil",
+        "no-gil" if isFreeThreadedPython() else "gil",
     )
 
     for header_filename in sorted(

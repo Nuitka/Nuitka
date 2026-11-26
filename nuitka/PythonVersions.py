@@ -532,8 +532,17 @@ def getModuleLinkerLibs():
         return result
 
 
+def isFreeThreadedPython():
+    return python_version >= 0x3D0 and (
+        sys.flags.gil != 1 or "free-threading build" in sys.version
+    )
+
+
 def isPythonWithGil():
-    return python_version < 0x3D0 or sys.flags.gil
+    if not isFreeThreadedPython():
+        return True
+
+    return bool(sys.flags.gil)
 
 
 def hasWorkingFreeGc():
@@ -544,9 +553,7 @@ def hasWorkingFreeGc():
     # see gh-126312, fixed in 3.13.1. The free-threaded GC is used also when
     # the GIL gets enabled at runtime.
     if (3, 13, 0) <= python_version_full < (3, 13, 1):
-        import sysconfig
-
-        return not sysconfig.get_config_var("Py_GIL_DISABLED")
+        return not isFreeThreadedPython()
 
     return True
 

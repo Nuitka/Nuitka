@@ -1849,6 +1849,20 @@ PyObject *GET_STRING_DICT_VALUE(PyDictObject *dict, Nuitka_StringObject *key) {
         hash = PyUnicode_Type.tp_hash((PyObject *)key);
     }
 
+#if _NUITKA_GIL_PROTECTED
+    if (likely(dict->ma_keys->dk_kind != DICT_KEYS_GENERAL)) {
+        PyObject **value_addr = NULL;
+        Py_ssize_t ix = Nuitka_PyDictLookupStr(dict, (PyObject *)key, hash, &value_addr);
+
+        if (ix >= 0 && value_addr != NULL) {
+            CHECK_OBJECT_X(*value_addr);
+            return *value_addr;
+        }
+
+        return NULL;
+    }
+#endif
+
     Nuitka_Py_dict_ensure_shared_on_read(dict);
 
     PyObject *result;
@@ -5488,7 +5502,9 @@ uint64_t nuitka_dict_version_tag_counter = ((uint64_t)1) << 32;
 #endif
 
 #if NUITKA_DICT_HAS_FREELIST
-PyObject *MAKE_DICT_EMPTY(PyThreadState *tstate) {
+static inline PyObject *_MAKE_DICT_EMPTY_UNTRACKED(PyThreadState *tstate) {
+    assert(const_dict_empty != NULL);
+
     PyDictObject *empty_dict_mp = (PyDictObject *)const_dict_empty;
 
 #if PYTHON_VERSION < 0x3c0
@@ -5516,13 +5532,28 @@ PyObject *MAKE_DICT_EMPTY(PyThreadState *tstate) {
     Nuitka_Py_IncRefTotal(tstate);
 #endif
 
-    // Python 3.14 tracks even empty dicts, older versions did not.
-#if PYTHON_VERSION >= 0x3e0
-    Nuitka_GC_Track(result_mp);
-#endif
-
     return (PyObject *)result_mp;
 }
+
+PyObject *MAKE_DICT_EMPTY(PyThreadState *tstate) {
+    PyObject *result = _MAKE_DICT_EMPTY_UNTRACKED(tstate);
+
+    // Python 3.14 tracks even empty dicts, older versions did not.
+#if PYTHON_VERSION >= 0x3e0
+    Nuitka_GC_Track(result);
+#endif
+
+    return result;
+}
+
+#if PYTHON_VERSION >= 0x3e0
+PyObject *MAKE_DICT_EMPTY_UNTRACKED(PyThreadState *tstate) {
+    PyObject *result = _MAKE_DICT_EMPTY_UNTRACKED(tstate);
+    assert(!_PyObject_GC_IS_TRACKED(result));
+
+    return result;
+}
+#endif
 #endif
 
 PyObject *MAKE_DICT_PRESIZED(PyThreadState *tstate, Py_ssize_t size) {

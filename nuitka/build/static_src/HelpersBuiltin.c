@@ -739,11 +739,10 @@ PyObject *BUILTIN_SENTINEL(PyThreadState *tstate, PyObject *name, PyObject *repr
 
     // Compiled frames always make CPython's sentinel constructor use None for
     // the module, so replace it with the module dictionary's name.
-    PyObject *dict_module_name = DICT_GET_ITEM0(tstate, (PyObject *)module_dict, const_str_plain___name__);
+    PyObject *dict_module_name =
+        GET_STRING_DICT_VALUE1(tstate, module_dict, (Nuitka_StringObject *)const_str_plain___name__);
 
     if (unlikely(dict_module_name == NULL)) {
-        CLEAR_ERROR_OCCURRED(tstate);
-
         return result;
     }
 
@@ -751,13 +750,15 @@ PyObject *BUILTIN_SENTINEL(PyThreadState *tstate, PyObject *name, PyObject *repr
         CLEAR_ERROR_OCCURRED(tstate);
     }
 
+    Py_DECREF(dict_module_name);
+
     return result;
 }
 #endif
 
 NUITKA_DEFINE_BUILTIN(super);
 
-#if defined(Py_GIL_DISABLED) && defined(_NUITKA_FULL_COMPAT)
+#if !_NUITKA_GIL_PROTECTED && defined(_NUITKA_FULL_COMPAT)
 static PyObject *Nuitka_GetSuperValue1(PyThreadState *tstate, PyDictObject *module_dict) {
     // Only full compat mode observes a dynamically shadowed 'super'. Static
     // shadowing is already handled by variable resolution, and regular code
@@ -799,7 +800,7 @@ PyObject *BUILTIN_SUPER2(PyThreadState *tstate, PyDictObject *module_dict, PyObj
     CHECK_OBJECT(type);
     CHECK_OBJECT_X(obj);
 
-#if defined(Py_GIL_DISABLED) && defined(_NUITKA_FULL_COMPAT)
+#if !_NUITKA_GIL_PROTECTED && defined(_NUITKA_FULL_COMPAT)
     PyObject *super_value = Nuitka_GetSuperValue1(tstate, module_dict);
 #else
     PyObject *super_value = Nuitka_GetSuperValue(tstate, module_dict);
@@ -814,7 +815,7 @@ PyObject *BUILTIN_SUPER2(PyThreadState *tstate, PyDictObject *module_dict, PyObj
         result = CALL_FUNCTION_WITH_SINGLE_ARG(tstate, super_value, type);
     }
 
-#if defined(Py_GIL_DISABLED) && defined(_NUITKA_FULL_COMPAT)
+#if !_NUITKA_GIL_PROTECTED && defined(_NUITKA_FULL_COMPAT)
     Py_DECREF(super_value);
 #endif
     return result;
@@ -828,7 +829,7 @@ PyObject *BUILTIN_SUPER0(PyThreadState *tstate, PyDictObject *module_dict, PyObj
         obj = NULL;
     }
 
-#if defined(Py_GIL_DISABLED) && defined(_NUITKA_FULL_COMPAT)
+#if !_NUITKA_GIL_PROTECTED && defined(_NUITKA_FULL_COMPAT)
     PyObject *super_value = Nuitka_GetSuperValue1(tstate, module_dict);
 #else
     PyObject *super_value = Nuitka_GetSuperValue(tstate, module_dict);
@@ -841,7 +842,7 @@ PyObject *BUILTIN_SUPER0(PyThreadState *tstate, PyDictObject *module_dict, PyObj
     // arguments instead.
     if (super_value != (PyObject *)&PySuper_Type) {
         result = CALL_FUNCTION_NO_ARGS(tstate, super_value);
-#if defined(Py_GIL_DISABLED) && defined(_NUITKA_FULL_COMPAT)
+#if !_NUITKA_GIL_PROTECTED && defined(_NUITKA_FULL_COMPAT)
         Py_DECREF(super_value);
 #endif
         return result;
@@ -856,7 +857,7 @@ PyObject *BUILTIN_SUPER0(PyThreadState *tstate, PyDictObject *module_dict, PyObj
         result = CALL_FUNCTION_WITH_SINGLE_ARG(tstate, super_value, type);
     }
 
-#if defined(Py_GIL_DISABLED) && defined(_NUITKA_FULL_COMPAT)
+#if !_NUITKA_GIL_PROTECTED && defined(_NUITKA_FULL_COMPAT)
     Py_DECREF(super_value);
 #endif
     return result;
