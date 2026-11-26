@@ -3360,7 +3360,9 @@ PyObject *Nuitka_CallMethodFunctionPosArgsKwArgs(PyThreadState *tstate, struct N
     if (likely(args_size + 1 <= (Py_ssize_t)(sizeof(small_stack) / sizeof(small_stack[0])))) {
         new_args = small_stack;
     } else {
-        new_args = (PyObject **)NuitkaMem_Malloc((args_size + 1) * sizeof(PyObject *));
+        size_t allocation_size = (args_size + 1) * sizeof(PyObject *);
+
+        new_args = (PyObject **)NuitkaMem_Malloc(allocation_size);
         if (unlikely(new_args == NULL)) {
             return PyErr_NoMemory();
         }
