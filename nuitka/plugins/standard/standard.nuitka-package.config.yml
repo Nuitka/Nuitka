@@ -1002,7 +1002,7 @@
     - empty_dirs:
         - '.'
 
-- module-name: 'ctypes' # checksum: b4d68153
+- module-name: 'ctypes' # checksum: e3be506d
   anti-bloat:
     - description: 'remove comtypes dependency'
       no-auto-follow:
@@ -1011,6 +1011,10 @@
       replacements_plain:
         'import sysconfig as _sysconfig': ''
       when: 'python313_or_higher and before_python315 and not android and not posix_windows'
+    - description: 'avoid unused lazy sysconfig import on platforms with direct libpython access'
+      replacements_plain:
+        'lazy import sysconfig as _sysconfig': ''
+      when: 'python315_or_higher and not android and not posix_windows'
   implicit-imports:
     - depends:
         - 'ctypes._layout'
