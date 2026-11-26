@@ -299,7 +299,7 @@ def generateSpecialUnpackCode(to_name, expression, emit, context):
             context=context,
         )
 
-    context.addCleanupTempName(to_name)
+        context.addCleanupTempName(result_name)
 
 
 def generateUnpackCheckCode(statement, emit, context):
@@ -327,6 +327,7 @@ def generateUnpackCheckCode(statement, emit, context):
 
         getErrorExitBoolCode(
             condition="%s == false" % res_name,
+            release_name=iterator_name,
             fetched_exception=True,
             emit=emit,
             context=context,

@@ -759,6 +759,8 @@ PyObject *args[2] = { %(import_name)s, %(package_name)s };
             context=context,
         )
 
+        context.addCleanupTempName(value_name)
+
 
 def generateImportStarCode(statement, emit, context):
     module_name = context.allocateTempName("star_imported")
