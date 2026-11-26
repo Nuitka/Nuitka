@@ -51,6 +51,7 @@
 #define SYSFLAG_UTF8 0
 #define SYSFLAG_UNBUFFERED 0
 #define SYSFLAG_DONTWRITEBYTECODE 0
+#define SYSFLAG_GIL -1
 #define NUITKA_MAIN_MODULE_NAME "__main__"
 #define NUITKA_MAIN_IS_PACKAGE_BOOL false
 #define NUITKA_HAS_FROZEN_MODULES_BOOL 1
@@ -1541,6 +1542,10 @@ static void Nuitka_Py_Initialize(void) {
     config.safe_path = 1;
 #endif
 
+#if defined(Py_GIL_DISABLED) && SYSFLAG_GIL != -1
+    config.enable_gil = SYSFLAG_GIL;
+#endif
+
     NUITKA_PRINT_TIMING("Nuitka_Py_Initialize(): Calling 'Py_InitializeFromConfig'.");
 
     status = Py_InitializeFromConfig(&config);
@@ -2144,6 +2149,11 @@ static int Nuitka_Main(int argc, native_command_line_argument_t **argv) {
     setEnvironmentVariable("PYTHONHASHSEED", makeEnvironmentLiteral("0"));
 #endif
 
+#if !_NUITKA_STANDALONE_MODE && defined(Py_GIL_DISABLED) && SYSFLAG_GIL != -1
+    environment_char_t const *old_env_pythongil = getEnvironmentVariable("PYTHON_GIL");
+    unsetEnvironmentVariable("PYTHON_GIL");
+#endif
+
 #if _NUITKA_MACOS_BUNDLE_MODE
     if (terminal_launch == false) {
         setLANGSystemLocaleMacOS();
@@ -2421,6 +2431,11 @@ static int Nuitka_Main(int argc, native_command_line_argument_t **argv) {
 #if PYTHON_VERSION >= 0x300 && SYSFLAG_NO_RANDOMIZATION == 1
     NUITKA_PRINT_TRACE("main(): Reverting to initial 'PYTHONHASHSEED' value.");
     undoEnvironmentVariable(tstate, "PYTHONHASHSEED", old_env_hash_seed);
+#endif
+
+#if !_NUITKA_STANDALONE_MODE && defined(Py_GIL_DISABLED) && SYSFLAG_GIL != -1
+    NUITKA_PRINT_TRACE("main(): Reverting to initial 'PYTHON_GIL' value.");
+    undoEnvironmentVariable(tstate, "PYTHON_GIL", old_env_pythongil);
 #endif
 
 #if PYTHON_VERSION >= 0x300 && SYSFLAG_UNBUFFERED == 1

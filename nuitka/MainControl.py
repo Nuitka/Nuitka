@@ -888,6 +888,9 @@ def runSconsBackend():
     if python_version >= 0x370 and sys.flags.utf8_mode:
         scons_options["python_sysflag_utf8"] = asBoolStr(True)
 
+    if isFreeThreadedPython() and not shallMakeModule() and sys.flags.gil is not None:
+        scons_options["python_sysflag_gil"] = str(int(bool(sys.flags.gil)))
+
     if hasPythonFlagNoBytecodeRuntimeCache():
         scons_options["python_sysflag_dontwritebytecode"] = asBoolStr(True)
 
