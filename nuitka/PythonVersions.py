@@ -12,11 +12,13 @@ should attempt to make run time detections.
 import __future__
 
 import ctypes
+import gc
 import os
 import re
 import sys
 
 from nuitka.__past__ import subprocess
+from nuitka.States import states
 
 
 def getSupportedPythonVersions():
@@ -36,25 +38,24 @@ def getSupportedPythonVersions():
         "3.12",
         "3.13",
         "3.14",
+        "3.15",
     )
 
 
 def getNotYetSupportedPythonVersions():
     """Versions known to not work at all (yet)."""
-    return ("3.16",)
+    return ()
 
 
 def getPartiallySupportedPythonVersions():
     """Partially supported Python versions for Nuitka."""
-    return ("3.15",)
+    return ("3.16",)
 
 
 def getZstandardSupportingVersions():
     result = getSupportedPythonVersions() + getPartiallySupportedPythonVersions()
 
-    # This will crash if we remove versions, but it is more likely to work
-    # with newly supported versions, and to list the ones not supported by
-    # zstandard.
+    # Exclude Python versions not supported by zstandard.
     result = tuple(
         version for version in result if version not in ("2.6", "2.7", "3.4")
     )
@@ -114,6 +115,8 @@ def _getPythonVersion():
 
 python_version = _getPythonVersion()
 
+python_version_short = tuple(sys.version_info[:2])
+python_version_full = tuple(sys.version_info[:3])
 python_version_full_str = ".".join(str(s) for s in sys.version_info[0:3])
 python_version_str = ".".join(str(s) for s in sys.version_info[0:2])
 
@@ -129,6 +132,43 @@ def is32BitPython():
 
 
 # TODO: Move error construction helpers to separate node making helpers module.
+def getErrorMessageDebugAssignment():
+    """Error message of the concrete Python for assignment to '__debug__'."""
+
+    if not hasattr(getErrorMessageDebugAssignment, "result"):
+        try:
+            # We are doing this on purpose, to get the exception.
+            # pylint: disable=exec-used
+            exec("__debug__ = 1", {})
+        except SyntaxError as e:
+            getErrorMessageDebugAssignment.result = e.msg
+        else:
+            return sys.exit("Error, cannot detect expected error message.")
+
+    return getErrorMessageDebugAssignment.result
+
+
+def getErrorMessageDebugDeletion():
+    """Error message of the concrete Python for deletion of '__debug__'.
+
+    Returns:
+        The error message, or None if the deletion is allowed.
+    """
+
+    if not hasattr(getErrorMessageDebugDeletion, "result"):
+        result = None
+
+        try:
+            # We are doing this on purpose, to get the exception.
+            # pylint: disable=exec-used
+            exec("del __debug__", {"__debug__": None})
+        except SyntaxError as e:
+            result = e.msg
+        getErrorMessageDebugDeletion.result = result
+
+    return getErrorMessageDebugDeletion.result
+
+
 def getErrorMessageExecWithNestedFunction():
     """Error message of the concrete Python in case an exec occurs in a
     function that takes a closure variable.
@@ -267,6 +307,22 @@ f()
     return getUnboundLocalErrorErrorTemplate.result
 
 
+def getUnboundLocalErrorMessage(variable_name):
+    """Get the UnboundLocalError message for a variable name.
+
+    Args:
+        variable_name: Name of the variable.
+
+    Returns:
+        Message text, either CPython compatible or plain.
+    """
+
+    if states.is_full_compat:
+        return getUnboundLocalErrorErrorTemplate() % variable_name
+
+    return "local variable referenced before assignment"
+
+
 def getDictFromkeysNoArgErrorMessage():
     try:
         dict.fromkeys()
@@ -353,214 +409,22 @@ def isStaticallyLinkedPython():
     return result
 
 
-_target_python_include_path = {}
-
-
-def getTargetPythonIncludePath(
-    logger,
-    python_debug,
-    self_compiled_python_uninstalled,
-):
-    python_abi_version = python_version_str + getPythonABI(python_debug=python_debug)
-    python_prefix_external = getSystemPrefixPath()
-
-    key = (
-        python_debug,
-        self_compiled_python_uninstalled,
-        python_abi_version,
-        python_prefix_external,
-    )
-
-    if key not in _target_python_include_path:
-        _target_python_include_path[key] = _getTargetPythonIncludePath(
-            logger=logger,
-            python_debug=python_debug,
-            python_abi_version=python_abi_version,
-            python_prefix_external=python_prefix_external,
-            self_compiled_python_uninstalled=self_compiled_python_uninstalled,
-        )
-
-    return _target_python_include_path[key]
-
-
-def _getTargetPythonIncludePath(
-    logger,
-    python_debug,
-    python_abi_version,
-    python_prefix_external,
-    self_compiled_python_uninstalled,
-):
-
-    if os.name == "nt":
-        candidates = [
-            # On Windows, the CPython official installation layout is relatively fixed,
-            os.path.join(python_prefix_external, "include"),
-            # On MSYS2 with MinGW64 Python, it is also the other form.
-            os.path.join(
-                python_prefix_external, "include", "python" + python_abi_version
-            ),
-            # For Anaconda and conda-forge Python, since Python 3.15.
-            os.path.join(python_prefix_external, "include", "python"),
-            # For self-built Python on Windows, need to also add the "PC" directory,
-            # that a normal install won't have.
-            os.path.join(python_prefix_external, "PC"),
-        ]
-    else:
-        # The python header path is a combination of python version and debug
-        # indication, we make sure the headers are found by adding it to the C
-        # include path.
-
-        candidates = [
-            os.path.join(
-                python_prefix_external, "include", "python" + python_abi_version
-            ),
-            # CPython source code checkout
-            os.path.join(python_prefix_external, "Include"),
-            # Haiku specific paths:
-            os.path.join(
-                python_prefix_external,
-                "develop/headers",
-                "python" + python_abi_version,
-            ),
-        ]
-
-        # Not all Python versions, have the ABI version to use for the debug version.
-        if python_debug and "d" in python_abi_version:
-            candidates.append(
-                os.path.join(
-                    python_prefix_external,
-                    "include",
-                    "python" + python_abi_version.replace("d", ""),
-                )
-            )
-
-    search = ["Python.h"]
-    if self_compiled_python_uninstalled:
-        search.append("pyconfig.h")  # spell-checker: ignore pyconfig
-
-    for candidate in candidates:
-        for s in tuple(search):
-            found = False
-            if os.path.exists(os.path.join(candidate, s)):
-                search.remove(s)
-                found = True
-
-            if found:
-                return candidate
-
-        if not search:
-            break
-    else:
-        if os.name == "nt":
-            return logger.sysexit("""\
-Error, you seem to be using the unsupported embeddable CPython distribution \
-use a full Python instead.""")
-        else:
-            return logger.sysexit(
-                """\
-Error, no 'Python.h' %s headers can be found at '%s', dependency \
-not satisfied!"""
-                % (
-                    "debug" if python_debug else "development",
-                    candidates,
-                )
-            )
-
-
 def getPythonABI(python_debug):
     if hasattr(sys, "abiflags"):
         abiflags = sys.abiflags
 
         # spell-checker: ignore getobjects
         if python_debug or hasattr(sys, "getobjects"):
-            if not abiflags.startswith("d"):
-                abiflags = "d" + abiflags
+            # Keep CPython's ABI flag order: "dm" for 3.7, "td" for free-threaded builds.
+            if "d" not in abiflags:
+                if "t" in abiflags:
+                    abiflags = abiflags + "d"
+                else:
+                    abiflags = "d" + abiflags
     else:
         abiflags = ""
 
     return abiflags
-
-
-def getLaunchingSystemPrefixPath():
-    from nuitka.utils.Utils import getLaunchingNuitkaProcessEnvironmentValue
-
-    return getLaunchingNuitkaProcessEnvironmentValue("NUITKA_SYS_PREFIX")
-
-
-_the_sys_prefix = None
-
-
-def getSystemPrefixPath():
-    """Return real sys.prefix as an absolute path breaking out of virtualenv.
-
-    Note:
-
-        For Nuitka, it often is OK to break out of the virtualenv, and use the
-        original install. Mind you, this is not about executing anything, this is
-        about building, and finding the headers to compile against that Python, we
-        do not care about any site packages, and so on.
-
-    Returns:
-        str - path to system prefix
-    """
-
-    global _the_sys_prefix  # Cached result, pylint: disable=global-statement
-    if _the_sys_prefix is None:
-        sys_prefix = getattr(
-            sys, "real_prefix", getattr(sys, "base_prefix", sys.prefix)
-        )
-        sys_prefix = os.path.abspath(sys_prefix)
-
-        # Some virtualenv contain the "orig-prefix.txt" as a textual link to the
-        # target, this is often on Windows with virtualenv. There are two places to
-        # look for.
-        for candidate in (
-            "Lib/orig-prefix.txt",
-            "lib/python%s/orig-prefix.txt" % python_version_str,
-        ):
-            candidate = os.path.join(sys_prefix, candidate)
-            if os.path.exists(candidate):
-                # Cannot use FileOperations.getFileContents() here, because of circular dependency.
-                # pylint: disable=unspecified-encoding
-                with open(candidate) as f:
-                    sys_prefix = f.read()
-
-                # Trailing spaces in the python prefix, please not.
-                assert sys_prefix == sys_prefix.strip()
-
-        # This is another for of virtualenv references:
-        if os.name != "nt" and os.path.islink(os.path.join(sys_prefix, ".Python")):
-            sys_prefix = os.path.normpath(
-                os.path.join(os.readlink(os.path.join(sys_prefix, ".Python")), "..")
-            )
-
-        # Some virtualenv created by "venv" seem to have a different structure, where
-        # library and include files are outside of it.
-        if (
-            os.name != "nt"
-            and python_version >= 0x330
-            and os.path.exists(os.path.join(sys_prefix, "bin/activate"))
-        ):
-            python_binary = os.path.join(sys_prefix, "bin", "python")
-            python_binary = os.path.realpath(python_binary)
-
-            sys_prefix = os.path.normpath(os.path.join(python_binary, "..", ".."))
-
-        # Resolve symlinks on Windows manually.
-        if os.name == "nt":
-            from nuitka.utils.FileOperations import getDirectoryRealPath
-
-            sys_prefix = getDirectoryRealPath(sys_prefix)
-
-        # Self-compiled Python version in source tree
-        if os.path.isdir(
-            os.path.join(os.path.dirname(os.path.realpath(sys.executable)), "PCbuild")
-        ):
-            sys_prefix = os.path.dirname(os.path.realpath(sys.executable))
-
-        _the_sys_prefix = sys_prefix
-
-    return _the_sys_prefix
 
 
 def getFutureModuleKeys():
@@ -598,51 +462,6 @@ def getImportlibSubPackages():
 def isDebugPython():
     """Is this a debug build of Python."""
     return hasattr(sys, "gettotalrefcount")
-
-
-def _getFloatDigitBoundaryValue():
-    if python_version < 0x270:
-        bits_per_digit = 15
-    elif python_version < 0x300:
-        bits_per_digit = sys.long_info.bits_per_digit
-    else:
-        bits_per_digit = sys.int_info.bits_per_digit
-
-    return (2**bits_per_digit) - 1
-
-
-_float_digit_boundary = _getFloatDigitBoundaryValue()
-
-
-def isPythonValidDigitValue(value):
-    """Does the given value fit into a float digit.
-
-    Note: Digits in long objects do not use 2-complement, but a boolean sign.
-    """
-
-    return -_float_digit_boundary <= value <= _float_digit_boundary
-
-
-sizeof_clong = ctypes.sizeof(ctypes.c_long)
-
-# TODO: We could be more aggressive here, there are issues with using full
-# values, in some contexts, but that can probably be sorted out.
-_max_signed_long = 2 ** (sizeof_clong * 7) - 1
-_min_signed_long = -(2 ** (sizeof_clong * 7))
-
-# Used by data composer to write Python long values.
-sizeof_clonglong = ctypes.sizeof(ctypes.c_longlong)
-
-_max_signed_longlong = 2 ** (sizeof_clonglong * 8 - 1) - 1
-_min_signed_longlong = -(2 ** (sizeof_clonglong * 8 - 1))
-
-
-def isPythonValidCLongValue(value):
-    return _min_signed_long <= value <= _max_signed_long
-
-
-def isPythonValidCLongLongValue(value):
-    return _min_signed_longlong <= value <= _max_signed_longlong
 
 
 def getInstalledPythonRegistryPaths(version):
@@ -684,11 +503,12 @@ def getTkInterVersion():
     """Get the tk-inter version or None if not installed."""
     try:
         if str is bytes:
-            return str(__import__("TkInter").TkVersion)
+            return str(__import__("Tkinter").TkVersion)
         else:
             return str(__import__("tkinter").TkVersion)
-    except ImportError:
-        # This should lead to no action taken ideally.
+    except (ImportError, AttributeError):
+        # A partially removed tkinter installation imports as an empty
+        # namespace package, so the version attribute is missing.
         return None
 
 
@@ -716,6 +536,31 @@ def isPythonWithGil():
     return python_version < 0x3D0 or sys.flags.gil
 
 
+def hasWorkingFreeGc():
+    if python_version < 0x370:
+        return False
+
+    # CPython 3.13.0 free-threaded builds corrupt object state when freezing,
+    # see gh-126312, fixed in 3.13.1. The free-threaded GC is used also when
+    # the GIL gets enabled at runtime.
+    if (3, 13, 0) <= python_version_full < (3, 13, 1):
+        import sysconfig
+
+        return not sysconfig.get_config_var("Py_GIL_DISABLED")
+
+    return True
+
+
+def freezeGc():
+    if hasWorkingFreeGc():
+        gc.freeze()
+
+
+def unfreezeGc():
+    if hasWorkingFreeGc():
+        gc.unfreeze()
+
+
 def getSitePackageCandidateNames():
     """Get the list of site package candidate names."""
     return ("site-packages", "dist-packages", "vendor-packages")
@@ -733,7 +578,7 @@ def isPythonIdentifier(name):
 
 
 def getRecommendedSupportedVersion():
-    return "3.14"
+    return "3.15"
 
 
 def getRecommendedWorkingVersion():
@@ -741,7 +586,7 @@ def getRecommendedWorkingVersion():
 
 
 def getRecommendedCommercialVersion():
-    return "3.12"
+    return "3.13"
 
 
 def displayRecommendedVersion(kind):

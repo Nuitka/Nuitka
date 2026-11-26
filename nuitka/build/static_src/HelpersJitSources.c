@@ -10,25 +10,22 @@
 
 static char const *uncompiled_sources_dict_attribute_name = "_uncompiled_function_sources_dict";
 
-void SET_UNCOMPILED_FUNCTION_SOURCE_DICT(PyObject *name, PyObject *source) {
+void SET_UNCOMPILED_FUNCTION_SOURCE_DICT(PyThreadState *tstate, PyObject *name, PyObject *source) {
     PyObject *uncompiled_function_sources_dict =
         PyObject_GetAttrString((PyObject *)builtin_module, uncompiled_sources_dict_attribute_name);
 
     if (uncompiled_function_sources_dict == NULL) {
-        PyThreadState *tstate = PyThreadState_GET();
-
-        DROP_ERROR_OCCURRED(tstate);
+        CLEAR_ERROR_OCCURRED(tstate);
 
         uncompiled_function_sources_dict = MAKE_DICT_EMPTY(tstate);
 
-        PyObject_SetAttrString((PyObject *)builtin_module, uncompiled_sources_dict_attribute_name,
-                               uncompiled_function_sources_dict);
+        NUITKA_MAY_BE_UNUSED int res = PyObject_SetAttrString(
+            (PyObject *)builtin_module, uncompiled_sources_dict_attribute_name, uncompiled_function_sources_dict);
+        assert(res != -1);
     }
 
-    bool res = DICT_SET_ITEM(uncompiled_function_sources_dict, name, source);
-    if (unlikely(res == false)) {
-        NUITKA_CANNOT_GET_HERE("Failed to update uncompiled function sources");
-    }
+    DICT_SET_ITEM_INFALLIBLE(tstate, uncompiled_function_sources_dict, name, source);
+    Py_DECREF(uncompiled_function_sources_dict);
 }
 
 #endif

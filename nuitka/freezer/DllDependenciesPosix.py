@@ -9,7 +9,7 @@ import sys
 from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.PythonFlavors import isAnacondaPython
 from nuitka.Tracing import inclusion_logger
-from nuitka.utils.Execution import executeProcess, withEnvironmentPathAdded
+from nuitka.utils.Execution import executeProcess, getEnvironmentWithPathAdded
 from nuitka.utils.SharedLibraries import getSharedLibraryRPATHs
 from nuitka.utils.Utils import (
     isAlpineLinux,
@@ -33,12 +33,73 @@ def _resolveOriginValue(rpath, origin):
     return rpath
 
 
-def detectBinaryPathDLLsPosix(dll_filename, package_name, original_dir):
-    # This is complex, as it also includes the caching mechanism
-    # pylint: disable=too-many-branches,too-many-locals
+def _runLddCommand(dll_filename, package_name, python_rpaths, original_dir):
+    """Run 'ldd' with the package specific library path and check for failures.
 
-    if ldd_result_cache.get(dll_filename):
-        return ldd_result_cache[dll_filename]
+    Args:
+        dll_filename: The DLL to inspect.
+        package_name: Name of the package the DLL belongs to.
+        python_rpaths: RPATHs of the Python executable.
+        original_dir: Directory of the original DLL file.
+
+    Returns:
+        Tuple of the process result and the filtered stderr output.
+    """
+    process_result = executeProcess(
+        command=("ldd", dll_filename),
+        env=getEnvironmentWithPathAdded(
+            "LD_LIBRARY_PATH",
+            *getLdLibraryPath(
+                package_name=package_name,
+                python_rpaths=python_rpaths,
+                original_dir=original_dir,
+            )
+        ),
+    )
+
+    # This warning is harmless, the DLL is still analyzed.
+    stderr = b"\n".join(
+        line
+        for line in process_result.stderr.splitlines()
+        if not line.startswith(
+            b"ldd: warning: you do not have execution permission for"
+        )
+    )
+
+    if process_result.exit_code != 0:
+        error_output = stderr or process_result.stdout
+
+        if str is not bytes:
+            error_output = error_output.decode("utf8", "replace")
+
+        return inclusion_logger.sysexit(
+            "Error, 'ldd' failed with exit code %d for '%s':\n%s"
+            % (process_result.exit_code, dll_filename, error_output)
+        )
+
+    return process_result, stderr
+
+
+def _getLddDirectDependencies(dll_filename, package_name, original_dir):
+    """Get the direct dependencies of a DLL, using cached 'ldd' results.
+
+    Args:
+        dll_filename: The DLL to inspect.
+        package_name: Name of the package the DLL belongs to.
+        original_dir: Directory of the original DLL file.
+
+    Returns:
+        OrderedSet of absolute dependency filenames, not including transitive
+        dependencies.
+    """
+    # Many details to check, pylint: disable=too-many-branches
+
+    # The 'ldd' result depends on the 'LD_LIBRARY_PATH' built from the package
+    # name and original directory, so both are part of the cache key.
+    cache_key = (dll_filename, package_name, original_dir)
+
+    if cache_key in ldd_result_cache:
+        return ldd_result_cache[cache_key]
 
     # Ask "ldd" about the libraries being used by the created binary, these
     # are the ones that interest us.
@@ -47,23 +108,23 @@ def detectBinaryPathDLLsPosix(dll_filename, package_name, original_dir):
     # loading the other DLLs too. This happens at least for Python installs
     # on Travis. pylint: disable=global-statement
     global _detected_python_rpaths
-    if _detected_python_rpaths is None and not isPosixWindows():
-        _detected_python_rpaths = getSharedLibraryRPATHs(
-            sys.executable,
-            elements=True,
-        )
-
-        if os.path.islink(sys.executable):
-            sys_executable = os.readlink(sys.executable)
+    if _detected_python_rpaths is None:
+        if isPosixWindows():
+            _detected_python_rpaths = []
         else:
-            sys_executable = sys.executable
+            _detected_python_rpaths = getSharedLibraryRPATHs(
+                sys.executable,
+                elements=True,
+            )
 
-        sys_executable_dir = os.path.dirname(sys_executable)
+            sys_executable_dir = os.path.dirname(os.path.realpath(sys.executable))
 
-        _detected_python_rpaths = [
-            _resolveOriginValue(rpath=detected_python_rpath, origin=sys_executable_dir)
-            for detected_python_rpath in _detected_python_rpaths
-        ]
+            _detected_python_rpaths = [
+                _resolveOriginValue(
+                    rpath=detected_python_rpath, origin=sys_executable_dir
+                )
+                for detected_python_rpath in _detected_python_rpaths
+            ]
 
     python_rpaths = _detected_python_rpaths[:]
 
@@ -71,26 +132,11 @@ def detectBinaryPathDLLsPosix(dll_filename, package_name, original_dir):
         link_target_path = os.path.dirname(os.path.realpath(dll_filename))
         python_rpaths.append(link_target_path)
 
-    # TODO: Actually would be better to pass it as env to the created process instead.
-    with withEnvironmentPathAdded(
-        "LD_LIBRARY_PATH",
-        *getLdLibraryPath(
-            package_name=package_name,
-            python_rpaths=python_rpaths,
-            original_dir=original_dir,
-        )
-    ):
-        # TODO: Check exit code, should never fail.
-        process_result = executeProcess(
-            command=("ldd", dll_filename),
-        )
-
-    stderr = b"\n".join(
-        line
-        for line in process_result.stderr.splitlines()
-        if not line.startswith(
-            b"ldd: warning: you do not have execution permission for"
-        )
+    process_result, stderr = _runLddCommand(
+        dll_filename=dll_filename,
+        package_name=package_name,
+        python_rpaths=python_rpaths,
+        original_dir=original_dir,
     )
 
     inclusion_logger.debug(
@@ -151,20 +197,57 @@ def detectBinaryPathDLLsPosix(dll_filename, package_name, original_dir):
 
         result_set.add(filename)
 
-    ldd_result_cache[dll_filename] = result_set
+    ldd_result_cache[cache_key] = result_set
+
+    return result_set
+
+
+def _detectBinaryPathDLLsPosixRecursive(
+    dll_filename, package_name, original_dir, recursive_dlls
+):
+    if dll_filename in recursive_dlls:
+        return OrderedSet()
+
+    recursive_dlls.add(dll_filename)
+
+    result_set = _getLddDirectDependencies(
+        dll_filename=dll_filename,
+        package_name=package_name,
+        original_dir=original_dir,
+    )
 
     complete_result = OrderedSet(result_set)
 
     for sub_dll_filename in result_set:
         complete_result.update(
-            detectBinaryPathDLLsPosix(
+            _detectBinaryPathDLLsPosixRecursive(
                 dll_filename=sub_dll_filename,
                 package_name=package_name,
                 original_dir=original_dir,
+                recursive_dlls=recursive_dlls,
             )
         )
 
     return complete_result
+
+
+def detectBinaryPathDLLsPosix(dll_filename, package_name, original_dir):
+    """Detect all DLLs used by a DLL, including transitive dependencies.
+
+    Args:
+        dll_filename: The DLL to inspect.
+        package_name: Name of the package the DLL belongs to.
+        original_dir: Directory of the original DLL file.
+
+    Returns:
+        OrderedSet of absolute dependency filenames.
+    """
+    return _detectBinaryPathDLLsPosixRecursive(
+        dll_filename=dll_filename,
+        package_name=package_name,
+        original_dir=original_dir,
+        recursive_dlls=OrderedSet(),
+    )
 
 
 _linux_dll_ignore_list = [

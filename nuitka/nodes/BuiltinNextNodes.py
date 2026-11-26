@@ -1,10 +1,10 @@
 #     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-"""Node for the calls to the 'next' built-in and unpacking special next.
+"""Nodes for calls to the 'next' built-in and unpacking special next.
 
-The unpacking next has only special that it raises a different exception
-text, explaining things about its context.
+The unpacking variant differs only in raising a context-specific unpack
+exception message.
 """
 
 from .ChildrenHavingMixins import ChildrenHavingIteratorDefaultMixin
@@ -89,11 +89,7 @@ class ExpressionBuiltinNext2(ChildrenHavingIteratorDefaultMixin, ExpressionBase)
     def computeExpression(self, trace_collection):
         # TODO: The "iterator" should be investigated here, if it is iterable,
         # or if the default is raising.
-
-        # Any code could be run, note that.
         trace_collection.onControlFlowEscape(self)
-
-        # Any exception may be raised.
         trace_collection.onExceptionRaiseExit(BaseException)
 
         return self, None, None

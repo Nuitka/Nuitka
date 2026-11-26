@@ -8,7 +8,6 @@
 #include "nuitka/prelude.h"
 #endif
 
-/* C helper for hard import of module "__future__" import. */
 PyObject *IMPORT_HARD___FUTURE__(void) {
     static PyObject *module_import_hard___future__ = NULL;
 
@@ -26,7 +25,6 @@ PyObject *IMPORT_HARD___FUTURE__(void) {
     return module_import_hard___future__;
 }
 
-/* C helper for hard import of module "_frozen_importlib" import. */
 #if PYTHON_VERSION >= 0x300
 PyObject *IMPORT_HARD__FROZEN_IMPORTLIB(void) {
     static PyObject *module_import_hard__frozen_importlib = NULL;
@@ -46,7 +44,6 @@ PyObject *IMPORT_HARD__FROZEN_IMPORTLIB(void) {
 }
 #endif
 
-/* C helper for hard import of module "_frozen_importlib_external" import. */
 #if PYTHON_VERSION >= 0x350
 PyObject *IMPORT_HARD__FROZEN_IMPORTLIB_EXTERNAL(void) {
     static PyObject *module_import_hard__frozen_importlib_external = NULL;
@@ -66,7 +63,6 @@ PyObject *IMPORT_HARD__FROZEN_IMPORTLIB_EXTERNAL(void) {
 }
 #endif
 
-/* C helper for hard import of module "_io" import. */
 PyObject *IMPORT_HARD__IO(void) {
     static PyObject *module_import_hard__io = NULL;
 
@@ -84,7 +80,6 @@ PyObject *IMPORT_HARD__IO(void) {
     return module_import_hard__io;
 }
 
-/* C helper for hard import of module "builtins" import. */
 PyObject *IMPORT_HARD_BUILTINS(void) {
     static PyObject *module_import_hard_builtins = NULL;
 
@@ -102,7 +97,6 @@ PyObject *IMPORT_HARD_BUILTINS(void) {
     return module_import_hard_builtins;
 }
 
-/* C helper for hard import of module "ctypes" import. */
 PyObject *IMPORT_HARD_CTYPES(void) {
     static PyObject *module_import_hard_ctypes = NULL;
 
@@ -120,7 +114,6 @@ PyObject *IMPORT_HARD_CTYPES(void) {
     return module_import_hard_ctypes;
 }
 
-/* C helper for hard import of module "ctypes._aix" import. */
 PyObject *IMPORT_HARD_CTYPES___AIX(void) {
     static PyObject *module_import_hard_ctypes___aix = NULL;
 
@@ -138,7 +131,6 @@ PyObject *IMPORT_HARD_CTYPES___AIX(void) {
     return module_import_hard_ctypes___aix;
 }
 
-/* C helper for hard import of module "ctypes._endian" import. */
 PyObject *IMPORT_HARD_CTYPES___ENDIAN(void) {
     static PyObject *module_import_hard_ctypes___endian = NULL;
 
@@ -156,7 +148,6 @@ PyObject *IMPORT_HARD_CTYPES___ENDIAN(void) {
     return module_import_hard_ctypes___endian;
 }
 
-/* C helper for hard import of module "ctypes.macholib" import. */
 PyObject *IMPORT_HARD_CTYPES__MACHOLIB(void) {
     static PyObject *module_import_hard_ctypes__macholib = NULL;
 
@@ -174,7 +165,6 @@ PyObject *IMPORT_HARD_CTYPES__MACHOLIB(void) {
     return module_import_hard_ctypes__macholib;
 }
 
-/* C helper for hard import of module "ctypes.util" import. */
 PyObject *IMPORT_HARD_CTYPES__UTIL(void) {
     static PyObject *module_import_hard_ctypes__util = NULL;
 
@@ -192,7 +182,6 @@ PyObject *IMPORT_HARD_CTYPES__UTIL(void) {
     return module_import_hard_ctypes__util;
 }
 
-/* C helper for hard import of module "ctypes.wintypes" import. */
 #if defined(_WIN32)
 PyObject *IMPORT_HARD_CTYPES__WINTYPES(void) {
     static PyObject *module_import_hard_ctypes__wintypes = NULL;
@@ -212,7 +201,6 @@ PyObject *IMPORT_HARD_CTYPES__WINTYPES(void) {
 }
 #endif
 
-/* C helper for hard import of module "functools" import. */
 PyObject *IMPORT_HARD_FUNCTOOLS(void) {
     static PyObject *module_import_hard_functools = NULL;
 
@@ -230,7 +218,25 @@ PyObject *IMPORT_HARD_FUNCTOOLS(void) {
     return module_import_hard_functools;
 }
 
-/* C helper for hard import of module "importlib" import. */
+#if PYTHON_VERSION < 0x300
+PyObject *IMPORT_HARD_IMP(void) {
+    static PyObject *module_import_hard_imp = NULL;
+
+    if (module_import_hard_imp == NULL) {
+        module_import_hard_imp = PyImport_ImportModule("imp");
+
+        if (unlikely(module_import_hard_imp == NULL)) {
+#ifndef __NUITKA_NO_ASSERT__
+            PyErr_PrintEx(0);
+#endif
+            NUITKA_ERROR_EXIT("Unexpected failure of hard import of 'imp'");
+        }
+    }
+
+    return module_import_hard_imp;
+}
+#endif
+
 PyObject *IMPORT_HARD_IMPORTLIB(void) {
     static PyObject *module_import_hard_importlib = NULL;
 
@@ -248,7 +254,6 @@ PyObject *IMPORT_HARD_IMPORTLIB(void) {
     return module_import_hard_importlib;
 }
 
-/* C helper for hard import of module "importlib.metadata" import. */
 #if PYTHON_VERSION >= 0x380
 PyObject *IMPORT_HARD_IMPORTLIB__METADATA(void) {
     static PyObject *module_import_hard_importlib__metadata = NULL;
@@ -268,7 +273,6 @@ PyObject *IMPORT_HARD_IMPORTLIB__METADATA(void) {
 }
 #endif
 
-/* C helper for hard import of module "importlib.resources" import. */
 #if PYTHON_VERSION >= 0x370
 PyObject *IMPORT_HARD_IMPORTLIB__RESOURCES(void) {
     static PyObject *module_import_hard_importlib__resources = NULL;
@@ -288,7 +292,6 @@ PyObject *IMPORT_HARD_IMPORTLIB__RESOURCES(void) {
 }
 #endif
 
-/* C helper for hard import of module "importlib_metadata" import. */
 PyObject *IMPORT_HARD_IMPORTLIB_METADATA(void) {
     static PyObject *module_import_hard_importlib_metadata = NULL;
 
@@ -303,7 +306,6 @@ PyObject *IMPORT_HARD_IMPORTLIB_METADATA(void) {
     return module_import_hard_importlib_metadata;
 }
 
-/* C helper for hard import of module "importlib_resources" import. */
 PyObject *IMPORT_HARD_IMPORTLIB_RESOURCES(void) {
     static PyObject *module_import_hard_importlib_resources = NULL;
 
@@ -318,7 +320,6 @@ PyObject *IMPORT_HARD_IMPORTLIB_RESOURCES(void) {
     return module_import_hard_importlib_resources;
 }
 
-/* C helper for hard import of module "io" import. */
 PyObject *IMPORT_HARD_IO(void) {
     static PyObject *module_import_hard_io = NULL;
 
@@ -336,7 +337,6 @@ PyObject *IMPORT_HARD_IO(void) {
     return module_import_hard_io;
 }
 
-/* C helper for hard import of module "ntpath" import. */
 PyObject *IMPORT_HARD_NTPATH(void) {
     static PyObject *module_import_hard_ntpath = NULL;
 
@@ -354,7 +354,6 @@ PyObject *IMPORT_HARD_NTPATH(void) {
     return module_import_hard_ntpath;
 }
 
-/* C helper for hard import of module "os" import. */
 PyObject *IMPORT_HARD_OS(void) {
     static PyObject *module_import_hard_os = NULL;
 
@@ -372,7 +371,6 @@ PyObject *IMPORT_HARD_OS(void) {
     return module_import_hard_os;
 }
 
-/* C helper for hard import of module "pathlib" import. */
 #if PYTHON_VERSION >= 0x3d0
 PyObject *IMPORT_HARD_PATHLIB(void) {
     static PyObject *module_import_hard_pathlib = NULL;
@@ -392,7 +390,6 @@ PyObject *IMPORT_HARD_PATHLIB(void) {
 }
 #endif
 
-/* C helper for hard import of module "pathlib._abc" import. */
 #if PYTHON_VERSION >= 0x3d0
 PyObject *IMPORT_HARD_PATHLIB___ABC(void) {
     static PyObject *module_import_hard_pathlib___abc = NULL;
@@ -412,7 +409,6 @@ PyObject *IMPORT_HARD_PATHLIB___ABC(void) {
 }
 #endif
 
-/* C helper for hard import of module "pathlib._local" import. */
 #if PYTHON_VERSION >= 0x3d0
 PyObject *IMPORT_HARD_PATHLIB___LOCAL(void) {
     static PyObject *module_import_hard_pathlib___local = NULL;
@@ -432,7 +428,6 @@ PyObject *IMPORT_HARD_PATHLIB___LOCAL(void) {
 }
 #endif
 
-/* C helper for hard import of module "pkg_resources" import. */
 PyObject *IMPORT_HARD_PKG_RESOURCES(void) {
     static PyObject *module_import_hard_pkg_resources = NULL;
 
@@ -447,7 +442,6 @@ PyObject *IMPORT_HARD_PKG_RESOURCES(void) {
     return module_import_hard_pkg_resources;
 }
 
-/* C helper for hard import of module "pkgutil" import. */
 PyObject *IMPORT_HARD_PKGUTIL(void) {
     static PyObject *module_import_hard_pkgutil = NULL;
 
@@ -465,7 +459,6 @@ PyObject *IMPORT_HARD_PKGUTIL(void) {
     return module_import_hard_pkgutil;
 }
 
-/* C helper for hard import of module "posixpath" import. */
 PyObject *IMPORT_HARD_POSIXPATH(void) {
     static PyObject *module_import_hard_posixpath = NULL;
 
@@ -483,7 +476,6 @@ PyObject *IMPORT_HARD_POSIXPATH(void) {
     return module_import_hard_posixpath;
 }
 
-/* C helper for hard import of module "site" import. */
 PyObject *IMPORT_HARD_SITE(void) {
     static PyObject *module_import_hard_site = NULL;
 
@@ -498,7 +490,6 @@ PyObject *IMPORT_HARD_SITE(void) {
     return module_import_hard_site;
 }
 
-/* C helper for hard import of module "sys" import. */
 PyObject *IMPORT_HARD_SYS(void) {
     static PyObject *module_import_hard_sys = NULL;
 
@@ -516,7 +507,6 @@ PyObject *IMPORT_HARD_SYS(void) {
     return module_import_hard_sys;
 }
 
-/* C helper for hard import of module "sysconfig" import. */
 PyObject *IMPORT_HARD_SYSCONFIG(void) {
     static PyObject *module_import_hard_sysconfig = NULL;
 
@@ -534,7 +524,6 @@ PyObject *IMPORT_HARD_SYSCONFIG(void) {
     return module_import_hard_sysconfig;
 }
 
-/* C helper for hard import of module "tensorflow" import. */
 PyObject *IMPORT_HARD_TENSORFLOW(void) {
     static PyObject *module_import_hard_tensorflow = NULL;
 
@@ -549,7 +538,6 @@ PyObject *IMPORT_HARD_TENSORFLOW(void) {
     return module_import_hard_tensorflow;
 }
 
-/* C helper for hard import of module "types" import. */
 PyObject *IMPORT_HARD_TYPES(void) {
     static PyObject *module_import_hard_types = NULL;
 
@@ -567,7 +555,6 @@ PyObject *IMPORT_HARD_TYPES(void) {
     return module_import_hard_types;
 }
 
-/* C helper for hard import of module "typing" import. */
 #if PYTHON_VERSION >= 0x350
 PyObject *IMPORT_HARD_TYPING(void) {
     static PyObject *module_import_hard_typing = NULL;
@@ -587,7 +574,6 @@ PyObject *IMPORT_HARD_TYPING(void) {
 }
 #endif
 
-/* C helper for hard import of module "unittest" import. */
 PyObject *IMPORT_HARD_UNITTEST(void) {
     static PyObject *module_import_hard_unittest = NULL;
 
@@ -605,7 +591,6 @@ PyObject *IMPORT_HARD_UNITTEST(void) {
     return module_import_hard_unittest;
 }
 
-/* C helper for hard import of module "unittest.mock" import. */
 #if PYTHON_VERSION >= 0x300
 PyObject *IMPORT_HARD_UNITTEST__MOCK(void) {
     static PyObject *module_import_hard_unittest__mock = NULL;

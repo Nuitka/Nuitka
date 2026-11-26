@@ -4,8 +4,6 @@
 #ifndef __NUITKA_EXCEPTION_GROUPS_H__
 #define __NUITKA_EXCEPTION_GROUPS_H__
 
-// Exception group helpers for generated code and compiled code helpers.
-
 /* This file is included from another C file, help IDEs to still parse it on its own. */
 #ifdef __IDE_ONLY__
 #include "nuitka/cpython_api_compat.h"
@@ -15,6 +13,7 @@
 #include "nuitka/calling.h"
 #include "nuitka/defines.h"
 #include "nuitka/exceptions.h"
+#include "nuitka/helper/sequences.h"
 #include "nuitka/helper/tuples.h"
 #endif
 
@@ -51,29 +50,25 @@ NUITKA_MAY_BE_UNUSED static int CHECK_EXCEPTION_STAR_VALID(PyThreadState *tstate
         return -1;
     }
 
-    int is_subclass = 0;
+    bool is_subclass = false;
 
     if (PyTuple_Check(right)) {
         Py_ssize_t length = PyTuple_GET_SIZE(right);
 
         for (Py_ssize_t i = 0; i < length; i++) {
             PyObject *exc = PyTuple_GET_ITEM(right, i);
-            is_subclass = PyObject_IsSubclass(exc, PyExc_BaseExceptionGroup);
+            assert(PyType_Check(exc));
 
-            if (unlikely(is_subclass < 0)) {
-                return -1;
-            }
+            is_subclass = Nuitka_Type_IsSubtype((PyTypeObject *)exc, (PyTypeObject *)PyExc_BaseExceptionGroup);
 
             if (unlikely(is_subclass)) {
                 break;
             }
         }
     } else {
-        is_subclass = PyObject_IsSubclass(right, PyExc_BaseExceptionGroup);
+        assert(PyType_Check(right));
 
-        if (unlikely(is_subclass < 0)) {
-            return -1;
-        }
+        is_subclass = Nuitka_Type_IsSubtype((PyTypeObject *)right, (PyTypeObject *)PyExc_BaseExceptionGroup);
     }
 
     if (unlikely(is_subclass)) {
@@ -85,7 +80,6 @@ NUITKA_MAY_BE_UNUSED static int CHECK_EXCEPTION_STAR_VALID(PyThreadState *tstate
     return 0;
 }
 
-// This is copied directly from CPython
 NUITKA_MAY_BE_UNUSED static inline PyObject *CREATE_EXCEPTION_GROUP(PyThreadState *tstate, PyObject *excs) {
     CHECK_OBJECT(excs);
     PyObject *args[2] = {const_str_empty, excs};
@@ -93,7 +87,6 @@ NUITKA_MAY_BE_UNUSED static inline PyObject *CREATE_EXCEPTION_GROUP(PyThreadStat
     return CALL_FUNCTION_WITH_ARGS2(tstate, PyExc_BaseExceptionGroup, args);
 }
 
-// This is copied directly from CPython
 NUITKA_MAY_BE_UNUSED static inline int EXCEPTION_GROUP_MATCH_BOOL(PyThreadState *tstate, PyObject *exc_value,
                                                                   PyObject *match_type, PyObject **match,
                                                                   PyObject **rest) {
@@ -105,7 +98,7 @@ NUITKA_MAY_BE_UNUSED static inline int EXCEPTION_GROUP_MATCH_BOOL(PyThreadState 
         return -1;
     }
 
-    if (Py_IsNone(exc_value)) {
+    if (exc_value == Py_None) {
         Py_INCREF_IMMORTAL(Py_None);
         *match = Py_None;
 
@@ -122,13 +115,11 @@ NUITKA_MAY_BE_UNUSED static inline int EXCEPTION_GROUP_MATCH_BOOL(PyThreadState 
     }
 
     if (is_match) {
-        /* Full match of exc itself */
         bool is_eg = _PyBaseExceptionGroup_Check(exc_value);
 
         if (is_eg) {
             *match = Py_NewRef(exc_value);
         } else {
-            /* naked exception, we need to wrap it */
             PyObject *excs = MAKE_TUPLE1(tstate, exc_value);
             CHECK_OBJECT(excs);
 
@@ -165,9 +156,6 @@ NUITKA_MAY_BE_UNUSED static inline int EXCEPTION_GROUP_MATCH_BOOL(PyThreadState 
         return 0;
     }
 
-    /* exc_value does not match match_type.
-     * Check for partial match if it's an exception group.
-     */
     if (_PyBaseExceptionGroup_Check(exc_value)) {
         PyObject *pair = CALL_METHOD_WITH_SINGLE_ARG(tstate, exc_value, const_str_plain_split, match_type);
         if (unlikely(pair == NULL)) {
@@ -195,7 +183,6 @@ NUITKA_MAY_BE_UNUSED static inline int EXCEPTION_GROUP_MATCH_BOOL(PyThreadState 
         return 0;
     }
 
-    /* no match */
     Py_INCREF_IMMORTAL(Py_None);
     *match = Py_None;
     *rest = Py_NewRef(exc_value);
@@ -297,11 +284,11 @@ static int _makeExceptionGroupSubset(PyThreadState *tstate, PyObject *orig, PyOb
     PyObject *notes = LOOKUP_ATTRIBUTE(tstate, orig, const_str_plain___notes__);
 
     if (notes == NULL) {
-        if (unlikely(!_CHECK_AND_CLEAR_EXCEPTION_OCCURRED(tstate, PyExc_AttributeError))) {
+        if (unlikely(!CHECK_AND_CLEAR_ATTRIBUTE_ERROR_OCCURRED(tstate))) {
             Py_DECREF(eg);
             return -1;
         }
-    } else if (PySequence_Check(notes)) {
+    } else if (Nuitka_PySequence_Check(notes)) {
         PyObject *notes_copy = PySequence_List(notes);
         Py_DECREF(notes);
 
@@ -426,14 +413,17 @@ static PyObject *_makeExceptionGroupProjection(PyThreadState *tstate, PyObject *
     return result;
 }
 
-// Decide if an exception is a re-raise of (a part of) the original exception
-// group, i.e. all of its leaf exceptions are contained in it.
-//
-// TODO: CPython decides this by comparing the exception metadata, which is
-// not maintained yet for exceptions we raise, so we use the contained leaf
-// exceptions instead, which gets the same results for all but constructed
-// cases, and should be replaced once that metadata is available.
-static int _isDerivedException(PyObject *exc, PyObject *leaf_ids) {
+// This mirrors CPython, it determines if an exception is a re-raise in an "except*" construct.
+static bool _isSameExceptionMetadata(PyObject *exc1, PyObject *exc2) {
+    PyBaseExceptionObject *e1 = _Nuitka_PyBaseExceptionObject_cast(exc1);
+    PyBaseExceptionObject *e2 = _Nuitka_PyBaseExceptionObject_cast(exc2);
+
+    return e1->notes == e2->notes && e1->traceback == e2->traceback && e1->cause == e2->cause &&
+           e1->context == e2->context;
+}
+
+// Decide if an exception contains only leaves of the original exception group.
+static int _isDerivedExceptionLeaves(PyObject *exc, PyObject *leaf_ids) {
     CHECK_OBJECT(exc);
     CHECK_OBJECT(leaf_ids);
 
@@ -458,7 +448,7 @@ static int _isDerivedException(PyObject *exc, PyObject *leaf_ids) {
     }
 
     for (Py_ssize_t i = 0; i < num_excs; i++) {
-        int res = _isDerivedException(PyTuple_GET_ITEM(eg->excs, i), leaf_ids);
+        int res = _isDerivedExceptionLeaves(PyTuple_GET_ITEM(eg->excs, i), leaf_ids);
 
         if (res != 1) {
             return res;
@@ -466,6 +456,22 @@ static int _isDerivedException(PyObject *exc, PyObject *leaf_ids) {
     }
 
     return 1;
+}
+
+// Decide if an exception is a re-raise of (a part of) the original exception
+// group. Like CPython, this uses the exception metadata to distinguish actual
+// re-raises from exceptions that merely reuse the same leaves, e.g. a newly
+// constructed exception group.
+static int _isDerivedException(PyObject *exc, PyObject *orig, PyObject *leaf_ids) {
+    CHECK_OBJECT(exc);
+    CHECK_OBJECT(orig);
+    CHECK_OBJECT(leaf_ids);
+
+    if (!_isSameExceptionMetadata(exc, orig)) {
+        return 0;
+    }
+
+    return _isDerivedExceptionLeaves(exc, leaf_ids);
 }
 
 // Calculate the exception to be raised at the end of an "except*" construct.
@@ -492,7 +498,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *EXCEPTION_GROUP_PREPARE_RERAISE(PyThreadSt
         for (Py_ssize_t i = 0; i < numexcs; i++) {
             PyObject *element = PyList_GET_ITEM(excs, i);
 
-            if (!Py_IsNone(element)) {
+            if (element != Py_None) {
                 return Py_NewRef(element);
             }
         }
@@ -532,16 +538,14 @@ NUITKA_MAY_BE_UNUSED static PyObject *EXCEPTION_GROUP_PREPARE_RERAISE(PyThreadSt
     PyObject *result = NULL;
     PyObject *reraised_eg = NULL;
 
-    // Split into raised and reraised, by checking for being derived from the
-    // original exception group.
     for (Py_ssize_t i = 0; i < numexcs; i++) {
         PyObject *element = PyList_GET_ITEM(excs, i);
 
-        if (Py_IsNone(element)) {
+        if (element == Py_None) {
             continue;
         }
 
-        int is_reraise = _isDerivedException(element, orig_leaf_ids);
+        int is_reraise = _isDerivedException(element, orig, orig_leaf_ids);
 
         if (unlikely(is_reraise < 0)) {
             Py_DECREF(orig_leaf_ids);
@@ -568,7 +572,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *EXCEPTION_GROUP_PREPARE_RERAISE(PyThreadSt
         result = reraised_eg;
         reraised_eg = NULL;
     } else {
-        if (!Py_IsNone(reraised_eg)) {
+        if (reraised_eg != Py_None) {
             if (unlikely(PyList_Append(raised_list, reraised_eg) < 0)) {
                 goto done;
             }

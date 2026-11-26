@@ -5,7 +5,7 @@ requires = ["setuptools>=42", "wheel"]
 
 [tool.pyright]
 typeCheckingMode = "basic"
-pythonVersion = "3.12"
+pythonVersion = "3.15"
 
 reportAttributeAccessIssue = "none"
 reportMissingModuleSource = "none"
@@ -31,20 +31,45 @@ exclude = [
     "**/__pycache__",
     "**/.*",
     "**/inline_copy/**",
-    "tests/CPython*",
+    "tests",
     "*Mini*",
+]
+
+# Suppress diagnostics for vendored code and tests even when they are analyzed,
+# e.g. because an editor opens one of their files.
+ignore = [
+    "**/inline_copy/**",
+    "tests",
 ]
 
 [tool.ruff]
 builtins = ["__compiled__", "cmp", "intern", "unicode", "long"]
-lint.ignore = ["BLE001", "C402", "C405", "E402", "E731", "F401", "I001", "N999", "PLR1711", "RET501", "S110", "SIM103", "SIM117", "UP004", "UP010", "UP020", "UP024", "UP028", "UP031", "UP036", "RUF023"]
+lint.ignore = ["BLE001", "C401", "C402", "C405", "E402", "E731", "F401", "F632", "FLY002", "FURB188", "I001", "N999", "PLR1711", "RET501", "S102", "S110", "SIM103", "SIM117", "UP004", "UP010", "UP020", "UP024", "UP028", "UP031", "UP035", "UP036", "RUF012", "RUF023"]
+lint.extend-select = [
+    "B020",
+    "C400",
+    "C414",
+    "FURB132",
+    "FURB167",
+    "PERF102",
+    "PIE810",
+    "PLC0206",
+    "PLR2044",
+    "PYI006",
+    "RUF015",
+    "SIM113",
+    "SIM114",
+    "SIM118",
+    "SIM905",
+    "UP018",
+]
 force-exclude = true
 exclude = [
     "**/node_modules",
     "**/__pycache__",
     "**/.*",
     "**/inline_copy/**",
-    "tests/CPython*",
+    "tests",
     "*Mini*",
 ]
 

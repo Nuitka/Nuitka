@@ -11,7 +11,23 @@
 #include "nuitka/exceptions.h"
 #endif
 
+#include "nuitka/helper/calling_generated.h"
+
 extern Py_ssize_t Nuitka_PyMapping_Size(PyObject *mapping);
+
+NUITKA_MAY_BE_UNUSED static PyObject *Nuitka_Mapping_Keys(PyThreadState *tstate, PyObject *mapping) {
+    CHECK_OBJECT(mapping);
+
+#if PYTHON_VERSION < 0x300
+    // The "PyMapping_Keys" macro passes a string literal to a non-const argument, which the C++
+    // fallback compilation for old compilers warns about.
+    return CALL_METHOD_NO_ARGS(tstate, mapping, const_str_plain_keys);
+#else
+    // TODO: Make this not a Python C-API call, emulating the list conversion that
+    // "PyMapping_Keys" does for non-exact dictionaries.
+    return PyMapping_Keys(mapping);
+#endif
+}
 
 NUITKA_MAY_BE_UNUSED static int MAPPING_HAS_ITEM(PyThreadState *tstate, PyObject *mapping, PyObject *key) {
     PyObject *result = PyObject_GetItem(mapping, key);

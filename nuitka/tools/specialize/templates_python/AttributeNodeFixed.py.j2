@@ -25,6 +25,7 @@
 {% set str_operation_variation = attribute_shape_variations.get((attribute_name, "tshape_str")) %}
 {% set str_operation_node_arg_mapping = attribute_shape_node_arg_mapping.get((attribute_name, "tshape_str")) %}
 {% set str_operation_empty = attribute_shape_empty.get((attribute_name, "tshape_str"), "None") %}
+{% set str_operation_spec_versions = attribute_shape_spec_versions.get((attribute_name, "tshape_str")) %}
 {% else %}
 {% set str_shape = 0 %}
 {% endif %}
@@ -65,6 +66,30 @@
 {% else %}
 {% set type_shape = 0 %}
 {% endif %}
+
+
+{% macro make_str_operation_wrapper(function_name, args, arg_tests, variation, node_arg_mapping, indexed) %}
+        def {{function_name}}({{formatArgs(args, starting=True, finishing=False)}} source_ref):
+{% if variation and variation|length > 1 %}
+{% for count in reversed(variation[1:]) %}
+{% set node_suffix = str(count+1) if indexed else "" %}
+            {{"if" if count == variation[-1] else "elif"}} {{args[count-1]}} {{arg_tests[count-1]}}:
+                return {{translateNodeClassName("ExpressionStrOperation" + attribute_name_class + node_suffix)}}(
+                    str_arg=str_arg {{formatCallArgs(node_arg_mapping, args[:count], starting=False)}}, source_ref=source_ref
+                )
+{% endfor %}
+{% set node_suffix = str(variation[0]+1) if indexed else "" %}
+            else:
+                return {{translateNodeClassName("ExpressionStrOperation" + attribute_name_class + node_suffix)}}(
+                    str_arg=str_arg {{formatCallArgs(node_arg_mapping, args[:variation[0]], starting=False)}}, source_ref=source_ref
+                )
+{% else %}
+{% set node_suffix = str(args|length + 1) if indexed else "" %}
+            return {{translateNodeClassName("ExpressionStrOperation" + attribute_name_class + node_suffix)}}(
+                str_arg=str_arg {{formatCallArgs(node_arg_mapping, args, starting=False)}}, source_ref=source_ref
+            )
+{% endif %}
+{% endmacro %}
 
 
 {% set attribute_name_class = attribute_name.replace("_", "").title() %}
@@ -207,6 +232,18 @@ from .DictionaryNodes import {{translateNodeClassName("ExpressionDictOperation" 
 from .DictionaryNodes import ExpressionDictOperation{{attribute_name_class}}Ref
 {% endif %}
 
+{% if attribute_name == "get" %}
+from .SysModulesNodes import (
+    makeExpressionSysModulesGet2,
+    makeExpressionSysModulesGet3,
+)
+{% elif attribute_name == "pop" %}
+from .SysModulesNodes import (
+    makeExpressionSysModulesPop2,
+    makeExpressionSysModulesPop3,
+)
+{% endif %}
+
 class ExpressionAttributeLookupDict{{attribute_name_class}}(SideEffectsFromChildrenMixin, ExpressionAttributeLookupFixed{{attribute_name_class}}):
     """Attribute '{{attribute_name}}' lookup on a dict value.
 
@@ -216,9 +253,7 @@ class ExpressionAttributeLookupDict{{attribute_name_class}}(SideEffectsFromChild
     kind = "EXPRESSION_ATTRIBUTE_LOOKUP_DICT_{{attribute_name_class.upper()}}"
     attribute_name = "{{attribute_name}}"
 
-    # There is nothing to compute for it as a value.
-    # TODO: Enable this once we can also say removal of knowable for an argument.
-    # auto_compute_handling = "final,no_raise"
+    {# TODO: Enable auto_compute_handling = "final,no_raise" once we can also express knowledge removal for an argument. #}
 
     def computeExpression(self, trace_collection):
 {% if attribute_name not in (
@@ -226,11 +261,8 @@ class ExpressionAttributeLookupDict{{attribute_name_class}}(SideEffectsFromChild
     "iterkeys", "itervalues", "iteritems",
     "viewkeys", "viewvalues", "viewitems",
     "get", "has_key", "fromkeys") %}
-        # Might be used to modify the dict.
         trace_collection.removeKnowledge(self.subnode_expression)
 
-{% else %}
-        # Cannot be used to modify the dict.
 {% endif %}
         return self, None, None
 
@@ -238,6 +270,37 @@ class ExpressionAttributeLookupDict{{attribute_name_class}}(SideEffectsFromChild
     @staticmethod
     def _computeExpressionCall(call_node, dict_arg, trace_collection):
         def wrapExpressionDictOperation{{attribute_name_class}}({{formatArgs(dict_operation_args, starting=True, finishing=False)}} source_ref):
+{% if attribute_name == "get" %}
+            if dict_arg.isExpressionSysModulesRef():
+                if default is not None:
+                    return makeExpressionSysModulesGet3(
+                        dict_arg=dict_arg,
+                        key=key,
+                        default=default,
+                        source_ref=source_ref,
+                    )
+                else:
+                    return makeExpressionSysModulesGet2(
+                        dict_arg=dict_arg,
+                        key=key,
+                        source_ref=source_ref,
+                    )
+{% elif attribute_name == "pop" %}
+            if dict_arg.isExpressionSysModulesRef():
+                if default is not None:
+                    return makeExpressionSysModulesPop3(
+                        dict_arg=dict_arg,
+                        key=key,
+                        default=default,
+                        source_ref=source_ref,
+                    )
+                else:
+                    return makeExpressionSysModulesPop2(
+                        dict_arg=dict_arg,
+                        key=key,
+                        source_ref=source_ref,
+                    )
+{% endif %}
 {% if python3_operation_name %}
             if str is bytes:
                 return ExpressionDictOperation{{attribute_name_class}}(
@@ -271,11 +334,7 @@ class ExpressionAttributeLookupDict{{attribute_name_class}}(SideEffectsFromChild
 {% endif %}
 {% endif %}
 
-        # Anything may happen. On next pass, if replaced, we might be better
-        # but not now.
         trace_collection.onExceptionRaiseExit(BaseException)
-
-        # Make sure we wait with knowing if the content is safe to use until its time.
         call_node.onContentEscapes(trace_collection)
 
         result = extractBuiltinArgs(
@@ -306,11 +365,10 @@ class ExpressionAttributeLookupDict{{attribute_name_class}}(SideEffectsFromChild
     def computeExpressionCallViaVariable(
         self, call_node, variable_ref_node, call_args, call_kw, trace_collection
     ):
+        {# TODO: Would be nice to have the real source reference here, but it feels a bit expensive. #}
         dict_node = makeExpressionAttributeLookup(
             expression=variable_ref_node,
             attribute_name="__self__",
-            # TODO: Would be nice to have the real source reference here, but it feels
-            # a bit expensive.
             source_ref=variable_ref_node.source_ref,
         )
 
@@ -319,7 +377,7 @@ class ExpressionAttributeLookupDict{{attribute_name_class}}(SideEffectsFromChild
     def mayRaiseException(self, exception_type):
         return self.subnode_expression.mayRaiseException(exception_type)
 {% else %}
-    # No computeExpressionCall as dict operation ExpressionDictOperation{{attribute_name_class}} is not yet implemented
+    {# No computeExpressionCall as dict operation ExpressionDictOperation{{attribute_name_class}} is not yet implemented #}
 {% endif %}
 
 attribute_typed_classes.add(ExpressionAttributeLookupDict{{attribute_name_class}})
@@ -329,7 +387,15 @@ attribute_typed_classes.add(ExpressionAttributeLookupDict{{attribute_name_class}
 {% if str_shape %}
 
 {% if str_operation_version_presence %}
+{% if str_operation_spec_versions %}
+from nuitka.specs.BuiltinStrOperationSpecs import (
+{% for spec_version in str_operation_spec_versions %}
+    {{spec_version.spec_name}},
+{% endfor %}
+)
+{% else %}
 from nuitka.specs.BuiltinStrOperationSpecs import str_{{attribute_name}}_spec
+{% endif %}
 {% if str_operation_variation %}
 {% for count in reversed(str_operation_variation) %}
 from .StrNodes import {{translateNodeClassName("ExpressionStrOperation" + attribute_name_class + str(count+1))}}
@@ -348,9 +414,7 @@ class ExpressionAttributeLookupStr{{attribute_name_class}}(SideEffectsFromChildr
     kind = "EXPRESSION_ATTRIBUTE_LOOKUP_STR_{{attribute_name_class.upper()}}"
     attribute_name = "{{attribute_name}}"
 
-    # There is nothing to compute for it as a value.
-    # TODO: Enable this
-    # auto_compute_handling = "final,no_raise"
+    {# TODO: Enable auto_compute_handling = "final,no_raise" #}
 
     def computeExpression(self, trace_collection):
         return self, None, None
@@ -358,39 +422,39 @@ class ExpressionAttributeLookupStr{{attribute_name_class}}(SideEffectsFromChildr
 {% if str_operation_version_presence %}
     @staticmethod
     def _computeExpressionCall(call_node, str_arg, trace_collection):
-        def wrapExpressionStrOperation{{attribute_name_class}}({{formatArgs(str_operation_args, starting=True, finishing=False)}} source_ref):
-{% if str_operation_variation %}
-{% for count in reversed(str_operation_variation[1:]) %}
-            {{"if" if count == str_operation_variation[-1] else "elif"}} {{str_operation_args[count-1]}} {{str_operation_arg_tests[count-1]}}:
-                return {{translateNodeClassName("ExpressionStrOperation" + attribute_name_class + str(count+1))}}(
-                    str_arg=str_arg {{formatCallArgs(str_operation_node_arg_mapping, str_operation_args[:count], starting=False)}}, source_ref=source_ref
-                )
+{% if str_operation_spec_versions %}
+{% for spec_version in str_operation_spec_versions %}
+{% set spec_args, spec_arg_tests, spec_arg_name_mapping, spec_variation, _spec_result_shape = getSpecVariation(spec_version.spec) %}
+        {{"if" if loop.first else "elif"}} {{spec_version.python_condition}}:
+{{ make_str_operation_wrapper("wrapExpressionStrOperation" + attribute_name_class, spec_args, spec_arg_tests, spec_variation, spec_arg_name_mapping, str_operation_variation is not none) | indent(4, True) }}
+            builtin_spec = {{spec_version.spec_name}}
 {% endfor %}
-            else:
-                return {{translateNodeClassName("ExpressionStrOperation" + attribute_name_class + str(str_operation_variation[0]+1))}}(
-                    str_arg=str_arg {{formatCallArgs(str_operation_node_arg_mapping, str_operation_args[:str_operation_variation[0]], starting=False)}}, source_ref=source_ref
-                )
-
+        else:
+            assert False, "Unhandled Python version for 'str.{{attribute_name}}'."
 {% else %}
-            return {{translateNodeClassName("ExpressionStrOperation" + attribute_name_class)}}(
-                str_arg=str_arg {{formatCallArgs(str_operation_node_arg_mapping, str_operation_args, starting=False)}}, source_ref=source_ref
-            )
+{{ make_str_operation_wrapper("wrapExpressionStrOperation" + attribute_name_class, str_operation_args, str_operation_arg_tests, str_operation_variation, str_operation_node_arg_mapping, str_operation_variation is not none) }}
 {% endif %}
 
-        # Anything may happen. On next pass, if replaced, we might be better
-        # but not now.
         trace_collection.onExceptionRaiseExit(BaseException)
 
         result = extractBuiltinArgs(
             node=call_node,
             builtin_class=wrapExpressionStrOperation{{attribute_name_class}},
+{% if str_operation_spec_versions %}
+            builtin_spec=builtin_spec,
+{% else %}
             builtin_spec=str_{{attribute_name}}_spec,
+{% endif %}
 {% if str_operation_empty != "None" %}
             empty_special_class={{str_operation_empty}}
 {% endif %}
         )
 
-        return result, "new_expression", "Call to '{{attribute_name}}' of str recognized."
+        return trace_collection.computedExpressionResult(
+            expression=result,
+            change_tags="new_expression",
+            change_desc="Call to '{{attribute_name}}' of str recognized.",
+        )
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
         return self._computeExpressionCall(call_node, self.subnode_expression, trace_collection)
@@ -398,11 +462,10 @@ class ExpressionAttributeLookupStr{{attribute_name_class}}(SideEffectsFromChildr
     def computeExpressionCallViaVariable(
         self, call_node, variable_ref_node, call_args, call_kw, trace_collection
     ):
+        {# TODO: Would be nice to have the real source reference here, but it feels a bit expensive. #}
         str_node = makeExpressionAttributeLookup(
             expression=variable_ref_node,
             attribute_name="__self__",
-            # TODO: Would be nice to have the real source reference here, but it feels
-            # a bit expensive.
             source_ref=variable_ref_node.source_ref,
         )
 
@@ -411,7 +474,7 @@ class ExpressionAttributeLookupStr{{attribute_name_class}}(SideEffectsFromChildr
     def mayRaiseException(self, exception_type):
         return self.subnode_expression.mayRaiseException(exception_type)
 {% else %}
-    # No computeExpressionCall as str operation ExpressionStrOperation{{attribute_name_class}} is not yet implemented
+    {# No computeExpressionCall as str operation ExpressionStrOperation{{attribute_name_class}} is not yet implemented #}
 {% endif %}
 
 attribute_typed_classes.add(ExpressionAttributeLookupStr{{attribute_name_class}})
@@ -440,9 +503,7 @@ class ExpressionAttributeLookupBytes{{attribute_name_class}}(SideEffectsFromChil
     kind = "EXPRESSION_ATTRIBUTE_LOOKUP_BYTES_{{attribute_name_class.upper()}}"
     attribute_name = "{{attribute_name}}"
 
-    # There is nothing to compute for it as a value.
-    # TODO: Enable this
-    # auto_compute_handling = "final,no_raise"
+    {# TODO: Enable auto_compute_handling = "final,no_raise" #}
 
     def computeExpression(self, trace_collection):
         return self, None, None
@@ -451,16 +512,6 @@ class ExpressionAttributeLookupBytes{{attribute_name_class}}(SideEffectsFromChil
     @staticmethod
     def _computeExpressionCall(call_node, bytes_arg, trace_collection):
         def wrapExpressionBytesOperation{{attribute_name_class}}({{formatArgs(bytes_operation_args, starting=True, finishing=False)}} source_ref):
-{% if python3_operation_name %}
-            if str is bytes:
-                return ExpressionBytesOperation{{attribute_name_class}}(
-                    bytes_arg=bytes_arg, source_ref=source_ref
-                )
-            else:
-                return ExpressionBytesOperation{{python3_operation_name.title()}}(
-                    bytes_arg=bytes_arg, source_ref=source_ref
-                )
-{% else %}
 {% if bytes_operation_variation %}
 {% for count in reversed(bytes_operation_variation[1:]) %}
             {{"if" if count == bytes_operation_variation[-1] else "elif"}} {{bytes_operation_args[count-1]}} {{bytes_operation_arg_tests[count-1]}}:
@@ -478,10 +529,7 @@ class ExpressionAttributeLookupBytes{{attribute_name_class}}(SideEffectsFromChil
                 bytes_arg=bytes_arg {{formatCallArgs(bytes_operation_node_arg_mapping, bytes_operation_args, starting=False)}}, source_ref=source_ref
             )
 {% endif %}
-{% endif %}
 
-        # Anything may happen. On next pass, if replaced, we might be better
-        # but not now.
         trace_collection.onExceptionRaiseExit(BaseException)
 
         result = extractBuiltinArgs(
@@ -490,7 +538,11 @@ class ExpressionAttributeLookupBytes{{attribute_name_class}}(SideEffectsFromChil
             builtin_spec=bytes_{{attribute_name}}_spec,
         )
 
-        return result, "new_expression", "Call to '{{attribute_name}}' of bytes recognized."
+        return trace_collection.computedExpressionResult(
+            expression=result,
+            change_tags="new_expression",
+            change_desc="Call to '{{attribute_name}}' of bytes recognized.",
+        )
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
         return self._computeExpressionCall(call_node, self.subnode_expression, trace_collection)
@@ -498,11 +550,10 @@ class ExpressionAttributeLookupBytes{{attribute_name_class}}(SideEffectsFromChil
     def computeExpressionCallViaVariable(
         self, call_node, variable_ref_node, call_args, call_kw, trace_collection
     ):
+        {# TODO: Would be nice to have the real source reference here, but it feels a bit expensive. #}
         bytes_node = makeExpressionAttributeLookup(
             expression=variable_ref_node,
             attribute_name="__self__",
-            # TODO: Would be nice to have the real source reference here, but it feels
-            # a bit expensive.
             source_ref=variable_ref_node.source_ref,
         )
 
@@ -511,7 +562,7 @@ class ExpressionAttributeLookupBytes{{attribute_name_class}}(SideEffectsFromChil
     def mayRaiseException(self, exception_type):
         return self.subnode_expression.mayRaiseException(exception_type)
 {% else %}
-    # No computeExpressionCall as bytes operation ExpressionBytesOperation{{attribute_name_class}} is not yet implemented
+    {# No computeExpressionCall as bytes operation ExpressionBytesOperation{{attribute_name_class}} is not yet implemented #}
 {% endif %}
 
 attribute_typed_classes.add(ExpressionAttributeLookupBytes{{attribute_name_class}})
@@ -522,10 +573,6 @@ attribute_typed_classes.add(ExpressionAttributeLookupBytes{{attribute_name_class
 
 {% if list_operation_version_presence %}
 from nuitka.specs.BuiltinListOperationSpecs import list_{{attribute_name}}_spec
-{% if python3_operation_name %}
-from .ListOperationNodes import ExpressionListOperation{{attribute_name_class}}
-from .ListOperationNodes import ExpressionListOperation{{python3_operation_name.title()}}
-{% else %}
 {% if list_operation_variation %}
 {% for count in reversed(list_operation_variation[1:]) %}
 from .ListOperationNodes import ExpressionListOperation{{attribute_name_class}}{{count+1}}
@@ -535,10 +582,9 @@ from .ListOperationNodes import ExpressionListOperation{{attribute_name_class}}{
 from .ListOperationNodes import ExpressionListOperation{{attribute_name_class}}
 {% endif %}
 {% endif %}
-{% endif %}
 
 class ExpressionAttributeLookupList{{attribute_name_class}}(SideEffectsFromChildrenMixin, ExpressionAttributeLookupFixed{{attribute_name_class}}):
-    """Attribute {{attribute_name}} lookup on a list value.
+    """Attribute '{{attribute_name}}' lookup on a list value.
 
     Typically code like: some_list.{{attribute_name}}
     """
@@ -548,11 +594,8 @@ class ExpressionAttributeLookupList{{attribute_name_class}}(SideEffectsFromChild
 
     def computeExpression(self, trace_collection):
 {% if attribute_name not in ("count", "index") %}
-        # Might be used to modify the list.
         trace_collection.removeKnowledge(self.subnode_expression)
 
-{% else %}
-        # Cannot be used to modify the list.
 {% endif %}
         return self, None, None
 
@@ -560,16 +603,6 @@ class ExpressionAttributeLookupList{{attribute_name_class}}(SideEffectsFromChild
     @staticmethod
     def _computeExpressionCall(call_node, list_arg, trace_collection):
         def wrapExpressionListOperation{{attribute_name_class}}({{formatArgs(list_operation_args, starting=True, finishing=False)}} source_ref):
-{% if python3_operation_name %}
-            if str is bytes:
-                return ExpressionListOperation{{attribute_name_class}}(
-                    list_arg=list_arg, source_ref=source_ref
-                )
-            else:
-                return ExpressionListOperation{{python3_operation_name.title()}}(
-                    list_arg=list_arg, source_ref=source_ref
-                )
-{% else %}
 {% if list_operation_variation %}
 {% for count in reversed(list_operation_variation[1:]) %}
             {{"if" if count == list_operation_variation[-1] else "elif"}} {{list_operation_args[count-1]}} {{list_operation_arg_tests[count-1]}}:
@@ -587,13 +620,8 @@ class ExpressionAttributeLookupList{{attribute_name_class}}(SideEffectsFromChild
                 list_arg=list_arg {{formatCallArgs(list_operation_node_arg_mapping, list_operation_args, starting=False)}}, source_ref=source_ref
             )
 {% endif %}
-{% endif %}
 
-        # Anything may happen. On next pass, if replaced, we might be better
-        # but not now.
         trace_collection.onExceptionRaiseExit(BaseException)
-
-        # Make sure we wait with knowing if the content is safe to use until its time.
         call_node.onContentEscapes(trace_collection)
 
         result = extractBuiltinArgs(
@@ -602,7 +630,11 @@ class ExpressionAttributeLookupList{{attribute_name_class}}(SideEffectsFromChild
             builtin_spec=list_{{attribute_name}}_spec,
         )
 
-        return result, "new_expression", "Call to '{{attribute_name}}' of list recognized."
+        return trace_collection.computedExpressionResult(
+            expression=result,
+            change_tags="new_expression",
+            change_desc="Call to '{{attribute_name}}' of list recognized.",
+        )
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
         return self._computeExpressionCall(call_node, self.subnode_expression, trace_collection)
@@ -610,11 +642,10 @@ class ExpressionAttributeLookupList{{attribute_name_class}}(SideEffectsFromChild
     def computeExpressionCallViaVariable(
         self, call_node, variable_ref_node, call_args, call_kw, trace_collection
     ):
+        {# TODO: Would be nice to have the real source reference here, but it feels a bit expensive. #}
         list_node = makeExpressionAttributeLookup(
             expression=variable_ref_node,
             attribute_name="__self__",
-            # TODO: Would be nice to have the real source reference here, but it feels
-            # a bit expensive.
             source_ref=variable_ref_node.source_ref,
         )
 
@@ -623,7 +654,7 @@ class ExpressionAttributeLookupList{{attribute_name_class}}(SideEffectsFromChild
     def mayRaiseException(self, exception_type):
         return self.subnode_expression.mayRaiseException(exception_type)
 {% else %}
-    # No computeExpressionCall as list operation ExpressionListOperation{{attribute_name_class}} is not yet implemented
+    {# No computeExpressionCall as list operation ExpressionListOperation{{attribute_name_class}} is not yet implemented #}
 {% endif %}
 
 attribute_typed_classes.add(ExpressionAttributeLookupList{{attribute_name_class}})
@@ -647,28 +678,15 @@ class ExpressionAttributeLookupType{{attribute_name_class}}(SideEffectsFromChild
     kind = "EXPRESSION_ATTRIBUTE_LOOKUP_TYPE_{{attribute_name_class.upper()}}"
     attribute_name = "{{attribute_name}}"
 
-    # There is nothing to compute for it as a value.
-    # TODO: Enable this once we can also say removal of knowable for an argument.
-    # auto_compute_handling = "final,no_raise"
+    {# TODO: Enable auto_compute_handling = "final,no_raise" once we can also express knowledge removal for an argument. #}
 
     def computeExpression(self, trace_collection):
-        # Cannot be used to modify the type.
         return self, None, None
 
 {% if type_operation_version_presence %}
     @staticmethod
     def _computeExpressionCall(call_node, type_arg, trace_collection):
         def wrapExpressionTypeOperation{{attribute_name_class}}({{formatArgs(type_operation_args, starting=True, finishing=False)}} source_ref):
-{% if python3_operation_name %}
-            if str is bytes:
-                return ExpressionTypeOperation{{attribute_name_class}}(
-                    type_arg=type_arg, source_ref=source_ref
-                )
-            else:
-                return ExpressionTypeOperation{{python3_operation_name.title()}}(
-                    type_arg=type_arg, source_ref=source_ref
-                )
-{% else %}
 {% if type_operation_variation %}
 {% for count in reversed(type_operation_variation[1:]) %}
             {{"if" if count == type_operation_variation[-1] else "elif"}} {{type_operation_args[count-1]}} {{type_operation_arg_tests[count-1]}}:
@@ -690,13 +708,8 @@ class ExpressionAttributeLookupType{{attribute_name_class}}(SideEffectsFromChild
                 type_arg=type_arg {{formatCallArgs(type_operation_node_arg_mapping, type_operation_args, starting=False)}}, source_ref=source_ref
             )
 {% endif %}
-{% endif %}
 
-        # Anything may happen. On next pass, if replaced, we might be better
-        # but not now.
         trace_collection.onExceptionRaiseExit(BaseException)
-
-        # Make sure we wait with knowing if the content is safe to use until its time.
         call_node.onContentEscapes(trace_collection)
 
         result = extractBuiltinArgs(
@@ -720,11 +733,10 @@ class ExpressionAttributeLookupType{{attribute_name_class}}(SideEffectsFromChild
     def computeExpressionCallViaVariable(
         self, call_node, variable_ref_node, call_args, call_kw, trace_collection
     ):
+        {# TODO: Would be nice to have the real source reference here, but it feels a bit expensive. #}
         type_node = makeExpressionAttributeLookup(
             expression=variable_ref_node,
             attribute_name="__self__",
-            # TODO: Would be nice to have the real source reference here, but it feels
-            # a bit expensive.
             source_ref=variable_ref_node.source_ref,
         )
 
@@ -733,7 +745,7 @@ class ExpressionAttributeLookupType{{attribute_name_class}}(SideEffectsFromChild
     def mayRaiseException(self, exception_type):
         return self.subnode_expression.mayRaiseException(exception_type)
 {% else %}
-    # No computeExpressionCall as type operation ExpressionTypeOperation{{attribute_name_class}} is not yet implemented
+    {# No computeExpressionCall as type operation ExpressionTypeOperation{{attribute_name_class}} is not yet implemented #}
 {% endif %}
 
 attribute_typed_classes.add(ExpressionAttributeLookupType{{attribute_name_class}})

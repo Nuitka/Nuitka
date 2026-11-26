@@ -6,6 +6,7 @@ import sys
 
 from nuitka.tools.release.DebianPackage import (
     cleanupTarfileForDebian,
+    copySourceForDebianBuild,
     runPy2dsc,
 )
 from nuitka.tools.release.Documentation import checkReleaseDocumentation
@@ -24,9 +25,11 @@ def main():
     shutil.rmtree("dist", ignore_errors=True)
     shutil.rmtree("build", ignore_errors=True)
 
+    copySourceForDebianBuild(source_path=os.getcwd())
+
     cleanupSourceDistributionState()
 
-    checkReleaseDocumentation()
+    checkReleaseDocumentation(assume_yes_for_downloads=False)
 
     assert os.system("%s setup.py sdist --formats=gztar" % sys.executable) == 0
 

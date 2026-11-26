@@ -1,6 +1,6 @@
 //     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
-// This implements the resource reader for of C compiled modules and
+// This implements the resource reader of C compiled modules and
 // shared library extension modules bundled for standalone mode with
 // newer Python.
 
@@ -10,24 +10,28 @@
 #include "nuitka/prelude.h"
 #include "nuitka/unfreezing.h"
 
-static PyObject *getModuleDirectory(PyThreadState *tstate, struct Nuitka_MetaPathBasedLoaderEntry const *entry);
+static PyObject *getModuleDirectory(PyThreadState *tstate, struct Nuitka_MetaPathBasedLoaderEntry const *entry,
+                                    PyObject *module_name);
 static void Nuitka_LoaderEntryDisplayName(struct Nuitka_MetaPathBasedLoaderEntry const *entry, char *buffer,
                                           size_t buffer_size);
 #endif
 
 struct Nuitka_ResourceReaderFilesObject {
-    /* Python object folklore: */
     PyObject_HEAD
 
         // The loader entry, to know this is for one package exactly.
         struct Nuitka_MetaPathBasedLoaderEntry const *m_loader_entry;
+
+    // The runtime name of the module, if known.
+    PyObject *m_module_name;
 
     // The path relative to the entry, if e.g. joinpath is used
     PyObject *m_path;
 };
 
 static PyObject *Nuitka_ResourceReaderFiles_New(PyThreadState *tstate,
-                                                struct Nuitka_MetaPathBasedLoaderEntry const *entry, PyObject *path);
+                                                struct Nuitka_MetaPathBasedLoaderEntry const *entry,
+                                                PyObject *module_name, PyObject *path);
 
 static PyObject *_Nuitka_ResourceReaderFiles_GetPath(PyThreadState *tstate,
                                                      struct Nuitka_ResourceReaderFilesObject const *files) {
@@ -38,24 +42,10 @@ static PyObject *_Nuitka_ResourceReaderFiles_GetPath(PyThreadState *tstate,
     PyObject *is_abs = OS_PATH_ISABS(tstate, files->m_path);
     PyObject *result;
     if (is_abs == Py_True) {
-#if 0
-        PRINT_STRING("Getting path from absolute: ");
-        PRINT_ITEM(files->m_path);
-        PRINT_NEW_LINE();
-#endif
-
         result = files->m_path;
         Py_INCREF(result);
     } else {
-        result = getModuleDirectory(tstate, files->m_loader_entry);
-
-#if 0
-        PRINT_STRING("Getting path from relative: ");
-        PRINT_ITEM(result);
-        PRINT_STRING(" ");
-        PRINT_ITEM(files->m_path);
-        PRINT_NEW_LINE();
-#endif
+        result = getModuleDirectory(tstate, files->m_loader_entry, files->m_module_name);
 
         if (files->m_path != const_str_empty) {
             PyObject *old = result;
@@ -69,40 +59,36 @@ static PyObject *_Nuitka_ResourceReaderFiles_GetPath(PyThreadState *tstate,
     return result;
 }
 
-static void Nuitka_ResourceReaderFiles_tp_dealloc(struct Nuitka_ResourceReaderFilesObject *files) {
-    Nuitka_GC_UnTrack(files);
+static void Nuitka_ResourceReaderFiles_tp_dealloc(PyObject *self) {
+    struct Nuitka_ResourceReaderFilesObject *files = (struct Nuitka_ResourceReaderFilesObject *)self;
 
+    Nuitka_GC_UnTrack(self);
+
+    Py_XDECREF(files->m_module_name);
     Py_DECREF(files->m_path);
 
     PyObject_GC_Del(files);
 }
 
-static PyObject *Nuitka_ResourceReaderFiles_tp_repr(struct Nuitka_ResourceReaderFilesObject *files) {
+static PyObject *Nuitka_ResourceReaderFiles_tp_repr(PyObject *self) {
+    struct Nuitka_ResourceReaderFilesObject *files = (struct Nuitka_ResourceReaderFilesObject *)self;
+
     char display_name[NUITKA_LOADER_NAME_MAX_LEN];
     Nuitka_LoaderEntryDisplayName(files->m_loader_entry, display_name, sizeof(display_name));
 
     return PyUnicode_FromFormat("<nuitka_resource_reader_files for package '%s' file %R>", display_name, files->m_path);
 }
 
-static PyObject *Nuitka_ResourceReaderFiles_tp_str(struct Nuitka_ResourceReaderFilesObject *files) {
+static PyObject *Nuitka_ResourceReaderFiles_tp_str(PyObject *self) {
+    struct Nuitka_ResourceReaderFilesObject *files = (struct Nuitka_ResourceReaderFilesObject *)self;
+
     PyThreadState *tstate = PyThreadState_GET();
     return _Nuitka_ResourceReaderFiles_GetPath(tstate, files);
 }
 
-// Obligatory, even if we have nothing to own
-static int Nuitka_ResourceReaderFiles_tp_traverse(struct Nuitka_ResourceReaderFilesObject *files, visitproc visit,
-                                                  void *arg) {
-    return 0;
-}
+// TODO: Should visit m_module_name and m_path.
+static int Nuitka_ResourceReaderFiles_tp_traverse(PyObject *self, visitproc visit, void *arg) { return 0; }
 
-// Methods that need to be implemented.
-//
-//
-//    def iterdir(self):
-//        """
-//        Yield Traversable objects from self
-//        """
-//
 static PyObject *Nuitka_ResourceReaderFiles_iterdir(PyObject *files_obj, PyObject *args, PyObject *kwds) {
     struct Nuitka_ResourceReaderFilesObject *files = (struct Nuitka_ResourceReaderFilesObject *)files_obj;
     PyThreadState *tstate = PyThreadState_GET();
@@ -127,7 +113,8 @@ static PyObject *Nuitka_ResourceReaderFiles_iterdir(PyObject *files_obj, PyObjec
         PyObject *joined = JOIN_PATH2(files->m_path, file_name);
         CHECK_OBJECT(joined);
 
-        PyObject *files_object = Nuitka_ResourceReaderFiles_New(tstate, files->m_loader_entry, joined);
+        PyObject *files_object =
+            Nuitka_ResourceReaderFiles_New(tstate, files->m_loader_entry, files->m_module_name, joined);
         {
             NUITKA_MAY_BE_UNUSED bool res = LIST_APPEND1(files_objects, files_object);
             assert(res);
@@ -143,14 +130,6 @@ static PyObject *Nuitka_ResourceReaderFiles_iterdir(PyObject *files_obj, PyObjec
     return result;
 }
 
-//    def read_bytes(self):
-//        """
-//        Read contents of self as bytes
-//        """
-//        with self.open('rb') as strm:
-//            return strm.read()
-//
-
 static PyObject *Nuitka_ResourceReaderFiles_read_bytes(PyObject *files_obj, PyObject *args, PyObject *kwds) {
     struct Nuitka_ResourceReaderFilesObject *files = (struct Nuitka_ResourceReaderFilesObject *)files_obj;
     PyThreadState *tstate = PyThreadState_GET();
@@ -163,13 +142,6 @@ static PyObject *Nuitka_ResourceReaderFiles_read_bytes(PyObject *files_obj, PyOb
 
     return GET_FILE_BYTES(tstate, file_name);
 }
-
-//    def read_text(self, encoding=None, errors=None):
-//        """
-//        Read contents of self as text, errors is new in Python3.13
-//        """
-//        with self.open(encoding=encoding) as strm:
-//            return strm.read()
 
 #if PYTHON_VERSION >= 0x3d0
 static char const *_kw_list_encoding_errors[] = {"encoding", "errors", NULL};
@@ -184,7 +156,7 @@ static PyObject *Nuitka_ResourceReaderFiles_read_text(PyObject *files_obj, PyObj
 
     PyObject *errors = NULL;
 
-    // The errors argument is only available for 3.13 only
+    // The "errors" argument was added in Python 3.13.
 #if PYTHON_VERSION >= 0x3d0
     int res =
         PyArg_ParseTupleAndKeywords(args, kwds, "|OO:read_text", (char **)_kw_list_encoding_errors, &encoding, &errors);
@@ -235,13 +207,6 @@ static PyObject *Nuitka_ResourceReaderFiles_exists(PyObject *files_obj, PyObject
     return result;
 }
 
-//    @abc.abstractmethod
-//    def is_dir(self) -> bool:
-//        """
-//        Return True if self is a dir
-//        """
-//
-
 static PyObject *Nuitka_ResourceReaderFiles_is_dir(PyObject *files_obj, PyObject *args, PyObject *kwds) {
     struct Nuitka_ResourceReaderFilesObject *files = (struct Nuitka_ResourceReaderFilesObject *)files_obj;
 
@@ -252,11 +217,6 @@ static PyObject *Nuitka_ResourceReaderFiles_is_dir(PyObject *files_obj, PyObject
     return result;
 }
 
-//    @abc.abstractmethod
-//    def is_file(self) -> bool:
-//        """
-//        Return True if self is a file
-//        """
 static PyObject *Nuitka_ResourceReaderFiles_is_file(PyObject *files_obj, PyObject *args, PyObject *kwds) {
     struct Nuitka_ResourceReaderFilesObject *files = (struct Nuitka_ResourceReaderFilesObject *)files_obj;
 
@@ -269,13 +229,6 @@ static PyObject *Nuitka_ResourceReaderFiles_is_file(PyObject *files_obj, PyObjec
 }
 
 static char const *_kw_list_joinpath[] = {"child", NULL};
-
-//    @abc.abstractmethod
-//    def joinpath(self, child):
-//        """
-//        Return Traversable child in self
-//        """
-//
 
 // Functions out there, some accept "child", and accept varargs, lets be compatible with both.
 
@@ -323,18 +276,12 @@ static PyObject *Nuitka_ResourceReaderFiles_joinpath(PyObject *files_obj, PyObje
 
     PyThreadState *tstate = PyThreadState_GET();
 
-    PyObject *result = Nuitka_ResourceReaderFiles_New(tstate, files->m_loader_entry, joined);
+    PyObject *result = Nuitka_ResourceReaderFiles_New(tstate, files->m_loader_entry, files->m_module_name, joined);
 
     Py_DECREF(joined);
 
     return result;
 }
-
-//    def def as_posix(self):
-//        """
-//        Return Traversable child in self
-//        """
-//
 
 static PyObject *Nuitka_ResourceReaderFiles_as_posix(PyObject *files_obj, PyObject *args) {
     struct Nuitka_ResourceReaderFilesObject *files = (struct Nuitka_ResourceReaderFilesObject *)files_obj;
@@ -363,7 +310,9 @@ static PyObject *Nuitka_ResourceReaderFiles_as_posix(PyObject *files_obj, PyObje
 #endif
 }
 
-PyObject *Nuitka_ResourceReaderFiles_nb_truediv(struct Nuitka_ResourceReaderFilesObject *files, PyObject *arg) {
+PyObject *Nuitka_ResourceReaderFiles_nb_truediv(PyObject *self, PyObject *arg) {
+    struct Nuitka_ResourceReaderFilesObject *files = (struct Nuitka_ResourceReaderFilesObject *)self;
+
     PyObject *joined;
 
     if (files->m_path == const_str_empty) {
@@ -379,21 +328,10 @@ PyObject *Nuitka_ResourceReaderFiles_nb_truediv(struct Nuitka_ResourceReaderFile
 
     PyThreadState *tstate = PyThreadState_GET();
 
-    PyObject *result = Nuitka_ResourceReaderFiles_New(tstate, files->m_loader_entry, joined);
+    PyObject *result = Nuitka_ResourceReaderFiles_New(tstate, files->m_loader_entry, files->m_module_name, joined);
 
     return result;
 }
-
-//    @abc.abstractmethod
-//    def open(self, mode='r', *args, **kwargs):
-//        """
-//        mode may be 'r' or 'rb' to open as text or binary. Return a handle
-//        suitable for reading (same as pathlib.Path.open).
-//
-//        When opening as text, accepts encoding parameters such as those
-//        accepted by io.TextIOWrapper.
-//        """
-//
 
 static char const *_kw_list_open[] = {"mode", "buffering", "encoding", "errors", "newline", NULL};
 
@@ -467,7 +405,7 @@ static PyObject *Nuitka_ResourceReaderFiles_absolute(PyObject *files_obj, PyObje
         return NULL;
     }
 
-    return Nuitka_ResourceReaderFiles_New(tstate, files->m_loader_entry, abspath);
+    return Nuitka_ResourceReaderFiles_New(tstate, files->m_loader_entry, files->m_module_name, abspath);
 }
 
 static PyObject *Nuitka_ResourceReaderFiles_get_parent(PyObject *self, void *data) {
@@ -490,7 +428,7 @@ static PyObject *Nuitka_ResourceReaderFiles_get_parent(PyObject *self, void *dat
         return NULL;
     }
 
-    return Nuitka_ResourceReaderFiles_New(tstate, files->m_loader_entry, dirname);
+    return Nuitka_ResourceReaderFiles_New(tstate, files->m_loader_entry, files->m_module_name, dirname);
 }
 
 static int Nuitka_ResourceReaderFiles_set_parent(PyObject *self, PyObject *value, void *data) {
@@ -528,7 +466,7 @@ static PyObject *Nuitka_ResourceReaderFiles_get_suffix(PyObject *self, void *dat
     return result;
 }
 
-// TODO: Why don't we just share this method.
+// TODO: Share a single readonly setter function across these properties.
 static int Nuitka_ResourceReaderFiles_set_suffix(PyObject *self, PyObject *value, void *data) {
     CHECK_OBJECT(self);
 
@@ -652,12 +590,6 @@ static PyMethodDef Nuitka_ResourceReaderFiles_methods[] = {
 
     {NULL}};
 
-//    @abc.abstractproperty
-//    def name(self) -> str:
-//        """
-//        The base name of this object without any parent references.
-//        """
-
 static PyObject *Nuitka_ResourceReaderFiles_get_name(PyObject *self, void *data) {
     CHECK_OBJECT(self);
     struct Nuitka_ResourceReaderFilesObject *files = (struct Nuitka_ResourceReaderFilesObject *)self;
@@ -680,9 +612,8 @@ static int Nuitka_ResourceReaderFiles_set_name(PyObject *self, PyObject *value, 
     return -1;
 }
 
-static PyObject *Nuitka_ResourceReaderFiles_tp_richcompare(struct Nuitka_ResourceReaderFilesObject *files_a,
-                                                           PyObject *other, int op_id) {
-    PyObject *a = PyObject_Str((PyObject *)files_a);
+static PyObject *Nuitka_ResourceReaderFiles_tp_richcompare(PyObject *self, PyObject *other, int op_id) {
+    PyObject *a = PyObject_Str(self);
     CHECK_OBJECT(a);
 
     PyObject *b = PyObject_Str(other);
@@ -765,7 +696,8 @@ static void registerResourceReaderFiles(PyThreadState *tstate, PyObject *resourc
 #endif
 
 static PyObject *Nuitka_ResourceReaderFiles_New(PyThreadState *tstate,
-                                                struct Nuitka_MetaPathBasedLoaderEntry const *entry, PyObject *path) {
+                                                struct Nuitka_MetaPathBasedLoaderEntry const *entry,
+                                                PyObject *module_name, PyObject *path) {
     struct Nuitka_ResourceReaderFilesObject *result;
 
     static bool init_done = false;
@@ -805,6 +737,9 @@ static PyObject *Nuitka_ResourceReaderFiles_New(PyThreadState *tstate,
     Nuitka_GC_Track(result);
 
     result->m_loader_entry = entry;
+    result->m_module_name = module_name;
+    Py_XINCREF(result->m_module_name);
+
     result->m_path = path;
     Py_INCREF(path);
 

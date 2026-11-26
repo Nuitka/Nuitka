@@ -4,24 +4,15 @@
 #ifndef __NUITKA_COMPILED_FUNCTION_H__
 #define __NUITKA_COMPILED_FUNCTION_H__
 
-// Compiled function type.
-
-// The backbone of the integration into CPython. Try to behave as well as normal
-// functions and built-in functions, or even better.
-
 #ifdef __IDE_ONLY__
 #include "nuitka/prelude.h"
 #endif
 
 struct Nuitka_FunctionObject;
 
-// The actual function code with arguments as an array.
 typedef PyObject *(*function_impl_code)(PyThreadState *tstate, struct Nuitka_FunctionObject const *, PyObject **);
 
-// The Nuitka_FunctionObject is the storage associated with a compiled function
-// instance of which there can be many for each code.
 struct Nuitka_FunctionObject {
-    /* Python object folklore: */
     PyObject_VAR_HEAD
 
         PyObject *m_name;
@@ -41,10 +32,9 @@ struct Nuitka_FunctionObject {
     Py_ssize_t m_args_pos_only_count;
 #endif
 
-    // Same as code_object->co_varnames
+    // Direct pointer to co_varnames (< 3.11) or co_localsplusnames (3.11+) items.
     PyObject **m_varnames;
 
-    // C implementation of the function
     function_impl_code m_c_code;
 
 #if PYTHON_VERSION >= 0x380
@@ -54,16 +44,14 @@ struct Nuitka_FunctionObject {
     PyObject *m_dict;
     PyObject *m_weakrefs;
 
-    // Tuple of defaults, for use in __defaults__ and parameter parsing.
+    // Tuple of positional defaults (__defaults__).
     PyObject *m_defaults;
     Py_ssize_t m_defaults_given;
 
 #if PYTHON_VERSION >= 0x300
-    // List of keyword only defaults, for use in __kwdefaults__ and parameter
-    // parsing.
+    // Dict of keyword-only defaults (__kwdefaults__), or NULL.
     PyObject *m_kwdefaults;
 
-    // Annotations to the function arguments and return value.
     PyObject *m_annotations;
 #endif
 
@@ -79,20 +67,17 @@ struct Nuitka_FunctionObject {
     PyObject *m_type_params;
 #endif
 
-    // Constant return value to use.
     PyObject *m_constant_return_value;
 
-    // A kind of uuid for the function object, used in comparisons.
+    // Unique per-instance identifier used in comparisons.
     long m_counter;
 
-    // Closure taken objects, for use in __closure__ and for accessing it.
     Py_ssize_t m_closure_given;
     struct Nuitka_CellObject *m_closure[1];
 };
 
 extern PyTypeObject Nuitka_Function_Type;
 
-// Make a function with context.
 #if PYTHON_VERSION < 0x300
 extern struct Nuitka_FunctionObject *Nuitka_Function_New(function_impl_code c_code, PyObject *name,
                                                          PyCodeObject *code_object, PyObject *defaults,
@@ -123,11 +108,9 @@ extern PyObject *Nuitka_Function_ExtractCodeObjectDescription(PyThreadState *tst
                                                               struct Nuitka_FunctionObject *function);
 #endif
 
-static inline bool Nuitka_Function_Check(PyObject *object) { return Py_TYPE(object) == &Nuitka_Function_Type; }
+static inline bool Nuitka_Function_Check(PyObject *obj) { return Py_TYPE(obj) == &Nuitka_Function_Type; }
 
-static inline PyObject *Nuitka_Function_GetName(PyObject *object) {
-    return ((struct Nuitka_FunctionObject *)object)->m_name;
-}
+static inline PyObject *Nuitka_Function_GetName(PyObject *obj) { return ((struct Nuitka_FunctionObject *)obj)->m_name; }
 
 PyObject *Nuitka_CallFunctionNoArgs(PyThreadState *tstate, struct Nuitka_FunctionObject const *function);
 
@@ -144,11 +127,11 @@ PyObject *Nuitka_CallFunctionPosArgsKwSplit(PyThreadState *tstate, struct Nuitka
                                             PyObject *kw_names);
 
 PyObject *Nuitka_CallMethodFunctionNoArgs(PyThreadState *tstate, struct Nuitka_FunctionObject const *function,
-                                          PyObject *object);
+                                          PyObject *obj);
 PyObject *Nuitka_CallMethodFunctionPosArgs(PyThreadState *tstate, struct Nuitka_FunctionObject const *function,
-                                           PyObject *object, PyObject *const *args, Py_ssize_t args_size);
+                                           PyObject *obj, PyObject *const *args, Py_ssize_t args_size);
 PyObject *Nuitka_CallMethodFunctionPosArgsKwArgs(PyThreadState *tstate, struct Nuitka_FunctionObject const *function,
-                                                 PyObject *object, PyObject *const *args, Py_ssize_t args_size,
+                                                 PyObject *obj, PyObject *const *args, Py_ssize_t args_size,
                                                  PyObject *kw);
 
 #if _DEBUG_REFCOUNTS

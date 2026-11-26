@@ -8,6 +8,35 @@ from abc import ABCMeta
 from nuitka.Errors import NuitkaNodeDesignError
 
 
+def checkSlots(name, bases, dictionary):
+    slots = dictionary["__slots__"]
+
+    if type(slots) is not tuple:
+        raise NuitkaNodeDesignError(name, "Class __slots__ must be a tuple.", slots)
+
+    if slots:
+        if len(slots) != len(set(slots)):
+            raise NuitkaNodeDesignError(name, "Duplicate __slots__ entries.", slots)
+
+        for base in bases:
+            for ancestor in base.__mro__:
+                if ancestor is object:
+                    continue
+
+                duplicate_slots = tuple(
+                    slot
+                    for slot in slots
+                    if slot in ancestor.__dict__.get("__slots__", ())
+                )
+
+                if duplicate_slots:
+                    raise NuitkaNodeDesignError(
+                        name,
+                        "Redeclared inherited __slots__ from %s." % ancestor.__name__,
+                        duplicate_slots,
+                    )
+
+
 def getMetaClassBase(meta_class_prefix, require_slots):
     """For Python2/3 compatible source, we create a base class that has the metaclass
     used and doesn't require making a syntax choice.
@@ -22,6 +51,11 @@ def getMetaClassBase(meta_class_prefix, require_slots):
         ):  # pylint: disable=I0021,arguments-differ
             if require_slots:
                 for base in bases:
+                    if not isinstance(base, type):
+                        raise NuitkaNodeDesignError(
+                            name, "All bases must inherit from object.", base
+                        )
+
                     if base is not object and "__slots__" not in base.__dict__:
                         raise NuitkaNodeDesignError(
                             name, "All bases must set __slots__.", base
@@ -29,6 +63,8 @@ def getMetaClassBase(meta_class_prefix, require_slots):
 
                 if "__slots__" not in dictionary:
                     raise NuitkaNodeDesignError(name, "Class must set __slots__.", name)
+
+                checkSlots(name=name, bases=bases, dictionary=dictionary)
 
             return ABCMeta.__new__(mcs, name, bases, dictionary)
 

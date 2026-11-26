@@ -25,6 +25,7 @@ from nuitka.options.Options import (
     shallMakeDll,
     shallMakeModule,
 )
+from nuitka.targets.Targets import isWasiTarget, isWin32OrPosixWindowsTarget
 from nuitka.utils.FileOperations import (
     addFilenameExtension,
     changeFilenameExtension,
@@ -40,7 +41,7 @@ from nuitka.utils.FileOperations import (
 )
 from nuitka.utils.Importing import getExtensionModuleSuffix
 from nuitka.utils.SharedLibraries import getDllSuffix
-from nuitka.utils.Utils import isWin32OrPosixWindows, isWin32Windows
+from nuitka.utils.Utils import isWin32Windows
 
 _main_module = None
 
@@ -80,7 +81,7 @@ def getMainModule():
 
 
 def getSourceDirectoryPath(onefile, create):
-    """Return path inside the build directory."""
+    """Return path of the build directory."""
 
     # Distinct build folders for onefile mode.
     if onefile:
@@ -107,7 +108,7 @@ def getSourceDirectoryPath(onefile, create):
 
 
 def getSourceDirectoryExternalUsePath(onefile, create):
-    """Return externally usable path inside the build directory."""
+    """Return externally usable path of the build directory."""
 
     return getExternalUsePath(getSourceDirectoryPath(onefile=onefile, create=create))
 
@@ -251,13 +252,20 @@ def getResultFullpath(onefile, real):
             )
         elif output_filename is not None:
             result = getOutputPath(path=output_filename)
-        elif not isWin32OrPosixWindows() and not shallCreateAppBundle():
+        elif isWasiTarget():
+            result = addFilenameExtension(path=result, extension=".wasm")
+        elif not isWin32OrPosixWindowsTarget() and not shallCreateAppBundle():
             result = addFilenameExtension(path=result, extension=".bin")
 
-        if isWin32OrPosixWindows():
+        if isWin32OrPosixWindowsTarget():
             result = addFilenameExtension(path=result, extension=".exe")
 
-        if not isWin32OrPosixWindows() and isOnefileMode() and not onefile:
+        if (
+            not isWin32OrPosixWindowsTarget()
+            and isOnefileMode()
+            and not onefile
+            and not isWasiTarget()
+        ):
             result = addFilenameExtension(path=result, extension=".bin")
 
     return getNormalizedPath(path=result)
@@ -285,6 +293,36 @@ def getPgoRunExecutable():
 
 def getPgoRunInputFilename():
     return getPgoRunExecutable() + ".nuitka-pgo"
+
+
+def getMsvcPgoPgdFilename():
+    """Get the MSVC PGO profile database filename.
+
+    Returns:
+        str: Filename of the PGD file in the build directory.
+    """
+    return getExternalUsePath(
+        getNormalizedPathJoin(
+            getSourceDirectoryPath(onefile=False, create=False),
+            os.path.basename(getResultBasePath(onefile=False)) + ".pgd",
+        ),
+        only_dirname=True,
+    )
+
+
+def getMsvcPgoPgcFilename():
+    """Get the MSVC PGO profile data filename.
+
+    Returns:
+        str: Filename of the PGC file in the build directory.
+    """
+    return getExternalUsePath(
+        getNormalizedPathJoin(
+            getSourceDirectoryPath(onefile=False, create=False),
+            os.path.basename(getResultBasePath(onefile=False)) + "!1.pgc",
+        ),
+        only_dirname=True,
+    )
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and

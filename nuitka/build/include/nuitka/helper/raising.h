@@ -13,19 +13,29 @@
 
 #if PYTHON_VERSION >= 0x300
 NUITKA_MAY_BE_UNUSED static void CHAIN_EXCEPTION(PyThreadState *tstate, PyObject *exception_value) {
-    // Implicit chain of exception already existing.
+#if PYTHON_VERSION >= 0x370
+    struct Nuitka_ExceptionStackItem *exc_state = GET_TOP_MOST_CURRENT_EXCEPTION_STATE(tstate);
+#endif
 
-    // Normalize existing published exception first.
 #if PYTHON_VERSION < 0x3b0
     {
         // TODO: Revert to using NORMALIZE_EXCEPTION
+#if PYTHON_VERSION >= 0x370
+        struct Nuitka_ExceptionPreservationItem *exception_state =
+            (struct Nuitka_ExceptionPreservationItem *)&exc_state->exception_type;
+#else
         struct Nuitka_ExceptionPreservationItem *exception_state =
             (struct Nuitka_ExceptionPreservationItem *)&EXC_TYPE(tstate);
+#endif
         NORMALIZE_EXCEPTION_STATE(tstate, exception_state);
     }
 #endif
 
+#if PYTHON_VERSION >= 0x370
+    PyObject *old_exc_value = exc_state->exception_value;
+#else
     PyObject *old_exc_value = EXC_VALUE(tstate);
+#endif
 
     if (old_exc_value != NULL && old_exc_value != Py_None && old_exc_value != exception_value) {
         PyObject *current = old_exc_value;
@@ -49,8 +59,13 @@ NUITKA_MAY_BE_UNUSED static void CHAIN_EXCEPTION(PyThreadState *tstate, PyObject
         Nuitka_Exception_SetContext(exception_value, old_exc_value);
 
 #if PYTHON_VERSION < 0x3b0
-        CHECK_OBJECT(EXC_TRACEBACK(tstate));
-        ATTACH_TRACEBACK_TO_EXCEPTION_VALUE(old_exc_value, (PyTracebackObject *)EXC_TRACEBACK(tstate));
+#if PYTHON_VERSION >= 0x370
+        PyTracebackObject *old_exc_tb = exc_state->exception_tb;
+#else
+        PyTracebackObject *old_exc_tb = EXC_TRACEBACK(tstate);
+#endif
+        CHECK_OBJECT(old_exc_tb);
+        ATTACH_TRACEBACK_TO_EXCEPTION_VALUE(old_exc_value, old_exc_tb);
 #endif
     }
 }
@@ -101,7 +116,6 @@ SET_EXCEPTION_PRESERVATION_STATE_STOP_ITERATION_EMPTY(PyThreadState *tstate,
 #endif
 }
 
-// Create an exception value object from type and value input.
 extern PyObject *MAKE_EXCEPTION_WITH_VALUE(PyThreadState *tstate, PyObject *exception_type, PyObject *value);
 
 // Raise a RuntimeError with the value and set context with the error given

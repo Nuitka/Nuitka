@@ -15,6 +15,7 @@ import errno
 import fnmatch
 import glob
 import io
+import ntpath
 import os
 import pickle
 import shutil
@@ -31,6 +32,7 @@ from nuitka.__past__ import (  # pylint: disable=redefined-builtin
     basestring,
     unicode,
 )
+from nuitka.containers.Decisions import makeDecisionClass
 from nuitka.Errors import NuitkaFilenameError
 from nuitka.PythonVersions import python_version
 from nuitka.Tracing import general, my_print, options_logger, queryUser
@@ -40,12 +42,15 @@ from .InlineCopies import importFromInlineCopy
 from .ThreadedExecutor import RLock, getThreadIdent
 from .Utils import (
     decoratorRetries,
+    isCaseInsensitiveOS,
     isLinux,
     isMacOS,
     isWin32OrPosixWindows,
     isWin32Windows,
     raiseWindowsError,
 )
+
+PathValidityDecision = makeDecisionClass("PathValidityDecision")
 
 # Locking seems to be only required for Windows mostly, but we can keep
 # it for all.
@@ -71,10 +76,12 @@ def withFileLock(reason="unknown"):
     file_lock.acquire()
     if _lock_tracing:
         my_print(getThreadIdent(), "Acquired file lock for %s" % reason)
-    yield
-    if _lock_tracing:
-        my_print(getThreadIdent(), "Released file lock for %s" % reason)
-    file_lock.release()
+    try:
+        yield
+    finally:
+        if _lock_tracing:
+            my_print(getThreadIdent(), "Released file lock for %s" % reason)
+        file_lock.release()
 
 
 @contextmanager
@@ -123,6 +130,18 @@ def withTemporaryDirectory(
         )
 
 
+def _normalizePathCase(path):
+    """Normalize path casing for comparisons on case insensitive file systems."""
+    path = os.path.normcase(path)
+
+    # 'os.path.normcase' is a no-op on macOS and MSYS2 POSIX Python, despite
+    # their file systems being case insensitive.
+    if isCaseInsensitiveOS():
+        path = path.lower()
+
+    return path
+
+
 def areSamePaths(path1, path2):
     """Decide if two paths the same.
 
@@ -144,8 +163,8 @@ def areSamePaths(path1, path2):
     if path1 == path2:
         return True
 
-    path1 = os.path.abspath(getNormalizedPath(path1))
-    path2 = os.path.abspath(getNormalizedPath(path2))
+    path1 = getNormalizedAbsolutePath(path1)
+    path2 = getNormalizedAbsolutePath(path2)
 
     if path1 == path2:
         return True
@@ -160,10 +179,46 @@ def areSamePaths(path1, path2):
         path1 = getExternalUsePath(path1)
         path2 = getExternalUsePath(path2)
 
-    path1 = os.path.normcase(path1)
-    path2 = os.path.normcase(path2)
+    path1 = _normalizePathCase(path1)
+    path2 = _normalizePathCase(path2)
 
     return path1 == path2
+
+
+def isCaseInsensitiveFileSystem(path):
+    """Check if the file system of a path is case insensitive.
+
+    Notes:
+        On macOS and Windows, the file systems are typically case insensitive
+        by default, so this is assumed. On other platforms, a temporary file
+        is used to detect the case sensitivity.
+
+    Args:
+        path: The directory to check.
+
+    Returns:
+        bool: True if the file system is case insensitive.
+    """
+    if isCaseInsensitiveOS():
+        return True
+
+    file_descriptor, filename = tempfile.mkstemp(prefix=".nuitka_case_check_", dir=path)
+
+    try:
+        os.close(file_descriptor)
+
+        dirname, basename = os.path.split(filename)
+        other_filename = os.path.join(dirname, basename.upper())
+
+        try:
+            return os.stat(filename) == os.stat(other_filename)
+        except OSError as exception:
+            if exception.errno != errno.ENOENT:
+                raise
+
+            return False
+    finally:
+        deleteFile(filename, must_exist=False)
 
 
 def areInSamePaths(path1, path2):
@@ -317,7 +372,7 @@ def makePath(path):
             try:
                 os.makedirs(path)
             except OSError:
-                if not os.path.exists(path):
+                if not os.path.isdir(path):
                     raise
 
 
@@ -455,10 +510,16 @@ def _restoreWindowsPath(orig_path, path):
         drive, _remaining_path = os.path.splitdrive(orig_path)
 
         if drive and not drive.startswith("\\\\"):
-            drive_real_path = os.path.realpath(drive + "\\")
-            assert path.startswith(drive_real_path)
+            drive_real_path = os.path.realpath(drive + "\\").rstrip("\\/")
 
-            path = drive + "\\" + path[len(drive_real_path) :]
+            # Windows drive letters and share names are case insensitive
+            if os.path.normcase(path).startswith(os.path.normcase(drive_real_path)):
+                remainder = path[len(drive_real_path) :]
+
+                # Do not turn a UNC path into a drive path unless the share
+                # root is actually a prefix and not just a prefix by name.
+                if not remainder or remainder[0] in ("\\", "/"):
+                    path = getNormalizedPath(drive + "\\" + remainder)
     else:
         path = path.strip(os.path.sep)
 
@@ -580,8 +641,9 @@ def getFileList(
         path: directory to create a recursive listing from
         ignore_dirs: Don't descend into these directory, ignore them
         ignore_filenames: Ignore files named exactly like this
-        ignore_suffixes: Don't return files with these suffixes
-        only_suffixes: If not empty, limit returned files to these suffixes
+        ignore_suffixes: Don't return files with these suffixes, single string allowed
+        only_suffixes: If not empty, limit returned files to these suffixes, single
+            string allowed
 
     Returns:
         Sorted list of all filenames below that directory,
@@ -594,36 +656,29 @@ def getFileList(
     # We work with a lot of details here
     result = []
 
-    # Normalize "ignore_dirs" for better matching.
-    ignore_dirs = [os.path.normcase(ignore_dir) for ignore_dir in ignore_dirs]
-    ignore_filenames = [
+    ignore_dirs = set(os.path.normcase(ignore_dir) for ignore_dir in ignore_dirs)
+    ignore_filenames = set(
         os.path.normcase(ignore_filename) for ignore_filename in ignore_filenames
-    ]
+    )
 
     for root, dirnames, filenames in os.walk(path):
         dirnames.sort()
         filenames.sort()
 
-        # Normalize dirnames for better matching.
-        dirnames_normalized = [os.path.normcase(dirname) for dirname in dirnames]
-        for ignore_dir in ignore_dirs:
-            if ignore_dir in dirnames_normalized:
-                idx = dirnames_normalized.index(ignore_dir)
-                del dirnames[idx]
-                del dirnames_normalized[idx]
-
-        # Compare to normalized filenames for better matching.
-        filenames = [
-            filename
-            for filename in filenames
-            if os.path.normcase(filename) not in ignore_filenames
+        dirnames[:] = [
+            dirname
+            for dirname in dirnames
+            if os.path.normcase(dirname) not in ignore_dirs
         ]
 
         for filename in filenames:
-            if os.path.normcase(filename).endswith(ignore_suffixes):
+            if os.path.normcase(filename) in ignore_filenames:
                 continue
 
-            if only_suffixes and not os.path.normcase(filename).endswith(only_suffixes):
+            if hasFilenameSuffix(filename, ignore_suffixes):
+                continue
+
+            if only_suffixes and not hasFilenameSuffix(filename, only_suffixes):
                 continue
 
             fullname = getNormalizedPathJoin(root, filename)
@@ -641,13 +696,12 @@ def getSubDirectories(path, ignore_dirs=(), ignore_permission_error=False):
 
     Args:
         path: directory to create a recursive listing from
-        ignore_dirs: directories named that like will be ignored
+        ignore_dirs: directory basenames to ignore
         ignore_permission_error: When True, permission errors from
             'os.walk' are silently ignored.
 
     Returns:
-        Sorted list of all directories below that directory,
-        relative to it.
+        Sorted list of directory paths below 'path' (prefixed with 'path').
 
     Notes:
         This function descends into directories, but does
@@ -656,7 +710,7 @@ def getSubDirectories(path, ignore_dirs=(), ignore_permission_error=False):
 
     result = []
 
-    ignore_dirs = [os.path.normcase(ignore_dir) for ignore_dir in ignore_dirs]
+    ignore_dirs = set(os.path.normcase(ignore_dir) for ignore_dir in ignore_dirs)
 
     def _onError(_error):
         pass
@@ -669,11 +723,11 @@ def getSubDirectories(path, ignore_dirs=(), ignore_permission_error=False):
 
     try:
         for root, dirnames, _filenames in os.walk(path, **walk_kwargs):
-            # Normalize dirnames for better matching.
-            dirnames_normalized = [os.path.normcase(dirname) for dirname in dirnames]
-            for ignore_dir in ignore_dirs:
-                if ignore_dir in dirnames_normalized:
-                    dirnames.remove(ignore_dir)
+            dirnames[:] = [
+                dirname
+                for dirname in dirnames
+                if os.path.normcase(dirname) not in ignore_dirs
+            ]
 
             dirnames.sort()
 
@@ -714,26 +768,19 @@ def getDllBasename(path):
 def listDllFilesFromDirectory(
     path, prefix=None, suffixes=None, ignore_permission_error=False
 ):
-    """Give a sorted listing of DLLs filenames in a path.
+    """Yield DLL filenames in 'path' in sorted order.
 
     Args:
-        path: directory to create a DLL listing from
+        path: directory to scan for DLLs
         prefix: shell pattern to match filename start against, can be None
-        suffixes: shell patch to match filename end against, defaults to all platform ones
+        suffixes: shell patterns to match filename extension against, defaults to platform ones
         ignore_permission_error: When True, permission errors are
             silently ignored.
 
-    Returns:
-        Sorted list of tuples of full filename, and basename of
-        DLLs in that directory.
-
-    Notes:
-        Typically the full name and the basename are both needed
-        so this function simply does both, for ease of use on the
-        calling side.
+    Yields:
+        Tuples of '(fullpath, filename)' for matching DLLs in 'path'.
     """
 
-    # Accept None value as well.
     prefix = prefix or ""
 
     suffixes = suffixes or ("dll", "so.*", "so", "dylib")
@@ -750,24 +797,17 @@ def listDllFilesFromDirectory(
 
 
 def listExeFilesFromDirectory(path, prefix=None, suffixes=None):
-    """Give a sorted listing of EXE filenames in a path.
+    """Yield executable filenames in 'path' in sorted order.
 
     Args:
-        path: directory to create a DLL listing from
+        path: directory to scan for executables
         prefix: shell pattern to match filename start against, can be None
-        suffixes: shell patch to match filename end against, can be None
+        suffixes: shell patterns to match filename extension against, can be None
 
-    Returns:
-        Sorted list of tuples of full filename, and basename of
-        DLLs in that directory.
-
-    Notes:
-        Typically the full name and the basename are both needed
-        so this function simply does both, for ease of use on the
-        calling side.
+    Yields:
+        Tuples of '(fullpath, filename)' for matching executables in 'path'.
     """
 
-    # Accept None value as well.
     prefix = prefix or ""
 
     # On Windows, we check exe suffixes, on other platforms we shell all filenames,
@@ -795,18 +835,18 @@ def listExeFilesFromDirectory(path, prefix=None, suffixes=None):
 
 
 def getSubDirectoriesWithDlls(path, ignore_dirs=(), ignore_permission_error=False):
-    """Get all directories below a given path.
+    """Get all subdirectories below 'path' containing DLLs or macOS frameworks.
 
     Args:
         path: directory to create a recursive listing from
-        ignore_dirs: directories named that like will be ignored, in
-            addition to the ones ignored by default.
+        ignore_dirs: directory basenames to ignore, in addition to defaults
         ignore_permission_error: When True, permission errors are
             silently ignored.
 
     Returns:
-        Sorted tuple of all directories below that directory,
-        relative to it, that contain DLL files.
+        Sorted tuple of directory paths below 'path' (prefixed with 'path')
+        that contain DLL files or macOS frameworks, including intermediate
+        parent directories below 'path'.
 
     Notes:
         This function descends into directories, but does
@@ -826,6 +866,14 @@ def getSubDirectoriesWithDlls(path, ignore_dirs=(), ignore_permission_error=Fals
 
 
 def _getSubDirectoriesWithDlls(path, ignore_dirs=(), ignore_permission_error=False):
+    isValidPath(path).raiseExceptionUnlessPositive(
+        exception_class=NuitkaFilenameError,
+        template="Cannot scan DLL directories below '%(path)s', %(reason)s.",
+        template_args={"path": path},
+    )
+
+    path = getNormalizedPath(path)
+
     ignore_dirs = ["__pycache__"] + list(ignore_dirs)
 
     # On macOS the "Resources" directories of frameworks contain no DLLs and
@@ -846,17 +894,42 @@ def _getSubDirectoriesWithDlls(path, ignore_dirs=(), ignore_permission_error=Fal
         ) or _isMacOSFramework(sub_directory):
             yield sub_directory
 
-            candidate = os.path.dirname(sub_directory)
+            candidate = getNormalizedPath(os.path.dirname(sub_directory))
 
-            # Should be string identical, no normalization in is done in "getSubDirectories"
             while candidate != path:
                 yield candidate
-                candidate = os.path.dirname(candidate)
+
+                previous_candidate = candidate
+                candidate = getNormalizedPath(os.path.dirname(candidate))
+                assert candidate != previous_candidate, (path, sub_directory)
 
 
 def _isMacOSFramework(path):
     """Decide if a folder is a framework folder."""
     return isMacOS() and os.path.isdir(path) and path.endswith(".framework")
+
+
+_win32_get_file_attributes = None
+
+
+def _getWin32FileAttributes():
+    """Get the Win32 'GetFileAttributesW' function, cached.
+
+    Returns:
+        Function of the Windows API returning file attributes as int.
+    """
+    global _win32_get_file_attributes  # singleton, pylint: disable=global-statement
+
+    if _win32_get_file_attributes is None:
+        import ctypes.wintypes
+
+        result = ctypes.windll.kernel32.GetFileAttributesW
+        result.restype = ctypes.wintypes.DWORD
+        result.argtypes = (ctypes.wintypes.LPCWSTR,)
+
+        _win32_get_file_attributes = result
+
+    return _win32_get_file_attributes
 
 
 def isLink(path):
@@ -870,21 +943,18 @@ def isLink(path):
     """
     result = os.path.islink(path)
 
-    # Special handling for Junctions.
+    # Special handling for Junctions, which "os.path.islink" does not detect,
+    # and for Python2, where it detects nothing at all on Windows.
     if not result and isWin32Windows():
-        import ctypes.wintypes
-
-        GetFileAttributesW = ctypes.windll.kernel32.GetFileAttributesW
-        GetFileAttributesW.restype = ctypes.wintypes.DWORD
-        GetFileAttributesW.argtypes = (ctypes.wintypes.LPCWSTR,)
-
         INVALID_FILE_ATTRIBUTES = 0xFFFFFFFF
         FILE_ATTRIBUTE_REPARSE_POINT = 0x00400
 
-        result = GetFileAttributesW(path)
+        attributes = _getWin32FileAttributes()(path)
 
-        if result != INVALID_FILE_ATTRIBUTES:
-            result = bool(result & FILE_ATTRIBUTE_REPARSE_POINT)
+        if attributes == INVALID_FILE_ATTRIBUTES:
+            result = False
+        else:
+            result = bool(attributes & FILE_ATTRIBUTE_REPARSE_POINT)
 
     return result
 
@@ -956,15 +1026,19 @@ def changeFilenameExtension(path, extension):
         str: Path with new extension.
     """
 
-    is_legal, illegal_reason = isLegalPath(path)
-    if not is_legal:
-        raise NuitkaFilenameError(illegal_reason)
+    isLegalPath(path).raiseExceptionUnlessPositive(
+        exception_class=NuitkaFilenameError,
+        template="Cannot change filename extension of '%(path)s', %(reason)s.",
+        template_args={"path": path},
+    )
 
     result = os.path.splitext(path)[0] + extension
 
-    is_legal, illegal_reason = isLegalPath(result)
-    if not is_legal:
-        raise NuitkaFilenameError(illegal_reason)
+    isLegalPath(result).raiseExceptionUnlessPositive(
+        exception_class=NuitkaFilenameError,
+        template="Cannot change filename extension of '%(path)s', %(reason)s.",
+        template_args={"path": result},
+    )
 
     return result
 
@@ -1000,6 +1074,29 @@ def hasFilenameExtension(path, extensions):
         return extension in extensions
 
 
+def hasFilenameSuffix(filename, suffixes):
+    """Check if a filename ends with one of the given suffixes.
+
+    Args:
+        filename: Filename or path to check.
+        suffixes: Suffix or iterable of suffixes, e.g. '.so'.
+
+    Returns:
+        bool: True if the filename ends with one of the suffixes.
+
+    Notes:
+        Both sides are normalized with 'os.path.normcase' before the
+        comparison, and a single string is treated as one suffix rather
+        than an iterable of characters.
+    """
+    if isinstance(suffixes, basestring):
+        suffixes = (suffixes,)
+
+    return os.path.normcase(filename).endswith(
+        tuple(os.path.normcase(suffix) for suffix in suffixes)
+    )
+
+
 def addFilenameExtension(path, extension):
     """Add an extension to a filename if it doesn't already have it.
 
@@ -1016,6 +1113,97 @@ def addFilenameExtension(path, extension):
     return path
 
 
+def _onErrorRaise(func, path, exc_info):
+    """Error handler that raises the error.
+
+    Args:
+        func: Function that failed, passed to it.
+        path: Path that failed.
+        exc_info: Exception info tuple.
+    """
+    raise exc_info[1]
+
+
+def _onErrorIgnore(func, path, exc_info):  # pylint: disable=unused-argument
+    """Error handler that ignores the error.
+
+    Args:
+        func: Function that failed, passed to it.
+        path: Path that failed.
+        exc_info: Exception info tuple.
+    """
+
+
+def _needsLinkSafeRemoval():
+    """Decide if the link safe directory removal must be used.
+
+    Notes:
+        Python2 on Windows does not detect symlinks and junctions at all,
+        and until Python3.8, "shutil.rmtree" follows junctions there and
+        deletes the contents of the directories they point to instead of
+        only the junction, which loses unrelated files, e.g. of the Python
+        installation.
+
+    Returns:
+        bool: True if 'removeDirectory' must use its own removal.
+    """
+    return isWin32Windows() and python_version < 0x380
+
+
+def _removeDirectoryTree(path, on_error):
+    """Remove a directory tree, never following links.
+
+    Args:
+        path: Directory to remove.
+        on_error: Error handler, same calling convention as the "onerror"
+            argument of 'shutil.rmtree'.
+    """
+    if isLink(path):
+        # Never remove what a link points to, remove only the link itself.
+        try:
+            os.unlink(path)
+        except OSError:
+            # Directory links and junctions must use the directory API.
+            try:
+                os.rmdir(path)
+            except OSError:
+                on_error(os.rmdir, path, sys.exc_info())
+
+        return
+
+    try:
+        entry_names = os.listdir(path)
+    except OSError:
+        on_error(os.listdir, path, sys.exc_info())
+        entry_names = ()
+
+    for entry_name in entry_names:
+        entry_path = getNormalizedPathJoin(path, entry_name)
+
+        if isLink(entry_path):
+            try:
+                os.unlink(entry_path)
+            except OSError:
+                # Directory links and junctions must use the directory API.
+                try:
+                    os.rmdir(entry_path)
+                except OSError:
+                    on_error(os.rmdir, entry_path, sys.exc_info())
+        elif os.path.isdir(entry_path):
+            # Recursion intentionally uses this function, not "shutil.rmtree".
+            _removeDirectoryTree(path=entry_path, on_error=on_error)
+        else:
+            try:
+                os.unlink(entry_path)
+            except OSError:
+                on_error(os.unlink, entry_path, sys.exc_info())
+
+    try:
+        os.rmdir(path)
+    except OSError:
+        on_error(os.rmdir, path, sys.exc_info())
+
+
 def removeDirectory(path, logger, ignore_errors, extra_recommendation):
     """Remove a directory recursively.
 
@@ -1028,7 +1216,16 @@ def removeDirectory(path, logger, ignore_errors, extra_recommendation):
     """
 
     with withFileLock("removing directory %s" % path):
-        if os.path.exists(path):
+        if isWin32Windows() and isLink(path):
+            # On Windows, a link must not reach "shutil.rmtree", which would
+            # either delete the contents of the linked to directory, or
+            # refuse with an error, while removing the link is the safe and
+            # presumably wanted thing to do.
+            _removeDirectoryTree(
+                path=path,
+                on_error=_onErrorIgnore if ignore_errors else _onErrorRaise,
+            )
+        elif os.path.exists(path):
 
             @decoratorRetries(
                 logger=logger,
@@ -1046,7 +1243,10 @@ def removeDirectory(path, logger, ignore_errors, extra_recommendation):
                 # Try deleting while ignoring errors first.
                 while True:
                     last_error = []
-                    shutil.rmtree(path, ignore_errors=False, onerror=onError)
+                    if _needsLinkSafeRemoval():
+                        _removeDirectoryTree(path=path, on_error=onError)
+                    else:
+                        shutil.rmtree(path, ignore_errors=False, onerror=onError)
 
                     # onError as a side effect, modifies last_error
                     if previous_error == last_error:
@@ -1057,11 +1257,17 @@ def removeDirectory(path, logger, ignore_errors, extra_recommendation):
 
                 # If it still exists, try one more time, this time not ignoring errors.
                 if os.path.exists(path):
-                    try:
-                        shutil.rmtree(path, ignore_errors=ignore_errors)
-                    except OSError:
-                        if not ignore_errors:
-                            raise
+                    if _needsLinkSafeRemoval():
+                        _removeDirectoryTree(
+                            path=path,
+                            on_error=_onErrorIgnore if ignore_errors else _onErrorRaise,
+                        )
+                    else:
+                        try:
+                            shutil.rmtree(path, ignore_errors=ignore_errors)
+                        except OSError:
+                            if not ignore_errors:
+                                raise
 
             _removeDirectory()
 
@@ -1203,16 +1409,15 @@ def addFileContentsBOM(contents):
 
 
 def getFileFirstLine(filename, mode="r", encoding=None):
-    """Get the contents of a file.
+    """Get the first line of a file.
 
     Args:
         filename: str with the file to be read
         mode: "r" for str, "rb" for bytes result
-        encoding: optional encoding to used when reading the file, e.g. "utf8"
+        encoding: optional encoding to use when reading the file, e.g. "utf8"
 
     Returns:
         str or bytes - depending on mode.
-
     """
 
     with withFileLock("reading file %s" % filename):
@@ -1235,9 +1440,11 @@ def openTextFile(filename, mode, encoding=None, errors=None):
     # Do not attempt to create files with what we consider
     # illegal filenames.
     if "w" in mode:
-        is_legal, illegal_reason = isLegalPath(filename)
-        if not is_legal:
-            raise NuitkaFilenameError(illegal_reason)
+        isLegalPath(filename).raiseExceptionUnlessPositive(
+            exception_class=NuitkaFilenameError,
+            template="Cannot create file '%(filename)s', %(reason)s.",
+            template_args={"filename": filename},
+        )
 
     # Doesn't exist anymore for Python3.7 or later.
     if python_version >= 0x370:
@@ -1328,11 +1535,12 @@ def withPreserveFileMode(filenames):
         if os.path.exists(filename):
             old_modes[filename] = os.stat(filename).st_mode
 
-    yield
-
-    for filename in filenames:
-        if filename in old_modes and os.path.exists(filename):
-            os.chmod(filename, old_modes[filename])
+    try:
+        yield
+    finally:
+        for filename in filenames:
+            if filename in old_modes and os.path.exists(filename):
+                os.chmod(filename, old_modes[filename])
 
 
 @contextmanager
@@ -1383,6 +1591,16 @@ def addFileExecutablePermission(filename):
 
     if mode != old_stat.st_mode:
         os.chmod(filename, mode)
+
+
+def renameDirectory(source_path, dest_path):
+    """Rename a directory.
+
+    Args:
+        source_path: Source path.
+        dest_path: Destination path.
+    """
+    os.rename(source_path, dest_path)
 
 
 def renameFile(source_filename, dest_filename):
@@ -1524,6 +1742,19 @@ def copyFile(source_path, dest_path):
         break
 
 
+def appendFileToFile(source_path, dest_path):
+    """Append a file to another file.
+
+    Args:
+        source_path: Source file to append.
+        dest_path: Destination file to append to.
+    """
+
+    with openTextFile(source_path, "rb") as source_file:
+        with openTextFile(dest_path, "ab") as dest_file:
+            shutil.copyfileobj(source_file, dest_file)
+
+
 def getWindowsDrive(path):
     """Windows drive for a given path.
 
@@ -1532,10 +1763,21 @@ def getWindowsDrive(path):
 
     Returns:
         str: Drive letter with colon, normalized.
+
+    Notes:
+        The 'ntpath' module is used, because POSIX Python variants like MSYS2
+        do not split or normalize drive letters properly.
     """
 
-    drive, _ = os.path.splitdrive(os.path.abspath(path))
-    return os.path.normcase(drive)
+    drive, _ = ntpath.splitdrive(ntpath.abspath(path))
+    return ntpath.normcase(drive)
+
+
+def _isPathBelow(path, filename):
+    path = _normalizePathCase(path)
+    filename = _normalizePathCase(filename)
+
+    return os.path.relpath(filename, path).split(os.path.sep, 1)[0] != ".."
 
 
 def isFilenameBelowPath(path, filename, consider_short=True):
@@ -1573,7 +1815,7 @@ def isFilenameBelowPath(path, filename, consider_short=True):
         if getWindowsDrive(path) != getWindowsDrive(filename):
             return False
 
-    result = os.path.relpath(filename, path).split(os.path.sep, 1)[0] != ".."
+    result = _isPathBelow(path, filename)
 
     if (
         not result
@@ -1587,7 +1829,7 @@ def isFilenameBelowPath(path, filename, consider_short=True):
         if isWin32Windows() and getWindowsDrive(path) != getWindowsDrive(filename):
             return False
 
-        result = os.path.relpath(filename, path).split(os.path.sep, 1)[0] != ".."
+        result = _isPathBelow(path, filename)
 
     return result
 
@@ -1647,7 +1889,7 @@ def getWindowsShortPathName(filename):
 
 
 def getWindowsLongPathName(filename):
-    """Gets the long path name of a given long path.
+    """Gets the long path name of a given short path.
 
     Args:
         filename - short Windows filename
@@ -1668,7 +1910,7 @@ def getWindowsLongPathName(filename):
     while True:
         output_buf = ctypes.create_unicode_buffer(output_buf_size)
         needed = GetLongPathNameW(
-            getNormalizedPath(os.path.abspath(filename)), output_buf, output_buf_size
+            getNormalizedAbsolutePath(filename), output_buf, output_buf_size
         )
 
         if needed == 0:
@@ -1948,6 +2190,23 @@ def resolveShellPatternToFilenames(pattern):
     return result
 
 
+def resolveShellPatternsToFilenames(patterns):
+    """Resolve shell patterns to filenames.
+
+    Args:
+        patterns: Iterable of shell patterns.
+
+    Returns:
+        list: Filenames that matched.
+    """
+
+    return [
+        filename
+        for pattern in patterns
+        for filename in resolveShellPatternToFilenames(pattern)
+    ]
+
+
 @contextmanager
 def withDirectoryChange(path, allow_none=False):
     """Change current directory temporarily in a context.
@@ -2076,13 +2335,13 @@ def isLegalPath(path):
         path: Path to check.
 
     Returns:
-        tuple: (bool, str or None) - (is_legal, illegal_reason)
+        PathValidityDecision: Decision with 'decision' and 'reason'.
     """
     illegal_suffixes = "/\\"
     illegal_chars = "\0"
 
     if path == "":
-        return False, "is empty"
+        return PathValidityDecision.decideNo("is empty")
 
     if isWin32Windows():
         illegal_chars += r'*"/<>:|?'
@@ -2098,30 +2357,86 @@ def isLegalPath(path):
             continue
 
         if c in illegal_chars:
-            return False, "contains illegal character %r" % c
+            return PathValidityDecision.decideNo("contains illegal character %r" % c)
 
     for illegal_suffix in illegal_suffixes:
         if path.endswith(illegal_suffix):
-            return False, "contains illegal suffix %r" % illegal_suffix
+            return PathValidityDecision.decideNo(
+                "contains illegal suffix %r" % illegal_suffix
+            )
 
         for part in path.split(os.path.sep):
             if part in (".", ".."):
                 continue
 
             if part.endswith(illegal_suffix):
-                return False, "contains illegal suffix %r in path part %r" % (
-                    illegal_suffix,
-                    part,
+                return PathValidityDecision.decideNo(
+                    "contains illegal suffix %r in path part %r"
+                    % (illegal_suffix, part)
                 )
 
             part_length = len(part)
             if part_length > 255:
-                return False, "contains too long (%d) name part %r" % (
-                    part_length,
-                    part,
+                return PathValidityDecision.decideNo(
+                    "contains too long (%d) name part %r" % (part_length, part)
                 )
 
-    return True, None
+    return PathValidityDecision.decideYes()
+
+
+def isValidPath(path):
+    """Check if a path is usable without being relative to an unknown drive.
+
+    This is a syntactic check and does not test for the path existing.
+
+    Notes:
+        On Windows, 'C:', '\\', '\\foo', '/', and '/foo' are not usable,
+        while 'C:\\' and '\\\\server\\share' are complete. On POSIX, '/'
+        is complete, and '.' and '..' are valid relative directories.
+
+    Args:
+        path: Path to check.
+
+    Returns:
+        PathValidityDecision: Decision with 'decision' and 'reason'.
+    """
+    # Each rejected path shape needs its own reason, pylint: disable=too-many-return-statements
+    if not path:
+        return PathValidityDecision.decideNo("is empty")
+
+    path = getNormalizedPath(path)
+
+    if isWin32Windows():
+        drive, tail = os.path.splitdrive(path)
+
+        is_unc_path = path.startswith("\\\\")
+
+        if drive and not tail and not is_unc_path:
+            return PathValidityDecision.decideNo("is a drive without a path")
+
+        if drive and not os.path.isabs(path):
+            return PathValidityDecision.decideNo("is relative to a drive")
+
+        if len(drive) == 2 and not drive[0].isalpha():
+            return PathValidityDecision.decideNo("has an invalid drive letter")
+
+        if not drive and path.startswith("\\") and not is_unc_path:
+            return PathValidityDecision.decideNo("is a root without a drive")
+
+    check_path = path.rstrip(os.path.sep)
+
+    if not check_path:
+        if isWin32Windows():
+            return PathValidityDecision.decideNo("is a root without a path")
+
+        return PathValidityDecision.decideYes()
+
+    path_parts = check_path.split(os.path.sep)
+
+    if all(part in (".", "..") for part in path_parts):
+        return PathValidityDecision.decideYes()
+
+    return isLegalPath(check_path)
 
 
 def getParentDirectories(path):
@@ -2156,13 +2471,56 @@ def getNormalizedPath(path):
     return path
 
 
+def _expandUserPath(path):
+    """Expand a leading home directory shortcut.
+
+    Notes:
+        On Windows, 'ntpath.expanduser' treats any leading '~name' as
+        '~user' and guesses a sibling of the current home directory,
+        which would turn a filename like '~1.txt' into a path below the
+        home parent, and Python 2 prefers the 'HOME' variable, which
+        MSYS2 and Git Bash set to a POSIX path. Therefore only the '~'
+        home shorthand is expanded on Windows using 'USERPROFILE',
+        while POSIX also supports '~user'.
+    """
+    if isWin32Windows() and path.startswith("~"):
+        if len(path) > 1 and path[1] not in "/\\":
+            return path
+
+        user_home = os.getenv("USERPROFILE")
+
+        if user_home is None:
+            home_path = os.getenv("HOMEPATH")
+
+            if home_path is None:
+                return path
+
+            user_home = os.path.join(os.getenv("HOMEDRIVE", ""), home_path)
+
+        return user_home + path[1:]
+
+    return os.path.expanduser(path)
+
+
 def getUserInputNormalizedPath(path):
-    result = getNormalizedPath(path)
+    """Return a normalized path for a path from user or environment input."""
+    if path == "":
+        return path
 
-    if isMacOS():
-        result = os.path.expanduser(result)
+    return getNormalizedPath(_expandUserPath(path))
 
-    return result
+
+def getNormalizedAbsolutePath(path):
+    """Return an absolute normalized path for an internal path."""
+    return getNormalizedPath(os.path.abspath(path))
+
+
+def getUserInputNormalizedAbsolutePath(path):
+    """Return an absolute normalized path for a path from user or environment input."""
+    if path == "":
+        return path
+
+    return getNormalizedAbsolutePath(_expandUserPath(path))
 
 
 def getNormalizedPathJoin(*paths):
@@ -2180,6 +2538,47 @@ def getNormalizedPathSep():
     Needed, because on MSYS2 'os.path.sep' is '/' rather than the native '\\'.
     """
     return getNormalizedPath(os.path.sep)
+
+
+def getPathWithForwardSlashes(path):
+    """Convert the path separators to forward slashes.
+
+    Args:
+        path: Path as a string.
+
+    Returns:
+        str: Path with forward slashes.
+    """
+    if os.path.sep != "/":
+        path = path.replace(os.path.sep, "/")
+
+    return path
+
+
+def doesFileStartWithBytes(filename, search):
+    """Check if a file starts with a specific byte sequence.
+
+    Args:
+        filename: Path to the file.
+        search: Bytes to check for at the start, or a tuple of byte sequences.
+
+    Returns:
+        bool: True if the file starts with the byte sequence or any of the
+        sequences in the tuple.
+    """
+    if type(search) is tuple:
+        search_sequences = search
+    else:
+        search_sequences = (search,)
+
+    with open(filename, "rb") as f:
+        file_start = f.read(
+            max(len(search_sequence) for search_sequence in search_sequences)
+        )
+
+    return any(
+        file_start.startswith(search_sequence) for search_sequence in search_sequences
+    )
 
 
 def doesFileContainBytes(filename, search):

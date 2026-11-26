@@ -30,7 +30,6 @@ import nuitka.specs.BuiltinStrOperationSpecs
 import nuitka.specs.BuiltinTypeOperationSpecs
 import nuitka.specs.HardImportSpecs
 import nuitka.tree.Building
-from nuitka.containers.Namedtuples import makeNamedtupleClass
 from nuitka.containers.OrderedDicts import OrderedDict
 from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.nodes.ImportNodes import hard_modules_non_stdlib
@@ -43,6 +42,7 @@ from nuitka.nodes.shapes.BuiltinTypeShapes import (
     tshape_int,
     tshape_list,
     tshape_none,
+    tshape_sentinel,
     tshape_str,
     tshape_tuple,
 )
@@ -53,7 +53,8 @@ from .Common import (
     formatArgs,
     getLicenseGeneratedCode,
     getMethodVariations,
-    getSpecs,
+    getSpecVariation,
+    getSpecVersions,
     parseOptions,
     python2_dict_methods,
     python2_list_methods,
@@ -85,6 +86,12 @@ attribute_shape_operations_mixin_classes = {}
 # Version specific tests for attributes.
 attribute_shape_versions = {}
 
+# Minimum Python3 versions for methods that are not available in all supported
+# Python3 versions.
+python3_method_version_requirements = {
+    "isascii": "python_version >= 0x370",
+}
+
 # Argument count specific operation nodes if used.
 attribute_shape_variations = {}
 
@@ -99,6 +106,9 @@ attribute_shape_arg_tests = {}
 
 # Some methods are static, but we still do them
 attribute_shape_static = {}
+
+# Version specific specs for attributes, if used.
+attribute_shape_spec_versions = {}
 
 # Translations for node names.
 node_factory_translations = {}
@@ -123,6 +133,8 @@ def _getMixinForShape(shape):
         return "nuitka.nodes.ExpressionShapeMixins.ExpressionDictShapeExactMixin"
     elif shape is tshape_frozendict:
         return "nuitka.nodes.ExpressionShapeMixins.ExpressionFrozendictShapeExactMixin"
+    elif shape is tshape_sentinel:
+        return "nuitka.nodes.ExpressionShapeMixins.ExpressionSentinelShapeExactMixin"
     elif shape is tshape_bytes:
         return "nuitka.nodes.ExpressionShapeMixins.ExpressionBytesShapeExactMixin"
     else:
@@ -139,70 +151,70 @@ def processTypeShapeAttribute(
         if method_name not in python3_methods:
             attribute_shape_versions[key] = "str is bytes"
 
-        (
-            present,
-            arg_names,
-            arg_tests,
-            arg_name_mapping,
-            arg_counts,
-            result_shape,
-        ) = getMethodVariations(
+        method_variations = getMethodVariations(
             spec_module=spec_module, shape_name=shape_name, method_name=method_name
         )
 
-        attribute_shape_operations[key] = present
-        attribute_shape_operations_result_types[key] = result_shape
+        attribute_shape_operations[key] = method_variations.present
+        attribute_shape_operations_result_types[key] = method_variations.result_shape
 
-        if result_shape is not None:
+        if method_variations.result_shape is not None:
             attribute_shape_operations_mixin_classes[key] = [
-                _getMixinForShape(result_shape)
+                _getMixinForShape(method_variations.result_shape)
             ]
 
-        if present:
-            attribute_shape_args[key] = tuple(arg_names)
-            attribute_shape_arg_tests[key] = arg_tests
+        if method_variations.present:
+            attribute_shape_args[key] = tuple(method_variations.arg_names)
+            attribute_shape_arg_tests[key] = method_variations.arg_tests
             attribute_shape_static[key] = method_name in staticmethod_names
 
-            if len(arg_counts) > 1:
-                attribute_shape_variations[key] = arg_counts
+            if len(method_variations.arg_counts) > 1:
+                attribute_shape_variations[key] = method_variations.arg_counts
 
-            attribute_shape_node_arg_mapping[key] = arg_name_mapping
+            if any(
+                spec_version.python_criterion is not None
+                for spec_version in method_variations.spec_versions
+            ):
+                attribute_shape_spec_versions[key] = method_variations.spec_versions
+
+            attribute_shape_node_arg_mapping[key] = method_variations.arg_name_mapping
 
     for method_name in python3_methods:
         attribute_information.setdefault(method_name, set()).add(shape_name)
         key = method_name, shape_name
 
         if method_name not in python2_methods:
-            attribute_shape_versions[key] = "str is not bytes"
+            attribute_shape_versions[key] = python3_method_version_requirements.get(
+                method_name, "str is not bytes"
+            )
 
-        (
-            present,
-            arg_names,
-            arg_tests,
-            arg_name_mapping,
-            arg_counts,
-            result_shape,
-        ) = getMethodVariations(
+        method_variations = getMethodVariations(
             spec_module=spec_module, shape_name=shape_name, method_name=method_name
         )
 
-        attribute_shape_operations[key] = present
-        attribute_shape_operations_result_types[key] = result_shape
+        attribute_shape_operations[key] = method_variations.present
+        attribute_shape_operations_result_types[key] = method_variations.result_shape
 
-        if result_shape is not None:
+        if method_variations.result_shape is not None:
             attribute_shape_operations_mixin_classes[key] = [
-                _getMixinForShape(result_shape)
+                _getMixinForShape(method_variations.result_shape)
             ]
 
-        if present:
-            attribute_shape_args[key] = tuple(arg_names)
-            attribute_shape_arg_tests[key] = arg_tests
+        if method_variations.present:
+            attribute_shape_args[key] = tuple(method_variations.arg_names)
+            attribute_shape_arg_tests[key] = method_variations.arg_tests
             attribute_shape_static[key] = method_name in staticmethod_names
 
-            if len(arg_counts) > 1:
-                attribute_shape_variations[key] = arg_counts
+            if len(method_variations.arg_counts) > 1:
+                attribute_shape_variations[key] = method_variations.arg_counts
 
-            attribute_shape_node_arg_mapping[key] = arg_name_mapping
+            if any(
+                spec_version.python_criterion is not None
+                for spec_version in method_variations.spec_versions
+            ):
+                attribute_shape_spec_versions[key] = method_variations.spec_versions
+
+            attribute_shape_node_arg_mapping[key] = method_variations.arg_name_mapping
 
 
 processTypeShapeAttribute(
@@ -292,18 +304,24 @@ def emitGenerationWarning(emit, doc_string, template_name):
     emit("""
 # We are not avoiding these in generated code at all
 # pylint: disable=I0021,line-too-long,too-many-instance-attributes,too-many-lines
-# pylint: disable=I0021,too-many-arguments,too-many-return-statements,too-many-statements
+# pylint: disable=too-many-arguments,too-many-return-statements,too-many-statements
+# pylint: disable=literal-comparison
 """)
+
+    if isinstance(template_name, tuple):
+        template_desc = "templates %s" % ", ".join(template_name)
+    else:
+        template_desc = "template %s" % template_name
 
     emit('''
 """%s
 
-WARNING, this code is GENERATED. Modify the template %s instead!
+WARNING, this code is GENERATED. Modify the %s instead!
 
 %s
 """
 
-''' % (doc_string, template_name, ignores))
+''' % (doc_string, template_desc, ignores))
 
 
 def formatCallArgs(operation_node_arg_mapping, args, starting=True):
@@ -326,8 +344,6 @@ def formatCallArgs(operation_node_arg_mapping, args, starting=True):
 
     if not starting and result:
         result = "," + result
-
-    # print("args", args, "->", result)
 
     return result
 
@@ -381,7 +397,9 @@ from nuitka.nodes.NodeMakingHelpers import (
 
         emit("from nuitka.nodes.AttributeNodes import makeExpressionAttributeLookup")
 
-        emit("from nuitka.PythonVersions import getDictFromkeysNoArgErrorMessage")
+        emit(
+            "from nuitka.PythonVersions import getDictFromkeysNoArgErrorMessage, python_version"
+        )
 
         # TODO: Maybe generate its effect instead of using a base class.
         emit("from .NodeBases import SideEffectsFromChildrenMixin")
@@ -402,6 +420,8 @@ from nuitka.nodes.NodeMakingHelpers import (
                 attribute_shape_arg_tests=attribute_shape_arg_tests,
                 attribute_shape_empty=attribute_shape_empty,
                 attribute_shape_static=attribute_shape_static,
+                attribute_shape_spec_versions=attribute_shape_spec_versions,
+                getSpecVariation=getSpecVariation,
                 formatArgs=formatArgs,
                 formatCallArgs=formatCallArgs,
                 translateNodeClassName=translateNodeClassName,
@@ -433,7 +453,9 @@ def makeBuiltinOperationNodes():
         def emit(*args):
             writeLine(output_python, *args)
 
-        emitGenerationWarning(emit, "Specialized attribute nodes", template.name)
+        emitGenerationWarning(
+            emit, "Specialized built-in operation base nodes", template.name
+        )
 
         for attribute_name, shape_names in sorted(attribute_information.items()):
             attribute_name_class = attribute_name.replace("_", "").title()
@@ -692,12 +714,9 @@ def _parseNamedChildrenSpec(named_children):
 
 def _addFromNode(node_class):
     named_children = getattr(node_class, "named_children", ())
-    # assert not hasattr(node_class, "named_child"), node_class
 
     if hasattr(node_class, "auto_compute_handling"):
-        auto_compute_handling = frozenset(
-            getattr(node_class, "auto_compute_handling").split(",")
-        )
+        auto_compute_handling = frozenset(node_class.auto_compute_handling.split(","))
     else:
         auto_compute_handling = ()
 
@@ -732,7 +751,6 @@ def _addFromNode(node_class):
         if base.__name__ in (mixin_name, "_" + mixin_name):
             break
     else:
-        # if named_children == ("operand",):
         print("Not done", node_class.__name__, named_children, mixin_name)
 
     addChildrenMixin(
@@ -750,7 +768,6 @@ def _addFromNode(node_class):
 
 def addFromNodes():
     for node_class in NodeCheckMetaClass.kinds.values():
-        # Find nodes with a make variant.
         if hasattr(sys.modules[node_class.__module__], "make" + node_class.__name__):
             node_factory_translations[node_class.__name__] = (
                 "make" + node_class.__name__
@@ -772,6 +789,50 @@ def addFromNodes():
 
 
 addFromNodes()
+
+
+def makeValueTraceMergeNodes():
+    filename_python = getNormalizedPath(
+        "nuitka/optimizations/value_traces/ValueTracesGenerated.py"
+    )
+
+    template = getTemplate(
+        package_name=__package__,
+        template_subdir="templates_python",
+        template_name="ValueTraceMerge.py.j2",
+    )
+
+    with withFileOpenedAndAutoFormattedWithClaim(
+        filename_python,
+        ignore_errors=False,
+        claim=getLicenseGeneratedCode(),
+    ) as output_python:
+
+        def emit(*args):
+            writeLine(output_python, *args)
+
+        emitGenerationWarning(emit, "Value trace merge classes", template.name)
+        emit("# pylint: disable=too-many-branches")
+        emit("""
+from nuitka.Constants import compareConstants
+from nuitka.nodes.shapes.ControlFlowDescriptions import ControlFlowDescriptionFullEscape
+from nuitka.nodes.shapes.StandardShapes import tshape_unknown
+from nuitka.utils.InstanceCounters import counted_init
+
+from .ValueTracesStatic import (
+    MustHaveValueQueryContext,
+    ValueTraceMergeBase,
+    ValueTraceMergeMethodsMixin,
+)
+""")
+
+        for trace_count in range(2, 7):
+            emit(
+                template.render(
+                    trace_count=trace_count,
+                    traces=["trace%d" % index for index in range(1, trace_count + 1)],
+                )
+            )
 
 
 def makeChildrenHavingMixinNodes():
@@ -876,8 +937,7 @@ from .Checkers import (
                 for value in children_mixins_intentions[mixin_name]
                 if (
                     not value.endswith("Base")
-                    or value.rstrip("Base")
-                    not in children_mixins_intentions[mixin_name]
+                    or value[:-4] not in children_mixins_intentions[mixin_name]
                 )
             ]
             intended_for.sort()
@@ -911,7 +971,9 @@ from .Checkers import (
             else:
                 raise_mode = None
 
-            is_compute_statement = pop("operation")
+            is_compute_operation = pop("operation")
+            is_compute_statement = is_compute_operation and is_statement
+            is_compute_expression_operation = is_compute_operation and is_expression
             has_post_node_init = pop("post_init")
 
             awaited_constant_attributes = OrderedSet(
@@ -962,13 +1024,14 @@ from .Checkers import (
                 single_optional=single_optional,
                 named_children_checkers=named_children_checkers,
                 children_mixing_setters_needed=sorted(
-                    tuple(children_mixing_setters_needed.get(mixin_name, ()))
+                    children_mixing_setters_needed.get(mixin_name, ())
                 ),
                 intended_for=intended_for,
                 is_compute_final=is_compute_final,
                 is_compute_final_children=is_compute_final_children,
                 raise_mode=raise_mode,
                 is_compute_statement=is_compute_statement,
+                is_compute_expression_operation=is_compute_expression_operation,
                 awaited_constant_attributes=awaited_constant_attributes,
                 has_post_node_init=has_post_node_init,
                 node_attributes=node_attributes,
@@ -983,86 +1046,6 @@ from .Checkers import (
                 emit1(code)
 
             mixins_done.add(mixin_name)
-
-
-SpecVersion = makeNamedtupleClass(
-    "SpecVersion",
-    (
-        "spec_name",
-        "python_criterion",
-        "python_version_spec",
-        "spec",
-        "suffix",
-    ),
-)
-
-
-def getSpecVersions(spec_module):
-    result = {}
-
-    for spec_name, spec in getSpecs(spec_module):
-        for version, str_version in (
-            (0x300, "3"),
-            (0x370, "37"),
-            (0x380, "38"),
-            (0x390, "39"),
-            (0x3A0, "310"),
-            (0x3B0, "311"),
-            (0x3C0, "312"),
-            (0x3D0, "313"),
-            (0x3E0, "314"),
-            (0x3F0, "315"),
-        ):
-            if spec_name.endswith("_since_%s_spec" % str_version):
-                python_criterion = ">= 0x%x" % version
-                suffix = "Since%s" % str_version
-                break
-
-            if spec_name.endswith("_before_%s_spec" % str_version):
-                python_criterion = "< 0x%x" % version
-                suffix = "Before%s" % str_version
-                break
-        else:
-            python_criterion = None
-            suffix = ""
-
-        assert ".entry_points" not in spec_name or python_criterion is not None
-
-        if spec.name not in result:
-            result[spec.name] = []
-
-        result[spec.name].append(
-            SpecVersion(spec_name, python_criterion, python_criterion, spec, suffix)
-        )
-        result[spec.name].sort(
-            key=lambda spec_version: spec_version.python_criterion or "", reverse=True
-        )
-
-        # Logic to tighten the criteria for older versions to not match the
-        # newer versions.
-        sorted_specs = result[spec.name]
-        for i, spec_version in enumerate(sorted_specs):
-            if i > 0:
-                prev_spec_version = sorted_specs[i - 1]
-
-                if (
-                    prev_spec_version.python_criterion
-                    and spec_version.python_criterion
-                    and prev_spec_version.python_criterion.startswith(">= ")
-                    and spec_version.python_criterion.startswith(">= ")
-                ):
-                    limit = prev_spec_version.python_criterion.replace(">=", "<")
-                    new_criterion = "%s and python_version %s" % (
-                        spec_version.python_criterion,
-                        limit,
-                    )
-                    new_spec = "%s, %s" % (spec_version.python_version_spec, limit)
-
-                    result[spec.name][i] = spec_version.replace(
-                        python_criterion=new_criterion, python_version_spec=new_spec
-                    )
-
-    return tuple(sorted(result.values()))
 
 
 def makeHardImportNodes():
@@ -1091,7 +1074,11 @@ def makeHardImportNodes():
         def emit(*args):
             writeLine(output_python, *args)
 
-        emitGenerationWarning(emit, "Hard import nodes", template_ref_node.name)
+        emitGenerationWarning(
+            emit,
+            "Hard import nodes",
+            (template_ref_node.name, template_call_node.name),
+        )
 
         emit("""
 from nuitka.nodes.HardImportNodes import addHardImportNodeClass, addBuiltinRefNode
@@ -1117,9 +1104,7 @@ from nuitka.nodes.HardImportNodes import addHardImportNodeClass, addBuiltinRefNo
             )
 
             for spec_desc in spec_descriptions:
-                # Check for make factory
                 call_node_module_name = getCallModuleName(module_name, function_name)
-                # Helper to import module dynamically
                 loaded_module = importlib.import_module(
                     "nuitka.nodes." + call_node_module_name
                 )
@@ -1274,6 +1259,8 @@ def main():
     makeBuiltinOperationNodes()
     traceSpecialization("Make children having mixin nodes...")
     makeChildrenHavingMixinNodes()
+    traceSpecialization("Make value trace merge classes...")
+    makeValueTraceMergeNodes()
     traceSpecialization("OK.")
 
 

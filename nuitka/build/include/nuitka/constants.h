@@ -53,6 +53,7 @@ extern PyObject **global_constants;
 #define const_str_plain___abstractmethods__ global_constants[0]
 #define const_str_plain___closure__ global_constants[0]
 #define const_str_plain___instancecheck__ global_constants[0]
+#define const_str_plain___subclasscheck__ global_constants[0]
 #define const_str_plain___dict__ global_constants[0]
 #define const_str_plain___doc__ global_constants[0]
 #define const_str_plain___file__ global_constants[0]
@@ -64,6 +65,8 @@ extern PyObject **global_constants;
 #define const_str_plain___init__ global_constants[0]
 #define const_str_plain___cmp__ global_constants[0]
 #define const_str_plain___iter__ global_constants[0]
+#define const_str_plain___getitem__ global_constants[0]
+#define const_str_plain___length_hint__ global_constants[0]
 #define const_str_plain___loader__ global_constants[0]
 #define const_str_plain___compiled__ global_constants[0]
 #define const_str_plain___nuitka__ global_constants[0]
@@ -71,6 +74,8 @@ extern PyObject **global_constants;
 #define const_str_plain_environ global_constants[0]
 #define const_str_plain_inspect global_constants[0]
 #define const_str_plain_compile global_constants[0]
+#define const_str_plain_eval global_constants[0]
+#define const_str_plain_exec global_constants[0]
 #define const_str_plain_range global_constants[0]
 #define const_str_plain_open global_constants[0]
 #define const_str_plain_super global_constants[0]
@@ -82,9 +87,13 @@ extern PyObject **global_constants;
 #define const_str_plain_classmethod global_constants[0]
 #define const_str_plain_keys global_constants[0]
 #define const_str_plain_get global_constants[0]
+#define const_str_plain_pop global_constants[0]
 #define const_str_plain_name global_constants[0]
 #define const_str_plain_globals global_constants[0]
 #define const_str_plain_locals global_constants[0]
+#define const_str_plain_vars global_constants[0]
+#define const_str_plain_dir global_constants[0]
+#define const_str_plain_closure global_constants[0]
 #define const_str_plain_fromlist global_constants[0]
 #define const_str_plain_level global_constants[0]
 #define const_str_plain_read global_constants[0]
@@ -119,6 +128,9 @@ extern PyObject **global_constants;
 #define const_str_plain_end global_constants[0]
 #define const_str_plain_file global_constants[0]
 #define const_str_plain_bytes global_constants[0]
+#define const_str_plain_ModuleInfo global_constants[0]
+#define const_str_plain_get_importer global_constants[0]
+#define const_str_plain_iter_importer_modules global_constants[0]
 // '.'
 #define const_str_dot global_constants[0]
 // '_'
@@ -150,6 +162,7 @@ extern PyObject **global_constants;
 #define const_str_plain___await__ global_constants[0]
 #define const_str_plain___main__ global_constants[0]
 #define const_str_plain_loader global_constants[0]
+#define const_str_plain_reload global_constants[0]
 #define const_str_plain___classcell__ global_constants[0]
 #define const_str_plain_as_file global_constants[0]
 #define const_str_plain_register global_constants[0]
@@ -172,7 +185,6 @@ extern PyObject **global_constants;
 
 // Referenced by helper code, but not part of the default population on all
 // versions or configurations.
-#define const_str_plain___subclasscheck__ global_constants[0]
 #define const_str_plain___dir__ global_constants[0]
 
 #define _NUITKA_CONSTANTS_SIZE 27

@@ -24,7 +24,6 @@
 {% if target %}
     {{ target.getAssignFromFloatConstantCode(result, constant_value) }}
 {% else %}
-    // We got an object handed, that we have to release.
     Py_DECREF({{ operand1 }});
     {{ left.getAssignFromFloatConstantCode(operand1, constant_value) }}
 {% endif %}
@@ -36,7 +35,6 @@
 {% if target %}
     {{ target.getAssignFromIntConstantCode(result, constant_value) }}
 {% else %}
-    // We got an object handed, that we have to release.
     Py_DECREF({{ operand1 }});
     {{ left.getAssignFromIntConstantCode(operand1, constant_value) }}
 {% endif %}
@@ -48,7 +46,6 @@
 {% if target %}
     {{ target.getAssignFromLongConstantCode(result, constant_value) }}
 {% else %}
-    // We got an object handed, that we have to release.
     Py_DECREF({{ operand1 }});
     {{ left.getAssignFromLongConstantCode(operand1, constant_value) }}
 {% endif %}

@@ -1,25 +1,19 @@
 #     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-"""Node meta classes.
-
-This provides meta classes for nodes, currently only one. These do all kinds
-of checks, and add methods automatically.
-
-"""
+"""Node meta classes."""
 
 from abc import ABCMeta
 
 from nuitka.__past__ import intern
 from nuitka.Errors import NuitkaAssumptionError, NuitkaNodeDesignError
 from nuitka.PythonVersions import python_version
+from nuitka.utils.SlotMetaClasses import checkSlots
 
 
 def _checkBases(name, bases):
-    # Avoid duplicate base classes.
     assert len(bases) == len(set(bases)), (name, bases)
 
-    # Insist on mixins being in proper place for inheritance.
     last_mixin = None
     for base in bases:
         base_name = base.__name__
@@ -32,8 +26,115 @@ def _checkBases(name, bases):
 
         last_mixin = is_mixin
 
+        if not isinstance(base, type):
+            raise NuitkaNodeDesignError(
+                name, "All bases must inherit from object.", base
+            )
+
         if base is not object and "__slots__" not in base.__dict__:
             raise NuitkaNodeDesignError(name, "All bases must set __slots__.", base)
+
+
+def _getUnboundFunction(method):
+    # Python 2 wraps methods as unbound instancemethods whose identity differs per class.
+    return getattr(method, "__func__", method)
+
+
+def _collectCloningSpec(cls):
+    named_children = ()
+    node_attributes = []
+
+    for base in cls.__mro__:
+        if not named_children and "named_children" in base.__dict__:
+            named_children = base.__dict__["named_children"]
+
+        if "node_attributes" in base.__dict__:
+            node_attributes.extend(base.__dict__["node_attributes"])
+
+    child_param_names = set(
+        "object_arg" if nc.split("|", 1)[0] == "object" else nc.split("|", 1)[0]
+        for nc in named_children
+    )
+
+    return named_children, child_param_names, tuple(node_attributes)
+
+
+def _checkInitParameters(name, all_args, has_varkw, expected_names, label):
+    if has_varkw:
+        return
+
+    missing = sorted(expected_names - all_args)
+    if missing:
+        raise NuitkaNodeDesignError(
+            name,
+            "Node '__init__' does not accept '%s' parameters." % label,
+            tuple(missing),
+        )
+
+
+def _checkCloningInterface(cls, name):
+    from .NodeBases import NodeBase
+
+    if _getUnboundFunction(cls.makeClone) is not _getUnboundFunction(
+        NodeBase.makeClone
+    ):
+        return
+
+    init_func = _getUnboundFunction(cls.__init__)
+    if getattr(init_func, "is_version_disabled", False):
+        return
+
+    code = getattr(init_func, "__code__", None)
+    if code is None:
+        return
+
+    arg_names = code.co_varnames[1 : code.co_argcount]
+    defaults = getattr(init_func, "__defaults__", None) or ()
+    required_args = set(arg_names[: len(arg_names) - len(defaults)])
+    all_args = set(arg_names)
+    has_varkw = bool(code.co_flags & 0x08)
+
+    named_children, child_param_names, node_attributes = _collectCloningSpec(cls)
+
+    if named_children:
+        if _getUnboundFunction(cls.getCloneArgs) is _getUnboundFunction(
+            NodeBase.getCloneArgs
+        ):
+            raise NuitkaNodeDesignError(
+                name,
+                "Node defines 'named_children' without overriding 'getCloneArgs'.",
+                named_children,
+            )
+
+        _checkInitParameters(
+            name, all_args, has_varkw, child_param_names, "named_children"
+        )
+
+    uses_default_get_details = _getUnboundFunction(
+        cls.getDetails
+    ) is _getUnboundFunction(NodeBase.getDetails)
+
+    if node_attributes:
+        if uses_default_get_details:
+            raise NuitkaNodeDesignError(
+                name,
+                "Node defines 'node_attributes' without overriding 'getDetails'.",
+                node_attributes,
+            )
+
+        _checkInitParameters(
+            name, all_args, has_varkw, set(node_attributes), "node_attributes"
+        )
+
+    non_child_required = sorted(
+        required_args - child_param_names - set(("source_ref",))
+    )
+    if non_child_required and uses_default_get_details:
+        raise NuitkaNodeDesignError(
+            name,
+            "Node '__init__' requires non-child parameters without overriding 'getDetails'.",
+            tuple(non_child_required),
+        )
 
 
 def returnFalseSharedFunction():
@@ -51,9 +152,22 @@ class NodeCheckMetaClass(ABCMeta):
 
         if "__slots__" not in dictionary:
             dictionary["__slots__"] = ()
+        elif type(dictionary["__slots__"]) is not tuple:
+            raise NuitkaNodeDesignError(
+                name, "Class __slots__ must be a tuple.", dictionary["__slots__"]
+            )
 
         if "named_children" in dictionary:
             assert type(dictionary["named_children"]) is tuple
+
+            for base in bases:
+                for ancestor in base.__mro__:
+                    if "named_children" in ancestor.__dict__:
+                        raise NuitkaNodeDesignError(
+                            name,
+                            "Redeclared 'named_children' from %s." % ancestor.__name__,
+                            dictionary["named_children"],
+                        )
 
             dictionary["__slots__"] += tuple(
                 intern("subnode_" + named_child.split("|", 1)[0])
@@ -74,9 +188,7 @@ class NodeCheckMetaClass(ABCMeta):
         if "node_attributes" in dictionary:
             dictionary["__slots__"] += dictionary["node_attributes"]
 
-        assert len(dictionary["__slots__"]) == len(
-            set(dictionary["__slots__"])
-        ), dictionary["__slots__"]
+        checkSlots(name=name, bases=bases, dictionary=dictionary)
 
         python_version_spec = dictionary.get("python_version_spec")
 
@@ -88,15 +200,15 @@ class NodeCheckMetaClass(ABCMeta):
             )
             assert condition, python_version_spec
 
-            # We trust our node class files, pylint: disable=eval-used
+            # pylint: disable=eval-used
             if not eval(condition):
 
                 def __init__(self, *args, **kwargs):
                     raise NuitkaAssumptionError(name, "assumption violated", condition)
 
+                __init__.is_version_disabled = True
                 dictionary["__init__"] = __init__
 
-        # Not a method:
         if "checker" in dictionary:
             dictionary["checker"] = staticmethod(dictionary["checker"])
 
@@ -122,11 +234,8 @@ class NodeCheckMetaClass(ABCMeta):
             kind_to_name_part = "".join([x.capitalize() for x in kind.split("_")])
             assert name.endswith(kind_to_name_part), (name, kind_to_name_part)
 
-            # Automatically add checker methods for everything to the common
-            # base class
             checker_method_name = "is" + kind_to_name_part
 
-            # Add automatic checker "False" to the node base class.
             from .NodeBases import NodeBase
 
             if not hasattr(NodeBase, checker_method_name):
@@ -135,7 +244,6 @@ class NodeCheckMetaClass(ABCMeta):
         ABCMeta.__init__(cls, name, bases, dictionary)
 
         if not name.endswith(("Base", "Mixin")):
-            # Add automatic checker "True" to the node class.
             if getattr(cls, checker_method_name) is returnFalseSharedFunction:
 
                 def checkKind(self):
@@ -143,8 +251,8 @@ class NodeCheckMetaClass(ABCMeta):
 
                 setattr(cls, checker_method_name, checkKind)
 
+            _checkCloningInterface(cls, name)
 
-# For every node type, there is a test, and then some more members,
 
 # For Python2/3 compatible source, we create a base class that has the metaclass
 # used and doesn't require making a syntax choice.

@@ -332,7 +332,7 @@ static PyObject *unicode_builtin_format_map = NULL;
 static PyObject *unicode_builtin_index = NULL;
 static PyObject *unicode_builtin_isalnum = NULL;
 static PyObject *unicode_builtin_isalpha = NULL;
-#if PYTHON_VERSION >= 0x300
+#if PYTHON_VERSION >= 0x370
 static PyObject *unicode_builtin_isascii = NULL;
 #endif
 static PyObject *unicode_builtin_isdecimal = NULL;
@@ -393,7 +393,7 @@ static void _initUnicodeBuiltinMethods(void) {
     unicode_builtin_index = PyObject_GetAttrString((PyObject *)&PyUnicode_Type, "index");
     unicode_builtin_isalnum = PyObject_GetAttrString((PyObject *)&PyUnicode_Type, "isalnum");
     unicode_builtin_isalpha = PyObject_GetAttrString((PyObject *)&PyUnicode_Type, "isalpha");
-#if PYTHON_VERSION >= 0x300
+#if PYTHON_VERSION >= 0x370
     unicode_builtin_isascii = PyObject_GetAttrString((PyObject *)&PyUnicode_Type, "isascii");
 #endif
     unicode_builtin_isdecimal = PyObject_GetAttrString((PyObject *)&PyUnicode_Type, "isdecimal");
@@ -1615,7 +1615,7 @@ PyObject *STR_TITLE(PyThreadState *tstate, PyObject *str) {
     assert(result == NULL || Nuitka_String_CheckExact(result));
     return result;
 }
-PyObject *STR_TRANSLATE(PyThreadState *tstate, PyObject *str, PyObject *table) {
+PyObject *STR_TRANSLATE2(PyThreadState *tstate, PyObject *str, PyObject *table) {
     CHECK_OBJECT(str);
     assert(PyString_CheckExact(str));
 
@@ -1626,6 +1626,23 @@ PyObject *STR_TRANSLATE(PyThreadState *tstate, PyObject *str, PyObject *table) {
 
     PyObject *args[2] = {str, table};
     PyObject *result = CALL_METHODDESCR_WITH_ARGS2(tstate, called, args);
+
+    CHECK_OBJECT_X(result);
+    assert(result == NULL || Nuitka_String_CheckExact(result));
+    return result;
+}
+PyObject *STR_TRANSLATE3(PyThreadState *tstate, PyObject *str, PyObject *table, PyObject *delete_value) {
+    CHECK_OBJECT(str);
+    assert(PyString_CheckExact(str));
+
+    CHECK_OBJECT(table);
+    CHECK_OBJECT(delete_value);
+
+    PyObject *called = str_builtin_translate;
+    CHECK_OBJECT(called);
+
+    PyObject *args[3] = {str, table, delete_value};
+    PyObject *result = CALL_METHODDESCR_WITH_ARGS3(tstate, called, args);
 
     CHECK_OBJECT_X(result);
     assert(result == NULL || Nuitka_String_CheckExact(result));
@@ -1673,6 +1690,20 @@ PyObject *UNICODE_CAPITALIZE(PyThreadState *tstate, PyObject *unicode) {
     CHECK_OBJECT_X(result);
     return result;
 }
+#if PYTHON_VERSION >= 0x300
+PyObject *UNICODE_CASEFOLD(PyThreadState *tstate, PyObject *unicode) {
+    CHECK_OBJECT(unicode);
+    assert(PyUnicode_CheckExact(unicode));
+
+    PyObject *called = unicode_builtin_casefold;
+    CHECK_OBJECT(called);
+
+    PyObject *result = CALL_METHODDESCR_WITH_SINGLE_ARG(tstate, called, unicode);
+
+    CHECK_OBJECT_X(result);
+    return result;
+}
+#endif
 PyObject *UNICODE_CENTER2(PyThreadState *tstate, PyObject *unicode, PyObject *width) {
     CHECK_OBJECT(unicode);
     assert(PyUnicode_CheckExact(unicode));
@@ -1991,6 +2022,32 @@ PyObject *UNICODE_ISALPHA(PyThreadState *tstate, PyObject *unicode) {
     CHECK_OBJECT_X(result);
     return result;
 }
+#if PYTHON_VERSION >= 0x370
+PyObject *UNICODE_ISASCII(PyThreadState *tstate, PyObject *unicode) {
+    CHECK_OBJECT(unicode);
+    assert(PyUnicode_CheckExact(unicode));
+
+    PyObject *called = unicode_builtin_isascii;
+    CHECK_OBJECT(called);
+
+    PyObject *result = CALL_METHODDESCR_WITH_SINGLE_ARG(tstate, called, unicode);
+
+    CHECK_OBJECT_X(result);
+    return result;
+}
+#endif
+PyObject *UNICODE_ISDECIMAL(PyThreadState *tstate, PyObject *unicode) {
+    CHECK_OBJECT(unicode);
+    assert(PyUnicode_CheckExact(unicode));
+
+    PyObject *called = unicode_builtin_isdecimal;
+    CHECK_OBJECT(called);
+
+    PyObject *result = CALL_METHODDESCR_WITH_SINGLE_ARG(tstate, called, unicode);
+
+    CHECK_OBJECT_X(result);
+    return result;
+}
 PyObject *UNICODE_ISDIGIT(PyThreadState *tstate, PyObject *unicode) {
     CHECK_OBJECT(unicode);
     assert(PyUnicode_CheckExact(unicode));
@@ -2003,6 +2060,20 @@ PyObject *UNICODE_ISDIGIT(PyThreadState *tstate, PyObject *unicode) {
     CHECK_OBJECT_X(result);
     return result;
 }
+#if PYTHON_VERSION >= 0x300
+PyObject *UNICODE_ISIDENTIFIER(PyThreadState *tstate, PyObject *unicode) {
+    CHECK_OBJECT(unicode);
+    assert(PyUnicode_CheckExact(unicode));
+
+    PyObject *called = unicode_builtin_isidentifier;
+    CHECK_OBJECT(called);
+
+    PyObject *result = CALL_METHODDESCR_WITH_SINGLE_ARG(tstate, called, unicode);
+
+    CHECK_OBJECT_X(result);
+    return result;
+}
+#endif
 PyObject *UNICODE_ISLOWER(PyThreadState *tstate, PyObject *unicode) {
     CHECK_OBJECT(unicode);
     assert(PyUnicode_CheckExact(unicode));
@@ -2015,6 +2086,32 @@ PyObject *UNICODE_ISLOWER(PyThreadState *tstate, PyObject *unicode) {
     CHECK_OBJECT_X(result);
     return result;
 }
+PyObject *UNICODE_ISNUMERIC(PyThreadState *tstate, PyObject *unicode) {
+    CHECK_OBJECT(unicode);
+    assert(PyUnicode_CheckExact(unicode));
+
+    PyObject *called = unicode_builtin_isnumeric;
+    CHECK_OBJECT(called);
+
+    PyObject *result = CALL_METHODDESCR_WITH_SINGLE_ARG(tstate, called, unicode);
+
+    CHECK_OBJECT_X(result);
+    return result;
+}
+#if PYTHON_VERSION >= 0x300
+PyObject *UNICODE_ISPRINTABLE(PyThreadState *tstate, PyObject *unicode) {
+    CHECK_OBJECT(unicode);
+    assert(PyUnicode_CheckExact(unicode));
+
+    PyObject *called = unicode_builtin_isprintable;
+    CHECK_OBJECT(called);
+
+    PyObject *result = CALL_METHODDESCR_WITH_SINGLE_ARG(tstate, called, unicode);
+
+    CHECK_OBJECT_X(result);
+    return result;
+}
+#endif
 PyObject *UNICODE_ISSPACE(PyThreadState *tstate, PyObject *unicode) {
     CHECK_OBJECT(unicode);
     assert(PyUnicode_CheckExact(unicode));
@@ -2522,7 +2619,7 @@ PyObject *UNICODE_TITLE(PyThreadState *tstate, PyObject *unicode) {
     CHECK_OBJECT_X(result);
     return result;
 }
-PyObject *UNICODE_TRANSLATE(PyThreadState *tstate, PyObject *unicode, PyObject *table) {
+PyObject *UNICODE_TRANSLATE2(PyThreadState *tstate, PyObject *unicode, PyObject *table) {
     CHECK_OBJECT(unicode);
     assert(PyUnicode_CheckExact(unicode));
 
@@ -2537,6 +2634,24 @@ PyObject *UNICODE_TRANSLATE(PyThreadState *tstate, PyObject *unicode, PyObject *
     CHECK_OBJECT_X(result);
     return result;
 }
+#if PYTHON_VERSION < 0x300
+PyObject *UNICODE_TRANSLATE3(PyThreadState *tstate, PyObject *unicode, PyObject *table, PyObject *delete_value) {
+    CHECK_OBJECT(unicode);
+    assert(PyUnicode_CheckExact(unicode));
+
+    CHECK_OBJECT(table);
+    CHECK_OBJECT(delete_value);
+
+    PyObject *called = unicode_builtin_translate;
+    CHECK_OBJECT(called);
+
+    PyObject *args[3] = {unicode, table, delete_value};
+    PyObject *result = CALL_METHODDESCR_WITH_ARGS3(tstate, called, args);
+
+    CHECK_OBJECT_X(result);
+    return result;
+}
+#endif
 PyObject *UNICODE_UPPER(PyThreadState *tstate, PyObject *unicode) {
     CHECK_OBJECT(unicode);
     assert(PyUnicode_CheckExact(unicode));

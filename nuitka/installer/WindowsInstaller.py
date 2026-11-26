@@ -13,13 +13,12 @@ from nuitka.freezer.IncludedDataFiles import getIncludedDataFiles
 from nuitka.options.Options import (
     getCompanyName,
     getFileDescription,
-    getInstallerOutputFilename,
     getLegalCopyright,
-    getOutputFilename,
     getOutputPath,
     getProductName,
     getProductVersion,
     getWindowsIconPaths,
+    getWindowsInstallerOutputFilename,
     isOnefileMode,
     shallCreateWindowsInstaller,
 )
@@ -35,27 +34,24 @@ from .backends.NsisBackend import createNsisInstaller
 
 
 def computeWindowsInstallerOutputFilename():
-    """Return the absolute output path for the Windows installer.
+    """Return the output path for the Windows installer.
 
     Returns *None* if installer creation was not requested.
     """
     if not shallCreateWindowsInstaller():
         return None
 
-    output_filename = getInstallerOutputFilename()
+    output_filename = getWindowsInstallerOutputFilename()
 
-    if output_filename is None:
-        output_filename = getOutputFilename()
+    if output_filename is not None:
+        return getOutputPath(path=output_filename)
 
-    if output_filename is None:
-        if isOnefileMode():
-            base = getResultFullpath(onefile=True, real=True)
-        else:
-            base = getStandaloneDirectoryPath(bundle=True, real=True)
+    if isOnefileMode():
+        base = getResultFullpath(onefile=True, real=True)
+    else:
+        base = getStandaloneDirectoryPath(bundle=True, real=True)
 
-        output_filename = changeFilenameExtension(base, "-setup.exe")
-
-    return getOutputPath(path=output_filename)
+    return changeFilenameExtension(base, "-setup.exe")
 
 
 def _checkPayload(payload_dir, payload_filename, main_binary_name):
@@ -82,7 +78,6 @@ def _checkPayload(payload_dir, payload_filename, main_binary_name):
 
 def createWindowsInstaller(
     installer_tool_path,
-    output_filename,
     install_dir_spec,
     shortcuts,
     license_filename,
@@ -107,8 +102,7 @@ def createWindowsInstaller(
 
     icon_paths = getWindowsIconPaths()
 
-    if output_filename is not None:
-        output_filename = getOutputPath(path=output_filename)
+    output_filename = computeWindowsInstallerOutputFilename()
 
     _checkPayload(payload_dir, payload_filename, main_binary_name)
 

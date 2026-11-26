@@ -64,11 +64,15 @@ static PyObject *_Nuitka_Generator_throw2(PyThreadState *tstate, struct Nuitka_G
 static void SET_CURRENT_EXCEPTION_STOP_ITERATION_EMPTY(PyThreadState *tstate);
 static void _Nuitka_GeneratorPopFrame(PyThreadState *tstate, Nuitka_ThreadStateFrameType *return_frame);
 static bool DROP_ERROR_OCCURRED_GENERATOR_EXIT_OR_STOP_ITERATION(PyThreadState *tstate);
+static PyObject *Nuitka_GetGeneratorCloseResult(PyThreadState *tstate);
 static bool _Nuitka_Generator_make_throw_exception_state(PyThreadState *tstate,
                                                          struct Nuitka_ExceptionPreservationItem *exception_state,
                                                          PyObject *exception_type, PyObject *exception_value,
                                                          PyTracebackObject *exception_tb);
-static bool _Nuitka_Generator_close(PyThreadState *tstate, struct Nuitka_GeneratorObject *generator);
+static void _Nuitka_Generator_add_throw_traceback_frame(PyThreadState *tstate,
+                                                        struct Nuitka_ExceptionPreservationItem *exception_state,
+                                                        PyCodeObject *code_object, PyObject *module);
+static PyObject *_Nuitka_Generator_close(PyThreadState *tstate, struct Nuitka_GeneratorObject *generator);
 
 #if PYTHON_VERSION >= 0x350
 static void RAISE_RUNTIME_ERROR_RAISED_STOP_ITERATION(PyThreadState *tstate, char const *message);
@@ -76,7 +80,7 @@ static PyObject *_Nuitka_YieldFromCore(PyThreadState *tstate, PyObject *yield_fr
                                        PyObject **returned_value, bool mode);
 static PyObject *_Nuitka_Coroutine_throw2(PyThreadState *tstate, struct Nuitka_CoroutineObject *coroutine, bool closing,
                                           struct Nuitka_ExceptionPreservationItem *exception_state);
-static bool _Nuitka_Coroutine_close(PyThreadState *tstate, struct Nuitka_CoroutineObject *coroutine);
+static PyObject *_Nuitka_Coroutine_close(PyThreadState *tstate, struct Nuitka_CoroutineObject *coroutine);
 static void _initCompiledCoroutineTypes(void);
 #endif
 
@@ -85,7 +89,7 @@ static void SET_CURRENT_EXCEPTION_STOP_ASYNC_ITERATION(PyThreadState *tstate);
 static bool _Nuitka_Asyncgen_close(PyThreadState *tstate, struct Nuitka_AsyncgenObject *asyncgen);
 static PyObject *_Nuitka_AsyncgenAsend_throw2(PyThreadState *tstate, struct Nuitka_AsyncgenAsendObject *asyncgen_asend,
                                               struct Nuitka_ExceptionPreservationItem *exception_state);
-static bool Nuitka_AsyncgenAsend_Check(PyObject *object);
+static bool Nuitka_AsyncgenAsend_Check(PyObject *obj);
 static void _initCompiledAsyncgenTypes(void);
 #endif
 

@@ -13,8 +13,10 @@ DLL presence, link paths, etc.
 import os
 import sys
 
+from nuitka.PythonPrefixes import getSystemPrefixPath
 from nuitka.utils.FileOperations import (
     areSamePaths,
+    getUserInputNormalizedPath,
     isFilenameBelowPath,
     isFilenameSameAsOrBelowPath,
 )
@@ -34,7 +36,6 @@ from nuitka.utils.Utils import (
 from .PythonVersions import (
     getInstalledPythonRegistryPaths,
     getRunningPythonDLLPath,
-    getSystemPrefixPath,
     isStaticallyLinkedPython,
     python_version,
     python_version_str,
@@ -211,7 +212,7 @@ def isRyePython():
 
         # We didn't find a better one, since they do not leave much of any trace
         # otherwise than an unusable "libpython.a"
-        # spell-checker: ignore isysroot,flto,ldflags
+        # spell-checker: ignore flto,isysroot,ldflags
         value = sysconfig.get_config_var("_OSX_SUPPORT_INITIAL_PY_CORE_LDFLAGS")
         return value is not None and "-flto=thin" in value and "-isysroot" in value
 
@@ -231,8 +232,13 @@ def isPyenvPython():
     if isWin32Windows():
         return False
 
-    return os.getenv("PYENV_ROOT") and isFilenameSameAsOrBelowPath(
-        path=os.getenv("PYENV_ROOT"), filename=getSystemPrefixPath()
+    pyenv_root = os.getenv("PYENV_ROOT")
+    if not pyenv_root:
+        return False
+
+    return isFilenameSameAsOrBelowPath(
+        path=getUserInputNormalizedPath(pyenv_root),
+        filename=getSystemPrefixPath(),
     )
 
 
@@ -382,7 +388,7 @@ def isAlpinePackagePython():
 
 
 def isArchPackagePython():
-    """Is the Python from a Fedora package."""
+    """Is the Python from an Arch Linux package."""
     if not isArchBasedLinux():
         return False
 

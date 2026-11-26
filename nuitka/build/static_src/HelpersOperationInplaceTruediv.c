@@ -11,16 +11,14 @@
 /* C helpers for type in-place "/" (TRUEDIV) operations */
 
 #if PYTHON_VERSION < 0x300
-/* Code referring to "INT" corresponds to Python2 'int' and "INT" to Python2 'int'. */
 static inline bool _INPLACE_OPERATION_TRUEDIV_INT_INT(PyObject **operand1, PyObject *operand2) {
-    assert(operand1); // Pointer must be non-null.
+    assert(operand1);
 
     CHECK_OBJECT(*operand1);
     assert(PyInt_CheckExact(*operand1));
     CHECK_OBJECT(operand2);
     assert(PyInt_CheckExact(operand2));
 
-    // Not every code path will make use of all possible results.
 #if defined(_MSC_VER)
 #pragma warning(push)
 #pragma warning(disable : 4101)
@@ -56,9 +54,6 @@ static inline bool _INPLACE_OPERATION_TRUEDIV_INT_INT(PyObject **operand1, PyObj
         }
     }
 
-/* May need to resort to LONG code, which we currently do not
- * specialize yet. TODO: Once we do that, call it here instead.
- */
 #if DBL_MANT_DIG < WIDTH_OF_ULONG
     if ((a >= 0 ? 0UL + a : 0UL - a) >> DBL_MANT_DIG || (b >= 0 ? 0UL + b : 0UL - b) >> DBL_MANT_DIG) {
     } else
@@ -82,8 +77,6 @@ static inline bool _INPLACE_OPERATION_TRUEDIV_INT_INT(PyObject **operand1, PyObj
     }
 
 exit_result_ok_cfloat:
-
-    // We got an object handed, that we have to release.
     Py_DECREF(*operand1);
 
     *operand1 = MAKE_FLOAT_FROM_DOUBLE(cfloat_result);
@@ -93,21 +86,18 @@ exit_result_object:
     if (unlikely(obj_result == NULL)) {
         goto exit_result_exception;
     }
-    // We got an object handed, that we have to release.
     Py_DECREF(*operand1);
 
     *operand1 = obj_result;
     goto exit_result_ok;
 
 exit_result_ok_const_float_0_0:
-    // We got an object handed, that we have to release.
     Py_DECREF(*operand1);
     Py_INCREF(const_float_0_0);
     *operand1 = const_float_0_0;
     goto exit_result_ok;
 
 exit_result_ok_const_float_minus_0_0:
-    // We got an object handed, that we have to release.
     Py_DECREF(*operand1);
     Py_INCREF(const_float_minus_0_0);
     *operand1 = const_float_minus_0_0;
@@ -126,7 +116,6 @@ bool INPLACE_OPERATION_TRUEDIV_INT_INT(PyObject **operand1, PyObject *operand2) 
 #endif
 
 #if PYTHON_VERSION < 0x300
-/* Code referring to "OBJECT" corresponds to any Python object and "INT" to Python2 'int'. */
 static HEDLEY_NEVER_INLINE bool __INPLACE_OPERATION_TRUEDIV_OBJECT_INT(PyObject **operand1, PyObject *operand2) {
     PyTypeObject *type1 = Py_TYPE(*operand1);
 
@@ -161,8 +150,6 @@ static HEDLEY_NEVER_INLINE bool __INPLACE_OPERATION_TRUEDIV_OBJECT_INT(PyObject 
         binaryfunc slot2 = NULL;
 
         if (!(type1 == &PyInt_Type)) {
-            // Different types, need to consider second value slot.
-
             slot2 = PyInt_Type.tp_as_number->nb_true_divide;
 
             if (slot1 == slot2) {
@@ -275,11 +262,7 @@ exit_inplace_result_object:
         return false;
     }
 
-    // We got an object handed, that we have to release.
     Py_DECREF(*operand1);
-
-    // That's our return value then. As we use a dedicated variable, it's
-    // OK that way.
     *operand1 = obj_result;
 
     return true;
@@ -288,7 +271,7 @@ exit_inplace_exception:
     return false;
 }
 static inline bool _INPLACE_OPERATION_TRUEDIV_OBJECT_INT(PyObject **operand1, PyObject *operand2) {
-    assert(operand1); // Pointer must be non-null.
+    assert(operand1);
 
     CHECK_OBJECT(*operand1);
     CHECK_OBJECT(operand2);
@@ -297,9 +280,7 @@ static inline bool _INPLACE_OPERATION_TRUEDIV_OBJECT_INT(PyObject **operand1, Py
     PyTypeObject *type1 = Py_TYPE(*operand1);
 
     if (type1 == &PyInt_Type) {
-        // return _BINARY_OPERATION_TRUEDIV_INT_INT_INPLACE(operand1, operand2);
 
-        // Not every code path will make use of all possible results.
 #if defined(_MSC_VER)
 #pragma warning(push)
 #pragma warning(disable : 4101)
@@ -335,9 +316,6 @@ static inline bool _INPLACE_OPERATION_TRUEDIV_OBJECT_INT(PyObject **operand1, Py
             }
         }
 
-/* May need to resort to LONG code, which we currently do not
- * specialize yet. TODO: Once we do that, call it here instead.
- */
 #if DBL_MANT_DIG < WIDTH_OF_ULONG
         if ((a >= 0 ? 0UL + a : 0UL - a) >> DBL_MANT_DIG || (b >= 0 ? 0UL + b : 0UL - b) >> DBL_MANT_DIG) {
         } else
@@ -361,8 +339,6 @@ static inline bool _INPLACE_OPERATION_TRUEDIV_OBJECT_INT(PyObject **operand1, Py
         }
 
     exit_result_ok_cfloat:
-
-        // We got an object handed, that we have to release.
         Py_DECREF(*operand1);
 
         *operand1 = MAKE_FLOAT_FROM_DOUBLE(cfloat_result);
@@ -372,21 +348,18 @@ static inline bool _INPLACE_OPERATION_TRUEDIV_OBJECT_INT(PyObject **operand1, Py
         if (unlikely(obj_result == NULL)) {
             goto exit_result_exception;
         }
-        // We got an object handed, that we have to release.
         Py_DECREF(*operand1);
 
         *operand1 = obj_result;
         goto exit_result_ok;
 
     exit_result_ok_const_float_0_0:
-        // We got an object handed, that we have to release.
         Py_DECREF(*operand1);
         Py_INCREF(const_float_0_0);
         *operand1 = const_float_0_0;
         goto exit_result_ok;
 
     exit_result_ok_const_float_minus_0_0:
-        // We got an object handed, that we have to release.
         Py_DECREF(*operand1);
         Py_INCREF(const_float_minus_0_0);
         *operand1 = const_float_minus_0_0;
@@ -408,7 +381,6 @@ bool INPLACE_OPERATION_TRUEDIV_OBJECT_INT(PyObject **operand1, PyObject *operand
 #endif
 
 #if PYTHON_VERSION < 0x300
-/* Code referring to "INT" corresponds to Python2 'int' and "OBJECT" to any Python object. */
 static HEDLEY_NEVER_INLINE bool __INPLACE_OPERATION_TRUEDIV_INT_OBJECT(PyObject **operand1, PyObject *operand2) {
     PyTypeObject *type2 = Py_TYPE(operand2);
 
@@ -422,15 +394,11 @@ static HEDLEY_NEVER_INLINE bool __INPLACE_OPERATION_TRUEDIV_INT_OBJECT(PyObject 
 #pragma warning(pop)
 #endif
 
-    // No inplace number slot nb_inplace_true_divide available for this type.
-
     {
         binaryfunc slot1 = PyInt_Type.tp_as_number->nb_true_divide;
         binaryfunc slot2 = NULL;
 
         if (!(&PyInt_Type == type2)) {
-            // Different types, need to consider second value slot.
-
             slot2 = (type2->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type2)) ? type2->tp_as_number->nb_true_divide
                                                                                   : NULL;
 
@@ -558,11 +526,7 @@ exit_inplace_result_object:
         return false;
     }
 
-    // We got an object handed, that we have to release.
     Py_DECREF(*operand1);
-
-    // That's our return value then. As we use a dedicated variable, it's
-    // OK that way.
     *operand1 = obj_result;
 
     return true;
@@ -571,7 +535,7 @@ exit_inplace_exception:
     return false;
 }
 static inline bool _INPLACE_OPERATION_TRUEDIV_INT_OBJECT(PyObject **operand1, PyObject *operand2) {
-    assert(operand1); // Pointer must be non-null.
+    assert(operand1);
 
     CHECK_OBJECT(*operand1);
     assert(PyInt_CheckExact(*operand1));
@@ -580,9 +544,7 @@ static inline bool _INPLACE_OPERATION_TRUEDIV_INT_OBJECT(PyObject **operand1, Py
     PyTypeObject *type2 = Py_TYPE(operand2);
 
     if (&PyInt_Type == type2) {
-        // return _BINARY_OPERATION_TRUEDIV_INT_INT_INPLACE(operand1, operand2);
 
-        // Not every code path will make use of all possible results.
 #if defined(_MSC_VER)
 #pragma warning(push)
 #pragma warning(disable : 4101)
@@ -618,9 +580,6 @@ static inline bool _INPLACE_OPERATION_TRUEDIV_INT_OBJECT(PyObject **operand1, Py
             }
         }
 
-/* May need to resort to LONG code, which we currently do not
- * specialize yet. TODO: Once we do that, call it here instead.
- */
 #if DBL_MANT_DIG < WIDTH_OF_ULONG
         if ((a >= 0 ? 0UL + a : 0UL - a) >> DBL_MANT_DIG || (b >= 0 ? 0UL + b : 0UL - b) >> DBL_MANT_DIG) {
         } else
@@ -644,8 +603,6 @@ static inline bool _INPLACE_OPERATION_TRUEDIV_INT_OBJECT(PyObject **operand1, Py
         }
 
     exit_result_ok_cfloat:
-
-        // We got an object handed, that we have to release.
         Py_DECREF(*operand1);
 
         *operand1 = MAKE_FLOAT_FROM_DOUBLE(cfloat_result);
@@ -655,21 +612,18 @@ static inline bool _INPLACE_OPERATION_TRUEDIV_INT_OBJECT(PyObject **operand1, Py
         if (unlikely(obj_result == NULL)) {
             goto exit_result_exception;
         }
-        // We got an object handed, that we have to release.
         Py_DECREF(*operand1);
 
         *operand1 = obj_result;
         goto exit_result_ok;
 
     exit_result_ok_const_float_0_0:
-        // We got an object handed, that we have to release.
         Py_DECREF(*operand1);
         Py_INCREF(const_float_0_0);
         *operand1 = const_float_0_0;
         goto exit_result_ok;
 
     exit_result_ok_const_float_minus_0_0:
-        // We got an object handed, that we have to release.
         Py_DECREF(*operand1);
         Py_INCREF(const_float_minus_0_0);
         *operand1 = const_float_minus_0_0;
@@ -690,16 +644,14 @@ bool INPLACE_OPERATION_TRUEDIV_INT_OBJECT(PyObject **operand1, PyObject *operand
 }
 #endif
 
-/* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "LONG" to Python2 'long', Python3 'int'. */
 static inline bool _INPLACE_OPERATION_TRUEDIV_LONG_LONG(PyObject **operand1, PyObject *operand2) {
-    assert(operand1); // Pointer must be non-null.
+    assert(operand1);
 
     CHECK_OBJECT(*operand1);
     assert(PyLong_CheckExact(*operand1));
     CHECK_OBJECT(operand2);
     assert(PyLong_CheckExact(operand2));
 
-    // Not every code path will make use of all possible results.
 #if defined(_MSC_VER)
 #pragma warning(push)
 #pragma warning(disable : 4101)
@@ -720,7 +672,6 @@ exit_result_object:
     if (unlikely(obj_result == NULL)) {
         goto exit_result_exception;
     }
-    // We got an object handed, that we have to release.
     Py_DECREF(*operand1);
     *operand1 = obj_result;
     goto exit_result_ok;
@@ -736,7 +687,6 @@ bool INPLACE_OPERATION_TRUEDIV_LONG_LONG(PyObject **operand1, PyObject *operand2
     return _INPLACE_OPERATION_TRUEDIV_LONG_LONG(operand1, operand2);
 }
 
-/* Code referring to "OBJECT" corresponds to any Python object and "LONG" to Python2 'long', Python3 'int'. */
 static HEDLEY_NEVER_INLINE bool __INPLACE_OPERATION_TRUEDIV_OBJECT_LONG(PyObject **operand1, PyObject *operand2) {
     PyTypeObject *type1 = Py_TYPE(*operand1);
 
@@ -771,8 +721,6 @@ static HEDLEY_NEVER_INLINE bool __INPLACE_OPERATION_TRUEDIV_OBJECT_LONG(PyObject
         binaryfunc slot2 = NULL;
 
         if (!(type1 == &PyLong_Type)) {
-            // Different types, need to consider second value slot.
-
             slot2 = PyLong_Type.tp_as_number->nb_true_divide;
 
             if (slot1 == slot2) {
@@ -889,11 +837,7 @@ exit_inplace_result_object:
         return false;
     }
 
-    // We got an object handed, that we have to release.
     Py_DECREF(*operand1);
-
-    // That's our return value then. As we use a dedicated variable, it's
-    // OK that way.
     *operand1 = obj_result;
 
     return true;
@@ -902,7 +846,7 @@ exit_inplace_exception:
     return false;
 }
 static inline bool _INPLACE_OPERATION_TRUEDIV_OBJECT_LONG(PyObject **operand1, PyObject *operand2) {
-    assert(operand1); // Pointer must be non-null.
+    assert(operand1);
 
     CHECK_OBJECT(*operand1);
     CHECK_OBJECT(operand2);
@@ -911,9 +855,6 @@ static inline bool _INPLACE_OPERATION_TRUEDIV_OBJECT_LONG(PyObject **operand1, P
     PyTypeObject *type1 = Py_TYPE(*operand1);
 
     if (type1 == &PyLong_Type) {
-        // return _BINARY_OPERATION_TRUEDIV_LONG_LONG_INPLACE(operand1, operand2);
-
-        // Not every code path will make use of all possible results.
 #if defined(_MSC_VER)
 #pragma warning(push)
 #pragma warning(disable : 4101)
@@ -934,7 +875,6 @@ static inline bool _INPLACE_OPERATION_TRUEDIV_OBJECT_LONG(PyObject **operand1, P
         if (unlikely(obj_result == NULL)) {
             goto exit_result_exception;
         }
-        // We got an object handed, that we have to release.
         Py_DECREF(*operand1);
         *operand1 = obj_result;
         goto exit_result_ok;
@@ -953,7 +893,6 @@ bool INPLACE_OPERATION_TRUEDIV_OBJECT_LONG(PyObject **operand1, PyObject *operan
     return _INPLACE_OPERATION_TRUEDIV_OBJECT_LONG(operand1, operand2);
 }
 
-/* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "OBJECT" to any Python object. */
 static HEDLEY_NEVER_INLINE bool __INPLACE_OPERATION_TRUEDIV_LONG_OBJECT(PyObject **operand1, PyObject *operand2) {
     PyTypeObject *type2 = Py_TYPE(operand2);
 
@@ -967,15 +906,11 @@ static HEDLEY_NEVER_INLINE bool __INPLACE_OPERATION_TRUEDIV_LONG_OBJECT(PyObject
 #pragma warning(pop)
 #endif
 
-    // No inplace number slot nb_inplace_true_divide available for this type.
-
     {
         binaryfunc slot1 = PyLong_Type.tp_as_number->nb_true_divide;
         binaryfunc slot2 = NULL;
 
         if (!(&PyLong_Type == type2)) {
-            // Different types, need to consider second value slot.
-
             slot2 = (type2->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type2)) ? type2->tp_as_number->nb_true_divide
                                                                                   : NULL;
 
@@ -1107,11 +1042,7 @@ exit_inplace_result_object:
         return false;
     }
 
-    // We got an object handed, that we have to release.
     Py_DECREF(*operand1);
-
-    // That's our return value then. As we use a dedicated variable, it's
-    // OK that way.
     *operand1 = obj_result;
 
     return true;
@@ -1120,7 +1051,7 @@ exit_inplace_exception:
     return false;
 }
 static inline bool _INPLACE_OPERATION_TRUEDIV_LONG_OBJECT(PyObject **operand1, PyObject *operand2) {
-    assert(operand1); // Pointer must be non-null.
+    assert(operand1);
 
     CHECK_OBJECT(*operand1);
     assert(PyLong_CheckExact(*operand1));
@@ -1129,9 +1060,6 @@ static inline bool _INPLACE_OPERATION_TRUEDIV_LONG_OBJECT(PyObject **operand1, P
     PyTypeObject *type2 = Py_TYPE(operand2);
 
     if (&PyLong_Type == type2) {
-        // return _BINARY_OPERATION_TRUEDIV_LONG_LONG_INPLACE(operand1, operand2);
-
-        // Not every code path will make use of all possible results.
 #if defined(_MSC_VER)
 #pragma warning(push)
 #pragma warning(disable : 4101)
@@ -1152,7 +1080,6 @@ static inline bool _INPLACE_OPERATION_TRUEDIV_LONG_OBJECT(PyObject **operand1, P
         if (unlikely(obj_result == NULL)) {
             goto exit_result_exception;
         }
-        // We got an object handed, that we have to release.
         Py_DECREF(*operand1);
         *operand1 = obj_result;
         goto exit_result_ok;
@@ -1171,9 +1098,8 @@ bool INPLACE_OPERATION_TRUEDIV_LONG_OBJECT(PyObject **operand1, PyObject *operan
     return _INPLACE_OPERATION_TRUEDIV_LONG_OBJECT(operand1, operand2);
 }
 
-/* Code referring to "FLOAT" corresponds to Python 'float' and "FLOAT" to Python 'float'. */
 static inline bool _INPLACE_OPERATION_TRUEDIV_FLOAT_FLOAT(PyObject **operand1, PyObject *operand2) {
-    assert(operand1); // Pointer must be non-null.
+    assert(operand1);
 
     CHECK_OBJECT(*operand1);
     assert(PyFloat_CheckExact(*operand1));
@@ -1184,7 +1110,6 @@ static inline bool _INPLACE_OPERATION_TRUEDIV_FLOAT_FLOAT(PyObject **operand1, P
 #pragma warning(push)
 #pragma warning(disable : 4101)
 #endif
-    // Not every code path will make use of all possible results.
     NUITKA_MAY_BE_UNUSED PyObject *obj_result;
     NUITKA_MAY_BE_UNUSED long clong_result;
     NUITKA_MAY_BE_UNUSED double cfloat_result;
@@ -1215,10 +1140,9 @@ static inline bool _INPLACE_OPERATION_TRUEDIV_FLOAT_FLOAT(PyObject **operand1, P
     }
 
 exit_result_ok_cfloat:
-    if (Py_REFCNT(*operand1) == 1) {
+    if (_PyObject_IsUniquelyReferenced(*operand1)) {
         PyFloat_SET_DOUBLE(*operand1, cfloat_result);
     } else {
-        // We got an object handed, that we have to release.
         Py_DECREF(*operand1);
 
         *operand1 = MAKE_FLOAT_FROM_DOUBLE(cfloat_result);
@@ -1236,7 +1160,6 @@ bool INPLACE_OPERATION_TRUEDIV_FLOAT_FLOAT(PyObject **operand1, PyObject *operan
     return _INPLACE_OPERATION_TRUEDIV_FLOAT_FLOAT(operand1, operand2);
 }
 
-/* Code referring to "OBJECT" corresponds to any Python object and "FLOAT" to Python 'float'. */
 static HEDLEY_NEVER_INLINE bool __INPLACE_OPERATION_TRUEDIV_OBJECT_FLOAT(PyObject **operand1, PyObject *operand2) {
     PyTypeObject *type1 = Py_TYPE(*operand1);
 
@@ -1271,8 +1194,6 @@ static HEDLEY_NEVER_INLINE bool __INPLACE_OPERATION_TRUEDIV_OBJECT_FLOAT(PyObjec
         binaryfunc slot2 = NULL;
 
         if (!(type1 == &PyFloat_Type)) {
-            // Different types, need to consider second value slot.
-
             slot2 = PyFloat_Type.tp_as_number->nb_true_divide;
 
             if (slot1 == slot2) {
@@ -1385,11 +1306,7 @@ exit_inplace_result_object:
         return false;
     }
 
-    // We got an object handed, that we have to release.
     Py_DECREF(*operand1);
-
-    // That's our return value then. As we use a dedicated variable, it's
-    // OK that way.
     *operand1 = obj_result;
 
     return true;
@@ -1398,7 +1315,7 @@ exit_inplace_exception:
     return false;
 }
 static inline bool _INPLACE_OPERATION_TRUEDIV_OBJECT_FLOAT(PyObject **operand1, PyObject *operand2) {
-    assert(operand1); // Pointer must be non-null.
+    assert(operand1);
 
     CHECK_OBJECT(*operand1);
     CHECK_OBJECT(operand2);
@@ -1407,13 +1324,10 @@ static inline bool _INPLACE_OPERATION_TRUEDIV_OBJECT_FLOAT(PyObject **operand1, 
     PyTypeObject *type1 = Py_TYPE(*operand1);
 
     if (type1 == &PyFloat_Type) {
-        // return _BINARY_OPERATION_TRUEDIV_FLOAT_FLOAT_INPLACE(operand1, operand2);
-
 #if defined(_MSC_VER)
 #pragma warning(push)
 #pragma warning(disable : 4101)
 #endif
-        // Not every code path will make use of all possible results.
         NUITKA_MAY_BE_UNUSED PyObject *obj_result;
         NUITKA_MAY_BE_UNUSED long clong_result;
         NUITKA_MAY_BE_UNUSED double cfloat_result;
@@ -1444,10 +1358,9 @@ static inline bool _INPLACE_OPERATION_TRUEDIV_OBJECT_FLOAT(PyObject **operand1, 
         }
 
     exit_result_ok_cfloat:
-        if (Py_REFCNT(*operand1) == 1) {
+        if (_PyObject_IsUniquelyReferenced(*operand1)) {
             PyFloat_SET_DOUBLE(*operand1, cfloat_result);
         } else {
-            // We got an object handed, that we have to release.
             Py_DECREF(*operand1);
 
             *operand1 = MAKE_FLOAT_FROM_DOUBLE(cfloat_result);
@@ -1468,7 +1381,6 @@ bool INPLACE_OPERATION_TRUEDIV_OBJECT_FLOAT(PyObject **operand1, PyObject *opera
     return _INPLACE_OPERATION_TRUEDIV_OBJECT_FLOAT(operand1, operand2);
 }
 
-/* Code referring to "FLOAT" corresponds to Python 'float' and "OBJECT" to any Python object. */
 static HEDLEY_NEVER_INLINE bool __INPLACE_OPERATION_TRUEDIV_FLOAT_OBJECT(PyObject **operand1, PyObject *operand2) {
     PyTypeObject *type2 = Py_TYPE(operand2);
 
@@ -1482,15 +1394,11 @@ static HEDLEY_NEVER_INLINE bool __INPLACE_OPERATION_TRUEDIV_FLOAT_OBJECT(PyObjec
 #pragma warning(pop)
 #endif
 
-    // No inplace number slot nb_inplace_true_divide available for this type.
-
     {
         binaryfunc slot1 = PyFloat_Type.tp_as_number->nb_true_divide;
         binaryfunc slot2 = NULL;
 
         if (!(&PyFloat_Type == type2)) {
-            // Different types, need to consider second value slot.
-
             slot2 = (type2->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type2)) ? type2->tp_as_number->nb_true_divide
                                                                                   : NULL;
 
@@ -1618,11 +1526,7 @@ exit_inplace_result_object:
         return false;
     }
 
-    // We got an object handed, that we have to release.
     Py_DECREF(*operand1);
-
-    // That's our return value then. As we use a dedicated variable, it's
-    // OK that way.
     *operand1 = obj_result;
 
     return true;
@@ -1631,7 +1535,7 @@ exit_inplace_exception:
     return false;
 }
 static inline bool _INPLACE_OPERATION_TRUEDIV_FLOAT_OBJECT(PyObject **operand1, PyObject *operand2) {
-    assert(operand1); // Pointer must be non-null.
+    assert(operand1);
 
     CHECK_OBJECT(*operand1);
     assert(PyFloat_CheckExact(*operand1));
@@ -1640,13 +1544,10 @@ static inline bool _INPLACE_OPERATION_TRUEDIV_FLOAT_OBJECT(PyObject **operand1, 
     PyTypeObject *type2 = Py_TYPE(operand2);
 
     if (&PyFloat_Type == type2) {
-        // return _BINARY_OPERATION_TRUEDIV_FLOAT_FLOAT_INPLACE(operand1, operand2);
-
 #if defined(_MSC_VER)
 #pragma warning(push)
 #pragma warning(disable : 4101)
 #endif
-        // Not every code path will make use of all possible results.
         NUITKA_MAY_BE_UNUSED PyObject *obj_result;
         NUITKA_MAY_BE_UNUSED long clong_result;
         NUITKA_MAY_BE_UNUSED double cfloat_result;
@@ -1677,10 +1578,9 @@ static inline bool _INPLACE_OPERATION_TRUEDIV_FLOAT_OBJECT(PyObject **operand1, 
         }
 
     exit_result_ok_cfloat:
-        if (Py_REFCNT(*operand1) == 1) {
+        if (_PyObject_IsUniquelyReferenced(*operand1)) {
             PyFloat_SET_DOUBLE(*operand1, cfloat_result);
         } else {
-            // We got an object handed, that we have to release.
             Py_DECREF(*operand1);
 
             *operand1 = MAKE_FLOAT_FROM_DOUBLE(cfloat_result);
@@ -1701,9 +1601,8 @@ bool INPLACE_OPERATION_TRUEDIV_FLOAT_OBJECT(PyObject **operand1, PyObject *opera
     return _INPLACE_OPERATION_TRUEDIV_FLOAT_OBJECT(operand1, operand2);
 }
 
-/* Code referring to "FLOAT" corresponds to Python 'float' and "LONG" to Python2 'long', Python3 'int'. */
 static inline bool _INPLACE_OPERATION_TRUEDIV_FLOAT_LONG(PyObject **operand1, PyObject *operand2) {
-    assert(operand1); // Pointer must be non-null.
+    assert(operand1);
 
     CHECK_OBJECT(*operand1);
     assert(PyFloat_CheckExact(*operand1));
@@ -1720,11 +1619,8 @@ static inline bool _INPLACE_OPERATION_TRUEDIV_FLOAT_LONG(PyObject **operand1, Py
 #pragma warning(pop)
 #endif
 
-    // No inplace number slot nb_inplace_true_divide available for this type.
-
     {
         binaryfunc slot1 = PyFloat_Type.tp_as_number->nb_true_divide;
-        // Slot2 ignored on purpose, type1 takes precedence.
 
         if (slot1 != NULL) {
             PyObject *x = slot1(*operand1, operand2);
@@ -1736,8 +1632,6 @@ static inline bool _INPLACE_OPERATION_TRUEDIV_FLOAT_LONG(PyObject **operand1, Py
 
             Py_DECREF_IMMORTAL(x);
         }
-
-        // Statically recognized that coercion is not possible with these types
 
 #if PYTHON_VERSION < 0x300
         PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for /=: 'float' and 'long'");
@@ -1752,11 +1646,7 @@ exit_inplace_result_object:
         return false;
     }
 
-    // We got an object handed, that we have to release.
     Py_DECREF(*operand1);
-
-    // That's our return value then. As we use a dedicated variable, it's
-    // OK that way.
     *operand1 = obj_result;
 
     return true;
@@ -1769,9 +1659,8 @@ bool INPLACE_OPERATION_TRUEDIV_FLOAT_LONG(PyObject **operand1, PyObject *operand
     return _INPLACE_OPERATION_TRUEDIV_FLOAT_LONG(operand1, operand2);
 }
 
-/* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "FLOAT" to Python 'float'. */
 static inline bool _INPLACE_OPERATION_TRUEDIV_LONG_FLOAT(PyObject **operand1, PyObject *operand2) {
-    assert(operand1); // Pointer must be non-null.
+    assert(operand1);
 
     CHECK_OBJECT(*operand1);
     assert(PyLong_CheckExact(*operand1));
@@ -1788,15 +1677,10 @@ static inline bool _INPLACE_OPERATION_TRUEDIV_LONG_FLOAT(PyObject **operand1, Py
 #pragma warning(pop)
 #endif
 
-    // No inplace number slot nb_inplace_true_divide available for this type.
-
     {
-        // Slot1 ignored on purpose, type2 takes precedence.
         binaryfunc slot2 = NULL;
 
         if (!(0)) {
-            // Different types, need to consider second value slot.
-
             slot2 = PyFloat_Type.tp_as_number->nb_true_divide;
         }
 
@@ -1811,8 +1695,6 @@ static inline bool _INPLACE_OPERATION_TRUEDIV_LONG_FLOAT(PyObject **operand1, Py
             Py_DECREF_IMMORTAL(x);
         }
 
-        // Statically recognized that coercion is not possible with these types
-
 #if PYTHON_VERSION < 0x300
         PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for /=: 'long' and 'float'");
 #else
@@ -1826,11 +1708,7 @@ exit_inplace_result_object:
         return false;
     }
 
-    // We got an object handed, that we have to release.
     Py_DECREF(*operand1);
-
-    // That's our return value then. As we use a dedicated variable, it's
-    // OK that way.
     *operand1 = obj_result;
 
     return true;
@@ -1844,9 +1722,8 @@ bool INPLACE_OPERATION_TRUEDIV_LONG_FLOAT(PyObject **operand1, PyObject *operand
 }
 
 #if PYTHON_VERSION < 0x300
-/* Code referring to "FLOAT" corresponds to Python 'float' and "INT" to Python2 'int'. */
 static inline bool _INPLACE_OPERATION_TRUEDIV_FLOAT_INT(PyObject **operand1, PyObject *operand2) {
-    assert(operand1); // Pointer must be non-null.
+    assert(operand1);
 
     CHECK_OBJECT(*operand1);
     assert(PyFloat_CheckExact(*operand1));
@@ -1863,11 +1740,8 @@ static inline bool _INPLACE_OPERATION_TRUEDIV_FLOAT_INT(PyObject **operand1, PyO
 #pragma warning(pop)
 #endif
 
-    // No inplace number slot nb_inplace_true_divide available for this type.
-
     {
         binaryfunc slot1 = PyFloat_Type.tp_as_number->nb_true_divide;
-        // Slot2 ignored on purpose, type1 takes precedence.
 
         if (slot1 != NULL) {
             PyObject *x = slot1(*operand1, operand2);
@@ -1880,8 +1754,6 @@ static inline bool _INPLACE_OPERATION_TRUEDIV_FLOAT_INT(PyObject **operand1, PyO
             Py_DECREF_IMMORTAL(x);
         }
 
-        // Statically recognized that coercion is not possible with these types
-
         PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for /=: 'float' and 'int'");
         goto exit_inplace_exception;
     }
@@ -1891,11 +1763,7 @@ exit_inplace_result_object:
         return false;
     }
 
-    // We got an object handed, that we have to release.
     Py_DECREF(*operand1);
-
-    // That's our return value then. As we use a dedicated variable, it's
-    // OK that way.
     *operand1 = obj_result;
 
     return true;
@@ -1910,9 +1778,8 @@ bool INPLACE_OPERATION_TRUEDIV_FLOAT_INT(PyObject **operand1, PyObject *operand2
 #endif
 
 #if PYTHON_VERSION < 0x300
-/* Code referring to "INT" corresponds to Python2 'int' and "FLOAT" to Python 'float'. */
 static inline bool _INPLACE_OPERATION_TRUEDIV_INT_FLOAT(PyObject **operand1, PyObject *operand2) {
-    assert(operand1); // Pointer must be non-null.
+    assert(operand1);
 
     CHECK_OBJECT(*operand1);
     assert(PyInt_CheckExact(*operand1));
@@ -1929,15 +1796,10 @@ static inline bool _INPLACE_OPERATION_TRUEDIV_INT_FLOAT(PyObject **operand1, PyO
 #pragma warning(pop)
 #endif
 
-    // No inplace number slot nb_inplace_true_divide available for this type.
-
     {
-        // Slot1 ignored on purpose, type2 takes precedence.
         binaryfunc slot2 = NULL;
 
         if (!(0)) {
-            // Different types, need to consider second value slot.
-
             slot2 = PyFloat_Type.tp_as_number->nb_true_divide;
         }
 
@@ -1952,8 +1814,6 @@ static inline bool _INPLACE_OPERATION_TRUEDIV_INT_FLOAT(PyObject **operand1, PyO
             Py_DECREF_IMMORTAL(x);
         }
 
-        // Statically recognized that coercion is not possible with these types
-
         PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for /=: 'int' and 'float'");
         goto exit_inplace_exception;
     }
@@ -1963,11 +1823,7 @@ exit_inplace_result_object:
         return false;
     }
 
-    // We got an object handed, that we have to release.
     Py_DECREF(*operand1);
-
-    // That's our return value then. As we use a dedicated variable, it's
-    // OK that way.
     *operand1 = obj_result;
 
     return true;
@@ -1982,9 +1838,8 @@ bool INPLACE_OPERATION_TRUEDIV_INT_FLOAT(PyObject **operand1, PyObject *operand2
 #endif
 
 #if PYTHON_VERSION < 0x300
-/* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "INT" to Python2 'int'. */
 static inline bool _INPLACE_OPERATION_TRUEDIV_LONG_INT(PyObject **operand1, PyObject *operand2) {
-    assert(operand1); // Pointer must be non-null.
+    assert(operand1);
 
     CHECK_OBJECT(*operand1);
     assert(PyLong_CheckExact(*operand1));
@@ -2001,11 +1856,8 @@ static inline bool _INPLACE_OPERATION_TRUEDIV_LONG_INT(PyObject **operand1, PyOb
 #pragma warning(pop)
 #endif
 
-    // No inplace number slot nb_inplace_true_divide available for this type.
-
     {
         binaryfunc slot1 = PyLong_Type.tp_as_number->nb_true_divide;
-        // Slot2 ignored on purpose, type1 takes precedence.
 
         if (slot1 != NULL) {
             PyObject *x = slot1(*operand1, operand2);
@@ -2018,8 +1870,6 @@ static inline bool _INPLACE_OPERATION_TRUEDIV_LONG_INT(PyObject **operand1, PyOb
             Py_DECREF_IMMORTAL(x);
         }
 
-        // Statically recognized that coercion is not possible with these types
-
         PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for /=: 'long' and 'int'");
         goto exit_inplace_exception;
     }
@@ -2029,11 +1879,7 @@ exit_inplace_result_object:
         return false;
     }
 
-    // We got an object handed, that we have to release.
     Py_DECREF(*operand1);
-
-    // That's our return value then. As we use a dedicated variable, it's
-    // OK that way.
     *operand1 = obj_result;
 
     return true;
@@ -2048,9 +1894,8 @@ bool INPLACE_OPERATION_TRUEDIV_LONG_INT(PyObject **operand1, PyObject *operand2)
 #endif
 
 #if PYTHON_VERSION < 0x300
-/* Code referring to "INT" corresponds to Python2 'int' and "LONG" to Python2 'long', Python3 'int'. */
 static inline bool _INPLACE_OPERATION_TRUEDIV_INT_LONG(PyObject **operand1, PyObject *operand2) {
-    assert(operand1); // Pointer must be non-null.
+    assert(operand1);
 
     CHECK_OBJECT(*operand1);
     assert(PyInt_CheckExact(*operand1));
@@ -2067,15 +1912,10 @@ static inline bool _INPLACE_OPERATION_TRUEDIV_INT_LONG(PyObject **operand1, PyOb
 #pragma warning(pop)
 #endif
 
-    // No inplace number slot nb_inplace_true_divide available for this type.
-
     {
-        // Slot1 ignored on purpose, type2 takes precedence.
         binaryfunc slot2 = NULL;
 
         if (!(0)) {
-            // Different types, need to consider second value slot.
-
             slot2 = PyLong_Type.tp_as_number->nb_true_divide;
         }
 
@@ -2090,8 +1930,6 @@ static inline bool _INPLACE_OPERATION_TRUEDIV_INT_LONG(PyObject **operand1, PyOb
             Py_DECREF_IMMORTAL(x);
         }
 
-        // Statically recognized that coercion is not possible with these types
-
         PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for /=: 'int' and 'long'");
         goto exit_inplace_exception;
     }
@@ -2101,11 +1939,7 @@ exit_inplace_result_object:
         return false;
     }
 
-    // We got an object handed, that we have to release.
     Py_DECREF(*operand1);
-
-    // That's our return value then. As we use a dedicated variable, it's
-    // OK that way.
     *operand1 = obj_result;
 
     return true;
@@ -2120,14 +1954,12 @@ bool INPLACE_OPERATION_TRUEDIV_INT_LONG(PyObject **operand1, PyObject *operand2)
 #endif
 
 #if PYTHON_VERSION < 0x300
-/* Code referring to "INT" corresponds to Python2 'int' and "CLONG" to C platform long value. */
 static inline bool _INPLACE_OPERATION_TRUEDIV_INT_CLONG(PyObject **operand1, long operand2) {
-    assert(operand1); // Pointer must be non-null.
+    assert(operand1);
 
     CHECK_OBJECT(*operand1);
     assert(PyInt_CheckExact(*operand1));
 
-    // Not every code path will make use of all possible results.
 #if defined(_MSC_VER)
 #pragma warning(push)
 #pragma warning(disable : 4101)
@@ -2161,9 +1993,6 @@ static inline bool _INPLACE_OPERATION_TRUEDIV_INT_CLONG(PyObject **operand1, lon
         }
     }
 
-/* May need to resort to LONG code, which we currently do not
- * specialize yet. TODO: Once we do that, call it here instead.
- */
 #if DBL_MANT_DIG < WIDTH_OF_ULONG
     if ((a >= 0 ? 0UL + a : 0UL - a) >> DBL_MANT_DIG || (b >= 0 ? 0UL + b : 0UL - b) >> DBL_MANT_DIG) {
     } else
@@ -2189,8 +2018,6 @@ static inline bool _INPLACE_OPERATION_TRUEDIV_INT_CLONG(PyObject **operand1, lon
     }
 
 exit_result_ok_cfloat:
-
-    // We got an object handed, that we have to release.
     Py_DECREF(*operand1);
 
     *operand1 = MAKE_FLOAT_FROM_DOUBLE(cfloat_result);
@@ -2200,21 +2027,18 @@ exit_result_object:
     if (unlikely(obj_result == NULL)) {
         goto exit_result_exception;
     }
-    // We got an object handed, that we have to release.
     Py_DECREF(*operand1);
 
     *operand1 = obj_result;
     goto exit_result_ok;
 
 exit_result_ok_const_float_0_0:
-    // We got an object handed, that we have to release.
     Py_DECREF(*operand1);
     Py_INCREF(const_float_0_0);
     *operand1 = const_float_0_0;
     goto exit_result_ok;
 
 exit_result_ok_const_float_minus_0_0:
-    // We got an object handed, that we have to release.
     Py_DECREF(*operand1);
     Py_INCREF(const_float_minus_0_0);
     *operand1 = const_float_minus_0_0;
@@ -2232,9 +2056,8 @@ bool INPLACE_OPERATION_TRUEDIV_INT_CLONG(PyObject **operand1, long operand2) {
 }
 #endif
 
-/* Code referring to "FLOAT" corresponds to Python 'float' and "CFLOAT" to C platform float value. */
 static inline bool _INPLACE_OPERATION_TRUEDIV_FLOAT_CFLOAT(PyObject **operand1, double operand2) {
-    assert(operand1); // Pointer must be non-null.
+    assert(operand1);
 
     CHECK_OBJECT(*operand1);
     assert(PyFloat_CheckExact(*operand1));
@@ -2243,7 +2066,6 @@ static inline bool _INPLACE_OPERATION_TRUEDIV_FLOAT_CFLOAT(PyObject **operand1, 
 #pragma warning(push)
 #pragma warning(disable : 4101)
 #endif
-    // Not every code path will make use of all possible results.
     NUITKA_MAY_BE_UNUSED PyObject *obj_result;
     NUITKA_MAY_BE_UNUSED long clong_result;
     NUITKA_MAY_BE_UNUSED double cfloat_result;
@@ -2272,10 +2094,9 @@ static inline bool _INPLACE_OPERATION_TRUEDIV_FLOAT_CFLOAT(PyObject **operand1, 
     }
 
 exit_result_ok_cfloat:
-    if (Py_REFCNT(*operand1) == 1) {
+    if (_PyObject_IsUniquelyReferenced(*operand1)) {
         PyFloat_SET_DOUBLE(*operand1, cfloat_result);
     } else {
-        // We got an object handed, that we have to release.
         Py_DECREF(*operand1);
 
         *operand1 = MAKE_FLOAT_FROM_DOUBLE(cfloat_result);
@@ -2293,9 +2114,8 @@ bool INPLACE_OPERATION_TRUEDIV_FLOAT_CFLOAT(PyObject **operand1, double operand2
     return _INPLACE_OPERATION_TRUEDIV_FLOAT_CFLOAT(operand1, operand2);
 }
 
-/* Code referring to "OBJECT" corresponds to any Python object and "OBJECT" to any Python object. */
 static inline bool _INPLACE_OPERATION_TRUEDIV_OBJECT_OBJECT(PyObject **operand1, PyObject *operand2) {
-    assert(operand1); // Pointer must be non-null.
+    assert(operand1);
 
     CHECK_OBJECT(*operand1);
     CHECK_OBJECT(operand2);
@@ -2303,7 +2123,6 @@ static inline bool _INPLACE_OPERATION_TRUEDIV_OBJECT_OBJECT(PyObject **operand1,
 #if PYTHON_VERSION < 0x300
     if (PyInt_CheckExact(*operand1) && PyInt_CheckExact(operand2)) {
 
-        // Not every code path will make use of all possible results.
 #if defined(_MSC_VER)
 #pragma warning(push)
 #pragma warning(disable : 4101)
@@ -2339,9 +2158,6 @@ static inline bool _INPLACE_OPERATION_TRUEDIV_OBJECT_OBJECT(PyObject **operand1,
             }
         }
 
-/* May need to resort to LONG code, which we currently do not
- * specialize yet. TODO: Once we do that, call it here instead.
- */
 #if DBL_MANT_DIG < WIDTH_OF_ULONG
         if ((a >= 0 ? 0UL + a : 0UL - a) >> DBL_MANT_DIG || (b >= 0 ? 0UL + b : 0UL - b) >> DBL_MANT_DIG) {
         } else
@@ -2365,8 +2181,6 @@ static inline bool _INPLACE_OPERATION_TRUEDIV_OBJECT_OBJECT(PyObject **operand1,
         }
 
     exit_result_ok_cfloat:
-
-        // We got an object handed, that we have to release.
         Py_DECREF(*operand1);
 
         *operand1 = MAKE_FLOAT_FROM_DOUBLE(cfloat_result);
@@ -2376,21 +2190,18 @@ static inline bool _INPLACE_OPERATION_TRUEDIV_OBJECT_OBJECT(PyObject **operand1,
         if (unlikely(obj_result == NULL)) {
             goto exit_result_exception;
         }
-        // We got an object handed, that we have to release.
         Py_DECREF(*operand1);
 
         *operand1 = obj_result;
         goto exit_result_ok;
 
     exit_result_ok_const_float_0_0:
-        // We got an object handed, that we have to release.
         Py_DECREF(*operand1);
         Py_INCREF(const_float_0_0);
         *operand1 = const_float_0_0;
         goto exit_result_ok;
 
     exit_result_ok_const_float_minus_0_0:
-        // We got an object handed, that we have to release.
         Py_DECREF(*operand1);
         Py_INCREF(const_float_minus_0_0);
         *operand1 = const_float_minus_0_0;
@@ -2449,8 +2260,6 @@ static inline bool _INPLACE_OPERATION_TRUEDIV_OBJECT_OBJECT(PyObject **operand1,
         binaryfunc slot2 = NULL;
 
         if (!(type1 == type2)) {
-            // Different types, need to consider second value slot.
-
             slot2 = (type2->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type2)) ? type2->tp_as_number->nb_true_divide
                                                                                   : NULL;
 
@@ -2580,11 +2389,7 @@ exit_inplace_result_object:
         return false;
     }
 
-    // We got an object handed, that we have to release.
     Py_DECREF(*operand1);
-
-    // That's our return value then. As we use a dedicated variable, it's
-    // OK that way.
     *operand1 = obj_result;
 
     return true;

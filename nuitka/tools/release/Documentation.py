@@ -6,7 +6,8 @@
 import os
 import sys
 
-from nuitka.Tracing import my_print
+from nuitka.Tracing import my_print, tools_logger
+from nuitka.utils.Download import getDownloadMode
 from nuitka.utils.Execution import check_call, withEnvironmentVarOverridden
 from nuitka.utils.FileOperations import (
     getFileContents,
@@ -15,6 +16,7 @@ from nuitka.utils.FileOperations import (
     putTextFileContents,
     replaceFileAtomic,
 )
+from nuitka.utils.PrivatePipSpace import tryDownloadPackageName
 
 
 def _optimizePNGs(pngList):
@@ -49,7 +51,7 @@ def makeLogoImages():
             check_call((cmd % (icon, size)).split())
 
 
-# spell-checker: ignore asciinema,postlist,toctree,automodule
+# spell-checker: ignore asciinema,automodule,postlist,toctree
 extra_rst_keywords = (
     b"asciinema",
     b"postlist",
@@ -66,6 +68,56 @@ extra_rst_keywords = (
     b"carousel-side-tab",
 )
 extra_rst_keywords = tuple(sorted(extra_rst_keywords, key=len, reverse=True))
+
+
+def ensureRstLintInstalled(assume_yes_for_downloads):
+    """Ensure that the modules for checking RST documents are available.
+
+    Notes:
+        Restructuredtext-lint is not a general Nuitka dependency, so it is
+        downloaded into the private pip space when needed, rather than
+        requiring a global installation for release tools.
+
+    Args:
+        assume_yes_for_downloads: bool, whether downloads may happen without
+            asking.
+    """
+    download_mode = getDownloadMode(assume_yes_for_downloads)
+
+    # Pygments has to be available before docutils is imported, since it
+    # decides at import time whether code block analysis is supported.
+    for module_name, reject_message in (
+        (
+            "pygments",
+            "Pygments is needed for RST code block analysis.",
+        ),
+        (
+            "restructuredtext_lint",
+            "Restlint is needed for checking documentation.",
+        ),
+    ):
+        try:
+            __import__(module_name)
+        except ImportError:
+            site_packages_folder, download_mode = tryDownloadPackageName(
+                logger=tools_logger,
+                package_name=module_name,
+                module_name=module_name,
+                package_version=None,
+                force_update=False,
+                download_mode=download_mode,
+                reject_message=reject_message,
+            )
+
+            if site_packages_folder is not None:
+                sys.path.insert(0, site_packages_folder)
+
+    try:
+        __import__("restructuredtext_lint")
+    except ImportError:
+        return tools_logger.sysexit(
+            "Error, failed to install 'restructuredtext_lint' into the private pip space."
+        )
 
 
 def checkRstLint(document):
@@ -185,14 +237,16 @@ def updateManPages():
         _fixupManPageContents("doc/nuitka.1.tmp")
         replaceFileAtomic("doc/nuitka.1.tmp", "doc/nuitka.1")
 
-        cmd[-1] += " -run"
+        cmd[-1] = "%s ./bin/nuitka-run --help-plugins" % sys.executable
         with openTextFile(os.path.join("doc", "nuitka-run.1.tmp"), "wb") as output:
             check_call(cmd, stdout=output)
         _fixupManPageContents("doc/nuitka-run.1.tmp")
         replaceFileAtomic("doc/nuitka-run.1.tmp", "doc/nuitka-run.1")
 
 
-def checkReleaseDocumentation():
+def checkReleaseDocumentation(assume_yes_for_downloads):
+    ensureRstLintInstalled(assume_yes_for_downloads=assume_yes_for_downloads)
+
     documents = [
         entry
         for entry in getFileList(".")

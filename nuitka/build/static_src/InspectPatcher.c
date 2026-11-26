@@ -8,6 +8,15 @@
 /* This file is included from another C file, help IDEs to still parse it on its own. */
 #ifdef __IDE_ONLY__
 #include "nuitka/prelude.h"
+
+#if PYTHON_VERSION >= 0x3d0 && _NUITKA_FRAME_LOCALS_PROXY
+static PyTypeObject Nuitka_FrameLocalsProxy_Type;
+#endif
+
+#if PYTHON_VERSION >= 0x3d0
+static PyObject *_Nuitka_Frame_GetLocalsDict(struct Nuitka_FrameObject *nuitka_frame);
+static PyObject *_Nuitka_Frame_get_locals(PyObject *self, void *data);
+#endif
 #endif
 
 #if PYTHON_VERSION >= 0x300
@@ -18,25 +27,32 @@ static PyObject *module_types;
 
 static char *kw_list_object[] = {(char *)"object", NULL};
 
-// spell-checker: ignore getgeneratorstate,getcoroutinestate
+// spell-checker: ignore getcoroutinestate,getgeneratorstate
 
 static PyObject *old_getgeneratorstate = NULL;
 
 static PyObject *_inspect_getgeneratorstate_replacement(PyObject *self, PyObject *args, PyObject *kwds) {
-    PyObject *object;
+    PyObject *obj;
 
-    if (!PyArg_ParseTupleAndKeywords(args, kwds, "O:getgeneratorstate", kw_list_object, &object, NULL)) {
+    if (!PyArg_ParseTupleAndKeywords(args, kwds, "O:getgeneratorstate", kw_list_object, &obj, NULL)) {
         return NULL;
     }
 
-    CHECK_OBJECT(object);
+    CHECK_OBJECT(obj);
 
-    if (Nuitka_Generator_Check(object)) {
-        struct Nuitka_GeneratorObject *generator = (struct Nuitka_GeneratorObject *)object;
+    if (Nuitka_Generator_Check(obj)) {
+        struct Nuitka_GeneratorObject *generator = (struct Nuitka_GeneratorObject *)obj;
 
         if (generator->m_running) {
             return PyObject_GetAttrString(module_inspect, "GEN_RUNNING");
         } else if (generator->m_status == status_Finished) {
+#if PYTHON_VERSION == 0x3c0
+            // CPython 3.12.0 fails to clear the frame of a generator that is
+            // closed before it started, and therefore reports it as created.
+            if (generator->m_closed_before_start) {
+                return PyObject_GetAttrString(module_inspect, "GEN_CREATED");
+            }
+#endif
             return PyObject_GetAttrString(module_inspect, "GEN_CLOSED");
         } else if (generator->m_status == status_Unused) {
             return PyObject_GetAttrString(module_inspect, "GEN_CREATED");
@@ -52,18 +68,25 @@ static PyObject *_inspect_getgeneratorstate_replacement(PyObject *self, PyObject
 static PyObject *old_getcoroutinestate = NULL;
 
 static PyObject *_inspect_getcoroutinestate_replacement(PyObject *self, PyObject *args, PyObject *kwds) {
-    PyObject *object;
+    PyObject *obj;
 
-    if (!PyArg_ParseTupleAndKeywords(args, kwds, "O:getcoroutinestate", kw_list_object, &object, NULL)) {
+    if (!PyArg_ParseTupleAndKeywords(args, kwds, "O:getcoroutinestate", kw_list_object, &obj, NULL)) {
         return NULL;
     }
 
-    if (Nuitka_Coroutine_Check(object)) {
-        struct Nuitka_CoroutineObject *coroutine = (struct Nuitka_CoroutineObject *)object;
+    if (Nuitka_Coroutine_Check(obj)) {
+        struct Nuitka_CoroutineObject *coroutine = (struct Nuitka_CoroutineObject *)obj;
 
         if (coroutine->m_running) {
             return PyObject_GetAttrString(module_inspect, "CORO_RUNNING");
         } else if (coroutine->m_status == status_Finished) {
+#if PYTHON_VERSION == 0x3c0
+            // CPython 3.12.0 fails to clear the frame of a coroutine that is
+            // closed before it started, and therefore reports it as created.
+            if (coroutine->m_closed_before_start) {
+                return PyObject_GetAttrString(module_inspect, "CORO_CREATED");
+            }
+#endif
             return PyObject_GetAttrString(module_inspect, "CORO_CLOSED");
         } else if (coroutine->m_status == status_Unused) {
             return PyObject_GetAttrString(module_inspect, "CORO_CREATED");
@@ -90,14 +113,13 @@ static PyObject *_types_coroutine_replacement(PyObject *self, PyObject *args, Py
     if (Nuitka_Function_Check(func)) {
         struct Nuitka_FunctionObject *function = (struct Nuitka_FunctionObject *)func;
 
-        // Check if "func" is a coroutine function, then return it unchanged.
+        // CO_COROUTINE | CO_ITERABLE_COROUTINE (0x180)
         if (function->m_code_object->co_flags & 0x180) {
             return Py_NewRef(func);
         }
 
-        // Check if "func" is a generator function, then make it an iterable
-        // coroutine and return it unchanged.
         if (function->m_code_object->co_flags & CO_GENERATOR) {
+            // CO_ITERABLE_COROUTINE (0x100)
             function->m_code_object->co_flags |= 0x100;
 
             return Py_NewRef(func);
@@ -160,7 +182,7 @@ static PyObject *_sys_getframemodulename_replacement(PyObject *self, PyObject *a
     }
 
     int overflow;
-    long depth_long = PyLong_AsLongAndOverflow(index_value, &overflow);
+    long depth_long = Nuitka_PyLong_AsLongAndOverflow(index_value, &overflow);
 
     Py_DECREF(index_value);
 
@@ -206,16 +228,16 @@ static PyObject *_sys_getframemodulename_replacement(PyObject *self, PyObject *a
 static PyMethodDef _method_def_sys_getframemodulename_replacement = {
     "_getframemodulename", CAST_METHOD_KW(_sys_getframemodulename_replacement), METH_VARARGS | METH_KEYWORDS, NULL};
 
-// The "_typing" types derive the module of their user from the current frame
-// function object, which compiled frames do not have, so we fill it in from
-// the compiled frame ourselves.
+// CPython 3.12 through 3.14 "_typing" types take the module from the function
+// object of the calling frame, which compiled frames lack, and
+// "TypeAliasType.__module__" is read-only until Python 3.15.
 #define MAX_TYPING_TYPES 4
 
 static PyTypeObject *typing_types[MAX_TYPING_TYPES];
 static newfunc typing_types_original_new[MAX_TYPING_TYPES];
 static int typing_types_count = 0;
 
-static PyObject *getCompiledCallerModuleName(PyThreadState *tstate) {
+static _PyInterpreterFrame *getCompiledCallerFrame(PyThreadState *tstate) {
     _PyInterpreterFrame *frame = CURRENT_TSTATE_INTERPRETER_FRAME(tstate);
 
     while ((frame != NULL) && Nuitka_FrameIsIncomplete(frame)) {
@@ -223,7 +245,7 @@ static PyObject *getCompiledCallerModuleName(PyThreadState *tstate) {
     }
 
     if ((frame != NULL) && Nuitka_FrameIsCompiled(frame)) {
-        return DICT_GET_ITEM1(tstate, frame->f_globals, const_str_plain___name__);
+        return frame;
     }
 
     return NULL;
@@ -241,22 +263,41 @@ static PyObject *Nuitka_typing_type_new(PyTypeObject *type, PyObject *args, PyOb
 
     assert(original_new != NULL);
 
-    PyObject *result = original_new(type, args, kwds);
+    PyThreadState *tstate = PyThreadState_GET();
+    _PyInterpreterFrame *caller_frame = getCompiledCallerFrame(tstate);
 
-    if (result != NULL) {
-        PyThreadState *tstate = PyThreadState_GET();
+    PyObject *caller_function = NULL;
 
-        PyObject *module_name = getCompiledCallerModuleName(tstate);
+    if (caller_frame != NULL) {
+#if PYTHON_VERSION >= 0x3e0
+        if (PyStackRef_IsNull(caller_frame->f_funcobj)) {
+#else
+        if (caller_frame->f_funcobj == NULL) {
+#endif
+            caller_function = PyFunction_New((PyObject *)Nuitka_InterpreterFrame_GetCodeObject(caller_frame),
+                                             caller_frame->f_globals);
 
-        if (module_name != NULL) {
-            if (SET_ATTRIBUTE(tstate, result, const_str_plain___module__, module_name) == false) {
-                CLEAR_ERROR_OCCURRED(tstate);
+            if (unlikely(caller_function == NULL)) {
+                return NULL;
             }
 
-            Py_DECREF(module_name);
-        } else {
-            CLEAR_ERROR_OCCURRED(tstate);
+#if PYTHON_VERSION >= 0x3e0
+            caller_frame->f_funcobj = PyStackRef_FromPyObjectSteal(caller_function);
+#else
+            caller_frame->f_funcobj = caller_function;
+#endif
         }
+    }
+
+    PyObject *result = original_new(type, args, kwds);
+
+    if (caller_function != NULL) {
+#if PYTHON_VERSION >= 0x3e0
+        PyStackRef_CLEAR(caller_frame->f_funcobj);
+#else
+        caller_frame->f_funcobj = NULL;
+        Py_DECREF(caller_function);
+#endif
     }
 
     return result;
@@ -289,8 +330,376 @@ static void patchTypingModule(void) {
     patchTypingType("TypeVar");
     patchTypingType("ParamSpec");
     patchTypingType("TypeVarTuple");
+    patchTypingType("TypeAliasType");
 }
 
+#endif
+
+#if PYTHON_VERSION >= 0x3d0 && (defined(_NUITKA_EXPERIMENTAL_MODULE_PATCH_FRAME_BUILTINS) || !_NUITKA_MODULE_MODE)
+
+#define NUITKA_FRAME_BUILTINS_PATCHED_MARKER "__nuitka_frame_builtins_patched__"
+
+static PyObject *orig_builtin_eval = NULL;
+static PyObject *orig_builtin_exec = NULL;
+static PyObject *orig_builtin_locals = NULL;
+static PyObject *orig_builtin_vars = NULL;
+static PyObject *orig_builtin_dir = NULL;
+
+static PyMethodDef builtin_eval_replacement_def;
+static PyMethodDef builtin_exec_replacement_def;
+static PyMethodDef builtin_locals_replacement_def;
+static PyMethodDef builtin_vars_replacement_def;
+static PyMethodDef builtin_dir_replacement_def;
+
+// Find the current complete frame, if it is a compiled frame. CPython's
+// "PyEval_GetFrame" walks over incomplete frames, and so do we.
+static _PyInterpreterFrame *getCurrentCompiledFrame(PyThreadState *tstate) {
+    _PyInterpreterFrame *frame = CURRENT_TSTATE_INTERPRETER_FRAME(tstate);
+
+    while ((frame != NULL) && _PyFrame_IsIncomplete(frame)) {
+        frame = frame->previous;
+    }
+
+    if ((frame != NULL) && Nuitka_FrameIsCompiled(frame)) {
+        return frame;
+    }
+
+    return NULL;
+}
+
+// Parse the arguments of "eval" and "exec" without applying their defaults.
+// The defaults are applied by the caller, because for compiled frames they
+// must come from the compiled frame rather than CPython's frame locals proxy.
+static bool parseEvalExecArgs(PyObject *args, PyObject *kwds, char const *function_name, bool allow_closure,
+                              PyObject **source, PyObject **globals_arg, PyObject **locals_arg,
+                              PyObject **closure_arg) {
+    Py_ssize_t nargs = PyTuple_GET_SIZE(args);
+
+    if (nargs < 1) {
+        PyErr_Format(PyExc_TypeError, "%s() takes at least 1 positional argument (%zd given)", function_name, nargs);
+        return false;
+    }
+
+    if (nargs > 3) {
+        if (allow_closure) {
+            PyErr_Format(PyExc_TypeError, "%s() takes at most 3 positional arguments (%zd given)", function_name,
+                         nargs);
+        } else {
+            PyErr_Format(PyExc_TypeError, "%s() takes at most 3 arguments (%zd given)", function_name, nargs);
+        }
+
+        return false;
+    }
+
+    *source = PyTuple_GET_ITEM(args, 0);
+    *globals_arg = nargs >= 2 ? PyTuple_GET_ITEM(args, 1) : NULL;
+    *locals_arg = nargs >= 3 ? PyTuple_GET_ITEM(args, 2) : NULL;
+
+    if (closure_arg != NULL) {
+        *closure_arg = NULL;
+    }
+
+    if (kwds != NULL) {
+        PyObject *key;
+        PyObject *value;
+        Py_ssize_t pos = 0;
+
+        while (Nuitka_DictNext(kwds, &pos, &key, &value)) {
+            if (PyUnicode_Compare(key, const_str_plain_globals) == 0) {
+                if (*globals_arg != NULL) {
+                    PyErr_Format(PyExc_TypeError, "argument for %s() given by name ('globals') and position (2)",
+                                 function_name);
+                    return false;
+                }
+
+                *globals_arg = value;
+            } else if (PyUnicode_Compare(key, const_str_plain_locals) == 0) {
+                if (*locals_arg != NULL) {
+                    PyErr_Format(PyExc_TypeError, "argument for %s() given by name ('locals') and position (3)",
+                                 function_name);
+                    return false;
+                }
+
+                *locals_arg = value;
+            } else if (allow_closure && PyUnicode_Compare(key, const_str_plain_closure) == 0) {
+                if (*closure_arg != NULL) {
+                    PyErr_Format(PyExc_TypeError, "%s() got multiple values for argument 'closure'", function_name);
+                    return false;
+                }
+
+                *closure_arg = value;
+            } else {
+                PyErr_Format(PyExc_TypeError, "%s() got an unexpected keyword argument %R", function_name, key);
+                return false;
+            }
+        }
+    }
+
+    return true;
+}
+
+static PyObject *getCompiledFrameLocals(PyThreadState *tstate, _PyInterpreterFrame *compiled_frame) {
+    struct Nuitka_FrameObject *nuitka_frame = (struct Nuitka_FrameObject *)compiled_frame->frame_obj;
+
+    if (nuitka_frame->m_type_description == NULL) {
+        // Mapping-style frame, the "f_locals" dict is authoritative.
+        return _Nuitka_Frame_get_locals((PyObject *)nuitka_frame, NULL);
+    }
+
+    // Optimized frame. CPython's "_PyEval_GetFrameLocals" turns a
+    // FrameLocalsProxy into a snapshot dict, so that writes by "exec" do not
+    // affect the frame. Build that snapshot directly from the frame storage.
+    PyObject *result = _Nuitka_Frame_GetLocalsDict(nuitka_frame);
+    if (unlikely(result == NULL)) {
+        return NULL;
+    }
+
+    if (nuitka_frame->m_frame.f_extra_locals != NULL) {
+        if (unlikely(DICT_UPDATE_FROM(tstate, result, nuitka_frame->m_frame.f_extra_locals) < 0)) {
+            Py_DECREF(result);
+            return NULL;
+        }
+    }
+
+    return result;
+}
+
+static PyObject *_builtin_eval_replacement(PyObject *self, PyObject *args, PyObject *kwds) {
+    PyObject *source;
+    PyObject *globals_arg;
+    PyObject *locals_arg;
+
+    if (!parseEvalExecArgs(args, kwds, "eval", false, &source, &globals_arg, &locals_arg, NULL)) {
+        return NULL;
+    }
+
+    PyThreadState *tstate = PyThreadState_GET();
+
+    // Only intervene, if the defaults would be taken from a compiled frame,
+    // where CPython cannot create its FrameLocalsProxy.
+    if (globals_arg == NULL || globals_arg == Py_None) {
+        _PyInterpreterFrame *compiled_frame = getCurrentCompiledFrame(tstate);
+
+        if (compiled_frame != NULL) {
+            PyObject *locals_use;
+            bool locals_owned = false;
+
+            if (locals_arg == NULL || locals_arg == Py_None) {
+                locals_use = getCompiledFrameLocals(tstate, compiled_frame);
+                if (unlikely(locals_use == NULL)) {
+                    return NULL;
+                }
+
+                locals_owned = true;
+            } else {
+                locals_use = locals_arg;
+            }
+
+            PyObject *new_args = MAKE_TUPLE3(tstate, source, compiled_frame->f_globals, locals_use);
+
+            if (locals_owned) {
+                Py_DECREF(locals_use);
+            }
+
+            if (unlikely(new_args == NULL)) {
+                return NULL;
+            }
+
+            PyObject *result = CALL_FUNCTION(tstate, orig_builtin_eval, new_args, NULL);
+            Py_DECREF(new_args);
+
+            return result;
+        }
+    }
+
+    return CALL_FUNCTION(tstate, orig_builtin_eval, args, kwds);
+}
+
+static PyObject *_builtin_exec_replacement(PyObject *self, PyObject *args, PyObject *kwds) {
+    PyObject *source;
+    PyObject *globals_arg;
+    PyObject *locals_arg;
+    PyObject *closure_arg;
+
+    if (!parseEvalExecArgs(args, kwds, "exec", true, &source, &globals_arg, &locals_arg, &closure_arg)) {
+        return NULL;
+    }
+
+    PyThreadState *tstate = PyThreadState_GET();
+
+    // Only intervene, if the defaults would be taken from a compiled frame,
+    // where CPython cannot create its FrameLocalsProxy.
+    if (globals_arg == NULL || globals_arg == Py_None) {
+        _PyInterpreterFrame *compiled_frame = getCurrentCompiledFrame(tstate);
+
+        if (compiled_frame != NULL) {
+            PyObject *locals_use;
+            bool locals_owned = false;
+
+            if (locals_arg == NULL || locals_arg == Py_None) {
+                locals_use = getCompiledFrameLocals(tstate, compiled_frame);
+                if (unlikely(locals_use == NULL)) {
+                    return NULL;
+                }
+
+                locals_owned = true;
+            } else {
+                locals_use = locals_arg;
+            }
+
+            PyObject *new_args = MAKE_TUPLE3(tstate, source, compiled_frame->f_globals, locals_use);
+
+            if (locals_owned) {
+                Py_DECREF(locals_use);
+            }
+
+            if (unlikely(new_args == NULL)) {
+                return NULL;
+            }
+
+            PyObject *result;
+
+            if (closure_arg != NULL) {
+                PyObject *new_kwds = MAKE_DICT_EMPTY(tstate);
+
+                if (unlikely(new_kwds == NULL)) {
+                    Py_DECREF(new_args);
+                    return NULL;
+                }
+
+                if (unlikely(DICT_SET_ITEM(tstate, new_kwds, const_str_plain_closure, closure_arg) == false)) {
+                    Py_DECREF(new_kwds);
+                    Py_DECREF(new_args);
+                    return NULL;
+                }
+
+                result = CALL_FUNCTION(tstate, orig_builtin_exec, new_args, new_kwds);
+                Py_DECREF(new_kwds);
+            } else {
+                result = CALL_FUNCTION(tstate, orig_builtin_exec, new_args, NULL);
+            }
+
+            Py_DECREF(new_args);
+
+            return result;
+        }
+    }
+
+    return CALL_FUNCTION(tstate, orig_builtin_exec, args, kwds);
+}
+
+static PyObject *_builtin_locals_replacement(PyObject *self, PyObject *Py_UNUSED(ignored)) {
+    PyThreadState *tstate = PyThreadState_GET();
+    _PyInterpreterFrame *compiled_frame = getCurrentCompiledFrame(tstate);
+
+    if (compiled_frame != NULL) {
+        return getCompiledFrameLocals(tstate, compiled_frame);
+    }
+
+    return CALL_FUNCTION_NO_ARGS(tstate, orig_builtin_locals);
+}
+
+static PyObject *_builtin_vars_replacement(PyObject *self, PyObject *args) {
+    PyThreadState *tstate = PyThreadState_GET();
+
+    if (PyTuple_GET_SIZE(args) == 0) {
+        _PyInterpreterFrame *compiled_frame = getCurrentCompiledFrame(tstate);
+
+        if (compiled_frame != NULL) {
+            return getCompiledFrameLocals(tstate, compiled_frame);
+        }
+    }
+
+    return CALL_FUNCTION(tstate, orig_builtin_vars, args, NULL);
+}
+
+static PyObject *_builtin_dir_replacement(PyObject *self, PyObject *args) {
+    PyThreadState *tstate = PyThreadState_GET();
+
+    if (PyTuple_GET_SIZE(args) == 0) {
+        _PyInterpreterFrame *compiled_frame = getCurrentCompiledFrame(tstate);
+
+        if (compiled_frame != NULL) {
+            PyObject *locals_mapping = getCompiledFrameLocals(tstate, compiled_frame);
+            if (unlikely(locals_mapping == NULL)) {
+                return NULL;
+            }
+
+            PyObject *result = Nuitka_Mapping_Keys(tstate, locals_mapping);
+            Py_DECREF(locals_mapping);
+
+            if (unlikely(result == NULL)) {
+                return NULL;
+            }
+
+            if (unlikely(PyList_Sort(result) < 0)) {
+                Py_DECREF(result);
+                return NULL;
+            }
+
+            return result;
+        }
+    }
+
+    return CALL_FUNCTION(tstate, orig_builtin_dir, args, NULL);
+}
+
+static PyObject *makeBuiltinFunctionReplacement(PyMethodDef *replacement_def, PyObject *original, PyCFunction method,
+                                                int flags) {
+    assert(PyCFunction_Check(original));
+
+    PyMethodDef *original_def = ((PyCFunctionObject *)original)->m_ml;
+
+    *replacement_def = *original_def;
+    replacement_def->ml_meth = method;
+    replacement_def->ml_flags = flags;
+
+    // Use the builtins module as "self", like CPython's builtins, so that
+    // "inspect.signature" strips the "$module" parameter.
+    return PyCFunction_NewEx(replacement_def, (PyObject *)builtin_module, ((PyCFunctionObject *)original)->m_module);
+}
+
+static void installBuiltinFrameFunction(PyThreadState *tstate, PyObject **original, PyObject *name,
+                                        PyMethodDef *replacement_def, PyCFunction method, int flags) {
+    *original = LOOKUP_BUILTIN1(tstate, name);
+    CHECK_OBJECT(*original);
+
+    PyObject *replacement = makeBuiltinFunctionReplacement(replacement_def, *original, method, flags);
+    CHECK_OBJECT(replacement);
+
+    DICT_SET_ITEM_INFALLIBLE(tstate, (PyObject *)dict_builtin, name, replacement);
+    Py_DECREF(replacement);
+}
+
+void patchBuiltinFrameFunctions(PyThreadState *tstate) {
+    NUITKA_ONCE("called twice");
+
+    // Do not wrap wrappers installed by another compiled module.
+    if (Nuitka_SysGetObject(NUITKA_FRAME_BUILTINS_PATCHED_MARKER) != NULL) {
+        return;
+    }
+
+    CHECK_OBJECT(dict_builtin);
+
+    // On Python 3.13+, these built-ins default their locals from the current
+    // frame, which fails for compiled frames, because CPython's
+    // FrameLocalsProxy requires an exact PyFrameObject. Replace them with
+    // versions that supply the globals and locals of compiled frames instead.
+    // This must run before module constants are created, since those may
+    // contain the original builtins.
+    installBuiltinFrameFunction(tstate, &orig_builtin_eval, const_str_plain_eval, &builtin_eval_replacement_def,
+                                CAST_METHOD_KW(_builtin_eval_replacement), METH_VARARGS | METH_KEYWORDS);
+    installBuiltinFrameFunction(tstate, &orig_builtin_exec, const_str_plain_exec, &builtin_exec_replacement_def,
+                                CAST_METHOD_KW(_builtin_exec_replacement), METH_VARARGS | METH_KEYWORDS);
+    installBuiltinFrameFunction(tstate, &orig_builtin_locals, const_str_plain_locals, &builtin_locals_replacement_def,
+                                _builtin_locals_replacement, METH_NOARGS);
+    installBuiltinFrameFunction(tstate, &orig_builtin_vars, const_str_plain_vars, &builtin_vars_replacement_def,
+                                _builtin_vars_replacement, METH_VARARGS);
+    installBuiltinFrameFunction(tstate, &orig_builtin_dir, const_str_plain_dir, &builtin_dir_replacement_def,
+                                _builtin_dir_replacement, METH_VARARGS);
+
+    Nuitka_SysSetObject(NUITKA_FRAME_BUILTINS_PATCHED_MARKER, Py_True);
+}
 #endif
 
 /* Replace inspect functions with ones that handle compiles types too. */
@@ -306,7 +715,15 @@ void patchInspectModule(PyThreadState *tstate) {
 #if _NUITKA_EXE_MODE && !_NUITKA_STANDALONE_MODE
     // May need to import the "site" module, because otherwise the patching can
     // fail with it being unable to load it (yet)
-    if (Py_NoSiteFlag == 0) {
+#if PYTHON_VERSION < 0x400
+    bool needs_site_import = Py_NoSiteFlag == 0;
+#elif defined(_NUITKA_SYSFLAG_NO_SITE)
+    bool needs_site_import = false;
+#else
+    bool needs_site_import = true;
+#endif
+
+    if (needs_site_import) {
         PyObject *site_module =
             IMPORT_MODULE5(tstate, const_str_plain_site, Py_None, Py_None, const_tuple_empty, const_int_0);
 
@@ -326,7 +743,6 @@ void patchInspectModule(PyThreadState *tstate) {
     }
     CHECK_OBJECT(module_inspect);
 
-    // Patch "inspect.getgeneratorstate" unless it is already patched.
     old_getgeneratorstate = PyObject_GetAttrString(module_inspect, "getgeneratorstate");
     CHECK_OBJECT(old_getgeneratorstate);
 
@@ -548,22 +964,30 @@ void patchTypeComparison(void) {
 
 #include "nuitka/freelists.h"
 
-// Freelist setup
 #define MAX_TRACEBACK_FREE_LIST_COUNT 1000
 static PyTracebackObject *free_list_tracebacks = NULL;
 static int free_list_tracebacks_count = 0;
+NUITKA_FREELIST_DECLARE_LOCK(free_list_tracebacks)
+
+#ifdef _NUITKA_EXPERIMENTAL_SUBINTERPRETERS
+static bool useTracebackFreeList(void) {
+#if PYTHON_VERSION >= 0x3c0
+    // Since Python3.12 object allocation is per-interpreter. A process global
+    // free list would allow tracebacks allocated with one interpreter's
+    // allocator to be freed with another interpreter's allocator. In
+    // subinterpreters we therefore do not use the free list at all. This is
+    // only done when subinterpreters are explicitly enabled, so that normal
+    // programs do not pay for the interpreter check.
+    return use_freelists && PyInterpreterState_GetID(_PyInterpreterState_GET()) == 0;
+#else
+    return use_freelists;
+#endif
+}
+#endif
 
 // Create a traceback for a given frame, using a free list hacked into the
 // existing type.
 PyTracebackObject *MAKE_TRACEBACK(struct Nuitka_FrameObject *frame, int lineno) {
-#if 0
-    PRINT_STRING("MAKE_TRACEBACK: Enter");
-    PRINT_ITEM((PyObject *)frame);
-    PRINT_NEW_LINE();
-
-    dumpFrameStack();
-#endif
-
     CHECK_OBJECT(frame);
     if (lineno == 0) {
         lineno = frame->m_frame.f_lineno;
@@ -572,7 +996,29 @@ PyTracebackObject *MAKE_TRACEBACK(struct Nuitka_FrameObject *frame, int lineno) 
 
     PyTracebackObject *result;
 
+#ifdef _NUITKA_EXPERIMENTAL_SUBINTERPRETERS
+    if (useTracebackFreeList()) {
+        NUITKA_FREELIST_LOCK(free_list_tracebacks);
+        if (free_list_tracebacks != NULL) {
+            result = free_list_tracebacks;
+            free_list_tracebacks = *((PyTracebackObject **)free_list_tracebacks);
+            free_list_tracebacks_count -= 1;
+            assert(free_list_tracebacks_count >= 0);
+            NUITKA_FREELIST_UNLOCK(free_list_tracebacks);
+
+            Nuitka_Py_NewReference((PyObject *)result);
+        } else {
+            NUITKA_FREELIST_UNLOCK(free_list_tracebacks);
+            result = (PyTracebackObject *)Nuitka_GC_New(&PyTraceBack_Type);
+        }
+    } else {
+        result = (PyTracebackObject *)Nuitka_GC_New(&PyTraceBack_Type);
+    }
+#else
     allocateFromFreeListFixed(free_list_tracebacks, PyTracebackObject, PyTraceBack_Type);
+#endif
+
+    CHECK_OBJECT(result);
 
     result->tb_next = NULL;
     result->tb_frame = (PyFrameObject *)frame;
@@ -586,7 +1032,9 @@ PyTracebackObject *MAKE_TRACEBACK(struct Nuitka_FrameObject *frame, int lineno) 
     return result;
 }
 
-static void Nuitka_tb_dealloc(PyTracebackObject *tb) {
+static void Nuitka_tb_dealloc(PyObject *self) {
+    PyTracebackObject *tb = (PyTracebackObject *)self;
+
     // Need to use official method as it checks for recursion.
     Nuitka_GC_UnTrack(tb);
 
@@ -601,7 +1049,15 @@ static void Nuitka_tb_dealloc(PyTracebackObject *tb) {
     Py_XDECREF(tb->tb_next);
     Py_XDECREF(tb->tb_frame);
 
+#ifdef _NUITKA_EXPERIMENTAL_SUBINTERPRETERS
+    if (useTracebackFreeList()) {
+        releaseToFreeList(free_list_tracebacks, tb, MAX_TRACEBACK_FREE_LIST_COUNT);
+    } else {
+        PyObject_GC_Del(tb);
+    }
+#else
     releaseToFreeList(free_list_tracebacks, tb, MAX_TRACEBACK_FREE_LIST_COUNT);
+#endif
 
 #if 0
 #if PYTHON_VERSION >= 0x380

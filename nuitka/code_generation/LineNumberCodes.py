@@ -5,8 +5,6 @@
 
 
 def getSourceCodeReferenceLineNumber(source_ref):
-    """Get the line number of a source ref to be used in generated code."""
-
     return source_ref.getLineNumber()
 
 
@@ -57,7 +55,6 @@ def emitErrorLineNumberUpdateCode(emit, context):
 
 
 def emitLineNumberUpdateCode(expression, emit, context):
-    # Optional expression.
     if expression is not None:
         context.setCurrentSourceCodeReference(expression.getCompatibleSourceReference())
 

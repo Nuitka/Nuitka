@@ -40,18 +40,10 @@ _SECTION_HEADER_SIZE = 72
 
 
 def generateAIXXcoffObject(in_filename, out_filename, symbol_name, writeable):
-    """Generate a valid AIX XCOFF64 .o file containing the given payload.
+    """Generate a valid AIX XCOFF64 '.o' file containing the given payload.
 
     Notes:
-        This is intended to be used on AIX and PASE only, and always creates
-        64 bits object files, the 32 bits format is not supported.
-
-    Args:
-        in_filename: Path to the input binary payload.
-        out_filename: Path to write the resulting .o file.
-        symbol_name: The C symbol name to export.
-        writeable: Use a writable data csect (XMC_RW) instead of a
-            read-only constant (XMC_RO).
+        Intended for AIX and PASE only; always creates 64-bit object files.
     """
     symbol_bytes = symbol_name
     if str is not bytes:

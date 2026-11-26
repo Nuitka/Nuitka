@@ -3,22 +3,14 @@
 
 """Nodes for functions and their creations.
 
-Lambdas are functions too. The functions are at the core of the language and
-have their complexities.
-
-Creating a CPython function object is an optional thing. Some things might
-only be used to be called directly, while knowing exactly what it is. So
-the "ExpressionFunctionCreation" might be used to provide that kind of
-CPython reference, and may escape.
-
-Coroutines and generators live in their dedicated module and share base
-classes.
+Creating a CPython function object via 'ExpressionFunctionCreation' is optional
+when a function is only called directly.
 """
 
 import inspect
 import re
 
-from nuitka.Constants import isMutable
+from nuitka.Constants import isConstantKnownRuntimeImmortal, isMutable
 from nuitka.optimizations.TraceCollections import (
     TraceCollectionFunction,
     TraceCollectionPureFunction,
@@ -32,6 +24,12 @@ from nuitka.specs.ParameterSpecs import (
 )
 from nuitka.States import states
 from nuitka.Tracing import optimization_logger, printError
+from nuitka.tree.Extractions import (
+    getClonedProvider,
+    updateVariableUsage,
+    withClonedProvider,
+)
+from nuitka.tree.Operations import VisitorNoopMixin, visitTree
 from nuitka.tree.SourceHandling import readSourceLines
 from nuitka.tree.TreeHelpers import makeDictCreationOrConstant2
 from nuitka.utils.CStrings import decodePythonIdentifierFromC
@@ -91,7 +89,6 @@ class ExpressionFunctionBodyBase(
     if python_version >= 0x300:
         __slots__ += ("qualname_provider", "non_local_declarations")
 
-    # Might be None initially in some cases.
     named_children = ("body|optional+setter",)
 
     def __init__(self, provider, name, body, code_prefix, flags, source_ref):
@@ -126,7 +123,6 @@ class ExpressionFunctionBodyBase(
             # TODO: Make this class only code.
             self.qualname_provider = provider
 
-            # Non-local declarations if any.
             self.non_local_declarations = None
 
     def getCloneArgs(self):
@@ -144,7 +140,6 @@ class ExpressionFunctionBodyBase(
 
         Normally ourselves. Only outlines will refer to their parent which
         technically owns them.
-
         """
 
         return self
@@ -153,10 +148,7 @@ class ExpressionFunctionBodyBase(
         """Does a return of the function body need an exit point.
 
         This is not the case if no return can complete, e.g. when all of them
-        are contained in a "finally" block that raises.
-
-        Returns:
-            bool
+        are contained in a 'finally' block that raises.
         """
 
         body = self.subnode_body
@@ -250,7 +242,6 @@ class ExpressionFunctionBodyBase(
         return result
 
     def removeClosureVariable(self, variable):
-        # Do not remove parameter variables of ours.
         assert not variable.isParameterVariable() or variable.getOwner() is not self
 
         self.locals_scope.unregisterClosureVariable(variable)
@@ -268,18 +259,29 @@ class ExpressionFunctionBodyBase(
         return variable in self.taken
 
     def getVariableForAssignment(self, variable_name):
-        # print("ASS func", self, variable_name)
-
-        if self.hasTakenVariable(variable_name):
+        if self.hasProvidedVariable(variable_name):
+            result = self.getProvidedVariable(variable_name)
+        elif self.hasTakenVariable(variable_name):
             result = self.getTakenVariable(variable_name)
         else:
             result = self.getProvidedVariable(variable_name)
 
         return result
 
-    def getVariableForReference(self, variable_name):
-        # print( "REF func", self, variable_name )
+    def registerVariableBinding(self, variable_name):
+        """Register a name bound in this scope during tree building.
 
+        This makes function locals known before early closure lookups of
+        class bodies are resolved. Nonlocal names are left for phase 1 to
+        take from their provider.
+        """
+
+        if not self.hasProvidedVariable(
+            variable_name
+        ) and not self.hasNonlocalDeclaration(variable_name):
+            self.getProvidedVariable(variable_name)
+
+    def getVariableForReference(self, variable_name):
         if self.hasProvidedVariable(variable_name):
             result = self.getProvidedVariable(variable_name)
         else:
@@ -310,8 +312,6 @@ class ExpressionFunctionBodyBase(
         return result
 
     def getVariableForClosure(self, variable_name):
-        # print( "getVariableForClosure", self.getCodeName(), variable_name, self.isUnoptimized() )
-
         if self.hasProvidedVariable(variable_name):
             return self.getProvidedVariable(variable_name)
 
@@ -323,8 +323,6 @@ class ExpressionFunctionBodyBase(
         return result
 
     def createProvidedVariable(self, variable_name):
-        # print("createProvidedVariable", self, variable_name)
-
         assert self.locals_scope, self
 
         return self.locals_scope.getLocalVariable(
@@ -335,22 +333,27 @@ class ExpressionFunctionBodyBase(
         """Add a nonlocal declared name.
 
         This happens during tree building, and is a Python3 only
-        feature. We remember the names for later use through the
-        function @consumeNonlocalDeclarations
+        feature. We remember the names for later use through
+        'consumeNonlocalDeclarations'.
         """
         if self.non_local_declarations is None:
             self.non_local_declarations = []
 
         self.non_local_declarations.append((names, user_provided, source_ref))
 
+    def hasNonlocalDeclaration(self, variable_name):
+        """Check if a name is declared nonlocal before declarations are consumed."""
+
+        if python_version < 0x300 or self.non_local_declarations is None:
+            return False
+
+        for names, _user_provided, _source_ref in self.non_local_declarations:
+            if variable_name in names:
+                return True
+
+        return False
+
     def consumeNonlocalDeclarations(self):
-        """Return the nonlocal declared names for this function.
-
-        There may not be any, which is why we assigned it to
-        None originally and now check and return empty tuple
-        in that case.
-        """
-
         result = self.non_local_declarations or ()
         self.non_local_declarations = None
         return result
@@ -359,11 +362,7 @@ class ExpressionFunctionBodyBase(
         return self.name
 
     def getFunctionQualname(self):
-        """Function __qualname__ new in CPython3.3
-
-        Should contain some kind of full name descriptions for the closure to
-        recognize and will be used for outputs.
-        """
+        """Function '__qualname__' (introduced in CPython 3.3)."""
 
         function_name = self.getFunctionName()
 
@@ -377,7 +376,6 @@ class ExpressionFunctionBodyBase(
     def computeExpression(self, trace_collection):
         assert False
 
-        # Function body is quite irreplaceable.
         return self, None, None
 
     def mayRaiseException(self, exception_type):
@@ -389,12 +387,9 @@ class ExpressionFunctionBodyBase(
             return self.subnode_body.mayRaiseException(exception_type)
 
     def getFunctionInlineCost(self, values):
-        """Cost of inlining this function with given arguments
+        """Cost of inlining this function with given arguments, or 'None' if not possible."""
 
-        Returns: None or integer values, None means don't do it.
-        """
-
-        # For overload, pylint: disable=no-self-use,unused-argument
+        # pylint: disable=no-self-use,unused-argument
         return None
 
     def optimizeUnusedClosureVariables(self):
@@ -422,8 +417,6 @@ class ExpressionFunctionBodyBase(
                 self.removeClosureVariable(closure_variable)
 
     def optimizeUnusedVeryTrustedModuleVariables(self, very_trusted_module_variables):
-        """Optimize module variables that are very trusted."""
-
         for module_variable in very_trusted_module_variables:
             if module_variable not in self.taken:
                 continue
@@ -486,13 +479,32 @@ class ExpressionFunctionEntryPointBase(EntryPointMixin, ExpressionFunctionBodyBa
             "locals_%s" % self.getCodeName(), locals_kind, self
         )
 
-        # Automatic parameter variable releases.
         self.auto_release = auto_release or None
 
-    def getDetails(self):
-        result = ExpressionFunctionBodyBase.getDetails(self)
+    def makeClone(self):
+        assert False, self
 
-        result["auto_release"] = tuple(sorted(self.auto_release or ()))
+    def getDetails(self):
+        return {
+            "provider": self.provider,
+            "name": self.name,
+            "code_object": self.code_object,
+            "flags": None if self.flags is None else set(self.flags),
+            "auto_release": (
+                None if self.auto_release is None else set(self.auto_release)
+            ),
+        }
+
+    def getDetailsForDisplay(self):
+        result = {
+            "name": self.getFunctionName(),
+            "provider": self.provider.getCodeName(),
+            "flags": self.flags,
+            "auto_release": tuple(sorted(self.auto_release or ())),
+        }
+
+        if self.code_object:
+            result.update(self.code_object.getDetails())
 
         return result
 
@@ -544,11 +556,7 @@ class ExpressionFunctionEntryPointBase(EntryPointMixin, ExpressionFunctionBodyBa
         self.auto_release.add(variable)
 
     def getParameterVariablesWithManualRelease(self):
-        """Return the list of parameter variables that have release statements.
-
-        These are for consideration if these can be dropped, and if so, they
-        are releases automatically by function code.
-        """
+        """Return parameter variables that still use explicit release statements."""
         return tuple(
             variable
             for variable in self.locals_scope.getProvidedVariables()
@@ -558,11 +566,9 @@ class ExpressionFunctionEntryPointBase(EntryPointMixin, ExpressionFunctionBodyBa
         )
 
     def isAutoReleaseVariable(self, variable):
-        """Is this variable to be automatically released."""
         return self.auto_release is not None and variable in self.auto_release
 
     def getFunctionVariablesWithAutoReleases(self):
-        """Return the list of function variables that should be released at exit."""
         if self.auto_release is None:
             return ()
 
@@ -574,12 +580,7 @@ class ExpressionFunctionEntryPointBase(EntryPointMixin, ExpressionFunctionBodyBa
 
     @staticmethod
     def getConstantReturnValue():
-        """Special function that checks if code generation allows to use common C code.
-
-        Notes:
-            This is only done for standard functions.
-
-        """
+        """Return '(True, constant_value)' if common constant-return C code can be used, else '(False, False)'."""
         return False, False
 
 
@@ -632,14 +633,8 @@ class ExpressionFunctionBody(
         MarkUnoptimizedFunctionIndicatorMixin.__init__(self, flags)
 
         self.doc = doc
-
-        # Indicator if the function needs to be created as a function object.
         self.needs_creation = False
-
-        # Indicator if the function is called directly.
         self.needs_direct = False
-
-        # Indicator if the function is used outside of where it's defined.
         self.cross_module_use = False
 
         if python_version >= 0x300:
@@ -652,15 +647,12 @@ class ExpressionFunctionBody(
             self.locals_scope.registerProvidedVariable(variable)
 
     def getDetails(self):
-        return {
-            "name": self.getFunctionName(),
-            "ref_name": self.getCodeName(),
-            "parameters": self.getParameters(),
-            "code_object": self.code_object,
-            "provider": self.provider.getCodeName(),
-            "doc": self.doc,
-            "flags": self.flags,
-        }
+        result = ExpressionFunctionEntryPointBase.getDetails(self)
+        result["doc"] = self.doc
+        result["parameters"] = self.parameters
+        result["code_prefix"] = self.code_prefix
+
+        return result
 
     def getDetailsForDisplay(self):
         result = {
@@ -697,7 +689,7 @@ class ExpressionFunctionBody(
             else:
                 other_args[key] = value
 
-        parameters = ParameterSpec(**parameter_spec_args)
+        parameters = ParameterSpec.fromDetails(**parameter_spec_args)
         code_object = CodeObjectSpec(**code_object_args)
 
         # The empty doc string and no doc string are distinguished by presence. The
@@ -765,7 +757,6 @@ class ExpressionFunctionBody(
         return body is not None and body.mayRaiseException(exception_type)
 
     def getConstantReturnValue(self):
-        """Special function that checks if code generation allows to use common C code."""
         body = self.subnode_body
 
         if body is None:
@@ -777,8 +768,13 @@ class ExpressionFunctionBody(
             constant_value = first_statement.getConstant()
 
             # TODO: For mutable constants, we could also have something, but it would require an indicator
-            # flag to make a deep copy.
-            if not isMutable(constant_value):
+            # flag to make a deep copy. On Python 3.12+, generic constant return uses
+            # Py_INCREF_IMMORTAL so the constant must also be immortal.
+            if (
+                isConstantKnownRuntimeImmortal(constant_value)
+                if python_version >= 0x3C0
+                else not isMutable(constant_value)
+            ):
                 return True, constant_value
             else:
                 return False, False
@@ -789,10 +785,7 @@ class ExpressionFunctionBody(
 class ExpressionFunctionPureBody(ExpressionFunctionBody):
     kind = "EXPRESSION_FUNCTION_PURE_BODY"
 
-    __slots__ = (
-        # These need only one optimization ever.
-        "optimization_done",
-    )
+    __slots__ = ("optimization_done",)
 
     def __init__(
         self,
@@ -874,6 +867,350 @@ class ExpressionFunctionPureInlineConstBody(ExpressionFunctionBody):
         return 0
 
 
+def _makeFunctionBodyClone(
+    function_body, new_provider, variable_translations, provider_translations=None
+):
+    """Make a clone of a function body whose provider scope was cloned.
+
+    Notes:
+        Function bodies are shared between clones of the expression tree they
+        are contained in. When the enclosing scope is cloned, its variables
+        change, and the closure variables of these bodies need to be
+        translated to the clones as well.
+    """
+
+    flags = None if function_body.flags is None else set(function_body.flags)
+
+    if function_body.isExpressionFunctionBody():
+        result = function_body.__class__(
+            provider=new_provider,
+            name=function_body.name,
+            code_object=function_body.code_object,
+            doc=function_body.doc,
+            parameters=function_body.parameters.makeClone(),
+            flags=flags,
+            auto_release=None,
+            code_prefix=function_body.code_prefix,
+            source_ref=function_body.source_ref,
+        )
+
+        assert not function_body.needs_creation, function_body
+        assert not function_body.needs_direct, function_body
+
+        parameter_variable_translations = dict(
+            zip(
+                function_body.parameters.getAllVariables(),
+                result.parameters.getAllVariables(),
+            )
+        )
+    elif (
+        function_body.isExpressionGeneratorObjectBody()
+        or function_body.isExpressionAsyncgenObjectBody()
+        or function_body.isExpressionCoroutineObjectBody()
+    ):
+        result = function_body.__class__(
+            provider=new_provider,
+            name=function_body.name,
+            code_object=function_body.code_object,
+            flags=flags,
+            auto_release=None,
+            source_ref=function_body.source_ref,
+        )
+
+        parameter_variable_translations = {}
+    else:
+        return None
+
+    if function_body.subnode_body is not None:
+        with withClonedProvider(function_body, result):
+            result.setChildBody(function_body.subnode_body.makeClone())
+
+    all_variable_translations = dict(variable_translations)
+    all_variable_translations.update(parameter_variable_translations)
+
+    result.locals_scope, all_variable_translations = (
+        function_body.locals_scope.makeCloneWithVariableTranslations(
+            new_owner=result, variable_translations=all_variable_translations
+        )
+    )
+
+    for temp_variable in function_body.getTempVariables(None):
+        all_variable_translations[temp_variable] = result.createTempVariable(
+            temp_name=temp_variable.getName(),
+            temp_type=temp_variable.getVariableType(),
+            outline=None,
+        )
+
+    if function_body.auto_release is not None:
+        result.auto_release = set(
+            all_variable_translations.get(variable, variable)
+            for variable in function_body.auto_release
+        )
+
+    for variable in function_body.taken:
+        result.taken.add(all_variable_translations.get(variable, variable))
+
+    if python_version >= 0x300:
+        result.qualname_setup = function_body.qualname_setup
+
+        if function_body.qualname_provider is not function_body.provider:
+            qualname_provider = (
+                provider_translations.get(
+                    function_body.qualname_provider, function_body.qualname_provider
+                )
+                if provider_translations is not None
+                else function_body.qualname_provider
+            )
+            result.qualname_provider = getClonedProvider(qualname_provider)
+
+        if function_body.non_local_declarations is not None:
+            result.non_local_declarations = list(function_body.non_local_declarations)
+
+    updateVariableUsage(
+        provider=result,
+        old_locals_scope=function_body.locals_scope,
+        new_locals_scope=result.locals_scope,
+        variable_translations=all_variable_translations,
+    )
+
+    updateFunctionBodyReferences(
+        provider=result,
+        old_provider=function_body,
+        variable_translations=all_variable_translations,
+        code_name_translations={function_body.getCodeName(): result.getCodeName()},
+        provider_translations=provider_translations,
+    )
+
+    return result
+
+
+def _functionBodyUsesVariables(function_body, variable_translations):
+    """Check if a function body or nested function bodies reference translated variables.
+
+    During tree building (before VariableClosure runs), ``taken`` is still
+    empty even though temporary or local variables from enclosing outlines are
+    already referenced directly in the body AST.
+    """
+    if not variable_translations:
+        return False
+
+    seen = set()
+    worklist = [function_body]
+
+    while worklist:
+        current_body = worklist.pop()
+
+        if current_body in seen:
+            continue
+        seen.add(current_body)
+
+        if any(variable in variable_translations for variable in current_body.taken):
+            return True
+
+        if current_body.auto_release is not None and any(
+            variable in variable_translations for variable in current_body.auto_release
+        ):
+            return True
+
+        if current_body.subnode_body is None:
+            continue
+
+        stack = [current_body.subnode_body]
+
+        while stack:
+            node = stack.pop()
+
+            if hasattr(node, "variable") and node.variable in variable_translations:
+                return True
+
+            if (
+                hasattr(node, "class_variable")
+                and node.class_variable in variable_translations
+            ):
+                return True
+
+            if node.isExpressionFunctionRef():
+                worklist.append(node.getFunctionBody())
+
+            stack.extend(node.getVisitableNodes())
+
+    return False
+
+
+def _isProviderWithinScope(provider, scope):
+    current = provider
+
+    while current is not None:
+        if current is scope:
+            return True
+
+        current = current.getParentVariableProvider()
+
+    return False
+
+
+def _updateFunctionBodyInPlace(
+    function_body,
+    old_provider,
+    variable_translations,
+    code_name_translations,
+    provider_translations,
+):
+    """Update a freshly cloned function body in place for an outer scope's translations."""
+    if function_body.auto_release is not None:
+        function_body.auto_release = set(
+            variable_translations.get(variable, variable)
+            for variable in function_body.auto_release
+        )
+
+    function_body.taken = set(
+        variable_translations.get(variable, variable)
+        for variable in function_body.taken
+    )
+
+    if function_body.locals_scope is not None:
+        function_body.locals_scope.translateClosureVariables(variable_translations)
+
+    if (
+        python_version >= 0x300
+        and provider_translations
+        and function_body.qualname_provider in provider_translations
+    ):
+        function_body.qualname_provider = provider_translations[
+            function_body.qualname_provider
+        ]
+
+    updateVariableUsage(
+        provider=function_body,
+        old_locals_scope=None,
+        new_locals_scope=None,
+        variable_translations=variable_translations,
+    )
+
+    updateFunctionBodyReferences(
+        provider=function_body,
+        old_provider=old_provider,
+        variable_translations=variable_translations,
+        code_name_translations=code_name_translations,
+        provider_translations=provider_translations,
+    )
+
+
+class _FunctionBodyRefCloneVisitor(VisitorNoopMixin):
+    """Update closure variables of function bodies referenced in a clone."""
+
+    __slots__ = (
+        "old_provider",
+        "new_provider",
+        "variable_translations",
+        "code_name_translations",
+        "provider_translations",
+        "cloned_function_bodies",
+    )
+
+    def __init__(
+        self,
+        old_provider,
+        new_provider,
+        variable_translations,
+        code_name_translations,
+        provider_translations,
+    ):
+        self.old_provider = old_provider
+        self.new_provider = new_provider
+        self.variable_translations = variable_translations
+        self.code_name_translations = code_name_translations
+        self.provider_translations = provider_translations
+
+        # Multiple references to one body must keep sharing a single clone.
+        self.cloned_function_bodies = {}
+
+    def onEnterNode(self, node):
+        if node.isExpressionFunctionBodyBase():
+            node.taken = set(
+                self.variable_translations.get(variable, variable)
+                for variable in node.taken
+            )
+            if node.locals_scope is not None:
+                node.locals_scope.translateClosureVariables(self.variable_translations)
+        elif node.isStatementsFrame():
+            node.owner_code_name = self.code_name_translations.get(
+                node.owner_code_name, node.owner_code_name
+            )
+        elif node.isExpressionFunctionQualnameRef():
+            if node.function_body in self.provider_translations:
+                node.function_body = self.provider_translations[node.function_body]
+        elif node.isExpressionFunctionRef():
+            function_body = node.getFunctionBody()
+            body_provider = function_body.getParentVariableProvider()
+
+            if body_provider is self.old_provider or _functionBodyUsesVariables(
+                function_body, self.variable_translations
+            ):
+                if _isProviderWithinScope(body_provider, self.new_provider):
+                    cache_key = (function_body, body_provider)
+
+                    if cache_key not in self.cloned_function_bodies:
+                        self.cloned_function_bodies[cache_key] = function_body
+
+                        _updateFunctionBodyInPlace(
+                            function_body=function_body,
+                            old_provider=self.old_provider,
+                            variable_translations=self.variable_translations,
+                            code_name_translations=self.code_name_translations,
+                            provider_translations=self.provider_translations,
+                        )
+                else:
+                    new_provider = node.getParentVariableProvider()
+                    cache_key = (function_body, new_provider)
+
+                    if cache_key not in self.cloned_function_bodies:
+                        self.cloned_function_bodies[cache_key] = _makeFunctionBodyClone(
+                            function_body=function_body,
+                            new_provider=new_provider,
+                            variable_translations=self.variable_translations,
+                            provider_translations=self.provider_translations,
+                        )
+
+                    function_body_clone = self.cloned_function_bodies[cache_key]
+
+                    if function_body_clone is not None:
+                        node.function_body = function_body_clone
+
+
+def updateFunctionBodyReferences(
+    provider,
+    old_provider,
+    variable_translations,
+    code_name_translations,
+    provider_translations=None,
+):
+    """Update function body references after cloning their scope."""
+    assert (
+        provider.isExpressionFunctionBodyBase() or provider.isExpressionOutlineBody()
+    ), provider
+
+    all_provider_translations = (
+        {} if provider_translations is None else dict(provider_translations)
+    )
+    if (
+        provider.isExpressionFunctionBodyBase()
+        and old_provider not in all_provider_translations
+    ):
+        all_provider_translations[old_provider] = provider
+
+    visitTree(
+        provider,
+        _FunctionBodyRefCloneVisitor(
+            old_provider=old_provider,
+            new_provider=provider,
+            variable_translations=variable_translations,
+            code_name_translations=code_name_translations,
+            provider_translations=all_provider_translations,
+        ),
+    )
+
+
 # TODO: Function direct call node ought to be here too.
 
 
@@ -903,7 +1240,7 @@ def makeExpressionFunctionCreation(
 
 
 class ExpressionFunctionCreationMixin(SideEffectsFromChildrenMixin):
-    # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
+    # pylint: disable=assigning-non-slot
     __slots__ = ()
 
     @staticmethod
@@ -976,10 +1313,6 @@ class ExpressionFunctionCreationMixin(SideEffectsFromChildrenMixin):
 
         function_body = self.subnode_function_ref.getFunctionBody()
 
-        # TODO: Actually the above disables it entirely, as it is at least
-        # the empty dictionary node in any case. We will need some enhanced
-        # interfaces for "matchCall" to work on.
-
         call_spec = function_body.getParameters()
 
         try:
@@ -1025,11 +1358,37 @@ class ExpressionFunctionCreationMixin(SideEffectsFromChildrenMixin):
                     source_ref=call_node.source_ref,
                 )
 
+            side_effects = self.extractSideEffects()
+
+            if (
+                self.subnode_defaults
+                or self.subnode_kw_defaults is not None
+                or self.subnode_annotations is not None
+                or self.subnode_type_params is not None
+            ):
+                function = makeExpressionFunctionCreation(
+                    function_ref=self.subnode_function_ref,
+                    defaults=(),
+                    kw_defaults=None,
+                    annotations=None,
+                    type_params=None,
+                    source_ref=self.source_ref,
+                )
+            else:
+                function = self
+
             result = makeExpressionFunctionCall(
-                function=self.makeClone(),
+                function=function,
                 values=values,
                 source_ref=call_node.source_ref,
             )
+
+            if side_effects:
+                result = wrapExpressionWithSideEffects(
+                    side_effects=side_effects,
+                    old_node=call_node,
+                    new_node=result,
+                )
 
             return (
                 result,
@@ -1045,7 +1404,9 @@ Replaced call to created function body '%s' with direct function call."""
                     expression=call_node, exception=e.getRealException()
                 ),
                 old_node=call_node,
-                side_effects=call_node.extractSideEffectsPreCall(),
+                side_effects=(
+                    self.extractSideEffects() + call_node.extractSideEffectsPreCall()
+                ),
             )
 
             return (
@@ -1067,15 +1428,8 @@ class ExpressionFunctionCreationOld(
     kind = "EXPRESSION_FUNCTION_CREATION_OLD"
 
     python_version_spec = "< 0x300"
-    # Note: The order of evaluation for these is a bit unexpected, but
-    # true. Keyword defaults go first, then normal defaults, and annotations of
-    # all kinds go last.
 
-    # A bug of CPython3.x was not fixed before version 3.4, this is to allow
-    # code generation to detect which one is used. bugs.python.org/issue16967
     kw_defaults_before_defaults = True
-
-    # So the can share code generation with the new version.
     subnode_annotations = None
     subnode_kw_defaults = None
     subnode_type_params = None
@@ -1108,8 +1462,7 @@ class ExpressionFunctionCreation(
 
     python_version_spec = ">= 0x340"
 
-    # A bug of CPython3.x was not fixed before version 3.4, this is to allow
-    # code generation to detect which one is used. bugs.python.org/issue16967
+    # CPython < 3.4 evaluated kw_defaults before defaults (bugs.python.org/issue16967).
     kw_defaults_before_defaults = False
 
     named_children = (
@@ -1163,10 +1516,19 @@ class ExpressionFunctionRef(ExpressionNoSideEffectsMixin, ExpressionBase):
         return self.function_body.getName()
 
     def getDetails(self):
-        return {"function_body": self.function_body}
+        return {
+            "function_body": self.function_body,
+            "code_name": self.code_name,
+        }
 
     def getDetailsForDisplay(self):
-        return {"code_name": self.getFunctionBody().getCodeName()}
+        return {
+            "code_name": (
+                self.code_name
+                if self.function_body is None
+                else self.function_body.getCodeName()
+            )
+        }
 
     def getFunctionBody(self):
         if self.function_body is None:
@@ -1230,19 +1592,23 @@ class ExpressionFunctionRef(ExpressionNoSideEffectsMixin, ExpressionBase):
 
 def makeExpressionFunctionCall(function, values, source_ref):
     assert function.isExpressionFunctionCreation()
+    assert not function.subnode_defaults
+    assert function.subnode_kw_defaults is None
+    assert function.subnode_annotations is None
+    assert function.subnode_type_params is None
 
     return ExpressionFunctionCall(
         function=function, values=tuple(values), source_ref=source_ref
     )
 
 
-class ExpressionFunctionCall(ChildrenHavingFunctionValuesTupleMixin, ExpressionBase):
-    """Shared function call.
+def _describeInlinedFunctionOutline(new_node):
+    assert new_node.isExpressionOutlineFunction(), new_node
+    return "changed_variable_usage", "in-lined function"
 
-    This is for calling created function bodies with multiple users. Not
-    clear if such a thing should exist. But what this will do is to have
-    respect for the fact that there are multiple such calls.
-    """
+
+class ExpressionFunctionCall(ChildrenHavingFunctionValuesTupleMixin, ExpressionBase):
+    """Direct call to a created function body."""
 
     kind = "EXPRESSION_FUNCTION_CALL"
 
@@ -1273,7 +1639,6 @@ class ExpressionFunctionCall(ChildrenHavingFunctionValuesTupleMixin, ExpressionB
         for value in values:
             value.onContentEscapes(trace_collection)
 
-        # Ask for function for its cost.
         cost = function_body.getFunctionInlineCost(values)
 
         if cost is not None and cost < 50:
@@ -1281,17 +1646,11 @@ class ExpressionFunctionCall(ChildrenHavingFunctionValuesTupleMixin, ExpressionB
                 convertFunctionCallToOutline,
             )
 
-            result = convertFunctionCallToOutline(
-                provider=self.getParentVariableProvider(),
-                function_body=function_body,
-                values=values,
-                call_source_ref=self.source_ref,
-            )
-
-            return (
-                result,
-                "new_statements",
-                lambda: "Function call to '%s' in-lined." % function_body.getCodeName(),
+            trace_collection.onDelayedWork(
+                node=self,
+                function=convertFunctionCallToOutline,
+                old_desc="function call to '%s'" % function_body.getCodeName(),
+                describe_new_node=_describeInlinedFunctionOutline,
             )
 
         self.variable_closure_traces = []

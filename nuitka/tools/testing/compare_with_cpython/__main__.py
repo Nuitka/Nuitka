@@ -12,6 +12,10 @@ import time
 
 from nuitka.__past__ import md5
 from nuitka.options.OptionParsing import getNuitkaProjectOptions
+from nuitka.reports.CompilationReportReader import (
+    getCompilationOutputBinary,
+    parseCompilationReport,
+)
 from nuitka.tools.testing.Common import (
     addToPythonPath,
     decryptOutput,
@@ -24,6 +28,7 @@ from nuitka.tools.testing.Common import (
     traceExecutedCommand,
     withPythonPathChange,
 )
+from nuitka.tools.testing.Coverage import getCoverageRunCommand
 from nuitka.tools.testing.OutputComparison import compareOutput
 from nuitka.Tracing import my_print
 from nuitka.utils.Execution import (
@@ -33,7 +38,12 @@ from nuitka.utils.Execution import (
     executeProcess,
     wrapCommandForDebuggerForSubprocess,
 )
-from nuitka.utils.FileOperations import deleteFile, getFileContentByLine
+from nuitka.utils.FileOperations import (
+    deleteFile,
+    getFileContentByLine,
+    replaceFileAtomic,
+    withTemporaryFilename,
+)
 from nuitka.utils.Importing import getExtensionModuleSuffix
 from nuitka.utils.Timing import StopWatchWallClock
 from nuitka.utils.Utils import isMacOS
@@ -86,11 +96,12 @@ def _getCPythonResults(cpython_cmd, send_kill):
             process = createProcess(command=cpython_cmd, new_group=send_kill)
 
         if send_kill:
-            # Doing it per loop iteration hopefully, pylint: disable=cell-var-from-loop
             executeAfterTimePassed(
                 message="Scheduling process kill in %.02fs",
                 timeout=2.0,
-                func=lambda: killProcessGroup("Uncompiled Python program", process.pid),
+                func=lambda process=process: killProcessGroup(
+                    "Uncompiled Python program", process.pid
+                ),
             )
 
         stdout_cpython, stderr_cpython = process.communicate()
@@ -155,9 +166,13 @@ def getCPythonResults(cpython_cmd, cpython_cached, force_update, send_kill):
                         stderr_cpython,
                         exit_cpython,
                     ) = pickle.load(cache_file)
-            except (IOError, EOFError, ValueError):
-                # Broken cache content.
-                pass
+            except Exception as e:  # pylint: disable=broad-exception-caught
+                # Cache files can be damaged, e.g. truncated or zeroed out due
+                # to a system crash while writing them, just redo the work then.
+                test_logger.warning(
+                    "Ignoring damaged CPython results cache file '%s' (%s)."
+                    % (cache_filename, e)
+                )
             else:
                 cached = True
 
@@ -167,11 +182,20 @@ def getCPythonResults(cpython_cmd, cpython_cached, force_update, send_kill):
         )
 
         if cpython_cached:
-            with open(cache_filename, "wb") as cache_file:
-                pickle.dump(
-                    (cpython_time, stdout_cpython, stderr_cpython, exit_cpython),
-                    cache_file,
-                )
+            # Write the cache atomically, so that a crash cannot leave behind
+            # a partially written cache file.
+            with withTemporaryFilename(
+                prefix="cpython-results-",
+                suffix=".tmp",
+                temp_path=os.path.dirname(cache_filename),
+            ) as temp_filename:
+                with open(temp_filename, "wb") as cache_file:
+                    pickle.dump(
+                        (cpython_time, stdout_cpython, stderr_cpython, exit_cpython),
+                        cache_file,
+                    )
+
+                replaceFileAtomic(temp_filename, cache_filename)
 
     return cpython_time, stdout_cpython, stderr_cpython, exit_cpython
 
@@ -251,6 +275,24 @@ def main():
     # For output keep it
     arguments = list(args)
 
+    for count, arg in reversed(tuple(enumerate(args))):
+        if arg.startswith("env:"):
+            setting = arg[len("env:") :]
+
+            if "=" not in setting:
+                return sys.exit("Error, malformed environment override '%s'." % arg)
+
+            env_var_name, env_var_value = setting.split("=", 1)
+
+            if not env_var_name:
+                return sys.exit("Error, malformed environment override '%s'." % arg)
+
+            os.environ[env_var_name] = env_var_value
+
+            del args[count]
+
+    extra_options = os.getenv("NUITKA_EXTRA_OPTIONS", "").split()
+
     silent_mode = hasArg("silent")
     ignore_stdout = hasArg("ignore_stdout")
     ignore_stderr = hasArg("ignore_stderr")
@@ -271,11 +313,20 @@ def main():
     no_diffable = hasArg("no_diffable")
     remove_output = hasArg("remove_output")
     remove_binary = not hasArg("--keep-binary")
-    app_bundle_mode = hasArg("--mode=app") and isMacOS()
+    app_bundle_mode = (hasArg("--mode=app") or hasArg("--mode=app-dist")) and isMacOS()
     standalone_mode = (
-        hasArg("--standalone") or hasArg("--mode=standalone") or app_bundle_mode
+        hasArg("--standalone")
+        or hasArg("--mode=standalone")
+        or hasArg("--mode=app-dist")
+        or app_bundle_mode
+        or "--mode=standalone" in extra_options
+        or "--mode=app-dist" in extra_options
     )
-    onefile_mode = hasArg("--onefile") or hasArg("--mode=onefile")
+    onefile_mode = (
+        hasArg("--onefile")
+        or hasArg("--mode=onefile")
+        or "--mode=onefile" in extra_options
+    )
     no_site = hasArg("no_site") or coverage_mode
     report = hasArgValue("--report")
     nofollow_imports = hasArg("recurse_none") or hasArg("--nofollow-imports")
@@ -301,22 +352,6 @@ def main():
 
     if python_version:
         python_version = tuple(int(d) for d in python_version.split("."))
-
-    for count, arg in reversed(tuple(enumerate(args))):
-        if arg.startswith("env:"):
-            setting = arg[len("env:") :]
-
-            if "=" not in setting:
-                return sys.exit("Error, malformed environment override '%s'." % arg)
-
-            env_var_name, env_var_value = setting.split("=", 1)
-
-            if not env_var_name:
-                return sys.exit("Error, malformed environment override '%s'." % arg)
-
-            os.environ[env_var_name] = env_var_value
-
-            del args[count]
 
     plugins_enabled = []
     for count, arg in reversed(tuple(enumerate(args))):
@@ -350,6 +385,9 @@ def main():
         logger=test_logger, filename_arg=filename, module_mode=module_mode
     )
 
+    if "--mode=module" in project_options:
+        module_mode = True
+
     (
         compiled_only_stdout,
         compiled_only_stderr,
@@ -367,15 +405,16 @@ def main():
 
         decryption_project_options.append(project_option)
 
-    traceback_encryption = (
-        "--enable-plugin=traceback-encryption" in project_options
-        and any(
-            project_option.startswith("--encryption-key=")
-            for project_option in decryption_project_options
-        )
+    traceback_encryption = "--enable-plugin=protection" in project_options and any(
+        project_option.startswith("--encryption-key=")
+        for project_option in decryption_project_options
     )
 
-    if "--standalone" in project_options or "--mode=standalone" in project_options:
+    if (
+        "--standalone" in project_options
+        or "--mode=standalone" in project_options
+        or "--mode=app-dist" in project_options
+    ):
         standalone_mode = True
     if "--onefile" in project_options or "--mode=onefile" in project_options:
         standalone_mode = True
@@ -387,6 +426,8 @@ def main():
         else:
             standalone_mode = True
             onefile_mode = True
+    if "--mode=app-dist" in project_options and isMacOS():
+        app_bundle_mode = True
 
     # Verify signature must happen before the binary runs and modifies the
     # framework, so we enable two step execution.
@@ -421,13 +462,18 @@ def main():
     if "PYTHON" not in os.environ:
         os.environ["PYTHON"] = sys.executable
 
-    extra_options = os.getenv("NUITKA_EXTRA_OPTIONS", "").split()
+    if "--mode=standalone" in extra_options:
+        extra_options.remove("--mode=standalone")
+    if "--mode=onefile" in extra_options:
+        extra_options.remove("--mode=onefile")
 
-    if os.path.normcase(os.environ["PYTHON"]).endswith(
-        ("-dbg", "-debug", "d", "_d.exe")
+    if (
+        os.path.normcase(os.environ["PYTHON"]).endswith(
+            ("-dbg", "-debug", "d", "_d.exe")
+        )
+        or "--python-debug" in extra_options
+        or "--python-dbg" in extra_options
     ):
-        python_debug = True
-    elif "--python-debug" in extra_options or "--python-dbg" in extra_options:
         python_debug = True
 
     if python_debug:
@@ -512,29 +558,14 @@ Taking coverage of '{filename}' using '{python}' with flags {args} ...""".format
 
         nuitka_call = [os.environ["PYTHON"], os.environ["NUITKA"]]
     else:
-        if comparison_mode:
-            nuitka_call = [
-                os.environ["PYTHON"],
-                "-m",
-                "nuitka.__main__",  # Note: Needed for Python2.6
-            ]
-        else:
-            assert coverage_mode
+        nuitka_call = [
+            os.environ["PYTHON"],
+            "-m",
+            "nuitka.__main__",  # Note: Needed for Python2.6
+        ]
 
-            # spell-checker: ignore rcfile
-
-            nuitka_call = [
-                os.environ["PYTHON"],
-                "-S",
-                "-m",
-                "coverage",
-                "run",
-                "--rcfile",
-                os.devnull,
-                "-a",
-                "-m",
-                "nuitka.__main__",  # Note: Needed for Python2.6
-            ]
+        if coverage_mode:
+            nuitka_call = getCoverageRunCommand(nuitka_call)
 
     if python_debug:
         extra_options.append("--python-debug")
@@ -714,9 +745,15 @@ Taking coverage of '{filename}' using '{python}' with flags {args} ...""".format
             else:
                 exe_filename += ".bin"
 
-            nuitka_cmd2 = [os.path.join(output_dir, exe_filename)]
+            if standalone_mode and not onefile_mode:
+                exe_basename = os.path.splitext(exe_filename)[0]
+                nuitka_cmd2 = [
+                    os.path.join(output_dir, exe_basename + ".dist", exe_filename)
+                ]
+            else:
+                nuitka_cmd2 = [os.path.join(output_dir, exe_filename)]
 
-        pdb_filename = exe_filename[:-4] + ".pdb"
+        pdb_filename = nuitka_cmd2[0][:-4] + ".pdb"
 
     if trace_command:
         traceExecutedCommand("CPython command", cpython_cmd)
@@ -805,6 +842,21 @@ Stderr was:
                 )
                 stderr_nuitka2 = process_result.stderr
             else:
+                if report and not module_mode:
+                    compilation_report = parseCompilationReport(report)
+
+                    nuitka_cmd2 = [
+                        os.path.abspath(
+                            getCompilationOutputBinary(
+                                compilation_report=compilation_report,
+                                prefixes=(
+                                    ("${cwd}", os.getcwd()),
+                                    ("~", os.path.expanduser("~")),
+                                ),
+                            )
+                        )
+                    ]
+
                 if verify_signature and app_bundle_mode:
                     app_name = os.path.splitext(os.path.basename(filename))[0]
 
@@ -832,21 +884,30 @@ Stderr was:
 
                 # No execution second step for coverage mode.
                 if comparison_mode:
-                    if os.path.exists(nuitka_cmd2[0][:-4] + ".cmd"):
-                        nuitka_cmd2[0] = nuitka_cmd2[0][:-4] + ".cmd"  # type: ignore
+                    nuitka_run_cmd = list(nuitka_cmd2)
+
+                    if os.name == "nt" and os.path.exists(
+                        nuitka_run_cmd[0][:-4] + ".cmd"
+                    ):
+                        nuitka_run_cmd[0] = nuitka_run_cmd[0][:-4] + ".cmd"
+                    elif os.name != "nt" and os.path.exists(
+                        nuitka_run_cmd[0][:-4] + ".sh"
+                    ):
+                        nuitka_run_cmd[0] = nuitka_run_cmd[0][:-4] + ".sh"
+
+                    if os.name == "nt" and not os.path.dirname(nuitka_run_cmd[0]):
+                        nuitka_run_cmd[0] = ".\\" + nuitka_run_cmd[0]
 
                     if trace_command:
-                        my_print("Nuitka command 2:", nuitka_cmd2)
+                        my_print("Nuitka command 2:", nuitka_run_cmd)
 
-                    # Need full manual control
-                    process = createProcess(command=nuitka_cmd2, new_group=send_kill)
+                    process = createProcess(command=nuitka_run_cmd, new_group=send_kill)
 
                     if send_kill:
-                        # Lambda is used immediately in same loop, pylint: disable=cell-var-from-loop
                         executeAfterTimePassed(
                             message="Scheduling process kill in %.02fs",
                             timeout=2.0,
-                            func=lambda: killProcessGroup(
+                            func=lambda process=process: killProcessGroup(
                                 "Nuitka compiled program", process.pid
                             ),
                         )
@@ -936,9 +997,8 @@ Stderr was:
 
             if exit_code_return and trace_result:
                 my_print(
-                    """Exit codes {exit_cpython:d} (CPython) != {exit_nuitka:d} (Nuitka)""".format(
-                        exit_cpython=exit_cpython, exit_nuitka=exit_nuitka
-                    )
+                    """Exit codes %d (CPython) != %d (Nuitka)"""
+                    % (exit_cpython, exit_nuitka)
                 )
 
             return exit_code_stdout, exit_code_stderr, exit_code_return
@@ -1049,6 +1109,12 @@ Stderr was:
                         os.unlink(pdb_filename)
                 else:
                     os.unlink(nuitka_cmd2[0])
+
+            if remove_binary:
+                deleteFile(
+                    nuitka_cmd2[0][:-4] + (".cmd" if os.name == "nt" else ".sh"),
+                    must_exist=False,
+                )
         else:
             module_filename = os.path.basename(filename) + getExtensionModuleSuffix(
                 preferred=True

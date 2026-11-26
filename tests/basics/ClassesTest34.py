@@ -165,6 +165,25 @@ def testClassNamespaceOverridesClosure():
 
 testClassNamespaceOverridesClosure()
 
+
+# See #4166.
+def nonlocalDeclaredAfterClassBody():
+    x = 6
+
+    def inner():
+        class C:
+            y = x
+
+        nonlocal x
+        x = 7
+
+        return C.y, x
+
+    return inner(), x
+
+
+print(nonlocalDeclaredAfterClassBody())
+
 print("OK.")
 
 #     Python tests originally created or extracted from other peoples work. The

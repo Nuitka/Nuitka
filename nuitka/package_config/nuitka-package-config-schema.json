@@ -31,6 +31,22 @@
     "config-reference": {
       "type": "string",
       "pattern": "^[^\\s/]+/[^\\s/]+$"
+    },
+    "download-file": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "source": {
+          "$ref": "#/definitions/non-empty-string"
+        },
+        "dest_path": {
+          "$ref": "#/definitions/non-empty-string"
+        }
+      },
+      "required": [
+        "source",
+        "dest_path"
+      ]
     }
   },
   "type": "array",
@@ -130,9 +146,6 @@
             "additionalProperties": {
               "$ref": "#/definitions/python-expression"
             }
-          },
-          "when": {
-            "$ref": "#/definitions/python-expression"
           }
         }
       },
@@ -147,30 +160,41 @@
             },
             "dirs": {
               "type": "array",
+              "uniqueItems": true,
               "items": {
                 "type": "string"
               }
             },
             "raw_dirs": {
               "type": "array",
+              "uniqueItems": true,
               "items": {
                 "type": "string"
               }
             },
             "patterns": {
               "type": "array",
+              "uniqueItems": true,
               "items": {
                 "type": "string"
               }
             },
+            "downloads": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/download-file"
+              }
+            },
             "empty_dirs": {
               "type": "array",
+              "uniqueItems": true,
               "items": {
                 "type": "string"
               }
             },
             "empty_dir_structures": {
               "type": "array",
+              "uniqueItems": true,
               "items": {
                 "type": "string"
               }
@@ -184,6 +208,7 @@
             },
             "include-metadata": {
               "type": "array",
+              "uniqueItems": true,
               "items": {
                 "type": "string"
               }
@@ -233,12 +258,14 @@
                 },
                 "prefixes": {
                   "type": "array",
+                  "uniqueItems": true,
                   "items": {
                     "type": "string"
                   }
                 },
                 "suffixes": {
                   "type": "array",
+                  "uniqueItems": true,
                   "items": {
                     "type": "string",
                     "pattern": "^[^.]\\w*$"
@@ -388,6 +415,7 @@
             },
             "limit-auto-follow": {
               "type": "array",
+              "uniqueItems": true,
               "items": {
                 "$ref": "#/definitions/module-pattern"
               }
@@ -419,7 +447,6 @@
             "annotations": {
               "type": "string",
               "enum": [
-                "default",
                 "yes",
                 "no"
               ]
@@ -427,7 +454,6 @@
             "doc_strings": {
               "type": "string",
               "enum": [
-                "default",
                 "yes",
                 "no"
               ]
@@ -435,10 +461,16 @@
             "asserts": {
               "type": "string",
               "enum": [
-                "default",
                 "yes",
                 "no"
               ]
+            },
+            "frame_locals": {
+              "type": "array",
+              "uniqueItems": true,
+              "items": {
+                "$ref": "#/definitions/non-empty-string"
+              }
             },
             "when": {
               "$ref": "#/definitions/python-expression"
@@ -454,6 +486,7 @@
           "properties": {
             "depends": {
               "type": "array",
+              "uniqueItems": true,
               "items": {
                 "$ref": "#/definitions/module-pattern-or-expression"
               }
@@ -477,49 +510,36 @@
         }
       },
       "options": {
-        "type": "object",
-        "additionalProperties": false,
-        "properties": {
-          "checks": {
-            "type": "array",
-            "items": {
-              "type": "object",
-              "additionalProperties": false,
-              "properties": {
-                "description": {
-                  "$ref": "#/definitions/non-empty-string"
-                },
-                "macos_bundle": {
-                  "type": "string",
-                  "enum": [
-                    "yes",
-                    "no",
-                    "recommend"
-                  ]
-                },
-                "macos_bundle_as_onefile": {
-                  "type": "string",
-                  "enum": [
-                    "yes",
-                    "no"
-                  ]
-                },
-                "support_info": {
-                  "type": "string",
-                  "enum": [
-                    "error",
-                    "warning",
-                    "info",
-                    "parameter",
-                    "plugin-warning",
-                    "plugin-error",
-                    "perfect"
-                  ]
-                },
-                "when": {
-                  "$ref": "#/definitions/python-expression"
-                }
-              }
+        "type": "array",
+        "items": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "description": {
+              "$ref": "#/definitions/non-empty-string"
+            },
+            "macos_bundle": {
+              "type": "string",
+              "enum": [
+                "yes",
+                "no",
+                "recommend"
+              ]
+            },
+            "support_info": {
+              "type": "string",
+              "enum": [
+                "error",
+                "warning",
+                "info",
+                "parameter",
+                "plugin-warning",
+                "plugin-error",
+                "perfect"
+              ]
+            },
+            "when": {
+              "$ref": "#/definitions/python-expression"
             }
           }
         }
@@ -544,30 +564,35 @@
             },
             "package-paths": {
               "type": "array",
+              "uniqueItems": true,
               "items": {
                 "$ref": "#/definitions/module-name"
               }
             },
             "package-dirs": {
               "type": "array",
+              "uniqueItems": true,
               "items": {
                 "type": "string"
               }
             },
             "find-dlls-near-module": {
               "type": "array",
+              "uniqueItems": true,
               "items": {
                 "$ref": "#/definitions/module-name"
               }
             },
             "acceptable-missing-dlls": {
               "type": "array",
+              "uniqueItems": true,
               "items": {
                 "type": "string"
               }
             },
             "global-sys-path": {
               "type": "array",
+              "uniqueItems": true,
               "items": {
                 "type": "string"
               }
@@ -582,7 +607,6 @@
             "recompile-extensions": {
               "type": "string",
               "enum": [
-                "default",
                 "never",
                 "yes",
                 "no"

@@ -1,12 +1,7 @@
 #     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-"""Codes for operations.
-
-There are unary and binary operations. Many of them have specializations and
-of course types could play into it. Then there is also the added difficulty of
-in-place assignments, which have other operation variants.
-"""
+"""Code generation for unary, binary, and in-place operations."""
 
 from nuitka.nodes.shapes.StandardShapes import tshape_unknown
 
@@ -21,8 +16,11 @@ from .c_types.CTypeNuitkaVoids import CTypeNuitkaVoidEnum
 from .c_types.CTypePyObjectPointers import CTypePyObjectPtr
 from .c_types.CTypeVoids import CTypeVoid
 from .CodeHelpers import (
+    doesExpressionWriteVariable,
     generateChildExpressionsCode,
     generateExpressionCode,
+    promoteBorrowedValue,
+    withBorrowedValueScope,
     withObjectCodeTemporaryAssignment,
 )
 from .CodeHelperSelection import selectCodeHelper
@@ -36,17 +34,18 @@ from .ExpressionCTypeSelectionHelpers import decideExpressionCTypes
 
 
 def generateOperationBinaryCode(to_name, expression, emit, context):
-    _getBinaryOperationCode(
-        to_name=to_name,
-        operator=expression.getOperator(),
-        inplace=expression.isInplaceSuspect(),
-        needs_check=expression.mayRaiseExceptionOperation(),
-        left=expression.subnode_left,
-        right=expression.subnode_right,
-        source_ref=expression.source_ref,
-        emit=emit,
-        context=context,
-    )
+    with withBorrowedValueScope(context):
+        _getBinaryOperationCode(
+            to_name=to_name,
+            operator=expression.getOperator(),
+            inplace=expression.isInplaceSuspect(),
+            needs_check=expression.mayRaiseExceptionOperation(),
+            left=expression.subnode_left,
+            right=expression.subnode_right,
+            source_ref=expression.source_ref,
+            emit=emit,
+            context=context,
+        )
 
 
 def generateOperationNotCode(to_name, expression, emit, context):
@@ -91,8 +90,6 @@ def generateOperationUnaryCode(to_name, expression, emit, context):
 def _getBinaryOperationCode(
     to_name, operator, inplace, left, right, needs_check, source_ref, emit, context
 ):
-    # This is detail rich stuff, encoding the complexity of what helpers are
-    # available, and can be used as a fallback.
     # pylint: disable=too-many-branches,too-many-locals,too-many-statements
     (
         _unknown_types,
@@ -130,32 +127,17 @@ def _getBinaryOperationCode(
 
     if helper_type is not None:
         if needs_check and helper_type is not None:
-            # If an exception may occur, we do not have the "NVOID" helpers though, we
-            # instead can use the CTypeNuitkaBoolEnum that will easily convert to
-            # it.
-
+            # Specialized helpers do not exist for "NVOID"; fall back to "NBOOL".
             if helper_type is CTypeNuitkaVoidEnum:
                 helper_type = CTypeNuitkaBoolEnum
                 report_missing = False
         else:
-            # If no exception may occur, we do not have the "VOID" helpers though, we
-            # instead can use the CTypeBool that will easily convert to it.
-
-            # If no exception can occur, do not require a helper that can indicate
-            # it, but use the one that produces simpler code, this means we can
-            # avoid the CTypeNuitkaBoolEnum (NBOOL) helpers except for things that
-            # can really raise. Once we have expression for types depending on the
-            # value to raise or not, this will get us into trouble, due to using a
-            # fallback
-            # helper_type = CTypeBool
-
-            # TODO: For now to achieve old behavior, we are going to change to
-            # CBOOL for those that cannot raise later.
+            # TODO: Use "CTypeBool" ("CBOOL") for non-raising void operations
+            # once value-dependent raising is tracked.
             if helper_type is CTypeVoid:
                 helper_type = CTypeNuitkaBoolEnum
                 report_missing = False
 
-    # If a more specific C type was picked that "PyObject *" then we can use that to have the helper.
     helper_type, helper_function = selectCodeHelper(
         prefix=prefix,
         specialized_helpers_set=specialized_helpers_set,
@@ -170,7 +152,6 @@ def _getBinaryOperationCode(
         source_ref=source_ref,
     )
 
-    # If we failed to find CTypeBool, that should be OK.
     if helper_function is None and target_type is CTypeBool:
         helper_type, helper_function = selectCodeHelper(
             prefix=prefix,
@@ -187,7 +168,6 @@ def _getBinaryOperationCode(
         )
 
     if helper_function is None:
-        # Give up and warn about it.
         left_c_type = CTypePyObjectPtr
         right_c_type = CTypePyObjectPtr
 
@@ -214,33 +194,74 @@ def _getBinaryOperationCode(
         "%s_expr_right" % operator.lower(), type_name=right_c_type.c_type
     )
 
+    inplace_owned_left = (
+        inplace
+        and left.isExpressionVariableRef()
+        and doesExpressionWriteVariable(expression=right, variable=left.getVariable())
+    )
+
     generateExpressionCode(
         to_name=left_name, expression=left, emit=emit, context=context
     )
+
+    if not inplace:
+        promoteBorrowedValue(
+            value_name=left_name,
+            later_expressions=(right,),
+            emit=emit,
+            context=context,
+        )
+
+    if inplace and left.isExpressionVariableRef():
+        # The in-place code path transfers the variable reference into the
+        # operation, protecting it here would conflict with that ownership.
+        context.unregisterBorrowedValue(left_name)
+
+        if context.needsCleanup(left_name):
+            inplace_owned_left = True
+        elif inplace_owned_left:
+            # The right value overwrites the variable, so the operation needs
+            # its own reference to the left value.
+            getTakeReferenceCode(left_name, emit)
+            context.addCleanupTempName(left_name)
+
     generateExpressionCode(
         to_name=right_name, expression=right, emit=emit, context=context
     )
 
-    # We must assume to write to a variable if "inplace" is active, not e.g.
-    # a constant reference. That was asserted before calling us.
     if inplace or "INPLACE" in helper_function:
         assert not needs_argument_swap
 
         res_name = context.getBoolResName()
 
-        # For module variable C type to reference later.
-        if left.isExpressionVariableRef() and left.getVariable().isModuleVariable():
-            emit("%s = %s;" % (context.getInplaceLeftName(), left_name))
+        inplace_module_var = (
+            not inplace_owned_left
+            and left.isExpressionVariableRef()
+            and left.getVariable().isModuleVariable()
+        )
 
-        if not left.isExpressionVariableRefOrTempVariableRef():
-            if not context.needsCleanup(left_name):
-                getTakeReferenceCode(left_name, emit)
+        if inplace_module_var:
+            emit(
+                "%s = %s = Py_NewRef(%s);"
+                % (context.getInplaceLeftName(), left_name, left_name)
+            )
+            context.addCleanupTempName(left_name)
+
+        if (
+            not left.isExpressionVariableRefOrTempVariableRef()
+            and not context.needsCleanup(left_name)
+        ):
+            getTakeReferenceCode(left_name, emit)
 
         emit("%s = %s(&%s, %s);" % (res_name, helper_function, left_name, right_name))
 
         getErrorExitBoolCode(
             condition="%s == false" % res_name,
-            release_names=(left_name, right_name),
+            release_names=(
+                (right_name,)
+                if (inplace_owned_left or inplace_module_var)
+                else (left_name, right_name)
+            ),
             needs_check=needs_check,
             emit=emit,
             context=context,
@@ -248,7 +269,12 @@ def _getBinaryOperationCode(
 
         emit("%s = %s;" % (to_name, left_name))
 
-        if not left.isExpressionVariableRefOrTempVariableRef():
+        if inplace_owned_left:
+            context.removeCleanupTempName(left_name)
+            context.addCleanupTempName(to_name)
+        elif inplace_module_var:
+            context.removeCleanupTempName(left_name)
+        elif not left.isExpressionVariableRefOrTempVariableRef():
             context.addCleanupTempName(to_name)
     else:
         if needs_argument_swap:
@@ -262,7 +288,6 @@ def _getBinaryOperationCode(
             arg1_c_type = left_c_type
             arg2_c_type = right_c_type
 
-        # May need to convert return value.
         if helper_type is not target_type:
             value_name = context.allocateTempName(
                 to_name.code_name + "_" + helper_type.helper_code.lower(),
@@ -317,7 +342,6 @@ def _getBinaryOperationCode(
                     context=context,
                 )
             else:
-                # Otherwise we picked the wrong kind of helper.
                 assert not needs_check, value_name.getCType()
 
                 getReleaseCodes(

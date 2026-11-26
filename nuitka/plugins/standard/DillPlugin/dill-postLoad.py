@@ -14,7 +14,7 @@ except ImportError:
 else:
     from types import CodeType
 
-    # spell-checker: ignore kwdefaults,globalvars
+    # spell-checker: ignore globalvars,kwdefaults
     # Nuitka will optimize this away, but VS code will warn about them otherwise.
     from typing import TYPE_CHECKING
 
@@ -54,6 +54,12 @@ else:
 
         # This gets the "_create_compiled_function" of the module and calls it.
         return compiled_function_tables[module_name][1](*func_values)
+
+    # The helper is defined in an internal trigger module that is not in
+    # "sys.modules", but pickle needs to find it by reference, so publish it in
+    # the visible "dill" module instead.
+    dill._create_compiled_function = _create_compiled_function
+    _create_compiled_function.__module__ = dill.__name__
 
     # Compiled methods might have to be created as well. This is very closely following
     # the code of "dill._dill.save_function" that is intended to do things for the
@@ -117,7 +123,7 @@ else:
                     # In the case that the globals are copied, we need to ensure that
                     # the globals dictionary is updated when all objects in the
                     # dictionary are already created.
-                    glob_ids = {id(g) for g in globs_copy.values()}
+                    glob_ids = set(id(g) for g in globs_copy.values())
                     for stack_element in _postproc:
                         if stack_element in glob_ids:
                             _postproc[stack_element].append(

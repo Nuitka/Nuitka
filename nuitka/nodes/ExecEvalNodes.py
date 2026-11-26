@@ -1,12 +1,7 @@
 #     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-"""Nodes concern with exec and eval builtins.
-
-These are the dynamic codes, and as such rather difficult. We would like
-to eliminate or limit their impact as much as possible, but it's difficult
-to do.
-"""
+"""Nodes concerned with exec, eval, and compile built-ins."""
 
 from .ChildrenHavingMixins import (
     ChildrenExpressionBuiltinCompileMixin,
@@ -41,7 +36,6 @@ class ExpressionBuiltinEval(ChildrenExpressionBuiltinEvalMixin, ExpressionBase):
         ExpressionBase.__init__(self, source_ref)
 
     def computeExpression(self, trace_collection):
-        # TODO: Attempt for constant values to do it.
         return self, None, None
 
 
@@ -68,7 +62,6 @@ class ExpressionBuiltinExec(ChildrenExpressionBuiltinExecMixin, ExpressionBase):
         ExpressionBase.__init__(self, source_ref)
 
     def computeExpression(self, trace_collection):
-        # TODO: Attempt for constant values to do it.
         trace_collection.onExceptionRaiseExit(BaseException)
 
         return self, None, None
@@ -108,13 +101,11 @@ class ExpressionBuiltinExecfile(ChildrenExpressionBuiltinExecfileMixin, Expressi
     def computeExpression(self, trace_collection):
         trace_collection.onExceptionRaiseExit(BaseException)
 
-        # Nothing can be done for it really.
         return self, None, None
 
     def computeExpressionDrop(self, statement, trace_collection):
-        # In this case, the copy-back must be done and will only be done
-        # correctly by the code for exec statements.
-
+        # In a Python 2 class body, locals copy-back is only performed by the
+        # 'exec' statement implementation.
         if self.in_class_body:
             result = StatementExec(
                 source_code=self.subnode_source_code,
@@ -147,8 +138,6 @@ class StatementExec(StatementExecBase):
         trace_collection.onExceptionRaiseExit(BaseException)
 
         # TODO: Optimize strings for exec expression and statement again.
-        # str_value = self.subnode_source_code.getStrValue()
-
         return self, None, None
 
 
@@ -161,11 +150,15 @@ class StatementLocalsDictSync(StatementLocalsDictSyncBase):
 
     __slots__ = ("previous_traces", "variable_traces")
 
-    # False alarm due to post_init, pylint: disable=attribute-defined-outside-init
-
     def postInitNode(self):
         self.previous_traces = None
         self.variable_traces = None
+
+    def finalize(self):
+        StatementLocalsDictSyncBase.finalize(self)
+
+        del self.previous_traces
+        del self.variable_traces
 
     def getPreviousVariablesTraces(self):
         return self.previous_traces
@@ -208,11 +201,11 @@ class ExpressionBuiltinCompile(ChildrenExpressionBuiltinCompileMixin, Expression
         return True
 
     def __init__(
-        self, source_code, filename, mode, flags, dont_inherit, optimize, source_ref
+        self, source, filename, mode, flags, dont_inherit, optimize, source_ref
     ):
         ChildrenExpressionBuiltinCompileMixin.__init__(
             self,
-            source=source_code,
+            source=source,
             filename=filename,
             mode=mode,
             flags=flags,
@@ -225,7 +218,6 @@ class ExpressionBuiltinCompile(ChildrenExpressionBuiltinCompileMixin, Expression
     def computeExpression(self, trace_collection):
         trace_collection.onExceptionRaiseExit(BaseException)
 
-        # TODO: Attempt for constant values to do it.
         return self, None, None
 
 

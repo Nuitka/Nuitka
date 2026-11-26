@@ -29,8 +29,6 @@ class StatementTry(StatementTryBase):
 
     __slots__ = ("tried_may_raise",)
 
-    # False alarm due to post_init, pylint: disable=attribute-defined-outside-init
-
     def postInitNode(self):
         self.tried_may_raise = None
 
@@ -38,7 +36,7 @@ class StatementTry(StatementTryBase):
         return {"aborting": self.isStatementAborting()}
 
     def computeStatement(self, trace_collection):
-        # This node has many children to handle, pylint: disable=I0021,too-many-branches,too-many-locals,too-many-statements
+        # pylint: disable=I0021,too-many-branches,too-many-locals,too-many-statements
         tried = self.subnode_tried
 
         except_handler = self.subnode_except_handler
@@ -46,8 +44,6 @@ class StatementTry(StatementTryBase):
         continue_handler = self.subnode_continue_handler
         return_handler = self.subnode_return_handler
 
-        # The tried block must be considered as a branch, if it is not empty
-        # already.
         collection_start = TraceCollectionBranch(
             parent=trace_collection, name="try start"
         )
@@ -60,15 +56,11 @@ class StatementTry(StatementTryBase):
         )
 
         with abort_context:
-            # As a branch point for the many types of handlers.
-
             result = tried.computeStatementsSequence(trace_collection=trace_collection)
 
-            # We might be done entirely already.
             if result is None:
                 return None, "new_statements", "Removed now empty try statement."
 
-            # Might be changed.
             if result is not tried:
                 self.setChildTried(result)
                 tried = result
@@ -78,12 +70,11 @@ class StatementTry(StatementTryBase):
             return_collections = trace_collection.getFunctionReturnCollections()
             exception_collections = trace_collection.getExceptionRaiseCollections()
 
-        # Not raising never turns into raising, but None (never calculated) and True
-        # may no longer be true, but not raising never becomes raising.
+        # Not raising never turns into raising, while None (never calculated)
+        # and True may become False as optimization progresses.
         if self.tried_may_raise is not False:
             self.tried_may_raise = tried.mayRaiseException(BaseException)
 
-        # Exception handling is useless if no exception is to be raised.
         if not self.tried_may_raise:
             if except_handler is not None:
                 # TODO: This is inconsistent with other handlers being cleared, might make sense there too.
@@ -98,15 +89,13 @@ class StatementTry(StatementTryBase):
 
                 self.setChildExceptHandler(None)
 
-        # If tried may raise, even empty exception handler has a meaning to
+        # If tried may raise, even an empty exception handler has a meaning to
         # ignore that exception.
         if self.tried_may_raise:
             collection_exception_handling = TraceCollectionBranch(
                 parent=collection_start, name="except handler"
             )
 
-            # When no exception exits are there, this is a problem, we just
-            # found an inconsistency that is a bug.
             if not exception_collections:
                 for statement in tried.subnode_statements:
                     if statement.mayRaiseException(BaseException):
@@ -127,7 +116,6 @@ class StatementTry(StatementTryBase):
                     trace_collection=collection_exception_handling
                 )
 
-                # Might be changed.
                 if result is not except_handler:
                     except_handler = result
 
@@ -151,7 +139,6 @@ class StatementTry(StatementTryBase):
                 trace_collection=collection_break
             )
 
-            # Might be changed.
             if result is not break_handler:
                 self.setChildBreakHandler(result)
                 break_handler = result
@@ -174,7 +161,6 @@ class StatementTry(StatementTryBase):
                 trace_collection=collection_continue
             )
 
-            # Might be changed.
             if result is not continue_handler:
                 continue_handler = result
 
@@ -198,14 +184,11 @@ class StatementTry(StatementTryBase):
                 trace_collection=collection_return
             )
 
-            # Might be changed.
             if result is not return_handler:
                 return_handler = result
 
                 self.setChildReturnHandler(result)
 
-        # Check for trivial return handlers that immediately return, they can
-        # just be removed.
         if return_handler is not None:
             if return_handler.subnode_statements[0].isStatementReturnReturnedValue():
                 return_handler.finalize()
@@ -296,7 +279,7 @@ class StatementTry(StatementTryBase):
                 del tried_statements[-1]
 
         if pre_statements or post_statements:
-            assert tried_statements  # Should be dealt with already
+            assert tried_statements
 
             tried.setChildStatements(tuple(tried_statements))
 
@@ -364,8 +347,6 @@ class StatementTry(StatementTryBase):
         return False
 
     def mayBreak(self):
-        # TODO: If we optimized return handler away, this would be not needed
-        # or even non-optimal.
         if self.subnode_tried.mayBreak():
             return True
 
@@ -393,8 +374,6 @@ class StatementTry(StatementTryBase):
         return False
 
     def mayContinue(self):
-        # TODO: If we optimized return handler away, this would be not needed
-        # or even non-optimal.
         if self.subnode_tried.mayContinue():
             return True
 

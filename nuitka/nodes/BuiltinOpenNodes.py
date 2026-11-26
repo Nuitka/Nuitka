@@ -1,11 +1,7 @@
 #     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-"""Node the calls to the 'open' built-in.
-
-This is a rather two sided beast, as it may be read or write. And we would like to be able
-to track it, so we can include files into the executable, or write more efficiently.
-"""
+"""Nodes for calls to the 'open' built-in."""
 
 from .BuiltinRefNodes import ExpressionBuiltinPatchableTypeRef
 from .ExpressionBases import ExpressionBase
@@ -17,7 +13,6 @@ from .shapes.BuiltinTypeShapes import tshape_file
 
 
 class ExpressionBuiltinOpenMixin(object):
-    # Mixins are required to define empty slots
     __slots__ = ()
 
     @staticmethod
@@ -27,8 +22,6 @@ class ExpressionBuiltinOpenMixin(object):
     def replaceWithCompileTimeValue(self, trace_collection):
         trace_collection.onExceptionRaiseExit(BaseException)
 
-        # Note: Quite impossible to predict without further assumptions, but we could look
-        # at the arguments at least.
         return self, None, None
 
 

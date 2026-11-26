@@ -13,15 +13,19 @@ from nuitka.__past__ import iterItems
 from nuitka.build.SconsUtils import readSconsReport
 from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.Errors import UnsupportedDependencyWalkerCall
+from nuitka.options.Experimental import isExperimental
 from nuitka.options.Options import (
     getMsvcVersion,
     getWindowsRuntimeDllsInclusionOption,
-    isExperimental,
     isShowProgress,
 )
 from nuitka.plugins.Hooks import getPluginsCacheContributionValues
 from nuitka.PythonFlavors import isAnacondaPython, isMSYS2MingwPython
-from nuitka.PythonVersions import getSystemPrefixPath
+from nuitka.PythonPrefixes import (
+    getCondaPrefixPath,
+    getSystemPrefixExecutable,
+    getSystemPrefixPath,
+)
 from nuitka.Tracing import inclusion_logger
 from nuitka.utils.AppDirs import getCacheDir
 from nuitka.utils.Execution import executeToolChecked
@@ -448,14 +452,7 @@ def _getPathContribution(use_path):
 
 
 def shallIncludeVCRedistDLL(dll_filename):
-    """Check if a DLL from the VC redistributable should be included.
-
-    Args:
-        dll_filename (str): The filename of the DLL to check.
-
-    Returns:
-        bool: True if it is a VC redist DLL and inclusion is enabled, False otherwise.
-    """
+    """Return True if 'dll_filename' is an MSVC redistributable DLL to be included."""
 
     vc_redist_path = getMSVCRedistPath(logger=inclusion_logger)
     if vc_redist_path is None:
@@ -464,7 +461,7 @@ def shallIncludeVCRedistDLL(dll_filename):
     if isFilenameBelowPath(path=vc_redist_path, filename=dll_filename):
         return shallIncludeWindowsRuntimeDLLs()
 
-    return True
+    return False
 
 
 _include_windows_runtime_dlls = None
@@ -528,7 +525,7 @@ def _getScanDirectories(package_name, original_dir, use_path):
         use_path: Whether to included PATH directories.
 
     Returns:
-        list: List of directory paths to scan.
+        tuple: Tuple of directory paths to scan.
     """
     # TODO: Move PyWin32 specific stuff to yaml dll section
 
@@ -537,15 +534,31 @@ def _getScanDirectories(package_name, original_dir, use_path):
     if cache_key in _scan_dir_cache:
         return _scan_dir_cache[cache_key]
 
-    scan_dirs = [os.path.dirname(sys.executable), getSystemPrefixPath()]
+    scan_dirs = OrderedSet()
+
+    scan_dirs.add(os.path.dirname(sys.executable))
+    scan_dirs.add(getSystemPrefixPath())
+
+    # For virtualenvs, the DLLs are next to the base executable rather than
+    # the "sys.executable", which for uninstalled Python is the "PCbuild"
+    # directory, and otherwise the installation root.
+    scan_dirs.add(os.path.dirname(getSystemPrefixExecutable()))
+
+    conda_prefix_path = getCondaPrefixPath()
+
+    if conda_prefix_path is not None:
+        # Conda keeps the DLLs of its packages below "Library/bin", which is
+        # not necessarily in "PATH", e.g. when using a virtual environment
+        # created from a conda installation.
+        scan_dirs.add(getNormalizedPathJoin(conda_prefix_path, "Library", "bin"))
 
     if isMSYS2MingwPython():
-        scan_dirs.append(getNormalizedPathJoin(getSystemPrefixPath(), "bin"))
+        scan_dirs.add(getNormalizedPathJoin(getSystemPrefixPath(), "bin"))
 
     # Add the VCRedist path to the list of directories to search if it exists
     msvc_redist_path = getMSVCRedistPath(logger=inclusion_logger)
     if msvc_redist_path is not None:
-        scan_dirs.extend(
+        scan_dirs.update(
             getSubDirectoriesWithDlls(
                 path=msvc_redist_path,
                 ignore_permission_error=False,
@@ -553,7 +566,7 @@ def _getScanDirectories(package_name, original_dir, use_path):
         )
 
     if package_name is not None:
-        scan_dirs.extend(
+        scan_dirs.update(
             getPackageSpecificDLLDirectories(
                 package_name=package_name,
                 consider_plugins=False,
@@ -561,8 +574,8 @@ def _getScanDirectories(package_name, original_dir, use_path):
         )
 
     if original_dir is not None:
-        scan_dirs.append(original_dir)
-        scan_dirs.extend(
+        scan_dirs.add(original_dir)
+        scan_dirs.update(
             getSubDirectoriesWithDlls(
                 path=original_dir,
                 ignore_permission_error=True,
@@ -573,11 +586,11 @@ def _getScanDirectories(package_name, original_dir, use_path):
         py_win32_dir = getPyWin32Dir()
 
         if py_win32_dir is not None:
-            scan_dirs.append(py_win32_dir)
+            scan_dirs.add(py_win32_dir)
 
-    scan_dirs.extend(_getPathContribution(use_path=use_path))
+    scan_dirs.update(_getPathContribution(use_path=use_path))
 
-    result = []
+    result = OrderedSet()
 
     # Remove directories that hold no DLLs.
     for scan_dir in scan_dirs:
@@ -592,9 +605,12 @@ def _getScanDirectories(package_name, original_dir, use_path):
         except OSError:
             continue
 
-        result.append(os.path.realpath(scan_dir))
+        result.add(os.path.realpath(scan_dir))
+
+    result = tuple(result)
 
     _scan_dir_cache[cache_key] = result
+
     return result
 
 

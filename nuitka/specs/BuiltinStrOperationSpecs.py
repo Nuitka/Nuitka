@@ -10,6 +10,7 @@ from nuitka.nodes.shapes.BuiltinTypeShapes import (
     tshape_str,
     tshape_tuple,
 )
+from nuitka.PythonVersions import python_version
 
 from .BuiltinParameterSpecs import (
     BuiltinMethodParameterSpecBase,
@@ -80,9 +81,21 @@ str_endswith_spec = StrMethodSpecNoKeywords(
     type_shape=tshape_bool,
 )
 
-str_replace_spec = StrMethodSpecNoKeywords(
-    "replace", arg_names=("old", "new", "count"), default_count=1, type_shape=tshape_str
-)
+if python_version < 0x3D0:
+    str_replace_spec = StrMethodSpecNoKeywords(
+        "replace",
+        arg_names=("old", "new", "count"),
+        default_count=1,
+        type_shape=tshape_str,
+    )
+else:
+    str_replace_spec = StrMethodSpec(
+        "replace",
+        pos_only_args=("old", "new"),
+        arg_names=("count",),
+        default_count=1,
+        type_shape=tshape_str,
+    )
 
 str_count_spec = StrMethodSpecNoKeywords(
     "count", arg_names=("sub", "start", "end"), default_count=2, type_shape=tshape_int
@@ -94,6 +107,9 @@ str_format_spec = StrMethodSpec(
 
 str_capitalize_spec = StrMethodSpecNoKeywords(
     "capitalize", arg_names=(), type_shape=tshape_str
+)
+str_casefold_spec = StrMethodSpecNoKeywords(
+    "casefold", arg_names=(), type_shape=tshape_str
 )
 str_upper_spec = StrMethodSpecNoKeywords("upper", arg_names=(), type_shape=tshape_str)
 str_lower_spec = StrMethodSpecNoKeywords("lower", arg_names=(), type_shape=tshape_str)
@@ -107,11 +123,26 @@ str_isalnum_spec = StrMethodSpecNoKeywords(
 str_isalpha_spec = StrMethodSpecNoKeywords(
     "isalpha", arg_names=(), type_shape=tshape_bool
 )
+str_isascii_spec = StrMethodSpecNoKeywords(
+    "isascii", arg_names=(), type_shape=tshape_bool
+)
 str_isdigit_spec = StrMethodSpecNoKeywords(
     "isdigit", arg_names=(), type_shape=tshape_bool
 )
+str_isdecimal_spec = StrMethodSpecNoKeywords(
+    "isdecimal", arg_names=(), type_shape=tshape_bool
+)
+str_isidentifier_spec = StrMethodSpecNoKeywords(
+    "isidentifier", arg_names=(), type_shape=tshape_bool
+)
 str_islower_spec = StrMethodSpecNoKeywords(
     "islower", arg_names=(), type_shape=tshape_bool
+)
+str_isnumeric_spec = StrMethodSpecNoKeywords(
+    "isnumeric", arg_names=(), type_shape=tshape_bool
+)
+str_isprintable_spec = StrMethodSpecNoKeywords(
+    "isprintable", arg_names=(), type_shape=tshape_bool
 )
 str_isupper_spec = StrMethodSpecNoKeywords(
     "isupper", arg_names=(), type_shape=tshape_bool
@@ -123,23 +154,18 @@ str_istitle_spec = StrMethodSpecNoKeywords(
     "istitle", arg_names=(), type_shape=tshape_bool
 )
 
+# TODO: Supply Python2/Python3 dependent return type_shape for encode/decode.
 str_encode_spec = StrMethodSpec(
     "encode",
     arg_names=("encoding", "errors"),
     default_count=2,
-    # TODO: Resolve Python2/Python3 runtime differences
-    #
-    # type_shape=tshape_bytes
 )
 
-# Python2 only, Python3 this is in bytes
+# Python2 only, Python3 has decode on bytes.
 str_decode_spec = StrMethodSpec(
     "decode",
     arg_names=("encoding", "errors"),
     default_count=2,
-    # TODO: Resolve Python2/Python3 runtime differences
-    #
-    # type_shape=tshape_str_or_unicode
 )
 
 str_expandtabs_spec = (StrMethodSpecNoKeywords if str is bytes else StrMethodSpec)(
@@ -158,11 +184,20 @@ str_rjust_spec = StrMethodSpecNoKeywords(
 str_zfill_spec = StrMethodSpecNoKeywords(
     "zfill", arg_names=("width",), type_shape=tshape_str
 )
-str_translate_spec = StrMethodSpecNoKeywords(
-    "translate", arg_names=("table",), type_shape=tshape_str
+# Python2 "str" accepts the "delete" argument, Python3 "str" does not.
+str_translate_before_3_spec = StrMethodSpecNoKeywords(
+    "translate",
+    arg_names=("table", "delete"),
+    default_count=1,
+    type_shape=tshape_str,
+)
+str_translate_since_3_spec = StrMethodSpecNoKeywords(
+    "translate",
+    arg_names=("table",),
+    type_shape=tshape_str,
 )
 str_splitlines_spec = (StrMethodSpecNoKeywords if str is bytes else StrMethodSpec)(
-    "splitlines", arg_names=("keepends"), default_count=1, type_shape=tshape_list
+    "splitlines", arg_names=("keepends",), default_count=1, type_shape=tshape_list
 )
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and

@@ -13,6 +13,27 @@
 #include "nuitka/prelude.h"
 #endif
 
+#ifdef Py_GIL_DISABLED
+#define NUITKA_FREELIST_DECLARE_LOCK(free_list) NUITKA_MAY_BE_UNUSED static uint8_t free_list##_lock = 0;
+
+#define NUITKA_FREELIST_LOCK(free_list)                                                                                \
+    do {                                                                                                               \
+        uint8_t _expected = 0;                                                                                         \
+        while (!_Py_atomic_compare_exchange_uint8(&free_list##_lock, &_expected, 1)) {                                 \
+            _expected = 0;                                                                                             \
+            while (_Py_atomic_load_uint8_relaxed(&free_list##_lock) != 0) {                                            \
+                /* spin without bouncing the lock cache line */                                                        \
+            }                                                                                                          \
+        }                                                                                                              \
+    } while (0)
+
+#define NUITKA_FREELIST_UNLOCK(free_list) _Py_atomic_store_uint8(&free_list##_lock, 0)
+#else
+#define NUITKA_FREELIST_DECLARE_LOCK(free_list)
+#define NUITKA_FREELIST_LOCK(free_list)
+#define NUITKA_FREELIST_UNLOCK(free_list)
+#endif
+
 #ifdef _NUITKA_EXPERIMENTAL_DISABLE_FREELIST_ALL
 static const bool use_freelists = false;
 #else
@@ -20,44 +41,65 @@ static const bool use_freelists = true;
 #endif
 
 #define allocateFromFreeList(free_list, object_type, type_type, size)                                                  \
-    if (use_freelists == true && free_list != NULL) {                                                                  \
-        result = free_list;                                                                                            \
-        free_list = *((object_type **)free_list);                                                                      \
-        free_list##_count -= 1;                                                                                        \
-        assert(free_list##_count >= 0);                                                                                \
+    if (use_freelists == true) {                                                                                       \
+        NUITKA_FREELIST_LOCK(free_list);                                                                               \
+        if (free_list != NULL) {                                                                                       \
+            result = free_list;                                                                                        \
+            free_list = *((object_type **)free_list);                                                                  \
+            free_list##_count -= 1;                                                                                    \
+            assert(free_list##_count >= 0);                                                                            \
+            NUITKA_FREELIST_UNLOCK(free_list);                                                                         \
                                                                                                                        \
-        if (Py_SIZE(result) < size) {                                                                                  \
-            result = PyObject_GC_Resize(object_type, result, size);                                                    \
-            assert(result != NULL);                                                                                    \
+            if (Py_SIZE(result) < size) {                                                                              \
+                result = PyObject_GC_Resize(object_type, result, size);                                                \
+                assert(result != NULL);                                                                                \
+            }                                                                                                          \
+                                                                                                                       \
+            Nuitka_Py_NewReference((PyObject *)result);                                                                \
+        } else {                                                                                                       \
+            NUITKA_FREELIST_UNLOCK(free_list);                                                                         \
+            result = (object_type *)Nuitka_GC_NewVar(&type_type, size);                                                \
         }                                                                                                              \
-                                                                                                                       \
-        Nuitka_Py_NewReference((PyObject *)result);                                                                    \
     } else {                                                                                                           \
         result = (object_type *)Nuitka_GC_NewVar(&type_type, size);                                                    \
     }                                                                                                                  \
     CHECK_OBJECT(result);
 
 #define allocateFromFreeListFixed(free_list, object_type, type_type)                                                   \
-    if (use_freelists == true && free_list != NULL) {                                                                  \
-        result = free_list;                                                                                            \
-        free_list = *((object_type **)free_list);                                                                      \
-        free_list##_count -= 1;                                                                                        \
-        assert(free_list##_count >= 0);                                                                                \
+    if (use_freelists == true) {                                                                                       \
+        NUITKA_FREELIST_LOCK(free_list);                                                                               \
+        if (free_list != NULL) {                                                                                       \
+            result = free_list;                                                                                        \
+            free_list = *((object_type **)free_list);                                                                  \
+            free_list##_count -= 1;                                                                                    \
+            assert(free_list##_count >= 0);                                                                            \
+            NUITKA_FREELIST_UNLOCK(free_list);                                                                         \
                                                                                                                        \
-        Nuitka_Py_NewReference((PyObject *)result);                                                                    \
+            Nuitka_Py_NewReference((PyObject *)result);                                                                \
+        } else {                                                                                                       \
+            NUITKA_FREELIST_UNLOCK(free_list);                                                                         \
+            result = (object_type *)Nuitka_GC_New(&type_type);                                                         \
+        }                                                                                                              \
     } else {                                                                                                           \
         result = (object_type *)Nuitka_GC_New(&type_type);                                                             \
     }                                                                                                                  \
     CHECK_OBJECT(result);
 
 #define releaseToFreeList(free_list, object, max_free_list_count)                                                      \
-    if (use_freelists == false || free_list##_count >= max_free_list_count) {                                          \
+    if (use_freelists == false) {                                                                                      \
         PyObject_GC_Del(object);                                                                                       \
     } else {                                                                                                           \
-        *((void **)object) = (void *)free_list;                                                                        \
-        free_list = object;                                                                                            \
+        NUITKA_FREELIST_LOCK(free_list);                                                                               \
+        if (free_list##_count >= max_free_list_count) {                                                                \
+            NUITKA_FREELIST_UNLOCK(free_list);                                                                         \
+            PyObject_GC_Del(object);                                                                                   \
+        } else {                                                                                                       \
+            *((void **)object) = (void *)free_list;                                                                    \
+            free_list = object;                                                                                        \
                                                                                                                        \
-        free_list##_count += 1;                                                                                        \
+            free_list##_count += 1;                                                                                    \
+            NUITKA_FREELIST_UNLOCK(free_list);                                                                         \
+        }                                                                                                              \
     }
 
 #if PYTHON_VERSION >= 0x3d0

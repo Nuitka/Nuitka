@@ -1,7 +1,7 @@
 #     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-"""Optimizations of built-ins to built-in calls."""
+"""Parameter specifications and call matching for built-ins."""
 
 import math
 
@@ -16,7 +16,7 @@ from .ParameterSpecs import ParameterSpec, TooManyArguments, matchCall
 class BuiltinParameterSpec(ParameterSpec):
     __slots__ = ("builtin", "variations", "example_arguments")
 
-    def __init__(  # pylint: disable=too-many-arguments
+    def __init__(
         self,
         name,
         arg_names,
@@ -30,6 +30,10 @@ class BuiltinParameterSpec(ParameterSpec):
         variations=None,
         example_arguments=None,
     ):
+        assert type(arg_names) is tuple, arg_names
+        assert type(pos_only_args) is tuple, pos_only_args
+        assert type(kw_only_args) is tuple, kw_only_args
+
         ParameterSpec.__init__(
             self,
             ps_name=name,
@@ -76,9 +80,7 @@ class BuiltinParameterSpec(ParameterSpec):
         return ParameterSpec.getKeywordRefusalText(self)
 
     def isCompileTimeComputable(self, values):
-        # By default, we make this dependent on the ability to compute the
-        # arguments, which is of course a good start for most cases, so this
-        # is for overloads, pylint: disable=no-self-use
+        # pylint: disable=no-self-use
 
         for value in values:
             if value is not None and not value.isCompileTimeConstant():
@@ -102,8 +104,7 @@ class BuiltinParameterSpec(ParameterSpec):
             return False
 
     def simulateCall(self, given_values):
-        # Using star dict call for simulation and catch any exception as really
-        # fatal, pylint: disable=broad-except,too-many-branches
+        # pylint: disable=broad-except,too-many-branches
 
         try:
             given_normal_args = given_values[: self.getArgumentCount()]
@@ -154,9 +155,7 @@ class BuiltinParameterSpec(ParameterSpec):
             return self.builtin(
                 *(
                     arg_list
-                    + list(
-                        value.getCompileTimeConstant() for value in given_list_star_args
-                    )
+                    + [value.getCompileTimeConstant() for value in given_list_star_args]
                 ),
                 **arg_dict
             )
@@ -171,7 +170,6 @@ class BuiltinParameterSpecNoKeywords(BuiltinParameterSpec):
         return False
 
     def simulateCall(self, given_values):
-        # Using star dict call for simulation and catch any exception as really fatal,
         # pylint: disable=broad-except
 
         try:
@@ -213,7 +211,7 @@ class BuiltinParameterSpecExceptionsKwOnly(BuiltinParameterSpec):
             self,
             name=exception_name,
             arg_names=(),
-            default_count=len(kw_only_args),  # For exceptions, they will be required.
+            default_count=len(kw_only_args),
             list_star_arg="args",
             kw_only_args=kw_only_args,
         )
@@ -237,31 +235,21 @@ class BuiltinParameterSpecExceptions(BuiltinParameterSpec):
 
 
 def makeBuiltinExceptionParameterSpec(exception_name):
-    """Factory function to create parameter spec for an exception from its name.
-
-    Args:
-        exception_name - (str) name of the built-in exception
-
-    Returns:
-        ParameterSpec that can be used to evaluate calls of these exceptions.
-    """
-    if exception_name == "ImportError" and python_version >= 0x300:
-        is_new_import_error = True
-    elif exception_name == "ModuleNotFoundError" and python_version >= 0x360:
-        is_new_import_error = True
-    else:
-        is_new_import_error = False
+    is_new_import_error = (
+        exception_name == "ImportError" and python_version >= 0x300
+    ) or (exception_name == "ModuleNotFoundError" and python_version >= 0x360)
 
     if is_new_import_error:
-        # This is currently the only known built-in exception that does it, but let's
-        # be general, as surely that list is going to expand only.
-
         return BuiltinParameterSpecExceptionsKwOnly(
             exception_name=exception_name, kw_only_args=("name", "path")
         )
     elif exception_name == "AttributeError" and python_version >= 0x3A0:
         return BuiltinParameterSpecExceptionsKwOnly(
             exception_name=exception_name, kw_only_args=("name", "obj")
+        )
+    elif exception_name == "NameError" and python_version >= 0x3A0:
+        return BuiltinParameterSpecExceptionsKwOnly(
+            exception_name=exception_name, kw_only_args=("name",)
         )
     else:
         return BuiltinParameterSpecExceptions(exception_name=exception_name)
@@ -333,7 +321,6 @@ builtin_complex_spec = BuiltinParameterSpec(
     "complex", ("real", "imag"), default_count=2
 )
 
-# This built-in have variable parameters for Python2/3
 if python_version < 0x300:
     builtin_str_spec = BuiltinParameterSpec("str", ("object",), default_count=1)
 else:
@@ -382,6 +369,17 @@ builtin_frozenset_spec = BuiltinParameterSpecNoKeywords(
 )
 
 builtin_frozendict_spec = BuiltinParameterSpecSinglePosArgStarDictArgs("frozendict")
+
+if python_version >= 0x3F0:
+    builtin_sentinel_spec = BuiltinParameterSpec(
+        "sentinel",
+        (),
+        pos_only_args=("name",),
+        kw_only_args=("repr",),
+        default_count=1,
+    )
+else:
+    builtin_sentinel_spec = None
 
 builtin_import_spec = BuiltinParameterSpec(
     "__import__", ("name", "globals", "locals", "fromlist", "level"), default_count=4
@@ -490,6 +488,9 @@ builtin_getattr_spec = BuiltinParameterSpecNoKeywords(
 )
 builtin_setattr_spec = BuiltinParameterSpecNoKeywords(
     "setattr", ("object", "name", "value"), default_count=0
+)
+builtin_delattr_spec = BuiltinParameterSpecNoKeywords(
+    "delattr", ("object", "name"), default_count=0
 )
 
 builtin_isinstance_spec = BuiltinParameterSpecNoKeywords(
@@ -667,8 +668,7 @@ else:
 
 class BuiltinRangeSpec(BuiltinParameterSpecNoKeywords):
     def isCompileTimeComputable(self, values):
-        # For ranges, we need have many cases that can prevent the ability
-        # to pre-compute, pylint: disable=too-many-branches,too-many-return-statements
+        # pylint: disable=too-many-branches,too-many-return-statements
 
         result = BuiltinParameterSpecNoKeywords.isCompileTimeComputable(
             self, values=values
@@ -680,8 +680,7 @@ class BuiltinRangeSpec(BuiltinParameterSpecNoKeywords):
             if arg_count == 1:
                 low = values[0]
 
-                # If it's not a number constant, we can compute the exception
-                # that will be raised.
+                # Non-number constants deterministically raise TypeError at compile time.
                 if not low.isNumberConstant():
                     return True
 
@@ -689,8 +688,6 @@ class BuiltinRangeSpec(BuiltinParameterSpecNoKeywords):
             elif arg_count == 2:
                 low, high = values
 
-                # If it's not a number constant, we can compute the exception
-                # that will be raised.
                 if not low.isNumberConstant() or not high.isNumberConstant():
                     return True
 
@@ -711,7 +708,7 @@ class BuiltinRangeSpec(BuiltinParameterSpecNoKeywords):
                 high = high.getCompileTimeConstant()
                 step = step.getCompileTimeConstant()
 
-                # It's going to give a ZeroDivisionError in this case.
+                # Zero step raises ValueError at compile time; avoid dividing by zero below.
                 if step == 0:
                     return True
 
@@ -746,8 +743,28 @@ builtin_divmod_spec = BuiltinParameterSpecNoKeywords(
 )
 
 
+def applyKeywordAliases(builtin_spec, pairs):
+    # A non-None alias mapping also restricts the accepted keyword names, so
+    # that internal argument names can differ from Python visible ones.
+    keyword_aliases = builtin_spec.getKeywordAliases()
+
+    if keyword_aliases is None:
+        return pairs
+
+    for pair_name, _pair_value in pairs:
+        if pair_name not in keyword_aliases:
+            raise TooManyArguments(
+                TypeError(
+                    "%s() got an unexpected keyword argument '%s'"
+                    % (builtin_spec.getName(), pair_name)
+                )
+            )
+
+    return tuple((keyword_aliases[pair_name], value) for pair_name, value in pairs)
+
+
 def extractBuiltinArgs(node, builtin_spec, builtin_class, empty_special_class=None):
-    # Many cases to deal with, pylint: disable=too-many-branches
+    # pylint: disable=too-many-branches
 
     # TODO: Special hack for type.__prepare__(*args, **kwargs) to work with even
     # unknown dictionaries.
@@ -774,6 +791,8 @@ def extractBuiltinArgs(node, builtin_spec, builtin_class, empty_special_class=No
 
             if pairs and not builtin_spec.allowsKeywords():
                 raise TooManyArguments(TypeError(builtin_spec.getKeywordRefusalText()))
+
+            pairs = applyKeywordAliases(builtin_spec, pairs)
         else:
             pairs = ()
 
@@ -818,8 +837,6 @@ def extractBuiltinArgs(node, builtin_spec, builtin_class, empty_special_class=No
             side_effects=node.extractSideEffectsPreCall(),
         )
 
-    # Using list reference for passing the arguments without names where it
-    # it possible, otherwise dictionary to make those distinguishable.
     args_list = []
 
     for argument_name in builtin_spec.getArgumentNames():
@@ -831,11 +848,14 @@ def extractBuiltinArgs(node, builtin_spec, builtin_class, empty_special_class=No
     if builtin_spec.getStarDictArgumentName() is not None:
         args_list.append(args_dict[builtin_spec.getStarDictArgumentName()] or ())
 
-    for argument_name in builtin_spec.getKwOnlyParameterNames():
-        args_list.append(args_dict[argument_name])
-
-    # Using list reference for passing the arguments without names,
-    result = builtin_class(*args_list, source_ref=node.getSourceReference())
+    result = builtin_class(
+        *args_list,
+        source_ref=node.getSourceReference(),
+        **dict(
+            (argument_name, args_dict[argument_name])
+            for argument_name in builtin_spec.getKwOnlyParameterNames()
+        )
+    )
 
     if python_version < 0x380:
         result.setCompatibleSourceReference(node.getCompatibleSourceReference())
@@ -873,7 +893,6 @@ class BuiltinMethodParameterSpecBase(BuiltinParameterSpec):
 class BuiltinMethodParameterSpecNoKeywordsBase(BuiltinParameterSpecNoKeywords):
     __slots__ = ()
 
-    # For overload
     method_prefix = None
 
     def __init__(
@@ -920,7 +939,7 @@ class BuiltinMethodParameterSpecNoKeywordsBase(BuiltinParameterSpecNoKeywords):
                 return "%s() takes no keyword arguments" % self.name
 
             try:
-                eval(  # These are harmless calls, pylint: disable=eval-used
+                eval(  # pylint: disable=eval-used
                     "%s.%s(x=1)" % (type_example_value, self.name.split(".")[-1])
                 )
             except TypeError as e:

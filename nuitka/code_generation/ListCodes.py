@@ -1,10 +1,7 @@
 #     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-"""Code generation for lists.
-
-Right now only the creation is done here. But more should be added later on.
-"""
+"""Code generation for lists."""
 
 from .CodeHelpers import (
     assignConstantNoneResult,
@@ -12,6 +9,7 @@ from .CodeHelpers import (
     generateChildExpressionCode,
     generateChildExpressionsCode,
     generateExpressionCode,
+    withBorrowedValueScope,
     withCleanupFinally,
     withObjectCodeTemporaryAssignment,
 )
@@ -26,10 +24,16 @@ from .PythonAPICodes import (
     generateCAPIObjectCode0,
     makeArgDescFromExpression,
 )
-from .SubscriptCodes import decideIntegerSubscript
 
 
 def generateListCreationCode(to_name, expression, emit, context):
+    with withBorrowedValueScope(context):
+        _generateListCreationCode(
+            to_name=to_name, expression=expression, emit=emit, context=context
+        )
+
+
+def _generateListCreationCode(to_name, expression, emit, context):
     elements = expression.subnode_elements
     assert elements
 
@@ -43,7 +47,6 @@ def generateListCreationCode(to_name, expression, emit, context):
                 to_name=element_name, expression=element, emit=emit, context=context
             )
 
-            # Use helper that makes sure we provide a reference.
             if context.needsCleanup(element_name):
                 context.removeCleanupTempName(element_name)
                 helper_code = "PyList_SET_ITEM"
@@ -72,6 +75,8 @@ def generateListCreationCode(to_name, expression, emit, context):
                 emit(
                     "%s(%s, %d, %s);" % (helper_code, result_name, count, element_name)
                 )
+
+                context.unregisterBorrowedValue(element_name)
 
 
 def generateListOperationAppendCode(statement, emit, context):
@@ -299,7 +304,7 @@ def generateListOperationIndex4Code(to_name, expression, emit, context):
 
 
 def generateListOperationInsertCode(to_name, expression, emit, context):
-    index_constant, is_integer_index = decideIntegerSubscript(expression.subnode_index)
+    is_integer_index = expression.subnode_index.isExpressionIntegerSubscript()
 
     if is_integer_index:
         list_arg_name = generateChildExpressionCode(
@@ -315,6 +320,8 @@ def generateListOperationInsertCode(to_name, expression, emit, context):
         )
 
     if is_integer_index:
+        index_constant = expression.subnode_index.getIndexValue()
+
         emit(
             "LIST_INSERT_CONST(%s, %s, %s);"
             % (

@@ -395,6 +395,7 @@ def executePASS1():
         "nuitka/build/Offsets.scons",
         "nuitka/build/Onefile.scons",
         "nuitka/plugins/standard/standard.nuitka-package.config.yml",
+        "nuitka/plugins/standard/stdlib.nuitka-package.config.yml",
         "nuitka/plugins/standard/stdlib3.nuitka-package.config.yml",
         "nuitka/plugins/standard/stdlib2.nuitka-package.config.yml",
     ):

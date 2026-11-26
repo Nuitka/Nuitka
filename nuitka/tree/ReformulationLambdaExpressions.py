@@ -1,12 +1,7 @@
 #     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-"""Reformulation of lambda expressions.
-
-Consult the Developer Manual for information. TODO: Add ability to sync
-source code comments with Developer Manual sections.
-
-"""
+"""Reformulation of lambda expressions."""
 
 from nuitka.nodes.ComparisonNodes import ExpressionComparisonIsNot
 from nuitka.nodes.ConditionalNodes import makeStatementConditional
@@ -28,6 +23,7 @@ from nuitka.nodes.StatementNodes import StatementExpressionOnly
 from nuitka.nodes.VariableAssignNodes import makeStatementAssignmentVariable
 from nuitka.nodes.VariableRefNodes import ExpressionTempVariableRef
 from nuitka.nodes.YieldNodes import ExpressionYield
+from nuitka.plugins.Hooks import decideNeedsFrameLocalsProxy
 from nuitka.PythonVersions import python_version
 
 from .ReformulationFunctionStatements import (
@@ -47,7 +43,7 @@ from .TreeHelpers import (
 
 
 def buildLambdaNode(provider, node, source_ref):
-    # Many details to deal with, pylint: disable=too-many-locals
+    # pylint: disable=too-many-locals
 
     assert getKind(node) == "Lambda"
 
@@ -74,7 +70,8 @@ def buildLambdaNode(provider, node, source_ref):
             auto_release=None,
             source_ref=source_ref,
         )
-        code_body.qualname_provider = provider
+        if python_version >= 0x300:
+            code_body.qualname_provider = provider
 
     if function_kind == "Generator":
         function_body.setChildBody(
@@ -145,10 +142,16 @@ def buildLambdaNode(provider, node, source_ref):
     else:
         frame_class = StatementsFrameFunction
 
+    needs_frame_locals_proxy = decideNeedsFrameLocalsProxy(
+        module_name=provider.getParentModule().getFullName(),
+        code_qualname=code_object.getCodeObjectQualname(),
+    )
+
     body = frame_class(
         statements=mergeStatements((body,)),
         code_object=code_object,
         owner_code_name=code_body.getCodeName(),
+        needs_frame_locals=needs_frame_locals_proxy,
         source_ref=body.getSourceReference(),
     )
 

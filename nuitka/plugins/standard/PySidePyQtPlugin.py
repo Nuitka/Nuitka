@@ -9,8 +9,14 @@ own dependencies.
 
 import os
 
+from nuitka.__past__ import (  # pylint: disable=redefined-builtin
+    PermissionError,
+)
 from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.options.Options import (
+    assumeYesForDownloads,
+    getMacOSBundleIconFilename,
+    getMacOSIconPaths,
     getWindowsIconExecutablePath,
     getWindowsIconPaths,
     isStandaloneMode,
@@ -29,13 +35,17 @@ from nuitka.PythonFlavors import isAnacondaPython
 from nuitka.PythonVersions import python_version
 from nuitka.utils.Distributions import getDistributionFromModuleName
 from nuitka.utils.FileOperations import (
+    getDllBasename,
     getFileList,
     getNormalizedPath,
     getNormalizedPathJoin,
     listDir,
 )
 from nuitka.utils.ModuleNames import ModuleName
-from nuitka.utils.SharedLibraries import getPatchElfVersion
+from nuitka.utils.SharedLibraries import (
+    getPatchElfPathForQt,
+    getPatchElfVersion,
+)
 from nuitka.utils.Utils import (
     getArchitecture,
     isElfUsingPlatform,
@@ -106,7 +116,7 @@ class NuitkaPluginQtBindingsPluginBase(NuitkaPluginBase):
                 "Error, failed to locate the '%s' installation." % self.binding_name
             )
 
-        if isElfUsingPlatform():
+        if isStandaloneMode() and isElfUsingPlatform():
             self._checkPatchElfVersion()
 
         sensible_qt_plugins = self._getSensiblePlugins()
@@ -150,10 +160,17 @@ class NuitkaPluginQtBindingsPluginBase(NuitkaPluginBase):
         )
 
     def _checkPatchElfVersion(self):
-        patchelf_version, patchelf_version_tuple = getPatchElfVersion(self)
+        patchelf_path = getPatchElfPathForQt(
+            logger=self,
+            assume_yes_for_downloads=assumeYesForDownloads(),
+        )
 
-        if (0, 10) <= patchelf_version_tuple < (0, 12):
-            return self.sysexit("""\
+        if patchelf_path is not None:
+            return
+
+        patchelf_version, _patchelf_version_tuple = getPatchElfVersion(self)
+
+        return self.sysexit("""\
 Error, patchelf version '%s' is known to corrupt Qt plugin metadata \
 for standalone '%s' binaries on this platform. Use patchelf 0.12 or \
 newer, or downgrade to patchelf 0.9.""" % (patchelf_version, self.binding_name))
@@ -164,6 +181,7 @@ newer, or downgrade to patchelf 0.9.""" % (patchelf_version, self.binding_name))
             "--include-qt-plugins",
             action="append_comma",
             dest="include_qt_plugins",
+            metavar="PLUGIN_NAME",
             default=[],
             help="""\
 Which Qt plugins to include. These can be big with dependencies, so
@@ -176,6 +194,7 @@ not exist, a list of all available will be given.""",
             "--noinclude-qt-plugins",
             action="append_comma",
             dest="noinclude_qt_plugins",
+            metavar="PLUGIN_NAME",
             default=[],
             help="""\
 Which Qt plugins to not include. This removes things, so you can
@@ -189,7 +208,7 @@ from the default sensible list.""",
             dest="no_qt_translations",
             default=False,
             help="""\
-Include Qt translations with QtWebEngine if used. These can be a lot
+Don't include Qt translations with QtWebEngine if used. These can be a lot
 of files that you may not want to be included.""",
         )
 
@@ -208,13 +227,24 @@ there might be.""",
         """Where does the Qt bindings package expect the QML files."""
         return getNormalizedPathJoin(self.binding_name, "qml")
 
+    def _getQtLibraryTargetPath(self):
+        """Where do the Qt bindings packages expect the Qt libraries."""
+        if self.binding_name == "PyQt6":
+            qt_dir_name = "Qt6"
+        elif self.binding_name == "PyQt5":
+            qt_dir_name = "Qt5"
+        else:
+            qt_dir_name = "Qt"
+
+        return getNormalizedPathJoin(self.binding_name, qt_dir_name, "lib")
+
     def _isUsingMacOSFrameworks(self):
         """Is this a framework based build, or one that shared more commonality with Linux"""
-        if isMacOS() and self.binding_name in ("PySide6", "PySide2"):
+        if isMacOS() and self.binding_name in ("PySide6", "PySide2", "PyQt6"):
             return os.path.exists(
                 getNormalizedPathJoin(
                     self._getQtInformation().data_path,
-                    "lib/QtWebEngineCore.framework",
+                    "lib/QtCore.framework",
                 )
             )
         else:
@@ -239,9 +269,13 @@ there might be.""",
 
     def _getTranslationsTargetDir(self):
         """Where does the Qt bindings package expect the translation files."""
+        # Return driven, pylint: disable=too-many-return-statements
         if isMacOS():
-            # default name of PySide6, spell-checker: ignore qtwebengine_locales
-            return getNormalizedPathJoin(self.binding_name, "Qt", "translations")
+            if self.binding_name == "PyQt6":
+                return getNormalizedPathJoin(self.binding_name, "Qt6", "translations")
+            else:
+                # default name of PySide6, spell-checker: ignore qtwebengine_locales
+                return getNormalizedPathJoin(self.binding_name, "Qt", "translations")
         elif isWin32Windows():
             if self.binding_name in ("PySide2", "PyQt5"):
                 return "translations"
@@ -264,8 +298,8 @@ there might be.""",
         return "."
 
     def _getSensiblePlugins(self):
-        # spell-checker: ignore imageformats,iconengines,mediaservice,printsupport
-        # spell-checker: ignore platformthemes,egldeviceintegrations,xcbglintegrations
+        # spell-checker: ignore egldeviceintegrations,iconengines,imageformats
+        # spell-checker: ignore mediaservice,platformthemes,printsupport,xcbglintegrations
         return OrderedSet(
             tuple(
                 family
@@ -364,7 +398,7 @@ import %(binding_name)s.QtCore
                     self._applyBindingName(
                         "%(binding_name)s.__version_info__"
                         if "PySide" in self.binding_name
-                        else "%(binding_name)s.QtCore.PYQT_VERSION_STR"
+                        else "tuple(int(part) for part in %(binding_name)s.QtCore.PYQT_VERSION_STR.split('.'))"
                     ),
                 ),
                 (
@@ -532,7 +566,7 @@ import %(binding_name)s.QtCore
         qml_plugin_dir = self._getQmlDirectory()
 
         # List all file types of the QML plugin folder that are data files and
-        # not DLLs, spell-checker: ignore qmlc,qmltypes,metainfo,qmldir
+        # not DLLs, spell-checker: ignore metainfo,qmlc,qmldir,qmltypes
         datafile_suffixes = (
             ".qml",
             ".qmlc",
@@ -589,6 +623,11 @@ permissions. Try reinstalling the package, or fix the permissions on \
 the directory.""" % (qt_plugins_dir, self.binding_name))
 
             for filename in file_list:
+                # Wheels may contain build artifacts, e.g. static libraries,
+                # that are not usable as plugins.
+                if getDllBasename(os.path.basename(filename)) is None:
+                    continue
+
                 filename_relative = os.path.relpath(filename, start=qt_plugins_dir)
 
                 qt_plugin_name = filename_relative.split(os.path.sep, 1)[0]
@@ -790,15 +829,14 @@ the directory.""" % (qt_plugins_dir, self.binding_name))
         and therefore makes sure it's updated properly.
 
         Also, for QApplication we try and load icons automatically.
-        TODO: Currently only for Windows, but we could add icons from macOS too
         """
 
         full_name = module.getFullName()
 
-        # We do this for PySide6 only.
+        # Windows icon loading is done for PySide6 only.
         if (
-            full_name == "%s" % self.binding_name
-            and self.binding_name == "PySide6"
+            self.binding_name == "PySide6"
+            and full_name == "%s" % self.binding_name
             and (getWindowsIconPaths() or getWindowsIconExecutablePath())
         ):
             # TODO: Ideally we would know the icons count and not be confused by
@@ -850,6 +888,51 @@ OurQApplication.__doc__ = orig_QApplication.__doc__
 """ % {"binding_name": self.binding_name}
 
             yield (code, "Loading Qt application icon from Windows resources.")
+
+        if (
+            full_name == "%s" % self.binding_name
+            and isMacOS()
+            and shallCreateAppBundle()
+            and getMacOSIconPaths()
+        ):
+            icon_name = getMacOSBundleIconFilename()
+            assert icon_name is not None
+
+            code = """\
+import os
+import sys
+import %(binding_name)s.QtWidgets
+orig_QApplication = %(binding_name)s.QtWidgets.QApplication
+
+from %(binding_name)s.QtGui import QIcon
+
+class OurQApplication(orig_QApplication):
+    def __init__(self, *args, **kwargs):
+        orig_QApplication.__init__(self, *args, **kwargs)
+
+        main_filename = os.path.realpath(sys.argv[0])
+        icon_path = os.path.join(
+            os.path.dirname(os.path.dirname(main_filename)),
+            "Resources",
+            %(icon_name)r
+        )
+
+        if os.path.exists(icon_path):
+            self.setWindowIcon(QIcon(icon_path))
+
+OurQApplication.__module__ = orig_QApplication.__module__
+OurQApplication.__name__ = orig_QApplication.__name__
+if str is not bytes:
+    OurQApplication.__qualname__ = orig_QApplication.__qualname__
+OurQApplication.__doc__ = orig_QApplication.__doc__
+
+%(binding_name)s.QtWidgets.QApplication = OurQApplication
+""" % {"binding_name": self.binding_name, "icon_name": icon_name}
+
+            yield (
+                code,
+                "Loading Qt application icon from macOS application bundle.",
+            )
 
         # Only in standalone mode, this will be needed.
         if full_name == "%s.QtCore" % self.binding_name and isStandaloneMode():
@@ -945,7 +1028,7 @@ if not path.startswith(python_runtime_dir):
             )
 
         # We need to set these variables, to force the layout
-        # spell-checker: ignore QTWEBENGINEPROCESS_PATH,QTWEBENGINE_DISABLE_SANDBOX,
+        # spell-checker: ignore QTWEBENGINEPROCESS_PATH,QTWEBENGINE_DISABLE_SANDBOX
         # spell-checker: ignore QTWEBENGINE_RESOURCES_PATH
 
         if self.isQtWebEngineModule(full_name):
@@ -1007,9 +1090,15 @@ os.environ["QTWEBENGINE_LOCALES_PATH"] = os.path.join(
 )
 os.environ["QTWEBENGINE_DISABLE_SANDBOX"]="1"
 """ % {
-                    "web_engine_process_path": """\
-%s/Qt/lib/QtWebEngineCore.framework/Helpers/QtWebEngineProcess.app/Contents/MacOS/QtWebEngineProcess"""
-                    % self.binding_name
+                    "web_engine_process_path": getNormalizedPathJoin(
+                        self._getQtLibraryTargetPath(),
+                        "QtWebEngineCore.framework",
+                        "Helpers",
+                        "QtWebEngineProcess.app",
+                        "Contents",
+                        "MacOS",
+                        "QtWebEngineProcess",
+                    )
                 }
 
                 yield (
@@ -1069,10 +1158,13 @@ Prefix = .
         if self.binding_name in ("PySide6", "PyQt6"):
             used_frameworks += ["QtOpenGL", "QtDBus"]
 
-        # Newer PySide6 needs even more.
-        if self.binding_name == "PySide6" and self._getBindingVersion() >= (6, 8, 0):
-            used_frameworks.append("QtQmlMeta")
-            used_frameworks.append("QtQmlWorkerScript")
+        # Newer PySide6 and PyQt6 need even more.
+        if self.binding_name in ("PySide6", "PyQt6"):
+            binding_version = self._getBindingVersion()
+
+            if binding_version >= (6, 8, 0):
+                used_frameworks.append("QtQmlMeta")
+                used_frameworks.append("QtQmlWorkerScript")
 
         for used_framework in used_frameworks:
             yield self.makeIncludedAppBundleFramework(
@@ -1098,9 +1190,7 @@ Prefix = .
         return self.makeIncludedFrameworkDirectory(
             source_path=framework_path,
             dest_path=getNormalizedPathJoin(
-                self.binding_name,
-                "Qt",
-                "lib",
+                self._getQtLibraryTargetPath(),
                 framework_basename,
             ),
             reason=reason,
@@ -1200,9 +1290,10 @@ Prefix = .
             return getNormalizedPathJoin(self.binding_name, "qt-plugins")
 
     def isDefaultQtPluginTargetPath(self):
-        # So far we use the default only with PyQt6, since our post load code to
-        # change it crashes on macOS, probably being called too soon.
-        return self.binding_name == "PyQt6"
+        # On macOS, Qt computes the plugin path relative to the executable,
+        # which does not match the distribution layout, so the post load code
+        # has to set an explicit library path there.
+        return self.binding_name == "PyQt6" and not isMacOS()
 
     def getExtraDlls(self, module):
         # pylint: disable=too-many-branches
@@ -1277,7 +1368,7 @@ Prefix = .
                     )
 
                 # Also copy required OpenGL DLLs on Windows,
-                # spell-checker: ignore libegl,libglesv2,opengl32sw,d3dcompiler_
+                # spell-checker: ignore d3dcompiler_,libegl,libglesv2,opengl32sw
                 if isWin32Windows():
                     gl_dlls = ("libegl.dll", "libglesv2.dll", "opengl32sw.dll")
 
@@ -1444,12 +1535,6 @@ class NuitkaPluginPyQt5QtPluginsPlugin(NuitkaPluginQtBindingsPluginBase):
 
     binding_name = "PyQt5"
 
-    def getUncompiledDecoratorNames(self):
-        if python_version >= 0x390:
-            return ("pyqtSlot", "asyncSlot", "Slot")
-        else:
-            return ()
-
     def __init__(
         self,
         include_qt_plugins,
@@ -1506,23 +1591,17 @@ to compiled functions, etc. may not be working.""",
 
         return result
 
-    @classmethod
-    def isRelevant(cls):
-        return isStandaloneMode()
-
 
 class NuitkaPluginDetectorPyQt5QtPluginsPlugin(NuitkaPluginBase):
     detector_for = NuitkaPluginPyQt5QtPluginsPlugin
-
-    @classmethod
-    def isRelevant(cls):
-        return isStandaloneMode()
 
     def onModuleDiscovered(self, module):
         full_name = module.getFullName()
 
         if full_name == NuitkaPluginPyQt5QtPluginsPlugin.binding_name + ".QtCore":
-            self.warnUnusedPlugin("Inclusion of Qt plugins.")
+            self.warnUnusedPlugin(
+                "Standalone mode support, signal callbacks, and Qt plugins."
+            )
         elif full_name == "PyQt4.QtCore":
             self.warning(
                 "Support for PyQt4 has been dropped. Please contact Nuitka commercial if you need it."
@@ -1741,12 +1820,6 @@ class NuitkaPluginPyQt6Plugins(NuitkaPluginQtBindingsPluginBase):
 
     binding_name = "PyQt6"
 
-    def getUncompiledDecoratorNames(self):
-        if python_version >= 0x390:
-            return ("pyqtSlot", "asyncSlot", "Slot")
-        else:
-            return ()
-
     def __init__(
         self,
         include_qt_plugins,
@@ -1762,10 +1835,8 @@ class NuitkaPluginPyQt6Plugins(NuitkaPluginQtBindingsPluginBase):
             qt_debug_plugins=qt_debug_plugins,
         )
 
-        self.info(
-            """\
-Support for PyQt6 is not perfect, e.g. Qt threading does not work, so prefer PySide6 if you can."""
-        )
+        self.info("""\
+Support for PyQt6 is not absolutely perfect so prefer PySide6 if you can.""")
 
 
 class NuitkaPluginDetectorPyQt6Plugins(NuitkaPluginBase):

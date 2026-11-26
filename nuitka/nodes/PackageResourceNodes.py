@@ -1,7 +1,7 @@
 #     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-"""Nodes the represent ways to access package data for pkglib, pkg_resources, etc."""
+"""Nodes that represent ways to access package data for pkgutil, pkg_resources, importlib.resources, etc."""
 
 from nuitka.importing.Importing import (
     importFromCompileTime,
@@ -11,6 +11,10 @@ from nuitka.importing.Importing import (
 from nuitka.importing.ImportResolving import resolveModuleName
 
 from .ConstantRefNodes import makeConstantRefNode
+from .ExceptionNodes import (
+    ExpressionRaiseException,
+    makeBuiltinMakeExceptionNode,
+)
 from .ExpressionBases import ExpressionBase
 from .ExpressionShapeMixins import (
     ExpressionBytesShapeExactMixin,
@@ -18,18 +22,25 @@ from .ExpressionShapeMixins import (
 )
 from .HardImportNodesGenerated import (
     ExpressionImportlibResourcesBackportFilesCallBase,
+    ExpressionImportlibResourcesBackportOpenBinaryCallBase,
+    ExpressionImportlibResourcesBackportOpenTextCallBase,
     ExpressionImportlibResourcesBackportReadBinaryCallBase,
     ExpressionImportlibResourcesBackportReadTextCallBase,
     ExpressionImportlibResourcesFilesCallBase,
     ExpressionImportlibResourcesFilesSince312CallBase,
+    ExpressionImportlibResourcesFilesSince315CallBase,
+    ExpressionImportlibResourcesOpenBinaryCallBase,
+    ExpressionImportlibResourcesOpenTextCallBase,
     ExpressionImportlibResourcesReadBinaryCallBase,
     ExpressionImportlibResourcesReadTextBefore313CallBase,
     ExpressionImportlibResourcesReadTextSince313CallBase,
     ExpressionPkgResourcesResourceStreamCallBase,
     ExpressionPkgResourcesResourceStringCallBase,
     ExpressionPkgutilGetDataCallBase,
+    ExpressionPkgutilIterModulesCallBase,
 )
 from .NodeBases import SideEffectsFromChildrenMixin
+from .NodeMakingHelpers import wrapExpressionWithSideEffects
 
 
 class ExpressionPkgutilGetDataCall(
@@ -43,7 +54,16 @@ class ExpressionPkgutilGetDataCall(
 ):
     kind = "EXPRESSION_PKGUTIL_GET_DATA_CALL"
 
-    named_children = ("package", "resource")
+    def replaceWithCompileTimeValue(self, trace_collection):
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        return self, None, None
+
+
+class ExpressionPkgutilIterModulesCall(
+    SideEffectsFromChildrenMixin, ExpressionPkgutilIterModulesCallBase
+):
+    kind = "EXPRESSION_PKGUTIL_ITER_MODULES_CALL"
 
     def replaceWithCompileTimeValue(self, trace_collection):
         trace_collection.onExceptionRaiseExit(BaseException)
@@ -91,8 +111,6 @@ class ExpressionImportlibResourcesReadBinaryCall(
     SideEffectsFromChildrenMixin,
     ExpressionImportlibResourcesReadBinaryCallBase,
 ):
-    """Call to "importlib.resources.read_binary" """
-
     kind = "EXPRESSION_IMPORTLIB_RESOURCES_READ_BINARY_CALL"
 
     python_version_spec = ">= 0x370"
@@ -111,12 +129,108 @@ class ExpressionImportlibResourcesReadBinaryCall(
         return self, None, None
 
 
+class ExpressionImportlibResourcesOpenBinaryCall(
+    SideEffectsFromChildrenMixin,
+    ExpressionImportlibResourcesOpenBinaryCallBase,
+):
+    kind = "EXPRESSION_IMPORTLIB_RESOURCES_OPEN_BINARY_CALL"
+
+    def __init__(self, package, resource, source_ref):
+        ExpressionImportlibResourcesOpenBinaryCallBase.__init__(
+            self,
+            package=package,
+            resource=resource,
+            source_ref=source_ref,
+        )
+
+    def replaceWithCompileTimeValue(self, trace_collection):
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        return self, None, None
+
+
+class ExpressionImportlibResourcesBackportOpenBinaryCall(
+    SideEffectsFromChildrenMixin,
+    ExpressionImportlibResourcesBackportOpenBinaryCallBase,
+):
+    kind = "EXPRESSION_IMPORTLIB_RESOURCES_BACKPORT_OPEN_BINARY_CALL"
+
+    def __init__(self, package, resource, source_ref):
+        ExpressionImportlibResourcesBackportOpenBinaryCallBase.__init__(
+            self,
+            package=package,
+            resource=resource,
+            source_ref=source_ref,
+        )
+
+    def replaceWithCompileTimeValue(self, trace_collection):
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        return self, None, None
+
+
+def makeExpressionImportlibResourcesOpenTextCall(
+    package, resource, encoding, errors, source_ref
+):
+    if encoding is None:
+        encoding = makeConstantRefNode(constant="utf-8", source_ref=source_ref)
+    if errors is None:
+        errors = makeConstantRefNode(constant="strict", source_ref=source_ref)
+
+    return ExpressionImportlibResourcesOpenTextCall(
+        package=package,
+        resource=resource,
+        encoding=encoding,
+        errors=errors,
+        source_ref=source_ref,
+    )
+
+
+class ExpressionImportlibResourcesOpenTextCall(
+    SideEffectsFromChildrenMixin,
+    ExpressionImportlibResourcesOpenTextCallBase,
+):
+    kind = "EXPRESSION_IMPORTLIB_RESOURCES_OPEN_TEXT_CALL"
+
+    def replaceWithCompileTimeValue(self, trace_collection):
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        return self, None, None
+
+
+def makeExpressionImportlibResourcesBackportOpenTextCall(
+    package, resource, encoding, errors, source_ref
+):
+    if encoding is None:
+        encoding = makeConstantRefNode(constant="utf-8", source_ref=source_ref)
+    if errors is None:
+        errors = makeConstantRefNode(constant="strict", source_ref=source_ref)
+
+    return ExpressionImportlibResourcesBackportOpenTextCall(
+        package=package,
+        resource=resource,
+        encoding=encoding,
+        errors=errors,
+        source_ref=source_ref,
+    )
+
+
+class ExpressionImportlibResourcesBackportOpenTextCall(
+    SideEffectsFromChildrenMixin,
+    ExpressionImportlibResourcesBackportOpenTextCallBase,
+):
+    kind = "EXPRESSION_IMPORTLIB_RESOURCES_BACKPORT_OPEN_TEXT_CALL"
+
+    def replaceWithCompileTimeValue(self, trace_collection):
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        return self, None, None
+
+
 class ExpressionImportlibResourcesBackportReadBinaryCall(
     SideEffectsFromChildrenMixin,
     ExpressionImportlibResourcesBackportReadBinaryCallBase,
 ):
-    """Call to "importlib.resources.read_binary" """
-
     kind = "EXPRESSION_IMPORTLIB_RESOURCES_BACKPORT_READ_BINARY_CALL"
 
     def __init__(self, package, resource, source_ref):
@@ -136,7 +250,6 @@ class ExpressionImportlibResourcesBackportReadBinaryCall(
 def makeExpressionImportlibResourcesReadTextBefore313Call(
     package, resource, encoding, errors, source_ref
 ):
-    # Avoid making things optional.
     if encoding is None:
         encoding = makeConstantRefNode(constant="utf-8", source_ref=source_ref)
     if errors is None:
@@ -154,7 +267,6 @@ def makeExpressionImportlibResourcesReadTextBefore313Call(
 def makeExpressionImportlibResourcesReadTextSince313Call(
     package, resources, encoding, errors, source_ref
 ):
-    # Avoid making things optional.
     if encoding is None:
         encoding = makeConstantRefNode(constant="utf-8", source_ref=source_ref)
     if errors is None:
@@ -173,8 +285,6 @@ class ExpressionImportlibResourcesReadTextBefore313Call(
     SideEffectsFromChildrenMixin,
     ExpressionImportlibResourcesReadTextBefore313CallBase,
 ):
-    """Call to "importlib.resources.read_text" """
-
     kind = "EXPRESSION_IMPORTLIB_RESOURCES_READ_TEXT_BEFORE_313_CALL"
 
     python_version_spec = ">= 0x370"
@@ -189,8 +299,6 @@ class ExpressionImportlibResourcesReadTextSince313Call(
     SideEffectsFromChildrenMixin,
     ExpressionImportlibResourcesReadTextSince313CallBase,
 ):
-    """Call to "importlib.resources.read_text" """
-
     kind = "EXPRESSION_IMPORTLIB_RESOURCES_READ_TEXT_SINCE_313_CALL"
 
     python_version_spec = ">= 0x3D0"
@@ -204,7 +312,6 @@ class ExpressionImportlibResourcesReadTextSince313Call(
 def makeExpressionImportlibResourcesBackportReadTextCall(
     package, resource, encoding, errors, source_ref
 ):
-    # Avoid making things optional.
     if encoding is None:
         encoding = makeConstantRefNode(constant="utf-8", source_ref=source_ref)
     if errors is None:
@@ -223,8 +330,6 @@ class ExpressionImportlibResourcesBackportReadTextCall(
     SideEffectsFromChildrenMixin,
     ExpressionImportlibResourcesBackportReadTextCallBase,
 ):
-    """Call to "importlib_resources.read_text" """
-
     kind = "EXPRESSION_IMPORTLIB_RESOURCES_BACKPORT_READ_TEXT_CALL"
 
     def replaceWithCompileTimeValue(self, trace_collection):
@@ -233,7 +338,7 @@ class ExpressionImportlibResourcesBackportReadTextCall(
         return self, None, None
 
 
-class ExpressionImportlibResourcesFilesCallMixin:
+class ExpressionImportlibResourcesFilesCallMixin(object):
     __slots__ = ()
 
     def _getImportlibResourcesModule(self):
@@ -262,14 +367,15 @@ class ExpressionImportlibResourcesFilesCallMixin:
     def mayRaiseExceptionOperation():
         return True
 
-    # Only for the not fixed ones.
     def replaceWithCompileTimeValue(self, trace_collection):
         trace_collection.onExceptionRaiseExit(BaseException)
 
-        if self.subnode_package is None:
+        package = self.getPackageNameUsed()
+
+        if package is None:
             return self, None, None
 
-        package_name = self.subnode_package.getCompileTimeConstant()
+        package_name = package.getCompileTimeConstant()
 
         if type(package_name) is str:
             package_name = resolveModuleName(package_name)
@@ -309,11 +415,15 @@ class ExpressionImportlibResourcesFilesCallFixed(
         self.package_name = resolveModuleName(package_name)
 
         self.module_usage_attempt = self.makeModuleUsageAttempt(
-            package_name=package_name
+            package_name=self.package_name
         )
 
     def finalize(self):
+        del self.parent
         del self.module_usage_attempt
+
+    def getDetails(self):
+        return {"package_name": self.package_name}
 
     def getPackageNameUsed(self):
         return makeConstantRefNode(
@@ -345,11 +455,15 @@ class ExpressionImportlibResourcesBackportFilesCallFixed(
         self.package_name = resolveModuleName(package_name)
 
         self.module_usage_attempt = self.makeModuleUsageAttempt(
-            package_name=package_name
+            package_name=self.package_name
         )
 
     def finalize(self):
+        del self.parent
         del self.module_usage_attempt
+
+    def getDetails(self):
+        return {"package_name": self.package_name}
 
     def getPackageNameUsed(self):
         return makeConstantRefNode(
@@ -364,9 +478,31 @@ class ExpressionImportlibResourcesBackportFilesCallFixed(
         return self, None, None
 
 
-def makeExpressionImportlibResourcesFilesSince312Call(package, source_ref):
+def makeExpressionImportlibResourcesFilesSince312Call(anchor, package, source_ref):
+    # The wrapper that still accepts "package" passes both values on, if both
+    # are given, which "files" itself rejects then.
+    if anchor is not None and package is not None:
+        result = ExpressionRaiseException(
+            exception_type=makeBuiltinMakeExceptionNode(
+                exception_name="TypeError",
+                args=(
+                    makeConstantRefNode(
+                        constant="files() takes from 0 to 1 positional arguments but 2 were given",
+                        source_ref=source_ref,
+                    ),
+                ),
+                for_raise=False,
+                source_ref=source_ref,
+            ),
+            source_ref=source_ref,
+        )
+
+        return wrapExpressionWithSideEffects(
+            side_effects=(anchor, package), old_node=anchor, new_node=result
+        )
+
     return ExpressionImportlibResourcesFilesSince312Call(
-        package=package, source_ref=source_ref
+        anchor=anchor, package=package, source_ref=source_ref
     )
 
 
@@ -380,10 +516,27 @@ class ExpressionImportlibResourcesFilesSince312Call(
     makeImportlibResourcesFilesCallFixedExpression = (
         ExpressionImportlibResourcesFilesCallFixed
     )
-    named_children = ("package|optional",)
 
     def getPackageNameUsed(self):
+        if self.subnode_anchor is not None:
+            return self.subnode_anchor
+
         return self.subnode_package
+
+
+class ExpressionImportlibResourcesFilesSince315Call(
+    ExpressionImportlibResourcesFilesCallMixin,
+    ExpressionImportlibResourcesFilesSince315CallBase,
+):
+    kind = "EXPRESSION_IMPORTLIB_RESOURCES_FILES_SINCE315_CALL"
+    python_version_spec = ">= 0x3F0"
+    importlib_resources_name = "importlib.resources"
+    makeImportlibResourcesFilesCallFixedExpression = (
+        ExpressionImportlibResourcesFilesCallFixed
+    )
+
+    def getPackageNameUsed(self):
+        return self.subnode_anchor
 
 
 class ExpressionImportlibResourcesFilesCall(
@@ -396,8 +549,6 @@ class ExpressionImportlibResourcesFilesCall(
     makeImportlibResourcesFilesCallFixedExpression = (
         ExpressionImportlibResourcesFilesCallFixed
     )
-
-    named_children = ("package",)
 
     __slots__ = ("module_usage_attempt",)
 
@@ -421,8 +572,6 @@ class ExpressionImportlibResourcesBackportFilesCall(
     makeImportlibResourcesFilesCallFixedExpression = (
         ExpressionImportlibResourcesBackportFilesCallFixed
     )
-
-    named_children = ("package",)
 
     __slots__ = ("module_usage_attempt",)
 

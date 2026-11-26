@@ -7,6 +7,7 @@
 #ifdef __IDE_ONLY__
 #include "nuitka/prelude.h"
 
+// Includes below require definitions from the prelude.
 #include "nuitka/helper/long_helpers.h"
 #endif
 
@@ -14,7 +15,6 @@
 /* C helpers for type specialized "+" (ADD) operations */
 
 #if PYTHON_VERSION < 0x300
-/* Code referring to "INT" corresponds to Python2 'int' and "INT" to Python2 'int'. */
 static PyObject *_BINARY_OPERATION_ADD_OBJECT_INT_INT(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyInt_CheckExact(operand1));
@@ -23,7 +23,6 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_INT_INT(PyObject *operand1, PyObje
 
     PyObject *result;
 
-    // Not every code path will make use of all possible results.
 #if defined(_MSC_VER)
 #pragma warning(push)
 #pragma warning(disable : 4101)
@@ -86,7 +85,6 @@ PyObject *BINARY_OPERATION_ADD_OBJECT_INT_INT(PyObject *operand1, PyObject *oper
 #endif
 
 #if PYTHON_VERSION < 0x300
-/* Code referring to "OBJECT" corresponds to any Python object and "INT" to Python2 'int'. */
 static HEDLEY_NEVER_INLINE PyObject *__BINARY_OPERATION_ADD_OBJECT_OBJECT_INT(PyObject *operand1, PyObject *operand2) {
     PyTypeObject *type1 = Py_TYPE(operand1);
 
@@ -105,8 +103,6 @@ static HEDLEY_NEVER_INLINE PyObject *__BINARY_OPERATION_ADD_OBJECT_OBJECT_INT(Py
     binaryfunc slot2 = NULL;
 
     if (!(type1 == &PyInt_Type)) {
-        // Different types, need to consider second value slot.
-
         slot2 = PyInt_Type.tp_as_number->nb_add;
 
         if (slot1 == slot2) {
@@ -211,7 +207,6 @@ static HEDLEY_NEVER_INLINE PyObject *__BINARY_OPERATION_ADD_OBJECT_OBJECT_INT(Py
 #endif
 
     {
-        // Special case for "+" and "*", also works as sequence concat/repeat.
         binaryfunc sq_slot = type1->tp_as_sequence != NULL ? type1->tp_as_sequence->sq_concat : NULL;
 
         if (sq_slot != NULL) {
@@ -241,9 +236,6 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_OBJECT_INT(PyObject *operand1, PyO
     if (type1 == &PyInt_Type) {
         PyObject *result;
 
-        // return _BINARY_OPERATION_ADD_OBJECT_INT_INT(operand1, operand2);
-
-        // Not every code path will make use of all possible results.
 #if defined(_MSC_VER)
 #pragma warning(push)
 #pragma warning(disable : 4101)
@@ -309,7 +301,6 @@ PyObject *BINARY_OPERATION_ADD_OBJECT_OBJECT_INT(PyObject *operand1, PyObject *o
 #endif
 
 #if PYTHON_VERSION < 0x300
-/* Code referring to "INT" corresponds to Python2 'int' and "OBJECT" to any Python object. */
 static HEDLEY_NEVER_INLINE PyObject *__BINARY_OPERATION_ADD_OBJECT_INT_OBJECT(PyObject *operand1, PyObject *operand2) {
     PyTypeObject *type2 = Py_TYPE(operand2);
 
@@ -327,8 +318,6 @@ static HEDLEY_NEVER_INLINE PyObject *__BINARY_OPERATION_ADD_OBJECT_INT_OBJECT(Py
     binaryfunc slot2 = NULL;
 
     if (!(&PyInt_Type == type2)) {
-        // Different types, need to consider second value slot.
-
         slot2 = (type2->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type2)) ? type2->tp_as_number->nb_add : NULL;
 
         if (slot1 == slot2) {
@@ -447,7 +436,6 @@ static HEDLEY_NEVER_INLINE PyObject *__BINARY_OPERATION_ADD_OBJECT_INT_OBJECT(Py
 #endif
 
     {
-        // No sequence repeat slot sq_concat available for this type.
     }
 
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for +: 'int' and '%s'", type2->tp_name);
@@ -469,9 +457,6 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_INT_OBJECT(PyObject *operand1, PyO
     if (&PyInt_Type == type2) {
         PyObject *result;
 
-        // return _BINARY_OPERATION_ADD_OBJECT_INT_INT(operand1, operand2);
-
-        // Not every code path will make use of all possible results.
 #if defined(_MSC_VER)
 #pragma warning(push)
 #pragma warning(disable : 4101)
@@ -537,7 +522,6 @@ PyObject *BINARY_OPERATION_ADD_OBJECT_INT_OBJECT(PyObject *operand1, PyObject *o
 #endif
 
 #if PYTHON_VERSION < 0x300
-/* Code referring to "INT" corresponds to Python2 'int' and "INT" to Python2 'int'. */
 static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_INT_INT(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyInt_CheckExact(operand1));
@@ -546,7 +530,6 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_INT_INT(PyObject *operand1, PyObj
 
     nuitka_bool result;
 
-    // Not every code path will make use of all possible results.
 #if defined(_MSC_VER)
 #pragma warning(push)
 #pragma warning(disable : 4101)
@@ -588,7 +571,6 @@ nuitka_bool BINARY_OPERATION_ADD_NBOOL_INT_INT(PyObject *operand1, PyObject *ope
 #endif
 
 #if PYTHON_VERSION < 0x300
-/* Code referring to "OBJECT" corresponds to any Python object and "INT" to Python2 'int'. */
 static HEDLEY_NEVER_INLINE nuitka_bool __BINARY_OPERATION_ADD_NBOOL_OBJECT_INT(PyObject *operand1, PyObject *operand2) {
     PyTypeObject *type1 = Py_TYPE(operand1);
 
@@ -607,8 +589,6 @@ static HEDLEY_NEVER_INLINE nuitka_bool __BINARY_OPERATION_ADD_NBOOL_OBJECT_INT(P
     binaryfunc slot2 = NULL;
 
     if (!(type1 == &PyInt_Type)) {
-        // Different types, need to consider second value slot.
-
         slot2 = PyInt_Type.tp_as_number->nb_add;
 
         if (slot1 == slot2) {
@@ -713,7 +693,6 @@ static HEDLEY_NEVER_INLINE nuitka_bool __BINARY_OPERATION_ADD_NBOOL_OBJECT_INT(P
 #endif
 
     {
-        // Special case for "+" and "*", also works as sequence concat/repeat.
         binaryfunc sq_slot = type1->tp_as_sequence != NULL ? type1->tp_as_sequence->sq_concat : NULL;
 
         if (sq_slot != NULL) {
@@ -733,7 +712,7 @@ exit_binary_result_object:
     }
 
     {
-        nuitka_bool r = CHECK_IF_TRUE(obj_result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+        nuitka_bool r = CHECK_IF_TRUE_NBOOL(obj_result);
         Py_DECREF(obj_result);
         return r;
     }
@@ -751,9 +730,6 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_OBJECT_INT(PyObject *operand1, Py
     if (type1 == &PyInt_Type) {
         nuitka_bool result;
 
-        // return _BINARY_OPERATION_ADD_NBOOL_INT_INT(operand1, operand2);
-
-        // Not every code path will make use of all possible results.
 #if defined(_MSC_VER)
 #pragma warning(push)
 #pragma warning(disable : 4101)
@@ -798,7 +774,6 @@ nuitka_bool BINARY_OPERATION_ADD_NBOOL_OBJECT_INT(PyObject *operand1, PyObject *
 #endif
 
 #if PYTHON_VERSION < 0x300
-/* Code referring to "INT" corresponds to Python2 'int' and "OBJECT" to any Python object. */
 static HEDLEY_NEVER_INLINE nuitka_bool __BINARY_OPERATION_ADD_NBOOL_INT_OBJECT(PyObject *operand1, PyObject *operand2) {
     PyTypeObject *type2 = Py_TYPE(operand2);
 
@@ -816,8 +791,6 @@ static HEDLEY_NEVER_INLINE nuitka_bool __BINARY_OPERATION_ADD_NBOOL_INT_OBJECT(P
     binaryfunc slot2 = NULL;
 
     if (!(&PyInt_Type == type2)) {
-        // Different types, need to consider second value slot.
-
         slot2 = (type2->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type2)) ? type2->tp_as_number->nb_add : NULL;
 
         if (slot1 == slot2) {
@@ -936,7 +909,6 @@ static HEDLEY_NEVER_INLINE nuitka_bool __BINARY_OPERATION_ADD_NBOOL_INT_OBJECT(P
 #endif
 
     {
-        // No sequence repeat slot sq_concat available for this type.
     }
 
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for +: 'int' and '%s'", type2->tp_name);
@@ -948,7 +920,7 @@ exit_binary_result_object:
     }
 
     {
-        nuitka_bool r = CHECK_IF_TRUE(obj_result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+        nuitka_bool r = CHECK_IF_TRUE_NBOOL(obj_result);
         Py_DECREF(obj_result);
         return r;
     }
@@ -966,9 +938,6 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_INT_OBJECT(PyObject *operand1, Py
     if (&PyInt_Type == type2) {
         nuitka_bool result;
 
-        // return _BINARY_OPERATION_ADD_NBOOL_INT_INT(operand1, operand2);
-
-        // Not every code path will make use of all possible results.
 #if defined(_MSC_VER)
 #pragma warning(push)
 #pragma warning(disable : 4101)
@@ -1012,7 +981,6 @@ nuitka_bool BINARY_OPERATION_ADD_NBOOL_INT_OBJECT(PyObject *operand1, PyObject *
 }
 #endif
 
-/* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "LONG" to Python2 'long', Python3 'int'. */
 static PyObject *_BINARY_OPERATION_ADD_OBJECT_LONG_LONG(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyLong_CheckExact(operand1));
@@ -1021,7 +989,6 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_LONG_LONG(PyObject *operand1, PyOb
 
     PyObject *result;
 
-    // Not every code path will make use of all possible results.
 #if defined(_MSC_VER)
 #pragma warning(push)
 #pragma warning(disable : 4101)
@@ -1094,7 +1061,6 @@ PyObject *BINARY_OPERATION_ADD_OBJECT_LONG_LONG(PyObject *operand1, PyObject *op
     return _BINARY_OPERATION_ADD_OBJECT_LONG_LONG(operand1, operand2);
 }
 
-/* Code referring to "OBJECT" corresponds to any Python object and "LONG" to Python2 'long', Python3 'int'. */
 static HEDLEY_NEVER_INLINE PyObject *__BINARY_OPERATION_ADD_OBJECT_OBJECT_LONG(PyObject *operand1, PyObject *operand2) {
     PyTypeObject *type1 = Py_TYPE(operand1);
 
@@ -1113,8 +1079,6 @@ static HEDLEY_NEVER_INLINE PyObject *__BINARY_OPERATION_ADD_OBJECT_OBJECT_LONG(P
     binaryfunc slot2 = NULL;
 
     if (!(type1 == &PyLong_Type)) {
-        // Different types, need to consider second value slot.
-
         slot2 = PyLong_Type.tp_as_number->nb_add;
 
         if (slot1 == slot2) {
@@ -1219,7 +1183,6 @@ static HEDLEY_NEVER_INLINE PyObject *__BINARY_OPERATION_ADD_OBJECT_OBJECT_LONG(P
 #endif
 
     {
-        // Special case for "+" and "*", also works as sequence concat/repeat.
         binaryfunc sq_slot = type1->tp_as_sequence != NULL ? type1->tp_as_sequence->sq_concat : NULL;
 
         if (sq_slot != NULL) {
@@ -1253,9 +1216,6 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_OBJECT_LONG(PyObject *operand1, Py
     if (type1 == &PyLong_Type) {
         PyObject *result;
 
-        // return _BINARY_OPERATION_ADD_OBJECT_LONG_LONG(operand1, operand2);
-
-        // Not every code path will make use of all possible results.
 #if defined(_MSC_VER)
 #pragma warning(push)
 #pragma warning(disable : 4101)
@@ -1331,7 +1291,6 @@ PyObject *BINARY_OPERATION_ADD_OBJECT_OBJECT_LONG(PyObject *operand1, PyObject *
     return _BINARY_OPERATION_ADD_OBJECT_OBJECT_LONG(operand1, operand2);
 }
 
-/* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "OBJECT" to any Python object. */
 static HEDLEY_NEVER_INLINE PyObject *__BINARY_OPERATION_ADD_OBJECT_LONG_OBJECT(PyObject *operand1, PyObject *operand2) {
     PyTypeObject *type2 = Py_TYPE(operand2);
 
@@ -1349,8 +1308,6 @@ static HEDLEY_NEVER_INLINE PyObject *__BINARY_OPERATION_ADD_OBJECT_LONG_OBJECT(P
     binaryfunc slot2 = NULL;
 
     if (!(&PyLong_Type == type2)) {
-        // Different types, need to consider second value slot.
-
         slot2 = (type2->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type2)) ? type2->tp_as_number->nb_add : NULL;
 
         if (slot1 == slot2) {
@@ -1469,7 +1426,6 @@ static HEDLEY_NEVER_INLINE PyObject *__BINARY_OPERATION_ADD_OBJECT_LONG_OBJECT(P
 #endif
 
     {
-        // No sequence repeat slot sq_concat available for this type.
     }
 
 #if PYTHON_VERSION < 0x300
@@ -1495,9 +1451,6 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_LONG_OBJECT(PyObject *operand1, Py
     if (&PyLong_Type == type2) {
         PyObject *result;
 
-        // return _BINARY_OPERATION_ADD_OBJECT_LONG_LONG(operand1, operand2);
-
-        // Not every code path will make use of all possible results.
 #if defined(_MSC_VER)
 #pragma warning(push)
 #pragma warning(disable : 4101)
@@ -1573,7 +1526,6 @@ PyObject *BINARY_OPERATION_ADD_OBJECT_LONG_OBJECT(PyObject *operand1, PyObject *
     return _BINARY_OPERATION_ADD_OBJECT_LONG_OBJECT(operand1, operand2);
 }
 
-/* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "LONG" to Python2 'long', Python3 'int'. */
 static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_LONG_LONG(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyLong_CheckExact(operand1));
@@ -1582,7 +1534,6 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_LONG_LONG(PyObject *operand1, PyO
 
     nuitka_bool result;
 
-    // Not every code path will make use of all possible results.
 #if defined(_MSC_VER)
 #pragma warning(push)
 #pragma warning(disable : 4101)
@@ -1637,7 +1588,7 @@ exit_result_object:
     if (unlikely(obj_result == NULL)) {
         goto exit_result_exception;
     }
-    result = CHECK_IF_TRUE(obj_result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+    result = CHECK_IF_TRUE_NBOOL(obj_result);
     Py_DECREF(obj_result);
     goto exit_result_ok;
 
@@ -1656,7 +1607,6 @@ nuitka_bool BINARY_OPERATION_ADD_NBOOL_LONG_LONG(PyObject *operand1, PyObject *o
     return _BINARY_OPERATION_ADD_NBOOL_LONG_LONG(operand1, operand2);
 }
 
-/* Code referring to "OBJECT" corresponds to any Python object and "LONG" to Python2 'long', Python3 'int'. */
 static HEDLEY_NEVER_INLINE nuitka_bool __BINARY_OPERATION_ADD_NBOOL_OBJECT_LONG(PyObject *operand1,
                                                                                 PyObject *operand2) {
     PyTypeObject *type1 = Py_TYPE(operand1);
@@ -1676,8 +1626,6 @@ static HEDLEY_NEVER_INLINE nuitka_bool __BINARY_OPERATION_ADD_NBOOL_OBJECT_LONG(
     binaryfunc slot2 = NULL;
 
     if (!(type1 == &PyLong_Type)) {
-        // Different types, need to consider second value slot.
-
         slot2 = PyLong_Type.tp_as_number->nb_add;
 
         if (slot1 == slot2) {
@@ -1782,7 +1730,6 @@ static HEDLEY_NEVER_INLINE nuitka_bool __BINARY_OPERATION_ADD_NBOOL_OBJECT_LONG(
 #endif
 
     {
-        // Special case for "+" and "*", also works as sequence concat/repeat.
         binaryfunc sq_slot = type1->tp_as_sequence != NULL ? type1->tp_as_sequence->sq_concat : NULL;
 
         if (sq_slot != NULL) {
@@ -1806,7 +1753,7 @@ exit_binary_result_object:
     }
 
     {
-        nuitka_bool r = CHECK_IF_TRUE(obj_result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+        nuitka_bool r = CHECK_IF_TRUE_NBOOL(obj_result);
         Py_DECREF(obj_result);
         return r;
     }
@@ -1824,9 +1771,6 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_OBJECT_LONG(PyObject *operand1, P
     if (type1 == &PyLong_Type) {
         nuitka_bool result;
 
-        // return _BINARY_OPERATION_ADD_NBOOL_LONG_LONG(operand1, operand2);
-
-        // Not every code path will make use of all possible results.
 #if defined(_MSC_VER)
 #pragma warning(push)
 #pragma warning(disable : 4101)
@@ -1881,7 +1825,7 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_OBJECT_LONG(PyObject *operand1, P
         if (unlikely(obj_result == NULL)) {
             goto exit_result_exception;
         }
-        result = CHECK_IF_TRUE(obj_result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+        result = CHECK_IF_TRUE_NBOOL(obj_result);
         Py_DECREF(obj_result);
         goto exit_result_ok;
 
@@ -1903,7 +1847,6 @@ nuitka_bool BINARY_OPERATION_ADD_NBOOL_OBJECT_LONG(PyObject *operand1, PyObject 
     return _BINARY_OPERATION_ADD_NBOOL_OBJECT_LONG(operand1, operand2);
 }
 
-/* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "OBJECT" to any Python object. */
 static HEDLEY_NEVER_INLINE nuitka_bool __BINARY_OPERATION_ADD_NBOOL_LONG_OBJECT(PyObject *operand1,
                                                                                 PyObject *operand2) {
     PyTypeObject *type2 = Py_TYPE(operand2);
@@ -1922,8 +1865,6 @@ static HEDLEY_NEVER_INLINE nuitka_bool __BINARY_OPERATION_ADD_NBOOL_LONG_OBJECT(
     binaryfunc slot2 = NULL;
 
     if (!(&PyLong_Type == type2)) {
-        // Different types, need to consider second value slot.
-
         slot2 = (type2->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type2)) ? type2->tp_as_number->nb_add : NULL;
 
         if (slot1 == slot2) {
@@ -2042,7 +1983,6 @@ static HEDLEY_NEVER_INLINE nuitka_bool __BINARY_OPERATION_ADD_NBOOL_LONG_OBJECT(
 #endif
 
     {
-        // No sequence repeat slot sq_concat available for this type.
     }
 
 #if PYTHON_VERSION < 0x300
@@ -2058,7 +1998,7 @@ exit_binary_result_object:
     }
 
     {
-        nuitka_bool r = CHECK_IF_TRUE(obj_result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+        nuitka_bool r = CHECK_IF_TRUE_NBOOL(obj_result);
         Py_DECREF(obj_result);
         return r;
     }
@@ -2076,9 +2016,6 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_LONG_OBJECT(PyObject *operand1, P
     if (&PyLong_Type == type2) {
         nuitka_bool result;
 
-        // return _BINARY_OPERATION_ADD_NBOOL_LONG_LONG(operand1, operand2);
-
-        // Not every code path will make use of all possible results.
 #if defined(_MSC_VER)
 #pragma warning(push)
 #pragma warning(disable : 4101)
@@ -2133,7 +2070,7 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_LONG_OBJECT(PyObject *operand1, P
         if (unlikely(obj_result == NULL)) {
             goto exit_result_exception;
         }
-        result = CHECK_IF_TRUE(obj_result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+        result = CHECK_IF_TRUE_NBOOL(obj_result);
         Py_DECREF(obj_result);
         goto exit_result_ok;
 
@@ -2155,7 +2092,6 @@ nuitka_bool BINARY_OPERATION_ADD_NBOOL_LONG_OBJECT(PyObject *operand1, PyObject 
     return _BINARY_OPERATION_ADD_NBOOL_LONG_OBJECT(operand1, operand2);
 }
 
-/* Code referring to "FLOAT" corresponds to Python 'float' and "FLOAT" to Python 'float'. */
 static PyObject *_BINARY_OPERATION_ADD_OBJECT_FLOAT_FLOAT(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyFloat_CheckExact(operand1));
@@ -2168,7 +2104,6 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_FLOAT_FLOAT(PyObject *operand1, Py
 #pragma warning(push)
 #pragma warning(disable : 4101)
 #endif
-    // Not every code path will make use of all possible results.
     NUITKA_MAY_BE_UNUSED PyObject *obj_result;
     NUITKA_MAY_BE_UNUSED long clong_result;
     NUITKA_MAY_BE_UNUSED double cfloat_result;
@@ -2201,7 +2136,6 @@ PyObject *BINARY_OPERATION_ADD_OBJECT_FLOAT_FLOAT(PyObject *operand1, PyObject *
     return _BINARY_OPERATION_ADD_OBJECT_FLOAT_FLOAT(operand1, operand2);
 }
 
-/* Code referring to "OBJECT" corresponds to any Python object and "FLOAT" to Python 'float'. */
 static HEDLEY_NEVER_INLINE PyObject *__BINARY_OPERATION_ADD_OBJECT_OBJECT_FLOAT(PyObject *operand1,
                                                                                 PyObject *operand2) {
     PyTypeObject *type1 = Py_TYPE(operand1);
@@ -2221,8 +2155,6 @@ static HEDLEY_NEVER_INLINE PyObject *__BINARY_OPERATION_ADD_OBJECT_OBJECT_FLOAT(
     binaryfunc slot2 = NULL;
 
     if (!(type1 == &PyFloat_Type)) {
-        // Different types, need to consider second value slot.
-
         slot2 = PyFloat_Type.tp_as_number->nb_add;
 
         if (slot1 == slot2) {
@@ -2327,7 +2259,6 @@ static HEDLEY_NEVER_INLINE PyObject *__BINARY_OPERATION_ADD_OBJECT_OBJECT_FLOAT(
 #endif
 
     {
-        // Special case for "+" and "*", also works as sequence concat/repeat.
         binaryfunc sq_slot = type1->tp_as_sequence != NULL ? type1->tp_as_sequence->sq_concat : NULL;
 
         if (sq_slot != NULL) {
@@ -2357,13 +2288,10 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_OBJECT_FLOAT(PyObject *operand1, P
     if (type1 == &PyFloat_Type) {
         PyObject *result;
 
-        // return _BINARY_OPERATION_ADD_OBJECT_FLOAT_FLOAT(operand1, operand2);
-
 #if defined(_MSC_VER)
 #pragma warning(push)
 #pragma warning(disable : 4101)
 #endif
-        // Not every code path will make use of all possible results.
         NUITKA_MAY_BE_UNUSED PyObject *obj_result;
         NUITKA_MAY_BE_UNUSED long clong_result;
         NUITKA_MAY_BE_UNUSED double cfloat_result;
@@ -2399,7 +2327,6 @@ PyObject *BINARY_OPERATION_ADD_OBJECT_OBJECT_FLOAT(PyObject *operand1, PyObject 
     return _BINARY_OPERATION_ADD_OBJECT_OBJECT_FLOAT(operand1, operand2);
 }
 
-/* Code referring to "FLOAT" corresponds to Python 'float' and "OBJECT" to any Python object. */
 static HEDLEY_NEVER_INLINE PyObject *__BINARY_OPERATION_ADD_OBJECT_FLOAT_OBJECT(PyObject *operand1,
                                                                                 PyObject *operand2) {
     PyTypeObject *type2 = Py_TYPE(operand2);
@@ -2418,8 +2345,6 @@ static HEDLEY_NEVER_INLINE PyObject *__BINARY_OPERATION_ADD_OBJECT_FLOAT_OBJECT(
     binaryfunc slot2 = NULL;
 
     if (!(&PyFloat_Type == type2)) {
-        // Different types, need to consider second value slot.
-
         slot2 = (type2->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type2)) ? type2->tp_as_number->nb_add : NULL;
 
         if (slot1 == slot2) {
@@ -2538,7 +2463,6 @@ static HEDLEY_NEVER_INLINE PyObject *__BINARY_OPERATION_ADD_OBJECT_FLOAT_OBJECT(
 #endif
 
     {
-        // No sequence repeat slot sq_concat available for this type.
     }
 
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for +: 'float' and '%s'", type2->tp_name);
@@ -2560,13 +2484,10 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_FLOAT_OBJECT(PyObject *operand1, P
     if (&PyFloat_Type == type2) {
         PyObject *result;
 
-        // return _BINARY_OPERATION_ADD_OBJECT_FLOAT_FLOAT(operand1, operand2);
-
 #if defined(_MSC_VER)
 #pragma warning(push)
 #pragma warning(disable : 4101)
 #endif
-        // Not every code path will make use of all possible results.
         NUITKA_MAY_BE_UNUSED PyObject *obj_result;
         NUITKA_MAY_BE_UNUSED long clong_result;
         NUITKA_MAY_BE_UNUSED double cfloat_result;
@@ -2602,7 +2523,6 @@ PyObject *BINARY_OPERATION_ADD_OBJECT_FLOAT_OBJECT(PyObject *operand1, PyObject 
     return _BINARY_OPERATION_ADD_OBJECT_FLOAT_OBJECT(operand1, operand2);
 }
 
-/* Code referring to "FLOAT" corresponds to Python 'float' and "FLOAT" to Python 'float'. */
 static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_FLOAT_FLOAT(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyFloat_CheckExact(operand1));
@@ -2615,7 +2535,6 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_FLOAT_FLOAT(PyObject *operand1, P
 #pragma warning(push)
 #pragma warning(disable : 4101)
 #endif
-    // Not every code path will make use of all possible results.
     NUITKA_MAY_BE_UNUSED PyObject *obj_result;
     NUITKA_MAY_BE_UNUSED long clong_result;
     NUITKA_MAY_BE_UNUSED double cfloat_result;
@@ -2648,7 +2567,6 @@ nuitka_bool BINARY_OPERATION_ADD_NBOOL_FLOAT_FLOAT(PyObject *operand1, PyObject 
     return _BINARY_OPERATION_ADD_NBOOL_FLOAT_FLOAT(operand1, operand2);
 }
 
-/* Code referring to "OBJECT" corresponds to any Python object and "FLOAT" to Python 'float'. */
 static HEDLEY_NEVER_INLINE nuitka_bool __BINARY_OPERATION_ADD_NBOOL_OBJECT_FLOAT(PyObject *operand1,
                                                                                  PyObject *operand2) {
     PyTypeObject *type1 = Py_TYPE(operand1);
@@ -2668,8 +2586,6 @@ static HEDLEY_NEVER_INLINE nuitka_bool __BINARY_OPERATION_ADD_NBOOL_OBJECT_FLOAT
     binaryfunc slot2 = NULL;
 
     if (!(type1 == &PyFloat_Type)) {
-        // Different types, need to consider second value slot.
-
         slot2 = PyFloat_Type.tp_as_number->nb_add;
 
         if (slot1 == slot2) {
@@ -2774,7 +2690,6 @@ static HEDLEY_NEVER_INLINE nuitka_bool __BINARY_OPERATION_ADD_NBOOL_OBJECT_FLOAT
 #endif
 
     {
-        // Special case for "+" and "*", also works as sequence concat/repeat.
         binaryfunc sq_slot = type1->tp_as_sequence != NULL ? type1->tp_as_sequence->sq_concat : NULL;
 
         if (sq_slot != NULL) {
@@ -2794,7 +2709,7 @@ exit_binary_result_object:
     }
 
     {
-        nuitka_bool r = CHECK_IF_TRUE(obj_result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+        nuitka_bool r = CHECK_IF_TRUE_NBOOL(obj_result);
         Py_DECREF(obj_result);
         return r;
     }
@@ -2812,13 +2727,10 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_OBJECT_FLOAT(PyObject *operand1, 
     if (type1 == &PyFloat_Type) {
         nuitka_bool result;
 
-        // return _BINARY_OPERATION_ADD_NBOOL_FLOAT_FLOAT(operand1, operand2);
-
 #if defined(_MSC_VER)
 #pragma warning(push)
 #pragma warning(disable : 4101)
 #endif
-        // Not every code path will make use of all possible results.
         NUITKA_MAY_BE_UNUSED PyObject *obj_result;
         NUITKA_MAY_BE_UNUSED long clong_result;
         NUITKA_MAY_BE_UNUSED double cfloat_result;
@@ -2854,7 +2766,6 @@ nuitka_bool BINARY_OPERATION_ADD_NBOOL_OBJECT_FLOAT(PyObject *operand1, PyObject
     return _BINARY_OPERATION_ADD_NBOOL_OBJECT_FLOAT(operand1, operand2);
 }
 
-/* Code referring to "FLOAT" corresponds to Python 'float' and "OBJECT" to any Python object. */
 static HEDLEY_NEVER_INLINE nuitka_bool __BINARY_OPERATION_ADD_NBOOL_FLOAT_OBJECT(PyObject *operand1,
                                                                                  PyObject *operand2) {
     PyTypeObject *type2 = Py_TYPE(operand2);
@@ -2873,8 +2784,6 @@ static HEDLEY_NEVER_INLINE nuitka_bool __BINARY_OPERATION_ADD_NBOOL_FLOAT_OBJECT
     binaryfunc slot2 = NULL;
 
     if (!(&PyFloat_Type == type2)) {
-        // Different types, need to consider second value slot.
-
         slot2 = (type2->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type2)) ? type2->tp_as_number->nb_add : NULL;
 
         if (slot1 == slot2) {
@@ -2993,7 +2902,6 @@ static HEDLEY_NEVER_INLINE nuitka_bool __BINARY_OPERATION_ADD_NBOOL_FLOAT_OBJECT
 #endif
 
     {
-        // No sequence repeat slot sq_concat available for this type.
     }
 
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for +: 'float' and '%s'", type2->tp_name);
@@ -3005,7 +2913,7 @@ exit_binary_result_object:
     }
 
     {
-        nuitka_bool r = CHECK_IF_TRUE(obj_result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+        nuitka_bool r = CHECK_IF_TRUE_NBOOL(obj_result);
         Py_DECREF(obj_result);
         return r;
     }
@@ -3023,13 +2931,10 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_FLOAT_OBJECT(PyObject *operand1, 
     if (&PyFloat_Type == type2) {
         nuitka_bool result;
 
-        // return _BINARY_OPERATION_ADD_NBOOL_FLOAT_FLOAT(operand1, operand2);
-
 #if defined(_MSC_VER)
 #pragma warning(push)
 #pragma warning(disable : 4101)
 #endif
-        // Not every code path will make use of all possible results.
         NUITKA_MAY_BE_UNUSED PyObject *obj_result;
         NUITKA_MAY_BE_UNUSED long clong_result;
         NUITKA_MAY_BE_UNUSED double cfloat_result;
@@ -3065,7 +2970,6 @@ nuitka_bool BINARY_OPERATION_ADD_NBOOL_FLOAT_OBJECT(PyObject *operand1, PyObject
     return _BINARY_OPERATION_ADD_NBOOL_FLOAT_OBJECT(operand1, operand2);
 }
 
-/* Code referring to "FLOAT" corresponds to Python 'float' and "LONG" to Python2 'long', Python3 'int'. */
 static PyObject *_BINARY_OPERATION_ADD_OBJECT_FLOAT_LONG(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyFloat_CheckExact(operand1));
@@ -3083,7 +2987,6 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_FLOAT_LONG(PyObject *operand1, PyO
 #endif
 
     binaryfunc slot1 = PyFloat_Type.tp_as_number->nb_add;
-    // Slot2 ignored on purpose, type1 takes precedence.
 
     if (slot1 != NULL) {
         PyObject *x = slot1(operand1, operand2);
@@ -3096,10 +2999,7 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_FLOAT_LONG(PyObject *operand1, PyO
         Py_DECREF_IMMORTAL(x);
     }
 
-    // Statically recognized that coercion is not possible with these types
-
     {
-        // No sequence repeat slot sq_concat available for this type.
     }
 
 #if PYTHON_VERSION < 0x300
@@ -3120,7 +3020,6 @@ PyObject *BINARY_OPERATION_ADD_OBJECT_FLOAT_LONG(PyObject *operand1, PyObject *o
     return _BINARY_OPERATION_ADD_OBJECT_FLOAT_LONG(operand1, operand2);
 }
 
-/* Code referring to "FLOAT" corresponds to Python 'float' and "LONG" to Python2 'long', Python3 'int'. */
 static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_FLOAT_LONG(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyFloat_CheckExact(operand1));
@@ -3138,7 +3037,6 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_FLOAT_LONG(PyObject *operand1, Py
 #endif
 
     binaryfunc slot1 = PyFloat_Type.tp_as_number->nb_add;
-    // Slot2 ignored on purpose, type1 takes precedence.
 
     if (slot1 != NULL) {
         PyObject *x = slot1(operand1, operand2);
@@ -3151,10 +3049,7 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_FLOAT_LONG(PyObject *operand1, Py
         Py_DECREF_IMMORTAL(x);
     }
 
-    // Statically recognized that coercion is not possible with these types
-
     {
-        // No sequence repeat slot sq_concat available for this type.
     }
 
 #if PYTHON_VERSION < 0x300
@@ -3170,7 +3065,7 @@ exit_binary_result_object:
     }
 
     {
-        nuitka_bool r = CHECK_IF_TRUE(obj_result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+        nuitka_bool r = CHECK_IF_TRUE_NBOOL(obj_result);
         Py_DECREF(obj_result);
         return r;
     }
@@ -3184,7 +3079,6 @@ nuitka_bool BINARY_OPERATION_ADD_NBOOL_FLOAT_LONG(PyObject *operand1, PyObject *
 }
 
 #if PYTHON_VERSION < 0x300
-/* Code referring to "FLOAT" corresponds to Python 'float' and "INT" to Python2 'int'. */
 static PyObject *_BINARY_OPERATION_ADD_OBJECT_FLOAT_INT(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyFloat_CheckExact(operand1));
@@ -3202,7 +3096,6 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_FLOAT_INT(PyObject *operand1, PyOb
 #endif
 
     binaryfunc slot1 = PyFloat_Type.tp_as_number->nb_add;
-    // Slot2 ignored on purpose, type1 takes precedence.
 
     if (slot1 != NULL) {
         PyObject *x = slot1(operand1, operand2);
@@ -3215,10 +3108,7 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_FLOAT_INT(PyObject *operand1, PyOb
         Py_DECREF_IMMORTAL(x);
     }
 
-    // Statically recognized that coercion is not possible with these types
-
     {
-        // No sequence repeat slot sq_concat available for this type.
     }
 
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for +: 'float' and 'int'");
@@ -3237,7 +3127,6 @@ PyObject *BINARY_OPERATION_ADD_OBJECT_FLOAT_INT(PyObject *operand1, PyObject *op
 #endif
 
 #if PYTHON_VERSION < 0x300
-/* Code referring to "FLOAT" corresponds to Python 'float' and "INT" to Python2 'int'. */
 static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_FLOAT_INT(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyFloat_CheckExact(operand1));
@@ -3255,7 +3144,6 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_FLOAT_INT(PyObject *operand1, PyO
 #endif
 
     binaryfunc slot1 = PyFloat_Type.tp_as_number->nb_add;
-    // Slot2 ignored on purpose, type1 takes precedence.
 
     if (slot1 != NULL) {
         PyObject *x = slot1(operand1, operand2);
@@ -3268,10 +3156,7 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_FLOAT_INT(PyObject *operand1, PyO
         Py_DECREF_IMMORTAL(x);
     }
 
-    // Statically recognized that coercion is not possible with these types
-
     {
-        // No sequence repeat slot sq_concat available for this type.
     }
 
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for +: 'float' and 'int'");
@@ -3283,7 +3168,7 @@ exit_binary_result_object:
     }
 
     {
-        nuitka_bool r = CHECK_IF_TRUE(obj_result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+        nuitka_bool r = CHECK_IF_TRUE_NBOOL(obj_result);
         Py_DECREF(obj_result);
         return r;
     }
@@ -3298,7 +3183,6 @@ nuitka_bool BINARY_OPERATION_ADD_NBOOL_FLOAT_INT(PyObject *operand1, PyObject *o
 #endif
 
 #if PYTHON_VERSION < 0x300
-/* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "INT" to Python2 'int'. */
 static PyObject *_BINARY_OPERATION_ADD_OBJECT_LONG_INT(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyLong_CheckExact(operand1));
@@ -3316,7 +3200,6 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_LONG_INT(PyObject *operand1, PyObj
 #endif
 
     binaryfunc slot1 = PyLong_Type.tp_as_number->nb_add;
-    // Slot2 ignored on purpose, type1 takes precedence.
 
     if (slot1 != NULL) {
         PyObject *x = slot1(operand1, operand2);
@@ -3329,10 +3212,7 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_LONG_INT(PyObject *operand1, PyObj
         Py_DECREF_IMMORTAL(x);
     }
 
-    // Statically recognized that coercion is not possible with these types
-
     {
-        // No sequence repeat slot sq_concat available for this type.
     }
 
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for +: 'long' and 'int'");
@@ -3351,7 +3231,6 @@ PyObject *BINARY_OPERATION_ADD_OBJECT_LONG_INT(PyObject *operand1, PyObject *ope
 #endif
 
 #if PYTHON_VERSION < 0x300
-/* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "INT" to Python2 'int'. */
 static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_LONG_INT(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyLong_CheckExact(operand1));
@@ -3369,7 +3248,6 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_LONG_INT(PyObject *operand1, PyOb
 #endif
 
     binaryfunc slot1 = PyLong_Type.tp_as_number->nb_add;
-    // Slot2 ignored on purpose, type1 takes precedence.
 
     if (slot1 != NULL) {
         PyObject *x = slot1(operand1, operand2);
@@ -3382,10 +3260,7 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_LONG_INT(PyObject *operand1, PyOb
         Py_DECREF_IMMORTAL(x);
     }
 
-    // Statically recognized that coercion is not possible with these types
-
     {
-        // No sequence repeat slot sq_concat available for this type.
     }
 
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for +: 'long' and 'int'");
@@ -3397,7 +3272,7 @@ exit_binary_result_object:
     }
 
     {
-        nuitka_bool r = CHECK_IF_TRUE(obj_result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+        nuitka_bool r = CHECK_IF_TRUE_NBOOL(obj_result);
         Py_DECREF(obj_result);
         return r;
     }
@@ -3412,14 +3287,12 @@ nuitka_bool BINARY_OPERATION_ADD_NBOOL_LONG_INT(PyObject *operand1, PyObject *op
 #endif
 
 #if PYTHON_VERSION < 0x300
-/* Code referring to "INT" corresponds to Python2 'int' and "CLONG" to C platform long value. */
 static PyObject *_BINARY_OPERATION_ADD_OBJECT_INT_CLONG(PyObject *operand1, long operand2) {
     CHECK_OBJECT(operand1);
     assert(PyInt_CheckExact(operand1));
 
     PyObject *result;
 
-    // Not every code path will make use of all possible results.
 #if defined(_MSC_VER)
 #pragma warning(push)
 #pragma warning(disable : 4101)
@@ -3482,14 +3355,12 @@ PyObject *BINARY_OPERATION_ADD_OBJECT_INT_CLONG(PyObject *operand1, long operand
 #endif
 
 #if PYTHON_VERSION < 0x300
-/* Code referring to "INT" corresponds to Python2 'int' and "CLONG" to C platform long value. */
 static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_INT_CLONG(PyObject *operand1, long operand2) {
     CHECK_OBJECT(operand1);
     assert(PyInt_CheckExact(operand1));
 
     nuitka_bool result;
 
-    // Not every code path will make use of all possible results.
 #if defined(_MSC_VER)
 #pragma warning(push)
 #pragma warning(disable : 4101)
@@ -3528,8 +3399,6 @@ nuitka_bool BINARY_OPERATION_ADD_NBOOL_INT_CLONG(PyObject *operand1, long operan
 }
 #endif
 
-/* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "DIGIT" to C platform digit value for long
- * Python objects. */
 static PyObject *_BINARY_OPERATION_ADD_OBJECT_LONG_DIGIT(PyObject *operand1, long operand2) {
     CHECK_OBJECT(operand1);
     assert(PyLong_CheckExact(operand1));
@@ -3537,7 +3406,6 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_LONG_DIGIT(PyObject *operand1, lon
 
     PyObject *result;
 
-    // Not every code path will make use of all possible results.
 #if defined(_MSC_VER)
 #pragma warning(push)
 #pragma warning(disable : 4101)
@@ -3608,8 +3476,6 @@ PyObject *BINARY_OPERATION_ADD_OBJECT_LONG_DIGIT(PyObject *operand1, long operan
     return _BINARY_OPERATION_ADD_OBJECT_LONG_DIGIT(operand1, operand2);
 }
 
-/* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "DIGIT" to C platform digit value for long
- * Python objects. */
 static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_LONG_DIGIT(PyObject *operand1, long operand2) {
     CHECK_OBJECT(operand1);
     assert(PyLong_CheckExact(operand1));
@@ -3617,7 +3483,6 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_LONG_DIGIT(PyObject *operand1, lo
 
     nuitka_bool result;
 
-    // Not every code path will make use of all possible results.
 #if defined(_MSC_VER)
 #pragma warning(push)
 #pragma warning(disable : 4101)
@@ -3670,7 +3535,7 @@ exit_result_object:
     if (unlikely(obj_result == NULL)) {
         goto exit_result_exception;
     }
-    result = CHECK_IF_TRUE(obj_result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+    result = CHECK_IF_TRUE_NBOOL(obj_result);
     Py_DECREF(obj_result);
     goto exit_result_ok;
 
@@ -3689,14 +3554,12 @@ nuitka_bool BINARY_OPERATION_ADD_NBOOL_LONG_DIGIT(PyObject *operand1, long opera
     return _BINARY_OPERATION_ADD_NBOOL_LONG_DIGIT(operand1, operand2);
 }
 
-/* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "CLONG" to C platform long value. */
 static PyObject *_BINARY_OPERATION_ADD_OBJECT_LONG_CLONG(PyObject *operand1, long operand2) {
     CHECK_OBJECT(operand1);
     assert(PyLong_CheckExact(operand1));
 
     PyObject *result;
 
-    // Not every code path will make use of all possible results.
 #if defined(_MSC_VER)
 #pragma warning(push)
 #pragma warning(disable : 4101)
@@ -3795,14 +3658,12 @@ PyObject *BINARY_OPERATION_ADD_OBJECT_LONG_CLONG(PyObject *operand1, long operan
     return _BINARY_OPERATION_ADD_OBJECT_LONG_CLONG(operand1, operand2);
 }
 
-/* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "CLONG" to C platform long value. */
 static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_LONG_CLONG(PyObject *operand1, long operand2) {
     CHECK_OBJECT(operand1);
     assert(PyLong_CheckExact(operand1));
 
     nuitka_bool result;
 
-    // Not every code path will make use of all possible results.
 #if defined(_MSC_VER)
 #pragma warning(push)
 #pragma warning(disable : 4101)
@@ -3883,7 +3744,7 @@ exit_result_object:
     if (unlikely(obj_result == NULL)) {
         goto exit_result_exception;
     }
-    result = CHECK_IF_TRUE(obj_result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+    result = CHECK_IF_TRUE_NBOOL(obj_result);
     Py_DECREF(obj_result);
     goto exit_result_ok;
 
@@ -3902,7 +3763,6 @@ nuitka_bool BINARY_OPERATION_ADD_NBOOL_LONG_CLONG(PyObject *operand1, long opera
     return _BINARY_OPERATION_ADD_NBOOL_LONG_CLONG(operand1, operand2);
 }
 
-/* Code referring to "FLOAT" corresponds to Python 'float' and "CFLOAT" to C platform float value. */
 static PyObject *_BINARY_OPERATION_ADD_OBJECT_FLOAT_CFLOAT(PyObject *operand1, double operand2) {
     CHECK_OBJECT(operand1);
     assert(PyFloat_CheckExact(operand1));
@@ -3913,7 +3773,6 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_FLOAT_CFLOAT(PyObject *operand1, d
 #pragma warning(push)
 #pragma warning(disable : 4101)
 #endif
-    // Not every code path will make use of all possible results.
     NUITKA_MAY_BE_UNUSED PyObject *obj_result;
     NUITKA_MAY_BE_UNUSED long clong_result;
     NUITKA_MAY_BE_UNUSED double cfloat_result;
@@ -3944,7 +3803,6 @@ PyObject *BINARY_OPERATION_ADD_OBJECT_FLOAT_CFLOAT(PyObject *operand1, double op
     return _BINARY_OPERATION_ADD_OBJECT_FLOAT_CFLOAT(operand1, operand2);
 }
 
-/* Code referring to "FLOAT" corresponds to Python 'float' and "CFLOAT" to C platform float value. */
 static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_FLOAT_CFLOAT(PyObject *operand1, double operand2) {
     CHECK_OBJECT(operand1);
     assert(PyFloat_CheckExact(operand1));
@@ -3955,7 +3813,6 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_FLOAT_CFLOAT(PyObject *operand1, 
 #pragma warning(push)
 #pragma warning(disable : 4101)
 #endif
-    // Not every code path will make use of all possible results.
     NUITKA_MAY_BE_UNUSED PyObject *obj_result;
     NUITKA_MAY_BE_UNUSED long clong_result;
     NUITKA_MAY_BE_UNUSED double cfloat_result;
@@ -3986,7 +3843,6 @@ nuitka_bool BINARY_OPERATION_ADD_NBOOL_FLOAT_CFLOAT(PyObject *operand1, double o
     return _BINARY_OPERATION_ADD_NBOOL_FLOAT_CFLOAT(operand1, operand2);
 }
 
-/* Code referring to "CFLOAT" corresponds to C platform float value and "FLOAT" to Python 'float'. */
 static PyObject *_BINARY_OPERATION_ADD_OBJECT_CFLOAT_FLOAT(double operand1, PyObject *operand2) {
 
     CHECK_OBJECT(operand2);
@@ -3998,7 +3854,6 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_CFLOAT_FLOAT(double operand1, PyOb
 #pragma warning(push)
 #pragma warning(disable : 4101)
 #endif
-    // Not every code path will make use of all possible results.
     NUITKA_MAY_BE_UNUSED PyObject *obj_result;
     NUITKA_MAY_BE_UNUSED long clong_result;
     NUITKA_MAY_BE_UNUSED double cfloat_result;
@@ -4029,7 +3884,6 @@ PyObject *BINARY_OPERATION_ADD_OBJECT_CFLOAT_FLOAT(double operand1, PyObject *op
     return _BINARY_OPERATION_ADD_OBJECT_CFLOAT_FLOAT(operand1, operand2);
 }
 
-/* Code referring to "CFLOAT" corresponds to C platform float value and "CFLOAT" to C platform float value. */
 static PyObject *_BINARY_OPERATION_ADD_OBJECT_CFLOAT_CFLOAT(double operand1, double operand2) {
 
     PyObject *result;
@@ -4038,7 +3892,6 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_CFLOAT_CFLOAT(double operand1, dou
 #pragma warning(push)
 #pragma warning(disable : 4101)
 #endif
-    // Not every code path will make use of all possible results.
     NUITKA_MAY_BE_UNUSED PyObject *obj_result;
     NUITKA_MAY_BE_UNUSED long clong_result;
     NUITKA_MAY_BE_UNUSED double cfloat_result;
@@ -4066,7 +3919,6 @@ PyObject *BINARY_OPERATION_ADD_OBJECT_CFLOAT_CFLOAT(double operand1, double oper
     return _BINARY_OPERATION_ADD_OBJECT_CFLOAT_CFLOAT(operand1, operand2);
 }
 
-/* Code referring to "FLOAT" corresponds to Python 'float' and "FLOAT" to Python 'float'. */
 static double _BINARY_OPERATION_ADD_CFLOAT_FLOAT_FLOAT(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyFloat_CheckExact(operand1));
@@ -4079,7 +3931,6 @@ static double _BINARY_OPERATION_ADD_CFLOAT_FLOAT_FLOAT(PyObject *operand1, PyObj
 #pragma warning(push)
 #pragma warning(disable : 4101)
 #endif
-    // Not every code path will make use of all possible results.
     NUITKA_MAY_BE_UNUSED PyObject *obj_result;
     NUITKA_MAY_BE_UNUSED long clong_result;
     NUITKA_MAY_BE_UNUSED double cfloat_result;
@@ -4117,7 +3968,6 @@ double BINARY_OPERATION_ADD_CFLOAT_FLOAT_FLOAT(PyObject *operand1, PyObject *ope
     return _BINARY_OPERATION_ADD_CFLOAT_FLOAT_FLOAT(operand1, operand2);
 }
 
-/* Code referring to "FLOAT" corresponds to Python 'float' and "CFLOAT" to C platform float value. */
 static double _BINARY_OPERATION_ADD_CFLOAT_FLOAT_CFLOAT(PyObject *operand1, double operand2) {
     CHECK_OBJECT(operand1);
     assert(PyFloat_CheckExact(operand1));
@@ -4128,7 +3978,6 @@ static double _BINARY_OPERATION_ADD_CFLOAT_FLOAT_CFLOAT(PyObject *operand1, doub
 #pragma warning(push)
 #pragma warning(disable : 4101)
 #endif
-    // Not every code path will make use of all possible results.
     NUITKA_MAY_BE_UNUSED PyObject *obj_result;
     NUITKA_MAY_BE_UNUSED long clong_result;
     NUITKA_MAY_BE_UNUSED double cfloat_result;
@@ -4164,7 +4013,6 @@ double BINARY_OPERATION_ADD_CFLOAT_FLOAT_CFLOAT(PyObject *operand1, double opera
     return _BINARY_OPERATION_ADD_CFLOAT_FLOAT_CFLOAT(operand1, operand2);
 }
 
-/* Code referring to "CFLOAT" corresponds to C platform float value and "FLOAT" to Python 'float'. */
 static double _BINARY_OPERATION_ADD_CFLOAT_CFLOAT_FLOAT(double operand1, PyObject *operand2) {
 
     CHECK_OBJECT(operand2);
@@ -4176,7 +4024,6 @@ static double _BINARY_OPERATION_ADD_CFLOAT_CFLOAT_FLOAT(double operand1, PyObjec
 #pragma warning(push)
 #pragma warning(disable : 4101)
 #endif
-    // Not every code path will make use of all possible results.
     NUITKA_MAY_BE_UNUSED PyObject *obj_result;
     NUITKA_MAY_BE_UNUSED long clong_result;
     NUITKA_MAY_BE_UNUSED double cfloat_result;
@@ -4212,7 +4059,6 @@ double BINARY_OPERATION_ADD_CFLOAT_CFLOAT_FLOAT(double operand1, PyObject *opera
     return _BINARY_OPERATION_ADD_CFLOAT_CFLOAT_FLOAT(operand1, operand2);
 }
 
-/* Code referring to "CFLOAT" corresponds to C platform float value and "CFLOAT" to C platform float value. */
 static double _BINARY_OPERATION_ADD_CFLOAT_CFLOAT_CFLOAT(double operand1, double operand2) {
 
     double result;
@@ -4221,7 +4067,6 @@ static double _BINARY_OPERATION_ADD_CFLOAT_CFLOAT_CFLOAT(double operand1, double
 #pragma warning(push)
 #pragma warning(disable : 4101)
 #endif
-    // Not every code path will make use of all possible results.
     NUITKA_MAY_BE_UNUSED PyObject *obj_result;
     NUITKA_MAY_BE_UNUSED long clong_result;
     NUITKA_MAY_BE_UNUSED double cfloat_result;
@@ -4255,7 +4100,6 @@ double BINARY_OPERATION_ADD_CFLOAT_CFLOAT_CFLOAT(double operand1, double operand
 }
 
 #if PYTHON_VERSION < 0x300
-/* Code referring to "STR" corresponds to Python2 'str' and "STR" to Python2 'str'. */
 static PyObject *_BINARY_OPERATION_ADD_OBJECT_STR_STR(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyString_CheckExact(operand1));
@@ -4264,7 +4108,6 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_STR_STR(PyObject *operand1, PyObje
 
     PyObject *result;
 
-    // Not every code path will make use of all possible results.
     NUITKA_MAY_BE_UNUSED PyObject *obj_result;
 
     PyObject *x = PyString_Type.tp_as_sequence->sq_concat(operand1, operand2);
@@ -4293,7 +4136,6 @@ PyObject *BINARY_OPERATION_ADD_OBJECT_STR_STR(PyObject *operand1, PyObject *oper
 #endif
 
 #if PYTHON_VERSION < 0x300
-/* Code referring to "OBJECT" corresponds to any Python object and "STR" to Python2 'str'. */
 static HEDLEY_NEVER_INLINE PyObject *__BINARY_OPERATION_ADD_OBJECT_OBJECT_STR(PyObject *operand1, PyObject *operand2) {
     PyTypeObject *type1 = Py_TYPE(operand1);
 
@@ -4362,7 +4204,6 @@ static HEDLEY_NEVER_INLINE PyObject *__BINARY_OPERATION_ADD_OBJECT_OBJECT_STR(Py
 #endif
 
     {
-        // Special case for "+" and "*", also works as sequence concat/repeat.
         binaryfunc sq_slot = type1->tp_as_sequence != NULL ? type1->tp_as_sequence->sq_concat : NULL;
 
         if (sq_slot != NULL) {
@@ -4392,9 +4233,6 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_OBJECT_STR(PyObject *operand1, PyO
     if (type1 == &PyString_Type) {
         PyObject *result;
 
-        // return _BINARY_OPERATION_ADD_OBJECT_STR_STR(operand1, operand2);
-
-        // Not every code path will make use of all possible results.
         NUITKA_MAY_BE_UNUSED PyObject *obj_result;
 
         PyObject *x = PyString_Type.tp_as_sequence->sq_concat(operand1, operand2);
@@ -4426,7 +4264,6 @@ PyObject *BINARY_OPERATION_ADD_OBJECT_OBJECT_STR(PyObject *operand1, PyObject *o
 #endif
 
 #if PYTHON_VERSION < 0x300
-/* Code referring to "STR" corresponds to Python2 'str' and "OBJECT" to any Python object. */
 static HEDLEY_NEVER_INLINE PyObject *__BINARY_OPERATION_ADD_OBJECT_STR_OBJECT(PyObject *operand1, PyObject *operand2) {
     PyTypeObject *type2 = Py_TYPE(operand2);
 
@@ -4443,8 +4280,6 @@ static HEDLEY_NEVER_INLINE PyObject *__BINARY_OPERATION_ADD_OBJECT_STR_OBJECT(Py
     binaryfunc slot2 = NULL;
 
     if (!(&PyString_Type == type2)) {
-        // Different types, need to consider second value slot.
-
         slot2 = (type2->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type2)) ? type2->tp_as_number->nb_add : NULL;
     }
 
@@ -4525,9 +4360,6 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_STR_OBJECT(PyObject *operand1, PyO
     if (&PyString_Type == type2) {
         PyObject *result;
 
-        // return _BINARY_OPERATION_ADD_OBJECT_STR_STR(operand1, operand2);
-
-        // Not every code path will make use of all possible results.
         NUITKA_MAY_BE_UNUSED PyObject *obj_result;
 
         PyObject *x = PyString_Type.tp_as_sequence->sq_concat(operand1, operand2);
@@ -4558,8 +4390,6 @@ PyObject *BINARY_OPERATION_ADD_OBJECT_STR_OBJECT(PyObject *operand1, PyObject *o
 }
 #endif
 
-/* Code referring to "UNICODE" corresponds to Python2 'unicode', Python3 'str' and "UNICODE" to Python2 'unicode',
- * Python3 'str'. */
 static PyObject *_BINARY_OPERATION_ADD_OBJECT_UNICODE_UNICODE(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyUnicode_CheckExact(operand1));
@@ -4568,10 +4398,8 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_UNICODE_UNICODE(PyObject *operand1
 
     PyObject *result;
 
-    // Not every code path will make use of all possible results.
     NUITKA_MAY_BE_UNUSED PyObject *obj_result;
 
-    // TODO: Have this more globally passed in
     PyThreadState *tstate = PyThreadState_GET();
 
     PyObject *x = UNICODE_CONCAT(tstate, operand1, operand2);
@@ -4597,7 +4425,6 @@ PyObject *BINARY_OPERATION_ADD_OBJECT_UNICODE_UNICODE(PyObject *operand1, PyObje
     return _BINARY_OPERATION_ADD_OBJECT_UNICODE_UNICODE(operand1, operand2);
 }
 
-/* Code referring to "OBJECT" corresponds to any Python object and "UNICODE" to Python2 'unicode', Python3 'str'. */
 static HEDLEY_NEVER_INLINE PyObject *__BINARY_OPERATION_ADD_OBJECT_OBJECT_UNICODE(PyObject *operand1,
                                                                                   PyObject *operand2) {
     PyTypeObject *type1 = Py_TYPE(operand1);
@@ -4667,7 +4494,6 @@ static HEDLEY_NEVER_INLINE PyObject *__BINARY_OPERATION_ADD_OBJECT_OBJECT_UNICOD
 #endif
 
     {
-        // Special case for "+" and "*", also works as sequence concat/repeat.
         binaryfunc sq_slot = type1->tp_as_sequence != NULL ? type1->tp_as_sequence->sq_concat : NULL;
 
         if (sq_slot != NULL) {
@@ -4701,12 +4527,8 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_OBJECT_UNICODE(PyObject *operand1,
     if (type1 == &PyUnicode_Type) {
         PyObject *result;
 
-        // return _BINARY_OPERATION_ADD_OBJECT_UNICODE_UNICODE(operand1, operand2);
-
-        // Not every code path will make use of all possible results.
         NUITKA_MAY_BE_UNUSED PyObject *obj_result;
 
-        // TODO: Have this more globally passed in
         PyThreadState *tstate = PyThreadState_GET();
 
         PyObject *x = UNICODE_CONCAT(tstate, operand1, operand2);
@@ -4735,7 +4557,6 @@ PyObject *BINARY_OPERATION_ADD_OBJECT_OBJECT_UNICODE(PyObject *operand1, PyObjec
     return _BINARY_OPERATION_ADD_OBJECT_OBJECT_UNICODE(operand1, operand2);
 }
 
-/* Code referring to "UNICODE" corresponds to Python2 'unicode', Python3 'str' and "OBJECT" to any Python object. */
 static HEDLEY_NEVER_INLINE PyObject *__BINARY_OPERATION_ADD_OBJECT_UNICODE_OBJECT(PyObject *operand1,
                                                                                   PyObject *operand2) {
     PyTypeObject *type2 = Py_TYPE(operand2);
@@ -4753,8 +4574,6 @@ static HEDLEY_NEVER_INLINE PyObject *__BINARY_OPERATION_ADD_OBJECT_UNICODE_OBJEC
     binaryfunc slot2 = NULL;
 
     if (!(&PyUnicode_Type == type2)) {
-        // Different types, need to consider second value slot.
-
         slot2 = (type2->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type2)) ? type2->tp_as_number->nb_add : NULL;
     }
 
@@ -4835,12 +4654,8 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_UNICODE_OBJECT(PyObject *operand1,
     if (&PyUnicode_Type == type2) {
         PyObject *result;
 
-        // return _BINARY_OPERATION_ADD_OBJECT_UNICODE_UNICODE(operand1, operand2);
-
-        // Not every code path will make use of all possible results.
         NUITKA_MAY_BE_UNUSED PyObject *obj_result;
 
-        // TODO: Have this more globally passed in
         PyThreadState *tstate = PyThreadState_GET();
 
         PyObject *x = UNICODE_CONCAT(tstate, operand1, operand2);
@@ -4870,7 +4685,6 @@ PyObject *BINARY_OPERATION_ADD_OBJECT_UNICODE_OBJECT(PyObject *operand1, PyObjec
 }
 
 #if PYTHON_VERSION >= 0x300
-/* Code referring to "BYTES" corresponds to Python3 'bytes' and "BYTES" to Python3 'bytes'. */
 static PyObject *_BINARY_OPERATION_ADD_OBJECT_BYTES_BYTES(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyBytes_CheckExact(operand1));
@@ -4879,7 +4693,6 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_BYTES_BYTES(PyObject *operand1, Py
 
     PyObject *result;
 
-    // Not every code path will make use of all possible results.
     NUITKA_MAY_BE_UNUSED PyObject *obj_result;
 
     PyObject *x = PyBytes_Type.tp_as_sequence->sq_concat(operand1, operand2);
@@ -4908,7 +4721,6 @@ PyObject *BINARY_OPERATION_ADD_OBJECT_BYTES_BYTES(PyObject *operand1, PyObject *
 #endif
 
 #if PYTHON_VERSION >= 0x300
-/* Code referring to "OBJECT" corresponds to any Python object and "BYTES" to Python3 'bytes'. */
 static HEDLEY_NEVER_INLINE PyObject *__BINARY_OPERATION_ADD_OBJECT_OBJECT_BYTES(PyObject *operand1,
                                                                                 PyObject *operand2) {
     PyTypeObject *type1 = Py_TYPE(operand1);
@@ -4978,7 +4790,6 @@ static HEDLEY_NEVER_INLINE PyObject *__BINARY_OPERATION_ADD_OBJECT_OBJECT_BYTES(
 #endif
 
     {
-        // Special case for "+" and "*", also works as sequence concat/repeat.
         binaryfunc sq_slot = type1->tp_as_sequence != NULL ? type1->tp_as_sequence->sq_concat : NULL;
 
         if (sq_slot != NULL) {
@@ -5008,9 +4819,6 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_OBJECT_BYTES(PyObject *operand1, P
     if (type1 == &PyBytes_Type) {
         PyObject *result;
 
-        // return _BINARY_OPERATION_ADD_OBJECT_BYTES_BYTES(operand1, operand2);
-
-        // Not every code path will make use of all possible results.
         NUITKA_MAY_BE_UNUSED PyObject *obj_result;
 
         PyObject *x = PyBytes_Type.tp_as_sequence->sq_concat(operand1, operand2);
@@ -5042,7 +4850,6 @@ PyObject *BINARY_OPERATION_ADD_OBJECT_OBJECT_BYTES(PyObject *operand1, PyObject 
 #endif
 
 #if PYTHON_VERSION >= 0x300
-/* Code referring to "BYTES" corresponds to Python3 'bytes' and "OBJECT" to any Python object. */
 static HEDLEY_NEVER_INLINE PyObject *__BINARY_OPERATION_ADD_OBJECT_BYTES_OBJECT(PyObject *operand1,
                                                                                 PyObject *operand2) {
     PyTypeObject *type2 = Py_TYPE(operand2);
@@ -5060,8 +4867,6 @@ static HEDLEY_NEVER_INLINE PyObject *__BINARY_OPERATION_ADD_OBJECT_BYTES_OBJECT(
     binaryfunc slot2 = NULL;
 
     if (!(&PyBytes_Type == type2)) {
-        // Different types, need to consider second value slot.
-
         slot2 = (type2->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type2)) ? type2->tp_as_number->nb_add : NULL;
     }
 
@@ -5142,9 +4947,6 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_BYTES_OBJECT(PyObject *operand1, P
     if (&PyBytes_Type == type2) {
         PyObject *result;
 
-        // return _BINARY_OPERATION_ADD_OBJECT_BYTES_BYTES(operand1, operand2);
-
-        // Not every code path will make use of all possible results.
         NUITKA_MAY_BE_UNUSED PyObject *obj_result;
 
         PyObject *x = PyBytes_Type.tp_as_sequence->sq_concat(operand1, operand2);
@@ -5175,7 +4977,6 @@ PyObject *BINARY_OPERATION_ADD_OBJECT_BYTES_OBJECT(PyObject *operand1, PyObject 
 }
 #endif
 
-/* Code referring to "TUPLE" corresponds to Python 'tuple' and "TUPLE" to Python 'tuple'. */
 static PyObject *_BINARY_OPERATION_ADD_OBJECT_TUPLE_TUPLE(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyTuple_CheckExact(operand1));
@@ -5184,10 +4985,8 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_TUPLE_TUPLE(PyObject *operand1, Py
 
     PyObject *result;
 
-    // Not every code path will make use of all possible results.
     NUITKA_MAY_BE_UNUSED PyObject *obj_result;
 
-    // TODO: Have this more globally passed in
     PyThreadState *tstate = PyThreadState_GET();
 
     PyObject *x = TUPLE_CONCAT(tstate, operand1, operand2);
@@ -5214,7 +5013,6 @@ PyObject *BINARY_OPERATION_ADD_OBJECT_TUPLE_TUPLE(PyObject *operand1, PyObject *
     return _BINARY_OPERATION_ADD_OBJECT_TUPLE_TUPLE(operand1, operand2);
 }
 
-/* Code referring to "OBJECT" corresponds to any Python object and "TUPLE" to Python 'tuple'. */
 static HEDLEY_NEVER_INLINE PyObject *__BINARY_OPERATION_ADD_OBJECT_OBJECT_TUPLE(PyObject *operand1,
                                                                                 PyObject *operand2) {
     PyTypeObject *type1 = Py_TYPE(operand1);
@@ -5284,7 +5082,6 @@ static HEDLEY_NEVER_INLINE PyObject *__BINARY_OPERATION_ADD_OBJECT_OBJECT_TUPLE(
 #endif
 
     {
-        // Special case for "+" and "*", also works as sequence concat/repeat.
         binaryfunc sq_slot = type1->tp_as_sequence != NULL ? type1->tp_as_sequence->sq_concat : NULL;
 
         if (sq_slot != NULL) {
@@ -5314,12 +5111,8 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_OBJECT_TUPLE(PyObject *operand1, P
     if (type1 == &PyTuple_Type) {
         PyObject *result;
 
-        // return _BINARY_OPERATION_ADD_OBJECT_TUPLE_TUPLE(operand1, operand2);
-
-        // Not every code path will make use of all possible results.
         NUITKA_MAY_BE_UNUSED PyObject *obj_result;
 
-        // TODO: Have this more globally passed in
         PyThreadState *tstate = PyThreadState_GET();
 
         PyObject *x = TUPLE_CONCAT(tstate, operand1, operand2);
@@ -5349,7 +5142,6 @@ PyObject *BINARY_OPERATION_ADD_OBJECT_OBJECT_TUPLE(PyObject *operand1, PyObject 
     return _BINARY_OPERATION_ADD_OBJECT_OBJECT_TUPLE(operand1, operand2);
 }
 
-/* Code referring to "TUPLE" corresponds to Python 'tuple' and "OBJECT" to any Python object. */
 static HEDLEY_NEVER_INLINE PyObject *__BINARY_OPERATION_ADD_OBJECT_TUPLE_OBJECT(PyObject *operand1,
                                                                                 PyObject *operand2) {
     PyTypeObject *type2 = Py_TYPE(operand2);
@@ -5367,8 +5159,6 @@ static HEDLEY_NEVER_INLINE PyObject *__BINARY_OPERATION_ADD_OBJECT_TUPLE_OBJECT(
     binaryfunc slot2 = NULL;
 
     if (!(&PyTuple_Type == type2)) {
-        // Different types, need to consider second value slot.
-
         slot2 = (type2->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type2)) ? type2->tp_as_number->nb_add : NULL;
     }
 
@@ -5449,12 +5239,8 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_TUPLE_OBJECT(PyObject *operand1, P
     if (&PyTuple_Type == type2) {
         PyObject *result;
 
-        // return _BINARY_OPERATION_ADD_OBJECT_TUPLE_TUPLE(operand1, operand2);
-
-        // Not every code path will make use of all possible results.
         NUITKA_MAY_BE_UNUSED PyObject *obj_result;
 
-        // TODO: Have this more globally passed in
         PyThreadState *tstate = PyThreadState_GET();
 
         PyObject *x = TUPLE_CONCAT(tstate, operand1, operand2);
@@ -5484,7 +5270,6 @@ PyObject *BINARY_OPERATION_ADD_OBJECT_TUPLE_OBJECT(PyObject *operand1, PyObject 
     return _BINARY_OPERATION_ADD_OBJECT_TUPLE_OBJECT(operand1, operand2);
 }
 
-/* Code referring to "LIST" corresponds to Python 'list' and "LIST" to Python 'list'. */
 static PyObject *_BINARY_OPERATION_ADD_OBJECT_LIST_LIST(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyList_CheckExact(operand1));
@@ -5493,10 +5278,8 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_LIST_LIST(PyObject *operand1, PyOb
 
     PyObject *result;
 
-    // Not every code path will make use of all possible results.
     NUITKA_MAY_BE_UNUSED PyObject *obj_result;
 
-    // TODO: Have this more globally passed in
     PyThreadState *tstate = PyThreadState_GET();
 
     PyObject *x = LIST_CONCAT(tstate, operand1, operand2);
@@ -5523,7 +5306,6 @@ PyObject *BINARY_OPERATION_ADD_OBJECT_LIST_LIST(PyObject *operand1, PyObject *op
     return _BINARY_OPERATION_ADD_OBJECT_LIST_LIST(operand1, operand2);
 }
 
-/* Code referring to "OBJECT" corresponds to any Python object and "LIST" to Python 'list'. */
 static HEDLEY_NEVER_INLINE PyObject *__BINARY_OPERATION_ADD_OBJECT_OBJECT_LIST(PyObject *operand1, PyObject *operand2) {
     PyTypeObject *type1 = Py_TYPE(operand1);
 
@@ -5592,7 +5374,6 @@ static HEDLEY_NEVER_INLINE PyObject *__BINARY_OPERATION_ADD_OBJECT_OBJECT_LIST(P
 #endif
 
     {
-        // Special case for "+" and "*", also works as sequence concat/repeat.
         binaryfunc sq_slot = type1->tp_as_sequence != NULL ? type1->tp_as_sequence->sq_concat : NULL;
 
         if (sq_slot != NULL) {
@@ -5622,12 +5403,8 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_OBJECT_LIST(PyObject *operand1, Py
     if (type1 == &PyList_Type) {
         PyObject *result;
 
-        // return _BINARY_OPERATION_ADD_OBJECT_LIST_LIST(operand1, operand2);
-
-        // Not every code path will make use of all possible results.
         NUITKA_MAY_BE_UNUSED PyObject *obj_result;
 
-        // TODO: Have this more globally passed in
         PyThreadState *tstate = PyThreadState_GET();
 
         PyObject *x = LIST_CONCAT(tstate, operand1, operand2);
@@ -5657,7 +5434,6 @@ PyObject *BINARY_OPERATION_ADD_OBJECT_OBJECT_LIST(PyObject *operand1, PyObject *
     return _BINARY_OPERATION_ADD_OBJECT_OBJECT_LIST(operand1, operand2);
 }
 
-/* Code referring to "LIST" corresponds to Python 'list' and "OBJECT" to any Python object. */
 static HEDLEY_NEVER_INLINE PyObject *__BINARY_OPERATION_ADD_OBJECT_LIST_OBJECT(PyObject *operand1, PyObject *operand2) {
     PyTypeObject *type2 = Py_TYPE(operand2);
 
@@ -5674,8 +5450,6 @@ static HEDLEY_NEVER_INLINE PyObject *__BINARY_OPERATION_ADD_OBJECT_LIST_OBJECT(P
     binaryfunc slot2 = NULL;
 
     if (!(&PyList_Type == type2)) {
-        // Different types, need to consider second value slot.
-
         slot2 = (type2->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type2)) ? type2->tp_as_number->nb_add : NULL;
     }
 
@@ -5756,12 +5530,8 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_LIST_OBJECT(PyObject *operand1, Py
     if (&PyList_Type == type2) {
         PyObject *result;
 
-        // return _BINARY_OPERATION_ADD_OBJECT_LIST_LIST(operand1, operand2);
-
-        // Not every code path will make use of all possible results.
         NUITKA_MAY_BE_UNUSED PyObject *obj_result;
 
-        // TODO: Have this more globally passed in
         PyThreadState *tstate = PyThreadState_GET();
 
         PyObject *x = LIST_CONCAT(tstate, operand1, operand2);
@@ -5791,7 +5561,6 @@ PyObject *BINARY_OPERATION_ADD_OBJECT_LIST_OBJECT(PyObject *operand1, PyObject *
     return _BINARY_OPERATION_ADD_OBJECT_LIST_OBJECT(operand1, operand2);
 }
 
-/* Code referring to "LIST" corresponds to Python 'list' and "LIST" to Python 'list'. */
 static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_LIST_LIST(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyList_CheckExact(operand1));
@@ -5800,10 +5569,8 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_LIST_LIST(PyObject *operand1, PyO
 
     nuitka_bool result;
 
-    // Not every code path will make use of all possible results.
     NUITKA_MAY_BE_UNUSED PyObject *obj_result;
 
-    // TODO: Have this more globally passed in
     PyThreadState *tstate = PyThreadState_GET();
 
     PyObject *x = LIST_CONCAT(tstate, operand1, operand2);
@@ -5816,7 +5583,7 @@ exit_result_object:
     if (unlikely(obj_result == NULL)) {
         goto exit_result_exception;
     }
-    result = CHECK_IF_TRUE(obj_result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+    result = CHECK_IF_TRUE_NBOOL(obj_result);
     Py_DECREF(obj_result);
     goto exit_result_ok;
 
@@ -5831,7 +5598,6 @@ nuitka_bool BINARY_OPERATION_ADD_NBOOL_LIST_LIST(PyObject *operand1, PyObject *o
     return _BINARY_OPERATION_ADD_NBOOL_LIST_LIST(operand1, operand2);
 }
 
-/* Code referring to "OBJECT" corresponds to any Python object and "LIST" to Python 'list'. */
 static HEDLEY_NEVER_INLINE nuitka_bool __BINARY_OPERATION_ADD_NBOOL_OBJECT_LIST(PyObject *operand1,
                                                                                 PyObject *operand2) {
     PyTypeObject *type1 = Py_TYPE(operand1);
@@ -5901,7 +5667,6 @@ static HEDLEY_NEVER_INLINE nuitka_bool __BINARY_OPERATION_ADD_NBOOL_OBJECT_LIST(
 #endif
 
     {
-        // Special case for "+" and "*", also works as sequence concat/repeat.
         binaryfunc sq_slot = type1->tp_as_sequence != NULL ? type1->tp_as_sequence->sq_concat : NULL;
 
         if (sq_slot != NULL) {
@@ -5921,7 +5686,7 @@ exit_binary_result_object:
     }
 
     {
-        nuitka_bool r = CHECK_IF_TRUE(obj_result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+        nuitka_bool r = CHECK_IF_TRUE_NBOOL(obj_result);
         Py_DECREF(obj_result);
         return r;
     }
@@ -5939,12 +5704,8 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_OBJECT_LIST(PyObject *operand1, P
     if (type1 == &PyList_Type) {
         nuitka_bool result;
 
-        // return _BINARY_OPERATION_ADD_NBOOL_LIST_LIST(operand1, operand2);
-
-        // Not every code path will make use of all possible results.
         NUITKA_MAY_BE_UNUSED PyObject *obj_result;
 
-        // TODO: Have this more globally passed in
         PyThreadState *tstate = PyThreadState_GET();
 
         PyObject *x = LIST_CONCAT(tstate, operand1, operand2);
@@ -5957,7 +5718,7 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_OBJECT_LIST(PyObject *operand1, P
         if (unlikely(obj_result == NULL)) {
             goto exit_result_exception;
         }
-        result = CHECK_IF_TRUE(obj_result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+        result = CHECK_IF_TRUE_NBOOL(obj_result);
         Py_DECREF(obj_result);
         goto exit_result_ok;
 
@@ -5975,7 +5736,6 @@ nuitka_bool BINARY_OPERATION_ADD_NBOOL_OBJECT_LIST(PyObject *operand1, PyObject 
     return _BINARY_OPERATION_ADD_NBOOL_OBJECT_LIST(operand1, operand2);
 }
 
-/* Code referring to "LIST" corresponds to Python 'list' and "OBJECT" to any Python object. */
 static HEDLEY_NEVER_INLINE nuitka_bool __BINARY_OPERATION_ADD_NBOOL_LIST_OBJECT(PyObject *operand1,
                                                                                 PyObject *operand2) {
     PyTypeObject *type2 = Py_TYPE(operand2);
@@ -5993,8 +5753,6 @@ static HEDLEY_NEVER_INLINE nuitka_bool __BINARY_OPERATION_ADD_NBOOL_LIST_OBJECT(
     binaryfunc slot2 = NULL;
 
     if (!(&PyList_Type == type2)) {
-        // Different types, need to consider second value slot.
-
         slot2 = (type2->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type2)) ? type2->tp_as_number->nb_add : NULL;
     }
 
@@ -6063,7 +5821,7 @@ exit_binary_result_object:
     }
 
     {
-        nuitka_bool r = CHECK_IF_TRUE(obj_result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+        nuitka_bool r = CHECK_IF_TRUE_NBOOL(obj_result);
         Py_DECREF(obj_result);
         return r;
     }
@@ -6083,12 +5841,8 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_LIST_OBJECT(PyObject *operand1, P
     if (&PyList_Type == type2) {
         nuitka_bool result;
 
-        // return _BINARY_OPERATION_ADD_NBOOL_LIST_LIST(operand1, operand2);
-
-        // Not every code path will make use of all possible results.
         NUITKA_MAY_BE_UNUSED PyObject *obj_result;
 
-        // TODO: Have this more globally passed in
         PyThreadState *tstate = PyThreadState_GET();
 
         PyObject *x = LIST_CONCAT(tstate, operand1, operand2);
@@ -6101,7 +5855,7 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_LIST_OBJECT(PyObject *operand1, P
         if (unlikely(obj_result == NULL)) {
             goto exit_result_exception;
         }
-        result = CHECK_IF_TRUE(obj_result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+        result = CHECK_IF_TRUE_NBOOL(obj_result);
         Py_DECREF(obj_result);
         goto exit_result_ok;
 
@@ -6120,7 +5874,6 @@ nuitka_bool BINARY_OPERATION_ADD_NBOOL_LIST_OBJECT(PyObject *operand1, PyObject 
 }
 
 #if PYTHON_VERSION < 0x300
-/* Code referring to "UNICODE" corresponds to Python2 'unicode', Python3 'str' and "STR" to Python2 'str'. */
 static PyObject *_BINARY_OPERATION_ADD_OBJECT_UNICODE_STR(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyUnicode_CheckExact(operand1));
@@ -6136,8 +5889,6 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_UNICODE_STR(PyObject *operand1, Py
 #if defined(_MSC_VER)
 #pragma warning(pop)
 #endif
-
-    // Statically recognized that coercion is not possible with these types
 
     {
         PyObject *o = PyUnicode_Type.tp_as_sequence->sq_concat(operand1, operand2);
@@ -6157,7 +5908,6 @@ PyObject *BINARY_OPERATION_ADD_OBJECT_UNICODE_STR(PyObject *operand1, PyObject *
 #endif
 
 #if PYTHON_VERSION < 0x300
-/* Code referring to "STR" corresponds to Python2 'str' and "UNICODE" to Python2 'unicode', Python3 'str'. */
 static PyObject *_BINARY_OPERATION_ADD_OBJECT_STR_UNICODE(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyString_CheckExact(operand1));
@@ -6173,8 +5923,6 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_STR_UNICODE(PyObject *operand1, Py
 #if defined(_MSC_VER)
 #pragma warning(pop)
 #endif
-
-    // Statically recognized that coercion is not possible with these types
 
     {
         PyObject *o = PyUnicode_Type.tp_as_sequence->sq_concat(operand1, operand2);
@@ -6194,7 +5942,6 @@ PyObject *BINARY_OPERATION_ADD_OBJECT_STR_UNICODE(PyObject *operand1, PyObject *
 #endif
 
 #if PYTHON_VERSION < 0x300
-/* Code referring to "UNICODE" corresponds to Python2 'unicode', Python3 'str' and "STR" to Python2 'str'. */
 static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_UNICODE_STR(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyUnicode_CheckExact(operand1));
@@ -6211,8 +5958,6 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_UNICODE_STR(PyObject *operand1, P
 #pragma warning(pop)
 #endif
 
-    // Statically recognized that coercion is not possible with these types
-
     {
         PyObject *o = PyUnicode_Type.tp_as_sequence->sq_concat(operand1, operand2);
         obj_result = o;
@@ -6227,7 +5972,7 @@ exit_binary_result_object:
     }
 
     {
-        nuitka_bool r = CHECK_IF_TRUE(obj_result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+        nuitka_bool r = CHECK_IF_TRUE_NBOOL(obj_result);
         Py_DECREF(obj_result);
         return r;
     }
@@ -6239,7 +5984,6 @@ nuitka_bool BINARY_OPERATION_ADD_NBOOL_UNICODE_STR(PyObject *operand1, PyObject 
 #endif
 
 #if PYTHON_VERSION < 0x300
-/* Code referring to "STR" corresponds to Python2 'str' and "UNICODE" to Python2 'unicode', Python3 'str'. */
 static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_STR_UNICODE(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyString_CheckExact(operand1));
@@ -6256,8 +6000,6 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_STR_UNICODE(PyObject *operand1, P
 #pragma warning(pop)
 #endif
 
-    // Statically recognized that coercion is not possible with these types
-
     {
         PyObject *o = PyUnicode_Type.tp_as_sequence->sq_concat(operand1, operand2);
         obj_result = o;
@@ -6272,7 +6014,7 @@ exit_binary_result_object:
     }
 
     {
-        nuitka_bool r = CHECK_IF_TRUE(obj_result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+        nuitka_bool r = CHECK_IF_TRUE_NBOOL(obj_result);
         Py_DECREF(obj_result);
         return r;
     }
@@ -6283,7 +6025,6 @@ nuitka_bool BINARY_OPERATION_ADD_NBOOL_STR_UNICODE(PyObject *operand1, PyObject 
 }
 #endif
 
-/* Code referring to "OBJECT" corresponds to any Python object and "OBJECT" to any Python object. */
 static PyObject *_BINARY_OPERATION_ADD_OBJECT_OBJECT_OBJECT(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     CHECK_OBJECT(operand2);
@@ -6292,7 +6033,6 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_OBJECT_OBJECT(PyObject *operand1, 
     if (PyInt_CheckExact(operand1) && PyInt_CheckExact(operand2)) {
         PyObject *result;
 
-        // Not every code path will make use of all possible results.
 #if defined(_MSC_VER)
 #pragma warning(push)
 #pragma warning(disable : 4101)
@@ -6368,8 +6108,6 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_OBJECT_OBJECT(PyObject *operand1, 
     binaryfunc slot2 = NULL;
 
     if (!(type1 == type2)) {
-        // Different types, need to consider second value slot.
-
         slot2 = (type2->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type2)) ? type2->tp_as_number->nb_add : NULL;
 
         if (slot1 == slot2) {
@@ -6489,7 +6227,6 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_OBJECT_OBJECT(PyObject *operand1, 
 #endif
 
     {
-        // Special case for "+" and "*", also works as sequence concat/repeat.
         binaryfunc sq_slot = type1->tp_as_sequence != NULL ? type1->tp_as_sequence->sq_concat : NULL;
 
         if (sq_slot != NULL) {
@@ -6514,7 +6251,6 @@ PyObject *BINARY_OPERATION_ADD_OBJECT_OBJECT_OBJECT(PyObject *operand1, PyObject
     return _BINARY_OPERATION_ADD_OBJECT_OBJECT_OBJECT(operand1, operand2);
 }
 
-/* Code referring to "OBJECT" corresponds to any Python object and "OBJECT" to any Python object. */
 static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_OBJECT_OBJECT(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     CHECK_OBJECT(operand2);
@@ -6523,7 +6259,6 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_OBJECT_OBJECT(PyObject *operand1,
     if (PyInt_CheckExact(operand1) && PyInt_CheckExact(operand2)) {
         nuitka_bool result;
 
-        // Not every code path will make use of all possible results.
 #if defined(_MSC_VER)
 #pragma warning(push)
 #pragma warning(disable : 4101)
@@ -6578,8 +6313,6 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_OBJECT_OBJECT(PyObject *operand1,
     binaryfunc slot2 = NULL;
 
     if (!(type1 == type2)) {
-        // Different types, need to consider second value slot.
-
         slot2 = (type2->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type2)) ? type2->tp_as_number->nb_add : NULL;
 
         if (slot1 == slot2) {
@@ -6699,7 +6432,6 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_OBJECT_OBJECT(PyObject *operand1,
 #endif
 
     {
-        // Special case for "+" and "*", also works as sequence concat/repeat.
         binaryfunc sq_slot = type1->tp_as_sequence != NULL ? type1->tp_as_sequence->sq_concat : NULL;
 
         if (sq_slot != NULL) {
@@ -6719,7 +6451,7 @@ exit_binary_result_object:
     }
 
     {
-        nuitka_bool r = CHECK_IF_TRUE(obj_result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+        nuitka_bool r = CHECK_IF_TRUE_NBOOL(obj_result);
         Py_DECREF(obj_result);
         return r;
     }

@@ -1,6 +1,6 @@
 %if 0%{?rhel} < 8
 # detect python site-packages path, spell-checker: disable
-%if 0%{?fedora} < 31
+%if 0%{?fedora} < 31 && 0%{?suse_version} < 1600
 %global python_sitearch %(%{__python} -c "import sys, distutils.sysconfig; sys.stdout.write(distutils.sysconfig.get_python_lib(0))")
 %endif
 %global nuitka_python3_sitelib %{python3_sitelib}
@@ -15,15 +15,15 @@ Summary:        Python compiler with full language support and CPython compatibi
 Group:          Development/Languages/Python
 License:        AGPL-3.0-or-later
 URL:            https://nuitka.net/
-Source0:        https://nuitka.net/releases/Nuitka-%{version}.tar.gz
+Source0:        https://nuitka.net/releases/nuitka-%{version}.tar.gz
 Source1:        nuitka-rpmlintrc
 BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
-%if 0%{?fedora} < 28 && 0%{?rhel} < 8
+%if 0%{?fedora} < 28 && 0%{?rhel} < 8 && 0%{?suse_version} < 1600
 BuildRequires:  python
 BuildRequires:  python-devel
 BuildRequires:  python-setuptools
 %endif
-%if 0%{?fedora} < 31 && 0%{?rhel} < 8
+%if 0%{?fedora} < 31 && 0%{?rhel} < 8 && 0%{?suse_version} < 1600
 BuildRequires:  python-markupsafe
 %endif
 %if 0%{?fedora} >= 24
@@ -63,7 +63,7 @@ BuildRequires:  patchelf
 BuildRequires:  ccache
 BuildRequires:  gdb
 
-%if 0%{?fedora} < 28 && 0%{?rhel} < 8
+%if 0%{?fedora} < 28 && 0%{?rhel} < 8 && 0%{?suse_version} < 1600
 Requires:       python-devel
 %endif
 %if 0%{?fedora} >= 24 || 0%{?suse_version} >= 1500
@@ -72,7 +72,7 @@ Requires:       python3-devel
 %if 0%{?rhel} == 8
 Requires:       python36-devel
 %endif
-%if 0%{?fedora} < 31 && 0%{?rhel} < 8
+%if 0%{?fedora} < 31 && 0%{?rhel} < 8 && 0%{?suse_version} < 1600
 Requires:       python-markupsafe
 %endif
 %if 0%{?fedora} >= 24 || 0%{?rhel} == 8
@@ -101,7 +101,7 @@ code into compiled objects that are not second class at all. Instead they can
 be used in the same way as pure Python objects.
 
 %prep
-%setup -q -n Nuitka-%{version}
+%setup -q -n nuitka-%{version}
 
 %build
 
@@ -258,7 +258,7 @@ rm -rf %{buildroot}
 %defattr(-,root,root,-)
 %doc README.rst Changelog.rst
 %{_bindir}/compile-python-for-nuitka-linux.sh
-%if 0%{?fedora} < 31 && 0%{?rhel} < 8
+%if 0%{?fedora} < 31 && 0%{?rhel} < 8 && 0%{?suse_version} < 1600
 %{_bindir}/nuitka2
 %{_bindir}/nuitka2-run
 %{python_sitearch}/*

@@ -12,7 +12,11 @@ from .CodeHelpers import (
     withObjectCodeTemporaryAssignment,
 )
 from .ErrorCodes import getErrorExitCode, getReleaseCode
-from .PythonAPICodes import generateCAPIObjectCode, makeArgDescFromExpression
+from .PythonAPICodes import (
+    generateCAPIObjectCode,
+    getReferenceExportCode,
+    makeArgDescFromExpression,
+)
 from .templates.CodeTemplatesExceptions import (
     template_publish_exception_to_handler,
 )
@@ -45,17 +49,13 @@ def generateExceptionCaughtTypeCode(to_name, expression, emit, context):
     ) as value_name:
         if keeper_exception_state_name is None:
             emit("%s = EXC_TYPE(tstate);" % (value_name,))
+        elif python_version < 0x3C0:
+            emit("%s = %s.exception_type;" % (value_name, keeper_exception_state_name))
         else:
-            if python_version < 0x3C0:
-                emit(
-                    "%s = %s.exception_type;"
-                    % (value_name, keeper_exception_state_name)
-                )
-            else:
-                emit(
-                    "%s = %s.exception_value;"
-                    % (value_name, keeper_exception_state_name)
-                )
+            emit(
+                "%s = (PyObject *)Py_TYPE(%s.exception_value);"
+                % (value_name, keeper_exception_state_name)
+            )
 
 
 def generateExceptionCaughtValueCode(to_name, expression, emit, context):
@@ -137,9 +137,8 @@ def getExceptionUnpublishedReleaseCode(emit, context):
 
 
 def generateExceptionPublishCode(statement, emit, context):
-    # This statement has no attributes really, pylint: disable=unused-argument
+    # pylint: disable=unused-argument
 
-    # Current variables cannot be used anymore now.
     (
         keeper_exception_state_name,
         keeper_lineno,
@@ -163,7 +162,6 @@ def generateExceptionPublishCode(statement, emit, context):
 
 
 def generateExceptionPublishValueCode(statement, emit, context):
-    # Current variables cannot be used anymore now.
     context.setExceptionKeeperVariables((None, None))
 
     value_name = context.allocateTempName("publish_exception_value")
@@ -221,8 +219,6 @@ def _attachExceptionAttributeCode(
     context,
 ):
     if attribute_expression is not None:
-        from .PythonAPICodes import getReferenceExportCode
-
         exception_attribute_name = context.allocateTempName(
             base_name_str + "_" + c_attribute_name
         )
@@ -240,7 +236,7 @@ def _attachExceptionAttributeCode(
             context.removeCleanupTempName(exception_attribute_name)
 
         emit(
-            "((%s *)%s)->%s = %s;"
+            "Py_XSETREF(((%s *)%s)->%s, %s);"
             % (c_type_name, to_name, c_attribute_name, exception_attribute_name)
         )
 
@@ -308,7 +304,7 @@ def _generateBuiltinMakeExceptionCode(to_name, expression, for_raise, emit, cont
             or expression.isExpressionBuiltinMakeExceptionModuleNotFoundError()
         ):
             _attachExceptionAttributeCode(
-                to_name=to_name,
+                to_name=value_name,
                 attribute_expression=expression.subnode_name,
                 base_name_str="exception_import_error",
                 c_type_name="PyImportErrorObject",
@@ -318,7 +314,7 @@ def _generateBuiltinMakeExceptionCode(to_name, expression, for_raise, emit, cont
             )
 
             _attachExceptionAttributeCode(
-                to_name=to_name,
+                to_name=value_name,
                 attribute_expression=expression.subnode_path,
                 base_name_str="exception_import_error",
                 c_type_name="PyImportErrorObject",
@@ -327,9 +323,20 @@ def _generateBuiltinMakeExceptionCode(to_name, expression, for_raise, emit, cont
                 context=context,
             )
 
+        elif expression.isExpressionBuiltinMakeExceptionNameError():
+            _attachExceptionAttributeCode(
+                to_name=value_name,
+                attribute_expression=expression.subnode_name,
+                base_name_str="exception_name_error",
+                c_type_name="PyNameErrorObject",
+                c_attribute_name="name",
+                emit=emit,
+                context=context,
+            )
+
         elif expression.isExpressionBuiltinMakeExceptionAttributeError():
             _attachExceptionAttributeCode(
-                to_name=to_name,
+                to_name=value_name,
                 attribute_expression=expression.subnode_name,
                 base_name_str="exception_import_error",
                 c_type_name="PyAttributeErrorObject",
@@ -339,7 +346,7 @@ def _generateBuiltinMakeExceptionCode(to_name, expression, for_raise, emit, cont
             )
 
             _attachExceptionAttributeCode(
-                to_name=to_name,
+                to_name=value_name,
                 attribute_expression=expression.subnode_obj,
                 base_name_str="exception_import_error",
                 c_type_name="PyAttributeErrorObject",

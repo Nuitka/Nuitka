@@ -233,12 +233,12 @@ class TypeDescBase(getMetaClassBase("Type", require_slots=False)):
             return "0"
         elif self.type_name == "object":
             if right.type_name == "tuple":
-                return "(PyTuple_CheckExact(%s) || PySequence_Check(%s))" % (
+                return "(PyTuple_CheckExact(%s) || Nuitka_PySequence_Check(%s))" % (
                     operand,
                     operand,
                 )
             else:
-                return "PySequence_Check(%s)" % operand
+                return "Nuitka_PySequence_Check(%s)" % operand
         elif self.hasSlot("sq_item"):
             return "1"
         else:
@@ -603,7 +603,7 @@ return %(return_value)s;""" % {
                 operand1 = int_desc.getAsLongValueExpression(operand1)
                 candidate1 = c_long_desc
             elif candidate2 == int_desc:
-                operand2 = int_desc.getAsLongValueExpression(operand1)
+                operand2 = int_desc.getAsLongValueExpression(operand2)
                 candidate2 = c_long_desc
             else:
                 assert False
@@ -916,8 +916,10 @@ Py_INCREF(%(result)s);""" % {
     @classmethod
     def getAssignConversionCode(cls, result, left, value):
         def _getObjectObject():
+            # Concrete types do not take references by default, but this
+            # assigns one object to another, which always needs one.
             code = "%s = %s;" % (result, value)
-            code += cls.getTakeReferenceStatement(result, immortal=False)
+            code += "Py_INCREF(%s);" % result
 
             return code
 
@@ -1029,9 +1031,7 @@ class IntDesc(ConcreteNonSequenceTypeBase):
             return False
         elif slot.startswith("nb_"):
             return slot != "nb_matrix_multiply"
-        elif slot.startswith("sq_"):
-            return False
-        elif slot == "tp_richcompare":
+        elif slot.startswith("sq_") or slot == "tp_richcompare":
             return False
         elif slot == "tp_compare":
             return True
@@ -1122,9 +1122,7 @@ assert(PyUnicode_CheckExact(%(operand)s));""" % {"operand": operand}
             return slot == "nb_remainder"
         elif slot.startswith("sq_"):
             return "ass" not in slot and "inplace" not in slot
-        elif slot == "tp_richcompare":
-            return True
-        elif slot == "tp_compare":
+        elif slot in ("tp_richcompare", "tp_compare"):
             return True
         else:
             assert False, slot
@@ -1228,9 +1226,7 @@ class ListDesc(ConcreteSequenceTypeBase):
     def hasSlot(self, slot):
         if slot.startswith("nb_"):
             return False
-        elif slot.startswith("sq_"):
-            return True
-        elif slot == "tp_richcompare":
+        elif slot.startswith("sq_") or slot == "tp_richcompare":
             return True
         elif slot == "tp_compare":
             return False
@@ -1685,8 +1681,7 @@ class NBoolDesc(ConcreteCTypeBase):
 
     @classmethod
     def getToValueFromObjectExpression(cls, operand):
-        # TODO: Seems wrong, int return values only happen to match nuitka_bool here
-        return cls.getToValueFromBoolExpression("CHECK_IF_TRUE(%s)" % operand)
+        return "CHECK_IF_TRUE_NBOOL(%s)" % operand
 
     @staticmethod
     def getTakeReferenceStatement(operand, immortal):
@@ -1785,8 +1780,7 @@ class NILongDesc(DualTypeBase):
 
     @classmethod
     def getToValueFromObjectExpression(cls, operand):
-        # TODO: Seems wrong, int return values only happen to match nuitka_bool here
-        return cls.getToValueFromBoolExpression("CHECK_IF_TRUE(%s)" % operand)
+        raise AssertionError("Cannot convert object expression to nilong: %s" % operand)
 
     @staticmethod
     def getTakeReferenceStatement(operand, immortal):

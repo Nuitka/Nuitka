@@ -8,10 +8,21 @@ This is to provide the base class for all Yaml plugins. These deal with the
 configuration files of Nuitka.
 """
 
+from nuitka.containers.Namedtuples import makeNamedtupleClass
 from nuitka.options.Options import assumeYesForDownloads
 from nuitka.utils.Yaml import getYamlPackageConfiguration
 
 from .PluginBase import NuitkaPluginBase
+
+YamlConfigItem = makeNamedtupleClass(
+    "YamlConfigItem",
+    ("config_module_name", "value"),
+)
+
+YamlConfigKeyValue = makeNamedtupleClass(
+    "YamlConfigKeyValue",
+    ("config_module_name", "key", "value"),
+)
 
 
 class NuitkaYamlPluginBase(NuitkaPluginBase):
@@ -28,14 +39,19 @@ class NuitkaYamlPluginBase(NuitkaPluginBase):
         )
 
     def getYamlConfigItem(
-        self, module_name, section, item_name, decide_relevant, default, recursive
+        self, module_name, section, item_name, decide_relevant, recursive
     ):
+        config_module_name = module_name
+
         while True:
-            module_configs = self.config.get(module_name, section=section)
+            module_configs = self.config.get(config_module_name, section=section)
 
             if module_configs is not None:
                 for module_config in module_configs:
-                    config_item = module_config.get(item_name, default)
+                    if item_name not in module_config:
+                        continue
+
+                    config_item = module_config[item_name]
 
                     # Avoid condition, if the item is not relevant
                     if decide_relevant is not None and not decide_relevant(config_item):
@@ -44,19 +60,20 @@ class NuitkaYamlPluginBase(NuitkaPluginBase):
                     if not self.evaluateCondition(
                         full_name=module_name,
                         condition=module_config.get("when", "True"),
+                        config_module_name=config_module_name,
                     ):
                         continue
 
-                    if recursive:
-                        yield module_name, config_item
-                    else:
-                        yield config_item
+                    yield YamlConfigItem(
+                        config_module_name=config_module_name,
+                        value=config_item,
+                    )
 
             if not recursive:
                 break
 
-            module_name = module_name.getPackageName()
-            if not module_name:
+            config_module_name = config_module_name.getPackageName()
+            if not config_module_name:
                 break
 
     def getYamlConfigItemItems(
@@ -80,37 +97,46 @@ class NuitkaYamlPluginBase(NuitkaPluginBase):
             section=section,
             item_name=item_name,
             decide_relevant=dict_decide_relevant,
-            default={},
             recursive=recursive,
         ):
-            if recursive:
-                for key, value in item_config[1].items():
-                    if decide_relevant(key, value):
-                        yield item_config[0], key, value
-            else:
-                for key, value in item_config.items():
-                    if decide_relevant(key, value):
-                        yield key, value
+            for key, value in item_config.value.items():
+                if decide_relevant is None or decide_relevant(key, value):
+                    yield YamlConfigKeyValue(
+                        config_module_name=item_config.config_module_name,
+                        key=key,
+                        value=value,
+                    )
 
     def getYamlConfigItemSet(
         self, module_name, section, item_name, decide_relevant, recursive
     ):
+        seen = set()
+
+        def isRelevantValue(value):
+            return value not in seen and (
+                decide_relevant is None or decide_relevant(value)
+            )
+
+        def decideRelevantForSet(item_set):
+            if not item_set:
+                return False
+
+            return any(isRelevantValue(value) for value in item_set)
+
         for item_config in self.getYamlConfigItem(
             module_name=module_name,
             section=section,
             item_name=item_name,
-            decide_relevant=None,
-            default=(),
+            decide_relevant=decideRelevantForSet,
             recursive=recursive,
         ):
-            if recursive:
-                for value in item_config[1]:
-                    if decide_relevant is None or decide_relevant(value):
-                        yield item_config[0], value
-            else:
-                for value in item_config:
-                    if decide_relevant is None or decide_relevant(value):
-                        yield value
+            for value in item_config.value:
+                if isRelevantValue(value):
+                    seen.add(value)
+                    yield YamlConfigItem(
+                        config_module_name=item_config.config_module_name,
+                        value=value,
+                    )
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and

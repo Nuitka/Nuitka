@@ -21,11 +21,15 @@ from string import Formatter
 from nuitka.PythonFlavors import getPythonFlavorName
 from nuitka.PythonVersions import (
     displayRecommendedVersion,
+    isPythonIdentifier,
     isPythonWithGil,
     python_version_full_str,
     python_version_str,
 )
-from nuitka.utils.FileOperations import getFileContentByLine
+from nuitka.utils.FileOperations import (
+    getFileContentByLine,
+    getUserInputNormalizedPath,
+)
 from nuitka.utils.InlineCopies import importFromInlineCopy
 from nuitka.utils.Utils import (
     getArchitecture,
@@ -36,11 +40,17 @@ from nuitka.utils.Utils import (
     isMacOS,
     isWin32OrPosixWindows,
     isWin32Windows,
-    withNoSyntaxWarning,
 )
 from nuitka.Version import getCommercialVersion, getNuitkaVersion
 
-from .CommandLineOptionsTools import SUPPRESS_HELP, makeOptionsParser
+from .CommandLineOptionsTools import (
+    SUPPRESS_HELP,
+    getArgumentsBeforeDoubleDash,
+    getOptionIndex,
+    hasOption,
+    makeOptionsParser,
+)
+from .Experimental import setExperimental
 
 
 def _getSysArgv():
@@ -187,7 +197,8 @@ Python flags to use. Default is what you are using to run Nuitka, this
 enforces a specific mode. These are options that also exist to standard
 Python executable. Currently supported: "-S" (alias "no_site"),
 "static_hashes" (do not use hash randomization), "no_warnings" (do not
-give Python run time warnings), "-O" (alias "no_asserts"), "no_docstrings"
+give Python run time warnings), "no_unraisable" (do not give Python
+unraisable exception output), "-O" (alias "no_asserts"), "no_docstrings"
 (do not use doc strings), "-u" (alias "unbuffered"), "isolated" (do not
 load outside code), "-P" (alias "safe_path", do not used current directory
 in module search) and "-m" (package mode, compile as "package.__main__").
@@ -279,7 +290,15 @@ parser.add_option(
 
 
 def getBuildConfigurationOptions(logger):
-    if "--project" not in sys.argv:
+    # This is a case driven by returns.
+    # pylint: disable=too-many-return-statements
+
+    # The project is parsed by the in-container Nuitka, where the project
+    # requirements are available. Parsing here would forward conflicting
+    # project options such as '--main-entry-point' alongside '--project'.
+    if hasOption(sys.argv[1:], "--container=") or not hasOption(
+        sys.argv[1:], "--project"
+    ):
         return []
 
     # Auto-detection of Poetry, we want to support that without the user saying so,
@@ -333,7 +352,7 @@ def getBuildConfigurationOptions(logger):
 
         return getBuildBackendConfiguration(logger=logger, pyproject_data={})
 
-    logger.sysexit(
+    return logger.sysexit(
         "Error, '--project' requires a 'pyproject.toml', 'setup.py', or 'setup.cfg' file."
     )
 
@@ -384,7 +403,7 @@ include_group.add_option(
     "--include-plugin-directory",
     action="append",
     dest="include_extra",
-    metavar="MODULE/PACKAGE",
+    metavar="DIRECTORY",
     default=[],
     help="""\
 Include also the code found in that directory, considering as if
@@ -453,7 +472,7 @@ follow_group.add_option(
     "--follow-import-to",
     action="append",
     dest="follow_modules",
-    metavar="MODULE/PACKAGE",
+    metavar="MODULE_PATTERN",
     default=[],
     help="""\
 Follow to that module if used, or if a package, to the whole package. Can be given
@@ -464,7 +483,7 @@ follow_group.add_option(
     "--nofollow-import-to",
     action="append",
     dest="follow_not_modules",
-    metavar="MODULE/PACKAGE",
+    metavar="MODULE_PATTERN",
     default=[],
     help="""\
 Do not follow to that module name even if used, or if a package name, to the
@@ -515,7 +534,7 @@ onefile_group.add_option(
     "--onefile-cache-mode",
     action="store",
     dest="onefile_cached_mode",
-    metavar="ONEFILE_CACHED_MODE",
+    metavar="MODE",
     choices=("auto", "cached", "temporary"),
     default="auto",
     help="""\
@@ -558,10 +577,7 @@ onefile_group.add_option(
     action="store_true",
     dest="onefile_as_archive",
     default=False,
-    help="""\
-When creating the onefile, use an archive format, that can be unpacked
-with "nuitka-onefile-unpack" rather than a stream that only the onefile
-program itself unpacks. Default is off.""",
+    help=SUPPRESS_HELP,
 )
 
 onefile_group.add_option(
@@ -574,6 +590,15 @@ When creating the onefile, some platforms (Windows currently, if not
 using a cached location) default to using DLL rather than an executable
 for the Python code. This makes it use an executable in the unpacked
 files as well. Default is off.""",
+)
+
+onefile_group.add_option(
+    "--onefile-resource-mode",
+    dest="onefile_resource_mode",
+    metavar="MODE",
+    default=None,
+    environment_variable_name="NUITKA_ONEFILE_RESOURCE_MODE",
+    help=SUPPRESS_HELP,
 )
 
 del onefile_group
@@ -605,7 +630,7 @@ data_group.add_option(
     "--include-data-file",
     action="append",
     dest="data_files",
-    metavar="DESC",
+    metavar="PATH_SPEC",
     default=[],
     help="""\
 Include data files by filenames in the distribution. There are many
@@ -663,6 +688,7 @@ data_group.add_option(
     "--list-package-data",
     action="store",
     dest="list_package_data",
+    metavar="PACKAGE",
     default="",
     require_compiling=False,
     help="""\
@@ -732,7 +758,7 @@ dll_group.add_option(
     "--include-windows-runtime-dlls",
     action="store",
     dest="include_windows_runtime_dlls",
-    metavar="choice",
+    metavar="CHOICE",
     choices=("auto", "yes", "no"),
     default="auto",
     help="""\
@@ -746,6 +772,7 @@ dll_group.add_option(
     "--list-package-dlls",
     action="store",
     dest="list_package_dlls",
+    metavar="PACKAGE",
     default="",
     require_compiling=False,
     help="""\
@@ -756,6 +783,7 @@ dll_group.add_option(
     "--list-package-exe",
     action="store",
     dest="list_package_exe",
+    metavar="PACKAGE",
     default="",
     require_compiling=False,
     help="""\
@@ -804,6 +832,7 @@ warnings_group.add_option(
     type="choice",
     choices=("never", "force", "error", "warning", "info"),
     dest="update_check",
+    metavar="MODE",
     default="warning",
     environment_variable_name="NUITKA_UPDATE_CHECK",
     help="""\
@@ -857,12 +886,154 @@ environment variable or the '--debugger-choice' flag. Defaults to off.""",
 execute_group.add_option(
     "--debugger-choice",
     dest="debugger_choice",
+    metavar="DEBUGGER",
     default=None,
     help="""\
 Choose the debugger to use.""",
 )
 
 del execute_group
+
+
+container_group = parser.add_option_group("Container options")
+
+container_group.add_option(
+    "--container",
+    action="store",
+    dest="container",
+    metavar="CONTAINER_NAME",
+    default=None,
+    help="""\
+Run the compilation inside the named container, building or updating the container if necessary.
+The name selects the container file, e.g. "CentOS8". Container files can be provided by plugins.
+Only an alternative command is run if '--container-command' is given. Defaults to off.""",
+)
+
+container_group.add_option(
+    "--container-command",
+    action="store",
+    dest="container_command",
+    metavar="COMMAND",
+    default=None,
+    require_compiling=False,
+    help="""\
+Command to execute inside the container selected with '--container' instead of compiling the
+program. Defaults to compiling the program inside the container.""",
+)
+
+container_group.add_option(
+    "--container-requirements",
+    action="append",
+    dest="container_requirements",
+    metavar="REQUIREMENTS",
+    default=[],
+    help="""\
+Install requirements with pip inside the container before compiling. Can be given multiple
+times, e.g. "lxml" or "-r requirements.txt". This enables network access for the container
+run. Defaults to nothing.""",
+)
+
+container_group.add_option(
+    "--container-wheels-dir",
+    action="store",
+    dest="container_wheels_dir",
+    metavar="DIRECTORY",
+    default=None,
+    help="""\
+Directory with wheel files to install with pip inside the container before compiling, e.g. for
+packages that cannot be built there. The directory is mounted at "/Nuitka-wheels". This enables
+network access for the container run. Defaults to nothing.""",
+)
+
+container_group.add_option(
+    "--container-python-version",
+    action="store",
+    dest="container_python_version",
+    metavar="VERSION",
+    default=None,
+    help="""\
+Python version to build inside the container, e.g. "3.12.3". Defaults to the version running
+Nuitka. Use "container" to keep the container's Python.""",
+)
+
+container_group.add_option(
+    "--container-no-build",
+    action="store_true",
+    dest="container_no_build",
+    default=False,
+    help="""\
+Do not update the container before using it, use it as it is. Defaults to off.""",
+)
+
+container_group.add_option(
+    "--container-podman-path",
+    action="store",
+    dest="container_podman_path",
+    metavar="PODMAN_PATH",
+    default=None,
+    help="""\
+Podman binary in case you do not have it in "PATH". Defaults to automatic detection.""",
+)
+
+container_group.add_option(
+    "--container-podman-verbose",
+    action="store_true",
+    dest="container_podman_verbose",
+    default=False,
+    help="""\
+Do not use podman quietly, giving more messages during the container build. Defaults to off.""",
+)
+
+container_group.add_option(
+    "--container-shared-path",
+    action="append",
+    dest="container_shared_paths",
+    metavar="PATH_SPEC",
+    default=[],
+    help="""\
+Path to share with the container, use "--container-shared-path=src=dst" format for directory
+names. Can be given multiple times. Defaults to nothing.""",
+)
+
+container_group.add_option(
+    "--container-network",
+    action="store_true",
+    dest="container_network",
+    default=False,
+    help="""\
+Allow the container run to use the network. Defaults to off.""",
+)
+
+container_group.add_option(
+    "--container-isolated",
+    action="store_true",
+    dest="container_isolated",
+    default=None,
+    help="""\
+Do not provide host access of any kind to the container run. Defaults to on for containers
+whose name contains "isolated" and off otherwise.""",
+)
+
+container_group.add_option(
+    "--container-no-isolated",
+    action="store_false",
+    dest="container_isolated",
+    default=None,
+    help="""\
+Provide host access even if the container name suggests otherwise. Defaults to off.""",
+)
+
+container_group.add_option(
+    "--container-privileged",
+    action="store_true",
+    dest="container_privileged",
+    default=False,
+    help="""\
+Allow the container run to create device nodes, e.g. for pbuilder, making the container
+insecure. Defaults to off.""",
+)
+
+del container_group
 
 
 compilation_group = parser.add_option_group("Compilation choices")
@@ -925,6 +1096,19 @@ Select what value "__name__" and "__package__" are going to be. With "runtime"
 deduce the value of "__package__", to be fully compatible. The value "original"
 (default for other modes) allows for more static optimization to happen, but
 is incompatible for modules that normally can be loaded into any package.""",
+)
+
+compilation_group.add_option(
+    "--module-force-namespace",
+    action="store",
+    dest="module_force_namespace",
+    metavar="NAMESPACE",
+    default=None,
+    help="""\
+Require this compiled module to be loaded below the given namespace. An empty
+namespace means the module can only be loaded at top level, a non-empty value
+means it can only be loaded as a submodule of that package. This makes
+"__name__" and "__package__" compile time constants. Only valid in module mode.""",
 )
 
 
@@ -1085,6 +1269,20 @@ enabled with "ASAN_OPTIONS=detect_leaks=1" if wanted. Defaults to off.""",
 )
 
 debug_group.add_option(
+    "--debug-thread-sanitizer",
+    action="store_true",
+    dest="debug_thread_sanitizer",
+    default=False,
+    help="""\
+Compile and link with ThreadSanitizer instrumentation, if the C compiler
+supports it. Known to work with GCC and Clang on Linux and macOS, but not
+available on Windows. This implies keeping debug information. For compiled
+extension modules the host program must preload the ThreadSanitizer runtime,
+e.g. using the "LD_PRELOAD" environment variable on Linux, or
+"DYLD_INSERT_LIBRARIES" on macOS. Defaults to off.""",
+)
+
+debug_group.add_option(
     "--no-debug-immortal-assumptions",
     action="store_false",
     dest="debug_immortal",
@@ -1197,6 +1395,7 @@ debug_group.add_option(
     "--create-environment-from-report",
     action="store",
     dest="create_environment_from_report",
+    metavar="DIRECTORY",
     default="",
     require_compiling=False,
     help="""\
@@ -1354,6 +1553,16 @@ development_group.add_option(
 Keep the Python 3.14 remote debugging interface enabled. Defaults to off.""",
 )
 
+development_group.add_option(
+    "--devel-show-slow-paths",
+    action="store_true",
+    dest="devel_show_slow_paths",
+    default=False,
+    github_action=False,
+    help="""\
+Report runtime slow paths taken during execution. Defaults to off.""",
+)
+
 del development_group
 
 # This is for testing framework, "coverage.py" hates to loose the process. And
@@ -1413,6 +1622,7 @@ c_compiler_group.add_option(
     "--msvc",
     action="store",
     dest="msvc_version",
+    metavar="VERSION",
     default=None,
     help="""\
 Enforce the use of specific MSVC version on Windows. Allowed values
@@ -1440,7 +1650,7 @@ c_compiler_group.add_option(
     "--reproducible",
     action="store",
     dest="reproducible",
-    metavar="choice",
+    metavar="CHOICE",
     default="auto",
     choices=("yes", "no", "auto"),
     help="""\
@@ -1452,7 +1662,7 @@ c_compiler_group.add_option(
     "--lto",
     action="store",
     dest="lto",
-    metavar="choice",
+    metavar="CHOICE",
     default="auto",
     choices=("yes", "no", "auto"),
     help="""\
@@ -1462,10 +1672,19 @@ Use link time optimizations (MSVC, gcc, clang). Allowed values are
 )
 
 c_compiler_group.add_option(
+    "--resource-mode",
+    dest="resource_mode",
+    metavar="MODE",
+    default=None,
+    environment_variable_name="NUITKA_RESOURCE_MODE",
+    help=SUPPRESS_HELP,
+)
+
+c_compiler_group.add_option(
     "--static-libpython",
     action="store",
     dest="static_libpython",
-    metavar="choice",
+    metavar="CHOICE",
     default="auto",
     choices=("yes", "no", "auto"),
     help="""\
@@ -1510,7 +1729,7 @@ del c_compiler_group
 
 caching_group = parser.add_option_group("Cache Control")
 
-_cache_names = ("all", "ccache", "bytecode", "compression")
+_cache_names = ("all", "ccache", "bytecode")
 
 if isWin32Windows():
     _cache_names += ("dll-dependencies",)
@@ -1519,6 +1738,7 @@ caching_group.add_option(
     "--disable-cache",
     action="append",
     dest="disabled_caches",
+    metavar="CACHE_NAME",
     choices=_cache_names,
     default=[],
     help="""\
@@ -1531,6 +1751,7 @@ caching_group.add_option(
     "--clean-cache",
     action="append",
     dest="clean_caches",
+    metavar="CACHE_NAME",
     choices=_cache_names,
     default=[],
     require_compiling=False,
@@ -1591,7 +1812,7 @@ pgo_group.add_option(
     help="""\
 Enables C level profile guided optimization (PGO), by executing a dedicated build first
 for a profiling run, and then using the result to feedback into the C compilation.
-Note: This is experimental and not working with standalone modes of Nuitka yet.
+Note: This is experimental.
 Defaults to off.""",
 )
 
@@ -1615,6 +1836,7 @@ pgo_group.add_option(
     "--pgo-json",
     action="store",
     dest="python_pgo_json",
+    metavar="FILENAME",
     default=None,
     help="""\
 Write the PGO input file contents to the given JSON file while reading it, for \
@@ -1634,6 +1856,7 @@ pgo_group.add_option(
     "--pgo-python-error-exit",
     action="store",
     dest="python_pgo_error_exit",
+    metavar="CHOICE",
     choices=("yes", "no"),
     default="no",
     help="""\
@@ -1646,6 +1869,7 @@ pgo_group.add_option(
     "--pgo-args",
     action="store",
     dest="pgo_args",
+    metavar="ARGS",
     default="",
     help="""\
 Arguments to be passed in case of profile guided optimization. These are passed to the special
@@ -1656,6 +1880,7 @@ pgo_group.add_option(
     "--pgo-executable",
     action="store",
     dest="pgo_executable",
+    metavar="PATH",
     default=None,
     help="""\
 Command to execute when collecting profile information. Use this only, if you need to
@@ -1685,7 +1910,6 @@ tracing_group.add_option(
     "--report-diffable",
     action="store_true",
     dest="compilation_report_diffable",
-    metavar="REPORT_DIFFABLE",
     default=False,
     help="""\
 Report data in diffable form, i.e. no timing or memory usage values that vary from run
@@ -1710,7 +1934,7 @@ tracing_group.add_option(
     "--report-template",
     action="append",
     dest="compilation_report_templates",
-    metavar="REPORT_DESC",
+    metavar="TEMPLATE_SPEC",
     default=[],
     help="""\
 Report via template. Provide template and output filename 'template.rst.j2:output.rst'. For
@@ -1743,14 +1967,15 @@ tracing_group.add_option(
     "--progress-bar",
     action="store",
     dest="progress_bar",
-    choices=("auto", "tqdm", "rich", "none"),
+    choices=("auto", "barflow", "tqdm", "rich", "none"),
     metavar="PROGRESS_BAR_MODE",
     default="auto",
     github_action=False,
     help="""\
 Select the progress bar mode. The 'auto' selects 'tqdm' if available,
-otherwise 'rich'. The values 'tqdm' and 'rich' force a specific
-library. Use 'none' to disables progress bars. Defaults to 'auto'.""",
+otherwise 'rich'. The values 'barflow', 'tqdm' and 'rich' force a
+specific library. Use 'none' to disable progress bars. Defaults to
+'auto'.""",
 )
 
 tracing_group.add_option(
@@ -1915,6 +2140,7 @@ windows_group.add_option(
     "--onefile-windows-splash-screen-image",
     action="store",
     dest="splash_screen_image",
+    metavar="FILENAME",
     default=None,
     help="""\
 When compiling for Windows and onefile, show this while loading the application. Defaults to off.
@@ -1926,7 +2152,6 @@ windows_group.add_option(
     "--windows-uac-admin",
     action="store_true",
     dest="windows_uac_admin",
-    metavar="WINDOWS_UAC_ADMIN",
     default=False,
     help="Request Windows User Control, to grant admin rights on execution. (Windows only). Defaults to off.",
 )
@@ -1935,7 +2160,6 @@ windows_group.add_option(
     "--windows-uac-uiaccess",  # spell-checker: ignore uiaccess
     action="store_true",
     dest="windows_uac_uiaccess",
-    metavar="WINDOWS_UAC_UIACCESS",
     default=False,
     help="""\
 Request Windows User Control, to enforce running from a few folders only, remote
@@ -2074,7 +2298,7 @@ macos_group.add_option(
     "--macos-sign-identity",
     action="store",
     dest="macos_sign_identity",
-    metavar="MACOS_APP_VERSION",
+    metavar="IDENTITY",
     default=None,
     help="""\
 When signing on macOS, by default an ad-hoc identify will be used, but with this
@@ -2131,7 +2355,7 @@ macos_group.add_option(
     "--macos-app-protected-resource",
     action="append",
     dest="macos_protected_resources",
-    metavar="RESOURCE_DESC",
+    metavar="RESOURCE_SPEC",
     default=[],
     help="""\
 Request an entitlement for access to a macOS protected resources, e.g.
@@ -2513,6 +2737,7 @@ plugin_group.add_option(
     "--module-parameter",
     action="append",
     dest="module_parameters",
+    metavar="KEY_VALUE",
     default=[],
     help="""\
 Provide a module parameter. You are asked by some packages
@@ -2525,6 +2750,7 @@ plugin_group.add_option(
     "--show-source-changes",
     action="append",
     dest="show_source_changes",
+    metavar="PATTERN",
     default=[],
     github_action=False,
     help="""\
@@ -2545,11 +2771,47 @@ target_group.add_option(
     action="store",
     dest="target_desc",
     metavar="TARGET_DESC",
-    default=None,
+    default="native",
     help="""\
 Cross compilation target. Highly experimental and in development, not
-supposed to work yet. We are working on '--target=wasi' and nothing
-else yet.""",
+supposed to work yet. The default is 'native'; the cross targets
+are 'wasm32-wasi' and 'i686-w64-mingw32'.""",
+)
+
+target_group.add_option(
+    "--wasi-python-prefix",
+    action="store",
+    dest="wasi_python_prefix",
+    metavar="DIRECTORY",
+    default=None,
+    help="""\
+Directory of a WASI CPython installation to use with '--target=wasm32-wasi'.
+When not given, Nuitka downloads and caches a matching prebuilt WASI Python.
+Default empty.""",
+)
+
+target_group.add_option(
+    "--win32-python-exe",
+    action="store",
+    dest="win32_python_exe",
+    metavar="PATH",
+    default=None,
+    help="""\
+Path of the 32-bit Windows Python executable to use with
+'--target=i686-w64-mingw32'. Nuitka starts it to determine the target Python
+prefix and library paths. Default empty.""",
+)
+
+target_group.add_option(
+    "--wasi-sdk-path",
+    action="store",
+    dest="wasi_sdk_path",
+    metavar="DIRECTORY",
+    default=None,
+    help="""\
+Directory of a WASI SDK installation to use with '--target=wasm32-wasi'.
+When not given, Nuitka downloads and caches WASI SDK 20.
+Default empty.""",
 )
 
 del target_group
@@ -2567,7 +2829,7 @@ def _considerPluginOptions(logger):
         parser=parser, plugin_help_mode=plugin_help_mode
     )
 
-    for arg in sys.argv[1:]:
+    for arg in getArgumentsBeforeDoubleDash(sys.argv[1:]):
         if arg.startswith(
             ("--enable-plugin=", "--enable-plugins=", "--plugin-enable=")
         ):
@@ -2590,7 +2852,9 @@ to know new options.""" % plugin_names.split("=", 1)[0])
 Error, plugin options format changed. Use '--user-plugin=%s --help'
 to know new options.""" % plugin_name.split("=", 1)[0])
 
-            addUserPluginCommandLineOptions(parser=parser, filename=plugin_name)
+            addUserPluginCommandLineOptions(
+                parser=parser, filename=getUserInputNormalizedPath(plugin_name)
+            )
 
 
 run_time_variable_names = (
@@ -2661,15 +2925,20 @@ def _expandProjectArg(arg, filename_arg, for_eval, custom_values):
             values[k] = wrap(v)
 
     values.update(
-        (
-            (run_time_variable_name, "{%s}" % run_time_variable_name)
-            for run_time_variable_name in run_time_variable_names
-        )
+        (run_time_variable_name, "{%s}" % run_time_variable_name)
+        for run_time_variable_name in run_time_variable_names
     )
 
     arg = _RetainingFormatter().format(arg, **values)
 
     return arg
+
+
+def _checkValidProjectOption(logger, option):
+    if option == "--container" or option.startswith(("--container=", "--container-")):
+        return logger.sysexit("""\
+Error, option '%s' must be given on the command line, not in project configuration.\
+""" % option)
 
 
 def getNuitkaProjectOptions(logger, filename_arg, module_mode):
@@ -2683,11 +2952,18 @@ def getNuitkaProjectOptions(logger, filename_arg, module_mode):
     # The returns are not real, but make exception raises explicit to bytecode and pylint.
     # pylint: disable=too-many-return-statements
 
+    filename_arg = getUserInputNormalizedPath(filename_arg)
+
     if os.path.isdir(filename_arg):
+        filename_dir = filename_arg
+
         if module_mode:
-            filename_arg = os.path.join(filename_arg, "__init__.py")
+            filename_arg = os.path.join(filename_dir, "__init__.py")
         else:
-            filename_arg = os.path.join(filename_arg, "__main__.py")
+            filename_arg = os.path.join(filename_dir, "__main__.py")
+
+            if not os.path.isfile(filename_arg):
+                filename_arg = os.path.join(filename_dir, "__init__.py")
 
     # The file specified may not exist, let the later parts of Nuitka handle this.
     try:
@@ -2712,7 +2988,15 @@ def getNuitkaProjectOptions(logger, filename_arg, module_mode):
         if match:
             level, command, arg = match.groups()
             level = len(level)
-            arg = arg.rstrip()
+            arg = arg.strip()
+
+            if str is not bytes:
+                command = command.decode("utf8")
+                arg = arg.decode("utf8")
+
+            # Check every option line, active or not.
+            if command == "":
+                _checkValidProjectOption(logger=logger, option=arg)
 
             # Check for empty conditional blocks.
             if expect_block and level <= cond_level:
@@ -2723,17 +3007,13 @@ def getNuitkaProjectOptions(logger, filename_arg, module_mode):
 
             expect_block = False
 
-            if level == cond_level and command == b"-else":
+            if level == cond_level and command == "-else":
                 execute_block = not execute_block
             elif level <= cond_level:
                 execute_block = True
 
             if level > cond_level and not execute_block:
                 continue
-
-            if str is not bytes:
-                command = command.decode("utf8")
-                arg = arg.decode("utf8")
 
             if command == "-if":
                 if not arg.endswith(":"):
@@ -2751,10 +3031,9 @@ def getNuitkaProjectOptions(logger, filename_arg, module_mode):
                     custom_values=custom_values,
                 )
 
-                with withNoSyntaxWarning():
-                    r = eval(  # We allow the user to run any code, pylint: disable=eval-used
-                        expanded
-                    )
+                # We allow the user to run any code.
+                # pylint: disable-next=eval-used
+                r = eval(expanded)
 
                 # Likely mistakes, e.g. with "in" tests.
                 if r is not True and r is not False:
@@ -2792,8 +3071,7 @@ def getNuitkaProjectOptions(logger, filename_arg, module_mode):
                 key = key.strip()
                 val_expr = val_expr.strip()
 
-                # TODO: Use isPythonIdentifier starting with 4.1 development for Python2 compatibility.
-                if not key.isidentifier():
+                if not isPythonIdentifier(key):
                     return sysexit(
                         line_number,
                         "Error, 'nuitka-project-set' key '%s' is not a valid Python identifier."
@@ -2815,17 +3093,16 @@ def getNuitkaProjectOptions(logger, filename_arg, module_mode):
                     custom_values=custom_values,
                 )
 
-                with withNoSyntaxWarning():
-                    try:
-                        r = eval(  # We allow the user to run any code, pylint: disable=eval-used
-                            expanded
-                        )
-                    except Exception as e:  # pylint: disable=broad-except
-                        return sysexit(
-                            line_number,
-                            "Error, 'nuitka-project-set' expression %r (expanded to %r) failed to evaluate: %s"
-                            % (val_expr, expanded, e),
-                        )
+                try:
+                    # We allow the user to run any code.
+                    # pylint: disable-next=eval-used
+                    r = eval(expanded)
+                except Exception as e:  # pylint: disable=broad-exception-caught
+                    return sysexit(
+                        line_number,
+                        "Error, 'nuitka-project-set' expression %r (expanded to %r) failed to evaluate: %s"
+                        % (val_expr, expanded, e),
+                    )
 
                 # Likely mistakes, e.g. evaluating to a module object, class, or
                 # not type. We enforce that the returned value is a basic
@@ -2842,7 +3119,7 @@ yielded unsupported type '%s' (value: %r). Expected string, number, or boolean."
 
                 custom_values[key] = r
             elif command == "":
-                arg = re.sub(r"""^([\w-]*=)(['"])(.*)\2$""", r"\1\3", arg.lstrip())
+                arg = re.sub(r"""^([\w-]*=)(['"])(.*)\2$""", r"\1\3", arg)
 
                 if not arg:
                     continue
@@ -2862,10 +3139,13 @@ yielded unsupported type '%s' (value: %r). Expected string, number, or boolean."
 
 
 def _considerGithubWorkflowOptions(phase):
-    try:
-        github_option_index = sys.argv.index("--github-workflow-options")
-    except ValueError:
+    github_option_index = getOptionIndex(sys.argv[1:], "--github-workflow-options")
+
+    if github_option_index is None:
         return
+
+    # Account for the program name.
+    github_option_index += 1
 
     import json
 
@@ -2919,11 +3199,13 @@ def _considerGithubWorkflowOptions(phase):
 
             options_added.append(option_name)
         elif parser.isListOption(option_name):
-            for value in value.split("\n"):
-                if not value.strip():
-                    continue
-
-                options_added.append("%s=%s" % (option_name, value))
+            options_added.extend(
+                [
+                    "%s=%s" % (option_name, value_line)
+                    for value_line in value.split("\n")
+                    if value_line.strip()
+                ]
+            )
         else:
             # Boolean disabled options from inactive plugins that default to off.
             if value == "false":
@@ -2970,13 +3252,14 @@ def _extractMainArguments(args):
 
 def parseOptions(logger):
     # Pretty complex code, having a small options parser and many details as
-    # well as integrating with plugins and run modes. pylint: disable=too-many-branches
+    # well as integrating with plugins and run modes.
+    # pylint: disable=too-many-branches
 
     # First, isolate the first non-option arguments.
     extra_args = []
 
     # Workaround for issue with help2man.
-    if "--version" in sys.argv[1:] and os.getenv("NUITKA_MANPAGE_GEN"):
+    if os.getenv("NUITKA_MANPAGE_GEN") and hasOption(sys.argv[1:], "--version"):
         sys.argv[1:] = ["--version"]
 
     if is_nuitka_run:
@@ -3005,33 +3288,37 @@ def parseOptions(logger):
     _considerGithubWorkflowOptions(phase="early")
 
     build_configuration_options = getBuildConfigurationOptions(logger)
+
+    for option in build_configuration_options:
+        _checkValidProjectOption(logger=logger, option=option)
+
     project_mains, project_main_entry_points = _extractMainArguments(
         build_configuration_options
     )
 
     sys.argv = [sys.argv[0]] + build_configuration_options + sys.argv[1:]
 
-    if "--project" not in sys.argv[1:]:
-        for count, arg in enumerate(sys.argv):
-            if count == 0:
-                continue
-
+    if not hasOption(sys.argv[1:], "--project"):
+        for arg in getArgumentsBeforeDoubleDash(sys.argv[1:]):
             if arg.startswith(("--main=", "--script-name=")):
                 filename_args.append(arg.split("=", 1)[1])
 
-            if arg in ("--mode=module", "--mode=module", "--module=package"):
+            if arg in ("--module", "--mode=module", "--mode=package"):
                 module_mode = True
 
             if arg[0] != "-":
                 filename_args.append(arg)
                 break
 
-    for filename in filename_args:
-        sys.argv = (
-            [sys.argv[0]]
-            + getNuitkaProjectOptions(logger, filename, module_mode)
-            + sys.argv[1:]
-        )
+    # With --container, project options are parsed by the in-container Nuitka,
+    # so conditions use the container OS and Python rather than the host ones.
+    if not hasOption(sys.argv[1:], "--container="):
+        for filename in filename_args:
+            sys.argv = (
+                [sys.argv[0]]
+                + getNuitkaProjectOptions(logger, filename, module_mode)
+                + sys.argv[1:]
+            )
 
     # Next, lets activate plugins early, so they can inject more options to the parser.
     _considerPluginOptions(logger)
@@ -3053,11 +3340,23 @@ def parseOptions(logger):
 
     options, positional_args = parser.parse_args()
 
+    # Make sure the list of given options is present even if none were given.
+    options.ensure_value("given_options", [])
+
+    setExperimental(options.experimental)
+
+    # In container project mode, project extraction is deferred to the
+    # in-container Nuitka, so the project entry points are not known here yet.
+    project_entry_points_deferred = (
+        options.is_project_mode and options.container is not None
+    )
+
     if (
         not positional_args
         and not options.mains
         and not options.main_entry_points
         and not parser.hasNonCompilingAction(options)
+        and not project_entry_points_deferred
     ):
         parser.print_help()
 
@@ -3088,6 +3387,14 @@ pass them to the compiled program execution.""")
 
 
 def runSpecialCommandsFromOptions(options):
+    if options.container is not None:
+        from nuitka.tools.podman.ContainerCommand import runNuitkaInContainer
+
+        runNuitkaInContainer(
+            container_name=options.container,
+            container_command=options.container_command,
+        )
+
     if options.recommended_python_version_kind is not None:
         displayRecommendedVersion(options.recommended_python_version_kind)
         sys.exit(0)
@@ -3138,10 +3445,14 @@ def runSpecialCommandsFromOptions(options):
         )
 
         createEnvironmentFromReport(
-            environment_folder=os.path.expanduser(
+            environment_folder=getUserInputNormalizedPath(
                 options.create_environment_from_report
             ),
-            report_filename=os.path.expanduser(options.compilation_report_filename),
+            report_filename=(
+                getUserInputNormalizedPath(options.compilation_report_filename)
+                if options.compilation_report_filename is not None
+                else None
+            ),
         )
         sys.exit(0)
 

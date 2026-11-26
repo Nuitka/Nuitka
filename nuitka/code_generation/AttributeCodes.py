@@ -1,10 +1,7 @@
 #     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-"""Attribute related codes.
-
-Attribute lookup, setting.
-"""
+"""Attribute lookup, assignment, and deletion code generation."""
 
 from nuitka.States import states
 
@@ -158,8 +155,6 @@ def getAttributeAssignmentCode(target_name, attribute_name, value_name, emit, co
 
 
 def getAttributeAssignmentDictSlotCode(target_name, value_name, emit, context):
-    """Code for special case target.__dict__ = value"""
-
     res_name = context.getBoolResName()
 
     emit(
@@ -176,7 +171,6 @@ def getAttributeAssignmentDictSlotCode(target_name, value_name, emit, context):
 
 
 def getAttributeAssignmentClassSlotCode(target_name, value_name, emit, context):
-    """Get code for special case target.__class__ = value"""
 
     res_name = context.getBoolResName()
 
@@ -331,6 +325,20 @@ def generateBuiltinSetattrCode(to_name, expression, emit, context):
     generateCAPIObjectCode0(
         to_name=to_name,
         capi="BUILTIN_SETATTR",
+        tstate=False,
+        arg_desc=makeArgDescFromExpression(expression),
+        may_raise=expression.mayRaiseException(BaseException),
+        conversion_check=decideConversionCheckNeeded(to_name, expression),
+        source_ref=expression.getCompatibleSourceReference(),
+        emit=emit,
+        context=context,
+    )
+
+
+def generateBuiltinDelattrCode(to_name, expression, emit, context):
+    generateCAPIObjectCode0(
+        to_name=to_name,
+        capi="BUILTIN_DELATTR",
         tstate=False,
         arg_desc=makeArgDescFromExpression(expression),
         may_raise=expression.mayRaiseException(BaseException),

@@ -10,13 +10,26 @@ import sys
 
 from nuitka.importing.Importing import addMainScriptDirectory
 from nuitka.utils.Execution import executeProcess
-from nuitka.utils.FileOperations import withTemporaryDirectory
+from nuitka.utils.FileOperations import (
+    getNormalizedAbsolutePath,
+    getUserInputNormalizedAbsolutePath,
+    withTemporaryDirectory,
+)
 from nuitka.utils.Json import loadJsonFromFilename
 
 from .BuildPackageCommon import (
     applyNuitkaProjectOptions,
     reportBuildError,
     setProjectExpectedDataFiles,
+)
+
+# These keys of the "[tool.uv]" section are known to not affect how the project
+# is built, and are therefore acceptable without handling. Everything else is
+# warned about, so new keys that might matter can be noticed.
+_uv_config_ignore_list = (
+    "index",
+    "managed",
+    "sources",
 )
 
 
@@ -41,26 +54,29 @@ def _handleUvConfig(logger, pyproject_data):
 
     module_root = uv_build_config.pop("module-root", None)
     if module_root is not None:
-        addMainScriptDirectory(os.path.abspath(module_root))
+        addMainScriptDirectory(getUserInputNormalizedAbsolutePath(module_root))
     elif os.path.exists("src"):
-        addMainScriptDirectory(os.path.abspath("src"))
+        addMainScriptDirectory(getNormalizedAbsolutePath("src"))
     else:
         addMainScriptDirectory(os.getcwd())
 
     if uv_build_config:
-        for unhandled_key in uv_build_config:
+        for unhandled_key, unhandled_value in uv_build_config.items():
             logger.warning(
                 """\
 Unhandled UV build backend config key '%s' in [tool.uv.build-backend] of the \
 'pyproject.toml', we might have to ignore list or handle it: %s"""
-                % (unhandled_key, uv_build_config[unhandled_key])
+                % (unhandled_key, unhandled_value)
             )
 
     if uv_config:
-        for unhandled_key in uv_config:
+        for unhandled_key, unhandled_value in uv_config.items():
+            if unhandled_key in _uv_config_ignore_list:
+                continue
+
             logger.warning("""\
-Unhandled UV config key '%s' in [tool.uv] of the 'pyproject.toml', we might \
-have to ignore list or handle it: %s""" % (unhandled_key, uv_config[unhandled_key]))
+Unhandled UV config key '%s' in [tool.uv] of the 'pyproject.toml', Nuitka might \
+have to ignore list or handle it: %s""" % (unhandled_key, unhandled_value))
 
 
 def getUvBuildConfiguration(logger, pyproject_data):

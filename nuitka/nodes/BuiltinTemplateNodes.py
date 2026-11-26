@@ -1,12 +1,7 @@
 #     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-"""Nodes related to t-strings
-
-These will most often be used for outputs, and not optimizable and
-generally these should not be that much about performance critical.
-
-"""
+"""Nodes for template strings (PEP 750 t-strings)."""
 
 from .ExpressionBasesGenerated import (
     ExpressionTemplateInterpolationBase,
@@ -42,8 +37,6 @@ class ExpressionTemplateInterpolation(ExpressionTemplateInterpolationBase):
     )
 
     def __init__(self, value, format_spec, str_value, conversion, source_ref):
-        assert conversion == -1, conversion
-
         ExpressionTemplateInterpolationBase.__init__(
             self,
             value=value,

@@ -1,12 +1,7 @@
 #     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-"""Reformulation of print statements.
-
-Consult the Developer Manual for information. TODO: Add ability to sync
-source code comments with Developer Manual sections.
-
-"""
+"""Reformulation of print statements."""
 
 from nuitka.nodes.ComparisonNodes import ExpressionComparisonIs
 from nuitka.nodes.ConditionalNodes import makeStatementConditional
@@ -15,6 +10,7 @@ from nuitka.nodes.ImportNodes import makeExpressionImportModuleNameHard
 from nuitka.nodes.PrintNodes import StatementPrintNewline, StatementPrintValue
 from nuitka.nodes.VariableAssignNodes import makeStatementAssignmentVariable
 from nuitka.nodes.VariableRefNodes import ExpressionTempVariableRef
+from nuitka.PythonVersions import python_version
 
 from .ReformulationTryFinallyStatements import makeTryFinallyReleaseStatement
 from .TreeHelpers import (
@@ -25,7 +21,7 @@ from .TreeHelpers import (
 
 
 def buildPrintNode(provider, node, source_ref):
-    # "print" statements, should only occur with Python2.
+    assert python_version < 0x300
 
     if node.dest is not None:
         temp_scope = provider.allocateTempScope("print")

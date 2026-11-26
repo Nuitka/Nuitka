@@ -26,7 +26,7 @@ from .ModuleCodes import getModuleAccessCode
 
 
 def generateBuiltinImportCode(to_name, expression, emit, context):
-    # We know that 5 expressions are created, pylint: disable=W0632
+    # pylint: disable=W0632
     (
         module_name,
         globals_name,
@@ -71,7 +71,6 @@ def _getCountedArgumentsHelperCallCode(
             )
         )
     else:
-        # Check that no following arguments are not None.
         assert len(args) >= min_args
 
         emit(
@@ -118,27 +117,10 @@ def _getBuiltinImportCode(
 
 
 def _getIncludedModule(module_name):
-    """Get the module object of an included module.
-
-    Args:
-        module_name: ModuleName of the module to check.
-
-    Returns:
-        Module object, or None if the module is not included.
-    """
     return getModuleByName(module_name)
 
 
 def _getIncludedModuleEntryRef(module, context):
-    """Get C code referencing the loader entry of an included module.
-
-    Args:
-        module: Module object of the included module.
-        context: Code generation context to add the entry declaration to.
-
-    Returns:
-        C code naming the entry.
-    """
     loader_entry_ref = getModuleEntryCodeName(module.getFullName())
 
     if not context.hasDeclaration(loader_entry_ref):
@@ -151,24 +133,93 @@ def _getIncludedModuleEntryRef(module, context):
     return loader_entry_ref
 
 
-def _getIncludedModuleImportCall(module, loader_entry_ref):
-    """Get C code importing an included module through its loader entry.
+def _getIncludedModuleImportCall(loader_entry_ref):
+    """Return C code importing an included module, honoring recognized 'sys.modules' replacements."""
+    return "Nuitka_ImportModuleEntryValue(tstate, &%(loader_entry_ref)s)" % {
+        "loader_entry_ref": loader_entry_ref
+    }
 
-    Args:
-        module: Module object of the included module.
-        loader_entry_ref: C code naming the entry of the module.
 
-    Returns:
-        C code calling the entry importer.
+def _emitParentModuleBindings(module, emit, context):
+    """Bind an included private module and its parent chain.
+
+    The loader entry of a private module has a synthetic name, so the binding
+    cannot be derived at runtime. The import site knows the compile time names
+    and can bind the values that the entry importers returned.
     """
-    if module.isCompiledPythonModule():
-        return "%(loader_entry_ref)s.m_import_module(tstate, NULL, NULL)" % {
-            "loader_entry_ref": loader_entry_ref
-        }
-    else:
-        return (
-            "%(loader_entry_ref)s.m_import_module(tstate, &%(loader_entry_ref)s, NULL)"
-            % {"loader_entry_ref": loader_entry_ref}
+    if module is None:
+        return
+
+    module_name = module.getFullName()
+
+    if not isHardModuleDynamic(module_name):
+        return
+
+    module_name_parts = module_name.asString().split(".")
+
+    for index in range(2, len(module_name_parts) + 1):
+        child_name = ModuleName(".".join(module_name_parts[:index]))
+        parent_name = ModuleName(".".join(module_name_parts[: index - 1]))
+
+        child_module = _getIncludedModule(module_name=child_name)
+        parent_module = _getIncludedModule(module_name=parent_name)
+
+        if child_module is None or parent_module is None:
+            continue
+
+        parent_value_name = context.allocateTempName("bind_parent")
+        child_value_name = context.allocateTempName("bind_child")
+
+        emit(
+            "%s = %s;"
+            % (
+                parent_value_name,
+                _getIncludedModuleImportCall(
+                    _getIncludedModuleEntryRef(parent_module, context)
+                ),
+            )
+        )
+        getErrorExitCode(
+            check_name=parent_value_name,
+            needs_check=True,
+            emit=emit,
+            context=context,
+        )
+        context.addCleanupTempName(parent_value_name)
+
+        emit(
+            "%s = %s;"
+            % (
+                child_value_name,
+                _getIncludedModuleImportCall(
+                    _getIncludedModuleEntryRef(child_module, context)
+                ),
+            )
+        )
+        getErrorExitCode(
+            check_name=child_value_name,
+            needs_check=True,
+            emit=emit,
+            context=context,
+        )
+        context.addCleanupTempName(child_value_name)
+
+        res_name = context.getBoolResName()
+
+        emit(
+            "%s = SET_ATTRIBUTE(tstate, %s, %s, %s);"
+            % (
+                res_name,
+                parent_value_name,
+                context.getConstantCode(child_name.getBasename().asString()),
+                child_value_name,
+            )
+        )
+        getErrorExitBoolCode(
+            condition="%s == false" % res_name,
+            release_names=(parent_value_name, child_value_name),
+            emit=emit,
+            context=context,
         )
 
 
@@ -176,21 +227,21 @@ def _emitFromlistModuleImports(expression, module_value_name, emit, context):
     # Emulate the fromlist handling of "__import__", which imports the real
     # submodules before the values are looked up on the imported module.
     for fromlist_module_name in expression.getFromlistModuleNames():
-        res_name = context.getBoolResName()
-
         fromlist_module = _getIncludedModule(module_name=fromlist_module_name)
 
         if fromlist_module is not None:
             submodule_import_call = _getIncludedModuleImportCall(
-                fromlist_module,
-                _getIncludedModuleEntryRef(fromlist_module, context),
+                _getIncludedModuleEntryRef(fromlist_module, context)
             )
 
-            emit(
-                """\
+            if python_version < 0x300:
+                res_name = context.getBoolResName()
+
+                emit(
+                    """\
 %(res_name)s = HAS_ATTR_BOOL(tstate, %(module_value_name)s, %(attribute_name)s);
 
-if (%(res_name)s == false && HAS_ERROR_OCCURRED(tstate) == false) {
+if (%(res_name)s == false) {
     PyObject *fromlist_module = %(submodule_import_call)s;
 
     if (unlikely(fromlist_module == NULL)) {
@@ -201,16 +252,49 @@ if (%(res_name)s == false && HAS_ERROR_OCCURRED(tstate) == false) {
     }
 }
 """
-                % {
-                    "res_name": res_name,
-                    "module_value_name": module_value_name,
-                    "attribute_name": context.getConstantCode(
-                        fromlist_module_name.getBasename().asString()
-                    ),
-                    "submodule_import_call": submodule_import_call,
-                }
-            )
+                    % {
+                        "res_name": res_name,
+                        "module_value_name": module_value_name,
+                        "attribute_name": context.getConstantCode(
+                            fromlist_module_name.getBasename().asString()
+                        ),
+                        "submodule_import_call": submodule_import_call,
+                    }
+                )
+
+                error_condition = "%s == false" % res_name
+            else:
+                res_name = context.getIntResName()
+
+                emit(
+                    """\
+%(res_name)s = HAS_ATTR_BOOL2(tstate, %(module_value_name)s, %(attribute_name)s);
+
+if (%(res_name)s == 0) {
+    PyObject *fromlist_module = %(submodule_import_call)s;
+
+    if (unlikely(fromlist_module == NULL)) {
+        %(res_name)s = -1;
+    } else {
+        Py_DECREF(fromlist_module);
+        %(res_name)s = 1;
+    }
+}
+"""
+                    % {
+                        "res_name": res_name,
+                        "module_value_name": module_value_name,
+                        "attribute_name": context.getConstantCode(
+                            fromlist_module_name.getBasename().asString()
+                        ),
+                        "submodule_import_call": submodule_import_call,
+                    }
+                )
+
+                error_condition = "%s == -1" % res_name
         else:
+            res_name = context.getBoolResName()
+
             emit(
                 """%s = IMPORT_FIXED_MODULE_FROMLIST_ELEMENT(tstate, %s, %s, %s);"""
                 % (
@@ -223,9 +307,12 @@ if (%(res_name)s == false && HAS_ERROR_OCCURRED(tstate) == false) {
                 )
             )
 
-        getErrorExitBoolCode(
-            condition="%s == false" % res_name, emit=emit, context=context
-        )
+            error_condition = "%s == false" % res_name
+
+        getErrorExitBoolCode(condition=error_condition, emit=emit, context=context)
+
+        if fromlist_module is not None:
+            _emitParentModuleBindings(fromlist_module, emit=emit, context=context)
 
 
 def generateImportModuleFixedCode(to_name, expression, emit, context):
@@ -245,8 +332,7 @@ def generateImportModuleFixedCode(to_name, expression, emit, context):
 
         if target_module is not None:
             target_import_call = _getIncludedModuleImportCall(
-                target_module,
-                _getIncludedModuleEntryRef(target_module, context),
+                _getIncludedModuleEntryRef(target_module, context)
             )
         else:
             target_import_call = None
@@ -258,8 +344,7 @@ def generateImportModuleFixedCode(to_name, expression, emit, context):
 
             if value_module is not None:
                 value_import_call = _getIncludedModuleImportCall(
-                    value_module,
-                    _getIncludedModuleEntryRef(value_module, context),
+                    _getIncludedModuleEntryRef(value_module, context)
                 )
             else:
                 value_import_call = None
@@ -320,6 +405,8 @@ def generateImportModuleFixedCode(to_name, expression, emit, context):
 
         context.addCleanupTempName(value_name)
 
+        _emitParentModuleBindings(target_module, emit=emit, context=context)
+
         _emitFromlistModuleImports(
             expression=expression,
             module_value_name=value_name,
@@ -329,8 +416,6 @@ def generateImportModuleFixedCode(to_name, expression, emit, context):
 
 
 def getImportModuleHardCodeName(module_name):
-    """Encoding hard module name for code name."""
-
     module_name = ModuleName(module_name)
 
     return "IMPORT_HARD_%s" % module_name.asPath().replace(os.path.sep, "__").upper()
@@ -356,7 +441,10 @@ def generateImportModuleHardCode(to_name, expression, emit, context):
             )
 
             emit("""%s = %s;""" % (value_name, module_getter_code))
-        elif not isHardModule(module_value_name):
+        elif (
+            not isHardModule(module_value_name)
+            and _getIncludedModule(module_value_name) is None
+        ):
             # The imported module can be hard-imported while the value bound by
             # "import package.submodule" is still only the top level package.
             # In that case, use a normal fixed import to obtain that binding.
@@ -440,6 +528,12 @@ def generateImportModuleHardCode(to_name, expression, emit, context):
         if import_gives_ref:
             context.addCleanupTempName(value_name)
 
+        _emitParentModuleBindings(
+            _getIncludedModule(module_name=imported_module_name),
+            emit=emit,
+            context=context,
+        )
+
         _emitFromlistModuleImports(
             expression=expression,
             module_value_name=value_name,
@@ -466,7 +560,7 @@ def getImportHardModuleGetterCode(module_name, context, needs_check):
         loader_entry_ref = _getIncludedModuleEntryRef(module, context)
 
         if needs_check:
-            module_getter_code = _getIncludedModuleImportCall(module, loader_entry_ref)
+            module_getter_code = _getIncludedModuleImportCall(loader_entry_ref)
         else:
             # Guaranteed hard imports generate no result check and their
             # "IMPORT_HARD_*" helpers abort on failure, so the direct getter

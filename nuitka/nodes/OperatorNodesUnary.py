@@ -53,12 +53,6 @@ class ExpressionOperationUnaryBase(ChildHavingOperandMixin, ExpressionBase):
             # ones.
             trace_collection.onExceptionRaiseExit(BaseException)
 
-            # The value of that node escapes and could change its contents.
-            # TODO: The unary operations don't do much to an operator, add
-            # methods, that don't do stuff on common types though.
-            # trace_collection.onValueEscapeSomeUnaryOperator(operand)
-
-            # Any code could be run, note that.
             trace_collection.onControlFlowEscape(self)
 
             return self, None, None
@@ -75,8 +69,6 @@ class ExpressionOperationUnaryBase(ChildHavingOperandMixin, ExpressionBase):
 class ExpressionOperationUnaryRepr(  # TODO: Not exact
     ExpressionStrOrUnicodeDerivedShapeMixin, ExpressionOperationUnaryBase
 ):
-    """Python unary operator `x` and repr built-in."""
-
     kind = "EXPRESSION_OPERATION_UNARY_REPR"
 
     operator = "Repr"
@@ -116,7 +108,7 @@ class ExpressionOperationUnaryRepr(  # TODO: Not exact
 
 # TODO: This should merge into base class.
 class ExpressionOperationUnaryMixin(object):
-    # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
+    # pylint: disable=assigning-non-slot
     __slots__ = ()
 
     def mayRaiseExceptionOperation(self):
@@ -195,11 +187,9 @@ class ExpressionOperationUnaryMixin(object):
                 trace_collection.onExceptionRaiseExit(exception_raise_exit)
 
             if self.escape_desc.isValueEscaping():
-                # The value of these nodes escaped and could change its contents.
                 trace_collection.removeKnowledge(operand)
 
             if self.escape_desc.isControlFlowEscape():
-                # Any code could be run, note that.
                 trace_collection.onControlFlowEscape(self)
 
             return self, None, None
@@ -208,8 +198,6 @@ class ExpressionOperationUnaryMixin(object):
 class ExpressionOperationUnarySub(
     ExpressionOperationUnaryMixin, ExpressionOperationUnaryBase
 ):
-    """Python unary operator -"""
-
     kind = "EXPRESSION_OPERATION_UNARY_SUB"
 
     operator = "USub"
@@ -234,8 +222,6 @@ class ExpressionOperationUnarySub(
 class ExpressionOperationUnaryAdd(
     ExpressionOperationUnaryMixin, ExpressionOperationUnaryBase
 ):
-    """Python unary operator +"""
-
     kind = "EXPRESSION_OPERATION_UNARY_ADD"
 
     operator = "UAdd"
@@ -258,8 +244,6 @@ class ExpressionOperationUnaryAdd(
 
 
 class ExpressionOperationUnaryInvert(ExpressionOperationUnaryBase):
-    """Python unary operator ~"""
-
     kind = "EXPRESSION_OPERATION_UNARY_INVERT"
 
     operator = "Invert"
@@ -297,7 +281,6 @@ class ExpressionOperationNot(
     def getTruthValue(self):
         result = self.subnode_operand.getTruthValue()
 
-        # Need to invert the truth value of operand of course here.
         return None if result is None else not result
 
     def mayHaveSideEffects(self):
@@ -359,7 +342,13 @@ class ExpressionOperationUnaryAbs(ExpressionOperationUnaryBase):
 
 
 def makeExpressionOperationUnary(operator, operand, source_ref):
-    if operator == "Repr":
+    if operator == "Not":
+        # Inverted comparisons are cheaper than negating their result.
+        if operand.isExpressionComparison() and operand.hasShapeBoolExact():
+            return operand.makeInverseComparison()
+
+        unary_class = ExpressionOperationNot
+    elif operator == "Repr":
         unary_class = ExpressionOperationUnaryRepr
     elif operator == "USub":
         unary_class = ExpressionOperationUnarySub
@@ -374,7 +363,7 @@ def makeExpressionOperationUnary(operator, operand, source_ref):
     if operand.isCompileTimeConstant():
         try:
             constant = unary_class.simulator(operand.getCompileTimeConstant())
-        except Exception:  # Catch all the things, pylint: disable=broad-except
+        except Exception:  # pylint: disable=broad-except
             # Compile time detectable error, postpone these, so they get traced.
             pass
         else:

@@ -1,7 +1,20 @@
 #     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-"""Dummy file to make this directory a package."""
+"""Main package of Nuitka, the Python compiler."""
+
+import warnings
+
+# We don't care about deprecations in any version, and these are triggered by
+# run time calculations of "range" and others, while on Python 2.7 they are
+# disabled by default.
+warnings.simplefilter("ignore", DeprecationWarning)
+
+# Nuitka intentionally uses identity comparisons for interned small integer
+# states, which Python warns about as SyntaxWarning. Doing this during package
+# initialization covers all tools importing Nuitka modules, not only the
+# compiler main program.
+warnings.simplefilter("ignore", SyntaxWarning)
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.

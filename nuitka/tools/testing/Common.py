@@ -54,9 +54,10 @@ from nuitka.utils.Jinja2 import getTemplate
 from nuitka.utils.Utils import isFreeBSD, isLinux, isMacOS, isWin32Windows
 from nuitka.Version import getCommercialVersion
 
+from .Coverage import getCoverageFile
 from .SearchModes import SearchMode
 
-# spell-checker: ignore popenargs,pathsep,killpg
+# spell-checker: ignore killpg,pathsep,popenargs
 
 test_logger = OurLogger("", base_style="blue")
 
@@ -65,7 +66,7 @@ def check_result(*popenargs, **kwargs):
     if "stdout" in kwargs:
         raise ValueError("stdout argument not allowed, it will be overridden.")
 
-    process = subprocess.Popen(stdout=subprocess.PIPE, *popenargs, **kwargs)
+    process = subprocess.Popen(*popenargs, stdout=subprocess.PIPE, **kwargs)
     _unused_output, _unused_err = process.communicate()
     ret_value = process.poll()
 
@@ -96,6 +97,7 @@ _python_arch = None
 _python_executable = None
 _python_vendor = None
 _python_debug = None
+_python_gil = None
 
 
 def _getMinVersionSuffixRequirements():
@@ -136,7 +138,7 @@ def _parsePythonVersionOutput(python_binary):
             "-c",
             """\
 import sys, os;\
-print(sys.version.split(" ")[0]);\
+print(sys.version.split(" ")[0] + ("t" if "t" in getattr(sys, "abiflags", "") else ""));\
 print(".".join(str(s) for s in list(sys.version_info)[:3]));\
 print(\
 ("x86_64" if "AMD64" in sys.version else (\
@@ -145,7 +147,8 @@ if os.name == "nt" else os.uname()[4]\
 );\
 print(sys.executable);\
 print("Anaconda" if os.path.exists(os.path.join(sys.prefix, 'conda-meta')) else "Unknown");\
-print(hasattr(sys, "gettotalrefcount"))\
+print(hasattr(sys, "gettotalrefcount"));\
+print(bool(getattr(sys.flags, "gil", True)))\
 """,
         ),
         stderr=subprocess.STDOUT,
@@ -160,6 +163,7 @@ print(hasattr(sys, "gettotalrefcount"))\
     python_executable = version_output.split("\n")[3].strip()
     python_vendor = version_output.split("\n")[4].strip()
     python_debug = version_output.split("\n")[5].strip()
+    python_gil = version_output.split("\n")[6].strip()
 
     assert type(python_version_str) is str, repr(python_version_str)
     assert type(python_arch) is str, repr(python_arch)
@@ -167,6 +171,7 @@ print(hasattr(sys, "gettotalrefcount"))\
 
     python_version = tuple(int(d) for d in python_version_numeric.split("."))
     python_debug = python_debug == "True"
+    python_gil = python_gil == "True"
 
     return (
         python_version,
@@ -175,6 +180,7 @@ print(hasattr(sys, "gettotalrefcount"))\
         python_executable,
         python_vendor,
         python_debug,
+        python_gil,
     )
 
 
@@ -202,7 +208,7 @@ def setup(suite="", needs_io_encoding=False, silent=False, go_main=True):
     if needs_io_encoding and "PYTHONIOENCODING" not in os.environ:
         os.environ["PYTHONIOENCODING"] = "utf-8"
 
-    global _python_version_str, _python_version, _python_arch, _python_executable, _python_vendor, _python_debug  # singleton, pylint: disable=global-statement
+    global _python_version_str, _python_version, _python_arch, _python_executable, _python_vendor, _python_debug, _python_gil  # singleton, pylint: disable=global-statement
 
     (
         _python_version,
@@ -211,15 +217,23 @@ def setup(suite="", needs_io_encoding=False, silent=False, go_main=True):
         _python_executable,
         _python_vendor,
         _python_debug,
+        _python_gil,
     ) = _parsePythonVersionOutput(python_binary=os.environ["PYTHON"])
 
     if not silent:
-        my_print("Using concrete python", _python_version_str, "on", _python_arch)
+        if _python_version >= (3, 13):
+            my_print(
+                "Using concrete python",
+                _python_version_str,
+                "on",
+                _python_arch,
+                "(GIL enabled)" if _python_gil else "(GIL disabled)",
+            )
+        else:
+            my_print("Using concrete python", _python_version_str, "on", _python_arch)
 
     if "COVERAGE_FILE" not in os.environ:
-        os.environ["COVERAGE_FILE"] = os.path.join(
-            os.path.dirname(__file__), "..", "..", "..", ".coverage"
-        )
+        os.environ["COVERAGE_FILE"] = getCoverageFile()
 
     return _python_version
 
@@ -244,12 +258,22 @@ def getPythonVersionString():
     return _python_version_str
 
 
+def isPythonWithGil():
+    """Check if the concretely used Python has the GIL enabled.
+
+    This must use the queried Python, not the interpreter running the test
+    runner, as those can differ.
+    """
+    assert _python_gil is not None
+
+    return _python_gil
+
+
 tmp_dir = None
 
 
 def getTempDir():
-    # Create a temporary directory to work in, automatically remove it in case
-    # it is empty in the end.
+    """Return a temporary directory for the test run, removed recursively at exit."""
     global tmp_dir  # singleton, pylint: disable=global-statement
 
     if tmp_dir is None:
@@ -277,11 +301,10 @@ def getTempDir():
 def convertUsing2to3(path, force=False):
     command = [os.environ["PYTHON"], "-m", "py_compile", path]
 
-    if not force:
-        if "xrange" not in getFileContents(path):
-            with getNullOutput() as null_output:
-                if check_result(command, stderr=null_output):
-                    return path, False
+    if not force and "xrange" not in getFileContents(path):
+        with getNullOutput() as null_output:
+            if check_result(command, stderr=null_output):
+                return path, False
 
     filename = os.path.basename(path)
 
@@ -442,7 +465,7 @@ def _compareWithCPythonVariations(
             on_error=on_error,
         )
 
-    for test_variant_name in extra_flags.keys():
+    for test_variant_name in extra_flags:
         if test_variant_name == "":
             test_logger.info("Default variation of the test.")
         else:
@@ -710,11 +733,24 @@ def getTotalReferenceCount():
     elif hasattr(sys, "_clear_type_cache"):
         sys._clear_type_cache()
 
-    if _debug_python:
-        gc.collect()
+    gc.collect()
+
+    # Free-threaded builds use deferred reference counting and stack
+    # references, which makes the total reference count unreliable, e.g.
+    # CPython 3.13.0 free-threaded reports phantom leaks, so use the object
+    # based count there as well. Python 3.14 free-threaded builds have a
+    # reliable total reference count again, and only that can detect leaked
+    # references to objects that the GC does not track, e.g. strings.
+    if _debug_python and (
+        getattr(sys.flags, "gil", True) or sys.version_info >= (3, 14)
+    ):
         return sys.gettotalrefcount()
     else:
-        gc.collect()
+        # A single collection does not settle the deferred reference counts of
+        # free-threaded builds, and even CPython then reports phantom leaks for
+        # things like class creation, so collect the young generation again.
+        gc.collect(0)
+
         all_objects = gc.get_objects()
 
         # Sum object reference twice, once without the sum value type, then switch
@@ -796,6 +832,7 @@ def checkReferenceCount(checked_function, max_rounds=20, explain=False, no_print
             assert m2
 
             # Using items will unwanted usages, pylint: disable=consider-using-dict-items
+            # ruff: disable[PLC0206]
             for key in m1:
                 if key not in m2:
                     my_print("*" * 80)
@@ -812,6 +849,7 @@ def checkReferenceCount(checked_function, max_rounds=20, explain=False, no_print
                     my_print("missing:", m2[key], key)
 
                     # print m1[key]
+            # ruff: enable[PLC0206]
 
     assert sys.exc_info() == (None, None, None), sys.exc_info()
 
@@ -1440,12 +1478,64 @@ def someGeneratorRaising():
     raise TypeError(2)
 
 
+def _getSkipUnlessExpressionErrorMessage(expression):
+    """Evaluate a test requirement expression, returning a skip reason or None."""
+    expression_code = """\
+import sys, os
+
+try:
+    result = bool(%s)
+except Exception as e:
+    sys.stdout.write("%%s: %%s" %% (type(e).__name__, e))
+    sys.exit(2)
+
+sys.exit(not result)""" % expression
+
+    with getNullOutput() as null_output:
+        process = subprocess.Popen(
+            (os.environ["PYTHON"], "-c", expression_code),
+            stdout=subprocess.PIPE,
+            stderr=null_output,
+        )
+        expression_output, _unused = process.communicate()
+
+    if process.returncode == 0:
+        return None
+
+    if process.returncode == 2:
+        if str is not bytes:
+            expression_output = expression_output.decode("utf8", "replace")
+
+        return "Expression '%s' raised %s" % (
+            expression,
+            expression_output.strip() or "an exception",
+        )
+
+    return "Expression '%s' evaluated to false" % expression
+
+
 # checks requirements needed to run each test module, according to the specified special comment
 # special comments are in the following formats:
 #     "# nuitka-skip-unless-expression: expression to be evaluated"
 #       OR
 #     "# nuitka-skip-unless-imports: module1,module2,..."
 def checkTestRequirements(filename):
+    test_basename = os.path.basename(filename)
+
+    # Windows only tests are identified by their name prefix or suffix.
+    if (
+        test_basename.startswith(("Win", "windows_"))
+        or test_basename.endswith(("Windows.py", "_windows.py"))
+    ) and not isWin32Windows():
+        return (False, "Windows only test")
+
+    # macOS only tests are identified by their name prefix or suffix.
+    if (
+        test_basename.startswith(("MacOS", "macos_"))
+        or test_basename.endswith(("MacOS.py", "_macos.py"))
+    ) and not isMacOS():
+        return (False, "macOS only test")
+
     if os.path.isdir(filename):
         candidate = os.path.join(filename, "__main__.py")
 
@@ -1457,20 +1547,10 @@ def checkTestRequirements(filename):
     for line in readSourceCodeFromFilename(None, filename).splitlines():
         if line.startswith("# nuitka-skip-unless-"):
             if line[21:33] == "expression: ":
-                expression = line[33:]
+                error_message = _getSkipUnlessExpressionErrorMessage(line[33:])
 
-                with getNullOutput() as null_output:
-                    result = subprocess.call(
-                        (
-                            os.environ["PYTHON"],
-                            "-c",
-                            "import sys, os; sys.exit(not bool(%s))" % expression,
-                        ),
-                        stdout=null_output,
-                        stderr=subprocess.STDOUT,
-                    )
-                if result != 0:
-                    return (False, "Expression '%s' evaluated to false" % expression)
+                if error_message is not None:
+                    return (False, error_message)
 
             elif line[21:30] == "imports: ":
                 imports_needed = line[30:].rstrip().split(",")
@@ -1666,17 +1746,16 @@ def checkLoadedFileAccesses(loaded_filenames, current_dir, python_flavor):
         if loaded_basename == "openssl.cnf":
             continue
 
-        # Taking these from system is harmless and desirable, spell-checker: ignore libz libgcc
+        # Taking these from system is harmless and desirable, spell-checker: ignore libgcc libz
         if loaded_basename.startswith(("libz.so", "libgcc_s.so")):
             continue
 
         # System C libraries are to be expected,
-        # spell-checker: ignore libm,libdl,libpthread,libanl,libcrypt
-        # spell-checker: ignore libcidn,libBrokenLocale,libSegFault,libutil
-        # spell-checker: ignore libnsl,libnss_compat,libnss_db,libnss_dns
-        # spell-checker: ignore libnss_files,libnss_hesiod,libnss_nis
-        # spell-checker: ignore libnss_nisplus,libpcprofile,libresolv,
-        # spell-checker: ignore librt,libthread_db,libmemusage,libmvec
+        # spell-checker: ignore libBrokenLocale,libSegFault,libanl,libcidn,libcrypt,libdl
+        # spell-checker: ignore libm,libmemusage,libmvec,libnsl,libnss_compat,libnss_db
+        # spell-checker: ignore libnss_dns,libnss_files,libnss_hesiod,libnss_nis
+        # spell-checker: ignore libnss_nisplus,libpcprofile,libpthread,libresolv,librt
+        # spell-checker: ignore libthread_db,libutil
         if loaded_basename.startswith(
             (
                 "ld-linux-x86-64.so",
@@ -1720,9 +1799,9 @@ def checkLoadedFileAccesses(loaded_filenames, current_dir, python_flavor):
             continue
 
         # Loaded by C library potentially for DNS lookups.
-        # spell-checker: ignore libnss,libnsl,libattr,libbz2,libcap,
-        # spell-checker: ignore libdw,libelf,liblzma,libselinux,libpcre,
-        # spell-checker: ignore libblkid,libmount,libpcre2-8,libuuid
+        # spell-checker: ignore libattr,libblkid,libbz2,libcap,libdw,libelf,liblzma
+        # spell-checker: ignore libmount,libnsl,libnss,libpcre,libpcre2-8,libselinux
+        # spell-checker: ignore libuuid
         if loaded_basename.startswith(
             (
                 "libnss_",

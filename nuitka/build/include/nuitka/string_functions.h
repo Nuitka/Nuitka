@@ -55,8 +55,8 @@ NUITKA_MAY_BE_UNUSED static Py_UNICODE *Nuitka_UnicodeAsWideString(PyObject *str
 #ifdef __NUITKA_NO_ASSERT__
 #define Nuitka_String_AsString_Unchecked PyUnicode_UTF8
 #else
-NUITKA_MAY_BE_UNUSED static char const *Nuitka_String_AsString_Unchecked(PyObject *object) {
-    char const *result = PyUnicode_UTF8(object);
+NUITKA_MAY_BE_UNUSED static char const *Nuitka_String_AsString_Unchecked(PyObject *obj) {
+    char const *result = PyUnicode_UTF8(obj);
     assert(result != NULL);
     return result;
 }

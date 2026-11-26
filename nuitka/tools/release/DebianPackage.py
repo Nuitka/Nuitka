@@ -6,15 +6,20 @@
 import os
 import sys
 
+from nuitka.Tracing import tools_logger
 from nuitka.utils.Execution import check_call, getNullInput
 from nuitka.utils.FileOperations import (
     copyFile,
+    copyTree,
+    deleteFile,
     getFileContentByLine,
     getFileContents,
     getFileList,
     listDir,
     openTextFile,
     removeFileExecutablePermission,
+    resetDirectory,
+    resolveShellPatternToFilenames,
 )
 
 
@@ -127,6 +132,54 @@ def cleanupTarfileForDebian(codename, filename, new_name):
     check_call(["gzip", "-9", "-n", new_name[:-3]])
 
 
+def fixupPermissionsInplace(
+    dest_path,
+    file_perm,
+    dir_perm,
+    ignore_filenames=(),
+):
+    """Set permissions for all files and directories below a path.
+
+    Args:
+        dest_path: Root directory to fix up.
+        file_perm: Permission bits to set on files.
+        dir_perm: Permission bits to set on directories.
+        ignore_filenames: Filenames that shall keep their permissions.
+    """
+
+    for filename in getFileList(dest_path, ignore_filenames=ignore_filenames):
+        os.chmod(filename, file_perm)
+        os.chmod(os.path.dirname(filename), dir_perm)
+
+
+def copySourceForDebianBuild(source_path):
+    """Copy the source checkout for building Debian packages.
+
+    Notes:
+        The source checkout may be on a mount that reports all files as
+        executable and ignores 'chmod', e.g. a Windows share mounted into a
+        container. The debhelper tooling then executes the Debian config files
+        instead of reading them, which fails, so work on a copy where the
+        permissions can be fixed. This changes the current directory to the
+        copy.
+
+    Args:
+        source_path: Root directory of the source checkout to copy.
+    """
+
+    tools_logger.info(
+        "Copying src to temporary location before modifying it.", style="blue"
+    )
+
+    copyTree(source_path, "/var/tmp/src")
+    os.chdir("/var/tmp/src")
+
+    fixupPermissionsInplace(
+        "debian", int("644", 8), int("755", 8), ignore_filenames=("rules",)
+    )
+    fixupPermissionsInplace("nuitka", int("644", 8), int("755", 8))
+
+
 def _fixupPy2dscDebianPermissions(debian_dir):
     """Remove executable permissions from copied Debian config files.
 
@@ -155,11 +208,12 @@ def runPy2dsc(filename, new_name):
         "deb_dist/%s+ds.orig.tar.gz" % after_deb_name,
     )
 
-    check_call("rm -f deb_dist/*_source*", shell=True)
+    for matched_filename in resolveShellPatternToFilenames("deb_dist/*_source*"):
+        deleteFile(matched_filename, must_exist=True)
 
     # Remove the now useless input, py2dsc has copied it, and we don't
     # publish it.
-    os.unlink(new_name)
+    deleteFile(new_name, must_exist=True)
 
     # Assert that the unpacked directory is there and find it. Otherwise fail badly.
 
@@ -177,7 +231,15 @@ def runPy2dsc(filename, new_name):
 
     # Import the "debian" directory from above. It's not in the original tar and
     # overrides fully what py2dsc did.
-    check_call("rm -r deb_dist/%s/debian/*" % entry, shell=True)
+    debian_dir = "deb_dist/%s/debian" % entry
+    assert os.path.isdir(debian_dir), debian_dir
+
+    resetDirectory(
+        path=debian_dir,
+        logger=tools_logger,
+        ignore_errors=False,
+        extra_recommendation=None,
+    )
 
     check_call(
         [
@@ -186,13 +248,18 @@ def runPy2dsc(filename, new_name):
             "--exclude",
             "pbuilder-hookdir",
             "../debian/",
-            "deb_dist/%s/debian/" % entry,
+            debian_dir + "/",
         ]
     )
 
-    _fixupPy2dscDebianPermissions("deb_dist/%s/debian" % entry)
+    _fixupPy2dscDebianPermissions(debian_dir)
 
-    check_call("rm deb_dist/*.dsc deb_dist/*.debian.tar.xz", shell=True)
+    for pattern in ("deb_dist/*.dsc", "deb_dist/*.debian.tar.xz"):
+        matched_filenames = resolveShellPatternToFilenames(pattern)
+        assert matched_filenames, pattern
+
+        for matched_filename in matched_filenames:
+            deleteFile(matched_filename, must_exist=True)
 
     return entry
 

@@ -3,16 +3,17 @@
 
 # We are not avoiding these in generated code at all
 # pylint: disable=I0021,line-too-long,too-many-instance-attributes,too-many-lines
-# pylint: disable=I0021,too-many-arguments,too-many-return-statements,too-many-statements
+# pylint: disable=too-many-arguments,too-many-return-statements,too-many-statements
+# pylint: disable=literal-comparison
 
 
 """Specialized attribute nodes
 
 WARNING, this code is GENERATED. Modify the template AttributeNodeFixed.py.j2 instead!
 
-spell-checker: ignore __prepare__ append args autograph buffering capitalize casefold
-spell-checker: ignore center chars clear closefd copy count decode default delete dist
-spell-checker: ignore distribution_name encode encoding end endswith errors exit_code
+spell-checker: ignore __prepare__ anchor append args autograph buffering capitalize
+spell-checker: ignore casefold center chars clear closefd copy count decode default delete
+spell-checker: ignore dist distribution_name encode encoding end endswith errors exit_code
 spell-checker: ignore expandtabs experimental_attributes experimental_autograph_options
 spell-checker: ignore experimental_compile experimental_follow_type_hints
 spell-checker: ignore experimental_implements experimental_relax_shapes extend file
@@ -31,7 +32,10 @@ spell-checker: ignore use_last_error value values viewitems viewkeys viewvalues 
 spell-checker: ignore winmode zfill
 """
 
-from nuitka.PythonVersions import getDictFromkeysNoArgErrorMessage
+from nuitka.PythonVersions import (
+    getDictFromkeysNoArgErrorMessage,
+    python_version,
+)
 from nuitka.specs.BuiltinBytesOperationSpecs import (
     bytes_capitalize_spec,
     bytes_center_spec,
@@ -105,6 +109,7 @@ from nuitka.specs.BuiltinListOperationSpecs import (
 from nuitka.specs.BuiltinParameterSpecs import extractBuiltinArgs
 from nuitka.specs.BuiltinStrOperationSpecs import (
     str_capitalize_spec,
+    str_casefold_spec,
     str_center_spec,
     str_count_spec,
     str_decode_spec,
@@ -116,8 +121,13 @@ from nuitka.specs.BuiltinStrOperationSpecs import (
     str_index_spec,
     str_isalnum_spec,
     str_isalpha_spec,
+    str_isascii_spec,
+    str_isdecimal_spec,
     str_isdigit_spec,
+    str_isidentifier_spec,
     str_islower_spec,
+    str_isnumeric_spec,
+    str_isprintable_spec,
     str_isspace_spec,
     str_istitle_spec,
     str_isupper_spec,
@@ -139,7 +149,8 @@ from nuitka.specs.BuiltinStrOperationSpecs import (
     str_strip_spec,
     str_swapcase_spec,
     str_title_spec,
-    str_translate_spec,
+    str_translate_before_3_spec,
+    str_translate_since_3_spec,
     str_upper_spec,
     str_zfill_spec,
 )
@@ -266,6 +277,7 @@ from .NodeMakingHelpers import (
 )
 from .StrNodes import (
     ExpressionStrOperationCapitalize,
+    ExpressionStrOperationCasefold,
     ExpressionStrOperationCenter2,
     ExpressionStrOperationCenter3,
     ExpressionStrOperationCount2,
@@ -290,8 +302,13 @@ from .StrNodes import (
     ExpressionStrOperationIndex4,
     ExpressionStrOperationIsalnum,
     ExpressionStrOperationIsalpha,
+    ExpressionStrOperationIsascii,
+    ExpressionStrOperationIsdecimal,
     ExpressionStrOperationIsdigit,
+    ExpressionStrOperationIsidentifier,
     ExpressionStrOperationIslower,
+    ExpressionStrOperationIsnumeric,
+    ExpressionStrOperationIsprintable,
     ExpressionStrOperationIsspace,
     ExpressionStrOperationIstitle,
     ExpressionStrOperationIsupper,
@@ -328,12 +345,19 @@ from .StrNodes import (
     ExpressionStrOperationStrip2,
     ExpressionStrOperationSwapcase,
     ExpressionStrOperationTitle,
-    ExpressionStrOperationTranslate,
+    ExpressionStrOperationTranslate2,
+    ExpressionStrOperationTranslate3,
     ExpressionStrOperationUpper,
     ExpressionStrOperationZfill,
     makeExpressionStrOperationEncode3,
     makeExpressionStrOperationRsplit3,
     makeExpressionStrOperationSplit3,
+)
+from .SysModulesNodes import (
+    makeExpressionSysModulesGet2,
+    makeExpressionSysModulesGet3,
+    makeExpressionSysModulesPop2,
+    makeExpressionSysModulesPop3,
 )
 
 attribute_classes = {}
@@ -389,12 +413,7 @@ class ExpressionAttributeLookupTypePrepare(
     kind = "EXPRESSION_ATTRIBUTE_LOOKUP_TYPE_PREPARE"
     attribute_name = "__prepare__"
 
-    # There is nothing to compute for it as a value.
-    # TODO: Enable this once we can also say removal of knowable for an argument.
-    # auto_compute_handling = "final,no_raise"
-
     def computeExpression(self, trace_collection):
-        # Cannot be used to modify the type.
         return self, None, None
 
     @staticmethod
@@ -404,11 +423,7 @@ class ExpressionAttributeLookupTypePrepare(
                 type_arg=type_arg, args=args, kwargs=kwargs, source_ref=source_ref
             )
 
-        # Anything may happen. On next pass, if replaced, we might be better
-        # but not now.
         trace_collection.onExceptionRaiseExit(BaseException)
-
-        # Make sure we wait with knowing if the content is safe to use until its time.
         call_node.onContentEscapes(trace_collection)
 
         result = extractBuiltinArgs(
@@ -434,8 +449,6 @@ class ExpressionAttributeLookupTypePrepare(
         type_node = makeExpressionAttributeLookup(
             expression=variable_ref_node,
             attribute_name="__self__",
-            # TODO: Would be nice to have the real source reference here, but it feels
-            # a bit expensive.
             source_ref=variable_ref_node.source_ref,
         )
 
@@ -492,7 +505,7 @@ attribute_classes["append"] = ExpressionAttributeLookupFixedAppend
 class ExpressionAttributeLookupListAppend(
     SideEffectsFromChildrenMixin, ExpressionAttributeLookupFixedAppend
 ):
-    """Attribute append lookup on a list value.
+    """Attribute 'append' lookup on a list value.
 
     Typically code like: some_list.append
     """
@@ -501,7 +514,6 @@ class ExpressionAttributeLookupListAppend(
     attribute_name = "append"
 
     def computeExpression(self, trace_collection):
-        # Might be used to modify the list.
         trace_collection.removeKnowledge(self.subnode_expression)
 
         return self, None, None
@@ -513,11 +525,7 @@ class ExpressionAttributeLookupListAppend(
                 list_arg=list_arg, item=item, source_ref=source_ref
             )
 
-        # Anything may happen. On next pass, if replaced, we might be better
-        # but not now.
         trace_collection.onExceptionRaiseExit(BaseException)
-
-        # Make sure we wait with knowing if the content is safe to use until its time.
         call_node.onContentEscapes(trace_collection)
 
         result = extractBuiltinArgs(
@@ -526,7 +534,11 @@ class ExpressionAttributeLookupListAppend(
             builtin_spec=list_append_spec,
         )
 
-        return result, "new_expression", "Call to 'append' of list recognized."
+        return trace_collection.computedExpressionResult(
+            expression=result,
+            change_tags="new_expression",
+            change_desc="Call to 'append' of list recognized.",
+        )
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
         return self._computeExpressionCall(
@@ -539,8 +551,6 @@ class ExpressionAttributeLookupListAppend(
         list_node = makeExpressionAttributeLookup(
             expression=variable_ref_node,
             attribute_name="__self__",
-            # TODO: Would be nice to have the real source reference here, but it feels
-            # a bit expensive.
             source_ref=variable_ref_node.source_ref,
         )
 
@@ -612,10 +622,6 @@ class ExpressionAttributeLookupStrCapitalize(
     kind = "EXPRESSION_ATTRIBUTE_LOOKUP_STR_CAPITALIZE"
     attribute_name = "capitalize"
 
-    # There is nothing to compute for it as a value.
-    # TODO: Enable this
-    # auto_compute_handling = "final,no_raise"
-
     def computeExpression(self, trace_collection):
         return self, None, None
 
@@ -626,8 +632,6 @@ class ExpressionAttributeLookupStrCapitalize(
                 str_arg=str_arg, source_ref=source_ref
             )
 
-        # Anything may happen. On next pass, if replaced, we might be better
-        # but not now.
         trace_collection.onExceptionRaiseExit(BaseException)
 
         result = extractBuiltinArgs(
@@ -636,7 +640,11 @@ class ExpressionAttributeLookupStrCapitalize(
             builtin_spec=str_capitalize_spec,
         )
 
-        return result, "new_expression", "Call to 'capitalize' of str recognized."
+        return trace_collection.computedExpressionResult(
+            expression=result,
+            change_tags="new_expression",
+            change_desc="Call to 'capitalize' of str recognized.",
+        )
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
         return self._computeExpressionCall(
@@ -649,8 +657,6 @@ class ExpressionAttributeLookupStrCapitalize(
         str_node = makeExpressionAttributeLookup(
             expression=variable_ref_node,
             attribute_name="__self__",
-            # TODO: Would be nice to have the real source reference here, but it feels
-            # a bit expensive.
             source_ref=variable_ref_node.source_ref,
         )
 
@@ -674,10 +680,6 @@ class ExpressionAttributeLookupBytesCapitalize(
     kind = "EXPRESSION_ATTRIBUTE_LOOKUP_BYTES_CAPITALIZE"
     attribute_name = "capitalize"
 
-    # There is nothing to compute for it as a value.
-    # TODO: Enable this
-    # auto_compute_handling = "final,no_raise"
-
     def computeExpression(self, trace_collection):
         return self, None, None
 
@@ -688,8 +690,6 @@ class ExpressionAttributeLookupBytesCapitalize(
                 bytes_arg=bytes_arg, source_ref=source_ref
             )
 
-        # Anything may happen. On next pass, if replaced, we might be better
-        # but not now.
         trace_collection.onExceptionRaiseExit(BaseException)
 
         result = extractBuiltinArgs(
@@ -698,7 +698,11 @@ class ExpressionAttributeLookupBytesCapitalize(
             builtin_spec=bytes_capitalize_spec,
         )
 
-        return result, "new_expression", "Call to 'capitalize' of bytes recognized."
+        return trace_collection.computedExpressionResult(
+            expression=result,
+            change_tags="new_expression",
+            change_desc="Call to 'capitalize' of bytes recognized.",
+        )
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
         return self._computeExpressionCall(
@@ -711,8 +715,6 @@ class ExpressionAttributeLookupBytesCapitalize(
         bytes_node = makeExpressionAttributeLookup(
             expression=variable_ref_node,
             attribute_name="__self__",
-            # TODO: Would be nice to have the real source reference here, but it feels
-            # a bit expensive.
             source_ref=variable_ref_node.source_ref,
         )
 
@@ -774,14 +776,48 @@ class ExpressionAttributeLookupStrCasefold(
     kind = "EXPRESSION_ATTRIBUTE_LOOKUP_STR_CASEFOLD"
     attribute_name = "casefold"
 
-    # There is nothing to compute for it as a value.
-    # TODO: Enable this
-    # auto_compute_handling = "final,no_raise"
-
     def computeExpression(self, trace_collection):
         return self, None, None
 
-    # No computeExpressionCall as str operation ExpressionStrOperationCasefold is not yet implemented
+    @staticmethod
+    def _computeExpressionCall(call_node, str_arg, trace_collection):
+        def wrapExpressionStrOperationCasefold(source_ref):
+            return ExpressionStrOperationCasefold(
+                str_arg=str_arg, source_ref=source_ref
+            )
+
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        result = extractBuiltinArgs(
+            node=call_node,
+            builtin_class=wrapExpressionStrOperationCasefold,
+            builtin_spec=str_casefold_spec,
+        )
+
+        return trace_collection.computedExpressionResult(
+            expression=result,
+            change_tags="new_expression",
+            change_desc="Call to 'casefold' of str recognized.",
+        )
+
+    def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
+        return self._computeExpressionCall(
+            call_node, self.subnode_expression, trace_collection
+        )
+
+    def computeExpressionCallViaVariable(
+        self, call_node, variable_ref_node, call_args, call_kw, trace_collection
+    ):
+        str_node = makeExpressionAttributeLookup(
+            expression=variable_ref_node,
+            attribute_name="__self__",
+            source_ref=variable_ref_node.source_ref,
+        )
+
+        return self._computeExpressionCall(call_node, str_node, trace_collection)
+
+    def mayRaiseException(self, exception_type):
+        return self.subnode_expression.mayRaiseException(exception_type)
 
 
 attribute_typed_classes.add(ExpressionAttributeLookupStrCasefold)
@@ -846,10 +882,6 @@ class ExpressionAttributeLookupStrCenter(
     kind = "EXPRESSION_ATTRIBUTE_LOOKUP_STR_CENTER"
     attribute_name = "center"
 
-    # There is nothing to compute for it as a value.
-    # TODO: Enable this
-    # auto_compute_handling = "final,no_raise"
-
     def computeExpression(self, trace_collection):
         return self, None, None
 
@@ -868,8 +900,6 @@ class ExpressionAttributeLookupStrCenter(
                     str_arg=str_arg, width=width, source_ref=source_ref
                 )
 
-        # Anything may happen. On next pass, if replaced, we might be better
-        # but not now.
         trace_collection.onExceptionRaiseExit(BaseException)
 
         result = extractBuiltinArgs(
@@ -878,7 +908,11 @@ class ExpressionAttributeLookupStrCenter(
             builtin_spec=str_center_spec,
         )
 
-        return result, "new_expression", "Call to 'center' of str recognized."
+        return trace_collection.computedExpressionResult(
+            expression=result,
+            change_tags="new_expression",
+            change_desc="Call to 'center' of str recognized.",
+        )
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
         return self._computeExpressionCall(
@@ -891,8 +925,6 @@ class ExpressionAttributeLookupStrCenter(
         str_node = makeExpressionAttributeLookup(
             expression=variable_ref_node,
             attribute_name="__self__",
-            # TODO: Would be nice to have the real source reference here, but it feels
-            # a bit expensive.
             source_ref=variable_ref_node.source_ref,
         )
 
@@ -916,10 +948,6 @@ class ExpressionAttributeLookupBytesCenter(
     kind = "EXPRESSION_ATTRIBUTE_LOOKUP_BYTES_CENTER"
     attribute_name = "center"
 
-    # There is nothing to compute for it as a value.
-    # TODO: Enable this
-    # auto_compute_handling = "final,no_raise"
-
     def computeExpression(self, trace_collection):
         return self, None, None
 
@@ -938,8 +966,6 @@ class ExpressionAttributeLookupBytesCenter(
                     bytes_arg=bytes_arg, width=width, source_ref=source_ref
                 )
 
-        # Anything may happen. On next pass, if replaced, we might be better
-        # but not now.
         trace_collection.onExceptionRaiseExit(BaseException)
 
         result = extractBuiltinArgs(
@@ -948,7 +974,11 @@ class ExpressionAttributeLookupBytesCenter(
             builtin_spec=bytes_center_spec,
         )
 
-        return result, "new_expression", "Call to 'center' of bytes recognized."
+        return trace_collection.computedExpressionResult(
+            expression=result,
+            change_tags="new_expression",
+            change_desc="Call to 'center' of bytes recognized.",
+        )
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
         return self._computeExpressionCall(
@@ -961,8 +991,6 @@ class ExpressionAttributeLookupBytesCenter(
         bytes_node = makeExpressionAttributeLookup(
             expression=variable_ref_node,
             attribute_name="__self__",
-            # TODO: Would be nice to have the real source reference here, but it feels
-            # a bit expensive.
             source_ref=variable_ref_node.source_ref,
         )
 
@@ -1035,12 +1063,7 @@ class ExpressionAttributeLookupDictClear(
     kind = "EXPRESSION_ATTRIBUTE_LOOKUP_DICT_CLEAR"
     attribute_name = "clear"
 
-    # There is nothing to compute for it as a value.
-    # TODO: Enable this once we can also say removal of knowable for an argument.
-    # auto_compute_handling = "final,no_raise"
-
     def computeExpression(self, trace_collection):
-        # Might be used to modify the dict.
         trace_collection.removeKnowledge(self.subnode_expression)
 
         return self, None, None
@@ -1052,11 +1075,7 @@ class ExpressionAttributeLookupDictClear(
                 dict_arg=dict_arg, source_ref=source_ref
             )
 
-        # Anything may happen. On next pass, if replaced, we might be better
-        # but not now.
         trace_collection.onExceptionRaiseExit(BaseException)
-
-        # Make sure we wait with knowing if the content is safe to use until its time.
         call_node.onContentEscapes(trace_collection)
 
         result = extractBuiltinArgs(
@@ -1082,8 +1101,6 @@ class ExpressionAttributeLookupDictClear(
         dict_node = makeExpressionAttributeLookup(
             expression=variable_ref_node,
             attribute_name="__self__",
-            # TODO: Would be nice to have the real source reference here, but it feels
-            # a bit expensive.
             source_ref=variable_ref_node.source_ref,
         )
 
@@ -1099,7 +1116,7 @@ attribute_typed_classes.add(ExpressionAttributeLookupDictClear)
 class ExpressionAttributeLookupListClear(
     SideEffectsFromChildrenMixin, ExpressionAttributeLookupFixedClear
 ):
-    """Attribute clear lookup on a list value.
+    """Attribute 'clear' lookup on a list value.
 
     Typically code like: some_list.clear
     """
@@ -1108,7 +1125,6 @@ class ExpressionAttributeLookupListClear(
     attribute_name = "clear"
 
     def computeExpression(self, trace_collection):
-        # Might be used to modify the list.
         trace_collection.removeKnowledge(self.subnode_expression)
 
         return self, None, None
@@ -1120,11 +1136,7 @@ class ExpressionAttributeLookupListClear(
                 list_arg=list_arg, source_ref=source_ref
             )
 
-        # Anything may happen. On next pass, if replaced, we might be better
-        # but not now.
         trace_collection.onExceptionRaiseExit(BaseException)
-
-        # Make sure we wait with knowing if the content is safe to use until its time.
         call_node.onContentEscapes(trace_collection)
 
         result = extractBuiltinArgs(
@@ -1133,7 +1145,11 @@ class ExpressionAttributeLookupListClear(
             builtin_spec=list_clear_spec,
         )
 
-        return result, "new_expression", "Call to 'clear' of list recognized."
+        return trace_collection.computedExpressionResult(
+            expression=result,
+            change_tags="new_expression",
+            change_desc="Call to 'clear' of list recognized.",
+        )
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
         return self._computeExpressionCall(
@@ -1146,8 +1162,6 @@ class ExpressionAttributeLookupListClear(
         list_node = makeExpressionAttributeLookup(
             expression=variable_ref_node,
             attribute_name="__self__",
-            # TODO: Would be nice to have the real source reference here, but it feels
-            # a bit expensive.
             source_ref=variable_ref_node.source_ref,
         )
 
@@ -1220,12 +1234,7 @@ class ExpressionAttributeLookupDictCopy(
     kind = "EXPRESSION_ATTRIBUTE_LOOKUP_DICT_COPY"
     attribute_name = "copy"
 
-    # There is nothing to compute for it as a value.
-    # TODO: Enable this once we can also say removal of knowable for an argument.
-    # auto_compute_handling = "final,no_raise"
-
     def computeExpression(self, trace_collection):
-        # Might be used to modify the dict.
         trace_collection.removeKnowledge(self.subnode_expression)
 
         return self, None, None
@@ -1235,11 +1244,7 @@ class ExpressionAttributeLookupDictCopy(
         def wrapExpressionDictOperationCopy(source_ref):
             return ExpressionDictOperationCopy(dict_arg=dict_arg, source_ref=source_ref)
 
-        # Anything may happen. On next pass, if replaced, we might be better
-        # but not now.
         trace_collection.onExceptionRaiseExit(BaseException)
-
-        # Make sure we wait with knowing if the content is safe to use until its time.
         call_node.onContentEscapes(trace_collection)
 
         result = extractBuiltinArgs(
@@ -1265,8 +1270,6 @@ class ExpressionAttributeLookupDictCopy(
         dict_node = makeExpressionAttributeLookup(
             expression=variable_ref_node,
             attribute_name="__self__",
-            # TODO: Would be nice to have the real source reference here, but it feels
-            # a bit expensive.
             source_ref=variable_ref_node.source_ref,
         )
 
@@ -1282,7 +1285,7 @@ attribute_typed_classes.add(ExpressionAttributeLookupDictCopy)
 class ExpressionAttributeLookupListCopy(
     SideEffectsFromChildrenMixin, ExpressionAttributeLookupFixedCopy
 ):
-    """Attribute copy lookup on a list value.
+    """Attribute 'copy' lookup on a list value.
 
     Typically code like: some_list.copy
     """
@@ -1291,7 +1294,6 @@ class ExpressionAttributeLookupListCopy(
     attribute_name = "copy"
 
     def computeExpression(self, trace_collection):
-        # Might be used to modify the list.
         trace_collection.removeKnowledge(self.subnode_expression)
 
         return self, None, None
@@ -1301,11 +1303,7 @@ class ExpressionAttributeLookupListCopy(
         def wrapExpressionListOperationCopy(source_ref):
             return ExpressionListOperationCopy(list_arg=list_arg, source_ref=source_ref)
 
-        # Anything may happen. On next pass, if replaced, we might be better
-        # but not now.
         trace_collection.onExceptionRaiseExit(BaseException)
-
-        # Make sure we wait with knowing if the content is safe to use until its time.
         call_node.onContentEscapes(trace_collection)
 
         result = extractBuiltinArgs(
@@ -1314,7 +1312,11 @@ class ExpressionAttributeLookupListCopy(
             builtin_spec=list_copy_spec,
         )
 
-        return result, "new_expression", "Call to 'copy' of list recognized."
+        return trace_collection.computedExpressionResult(
+            expression=result,
+            change_tags="new_expression",
+            change_desc="Call to 'copy' of list recognized.",
+        )
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
         return self._computeExpressionCall(
@@ -1327,8 +1329,6 @@ class ExpressionAttributeLookupListCopy(
         list_node = makeExpressionAttributeLookup(
             expression=variable_ref_node,
             attribute_name="__self__",
-            # TODO: Would be nice to have the real source reference here, but it feels
-            # a bit expensive.
             source_ref=variable_ref_node.source_ref,
         )
 
@@ -1413,10 +1413,6 @@ class ExpressionAttributeLookupStrCount(
     kind = "EXPRESSION_ATTRIBUTE_LOOKUP_STR_COUNT"
     attribute_name = "count"
 
-    # There is nothing to compute for it as a value.
-    # TODO: Enable this
-    # auto_compute_handling = "final,no_raise"
-
     def computeExpression(self, trace_collection):
         return self, None, None
 
@@ -1440,8 +1436,6 @@ class ExpressionAttributeLookupStrCount(
                     str_arg=str_arg, sub=sub, source_ref=source_ref
                 )
 
-        # Anything may happen. On next pass, if replaced, we might be better
-        # but not now.
         trace_collection.onExceptionRaiseExit(BaseException)
 
         result = extractBuiltinArgs(
@@ -1450,7 +1444,11 @@ class ExpressionAttributeLookupStrCount(
             builtin_spec=str_count_spec,
         )
 
-        return result, "new_expression", "Call to 'count' of str recognized."
+        return trace_collection.computedExpressionResult(
+            expression=result,
+            change_tags="new_expression",
+            change_desc="Call to 'count' of str recognized.",
+        )
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
         return self._computeExpressionCall(
@@ -1463,8 +1461,6 @@ class ExpressionAttributeLookupStrCount(
         str_node = makeExpressionAttributeLookup(
             expression=variable_ref_node,
             attribute_name="__self__",
-            # TODO: Would be nice to have the real source reference here, but it feels
-            # a bit expensive.
             source_ref=variable_ref_node.source_ref,
         )
 
@@ -1487,10 +1483,6 @@ class ExpressionAttributeLookupBytesCount(
 
     kind = "EXPRESSION_ATTRIBUTE_LOOKUP_BYTES_COUNT"
     attribute_name = "count"
-
-    # There is nothing to compute for it as a value.
-    # TODO: Enable this
-    # auto_compute_handling = "final,no_raise"
 
     def computeExpression(self, trace_collection):
         return self, None, None
@@ -1515,8 +1507,6 @@ class ExpressionAttributeLookupBytesCount(
                     bytes_arg=bytes_arg, sub=sub, source_ref=source_ref
                 )
 
-        # Anything may happen. On next pass, if replaced, we might be better
-        # but not now.
         trace_collection.onExceptionRaiseExit(BaseException)
 
         result = extractBuiltinArgs(
@@ -1525,7 +1515,11 @@ class ExpressionAttributeLookupBytesCount(
             builtin_spec=bytes_count_spec,
         )
 
-        return result, "new_expression", "Call to 'count' of bytes recognized."
+        return trace_collection.computedExpressionResult(
+            expression=result,
+            change_tags="new_expression",
+            change_desc="Call to 'count' of bytes recognized.",
+        )
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
         return self._computeExpressionCall(
@@ -1538,8 +1532,6 @@ class ExpressionAttributeLookupBytesCount(
         bytes_node = makeExpressionAttributeLookup(
             expression=variable_ref_node,
             attribute_name="__self__",
-            # TODO: Would be nice to have the real source reference here, but it feels
-            # a bit expensive.
             source_ref=variable_ref_node.source_ref,
         )
 
@@ -1555,7 +1547,7 @@ attribute_typed_classes.add(ExpressionAttributeLookupBytesCount)
 class ExpressionAttributeLookupListCount(
     SideEffectsFromChildrenMixin, ExpressionAttributeLookupFixedCount
 ):
-    """Attribute count lookup on a list value.
+    """Attribute 'count' lookup on a list value.
 
     Typically code like: some_list.count
     """
@@ -1564,7 +1556,6 @@ class ExpressionAttributeLookupListCount(
     attribute_name = "count"
 
     def computeExpression(self, trace_collection):
-        # Cannot be used to modify the list.
         return self, None, None
 
     @staticmethod
@@ -1574,11 +1565,7 @@ class ExpressionAttributeLookupListCount(
                 list_arg=list_arg, value=value, source_ref=source_ref
             )
 
-        # Anything may happen. On next pass, if replaced, we might be better
-        # but not now.
         trace_collection.onExceptionRaiseExit(BaseException)
-
-        # Make sure we wait with knowing if the content is safe to use until its time.
         call_node.onContentEscapes(trace_collection)
 
         result = extractBuiltinArgs(
@@ -1587,7 +1574,11 @@ class ExpressionAttributeLookupListCount(
             builtin_spec=list_count_spec,
         )
 
-        return result, "new_expression", "Call to 'count' of list recognized."
+        return trace_collection.computedExpressionResult(
+            expression=result,
+            change_tags="new_expression",
+            change_desc="Call to 'count' of list recognized.",
+        )
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
         return self._computeExpressionCall(
@@ -1600,8 +1591,6 @@ class ExpressionAttributeLookupListCount(
         list_node = makeExpressionAttributeLookup(
             expression=variable_ref_node,
             attribute_name="__self__",
-            # TODO: Would be nice to have the real source reference here, but it feels
-            # a bit expensive.
             source_ref=variable_ref_node.source_ref,
         )
 
@@ -1673,10 +1662,6 @@ class ExpressionAttributeLookupStrDecode(
     kind = "EXPRESSION_ATTRIBUTE_LOOKUP_STR_DECODE"
     attribute_name = "decode"
 
-    # There is nothing to compute for it as a value.
-    # TODO: Enable this
-    # auto_compute_handling = "final,no_raise"
-
     def computeExpression(self, trace_collection):
         return self, None, None
 
@@ -1699,8 +1684,6 @@ class ExpressionAttributeLookupStrDecode(
                     str_arg=str_arg, source_ref=source_ref
                 )
 
-        # Anything may happen. On next pass, if replaced, we might be better
-        # but not now.
         trace_collection.onExceptionRaiseExit(BaseException)
 
         result = extractBuiltinArgs(
@@ -1709,7 +1692,11 @@ class ExpressionAttributeLookupStrDecode(
             builtin_spec=str_decode_spec,
         )
 
-        return result, "new_expression", "Call to 'decode' of str recognized."
+        return trace_collection.computedExpressionResult(
+            expression=result,
+            change_tags="new_expression",
+            change_desc="Call to 'decode' of str recognized.",
+        )
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
         return self._computeExpressionCall(
@@ -1722,8 +1709,6 @@ class ExpressionAttributeLookupStrDecode(
         str_node = makeExpressionAttributeLookup(
             expression=variable_ref_node,
             attribute_name="__self__",
-            # TODO: Would be nice to have the real source reference here, but it feels
-            # a bit expensive.
             source_ref=variable_ref_node.source_ref,
         )
 
@@ -1747,10 +1732,6 @@ class ExpressionAttributeLookupBytesDecode(
     kind = "EXPRESSION_ATTRIBUTE_LOOKUP_BYTES_DECODE"
     attribute_name = "decode"
 
-    # There is nothing to compute for it as a value.
-    # TODO: Enable this
-    # auto_compute_handling = "final,no_raise"
-
     def computeExpression(self, trace_collection):
         return self, None, None
 
@@ -1773,8 +1754,6 @@ class ExpressionAttributeLookupBytesDecode(
                     bytes_arg=bytes_arg, source_ref=source_ref
                 )
 
-        # Anything may happen. On next pass, if replaced, we might be better
-        # but not now.
         trace_collection.onExceptionRaiseExit(BaseException)
 
         result = extractBuiltinArgs(
@@ -1783,7 +1762,11 @@ class ExpressionAttributeLookupBytesDecode(
             builtin_spec=bytes_decode_spec,
         )
 
-        return result, "new_expression", "Call to 'decode' of bytes recognized."
+        return trace_collection.computedExpressionResult(
+            expression=result,
+            change_tags="new_expression",
+            change_desc="Call to 'decode' of bytes recognized.",
+        )
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
         return self._computeExpressionCall(
@@ -1796,8 +1779,6 @@ class ExpressionAttributeLookupBytesDecode(
         bytes_node = makeExpressionAttributeLookup(
             expression=variable_ref_node,
             attribute_name="__self__",
-            # TODO: Would be nice to have the real source reference here, but it feels
-            # a bit expensive.
             source_ref=variable_ref_node.source_ref,
         )
 
@@ -1859,10 +1840,6 @@ class ExpressionAttributeLookupStrEncode(
     kind = "EXPRESSION_ATTRIBUTE_LOOKUP_STR_ENCODE"
     attribute_name = "encode"
 
-    # There is nothing to compute for it as a value.
-    # TODO: Enable this
-    # auto_compute_handling = "final,no_raise"
-
     def computeExpression(self, trace_collection):
         return self, None, None
 
@@ -1885,8 +1862,6 @@ class ExpressionAttributeLookupStrEncode(
                     str_arg=str_arg, source_ref=source_ref
                 )
 
-        # Anything may happen. On next pass, if replaced, we might be better
-        # but not now.
         trace_collection.onExceptionRaiseExit(BaseException)
 
         result = extractBuiltinArgs(
@@ -1895,7 +1870,11 @@ class ExpressionAttributeLookupStrEncode(
             builtin_spec=str_encode_spec,
         )
 
-        return result, "new_expression", "Call to 'encode' of str recognized."
+        return trace_collection.computedExpressionResult(
+            expression=result,
+            change_tags="new_expression",
+            change_desc="Call to 'encode' of str recognized.",
+        )
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
         return self._computeExpressionCall(
@@ -1908,8 +1887,6 @@ class ExpressionAttributeLookupStrEncode(
         str_node = makeExpressionAttributeLookup(
             expression=variable_ref_node,
             attribute_name="__self__",
-            # TODO: Would be nice to have the real source reference here, but it feels
-            # a bit expensive.
             source_ref=variable_ref_node.source_ref,
         )
 
@@ -1981,10 +1958,6 @@ class ExpressionAttributeLookupStrEndswith(
     kind = "EXPRESSION_ATTRIBUTE_LOOKUP_STR_ENDSWITH"
     attribute_name = "endswith"
 
-    # There is nothing to compute for it as a value.
-    # TODO: Enable this
-    # auto_compute_handling = "final,no_raise"
-
     def computeExpression(self, trace_collection):
         return self, None, None
 
@@ -2008,8 +1981,6 @@ class ExpressionAttributeLookupStrEndswith(
                     str_arg=str_arg, suffix=suffix, source_ref=source_ref
                 )
 
-        # Anything may happen. On next pass, if replaced, we might be better
-        # but not now.
         trace_collection.onExceptionRaiseExit(BaseException)
 
         result = extractBuiltinArgs(
@@ -2018,7 +1989,11 @@ class ExpressionAttributeLookupStrEndswith(
             builtin_spec=str_endswith_spec,
         )
 
-        return result, "new_expression", "Call to 'endswith' of str recognized."
+        return trace_collection.computedExpressionResult(
+            expression=result,
+            change_tags="new_expression",
+            change_desc="Call to 'endswith' of str recognized.",
+        )
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
         return self._computeExpressionCall(
@@ -2031,8 +2006,6 @@ class ExpressionAttributeLookupStrEndswith(
         str_node = makeExpressionAttributeLookup(
             expression=variable_ref_node,
             attribute_name="__self__",
-            # TODO: Would be nice to have the real source reference here, but it feels
-            # a bit expensive.
             source_ref=variable_ref_node.source_ref,
         )
 
@@ -2055,10 +2028,6 @@ class ExpressionAttributeLookupBytesEndswith(
 
     kind = "EXPRESSION_ATTRIBUTE_LOOKUP_BYTES_ENDSWITH"
     attribute_name = "endswith"
-
-    # There is nothing to compute for it as a value.
-    # TODO: Enable this
-    # auto_compute_handling = "final,no_raise"
 
     def computeExpression(self, trace_collection):
         return self, None, None
@@ -2086,8 +2055,6 @@ class ExpressionAttributeLookupBytesEndswith(
                     bytes_arg=bytes_arg, suffix=suffix, source_ref=source_ref
                 )
 
-        # Anything may happen. On next pass, if replaced, we might be better
-        # but not now.
         trace_collection.onExceptionRaiseExit(BaseException)
 
         result = extractBuiltinArgs(
@@ -2096,7 +2063,11 @@ class ExpressionAttributeLookupBytesEndswith(
             builtin_spec=bytes_endswith_spec,
         )
 
-        return result, "new_expression", "Call to 'endswith' of bytes recognized."
+        return trace_collection.computedExpressionResult(
+            expression=result,
+            change_tags="new_expression",
+            change_desc="Call to 'endswith' of bytes recognized.",
+        )
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
         return self._computeExpressionCall(
@@ -2109,8 +2080,6 @@ class ExpressionAttributeLookupBytesEndswith(
         bytes_node = makeExpressionAttributeLookup(
             expression=variable_ref_node,
             attribute_name="__self__",
-            # TODO: Would be nice to have the real source reference here, but it feels
-            # a bit expensive.
             source_ref=variable_ref_node.source_ref,
         )
 
@@ -2182,10 +2151,6 @@ class ExpressionAttributeLookupStrExpandtabs(
     kind = "EXPRESSION_ATTRIBUTE_LOOKUP_STR_EXPANDTABS"
     attribute_name = "expandtabs"
 
-    # There is nothing to compute for it as a value.
-    # TODO: Enable this
-    # auto_compute_handling = "final,no_raise"
-
     def computeExpression(self, trace_collection):
         return self, None, None
 
@@ -2201,8 +2166,6 @@ class ExpressionAttributeLookupStrExpandtabs(
                     str_arg=str_arg, source_ref=source_ref
                 )
 
-        # Anything may happen. On next pass, if replaced, we might be better
-        # but not now.
         trace_collection.onExceptionRaiseExit(BaseException)
 
         result = extractBuiltinArgs(
@@ -2211,7 +2174,11 @@ class ExpressionAttributeLookupStrExpandtabs(
             builtin_spec=str_expandtabs_spec,
         )
 
-        return result, "new_expression", "Call to 'expandtabs' of str recognized."
+        return trace_collection.computedExpressionResult(
+            expression=result,
+            change_tags="new_expression",
+            change_desc="Call to 'expandtabs' of str recognized.",
+        )
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
         return self._computeExpressionCall(
@@ -2224,8 +2191,6 @@ class ExpressionAttributeLookupStrExpandtabs(
         str_node = makeExpressionAttributeLookup(
             expression=variable_ref_node,
             attribute_name="__self__",
-            # TODO: Would be nice to have the real source reference here, but it feels
-            # a bit expensive.
             source_ref=variable_ref_node.source_ref,
         )
 
@@ -2249,10 +2214,6 @@ class ExpressionAttributeLookupBytesExpandtabs(
     kind = "EXPRESSION_ATTRIBUTE_LOOKUP_BYTES_EXPANDTABS"
     attribute_name = "expandtabs"
 
-    # There is nothing to compute for it as a value.
-    # TODO: Enable this
-    # auto_compute_handling = "final,no_raise"
-
     def computeExpression(self, trace_collection):
         return self, None, None
 
@@ -2268,8 +2229,6 @@ class ExpressionAttributeLookupBytesExpandtabs(
                     bytes_arg=bytes_arg, source_ref=source_ref
                 )
 
-        # Anything may happen. On next pass, if replaced, we might be better
-        # but not now.
         trace_collection.onExceptionRaiseExit(BaseException)
 
         result = extractBuiltinArgs(
@@ -2278,7 +2237,11 @@ class ExpressionAttributeLookupBytesExpandtabs(
             builtin_spec=bytes_expandtabs_spec,
         )
 
-        return result, "new_expression", "Call to 'expandtabs' of bytes recognized."
+        return trace_collection.computedExpressionResult(
+            expression=result,
+            change_tags="new_expression",
+            change_desc="Call to 'expandtabs' of bytes recognized.",
+        )
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
         return self._computeExpressionCall(
@@ -2291,8 +2254,6 @@ class ExpressionAttributeLookupBytesExpandtabs(
         bytes_node = makeExpressionAttributeLookup(
             expression=variable_ref_node,
             attribute_name="__self__",
-            # TODO: Would be nice to have the real source reference here, but it feels
-            # a bit expensive.
             source_ref=variable_ref_node.source_ref,
         )
 
@@ -2349,7 +2310,7 @@ attribute_classes["extend"] = ExpressionAttributeLookupFixedExtend
 class ExpressionAttributeLookupListExtend(
     SideEffectsFromChildrenMixin, ExpressionAttributeLookupFixedExtend
 ):
-    """Attribute extend lookup on a list value.
+    """Attribute 'extend' lookup on a list value.
 
     Typically code like: some_list.extend
     """
@@ -2358,7 +2319,6 @@ class ExpressionAttributeLookupListExtend(
     attribute_name = "extend"
 
     def computeExpression(self, trace_collection):
-        # Might be used to modify the list.
         trace_collection.removeKnowledge(self.subnode_expression)
 
         return self, None, None
@@ -2370,11 +2330,7 @@ class ExpressionAttributeLookupListExtend(
                 list_arg=list_arg, value=value, source_ref=source_ref
             )
 
-        # Anything may happen. On next pass, if replaced, we might be better
-        # but not now.
         trace_collection.onExceptionRaiseExit(BaseException)
-
-        # Make sure we wait with knowing if the content is safe to use until its time.
         call_node.onContentEscapes(trace_collection)
 
         result = extractBuiltinArgs(
@@ -2383,7 +2339,11 @@ class ExpressionAttributeLookupListExtend(
             builtin_spec=list_extend_spec,
         )
 
-        return result, "new_expression", "Call to 'extend' of list recognized."
+        return trace_collection.computedExpressionResult(
+            expression=result,
+            change_tags="new_expression",
+            change_desc="Call to 'extend' of list recognized.",
+        )
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
         return self._computeExpressionCall(
@@ -2396,8 +2356,6 @@ class ExpressionAttributeLookupListExtend(
         list_node = makeExpressionAttributeLookup(
             expression=variable_ref_node,
             attribute_name="__self__",
-            # TODO: Would be nice to have the real source reference here, but it feels
-            # a bit expensive.
             source_ref=variable_ref_node.source_ref,
         )
 
@@ -2469,10 +2427,6 @@ class ExpressionAttributeLookupStrFind(
     kind = "EXPRESSION_ATTRIBUTE_LOOKUP_STR_FIND"
     attribute_name = "find"
 
-    # There is nothing to compute for it as a value.
-    # TODO: Enable this
-    # auto_compute_handling = "final,no_raise"
-
     def computeExpression(self, trace_collection):
         return self, None, None
 
@@ -2496,8 +2450,6 @@ class ExpressionAttributeLookupStrFind(
                     str_arg=str_arg, sub=sub, source_ref=source_ref
                 )
 
-        # Anything may happen. On next pass, if replaced, we might be better
-        # but not now.
         trace_collection.onExceptionRaiseExit(BaseException)
 
         result = extractBuiltinArgs(
@@ -2506,7 +2458,11 @@ class ExpressionAttributeLookupStrFind(
             builtin_spec=str_find_spec,
         )
 
-        return result, "new_expression", "Call to 'find' of str recognized."
+        return trace_collection.computedExpressionResult(
+            expression=result,
+            change_tags="new_expression",
+            change_desc="Call to 'find' of str recognized.",
+        )
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
         return self._computeExpressionCall(
@@ -2519,8 +2475,6 @@ class ExpressionAttributeLookupStrFind(
         str_node = makeExpressionAttributeLookup(
             expression=variable_ref_node,
             attribute_name="__self__",
-            # TODO: Would be nice to have the real source reference here, but it feels
-            # a bit expensive.
             source_ref=variable_ref_node.source_ref,
         )
 
@@ -2543,10 +2497,6 @@ class ExpressionAttributeLookupBytesFind(
 
     kind = "EXPRESSION_ATTRIBUTE_LOOKUP_BYTES_FIND"
     attribute_name = "find"
-
-    # There is nothing to compute for it as a value.
-    # TODO: Enable this
-    # auto_compute_handling = "final,no_raise"
 
     def computeExpression(self, trace_collection):
         return self, None, None
@@ -2571,8 +2521,6 @@ class ExpressionAttributeLookupBytesFind(
                     bytes_arg=bytes_arg, sub=sub, source_ref=source_ref
                 )
 
-        # Anything may happen. On next pass, if replaced, we might be better
-        # but not now.
         trace_collection.onExceptionRaiseExit(BaseException)
 
         result = extractBuiltinArgs(
@@ -2581,7 +2529,11 @@ class ExpressionAttributeLookupBytesFind(
             builtin_spec=bytes_find_spec,
         )
 
-        return result, "new_expression", "Call to 'find' of bytes recognized."
+        return trace_collection.computedExpressionResult(
+            expression=result,
+            change_tags="new_expression",
+            change_desc="Call to 'find' of bytes recognized.",
+        )
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
         return self._computeExpressionCall(
@@ -2594,8 +2546,6 @@ class ExpressionAttributeLookupBytesFind(
         bytes_node = makeExpressionAttributeLookup(
             expression=variable_ref_node,
             attribute_name="__self__",
-            # TODO: Would be nice to have the real source reference here, but it feels
-            # a bit expensive.
             source_ref=variable_ref_node.source_ref,
         )
 
@@ -2657,10 +2607,6 @@ class ExpressionAttributeLookupStrFormat(
     kind = "EXPRESSION_ATTRIBUTE_LOOKUP_STR_FORMAT"
     attribute_name = "format"
 
-    # There is nothing to compute for it as a value.
-    # TODO: Enable this
-    # auto_compute_handling = "final,no_raise"
-
     def computeExpression(self, trace_collection):
         return self, None, None
 
@@ -2674,8 +2620,6 @@ class ExpressionAttributeLookupStrFormat(
                 source_ref=source_ref,
             )
 
-        # Anything may happen. On next pass, if replaced, we might be better
-        # but not now.
         trace_collection.onExceptionRaiseExit(BaseException)
 
         result = extractBuiltinArgs(
@@ -2684,7 +2628,11 @@ class ExpressionAttributeLookupStrFormat(
             builtin_spec=str_format_spec,
         )
 
-        return result, "new_expression", "Call to 'format' of str recognized."
+        return trace_collection.computedExpressionResult(
+            expression=result,
+            change_tags="new_expression",
+            change_desc="Call to 'format' of str recognized.",
+        )
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
         return self._computeExpressionCall(
@@ -2697,8 +2645,6 @@ class ExpressionAttributeLookupStrFormat(
         str_node = makeExpressionAttributeLookup(
             expression=variable_ref_node,
             attribute_name="__self__",
-            # TODO: Would be nice to have the real source reference here, but it feels
-            # a bit expensive.
             source_ref=variable_ref_node.source_ref,
         )
 
@@ -2760,14 +2706,8 @@ class ExpressionAttributeLookupStrFormatmap(
     kind = "EXPRESSION_ATTRIBUTE_LOOKUP_STR_FORMATMAP"
     attribute_name = "format_map"
 
-    # There is nothing to compute for it as a value.
-    # TODO: Enable this
-    # auto_compute_handling = "final,no_raise"
-
     def computeExpression(self, trace_collection):
         return self, None, None
-
-    # No computeExpressionCall as str operation ExpressionStrOperationFormatmap is not yet implemented
 
 
 attribute_typed_classes.add(ExpressionAttributeLookupStrFormatmap)
@@ -2829,12 +2769,7 @@ class ExpressionAttributeLookupDictFromkeys(
     kind = "EXPRESSION_ATTRIBUTE_LOOKUP_DICT_FROMKEYS"
     attribute_name = "fromkeys"
 
-    # There is nothing to compute for it as a value.
-    # TODO: Enable this once we can also say removal of knowable for an argument.
-    # auto_compute_handling = "final,no_raise"
-
     def computeExpression(self, trace_collection):
-        # Cannot be used to modify the dict.
         return self, None, None
 
     @staticmethod
@@ -2849,11 +2784,7 @@ class ExpressionAttributeLookupDictFromkeys(
                     iterable=iterable, source_ref=source_ref
                 )
 
-        # Anything may happen. On next pass, if replaced, we might be better
-        # but not now.
         trace_collection.onExceptionRaiseExit(BaseException)
-
-        # Make sure we wait with knowing if the content is safe to use until its time.
         call_node.onContentEscapes(trace_collection)
 
         result = extractBuiltinArgs(
@@ -2886,8 +2817,6 @@ class ExpressionAttributeLookupDictFromkeys(
         dict_node = makeExpressionAttributeLookup(
             expression=variable_ref_node,
             attribute_name="__self__",
-            # TODO: Would be nice to have the real source reference here, but it feels
-            # a bit expensive.
             source_ref=variable_ref_node.source_ref,
         )
 
@@ -2950,17 +2879,26 @@ class ExpressionAttributeLookupDictGet(
     kind = "EXPRESSION_ATTRIBUTE_LOOKUP_DICT_GET"
     attribute_name = "get"
 
-    # There is nothing to compute for it as a value.
-    # TODO: Enable this once we can also say removal of knowable for an argument.
-    # auto_compute_handling = "final,no_raise"
-
     def computeExpression(self, trace_collection):
-        # Cannot be used to modify the dict.
         return self, None, None
 
     @staticmethod
     def _computeExpressionCall(call_node, dict_arg, trace_collection):
         def wrapExpressionDictOperationGet(key, default, source_ref):
+            if dict_arg.isExpressionSysModulesRef():
+                if default is not None:
+                    return makeExpressionSysModulesGet3(
+                        dict_arg=dict_arg,
+                        key=key,
+                        default=default,
+                        source_ref=source_ref,
+                    )
+                else:
+                    return makeExpressionSysModulesGet2(
+                        dict_arg=dict_arg,
+                        key=key,
+                        source_ref=source_ref,
+                    )
             if default is not None:
                 return ExpressionDictOperationGet3(
                     dict_arg=dict_arg, key=key, default=default, source_ref=source_ref
@@ -2970,11 +2908,7 @@ class ExpressionAttributeLookupDictGet(
                     dict_arg=dict_arg, key=key, source_ref=source_ref
                 )
 
-        # Anything may happen. On next pass, if replaced, we might be better
-        # but not now.
         trace_collection.onExceptionRaiseExit(BaseException)
-
-        # Make sure we wait with knowing if the content is safe to use until its time.
         call_node.onContentEscapes(trace_collection)
 
         result = extractBuiltinArgs(
@@ -3000,8 +2934,6 @@ class ExpressionAttributeLookupDictGet(
         dict_node = makeExpressionAttributeLookup(
             expression=variable_ref_node,
             attribute_name="__self__",
-            # TODO: Would be nice to have the real source reference here, but it feels
-            # a bit expensive.
             source_ref=variable_ref_node.source_ref,
         )
 
@@ -3064,12 +2996,7 @@ class ExpressionAttributeLookupDictHaskey(
     kind = "EXPRESSION_ATTRIBUTE_LOOKUP_DICT_HASKEY"
     attribute_name = "has_key"
 
-    # There is nothing to compute for it as a value.
-    # TODO: Enable this once we can also say removal of knowable for an argument.
-    # auto_compute_handling = "final,no_raise"
-
     def computeExpression(self, trace_collection):
-        # Cannot be used to modify the dict.
         return self, None, None
 
     @staticmethod
@@ -3079,11 +3006,7 @@ class ExpressionAttributeLookupDictHaskey(
                 dict_arg=dict_arg, key=key, source_ref=source_ref
             )
 
-        # Anything may happen. On next pass, if replaced, we might be better
-        # but not now.
         trace_collection.onExceptionRaiseExit(BaseException)
-
-        # Make sure we wait with knowing if the content is safe to use until its time.
         call_node.onContentEscapes(trace_collection)
 
         result = extractBuiltinArgs(
@@ -3109,8 +3032,6 @@ class ExpressionAttributeLookupDictHaskey(
         dict_node = makeExpressionAttributeLookup(
             expression=variable_ref_node,
             attribute_name="__self__",
-            # TODO: Would be nice to have the real source reference here, but it feels
-            # a bit expensive.
             source_ref=variable_ref_node.source_ref,
         )
 
@@ -3195,10 +3116,6 @@ class ExpressionAttributeLookupStrIndex(
     kind = "EXPRESSION_ATTRIBUTE_LOOKUP_STR_INDEX"
     attribute_name = "index"
 
-    # There is nothing to compute for it as a value.
-    # TODO: Enable this
-    # auto_compute_handling = "final,no_raise"
-
     def computeExpression(self, trace_collection):
         return self, None, None
 
@@ -3222,8 +3139,6 @@ class ExpressionAttributeLookupStrIndex(
                     str_arg=str_arg, sub=sub, source_ref=source_ref
                 )
 
-        # Anything may happen. On next pass, if replaced, we might be better
-        # but not now.
         trace_collection.onExceptionRaiseExit(BaseException)
 
         result = extractBuiltinArgs(
@@ -3232,7 +3147,11 @@ class ExpressionAttributeLookupStrIndex(
             builtin_spec=str_index_spec,
         )
 
-        return result, "new_expression", "Call to 'index' of str recognized."
+        return trace_collection.computedExpressionResult(
+            expression=result,
+            change_tags="new_expression",
+            change_desc="Call to 'index' of str recognized.",
+        )
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
         return self._computeExpressionCall(
@@ -3245,8 +3164,6 @@ class ExpressionAttributeLookupStrIndex(
         str_node = makeExpressionAttributeLookup(
             expression=variable_ref_node,
             attribute_name="__self__",
-            # TODO: Would be nice to have the real source reference here, but it feels
-            # a bit expensive.
             source_ref=variable_ref_node.source_ref,
         )
 
@@ -3269,10 +3186,6 @@ class ExpressionAttributeLookupBytesIndex(
 
     kind = "EXPRESSION_ATTRIBUTE_LOOKUP_BYTES_INDEX"
     attribute_name = "index"
-
-    # There is nothing to compute for it as a value.
-    # TODO: Enable this
-    # auto_compute_handling = "final,no_raise"
 
     def computeExpression(self, trace_collection):
         return self, None, None
@@ -3297,8 +3210,6 @@ class ExpressionAttributeLookupBytesIndex(
                     bytes_arg=bytes_arg, sub=sub, source_ref=source_ref
                 )
 
-        # Anything may happen. On next pass, if replaced, we might be better
-        # but not now.
         trace_collection.onExceptionRaiseExit(BaseException)
 
         result = extractBuiltinArgs(
@@ -3307,7 +3218,11 @@ class ExpressionAttributeLookupBytesIndex(
             builtin_spec=bytes_index_spec,
         )
 
-        return result, "new_expression", "Call to 'index' of bytes recognized."
+        return trace_collection.computedExpressionResult(
+            expression=result,
+            change_tags="new_expression",
+            change_desc="Call to 'index' of bytes recognized.",
+        )
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
         return self._computeExpressionCall(
@@ -3320,8 +3235,6 @@ class ExpressionAttributeLookupBytesIndex(
         bytes_node = makeExpressionAttributeLookup(
             expression=variable_ref_node,
             attribute_name="__self__",
-            # TODO: Would be nice to have the real source reference here, but it feels
-            # a bit expensive.
             source_ref=variable_ref_node.source_ref,
         )
 
@@ -3337,7 +3250,7 @@ attribute_typed_classes.add(ExpressionAttributeLookupBytesIndex)
 class ExpressionAttributeLookupListIndex(
     SideEffectsFromChildrenMixin, ExpressionAttributeLookupFixedIndex
 ):
-    """Attribute index lookup on a list value.
+    """Attribute 'index' lookup on a list value.
 
     Typically code like: some_list.index
     """
@@ -3346,7 +3259,6 @@ class ExpressionAttributeLookupListIndex(
     attribute_name = "index"
 
     def computeExpression(self, trace_collection):
-        # Cannot be used to modify the list.
         return self, None, None
 
     @staticmethod
@@ -3369,11 +3281,7 @@ class ExpressionAttributeLookupListIndex(
                     list_arg=list_arg, value=value, source_ref=source_ref
                 )
 
-        # Anything may happen. On next pass, if replaced, we might be better
-        # but not now.
         trace_collection.onExceptionRaiseExit(BaseException)
-
-        # Make sure we wait with knowing if the content is safe to use until its time.
         call_node.onContentEscapes(trace_collection)
 
         result = extractBuiltinArgs(
@@ -3382,7 +3290,11 @@ class ExpressionAttributeLookupListIndex(
             builtin_spec=list_index_spec,
         )
 
-        return result, "new_expression", "Call to 'index' of list recognized."
+        return trace_collection.computedExpressionResult(
+            expression=result,
+            change_tags="new_expression",
+            change_desc="Call to 'index' of list recognized.",
+        )
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
         return self._computeExpressionCall(
@@ -3395,8 +3307,6 @@ class ExpressionAttributeLookupListIndex(
         list_node = makeExpressionAttributeLookup(
             expression=variable_ref_node,
             attribute_name="__self__",
-            # TODO: Would be nice to have the real source reference here, but it feels
-            # a bit expensive.
             source_ref=variable_ref_node.source_ref,
         )
 
@@ -3453,7 +3363,7 @@ attribute_classes["insert"] = ExpressionAttributeLookupFixedInsert
 class ExpressionAttributeLookupListInsert(
     SideEffectsFromChildrenMixin, ExpressionAttributeLookupFixedInsert
 ):
-    """Attribute insert lookup on a list value.
+    """Attribute 'insert' lookup on a list value.
 
     Typically code like: some_list.insert
     """
@@ -3462,7 +3372,6 @@ class ExpressionAttributeLookupListInsert(
     attribute_name = "insert"
 
     def computeExpression(self, trace_collection):
-        # Might be used to modify the list.
         trace_collection.removeKnowledge(self.subnode_expression)
 
         return self, None, None
@@ -3474,11 +3383,7 @@ class ExpressionAttributeLookupListInsert(
                 list_arg=list_arg, index=index, item=item, source_ref=source_ref
             )
 
-        # Anything may happen. On next pass, if replaced, we might be better
-        # but not now.
         trace_collection.onExceptionRaiseExit(BaseException)
-
-        # Make sure we wait with knowing if the content is safe to use until its time.
         call_node.onContentEscapes(trace_collection)
 
         result = extractBuiltinArgs(
@@ -3487,7 +3392,11 @@ class ExpressionAttributeLookupListInsert(
             builtin_spec=list_insert_spec,
         )
 
-        return result, "new_expression", "Call to 'insert' of list recognized."
+        return trace_collection.computedExpressionResult(
+            expression=result,
+            change_tags="new_expression",
+            change_desc="Call to 'insert' of list recognized.",
+        )
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
         return self._computeExpressionCall(
@@ -3500,8 +3409,6 @@ class ExpressionAttributeLookupListInsert(
         list_node = makeExpressionAttributeLookup(
             expression=variable_ref_node,
             attribute_name="__self__",
-            # TODO: Would be nice to have the real source reference here, but it feels
-            # a bit expensive.
             source_ref=variable_ref_node.source_ref,
         )
 
@@ -3573,10 +3480,6 @@ class ExpressionAttributeLookupStrIsalnum(
     kind = "EXPRESSION_ATTRIBUTE_LOOKUP_STR_ISALNUM"
     attribute_name = "isalnum"
 
-    # There is nothing to compute for it as a value.
-    # TODO: Enable this
-    # auto_compute_handling = "final,no_raise"
-
     def computeExpression(self, trace_collection):
         return self, None, None
 
@@ -3585,8 +3488,6 @@ class ExpressionAttributeLookupStrIsalnum(
         def wrapExpressionStrOperationIsalnum(source_ref):
             return ExpressionStrOperationIsalnum(str_arg=str_arg, source_ref=source_ref)
 
-        # Anything may happen. On next pass, if replaced, we might be better
-        # but not now.
         trace_collection.onExceptionRaiseExit(BaseException)
 
         result = extractBuiltinArgs(
@@ -3595,7 +3496,11 @@ class ExpressionAttributeLookupStrIsalnum(
             builtin_spec=str_isalnum_spec,
         )
 
-        return result, "new_expression", "Call to 'isalnum' of str recognized."
+        return trace_collection.computedExpressionResult(
+            expression=result,
+            change_tags="new_expression",
+            change_desc="Call to 'isalnum' of str recognized.",
+        )
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
         return self._computeExpressionCall(
@@ -3608,8 +3513,6 @@ class ExpressionAttributeLookupStrIsalnum(
         str_node = makeExpressionAttributeLookup(
             expression=variable_ref_node,
             attribute_name="__self__",
-            # TODO: Would be nice to have the real source reference here, but it feels
-            # a bit expensive.
             source_ref=variable_ref_node.source_ref,
         )
 
@@ -3633,10 +3536,6 @@ class ExpressionAttributeLookupBytesIsalnum(
     kind = "EXPRESSION_ATTRIBUTE_LOOKUP_BYTES_ISALNUM"
     attribute_name = "isalnum"
 
-    # There is nothing to compute for it as a value.
-    # TODO: Enable this
-    # auto_compute_handling = "final,no_raise"
-
     def computeExpression(self, trace_collection):
         return self, None, None
 
@@ -3647,8 +3546,6 @@ class ExpressionAttributeLookupBytesIsalnum(
                 bytes_arg=bytes_arg, source_ref=source_ref
             )
 
-        # Anything may happen. On next pass, if replaced, we might be better
-        # but not now.
         trace_collection.onExceptionRaiseExit(BaseException)
 
         result = extractBuiltinArgs(
@@ -3657,7 +3554,11 @@ class ExpressionAttributeLookupBytesIsalnum(
             builtin_spec=bytes_isalnum_spec,
         )
 
-        return result, "new_expression", "Call to 'isalnum' of bytes recognized."
+        return trace_collection.computedExpressionResult(
+            expression=result,
+            change_tags="new_expression",
+            change_desc="Call to 'isalnum' of bytes recognized.",
+        )
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
         return self._computeExpressionCall(
@@ -3670,8 +3571,6 @@ class ExpressionAttributeLookupBytesIsalnum(
         bytes_node = makeExpressionAttributeLookup(
             expression=variable_ref_node,
             attribute_name="__self__",
-            # TODO: Would be nice to have the real source reference here, but it feels
-            # a bit expensive.
             source_ref=variable_ref_node.source_ref,
         )
 
@@ -3743,10 +3642,6 @@ class ExpressionAttributeLookupStrIsalpha(
     kind = "EXPRESSION_ATTRIBUTE_LOOKUP_STR_ISALPHA"
     attribute_name = "isalpha"
 
-    # There is nothing to compute for it as a value.
-    # TODO: Enable this
-    # auto_compute_handling = "final,no_raise"
-
     def computeExpression(self, trace_collection):
         return self, None, None
 
@@ -3755,8 +3650,6 @@ class ExpressionAttributeLookupStrIsalpha(
         def wrapExpressionStrOperationIsalpha(source_ref):
             return ExpressionStrOperationIsalpha(str_arg=str_arg, source_ref=source_ref)
 
-        # Anything may happen. On next pass, if replaced, we might be better
-        # but not now.
         trace_collection.onExceptionRaiseExit(BaseException)
 
         result = extractBuiltinArgs(
@@ -3765,7 +3658,11 @@ class ExpressionAttributeLookupStrIsalpha(
             builtin_spec=str_isalpha_spec,
         )
 
-        return result, "new_expression", "Call to 'isalpha' of str recognized."
+        return trace_collection.computedExpressionResult(
+            expression=result,
+            change_tags="new_expression",
+            change_desc="Call to 'isalpha' of str recognized.",
+        )
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
         return self._computeExpressionCall(
@@ -3778,8 +3675,6 @@ class ExpressionAttributeLookupStrIsalpha(
         str_node = makeExpressionAttributeLookup(
             expression=variable_ref_node,
             attribute_name="__self__",
-            # TODO: Would be nice to have the real source reference here, but it feels
-            # a bit expensive.
             source_ref=variable_ref_node.source_ref,
         )
 
@@ -3803,10 +3698,6 @@ class ExpressionAttributeLookupBytesIsalpha(
     kind = "EXPRESSION_ATTRIBUTE_LOOKUP_BYTES_ISALPHA"
     attribute_name = "isalpha"
 
-    # There is nothing to compute for it as a value.
-    # TODO: Enable this
-    # auto_compute_handling = "final,no_raise"
-
     def computeExpression(self, trace_collection):
         return self, None, None
 
@@ -3817,8 +3708,6 @@ class ExpressionAttributeLookupBytesIsalpha(
                 bytes_arg=bytes_arg, source_ref=source_ref
             )
 
-        # Anything may happen. On next pass, if replaced, we might be better
-        # but not now.
         trace_collection.onExceptionRaiseExit(BaseException)
 
         result = extractBuiltinArgs(
@@ -3827,7 +3716,11 @@ class ExpressionAttributeLookupBytesIsalpha(
             builtin_spec=bytes_isalpha_spec,
         )
 
-        return result, "new_expression", "Call to 'isalpha' of bytes recognized."
+        return trace_collection.computedExpressionResult(
+            expression=result,
+            change_tags="new_expression",
+            change_desc="Call to 'isalpha' of bytes recognized.",
+        )
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
         return self._computeExpressionCall(
@@ -3840,8 +3733,6 @@ class ExpressionAttributeLookupBytesIsalpha(
         bytes_node = makeExpressionAttributeLookup(
             expression=variable_ref_node,
             attribute_name="__self__",
-            # TODO: Would be nice to have the real source reference here, but it feels
-            # a bit expensive.
             source_ref=variable_ref_node.source_ref,
         )
 
@@ -3866,7 +3757,7 @@ class ExpressionAttributeLookupFixedIsascii(ExpressionAttributeLookupFixedBase):
     def computeExpression(self, trace_collection):
         subnode_expression = self.subnode_expression
 
-        if str is not bytes and subnode_expression.hasShapeStrExact():
+        if python_version >= 0x370 and subnode_expression.hasShapeStrExact():
             result = ExpressionAttributeLookupStrIsascii(
                 expression=subnode_expression, source_ref=self.source_ref
             )
@@ -3903,14 +3794,46 @@ class ExpressionAttributeLookupStrIsascii(
     kind = "EXPRESSION_ATTRIBUTE_LOOKUP_STR_ISASCII"
     attribute_name = "isascii"
 
-    # There is nothing to compute for it as a value.
-    # TODO: Enable this
-    # auto_compute_handling = "final,no_raise"
-
     def computeExpression(self, trace_collection):
         return self, None, None
 
-    # No computeExpressionCall as str operation ExpressionStrOperationIsascii is not yet implemented
+    @staticmethod
+    def _computeExpressionCall(call_node, str_arg, trace_collection):
+        def wrapExpressionStrOperationIsascii(source_ref):
+            return ExpressionStrOperationIsascii(str_arg=str_arg, source_ref=source_ref)
+
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        result = extractBuiltinArgs(
+            node=call_node,
+            builtin_class=wrapExpressionStrOperationIsascii,
+            builtin_spec=str_isascii_spec,
+        )
+
+        return trace_collection.computedExpressionResult(
+            expression=result,
+            change_tags="new_expression",
+            change_desc="Call to 'isascii' of str recognized.",
+        )
+
+    def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
+        return self._computeExpressionCall(
+            call_node, self.subnode_expression, trace_collection
+        )
+
+    def computeExpressionCallViaVariable(
+        self, call_node, variable_ref_node, call_args, call_kw, trace_collection
+    ):
+        str_node = makeExpressionAttributeLookup(
+            expression=variable_ref_node,
+            attribute_name="__self__",
+            source_ref=variable_ref_node.source_ref,
+        )
+
+        return self._computeExpressionCall(call_node, str_node, trace_collection)
+
+    def mayRaiseException(self, exception_type):
+        return self.subnode_expression.mayRaiseException(exception_type)
 
 
 attribute_typed_classes.add(ExpressionAttributeLookupStrIsascii)
@@ -3965,14 +3888,48 @@ class ExpressionAttributeLookupStrIsdecimal(
     kind = "EXPRESSION_ATTRIBUTE_LOOKUP_STR_ISDECIMAL"
     attribute_name = "isdecimal"
 
-    # There is nothing to compute for it as a value.
-    # TODO: Enable this
-    # auto_compute_handling = "final,no_raise"
-
     def computeExpression(self, trace_collection):
         return self, None, None
 
-    # No computeExpressionCall as str operation ExpressionStrOperationIsdecimal is not yet implemented
+    @staticmethod
+    def _computeExpressionCall(call_node, str_arg, trace_collection):
+        def wrapExpressionStrOperationIsdecimal(source_ref):
+            return ExpressionStrOperationIsdecimal(
+                str_arg=str_arg, source_ref=source_ref
+            )
+
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        result = extractBuiltinArgs(
+            node=call_node,
+            builtin_class=wrapExpressionStrOperationIsdecimal,
+            builtin_spec=str_isdecimal_spec,
+        )
+
+        return trace_collection.computedExpressionResult(
+            expression=result,
+            change_tags="new_expression",
+            change_desc="Call to 'isdecimal' of str recognized.",
+        )
+
+    def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
+        return self._computeExpressionCall(
+            call_node, self.subnode_expression, trace_collection
+        )
+
+    def computeExpressionCallViaVariable(
+        self, call_node, variable_ref_node, call_args, call_kw, trace_collection
+    ):
+        str_node = makeExpressionAttributeLookup(
+            expression=variable_ref_node,
+            attribute_name="__self__",
+            source_ref=variable_ref_node.source_ref,
+        )
+
+        return self._computeExpressionCall(call_node, str_node, trace_collection)
+
+    def mayRaiseException(self, exception_type):
+        return self.subnode_expression.mayRaiseException(exception_type)
 
 
 attribute_typed_classes.add(ExpressionAttributeLookupStrIsdecimal)
@@ -4037,10 +3994,6 @@ class ExpressionAttributeLookupStrIsdigit(
     kind = "EXPRESSION_ATTRIBUTE_LOOKUP_STR_ISDIGIT"
     attribute_name = "isdigit"
 
-    # There is nothing to compute for it as a value.
-    # TODO: Enable this
-    # auto_compute_handling = "final,no_raise"
-
     def computeExpression(self, trace_collection):
         return self, None, None
 
@@ -4049,8 +4002,6 @@ class ExpressionAttributeLookupStrIsdigit(
         def wrapExpressionStrOperationIsdigit(source_ref):
             return ExpressionStrOperationIsdigit(str_arg=str_arg, source_ref=source_ref)
 
-        # Anything may happen. On next pass, if replaced, we might be better
-        # but not now.
         trace_collection.onExceptionRaiseExit(BaseException)
 
         result = extractBuiltinArgs(
@@ -4059,7 +4010,11 @@ class ExpressionAttributeLookupStrIsdigit(
             builtin_spec=str_isdigit_spec,
         )
 
-        return result, "new_expression", "Call to 'isdigit' of str recognized."
+        return trace_collection.computedExpressionResult(
+            expression=result,
+            change_tags="new_expression",
+            change_desc="Call to 'isdigit' of str recognized.",
+        )
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
         return self._computeExpressionCall(
@@ -4072,8 +4027,6 @@ class ExpressionAttributeLookupStrIsdigit(
         str_node = makeExpressionAttributeLookup(
             expression=variable_ref_node,
             attribute_name="__self__",
-            # TODO: Would be nice to have the real source reference here, but it feels
-            # a bit expensive.
             source_ref=variable_ref_node.source_ref,
         )
 
@@ -4097,10 +4050,6 @@ class ExpressionAttributeLookupBytesIsdigit(
     kind = "EXPRESSION_ATTRIBUTE_LOOKUP_BYTES_ISDIGIT"
     attribute_name = "isdigit"
 
-    # There is nothing to compute for it as a value.
-    # TODO: Enable this
-    # auto_compute_handling = "final,no_raise"
-
     def computeExpression(self, trace_collection):
         return self, None, None
 
@@ -4111,8 +4060,6 @@ class ExpressionAttributeLookupBytesIsdigit(
                 bytes_arg=bytes_arg, source_ref=source_ref
             )
 
-        # Anything may happen. On next pass, if replaced, we might be better
-        # but not now.
         trace_collection.onExceptionRaiseExit(BaseException)
 
         result = extractBuiltinArgs(
@@ -4121,7 +4068,11 @@ class ExpressionAttributeLookupBytesIsdigit(
             builtin_spec=bytes_isdigit_spec,
         )
 
-        return result, "new_expression", "Call to 'isdigit' of bytes recognized."
+        return trace_collection.computedExpressionResult(
+            expression=result,
+            change_tags="new_expression",
+            change_desc="Call to 'isdigit' of bytes recognized.",
+        )
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
         return self._computeExpressionCall(
@@ -4134,8 +4085,6 @@ class ExpressionAttributeLookupBytesIsdigit(
         bytes_node = makeExpressionAttributeLookup(
             expression=variable_ref_node,
             attribute_name="__self__",
-            # TODO: Would be nice to have the real source reference here, but it feels
-            # a bit expensive.
             source_ref=variable_ref_node.source_ref,
         )
 
@@ -4197,14 +4146,48 @@ class ExpressionAttributeLookupStrIsidentifier(
     kind = "EXPRESSION_ATTRIBUTE_LOOKUP_STR_ISIDENTIFIER"
     attribute_name = "isidentifier"
 
-    # There is nothing to compute for it as a value.
-    # TODO: Enable this
-    # auto_compute_handling = "final,no_raise"
-
     def computeExpression(self, trace_collection):
         return self, None, None
 
-    # No computeExpressionCall as str operation ExpressionStrOperationIsidentifier is not yet implemented
+    @staticmethod
+    def _computeExpressionCall(call_node, str_arg, trace_collection):
+        def wrapExpressionStrOperationIsidentifier(source_ref):
+            return ExpressionStrOperationIsidentifier(
+                str_arg=str_arg, source_ref=source_ref
+            )
+
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        result = extractBuiltinArgs(
+            node=call_node,
+            builtin_class=wrapExpressionStrOperationIsidentifier,
+            builtin_spec=str_isidentifier_spec,
+        )
+
+        return trace_collection.computedExpressionResult(
+            expression=result,
+            change_tags="new_expression",
+            change_desc="Call to 'isidentifier' of str recognized.",
+        )
+
+    def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
+        return self._computeExpressionCall(
+            call_node, self.subnode_expression, trace_collection
+        )
+
+    def computeExpressionCallViaVariable(
+        self, call_node, variable_ref_node, call_args, call_kw, trace_collection
+    ):
+        str_node = makeExpressionAttributeLookup(
+            expression=variable_ref_node,
+            attribute_name="__self__",
+            source_ref=variable_ref_node.source_ref,
+        )
+
+        return self._computeExpressionCall(call_node, str_node, trace_collection)
+
+    def mayRaiseException(self, exception_type):
+        return self.subnode_expression.mayRaiseException(exception_type)
 
 
 attribute_typed_classes.add(ExpressionAttributeLookupStrIsidentifier)
@@ -4269,10 +4252,6 @@ class ExpressionAttributeLookupStrIslower(
     kind = "EXPRESSION_ATTRIBUTE_LOOKUP_STR_ISLOWER"
     attribute_name = "islower"
 
-    # There is nothing to compute for it as a value.
-    # TODO: Enable this
-    # auto_compute_handling = "final,no_raise"
-
     def computeExpression(self, trace_collection):
         return self, None, None
 
@@ -4281,8 +4260,6 @@ class ExpressionAttributeLookupStrIslower(
         def wrapExpressionStrOperationIslower(source_ref):
             return ExpressionStrOperationIslower(str_arg=str_arg, source_ref=source_ref)
 
-        # Anything may happen. On next pass, if replaced, we might be better
-        # but not now.
         trace_collection.onExceptionRaiseExit(BaseException)
 
         result = extractBuiltinArgs(
@@ -4291,7 +4268,11 @@ class ExpressionAttributeLookupStrIslower(
             builtin_spec=str_islower_spec,
         )
 
-        return result, "new_expression", "Call to 'islower' of str recognized."
+        return trace_collection.computedExpressionResult(
+            expression=result,
+            change_tags="new_expression",
+            change_desc="Call to 'islower' of str recognized.",
+        )
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
         return self._computeExpressionCall(
@@ -4304,8 +4285,6 @@ class ExpressionAttributeLookupStrIslower(
         str_node = makeExpressionAttributeLookup(
             expression=variable_ref_node,
             attribute_name="__self__",
-            # TODO: Would be nice to have the real source reference here, but it feels
-            # a bit expensive.
             source_ref=variable_ref_node.source_ref,
         )
 
@@ -4329,10 +4308,6 @@ class ExpressionAttributeLookupBytesIslower(
     kind = "EXPRESSION_ATTRIBUTE_LOOKUP_BYTES_ISLOWER"
     attribute_name = "islower"
 
-    # There is nothing to compute for it as a value.
-    # TODO: Enable this
-    # auto_compute_handling = "final,no_raise"
-
     def computeExpression(self, trace_collection):
         return self, None, None
 
@@ -4343,8 +4318,6 @@ class ExpressionAttributeLookupBytesIslower(
                 bytes_arg=bytes_arg, source_ref=source_ref
             )
 
-        # Anything may happen. On next pass, if replaced, we might be better
-        # but not now.
         trace_collection.onExceptionRaiseExit(BaseException)
 
         result = extractBuiltinArgs(
@@ -4353,7 +4326,11 @@ class ExpressionAttributeLookupBytesIslower(
             builtin_spec=bytes_islower_spec,
         )
 
-        return result, "new_expression", "Call to 'islower' of bytes recognized."
+        return trace_collection.computedExpressionResult(
+            expression=result,
+            change_tags="new_expression",
+            change_desc="Call to 'islower' of bytes recognized.",
+        )
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
         return self._computeExpressionCall(
@@ -4366,8 +4343,6 @@ class ExpressionAttributeLookupBytesIslower(
         bytes_node = makeExpressionAttributeLookup(
             expression=variable_ref_node,
             attribute_name="__self__",
-            # TODO: Would be nice to have the real source reference here, but it feels
-            # a bit expensive.
             source_ref=variable_ref_node.source_ref,
         )
 
@@ -4429,14 +4404,48 @@ class ExpressionAttributeLookupStrIsnumeric(
     kind = "EXPRESSION_ATTRIBUTE_LOOKUP_STR_ISNUMERIC"
     attribute_name = "isnumeric"
 
-    # There is nothing to compute for it as a value.
-    # TODO: Enable this
-    # auto_compute_handling = "final,no_raise"
-
     def computeExpression(self, trace_collection):
         return self, None, None
 
-    # No computeExpressionCall as str operation ExpressionStrOperationIsnumeric is not yet implemented
+    @staticmethod
+    def _computeExpressionCall(call_node, str_arg, trace_collection):
+        def wrapExpressionStrOperationIsnumeric(source_ref):
+            return ExpressionStrOperationIsnumeric(
+                str_arg=str_arg, source_ref=source_ref
+            )
+
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        result = extractBuiltinArgs(
+            node=call_node,
+            builtin_class=wrapExpressionStrOperationIsnumeric,
+            builtin_spec=str_isnumeric_spec,
+        )
+
+        return trace_collection.computedExpressionResult(
+            expression=result,
+            change_tags="new_expression",
+            change_desc="Call to 'isnumeric' of str recognized.",
+        )
+
+    def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
+        return self._computeExpressionCall(
+            call_node, self.subnode_expression, trace_collection
+        )
+
+    def computeExpressionCallViaVariable(
+        self, call_node, variable_ref_node, call_args, call_kw, trace_collection
+    ):
+        str_node = makeExpressionAttributeLookup(
+            expression=variable_ref_node,
+            attribute_name="__self__",
+            source_ref=variable_ref_node.source_ref,
+        )
+
+        return self._computeExpressionCall(call_node, str_node, trace_collection)
+
+    def mayRaiseException(self, exception_type):
+        return self.subnode_expression.mayRaiseException(exception_type)
 
 
 attribute_typed_classes.add(ExpressionAttributeLookupStrIsnumeric)
@@ -4491,14 +4500,48 @@ class ExpressionAttributeLookupStrIsprintable(
     kind = "EXPRESSION_ATTRIBUTE_LOOKUP_STR_ISPRINTABLE"
     attribute_name = "isprintable"
 
-    # There is nothing to compute for it as a value.
-    # TODO: Enable this
-    # auto_compute_handling = "final,no_raise"
-
     def computeExpression(self, trace_collection):
         return self, None, None
 
-    # No computeExpressionCall as str operation ExpressionStrOperationIsprintable is not yet implemented
+    @staticmethod
+    def _computeExpressionCall(call_node, str_arg, trace_collection):
+        def wrapExpressionStrOperationIsprintable(source_ref):
+            return ExpressionStrOperationIsprintable(
+                str_arg=str_arg, source_ref=source_ref
+            )
+
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        result = extractBuiltinArgs(
+            node=call_node,
+            builtin_class=wrapExpressionStrOperationIsprintable,
+            builtin_spec=str_isprintable_spec,
+        )
+
+        return trace_collection.computedExpressionResult(
+            expression=result,
+            change_tags="new_expression",
+            change_desc="Call to 'isprintable' of str recognized.",
+        )
+
+    def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
+        return self._computeExpressionCall(
+            call_node, self.subnode_expression, trace_collection
+        )
+
+    def computeExpressionCallViaVariable(
+        self, call_node, variable_ref_node, call_args, call_kw, trace_collection
+    ):
+        str_node = makeExpressionAttributeLookup(
+            expression=variable_ref_node,
+            attribute_name="__self__",
+            source_ref=variable_ref_node.source_ref,
+        )
+
+        return self._computeExpressionCall(call_node, str_node, trace_collection)
+
+    def mayRaiseException(self, exception_type):
+        return self.subnode_expression.mayRaiseException(exception_type)
 
 
 attribute_typed_classes.add(ExpressionAttributeLookupStrIsprintable)
@@ -4563,10 +4606,6 @@ class ExpressionAttributeLookupStrIsspace(
     kind = "EXPRESSION_ATTRIBUTE_LOOKUP_STR_ISSPACE"
     attribute_name = "isspace"
 
-    # There is nothing to compute for it as a value.
-    # TODO: Enable this
-    # auto_compute_handling = "final,no_raise"
-
     def computeExpression(self, trace_collection):
         return self, None, None
 
@@ -4575,8 +4614,6 @@ class ExpressionAttributeLookupStrIsspace(
         def wrapExpressionStrOperationIsspace(source_ref):
             return ExpressionStrOperationIsspace(str_arg=str_arg, source_ref=source_ref)
 
-        # Anything may happen. On next pass, if replaced, we might be better
-        # but not now.
         trace_collection.onExceptionRaiseExit(BaseException)
 
         result = extractBuiltinArgs(
@@ -4585,7 +4622,11 @@ class ExpressionAttributeLookupStrIsspace(
             builtin_spec=str_isspace_spec,
         )
 
-        return result, "new_expression", "Call to 'isspace' of str recognized."
+        return trace_collection.computedExpressionResult(
+            expression=result,
+            change_tags="new_expression",
+            change_desc="Call to 'isspace' of str recognized.",
+        )
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
         return self._computeExpressionCall(
@@ -4598,8 +4639,6 @@ class ExpressionAttributeLookupStrIsspace(
         str_node = makeExpressionAttributeLookup(
             expression=variable_ref_node,
             attribute_name="__self__",
-            # TODO: Would be nice to have the real source reference here, but it feels
-            # a bit expensive.
             source_ref=variable_ref_node.source_ref,
         )
 
@@ -4623,10 +4662,6 @@ class ExpressionAttributeLookupBytesIsspace(
     kind = "EXPRESSION_ATTRIBUTE_LOOKUP_BYTES_ISSPACE"
     attribute_name = "isspace"
 
-    # There is nothing to compute for it as a value.
-    # TODO: Enable this
-    # auto_compute_handling = "final,no_raise"
-
     def computeExpression(self, trace_collection):
         return self, None, None
 
@@ -4637,8 +4672,6 @@ class ExpressionAttributeLookupBytesIsspace(
                 bytes_arg=bytes_arg, source_ref=source_ref
             )
 
-        # Anything may happen. On next pass, if replaced, we might be better
-        # but not now.
         trace_collection.onExceptionRaiseExit(BaseException)
 
         result = extractBuiltinArgs(
@@ -4647,7 +4680,11 @@ class ExpressionAttributeLookupBytesIsspace(
             builtin_spec=bytes_isspace_spec,
         )
 
-        return result, "new_expression", "Call to 'isspace' of bytes recognized."
+        return trace_collection.computedExpressionResult(
+            expression=result,
+            change_tags="new_expression",
+            change_desc="Call to 'isspace' of bytes recognized.",
+        )
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
         return self._computeExpressionCall(
@@ -4660,8 +4697,6 @@ class ExpressionAttributeLookupBytesIsspace(
         bytes_node = makeExpressionAttributeLookup(
             expression=variable_ref_node,
             attribute_name="__self__",
-            # TODO: Would be nice to have the real source reference here, but it feels
-            # a bit expensive.
             source_ref=variable_ref_node.source_ref,
         )
 
@@ -4733,10 +4768,6 @@ class ExpressionAttributeLookupStrIstitle(
     kind = "EXPRESSION_ATTRIBUTE_LOOKUP_STR_ISTITLE"
     attribute_name = "istitle"
 
-    # There is nothing to compute for it as a value.
-    # TODO: Enable this
-    # auto_compute_handling = "final,no_raise"
-
     def computeExpression(self, trace_collection):
         return self, None, None
 
@@ -4745,8 +4776,6 @@ class ExpressionAttributeLookupStrIstitle(
         def wrapExpressionStrOperationIstitle(source_ref):
             return ExpressionStrOperationIstitle(str_arg=str_arg, source_ref=source_ref)
 
-        # Anything may happen. On next pass, if replaced, we might be better
-        # but not now.
         trace_collection.onExceptionRaiseExit(BaseException)
 
         result = extractBuiltinArgs(
@@ -4755,7 +4784,11 @@ class ExpressionAttributeLookupStrIstitle(
             builtin_spec=str_istitle_spec,
         )
 
-        return result, "new_expression", "Call to 'istitle' of str recognized."
+        return trace_collection.computedExpressionResult(
+            expression=result,
+            change_tags="new_expression",
+            change_desc="Call to 'istitle' of str recognized.",
+        )
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
         return self._computeExpressionCall(
@@ -4768,8 +4801,6 @@ class ExpressionAttributeLookupStrIstitle(
         str_node = makeExpressionAttributeLookup(
             expression=variable_ref_node,
             attribute_name="__self__",
-            # TODO: Would be nice to have the real source reference here, but it feels
-            # a bit expensive.
             source_ref=variable_ref_node.source_ref,
         )
 
@@ -4793,10 +4824,6 @@ class ExpressionAttributeLookupBytesIstitle(
     kind = "EXPRESSION_ATTRIBUTE_LOOKUP_BYTES_ISTITLE"
     attribute_name = "istitle"
 
-    # There is nothing to compute for it as a value.
-    # TODO: Enable this
-    # auto_compute_handling = "final,no_raise"
-
     def computeExpression(self, trace_collection):
         return self, None, None
 
@@ -4807,8 +4834,6 @@ class ExpressionAttributeLookupBytesIstitle(
                 bytes_arg=bytes_arg, source_ref=source_ref
             )
 
-        # Anything may happen. On next pass, if replaced, we might be better
-        # but not now.
         trace_collection.onExceptionRaiseExit(BaseException)
 
         result = extractBuiltinArgs(
@@ -4817,7 +4842,11 @@ class ExpressionAttributeLookupBytesIstitle(
             builtin_spec=bytes_istitle_spec,
         )
 
-        return result, "new_expression", "Call to 'istitle' of bytes recognized."
+        return trace_collection.computedExpressionResult(
+            expression=result,
+            change_tags="new_expression",
+            change_desc="Call to 'istitle' of bytes recognized.",
+        )
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
         return self._computeExpressionCall(
@@ -4830,8 +4859,6 @@ class ExpressionAttributeLookupBytesIstitle(
         bytes_node = makeExpressionAttributeLookup(
             expression=variable_ref_node,
             attribute_name="__self__",
-            # TODO: Would be nice to have the real source reference here, but it feels
-            # a bit expensive.
             source_ref=variable_ref_node.source_ref,
         )
 
@@ -4903,10 +4930,6 @@ class ExpressionAttributeLookupStrIsupper(
     kind = "EXPRESSION_ATTRIBUTE_LOOKUP_STR_ISUPPER"
     attribute_name = "isupper"
 
-    # There is nothing to compute for it as a value.
-    # TODO: Enable this
-    # auto_compute_handling = "final,no_raise"
-
     def computeExpression(self, trace_collection):
         return self, None, None
 
@@ -4915,8 +4938,6 @@ class ExpressionAttributeLookupStrIsupper(
         def wrapExpressionStrOperationIsupper(source_ref):
             return ExpressionStrOperationIsupper(str_arg=str_arg, source_ref=source_ref)
 
-        # Anything may happen. On next pass, if replaced, we might be better
-        # but not now.
         trace_collection.onExceptionRaiseExit(BaseException)
 
         result = extractBuiltinArgs(
@@ -4925,7 +4946,11 @@ class ExpressionAttributeLookupStrIsupper(
             builtin_spec=str_isupper_spec,
         )
 
-        return result, "new_expression", "Call to 'isupper' of str recognized."
+        return trace_collection.computedExpressionResult(
+            expression=result,
+            change_tags="new_expression",
+            change_desc="Call to 'isupper' of str recognized.",
+        )
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
         return self._computeExpressionCall(
@@ -4938,8 +4963,6 @@ class ExpressionAttributeLookupStrIsupper(
         str_node = makeExpressionAttributeLookup(
             expression=variable_ref_node,
             attribute_name="__self__",
-            # TODO: Would be nice to have the real source reference here, but it feels
-            # a bit expensive.
             source_ref=variable_ref_node.source_ref,
         )
 
@@ -4963,10 +4986,6 @@ class ExpressionAttributeLookupBytesIsupper(
     kind = "EXPRESSION_ATTRIBUTE_LOOKUP_BYTES_ISUPPER"
     attribute_name = "isupper"
 
-    # There is nothing to compute for it as a value.
-    # TODO: Enable this
-    # auto_compute_handling = "final,no_raise"
-
     def computeExpression(self, trace_collection):
         return self, None, None
 
@@ -4977,8 +4996,6 @@ class ExpressionAttributeLookupBytesIsupper(
                 bytes_arg=bytes_arg, source_ref=source_ref
             )
 
-        # Anything may happen. On next pass, if replaced, we might be better
-        # but not now.
         trace_collection.onExceptionRaiseExit(BaseException)
 
         result = extractBuiltinArgs(
@@ -4987,7 +5004,11 @@ class ExpressionAttributeLookupBytesIsupper(
             builtin_spec=bytes_isupper_spec,
         )
 
-        return result, "new_expression", "Call to 'isupper' of bytes recognized."
+        return trace_collection.computedExpressionResult(
+            expression=result,
+            change_tags="new_expression",
+            change_desc="Call to 'isupper' of bytes recognized.",
+        )
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
         return self._computeExpressionCall(
@@ -5000,8 +5021,6 @@ class ExpressionAttributeLookupBytesIsupper(
         bytes_node = makeExpressionAttributeLookup(
             expression=variable_ref_node,
             attribute_name="__self__",
-            # TODO: Would be nice to have the real source reference here, but it feels
-            # a bit expensive.
             source_ref=variable_ref_node.source_ref,
         )
 
@@ -5064,12 +5083,7 @@ class ExpressionAttributeLookupDictItems(
     kind = "EXPRESSION_ATTRIBUTE_LOOKUP_DICT_ITEMS"
     attribute_name = "items"
 
-    # There is nothing to compute for it as a value.
-    # TODO: Enable this once we can also say removal of knowable for an argument.
-    # auto_compute_handling = "final,no_raise"
-
     def computeExpression(self, trace_collection):
-        # Cannot be used to modify the dict.
         return self, None, None
 
     @staticmethod
@@ -5084,11 +5098,7 @@ class ExpressionAttributeLookupDictItems(
                     dict_arg=dict_arg, source_ref=source_ref
                 )
 
-        # Anything may happen. On next pass, if replaced, we might be better
-        # but not now.
         trace_collection.onExceptionRaiseExit(BaseException)
-
-        # Make sure we wait with knowing if the content is safe to use until its time.
         call_node.onContentEscapes(trace_collection)
 
         result = extractBuiltinArgs(
@@ -5114,8 +5124,6 @@ class ExpressionAttributeLookupDictItems(
         dict_node = makeExpressionAttributeLookup(
             expression=variable_ref_node,
             attribute_name="__self__",
-            # TODO: Would be nice to have the real source reference here, but it feels
-            # a bit expensive.
             source_ref=variable_ref_node.source_ref,
         )
 
@@ -5178,12 +5186,7 @@ class ExpressionAttributeLookupDictIteritems(
     kind = "EXPRESSION_ATTRIBUTE_LOOKUP_DICT_ITERITEMS"
     attribute_name = "iteritems"
 
-    # There is nothing to compute for it as a value.
-    # TODO: Enable this once we can also say removal of knowable for an argument.
-    # auto_compute_handling = "final,no_raise"
-
     def computeExpression(self, trace_collection):
-        # Cannot be used to modify the dict.
         return self, None, None
 
     @staticmethod
@@ -5193,11 +5196,7 @@ class ExpressionAttributeLookupDictIteritems(
                 dict_arg=dict_arg, source_ref=source_ref
             )
 
-        # Anything may happen. On next pass, if replaced, we might be better
-        # but not now.
         trace_collection.onExceptionRaiseExit(BaseException)
-
-        # Make sure we wait with knowing if the content is safe to use until its time.
         call_node.onContentEscapes(trace_collection)
 
         result = extractBuiltinArgs(
@@ -5223,8 +5222,6 @@ class ExpressionAttributeLookupDictIteritems(
         dict_node = makeExpressionAttributeLookup(
             expression=variable_ref_node,
             attribute_name="__self__",
-            # TODO: Would be nice to have the real source reference here, but it feels
-            # a bit expensive.
             source_ref=variable_ref_node.source_ref,
         )
 
@@ -5287,12 +5284,7 @@ class ExpressionAttributeLookupDictIterkeys(
     kind = "EXPRESSION_ATTRIBUTE_LOOKUP_DICT_ITERKEYS"
     attribute_name = "iterkeys"
 
-    # There is nothing to compute for it as a value.
-    # TODO: Enable this once we can also say removal of knowable for an argument.
-    # auto_compute_handling = "final,no_raise"
-
     def computeExpression(self, trace_collection):
-        # Cannot be used to modify the dict.
         return self, None, None
 
     @staticmethod
@@ -5302,11 +5294,7 @@ class ExpressionAttributeLookupDictIterkeys(
                 dict_arg=dict_arg, source_ref=source_ref
             )
 
-        # Anything may happen. On next pass, if replaced, we might be better
-        # but not now.
         trace_collection.onExceptionRaiseExit(BaseException)
-
-        # Make sure we wait with knowing if the content is safe to use until its time.
         call_node.onContentEscapes(trace_collection)
 
         result = extractBuiltinArgs(
@@ -5332,8 +5320,6 @@ class ExpressionAttributeLookupDictIterkeys(
         dict_node = makeExpressionAttributeLookup(
             expression=variable_ref_node,
             attribute_name="__self__",
-            # TODO: Would be nice to have the real source reference here, but it feels
-            # a bit expensive.
             source_ref=variable_ref_node.source_ref,
         )
 
@@ -5396,12 +5382,7 @@ class ExpressionAttributeLookupDictItervalues(
     kind = "EXPRESSION_ATTRIBUTE_LOOKUP_DICT_ITERVALUES"
     attribute_name = "itervalues"
 
-    # There is nothing to compute for it as a value.
-    # TODO: Enable this once we can also say removal of knowable for an argument.
-    # auto_compute_handling = "final,no_raise"
-
     def computeExpression(self, trace_collection):
-        # Cannot be used to modify the dict.
         return self, None, None
 
     @staticmethod
@@ -5411,11 +5392,7 @@ class ExpressionAttributeLookupDictItervalues(
                 dict_arg=dict_arg, source_ref=source_ref
             )
 
-        # Anything may happen. On next pass, if replaced, we might be better
-        # but not now.
         trace_collection.onExceptionRaiseExit(BaseException)
-
-        # Make sure we wait with knowing if the content is safe to use until its time.
         call_node.onContentEscapes(trace_collection)
 
         result = extractBuiltinArgs(
@@ -5441,8 +5418,6 @@ class ExpressionAttributeLookupDictItervalues(
         dict_node = makeExpressionAttributeLookup(
             expression=variable_ref_node,
             attribute_name="__self__",
-            # TODO: Would be nice to have the real source reference here, but it feels
-            # a bit expensive.
             source_ref=variable_ref_node.source_ref,
         )
 
@@ -5514,10 +5489,6 @@ class ExpressionAttributeLookupStrJoin(
     kind = "EXPRESSION_ATTRIBUTE_LOOKUP_STR_JOIN"
     attribute_name = "join"
 
-    # There is nothing to compute for it as a value.
-    # TODO: Enable this
-    # auto_compute_handling = "final,no_raise"
-
     def computeExpression(self, trace_collection):
         return self, None, None
 
@@ -5528,8 +5499,6 @@ class ExpressionAttributeLookupStrJoin(
                 str_arg=str_arg, iterable=iterable, source_ref=source_ref
             )
 
-        # Anything may happen. On next pass, if replaced, we might be better
-        # but not now.
         trace_collection.onExceptionRaiseExit(BaseException)
 
         result = extractBuiltinArgs(
@@ -5538,7 +5507,11 @@ class ExpressionAttributeLookupStrJoin(
             builtin_spec=str_join_spec,
         )
 
-        return result, "new_expression", "Call to 'join' of str recognized."
+        return trace_collection.computedExpressionResult(
+            expression=result,
+            change_tags="new_expression",
+            change_desc="Call to 'join' of str recognized.",
+        )
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
         return self._computeExpressionCall(
@@ -5551,8 +5524,6 @@ class ExpressionAttributeLookupStrJoin(
         str_node = makeExpressionAttributeLookup(
             expression=variable_ref_node,
             attribute_name="__self__",
-            # TODO: Would be nice to have the real source reference here, but it feels
-            # a bit expensive.
             source_ref=variable_ref_node.source_ref,
         )
 
@@ -5576,10 +5547,6 @@ class ExpressionAttributeLookupBytesJoin(
     kind = "EXPRESSION_ATTRIBUTE_LOOKUP_BYTES_JOIN"
     attribute_name = "join"
 
-    # There is nothing to compute for it as a value.
-    # TODO: Enable this
-    # auto_compute_handling = "final,no_raise"
-
     def computeExpression(self, trace_collection):
         return self, None, None
 
@@ -5590,8 +5557,6 @@ class ExpressionAttributeLookupBytesJoin(
                 bytes_arg=bytes_arg, iterable=iterable, source_ref=source_ref
             )
 
-        # Anything may happen. On next pass, if replaced, we might be better
-        # but not now.
         trace_collection.onExceptionRaiseExit(BaseException)
 
         result = extractBuiltinArgs(
@@ -5600,7 +5565,11 @@ class ExpressionAttributeLookupBytesJoin(
             builtin_spec=bytes_join_spec,
         )
 
-        return result, "new_expression", "Call to 'join' of bytes recognized."
+        return trace_collection.computedExpressionResult(
+            expression=result,
+            change_tags="new_expression",
+            change_desc="Call to 'join' of bytes recognized.",
+        )
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
         return self._computeExpressionCall(
@@ -5613,8 +5582,6 @@ class ExpressionAttributeLookupBytesJoin(
         bytes_node = makeExpressionAttributeLookup(
             expression=variable_ref_node,
             attribute_name="__self__",
-            # TODO: Would be nice to have the real source reference here, but it feels
-            # a bit expensive.
             source_ref=variable_ref_node.source_ref,
         )
 
@@ -5677,12 +5644,7 @@ class ExpressionAttributeLookupDictKeys(
     kind = "EXPRESSION_ATTRIBUTE_LOOKUP_DICT_KEYS"
     attribute_name = "keys"
 
-    # There is nothing to compute for it as a value.
-    # TODO: Enable this once we can also say removal of knowable for an argument.
-    # auto_compute_handling = "final,no_raise"
-
     def computeExpression(self, trace_collection):
-        # Cannot be used to modify the dict.
         return self, None, None
 
     @staticmethod
@@ -5697,11 +5659,7 @@ class ExpressionAttributeLookupDictKeys(
                     dict_arg=dict_arg, source_ref=source_ref
                 )
 
-        # Anything may happen. On next pass, if replaced, we might be better
-        # but not now.
         trace_collection.onExceptionRaiseExit(BaseException)
-
-        # Make sure we wait with knowing if the content is safe to use until its time.
         call_node.onContentEscapes(trace_collection)
 
         result = extractBuiltinArgs(
@@ -5727,8 +5685,6 @@ class ExpressionAttributeLookupDictKeys(
         dict_node = makeExpressionAttributeLookup(
             expression=variable_ref_node,
             attribute_name="__self__",
-            # TODO: Would be nice to have the real source reference here, but it feels
-            # a bit expensive.
             source_ref=variable_ref_node.source_ref,
         )
 
@@ -5800,10 +5756,6 @@ class ExpressionAttributeLookupStrLjust(
     kind = "EXPRESSION_ATTRIBUTE_LOOKUP_STR_LJUST"
     attribute_name = "ljust"
 
-    # There is nothing to compute for it as a value.
-    # TODO: Enable this
-    # auto_compute_handling = "final,no_raise"
-
     def computeExpression(self, trace_collection):
         return self, None, None
 
@@ -5822,8 +5774,6 @@ class ExpressionAttributeLookupStrLjust(
                     str_arg=str_arg, width=width, source_ref=source_ref
                 )
 
-        # Anything may happen. On next pass, if replaced, we might be better
-        # but not now.
         trace_collection.onExceptionRaiseExit(BaseException)
 
         result = extractBuiltinArgs(
@@ -5832,7 +5782,11 @@ class ExpressionAttributeLookupStrLjust(
             builtin_spec=str_ljust_spec,
         )
 
-        return result, "new_expression", "Call to 'ljust' of str recognized."
+        return trace_collection.computedExpressionResult(
+            expression=result,
+            change_tags="new_expression",
+            change_desc="Call to 'ljust' of str recognized.",
+        )
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
         return self._computeExpressionCall(
@@ -5845,8 +5799,6 @@ class ExpressionAttributeLookupStrLjust(
         str_node = makeExpressionAttributeLookup(
             expression=variable_ref_node,
             attribute_name="__self__",
-            # TODO: Would be nice to have the real source reference here, but it feels
-            # a bit expensive.
             source_ref=variable_ref_node.source_ref,
         )
 
@@ -5870,10 +5822,6 @@ class ExpressionAttributeLookupBytesLjust(
     kind = "EXPRESSION_ATTRIBUTE_LOOKUP_BYTES_LJUST"
     attribute_name = "ljust"
 
-    # There is nothing to compute for it as a value.
-    # TODO: Enable this
-    # auto_compute_handling = "final,no_raise"
-
     def computeExpression(self, trace_collection):
         return self, None, None
 
@@ -5892,8 +5840,6 @@ class ExpressionAttributeLookupBytesLjust(
                     bytes_arg=bytes_arg, width=width, source_ref=source_ref
                 )
 
-        # Anything may happen. On next pass, if replaced, we might be better
-        # but not now.
         trace_collection.onExceptionRaiseExit(BaseException)
 
         result = extractBuiltinArgs(
@@ -5902,7 +5848,11 @@ class ExpressionAttributeLookupBytesLjust(
             builtin_spec=bytes_ljust_spec,
         )
 
-        return result, "new_expression", "Call to 'ljust' of bytes recognized."
+        return trace_collection.computedExpressionResult(
+            expression=result,
+            change_tags="new_expression",
+            change_desc="Call to 'ljust' of bytes recognized.",
+        )
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
         return self._computeExpressionCall(
@@ -5915,8 +5865,6 @@ class ExpressionAttributeLookupBytesLjust(
         bytes_node = makeExpressionAttributeLookup(
             expression=variable_ref_node,
             attribute_name="__self__",
-            # TODO: Would be nice to have the real source reference here, but it feels
-            # a bit expensive.
             source_ref=variable_ref_node.source_ref,
         )
 
@@ -5988,10 +5936,6 @@ class ExpressionAttributeLookupStrLower(
     kind = "EXPRESSION_ATTRIBUTE_LOOKUP_STR_LOWER"
     attribute_name = "lower"
 
-    # There is nothing to compute for it as a value.
-    # TODO: Enable this
-    # auto_compute_handling = "final,no_raise"
-
     def computeExpression(self, trace_collection):
         return self, None, None
 
@@ -6000,8 +5944,6 @@ class ExpressionAttributeLookupStrLower(
         def wrapExpressionStrOperationLower(source_ref):
             return ExpressionStrOperationLower(str_arg=str_arg, source_ref=source_ref)
 
-        # Anything may happen. On next pass, if replaced, we might be better
-        # but not now.
         trace_collection.onExceptionRaiseExit(BaseException)
 
         result = extractBuiltinArgs(
@@ -6010,7 +5952,11 @@ class ExpressionAttributeLookupStrLower(
             builtin_spec=str_lower_spec,
         )
 
-        return result, "new_expression", "Call to 'lower' of str recognized."
+        return trace_collection.computedExpressionResult(
+            expression=result,
+            change_tags="new_expression",
+            change_desc="Call to 'lower' of str recognized.",
+        )
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
         return self._computeExpressionCall(
@@ -6023,8 +5969,6 @@ class ExpressionAttributeLookupStrLower(
         str_node = makeExpressionAttributeLookup(
             expression=variable_ref_node,
             attribute_name="__self__",
-            # TODO: Would be nice to have the real source reference here, but it feels
-            # a bit expensive.
             source_ref=variable_ref_node.source_ref,
         )
 
@@ -6048,10 +5992,6 @@ class ExpressionAttributeLookupBytesLower(
     kind = "EXPRESSION_ATTRIBUTE_LOOKUP_BYTES_LOWER"
     attribute_name = "lower"
 
-    # There is nothing to compute for it as a value.
-    # TODO: Enable this
-    # auto_compute_handling = "final,no_raise"
-
     def computeExpression(self, trace_collection):
         return self, None, None
 
@@ -6062,8 +6002,6 @@ class ExpressionAttributeLookupBytesLower(
                 bytes_arg=bytes_arg, source_ref=source_ref
             )
 
-        # Anything may happen. On next pass, if replaced, we might be better
-        # but not now.
         trace_collection.onExceptionRaiseExit(BaseException)
 
         result = extractBuiltinArgs(
@@ -6072,7 +6010,11 @@ class ExpressionAttributeLookupBytesLower(
             builtin_spec=bytes_lower_spec,
         )
 
-        return result, "new_expression", "Call to 'lower' of bytes recognized."
+        return trace_collection.computedExpressionResult(
+            expression=result,
+            change_tags="new_expression",
+            change_desc="Call to 'lower' of bytes recognized.",
+        )
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
         return self._computeExpressionCall(
@@ -6085,8 +6027,6 @@ class ExpressionAttributeLookupBytesLower(
         bytes_node = makeExpressionAttributeLookup(
             expression=variable_ref_node,
             attribute_name="__self__",
-            # TODO: Would be nice to have the real source reference here, but it feels
-            # a bit expensive.
             source_ref=variable_ref_node.source_ref,
         )
 
@@ -6158,10 +6098,6 @@ class ExpressionAttributeLookupStrLstrip(
     kind = "EXPRESSION_ATTRIBUTE_LOOKUP_STR_LSTRIP"
     attribute_name = "lstrip"
 
-    # There is nothing to compute for it as a value.
-    # TODO: Enable this
-    # auto_compute_handling = "final,no_raise"
-
     def computeExpression(self, trace_collection):
         return self, None, None
 
@@ -6177,8 +6113,6 @@ class ExpressionAttributeLookupStrLstrip(
                     str_arg=str_arg, source_ref=source_ref
                 )
 
-        # Anything may happen. On next pass, if replaced, we might be better
-        # but not now.
         trace_collection.onExceptionRaiseExit(BaseException)
 
         result = extractBuiltinArgs(
@@ -6187,7 +6121,11 @@ class ExpressionAttributeLookupStrLstrip(
             builtin_spec=str_lstrip_spec,
         )
 
-        return result, "new_expression", "Call to 'lstrip' of str recognized."
+        return trace_collection.computedExpressionResult(
+            expression=result,
+            change_tags="new_expression",
+            change_desc="Call to 'lstrip' of str recognized.",
+        )
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
         return self._computeExpressionCall(
@@ -6200,8 +6138,6 @@ class ExpressionAttributeLookupStrLstrip(
         str_node = makeExpressionAttributeLookup(
             expression=variable_ref_node,
             attribute_name="__self__",
-            # TODO: Would be nice to have the real source reference here, but it feels
-            # a bit expensive.
             source_ref=variable_ref_node.source_ref,
         )
 
@@ -6225,10 +6161,6 @@ class ExpressionAttributeLookupBytesLstrip(
     kind = "EXPRESSION_ATTRIBUTE_LOOKUP_BYTES_LSTRIP"
     attribute_name = "lstrip"
 
-    # There is nothing to compute for it as a value.
-    # TODO: Enable this
-    # auto_compute_handling = "final,no_raise"
-
     def computeExpression(self, trace_collection):
         return self, None, None
 
@@ -6244,8 +6176,6 @@ class ExpressionAttributeLookupBytesLstrip(
                     bytes_arg=bytes_arg, source_ref=source_ref
                 )
 
-        # Anything may happen. On next pass, if replaced, we might be better
-        # but not now.
         trace_collection.onExceptionRaiseExit(BaseException)
 
         result = extractBuiltinArgs(
@@ -6254,7 +6184,11 @@ class ExpressionAttributeLookupBytesLstrip(
             builtin_spec=bytes_lstrip_spec,
         )
 
-        return result, "new_expression", "Call to 'lstrip' of bytes recognized."
+        return trace_collection.computedExpressionResult(
+            expression=result,
+            change_tags="new_expression",
+            change_desc="Call to 'lstrip' of bytes recognized.",
+        )
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
         return self._computeExpressionCall(
@@ -6267,8 +6201,6 @@ class ExpressionAttributeLookupBytesLstrip(
         bytes_node = makeExpressionAttributeLookup(
             expression=variable_ref_node,
             attribute_name="__self__",
-            # TODO: Would be nice to have the real source reference here, but it feels
-            # a bit expensive.
             source_ref=variable_ref_node.source_ref,
         )
 
@@ -6330,14 +6262,8 @@ class ExpressionAttributeLookupStrMaketrans(
     kind = "EXPRESSION_ATTRIBUTE_LOOKUP_STR_MAKETRANS"
     attribute_name = "maketrans"
 
-    # There is nothing to compute for it as a value.
-    # TODO: Enable this
-    # auto_compute_handling = "final,no_raise"
-
     def computeExpression(self, trace_collection):
         return self, None, None
-
-    # No computeExpressionCall as str operation ExpressionStrOperationMaketrans is not yet implemented
 
 
 attribute_typed_classes.add(ExpressionAttributeLookupStrMaketrans)
@@ -6402,10 +6328,6 @@ class ExpressionAttributeLookupStrPartition(
     kind = "EXPRESSION_ATTRIBUTE_LOOKUP_STR_PARTITION"
     attribute_name = "partition"
 
-    # There is nothing to compute for it as a value.
-    # TODO: Enable this
-    # auto_compute_handling = "final,no_raise"
-
     def computeExpression(self, trace_collection):
         return self, None, None
 
@@ -6416,8 +6338,6 @@ class ExpressionAttributeLookupStrPartition(
                 str_arg=str_arg, sep=sep, source_ref=source_ref
             )
 
-        # Anything may happen. On next pass, if replaced, we might be better
-        # but not now.
         trace_collection.onExceptionRaiseExit(BaseException)
 
         result = extractBuiltinArgs(
@@ -6426,7 +6346,11 @@ class ExpressionAttributeLookupStrPartition(
             builtin_spec=str_partition_spec,
         )
 
-        return result, "new_expression", "Call to 'partition' of str recognized."
+        return trace_collection.computedExpressionResult(
+            expression=result,
+            change_tags="new_expression",
+            change_desc="Call to 'partition' of str recognized.",
+        )
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
         return self._computeExpressionCall(
@@ -6439,8 +6363,6 @@ class ExpressionAttributeLookupStrPartition(
         str_node = makeExpressionAttributeLookup(
             expression=variable_ref_node,
             attribute_name="__self__",
-            # TODO: Would be nice to have the real source reference here, but it feels
-            # a bit expensive.
             source_ref=variable_ref_node.source_ref,
         )
 
@@ -6464,10 +6386,6 @@ class ExpressionAttributeLookupBytesPartition(
     kind = "EXPRESSION_ATTRIBUTE_LOOKUP_BYTES_PARTITION"
     attribute_name = "partition"
 
-    # There is nothing to compute for it as a value.
-    # TODO: Enable this
-    # auto_compute_handling = "final,no_raise"
-
     def computeExpression(self, trace_collection):
         return self, None, None
 
@@ -6478,8 +6396,6 @@ class ExpressionAttributeLookupBytesPartition(
                 bytes_arg=bytes_arg, sep=sep, source_ref=source_ref
             )
 
-        # Anything may happen. On next pass, if replaced, we might be better
-        # but not now.
         trace_collection.onExceptionRaiseExit(BaseException)
 
         result = extractBuiltinArgs(
@@ -6488,7 +6404,11 @@ class ExpressionAttributeLookupBytesPartition(
             builtin_spec=bytes_partition_spec,
         )
 
-        return result, "new_expression", "Call to 'partition' of bytes recognized."
+        return trace_collection.computedExpressionResult(
+            expression=result,
+            change_tags="new_expression",
+            change_desc="Call to 'partition' of bytes recognized.",
+        )
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
         return self._computeExpressionCall(
@@ -6501,8 +6421,6 @@ class ExpressionAttributeLookupBytesPartition(
         bytes_node = makeExpressionAttributeLookup(
             expression=variable_ref_node,
             attribute_name="__self__",
-            # TODO: Would be nice to have the real source reference here, but it feels
-            # a bit expensive.
             source_ref=variable_ref_node.source_ref,
         )
 
@@ -6575,12 +6493,7 @@ class ExpressionAttributeLookupDictPop(
     kind = "EXPRESSION_ATTRIBUTE_LOOKUP_DICT_POP"
     attribute_name = "pop"
 
-    # There is nothing to compute for it as a value.
-    # TODO: Enable this once we can also say removal of knowable for an argument.
-    # auto_compute_handling = "final,no_raise"
-
     def computeExpression(self, trace_collection):
-        # Might be used to modify the dict.
         trace_collection.removeKnowledge(self.subnode_expression)
 
         return self, None, None
@@ -6588,6 +6501,20 @@ class ExpressionAttributeLookupDictPop(
     @staticmethod
     def _computeExpressionCall(call_node, dict_arg, trace_collection):
         def wrapExpressionDictOperationPop(key, default, source_ref):
+            if dict_arg.isExpressionSysModulesRef():
+                if default is not None:
+                    return makeExpressionSysModulesPop3(
+                        dict_arg=dict_arg,
+                        key=key,
+                        default=default,
+                        source_ref=source_ref,
+                    )
+                else:
+                    return makeExpressionSysModulesPop2(
+                        dict_arg=dict_arg,
+                        key=key,
+                        source_ref=source_ref,
+                    )
             if default is not None:
                 return ExpressionDictOperationPop3(
                     dict_arg=dict_arg, key=key, default=default, source_ref=source_ref
@@ -6597,11 +6524,7 @@ class ExpressionAttributeLookupDictPop(
                     dict_arg=dict_arg, key=key, source_ref=source_ref
                 )
 
-        # Anything may happen. On next pass, if replaced, we might be better
-        # but not now.
         trace_collection.onExceptionRaiseExit(BaseException)
-
-        # Make sure we wait with knowing if the content is safe to use until its time.
         call_node.onContentEscapes(trace_collection)
 
         result = extractBuiltinArgs(
@@ -6627,8 +6550,6 @@ class ExpressionAttributeLookupDictPop(
         dict_node = makeExpressionAttributeLookup(
             expression=variable_ref_node,
             attribute_name="__self__",
-            # TODO: Would be nice to have the real source reference here, but it feels
-            # a bit expensive.
             source_ref=variable_ref_node.source_ref,
         )
 
@@ -6644,7 +6565,7 @@ attribute_typed_classes.add(ExpressionAttributeLookupDictPop)
 class ExpressionAttributeLookupListPop(
     SideEffectsFromChildrenMixin, ExpressionAttributeLookupFixedPop
 ):
-    """Attribute pop lookup on a list value.
+    """Attribute 'pop' lookup on a list value.
 
     Typically code like: some_list.pop
     """
@@ -6653,7 +6574,6 @@ class ExpressionAttributeLookupListPop(
     attribute_name = "pop"
 
     def computeExpression(self, trace_collection):
-        # Might be used to modify the list.
         trace_collection.removeKnowledge(self.subnode_expression)
 
         return self, None, None
@@ -6670,11 +6590,7 @@ class ExpressionAttributeLookupListPop(
                     list_arg=list_arg, source_ref=source_ref
                 )
 
-        # Anything may happen. On next pass, if replaced, we might be better
-        # but not now.
         trace_collection.onExceptionRaiseExit(BaseException)
-
-        # Make sure we wait with knowing if the content is safe to use until its time.
         call_node.onContentEscapes(trace_collection)
 
         result = extractBuiltinArgs(
@@ -6683,7 +6599,11 @@ class ExpressionAttributeLookupListPop(
             builtin_spec=list_pop_spec,
         )
 
-        return result, "new_expression", "Call to 'pop' of list recognized."
+        return trace_collection.computedExpressionResult(
+            expression=result,
+            change_tags="new_expression",
+            change_desc="Call to 'pop' of list recognized.",
+        )
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
         return self._computeExpressionCall(
@@ -6696,8 +6616,6 @@ class ExpressionAttributeLookupListPop(
         list_node = makeExpressionAttributeLookup(
             expression=variable_ref_node,
             attribute_name="__self__",
-            # TODO: Would be nice to have the real source reference here, but it feels
-            # a bit expensive.
             source_ref=variable_ref_node.source_ref,
         )
 
@@ -6760,12 +6678,7 @@ class ExpressionAttributeLookupDictPopitem(
     kind = "EXPRESSION_ATTRIBUTE_LOOKUP_DICT_POPITEM"
     attribute_name = "popitem"
 
-    # There is nothing to compute for it as a value.
-    # TODO: Enable this once we can also say removal of knowable for an argument.
-    # auto_compute_handling = "final,no_raise"
-
     def computeExpression(self, trace_collection):
-        # Might be used to modify the dict.
         trace_collection.removeKnowledge(self.subnode_expression)
 
         return self, None, None
@@ -6777,11 +6690,7 @@ class ExpressionAttributeLookupDictPopitem(
                 dict_arg=dict_arg, source_ref=source_ref
             )
 
-        # Anything may happen. On next pass, if replaced, we might be better
-        # but not now.
         trace_collection.onExceptionRaiseExit(BaseException)
-
-        # Make sure we wait with knowing if the content is safe to use until its time.
         call_node.onContentEscapes(trace_collection)
 
         result = extractBuiltinArgs(
@@ -6807,8 +6716,6 @@ class ExpressionAttributeLookupDictPopitem(
         dict_node = makeExpressionAttributeLookup(
             expression=variable_ref_node,
             attribute_name="__self__",
-            # TODO: Would be nice to have the real source reference here, but it feels
-            # a bit expensive.
             source_ref=variable_ref_node.source_ref,
         )
 
@@ -6865,7 +6772,7 @@ attribute_classes["remove"] = ExpressionAttributeLookupFixedRemove
 class ExpressionAttributeLookupListRemove(
     SideEffectsFromChildrenMixin, ExpressionAttributeLookupFixedRemove
 ):
-    """Attribute remove lookup on a list value.
+    """Attribute 'remove' lookup on a list value.
 
     Typically code like: some_list.remove
     """
@@ -6874,7 +6781,6 @@ class ExpressionAttributeLookupListRemove(
     attribute_name = "remove"
 
     def computeExpression(self, trace_collection):
-        # Might be used to modify the list.
         trace_collection.removeKnowledge(self.subnode_expression)
 
         return self, None, None
@@ -6886,11 +6792,7 @@ class ExpressionAttributeLookupListRemove(
                 list_arg=list_arg, value=value, source_ref=source_ref
             )
 
-        # Anything may happen. On next pass, if replaced, we might be better
-        # but not now.
         trace_collection.onExceptionRaiseExit(BaseException)
-
-        # Make sure we wait with knowing if the content is safe to use until its time.
         call_node.onContentEscapes(trace_collection)
 
         result = extractBuiltinArgs(
@@ -6899,7 +6801,11 @@ class ExpressionAttributeLookupListRemove(
             builtin_spec=list_remove_spec,
         )
 
-        return result, "new_expression", "Call to 'remove' of list recognized."
+        return trace_collection.computedExpressionResult(
+            expression=result,
+            change_tags="new_expression",
+            change_desc="Call to 'remove' of list recognized.",
+        )
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
         return self._computeExpressionCall(
@@ -6912,8 +6818,6 @@ class ExpressionAttributeLookupListRemove(
         list_node = makeExpressionAttributeLookup(
             expression=variable_ref_node,
             attribute_name="__self__",
-            # TODO: Would be nice to have the real source reference here, but it feels
-            # a bit expensive.
             source_ref=variable_ref_node.source_ref,
         )
 
@@ -6985,10 +6889,6 @@ class ExpressionAttributeLookupStrReplace(
     kind = "EXPRESSION_ATTRIBUTE_LOOKUP_STR_REPLACE"
     attribute_name = "replace"
 
-    # There is nothing to compute for it as a value.
-    # TODO: Enable this
-    # auto_compute_handling = "final,no_raise"
-
     def computeExpression(self, trace_collection):
         return self, None, None
 
@@ -7008,8 +6908,6 @@ class ExpressionAttributeLookupStrReplace(
                     str_arg=str_arg, old=old, new=new, source_ref=source_ref
                 )
 
-        # Anything may happen. On next pass, if replaced, we might be better
-        # but not now.
         trace_collection.onExceptionRaiseExit(BaseException)
 
         result = extractBuiltinArgs(
@@ -7018,7 +6916,11 @@ class ExpressionAttributeLookupStrReplace(
             builtin_spec=str_replace_spec,
         )
 
-        return result, "new_expression", "Call to 'replace' of str recognized."
+        return trace_collection.computedExpressionResult(
+            expression=result,
+            change_tags="new_expression",
+            change_desc="Call to 'replace' of str recognized.",
+        )
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
         return self._computeExpressionCall(
@@ -7031,8 +6933,6 @@ class ExpressionAttributeLookupStrReplace(
         str_node = makeExpressionAttributeLookup(
             expression=variable_ref_node,
             attribute_name="__self__",
-            # TODO: Would be nice to have the real source reference here, but it feels
-            # a bit expensive.
             source_ref=variable_ref_node.source_ref,
         )
 
@@ -7056,10 +6956,6 @@ class ExpressionAttributeLookupBytesReplace(
     kind = "EXPRESSION_ATTRIBUTE_LOOKUP_BYTES_REPLACE"
     attribute_name = "replace"
 
-    # There is nothing to compute for it as a value.
-    # TODO: Enable this
-    # auto_compute_handling = "final,no_raise"
-
     def computeExpression(self, trace_collection):
         return self, None, None
 
@@ -7079,8 +6975,6 @@ class ExpressionAttributeLookupBytesReplace(
                     bytes_arg=bytes_arg, old=old, new=new, source_ref=source_ref
                 )
 
-        # Anything may happen. On next pass, if replaced, we might be better
-        # but not now.
         trace_collection.onExceptionRaiseExit(BaseException)
 
         result = extractBuiltinArgs(
@@ -7089,7 +6983,11 @@ class ExpressionAttributeLookupBytesReplace(
             builtin_spec=bytes_replace_spec,
         )
 
-        return result, "new_expression", "Call to 'replace' of bytes recognized."
+        return trace_collection.computedExpressionResult(
+            expression=result,
+            change_tags="new_expression",
+            change_desc="Call to 'replace' of bytes recognized.",
+        )
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
         return self._computeExpressionCall(
@@ -7102,8 +7000,6 @@ class ExpressionAttributeLookupBytesReplace(
         bytes_node = makeExpressionAttributeLookup(
             expression=variable_ref_node,
             attribute_name="__self__",
-            # TODO: Would be nice to have the real source reference here, but it feels
-            # a bit expensive.
             source_ref=variable_ref_node.source_ref,
         )
 
@@ -7160,7 +7056,7 @@ attribute_classes["reverse"] = ExpressionAttributeLookupFixedReverse
 class ExpressionAttributeLookupListReverse(
     SideEffectsFromChildrenMixin, ExpressionAttributeLookupFixedReverse
 ):
-    """Attribute reverse lookup on a list value.
+    """Attribute 'reverse' lookup on a list value.
 
     Typically code like: some_list.reverse
     """
@@ -7169,7 +7065,6 @@ class ExpressionAttributeLookupListReverse(
     attribute_name = "reverse"
 
     def computeExpression(self, trace_collection):
-        # Might be used to modify the list.
         trace_collection.removeKnowledge(self.subnode_expression)
 
         return self, None, None
@@ -7181,11 +7076,7 @@ class ExpressionAttributeLookupListReverse(
                 list_arg=list_arg, source_ref=source_ref
             )
 
-        # Anything may happen. On next pass, if replaced, we might be better
-        # but not now.
         trace_collection.onExceptionRaiseExit(BaseException)
-
-        # Make sure we wait with knowing if the content is safe to use until its time.
         call_node.onContentEscapes(trace_collection)
 
         result = extractBuiltinArgs(
@@ -7194,7 +7085,11 @@ class ExpressionAttributeLookupListReverse(
             builtin_spec=list_reverse_spec,
         )
 
-        return result, "new_expression", "Call to 'reverse' of list recognized."
+        return trace_collection.computedExpressionResult(
+            expression=result,
+            change_tags="new_expression",
+            change_desc="Call to 'reverse' of list recognized.",
+        )
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
         return self._computeExpressionCall(
@@ -7207,8 +7102,6 @@ class ExpressionAttributeLookupListReverse(
         list_node = makeExpressionAttributeLookup(
             expression=variable_ref_node,
             attribute_name="__self__",
-            # TODO: Would be nice to have the real source reference here, but it feels
-            # a bit expensive.
             source_ref=variable_ref_node.source_ref,
         )
 
@@ -7280,10 +7173,6 @@ class ExpressionAttributeLookupStrRfind(
     kind = "EXPRESSION_ATTRIBUTE_LOOKUP_STR_RFIND"
     attribute_name = "rfind"
 
-    # There is nothing to compute for it as a value.
-    # TODO: Enable this
-    # auto_compute_handling = "final,no_raise"
-
     def computeExpression(self, trace_collection):
         return self, None, None
 
@@ -7307,8 +7196,6 @@ class ExpressionAttributeLookupStrRfind(
                     str_arg=str_arg, sub=sub, source_ref=source_ref
                 )
 
-        # Anything may happen. On next pass, if replaced, we might be better
-        # but not now.
         trace_collection.onExceptionRaiseExit(BaseException)
 
         result = extractBuiltinArgs(
@@ -7317,7 +7204,11 @@ class ExpressionAttributeLookupStrRfind(
             builtin_spec=str_rfind_spec,
         )
 
-        return result, "new_expression", "Call to 'rfind' of str recognized."
+        return trace_collection.computedExpressionResult(
+            expression=result,
+            change_tags="new_expression",
+            change_desc="Call to 'rfind' of str recognized.",
+        )
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
         return self._computeExpressionCall(
@@ -7330,8 +7221,6 @@ class ExpressionAttributeLookupStrRfind(
         str_node = makeExpressionAttributeLookup(
             expression=variable_ref_node,
             attribute_name="__self__",
-            # TODO: Would be nice to have the real source reference here, but it feels
-            # a bit expensive.
             source_ref=variable_ref_node.source_ref,
         )
 
@@ -7354,10 +7243,6 @@ class ExpressionAttributeLookupBytesRfind(
 
     kind = "EXPRESSION_ATTRIBUTE_LOOKUP_BYTES_RFIND"
     attribute_name = "rfind"
-
-    # There is nothing to compute for it as a value.
-    # TODO: Enable this
-    # auto_compute_handling = "final,no_raise"
 
     def computeExpression(self, trace_collection):
         return self, None, None
@@ -7382,8 +7267,6 @@ class ExpressionAttributeLookupBytesRfind(
                     bytes_arg=bytes_arg, sub=sub, source_ref=source_ref
                 )
 
-        # Anything may happen. On next pass, if replaced, we might be better
-        # but not now.
         trace_collection.onExceptionRaiseExit(BaseException)
 
         result = extractBuiltinArgs(
@@ -7392,7 +7275,11 @@ class ExpressionAttributeLookupBytesRfind(
             builtin_spec=bytes_rfind_spec,
         )
 
-        return result, "new_expression", "Call to 'rfind' of bytes recognized."
+        return trace_collection.computedExpressionResult(
+            expression=result,
+            change_tags="new_expression",
+            change_desc="Call to 'rfind' of bytes recognized.",
+        )
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
         return self._computeExpressionCall(
@@ -7405,8 +7292,6 @@ class ExpressionAttributeLookupBytesRfind(
         bytes_node = makeExpressionAttributeLookup(
             expression=variable_ref_node,
             attribute_name="__self__",
-            # TODO: Would be nice to have the real source reference here, but it feels
-            # a bit expensive.
             source_ref=variable_ref_node.source_ref,
         )
 
@@ -7478,10 +7363,6 @@ class ExpressionAttributeLookupStrRindex(
     kind = "EXPRESSION_ATTRIBUTE_LOOKUP_STR_RINDEX"
     attribute_name = "rindex"
 
-    # There is nothing to compute for it as a value.
-    # TODO: Enable this
-    # auto_compute_handling = "final,no_raise"
-
     def computeExpression(self, trace_collection):
         return self, None, None
 
@@ -7505,8 +7386,6 @@ class ExpressionAttributeLookupStrRindex(
                     str_arg=str_arg, sub=sub, source_ref=source_ref
                 )
 
-        # Anything may happen. On next pass, if replaced, we might be better
-        # but not now.
         trace_collection.onExceptionRaiseExit(BaseException)
 
         result = extractBuiltinArgs(
@@ -7515,7 +7394,11 @@ class ExpressionAttributeLookupStrRindex(
             builtin_spec=str_rindex_spec,
         )
 
-        return result, "new_expression", "Call to 'rindex' of str recognized."
+        return trace_collection.computedExpressionResult(
+            expression=result,
+            change_tags="new_expression",
+            change_desc="Call to 'rindex' of str recognized.",
+        )
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
         return self._computeExpressionCall(
@@ -7528,8 +7411,6 @@ class ExpressionAttributeLookupStrRindex(
         str_node = makeExpressionAttributeLookup(
             expression=variable_ref_node,
             attribute_name="__self__",
-            # TODO: Would be nice to have the real source reference here, but it feels
-            # a bit expensive.
             source_ref=variable_ref_node.source_ref,
         )
 
@@ -7552,10 +7433,6 @@ class ExpressionAttributeLookupBytesRindex(
 
     kind = "EXPRESSION_ATTRIBUTE_LOOKUP_BYTES_RINDEX"
     attribute_name = "rindex"
-
-    # There is nothing to compute for it as a value.
-    # TODO: Enable this
-    # auto_compute_handling = "final,no_raise"
 
     def computeExpression(self, trace_collection):
         return self, None, None
@@ -7580,8 +7457,6 @@ class ExpressionAttributeLookupBytesRindex(
                     bytes_arg=bytes_arg, sub=sub, source_ref=source_ref
                 )
 
-        # Anything may happen. On next pass, if replaced, we might be better
-        # but not now.
         trace_collection.onExceptionRaiseExit(BaseException)
 
         result = extractBuiltinArgs(
@@ -7590,7 +7465,11 @@ class ExpressionAttributeLookupBytesRindex(
             builtin_spec=bytes_rindex_spec,
         )
 
-        return result, "new_expression", "Call to 'rindex' of bytes recognized."
+        return trace_collection.computedExpressionResult(
+            expression=result,
+            change_tags="new_expression",
+            change_desc="Call to 'rindex' of bytes recognized.",
+        )
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
         return self._computeExpressionCall(
@@ -7603,8 +7482,6 @@ class ExpressionAttributeLookupBytesRindex(
         bytes_node = makeExpressionAttributeLookup(
             expression=variable_ref_node,
             attribute_name="__self__",
-            # TODO: Would be nice to have the real source reference here, but it feels
-            # a bit expensive.
             source_ref=variable_ref_node.source_ref,
         )
 
@@ -7676,10 +7553,6 @@ class ExpressionAttributeLookupStrRjust(
     kind = "EXPRESSION_ATTRIBUTE_LOOKUP_STR_RJUST"
     attribute_name = "rjust"
 
-    # There is nothing to compute for it as a value.
-    # TODO: Enable this
-    # auto_compute_handling = "final,no_raise"
-
     def computeExpression(self, trace_collection):
         return self, None, None
 
@@ -7698,8 +7571,6 @@ class ExpressionAttributeLookupStrRjust(
                     str_arg=str_arg, width=width, source_ref=source_ref
                 )
 
-        # Anything may happen. On next pass, if replaced, we might be better
-        # but not now.
         trace_collection.onExceptionRaiseExit(BaseException)
 
         result = extractBuiltinArgs(
@@ -7708,7 +7579,11 @@ class ExpressionAttributeLookupStrRjust(
             builtin_spec=str_rjust_spec,
         )
 
-        return result, "new_expression", "Call to 'rjust' of str recognized."
+        return trace_collection.computedExpressionResult(
+            expression=result,
+            change_tags="new_expression",
+            change_desc="Call to 'rjust' of str recognized.",
+        )
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
         return self._computeExpressionCall(
@@ -7721,8 +7596,6 @@ class ExpressionAttributeLookupStrRjust(
         str_node = makeExpressionAttributeLookup(
             expression=variable_ref_node,
             attribute_name="__self__",
-            # TODO: Would be nice to have the real source reference here, but it feels
-            # a bit expensive.
             source_ref=variable_ref_node.source_ref,
         )
 
@@ -7746,10 +7619,6 @@ class ExpressionAttributeLookupBytesRjust(
     kind = "EXPRESSION_ATTRIBUTE_LOOKUP_BYTES_RJUST"
     attribute_name = "rjust"
 
-    # There is nothing to compute for it as a value.
-    # TODO: Enable this
-    # auto_compute_handling = "final,no_raise"
-
     def computeExpression(self, trace_collection):
         return self, None, None
 
@@ -7768,8 +7637,6 @@ class ExpressionAttributeLookupBytesRjust(
                     bytes_arg=bytes_arg, width=width, source_ref=source_ref
                 )
 
-        # Anything may happen. On next pass, if replaced, we might be better
-        # but not now.
         trace_collection.onExceptionRaiseExit(BaseException)
 
         result = extractBuiltinArgs(
@@ -7778,7 +7645,11 @@ class ExpressionAttributeLookupBytesRjust(
             builtin_spec=bytes_rjust_spec,
         )
 
-        return result, "new_expression", "Call to 'rjust' of bytes recognized."
+        return trace_collection.computedExpressionResult(
+            expression=result,
+            change_tags="new_expression",
+            change_desc="Call to 'rjust' of bytes recognized.",
+        )
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
         return self._computeExpressionCall(
@@ -7791,8 +7662,6 @@ class ExpressionAttributeLookupBytesRjust(
         bytes_node = makeExpressionAttributeLookup(
             expression=variable_ref_node,
             attribute_name="__self__",
-            # TODO: Would be nice to have the real source reference here, but it feels
-            # a bit expensive.
             source_ref=variable_ref_node.source_ref,
         )
 
@@ -7864,10 +7733,6 @@ class ExpressionAttributeLookupStrRpartition(
     kind = "EXPRESSION_ATTRIBUTE_LOOKUP_STR_RPARTITION"
     attribute_name = "rpartition"
 
-    # There is nothing to compute for it as a value.
-    # TODO: Enable this
-    # auto_compute_handling = "final,no_raise"
-
     def computeExpression(self, trace_collection):
         return self, None, None
 
@@ -7878,8 +7743,6 @@ class ExpressionAttributeLookupStrRpartition(
                 str_arg=str_arg, sep=sep, source_ref=source_ref
             )
 
-        # Anything may happen. On next pass, if replaced, we might be better
-        # but not now.
         trace_collection.onExceptionRaiseExit(BaseException)
 
         result = extractBuiltinArgs(
@@ -7888,7 +7751,11 @@ class ExpressionAttributeLookupStrRpartition(
             builtin_spec=str_rpartition_spec,
         )
 
-        return result, "new_expression", "Call to 'rpartition' of str recognized."
+        return trace_collection.computedExpressionResult(
+            expression=result,
+            change_tags="new_expression",
+            change_desc="Call to 'rpartition' of str recognized.",
+        )
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
         return self._computeExpressionCall(
@@ -7901,8 +7768,6 @@ class ExpressionAttributeLookupStrRpartition(
         str_node = makeExpressionAttributeLookup(
             expression=variable_ref_node,
             attribute_name="__self__",
-            # TODO: Would be nice to have the real source reference here, but it feels
-            # a bit expensive.
             source_ref=variable_ref_node.source_ref,
         )
 
@@ -7926,10 +7791,6 @@ class ExpressionAttributeLookupBytesRpartition(
     kind = "EXPRESSION_ATTRIBUTE_LOOKUP_BYTES_RPARTITION"
     attribute_name = "rpartition"
 
-    # There is nothing to compute for it as a value.
-    # TODO: Enable this
-    # auto_compute_handling = "final,no_raise"
-
     def computeExpression(self, trace_collection):
         return self, None, None
 
@@ -7940,8 +7801,6 @@ class ExpressionAttributeLookupBytesRpartition(
                 bytes_arg=bytes_arg, sep=sep, source_ref=source_ref
             )
 
-        # Anything may happen. On next pass, if replaced, we might be better
-        # but not now.
         trace_collection.onExceptionRaiseExit(BaseException)
 
         result = extractBuiltinArgs(
@@ -7950,7 +7809,11 @@ class ExpressionAttributeLookupBytesRpartition(
             builtin_spec=bytes_rpartition_spec,
         )
 
-        return result, "new_expression", "Call to 'rpartition' of bytes recognized."
+        return trace_collection.computedExpressionResult(
+            expression=result,
+            change_tags="new_expression",
+            change_desc="Call to 'rpartition' of bytes recognized.",
+        )
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
         return self._computeExpressionCall(
@@ -7963,8 +7826,6 @@ class ExpressionAttributeLookupBytesRpartition(
         bytes_node = makeExpressionAttributeLookup(
             expression=variable_ref_node,
             attribute_name="__self__",
-            # TODO: Would be nice to have the real source reference here, but it feels
-            # a bit expensive.
             source_ref=variable_ref_node.source_ref,
         )
 
@@ -8036,10 +7897,6 @@ class ExpressionAttributeLookupStrRsplit(
     kind = "EXPRESSION_ATTRIBUTE_LOOKUP_STR_RSPLIT"
     attribute_name = "rsplit"
 
-    # There is nothing to compute for it as a value.
-    # TODO: Enable this
-    # auto_compute_handling = "final,no_raise"
-
     def computeExpression(self, trace_collection):
         return self, None, None
 
@@ -8059,8 +7916,6 @@ class ExpressionAttributeLookupStrRsplit(
                     str_arg=str_arg, source_ref=source_ref
                 )
 
-        # Anything may happen. On next pass, if replaced, we might be better
-        # but not now.
         trace_collection.onExceptionRaiseExit(BaseException)
 
         result = extractBuiltinArgs(
@@ -8069,7 +7924,11 @@ class ExpressionAttributeLookupStrRsplit(
             builtin_spec=str_rsplit_spec,
         )
 
-        return result, "new_expression", "Call to 'rsplit' of str recognized."
+        return trace_collection.computedExpressionResult(
+            expression=result,
+            change_tags="new_expression",
+            change_desc="Call to 'rsplit' of str recognized.",
+        )
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
         return self._computeExpressionCall(
@@ -8082,8 +7941,6 @@ class ExpressionAttributeLookupStrRsplit(
         str_node = makeExpressionAttributeLookup(
             expression=variable_ref_node,
             attribute_name="__self__",
-            # TODO: Would be nice to have the real source reference here, but it feels
-            # a bit expensive.
             source_ref=variable_ref_node.source_ref,
         )
 
@@ -8107,10 +7964,6 @@ class ExpressionAttributeLookupBytesRsplit(
     kind = "EXPRESSION_ATTRIBUTE_LOOKUP_BYTES_RSPLIT"
     attribute_name = "rsplit"
 
-    # There is nothing to compute for it as a value.
-    # TODO: Enable this
-    # auto_compute_handling = "final,no_raise"
-
     def computeExpression(self, trace_collection):
         return self, None, None
 
@@ -8133,8 +7986,6 @@ class ExpressionAttributeLookupBytesRsplit(
                     bytes_arg=bytes_arg, source_ref=source_ref
                 )
 
-        # Anything may happen. On next pass, if replaced, we might be better
-        # but not now.
         trace_collection.onExceptionRaiseExit(BaseException)
 
         result = extractBuiltinArgs(
@@ -8143,7 +7994,11 @@ class ExpressionAttributeLookupBytesRsplit(
             builtin_spec=bytes_rsplit_spec,
         )
 
-        return result, "new_expression", "Call to 'rsplit' of bytes recognized."
+        return trace_collection.computedExpressionResult(
+            expression=result,
+            change_tags="new_expression",
+            change_desc="Call to 'rsplit' of bytes recognized.",
+        )
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
         return self._computeExpressionCall(
@@ -8156,8 +8011,6 @@ class ExpressionAttributeLookupBytesRsplit(
         bytes_node = makeExpressionAttributeLookup(
             expression=variable_ref_node,
             attribute_name="__self__",
-            # TODO: Would be nice to have the real source reference here, but it feels
-            # a bit expensive.
             source_ref=variable_ref_node.source_ref,
         )
 
@@ -8229,10 +8082,6 @@ class ExpressionAttributeLookupStrRstrip(
     kind = "EXPRESSION_ATTRIBUTE_LOOKUP_STR_RSTRIP"
     attribute_name = "rstrip"
 
-    # There is nothing to compute for it as a value.
-    # TODO: Enable this
-    # auto_compute_handling = "final,no_raise"
-
     def computeExpression(self, trace_collection):
         return self, None, None
 
@@ -8248,8 +8097,6 @@ class ExpressionAttributeLookupStrRstrip(
                     str_arg=str_arg, source_ref=source_ref
                 )
 
-        # Anything may happen. On next pass, if replaced, we might be better
-        # but not now.
         trace_collection.onExceptionRaiseExit(BaseException)
 
         result = extractBuiltinArgs(
@@ -8258,7 +8105,11 @@ class ExpressionAttributeLookupStrRstrip(
             builtin_spec=str_rstrip_spec,
         )
 
-        return result, "new_expression", "Call to 'rstrip' of str recognized."
+        return trace_collection.computedExpressionResult(
+            expression=result,
+            change_tags="new_expression",
+            change_desc="Call to 'rstrip' of str recognized.",
+        )
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
         return self._computeExpressionCall(
@@ -8271,8 +8122,6 @@ class ExpressionAttributeLookupStrRstrip(
         str_node = makeExpressionAttributeLookup(
             expression=variable_ref_node,
             attribute_name="__self__",
-            # TODO: Would be nice to have the real source reference here, but it feels
-            # a bit expensive.
             source_ref=variable_ref_node.source_ref,
         )
 
@@ -8296,10 +8145,6 @@ class ExpressionAttributeLookupBytesRstrip(
     kind = "EXPRESSION_ATTRIBUTE_LOOKUP_BYTES_RSTRIP"
     attribute_name = "rstrip"
 
-    # There is nothing to compute for it as a value.
-    # TODO: Enable this
-    # auto_compute_handling = "final,no_raise"
-
     def computeExpression(self, trace_collection):
         return self, None, None
 
@@ -8315,8 +8160,6 @@ class ExpressionAttributeLookupBytesRstrip(
                     bytes_arg=bytes_arg, source_ref=source_ref
                 )
 
-        # Anything may happen. On next pass, if replaced, we might be better
-        # but not now.
         trace_collection.onExceptionRaiseExit(BaseException)
 
         result = extractBuiltinArgs(
@@ -8325,7 +8168,11 @@ class ExpressionAttributeLookupBytesRstrip(
             builtin_spec=bytes_rstrip_spec,
         )
 
-        return result, "new_expression", "Call to 'rstrip' of bytes recognized."
+        return trace_collection.computedExpressionResult(
+            expression=result,
+            change_tags="new_expression",
+            change_desc="Call to 'rstrip' of bytes recognized.",
+        )
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
         return self._computeExpressionCall(
@@ -8338,8 +8185,6 @@ class ExpressionAttributeLookupBytesRstrip(
         bytes_node = makeExpressionAttributeLookup(
             expression=variable_ref_node,
             attribute_name="__self__",
-            # TODO: Would be nice to have the real source reference here, but it feels
-            # a bit expensive.
             source_ref=variable_ref_node.source_ref,
         )
 
@@ -8402,12 +8247,7 @@ class ExpressionAttributeLookupDictSetdefault(
     kind = "EXPRESSION_ATTRIBUTE_LOOKUP_DICT_SETDEFAULT"
     attribute_name = "setdefault"
 
-    # There is nothing to compute for it as a value.
-    # TODO: Enable this once we can also say removal of knowable for an argument.
-    # auto_compute_handling = "final,no_raise"
-
     def computeExpression(self, trace_collection):
-        # Might be used to modify the dict.
         trace_collection.removeKnowledge(self.subnode_expression)
 
         return self, None, None
@@ -8424,11 +8264,7 @@ class ExpressionAttributeLookupDictSetdefault(
                     dict_arg=dict_arg, key=key, source_ref=source_ref
                 )
 
-        # Anything may happen. On next pass, if replaced, we might be better
-        # but not now.
         trace_collection.onExceptionRaiseExit(BaseException)
-
-        # Make sure we wait with knowing if the content is safe to use until its time.
         call_node.onContentEscapes(trace_collection)
 
         result = extractBuiltinArgs(
@@ -8454,8 +8290,6 @@ class ExpressionAttributeLookupDictSetdefault(
         dict_node = makeExpressionAttributeLookup(
             expression=variable_ref_node,
             attribute_name="__self__",
-            # TODO: Would be nice to have the real source reference here, but it feels
-            # a bit expensive.
             source_ref=variable_ref_node.source_ref,
         )
 
@@ -8512,7 +8346,7 @@ attribute_classes["sort"] = ExpressionAttributeLookupFixedSort
 class ExpressionAttributeLookupListSort(
     SideEffectsFromChildrenMixin, ExpressionAttributeLookupFixedSort
 ):
-    """Attribute sort lookup on a list value.
+    """Attribute 'sort' lookup on a list value.
 
     Typically code like: some_list.sort
     """
@@ -8521,12 +8355,9 @@ class ExpressionAttributeLookupListSort(
     attribute_name = "sort"
 
     def computeExpression(self, trace_collection):
-        # Might be used to modify the list.
         trace_collection.removeKnowledge(self.subnode_expression)
 
         return self, None, None
-
-    # No computeExpressionCall as list operation ExpressionListOperationSort is not yet implemented
 
 
 attribute_typed_classes.add(ExpressionAttributeLookupListSort)
@@ -8591,10 +8422,6 @@ class ExpressionAttributeLookupStrSplit(
     kind = "EXPRESSION_ATTRIBUTE_LOOKUP_STR_SPLIT"
     attribute_name = "split"
 
-    # There is nothing to compute for it as a value.
-    # TODO: Enable this
-    # auto_compute_handling = "final,no_raise"
-
     def computeExpression(self, trace_collection):
         return self, None, None
 
@@ -8614,8 +8441,6 @@ class ExpressionAttributeLookupStrSplit(
                     str_arg=str_arg, source_ref=source_ref
                 )
 
-        # Anything may happen. On next pass, if replaced, we might be better
-        # but not now.
         trace_collection.onExceptionRaiseExit(BaseException)
 
         result = extractBuiltinArgs(
@@ -8624,7 +8449,11 @@ class ExpressionAttributeLookupStrSplit(
             builtin_spec=str_split_spec,
         )
 
-        return result, "new_expression", "Call to 'split' of str recognized."
+        return trace_collection.computedExpressionResult(
+            expression=result,
+            change_tags="new_expression",
+            change_desc="Call to 'split' of str recognized.",
+        )
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
         return self._computeExpressionCall(
@@ -8637,8 +8466,6 @@ class ExpressionAttributeLookupStrSplit(
         str_node = makeExpressionAttributeLookup(
             expression=variable_ref_node,
             attribute_name="__self__",
-            # TODO: Would be nice to have the real source reference here, but it feels
-            # a bit expensive.
             source_ref=variable_ref_node.source_ref,
         )
 
@@ -8662,10 +8489,6 @@ class ExpressionAttributeLookupBytesSplit(
     kind = "EXPRESSION_ATTRIBUTE_LOOKUP_BYTES_SPLIT"
     attribute_name = "split"
 
-    # There is nothing to compute for it as a value.
-    # TODO: Enable this
-    # auto_compute_handling = "final,no_raise"
-
     def computeExpression(self, trace_collection):
         return self, None, None
 
@@ -8688,8 +8511,6 @@ class ExpressionAttributeLookupBytesSplit(
                     bytes_arg=bytes_arg, source_ref=source_ref
                 )
 
-        # Anything may happen. On next pass, if replaced, we might be better
-        # but not now.
         trace_collection.onExceptionRaiseExit(BaseException)
 
         result = extractBuiltinArgs(
@@ -8698,7 +8519,11 @@ class ExpressionAttributeLookupBytesSplit(
             builtin_spec=bytes_split_spec,
         )
 
-        return result, "new_expression", "Call to 'split' of bytes recognized."
+        return trace_collection.computedExpressionResult(
+            expression=result,
+            change_tags="new_expression",
+            change_desc="Call to 'split' of bytes recognized.",
+        )
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
         return self._computeExpressionCall(
@@ -8711,8 +8536,6 @@ class ExpressionAttributeLookupBytesSplit(
         bytes_node = makeExpressionAttributeLookup(
             expression=variable_ref_node,
             attribute_name="__self__",
-            # TODO: Would be nice to have the real source reference here, but it feels
-            # a bit expensive.
             source_ref=variable_ref_node.source_ref,
         )
 
@@ -8784,10 +8607,6 @@ class ExpressionAttributeLookupStrSplitlines(
     kind = "EXPRESSION_ATTRIBUTE_LOOKUP_STR_SPLITLINES"
     attribute_name = "splitlines"
 
-    # There is nothing to compute for it as a value.
-    # TODO: Enable this
-    # auto_compute_handling = "final,no_raise"
-
     def computeExpression(self, trace_collection):
         return self, None, None
 
@@ -8803,8 +8622,6 @@ class ExpressionAttributeLookupStrSplitlines(
                     str_arg=str_arg, source_ref=source_ref
                 )
 
-        # Anything may happen. On next pass, if replaced, we might be better
-        # but not now.
         trace_collection.onExceptionRaiseExit(BaseException)
 
         result = extractBuiltinArgs(
@@ -8813,7 +8630,11 @@ class ExpressionAttributeLookupStrSplitlines(
             builtin_spec=str_splitlines_spec,
         )
 
-        return result, "new_expression", "Call to 'splitlines' of str recognized."
+        return trace_collection.computedExpressionResult(
+            expression=result,
+            change_tags="new_expression",
+            change_desc="Call to 'splitlines' of str recognized.",
+        )
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
         return self._computeExpressionCall(
@@ -8826,8 +8647,6 @@ class ExpressionAttributeLookupStrSplitlines(
         str_node = makeExpressionAttributeLookup(
             expression=variable_ref_node,
             attribute_name="__self__",
-            # TODO: Would be nice to have the real source reference here, but it feels
-            # a bit expensive.
             source_ref=variable_ref_node.source_ref,
         )
 
@@ -8851,10 +8670,6 @@ class ExpressionAttributeLookupBytesSplitlines(
     kind = "EXPRESSION_ATTRIBUTE_LOOKUP_BYTES_SPLITLINES"
     attribute_name = "splitlines"
 
-    # There is nothing to compute for it as a value.
-    # TODO: Enable this
-    # auto_compute_handling = "final,no_raise"
-
     def computeExpression(self, trace_collection):
         return self, None, None
 
@@ -8870,8 +8685,6 @@ class ExpressionAttributeLookupBytesSplitlines(
                     bytes_arg=bytes_arg, source_ref=source_ref
                 )
 
-        # Anything may happen. On next pass, if replaced, we might be better
-        # but not now.
         trace_collection.onExceptionRaiseExit(BaseException)
 
         result = extractBuiltinArgs(
@@ -8880,7 +8693,11 @@ class ExpressionAttributeLookupBytesSplitlines(
             builtin_spec=bytes_splitlines_spec,
         )
 
-        return result, "new_expression", "Call to 'splitlines' of bytes recognized."
+        return trace_collection.computedExpressionResult(
+            expression=result,
+            change_tags="new_expression",
+            change_desc="Call to 'splitlines' of bytes recognized.",
+        )
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
         return self._computeExpressionCall(
@@ -8893,8 +8710,6 @@ class ExpressionAttributeLookupBytesSplitlines(
         bytes_node = makeExpressionAttributeLookup(
             expression=variable_ref_node,
             attribute_name="__self__",
-            # TODO: Would be nice to have the real source reference here, but it feels
-            # a bit expensive.
             source_ref=variable_ref_node.source_ref,
         )
 
@@ -8966,10 +8781,6 @@ class ExpressionAttributeLookupStrStartswith(
     kind = "EXPRESSION_ATTRIBUTE_LOOKUP_STR_STARTSWITH"
     attribute_name = "startswith"
 
-    # There is nothing to compute for it as a value.
-    # TODO: Enable this
-    # auto_compute_handling = "final,no_raise"
-
     def computeExpression(self, trace_collection):
         return self, None, None
 
@@ -8993,8 +8804,6 @@ class ExpressionAttributeLookupStrStartswith(
                     str_arg=str_arg, prefix=prefix, source_ref=source_ref
                 )
 
-        # Anything may happen. On next pass, if replaced, we might be better
-        # but not now.
         trace_collection.onExceptionRaiseExit(BaseException)
 
         result = extractBuiltinArgs(
@@ -9003,7 +8812,11 @@ class ExpressionAttributeLookupStrStartswith(
             builtin_spec=str_startswith_spec,
         )
 
-        return result, "new_expression", "Call to 'startswith' of str recognized."
+        return trace_collection.computedExpressionResult(
+            expression=result,
+            change_tags="new_expression",
+            change_desc="Call to 'startswith' of str recognized.",
+        )
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
         return self._computeExpressionCall(
@@ -9016,8 +8829,6 @@ class ExpressionAttributeLookupStrStartswith(
         str_node = makeExpressionAttributeLookup(
             expression=variable_ref_node,
             attribute_name="__self__",
-            # TODO: Would be nice to have the real source reference here, but it feels
-            # a bit expensive.
             source_ref=variable_ref_node.source_ref,
         )
 
@@ -9040,10 +8851,6 @@ class ExpressionAttributeLookupBytesStartswith(
 
     kind = "EXPRESSION_ATTRIBUTE_LOOKUP_BYTES_STARTSWITH"
     attribute_name = "startswith"
-
-    # There is nothing to compute for it as a value.
-    # TODO: Enable this
-    # auto_compute_handling = "final,no_raise"
 
     def computeExpression(self, trace_collection):
         return self, None, None
@@ -9071,8 +8878,6 @@ class ExpressionAttributeLookupBytesStartswith(
                     bytes_arg=bytes_arg, prefix=prefix, source_ref=source_ref
                 )
 
-        # Anything may happen. On next pass, if replaced, we might be better
-        # but not now.
         trace_collection.onExceptionRaiseExit(BaseException)
 
         result = extractBuiltinArgs(
@@ -9081,7 +8886,11 @@ class ExpressionAttributeLookupBytesStartswith(
             builtin_spec=bytes_startswith_spec,
         )
 
-        return result, "new_expression", "Call to 'startswith' of bytes recognized."
+        return trace_collection.computedExpressionResult(
+            expression=result,
+            change_tags="new_expression",
+            change_desc="Call to 'startswith' of bytes recognized.",
+        )
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
         return self._computeExpressionCall(
@@ -9094,8 +8903,6 @@ class ExpressionAttributeLookupBytesStartswith(
         bytes_node = makeExpressionAttributeLookup(
             expression=variable_ref_node,
             attribute_name="__self__",
-            # TODO: Would be nice to have the real source reference here, but it feels
-            # a bit expensive.
             source_ref=variable_ref_node.source_ref,
         )
 
@@ -9167,10 +8974,6 @@ class ExpressionAttributeLookupStrStrip(
     kind = "EXPRESSION_ATTRIBUTE_LOOKUP_STR_STRIP"
     attribute_name = "strip"
 
-    # There is nothing to compute for it as a value.
-    # TODO: Enable this
-    # auto_compute_handling = "final,no_raise"
-
     def computeExpression(self, trace_collection):
         return self, None, None
 
@@ -9186,8 +8989,6 @@ class ExpressionAttributeLookupStrStrip(
                     str_arg=str_arg, source_ref=source_ref
                 )
 
-        # Anything may happen. On next pass, if replaced, we might be better
-        # but not now.
         trace_collection.onExceptionRaiseExit(BaseException)
 
         result = extractBuiltinArgs(
@@ -9196,7 +8997,11 @@ class ExpressionAttributeLookupStrStrip(
             builtin_spec=str_strip_spec,
         )
 
-        return result, "new_expression", "Call to 'strip' of str recognized."
+        return trace_collection.computedExpressionResult(
+            expression=result,
+            change_tags="new_expression",
+            change_desc="Call to 'strip' of str recognized.",
+        )
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
         return self._computeExpressionCall(
@@ -9209,8 +9014,6 @@ class ExpressionAttributeLookupStrStrip(
         str_node = makeExpressionAttributeLookup(
             expression=variable_ref_node,
             attribute_name="__self__",
-            # TODO: Would be nice to have the real source reference here, but it feels
-            # a bit expensive.
             source_ref=variable_ref_node.source_ref,
         )
 
@@ -9234,10 +9037,6 @@ class ExpressionAttributeLookupBytesStrip(
     kind = "EXPRESSION_ATTRIBUTE_LOOKUP_BYTES_STRIP"
     attribute_name = "strip"
 
-    # There is nothing to compute for it as a value.
-    # TODO: Enable this
-    # auto_compute_handling = "final,no_raise"
-
     def computeExpression(self, trace_collection):
         return self, None, None
 
@@ -9253,8 +9052,6 @@ class ExpressionAttributeLookupBytesStrip(
                     bytes_arg=bytes_arg, source_ref=source_ref
                 )
 
-        # Anything may happen. On next pass, if replaced, we might be better
-        # but not now.
         trace_collection.onExceptionRaiseExit(BaseException)
 
         result = extractBuiltinArgs(
@@ -9263,7 +9060,11 @@ class ExpressionAttributeLookupBytesStrip(
             builtin_spec=bytes_strip_spec,
         )
 
-        return result, "new_expression", "Call to 'strip' of bytes recognized."
+        return trace_collection.computedExpressionResult(
+            expression=result,
+            change_tags="new_expression",
+            change_desc="Call to 'strip' of bytes recognized.",
+        )
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
         return self._computeExpressionCall(
@@ -9276,8 +9077,6 @@ class ExpressionAttributeLookupBytesStrip(
         bytes_node = makeExpressionAttributeLookup(
             expression=variable_ref_node,
             attribute_name="__self__",
-            # TODO: Would be nice to have the real source reference here, but it feels
-            # a bit expensive.
             source_ref=variable_ref_node.source_ref,
         )
 
@@ -9349,10 +9148,6 @@ class ExpressionAttributeLookupStrSwapcase(
     kind = "EXPRESSION_ATTRIBUTE_LOOKUP_STR_SWAPCASE"
     attribute_name = "swapcase"
 
-    # There is nothing to compute for it as a value.
-    # TODO: Enable this
-    # auto_compute_handling = "final,no_raise"
-
     def computeExpression(self, trace_collection):
         return self, None, None
 
@@ -9363,8 +9158,6 @@ class ExpressionAttributeLookupStrSwapcase(
                 str_arg=str_arg, source_ref=source_ref
             )
 
-        # Anything may happen. On next pass, if replaced, we might be better
-        # but not now.
         trace_collection.onExceptionRaiseExit(BaseException)
 
         result = extractBuiltinArgs(
@@ -9373,7 +9166,11 @@ class ExpressionAttributeLookupStrSwapcase(
             builtin_spec=str_swapcase_spec,
         )
 
-        return result, "new_expression", "Call to 'swapcase' of str recognized."
+        return trace_collection.computedExpressionResult(
+            expression=result,
+            change_tags="new_expression",
+            change_desc="Call to 'swapcase' of str recognized.",
+        )
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
         return self._computeExpressionCall(
@@ -9386,8 +9183,6 @@ class ExpressionAttributeLookupStrSwapcase(
         str_node = makeExpressionAttributeLookup(
             expression=variable_ref_node,
             attribute_name="__self__",
-            # TODO: Would be nice to have the real source reference here, but it feels
-            # a bit expensive.
             source_ref=variable_ref_node.source_ref,
         )
 
@@ -9411,10 +9206,6 @@ class ExpressionAttributeLookupBytesSwapcase(
     kind = "EXPRESSION_ATTRIBUTE_LOOKUP_BYTES_SWAPCASE"
     attribute_name = "swapcase"
 
-    # There is nothing to compute for it as a value.
-    # TODO: Enable this
-    # auto_compute_handling = "final,no_raise"
-
     def computeExpression(self, trace_collection):
         return self, None, None
 
@@ -9425,8 +9216,6 @@ class ExpressionAttributeLookupBytesSwapcase(
                 bytes_arg=bytes_arg, source_ref=source_ref
             )
 
-        # Anything may happen. On next pass, if replaced, we might be better
-        # but not now.
         trace_collection.onExceptionRaiseExit(BaseException)
 
         result = extractBuiltinArgs(
@@ -9435,7 +9224,11 @@ class ExpressionAttributeLookupBytesSwapcase(
             builtin_spec=bytes_swapcase_spec,
         )
 
-        return result, "new_expression", "Call to 'swapcase' of bytes recognized."
+        return trace_collection.computedExpressionResult(
+            expression=result,
+            change_tags="new_expression",
+            change_desc="Call to 'swapcase' of bytes recognized.",
+        )
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
         return self._computeExpressionCall(
@@ -9448,8 +9241,6 @@ class ExpressionAttributeLookupBytesSwapcase(
         bytes_node = makeExpressionAttributeLookup(
             expression=variable_ref_node,
             attribute_name="__self__",
-            # TODO: Would be nice to have the real source reference here, but it feels
-            # a bit expensive.
             source_ref=variable_ref_node.source_ref,
         )
 
@@ -9521,10 +9312,6 @@ class ExpressionAttributeLookupStrTitle(
     kind = "EXPRESSION_ATTRIBUTE_LOOKUP_STR_TITLE"
     attribute_name = "title"
 
-    # There is nothing to compute for it as a value.
-    # TODO: Enable this
-    # auto_compute_handling = "final,no_raise"
-
     def computeExpression(self, trace_collection):
         return self, None, None
 
@@ -9533,8 +9320,6 @@ class ExpressionAttributeLookupStrTitle(
         def wrapExpressionStrOperationTitle(source_ref):
             return ExpressionStrOperationTitle(str_arg=str_arg, source_ref=source_ref)
 
-        # Anything may happen. On next pass, if replaced, we might be better
-        # but not now.
         trace_collection.onExceptionRaiseExit(BaseException)
 
         result = extractBuiltinArgs(
@@ -9543,7 +9328,11 @@ class ExpressionAttributeLookupStrTitle(
             builtin_spec=str_title_spec,
         )
 
-        return result, "new_expression", "Call to 'title' of str recognized."
+        return trace_collection.computedExpressionResult(
+            expression=result,
+            change_tags="new_expression",
+            change_desc="Call to 'title' of str recognized.",
+        )
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
         return self._computeExpressionCall(
@@ -9556,8 +9345,6 @@ class ExpressionAttributeLookupStrTitle(
         str_node = makeExpressionAttributeLookup(
             expression=variable_ref_node,
             attribute_name="__self__",
-            # TODO: Would be nice to have the real source reference here, but it feels
-            # a bit expensive.
             source_ref=variable_ref_node.source_ref,
         )
 
@@ -9581,10 +9368,6 @@ class ExpressionAttributeLookupBytesTitle(
     kind = "EXPRESSION_ATTRIBUTE_LOOKUP_BYTES_TITLE"
     attribute_name = "title"
 
-    # There is nothing to compute for it as a value.
-    # TODO: Enable this
-    # auto_compute_handling = "final,no_raise"
-
     def computeExpression(self, trace_collection):
         return self, None, None
 
@@ -9595,8 +9378,6 @@ class ExpressionAttributeLookupBytesTitle(
                 bytes_arg=bytes_arg, source_ref=source_ref
             )
 
-        # Anything may happen. On next pass, if replaced, we might be better
-        # but not now.
         trace_collection.onExceptionRaiseExit(BaseException)
 
         result = extractBuiltinArgs(
@@ -9605,7 +9386,11 @@ class ExpressionAttributeLookupBytesTitle(
             builtin_spec=bytes_title_spec,
         )
 
-        return result, "new_expression", "Call to 'title' of bytes recognized."
+        return trace_collection.computedExpressionResult(
+            expression=result,
+            change_tags="new_expression",
+            change_desc="Call to 'title' of bytes recognized.",
+        )
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
         return self._computeExpressionCall(
@@ -9618,8 +9403,6 @@ class ExpressionAttributeLookupBytesTitle(
         bytes_node = makeExpressionAttributeLookup(
             expression=variable_ref_node,
             attribute_name="__self__",
-            # TODO: Would be nice to have the real source reference here, but it feels
-            # a bit expensive.
             source_ref=variable_ref_node.source_ref,
         )
 
@@ -9691,31 +9474,51 @@ class ExpressionAttributeLookupStrTranslate(
     kind = "EXPRESSION_ATTRIBUTE_LOOKUP_STR_TRANSLATE"
     attribute_name = "translate"
 
-    # There is nothing to compute for it as a value.
-    # TODO: Enable this
-    # auto_compute_handling = "final,no_raise"
-
     def computeExpression(self, trace_collection):
         return self, None, None
 
     @staticmethod
     def _computeExpressionCall(call_node, str_arg, trace_collection):
-        def wrapExpressionStrOperationTranslate(table, source_ref):
-            return ExpressionStrOperationTranslate(
-                str_arg=str_arg, table=table, source_ref=source_ref
-            )
+        if python_version >= 0x300:
 
-        # Anything may happen. On next pass, if replaced, we might be better
-        # but not now.
+            def wrapExpressionStrOperationTranslate(table, source_ref):
+                return ExpressionStrOperationTranslate2(
+                    str_arg=str_arg, table=table, source_ref=source_ref
+                )
+
+            builtin_spec = str_translate_since_3_spec
+        elif python_version < 0x300:
+
+            def wrapExpressionStrOperationTranslate(table, delete, source_ref):
+                if delete is not None:
+                    return ExpressionStrOperationTranslate3(
+                        str_arg=str_arg,
+                        table=table,
+                        delete=delete,
+                        source_ref=source_ref,
+                    )
+                else:
+                    return ExpressionStrOperationTranslate2(
+                        str_arg=str_arg, table=table, source_ref=source_ref
+                    )
+
+            builtin_spec = str_translate_before_3_spec
+        else:
+            assert False, "Unhandled Python version for 'str.translate'."
+
         trace_collection.onExceptionRaiseExit(BaseException)
 
         result = extractBuiltinArgs(
             node=call_node,
             builtin_class=wrapExpressionStrOperationTranslate,
-            builtin_spec=str_translate_spec,
+            builtin_spec=builtin_spec,
         )
 
-        return result, "new_expression", "Call to 'translate' of str recognized."
+        return trace_collection.computedExpressionResult(
+            expression=result,
+            change_tags="new_expression",
+            change_desc="Call to 'translate' of str recognized.",
+        )
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
         return self._computeExpressionCall(
@@ -9728,8 +9531,6 @@ class ExpressionAttributeLookupStrTranslate(
         str_node = makeExpressionAttributeLookup(
             expression=variable_ref_node,
             attribute_name="__self__",
-            # TODO: Would be nice to have the real source reference here, but it feels
-            # a bit expensive.
             source_ref=variable_ref_node.source_ref,
         )
 
@@ -9753,10 +9554,6 @@ class ExpressionAttributeLookupBytesTranslate(
     kind = "EXPRESSION_ATTRIBUTE_LOOKUP_BYTES_TRANSLATE"
     attribute_name = "translate"
 
-    # There is nothing to compute for it as a value.
-    # TODO: Enable this
-    # auto_compute_handling = "final,no_raise"
-
     def computeExpression(self, trace_collection):
         return self, None, None
 
@@ -9775,8 +9572,6 @@ class ExpressionAttributeLookupBytesTranslate(
                     bytes_arg=bytes_arg, table=table, source_ref=source_ref
                 )
 
-        # Anything may happen. On next pass, if replaced, we might be better
-        # but not now.
         trace_collection.onExceptionRaiseExit(BaseException)
 
         result = extractBuiltinArgs(
@@ -9785,7 +9580,11 @@ class ExpressionAttributeLookupBytesTranslate(
             builtin_spec=bytes_translate_spec,
         )
 
-        return result, "new_expression", "Call to 'translate' of bytes recognized."
+        return trace_collection.computedExpressionResult(
+            expression=result,
+            change_tags="new_expression",
+            change_desc="Call to 'translate' of bytes recognized.",
+        )
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
         return self._computeExpressionCall(
@@ -9798,8 +9597,6 @@ class ExpressionAttributeLookupBytesTranslate(
         bytes_node = makeExpressionAttributeLookup(
             expression=variable_ref_node,
             attribute_name="__self__",
-            # TODO: Would be nice to have the real source reference here, but it feels
-            # a bit expensive.
             source_ref=variable_ref_node.source_ref,
         )
 
@@ -9862,12 +9659,7 @@ class ExpressionAttributeLookupDictUpdate(
     kind = "EXPRESSION_ATTRIBUTE_LOOKUP_DICT_UPDATE"
     attribute_name = "update"
 
-    # There is nothing to compute for it as a value.
-    # TODO: Enable this once we can also say removal of knowable for an argument.
-    # auto_compute_handling = "final,no_raise"
-
     def computeExpression(self, trace_collection):
-        # Might be used to modify the dict.
         trace_collection.removeKnowledge(self.subnode_expression)
 
         return self, None, None
@@ -9887,11 +9679,7 @@ class ExpressionAttributeLookupDictUpdate(
                     dict_arg=dict_arg, iterable=iterable, source_ref=source_ref
                 )
 
-        # Anything may happen. On next pass, if replaced, we might be better
-        # but not now.
         trace_collection.onExceptionRaiseExit(BaseException)
-
-        # Make sure we wait with knowing if the content is safe to use until its time.
         call_node.onContentEscapes(trace_collection)
 
         result = extractBuiltinArgs(
@@ -9921,8 +9709,6 @@ class ExpressionAttributeLookupDictUpdate(
         dict_node = makeExpressionAttributeLookup(
             expression=variable_ref_node,
             attribute_name="__self__",
-            # TODO: Would be nice to have the real source reference here, but it feels
-            # a bit expensive.
             source_ref=variable_ref_node.source_ref,
         )
 
@@ -9994,10 +9780,6 @@ class ExpressionAttributeLookupStrUpper(
     kind = "EXPRESSION_ATTRIBUTE_LOOKUP_STR_UPPER"
     attribute_name = "upper"
 
-    # There is nothing to compute for it as a value.
-    # TODO: Enable this
-    # auto_compute_handling = "final,no_raise"
-
     def computeExpression(self, trace_collection):
         return self, None, None
 
@@ -10006,8 +9788,6 @@ class ExpressionAttributeLookupStrUpper(
         def wrapExpressionStrOperationUpper(source_ref):
             return ExpressionStrOperationUpper(str_arg=str_arg, source_ref=source_ref)
 
-        # Anything may happen. On next pass, if replaced, we might be better
-        # but not now.
         trace_collection.onExceptionRaiseExit(BaseException)
 
         result = extractBuiltinArgs(
@@ -10016,7 +9796,11 @@ class ExpressionAttributeLookupStrUpper(
             builtin_spec=str_upper_spec,
         )
 
-        return result, "new_expression", "Call to 'upper' of str recognized."
+        return trace_collection.computedExpressionResult(
+            expression=result,
+            change_tags="new_expression",
+            change_desc="Call to 'upper' of str recognized.",
+        )
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
         return self._computeExpressionCall(
@@ -10029,8 +9813,6 @@ class ExpressionAttributeLookupStrUpper(
         str_node = makeExpressionAttributeLookup(
             expression=variable_ref_node,
             attribute_name="__self__",
-            # TODO: Would be nice to have the real source reference here, but it feels
-            # a bit expensive.
             source_ref=variable_ref_node.source_ref,
         )
 
@@ -10054,10 +9836,6 @@ class ExpressionAttributeLookupBytesUpper(
     kind = "EXPRESSION_ATTRIBUTE_LOOKUP_BYTES_UPPER"
     attribute_name = "upper"
 
-    # There is nothing to compute for it as a value.
-    # TODO: Enable this
-    # auto_compute_handling = "final,no_raise"
-
     def computeExpression(self, trace_collection):
         return self, None, None
 
@@ -10068,8 +9846,6 @@ class ExpressionAttributeLookupBytesUpper(
                 bytes_arg=bytes_arg, source_ref=source_ref
             )
 
-        # Anything may happen. On next pass, if replaced, we might be better
-        # but not now.
         trace_collection.onExceptionRaiseExit(BaseException)
 
         result = extractBuiltinArgs(
@@ -10078,7 +9854,11 @@ class ExpressionAttributeLookupBytesUpper(
             builtin_spec=bytes_upper_spec,
         )
 
-        return result, "new_expression", "Call to 'upper' of bytes recognized."
+        return trace_collection.computedExpressionResult(
+            expression=result,
+            change_tags="new_expression",
+            change_desc="Call to 'upper' of bytes recognized.",
+        )
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
         return self._computeExpressionCall(
@@ -10091,8 +9871,6 @@ class ExpressionAttributeLookupBytesUpper(
         bytes_node = makeExpressionAttributeLookup(
             expression=variable_ref_node,
             attribute_name="__self__",
-            # TODO: Would be nice to have the real source reference here, but it feels
-            # a bit expensive.
             source_ref=variable_ref_node.source_ref,
         )
 
@@ -10155,12 +9933,7 @@ class ExpressionAttributeLookupDictValues(
     kind = "EXPRESSION_ATTRIBUTE_LOOKUP_DICT_VALUES"
     attribute_name = "values"
 
-    # There is nothing to compute for it as a value.
-    # TODO: Enable this once we can also say removal of knowable for an argument.
-    # auto_compute_handling = "final,no_raise"
-
     def computeExpression(self, trace_collection):
-        # Cannot be used to modify the dict.
         return self, None, None
 
     @staticmethod
@@ -10175,11 +9948,7 @@ class ExpressionAttributeLookupDictValues(
                     dict_arg=dict_arg, source_ref=source_ref
                 )
 
-        # Anything may happen. On next pass, if replaced, we might be better
-        # but not now.
         trace_collection.onExceptionRaiseExit(BaseException)
-
-        # Make sure we wait with knowing if the content is safe to use until its time.
         call_node.onContentEscapes(trace_collection)
 
         result = extractBuiltinArgs(
@@ -10205,8 +9974,6 @@ class ExpressionAttributeLookupDictValues(
         dict_node = makeExpressionAttributeLookup(
             expression=variable_ref_node,
             attribute_name="__self__",
-            # TODO: Would be nice to have the real source reference here, but it feels
-            # a bit expensive.
             source_ref=variable_ref_node.source_ref,
         )
 
@@ -10269,12 +10036,7 @@ class ExpressionAttributeLookupDictViewitems(
     kind = "EXPRESSION_ATTRIBUTE_LOOKUP_DICT_VIEWITEMS"
     attribute_name = "viewitems"
 
-    # There is nothing to compute for it as a value.
-    # TODO: Enable this once we can also say removal of knowable for an argument.
-    # auto_compute_handling = "final,no_raise"
-
     def computeExpression(self, trace_collection):
-        # Cannot be used to modify the dict.
         return self, None, None
 
     @staticmethod
@@ -10284,11 +10046,7 @@ class ExpressionAttributeLookupDictViewitems(
                 dict_arg=dict_arg, source_ref=source_ref
             )
 
-        # Anything may happen. On next pass, if replaced, we might be better
-        # but not now.
         trace_collection.onExceptionRaiseExit(BaseException)
-
-        # Make sure we wait with knowing if the content is safe to use until its time.
         call_node.onContentEscapes(trace_collection)
 
         result = extractBuiltinArgs(
@@ -10314,8 +10072,6 @@ class ExpressionAttributeLookupDictViewitems(
         dict_node = makeExpressionAttributeLookup(
             expression=variable_ref_node,
             attribute_name="__self__",
-            # TODO: Would be nice to have the real source reference here, but it feels
-            # a bit expensive.
             source_ref=variable_ref_node.source_ref,
         )
 
@@ -10378,12 +10134,7 @@ class ExpressionAttributeLookupDictViewkeys(
     kind = "EXPRESSION_ATTRIBUTE_LOOKUP_DICT_VIEWKEYS"
     attribute_name = "viewkeys"
 
-    # There is nothing to compute for it as a value.
-    # TODO: Enable this once we can also say removal of knowable for an argument.
-    # auto_compute_handling = "final,no_raise"
-
     def computeExpression(self, trace_collection):
-        # Cannot be used to modify the dict.
         return self, None, None
 
     @staticmethod
@@ -10393,11 +10144,7 @@ class ExpressionAttributeLookupDictViewkeys(
                 dict_arg=dict_arg, source_ref=source_ref
             )
 
-        # Anything may happen. On next pass, if replaced, we might be better
-        # but not now.
         trace_collection.onExceptionRaiseExit(BaseException)
-
-        # Make sure we wait with knowing if the content is safe to use until its time.
         call_node.onContentEscapes(trace_collection)
 
         result = extractBuiltinArgs(
@@ -10423,8 +10170,6 @@ class ExpressionAttributeLookupDictViewkeys(
         dict_node = makeExpressionAttributeLookup(
             expression=variable_ref_node,
             attribute_name="__self__",
-            # TODO: Would be nice to have the real source reference here, but it feels
-            # a bit expensive.
             source_ref=variable_ref_node.source_ref,
         )
 
@@ -10487,12 +10232,7 @@ class ExpressionAttributeLookupDictViewvalues(
     kind = "EXPRESSION_ATTRIBUTE_LOOKUP_DICT_VIEWVALUES"
     attribute_name = "viewvalues"
 
-    # There is nothing to compute for it as a value.
-    # TODO: Enable this once we can also say removal of knowable for an argument.
-    # auto_compute_handling = "final,no_raise"
-
     def computeExpression(self, trace_collection):
-        # Cannot be used to modify the dict.
         return self, None, None
 
     @staticmethod
@@ -10502,11 +10242,7 @@ class ExpressionAttributeLookupDictViewvalues(
                 dict_arg=dict_arg, source_ref=source_ref
             )
 
-        # Anything may happen. On next pass, if replaced, we might be better
-        # but not now.
         trace_collection.onExceptionRaiseExit(BaseException)
-
-        # Make sure we wait with knowing if the content is safe to use until its time.
         call_node.onContentEscapes(trace_collection)
 
         result = extractBuiltinArgs(
@@ -10532,8 +10268,6 @@ class ExpressionAttributeLookupDictViewvalues(
         dict_node = makeExpressionAttributeLookup(
             expression=variable_ref_node,
             attribute_name="__self__",
-            # TODO: Would be nice to have the real source reference here, but it feels
-            # a bit expensive.
             source_ref=variable_ref_node.source_ref,
         )
 
@@ -10605,10 +10339,6 @@ class ExpressionAttributeLookupStrZfill(
     kind = "EXPRESSION_ATTRIBUTE_LOOKUP_STR_ZFILL"
     attribute_name = "zfill"
 
-    # There is nothing to compute for it as a value.
-    # TODO: Enable this
-    # auto_compute_handling = "final,no_raise"
-
     def computeExpression(self, trace_collection):
         return self, None, None
 
@@ -10619,8 +10349,6 @@ class ExpressionAttributeLookupStrZfill(
                 str_arg=str_arg, width=width, source_ref=source_ref
             )
 
-        # Anything may happen. On next pass, if replaced, we might be better
-        # but not now.
         trace_collection.onExceptionRaiseExit(BaseException)
 
         result = extractBuiltinArgs(
@@ -10629,7 +10357,11 @@ class ExpressionAttributeLookupStrZfill(
             builtin_spec=str_zfill_spec,
         )
 
-        return result, "new_expression", "Call to 'zfill' of str recognized."
+        return trace_collection.computedExpressionResult(
+            expression=result,
+            change_tags="new_expression",
+            change_desc="Call to 'zfill' of str recognized.",
+        )
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
         return self._computeExpressionCall(
@@ -10642,8 +10374,6 @@ class ExpressionAttributeLookupStrZfill(
         str_node = makeExpressionAttributeLookup(
             expression=variable_ref_node,
             attribute_name="__self__",
-            # TODO: Would be nice to have the real source reference here, but it feels
-            # a bit expensive.
             source_ref=variable_ref_node.source_ref,
         )
 
@@ -10667,10 +10397,6 @@ class ExpressionAttributeLookupBytesZfill(
     kind = "EXPRESSION_ATTRIBUTE_LOOKUP_BYTES_ZFILL"
     attribute_name = "zfill"
 
-    # There is nothing to compute for it as a value.
-    # TODO: Enable this
-    # auto_compute_handling = "final,no_raise"
-
     def computeExpression(self, trace_collection):
         return self, None, None
 
@@ -10681,8 +10407,6 @@ class ExpressionAttributeLookupBytesZfill(
                 bytes_arg=bytes_arg, width=width, source_ref=source_ref
             )
 
-        # Anything may happen. On next pass, if replaced, we might be better
-        # but not now.
         trace_collection.onExceptionRaiseExit(BaseException)
 
         result = extractBuiltinArgs(
@@ -10691,7 +10415,11 @@ class ExpressionAttributeLookupBytesZfill(
             builtin_spec=bytes_zfill_spec,
         )
 
-        return result, "new_expression", "Call to 'zfill' of bytes recognized."
+        return trace_collection.computedExpressionResult(
+            expression=result,
+            change_tags="new_expression",
+            change_desc="Call to 'zfill' of bytes recognized.",
+        )
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
         return self._computeExpressionCall(
@@ -10704,8 +10432,6 @@ class ExpressionAttributeLookupBytesZfill(
         bytes_node = makeExpressionAttributeLookup(
             expression=variable_ref_node,
             attribute_name="__self__",
-            # TODO: Would be nice to have the real source reference here, but it feels
-            # a bit expensive.
             source_ref=variable_ref_node.source_ref,
         )
 

@@ -7,7 +7,8 @@ from nuitka.nodes.shapes.BuiltinTypeShapes import (
     tshape_bool,
     tshape_int_or_long,
 )
-from nuitka.PythonVersions import python_version
+from nuitka.PythonVersions import isPythonWithGil, python_version
+from nuitka.States import states
 from nuitka.utils.CStrings import encodePythonIdentifierToC
 
 from .c_types.CTypeNuitkaBooleans import CTypeNuitkaBoolEnum
@@ -20,6 +21,8 @@ from .c_types.CTypePyObjectPointers import (
 from .CodeHelpers import (
     decideConversionCheckNeeded,
     generateExpressionCode,
+    isObjectReferenceValue,
+    promoteBorrowedValuesForVariable,
     withObjectCodeTemporaryAssignment2,
 )
 from .DeferredReleaseCodes import checkDeferredReleaseUse
@@ -29,6 +32,7 @@ from .ErrorCodes import (
     getLocalVariableReferenceErrorCode,
     getNameReferenceErrorCode,
 )
+from .LineNumberCodes import emitLineNumberUpdateCode
 from .VariableDeclarations import VariableDeclaration
 
 
@@ -39,7 +43,6 @@ def generateAssignmentVariableCode(statement, emit, context):
     variable_trace = statement.getVariableTrace()
 
     if variable.isModuleVariable():
-        # Use "object" for module variables.
         tmp_name = context.allocateTempName("assign_source")
     else:
         source_shape = assign_source.getTypeShape()
@@ -62,22 +65,29 @@ def generateAssignmentVariableCode(statement, emit, context):
         expression=assign_source, to_name=tmp_name, emit=emit, context=context
     )
 
+    # The in-place transfer assumes the variable still owns the left value. If
+    # the operation had to take its own reference, then the result owns a
+    # reference and must be stored with normal release handling.
+    inplace = statement.isInplaceSuspect() and not context.needsCleanup(tmp_name)
+
     getVariableAssignmentCode(
         tmp_name=tmp_name,
         variable=variable,
         variable_trace=variable_trace,
         needs_release=statement.needsReleasePreviousValue(),
-        inplace=statement.isInplaceSuspect(),
+        inplace=inplace,
         emit=emit,
         context=context,
     )
 
-    # Ownership of that reference must have been transferred.
     assert not context.needsCleanup(tmp_name), (statement.source_ref, tmp_name)
 
 
 def generateDelVariableCode(statement, emit, context):
     with context.withCurrentSourceCodeReference(statement.getSourceReference()):
+        if states.is_full_compat:
+            emitLineNumberUpdateCode(None, emit, context)
+
         _getVariableDelCode(
             variable=statement.getVariable(),
             variable_trace=statement.variable_trace,
@@ -97,61 +107,66 @@ def getModuleVariableAccessorCodeName(module_identifier, variable_name):
 
 
 def getModuleVariableReferenceCode(
-    to_name, variable_name, use_caching, needs_check, conversion_check, emit, context
+    to_name,
+    variable_name,
+    use_caching,
+    needs_check,
+    conversion_check,
+    no_global_deletion,
+    emit,
+    context,
 ):
     owner = context.getOwner()
 
-    context.setModuleVariableAccessorCaching(variable_name, use_caching)
+    needs_global_name = (
+        python_version < 0x300
+        and not owner.isCompiledPythonModule()
+        and not owner.isExpressionClassBodyBase()
+    )
+
+    context.registerModuleVariableAccessor(
+        variable_name=variable_name,
+        caching=use_caching,
+        needs_check=needs_check,
+        needs_global_name=needs_global_name,
+        no_global_deletion=no_global_deletion,
+    )
 
     with withObjectCodeTemporaryAssignment2(
         to_name, "mvar_value", conversion_check, emit, context
     ) as value_name:
-        emit(
-            "%(value_name)s = %(module_variable_accessor)s(tstate);"
-            % {
-                "value_name": value_name,
-                "module_variable_accessor": getModuleVariableAccessorCodeName(
-                    context.getModuleCodeName(), variable_name
-                ),
-            }
+        accessor_function_name = getModuleVariableAccessorCodeName(
+            context.getModuleCodeName(), variable_name
         )
 
         if needs_check:
-            if (
-                python_version < 0x300
-                and not owner.isCompiledPythonModule()
-                and not owner.isExpressionClassBodyBase()
-            ):
-                error_helper_name = "RAISE_CURRENT_EXCEPTION_GLOBAL_NAME_ERROR"
-            else:
-                error_helper_name = "RAISE_CURRENT_EXCEPTION_NAME_ERROR"
-
             (
                 exception_state_name,
                 _exception_lineno,
             ) = context.getExceptionVariableDescriptions()
 
-            emit(
-                """\
-if (unlikely(%(value_name)s == NULL)) {
-    %(error_helper_name)s(tstate, &%(exception_state_name)s, %(var_name)s);
-}
-"""
-                % {
-                    "value_name": value_name,
-                    "error_helper_name": error_helper_name,
-                    "var_name": context.getConstantCode(constant=variable_name),
-                    "exception_state_name": exception_state_name,
-                }
+            accessor_function_name += (
+                "$checked_global" if needs_global_name else "$checked"
             )
 
-        getErrorExitCode(
-            check_name=value_name,
-            emit=emit,
-            context=context,
-            fetched_exception=True,
-            needs_check=needs_check,
-        )
+            emit(
+                "%s = %s(tstate, &%s);"
+                % (value_name, accessor_function_name, exception_state_name)
+            )
+
+            getErrorExitCode(
+                check_name=value_name,
+                emit=emit,
+                context=context,
+                fetched_exception=True,
+            )
+        else:
+            accessor_function_name += "$infallible"
+
+            emit("%s = %s(tstate);" % (value_name, accessor_function_name))
+
+        if not isPythonWithGil():
+            context.addCleanupTempName(value_name)
 
 
 def getNonModuleVariableReferenceCode(
@@ -200,19 +215,15 @@ def generateVariableReferenceCode(to_name, expression, emit, context):
         variable_name = variable.getName()
 
         if python_version < 0x360:
-            # Python2 doesn't have the means to do it, we got some acceleration
-            # for it still, but no real caching.
+            # Dictionary version tags (ma_version_tag, PEP 509) require Python 3.6+.
             use_caching = False
         else:
-            # For this it's OK the go to the containing context.
             user = context.getOwner()
             while user.isExpressionOutlineFunction():
                 user = user.provider
                 context = context.parent
 
             if user.isCompiledPythonModule():
-                # For module level code, cache module variable access only if inside
-                # a loop.
                 use_caching = False
 
                 if not context.isModuleVariableAccessorCaching(variable_name):
@@ -227,6 +238,7 @@ def generateVariableReferenceCode(to_name, expression, emit, context):
             use_caching=use_caching,
             needs_check=needs_check,
             conversion_check=decideConversionCheckNeeded(to_name, expression),
+            no_global_deletion=variable.isModuleVariableNoGlobalDeletion(),
             emit=emit,
             context=context,
         )
@@ -241,10 +253,17 @@ def generateVariableReferenceCode(to_name, expression, emit, context):
             context=context,
         )
 
+    if (
+        variable.writers
+        and to_name.code_name.startswith("tmp_")
+        and isObjectReferenceValue(to_name)
+        and not context.needsCleanup(to_name)
+    ):
+        context.registerBorrowedValue(variable=variable, tmp_name=to_name)
+
 
 def _getVariableCodeName(in_context, variable):
     if in_context:
-        # Closure case:
         return "closure_" + variable.getVariableCodeName()
     elif variable.isParameterVariable():
         return "par_" + variable.getVariableCodeName()
@@ -268,27 +287,23 @@ if python_version >= 0x360:
 else:
 
     def _pickCellCType(variable):
-        # Not relevant before Python 3.6, pylint: disable=unused-argument
+        # pylint: disable=unused-argument
         return CTypeCellObject
 
 
 def getPickedCType(variable, context):
-    """Return type to use for specific context."""
     user = context.getEntryPoint()
     owner = variable.getEntryPoint()
 
     if owner is user:
         if variable.isSharedTechnically():
-            # TODO: That need not really be an impedient, we could share pointers to
+            # TODO: That need not really be an impediment, we could share pointers to
             # everything.
             return _pickCellCType(variable)
         else:
             shapes = variable.getTypeShapes()
 
             if len(shapes) != 1:
-                # Avoiding this for now, but we will have to use our enum
-                # based code variants, either generated or hard coded in
-                # the future.
                 result = CTypePyObjectPtr
             else:
                 result = shapes.pop().getCType()
@@ -305,9 +320,7 @@ def getPickedCType(variable, context):
 
 
 def decideLocalVariableCodeType(context, variable):
-    # Now must be local or temporary variable.
-
-    # Complexity should be moved out of here, pylint: disable=too-many-branches
+    # pylint: disable=too-many-branches
 
     user = context.getOwner()
     owner = variable.getOwner()
@@ -372,8 +385,6 @@ def decideLocalVariableCodeType(context, variable):
 def getLocalVariableDeclaration(context, variable, variable_trace):
     # TODO: Decide if we will use variable trace, pylint: disable=unused-argument
 
-    # Now must be local or temporary variable.
-
     user = context.getOwner()
     owner = variable.getOwner()
 
@@ -407,10 +418,7 @@ def getLocalVariableDeclaration(context, variable, variable_trace):
 
 
 def getClosureCopyCode(closure_variables, context):
-    """Get code to copy closure variables storage.
-
-    This gets used by generator/coroutine/asyncgen and annotate functions.
-    """
+    """Return '(closure_name, closure_copy_lines)' for 'closure_variables'."""
     if closure_variables:
         closure_name = context.allocateTempName(
             "closure", "struct Nuitka_CellObject *[%d]" % len(closure_variables)
@@ -448,7 +456,9 @@ def getVariableAssignmentCode(
         detail=variable.getName(),
     )
 
-    # For transfer of ownership.
+    if not inplace:
+        promoteBorrowedValuesForVariable(variable=variable, emit=emit, context=context)
+
     if context.needsCleanup(tmp_name):
         ref_count = 1
     else:
@@ -481,8 +491,6 @@ def getVariableAssignmentCode(
         emit=emit,
         context=context,
     )
-
-    # print(variable_declaration.getCType())
 
 
 def _getVariableDelCode(
@@ -517,6 +525,8 @@ def _getVariableDelCode(
     else:
         to_name = None
 
+    promoteBorrowedValuesForVariable(variable=variable, emit=emit, context=context)
+
     variable_declaration_old.getCType().getDeleteObjectCode(
         to_name=to_name,
         value_name=variable_declaration_old,
@@ -548,7 +558,6 @@ def _getVariableDelCode(
 def generateVariableReleaseCode(statement, emit, context):
     variable = statement.getVariable()
 
-    # Only for normal variables we do this.
     assert not variable.isModuleVariable()
 
     variable_trace = statement.getVariableTrace()

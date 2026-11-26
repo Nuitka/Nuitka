@@ -319,11 +319,27 @@ static int macho_add (struct backtrace_state *, const char *, int, off_t,
 /* A dummy callback function used when we can't find any debug info.  */
 
 static int
-macho_nodebug (struct backtrace_state *state ATTRIBUTE_UNUSED,
-	       uintptr_t pc ATTRIBUTE_UNUSED,
-	       backtrace_full_callback callback ATTRIBUTE_UNUSED,
+macho_nodebug (struct backtrace_state *state,
+	       uintptr_t pc,
+	       backtrace_full_callback callback,
 	       backtrace_error_callback error_callback, void *data)
 {
+  if (state->syminfo_fn != NULL)
+    {
+      struct backtrace_call_full bdata;
+
+      /* Fetch symbol information so that we can least get the
+	 function name.  */
+
+      bdata.full_callback = callback;
+      bdata.full_error_callback = error_callback;
+      bdata.full_data = data;
+      bdata.ret = 0;
+      state->syminfo_fn (state, pc, backtrace_syminfo_to_full_callback,
+			 backtrace_syminfo_to_full_error_callback, &bdata);
+      return bdata.ret;
+    }
+
   error_callback (data, "no debug info in Mach-O executable", -1);
   return 0;
 }
@@ -404,7 +420,7 @@ macho_add_dwarf_segment (struct backtrace_state *state, int descriptor,
     {
       if (secoffset + sec_header_size > sizesecs)
 	{
-	  error_callback (data, "section overflow withing segment", 0);
+	  error_callback (data, "section overflow within segment", 0);
 	  return 0;
 	}
 

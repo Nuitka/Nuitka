@@ -107,23 +107,28 @@ possible.""" % full_name)
     def onModuleDiscovered(self, module):
         full_name = module.getFullName()
 
-        for options_config in self.config.get(full_name, section="options"):
-            for check in options_config.get("checks", ()):
-                condition = check.get("when", "True")
+        for check in self.config.get(full_name, section="options"):
+            support_info = check.get("support_info", "ignore")
+            macos_bundle = check.get("macos_bundle", "no")
 
-                if self.evaluateCondition(full_name=full_name, condition=condition):
-                    self._checkSupportedVersion(
+            if support_info == "ignore" and (not isMacOS() or macos_bundle == "no"):
+                continue
+
+            condition = check.get("when", "True")
+
+            if self.evaluateCondition(full_name=full_name, condition=condition):
+                self._checkSupportedVersion(
+                    full_name=full_name,
+                    support_info=support_info,
+                    description=check.get("description", "not given"),
+                    condition=condition,
+                )
+
+                if isMacOS():
+                    self._checkMacOSBundleMode(
                         full_name=full_name,
-                        support_info=check.get("support_info", "ignore"),
-                        description=check.get("description", "not given"),
-                        condition=condition,
+                        macos_bundle=macos_bundle,
                     )
-
-                    if isMacOS():
-                        self._checkMacOSBundleMode(
-                            full_name=full_name,
-                            macos_bundle=check.get("macos_bundle", "no"),
-                        )
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and

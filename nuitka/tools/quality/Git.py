@@ -24,7 +24,11 @@ from nuitka.utils.Execution import (
     check_output,
     executeProcess,
 )
-from nuitka.utils.FileOperations import openTextFile
+from nuitka.utils.FileOperations import (
+    getFileContents,
+    getPathWithForwardSlashes,
+    openTextFile,
+)
 from nuitka.utils.Utils import decoratorRetries
 
 
@@ -269,11 +273,14 @@ def updateGitFile(path, orig_object_hash, new_object_hash, staged):
     if staged and not os.path.exists(path):
         return True
 
+    if staged and getFileContents(path, "rb") == getFileHashContent(new_object_hash):
+        return True
+
     patch = check_output(
         ["git", "diff", "--no-color", orig_object_hash, new_object_hash]
     )
 
-    git_path = path.replace(os.path.sep, "/").encode("utf8")
+    git_path = getPathWithForwardSlashes(path).encode("utf8")
 
     def updateLine(line):
         if line.startswith(b"diff --git"):

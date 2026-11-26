@@ -59,7 +59,7 @@ class NuitkaPluginDelvewheel(NuitkaPluginBase):
         match = re.search(
             r"(def _delvewheel_(?:init_)?patch_(.*?)\(\):\n.*?_delvewheel_(?:init_)?patch_\2\(\))",
             source_code,
-            re.S,
+            re.DOTALL,
         )
 
         if not match:

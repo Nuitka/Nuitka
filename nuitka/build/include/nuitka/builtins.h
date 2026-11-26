@@ -14,6 +14,7 @@ extern PyDictObject *dict_builtin;
 
 #include "nuitka/calling.h"
 
+// Returns a borrowed reference; aborts if the builtin is missing.
 NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_BUILTIN(PyObject *name) {
     CHECK_OBJECT(dict_builtin);
     CHECK_OBJECT(name);
@@ -21,7 +22,6 @@ NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_BUILTIN(PyObject *name) {
 
     PyObject *result = GET_STRING_DICT_VALUE(dict_builtin, (Nuitka_StringObject *)name);
 
-    // This is assumed to not fail, abort if it does.
     if (unlikely(result == NULL)) {
         PyErr_PrintEx(0);
         Py_Exit(1);
@@ -32,13 +32,14 @@ NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_BUILTIN(PyObject *name) {
     return result;
 }
 
-// Returns a reference.
-NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_BUILTIN_STR(char const *name) {
+// Returns a new reference; aborts if the builtin is missing.
+NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_BUILTIN1(PyThreadState *tstate, PyObject *name) {
     CHECK_OBJECT(dict_builtin);
+    CHECK_OBJECT(name);
+    assert(Nuitka_String_CheckExact(name));
 
-    PyObject *result = PyDict_GetItemString((PyObject *)dict_builtin, name);
+    PyObject *result = GET_STRING_DICT_VALUE1(tstate, dict_builtin, (Nuitka_StringObject *)name);
 
-    // This is assumed to not fail, abort if it does.
     if (unlikely(result == NULL)) {
         PyErr_PrintEx(0);
         Py_Exit(1);
@@ -46,7 +47,21 @@ NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_BUILTIN_STR(char const *name) {
 
     CHECK_OBJECT(result);
 
-    Py_INCREF(result);
+    return result;
+}
+
+// Returns a new reference; aborts if the builtin is missing.
+NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_BUILTIN_STR(PyThreadState *tstate, char const *name) {
+    PyObject *name_str = Nuitka_String_FromString(name);
+
+    if (unlikely(name_str == NULL)) {
+        PyErr_PrintEx(0);
+        Py_Exit(1);
+    }
+
+    PyObject *result = LOOKUP_BUILTIN1(tstate, name_str);
+    Py_DECREF(name_str);
+
     return result;
 }
 
@@ -54,14 +69,31 @@ extern void _initBuiltinModule(PyThreadState *tstate);
 
 #define NUITKA_DECLARE_BUILTIN(name) extern PyObject *_python_original_builtin_value_##name;
 #define NUITKA_DEFINE_BUILTIN(name) PyObject *_python_original_builtin_value_##name = NULL;
+#if defined(Py_GIL_DISABLED)
 #define NUITKA_ASSIGN_BUILTIN(name)                                                                                    \
-    if (_python_original_builtin_value_##name == NULL)                                                                 \
-        _python_original_builtin_value_##name = LOOKUP_BUILTIN_STR(#name);
+    do {                                                                                                               \
+        if (_Py_atomic_load_ptr_acquire(&_python_original_builtin_value_##name) == NULL) {                             \
+            PyObject *_nuitka_builtin_tmp = LOOKUP_BUILTIN_STR(tstate, #name);                                         \
+            PyObject *_nuitka_builtin_expected = NULL;                                                                 \
+            if (!_Py_atomic_compare_exchange_ptr(&_python_original_builtin_value_##name, &_nuitka_builtin_expected,    \
+                                                 _nuitka_builtin_tmp)) {                                               \
+                Py_DECREF(_nuitka_builtin_tmp);                                                                        \
+            }                                                                                                          \
+        }                                                                                                              \
+    } while (0)
+#define NUITKA_UPDATE_BUILTIN(name, value)                                                                             \
+    _Py_atomic_store_ptr_release(&_python_original_builtin_value_##name, (value));
+#define NUITKA_ACCESS_BUILTIN(name) ((PyObject *)_Py_atomic_load_ptr_acquire(&_python_original_builtin_value_##name))
+#else
+#define NUITKA_ASSIGN_BUILTIN(name)                                                                                    \
+    if (_python_original_builtin_value_##name == NULL) {                                                               \
+        _python_original_builtin_value_##name = LOOKUP_BUILTIN_STR(tstate, #name);                                     \
+    }
 #define NUITKA_UPDATE_BUILTIN(name, value) _python_original_builtin_value_##name = value;
 #define NUITKA_ACCESS_BUILTIN(name) (_python_original_builtin_value_##name)
+#endif
 
 #if !_NUITKA_MODULE_MODE
-// Original builtin values, currently only used for assertions.
 NUITKA_DECLARE_BUILTIN(type);
 NUITKA_DECLARE_BUILTIN(len);
 NUITKA_DECLARE_BUILTIN(range);
@@ -72,7 +104,7 @@ NUITKA_DECLARE_BUILTIN(iter);
 NUITKA_DECLARE_BUILTIN(long);
 #endif
 
-extern void _initBuiltinOriginalValues(void);
+extern void _initBuiltinOriginalValues(PyThreadState *tstate);
 #endif
 
 // Avoid the casts needed for older Python, as it's easily forgotten and

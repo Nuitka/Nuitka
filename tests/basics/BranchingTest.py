@@ -148,7 +148,7 @@ def dontOptimizeSideEffects():
         print("function 'returnFalse' should not have been called")
         return False
 
-    if (returnTrue() or returnFalse(),):
+    if returnTrue() or returnFalse():
         print("Taken branch as expected.")
     else:
         print("Bad branch taken.")
@@ -173,6 +173,29 @@ def dontOptimizeTruthCheck():
 try:
     print("Check that branch conditions are not optimized way: ", end="")
     dontOptimizeTruthCheck()
+    print("FAIL.")
+except ValueError:
+    print("OK.")
+
+
+def dontOptimizeComparisonTruthCheck():
+    class BadBool(object):
+        def __nonzero__(self):
+            raise ValueError
+
+        __bool__ = __nonzero__
+
+    class Comparable(object):
+        def __eq__(self, other):
+            return BadBool()
+
+    if [Comparable()] == [Comparable()]:
+        raise AssertionError("comparison truth check was not propagated")
+
+
+try:
+    print("Check that comparison truth checks are not optimized away: ", end="")
+    dontOptimizeComparisonTruthCheck()
     print("FAIL.")
 except ValueError:
     print("OK.")

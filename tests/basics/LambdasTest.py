@@ -57,6 +57,38 @@ def lambdaDirectCall():
 
 lambdaDirectCall()
 
+
+def lambdaDirectCallDefaults(xs, ys):
+    log = []
+
+    def trace(label, value):
+        log.append(label)
+        return value
+
+    res = (lambda x, y=trace("default", 42): x + y)(trace("arg1", 1), trace("arg2", 2))
+    print("Lambda direct call with default side effect:", res, log)
+
+    log = []
+    try:
+        (lambda x, y=trace("default_err", 42): x + y)(trace("arg1_err", 1), 2, 3)
+    except TypeError:
+        print("Lambda direct call too many args:", log)
+
+    log = []
+
+    def gen(items):
+        for item in items:
+            log.append(item)
+            yield item
+
+    res = (lambda x, y=[a for a in gen(xs) if any(a == b for b in ys)]: x + len(y))(
+        1, [10, 20]
+    )
+    print("Lambda direct call with comprehension default:", res, log)
+
+
+lambdaDirectCallDefaults([1, 2, 3], [2, 3, 4])
+
 #     Python tests originally created or extracted from other peoples work. The
 #     parts were too small to be protected.
 #

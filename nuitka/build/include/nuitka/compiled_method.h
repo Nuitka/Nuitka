@@ -4,18 +4,10 @@
 #ifndef __NUITKA_COMPILED_METHOD_H__
 #define __NUITKA_COMPILED_METHOD_H__
 
-// Compiled function and compile generator types may be referenced.
 #include "compiled_function.h"
 #include "compiled_generator.h"
 
-// The backbone of the integration into CPython. Try to behave as well as normal
-// method objects, or even better.
-
-// The Nuitka_MethodObject is the storage associated with a compiled method
-// instance of which there can be many for each code.
-
 struct Nuitka_MethodObject {
-    /* Python object folklore: */
     PyObject_HEAD
 
         struct Nuitka_FunctionObject *m_function;
@@ -32,10 +24,9 @@ struct Nuitka_MethodObject {
 
 extern PyTypeObject Nuitka_Method_Type;
 
-// Make a method out of a function.
-extern PyObject *Nuitka_Method_New(struct Nuitka_FunctionObject *function, PyObject *object, PyObject *class_object);
+extern PyObject *Nuitka_Method_New(struct Nuitka_FunctionObject *function, PyObject *obj, PyObject *class_object);
 
-static inline bool Nuitka_Method_Check(PyObject *object) { return Py_TYPE(object) == &Nuitka_Method_Type; }
+static inline bool Nuitka_Method_Check(PyObject *obj) { return Py_TYPE(obj) == &Nuitka_Method_Type; }
 
 #if _DEBUG_REFCOUNTS
 extern int count_active_Nuitka_Method_Type;

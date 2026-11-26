@@ -1,13 +1,5 @@
 //     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
-/** For making imports work.
- *
- * These make the actual built-in importing mechanic work with Nuitka. We
- * provide code to import modules and names from modules, also the mechanic
- * for star imports to look at "__all__".
- *
- **/
-
 // This file is included from another C file, help IDEs to still parse it on
 // its own.
 #ifdef __IDE_ONLY__
@@ -27,7 +19,7 @@ PyObject *IMPORT_MODULE_KW(PyThreadState *tstate, PyObject *module_name, PyObjec
     PyObject *kw_pairs[5 * 2] = {const_str_plain_name,   module_name, const_str_plain_globals,  globals,
                                  const_str_plain_locals, locals,      const_str_plain_fromlist, import_items,
                                  const_str_plain_level,  level};
-    PyObject *kw_args = MAKE_DICT_X(kw_pairs, 5);
+    PyObject *kw_args = MAKE_DICT_UNICODE_X(tstate, kw_pairs, 5);
 
     NUITKA_ASSIGN_BUILTIN(__import__);
 
@@ -104,9 +96,9 @@ PyObject *IMPORT_MODULE5(PyThreadState *tstate, PyObject *module_name, PyObject 
     NUITKA_ASSIGN_BUILTIN(__import__);
     PyObject *import_function = NUITKA_ACCESS_BUILTIN(__import__);
 
-// TODO: This should be reserved for the import statements, but not for
-// the import built-in, we have to make a difference there with 3.10 to
-// be compatible.
+    // TODO: This should be reserved for the import statements, but not for
+    // the import built-in, we have to make a difference there with 3.10 to
+    // be compatible.
 #if PYTHON_VERSION >= 0x3a0 && 0
     // Fast path for default "__import__" avoids function call.
     if (import_function == tstate->interp->import_func) {
@@ -126,7 +118,6 @@ PyObject *IMPORT_MODULE5(PyThreadState *tstate, PyObject *module_name, PyObject 
 }
 
 bool IMPORT_MODULE_STAR(PyThreadState *tstate, PyObject *target, bool is_module, PyObject *module) {
-    // Check parameters.
     CHECK_OBJECT(module);
     CHECK_OBJECT(target);
 
@@ -146,9 +137,7 @@ bool IMPORT_MODULE_STAR(PyThreadState *tstate, PyObject *target, bool is_module,
     } else {
         assert(HAS_ERROR_OCCURRED(tstate));
 
-        if (EXCEPTION_MATCH_BOOL_SINGLE(tstate, GET_ERROR_OCCURRED(tstate), PyExc_AttributeError)) {
-            CLEAR_ERROR_OCCURRED(tstate);
-
+        if (CHECK_AND_CLEAR_ATTRIBUTE_ERROR_OCCURRED(tstate)) {
             iter = MAKE_ITERATOR(tstate, PyModule_GetDict(module));
             CHECK_OBJECT(iter);
 
@@ -287,7 +276,6 @@ static PyObject *resolveParentModuleName(PyThreadState *tstate, PyObject *module
             return NULL;
         }
 
-        // Compare with spec.
         if (spec != NULL && spec != Py_None) {
             PyObject *parent = PyObject_GetAttr(spec, const_str_plain_parent);
 
@@ -319,6 +307,7 @@ static PyObject *resolveParentModuleName(PyThreadState *tstate, PyObject *module
         }
 
         if (unlikely(!PyUnicode_Check(package))) {
+            Py_DECREF(package);
             SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_TypeError, "__spec__.parent must be a string");
             return NULL;
         }
@@ -332,8 +321,10 @@ static PyObject *resolveParentModuleName(PyThreadState *tstate, PyObject *module
 
         package = DICT_GET_ITEM0(tstate, globals, const_str_plain___name__);
 
-        if (unlikely(package == NULL && !HAS_ERROR_OCCURRED(tstate))) {
-            SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_KeyError, "'__name__' not in globals");
+        if (unlikely(package == NULL)) {
+            if (!HAS_ERROR_OCCURRED(tstate)) {
+                SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_KeyError, "'__name__' not in globals");
+            }
             return NULL;
         }
 
@@ -342,8 +333,13 @@ static PyObject *resolveParentModuleName(PyThreadState *tstate, PyObject *module
             return NULL;
         }
 
-        // Detect package from __path__ presence.
-        if (DICT_HAS_ITEM(tstate, globals, const_str_plain___path__) == 1) {
+        int has_path = DICT_HAS_ITEM(tstate, globals, const_str_plain___path__);
+
+        if (unlikely(has_path == -1)) {
+            return NULL;
+        }
+
+        if (has_path == 0) {
             Py_ssize_t dot = PyUnicode_FindChar(package, '.', 0, PyUnicode_GET_LENGTH(package), -1);
 
             if (unlikely(dot == -2)) {
@@ -410,9 +406,7 @@ PyObject *IMPORT_NAME_OR_MODULE(PyThreadState *tstate, PyObject *module, PyObjec
     PyObject *result = PyObject_GetAttr(module, import_name);
 
     if (unlikely(result == NULL)) {
-        if (EXCEPTION_MATCH_BOOL_SINGLE(tstate, GET_ERROR_OCCURRED(tstate), PyExc_AttributeError)) {
-            CLEAR_ERROR_OCCURRED(tstate);
-
+        if (CHECK_AND_CLEAR_ATTRIBUTE_ERROR_OCCURRED(tstate)) {
             long level_int = PyLong_AsLong(level);
 
             if (unlikely(level_int == -1 && HAS_ERROR_OCCURRED(tstate))) {
@@ -455,7 +449,8 @@ PyObject *IMPORT_NAME_OR_MODULE(PyThreadState *tstate, PyObject *module, PyObjec
                     if (result != NULL) {
                         Py_DECREF(result);
 
-                        // Look up in "sys.modules", because we will have returned the
+                        // Look up in "sys.modules", because IMPORT_MODULE5
+                        // returns the top-level package when fromlist is empty.
                         result = Nuitka_GetModule(tstate, name);
                         Py_DECREF(name);
                     }
@@ -488,40 +483,13 @@ PyObject *makeParentModuleName(PyObject *module_name) {
 }
 
 PyObject *IMPORT_MODULE_FIXED(PyThreadState *tstate, PyObject *module_name, PyObject *value_name) {
-    // Load parent packages first to ensure their __init__.py is executed.
-    PyObject *current = module_name;
-    Py_INCREF(current);
-    for (;;) {
-        PyObject *parent_name = makeParentModuleName(current);
-        Py_DECREF(current);
-        if (parent_name == NULL) {
-            break;
-        }
-
-        if (IMPORT_EMBEDDED_MODULE(tstate, Nuitka_String_AsString(parent_name), true) == NULL) {
-            Py_DECREF(parent_name);
-            return NULL;
-        }
-
-        current = parent_name;
-    }
-
-    // Try our own embedded module loader first, including internal modules.
-    PyObject *result = IMPORT_EMBEDDED_MODULE(tstate, Nuitka_String_AsString(module_name), true);
-
-    // If the embedded load failed with an error, propagate it.
-    if (HAS_ERROR_OCCURRED(tstate)) {
-        return NULL;
-    }
-
-    // Not found in our loader, fall through to normal __import__.
     PyObject *import_result = IMPORT_MODULE1(tstate, module_name);
 
     if (unlikely(import_result == NULL)) {
         return import_result;
     }
 
-    result = Nuitka_GetModule(tstate, value_name);
+    PyObject *result = Nuitka_GetModule(tstate, value_name);
 
     Py_DECREF(import_result);
 
@@ -594,10 +562,21 @@ bool IMPORT_FIXED_MODULE_FROMLIST_ELEMENT(PyThreadState *tstate, PyObject *modul
     CHECK_OBJECT(import_name);
     CHECK_OBJECT(module_name);
 
-    // If the attribute already exists, no submodule import is attempted.
+#if PYTHON_VERSION < 0x300
     if (HAS_ATTR_BOOL(tstate, module, import_name)) {
         return true;
     }
+#else
+    int has_attr = HAS_ATTR_BOOL2(tstate, module, import_name);
+
+    if (unlikely(has_attr == -1)) {
+        return false;
+    }
+
+    if (has_attr == 1) {
+        return true;
+    }
+#endif
 
     PyObject *result = IMPORT_MODULE_FIXED(tstate, module_name, module_name);
 

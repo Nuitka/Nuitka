@@ -11,14 +11,17 @@ import sys
 from types import BuiltinFunctionType
 
 from nuitka.Builtins import builtin_type_names
+from nuitka.containers.Namedtuples import makeNamedtupleClass
 from nuitka.PythonVersions import python_version
 
-from .__past__ import (
+from .__past__ import (  # pylint: disable=I0021,redefined-builtin
+    ExceptionGroup,
     GenericAlias,
     UnionType,
     frozendict,
     iterItems,
     long,
+    sentinel,
     unicode,
     xrange,
 )
@@ -32,6 +35,20 @@ from .Builtins import (
 NoneType = type(None)
 
 EllipsisType = type(Ellipsis)
+
+NotImplementedType = type(NotImplemented)
+
+
+TargetVersionInfo = makeNamedtupleClass(
+    "TargetVersionInfo",
+    ("major", "minor", "micro", "releaselevel", "serial"),
+)
+TargetVersionInfo.__module__ = __name__
+
+# Match the struct sequence attributes exposed by "sys.version_info".
+TargetVersionInfo.n_fields = property(len)
+TargetVersionInfo.n_sequence_fields = property(len)
+TargetVersionInfo.n_unnamed_fields = property(lambda self: 0)
 
 
 def compareConstants(a, b):
@@ -158,27 +175,29 @@ def isConstant(constant):
             return False
 
         return True
-    elif constant_type in (
-        str,
-        unicode,
-        complex,
-        int,
-        long,
-        bool,
-        float,
-        NoneType,
-        range,
-        bytes,
-        set,
-        frozenset,
-        xrange,
-        bytearray,
-        EllipsisType,
+    elif (
+        constant_type
+        in (
+            str,
+            unicode,
+            complex,
+            int,
+            long,
+            bool,
+            float,
+            NoneType,
+            range,
+            bytes,
+            set,
+            frozenset,
+            xrange,
+            bytearray,
+            EllipsisType,
+            TargetVersionInfo,
+        )
+        or constant in (NoneType, NotImplemented)
+        or constant in builtin_anon_value_list
     ):
-        return True
-    elif constant in (NoneType, NotImplemented):
-        return True
-    elif constant in builtin_anon_value_list:
         return True
     elif constant_type is type:
         # Maybe pre-build this as a set for quicker testing.
@@ -191,11 +210,11 @@ def isConstant(constant):
         # then probably should go into other node types, e.g. str.join is
         # a candidate.
         return True
-    elif constant_type is GenericAlias:
-        return True
-    elif constant_type is UnionType:
-        return True
-    elif constant is sys.version_info:
+    elif (
+        constant_type is GenericAlias
+        or constant_type is UnionType
+        or constant is sys.version_info
+    ):
         return True
     else:
         return False
@@ -208,7 +227,7 @@ def isMutable(constant):
     a prime example of immutable, dictionaries are mutable.
     """
     # Many cases and all return, that is how we do it here,
-    # pylint: disable=too-many-branches,too-many-return-statements
+    # pylint: disable=too-many-return-statements
 
     constant_type = type(constant)
 
@@ -229,6 +248,7 @@ def isMutable(constant):
         frozenset,
         BuiltinFunctionType,
         EllipsisType,
+        TargetVersionInfo,
     ):
         return False
     elif constant_type in (dict, list, set, bytearray):
@@ -245,13 +265,15 @@ def isMutable(constant):
             if isMutable(value):
                 return True
         return False
-    elif constant is NotImplemented:
-        return False
     elif constant_type is GenericAlias:
         return isMutable(constant.__origin__) or isMutable(constant.__args__)
-    elif constant_type is UnionType:
-        return False
-    elif constant is sys.version_info:
+    elif (
+        constant_type is UnionType
+        or constant_type is sentinel
+        or constant is NotImplemented
+        or constant is sys.version_info
+        or constant in builtin_anon_value_list
+    ):
         return False
     else:
         assert False, repr(constant)
@@ -262,9 +284,10 @@ def isHashable(constant):
 
     That means a user of a reference to it, can use it for dicts and set
     keys. This is distinct from mutable, there is one types that is not
-    mutable, and still not hashable: slices.
+    mutable, and still not hashable: slices (before Python 3.12).
     """
     # Many cases and all return, that is how we do it here,
+    # pylint: disable=too-many-branches,too-many-return-statements
 
     constant_type = type(constant)
 
@@ -277,16 +300,27 @@ def isHashable(constant):
         bool,
         float,
         NoneType,
+        range,
         xrange,
         bytes,
         type,
         frozenset,
         BuiltinFunctionType,
         EllipsisType,
+        TargetVersionInfo,
     ):
         return True
-    elif constant_type in (dict, list, set, slice, bytearray):
+    elif constant_type in (dict, list, set, bytearray):
         return False
+    elif constant_type is slice:
+        if python_version < 0x3C0:
+            return False
+
+        return (
+            isHashable(constant.start)
+            and isHashable(constant.stop)
+            and isHashable(constant.step)
+        )
     elif constant_type is frozendict:
         # Hashability of a frozendict depends on both its keys and values.
         for key, value in iterItems(constant):
@@ -298,6 +332,17 @@ def isHashable(constant):
             if not isHashable(value):
                 return False
         return True
+    elif constant_type is GenericAlias:
+        return isHashable(constant.__origin__) and isHashable(constant.__args__)
+    elif (
+        constant_type is UnionType
+        or constant_type is sentinel
+        or constant is NotImplemented
+        or constant is sys.version_info
+        or constant in builtin_anon_value_list
+        or constant in constant_builtin_types
+    ):
+        return True
     else:
         assert False, constant_type
 
@@ -306,7 +351,7 @@ def getUnhashableConstant(constant):
     """Get one unhashable part of a constant."""
 
     # Many cases and all return, that is how we do it here,
-    # pylint: disable=too-many-return-statements
+    # pylint: disable=too-many-branches,too-many-return-statements
 
     constant_type = type(constant)
 
@@ -319,16 +364,27 @@ def getUnhashableConstant(constant):
         bool,
         float,
         NoneType,
+        range,
         xrange,
         bytes,
         type,
-        slice,
+        frozenset,
         BuiltinFunctionType,
         EllipsisType,
+        TargetVersionInfo,
     ):
         return None
-    elif constant_type in (dict, list, set):
+    elif constant_type in (dict, list, set, bytearray):
         return constant
+    elif constant_type is slice:
+        if python_version < 0x3C0:
+            return constant
+
+        for value in (constant.start, constant.stop, constant.step):
+            res = getUnhashableConstant(value)
+            if res is not None:
+                return res
+        return None
     elif constant_type is frozendict:
         for key, value in iterItems(constant):
             res = getUnhashableConstant(key)
@@ -345,7 +401,19 @@ def getUnhashableConstant(constant):
             if res is not None:
                 return res
         return None
-    elif constant in constant_builtin_types:
+    elif constant_type is GenericAlias:
+        res = getUnhashableConstant(constant.__origin__)
+        if res is not None:
+            return res
+        return getUnhashableConstant(constant.__args__)
+    elif (
+        constant_type is UnionType
+        or constant_type is sentinel
+        or constant is NotImplemented
+        or constant is sys.version_info
+        or constant in builtin_anon_value_list
+        or constant in constant_builtin_types
+    ):
         return None
     else:
         assert False, constant_type
@@ -364,25 +432,43 @@ def createConstantDict(keys, values):
 def isCompileTimeConstantValue(value):
     """Determine if a value will be usable at compile time."""
     # This needs to match code in makeCompileTimeConstantReplacementNode
-    if isConstant(value):
-        return True
-    elif type(value) is type:
-        return True
-    else:
-        return False
+    return isConstant(value) or type(value) is type
 
 
 if python_version < 0x3C0:
 
-    def isConstantImmortal(value):
+    def isConstantKnownRuntimeImmortal(value):
+        """Return whether a constant is known to be immortal at runtime.
+
+        Returns True if guaranteed immortal at runtime, False if definitely
+        not immortal, and None if not known to be immortal (e.g. could be
+        made immortal by Nuitka or a future CPython version).
+        """
         # Not happening before 3.12, pylint: disable=unused-argument
         return False
 
 else:
 
-    def isConstantImmortal(value):
-        # TODO: Add way more than these few ones.
-        return value in (True, False, None)
+    def isConstantKnownRuntimeImmortal(value):
+        """Return whether a constant is known to be immortal at runtime.
+
+        Returns True if guaranteed immortal at runtime, False if definitely
+        not immortal, and None if not known to be immortal (e.g. could be
+        made immortal by Nuitka or a future CPython version).
+        """
+        if isMutable(value):
+            return False
+
+        # Mutable GC-tracked heap type in CPython, must not be immortalized.
+        if value is ExceptionGroup:
+            return False
+
+        # Direct C-API constant bypassing the constants blob; not currently
+        # immortal in CPython, though Nuitka might make it immortal.
+        if value is sys.version_info or type(value) is TargetVersionInfo:
+            return None
+
+        return True
 
 
 # Shared empty values, it would cost time to create them locally.
@@ -399,6 +485,12 @@ if python_version >= 0x3F0:
     the_empty_frozendict = frozendict()
 else:
     the_empty_frozendict = None
+
+if python_version >= 0x3F0:
+    # Compiler-side sample for shape attribute discovery.
+    the_empty_sentinel = sentinel("NuitkaSentinel")
+else:
+    the_empty_sentinel = None
 
 the_empty_unicode = unicode()  # black doesn't let us write u"" anymore.
 
@@ -425,6 +517,7 @@ def getConstantValueGuide(constant, elements_only):
         frozenset,
         BuiltinFunctionType,
         EllipsisType,
+        TargetVersionInfo,
     ):
         return "i"
     elif constant_type is list:
@@ -455,7 +548,7 @@ def getConstantValueGuide(constant, elements_only):
     elif constant_type is bytearray:
         return "B"
     elif constant_type is dict:
-        for value in iterItems(constant):
+        for _key, value in iterItems(constant):
             if isMutable(value):
                 return "D"
 
@@ -471,6 +564,15 @@ def getConstantValueGuide(constant, elements_only):
                 for _key, value in iterItems(constant)
             ),
         )
+    elif constant_type is GenericAlias:
+        return "?" if isMutable(constant) else "i"
+    elif (
+        constant_type is UnionType
+        or constant_type is sentinel
+        or constant is NotImplemented
+        or constant is sys.version_info
+    ):
+        return "i"
     else:
         return "?"
 

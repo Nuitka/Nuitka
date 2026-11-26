@@ -390,12 +390,8 @@ def _handleCase(python_version, nuitka_dir, filename):
             exit_code_return = exit_cpython != exit_nuitka
 
             if exit_code_return:
-                my_print(
-                    """\
-Exit codes {exit_cpython:d} (CPython) != {exit_nuitka:d} (Nuitka)""".format(
-                        exit_cpython=exit_cpython, exit_nuitka=exit_nuitka
-                    )
-                )
+                my_print("""\
+Exit codes %d (CPython) != %d (Nuitka)""" % (exit_cpython, exit_nuitka))
 
             exit_code = exit_code_stdout or exit_code_stderr or exit_code_return
 

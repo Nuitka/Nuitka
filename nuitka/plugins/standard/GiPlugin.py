@@ -42,8 +42,13 @@ _loader = DynamicImporter("gi.repository")
 _spec = importlib.util.spec_from_loader(__name__, _loader)
 sys.modules[__name__] = _loader.create_module(_spec)
 
-# These imports only serve compile time inclusion of what "create_module" has
-# already imported at runtime.
+
+def _nuitka_include_for_compile_time():
+    # These imports only serve compile time inclusion. At runtime,
+    # "create_module" imports the namespaces needed for the version the program
+    # has selected, and importing other versions here would be a conflict, e.g.
+    # "Gdk-4.0" after "Gdk-3.0" was loaded already.
+    pass
 %(include_imports)s
 """
 
@@ -52,6 +57,41 @@ class NuitkaPluginGi(NuitkaPluginBase):
     plugin_name = "gi"
     plugin_desc = "Required by 'gi' package."
     plugin_category = "package-support"
+
+    def __init__(self, gi_versions):
+        self._given_namespace_versions = {}
+        self._dependency_namespace_versions = {}
+        self._namespace_versions = {}
+
+        for gi_version in gi_versions:
+            namespace, separator, version = gi_version.partition("=")
+
+            namespace = namespace.strip()
+            version = version.strip()
+
+            if separator != "=" or not namespace or not version:
+                self.sysexit(
+                    "Error, malformed value '%s' for '--gi-version', use 'NAMESPACE=VERSION'."
+                    % gi_version
+                )
+
+            self._given_namespace_versions[namespace] = version
+
+    @classmethod
+    def addPluginCommandLineOptions(cls, group):
+        group.add_option(
+            "--gi-version",
+            action="append",
+            dest="gi_versions",
+            metavar="KEY_VALUE",
+            default=[],
+            help="""\
+Specify the version of a gi namespace to compile against, e.g. "Gtk=3.0".
+This is required for namespaces that have multiple installed versions, unless
+the version is dictated by a parent namespace. Repeat this option for multiple
+namespaces. It must match the version that the program selects with
+"gi.require_version" at runtime.""",
+        )
 
     @staticmethod
     def isAlwaysEnabled():
@@ -91,40 +131,57 @@ if not os.getenv("GI_TYPELIB_PATH"):
         ):
             return source_code
 
-        original_line = "sys.meta_path.append(DynamicImporter('gi.repository'))"
-
-        if original_line not in source_code:
+        for original_line in (
+            "sys.meta_path.append(DynamicImporter('gi.repository'))",
+            'sys.meta_path.append(DynamicImporter("gi.repository"))',
+        ):
+            if original_line in source_code:
+                source_code = source_code.replace(
+                    original_line, _template_gi_repository_runtime_error
+                )
+                break
+        else:
             self.warning("""\
 Failed to patch module '%s' for runtime repository namespaces, PyGObject may have changed it, \
 please report this issue.""" % module_name)
 
-            return source_code
+        return source_code
 
-        return source_code.replace(original_line, _template_gi_repository_runtime_error)
-
-    def _getNamespaceInfo(self, namespace):
+    def _getNamespaceInfo(self, namespace, version):
         """Query typelib path and dependencies for a gi namespace.
 
         Args:
             namespace: name of the gi namespace, e.g. 'Gtk'.
+            version: version to load, or None for the default version.
 
         Returns:
-            Named tuple with 'typelib_path' and 'dependencies', or None.
+            Named tuple with 'typelib_path' and 'dependencies' as (namespace,
+            version) tuples, or None.
         """
+        if version is None:
+            require_version = "None"
+            info_name = "namespace_%s" % namespace
+        else:
+            require_version = "'%s'" % version
+            info_name = "namespace_%s_%s" % (namespace, version)
+
         return self.queryRuntimeInformationMultiple(
-            info_name="namespace_%s" % namespace,
+            info_name=info_name,
             setup_codes="""\
 import gi
 Repository = gi.Repository.get_default()
-Repository.require('%s', None)""" % namespace,
+try:
+    Repository.require('%s', %s)
+except Exception:
+    raise ImportError("gi typelib not available")""" % (namespace, require_version),
             values=(
                 (
                     "typelib_path",
-                    "gi.Repository.get_default().get_typelib_path('%s')" % namespace,
+                    "Repository.get_typelib_path('%s')" % namespace,
                 ),
                 (
                     "dependencies",
-                    "sorted(set(dependency.rsplit('-', 1)[0] "
+                    "sorted(set(tuple(dependency.rsplit('-', 1)) "
                     "for dependency in Repository.get_immediate_dependencies('%s') "
                     "if Repository.is_registered(dependency.rsplit('-', 1)[0]) "
                     "or Repository.enumerate_versions(dependency.rsplit('-', 1)[0])))"
@@ -134,19 +191,192 @@ Repository.require('%s', None)""" % namespace,
             warn_import_error=False,
         )
 
-    def _makeTypelibDataFile(self, namespace):
-        namespace_info = self._getNamespaceInfo(namespace)
+    def _getNamespaceVersions(self, namespace):
+        """Get the installed versions of a gi namespace.
 
-        if namespace_info is None or not namespace_info.typelib_path:
+        Args:
+            namespace: name of the gi namespace, e.g. 'Gtk'.
+
+        Returns:
+            Tuple of version strings, may be empty.
+        """
+        namespace_info = self.queryRuntimeInformationMultiple(
+            info_name="versions_%s" % namespace,
+            setup_codes="""\
+import gi
+Repository = gi.Repository.get_default()""",
+            values=(
+                (
+                    "versions",
+                    "tuple(sorted(Repository.enumerate_versions('%s')))" % namespace,
+                ),
+            ),
+            warn_import_error=False,
+        )
+
+        if namespace_info is None:
+            return ()
+
+        return namespace_info.versions
+
+    def _getNamespaceVersion(self, namespace):
+        """Get the version of a gi namespace to compile against.
+
+        Notes:
+            The version can be given with '--gi-version', or is dictated by the
+            typelib of a parent namespace. If neither is the case, only a single
+            installed version requires no selection, otherwise it is an error.
+
+        Args:
+            namespace: name of the gi namespace, e.g. 'Gtk'.
+
+        Returns:
+            Version string or None if the namespace is not available.
+        """
+        if namespace in self._namespace_versions:
+            return self._namespace_versions[namespace]
+
+        version = self._given_namespace_versions.get(namespace)
+
+        if version is not None:
+            versions = self._getNamespaceVersions(namespace)
+
+            if versions and version not in versions:
+                self.sysexit(
+                    "Error, gi namespace '%s' version '%s' was selected, but installed "
+                    "versions are: %s." % (namespace, version, ", ".join(versions))
+                )
+
+            self._namespace_versions[namespace] = version
+            return version
+
+        version = self._dependency_namespace_versions.get(namespace)
+
+        if version is not None:
+            self._namespace_versions[namespace] = version
+            return version
+
+        versions = self._getNamespaceVersions(namespace)
+
+        if len(versions) == 1:
+            self._namespace_versions[namespace] = versions[0]
+            return versions[0]
+
+        if not versions:
             return None
 
-        return self.makeIncludedDataFile(
-            source_path=namespace_info.typelib_path,
-            dest_path=os.path.join(
-                "girepository", os.path.basename(namespace_info.typelib_path)
-            ),
-            reason="typelib file for gi namespace '%s'" % namespace,
+        return self.sysexit(
+            "Error, gi namespace '%s' is available in multiple versions (%s), select "
+            "the one the program uses with '--gi-version=%s=VERSION'."
+            % (namespace, ", ".join(versions), namespace)
         )
+
+    def _getNamespaceInfos(self, namespace):
+        """Get namespace information for the version to be included.
+
+        Args:
+            namespace: name of the gi namespace, e.g. 'Gtk'.
+
+        Returns:
+            Tuple with the named tuple of the selected version, or empty.
+        """
+        namespace_info = self._getNamespaceInfo(
+            namespace=namespace, version=self._getNamespaceVersion(namespace)
+        )
+
+        if namespace_info is None:
+            return ()
+
+        return (namespace_info,)
+
+    def _getNamespaceDependencies(self, namespace):
+        """Get dependencies of the gi namespace version to be included.
+
+        Notes:
+            Dependencies carry the namespace version they were built against,
+            which is propagated to the stand-in of the dependency, so that e.g.
+            Gtk 3.0 selects Gdk 3.0.
+
+        Args:
+            namespace: name of the gi namespace, e.g. 'Gtk'.
+
+        Returns:
+            Sorted list of namespace names, or None if namespace is unavailable.
+        """
+        namespace_info = self._getNamespaceInfo(
+            namespace=namespace, version=self._getNamespaceVersion(namespace)
+        )
+
+        if namespace_info is None:
+            return None
+
+        dependencies = set()
+
+        for dependency_name, dependency_version in namespace_info.dependencies:
+            if dependency_name == namespace:
+                continue
+
+            if dependency_name in self._given_namespace_versions:
+                dependencies.add(dependency_name)
+                continue
+
+            previous_version = self._dependency_namespace_versions.get(dependency_name)
+
+            if previous_version is None:
+                self._dependency_namespace_versions[dependency_name] = (
+                    dependency_version
+                )
+
+            if previous_version is None or previous_version == dependency_version:
+                dependencies.add(dependency_name)
+
+        if namespace == "Gdk":
+            # PyGObject's Gdk override imports GdkX11 with the Gdk version.
+            gdk_version = self._namespace_versions.get(namespace)
+
+            if gdk_version is not None:
+                self._dependency_namespace_versions.setdefault("GdkX11", gdk_version)
+
+        return sorted(dependencies)
+
+    @staticmethod
+    def _getPlatformNamespace(namespace):
+        """Get platform specific gi namespace for a namespace.
+
+        Args:
+            namespace: name of the gi namespace, e.g. 'GLib'.
+
+        Returns:
+            Name of the platform specific namespace or None.
+        """
+
+        if namespace == "Gio":
+            return "GioWin32" if isWin32Windows() else "GioUnix"
+
+        if namespace == "GLib":
+            return "GLibWin32" if isWin32Windows() else "GLibUnix"
+
+        return None
+
+    def _makeTypelibDataFiles(self, namespace):
+        included_paths = set()
+
+        for namespace_info in self._getNamespaceInfos(namespace):
+            if (
+                not namespace_info.typelib_path
+                or namespace_info.typelib_path in included_paths
+            ):
+                continue
+
+            included_paths.add(namespace_info.typelib_path)
+
+            yield self.makeIncludedDataFile(
+                source_path=namespace_info.typelib_path,
+                dest_path=os.path.join(
+                    "girepository", os.path.basename(namespace_info.typelib_path)
+                ),
+                reason="typelib file for gi namespace '%s'" % namespace,
+            )
 
     @standalone_only
     def considerDataFiles(self, module):
@@ -163,25 +393,47 @@ Repository.require('%s', None)""" % namespace,
 
         namespace = module.getFullName().getBasename()
 
-        included_datafile = self._makeTypelibDataFile(namespace)
-
-        if included_datafile is not None:
+        for included_datafile in self._makeTypelibDataFiles(namespace):
             yield included_datafile
 
-        # Platform specific namespaces may be loaded by C code at runtime, so
-        # their typelib files are included like PyInstaller does.
-        if namespace == "Gio":
-            platform_namespace = "GioWin32" if isWin32Windows() else "GioUnix"
-        elif namespace == "GLib":
-            platform_namespace = "GLibWin32" if isWin32Windows() else "GLibUnix"
-        else:
-            platform_namespace = None
+    def _addPlatformNamespaceImports(
+        self, namespace, included_namespaces, include_imports
+    ):
+        """Add compile time import for the platform specific namespace variant.
 
-        if platform_namespace is not None:
-            included_datafile = self._makeTypelibDataFile(platform_namespace)
+        Notes:
+            PyGObject imports the platform specific namespace from the overrides
+            at runtime, so its stand-in must exist even though there is no
+            static import for it, also its override module must be included.
 
-            if included_datafile is not None:
-                yield included_datafile
+        Args:
+            namespace: name of the gi namespace, e.g. 'Gio'.
+            included_namespaces: set of namespace names already included.
+            include_imports: list of import statements to append to.
+
+        Returns:
+            None
+        """
+        platform_namespace = self._getPlatformNamespace(namespace)
+
+        if platform_namespace is None:
+            return
+
+        namespace_version = self._getNamespaceVersion(namespace)
+
+        if namespace_version is None:
+            return
+
+        # PyGObject requires the same version for the platform specific
+        # namespace as for the namespace it belongs to.
+        self._dependency_namespace_versions.setdefault(
+            platform_namespace, namespace_version
+        )
+
+        if platform_namespace not in included_namespaces and self._getNamespaceInfos(
+            platform_namespace
+        ):
+            include_imports.append("import gi.repository.%s" % platform_namespace)
 
     def createVirtualModule(self, module_name):
         """Provide generated code for "gi.repository.*" virtual modules.
@@ -199,22 +451,27 @@ Repository.require('%s', None)""" % namespace,
             return None
 
         namespace = module_name.getBasename()
-        namespace_info = self._getNamespaceInfo(namespace)
+        dependencies = self._getNamespaceDependencies(namespace)
 
         include_imports = []
+        included_namespaces = set()
 
-        if namespace_info is not None:
-            include_imports.extend(
-                "import gi.repository.%s\n" % dependency
-                for dependency in namespace_info.dependencies
-                if dependency != namespace
-                and self._getNamespaceInfo(dependency) is not None
-            )
+        if dependencies is not None:
+            for dependency in dependencies:
+                if dependency not in included_namespaces:
+                    included_namespaces.add(dependency)
+                    include_imports.append("import gi.repository.%s" % dependency)
 
         override_name = _gi_overrides_package.getChildNamed(namespace)
 
         if self.locateModule(override_name) is not None:
-            include_imports.append("import %s\n" % override_name)
+            include_imports.append("import %s" % override_name)
+
+        self._addPlatformNamespaceImports(
+            namespace=namespace,
+            included_namespaces=included_namespaces,
+            include_imports=include_imports,
+        )
 
         source_filename = self.locateModule("gi.repository")
 
@@ -224,7 +481,11 @@ Repository.require('%s', None)""" % namespace,
         return makeFakeModuleDescription(
             module_name=module_name,
             source_code=_template_gi_repository_module_code
-            % {"include_imports": "".join(include_imports)},
+            % {
+                "include_imports": "".join(
+                    "    %s\n" % include_import for include_import in include_imports
+                )
+            },
             source_filename=source_filename or "gi.repository",
             reason="gi repository namespace '%s'" % module_name,
         )
@@ -234,8 +495,6 @@ Repository.require('%s', None)""" % namespace,
         def tryLocateAndLoad(dll_name):
             # Support various name forms in MSYS2 over time.
             dll_path = self.locateDLL(dll_name)
-            if dll_path is None:
-                dll_path = self.locateDLL("%s" % dll_name)
             if dll_path is None:
                 dll_path = self.locateDLL("lib%s" % dll_name)
 

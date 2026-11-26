@@ -4,11 +4,6 @@
 #ifndef __NUITKA_COMPILED_GENERATOR_H__
 #define __NUITKA_COMPILED_GENERATOR_H__
 
-// Compiled generator function type.
-
-// Another cornerstone of the integration into CPython. Try to behave as well as
-// normal generator objects do or even better.
-
 /* This file is included from another C file, help IDEs to still parse it on its own. */
 #ifdef __IDE_ONLY__
 #include "nuitka/cpython_api_compat.h"
@@ -16,13 +11,8 @@
 #include "nuitka/exceptions.h"
 #endif
 
-// Status of the generator/coroutine/asyncgen object.
 #ifdef __cplusplus
-enum Generator_Status {
-    status_Unused,  // Not used so far
-    status_Running, // Running, used but didn't stop yet
-    status_Finished // Stopped, no more values to come
-};
+enum Generator_Status { status_Unused, status_Running, status_Finished };
 #else
 typedef int Generator_Status;
 static const int status_Unused = 0;
@@ -30,7 +20,7 @@ static const int status_Running = 1;
 static const int status_Finished = 2;
 #endif
 
-// We use this even before Python3.10
+// Backported for Python < 3.10.
 #if PYTHON_VERSION < 0x3a0
 typedef enum {
     PYGEN_RETURN = 0,
@@ -39,10 +29,7 @@ typedef enum {
 } PySendResult;
 #endif
 
-// The Nuitka_GeneratorObject is the storage associated with a compiled
-// generator object instance of which there can be many for each code.
 struct Nuitka_GeneratorObject {
-    /* Python object folklore: */
     PyObject_VAR_HEAD
 
         PyObject *m_name;
@@ -54,11 +41,12 @@ struct Nuitka_GeneratorObject {
     PyObject *m_qualname;
 #endif
 #if PYTHON_VERSION >= 0x300
-    // The value currently yielded from.
     PyObject *m_yield_from;
 #endif
+#if 0x300 <= PYTHON_VERSION && PYTHON_VERSION < 0x370
+    bool m_yield_from_exception_preserving;
+#endif
 
-    // Weak references are supported for generator objects in CPython.
     PyObject *m_weakrefs;
 
     int m_running;
@@ -68,36 +56,33 @@ struct Nuitka_GeneratorObject {
     struct Nuitka_FrameObject *m_frame;
     PyCodeObject *m_code_object;
 
-    // Was it ever used, is it still running, or already finished.
     Generator_Status m_status;
+
+#if PYTHON_VERSION == 0x3c0
+    // CPython 3.12.0 fails to clear the frame of a generator that is closed
+    // before it started, and therefore reports it as created, and we mimic
+    // that for compatibility.
+    int m_closed_before_start;
+#endif
 
 #if PYTHON_VERSION >= 0x370
     struct Nuitka_ExceptionStackItem m_exc_state;
 #endif
 
-#if PYTHON_VERSION >= 0x300
-    struct Nuitka_ExceptionStackItem m_resume_exception;
-#endif
-
     // The label index to resume after yield.
     int m_yield_return_index;
 
-    // Returned value if yielded value is NULL, is
-    // NULL if not a return
+    // Return value when generator finishes (yielded value is NULL); NULL while yielding.
 #if PYTHON_VERSION >= 0x300
     PyObject *m_returned;
 #endif
 
-    // A kind of uuid for the generator object, used in comparisons.
+    // Unique per-instance identifier used in comparisons.
     long m_counter;
 
-    /* The heap of generator objects at run time. */
     void *m_heap_storage;
 
-    /* Closure variables given, if any, we reference cells here. The last
-     * part is dynamically allocated, the array size differs per generator
-     * and includes the heap storage.
-     */
+    // Trailing flexible array allocated with space for m_closure_given cells plus heap storage.
     Py_ssize_t m_closure_given;
     struct Nuitka_CellObject *m_closure[1];
 };
@@ -123,10 +108,10 @@ extern PyObject *Nuitka_Generator_NewEmpty(PyObject *module, PyObject *name,
 extern PyObject *Nuitka_Generator_qiter(PyThreadState *tstate, struct Nuitka_GeneratorObject *generator,
                                         bool *finished);
 
-static inline bool Nuitka_Generator_Check(PyObject *object) { return Py_TYPE(object) == &Nuitka_Generator_Type; }
+static inline bool Nuitka_Generator_Check(PyObject *obj) { return Py_TYPE(obj) == &Nuitka_Generator_Type; }
 
-static inline PyObject *Nuitka_Generator_GetName(PyObject *object) {
-    return ((struct Nuitka_GeneratorObject *)object)->m_name;
+static inline PyObject *Nuitka_Generator_GetName(PyObject *obj) {
+    return ((struct Nuitka_GeneratorObject *)obj)->m_name;
 }
 
 static inline void SAVE_GENERATOR_EXCEPTION(PyThreadState *tstate, struct Nuitka_GeneratorObject *generator) {
@@ -134,8 +119,8 @@ static inline void SAVE_GENERATOR_EXCEPTION(PyThreadState *tstate, struct Nuitka
      * the exception preserved to the frame is restored, while the current one
      * is put as there.
      *
-     * Python3.7: The exception is preserved in the generator object itself
-     * which has a new "m_exc_state" structure just for that.
+     * Python3.7: The exception is preserved in the generator object itself,
+     * which is made the current exception state while the generator runs.
      */
 
 #if _DEBUG_EXCEPTIONS
@@ -143,6 +128,7 @@ static inline void SAVE_GENERATOR_EXCEPTION(PyThreadState *tstate, struct Nuitka
     PRINT_PUBLISHED_EXCEPTION();
 #endif
 
+#if PYTHON_VERSION < 0x370
 #if PYTHON_VERSION < 0x3b0
     PyObject *saved_exception_type = EXC_TYPE(tstate);
 #endif
@@ -151,37 +137,23 @@ static inline void SAVE_GENERATOR_EXCEPTION(PyThreadState *tstate, struct Nuitka
     PyTracebackObject *saved_exception_traceback = EXC_TRACEBACK(tstate);
 #endif
 
-#if PYTHON_VERSION < 0x370
     EXC_TYPE(tstate) = tstate->frame->f_exc_type;
     EXC_VALUE(tstate) = tstate->frame->f_exc_value;
     SET_EXC_TRACEBACK(tstate, tstate->frame->f_exc_traceback);
-#else
-#if PYTHON_VERSION < 0x3b0
-    EXC_TYPE(tstate) = generator->m_exc_state.exception_type;
-#endif
-    EXC_VALUE(tstate) = generator->m_exc_state.exception_value;
-#if PYTHON_VERSION < 0x3b0
-    SET_EXC_TRACEBACK(tstate, generator->m_exc_state.exception_tb);
-#endif
-#endif
 
 #if _DEBUG_EXCEPTIONS
     PRINT_STRING("SAVE_GENERATOR_EXCEPTION: Restored: ");
     PRINT_PUBLISHED_EXCEPTION();
 #endif
 
-#if PYTHON_VERSION < 0x370
     tstate->frame->f_exc_type = saved_exception_type;
     tstate->frame->f_exc_value = saved_exception_value;
     tstate->frame->f_exc_traceback = (PyObject *)saved_exception_traceback;
 #else
-#if PYTHON_VERSION < 0x3b0
-    generator->m_exc_state.exception_type = saved_exception_type;
-#endif
-    generator->m_exc_state.exception_value = saved_exception_value;
-#if PYTHON_VERSION < 0x3b0
-    generator->m_exc_state.exception_tb = (PyTracebackObject *)saved_exception_traceback;
-#endif
+    assert(generator->m_exc_state.previous_item == NULL);
+
+    generator->m_exc_state.previous_item = tstate->exc_info;
+    tstate->exc_info = (_PyErr_StackItem *)&generator->m_exc_state;
 #endif
 }
 
@@ -194,6 +166,7 @@ static inline void RESTORE_GENERATOR_EXCEPTION(PyThreadState *tstate, struct Nui
     PRINT_PUBLISHED_EXCEPTION();
 #endif
 
+#if PYTHON_VERSION < 0x370
 #if PYTHON_VERSION < 0x3b0
     PyObject *saved_exception_type = EXC_TYPE(tstate);
 #endif
@@ -202,7 +175,6 @@ static inline void RESTORE_GENERATOR_EXCEPTION(PyThreadState *tstate, struct Nui
     PyTracebackObject *saved_exception_traceback = EXC_TRACEBACK(tstate);
 #endif
 
-#if PYTHON_VERSION < 0x370
     EXC_TYPE(tstate) = tstate->frame->f_exc_type;
     EXC_VALUE(tstate) = tstate->frame->f_exc_value;
     SET_EXC_TRACEBACK(tstate, tstate->frame->f_exc_traceback);
@@ -211,21 +183,10 @@ static inline void RESTORE_GENERATOR_EXCEPTION(PyThreadState *tstate, struct Nui
     tstate->frame->f_exc_value = saved_exception_value;
     tstate->frame->f_exc_traceback = (PyObject *)saved_exception_traceback;
 #else
-#if PYTHON_VERSION < 0x3b0
-    EXC_TYPE(tstate) = generator->m_exc_state.exception_type;
-#endif
-    EXC_VALUE(tstate) = generator->m_exc_state.exception_value;
-#if PYTHON_VERSION < 0x3b0
-    SET_EXC_TRACEBACK(tstate, generator->m_exc_state.exception_tb);
-#endif
+    assert(generator->m_exc_state.previous_item != NULL);
 
-#if PYTHON_VERSION < 0x3b0
-    generator->m_exc_state.exception_type = saved_exception_type;
-#endif
-    generator->m_exc_state.exception_value = saved_exception_value;
-#if PYTHON_VERSION < 0x3b0
-    generator->m_exc_state.exception_tb = (PyTracebackObject *)saved_exception_traceback;
-#endif
+    tstate->exc_info = generator->m_exc_state.previous_item;
+    generator->m_exc_state.previous_item = NULL;
 #endif
 
 #if _DEBUG_EXCEPTIONS
@@ -234,9 +195,54 @@ static inline void RESTORE_GENERATOR_EXCEPTION(PyThreadState *tstate, struct Nui
 #endif
 }
 
-// Functions to preserver and restore from heap area temporary values during
-// yield/yield from/await exits of generator functions. The capacity argument
-// is only passed and checked in debug mode.
+#if 0x300 <= PYTHON_VERSION && PYTHON_VERSION < 0x370
+static inline void SAVE_GENERATOR_EXCEPTION_FROM_THREAD(PyThreadState *tstate,
+                                                        struct Nuitka_GeneratorObject *generator) {
+    PyObject *old_type = EXC_TYPE_F(generator);
+    PyObject *old_value = EXC_VALUE_F(generator);
+    PyObject *old_tb = EXC_TRACEBACK_F(generator);
+
+    EXC_TYPE_F(generator) = EXC_TYPE(tstate);
+    Py_XINCREF(EXC_TYPE_F(generator));
+    EXC_VALUE_F(generator) = EXC_VALUE(tstate);
+    Py_XINCREF(EXC_VALUE_F(generator));
+    ASSIGN_EXC_TRACEBACK_F(generator, EXC_TRACEBACK(tstate));
+    Py_XINCREF(EXC_TRACEBACK_F(generator));
+
+    Py_XDECREF(old_type);
+    Py_XDECREF(old_value);
+    Py_XDECREF(old_tb);
+}
+
+static inline void RESUME_GENERATOR_EXCEPTION(PyThreadState *tstate, struct Nuitka_GeneratorObject *generator,
+                                              bool throw_flag) {
+    if (throw_flag || EXC_TYPE_F(generator) == NULL || EXC_TYPE_F(generator) == Py_None) {
+        SAVE_GENERATOR_EXCEPTION_FROM_THREAD(tstate, generator);
+    } else {
+        SAVE_GENERATOR_EXCEPTION(tstate, generator);
+    }
+}
+
+static inline void RESTORE_AND_CLEAR_GENERATOR_EXCEPTION(PyThreadState *tstate,
+                                                         struct Nuitka_GeneratorObject *generator) {
+    assert(generator->m_frame != NULL);
+
+    struct Nuitka_ExceptionStackItem exc_state;
+
+    exc_state.exception_type = EXC_TYPE_F(generator);
+    exc_state.exception_value = EXC_VALUE_F(generator);
+    exc_state.exception_tb = (PyTracebackObject *)EXC_TRACEBACK_F(generator);
+
+    SET_CURRENT_EXCEPTION(tstate, &exc_state);
+
+    EXC_TYPE_F(generator) = NULL;
+    EXC_VALUE_F(generator) = NULL;
+    EXC_TRACEBACK_F(generator) = NULL;
+}
+#endif
+
+// Save and restore C locals in generator heap storage across yields; capacity
+// is checked only in debug mode.
 #ifndef __NUITKA_NO_ASSERT__
 extern void Nuitka_PreserveHeap(size_t capacity, void *dest, ...);
 extern void Nuitka_RestoreHeap(size_t capacity, void *source, ...);
@@ -251,6 +257,9 @@ extern void Nuitka_RestoreHeap(void *source, ...);
 
 NUITKA_MAY_BE_UNUSED static void STORE_GENERATOR_EXCEPTION(PyThreadState *tstate,
                                                            struct Nuitka_GeneratorObject *generator) {
+#if 0x300 <= PYTHON_VERSION && PYTHON_VERSION < 0x370
+    SAVE_GENERATOR_EXCEPTION_FROM_THREAD(tstate, generator);
+#else
 #if PYTHON_VERSION < 0x3b0
     EXC_TYPE_F(generator) = EXC_TYPE(tstate);
     if (EXC_TYPE_F(generator) == Py_None) {
@@ -264,8 +273,8 @@ NUITKA_MAY_BE_UNUSED static void STORE_GENERATOR_EXCEPTION(PyThreadState *tstate
     ASSIGN_EXC_TRACEBACK_F(generator, EXC_TRACEBACK(tstate));
     Py_XINCREF(EXC_TRACEBACK_F(generator));
 #endif
+#endif
 }
-
 NUITKA_MAY_BE_UNUSED static void DROP_GENERATOR_EXCEPTION(struct Nuitka_GeneratorObject *generator) {
 #if PYTHON_VERSION < 0x3b0
     Py_CLEAR(EXC_TYPE_F(generator));
@@ -273,6 +282,9 @@ NUITKA_MAY_BE_UNUSED static void DROP_GENERATOR_EXCEPTION(struct Nuitka_Generato
     Py_CLEAR(EXC_VALUE_F(generator));
 #if PYTHON_VERSION < 0x3b0
     Py_CLEAR(EXC_TRACEBACK_F(generator));
+#endif
+#if PYTHON_VERSION >= 0x370
+    generator->m_exc_state.previous_item = NULL;
 #endif
 }
 

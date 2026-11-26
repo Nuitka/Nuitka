@@ -308,7 +308,10 @@ def _decideRecursion(
         and module_name.getBasename() == "__main__"
         and module_name.getPackageName() == getRootTopModule().getRuntimePackageValue()
     ):
-        return False, "Main program is already included in package mode."
+        return (
+            False,
+            "Main program is already included due to Python flag -m (package_mode) usage.",
+        )
 
     plugin_decision, deciding_plugins = onModuleEncounter(
         using_module_name=using_module_name,

@@ -1,14 +1,7 @@
 #     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-"""Reformulation of function statements.
-
-Consult the Developer Manual for information. TODO: Add ability to sync
-source code comments with Developer Manual sections.
-
-"""
-
-import ast
+"""Reformulation of function statements."""
 
 from nuitka.nodes.AsyncgenNodes import (
     ExpressionAsyncgenObjectBody,
@@ -24,6 +17,7 @@ from nuitka.nodes.BuiltinNextNodes import (
     ExpressionSpecialUnpack,
 )
 from nuitka.nodes.BuiltinRefNodes import (
+    ExpressionBuiltinAnonymousRef,
     ExpressionBuiltinExceptionRef,
     makeExpressionBuiltinTypeRef,
 )
@@ -47,7 +41,6 @@ from nuitka.nodes.CoroutineNodes import (
 )
 from nuitka.nodes.DictionaryNodes import makeExpressionMakeDict
 from nuitka.nodes.ExceptionNodes import StatementRaiseException
-from nuitka.nodes.ExecEvalNodes import ExpressionBuiltinExec
 from nuitka.nodes.FrameNodes import StatementsFrameFunction
 from nuitka.nodes.FunctionNodes import (
     ExpressionFunctionBody,
@@ -64,9 +57,15 @@ from nuitka.nodes.KeyValuePairNodes import (
 )
 from nuitka.nodes.LocalsDictNodes import StatementSetLocalsDictionary
 from nuitka.nodes.OperatorNodes import makeBinaryOperationNode
-from nuitka.nodes.OutlineNodes import ExpressionOutlineFunction
+from nuitka.nodes.OutlineNodes import (
+    ExpressionOutlineBody,
+    ExpressionOutlineFunction,
+)
 from nuitka.nodes.ReturnNodes import StatementReturn, StatementReturnNone
-from nuitka.nodes.StatementNodes import StatementExpressionOnly
+from nuitka.nodes.TypeNodes import (
+    ExpressionBuiltinType1,
+    ExpressionSubtypeCheck,
+)
 from nuitka.nodes.VariableAssignNodes import makeStatementAssignmentVariable
 from nuitka.nodes.VariableNameNodes import (
     ExpressionVariableNameRef,
@@ -76,21 +75,21 @@ from nuitka.nodes.VariableRefNodes import (
     ExpressionTempVariableRef,
     ExpressionVariableRef,
 )
-from nuitka.options.Options import isExperimental
+from nuitka.options.Experimental import isExperimental
 from nuitka.plugins.Hooks import (
-    getUncompiledDecoratorNames,
+    decideNeedsFrameLocalsProxy,
     onFunctionBodyParsing,
 )
 from nuitka.PythonVersions import python_version
 from nuitka.specs.ParameterSpecs import ParameterSpec
 
 from .FutureSpecState import getFutureSpec
-from .ReformulationExecStatements import wrapEvalGlobalsAndLocals
-from .ReformulationTryFinallyStatements import (
-    makeTryFinallyReleaseStatement,
-    makeTryFinallyStatement,
+from .JITCompilation import (
+    buildBytecodeOrSourceFunction,
+    decideFunctionCompilationMode,
 )
-from .SyntaxErrors import raiseSyntaxError
+from .ReformulationTryFinallyStatements import makeTryFinallyReleaseStatement
+from .SyntaxErrors import checkDebugNameAssignment, raiseSyntaxError
 from .TreeHelpers import (
     buildAnnotationNode,
     buildFrameNode,
@@ -99,10 +98,10 @@ from .TreeHelpers import (
     buildNodeTuple,
     detectFunctionBodyKind,
     extractDocFromBody,
+    getClassBodyForDeferredScope,
     getKind,
     makeCallNode,
     makeDictCreationOrConstant2,
-    makeStatementsSequence,
     makeStatementsSequenceFromStatement,
     makeStatementsSequenceFromStatements,
     mangleName,
@@ -156,103 +155,91 @@ def _injectDecorator(decorators, inject, acceptable, source_ref):
         )
 
 
-def _isUncompiledDecorator(decorator):
-    if decorator.isExpressionVariableNameRef():
-        decorator_name = decorator.getVariableName()
-    elif decorator.isExpressionCall():
-        if decorator.subnode_called.isExpressionVariableNameRef():
-            decorator_name = decorator.subnode_called.getVariableName()
-        else:
-            return False
-    else:
-        return False
+def _maybeWrapClassMethod(provider, node, decorators, decorated_function, source_ref):
+    if not provider.isExpressionClassBodyBase():
+        return decorated_function
 
-    # Hard coded name.
-    if decorator_name == "nuitka_ignore":
-        return True
+    if not (
+        (python_version >= 0x360 and node.name == "__init_subclass__")
+        or (python_version >= 0x370 and node.name == "__class_getitem__")
+    ):
+        return decorated_function
 
-    # False alarm, pylint: disable=I0021,unsupported-membership-test
-    if decorator_name in getUncompiledDecoratorNames():
-        return True
+    # CPython's type_new wraps __init_subclass__ and __class_getitem__ in
+    # classmethod only when the final class dict entry is a plain function.
+    # For undecorated compiled functions that is always true, so wrap directly
+    # to preserve optimization visibility.
+    if not decorators:
+        return makeCallNode(
+            makeExpressionBuiltinTypeRef(
+                builtin_name="classmethod", source_ref=source_ref
+            ),
+            decorated_function,
+            source_ref,
+        )
 
-    return False
-
-
-def decideFunctionCompilationMode(decorators):
-    """Decide how to compile a function based on decorator names."""
-    for decorator in decorators:
-        if _isUncompiledDecorator(decorator):
-            return "bytecode"
-
-    return "compiled"
-
-
-def _buildBytecodeOrSourceFunction(provider, node, compilation_mode, source_ref):
-    # TODO: We should have a compile() builtin usage here, lookup "co_code" and
-    # support that as a constant value. We then would have the "bytecode" only
-    # in the binary, right now "bytecode" and "source" make no difference.
-    #  pylint: disable=unused-argument
-    source_code = ast.unparse(node)
-
-    source = makeConstantRefNode(
-        constant=source_code,
-        source_ref=source_ref,
-        user_provided=True,
-    )
-
-    # if compilation_mode == "bytecode":
-    #     source = ExpressionBuiltinCompile(
-    #         source_code=source,
-    #         filename=makeConstantRefNode(constant="<exec>", source_ref=source_ref),
-    #         mode=makeConstantRefNode(constant="exec", source_ref=source_ref),
-    #         flags=None,
-    #         dont_inherit=None,
-    #         optimize=None,
-    #         source_ref=source_ref
-    #     )
-
-    # This is actually for the globals locals usage to be default values of the
-    # scope.
-
-    temp_scope = provider.allocateTempScope("function_exec")
-
-    globals_ref, locals_ref, tried, final = wrapEvalGlobalsAndLocals(
+    # When decorators are present, only wrap if the decorated result is still
+    # a function (e.g. @typing.override or a function wrapper), leaving
+    # @staticmethod, @classmethod, and custom descriptors untouched.
+    outline_body = ExpressionOutlineBody(
         provider=provider,
-        locals_scope=provider.getLocalsScope(),
-        globals_node=None,
-        locals_node=None,
-        temp_scope=temp_scope,
+        name="wrap_classmethod",
         source_ref=source_ref,
     )
 
-    tried = makeStatementsSequence(
-        statements=(
-            tried,
-            (
-                StatementExpressionOnly(
-                    expression=ExpressionBuiltinExec(
-                        source_code=source,
-                        globals_arg=globals_ref,
-                        locals_arg=locals_ref,
-                        closure=None,
+    tmp_func = outline_body.allocateTempVariable(
+        temp_scope=None, name="decorated_func", temp_type="object"
+    )
+
+    outline_body.setChildBody(
+        makeStatementsSequenceFromStatements(
+            makeStatementAssignmentVariable(
+                variable=tmp_func,
+                source=decorated_function,
+                source_ref=source_ref,
+            ),
+            makeTryFinallyReleaseStatement(
+                provider=outline_body,
+                tried=makeStatementConditional(
+                    condition=ExpressionSubtypeCheck(
+                        left=ExpressionBuiltinType1(
+                            value=ExpressionTempVariableRef(
+                                variable=tmp_func, source_ref=source_ref
+                            ),
+                            source_ref=source_ref,
+                        ),
+                        right=ExpressionBuiltinAnonymousRef(
+                            builtin_name="function", source_ref=source_ref
+                        ),
+                        source_ref=source_ref,
+                    ),
+                    yes_branch=StatementReturn(
+                        expression=makeCallNode(
+                            makeExpressionBuiltinTypeRef(
+                                builtin_name="classmethod", source_ref=source_ref
+                            ),
+                            ExpressionTempVariableRef(
+                                variable=tmp_func, source_ref=source_ref
+                            ),
+                            source_ref,
+                        ),
+                        source_ref=source_ref,
+                    ),
+                    no_branch=StatementReturn(
+                        expression=ExpressionTempVariableRef(
+                            variable=tmp_func, source_ref=source_ref
+                        ),
                         source_ref=source_ref,
                     ),
                     source_ref=source_ref,
-                )
+                ),
+                variables=(tmp_func,),
+                source_ref=source_ref,
             ),
-        ),
-        source_ref=source_ref,
+        )
     )
 
-    # Hack: Allow some APIs to work already
-    # tried.parent = provider
-
-    return makeTryFinallyStatement(
-        provider=provider,
-        tried=tried,
-        final=final,
-        source_ref=source_ref,
-    )
+    return outline_body
 
 
 def _getFunctionProvider(provider, node, source_ref):
@@ -293,7 +280,6 @@ def _maybeWrapWithAnnotations(function_provider, node, function_creation, source
 
 
 def buildFunctionNode(provider, node, source_ref):
-    # Functions have way too many details,
     # pylint: disable=too-many-branches,too-many-locals
 
     assert getKind(node) == "FunctionDef"
@@ -302,23 +288,27 @@ def buildFunctionNode(provider, node, source_ref):
         provider=provider, nodes=reversed(node.decorator_list), source_ref=source_ref
     )
 
-    compilation_mode = decideFunctionCompilationMode(decorators)
+    compilation_mode, compilation_logger = decideFunctionCompilationMode(
+        provider, node, decorators
+    )
 
     onFunctionBodyParsing(provider=provider, function_name=node.name, body=node.body)
 
     if compilation_mode != "compiled":
-        node.name = mangleName(node.name, provider)
-
-        return _buildBytecodeOrSourceFunction(
+        return buildBytecodeOrSourceFunction(
             provider=provider,
             node=node,
+            function_name=mangleName(node.name, provider),
             compilation_mode=compilation_mode,
             source_ref=source_ref,
+            logger=compilation_logger,
         )
 
     function_provider = _getFunctionProvider(provider, node, source_ref)
 
-    function_statement_nodes, function_doc = extractDocFromBody(node)
+    function_statement_nodes, function_doc = extractDocFromBody(
+        node=node, module=provider.getParentModule()
+    )
 
     function_kind, flags = detectFunctionBodyKind(nodes=function_statement_nodes)
 
@@ -356,7 +346,8 @@ def buildFunctionNode(provider, node, source_ref):
 
             maker_class = ExpressionMakeGeneratorObject
 
-        code_body.qualname_provider = provider
+        if python_version >= 0x300:
+            code_body.qualname_provider = provider
 
         for variable in function_body.getProvidedVariables():
             code_body.getVariableForReference(variable.getName())
@@ -394,7 +385,6 @@ def buildFunctionNode(provider, node, source_ref):
     )
 
     if function_kind == "Function":
-        # TODO: Generators might have to raise GeneratorExit instead.
         function_statements_body = _insertFinalReturnStatement(
             function_statements_body=function_statements_body,
             return_statement=StatementReturnNone(source_ref=source_ref),
@@ -437,40 +427,35 @@ def buildFunctionNode(provider, node, source_ref):
         function_provider, node, function_creation, source_ref
     )
 
-    # Add wrapping for function with generic types to be provided to the
     # Add the "staticmethod" decorator to __new__ methods if not provided.
-
-    # CPython 2.x made these optional, but secretly applies them when it does
-    # "class __new__".  We add them earlier, so our optimization will see it.
+    # CPython does this implicitly only for its own function type when
+    # creating a class. We add it earlier so our optimization sees it and
+    # compiled functions get the same treatment. Before Python 3.10,
+    # 'staticmethod' objects are not callable, and 'enum' calls '__new__' from
+    # the class namespace directly, so pre-wrapping would break enum classes
+    # there.
     if (
-        python_version < 0x300
-        and node.name == "__new__"
+        node.name == "__new__"
         and provider.isExpressionClassBodyBase()
+        and (python_version < 0x300 or python_version >= 0x3A0)
     ):
         _injectDecorator(
             decorators, "staticmethod", ("staticmethod", "classmethod"), source_ref
         )
-
-    # Add the "classmethod" decorator to __init_subclass__ methods if not provided.
-    if (
-        python_version >= 0x360
-        and node.name == "__init_subclass__"
-        and provider.isExpressionClassBodyBase()
-    ):
-        _injectDecorator(decorators, "classmethod", ("classmethod",), source_ref)
-
-    if (
-        python_version >= 0x370
-        and node.name == "__class_getitem__"
-        and provider.isExpressionClassBodyBase()
-    ):
-        _injectDecorator(decorators, "classmethod", ("classmethod",), source_ref)
 
     decorated_function = function_creation
     for decorator in decorators:
         decorated_function = makeCallNode(
             decorator, decorated_function, decorator.getSourceReference()
         )
+
+    decorated_function = _maybeWrapClassMethod(
+        provider=provider,
+        node=node,
+        decorators=decorators,
+        decorated_function=decorated_function,
+        source_ref=source_ref,
+    )
 
     result = StatementAssignmentVariableName(
         provider=provider,
@@ -486,29 +471,34 @@ def buildFunctionNode(provider, node, source_ref):
 
 
 def buildAsyncFunctionNode(provider, node, source_ref):
-    # We are creating a function here that creates coroutine objects, with
-    # many details each, pylint: disable=too-many-locals
+    # pylint: disable=too-many-locals
     assert getKind(node) == "AsyncFunctionDef"
 
     decorators = buildNodeList(
         provider=provider, nodes=reversed(node.decorator_list), source_ref=source_ref
     )
 
-    compilation_mode = decideFunctionCompilationMode(decorators)
+    compilation_mode, compilation_logger = decideFunctionCompilationMode(
+        provider, node, decorators
+    )
 
     onFunctionBodyParsing(provider=provider, function_name=node.name, body=node.body)
 
     if compilation_mode != "compiled":
-        return _buildBytecodeOrSourceFunction(
+        return buildBytecodeOrSourceFunction(
             provider=provider,
             node=node,
+            function_name=mangleName(node.name, provider),
             compilation_mode=compilation_mode,
             source_ref=source_ref,
+            logger=compilation_logger,
         )
 
     function_provider = _getFunctionProvider(provider, node, source_ref)
 
-    function_statement_nodes, function_doc = extractDocFromBody(node)
+    function_statement_nodes, function_doc = extractDocFromBody(
+        node=node, module=provider.getParentModule()
+    )
 
     function_kind, flags = detectFunctionBodyKind(
         nodes=function_statement_nodes, start_value="Coroutine"
@@ -630,6 +620,14 @@ def buildAsyncFunctionNode(provider, node, source_ref):
             decorator, decorated_function, decorator.getSourceReference()
         )
 
+    decorated_function = _maybeWrapClassMethod(
+        provider=provider,
+        node=node,
+        decorators=decorators,
+        decorated_function=decorated_function,
+        source_ref=source_ref,
+    )
+
     result = StatementAssignmentVariableName(
         provider=provider,
         variable_name=mangleName(node.name, provider),
@@ -639,17 +637,13 @@ def buildAsyncFunctionNode(provider, node, source_ref):
 
     function_body.qualname_setup = result.getVariableName()
 
-    # Share the non-local declarations. TODO: This may also apply to generators
-    # and async generators.
+    # TODO: This may also apply to generators.
     creator_function_body.non_local_declarations = function_body.non_local_declarations
 
     return result
 
 
 def buildParameterKwDefaults(provider, node, function_body, source_ref):
-    # Build keyword only arguments default values. We are hiding here, that it
-    # is a Python3 only feature.
-
     if python_version >= 0x300:
         kw_only_names = function_body.getParameters().getKwOnlyParameterNames()
 
@@ -683,6 +677,12 @@ _annotate_flags = frozenset(("annotate", "python_source", "python_closure"))
 
 def makeDeferredAnnotateFunctionBody(provider, source_ref):
     function_name = "__annotate__"
+
+    class_body = getClassBodyForDeferredScope(provider)
+
+    if class_body is not None:
+        # Ensure the enclosing class body captures its namespace for deferred lookups.
+        class_body.getDeferredClassDictVariable()
 
     # Not using the CPython parameter name "format" here, since following
     # annotation values may reference a variable of that name, which would
@@ -764,6 +764,10 @@ def makeDeferredAnnotateFunctionBody(provider, source_ref):
         statements=(body,),
         code_object=code_object,
         owner_code_name=outer_body.getCodeName(),
+        needs_frame_locals=decideNeedsFrameLocalsProxy(
+            module_name=outer_body.getParentModule().getFullName(),
+            code_qualname=code_object.getCodeObjectQualname(),
+        ),
         source_ref=source_ref,
     )
 
@@ -777,16 +781,11 @@ def makeDeferredAnnotationsReturnExpression(outer_body, annotations, source_ref)
     Notes:
         Unconditionally executed annotations become a simple dictionary, while
         conditionally executed ones (PEP 649) are only included if their index
-        was registered in the "__conditional_annotations__" set of the class or
+        was registered in the '__conditional_annotations__' set of the class or
         module body when the statement executed.
 
     Args:
-        outer_body: Function body node of the annotation function.
         annotations: Sequence of (key, value_node, conditional_index) tuples.
-        source_ref: Source reference to use.
-
-    Returns:
-        Expression for the annotations dictionary.
     """
     if all(conditional_index is None for _, _, conditional_index in annotations):
         keys = []
@@ -844,13 +843,10 @@ def makeDeferredAnnotationsReturnExpression(outer_body, annotations, source_ref)
 
 
 def buildParameterAnnotations(provider, node, source_ref):
-    # Too many branches, because there is too many cases, pylint: disable=too-many-branches,too-many-locals,too-many-statements
+    # pylint: disable=too-many-branches,too-many-locals,too-many-statements
+    # spell-checker: ignore elts,kwargannotation,kwonlyargs,posonlyargs,vararg
+    # spell-checker: ignore varargannotation
 
-    # The ast uses funny names a bunch.
-    # spell-checker: ignore elts,posonlyargs,kwonlyargs,varargannotation,vararg
-    # spell-checker: ignore kwargannotation
-
-    # Build annotations. We are hiding here, that it is a Python3 only feature.
     if not getFutureSpec().use_annotations:
         return None
 
@@ -1129,7 +1125,6 @@ def _wrapFunctionWithSpecialNestedArgs(
 def buildFunctionWithParsing(
     provider, function_kind, name, function_doc, flags, node, source_ref
 ):
-    # This contains a complex re-formulation for nested parameter functions.
     # pylint: disable=too-many-locals
 
     kind = getKind(node)
@@ -1141,16 +1136,20 @@ def buildFunctionWithParsing(
         if arg is None:
             return None
         elif type(arg) is str:
-            return mangleName(arg, provider)
+            arg_name = arg
         elif getKind(arg) == "Name":
-            return mangleName(arg.id, provider)
+            arg_name = arg.id
         elif getKind(arg) == "arg":
-            return mangleName(arg.arg, provider)
+            arg_name = arg.arg
         elif getKind(arg) == "Tuple":
-            # These are to be re-formulated on the outside.
             assert False
         else:
             assert False, getKind(arg)
+
+        if python_version >= 0x270:
+            checkDebugNameAssignment(name=arg_name, source_ref=source_ref)
+
+        return mangleName(arg_name, provider)
 
     special_args = {}
 
@@ -1221,7 +1220,6 @@ def buildFunctionWithParsing(
         source_ref=source_ref,
     )
 
-    # Wrap if necessary for special nested arguments.
     if special_args:
         code_body = _wrapFunctionWithSpecialNestedArgs(
             name=name,
@@ -1242,11 +1240,9 @@ def addFunctionVariableReleases(function):
 
     release_variables = []
 
-    # We attach everything to the function definition source location.
     source_ref = function.getSourceReference()
 
     for variable in function.getLocalVariables():
-        # Shared variables are freed by function attachment.
         if variable.getOwner() is not function:
             continue
 

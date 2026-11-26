@@ -46,15 +46,12 @@ template_make_function = """\
 
 template_function_body = """\
 static PyObject *impl_%(function_identifier)s(PyThreadState *tstate, %(parameter_objects_decl)s) {
-    // Preserve error status for checks
 #ifndef __NUITKA_NO_ASSERT__
     NUITKA_MAY_BE_UNUSED bool had_error = HAS_ERROR_OCCURRED(tstate);
 #endif
 
-    // Local variable declarations.
 %(function_locals)s
 
-    // Actual function body.
 %(function_body)s
 
 %(function_exit)s
@@ -72,18 +69,19 @@ function_exception_exit:
 
 template_function_return_exit = """
 function_return_exit:
-   // Function cleanup code if any.
 %(function_cleanup)s
 
-   // Actual function exit with return value, making sure we did not make
-   // the error status worse despite non-NULL return.
    CHECK_OBJECT(tmp_return_value);
    assert(had_error || !HAS_ERROR_OCCURRED(tstate));
    return tmp_return_value;"""
 
 template_annotate_function_closure_setup = """\
-PyObject *closure_tuple = MAKE_TUPLE_VAR0(tstate, (PyObject *const *)closure, %(closure_count)d);
+PyObject *closure_tuple = MAKE_TUPLE_EMPTY(tstate, %(closure_count)d);
 assert(closure_tuple != NULL);
+
+for (Py_ssize_t closure_index = 0; closure_index < %(closure_count)d; closure_index++) {
+    PyTuple_SET_ITEM(closure_tuple, closure_index, (PyObject *)closure[closure_index]);
+}
 
 NUITKA_MAY_BE_UNUSED int set_closure_result = PyFunction_SetClosure(result, closure_tuple);
 assert(set_closure_result == 0);
@@ -95,13 +93,11 @@ function_direct_body_template = """\
 %(file_scope)s PyObject *impl_%(function_identifier)s(PyThreadState *tstate, %(direct_call_arg_spec)s) {
 #ifndef __NUITKA_NO_ASSERT__
     NUITKA_MAY_BE_UNUSED bool had_error = HAS_ERROR_OCCURRED(tstate);
-    assert(!had_error); // Do not enter inlined functions with error set.
+    assert(!had_error);
 #endif
 
-    // Local variable declarations.
 %(function_locals)s
 
-    // Actual function body.
 %(function_body)s
 
 %(function_exit)s

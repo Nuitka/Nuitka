@@ -7,6 +7,7 @@
 #ifdef __IDE_ONLY__
 #include "nuitka/prelude.h"
 
+// Includes below require definitions from the prelude.
 #include "nuitka/helper/dict_internals.h"
 #endif
 
@@ -31,7 +32,7 @@ PyObject *DICT_COPY(PyThreadState *tstate, PyObject *dict_value) {
 #if PYTHON_VERSION < 0x300
         // For Python3, this can be done much faster in the same way as it is
         // done in parameter parsing.
-        result = _PyDict_NewPresized(dict_mp->ma_used);
+        result = MAKE_DICT_PRESIZED(tstate, dict_mp->ma_used);
 
         for (Py_ssize_t i = 0; i <= dict_mp->ma_mask; i++) {
             PyDictEntry *entry = &dict_mp->ma_table[i];
@@ -41,8 +42,7 @@ PyObject *DICT_COPY(PyThreadState *tstate, PyObject *dict_value) {
 
                 PyObject *value = entry->me_value;
 
-                NUITKA_MAY_BE_UNUSED int res = PyDict_SetItem(result, key, value);
-                assert(res == 0);
+                DICT_SET_ITEM_INFALLIBLE(tstate, result, key, value);
             }
         }
 #else
@@ -78,7 +78,11 @@ PyObject *DICT_COPY(PyThreadState *tstate, PyObject *dict_value) {
             result_mp->ma_used = dict_mp->ma_used;
 
             Nuitka_Py_IncRefTotal(tstate);
+#ifdef Py_GIL_DISABLED
+            Nuitka_Py_dictkeys_incref(dict_mp->ma_keys);
+#else
             dict_mp->ma_keys->dk_refcnt += 1;
+#endif
 
             for (Py_ssize_t i = 0; i < size; i++) {
                 if (DK_VALUE(dict_mp, i)) {
@@ -173,7 +177,15 @@ PyObject *DICT_COPY(PyThreadState *tstate, PyObject *dict_value) {
             } else
 #endif
             {
-                result = _PyDict_NewPresized(dict_mp->ma_used);
+#if PYTHON_VERSION >= 0x3b0 && !defined(Py_GIL_DISABLED)
+                if (DK_IS_UNICODE(dict_mp->ma_keys)) {
+                    result = MAKE_DICT_PRESIZED_UNICODE(tstate, dict_mp->ma_used);
+                } else {
+                    result = MAKE_DICT_PRESIZED(tstate, dict_mp->ma_used);
+                }
+#else
+            result = MAKE_DICT_PRESIZED(tstate, dict_mp->ma_used);
+#endif
 
 #if PYTHON_VERSION < 0x3b0
                 Py_ssize_t size = DK_ENTRIES_SIZE(dict_mp->ma_keys);
@@ -188,8 +200,7 @@ PyObject *DICT_COPY(PyThreadState *tstate, PyObject *dict_value) {
 
                         CHECK_OBJECT(value);
 
-                        NUITKA_MAY_BE_UNUSED int res = PyDict_SetItem(result, key, value);
-                        assert(res == 0);
+                        DICT_SET_ITEM_INFALLIBLE(tstate, result, key, value);
                     }
                 }
 #else
@@ -202,8 +213,7 @@ PyObject *DICT_COPY(PyThreadState *tstate, PyObject *dict_value) {
 
                 CHECK_OBJECT(value);
 
-                NUITKA_MAY_BE_UNUSED int res = PyDict_SetItem(result, key, value);
-                assert(res == 0);
+                DICT_SET_ITEM_INFALLIBLE(tstate, result, key, value);
             }
 #endif
             }
@@ -231,8 +241,7 @@ PyObject *DEEP_COPY_DICT(PyThreadState *tstate, PyObject *dict_value) {
         PyObject *dict_value_copy = DEEP_COPY(tstate, value);
 
         if (dict_value_copy != value) {
-            NUITKA_MAY_BE_UNUSED bool res = DICT_SET_ITEM(result, key, dict_value_copy);
-            assert(res);
+            DICT_SET_ITEM_INFALLIBLE(tstate, result, key, dict_value_copy);
         }
 
         Py_DECREF(dict_value_copy);
@@ -251,7 +260,7 @@ PyObject *DEEP_COPY_DICT(PyThreadState *tstate, PyObject *dict_value) {
 #if PYTHON_VERSION < 0x300
         // For Python3, this can be done much faster in the same way as it is
         // done in parameter parsing.
-        result = _PyDict_NewPresized(dict_mp->ma_used);
+        result = MAKE_DICT_PRESIZED(tstate, dict_mp->ma_used);
 
         for (Py_ssize_t i = 0; i <= dict_mp->ma_mask; i++) {
             PyDictEntry *entry = &dict_mp->ma_table[i];
@@ -262,8 +271,7 @@ PyObject *DEEP_COPY_DICT(PyThreadState *tstate, PyObject *dict_value) {
                 PyObject *value = entry->me_value;
                 value = DEEP_COPY(tstate, value);
 
-                NUITKA_MAY_BE_UNUSED int res = PyDict_SetItem(result, key, value);
-                assert(res == 0);
+                DICT_SET_ITEM_INFALLIBLE(tstate, result, key, value);
 
                 Py_DECREF(value);
             }
@@ -301,7 +309,11 @@ PyObject *DEEP_COPY_DICT(PyThreadState *tstate, PyObject *dict_value) {
             result_mp->ma_used = dict_mp->ma_used;
 
             Nuitka_Py_IncRefTotal(tstate);
+#ifdef Py_GIL_DISABLED
+            Nuitka_Py_dictkeys_incref(dict_mp->ma_keys);
+#else
             dict_mp->ma_keys->dk_refcnt += 1;
+#endif
 
             for (Py_ssize_t i = 0; i < size; i++) {
                 if (DK_VALUE(dict_mp, i)) {
@@ -398,7 +410,15 @@ PyObject *DEEP_COPY_DICT(PyThreadState *tstate, PyObject *dict_value) {
             } else
 #endif
             {
-                result = _PyDict_NewPresized(dict_mp->ma_used);
+#if PYTHON_VERSION >= 0x3b0 && !defined(Py_GIL_DISABLED)
+                if (DK_IS_UNICODE(dict_mp->ma_keys)) {
+                    result = MAKE_DICT_PRESIZED_UNICODE(tstate, dict_mp->ma_used);
+                } else {
+                    result = MAKE_DICT_PRESIZED(tstate, dict_mp->ma_used);
+                }
+#else
+            result = MAKE_DICT_PRESIZED(tstate, dict_mp->ma_used);
+#endif
 
 #if PYTHON_VERSION < 0x3b0
                 Py_ssize_t size = DK_ENTRIES_SIZE(dict_mp->ma_keys);
@@ -415,8 +435,7 @@ PyObject *DEEP_COPY_DICT(PyThreadState *tstate, PyObject *dict_value) {
 
                         value = DEEP_COPY(tstate, value);
 
-                        NUITKA_MAY_BE_UNUSED int res = PyDict_SetItem(result, key, value);
-                        assert(res == 0);
+                        DICT_SET_ITEM_INFALLIBLE(tstate, result, key, value);
 
                         Py_DECREF(value);
                     }
@@ -433,8 +452,7 @@ PyObject *DEEP_COPY_DICT(PyThreadState *tstate, PyObject *dict_value) {
 
                 value = DEEP_COPY(tstate, value);
 
-                NUITKA_MAY_BE_UNUSED int res = PyDict_SetItem(result, key, value);
-                assert(res == 0);
+                DICT_SET_ITEM_INFALLIBLE(tstate, result, key, value);
 
                 Py_DECREF(value);
             }

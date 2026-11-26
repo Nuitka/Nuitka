@@ -75,6 +75,15 @@ Check if it would build, without uploading.
 """,
     )
 
+    parser.add_option(
+        "--assume-yes-for-downloads",
+        action="store_true",
+        dest="assume_yes_for_downloads",
+        default=False,
+        help="""\
+Allow download and execution of tools if needed. Default is %default.""",
+    )
+
     options, positional_args = parser.parse_args()
 
     if positional_args:
@@ -93,7 +102,7 @@ Check if it would build, without uploading.
     shutil.rmtree("dist", ignore_errors=True)
 
     tools_logger.info("Creating documentation.", style="blue")
-    checkReleaseDocumentation()
+    checkReleaseDocumentation(assume_yes_for_downloads=options.assume_yes_for_downloads)
     tools_logger.info("Creating source distribution.", style="blue")
 
     # spell-checker: ignore gztar

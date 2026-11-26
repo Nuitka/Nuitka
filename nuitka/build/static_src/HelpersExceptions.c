@@ -1,10 +1,6 @@
 //     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
-/** For setting exceptions.
- *
- * These are non-inline variants for exception raises, done so to avoid the code bloat.
- *
- **/
+// Non-inline helpers for formatting and normalizing exceptions to avoid code bloat.
 
 // This file is included from another C file, help IDEs to still parse it on
 // its own.
@@ -27,29 +23,60 @@ void SET_CURRENT_EXCEPTION_TYPE0_FORMAT3(PyObject *exception_type, char const *f
 }
 
 void SET_CURRENT_EXCEPTION_TYPE_COMPLAINT(char const *format, PyObject *mistyped) {
+    SET_CURRENT_EXCEPTION_TYPE0_FORMAT1(PyExc_TypeError, format, Py_TYPE(mistyped)->tp_name);
+}
+
+void SET_CURRENT_EXCEPTION_TYPE_COMPLAINT_QUALIFIED(char const *format, PyObject *mistyped) {
 #if PYTHON_VERSION >= 0x3e0
     PyThreadState *tstate = PyThreadState_GET();
-    PyObject *type = (PyObject *)Py_TYPE(mistyped);
-    PyObject *qualname = LOOKUP_ATTRIBUTE(tstate, type, const_str_plain___qualname__);
+    PyObject *qualified_name = Nuitka_PyType_GetFullyQualifiedName(Py_TYPE(mistyped));
 
-    if (qualname != NULL && PyUnicode_Check(qualname)) {
-        char const *name = PyUnicode_AsUTF8(qualname);
+    if (qualified_name != NULL && PyUnicode_Check(qualified_name)) {
+        char const *name = PyUnicode_AsUTF8(qualified_name);
 
         if (name != NULL) {
             SET_CURRENT_EXCEPTION_TYPE0_FORMAT1(PyExc_TypeError, format, name);
-            Py_DECREF(qualname);
+            Py_DECREF(qualified_name);
             return;
         }
 
-        Py_DECREF(qualname);
+        Py_DECREF(qualified_name);
     } else {
         CLEAR_ERROR_OCCURRED(tstate);
     }
+#endif
 
     SET_CURRENT_EXCEPTION_TYPE0_FORMAT1(PyExc_TypeError, format, Py_TYPE(mistyped)->tp_name);
-#else
-    SET_CURRENT_EXCEPTION_TYPE0_FORMAT1(PyExc_TypeError, format, Py_TYPE(mistyped)->tp_name);
+}
+
+void SET_CURRENT_EXCEPTION_TYPE_COMPLAINT_QUALIFIED2(char const *format, PyObject *mistyped1, PyObject *mistyped2) {
+#if PYTHON_VERSION >= 0x3e0
+    PyThreadState *tstate = PyThreadState_GET();
+
+    PyObject *qualified_name1 = Nuitka_PyType_GetFullyQualifiedName(Py_TYPE(mistyped1));
+    PyObject *qualified_name2 = Nuitka_PyType_GetFullyQualifiedName(Py_TYPE(mistyped2));
+
+    if (qualified_name1 != NULL && PyUnicode_Check(qualified_name1) && qualified_name2 != NULL &&
+        PyUnicode_Check(qualified_name2)) {
+        char const *name1 = PyUnicode_AsUTF8(qualified_name1);
+        char const *name2 = PyUnicode_AsUTF8(qualified_name2);
+
+        if (name1 != NULL && name2 != NULL) {
+            SET_CURRENT_EXCEPTION_TYPE0_FORMAT2(PyExc_TypeError, format, name1, name2);
+
+            Py_DECREF(qualified_name1);
+            Py_DECREF(qualified_name2);
+            return;
+        }
+    }
+
+    Py_XDECREF(qualified_name1);
+    Py_XDECREF(qualified_name2);
+    CLEAR_ERROR_OCCURRED(tstate);
 #endif
+
+    SET_CURRENT_EXCEPTION_TYPE0_FORMAT2(PyExc_TypeError, format, Py_TYPE(mistyped1)->tp_name,
+                                        Py_TYPE(mistyped2)->tp_name);
 }
 
 static char const *TYPE_NAME_DESC(PyObject *type) {
@@ -62,24 +89,6 @@ static char const *TYPE_NAME_DESC(PyObject *type) {
 
 void SET_CURRENT_EXCEPTION_TYPE_COMPLAINT_NICE(char const *format, PyObject *mistyped) {
     SET_CURRENT_EXCEPTION_TYPE0_FORMAT1(PyExc_TypeError, format, TYPE_NAME_DESC(mistyped));
-}
-
-void FORMAT_UNBOUND_LOCAL_ERROR(PyThreadState *tstate, struct Nuitka_ExceptionPreservationItem *exception_state,
-                                PyObject *variable_name) {
-#if PYTHON_VERSION < 0x300
-    char const *message = "local variable '%s' referenced before assignment";
-    PyObject *exception_value = Nuitka_String_FromFormat(message, Nuitka_String_AsString_Unchecked(variable_name));
-#elif PYTHON_VERSION < 0x3b0
-    char const *message = "local variable '%U' referenced before assignment";
-    PyObject *exception_value = Nuitka_String_FromFormat(message, variable_name);
-#else
-    char const *message = "cannot access local variable '%U' where it is not associated with a value";
-    PyObject *exception_value = Nuitka_String_FromFormat(message, variable_name);
-#endif
-
-    CHECK_OBJECT(exception_value);
-    SET_EXCEPTION_PRESERVATION_STATE_FROM_TYPE0_VALUE1(tstate, exception_state, PyExc_UnboundLocalError,
-                                                       exception_value);
 }
 
 static PyObject *_Nuitka_Err_CreateException(PyThreadState *tstate, PyObject *exception_type, PyObject *value) {
@@ -109,10 +118,6 @@ static PyObject *_Nuitka_Err_CreateException(PyThreadState *tstate, PyObject *ex
 PyObject *MAKE_EXCEPTION_WITH_VALUE(PyThreadState *tstate, PyObject *exception_type, PyObject *value) {
     return _Nuitka_Err_CreateException(tstate, exception_type, value);
 }
-
-// Our replacement for PyErr_NormalizeException, that however does not attempt
-// to deal with recursion, i.e. exception during normalization, we just avoid
-// the API call overhead in the normal case.
 
 #if PYTHON_VERSION >= 0x3d0
 // TODO: Merge with old branch for enhancements.
@@ -146,7 +151,7 @@ restart:
         if (PyExceptionInstance_Check(value)) {
             instance_class = PyExceptionInstance_Class(value);
 
-            is_subclass = PyObject_IsSubclass(instance_class, type);
+            is_subclass = Nuitka_Object_IsSubclass(tstate, instance_class, type);
             if (is_subclass < 0) {
                 goto error;
             }
@@ -189,38 +194,37 @@ error:
 
     assert(*exc != NULL);
     if (initial_tb != NULL) {
-        if (*tb == NULL)
+        if (*tb == NULL) {
             *tb = initial_tb;
-        else
+        } else {
             Py_DECREF(initial_tb);
+        }
     }
     if (recursion_depth >= 32 + 2) {
-        if (PyErr_GivenExceptionMatches(*exc, PyExc_MemoryError)) {
-            Py_FatalError("Cannot recover from MemoryErrors "
-                          "while normalizing exceptions.");
+        if (EXCEPTION_MATCH_BOOL_SINGLE(tstate, *exc, PyExc_MemoryError)) {
+            Py_FatalError("Cannot recover from MemoryErrors while normalizing exceptions.");
         } else {
-            Py_FatalError("Cannot recover from the recursive normalization "
-                          "of an exception.");
+            Py_FatalError("Cannot recover from the recursive normalization of an exception.");
         }
     }
     goto restart;
 }
 #else
+// Replacement for PyErr_NormalizeException that avoids the C API call overhead
+// in the normal case and delegates recursive normalization errors to CPython.
 void Nuitka_Err_NormalizeException(PyThreadState *tstate, PyObject **exc, PyObject **val, PyTracebackObject **tb) {
     PyObject *type = *exc;
 
-    // Dealt with in NORMALIZE_EXCEPTION
     assert(type != NULL && type != Py_None);
 
     PyObject *value = *val;
 
-    // Allow setting the value to NULL for time savings with quick type only errors
+    // Allow setting the value to NULL for time savings with quick type only errors.
     if (value == NULL) {
         value = Py_None;
         Py_INCREF_IMMORTAL(value);
     }
 
-    // Normalize the exception from class to instance
     if (PyExceptionClass_Check(type)) {
         PyObject *instance_class = NULL;
 
@@ -229,15 +233,13 @@ void Nuitka_Err_NormalizeException(PyThreadState *tstate, PyObject **exc, PyObje
         if (PyExceptionInstance_Check(value)) {
             instance_class = PyExceptionInstance_Class(value);
 
-            is_subclass = PyObject_IsSubclass(instance_class, type);
+            is_subclass = Nuitka_Object_IsSubclass(tstate, instance_class, type);
 
             if (is_subclass < 0) {
                 goto error;
             }
         }
 
-        // If the value was not an instance, or is not an instance of derived
-        // type, then call it
         if (!is_subclass) {
             PyObject *fixed_value = _Nuitka_Err_CreateException(tstate, type, value);
 
@@ -248,7 +250,6 @@ void Nuitka_Err_NormalizeException(PyThreadState *tstate, PyObject **exc, PyObje
             Py_DECREF(value);
             value = fixed_value;
         } else if (instance_class != type) {
-            // Switch to given type then
             Py_INCREF(instance_class);
             Py_DECREF(type);
 

@@ -6,7 +6,21 @@
 
 /* This file is included from another C file, help IDEs to still parse it on its own. */
 #ifdef __IDE_ONLY__
-#include "nuitka/prelude.h"
+#include "nuitka/cpython_api_compat.h"
+
+#include "internal/pycore_dict.h"
+#include "internal/pycore_gc.h"
+#include "internal/pycore_interp.h"
+#include "internal/pycore_object.h"
+#include "internal/pycore_pystate.h"
+#include "internal/pycore_runtime.h"
+
+#if defined(Py_GIL_DISABLED) && PYTHON_VERSION >= 0x3d0
+#include "internal/pycore_object_alloc.h"
+#endif
+
+#include "nuitka/defines.h"
+#include "nuitka/gc_runtime.h"
 #endif
 
 // For pre-3.13, lets allow ourselves to use them as well, these do play
@@ -17,7 +31,6 @@
 #define FT_ATOMIC_LOAD_SSIZE(value) value
 #define FT_ATOMIC_LOAD_SSIZE_ACQUIRE(value) value
 #define FT_ATOMIC_LOAD_SSIZE_RELAXED(value) value
-#define FT_ATOMIC_STORE_PTR(value, new_value) value = new_value
 #define FT_ATOMIC_LOAD_PTR_ACQUIRE(value) value
 #define FT_ATOMIC_LOAD_UINTPTR_ACQUIRE(value) value
 #define FT_ATOMIC_LOAD_PTR_RELAXED(value) value
@@ -48,15 +61,22 @@
 
 #endif
 
-/* Due to ABI issues, it seems that on Windows the symbols used by
- * "_PyObject_GC_TRACK" were not exported before 3.8 and we need to use a
- * function that does it instead.
- *
- * The Python 3.7.0 release on at Linux doesn't work this way either, was
- * a bad CPython release apparently and between 3.7.3 and 3.7.4 these have
- * become runtime incompatible.
- *
- */
+// '_PyObject_IsUniquelyReferenced' was only added in Python 3.13.4.
+#if PYTHON_VERSION < 0x3d4
+static inline int Nuitka_PyObject_IsUniquelyReferenced(PyObject *ob) {
+#if !defined(Py_GIL_DISABLED)
+    return Py_REFCNT(ob) == 1;
+#else
+    return _Py_IsOwnedByCurrentThread(ob) && _Py_atomic_load_uint32_relaxed(&ob->ob_ref_local) == 1 &&
+           _Py_atomic_load_ssize_relaxed(&ob->ob_ref_shared) == 0;
+#endif
+}
+#define _PyObject_IsUniquelyReferenced(ob) Nuitka_PyObject_IsUniquelyReferenced(ob)
+#endif
+
+// CPython 3.14 changed _gc_runtime_state layout and young-generation accounting
+// across point releases (3.14.0, 3.14.1, and 3.14.5), so module mode dispatches
+// on the runtime patch version.
 #if _NUITKA_MODULE_MODE && PYTHON_VERSION >= 0x3e0 && PYTHON_VERSION < 0x3f0 && !defined(Py_GIL_DISABLED)
 typedef struct {
     PyObject *trash_delete_later;
@@ -273,6 +293,9 @@ static inline void Nuitka_GC_UnTrack(void *raw_op) {
 
 #undef _PyObject_GC_TRACK
 #undef _PyObject_GC_UNTRACK
+// Before Python 3.8, symbols referenced by _PyObject_GC_TRACK were not exported
+// from the Windows Python DLL, and CPython 3.7.0 / 3.7.3->3.7.4 changed ABI on
+// Linux as well, requiring the exported C-API functions instead.
 #elif (defined(_WIN32) || defined(__MSYS__)) && PYTHON_VERSION < 0x380
 #define Nuitka_GC_Track PyObject_GC_Track
 #define Nuitka_GC_UnTrack PyObject_GC_UnTrack
@@ -295,9 +318,28 @@ static inline void Nuitka_GC_UnTrack(void *raw_op) {
 #define Nuitka_GC_UnTrack _PyObject_GC_UNTRACK
 #endif
 
-// For Python2.6, these assertions cannot be done easily, just disable them with dummy code.
+#if PYTHON_VERSION >= 0x3e0 && PYTHON_VERSION < 0x3f0 && !defined(Py_GIL_DISABLED) &&                                  \
+    (_NUITKA_MODULE_MODE || PYTHON_VERSION < 0x3e5)
+// CPython 3.14 gives '_PyObject_GC_TRACK' and '_PyObject_GC_UNTRACK' file and
+// line arguments unless NDEBUG is defined, so headers that still call them
+// must reach the Nuitka replacements instead of the inline functions.
+#define _PyObject_GC_TRACK(op) Nuitka_GC_Track(_PyObject_CAST(op))
+#define _PyObject_GC_UNTRACK(op) Nuitka_GC_UnTrack(_PyObject_CAST(op))
+#endif
+
+// Python2.6 does not provide "_PyObject_GC_IS_TRACKED" or
+// "_PyObject_GC_MAY_BE_TRACKED" yet, but we want to use it.
 #if PYTHON_VERSION < 0x270 && !defined(_PyObject_GC_IS_TRACKED)
-#define _PyObject_GC_IS_TRACKED(obj) (1)
+NUITKA_MAY_BE_UNUSED static inline int Nuitka_PyObject_GC_IsTracked(PyObject *obj) {
+    return PyObject_IS_GC(obj) && ((_Py_AS_GC(obj))->gc.gc_refs != _PyGC_REFS_UNTRACKED);
+}
+
+#define _PyObject_GC_IS_TRACKED(obj) Nuitka_PyObject_GC_IsTracked((PyObject *)(obj))
+#endif
+
+#if PYTHON_VERSION < 0x270 && !defined(_PyObject_GC_MAY_BE_TRACKED)
+#define _PyObject_GC_MAY_BE_TRACKED(obj)                                                                               \
+    (PyObject_IS_GC(obj) && (!PyTuple_CheckExact(obj) || _PyObject_GC_IS_TRACKED(obj)))
 #endif
 
 // The full API is available for Python 3.5 only
@@ -307,55 +349,58 @@ extern void *(*python_mem_malloc)(void *ctx, size_t size);
 extern void *(*python_mem_calloc)(void *ctx, size_t nelem, size_t elsize);
 #ifndef Py_GIL_DISABLED
 extern void *(*python_mem_realloc)(void *ctx, void *ptr, size_t new_size);
-#else
+#endif
 extern void (*python_mem_free)(void *ctx, void *ptr);
-#endif
-
-#if defined(Py_DEBUG)
-extern void *python_obj_ctx;
-extern void *python_mem_ctx;
-#else
-#define python_obj_ctx (NULL)
-#define python_mem_ctx (NULL)
-#endif
 
 extern void initNuitkaAllocators(void);
 
-// Our version of "PyObject_Malloc".
-NUITKA_MAY_BE_UNUSED static void *NuitkaObject_Malloc(size_t size) { return python_obj_malloc(python_obj_ctx, size); }
+// Our version of "PyObject_Malloc". The default allocator does not use a
+// context, and hook allocators are routed through "PyObject_Malloc" instead.
+NUITKA_MAY_BE_UNUSED static void *NuitkaObject_Malloc(size_t size) {
+    assert(python_obj_malloc != NULL);
+    return python_obj_malloc(NULL, size);
+}
 
-// Our version of "PyMem_Malloc".
-NUITKA_MAY_BE_UNUSED static void *NuitkaMem_Malloc(size_t size) { return python_mem_malloc(python_mem_ctx, size); }
+NUITKA_MAY_BE_UNUSED static void *NuitkaMem_Malloc(size_t size) {
+    assert(python_mem_malloc != NULL);
+    return python_mem_malloc(NULL, size);
+}
 
-// Our version of "PyMem_Calloc".
 NUITKA_MAY_BE_UNUSED static void *NuitkaMem_Calloc(size_t nelem, size_t elsize) {
-    return python_mem_calloc(python_mem_ctx, nelem, elsize);
+    assert(python_mem_calloc != NULL);
+    return python_mem_calloc(NULL, nelem, elsize);
 }
 
 #ifndef Py_GIL_DISABLED
-// Our version of "PyMem_Realloc".
 NUITKA_MAY_BE_UNUSED static void *NuitkaMem_Realloc(void *ptr, size_t new_size) {
-    return python_mem_realloc(python_mem_ctx, ptr, new_size);
+    assert(python_mem_realloc != NULL);
+    return python_mem_realloc(NULL, ptr, new_size);
 }
-#else
-NUITKA_MAY_BE_UNUSED static void NuitkaMem_Free(void *ptr) { python_mem_free(python_mem_ctx, ptr); }
 #endif
+
+NUITKA_MAY_BE_UNUSED static void NuitkaMem_Free(void *ptr) {
+    assert(python_mem_free != NULL);
+    python_mem_free(NULL, ptr);
+}
 
 #else
 #define NuitkaObject_Malloc(size) PyObject_MALLOC(size)
-#define NuitkaMem_Malloc(size) PyMem_MALLOC(size)
 #define NuitkaMem_Calloc(elem, elsize) PyMem_Calloc(elem, elsize)
-#ifndef Py_GIL_DISABLED
 #if defined(_WIN32)
 // On Windows, mixing different runtime DLLs can cause issues at
 // release, so we need to go through the API to get the proper
 // DLL runtime.
+#define NuitkaMem_Malloc(size) PyMem_Malloc(size)
+#ifndef Py_GIL_DISABLED
 #define NuitkaMem_Realloc(ptr, new_size) PyMem_Realloc(ptr, new_size)
+#endif
+#define NuitkaMem_Free(ptr) PyMem_Free(ptr)
 #else
+#define NuitkaMem_Malloc(size) PyMem_MALLOC(size)
+#ifndef Py_GIL_DISABLED
 #define NuitkaMem_Realloc(ptr, new_size) PyMem_REALLOC(ptr, new_size)
 #endif
-#else
-#define NuitkaMem_Free(ptr) PyMem_Free(ptr)
+#define NuitkaMem_Free(ptr) PyMem_FREE(ptr)
 #endif
 #endif
 
@@ -427,7 +472,7 @@ static inline void _Nuitka_Py_XDECREF(PyObject *ob) {
 #undef Py_XDECREF
 #define Py_XDECREF(ob) _Nuitka_Py_XDECREF((PyObject *)(ob))
 
-// Need to make Py_XDECREF a macro again that uses our Py_DECREF
+// Make Py_CLEAR use our Py_DECREF override.
 #undef Py_CLEAR
 #define Py_CLEAR(op)                                                                                                   \
     do {                                                                                                               \
@@ -494,12 +539,18 @@ static inline void _Nuitka_Py_XDECREF(PyObject *ob) {
 #elif defined(_NUITKA_DEBUG_DEBUG_IMMORTAL)
 // We strive for Nuitka to never harm these, the assertion is going to fail with
 // third party extension modules.
-#define Py_INCREF_IMMORTAL(value) assert(Py_REFCNT(value) == _Py_IMMORTAL_INITIAL_REFCNT)
-#define Py_DECREF_IMMORTAL(value) assert(Py_REFCNT(value) == _Py_IMMORTAL_INITIAL_REFCNT)
+#define Py_INCREF_IMMORTAL(value) assert(_Py_IsImmortal(value))
+#define Py_DECREF_IMMORTAL(value) assert(_Py_IsImmortal(value))
 #else
 #define Py_INCREF_IMMORTAL(value)
 #define Py_DECREF_IMMORTAL(value)
 #endif
+
+NUITKA_MAY_BE_UNUSED static inline PyObject *_Py_NewRef_Immortal(PyObject *value) {
+    Py_INCREF_IMMORTAL(value);
+    return value;
+}
+#define Py_NewRef_IMMORTAL(value) _Py_NewRef_Immortal((PyObject *)(value))
 
 // Macro introduced with Python3.9 or higher, make it generally available.
 #ifndef Py_SET_TYPE
@@ -717,7 +768,11 @@ static PyObject *Nuitka_PyType_AllocNoTrackVar(PyTypeObject *type, Py_ssize_t ni
     inline_values_size = Nuitka_PyType_InlineValuesSize(type);
 #endif
 
+#ifdef Py_GIL_DISABLED
+    char *alloc = (char *)_PyObject_MallocWithType(type, size + pre_size + inline_values_size);
+#else
     char *alloc = (char *)NuitkaObject_Malloc(size + pre_size + inline_values_size);
+#endif
     assert(alloc);
     PyObject *obj = (PyObject *)(alloc + pre_size);
 
@@ -740,14 +795,12 @@ static PyObject *Nuitka_PyType_AllocNoTrackVar(PyTypeObject *type, Py_ssize_t ni
     // is supposed to be.
     memset(obj, 0, size);
 
-    // This is the "var" branch, we already know we are variable size here.
     assert(type->tp_itemsize != 0);
 #if PYTHON_VERSION >= 0x3e0
     _PyObject_InitVar((PyVarObject *)obj, type, nitems);
 #else
     Py_SET_SIZE((PyVarObject *)obj, nitems);
 
-    // Initialize the object references.
     Py_SET_TYPE(obj, type);
     if (Nuitka_PyType_HasFeature(type, Py_TPFLAGS_HEAPTYPE)) {
         Py_INCREF(type);
@@ -774,7 +827,11 @@ static PyObject *Nuitka_PyType_AllocNoTrack(PyTypeObject *type) {
     size += Nuitka_PyType_InlineValuesSize(type);
 #endif
 
+#ifdef Py_GIL_DISABLED
+    char *alloc = (char *)_PyObject_MallocWithType(type, size + pre_size);
+#else
     char *alloc = (char *)NuitkaObject_Malloc(size + pre_size);
+#endif
     assert(alloc);
     PyObject *obj = (PyObject *)(alloc + pre_size);
 
@@ -793,7 +850,6 @@ static PyObject *Nuitka_PyType_AllocNoTrack(PyTypeObject *type) {
     Nuitka_PyObject_GC_Link(obj);
 #endif
 
-    // Initialize the object references.
 #if PYTHON_VERSION >= 0x3e0
     _PyObject_Init(obj, type);
 #else
@@ -812,8 +868,6 @@ static PyObject *Nuitka_PyType_AllocNoTrack(PyTypeObject *type) {
 
     return obj;
 }
-#endif
-
 #endif
 
 NUITKA_MAY_BE_UNUSED static void *Nuitka_GC_NewVar(PyTypeObject *type, Py_ssize_t nitems) {
@@ -871,22 +925,20 @@ NUITKA_MAY_BE_UNUSED static void *Nuitka_GC_New(PyTypeObject *type) {
     return op;
 }
 
-static bool inline Nuitka_GC_IS_TRACKED_X(PyObject *object) {
-    return object == NULL || _PyObject_GC_IS_TRACKED(object);
-}
+static inline bool Nuitka_GC_IS_TRACKED_X(PyObject *obj) { return obj == NULL || _PyObject_GC_IS_TRACKED(obj); }
 
 // To allow us marking some of our own values as immortal.
 #if PYTHON_VERSION >= 0x3c0
-static void inline Py_SET_REFCNT_IMMORTAL(PyObject *object) {
-    assert(object != NULL);
+static inline void Py_SET_REFCNT_IMMORTAL(PyObject *obj) {
+    assert(obj != NULL);
 
     // Normally done only with 3.13, but it makes sense to do this.
 #if defined(__GNUC__) && __GNUC__ >= 11
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Warray-bounds"
 #endif
-    if (_PyObject_IS_GC(object) && _PyObject_GC_IS_TRACKED(object)) {
-        Nuitka_GC_UnTrack(object);
+    if (_PyObject_IS_GC(obj) && _PyObject_GC_IS_TRACKED(obj)) {
+        Nuitka_GC_UnTrack(obj);
     }
 #if defined(__GNUC__) && __GNUC__ >= 11
 #pragma GCC diagnostic pop
@@ -894,25 +946,29 @@ static void inline Py_SET_REFCNT_IMMORTAL(PyObject *object) {
 
     // Check if already immortal to avoid degrading from static immortal to
     // plain immortal, which would e.g. change the "sys.getrefcount" value.
-    if (_Py_IsImmortal(object)) {
+    if (_Py_IsImmortal(obj)) {
         return;
     }
 
 #ifdef Py_GIL_DISABLED
-    object->ob_tid = _Py_UNOWNED_TID;
-    object->ob_ref_local = _Py_IMMORTAL_INITIAL_REFCNT;
-    object->ob_ref_shared = 0;
+    obj->ob_tid = _Py_UNOWNED_TID;
 #if PYTHON_VERSION >= 0x3e0
-    _Py_atomic_or_uint8(&op->ob_gc_bits, _PyGC_BITS_DEFERRED);
+    obj->ob_ref_local = _Py_IMMORTAL_REFCNT_LOCAL;
+#else
+    obj->ob_ref_local = _Py_IMMORTAL_INITIAL_REFCNT;
+#endif
+    obj->ob_ref_shared = 0;
+#if PYTHON_VERSION >= 0x3e0
+    _Py_atomic_or_uint8(&obj->ob_gc_bits, _PyGC_BITS_DEFERRED);
 #endif
 
 #else
 
 #if (PYTHON_VERSION >= 0x3e0) && (SIZEOF_VOID_P > 4)
-    object->ob_flags = _Py_IMMORTAL_FLAGS;
-    object->ob_refcnt = _Py_IMMORTAL_INITIAL_REFCNT;
+    obj->ob_flags = _Py_IMMORTAL_FLAGS;
+    obj->ob_refcnt = _Py_IMMORTAL_INITIAL_REFCNT;
 #else
-    object->ob_refcnt = _Py_IMMORTAL_INITIAL_REFCNT;
+    obj->ob_refcnt = _Py_IMMORTAL_INITIAL_REFCNT;
 #endif
 
 #endif
@@ -952,9 +1008,6 @@ static void inline Py_SET_REFCNT_IMMORTAL(PyObject *object) {
 #endif
 
 #ifndef Py_XSETREF
-/* Py_XSETREF() is a variant of Py_SETREF() that uses Py_XDECREF() instead of
- * Py_DECREF().
- */
 #ifdef _Py_TYPEOF
 #define Py_XSETREF(dst, src)                                                                                           \
     do {                                                                                                               \
@@ -973,6 +1026,8 @@ static void inline Py_SET_REFCNT_IMMORTAL(PyObject *object) {
         Py_XDECREF(_tmp_old_dst);                                                                                      \
     } while (0)
 #endif
+#endif
+
 #endif
 
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and

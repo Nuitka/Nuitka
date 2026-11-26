@@ -9,7 +9,7 @@
  * them to our own names while the CPython headers are included, so that we
  * have stable names for them, and so that Python2 modules named "proc" can
  * define their "initproc" init function without conflicts.
-   spell-checker: ignore initproc,initfunc
+   spell-checker: ignore initfunc,initproc
  */
 #define initproc python_init_proc
 #define initfunc python_init_func

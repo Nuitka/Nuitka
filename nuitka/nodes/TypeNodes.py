@@ -10,7 +10,7 @@ them, their relationship or check for them in re-formulations.
 
 from nuitka.__past__ import GenericAlias
 from nuitka.Builtins import builtin_names
-from nuitka.options.Options import isExperimental
+from nuitka.options.Experimental import isExperimental
 
 from .BuiltinRefNodes import (
     ExpressionBuiltinAnonymousRef,
@@ -59,7 +59,7 @@ class ExpressionBuiltinType1(ExpressionBuiltinSingleArgBase):
                     type_shape, "typical_value"
                 ):
                     result = makeConstantReplacementNode(
-                        constant=type(getattr(type_shape, "typical_value")),
+                        constant=type(type_shape.typical_value),
                         node=self,
                         user_provided=False,
                     )
@@ -84,7 +84,6 @@ class ExpressionBuiltinType1(ExpressionBuiltinSingleArgBase):
                     )
 
         if value.isCompileTimeConstant():
-            # The above code is supposed to catch these in a better way.
             value = value.getCompileTimeConstant()
 
             if type(value) is GenericAlias:
@@ -97,6 +96,7 @@ class ExpressionBuiltinType1(ExpressionBuiltinSingleArgBase):
                     builtin_name=type_name,
                     locals_scope=None,
                     source_ref=self.source_ref,
+                    module_name=None,
                 )
             else:
                 new_node = ExpressionBuiltinAnonymousRef(
@@ -140,8 +140,6 @@ Removed type taking for unused result.""",
 
 
 class ExpressionBuiltinSuper1(ChildrenExpressionBuiltinSuper1Mixin, ExpressionBase):
-    """Two arguments form of super."""
-
     kind = "EXPRESSION_BUILTIN_SUPER1"
 
     named_children = ("type_arg",)
@@ -166,8 +164,6 @@ class ExpressionBuiltinSuper1(ChildrenExpressionBuiltinSuper1Mixin, ExpressionBa
 
 
 class ExpressionBuiltinSuper2(ChildrenExpressionBuiltinSuper2Mixin, ExpressionBase):
-    """Two arguments form of super."""
-
     kind = "EXPRESSION_BUILTIN_SUPER2"
 
     named_children = ("type_arg", "object_arg")
@@ -193,7 +189,7 @@ class ExpressionBuiltinSuper2(ChildrenExpressionBuiltinSuper2Mixin, ExpressionBa
 
 
 class ExpressionBuiltinSuper0(ChildrenExpressionBuiltinSuper0Mixin, ExpressionBase):
-    """Python3 form of super, arguments determined from cells and function arguments."""
+    """Python3 argumentless 'super()', using cell and function argument nodes."""
 
     kind = "EXPRESSION_BUILTIN_SUPER0"
 
@@ -256,7 +252,6 @@ class ExpressionBuiltinIsinstance(ChildrenHavingInstanceClassesMixin, Expression
 
             return self, None, None
 
-        # So if both are compile time constant, we are able to compute it.
         return trace_collection.getCompileTimeComputationResult(
             node=self,
             computation=lambda: isinstance(
@@ -305,7 +300,6 @@ class ExpressionBuiltinIssubclass(
 
             return self, None, None
 
-        # So if both are compile time constant, we are able to compute it.
         return trace_collection.getCompileTimeComputationResult(
             node=self,
             computation=lambda: issubclass(
@@ -372,12 +366,28 @@ class ExpressionTypeAlias(ChildrenExpressionTypeAliasMixin, ExpressionBase):
     def mayRaiseExceptionOperation():
         return False
 
+    def mayRaiseException(self, exception_type):
+        # The creation of the type alias itself cannot raise anything that
+        # code generation would handle, only the children are evaluated.
+        return (
+            self.subnode_name.mayRaiseException(exception_type)
+            or any(
+                type_param.mayRaiseException(exception_type)
+                for type_param in self.subnode_type_params
+            )
+            or self.subnode_value.mayRaiseException(exception_type)
+        )
+
 
 class ExpressionTypeVariable(ExpressionTypeVariableBase, ExpressionBase):
     kind = "EXPRESSION_TYPE_VARIABLE"
 
     auto_compute_handling = "final,no_raise"
-    named_children = ("bound|optional", "default_value|auto_none")
+    named_children = (
+        "bound|optional",
+        "constraints|optional",
+        "default_value|optional",
+    )
     node_attributes = ("name",)
 
     python_version_spec = ">= 0x3c0"
@@ -387,6 +397,7 @@ class ExpressionTypeVariableTuple(ExpressionTypeVariableTupleBase, ExpressionBas
     kind = "EXPRESSION_TYPE_VARIABLE_TUPLE"
 
     auto_compute_handling = "final,no_raise"
+    named_children = ("default_value|optional",)
     node_attributes = ("name",)
 
     python_version_spec = ">= 0x3c0"
@@ -398,6 +409,7 @@ class ExpressionParameterSpecification(
     kind = "EXPRESSION_PARAMETER_SPECIFICATION"
 
     auto_compute_handling = "final,no_raise"
+    named_children = ("default_value|optional",)
     node_attributes = ("name",)
 
     python_version_spec = ">= 0x3c0"

@@ -20,8 +20,6 @@ class StatementListOperationAppend(StatementListOperationAppendBase):
     def computeStatementOperation(self, trace_collection):
         # TODO: Until we have proper list tracing.
         trace_collection.removeKnowledge(self.subnode_list_arg)
-
-        # This lets the value added to the list escape.
         self.subnode_value.onContentEscapes(trace_collection)
 
         return self, None, None
@@ -41,8 +39,6 @@ class StatementSetOperationAdd(StatementSetOperationAddBase):
     def computeStatementOperation(self, trace_collection):
         # TODO: Until we have proper set tracing.
         trace_collection.removeKnowledge(self.subnode_set_arg)
-
-        # This lets the value added to the set escape.
         self.subnode_value.onContentEscapes(trace_collection)
 
         return self, None, None
@@ -71,8 +67,6 @@ class ExpressionSetOperationUpdate(
 
     def computeExpression(self, trace_collection):
         trace_collection.removeKnowledge(self.subnode_set_arg)
-
-        # This lets the values added to the set escape.
         self.subnode_value.onContentEscapes(trace_collection)
 
         return self, None, None

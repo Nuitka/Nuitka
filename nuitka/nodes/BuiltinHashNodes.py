@@ -1,13 +1,7 @@
 #     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-"""Node the calls to the 'hash' built-in.
-
-This is a specific thing, which must be calculated at run time, but we can
-predict things about its type, and the fact that it won't raise an exception
-for some types, so it is still useful. Also calls to it can be accelerated
-slightly.
-"""
+"""Node for calls to the 'hash' built-in."""
 
 from .ChildrenHavingMixins import ChildHavingValueMixin
 from .ExpressionBases import ExpressionBase

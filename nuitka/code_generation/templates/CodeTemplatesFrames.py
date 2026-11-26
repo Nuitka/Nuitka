@@ -6,26 +6,19 @@
 # This uses STORE_GENERATOR_EXCEPTION,STORE_COROUTINE_EXCEPTION,STORE_ASYNCGEN_EXCEPTION
 
 template_frame_guard_normal_main_block = """\
+{
 {% if frame_cache_identifier %}
-if (isFrameUnusable({{frame_cache_identifier}})) {
-    Py_XDECREF({{frame_cache_identifier}});
+struct Nuitka_FrameCacheHandle *{{cache_claim_identifier}};
 
-#if _DEBUG_REFCOUNTS
-    if ({{frame_cache_identifier}} == NULL) {
-        count_active_frame_cache_instances += 1;
-    } else {
-        count_released_frame_cache_instances += 1;
-    }
-    count_allocated_frame_cache_instances += 1;
-#endif
-    {{frame_cache_identifier}} = {{make_frame_code}};
-#if _DEBUG_REFCOUNTS
-} else {
-    count_hit_frame_cache_instances += 1;
-#endif
+{{cache_claim_identifier}} = Nuitka_FrameCache_Take(&{{frame_cache_identifier}}, &{{frame_identifier}});
+
+if ({{cache_claim_identifier}} == NULL) {
+    // Another call owns the cache, use an uncached frame for this call.
+    {{frame_identifier}} = {{make_frame_code}};
+} else if ({{frame_identifier}} == NULL) {
+    {{frame_identifier}} = {{make_frame_code}};
+    Nuitka_FrameCache_Attach({{cache_claim_identifier}}, {{frame_identifier}});
 }
-
-{{frame_identifier}} = {{frame_cache_identifier}};
 {% else %}
 {{frame_identifier}} = {{make_frame_code}};
 {% endif %}
@@ -34,9 +27,11 @@ if (isFrameUnusable({{frame_cache_identifier}})) {
 {% endif %}
 {% if context_identifier %}
 {% if frame_cache_identifier %}
-// Mark the frame object as in use, ref count 1 will be up for reuse.
-Py_INCREF({{context_identifier}}->m_frame);
-assert(Py_REFCNT({{context_identifier}}->m_frame) == 2); // Frame stack
+// The generator owns a reference only when it claimed the cache. For an
+// uncached frame, the initial reference already belongs to the generator.
+if ({{cache_claim_identifier}} != NULL) {
+    Py_INCREF({{context_identifier}}->m_frame);
+}
 {% endif %}
 
 {% if is_python3 %}
@@ -46,31 +41,24 @@ Nuitka_SetFrameGenerator({{context_identifier}}->m_frame, (PyObject *){{context_
 assert({{context_identifier}}->m_frame->m_frame.f_back == NULL);
 {% endif %}
 
-// Push the new frame as the currently active one, and we should be exclusively
-// owning it.
 {% if context_identifier %}
 pushFrameStackGeneratorCompiledFrame(tstate, {{frame_identifier}});
 {% else %}
 pushFrameStackCompiledFrame(tstate, {{frame_identifier}});
 {% endif %}
+{% if context_identifier and frame_cache_identifier %}
+assert(Py_REFCNT({{frame_identifier}}) == ({{cache_claim_identifier}} != NULL ? 2 : 1));
+{% else %}
 assert(Py_REFCNT({{frame_identifier}}) == 2);
+{% endif %}
 
-{% if context_identifier and is_python3 %}
-// Store currently existing exception as the one to publish again when we
-// yield or yield from.
+{% if context_identifier and store_exception %}
 STORE_{{context_identifier.upper()}}_EXCEPTION(tstate, {{context_identifier}});
 
 {% endif %}
-// Framed code:
 {{codes}}
 
-{% if context_identifier and is_python3 %}
-// Release exception attached to the frame
-DROP_{{context_identifier.upper()}}_EXCEPTION({{context_identifier}});
-
-{% endif %}
 {% if needs_preserve %}
-// Restore frame exception if necessary.
 RESTORE_FRAME_EXCEPTION(tstate, {{frame_identifier}});
 {% endif %}
 
@@ -78,11 +66,14 @@ RESTORE_FRAME_EXCEPTION(tstate, {{frame_identifier}});
 {% if frame_exit_code %}
 {{frame_exit_code}}
 {% endif %}
-// Put the previous frame back on top.
 popFrameStack(tstate);
+{% if frame_cache_identifier %}
+Nuitka_FrameCache_Return({{frame_identifier}});
+{% endif %}
 {% endif %}
 
 goto {{no_exception_exit}};
+}
 """
 
 template_frame_guard_normal_return_handler = """\
@@ -94,8 +85,10 @@ RESTORE_FRAME_EXCEPTION(tstate, {{frame_identifier}});
 {% if frame_exit_code %}
 {{frame_exit_code}}
 {% endif %}
-// Put the previous frame back on top.
 popFrameStack(tstate);
+{% if frame_cache_identifier %}
+Nuitka_FrameCache_Return({{frame_identifier}});
+{% endif %}
 
 goto {{return_exit}};
 """
@@ -125,32 +118,22 @@ RESTORE_FRAME_EXCEPTION(tstate, {{frame_identifier}});
 }
 
 {% if attach_locals_code %}
-// Attaches locals to frame if any.
 {{attach_locals_code}}
 {% endif %}
 
 {% if frame_cache_identifier %}
-// Release cached frame if used for exception.
-if ({{frame_identifier}} == {{frame_cache_identifier}}) {
-#if _DEBUG_REFCOUNTS
-    count_active_frame_cache_instances -= 1;
-    count_released_frame_cache_instances += 1;
-#endif
-    Py_DECREF({{frame_cache_identifier}});
-    {{frame_cache_identifier}} = NULL;
-}
+// Release the cache reference or the call's own reference. The traceback
+// keeps the frame alive.
+Nuitka_FrameCache_DropCall({{frame_identifier}});
 {% endif %}
 
 assertFrameObject({{frame_identifier}});
 
-// Put the previous frame back on top.
 popFrameStack(tstate);
 
-// Return the error.
 goto {{parent_exception_exit}};
 """
 
-# Coroutines and asyncgen do this
 template_frame_guard_generator_return_handler = """\
 %(frame_return_exit)s:;
 
@@ -171,7 +154,6 @@ goto %(return_exit)s;
 template_frame_guard_generator_exception_handler = """\
 {{frame_exception_exit}}:;
 
-// If it's not an exit exception, consider and create a traceback for it.
 if (!EXCEPTION_STATE_MATCH_GENERATOR(tstate, &{{exception_state_name}})) {
     PyTracebackObject *exception_tb = GET_EXCEPTION_STATE_TRACEBACK(&{{exception_state_name}});
     if (exception_tb == NULL) {
@@ -184,27 +166,14 @@ if (!EXCEPTION_STATE_MATCH_GENERATOR(tstate, &{{exception_state_name}})) {
 
 {{attach_locals}}
 
-    // Release cached frame if used for exception.
-    if ({{frame_identifier}} == {{frame_cache_identifier}}) {
-#if _DEBUG_REFCOUNTS
-        count_active_frame_cache_instances -= 1;
-        count_released_frame_cache_instances += 1;
-#endif
-
-        Py_DECREF({{frame_cache_identifier}});
-        {{frame_cache_identifier}} = NULL;
-    }
+{% if frame_cache_identifier %}
+    // Release the cache reference; the generator keeps its own reference.
+    Nuitka_FrameCache_DropCache({{frame_identifier}});
+{% endif %}
 
     assertFrameObject({{frame_identifier}});
 }
 
-{% if is_python3 %}
-// Release exception attached to the frame
-DROP_{{context_identifier.upper()}}_EXCEPTION({{context_identifier}});
-
-{% endif %}
-
-// Return the error.
 goto {{parent_exception_exit}};
 """
 

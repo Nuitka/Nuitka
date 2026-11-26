@@ -114,10 +114,34 @@ def _writeConstantValue(output, constant_value, blob_spec):
         for element in constant_value:
             _writeConstantValue(output, element, blob_spec)
     elif constant_type is dict or constant_type is frozendict:
-        output.write(
-            (blob_spec.tag_dict if constant_type is dict else blob_spec.tag_frozendict)
-            + _encodeVariableLength(len(constant_value))
-        )
+        if constant_type is dict and not constant_value:
+            output.write(blob_spec.tag_dict_empty)
+        else:
+            if (
+                python_version >= 0x3B0
+                and constant_value
+                and all(type(key) is unicode for key in constant_value)
+            ):
+                tag = (
+                    blob_spec.tag_dict_unicode
+                    if constant_type is dict
+                    else blob_spec.tag_frozendict_unicode
+                )
+            else:
+                tag = (
+                    blob_spec.tag_dict
+                    if constant_type is dict
+                    else blob_spec.tag_frozendict
+                )
+
+            if constant_type is dict:
+                # Empty dicts use a dedicated tag, so the normal tag only
+                # needs to encode lengths starting at zero for one entry.
+                length = len(constant_value) - 1
+            else:
+                length = len(constant_value)
+
+            output.write(tag + _encodeVariableLength(length))
 
         # Write keys first, and values second, such that we allow for the
         # last_written to have an impact.
@@ -710,17 +734,14 @@ def main():
             else:
                 encoded_name = name
 
-            is_name_based_blob = name in (".bytecode", ".files")
-
-            if use_direct_constant_blobs and not is_name_based_blob:
+            if use_direct_constant_blobs:
                 _writeConstantBlob(
                     output_filename=getConstantBlobFilenameForDataFilename(
                         build_dir, filename
                     ),
                     part=part,
                 )
-
-            if not use_direct_constant_blobs or is_name_based_blob:
+            else:
                 desc.append((encoded_name, part))
         except Exception:
             data_composer_logger.warning("Problem with constant file '%s'." % filename)
@@ -732,7 +753,7 @@ def main():
             "blob_size": len(part),
         }
 
-        if use_direct_constant_blobs and not is_name_based_blob:
+        if use_direct_constant_blobs:
             stats[filename]["blob_filename"] = os.path.basename(
                 getConstantBlobFilenameForDataFilename(build_dir, filename)
             )
@@ -741,7 +762,8 @@ def main():
 
     data_composer_logger.info("Total amount of constants is %d." % total)
 
-    _writeConstantsBlob(output_filename=output_filename, desc=desc)
+    if desc:
+        _writeConstantsBlob(output_filename=output_filename, desc=desc)
 
     writeJsonToFilename(stats_filename, contents=stats)
 

@@ -71,15 +71,13 @@ importlib_metadata_backport_entry_points_spec = BuiltinParameterSpec(
     "importlib_metadata.entry_points", (), default_count=0, dict_star_arg="params"
 )
 
-# TODO: Once we have selectable group under control, we can do this too.
-# importlib_metadata_backport_entry_points_spec = BuiltinParameterSpec(
-#    "importlib_metadata.entry_points", (), default_count=0, type_shape=tshape_dict
-# )
-
 # Resources:
 
 pkgutil_get_data_spec = BuiltinParameterSpec(
     "pkgutil.get_data", ("package", "resource"), default_count=0
+)
+pkgutil_iter_modules_spec = BuiltinParameterSpec(
+    "pkgutil.iter_modules", ("path", "prefix"), default_count=2
 )
 pkg_resources_resource_string_spec = BuiltinParameterSpec(
     "pkg_resources.resource_string",
@@ -102,6 +100,26 @@ importlib_resources_backport_read_binary_spec = BuiltinParameterSpec(
     ("package", "resource"),
     default_count=0,
     type_shape=tshape_bytes,
+)
+importlib_resources_open_binary_spec = BuiltinParameterSpec(
+    "importlib.resources.open_binary",
+    ("package", "resource"),
+    default_count=0,
+)
+importlib_resources_backport_open_binary_spec = BuiltinParameterSpec(
+    "importlib_resources.open_binary",
+    ("package", "resource"),
+    default_count=0,
+)
+importlib_resources_open_text_spec = BuiltinParameterSpec(
+    "importlib.resources.open_text",
+    ("package", "resource", "encoding", "errors"),
+    default_count=2,
+)
+importlib_resources_backport_open_text_spec = BuiltinParameterSpec(
+    "importlib_resources.open_text",
+    ("package", "resource", "encoding", "errors"),
+    default_count=2,
 )
 importlib_resources_read_text_since_313_spec = BuiltinParameterSpec(
     "importlib.resources.read_text",
@@ -128,9 +146,17 @@ importlib_resources_files_spec = BuiltinParameterSpec(
     ("package",),
     default_count=0,
 )
+# For Python 3.12 to 3.14, the argument is named "anchor", but a wrapper
+# still accepts "package" as well.
 importlib_resources_files_since_312_spec = BuiltinParameterSpec(
     "importlib.resources.files",
-    ("package",),
+    ("anchor", "package"),
+    default_count=2,
+)
+# For Python 3.15 or higher, the wrapper accepting "package" was removed.
+importlib_resources_files_since_315_spec = BuiltinParameterSpec(
+    "importlib.resources.files",
+    ("anchor",),
     default_count=1,
 )
 importlib_resources_backport_files_spec = BuiltinParameterSpec(
@@ -149,18 +175,45 @@ os_uname_spec = BuiltinParameterSpec(
 
 os_path_exists_spec = BuiltinParameterSpec("os.path.exists", ("path",), default_count=0)
 os_path_isfile_spec = BuiltinParameterSpec("os.path.isfile", ("path",), default_count=0)
-if isWin32Windows() and python_version < 0x380:
-    # Before Python 3.8, on Windows "os.path.isdir" is "nt._isdir", which takes
-    # its argument only positionally.
-    os_path_isdir_spec = BuiltinParameterSpec(
+
+
+class OsPathIsdirSpec(BuiltinParameterSpec):
+    __slots__ = ()
+
+    def getKeywordAliases(self):
+        # Python 3.12.0 on Windows named the "nt._path_isdir" argument "path",
+        # before it was renamed to "s" in Python 3.12.1.
+        if isWin32Windows() and python_version == 0x3C0:
+            return {"path": "s"}
+
+        return None
+
+
+if isWin32Windows() and 0x270 <= python_version < 0x380:
+    # Python 2.7 to 3.7 on Windows use "nt._isdir", which takes its argument
+    # only positionally. Python 2.6 is not included, as it still used
+    # "genericpath.isdir".
+    os_path_isdir_spec = OsPathIsdirSpec(
+        "os.path.isdir", (), default_count=0, pos_only_args=("s",)
+    )
+elif isWin32Windows() and python_version >= 0x3F0:
+    # Python 3.15 or higher on Windows use "nt._path_isdir", which takes its
+    # argument only positionally.
+    os_path_isdir_spec = OsPathIsdirSpec(
         "os.path.isdir", (), default_count=0, pos_only_args=("s",)
     )
 else:
-    os_path_isdir_spec = BuiltinParameterSpec("os.path.isdir", ("s",), default_count=0)
+    # Python 2.6, Python 3.8 to 3.14, and non-Windows versions use
+    # "genericpath.isdir" or "nt._path_isdir" with the argument named "s".
+    os_path_isdir_spec = OsPathIsdirSpec("os.path.isdir", ("s",), default_count=0)
+
 os_path_basename_spec = BuiltinParameterSpec(
     "os.path.basename", ("p",), default_count=0
 )
 os_path_dirname_spec = BuiltinParameterSpec("os.path.dirname", ("p",), default_count=0)
+os_path_join_spec = BuiltinParameterSpecNoKeywords(
+    "os.path.join", (), default_count=0, list_star_arg="paths"
+)
 os_path_normpath_spec = BuiltinParameterSpec(
     "os.path.normpath", ("path",), default_count=0
 )
@@ -229,18 +282,8 @@ tensorflow_function_spec = BuiltinParameterSpec(
     default_count=11,
 )
 
-# networkx.utils.decorators
-
-# TODO: Disabled for now, keyword only arguments and star list argument are
-# having ordering issues for call matching and code generation.
-
-# networkx_argmap_spec = BuiltinParameterSpec(
-#     "networkx.utils.decorators.argmap",
-#     ("func",),
-#     default_count=1,
-#     list_star_arg="args",
-#     kw_only_args=("try_finally",),
-# )
+# TODO: Support "networkx.utils.decorators.argmap" once keyword-only arguments
+# combined with star list arguments are supported in call matching and codegen.
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.

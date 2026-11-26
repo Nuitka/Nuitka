@@ -1,14 +1,14 @@
 #     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-"""CType classes for C "float" (double), (used in conjunction with PyFloatObject *)"""
+"""CType classes for C 'double' (used in conjunction with 'PyFloatObject *')."""
 
 from math import copysign, isinf, isnan
 
-from .CTypeBases import CTypeBase
+from .CTypeBases import CTypeBase, CTypeNotReferenceCountedMixin
 
 
-class CTypeCFloat(CTypeBase):
+class CTypeCFloat(CTypeNotReferenceCountedMixin, CTypeBase):
     c_type = "double"
 
     helper_code = "CFLOAT"
@@ -21,7 +21,7 @@ class CTypeCFloat(CTypeBase):
     def emitAssignmentCodeFromConstant(
         cls, to_name, constant, may_escape, emit, context
     ):
-        # No context needed, pylint: disable=unused-argument
+        # pylint: disable=unused-argument
         if constant == 0.0:
             if copysign(1, constant) == 1:
                 c_constant = "0.0"

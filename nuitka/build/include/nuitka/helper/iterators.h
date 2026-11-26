@@ -10,13 +10,36 @@
 #include "nuitka/cpython_api_compat.h"
 #include "nuitka/defines.h"
 #include "nuitka/exceptions.h"
+#include "nuitka/helper/dictionaries.h"
+#include "nuitka/helper/sequences.h"
+
+#if PYTHON_VERSION >= 0x3e0
+#include "internal/pycore_list.h"
+#include "internal/pycore_tuple.h"
+#endif
 #endif
 
 #if PYTHON_VERSION >= 0x270
 // Initialize value for "tp_iternext" to compare with, needed by HAS_ITERNEXT
-// which emulates "PyCheck_Iter" but is bug free.
+// which emulates "PyIter_Check" but is bug free.
 extern iternextfunc default_iternext;
 extern void _initSlotIterNext(void);
+#endif
+
+#if PYTHON_VERSION >= 0x350
+// Whether the object has the slots needed for iteration, which is what
+// CPython uses to decide between the generic "not iterable" error and
+// errors raised by iteration itself. This inspects type slots only, so it
+// does not invoke user code and is not affected by "__getattribute__".
+NUITKA_MAY_BE_UNUSED static bool IS_ITERABLE(PyObject *value) {
+    CHECK_OBJECT(value);
+
+    if (Py_TYPE(value)->tp_iter != NULL) {
+        return true;
+    }
+
+    return Nuitka_PySequence_Check(value) != 0;
+}
 #endif
 
 // This is like "PyIter_Check" but without bugs due to shared library pointers.
@@ -70,7 +93,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *MAKE_ITERATOR_INFALLIBLE(PyObject *iterate
 
         return result;
     } else {
-        assert(PySequence_Check(iterated));
+        assert(Nuitka_PySequence_Check(iterated));
 
         seqiterobject *result = (seqiterobject *)Nuitka_GC_New(&PySeqIter_Type);
         assert(result);
@@ -115,7 +138,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *MAKE_ITERATOR(PyThreadState *tstate, PyObj
         } else {
             return result;
         }
-    } else if (PySequence_Check(iterated)) {
+    } else if (Nuitka_PySequence_Check(iterated)) {
         seqiterobject *result = (seqiterobject *)Nuitka_GC_New(&PySeqIter_Type);
         assert(result);
 
@@ -155,7 +178,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *MAKE_UNPACK_ITERATOR(PyObject *iterated) {
         } else {
             return result;
         }
-    } else if (PySequence_Check(iterated)) {
+    } else if (Nuitka_PySequence_Check(iterated)) {
         seqiterobject *result = (seqiterobject *)Nuitka_GC_New(&PySeqIter_Type);
         assert(result);
 
@@ -217,8 +240,8 @@ NUITKA_MAY_BE_UNUSED static PyObject *ITERATOR_NEXT(PyObject *iterator) {
 #endif
 }
 
-NUITKA_MAY_BE_UNUSED static PyObject *BUILTIN_NEXT2(PyThreadState *tstate, PyObject *iterator,
-                                                    PyObject *default_value) {
+NUITKA_MAY_BE_UNUSED static PyObject *_BUILTIN_NEXT2_COMMON(PyThreadState *tstate, PyObject *iterator,
+                                                            PyObject *default_value) {
     CHECK_OBJECT(iterator);
     CHECK_OBJECT(default_value);
 
@@ -239,7 +262,35 @@ NUITKA_MAY_BE_UNUSED static PyObject *BUILTIN_NEXT2(PyThreadState *tstate, PyObj
     return result;
 }
 
-// For cases, where no exception raising is needed, because we know it at compile time.
+NUITKA_MAY_BE_UNUSED static PyObject *BUILTIN_NEXT2(PyThreadState *tstate, PyObject *iterator,
+                                                    PyObject *default_value) {
+    CHECK_OBJECT(iterator);
+    CHECK_OBJECT(default_value);
+
+    if (unlikely(!HAS_ITERNEXT(iterator))) {
+        SET_CURRENT_EXCEPTION_TYPE_COMPLAINT(
+#if PYTHON_VERSION < 0x300 && defined(_NUITKA_FULL_COMPAT)
+            "%s object is not an iterator",
+#else
+            "'%s' object is not an iterator",
+#endif
+            iterator);
+
+        return NULL;
+    }
+
+    return _BUILTIN_NEXT2_COMMON(tstate, iterator, default_value);
+}
+
+NUITKA_MAY_BE_UNUSED static PyObject *BUILTIN_NEXT2_ITERATOR(PyThreadState *tstate, PyObject *iterator,
+                                                             PyObject *default_value) {
+    CHECK_OBJECT(iterator);
+    CHECK_OBJECT(default_value);
+    assert(HAS_ITERNEXT(iterator));
+
+    return _BUILTIN_NEXT2_COMMON(tstate, iterator, default_value);
+}
+
 NUITKA_MAY_BE_UNUSED static PyObject *UNPACK_NEXT_INFALLIBLE(PyObject *iterator) {
     CHECK_OBJECT(iterator);
     assert(HAS_ITERNEXT(iterator));
@@ -247,6 +298,26 @@ NUITKA_MAY_BE_UNUSED static PyObject *UNPACK_NEXT_INFALLIBLE(PyObject *iterator)
     PyObject *result = (*Py_TYPE(iterator)->tp_iternext)(iterator);
     CHECK_OBJECT(result);
     return result;
+}
+
+NUITKA_MAY_BE_UNUSED inline static void
+SET_UNPACK_NOT_ENOUGH_VALUES_ERROR(PyThreadState *tstate, struct Nuitka_ExceptionPreservationItem *exception_state,
+                                   int seq_size_so_far, int expected) {
+#if PYTHON_VERSION < 0x350
+    (void)expected;
+
+    if (seq_size_so_far == 1) {
+        SET_EXCEPTION_PRESERVATION_STATE_FROM_TYPE0_STR(tstate, exception_state, PyExc_ValueError,
+                                                        "need more than 1 value to unpack");
+    } else {
+        SET_EXCEPTION_PRESERVATION_STATE_FROM_TYPE0_FORMAT1(tstate, exception_state, PyExc_ValueError,
+                                                            "need more than %d values to unpack", seq_size_so_far);
+    }
+#else
+    SET_EXCEPTION_PRESERVATION_STATE_FROM_TYPE0_FORMAT2(tstate, exception_state, PyExc_ValueError,
+                                                        "not enough values to unpack (expected %d, got %d)", expected,
+                                                        seq_size_so_far);
+#endif
 }
 
 #if PYTHON_VERSION < 0x350
@@ -279,17 +350,9 @@ NUITKA_MAY_BE_UNUSED static PyObject *UNPACK_NEXT(PyThreadState *tstate,
 
         if (had_stop_iteration) {
 #if PYTHON_VERSION < 0x350
-            if (seq_size_so_far == 1) {
-                SET_EXCEPTION_PRESERVATION_STATE_FROM_TYPE0_STR(tstate, exception_state, PyExc_ValueError,
-                                                                "need more than 1 value to unpack");
-            } else {
-                SET_EXCEPTION_PRESERVATION_STATE_FROM_TYPE0_FORMAT1(
-                    tstate, exception_state, PyExc_ValueError, "need more than %d values to unpack", seq_size_so_far);
-            }
+            SET_UNPACK_NOT_ENOUGH_VALUES_ERROR(tstate, exception_state, seq_size_so_far, 0);
 #else
-            SET_EXCEPTION_PRESERVATION_STATE_FROM_TYPE0_FORMAT2(tstate, exception_state, PyExc_ValueError,
-                                                                "not enough values to unpack (expected %d, got %d)",
-                                                                expected, seq_size_so_far);
+            SET_UNPACK_NOT_ENOUGH_VALUES_ERROR(tstate, exception_state, seq_size_so_far, expected);
 #endif
         } else {
             assert(HAS_ERROR_OCCURRED(tstate));
@@ -355,11 +418,11 @@ SET_UNPACK_TOO_MANY_VALUES_ERROR(PyThreadState *tstate, struct Nuitka_ExceptionP
     Py_ssize_t gotten = -1;
 
     if (iterated_value != NULL) {
-        if (PyTuple_Check(iterated_value)) {
+        if (PyTuple_CheckExact(iterated_value)) {
             gotten = PyTuple_GET_SIZE(iterated_value);
-        } else if (PyList_Check(iterated_value)) {
+        } else if (PyList_CheckExact(iterated_value)) {
             gotten = PyList_GET_SIZE(iterated_value);
-        } else if (PyDict_Check(iterated_value)) {
+        } else if (PyDict_CheckExact(iterated_value)) {
             gotten = DICT_SIZE(iterated_value);
         }
     }
@@ -415,6 +478,32 @@ NUITKA_MAY_BE_UNUSED static bool UNPACK_ITERATOR_CHECK(PyThreadState *tstate,
 #endif
         return false;
     }
+}
+
+NUITKA_MAY_BE_UNUSED static bool UNPACK_ITERATED_CHECK(PyThreadState *tstate,
+                                                       struct Nuitka_ExceptionPreservationItem *exception_state,
+                                                       PyObject *iterated_value, int expected) {
+    CHECK_OBJECT(iterated_value);
+
+    Py_ssize_t gotten = Nuitka_PyObject_Size(iterated_value);
+
+    if (unlikely(gotten < 0)) {
+        FETCH_ERROR_OCCURRED_STATE(tstate, exception_state);
+        return false;
+    }
+
+    if (unlikely(gotten > expected)) {
+#if PYTHON_VERSION < 0x300
+        SET_UNPACK_TOO_MANY_VALUES_ERROR(tstate, exception_state);
+#elif PYTHON_VERSION < 0x3e0
+        SET_UNPACK_TOO_MANY_VALUES_ERROR(tstate, exception_state, expected);
+#else
+        SET_UNPACK_TOO_MANY_VALUES_ERROR(tstate, exception_state, expected, iterated_value);
+#endif
+        return false;
+    }
+
+    return true;
 }
 
 #endif

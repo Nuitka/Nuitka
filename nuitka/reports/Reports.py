@@ -35,8 +35,8 @@ from nuitka.importing.Importing import (
 )
 from nuitka.importing.Recursion import getRecursionDecisions
 from nuitka.installer.Installer import (
+    computeInstallerOutputFilename,
     getInstallerBackendName,
-    getInstallerOutputFilename,
     getInstallerToolVersion,
     wasInstallerCreated,
 )
@@ -64,11 +64,14 @@ from nuitka.OutputDirectories import (
     getSourceDirectoryPath,
     hasMainModule,
 )
-from nuitka.plugins.Plugins import getActivePlugins, redactCommandLineArg
+from nuitka.plugins.Hooks import redactCommandLineArg
+from nuitka.plugins.Plugins import getActivePlugins
 from nuitka.PythonFlavors import getPythonFlavorName
-from nuitka.PythonVersions import (
+from nuitka.PythonPrefixes import (
     getLaunchingSystemPrefixPath,
     getSystemPrefixPath,
+)
+from nuitka.PythonVersions import (
     isPythonWithGil,
     python_version,
     python_version_full_str,
@@ -120,6 +123,10 @@ def _getReportInputData(aborted):
 
     module_sources = dict(
         (module.getFullName(), module.source_ref) for module in getDoneModules()
+    )
+
+    module_internal_flags = dict(
+        (module.getFullName(), module.isInternalModule()) for module in getDoneModules()
     )
 
     module_inclusion_infos = dict(
@@ -339,7 +346,7 @@ def _getReportInputData(aborted):
         onefile_resource_mode = None
 
     installer_executable = (
-        getInstallerOutputFilename() if wasInstallerCreated() else None
+        computeInstallerOutputFilename() if wasInstallerCreated() else None
     )
 
     installer_backend = getInstallerBackendName()
@@ -543,6 +550,9 @@ def _addModulesToReport(root, report_input_data, diffable):
             ),
         )
 
+        if report_input_data["module_internal_flags"][module_name]:
+            module_xml_node.attrib["internal"] = "True"
+
         recompiled, recompiled_reason = getRecompileDecisionReason(module_name)
         if recompiled_reason is not None:
             module_xml_node.attrib["recompiled_extension"] = (
@@ -565,7 +575,12 @@ def _addModulesToReport(root, report_input_data, diffable):
             )
 
             if influence == "condition-used":
-                condition, condition_tags_used, condition_result = detail
+                (
+                    condition,
+                    condition_tags_used,
+                    condition_result,
+                    config_module_name,
+                ) = detail
 
                 influence_xml_node.attrib["condition"] = condition
                 if condition_tags_used:
@@ -573,6 +588,9 @@ def _addModulesToReport(root, report_input_data, diffable):
                         condition_tags_used
                     )
                 influence_xml_node.attrib["result"] = str(condition_result).lower()
+
+                if module_name != config_module_name:
+                    influence_xml_node.attrib["config_module"] = config_module_name
             elif influence == "variable-used":
                 (
                     variable_name,
@@ -592,7 +610,12 @@ def _addModulesToReport(root, report_input_data, diffable):
                     influence_xml_node.attrib["config_module"] = config_module_name
 
             elif influence == "parameter-used":
-                parameter_name, condition_tags_used, parameter_value = detail
+                (
+                    parameter_name,
+                    condition_tags_used,
+                    parameter_value,
+                    config_module_name,
+                ) = detail
 
                 influence_xml_node.attrib["parameter"] = parameter_name
                 if condition_tags_used:
@@ -600,6 +623,9 @@ def _addModulesToReport(root, report_input_data, diffable):
                         condition_tags_used
                     )
                 influence_xml_node.attrib["value"] = repr(parameter_value)
+
+                if module_name != config_module_name:
+                    influence_xml_node.attrib["config_module"] = config_module_name
             elif influence == "detection":
                 detection_name, detection_value = detail
 
@@ -1118,14 +1144,16 @@ def writeCompilationReport(report_filename, report_input_data, diffable):
         timing_xml_node.attrib["module_count"] = str(
             performance_totals["optimization_passes"][pass_num]["count"]
         )
-        if performance_totals["optimization_passes"][pass_num]["cpu_instr"] is not None:
-            if not diffable:
-                timing_xml_node.attrib["cpu_instr"] = str(
-                    performance_totals["optimization_passes"][pass_num]["cpu_instr"]
-                )
-                timing_xml_node.attrib["cpu_cycles"] = str(
-                    performance_totals["optimization_passes"][pass_num]["cpu_cycles"]
-                )
+        if (
+            performance_totals["optimization_passes"][pass_num]["cpu_instr"] is not None
+            and not diffable
+        ):
+            timing_xml_node.attrib["cpu_instr"] = str(
+                performance_totals["optimization_passes"][pass_num]["cpu_instr"]
+            )
+            timing_xml_node.attrib["cpu_cycles"] = str(
+                performance_totals["optimization_passes"][pass_num]["cpu_cycles"]
+            )
 
     timing_xml_node = appendTreeElement(
         performance_totals_node,
@@ -1138,14 +1166,13 @@ def writeCompilationReport(report_filename, report_input_data, diffable):
     timing_xml_node.attrib["module_count"] = str(
         performance_totals["all_passes"]["count"]
     )
-    if performance_totals["all_passes"]["cpu_instr"] is not None:
-        if not diffable:
-            timing_xml_node.attrib["cpu_instr"] = str(
-                performance_totals["all_passes"]["cpu_instr"]
-            )
-            timing_xml_node.attrib["cpu_cycles"] = str(
-                performance_totals["all_passes"]["cpu_cycles"]
-            )
+    if performance_totals["all_passes"]["cpu_instr"] is not None and not diffable:
+        timing_xml_node.attrib["cpu_instr"] = str(
+            performance_totals["all_passes"]["cpu_instr"]
+        )
+        timing_xml_node.attrib["cpu_cycles"] = str(
+            performance_totals["all_passes"]["cpu_cycles"]
+        )
 
     timing_xml_node = appendTreeElement(
         performance_totals_node,
@@ -1159,14 +1186,13 @@ def writeCompilationReport(report_filename, report_input_data, diffable):
     timing_xml_node.attrib["module_count"] = str(
         performance_totals["code_generation"]["count"]
     )
-    if performance_totals["code_generation"]["cpu_instr"] is not None:
-        if not diffable:
-            timing_xml_node.attrib["cpu_instr"] = str(
-                performance_totals["code_generation"]["cpu_instr"]
-            )
-            timing_xml_node.attrib["cpu_cycles"] = str(
-                performance_totals["code_generation"]["cpu_cycles"]
-            )
+    if performance_totals["code_generation"]["cpu_instr"] is not None and not diffable:
+        timing_xml_node.attrib["cpu_instr"] = str(
+            performance_totals["code_generation"]["cpu_instr"]
+        )
+        timing_xml_node.attrib["cpu_cycles"] = str(
+            performance_totals["code_generation"]["cpu_cycles"]
+        )
 
     if performance_totals["c_compilation"] is not None:
         c_comp_node = appendTreeElement(
@@ -1399,9 +1425,7 @@ Error, plugin '%s' report value for key '%s' is not a string or boolean."""
         contents = contents.encode("utf8")
 
     try:
-        putBinaryFileContents(
-            filename=getNormalizedPath(report_filename), contents=contents
-        )
+        putBinaryFileContents(filename=report_filename, contents=contents)
     except OSError as e:
         reports_logger.warning(
             "Compilation report write to file '%s' failed due to: %s."
@@ -1523,7 +1547,7 @@ def writeCompilationReports(aborted):
                     candidate += ".rst.j2"
 
                 if os.path.exists(candidate):
-                    template_filename = candidate
+                    template_filename = getNormalizedPath(candidate)
 
             if not os.path.exists(template_filename):
                 reports_logger.warning(
@@ -1533,8 +1557,8 @@ def writeCompilationReports(aborted):
                 continue
 
             writeCompilationReportFromTemplate(
-                template_filename=getNormalizedPath(template_filename),
-                report_filename=getNormalizedPath(report_filename),
+                template_filename=template_filename,
+                report_filename=report_filename,
                 report_input_data=report_input_data,
             )
 

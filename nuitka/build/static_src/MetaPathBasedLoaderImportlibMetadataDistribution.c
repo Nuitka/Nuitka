@@ -11,23 +11,19 @@
 #endif
 
 static struct Nuitka_MetaPathBasedLoaderEntry *findEntry(char const *name, bool internal);
-static PyObject *getModuleDirectory(PyThreadState *tstate, struct Nuitka_MetaPathBasedLoaderEntry const *entry);
+static PyObject *getModuleDirectory(PyThreadState *tstate, struct Nuitka_MetaPathBasedLoaderEntry const *entry,
+                                    PyObject *module_name);
 
 static PyObject *metadata_values_dict = NULL;
 
-// For initialization of the metadata dictionary during startup.
 void setDistributionsMetadata(PyThreadState *tstate, PyObject *metadata_values) {
     metadata_values_dict = MAKE_DICT_EMPTY(tstate);
 
-    // We get the items passed, and need to add it to the dictionary.
-    int res = PyDict_MergeFromSeq2(metadata_values_dict, metadata_values, 1);
+    int res = DICT_UPDATE_FROM_SEQ(tstate, metadata_values_dict, metadata_values);
 
     if (res != 0) {
         NUITKA_CANNOT_GET_HERE("Failed to setup distributions metadata");
     }
-
-    // PRINT_ITEM(metadata_values_dict);
-    // PRINT_NEW_LINE();
 }
 
 bool Nuitka_DistributionNext(Py_ssize_t *pos, PyObject **distribution_name_ptr) {
@@ -37,7 +33,7 @@ bool Nuitka_DistributionNext(Py_ssize_t *pos, PyObject **distribution_name_ptr) 
 
 PyObject *Nuitka_Distribution_New(PyThreadState *tstate, PyObject *name) {
     // TODO: Have our own Python code to be included in compiled form,
-    // this duplicates with inspec patcher code.
+    // this duplicates with inspect patcher code.
     static PyObject *nuitka_distribution_type = NULL;
     static PyObject *importlib_metadata_distribution = NULL;
     // TODO: Use pathlib.Path for "locate_file" result should be more compatible.
@@ -108,7 +104,7 @@ class nuitka_distribution(Distribution):\n\
             return NULL;
         }
 
-        PyObject *args[4] = {package_name, getModuleDirectory(tstate, entry), metadata, entry_points};
+        PyObject *args[4] = {package_name, getModuleDirectory(tstate, entry, package_name), metadata, entry_points};
         PyObject *result = CALL_FUNCTION_WITH_ARGS4(tstate, nuitka_distribution_type, args);
         CHECK_OBJECT(result);
         return result;

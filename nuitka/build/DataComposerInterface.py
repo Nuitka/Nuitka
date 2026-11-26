@@ -1,9 +1,10 @@
 #     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-"""Interface to data composer"""
+"""Interface to the data composer."""
 
 import os
+import re
 import subprocess
 import sys
 
@@ -13,7 +14,6 @@ from nuitka.plugins.Hooks import onDataComposerResult, onDataComposerRun
 from nuitka.PythonVersions import isRunningInInterpreter
 from nuitka.States import states
 from nuitka.Tracing import data_composer_logger
-from nuitka.utils.CStrings import encodePythonIdentifierToC
 from nuitka.utils.Execution import withEnvironmentVarsOverridden
 from nuitka.utils.FileOperations import (
     changeFilenameExtension,
@@ -22,9 +22,9 @@ from nuitka.utils.FileOperations import (
     makeContainingPath,
     makePath,
 )
+from nuitka.utils.Hashing import getStringHash
 from nuitka.utils.Json import loadJsonFromFilename
 
-# Indicate not done with -1
 _data_composer_size = None
 _data_composer_stats = None
 _constant_blob_symbol_bases = {}
@@ -36,7 +36,7 @@ def getDataComposerReportValues():
 
 
 def runDataComposer(source_dir):
-    # This module is a singleton, pylint: disable=global-statement
+    # pylint: disable=global-statement
     global _data_composer_stats
 
     onDataComposerRun()
@@ -67,8 +67,6 @@ def _runDataComposer(source_dir):
         mapping["NUITKA_USE_DIRECT_CONSTANT_BLOBS"] = "1"
 
     blob_filename = getConstantBlobFilename(source_dir)
-
-    # This ends up being "__constants.txt" right now.
     stats_filename = changeFilenameExtension(blob_filename, ".txt")
 
     with withEnvironmentVarsOverridden(mapping):
@@ -123,7 +121,7 @@ def getConstantBlobFilenameForDataFilename(source_dir, data_filename):
 
     result = getNormalizedPathJoin(
         getConstantBlobDirectory(source_dir),
-        os.path.basename(changeFilenameExtension(data_filename, ".bin")),
+        getConstantBlobSymbolBase(data_filename) + ".bin",
     )
     makeContainingPath(result)
     return result
@@ -141,39 +139,83 @@ def getConstantBlobFilenames(source_dir):
     return tuple(sorted(result))
 
 
-def getConstantBlobSymbolBase(filename):
-    basename = os.path.basename(filename)
+def _makeConstantBlobSymbolBase(basename):
+    """Get a safe and unique symbol base for a constant data or blob filename.
 
-    if basename.endswith(".const"):
-        basename = basename[:-6]
-    elif basename.endswith(".bin"):
-        basename = basename[:-4]
-    else:
-        assert False, filename
+    Notes:
+        The symbol base is also used for the direct blob filename. Restricting
+        it to ASCII letters, digits and underscores avoids external tools
+        interpreting encoded path characters differently, e.g. the linker
+        turning every other byte into an underscore. Hashing the source
+        filename makes the result unique, while the readable part helps with
+        debugging.
 
+        The readable part is limited to keep the blob filename short enough
+        for Windows paths, which are limited to 260 characters including the
+        build directory and its 'blobs' directory.
+
+        This is idempotent for names that were already made safe, as blob
+        filenames are picked by this function too.
+
+    Args:
+        basename: Filename without its '.const' or '.bin' extension.
+    """
     if basename.startswith("__"):
         basename = basename[2:]
 
-    result = _constant_blob_symbol_bases.get(basename)
+    def _makeSafeName(prefix, readable_basename):
+        max_symbol_base_length = 64
+        suffix = "_" + getStringHash(basename)
+        readable_length = max_symbol_base_length - len(prefix) - len(suffix) - 1
 
-    if result is None:
-        result = encodePythonIdentifierToC(basename)
+        return "%s_%s%s" % (
+            prefix,
+            readable_basename[:readable_length],
+            suffix,
+        )
 
-        if result[0].isdigit():
-            result = "_" + result
+    if basename.startswith("module."):
+        return _makeSafeName(
+            prefix="module",
+            readable_basename=re.sub("[^a-zA-Z0-9_]", "_", basename[7:]),
+        )
 
-        origin = _constant_blob_symbol_origins.get(result)
+    if re.match("[a-zA-Z_][a-zA-Z0-9_]*$", basename):
+        return basename
 
-        if origin is not None and origin != basename:
-            return data_composer_logger.sysexit(
-                "Error, constant blob names '%s' and '%s' collide on symbol base '%s'."
-                % (origin, basename, result)
-            )
+    return _makeSafeName(
+        prefix="blob",
+        readable_basename=re.sub("[^a-zA-Z0-9_]", "_", basename),
+    )
 
-        _constant_blob_symbol_bases[basename] = result
-        _constant_blob_symbol_origins[result] = basename
 
-    return result
+def getConstantBlobSymbolBase(filename):
+    basename = os.path.basename(filename)
+
+    if basename.endswith(".bin"):
+        return _makeConstantBlobSymbolBase(basename[:-4])
+    elif basename.endswith(".const"):
+        basename = basename[:-6]
+
+        result = _constant_blob_symbol_bases.get(basename)
+
+        if result is None:
+            result = _makeConstantBlobSymbolBase(basename)
+
+            origin = _constant_blob_symbol_origins.get(result)
+
+            if origin is not None and origin != basename:
+                return data_composer_logger.sysexit(
+                    "Error, constant blob names '%s' and '%s' collide on symbol base '%s'."
+                    % (origin, basename, result)
+                )
+
+            _constant_blob_symbol_bases[basename] = result
+            _constant_blob_symbol_origins[result] = basename
+
+        return result
+    else:
+        assert False, filename
 
 
 def getConstantBlobSymbolName(filename):
@@ -192,7 +234,6 @@ def deriveModuleConstantsBlobName(filename):
     elif basename == "__files":
         return ".files"
     else:
-        # Strip "module." prefix"
         basename = basename[7:]
 
         return basename

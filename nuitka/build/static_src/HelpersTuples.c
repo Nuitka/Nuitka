@@ -1,12 +1,9 @@
 //     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
-/* These helpers are used to work with tuples.
-
-*/
-
 // This file is included from another C file, help IDEs to still parse it on
 // its own.
 #ifdef __IDE_ONLY__
+#include "nuitka/freelists.h"
 #include "nuitka/prelude.h"
 #endif
 
@@ -15,7 +12,6 @@
 PyObject *MAKE_TUPLE_EMPTY(PyThreadState *tstate, Py_ssize_t size) {
     PyTupleObject *result_tuple;
 
-    // Lets not get called other than this
     assert(size > 0);
 
 #if PYTHON_VERSION >= 0x3e0
@@ -61,7 +57,6 @@ PyObject *MAKE_TUPLE_EMPTY(PyThreadState *tstate, Py_ssize_t size) {
 
         Nuitka_Py_NewReference((PyObject *)result_tuple);
     } else {
-        // Check for overflow
         if ((size_t)size >
             ((size_t)PY_SSIZE_T_MAX - (sizeof(PyTupleObject) - sizeof(PyObject *))) / sizeof(PyObject *)) {
             return PyErr_NoMemory();
@@ -113,7 +108,6 @@ PyObject *MAKE_TUPLE_EMPTY_VAR(PyThreadState *tstate, Py_ssize_t size) {
 PyObject *TUPLE_CONCAT(PyThreadState *tstate, PyObject *tuple1, PyObject *tuple2) {
     Py_ssize_t size = Py_SIZE(tuple1) + Py_SIZE(tuple2);
 
-    // Do not ignore MemoryError, may actually happen.
     PyTupleObject *result = (PyTupleObject *)MAKE_TUPLE_EMPTY_VAR(tstate, size);
     if (unlikely(result == NULL)) {
         return NULL;
@@ -154,7 +148,7 @@ PyObject *TUPLE_COPY(PyThreadState *tstate, PyObject *tuple) {
     for (Py_ssize_t i = 0; i < size; i++) {
         PyObject *item = PyTuple_GET_ITEM(tuple, i);
         Py_INCREF(item);
-        PyList_SET_ITEM(result, i, item);
+        PyTuple_SET_ITEM(result, i, item);
     }
 
     return result;

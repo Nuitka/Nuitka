@@ -1,7 +1,7 @@
 #     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-"""Code to generate and interact with compiled function objects."""
+"""Code to generate and interact with compiled generator objects."""
 
 from nuitka.PythonVersions import python_version
 
@@ -60,7 +60,7 @@ def getGeneratorObjectCode(
     needs_exception_exit,
     needs_generator_return,
 ):
-    # A bit of details going on here, pylint: disable=too-many-locals
+    # pylint: disable=too-many-locals
 
     setupFunctionLocalVariables(
         context=context,
@@ -174,7 +174,6 @@ def generateMakeGeneratorObjectCode(to_name, expression, emit, context):
     if closure_name:
         args.append(closure_name)
 
-    # Special case empty generators.
     if generator_object_body.subnode_body is None:
         emit(
             template_make_empty_generator
@@ -188,8 +187,8 @@ def generateMakeGeneratorObjectCode(to_name, expression, emit, context):
                 "generator_qualname_obj": getFunctionQualnameObj(
                     generator_object_body, context
                 ),
-                "code_identifier": context.getCodeObjectHandle(
-                    code_object=generator_object_body.getCodeObject()
+                "code_identifier": getCodeObjectAccessCode(
+                    code_object=generator_object_body.getCodeObject(), context=context
                 ),
                 "closure_name": closure_name if closure_name is not None else "NULL",
                 "closure_count": len(closure_variables),

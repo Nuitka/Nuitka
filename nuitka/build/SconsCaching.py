@@ -36,14 +36,14 @@ from .SconsUtils import (
     getExecutablePath,
     getSconsReportValue,
     setEnvironmentVariable,
+    splitCompilerCommand,
 )
 
-# Store for per-module ccache stats retrieved from the Scons build
 ccache_module_stats = {}
 
 
 def getCcacheModuleStats():
-    """Returns the per-module hit statistics collected if any."""
+    """Return mapping of module name to '(tool_name, cache_result)' tuples."""
     return ccache_module_stats
 
 
@@ -67,26 +67,23 @@ def _getCcacheGuessedPaths(python_prefix):
         for python_dir in _getPythonDirCandidates(python_prefix):
             yield getNormalizedPathJoin(python_dir, "bin", "ccache")
 
-        yield "/usr/local/opt/ccache"
+        yield "/usr/local/opt/ccache/bin/ccache"
+        yield "/usr/local/bin/ccache"
         yield "/opt/homebrew/bin/ccache"
 
 
 def _getArchCcacheRunPrefixes(ccache_binary, arch_prefix):
     """Get run prefixes for ccache and the compiler it spawns.
 
-    Args:
-        ccache_binary: Path to the ccache binary.
-        arch_prefix: Command prefix tuple for the required architecture.
-
-    Returns:
-        Tuple of (ccache_run_prefix, compiler_run_prefix) command tuples,
-        both empty if no architecture prefix is needed.
-
     Notes:
         A ccache supporting the architecture can run in it and will also
         spawn the compiler that way, preserving caching. Otherwise the
         architecture prefix has to be passed on to the compiler, which
         disables caching.
+
+    Returns:
+        Tuple of '(ccache_run_prefix, compiler_run_prefix)' command tuples,
+        both empty if no architecture prefix is needed.
     """
     ccache_run_prefix = ()
     compiler_run_prefix = ()
@@ -100,10 +97,9 @@ def _getArchCcacheRunPrefixes(ccache_binary, arch_prefix):
     return ccache_run_prefix, compiler_run_prefix
 
 
-def _injectCcache(env, cc_path, python_prefix, assume_yes_for_downloads):
+def _injectCcache(env, cc_path, cc_options, python_prefix, download_mode):
     ccache_binary = os.getenv("NUITKA_CCACHE_BINARY")
 
-    # If not provided, search it in PATH and guessed directories.
     if ccache_binary is None:
         ccache_binary = getExecutablePath("ccache", env=env)
 
@@ -113,7 +109,7 @@ def _injectCcache(env, cc_path, python_prefix, assume_yes_for_downloads):
                     "Checking if ccache is at '%s' guessed path." % candidate
                 )
 
-                if os.path.exists(candidate):
+                if os.path.isfile(candidate):
                     ccache_binary = candidate
 
                     scons_details_logger.info(
@@ -140,8 +136,7 @@ def _injectCcache(env, cc_path, python_prefix, assume_yes_for_downloads):
                 binary="ccache",
                 message="Nuitka will make use of ccache to speed up repeated compilation.",
                 reject=None,
-                assume_yes_for_downloads=assume_yes_for_downloads,
-                download_ok=True,
+                download_mode=download_mode,
             )
 
     else:
@@ -150,9 +145,7 @@ def _injectCcache(env, cc_path, python_prefix, assume_yes_for_downloads):
             % ccache_binary
         )
 
-    if ccache_binary is not None and os.path.exists(ccache_binary):
-        # In case we are on Windows, make sure the Anaconda form runs outside of Anaconda
-        # environment, by adding DLL folder to PATH.
+    if ccache_binary is not None and os.path.isfile(ccache_binary):
         assert areSamePaths(
             getExecutablePath(os.path.basename(env.the_compiler), env=env), cc_path
         )
@@ -164,8 +157,6 @@ def _injectCcache(env, cc_path, python_prefix, assume_yes_for_downloads):
             "Providing real CC path '%s' via PATH extension." % cc_path
         )
 
-        # Make sure to run the ccache and the compiler with the right architectures
-        # if necessary.
         arch_prefix = getArchCommandPrefix()
 
         ccache_run_prefix, compiler_run_prefix = _getArchCcacheRunPrefixes(
@@ -180,14 +171,21 @@ def _injectCcache(env, cc_path, python_prefix, assume_yes_for_downloads):
             compiler_values = (cc_path,)
             link_values = arch_prefix + compiler_values
 
-        # We use absolute paths for CC, pass it like this, as ccache does not like absolute.
-        env["CXX"] = env["CC"] = " ".join(
+        ccache_command = " ".join(
             '"%s"' % value
             for value in ccache_run_prefix
             + (ccache_binary,)
             + compiler_run_prefix
             + compiler_values
         )
+
+        # Compiler options from e.g. 'CC' have to reach the compiler behind the
+        # ccache, and since SCons splits the value like a shell command line,
+        # their quoting is kept as given, rather than added to.
+        if cc_options:
+            ccache_command += " " + " ".join(cc_options)
+
+        env["CXX"] = env["CC"] = ccache_command
 
         # Spare ccache the detection of the compiler, seems it will also misbehave when it's
         # prefixed with "ccache" on old gcc versions in terms of detecting need for C++ linkage.
@@ -196,6 +194,23 @@ def _injectCcache(env, cc_path, python_prefix, assume_yes_for_downloads):
         return True
 
     return False
+
+
+def _getCompilerOptions(env):
+    """Get the compiler options from the 'CC' or 'CXX' value.
+
+    Notes:
+        On ARM64 macOS, an x86_64 process runs the compiler with the
+        '/usr/bin/arch -arm64' prefix, which is not a compiler option.
+    """
+    command_parts = splitCompilerCommand(env["CC"] or env["CXX"] or "")
+
+    arch_prefix = getArchCommandPrefix()
+
+    if arch_prefix and tuple(command_parts[: len(arch_prefix)]) == arch_prefix:
+        command_parts = command_parts[len(arch_prefix) :]
+
+    return command_parts[1:]
 
 
 def enableCcache(env, source_dir, python_prefix):
@@ -214,22 +229,14 @@ def enableCcache(env, source_dir, python_prefix):
         setEnvironmentVariable(env, "CCACHE_LOGFILE", ccache_logfile)
         env["CCACHE_LOGFILE"] = ccache_logfile
 
-        # Unless asked to do otherwise, store ccache files in our own directory.
         if "CCACHE_DIR" not in os.environ:
             ccache_dir = getCacheDir("ccache/%s" % env.python_abi_version, create=True)
             ccache_dir = getExternalUsePath(ccache_dir)
             setEnvironmentVariable(env, "CCACHE_DIR", ccache_dir)
             env["CCACHE_DIR"] = ccache_dir
 
-        if "CLCACHE_MEMCACHED" in os.environ:
-            scons_logger.warning(
-                "The setting of 'CLCACHE_MEMCACHED' environment is not supported with clcache."
-            )
-            setEnvironmentVariable(env, "CLCACHE_MEMCACHED", None)
-
-        # We know the include files we created are safe to use, but we must
-        # merge our values with a user provided setting, or else we would
-        # silently overwrite it.
+        # Generated headers get fresh timestamps on each build; ignore header
+        # ctime/mtime while preserving any user-provided settings.
         ccache_sloppiness_value = os.environ.get("CCACHE_SLOPPINESS", "")
 
         ccache_sloppiness = [
@@ -244,8 +251,8 @@ def enableCcache(env, source_dir, python_prefix):
 
         setEnvironmentVariable(env, "CCACHE_SLOPPINESS", ",".join(ccache_sloppiness))
 
-        # First check if it's not already supposed to be a ccache, then do nothing.
         cc_path = getExecutablePath(env.the_compiler, env=env)
+        cc_options = _getCompilerOptions(env=env)
 
         cc_is_link, cc_link_path = getLinkTarget(cc_path)
         if cc_is_link and os.path.basename(cc_link_path) == "ccache":
@@ -260,12 +267,11 @@ def enableCcache(env, source_dir, python_prefix):
         inject_ccache = _injectCcache(
             env=env,
             cc_path=cc_path,
+            cc_options=cc_options,
             python_prefix=python_prefix,
-            assume_yes_for_downloads=env.assume_yes_for_downloads,
+            download_mode=env.download_mode,
         )
 
-    # If we failed to inject zig argument into ccache command line, we need to
-    # do it now.
     if env.zig_mode:
         cc_path = getExecutablePath(env.the_compiler, env=env)
 
@@ -299,7 +305,7 @@ def enableCcache(env, source_dir, python_prefix):
 
 
 def enableClcache(env, source_dir):
-    # We allow using Python2 still
+    # Inline clcache requires Python 3.5+.
     if sys.version_info < (3, 5):
         return
 
@@ -313,11 +319,16 @@ def enableClcache(env, source_dir):
 
     cl_binary = getExecutablePath(env.the_compiler, env=env)
 
-    # The compiler is passed via environment.
     setEnvironmentVariable(env, "CLCACHE_CL", cl_binary)
     env["CXX"] = env["CC"] = "<clcache>"
 
     setEnvironmentVariable(env, "CLCACHE_HIDE_OUTPUTS", "1")
+
+    if "CLCACHE_MEMCACHED" in os.environ:
+        scons_logger.warning(
+            "The setting of 'CLCACHE_MEMCACHED' environment is not supported with clcache."
+        )
+        setEnvironmentVariable(env, "CLCACHE_MEMCACHED", None)
 
     # Use the mode of "clcache" that is not dependent on MSVC filenames output
     # spell-checker: ignore CLCACHE_NODIRECT
@@ -332,7 +343,6 @@ def enableClcache(env, source_dir):
     setEnvironmentVariable(env, "CLCACHE_STATS", clcache_stats_filename)
     env["CLCACHE_STATS"] = clcache_stats_filename
 
-    # Unless asked to do otherwise, store ccache files in our own directory.
     if "CLCACHE_DIR" not in os.environ:
         clcache_dir = getCacheDir("clcache", create=True)
         clcache_dir = getExternalUsePath(clcache_dir)
@@ -358,15 +368,13 @@ def _writeClcacheStatistics():
 
     except IOError:
         raise
-    except Exception:  # Catch all the things, pylint: disable=broad-except
+    except Exception:  # pylint: disable=broad-except
         # This is run in "atexit" even without the module being loaded, or
         # the stats being begun or usable.
         pass
 
 
 def _getCcacheStatistics(ccache_logfile):
-    # parsing ccache is a bit complicated as we need to work around bugs
-    # and version differences
     data = defaultdict(list)
 
     if os.path.exists(ccache_logfile):
@@ -374,8 +382,6 @@ def _getCcacheStatistics(ccache_logfile):
         re_result = re.compile(r"\[.*? (\d+) *\] Result: (.*)$")
         re_anything = re.compile(r"\[.*? (\d+) *\] (.*)$")
 
-        # Remember command from the pid, so later decision logged against pid
-        # can be matched against it.
         commands = {}
 
         # Due to upstream ccache issues, lines in the log might have different
@@ -409,7 +415,6 @@ def _getCcacheStatistics(ccache_logfile):
                 ):
                     result = "called for link"
 
-                # But still try to catch this with log output if it happens.
                 if result == "unsupported compiler option":
                     scons_logger.warning(
                         "Encountered unsupported compiler option for ccache in '%s'."
@@ -437,7 +442,6 @@ def _getCcacheStatistics(ccache_logfile):
 
 
 def _normalizeCcacheHit(result):
-    # These are not important to our users, time based decisions differentiate these.
     if result in (
         "cache hit (direct)",
         "cache hit (preprocessed)",
@@ -471,7 +475,6 @@ def _normalizeCcacheHit(result):
 
 
 def _getModuleNameFromCommand(command):
-    # Command format usually: gcc -o something.o -c ... file.c
     for arg in shlex.split(command):
         if arg.startswith("module.") and arg.endswith(".c"):
             return arg[7:-2]
@@ -552,7 +555,6 @@ def runClCache(args, os_env):
     # pylint: disable=I0021,import-error,no-name-in-module,redefined-outer-name
     from clcache.caching import runClCache
 
-    # No Python2 compatibility
     if str is bytes:
         scons_logger.sysexit("Error, cannot use Python2 for scons when using MSVC.")
 

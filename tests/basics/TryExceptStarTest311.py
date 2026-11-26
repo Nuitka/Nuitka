@@ -1,6 +1,9 @@
 #     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
+import sys
+
+
 def test_raise_and_catch_no_assign():
     try:
         raise ExceptionGroup("test", [ValueError("1")])
@@ -122,6 +125,72 @@ def test_catch_multiple_types_with_remaining():
 
 
 test_catch_multiple_types_with_remaining()
+
+
+def test_reraise_leaf_exception():
+    try:
+        try:
+            raise ExceptionGroup("test", [ValueError("1")])
+        except* ValueError as error:
+            raise error.exceptions[0]
+    except Exception as outer:
+        print(repr(outer))
+        print(repr(outer.__context__))
+
+
+# Before Python 3.11.4, a single exception raised from an "except*" clause
+# was wrapped in an exception group, see CPython issue #103590. Nuitka
+# implements the fixed behavior for all versions.
+if sys.version_info >= (3, 11, 4):
+    test_reraise_leaf_exception()
+
+
+def test_raise_new_group_with_same_leaf():
+    try:
+        try:
+            raise ExceptionGroup("test", [ValueError("1")])
+        except* ValueError as error:
+            raise ExceptionGroup("new", [error.exceptions[0]])
+    except Exception as outer:
+        print(repr(outer))
+        print(repr(outer.__context__))
+
+
+if sys.version_info >= (3, 11, 4):
+    test_raise_new_group_with_same_leaf()
+
+
+def test_nested_scopes_in_handler():
+    try:
+        raise ExceptionGroup("test", [ValueError("1")])
+    except* ValueError:
+
+        def nested_return():
+            return "nested return"
+
+        print(nested_return())
+
+    try:
+        raise ExceptionGroup("test", [ValueError("1")])
+    except* ValueError:
+        for _i in range(1):
+            break
+        print("nested break")
+
+    try:
+        raise ExceptionGroup("test", [ValueError("1")])
+    except* ValueError:
+        for _i in range(2):
+            continue
+        print("nested continue")
+
+    try:
+        raise ExceptionGroup("test", [ValueError("1")])
+    except* ValueError:
+        print((lambda: "nested lambda")())
+
+
+test_nested_scopes_in_handler()
 
 #     Python tests originally created or extracted from other peoples work. The
 #     parts were too small to be protected.

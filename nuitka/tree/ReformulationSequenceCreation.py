@@ -1,18 +1,7 @@
 #     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-"""Reformulation of sequence creations.
-
-Sequences might be directly translated to constants, or they might become
-nodes that build tuples, lists, or sets.
-
-For Python3.5, unpacking can happen while creating sequences, these are
-being re-formulated to an internal function.
-
-Consult the Developer Manual for information. TODO: Add ability to sync
-source code comments with Developer Manual sections.
-
-"""
+"""Reformulation of sequence creations."""
 
 from nuitka.nodes.BuiltinIteratorNodes import ExpressionBuiltinIter1
 from nuitka.nodes.BuiltinNextNodes import ExpressionBuiltinNext1
@@ -49,7 +38,7 @@ from . import SyntaxErrors
 from .InternalModule import (
     internal_source_ref,
     makeInternalHelperFunctionBody,
-    once_decorator,
+    onceDecorator,
 )
 from .ReformulationTryExceptStatements import makeTryExceptSingleHandlerNode
 from .ReformulationTryFinallyStatements import makeTryFinallyReleaseStatement
@@ -123,7 +112,7 @@ def buildSetCreationNode(provider, node, source_ref):
     )
 
 
-@once_decorator
+@onceDecorator
 def getListUnpackingHelper():
     helper_name = "_unpack_list"
 
@@ -234,7 +223,7 @@ def getListUnpackingHelper():
     return result
 
 
-@once_decorator
+@onceDecorator
 def getSetUnpackingHelper():
     helper_name = "_unpack_set"
 
@@ -344,10 +333,6 @@ def buildListUnpacking(provider, elements, source_ref):
     helper_args = []
 
     for element in elements:
-        # We could be a lot cleverer about the tuples for non-starred
-        # arguments, but lets get this to work first. And then rely on
-        # future optimization to inline the list unpacking helper in a
-        # way that has the same effect.
         if getKind(element) == "Starred":
             helper_args.append(buildNode(provider, element.value, source_ref))
         else:
@@ -389,10 +374,6 @@ def _buildSetUnpacking(provider, elements, source_ref):
     helper_args = []
 
     for element in elements:
-        # We could be a lot cleverer about the tuples for non-starred
-        # arguments, but lets get this to work first. And then rely on
-        # future optimization to inline the list unpacking helper in a
-        # way that has the same effect.
         if getKind(element) == "Starred":
             helper_args.append(buildNode(provider, element.value, source_ref))
         else:

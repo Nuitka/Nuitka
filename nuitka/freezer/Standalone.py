@@ -12,12 +12,7 @@ import os
 
 from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.Errors import NuitkaForbiddenDLLEncounter, NuitkaNotYetSupported
-from nuitka.importing.Importing import (
-    getExtraSysPaths,
-    getMainScriptDirectories,
-    getPythonUnpackedSearchPath,
-    locateModule,
-)
+from nuitka.importing.Importing import locateModule
 from nuitka.importing.StandardLibrary import isStandardLibraryPath
 from nuitka.options.Options import (
     isShowProgress,
@@ -30,39 +25,20 @@ from nuitka.plugins.Hooks import (
     onCopiedDLLs,
     removeDllDependencies,
 )
-from nuitka.Progress import (
-    closeProgressBar,
-    reportProgressBar,
-    setupProgressBar,
-)
-from nuitka.PythonFlavors import (
-    getHomebrewInstallPath,
-    getMacPortsInstallPath,
-    isAnacondaPython,
-    isCPythonOfficialPackage,
-    isHomebrewPython,
-    isMacPortsPython,
-    isMonolithPy,
-    isMSYS2MingwPython,
-    isPyenvHomebrewPython,
-    isPythonBuildStandalonePython,
-)
-from nuitka.PythonVersions import getSystemPrefixPath
+from nuitka.Progress import reportProgressBar, withProgressBar
+from nuitka.PythonFlavors import isMonolithPy
+from nuitka.targets.Targets import isElfTarget, isRPathUsingTarget
 from nuitka.Tracing import general, inclusion_logger
 from nuitka.utils.Execution import executeToolChecked
 from nuitka.utils.FileOperations import (
     areInSamePaths,
-    areSamePaths,
-    deleteFile,
     getFileList,
     getNormalizedPathJoin,
     getSubDirectories,
     isFilenameBelowPath,
     isLink,
-    listDir,
     makePath,
     relpath,
-    removeDirectory,
     withMadeWritableFileMode,
 )
 from nuitka.utils.SharedLibraries import (
@@ -77,10 +53,8 @@ from nuitka.utils.Utils import (
     getOS,
     isCoffUsingPlatform,
     isDebianBasedLinux,
-    isElfUsingPlatform,
     isMacOS,
     isPosixWindows,
-    isRPathUsingPlatform,
     isWin32Windows,
 )
 
@@ -89,10 +63,8 @@ from .DllDependenciesMacOS import (
     fixupBinaryDLLPathsMacOS,
 )
 from .DllDependenciesPosix import detectBinaryPathDLLsPosix
-from .DllDependenciesWin32 import (
-    detectBinaryPathDLLsWin32,
-    shallIncludeVCRedistDLL,
-)
+from .DllDependenciesWin32 import detectBinaryPathDLLsWin32
+from .DllPaths import classifyDllPath
 from .IncludedDataFiles import (
     addIncludedPdbFile,
     getIncludedFrameworkDistPathFromSourcePath,
@@ -105,6 +77,7 @@ from .IncludedEntryPoints import (
     makeDllEntryPoint,
 )
 from .MacOSApp import createEntitlementsInfoFile
+from .MacOSFrameworkBundles import normalizeMacOSFrameworkBundleLayouts
 
 
 def checkFreezingModuleSet():
@@ -220,7 +193,17 @@ def _detectBinaryDLLs(
         )
 
 
-def copyDllsUsed(dist_dir, standalone_entry_points):
+def copyDllsUsed(dist_dir, standalone_entry_points, for_c_pgo):
+    """Copy the DLLs used into the standalone distribution.
+
+    Args:
+        dist_dir: Distribution directory to copy to.
+        standalone_entry_points: Entry points of the distribution.
+        for_c_pgo: Whether this is the distribution for the C level PGO
+            profiling run, which is discarded later, and therefore must not
+            register the main binary PDB file for inclusion.
+    """
+
     # Only do ones not ignored
     copy_standalone_entry_points = [
         standalone_entry_point
@@ -242,10 +225,10 @@ def copyDllsUsed(dist_dir, standalone_entry_points):
         )
 
     # After dependency detection, we can change the RPATH for main binary.
-    if isRPathUsingPlatform():
+    if isRPathUsingTarget():
         main_binary_rpath = "$ORIGIN"
 
-        if isElfUsingPlatform():
+        if isElfTarget():
             # Allow basename based "dlopen()" calls from the program to find
             # copied shared libraries below the distribution root.
             main_binary_rpath = ":".join(
@@ -261,35 +244,44 @@ def copyDllsUsed(dist_dir, standalone_entry_points):
             main_binary_rpath,
         )
 
-    setupProgressBar(
+    with withProgressBar(
         stage="Copying used DLLs",
         unit="DLL",
         total=len(copy_standalone_entry_points),
-    )
+    ):
+        # Copy symlinks last, so their targets are present in the distribution,
+        # and the symlinks can be preserved, rather than being dereferenced.
+        for standalone_entry_point in sorted(
+            copy_standalone_entry_points,
+            key=lambda standalone_entry_point: os.path.islink(
+                standalone_entry_point.source_path
+            ),
+        ):
+            reportProgressBar(standalone_entry_point.dest_path)
 
-    for standalone_entry_point in copy_standalone_entry_points:
-        reportProgressBar(standalone_entry_point.dest_path)
-
-        copyDllFile(
-            source_path=standalone_entry_point.source_path,
-            dist_dir=dist_dir,
-            dest_path=standalone_entry_point.dest_path,
-            executable=standalone_entry_point.executable,
-            other_entry_points=copy_standalone_entry_points,
-        )
-
-        if isMacOS():
-            fixupBinaryDLLPathsMacOS(
-                binary_filename=getNormalizedPathJoin(
-                    dist_dir, standalone_entry_point.dest_path
-                ),
-                package_name=standalone_entry_point.package_name,
-                original_location=standalone_entry_point.source_path,
-                standalone_entry_points=standalone_entry_points,
-                removed_dll_paths=getRemovedUsedDllPaths(standalone_entry_point),
+            copyDllFile(
+                source_path=standalone_entry_point.source_path,
+                dist_dir=dist_dir,
+                dest_path=standalone_entry_point.dest_path,
+                executable=standalone_entry_point.executable,
+                other_entry_points=copy_standalone_entry_points,
             )
 
-    closeProgressBar()
+            if isMacOS():
+                binary_filename = getNormalizedPathJoin(
+                    dist_dir, standalone_entry_point.dest_path
+                )
+
+                if not isLink(binary_filename):
+                    fixupBinaryDLLPathsMacOS(
+                        binary_filename=binary_filename,
+                        package_name=standalone_entry_point.package_name,
+                        original_location=standalone_entry_point.source_path,
+                        standalone_entry_points=standalone_entry_points,
+                        removed_dll_paths=getRemovedUsedDllPaths(
+                            standalone_entry_point
+                        ),
+                    )
 
     if isMacOS():
         # Some dependencies, e.g. copied libpython variants, are only fully
@@ -309,7 +301,8 @@ def copyDllsUsed(dist_dir, standalone_entry_points):
         standalone_entry_points=copy_standalone_entry_points,
     )
 
-    addIncludedPdbFile(main_standalone_entry_point)
+    if not for_c_pgo:
+        addIncludedPdbFile(main_standalone_entry_point)
 
     return main_standalone_entry_point, copy_standalone_entry_points
 
@@ -415,7 +408,7 @@ def _relocateMacOSAppBundleDirectories(dist_dir, data_file_paths):
         symlinks.add(relocated_path)
         translations.add((not_signable_path, relocated_path))
 
-    return translations, _normalizeMacOSFrameworkBundleLayouts(
+    return translations, normalizeMacOSFrameworkBundleLayouts(
         frameworks_dir=frameworks_dir
     )
 
@@ -457,138 +450,6 @@ def _getMacOSCodeSigningPaths(
     return filenames_to_sign
 
 
-def _removeMacOSFrameworkBundlePath(path):
-    if isLink(path) or os.path.isfile(path):
-        deleteFile(path, must_exist=False)
-    elif os.path.isdir(path):
-        removeDirectory(
-            path=path,
-            logger=inclusion_logger,
-            ignore_errors=False,
-            extra_recommendation=None,
-        )
-
-
-def _makeMacOSFrameworkBundleSymlink(link_path, link_target):
-    if isLink(link_path) and os.readlink(link_path) == link_target:
-        return
-
-    if os.path.exists(link_path) or isLink(link_path):
-        _removeMacOSFrameworkBundlePath(link_path)
-
-    os.symlink(link_target, link_path)
-
-
-def _detectMacOSFrameworkCurrentVersion(framework_path):
-    framework_name = os.path.basename(framework_path)[: -len(".framework")]
-    versions_dir = getNormalizedPathJoin(framework_path, "Versions")
-
-    if not os.path.isdir(versions_dir):
-        return None, None
-
-    version_candidates = []
-
-    for version_path, version_name in listDir(versions_dir):
-        if version_name == "Current":
-            continue
-
-        if not os.path.isdir(version_path):
-            continue
-
-        if os.path.exists(getNormalizedPathJoin(version_path, framework_name)):
-            version_candidates.append((version_name, version_path))
-
-    if not version_candidates:
-        return None, None
-
-    current_path = getNormalizedPathJoin(versions_dir, "Current")
-
-    if isLink(current_path):
-        current_target_path = getNormalizedPathJoin(
-            versions_dir, os.readlink(current_path)
-        )
-
-        for version_name, version_path in version_candidates:
-            if areSamePaths(version_path, current_target_path):
-                return version_name, version_path
-
-    return version_candidates[0]
-
-
-def _isMacOSFrameworkVersionPath(path, framework_name):
-    return os.path.isdir(path) and os.path.exists(
-        getNormalizedPathJoin(path, framework_name)
-    )
-
-
-def _normalizeMacOSFrameworkBundleLayout(framework_path):
-    framework_name = os.path.basename(framework_path)[: -len(".framework")]
-
-    version_name, version_path = _detectMacOSFrameworkCurrentVersion(
-        framework_path=framework_path
-    )
-
-    if version_name is None:
-        return
-
-    top_level_code_signature_path = getNormalizedPathJoin(
-        framework_path, "_CodeSignature"
-    )
-
-    if os.path.isdir(top_level_code_signature_path):
-        _removeMacOSFrameworkBundlePath(top_level_code_signature_path)
-
-    versions_dir = getNormalizedPathJoin(framework_path, "Versions")
-
-    for version_entry_path, version_entry_name in listDir(versions_dir):
-        if version_entry_name == "Current":
-            continue
-
-        if _isMacOSFrameworkVersionPath(version_entry_path, framework_name):
-            continue
-
-        _removeMacOSFrameworkBundlePath(version_entry_path)
-
-    _makeMacOSFrameworkBundleSymlink(
-        link_path=getNormalizedPathJoin(versions_dir, "Current"),
-        link_target=version_name,
-    )
-
-    versioned_binary_path = getNormalizedPathJoin(version_path, framework_name)
-
-    if os.path.exists(versioned_binary_path):
-        _makeMacOSFrameworkBundleSymlink(
-            link_path=getNormalizedPathJoin(framework_path, framework_name),
-            link_target=getNormalizedPathJoin("Versions", "Current", framework_name),
-        )
-
-    for entry_path, entry_name in listDir(version_path):
-        if entry_name == "_CodeSignature":
-            continue
-
-        if os.path.isdir(entry_path):
-            _makeMacOSFrameworkBundleSymlink(
-                link_path=getNormalizedPathJoin(framework_path, entry_name),
-                link_target=getNormalizedPathJoin("Versions", "Current", entry_name),
-            )
-
-
-def _normalizeMacOSFrameworkBundleLayouts(frameworks_dir):
-    if not os.path.isdir(frameworks_dir):
-        return ()
-
-    framework_paths = [
-        sub_directory
-        for sub_directory in getSubDirectories(frameworks_dir)
-        if sub_directory.endswith(".framework")
-    ]
-
-    for framework_path in framework_paths:
-        _normalizeMacOSFrameworkBundleLayout(framework_path=framework_path)
-
-    return tuple(framework_paths)
-
-
 _excluded_system_dlls = set()
 
 
@@ -597,43 +458,12 @@ def _reduceToPythonPath(used_dll_paths):
 
     DLLs found in the MSVC Redist folder are kept regardless.
     """
-    inside_paths = getPythonUnpackedSearchPath()
-
-    # Shared libraries that live next to the program rather than in the Python
-    # installation must be kept, e.g. packages vendored next to the main script
-    # that ship their dependencies in sibling directories.
-    inside_paths.extend(getMainScriptDirectories())
-    inside_paths.extend(getExtraSysPaths())
-
-    if isAnacondaPython():
-        inside_paths.insert(0, getSystemPrefixPath())
-
-    if isMacOS() and (isCPythonOfficialPackage() or isPythonBuildStandalonePython()):
-        inside_paths.insert(0, getSystemPrefixPath())
-
-    if isMacPortsPython():
-        inside_paths.insert(0, getMacPortsInstallPath())
-
-    if isHomebrewPython() or isPyenvHomebrewPython():
-        inside_paths.insert(0, getHomebrewInstallPath())
-
-    if isMSYS2MingwPython():
-        inside_paths.insert(0, getNormalizedPathJoin(getSystemPrefixPath(), "bin"))
-
-    def decideInside(dll_filename):
-        return any(
-            isFilenameBelowPath(path=inside_path, filename=dll_filename)
-            for inside_path in inside_paths
-        )
-
-    def decideMsvcRedistDll(dll_filename):
-        return isWin32Windows() and shallIncludeVCRedistDLL(dll_filename)
 
     kept_used_dll_paths = OrderedSet()
     removed_dll_paths = OrderedSet()
 
     for dll_filename in used_dll_paths:
-        if decideInside(dll_filename) or decideMsvcRedistDll(dll_filename):
+        if classifyDllPath(dll_filename) in ("inside", "vc_redist"):
             kept_used_dll_paths.add(dll_filename)
         else:
             if dll_filename not in _excluded_system_dlls:
@@ -809,20 +639,17 @@ Error, cannot detect used DLLs for DLL '%s' in package '%s' due to: %s"""
 
 
 def detectUsedDLLs(standalone_entry_points, source_dir):
-    setupProgressBar(
+    with withProgressBar(
         stage="Detecting used DLLs",
         unit="DLL",
         total=len(standalone_entry_points),
-    )
+    ):
+        for standalone_entry_point in standalone_entry_points:
+            reportProgressBar(standalone_entry_point.dest_path)
 
-    for standalone_entry_point in standalone_entry_points:
-        reportProgressBar(standalone_entry_point.dest_path)
-
-        _detectUsedDLLs(
-            standalone_entry_point=standalone_entry_point, source_dir=source_dir
-        )
-
-    closeProgressBar()
+            _detectUsedDLLs(
+                standalone_entry_point=standalone_entry_point, source_dir=source_dir
+            )
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and

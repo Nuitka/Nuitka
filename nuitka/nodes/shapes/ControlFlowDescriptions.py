@@ -1,11 +1,10 @@
 #     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-"""Objects use to describe control flow escapes.
+"""Objects used to describe control flow escapes.
 
-Typically returned by shape operations to indicate what can and can not
+Typically returned by shape operations to indicate what can and cannot
 have happened.
-
 """
 
 
@@ -67,6 +66,28 @@ class ControlFlowDescriptionValueErrorNoEscape(ControlFlowDescriptionNoEscape):
     @staticmethod
     def getExceptionExit():
         return ValueError
+
+
+class ControlFlowDescriptionOverflowNoEscape(ControlFlowDescriptionNoEscape):
+    @staticmethod
+    def getExceptionExit():
+        return OverflowError
+
+
+class ControlFlowDescriptionZeroDivisionOverflowNoEscape(
+    ControlFlowDescriptionNoEscape
+):
+    @staticmethod
+    def getExceptionExit():
+        return (ZeroDivisionError, OverflowError)
+
+
+class ControlFlowDescriptionZeroDivisionOverflowValueErrorNoEscape(
+    ControlFlowDescriptionNoEscape
+):
+    @staticmethod
+    def getExceptionExit():
+        return (ZeroDivisionError, OverflowError, ValueError)
 
 
 class ControlFlowDescriptionComparisonUnorderable(ControlFlowDescriptionNoEscape):

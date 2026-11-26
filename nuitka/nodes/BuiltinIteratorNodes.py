@@ -1,45 +1,44 @@
 #     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-"""Built-in iterator nodes.
-
-These play a role in for loops, and in unpacking. They can something be
-predicted to succeed or fail, in which case, code can become less complex.
-
-The length of things is an important optimization issue for these to be
-good.
-"""
+"""Built-in iterator and unpacking check nodes."""
 
 from nuitka.PythonVersions import python_version
 from nuitka.specs import BuiltinParameterSpecs
 
-from .BuiltinLenNodes import ExpressionBuiltinLen
 from .ChildrenHavingMixins import (
     ChildHavingSequenceMixin,
+    ChildHavingValueMixin,
     ChildHavingValuesTupleMixin,
     ChildrenHavingSequenceStartMixin,
     ChildrenHavingStrictOptionalValuesTupleMixin,
 )
 from .ExpressionBases import ExpressionBase, ExpressionBuiltinSingleArgBase
 from .ExpressionBasesGenerated import ExpressionBuiltinIter2Base
-from .ExpressionShapeMixins import ExpressionListShapeExactMixin
+from .ExpressionShapeMixins import (
+    ExpressionBoolShapeExactMixin,
+    ExpressionListShapeExactMixin,
+)
 from .HardImportNodesGenerated import (
     ExpressionBuiltinsReversedCallBase,
     ExpressionBuiltinsSortedBefore3CallBase,
     ExpressionBuiltinsSortedSince3Call1Base,
     ExpressionBuiltinsSortedSince3CallBase,
 )
+from .NodeBases import SideEffectsFromChildrenMixin
 from .NodeMakingHelpers import (
+    makeConstantReplacementNode,
     makeRaiseExceptionReplacementStatement,
     makeRaiseTypeErrorExceptionReplacementFromTemplateAndValue,
+    makeStatementOnlyNodesFromExpressions,
+    wrapExpressionWithNodeSideEffects,
     wrapExpressionWithSideEffects,
 )
-from .shapes.BuiltinTypeShapes import tshape_list
+from .shapes.BuiltinTypeShapes import tshape_dict, tshape_list, tshape_tuple
 from .shapes.IteratorShapes import tshape_iterator
 from .StatementBasesGenerated import (
     StatementSpecialUnpackCheckBase,
     StatementSpecialUnpackCheckFromIteratedBase,
-    StatementSpecialUnpackCheckFromIteratedValueBase,
 )
 from .VariableRefNodes import ExpressionTempVariableRef
 
@@ -92,10 +91,8 @@ class ExpressionBuiltinIter1(ExpressionBuiltinSingleArgBase):
         self.onContentEscapes(trace_collection)
 
         if value.mayHaveSideEffectsNext():
-            # Any code could be run, note that.
             trace_collection.onControlFlowEscape(self)
 
-        # Any exception may be raised.
         trace_collection.onExceptionRaiseExit(BaseException)
 
         return True, (next_node, None, None)
@@ -148,18 +145,14 @@ class ExpressionBuiltinIter1(ExpressionBuiltinSingleArgBase):
         if value.mayRaiseException(exception_type):
             return True
 
-        if value.isKnownToBeIterable(None):
-            return False
-
-        return True
+        return value.mayRaiseExceptionIter(exception_type)
 
     def mayRaiseExceptionOperation(self):
         value = self.subnode_value
 
-        return value.isKnownToBeIterable(None) is not True
+        return value.mayRaiseExceptionIter(BaseException)
 
     def onRelease(self, trace_collection):
-        # print "onRelease", self
         pass
 
 
@@ -169,6 +162,11 @@ class ExpressionBuiltinEnumerateMixin(object):
     @staticmethod
     def getTypeShape():
         return tshape_iterator
+
+    @staticmethod
+    def mayRaiseExceptionIter(exception_type):
+        # pylint: disable=unused-argument
+        return False
 
     def computeExpression(self, trace_collection):
         self.onContentEscapes(trace_collection)
@@ -196,7 +194,7 @@ class ExpressionBuiltinEnumerateMixin(object):
         if sequence.mayRaiseException(exception_type):
             return True
 
-        if not sequence.getTypeShape().hasShapeSlotIter():
+        if sequence.mayRaiseExceptionIter(exception_type):
             return True
 
         return False
@@ -243,7 +241,12 @@ class ExpressionBuiltinEnumerate2(
         if ExpressionBuiltinEnumerateMixin.mayRaiseException(self, exception_type):
             return True
 
-        if self.subnode_start.mayRaiseException(exception_type):
+        start = self.subnode_start
+
+        if start.mayRaiseException(exception_type):
+            return True
+
+        if start.mayRaiseExceptionIndex(exception_type):
             return True
 
         return False
@@ -263,6 +266,11 @@ class ExpressionBuiltinZipMixin(object):
         @staticmethod
         def getTypeShape():
             return tshape_iterator
+
+    @staticmethod
+    def mayRaiseExceptionIter(exception_type):
+        # pylint: disable=unused-argument
+        return False
 
     def computeExpression(self, trace_collection):
         self.onContentEscapes(trace_collection)
@@ -313,7 +321,7 @@ class ExpressionBuiltinZipMixin(object):
             if value.mayRaiseException(exception_type):
                 return True
 
-            if value.getTypeShape().hasShapeSlotIter() is not True:
+            if value.mayRaiseExceptionIter(exception_type):
                 return True
 
         return False
@@ -367,7 +375,11 @@ class ExpressionBuiltinZip310(
     def mayRaiseException(self, exception_type):
         strict = self.subnode_strict
 
-        if strict is not None and strict.mayRaiseException(exception_type):
+        # The strict value is checked for truth, which may raise too.
+        if strict is not None and (
+            strict.mayRaiseException(exception_type)
+            or strict.mayRaiseExceptionBool(exception_type)
+        ):
             return True
 
         return ExpressionBuiltinZipMixin.mayRaiseException(self, exception_type)
@@ -383,7 +395,6 @@ class ExpressionBuiltinIterForUnpack(ExpressionBuiltinIter1):
 
         result_node = result[0]
 
-        # Rewrite exceptions to correct message.
         if (
             result_node.isExpressionRaiseException()
             and result_node.subnode_exception_type.isExpressionBuiltinMakeException()
@@ -408,73 +419,131 @@ class ExpressionBuiltinIterForUnpack(ExpressionBuiltinIter1):
             )
 
 
+class ExpressionIsIterable(
+    ExpressionBoolShapeExactMixin,
+    SideEffectsFromChildrenMixin,
+    ChildHavingValueMixin,
+    ExpressionBase,
+):
+    kind = "EXPRESSION_IS_ITERABLE"
+
+    named_children = ("value",)
+
+    def __init__(self, value, source_ref):
+        ChildHavingValueMixin.__init__(self, value=value)
+
+        ExpressionBase.__init__(self, source_ref)
+
+    def computeExpression(self, trace_collection):
+        value = self.subnode_value
+        has_iter_slot = value.getTypeShape().hasShapeSlotIter()
+
+        if has_iter_slot is None:
+            return self, None, None
+
+        result = makeConstantReplacementNode(
+            constant=has_iter_slot, node=self, user_provided=False
+        )
+        result = wrapExpressionWithNodeSideEffects(new_node=result, old_node=value)
+
+        return (
+            result,
+            "new_constant",
+            "Iterability of value pre-computed to '%s'." % has_iter_slot,
+        )
+
+    def mayRaiseException(self, exception_type):
+        return self.subnode_value.mayRaiseException(exception_type)
+
+
 class StatementSpecialUnpackCheckFromIterated(
     StatementSpecialUnpackCheckFromIteratedBase
-):
-    kind = "STATEMENT_SPECIAL_UNPACK_CHECK_FROM_ITERATED"
-
-    named_children = ("iterated_length",)
-    node_attributes = ("count",)
-    auto_compute_handling = "operation"
-
-    def computeStatementOperation(self, trace_collection):
-        if self.subnode_iterated_length.isCompileTimeConstant():
-            iterated_length_value = (
-                self.subnode_iterated_length.getCompileTimeConstant()
-            )
-
-            if iterated_length_value <= self.count:
-                return (
-                    None,
-                    "new_statements",
-                    lambda: "Determined iteration length check to be always true, because %d <= %d."
-                    % (iterated_length_value, self.count),
-                )
-            else:
-                if python_version >= 0x300:
-                    exception_value = (
-                        "too many values to unpack (expected %d)" % self.count
-                    )
-                else:
-                    exception_value = "too many values to unpack"
-
-                result = makeRaiseExceptionReplacementStatement(
-                    statement=self,
-                    exception_type="ValueError",
-                    exception_value=exception_value,
-                )
-
-                trace_collection.onExceptionRaiseExit(TypeError)
-
-                return (
-                    result,
-                    "new_raise",
-                    """\
-Determined iteration end check to always raise.""",
-                )
-
-        trace_collection.onExceptionRaiseExit(BaseException)
-
-        return self, None, None
-
-
-class StatementSpecialUnpackCheckFromIteratedValue(
-    StatementSpecialUnpackCheckFromIteratedValueBase
 ):
     """Check iterated value for too many values to unpack.
 
     The check is done with the iterated value at hand, so that the error
-    message can include the count for types where it is available, like
-    CPython does for the iterator based check.
+    message can include the count for types where it is available on
+    Python 3.14+.
     """
 
-    kind = "STATEMENT_SPECIAL_UNPACK_CHECK_FROM_ITERATED_VALUE"
+    kind = "STATEMENT_SPECIAL_UNPACK_CHECK_FROM_ITERATED"
 
     named_children = ("iterated_value",)
     node_attributes = ("count",)
     auto_compute_handling = "operation"
 
+    def getCount(self):
+        return self.count
+
+    def _getTooManyValuesExceptionMessage(self, iterated_value, iterated_length_value):
+        if python_version < 0x300:
+            return "too many values to unpack"
+        elif python_version < 0x3E0:
+            return "too many values to unpack (expected %d)" % self.count
+        else:
+            value_shape = iterated_value.getTypeShape()
+
+            if value_shape in (tshape_tuple, tshape_list, tshape_dict):
+                return "too many values to unpack (expected %d, got %d)" % (
+                    self.count,
+                    iterated_length_value,
+                )
+            elif value_shape.getTypeName() is not None:
+                return "too many values to unpack (expected %d)" % self.count
+            else:
+                return None
+
     def computeStatementOperation(self, trace_collection):
+        iterated_value = self.subnode_iterated_value
+        iterated_length_value = iterated_value.getIterationLength()
+
+        if (
+            iterated_length_value is None
+            and iterated_value.isExpressionVariableRefOrTempVariableRef()
+            and iterated_value.variable_trace is not None
+            and iterated_value.variable_trace.isAssignTrace()
+        ):
+            assign_source = iterated_value.variable_trace.getAssignNode().subnode_source
+
+            if assign_source.getValueShape().hasShapeSlotLen() is True:
+                iterated_length_value = assign_source.getIterationLength()
+
+        if iterated_length_value is not None:
+            if iterated_length_value <= self.count:
+                return (
+                    makeStatementOnlyNodesFromExpressions(
+                        iterated_value.extractSideEffects()
+                    ),
+                    "new_statements",
+                    lambda: "Determined iteration length check to be always true, because %d <= %d."
+                    % (iterated_length_value, self.count),
+                )
+            else:
+                exception_value = self._getTooManyValuesExceptionMessage(
+                    iterated_value=iterated_value,
+                    iterated_length_value=iterated_length_value,
+                )
+
+                if exception_value is not None:
+                    result = makeRaiseExceptionReplacementStatement(
+                        statement=self,
+                        exception_type="ValueError",
+                        exception_value=exception_value,
+                    )
+
+                    trace_collection.onExceptionRaiseExit(ValueError)
+
+                    return (
+                        result,
+                        "new_raise",
+                        """\
+Determined iteration end check to always raise.""",
+                    )
+
+        if iterated_value.getTypeShape().getTypeName() is None:
+            iterated_value.onContentEscapes(trace_collection)
+            trace_collection.onControlFlowEscape(self)
+
         trace_collection.onExceptionRaiseExit(BaseException)
 
         return self, None, None
@@ -483,21 +552,9 @@ class StatementSpecialUnpackCheckFromIteratedValue(
 def makeStatementSpecialUnpackCheckFromIterated(
     tmp_iterated_variable, count, source_ref
 ):
-    tmp_iterated_ref = ExpressionTempVariableRef(
-        variable=tmp_iterated_variable, source_ref=source_ref
-    )
-
-    if python_version >= 0x3E0:
-        return StatementSpecialUnpackCheckFromIteratedValue(
-            iterated_value=tmp_iterated_ref,
-            count=count,
-            source_ref=source_ref,
-        )
-
     return StatementSpecialUnpackCheckFromIterated(
-        iterated_length=ExpressionBuiltinLen(
-            tmp_iterated_ref,
-            source_ref=source_ref,
+        iterated_value=ExpressionTempVariableRef(
+            variable=tmp_iterated_variable, source_ref=source_ref
         ),
         count=count,
         source_ref=source_ref,
@@ -515,27 +572,6 @@ class StatementSpecialUnpackCheck(StatementSpecialUnpackCheckBase):
         return self.count
 
     def computeStatementOperation(self, trace_collection):
-        iterator = self.subnode_iterator
-
-        if iterator.isExpressionTempVariableRef():
-            variable_trace = iterator.variable_trace
-
-            if variable_trace.isIteratorPropagationTrace():
-                tmp_iterated_variable = variable_trace.getIteratedTempVariable()
-
-                result = makeStatementSpecialUnpackCheckFromIterated(
-                    tmp_iterated_variable=tmp_iterated_variable,
-                    count=self.count,
-                    source_ref=self.source_ref,
-                )
-
-                return trace_collection.computedStatementResult(
-                    result,
-                    change_tags="new_statements",
-                    change_desc=lambda: "Iterator check of changed to iterated size check using '%s'."
-                    % tmp_iterated_variable.getName(),
-                )
-
         trace_collection.onExceptionRaiseExit(BaseException)
 
         return self, None, None
@@ -564,6 +600,10 @@ class ExpressionBuiltinIter2(ExpressionBuiltinIter2Base):
         # TODO: This could be more specific, this one is a fixed well known thing!
         return tshape_iterator
 
+    @staticmethod
+    def mayRaiseExceptionIter(exception_type):
+        return False
+
     def computeExpressionIter1(self, iter_node, trace_collection):
         return self, "new_builtin", "Eliminated useless iterator creation."
 
@@ -589,15 +629,20 @@ class ExpressionAsyncIter(ExpressionBuiltinSingleArgBase):
         return self.subnode_value.getIterationLength()
 
     def extractSideEffects(self):
-        # Iterator making is the side effect itself.
-        if self.subnode_value.isCompileTimeConstant():
-            return ()
+        # Async iterator making is the side effect itself unless the value is
+        # known to be async-iterable without side effects in '__aiter__'.
+        value = self.subnode_value
+
+        if value.isKnownToBeAsyncIterable(None) is True:
+            return value.extractSideEffects()
         else:
             return (self,)
 
     def mayHaveSideEffects(self):
-        if self.subnode_value.isCompileTimeConstant():
-            return self.subnode_value.isKnownToBeIterable(None)
+        value = self.subnode_value
+
+        if value.isKnownToBeAsyncIterable(None) is True:
+            return value.mayHaveSideEffects()
 
         return True
 
@@ -607,7 +652,7 @@ class ExpressionAsyncIter(ExpressionBuiltinSingleArgBase):
         if value.mayRaiseException(exception_type):
             return True
 
-        if value.isKnownToBeIterable(None):
+        if value.isKnownToBeAsyncIterable(None) is True:
             return False
 
         return True
@@ -616,10 +661,9 @@ class ExpressionAsyncIter(ExpressionBuiltinSingleArgBase):
         assert type(count) is int
 
         iter_length = self.subnode_value.getIterationMinLength()
-        return iter_length is not None and iter_length < count
+        return iter_length is not None and count <= iter_length
 
     def onRelease(self, trace_collection):
-        # print "onRelease", self
         pass
 
 
@@ -633,10 +677,8 @@ class ExpressionAsyncNext(ExpressionBuiltinSingleArgBase):
 
     def computeExpression(self, trace_collection):
         # TODO: Predict iteration result if possible via SSA variable trace of
-        # the iterator state.
-
-        # Assume exception is possible. TODO: We might query the next from the
-        # source with a computeExpressionAsyncNext slot, but we delay that.
+        # the iterator state, or query the source via a
+        # computeExpressionAsyncNext slot.
         trace_collection.onExceptionRaiseExit(BaseException)
 
         return self, None, None
@@ -646,7 +688,6 @@ class ExpressionBuiltinsReversedCall(ExpressionBuiltinsReversedCallBase):
     kind = "EXPRESSION_BUILTINS_REVERSED_CALL"
 
     def replaceWithCompileTimeValue(self, trace_collection):
-        # TODO: Implement actual optimization logic
         trace_collection.onExceptionRaiseExit(BaseException)
         return self, None, None
 
@@ -658,7 +699,6 @@ class ExpressionBuiltinsSortedSince3Call1(
     kind = "EXPRESSION_BUILTINS_SORTED_SINCE3_CALL1"
 
     def replaceWithCompileTimeValue(self, trace_collection):
-        # TODO: Implement actual optimization logic
         trace_collection.onExceptionRaiseExit(BaseException)
         return self, None, None
 
@@ -672,7 +712,6 @@ class ExpressionBuiltinsSortedSince3Call(
     def replaceWithCompileTimeValue(self, trace_collection):
         trace_collection.onExceptionRaiseExit(BaseException)
 
-        # TODO: Implement actual optimization logic
         return self, None, None
 
 
@@ -696,7 +735,6 @@ class ExpressionBuiltinsSortedBefore3Call(
     def replaceWithCompileTimeValue(self, trace_collection):
         trace_collection.onExceptionRaiseExit(BaseException)
 
-        # TODO: Implement actual optimization logic
         return self, None, None
 
 

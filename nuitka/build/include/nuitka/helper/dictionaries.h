@@ -38,8 +38,6 @@ static inline PyDictObject *MODULE_DICT(PyObject *module) {
 }
 
 #if PYTHON_VERSION < 0x300
-// Quick dictionary lookup for a string value.
-
 typedef PyDictEntry *Nuitka_DictEntryHandle;
 
 static PyDictEntry *GET_STRING_DICT_ENTRY(PyDictObject *dict, Nuitka_StringObject *key) {
@@ -74,11 +72,16 @@ static PyObject *GET_STRING_DICT_VALUE(PyDictObject *dict, Nuitka_StringObject *
     return GET_STRING_DICT_ENTRY(dict, key)->me_value;
 }
 
+NUITKA_MAY_BE_UNUSED static PyObject *GET_STRING_DICT_VALUE1(PyThreadState *tstate, PyDictObject *dict,
+                                                             Nuitka_StringObject *key) {
+    (void)tstate;
+
+    PyObject *result = GET_STRING_DICT_VALUE(dict, key);
+    Py_XINCREF(result);
+    return result;
+}
+
 #else
-
-// Python3
-
-// Quick dictionary lookup for a string value.
 
 #if PYTHON_VERSION < 0x3b0
 typedef struct {
@@ -176,6 +179,13 @@ static inline Py_hash_t Nuitka_Py_unicode_get_hash(PyObject *o) {
     return FT_ATOMIC_LOAD_SSIZE_RELAXED(((PyUnicodeObject *)o)->_base._base.hash);
 }
 
+#if defined(Py_GIL_DISABLED)
+
+extern PyObject *GET_STRING_DICT_VALUE(PyDictObject *dict, Nuitka_StringObject *key);
+extern PyObject *GET_STRING_DICT_VALUE1(PyThreadState *tstate, PyDictObject *dict, Nuitka_StringObject *key);
+
+#else
+
 static Nuitka_DictEntryHandle GET_STRING_DICT_ENTRY(PyDictObject *dict, Nuitka_StringObject *key) {
     assert(PyDict_CheckExact(dict));
     assert(Nuitka_String_CheckExact(key));
@@ -257,72 +267,186 @@ NUITKA_MAY_BE_UNUSED static PyObject *GET_STRING_DICT_VALUE(PyDictObject *dict, 
     return GET_DICT_ENTRY_VALUE(handle);
 }
 
+NUITKA_MAY_BE_UNUSED static PyObject *GET_STRING_DICT_VALUE1(PyThreadState *tstate, PyDictObject *dict,
+                                                             Nuitka_StringObject *key) {
+    (void)tstate;
+
+    PyObject *result = GET_STRING_DICT_VALUE(dict, key);
+    Py_XINCREF(result);
+    return result;
+}
+
 #endif
 
-NUITKA_MAY_BE_UNUSED static bool DICT_SET_ITEM(PyObject *dict, PyObject *key, PyObject *value) {
-    CHECK_OBJECT(dict);
-    assert(PyDict_Check(dict));
-    CHECK_OBJECT(key);
-    CHECK_OBJECT(value);
+#endif
 
-    int status = PyDict_SetItem(dict, key, value);
+// Set a key in a dictionary, semantically identical to "PyDict_SetItem". On
+// success, true is returned, otherwise false with an exception set.
+extern bool DICT_SET_ITEM(PyThreadState *tstate, PyObject *dict, PyObject *key, PyObject *value);
 
-    if (unlikely(status != 0)) {
-        return false;
-    }
+// Set a key in a dictionary, consuming the value reference. The key is
+// borrowed. The value reference is consumed on success and on failure.
+extern bool DICT_SET_ITEM1(PyThreadState *tstate, PyObject *dict, PyObject *key, PyObject *value);
 
-    return true;
+// Variants for keys where insertion is known not to raise, asserting instead
+// of returning failure.
+extern void DICT_SET_ITEM_INFALLIBLE(PyThreadState *tstate, PyObject *dict, PyObject *key, PyObject *value);
+extern void DICT_SET_ITEM1_INFALLIBLE(PyThreadState *tstate, PyObject *dict, PyObject *key, PyObject *value);
+
+// Set a key in a dictionary using a caller supplied hash and equality
+// function. A NULL equality function selects normal key equality. This is for
+// caches with their own key rules and must not be used for ordinary Python
+// dictionaries. Watched dictionaries and free-threaded builds currently
+// delegate to CPython and therefore use normal equality.
+extern bool DICT_SET_ITEM_WITH_HASH_AND_EQ(PyThreadState *tstate, PyObject *dict, PyObject *key, Py_hash_t hash,
+                                           richcmpfunc equal_func, PyObject *value);
+
+// Set a key in a private dictionary without updating its garbage collection
+// tracking or notifying watchers.
+extern bool DICT_SET_ITEM_UNTRACKED(PyThreadState *tstate, PyObject *dict, PyObject *key, PyObject *value);
+
+// Set a key in a private dictionary without updating its garbage collection
+// tracking or notifying watchers, consuming the value reference.
+extern bool DICT_SET_ITEM_UNTRACKED1(PyThreadState *tstate, PyObject *dict, PyObject *key, PyObject *value);
+
+// Untracked variants of the infallible helpers above.
+extern void DICT_SET_ITEM_UNTRACKED_INFALLIBLE(PyThreadState *tstate, PyObject *dict, PyObject *key, PyObject *value);
+extern void DICT_SET_ITEM_UNTRACKED1_INFALLIBLE(PyThreadState *tstate, PyObject *dict, PyObject *key, PyObject *value);
+
+// Hash and equality variant of "DICT_SET_ITEM_UNTRACKED".
+extern bool DICT_SET_ITEM_WITH_HASH_AND_EQ_UNTRACKED(PyThreadState *tstate, PyObject *dict, PyObject *key,
+                                                     Py_hash_t hash, richcmpfunc equal_func, PyObject *value);
+
+// Set a key in a dictionary using a caller supplied hash, semantically
+// identical to "DICT_SET_ITEM" otherwise.
+static inline bool DICT_SET_ITEM_WITH_HASH(PyThreadState *tstate, PyObject *dict, PyObject *key, Py_hash_t hash,
+                                           PyObject *value) {
+    return DICT_SET_ITEM_WITH_HASH_AND_EQ(tstate, dict, key, hash, NULL, value);
 }
 
-NUITKA_MAY_BE_UNUSED static bool DICT_REMOVE_ITEM(PyObject *dict, PyObject *key) {
-    int status = PyDict_DelItem(dict, key);
+// Set a string key in a dictionary, semantically identical to
+// "PyDict_SetItemString". On success, true is returned, otherwise false with
+// an exception set.
+extern bool DICT_SET_ITEM_STRING(PyThreadState *tstate, PyObject *dict, char const *key, PyObject *value);
 
-    if (unlikely(status == -1)) {
-        return false;
-    }
+// Remove a key from a dictionary, semantically identical to "PyDict_DelItem",
+// including the "KeyError" for missing keys. On success, true is returned.
+extern bool DICT_REMOVE_ITEM(PyThreadState *tstate, PyObject *dict, PyObject *key);
 
-    return true;
-}
+// Remove a string key from a dictionary, semantically identical to
+// "PyDict_DelItemString". On success, true is returned.
+extern bool DICT_REMOVE_ITEM_STRING(PyThreadState *tstate, PyObject *dict, char const *key);
 
+// Get a borrowed reference for a string key, similar to "PyDict_GetItemString".
+// Hash errors are suppressed, but errors from key comparisons during the lookup
+// are not cleared.
+extern PyObject *DICT_GET_ITEM_STRING(PyThreadState *tstate, PyObject *dict, char const *key);
+
+// Update a dictionary from a mapping, semantically identical to "PyDict_Update".
+extern int DICT_UPDATE_FROM(PyThreadState *tstate, PyObject *dict, PyObject *other);
+
+// Update a dictionary from a mapping for '**' unpacking, raising TypeError on non-mappings.
+extern int DICT_UNPACK_FROM(PyThreadState *tstate, PyObject *dict, PyObject *other);
+
+// Update a dictionary from an iterable of key/value pairs, semantically
+// identical to "PyDict_MergeFromSeq2" with override enabled.
+extern int DICT_UPDATE_FROM_SEQ(PyThreadState *tstate, PyObject *dict, PyObject *seq);
 // Set a KeyError for the given key, handling tuple keys and normalization.
 extern void SET_CURRENT_EXCEPTION_KEY_ERROR(PyThreadState *tstate, PyObject *key);
 
-// Get dict lookup for a key, similar to PyDict_GetItemWithError, ref returned
+// Get a dict lookup for a key, returning a new reference and raising KeyError
+// on a miss. Not a silent "PyDict_GetItemWithError" equivalent.
 extern PyObject *DICT_GET_ITEM_WITH_ERROR(PyThreadState *tstate, PyObject *dict, PyObject *key);
 
-// Get dict lookup for a key, with only hash error, does not create KeyError, 1=ref returned, 0=not
+// Get a dict lookup for a key, returning a new reference or NULL on a miss
+// without setting KeyError (propagating only hash errors).
 extern PyObject *DICT_GET_ITEM_WITH_HASH_ERROR1(PyThreadState *tstate, PyObject *dict, PyObject *key);
-extern PyObject *DICT_GET_ITEM_WITH_HASH_ERROR0(PyThreadState *tstate, PyObject *dict, PyObject *key);
 
 // Get dict lookup for a key, similar to PyDict_GetItem, 1=ref returned, 0=not
 extern PyObject *DICT_GET_ITEM1(PyThreadState *tstate, PyObject *dict, PyObject *key);
 extern PyObject *DICT_GET_ITEM0(PyThreadState *tstate, PyObject *dict, PyObject *key);
 
+// Get dict lookup for a key with a caller supplied hash and equality function.
+// A NULL equality function selects normal key equality. This is for caches
+// with their own key rules and must not be used for ordinary Python
+// dictionaries.
+extern PyObject *DICT_GET_ITEM0_WITH_HASH_AND_EQ(PyThreadState *tstate, PyObject *dict, PyObject *key, Py_hash_t hash,
+                                                 richcmpfunc equal_func);
+
+// Get dict lookup for a key with a caller supplied hash, similar to
+// "DICT_GET_ITEM0".
+static inline PyObject *DICT_GET_ITEM0_WITH_HASH(PyThreadState *tstate, PyObject *dict, PyObject *key, Py_hash_t hash) {
+    return DICT_GET_ITEM0_WITH_HASH_AND_EQ(tstate, dict, key, hash, NULL);
+}
+
 // Get dict lookup for a key, similar to PyDict_Contains
 extern int DICT_HAS_ITEM(PyThreadState *tstate, PyObject *dict, PyObject *key);
+
+#if PYTHON_VERSION >= 0x3c0
+// Check if a dictionary has CPython watchers attached. Such dictionaries must
+// go through CPython for mutations to send watcher events and preserve the
+// version tag bits used by the watcher machinery.
+static inline bool NUITKA_DICT_IS_WATCHED(PyDictObject *dict) {
+#if PYTHON_VERSION < 0x3d0
+    return (dict->ma_version_tag & DICT_VERSION_MASK) != 0;
+#elif PYTHON_VERSION < 0x3e0
+    return (dict->ma_version_tag & DICT_WATCHER_MASK) != 0;
+#elif PYTHON_VERSION < 0x3f0
+    return (dict->_ma_watcher_tag & DICT_WATCHER_MASK) != 0;
+#else
+    return (FT_ATOMIC_LOAD_UINT64_ACQUIRE(dict->_ma_watcher_tag) & DICT_WATCHER_MASK) != 0;
+#endif
+}
+#else
+#define NUITKA_DICT_IS_WATCHED(dict) 0
+#endif
 
 // Convert to dictionary, helper for built-in "dict" mainly.
 extern PyObject *TO_DICT(PyThreadState *tstate, PyObject *seq_obj, PyObject *dict_obj);
 
-// For 3.6 to 3.10, the dictionary version tag is used for caching purposes, so
+// For 3.6 to 3.12, the dictionary version tag is used for caching purposes, so
 // we need to maintain it. However it's private value so we have to play a game
 // of having our own number space inside of their 64 bit numbers.
-#if PYTHON_VERSION >= 0x360 && PYTHON_VERSION <= 0x3c0
+#if PYTHON_VERSION >= 0x360 && PYTHON_VERSION < 0x3d0
 #define _NUITKA_MAINTAIN_DICT_VERSION_TAG 1
 #endif
 
 #if _NUITKA_MAINTAIN_DICT_VERSION_TAG
 extern uint64_t nuitka_dict_version_tag_counter;
+
+#if PYTHON_VERSION >= 0x3c0
+// The low bits of the 3.12 version tag are watcher bits. Advance the Nuitka
+// counter by a whole version increment so that our tags never look watched.
+#define NUITKA_DICT_VERSION_INCREMENT DICT_VERSION_INCREMENT
+#else
+#define NUITKA_DICT_VERSION_INCREMENT 1
 #endif
 
-NUITKA_MAY_BE_UNUSED static void UPDATE_STRING_DICT0(PyDictObject *dict, Nuitka_StringObject *key, PyObject *value) {
+#define NUITKA_DICT_NEXT_VERSION(dict_mp)                                                                              \
+    ((dict_mp)->ma_version_tag = (nuitka_dict_version_tag_counter += NUITKA_DICT_VERSION_INCREMENT))
+#else
+#define NUITKA_DICT_NEXT_VERSION(dict_mp)
+#endif
+
+NUITKA_MAY_BE_UNUSED static void UPDATE_STRING_DICT0(PyThreadState *tstate, PyDictObject *dict,
+                                                     Nuitka_StringObject *key, PyObject *value) {
     CHECK_OBJECT(value);
+
+#if defined(Py_GIL_DISABLED)
+    DICT_SET_ITEM_INFALLIBLE(tstate, (PyObject *)dict, (PyObject *)key, value);
+#else
+#if PYTHON_VERSION >= 0x3c0
+    if (unlikely(NUITKA_DICT_IS_WATCHED(dict))) {
+        DICT_SET_ITEM_INFALLIBLE(tstate, (PyObject *)dict, (PyObject *)key, value);
+        return;
+    }
+#endif
 
     Nuitka_DictEntryHandle entry = GET_STRING_DICT_ENTRY(dict, key);
 
 #if PYTHON_VERSION >= 0x360
     if (entry == NULL) {
-        DICT_SET_ITEM((PyObject *)dict, (PyObject *)key, value);
+        DICT_SET_ITEM_INFALLIBLE(tstate, (PyObject *)dict, (PyObject *)key, value);
         return;
     }
 #endif
@@ -339,28 +463,37 @@ NUITKA_MAY_BE_UNUSED static void UPDATE_STRING_DICT0(PyDictObject *dict, Nuitka_
             SET_DICT_ENTRY_VALUE(entry, value);
 
 #if _NUITKA_MAINTAIN_DICT_VERSION_TAG
-            dict->ma_version_tag = nuitka_dict_version_tag_counter++;
+            NUITKA_DICT_NEXT_VERSION(dict);
 #endif
             CHECK_OBJECT(old);
 
             Py_DECREF(old);
         } else {
-            DICT_SET_ITEM((PyObject *)dict, (PyObject *)key, value);
+            DICT_SET_ITEM_INFALLIBLE(tstate, (PyObject *)dict, (PyObject *)key, value);
         }
     }
+#endif
 }
 
-NUITKA_MAY_BE_UNUSED static void UPDATE_STRING_DICT_INPLACE(PyDictObject *dict, Nuitka_StringObject *key,
-                                                            PyObject *value) {
+NUITKA_MAY_BE_UNUSED static void UPDATE_STRING_DICT_INPLACE(PyThreadState *tstate, PyDictObject *dict,
+                                                            Nuitka_StringObject *key, PyObject *value) {
     CHECK_OBJECT(value);
+
+#if defined(Py_GIL_DISABLED)
+    DICT_SET_ITEM1_INFALLIBLE(tstate, (PyObject *)dict, (PyObject *)key, value);
+#else
+#if PYTHON_VERSION >= 0x3c0
+    if (unlikely(NUITKA_DICT_IS_WATCHED(dict))) {
+        DICT_SET_ITEM1_INFALLIBLE(tstate, (PyObject *)dict, (PyObject *)key, value);
+        return;
+    }
+#endif
 
     Nuitka_DictEntryHandle entry = GET_STRING_DICT_ENTRY(dict, key);
 
 #if PYTHON_VERSION >= 0x360
     if (entry == NULL) {
-        DICT_SET_ITEM((PyObject *)dict, (PyObject *)key, value);
-
-        Py_DECREF(value);
+        DICT_SET_ITEM1_INFALLIBLE(tstate, (PyObject *)dict, (PyObject *)key, value);
         CHECK_OBJECT(value);
 
         return;
@@ -369,38 +502,40 @@ NUITKA_MAY_BE_UNUSED static void UPDATE_STRING_DICT_INPLACE(PyDictObject *dict, 
 
     PyObject *old = GET_DICT_ENTRY_VALUE(entry);
 
-    if (old != value) {
-        // Values are more likely (more often) set than not set, in that case
-        // speculatively try the quickest access method.
-        if (likely(old != NULL)) {
-            SET_DICT_ENTRY_VALUE(entry, value);
+    if (old == NULL) {
+        DICT_SET_ITEM1_INFALLIBLE(tstate, (PyObject *)dict, (PyObject *)key, value);
+        CHECK_OBJECT(value);
+    } else {
+        SET_DICT_ENTRY_VALUE(entry, value);
 
 #if _NUITKA_MAINTAIN_DICT_VERSION_TAG
-            dict->ma_version_tag = nuitka_dict_version_tag_counter++;
+        NUITKA_DICT_NEXT_VERSION(dict);
 #endif
-        } else {
-            DICT_SET_ITEM((PyObject *)dict, (PyObject *)key, value);
-            Py_DECREF(value);
-
-            CHECK_OBJECT(value);
-        }
-    } else {
-        Py_DECREF(value);
-        CHECK_OBJECT(value);
+        Py_DECREF(old);
     }
+#endif
 }
 
-NUITKA_MAY_BE_UNUSED static void UPDATE_STRING_DICT1(PyDictObject *dict, Nuitka_StringObject *key, PyObject *value) {
+NUITKA_MAY_BE_UNUSED static void UPDATE_STRING_DICT1(PyThreadState *tstate, PyDictObject *dict,
+                                                     Nuitka_StringObject *key, PyObject *value) {
     CHECK_OBJECT(key);
     CHECK_OBJECT(value);
+
+#if defined(Py_GIL_DISABLED)
+    DICT_SET_ITEM1_INFALLIBLE(tstate, (PyObject *)dict, (PyObject *)key, value);
+#else
+#if PYTHON_VERSION >= 0x3c0
+    if (unlikely(NUITKA_DICT_IS_WATCHED(dict))) {
+        DICT_SET_ITEM1_INFALLIBLE(tstate, (PyObject *)dict, (PyObject *)key, value);
+        return;
+    }
+#endif
 
     Nuitka_DictEntryHandle entry = GET_STRING_DICT_ENTRY(dict, key);
 
 #if PYTHON_VERSION >= 0x360
     if (entry == NULL) {
-        DICT_SET_ITEM((PyObject *)dict, (PyObject *)key, value);
-
-        Py_DECREF(value);
+        DICT_SET_ITEM1_INFALLIBLE(tstate, (PyObject *)dict, (PyObject *)key, value);
         CHECK_OBJECT(value);
 
         return;
@@ -417,67 +552,52 @@ NUITKA_MAY_BE_UNUSED static void UPDATE_STRING_DICT1(PyDictObject *dict, Nuitka_
             SET_DICT_ENTRY_VALUE(entry, value);
 
 #if _NUITKA_MAINTAIN_DICT_VERSION_TAG
-            dict->ma_version_tag = nuitka_dict_version_tag_counter++;
+            NUITKA_DICT_NEXT_VERSION(dict);
 #endif
             Py_DECREF(old);
         } else {
-            DICT_SET_ITEM((PyObject *)dict, (PyObject *)key, value);
-
-            Py_DECREF(value);
+            DICT_SET_ITEM1_INFALLIBLE(tstate, (PyObject *)dict, (PyObject *)key, value);
             CHECK_OBJECT(value);
         }
     } else {
         Py_DECREF(value);
         CHECK_OBJECT(value);
     }
+#endif
 }
 
 #if PYTHON_VERSION < 0x300
-// Python2 dictionary keys, return a list of keys
 extern PyObject *DICT_KEYS(PyObject *dict);
-// Python2 dictionary items, return a list of values
 extern PyObject *DICT_VALUES(PyObject *dict);
-// Python2 dictionary items, return a list of key/value tuples
 extern PyObject *DICT_ITEMS(PyObject *dict);
 #endif
 
-// Python3 dictionary keys, Python2 iterkeys returns dictionary keys iterator
+// Return dictionary keys/values/items iterators (not Python 3 views).
 extern PyObject *DICT_ITERKEYS(PyThreadState *tstate, PyObject *dict);
-
-// Python3 dictionary values, Python2 itervalues returns dictionary values iterator
 extern PyObject *DICT_ITERVALUES(PyThreadState *tstate, PyObject *dict);
-
-// Python3 dictionary items, Python2 iteritems returns dictionary items iterator
 extern PyObject *DICT_ITERITEMS(PyThreadState *tstate, PyObject *dict);
 
-// Python dictionary keys view
 extern PyObject *DICT_VIEWKEYS(PyObject *dict);
-
-// Python dictionary values view
 extern PyObject *DICT_VIEWVALUES(PyObject *dict);
-
-// Python dictionary items view
 extern PyObject *DICT_VIEWITEMS(PyObject *dict);
 
-// Python dictionary copy, return a shallow copy of a dictionary.
 extern PyObject *DICT_COPY(PyThreadState *tstate, PyObject *dict);
-
-// Python dictionary clear, empties the dictionary.
 extern void DICT_CLEAR(PyObject *dict);
 
-// Replacement for PyDict_Next that is faster (to call).
 extern bool Nuitka_DictNext(PyObject *dict, Py_ssize_t *pos, PyObject **key_ptr, PyObject **value_ptr);
 
+#if PYTHON_VERSION >= 0x3b0 && PYTHON_VERSION < 0x3d0
+extern void Nuitka_DictMaybeUntrack(PyObject *op);
+#endif
+
 #if PYTHON_VERSION >= 0x3f0
-// Replacement for PyDict_Next for frozendicts, that are always combined dicts.
+// Frozendicts are always combined dicts.
 extern bool Nuitka_FrozenDictNext(PyObject *frozendict, Py_ssize_t *pos, PyObject **key_ptr, PyObject **value_ptr);
 #endif
 
 #if PYTHON_VERSION >= 0x3a0 && !defined(_NUITKA_EXPERIMENTAL_DISABLE_FREELIST_ALL) &&                                  \
     !defined(_NUITKA_EXPERIMENTAL_DISABLE_FREELIST_DICT)
 #define NUITKA_DICT_HAS_FREELIST 1
-
-// Replacement for PyDict_New that is faster
 extern PyObject *MAKE_DICT_EMPTY(PyThreadState *tstate);
 #else
 #define NUITKA_DICT_HAS_FREELIST 0
@@ -490,14 +610,16 @@ static inline PyObject *MAKE_DICT_EMPTY(PyThreadState *tstate) {
 }
 #endif
 
-// Create a dictionary from key/value pairs.
-extern PyObject *MAKE_DICT(PyObject **pairs, Py_ssize_t size);
-// Create a dictionary from key/value pairs (NULL value means skip)
-extern PyObject *MAKE_DICT_X(PyObject **pairs, Py_ssize_t size);
-// Create a dictionary from key/value pairs (NULL value means skip) where keys are C strings.
-extern PyObject *MAKE_DICT_X_CSTR(char const **keys, PyObject **values, Py_ssize_t size);
+extern PyObject *MAKE_DICT_FROM_KWARGS(PyThreadState *tstate, PyObject *kw_names, PyObject *const *kw_values);
+extern PyObject *MAKE_DICT_PRESIZED(PyThreadState *tstate, Py_ssize_t size);
+extern PyObject *MAKE_DICT_PRESIZED_UNICODE(PyThreadState *tstate, Py_ssize_t size);
+extern PyObject *MAKE_DICT_UNICODE(PyThreadState *tstate, PyObject **pairs, Py_ssize_t size);
+// Entries with a NULL value are skipped.
+extern PyObject *MAKE_DICT_UNICODE_X(PyThreadState *tstate, PyObject **pairs, Py_ssize_t size);
+extern PyObject *MAKE_DICT_CSTR_X(PyThreadState *tstate, char const **keys, PyObject **values, Py_ssize_t size);
 
-// It's probably unchanged across all Python versions 2.6-3.15
+// Mirrors CPython's private dictiterobject; needed by UNPACK_ITERATOR_CHECK on 3.14+.
+// spell-checker: ignore dictiterobject
 #if PYTHON_VERSION >= 0x3e0
 typedef struct {
     PyObject_HEAD PyDictObject *di_dict;

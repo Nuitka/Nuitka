@@ -11,7 +11,11 @@ from nuitka.OutputDirectories import getSourceDirectoryPath
 from nuitka.plugins.PluginBase import NuitkaPluginBase
 from nuitka.utils.AppDirs import getCacheDir
 from nuitka.utils.Execution import executeToolChecked, getExecutablePath
-from nuitka.utils.FileOperations import copyFile, getFileContentsHash
+from nuitka.utils.FileOperations import (
+    copyFile,
+    getFileContentsHash,
+    getUserInputNormalizedPath,
+)
 from nuitka.utils.Hashing import Hash
 from nuitka.utils.Utils import isLinux
 
@@ -29,6 +33,9 @@ class NuitkaPluginUpx(NuitkaPluginBase):
     plugin_category = "integration"
 
     def __init__(self, upx_path, upx_nocache):
+        if upx_path is not None:
+            upx_path = getUserInputNormalizedPath(upx_path)
+
         self.upx_binary = getExecutablePath("upx", upx_path)
         self.upx_binary_hash = None
         self.upx_nocache = upx_nocache
@@ -38,7 +45,7 @@ class NuitkaPluginUpx(NuitkaPluginBase):
             self.sysexit("""\
 No UPX binary found, please use '--upx-binary' option to specify it.""")
 
-        if isOnefileMode and not shallNotCompressOnefile() and not isLinux():
+        if isOnefileMode() and not shallNotCompressOnefile() and not isLinux():
             self.warning("""\
 For best results, disable onefile compression with '--onefile-no-compression' \
 as double compression going to give larger and slower results.""")
@@ -49,6 +56,7 @@ as double compression going to give larger and slower results.""")
             "--upx-binary",
             action="store",
             dest="upx_path",
+            metavar="PATH",
             default=None,
             help="""\
 The UPX binary to use or the directory it lives in, by default `upx` from PATH is used.""",

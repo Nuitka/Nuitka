@@ -1,7 +1,10 @@
 #     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-"""Tests for coroutine throw() and cancel/await bridge handling."""
+"""Tests for coroutine throw() and cancel/await bridge handling.
+
+Also covers the ordering of special method lookups in "async with" statements.
+"""
 
 import asyncio
 import inspect
@@ -193,6 +196,140 @@ print("Coroutine state after close is", inspect.getcoroutinestate(coro))
 
 coro.close()
 print("Closed again without trouble")
+
+print("Class body reads local assigned later in coroutine:")
+
+
+async def class_body_reads_later_local():
+    class C:
+        x = 1
+        y = x
+
+    x = 5
+
+    return C.y, x
+
+
+print(run_async(class_body_reads_later_local()))
+
+print("Coroutine exception state:")
+
+
+def current_exception():
+    return sys.exc_info()[1]
+
+
+class Suspend:
+    """Awaitable that gives control back to the caller of the coroutine."""
+
+    def __await__(self):
+        yield None
+
+
+async def coro_context():
+    try:
+        raise KeyError("coro handled")
+    except KeyError:
+        await Suspend()
+
+
+coro = coro_context()
+coro.send(None)
+try:
+    coro.throw(ValueError("coro thrown"))
+except ValueError as e:
+    print("Coroutine throw context: %r" % (e.__context__,))
+
+
+async def coro_leak():
+    await Suspend()
+    try:
+        raise KeyError("coro in generator")
+    except KeyError:
+        await Suspend()
+    await Suspend()
+
+
+coro = coro_leak()
+coro.send(None)
+try:
+    raise ValueError("coro caller")
+except ValueError:
+    coro.send(None)
+coro.send(None)
+print("Coroutine after handler: %r" % (current_exception(),))
+
+
+async def coro_after_handler():
+    try:
+        raise KeyError("coro handled")
+    except KeyError:
+        pass
+    await Suspend()
+    print("Coroutine after handler await: %r" % (current_exception(),))
+
+
+coro = coro_after_handler()
+coro.send(None)
+try:
+    coro.send(None)
+except StopIteration:
+    pass
+print("Caller after coroutine: %r" % (current_exception(),))
+
+print("Async with statement special method ordering:")
+
+
+class NonContextManager1:
+    async def __aenter__(self):
+        print("Called __aenter__ despite missing __aexit__")
+        return self
+
+
+class NonContextManager2:
+    async def __aexit__(self, exc_type, exc_value, traceback):
+        print("Called __aexit__ despite missing __aenter__")
+        return False
+
+
+class NotAtAllContextManager:
+    pass
+
+
+class AsyncContextManager(object):
+    async def __aenter__(self):
+        print("Entered async context manager")
+        return 42
+
+    async def __aexit__(self, exc_type, exc_value, traceback):
+        print("Async context manager exit sees", exc_type, exc_value)
+        return False
+
+
+async def useAsyncWithStatements():
+    try:
+        async with NonContextManager1():
+            pass
+    except Exception as e:
+        print("Caught for async context manager without __aexit__", repr(e))
+
+    try:
+        async with NonContextManager2():
+            pass
+    except Exception as e:
+        print("Caught for async context manager without __aenter__", repr(e))
+
+    try:
+        async with NotAtAllContextManager():
+            pass
+    except Exception as e:
+        print("Caught for async context manager without any special methods", repr(e))
+
+    async with AsyncContextManager() as value:
+        print("Async context manager value", value)
+
+
+run_async(useAsyncWithStatements())
 
 #     Python tests originally created or extracted from other peoples work. The
 #     parts were too small to be protected.

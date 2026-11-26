@@ -43,14 +43,14 @@ from nuitka.utils.FileOperations import (
 )
 from nuitka.utils.PrivatePipSpace import (
     getMdformatBinaryPath,
+    getPrivatePipSitePackagesEnvironment,
     getRstfmtBinaryPath,
-    withPrivatePipSitePackagesPathAdded,
 )
 
 
 def _shouldNotFormatCode(filename, effective_filename):
     """Check if a file should not be formatted."""
-    # pylint: disable=too-many-branches,too-many-return-statements
+    # pylint: disable=too-many-return-statements
 
     parts = os.path.normpath(effective_filename).split(os.path.sep)
 
@@ -61,15 +61,13 @@ def _shouldNotFormatCode(filename, effective_filename):
         return True
     if "pybench" in parts:  # spell-checker: ignore pybench
         return True
-    if "mercurial" in parts:
-        return True
     if "tests" in parts and parts[parts.index("tests") + 1].startswith("CPython"):
         return True
     if "tests" in parts and "syntax" in parts:
         return True
     if "tests" in parts and "scratch" in parts:
         return True
-    if "tests" in parts and "nuitka_protected_strings" in parts:
+    if "tests" in parts and "nuitka_protected_strings_test" in parts:
         return True
     if ".dist/" in effective_filename:
         return True
@@ -118,8 +116,10 @@ def cleanupMarkdownFmt(logger, filename, assume_yes_for_downloads):
             logger.warning("Need to accept mdformat download to format markdown files.")
         return
 
-    with withPrivatePipSitePackagesPathAdded():
-        check_call([mdformat_path, "--number", "--wrap=100", filename])
+    check_call(
+        [mdformat_path, "--number", "--wrap=100", filename],
+        env=getPrivatePipSitePackagesEnvironment(binary_path=mdformat_path),
+    )
 
 
 def cleanupRstFmt(logger, filename, effective_filename, assume_yes_for_downloads):
@@ -151,8 +151,10 @@ def cleanupRstFmt(logger, filename, effective_filename, assume_yes_for_downloads
             logger.warning("Need to accept rstfmt download to format RST files.")
         return
 
-    with withPrivatePipSitePackagesPathAdded():
-        check_call([rstfmt_path, filename])
+    check_call(
+        [rstfmt_path, filename],
+        env=getPrivatePipSitePackagesEnvironment(binary_path=rstfmt_path),
+    )
 
     cleanupWindowsNewlines(filename, effective_filename)
 
@@ -242,10 +244,7 @@ def formatText(
         assume_yes_for_downloads: bool - if tools should be downloaded automatically
     """
     is_rst = effective_filename.endswith((".rst", ".inc"))
-    is_md = (
-        effective_filename.endswith(".md")
-        or os.path.basename(effective_filename) == ".cursorrules"
-    )
+    is_md = effective_filename.endswith(".md")
     is_package_config_yaml = effective_filename.endswith(".nuitka-package.config.yml")
 
     cleanupWindowsNewlines(filename, effective_filename)
@@ -409,7 +408,6 @@ def autoFormatFile(
                 "control",
                 "copyright",
                 "lintian-overrides",
-                ".cursorrules",
             )
         else:
             is_txt = False

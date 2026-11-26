@@ -6,11 +6,11 @@
 import os
 
 from nuitka.Tracing import scons_logger
-from nuitka.utils.Utils import isLinux, isMacOS, isWin32Windows
+from nuitka.utils.Utils import isMacOS, isWin32Windows
 
 from .SconsUtils import getArgumentDefaulted, getArgumentRequired, isGccName
 
-# spell-checker: ignore cppdefines,cpppath,linkflags,libpath
+# spell-checker: ignore cppdefines,cpppath,libpath,linkflags
 
 
 def _addPythonIncludePaths(env):
@@ -20,7 +20,7 @@ def _addPythonIncludePaths(env):
         "adapted_python_header_files_dir", ""
     )
     if adapted_python_header_files_dir:
-        python_include_paths.append(adapted_python_header_files_dir)
+        env.Prepend(CPPPATH=[adapted_python_header_files_dir])
         env.Append(CPPDEFINES=["_NUITKA_ADAPTED_PYTHON_HEADERS"])
 
     python_include_path = getArgumentRequired("python_include_path")
@@ -77,9 +77,7 @@ def _addPythonWarningSettings(env):
             # Disable warnings that system headers already show.
             env.Append(
                 CCFLAGS=[
-                    "/W4",
                     "/wd4505",
-                    "/wd4127",
                     "/wd4100",
                     "/wd4702",
                     "/wd4189",
@@ -98,10 +96,6 @@ def _addPythonWarningSettings(env):
             # We use null arrays in our structure Python declarations, which C11 does
             # not really allow, but should work.
             env.Append(CCFLAGS=["/wd4200"])
-
-            # Do not show deprecation warnings, we will use methods for as long
-            # as they work.
-            env.Append(CCFLAGS=["/wd4996"])
 
     # Disable warnings, that Python 2.6 headers show with MSVC, where they
     # declare 'acosh', 'asinh', 'atanh', and 'log1p' differently from the
@@ -127,11 +121,10 @@ def applyPythonBuildSettings(env):
     if not env.gil_mode:
         env.Append(CPPDEFINES="Py_GIL_DISABLED")
 
-    # We need "dl" in accelerated mode.
-    if isLinux():
+    if env.target_os == "Linux":
         env.Append(LIBS=["dl"])
 
-    if not env.msvc_mode:
+    if env.target_os != "WASI" and not env.msvc_mode:
         env.Append(LIBS=["m"])
 
     if env.static_libpython:
@@ -198,27 +191,28 @@ def addPythonHaclLib(env, link_module_libs):
             hacl_version = None
 
         if hacl_version is not None:
+            if env.binary_format == "wasm":
+                hacl_path = os.path.join(env.python_prefix_external, "hacl")
+            else:
+                hacl_path = os.path.join(
+                    env.nuitka_src,
+                    "inline_copy",
+                    "python_hacl",
+                    hacl_version,
+                )
+
+            assert os.path.exists(os.path.join(hacl_path, "Hacl_Hash_SHA2.c")), (
+                "Missing HACL sources in '%s'." % hacl_path
+            )
+
             env.Append(
                 CPPPATH=[
-                    os.path.join(
-                        env.nuitka_src,
-                        "inline_copy",
-                        "python_hacl",
-                        hacl_version,
-                    ),
-                    os.path.join(
-                        env.nuitka_src,
-                        "inline_copy",
-                        "python_hacl",
-                        hacl_version,
-                        "include",
-                    ),
+                    hacl_path,
+                    os.path.join(hacl_path, "include"),
                 ]
             )
 
             env.Append(CPPDEFINES=["_NUITKA_INLINE_COPY_HACL"])
-
-            # env.Append(CPPDEFINES=["HACL_CAN_COMPILE_VEC128"])
             env.Append(CPPDEFINES=["HACL_CAN_COMPILE_VEC256"])
 
     # Remove it from static link libraries unconditionally - libHacl_Hash_SHA2

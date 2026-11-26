@@ -1,13 +1,6 @@
 //     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
-/** Providing access to the constants binary blob.
- *
- * There are multiple ways, the constants binary is accessed, and its
- * definition depends on how that is done.
- *
- * This deals with loading the resource from a DLL under Windows.
- *
- */
+// Unpacking and deduplication of the constants binary blob.
 
 // This file is included from another C file, help IDEs to still parse it on
 // its own.
@@ -32,17 +25,21 @@
 #define CONSTANT_BIN_CONSTANT const
 #endif
 
+#if !defined(_NUITKA_EXPERIMENTAL_DIRECT_CONSTANT_BLOBS)
 #if defined(_NUITKA_CONSTANTS_FROM_LINKER) || defined(_NUITKA_CONSTANTS_FROM_COFF_OBJ) ||                              \
     defined(_NUITKA_CONSTANTS_FROM_XCOFF_OBJ) || defined(_NUITKA_CONSTANTS_FROM_CODE) ||                               \
     defined(_NUITKA_CONSTANTS_FROM_INCBIN) || defined(_NUITKA_CONSTANTS_FROM_C23_EMBED) ||                             \
     defined(_NUITKA_CONSTANTS_FROM_MACOS_SECTION)
 NUITKA_DECLARE_CONSTANT_BLOB(constant_bin, constant_bin, CONSTANT_BIN_CONSTANT);
 #endif
+#endif
 
 #include "nuitka/constants_blob_spec.h"
 
+#if !defined(_NUITKA_EXPERIMENTAL_DIRECT_CONSTANT_BLOBS)
 // Symbol to be assigned locally.
 unsigned char const *constant_bin = NULL;
+#endif
 
 #if PYTHON_VERSION < 0x300
 static PyObject *int_cache = NULL;
@@ -100,11 +97,16 @@ static Py_hash_t Nuitka_FastHashBytes(const void *value, Py_ssize_t size) {
     return x;
 }
 
-static Py_hash_t our_list_hash(PyListObject *list) {
+static Py_hash_t our_list_hash(PyObject *self) {
+    PyListObject *list = (PyListObject *)self;
+
     return Nuitka_FastHashBytes(&list->ob_item[0], Py_SIZE(list) * sizeof(PyObject *));
 }
 
-static PyObject *our_list_tp_richcompare(PyListObject *list1, PyListObject *list2, int op) {
+static PyObject *our_list_tp_richcompare(PyObject *object1, PyObject *object2, int op) {
+    PyListObject *list1 = (PyListObject *)object1;
+    PyListObject *list2 = (PyListObject *)object2;
+
     assert(op == Py_EQ);
 
     PyObject *result;
@@ -123,11 +125,16 @@ static PyObject *our_list_tp_richcompare(PyListObject *list1, PyListObject *list
     return result;
 }
 
-static Py_hash_t our_tuple_hash(PyTupleObject *tuple) {
+static Py_hash_t our_tuple_hash(PyObject *self) {
+    PyTupleObject *tuple = (PyTupleObject *)self;
+
     return Nuitka_FastHashBytes(&tuple->ob_item[0], Py_SIZE(tuple) * sizeof(PyObject *));
 }
 
-static PyObject *our_tuple_tp_richcompare(PyTupleObject *tuple1, PyTupleObject *tuple2, int op) {
+static PyObject *our_tuple_tp_richcompare(PyObject *object1, PyObject *object2, int op) {
+    PyTupleObject *tuple1 = (PyTupleObject *)object1;
+    PyTupleObject *tuple2 = (PyTupleObject *)object2;
+
     assert(op == Py_EQ);
 
     PyObject *result;
@@ -146,13 +153,18 @@ static PyObject *our_tuple_tp_richcompare(PyTupleObject *tuple1, PyTupleObject *
     return result;
 }
 
-static Py_hash_t our_slice_hash(PySliceObject *slice) {
+static Py_hash_t our_slice_hash(PyObject *self) {
+    PySliceObject *slice = (PySliceObject *)self;
+
     PyObject *values[3] = {slice->start, slice->stop, slice->step};
 
     return Nuitka_FastHashBytes(values, sizeof(values));
 }
 
-static PyObject *our_slice_tp_richcompare(PySliceObject *slice1, PySliceObject *slice2, int op) {
+static PyObject *our_slice_tp_richcompare(PyObject *object1, PyObject *object2, int op) {
+    PySliceObject *slice1 = (PySliceObject *)object1;
+    PySliceObject *slice2 = (PySliceObject *)object2;
+
     assert(op == Py_EQ);
 
     PyObject *result;
@@ -175,8 +187,6 @@ static Py_hash_t our_set_hash(PyObject *set) {
     Py_ssize_t pos = 0;
 
 #if PYTHON_VERSION < 0x300
-    // Same sized set, simply check if values are identical. Other reductions should
-    // make it identical, or else this won't have the effect intended.
     while (_PySet_Next(set, &pos, &key)) {
         result *= 1000003;
         result ^= Nuitka_FastHashBytes(&key, sizeof(PyObject *));
@@ -189,6 +199,11 @@ static Py_hash_t our_set_hash(PyObject *set) {
         result ^= Nuitka_FastHashBytes(&key, sizeof(PyObject *));
     }
 #endif
+
+    // The value -1 is reserved for errors.
+    if (unlikely(result == -1)) {
+        result = -2;
+    }
 
     return result;
 }
@@ -223,7 +238,7 @@ static PyObject *our_set_tp_richcompare(PyObject *set1, PyObject *set2, int op) 
 #else
         Py_hash_t unused1, unused2;
 
-        // Same sized dictionary, simply check if values are identical. Other reductions should
+        // Same sized set, simply check if values are identical. Other reductions should
         // make it identical, or else this won't have the effect intended.
         while (_PySet_NextEntry(set1, &pos1, &key1, &unused1)) {
             {
@@ -243,7 +258,10 @@ static PyObject *our_set_tp_richcompare(PyObject *set1, PyObject *set2, int op) 
     return result;
 }
 
-static PyObject *our_float_tp_richcompare(PyFloatObject *a, PyFloatObject *b, int op) {
+static PyObject *our_float_tp_richcompare(PyObject *object_a, PyObject *object_b, int op) {
+    PyFloatObject *a = (PyFloatObject *)object_a;
+    PyFloatObject *b = (PyFloatObject *)object_b;
+
     assert(op == Py_EQ);
 
     PyObject *result;
@@ -270,6 +288,11 @@ static Py_hash_t our_dict_hash(PyObject *dict) {
         result ^= Nuitka_FastHashBytes(&key, sizeof(PyObject *));
         result *= 1000003;
         result ^= Nuitka_FastHashBytes(&value, sizeof(PyObject *));
+    }
+
+    // The value -1 is reserved for errors.
+    if (unlikely(result == -1)) {
+        result = -2;
     }
 
     return result;
@@ -321,6 +344,11 @@ static Py_hash_t our_frozendict_hash(PyObject *frozendict) {
         result ^= Nuitka_FastHashBytes(&value, sizeof(PyObject *));
     }
 
+    // The value -1 is reserved for errors.
+    if (unlikely(result == -1)) {
+        result = -2;
+    }
+
     return result;
 }
 
@@ -357,7 +385,7 @@ static PyObject *our_frozendict_tp_richcompare(PyObject *a, PyObject *b, int op)
 }
 #endif
 
-// For creation of small long singleton long values as required by Python3.
+// For creation of small long singleton values as required by Python3.
 #if PYTHON_VERSION < 0x3b0
 #if PYTHON_VERSION >= 0x390
 PyObject **Nuitka_Long_SmallValues;
@@ -366,42 +394,75 @@ PyObject *Nuitka_Long_SmallValues[NUITKA_STATIC_SMALLINT_VALUE_MAX - NUITKA_STAT
 #endif
 #endif
 
-static void initCaches(void) {
+static void _finalizeUnpackedConstantObject(void **output, PyObject *value);
+
+static void initConstDictEmpty(void) {
+    if (const_dict_empty == NULL) {
+        PyObject *value = PyDict_New();
+        CHECK_OBJECT(value);
+
+        void *empty_dict_output = (void *)&const_dict_empty;
+        _finalizeUnpackedConstantObject(&empty_dict_output, value);
+    }
+}
+
+static PyObject *makeConstantCacheDict(PyThreadState *tstate) {
+    PyObject *result = MAKE_DICT_EMPTY(tstate);
+    CHECK_OBJECT(result);
+
+    // The caches are permanent roots holding only constants, so they are not
+    // part of the garbage collected values. Python 2.6 and 3.14 or higher
+    // create dictionaries tracked already.
+#if PYTHON_VERSION >= 0x270 && PYTHON_VERSION < 0x3e0
+    assert(!_PyObject_GC_IS_TRACKED(result));
+#else
+    assert(_PyObject_GC_IS_TRACKED(result));
+    Nuitka_GC_UnTrack(result);
+#endif
+
+    return result;
+}
+
+static void initConstantsCaches(PyThreadState *tstate) {
     static bool init_done = false;
     if (init_done == true) {
         return;
     }
 
+    // The empty dict constant is a dependency of our dictionary creation
+    // helpers, and the cache dictionaries themselves use them now.
+    initConstDictEmpty();
+
 #if PYTHON_VERSION < 0x300
-    int_cache = PyDict_New();
+    int_cache = makeConstantCacheDict(tstate);
 #endif
 
-    long_cache = PyDict_New();
+    long_cache = makeConstantCacheDict(tstate);
 
-    float_cache = PyDict_New();
+    float_cache = makeConstantCacheDict(tstate);
 
 #if PYTHON_VERSION >= 0x300
-    bytes_cache = PyDict_New();
+    bytes_cache = makeConstantCacheDict(tstate);
 #endif
 
 #if PYTHON_VERSION < 0x300
-    unicode_cache = PyDict_New();
+    unicode_cache = makeConstantCacheDict(tstate);
 #endif
 
-    tuple_cache = PyDict_New();
+    tuple_cache = makeConstantCacheDict(tstate);
 
-    list_cache = PyDict_New();
+    list_cache = makeConstantCacheDict(tstate);
 
-    slice_cache = PyDict_New();
+    slice_cache = makeConstantCacheDict(tstate);
 
-    dict_cache = PyDict_New();
+    dict_cache = makeConstantCacheDict(tstate);
 
-    set_cache = PyDict_New();
+    set_cache = makeConstantCacheDict(tstate);
 
-    frozenset_cache = PyDict_New();
+    frozenset_cache = makeConstantCacheDict(tstate);
 
 #if PYTHON_VERSION >= 0x3f0
-    frozendict_cache = PyDict_New();
+    frozendict_cache = makeConstantCacheDict(tstate);
 #endif
 
 #if PYTHON_VERSION < 0x3b0
@@ -410,7 +471,7 @@ static void initCaches(void) {
     Nuitka_Long_SmallValues = (PyObject **)_PyInterpreterState_GET()->small_ints;
 #elif PYTHON_VERSION >= 0x300
     for (long i = NUITKA_STATIC_SMALLINT_VALUE_MIN; i < NUITKA_STATIC_SMALLINT_VALUE_MAX; i++) {
-        // Have to use the original API here since out "Nuitka_PyLong_FromLong"
+        // Have to use the original API here since our "Nuitka_PyLong_FromLong"
         // would insist on using "Nuitka_Long_SmallValues" to produce it.
         PyObject *value = PyLong_FromLong(i);
         Nuitka_Long_SmallValues[NUITKA_TO_SMALL_VALUE_OFFSET(i)] = value;
@@ -421,14 +482,35 @@ static void initCaches(void) {
     init_done = true;
 }
 
-static void insertToDictCache(PyObject *dict, PyObject **value) {
-    PyObject *item = PyDict_GetItem(dict, *value);
+static void insertToDictCacheWithRules(PyThreadState *tstate, PyObject *dict, PyObject **value, hashfunc tp_hash,
+                                       richcmpfunc tp_richcompare) {
+    Py_hash_t hash = tp_hash != NULL ? (*tp_hash)(*value) : HASH_VALUE_WITH_ERROR(tstate, *value);
+
+    // Constants must be hashable, and their hash functions must not use -1,
+    // which is reserved for errors.
+    assert(!HAS_ERROR_OCCURRED(tstate));
+    assert(hash != -1);
+
+    PyObject *item = DICT_GET_ITEM0_WITH_HASH_AND_EQ(tstate, dict, *value, hash, tp_richcompare);
 
     if (item != NULL) {
         *value = item;
-    } else {
-        PyDict_SetItem(dict, *value, *value);
+        return;
     }
+
+    if (unlikely(HAS_ERROR_OCCURRED(tstate))) {
+        return;
+    }
+
+    NUITKA_MAY_BE_UNUSED bool res =
+        DICT_SET_ITEM_WITH_HASH_AND_EQ_UNTRACKED(tstate, dict, *value, hash, tp_richcompare, *value);
+    assert(res != false);
+
+    assert(!_PyObject_GC_IS_TRACKED(dict));
+}
+
+static void insertToDictCache(PyThreadState *tstate, PyObject *dict, PyObject **value) {
+    insertToDictCacheWithRules(tstate, dict, value, NULL, NULL);
 }
 
 static void _finalizeUnpackedConstantObject(void **output, PyObject *value) {
@@ -451,22 +533,16 @@ static void _finalizeUnpackedConstantObject(void **output, PyObject *value) {
     *output = (void *)((PyObject **)*output + 1);
 }
 
-static void insertToDictCacheForcedHash(PyObject *dict, PyObject **value, hashfunc tp_hash,
+static void _setUnpackedConstantObject(void **output, PyObject *value) {
+    *(PyObject **)*output = value;
+    *output = (void *)((PyObject **)*output + 1);
+}
+
+static void insertToDictCacheForcedHash(PyThreadState *tstate, PyObject *dict, PyObject **value, hashfunc tp_hash,
                                         richcmpfunc tp_richcompare) {
-    hashfunc old_hash = Py_TYPE(*value)->tp_hash;
-    richcmpfunc old_richcmpfunc = Py_TYPE(*value)->tp_richcompare;
-
     // Hash is optional, e.g. for floats we can spare us doing our own hash,
-    // but we do equality
-    if (tp_hash != NULL) {
-        Py_TYPE(*value)->tp_hash = tp_hash;
-    }
-    Py_TYPE(*value)->tp_richcompare = tp_richcompare;
-
-    insertToDictCache(dict, value);
-
-    Py_TYPE(*value)->tp_hash = old_hash;
-    Py_TYPE(*value)->tp_richcompare = old_richcmpfunc;
+    // but we do equality.
+    insertToDictCacheWithRules(tstate, dict, value, tp_hash, tp_richcompare);
 }
 
 static uint16_t unpackValueUint16(unsigned char const **data) {
@@ -618,10 +694,9 @@ static PyObject *_Nuitka_Unicode_ImmortalFromStringAndSize(PyThreadState *tstate
         PyUnicode_InternInPlace(&u);
     }
 #else
-    insertToDictCache(unicode_cache, &u);
+    insertToDictCache(tstate, unicode_cache, &u);
 #endif
 
-    // Make sure our strings are consistent.
     // TODO: Check with an assertion making build of Python 3.13.0 if this is really true,
     // for 3.14 it ought to not be done.
 #if PYTHON_VERSION >= 0x3c0 && PYTHON_VERSION < 0x3e0 && !defined(__NUITKA_NO_ASSERT__)
@@ -666,7 +741,8 @@ static unsigned char const *_unpackBlobConstantObjectTuple(PyThreadState *tstate
         t = PyTuple_New(0);
     }
 
-    insertToDictCacheForcedHash(tuple_cache, &t, (hashfunc)our_tuple_hash, (richcmpfunc)our_tuple_tp_richcompare);
+    insertToDictCacheForcedHash(tstate, tuple_cache, &t, (hashfunc)our_tuple_hash,
+                                (richcmpfunc)our_tuple_tp_richcompare);
 
     _finalizeUnpackedConstantObject(output, t);
 
@@ -686,37 +762,50 @@ static unsigned char const *_unpackBlobConstantObjectList(PyThreadState *tstate,
         CHECK_OBJECTS(&PyList_GET_ITEM(l, 0), size);
     }
 
-    insertToDictCacheForcedHash(list_cache, &l, (hashfunc)our_list_hash, (richcmpfunc)our_list_tp_richcompare);
+    insertToDictCacheForcedHash(tstate, list_cache, &l, (hashfunc)our_list_hash, (richcmpfunc)our_list_tp_richcompare);
 
     _finalizeUnpackedConstantObject(output, l);
 
     return data;
 }
 
+static unsigned char const *_unpackBlobConstantObjectEmptyDict(void **output, unsigned char const *data) {
+    CHECK_OBJECT(const_dict_empty);
+
+    _setUnpackedConstantObject(output, const_dict_empty);
+
+    return data;
+}
+
 static unsigned char const *_unpackBlobConstantObjectDict(PyThreadState *tstate, void **output,
-                                                          unsigned char const *data) {
-    int size = (int)_unpackVariableLength(&data);
+                                                          unsigned char const *data, bool unicode_keys) {
+    // Empty dicts have a dedicated tag, so the length is stored minus one.
+    int size = (int)_unpackVariableLength(&data) + 1;
 
-    PyObject *d = _PyDict_NewPresized(size);
-    CHECK_OBJECT(d);
+    PyObject *d;
 
-    if (size > 0) {
-        NUITKA_DYNAMIC_ARRAY_DECL(keys, PyObject *, size);
-        NUITKA_DYNAMIC_ARRAY_DECL(values, PyObject *, size);
-
-        data = _unpackBlobConstantsAt(tstate, keys, data, size);
-        data = _unpackBlobConstantsAt(tstate, values, data, size);
-
-        CHECK_OBJECTS(&keys[0], size);
-        CHECK_OBJECTS(&values[0], size);
-
-        for (int i = 0; i < size; i++) {
-            NUITKA_MAY_BE_UNUSED int res = PyDict_SetItem(d, keys[i], values[i]);
-            assert(res == 0);
-        }
+    if (unicode_keys) {
+        d = MAKE_DICT_PRESIZED_UNICODE(tstate, size);
+    } else {
+        d = MAKE_DICT_PRESIZED(tstate, size);
     }
 
-    insertToDictCacheForcedHash(dict_cache, &d, (hashfunc)our_dict_hash, (richcmpfunc)our_dict_tp_richcompare);
+    CHECK_OBJECT(d);
+
+    NUITKA_DYNAMIC_ARRAY_DECL(keys, PyObject *, size);
+    NUITKA_DYNAMIC_ARRAY_DECL(values, PyObject *, size);
+
+    data = _unpackBlobConstantsAt(tstate, keys, data, size);
+    data = _unpackBlobConstantsAt(tstate, values, data, size);
+
+    CHECK_OBJECTS(&keys[0], size);
+    CHECK_OBJECTS(&values[0], size);
+
+    for (int i = 0; i < size; i++) {
+        DICT_SET_ITEM_INFALLIBLE(tstate, d, keys[i], values[i]);
+    }
+
+    insertToDictCacheForcedHash(tstate, dict_cache, &d, (hashfunc)our_dict_hash, (richcmpfunc)our_dict_tp_richcompare);
 
     _finalizeUnpackedConstantObject(output, d);
 
@@ -725,10 +814,11 @@ static unsigned char const *_unpackBlobConstantObjectDict(PyThreadState *tstate,
 
 #if PYTHON_VERSION >= 0x3f0
 static unsigned char const *_unpackBlobConstantObjectFrozendict(PyThreadState *tstate, void **output,
-                                                                unsigned char const *data) {
+                                                                unsigned char const *data, bool unicode_keys) {
     int size = (int)_unpackVariableLength(&data);
 
-    PyObject *d = _PyDict_NewPresized(size);
+    PyObject *d = unicode_keys ? MAKE_DICT_PRESIZED_UNICODE(tstate, size) : MAKE_DICT_PRESIZED(tstate, size);
+
     CHECK_OBJECT(d);
 
     if (size > 0) {
@@ -742,8 +832,7 @@ static unsigned char const *_unpackBlobConstantObjectFrozendict(PyThreadState *t
         CHECK_OBJECTS(&values[0], size);
 
         for (int i = 0; i < size; i++) {
-            NUITKA_MAY_BE_UNUSED int res = PyDict_SetItem(d, keys[i], values[i]);
-            assert(res == 0);
+            DICT_SET_ITEM_INFALLIBLE(tstate, d, keys[i], values[i]);
         }
     }
 
@@ -752,7 +841,7 @@ static unsigned char const *_unpackBlobConstantObjectFrozendict(PyThreadState *t
 
     Py_DECREF(d);
 
-    insertToDictCacheForcedHash(frozendict_cache, &result, (hashfunc)our_frozendict_hash,
+    insertToDictCacheForcedHash(tstate, frozendict_cache, &result, (hashfunc)our_frozendict_hash,
                                 (richcmpfunc)our_frozendict_tp_richcompare);
 
     _finalizeUnpackedConstantObject(output, result);
@@ -800,9 +889,10 @@ static unsigned char const *_unpackBlobConstantObjectSetOrFrozenset(PyThreadStat
     }
 
     if (c == NUITKA_CONSTANT_BLOB_TAG_SET) {
-        insertToDictCacheForcedHash(set_cache, &s, (hashfunc)our_set_hash, (richcmpfunc)our_set_tp_richcompare);
+        insertToDictCacheForcedHash(tstate, set_cache, &s, (hashfunc)our_set_hash, (richcmpfunc)our_set_tp_richcompare);
     } else {
-        insertToDictCacheForcedHash(frozenset_cache, &s, (hashfunc)our_set_hash, (richcmpfunc)our_set_tp_richcompare);
+        insertToDictCacheForcedHash(tstate, frozenset_cache, &s, (hashfunc)our_set_hash,
+                                    (richcmpfunc)our_set_tp_richcompare);
     }
 
     _finalizeUnpackedConstantObject(output, s);
@@ -820,7 +910,7 @@ static unsigned char const *_unpackBlobConstantObjectIntNegativeOrPositive(PyThr
 
     PyObject *i = PyInt_FromLong(value);
 
-    insertToDictCache(int_cache, &i);
+    insertToDictCache(tstate, int_cache, &i);
 
     _finalizeUnpackedConstantObject(output, i);
 
@@ -842,7 +932,7 @@ static unsigned char const *_unpackBlobConstantObjectLongPositiveOrNegativeSmall
     if (check_value < NUITKA_STATIC_SMALLINT_VALUE_MIN || check_value >= NUITKA_STATIC_SMALLINT_VALUE_MAX)
 #endif
     {
-        insertToDictCache(long_cache, &l);
+        insertToDictCache(tstate, long_cache, &l);
     }
 
     _finalizeUnpackedConstantObject(output, l);
@@ -875,7 +965,7 @@ static unsigned char const *_unpackBlobConstantObjectLongPositiveOrNegativeLarge
         Nuitka_LongSetSignNegative(result);
     }
 
-    insertToDictCache(long_cache, &result);
+    insertToDictCache(tstate, long_cache, &result);
 
     _finalizeUnpackedConstantObject(output, result);
 
@@ -888,7 +978,7 @@ static unsigned char const *_unpackBlobConstantObjectFloat(PyThreadState *tstate
 
     PyObject *f = PyFloat_FromDouble(value);
 
-    insertToDictCacheForcedHash(float_cache, &f, NULL, (richcmpfunc)our_float_tp_richcompare);
+    insertToDictCacheForcedHash(tstate, float_cache, &f, NULL, (richcmpfunc)our_float_tp_richcompare);
 
     _finalizeUnpackedConstantObject(output, f);
 
@@ -949,7 +1039,7 @@ static unsigned char const *_unpackBlobConstantObjectBytesZeroTerminated(PyThrea
     data += size + 1;
 
     if (size > 1) {
-        insertToDictCache(bytes_cache, &b);
+        insertToDictCache(tstate, bytes_cache, &b);
     }
 
     _finalizeUnpackedConstantObject(output, b);
@@ -994,7 +1084,7 @@ static unsigned char const *_unpackBlobConstantObjectBytesLengthPrefixed(PyThrea
     data += size;
 
 #if PYTHON_VERSION >= 0x300
-    insertToDictCache(bytes_cache, &b);
+    insertToDictCache(tstate, bytes_cache, &b);
 #endif
 
     _finalizeUnpackedConstantObject(output, b);
@@ -1079,7 +1169,8 @@ static unsigned char const *_unpackBlobConstantObjectSlice(PyThreadState *tstate
 
     PyObject *s = MAKE_SLICE_OBJECT3(tstate, items[0], items[1], items[2]);
 
-    insertToDictCacheForcedHash(slice_cache, &s, (hashfunc)our_slice_hash, (richcmpfunc)our_slice_tp_richcompare);
+    insertToDictCacheForcedHash(tstate, slice_cache, &s, (hashfunc)our_slice_hash,
+                                (richcmpfunc)our_slice_tp_richcompare);
 
     _finalizeUnpackedConstantObject(output, s);
 
@@ -1232,7 +1323,7 @@ static unsigned char const *_unpackBlobConstantObjectFloatSpecial(PyThreadState 
     }
     }
 
-    insertToDictCacheForcedHash(float_cache, &z, NULL, (richcmpfunc)our_float_tp_richcompare);
+    insertToDictCacheForcedHash(tstate, float_cache, &z, NULL, (richcmpfunc)our_float_tp_richcompare);
 
     _finalizeUnpackedConstantObject(output, z);
 
@@ -1435,9 +1526,13 @@ static unsigned char const *_unpackBlobConstantObjectCodeObject(PyThreadState *t
 
 static unsigned char const *_unpackBlobConstant(PyThreadState *tstate, void **output, unsigned char const *data) {
 
-    // Make sure we discover failures to assign.
-    *(PyObject **)*output = NULL;
     unsigned char c = *data++;
+
+    // Make sure we discover failures to assign, except for the pre-created
+    // empty dict constant.
+    if (c != NUITKA_CONSTANT_BLOB_TAG_DICT_EMPTY) {
+        *(PyObject **)*output = NULL;
+    }
 #ifdef _NUITKA_EXPERIMENTAL_DEBUG_CONSTANTS
     unsigned char const *data_old = data;
     printf("Type %u:\n", (unsigned int)c);
@@ -1456,8 +1551,16 @@ static unsigned char const *_unpackBlobConstant(PyThreadState *tstate, void **ou
         data = _unpackBlobConstantObjectList(tstate, output, data);
         break;
     }
+    case NUITKA_CONSTANT_BLOB_TAG_DICT_EMPTY: {
+        data = _unpackBlobConstantObjectEmptyDict(output, data);
+        break;
+    }
     case NUITKA_CONSTANT_BLOB_TAG_DICT: {
-        data = _unpackBlobConstantObjectDict(tstate, output, data);
+        data = _unpackBlobConstantObjectDict(tstate, output, data, false);
+        break;
+    }
+    case NUITKA_CONSTANT_BLOB_TAG_DICT_UNICODE: {
+        data = _unpackBlobConstantObjectDict(tstate, output, data, true);
         break;
     }
     case NUITKA_CONSTANT_BLOB_TAG_FROZENSET:
@@ -1467,7 +1570,11 @@ static unsigned char const *_unpackBlobConstant(PyThreadState *tstate, void **ou
     }
 #if PYTHON_VERSION >= 0x3f0
     case NUITKA_CONSTANT_BLOB_TAG_FROZENDICT: {
-        data = _unpackBlobConstantObjectFrozendict(tstate, output, data);
+        data = _unpackBlobConstantObjectFrozendict(tstate, output, data, false);
+        break;
+    }
+    case NUITKA_CONSTANT_BLOB_TAG_FROZENDICT_UNICODE: {
+        data = _unpackBlobConstantObjectFrozendict(tstate, output, data, true);
         break;
     }
 #endif
@@ -1530,7 +1637,7 @@ static unsigned char const *_unpackBlobConstant(PyThreadState *tstate, void **ou
         break;
     }
 #if PYTHON_VERSION >= 0x300
-    case NUITKA_CONSTANT_BLOB_TAG_ATTRIBUTE_NAME: // Python3 attributes
+    case NUITKA_CONSTANT_BLOB_TAG_ATTRIBUTE_NAME:
 #endif
     case NUITKA_CONSTANT_BLOB_TAG_TEXT_UTF8_ZERO_TERMINATED: {
         data = _unpackBlobConstantObjectAttributeNameOrTextUtf8ZeroTerminated(tstate, output, data, c);
@@ -1646,6 +1753,15 @@ static unsigned char const *_unpackBlobConstantsAt(PyThreadState *tstate, void *
 }
 
 static void unpackBlobConstants(PyThreadState *tstate, void *output, unsigned char const *data) {
+    // The empty dict constant is used by the dict creation helpers, but the
+    // constants blob itself may contain it, so provide it before decoding.
+    // However, the bytecode blob is decoded before interpreter initialization
+    // without a thread state, where creating dictionaries is not possible. It
+    // contains raw blob data only, so it does not need the empty dict constant.
+    if (tstate != NULL) {
+        initConstDictEmpty();
+    }
+
     int count = (int)unpackValueUint16(&data);
 
 #ifdef _NUITKA_EXPERIMENTAL_DEBUG_CONSTANTS
@@ -1655,10 +1771,17 @@ static void unpackBlobConstants(PyThreadState *tstate, void *output, unsigned ch
 }
 
 void loadConstantsBlobData(PyThreadState *tstate, void *output, unsigned char const *data) {
-    initCaches();
+    // The bytecode blob is decoded before interpreter initialization without a
+    // thread state, where the caches cannot be created yet. It contains raw
+    // blob data only, so they are not needed for it.
+    if (tstate != NULL) {
+        initConstantsCaches(tstate);
+    }
+
     unpackBlobConstants(tstate, output, data);
 }
 
+#if !defined(_NUITKA_EXPERIMENTAL_DIRECT_CONSTANT_BLOBS)
 void loadConstantsBlob(PyThreadState *tstate, void *output, char const *name) {
     static bool init_done = false;
 
@@ -1688,7 +1811,7 @@ void loadConstantsBlob(PyThreadState *tstate, void *output, char const *name) {
 #endif
     // Python 3.9 or higher cannot create dictionary before calling init so avoid it.
     if (strcmp(name, ".bytecode") != 0) {
-        initCaches();
+        initConstantsCaches(tstate);
     }
 
     unsigned char const *w = constant_bin;
@@ -1710,12 +1833,12 @@ void loadConstantsBlob(PyThreadState *tstate, void *output, char const *name) {
             break;
         }
 
-        // Skip other module data.
         w += size;
     }
 
     unpackBlobConstants(tstate, output, w);
 }
+#endif
 
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.

@@ -1,12 +1,7 @@
 #     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-"""Reformulation of contraction expressions.
-
-Consult the Developer Manual for information. TODO: Add ability to sync
-source code comments with Developer Manual sections.
-
-"""
+"""Reformulation of contraction expressions."""
 
 from nuitka.__past__ import intern
 from nuitka.nodes.AsyncgenNodes import (
@@ -21,18 +16,15 @@ from nuitka.nodes.BuiltinIteratorNodes import (
 from nuitka.nodes.BuiltinNextNodes import ExpressionBuiltinNext1
 from nuitka.nodes.CodeObjectSpecs import CodeObjectSpecGeneratorExpression
 from nuitka.nodes.ConditionalNodes import makeStatementConditional
-from nuitka.nodes.ConstantRefNodes import (
-    ExpressionConstantIntRef,
-    makeConstantRefNode,
-)
+from nuitka.nodes.ConstantRefNodes import makeConstantRefNode
 from nuitka.nodes.ContainerOperationNodes import (
     StatementListOperationAppend,
     StatementSetOperationAdd,
 )
 from nuitka.nodes.DictionaryNodes import (
-    ExpressionDictOperationIteritems,
     StatementDictOperationSet,
     StatementDictOperationSetKeyValue,
+    StatementDictOperationUpdate,
 )
 from nuitka.nodes.FrameNodes import (
     StatementsFrameAsyncgen,
@@ -55,7 +47,6 @@ from nuitka.nodes.StatementNodes import (
     StatementExpressionOnly,
     StatementsSequence,
 )
-from nuitka.nodes.SubscriptNodes import ExpressionSubscriptLookup
 from nuitka.nodes.VariableAssignNodes import makeStatementAssignmentVariable
 from nuitka.nodes.VariableRefNodes import ExpressionTempVariableRef
 from nuitka.nodes.VariableReleaseNodes import makeStatementReleaseVariable
@@ -63,6 +54,7 @@ from nuitka.nodes.YieldNodes import (
     ExpressionYield,
     ExpressionYieldFromAwaitable,
 )
+from nuitka.plugins.Hooks import decideNeedsFrameLocalsProxy
 from nuitka.PythonVersions import python_version
 
 from .ReformulationAssignmentStatements import buildAssignmentStatements
@@ -121,12 +113,8 @@ def _getStopIterationName(qual):
 
 
 def _buildPython2ListContraction(provider, node, source_ref):
-    # The contraction nodes are reformulated to function bodies, with loops as
-    # described in the Developer Manual. They use a lot of temporary names,
-    # nested blocks, etc. and so a lot of variable names.
+    assert python_version < 0x300
 
-    # Note: The assign_provider is only to cover Python2 list contractions,
-    # assigning one of the loop variables to the outside scope.
     function_body = ExpressionOutlineBody(
         provider=provider, name="list_contraction", source_ref=source_ref
     )
@@ -173,7 +161,6 @@ def _buildPython2ListContraction(provider, node, source_ref):
 
 
 def buildListContractionNode(provider, node, source_ref):
-    # List contractions are dealt with by general code.
     if python_version < 0x300:
         return _buildPython2ListContraction(
             provider=provider, node=node, source_ref=source_ref
@@ -190,8 +177,6 @@ def buildListContractionNode(provider, node, source_ref):
 
 
 def buildSetContractionNode(provider, node, source_ref):
-    # Set contractions are dealt with by general code.
-
     return _buildContractionNode(
         provider=provider,
         node=node,
@@ -203,8 +188,6 @@ def buildSetContractionNode(provider, node, source_ref):
 
 
 def buildDictContractionNode(provider, node, source_ref):
-    # Dict contractions are dealt with by general code.
-
     return _buildContractionNode(
         provider=provider,
         node=node,
@@ -220,8 +203,6 @@ def buildDictContractionNode(provider, node, source_ref):
 
 
 def buildGeneratorExpressionNode(provider, node, source_ref):
-    # Generator expressions are dealt with by general code.
-
     assert getKind(node) == "GeneratorExp"
 
     function_body = ExpressionOutlineBody(
@@ -260,7 +241,7 @@ def buildGeneratorExpressionNode(provider, node, source_ref):
             code_object=code_object,
             flags=None,
             auto_release=None,
-            source_ref=source_ref,
+            source_ref=source_ref.atColumnNumber(node.col_offset + 1),
         )
 
         maker_class = ExpressionMakeAsyncgenObject
@@ -333,12 +314,18 @@ def buildGeneratorExpressionNode(provider, node, source_ref):
 
     frame_node_class = StatementsFrameAsyncgen if is_async else StatementsFrameGenerator
 
+    needs_frame_locals_proxy = decideNeedsFrameLocalsProxy(
+        module_name=provider.getParentModule().getFullName(),
+        code_qualname=code_object.getCodeObjectQualname(),
+    )
+
     code_body.setChildBody(
         makeStatementsSequenceFromStatement(
             statement=frame_node_class(
                 statements=mergeStatements(statements),
                 code_object=code_object,
                 owner_code_name=code_body.getCodeName(),
+                needs_frame_locals=needs_frame_locals_proxy,
                 source_ref=source_ref,
             )
         )
@@ -360,13 +347,10 @@ def _buildContractionBodyNode(  # pylint: disable=too-many-statements
     for_asyncgen,
     source_ref,
 ):
-    # This uses lots of variables and branches. There is no good way
-    # around that, and we deal with many cases, due to having generator
-    # expressions sharing this code, pylint: disable=too-many-branches,too-many-locals
+    # pylint: disable=too-many-branches,too-many-locals
 
-    # Note: The assign_provider is only to cover Python2 list contractions,
-    # assigning one of the loop variables to the outside scope.
-
+    # In Python 2 list comprehensions, loop targets bind in the enclosing
+    # scope ("assign_provider=True") rather than a comprehension scope.
     tmp_variables = []
     if emit_class is not ExpressionYield:
         tmp_variables.append(iter_tmp)
@@ -376,7 +360,6 @@ def _buildContractionBodyNode(  # pylint: disable=too-many-statements
 
     statements = []
 
-    # First assign the iterator if we are an outline.
     if assign_provider:
         statements.append(
             makeStatementAssignmentVariable(
@@ -500,77 +483,19 @@ def _buildContractionBodyNode(  # pylint: disable=too-many-statements
                 source_ref=source_ref,
             )
     else:
+        # Only 'DictComp' lacks 'node.elt'. In Python 3.15+ (PEP 798),
+        # '{**m for m in items}' is represented as 'DictComp(key=m, value=None)'
+        # (opposite of 'ast.Dict', where '**m' has 'key=None, value=m').
         if node.value is None:
-            tmp_dict_iterator = item_provider.allocateTempVariable(
-                temp_scope=None, name="dict_iterator", temp_type="object"
-            )
-            tmp_dict_item = item_provider.allocateTempVariable(
-                temp_scope=None, name="subitem", temp_type="object"
-            )
-
-            emit_item = emit_class(
+            current_body = StatementDictOperationUpdate(
                 dict_arg=ExpressionTempVariableRef(
                     variable=container_tmp, source_ref=source_ref
                 ),
-                key=ExpressionSubscriptLookup(
-                    expression=ExpressionTempVariableRef(tmp_dict_item, source_ref),
-                    subscript=ExpressionConstantIntRef(0, source_ref),
+                value=buildNode(
+                    provider=item_provider,
+                    node=node.key,
                     source_ref=source_ref,
                 ),
-                value=ExpressionSubscriptLookup(
-                    expression=ExpressionTempVariableRef(tmp_dict_item, source_ref),
-                    subscript=ExpressionConstantIntRef(1, source_ref),
-                    source_ref=source_ref,
-                ),
-                source_ref=source_ref,
-            )
-
-            loop_body = makeStatementsSequenceFromStatements(
-                makeTryExceptSingleHandlerNode(
-                    tried=makeStatementAssignmentVariable(
-                        variable=tmp_dict_item,
-                        source=ExpressionBuiltinNext1(
-                            value=ExpressionTempVariableRef(
-                                variable=tmp_dict_iterator,
-                                source_ref=source_ref,
-                            ),
-                            source_ref=source_ref,
-                        ),
-                        source_ref=source_ref,
-                    ),
-                    exception_name="StopIteration",
-                    handler_body=StatementLoopBreak(source_ref=source_ref),
-                    source_ref=source_ref,
-                ),
-                emit_item,
-            )
-
-            loop = StatementLoop(
-                loop_body=loop_body,
-                source_ref=source_ref,
-            )
-
-            current_body = makeTryFinallyReleaseStatement(
-                provider=item_provider,
-                tried=makeStatementsSequenceFromStatements(
-                    [
-                        makeStatementAssignmentVariable(
-                            variable=tmp_dict_iterator,
-                            source=ExpressionBuiltinIter1(
-                                value=ExpressionDictOperationIteritems(
-                                    dict_arg=buildNode(
-                                        item_provider, node.key, source_ref
-                                    ),
-                                    source_ref=source_ref,
-                                ),
-                                source_ref=source_ref,
-                            ),
-                            source_ref=source_ref,
-                        ),
-                        loop,
-                    ]
-                ),
-                variables=(tmp_dict_iterator, tmp_dict_item),
                 source_ref=source_ref,
             )
         else:
@@ -604,10 +529,8 @@ def _buildContractionBodyNode(  # pylint: disable=too-many-statements
 
         tmp_variables.append(tmp_value_variable)
 
-        # The first iterated value is to be calculated outside of the function
-        # and will be given as a parameter "_iterated", the others are built
-        # inside the function.
-
+        # The outermost iterable is evaluated outside the body and passed in via
+        # 'iter_tmp' ('.0'); inner iterables are built inside.
         if qual is node.generators[0]:
             iterator_ref = makeVariableRefNode(variable=iter_tmp, source_ref=source_ref)
 
@@ -621,7 +544,6 @@ def _buildContractionBodyNode(  # pylint: disable=too-many-statements
 
             nested_statements = []
         else:
-            # First create the iterator and store it, next should be loop body
             value_iterator = _makeIteratorCreation(
                 provider=provider if assign_provider else function_body,
                 qual=qual,
@@ -719,10 +641,6 @@ def _buildContractionBodyNode(  # pylint: disable=too-many-statements
 
 
 def _buildContractionNode(provider, node, name, emit_class, start_value, source_ref):
-    # The contraction nodes are reformulated to function bodies, with loops as
-    # described in the Developer Manual. They use a lot of temporary names,
-    # nested blocks, etc. and so a lot of variable names.
-
     function_body = ExpressionOutlineFunction(
         provider=provider, name=intern(name[1:-1]), source_ref=source_ref
     )

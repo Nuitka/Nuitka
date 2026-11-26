@@ -1,15 +1,9 @@
 #     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-"""Return codes
+"""Code generation for return statements in functions and generators."""
 
-This handles code generation for return statements of normal functions and of
-generator functions. Also the value currently being returned, and intercepted
-by a try statement is accessible this way.
-
-"""
-
-from nuitka.Constants import isConstantImmortal
+from nuitka.Constants import isConstantKnownRuntimeImmortal
 from nuitka.PythonVersions import python_version
 
 from .CodeHelpers import generateExpressionCode
@@ -56,7 +50,7 @@ def generateReturnCode(statement, emit, context):
 
 
 def generateReturnedValueCode(statement, emit, context):
-    # We don't need the statement, pylint: disable=unused-argument
+    # pylint: disable=unused-argument
 
     getExceptionUnpublishedReleaseCode(emit, context)
 
@@ -85,7 +79,7 @@ def generateReturnConstantCode(statement, emit, context):
     if context.needsCleanup(return_value_name):
         context.removeCleanupTempName(return_value_name)
     else:
-        if isConstantImmortal(constant):
+        if isConstantKnownRuntimeImmortal(constant):
             emit("Py_INCREF_IMMORTAL(%s);" % return_value_name)
         else:
             emit("Py_INCREF(%s);" % return_value_name)
@@ -120,7 +114,7 @@ def generateGeneratorReturnValueCode(statement, emit, context):
 
 
 def generateGeneratorReturnNoneCode(statement, emit, context):
-    # We don't need the statement, pylint: disable=unused-argument
+    # pylint: disable=unused-argument
 
     if context.getOwner().isExpressionAsyncgenObjectBody():
         pass

@@ -1,12 +1,7 @@
 #     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-"""Built-in staticmethod/classmethod nodes
-
-These are good for optimizations, as they give a very well known result, changing
-only the way a class member is being called. Being able to avoid going through a
-C call to the built-ins resulting wrapper, will speed up things.
-"""
+"""Nodes for the 'staticmethod' and 'classmethod' built-ins."""
 
 from .ExpressionBasesGenerated import (
     ExpressionBuiltinClassmethodBase,
@@ -22,10 +17,9 @@ class BuiltinStaticmethodClassmethodMixin(object):
     def isExpressionBuiltinCall():
         return True
 
-    # There is nothing to compute for it as a value.
     auto_compute_handling = "final,no_raise"
 
-    # TODO: Make it part of auto-compute through a the shape provided.
+    # TODO: Make it part of auto-compute through the shape provided.
     @staticmethod
     def isKnownToBeIterable(count):
         # pylint: disable=unused-argument
@@ -35,11 +29,11 @@ class BuiltinStaticmethodClassmethodMixin(object):
     def isKnownToBeHashable():
         return True
 
-    # TODO: should be automatic due to final
+    # TODO: Should be automatic due to 'final'.
     def mayRaiseException(self, exception_type):
         return self.subnode_value.mayRaiseException(exception_type)
 
-    # TODO: should be a auto_compute property.
+    # TODO: Should be an 'auto_compute_handling' property.
     def mayHaveSideEffect(self):
         return self.subnode_value.mayHaveSideEffect()
 
@@ -52,7 +46,7 @@ class ExpressionBuiltinStaticmethod(
 ):
     kind = "EXPRESSION_BUILTIN_STATICMETHOD"
 
-    # TODO: Allow these to be in class classes instead.
+    # TODO: Allow 'named_children' to be in mixin classes instead.
     named_children = ("value",)
 
     @staticmethod
@@ -65,7 +59,6 @@ class ExpressionBuiltinClassmethod(
 ):
     kind = "EXPRESSION_BUILTIN_CLASSMETHOD"
 
-    # TODO: Allow these to be in mixin classes instead.
     named_children = ("value",)
 
     @staticmethod

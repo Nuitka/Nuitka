@@ -1,11 +1,7 @@
 #     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-"""Code generation for implicit and explicit exception raises.
-
-Exceptions from other operations are consider ErrorCodes domain.
-
-"""
+"""Code generation for explicit and implicit exception raises."""
 
 from nuitka.Builtins import (
     getBuiltinExceptionIdentifier,
@@ -74,8 +70,6 @@ def _generateExceptionNormalizeCode(to_name, exception_type, emit, context):
     if exception_type.isExpressionBuiltinMakeException():
         # TODO: Make this shape based, but currently the nodes do not
         # provide the shape, we need to add that.
-
-        # No need to normalize these.
         generateExpressionCode(
             to_name=to_name,
             expression=exception_type,
@@ -83,7 +77,6 @@ def _generateExceptionNormalizeCode(to_name, exception_type, emit, context):
             context=context,
         )
     else:
-        # Need to normalize exceptions.
         raise_type_input_name = context.allocateTempName("raise_type_input")
 
         generateExpressionCode(
@@ -93,18 +86,21 @@ def _generateExceptionNormalizeCode(to_name, exception_type, emit, context):
             context=context,
         )
 
-        emit(
-            "%s = NORMALIZE_EXCEPTION_VALUE_FOR_RAISE(tstate, %s);"
-            % (to_name, raise_type_input_name)
-        )
+        with context.withCurrentSourceCodeReference(
+            exception_type.getCompatibleSourceReference()
+        ):
+            emit(
+                "%s = NORMALIZE_EXCEPTION_VALUE_FOR_RAISE(tstate, %s);"
+                % (to_name, raise_type_input_name)
+            )
 
-        getErrorExitCode(
-            check_name=to_name,
-            release_name=raise_type_input_name,
-            needs_check=True,
-            emit=emit,
-            context=context,
-        )
+            getErrorExitCode(
+                check_name=to_name,
+                release_name=raise_type_input_name,
+                needs_check=True,
+                emit=emit,
+                context=context,
+            )
 
         context.addCleanupTempName(to_name)
 
@@ -115,7 +111,6 @@ def generateRaiseCode(statement, emit, context):
     exception_tb = statement.subnode_exception_trace
     exception_cause = statement.subnode_exception_cause
 
-    # Exception cause is only possible with simple raise form.
     if exception_cause is not None:
         assert exception_type is not None
         assert exception_value is None
@@ -251,8 +246,6 @@ def generateRaiseExpressionCode(to_name, expression, emit, context):
         expression=expression, emit=emit, context=context
     )
 
-    # Missed optimization opportunity, please report it, this should not
-    # normally happen. We are supposed to propagate this upwards.
     if states.is_debug:
         # TODO: Need to optimize ExpressionLocalsVariableRefOrFallback once we know
         # it handles cases where the value is not in locals dict properly.
@@ -268,7 +261,6 @@ def generateRaiseExpressionCode(to_name, expression, emit, context):
     with withObjectCodeTemporaryAssignment(
         to_name, "raise_exception_result", expression, emit, context
     ) as value_name:
-        # That's how we indicate exception to the surrounding world.
         emit("%s = NULL;" % value_name)
 
         _getRaiseExceptionWithTypeCode(
@@ -330,7 +322,6 @@ if (unlikely(%(bool_res_name)s == false)) {
 
         emit(
             """\
-// Re-raise.
 %(exception_state_name)s = %(keeper_exception_state_name)s;
 %(exception_lineno)s = %(keeper_lineno)s;
 """
@@ -458,7 +449,6 @@ def _getRaiseExceptionWithTracebackCode(
 
     emit("RAISE_EXCEPTION_WITH_TRACEBACK(tstate, &%s);" % (exception_state_name))
 
-    # If anything is wrong, that will be used.
     _emitRaiseExceptionLinenoCode(emit, context)
 
     getGotoCode(context.getExceptionEscape(), emit)

@@ -35,7 +35,7 @@ from nuitka.nodes.ExpressionBases import ExpressionBase
 {% if named_children and is_expression %}
 from nuitka.nodes.NodeMakingHelpers import wrapExpressionWithSideEffects
 {% endif %}
-{% if not is_compute_final and named_children and base_class == "ExpressionBase" %}
+{% if (not is_compute_final and named_children and base_class == "ExpressionBase") or is_compute_expression_operation %}
 from abc import abstractmethod
 {% endif %}
 {% if is_compute_statement %}
@@ -50,11 +50,6 @@ from abc import abstractmethod
 class {{mixin_class_name}}({{base_class}}):
     # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
     __slots__ = ()
-
-    # This is generated for use in
-{% for node_class_name in intended_for %}
-    #   {{node_class_name}}
-{% endfor %}
 
 {% if named_children or node_attributes %}
     def __init__(self,
@@ -102,7 +97,7 @@ class {{mixin_class_name}}({{base_class}}):
 {% if has_post_node_init %}
     @abstractmethod
     def postInitNode(self):
-        """For overload"""
+        pass
 {% endif %}
 
 {% if node_attributes %}
@@ -120,8 +115,6 @@ class {{mixin_class_name}}({{base_class}}):
 {% endfor %}
 
     def getVisitableNodes(self):
-        """ The visitable nodes, with tuple values flattened. """
-
 {% if "tuple" not in named_children_types.values() and "optional" not in named_children_types.values() %}
         return (
 {% for named_child in named_children %}
@@ -187,11 +180,6 @@ class {{mixin_class_name}}({{base_class}}):
 {% endif %}
 
     def getVisitableNodesNamed(self):
-        """Named children dictionary.
-
-        For use in cloning nodes, debugging and XML output.
-        """
-
 {% if len(named_children) == 1 %}
         return (
             ("{{named_children[0]}}", self.subnode_{{named_children[0]}}),
@@ -235,11 +223,6 @@ class {{mixin_class_name}}({{base_class}}):
         raise AssertionError("Didn't find child", old_node, "in", self)
 
     def getCloneArgs(self):
-        """ Get clones of all children to pass for a new node.
-
-            Needs to make clones of child nodes too.
-        """
-
         values = {
 {% for named_child, param_name in init_args_spec %}
 {% if named_children_types.get(named_child) == "tuple" %}
@@ -283,18 +266,9 @@ class {{mixin_class_name}}({{base_class}}):
 
 {% if is_expression %}
     def computeExpressionRaw(self, trace_collection):
-        """Compute an expression.
-
-        Default behavior is to just visit the child expressions first, and
-        then the node "computeExpression". For a few cases this needs to
-        be overloaded, e.g. conditional expressions.
-        """
-
 {% if named_children and not is_compute_final_children %}
 {% if len(named_children) == 1 %}
 {% if named_children_types.get(named_children[0]) == "tuple" %}
-        # First apply the sub-expressions, as they are evaluated before
-        # the actual operation.
         {# Keep this around, so we can look up its index, even after it got replaced. This
            avoids an enumeration that will not be used unless something will raise an
            exception. #}
@@ -317,7 +291,6 @@ class {{mixin_class_name}}({{base_class}}):
                     % (self.getChildNameNice(), expression.getChildNameNice()),
                 )
 {% else %}
-        # First apply the sub-expression, as they it's evaluated before.
 {% if named_children_types.get(named_children[0]) == "optional" %}
         expression = self.subnode_{{named_children[0]}}
 
@@ -344,8 +317,6 @@ class {{mixin_class_name}}({{base_class}}):
 {% endif %}
 {% endif %}
 {% else %}
-        # First apply the sub-expressions, as they are evaluated before
-        # the actual operation.
         for count, sub_expression in enumerate(self.getVisitableNodes()):
             expression = trace_collection.onExpression(sub_expression)
 
@@ -390,7 +361,6 @@ class {{mixin_class_name}}({{base_class}}):
 {% endif %}
         return self, None, None
 {% else %}
-        # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 {% endif %}
 
@@ -422,11 +392,39 @@ class {{mixin_class_name}}({{base_class}}):
 
 {% endif %}
 
+{% if is_compute_expression_operation %}
+{% if named_children %}
+    def mayRaiseException(self, exception_type):
+        return \
+{% for named_child in named_children %}
+{% if named_children_types.get(named_child) == "optional" %}
+            (self.subnode_{{named_child}} is not None and self.subnode_{{named_child}}.mayRaiseException(exception_type)) \
+{% elif named_children_types.get(named_child) == "tuple" %}
+            any(value.mayRaiseException(exception_type) for value in self.subnode_{{named_child}}) \
+{% else %}
+            self.subnode_{{named_child}}.mayRaiseException(exception_type) \
+{% endif %}
+{% if named_child != named_children[-1] %}
+            or \
+{% endif %}
+{% endfor %}
+            or self.mayRaiseExceptionOperation()
+
+{% else %}
+    def mayRaiseException(self, exception_type):
+        return self.mayRaiseExceptionOperation()
+
+{% endif %}
+    @abstractmethod
+    def mayRaiseExceptionOperation(self):
+        pass
+{% endif %}
+
 {# TODO: Should make it abstract for mere mixins too, but too much work now. #}
 {% if not is_compute_final and named_children and base_class == "ExpressionBase" %}
     @abstractmethod
     def computeExpression(self, trace_collection):
-        """Must be overloaded for non-final node."""
+        pass
 {% endif %}
 
 {% endif %}
@@ -440,7 +438,6 @@ class {{mixin_class_name}}({{base_class}}):
 
         self.undoVariableTracing()
 
-    # For overload only
     @staticmethod
     def undoVariableTracing():
         pass
@@ -459,12 +456,11 @@ class {{mixin_class_name}}({{base_class}}):
 
     @abstractmethod
     def computeStatementOperation(self, trace_collection):
-        """Must be overloaded for non-final node."""
+        pass
 {% endif %}
 
     def collectVariableAccesses(self, emit_variable):
-        """ Collect variable reads and writes of child nodes."""
-
+{% if named_children %}
 {% for named_child in named_children %}
 {% if named_children_types.get(named_child) == "optional" %}
         subnode_{{named_child}} = self.subnode_{{named_child}}
@@ -478,14 +474,16 @@ class {{mixin_class_name}}({{base_class}}):
         self.subnode_{{named_child}}.collectVariableAccesses(emit_variable)
 {% endif %}
 {% endfor %}
+{% else %}
+        pass
+{% endif %}
 
 {% for named_child in awaited_constant_attributes %}
     @abstractmethod
     def computeExpressionConstant{{named_child.title()}}(self, trace_collection):
-        """Called when attribute {{named_child}} is constant."""
+        """Called when attribute '{{named_child}}' is constant."""
 {% endfor %}
 
-# Assign the names that are easier to import with a stable name.
 {% for node_class_name in intended_for %}
 {% if base_class in ("ExpressionBase", "StatementBase") %}
 {{node_class_name}}Base = {{mixin_class_name}}

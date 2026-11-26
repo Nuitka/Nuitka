@@ -100,9 +100,6 @@ static {{ target.getTypeDecl() }} _BINARY_OPERATION_{{op_code}}_{{target.getHelp
     if ({{ left.getTypeIdenticalCheckExpression(right, "type1", "type2") }}) {
         {{ target.getTypeDecl() }} result;
 
-        {# There is special code for same types. #}
-        // return _BINARY_OPERATION_{{op_code}}_{{target.getHelperCodeName()}}_{{left.getSameTypeType(right).getHelperCodeName()}}_{{right.getSameTypeType(left).getHelperCodeName()}}(operand1, operand2);
-
         {{ call_binary_slot(props, operator, nb_slot, nb_slot, left.getSameTypeType(right), right.getSameTypeType(left), "result", "operand1", "operand2", "exit_result_ok", "exit_result_exception") }}
 
         exit_result_ok:

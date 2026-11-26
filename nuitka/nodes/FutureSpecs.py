@@ -5,9 +5,11 @@
 
 A source reference also implies a specific set of future flags in use by the
 parser at that location. Can be different inside a module due to e.g. the
-in-lining of "exec" statements with their own future imports, or in-lining of
+in-lining of 'exec' statements with their own future imports, or in-lining of
 code from other modules.
 """
+
+import __future__
 
 from nuitka.containers.OrderedDicts import OrderedDict
 from nuitka.containers.OrderedSets import OrderedSet
@@ -18,16 +20,13 @@ from nuitka.utils.InstanceCounters import (
     isCountingInstances,
 )
 
-# These defaults have changed with Python versions.
 _future_division_default = python_version >= 0x300
 _future_absolute_import_default = python_version >= 0x300
 _future_generator_stop_default = python_version >= 0x370
-_future_annotations_default = python_version >= 0x400
 
 
 class FutureSpec(object):
-    # We are using a bunch of flags here, Python decides them and then we add
-    # even more modes ourselves, pylint: disable=too-many-instance-attributes
+    # pylint: disable=too-many-instance-attributes
 
     __slots__ = (
         "future_division",
@@ -48,9 +47,7 @@ class FutureSpec(object):
         self.future_print = False
         self.barry_bdfl = False
         self.generator_stop = _future_generator_stop_default
-        self.future_annotations = _future_annotations_default
-
-        # Attaching our special modes here still.
+        self.future_annotations = False
         self.use_annotations = use_annotations
 
     if isCountingInstances():
@@ -60,6 +57,13 @@ class FutureSpec(object):
         return "<FutureSpec %s>" % ",".join(self.asFlags())
 
     def clone(self):
+        """Create a copy of this future spec.
+
+        Notes:
+            This is intended for future compile-time optimization of 'exec' and
+            'eval' statements, where inlined code can carry its own future
+            imports and therefore needs a separate future spec.
+        """
         result = FutureSpec(use_annotations=self.use_annotations)
 
         result.future_division = self.future_division
@@ -68,7 +72,7 @@ class FutureSpec(object):
         result.future_print = self.future_print
         result.barry_bdfl = self.barry_bdfl
         result.generator_stop = self.generator_stop
-        result.future_annotations = result.future_annotations
+        result.future_annotations = self.future_annotations
 
         return result
 
@@ -112,11 +116,7 @@ class FutureSpec(object):
         return self.future_annotations
 
     def asFlags(self):
-        """Create a list of C identifiers to represent the flag values.
-
-        This is for use in code generation and to restore from
-        saved modules.
-        """
+        """Create a tuple of C identifiers representing active future flags."""
 
         result = []
 
@@ -138,10 +138,20 @@ class FutureSpec(object):
         if 0x350 <= python_version < 0x370 and self.generator_stop:
             result.append("CO_FUTURE_GENERATOR_STOP")
 
-        if 0x370 <= python_version < 0x3E0 and self.future_annotations:
+        if python_version >= 0x370 and self.future_annotations:
             result.append("CO_FUTURE_ANNOTATIONS")
 
         return tuple(result)
+
+    def getCompilerFlags(self):
+        """Return active future flags as an integer for the 'compile' built-in."""
+
+        result = 0
+
+        for future_flag_name in self.asFlags():
+            result |= getattr(__future__, future_flag_name)
+
+        return result
 
     def encode(self):
         # TODO: Maybe asFlags becomes unnecessary.
@@ -176,13 +186,14 @@ def fromFlags(flags):
     if "CO_FUTURE_GENERATOR_STOP" in flags:
         result.enableGeneratorStop()
 
-    # Check if we are going to give similar results than what we got.
+    if "CO_FUTURE_ANNOTATIONS" in flags:
+        result.enableFutureAnnotations()
+
     assert tuple(result.asFlags()) == tuple(flags), (result, result.asFlags(), flags)
 
     return result
 
 
-# Relevance of future flags.
 _future_version_specific_flags = OrderedDict(
     (
         ("CO_FUTURE_DIVISION", python_version < 0x300),
@@ -190,7 +201,7 @@ _future_version_specific_flags = OrderedDict(
         ("CO_FUTURE_PRINT_FUNCTION", python_version < 0x300),
         ("CO_FUTURE_ABSOLUTE_IMPORT", python_version < 0x300),
         ("CO_FUTURE_GENERATOR_STOP", 0x350 <= python_version < 0x370),
-        ("CO_FUTURE_ANNOTATIONS", 0x370 <= python_version < 0x3E0),
+        ("CO_FUTURE_ANNOTATIONS", python_version >= 0x370),
         ("CO_FUTURE_BARRY_AS_BDFL", python_version >= 0x300),
     )
 )

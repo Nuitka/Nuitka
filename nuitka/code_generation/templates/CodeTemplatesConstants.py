@@ -13,12 +13,9 @@ template_constants_reading = r"""
 #include "build_definitions.h"
 #include "nuitka/constants_blob.h"
 
-// Global constants storage
 PyObject *global_constants[%(global_constants_count)d] = {0};
 
-// Sentinel PyObject to be used for all our call iterator endings. It will
-// become a PyCObject pointing to NULL. It's address is unique, and that's
-// enough for us to use it as sentinel value.
+// Unique sentinel object used to mark call iterator endings.
 PyObject *Nuitka_sentinel_value = NULL;
 
 PyObject *Nuitka_dunder_compiled_value = NULL;
@@ -60,7 +57,6 @@ NUITKA_MAY_BE_UNUSED static PyObject *STRIP_DIRNAME(PyObject *path) {
 
 extern void setDistributionsMetadata(PyThreadState *tstate, PyObject *metadata_items);
 
-// We provide the sys.version info shortcut as a global value here for ease of use.
 PyObject *Py_SysVersionInfo = NULL;
 
 NUITKA_DECLARE_CONSTANT_BLOB(
@@ -74,10 +70,8 @@ static void _createGlobalConstants(PyThreadState *tstate, PyObject *real_module_
 #else
 static void _createGlobalConstants(PyThreadState *tstate) {
 #endif
-    // We provide the sys.version info shortcut as a global value here for ease of use.
     Py_SysVersionInfo = Nuitka_SysGetObject("version_info");
 
-    // The empty name means global.
 #if %(use_direct_constant_blobs)d
     LOAD_DIRECT_CONSTANTS_BLOB(tstate, &global_constants[0], %(global_constants_blob_symbol_name)s);
 #else
@@ -85,8 +79,6 @@ static void _createGlobalConstants(PyThreadState *tstate) {
 #endif
 
 #if _NUITKA_EXE_MODE || _NUITKA_DLL_MODE
-    /* Set the "sys.executable" path to the original CPython executable or point to inside the
-       distribution for standalone. */
     Nuitka_SysSetObject(
         "executable",
 #if !_NUITKA_STANDALONE_MODE
@@ -97,27 +89,22 @@ static void _createGlobalConstants(PyThreadState *tstate) {
     );
 
 #if !_NUITKA_STANDALONE_MODE
-    /* Set the "sys.prefix" path to the original one. */
     Nuitka_SysSetObject(
         "prefix",
         %(sys_prefix)s
     );
 
-    /* Set the "sys.prefix" path to the original one. */
     Nuitka_SysSetObject(
         "exec_prefix",
         %(sys_exec_prefix)s
     );
 
-
 #if PYTHON_VERSION >= 0x300
-    /* Set the "sys.base_prefix" path to the original one. */
     Nuitka_SysSetObject(
         "base_prefix",
         %(sys_base_prefix)s
     );
 
-    /* Set the "sys.exec_base_prefix" path to the original one. */
     Nuitka_SysSetObject(
         "base_exec_prefix",
         %(sys_base_exec_prefix)s
@@ -261,7 +248,6 @@ static void _createGlobalConstants(PyThreadState *tstate) {
     Nuitka_VersionInfoType.tp_init = NULL;
     Nuitka_VersionInfoType.tp_new = NULL;
 
-    // Register included meta data.
     setDistributionsMetadata(tstate, %(metadata_values)s);
 }
 

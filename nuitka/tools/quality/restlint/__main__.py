@@ -4,17 +4,14 @@
 
 """Main program for restlint checker tool."""
 
-import sys
-
 from nuitka.options.CommandLineOptionsTools import makeOptionsParser
 from nuitka.tools.Basics import addPYTHONPATH, getHomePath, goHome
 from nuitka.tools.release.Documentation import (
     checkReleaseDocumentation,
     checkRstLint,
+    ensureRstLintInstalled,
 )
-from nuitka.tools.testing.Common import hasModule, setup
-from nuitka.Tracing import tools_logger
-from nuitka.utils.PrivatePipSpace import tryDownloadPackageName
+from nuitka.tools.testing.Common import setup
 
 
 def main():
@@ -34,42 +31,13 @@ Allow download and execution of tools if needed. Default is %default.""",
 
     options, positional_args = parser.parse_args()
 
-    if options.assume_yes_for_downloads:
-        if not hasModule("restructuredtext_lint"):
-            tools_logger.info("Installing restlint...")
-
-            site_packages_folder, _assume_yes_for_downloads = tryDownloadPackageName(
-                logger=tools_logger,
-                package_name="restructuredtext_lint",
-                module_name="restructuredtext_lint",
-                package_version=None,
-                force_update=False,
-                assume_yes_for_downloads=True,
-                reject_message="Restlint is needed for checking source code.",
-            )
-
-            if site_packages_folder is not None:
-                sys.path.insert(0, site_packages_folder)
-
-        if not hasModule("pygments"):
-            tools_logger.info("Installing pygments...")
-
-            site_packages_folder, _assume_yes_for_downloads = tryDownloadPackageName(
-                logger=tools_logger,
-                package_name="pygments",
-                module_name="pygments",
-                package_version=None,
-                force_update=False,
-                assume_yes_for_downloads=True,
-                reject_message="Pygments is needed for RST code block analysis.",
-            )
-
-            if site_packages_folder is not None:
-                sys.path.insert(0, site_packages_folder)
+    ensureRstLintInstalled(assume_yes_for_downloads=options.assume_yes_for_downloads)
 
     if len(positional_args) < 1:
         goHome()
-        checkReleaseDocumentation()
+        checkReleaseDocumentation(
+            assume_yes_for_downloads=options.assume_yes_for_downloads
+        )
     else:
         for document in positional_args:
             checkRstLint(document)

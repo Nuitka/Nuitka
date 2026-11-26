@@ -41,14 +41,24 @@ def _convertJsonLoadedValues(value):
     return value
 
 
+def jsonDumps(value):
+    """Serialize a value to JSON."""
+    return json.dumps(value)
+
+
+def jsonLoads(contents):
+    """Deserialize JSON from byte or text contents."""
+    if type(contents) is bytes:
+        contents = contents.decode("utf8")
+
+    return _convertJsonLoadedValues(json.loads(contents))
+
+
 def loadJsonFromContents(contents):
     try:
         contents, _bom = stripFileContentsBOM(contents)
 
-        if type(contents) is bytes:
-            contents = contents.decode("utf8")
-
-        return _convertJsonLoadedValues(json.loads(contents))
+        return jsonLoads(contents)
     except ValueError:
         return None
 

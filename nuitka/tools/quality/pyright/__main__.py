@@ -19,7 +19,8 @@ from nuitka.tools.testing.Common import setup
 from nuitka.Tracing import my_print, tools_logger
 from nuitka.utils.FileOperations import (
     getFileModificationTime,
-    resolveShellPatternToFilenames,
+    getPathWithForwardSlashes,
+    resolveShellPatternsToFilenames,
 )
 
 
@@ -34,7 +35,7 @@ def _getPathParts(filename):
     except ValueError:
         pass
 
-    return filename.replace("\\", "/").split("/")
+    return getPathWithForwardSlashes(filename).split("/")
 
 
 def isIgnoredFile(filename):
@@ -67,13 +68,7 @@ def _resolveFilenames(options, positional_args):
     if options.verbose:
         my_print("Working on: %s" % " ".join(positional_args))
 
-    positional_args = sum(
-        (
-            resolveShellPatternToFilenames(positional_arg)
-            for positional_arg in positional_args
-        ),
-        [],
-    )
+    positional_args = resolveShellPatternsToFilenames(positional_args)
 
     filenames = list(
         scanTargets(positional_args, suffixes=(".py", ".scons"), ignore_list=[])
@@ -110,7 +105,7 @@ Be verbose in output. Default is %default.""",
         dest="not_installed_is_no_error",
         default=False,
         help="""\
-Insist on Pyright to be installed. Default is %default.""",
+Do not treat missing Pyright installation as an error. Default is %default.""",
     )
 
     parser.add_option(
@@ -137,23 +132,23 @@ Use basedpyright instead of pyright. Default is %default.""",
 
 
 def main():
-    # pylint: disable=too-many-branches
-
-    setup(go_main=False)
+    setup(silent=True, go_main=False)
 
     addPYTHONPATH(getHomePath())
     setupPATH()
 
     options, positional_args = _parseArguments()
 
-    if options.not_installed_is_no_error:
-        if getPyrightVersion(basedpyright=options.basedpyright) is None:
-            tool_name = "basedpyright" if options.basedpyright else "pyright"
-            tools_logger.warning(
-                "%s is not installed: SKIPPED" % tool_name,
-                style="yellow",
-            )
-            return tools_logger.sysexit(exit_code=0)
+    if (
+        options.not_installed_is_no_error
+        and getPyrightVersion(basedpyright=options.basedpyright) is None
+    ):
+        tool_name = "basedpyright" if options.basedpyright else "pyright"
+        tools_logger.warning(
+            "%s is not installed: SKIPPED" % tool_name,
+            style="yellow",
+        )
+        return tools_logger.sysexit(exit_code=0)
 
     if options.watch:
         prev_filenames = set()

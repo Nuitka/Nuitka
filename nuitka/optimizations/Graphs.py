@@ -3,7 +3,7 @@
 
 """Graph optimization states.
 
-These are not the graphs you might be thinking of. This is for rending the
+These are not the graphs you might be thinking of. This is for rendering the
 progress of optimization into images.
 """
 
@@ -24,7 +24,6 @@ def _addModuleGraph(module, desc):
 
 
 def onModuleOptimizationStep(module):
-    # Update the graph if active.
     if graph is not None:
         computation_counters[module] = computation_counters.get(module, 0) + 1
 
@@ -33,7 +32,7 @@ def onModuleOptimizationStep(module):
 
 
 def startGraph():
-    # We maintain this globally to make it accessible, pylint: disable=global-statement
+    # pylint: disable=global-statement
     global graph
 
     if Options.shallCreateGraph():

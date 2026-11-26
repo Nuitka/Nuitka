@@ -1,11 +1,7 @@
 #     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-"""Codes for classes.
-
-Most the class specific stuff is solved in re-formulation. Only the selection
-of the metaclass remains as specific.
-"""
+"""Code generation for class creation, metaclass selection, and 'super'."""
 
 from nuitka.PythonVersions import python_version
 
@@ -26,7 +22,6 @@ def generateSelectMetaclassCode(to_name, expression, emit, context):
         expression=expression, emit=emit, context=context
     )
 
-    # This is used for Python3 only.
     assert python_version >= 0x300
 
     arg_names = [metaclass_name, bases_name]
@@ -42,6 +37,24 @@ def generateSelectMetaclassCode(to_name, expression, emit, context):
         getErrorExitCode(
             check_name=value_name, release_names=arg_names, emit=emit, context=context
         )
+
+        context.addCleanupTempName(value_name)
+
+
+def generateClassDictFromClassCode(to_name, expression, emit, context):
+    class_declaration = getLocalVariableDeclaration(context, expression.variable, None)
+
+    with withObjectCodeTemporaryAssignment(
+        to_name, "class_dict_value", expression, emit, context
+    ) as value_name:
+        class_name = class_declaration.getCType().emitValueAccessCode(
+            value_name=class_declaration, emit=emit, context=context
+        )
+
+        emit("""\
+%(to_name)s = (PyObject *)(((PyTypeObject *)%(class_name)s)->tp_dict);
+CHECK_OBJECT(%(to_name)s);
+Py_INCREF(%(to_name)s);""" % {"to_name": value_name, "class_name": class_name})
 
         context.addCleanupTempName(value_name)
 
@@ -113,7 +126,6 @@ def generateTypeOperationPrepareCode(to_name, expression, emit, context):
         to_name=prepare_func_name,
         source_name=type_name,
         attribute_name="__prepare__",
-        # Types have it.
         needs_check=False,
         emit=emit,
         context=context,

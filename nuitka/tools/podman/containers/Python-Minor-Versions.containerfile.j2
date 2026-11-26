@@ -6,7 +6,7 @@ COPY bin/compile-python-for-nuitka-linux.sh /usr/local/bin/compile-python-for-nu
 RUN chmod +x /usr/local/bin/compile-python-for-nuitka-linux.sh
 
 # Install dependencies
-# spell-checker: ignore libncurses libgdbm libnss libreadline
+# spell-checker: ignore libgdbm libncurses libnss libreadline
 RUN apt-get update && \
 apt-get install -y curl wget build-essential zlib1g-dev \
 libncurses5-dev libgdbm-dev libnss3-dev \

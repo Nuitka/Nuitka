@@ -30,7 +30,7 @@ jobs:
     name: Checks
     steps:
       - name: 🛎️ Checkout (Attempt 1)
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
           fetch-tags: false
@@ -45,7 +45,7 @@ jobs:
 
       - name: 🛎️ Checkout (Attempt 2)
         if: steps.checkout.outcome == 'failure'
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
           fetch-tags: false
@@ -60,7 +60,7 @@ jobs:
 
       - name: 🛎️ Checkout (Attempt 3)
         if: steps.checkout_retry_1.outcome == 'failure'
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
           fetch-tags: false
@@ -68,7 +68,7 @@ jobs:
         id: checkout_retry_2
 
       - name: 🐍 Use Python 3.11
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v7
         with:
           python-version: "3.11"
 
@@ -123,7 +123,7 @@ jobs:
     name: Ubuntu Python ${{ matrix.python_version }}
     steps:
       - name: 🛎️ Checkout (Attempt 1)
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
           fetch-tags: false
@@ -138,7 +138,7 @@ jobs:
 
       - name: 🛎️ Checkout (Attempt 2)
         if: steps.checkout.outcome == 'failure'
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
           fetch-tags: false
@@ -153,7 +153,7 @@ jobs:
 
       - name: 🛎️ Checkout (Attempt 3)
         if: steps.checkout_retry_1.outcome == 'failure'
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
           fetch-tags: false
@@ -161,8 +161,7 @@ jobs:
         id: checkout_retry_2
 
       - name: 🐍 Use Python ${{ matrix.python_version }}
-        if: matrix.python_version != '3.15'
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v7
         with:
           python-version: ${{ matrix.python_version }}
 
@@ -170,16 +169,6 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y patchelf gdb ccache libfuse2
-
-      - name: 🐍 Install Python 3.15 (deadsnakes)
-        if: matrix.python_version == '3.15'
-        run: |
-          sudo add-apt-repository -y ppa:deadsnakes/ppa
-          sudo apt-get update
-          sudo apt-get install -y python3.15 python3.15-dev python3.15-venv
-          python3.15 -m venv .venv-3.15
-          echo "VIRTUAL_ENV=$PWD/.venv-3.15" >> $GITHUB_ENV
-          echo "$PWD/.venv-3.15/bin" >> $GITHUB_PATH
 
       - name: 🧳 Install Nuitka
         run: |
@@ -221,7 +210,7 @@ jobs:
 
       - name: 📤 Archive compilation reports for empty modules
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: compilation-reports-${{ runner.os }}-${{ matrix.python_version }}
           path: |
@@ -230,7 +219,7 @@ jobs:
             standalone-binary-ldd.txt
 
       # This can be used to ssh into GitHub actions if debugging is needed.
-      # - uses: actions/checkout@v4
+      # - uses: actions/checkout@v7
       # - name: Setup upterm session
       #   uses: lhotari/action-upterm@v1
       #   with:
@@ -255,10 +244,11 @@ jobs:
           - "3.12"
           - "3.13"
           - "3.14"
+          - "3.15"
     name: macOS Python ${{ matrix.python_version }}
     steps:
       - name: 🛎️ Checkout (Attempt 1)
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
           fetch-tags: false
@@ -273,7 +263,7 @@ jobs:
 
       - name: 🛎️ Checkout (Attempt 2)
         if: steps.checkout.outcome == 'failure'
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
           fetch-tags: false
@@ -288,7 +278,7 @@ jobs:
 
       - name: 🛎️ Checkout (Attempt 3)
         if: steps.checkout_retry_1.outcome == 'failure'
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
           fetch-tags: false
@@ -296,7 +286,7 @@ jobs:
         id: checkout_retry_2
 
       - name: 🐍 Use Python ${{ matrix.python_version }}
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v7
         with:
           python-version: ${{ matrix.python_version }}
 
@@ -348,7 +338,7 @@ jobs:
 
       - name: Archive compilation reports for empty modules
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: compilation-reports-${{ runner.os }}-${{ matrix.python_version }}
           path: |
@@ -386,10 +376,11 @@ jobs:
           - "3.12"
           - "3.13"
           - "3.14"
+          - "3.15"
     name: Windows Python ${{ matrix.python_version }}
     steps:
       - name: 🛎️ Checkout (Attempt 1)
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
           fetch-tags: false
@@ -404,7 +395,7 @@ jobs:
 
       - name: 🛎️ Checkout (Attempt 2)
         if: steps.checkout.outcome == 'failure'
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
           fetch-tags: false
@@ -419,7 +410,7 @@ jobs:
 
       - name: 🛎️ Checkout (Attempt 3)
         if: steps.checkout_retry_1.outcome == 'failure'
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
           fetch-tags: false
@@ -427,11 +418,13 @@ jobs:
         id: checkout_retry_2
 
       - name: 🐍 Use Python ${{ matrix.python_version }}
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v7
         with:
           python-version: ${{ matrix.python_version }}
 
-      - uses: ilammy/msvc-dev-cmd@v1
+      - uses: TheMrMilchmann/setup-msvc-dev@v4
+        with:
+          arch: x64
 
       - name: 🧳 Install Nuitka and dependencies
         run: |
@@ -470,7 +463,7 @@ jobs:
 
       - name: Archive compilation reports for empty modules
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: compilation-reports-${{ runner.os }}-${{ matrix.python_version }}
           path: |
@@ -492,10 +485,11 @@ jobs:
           - "3.12"
           - "3.13"
           - "3.14"
+          - "3.15"
     name: Windows ARM Python ${{ matrix.python_version }}
     steps:
       - name: 🛎️ Checkout (Attempt 1)
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
           fetch-tags: false
@@ -510,7 +504,7 @@ jobs:
 
       - name: 🛎️ Checkout (Attempt 2)
         if: steps.checkout.outcome == 'failure'
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
           fetch-tags: false
@@ -525,7 +519,7 @@ jobs:
 
       - name: 🛎️ Checkout (Attempt 3)
         if: steps.checkout_retry_1.outcome == 'failure'
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
           fetch-tags: false
@@ -533,11 +527,11 @@ jobs:
         id: checkout_retry_2
 
       - name: 🐍 Use Python ${{ matrix.python_version }}
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v7
         with:
           python-version: ${{ matrix.python_version }}
 
-      - uses: ilammy/msvc-dev-cmd@v1
+      - uses: TheMrMilchmann/setup-msvc-dev@v4
         with:
           arch: arm64
 
@@ -578,7 +572,7 @@ jobs:
 
       - name: Archive compilation reports for empty modules
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: compilation-reports-${{ runner.os }}-arm64-${{ matrix.python_version }}
           path: |

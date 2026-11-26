@@ -45,6 +45,7 @@ struct Nuitka_MetaPathBasedLoaderEntry {
     // The module name data, optional to be overloaded by m_get_name to
     // resolve into runtime packages.
     char const *m_name;
+
     void (*m_get_name)(char *buffer, size_t buffer_size, char const *name);
 
     // Optional function to check if a given module name matches this entry.
@@ -82,6 +83,14 @@ struct Nuitka_MetaPathBasedLoaderEntry {
     PyObject **m_module_state;
     PyThreadState **m_owner_state;
 
+    // Get the value that importers of this entry should receive. The value
+    // keeps a reference and is separate from the load state.
+    PyObject *(*m_get_module_value)(PyThreadState *tstate, struct Nuitka_MetaPathBasedLoaderEntry const *entry,
+                                    bool include_loaded);
+
+    // Set or clear the importer value to the given value.
+    void (*m_set_module_value)(struct Nuitka_MetaPathBasedLoaderEntry const *entry, PyObject *value, uint64_t reserved);
+
     // For bytecode modules, start and size inside the constants blob.
     int bytecode_index;
     int bytecode_size;
@@ -101,26 +110,70 @@ struct Nuitka_MetaPathBasedLoaderEntry {
 #endif
 };
 
+// Direct entries for modules executed by the startup code. They are NULL if
+// the module is not included, which standalone rejects, while accelerated mode
+// falls back to a name based import.
+extern struct Nuitka_MetaPathBasedLoaderEntry const *const Nuitka_MainModuleEntry;
+extern struct Nuitka_MetaPathBasedLoaderEntry const *const Nuitka_ParentsMainModuleEntry;
+extern struct Nuitka_MetaPathBasedLoaderEntry const *const Nuitka_ForkserverModuleEntry;
+extern struct Nuitka_MetaPathBasedLoaderEntry const *const Nuitka_ResourceTrackerModuleEntry;
+extern struct Nuitka_MetaPathBasedLoaderEntry const *const Nuitka_SemaphoreTrackerModuleEntry;
+extern struct Nuitka_MetaPathBasedLoaderEntry const *const Nuitka_JoblibPopenLokyWin32ModuleEntry;
+extern struct Nuitka_MetaPathBasedLoaderEntry const *const Nuitka_JoblibPopenLokyPosixModuleEntry;
+extern struct Nuitka_MetaPathBasedLoaderEntry const *const Nuitka_JoblibResourceTrackerModuleEntry;
+extern struct Nuitka_MetaPathBasedLoaderEntry const *const Nuitka_AnyioToProcessModuleEntry;
+
 /* Import a module with explicit load state slots. A NULL module means the
  * module is created and run, a provided module is run and tracked. Returns a
  * new reference, or NULL with an exception set.
  */
 extern PyObject *IMPORT_EMBEDDED_MODULE_STATE(PyThreadState *tstate,
                                               struct Nuitka_MetaPathBasedLoaderEntry const *entry,
-                                              PyObject **module_state, PyThreadState **owner_state, PyObject *module);
+                                              PyObject **module_state, PyThreadState **owner_state,
+                                              PyObject **value_state, PyObject *module);
 
-/* Import a module through its loader entry, using the load state slots of the
- * entry. A NULL module means the module is created and run, a provided module
- * is run and tracked. Returns a new reference, or NULL with an exception set.
- */
-extern PyObject *IMPORT_EMBEDDED_MODULE_ENTRY(PyThreadState *tstate,
-                                              struct Nuitka_MetaPathBasedLoaderEntry const *entry, PyObject *module);
+// Import a compiled module through its loader entry with explicit load state
+// slots. A NULL module means the module is created and run, a provided module
+// is run and tracked. Returns a new reference, or NULL with an exception set.
+extern PyObject *IMPORT_COMPILED_MODULE(PyThreadState *tstate, struct Nuitka_MetaPathBasedLoaderEntry const *entry,
+                                        PyObject **module_state, PyThreadState **owner_state, PyObject **value_state,
+                                        PyObject *module);
 
 /* Import a hard module through its loader entry, aborting on failure like the
  * "IMPORT_HARD_*" helpers do, for guaranteed imports that do not check.
  */
 extern PyObject *Nuitka_ImportHardModuleEntry(PyThreadState *tstate,
                                               struct Nuitka_MetaPathBasedLoaderEntry const *entry);
+
+/* Import an included module through its loader entry, returning the value that
+ * importers should receive. Returns a new reference.
+ */
+extern PyObject *Nuitka_ImportModuleEntryValue(PyThreadState *tstate,
+                                               struct Nuitka_MetaPathBasedLoaderEntry const *entry);
+
+/* Operations for the "sys.modules" nodes to use. An entry of NULL means it's not
+ * an included module.
+ */
+extern PyObject *Nuitka_LookupSysModulesValue(PyThreadState *tstate, PyObject *sys_modules,
+                                              struct Nuitka_MetaPathBasedLoaderEntry const *entry, PyObject *key);
+extern PyObject *Nuitka_GetSysModulesValue(PyThreadState *tstate, PyObject *sys_modules,
+                                           struct Nuitka_MetaPathBasedLoaderEntry const *entry, PyObject *key,
+                                           PyObject *default_value);
+extern bool Nuitka_SetSysModulesValue(PyThreadState *tstate, PyObject *sys_modules,
+                                      struct Nuitka_MetaPathBasedLoaderEntry const *entry, PyObject *key,
+                                      PyObject *value, uint64_t reserved);
+extern bool Nuitka_DelSysModulesValue(PyThreadState *tstate, PyObject *sys_modules,
+                                      struct Nuitka_MetaPathBasedLoaderEntry const *entry, PyObject *key,
+                                      uint64_t reserved);
+extern PyObject *Nuitka_PopSysModulesValue(PyThreadState *tstate, PyObject *sys_modules,
+                                           struct Nuitka_MetaPathBasedLoaderEntry const *entry, PyObject *key,
+                                           PyObject *default_value, uint64_t reserved);
+
+/* Reload a module, using its Nuitka loader entry for private modules without
+ * publishing them in "sys.modules", and the normal import machinery otherwise.
+ * Returns a new reference.
+ */
+extern PyObject *Nuitka_ReloadModule(PyThreadState *tstate, PyObject *module);
 
 /* Load the pre- or post-load trigger module of an entry, if any. */
 extern void Nuitka_LoadTriggeredModule(PyThreadState *tstate,

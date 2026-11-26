@@ -3,7 +3,7 @@
 
 """AppImage backend for Linux installer creation.
 
-Creates an AppImage from the compiled dist folder or onefile binary using
+Creates an AppImage from the compiled standalone dist folder using
 the ``appimagetool`` utility. The AppDir is assembled from the existing
 payload, a generated AppRun script, and the desktop file and icon already
 produced by ``LinuxApp.py``. The tool is looked up from an explicit path,
@@ -19,7 +19,7 @@ import subprocess
 from nuitka.freezer.LinuxApp import createLinuxAppFiles
 from nuitka.options.Options import assumeYesForDownloads
 from nuitka.Tracing import installer_logger
-from nuitka.utils.Download import getCachedDownload
+from nuitka.utils.Download import getCachedDownload, getDownloadMode
 from nuitka.utils.Execution import (
     check_output,
     executeToolChecked,
@@ -91,8 +91,7 @@ def _getAppImageToolPath(installer_tool_path):
 Nuitka will download appimagetool from the official upstream release to \
 create the Linux installer, it will be cached for future use.""",
                 reject="Error, appimagetool is required to create a Linux installer.",
-                assume_yes_for_downloads=assumeYesForDownloads(),
-                download_ok=True,
+                download_mode=getDownloadMode(assumeYesForDownloads()),
             )
 
             if tool_path is not None:
@@ -215,9 +214,7 @@ def createAppImage(  # pylint: disable=unused-argument
 
     _populateAppDir(appdir, payload_dir, main_binary_name, external_files)
 
-    if output_filename is not None:
-        output_filename = changeFilenameExtension(output_filename, ".AppImage")
-    else:
+    if output_filename is None:
         output_filename = changeFilenameExtension(payload_dir, ".AppImage")
 
     deleteFile(output_filename, must_exist=False)

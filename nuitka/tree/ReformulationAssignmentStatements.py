@@ -1,12 +1,7 @@
 #     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-"""Reformulation of assignment statements.
-
-Consult the Developer Manual for information. TODO: Add ability to sync
-source code comments with Developer Manual sections.
-
-"""
+"""Reformulation of assignment statements."""
 
 from nuitka.nodes.AttributeNodes import (
     StatementAssignmentAttribute,
@@ -78,17 +73,23 @@ from nuitka.nodes.VariableRefNodes import (
     ExpressionTempVariableRef,
     ExpressionVariableRef,
 )
-from nuitka.options.Options import isExperimental
+from nuitka.options.Experimental import isExperimental
+from nuitka.plugins.Hooks import decideNeedsFrameLocalsProxy
 from nuitka.PythonVersions import python_version
 from nuitka.specs.ParameterSpecs import ParameterSpec
 
 from .FutureSpecState import getFutureSpec
 from .ReformulationTryFinallyStatements import makeTryFinallyReleaseStatement
-from .SyntaxErrors import raiseSyntaxError
+from .SyntaxErrors import (
+    checkDebugNameAssignment,
+    checkDebugNameTarget,
+    raiseSyntaxError,
+)
 from .TreeHelpers import (
     buildAnnotationNode,
     buildNode,
     buildNodeTuple,
+    getClassBodyForDeferredScope,
     getKind,
     makeCallNode,
     makeStatementsSequenceFromStatement,
@@ -130,10 +131,6 @@ def buildExtSliceNode(provider, node, source_ref):
 
 
 def buildAssignmentStatementsFromDecoded(provider, kind, detail, source, source_ref):
-    # This is using many variable names on purpose, so as to give names to the
-    # unpacked detail values, and has many branches due to the many cases dealt
-    # with and it is return driven.
-
     # pylint: disable=too-many-branches,too-many-locals,too-many-statements
 
     if kind == "Name":
@@ -353,8 +350,6 @@ not enough values to unpack (expected at least %d, got %%d)""" % (len(statements
             ),
         ]
 
-        # When all is done, copy over to the actual assignment targets, starred
-        # or not makes no difference here anymore.
         for element_index, element in enumerate(detail):
             if element[0] == "Starred":
                 element = element[1]
@@ -373,8 +368,6 @@ not enough values to unpack (expected at least %d, got %%d)""" % (len(statements
                 )
             )
 
-            # Need to release temporary variables right after successful
-            # usage.
             statements.append(
                 makeStatementDelVariable(
                     variable=element_var, tolerant=True, source_ref=source_ref
@@ -419,11 +412,12 @@ def buildAssignmentStatements(
 
 
 def decodeAssignTarget(provider, node, source_ref, allow_none=False):
-    # Many cases to deal with, because of the different assign targets,
     # pylint: disable=too-many-branches,too-many-return-statements
 
     if node is None and allow_none:
         return None
+
+    checkDebugNameTarget(node=node, source_ref=source_ref)
 
     if type(node) is str:
         return "Name", mangleName(node, provider)
@@ -496,7 +490,7 @@ def decodeAssignTarget(provider, node, source_ref, allow_none=False):
         else:
             assert False, slice_kind
     elif kind in ("Tuple", "List"):
-        # That is the ast names, spell-checker: ignore elts
+        # spell-checker: ignore elts
         return (
             "Tuple",
             tuple(
@@ -526,13 +520,9 @@ def decodeAssignTarget(provider, node, source_ref, allow_none=False):
 def buildAssignNode(provider, node, source_ref):
     assert len(node.targets) >= 1, source_ref
 
-    # Evaluate the right hand side first, so it can get names provided
-    # before the left hand side exists.
     source = buildNode(provider, node.value, source_ref)
 
     if len(node.targets) == 1:
-        # Simple assignment case, one source, one target.
-
         return buildAssignmentStatements(
             provider=provider,
             node=node.targets[0],
@@ -540,10 +530,6 @@ def buildAssignNode(provider, node, source_ref):
             source_ref=source_ref,
         )
     else:
-        # Complex assignment case, one source, but multiple targets. We keep the
-        # source in a temporary variable, and then assign from it multiple
-        # times.
-
         temp_scope = provider.allocateTempScope("assign_unpack")
 
         tmp_source = provider.allocateTempVariable(
@@ -577,8 +563,7 @@ def buildAssignNode(provider, node, source_ref):
 
 
 def buildAnnAssignNode(provider, node, source_ref):
-    """Python3.6 annotation assignment."""
-    # There are many cases to deal with here, pylint: disable=too-many-branches
+    # pylint: disable=too-many-branches
 
     use_annotations = getFutureSpec().shallUseAnnotations()
 
@@ -586,8 +571,6 @@ def buildAnnAssignNode(provider, node, source_ref):
         if provider.isCompiledPythonModule() or provider.isExpressionClassBodyBase():
             provider.markAsNeedsAnnotationsDictionary()
 
-    # Evaluate the right hand side first, so it can get names provided
-    # before the left hand side exists.
     statements = []
 
     if node.value is not None:
@@ -602,13 +585,14 @@ def buildAnnAssignNode(provider, node, source_ref):
             )
         )
 
-        # Only name referencing annotations are effective right now.
         if statements[-1].isStatementAssignmentVariableName():
             variable_name = statements[-1].getVariableName()
         else:
+            # Non-name targets do not store annotations. Nuitka intentionally
+            # skips the annotation expression evaluation that CPython performs
+            # for module and class targets.
             variable_name = None
     else:
-        # Only name referencing annotations are effective right now.
         kind, detail = decodeAssignTarget(
             provider=provider, node=node.target, source_ref=source_ref
         )
@@ -616,10 +600,12 @@ def buildAnnAssignNode(provider, node, source_ref):
         if kind == "Name":
             variable_name = detail
         else:
+            # Non-name targets are intentionally ignored for annotations.
+            # CPython evaluates the target base expressions for side effects,
+            # but Nuitka accepts this divergence rather than generating extra
+            # evaluation code for attribute and subscript targets.
             variable_name = None
 
-    # Only annotations for modules and classes are really made, for functions
-    # they are ignored like comments.
     if variable_name is not None:
         if use_annotations and (
             provider.isExpressionClassBodyBase() or provider.isCompiledPythonModule()
@@ -695,7 +681,7 @@ def buildAnnAssignNode(provider, node, source_ref):
                     )
                 )
         else:
-            # Functions or disabled.
+            # PEP 526: simple annotations without a value still mark the name as local.
             if node.simple:
                 provider.getVariableForAssignment(variable_name)
 
@@ -703,7 +689,7 @@ def buildAnnAssignNode(provider, node, source_ref):
 
 
 def buildDeleteStatementFromDecoded(provider, kind, detail, source_ref):
-    # This function is a case driven by returns, pylint: disable=too-many-return-statements
+    # pylint: disable=too-many-return-statements
 
     if kind in ("Name", "Name_Exception"):
         # Note: Name_Exception is a "del" for exception handlers that doesn't
@@ -773,13 +759,6 @@ def buildDeleteStatementFromDecoded(provider, kind, detail, source_ref):
 
 
 def buildDeleteNode(provider, node, source_ref):
-    # Build "del" statements.
-
-    # Note: Each delete is sequential. It can succeed, and the failure of a
-    # later one does not prevent the former to succeed. We can therefore have a
-    # simple sequence of "del" statements that each only delete one thing
-    # therefore. In output tree "del" therefore only ever has single arguments.
-
     statements = []
 
     for target in node.targets:
@@ -830,19 +809,26 @@ def _buildInplaceAssignAttributeNode(
     tmp_variable = provider.allocateTempVariable(
         temp_scope=temp_scope, name="value", temp_type="object"
     )
+    tmp_lookup_source = provider.allocateTempVariable(
+        temp_scope=temp_scope, name="lookup_source", temp_type="object"
+    )
 
-    # First assign the target value to a temporary variable.
+    preserve_lookup_source = makeStatementAssignmentVariable(
+        variable=tmp_lookup_source, source=lookup_source, source_ref=source_ref
+    )
+
     preserve_to_tmp = makeStatementAssignmentVariable(
         variable=tmp_variable,
         source=makeExpressionAttributeLookup(
-            expression=lookup_source.makeClone(),
+            expression=ExpressionTempVariableRef(
+                variable=tmp_lookup_source, source_ref=source_ref
+            ),
             attribute_name=attribute_name,
             source_ref=source_ref,
         ),
         source_ref=source_ref,
     )
 
-    # Second assign the in-place result to a temporary variable
     inplace_to_tmp = makeStatementAssignmentVariable(
         variable=tmp_variable,
         source=makeExpressionOperationBinaryInplace(
@@ -856,21 +842,22 @@ def _buildInplaceAssignAttributeNode(
         source_ref=source_ref,
     )
 
-    # Third, copy it back.
     copy_back_from_tmp = StatementAssignmentAttribute(
-        expression=lookup_source.makeClone(),
+        expression=ExpressionTempVariableRef(
+            variable=tmp_lookup_source, source_ref=source_ref
+        ),
         attribute_name=attribute_name,
         source=ExpressionTempVariableRef(variable=tmp_variable, source_ref=source_ref),
         source_ref=source_ref,
     )
 
     return (
+        preserve_lookup_source,
         preserve_to_tmp,
-        # making sure the above temporary variable is deleted in any case.
         makeTryFinallyReleaseStatement(
             provider=provider,
             tried=(inplace_to_tmp, copy_back_from_tmp),
-            variables=(tmp_variable,),
+            variables=(tmp_variable, tmp_lookup_source),
             source_ref=source_ref,
         ),
     )
@@ -887,11 +874,9 @@ def _buildInplaceAssignSubscriptNode(
     expression,
     source_ref,
 ):
-    # First assign the subscribed value to a temporary variable.
     preserve_to_tmp1 = makeStatementAssignmentVariable(
         variable=tmp_variable1, source=subscribed, source_ref=source_ref
     )
-    # Second assign the subscript value to a temporary variable
     statements = (
         makeStatementAssignmentVariable(
             variable=tmp_variable2, source=subscript, source_ref=source_ref
@@ -959,11 +944,8 @@ def _buildInplaceAssignSliceNode(
     expression,
     source_ref,
 ):
-    # Due to the 3 inputs, which we need to also put into temporary variables,
-    # there are too many variables here, but they are needed.
     # pylint: disable=too-many-locals
 
-    # First assign the target value, lower and upper to temporary variables.
     copy_to_tmp = makeStatementAssignmentVariable(
         variable=tmp_variable1, source=lookup_source, source_ref=source_ref
     )
@@ -1011,7 +993,6 @@ def _buildInplaceAssignSliceNode(
 
     use_slice_object = python_version >= 0x300
 
-    # Second assign the in-place result over the original value.
     if use_slice_object:
         statements += (
             makeStatementAssignmentVariable(
@@ -1108,8 +1089,6 @@ def _buildInplaceAssignSliceNode(
 
 
 def buildInplaceAssignNode(provider, node, source_ref):
-    # There are many inplace assignment variables, and the detail is unpacked
-    # into names, so we end up with a lot of variables, which is on purpose,
     # pylint: disable=too-many-locals
 
     operator = getKind(node.op)
@@ -1215,16 +1194,12 @@ def buildInplaceAssignNode(provider, node, source_ref):
 
 
 def _isGeneratorExpressionBody(node):
-    """Generator expressions, asynchronous ones are a node kind of their own."""
-
     return (
         node.isExpressionGeneratorObjectBody() or node.isExpressionAsyncgenObjectBody()
     ) and node.name == "<genexpr>"
 
 
 def buildNamedExprNode(provider, node, source_ref):
-    """Assignment expressions, Python3.8 or higher only."""
-
     outline_body = ExpressionOutlineBody(
         provider=provider, name="assignment_expr", source_ref=source_ref
     )
@@ -1238,6 +1213,8 @@ def buildNamedExprNode(provider, node, source_ref):
     locals_owner = provider
     while locals_owner.isExpressionOutlineFunction():
         locals_owner = locals_owner.getParentVariableProvider()
+
+    checkDebugNameTarget(node=node.target, source_ref=source_ref)
 
     variable_name = mangleName(node.target.id, provider)
 
@@ -1289,9 +1266,127 @@ def buildNamedExprNode(provider, node, source_ref):
     return outline_body
 
 
+def _isConstantTupleNode(node):
+    """Check if a node is a tuple that CPython considers constant.
+
+    Notes:
+        CPython's AST optimizer folds tuples with only constant elements into
+        constants. For a type variable bound this means the tuple is a bound
+        and not a constraints specification.
+    """
+
+    if getKind(node) != "Tuple":
+        return False
+
+    return all(
+        getKind(element) == "Constant" or _isConstantTupleNode(element)
+        for element in node.elts
+    )
+
+
+def _buildStarredTypeParamDefault(provider, value_node, source_ref):
+    outline_body = ExpressionOutlineBody(
+        provider=provider,
+        name="unpack_typevar_tuple_default",
+        source_ref=source_ref,
+    )
+
+    iter_var = outline_body.allocateTempVariable(
+        temp_scope=None, name="iter", temp_type="object"
+    )
+    item_var = outline_body.allocateTempVariable(
+        temp_scope=None, name="item", temp_type="object"
+    )
+
+    outline_body.setChildBody(
+        makeStatementsSequenceFromStatements(
+            makeStatementAssignmentVariable(
+                variable=iter_var,
+                source=ExpressionBuiltinIterForUnpack(
+                    value=buildNode(provider, value_node, source_ref),
+                    source_ref=source_ref,
+                ),
+                source_ref=source_ref,
+            ),
+            makeTryFinallyReleaseStatement(
+                provider=outline_body,
+                tried=makeStatementsSequenceFromStatements(
+                    makeStatementAssignmentVariable(
+                        variable=item_var,
+                        source=ExpressionSpecialUnpack(
+                            value=ExpressionTempVariableRef(
+                                variable=iter_var, source_ref=source_ref
+                            ),
+                            count=1,
+                            expected=1,
+                            starred=False,
+                            source_ref=source_ref,
+                        ),
+                        source_ref=source_ref,
+                    ),
+                    makeTryFinallyReleaseStatement(
+                        provider=outline_body,
+                        tried=makeStatementsSequenceFromStatements(
+                            StatementSpecialUnpackCheck(
+                                iterator=ExpressionTempVariableRef(
+                                    variable=iter_var, source_ref=source_ref
+                                ),
+                                count=1,
+                                source_ref=source_ref,
+                            ),
+                            StatementReturn(
+                                expression=ExpressionTempVariableRef(
+                                    variable=item_var, source_ref=source_ref
+                                ),
+                                source_ref=source_ref,
+                            ),
+                        ),
+                        variables=(item_var,),
+                        source_ref=source_ref,
+                    ),
+                ),
+                variables=(iter_var,),
+                source_ref=source_ref,
+            ),
+        )
+    )
+
+    return outline_body
+
+
+def _buildTypeParamDefaultFunction(provider, node, source_ref, allow_starred=False):
+    if python_version < 0x3D0 or node.default_value is None:
+        return None
+
+    if allow_starred and getKind(node.default_value) == "Starred":
+
+        def createExpression(inner_provider):
+            return _buildStarredTypeParamDefault(
+                provider=inner_provider,
+                value_node=node.default_value.value,
+                source_ref=source_ref,
+            )
+
+    else:
+
+        def createExpression(inner_provider):
+            return buildNode(inner_provider, node.default_value, source_ref)
+
+    return _makeDeferredEvaluationFunction(
+        provider=provider,
+        function_name=node.name,
+        create_expression=createExpression,
+        flags=_typevar_flags,
+        source_ref=source_ref,
+    )
+
+
 def buildTypeVarNode(provider, node, source_ref):
+    evaluate_bound = None
+    evaluate_constraints = None
+
     if node.bound is not None:
-        evaluate_bound = _makeDeferredEvaluationFunction(
+        evaluate = _makeDeferredEvaluationFunction(
             provider=provider,
             function_name=node.name,
             create_expression=lambda inner_provider: buildNode(
@@ -1300,33 +1395,56 @@ def buildTypeVarNode(provider, node, source_ref):
             flags=_typevar_flags,
             source_ref=source_ref,
         )
-    else:
-        evaluate_bound = None
 
-    if python_version >= 0x3D0:
-        default_value = buildNode(
-            provider,
-            node.default_value,
-            source_ref,
-            allow_none=True,
-        )
-    else:
-        default_value = None
+        # The parser puts constraints into the bound field too, i.e. a tuple is
+        # a constraints specification, but evaluated lazily like a bound.
+        if getKind(node.bound) == "Tuple" and not _isConstantTupleNode(node.bound):
+            evaluate_constraints = evaluate
+        else:
+            evaluate_bound = evaluate
+
+    evaluate_default = _buildTypeParamDefaultFunction(
+        provider=provider,
+        node=node,
+        source_ref=source_ref,
+    )
 
     return ExpressionTypeVariable(
         name=node.name,
         bound=evaluate_bound,
-        default_value=default_value,
+        constraints=evaluate_constraints,
+        default_value=evaluate_default,
         source_ref=source_ref,
     )
 
 
-def buildTypeVarTupleNode(node, source_ref):
-    return ExpressionTypeVariableTuple(node.name, source_ref=source_ref)
+def buildTypeVarTupleNode(provider, node, source_ref):
+    evaluate_default = _buildTypeParamDefaultFunction(
+        provider=provider,
+        node=node,
+        source_ref=source_ref,
+        allow_starred=True,
+    )
+
+    return ExpressionTypeVariableTuple(
+        name=node.name,
+        default_value=evaluate_default,
+        source_ref=source_ref,
+    )
 
 
-def buildTypeParamSpec(node, source_ref):
-    return ExpressionParameterSpecification(node.name, source_ref=source_ref)
+def buildTypeParamSpec(provider, node, source_ref):
+    evaluate_default = _buildTypeParamDefaultFunction(
+        provider=provider,
+        node=node,
+        source_ref=source_ref,
+    )
+
+    return ExpressionParameterSpecification(
+        name=node.name,
+        default_value=evaluate_default,
+        source_ref=source_ref,
+    )
 
 
 # TODO: Marked with the "generic" flag, for later treating these functions similar
@@ -1343,6 +1461,12 @@ def _makeDeferredEvaluationFunction(
     flags,
     source_ref,
 ):
+    class_body = getClassBodyForDeferredScope(provider)
+
+    if class_body is not None:
+        # Ensure the enclosing class body captures its namespace for deferred lookups.
+        class_body.getDeferredClassDictVariable()
+
     parameters = ParameterSpec(
         ps_name=function_name,
         ps_normal_args=(),
@@ -1387,6 +1511,10 @@ def _makeDeferredEvaluationFunction(
                 statements=(StatementReturn(create_expression(body), source_ref),),
                 code_object=code_object,
                 owner_code_name=body.getCodeName(),
+                needs_frame_locals=decideNeedsFrameLocalsProxy(
+                    module_name=parent_module.getFullName(),
+                    code_qualname=code_object.getCodeObjectQualname(),
+                ),
                 source_ref=source_ref,
             )
         )
@@ -1454,13 +1582,13 @@ def _createTypeExpression(provider, node, source_ref):
 
 
 def buildTypeAliasNode(provider, node, source_ref):
-    """Python3.12 or higher, type alias statements."""
+    checkDebugNameAssignment(name=node.name.id, source_ref=source_ref)
 
     type_alias_name = mangleName(node.name.id, provider)
     type_alias_node = ExpressionTypeAlias(
-        name=ExpressionVariableNameRef(
-            provider=provider, variable_name=type_alias_name, source_ref=source_ref
-        ),
+        # The variable name is mangled in class scopes, but the alias object
+        # uses the source name.
+        name=makeConstantRefNode(constant=node.name.id, source_ref=source_ref),
         type_params=buildNodeTuple(provider, node.type_params, source_ref),
         value=_makeTypeExpressionFactory(
             provider=provider,

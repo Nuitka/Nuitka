@@ -15,6 +15,14 @@ except Exception as e:
 else:
     print("No Exception!")
 
+# The replacement must not become the globals of the compiled code of the
+# module, they have to remain the module dictionary it was compiled against,
+# or else C code inspecting frame globals, e.g. "pyo3" based extension modules,
+# will find a module dictionary that lacks "__builtins__".
+print("Own Globals", SelfReplacingModule.own_globals_used())
+print("Marker", SelfReplacingModule.marker_found())
+print("Builtins", SelfReplacingModule.builtins_found())
+
 #     Python tests originally created or extracted from other peoples work. The
 #     parts were too small to be protected.
 #

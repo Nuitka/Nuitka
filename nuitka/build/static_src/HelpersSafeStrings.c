@@ -1,11 +1,7 @@
 //     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
-/* This helpers are used to interact safely with buffers to not overflow.
-
-   Currently this is used for char and wchar_t string buffers and shared
-   between onefile bootstrap for Windows, plugins and Nuitka core, but
-   should not use any Python level functionality.
-*/
+// Safe char and wchar_t buffer helpers shared between Windows onefile
+// bootstrap, plugins, and Nuitka core (must not depend on Python C-API).
 
 // This file is included from another C file, help IDEs to still parse it on
 // its own.
@@ -13,6 +9,7 @@
 #if defined(_WIN32)
 #include <windows.h>
 #endif
+#include <assert.h>
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
@@ -20,9 +17,9 @@
 #include <stdlib.h>
 #include <string.h>
 #include <wchar.h>
-#define unlikely(x) (x)
 #endif
 
+#include "nuitka/defines.h"
 #include "nuitka/safe_string_ops.h"
 
 #include <ctype.h>
@@ -56,16 +53,15 @@ void copyStringSafeN(char *buffer, char const *source, size_t n, size_t buffer_s
 }
 
 void copyStringSafeW(wchar_t *buffer, wchar_t const *source, size_t buffer_size) {
-    while (*source != 0) {
-        if (buffer_size < 1) {
-            abort();
-        }
+    size_t source_size = wcslen(source);
 
-        *buffer++ = *source++;
-        buffer_size -= 1;
+    if (source_size >= buffer_size) {
+        abort();
     }
 
-    *buffer = 0;
+    if (buffer != source) {
+        memcpy(buffer, source, (source_size + 1) * sizeof(wchar_t));
+    }
 }
 
 void appendStringSafe(char *target, char const *source, size_t buffer_size) {
@@ -87,12 +83,17 @@ void appendWStringSafeW(wchar_t *target, wchar_t const *source, size_t buffer_si
     }
 
     while (*target != 0) {
+        if (unlikely(buffer_size == 0)) {
+            abort();
+        }
+
         target++;
         buffer_size -= 1;
     }
 
     while (*source != 0) {
-        if (unlikely(buffer_size < 1)) {
+        // Room for the character and the termination is needed.
+        if (unlikely(buffer_size < 2)) {
             abort();
         }
 
@@ -100,16 +101,25 @@ void appendWStringSafeW(wchar_t *target, wchar_t const *source, size_t buffer_si
         buffer_size -= 1;
     }
 
+    if (unlikely(buffer_size < 1)) {
+        abort();
+    }
+
     *target = 0;
 }
 
 void appendWCharSafeW(wchar_t *target, wchar_t c, size_t buffer_size) {
     while (*target != 0) {
+        if (unlikely(buffer_size == 0)) {
+            abort();
+        }
+
         target++;
         buffer_size -= 1;
     }
 
-    if (buffer_size < 1) {
+    // Room for the character and the termination is needed.
+    if (unlikely(buffer_size < 2)) {
         abort();
     }
 
@@ -245,19 +255,23 @@ void checkStringNumber(char const *value) {
 
 void printOSErrorMessage(char const *message, error_code_t error_code) {
 #if defined(_WIN32)
-    LPTSTR err_buffer;
+    LPWSTR err_buffer = NULL;
 
     DWORD res =
-        FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS, NULL,
-                      error_code, MAKELANGID(LANG_ENGLISH, SUBLANG_ENGLISH_US), (LPTSTR)&err_buffer, 0, NULL);
-    assert(res != 0);
+        FormatMessageW(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
+                       NULL, error_code, 0, (LPWSTR)&err_buffer, 0, NULL);
 
-    while (res > 0 && (err_buffer[res - 1] == '\r' || err_buffer[res - 1] == '\n')) {
-        res -= 1;
-        err_buffer[res] = 0;
+    if (res == 0 || err_buffer == NULL) {
+        fprintf(stderr, "%s ([Error " ERROR_CODE_FORMAT_STR "] <unknown>)\n", message, error_code);
+        return;
     }
 
-    fprintf(stderr, "%s ([Error " ERROR_CODE_FORMAT_STR "] %s)\n", message, error_code, err_buffer);
+    while (res > 0 && (err_buffer[res - 1] == L'\r' || err_buffer[res - 1] == L'\n')) {
+        res -= 1;
+    }
+    err_buffer[res] = L'\0';
+
+    fprintf(stderr, "%s ([Error " ERROR_CODE_FORMAT_STR "] %ls)\n", message, error_code, err_buffer);
 #else
     fprintf(stderr, "%s: %s\n", message, strerror(error_code));
 #endif

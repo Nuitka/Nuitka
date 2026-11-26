@@ -7,15 +7,15 @@ For code to be in the standard library means that it's not written by the
 user for sure. We treat code differently based on that information, by e.g.
 including as byte code.
 
-To determine if a module from the standard library, we can abuse the attribute
-"__file__" of the "os" module like it's done in "isStandardLibraryPath" of this
-module.
+To determine standard library paths, ``getStandardLibraryPaths`` inspects the
+``__file__`` attribute of the ``types`` module.
 """
 
 import os
 import types
 
 from nuitka.PythonVersions import getSitePackageCandidateNames, python_version
+from nuitka.targets.Targets import getTargetSpecification
 from nuitka.utils.FileOperations import (
     getFileContents,
     getFilenameRealPath,
@@ -268,7 +268,7 @@ def scanStandardLibraryPath(stdlib_dir):
 _stdlib_no_auto_inclusion_list = (
     # Avoid this to be included, implicit usages will be rare, but it triggers
     # the Nuitka plugin "multiprocessing" that is always enabled.
-    # spell-checker: ignore _pydecimal,_posixsubprocess,pyexpat,sitecustomize
+    # spell-checker: ignore _posixsubprocess,_pydecimal,pyexpat,sitecustomize
     "multiprocessing",
     "_multiprocessing",
     # These are embedded as frozen modules in the Python binary, so avoid
@@ -393,7 +393,7 @@ _stdlib_no_auto_inclusion_list = (
     "Tkinter",
     "tkinter",
     "_tkinter",
-    # lib-tk from Python2, spell-checker: ignore Tkdnd,Tkconstants
+    # lib-tk from Python2, spell-checker: ignore Tkconstants,Tkdnd
     "Tix",
     "FixTk",
     "ScrolledText",
@@ -425,15 +425,17 @@ _stdlib_no_auto_inclusion_list = (
     "asynchat",
 )
 
-if not isWin32Windows():
-    _stdlib_no_auto_inclusion_list += ("ntpath",)
-
 # This was removed, but can exist in some circumstances still.
 if python_version >= 0x3D0:
     _stdlib_no_auto_inclusion_list += ("cgi",)
 
 
 def isStandardLibraryNoAutoInclusionModule(module_name):
+    # "ntpath" is only meaningful for Windows targets, and is excluded on
+    # POSIX hosts to avoid auto-including it there.
+    if module_name == "ntpath":
+        return not getTargetSpecification().isWin32Target()
+
     return module_name.hasOneOfNamespaces(*_stdlib_no_auto_inclusion_list)
 
 

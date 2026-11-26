@@ -13,11 +13,11 @@
 #include "nuitka/printing.h"
 #endif
 
-// Our "PyLong_FromLong" replacement.
 extern PyObject *Nuitka_PyLong_FromLong(long ival);
 extern long Nuitka_PyLong_AsLongAndOverflow(PyObject *value, int *overflow);
+extern Py_ssize_t Nuitka_PyLong_AsSsize_tAndOverflow(PyObject *value, int *overflow);
+extern Py_ssize_t Nuitka_PyLong_AsSsize_t(PyThreadState *tstate, PyObject *value);
 
-// Our "PyInt_FromLong" replacement, not done (yet?).
 #if PYTHON_VERSION >= 0x300
 #define Nuitka_PyInt_FromLong(ival) Nuitka_PyLong_FromLong(ival)
 #else
@@ -68,7 +68,7 @@ NUITKA_MAY_BE_UNUSED static void SET_NILONG_OBJECT_AND_C_VALUE(nuitka_ilong *dua
 
 NUITKA_MAY_BE_UNUSED static void RELEASE_NILONG_VALUE(nuitka_ilong *dual_value) {
     if (IS_NILONG_OBJECT_VALUE_VALID(dual_value)) {
-        CHECK_OBJECT(dual_value);
+        CHECK_OBJECT(dual_value->python_value);
         Py_DECREF(dual_value->python_value);
     }
 
@@ -77,7 +77,7 @@ NUITKA_MAY_BE_UNUSED static void RELEASE_NILONG_VALUE(nuitka_ilong *dual_value) 
 
 NUITKA_MAY_BE_UNUSED static void INCREF_NILONG_VALUE(nuitka_ilong *dual_value) {
     if (IS_NILONG_OBJECT_VALUE_VALID(dual_value)) {
-        CHECK_OBJECT(dual_value);
+        CHECK_OBJECT(dual_value->python_value);
         Py_INCREF(dual_value->python_value);
     }
 }
@@ -104,18 +104,40 @@ NUITKA_MAY_BE_UNUSED static void ENFORCE_NILONG_OBJECT_VALUE(nuitka_ilong *dual_
     }
 }
 
+NUITKA_MAY_BE_UNUSED static bool IS_NILONG_TRUE(nuitka_ilong const *dual_value) {
+    assert(dual_value->validity != NUITKA_ILONG_UNASSIGNED);
+
+    if (IS_NILONG_C_VALUE_VALID(dual_value)) {
+        return dual_value->c_value != 0;
+    } else {
+        assert(IS_NILONG_OBJECT_VALUE_VALID(dual_value));
+        CHECK_OBJECT(dual_value->python_value);
+#if PYTHON_VERSION < 0x300
+        if (PyInt_CheckExact(dual_value->python_value)) {
+            return PyInt_AS_LONG(dual_value->python_value) != 0;
+        } else {
+            return Py_SIZE(dual_value->python_value) != 0;
+        }
+#elif PYTHON_VERSION < 0x3c0
+        return Py_SIZE(dual_value->python_value) != 0;
+#else
+        return !_PyLong_IsZero((PyLongObject const *)dual_value->python_value);
+#endif
+    }
+}
+
 NUITKA_MAY_BE_UNUSED static void CHECK_NILONG_OBJECT(nuitka_ilong const *dual_value) {
     assert(dual_value->validity != NUITKA_ILONG_UNASSIGNED);
 
     if (IS_NILONG_OBJECT_VALUE_VALID(dual_value)) {
-        CHECK_OBJECT(dual_value);
+        CHECK_OBJECT(dual_value->python_value);
     }
 }
 
 NUITKA_MAY_BE_UNUSED static void PRINT_NILONG(nuitka_ilong const *dual_value) {
     PRINT_FORMAT("NILONG: %d", dual_value->validity);
     if (IS_NILONG_C_VALUE_VALID(dual_value)) {
-        PRINT_FORMAT("C=%d", dual_value->c_value);
+        PRINT_FORMAT("C=%ld", dual_value->c_value);
     }
     if (IS_NILONG_OBJECT_VALUE_VALID(dual_value)) {
         PRINT_STRING("Python=");

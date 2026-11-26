@@ -1,16 +1,14 @@
 #     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-"""Nodes for classes and their creations.
-
-The classes are are at the core of the language and have their complexities.
-
-"""
+"""Nodes for classes and their creation."""
 
 from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.PythonVersions import python_version
+from nuitka.tree.Extractions import getClonedProvider
 
 from .ChildrenHavingMixins import (
+    ChildHavingBodyOptionalMixin,
     ChildrenExpressionBuiltinType3Mixin,
     ChildrenHavingMetaclassBasesMixin,
 )
@@ -30,6 +28,42 @@ from .shapes.BuiltinTypeShapes import tshape_dict
 from .shapes.StandardShapes import tshape_unknown
 
 
+def _translateClonedDescendant(old_root, new_root, target_node):
+    """Find the node corresponding to 'target_node' in a cloned tree.
+
+    Notes:
+        'target_node' must be a descendant of 'old_root', and 'new_root' must
+        be its 'makeClone' result, which clones children in
+        'getVisitableNodes' order. The result has the same 'kind' as
+        'target_node'.
+    """
+
+    assert new_root.__class__ is old_root.__class__, (old_root, new_root)
+
+    path = []
+    current = target_node
+
+    while current is not old_root:
+        parent = current.parent
+        assert parent is not None, (target_node, old_root)
+
+        for index, child in enumerate(parent.getVisitableNodes()):
+            if child is current:
+                path.append(index)
+                break
+        else:
+            assert False, (current, parent)
+
+        current = parent
+
+    result = new_root
+    for index in reversed(path):
+        result = result.getVisitableNodes()[index]
+
+    assert result.kind == target_node.kind, (result, target_node)
+    return result
+
+
 class ExpressionClassBodyBase(ExpressionOutlineFunctionBase):
     kind = "EXPRESSION_CLASS_BODY"
 
@@ -38,23 +72,26 @@ class ExpressionClassBodyBase(ExpressionOutlineFunctionBase):
         "locals_scope",
         "conditional_annotation_indices",
         "conditional_annotations_variable",
+        "deferred_class_dict",
     )
 
-    def __init__(self, provider, name, doc, source_ref):
+    def __init__(self, provider, name, doc, source_ref, body=None, flags=None):
         ExpressionOutlineFunctionBase.__init__(
             self,
             provider=provider,
             name=name,
-            body=None,
+            body=body,
             code_prefix="class",
+            flags=flags,
             source_ref=source_ref,
         )
 
         self.doc = doc
 
-        # Conditional annotations, set during tree building on 3.14 or higher.
+        # Python 3.14+ PEP 649 conditional annotations.
         self.conditional_annotation_indices = None
         self.conditional_annotations_variable = None
+        self.deferred_class_dict = None
 
         self.locals_scope = getLocalsDictHandle(
             "locals_%s_%d" % (self.getCodeName(), source_ref.getLineNumber()),
@@ -68,11 +105,22 @@ class ExpressionClassBodyBase(ExpressionOutlineFunctionBase):
 
     def getDetails(self):
         return {
-            "name": self.getFunctionName(),
-            "provider": self.provider.getCodeName(),
+            "provider": self.provider,
+            "name": self.name,
             "doc": self.doc,
-            "flags": self.flags,
+            "flags": None if self.flags is None else set(self.flags),
         }
+
+    def _getCloneDetails(self):
+        # Preserve the Python class name instead of appending "_clone".
+        result = self.getDetails()
+        result["provider"] = getClonedProvider(result["provider"])
+
+        return result
+
+    def getCloneArgs(self):
+        # Preserve the Python class name instead of appending "_clone".
+        return ChildHavingBodyOptionalMixin.getCloneArgs(self)
 
     def getDetailsForDisplay(self):
         result = {
@@ -88,7 +136,37 @@ class ExpressionClassBodyBase(ExpressionOutlineFunctionBase):
 
     @classmethod
     def fromXML(cls, provider, source_ref, **args):
+        if "doc" not in args:
+            args["doc"] = None
+
+        if "flags" in args and isinstance(args["flags"], str):
+            args["flags"] = set(args["flags"].split(",")) if args["flags"] else None
+
         return cls(provider=provider, source_ref=source_ref, **args)
+
+    def _copyClassBodyCloneState(self, result, variable_translations):
+        if python_version >= 0x300:
+            if self.qualname_provider is not self.provider:
+                result.qualname_provider = getClonedProvider(self.qualname_provider)
+
+            if self.non_local_declarations is not None:
+                result.non_local_declarations = list(self.non_local_declarations)
+
+        if self.deferred_class_dict is not None:
+            result.deferred_class_dict = variable_translations.get(
+                self.deferred_class_dict, self.deferred_class_dict
+            )
+
+        if self.conditional_annotation_indices is not None:
+            result.conditional_annotation_indices = dict(
+                self.conditional_annotation_indices
+            )
+
+        if self.conditional_annotations_variable is not None:
+            result.conditional_annotations_variable = variable_translations.get(
+                self.conditional_annotations_variable,
+                self.conditional_annotations_variable,
+            )
 
     def getDoc(self):
         return self.doc
@@ -97,13 +175,13 @@ class ExpressionClassBodyBase(ExpressionOutlineFunctionBase):
     def isEarlyClosure():
         return True
 
-    def getVariableForClosure(self, variable_name):
-        # print( "getVariableForClosure", self, variable_name )
+    def registerVariableBinding(self, variable_name):
+        self.getLocalsScope().registerBoundVariableName(variable_name)
 
+    def getVariableForClosure(self, variable_name):
         # The class bodies provide no closure, except under CPython3.x, there
         # they provide "__class__" and the "__conditional_annotations__" for 3.14
         # but nothing else.
-
         if variable_name in ("__class__", "__conditional_annotations__"):
             if python_version < 0x300:
                 return self.provider.getVariableForClosure(variable_name)
@@ -116,6 +194,16 @@ class ExpressionClassBodyBase(ExpressionOutlineFunctionBase):
             self.taken.add(result)
             return result
 
+    def getDeferredClassDictVariable(self):
+        if self.deferred_class_dict is None:
+            self.deferred_class_dict = self.getLocalsScope().getLocalVariable(
+                owner=self,
+                variable_name="classdict$",
+            )
+            self.getLocalsScope().registerProvidedVariable(self.deferred_class_dict)
+
+        return self.deferred_class_dict
+
     @staticmethod
     def markAsDirectlyCalled():
         pass
@@ -125,20 +213,37 @@ class ExpressionClassBodyBase(ExpressionOutlineFunctionBase):
 
     @staticmethod
     def mayHaveSideEffects():
-        # The function definition has no side effects, calculating the defaults
-        # would be, but that is done outside of this.
         return False
 
     def mayRaiseException(self, exception_type):
         return self.subnode_body.mayRaiseException(exception_type)
 
     def isUnoptimized(self):
-        # Classes all are that.
         return True
 
 
-class ExpressionClassMappingBody(MarkNeedsAnnotationsMixin, ExpressionClassBodyBase):
-    """For use in cases, where the Python3 class is possibly a mapping."""
+class ExpressionClassBodyQualnameSetupMixin(object):
+    """Mixin for class bodies whose '__qualname__' assignment must follow clones."""
+
+    __slots__ = ()
+
+    def _copyClassBodyQualnameSetup(self, result):
+        if self.qualname_setup is not None:
+            class_variable_name, qualname_assign = self.qualname_setup
+            result.qualname_setup = (
+                class_variable_name,
+                _translateClonedDescendant(
+                    old_root=self, new_root=result, target_node=qualname_assign
+                ),
+            )
+
+
+class ExpressionClassMappingBody(
+    MarkNeedsAnnotationsMixin,
+    ExpressionClassBodyQualnameSetupMixin,
+    ExpressionClassBodyBase,
+):
+    """Python 3 class body whose namespace may be an arbitrary mapping."""
 
     kind = "EXPRESSION_CLASS_MAPPING_BODY"
 
@@ -149,15 +254,16 @@ class ExpressionClassMappingBody(MarkNeedsAnnotationsMixin, ExpressionClassBodyB
         "deferred_annotations",
     )
 
-    # Force creation with proper type.
     locals_kind = "python_mapping_class"
 
-    def __init__(self, provider, name, doc, source_ref):
+    def __init__(self, provider, name, doc, source_ref, body=None, flags=None):
         ExpressionClassBodyBase.__init__(
             self,
             provider=provider,
             name=name,
             doc=doc,
+            body=body,
+            flags=flags,
             source_ref=source_ref,
         )
 
@@ -166,6 +272,20 @@ class ExpressionClassMappingBody(MarkNeedsAnnotationsMixin, ExpressionClassBodyB
         self.qualname_setup = None
         self.static_attributes = OrderedSet() if python_version >= 0x3D0 else None
         self.deferred_annotations = []
+
+    def _copyClassBodyCloneState(self, result, variable_translations):
+        ExpressionClassBodyBase._copyClassBodyCloneState(
+            self, result=result, variable_translations=variable_translations
+        )
+
+        result.needs_annotations_dict = self.needs_annotations_dict
+
+        self._copyClassBodyQualnameSetup(result=result)
+
+        if self.static_attributes is not None:
+            result.static_attributes = OrderedSet(self.static_attributes)
+
+        result.deferred_annotations = list(self.deferred_annotations)
 
     def addStaticAttribute(self, static_attribute):
         self.static_attributes.add(static_attribute)
@@ -181,35 +301,89 @@ class ExpressionClassDictBodyP2(ExpressionDictShapeExactMixin, ExpressionClassBo
 
     locals_kind = "python_dict_class"
 
-    def __init__(self, provider, name, doc, source_ref):
+    def __init__(self, provider, name, doc, source_ref, body=None, flags=None):
         ExpressionClassBodyBase.__init__(
             self,
             provider=provider,
             name=name,
             doc=doc,
+            body=body,
+            flags=flags,
             source_ref=source_ref,
         )
 
 
-class ExpressionClassDictBody(MarkNeedsAnnotationsMixin, ExpressionClassDictBodyP2):
-    """For use in cases, where it's compile time pre-optimization determined to be a dictionary."""
+class ExpressionClassDictBody(  # pylint: disable=too-many-ancestors
+    MarkNeedsAnnotationsMixin,
+    ExpressionClassBodyQualnameSetupMixin,
+    ExpressionClassDictBodyP2,
+):
+    """Python 3 class body whose namespace is known to be an exact dict."""
 
     kind = "EXPRESSION_CLASS_DICT_BODY"
 
     __slots__ = ("needs_annotations_dict", "qualname_setup")
 
-    def __init__(self, provider, name, doc, source_ref):
+    def __init__(self, provider, name, doc, source_ref, body=None, flags=None):
         ExpressionClassDictBodyP2.__init__(
             self,
             provider=provider,
             name=name,
             doc=doc,
+            body=body,
+            flags=flags,
             source_ref=source_ref,
         )
 
         MarkNeedsAnnotationsMixin.__init__(self)
 
         self.qualname_setup = None
+
+    def _copyClassBodyCloneState(self, result, variable_translations):
+        ExpressionClassDictBodyP2._copyClassBodyCloneState(
+            self, result=result, variable_translations=variable_translations
+        )
+
+        result.needs_annotations_dict = self.needs_annotations_dict
+
+        self._copyClassBodyQualnameSetup(result=result)
+
+
+class ExpressionClassDictFromClass(ExpressionBase):
+    """The dictionary of a created class for annotation scopes.
+
+    This is only for the case of the created object being a class, the rare
+    case of a metaclass returning something that is not a class, is handled
+    by using the prepared class namespace instead.
+    """
+
+    kind = "EXPRESSION_CLASS_DICT_FROM_CLASS"
+
+    __slots__ = ("variable",)
+
+    def __init__(self, variable, source_ref):
+        ExpressionBase.__init__(self, source_ref)
+
+        self.variable = variable
+
+    def finalize(self):
+        del self.parent
+        del self.variable
+
+    def getDetails(self):
+        return {
+            "variable": self.variable,
+        }
+
+    def setVariable(self, variable):
+        self.variable = variable
+
+    def computeExpressionRaw(self, trace_collection):
+        return self, None, None
+
+    @staticmethod
+    def mayRaiseException(exception_type):
+        return False
 
 
 class ExpressionSelectMetaclass(ChildrenHavingMetaclassBasesMixin, ExpressionBase):
@@ -289,19 +463,15 @@ class ExpressionBuiltinType3(ChildrenExpressionBuiltinType3Mixin, ExpressionBase
     def mayRaiseException(self, exception_type):
         # TODO: In many cases, this will not raise for compile time knowable
         # case classes. We might ask the bases for the metaclass selected by
-        # compile time inspection.
+        # compile time inspection. Note that CPython's type_new resolves
+        # "__module__" from the active frame's globals, so ensure a frame is
+        # still present if exception raising is ever narrowed here.
         return True
 
     def computeExpression(self, trace_collection):
-        # TODO: Can use this to specialize to the correct metaclass at compile
-        # time.
-        # meta_class = self._calculateMetaClass()
-
-        # TODO: Should be compile time computable if bases and dict are
-        # allowing that to happen into a dedicated class creation node,
-        # with known metaclass selection.
-
-        # Any exception may be raised.
+        # TODO: Specialize to a dedicated class creation node with compile-time
+        # metaclass selection via _calculateMetaClass() when bases and dict
+        # allow it.
         if self.mayRaiseException(BaseException):
             trace_collection.onExceptionRaiseExit(BaseException)
 
@@ -314,29 +484,14 @@ class ExpressionCallMetaclass(ExpressionCallMetaclassBase):
     named_children = ("metaclass", "name", "bases", "dict_arg", "class_decl_dict")
     node_attributes = ("class_variable",)
 
-    def __init__(
-        self,
-        metaclass,
-        name,
-        bases,
-        dict_arg,
-        class_decl_dict,
-        class_variable,
-        source_ref,
-    ):
-        ExpressionCallMetaclassBase.__init__(
-            self,
-            metaclass=metaclass,
-            name=name,
-            bases=bases,
-            dict_arg=dict_arg,
-            class_decl_dict=class_decl_dict,
-            class_variable=class_variable,
-            source_ref=source_ref,
-        )
+    def getClassVariable(self):
+        return self.class_variable
+
+    def setClassVariable(self, variable):
+        # pylint: disable=I0021,attribute-defined-outside-init
+        self.class_variable = variable
 
     def computeExpression(self, trace_collection):
-        # Any exception may be raised by metaclass call.
         trace_collection.onExceptionRaiseExit(BaseException)
 
         return self, None, None
@@ -346,8 +501,6 @@ class ExpressionCallMetaclass(ExpressionCallMetaclassBase):
 
 
 class ExpressionCallClassPrepareCommonBase(ExpressionCallClassPrepareBase):
-    """Common base for the class prepare nodes."""
-
     def computeExpression(self, trace_collection):
         if self.subnode_called.isCompileTimeConstant():
             return (
@@ -414,8 +567,6 @@ class ExpressionCallClassPrepare(ExpressionCallClassPrepareCommonBase):
         return False, None
 
     def getExpressionDictInConstant(self, value):
-        # The PGO value is asserted at run time, so it can be used for
-        # compile time decisions.
         if self.expected_value is not None:
             return value in self.expected_value
 
@@ -435,8 +586,6 @@ class ExpressionCallClassPrepare(ExpressionCallClassPrepareCommonBase):
 class ExpressionCallClassPrepareKnownStartValueDictBase(
     ExpressionDictShapeExactMixin, ExpressionCallClassPrepareCommonBase
 ):
-    """Base for class prepare nodes with a known start value."""
-
     named_children = ("called",)
     node_attributes = (
         "type_shape",

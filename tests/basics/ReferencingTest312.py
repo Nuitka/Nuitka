@@ -47,6 +47,77 @@ def no_simpleFunction2():
     return Child
 
 
+def _returnSysVersionInfoDirect():
+    return sys.version_info
+
+
+def _returnSysVersionInfoBranch(flag):
+    if flag:
+        return sys.version_info
+    return None
+
+
+def simpleFunction3():
+    funcs = (_returnSysVersionInfoDirect, lambda: sys.version_info)
+    result = None
+
+    for _ in range(20):
+        for func in funcs:
+            result = func()
+        result = _returnSysVersionInfoBranch(True)
+
+    return result
+
+
+def _returnExceptionGroupDirect():
+    return ExceptionGroup
+
+
+def _returnExceptionGroupBranch(flag):
+    if flag:
+        return ExceptionGroup
+    return None
+
+
+def simpleFunction4():
+    funcs = (_returnExceptionGroupDirect, lambda: ExceptionGroup)
+    result = None
+
+    for _ in range(20):
+        for func in funcs:
+            result = func()
+        result = _returnExceptionGroupBranch(True)
+
+    return result
+
+
+def _returnImmortalTuple():
+    return (1, "immortal", int, abs, BaseExceptionGroup)
+
+
+def _returnImmortalBranch(flag):
+    if flag:
+        return (1, "immortal", int, abs, BaseExceptionGroup)
+    return None
+
+
+def simpleFunction5():
+    funcs = (
+        _returnImmortalTuple,
+        lambda: 123456789,
+        lambda: abs,
+        lambda: BaseExceptionGroup,
+    )
+    result = None
+
+    for _ in range(20):
+        for func in funcs:
+            result = func()
+        result = _returnImmortalBranch(True)
+
+    return result
+
+
 # These need stderr to be wrapped.
 tests_stderr = ()
 

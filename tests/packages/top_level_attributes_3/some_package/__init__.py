@@ -8,6 +8,9 @@ to update the "__file__" value afterwards, and then to set the "__spec__" to its
 which disallows using the Nuitka loader for the module.
 """
 
+# nuitka-project: --mode=module
+# nuitka-project: --include-package=some_package
+
 from __future__ import print_function
 
 import os

@@ -8,56 +8,120 @@
 #include "nuitka/prelude.h"
 #endif
 
-// spell-checker: ignore PYMEM_DOMAIN,Nuitka_gc_decref,gcstate,uncollectable,sisnsn,QSBR,wrasgc
-// spell-checker: ignore Nuitka_visit_decref,finalizers,wrcb,wrlist,_PyObject_GET_WEAKREFS_LISTPTR
-// spell-checker: ignore objmalloc,qbsr,stoptheworld
+// spell-checker: ignore Nuitka_gc_decref,Nuitka_visit_decref,PYMEM_DOMAIN,QSBR
+// spell-checker: ignore _PyObject_GET_WEAKREFS_LISTPTR,finalizers,gcstate,objmalloc,qbsr
+// spell-checker: ignore sisnsn,stoptheworld,uncollectable,wrasgc,wrcb,wrlist
 
 void *(*python_obj_malloc)(void *ctx, size_t size) = NULL;
 void *(*python_mem_malloc)(void *ctx, size_t size) = NULL;
 void *(*python_mem_calloc)(void *ctx, size_t nelem, size_t elsize) = NULL;
 #ifndef Py_GIL_DISABLED
 void *(*python_mem_realloc)(void *ctx, void *ptr, size_t new_size) = NULL;
-#else
+#endif
 void (*python_mem_free)(void *ctx, void *ptr) = NULL;
+
+#if _NUITKA_STANDALONE_MODE && !defined(Py_DEBUG)
+// Standalone mode ignores allocator settings from the environment, and only
+// the default allocators are expected to be in use.
+#define NUITKA_ALLOCATORS_DEFAULT_ONLY 1
+#else
+#define NUITKA_ALLOCATORS_DEFAULT_ONLY 0
 #endif
 
-#if defined(Py_DEBUG)
-void *python_obj_ctx = NULL;
-void *python_mem_ctx = NULL;
+// The allocator hooks can be installed and removed at runtime, e.g. by
+// "PYTHONMALLOC=debug" or "tracemalloc". Their context only remains valid for
+// as long as the hook is installed, so their functions and context must not be
+// cached, and the current allocator API is used instead. Only the default
+// allocators, which do not use a context, are called through cached pointers.
+static void *NuitkaObject_MallocAPI(void *ctx, size_t size) {
+    (void)ctx;
+    return PyObject_Malloc(size);
+}
+
+static void *NuitkaMem_MallocAPI(void *ctx, size_t size) {
+    (void)ctx;
+    return PyMem_Malloc(size);
+}
+
+static void *NuitkaMem_CallocAPI(void *ctx, size_t nelem, size_t elsize) {
+    (void)ctx;
+    return PyMem_Calloc(nelem, elsize);
+}
+
+#ifndef Py_GIL_DISABLED
+static void *NuitkaMem_ReallocAPI(void *ctx, void *ptr, size_t new_size) {
+    (void)ctx;
+    return PyMem_Realloc(ptr, new_size);
+}
 #endif
+
+static void NuitkaMem_FreeAPI(void *ctx, void *ptr) {
+    (void)ctx;
+    PyMem_Free(ptr);
+}
 
 void initNuitkaAllocators(void) {
     PyMemAllocatorEx allocators;
 
     PyMem_GetAllocator(PYMEM_DOMAIN_OBJ, &allocators);
 
-#if defined(Py_DEBUG)
-    python_obj_ctx = allocators.ctx;
+    assert(allocators.malloc != NULL);
+
+#if NUITKA_ALLOCATORS_DEFAULT_ONLY
+    assert(allocators.ctx == NULL);
 #endif
 
-    python_obj_malloc = allocators.malloc;
+    python_obj_malloc = allocators.ctx == NULL ? allocators.malloc : NuitkaObject_MallocAPI;
 
     PyMem_GetAllocator(PYMEM_DOMAIN_MEM, &allocators);
 
-#if defined(Py_DEBUG)
-    python_mem_ctx = allocators.ctx;
+    assert(allocators.malloc != NULL);
+    assert(allocators.calloc != NULL);
+#ifndef Py_GIL_DISABLED
+    assert(allocators.realloc != NULL);
+#endif
+    assert(allocators.free != NULL);
+
+#if NUITKA_ALLOCATORS_DEFAULT_ONLY
+    assert(allocators.ctx == NULL);
 #endif
 
-    python_mem_malloc = allocators.malloc;
-    python_mem_calloc = allocators.calloc;
+    if (allocators.ctx == NULL) {
+        python_mem_malloc = allocators.malloc;
+        python_mem_calloc = allocators.calloc;
 #ifndef Py_GIL_DISABLED
-    python_mem_realloc = allocators.realloc;
-#else
-    python_mem_free = allocators.free;
+        python_mem_realloc = allocators.realloc;
 #endif
+        python_mem_free = allocators.free;
+    } else {
+        python_mem_malloc = NuitkaMem_MallocAPI;
+        python_mem_calloc = NuitkaMem_CallocAPI;
+#ifndef Py_GIL_DISABLED
+        python_mem_realloc = NuitkaMem_ReallocAPI;
+#endif
+        python_mem_free = NuitkaMem_FreeAPI;
+    }
 }
 
 #if defined(Py_GIL_DISABLED) && defined(Py_REF_DEBUG) && PYTHON_VERSION >= 0x3d0 && PYTHON_VERSION < 0x3e0
-void _Py_AddRefTotal(PyThreadState *tstate, Py_ssize_t n) { tstate->interp->object_state.reftotal += n; }
+#if defined(_MSC_VER)
+#define NUITKA_REF_TOTAL_LINKAGE
+#else
+// Python 3.13 free-threaded debug builds do not export these internal
+// helpers on Windows, but a static libpython already provides them on Unix.
+// Weak definitions let the library's strong symbols win when present.
+#define NUITKA_REF_TOTAL_LINKAGE __attribute__((weak))
+#endif
 
-void _Py_IncRefTotal(PyThreadState *tstate) { _Py_AddRefTotal(tstate, 1); }
+NUITKA_REF_TOTAL_LINKAGE void _Py_AddRefTotal(PyThreadState *tstate, Py_ssize_t n) {
+    tstate->interp->object_state.reftotal += n;
+}
 
-void _Py_DecRefTotal(PyThreadState *tstate) { _Py_AddRefTotal(tstate, -1); }
+NUITKA_REF_TOTAL_LINKAGE void _Py_IncRefTotal(PyThreadState *tstate) { _Py_AddRefTotal(tstate, 1); }
+
+NUITKA_REF_TOTAL_LINKAGE void _Py_DecRefTotal(PyThreadState *tstate) { _Py_AddRefTotal(tstate, -1); }
+
+#undef NUITKA_REF_TOTAL_LINKAGE
 #endif
 
 #if PYTHON_VERSION >= 0x3b0
@@ -106,7 +170,7 @@ static void Nuitka_invoke_gc_callback(PyThreadState *tstate, const char *phase, 
             Py_BuildValue("{sisnsn}", "generation", generation, "collected", collected, "uncollectable", uncollectable);
 
         if (info == NULL) {
-            PyErr_WriteUnraisable(NULL);
+            Nuitka_WriteUnraisable(NULL);
             return;
         }
     }
@@ -118,7 +182,7 @@ static void Nuitka_invoke_gc_callback(PyThreadState *tstate, const char *phase, 
         r = PyObject_CallFunction(cb, "sO", phase, info);
 
         if (r == NULL) {
-            PyErr_WriteUnraisable(cb);
+            Nuitka_WriteUnraisable(cb);
         } else {
             Py_DECREF(r);
         }
@@ -205,7 +269,9 @@ static inline void Nuitka_gc_list_remove(PyGC_Head *node) {
     node->_gc_next = 0;
 }
 
-static int Nuitka_visit_reachable(PyObject *op, PyGC_Head *reachable) {
+static int Nuitka_visit_reachable(PyObject *op, void *reachable_arg) {
+    PyGC_Head *reachable = (PyGC_Head *)reachable_arg;
+
     if (!_PyObject_IS_GC(op)) {
         return 0;
     }
@@ -272,6 +338,28 @@ static inline void Nuitka_deduce_unreachable(PyGC_Head *base, PyGC_Head *unreach
     Nuitka_move_unreachable(base, unreachable);
 }
 
+static void Nuitka_TupleMaybeUntrack(PyObject *op) {
+    CHECK_OBJECT(op);
+    assert(PyTuple_CheckExact(op));
+
+    if (!_PyObject_GC_IS_TRACKED(op)) {
+        return;
+    }
+
+    Py_ssize_t size = PyTuple_GET_SIZE(op);
+
+    for (Py_ssize_t i = 0; i < size; i++) {
+        PyObject *item = PyTuple_GET_ITEM(op, i);
+
+        // Tuples with NULL items are not fully constructed yet, don't untrack them.
+        if (item == NULL || _PyObject_GC_MAY_BE_TRACKED(item)) {
+            return;
+        }
+    }
+
+    Nuitka_GC_UnTrack(op);
+}
+
 static void Nuitka_untrack_tuples(PyGC_Head *head) {
     PyGC_Head *gc = GC_NEXT(head);
 
@@ -280,8 +368,7 @@ static void Nuitka_untrack_tuples(PyGC_Head *head) {
         PyGC_Head *next = GC_NEXT(gc);
 
         if (PyTuple_CheckExact(op)) {
-            // TODO: API function
-            _PyTuple_MaybeUntrack(op);
+            Nuitka_TupleMaybeUntrack(op);
         }
 
         gc = next;
@@ -304,8 +391,7 @@ static void Nuitka_untrack_dicts(PyGC_Head *head) {
         PyObject *op = FROM_GC(gc);
         next = GC_NEXT(gc);
         if (PyDict_CheckExact(op)) {
-            // TODO: API function
-            _PyDict_MaybeUntrack(op);
+            Nuitka_DictMaybeUntrack(op);
         }
         gc = next;
     }
@@ -342,7 +428,9 @@ static void _Nuitka_move_legacy_finalizers(PyGC_Head *unreachable, PyGC_Head *fi
     }
 }
 
-static int _Nuitka_visit_move(PyObject *op, PyGC_Head *to_list) {
+static int _Nuitka_visit_move(PyObject *op, void *to_list_arg) {
+    PyGC_Head *to_list = (PyGC_Head *)to_list_arg;
+
     if (_PyObject_IS_GC(op)) {
         PyGC_Head *gc = AS_GC(op);
         if (Nuitka_gc_is_collecting(gc)) {
@@ -351,7 +439,6 @@ static int _Nuitka_visit_move(PyObject *op, PyGC_Head *to_list) {
         }
     }
 
-    // Required for traverseproc
     return 0;
 }
 
@@ -370,15 +457,15 @@ static void Nuitka_finalize_garbage(PyThreadState *tstate, PyGC_Head *collectabl
 
     while (Nuitka_gc_list_is_empty(collectable) == false) {
         PyGC_Head *gc = GC_NEXT(collectable);
-        PyObject *object = FROM_GC(gc);
+        PyObject *obj = FROM_GC(gc);
         Nuitka_gc_list_move(gc, &seen);
 
-        if (!_PyGCHead_FINALIZED(gc) && (finalize = Py_TYPE(object)->tp_finalize) != NULL) {
+        if (!_PyGCHead_FINALIZED(gc) && (finalize = Py_TYPE(obj)->tp_finalize) != NULL) {
             _PyGCHead_SET_FINALIZED(gc);
-            Py_INCREF(object);
-            finalize(object);
+            Py_INCREF(obj);
+            finalize(obj);
             assert(!HAS_ERROR_OCCURRED(tstate));
-            Py_DECREF(object);
+            Py_DECREF(obj);
         }
     }
     Nuitka_gc_list_merge(&seen, collectable);
@@ -386,7 +473,7 @@ static void Nuitka_finalize_garbage(PyThreadState *tstate, PyGC_Head *collectabl
 
 static int Nuitka_handle_weakrefs(PyThreadState *tstate, PyGC_Head *unreachable, PyGC_Head *old) {
     PyGC_Head *gc;
-    PyObject *object;
+    PyObject *obj;
     PyWeakReference *wr;
     PyGC_Head wrcb_to_call;
     PyGC_Head *next;
@@ -397,17 +484,17 @@ static int Nuitka_handle_weakrefs(PyThreadState *tstate, PyGC_Head *unreachable,
     for (gc = GC_NEXT(unreachable); gc != unreachable; gc = next) {
         PyWeakReference **wrlist;
 
-        object = FROM_GC(gc);
+        obj = FROM_GC(gc);
         next = GC_NEXT(gc);
 
-        if (PyWeakref_Check(object)) {
-            _PyWeakref_ClearRef((PyWeakReference *)object);
+        if (PyWeakref_Check(obj)) {
+            _PyWeakref_ClearRef((PyWeakReference *)obj);
         }
 
-        if (!_PyType_SUPPORTS_WEAKREFS(Py_TYPE(object)))
+        if (!_PyType_SUPPORTS_WEAKREFS(Py_TYPE(obj)))
             continue;
 
-        wrlist = (PyWeakReference **)_PyObject_GET_WEAKREFS_LISTPTR(object);
+        wrlist = (PyWeakReference **)_PyObject_GET_WEAKREFS_LISTPTR(obj);
 
         for (wr = *wrlist; wr != NULL; wr = *wrlist) {
             PyGC_Head *wrasgc;
@@ -434,17 +521,17 @@ static int Nuitka_handle_weakrefs(PyThreadState *tstate, PyGC_Head *unreachable,
         PyObject *callback;
 
         gc = (PyGC_Head *)wrcb_to_call._gc_next;
-        object = FROM_GC(gc);
-        wr = (PyWeakReference *)object;
+        obj = FROM_GC(gc);
+        wr = (PyWeakReference *)obj;
         callback = wr->wr_callback;
 
         temp = CALL_FUNCTION_WITH_SINGLE_ARG(tstate, callback, (PyObject *)wr);
         if (temp == NULL)
-            PyErr_WriteUnraisable(callback);
+            Nuitka_WriteUnraisable(callback);
         else
             Py_DECREF(temp);
 
-        Py_DECREF(object);
+        Py_DECREF(obj);
         if (wrcb_to_call._gc_next == (uintptr_t)gc) {
             Nuitka_gc_list_move(gc, old);
         } else {
@@ -486,19 +573,19 @@ static void Nuitka_delete_garbage(PyThreadState *tstate, GCState *gcstate, PyGC_
 
     while (Nuitka_gc_list_is_empty(collectable) == false) {
         PyGC_Head *gc = GC_NEXT(collectable);
-        PyObject *object = FROM_GC(gc);
+        PyObject *obj = FROM_GC(gc);
 
-        _PyObject_ASSERT_WITH_MSG(object, Py_REFCNT(object) > 0, "refcount is too small");
+        _PyObject_ASSERT_WITH_MSG(obj, Py_REFCNT(obj) > 0, "refcount is too small");
 
         {
             inquiry clear;
-            if ((clear = Py_TYPE(object)->tp_clear) != NULL) {
-                Py_INCREF(object);
-                (void)clear(object);
+            if ((clear = Py_TYPE(obj)->tp_clear) != NULL) {
+                Py_INCREF(obj);
+                (void)clear(obj);
                 if (HAS_ERROR_OCCURRED(tstate)) {
-                    _PyErr_WriteUnraisableMsg("in tp_clear of", (PyObject *)Py_TYPE(object));
+                    Nuitka_WriteUnraisableMsg("in tp_clear of", (PyObject *)Py_TYPE(obj));
                 }
-                Py_DECREF(object);
+                Py_DECREF(obj);
             }
         }
         if (GC_NEXT(collectable) == gc) {
@@ -601,7 +688,7 @@ static Py_ssize_t Nuitka_gc_collect_main(PyThreadState *tstate, int generation, 
     Nuitka_handle_legacy_finalizers(tstate, gcstate, &finalizers, old);
 
     if (HAS_ERROR_OCCURRED(tstate)) {
-        _PyErr_WriteUnraisableMsg("in garbage collection", NULL);
+        Nuitka_WriteUnraisableMsg("in garbage collection", NULL);
     }
 
     if (n_collected) {
@@ -662,7 +749,55 @@ static void Nuitka_Py_ScheduleGC(PyThreadState *tstate) {
 
 // This is called during object creation and might trigger garbage collection
 void Nuitka_PyObject_GC_Link(PyObject *op) {
-#if PYTHON_VERSION < 0x3d0
+#if defined(Py_GIL_DISABLED) && PYTHON_VERSION >= 0x3e0
+    // Match CPython's free-threaded GC accounting. Objects are tracked with
+    // the GC bits only, not linked into a generation list, and a per-thread
+    // allocation counter is folded into the interpreter's young generation
+    // counter in batches, rather than updating it for each object.
+    (void)op;
+
+    _PyThreadStateImpl *tstate_impl = (_PyThreadStateImpl *)_PyThreadState_GET();
+
+    if (unlikely(++tstate_impl->gc.alloc_count >= 512)) {
+        PyThreadState *tstate = (PyThreadState *)tstate_impl;
+        GCState *gcstate = &tstate->interp->gc;
+
+        _Py_atomic_add_int(&gcstate->young.count, (int)tstate_impl->gc.alloc_count);
+        tstate_impl->gc.alloc_count = 0;
+
+        int count = _Py_atomic_load_int_relaxed(&gcstate->young.count);
+
+        if (count > gcstate->young.threshold && gcstate->young.threshold &&
+            _Py_atomic_load_int_relaxed(&gcstate->enabled) &&
+            (gcstate->old[0].threshold == 0 || count >= gcstate->long_lived_total / 4) &&
+            !_Py_atomic_load_int_relaxed(&gcstate->collecting) && !_PyErr_Occurred(tstate)) {
+            Nuitka_Py_ScheduleGC(tstate);
+        }
+    }
+#elif defined(Py_GIL_DISABLED)
+    // Python 3.13 free-threaded also uses a per-thread allocation counter, but
+    // still keeps the young generation count in the generations array.
+    (void)op;
+
+    _PyThreadStateImpl *tstate_impl = (_PyThreadStateImpl *)_PyThreadState_GET();
+
+    if (unlikely(++tstate_impl->gc.alloc_count >= 512)) {
+        PyThreadState *tstate = (PyThreadState *)tstate_impl;
+        GCState *gcstate = &tstate->interp->gc;
+
+        _Py_atomic_add_int(&gcstate->generations[0].count, (int)tstate_impl->gc.alloc_count);
+        tstate_impl->gc.alloc_count = 0;
+
+        int count = _Py_atomic_load_int_relaxed(&gcstate->generations[0].count);
+
+        if (count > gcstate->generations[0].threshold && gcstate->generations[0].threshold &&
+            _Py_atomic_load_int_relaxed(&gcstate->enabled) &&
+            (count > gcstate->long_lived_total / 4 || gcstate->generations[1].threshold == 0) &&
+            !_Py_atomic_load_int_relaxed(&gcstate->collecting) && !_PyErr_Occurred(tstate)) {
+            Nuitka_Py_ScheduleGC(tstate);
+        }
+    }
+#elif PYTHON_VERSION < 0x3d0
     PyGC_Head *g = AS_GC(op);
 
     PyThreadState *tstate = _PyThreadState_GET();
@@ -683,7 +818,6 @@ void Nuitka_PyObject_GC_Link(PyObject *op) {
     // TODO: This is not the no-GIL implementation
     PyGC_Head *gc = _Py_AS_GC(op);
 
-    // gc must be correctly aligned
     _PyObject_ASSERT(op, ((uintptr_t)gc & (sizeof(uintptr_t) - 1)) == 0);
 
     // TODO: Have this passed.
@@ -704,7 +838,6 @@ void Nuitka_PyObject_GC_Link(PyObject *op) {
     // TODO: This is not the no-GIL implementation
     PyGC_Head *gc = _Py_AS_GC(op);
 
-    // gc must be correctly aligned
     _PyObject_ASSERT(op, ((uintptr_t)gc & (sizeof(uintptr_t) - 1)) == 0);
 
     // TODO: Have this passed.
@@ -740,7 +873,6 @@ void Nuitka_PyObject_GC_Link(PyObject *op) {
     // TODO: This is not the no-GIL implementation
     PyGC_Head *gc = _Py_AS_GC(op);
 
-    // gc must be correctly aligned
     _PyObject_ASSERT(op, ((uintptr_t)gc & (sizeof(uintptr_t) - 1)) == 0);
 
     // TODO: Have this passed.
@@ -763,13 +895,13 @@ void Nuitka_PyObject_GC_Link(PyObject *op) {
     // TODO: This is not the no-GIL implementation
     PyGC_Head *gc = _Py_AS_GC(op);
 
-    // gc must be correctly aligned
     _PyObject_ASSERT(op, ((uintptr_t)gc & (sizeof(uintptr_t) - 1)) == 0);
 
     // TODO: Have this passed.
     PyThreadState *tstate = _PyThreadState_GET();
     GCState *gcstate = &tstate->interp->gc;
 
+#ifndef Py_GIL_DISABLED
     gc->_gc_next = 0;
     gc->_gc_prev = 0;
 
@@ -780,6 +912,15 @@ void Nuitka_PyObject_GC_Link(PyObject *op) {
         !_PyErr_Occurred(tstate)) {
         Nuitka_Py_ScheduleGC(tstate);
     }
+#else
+    gcstate->young.count++;
+    gcstate->heap_size++;
+
+    if (gcstate->young.count > gcstate->young.threshold && gcstate->enabled && gcstate->young.threshold &&
+        !_Py_atomic_load_int_relaxed(&gcstate->collecting) && !_PyErr_Occurred(tstate)) {
+        Nuitka_Py_ScheduleGC(tstate);
+    }
+#endif
 #endif
 }
 
@@ -797,12 +938,12 @@ struct _mem_work_item {
 struct _mem_work_chunk {
     struct llist_node node;
 
-    Py_ssize_t rd_idx; // index of next item to read
-    Py_ssize_t wr_idx; // index of next item to write
+    Py_ssize_t rd_idx;
+    Py_ssize_t wr_idx;
     struct _mem_work_item array[WORK_ITEMS_PER_CHUNK];
 };
 
-// Aligns with CPython "qsbr.c"
+// Number of deferred frees before the write sequence is advanced.
 #define QSBR_DEFERRED_LIMIT 10
 
 static uint64_t Nuitka_qsbr_shared_next(struct _qsbr_shared *shared) {
@@ -814,12 +955,22 @@ static uint64_t Nuitka_qsbr_advance(struct _qsbr_shared *shared) {
 }
 
 static uint64_t Nuitka_qsbr_deferred_advance(struct _qsbr_thread_state *qsbr) {
+    // Python 3.13.6 backported the QSBR changes from 3.14, older 3.13 releases
+    // use a "deferrals" counter instead.
+#if PYTHON_VERSION >= 0x3d6
     if (++qsbr->deferred_count < QSBR_DEFERRED_LIMIT) {
         return Nuitka_qsbr_shared_next(qsbr->shared);
     }
 
     qsbr->deferred_count = 0;
     qsbr->should_process = true;
+#else
+    if (++qsbr->deferrals < QSBR_DEFERRED_LIMIT) {
+        return Nuitka_qsbr_shared_next(qsbr->shared);
+    }
+
+    qsbr->deferrals = 0;
+#endif
     return Nuitka_qsbr_advance(qsbr->shared);
 }
 
@@ -937,7 +1088,6 @@ PyLockStatus _NuitkaMutex_LockTimed(PyMutex *m) {
         }
 
         if (!(v & _Py_HAS_PARKED) && spin_count < MAX_SPIN_COUNT) {
-            // Spin for a bit.
             _Nuitka_yield();
 
             spin_count++;
@@ -968,30 +1118,23 @@ void _NuitkaMem_ProcessDelayed(PyThreadState *tstate) {
     PyInterpreterState *interp = tstate->interp;
     _PyThreadStateImpl *tstate_impl = (_PyThreadStateImpl *)tstate;
 
-    // Release thread-local queue
     _Nuitka_process_queue(&tstate_impl->mem_free_queue, tstate_impl->qsbr, true);
-
-    // Release interpreter queue
     _Nuitka_process_interp_queue(Nuitka_PyInterpreterState_GetMemFreeQueue(interp), tstate_impl->qsbr);
 }
 
 static void _NuitkaMem_FreeDelayed2(uintptr_t ptr) {
-    // Free immediately if possible.
-    if (_PyRuntime.stoptheworld.world_stopped) {
+    if (Nuitka_GetStopTheWorld()->world_stopped) {
         _NuitkaMem_free_work_item(ptr);
         return;
     }
 
-    // Allocate an entry for later processing.
     _PyThreadStateImpl *tstate = (_PyThreadStateImpl *)_PyThreadState_GET();
     struct llist_node *head = &tstate->mem_free_queue;
 
     struct _mem_work_chunk *buf = NULL;
     if (!llist_empty(head)) {
-        // Try to reuse the last buffer
         buf = llist_data(head->prev, struct _mem_work_chunk, node);
         if (buf->wr_idx == WORK_ITEMS_PER_CHUNK) {
-            // already full
             buf = NULL;
         }
     }
@@ -1006,10 +1149,16 @@ static void _NuitkaMem_FreeDelayed2(uintptr_t ptr) {
     buf->array[buf->wr_idx].qsbr_goal = seq;
     buf->wr_idx++;
 
+#if PYTHON_VERSION >= 0x3d6
     if (buf->wr_idx == WORK_ITEMS_PER_CHUNK || _Py_qsbr_should_process(tstate->qsbr)) {
         tstate->qsbr->should_process = false;
         _NuitkaMem_ProcessDelayed((PyThreadState *)tstate);
     }
+#else
+    if (buf->wr_idx == WORK_ITEMS_PER_CHUNK) {
+        _NuitkaMem_ProcessDelayed((PyThreadState *)tstate);
+    }
+#endif
 }
 
 void NuitkaMem_FreeDelayed(void *ptr) {

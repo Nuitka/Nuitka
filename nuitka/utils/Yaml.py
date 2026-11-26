@@ -4,8 +4,8 @@
 """Nuitka yaml utility functions.
 
 Because we want to work with Python2.6 or higher, we play a few tricks with
-what library to use for what Python. We have an 2 inline copy of PyYAML, one
-that still does 2.6 and one for newer Pythons.
+what library to use for what Python. We have inline copies of PyYAML, and
+pick the one matching the Python version.
 
 Also we put loading for specific packages in here and a few helpers to work
 with these config files.
@@ -23,6 +23,7 @@ from posixpath import normpath
 from nuitka.__past__ import re_sub, unicode
 from nuitka.containers.OrderedDicts import OrderedDict
 from nuitka.options.Options import getMainModuleName, getUserProvidedYamlFiles
+from nuitka.PythonVersions import python_version
 from nuitka.Tracing import general
 
 from .FileOperations import getFileContents
@@ -90,7 +91,7 @@ def _checkRegexp(logger, filename, module_name, section, k, regexp, replacement)
         return False
 
     try:
-        _unused = re_sub(regexp, replacement, "", flags=re.S)
+        _unused = re_sub(regexp, replacement, "", flags=re.DOTALL)
     except re.error as e:
         logger.info(
             """\
@@ -170,17 +171,16 @@ def checkSectionValues(logger, filename, module_name, section, value):
                 )
                 result = False
 
-            if k in ("when", "append_result"):
-                if not _checkParsable(logger, filename, module_name, section, k, v):
-                    result = False
+            if k in ("when", "append_result") and not _checkParsable(
+                logger, filename, module_name, section, k, v
+            ):
+                result = False
 
             if k in ("replacements", "global_replacements"):
                 for m, d in v.items():
                     if not _checkNotEmptyString(
                         logger, filename, module_name, section, k, m
-                    ):
-                        result = False
-                    elif not _checkParsable(
+                    ) or not _checkParsable(
                         logger, filename, module_name, section, k, d
                     ):
                         result = False
@@ -236,11 +236,10 @@ def checkSectionValues(logger, filename, module_name, section, value):
 
             if k == "parameters":
                 for item in v:
-                    if "values" in item:
-                        if not _checkParsable(
-                            logger, filename, module_name, section, k, item["values"]
-                        ):
-                            result = False
+                    if "values" in item and not _checkParsable(
+                        logger, filename, module_name, section, k, item["values"]
+                    ):
+                        result = False
 
             if k == "no-auto-follow":
                 for m, d in v.items():
@@ -270,9 +269,10 @@ if you want no message.""" % (filename, module_name, section, k, m),
                     if not _checkParsable(logger, filename, module_name, section, k, d):
                         result = False
 
-            if k == "append_plain":
-                if not _checkParsable(logger, filename, module_name, section, k, v):
-                    result = False
+            if k == "append_plain" and not _checkParsable(
+                logger, filename, module_name, section, k, v
+            ):
+                result = False
 
             if k == "setup_code":
                 if type(v) is list:
@@ -385,16 +385,17 @@ def checkDataChecksums(file_data, data):
 
 
 def validateSchema(logger, name, data, assume_yes_for_downloads, reject_message):
-    if not getJsonschemaPackage(
+    jsonschema = getJsonschemaPackage(
         logger,
         assume_yes_for_downloads=assume_yes_for_downloads,
         reject_message=reject_message,
-    ):
-        logger.warning("Cannot validate schema due to lack of 'jsonschema' package.")
-        return
+    )
 
-    # pylint: disable=I0021,import-error
-    from jsonschema import validators
+    if jsonschema is None:
+        logger.warning(
+            "Cannot validate schema due to lack of usable 'jsonschema' package."
+        )
+        return
 
     schema_filename = getYamlPackageConfigurationSchemaFilename()
 
@@ -405,7 +406,7 @@ def validateSchema(logger, name, data, assume_yes_for_downloads, reject_message)
 
     schema = json.loads(getFileContents(schema_filename))
 
-    validator = validators.Draft202012Validator(schema=schema)
+    validator = jsonschema.validators.Draft202012Validator(schema=schema)
 
     error_messages = []
 
@@ -834,7 +835,6 @@ Error, 'include-config' of module '%s' cannot use 'when' or 'key-map' with non-d
             result = ()
 
         if section in (
-            "options",
             "variables",
             "constants",
         ) and type(
@@ -864,29 +864,42 @@ Error, 'include-config' of module '%s' cannot use 'when' or 'key-map' with non-d
     def items(self):
         return self.data.items()
 
-    def _mergeConfigSection(self, module_name, existing, new_value, section):
-        new_entries = new_value.pop(section, None)
+    @staticmethod
+    def _asSectionEntryList(entries):
+        if type(entries) in (dict, OrderedDict):
+            return [entries]
+        if type(entries) is list:
+            return list(entries)
+        return None
 
+    def _mergeConfigSection(self, module_name, existing, new_entries, section):
         if not new_entries:
             return
 
         existing_entries = existing.get(section, None)
 
         if existing_entries is None:
-            existing[section] = new_entries
-        elif type(existing_entries) is list and type(new_entries) is list:
-            existing_entries.extend(new_entries)
-        elif type(existing_entries) in (dict, OrderedDict) and type(new_entries) in (
-            dict,
-            OrderedDict,
-        ):
-            existing_entries.update(new_entries)
-        else:
-            return self.logger.sysexit(
-                """\
-Error, duplicate config for module name '%s' section '%s' with mismatching type encountered in '%s'."""
-                % (module_name, section, self.name)
+            existing[section] = (
+                list(new_entries) if type(new_entries) is list else new_entries
             )
+            return
+
+        if section in ("variables", "constants"):
+            existing_list = self._asSectionEntryList(existing_entries)
+            new_list = self._asSectionEntryList(new_entries)
+
+            if existing_list is not None and new_list is not None:
+                existing[section] = existing_list + new_list
+                return
+        elif type(existing_entries) is list and type(new_entries) is list:
+            existing[section] = existing_entries + new_entries
+            return
+
+        self.logger.sysexit(
+            """\
+Error, duplicate config for module name '%s' section '%s' with mismatching type encountered in '%s'."""
+            % (module_name, section, self.name)
+        )
 
     def update(self, other):
         # Merging of configurations is done for all sections, so that an entry
@@ -894,17 +907,31 @@ Error, duplicate config for module name '%s' section '%s' with mismatching type 
         # by a user file, rather than requiring the sections to be disjoint.
         for key, value in other.items():
             if key in self.data:
-                for section in tuple(value):
+                existing = OrderedDict(self.data[key])
+                self.data[key] = existing
+
+                for section, new_entries in value.items():
+                    self.checked_sections.discard((key, section))
                     self._mergeConfigSection(
                         module_name=key,
-                        existing=self.data[key],
-                        new_value=value,
+                        existing=existing,
+                        new_entries=new_entries,
                         section=section,
                     )
 
                 general.info("Merged configuration for '%s'." % key)
             else:
-                self.data[key] = value
+                self.data[key] = OrderedDict(
+                    (
+                        section,
+                        (
+                            list(section_entries)
+                            if type(section_entries) is list
+                            else section_entries
+                        ),
+                    )
+                    for section, section_entries in value.items()
+                )
 
     @classmethod
     def getYamlPackageConfiguration(
@@ -925,24 +952,37 @@ Error, duplicate config for module name '%s' section '%s' with mismatching type 
                 assume_yes_for_downloads=assume_yes_for_downloads,
                 check_checksums=check_checksums,
             )
+
             _package_config.update(
                 parsePackageYaml(
                     logger=logger,
                     package_name="nuitka.plugins.standard",
-                    filename="stdlib2.nuitka-package.config.yml",
+                    filename="stdlib.nuitka-package.config.yml",
                     assume_yes_for_downloads=assume_yes_for_downloads,
                     check_checksums=check_checksums,
                 )
             )
-            _package_config.update(
-                parsePackageYaml(
-                    logger=logger,
-                    package_name="nuitka.plugins.standard",
-                    filename="stdlib3.nuitka-package.config.yml",
-                    assume_yes_for_downloads=assume_yes_for_downloads,
-                    check_checksums=check_checksums,
+
+            if python_version < 0x300:
+                _package_config.update(
+                    parsePackageYaml(
+                        logger=logger,
+                        package_name="nuitka.plugins.standard",
+                        filename="stdlib2.nuitka-package.config.yml",
+                        assume_yes_for_downloads=assume_yes_for_downloads,
+                        check_checksums=check_checksums,
+                    )
                 )
-            )
+            else:
+                _package_config.update(
+                    parsePackageYaml(
+                        logger=logger,
+                        package_name="nuitka.plugins.standard",
+                        filename="stdlib3.nuitka-package.config.yml",
+                        assume_yes_for_downloads=assume_yes_for_downloads,
+                        check_checksums=check_checksums,
+                    )
+                )
 
             try:
                 _package_config.update(

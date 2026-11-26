@@ -51,20 +51,16 @@ def _clearSystemEnvironment(environment_variable_name):
 
 
 def _delEnv(environment_variable_name):
-    if environment_variable_name in _delayed_environment_updates:
-        del _delayed_environment_updates[environment_variable_name]
-
     if os is None:
-        if environment_variable_name in _environment_module.environ:
-            del _environment_module.environ[environment_variable_name]
+        _environment_module.environ.pop(environment_variable_name, None)
 
         _clearSystemEnvironment(environment_variable_name)
 
         _delayed_environment_updates[environment_variable_name] = None
         return
 
-    if environment_variable_name in os.environ:
-        del os.environ[environment_variable_name]
+    _delayed_environment_updates.pop(environment_variable_name, None)
+    os.environ.pop(environment_variable_name, None)
 
     _clearSystemEnvironment(environment_variable_name)
 
@@ -75,8 +71,7 @@ def _applyDelayedEnvironmentUpdates():
 
     for environment_variable_name, value in _delayed_environment_updates.items():
         if value is None:
-            if environment_variable_name in os.environ:
-                del os.environ[environment_variable_name]
+            os.environ.pop(environment_variable_name, None)
 
             _clearSystemEnvironment(environment_variable_name)
         else:
@@ -221,13 +216,6 @@ def main():
         # Does not return
         reExecuteNuitka(pgo_filename=None)
 
-    # We don't care about deprecations in any version, and these are triggered
-    # by run time calculations of "range" and others, while on python2.7 they
-    # are disabled by default.
-    import warnings
-
-    warnings.simplefilter("ignore", DeprecationWarning)
-
     # Hack, we need this to bootstrap and it's actually living in __main__
     # module of nuitka package and renamed to where we can get at easily for
     # other uses.
@@ -244,10 +232,14 @@ def main():
     Options.parseArgs()
 
     from nuitka.OutputDirectories import getSourceDirectoryPath
+    from nuitka.utils.FileOperations import (
+        getNormalizedPathJoin,
+        putTextFileContents,
+    )
 
     for binary_name, module_name, function_name in Options.getMainEntryPointSpecs():
         source_dir = getSourceDirectoryPath(onefile=False, create=True)
-        runner_filename = os.path.join(source_dir, binary_name + ".py")
+        runner_filename = getNormalizedPathJoin(source_dir, binary_name + ".py")
 
         code = """\
 import sys
@@ -259,8 +251,6 @@ if __name__ == "__main__":
             module_name,
             function_name,
         )
-
-        from nuitka.utils.FileOperations import putTextFileContents
 
         putTextFileContents(runner_filename, code)
 

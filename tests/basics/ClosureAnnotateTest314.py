@@ -117,10 +117,54 @@ def makeClosureNamedTuple():
     return NT
 
 
+class ClassNamespaceAnnotation:
+    ModuleLevel = str
+    annotation: ModuleLevel
+
+
+class MetaReturningNamespace(type):
+    def __new__(mcls, name, bases, namespace):
+        return namespace
+
+
+class NonTypeClassAnnotation(metaclass=MetaReturningNamespace):
+    class_level = 7
+    reference: class_level
+
+
+def makeClassesInLoop():
+    result = []
+
+    for _ in range(2):
+
+        class Inner:
+            annotation: ModuleLevel
+
+        result.append(Inner)
+
+    return result
+
+
+def callAnnotateForwardRef(annotate):
+    return annotationlib.call_annotate_function(
+        annotate,
+        annotationlib.Format.FORWARDREF,
+    )
+
+
 print("Function closure:", displayDict(makeFunctionAnnotation().__annotations__))
 print("Class closure:", displayDict(makeClassAnnotation().__annotations__))
 print("Method closure:", displayDict(makeMethodAnnotation().method.__annotations__))
 print("Module level:", displayDict(makeModuleLevelAnnotation().__annotations__))
+
+print(
+    "Class closure forwardref:",
+    displayDict(callAnnotateForwardRef(makeClassAnnotation().__annotate__)),
+)
+print(
+    "Method closure forwardref:",
+    displayDict(callAnnotateForwardRef(makeMethodAnnotation().method.__annotate__)),
+)
 
 type_parameter_class = makeTypeParameterClassAnnotation()
 type_parameter_function = makeTypeParameterFunctionAnnotation()
@@ -162,6 +206,59 @@ print(
 print(
     "Closure NamedTuple:",
     displayDict(closure_named_tuple.__annotations__),
+)
+
+print(
+    "Class namespace:",
+    displayDict(ClassNamespaceAnnotation.__annotations__),
+)
+
+loop_class_1, loop_class_2 = makeClassesInLoop()
+
+print(
+    "Class in loop:",
+    displayDict(loop_class_1.__annotations__),
+    displayDict(loop_class_2.__annotations__),
+)
+print(
+    "Non-type metaclass:",
+    displayDict(
+        annotationlib.call_annotate_function(
+            NonTypeClassAnnotation["__annotate_func__"], annotationlib.Format.VALUE
+        )
+    ),
+)
+
+
+def makeShadowedBuiltinsAndFStringAnnotation():
+    vars = complex
+    dir = bytearray
+    str = set
+    format = dict
+    ascii = frozenset
+    mapping = {"tag": "ok"}
+    num = 7
+    non_ascii = "\xe9"
+
+    def inner(
+        a: vars,
+        b: dir,
+        c: str,
+        d: format,
+        e: ascii,
+        f_multi: f"v={num!s}/{non_ascii!a}",
+        f_single: f"{num}",
+        f_ascii: f"{non_ascii!a}",
+        attr_val: mapping.get("tag"),
+    ):
+        return (a, b, c, d, e, f_multi, f_single, f_ascii, attr_val)
+
+    return inner
+
+
+print(
+    "Closure shadowed builtins and f-strings:",
+    displayDict(makeShadowedBuiltinsAndFStringAnnotation().__annotations__),
 )
 
 #     Python tests originally created or extracted from other peoples work. The

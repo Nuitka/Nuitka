@@ -1,18 +1,13 @@
 #     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
+"""Plugin loading, activation, and hook dispatching.
+
+Plugin author documentation and hook contracts live on 'NuitkaPluginBase' in
+'PluginBase'.
 """
 
-Plugins: Welcome to Nuitka! This is your shortest way to become part of it.
-
-This is to provide the base class for all plugins. Some of which are part of
-proper Nuitka, and some of which are waiting to be created and submitted for
-inclusion by you.
-
-The base class in PluginBase will serve as documentation of available.
-
-"""
-
+import fnmatch
 import inspect
 import os
 import sys
@@ -23,6 +18,7 @@ from optparse import OptionConflictError
 import nuitka.plugins.Hooks
 from nuitka.__past__ import basestring, iter_modules
 from nuitka.build.DataComposerInterface import deriveModuleConstantsBlobName
+from nuitka.containers.Decisions import makeDecisionClass
 from nuitka.containers.Namedtuples import makeNamedtupleClass
 from nuitka.containers.OrderedDicts import OrderedDict
 from nuitka.containers.OrderedSets import OrderedSet
@@ -89,6 +85,7 @@ active_plugins_with_decide_compilation = []
 active_plugins_with_decide_annotations = []
 active_plugins_with_decide_doc_strings = []
 active_plugins_with_decide_assertions = []
+active_plugins_with_decide_needs_frame_locals_proxy = []
 active_plugins_with_function_body_parsing = []
 active_plugins_with_class_body_parsing = []
 active_plugins_with_variable_constant_value = []
@@ -106,6 +103,7 @@ fake_modules = {}
 has_active_gui_toolkit_plugin = False
 
 FakeModuleInfo = makeNamedtupleClass("FakeModuleInfo", ("module", "plugin", "reason"))
+MissingDLLDecision = makeDecisionClass("MissingDLLDecision")
 
 
 @contextmanager
@@ -139,7 +137,7 @@ def _addActivePlugin(plugin_class, args, force=False):
 
     # No duplicates please.
     if not force:
-        assert plugin_name not in active_plugins.keys(), (
+        assert plugin_name not in active_plugins, (
             plugin_name,
             active_plugins[plugin_name],
         )
@@ -165,6 +163,10 @@ def _addActivePlugin(plugin_class, args, force=False):
         ("decideAnnotations", active_plugins_with_decide_annotations),
         ("decideDocStrings", active_plugins_with_decide_doc_strings),
         ("decideAssertions", active_plugins_with_decide_assertions),
+        (
+            "decideNeedsFrameLocalsProxy",
+            active_plugins_with_decide_needs_frame_locals_proxy,
+        ),
         ("onFunctionBodyParsing", active_plugins_with_function_body_parsing),
         ("onClassBodyParsing", active_plugins_with_class_body_parsing),
         ("getVariableConstantValue", active_plugins_with_variable_constant_value),
@@ -193,22 +195,73 @@ def _addActivePlugin(plugin_class, args, force=False):
             # Set if matching, set to False only if not matching and not already set.
             if is_matching:
                 control_tags[tag_name] = True
-            elif is_matching not in control_tags:
+            elif tag_name not in control_tags:
                 control_tags[tag_name] = False
 
     control_tags.update(plugin_instance.getEvaluationConditionControlTags())
 
 
-def redactCommandLineArg(arg):
-    """Redact the value of sensitive command line options.
+def _getFullLongOptionName(option_name):
+    """Get the full long option name for an abbreviation.
 
     Args:
-        arg: Command line argument to potentially redact.
+        option_name: abbreviated long option name.
 
     Returns:
-        The argument, with value redacted if sensitive.
+        The full option name, or None if not unique.
     """
-    return Plugins.redactCommandLineArg(arg)
+    # Cyclic dependency on options during parsing.
+    from nuitka.options.OptionParsing import parser
+
+    parser_long_options = parser._long_opt  # pylint: disable=protected-access
+
+    if option_name in parser_long_options:
+        return option_name
+
+    matching_option_names = [
+        full_option_name
+        for full_option_name in parser_long_options
+        if fnmatch.fnmatchcase(full_option_name, option_name + "*")
+    ]
+
+    if len(matching_option_names) == 1:
+        return matching_option_names[0]
+
+    return None
+
+
+def _getPluginSortKey(plugin):
+    return plugin.plugin_priority
+
+
+def _sortActivePlugins():
+    """Sort active plugins by their requested callback priority.
+
+    Notes:
+        This is a stable sort, so plugins with equal priority keep their
+        previous order, i.e. standard plugins remain sorted by name, and
+        user plugins remain last. Higher priorities are called later.
+    """
+    for plugin_list in (
+        active_plugins_with_implicit_imports,
+        active_plugins_with_create_virtual_module,
+        active_plugins_with_decide_compilation,
+        active_plugins_with_decide_annotations,
+        active_plugins_with_decide_doc_strings,
+        active_plugins_with_decide_assertions,
+        active_plugins_with_decide_needs_frame_locals_proxy,
+        active_plugins_with_function_body_parsing,
+        active_plugins_with_class_body_parsing,
+        active_plugins_with_variable_constant_value,
+    ):
+        plugin_list.sort(key=_getPluginSortKey)
+
+    active_plugins_sorted = sorted(
+        active_plugins.items(), key=lambda item: _getPluginSortKey(item[1])
+    )
+
+    active_plugins.clear()
+    active_plugins.update(active_plugins_sorted)
 
 
 def getActivePlugins():
@@ -222,12 +275,59 @@ def getActivePlugins():
     return active_plugins.values()
 
 
+def getContainerNamesAvailable():
+    """Get container files announced by active plugins.
+
+    Returns:
+        dict of container name to plugin offering it
+
+    """
+    result = {}
+
+    for plugin in getActivePlugins():
+        for container_name in plugin.getContainerNamesAvailable():
+            result[container_name] = plugin
+
+    return result
+
+
+def getContainerFileContents(container_name):
+    """Ask the providing plugin for a container file's contents.
+
+    Args:
+        container_name: name of the container to create the file for
+
+    Returns:
+        str or None, contents of the container file
+
+    """
+    plugin = getContainerNamesAvailable().get(container_name, None)
+
+    if plugin is None:
+        return None
+
+    return plugin.getContainerFileContents(container_name)
+
+
+def onContainerSelection(container_name):
+    """Notify active plugins about the container that was selected.
+
+    Args:
+        container_name: name of the container to be used
+
+    Returns:
+        None
+
+    """
+    for plugin in getActivePlugins():
+        plugin.onContainerSelection(container_name)
+
+
 def getActiveQtPlugin():
     """Get active Qt plugin name."""
     for plugin_name in getQtPluginNames():
         if hasActivePlugin(plugin_name):
-            if hasActivePlugin(plugin_name):
-                return plugin_name
+            return plugin_name
 
     return None
 
@@ -712,13 +812,7 @@ through implicit import by '%s' plugin encountered."""
     @classmethod
     @counted_plugin_method
     def considerImplicitImports(cls, module):
-        """Let plugins add implicit imports for a module.
-
-        Args:
-            module: module object
-        Returns:
-            iterable of module names
-        """
+        """Add plugin-provided implicit imports and trigger/fake dependencies for 'module'."""
 
         for plugin in active_plugins_with_implicit_imports:
             key = (module.getFullName(), plugin)
@@ -864,7 +958,6 @@ through implicit import by '%s' plugin encountered."""
 
         result = []
 
-        # TODO: This is probably something generic that only different
         def _iterateExtraBinaries(plugin, value):
             if value is None:
                 pass
@@ -905,26 +998,45 @@ through implicit import by '%s' plugin encountered."""
 
         return result
 
-    _uncompiled_decorator_names = None
+    _jit_decorator_registrations = None
 
     @classmethod
     @counted_plugin_method
-    def getUncompiledDecoratorNames(cls):
-        """Provide a list of decorators that should cause a function to be uncompiled.
+    def getJITDecoratorRegistrations(cls):
+        """Provide JIT decorator handling registrations.
 
         Returns:
-            set of strings
+            dict of decorator name to tuple of (mode, callback, plugin) tuples
         """
 
-        if cls._uncompiled_decorator_names is None:
-            cls._uncompiled_decorator_names = set()
+        result = cls._jit_decorator_registrations
+
+        if result is None:
+            result = OrderedDict()
 
             for plugin in getActivePlugins():
-                for decorator_name in plugin.getUncompiledDecoratorNames():
+                for decorator_name, action in plugin.getJITDecoratorRegistrations():
                     assert type(decorator_name) is str, decorator_name
-                    cls._uncompiled_decorator_names.add(decorator_name)
 
-        return cls._uncompiled_decorator_names
+                    if type(action) is str:
+                        mode = action
+                        callback = None
+                    else:
+                        assert type(action) is tuple and len(action) == 2, action
+                        mode, callback = action
+
+                    assert mode in ("bytecode", "callback"), mode
+
+                    if mode == "callback":
+                        assert callback is not None and callable(callback), callback
+
+                    result.setdefault(decorator_name, []).append(
+                        (mode, callback, plugin)
+                    )
+
+            cls._jit_decorator_registrations = result
+
+        return result
 
     sys_path_additions_cache = {}
 
@@ -981,14 +1093,7 @@ through implicit import by '%s' plugin encountered."""
 
     @staticmethod
     def considerDataFiles(module):
-        """For a given module, ask plugins for any needed data files it may require.
-
-        Args:
-            module: module object
-        Yields:
-            Data file description pairs, either (source, dest) or (func, dest)
-            where the func will be called to create the content dynamically.
-        """
+        """Yield 'IncludedDataFile' instances required by active plugins for 'module'."""
 
         def _iterateIncludedDataFiles(plugin, value):
             if value is None:
@@ -1077,8 +1182,13 @@ through implicit import by '%s' plugin encountered."""
                 % (module_name, e)
             )
 
-        if trigger_module.getCompilationMode() == "bytecode":
+        if (
+            trigger_module.isCompiledPythonModule()
+            and trigger_module.getCompilationMode() == "bytecode"
+        ):
             trigger_module.setSourceCode(code)
+
+        trigger_module.markAsInternalModule()
 
         return trigger_module
 
@@ -1239,7 +1349,10 @@ through implicit import by '%s' plugin encountered."""
                     hide_syntax_error=False,
                 )
 
-                if fake_module.getCompilationMode() == "bytecode":
+                if (
+                    fake_module.isCompiledPythonModule()
+                    and fake_module.getCompilationMode() == "bytecode"
+                ):
                     fake_module.setSourceCode(fake_module_description.source_code)
 
                 fake_modules[full_name].append(
@@ -1250,7 +1363,6 @@ through implicit import by '%s' plugin encountered."""
                     )
                 )
 
-                # Main modules do not get added to the import cache, but plugins get to see it.
                 cls.onModuleDiscovered(fake_module)
 
     @staticmethod
@@ -1310,22 +1422,26 @@ through implicit import by '%s' plugin encountered."""
                     "Error, onModuleEncounter code failed to return a None or tuple(bool, reason) result."
                 )
 
-            if result is not None:
-                if result[0] != must_recurse[0]:
-                    plugin.sysexit(
-                        """\
+            if result is None:
+                deciding_plugins.append(plugin)
+                result = must_recurse
+                continue
+
+            if result[0] != must_recurse[0]:
+                return plugin.sysexit(
+                    """\
 Error, follow decision '%s' for module '%s' of plugin '%s' does not match other plugin '%s' decision '%s'."""
-                        % (
-                            must_recurse[0],
-                            module_name,
-                            plugin.plugin_name,
-                            ".".join(
-                                deciding_plugin.plugin_name
-                                for deciding_plugin in deciding_plugins
-                            ),
-                            result[0],
-                        )
+                    % (
+                        must_recurse[0],
+                        module_name,
+                        plugin.plugin_name,
+                        ".".join(
+                            deciding_plugin.plugin_name
+                            for deciding_plugin in deciding_plugins
+                        ),
+                        result[0],
                     )
+                )
 
             deciding_plugins.append(plugin)
             result = must_recurse
@@ -1532,19 +1648,7 @@ through incomplete set import by '%s' plugin encountered."""
     @staticmethod
     @counted_plugin_method
     def suppressUnknownImportWarning(importing, source_ref, module_name):
-        """Let plugins decide whether to suppress import warnings for an unknown module.
-
-        Notes:
-            If all plugins return False or None, the return will be False, else True.
-        Args:
-            importing: the module which is importing "module_name"
-            source_ref: pointer to file source code or bytecode
-            module_name: the module to be imported
-        returns:
-            True or False (default)
-        """
-        source_ref = importing.getSourceReference()
-
+        """Return True if any active plugin suppresses the unknown-import warning."""
         for plugin in getActivePlugins():
             if plugin.suppressUnknownImportWarning(importing, module_name, source_ref):
                 return True
@@ -1566,15 +1670,7 @@ through incomplete set import by '%s' plugin encountered."""
     @classmethod
     @counted_plugin_method
     def decideCompilation(cls, module_name):
-        """Let plugins decide whether to C compile a module or include as bytecode.
-
-        Notes:
-            The decision is made by plugins answering, with collision checks
-            if multiple plugins provide conflicting decisions.
-
-        Returns:
-            "compiled" (default) or "bytecode".
-        """
+        """Return plugin compilation mode decision ('compiled', 'bytecode', or None)."""
         return cls._decideWithoutDisagreement(
             method_name="decideCompilation",
             call_per_plugin=lambda plugin: plugin.decideCompilation(module_name),
@@ -1608,8 +1704,12 @@ through incomplete set import by '%s' plugin encountered."""
                     assert value in ("yes", "no", "never"), value
 
                     if value == "never":
+                        # A "never" decision cannot be overridden, not even by
+                        # " --prefer-source-code" or " --recompile-extension-modules".
                         result = False, plugin_reason
-                        break
+                        Plugins.recompile_extension_modules_cache[module_name] = result
+
+                        return result
                     if value == "yes":
                         result = True, plugin_reason
                     elif value == "no" and result is None:
@@ -1626,7 +1726,7 @@ through incomplete set import by '%s' plugin encountered."""
 
         return result
 
-    preprocessor_symbols = None
+    preprocessor_symbols = {}
 
     @classmethod
     @counted_plugin_method
@@ -1644,38 +1744,26 @@ through incomplete set import by '%s' plugin encountered."""
 
         # spell-checker: ignore -Dkey
 
-        if cls.preprocessor_symbols is None:
-            cls.preprocessor_symbols = OrderedDict()
+        if onefile not in cls.preprocessor_symbols:
+            symbols = {}
 
             for plugin in getActivePlugins():
                 value = plugin.getPreprocessorSymbols(onefile=onefile)
 
                 if value is not None:
                     assert type(value) is dict, value
+                    symbols.update(value)
 
-                    # We order per plugin, but from the plugins, lets just take a dict
-                    # and achieve determinism by ordering the defines by name.
-                    for key, value in sorted(value.items()):
-                        # False alarm, pylint: disable=I0021,unsupported-assignment-operation
-                        cls.preprocessor_symbols[key] = value
+            cls.preprocessor_symbols[onefile] = OrderedDict(sorted(symbols.items()))
 
-        return cls.preprocessor_symbols
+        return cls.preprocessor_symbols[onefile]
 
     build_definitions = None
 
     @classmethod
     @counted_plugin_method
     def getBuildDefinitions(cls):
-        """Let plugins provide C source defines to be used in compilation.
-
-        Notes:
-            The plugins can each contribute, but are hopefully using
-            a namespace for their defines. Only specific code sees these
-            if it chooses to include "build_definitions.h" file.
-
-        Returns:
-            OrderedDict() with keys and values."
-        """
+        """Return 'OrderedDict' of C header defines for 'build_definitions.h' from active plugins."""
 
         if cls.build_definitions is None:
             cls.build_definitions = OrderedDict()
@@ -1688,9 +1776,9 @@ through incomplete set import by '%s' plugin encountered."""
 
                     # We order per plugin, but from the plugins themselves, lets just assume
                     # unordered dict and achieve determinism by ordering the defines by name.
-                    for key, value in sorted(value.items()):
+                    for key, definition in sorted(value.items()):
                         # False alarm, pylint: disable=I0021,unsupported-assignment-operation
-                        cls.build_definitions[key] = value
+                        cls.build_definitions[key] = definition
 
         return cls.build_definitions
 
@@ -1699,22 +1787,15 @@ through incomplete set import by '%s' plugin encountered."""
     @classmethod
     @counted_plugin_method
     def getExtraIncludeDirectories(cls):
-        """Let plugins extra directories to use for C includes in compilation.
-
-        Notes:
-            The plugins can each contribute, but are hopefully not colliding,
-            order will be plugin order.
-
-        Returns:
-            tuple of paths to include as well.
-        """
+        """Return tuple of extra C include directories from active plugins."""
         if cls.extra_include_directories is None:
             cls.extra_include_directories = OrderedSet()
 
             for plugin in getActivePlugins():
                 value = plugin.getExtraIncludeDirectories()
 
-                if value:
+                if value is not None:
+                    assert not isinstance(value, (set, frozenset)), (plugin, value)
                     cls.extra_include_directories.update(value)
 
         return tuple(cls.extra_include_directories)
@@ -1743,7 +1824,7 @@ through incomplete set import by '%s' plugin encountered."""
 
                 # We order per plugin, but from the plugins, lets just take a dict
                 # and achieve determinism by ordering the files by name.
-                for key, value in sorted(value.items()):
+                for key, source_code in sorted(value.items()):
                     if (for_onefile and "onefile_" not in key) or (
                         not for_onefile and "onefile_" in key
                     ):
@@ -1753,7 +1834,7 @@ through incomplete set import by '%s' plugin encountered."""
                         key = "plugin." + plugin.plugin_name + "." + key
 
                     assert key not in result, key
-                    result[key] = value
+                    result[key] = source_code
 
         return result
 
@@ -1793,6 +1874,8 @@ through incomplete set import by '%s' plugin encountered."""
                 value = plugin.getExtraLinkLibraries()
 
                 if value is not None:
+                    assert not isinstance(value, (set, frozenset)), (plugin, value)
+
                     if isinstance(value, basestring):
                         cls.extra_link_libraries.add(os.path.normcase(value))
                     else:
@@ -1813,6 +1896,8 @@ through incomplete set import by '%s' plugin encountered."""
                 value = plugin.getExtraLinkDirectories()
 
                 if value is not None:
+                    assert not isinstance(value, (set, frozenset)), (plugin, value)
+
                     if isinstance(value, basestring):
                         cls.extra_link_directories.add(value)
                     else:
@@ -2024,7 +2109,7 @@ through incomplete set import by '%s' plugin encountered."""
     decide_doc_strings_cache = {}
 
     @classmethod
-    def decideDocStrings(cls, module_name):
+    def _decideDocStringsByName(cls, module_name):
         if module_name not in cls.decide_doc_strings_cache:
             cls.decide_doc_strings_cache[module_name] = cls._decideWithoutDisagreement(
                 call_per_plugin=lambda plugin: plugin.decideDocStrings(module_name),
@@ -2037,6 +2122,35 @@ through incomplete set import by '%s' plugin encountered."""
             )
 
         return cls.decide_doc_strings_cache[module_name]
+
+    @classmethod
+    def decideDocStrings(cls, module):
+        """Decide whether to keep docstrings for a module.
+
+        Notes:
+            This requires the module object, since the module is not present
+            in the registry yet while its tree is being built.
+        """
+        if module.isStandardLibraryModule():
+            return False
+
+        return cls._decideDocStringsByName(module.getFullName())
+
+    @classmethod
+    def decideDocStringsForModuleName(cls, module_name):
+        """Decide docstrings when only the module name is available.
+
+        Notes:
+            This is for configuration condition evaluation, where no module
+            object exists yet. Use a module found in the registry when
+            possible, otherwise fall back to the name-only plugin decision.
+        """
+        module = getModuleByName(module_name)
+
+        if module is not None:
+            return cls.decideDocStrings(module)
+
+        return cls._decideDocStringsByName(module_name)
 
     decide_assertions_cache = {}
 
@@ -2054,6 +2168,29 @@ through incomplete set import by '%s' plugin encountered."""
             )
 
         return cls.decide_assertions_cache[module_name]
+
+    decide_needs_frame_locals_proxy_cache = {}
+
+    @classmethod
+    def decideNeedsFrameLocalsProxy(cls, module_name, code_qualname):
+        cache_key = (module_name, code_qualname)
+
+        if cache_key not in cls.decide_needs_frame_locals_proxy_cache:
+            cls.decide_needs_frame_locals_proxy_cache[cache_key] = (
+                cls._decideWithoutDisagreement(
+                    call_per_plugin=lambda plugin: plugin.decideNeedsFrameLocalsProxy(
+                        module_name, code_qualname
+                    ),
+                    legal_values=(None, True, False),
+                    abstain_values=(None,),
+                    method_name="decideNeedsFrameLocalsProxy",
+                    default_value=False,
+                    plugins_list=active_plugins_with_decide_needs_frame_locals_proxy,
+                    registered_values=None,
+                )
+            )
+
+        return cls.decide_needs_frame_locals_proxy_cache[cache_key]
 
     @classmethod
     @counted_plugin_method
@@ -2077,7 +2214,7 @@ through incomplete set import by '%s' plugin encountered."""
                 plugin_name = plugin.plugin_name
 
             elif value is False:
-                if result is False:
+                if result is True:
                     return plugin.sysexit(
                         "Error, conflicting allow/disallow outside dependencies of plug-in '%s'."
                         % plugin_name
@@ -2096,12 +2233,18 @@ through incomplete set import by '%s' plugin encountered."""
     @classmethod
     @counted_plugin_method
     def isAcceptableMissingDLL(cls, package_name, filename):
+        """Get the aggregated plug-in decision for a missing DLL.
+
+        Returns:
+            MissingDLLDecision: Tri-state 'decision' (True, False, or None) and
+            a 'reason' explaining it, e.g. the deciding plug-in.
+        """
         dll_basename = getDllBasename(os.path.basename(filename))
 
         # Not a DLL filename, then it cannot be true, but it's kind of strange
         # to get asked.
         if dll_basename is None:
-            return None, None
+            return MissingDLLDecision.decideAbstain("not a DLL filename")
 
         result = None
         plugin_name = None
@@ -2122,7 +2265,7 @@ through incomplete set import by '%s' plugin encountered."""
                 plugin_name = plugin.plugin_name
 
             elif value is False:
-                if result is False:
+                if result is True:
                     return plugin.sysexit(
                         "Error, conflicting accept/reject missing DLLs of plug-in '%s'."
                         % plugin_name
@@ -2136,19 +2279,31 @@ through incomplete set import by '%s' plugin encountered."""
                     % value
                 )
 
-        return result, plugin_name
+        if result is True:
+            decision = MissingDLLDecision.decideYes(
+                "accepted by plug-in '%s'" % plugin_name
+            )
+        elif result is False:
+            decision = MissingDLLDecision.decideNo(
+                "rejected by plug-in '%s'" % plugin_name
+            )
+        else:
+            decision = MissingDLLDecision.decideAbstain()
+
+        return decision
 
     @staticmethod
     def getReportRedactedOptions():
-        """Return option prefixes with values to redact in reports and output.
+        """Return option name patterns with values to redact in reports and output.
 
         Returns:
-            Tuple of option name prefixes.
+            Tuple of option name patterns.
         """
         # Load plugin classes, to know what we are talking about.
         loadPlugins()
 
-        result = set()
+        # Options with sensitive values, by their name patterns.
+        result = set(("*-password*", "*-salt*", "*-secret*"))
 
         for plugin_classes in plugin_name2plugin_classes.values():
             result.update(plugin_classes[0].getReportRedactedOptions())
@@ -2156,7 +2311,7 @@ through incomplete set import by '%s' plugin encountered."""
         for plugin_class in user_plugins:
             result.update(plugin_class.getReportRedactedOptions())
 
-        return tuple(sorted(result))
+        return tuple(sorted(option_pattern.rstrip("=") for option_pattern in result))
 
     @staticmethod
     def redactCommandLineArg(arg):
@@ -2168,10 +2323,19 @@ through incomplete set import by '%s' plugin encountered."""
         Returns:
             The argument, with value redacted if sensitive.
         """
-        redacted_option_prefixes = Plugins.getReportRedactedOptions()
+        redacted_options_patterns = Plugins.getReportRedactedOptions()
 
-        if redacted_option_prefixes and arg.startswith(redacted_option_prefixes):
-            arg = arg.split("=", 1)[0] + "=REDACTED"
+        if redacted_options_patterns and arg.startswith("--") and "=" in arg:
+            option_name = arg.split("=", 1)[0]
+            full_option_name = _getFullLongOptionName(option_name)
+
+            for redacted_option_pattern in redacted_options_patterns:
+                if fnmatch.fnmatchcase(option_name, redacted_option_pattern) or (
+                    full_option_name is not None
+                    and fnmatch.fnmatchcase(full_option_name, redacted_option_pattern)
+                ):
+                    arg = option_name + "=REDACTED"
+                    break
 
         return arg
 
@@ -2225,7 +2389,7 @@ def listPlugins():
 
 
 def isObjectAUserPluginBaseClass(obj):
-    """Verify that a user plugin inherits from UserPluginBase."""
+    """Return whether 'obj' is a concrete 'NuitkaPluginBase' subclass."""
     try:
         return (
             obj is not NuitkaPluginBase
@@ -2238,14 +2402,11 @@ def isObjectAUserPluginBaseClass(obj):
 
 
 def loadUserPlugin(plugin_filename):
-    """Load of a user plugins and store them in list of active plugins.
+    """Import a user plugin script and return its 'NuitkaPluginBase' subclass.
 
     Notes:
-        A plugin is accepted only if it has a non-empty variable plugin_name, which
-        does not equal that of a disabled (standard) plugin.
-        Supports plugin option specifications.
-    Returns:
-        None
+        Requires a non-empty 'plugin_name' attribute that is not in the
+        disabled plugins list. Does not instantiate or activate the plugin.
     """
     if not os.path.exists(plugin_filename):
         return plugins_logger.sysexit("Error, cannot find '%s'." % plugin_filename)
@@ -2278,27 +2439,13 @@ _loaded_plugins = False
 
 
 def loadPlugins():
-    """Initialize plugin class
-
-    Notes:
-        Load user plugins provided as Python script file names, and standard
-        plugins via their class attribute 'plugin_name'.
-
-        Several checks are made, see the loader functions.
-
-        User plugins are enabled as a first step, because they themselves may
-        enable standard plugins.
-
-    Returns:
-        None
-    """
+    """Load standard plugin classes once."""
 
     # Singleton, called potentially multiple times, pylint: disable=global-statement
     global _loaded_plugins
     if not _loaded_plugins:
         _loaded_plugins = True
 
-        # now enable standard plugins
         loadStandardPluginClasses()
 
 
@@ -2320,12 +2467,11 @@ def addStandardPluginCommandLineOptions(parser, plugin_help_mode):
         plugin_name2plugin_classes.items(), key=_keyPluginForSort2
     ):
         if plugin_class.isAlwaysEnabled():
-            if not plugin_help_mode or not plugin_class.hasCategory("package-support"):
-                _addPluginCommandLineOptions(
-                    parser=parser,
-                    plugin_class=plugin_class,
-                    plugin_help_mode=plugin_help_mode,
-                )
+            _addPluginCommandLineOptions(
+                parser=parser,
+                plugin_class=plugin_class,
+                plugin_help_mode=plugin_help_mode,
+            )
         else:
             if plugin_help_mode:
                 _addPluginCommandLineOptions(
@@ -2336,21 +2482,7 @@ def addStandardPluginCommandLineOptions(parser, plugin_help_mode):
 
 
 def activatePlugins():
-    """Activate selected plugin classes
-
-    Args:
-        None
-
-    Notes:
-        This creates actual plugin instances, before only class objects were
-        used.
-
-        User plugins are activated as a first step, because they themselves may
-        enable standard plugins.
-
-    Returns:
-        None
-    """
+    """Instantiate and register enabled standard, user, and detector plugins."""
     # Many cases, often with UI related decisions, pylint: disable=too-many-branches
 
     loadPlugins()
@@ -2410,6 +2542,8 @@ def activatePlugins():
         ):
             _addActivePlugin(plugin_detector, args=False)
 
+    _sortActivePlugins()
+
 
 def _addPluginCommandLineOptions(parser, plugin_class, plugin_help_mode):
     plugin_name = plugin_class.plugin_name
@@ -2440,12 +2574,17 @@ def _addPluginCommandLineOptions(parser, plugin_class, plugin_help_mode):
                     # no public interface for that, pylint: disable=protected-access
                     if (
                         e.option_id in other_plugin_option._long_opts
-                        or other_plugin_option._short_opts
+                        or e.option_id in other_plugin_option._short_opts
                     ):
                         return plugins_logger.sysexit(
-                            "Plugin '%s' failed to add options due to conflict with '%s' from plugin '%s."
+                            "Plugin '%s' failed to add options due to conflict with '%s' from plugin '%s'."
                             % (plugin_name, e.option_id, other_plugin_name)
                         )
+
+            return plugins_logger.sysexit(
+                "Plugin '%s' failed to add options due to conflict with '%s'."
+                % (plugin_name, e.option_id)
+            )
 
         if option_group.option_list:
             parser.add_option_group(option_group)
@@ -2518,12 +2657,11 @@ def getPluginOptions(plugin_name):
 
         arg_value = getattr(getUserOptions(), option.dest)
 
-        if "[REQUIRED]" in option.help:
-            if not arg_value:
-                return plugins_logger.sysexit(
-                    "Error, required plugin argument '%s' of Nuitka plugin '%s' not given."
-                    % (option_name, plugin_name)
-                )
+        if "[REQUIRED]" in option.help and not arg_value:
+            return plugins_logger.sysexit(
+                "Error, required plugin argument '%s' of Nuitka plugin '%s' not given."
+                % (option_name, plugin_name)
+            )
 
         result[option.dest] = arg_value
 
@@ -2531,7 +2669,7 @@ def getPluginOptions(plugin_name):
 
 
 def replaceTriggerModule(old, new):
-    """Replace a trigger module with another form if it. For use in bytecode demotion."""
+    """Replace a trigger module with another form of it. For use in bytecode demotion."""
 
     found = None
     for key, value in pre_modules.items():
@@ -2555,6 +2693,28 @@ def replaceTriggerModule(old, new):
 def isTriggerModule(module):
     """Decide of a module is a trigger module."""
     return module in pre_modules.values() or module in post_modules.values()
+
+
+def replaceFakeModule(old, new):
+    """Replace a fake module with another form of it. For use in bytecode demotion."""
+
+    for fake_module_infos in fake_modules.values():
+        for count, fake_module_info in enumerate(fake_module_infos):
+            if fake_module_info.module is old:
+                fake_module_infos[count] = FakeModuleInfo(
+                    module=new,
+                    plugin=fake_module_info.plugin,
+                    reason=fake_module_info.reason,
+                )
+
+
+def isFakeModule(module):
+    """Decide if a module is a plugin provided fake module."""
+    return any(
+        fake_module_info.module is module
+        for fake_module_infos in fake_modules.values()
+        for fake_module_info in fake_module_infos
+    )
 
 
 # TODO: Make this a dedicated thing generally.

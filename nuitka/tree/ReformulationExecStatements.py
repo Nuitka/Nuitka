@@ -1,12 +1,7 @@
 #     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-"""Reformulation of "exec" statements
-
-Consult the Developer Manual for information. TODO: Add ability to sync
-source code comments with Developer Manual sections.
-
-"""
+"""Reformulation of 'exec' statements."""
 
 from nuitka.nodes.BuiltinRefNodes import ExpressionBuiltinExceptionRef
 from nuitka.nodes.ComparisonNodes import ExpressionComparisonIs
@@ -40,13 +35,17 @@ from .TreeHelpers import (
 
 
 def wrapEvalGlobalsAndLocals(
-    provider, locals_scope, globals_node, locals_node, temp_scope, source_ref
+    provider,
+    locals_scope,
+    source_node,
+    globals_node,
+    locals_node,
+    temp_scope,
+    source_ref,
 ):
-    """Wrap the locals and globals arguments for "eval".
-
-    This is called from the outside, and when the node tree
-    already exists.
-    """
+    source_keeper_variable = provider.allocateTempVariable(
+        temp_scope=temp_scope, name="source", temp_type="object", late=True
+    )
 
     globals_keeper_variable = provider.allocateTempVariable(
         temp_scope=temp_scope, name="globals", temp_type="object", late=True
@@ -76,11 +75,14 @@ def wrapEvalGlobalsAndLocals(
         )
 
     post_statements += makeStatementsReleaseVariables(
-        variables=(globals_keeper_variable, locals_keeper_variable),
+        variables=(
+            globals_keeper_variable,
+            locals_keeper_variable,
+            source_keeper_variable,
+        ),
         source_ref=source_ref,
     )
 
-    # The locals default is dependent on exec_mode, globals or locals.
     locals_default = ExpressionConditional(
         condition=ExpressionComparisonIs(
             left=ExpressionTempVariableRef(
@@ -99,7 +101,9 @@ def wrapEvalGlobalsAndLocals(
     )
 
     pre_statements = [
-        # First assign globals and locals temporary the values given.
+        makeStatementAssignmentVariable(
+            variable=source_keeper_variable, source=source_node, source_ref=source_ref
+        ),
         makeStatementAssignmentVariable(
             variable=globals_keeper_variable, source=globals_node, source_ref=source_ref
         ),
@@ -141,6 +145,7 @@ def wrapEvalGlobalsAndLocals(
     ]
 
     return (
+        source_keeper_variable,
         ExpressionTempVariableRef(
             variable=globals_keeper_variable,
             source_ref=(
@@ -161,12 +166,7 @@ def wrapEvalGlobalsAndLocals(
 
 
 def buildExecNode(provider, node, source_ref):
-    # "exec" statements, should only occur with Python2.
-
-    # This is using many variables, due to the many details this is
-    # dealing with. The locals and globals need to be dealt with in
-    # temporary variables, and we need handling of indicators, so
-    # that is just the complexity, pylint: disable=too-many-locals
+    # pylint: disable=too-many-locals
 
     exec_globals = node.globals
     exec_locals = node.locals
@@ -228,14 +228,9 @@ exec: arg 1 must be a string, file, or code object""",
     )
 
     tried = (
-        # First evaluate the source code expressions.
         makeStatementAssignmentVariable(
             variable=source_variable, source=source_code, source_ref=source_ref
         ),
-        # Assign globals and locals temporary the values given, then fix it
-        # up, taking note in the "plain" temporary variable, if it was an
-        # "exec" statement with None arguments, in which case the copy back
-        # will be necessary.
         makeStatementAssignmentVariable(
             variable=globals_keeper_variable,
             source=globals_value,

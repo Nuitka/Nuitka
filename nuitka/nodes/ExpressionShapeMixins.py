@@ -9,17 +9,20 @@ are automatically implemented.
 
 from abc import abstractmethod
 
+from nuitka.__past__ import sentinel
 from nuitka.Constants import (
     the_empty_bytearray,
     the_empty_dict,
     the_empty_frozendict,
     the_empty_frozenset,
     the_empty_list,
+    the_empty_sentinel,
     the_empty_set,
     the_empty_slice,
     the_empty_tuple,
     the_empty_unicode,
 )
+from nuitka.PythonVersions import python_version
 
 from .NodeMakingHelpers import (
     makeConstantReplacementNode,
@@ -40,6 +43,7 @@ from .shapes.BuiltinTypeShapes import (
     tshape_list,
     tshape_long,
     tshape_none,
+    tshape_sentinel,
     tshape_set,
     tshape_slice,
     tshape_str,
@@ -54,12 +58,7 @@ from .shapes.BuiltinTypeShapes import (
 
 
 class ExpressionSpecificDerivedMixinBase(object):
-    """Mixin that provides all shapes exactly false overloads.
-
-    This is to be used as a base class for specific or derived shape
-    mixins, such that they automatically provide false for all other exact
-    shape checks except the one they care about.
-    """
+    """Base mixin returning 'False' for all exact shape checks."""
 
     __slots__ = ()
 
@@ -135,14 +134,13 @@ class ExpressionSpecificDerivedMixinBase(object):
     def hasShapeSliceExact():
         return False
 
+    @staticmethod
+    def hasShapeTypeExact():
+        return False
+
 
 class ExpressionSpecificExactMixinBase(ExpressionSpecificDerivedMixinBase):
-    """Mixin that provides attribute knowledge for exact type shapes.
-
-    This is to be used as a base class for specific shape mixins,
-    such that they automatically provide false for all other exact
-    shape checks except the one they care about.
-    """
+    """Base mixin providing attribute knowledge for exact type shapes."""
 
     __slots__ = ()
 
@@ -156,7 +154,7 @@ class ExpressionSpecificExactMixinBase(ExpressionSpecificDerivedMixinBase):
 
     @abstractmethod
     def getKnownAttributeValue(self, attribute_name):
-        """Can be used as isKnownToHaveAttribute is True"""
+        """Return known attribute value when 'isKnownToHaveAttribute' is 'True'."""
 
     def mayRaiseExceptionAttributeLookup(self, exception_type, attribute_name):
         # TODO: The exception_type is not checked, pylint: disable=unused-argument
@@ -164,7 +162,7 @@ class ExpressionSpecificExactMixinBase(ExpressionSpecificDerivedMixinBase):
 
     @staticmethod
     def mayRaiseExceptionBool(exception_type):
-        # We cannot raise anything, pylint: disable=unused-argument
+        # pylint: disable=unused-argument
         return False
 
     @staticmethod
@@ -173,8 +171,6 @@ class ExpressionSpecificExactMixinBase(ExpressionSpecificDerivedMixinBase):
 
 
 class ExpressionNonIterableTypeShapeMixin(object):
-    """Mixin for nodes known to not be iterable."""
-
     __slots__ = ()
 
     @staticmethod
@@ -183,12 +179,12 @@ class ExpressionNonIterableTypeShapeMixin(object):
 
     @staticmethod
     def isKnownToBeIterable(count):
-        # virtual method overload, pylint: disable=unused-argument
+        # pylint: disable=unused-argument
         return False
 
     @staticmethod
     def isKnownToBeIterableAtMin(count):
-        # virtual method overload, pylint: disable=unused-argument
+        # pylint: disable=unused-argument
         return False
 
     @staticmethod
@@ -200,7 +196,6 @@ class ExpressionNonIterableTypeShapeMixin(object):
 
         assert shape.hasShapeSlotIter() is False
 
-        # An exception will be raised.
         trace_collection.onExceptionRaiseExit(BaseException)
 
         return makeRaiseTypeErrorExceptionReplacementFromTemplateAndValue(
@@ -212,11 +207,13 @@ class ExpressionNonIterableTypeShapeMixin(object):
 
 
 class ExpressionIterableTypeShapeMixin(object):
-    """Mixin for nodes known to not be iterable."""
-
     __slots__ = ()
 
-    # Bad Implementation that the node can use, based on getIterationLength, which
+    @staticmethod
+    def mayRaiseExceptionIter(exception_type):
+        # pylint: disable=unused-argument
+        return False
+
     def isKnownToBeIterable(self, count):
         return count is None or self.getIterationLength() == count
 
@@ -232,8 +229,6 @@ class ExpressionIterableTypeShapeMixin(object):
 class ExpressionDictShapeExactMixin(
     ExpressionIterableTypeShapeMixin, ExpressionSpecificExactMixinBase
 ):
-    """Mixin for nodes with exact dictionary shape."""
-
     __slots__ = ()
 
     @staticmethod
@@ -262,7 +257,6 @@ class ExpressionDictShapeExactMixin(
         )
 
     # TODO: Make it really abstract to force all to take benefit of it.
-    # @abstractmethod
     @staticmethod
     def getExpressionDictInConstant(value):
         # pylint: disable=unused-argument
@@ -272,8 +266,6 @@ class ExpressionDictShapeExactMixin(
 class ExpressionListShapeExactMixin(
     ExpressionIterableTypeShapeMixin, ExpressionSpecificExactMixinBase
 ):
-    """Mixin for nodes with exact list shape."""
-
     __slots__ = ()
 
     @staticmethod
@@ -309,8 +301,6 @@ class ExpressionListShapeExactMixin(
 class ExpressionFrozensetShapeExactMixin(
     ExpressionIterableTypeShapeMixin, ExpressionSpecificExactMixinBase
 ):
-    """Mixin for nodes with exact frozenset shape."""
-
     __slots__ = ()
 
     @staticmethod
@@ -318,7 +308,7 @@ class ExpressionFrozensetShapeExactMixin(
         return tshape_frozenset
 
     @staticmethod
-    def hasShapeListExact():
+    def hasShapeFrozensetExact():
         return True
 
     @staticmethod
@@ -337,8 +327,6 @@ class ExpressionFrozensetShapeExactMixin(
 class ExpressionFrozendictShapeExactMixin(
     ExpressionIterableTypeShapeMixin, ExpressionSpecificExactMixinBase
 ):
-    """Mixin for nodes with exact frozendict shape."""
-
     __slots__ = ()
 
     @staticmethod
@@ -358,11 +346,40 @@ class ExpressionFrozendictShapeExactMixin(
         return getattr(the_empty_frozendict, attribute_name)
 
 
+class ExpressionSentinelShapeExactMixin(
+    ExpressionNonIterableTypeShapeMixin, ExpressionSpecificExactMixinBase
+):
+    __slots__ = ()
+
+    @staticmethod
+    def getTypeShape():
+        return tshape_sentinel
+
+    @staticmethod
+    def isKnownToHaveAttribute(attribute_name):
+        return hasattr(the_empty_sentinel, attribute_name)
+
+    @staticmethod
+    def getKnownAttributeValue(attribute_name):
+        # Sentinel names and modules are instance-specific, so only expose
+        # type-level values here.
+        if attribute_name == "__class__":
+            return sentinel
+
+        return None
+
+    @staticmethod
+    def isKnownToBeHashable():
+        return True
+
+    @staticmethod
+    def getTruthValue():
+        return True
+
+
 class ExpressionSetShapeExactMixin(
     ExpressionIterableTypeShapeMixin, ExpressionSpecificExactMixinBase
 ):
-    """Mixin for nodes with exact set shape."""
-
     __slots__ = ()
 
     @staticmethod
@@ -392,8 +409,6 @@ class ExpressionSetShapeExactMixin(
 class ExpressionTupleShapeExactMixin(
     ExpressionIterableTypeShapeMixin, ExpressionSpecificExactMixinBase
 ):
-    """Mixin for nodes with exact tuple shape."""
-
     __slots__ = ()
 
     @staticmethod
@@ -424,8 +439,6 @@ class ExpressionTupleShapeExactMixin(
 class ExpressionBoolShapeExactMixin(
     ExpressionNonIterableTypeShapeMixin, ExpressionSpecificExactMixinBase
 ):
-    """Mixin for nodes with exact bool shape."""
-
     __slots__ = ()
 
     @staticmethod
@@ -452,8 +465,6 @@ class ExpressionBoolShapeExactMixin(
 class ExpressionStrShapeExactMixin(
     ExpressionIterableTypeShapeMixin, ExpressionSpecificExactMixinBase
 ):
-    """Mixin for nodes with exact str shape."""
-
     __slots__ = ()
 
     @staticmethod
@@ -488,8 +499,6 @@ class ExpressionStrShapeExactMixin(
 class ExpressionBytesShapeExactMixin(
     ExpressionIterableTypeShapeMixin, ExpressionSpecificExactMixinBase
 ):
-    """Mixin for nodes with exact bytes shape."""
-
     __slots__ = ()
 
     @staticmethod
@@ -520,8 +529,6 @@ class ExpressionBytesShapeExactMixin(
 class ExpressionBytearrayShapeExactMixin(
     ExpressionIterableTypeShapeMixin, ExpressionSpecificExactMixinBase
 ):
-    """Mixin for nodes with exact bytearray shape."""
-
     __slots__ = ()
 
     @staticmethod
@@ -557,8 +564,6 @@ class ExpressionBytearrayShapeExactMixin(
 class ExpressionUnicodeShapeExactMixin(
     ExpressionIterableTypeShapeMixin, ExpressionSpecificExactMixinBase
 ):
-    """Mixin for nodes with exact unicode shape."""
-
     __slots__ = ()
 
     @staticmethod
@@ -597,8 +602,6 @@ else:
     class ExpressionStrOrUnicodeExactMixin(
         ExpressionIterableTypeShapeMixin, ExpressionSpecificExactMixinBase
     ):
-        """Mixin for nodes with str_or_unicode shape."""
-
         __slots__ = ()
 
         @staticmethod
@@ -631,8 +634,6 @@ else:
 class ExpressionFloatShapeExactMixin(
     ExpressionNonIterableTypeShapeMixin, ExpressionSpecificExactMixinBase
 ):
-    """Mixin for nodes with exact float shape."""
-
     __slots__ = ()
 
     @staticmethod
@@ -659,8 +660,6 @@ class ExpressionFloatShapeExactMixin(
 class ExpressionIntShapeExactMixin(
     ExpressionNonIterableTypeShapeMixin, ExpressionSpecificExactMixinBase
 ):
-    """Mixin for nodes with exact int shape."""
-
     __slots__ = ()
 
     @staticmethod
@@ -687,8 +686,6 @@ class ExpressionIntShapeExactMixin(
 class ExpressionLongShapeExactMixin(
     ExpressionNonIterableTypeShapeMixin, ExpressionSpecificExactMixinBase
 ):
-    """Mixin for nodes with exact long shape."""
-
     __slots__ = ()
 
     @staticmethod
@@ -719,8 +716,6 @@ else:
     class ExpressionIntOrLongExactMixin(
         ExpressionNonIterableTypeShapeMixin, ExpressionSpecificExactMixinBase
     ):
-        """Mixin for nodes with int_or_long shape."""
-
         __slots__ = ()
 
         @staticmethod
@@ -745,8 +740,6 @@ else:
 class ExpressionEllipsisShapeExactMixin(
     ExpressionNonIterableTypeShapeMixin, ExpressionSpecificExactMixinBase
 ):
-    """Mixin for nodes with exact ellipsis shape."""
-
     __slots__ = ()
 
     @staticmethod
@@ -767,16 +760,12 @@ class ExpressionEllipsisShapeExactMixin(
 
     @staticmethod
     def getTruthValue():
-        """Return known truth value."""
-
         return True
 
 
 class ExpressionNoneShapeExactMixin(
     ExpressionNonIterableTypeShapeMixin, ExpressionSpecificExactMixinBase
 ):
-    """Mixin for nodes with exact None shape."""
-
     __slots__ = ()
 
     @staticmethod
@@ -801,16 +790,12 @@ class ExpressionNoneShapeExactMixin(
 
     @staticmethod
     def getTruthValue():
-        """Return known truth value."""
-
         return False
 
 
 class ExpressionComplexShapeExactMixin(
     ExpressionNonIterableTypeShapeMixin, ExpressionSpecificExactMixinBase
 ):
-    """Mixin for nodes with exact complex shape."""
-
     __slots__ = ()
 
     @staticmethod
@@ -823,7 +808,7 @@ class ExpressionComplexShapeExactMixin(
 
     @staticmethod
     def isKnownToHaveAttribute(attribute_name):
-        # These vary with instances, constant values should not enter here.
+        # Real and imaginary parts are instance-specific.
         if attribute_name in ("imag", "real"):
             return False
 
@@ -841,8 +826,6 @@ class ExpressionComplexShapeExactMixin(
 class ExpressionSliceShapeExactMixin(
     ExpressionNonIterableTypeShapeMixin, ExpressionSpecificExactMixinBase
 ):
-    """Mixin for nodes with exact complex shape."""
-
     __slots__ = ()
 
     @staticmethod
@@ -861,16 +844,21 @@ class ExpressionSliceShapeExactMixin(
     def getKnownAttributeValue(attribute_name):
         return getattr(the_empty_slice, attribute_name)
 
-    @staticmethod
-    def isKnownToBeHashable():
-        return False
+    if python_version < 0x3C0:
+
+        @staticmethod
+        def isKnownToBeHashable():
+            return False
+
+        def extractUnhashableNodeType(self):
+            return makeConstantReplacementNode(
+                constant=slice, node=self, user_provided=False
+            )
 
 
 class ExpressionTypeShapeExactMixin(
     ExpressionNonIterableTypeShapeMixin, ExpressionSpecificExactMixinBase
 ):
-    """Mixin for nodes with exact 'type' shape."""
-
     __slots__ = ()
 
     @staticmethod
@@ -891,12 +879,10 @@ class ExpressionTypeShapeExactMixin(
 
     @staticmethod
     def isKnownToBeHashable():
-        return False
+        return True
 
 
 class ExpressionStrDerivedShapeMixin(ExpressionSpecificDerivedMixinBase):
-    """Mixin for nodes with str derived shape."""
-
     __slots__ = ()
 
     @staticmethod
@@ -909,8 +895,6 @@ class ExpressionStrDerivedShapeMixin(ExpressionSpecificDerivedMixinBase):
 
 
 class ExpressionUnicodeDerivedShapeMixin(ExpressionSpecificDerivedMixinBase):
-    """Mixin for nodes with unicode derived shape."""
-
     __slots__ = ()
 
     @staticmethod
@@ -927,8 +911,6 @@ if str is not bytes:
 else:
 
     class ExpressionStrOrUnicodeDerivedShapeMixin(ExpressionSpecificDerivedMixinBase):
-        """Mixin for nodes with str or unicode derived shape."""
-
         __slots__ = ()
 
         @staticmethod

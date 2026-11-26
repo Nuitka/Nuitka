@@ -1,14 +1,9 @@
 #     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-"""Reformulation of import statements.
+"""Reformulation of import statements."""
 
-Consult the Developer Manual for information. TODO: Add ability to sync
-source code comments with Developer Manual sections.
-
-"""
-
-# spell-checker: ignore fromlist,asname
+# spell-checker: ignore asname,fromlist
 
 from nuitka.importing.ImportResolving import resolveModuleName
 from nuitka.nodes.ConstantRefNodes import makeConstantRefNode
@@ -28,17 +23,19 @@ from nuitka.PythonVersions import python_version
 from nuitka.utils.ModuleNames import ModuleName
 
 from .FutureSpecState import enableFutureFeature, getFutureSpec
+from .JITCompilation import recordImportFrom, recordImportModule
 from .ReformulationTryFinallyStatements import makeTryFinallyReleaseStatement
-from .SyntaxErrors import raiseSyntaxError
+from .SyntaxErrors import checkDebugNameAssignment, raiseSyntaxError
 from .TreeHelpers import makeStatementsSequenceOrStatement, mangleName
 
-# For checking afterwards, if __future__ imports really were at the beginning
-# of the file.
 _future_import_nodes = []
 
 
+def clearFutureImports():
+    del _future_import_nodes[:]
+
+
 def checkFutureImportsOnlyAtStart(body):
-    # Check if a __future__ imports really were at the beginning of the file.
     for node in body:
         if node in _future_import_nodes:
             _future_import_nodes.remove(node)
@@ -54,7 +51,6 @@ from __future__ imports must occur at the beginning of the file""",
 
 
 def _handleFutureImport(provider, node, source_ref):
-    # Don't allow future imports in functions or classes.
     if not provider.isCompiledPythonModule():
         raiseSyntaxError(
             """\
@@ -67,8 +63,6 @@ from __future__ imports must occur at the beginning of the file""",
 
         enableFutureFeature(node=node, object_name=object_name, source_ref=source_ref)
 
-    # Remember it for checks to be applied once module is complete, e.g. if
-    # they are all at module start.
     node.source_ref = source_ref
     _future_import_nodes.append(node)
 
@@ -81,9 +75,6 @@ def _resolveImportModuleName(module_name):
 
 
 def buildImportFromNode(provider, node, source_ref):
-    # "from .. import .." statements. This may trigger a star import, or
-    # multiple names being looked up from the given module variable name.
-    # This is pretty complex.
     # pylint: disable=too-many-branches,too-many-locals,too-many-statements
 
     module_name = node.module if node.module is not None else ""
@@ -92,10 +83,7 @@ def buildImportFromNode(provider, node, source_ref):
 
     level = node.level
 
-    # Use default level under some circumstances.
-    if level == -1:
-        level = None
-    elif level == 0 and not getFutureSpec().isAbsoluteImport():
+    if level == -1 or (level == 0 and not getFutureSpec().isAbsoluteImport()):
         level = None
 
     if level is not None:
@@ -103,16 +91,12 @@ def buildImportFromNode(provider, node, source_ref):
     else:
         level_obj = None
 
-    # Importing from "__future__" module may enable flags to the parser,
-    # that we need to know about, handle that.
     if module_name == "__future__":
         _handleFutureImport(provider, node, source_ref)
 
     target_names = []
     import_names = []
 
-    # Mapping imported "fromlist" to assigned "fromlist" if any, handling the
-    # star case as well.
     for import_desc in node.names:
         object_name, local_name = import_desc.name, import_desc.asname
 
@@ -120,19 +104,27 @@ def buildImportFromNode(provider, node, source_ref):
             target_names.append(None)
             assert local_name is None
         else:
-            target_names.append(local_name if local_name is not None else object_name)
+            target_name = local_name if local_name is not None else object_name
+
+            checkDebugNameAssignment(name=target_name, source_ref=source_ref)
+
+            target_names.append(target_name)
 
         import_names.append(object_name)
 
-    # Star imports get special treatment.
+    if node.level == 0 and module_name != "__future__":
+        recordImportFrom(
+            provider=provider,
+            module_name=module_name,
+            import_names=import_names,
+            target_names=target_names,
+        )
+
     if None in target_names:
-        # More than "*" is a syntax error in Python, need not care about this at
-        # all, it's only allowed value for import list in  this case.
         assert target_names == [None]
 
-        # Python3 made it so that these can only occur on the module level,
-        # so this a syntax error if not there. For Python2 it is OK to
-        # occur everywhere though.
+        # Python 3's parser accepts "import *" inside functions and rejects it
+        # only during compilation.
         if not provider.isCompiledPythonModule() and python_version >= 0x300:
             raiseSyntaxError(
                 "import * only allowed at module level",
@@ -177,7 +169,6 @@ def buildImportFromNode(provider, node, source_ref):
                 source_ref=source_ref,
             )
 
-        # If we have multiple names to import, consider each.
         multi_names = len(target_names) > 1
 
         statements = []
@@ -205,8 +196,6 @@ def buildImportFromNode(provider, node, source_ref):
         first = True
 
         for target_name, import_name in zip(target_names, import_names):
-            # Make a clone of the variable reference, if we are going to use
-            # another one.
             if not first:
                 imported_from_module = imported_from_module.makeClone()
             first = False
@@ -225,7 +214,6 @@ def buildImportFromNode(provider, node, source_ref):
                 )
             )
 
-        # Release the temporary module value as well.
         if multi_names:
             statements.append(
                 makeTryFinallyReleaseStatement(
@@ -238,18 +226,12 @@ def buildImportFromNode(provider, node, source_ref):
         else:
             statements.extend(import_statements)
 
-        # Note: Each import is sequential. It can succeed, and the failure of a
-        # later one is not undoing previous ones. We can therefore have a
-        # sequence of imports that each only import one thing therefore.
         return StatementsSequence(
             statements=mergeStatements(statements), source_ref=source_ref
         )
 
 
 def buildImportModulesNode(provider, node, source_ref):
-    # Import modules statement. As described in the Developer Manual, these
-    # statements can be treated as several ones.
-
     import_names = [
         (import_desc.name, import_desc.asname) for import_desc in node.names
     ]
@@ -261,8 +243,15 @@ def buildImportModulesNode(provider, node, source_ref):
 
         module_top_name = module_name.split(".")[0]
 
-        # Note: The "level" of import is influenced by the future absolute
-        # imports.
+        if local_name is not None:
+            check_name = local_name
+        elif 0x270 <= python_version < 0x390:
+            check_name = module_name
+        else:
+            check_name = module_top_name
+
+        checkDebugNameAssignment(name=check_name, source_ref=source_ref)
+
         level = (
             makeConstantRefNode(0, source_ref, True)
             if getFutureSpec().isAbsoluteImport()
@@ -270,6 +259,10 @@ def buildImportModulesNode(provider, node, source_ref):
         )
 
         module_name = _resolveImportModuleName(module_name)
+
+        recordImportModule(
+            provider=provider, module_name=module_name, local_name=local_name
+        )
 
         # TODO: Go to fixed node directly, avoiding the optimization for the
         # node to do it, with absolute imports we can use makeExpressionImportModuleFixed
@@ -284,8 +277,6 @@ def buildImportModulesNode(provider, node, source_ref):
         )
 
         if local_name:
-            # If is gets a local name, the real name must be used as a
-            # temporary value only, being looked up recursively.
             for import_name in module_name.split(".")[1:]:
                 import_node = ExpressionImportName(
                     module=import_node,
@@ -294,10 +285,6 @@ def buildImportModulesNode(provider, node, source_ref):
                     level=0,
                     source_ref=source_ref,
                 )
-
-        # If a name was given, use the one provided, otherwise the import gives
-        # the top level package name given for assignment of the imported
-        # module.
 
         import_nodes.append(
             StatementAssignmentVariableName(
@@ -310,9 +297,6 @@ def buildImportModulesNode(provider, node, source_ref):
             )
         )
 
-    # Note: Each import is sequential. It will potentially succeed, and the
-    # failure of a later one is not changing that one bit . We can therefore
-    # have a sequence of imports that only import one thing therefore.
     return makeStatementsSequenceOrStatement(
         statements=import_nodes, source_ref=source_ref
     )

@@ -12,13 +12,15 @@ import os
 import select
 import shlex
 import sys
+import threading
 from contextlib import contextmanager
 
 from nuitka.__past__ import iterItems, selectors, subprocess
 from nuitka.containers.Namedtuples import makeNamedtupleClass
+from nuitka.options.Experimental import isExperimental
 from nuitka.Tracing import general
 
-from .Download import getCachedDownloadedMinGW64
+from .Download import getCachedDownloadedMinGW64, getDownloadMode
 from .FileOperations import getExternalUsePath, hasFilenameExtension
 from .Utils import (
     getArchCommandPrefix,
@@ -28,11 +30,18 @@ from .Utils import (
     isWin32Windows,
 )
 
+if str is bytes:
+    # Python2 code, pylint: disable=I0021,import-error
+    from pipes import quote as _shellQuote
+else:
+    from shlex import quote as _shellQuote
+
+
 # Cache, so we avoid repeated command lookups.
 _executable_command_cache = {}
 
 # We emulate and use APIs of stdlib and use special commands
-# spell-checker: ignore popenargs,creationflags,preexec_fn,setsid,debuginfod,memcheck
+# spell-checker: ignore creationflags,debuginfod,memcheck,popenargs,preexec_fn,setsid
 
 
 def _getExecutablePath(filename, search_path):
@@ -62,9 +71,8 @@ def _getExecutablePath(filename, search_path):
             if os.path.exists(full):
                 candidate = full
 
-        if candidate is not None:
-            if os.access(candidate, os.X_OK):
-                return candidate
+        if candidate is not None and os.access(candidate, os.X_OK):
+            return candidate
 
 
 def getExecutablePath(filename, extra_dir=None):
@@ -87,11 +95,21 @@ def isExecutableCommand(command):
     return getExecutablePath(command) is not None
 
 
+def quoteForShell(value):
+    """Quote a value for use in a shell command line.
+
+    Args:
+        value: (str) value to quote
+
+    Returns:
+        str, quoted value
+    """
+    return _shellQuote(value)
+
+
 class NuitkaCalledProcessError(subprocess.CalledProcessError):
     def __init__(self, exit_code, cmd, output, stderr):
-        # False alarm, pylint: disable=super-init-not-called
-
-        subprocess.CalledProcessError(self, exit_code, cmd)
+        subprocess.CalledProcessError.__init__(self, exit_code, cmd)
 
         # Python2 doesn't have this otherwise, but needs it.
         self.stderr = stderr
@@ -136,7 +154,7 @@ def check_output(*popenargs, **kwargs):
     if "env" in kwargs:
         _checkEnvironment(kwargs["env"])
 
-    process = subprocess.Popen(stdout=subprocess.PIPE, *popenargs, **kwargs)
+    process = subprocess.Popen(*popenargs, stdout=subprocess.PIPE, **kwargs)
 
     output, stderr = process.communicate()
     exit_code = process.poll()
@@ -208,6 +226,9 @@ def callExecProcess(args, shell, logger):
         args = list(args)
         del args[1]
 
+        if not os.path.dirname(args[0]) and os.path.isfile(args[0]):
+            args[0] = ".\\" + args[0]
+
         args = expandProcessCallForWindows(command=args, shell=shell)
 
         try:
@@ -231,18 +252,17 @@ def callExecProcess(args, shell, logger):
             os._exit(2)
 
     else:
-        # The star arguments is the API of execl
         os.execl(*args)
 
 
 def executeCompiledBinary(args, shell, logger):
-    """Run a compiled binary and return its exit code.
-
-    On Windows handles .cmd/.bat wrappers through expandProcessCallForWindows.
-    """
+    """Run a compiled binary and return its exit code."""
     args = list(args)
 
     if os.name == "nt":
+        if not os.path.dirname(args[0]) and os.path.isfile(args[0]):
+            args[0] = ".\\" + args[0]
+
         args = expandProcessCallForWindows(command=args, shell=shell)
 
     # Build an explicit environment that strips Nuitka variables which may
@@ -302,8 +322,20 @@ def callProcessChunked(command, chunks, **kwargs):
     return result
 
 
-@contextmanager
-def withEnvironmentPathAdded(env_var_name, *paths, **kw):
+def getEnvironmentPathAdded(env_var_name, *paths, **kw):
+    """Get environment variable path value with additional paths.
+
+    Args:
+        env_var_name: str with the name of the environment variable, e.g. "PATH".
+        paths: Paths to add to the environment variable value.
+
+    Kwargs:
+        prefix: bool, when True the paths are prepended, otherwise appended.
+
+    Returns:
+        None if no paths are given, otherwise the resulting value.
+    """
+
     # Workaround star args with keyword args on older Python
     prefix = kw.pop("prefix", False)
     assert not kw, kw
@@ -311,32 +343,50 @@ def withEnvironmentPathAdded(env_var_name, *paths, **kw):
     assert os.path.sep not in env_var_name
 
     paths = [path for path in paths if path]
+
+    if not paths:
+        return None
+
     path = os.pathsep.join(paths)
 
-    if path:
-        if str is not bytes and type(path) is bytes:
-            path = path.decode("utf8")
+    if str is not bytes and type(path) is bytes:
+        path = path.decode("utf8")
 
-        if env_var_name in os.environ:
-            old_path = os.environ[env_var_name]
+    old_path = os.environ.get(env_var_name)
 
-            if not old_path:
-                os.environ[env_var_name] = path
-            elif prefix:
-                os.environ[env_var_name] = path + os.pathsep + os.environ[env_var_name]
-            else:
-                os.environ[env_var_name] += os.pathsep + path
-        else:
-            old_path = None
-            os.environ[env_var_name] = path
+    if not old_path:
+        return path
+    elif prefix:
+        return path + os.pathsep + old_path
+    else:
+        return old_path + os.pathsep + path
 
-    yield
 
-    if path:
-        if old_path is None:
-            del os.environ[env_var_name]
-        else:
-            os.environ[env_var_name] = old_path
+def getEnvironmentWithPathAdded(env_var_name, *paths, **kw):
+    """Get a copy of the environment with paths added to an environment variable.
+
+    Notes:
+        This is for passing to child processes instead of modifying the
+        environment of the current process.
+
+    Args:
+        env_var_name: Name of the environment variable, e.g. 'LD_LIBRARY_PATH'.
+        *paths: Paths to add to the variable, empty ones are ignored.
+
+    Kwargs:
+        prefix: If True, the paths are added at the front, otherwise at the end.
+
+    Returns:
+        A copy of the current environment with the paths added.
+    """
+    env = dict(os.environ)
+
+    new_path = getEnvironmentPathAdded(env_var_name, *paths, **kw)
+
+    if new_path is not None:
+        env[env_var_name] = new_path
+
+    return env
 
 
 @contextmanager
@@ -393,16 +443,13 @@ def withEnvironmentVarsOverridden(mapping):
 
 
 def wrapCommandForDebuggerForExec(command, debugger):
-    """Wrap a command for system debugger to call exec
+    """Wrap a command for system debugger to call 'os.execl'.
 
     Args:
         command: (iterable of str) args for call to be debugged
+        debugger: debugger name ('gdb', 'lldb', 'valgrind-memcheck', None) or custom command
     Returns:
-        args tuple with debugger command inserted
-
-    Notes:
-        Currently only gdb and lldb are supported, but adding more
-        debuggers would be very welcome.
+        args tuple with executable path, argv[0] name, and debugger arguments prepended
     """
 
     # The path needs to be absolute for some debuggers to work e.g. valgrind
@@ -432,26 +479,23 @@ def wrapCommandForDebuggerForExec(command, debugger):
 
     # Windows extra ball, attempt the downloaded one.
     if isWin32Windows() and gdb_path is None and lldb_path is None:
-        from nuitka.options.Options import (
-            assumeYesForDownloads,
-            isExperimental,
-        )
+        # Local import to avoid a cycle: Options imports this module.
+        from nuitka.options.Options import assumeYesForDownloads
 
         mingw64_gcc_path = getCachedDownloadedMinGW64(
             target_arch=getArchitecture(),
-            assume_yes_for_downloads=assumeYesForDownloads(),
-            download_ok=True,
+            download_mode=getDownloadMode(assumeYesForDownloads()),
             experimental=isExperimental("winlibs-new"),
         )
 
-        with withEnvironmentPathAdded("PATH", os.path.dirname(mingw64_gcc_path)):
-            lldb_path = getExecutablePath("lldb")
+        lldb_path = getExecutablePath(
+            "lldb", extra_dir=os.path.dirname(mingw64_gcc_path)
+        )
 
     if gdb_path is None and lldb_path is None and valgrind_path is None:
-        if lldb_path is None:
-            return general.sysexit(
-                "Error, no 'gdb', 'lldb', or 'valgrind' binary found in path."
-            )
+        return general.sysexit(
+            "Error, no 'gdb', 'lldb', or 'valgrind' binary found in path."
+        )
 
     if gdb_path is not None and debugger not in ("lldb", "valgrind-memcheck"):
         args = (
@@ -489,7 +533,7 @@ def wrapCommandForDebuggerForExec(command, debugger):
         ) + command
     else:
         return general.sysexit(
-            "Error, the selected debugger '%s' was not found in path."
+            "Error, the selected debugger '%s' was not found in path." % debugger
         )
 
     # Some debuggers need to be run in their architecture, e.g. the "lldb"
@@ -508,16 +552,13 @@ def wrapCommandForDebuggerForExec(command, debugger):
 
 
 def wrapCommandForDebuggerForSubprocess(command, debugger):
-    """Wrap a command for system debugger with subprocess module.
+    """Wrap a command for system debugger with 'subprocess'.
 
     Args:
-        args: (list of str) args for call to be debugged
+        command: (iterable of str) args for call to be debugged
+        debugger: debugger name ('gdb', 'lldb', 'valgrind-memcheck', None) or custom command
     Returns:
-        args tuple with debugger command inserted
-
-    Notes:
-        Currently only gdb and lldb are supported, but adding more
-        debuggers would be very welcome.
+        args tuple suitable for 'subprocess' (without the 'os.execl'-only 'argv[0]' entry)
     """
 
     args = wrapCommandForDebuggerForExec(command=command, debugger=debugger)
@@ -530,35 +571,29 @@ def wrapCommandForDebuggerForSubprocess(command, debugger):
 
 @contextmanager
 def getNullOutput():
-    r = open(os.devnull, "wb")
-
-    try:
+    with open(os.devnull, "wb") as r:
         yield r
-    finally:
-        r.close()
 
 
 @contextmanager
 def getNullInput():
-    r = open(os.devnull, "rb")
-
-    try:
+    with open(os.devnull, "rb") as r:
         yield r
-    finally:
-        r.close()
 
 
 def filterOutputByLine(output, filter_func):
     """For use by stderr filters of executeToolChecked."""
-    non_errors = []
+    error_lines = [
+        line for line in output.splitlines() if line and not filter_func(line)
+    ]
 
-    for line in output.splitlines():
-        if line and not filter_func(line):
-            non_errors.append(line)
+    # When all output was filtered as benign, the exit code is to be ignored,
+    # but when there was no output at all, then nothing was filtered, and a
+    # silent failure must not be ignored.
+    if output.strip() and not error_lines:
+        return 0, b""
 
-    output = b"\n".join(non_errors)
-
-    return (0 if non_errors else None), output
+    return None, b"\n".join(error_lines)
 
 
 # These macOS tools of the Xcode "CommandLineTools" are only available as
@@ -566,7 +601,15 @@ def filterOutputByLine(output, filter_func):
 # Nuitka or the tests are run by a translated x86_64 process, where they
 # would otherwise fail to load their libraries. This includes "git", which
 # is a shim that loads the ARM64 only "libxcrun" library.
-_macos_native_arch_tools = ("git", "install_name_tool", "lldb", "lipo", "nm", "otool")
+_macos_native_arch_tools = (
+    "git",
+    "install_name_tool",
+    "lldb",
+    "lipo",
+    "nm",
+    "otool",
+    "strip",
+)
 
 
 def getToolArchPrefix(tool):
@@ -630,7 +673,7 @@ def executeToolChecked(
     if not isExecutableCommand(tool):
         if optional:
             logger.warning(absence_message)
-            return b"" if decoding else ""
+            return "" if decoding else b""
         else:
             return logger.sysexit(absence_message)
 
@@ -718,14 +761,36 @@ def _checkEnvironment(env):
 
 
 def expandProcessCallForWindows(command, shell):
-    """On Windows, if the command is a batch file, we need to run
-    it with cmd.exe and our own flags to disable auto-run
-    and other side effects.
-    """
+    """Wrap a Windows batch command for 'subprocess.Popen' via 'cmd.exe'."""
     # spell-checker: ignore COMSPEC
-    if not shell and isWin32Windows() and type(command) in (list, tuple):
-        if hasFilenameExtension(command[0], (".cmd", ".bat")):
-            return [os.getenv("COMSPEC", "cmd.exe"), "/d", "/c"] + list(command)
+    if (
+        not shell
+        and isWin32Windows()
+        and type(command) in (list, tuple)
+        and hasFilenameExtension(command[0], (".cmd", ".bat"))
+    ):
+        batch_filename = command[0]
+        assert '"' not in batch_filename, batch_filename
+
+        # CPython 3.12+ sets 'NoDefaultCurrentDirectoryInExePath=1' on Windows,
+        # preventing 'cmd.exe' from resolving a bare batch filename in the
+        # current directory without an explicit path prefix.
+        if not os.path.dirname(batch_filename) and os.path.isfile(batch_filename):
+            batch_filename = ".\\" + batch_filename
+
+        batch_command = '"%s"' % batch_filename
+        if len(command) > 1:
+            batch_command += " " + subprocess.list2cmdline(command[1:])
+
+        # 'cmd.exe /c' strips quotes around the batch path when arguments are
+        # also quoted or the path contains parentheses unless '/s' and an outer
+        # quote pair are used; returning a string prevents 'subprocess.Popen'
+        # from escaping those outer quotes as '\"'.
+        comspec = os.getenv("COMSPEC") or "cmd.exe"
+        return '%s /d /s /c "%s"' % (
+            subprocess.list2cmdline([comspec]),
+            batch_command,
+        )
 
     return command
 
@@ -855,6 +920,14 @@ class Process(object):
         self.timeout = timeout
         self.rusage = rusage
 
+        # The rusage based communication does not support a timeout, and we do
+        # not use that combination anywhere, so make sure it stays that way.
+        assert not rusage or timeout is None
+
+        # Set when the process is stopped, so the reading thread can give up
+        # on pipes still held open by the process family.
+        self.stop_requested = threading.Event()
+
         # When running.
         self.process = None
 
@@ -879,16 +952,20 @@ class Process(object):
         else:
             process_input = None
 
+        # Apply timeout if possible.
         kw_args = {}
-        if self.timeout is not None:
-            # Apply timeout if possible.
-            if "timeout" in subprocess.Popen.communicate.__code__.co_varnames:
-                kw_args["timeout"] = self.timeout
+        if (
+            self.timeout is not None
+            and "timeout" in subprocess.Popen.communicate.__code__.co_varnames
+        ):
+            kw_args["timeout"] = self.timeout
 
         # TODO: May introduce a namedtuple for the return value.
         if self.rusage:
             stdout, stderr, exit_code, rusage = _communicateWithRusage(
-                proc=self.process, process_input=process_input
+                proc=self.process,
+                process_input=process_input,
+                stop_requested=self.stop_requested,
             )
         else:
             try:
@@ -901,7 +978,19 @@ class Process(object):
                 else:
                     self.process.terminate()
 
-                stdout, stderr = self.process.communicate()
+                # Only give the killed process a short grace period to hand
+                # over its output, grandchildren may hold the pipes open, and
+                # we must not block on them for long or even forever.
+                # The 'timeout' argument is guaranteed to be supported here,
+                # since 'TimeoutExpired' only exists along with it.
+                try:
+                    stdout, stderr = self.process.communicate(timeout=10.0)
+                except subprocess.TimeoutExpired:
+                    # Even after being killed, the process family did not
+                    # release the pipes in time. Report without output rather
+                    # than block indefinitely.
+                    stdout, stderr = b"", b""
+
                 e.output = stdout
                 e.stdout = stdout
                 e.stderr = stderr
@@ -916,10 +1005,39 @@ class Process(object):
 
     def stop(self):
         if self.process is not None:
-            self.process.terminate()
+            # Do not wait for the process family to release inherited pipe
+            # handles, the reading thread must give up on them instead.
+            self.stop_requested.set()
+
+            if isWin32Windows():
+                # Only on Windows, the reading thread cannot be woken up, and
+                # a killed process may leave compiler children behind that
+                # keep the pipes open, so kill the whole process tree.
+                try:
+                    with getNullOutput() as null_file:
+                        subprocess.call(
+                            ("taskkill", "/F", "/T", "/PID", str(self.process.pid)),
+                            stdout=null_file,
+                            stderr=null_file,
+                        )
+                except OSError:
+                    pass
+
+            if self.process.poll() is None:
+                try:
+                    if hasattr(self.process, "kill"):
+                        self.process.kill()
+                    else:
+                        self.process.terminate()
+                except OSError:
+                    # 'taskkill' may have killed it in the meantime, and older
+                    # Python versions do not ignore that error.
+                    pass
+
+            self.process.wait()
 
 
-def _communicateWithRusage(proc, process_input):
+def _communicateWithRusage(proc, process_input, stop_requested):
     """
     A correct implementation of communicate() that also returns resource usage.
     This version uses the high-level 'selectors' module for robust I/O handling.
@@ -970,13 +1088,27 @@ def _communicateWithRusage(proc, process_input):
         while read_fds or write_fds:
             try:
                 ready_to_read, ready_to_write, _unused = select.select(
-                    read_fds, write_fds, ()
+                    read_fds,  # rlist
+                    write_fds,  # wlist
+                    (),  # xlist
+                    1.0,  # timeout
                 )
             except (select.error, OSError) as e:
                 if e.args and e.args[0] == errno.EINTR:  # spell-checker: ignore EINTR
                     continue
 
                 raise
+
+            if not ready_to_read and not ready_to_write and stop_requested.is_set():
+                # Closing the pipes also ends writes of grandchildren that
+                # would otherwise keep them open indefinitely.
+                for file_object in file_objects.values():
+                    file_object.close()
+
+                if stdin_file is not None:
+                    stdin_file.close()
+
+                break
 
             for fd in ready_to_read:
                 chunk = os.read(fd, 8192)
@@ -998,7 +1130,11 @@ def _communicateWithRusage(proc, process_input):
 
         try:
             _pid, status, raw_rusage = os.wait4(proc.pid, 0)
-            exit_code = os.WEXITSTATUS(status)
+
+            if os.WIFSIGNALED(status):
+                exit_code = -os.WTERMSIG(status)
+            else:
+                exit_code = os.WEXITSTATUS(status)
 
             rusage = makeProcessResourceUsage(raw_rusage)
         except OSError as e:
@@ -1038,7 +1174,16 @@ def _communicateWithRusage(proc, process_input):
             # This is the correct way to check if we're done.
             while selector.get_map():
                 # Wait for any of the registered file descriptors to be ready
-                ready_events = selector.select()
+                ready_events = selector.select(timeout=1.0)
+
+                if not ready_events and stop_requested.is_set():
+                    # Closing the pipes also ends writes of grandchildren that
+                    # would otherwise keep them open indefinitely.
+                    for key in list(selector.get_map().values()):
+                        selector.unregister(key.fileobj)
+                        key.fileobj.close()
+
+                    break
 
                 for key, mask in ready_events:
                     if mask & selectors.EVENT_READ:
@@ -1068,7 +1213,11 @@ def _communicateWithRusage(proc, process_input):
         # spell-checker: ignore ECHILD,WEXITSTATUS
         try:
             _pid, status, raw_rusage = os.wait4(proc.pid, 0)
-            exit_code = os.WEXITSTATUS(status)
+
+            if os.WIFSIGNALED(status):
+                exit_code = -os.WTERMSIG(status)
+            else:
+                exit_code = os.WEXITSTATUS(status)
 
             rusage = makeProcessResourceUsage(raw_rusage)
         except OSError as e:

@@ -6,6 +6,47 @@
 #include "nuitka/prelude.h"
 #endif
 
+#if PYTHON_VERSION >= 0x3e0
+// Our replacement for CPython's private "_PyType_GetFullyQualifiedName", used
+// for error messages that use the module qualified type name since Python 3.14
+PyObject *Nuitka_PyType_GetFullyQualifiedName(PyTypeObject *type) {
+    if (!(type->tp_flags & Py_TPFLAGS_HEAPTYPE)) {
+        return PyUnicode_FromString(type->tp_name);
+    }
+
+    PyThreadState *tstate = PyThreadState_GET();
+
+    PyObject *qualname = LOOKUP_ATTRIBUTE(tstate, (PyObject *)type, const_str_plain___qualname__);
+
+    if (unlikely(qualname == NULL)) {
+        return NULL;
+    }
+
+    PyObject *module = LOOKUP_ATTRIBUTE(tstate, (PyObject *)type, const_str_plain___module__);
+
+    if (unlikely(module == NULL)) {
+        CLEAR_ERROR_OCCURRED(tstate);
+
+        return qualname;
+    }
+
+    PyObject *result;
+
+    if (PyUnicode_Check(module) && Nuitka_Unicode_CompareWithASCIIString(module, "builtins") != 0 &&
+        Nuitka_Unicode_CompareWithASCIIString(module, "__main__") != 0) {
+        result = PyUnicode_FromFormat("%U.%U", module, qualname);
+    } else {
+        result = qualname;
+        Py_INCREF(result);
+    }
+
+    Py_DECREF(module);
+    Py_DECREF(qualname);
+
+    return result;
+}
+#endif
+
 // Our replacement for "PyType_IsSubtype"
 bool Nuitka_Type_IsSubtype(PyTypeObject *a, PyTypeObject *b) {
     CHECK_OBJECT(a);
@@ -44,36 +85,6 @@ bool Nuitka_Type_IsSubtype(PyTypeObject *a, PyTypeObject *b) {
         return (b == &PyBaseObject_Type);
     }
 }
-
-#if PYTHON_VERSION >= 0x270
-static PyObject *lookupSpecialNoError(PyObject *source, PyObject *attr_name) {
-    CHECK_OBJECT(source);
-    CHECK_OBJECT(attr_name);
-
-    PyTypeObject *type = Py_TYPE(source);
-
-    if (unlikely(type->tp_dict == NULL)) {
-        if (unlikely(PyType_Ready(type) < 0)) {
-            return NULL;
-        }
-    }
-
-    PyObject *descr = Nuitka_TypeLookup(type, attr_name);
-
-    if (descr == NULL) {
-        return NULL;
-    }
-
-    descrgetfunc func = Py_TYPE(descr)->tp_descr_get;
-
-    if (func == NULL) {
-        Py_INCREF(descr);
-        return descr;
-    } else {
-        return func(descr, source, (PyObject *)type);
-    }
-}
-#endif
 
 static PyObject *_Nuitka_abstract_get_bases(PyThreadState *tstate, PyObject *cls) {
     PyObject *bases = LOOKUP_ATTRIBUTE(tstate, cls, const_str_plain___bases__);
@@ -128,12 +139,10 @@ static int _Nuitka_abstract_issubclass(PyThreadState *tstate, PyObject *derived,
             continue;
         }
 
-#ifdef _NUITKA_FULL_COMPAT
-        if (Py_EnterRecursiveCall((char *)" in __issubclass__")) {
+        if (unlikely(Py_EnterRecursiveCall((char *)" in __issubclass__"))) {
             Py_DECREF(bases);
             return -1;
         }
-#endif
 
         for (Py_ssize_t i = 0; i < n; i++) {
             r = _Nuitka_abstract_issubclass(tstate, PyTuple_GET_ITEM(bases, i), cls);
@@ -143,9 +152,7 @@ static int _Nuitka_abstract_issubclass(PyThreadState *tstate, PyObject *derived,
             }
         }
 
-#ifdef _NUITKA_FULL_COMPAT
         Py_LeaveRecursiveCall();
-#endif
         Py_DECREF(bases);
 
         return r;
@@ -305,11 +312,9 @@ int Nuitka_Object_IsInstance(PyThreadState *tstate, PyObject *instance, PyObject
     }
 
     if (PyTuple_Check(cls)) {
-#ifdef _NUITKA_FULL_COMPAT
-        if (Py_EnterRecursiveCall((char *)" in __instancecheck__")) {
+        if (unlikely(Py_EnterRecursiveCall((char *)" in __instancecheck__"))) {
             return -1;
         }
-#endif
 
         Py_ssize_t n = PyTuple_GET_SIZE(cls);
         int r = 0;
@@ -322,31 +327,25 @@ int Nuitka_Object_IsInstance(PyThreadState *tstate, PyObject *instance, PyObject
             }
         }
 
-#ifdef _NUITKA_FULL_COMPAT
         Py_LeaveRecursiveCall();
-#endif
 
         return r;
     }
 
     if (!(PyClass_Check(cls) || PyInstance_Check(cls))) {
-        PyObject *checker = lookupSpecialNoError(cls, const_str_plain___instancecheck__);
+        PyObject *checker = LOOKUP_SPECIAL_NO_ERROR(cls, const_str_plain___instancecheck__);
 
         if (checker != NULL) {
             int ok = -1;
 
-#ifdef _NUITKA_FULL_COMPAT
-            if (Py_EnterRecursiveCall((char *)" in __instancecheck__")) {
+            if (unlikely(Py_EnterRecursiveCall((char *)" in __instancecheck__"))) {
                 Py_DECREF(checker);
                 return ok;
             }
-#endif
 
             PyObject *res = CALL_FUNCTION_WITH_SINGLE_ARG(tstate, checker, instance);
 
-#ifdef _NUITKA_FULL_COMPAT
             Py_LeaveRecursiveCall();
-#endif
             Py_DECREF(checker);
 
             if (res != NULL) {
@@ -372,11 +371,9 @@ int Nuitka_Object_IsInstance(PyThreadState *tstate, PyObject *instance, PyObject
     }
 
     if (PyTuple_Check(cls)) {
-#ifdef _NUITKA_FULL_COMPAT
-        if (Py_EnterRecursiveCall((char *)" in __instancecheck__")) {
+        if (unlikely(Py_EnterRecursiveCall((char *)" in __instancecheck__"))) {
             return -1;
         }
-#endif
 
         Py_ssize_t n = PyTuple_GET_SIZE(cls);
         int r = 0;
@@ -389,9 +386,7 @@ int Nuitka_Object_IsInstance(PyThreadState *tstate, PyObject *instance, PyObject
             }
         }
 
-#ifdef _NUITKA_FULL_COMPAT
         Py_LeaveRecursiveCall();
-#endif
 
         return r;
     }
@@ -405,18 +400,14 @@ int Nuitka_Object_IsInstance(PyThreadState *tstate, PyObject *instance, PyObject
     if (checker != NULL) {
         int ok = -1;
 
-#ifdef _NUITKA_FULL_COMPAT
-        if (Py_EnterRecursiveCall((char *)" in __instancecheck__")) {
+        if (unlikely(Py_EnterRecursiveCall((char *)" in __instancecheck__"))) {
             Py_DECREF(checker);
             return ok;
         }
-#endif
 
         PyObject *res = CALL_FUNCTION_WITH_SINGLE_ARG(tstate, checker, instance);
 
-#ifdef _NUITKA_FULL_COMPAT
         Py_LeaveRecursiveCall();
-#endif
         Py_DECREF(checker);
 
         if (res != NULL) {
@@ -485,11 +476,9 @@ int Nuitka_Object_IsInstance(PyThreadState *tstate, PyObject *instance, PyObject
     }
 
     if (PyTuple_Check(cls)) {
-#ifdef _NUITKA_FULL_COMPAT
-        if (Py_EnterRecursiveCall((char *)" in __instancecheck__")) {
+        if (unlikely(Py_EnterRecursiveCall((char *)" in __instancecheck__"))) {
             return -1;
         }
-#endif
 
         Py_ssize_t n = PyTuple_GET_SIZE(cls);
         int r = 0;
@@ -502,30 +491,24 @@ int Nuitka_Object_IsInstance(PyThreadState *tstate, PyObject *instance, PyObject
             }
         }
 
-#ifdef _NUITKA_FULL_COMPAT
         Py_LeaveRecursiveCall();
-#endif
 
         return r;
     }
 
-    PyObject *checker = lookupSpecialNoError(cls, const_str_plain___instancecheck__);
+    PyObject *checker = LOOKUP_SPECIAL_NO_ERROR(cls, const_str_plain___instancecheck__);
 
     if (checker != NULL) {
         int ok = -1;
 
-#ifdef _NUITKA_FULL_COMPAT
-        if (Py_EnterRecursiveCall((char *)" in __instancecheck__")) {
+        if (unlikely(Py_EnterRecursiveCall((char *)" in __instancecheck__"))) {
             Py_DECREF(checker);
             return ok;
         }
-#endif
 
         PyObject *res = CALL_FUNCTION_WITH_SINGLE_ARG(tstate, checker, instance);
 
-#ifdef _NUITKA_FULL_COMPAT
         Py_LeaveRecursiveCall();
-#endif
         Py_DECREF(checker);
 
         if (res != NULL) {
@@ -555,11 +538,9 @@ int Nuitka_Object_IsInstance(PyThreadState *tstate, PyObject *instance, PyObject
     }
 
     if (PyTuple_Check(cls)) {
-#ifdef _NUITKA_FULL_COMPAT
-        if (Py_EnterRecursiveCall((char *)" in __instancecheck__")) {
+        if (unlikely(Py_EnterRecursiveCall((char *)" in __instancecheck__"))) {
             return -1;
         }
-#endif
 
         Py_ssize_t n = PyTuple_GET_SIZE(cls);
         int r = 0;
@@ -572,30 +553,24 @@ int Nuitka_Object_IsInstance(PyThreadState *tstate, PyObject *instance, PyObject
             }
         }
 
-#ifdef _NUITKA_FULL_COMPAT
         Py_LeaveRecursiveCall();
-#endif
 
         return r;
     }
 
-    PyObject *checker = lookupSpecialNoError(cls, const_str_plain___instancecheck__);
+    PyObject *checker = LOOKUP_SPECIAL_NO_ERROR(cls, const_str_plain___instancecheck__);
 
     if (checker != NULL) {
         int ok = -1;
 
-#ifdef _NUITKA_FULL_COMPAT
-        if (Py_EnterRecursiveCall((char *)" in __instancecheck__")) {
+        if (unlikely(Py_EnterRecursiveCall((char *)" in __instancecheck__"))) {
             Py_DECREF(checker);
             return ok;
         }
-#endif
 
         PyObject *res = CALL_FUNCTION_WITH_SINGLE_ARG(tstate, checker, instance);
 
-#ifdef _NUITKA_FULL_COMPAT
         Py_LeaveRecursiveCall();
-#endif
         Py_DECREF(checker);
 
         if (res != NULL) {
@@ -647,7 +622,6 @@ int Nuitka_Object_IsInstance(PyThreadState *tstate, PyObject *instance, PyObject
         }
 
 #if PYTHON_VERSION >= 0x3a0 && PYTHON_VERSION < 0x3b0
-        // Validate that no arg is a parameterized generic.
         for (Py_ssize_t i = 0; i < n; i++) {
             PyObject *arg = PyTuple_GET_ITEM(args, i);
 
@@ -677,11 +651,9 @@ int Nuitka_Object_IsInstance(PyThreadState *tstate, PyObject *instance, PyObject
 #endif
 
     if (PyTuple_Check(cls)) {
-#ifdef _NUITKA_FULL_COMPAT
-        if (Py_EnterRecursiveCall((char *)" in __instancecheck__")) {
+        if (unlikely(Py_EnterRecursiveCall((char *)" in __instancecheck__"))) {
             return -1;
         }
-#endif
 
         Py_ssize_t n = PyTuple_GET_SIZE(cls);
         int r = 0;
@@ -694,30 +666,24 @@ int Nuitka_Object_IsInstance(PyThreadState *tstate, PyObject *instance, PyObject
             }
         }
 
-#ifdef _NUITKA_FULL_COMPAT
         Py_LeaveRecursiveCall();
-#endif
 
         return r;
     }
 
-    PyObject *checker = lookupSpecialNoError(cls, const_str_plain___instancecheck__);
+    PyObject *checker = LOOKUP_SPECIAL_NO_ERROR(cls, const_str_plain___instancecheck__);
 
     if (checker != NULL) {
         int ok = -1;
 
-#ifdef _NUITKA_FULL_COMPAT
-        if (Py_EnterRecursiveCall((char *)" in __instancecheck__")) {
+        if (unlikely(Py_EnterRecursiveCall((char *)" in __instancecheck__"))) {
             Py_DECREF(checker);
             return ok;
         }
-#endif
 
         PyObject *res = CALL_FUNCTION_WITH_SINGLE_ARG(tstate, checker, instance);
 
-#ifdef _NUITKA_FULL_COMPAT
         Py_LeaveRecursiveCall();
-#endif
         Py_DECREF(checker);
 
         if (res != NULL) {
@@ -736,40 +702,112 @@ int Nuitka_Object_IsInstance(PyThreadState *tstate, PyObject *instance, PyObject
 #endif
 #endif
 
-// TODO: We cannot really do this, until Nuitka_TypeLookup (_PyType_Lookup) is
-// not also a call to an API, we just become wasteful here. What will make sense
-// is to make specialized variants for not sub class checks, like
-// PyExc_GeneratorExit and PyExc_StopIteration by caching the descriptor
-// "checker" for them and then calling the "func" behind them more or less
-// directly. These could be created during startup and be very fast to use.
+static int _Nuitka_recursive_issubclass(PyThreadState *tstate, PyObject *derived, PyObject *cls) {
+    if (PyType_Check(cls) && PyType_Check(derived)) {
+        return Nuitka_Type_IsSubtype((PyTypeObject *)derived, (PyTypeObject *)cls);
+    }
 
-#if 0
-int Nuitka_Object_IsSubclass(PyThreadState *tstate, PyObject *derived, PyObject *cls)
-{
-    // TODO: Checking for a type is nothing the core does, could have a second variant
+#if PYTHON_VERSION < 0x300
+    if (PyClass_Check(cls) && PyClass_Check(derived)) {
+        return Nuitka_PyClass_IsSubclass(derived, cls);
+    }
+#endif
+
+    if (!_Nuitka_check_class(tstate, derived, "issubclass() arg 1 must be a class")) {
+        return -1;
+    }
+
+#if PYTHON_VERSION < 0x3a0
+    if (!_Nuitka_check_class(tstate, cls, "issubclass() arg 2 must be a class or tuple of classes")) {
+#else
+    if (!_Nuitka_check_class(tstate, cls, "issubclass() arg 2 must be a class, a tuple of classes, or a union")) {
+#endif
+        return -1;
+    }
+
+    return _Nuitka_abstract_issubclass(tstate, derived, cls);
+}
+
+int Nuitka_Object_IsSubclass(PyThreadState *tstate, PyObject *derived, PyObject *cls) {
+    CHECK_OBJECT(derived);
+    CHECK_OBJECT(cls);
+
     if (PyType_CheckExact(cls)) {
-        // Only a quick test for an exact match, but then give up.
         if (derived == cls) {
             return 1;
         }
 
-        // Too hard for us.
-        return PyObject_IsSubclass(derived, cls);
+        return _Nuitka_recursive_issubclass(tstate, derived, cls);
     }
 
-    // TODO: Checking for a tuple is nothing the core does, could have a second variant
+#if PYTHON_VERSION >= 0x3a0
+    if (Py_TYPE(cls) == Nuitka_PyUnion_Type) {
+#if PYTHON_VERSION < 0x3b0
+        if (!PyType_Check(derived)) {
+            SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_TypeError, "issubclass() arg 1 must be a class");
+            return -1;
+        }
+#endif
+
+        PyObject *args = LOOKUP_ATTRIBUTE(tstate, cls, const_str_plain___args__);
+
+        if (args == NULL) {
+            return -1;
+        }
+
+        if (unlikely(!PyTuple_Check(args))) {
+            Py_DECREF(args);
+            return -1;
+        }
+
+        Py_ssize_t n = PyTuple_GET_SIZE(args);
+
+        if (n == 0) {
+            Py_DECREF(args);
+            SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_TypeError,
+                                            "issubclass() argument 2 cannot be an empty union");
+            return -1;
+        }
+
+#if PYTHON_VERSION < 0x3b0
+        for (Py_ssize_t i = 0; i < n; i++) {
+            PyObject *arg = PyTuple_GET_ITEM(args, i);
+
+            if (Nuitka_Type_IsSubtype(Py_TYPE(arg), &Py_GenericAliasType)) {
+                Py_DECREF(args);
+                SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_TypeError,
+                                                "issubclass() argument 2 cannot contain a parameterized generic");
+                return -1;
+            }
+        }
+#endif
+
+        int r = 0;
+
+        for (Py_ssize_t i = 0; i < n; i++) {
+            r = Nuitka_Object_IsSubclass(tstate, derived, PyTuple_GET_ITEM(args, i));
+
+            if (r != 0) {
+                break;
+            }
+        }
+
+        Py_DECREF(args);
+
+        return r;
+    }
+#endif
+
     if (PyTuple_Check(cls)) {
-        if (Py_EnterRecursiveCall((char *)" in __subclasscheck__")) {
+        if (unlikely(Py_EnterRecursiveCall((char *)" in __subclasscheck__"))) {
             return -1;
         }
 
         Py_ssize_t n = PyTuple_GET_SIZE(cls);
         int r = 0;
 
-        for (Py_ssize_t i = 0; i < n; ++i) {
-            PyObject *item = PyTuple_GET_ITEM(cls, i);
-
-            r = Nuitka_Object_IsSubclass(tstate, derived, item);
+        for (Py_ssize_t i = 0; i < n; i++) {
+            r = Nuitka_Object_IsSubclass(tstate, derived, PyTuple_GET_ITEM(cls, i));
 
             if (r != 0) {
                 break;
@@ -781,46 +819,47 @@ int Nuitka_Object_IsSubclass(PyThreadState *tstate, PyObject *derived, PyObject 
         return r;
     }
 
-    // TODO: For many of our uses, we know it.
-    PyObject *checker = Nuitka_TypeLookup((PyTypeObject *)cls, const_str_plain___subclasscheck__);
+#if PYTHON_VERSION < 0x270
+    PyObject *checker = LOOKUP_ATTRIBUTE(tstate, cls, const_str_plain___subclasscheck__);
 
-    if (checker != NULL) {
-        descrgetfunc f = Py_TYPE(checker)->tp_descr_get;
-
-        if (f == NULL) {
-            Py_INCREF(checker);
-        } else {
-            checker = f(checker, cls, (PyObject *)(Py_TYPE(cls)));
-        }
+    if (checker == NULL && HAS_ERROR_OCCURRED(tstate)) {
+        CLEAR_ERROR_OCCURRED(tstate);
     }
+#elif PYTHON_VERSION < 0x300
+    PyObject *checker = NULL;
+
+    if (!(PyClass_Check(cls) || PyInstance_Check(cls))) {
+        checker = LOOKUP_SPECIAL_NO_ERROR(cls, const_str_plain___subclasscheck__);
+    }
+#else
+    PyObject *checker = LOOKUP_SPECIAL_NO_ERROR(cls, const_str_plain___subclasscheck__);
+#endif
 
     if (checker != NULL) {
         int ok = -1;
 
-        if (Py_EnterRecursiveCall((char *)" in __subclasscheck__")) {
+        if (unlikely(Py_EnterRecursiveCall((char *)" in __subclasscheck__"))) {
             Py_DECREF(checker);
             return ok;
         }
 
-        PyObject *res = CALL_FUNCTION_WITH_SINGLE_ARG(checker, derived);
+        PyObject *res = CALL_FUNCTION_WITH_SINGLE_ARG(tstate, checker, derived);
 
         Py_LeaveRecursiveCall();
-
         Py_DECREF(checker);
 
         if (res != NULL) {
             ok = CHECK_IF_TRUE(res);
             Py_DECREF(res);
         }
+
         return ok;
     } else if (HAS_ERROR_OCCURRED(tstate)) {
         return -1;
     }
 
-    // Too hard for us.
-    return PyObject_IsSubclass(derived, cls);
+    return _Nuitka_recursive_issubclass(tstate, derived, cls);
 }
-#endif
 
 getattrofunc PyObject_GenericGetAttr_resolved;
 setattrofunc PyObject_GenericSetAttr_resolved;
@@ -930,7 +969,7 @@ PyObject *MAKE_TYPE_ALIAS(PyObject *name, PyObject *type_params, PyObject *compu
         ta->qualname = Py_NewRef(name);
     }
 #endif
-    ta->type_params = Py_IsNone(type_params) ? NULL : Py_XNewRef(type_params);
+    ta->type_params = type_params == Py_None ? NULL : Py_XNewRef(type_params);
     ta->compute_value = Py_NewRef(compute_value);
     ta->value = NULL;
     ta->module = Py_NewRef(module_name);
@@ -985,8 +1024,9 @@ typedef struct {
 
 static typevarobject *_Nuitka_typevar_alloc(PyThreadState *tstate, PyObject *name, PyObject *bound,
                                             PyObject *evaluate_bound, PyObject *constraints,
-                                            PyObject *evaluate_constraints, PyObject *default_value, bool covariant,
-                                            bool contravariant, bool infer_variance, PyObject *module) {
+                                            PyObject *evaluate_constraints, PyObject *default_value,
+                                            PyObject *evaluate_default, bool covariant, bool contravariant,
+                                            bool infer_variance, PyObject *module) {
     PyTypeObject *tp = _Py_INTERP_CACHED_OBJECT(tstate->interp, typevar_type);
     typevarobject *result = Nuitka_GC_New(tp);
 
@@ -998,7 +1038,7 @@ static typevarobject *_Nuitka_typevar_alloc(PyThreadState *tstate, PyObject *nam
     result->evaluate_constraints = Py_XNewRef(evaluate_constraints);
 #if PYTHON_VERSION >= 0x3d0
     result->default_value = Py_XNewRef(default_value);
-    result->evaluate_default = NULL;
+    result->evaluate_default = Py_XNewRef(evaluate_default);
 #endif
 
     result->covariant = covariant;
@@ -1019,8 +1059,8 @@ static typevarobject *_Nuitka_typevar_alloc(PyThreadState *tstate, PyObject *nam
 }
 
 static typevartupleobject *_Nuitka_typevartuple_alloc(PyThreadState *tstate, PyObject *name, PyObject *module,
-                                                      PyObject *default_value, bool covariant, bool contravariant,
-                                                      bool infer_variance) {
+                                                      PyObject *default_value, PyObject *evaluate_default,
+                                                      bool covariant, bool contravariant, bool infer_variance) {
     PyTypeObject *tp = _Py_INTERP_CACHED_OBJECT(tstate->interp, typevartuple_type);
     typevartupleobject *tvt = Nuitka_GC_New(tp);
     if (tvt == NULL) {
@@ -1032,7 +1072,7 @@ static typevartupleobject *_Nuitka_typevartuple_alloc(PyThreadState *tstate, PyO
 #endif
 #if PYTHON_VERSION >= 0x3d0
     tvt->default_value = Py_XNewRef(default_value);
-    tvt->evaluate_default = NULL;
+    tvt->evaluate_default = Py_XNewRef(evaluate_default);
 #endif
 #if PYTHON_VERSION >= 0x3f0
     tvt->covariant = covariant;
@@ -1050,8 +1090,8 @@ static typevartupleobject *_Nuitka_typevartuple_alloc(PyThreadState *tstate, PyO
 }
 
 static paramspecobject *_Nuitka_paramspec_alloc(PyThreadState *tstate, PyObject *name, PyObject *bound,
-                                                PyObject *default_value, bool covariant, bool contravariant,
-                                                bool infer_variance, PyObject *module) {
+                                                PyObject *default_value, PyObject *evaluate_default, bool covariant,
+                                                bool contravariant, bool infer_variance, PyObject *module) {
     PyTypeObject *tp = _Py_INTERP_CACHED_OBJECT(tstate->interp, paramspec_type);
     paramspecobject *ps = Nuitka_GC_New(tp);
     if (ps == NULL) {
@@ -1064,7 +1104,7 @@ static paramspecobject *_Nuitka_paramspec_alloc(PyThreadState *tstate, PyObject 
     ps->infer_variance = infer_variance;
 #if PYTHON_VERSION >= 0x3d0
     ps->default_value = Py_XNewRef(default_value);
-    ps->evaluate_default = NULL;
+    ps->evaluate_default = Py_XNewRef(evaluate_default);
 #endif
     Nuitka_GC_Track(ps);
     if (module != NULL) {
@@ -1077,42 +1117,54 @@ static paramspecobject *_Nuitka_paramspec_alloc(PyThreadState *tstate, PyObject 
 }
 
 #if PYTHON_VERSION >= 0x3d0
-PyObject *MAKE_TYPE_VAR(PyThreadState *tstate, PyObject *name, PyObject *evaluate_bound, PyObject *default_value) {
-    return (PyObject *)_Nuitka_typevar_alloc(tstate, name, NULL, evaluate_bound, NULL, NULL, default_value, false,
-                                             false, true, NULL);
+PyObject *MAKE_TYPE_VAR(PyThreadState *tstate, PyObject *name, PyObject *evaluate_bound, PyObject *evaluate_constraints,
+                        PyObject *evaluate_default) {
+    return (PyObject *)_Nuitka_typevar_alloc(tstate, name, NULL, evaluate_bound, NULL, evaluate_constraints, NULL,
+                                             evaluate_default, false, false, true, NULL);
+}
+
+PyObject *MAKE_TYPE_VAR_TUPLE(PyThreadState *tstate, PyObject *name, PyObject *evaluate_default) {
+    return (PyObject *)_Nuitka_typevartuple_alloc(tstate, name, NULL, NULL, evaluate_default, false, false, true);
+}
+
+PyObject *MAKE_PARAM_SPEC(PyThreadState *tstate, PyObject *name, PyObject *evaluate_default) {
+    return (PyObject *)_Nuitka_paramspec_alloc(tstate, name, NULL, NULL, evaluate_default, false, false, true, NULL);
 }
 #else
-PyObject *MAKE_TYPE_VAR(PyThreadState *tstate, PyObject *name, PyObject *evaluate_bound) {
-    return (PyObject *)_Nuitka_typevar_alloc(tstate, name, NULL, evaluate_bound, NULL, NULL, NULL, false, false, true,
-                                             NULL);
+PyObject *MAKE_TYPE_VAR(PyThreadState *tstate, PyObject *name, PyObject *evaluate_bound,
+                        PyObject *evaluate_constraints) {
+    return (PyObject *)_Nuitka_typevar_alloc(tstate, name, NULL, evaluate_bound, NULL, evaluate_constraints, NULL, NULL,
+                                             false, false, true, NULL);
 }
-#endif
 
 PyObject *MAKE_TYPE_VAR_TUPLE(PyThreadState *tstate, PyObject *name) {
-    return (PyObject *)_Nuitka_typevartuple_alloc(tstate, name, NULL, NULL, false, false, true);
+    return (PyObject *)_Nuitka_typevartuple_alloc(tstate, name, NULL, NULL, NULL, false, false, true);
 }
 
 PyObject *MAKE_PARAM_SPEC(PyThreadState *tstate, PyObject *name) {
-    return (PyObject *)_Nuitka_paramspec_alloc(tstate, name, NULL, NULL, false, false, true, NULL);
+    return (PyObject *)_Nuitka_paramspec_alloc(tstate, name, NULL, NULL, NULL, false, false, true, NULL);
 }
+#endif
 
 static PyTypeObject *_getTypeGenericAliasType(void) {
     static PyTypeObject *type_generic_alias_type = NULL;
 
     if (type_generic_alias_type == NULL) {
-
         PyObject *typing_module = IMPORT_HARD_TYPING();
 
         type_generic_alias_type = (PyTypeObject *)PyObject_GetAttrString(typing_module, "_GenericAlias");
-        CHECK_OBJECT(type_generic_alias_type);
+
+        if (unlikely(type_generic_alias_type == NULL)) {
+            return NULL;
+        }
     }
 
     return type_generic_alias_type;
 }
 
-static int _Nuitka_contains_typevartuple(PyTupleObject *params) {
+static int _Nuitka_contains_typevartuple(PyThreadState *tstate, PyTupleObject *params) {
     Py_ssize_t n = PyTuple_GET_SIZE(params);
-    PyTypeObject *tp = _Py_INTERP_CACHED_OBJECT(PyInterpreterState_Get(), typevartuple_type);
+    PyTypeObject *tp = _Py_INTERP_CACHED_OBJECT(tstate->interp, typevartuple_type);
     for (Py_ssize_t i = 0; i < n; i++) {
         PyObject *param = PyTuple_GET_ITEM(params, i);
         if (Py_IS_TYPE(param, tp)) {
@@ -1127,7 +1179,10 @@ static PyObject *_Nuitka_unpack_param(PyThreadState *tstate, PyObject *self) {
 
     if (typing_unpack == NULL) {
         typing_unpack = LOOKUP_ATTRIBUTE(tstate, IMPORT_HARD_TYPING(), const_str_plain_Unpack);
-        CHECK_OBJECT(typing_unpack);
+
+        if (unlikely(typing_unpack == NULL)) {
+            return NULL;
+        }
     }
 
     return LOOKUP_SUBSCRIPT(tstate, typing_unpack, self);
@@ -1137,7 +1192,7 @@ static PyObject *_Nuitka_unpack_param(PyThreadState *tstate, PyObject *self) {
 static PyObject *_Nuitka_unpack_typevartuples(PyThreadState *tstate, PyObject *params) {
     assert(PyTuple_Check(params));
     // TypeVarTuple must be unpacked when passed to Generic, so we do that here.
-    if (_Nuitka_contains_typevartuple((PyTupleObject *)params)) {
+    if (_Nuitka_contains_typevartuple(tstate, (PyTupleObject *)params)) {
         Py_ssize_t n = PyTuple_GET_SIZE(params);
         PyObject *new_params = MAKE_TUPLE_EMPTY(tstate, n);
         CHECK_OBJECT(new_params);
@@ -1147,7 +1202,7 @@ static PyObject *_Nuitka_unpack_typevartuples(PyThreadState *tstate, PyObject *p
             PyObject *param = PyTuple_GET_ITEM(params, i);
             if (Py_IS_TYPE(param, tp)) {
                 PyObject *unpacked = _Nuitka_unpack_param(tstate, param);
-                if (unpacked == NULL) {
+                if (unlikely(unpacked == NULL)) {
                     Py_DECREF(new_params);
                     return NULL;
                 }
@@ -1165,15 +1220,29 @@ static PyObject *_Nuitka_unpack_typevartuples(PyThreadState *tstate, PyObject *p
 PyObject *MAKE_TYPE_GENERIC(PyThreadState *tstate, PyObject *params) {
     CHECK_OBJECT(params);
     PyObject *unpacked_params = _Nuitka_unpack_typevartuples(tstate, params);
+
+    if (unlikely(unpacked_params == NULL)) {
+        return NULL;
+    }
+
     CHECK_OBJECT(unpacked_params);
     assert(PyTuple_CheckExact(unpacked_params));
 
-    PyObject *args[2] = {(PyObject *)_Py_INTERP_CACHED_OBJECT(tstate->interp, generic_type), unpacked_params};
-
     PyObject *called = (PyObject *)_getTypeGenericAliasType();
+
+    if (unlikely(called == NULL)) {
+        Py_DECREF(unpacked_params);
+        return NULL;
+    }
+
+    PyObject *args[2] = {(PyObject *)_Py_INTERP_CACHED_OBJECT(tstate->interp, generic_type), unpacked_params};
 
     PyObject *result = CALL_FUNCTION_WITH_ARGS2(tstate, called, args);
     Py_DECREF(unpacked_params);
+
+    if (unlikely(result == NULL)) {
+        return NULL;
+    }
 
     return MAKE_TUPLE1_0(tstate, result);
 }

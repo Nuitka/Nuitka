@@ -3,10 +3,9 @@
 
 """Installer creation dispatch.
 
-Provides the single entry point 'createInstaller' called from the end of
-compilation in 'MainControl'. It dispatches to the appropriate platform
-implementation, so macOS DMG creation and Windows installer creation share
-one call site.
+Provides the single entry point 'createInstallerDispatch' called from the end
+of compilation in 'MainControl', dispatching to macOS DMG, Windows NSIS, and
+Linux AppImage installer creation.
 """
 
 from nuitka.options.Options import (
@@ -15,7 +14,6 @@ from nuitka.options.Options import (
     getWindowsInstallerLicenseFile,
     getWindowsInstallerMode,
     getWindowsInstallerNsisPath,
-    getWindowsInstallerOutputFilename,
     getWindowsInstallerShortcuts,
     isStandaloneMode,
     isWindowsInstallerAllowUserChangeInstallDir,
@@ -48,7 +46,7 @@ def wasInstallerCreated():
     return _installer_created
 
 
-def getInstallerOutputFilename():
+def computeInstallerOutputFilename():
     """Return the absolute output filename for the installer, or *None*.
 
     Covers Windows installer, macOS DMG, and Linux AppImage creation.
@@ -108,7 +106,6 @@ def createInstallerDispatch():
 
         createWindowsInstaller(
             installer_tool_path=getWindowsInstallerNsisPath(),
-            output_filename=getWindowsInstallerOutputFilename(),
             install_dir_spec=getWindowsInstallerInstallDir(),
             shortcuts=getWindowsInstallerShortcuts() or (),
             license_filename=getWindowsInstallerLicenseFile(),

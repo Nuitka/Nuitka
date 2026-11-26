@@ -18,7 +18,6 @@ _type_indicators = {
 
 
 class CTypeBase(object):
-    # For overload.
     c_type = None
 
     @classmethod
@@ -37,69 +36,53 @@ class CTypeBase(object):
 
     @classmethod
     def getInitValue(cls, init_from):
-        """Convert to init value for the type."""
-
-        # Need to overload this for each type it is used for, pylint: disable=unused-argument
+        # pylint: disable=unused-argument
         assert False, cls.c_type
 
     @classmethod
     def getInitTestConditionCode(cls, value_name, inverted):
-        """Get code to test for uninitialized."""
-
-        # Need to overload this for each type it is used for, pylint: disable=unused-argument
+        # pylint: disable=unused-argument
         assert False, cls.c_type
 
     @classmethod
     def emitVariableAssignCode(
         cls, value_name, needs_release, tmp_name, ref_count, inplace, emit, context
     ):
-        """Get code to assign local variable."""
-
-        # Need to overload this for each type it is used for, pylint: disable=unused-argument
+        # pylint: disable=unused-argument
         assert False, cls.c_type
 
     @classmethod
     def getDeleteObjectCode(
         cls, to_name, value_name, needs_check, tolerant, emit, context
     ):
-        """Get code to delete (del) local variable."""
-
-        # Need to overload this for each type it is used for, pylint: disable=unused-argument
+        # pylint: disable=unused-argument
         assert False, cls.c_type
 
     @classmethod
     def getVariableArgReferencePassingCode(cls, variable_code_name):
-        """Get code to pass variable as reference argument."""
-
-        # Need to overload this for each type it is used for, pylint: disable=unused-argument
+        # pylint: disable=unused-argument
         assert False, cls.c_type
 
     @classmethod
     def getVariableArgDeclarationCode(cls, variable_code_name):
-        """Get variable declaration code with given name."""
-
-        # Need to overload this for each type it is used for, pylint: disable=unused-argument
+        # pylint: disable=unused-argument
         assert False, cls.c_type
 
     @classmethod
     def getCellObjectAssignmentCode(cls, target_cell_code, variable_code_name, emit):
-        """Get assignment code to given cell object from object."""
-
-        # Need to overload this for each type it is used for, pylint: disable=unused-argument
+        # pylint: disable=unused-argument
         assert False, cls.c_type
 
     @classmethod
     def emitAssignmentCodeFromBoolCondition(cls, to_name, condition, emit):
-        """Get the assignment code from C boolean condition."""
-        # Need to overload this for each type it is used for, pylint: disable=unused-argument
+        # pylint: disable=unused-argument
         assert False, cls.c_type
 
     @classmethod
     def emitAssignmentCodeToNuitkaIntOrLong(
         cls, to_name, value_name, needs_check, emit, context
     ):
-        """Get the assignment code to int or long type."""
-        # Need to overload this for each type it is used for, pylint: disable=unused-argument
+        # pylint: disable=unused-argument
         assert False, to_name
 
     @classmethod
@@ -108,21 +91,18 @@ class CTypeBase(object):
 
     @classmethod
     def getReleaseCode(cls, value_name, needs_check, emit):
-        """Get release code for given object."""
-        # Need to overload this for each type it is used for, pylint: disable=unused-argument
+        # pylint: disable=unused-argument
         assert False, cls.c_type
 
     @classmethod
     def emitReInitCode(cls, value_name, emit):
-        """Get release code for given object."""
-        # Need to overload this for each type it is used for, pylint: disable=unused-argument
+        """Reset variable storage to unassigned state without releasing."""
+        # pylint: disable=unused-argument
         assert False, cls.c_type
 
     @classmethod
     def getTakeReferenceCode(cls, value_name, emit):
-        """Take reference code for given object."""
-
-        # Need to overload this for each type it is used for, pylint: disable=unused-argument
+        # pylint: disable=unused-argument
         assert False, (value_name, cls.c_type)
 
     @classmethod
@@ -134,32 +114,44 @@ class CTypeBase(object):
 
     @classmethod
     def emitValueAssertionCode(cls, value_name, emit):
-        """Assert that the value is not unassigned."""
-
-        # Need to overload this for each type it is used for, pylint: disable=unused-argument
+        # pylint: disable=unused-argument
         assert False, cls.c_type
 
     @classmethod
     def emitReleaseAssertionCode(cls, value_name, emit):
-        """Assert that the container of the value is not released already of unassigned."""
+        """Assert that the container of the value is not released already or unassigned."""
         cls.emitValueAssertionCode(value_name, emit)
 
     @classmethod
     def emitAssignConversionCode(cls, to_name, value_name, needs_check, emit, context):
-        # Need to overload this for each type it is used for, pylint: disable=unused-argument
+        # pylint: disable=unused-argument
         assert False, cls.c_type
 
     @classmethod
     def isDualType(cls):
         return False
 
+    @classmethod
+    def holdsObjectReference(cls):
+        """Does a value of this C type itself hold a Python object reference?
+
+        This is about storage ownership, not about whether reading from this
+        type can produce an object reference. Types that only provide a read
+        path, e.g. module variable slots, do not hold the reference.
+        """
+
+        assert False, cls.c_type
+
 
 class CTypeNotReferenceCountedMixin(object):
-    """Mixin for C types, that have no reference counting mechanism."""
+    """Mixin for C types that have no reference counting mechanism."""
+
+    @classmethod
+    def holdsObjectReference(cls):
+        return False
 
     @classmethod
     def getReleaseCode(cls, value_name, needs_check, emit):
-        # If no check is needed, assert it for debug mode.
         if not needs_check:
             cls.emitValueAssertionCode(value_name, emit=emit)
 

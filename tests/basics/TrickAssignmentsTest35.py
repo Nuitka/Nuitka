@@ -42,6 +42,52 @@ except UnboundLocalError:
 else:
     print("Ouch.!")
 
+
+def collectCallArguments(first, second=None):
+    return len(first), first[:1], second
+
+
+def someFunctionThatCallsWithAssignedPositionalArgument():
+    value = ["x"] * 1000
+
+    def change():
+        nonlocal value
+        value = ["y"]
+        return "changed"
+
+    print(collectCallArguments(value, change()))
+    print(len(value), value[:1])
+
+
+def someFunctionThatCallsWithAssignedKeywordArgument():
+    value = ["x"] * 1000
+
+    def change():
+        nonlocal value
+        value = ["y"]
+        return "changed"
+
+    print(collectCallArguments(first=value, second=change()))
+    print(len(value), value[:1])
+
+
+def someFunctionThatAddsWithAssignedNonlocalValue():
+    value = ["x"] * 1000
+
+    def change():
+        nonlocal value
+        value = ["y"]
+        return "changed"
+
+    result = value + [change()]
+    print(len(result), result[:1], result[-1])
+    print(len(value), value[:1])
+
+
+someFunctionThatCallsWithAssignedPositionalArgument()
+someFunctionThatCallsWithAssignedKeywordArgument()
+someFunctionThatAddsWithAssignedNonlocalValue()
+
 #     Python tests originally created or extracted from other peoples work. The
 #     parts were too small to be protected.
 #

@@ -15,20 +15,19 @@ from nuitka.utils.Jinja2 import getTemplateC
 from .CodeHelpers import (
     generateChildExpressionCode,
     generateExpressionCode,
+    promoteBorrowedValue,
+    withBorrowedValueScope,
     withObjectCodeTemporaryAssignment,
 )
 from .ErrorCodes import getErrorExitCode
 from .LineNumberCodes import emitLineNumberUpdateCode
-from .templates.CodeTemplatesModules import (
-    template_header_guard,
-    template_helper_impl_decl,
-)
+from .templates.CodeTemplatesModules import template_helper_impl_decl
 
 
 def _generateCallCodePosOnly(
     to_name, expression, called_name, called_attribute_name, emit, context
 ):
-    # We have many variants for this to deal with, pylint: disable=too-many-branches
+    # pylint: disable=too-many-branches
 
     assert called_name is not None
     # TODO: Not yet specialized for method calls.
@@ -122,11 +121,19 @@ def _generateCallCodePosOnly(
                 )
     elif call_args.isExpressionMakeTuple():
         call_arg_names = []
+        call_arg_elements = call_args.subnode_elements
 
-        for call_arg_element in call_args.subnode_elements:
+        for count, call_arg_element in enumerate(call_arg_elements):
             call_arg_name = generateChildExpressionCode(
                 child_name=call_args.getChildName() + "_element",
                 expression=call_arg_element,
+                emit=emit,
+                context=context,
+            )
+
+            promoteBorrowedValue(
+                value_name=call_arg_name,
+                later_expressions=call_arg_elements[count + 1 :],
                 emit=emit,
                 context=context,
             )
@@ -287,7 +294,7 @@ def getCallCodeKwPairs(
 
         dict_value_name = context.allocateTempName("kw_call_value_%d" % count)
 
-        # TODO: Need to make it easier to generator constant values here without
+        # TODO: Need to make it easier to generate constant values here without
         # going through nodes.
         generateExpressionCode(
             to_name=dict_value_name,
@@ -295,6 +302,15 @@ def getCallCodeKwPairs(
             emit=emit,
             context=context,
             allow_none=False,
+        )
+
+        promoteBorrowedValue(
+            value_name=dict_value_name,
+            later_expressions=[
+                later_pair.getValueNode() for later_pair in pairs[count + 1 :]
+            ],
+            emit=emit,
+            context=context,
         )
 
         dict_value_names.append(dict_value_name)
@@ -314,7 +330,7 @@ def getCallCodeKwPairs(
             context=context,
         )
     else:
-        # This is called on generic pairs in some cases. TODO: Make passing expression and needs_check propagate more up.
+        # TODO: Make passing expression and needs_check propagate more up.
         getCallCodeNoArgs(
             to_name=to_name,
             called_name=called_name,
@@ -368,9 +384,14 @@ def _generateCallCodeKwDict(
 
 
 def generateCallCode(to_name, expression, emit, context):
-    # There is a whole lot of different cases, for each of which, we create
-    # optimized code, constant, with and without positional or keyword arguments
-    # each, so there is lots of branches involved. pylint: disable=too-many-branches
+    with withBorrowedValueScope(context):
+        _generateCallCode(
+            to_name=to_name, expression=expression, emit=emit, context=context
+        )
+
+
+def _generateCallCode(to_name, expression, emit, context):
+    # pylint: disable=too-many-branches
 
     called = expression.subnode_called
     call_kw = expression.subnode_kwargs
@@ -408,6 +429,15 @@ def generateCallCode(to_name, expression, emit, context):
             expression=called, emit=emit, context=context
         )
 
+    promoteBorrowedValue(
+        value_name=called_name,
+        later_expressions=[
+            call_child for call_child in (call_args, call_kw) if call_child is not None
+        ],
+        emit=emit,
+        context=context,
+    )
+
     with withObjectCodeTemporaryAssignment(
         to_name, "call_result", expression, emit, context
     ) as result_name:
@@ -425,7 +455,6 @@ def generateCallCode(to_name, expression, emit, context):
 
             if call_args is None or call_args.isExpressionConstantTupleEmptyRef():
                 if call_kw.isExpressionConstantDictRef():
-                    # Optimization should have turned that into a raise exception.
                     assert call_kw.isMappingWithConstantStringKeys()
 
                     _getCallCodeKwSplitFromConstant(
@@ -466,7 +495,6 @@ def generateCallCode(to_name, expression, emit, context):
                     call_kw.isExpressionConstantDictRef()
                     and call_args.isExpressionConstantTupleRef()
                 ):
-                    # Both are constant, merge values into one tuple and pass it on.
                     _getCallCodePosConstantKeywordConstArgs(
                         to_name=result_name,
                         called_name=called_name,
@@ -480,7 +508,6 @@ def generateCallCode(to_name, expression, emit, context):
                     call_kw.isExpressionMakeDict()
                     and call_args.isExpressionConstantTupleRef()
                 ):
-                    # Only positional args are constant, create tuple and split keyword values.
                     _getCallCodePosConstKeywordVariableArgs(
                         to_name=result_name,
                         called_name=called_name,
@@ -494,7 +521,6 @@ def generateCallCode(to_name, expression, emit, context):
                     call_kw.isExpressionConstantDictRef()
                     and call_args.isExpressionMakeTuple()
                 ):
-                    # Only keyword args are constant, split them from variable positional args.
                     _getCallCodePosVariableKeywordConstArgs(
                         to_name=result_name,
                         called_name=called_name,
@@ -507,7 +533,6 @@ def generateCallCode(to_name, expression, emit, context):
                 elif (
                     call_kw.isExpressionMakeDict() and call_args.isExpressionMakeTuple()
                 ):
-                    # None are constant, pass as args array split keyword values.
                     getCallCodePosVariableKeywordVariableArgs(
                         to_name=result_name,
                         expression=expression,
@@ -518,8 +543,6 @@ def generateCallCode(to_name, expression, emit, context):
                         context=context,
                     )
                 else:
-                    # Otherwise, pass as tuple and dict
-
                     call_args_name = generateChildExpressionCode(
                         expression=call_args, emit=emit, context=context
                     )
@@ -596,14 +619,10 @@ def _getInstanceCallCodePosArgsQuick(
     context,
 ):
     arg_size = len(arg_names)
-
-    # For 0 arguments, NOARGS is supposed to be used.
     assert arg_size > 0
 
     emitLineNumberUpdateCode(expression, emit, context)
 
-    # For one argument, we have a dedicated helper function that might
-    # be more efficient.
     if arg_size == 1:
         emit(
             """%s = CALL_METHOD_WITH_SINGLE_ARG(tstate, %s, %s, %s);"""
@@ -611,6 +630,7 @@ def _getInstanceCallCodePosArgsQuick(
         )
     else:
         quick_instance_calls_used.add(arg_size)
+        context.addCallHelper(("method", arg_size))
 
         emit(
             """\
@@ -646,14 +666,10 @@ def _getInstanceCallCodePosArgsQuick(
 
 def getCallCodePosArgsQuick(to_name, called_name, arg_names, expression, emit, context):
     arg_size = len(arg_names)
-
-    # For 0 arguments, NOARGS is supposed to be used.
     assert arg_size > 0
 
     emitLineNumberUpdateCode(expression, emit, context)
 
-    # For one argument, we have a dedicated helper function that might
-    # be more efficient.
     if arg_size == 1:
         emit(
             """%s = CALL_FUNCTION_WITH_SINGLE_ARG(tstate, %s, %s);"""
@@ -661,6 +677,7 @@ def getCallCodePosArgsQuick(to_name, called_name, arg_names, expression, emit, c
         )
     else:
         quick_calls_used.add(arg_size)
+        context.addCallHelper(("function", arg_size))
 
         emit(
             """\
@@ -699,8 +716,8 @@ def _getInstanceCallCodeFromTuple(
     context,
 ):
     quick_instance_calls_used.add(arg_size)
+    context.addCallHelper(("method", arg_size))
 
-    # For 0 arguments, NOARGS is supposed to be used.
     assert arg_size > 0
 
     emitLineNumberUpdateCode(expression, emit, context)
@@ -748,15 +765,12 @@ def _getInstanceCallCodeFromTuple(
 
 def _getCallCodeFromTuple(to_name, called_name, expression, args_value, emit, context):
     arg_size = len(args_value)
-
-    # For 0 arguments, NOARGS is supposed to be used.
     assert arg_size > 0
 
     emitLineNumberUpdateCode(expression, emit, context)
 
-    # We create a tuple for the call, as this can be prepared and might have to be
-    # recreated for cases, e.g. when calling C functions, so this is a good way of
-    # having them.
+    # Mutable elements in the constant tuple require copying before passing, as
+    # C functions might mutate or retain them.
     if isMutable(args_value):
         arg_tuple_name = context.allocateTempName("call_args_tuple")
 
@@ -773,6 +787,7 @@ def _getCallCodeFromTuple(to_name, called_name, expression, args_value, emit, co
         args_name = None
 
     quick_tuple_calls_used.add(arg_size)
+    context.addCallHelper(("function_tuple", arg_size))
 
     emit("""\
 %s = CALL_FUNCTION_WITH_POS_ARGS%d(tstate, %s, %s);
@@ -801,7 +816,7 @@ def _getInstanceCallCodePosArgs(
     emitLineNumberUpdateCode(expression, emit, context)
 
     emit(
-        "%s = CALL_METHOD_WITH_POS_ARGS(%s, %s, %s);"
+        "%s = CALL_METHOD_WITH_POS_ARGS(tstate, %s, %s, %s);"
         % (to_name, called_name, called_attribute_name, args_name)
     )
 
@@ -838,15 +853,16 @@ def _getCallCodePosArgs(to_name, called_name, expression, args_name, emit, conte
 def _getCallCodePosConstKeywordVariableArgs(
     to_name, called_name, expression, call_args, call_kw, emit, context
 ):
-    # More details, pylint: disable=too-many-locals
+    # pylint: disable=too-many-locals
 
     args = call_args.getCompileTimeConstant()
 
     kw_names = []
 
     dict_value_names = []
+    pairs = call_kw.subnode_pairs
 
-    for count, pair in enumerate(call_kw.subnode_pairs):
+    for count, pair in enumerate(pairs):
         kw_names.append(pair.getKeyCompileTimeConstant())
 
         dict_value_name = context.allocateTempName("kw_call_value_%d" % count)
@@ -859,11 +875,21 @@ def _getCallCodePosConstKeywordVariableArgs(
             allow_none=False,
         )
 
+        promoteBorrowedValue(
+            value_name=dict_value_name,
+            later_expressions=[
+                later_pair.getValueNode() for later_pair in pairs[count + 1 :]
+            ],
+            emit=emit,
+            context=context,
+        )
+
         dict_value_names.append(dict_value_name)
 
     args_count = len(args)
 
     quick_mixed_calls_used.add((args_count, True, True))
+    context.addCallHelper(("mixed", args_count, True, True))
 
     if isMutable(args):
         args_value_name = context.allocateTempName("call_pos_args_values")
@@ -917,7 +943,7 @@ tstate, %(called_name)s, %(pos_args)s, kw_values, %(kw_names)s);
 def _getCallCodePosVariableKeywordConstArgs(
     to_name, called_name, expression, call_args, call_kw, emit, context
 ):
-    # Many details for this call variant, pylint: disable=too-many-locals
+    # pylint: disable=too-many-locals
     kw_items = tuple(call_kw.getCompileTimeConstant().items())
 
     kw_names = tuple(item[0] for item in kw_items)
@@ -925,7 +951,9 @@ def _getCallCodePosVariableKeywordConstArgs(
 
     call_arg_names = []
 
-    for count, call_arg_element in enumerate(call_args.subnode_elements):
+    call_arg_elements = call_args.subnode_elements
+
+    for count, call_arg_element in enumerate(call_arg_elements):
         call_arg_name = context.allocateTempName("kw_call_arg_value_%d" % count)
 
         generateExpressionCode(
@@ -935,11 +963,19 @@ def _getCallCodePosVariableKeywordConstArgs(
             context=context,
         )
 
+        promoteBorrowedValue(
+            value_name=call_arg_name,
+            later_expressions=call_arg_elements[count + 1 :],
+            emit=emit,
+            context=context,
+        )
+
         call_arg_names.append(call_arg_name)
 
     args_count = len(call_arg_names)
 
     quick_mixed_calls_used.add((args_count, False, True))
+    context.addCallHelper(("mixed", args_count, False, True))
 
     if isMutable(kw_values):
         kw_values_name = context.allocateTempName("call_kw_split_values")
@@ -997,7 +1033,7 @@ def _getCallCodePosVariableKeywordConstArgs(
 def getCallCodePosVariableKeywordVariableArgs(
     to_name, expression, called_name, call_args, pairs, emit, context
 ):
-    # Many details for this call variant, pylint: disable=too-many-locals
+    # pylint: disable=too-many-locals
 
     kw_names = []
 
@@ -1009,6 +1045,14 @@ def getCallCodePosVariableKeywordVariableArgs(
         generateExpressionCode(
             to_name=call_arg_name,
             expression=call_arg_element,
+            emit=emit,
+            context=context,
+        )
+
+        promoteBorrowedValue(
+            value_name=call_arg_name,
+            later_expressions=list(call_args[count + 1 :])
+            + [pair.getValueNode() for pair in pairs],
             emit=emit,
             context=context,
         )
@@ -1040,11 +1084,21 @@ def getCallCodePosVariableKeywordVariableArgs(
             allow_none=False,
         )
 
+        promoteBorrowedValue(
+            value_name=dict_value_name,
+            later_expressions=[
+                later_pair.getValueNode() for later_pair in pairs[count + 1 :]
+            ],
+            emit=emit,
+            context=context,
+        )
+
         dict_value_names.append(dict_value_name)
 
     args_count = len(call_args)
 
     quick_mixed_calls_used.add((args_count, False, True))
+    context.addCallHelper(("mixed", args_count, False, True))
 
     emitLineNumberUpdateCode(expression, emit, context)
 
@@ -1094,6 +1148,7 @@ def _getCallCodePosConstantKeywordConstArgs(
 
     arg_size = len(args)
     quick_mixed_calls_used.add((arg_size, False, False))
+    context.addCallHelper(("mixed", arg_size, False, False))
 
     if isMutable(values):
         args_values_name = context.allocateTempName("call_args_values")
@@ -1206,59 +1261,74 @@ def getTemplateCodeDeclaredFunction(code):
     )
 
 
+def _getCallHelperCode(helper):
+    helper_kind = helper[0]
+
+    if helper_kind == "function":
+        return getQuickCallCode(
+            args_count=helper[1],
+            has_tuple_arg=False,
+        )
+    elif helper_kind == "function_tuple":
+        return getQuickCallCode(
+            args_count=helper[1],
+            has_tuple_arg=True,
+        )
+    elif helper_kind == "method":
+        return getQuickMethodCallCode(
+            args_count=helper[1],
+        )
+    else:
+        assert helper_kind == "mixed", helper
+
+        return getQuickMixedCallCode(
+            args_count=helper[1],
+            has_tuple_arg=helper[2],
+            has_dict_values=helper[3],
+        )
+
+
+def getCallsDeclCode(call_helpers):
+    result = []
+
+    for helper in sorted(call_helpers):
+        if helper[1] > max_quick_call:
+            result.append(getTemplateCodeDeclaredFunction(_getCallHelperCode(helper)))
+
+    return "\n".join(result)
+
+
 def getCallsCode():
-    header_codes = []
+    """Get the helper implementations for the quick calls that were used.
+
+    Returns:
+        List of C code chunks for the helpers source file.
+    """
+
     body_codes = []
 
     body_codes.append(template_helper_impl_decl % {})
 
-    for quick_call_used in sorted(quick_calls_used.union(quick_instance_calls_used)):
-        if quick_call_used <= max_quick_call:
-            continue
+    all_helpers = set()
 
-        code = getQuickCallCode(args_count=quick_call_used, has_tuple_arg=False)
-        body_codes.append(code)
-        header_codes.append(getTemplateCodeDeclaredFunction(code))
+    for quick_call_used in quick_calls_used:
+        all_helpers.add(("function", quick_call_used))
 
-    for quick_tuple_call_used in sorted(quick_tuple_calls_used):
-        if quick_tuple_call_used <= max_quick_call:
-            continue
+    for quick_tuple_call_used in quick_tuple_calls_used:
+        all_helpers.add(("function_tuple", quick_tuple_call_used))
 
-        code = getQuickCallCode(args_count=quick_tuple_call_used, has_tuple_arg=True)
-        body_codes.append(code)
-        header_codes.append(getTemplateCodeDeclaredFunction(code))
+    for quick_mixed_call_used in quick_mixed_calls_used:
+        all_helpers.add(("mixed",) + quick_mixed_call_used)
 
-    for quick_mixed_call_used, has_tuple_arg, has_dict_values in sorted(
-        quick_mixed_calls_used
-    ):
-        if quick_mixed_call_used <= max_quick_call:
-            continue
+    for quick_instance_call_used in quick_instance_calls_used:
+        all_helpers.add(("method", quick_instance_call_used))
+        all_helpers.add(("function", quick_instance_call_used))
 
-        code = getQuickMixedCallCode(
-            args_count=quick_mixed_call_used,
-            has_tuple_arg=has_tuple_arg,
-            has_dict_values=has_dict_values,
-        )
-        body_codes.append(code)
-        header_codes.append(getTemplateCodeDeclaredFunction(code))
+    for helper in sorted(all_helpers):
+        if helper[1] > max_quick_call:
+            body_codes.append(_getCallHelperCode(helper))
 
-    for quick_instance_call_used in sorted(quick_instance_calls_used):
-        if quick_instance_call_used <= max_quick_call:
-            continue
-
-        code = getQuickMethodCallCode(args_count=quick_instance_call_used)
-
-        body_codes.append(code)
-        header_codes.append(getTemplateCodeDeclaredFunction(code))
-
-    return (
-        template_header_guard
-        % {
-            "header_guard_name": "__NUITKA_CALLS_H__",
-            "header_body": "\n".join(header_codes),
-        },
-        "\n".join(body_codes),
-    )
+    return body_codes
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and

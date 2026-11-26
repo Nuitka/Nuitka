@@ -14,7 +14,7 @@ CALL_FUNCTION_WITH_ARGS{{args_count}}(tstate, {{ called }}, {{args}})
 PyObject *CALL_METHOD_NO_ARGS(PyThreadState *tstate, PyObject *source, PyObject *attr_name) {
 {% elif args_count == 1 %}
 PyObject *CALL_METHOD_WITH_SINGLE_ARG(PyThreadState *tstate, PyObject *source, PyObject *attr_name, PyObject *arg) {
-    PyObject *const *args = &arg; // For easier code compatibility.
+    PyObject *const *args = &arg;
 {% else %}
 PyObject *CALL_METHOD_WITH_ARGS{{args_count}}(PyThreadState *tstate, PyObject *source, PyObject *attr_name, PyObject *const *args) {
 {% endif %}
@@ -26,7 +26,6 @@ PyObject *CALL_METHOD_WITH_ARGS{{args_count}}(PyThreadState *tstate, PyObject *s
     PyTypeObject *type = Py_TYPE(source);
 
     if (hasTypeGenericGetAttr(type)) {
-        // Unfortunately this is required, although of cause rarely necessary.
         if (unlikely(type->tp_dict == NULL)) {
             if (unlikely(PyType_Ready(type) < 0)) {
                 return NULL;
@@ -46,6 +45,10 @@ PyObject *CALL_METHOD_WITH_ARGS{{args_count}}(PyThreadState *tstate, PyObject *s
                     PyObject *called_object = func(descr, source, (PyObject *)type);
                     Py_DECREF(descr);
 
+                    if (unlikely(called_object == NULL)) {
+                        return NULL;
+                    }
+
                     PyObject *result = {{ call_function_with_args( "called_object", "args", args_count) }};
                     Py_DECREF(called_object);
                     return result;
@@ -56,8 +59,28 @@ PyObject *CALL_METHOD_WITH_ARGS{{args_count}}(PyThreadState *tstate, PyObject *s
         Py_ssize_t dictoffset = type->tp_dictoffset;
         PyObject *dict = NULL;
 
+#if PYTHON_VERSION >= 0x3b0
+        if (type->tp_flags & Py_TPFLAGS_MANAGED_DICT) {
+            PyObject *called_object = NULL;
+            int found = Nuitka_LookupManagedDictAttribute(type, source, attr_name, &dict, &called_object);
+
+            if (found != 0) {
+                Py_XDECREF(descr);
+
+                if (unlikely(found < 0)) {
+                    return NULL;
+                }
+
+                PyObject *result = {{ call_function_with_args( "called_object", "args", args_count) }};
+                Py_DECREF(called_object);
+                return result;
+            }
+
+            dictoffset = 0;
+        }
+#endif
+
         if (dictoffset != 0) {
-            // Negative dictionary offsets have special meaning.
             if (dictoffset < 0) {
                 Py_ssize_t tsize;
                 size_t size;
@@ -92,10 +115,24 @@ PyObject *CALL_METHOD_WITH_ARGS{{args_count}}(PyThreadState *tstate, PyObject *s
             }
 
             Py_DECREF(dict);
+
+#if PYTHON_VERSION < 0x300
+            DROP_ERROR_OCCURRED(tstate);
+#else
+            if (unlikely(HAS_ERROR_OCCURRED(tstate))) {
+                Py_XDECREF(descr);
+                return NULL;
+            }
+#endif
         }
 
         if (func != NULL) {
             if (func == Nuitka_Function_Type.tp_descr_get) {
+                if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
+                    Py_DECREF(descr);
+                    return NULL;
+                }
+
 {% if args_count != 0 %}
                 PyObject *result = Nuitka_CallMethodFunctionPosArgs(
                     tstate,
@@ -111,14 +148,20 @@ PyObject *CALL_METHOD_WITH_ARGS{{args_count}}(PyThreadState *tstate, PyObject *s
                     source
                 );
 {% endif %}
+                Py_LeaveRecursiveCall();
+
                 Py_DECREF(descr);
 
                 return result;
             } else {
                 PyObject *called_object = func(descr, source, (PyObject *)type);
-                CHECK_OBJECT(called_object);
-
                 Py_DECREF(descr);
+
+                if (unlikely(called_object == NULL)) {
+                    return NULL;
+                }
+
+                CHECK_OBJECT(called_object);
 
                 PyObject *result = {{ call_function_with_args( "called_object", "args", args_count) }};
                 Py_DECREF(called_object);
@@ -149,43 +192,42 @@ PyObject *CALL_METHOD_WITH_ARGS{{args_count}}(PyThreadState *tstate, PyObject *s
             attr_name
         );
 #endif
+#if PYTHON_VERSION >= 0x3a0
+        SET_ATTRIBUTE_ERROR_CONTEXT(tstate, source, attr_name);
+#endif
         return NULL;
     }
 #if PYTHON_VERSION < 0x300
     else if (type == &PyInstance_Type) {
         PyInstanceObject *source_instance = (PyInstanceObject *)source;
 
-        // The special cases have their own variant on the code generation level
-        // as we are called with constants only.
         assert(attr_name != const_str_plain___dict__);
         assert(attr_name != const_str_plain___class__);
 
-        // Try the instance dict first.
         PyObject *called_object = GET_STRING_DICT_VALUE(
             (PyDictObject *)source_instance->in_dict,
             (PyStringObject *)attr_name
         );
 
-        // Note: The "called_object" was found without taking a reference,
-        // so we need not release it in this branch.
         if (called_object != NULL) {
             return {{ call_function_with_args( "called_object", "args", args_count) }};
         }
 
-        // Then check the class dictionaries.
         called_object = FIND_ATTRIBUTE_IN_CLASS(
             source_instance->in_class,
             attr_name
         );
 
-        // Note: The "called_object" was found without taking a reference,
-        // so we need not release it in this branch.
         if (called_object != NULL) {
             descrgetfunc descr_get = Py_TYPE(called_object)->tp_descr_get;
 
             if (descr_get == Nuitka_Function_Type.tp_descr_get) {
+                if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
+                    return NULL;
+                }
+
 {% if args_count != 0 %}
-                return Nuitka_CallMethodFunctionPosArgs(
+                PyObject *result = Nuitka_CallMethodFunctionPosArgs(
                     tstate,
                     (struct Nuitka_FunctionObject const *)called_object,
                     source,
@@ -193,12 +235,15 @@ PyObject *CALL_METHOD_WITH_ARGS{{args_count}}(PyThreadState *tstate, PyObject *s
                     {{ args_count }}
                 );
 {% else %}
-                return Nuitka_CallMethodFunctionNoArgs(
+                PyObject *result = Nuitka_CallMethodFunctionNoArgs(
                     tstate,
                     (struct Nuitka_FunctionObject const *)called_object,
                     source
                 );
 {% endif %}
+                Py_LeaveRecursiveCall();
+
+                return result;
             } else if (descr_get != NULL) {
                 PyObject *method = descr_get(
                     called_object,
@@ -227,9 +272,6 @@ PyObject *CALL_METHOD_WITH_ARGS{{args_count}}(PyThreadState *tstate, PyObject *s
 
             return NULL;
         } else {
-            // Finally allow the "__getattr__" override to provide it or else
-            // it's an error.
-
             PyObject *args2[] = {
                 source,
                 attr_name
@@ -252,33 +294,14 @@ PyObject *CALL_METHOD_WITH_ARGS{{args_count}}(PyThreadState *tstate, PyObject *s
     }
 #endif
     else if (type->tp_getattro != NULL) {
-        PyObject *descr = (*type->tp_getattro)(source, attr_name);
+        PyObject *called_object = (*type->tp_getattro)(source, attr_name);
 
-        if (unlikely(descr == NULL)) {
+        if (unlikely(called_object == NULL)) {
             return NULL;
         }
 
-        descrgetfunc func = NULL;
-        if (NuitkaType_HasFeatureClass(Py_TYPE(descr))) {
-            func = Py_TYPE(descr)->tp_descr_get;
-
-            if (func != NULL && Nuitka_Descr_IsData(descr)) {
-                PyObject *called_object = func(descr, source, (PyObject *)type);
-                Py_DECREF(descr);
-
-                if (unlikely(called_object == NULL))
-                {
-                    return NULL;
-                }
-
-                PyObject *result = {{ call_function_with_args("called_object", "args", args_count) }};
-                Py_DECREF(called_object);
-                return result;
-            }
-        }
-
-        PyObject *result = {{ call_function_with_args("descr", "args", args_count) }};
-        Py_DECREF(descr);
+        PyObject *result = {{ call_function_with_args("called_object", "args", args_count) }};
+        Py_DECREF(called_object);
         return result;
     } else if (type->tp_getattr != NULL) {
         PyObject *called_object = (*type->tp_getattr)(

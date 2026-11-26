@@ -26,7 +26,7 @@
         Py_DECREF_IMMORTAL(x);
     }
 {% else %}
-    // No inplace number slot {{ nb_inplace_slot }} available for this type.
+    {# No inplace number slot {{ nb_inplace_slot }} available for this type. #}
 {% endif %}
 
     {
@@ -39,11 +39,7 @@ exit_inplace_result_object:
         return false;
     }
 
-    // We got an object handed, that we have to release.
     Py_DECREF(*operand1);
-
-    // That's our return value then. As we use a dedicated variable, it's
-    // OK that way.
     *operand1 = obj_result;
 
     return true;
@@ -74,7 +70,7 @@ static HEDLEY_NEVER_INLINE bool __INPLACE_OPERATION_{{op_code}}_{{left.getHelper
 }
 {% endif %}
 static inline bool _INPLACE_OPERATION_{{op_code}}_{{left.getHelperCodeName()}}_{{right.getHelperCodeName()}}({{left.getVariableDecl("*operand1")}}, {{right.getVariableDecl("operand2")}}) {
-    assert(operand1); // Pointer must be non-null.
+    assert(operand1);
 
     {{ left.getCheckValueCode("*operand1") }}
     {{ right.getCheckValueCode("operand2") }}
@@ -100,9 +96,7 @@ static inline bool _INPLACE_OPERATION_{{op_code}}_{{left.getHelperCodeName()}}_{
 {% endif %}
 
 {% if operator == "+" and (left.mayBothHaveType(right, "str") or left.mayBothHaveType(right, "unicode") or left.hasOneOrBothType(right, "bytes")) %}
-    if (Py_REFCNT(*operand1) == 1) {
-        // We more or less own the operand, so we might reuse its storage and
-        // execute stuff in-place.
+    if (_PyObject_IsUniquelyReferenced(*operand1)) {
 {% if operator == "+" and left.mayBothHaveType(right, "str") %}
 #if PYTHON_VERSION < 0x300
         if ({{left.getStringCheckExpression("*operand1")}} && !PyString_CHECK_INTERNED(*operand1) && {{right.getStringCheckExpression("operand2")}}) {
@@ -114,7 +108,7 @@ static inline bool _INPLACE_OPERATION_{{op_code}}_{{left.getHelperCodeName()}}_{
 {% if operator == "+" and left.mayBothHaveType(right, "unicode") %}
 #if PYTHON_VERSION >= 0x300
         if ({{ left.getUnicodeCheckExpression("*operand1")}} && !PyUnicode_CHECK_INTERNED(*operand1) && {{right.getUnicodeCheckExpression("operand2") }}) {
-            // TODO: Push outward.
+            {# TODO: Push outward. #}
             PyThreadState *tstate = PyThreadState_GET();
 
             return UNICODE_ADD_INCREMENTAL(tstate, operand1, operand2);
@@ -153,12 +147,11 @@ static inline bool _INPLACE_OPERATION_{{op_code}}_{{left.getHelperCodeName()}}_{
 {% if operator == "+" and left == right and left in (object_desc, str_desc) %}
 {# Fast path for Python2 str values, very important for performance. #}
 #if PYTHON_VERSION < 0x300
-    // Python2 strings are to be treated differently, fall back to Python API here.
     if ({{ left.getStringCheckExpression("*operand1")}} && {{right.getStringCheckExpression("operand2") }}) {
         {# This could be inlined too, but it has some detail behind it. #}
         PyString_Concat(operand1, operand2);
 
-        // TODO: Have this more globally passed in
+        {# TODO: Have this more globally passed in #}
         PyThreadState *tstate = PyThreadState_GET();
 
         return !HAS_ERROR_OCCURRED(tstate);
@@ -168,9 +161,8 @@ static inline bool _INPLACE_OPERATION_{{op_code}}_{{left.getHelperCodeName()}}_{
 {% if operator == "+" and left == right and right == object_desc %}
 {# Fast path for Python3 str values, very important for performance. #}
 #if PYTHON_VERSION >= 0x300
-    // Python3 Strings are to be treated differently.
     if ({{ left.getUnicodeCheckExpression("*operand1")}} && {{right.getUnicodeCheckExpression("operand2") }}) {
-        // TODO: Have this more globally passed in
+        {# TODO: Have this more globally passed in #}
         PyThreadState *tstate = PyThreadState_GET();
 
         PyObject *result = UNICODE_CONCAT(tstate, *operand1, operand2);
@@ -239,9 +231,6 @@ static inline bool _INPLACE_OPERATION_{{op_code}}_{{left.getHelperCodeName()}}_{
 {% endif %}
 
     if ({{ left.getTypeIdenticalCheckExpression(right, "type1", "type2") }}) {
-        {# There is special code for same types. #}
-        // return _BINARY_OPERATION_{{op_code}}_{{left.getSameTypeType(right).getHelperCodeName()}}_{{right.getSameTypeType(left).getHelperCodeName()}}_INPLACE(operand1, operand2);
-
         {{ call_binary_slot(props, operator, nb_slot, nb_inplace_slot, left.getSameTypeType(right), right.getSameTypeType(left), "result", "*operand1", "operand2", "exit_result_ok", "exit_result_exception") }}
 
         exit_result_ok:

@@ -15,7 +15,7 @@ from nuitka.__past__ import (  # pylint: disable=redefined-builtin
 )
 from nuitka.containers.Namedtuples import makeNamedtupleClass
 from nuitka.containers.OrderedSets import OrderedSet
-from nuitka.options.Options import isExperimental
+from nuitka.options.Experimental import isExperimental
 from nuitka.PythonFlavors import (
     isAnacondaPython,
     isMSYS2MingwPython,
@@ -427,9 +427,9 @@ is typically caused by corruption of its installation."""
 
 
 def getDistributionsFromModuleName(module_name):
-    """Get the distribution names associated with a module name.
+    """Get the 'Distribution' objects associated with a module name.
 
-    This can be more than one in case of namespace modules.
+    This can be more than one in case of namespace packages.
     """
 
     distributions = getDistributions()
@@ -449,7 +449,7 @@ def getDistributionsFromModuleName(module_name):
 
 
 def _getDistributionFromModuleName(module_name, prefer_shorter_distribution_name):
-    """Get the distribution name associated with a module name."""
+    """Get the 'Distribution' object associated with a module name, or None."""
 
     distributions = getDistributionsFromModuleName(module_name)
 
@@ -498,7 +498,7 @@ _distribution_from_name_cache = {}
 
 
 def getDistributionFromModuleName(module_name, prefer_shorter_distribution_name=False):
-    """Get the distribution name associated with a module name."""
+    """Get the 'Distribution' object associated with a module name, or None."""
 
     if module_name not in _distribution_from_name_cache:
         _distribution_from_name_cache[module_name] = _getDistributionFromModuleName(
@@ -553,17 +553,16 @@ def isDistributionVendored(distribution_name):
     if getDistributionInstallerName(distribution_name) == "uv":
         path = _getDistributionPath(getDistribution(distribution_name))
 
-        if path is not None:
-            if os.path.dirname(path).endswith(
-                (r"setuptools\_vendor", "setuptools/vendor")
-            ):
-                return True
+        if path is not None and os.path.dirname(path).endswith(
+            (r"setuptools\_vendor", "setuptools/_vendor")
+        ):
+            return True
 
     return False
 
 
 def isDistributionMsys2Package(distribution_name):
-    if not isAnacondaPython():
+    if not isMSYS2MingwPython() and not isPosixWindows():
         return False
 
     return getDistributionInstallerName(distribution_name).startswith("MSYS2")
@@ -592,6 +591,31 @@ _pdm_dir_cache = {}
 
 def _getDistributionPath(distribution):
     return getattr(distribution, "_path", None)
+
+
+def _getDistributionPathNameAndVersion(distribution):
+    """Get the name and version encoded in a '.dist-info' directory name.
+
+    Returns:
+        Tuple of name and version, or a tuple of None values if the path
+        does not follow the naming convention.
+    """
+    distribution_path = _getDistributionPath(distribution)
+
+    if distribution_path is None:
+        return None, None
+
+    dir_name = os.path.basename(distribution_path)
+
+    if not dir_name.endswith(".dist-info"):
+        return None, None
+
+    name, separator, version = dir_name[: -len(".dist-info")].rpartition("-")
+
+    if not separator:
+        return None, None
+
+    return name, version
 
 
 def isPdmPackageInstallation(distribution):
@@ -684,20 +708,15 @@ def getDistributionName(distribution):
     result = None
 
     if hasattr(distribution, "metadata"):
-        result = distribution.metadata["Name"]
+        metadata = distribution.metadata
+
+        if metadata is not None:
+            result = metadata.get("Name")
 
         if result is None:
             installer_name = _getDistributionInstallerFileContents(distribution)
             if installer_name == "debian":
-                distribution_path = _getDistributionPath(distribution)
-
-                if distribution_path is not None:
-                    dir_name = os.path.basename(distribution_path)
-
-                    if dir_name.endswith(".dist-info"):
-                        dir_name = dir_name[:-10]
-
-                        result = dir_name.rsplit("-", 1)[0]
+                result, _version = _getDistributionPathNameAndVersion(distribution)
 
     if result is None and isAnacondaPython() and hasattr(distribution, "_path"):
         result = getCondaDistributionName(distribution)
@@ -719,7 +738,15 @@ def getDistributionVersion(distribution):
     """
     # Avoiding use of public interface for pkg_resources, pylint: disable=protected-access
     if hasattr(distribution, "metadata"):
-        return distribution.metadata["Version"]
+        metadata = distribution.metadata
+
+        if metadata is not None:
+            result = metadata.get("Version")
+
+            if result is not None:
+                return result
+
+        return _getDistributionPathNameAndVersion(distribution)[1]
     else:
         return distribution._version
 
@@ -831,55 +858,6 @@ _user_site_directory = None
 def setUserSiteDirectory(user_site_directory):
     global _user_site_directory  # singleton, pylint: disable=global-statement
     _user_site_directory = user_site_directory
-
-
-def isNuitkaInstallRequire(requirement):
-    """Check if a requirement is Nuitka.
-
-    Args:
-        requirement (str): The requirement string.
-
-    Returns:
-        bool: True if the requirement is Nuitka, False otherwise.
-    """
-    # Check if it starts with "nuitka" followed by end of string or a non-name
-    # character, valid name chars: [a-z0-9_.-]
-    if re.match(r"^nuitka(?:[<>=!~;@\s]|$)", requirement.lower()):
-        return True
-
-    # Check for a file URL pointing to Nuitka.
-    match = re.search(r"file://([^;\s]+)", requirement)
-    if match:
-        path = match.group(1)
-
-        if os.path.exists(path) and os.path.isdir(path):
-            if os.path.exists(
-                os.path.join(path, "nuitka", "MainControl.py")
-            ) and os.path.exists(os.path.join(path, "nuitka", "Version.py")):
-                return True
-
-    # Check for GitHub URLs pointing to Nuitka or Nuitka extensions.
-    if re.search(
-        r"github\.com/Nuitka/Nuitka(?:-[a-zA-Z0-9_-]+)?(?:\.git|/|#|@|$)", requirement
-    ):
-        return True
-
-    return False
-
-
-def filterInstallRequires(install_requires):
-    """Filter out Nuitka from install_requires.
-
-    Args:
-        install_requires (list): List of install requirements.
-
-    Returns:
-        list: Filtered list of install requirements.
-    """
-    if install_requires is None:
-        return []
-
-    return [req for req in install_requires if not isNuitkaInstallRequire(req)]
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and

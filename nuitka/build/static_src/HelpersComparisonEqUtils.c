@@ -1,12 +1,5 @@
 //     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
-/** For making rich comparisons work.
- *
- * Helpers that implement the details of comparisons for both Python2 and
- * Python3 individually, mostly because of the many changes.
- *
- **/
-
 #pragma once
 
 // This file is included from another C file, help IDEs to still parse it on
@@ -22,25 +15,20 @@ static cmpfunc default_tp_compare;
 #endif
 
 void _initSlotCompare(void) {
-    // Create a class with "__cmp__" attribute, to get a hand at the default
-    // implementation of tp_compare. It's not part of the API and with shared
-    // libraries it's not accessible. The name does not matter, nor does the
-    // actual value used for "__cmp__".
-
+    // Create a temporary heap type to extract CPython's unexported slot
+    // wrappers for tp_init (and tp_compare on Python 2), which are not
+    // accessible directly when linking against a shared libpython.
     PyThreadState *tstate = PyThreadState_GET();
 
-    // Use "int" as the base class.
     PyObject *pos_args = MAKE_TUPLE1(tstate, (PyObject *)&PyLong_Type);
 
-    // Use "__cmp__" with true value, won't matter.
     // Note: Not using MAKE_DICT_EMPTY on purpose, this is called early on.
     PyObject *kw_args = PyDict_New();
 #if PYTHON_VERSION < 0x0300
-    PyDict_SetItem(kw_args, const_str_plain___cmp__, Py_True);
+    DICT_SET_ITEM_INFALLIBLE(tstate, kw_args, const_str_plain___cmp__, Py_True);
 #endif
-    PyDict_SetItem(kw_args, const_str_plain___init__, (PyObject *)Py_TYPE(Py_None));
+    DICT_SET_ITEM_INFALLIBLE(tstate, kw_args, const_str_plain___init__, (PyObject *)Py_TYPE(Py_None));
 
-    // Create the type.
     CHECK_OBJECT(const_str_plain___cmp__);
     PyTypeObject *c = (PyTypeObject *)PyObject_CallFunctionObjArgs((PyObject *)&PyType_Type, const_str_plain___cmp__,
                                                                    pos_args, kw_args, NULL);
@@ -108,7 +96,6 @@ static int try_3way_compare(PyObject *a, PyObject *b) {
     cmpfunc f2 = b->ob_type->tp_compare;
     int c;
 
-    // Same compares, just use it.
     if (f1 != NULL && f1 == f2) {
         c = (*f1)(a, b);
         return adjust_tp_compare(c);
@@ -120,7 +107,6 @@ static int try_3way_compare(PyObject *a, PyObject *b) {
         return default_tp_compare(a, b);
     }
 
-    // Try coercion.
     c = coerce_objects(&a, &b);
 
     if (c < 0) {

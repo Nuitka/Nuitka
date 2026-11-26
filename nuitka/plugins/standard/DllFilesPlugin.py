@@ -21,6 +21,7 @@ from nuitka.utils.Distributions import (
     isDistributionSystemPackage,
 )
 from nuitka.utils.FileOperations import (
+    getNormalizedAbsolutePath,
     getNormalizedPath,
     getNormalizedPathJoin,
     listDllFilesFromDirectory,
@@ -45,12 +46,6 @@ class NuitkaPluginDllFiles(NuitkaYamlPluginBase):
         return isStandaloneMode()
 
     def _handleDllConfigBySources(self, dll_config, full_name, dest_path):
-        # The "when" is at that level too for these.
-        if not self.evaluateCondition(
-            full_name=full_name, condition=dll_config.get("when", "True")
-        ):
-            return
-
         config_name = "module '%s' DLL config" % full_name
 
         source_paths = []
@@ -97,7 +92,7 @@ class NuitkaPluginDllFiles(NuitkaYamlPluginBase):
                 dest_path = os.path.join(full_name.asPath(), "..")
 
         for source_path, dest_name in zip(source_paths, dest_names):
-            source_path = getNormalizedPath(os.path.abspath(source_path))
+            source_path = getNormalizedAbsolutePath(source_path)
 
             yield self.makeDllEntryPoint(
                 source_path=source_path,
@@ -113,12 +108,6 @@ class NuitkaPluginDllFiles(NuitkaYamlPluginBase):
             )
 
     def _handleDllConfigFromFilenames(self, dll_config, full_name, dest_path):
-        # The "when" is at that level too for these.
-        if not self.evaluateCondition(
-            full_name=full_name, condition=dll_config.get("when", "True")
-        ):
-            return
-
         config_name = "module '%s' DLL config" % full_name
 
         relative_path = self.evaluateExpressionOrConstant(
@@ -137,6 +126,10 @@ class NuitkaPluginDllFiles(NuitkaYamlPluginBase):
             base_module_name = full_name
 
         module_filename = self.locateModule(base_module_name)
+
+        # Ignore if the "relative_to" module is not available.
+        if module_filename is None:
+            return
 
         if os.path.isdir(module_filename):
             module_directory = module_filename
@@ -217,14 +210,21 @@ class NuitkaPluginDllFiles(NuitkaYamlPluginBase):
         if dest_path is None:
             module_filename = self.locateModule(full_name)
 
+            # Allow for the module to not be available, then we have
+            # no relative path against it.
+            if module_filename is None:
+                return None
+
             if os.path.isdir(module_filename):
+                module_directory = module_filename
                 dest_path = full_name.asPath()
             else:
+                module_directory = os.path.dirname(module_filename)
                 dest_path = getNormalizedPathJoin(full_name.asPath(), "..")
 
             dest_path = getNormalizedPathJoin(
                 dest_path,
-                os.path.relpath(filename, os.path.dirname(module_filename)),
+                os.path.relpath(filename, module_directory),
             )
         else:
             dest_path = getNormalizedPathJoin(
@@ -250,12 +250,6 @@ class NuitkaPluginDllFiles(NuitkaYamlPluginBase):
             )
 
     def _handleDllConfigByCode(self, dll_config, full_name, dest_path, count):
-        # The "when" is at that level too for these.
-        if not self.evaluateCondition(
-            full_name=full_name, condition=dll_config.get("when", "True")
-        ):
-            return
-
         setup_codes = dll_config.get("setup_code")
         filename_code = dll_config.get("filename_code")
 
@@ -272,6 +266,7 @@ DLL configuration by filename code for '%s' did not give a result. Either \
 conditions are missing, or this version of the module needs treatment added."""
                 % full_name.asString()
             )
+            return
 
         if type(filename) in (tuple, list):
             filenames = filename
@@ -281,14 +276,17 @@ conditions are missing, or this version of the module needs treatment added."""
         for filename in filenames:
             # We are otherwise expecting absolute paths internally for DLL sources, but we
             # shall tolerate relative paths by the config.
-            filename = getNormalizedPath(os.path.abspath(filename))
+            filename = getNormalizedAbsolutePath(filename)
 
-            yield self._handleDllConfigByCodeResult(
+            dll_entry_point = self._handleDllConfigByCodeResult(
                 filename=filename,
                 full_name=full_name,
                 dest_path=dest_path,
                 executable=dll_config.get("executable", "no") == "yes",
             )
+
+            if dll_entry_point is not None:
+                yield dll_entry_point
 
     def _handleDllConfig(self, dll_config, full_name, count):
         dest_path = dll_config.get("dest_path")
@@ -450,14 +448,14 @@ conditions are missing, or this version of the module needs treatment added."""
                         )
 
     def getModuleSpecificDllPaths(self, module_name):
-        for _config_module_name, near_module_name in self.getYamlConfigItemSet(
+        for config_item in self.getYamlConfigItemSet(
             module_name=module_name,
             section="import-hacks",
             item_name="find-dlls-near-module",
             decide_relevant=None,
             recursive=True,
         ):
-            module_filename = self.locateModule(near_module_name)
+            module_filename = self.locateModule(config_item.value)
 
             if module_filename is not None:
                 if os.path.isfile(module_filename):
@@ -472,69 +470,51 @@ conditions are missing, or this version of the module needs treatment added."""
                     # consider those as well, spell-checker: ignore dylibs
                     dylib_directory = os.path.join(package_directory, ".dylibs")
 
-                    if os.path.isdir(package_directory):
+                    if os.path.isdir(dylib_directory):
                         yield dylib_directory
 
     def decideRecompileExtensionModules(self, module_name):
-        for config_module_name, recompile_extensions in self.getYamlConfigItem(
+        for config_item in self.getYamlConfigItem(
             module_name=module_name,
             section="import-hacks",
             item_name="recompile-extensions",
             decide_relevant=None,
             recursive=True,
-            default=None,
         ):
             return (
-                recompile_extensions,
+                config_item.value,
                 "package configuration for '%s' module says '%s'"
-                % (config_module_name, recompile_extensions),
+                % (config_item.config_module_name, config_item.value),
             )
 
     def isAcceptableMissingDLL(self, package_name, dll_basename):
         if package_name is None:
             return None
 
-        # Config is to be attached to top level package.
-        package_name = package_name.getTopLevelPackageName()
-
-        for entry in self.config.get(package_name, section="import-hacks"):
-            if self.evaluateCondition(
-                full_name=package_name, condition=entry.get("when", "True")
-            ):
-                result = self._isAcceptableMissingDLL(
-                    config=entry, dll_basename=dll_basename
-                )
-
-                if result is not None:
-                    return result
-
-        return None
-
-    @staticmethod
-    def _isAcceptableMissingDLL(config, dll_basename):
-        for config_dll_name in config.get("acceptable-missing-dlls", ()):
-            if fnmatch.fnmatch(dll_basename, config_dll_name):
-                return True
+        for _config_item in self.getYamlConfigItemSet(
+            module_name=package_name,
+            section="import-hacks",
+            item_name="acceptable-missing-dlls",
+            decide_relevant=lambda config_dll_name: fnmatch.fnmatch(
+                dll_basename, config_dll_name
+            ),
+            recursive=True,
+        ):
+            return True
 
         return None
 
     def decideAllowOutsideDependencies(self, module_name):
-        distribution = None
+        for config_item in self.getYamlConfigItem(
+            module_name=module_name,
+            section="import-hacks",
+            item_name="package-system-dlls",
+            decide_relevant=None,
+            recursive=True,
+        ):
+            return config_item.value == "yes"
 
-        while 1:
-            for entry in self.config.get(module_name, section="import-hacks"):
-                if self.evaluateCondition(
-                    full_name=module_name, condition=entry.get("when", "True")
-                ):
-                    if "package-system-dlls" in entry:
-                        return entry["package-system-dlls"] == "yes"
-
-            if distribution is None:
-                distribution = getDistributionFromModuleName(module_name)
-
-            module_name = module_name.getPackageName()
-            if not module_name:
-                break
+        distribution = getDistributionFromModuleName(module_name)
 
         if distribution is None:
             return None

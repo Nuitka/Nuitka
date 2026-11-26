@@ -33,6 +33,18 @@ print """
 New line is no soft space, is it
 """, x
 
+
+def sideEffect():
+    print "side effect",
+    return 7
+
+
+def printWithSideEffects(func):
+    print len([func(), func()]), "items"
+
+
+printWithSideEffects(sideEffect)
+
 #     Python tests originally created or extracted from other peoples work. The
 #     parts were too small to be protected.
 #

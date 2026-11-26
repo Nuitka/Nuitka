@@ -1,12 +1,7 @@
 #     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-"""Reformulation of try/except statements.
-
-Consult the Developer Manual for information. TODO: Add ability to sync
-source code comments with Developer Manual sections.
-
-"""
+"""Reformulation of try/except statements."""
 
 from nuitka.nodes.BuiltinRefNodes import ExpressionBuiltinExceptionRef
 from nuitka.nodes.ComparisonNodes import (
@@ -49,7 +44,7 @@ from .ReformulationAssignmentStatements import (
     decodeAssignTarget,
 )
 from .ReformulationTryFinallyStatements import makeTryFinallyStatement
-from .SyntaxErrors import raiseSyntaxError
+from .SyntaxErrors import checkExceptStarHandlerBody, raiseSyntaxError
 from .TreeHelpers import (
     buildNode,
     buildStatementsNode,
@@ -61,14 +56,6 @@ from .TreeHelpers import (
 
 
 def makeTryExceptNoRaise(provider, temp_scope, tried, handling, no_raise, source_ref):
-    # This helper executes the core re-formulation of "no_raise" blocks, which
-    # are the "else" blocks of "try"/"except" statements. In order to limit the
-    # execution, we use an indicator variable instead, which will signal that
-    # the tried block executed up to the end. And then we make the else block be
-    # a conditional statement checking that.
-
-    # If the handling aborts, no indicator is needed, since only normal
-    # completion of the "tried" block can reach the "no_raise" block.
     if handling is not None and handling.isStatementAborting():
         return makeStatementsSequenceFromStatements(
             StatementTry(
@@ -82,7 +69,6 @@ def makeTryExceptNoRaise(provider, temp_scope, tried, handling, no_raise, source
             no_raise,
         )
 
-    # Indicator variable, will end up with C bool type, and need not be released.
     tmp_handler_indicator_variable = provider.allocateTempVariable(
         temp_scope=temp_scope, name="unhandled_indicator", temp_type="bool"
     )
@@ -131,7 +117,6 @@ def makeTryExceptNoRaise(provider, temp_scope, tried, handling, no_raise, source
 def _makeTryExceptSingleHandlerNode(
     provider, public_exc, tried, exception_name, handler_body, source_ref
 ):
-    # No need to create this in the first place if nothing is tried.
     if tried is None:
         return None
 
@@ -217,15 +202,7 @@ def makeTryExceptSingleHandlerNodeWithPublish(
 
 
 def buildTryExceptionNode(provider, node, source_ref):
-    # Try/except nodes. Re-formulated as described in the Developer Manual.
-    # Exception handlers made the assignment to variables explicit. Same for the
-    # "del" as done for Python3. Also catches always work a tuple of exception
-    # types and hides away that they may be built or not.
-
-    # For Python3.11, the is_star_try indicates "except*" usage.
-
-    # Many variables and branches, due to the re-formulation that is going on
-    # here, which just has the complexity, pylint: disable=too-many-branches,too-many-locals
+    # pylint: disable=too-many-branches,too-many-locals
 
     tried = buildStatementsNode(
         provider=provider, nodes=node.body, source_ref=source_ref
@@ -261,7 +238,6 @@ def buildTryExceptionNode(provider, node, source_ref):
                 ),
             ]
         else:
-            # Python3 requires temporary assignment of exception assignment.
             target_info = decodeAssignTarget(
                 provider=provider, node=exception_assign, source_ref=source_ref
             )
@@ -306,7 +282,6 @@ def buildTryExceptionNode(provider, node, source_ref):
             allow_none=True,
         )
 
-        # The exception types should be a tuple, so as to be most general.
         if exception_types is None:
             if handler is not node.handlers[-1]:
                 raiseSyntaxError(
@@ -318,12 +293,10 @@ def buildTryExceptionNode(provider, node, source_ref):
 
         handlers.append((exception_types, handler_body))
 
-    # Re-raise by default
     exception_handling = makeReraiseExceptionStatement(source_ref=source_ref)
 
     for exception_type, handler in reversed(handlers):
         if exception_type is None:
-            # A default handler was given, so use that indeed.
             exception_handling = handler
         else:
             exception_handling = StatementsSequence(
@@ -421,8 +394,7 @@ def buildTryExceptionNode(provider, node, source_ref):
 
 
 def buildTryStarExceptionNode(provider, node, source_ref):
-    # Many variables, due to the re-formulation that is going on here, which
-    # just has the complexity, pylint: disable=too-many-locals
+    # pylint: disable=too-many-locals
 
     tried = buildStatementsNode(provider, node.body, source_ref)
 
@@ -453,13 +425,11 @@ def buildTryStarExceptionNode(provider, node, source_ref):
             source=ExpressionCaughtExceptionValueRef(source_ref),
             source_ref=source_ref,
         ),
-        # Remaining exception group, initially the caught exception.
         makeStatementAssignmentVariable(
             variable=rest,
             source=ExpressionTempVariableRef(variable=caught, source_ref=source_ref),
             source_ref=source_ref,
         ),
-        # Exceptions that were raised or re-raised by the clauses.
         makeStatementAssignmentVariable(
             variable=raised,
             source=makeExpressionMakeList(elements=(), source_ref=source_ref),
@@ -468,6 +438,15 @@ def buildTryStarExceptionNode(provider, node, source_ref):
     ]
 
     for handler in node.handlers:
+        checkExceptStarHandlerBody(
+            body=handler.body,
+            source_ref=source_ref,
+            check_return=not (
+                provider.isCompiledPythonModule()
+                or provider.isExpressionClassBodyBase()
+            ),
+        )
+
         scope = provider.allocateTempScope("try_star_handler")
         match_result = provider.allocateTempVariable(
             name="match_result", temp_scope=scope, temp_type="object"
@@ -565,8 +544,6 @@ def buildTryStarExceptionNode(provider, node, source_ref):
                         ),
                         StatementTry(
                             tried=user_statements,
-                            # Exceptions raised by the clause are collected,
-                            # and do not propagate to the other clauses.
                             except_handler=makeStatementsSequenceFromStatement(
                                 StatementExpressionOnly(
                                     expression=ExpressionListOperationAppend(
@@ -594,7 +571,6 @@ def buildTryStarExceptionNode(provider, node, source_ref):
 
     handling.extend(
         (
-            # The unhandled part of the exception group is to be raised again.
             StatementExpressionOnly(
                 expression=ExpressionListOperationAppend(
                     list_arg=ExpressionTempVariableRef(
@@ -661,7 +637,6 @@ def buildTryStarExceptionNode(provider, node, source_ref):
         ),
     )
 
-    # spell-checker: ignore orelse
     no_raise = buildStatementsNode(
         provider=provider, nodes=node.orelse, source_ref=source_ref
     )

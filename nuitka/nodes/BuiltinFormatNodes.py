@@ -1,13 +1,7 @@
 #     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-"""Format related nodes format/bin/oct/hex/ascii.
-
-These will most often be used for outputs, and the hope is, the type prediction or the
-result prediction will help to be smarter, but generally these should not be that much
-about performance critical.
-
-"""
+"""Nodes for the 'format', 'ascii', 'bin', 'oct', 'hex', and 'id' built-ins."""
 
 from nuitka.PythonVersions import python_version
 from nuitka.specs import BuiltinParameterSpecs
@@ -48,16 +42,11 @@ class ExpressionBuiltinFormat(
 
     def computeExpression(self, trace_collection):
         # TODO: Can use the format built-in on compile time constants at least.
-
+        # TODO: Provide "__format__" slot based handling.
         value = self.subnode_value
         format_spec = self.subnode_format_spec
 
-        # TODO: Provide "__format__" slot based handling.
-
-        # Any code could be run, note that.
         trace_collection.onControlFlowEscape(self)
-
-        # Any exception may be raised.
         trace_collection.onExceptionRaiseExit(BaseException)
 
         # Strings format themselves as what they are.
@@ -114,8 +103,6 @@ class ExpressionBuiltinId(
     builtin_spec = BuiltinParameterSpecs.builtin_id_spec
 
     def computeExpression(self, trace_collection):
-        # Note: Quite impossible to predict the pointer value or anything, but
-        # we know the result will be a long.
         return self, None, None
 
     def mayRaiseException(self, exception_type):

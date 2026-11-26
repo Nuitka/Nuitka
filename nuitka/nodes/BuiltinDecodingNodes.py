@@ -1,13 +1,7 @@
 #     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-"""Built-in ord/chr nodes
-
-These are good for optimizations, as they give a very well known result. In the case of
-'chr', it's one of 256 strings, and in case of 'ord' it's one of 256 numbers, so these can
-answer quite a few questions at compile time.
-
-"""
+"""Nodes for calls to the 'ord' and 'chr' built-ins."""
 
 from nuitka.specs import BuiltinParameterSpecs
 

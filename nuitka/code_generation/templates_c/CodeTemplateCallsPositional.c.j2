@@ -5,7 +5,7 @@
 PyObject *CALL_FUNCTION_NO_ARGS(PyThreadState *tstate, PyObject *called) {
 {% elif args_count == 1 and not has_tuple_arg %}
 PyObject *CALL_FUNCTION_WITH_SINGLE_ARG(PyThreadState *tstate, PyObject *called, PyObject *arg) {
-    PyObject *const *args = &arg; // For easier code compatibility.
+    PyObject *const *args = &arg;
 {% else %}
 {% if has_tuple_arg %}
 PyObject *CALL_FUNCTION_WITH_POS_ARGS{{args_count}}(PyThreadState *tstate, PyObject *called, PyObject *pos_args) {
@@ -93,7 +93,13 @@ PyObject *CALL_FUNCTION_WITH_ARGS{{args_count}}(PyThreadState *tstate, PyObject 
                 return NULL;
             }
 
+            if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
+                return NULL;
+            }
+
             PyObject *result = Nuitka_CallFunctionPosArgs(tstate, method->m_function, args, {{args_count}});
+
+            Py_LeaveRecursiveCall();
 
             CHECK_OBJECT_X(result);
 
@@ -156,7 +162,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS{{args_count}}(PyThreadState *tstate, PyObject 
         }
 #if !defined(_NUITKA_EXPERIMENTAL_DISABLE_CFUNCTION_CALL_OPT)
     } else if (PyCFunction_CheckExact(called)) {
-#if PYTHON_VERSION >= 0x380
+#if PYTHON_VERSION >= 0x380 && !defined(_NUITKA_EXPERIMENTAL_DISABLE_VECTORCALL_USAGE)
 #ifdef _NUITKA_FULL_COMPAT
         if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
             return NULL;
@@ -178,7 +184,8 @@ PyObject *CALL_FUNCTION_WITH_ARGS{{args_count}}(PyThreadState *tstate, PyObject 
 
             CHECK_OBJECT_X(result);
         } else {
-            PyCFunction method = PyCFunction_GET_FUNCTION(called);
+            Nuitka_PyCFunctionUnion method;
+            method.as_function = PyCFunction_GET_FUNCTION(called);
             PyObject *self = PyCFunction_GET_SELF(called);
 
 {% if not has_tuple_arg and args_count != 0 %}
@@ -188,9 +195,9 @@ PyObject *CALL_FUNCTION_WITH_ARGS{{args_count}}(PyThreadState *tstate, PyObject 
 {% endif %}
 
             if (flags & METH_KEYWORDS) {
-                result = (*(PyCFunctionWithKeywords)(void(*)(void))method)(self, pos_args, NULL);
+                result = (*method.as_function_kw)(self, pos_args, NULL);
             } else {
-                result = (*method)(self, pos_args);
+                result = (*method.as_function)(self, pos_args);
             }
 
 {% if not has_tuple_arg and args_count != 0 %}
@@ -205,13 +212,10 @@ PyObject *CALL_FUNCTION_WITH_ARGS{{args_count}}(PyThreadState *tstate, PyObject 
 
         return Nuitka_CheckFunctionResult(tstate, called, result);
 #else
-        // Try to be fast about wrapping the arguments.
         int flags = PyCFunction_GET_FLAGS(called) & ~(METH_CLASS | METH_STATIC | METH_COEXIST);
 
         if ({{ unlikely_or_likely_from(args_count != 0) }}(flags & METH_NOARGS)) {
 {% if args_count == 0 %}
-            // Recursion guard is not strictly necessary, as we already have
-            // one on our way to here.
 #ifdef _NUITKA_FULL_COMPAT
             if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
                 return NULL;
@@ -238,8 +242,6 @@ PyObject *CALL_FUNCTION_WITH_ARGS{{args_count}}(PyThreadState *tstate, PyObject 
 {% endif %}
         } else if ({{ unlikely_if(args_count != 1) }}(flags & METH_O)) {
 {% if args_count == 1 %}
-            // Recursion guard is not strictly necessary, as we already have
-            // one on our way to here.
 #ifdef _NUITKA_FULL_COMPAT
             if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
                 return NULL;
@@ -264,15 +266,21 @@ PyObject *CALL_FUNCTION_WITH_ARGS{{args_count}}(PyThreadState *tstate, PyObject 
             );
             return NULL;
 {% endif %}
+#if PYTHON_VERSION < 0x360
         } else if (flags & METH_VARARGS) {
-            // Recursion guard is not strictly necessary, as we already have
-            // one on our way to here.
+#elif PYTHON_VERSION < 0x370
+        } else if (flags == METH_VARARGS || flags == (METH_VARARGS | METH_KEYWORDS) || flags == METH_FASTCALL) {
+#else
+        } else if (flags == METH_VARARGS || flags == (METH_VARARGS | METH_KEYWORDS) || flags == METH_FASTCALL ||
+                   flags == (METH_FASTCALL | METH_KEYWORDS)) {
+#endif
 #ifdef _NUITKA_FULL_COMPAT
             if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
                 return NULL;
             }
 #endif
-            PyCFunction method = PyCFunction_GET_FUNCTION(called);
+            Nuitka_PyCFunctionUnion method;
+            method.as_function = PyCFunction_GET_FUNCTION(called);
             PyObject *self = PyCFunction_GET_SELF(called);
 
             PyObject *result;
@@ -284,52 +292,56 @@ PyObject *CALL_FUNCTION_WITH_ARGS{{args_count}}(PyThreadState *tstate, PyObject 
             PyObject *pos_args = const_tuple_empty;
 {% endif %}
             if (flags & METH_KEYWORDS) {
-                result = (*(PyCFunctionWithKeywords)method)(self, pos_args, NULL);
+                result = (*method.as_function_kw)(self, pos_args, NULL);
             } else {
-                result = (*method)(self, pos_args);
+                result = (*method.as_function)(self, pos_args);
             }
 
 {% if not has_tuple_arg and args_count != 0 %}
             Py_DECREF(pos_args);
 {% endif %}
 #else
-            if (flags == (METH_VARARGS|METH_KEYWORDS)) {
+            if (flags == (METH_VARARGS | METH_KEYWORDS)) {
 {% if not has_tuple_arg and args_count != 0 %}
-            PyObject *pos_args = MAKE_TUPLE(tstate, args, {{args_count}});
+                PyObject *pos_args = MAKE_TUPLE(tstate, args, {{args_count}});
 {% elif not has_tuple_arg %}
-            PyObject *pos_args = const_tuple_empty;
+                PyObject *pos_args = const_tuple_empty;
 {% endif %}
-                result = (*(PyCFunctionWithKeywords)method)(self, pos_args, NULL);
+                result = (*method.as_function_kw)(self, pos_args, NULL);
 {% if not has_tuple_arg and args_count != 0 %}
-            Py_DECREF(pos_args);
+                Py_DECREF(pos_args);
 {% endif %}
             } else if (flags == METH_FASTCALL) {
 #if PYTHON_VERSION < 0x370
 {% if args_count != 0 %}
-                result = (*(_PyCFunctionFast)method)(self, (PyObject **)args, {{args_count}}, NULL);
+                result = (*method.as_function_fast)(self, (PyObject **)args, {{args_count}}, NULL);
 {% else %}
-                result = (*(_PyCFunctionFast)method)(self, NULL, 0, NULL);
+                result = (*method.as_function_fast)(self, NULL, 0, NULL);
 {% endif %}
 #else
-{% if not has_tuple_arg and args_count != 0 %}
-            PyObject *pos_args = MAKE_TUPLE(tstate, args, {{args_count}});
-{% elif not has_tuple_arg %}
-            PyObject *pos_args = const_tuple_empty;
+{% if args_count != 0 %}
+                result = (*method.as_function_fast)(self, args, {{args_count}});
+{% else %}
+                result = (*method.as_function_fast)(self, NULL, 0);
 {% endif %}
-                result = (*(_PyCFunctionFast)method)(self, &pos_args, {{args_count}});
-{% if not has_tuple_arg and args_count != 0 %}
-            Py_DECREF(pos_args);
+#endif
+#if PYTHON_VERSION >= 0x370
+            } else if (flags == (METH_FASTCALL | METH_KEYWORDS)) {
+{% if args_count != 0 %}
+                result = (*method.as_function_fast_kw)(self, args, {{args_count}}, NULL);
+{% else %}
+                result = (*method.as_function_fast_kw)(self, NULL, 0, NULL);
 {% endif %}
 #endif
             } else {
 {% if not has_tuple_arg and args_count != 0 %}
-            PyObject *pos_args = MAKE_TUPLE(tstate, args, {{args_count}});
+                PyObject *pos_args = MAKE_TUPLE(tstate, args, {{args_count}});
 {% elif not has_tuple_arg %}
-            PyObject *pos_args = const_tuple_empty;
+                PyObject *pos_args = const_tuple_empty;
 {% endif %}
-                result = (*method)(self, pos_args);
+                result = (*method.as_function)(self, pos_args);
 {% if not has_tuple_arg and args_count != 0 %}
-            Py_DECREF(pos_args);
+                Py_DECREF(pos_args);
 {% endif %}
             }
 #endif
@@ -346,7 +358,6 @@ PyObject *CALL_FUNCTION_WITH_ARGS{{args_count}}(PyThreadState *tstate, PyObject 
 #endif
 #if PYTHON_VERSION < 0x380 && !defined(_NUITKA_EXPERIMENTAL_DISABLE_UNCOMPILED_FUNCTION_CALL_OPT)
     } else if (PyFunction_Check(called)) {
-#if PYTHON_VERSION < 0x3b0
 {% if args_count == 0 %}
         PyObject *result = callPythonFunctionNoArgs(called);
 {% else %}
@@ -356,13 +367,6 @@ PyObject *CALL_FUNCTION_WITH_ARGS{{args_count}}(PyThreadState *tstate, PyObject 
             {{args_count}}
         );
 {% endif %}
-#else
-{% if args_count == 0 %}
-        PyObject *result = _PyFunction_Vectorcall(called, NULL, 0, NULL);
-{% else %}
-        PyObject *result = _PyFunction_Vectorcall(called, args, {{args_count}}, NULL);
-{% endif %}
-#endif
         CHECK_OBJECT_X(result);
 
         return result;
@@ -433,7 +437,6 @@ PyObject *CALL_FUNCTION_WITH_ARGS{{args_count}}(PyThreadState *tstate, PyObject 
                     return obj;
                 }
 
-                // Work on produced type.
                 type = Py_TYPE(obj);
 
                 if (NuitkaType_HasFeatureClass(type) && type->tp_init != NULL) {
@@ -444,8 +447,6 @@ PyObject *CALL_FUNCTION_WITH_ARGS{{args_count}}(PyThreadState *tstate, PyObject 
 {% endif %}
 
                         PyObject *init_method = Nuitka_TypeLookup(type, const_str_plain___init__);
-
-                        // Not really allowed, since we wouldn't have the default wrapper set.
                         assert(init_method != NULL);
 
                         bool is_compiled_function = false;
@@ -463,6 +464,8 @@ PyObject *CALL_FUNCTION_WITH_ARGS{{args_count}}(PyThreadState *tstate, PyObject 
                         }
 
                         if (unlikely(init_method == NULL)) {
+                            Py_DECREF(obj);
+
                             if (!HAS_ERROR_OCCURRED(tstate)) {
                                 SET_CURRENT_EXCEPTION_TYPE0_VALUE0(tstate, PyExc_AttributeError, const_str_plain___init__);
                             }
@@ -471,31 +474,25 @@ PyObject *CALL_FUNCTION_WITH_ARGS{{args_count}}(PyThreadState *tstate, PyObject 
                         }
 
                         PyObject *result;
+                        if (is_compiled_function) {
+                            if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
+                                Py_DECREF(obj);
+                                return NULL;
+                            }
 {% if args_count == 0 %}
-                        if (is_compiled_function) {
                             result = Nuitka_CallMethodFunctionNoArgs(tstate, (struct Nuitka_FunctionObject const *)init_method, obj);
-                        } else {
-                            result = CALL_FUNCTION_NO_ARGS(tstate, init_method);
-
-                            if (init_method_needs_release) {
-                                Py_DECREF(init_method);
-                            }
-                        }
 {% elif args_count == 1 %}
-                        if (is_compiled_function) {
                             result = Nuitka_CallMethodFunctionPosArgs(tstate, (struct Nuitka_FunctionObject const *)init_method, obj, args, 1);
-                        } else {
-                            result = CALL_FUNCTION_WITH_SINGLE_ARG(tstate, init_method, args[0]);
-
-                            if (init_method_needs_release) {
-                                Py_DECREF(init_method);
-                            }
-                        }
 {% else %}
-                        if (is_compiled_function) {
                             result = Nuitka_CallMethodFunctionPosArgs(tstate, (struct Nuitka_FunctionObject const *)init_method, obj, args, {{args_count}});
+{% endif %}
+                            Py_LeaveRecursiveCall();
                         } else {
-{% if has_tuple_arg %}
+{% if args_count == 0 %}
+                            result = CALL_FUNCTION_NO_ARGS(tstate, init_method);
+{% elif args_count == 1 %}
+                            result = CALL_FUNCTION_WITH_SINGLE_ARG(tstate, init_method, args[0]);
+{% elif has_tuple_arg %}
                             result = CALL_FUNCTION_WITH_POS_ARGS{{args_count}}(tstate, init_method, pos_args);
 {% else %}
                             result = CALL_FUNCTION_WITH_ARGS{{args_count}}(tstate, init_method, args);
@@ -504,22 +501,21 @@ PyObject *CALL_FUNCTION_WITH_ARGS{{args_count}}(PyThreadState *tstate, PyObject 
                                 Py_DECREF(init_method);
                             }
                         }
-{% endif %}
-
 
                         if (unlikely(result == NULL)) {
                             Py_DECREF(obj);
                             return NULL;
                         }
 
-                        Py_DECREF(result);
-
                         if (unlikely(result != Py_None)) {
                             Py_DECREF(obj);
 
                             SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("__init__() should return None, not '%s'", result);
+                            Py_DECREF(result);
                             return NULL;
                         }
+
+                        Py_DECREF(result);
                     } else {
 {% if not has_tuple_arg and args_count != 0 %}
                         if (pos_args == NULL) {
@@ -581,6 +577,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS{{args_count}}(PyThreadState *tstate, PyObject 
             PyObject *descr_method = descr_get(init_method, obj, called);
 
             if (unlikely(descr_method == NULL)) {
+                Py_DECREF(obj);
                 return NULL;
             }
 
@@ -588,42 +585,45 @@ PyObject *CALL_FUNCTION_WITH_ARGS{{args_count}}(PyThreadState *tstate, PyObject 
         }
 
         PyObject *result;
+        if (is_compiled_function) {
+            if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
+                Py_DECREF(obj);
+                return NULL;
+            }
 {% if args_count == 0 %}
-        if (is_compiled_function) {
             result = Nuitka_CallMethodFunctionNoArgs(tstate, (struct Nuitka_FunctionObject const *)init_method, obj);
-        } else {
-            result = CALL_FUNCTION_NO_ARGS(tstate, init_method);
-            Py_DECREF(init_method);
-        }
 {% elif args_count == 1 %}
-        if (is_compiled_function) {
             result = Nuitka_CallMethodFunctionPosArgs(tstate, (struct Nuitka_FunctionObject const *)init_method, obj, args, 1);
-        } else {
-            result = CALL_FUNCTION_WITH_SINGLE_ARG(tstate, init_method, args[0]);
-            Py_DECREF(init_method);
-        }
 {% else %}
-        if (is_compiled_function) {
             result = Nuitka_CallMethodFunctionPosArgs(tstate, (struct Nuitka_FunctionObject const *)init_method, obj, args, {{args_count}});
+{% endif %}
+            Py_LeaveRecursiveCall();
         } else {
-{% if has_tuple_arg %}
+{% if args_count == 0 %}
+            result = CALL_FUNCTION_NO_ARGS(tstate, init_method);
+{% elif args_count == 1 %}
+            result = CALL_FUNCTION_WITH_SINGLE_ARG(tstate, init_method, args[0]);
+{% elif has_tuple_arg %}
             result = CALL_FUNCTION_WITH_POS_ARGS{{args_count}}(tstate, init_method, pos_args);
 {% else %}
             result = CALL_FUNCTION_WITH_ARGS{{args_count}}(tstate, init_method, args);
 {% endif %}
             Py_DECREF(init_method);
         }
-{% endif %}
         if (unlikely(result == NULL)) {
+            Py_DECREF(obj);
+            return NULL;
+        }
+
+        if (unlikely(result != Py_None)) {
+            Py_DECREF(obj);
+
+            SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("__init__() should return None, not '%s'", result);
+            Py_DECREF(result);
             return NULL;
         }
 
         Py_DECREF(result);
-
-        if (unlikely(result != Py_None)) {
-            SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("__init__() should return None, not '%s'", result);
-            return NULL;
-        }
 
         CHECK_OBJECT_X(obj);
 
@@ -646,13 +646,6 @@ PyObject *CALL_FUNCTION_WITH_ARGS{{args_count}}(PyThreadState *tstate, PyObject 
         }
 #endif
     }
-
-#if 0
-    PRINT_NEW_LINE();
-    PRINT_STRING("FALLBACK");
-    PRINT_ITEM(called);
-    PRINT_NEW_LINE();
-#endif
 
 {% if args_count == 0 %}
     PyObject *result = CALL_FUNCTION(tstate, called, const_tuple_empty, NULL);

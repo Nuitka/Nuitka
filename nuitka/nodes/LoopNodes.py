@@ -3,15 +3,17 @@
 
 """Loop nodes.
 
-There are for and loop nodes, but both are reduced to loops with break/continue
-statements for it. These re-formulations require that optimization of loops has
-to be very general, yet the node type for loop, becomes very simple.
+Both 'for' and 'while' loops are reformulated into general loops with
+'break' and 'continue' statements.
 """
 
 from collections import defaultdict
 
 from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.optimizations.TraceCollections import TraceCollectionBranch
+from nuitka.optimizations.value_traces.ValueTracesStatic import (
+    UnchangedResumeTraceQueryContext,
+)
 
 from .NodeBases import StatementBase
 from .shapes.StandardShapes import tshape_unknown, tshape_unknown_loop
@@ -21,7 +23,6 @@ tshape_unknown_set = frozenset([tshape_unknown])
 
 
 def minimizeShapes(shapes):
-    # Merge some shapes automatically, no need to give a set.
     if tshape_unknown in shapes:
         return tshape_unknown_set
 
@@ -44,10 +45,7 @@ class StatementLoop(StatementLoopBase):
         "incomplete_count",
     )
 
-    # False alarm due to post_init, pylint: disable=attribute-defined-outside-init
-
     def postInitNode(self):
-        # Variables used inside the loop.
         self.loop_variables = None
 
         # Traces of the variable at the start of loop, to detect changes and make
@@ -58,7 +56,7 @@ class StatementLoop(StatementLoopBase):
         # with continue statements.
         self.loop_resume = {}
 
-        # Shapes from last time around, to detect the when it becomes complete, i.e.
+        # Shapes from last time around, to detect when it becomes complete, i.e.
         # we have seen it all.
         self.loop_previous_resume = {}
 
@@ -102,12 +100,8 @@ class StatementLoop(StatementLoopBase):
 
     @staticmethod
     def mayRaiseException(exception_type):
-        # Loops can only raise, if their body does, but they also issue the
-        # async exceptions, so we must make them do it all the time.
+        # Loops also check for asynchronous exceptions, so they may always raise.
         return True
-        # loop_body = self.subnode_loop_body
-        #  return loop_body is not None and \
-        #         self.subnode_loop_body.mayRaiseException(exception_type)
 
     def _noteValueIdentityStable(
         self, trace_collection, loop_variable, value_identity_stable
@@ -152,15 +146,13 @@ class StatementLoop(StatementLoopBase):
         )
 
     def _computeLoopBody(self, trace_collection):
-        # Rather complex stuff, pylint: disable=too-many-branches,too-many-locals,too-many-statements
-        # print("Enter loop body", self.source_ref)
-
+        # pylint: disable=too-many-branches,too-many-locals,too-many-statements
         loop_body = self.subnode_loop_body
         if loop_body is None:
             return None, None, None
 
-        # Look ahead. what will be written and degrade to initial loop traces
-        # about that if we are in the first iteration, later we # will have more
+        # Look ahead what will be written and degrade to initial loop traces
+        # about that if we are in the first iteration; later we will have more
         # precise knowledge.
         if self.loop_variables is None:
             self.loop_variables = OrderedSet()
@@ -241,16 +233,11 @@ class StatementLoop(StatementLoopBase):
                     self.loop_resume[loop_variable].add,
                     self,
                 )
-                # print("first", self.source_ref, loop_variable, ":",
-                #     self.loop_resume[loop_variable])
             else:
                 if (
                     self.loop_resume[loop_variable]
                     != self.loop_previous_resume[loop_variable]
                 ):
-                    # print("incomplete", self.source_ref, loop_variable, ":",
-                    # self.loop_previous_resume[loop_variable], "<->", self.loop_resume[loop_variable])
-
                     incomplete = True
 
                     if incomplete_variables is None:
@@ -258,12 +245,8 @@ class StatementLoop(StatementLoopBase):
 
                     incomplete_variables.add(loop_variable)
                 else:
-                    # print("complete", self.source_ref, loop_variable, ":",
-                    # self.loop_previous_resume[loop_variable], "<->", self.loop_resume[loop_variable])
                     incomplete = False
 
-            # Mark the variable as loop usage before executing it.
-            # print("loop merge from shapes", self.loop_resume[loop_variable])
             loop_entry_traces.add(
                 (
                     loop_variable,
@@ -293,7 +276,6 @@ class StatementLoop(StatementLoopBase):
                 trace_collection=trace_collection
             )
 
-            # Might be changed.
             if result is not loop_body:
                 self.setChildLoopBody(result)
                 loop_body = result
@@ -314,12 +296,17 @@ class StatementLoop(StatementLoopBase):
                     for continue_collection in continue_collections
                 )
 
-                value_identity_stable = all(
-                    resume_trace.isUnchangedResumeTrace(loop_entry_trace)
-                    for resume_trace in loop_resume_traces
-                )
+                unchanged_resume_context = UnchangedResumeTraceQueryContext()
 
-                # Giving up
+                for resume_trace in loop_resume_traces:
+                    if not resume_trace.isUnchangedResumeTrace(
+                        loop_entry_trace, unchanged_resume_context
+                    ):
+                        value_identity_stable = False
+                        break
+                else:
+                    value_identity_stable = True
+
                 if self.incomplete_count >= 20:
                     self.loop_gave_up.add(loop_variable)
 
@@ -360,8 +347,6 @@ class StatementLoop(StatementLoopBase):
                         next(iter(loop_resume_traces))
                     )
                 ):
-                    # Remove the variable, need not consider it
-                    # ever again.
                     del self.loop_resume[loop_variable]
                     del self.loop_previous_resume[loop_variable]
                     del self.loop_start[loop_variable]
@@ -382,21 +367,18 @@ class StatementLoop(StatementLoopBase):
 
                     continue
 
-                # Keep this as a loop variable
                 self.loop_variables.append(loop_variable)
 
                 self._noteValueIdentityStable(
                     trace_collection, loop_variable, value_identity_stable
                 )
 
-                # Tell the loop trace about the continue traces.
                 loop_entry_trace.addLoopContinueTraces(loop_resume_traces)
 
                 self._noteMustHaveValue(
                     trace_collection, loop_variable, loop_entry_trace.mustHaveValue()
                 )
 
-                # Also consider the entry trace before loop from here on.
                 loop_resume_traces.add(self.loop_start[loop_variable])
 
                 shapes = set()
@@ -472,20 +454,16 @@ class StatementLoop(StatementLoopBase):
         if break_collections:
             outer_trace_collection.mergeMultipleBranches(break_collections)
 
-        # Consider trailing "continue" statements, these have no effect, so we
-        # can remove them.
         if loop_body is not None:
             assert loop_body.isStatementsSequence()
 
             statements = loop_body.subnode_statements
-            assert statements  # Cannot be empty
+            assert statements
 
-            # If the last statement is a "continue" statement, it can simply
-            # be discarded.
             last_statement = statements[-1]
             if last_statement.isStatementLoopContinue():
                 if len(statements) == 1:
-                    self.subnode_body.finalize()
+                    self.subnode_loop_body.finalize()
 
                     self.clearChild("loop_body")
                     loop_body = None
@@ -546,7 +524,6 @@ class StatementLoopContinue(StatementBase):
         return True
 
     def computeStatement(self, trace_collection):
-        # This statement being aborting, will already tell everything.
         trace_collection.onLoopContinue(trace_collection)
 
         return self, None, None
@@ -578,7 +555,6 @@ class StatementLoopBreak(StatementBase):
         return True
 
     def computeStatement(self, trace_collection):
-        # This statement being aborting, will already tell everything.
         trace_collection.onLoopBreak(trace_collection)
 
         return self, None, None

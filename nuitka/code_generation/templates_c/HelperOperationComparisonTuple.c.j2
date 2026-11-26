@@ -19,7 +19,6 @@ static {{ target.getTypeDecl() }} COMPARE_{{op_code}}_{{target.getHelperCodeName
         bool r = true;
 {% endif %}
 
-        // Convert to target type.
         {{ target.getTypeDecl() }} result = {{target.getToValueFromBoolExpression("r")}};
         {{ target.getTakeReferenceStatement("result", immortal=True) }}
         return result;
@@ -60,7 +59,6 @@ static {{ target.getTypeDecl() }} COMPARE_{{op_code}}_{{target.getHelperCodeName
     if (found == false) {
         bool r = len_a {{operator}} len_b;
 
-        // Convert to target type.
         {{ target.getTypeDecl() }} result = {{target.getToValueFromBoolExpression("r")}};
         {{ target.getTakeReferenceStatement("result", immortal=True) }}
         return result;
@@ -74,7 +72,6 @@ static {{ target.getTypeDecl() }} COMPARE_{{op_code}}_{{target.getHelperCodeName
     bool r = res == NUITKA_BOOL_FALSE;
 {% endif %}
 
-    // Convert to target type.
     {{ target.getTypeDecl() }} result = {{target.getToValueFromBoolExpression("r")}};
     {{ target.getTakeReferenceStatement("result", immortal=True) }}
     return result;

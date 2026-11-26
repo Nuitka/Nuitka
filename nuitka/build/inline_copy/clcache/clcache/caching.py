@@ -392,6 +392,7 @@ class CacheLock(object):
         self._mutexName = u"Local\\" + mutexName
         self._mutex = None
         self._timeoutMs = timeoutMs
+        self._acquired = False
 
     def createMutex(self):
         with CacheLock2():
@@ -417,32 +418,29 @@ class CacheLock(object):
             self._mutex, wintypes.INT(self._timeoutMs)
         )
 
-
         if result not in [0, self.WAIT_ABANDONED_CODE]:
             # Nuitka: Just give up
             return
 
-            if result == self.WAIT_TIMEOUT_CODE:
-                errorString = (
-                    "Failed to acquire lock {} after {}ms; "
-                    "try setting CLCACHE_OBJECT_CACHE_TIMEOUT_MS environment variable to a larger value.".format(
-                        self._mutexName, self._timeoutMs
-                    )
-                )
-            else:
-                errorString = "Error! WaitForSingleObject returns {result}, last error {error}".format(
-                    result=result, error=windll.kernel32.GetLastError()
-                )
-            raise CacheLockException(errorString)
+        self._acquired = True
 
     def release(self):
-        windll.kernel32.ReleaseMutex(self._mutex)
+        if self._acquired:
+            self._acquired = False
+            windll.kernel32.ReleaseMutex(self._mutex)
 
     @staticmethod
     def forPath(path):
         timeoutMs = int(os.environ.get("CLCACHE_OBJECT_CACHE_TIMEOUT_MS", 10 * 1000))
         lockName = path.replace(":", "-").replace("\\", "-")
         return CacheLock(lockName, timeoutMs)
+
+
+def isUsableObjectFile(path):
+    try:
+        return os.path.isfile(path) and os.path.getsize(path) > 0
+    except OSError:
+        return False
 
 
 class CompilerArtifactsSection(object):
@@ -466,7 +464,21 @@ class CompilerArtifactsSection(object):
         )
 
     def hasEntry(self, key):
-        return os.path.exists(self.cacheEntryDir(key))
+        cacheEntryDir = self.cacheEntryDir(key)
+        if not os.path.exists(cacheEntryDir):
+            return False
+
+        # Nuitka: Empty or missing cached object files cannot produce a valid
+        # cache hit and using an empty one causes linker errors, so discard
+        # such entries.
+        if isUsableObjectFile(self.cachedObjectName(key)):
+            return True
+
+        printTraceStatement(
+            "Discarding cache entry {} with unusable object file".format(key)
+        )
+        rmtree(cacheEntryDir, ignore_errors=True)
+        return False
 
     def setEntry(self, key, artifacts):
         cacheEntryDir = self.cacheEntryDir(key)
@@ -1597,7 +1609,9 @@ def invokeRealCompiler(
     # Environment variable set by the Visual Studio IDE to make cl.exe write
     # Unicode output to named pipes instead of stdout. Unset it to make sure
     # we can catch stdout output.
-    environment.pop("VS_UNICODE_OUTPUT", None)
+    if "VS_UNICODE_OUTPUT" in environment:
+        environment = dict(environment)
+        environment.pop("VS_UNICODE_OUTPUT", None)
 
     returnCode = None
     stdout = b""
@@ -1890,7 +1904,10 @@ def run(cache, compiler, compiler_args, env):
     printTraceStatement("Found real compiler binary at '{0!s}'".format(compiler))
 
     if "CLCACHE_DISABLE" in os.environ:
-        exit_code, out, err = invokeRealCompiler(compiler, compiler_args, env)
+        exit_code, out, err = invokeRealCompiler(
+            compiler, compiler_args, captureOutput=True, environment=env
+        )
+        printOutAndErr(out, err)
         return exit_code, [out], [err]
     else:
         return processCompileRequest(cache, compiler, compiler_args, env)
@@ -1982,7 +1999,9 @@ def processCompileRequest(cache, compiler, args, env):
         )
         updateCacheStatistics(cache, Statistics.registerCallForPreprocessing)
 
-    exitCode, out, err = invokeRealCompiler(compiler, args, env)
+    exitCode, out, err = invokeRealCompiler(
+        compiler, args, captureOutput=True, environment=env
+    )
     printOutAndErr(out, err)
     return exitCode, [out], [err]
 
@@ -2061,7 +2080,9 @@ def processSingleSource(compiler, cmdLine, sourceFile, objectFile, environment):
             )
 
     except IncludeNotFoundException:
-        return invokeRealCompiler(compiler, cmdLine, environment=environment)
+        return invokeRealCompiler(
+            compiler, cmdLine, captureOutput=True, environment=environment
+        )
     except CompilerFailedException as e:
         return e.getReturnTuple()
 
@@ -2173,7 +2194,7 @@ def ensureArtifactsExist(
     cache, cachekey, reason, objectFile, sourceFile, compilerResult, extraCallable=None
 ):
     returnCode, compilerOutput, compilerStderr = compilerResult
-    correctCompiliation = returnCode == 0 and os.path.exists(objectFile)
+    correctCompiliation = returnCode == 0 and isUsableObjectFile(objectFile)
     with cache.lockFor(cachekey):
         if not cache.hasEntry(cachekey):
             with cache.statistics as stats:

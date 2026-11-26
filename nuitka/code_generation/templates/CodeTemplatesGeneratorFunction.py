@@ -20,17 +20,13 @@ static PyObject *%(function_identifier)s_context(PyThreadState *tstate, struct N
     CHECK_OBJECT_X(yield_return_value);
 
 #if %(has_heap_declaration)s
-    // Heap access.
 %(heap_declaration)s
 #endif
 
-    // Dispatch to yield based on return label index:
 %(function_dispatch)s
 
-    // Local variable initialization
 %(function_var_inits)s
 
-    // Actual generator function body.
 %(function_body)s
 
 %(generator_exit)s
@@ -89,7 +85,6 @@ template_generator_exception_exit = """\
 """
 
 template_generator_no_exception_exit = """\
-    // Return statement need not be present.
 %(function_cleanup)s
     return NULL;
 """

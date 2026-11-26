@@ -5,29 +5,49 @@
 
 import os
 import re
+import struct
 import sys
 
-from nuitka.__past__ import WindowsError  # pylint: disable=I0021,redefined-builtin
-from nuitka.__past__ import unicode
+from nuitka.__past__ import (  # pylint: disable=I0021,redefined-builtin
+    WindowsError,
+    unicode,
+)
 from nuitka.containers.OrderedDicts import OrderedDict
 from nuitka.containers.OrderedSets import OrderedSet
-from nuitka.options.Options import getMacOSTargetArch, isShowInclusion
+from nuitka.options.Options import (
+    getCompilationMode,
+    getMacOSTargetArch,
+    isShowInclusion,
+    isUnstripped,
+)
 from nuitka.PythonVersions import python_version
+from nuitka.targets.Targets import isElfTarget, isMachOTarget
 from nuitka.Tracing import inclusion_logger, postprocessing_logger
 
-from .Execution import executeToolChecked, filterOutputByLine
+from .Execution import (
+    NuitkaCalledProcessError,
+    check_output,
+    executeToolChecked,
+    filterOutputByLine,
+)
 from .FileOperations import (
     addFileExecutablePermission,
+    areSamePaths,
     copyFile,
+    copyFileWithPermissions,
     getFileList,
-    getNormalizedPath,
+    getNormalizedAbsolutePath,
     getNormalizedPathJoin,
     makeContainingPath,
     putBinaryFileContents,
+    replaceFileAtomic,
+    resolveSymlink,
     withMadeWritableFileMode,
     withTemporaryDirectory,
+    withTemporaryFilename,
 )
 from .InlineCopies import importFromInlineCopy
+from .PrivatePipSpace import getPatchElfBinaryPath
 from .Utils import (
     getOS,
     isAlpineLinux,
@@ -49,6 +69,7 @@ from .WindowsResources import (
     deleteWindowsResources,
     getResourcesFromDLL,
 )
+from .Zipfiles import withPreservedZipFileOverlay
 
 
 def locateDLLFromFilesystem(name, paths):
@@ -75,7 +96,7 @@ def locateDLL(dll_name):
         return None
 
     if isWin32Windows() or isMacOS():
-        return getNormalizedPath(os.path.abspath(dll_name))
+        return getNormalizedAbsolutePath(dll_name)
 
     if os.path.sep in dll_name:
         # Use this from ctypes instead of rolling our own.
@@ -206,7 +227,7 @@ def _getDLLVersionWindows(filename):
     # This cannot really fail anymore.
     assert success
 
-    # Look for code pages
+    # Query root VS_FIXEDFILEINFO version structure.
     VerQueryValueA = ctypes.windll.version.VerQueryValueA
     VerQueryValueA.argtypes = (
         ctypes.wintypes.LPCVOID,
@@ -293,6 +314,24 @@ def _getCoffDumpOutput2(dump_filename):
     )
 
 
+def _isCoffArchive(filename):
+    """Check if a file is an archive in AIX format.
+
+    Args:
+        filename: Path to the file to check.
+
+    Returns:
+        True if the file starts with regular or AIX big archive magic.
+    """
+    try:
+        with open(filename, "rb") as archive_file:
+            magic = archive_file.read(8)
+    except (IOError, OSError):
+        return False
+
+    return magic in (b"!<arch>\n", b"<bigaf>\n")
+
+
 def _getCoffDumpOutput(filename):
     """Get 'dump -H' output for a COFF file, avoiding .imp members.
 
@@ -302,12 +341,16 @@ def _getCoffDumpOutput(filename):
     .o members is valid.  Instead list members with 'ar -X 32_64 t' and
     dump each object member individually.
 
+    IBM i PASE names shared libraries like libz.so.1, but these are also
+    archives with shr_64.o and shr_64.imp members, so detecting by the
+    '.a' extension is not sufficient.
+
     Neither 'dump -n member archive.a' nor 'dump archive.a[member]'
     is portable on AIX 7.3 (both give 0654-106 Cannot open), so we
     extract each .o member with 'ar -X 32_64 p' to a temp file and
     dump that file.
     """
-    if filename.endswith(".a"):
+    if _isCoffArchive(filename):
         ar_output = executeToolChecked(
             logger=postprocessing_logger,
             command=("ar", "-X", "32_64", "t", filename),
@@ -630,16 +673,7 @@ def _detectBinaryPathDLLsCoff2(filename, package_name, imported_by):
                 found_path=None,
                 imported_by=imported_by,
             )
-        elif not os.path.isabs(found_path):
-            return _coffDependencyError(
-                filename=filename,
-                imported_libraries=imported_libraries,
-                search_paths=search_paths,
-                base=base,
-                found_path=found_path,
-                imported_by=imported_by,
-            )
-        elif not os.path.isfile(found_path):
+        elif not os.path.isabs(found_path) or not os.path.isfile(found_path):
             return _coffDependencyError(
                 filename=filename,
                 imported_libraries=imported_libraries,
@@ -806,14 +840,13 @@ def _getSharedLibraryRPATHsDarwin(filename, cached):
     for line in output.split(b"\n"):
         line = line.strip()
 
-        if cmd == b"LC_RPATH":
-            if line.startswith(b"path "):
-                result = line[5 : line.rfind(b"(") - 1]
+        if cmd == b"LC_RPATH" and line.startswith(b"path "):
+            result = line[5 : line.rfind(b"(") - 1]
 
-                if str is not bytes:
-                    result = result.decode("utf8")
+            if str is not bytes:
+                result = result.decode("utf8")
 
-                rpaths.append(result)
+            rpaths.append(result)
 
         if last_was_load_command and line.startswith(b"cmd "):
             cmd = line.split()[1]
@@ -866,15 +899,32 @@ Error, needs 'patchelf' on your system, to modify 'RPATH' settings that \
 need to be updated."""
 
 _patch_elf_version = None
+_patch_elf_path = None
+
+
+def _getPatchElfCommand():
+    return _patch_elf_path if _patch_elf_path is not None else "patchelf"
+
+
+def _parsePatchElfVersionOutput(output):
+    version = output.split()[1]
+
+    if str is not bytes:
+        version = version.decode("utf8")
+
+    return version, tuple(
+        int("".join(d for d in part if d.isdigit())) for part in version.split(".")
+    )
 
 
 def _getPatchElfVersionOutput(logger):
     return executeToolChecked(
         logger=logger,
-        command=("patchelf", "--version"),
+        command=(_getPatchElfCommand(), "--version"),
         absence_message="""\
-Error, standalone mode on %s requires 'patchelf' to be \
-installed. Use 'apt/dnf/yum install patchelf' first.""" % getOS(),
+Error, '%s' mode on %s requires 'patchelf' to be \
+installed. Use 'apt/dnf/yum install patchelf' first."""
+        % (getCompilationMode(), getOS()),
     )
 
 
@@ -887,16 +937,74 @@ def getPatchElfVersion(logger):
     if result is None:
         output = _getPatchElfVersionOutput(logger)
 
-        version = output.split()[1]
+        result = _parsePatchElfVersionOutput(output)
+        _patch_elf_version = result
 
-        if str is not bytes:
-            version = version.decode("utf8")
+    return result
 
-        result = version, tuple(
-            int("".join(d for d in part if d.isdigit())) for part in version.split(".")
+
+def _isPatchElfVersionUsable(version_tuple):
+    # These distributions have backports or a safe enough package build by now.
+    return not (
+        version_tuple == (0, 18, 0)
+        and not isDebianBasedLinux()
+        and not isAndroidBasedLinux()
+        and not isFedoraBasedLinux()
+        and not isSuseBasedLinux()
+    )
+
+
+def _checkPatchElfBinaryForQt(logger, binary_path):
+    try:
+        output = check_output((binary_path, "--version"))
+    except (OSError, NuitkaCalledProcessError):
+        return False, None
+
+    version, version_tuple = _parsePatchElfVersionOutput(output)
+
+    # Qt reads plugin metadata from ELF notes, which patchelf before 0.12
+    # can move out of the note segment when rewriting the RPATH.
+    if version_tuple < (0, 12) or not _isPatchElfVersionUsable(version_tuple):
+        if logger is not None:
+            logger.info(
+                "Rejecting 'patchelf' binary '%s' with version '%s' for Qt plugins."
+                % (binary_path, version)
+            )
+
+        return False, "patchelf version %s is not usable for Qt plugins." % version
+
+    return True, None
+
+
+def getPatchElfPathForQt(logger, assume_yes_for_downloads):
+    """Get a 'patchelf' binary suitable for Qt plugin binaries.
+
+    Args:
+        assume_yes_for_downloads: bool, whether a download may happen without
+            asking the user.
+
+    Returns:
+        Path of the binary, or None if no suitable binary could be obtained.
+    """
+    # Singleton, pylint: disable=global-statement
+    global _patch_elf_path, _patch_elf_version
+
+    result = _patch_elf_path
+
+    if result is None:
+        result = getPatchElfBinaryPath(
+            logger=logger,
+            check_binary=_checkPatchElfBinaryForQt,
+            assume_yes_for_downloads=assume_yes_for_downloads,
+            reject_message="""\
+Error, needs 'patchelf' version 0.12 or newer for Qt plugin support, and \
+downloading it into the private pip space was not allowed. Use patchelf \
+0.12 or newer, or downgrade to patchelf 0.9.""",
         )
 
-        _patch_elf_version = result
+        if result is not None:
+            _patch_elf_path = result
+            _patch_elf_version = None
 
     return result
 
@@ -906,14 +1014,7 @@ def checkPatchElfPresenceAndUsability(logger):
 
     version, version_tuple = getPatchElfVersion(logger)
 
-    # These have backports or a safe enough package build by now.
-    if (
-        version_tuple == (0, 18, 0)
-        and not isDebianBasedLinux()
-        and not isAndroidBasedLinux()
-        and not isFedoraBasedLinux()
-        and not isSuseBasedLinux()
-    ):
+    if not _isPatchElfVersionUsable(version_tuple):
         return logger.sysexit(
             "Error, patchelf version %s is a known buggy release and cannot be used. Please upgrade or downgrade it."
             % version
@@ -923,7 +1024,13 @@ def checkPatchElfPresenceAndUsability(logger):
 def _setSharedLibraryRPATHElf(filename, rpath):
     executeToolChecked(
         logger=postprocessing_logger,
-        command=("patchelf", "--force-rpath", "--set-rpath", rpath, filename),
+        command=(
+            _getPatchElfCommand(),
+            "--force-rpath",
+            "--set-rpath",
+            rpath,
+            filename,
+        ),
         stderr_filter=_filterPatchelfErrorOutput,
         absence_message=_patchelf_usage,
     )
@@ -1239,41 +1346,343 @@ def makeMacOSThinBinary(dest_path, original_path):
         )
 
 
+_strip_usage = (
+    "The 'strip' tool is used to reduce the size of binaries and required to be found."
+)
+
+
+def _filterStripErrorOutput(stderr, filename):
+    # Need to tolerate complaints about strip on signed code on macOS
+    stderr = b"\n".join(
+        line
+        for line in stderr.splitlines()
+        if line
+        if b"invalidate the code signature" not in line
+    )
+
+    # Older 'binutils' versions cannot strip files whose program headers in some cases
+    # but then we just ignore the error and report it as information.
+    if b"Not enough room for program headers" in stderr:
+        if str is not bytes:
+            stderr = stderr.decode("utf8", "replace")
+
+        postprocessing_logger.info(
+            "Info, 'strip' failed for '%s', leaving file unstripped: %s"
+            % (filename, stderr)
+        )
+
+        return 0, b""
+
+    return None, stderr
+
+
+def _parseElfHeader(elf_header):
+    """Parse the ELF header for program header table information.
+
+    Args:
+        elf_header: Bytes of the beginning of an ELF file, at least the
+            header size, i.e. 52 bytes for 32 bits and 64 bytes for 64 bits.
+
+    Returns:
+        Tuple of ELF class, endianness, program header offset, program header
+        entry size, program header count, and load header size, or None if
+        the header is not understood.
+    """
+    # The ELF32 header is 52 bytes, only ELF64 uses the full 64 bytes.
+    if len(elf_header) < 52:
+        return None
+
+    if elf_header[:4] != b"\x7fELF":
+        return None
+
+    elf_class = elf_header[4]
+    elf_data = elf_header[5]
+
+    if elf_data == 1:
+        endian = "<"
+    elif elf_data == 2:
+        endian = ">"
+    else:
+        return None
+
+    if elf_class == 1:
+        # 32 bits ELF
+        (e_phoff,) = struct.unpack(endian + "I", elf_header[28:32])
+        (e_phentsize,) = struct.unpack(endian + "H", elf_header[42:44])
+        (e_phnum,) = struct.unpack(endian + "H", elf_header[44:46])
+        load_header_size = 32
+    elif elf_class == 2:
+        # 64 bits ELF
+        if len(elf_header) < 64:
+            return None
+
+        (e_phoff,) = struct.unpack(endian + "Q", elf_header[32:40])
+        (e_phentsize,) = struct.unpack(endian + "H", elf_header[54:56])
+        (e_phnum,) = struct.unpack(endian + "H", elf_header[56:58])
+        load_header_size = 56
+    else:
+        return None
+
+    return elf_class, endian, e_phoff, e_phentsize, e_phnum, load_header_size
+
+
+def _isAlignedElfLoadHeader(endian, elf_class, program_header):
+    """Check if an ELF load segment is aligned for mapping.
+
+    Args:
+        endian: Endianness prefix for 'struct.unpack', '<' or '>'.
+        elf_class: ELF class, 1 for 32 bits, 2 for 64 bits.
+        program_header: Bytes of the program header to check.
+
+    Returns:
+        True if the file offset and virtual address of the load segment are
+        aligned consistently.
+    """
+    if elf_class == 1:
+        (p_offset,) = struct.unpack(endian + "I", program_header[4:8])
+        (p_vaddr,) = struct.unpack(endian + "I", program_header[8:12])
+        (p_align,) = struct.unpack(endian + "I", program_header[28:32])
+    else:
+        (p_offset,) = struct.unpack(endian + "Q", program_header[8:16])
+        (p_vaddr,) = struct.unpack(endian + "Q", program_header[16:24])
+        (p_align,) = struct.unpack(endian + "Q", program_header[48:56])
+
+    return p_align <= 1 or (p_offset % p_align) == (p_vaddr % p_align)
+
+
+def _isInoperableElfFile(filename):
+    """Check if an ELF file has load segments that cannot be mapped.
+
+    Args:
+        filename: Path to the ELF file to check.
+
+    Returns:
+        True if the file must not be used, i.e. it has load segments whose
+        file offset and virtual address are not aligned consistently, which
+        the dynamic loader refuses to map.
+
+    Notes:
+        This verifies the result of stripping, because stripping can change
+        the file offsets of load segments without keeping them aligned to
+        their virtual addresses. Files that cannot be parsed are considered
+        inoperable, since they cannot be verified to be usable.
+    """
+    try:
+        with open(filename, "rb") as elf_file:
+            elf_header = elf_file.read(64)
+
+            elf_header_values = _parseElfHeader(elf_header)
+
+            if elf_header_values is None:
+                return True
+
+            (
+                elf_class,
+                endian,
+                e_phoff,
+                e_phentsize,
+                e_phnum,
+                load_header_size,
+            ) = elf_header_values
+
+            for program_header_no in range(e_phnum):
+                elf_file.seek(e_phoff + program_header_no * e_phentsize)
+
+                program_header = elf_file.read(e_phentsize)
+
+                if len(program_header) < load_header_size:
+                    return True
+
+                (p_type,) = struct.unpack(endian + "I", program_header[0:4])
+
+                # Only load segments are relevant for mapping the file.
+                if p_type != 1:
+                    continue
+
+                if not _isAlignedElfLoadHeader(endian, elf_class, program_header):
+                    return True
+    except (IOError, OSError, OverflowError, ValueError, struct.error):
+        return True
+
+    return False
+
+
+def _executeStripTool(filename, strip_command):
+    """Execute the 'strip' tool on a binary file.
+
+    Args:
+        filename: Path to the binary file to strip.
+        strip_command: Tuple of the command to execute.
+    """
+    # TODO: The 'strip' command should run through the target specification,
+    # which we currently cannot do yet. Until then this won't work for cross
+    # compilation, and a lot of commands and tool calls will need that.
+    with withMadeWritableFileMode(filename):
+        executeToolChecked(
+            logger=postprocessing_logger,
+            command=strip_command,
+            stderr_filter=_filterStripErrorOutput,
+            context={"filename": filename},
+            absence_message=_strip_usage,
+        )
+
+
+def stripBinarySymbols(filename):
+    """Strip a binary file of symbols that are not needed at runtime.
+
+    Args:
+        filename: Path to the binary file to strip.
+
+    Notes:
+        This is only used for ELF and macOS binaries. On Windows, debug
+        information is in separate PDB files, and stripping PE files is not
+        generally beneficial.
+
+        For ELF, symbols not needed for relocations are removed, which is the
+        safe maximum for shared libraries. For macOS, local symbols and debug
+        information are removed, while global symbols are preserved for
+        dynamic linking.
+
+        Since stripping is only done to reduce the size of the distribution,
+        known failures are tolerated and leave the file unstripped, while
+        unknown errors remain fatal.
+
+        For ELF, stripping was observed to render shared libraries with
+        unusual program headers unusable, e.g. OpenBLAS libraries from PyPI
+        wheels, where the file offsets of the load segments are no longer
+        aligned to their virtual addresses afterwards. Since stripping is
+        only an optimization, such files are kept unstripped.
+    """
+    if isMachOTarget():
+        strip_command = ("strip", "-S", "-x", filename)
+
+        _executeStripTool(filename, strip_command)
+    elif isElfTarget():
+        strip_command = ("strip", "--strip-unneeded", filename)
+
+        # Stripping is only an optimization, and it can render files with unusual
+        # program headers unusable, so keep the original until the result is
+        # verified to be usable.
+        target_dir = os.path.dirname(filename) or "."
+
+        with withTemporaryFilename(
+            prefix=".nuitka-strip-", suffix=".tmp", temp_path=target_dir
+        ) as backup_filename:
+            copyFileWithPermissions(
+                source_path=filename,
+                dest_path=backup_filename,
+                target_dir=target_dir,
+            )
+
+            _executeStripTool(filename, strip_command)
+
+            if _isInoperableElfFile(filename):
+                postprocessing_logger.info(
+                    "Cannot remove debug informatiuon as 'strip' made '%s' unusable, keeping the unstripped file."
+                    % filename
+                )
+
+                replaceFileAtomic(source_path=backup_filename, dest_path=filename)
+    else:
+        assert False, filename
+
+
+def _isSymlinkTargetEntryPoint(
+    source_path, target_filename, dist_dir, other_entry_points
+):
+    """Check if the target of a symlink is another entry point being copied.
+
+    Args:
+        source_path: Path of the symlink.
+        target_filename: Destination filename of the symlink.
+        dist_dir: Distribution directory.
+        other_entry_points: Entry points being copied.
+
+    Returns:
+        bool: True if the symlink target is among the entry points.
+    """
+    link_target_rel = resolveSymlink(source_path)
+
+    resolved_target_path = getNormalizedPathJoin(
+        os.path.dirname(target_filename), link_target_rel
+    )
+
+    return any(
+        areSamePaths(
+            resolved_target_path,
+            getNormalizedPathJoin(dist_dir, other_entry_point.dest_path),
+        )
+        for other_entry_point in other_entry_points
+    )
+
+
 def copyDllFile(source_path, dist_dir, dest_path, executable, other_entry_points):
     """Copy an extension/DLL file making some adjustments on the way."""
 
-    target_filename = os.path.join(dist_dir, dest_path)
+    target_filename = getNormalizedPathJoin(dist_dir, dest_path)
     makeContainingPath(target_filename)
 
-    copyFile(source_path=source_path, dest_path=target_filename)
-
-    if isWin32Windows() and python_version < 0x300:
-        _removeSxsFromDLL(target_filename)
-
-    if isMacOS():
-        makeMacOSThinBinary(dest_path=target_filename, original_path=source_path)
-
-    if isElfUsingPlatform():
-        rpaths = getStandaloneEntryPointRPATHs(
-            dest_path=dest_path,
+    if (
+        not isWin32Windows()
+        and os.path.islink(source_path)
+        and _isSymlinkTargetEntryPoint(
+            source_path=source_path,
+            target_filename=target_filename,
+            dist_dir=dist_dir,
             other_entry_points=other_entry_points,
-            rpath_mode="parents",
+        )
+    ):
+        # Preserve symlinks to libraries, e.g. versioned aliases instead of
+        # copying the target as a second regular file, which can cause duplicate
+        # library state to be loaded. Symlinks are copied last, so their targets
+        # are already in the distribution or not.
+        copyFileWithPermissions(
+            source_path=source_path,
+            dest_path=target_filename,
+            target_dir=dist_dir,
         )
 
-        # Make sure, sub-folders use by the original DLL are actually still
-        # included.
-        #
-        # TODO: Actually it would be nice if these were trimmed to what actually
-        # exists and is used, but that's pretty complex and maybe not worth the
-        # effort. This would look like "fixupBinaryDLLPathsMacOS" somewhat, and
-        # actually this code is indeed kind of misplaced here.
-        rpaths.update(
-            rpath
-            for rpath in getSharedLibraryRPATHs(source_path, elements=True)
-            if rpath.startswith("$ORIGIN")
-        )
+        is_symlink_copy = os.path.islink(target_filename)
+    else:
+        copyFile(source_path=source_path, dest_path=target_filename)
 
-        setSharedLibraryRPATH(target_filename, ":".join(rpaths))
+        is_symlink_copy = False
+
+    # The target of a preserved symlink is an entry point of its own, and was
+    # therefore already adjusted when it was copied before the symlink.
+    if not is_symlink_copy:
+        if isWin32Windows() and python_version < 0x300:
+            _removeSxsFromDLL(target_filename)
+
+        if isMachOTarget():
+            makeMacOSThinBinary(dest_path=target_filename, original_path=source_path)
+
+        if isElfTarget() or isMachOTarget():
+            with withPreservedZipFileOverlay(target_filename):
+                if not isUnstripped():
+                    stripBinarySymbols(target_filename)
+
+                if isElfTarget():
+                    rpaths = getStandaloneEntryPointRPATHs(
+                        dest_path=dest_path,
+                        other_entry_points=other_entry_points,
+                        rpath_mode="parents",
+                    )
+
+                    # Make sure, sub-folders use by the original DLL are actually still
+                    # included.
+                    #
+                    # TODO: Actually it would be nice if these were trimmed to what actually
+                    # exists and is used, but that's pretty complex and maybe not worth the
+                    # effort. This would look like "fixupBinaryDLLPathsMacOS" somewhat, and
+                    # actually this code is indeed kind of misplaced here.
+                    rpaths.update(
+                        rpath
+                        for rpath in getSharedLibraryRPATHs(source_path, elements=True)
+                        if rpath.startswith("$ORIGIN")
+                    )
+
+                    setSharedLibraryRPATH(target_filename, ":".join(rpaths))
 
     if executable:
         addFileExecutablePermission(target_filename)
@@ -1408,7 +1817,7 @@ def getWindowsRunningProcessDLLPaths():
     return result
 
 
-# spell-checker: ignore termux DT_RUNPATH
+# spell-checker: ignore DT_RUNPATH termux
 _termux_elf_cleaner_usage = (
     "Needs 'termux-elf-cleaner' to clean up created files. Install it for best results."
 )
@@ -1421,19 +1830,20 @@ def cleanupHeaderForAndroid(filename):
     created by default.
     """
 
-    executeToolChecked(
-        logger=postprocessing_logger,
-        command=("patchelf", "--shrink-rpath", filename),
-        stderr_filter=_filterPatchelfErrorOutput,
-        absence_message=_patchelf_usage,
-    )
+    with withPreservedZipFileOverlay(filename):
+        executeToolChecked(
+            logger=postprocessing_logger,
+            command=(_getPatchElfCommand(), "--shrink-rpath", filename),
+            stderr_filter=_filterPatchelfErrorOutput,
+            absence_message=_patchelf_usage,
+        )
 
-    executeToolChecked(
-        logger=postprocessing_logger,
-        command=("termux-elf-cleaner", "--quiet", filename),
-        absence_message=_termux_elf_cleaner_usage,
-        optional=True,
-    )
+        executeToolChecked(
+            logger=postprocessing_logger,
+            command=("termux-elf-cleaner", "--quiet", filename),
+            absence_message=_termux_elf_cleaner_usage,
+            optional=True,
+        )
 
 
 _nm_usage = """\

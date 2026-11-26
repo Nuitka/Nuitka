@@ -81,6 +81,14 @@ base = 2.0
 exp = -1100.0
 print("Power operator underflow gives", base**exp)
 
+
+def literal_base_power(exponent):
+    return 2.0**exponent
+
+
+print("Power operator literal base underflow gives", literal_base_power(-1100.0))
+print("Power operator literal base subnormal gives", literal_base_power(-1074.0))
+
 big = 1e200
 inf_value = float("inf")
 
@@ -94,7 +102,12 @@ try:
 except OverflowError as e:
     print("Power operator negative infinity overflow gives", repr(e))
 
-print("Power operator infinity gives", inf_value**2.0)
+# Python 2.6 raises OverflowError for inf ** positive, unlike 2.7+.
+try:
+    print("Power operator infinity gives", inf_value**2.0)
+except OverflowError as e:
+    print("Power operator infinity gives", repr(e))
+
 print("Power operator infinity underflow gives", inf_value**-1.0)
 print("Power operator negative infinity underflow gives", (-inf_value) ** -3.0)
 

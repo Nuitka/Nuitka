@@ -1,7 +1,7 @@
 #     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-"""CType classes for PyObject *, PyObject **, and struct Nuitka_CellObject *"""
+"""CType classes for 'PyObject *', 'PyObject **', and 'struct Nuitka_CellObject *'."""
 
 from nuitka.__past__ import frozendict, iterItems, xrange
 from nuitka.code_generation.ErrorCodes import (
@@ -122,7 +122,7 @@ class CPythonPyObjectPtrBase(CTypeBase):
 
     @classmethod
     def emitAssignInplaceNegatedValueCode(cls, to_name, needs_check, emit, context):
-        # Half way, virtual method: pylint: disable=unused-argument
+        # pylint: disable=unused-argument
 
         update_code = "%(to_name)s = (%(truth_check)s) ? Py_False : Py_True" % {
             "truth_check": cls.getTruthCheckCode(to_name),
@@ -177,7 +177,7 @@ class CPythonPyObjectPtrBase(CTypeBase):
     def emitAssignmentCodeFromConstant(
         cls, to_name, constant, may_escape, emit, context
     ):
-        # Many cases to deal with, pylint: disable=too-many-branches,too-many-statements
+        # pylint: disable=too-many-branches,too-many-statements
 
         if type(constant) is dict:
             if not may_escape:
@@ -185,7 +185,6 @@ class CPythonPyObjectPtrBase(CTypeBase):
                 ref_count = 0
             elif constant:
                 for key, value in iterItems(constant):
-                    # key cannot be mutable.
                     assert not isMutable(key)
                     if isMutable(value):
                         needs_deep = True
@@ -344,6 +343,10 @@ class CTypePyObjectPtr(CPythonPyObjectPtrBase):
     helper_code = "OBJECT"
 
     @classmethod
+    def holdsObjectReference(cls):
+        return True
+
+    @classmethod
     def getInitValue(cls, init_from):
         if init_from is None:
             return "NULL"
@@ -389,7 +392,7 @@ class CTypePyObjectPtr(CPythonPyObjectPtrBase):
 
     @classmethod
     def emitValueAccessCode(cls, value_name, emit, context):
-        # Nothing to do for this type, pylint: disable=unused-argument
+        # pylint: disable=unused-argument
         return value_name
 
     @classmethod
@@ -436,13 +439,16 @@ class CTypePyObjectPtr(CPythonPyObjectPtrBase):
 
     @classmethod
     def getTakeReferenceCode(cls, value_name, emit):
-        """Take reference code for given object."""
-
         emit("Py_INCREF(%s);" % value_name)
 
 
 class CTypePyObjectPtrPtr(CPythonPyObjectPtrBase):
     c_type = "PyObject **"
+
+    @classmethod
+    def holdsObjectReference(cls):
+        # The pointed-to location holds the object reference, not this value.
+        return False
 
     @classmethod
     def getStructStorageCType(cls):
@@ -464,10 +470,9 @@ class CTypePyObjectPtrPtr(CPythonPyObjectPtrBase):
 
     @classmethod
     def emitValueAccessCode(cls, value_name, emit, context):
-        # No code needed for this type, pylint: disable=unused-argument
+        # pylint: disable=unused-argument
         from ..VariableDeclarations import VariableDeclaration
 
-        # Use the object pointed to.
         return VariableDeclaration(
             c_type="PyObject *",
             code_name="*%s" % value_name,
@@ -479,13 +484,22 @@ class CTypePyObjectPtrPtr(CPythonPyObjectPtrBase):
     @classmethod
     def emitAssignmentCodeFromBoolCondition(cls, to_name, condition, emit):
         emit(
-            "*%(to_name)s = (%(condition)s) ? Py_True : Py_False;"
+            "Py_XSETREF(*%(to_name)s, Py_NewRef_IMMORTAL((%(condition)s) ? Py_True : Py_False));"
             % {"to_name": to_name, "condition": condition}
         )
 
 
 class CTypeCellObject(CTypeBase):
     c_type = "struct Nuitka_CellObject *"
+
+    @classmethod
+    def holdsObjectReference(cls):
+        # Holds an owned reference to the cell object itself.
+        return True
+
+    @classmethod
+    def getTakeReferenceCode(cls, value_name, emit):
+        emit("Py_INCREF((PyObject *)%s);" % value_name)
 
     @classmethod
     def getInitValue(cls, init_from):
@@ -511,9 +525,6 @@ class CTypeCellObject(CTypeBase):
         cls, value_name, needs_release, tmp_name, ref_count, inplace, emit, context
     ):
         if inplace:
-            # Releasing is not an issue here, local variable reference never
-            # gave a reference, and the in-place code deals with possible
-            # replacement/release.
             template = template_write_shared_inplace
 
         else:
@@ -535,10 +546,9 @@ class CTypeCellObject(CTypeBase):
 
     @classmethod
     def emitValueAccessCode(cls, value_name, emit, context):
-        # No code needed for this type, pylint: disable=unused-argument
+        # pylint: disable=unused-argument
         from ..VariableDeclarations import VariableDeclaration
 
-        # Use the object pointed to.
         return VariableDeclaration(
             c_type="PyObject *",
             code_name="Nuitka_Cell_GET(%s)" % value_name,
@@ -557,10 +567,12 @@ class CTypeCellObject(CTypeBase):
 
     @classmethod
     def emitAssignmentCodeFromBoolCondition(cls, to_name, condition, emit):
-        emit(
-            "%(to_name)s->ob_ref = (%(condition)s) ? Py_True : Py_False;"
-            % {"to_name": to_name, "condition": condition}
-        )
+        emit("""\
+{
+    PyObject *old = Nuitka_Cell_GET(%(to_name)s);
+    Nuitka_Cell_SET(%(to_name)s, Py_NewRef_IMMORTAL((%(condition)s) ? Py_True : Py_False));
+    Py_XDECREF(old);
+}""" % {"to_name": to_name, "condition": condition})
 
     @classmethod
     def getDeleteObjectCode(
@@ -661,10 +673,12 @@ class CTypePyCellObject(CTypeCellObject):
 
     @classmethod
     def emitAssignmentCodeFromBoolCondition(cls, to_name, condition, emit):
-        emit(
-            "PyCell_SET((PyObject *)%(to_name)s, (%(condition)s) ? Py_True : Py_False);"
-            % {"to_name": to_name, "condition": condition}
-        )
+        emit("""\
+{
+    PyObject *old = PyCell_GET((PyObject *)%(to_name)s);
+    PyCell_SET((PyObject *)%(to_name)s, Py_NewRef_IMMORTAL((%(condition)s) ? Py_True : Py_False));
+    Py_XDECREF(old);
+}""" % {"to_name": to_name, "condition": condition})
 
     @classmethod
     def getDeleteObjectCode(

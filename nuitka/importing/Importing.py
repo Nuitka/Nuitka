@@ -14,17 +14,11 @@ load. For us unfortunately there is nothing in CPython that is easily
 accessible and gives us this functionality for packages and search paths
 exactly like CPython does, so we implement here a multi step search process
 that is compatible.
-
-This approach is much safer of course and there is no loss. To determine if
-it's from the standard library, one can abuse the attribute ``__file__`` of the
-``os`` module like it's done in ``isStandardLibraryPath`` of this module.
-
 """
 
 import collections
 import os
 import sys
-import zipfile
 
 from nuitka.__past__ import iter_modules
 from nuitka.containers.Namedtuples import makeNamedtupleClass
@@ -55,6 +49,7 @@ from nuitka.utils.AppDirs import getCacheDir
 from nuitka.utils.FileOperations import (
     areSamePaths,
     getFileContentsHash,
+    getNormalizedAbsolutePath,
     getNormalizedPath,
     getNormalizedPathJoin,
     listDir,
@@ -76,8 +71,8 @@ from nuitka.utils.SharedLibraries import (
 )
 from nuitka.utils.Utils import (
     getLaunchingNuitkaProcessEnvironmentValue,
+    isCaseInsensitiveOS,
     isMacOS,
-    isWin32OrPosixWindows,
     withNoDeprecationWarning,
 )
 from nuitka.utils.Zipfiles import getZipFile
@@ -510,7 +505,7 @@ def warnAboutNotFoundImport(importing, module_name, level, source_ref):
                     recursion_logger.warning(
                         "%s: Cannot find '%s' in package '%s' %s."
                         % (
-                            importing.getSourceReference().getAsString(),
+                            source_ref.getAsString(),
                             module_name,
                             importing.getFullName().getPackageName().asString(),
                             level_desc,
@@ -520,7 +515,7 @@ def warnAboutNotFoundImport(importing, module_name, level, source_ref):
                     recursion_logger.warning(
                         "%s: Cannot find '%s' %s."
                         % (
-                            importing.getSourceReference().getAsString(),
+                            source_ref.getAsString(),
                             module_name,
                             level_desc,
                         )
@@ -691,11 +686,18 @@ def findModule(module_name, parent_package, level, logger):
     assert module_name != "*"
 
     if level > 1:
-        # TODO: Should give a warning and return not found if the levels
-        # exceed the package name.
-        if parent_package is not None:
-            parent_package = parent_package.getRelativePackageName(level - 1)
-        else:
+        if parent_package is None:
+            return _find_module_not_found
+
+        parent_package = parent_package.getRelativePackageName(level - 1)
+
+        # When the level exceeds the package name, this is a relative import
+        # beyond the top-level package. At run time that is an error, and we
+        # must not try to locate such a module. This can however legitimately
+        # occur when compiling a package as module, where the run time parent
+        # package is not known at compile time, and the import needs to be
+        # resolved at run time, so this is not reported as an error.
+        if parent_package is None or not parent_package:
             return _find_module_not_found
 
     if level == 1 and not module_name:
@@ -794,7 +796,6 @@ def findModule(module_name, parent_package, level, logger):
                 logger=logger,
             )
         except ImportError:
-            # For relative import, that is OK, we will still try absolute.
             pass
         else:
             if logger is not None:
@@ -815,7 +816,7 @@ def findModule(module_name, parent_package, level, logger):
 
 
 # Some platforms are case insensitive.
-case_sensitive = not isMacOS() and not isWin32OrPosixWindows()
+_case_sensitive = not isCaseInsensitiveOS()
 
 ImportScanFinding = collections.namedtuple(
     "ImportScanFinding",
@@ -1024,7 +1025,7 @@ def _pickBestModuleScanCandidate(candidates):
     candidates = _sortModuleScanCandidates(candidates)
 
     # On case sensitive systems, no resolution needed.
-    if case_sensitive:
+    if _case_sensitive:
         return candidates[0]
 
     for candidate in candidates:
@@ -1116,9 +1117,6 @@ def _unpackPathElement(path_entry):
                             error_exit=False,
                             logger=recursion_logger,
                         ) as zip_ref:
-                            if zip_ref is None:
-                                raise zipfile.BadZipFile("Bad zip file.")
-
                             zip_ref.extractall(target_dir)
                     except BaseException:
                         removeDirectory(
@@ -1170,33 +1168,23 @@ def getPackageSearchPath(package_name):
                 result.append(os.getcwd())
 
         result += getPythonUnpackedSearchPath() + list(_extra_paths)
-    elif "." in package_name:
-        parent_package_name, child_package_name = package_name.splitModuleBasename()
-
-        result = []
-        for element in getPackageSearchPath(parent_package_name):
-            package_dir = getNormalizedPathJoin(element, child_package_name.asPath())
-
-            if isPackageDir(package_dir):
-                result.append(package_dir)
-                # Hack for "uniconvertor". TODO: Move this to plug-in decision. This
-                # fails the above test, but at run time should be a package.
-                # spell-checker: ignore uniconvertor
-            elif package_name == "uniconvertor.app.modules":
-                result.append(package_dir)
-
-        return result
-
     else:
         preloaded_path = getPreloadedPackagePath(package_name)
 
         if preloaded_path is not None:
             return preloaded_path
 
-        def getPackageDirCandidates(element):
-            yield getNormalizedPathJoin(element, package_name.asPath()), False
+        parent_package_name, child_package_name = package_name.splitModuleBasename()
 
-            for extra_path in getPackageExtraScanPaths(package_name, element):
+        def getPackageDirCandidates(element):
+            package_dir = getNormalizedPathJoin(element, child_package_name.asPath())
+
+            # Hack for "uniconvertor". TODO: Move this to plug-in decision. This
+            # fails the package directory test, but at run time should be a package.
+            # spell-checker: ignore uniconvertor
+            yield package_dir, package_name == "uniconvertor.app.modules"
+
+            for extra_path in getPackageExtraScanPaths(package_name, package_dir):
                 yield extra_path, True
 
         result = []
@@ -1208,7 +1196,7 @@ def getPackageSearchPath(package_name):
             if setuptools_package_dir is not None:
                 result.append(setuptools_package_dir)
 
-        for element in getPackageSearchPath(None):
+        for element in getPackageSearchPath(parent_package_name):
             for package_dir, force_package in getPackageDirCandidates(element):
                 if force_package or isPackageDir(package_dir):
                     result.append(package_dir)
@@ -1507,7 +1495,7 @@ def decideModuleSourceRef(filename, module_name, is_main, is_fake, logger):
             is_namespace = True
         else:
             source_ref = makeSourceReferenceFromFilename(
-                filename=getNormalizedPath(os.path.abspath(source_filename))
+                filename=getNormalizedAbsolutePath(source_filename)
             )
 
     else:
@@ -1525,11 +1513,11 @@ def decideModuleSourceRef(filename, module_name, is_main, is_fake, logger):
     )
 
 
-# spell-checker: ignore _posixsubprocess,pyexpat,xxsubtype,_bytesio,_interpchannels
-# spell-checker: ignore _interpqueues,_lsprof,_multibytecodec,_posixshmem _winapi
-# spell-checker: ignore  _testbuffer _testexternalinspection _testimportmultiple
-# spell-checker: ignore _testinternalcapi _testmultiphase _testsinglephase _scproxy
-# spell-checker: ignore _xxtestfuzz _xxsubinterpreters imageop _xxinterpchannels
+# spell-checker: ignore _bytesio,_interpchannels,_interpqueues,_lsprof,_multibytecodec
+# spell-checker: ignore _posixshmem,_posixsubprocess,_scproxy,_testbuffer
+# spell-checker: ignore _testexternalinspection,_testimportmultiple,_testinternalcapi
+# spell-checker: ignore _testmultiphase,_testsinglephase,_winapi,_xxinterpchannels
+# spell-checker: ignore _xxsubinterpreters,_xxtestfuzz,imageop,pyexpat,xxsubtype
 _stdlib_module_raises = {
     "_abc": False,
     "__builtin__": False,

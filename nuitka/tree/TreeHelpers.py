@@ -32,10 +32,12 @@ from nuitka.nodes.NodeMakingHelpers import (
     mergeStatementsWithNone,
 )
 from nuitka.nodes.StatementNodes import StatementsSequence
-from nuitka.options.Options import hasPythonFlagNoDocStrings
+from nuitka.plugins.Hooks import decideDocStrings, decideNeedsFrameLocalsProxy
 from nuitka.PythonVersions import python_version
 from nuitka.States import states
 from nuitka.Tracing import optimization_logger, printLine
+
+from .SyntaxErrors import checkDebugNameAssignment
 
 
 def dump(node):
@@ -46,7 +48,33 @@ def getKind(node):
     return node.__class__.__name__.rsplit(".", 1)[-1]
 
 
-def extractDocFromBody(node):
+def getClassBodyForDeferredScope(provider):
+    """Return the class body that provides names to a deferred scope.
+
+    Annotation scopes, e.g. the ones created for type aliases, type variables,
+    and deferred annotations, resolve names in the class namespace first,
+    unlike normal functions nested in a class body.
+    """
+
+    current = provider
+
+    while not current.isCompiledPythonModule():
+        if current.isExpressionClassBodyBase():
+            return current
+
+        if current.isExpressionFunctionBody() and not (
+            current.hasFlag("type_alias")
+            or current.hasFlag("typevar")
+            or current.hasFlag("annotate")
+        ):
+            return None
+
+        current = current.getParentVariableProvider()
+
+    return None
+
+
+def extractDocFromBody(node, module):
     body = node.body
     doc = None
 
@@ -62,7 +90,7 @@ def extractDocFromBody(node):
                 doc = body[0].value.value
             body = body[1:]
 
-        if hasPythonFlagNoDocStrings():
+        if decideDocStrings(module) is False:
             doc = None
 
     if doc is not None and python_version >= 0x3D0:
@@ -94,8 +122,7 @@ def parseSourceCodeToAst(source_code, module_name, filename, line_offset):
 
 
 def detectFunctionBodyKind(nodes, start_value=None):
-    # This is a complex mess, following the scope means a lot of checks need
-    # to be done. pylint: disable=too-many-branches,too-many-statements
+    # pylint: disable=too-many-branches,too-many-statements
 
     indications = set()
     if start_value is not None:
@@ -106,9 +133,9 @@ def detectFunctionBodyKind(nodes, start_value=None):
     def _check(node):
         node_class = node.__class__
 
-        if node_class is ast.Yield:
-            indications.add("Generator")
-        elif python_version >= 0x300 and node_class is ast.YieldFrom:
+        if node_class is ast.Yield or (
+            python_version >= 0x300 and node_class is ast.YieldFrom
+        ):
             indications.add("Generator")
         elif python_version >= 0x350 and node_class in (ast.Await, ast.AsyncWith):
             indications.add("Coroutine")
@@ -121,10 +148,7 @@ def detectFunctionBodyKind(nodes, start_value=None):
                 elif name in ("bases", "decorator_list", "keywords", "type_params"):
                     for child in field:
                         _check(child)
-                elif name == "starargs":  # spell-checker: ignore starargs
-                    if field is not None:
-                        _check(field)
-                elif name == "kwargs":
+                elif name in ("starargs", "kwargs"):  # spell-checker: ignore starargs
                     if field is not None:
                         _check(field)
                 else:
@@ -171,34 +195,53 @@ def detectFunctionBodyKind(nodes, start_value=None):
                     if python_version < 0x3B0:
                         _check(field[0].iter)
                     else:
-                        _check(field[0])
+                        for child in field:
+                            _check(child)
                 elif name in ("body", "elt"):
                     _check(field)
                 else:
                     assert False, (name, field, ast.dump(node))
         elif python_version >= 0x270 and node_class is ast.SetComp:
             for name, field in ast.iter_fields(node):
-                if name in ("name", "body", "comparators", "elt"):
+                if name in ("name", "body", "comparators"):
                     pass
+                elif name == "elt":
+                    if python_version >= 0x3B0:
+                        _check(field)
                 elif name == "generators":
-                    _check(field[0].iter)
+                    if python_version < 0x3B0:
+                        _check(field[0].iter)
+                    else:
+                        for child in field:
+                            _check(child)
                 else:
                     assert False, (name, field, ast.dump(node))
         elif python_version >= 0x270 and node_class is ast.DictComp:
             for name, field in ast.iter_fields(node):
-                if name in ("name", "body", "comparators", "key", "value"):
+                if name in ("name", "body", "comparators"):
                     pass
+                elif name in ("key", "value"):
+                    if python_version >= 0x3B0:
+                        if field is not None:
+                            _check(field)
                 elif name == "generators":
-                    _check(field[0].iter)
+                    if python_version < 0x3B0:
+                        _check(field[0].iter)
+                    else:
+                        for child in field:
+                            _check(child)
                 else:
                     assert False, (name, field, ast.dump(node))
         elif python_version >= 0x370 and node_class is ast.comprehension:
             for name, field in ast.iter_fields(node):
-                if name in ("name", "target"):
+                if name == "name":
                     pass
+                elif name == "target":
+                    _check(field)
                 elif name == "iter":
-                    # Top level comprehension iterators do not influence those.
-                    if node not in nodes:
+                    # Top level generator expression's first iterator is evaluated
+                    # in the enclosing scope, not inside the generator expression.
+                    if node is not nodes[0]:
                         _check(field)
                 elif name == "ifs":
                     for child in field:
@@ -236,7 +279,6 @@ def detectFunctionBodyKind(nodes, start_value=None):
         if "Coroutine" in indications and "Generator" in indications:
             function_kind = "Asyncgen"
         else:
-            # If we found something, make sure we agree on all clues.
             assert len(indications) == 1, indications
             function_kind = indications.pop()
     else:
@@ -251,9 +293,7 @@ build_nodes_args1 = None
 
 
 def setBuildingDispatchers(path_args3, path_args2, path_args1):
-    # Using global here, as this is really a singleton, in the form of a module,
-    # and this is to break the cyclic dependency it has, pylint: disable=global-statement
-
+    # Break cyclic dependency at initialization time, pylint: disable=global-statement
     global build_nodes_args3, build_nodes_args2, build_nodes_args1
 
     build_nodes_args3 = path_args3
@@ -262,7 +302,7 @@ def setBuildingDispatchers(path_args3, path_args2, path_args1):
 
 
 def buildNode(provider, node, source_ref, allow_none=False):
-    # too many exception handlers, pylint: disable=too-many-branches
+    # pylint: disable=too-many-branches
 
     if node is None and allow_none:
         return None
@@ -272,6 +312,16 @@ def buildNode(provider, node, source_ref, allow_none=False):
 
         if hasattr(node, "lineno"):
             source_ref = source_ref.atLineNumber(node.lineno)
+
+        if kind in (
+            "FunctionDef",
+            "AsyncFunctionDef",
+            "ClassDef",
+            "TypeVar",
+            "ParamSpec",
+            "TypeVarTuple",
+        ):
+            checkDebugNameAssignment(name=node.name, source_ref=source_ref)
 
         if kind in build_nodes_args3:
             result = build_nodes_args3[kind](
@@ -306,7 +356,7 @@ def buildNode(provider, node, source_ref, allow_none=False):
     except SystemExit:
         optimization_logger.warning("Problem at '%s'." % source_ref.getAsString())
         raise
-    except:
+    except Exception:
         optimization_logger.warning(
             "Problem at '%s' with %s." % (source_ref.getAsString(), ast.dump(node))
         )
@@ -361,8 +411,7 @@ def buildAnnotationNode(provider, node, source_ref):
         python_version >= 0x370
         and provider.getParentModule().getFutureSpec().isFutureAnnotations()
     ):
-        # Using global value for cache, to avoid creating it over and over,
-        # avoiding the pylint: disable=global-statement
+        # pylint: disable=global-statement
         global _host_node
 
         if _host_node is None:
@@ -378,9 +427,9 @@ def buildAnnotationNode(provider, node, source_ref):
             dont_inherit=True,
         )
 
-        # Using exec here, to compile the ast node tree back to string,
-        # there is no accessible "ast.unparse", and this works as a hack
-        # to convert our node to a string annotation, pylint: disable=exec-used
+        # In Python 3.7/3.8 there is no accessible "ast.unparse", so compile
+        # with CO_FUTURE_ANNOTATIONS and exec to extract the stringified
+        # annotation, pylint: disable=exec-used
         m = {}
         exec(r, m)
 
@@ -414,17 +463,10 @@ def makeModuleFrame(module, statements, source_ref):
 def collectConditionalAnnotationIndices(statements):
     """Collect indices for annotations inside conditional blocks.
 
-    Notes:
-        This mirrors the CPython implementation of PEP 649, where annotations
-        that are only conditionally executed register an index in a set, and
-        the annotation function only includes such annotations if the index
-        was registered when the statement executed.
-
-    Args:
-        statements: Sequence of "ast" statements of a class or module body.
-
-    Returns:
-        Dictionary mapping annotation assignment statements to index values.
+    This mirrors the CPython implementation of PEP 649, where annotations
+    that are only conditionally executed register an index in a set, and
+    the annotation function only includes such annotations if the index
+    was registered when the statement executed.
     """
     result = {}
     next_index = [0]
@@ -437,10 +479,7 @@ def collectConditionalAnnotationIndices(statements):
                 if in_conditional and getKind(statement.target) == "Name":
                     result[statement] = next_index[0]
                     next_index[0] += 1
-            elif kind == "If":
-                visitStatements(statement.body, True)
-                visitStatements(statement.orelse, True)
-            elif kind in ("For", "AsyncFor", "While"):
+            elif kind in ("If", "For", "AsyncFor", "While"):
                 visitStatements(statement.body, True)
                 visitStatements(statement.orelse, True)
             elif kind in ("With", "AsyncWith"):
@@ -466,17 +505,12 @@ def collectConditionalAnnotationIndices(statements):
 
 
 def buildStatementsNode(provider, nodes, source_ref):
-    # We are not creating empty statement sequences.
     if nodes is None:
         return None
 
-    # Build as list of statements, throw away empty ones, and remove useless
-    # nesting.
     statements = buildNodeList(provider, nodes, source_ref, allow_none=True)
     statements = mergeStatements(statements)
 
-    # We are not creating empty statement sequences. Might be empty, because
-    # e.g. a global node generates not really a statement, or pass statements.
     if not statements:
         return None
     else:
@@ -484,28 +518,29 @@ def buildStatementsNode(provider, nodes, source_ref):
 
 
 def buildFrameNode(provider, nodes, code_object, source_ref):
-    # We are not creating empty statement sequences.
     if nodes is None:
         return None
 
-    # Build as list of statements, throw away empty ones, and remove useless
-    # nesting.
     statements = buildNodeList(provider, nodes, source_ref, allow_none=True)
     statements = mergeStatements(statements)
 
-    # We are not creating empty statement sequences. Might be empty, because
-    # e.g. a global node generates not really a statement, or pass statements.
     if not statements:
         return None
 
     if provider.isExpressionOutlineFunction():
         provider = provider.getParentVariableProvider()
 
+    needs_frame_locals_proxy = decideNeedsFrameLocalsProxy(
+        module_name=provider.getParentModule().getFullName(),
+        code_qualname=code_object.getCodeObjectQualname(),
+    )
+
     if provider.isExpressionFunctionBody():
         result = StatementsFrameFunction(
             statements=statements,
             code_object=code_object,
             owner_code_name=provider.getCodeName(),
+            needs_frame_locals=needs_frame_locals_proxy,
             source_ref=source_ref,
         )
     elif provider.isExpressionClassBodyBase():
@@ -514,6 +549,7 @@ def buildFrameNode(provider, nodes, code_object, source_ref):
             code_object=code_object,
             owner_code_name=provider.getCodeName(),
             locals_scope=provider.getLocalsScope(),
+            needs_frame_locals=False,
             source_ref=source_ref,
         )
     elif provider.isExpressionGeneratorObjectBody():
@@ -521,6 +557,7 @@ def buildFrameNode(provider, nodes, code_object, source_ref):
             statements=statements,
             code_object=code_object,
             owner_code_name=provider.getCodeName(),
+            needs_frame_locals=needs_frame_locals_proxy,
             source_ref=source_ref,
         )
     elif provider.isExpressionCoroutineObjectBody():
@@ -528,6 +565,7 @@ def buildFrameNode(provider, nodes, code_object, source_ref):
             statements=statements,
             code_object=code_object,
             owner_code_name=provider.getCodeName(),
+            needs_frame_locals=needs_frame_locals_proxy,
             source_ref=source_ref,
         )
     elif provider.isExpressionAsyncgenObjectBody():
@@ -535,6 +573,7 @@ def buildFrameNode(provider, nodes, code_object, source_ref):
             statements=statements,
             code_object=code_object,
             owner_code_name=provider.getCodeName(),
+            needs_frame_locals=needs_frame_locals_proxy,
             source_ref=source_ref,
         )
     else:
@@ -544,12 +583,7 @@ def buildFrameNode(provider, nodes, code_object, source_ref):
 
 
 def makeStatementsSequenceOrStatement(statements, source_ref):
-    """Make a statement sequence, but only if more than one statement
-
-    Useful for when we can unroll constructs already here, but are not sure if
-    we actually did that. This avoids the branch or the pollution of doing it
-    always.
-    """
+    """Make a statement sequence, but only if more than one statement."""
 
     if len(statements) > 1:
         return StatementsSequence(
@@ -603,9 +637,6 @@ def makeStatementsSequenceFromStatements(*statements):
 
 
 def makeDictCreationOrConstant2(keys, values, source_ref):
-    # Create dictionary node. Tries to avoid it for constant values that are not
-    # mutable. Keys are Python strings here.
-
     assert len(keys) == len(values)
     for value in values:
         if not value.isExpressionConstantRef():
@@ -614,12 +645,9 @@ def makeDictCreationOrConstant2(keys, values, source_ref):
     else:
         constant = True
 
-    # Note: This would happen in optimization instead, but lets just do it
-    # immediately to save some time.
     if constant:
-        # Unless told otherwise, create the dictionary in its full size, so
-        # that no growing occurs and the constant becomes as similar as possible
-        # before being marshaled.
+        # Pre-size the constant dict so no rehashing occurs and the constant
+        # matches CPython's layout before marshaling.
         result = makeConstantRefNode(
             constant=createConstantDict(
                 keys=keys, values=[value.getCompileTimeConstant() for value in values]
@@ -660,22 +688,22 @@ def makeReraiseExceptionStatement(source_ref):
 
 
 def mangleName(name, owner):
-    """Mangle names with leading "__" for usage in a class owner.
-
-    Notes: The is the private name handling for Python classes.
-    """
+    """Mangle private class attribute names with leading '__'."""
 
     if not name.startswith("__") or name.endswith("__"):
         return name
     else:
-        # The mangling of function variable names depends on being inside a
-        # class.
         class_container = owner.getContainingClassDictCreation()
 
         if class_container is None:
             return name
         else:
-            return "_%s%s" % (class_container.getName().lstrip("_"), name)
+            class_name = class_container.getName().lstrip("_")
+
+            if not class_name:
+                return name
+            else:
+                return "_%s%s" % (class_name, name)
 
 
 def makeCallNode(called, *args, **kwargs):

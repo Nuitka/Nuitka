@@ -36,6 +36,7 @@ class SearchMode(object):
         "may_fail",
         "verifications",
         "failed",
+        "current_test",
         "had_match",
         "cache_filename",
         "resume_from",
@@ -74,6 +75,7 @@ class SearchMode(object):
 
         self.verifications = 0
         self.failed = []
+        self.current_test = None
 
         # We are going to produce a hash from the command line script we are running,
         # so we have a unique place to store the resume state.
@@ -137,6 +139,7 @@ class SearchMode(object):
 
             self.had_match = True
             self.verifications += 1
+            self.current_test = filename
             return True
 
         return False
@@ -175,6 +178,20 @@ class SearchMode(object):
         return True
 
     def onErrorDetected(self, message):
+        """Handle that an error was detected in a test case.
+
+        Notes:
+            The test case currently considered is marked as failed, and the
+            run is finished, this is intended to be used by test runners,
+            where 'abortOnFinding' was not already called for the error.
+
+        Args:
+            message: Error message to use when no failure was recorded.
+        """
+        if self.current_test is not None and self.current_test not in self.failed:
+            if self._abortOnFinding(None, self.current_test):
+                self.failed.append(self.current_test)
+
         self.finish(success=False)
         return self.exit(message)
 

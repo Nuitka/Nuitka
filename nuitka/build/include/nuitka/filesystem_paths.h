@@ -6,7 +6,6 @@
 
 #include "nuitka/safe_string_ops.h"
 
-// Have a type for filename type different on Linux and Win32.
 #if defined(_WIN32)
 #define _NUITKA_NATIVE_WCHAR_ARGV 1
 #define filename_char_t wchar_t
@@ -58,7 +57,6 @@
 #include <stdio.h>
 #include <wchar.h>
 
-// Have a type for file type different on Linux and Win32.
 #if defined(_WIN32)
 #define FILE_HANDLE HANDLE
 #define FILE_HANDLE_NULL INVALID_HANDLE_VALUE
@@ -72,10 +70,8 @@
 #define MAXPATHLEN 4096
 #endif
 
-// Get path of the running binary.
 extern filename_char_t const *getBinaryPath(void);
 
-// Get the DLL directory, set the DLL filename if necessary..
 extern void setDllFilename(filename_char_t const *filename);
 extern filename_char_t const *getDllDirectory(void);
 
@@ -95,18 +91,17 @@ extern bool renameFile(filename_char_t const *source, filename_char_t const *des
 
 extern uint32_t getFileCRC32(filename_char_t const *filename);
 
-// Expand symbolic paths, containing {TEMP}, {PID} without overflowing.
+// Expand symbolic paths containing {TEMP}, {PID}, etc. without overflowing.
 extern bool expandTemplatePathW(wchar_t *target, wchar_t const *source, size_t buffer_size);
 extern bool expandTemplatePath(char *target, char const *source, size_t buffer_size);
 
-// Strip the last part of a filename, giving the directory name.
+// Returns directory part in a shared static buffer.
 extern filename_char_t *stripBaseFilename(filename_char_t const *filename);
 
-// Normalize a given path, removing duplicate separators and ".." and "." usages
-// with separators.
+// Collapse duplicate separators and "."/".." segments in place.
 extern void normalizePath(filename_char_t *filename);
 
-// Make a path absolute using Win32 GetFullPathNameW. The buffer is overwritten.
+// Win32 only; overwrites path in place via GetFullPathNameW.
 extern void makeAbsolutePath(filename_char_t *path, size_t buffer_size);
 
 #endif

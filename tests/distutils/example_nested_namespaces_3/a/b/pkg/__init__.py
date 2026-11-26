@@ -1,8 +1,28 @@
 #     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
+import pkgutil
+
+
 def main():
+    import a.b.pkg
+
     print("Hello, this is", __name__)
+
+    # Check that submodules of the compiled package inside the namespace
+    # package can be discovered, which needs the loader to provide correct
+    # file system paths, see also Nuitka issue #4083.
+    print(
+        "Submodules:",
+        sorted(module.name for module in pkgutil.iter_modules(a.b.pkg.__path__)),
+    )
+    print(
+        "Walk:",
+        sorted(
+            module.name
+            for module in pkgutil.walk_packages(a.b.pkg.__path__, "a.b.pkg.")
+        ),
+    )
 
 
 #     Python test originally created or extracted from other peoples work. The

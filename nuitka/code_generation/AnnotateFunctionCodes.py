@@ -3,9 +3,9 @@
 
 """Code generation for annotate functions.
 
-Annotate functions (marked with flag "annotate") are backed by real Python
-bytecode instead of compiled C code.  This allows `annotationlib` to re-wrap
-them with `_StringifierDict` globals for FORWARDREF resolution.
+Annotate functions (marked with flag 'annotate') are backed by real Python
+bytecode instead of compiled C code. This allows 'annotationlib' to re-wrap
+them with '_StringifierDict' globals for FORWARDREF resolution.
 """
 
 import marshal
@@ -14,6 +14,8 @@ from .ErrorCodes import getAssertionCode
 from .PythonSourceCodeGeneration import (
     PythonSourceGenerationError,
     generateFunctionSourceFromBody,
+    getAnnotateClosureVariables,
+    getAnnotateSourceVariableName,
     getFunctionCodeObjectFromSource,
     getFunctionMakerIdentifier,
 )
@@ -27,16 +29,8 @@ from .VariableCodes import getClosureCopyCode
 def isBytecodeBackedFunction(function_body):
     """Decide if a function is backed by Python bytecode, not compiled C code.
 
-    Notes:
-        This is true for function bodies created by the source backed
-        machinery, e.g. "annotate" functions. We mean to add more plugin and
-        user control though.
-
-    Args:
-        function_body: Function body node to check.
-
-    Returns:
-        True if bytecode backed
+    This is true for function bodies created by the source backed machinery,
+    e.g. 'annotate' functions.
     """
     return function_body.hasFlag("python_source") and not function_body.hasFlag(
         "force_c"
@@ -47,12 +41,19 @@ def generateAnnotateFunctionCreationCode(to_name, expression, emit, context):
     function_body = expression.subnode_function_ref.getFunctionBody()
     function_identifier = function_body.getCodeName()
 
-    # Only need to generate the maker once.
     if not context.hasHelperCode(function_identifier):
         _generateAnnotateFunctionMaker(function_body, function_identifier, context)
 
+    closure_variables = expression.getClosureVariableVersions()
+
+    if closure_variables:
+        closure_variables = sorted(
+            closure_variables,
+            key=lambda item: getAnnotateSourceVariableName(item[0]),
+        )
+
     closure_name, closure_copy = getClosureCopyCode(
-        closure_variables=expression.getClosureVariableVersions(),
+        closure_variables=closure_variables,
         context=context,
     )
 
@@ -80,7 +81,6 @@ def generateAnnotateFunctionCreationCode(to_name, expression, emit, context):
 
 
 def _getClosureSetupCode(closure_variables):
-    """Get the C parameter and setup code for attaching closure cells."""
     if not closure_variables:
         return "", ""
 
@@ -93,24 +93,74 @@ def _getClosureSetupCode(closure_variables):
     )
 
 
+def _getCodeObjectCreationCode(context, marshalled, function_identifier, first_lineno):
+    """Get the C code to create the annotate code object, and to release it.
+
+    A definition that can be executed repeatedly, e.g. a nested function on
+    every call, unmarshals the immutable code object once and shares it
+    between every function created from it, as CPython does, and must then
+    not release it, while one that is executed once creates and releases it.
+
+    Returns:
+        Tuple of the C code providing the 'code' variable, and the C code
+        releasing it, which is empty when it is cached.
+    """
+    marshalled_code = context.getBlobConstantCode(
+        marshalled,
+        "annotate marshalled code for '%s'" % function_identifier,
+    )
+
+    if context.mayRecurse():
+        # Racing threads can at worst each unmarshal it, and keep one.
+        code_object_setup = """\
+    static PyObject *code_cache = NULL;
+    PyObject *code = code_cache;
+    if (code == NULL) {
+        code = PyMarshal_ReadObjectFromString(
+            %(marshalled)s,
+            %(marshalled_size)d);
+        assert(code != NULL);
+        USE_CODE_OBJECT_WITH_LINE(code, module_filename_obj, %(first_lineno)d);
+        code_cache = code;
+    }
+""" % {
+            "marshalled": marshalled_code,
+            "marshalled_size": len(marshalled),
+            "first_lineno": first_lineno,
+        }
+        code_object_release = ""
+    else:
+        code_object_setup = """\
+    PyObject *code = PyMarshal_ReadObjectFromString(
+        %(marshalled)s,
+        %(marshalled_size)d);
+    assert(code != NULL);
+    USE_CODE_OBJECT_WITH_LINE(code, module_filename_obj, %(first_lineno)d);
+""" % {
+            "marshalled": marshalled_code,
+            "marshalled_size": len(marshalled),
+            "first_lineno": first_lineno,
+        }
+        code_object_release = "    Py_DECREF(code);\n"
+
+    return code_object_setup, code_object_release
+
+
 def _generateAnnotateFunctionMaker(function_body, function_identifier, context):
-    """Generate a C maker function that creates a PyFunctionObject from bytecode."""
     maker_identifier = getFunctionMakerIdentifier(function_identifier)
 
     source = generateFunctionSourceFromBody(function_body)
 
-    compiled = compile(source, function_identifier, "exec")
+    compiled = compile(source, "", "exec")
 
     annotate_code = getFunctionCodeObjectFromSource(
         function_body=function_body, compiled=compiled
     )
 
-    closure_variables = function_body.getClosureVariables()
+    closure_variables = getAnnotateClosureVariables(function_body)
 
-    # Nuitka closure variables and CPython free variables are both sorted by
-    # name, so the closure cells are already in the order of the code object.
     if annotate_code.co_freevars != tuple(
-        variable.getName() for variable in closure_variables
+        getAnnotateSourceVariableName(variable) for variable in closure_variables
     ):
         raise PythonSourceGenerationError(
             "Closure variables of annotate function '%s' do not match its free variables"
@@ -121,33 +171,33 @@ def _generateAnnotateFunctionMaker(function_body, function_identifier, context):
 
     closure_parameter, closure_setup = _getClosureSetupCode(closure_variables)
 
+    code_object_setup, code_object_release = _getCodeObjectCreationCode(
+        context=context,
+        marshalled=marshalled,
+        function_identifier=function_identifier,
+        first_lineno=function_body.getCodeObject().getLineNumber(),
+    )
+
     maker_code = """\
 static PyObject *%(maker)s(PyThreadState *tstate%(closure_parameter)s) {
     PyObject *result;
-    PyObject *code = PyMarshal_ReadObjectFromString(
-        %(marshalled)s,
-        %(marshalled_size)d);
-    assert(code != NULL);
-
+%(code_object_setup)s
     result = PyFunction_NewWithQualName(code, %(module_dict)s, %(qualname)s);
-    Py_DECREF(code);
     assert(result != NULL);
+%(code_object_release)s
 %(closure_setup)s
     return result;
 }
 """ % {
         "maker": maker_identifier,
-        "marshalled": context.getBlobConstantCode(
-            marshalled,
-            "annotate marshalled code for '%s'" % function_identifier,
-        ),
-        "marshalled_size": len(marshalled),
-        "module_dict": "(PyObject *)moduledict_%s" % context.getModuleCodeName(),
+        "module_dict": "(PyObject *)%s" % context.getModuleDictCodeName(),
         "qualname": context.getConstantCode(
             constant=function_body.getFunctionQualname()
         ),
         "closure_parameter": closure_parameter,
         "closure_setup": closure_setup,
+        "code_object_setup": code_object_setup,
+        "code_object_release": code_object_release,
     }
 
     context.addHelperCode(function_identifier, maker_code)

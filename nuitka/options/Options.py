@@ -9,8 +9,8 @@ some handling of defaults.
 """
 
 # These are for use in option values.
-# spell-checker: ignore uiaccess,noannotations,etherium
-# spell-checker: ignore nodocstrings,noasserts,nowarnings,norandomization
+# spell-checker: ignore etherium,noannotations,noasserts,nodocstrings,norandomization
+# spell-checker: ignore nowarnings,uiaccess
 
 import fnmatch
 import os
@@ -26,33 +26,37 @@ from nuitka.Progress import enableProgressBar
 from nuitka.PythonFlavors import (
     getPythonFlavorName,
     hasAcceleratedSupportedFlavor,
-    isAnacondaPython,
     isApplePython,
-    isArchPackagePython,
     isCPythonOfficialPackage,
-    isDebianPackagePython,
-    isHomebrewPython,
-    isManyLinuxPython,
     isMonolithPy,
     isMSYS2MingwPython,
-    isPyenvHomebrewPython,
-    isPyenvPython,
-    isPythonBuildStandalonePython,
     isTermuxPython,
     isUninstalledPython,
 )
+from nuitka.PythonPrefixes import getLaunchingSystemPrefixPath
 from nuitka.PythonVersions import (
-    getLaunchingSystemPrefixPath,
     getNotYetSupportedPythonVersions,
     getSupportedPythonVersions,
     isDebugPython,
     isPythonWithGil,
-    isStaticallyLinkedPython,
     python_release_level,
     python_version,
+    python_version_full_str,
     python_version_str,
 )
 from nuitka.States import states
+from nuitka.targets.Targets import (
+    checkTargetPreconditions,
+    getTargetCouldUseStaticLibPython,
+    getTargetSpecification,
+    getTargetSystemStaticLibPythonPath,
+    isOnefileSupportedTarget,
+    isRPathUsingTarget,
+    isStandaloneSupportedTarget,
+    isWasiTarget,
+    isWin32Target,
+    setTargetSpecification,
+)
 from nuitka.Tracing import (
     doNotBreakSpaces,
     general,
@@ -75,11 +79,10 @@ from nuitka.utils.FileOperations import (
     resolveShellPatternToFilenames,
 )
 from nuitka.utils.Images import checkIconUsage
-from nuitka.utils.InlineCopies import getInlineCopyFolder
 from nuitka.utils.ModuleNames import ModuleName, checkModuleName
-from nuitka.utils.StaticLibraries import (
-    getStaticLinkLibraryProblem,
-    getSystemStaticLibPythonPath,
+from nuitka.utils.Requirements import (
+    filterInstallRequires,
+    getUnmetRequirements,
 )
 from nuitka.utils.Utils import (
     getArchitecture,
@@ -89,22 +92,19 @@ from nuitka.utils.Utils import (
     getMacOSRelease,
     getOS,
     getWindowsRelease,
-    hasOnefileSupportedOS,
-    hasStandaloneSupportedOS,
     isAIX,
-    isDebianBasedLinux,
     isFreeBSD,
     isLinux,
     isMacOS,
     isOpenBSD,
     isPosixWindows,
-    isRPathUsingPlatform,
     isWin32OrPosixWindows,
     isWin32Windows,
 )
 from nuitka.Version import getCommercialVersion, getNuitkaVersion
 from nuitka.VersionCheck import getNuitkaUpdateStatusValue
 
+from .Experimental import isExperimental
 from .OptionParsing import parseOptions, runSpecialCommandsFromOptions
 from .PathSpecs import checkPathSpec
 
@@ -226,23 +226,51 @@ def printVersionInformation():
 
 
 def _warnAppBundleOnlyOption(option_name):
-    if isMacOS() and not shallCreateAppBundle():
-        if not options.github_workflow_options:
-            options_logger.warning("""\
+    if isMacOS() and not shallCreateAppBundle() and not options.github_workflow_options:
+        options_logger.warning("""\
 Note: Using app bundle specific option '%s' unless building macOS app bundle \
 need to use --mode=app if you want that.""" % option_name)
 
 
 def _warnOnefileOnlyOption(option_name):
     if not options.is_onefile:
-        if options.github_workflow_options or (isMacOS() and shallCreateAppBundle()):
+        if isMacOS() and shallCreateAppBundle():
             options_logger.info("""\
 Note: Using onefile mode specific option '%s' has no effect \
 with macOS app bundles.""" % option_name)
         else:
-            options_logger.warning("""\
+            message = """\
 Using onefile mode specific option '%s' has no effect \
-when '--mode=onefile' is not specified.""" % option_name)
+when '--mode=onefile' is not specified.""" % option_name
+
+            if options.github_workflow_options:
+                options_logger.info(message)
+            else:
+                options_logger.warning(message)
+
+
+def _warnWasiOnlyOption(option_name):
+    if not isWasiTarget():
+        message = """\
+Using WASI specific option '%s' has no effect \
+when '--target=wasm32-wasi' is not specified.""" % option_name
+
+        if options.github_workflow_options:
+            options_logger.info(message)
+        else:
+            options_logger.warning(message)
+
+
+def _warnWin32OnlyOption(option_name):
+    if not isWin32Target():
+        message = """\
+Using Win32 specific option '%s' has no effect \
+when '--target=i686-w64-mingw32' is not specified.""" % option_name
+
+        if options.github_workflow_options:
+            options_logger.info(message)
+        else:
+            options_logger.warning(message)
 
 
 def _warningModuleModeOnlyOption(option_name):
@@ -257,6 +285,16 @@ specified.""" % option_name)
 Using module mode specific option '%s' has no effect \
 when neither '--mode=module' or --mode='package' is \
 specified.""" % option_name)
+
+
+def _warnProjectOnlyOption(option_name):
+    message = """\
+Using project specific option '%s' has no effect without '--project'.""" % option_name
+
+    if options.github_workflow_options:
+        options_logger.info(message)
+    else:
+        options_logger.warning(message)
 
 
 def _warnOSSpecificOption(option_name, *supported_os):
@@ -287,9 +325,8 @@ def _warnLinuxSpecificOption(option_name):
 
 
 def _warnLinuxAppOnlyOption(option_name):
-    if isLinux() and not isLinuxAppMode():
-        if not options.github_workflow_options:
-            options_logger.warning("""\
+    if isLinux() and not isLinuxAppMode() and not options.github_workflow_options:
+        options_logger.warning("""\
 Note: Using Linux app specific option '%s' has no effect unless \
 building with '--mode=app' or '--mode=app-dist' on Linux.""" % option_name)
 
@@ -299,6 +336,12 @@ def _warnLinuxAppSpecificOption(option_name):
     _warnLinuxSpecificOption(option_name)
 
 
+def _getDataDirDescription(data_dir_desc):
+    src, dst = data_dir_desc.split("=", 1)
+
+    return getUserInputNormalizedPath(src), dst
+
+
 def _checkDataDirOptionValue(data_dir, option_name):
     if "=" not in data_dir:
         return options_logger.sysexit(
@@ -306,7 +349,7 @@ def _checkDataDirOptionValue(data_dir, option_name):
             % (option_name, data_dir)
         )
 
-    src, dst = data_dir.split("=", 1)
+    src, dst = _getDataDirDescription(data_dir)
 
     if os.path.isabs(dst):
         return options_logger.sysexit(
@@ -326,13 +369,42 @@ def _checkFilenameOnlyArgument(option_name, filename, extra_message):
         return options_logger.sysexit("""\
 Error, '%s' value cannot contain a directory part%s.""" % (option_name, extra_message))
 
-    is_legal, reason = isLegalPath(filename)
-    if not is_legal:
-        return options_logger.sysexit(
-            """\
-Error, '%s' value '%s' is not a legal filename: %s%s."""
-            % (option_name, filename, reason, extra_message)
+    isLegalPath(filename).sysexitUnlessPositive(
+        logger=options_logger,
+        message="Error, '%(option_name)s' value '%(filename)s' is not a legal filename: %(reason)s%(extra_message)s.",
+        template_args={
+            "option_name": option_name,
+            "filename": filename,
+            "extra_message": extra_message,
+        },
+    )
+
+
+def _applyTargetSpecification(target_desc):
+    """Normalize the given '--target' value and install the target specification."""
+    target_aliases = (
+        ("native", "native"),
+        ("wasi", "wasm32-wasi"),
+        ("wasm32-wasi", "wasm32-wasi"),
+        ("wasm32-wasip1", "wasm32-wasi"),
+        ("win32", "i686-w64-mingw32"),
+        ("windows-x86", "i686-w64-mingw32"),
+        ("i686-w64-mingw32", "i686-w64-mingw32"),
+    )
+
+    target_spec = dict(target_aliases).get(target_desc)
+
+    if target_spec is None:
+        supported_targets = OrderedSet(
+            canonical_target for _alias, canonical_target in target_aliases
         )
+
+        return options_logger.sysexit(
+            "Error, unsupported cross compilation target '%s'. Supported targets are: %s."
+            % (target_desc, ", ".join(supported_targets))
+        )
+
+    setTargetSpecification(target_spec)
 
 
 def parseArgs():
@@ -348,12 +420,22 @@ def parseArgs():
         logger=options_logger
     )
 
+    _applyTargetSpecification(options.target_desc)
+
+    checkTargetPreconditions()
+
+    if options.wasi_python_prefix is not None:
+        _warnWasiOnlyOption("--wasi-python-prefix")
+
+    if options.wasi_sdk_path is not None:
+        _warnWasiOnlyOption("--wasi-sdk-path")
+
+    if options.win32_python_exe is not None:
+        _warnWin32OnlyOption("--win32-python-exe")
+
     states.is_debug = _isDebug()
     states.is_non_debug = not states.is_debug
     states.is_full_compat = _isFullCompat()
-
-    if hasattr(options, "experimental"):
-        _experimental.update(options.experimental)
 
     # Dedicated option for caches, ccache and bytecode
     if options.disable_ccache:
@@ -365,12 +447,25 @@ def parseArgs():
 
     states.report_missing_code_helpers = options.report_missing_code_helpers
 
-    if options.output_folder_name is not None:
-        _checkFilenameOnlyArgument(
-            "--output-folder-name", options.output_folder_name, ""
-        )
+    output_folder_name = getOutputFolderName()
+    if output_folder_name is not None:
+        _checkFilenameOnlyArgument("--output-folder-name", output_folder_name, "")
 
     states.report_missing_trust = options.report_missing_trust
+
+    if not options.is_project_mode:
+        if options.project_requires:
+            _warnProjectOnlyOption("--project-requires")
+
+        if options.project_name is not None:
+            _warnProjectOnlyOption("--project-name")
+
+    if options.container is None:
+        for option_name, _dest in options.given_options:
+            if option_name.startswith("--container-"):
+                return options_logger.sysexit(
+                    "Error, using '%s' requires '--container' too." % option_name
+                )
 
     if options.zig:
         if options.clang:
@@ -399,11 +494,15 @@ Error, conflicting options '--mingw64' and '--clang'. Note that Clang is no \
 longer part of Winlibs and therefore no more available this way. Use only \
 --clang to use it from a MSVC installation.""")
 
-    if isWin32Windows() and options.mingw64 and python_version >= 0x3D0:
-        if not isExperimental("force-mingw64"):
-            return options_logger.sysexit(
-                "Error, cannot use '--mingw64' on Python version 3.13 or higher."
-            )
+    if (
+        isWin32Windows()
+        and options.mingw64
+        and python_version >= 0x3D0
+        and not isExperimental("force-mingw64")
+    ):
+        return options_logger.sysexit(
+            "Error, cannot use '--mingw64' on Python version 3.13 or higher."
+        )
 
     if options.quiet or int(os.getenv("NUITKA_QUIET", "0")):
         setQuiet()
@@ -415,8 +514,13 @@ longer part of Winlibs and therefore no more available this way. Use only \
             if "=" in arg:
                 arg_name, value = arg.split("=", 1)
 
-                if os.path.exists(value) and isNonLocalPath(arg):
-                    value = getReportPath(value)
+                if value:
+                    normalized_value = getUserInputNormalizedPath(value)
+
+                    if os.path.exists(normalized_value) and isNonLocalPath(
+                        normalized_value
+                    ):
+                        value = getReportPath(normalized_value)
 
                 if " " in value or value == "":
                     value = '"%s"' % value
@@ -424,27 +528,35 @@ longer part of Winlibs and therefore no more available this way. Use only \
                 return "%s=%s" % (arg_name, value)
             else:
                 return arg
-        elif os.path.exists(arg) and isNonLocalPath(arg):
-            arg = getReportPath(arg)
-            if " " in arg:
-                arg = '"%s"' % arg
+        elif arg:
+            normalized_arg = getUserInputNormalizedPath(arg)
 
-            return arg
+            if os.path.exists(normalized_arg) and isNonLocalPath(normalized_arg):
+                arg = getReportPath(normalized_arg)
+                if " " in arg:
+                    arg = '"%s"' % arg
+
+                return arg
+            else:
+                return arg
         else:
             return arg
+
+    if options.version:
+        printVersionInformation()
+        sys.exit(0)
 
     # This will not return if a non-compiling command is given.
     runSpecialCommandsFromOptions(options)
 
-    if not options.version:
-        options_logger.info(
-            leader="Used command line options:",
-            message=" ".join(
-                doNotBreakSpaces(
-                    _quoteArg(redactCommandLineArg(arg)) for arg in sys.argv[1:]
-                )
-            ),
-        )
+    options_logger.info(
+        leader="Used command line options:",
+        message=" ".join(
+            doNotBreakSpaces(
+                _quoteArg(redactCommandLineArg(arg)) for arg in sys.argv[1:]
+            )
+        ),
+    )
 
     if (
         getLaunchingNuitkaProcessEnvironmentValue("NUITKA_RE_EXECUTION")
@@ -478,10 +590,6 @@ longer part of Winlibs and therefore no more available this way. Use only \
 
     optimization_logger.is_quiet = not options.verbose
 
-    if options.version:
-        printVersionInformation()
-        sys.exit(0)
-
     if options.clean_caches:
         from nuitka.CacheCleanup import cleanCaches
 
@@ -489,6 +597,9 @@ longer part of Winlibs and therefore no more available this way. Use only \
 
         if not positional_args:
             sys.exit(0)
+
+    if options.is_project_mode:
+        _checkProjectRequirements()
 
     if options.show_inclusion_output:
         inclusion_logger.setFileHandle(
@@ -519,9 +630,7 @@ longer part of Winlibs and therefore no more available this way. Use only \
             options.is_onefile = True
         elif options.compilation_mode == "standalone":
             options.is_standalone = True
-        elif options.compilation_mode == "module":
-            options.module_mode = True
-        elif options.compilation_mode == "package":
+        elif options.compilation_mode in ("module", "package"):
             options.module_mode = True
         elif options.compilation_mode == "app":
             if isMacOS():
@@ -548,11 +657,27 @@ longer part of Winlibs and therefore no more available this way. Use only \
     if shallCreateAppBundle():
         options.is_standalone = True
 
-    if options.is_project_mode:
-        if not isStandaloneMode():
-            return options_logger.sysexit(
-                "Error, with '--project' you must also select a mode, e.g. '--mode=standalone' or '--mode=onefile'."
-            )
+    if options.debug_address_sanitizer and options.debug_thread_sanitizer:
+        return options_logger.sysexit("""\
+Error, conflicting options '--debug-address-sanitizer' and \
+'--debug-thread-sanitizer', they cannot be combined.""")
+
+    if options.debug_thread_sanitizer:
+        if isWin32OrPosixWindows():
+            return options_logger.sysexit("""\
+Error, ThreadSanitizer is not supported on Windows, use Linux or macOS \
+instead.""")
+
+        if shallMakeModule() or shallMakeDll():
+            options_logger.info("""\
+ThreadSanitizer in a compiled extension module requires the host program to \
+preload the ThreadSanitizer runtime, e.g. using the "LD_PRELOAD" environment \
+variable on Linux, or "DYLD_INSERT_LIBRARIES" on macOS.""")
+
+    if options.is_project_mode and not isStandaloneMode():
+        return options_logger.sysexit(
+            "Error, with '--project' you must also select a mode, e.g. '--mode=standalone' or '--mode=onefile'."
+        )
 
     # The '--main-entry-point' is intended for project-based builds and
     # does not allow to derive build output names from the entry point,
@@ -596,11 +721,12 @@ Please use an 'arm64' Python to create it.""")
         _checkOnefileTargetSpec()
 
     # Check onefile splash image
-    if options.splash_screen_image:
-        if not os.path.exists(options.splash_screen_image):
+    splash_screen_filename = getWindowsSplashScreen()
+    if splash_screen_filename:
+        if not os.path.exists(splash_screen_filename):
             return options_logger.sysexit(
                 "Error, splash screen image path '%s' does not exist."
-                % options.splash_screen_image
+                % splash_screen_filename
             )
 
         _warnOnefileOnlyOption("--onefile-windows-splash-screen-image")
@@ -635,13 +761,11 @@ Error, the value given for '--onefile-child-grace-time' must be integer or 'infi
             options.force_stderr_spec, "--force-stderr-spec", allow_disable=True
         )
 
-    # Provide a tempdir spec implies onefile tempdir, even on Linux.
     # Standalone mode implies an executable, not importing "site" module, which is
     # only for this machine, recursing to all modules, and even including the
     # standard library.
-    if options.is_standalone:
-        if options.module_mode:
-            return options_logger.sysexit("""\
+    if options.is_standalone and options.module_mode:
+        return options_logger.sysexit("""\
 Error, conflicting options, cannot make standalone module, only executable.
 
 Modules are supposed to be imported to an existing Python installation, therefore it
@@ -695,11 +819,13 @@ Error, '--nofollow-import-to' takes only module names or patterns, not directory
     if output_filename is not None:
         if shallMakeModule():
             return options_logger.sysexit("""\
-Error, may not module mode where filenames and modules matching are
-mandatory.""")
+Error, may not use '%s' mode where output filename and module name matching are
+mandatory.""" % getCompilationMode())
         elif isStandaloneMode() and not isOnefileMode():
             _checkFilenameOnlyArgument(
-                "--output-filename", output_filename, " for standalone mode"
+                "--output-filename",
+                output_filename,
+                " for '%s' mode" % getCompilationMode(),
             )
 
         output_filename_dir = os.path.dirname(output_filename) or "."
@@ -717,28 +843,16 @@ it before using it: '%s' (from --output-filename='%s')."""
                 )
             )
 
-    if isLinuxAppMode():
-        if len(getLinuxIconPaths()) > 1:
-            return options_logger.sysexit("Error, can only use one icon file on Linux.")
+    if isLinuxAppMode() and len(getLinuxIconPaths()) > 1:
+        return options_logger.sysexit("Error, can only use one icon file on Linux.")
 
-    if isMacOS():
-        if len(getMacOSIconPaths()) > 1:
-            return options_logger.sysexit("Error, can only use one icon file on macOS.")
+    if isMacOS() and len(getMacOSIconPaths()) > 1:
+        return options_logger.sysexit("Error, can only use one icon file on macOS.")
 
-    for icon_path in getWindowsIconPaths():
-        if "#" in icon_path and isWin32Windows():
-            icon_path, icon_index = icon_path.rsplit("#", 1)
-
-            if not icon_index.isdigit() or int(icon_index) < 0:
-                return options_logger.sysexit(
-                    "Error, icon number in '%s#%s' not valid."
-                    % (icon_path + "#" + icon_index)
-                )
-
-        if getWindowsIconExecutablePath():
-            return options_logger.sysexit(
-                "Error, can only use icons from template executable or from icon files, but not both."
-            )
+    if getWindowsIconPaths() and getWindowsIconExecutablePath():
+        return options_logger.sysexit(
+            "Error, can only use icons from template executable or from icon files, but not both."
+        )
 
     icon_exe_path = getWindowsIconExecutablePath()
     if icon_exe_path is not None and not os.path.exists(icon_exe_path):
@@ -746,17 +860,19 @@ it before using it: '%s' (from --output-filename='%s')."""
             "Error, icon path executable '%s' does not exist." % icon_exe_path
         )
 
+    # Catch all the things, don't want any interface.
+    # pylint: disable=broad-exception-caught
     try:
         file_version = getFileVersionTuple()
-    # Catch all the things, don't want any interface, pylint: disable=broad-except
     except Exception:
         return options_logger.sysexit(
             "Error, file version must be a tuple of up to 4 integer values."
         )
 
+    # Catch all the things, don't want any interface.
+    # pylint: disable=broad-exception-caught
     try:
         product_version = getProductVersionTuple()
-    # Catch all the things, don't want any interface, pylint: disable=broad-except
     except Exception:
         return options_logger.sysexit(
             "Error, product version must be a tuple of up to 4 integer values."
@@ -772,25 +888,27 @@ it before using it: '%s' (from --output-filename='%s')."""
             """Error, empty string is not an acceptable product name."""
         )
 
-    splash_screen_filename = getWindowsSplashScreen()
-
-    if splash_screen_filename is not None:
-        if not os.path.isfile(splash_screen_filename):
-            return options_logger.sysexit(
-                "Error, specified splash screen image '%s' does not exist."
-                % splash_screen_filename
-            )
+    if splash_screen_filename is not None and not os.path.isfile(
+        splash_screen_filename
+    ):
+        return options_logger.sysexit(
+            "Error, specified splash screen image '%s' does not exist."
+            % splash_screen_filename
+        )
 
     if (
-        file_version
-        or product_version
-        or getWindowsVersionInfoStrings()
-        and isWin32Windows()
+        (
+            file_version
+            or product_version
+            or getWindowsVersionInfoStrings()
+            and isWin32Windows()
+        )
+        and not (file_version or product_version)
+        and getCompanyName()
     ):
-        if not (file_version or product_version) and getCompanyName():
-            return options_logger.sysexit(
-                "Error, company name and file or product version need to be given when any version information is given."
-            )
+        return options_logger.sysexit(
+            "Error, company name and file or product version need to be given when any version information is given."
+        )
 
     if isMonolithPy():
         unsupported_monolithpy_mode = getCompilationMode()
@@ -807,22 +925,16 @@ it before using it: '%s' (from --output-filename='%s')."""
             % getPythonFlavorName()
         )
 
-    # The Python PGO input build is accelerated, but compiled without the
-    # isolation effect, and the actual build is checked again after the
-    # re-execution.
-    if (
-        isAcceleratedMode()
-        and hasPythonFlagIsolated()
-        and not shallCreatePythonPgoInput()
-    ):
+    if isAcceleratedMode() and hasPythonFlagIsolated():
         return options_logger.sysexit("""\
 Error, the Python flag 'isolated' cannot be used in accelerated mode, since \
 Nuitka empties 'sys.path' for it, and accelerated mode loads the standard \
 library from there.""")
 
-    if isOnefileMode() and not hasOnefileSupportedOS():
+    if isOnefileMode() and not isOnefileSupportedTarget():
         return options_logger.sysexit(
-            "Error, unsupported OS for onefile '%s'." % getOS()
+            "Error, unsupported OS for onefile '%s'."
+            % getTargetSpecification().getTargetOS()
         )
 
     for module_pattern in getShallFollowModules():
@@ -852,16 +964,11 @@ library from there.""")
                 "Error, malformed data file description, must specify relative target path separated with '='."
             )
 
-        if data_file_desc.count("=") == 1:
-            src, dst = data_file_desc.split("=", 1)
-            src = os.path.expanduser(src)
-            src_pattern = src
-        else:
-            src, dst, pattern = data_file_desc.split("=", 2)
-            src = os.path.expanduser(src)
-            src_pattern = os.path.join(src, pattern)
+        src, dst, src_patterns = _getDataFileSrcPatterns(data_file_desc)
 
-        filenames = resolveShellPatternToFilenames(src_pattern)
+        filenames = []
+        for src_pattern in src_patterns:
+            filenames.extend(resolveShellPatternToFilenames(src_pattern))
 
         if len(filenames) > 1 and not dst.endswith(("/", os.path.sep)):
             return options_logger.sysexit(
@@ -902,51 +1009,29 @@ library from there.""")
             return options_logger.sysexit("""\
 Error, directory '%s' given to '--include-plugin-directory' must not be a \
 standard library path. Use '--include-module' or '--include-package' \
-options instead.""" % pattern)
+options instead.""" % directory_name)
 
-    static_libpython_path = getSystemStaticLibPythonPath(
-        python_debug=shallUsePythonDebug()
-    )
+    _checkLtoOptions()
 
-    if options.static_libpython == "yes":
-        usable, reason = _couldUseStaticLibPython()
-
-        if static_libpython_path is None or usable is False:
-            message = """\
-Error, a static libpython is either not found or not supported for \
-this Python (%s) installation: %s""" % (
-                getPythonFlavorName(),
-                (reason or "unknown reason"),
-            )
-
-            full_build_hint = getPythonBuildStandaloneFullBuildHint()
-
-            if full_build_hint is not None:
-                message += "\n\n" + full_build_hint
-
-            return options_logger.sysexit(message)
-
-    if shallUseStaticLibPython() and static_libpython_path is None:
-        return options_logger.sysexit(
-            """Error, usable static libpython is not found for this Python installation. You \
-might be missing required packages. Disable with --static-libpython=no" if you don't \
-want to install it."""
-        )
+    _checkStaticLibPython()
 
     if isApplePython():
         if isStandaloneMode():
-            return options_logger.sysexit("""\
-Error, on macOS, for standalone mode, Apple Python is not supported \
+            return options_logger.sysexit(
+                """\
+Error, on macOS, for '%s' mode, Apple Python is not supported \
 due to being tied to specific OS releases, use e.g. CPython instead \
 which is available from https://www.python.org/downloads/macos/ for \
-download. With that, your program will work on macOS 10.9 or higher.""")
+download. With that, your program will work on macOS 10.9 or higher."""
+                % getCompilationMode()
+            )
 
         if str is bytes:
             return options_logger.sysexit(
                 "Error, Apple Python 2.7 from macOS is not usable as per Apple decision, use e.g. CPython 2.7 instead."
             )
 
-    if isStandaloneMode() and isRPathUsingPlatform() and not isMacOS():
+    if isStandaloneMode() and isRPathUsingTarget() and not isMacOS():
         # Cyclic dependency
         from nuitka.utils.SharedLibraries import (
             checkPatchElfPresenceAndUsability,
@@ -1011,26 +1096,30 @@ directory but, not the '__main__.py' itself, also consider if
 '--python-flag=-m' should be used.""")
 
     # Inform the user about potential issues with the running version. e.g. unsupported
-    # version.
-    if python_version_str not in getSupportedPythonVersions():
-        # Do not disturb run of automatic tests with, detected from the presence of
-        # that environment variable.
-        if "PYTHON" not in os.environ:
-            general.warning(
-                """\
+    # version. Do not disturb run of automatic tests with, detected from the presence of
+    # that "PYTHON" environment variable.
+    if (
+        python_version_str not in getSupportedPythonVersions()
+        and "PYTHON" not in os.environ
+    ):
+        general.warning(
+            """\
 The Python version '%s' is only experimentally supported by Nuitka '%s', \
 but an upcoming release will change that. In the mean time use Python \
 version '%s' instead or newer Nuitka."""
-                % (
-                    python_version_str,
-                    getNuitkaVersion(),
-                    getSupportedPythonVersions()[-1],
-                )
+            % (
+                python_version_str,
+                getNuitkaVersion(),
+                getSupportedPythonVersions()[-1],
             )
+        )
 
-    if python_release_level not in ("final", "candidate"):
-        if python_version_str not in getNotYetSupportedPythonVersions():
-            return general.sysexit("""\
+    if (
+        python_release_level not in ("final", "candidate")
+        and python_version_str not in getNotYetSupportedPythonVersions()
+        and not isExperimental("python" + python_version_str)
+    ):
+        return general.sysexit("""\
 Non-final versions '%s' '%s' are not supported by Nuitka, use the \
 final version instead.""" % (python_version_str, python_release_level))
 
@@ -1057,8 +1146,8 @@ release will add it. In the mean time use '%s' instead."""
 
     if not isPythonWithGil():
         general.warning("""\
-The Python without GIL is only experimentally supported by \
-and recommended only for use in Nuitka development and testing.""")
+The Python without GIL (free-threaded) is only experimentally supported \
+by Nuitka.""")
 
     if python_version == 0x3D4 and isWin32Windows() and isCPythonOfficialPackage():
         return general.sysexit("""\
@@ -1084,6 +1173,9 @@ library. Please upgrade/downgrade to a supported micro version.""")
                 "Using default file reference mode '%s' need not be specified."
                 % default_reference_mode
             )
+
+    if options.module_force_namespace is not None:
+        _warningModuleModeOnlyOption("--module-force-namespace")
 
     default_mode_name_mode = "runtime" if shallMakeModule() else "original"
 
@@ -1149,7 +1241,8 @@ library. Please upgrade/downgrade to a supported micro version.""")
 
         if not isStandaloneMode():
             return options_logger.sysexit(
-                "Error, Windows installer creation requires standalone or onefile mode."
+                "Error, Windows installer creation requires standalone or onefile mode, not '%s' mode."
+                % getCompilationMode()
             )
 
         if not getProductName():
@@ -1183,7 +1276,8 @@ library. Please upgrade/downgrade to a supported micro version.""")
 
         if not isStandaloneMode():
             return options_logger.sysexit(
-                "Error, Linux installer creation requires standalone or onefile mode."
+                "Error, Linux installer creation requires standalone or onefile mode, not '%s' mode."
+                % getCompilationMode()
             )
 
         if not getProductName():
@@ -1242,14 +1336,18 @@ require '--company-name' and '--product-name' to be given.""",
                 "Requesting both Windows specific compilers makes no sense."
             )
 
-    if getMsvcVersion() and getMsvcVersion() not in ("list", "latest"):
-        if getMsvcVersion().count(".") != 1 or not all(
-            x.isdigit() for x in getMsvcVersion().split(".")
-        ):
-            return options_logger.sysexit(
-                "For '--msvc' only values 'latest', 'info', and 'X.Y' values are allowed, but not '%s'."
-                % getMsvcVersion()
-            )
+    if (
+        getMsvcVersion()
+        and getMsvcVersion() not in ("list", "latest")
+        and (
+            getMsvcVersion().count(".") != 1
+            or not all(x.isdigit() for x in getMsvcVersion().split("."))
+        )
+    ):
+        return options_logger.sysexit(
+            "For '--msvc' only values 'latest', 'info', and 'X.Y' values are allowed, but not '%s'."
+            % getMsvcVersion()
+        )
 
     try:
         getJobLimit()
@@ -1266,18 +1364,18 @@ require '--company-name' and '--product-name' to be given.""",
     else:
         standalone_mode = None
 
-    if standalone_mode and not hasStandaloneSupportedOS():
+    if standalone_mode and not isStandaloneSupportedTarget():
         options_logger.warning(
-            "Standalone mode on %s is not known to be supported, might fail to work."
-            % getOS()
+            "'%s' mode on %s is not known to be supported, might fail to work."
+            % (getCompilationMode(), getTargetSpecification().getTargetOS())
         )
 
     if options.follow_all is True and shallMakeModule():
         return optimization_logger.sysexit("""\
-In module mode you must follow modules more selectively, and e.g. should \
+In '%s' mode you must follow modules more selectively, and e.g. should \
 not include standard library or all foreign modules or else it will fail \
 to work. You need to instead selectively add them with \
-'--follow-import-to=name' though.""")
+'--follow-import-to=name' though.""" % getCompilationMode())
 
     if options.follow_all is True and standalone_mode:
         options_logger.info(
@@ -1294,7 +1392,8 @@ to work. You need to instead selectively add them with \
     if options.follow_stdlib:
         if standalone_mode:
             options_logger.warning(
-                "Following imports to stdlib is the default in standalone mode.."
+                "Following imports to stdlib is the default in %s mode."
+                % standalone_mode
             )
         else:
             options_logger.warning(
@@ -1324,9 +1423,15 @@ make sure that is intended."""
             "Using removed option '--windows-dependency-tool' is deprecated and has no impact anymore."
         )
 
+    if options.onefile_as_archive:
+        options_logger.warning(
+            "Using removed option '--onefile-as-archive' is deprecated and has no effect anymore."
+        )
+
     if shallMakeModule() and options.static_libpython == "yes":
         options_logger.warning(
-            "In module mode, providing '--static-libpython' has no effect, it's not used."
+            "In '%s' mode, providing '--static-libpython' has no effect, it's not used."
+            % getCompilationMode()
         )
 
         options.static_libpython = "no"
@@ -1340,22 +1445,22 @@ make sure that is intended."""
             "Providing PGO arguments without enabling PGO mode has no effect."
         )
 
-    if isCPgoMode():
-        if isStandaloneMode():
-            optimization_logger.warning("""\
-Using C level PGO with standalone/onefile mode is not \
-currently working. Expect errors.""")
+    if (isCPgoMode() or isPythonPgoMode()) and shallMakeDll():
+        return options_logger.sysexit(
+            "Error, using PGO with '%s' mode is not supported." % getCompilationMode()
+        )
 
-        if shallMakeModule():
-            optimization_logger.warning("""\
-Using C level PGO with module mode is not currently \
-working. Expect errors.""")
+    if isCPgoMode() and shallMakeModule():
+        optimization_logger.warning("""\
+Using C level PGO with '%s' mode is not currently \
+working. Expect errors.""" % getCompilationMode())
 
     if (
         options.static_libpython == "auto"
         and not shallMakeModule()
         and not shallUseStaticLibPython()
-        and getSystemStaticLibPythonPath(python_debug=shallUsePythonDebug()) is not None
+        and getTargetSystemStaticLibPythonPath(python_debug=shallUsePythonDebug())
+        is not None
         and _couldUseStaticLibPython()[0] is not False
         and not shallUsePythonDebug()
     ):
@@ -1364,11 +1469,10 @@ working. Expect errors.""")
 but errors may happen."""
         )
 
-    if not shallExecuteImmediately():
-        if shallRunInDebugger():
-            options_logger.warning(
-                "The '--debugger' option has no effect outside of '--debug' without '--run' option."
-            )
+    if not shallExecuteImmediately() and shallRunInDebugger():
+        options_logger.warning(
+            "The '--debugger' option has no effect outside of '--debug' without '--run' option."
+        )
 
     if shallUsePythonDebug() and not isDebugPython():
         return general.sysexit("""\
@@ -1507,7 +1611,11 @@ def getDebuggerName():
 
 def getXMLDumpOutputFilename():
     """:returns: str derived from ``--xml``"""
-    return options.xml_output
+    return (
+        getUserInputNormalizedPath(options.xml_output)
+        if options.xml_output is not None
+        else None
+    )
 
 
 def shallOnlyExecCCompilerCall():
@@ -1539,6 +1647,20 @@ def getModuleNameMode():
     """
 
     return options.module_name_mode
+
+
+def getModuleForceNamespace():
+    """*str* or None, coming from ``--module-force-namespace``
+
+    Notes:
+        Only meaningful in module mode. An empty string forces top level
+        loading, a non-empty value forces loading below that package.
+    """
+
+    if not shallMakeModule():
+        return None
+
+    return options.module_force_namespace
 
 
 def shallMakeModule():
@@ -1620,6 +1742,25 @@ def _splitShellPattern(value):
     return value.split(",") if "{" not in value else [value]
 
 
+def _getDataFileSrcPatterns(data_file_desc):
+    if data_file_desc.count("=") == 1:
+        src, dst = data_file_desc.split("=", 1)
+
+        src_patterns = [
+            getUserInputNormalizedPath(pattern) for pattern in _splitShellPattern(src)
+        ]
+    else:
+        src, dst, pattern = data_file_desc.split("=", 2)
+        src = getUserInputNormalizedPath(src)
+
+        src_patterns = [
+            getNormalizedPathJoin(src, getUserInputNormalizedPath(p))
+            for p in _splitShellPattern(pattern)
+        ]
+
+    return src, dst, src_patterns
+
+
 def splitShellPatterns(values):
     result = []
     for value in values:
@@ -1647,21 +1788,29 @@ def getShallFollowModules():
 
 def getShallFollowExtra():
     """*list*, items of ``--include-plugin-directory=``"""
-    return sum([_splitShellPattern(x) for x in options.include_extra], [])
+    return [
+        getUserInputNormalizedPath(p)
+        for x in options.include_extra
+        for p in _splitShellPattern(x)
+    ]
 
 
 def getShallFollowExtraFilePatterns():
     """*list*, items of ``--include-plugin-files=``"""
-    return sum([_splitShellPattern(x) for x in options.include_extra_files], [])
+    return [
+        getUserInputNormalizedPath(p)
+        for x in options.include_extra_files
+        for p in _splitShellPattern(x)
+    ]
 
 
 def getMustIncludeModules():
-    """*list*, items of ``--include-module=``"""
+    """*OrderedSet*, items of ``--include-module=``"""
     return OrderedSet(sum([_splitShellPattern(x) for x in options.include_modules], []))
 
 
 def getMustIncludePackages():
-    """*list*, items of ``--include-package=``"""
+    """*OrderedSet*, items of ``--include-package=``"""
     return OrderedSet(
         sum([_splitShellPattern(x) for x in options.include_packages], [])
     )
@@ -1675,7 +1824,7 @@ def getShallIncludeDistributionMetadata():
 
 
 def getShallIncludePackageData():
-    """*iterable of (module name, filename pattern)*, derived from ``--include-package-data=``
+    """*tuple of (ModuleName, filename pattern)*, derived from ``--include-package-data=``
 
     The filename pattern can be None if not given. Empty values give None too.
     """
@@ -1715,47 +1864,32 @@ separated by ':') as an argument, not '%s'.""" % package_name)
 
 
 def getShallIncludeDataFiles():
-    """*list*, items of ``--include-data-files=``"""
+    """*generator*, items derived from ``--include-data-files=``"""
     for data_file_desc in options.data_files:
+        src, dest, src_patterns = _getDataFileSrcPatterns(data_file_desc)
+
         if data_file_desc.count("=") == 1:
-            src, dest = data_file_desc.split("=", 1)
-
-            for pattern in _splitShellPattern(src):
-                yield (
-                    getUserInputNormalizedPath(pattern),
-                    None,
-                    dest,
-                    data_file_desc,
-                )
+            for pattern in src_patterns:
+                yield pattern, None, dest, data_file_desc
         else:
-            src, dest, pattern = data_file_desc.split("=", 2)
-
-            for pattern in _splitShellPattern(pattern):
-                yield (
-                    getNormalizedPathJoin(
-                        getUserInputNormalizedPath(src),
-                        getUserInputNormalizedPath(pattern),
-                    ),
-                    src,
-                    dest,
-                    data_file_desc,
-                )
+            for pattern in src_patterns:
+                yield pattern, src, dest, data_file_desc
 
 
 def getShallIncludeDataDirs():
-    """*list*, items of ``--include-data-dir=``"""
+    """*generator*, ``(src, dest)`` pairs of ``--include-data-dir=``"""
     for data_file in options.data_dirs:
-        src, dest = data_file.split("=", 1)
+        src, dest = _getDataDirDescription(data_file)
 
-        yield getUserInputNormalizedPath(src), dest
+        yield src, dest
 
 
 def getShallIncludeRawDirs():
-    """*list*, items of ``--include-raw-dir=``"""
+    """*generator*, ``(src, dest)`` pairs of ``--include-raw-dir=``"""
     for data_file in options.raw_dirs:
-        src, dest = data_file.split("=", 1)
+        src, dest = _getDataDirDescription(data_file)
 
-        yield getUserInputNormalizedPath(src), dest
+        yield src, dest
 
 
 def getShallNotIncludeDataFilePatterns():
@@ -1827,13 +1961,15 @@ def isUnstripped():
     necessary, but it doesn't enable debug checks like ``--debug`` does.
 
     Passed to Scons as ``unstripped_mode`` to it can ask the linker to
-    include symbol information.
+    include symbol information. It also controls whether copied extension
+    modules and shared libraries are stripped after copying.
     """
     return (
         options.unstripped
         or isRuntimeProfile()
         or states.is_debug
         or options.debug_address_sanitizer
+        or options.debug_thread_sanitizer
     )
 
 
@@ -1868,25 +2004,10 @@ def shallCreateGraph():
 
 
 def getOutputFilename():
-    """*str*, value of "-o" """
+    """*str* or *None*, value of ``-o``"""
     return (
         getUserInputNormalizedPath(options.output_filename)
         if options.output_filename is not None
-        else None
-    )
-
-
-def getInstallerOutputFilename():
-    """*str* or *None*, resolved path for the installer artifact.
-
-    Notes:
-        Derives from '--windows-installer-output' if given, otherwise
-        from the program output filename with a platform specific
-        extension change.
-    """
-    return (
-        getUserInputNormalizedPath(options.windows_installer_output_filename)
-        if options.windows_installer_output_filename is not None
         else None
     )
 
@@ -1999,128 +2120,127 @@ def shallOptimizeStringExec():
 _shall_use_static_lib_python = None
 
 
+_lto_environment_variable_names = ("CFLAGS", "CCFLAGS", "CXXFLAGS", "LDFLAGS")
+
+
+def _getLtoFlagsFromEnvironment():
+    """Get LTO related flags from C compiler environment variables.
+
+    Returns:
+        List of tuples of environment variable name, flag, and LTO mode.
+    """
+    result = []
+
+    for variable_name in _lto_environment_variable_names:
+        variable_value = os.getenv(variable_name)
+        if variable_value is None:
+            continue
+
+        for flag in variable_value.split():
+            if flag == "-flto" or flag.startswith("-flto="):
+                result.append((variable_name, flag, "yes"))
+            elif flag == "-fno-lto":
+                result.append((variable_name, flag, "no"))
+
+    return result
+
+
+def _getLtoModeFromEnvironment():
+    """Get LTO mode requested by C compiler environment variables.
+
+    Returns:
+        Tuple of the mode ('yes', 'no', 'conflict', or None), and the LTO
+        flags found in the environment.
+    """
+    lto_flags = _getLtoFlagsFromEnvironment()
+
+    modes = set()
+    for _variable_name, _flag, mode in lto_flags:
+        modes.add(mode)
+
+    if not modes:
+        return None, lto_flags
+    elif len(modes) > 1:
+        return "conflict", lto_flags
+    else:
+        return modes.pop(), lto_flags
+
+
+def _checkLtoOptions():
+    environment_lto_mode, lto_flags = _getLtoModeFromEnvironment()
+
+    if environment_lto_mode == "conflict":
+        return options_logger.sysexit(
+            "Error, environment variables contain conflicting LTO flags: %s."
+            % ", ".join(
+                "%s='%s'" % (variable_name, flag)
+                for variable_name, flag, _mode in lto_flags
+            )
+        )
+
+    if environment_lto_mode is None:
+        return
+
+    variable_name, flag, _mode = lto_flags[0]
+
+    if options.lto == "auto":
+        options.lto = environment_lto_mode
+
+        options_logger.info(
+            "Resolved '--lto=auto' to '%s' due to %s='%s'."
+            % (environment_lto_mode, variable_name, flag)
+        )
+    elif options.lto == "yes" and environment_lto_mode == "no":
+        return options_logger.sysexit("""\
+Error, '--lto=yes' conflicts with %s='%s' from the environment. Remove \
+the LTO flag from the environment or use '--lto=no'.""" % (variable_name, flag))
+    elif options.lto == "no" and environment_lto_mode == "yes":
+        return options_logger.sysexit("""\
+Error, '--lto=no' conflicts with %s='%s' from the environment. Remove \
+the LTO flag from the environment or use '--lto=yes'.""" % (variable_name, flag))
+
+
+def _checkStaticLibPython():
+    static_libpython_path = getTargetSystemStaticLibPythonPath(
+        python_debug=shallUsePythonDebug()
+    )
+
+    if options.static_libpython == "yes":
+        usable, reason = _couldUseStaticLibPython()
+
+        if static_libpython_path is None or usable is False:
+            message = """\
+Error, a static libpython is either not found or not supported for \
+this Python (%s) installation: %s""" % (
+                getPythonFlavorName(),
+                (reason or "unknown reason"),
+            )
+
+            full_build_hint = getPythonBuildStandaloneFullBuildHint()
+
+            if full_build_hint is not None:
+                message += "\n\n" + full_build_hint
+
+            return options_logger.sysexit(message)
+
+    if shallUseStaticLibPython() and static_libpython_path is None:
+        return options_logger.sysexit(
+            """Error, usable static libpython is not found for this Python installation. You \
+might be missing required packages. Disable with --static-libpython=no" if you don't \
+want to install it."""
+        )
+
+
 def _couldUseStaticLibPython():
-    # many cases and return driven,
-    # pylint: disable=too-many-branches,too-many-return-statements
-
-    static_lib_path = getSystemStaticLibPythonPath(python_debug=shallUsePythonDebug())
-
-    if (
-        shallMakeDll()
-        and not isWin32Windows()
-        and getArchitecture() in ("x86_64", "aarch64")
-    ):
-        if static_lib_path is not None and not static_lib_path.endswith("-pic.a"):
-            try:
-                import sysconfig
-            except ImportError:
-                pass
-            else:
-                py_core_cflags = sysconfig.get_config_var("PY_CORE_CFLAGS") or ""
-
-                if "-fPIC" not in py_core_cflags and "-fPIE" not in py_core_cflags:
-                    return (
-                        False,
-                        "Not used in dll mode on %s since Python static library lacks PIC."
-                        % getArchitecture(),
-                    )
-
-    static_link_library_problem = getStaticLinkLibraryProblem(static_lib_path)
-
-    if static_link_library_problem is not None:
-        return False, static_link_library_problem
-
-    # MonolithPy is good to to static linking.
-    if isMonolithPy():
-        return True, "MonolithPy is unexpectedly broken."
-
-    if isHomebrewPython() or isPyenvHomebrewPython():
-        return True, "Homebrew Python is unexpectedly broken."
-
-    # Debian packages with are usable if the OS is new enough
-    from nuitka.utils.StaticLibraries import isDebianSuitableForStaticLinking
-
-    if (
-        isDebianBasedLinux()
-        and isDebianPackagePython()
-        and isDebianSuitableForStaticLinking()
-        and not shallUsePythonDebug()
-    ):
-        if python_version >= 0x3E0:
-            return False, "Not yet supporting 3.14+ static linking"
-
-        if python_version >= 0x3C0 and not os.path.exists(
-            getInlineCopyFolder("python_hacl")
-        ):
-            return (
-                False,
-                "Nuitka on Debian-Python needs inline copy of hacl not included.",
-            )
-
-        return True, "Nuitka on Debian-Python needs package '%s' installed." % (
-            "python2-dev" if str is bytes else "python3-dev"
-        )
-
-    if isMSYS2MingwPython():
-        return True, "Nuitka on MSYS2 needs package 'python-devel' installed."
-
-    # For Anaconda default to trying static lib python library, which
-    # normally is just not available or if it is even unusable.
-    if isAnacondaPython():
-        if isMacOS():
-            # TODO: Maybe some linker options can make it happen.
-            return (
-                False,
-                "Anaconda on macOS exports not all symbols when using it.",
-            )
-        elif not isWin32Windows():
-            return (
-                True,
-                """\
-Nuitka on Anaconda needs package for static libpython installed. \
-Execute 'conda install libpython-static'.""",
-            )
-
-    if isPythonBuildStandalonePython():
-        return (
-            False,
-            """\
-Static link library of '%s' is currently using dependent on libraries \
-such as tcl that are not included, but would be needed. Please help them \
-improve it for best performance of the result.""" % getPythonFlavorName(),
-        )
-
-    if isPyenvPython():
-        return True, "Nuitka on pyenv should not use '--enable-shared'."
-
-    if isManyLinuxPython():
-        return (
-            True,
-            """\
-Nuitka on 'manylinux' has no shared libraries. Use container with \
-the command 'RUN cd /opt/_internal && tar xf static-libs-for-embedding-only.tar.xz' \
-added to provide the static link library.""",
-        )
-
-    if isMacOS() and isCPythonOfficialPackage():
-        if python_version >= 0x3E0:
-            return False, "Not yet supporting 3.14+ static linking"
-        return True, None
-
-    if isArchPackagePython():
-        return True, None
-
-    # If not dynamic link library is available, the static link library will
-    # have to do it.
-    if isStaticallyLinkedPython():
-        return True, None
-
-    return None, None
+    return getTargetCouldUseStaticLibPython(
+        python_debug=shallUsePythonDebug(),
+        dll_mode=shallMakeDll(),
+    )
 
 
 def _shallUseStaticLibPython():
     if shallMakeModule():
-        return False, "not used in module mode"
+        return False, "not used in '%s' mode" % getCompilationMode()
 
     if options.static_libpython == "auto":
         result = _couldUseStaticLibPython()
@@ -2132,11 +2252,7 @@ def _shallUseStaticLibPython():
 
 
 def shallUseStaticLibPython():
-    """:returns: bool derived from ``--static-libpython=yes|auto`` and not module mode
-
-    Notes:
-        Currently only Anaconda on non-Windows can do this and MSYS2.
-    """
+    """:returns: bool derived from ``--static-libpython=yes|auto`` and not module mode"""
 
     global _shall_use_static_lib_python  # singleton, pylint: disable=global-statement
 
@@ -2144,7 +2260,7 @@ def shallUseStaticLibPython():
         _shall_use_static_lib_python, reason = _shallUseStaticLibPython()
 
         if _shall_use_static_lib_python and reason:
-            static_libpython = getSystemStaticLibPythonPath(
+            static_libpython = getTargetSystemStaticLibPythonPath(
                 python_debug=shallUsePythonDebug()
             )
 
@@ -2184,12 +2300,16 @@ def shallCreateScriptFileForExecution():
     mode too.
     """
 
-    # Accelerated mode
-    if shallTreatUninstalledPython():
-        return True
+    # WASI binaries are executed by a WASI runtime, not a shell script.
+    if isWasiTarget():
+        return False
 
     # AIX standalone, but not onefile mode.
     if isAIX() and not isOnefileMode() and isStandaloneMode():
+        return True
+
+    # Accelerated mode
+    if shallTreatUninstalledPython():
         return True
 
     return False
@@ -2198,6 +2318,11 @@ def shallCreateScriptFileForExecution():
 def isShowScons():
     """:returns: bool derived from ``--show-scons``"""
     return options.show_scons
+
+
+def isShowVersion():
+    """:returns: bool derived from ``--version``"""
+    return options.version
 
 
 def getJobLimit():
@@ -2229,12 +2354,17 @@ def isReproducibleBuild():
 
 
 def getLtoMode():
-    """:returns: bool derived from ``--lto``"""
+    """Return LTO mode.
+
+    Returns:
+        str - derived from ``--lto``, with 'auto' resolved from environment
+        flags when possible.
+    """
     return options.lto
 
 
 def isClang():
-    """:returns: bool derived from ``--clang`` or auto-enabled by platform when no other compiler was selected."""
+    """:returns: bool derived from ``--clang`` or auto-enabled by target or platform when no other compiler was selected."""
 
     if options.clang:
         return True
@@ -2247,11 +2377,12 @@ def isClang():
         or isOpenBSD()
         or (isFreeBSD() and getArchitecture() != "powerpc")
         or isTermuxPython()
+        or isWasiTarget()
     )
 
 
 def isMingw64():
-    """:returns: bool derived from ``--mingw64``, available only on Windows, otherwise false"""
+    """:returns: bool derived from ``--mingw64`` on Windows, otherwise None"""
     if isWin32Windows():
         return bool(options.mingw64 or isMSYS2MingwPython())
     else:
@@ -2300,11 +2431,6 @@ def shallDisableBytecodeCacheUsage():
     return shallDisableCacheUsage("bytecode")
 
 
-def shallDisableCompressionCacheUsage():
-    """:returns: bool derived from ``--disable-cache=compression``"""
-    return shallDisableCacheUsage("compression")
-
-
 def getWindowsConsoleMode():
     """:returns: str from ``--windows-console-mode``"""
     if options.disable_console is True:
@@ -2327,6 +2453,85 @@ def getLinuxAppConsoleMode():
 def getLinuxAppLicense():
     """*str* SPDX license expression derived from ``--linux-app-license``"""
     return options.linux_app_license or "Proprietary"
+
+
+def getContainer():
+    """*str* or *None*, container name selected with ``--container``"""
+    return options.container if options is not None else None
+
+
+def getContainerCommand():
+    """*str* or *None*, command to run inside the container instead of compiling"""
+    return options.container_command if options is not None else None
+
+
+def getContainerRequirements():
+    """*tuple*, requirements to install inside the container"""
+    return tuple(options.container_requirements) if options is not None else ()
+
+
+def getContainerWheelsDir():
+    """*str* or *None*, directory with wheels to install inside the container"""
+    return (
+        getUserInputNormalizedPath(options.container_wheels_dir)
+        if options is not None and options.container_wheels_dir is not None
+        else None
+    )
+
+
+def getContainerPythonVersion():
+    """*str* or *None*, Python version to build inside the container"""
+    if options is None:
+        return None
+
+    result = options.container_python_version
+
+    if result is None:
+        result = python_version_full_str
+
+    if result.lower() == "container":
+        return None
+
+    return result
+
+
+def getContainerNoBuild():
+    """*bool*, shall the container be used as is, from ``--container-no-build``"""
+    return options.container_no_build if options is not None else False
+
+
+def getContainerPodmanPath():
+    """*str* or *None*, podman binary path from ``--container-podman-path``"""
+    return (
+        getUserInputNormalizedPath(options.container_podman_path)
+        if options is not None and options.container_podman_path is not None
+        else None
+    )
+
+
+def getContainerPodmanVerbose():
+    """*bool*, shall podman be verbose, from ``--container-podman-verbose``"""
+    return options.container_podman_verbose if options is not None else False
+
+
+def getContainerSharedPaths():
+    """*tuple*, paths to share with the container from ``--container-shared-path``"""
+    return tuple(options.container_shared_paths) if options is not None else ()
+
+
+def getContainerNetwork():
+    """*bool*, shall the container run use the network, from ``--container-network``"""
+    return options.container_network if options is not None else False
+
+
+def getContainerIsolated():
+    """*bool* or *None*, isolation choice from ``--container-isolated``/``--container-no-isolated``"""
+    return options.container_isolated if options is not None else None
+
+
+def getContainerPrivileged():
+    """*bool*, shall the container run be privileged, from ``--container-privileged``"""
+    return options.container_privileged if options is not None else False
 
 
 def isLinuxAppMode():
@@ -2396,39 +2601,16 @@ def isDeploymentMode():
 
 def getNoDeploymentIndications():
     """:returns: tuple derived from ``--no-deployment-flag``"""
-    result = list(options.no_deployment_flags)
+    result = set(options.no_deployment_flags)
 
-    if shallRunInDebugger() and "segfault" not in result:
-        result.append("segfault")
+    if shallRunInDebugger():
+        result.add("segfault")
 
-    return tuple(result)
+    return tuple(sorted(result))
 
 
 def hasNonDeploymentIndicator(indicator_name):
     return not isDeploymentMode() and indicator_name not in getNoDeploymentIndications()
-
-
-_experimental = set()
-
-
-def isExperimental(indication):
-    """Check whether a given experimental feature is enabled.
-
-    Args:
-        indication: (str) feature name
-    Returns:
-        bool
-    """
-    return indication in _experimental
-
-
-def enableExperimental(indication):
-    _experimental.add(indication)
-
-
-def getExperimentalIndications():
-    """*tuple*, items of ``--experimental=`` and runtime enabled indications."""
-    return tuple(sorted(_experimental))
 
 
 def shallUseDirectConstantBlobs():
@@ -2437,13 +2619,38 @@ def shallUseDirectConstantBlobs():
     return isExperimental("direct-constant-blobs")
 
 
+def shallRemoveBytecodeLineNumbers():
+    """*bool* indicating if bytecode line numbers should be removed."""
+    return False
+
+
+def getResourceMode(onefile):
+    """Resource mode requested for the constants blobs.
+
+    Args:
+        onefile: Whether the onefile bootstrap build is asking, for which the
+            '--onefile-resource-mode' option overrides the general
+            '--resource-mode' option.
+
+    Returns:
+        str or None - the requested resource mode.
+    """
+    if onefile:
+        result = options.onefile_resource_mode
+
+        if result is not None:
+            return result
+
+    return options.resource_mode
+
+
 def shallNotFallbackBytecodeToCompiled(module_name, function_qualname, source_ref):
     """Decide if falling back from bytecode-backed functions to compiled C code is forbidden.
 
     Args:
-        module_name: Name of the module containing the annotate function.
-        function_qualname: Qualified name of the annotate function (Python 3).
-        source_ref: Source reference of the annotate function.
+        module_name: Name of the module containing the function.
+        function_qualname: Qualified name of the function.
+        source_ref: Source reference of the function.
     """
     # pylint: disable=unused-argument
 
@@ -2460,6 +2667,9 @@ def getDevelModeIndications():
     if options.devel_remote_debug:
         result.append("remote-debug")
 
+    if options.devel_show_slow_paths:
+        result.append("show-slow-paths")
+
     return tuple(result)
 
 
@@ -2471,6 +2681,7 @@ def getDebugModeIndications():
         "debug_c_warnings",
         "debug_self_forking",
         "debug_address_sanitizer",
+        "debug_thread_sanitizer",
     ):
         # Makes no sense prior Python3.12
         if debug_option_value_name == "debug_immortal" and python_version < 0x3C0:
@@ -2506,9 +2717,6 @@ def shallExplainImports():
 
 def isStandaloneMode():
     """:returns: bool derived from ``--standalone``"""
-    if shallCreatePythonPgoInput():
-        return False
-
     return bool(options.is_standalone or options.list_package_dlls)
 
 
@@ -2591,8 +2799,12 @@ def isPythonPgoMode():
 
 
 def getPythonPgoInput():
-    """:returns: str derived from ``--pgo-python-input``"""
-    return options.python_pgo_input
+    """:returns: str or None derived from ``--pgo-python-input``"""
+    return (
+        getUserInputNormalizedPath(options.python_pgo_input)
+        if options.python_pgo_input is not None
+        else None
+    )
 
 
 def getPythonPgoJsonFilename():
@@ -2614,13 +2826,12 @@ def getPgoArgs():
 
 
 def getPgoExecutable():
-    """*str* = ``--pgo-args``"""
-
-    if options.pgo_executable and os.path.exists(options.pgo_executable):
-        if not os.path.isabs(options.pgo_executable):
-            options.pgo_executable = getUserInputNormalizedPath(options.pgo_executable)
-
-    return options.pgo_executable
+    """*str* or *None* = ``--pgo-executable``"""
+    return (
+        getUserInputNormalizedPath(options.pgo_executable)
+        if options.pgo_executable
+        else None
+    )
 
 
 def getPythonPgoUnseenModulePolicy():
@@ -2664,43 +2875,65 @@ def shallNotCompressOnefile():
     return options.onefile_no_compression
 
 
-def shallOnefileAsArchive():
-    """*bool* = ``--onefile-as-archive``"""
-    return options.onefile_as_archive
-
-
-def _checkedIconPaths(icon_paths):
-    icon_paths = tuple(getUserInputNormalizedPath(x) for x in icon_paths)
+def _checkedIconPaths(icon_paths, allow_index=False):
+    result = []
 
     for icon_path in icon_paths:
-        if not os.path.exists(icon_path):
+        if allow_index and "#" in icon_path:
+            icon_file, icon_index = icon_path.rsplit("#", 1)
+
+            if not icon_index.isdigit() or int(icon_index) < 0:
+                return options_logger.sysexit(
+                    "Error, icon number in '%s' not valid." % icon_path
+                )
+
+            icon_file = getUserInputNormalizedPath(icon_file)
+            icon_path = "%s#%s" % (icon_file, icon_index)
+        else:
+            icon_file = icon_path = getUserInputNormalizedPath(icon_path)
+
+        if not os.path.exists(icon_file):
             return options_logger.sysexit(
-                "Error, icon path '%s' does not exist." % icon_path
+                "Error, icon path '%s' does not exist." % icon_file
             )
 
-        checkIconUsage(logger=options_logger, icon_path=icon_path)
+        checkIconUsage(logger=options_logger, icon_path=icon_file)
+        result.append(icon_path)
 
-    return icon_paths
+    return tuple(result)
 
 
 def getWindowsIconPaths():
-    """*list of str*, values of ``--windows-icon-from-ico``"""
+    """*tuple of str*, values of ``--windows-icon-from-ico``"""
     if not isWin32Windows():
         return ()
 
-    return _checkedIconPaths(options.windows_icon_path)
+    return _checkedIconPaths(options.windows_icon_path, allow_index=True)
 
 
 def getLinuxIconPaths():
-    """*list of str*, values of ``--linux-app-icon``"""
+    """*tuple of str*, values of ``--linux-app-icon``"""
     return _checkedIconPaths(options.linux_icon_path)
 
 
 def getMacOSIconPaths():
-    """*list of str*, values of ``--macos-app-icon``"""
+    """*tuple of str*, values of ``--macos-app-icon``"""
     return _checkedIconPaths(
         icon_path for icon_path in options.macos_icon_path if icon_path != "none"
     )
+
+
+def getMacOSBundleIconFilename():
+    """*str* or *None* filename of the icon inside the created application bundle."""
+    icon_paths = getMacOSIconPaths()
+
+    if not icon_paths:
+        return None
+
+    if icon_paths[0].endswith(".icns"):
+        return os.path.basename(icon_paths[0])
+
+    return "Icons.icns"
 
 
 def getWindowsIconExecutablePath():
@@ -2708,7 +2941,11 @@ def getWindowsIconExecutablePath():
     if not isWin32Windows():
         return None
 
-    return options.icon_exe_path
+    return (
+        getUserInputNormalizedPath(options.icon_exe_path)
+        if options.icon_exe_path is not None
+        else None
+    )
 
 
 def shallAskForWindowsAdminRights():
@@ -2728,12 +2965,20 @@ def shallCreateWindowsInstaller():
 
 def getWindowsInstallerNsisPath():
     """*str* or *None*, value of ``--windows-nsis-path``"""
-    return options.windows_installer_nsis_path
+    return (
+        getUserInputNormalizedPath(options.windows_installer_nsis_path)
+        if options.windows_installer_nsis_path is not None
+        else None
+    )
 
 
 def getWindowsInstallerOutputFilename():
     """*str* or *None*, value of ``--windows-installer-output``"""
-    return options.windows_installer_output_filename
+    return (
+        getUserInputNormalizedPath(options.windows_installer_output_filename)
+        if options.windows_installer_output_filename is not None
+        else None
+    )
 
 
 def getWindowsInstallerInstallDir():
@@ -2748,7 +2993,11 @@ def getWindowsInstallerShortcuts():
 
 def getWindowsInstallerLicenseFile():
     """*str* or *None*, value of ``--windows-installer-license-file``"""
-    return options.windows_installer_license_filename
+    return (
+        getUserInputNormalizedPath(options.windows_installer_license_filename)
+        if options.windows_installer_license_filename is not None
+        else None
+    )
 
 
 def isWindowsInstallerAllowUserChangeInstallDir():
@@ -2768,12 +3017,20 @@ def shallCreateLinuxInstaller():
 
 def getLinuxInstallerAppImagetoolPath():
     """*str* or *None*, value of ``--linux-installer-appimagetool-path``"""
-    return options.linux_installer_appimagetool_path
+    return (
+        getUserInputNormalizedPath(options.linux_installer_appimagetool_path)
+        if options.linux_installer_appimagetool_path is not None
+        else None
+    )
 
 
 def getLinuxInstallerOutputFilename():
     """*str* or *None*, value of ``--linux-installer-output``"""
-    return options.linux_installer_output_filename
+    return (
+        getUserInputNormalizedPath(options.linux_installer_output_filename)
+        if options.linux_installer_output_filename is not None
+        else None
+    )
 
 
 def getFileDescription():
@@ -2782,12 +3039,12 @@ def getFileDescription():
 
 
 def getLegalCopyright():
-    """*str* name of the product to use derived from ``--copyright``"""
+    """*str* or *None*, copyright string derived from ``--copyright``"""
     return options.legal_copyright
 
 
 def getLegalTrademarks():
-    """*str* name of the product to use derived from ``--trademarks``"""
+    """*str* or *None*, trademark string derived from ``--trademarks``"""
     return options.legal_trademarks
 
 
@@ -2804,7 +3061,7 @@ def getLegalInformation():
 
 
 def getWindowsVersionInfoStrings():
-    """*dict of str*, values of ."""
+    """*dict of str*, non-empty Windows version resource strings."""
 
     result = {}
 
@@ -2854,7 +3111,7 @@ def _parseVersionNumber(value, option_name):
 
 
 def getProductVersion():
-    """:returns: str, derived from ``--product-version``"""
+    """:returns: str or None, derived from ``--product-version``"""
     return options.product_version
 
 
@@ -2864,12 +3121,12 @@ def getProductVersionTuple():
 
 
 def getFileVersion():
-    """:returns str, derived from ``--file-version``"""
+    """:returns: str or None, derived from ``--file-version``"""
     return options.file_version
 
 
 def getFileVersionTuple():
-    """:returns tuple of 4 ints or None, derived from ``--file-version``"""
+    """:returns: tuple of 4 ints or None, derived from ``--file-version``"""
     return _parseVersionNumber(options.file_version, "--file-version")
 
 
@@ -2884,7 +3141,7 @@ def getProductFileVersion():
 
 
 def getWindowsSplashScreen():
-    """:returns: bool derived from ``--onefile-windows-splash-screen-image``"""
+    """:returns: str or None derived from ``--onefile-windows-splash-screen-image``"""
     return (
         getUserInputNormalizedPath(options.splash_screen_image)
         if options.splash_screen_image
@@ -2922,9 +3179,6 @@ def getTargetArch():
 
 def shallCreateAppBundle():
     """*bool* shall create an application bundle, derived from ``--macos-create-app-bundle`` value"""
-    if shallCreatePythonPgoInput():
-        return False
-
     return options.macos_create_bundle and isMacOS()
 
 
@@ -2935,7 +3189,11 @@ def shallCreateDmgFile():
 
 def getMacOSInstallerOutputFilename():
     """*str* or *None*, value of ``--macos-installer-output``"""
-    return options.macos_installer_output_filename
+    return (
+        getUserInputNormalizedPath(options.macos_installer_output_filename)
+        if options.macos_installer_output_filename is not None
+        else None
+    )
 
 
 def getMacOSSigningIdentity():
@@ -3049,7 +3307,7 @@ _macos_protected_resource_entitlements = {
 
 
 def getMacOSAppProtectedResourcesAccesses():
-    """*list* key, value for protected resources of the app to use for bundle"""
+    """*tuple* of *(key, description, entitlement)* for protected resources of the app bundle"""
     if not shallCreateAppBundle():
         return ()
 
@@ -3076,16 +3334,15 @@ needs to be one of the following: %s."""
 
         entitlement = _macos_protected_resource_entitlements[resource_description_name]
 
-        if type(entitlement) is tuple:
-            # If we have a tuple of size 2, checking for "read-only" and "read-write"
-            # in description allows to select one.
-            if len(entitlement) == 2:
-                for entitlement_name in entitlement:
-                    if entitlement_name.rsplit(".")[-1] in description.lower():
-                        entitlement = entitlement_name
-                        break
+        # If we have a tuple of size 2, checking for "read-only" and "read-write"
+        # in description allows to select one.
+        if type(entitlement) is tuple and len(entitlement) == 2:
+            for entitlement_name in entitlement:
+                if entitlement_name.rsplit(".")[-1] in description.lower():
+                    entitlement = entitlement_name
+                    break
 
-            # We still can put all values, that's fine, we support that now.
+        # We still can put all values, that's fine, we support that now.
 
         result.append((resource_description_name, description, entitlement))
 
@@ -3107,7 +3364,11 @@ def getMacOSSigningCertificateFilename():
     if not isMacOS():
         return None
 
-    return options.macos_sign_keyring_filename
+    return (
+        getUserInputNormalizedPath(options.macos_sign_keyring_filename)
+        if options.macos_sign_keyring_filename is not None
+        else None
+    )
 
 
 def getMacOSSigningCertificatePassword():
@@ -3130,7 +3391,7 @@ _python_flags = None
 
 
 def _getPythonFlags():
-    """*list*, values of ``--python-flag``"""
+    """*set*, values of ``--python-flag``"""
     # There is many flags, pylint: disable=too-many-branches
 
     # singleton, pylint: disable=global-statement
@@ -3162,6 +3423,8 @@ def _getPythonFlags():
                     _python_flags.add("trace_imports")
                 elif part in ("no_warnings", "nowarnings"):
                     _python_flags.add("no_warnings")
+                elif part in ("no_unraisable", "nounraisable"):
+                    _python_flags.add("no_unraisable")
                 elif part in ("-O", "no_asserts", "noasserts"):
                     _python_flags.add("no_asserts")
                 elif part in ("no_docstrings", "nodocstrings"):
@@ -3217,6 +3480,12 @@ def hasPythonFlagNoWarnings():
     """*bool* = "no_warnings" in python flags given"""
 
     return "no_warnings" in _getPythonFlags()
+
+
+def hasPythonFlagNoUnraisable():
+    """*bool* = "no_unraisable" in python flags given"""
+
+    return "no_unraisable" in _getPythonFlags()
 
 
 def hasPythonFlagIsolated():
@@ -3284,8 +3553,28 @@ def getPluginNameConsideringRenames(plugin_name):
         return "delvewheel"
     if plugin_name == "signing":
         return "signtool"
+    if plugin_name == "data-hiding":
+        return "protection"
+    if plugin_name == "traceback-encryption":
+        return "protection"
 
     return plugin_name
+
+
+def getPluginsEnabledUnrenamed():
+    """*tuple*, user enabled (standard) plugins without renames applied.
+
+    Note:
+        This is for plugins that replaced other plugins, and need to know
+        which name was used to enable them.
+    """
+    result = OrderedSet()
+
+    if options:
+        for plugin_enabled in options.plugins_enabled:
+            result.update(plugin_enabled.split(","))
+
+    return tuple(result)
 
 
 def getPluginsEnabled():
@@ -3297,12 +3586,8 @@ def getPluginsEnabled():
     """
     result = OrderedSet()
 
-    if options:
-        for plugin_enabled in options.plugins_enabled:
-            result.update(
-                getPluginNameConsideringRenames(plugin_name)
-                for plugin_name in plugin_enabled.split(",")
-            )
+    for plugin_name in getPluginsEnabledUnrenamed():
+        result.add(getPluginNameConsideringRenames(plugin_name))
 
     return tuple(result)
 
@@ -3332,7 +3617,9 @@ def getUserPlugins():
     if not options:
         return ()
 
-    return tuple(set(options.user_plugins))
+    return tuple(
+        OrderedSet(getUserInputNormalizedPath(p) for p in options.user_plugins)
+    )
 
 
 def shallDetectMissingPlugins():
@@ -3341,8 +3628,12 @@ def shallDetectMissingPlugins():
 
 
 def getPythonPathForScons():
-    """*str*, value of ``--python-for-scons``"""
-    return options.python_scons
+    """*str* or *None*, value of ``--python-for-scons``"""
+    return (
+        getUserInputNormalizedPath(options.python_scons)
+        if options.python_scons is not None
+        else None
+    )
 
 
 def shallCompileWithoutBuildDirectory():
@@ -3359,7 +3650,7 @@ def shallCompileWithoutBuildDirectory():
 
 
 def shallRecompileExtensionModules(module_name):
-    """*bool* prefer source code over extension modules if both are there"""
+    """*tuple of (bool or None, str)*, decision and reason whether to prefer source code over extension modules"""
     if options is None:
         return None, "no user options available"
 
@@ -3388,7 +3679,7 @@ def getProgressBar():
 
 
 def getForcedStdoutPath():
-    """*str* force program stdout output into that filename"""
+    """*str*, *None*, or *False*, force program stdout output into that filename"""
     if shallCreatePythonPgoInput():
         return False
 
@@ -3396,7 +3687,7 @@ def getForcedStdoutPath():
 
 
 def getForcedStderrPath():
-    """*str* force program stderr output into that filename"""
+    """*str*, *None*, or *False*, force program stderr output into that filename"""
     if shallCreatePythonPgoInput():
         return False
 
@@ -3420,14 +3711,24 @@ def isLowMemory():
 
 def getCompilationReportFilename():
     """*str* filename to write XML report of compilation to"""
-    return options.compilation_report_filename
+    return (
+        getUserInputNormalizedPath(options.compilation_report_filename)
+        if options.compilation_report_filename is not None
+        else None
+    )
 
 
 def getCompilationReportTemplates():
     """*tuple of str,str* template and output filenames to write reports to"""
     result = []
     for value in options.compilation_report_templates:
-        result.append(value.split(":", 1))
+        template_filename, report_filename = value.split(":", 1)
+        result.append(
+            (
+                getUserInputNormalizedPath(template_filename),
+                getUserInputNormalizedPath(report_filename),
+            )
+        )
 
     return tuple(result)
 
@@ -3468,7 +3769,7 @@ def getCompilationReportUserData():
 
 
 def shallCreateDiffableCompilationReport():
-    """*bool*" derived from --report-diffable"""
+    """*bool*, derived from ``--report-diffable``"""
     return options.compilation_report_diffable
 
 
@@ -3483,7 +3784,7 @@ def getOutputFolderName():
 
 def getUserProvidedYamlFiles():
     """*list* files with user provided Yaml files"""
-    return options.user_yaml_files
+    return [getUserInputNormalizedPath(f) for f in options.user_yaml_files]
 
 
 def _getWarningMnemonicsDisabled():
@@ -3491,7 +3792,7 @@ def _getWarningMnemonicsDisabled():
 
 
 def shallDisplayWarningMnemonic(mnemonic):
-    """*bool*" derived from --nowarn-mnemonic"""
+    """*bool*, derived from ``--nowarn-mnemonic``"""
     for pattern in _getWarningMnemonicsDisabled():
         if fnmatch.fnmatch(mnemonic, pattern):
             return False
@@ -3504,14 +3805,37 @@ def shallShowExecutedCommands():
 
 
 def getTargetPythonDescription():
-    """:returns: tuple(python_version,OS/arch) string derived from ``--target``"""
-    if options.target_spec is not None:
-        # TODO: Only one we are working on right now.
-        assert options.target_spec == "wasi"
+    """:returns: tuple(int, str) or None derived from ``--target``"""
+    target_description = getTargetSpecification().getDescription()
 
-        return python_version, "wasi"
+    if target_description != "native":
+        return python_version, target_description
 
     return None
+
+
+def getWasiPythonPrefixPath():
+    """*str* or *None*, value of ``--wasi-python-prefix``"""
+    if options.wasi_python_prefix is None:
+        return None
+
+    return getUserInputNormalizedPath(options.wasi_python_prefix)
+
+
+def getWin32PythonExePath():
+    """*str* or *None*, value of ``--win32-python-exe``"""
+    if options.win32_python_exe is None:
+        return None
+
+    return getUserInputNormalizedPath(options.win32_python_exe)
+
+
+def getWasiSDKPath():
+    """*str* or *None*, value of ``--wasi-sdk-path``"""
+    if options.wasi_sdk_path is None:
+        return None
+
+    return getUserInputNormalizedPath(options.wasi_sdk_path)
 
 
 def getFcfProtectionMode():
@@ -3520,7 +3844,7 @@ def getFcfProtectionMode():
 
 
 def getModuleParameter(module_name, parameter_name):
-    """:returns: string derived from ``--module-parameter``"""
+    """:returns: str or None derived from ``--module-parameter``"""
 
     module_name_prefix = module_name.getTopLevelPackageName().asString()
 
@@ -3535,7 +3859,7 @@ def getModuleParameter(module_name, parameter_name):
         except ValueError:
             return optimization_logger.sysexit("""\
 Error, must specify module parameter name and value with a separating \
-'=' and not '%s".""" % module_option)
+'=' and not '%s'.""" % module_option)
 
         if option_name == module_option_name:
             return module_option_value
@@ -3574,10 +3898,25 @@ def getCompilationMode():
 
 def getPyProjectRequiredPackages():
     """Get the requirements that are not Nuitka from project configuration."""
-    # TODO: Move this to using code to avoid cyclic dependency.
-    from nuitka.utils.Distributions import filterInstallRequires
-
     return filterInstallRequires(options.project_requires)
+
+
+def _checkProjectRequirements():
+    assert options.is_project_mode
+
+    unmet_requirements = getUnmetRequirements(
+        filterInstallRequires(options.project_requires)
+    )
+
+    if unmet_requirements:
+        return options_logger.sysexit("""\
+Error, project requirements are not satisfied:
+  %s
+
+Install them in the active Python environment, e.g. with 'pip install -e .', \
+'uv sync', or 'poetry install'. When compiling with '--container', use \
+'--container-requirements' to install them in the container instead.\
+""" % "\n  ".join(unmet_requirements))
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and

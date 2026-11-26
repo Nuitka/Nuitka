@@ -1,16 +1,7 @@
 #     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-"""The code generation.
-
-No language specifics at all are supposed to be present here. Instead it is
-using primitives from the given generator to build code sequences (list of
-strings).
-
-As such this is the place that knows how to take a condition and two code
-branches and make a code block out of it. But it doesn't contain any target
-language syntax.
-"""
+"""Top-level C code generation entry points and node dispatch registration."""
 
 from nuitka.build.DataComposerInterface import getConstantBlobSymbolName
 from nuitka.ModuleRegistry import addModuleCodeGenerationTimeInformation
@@ -41,6 +32,7 @@ from .AttributeCodes import (
     generateAttributeCheckCode,
     generateAttributeLookupCode,
     generateAttributeLookupSpecialCode,
+    generateBuiltinDelattrCode,
     generateBuiltinGetattrCode,
     generateBuiltinHasattrCode,
     generateBuiltinSetattrCode,
@@ -70,6 +62,7 @@ from .BuiltinCodes import (
     generateBuiltinRange3Code,
     generateBuiltinRefCode,
     generateBuiltinReversedCode,
+    generateBuiltinSentinelCallCode,
     generateBuiltinSortedP2Code,
     generateBuiltinSortedP3Code,
     generateBuiltinSortedP3Code1,
@@ -88,6 +81,7 @@ from .ClassCodes import (
     generateBuiltinSuperCode,
     generateCallClassPrepareCode,
     generateCallMetaclassCode,
+    generateClassDictFromClassCode,
     generateSelectMetaclassCode,
     generateTypeOperationPrepareCode,
 )
@@ -208,6 +202,7 @@ from .GlobalsLocalsCodes import (
     generateBuiltinLocalsCode,
     generateBuiltinLocalsRefCode,
     generateBuiltinVarsCode,
+    generateClassDictRefCode,
 )
 from .IdCodes import generateBuiltinHashCode, generateBuiltinIdCode
 from .ImportCodes import (
@@ -239,10 +234,10 @@ from .IteratorCodes import (
     generateBuiltinNext2Code,
     generateBuiltinZip310Code,
     generateBuiltinZipCode,
+    generateIsIterableCode,
     generateSpecialUnpackCode,
     generateUnpackCheckCode,
     generateUnpackCheckFromIteratedCode,
-    generateUnpackCheckFromIteratedValueCode,
 )
 from .ListCodes import (
     generateBuiltinListCode,
@@ -266,6 +261,7 @@ from .ListCodes import (
     generateListOperationSort3Code,
 )
 from .LocalsDictCodes import (
+    generateClassMappingVariableRefOrFallbackCode,
     generateLocalsDictDelCode,
     generateLocalsDictSetCode,
     generateLocalsDictVariableCheckCode,
@@ -285,6 +281,7 @@ from .ModuleCodes import (
     generateModuleAttributeCode,
     generateModuleAttributeDunderCompiledCode,
     generateModuleAttributeFileCode,
+    generateRuntimePathCode,
     getModuleCode,
 )
 from .NetworkxCodes import generateNetworkxUtilsDecoratorsArgmapCallCode
@@ -307,6 +304,8 @@ from .PackageResourceCodes import (
     generateImportlibMetadataSelectableGroupsValueCode,
     generateImportlibMetadataVersionCallCode,
     generateImportlibResourcesFilesCallCode,
+    generateImportlibResourcesOpenBinaryCallCode,
+    generateImportlibResourcesOpenTextCallCode,
     generateImportlibResourcesReadBinaryCallCode,
     generateImportlibResourcesReadTextCallCode,
     generateOsListdirCallCode,
@@ -318,6 +317,7 @@ from .PackageResourceCodes import (
     generateOsPathIsabsCallCode,
     generateOsPathIsdirCallCode,
     generateOsPathIsfileCallCode,
+    generateOsPathJoinCallCode,
     generateOsPathNormpathCallCode,
     generateOsStatCallCode,
     generateOsUnameCallCode,
@@ -329,6 +329,7 @@ from .PackageResourceCodes import (
     generatePkgResourcesRequireCallCode,
     generatePkgResourcesResourceStreamCallCode,
     generatePkgResourcesResourceStringCallCode,
+    generatePkgutilIterModulesCallCode,
 )
 from .PrintCodes import generatePrintNewlineCode, generatePrintValueCode
 from .RaisingCodes import (
@@ -380,6 +381,16 @@ from .SubscriptCodes import (
     generateDelSubscriptCode,
     generateMatchSubscriptCheckCode,
     generateSubscriptLookupCode,
+    generateSubscriptLookupForUnpackCode,
+)
+from .SysModulesCodes import (
+    generateImportlibReloadCallCode,
+    generateSysModulesAssignmentCode,
+    generateSysModulesDelCode,
+    generateSysModulesGetCode,
+    generateSysModulesLookupCode,
+    generateSysModulesPopCode,
+    generateSysModulesRefCode,
 )
 from .TensorflowCodes import generateTensorflowFunctionCallCode
 from .TryCodes import generateTryCode
@@ -563,8 +574,6 @@ def generateFunctionBodyCode(function_body, context):
 
 
 def _generateModuleCode(module, data_filename):
-    # As this not only creates all modules, but also functions, it deals
-    # also with its functions.
     assert module.isCompiledPythonModule(), module
 
     context = PythonModuleContext(
@@ -579,7 +588,6 @@ def _generateModuleCode(module, data_filename):
 
     for function_body in module.getUsedFunctions():
         if function_body.needsCreation():
-            # Constant function returners get no code.
             (
                 is_constant_returning,
                 _constant_return_value,
@@ -681,13 +689,12 @@ def generateModuleCode(module, data_filename):
 
 
 def generateHelpersCode():
-    calls_decl_code, calls_body_code = getCallsCode()
+    calls_body_codes = getCallsCode()
 
     constants_header_code, constants_body_code = getConstantsDefinitionCode()
 
     return (
-        calls_decl_code,
-        calls_body_code,
+        calls_body_codes,
         constants_header_code,
         constants_body_code,
     )
@@ -712,6 +719,7 @@ addExpressionDispatchDict(
         "EXPRESSION_BUILTIN_EXEC": generateEvalCode,
         "EXPRESSION_BUILTIN_ITER_FOR_UNPACK": generateBuiltinIterForUnpackCode,
         "EXPRESSION_BUILTIN_ITER1": generateBuiltinIter1Code,
+        "EXPRESSION_IS_ITERABLE": generateIsIterableCode,
         "EXPRESSION_BUILTIN_ITER2": generateBuiltinIter2Code,
         "EXPRESSION_BUILTIN_ENUMERATE1": generateBuiltinEnumerate1Code,
         "EXPRESSION_BUILTIN_ENUMERATE2": generateBuiltinEnumerate2Code,
@@ -758,9 +766,11 @@ addExpressionDispatchDict(
         "EXPRESSION_BUILTIN_ALL": generateBuiltinAllCode,
         "EXPRESSION_BUILTIN_DICT": generateBuiltinDictCode,
         "EXPRESSION_BUILTIN_FROZENDICT": generateBuiltinFrozendictCode,
+        "EXPRESSION_BUILTIN_SENTINEL_CALL": generateBuiltinSentinelCallCode,
         "EXPRESSION_BUILTIN_LOCALS_COPY": generateBuiltinLocalsCode,
         "EXPRESSION_BUILTIN_LOCALS_UPDATED": generateBuiltinLocalsCode,
         "EXPRESSION_BUILTIN_LOCALS_REF": generateBuiltinLocalsRefCode,
+        "EXPRESSION_CLASS_DICT_REF": generateClassDictRefCode,
         "EXPRESSION_LOCALS_DICT_REF": generateBuiltinLocalsRefCode,
         "EXPRESSION_BUILTIN_GLOBALS": generateBuiltinGlobalsCode,
         "EXPRESSION_BUILTIN_SUPER0": generateBuiltinSuperCode,
@@ -778,6 +788,7 @@ addExpressionDispatchDict(
         "EXPRESSION_BUILTIN_VARS": generateBuiltinVarsCode,
         "EXPRESSION_BUILTIN_HASATTR": generateBuiltinHasattrCode,
         "EXPRESSION_BUILTIN_GETATTR": generateBuiltinGetattrCode,
+        "EXPRESSION_BUILTIN_DELATTR": generateBuiltinDelattrCode,
         "EXPRESSION_BUILTIN_SETATTR": generateBuiltinSetattrCode,
         "EXPRESSION_BUILTIN_INPUT": generateBuiltinInputCode,
         "EXPRESSION_BUILTINS_OPEN_BEFORE3_CALL": generateBuiltinOpenCode,
@@ -794,6 +805,7 @@ addExpressionDispatchDict(
         "EXPRESSION_BUILTIN_MAKE_EXCEPTION_IMPORT_ERROR": generateBuiltinMakeExceptionCode,
         "EXPRESSION_BUILTIN_MAKE_EXCEPTION_MODULE_NOT_FOUND_ERROR": generateBuiltinMakeExceptionCode,
         "EXPRESSION_BUILTIN_MAKE_EXCEPTION_ATTRIBUTE_ERROR": generateBuiltinMakeExceptionCode,
+        "EXPRESSION_BUILTIN_MAKE_EXCEPTION_NAME_ERROR": generateBuiltinMakeExceptionCode,
         "EXPRESSION_BUILTIN_REF": generateBuiltinRefCode,
         "EXPRESSION_BUILTIN_WITH_CONTEXT_REF": generateBuiltinRefCode,
         "EXPRESSION_BUILTIN_EXCEPTION_REF": generateExceptionRefCode,
@@ -910,6 +922,8 @@ addExpressionDispatchDict(
         "EXPRESSION_IMPORT_MODULE_NAME_HARD_EXISTS": generateImportModuleNameHardCode,
         "EXPRESSION_BUILTIN_PATCHABLE_TYPE_REF": generateImportModuleNameHardCode,
         "EXPRESSION_IMPORTLIB_IMPORT_MODULE_REF": generateImportModuleNameHardCode,
+        "EXPRESSION_IMPORTLIB_RELOAD_REF": generateImportModuleNameHardCode,
+        "EXPRESSION_IMPORTLIB_RELOAD_CALL": generateImportlibReloadCallCode,
         "EXPRESSION_IMPORTLIB_IMPORT_MODULE_CALL": generateImportlibImportCallCode,
         "EXPRESSION_IMPORT_NAME": generateImportNameCode,
         "EXPRESSION_LIST_OPERATION_APPEND": generateListOperationAppendCode2,
@@ -931,6 +945,7 @@ addExpressionDispatchDict(
         "EXPRESSION_LIST_OPERATION_SORT3": generateListOperationSort3Code,
         "EXPRESSION_MODULE_ATTRIBUTE_DUNDER_COMPILED_REF": generateModuleAttributeDunderCompiledCode,
         "EXPRESSION_MODULE_ATTRIBUTE_FILE_REF": generateModuleAttributeFileCode,
+        "EXPRESSION_RUNTIME_PATH": generateRuntimePathCode,
         "EXPRESSION_MODULE_ATTRIBUTE_NAME_REF": generateModuleAttributeCode,
         "EXPRESSION_MODULE_ATTRIBUTE_PACKAGE_REF": generateModuleAttributeCode,
         "EXPRESSION_MODULE_ATTRIBUTE_LOADER_REF": generateModuleAttributeCode,
@@ -984,7 +999,13 @@ addExpressionDispatchDict(
         "EXPRESSION_CLASS_DICT_BODY": generateFunctionOutlineCode,
         "EXPRESSION_CLASS_DICT_BODY_P2": generateFunctionOutlineCode,
         "EXPRESSION_SUBSCRIPT_LOOKUP": generateSubscriptLookupCode,
-        "EXPRESSION_SUBSCRIPT_LOOKUP_FOR_UNPACK": generateSubscriptLookupCode,
+        "EXPRESSION_SUBSCRIPT_LOOKUP_FOR_UNPACK": generateSubscriptLookupForUnpackCode,
+        "EXPRESSION_SYS_MODULES_REF": generateSysModulesRefCode,
+        "EXPRESSION_SYS_MODULES_LOOKUP": generateSysModulesLookupCode,
+        "EXPRESSION_SYS_MODULES_GET2": generateSysModulesGetCode,
+        "EXPRESSION_SYS_MODULES_GET3": generateSysModulesGetCode,
+        "EXPRESSION_SYS_MODULES_POP2": generateSysModulesPopCode,
+        "EXPRESSION_SYS_MODULES_POP3": generateSysModulesPopCode,
         "EXPRESSION_SLICE_LOOKUP": generateSliceLookupCode,
         "EXPRESSION_SET_OPERATION_UPDATE": generateSetOperationUpdateCode,
         "EXPRESSION_SIDE_EFFECTS": generateSideEffectsCode,
@@ -1000,15 +1021,18 @@ addExpressionDispatchDict(
         "EXPRESSION_ASYNC_WAIT_EXIT": generateAsyncWaitCode,
         "EXPRESSION_ASYNC_ITER": generateAsyncIterCode,
         "EXPRESSION_ASYNC_NEXT": generateAsyncNextCode,
+        "EXPRESSION_CLASS_DICT_FROM_CLASS": generateClassDictFromClassCode,
         "EXPRESSION_SELECT_METACLASS": generateSelectMetaclassCode,
         "EXPRESSION_STRING_CONCATENATION": generateStringConcatenationCode,
         "EXPRESSION_BUILTIN_FORMAT": generateBuiltinFormatCode,
         "EXPRESSION_BUILTIN_ASCII": generateBuiltinAsciiCode,
+        "EXPRESSION_CLASS_MAPPING_VARIABLE_REF_OR_FALLBACK": generateClassMappingVariableRefOrFallbackCode,
         "EXPRESSION_LOCALS_VARIABLE_CHECK": generateLocalsDictVariableCheckCode,
         "EXPRESSION_LOCALS_VARIABLE_REF_OR_FALLBACK": generateLocalsDictVariableRefOrFallbackCode,
         "EXPRESSION_LOCALS_VARIABLE_REF": generateLocalsDictVariableRefCode,
         "EXPRESSION_RAISE_EXCEPTION": generateRaiseExpressionCode,
         "EXPRESSION_PKGUTIL_GET_DATA_REF": generateImportModuleNameHardCode,
+        "EXPRESSION_PKGUTIL_ITER_MODULES_REF": generateImportModuleNameHardCode,
         "EXPRESSION_PKG_RESOURCES_REQUIRE_REF": generateImportModuleNameHardCode,
         "EXPRESSION_PKG_RESOURCES_GET_DISTRIBUTION_REF": generateImportModuleNameHardCode,
         "EXPRESSION_PKG_RESOURCES_ITER_ENTRY_POINTS_REF": generateImportModuleNameHardCode,
@@ -1018,8 +1042,14 @@ addExpressionDispatchDict(
         "EXPRESSION_PKG_RESOURCES_ENTRY_POINT_VALUE_REF": generatePkgResourcesEntryPointValueCode,
         "EXPRESSION_IMPORTLIB_RESOURCES_READ_BINARY_REF": generateImportModuleNameHardCode,
         "EXPRESSION_IMPORTLIB_RESOURCES_READ_TEXT_REF": generateImportModuleNameHardCode,
+        "EXPRESSION_IMPORTLIB_RESOURCES_OPEN_BINARY_REF": generateImportModuleNameHardCode,
+        "EXPRESSION_IMPORTLIB_RESOURCES_OPEN_TEXT_REF": generateImportModuleNameHardCode,
         "EXPRESSION_IMPORTLIB_RESOURCES_FILES_REF": generateImportModuleNameHardCode,
         "EXPRESSION_IMPORTLIB_RESOURCES_BACKPORT_FILES_REF": generateImportModuleNameHardCode,
+        "EXPRESSION_IMPORTLIB_RESOURCES_BACKPORT_READ_BINARY_REF": generateImportModuleNameHardCode,
+        "EXPRESSION_IMPORTLIB_RESOURCES_BACKPORT_READ_TEXT_REF": generateImportModuleNameHardCode,
+        "EXPRESSION_IMPORTLIB_RESOURCES_BACKPORT_OPEN_BINARY_REF": generateImportModuleNameHardCode,
+        "EXPRESSION_IMPORTLIB_RESOURCES_BACKPORT_OPEN_TEXT_REF": generateImportModuleNameHardCode,
         "EXPRESSION_IMPORTLIB_METADATA_VERSION_REF": generateImportModuleNameHardCode,
         "EXPRESSION_IMPORTLIB_METADATA_BACKPORT_VERSION_REF": generateImportModuleNameHardCode,
         "EXPRESSION_IMPORTLIB_METADATA_DISTRIBUTION_REF": generateImportModuleNameHardCode,
@@ -1047,26 +1077,36 @@ addExpressionDispatchDict(
         "EXPRESSION_OS_PATH_ISFILE_REF": generateImportModuleNameHardCode,
         "EXPRESSION_OS_PATH_ISDIR_REF": generateImportModuleNameHardCode,
         "EXPRESSION_OS_PATH_DIRNAME_REF": generateImportModuleNameHardCode,
+        "EXPRESSION_OS_PATH_JOIN_REF": generateImportModuleNameHardCode,
         "EXPRESSION_OS_PATH_BASENAME_REF": generateImportModuleNameHardCode,
         "EXPRESSION_OS_PATH_ABSPATH_REF": generateImportModuleNameHardCode,
         "EXPRESSION_OS_PATH_NORMPATH_REF": generateImportModuleNameHardCode,
+        "EXPRESSION_OS_PATH_ISABS_REF": generateImportModuleNameHardCode,
         "EXPRESSION_CTYPES_CDLL_REF": generateImportModuleNameHardCode,
         "EXPRESSION_CTYPES_CDLL_SINCE38_CALL": generateCtypesCdllCallCode,
         "EXPRESSION_CTYPES_CDLL_BEFORE38_CALL": generateCtypesCdllCallCode,
         "EXPRESSION_PKGUTIL_GET_DATA_CALL": generatePkglibGetDataCallCode,
+        "EXPRESSION_PKGUTIL_ITER_MODULES_CALL": generatePkgutilIterModulesCallCode,
         "EXPRESSION_PKG_RESOURCES_REQUIRE_CALL": generatePkgResourcesRequireCallCode,
         "EXPRESSION_PKG_RESOURCES_GET_DISTRIBUTION_CALL": generatePkgResourcesGetDistributionCallCode,
         "EXPRESSION_PKG_RESOURCES_ITER_ENTRY_POINTS_CALL": generatePkgResourcesIterEntryPointsCallCode,
         "EXPRESSION_PKG_RESOURCES_RESOURCE_STRING_CALL": generatePkgResourcesResourceStringCallCode,
         "EXPRESSION_PKG_RESOURCES_RESOURCE_STREAM_CALL": generatePkgResourcesResourceStreamCallCode,
+        "EXPRESSION_IMPORTLIB_RESOURCES_OPEN_BINARY_CALL": generateImportlibResourcesOpenBinaryCallCode,
+        "EXPRESSION_IMPORTLIB_RESOURCES_OPEN_TEXT_CALL": generateImportlibResourcesOpenTextCallCode,
         "EXPRESSION_IMPORTLIB_RESOURCES_READ_BINARY_CALL": generateImportlibResourcesReadBinaryCallCode,
         "EXPRESSION_IMPORTLIB_RESOURCES_READ_TEXT_BEFORE_313_CALL": generateImportlibResourcesReadTextCallCode,
         "EXPRESSION_IMPORTLIB_RESOURCES_READ_TEXT_SINCE_313_CALL": generateImportlibResourcesReadTextCallCode,
         "EXPRESSION_IMPORTLIB_RESOURCES_FILES_CALL": generateImportlibResourcesFilesCallCode,
         "EXPRESSION_IMPORTLIB_RESOURCES_FILES_SINCE312_CALL": generateImportlibResourcesFilesCallCode,
+        "EXPRESSION_IMPORTLIB_RESOURCES_FILES_SINCE315_CALL": generateImportlibResourcesFilesCallCode,
         "EXPRESSION_IMPORTLIB_RESOURCES_BACKPORT_FILES_CALL": generateImportlibResourcesFilesCallCode,
         "EXPRESSION_IMPORTLIB_RESOURCES_FILES_CALL_FIXED": generateImportlibResourcesFilesCallCode,
         "EXPRESSION_IMPORTLIB_RESOURCES_BACKPORT_FILES_CALL_FIXED": generateImportlibResourcesFilesCallCode,
+        "EXPRESSION_IMPORTLIB_RESOURCES_BACKPORT_OPEN_BINARY_CALL": generateImportlibResourcesOpenBinaryCallCode,
+        "EXPRESSION_IMPORTLIB_RESOURCES_BACKPORT_OPEN_TEXT_CALL": generateImportlibResourcesOpenTextCallCode,
+        "EXPRESSION_IMPORTLIB_RESOURCES_BACKPORT_READ_BINARY_CALL": generateImportlibResourcesReadBinaryCallCode,
+        "EXPRESSION_IMPORTLIB_RESOURCES_BACKPORT_READ_TEXT_CALL": generateImportlibResourcesReadTextCallCode,
         "EXPRESSION_IMPORTLIB_METADATA_VERSION_CALL": generateImportlibMetadataVersionCallCode,
         "EXPRESSION_IMPORTLIB_METADATA_BACKPORT_VERSION_CALL": generateImportlibMetadataBackportVersionCallCode,
         "EXPRESSION_IMPORTLIB_METADATA_DISTRIBUTION_CALL": generateImportlibMetadataDistributionCallCode,
@@ -1079,6 +1119,7 @@ addExpressionDispatchDict(
         "EXPRESSION_OS_PATH_ISDIR_CALL": generateOsPathIsdirCallCode,
         "EXPRESSION_OS_PATH_BASENAME_CALL": generateOsPathBasenameCallCode,
         "EXPRESSION_OS_PATH_DIRNAME_CALL": generateOsPathDirnameCallCode,
+        "EXPRESSION_OS_PATH_JOIN_CALL": generateOsPathJoinCallCode,
         "EXPRESSION_OS_PATH_ABSPATH_CALL": generateOsPathAbspathCallCode,
         "EXPRESSION_OS_PATH_NORMPATH_CALL": generateOsPathNormpathCallCode,
         "EXPRESSION_OS_PATH_ISABS_CALL": generateOsPathIsabsCallCode,
@@ -1096,37 +1137,33 @@ addExpressionDispatchDict(
         # TODO: Should have all of these generically or not. This one is required for now.
         "EXPRESSION_DICT_OPERATION_FROMKEYS_REF": generateDictOperationFromkeysRefCode,
         "EXPRESSION_TYPE_OPERATION_PREPARE": generateTypeOperationPrepareCode,
-        # PyPI module "tensorflow" specific stuff
         "EXPRESSION_TENSORFLOW_FUNCTION_REF": generateImportModuleNameHardCode,
         "EXPRESSION_TENSORFLOW_FUNCTION_CALL": generateTensorflowFunctionCallCode,
-        # PyPI module "networkx" specific stuff
         "EXPRESSION_NETWORKX_UTILS_DECORATORS_ARGMAP_REF": generateImportModuleNameHardCode,
         "EXPRESSION_NETWORKX_UTILS_DECORATORS_ARGMAP_CALL": generateNetworkxUtilsDecoratorsArgmapCallCode,
     }
 )
 
-# Add code generation for the EXPRESSION_ATTRIBUTE_LOOKUP_FIXED_* variety
 addExpressionDispatchDict(
     dict((cls.kind, generateAttributeLookupCode) for cls in attribute_classes.values())
 )
 
-# Add code generation for the EXPRESSION_ATTRIBUTE_LOOKUP_DICT|LIST|STR_* variety
 addExpressionDispatchDict(
     dict((cls.kind, generateAttributeLookupCode) for cls in attribute_typed_classes)
 )
 
-# Add code generation for the EXPRESSION_STR_OPERATION_* nodes.
 addExpressionDispatchDict(
-    dict((cls.kind, generateStrOperationCode) for cls in getStrOperationClasses())
+    dict(
+        (cls.kind, generateStrOperationCode)
+        for cls in getStrOperationClasses()
+        if cls.kind != "EXPRESSION_STR_OPERATION_FORMAT"
+    )
 )
 
-# Add code generation for the EXPRESSION_BYTES_OPERATION_* nodes.
 addExpressionDispatchDict(
     dict((cls.kind, generateBytesOperationCode) for cls in getBytesOperationClasses())
 )
 
-
-# Add code generation for the EXPRESSION_BUILTINS_*_REF nodes.
 addExpressionDispatchDict(
     dict((cls.kind, generateBuiltinRefCode) for cls in getBuiltinRefNodes().values())
 )
@@ -1145,11 +1182,13 @@ setStatementDispatchDict(
         "STATEMENT_ASSIGNMENT_VARIABLE_HARD_VALUE": generateAssignmentVariableCode,
         "STATEMENT_ASSIGNMENT_ATTRIBUTE": generateAssignmentAttributeCode,
         "STATEMENT_ASSIGNMENT_SUBSCRIPT": generateAssignmentSubscriptCode,
+        "STATEMENT_ASSIGNMENT_SYS_MODULES_SUBSCRIPT": generateSysModulesAssignmentCode,
         "STATEMENT_ASSIGNMENT_SLICE": generateAssignmentSliceCode,
         "STATEMENT_DEL_VARIABLE_TOLERANT": generateDelVariableCode,
         "STATEMENT_DEL_VARIABLE_INTOLERANT": generateDelVariableCode,
         "STATEMENT_DEL_ATTRIBUTE": generateDelAttributeCode,
         "STATEMENT_DEL_SUBSCRIPT": generateDelSubscriptCode,
+        "STATEMENT_DEL_SYS_MODULES_SUBSCRIPT": generateSysModulesDelCode,
         "STATEMENT_DEL_SLICE": generateDelSliceCode,
         "STATEMENT_DICT_OPERATION_REMOVE": generateDictOperationRemoveCode,
         "STATEMENT_DICT_OPERATION_UPDATE": generateDictOperationUpdateCode,
@@ -1183,7 +1222,6 @@ setStatementDispatchDict(
         "STATEMENT_RERAISE_EXCEPTION": generateReraiseCode,
         "STATEMENT_SPECIAL_UNPACK_CHECK": generateUnpackCheckCode,
         "STATEMENT_SPECIAL_UNPACK_CHECK_FROM_ITERATED": generateUnpackCheckFromIteratedCode,
-        "STATEMENT_SPECIAL_UNPACK_CHECK_FROM_ITERATED_VALUE": generateUnpackCheckFromIteratedValueCode,
         "STATEMENT_EXEC": generateExecCode,
         "STATEMENT_LOCALS_DICT_SYNC": generateLocalsDictSyncCode,
         "STATEMENT_SET_LOCALS": generateSetLocalsMappingCode,

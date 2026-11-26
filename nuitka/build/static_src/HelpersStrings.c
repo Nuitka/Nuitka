@@ -1,11 +1,5 @@
 //     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
-/* This helpers is used to quickly create a string object from C char.
-
-   Currently this is used for string subscript code, but may also be used
-   for the "char" C type in the future.
-*/
-
 // This file is included from another C file, help IDEs to still parse it on
 // its own.
 #ifdef __IDE_ONLY__
@@ -21,12 +15,7 @@ PyObject *STRING_FROM_CHAR(unsigned char c) {
     return Nuitka_String_FromStringAndSize(s, 1);
 }
 
-/* The "chr" built-in.
-
-   This could also use a table for the interned single char strings, to be
-   faster on Python2. For Python3 no such table is reasonable.
-*/
-
+// TODO: Consider an interned single-char string table on Python 2.
 PyObject *BUILTIN_CHR(PyThreadState *tstate, PyObject *value) {
 #if PYTHON_VERSION >= 0x300
 #if PYTHON_VERSION < 0x3a0
@@ -38,6 +27,25 @@ PyObject *BUILTIN_CHR(PyThreadState *tstate, PyObject *value) {
     }
 #endif
 
+#if PYTHON_VERSION < 0x380
+    // Older CPython argument parsing converts to a C long, and then checks the
+    // C int range with its own messages.
+    long x = PyLong_AsLong(value);
+
+    if (unlikely(x == -1 && HAS_ERROR_OCCURRED(tstate))) {
+        return NULL;
+    }
+
+    if (unlikely(x > INT_MAX)) {
+        SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_OverflowError, "signed integer is greater than maximum");
+        return NULL;
+    }
+
+    if (unlikely(x < INT_MIN)) {
+        SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_OverflowError, "signed integer is less than minimum");
+        return NULL;
+    }
+#else
     // Same conversion as CPython, so non-integer values get the "TypeError"
     // message of the Python version, and errors of "__index__" propagate.
     int overflow;
@@ -60,11 +68,15 @@ PyObject *BUILTIN_CHR(PyThreadState *tstate, PyObject *value) {
         return NULL;
     }
 #endif
+#endif
 #else
+    // Python2.6 truncates float values, while Python2.7 rejects them.
+#if PYTHON_VERSION >= 0x270
     if (unlikely(PyFloat_Check(value))) {
         SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_TypeError, "integer argument expected, got float");
         return NULL;
     }
+#endif
 
     long x = PyInt_AsLong(value);
 
@@ -97,10 +109,6 @@ PyObject *BUILTIN_CHR(PyThreadState *tstate, PyObject *value) {
     return result;
 #endif
 }
-
-/* The "ord" built-in.
-
-*/
 
 PyObject *BUILTIN_ORD(PyObject *value) {
     long result;
@@ -261,13 +269,16 @@ static void _NuitkaUnicode_FastCopyCharacters(PyObject *to, Py_ssize_t to_start,
 }
 
 static int _NuitkaUnicode_modifiable(PyObject *unicode) {
-    if (Py_REFCNT(unicode) != 1)
+    if (!_PyObject_IsUniquelyReferenced(unicode)) {
         return 0;
-    if (_PyUnicode_HASH(unicode) != -1)
+    }
+    if (_PyUnicode_HASH(unicode) != -1) {
         return 0;
+    }
     // TODO: That ought to be impossible with refcnt 1.
-    if (PyUnicode_CHECK_INTERNED(unicode))
+    if (PyUnicode_CHECK_INTERNED(unicode)) {
         return 0;
+    }
     return 1;
 }
 
@@ -432,7 +443,7 @@ static PyObject *_NuitkaUnicode_resize_compact(PyObject *unicode, Py_ssize_t len
 
 static int _NuitkaUnicode_resize_inplace(PyObject *unicode, Py_ssize_t length) {
     assert(!PyUnicode_IS_COMPACT(unicode));
-    assert(Py_REFCNT(unicode) == 1);
+    assert(_PyObject_IsUniquelyReferenced(unicode));
 
     if (PyUnicode_IS_READY(unicode)) {
         void *data = _PyUnicode_DATA_ANY(unicode);
@@ -614,7 +625,7 @@ static PyObject *_NuitkaUnicode_resize_compact(PyObject *unicode, Py_ssize_t len
 
 static int _NuitkaUnicode_resize_inplace(PyObject *unicode, Py_ssize_t length) {
     assert(!PyUnicode_IS_COMPACT(unicode));
-    assert(Py_REFCNT(unicode) == 1);
+    assert(_PyObject_IsUniquelyReferenced(unicode));
 
 #ifndef __NUITKA_NO_ASSERT__
     Py_ssize_t old_length = _PyUnicode_LENGTH(unicode);
@@ -654,7 +665,6 @@ static int _NuitkaUnicode_resize_inplace(PyObject *unicode, Py_ssize_t length) {
     _Nuitka_unicode_fill_invalid(unicode, old_length);
 #endif
 
-    /* check for integer overflow */
     if (length > PY_SSIZE_T_MAX / (Py_ssize_t)sizeof(wchar_t) - 1) {
         PyErr_NoMemory();
         return -1;
@@ -834,6 +844,59 @@ PyObject *STR_JOIN(PyThreadState *tstate, PyObject *str, PyObject *iterable) {
     return _PyString_Join(str, iterable);
 }
 
+PyObject *STR_CONCAT(PyThreadState *tstate, PyObject *left, PyObject *right) {
+    if (unlikely(!PyString_Check(left) || !PyString_Check(right))) {
+        if (PyUnicode_Check(left) || PyUnicode_Check(right)) {
+            return UNICODE_CONCAT(tstate, left, right);
+        }
+
+        if (PyByteArray_Check(left) || PyByteArray_Check(right)) {
+            return PyByteArray_Concat(left, right);
+        }
+
+        SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("cannot concatenate 'str' and '%s' objects",
+                                             PyString_Check(right) ? left : right);
+        return NULL;
+    }
+
+    if ((PyString_GET_SIZE(left) == 0 || PyString_GET_SIZE(right) == 0) && PyString_CheckExact(left) &&
+        PyString_CheckExact(right)) {
+        if (PyString_GET_SIZE(left) == 0) {
+            Py_INCREF(right);
+            return right;
+        }
+
+        Py_INCREF(left);
+        return left;
+    }
+
+    if (PyString_GET_SIZE(left) < 0 || PyString_GET_SIZE(right) < 0 ||
+        PyString_GET_SIZE(left) > PY_SSIZE_T_MAX - PyString_GET_SIZE(right)) {
+        SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_OverflowError, "strings are too large to concat");
+        return NULL;
+    }
+
+    Py_ssize_t size = PyString_GET_SIZE(left) + PyString_GET_SIZE(right);
+
+    if (size > PY_SSIZE_T_MAX - (Py_ssize_t)sizeof(PyStringObject)) {
+        SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_OverflowError, "strings are too large to concat");
+        return NULL;
+    }
+
+    PyObject *result = Nuitka_String_FromStringAndSize(NULL, size);
+
+    if (unlikely(result == NULL)) {
+        return NULL;
+    }
+
+    memcpy(PyString_AS_STRING(result), PyString_AS_STRING(left), PyString_GET_SIZE(left));
+    memcpy(PyString_AS_STRING(result) + PyString_GET_SIZE(left), PyString_AS_STRING(right), PyString_GET_SIZE(right));
+
+    CHECK_OBJECT(result);
+
+    return result;
+}
+
 #endif
 
 PyObject *NuitkaUnicode_FromWideChar(wchar_t const *str, Py_ssize_t size) {
@@ -863,8 +926,7 @@ PyObject *BUILTIN_UNICODE1(PyObject *value) {
         return PyObject_Repr(value);
     }
 
-    /* It is possible for a type to have a tp_str representation that loops
-       infinitely. */
+    // Guard against custom "tp_str" implementations recursing infinitely.
     if (Py_EnterRecursiveCall((char *)" while getting the str of an object")) {
         return NULL;
     }
@@ -899,7 +961,7 @@ PyObject *BUILTIN_UNICODE1(PyObject *value) {
 }
 
 PyObject *BUILTIN_UNICODE3(PyObject *value, PyObject *encoding, PyObject *errors) {
-    CHECK_OBJECT(value);
+    CHECK_OBJECT_X(value);
     CHECK_OBJECT_X(encoding);
     CHECK_OBJECT_X(errors);
 
@@ -943,6 +1005,12 @@ PyObject *BUILTIN_UNICODE3(PyObject *value, PyObject *encoding, PyObject *errors
         return NULL;
     }
 
+    if (value == NULL) {
+        // CPython converts 'encoding' and 'errors' to strings before its
+        // no-object early exit that returns the empty string.
+        return Nuitka_Unicode_New(0, 0);
+    }
+
     PyObject *result = PyUnicode_FromEncodedObject(value, encoding_str, errors_str);
 
     if (unlikely(result == NULL)) {
@@ -963,8 +1031,7 @@ PyObject *_BUILTIN_STR(PyObject *value) {
         return value;
     }
 
-    /* It is possible for a type to have a tp_str representation that loops
-       infinitely. */
+    // Guard against custom "tp_str" implementations recursing infinitely.
     if (Py_EnterRecursiveCall((char *)" while getting the str of an object")) {
         return NULL;
     }
@@ -1021,8 +1088,12 @@ PyObject *BUILTIN_STR(PyObject *value) {
 
 PyObject *Nuitka_Unicode_New(Py_ssize_t size, Py_UCS4 max_char) {
     if (size == 0) {
+#if PYTHON_VERSION < 0x300
+        return PyUnicode_FromUnicode(NULL, 0);
+#else
         Py_INCREF_IMMORTAL(const_str_empty);
         return const_str_empty;
+#endif
     }
 
 #ifndef MAX_UNICODE
@@ -1030,7 +1101,6 @@ PyObject *Nuitka_Unicode_New(Py_ssize_t size, Py_UCS4 max_char) {
 #endif
 
 #if PYTHON_VERSION >= 0x300 && defined(_NUITKA_EXE_MODE)
-    // Implementation of PyUnicode_New for Python 3.
     if (max_char < 128) {
         PyASCIIObject *ascii = (PyASCIIObject *)NuitkaObject_Malloc(sizeof(PyASCIIObject) + size + 1);
         if (unlikely(ascii == NULL)) {
@@ -1080,12 +1150,7 @@ PyObject *Nuitka_Unicode_New(Py_ssize_t size, Py_UCS4 max_char) {
         char_size = 4;
     }
 
-    // Ensure we won't overflow the size.
     assert(size >= 0);
-
-    // We are not checking for overflow of size > ((PY_SSIZE_T_MAX -
-    // sizeof(PyCompactUnicodeObject)) / char_size - 1) because we assume the
-    // caller has done that already and we are only called with valid sizes.
     assert(size <= ((PY_SSIZE_T_MAX - (Py_ssize_t)sizeof(PyCompactUnicodeObject)) / char_size - 1));
 
     Py_ssize_t struct_size = sizeof(PyCompactUnicodeObject) + (size + 1) * char_size;
@@ -1153,11 +1218,62 @@ PyObject *Nuitka_Unicode_New(Py_ssize_t size, Py_UCS4 max_char) {
 
     return result;
 #elif PYTHON_VERSION >= 0x300
-    // Python3 < 3.12
     return PyUnicode_New(size, max_char);
 #else
-    // Python 2
     return PyUnicode_FromUnicode(NULL, size);
+#endif
+}
+
+int Nuitka_Unicode_CompareWithASCIIString(PyObject *unicode, char const *ascii) {
+    // Replacement for "PyUnicode_CompareWithASCIIString" that avoids internal encoding.
+    if (unlikely(!PyUnicode_Check(unicode))) {
+        return -1;
+    }
+
+#ifndef __NUITKA_NO_ASSERT__
+    for (char const *ascii_char = ascii; *ascii_char != 0; ascii_char++) {
+        assert((unsigned char)*ascii_char < 128);
+    }
+#endif
+
+#if PYTHON_VERSION >= 0x300
+    if (!PyUnicode_IS_ASCII(unicode)) {
+        return 1;
+    }
+
+    Py_ssize_t size = PyUnicode_GET_LENGTH(unicode);
+    Py_UCS1 const *data = PyUnicode_1BYTE_DATA(unicode);
+
+    for (Py_ssize_t i = 0; i < size; i++) {
+        unsigned char c = (unsigned char)ascii[i];
+
+        if (c == 0) {
+            return 1;
+        }
+
+        if (data[i] != c) {
+            return data[i] < c ? -1 : 1;
+        }
+    }
+
+    return ascii[size] != 0 ? -1 : 0;
+#else
+    Py_ssize_t size = PyUnicode_GET_SIZE(unicode);
+    Py_UNICODE const *data = PyUnicode_AS_UNICODE(unicode);
+
+    for (Py_ssize_t i = 0; i < size; i++) {
+        unsigned char c = (unsigned char)ascii[i];
+
+        if (c == 0) {
+            return 1;
+        }
+
+        if (data[i] != (Py_UNICODE)c) {
+            return data[i] < (Py_UNICODE)c ? -1 : 1;
+        }
+    }
+
+    return ascii[size] != 0 ? -1 : 0;
 #endif
 }
 

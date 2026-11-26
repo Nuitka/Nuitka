@@ -1,12 +1,7 @@
 #     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-"""Reformulation of "yield" and "yield from" expressions.
-
-Consult the Developer Manual for information. TODO: Add ability to sync
-source code comments with Developer Manual sections.
-
-"""
+"""Reformulation of 'yield', 'yield from', and 'await' expressions."""
 
 import ast
 
@@ -24,7 +19,7 @@ from .TreeHelpers import buildNode
 
 
 def _getErrorMessageYieldFromOutsideFunction():
-    # Need to use "exec" to detect the syntax error, pylint: disable=W0122
+    # pylint: disable=W0122
 
     try:
         exec("""yield from ()""")
@@ -35,10 +30,32 @@ def _getErrorMessageYieldFromOutsideFunction():
             return "yield"
 
 
-def _checkInsideGenerator(construct_name, provider, node, source_ref):
+_comprehension_error_names = {
+    "listcomp": "list comprehension",
+    "setcontraction": "set comprehension",
+    "dictcontraction": "dict comprehension",
+}
 
-    if provider.isCompiledPythonModule():
-        # Bug compatibility
+
+def _checkInsideGenerator(construct_name, provider, node, source_ref):
+    while provider.isExpressionOutlineFunction():
+        if python_version >= 0x380 and construct_name != "await":
+            comprehension_name = _comprehension_error_names.get(provider.getName())
+
+            if comprehension_name is not None:
+                raiseSyntaxError(
+                    "'yield' inside %s" % comprehension_name,
+                    (
+                        provider.getSourceReference()
+                        if python_version < 0x3A0
+                        else source_ref.atColumnNumber(node.col_offset + 1)
+                    ),
+                )
+
+        provider = provider.getParentVariableProvider()
+
+    if provider.isCompiledPythonModule() or provider.isExpressionClassBodyBase():
+        # Match CPython's exact SyntaxError wording, which varies across versions.
         if construct_name == "yield from":
             construct_error_name = _getErrorMessageYieldFromOutsideFunction()
         else:
@@ -49,29 +66,32 @@ def _checkInsideGenerator(construct_name, provider, node, source_ref):
             source_ref.atColumnNumber(node.col_offset),
         )
 
-    # This yield is forbidden in 3.5, but allowed in 3.6, but "yield from"
-    # is neither.
+    if (
+        python_version >= 0x380
+        and (
+            provider.isExpressionGeneratorObjectBody()
+            or provider.isExpressionAsyncgenObjectBody()
+        )
+        and provider.name == "<genexpr>"
+        and construct_name != "await"
+    ):
+        raiseSyntaxError(
+            "'yield' inside generator expression",
+            (
+                provider.getSourceReference()
+                if python_version < 0x3A0
+                else source_ref.atColumnNumber(node.col_offset + 1)
+            ),
+        )
+
+    # PEP 525 allows "yield" in async functions (3.6+), while "yield from"
+    # remains a SyntaxError rejected after parsing.
     if provider.isExpressionAsyncgenObjectBody() and construct_name == "yield from":
         raiseSyntaxError(
             "'%s' inside async function"
             % ("yield" if node.__class__ is ast.Yield else "yield from",),
             source_ref.atColumnNumber(node.col_offset),
         )
-
-    if (
-        python_version >= 0x380
-        and provider.isExpressionGeneratorObjectBody()
-        and provider.name == "<genexpr>"
-        and construct_name != "await"
-    ):
-        raiseSyntaxError(
-            "'%s' inside generator expression"
-            % ("yield" if node.__class__ is ast.Yield else "yield from",),
-            provider.getSourceReference(),
-        )
-
-    while provider.isExpressionOutlineFunction():
-        provider = provider.getParentVariableProvider()
 
     assert (
         provider.isExpressionGeneratorObjectBody()

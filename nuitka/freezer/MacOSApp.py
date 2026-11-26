@@ -15,6 +15,7 @@ from nuitka.options.Options import (
     getMacOSAppName,
     getMacOSAppProtectedResourcesAccesses,
     getMacOSAppVersion,
+    getMacOSBundleIconFilename,
     getMacOSIconPaths,
     getMacOSSignedAppName,
     isMacOSBackgroundApp,
@@ -39,6 +40,18 @@ from .IncludedDataFiles import (
     makeIncludedGeneratedDataFile,
 )
 
+_macos_bundle_icon_path = None
+
+
+def getMacOSBundleIconPath():
+    """*str* or *None*, path of the icon file used in the created app bundle.
+
+    Notes:
+        Set during bundle creation so that DMG creation can reuse the actual
+        ICNS file rather than converting the user provided image a second time.
+    """
+    return _macos_bundle_icon_path
+
 
 def _writePlist(filename, data):
     """Helper to write a plist file for macOS."""
@@ -56,6 +69,11 @@ def _writePlist(filename, data):
 
 def createPlistInfoFile(logger):
     # Many details, pylint: disable=too-many-branches,too-many-locals,too-many-statements
+    # Singleton, pylint: disable=global-statement
+    global _macos_bundle_icon_path
+
+    _macos_bundle_icon_path = None
+
     if isStandaloneMode():
         bundle_dir = os.path.dirname(
             getStandaloneDirectoryPath(bundle=True, real=False)
@@ -105,6 +123,8 @@ def createPlistInfoFile(logger):
         assert len(icon_paths) == 1
         icon_path = icon_paths[0]
 
+        icon_name = getMacOSBundleIconFilename()
+
         # Convert to single macOS .icns file if necessary
         # spell-checker: ignore icns
         if not icon_path.endswith(".icns"):
@@ -119,7 +139,7 @@ def createPlistInfoFile(logger):
             makePath(icon_build_path)
             converted_icon_path = os.path.join(
                 icon_build_path,
-                "Icons.icns",
+                icon_name,
             )
 
             convertImageToIconFormat(
@@ -129,11 +149,13 @@ def createPlistInfoFile(logger):
             )
             icon_path = converted_icon_path
 
-        icon_name = os.path.basename(icon_path)
         resources_dir = os.path.join(bundle_dir, "Resources")
         makePath(resources_dir)
 
-        copyFile(icon_path, os.path.join(resources_dir, icon_name))
+        bundle_icon_path = os.path.join(resources_dir, icon_name)
+        copyFile(icon_path, bundle_icon_path)
+
+        _macos_bundle_icon_path = bundle_icon_path
 
         infos["CFBundleIconFile"] = icon_name
 
@@ -205,7 +227,7 @@ def createEntitlementsInfoFile():
     return entitlements_filename
 
 
-_macos_app_console_script = """
+_macos_app_console_script = """\
 #!/bin/bash
 
 # 1. Derive the binary name from this script's name

@@ -17,7 +17,7 @@ from nuitka.options.Options import (
     getProductVersionTuple,
 )
 from nuitka.Tracing import installer_logger
-from nuitka.utils.Download import getCachedDownload
+from nuitka.utils.Download import getCachedDownload, getDownloadMode
 from nuitka.utils.Execution import (
     check_output,
     executeToolChecked,
@@ -28,9 +28,11 @@ from nuitka.utils.FileOperations import (
     getExternalUsePath,
     getFileContents,
     getNormalizedPathJoin,
+    hasFilenameExtension,
     makePath,
     putTextFileContents,
 )
+from nuitka.utils.Images import convertImageToIconFormat
 from nuitka.utils.Utils import getArchitecture
 
 # The NSIS version to download from upstream if not otherwise found. Most of
@@ -129,8 +131,7 @@ def getNsisBinaryPath(installer_tool_path):
 Nuitka will use NSIS from the official upstream download to create the \
 Windows installer, it will be cached for future use.""",
                 reject="Error, NSIS is required to create a Windows installer with the 'nsis' backend.",
-                assume_yes_for_downloads=assumeYesForDownloads(),
-                download_ok=True,
+                download_mode=getDownloadMode(assumeYesForDownloads()),
             )
 
         if tool_path is None:
@@ -254,6 +255,37 @@ ${endif}"""
         return "SetShellVarContext all"
 
     return "SetShellVarContext current"
+
+
+def _getInstallerIconPath(icon_path, installer_build_dir):
+    """Return a Windows icon file to use for the installer.
+
+    Notes:
+        The 'MUI_ICON' directive embeds the whole icon group of the file, so
+        an index given with '--windows-icon-from-ico' cannot be applied, and
+        NSIS rejects image formats other than ICO, which need conversion.
+    """
+    icon_path = icon_path.rsplit("#", 1)[0]
+
+    if hasFilenameExtension(icon_path, ".ico"):
+        return icon_path
+
+    installer_logger.info(
+        "File '%s' is not in Windows icon format, converting to it for the installer."
+        % icon_path
+    )
+
+    converted_icon_path = getNormalizedPathJoin(
+        installer_build_dir, "installer-icon.ico"
+    )
+
+    convertImageToIconFormat(
+        logger=installer_logger,
+        image_filename=icon_path,
+        converted_icon_filename=converted_icon_path,
+    )
+
+    return converted_icon_path
 
 
 def _makeNsisScript(
@@ -443,6 +475,22 @@ def createNsisInstaller(
     """
     # pylint: disable=too-many-arguments,too-many-locals
 
+    if payload_dir is not None:
+        installer_base_path = payload_dir
+    else:
+        installer_base_path = payload_filename
+
+    installer_build_dir = changeFilenameExtension(
+        getExternalUsePath(installer_base_path), ".installer-build"
+    )
+
+    makePath(installer_build_dir)
+
+    if icon_path is not None:
+        icon_path = _getInstallerIconPath(
+            icon_path=icon_path, installer_build_dir=installer_build_dir
+        )
+
     script_source = _makeNsisScript(
         product_name=product_name,
         product_version=product_version,
@@ -461,17 +509,6 @@ def createNsisInstaller(
         main_binary_name=main_binary_name,
         external_files=external_files,
     )
-
-    if payload_dir is not None:
-        installer_base_path = payload_dir
-    else:
-        installer_base_path = payload_filename
-
-    installer_build_dir = changeFilenameExtension(
-        getExternalUsePath(installer_base_path), ".installer-build"
-    )
-
-    makePath(installer_build_dir)
 
     script_filename = getNormalizedPathJoin(installer_build_dir, "installer.nsi")
 

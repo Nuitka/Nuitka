@@ -18,8 +18,13 @@
         PyList_SET_ITEM(tuple, index, tmp);                                                                            \
     }
 
-#ifndef _PyList_ITEMS
-#define _PyList_ITEMS(op) (((PyListObject *)(op))->ob_item)
+// Use CPython's private macro when it is already available, e.g. for
+// free-threaded builds, but do not define it ourselves, since internal
+// headers included later may define it with a different expansion.
+#ifdef _PyList_ITEMS
+#define NUITKA_LIST_ITEMS(op) _PyList_ITEMS(op)
+#else
+#define NUITKA_LIST_ITEMS(op) (((PyListObject *)(op))->ob_item)
 #endif
 
 #if PYTHON_VERSION >= 0x3a0
@@ -38,29 +43,19 @@ extern bool LIST_EXTEND_FOR_UNPACK(PyThreadState *tstate, PyObject *list, PyObje
 extern bool LIST_APPEND1(PyObject *target, PyObject *item);
 extern bool LIST_APPEND0(PyObject *target, PyObject *item);
 
-// Like "list.remove"
 bool LIST_REMOVE(PyObject *target, PyObject *item);
-
-// Like list.clear
 extern void LIST_CLEAR(PyObject *target);
-
-// Like list.reverse
+extern bool LIST_DEL_SLICE(PyObject *target, Py_ssize_t lower, Py_ssize_t upper);
 extern void LIST_REVERSE(PyObject *list);
-
-// Like list.copy
 extern PyObject *LIST_COPY(PyThreadState *tstate, PyObject *list);
-
-// Like list.count
+extern PyObject *LIST_CONCAT(PyThreadState *tstate, PyObject *operand1, PyObject *operand2);
 extern PyObject *LIST_COUNT(PyObject *list, PyObject *item);
 
-// Like list.index
 extern PyObject *LIST_INDEX2(PyThreadState *tstate, PyObject *list, PyObject *item);
 extern PyObject *LIST_INDEX3(PyThreadState *tstate, PyObject *list, PyObject *item, PyObject *start);
 extern PyObject *LIST_INDEX4(PyThreadState *tstate, PyObject *list, PyObject *item, PyObject *start, PyObject *stop);
 
-// Like list.index
 extern bool LIST_INSERT(PyThreadState *tstate, PyObject *list, PyObject *index, PyObject *item);
-// Like PyList_Insert
 extern void LIST_INSERT_CONST(PyObject *list, Py_ssize_t index, PyObject *item);
 
 extern PyObject *MAKE_LIST(PyThreadState *tstate, PyObject *iterable);

@@ -13,9 +13,6 @@ from .StandardShapes import tshape_unknown
 
 
 class ShapeContainerMixin(object):
-    """Mixin that defines the common container shape functions."""
-
-    # Mixins are required to define empty slots
     __slots__ = ()
 
     @staticmethod
@@ -33,6 +30,14 @@ class ShapeContainerMixin(object):
     @staticmethod
     def hasShapeSlotIter():
         return True
+
+    @staticmethod
+    def hasShapeSlotIterCode():
+        return False
+
+    @staticmethod
+    def hasShapeSlotHashCode():
+        return None
 
     @staticmethod
     def hasShapeSlotNext():
@@ -52,7 +57,6 @@ class ShapeContainerMixin(object):
 
 
 class ShapeContainerMutableMixin(ShapeContainerMixin):
-    # Mixins are required to define empty slots
     __slots__ = ()
 
     @staticmethod
@@ -61,16 +65,18 @@ class ShapeContainerMutableMixin(ShapeContainerMixin):
 
 
 class ShapeContainerImmutableMixin(ShapeContainerMixin):
-    # Mixins are required to define empty slots
     __slots__ = ()
 
     @staticmethod
     def hasShapeSlotHash():
         return True
 
+    @staticmethod
+    def hasShapeSlotHashCode():
+        return False
+
 
 class ShapeNotContainerMixin(object):
-    # Mixins are required to define empty slots
     __slots__ = ()
 
     @staticmethod
@@ -94,6 +100,10 @@ class ShapeNotContainerMixin(object):
         return False
 
     @staticmethod
+    def hasShapeSlotHashCode():
+        return False
+
+    @staticmethod
     def hasShapeModule():
         return False
 
@@ -103,9 +113,6 @@ class ShapeNotContainerMixin(object):
 
 
 class ShapeNotNumberMixin(object):
-    """Mixin that defines the number slots to be set."""
-
-    # Mixins are required to define empty slots
     __slots__ = ()
 
     @staticmethod
@@ -118,6 +125,10 @@ class ShapeNotNumberMixin(object):
 
     @staticmethod
     def hasShapeSlotInt():
+        return False
+
+    @staticmethod
+    def hasShapeSlotIndex():
         return False
 
     @staticmethod
@@ -147,9 +158,6 @@ class ShapeNotNumberMixin(object):
 
 
 class ShapeNumberMixin(object):
-    """Mixin that defines the number slots to be set."""
-
-    # Mixins are required to define empty slots
     __slots__ = ()
 
     @staticmethod
@@ -163,6 +171,10 @@ class ShapeNumberMixin(object):
     @staticmethod
     def hasShapeSlotInt():
         return True
+
+    @staticmethod
+    def hasShapeSlotIndex():
+        return False
 
     @staticmethod
     def hasShapeSlotLong():
@@ -179,6 +191,10 @@ class ShapeNumberMixin(object):
     @staticmethod
     def hasShapeSlotHash():
         return True
+
+    @staticmethod
+    def hasShapeSlotHashCode():
+        return False
 
     @staticmethod
     def hasShapeModule():
@@ -200,7 +216,6 @@ class ShapeNumberMixin(object):
 
 
 class ShapeIteratorMixin(ShapeNotContainerMixin):
-    # Mixins are required to define empty slots
     __slots__ = ()
 
     @staticmethod
@@ -216,6 +231,10 @@ class ShapeIteratorMixin(ShapeNotContainerMixin):
         return True
 
     @staticmethod
+    def hasShapeSlotIterCode():
+        return False
+
+    @staticmethod
     def hasShapeSlotNext():
         return True
 
@@ -224,7 +243,7 @@ class ShapeIteratorMixin(ShapeNotContainerMixin):
         """Does next execute code, i.e. control flow escaped.
 
         For most known iterators that is not the case, only the generic
-        tshape_iterator needs to say "do not know", aka None.
+        'tshape_iterator' needs to return 'None' ("do not know").
         """
         return False
 
@@ -235,6 +254,10 @@ class ShapeIteratorMixin(ShapeNotContainerMixin):
     @staticmethod
     def hasShapeSlotHash():
         return True
+
+    @staticmethod
+    def hasShapeSlotHashCode():
+        return False
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and

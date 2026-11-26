@@ -17,12 +17,12 @@ from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.Errors import NuitkaForbiddenImportEncounter
 from nuitka.importing.Importing import getExtraSysPaths
 from nuitka.ModuleRegistry import getModuleByName
-from nuitka.options.Options import isExperimental
+from nuitka.options.Experimental import isExperimental
 from nuitka.plugins.YamlPluginBase import NuitkaYamlPluginBase
 from nuitka.utils.Importing import withTemporarySysPathExtension
-from nuitka.utils.ModuleNames import ModuleName
+from nuitka.utils.ModuleNames import ModuleName, QualifiedName
 
-# spell-checker: ignore dask,numba,statsmodels,matplotlib,sqlalchemy,ipykernel,pyximport
+# spell-checker: ignore dask,ipykernel,matplotlib,numba,pyximport,sqlalchemy,statsmodels
 
 _mode_choices = ("error", "warning", "nofollow", "allow")
 _other_choices = ("bytecode",)
@@ -306,6 +306,7 @@ Annotate what changes are done by the plugin.""",
             "--noinclude-setuptools-mode",
             action="store",
             dest="noinclude_setuptools_mode",
+            metavar="MODE",
             choices=_mode_choices,
             default=None,
             help="""\
@@ -317,6 +318,7 @@ dependencies, and should definitely be avoided. Also handles 'setuptools_scm'.""
             "--noinclude-pytest-mode",
             action="store",
             dest="noinclude_pytest_mode",
+            metavar="MODE",
             choices=_mode_choices,
             default=None,
             help="""\
@@ -328,6 +330,7 @@ dependencies, and should definitely be avoided. Also handles 'nose' imports.""",
             "--noinclude-unittest-mode",
             action="store",
             dest="noinclude_unittest_mode",
+            metavar="MODE",
             choices=_mode_choices,
             default=None,
             help="""\
@@ -339,6 +342,7 @@ dependencies, and should definitely be avoided.""",
             "--noinclude-pydoc-mode",
             action="store",
             dest="noinclude_pydoc_mode",
+            metavar="MODE",
             choices=_mode_choices,
             default=None,
             help="""\
@@ -350,6 +354,7 @@ code for deployments and should be avoided.""",
             "--noinclude-IPython-mode",
             action="store",
             dest="noinclude_ipython_mode",
+            metavar="MODE",
             choices=_mode_choices,
             default=None,
             help="""\
@@ -361,6 +366,7 @@ dependencies, and should definitely be avoided.""",
             "--noinclude-dask-mode",
             action="store",
             dest="noinclude_dask_mode",
+            metavar="MODE",
             choices=_mode_choices,
             default=None,
             help="""\
@@ -372,18 +378,19 @@ dependencies, and should definitely be avoided.""",
             "--noinclude-numba-mode",
             action="store",
             dest="noinclude_numba_mode",
+            metavar="MODE",
             choices=_mode_choices,
             default=None,
             help="""\
 What to do if a 'numba' import is encountered. This package can be big with
-dependencies, and is currently not working for standalone. This package is
-big with dependencies, and should definitely be avoided.""",
+dependencies, and should definitely be avoided.""",
         )
 
         group.add_option(
             "--noinclude-default-mode",
             action="store",
             dest="noinclude_default_mode",
+            metavar="MODE",
             choices=_mode_choices,
             default="warning",
             help="""\
@@ -395,6 +402,7 @@ can be used to turn all of these on.""",
             "--noinclude-custom-mode",
             action="append",
             dest="custom_choices",
+            metavar="MODULE_MODE",
             default=[],
             help="""\
 What to do if a specific import is encountered. Format is module name,
@@ -478,7 +486,7 @@ Error, cannot exec module '%s', context code '%s' due to: %s"""
                 source_code=source_code,
                 config_name=config_prefix + "replacements",
                 extra_context=self._getContextCode(
-                    module_name=module_name, anti_bloat_config=anti_bloat_config
+                    module_name=config_module_name, anti_bloat_config=anti_bloat_config
                 ),
                 replace_src=replace_src,
                 replace_code=replace_code,
@@ -500,7 +508,7 @@ Error, cannot exec module '%s', context code '%s' due to: %s"""
             anti_bloat_config.get(config_prefix + "replacements_re") or {}
         ).items():
             old = source_code
-            source_code = re_sub(replace_src, replace_dst, source_code, flags=re.S)
+            source_code = re_sub(replace_src, replace_dst, source_code, flags=re.DOTALL)
 
             if old != source_code:
                 change_count += 1
@@ -559,6 +567,34 @@ Error, cannot exec module '%s', context code '%s' due to: %s"""
 
         return source_code
 
+    @staticmethod
+    def _hasModuleSourceCodeConfiguration(
+        anti_bloat_config, config_prefix, source_code
+    ):
+        for replace_src in anti_bloat_config.get(config_prefix + "replacements") or ():
+            if replace_src in source_code:
+                return True
+
+        for replace_src in (
+            anti_bloat_config.get(config_prefix + "replacements_plain") or ()
+        ):
+            if replace_src in source_code:
+                return True
+
+        # Intentionally not pre-matching regexes so "display-anti-bloat-mismatches"
+        # can still report non-matching regex replacements.
+        if anti_bloat_config.get(config_prefix + "replacements_re"):
+            return True
+
+        if config_prefix == "":
+            return bool(
+                anti_bloat_config.get("append_result")
+                or anti_bloat_config.get("append_plain")
+                or anti_bloat_config.get("module_code") is not None
+            )
+
+        return False
+
     def onModuleSourceCode(self, module_name, source_filename, source_code):
         config_module_name = module_name
 
@@ -566,11 +602,26 @@ Error, cannot exec module '%s', context code '%s' due to: %s"""
             for anti_bloat_config in self.config.get(
                 config_module_name, section="anti-bloat"
             ):
-                if self.evaluateCondition(
-                    full_name=config_module_name,
+                has_local = (
+                    config_module_name == module_name
+                    and self._hasModuleSourceCodeConfiguration(
+                        anti_bloat_config=anti_bloat_config,
+                        config_prefix="",
+                        source_code=source_code,
+                    )
+                )
+                has_global = self._hasModuleSourceCodeConfiguration(
+                    anti_bloat_config=anti_bloat_config,
+                    config_prefix="global_",
+                    source_code=source_code,
+                )
+
+                if (has_local or has_global) and self.evaluateCondition(
+                    full_name=module_name,
                     condition=anti_bloat_config.get("when", "True"),
+                    config_module_name=config_module_name,
                 ):
-                    if config_module_name == module_name:
+                    if has_local:
                         source_code = self._onModuleSourceCode(
                             config_module_name=config_module_name,
                             module_name=module_name,
@@ -579,13 +630,19 @@ Error, cannot exec module '%s', context code '%s' due to: %s"""
                             source_code=source_code,
                         )
 
-                    source_code = self._onModuleSourceCode(
-                        config_module_name=config_module_name,
-                        module_name=module_name,
+                    # Re-check in case local replacements changed source_code.
+                    if self._hasModuleSourceCodeConfiguration(
                         anti_bloat_config=anti_bloat_config,
                         config_prefix="global_",
                         source_code=source_code,
-                    )
+                    ):
+                        source_code = self._onModuleSourceCode(
+                            config_module_name=config_module_name,
+                            module_name=module_name,
+                            anti_bloat_config=anti_bloat_config,
+                            config_prefix="global_",
+                            source_code=source_code,
+                        )
 
             config_module_name = config_module_name.getPackageName()
 
@@ -619,23 +676,30 @@ Error, cannot exec module '%s', context code '%s' due to: %s"""
                 function_qualname
             )
 
+        if replace_code is None:
+            return False
+
+        if not self.evaluateCondition(
+            full_name=module_name,
+            condition=anti_bloat_config.get("when", "True"),
+            config_module_name=config_module_name,
+        ):
+            return False
+
         if replace_code == "un-callable":
             replace_code = """'raise RuntimeError("Must not call %s.%s")'""" % (
                 module_name,
                 function_qualname,
             )
 
-        if replace_code is None:
-            return False
-
         replacement = self.evaluateExpression(
             config_module_name=config_module_name,
             module_name=module_name,
             expression=replace_code,
             config_name="module '%s' config '%s' of '%s'"
-            % (module_name, config_item_name, function_name),
+            % (config_module_name, config_item_name, function_name),
             extra_context=self._getContextCode(
-                module_name=module_name, anti_bloat_config=anti_bloat_config
+                module_name=config_module_name, anti_bloat_config=anti_bloat_config
             ),
             single_value=True,
         )
@@ -673,32 +737,27 @@ Error, cannot exec module '%s', context code '%s' due to: %s"""
             for anti_bloat_config in self.config.get(
                 config_module_name, section="anti-bloat"
             ):
-                if self.evaluateCondition(
-                    full_name=config_module_name,
-                    condition=anti_bloat_config.get("when", "True"),
+                if config_module_name == module_name and self._onFunctionBodyParsing(
+                    config_module_name=config_module_name,
+                    module_name=module_name,
+                    anti_bloat_config=anti_bloat_config,
+                    config_prefix="",
+                    function_qualname=function_qualname,
+                    function_name=function_name,
+                    body=body,
                 ):
-                    if config_module_name == module_name:
-                        if self._onFunctionBodyParsing(
-                            config_module_name=config_module_name,
-                            module_name=module_name,
-                            anti_bloat_config=anti_bloat_config,
-                            config_prefix="",
-                            function_qualname=function_qualname,
-                            function_name=function_name,
-                            body=body,
-                        ):
-                            result = True
+                    result = True
 
-                    if self._onFunctionBodyParsing(
-                        config_module_name=config_module_name,
-                        module_name=module_name,
-                        anti_bloat_config=anti_bloat_config,
-                        config_prefix="global_",
-                        function_qualname=function_qualname,
-                        function_name=function_name,
-                        body=body,
-                    ):
-                        result = True
+                if self._onFunctionBodyParsing(
+                    config_module_name=config_module_name,
+                    module_name=module_name,
+                    anti_bloat_config=anti_bloat_config,
+                    config_prefix="global_",
+                    function_qualname=function_qualname,
+                    function_name=function_name,
+                    body=body,
+                ):
+                    result = True
 
             config_module_name = config_module_name.getPackageName()
 
@@ -709,6 +768,14 @@ Error, cannot exec module '%s', context code '%s' due to: %s"""
 
     def _onClassBodyParsing(self, module_name, anti_bloat_config, class_name, node):
         replace_code = anti_bloat_config.get("change_class", {}).get(class_name)
+
+        if replace_code is None:
+            return False
+
+        if not self.evaluateCondition(
+            full_name=module_name, condition=anti_bloat_config.get("when", "True")
+        ):
+            return False
 
         if replace_code == "un-usable":
             replace_code = """
@@ -722,9 +789,6 @@ class %(class_name)s:
                 "class_name": class_name,
             }
 
-        if replace_code is None:
-            return False
-
         replacement = self.evaluateExpression(
             config_module_name=module_name,
             module_name=module_name,
@@ -737,8 +801,6 @@ class %(class_name)s:
             single_value=True,
         )
 
-        # Single node is required, extract the generated module body with
-        # single expression only statement value or a function body.
         replacement = ast.parse(replacement).body[0]
 
         node.body[:] = replacement.body
@@ -755,92 +817,103 @@ class %(class_name)s:
         result = False
 
         for anti_bloat_config in self.config.get(module_name, section="anti-bloat"):
-            if self.evaluateCondition(
-                full_name=module_name, condition=anti_bloat_config.get("when", "True")
+            if self._onClassBodyParsing(
+                module_name=module_name,
+                anti_bloat_config=anti_bloat_config,
+                class_name=class_name,
+                node=node,
             ):
-                if self._onClassBodyParsing(
-                    module_name=module_name,
-                    anti_bloat_config=anti_bloat_config,
-                    class_name=class_name,
-                    node=node,
-                ):
-                    result = True
+                result = True
 
         return result
 
     def _getModuleBloatModeOverrides(self, using_module_name, intended_module_name):
         # Finding a matching configuration aborts the search, not finding one
         # means default behavior should apply.
-        for _config_module_name, bloat_mode_overrides in self.getYamlConfigItem(
+        for config_item in self.getYamlConfigItem(
             module_name=using_module_name,
             section="anti-bloat",
             item_name="bloat-mode-overrides",
-            default={},
             decide_relevant=(lambda config_item: intended_module_name in config_item),
             recursive=True,
         ):
-            return bloat_mode_overrides[intended_module_name]
+            return config_item.value[intended_module_name]
 
         return None
 
     def decideAnnotations(self, module_name):
         # Finding a matching configuration aborts the search, not finding one
         # means default behavior should apply.
-        for _config_module_name, annotations_config_value in self.getYamlConfigItem(
+        for config_item in self.getYamlConfigItem(
             module_name=module_name,
             section="anti-bloat",
             item_name="annotations",
-            default=None,
-            decide_relevant=(lambda config_item: config_item in ("yes", "no")),
+            decide_relevant=None,
             recursive=True,
         ):
-            return annotations_config_value == "yes"
+            return config_item.value == "yes"
 
         return None
 
     def decideDocStrings(self, module_name):
         # Finding a matching configuration aborts the search, not finding one
         # means default behavior should apply.
-        for _config_module_name, doc_strings_config_value in self.getYamlConfigItem(
+        for config_item in self.getYamlConfigItem(
             module_name=module_name,
             section="anti-bloat",
             item_name="doc_strings",
-            default=None,
-            decide_relevant=(lambda config_item: config_item in ("yes", "no")),
+            decide_relevant=None,
             recursive=True,
         ):
-            return doc_strings_config_value == "yes"
+            return config_item.value == "yes"
 
         return None
 
     def decideAssertions(self, module_name):
         # Finding a matching configuration aborts the search, not finding one
         # means default behavior should apply.
-        for _config_module_name, asserts_config_value in self.getYamlConfigItem(
+        for config_item in self.getYamlConfigItem(
             module_name=module_name,
             section="anti-bloat",
             item_name="asserts",
-            default=None,
-            decide_relevant=(lambda config_item: config_item in ("yes", "no")),
+            decide_relevant=None,
             recursive=True,
         ):
-            return asserts_config_value == "yes"
+            return config_item.value == "yes"
+
+        return None
+
+    def decideNeedsFrameLocalsProxy(self, module_name, code_qualname):
+        if isExperimental("force-locals-frame-proxy"):
+            return True
+
+        qualified_name = QualifiedName(code_qualname)
+
+        for _config_item in self.getYamlConfigItemSet(
+            module_name=module_name,
+            section="anti-bloat",
+            item_name="frame_locals",
+            decide_relevant=(
+                lambda pattern: qualified_name.matchesToShellPattern(pattern).is_match
+            ),
+            recursive=True,
+        ):
+            return True
 
         return None
 
     def _applyNoFollowConfiguration(self, module_name):
-        for (
-            config_of_module_name,
-            no_follow_pattern,
-            description,
-        ) in self.getYamlConfigItemItems(
+        for config_item in self.getYamlConfigItemItems(
             module_name=module_name,
             section="anti-bloat",
             item_name="no-follow",
-            decide_relevant=lambda key, value: True,
+            decide_relevant=None,
             recursive=True,
         ):
-            self.no_follows[no_follow_pattern] = (config_of_module_name, description)
+            self.no_follows[config_item.key] = (
+                config_item.config_module_name,
+                config_item.value,
+            )
 
     def _needsWarning(self, key):
         if key in self.warnings_given:
@@ -948,56 +1021,72 @@ slow down compilation."""
 
                         self.warnings_given.add(key)
 
+    def _decideNoAutoFollow(self, using_module_name, module_name):
+        """Decide about YAML 'no-auto-follow' for an import.
+
+        Notes:
+            An 'allow' value overrides a rule from a less specific config.
+        """
+
+        def decideRelevant(key, value):
+            # Only checking keys of configs, pylint: disable=unused-argument
+
+            # Do not suppress a module's own submodules.
+            is_own_submodule = using_module_name.hasNamespace(key)
+
+            return module_name.hasNamespace(key) and not is_own_submodule
+
+        for config_item in self.getYamlConfigItemItems(
+            module_name=using_module_name,
+            section="anti-bloat",
+            item_name="no-auto-follow",
+            decide_relevant=decideRelevant,
+            recursive=True,
+        ):
+            assert module_name.hasNamespace(config_item.key), config_item.key
+
+            if config_item.value == "allow":
+                return None
+
+            self.no_auto_follows[config_item.key] = config_item.value
+
+            return (
+                False,
+                "according to yaml 'no-auto-follow' configuration of '%s' for '%s'"
+                % (config_item.config_module_name, config_item.key),
+            )
+
+        return None
+
     def onModuleEncounter(
         self, using_module_name, module_name, module_filename, module_kind
     ):
-        # We need this many variables, pylint: disable=too-many-locals
         for handled_module_name, (
             mode,
             intended_module_name,
         ) in self.handled_modules.items():
-            if module_name.hasNamespace(handled_module_name):
+            if module_name.hasNamespace(handled_module_name) and mode == "nofollow":
                 # Either issue a warning, or pretend the module doesn't exist for standalone or
                 # at least will not be included.
-                if mode == "nofollow":
-                    if self.show_changes:
-                        self.info(
-                            "Forcing import of '%s' (intending to avoid '%s') to not be followed."
-                            % (module_name, intended_module_name)
-                        )
-                    return (
-                        False,
-                        "user requested to not follow '%s' (intending to avoid '%s') import"
-                        % (module_name, intended_module_name),
+                if self.show_changes:
+                    self.info(
+                        "Forcing import of '%s' (intending to avoid '%s') to not be followed."
+                        % (module_name, intended_module_name)
                     )
-
-        if using_module_name is not None:
-
-            def decideRelevant(key, value):
-                # Only checking keys of configs, pylint: disable=unused-argument
-
-                return module_name.hasNamespace(key)
-
-            for (
-                config_of_module_name,
-                no_auto_follow,
-                description,
-            ) in self.getYamlConfigItemItems(
-                module_name=using_module_name,
-                section="anti-bloat",
-                item_name="no-auto-follow",
-                decide_relevant=decideRelevant,
-                recursive=True,
-            ):
-                assert module_name.hasNamespace(no_auto_follow), no_auto_follow
-
-                self.no_auto_follows[no_auto_follow] = description
-
                 return (
                     False,
-                    "according to yaml 'no-auto-follow' configuration of '%s' for '%s'"
-                    % (config_of_module_name, no_auto_follow),
+                    "user requested to not follow '%s' (intending to avoid '%s') import"
+                    % (module_name, intended_module_name),
                 )
+
+        if using_module_name is not None:
+            no_auto_follow_decision = self._decideNoAutoFollow(
+                using_module_name=using_module_name,
+                module_name=module_name,
+            )
+
+            if no_auto_follow_decision is not None:
+                return no_auto_follow_decision
 
             # Do checking of "limit-auto-follow"
             limit_auto_follows = self.getYamlConfigItemSet(
@@ -1008,23 +1097,22 @@ slow down compilation."""
                 recursive=True,
             )
 
-            has_limits = False
-            for config_of_module_name, limit_pattern in limit_auto_follows:
-                has_limits = True
-                if module_name.matchesToShellPattern(limit_pattern).is_match:
+            config_item = None
+            for config_item in limit_auto_follows:
+                if module_name.matchesToShellPattern(config_item.value).is_match:
                     break
             else:
-                if has_limits:
+                if config_item is not None:
                     self.suppressed_modules.add(module_name)
                     return (
                         False,
                         "according to yaml 'limit-auto-follow' configuration of '%s'"
-                        % config_of_module_name,
+                        % config_item.config_module_name,
                     )
 
         for no_follow_pattern, (
             config_of_module_name,
-            description,
+            _description,
         ) in self.no_follows.items():
             if module_name.matchesToShellPattern(no_follow_pattern).is_match:
                 self.suppressed_modules.add(module_name)
@@ -1056,26 +1144,36 @@ slow down compilation."""
             return "compiled"
 
     def onIncompleteModuleSet(self, module_names):
+        if not self.suppressed_modules:
+            return
+
+        def decideRelevant(module_to_check, module_namespace_to_add):
+            if ModuleName(module_to_check) not in module_names:
+                return False
+
+            module_namespace_to_add = ModuleName(module_namespace_to_add)
+
+            return any(
+                suppressed_module == module_namespace_to_add
+                or suppressed_module.hasNamespace(module_namespace_to_add)
+                for suppressed_module in self.suppressed_modules
+            )
+
         for module_name in module_names:
-            for (
-                config_of_module_name,
-                module_to_check,
-                module_namespace_to_add,
-            ) in self.getYamlConfigItemItems(
+            for config_item in self.getYamlConfigItemItems(
                 module_name=module_name,
                 section="anti-bloat",
                 item_name="conditional-auto-follow",
-                decide_relevant=lambda key, value: True,
+                decide_relevant=decideRelevant,
                 recursive=True,
             ):
-                if ModuleName(module_to_check) in module_names:
-                    module_namespace_to_add = ModuleName(module_namespace_to_add)
-                    for suppressed_module in self.suppressed_modules:
-                        if (
-                            suppressed_module == module_namespace_to_add
-                            or suppressed_module.hasNamespace(module_namespace_to_add)
-                        ):
-                            yield config_of_module_name, suppressed_module
+                module_namespace_to_add = ModuleName(config_item.value)
+                for suppressed_module in self.suppressed_modules:
+                    if (
+                        suppressed_module == module_namespace_to_add
+                        or suppressed_module.hasNamespace(module_namespace_to_add)
+                    ):
+                        yield config_item.config_module_name, suppressed_module
 
     def onModuleCompleteSet(self, module_set):
         # TODO: Maybe have an entry point that works on the set of names

@@ -11,8 +11,8 @@ from abc import abstractmethod
 
 from nuitka.__past__ import iterItems
 from nuitka.ModuleRegistry import getOwnerFromCodeName
-from nuitka.options.Options import isExperimental
-from nuitka.PythonVersions import getUnboundLocalErrorErrorTemplate
+from nuitka.options.Experimental import isExperimental
+from nuitka.PythonVersions import getUnboundLocalErrorMessage
 
 from .NodeBases import StatementBase
 from .NodeMakingHelpers import makeRaiseExceptionReplacementStatement
@@ -88,19 +88,23 @@ class StatementDelVariableBase(StatementBase):
         # TODO: Need to also provide "outline" for best effect
         if args["is_temp"] == "True":
             variable = owner.createTempVariable(
-                args["variable_name"], temp_type=args["var_type"]
+                args["variable_name"], temp_type=args["var_type"], outline=None
             )
         else:
             variable = owner.getProvidedVariable(args["variable_name"])
 
+        del args["variable_name"]
         del args["is_temp"]
         del args["var_type"]
         del args["owner"]
 
-        version = variable.allocateTargetNumber()
-        variable.version_number = max(variable.version_number, version)
+        if "version" in args:
+            version = int(args.pop("version"))
+            variable.version_number = max(variable.version_number, version)
+        else:
+            version = variable.allocateTargetNumber()
 
-        return cls(variable=variable, source_ref=source_ref, **args)
+        return cls(variable=variable, version=version, source_ref=source_ref, **args)
 
     def makeClone(self):
         if self.variable is not None:
@@ -150,27 +154,6 @@ class StatementDelVariableBase(StatementBase):
 
         self.previous_trace = trace_collection.getVariableCurrentTrace(variable)
 
-        if self.previous_trace.isIteratorPropagationTrace():
-            # The iterator variable was replaced with direct access to the
-            # iterated value, retarget the deletion to the temp variable
-            # holding it.
-            result = makeStatementDelVariable(
-                variable=self.previous_trace.getIteratedTempVariable(),
-                tolerant=self.is_tolerant,
-                source_ref=self.source_ref,
-            )
-
-            return trace_collection.computedStatementResult(
-                result,
-                "new_statements",
-                "Retargeted del of iterator '%s' to iterated value '%s'."
-                % (
-                    variable.getName(),
-                    self.previous_trace.getIteratedTempVariable().getName(),
-                ),
-            )
-
-        # First eliminate us entirely if we can.
         if self.previous_trace.mustNotHaveValue():
             return self._computeDelWithoutValue(trace_collection)
 
@@ -201,16 +184,13 @@ class StatementDelVariableBase(StatementBase):
                             % variable.getName(),
                         )
 
-        # If not tolerant, we may exception exit now during the __del__
         if not self.is_tolerant and not self.previous_trace.mustHaveValue():
             trace_collection.onExceptionRaiseExit(BaseException)
 
-        # Record the deletion, needs to start a new version then.
         self.variable_trace = trace_collection.onVariableDel(
             variable=variable, version=self.variable_version, del_node=self
         )
 
-        # Any code could be run, note that.
         trace_collection.onControlFlowEscape(self)
 
         return self, None, None
@@ -238,21 +218,6 @@ class StatementDelVariableBase(StatementBase):
 
 
 class StatementDelVariableTolerant(StatementDelVariableBase):
-    """Deleting a variable.
-
-    All del forms that are not to attributes, slices, subscripts
-    use this.
-
-    The target can be any kind of variable, temporary, local, global, etc.
-
-    Deleting a variable is something we trace in a new version, this is
-    hidden behind target variable reference, which has this version once
-    it can be determined.
-
-    Tolerance means that the value might be unset. That can happen with
-    re-formulation of ours, and Python3 exception variables.
-    """
-
     kind = "STATEMENT_DEL_VARIABLE_TOLERANT"
 
     is_tolerant = True
@@ -279,21 +244,6 @@ class StatementDelVariableTolerant(StatementDelVariableBase):
 
 
 class StatementDelVariableIntolerant(StatementDelVariableBase):
-    """Deleting a variable.
-
-    All del forms that are not to attributes, slices, subscripts
-    use this.
-
-    The target can be any kind of variable, temporary, local, global, etc.
-
-    Deleting a variable is something we trace in a new version, this is
-    hidden behind target variable reference, which has this version once
-    it can be determined.
-
-    Tolerance means that the value might be unset. That can happen with
-    re-formulation of ours, and Python3 exception variables.
-    """
-
     kind = "STATEMENT_DEL_VARIABLE_INTOLERANT"
 
     is_tolerant = False
@@ -303,8 +253,7 @@ class StatementDelVariableIntolerant(StatementDelVariableBase):
             result = makeRaiseExceptionReplacementStatement(
                 statement=self,
                 exception_type="UnboundLocalError",
-                exception_value=getUnboundLocalErrorErrorTemplate()
-                % self.variable.getName(),
+                exception_value=getUnboundLocalErrorMessage(self.variable.getName()),
             )
         else:
             result = makeRaiseExceptionReplacementStatement(
@@ -328,7 +277,6 @@ class StatementDelVariableIntolerant(StatementDelVariableBase):
             if self.variable.isTempVariable():
                 return False
 
-            # If SSA knows, that's fine.
             if self.previous_trace is not None and self.previous_trace.mustHaveValue():
                 return False
 

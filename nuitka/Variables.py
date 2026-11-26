@@ -14,6 +14,7 @@ from abc import abstractmethod
 from nuitka.__past__ import iterItems
 from nuitka.nodes.shapes.BuiltinTypeShapes import tshape_dict
 from nuitka.nodes.shapes.StandardShapes import tshape_unknown
+from nuitka.options.Experimental import isExperimental
 from nuitka.utils.CStrings import encodePythonIdentifierToC
 from nuitka.utils.InstanceCounters import (
     counted_del,
@@ -271,15 +272,13 @@ class Variable(getMetaClassBase("Variable", require_slots=True)):
             for trace in traces.values():
                 if trace.isAssignTrace():
                     result.add(trace.getAssignNode().getTypeShape())
-                elif trace.isUnknownTrace():
+                elif (
+                    trace.isUnknownTrace()
+                    or trace.isEscapeTrace()
+                    or trace.isInitTrace()
+                ):
                     result.add(tshape_unknown)
-                elif trace.isEscapeTrace():
-                    result.add(tshape_unknown)
-                elif trace.isInitTrace():
-                    result.add(tshape_unknown)
-                elif trace.isUnassignedTrace():
-                    pass
-                elif trace.isMergeTrace():
+                elif trace.isUnassignedTrace() or trace.isMergeTrace():
                     pass
                 # TODO: Remove this and be not unknown.
                 elif trace.isLoopTrace():
@@ -383,6 +382,10 @@ class ModuleVariable(Variable):
     def isModuleVariable():
         return True
 
+    @staticmethod
+    def isModuleVariableNoGlobalDeletion():
+        return False
+
     def initVariableLate(self, trace_collection):
         """Initialize variable in trace collection state."""
         trace_collection.variable_escapable.add(self)
@@ -411,6 +414,26 @@ class ModuleVariable(Variable):
     @staticmethod
     def getVariableType():
         return "object"
+
+
+class ModuleVariableNoGlobalDeletion(ModuleVariable):
+    __slots__ = ()
+
+    @staticmethod
+    def isModuleVariableNoGlobalDeletion():
+        return True
+
+    def onControlFlowEscape(self, trace_collection):
+        trace_collection.markActiveModuleVariableAsEscaped(self)
+
+
+def makeModuleVariable(module, variable_name):
+    if isExperimental("no-module-globals-deleted"):
+        variable_class = ModuleVariableNoGlobalDeletion
+    else:
+        variable_class = ModuleVariable
+
+    return variable_class(module=module, variable_name=variable_name)
 
 
 class TempVariable(Variable):
@@ -451,6 +474,9 @@ class LocalsDictVariable(Variable):
 
     def __init__(self, owner, variable_name):
         Variable.__init__(self, owner=owner, variable_name=variable_name)
+
+    def makeClone(self, new_owner):
+        return LocalsDictVariable(owner=new_owner, variable_name=self.variable_name)
 
     @staticmethod
     def isLocalsDictVariable():

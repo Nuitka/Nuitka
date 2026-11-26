@@ -6,7 +6,7 @@
 #include "nuitka/prelude.h"
 #endif
 
-#if PYTHON_VERSION < 0x3b0
+#if PYTHON_VERSION < 0x380 && !defined(_NUITKA_EXPERIMENTAL_DISABLE_UNCOMPILED_FUNCTION_CALL_OPT)
 PyObject *callPythonFunction(PyObject *func, PyObject *const *args, int count) {
     PyCodeObject *co = (PyCodeObject *)PyFunction_GET_CODE(func);
     PyObject *globals = PyFunction_GET_GLOBALS(func);
@@ -36,11 +36,8 @@ PyObject *callPythonFunction(PyObject *func, PyObject *const *args, int count) {
             Py_INCREF(frame->f_localsplus[i]);
         }
 
-#if PYTHON_VERSION < 0x390
         PyObject *result = PyEval_EvalFrameEx(frame, 0);
-#else
-        PyObject *result = _PyEval_EvalFrame(tstate, frame, 0);
-#endif
+
         // Frame release protects against recursion as it may lead to variable
         // destruction.
         tstate->recursion_depth++;
@@ -80,7 +77,6 @@ PyObject *callPythonFunction(PyObject *func, PyObject *const *args, int count) {
     return result;
 }
 
-#if PYTHON_VERSION < 0x380 && !defined(_NUITKA_EXPERIMENTAL_DISABLE_UNCOMPILED_FUNCTION_CALL_OPT)
 static PyObject *callPythonFunctionNoArgs(PyObject *func) {
     PyCodeObject *co = (PyCodeObject *)PyFunction_GET_CODE(func);
     PyObject *globals = PyFunction_GET_GLOBALS(func);
@@ -146,8 +142,6 @@ static PyObject *callPythonFunctionNoArgs(PyObject *func) {
 }
 #endif
 
-#endif
-
 PyObject *CALL_METHOD_WITH_POS_ARGS(PyThreadState *tstate, PyObject *source, PyObject *attr_name,
                                     PyObject *positional_args) {
     CHECK_OBJECT(source);
@@ -158,12 +152,9 @@ PyObject *CALL_METHOD_WITH_POS_ARGS(PyThreadState *tstate, PyObject *source, PyO
     if (PyInstance_Check(source)) {
         PyInstanceObject *source_instance = (PyInstanceObject *)source;
 
-        // The special cases have their own variant on the code generation level
-        // as we are called with constants only.
         assert(attr_name != const_str_plain___dict__);
         assert(attr_name != const_str_plain___class__);
 
-        // Try the instance dict first.
         PyObject *called_object =
             GET_STRING_DICT_VALUE((PyDictObject *)source_instance->in_dict, (PyStringObject *)attr_name);
 
@@ -172,7 +163,7 @@ PyObject *CALL_METHOD_WITH_POS_ARGS(PyThreadState *tstate, PyObject *source, PyO
         if (called_object != NULL) {
             return CALL_FUNCTION_WITH_POS_ARGS(tstate, called_object, positional_args);
         }
-        // Then check the class dictionaries.
+
         called_object = FIND_ATTRIBUTE_IN_CLASS(source_instance->in_class, attr_name);
 
         // Note: The "called_object" was found without taking a reference,
@@ -181,9 +172,17 @@ PyObject *CALL_METHOD_WITH_POS_ARGS(PyThreadState *tstate, PyObject *source, PyO
             descrgetfunc descr_get = Py_TYPE(called_object)->tp_descr_get;
 
             if (descr_get == Nuitka_Function_Type.tp_descr_get) {
-                return Nuitka_CallMethodFunctionPosArgs(tstate, (struct Nuitka_FunctionObject const *)called_object,
-                                                        source, &PyTuple_GET_ITEM(positional_args, 0),
-                                                        PyTuple_GET_SIZE(positional_args));
+                if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
+                    return NULL;
+                }
+
+                PyObject *result = Nuitka_CallMethodFunctionPosArgs(
+                    tstate, (struct Nuitka_FunctionObject const *)called_object, source,
+                    &PyTuple_GET_ITEM(positional_args, 0), PyTuple_GET_SIZE(positional_args));
+
+                Py_LeaveRecursiveCall();
+
+                return result;
             } else if (descr_get != NULL) {
                 PyObject *method = descr_get(called_object, source, (PyObject *)source_instance->in_class);
 
@@ -203,9 +202,6 @@ PyObject *CALL_METHOD_WITH_POS_ARGS(PyThreadState *tstate, PyObject *source, PyO
 
             return NULL;
         } else {
-            // Finally allow the "__getattr__" override to provide it or else
-            // it's an error.
-
             PyObject *args[] = {source, attr_name};
 
             called_object = CALL_FUNCTION_WITH_ARGS2(tstate, source_instance->in_class->cl_getattr, args);
@@ -246,39 +242,39 @@ PyObject *CALL_METHOD_WITH_POS_ARGS(PyThreadState *tstate, PyObject *source, PyO
     }
 }
 
-char const *GET_CALLABLE_NAME(PyObject *object) {
-    if (Nuitka_Function_Check(object)) {
-        return Nuitka_String_AsString(Nuitka_Function_GetName(object));
-    } else if (Nuitka_Generator_Check(object)) {
-        return Nuitka_String_AsString(Nuitka_Generator_GetName(object));
-    } else if (PyMethod_Check(object)) {
-        return PyEval_GetFuncName(PyMethod_GET_FUNCTION(object));
-    } else if (PyFunction_Check(object)) {
-        return Nuitka_String_AsString(((PyFunctionObject *)object)->func_name);
+char const *GET_CALLABLE_NAME(PyObject *obj) {
+    if (Nuitka_Function_Check(obj)) {
+        return Nuitka_String_AsString(Nuitka_Function_GetName(obj));
+    } else if (Nuitka_Generator_Check(obj)) {
+        return Nuitka_String_AsString(Nuitka_Generator_GetName(obj));
+    } else if (PyMethod_Check(obj)) {
+        return PyEval_GetFuncName(PyMethod_GET_FUNCTION(obj));
+    } else if (PyFunction_Check(obj)) {
+        return Nuitka_String_AsString(((PyFunctionObject *)obj)->func_name);
     }
 #if PYTHON_VERSION < 0x300
-    else if (PyInstance_Check(object)) {
-        return Nuitka_String_AsString(((PyInstanceObject *)object)->in_class->cl_name);
-    } else if (PyClass_Check(object)) {
-        return Nuitka_String_AsString(((PyClassObject *)object)->cl_name);
+    else if (PyInstance_Check(obj)) {
+        return Nuitka_String_AsString(((PyInstanceObject *)obj)->in_class->cl_name);
+    } else if (PyClass_Check(obj)) {
+        return Nuitka_String_AsString(((PyClassObject *)obj)->cl_name);
     }
 #endif
-    else if (PyCFunction_Check(object)) {
-        return ((PyCFunctionObject *)object)->m_ml->ml_name;
+    else if (PyCFunction_Check(obj)) {
+        return ((PyCFunctionObject *)obj)->m_ml->ml_name;
     } else {
-        return Py_TYPE(object)->tp_name;
+        return Py_TYPE(obj)->tp_name;
     }
 }
 
-char const *GET_CALLABLE_DESC(PyObject *object) {
-    if (Nuitka_Function_Check(object) || Nuitka_Generator_Check(object) || PyMethod_Check(object) ||
-        PyFunction_Check(object) || PyCFunction_Check(object)) {
+char const *GET_CALLABLE_DESC(PyObject *obj) {
+    if (Nuitka_Function_Check(obj) || Nuitka_Generator_Check(obj) || PyMethod_Check(obj) || PyFunction_Check(obj) ||
+        PyCFunction_Check(obj)) {
         return "()";
     }
 #if PYTHON_VERSION < 0x300
-    else if (PyClass_Check(object)) {
+    else if (PyClass_Check(obj)) {
         return " constructor";
-    } else if (PyInstance_Check(object)) {
+    } else if (PyInstance_Check(obj)) {
         return " instance";
     }
 #endif
@@ -324,8 +320,8 @@ char const *GET_INSTANCE_CLASS_NAME(PyThreadState *tstate, PyObject *instance) {
     return result;
 }
 
-static PyObject *_getTypeAbstractMethods(PyThreadState *tstate, PyTypeObject *type, void *context) {
-    PyObject *result = DICT_GET_ITEM_WITH_ERROR(tstate, type->tp_dict, const_str_plain___abstractmethods__);
+static PyObject *_getTypeAbstractMethods(PyThreadState *tstate, PyTypeObject *type) {
+    PyObject *result = DICT_GET_ITEM1(tstate, type->tp_dict, const_str_plain___abstractmethods__);
 
     if (unlikely(result == NULL)) {
         if (!HAS_ERROR_OCCURRED(tstate)) {
@@ -338,7 +334,7 @@ static PyObject *_getTypeAbstractMethods(PyThreadState *tstate, PyTypeObject *ty
 }
 
 void formatCannotInstantiateAbstractClass(PyThreadState *tstate, PyTypeObject *type) {
-    PyObject *abstract_methods = _getTypeAbstractMethods(tstate, type, NULL);
+    PyObject *abstract_methods = _getTypeAbstractMethods(tstate, type);
     if (unlikely(abstract_methods == NULL)) {
         return;
     }
@@ -352,29 +348,47 @@ void formatCannotInstantiateAbstractClass(PyThreadState *tstate, PyTypeObject *t
         Py_DECREF(sorted_methods);
         return;
     }
+
+#if PYTHON_VERSION < 0x3c0
     PyObject *comma = Nuitka_String_FromString(", ");
+#else
+    PyObject *comma = Nuitka_String_FromString("', '");
+#endif
     CHECK_OBJECT(comma);
 #if PYTHON_VERSION < 0x300
     PyObject *joined = CALL_METHOD_WITH_SINGLE_ARG(tstate, comma, const_str_plain_join, sorted_methods);
-
-    char const *joined_str = Nuitka_String_AsString(joined);
-    if (unlikely(joined_str == NULL)) {
-        Py_DECREF(joined);
-        return;
-    }
 #else
     PyObject *joined = PyUnicode_Join(comma, sorted_methods);
+#endif
+    Py_DECREF(comma);
+#if PYTHON_VERSION >= 0x390
+    Py_ssize_t method_count = PyList_GET_SIZE(sorted_methods);
 #endif
     Py_DECREF(sorted_methods);
     if (unlikely(joined == NULL)) {
         return;
     }
 
-    Py_ssize_t method_count = PyList_GET_SIZE(sorted_methods);
+#if PYTHON_VERSION < 0x300
+    char const *joined_str = Nuitka_String_AsString(joined);
+    if (unlikely(joined_str == NULL)) {
+        Py_DECREF(joined);
+        return;
+    }
 
-    SET_CURRENT_EXCEPTION_TYPE0_FORMAT3(PyExc_TypeError,
-                                        "Can't instantiate abstract class %s with abstract method%s %s", type->tp_name,
-                                        method_count > 1 ? "s" : "", Nuitka_String_AsString(joined));
+    SET_CURRENT_EXCEPTION_TYPE0_FORMAT2(PyExc_TypeError, "Can't instantiate abstract class %s with abstract methods %s",
+                                        type->tp_name, joined_str);
+#elif PYTHON_VERSION < 0x390
+    PyErr_Format(PyExc_TypeError, "Can't instantiate abstract class %s with abstract methods %U", type->tp_name,
+                 joined);
+#elif PYTHON_VERSION < 0x3c0
+    PyErr_Format(PyExc_TypeError, "Can't instantiate abstract class %s with abstract method%s %U", type->tp_name,
+                 method_count > 1 ? "s" : "", joined);
+#else
+    PyErr_Format(PyExc_TypeError,
+                 "Can't instantiate abstract class %s without an implementation for abstract method%s '%U'",
+                 type->tp_name, method_count > 1 ? "s" : "", joined);
+#endif
 
     Py_DECREF(joined);
 }

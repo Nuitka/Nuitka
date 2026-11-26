@@ -1,7 +1,7 @@
 #     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-"""Nodes the represent ways to access metadata pkg_resources, importlib.resources etc."""
+"""Nodes that represent ways to access metadata pkg_resources, importlib.metadata, etc."""
 
 from nuitka.Constants import isCompileTimeConstantValue
 from nuitka.importing.Importing import importFromCompileTime
@@ -44,12 +44,7 @@ from .KeyValuePairNodes import (
 
 
 def _getPkgResourcesModule():
-    """Helper for importing pkg_resources from installation at compile time.
-
-    This is not for using the inline copy, but the one from the actual
-    installation of the user. It suppresses warnings and caches the value
-    avoid making more __import__ calls that necessary.
-    """
+    """Import installed 'pkg_resources' (not the inline copy) at compile time."""
 
     with withNoWarning():
         return importFromCompileTime("pkg_resources", must_exist=True)
@@ -91,7 +86,7 @@ class ExpressionPkgResourcesRequireCall(ExpressionPkgResourcesRequireCallBase):
             trace_collection.onExceptionRaiseExit(BaseException)
 
             return self, None, None
-        except Exception as e:  # Catch all the things, pylint: disable=broad-except
+        except Exception as e:  # pylint: disable=broad-except
             return inclusion_logger.sysexit(
                 "Error, failed to find requirements '%s' at '%s' due to unhandled %s. Please report this bug."
                 % (
@@ -142,7 +137,7 @@ class ExpressionPkgResourcesGetDistributionCall(
             trace_collection.onExceptionRaiseExit(BaseException)
 
             return self, None, None
-        except Exception as e:  # Catch all the things, pylint: disable=broad-except
+        except Exception as e:  # pylint: disable=broad-except
             return inclusion_logger.sysexit(
                 "Error, failed to find distribution '%s' at '%s' due to unhandled %s. Please report this bug."
                 % (arg, self.source_ref.getAsString(), repr(e))
@@ -185,7 +180,7 @@ class ImportlibMetadataVersionCallMixin(object):
             trace_collection.onExceptionRaiseExit(BaseException)
 
             return self, None, None
-        except Exception as e:  # Catch all the things, pylint: disable=broad-except
+        except Exception as e:  # pylint: disable=broad-except
             return inclusion_logger.sysexit(
                 "Error, failed to find distribution '%s' at '%s' due to unhandled %s. Please report this bug."
                 % (arg, self.source_ref.getAsString(), repr(e))
@@ -258,8 +253,13 @@ class ExpressionPkgResourcesDistributionValueRef(
         self.distribution = distribution
         self.computed_attributes = {}
 
+    def getDetails(self):
+        return {"distribution": self.distribution}
+
     def finalize(self):
+        del self.parent
         del self.distribution
+        del self.computed_attributes
 
     @staticmethod
     def isKnownToBeHashable():
@@ -274,7 +274,6 @@ class ExpressionPkgResourcesDistributionValueRef(
         return False
 
     def computeExpressionRaw(self, trace_collection):
-        # Cannot compute any further, this is already the best.
         return self, None, None
 
     def isKnownToHaveAttribute(self, attribute_name):
@@ -289,8 +288,6 @@ class ExpressionPkgResourcesDistributionValueRef(
         return getattr(self.distribution, attribute_name)
 
     def computeExpressionAttribute(self, lookup_node, attribute_name, trace_collection):
-        # If it raises, or the attribute itself is a compile time constant,
-        # then do execute it.
         if (
             self.isKnownToHaveAttribute(attribute_name)
             and isCompileTimeConstantValue(
@@ -330,7 +327,9 @@ class ExpressionImportlibMetadataDistributionValueRef(
         return {"distribution": self.distribution, "original_name": self.original_name}
 
     def finalize(self):
+        del self.parent
         del self.distribution
+        del self.computed_attributes
 
     @staticmethod
     def isKnownToBeHashable():
@@ -345,7 +344,6 @@ class ExpressionImportlibMetadataDistributionValueRef(
         return False
 
     def computeExpressionRaw(self, trace_collection):
-        # Cannot compute any further, this is already the best.
         return self, None, None
 
 
@@ -376,7 +374,7 @@ class ExpressionPkgResourcesIterEntryPointsCall(
             trace_collection.onExceptionRaiseExit(BaseException)
 
             return self, None, None
-        except Exception as e:  # Catch all the things, pylint: disable=broad-except
+        except Exception as e:  # pylint: disable=broad-except
             return inclusion_logger.sysexit(
                 "Error, failed to find distribution '%s' at '%s' due to unhandled %s. Please report this bug."
                 % (name, self.source_ref.getAsString(), repr(e))
@@ -428,7 +426,11 @@ class ExpressionPkgResourcesEntryPointValueRef(
         self.entry_point = entry_point
         self.computed_attributes = {}
 
+    def getDetails(self):
+        return {"entry_point": self.entry_point}
+
     def finalize(self):
+        del self.parent
         del self.entry_point
         del self.computed_attributes
 
@@ -441,7 +443,6 @@ class ExpressionPkgResourcesEntryPointValueRef(
         return True
 
     def computeExpressionRaw(self, trace_collection):
-        # Cannot compute any further, this is already the best.
         return self, None, None
 
     def isKnownToHaveAttribute(self, attribute_name):
@@ -456,8 +457,6 @@ class ExpressionPkgResourcesEntryPointValueRef(
         return getattr(self.entry_point, attribute_name)
 
     def computeExpressionAttribute(self, lookup_node, attribute_name, trace_collection):
-        # If it raises, or the attribute itself is a compile time constant,
-        # then do execute it.
         if self.isKnownToHaveAttribute(attribute_name) and isCompileTimeConstantValue(
             getattr(self.entry_point, attribute_name, None)
         ):
@@ -501,17 +500,17 @@ class ImportlibMetadataDistributionCallMixin(object):
                 change_desc="Call to '%s.distribution' failed to resolve."
                 % self.importlib_metadata_name,
             )
-        except Exception as e:  # Catch all the things, pylint: disable=broad-except
+        except Exception as e:  # pylint: disable=broad-except
             return inclusion_logger.sysexit(
                 "Error, failed to find distribution '%s' at '%s' due to unhandled %s. Please report this bug."
                 % (arg, self.source_ref.getAsString(), repr(e))
             )
         else:
             trace_collection.onDistributionUsed(
-                distribution_name=arg, node=self, success=False
+                distribution_name=arg, node=self, success=True
             )
 
-            # Remember the original name, distributions can other names.
+            # Remember the original name, distributions can have other names.
             result = ExpressionImportlibMetadataDistributionValueRef(
                 distribution=distribution, original_name=arg, source_ref=self.source_ref
             )
@@ -528,8 +527,6 @@ class ExpressionImportlibMetadataDistributionCall(
     ImportlibMetadataDistributionCallMixin,
     ExpressionImportlibMetadataDistributionCallBase,
 ):
-    """Represents call to importlib.metadata.distribution(distribution_name)"""
-
     kind = "EXPRESSION_IMPORTLIB_METADATA_DISTRIBUTION_CALL"
 
     python_version_spec = ">= 0x380"
@@ -566,13 +563,10 @@ class ExpressionImportlibMetadataDistributionFailedCall(
     ExpressionImportlibMetadataDistributionFailedCallMixin,
     ExpressionImportlibMetadataDistributionFailedCallBase,
 ):
-    """Represents compile time failed call to importlib.metadata.distribution(distribution_name)"""
-
     kind = "EXPRESSION_IMPORTLIB_METADATA_DISTRIBUTION_FAILED_CALL"
 
     named_children = ("distribution_name",)
 
-    # We know it's a constant, no need to visit it anymore.
     auto_compute_handling = "final_children"
 
     python_version_spec = ">= 0x380"
@@ -584,13 +578,10 @@ class ExpressionImportlibMetadataBackportDistributionFailedCall(
     ExpressionImportlibMetadataDistributionFailedCallMixin,
     ExpressionImportlibMetadataDistributionFailedCallBase,
 ):
-    """Represents compile time failed call to importlib_metadata.distribution(distribution_name)"""
-
     kind = "EXPRESSION_IMPORTLIB_METADATA_BACKPORT_DISTRIBUTION_FAILED_CALL"
 
     named_children = ("distribution_name",)
 
-    # We know it's a constant, no need to visit it anymore.
     auto_compute_handling = "final_children"
 
     importlib_metadata_name = "importlib_metadata"
@@ -600,8 +591,6 @@ class ExpressionImportlibMetadataBackportDistributionCall(
     ImportlibMetadataDistributionCallMixin,
     ExpressionImportlibMetadataDistributionCallBase,
 ):
-    """Represents call to importlib_metadata.distribution(distribution_name)"""
-
     kind = "EXPRESSION_IMPORTLIB_METADATA_BACKPORT_DISTRIBUTION_CALL"
     importlib_metadata_name = "importlib_metadata"
 
@@ -639,7 +628,11 @@ class ExpressionImportlibMetadataEntryPointValueMixin(object):
     def _getImportlibMetadataModule(self):
         return importFromCompileTime(self.importlib_metadata_name, must_exist=True)
 
+    def getDetails(self):
+        return {"entry_point": self.entry_point}
+
     def finalize(self):
+        del self.parent
         del self.entry_point
         del self.computed_attributes
 
@@ -652,7 +645,6 @@ class ExpressionImportlibMetadataEntryPointValueMixin(object):
         return True
 
     def computeExpressionRaw(self, trace_collection):
-        # Cannot compute any further, this is already the best.
         return self, None, None
 
     def isKnownToHaveAttribute(self, attribute_name):
@@ -667,8 +659,6 @@ class ExpressionImportlibMetadataEntryPointValueMixin(object):
         return getattr(self.entry_point, attribute_name)
 
     def computeExpressionAttribute(self, lookup_node, attribute_name, trace_collection):
-        # If it raises, or the attribute itself is a compile time constant,
-        # then do execute it.
         if self.isKnownToHaveAttribute(attribute_name) and isCompileTimeConstantValue(
             getattr(self.entry_point, attribute_name, None)
         ):
@@ -758,7 +748,6 @@ class ExpressionImportlibMetadataSelectableGroupsValueRef(
         return False
 
     def getTruthValue(self):
-        """The truth value of the mapping is the number of pairs."""
         return len(self.subnode_pairs) > 0
 
 
@@ -778,13 +767,12 @@ class ExpressionImportlibMetadataBackportSelectableGroupsValueRef(
         return False
 
     def getTruthValue(self):
-        """The truth value of the mapping is the number of pairs."""
         return len(self.subnode_pairs) > 0
 
 
 class ExpressionImportlibMetadataEntryPointsValueRef(
     ExpressionMakeSequenceMixin,
-    ExpressionImportlibMetadataBackportEntryPointsValueRefBase,
+    ExpressionImportlibMetadataEntryPointsValueRefBase,
 ):
     kind = "EXPRESSION_IMPORTLIB_METADATA_ENTRY_POINTS_VALUE_REF"
 
@@ -794,23 +782,21 @@ class ExpressionImportlibMetadataEntryPointsValueRef(
 
     auto_compute_handling = "final,no_raise"
 
-    # TODO: Derived from dict shape is missing here.
     @staticmethod
     def isKnownToBeHashable():
         return False
 
     @staticmethod
     def getSequenceName():
-        """Get name for use in traces"""
         return "importlib.metadata.EntryPoints"
 
     def getTruthValue(self):
-        """The truth value of the sequence is the number of elements."""
         return len(self.subnode_elements) > 0
 
 
 class ExpressionImportlibMetadataBackportEntryPointsValueRef(
-    ExpressionMakeSequenceMixin, ExpressionImportlibMetadataEntryPointsValueRefBase
+    ExpressionMakeSequenceMixin,
+    ExpressionImportlibMetadataBackportEntryPointsValueRefBase,
 ):
     kind = "EXPRESSION_IMPORTLIB_METADATA_BACKPORT_ENTRY_POINTS_VALUE_REF"
 
@@ -820,16 +806,13 @@ class ExpressionImportlibMetadataBackportEntryPointsValueRef(
 
     @staticmethod
     def getSequenceName():
-        """Get name for use in traces"""
         return "importlib_metadata.EntryPoints"
 
-    # TODO: Derived from dict shape is missing here.
     @staticmethod
     def isKnownToBeHashable():
         return False
 
     def getTruthValue(self):
-        """The truth value of the sequence is the number of elements."""
         return len(self.subnode_elements) > 0
 
 
@@ -849,7 +832,7 @@ class ExpressionImportlibMetadataEntryPointsCallMixin(object):
 
         try:
             entry_points_result = metadata_importlib.entry_points(**constant_args)
-        except Exception as e:  # Catch all the things, pylint: disable=broad-except
+        except Exception as e:  # pylint: disable=broad-except
             return inclusion_logger.sysexit(
                 "Error, failed to find entrypoints at '%s' due to unhandled %s. Please report this bug."
                 % (self.source_ref.getAsString(), repr(e))
@@ -936,7 +919,6 @@ class ExpressionImportlibMetadataEntryPointsBefore310Call(
 
     makeEntryPointValueRef = ExpressionImportlibMetadataEntryPointValueRef
 
-    # For the mixing to work properly.
     subnode_params = ()
 
 

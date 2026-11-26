@@ -164,7 +164,7 @@ def checkVersion():
 def getOptions():
     pylint_version = checkVersion()
 
-    # spell-checker: ignore setrecursionlimit,rcfile
+    # spell-checker: ignore rcfile,setrecursionlimit
 
     default_pylint_options = """\
 --init-hook=import sys;sys.setrecursionlimit(1024*sys.getrecursionlimit())
@@ -201,7 +201,7 @@ redefined-slots-in-subclass
 --max-bool-expr=10
 --load-plugins=pylint.extensions.no_self_use
 --score=no\
-""".split("\n")
+""".split("\n")  # noqa: SIM905
 
     if os.name != "nt":
         default_pylint_options.append("--rcfile=%s" % os.devnull)

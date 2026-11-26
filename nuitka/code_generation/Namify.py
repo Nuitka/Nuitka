@@ -1,13 +1,7 @@
 #     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-"""Namify constants.
-
-This determines the identifier names of constants in the generated code. We
-try to have readable names where possible, and resort to hash codes only when
-it is really necessary.
-
-"""
+"""Determine C identifier names for constants in generated code."""
 
 import math
 import re
@@ -24,6 +18,7 @@ from nuitka.__past__ import (
     xrange,
 )
 from nuitka.Builtins import builtin_anon_values, builtin_named_values_list
+from nuitka.Constants import TargetVersionInfo
 from nuitka.nodes.CodeObjectSpecs import (
     CodeObjectSpec,
     CodeObjectSpecClass,
@@ -40,9 +35,7 @@ class ExceptionCannotNamify(Exception):
 
 
 def namifyConstant(constant):
-    # Many branches, statements and every case has a return, this is a huge case
-    # statement, that encodes the naming policy of constants, with often complex
-    # conditions, pylint: disable=too-many-branches,too-many-return-statements,too-many-statements
+    # pylint: disable=too-many-branches,too-many-return-statements,too-many-statements
 
     constant_type = type(constant)
 
@@ -88,7 +81,6 @@ def namifyConstant(constant):
         if _isAscii(constant):
             return "unicode_" + _namifyString(str(constant))
         else:
-            # Others are better digested to not cause compiler trouble
             return "unicode_digest_" + _digest(repr(constant))
     elif constant_type is float:
         if math.isnan(constant):
@@ -198,7 +190,7 @@ def namifyConstant(constant):
         )
     elif constant_type is UnionType:
         return "uniontype_%s" % namifyConstant(constant.__args__)
-    elif constant is sys.version_info:
+    elif constant_type is TargetVersionInfo or constant is sys.version_info:
         return "sys_version_info"
     elif constant_type is BlobData:
         return "blob_" + _namifyString(constant.getData())
@@ -206,12 +198,11 @@ def namifyConstant(constant):
         raise ExceptionCannotNamify("%r" % (constant,), constant_type)
 
 
-_re_str_needs_no_digest = re.compile(r"^([a-z]|[A-Z]|[0-9]|_){1,40}$", re.S)
+_re_str_needs_no_digest = re.compile(r"^([a-z]|[A-Z]|[0-9]|_){1,40}$", re.DOTALL)
 
 
 def _namifyString(string):
-    # Many branches case has a return, encodes the naming policy of strings
-    # constants, with often complex decisions to make, pylint: disable=too-many-return-statements
+    # pylint: disable=too-many-return-statements
 
     if string in ("", b""):
         return "empty"
@@ -234,7 +225,6 @@ def _namifyString(string):
         and _re_str_needs_no_digest.match(string)
         and "\n" not in string
     ):
-        # Some strings can be left intact for source code readability.
         return "plain_" + string
     elif len(string) == 1:
         return "chr_%d" % ord(string)
@@ -247,7 +237,6 @@ def _namifyString(string):
     ):
         return "angle_" + string[1:-1]
     else:
-        # Others are better digested to not cause compiler trouble
         return "digest_" + _digest(repr(string))
 
 
@@ -262,10 +251,8 @@ def _isAscii(string):
 
 def _digest(value):
     if str is bytes:
-        # Python2 is simple
         return md5(value).hexdigest()
     else:
-        # Python3 needs to encode the string if it is one.
         if type(value) is bytes:
             return md5(value).hexdigest()
         else:

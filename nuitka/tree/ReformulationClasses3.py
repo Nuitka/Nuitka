@@ -1,12 +1,7 @@
 #     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-"""Reformulation of Python3 class statements.
-
-Consult the Developer Manual for information. TODO: Add ability to sync
-source code comments with Developer Manual sections.
-
-"""
+"""Reformulation of Python3 class statements."""
 
 from nuitka.nodes.AttributeNodes import (
     ExpressionAttributeCheck,
@@ -15,7 +10,10 @@ from nuitka.nodes.AttributeNodes import (
 )
 from nuitka.nodes.BuiltinIteratorNodes import ExpressionBuiltinIter1
 from nuitka.nodes.BuiltinNextNodes import ExpressionBuiltinNext1
-from nuitka.nodes.BuiltinRefNodes import makeExpressionBuiltinTypeRef
+from nuitka.nodes.BuiltinRefNodes import (
+    ExpressionBuiltinRef,
+    makeExpressionBuiltinTypeRef,
+)
 from nuitka.nodes.BuiltinTypeNodes import ExpressionBuiltinTuple
 from nuitka.nodes.CallNodes import makeExpressionCall
 from nuitka.nodes.ClassNodes import (
@@ -24,6 +22,7 @@ from nuitka.nodes.ClassNodes import (
     ExpressionCallClassPrepareKnownStartValueDictException,
     ExpressionCallClassPrepareKnownStartValueDictIgnored,
     ExpressionCallMetaclass,
+    ExpressionClassDictFromClass,
     ExpressionClassMappingBody,
     ExpressionSelectMetaclass,
 )
@@ -60,13 +59,16 @@ from nuitka.nodes.FunctionNodes import (
 )
 from nuitka.nodes.ListOperationNodes import ExpressionListOperationExtend
 from nuitka.nodes.LocalsDictNodes import (
+    ExpressionClassDictRef,
     ExpressionLocalsDictRef,
     StatementLocalsDictOperationSet,
     StatementReleaseLocals,
     StatementSetLocals,
 )
 from nuitka.nodes.LoopNodes import StatementLoop, StatementLoopBreak
-from nuitka.nodes.ModuleAttributeNodes import ExpressionModuleAttributeNameRef
+from nuitka.nodes.ModuleAttributeNodes import (
+    makeExpressionModuleAttributeNameRef,
+)
 from nuitka.nodes.NodeMakingHelpers import (
     makeRaiseExceptionExpressionFromTemplate,
     mergeStatementsWithNone,
@@ -99,20 +101,27 @@ from nuitka.nodes.VariableRefNodes import (
     ExpressionTempVariableRef,
     ExpressionVariableRef,
 )
-from nuitka.options.Options import isExperimental
+from nuitka.options.Experimental import isExperimental
 from nuitka.pgo.Pgo import getPGOClassPrepareResult
 from nuitka.plugins.Hooks import onClassBodyParsing
 from nuitka.Policies import decidePGOClassDictAssertionPolicy
 from nuitka.PythonVersions import python_version
 from nuitka.specs.ParameterSpecs import ParameterSpec
+from nuitka.States import states
 
+from .ComplexCallHelperFunctions import (
+    getFunctionCallHelperDictionaryUnpacking,
+)
 from .FutureSpecState import getFutureSpec
 from .InternalModule import (
     internal_source_ref,
     makeInternalHelperFunctionBody,
-    once_decorator,
+    onceDecorator,
 )
-from .ReformulationDictionaryCreation import buildDictionaryUnpacking
+from .ReformulationDictionaryCreation import (
+    buildDictionaryUnpacking,
+    buildDictionaryUnpackingArgs,
+)
 from .ReformulationFunctionStatements import (
     makeDeferredAnnotateFunctionBody,
     makeDeferredAnnotationsReturnExpression,
@@ -123,6 +132,7 @@ from .ReformulationTryFinallyStatements import (
     makeTryFinallyReleaseStatement,
     makeTryFinallyStatement,
 )
+from .SyntaxErrors import checkDebugNameAssignment
 from .TreeHelpers import (
     buildAnnotationNode,
     buildFrameNode,
@@ -139,8 +149,6 @@ from .TreeHelpers import (
 
 
 def _buildBasesTupleCreationNode(provider, elements, source_ref):
-    """For use in Python3 classes for the bases."""
-
     for element in elements:
         if getKind(element) == "Starred":
             return buildTupleUnpacking(
@@ -156,6 +164,43 @@ def _buildBasesTupleCreationNode(provider, elements, source_ref):
 
 def _needsOrigBases(_static_qualname):
     return python_version >= 0x370
+
+
+def _makeClassKeywordsDict(provider, keys, values, source_ref):
+    """Create class keywords dict with call argument semantics.
+
+    Notes:
+        Class keywords are merged like call keyword arguments, so duplicate
+        keywords and non-mapping values after '**' have to be reported with
+        the '__build_class__' name.
+    """
+
+    return makeExpressionFunctionCall(
+        function=makeExpressionFunctionCreation(
+            function_ref=ExpressionFunctionRef(
+                function_body=getFunctionCallHelperDictionaryUnpacking(),
+                source_ref=source_ref,
+            ),
+            defaults=(),
+            kw_defaults=None,
+            annotations=None,
+            type_params=None,
+            source_ref=source_ref,
+        ),
+        values=(
+            ExpressionBuiltinRef(builtin_name="__build_class__", source_ref=source_ref),
+            makeExpressionMakeTuple(
+                elements=buildDictionaryUnpackingArgs(
+                    provider=provider,
+                    keys=keys,
+                    values=values,
+                    source_ref=source_ref,
+                ),
+                source_ref=source_ref,
+            ),
+        ),
+        source_ref=source_ref,
+    )
 
 
 def makeExpressionClassPrepareCall(
@@ -217,30 +262,23 @@ def makeExpressionClassPrepareCall(
 
 
 def buildClassNode3(provider, node, source_ref):
-    # Many variables, due to the huge re-formulation that is going on here,
-    # which just has the complexity and optimization checks:
     # pylint: disable=too-many-branches,too-many-locals,too-many-statements
 
-    # This function is the Python3 special case with special re-formulation as
-    # according to Developer Manual.
-
-    # First, allow plugins to modify the code if they want to.
     onClassBodyParsing(provider=provider, class_name=node.name, node=node)
 
-    # We need a container for the temporary variables to not pollute the outside.
     helper_name = "class_container"
 
-    # TODO: Make this a statement of some sorts.
     outline_body = ExpressionOutlineBody(
         provider=provider, name=helper_name, source_ref=source_ref
     )
 
-    class_statement_nodes, class_doc = extractDocFromBody(node)
+    class_statement_nodes, class_doc = extractDocFromBody(
+        node=node, module=provider.getParentModule()
+    )
 
     has_type_params = python_version >= 0x3C0 and bool(node.type_params)
 
     if has_type_params:
-        # We need a separate enclosing scope for type parameters
         type_params_scope = ExpressionOutlineFunction(
             provider=provider, name="class_type_params", source_ref=source_ref
         )
@@ -251,7 +289,6 @@ def buildClassNode3(provider, node, source_ref):
         class_provider = provider
         class_body = outline_body
 
-    # We need a scope for the temporary variables, and they might be closured.
     temp_scope = class_body.allocateTempScope(name="class_creation")
 
     tmp_class_decl_dict = class_body.allocateTempVariable(
@@ -273,7 +310,6 @@ def buildClassNode3(provider, node, source_ref):
             data = (type_param, type_var)
             type_variables.append(data)
 
-    # Can be overridden, but for code object creation, we use that.
     static_qualname = provider.getChildQualname(node.name)
 
     class_dict_creation_function = ExpressionClassMappingBody(
@@ -282,7 +318,6 @@ def buildClassNode3(provider, node, source_ref):
 
     class_locals_scope = class_dict_creation_function.getLocalsScope()
 
-    # Only local variable, for provision to methods.
     class_variable = class_locals_scope.getLocalVariable(
         owner=class_dict_creation_function,
         variable_name="__class__",
@@ -321,12 +356,19 @@ def buildClassNode3(provider, node, source_ref):
 
     parent_module = provider.getParentModule()
 
+    # CPython uses the first decorator line for the class body code object and
+    # for '__firstlineno__'.
+    if node.decorator_list:
+        first_lineno = node.decorator_list[0].lineno
+    else:
+        first_lineno = node.lineno
+
     code_object = CodeObjectSpecClass(
         class_name=node.name,
         co_qualname=static_qualname,
         co_varnames=(),
         co_filename=parent_module.getRunTimeFilename(),
-        co_lineno=source_ref.getLineNumber(),
+        co_lineno=first_lineno,
         future_spec=parent_module.getFutureSpec(),
     )
 
@@ -357,7 +399,7 @@ def buildClassNode3(provider, node, source_ref):
         StatementAssignmentVariableName(
             provider=class_dict_creation_function,
             variable_name="__module__",
-            source=ExpressionModuleAttributeNameRef(
+            source=makeExpressionModuleAttributeNameRef(
                 variable=parent_module.getVariableForReference("__name__"),
                 source_ref=source_ref,
             ),
@@ -377,7 +419,6 @@ def buildClassNode3(provider, node, source_ref):
             )
         )
 
-    # The "__qualname__" attribute has a dedicated node.
     qualname_ref = ExpressionFunctionQualnameRef(
         function_body=class_dict_creation_function, source_ref=source_ref
     )
@@ -400,7 +441,7 @@ def buildClassNode3(provider, node, source_ref):
                 provider=class_dict_creation_function,
                 variable_name="__firstlineno__",
                 source=ExpressionConstantIntRef(
-                    constant=node.lineno,
+                    constant=first_lineno,
                     source_ref=source_ref,
                 ),
                 source_ref=source_ref,
@@ -485,6 +526,19 @@ def buildClassNode3(provider, node, source_ref):
                 variable_name="__annotations__",
                 source=makeConstantRefNode(
                     constant={}, source_ref=source_ref, user_provided=True
+                ),
+                source_ref=source_ref,
+            )
+        )
+
+    if class_dict_creation_function.deferred_class_dict is not None:
+        # Annotation scopes in the class body resolve names against the class
+        # namespace, so capture it before code in the class body runs.
+        statements.append(
+            makeStatementAssignmentVariable(
+                variable=class_dict_creation_function.deferred_class_dict,
+                source=ExpressionClassDictRef(
+                    locals_scope=locals_scope, source_ref=source_ref
                 ),
                 source_ref=source_ref,
             )
@@ -587,7 +641,7 @@ def buildClassNode3(provider, node, source_ref):
             )
         )
 
-    statements += (
+    statements.append(
         makeStatementAssignmentVariable(
             variable=class_variable,
             source=ExpressionCallMetaclass(
@@ -610,11 +664,44 @@ def buildClassNode3(provider, node, source_ref):
                 source_ref=source_ref,
             ),
             source_ref=source_ref,
-        ),
-        StatementReturn(expression=class_variable_ref, source_ref=source_ref),
+        )
     )
 
-    # TODO: Is this something similar to makeTryFinallyReleaseStatement
+    if class_dict_creation_function.deferred_class_dict is not None:
+        # Deferred scopes are to resolve against the class dictionary, not
+        # the prepared namespace, once the class exists, but the metaclass
+        # may return something that is not a class, in which case the class
+        # namespace remains in use.
+        statements.append(
+            makeStatementConditional(
+                condition=ExpressionTypeCheck(
+                    cls=ExpressionVariableRef(
+                        variable=class_variable, source_ref=source_ref
+                    ),
+                    source_ref=source_ref,
+                ),
+                yes_branch=makeStatementAssignmentVariable(
+                    variable=class_dict_creation_function.deferred_class_dict,
+                    source=ExpressionClassDictFromClass(
+                        variable=class_variable, source_ref=source_ref
+                    ),
+                    source_ref=source_ref,
+                ),
+                no_branch=makeStatementAssignmentVariable(
+                    variable=class_dict_creation_function.deferred_class_dict,
+                    source=ExpressionClassDictRef(
+                        locals_scope=locals_scope, source_ref=source_ref
+                    ),
+                    source_ref=source_ref,
+                ),
+                source_ref=source_ref,
+            )
+        )
+
+    statements.append(
+        StatementReturn(expression=class_variable_ref, source_ref=source_ref)
+    )
+
     body = makeStatementsSequenceFromStatement(
         statement=makeTryFinallyStatement(
             provider=class_dict_creation_function,
@@ -626,13 +713,7 @@ def buildClassNode3(provider, node, source_ref):
         )
     )
 
-    # The class body is basically a function that implicitly, at the end
-    # returns its locals and cannot have other return statements contained.
     class_dict_creation_function.setChildBody(body)
-
-    # The class body is basically a function that implicitly, at the end
-    # returns its created class and cannot have other return statements
-    # contained.
 
     decorated_body = class_dict_creation_function
 
@@ -704,20 +785,31 @@ def buildClassNode3(provider, node, source_ref):
                 )
             )
 
-    # TODO: It's not really clear, since when those in the middle keywords are accepted
-    # and not a SyntaxError, and if then we might have to raise it.
+    for keyword in node.keywords:
+        checkDebugNameAssignment(name=keyword.arg, source_ref=source_ref)
+
     keyword_keys = tuple(keyword.arg for keyword in node.keywords)
     keyword_values = tuple(keyword.value for keyword in node.keywords)
 
     if None in keyword_keys:
         assert python_version >= 0x350
 
-        make_keywords_dict = buildDictionaryUnpacking(
-            provider,
-            keys=keyword_keys,
-            values=keyword_values,
-            source_ref=source_ref,
-        )
+        # Only full compat mode needs the exact call argument errors, normal
+        # mode can use the cheaper dictionary unpacking.
+        if states.is_full_compat:
+            make_keywords_dict = _makeClassKeywordsDict(
+                provider=provider,
+                keys=keyword_keys,
+                values=keyword_values,
+                source_ref=source_ref,
+            )
+        else:
+            make_keywords_dict = buildDictionaryUnpacking(
+                provider,
+                keys=keyword_keys,
+                values=keyword_values,
+                source_ref=source_ref,
+            )
     else:
         make_keywords_dict = makeDictCreationOrConstant2(
             keys=keyword_keys,
@@ -733,9 +825,6 @@ def buildClassNode3(provider, node, source_ref):
         )
     )
 
-    # Check if there are bases, and if there are, go with the type of the
-    # first base class as a metaclass unless it was specified in the class
-    # decl dict of course.
     if node.bases:
         unspecified_metaclass_expression = ExpressionBuiltinType1(
             value=makeExpressionIndexLookup(
@@ -1005,7 +1094,7 @@ def buildClassNode3(provider, node, source_ref):
 
 # Note: This emulates "Python/bltinmodule.c/update_bases" function. We have it
 # here, so we can hope to statically optimize it later on. spell-checker: ignore bltinmodule
-@once_decorator
+@onceDecorator
 def getClassBasesMroConversionHelper():
     helper_name = "_mro_entries_conversion"
 
@@ -1034,8 +1123,82 @@ def getClassBasesMroConversionHelper():
     tmp_item_variable = result.allocateTempVariable(
         temp_scope, "base", temp_type="object"
     )
+    tmp_mro_entries_variable = result.allocateTempVariable(
+        temp_scope, "mro_entries", temp_type="object"
+    )
 
     args_variable = result.getVariableForAssignment(variable_name="bases")
+
+    mro_entries_call = makeExpressionCall(
+        called=makeExpressionAttributeLookup(
+            expression=ExpressionTempVariableRef(
+                variable=tmp_item_variable, source_ref=internal_source_ref
+            ),
+            attribute_name="__mro_entries__",
+            source_ref=internal_source_ref,
+        ),
+        args=makeExpressionMakeTuple(
+            elements=(
+                ExpressionVariableRef(
+                    variable=args_variable, source_ref=internal_source_ref
+                ),
+            ),
+            source_ref=internal_source_ref,
+        ),
+        kw=None,
+        source_ref=internal_source_ref,
+    )
+
+    extend_result_statement = StatementExpressionOnly(
+        expression=ExpressionListOperationExtend(
+            list_arg=ExpressionTempVariableRef(
+                variable=tmp_result_variable, source_ref=internal_source_ref
+            ),
+            value=ExpressionTempVariableRef(
+                variable=tmp_mro_entries_variable, source_ref=internal_source_ref
+            ),
+            source_ref=internal_source_ref,
+        ),
+        source_ref=internal_source_ref,
+    )
+
+    if states.is_full_compat:
+        mro_entries_result_statement = makeStatementConditional(
+            condition=ExpressionSubtypeCheck(
+                left=ExpressionBuiltinType1(
+                    value=ExpressionTempVariableRef(
+                        variable=tmp_mro_entries_variable,
+                        source_ref=internal_source_ref,
+                    ),
+                    source_ref=internal_source_ref,
+                ),
+                right=makeExpressionBuiltinTypeRef(
+                    "tuple", source_ref=internal_source_ref
+                ),
+                source_ref=internal_source_ref,
+            ),
+            yes_branch=extend_result_statement,
+            no_branch=StatementRaiseException(
+                exception_type=ExpressionBuiltinMakeException(
+                    exception_name="TypeError",
+                    args=(
+                        makeConstantRefNode(
+                            constant="__mro_entries__ must return a tuple",
+                            source_ref=internal_source_ref,
+                        ),
+                    ),
+                    for_raise=False,
+                    source_ref=internal_source_ref,
+                ),
+                exception_value=None,
+                exception_trace=None,
+                exception_cause=None,
+                source_ref=internal_source_ref,
+            ),
+            source_ref=internal_source_ref,
+        )
+    else:
+        mro_entries_result_statement = extend_result_statement
 
     non_type_case = makeStatementConditional(
         condition=ExpressionAttributeCheck(
@@ -1045,33 +1208,13 @@ def getClassBasesMroConversionHelper():
             attribute_name="__mro_entries__",
             source_ref=internal_source_ref,
         ),
-        yes_branch=StatementExpressionOnly(
-            expression=ExpressionListOperationExtend(
-                list_arg=ExpressionTempVariableRef(
-                    variable=tmp_result_variable, source_ref=internal_source_ref
-                ),
-                value=makeExpressionCall(
-                    called=makeExpressionAttributeLookup(
-                        expression=ExpressionTempVariableRef(
-                            variable=tmp_item_variable, source_ref=internal_source_ref
-                        ),
-                        attribute_name="__mro_entries__",
-                        source_ref=internal_source_ref,
-                    ),
-                    args=makeExpressionMakeTuple(
-                        elements=(
-                            ExpressionVariableRef(
-                                variable=args_variable, source_ref=internal_source_ref
-                            ),
-                        ),
-                        source_ref=internal_source_ref,
-                    ),
-                    kw=None,
-                    source_ref=internal_source_ref,
-                ),
+        yes_branch=makeStatementsSequenceFromStatements(
+            makeStatementAssignmentVariable(
+                variable=tmp_mro_entries_variable,
+                source=mro_entries_call,
                 source_ref=internal_source_ref,
             ),
-            source_ref=internal_source_ref,
+            mro_entries_result_statement,
         ),
         no_branch=StatementListOperationAppend(
             list_arg=ExpressionTempVariableRef(
@@ -1162,6 +1305,7 @@ def getClassBasesMroConversionHelper():
                     tmp_result_variable,
                     tmp_iter_variable,
                     tmp_item_variable,
+                    tmp_mro_entries_variable,
                 ),
                 source_ref=internal_source_ref,
             )
@@ -1217,8 +1361,7 @@ subclass of the metaclasses of all its bases""",
     )
 
 
-# Note: This emulates selection of meta class based on base classes
-@once_decorator
+@onceDecorator
 def getClassSelectMetaClassHelper():
     helper_name = "_select_metaclass"
 
@@ -1301,7 +1444,7 @@ def getClassSelectMetaClassHelper():
                 ),
                 source_ref=internal_source_ref,
             ),
-            yes_branch=None,  # Ignore if current winner is already a subtype.
+            yes_branch=None,
             no_branch=makeStatementConditional(
                 condition=ExpressionSubtypeCheck(
                     left=ExpressionTempVariableRef(

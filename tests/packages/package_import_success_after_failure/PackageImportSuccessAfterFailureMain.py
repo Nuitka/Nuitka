@@ -3,6 +3,7 @@
 
 from __future__ import print_function
 
+# nuitka-project: --mode=module
 # nuitka-project: --follow-import-to=variable_package
 
 ORIG = None

@@ -7,12 +7,12 @@
 #ifdef __IDE_ONLY__
 #include "nuitka/prelude.h"
 
+// Includes below require definitions from the prelude.
 #include "nuitka/helper/long_helpers.h"
 #endif
 
 /* C helpers for type specialized "<<" (LSHIFT) operations */
 
-/* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "LONG" to Python2 'long', Python3 'int'. */
 static PyObject *_BINARY_OPERATION_LSHIFT_OBJECT_LONG_LONG(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyLong_CheckExact(operand1));
@@ -21,7 +21,6 @@ static PyObject *_BINARY_OPERATION_LSHIFT_OBJECT_LONG_LONG(PyObject *operand1, P
 
     PyObject *result;
 
-    // Not every code path will make use of all possible results.
 #if defined(_MSC_VER)
 #pragma warning(push)
 #pragma warning(disable : 4101)
@@ -56,7 +55,6 @@ PyObject *BINARY_OPERATION_LSHIFT_OBJECT_LONG_LONG(PyObject *operand1, PyObject 
     return _BINARY_OPERATION_LSHIFT_OBJECT_LONG_LONG(operand1, operand2);
 }
 
-/* Code referring to "OBJECT" corresponds to any Python object and "LONG" to Python2 'long', Python3 'int'. */
 static HEDLEY_NEVER_INLINE PyObject *__BINARY_OPERATION_LSHIFT_OBJECT_OBJECT_LONG(PyObject *operand1,
                                                                                   PyObject *operand2) {
     PyTypeObject *type1 = Py_TYPE(operand1);
@@ -76,8 +74,6 @@ static HEDLEY_NEVER_INLINE PyObject *__BINARY_OPERATION_LSHIFT_OBJECT_OBJECT_LON
     binaryfunc slot2 = NULL;
 
     if (!(type1 == &PyLong_Type)) {
-        // Different types, need to consider second value slot.
-
         slot2 = PyLong_Type.tp_as_number->nb_lshift;
 
         if (slot1 == slot2) {
@@ -204,9 +200,6 @@ static PyObject *_BINARY_OPERATION_LSHIFT_OBJECT_OBJECT_LONG(PyObject *operand1,
     if (type1 == &PyLong_Type) {
         PyObject *result;
 
-        // return _BINARY_OPERATION_LSHIFT_OBJECT_LONG_LONG(operand1, operand2);
-
-        // Not every code path will make use of all possible results.
 #if defined(_MSC_VER)
 #pragma warning(push)
 #pragma warning(disable : 4101)
@@ -244,7 +237,6 @@ PyObject *BINARY_OPERATION_LSHIFT_OBJECT_OBJECT_LONG(PyObject *operand1, PyObjec
     return _BINARY_OPERATION_LSHIFT_OBJECT_OBJECT_LONG(operand1, operand2);
 }
 
-/* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "OBJECT" to any Python object. */
 static HEDLEY_NEVER_INLINE PyObject *__BINARY_OPERATION_LSHIFT_OBJECT_LONG_OBJECT(PyObject *operand1,
                                                                                   PyObject *operand2) {
     PyTypeObject *type2 = Py_TYPE(operand2);
@@ -263,8 +255,6 @@ static HEDLEY_NEVER_INLINE PyObject *__BINARY_OPERATION_LSHIFT_OBJECT_LONG_OBJEC
     binaryfunc slot2 = NULL;
 
     if (!(&PyLong_Type == type2)) {
-        // Different types, need to consider second value slot.
-
         slot2 = (type2->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type2)) ? type2->tp_as_number->nb_lshift : NULL;
 
         if (slot1 == slot2) {
@@ -405,9 +395,6 @@ static PyObject *_BINARY_OPERATION_LSHIFT_OBJECT_LONG_OBJECT(PyObject *operand1,
     if (&PyLong_Type == type2) {
         PyObject *result;
 
-        // return _BINARY_OPERATION_LSHIFT_OBJECT_LONG_LONG(operand1, operand2);
-
-        // Not every code path will make use of all possible results.
 #if defined(_MSC_VER)
 #pragma warning(push)
 #pragma warning(disable : 4101)
@@ -445,7 +432,6 @@ PyObject *BINARY_OPERATION_LSHIFT_OBJECT_LONG_OBJECT(PyObject *operand1, PyObjec
     return _BINARY_OPERATION_LSHIFT_OBJECT_LONG_OBJECT(operand1, operand2);
 }
 
-/* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "LONG" to Python2 'long', Python3 'int'. */
 static nuitka_bool _BINARY_OPERATION_LSHIFT_NBOOL_LONG_LONG(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyLong_CheckExact(operand1));
@@ -454,7 +440,6 @@ static nuitka_bool _BINARY_OPERATION_LSHIFT_NBOOL_LONG_LONG(PyObject *operand1, 
 
     nuitka_bool result;
 
-    // Not every code path will make use of all possible results.
 #if defined(_MSC_VER)
 #pragma warning(push)
 #pragma warning(disable : 4101)
@@ -475,7 +460,7 @@ exit_result_object:
     if (unlikely(obj_result == NULL)) {
         goto exit_result_exception;
     }
-    result = CHECK_IF_TRUE(obj_result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+    result = CHECK_IF_TRUE_NBOOL(obj_result);
     Py_DECREF(obj_result);
     goto exit_result_ok;
 
@@ -490,7 +475,6 @@ nuitka_bool BINARY_OPERATION_LSHIFT_NBOOL_LONG_LONG(PyObject *operand1, PyObject
     return _BINARY_OPERATION_LSHIFT_NBOOL_LONG_LONG(operand1, operand2);
 }
 
-/* Code referring to "OBJECT" corresponds to any Python object and "LONG" to Python2 'long', Python3 'int'. */
 static HEDLEY_NEVER_INLINE nuitka_bool __BINARY_OPERATION_LSHIFT_NBOOL_OBJECT_LONG(PyObject *operand1,
                                                                                    PyObject *operand2) {
     PyTypeObject *type1 = Py_TYPE(operand1);
@@ -510,8 +494,6 @@ static HEDLEY_NEVER_INLINE nuitka_bool __BINARY_OPERATION_LSHIFT_NBOOL_OBJECT_LO
     binaryfunc slot2 = NULL;
 
     if (!(type1 == &PyLong_Type)) {
-        // Different types, need to consider second value slot.
-
         slot2 = PyLong_Type.tp_as_number->nb_lshift;
 
         if (slot1 == slot2) {
@@ -628,7 +610,7 @@ exit_binary_result_object:
     }
 
     {
-        nuitka_bool r = CHECK_IF_TRUE(obj_result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+        nuitka_bool r = CHECK_IF_TRUE_NBOOL(obj_result);
         Py_DECREF(obj_result);
         return r;
     }
@@ -646,9 +628,6 @@ static nuitka_bool _BINARY_OPERATION_LSHIFT_NBOOL_OBJECT_LONG(PyObject *operand1
     if (type1 == &PyLong_Type) {
         nuitka_bool result;
 
-        // return _BINARY_OPERATION_LSHIFT_NBOOL_LONG_LONG(operand1, operand2);
-
-        // Not every code path will make use of all possible results.
 #if defined(_MSC_VER)
 #pragma warning(push)
 #pragma warning(disable : 4101)
@@ -669,7 +648,7 @@ static nuitka_bool _BINARY_OPERATION_LSHIFT_NBOOL_OBJECT_LONG(PyObject *operand1
         if (unlikely(obj_result == NULL)) {
             goto exit_result_exception;
         }
-        result = CHECK_IF_TRUE(obj_result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+        result = CHECK_IF_TRUE_NBOOL(obj_result);
         Py_DECREF(obj_result);
         goto exit_result_ok;
 
@@ -687,7 +666,6 @@ nuitka_bool BINARY_OPERATION_LSHIFT_NBOOL_OBJECT_LONG(PyObject *operand1, PyObje
     return _BINARY_OPERATION_LSHIFT_NBOOL_OBJECT_LONG(operand1, operand2);
 }
 
-/* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "OBJECT" to any Python object. */
 static HEDLEY_NEVER_INLINE nuitka_bool __BINARY_OPERATION_LSHIFT_NBOOL_LONG_OBJECT(PyObject *operand1,
                                                                                    PyObject *operand2) {
     PyTypeObject *type2 = Py_TYPE(operand2);
@@ -706,8 +684,6 @@ static HEDLEY_NEVER_INLINE nuitka_bool __BINARY_OPERATION_LSHIFT_NBOOL_LONG_OBJE
     binaryfunc slot2 = NULL;
 
     if (!(&PyLong_Type == type2)) {
-        // Different types, need to consider second value slot.
-
         slot2 = (type2->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type2)) ? type2->tp_as_number->nb_lshift : NULL;
 
         if (slot1 == slot2) {
@@ -838,7 +814,7 @@ exit_binary_result_object:
     }
 
     {
-        nuitka_bool r = CHECK_IF_TRUE(obj_result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+        nuitka_bool r = CHECK_IF_TRUE_NBOOL(obj_result);
         Py_DECREF(obj_result);
         return r;
     }
@@ -856,9 +832,6 @@ static nuitka_bool _BINARY_OPERATION_LSHIFT_NBOOL_LONG_OBJECT(PyObject *operand1
     if (&PyLong_Type == type2) {
         nuitka_bool result;
 
-        // return _BINARY_OPERATION_LSHIFT_NBOOL_LONG_LONG(operand1, operand2);
-
-        // Not every code path will make use of all possible results.
 #if defined(_MSC_VER)
 #pragma warning(push)
 #pragma warning(disable : 4101)
@@ -879,7 +852,7 @@ static nuitka_bool _BINARY_OPERATION_LSHIFT_NBOOL_LONG_OBJECT(PyObject *operand1
         if (unlikely(obj_result == NULL)) {
             goto exit_result_exception;
         }
-        result = CHECK_IF_TRUE(obj_result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+        result = CHECK_IF_TRUE_NBOOL(obj_result);
         Py_DECREF(obj_result);
         goto exit_result_ok;
 
@@ -898,7 +871,6 @@ nuitka_bool BINARY_OPERATION_LSHIFT_NBOOL_LONG_OBJECT(PyObject *operand1, PyObje
 }
 
 #if PYTHON_VERSION < 0x300
-/* Code referring to "INT" corresponds to Python2 'int' and "INT" to Python2 'int'. */
 static PyObject *_BINARY_OPERATION_LSHIFT_OBJECT_INT_INT(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyInt_CheckExact(operand1));
@@ -907,7 +879,6 @@ static PyObject *_BINARY_OPERATION_LSHIFT_OBJECT_INT_INT(PyObject *operand1, PyO
 
     PyObject *result;
 
-    // Not every code path will make use of all possible results.
 #if defined(_MSC_VER)
 #pragma warning(push)
 #pragma warning(disable : 4101)
@@ -934,14 +905,12 @@ static PyObject *_BINARY_OPERATION_LSHIFT_OBJECT_INT_INT(PyObject *operand1, PyO
         SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_ValueError, "negative shift count");
         goto exit_result_exception;
     }
-    /* Short cut for zero shift or shifting zero. */
     if (a == 0 || b == 0) {
         goto exit_result_ok_left;
     } else if (b >= LONG_BIT) {
         PyObject *operand1_long = Nuitka_PyLong_FromLong(a);
         PyObject *operand2_long = Nuitka_PyLong_FromLong(b);
 
-        // TODO: Change this to using CLONG once we specialize that too.
         PyObject *r = _BINARY_OPERATION_LSHIFT_OBJECT_LONG_LONG(operand1_long, operand2_long);
 
         Py_DECREF(operand1_long);
@@ -956,7 +925,6 @@ static PyObject *_BINARY_OPERATION_LSHIFT_OBJECT_INT_INT(PyObject *operand1, PyO
             PyObject *operand1_long = Nuitka_PyLong_FromLong(a);
             PyObject *operand2_long = Nuitka_PyLong_FromLong(b);
 
-            // TODO: Change this to using CLONG once we specialize that too.
             PyObject *r = _BINARY_OPERATION_LSHIFT_OBJECT_LONG_LONG(operand1_long, operand2_long);
 
             Py_DECREF(operand1_long);
@@ -999,7 +967,6 @@ PyObject *BINARY_OPERATION_LSHIFT_OBJECT_INT_INT(PyObject *operand1, PyObject *o
 #endif
 
 #if PYTHON_VERSION < 0x300
-/* Code referring to "OBJECT" corresponds to any Python object and "INT" to Python2 'int'. */
 static HEDLEY_NEVER_INLINE PyObject *__BINARY_OPERATION_LSHIFT_OBJECT_OBJECT_INT(PyObject *operand1,
                                                                                  PyObject *operand2) {
     PyTypeObject *type1 = Py_TYPE(operand1);
@@ -1019,8 +986,6 @@ static HEDLEY_NEVER_INLINE PyObject *__BINARY_OPERATION_LSHIFT_OBJECT_OBJECT_INT
     binaryfunc slot2 = NULL;
 
     if (!(type1 == &PyInt_Type)) {
-        // Different types, need to consider second value slot.
-
         slot2 = PyInt_Type.tp_as_number->nb_lshift;
 
         if (slot1 == slot2) {
@@ -1143,9 +1108,6 @@ static PyObject *_BINARY_OPERATION_LSHIFT_OBJECT_OBJECT_INT(PyObject *operand1, 
     if (type1 == &PyInt_Type) {
         PyObject *result;
 
-        // return _BINARY_OPERATION_LSHIFT_OBJECT_INT_INT(operand1, operand2);
-
-        // Not every code path will make use of all possible results.
 #if defined(_MSC_VER)
 #pragma warning(push)
 #pragma warning(disable : 4101)
@@ -1172,14 +1134,12 @@ static PyObject *_BINARY_OPERATION_LSHIFT_OBJECT_OBJECT_INT(PyObject *operand1, 
             SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_ValueError, "negative shift count");
             goto exit_result_exception;
         }
-        /* Short cut for zero shift or shifting zero. */
         if (a == 0 || b == 0) {
             goto exit_result_ok_left;
         } else if (b >= LONG_BIT) {
             PyObject *operand1_long = Nuitka_PyLong_FromLong(a);
             PyObject *operand2_long = Nuitka_PyLong_FromLong(b);
 
-            // TODO: Change this to using CLONG once we specialize that too.
             PyObject *r = _BINARY_OPERATION_LSHIFT_OBJECT_LONG_LONG(operand1_long, operand2_long);
 
             Py_DECREF(operand1_long);
@@ -1194,7 +1154,6 @@ static PyObject *_BINARY_OPERATION_LSHIFT_OBJECT_OBJECT_INT(PyObject *operand1, 
                 PyObject *operand1_long = Nuitka_PyLong_FromLong(a);
                 PyObject *operand2_long = Nuitka_PyLong_FromLong(b);
 
-                // TODO: Change this to using CLONG once we specialize that too.
                 PyObject *r = _BINARY_OPERATION_LSHIFT_OBJECT_LONG_LONG(operand1_long, operand2_long);
 
                 Py_DECREF(operand1_long);
@@ -1240,7 +1199,6 @@ PyObject *BINARY_OPERATION_LSHIFT_OBJECT_OBJECT_INT(PyObject *operand1, PyObject
 #endif
 
 #if PYTHON_VERSION < 0x300
-/* Code referring to "INT" corresponds to Python2 'int' and "OBJECT" to any Python object. */
 static HEDLEY_NEVER_INLINE PyObject *__BINARY_OPERATION_LSHIFT_OBJECT_INT_OBJECT(PyObject *operand1,
                                                                                  PyObject *operand2) {
     PyTypeObject *type2 = Py_TYPE(operand2);
@@ -1259,8 +1217,6 @@ static HEDLEY_NEVER_INLINE PyObject *__BINARY_OPERATION_LSHIFT_OBJECT_INT_OBJECT
     binaryfunc slot2 = NULL;
 
     if (!(&PyInt_Type == type2)) {
-        // Different types, need to consider second value slot.
-
         slot2 = (type2->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type2)) ? type2->tp_as_number->nb_lshift : NULL;
 
         if (slot1 == slot2) {
@@ -1397,9 +1353,6 @@ static PyObject *_BINARY_OPERATION_LSHIFT_OBJECT_INT_OBJECT(PyObject *operand1, 
     if (&PyInt_Type == type2) {
         PyObject *result;
 
-        // return _BINARY_OPERATION_LSHIFT_OBJECT_INT_INT(operand1, operand2);
-
-        // Not every code path will make use of all possible results.
 #if defined(_MSC_VER)
 #pragma warning(push)
 #pragma warning(disable : 4101)
@@ -1426,14 +1379,12 @@ static PyObject *_BINARY_OPERATION_LSHIFT_OBJECT_INT_OBJECT(PyObject *operand1, 
             SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_ValueError, "negative shift count");
             goto exit_result_exception;
         }
-        /* Short cut for zero shift or shifting zero. */
         if (a == 0 || b == 0) {
             goto exit_result_ok_left;
         } else if (b >= LONG_BIT) {
             PyObject *operand1_long = Nuitka_PyLong_FromLong(a);
             PyObject *operand2_long = Nuitka_PyLong_FromLong(b);
 
-            // TODO: Change this to using CLONG once we specialize that too.
             PyObject *r = _BINARY_OPERATION_LSHIFT_OBJECT_LONG_LONG(operand1_long, operand2_long);
 
             Py_DECREF(operand1_long);
@@ -1448,7 +1399,6 @@ static PyObject *_BINARY_OPERATION_LSHIFT_OBJECT_INT_OBJECT(PyObject *operand1, 
                 PyObject *operand1_long = Nuitka_PyLong_FromLong(a);
                 PyObject *operand2_long = Nuitka_PyLong_FromLong(b);
 
-                // TODO: Change this to using CLONG once we specialize that too.
                 PyObject *r = _BINARY_OPERATION_LSHIFT_OBJECT_LONG_LONG(operand1_long, operand2_long);
 
                 Py_DECREF(operand1_long);
@@ -1494,7 +1444,6 @@ PyObject *BINARY_OPERATION_LSHIFT_OBJECT_INT_OBJECT(PyObject *operand1, PyObject
 #endif
 
 #if PYTHON_VERSION < 0x300
-/* Code referring to "INT" corresponds to Python2 'int' and "INT" to Python2 'int'. */
 static nuitka_bool _BINARY_OPERATION_LSHIFT_NBOOL_INT_INT(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyInt_CheckExact(operand1));
@@ -1503,7 +1452,6 @@ static nuitka_bool _BINARY_OPERATION_LSHIFT_NBOOL_INT_INT(PyObject *operand1, Py
 
     nuitka_bool result;
 
-    // Not every code path will make use of all possible results.
 #if defined(_MSC_VER)
 #pragma warning(push)
 #pragma warning(disable : 4101)
@@ -1530,14 +1478,12 @@ static nuitka_bool _BINARY_OPERATION_LSHIFT_NBOOL_INT_INT(PyObject *operand1, Py
         SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_ValueError, "negative shift count");
         goto exit_result_exception;
     }
-    /* Short cut for zero shift or shifting zero. */
     if (a == 0 || b == 0) {
         goto exit_result_ok_left;
     } else if (b >= LONG_BIT) {
         PyObject *operand1_long = Nuitka_PyLong_FromLong(a);
         PyObject *operand2_long = Nuitka_PyLong_FromLong(b);
 
-        // TODO: Change this to using CLONG once we specialize that too.
         PyObject *r = _BINARY_OPERATION_LSHIFT_OBJECT_LONG_LONG(operand1_long, operand2_long);
 
         Py_DECREF(operand1_long);
@@ -1552,7 +1498,6 @@ static nuitka_bool _BINARY_OPERATION_LSHIFT_NBOOL_INT_INT(PyObject *operand1, Py
             PyObject *operand1_long = Nuitka_PyLong_FromLong(a);
             PyObject *operand2_long = Nuitka_PyLong_FromLong(b);
 
-            // TODO: Change this to using CLONG once we specialize that too.
             PyObject *r = _BINARY_OPERATION_LSHIFT_OBJECT_LONG_LONG(operand1_long, operand2_long);
 
             Py_DECREF(operand1_long);
@@ -1578,7 +1523,7 @@ exit_result_object:
     if (unlikely(obj_result == NULL)) {
         goto exit_result_exception;
     }
-    result = CHECK_IF_TRUE(obj_result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+    result = CHECK_IF_TRUE_NBOOL(obj_result);
     Py_DECREF(obj_result);
     goto exit_result_ok;
 
@@ -1595,7 +1540,6 @@ nuitka_bool BINARY_OPERATION_LSHIFT_NBOOL_INT_INT(PyObject *operand1, PyObject *
 #endif
 
 #if PYTHON_VERSION < 0x300
-/* Code referring to "OBJECT" corresponds to any Python object and "INT" to Python2 'int'. */
 static HEDLEY_NEVER_INLINE nuitka_bool __BINARY_OPERATION_LSHIFT_NBOOL_OBJECT_INT(PyObject *operand1,
                                                                                   PyObject *operand2) {
     PyTypeObject *type1 = Py_TYPE(operand1);
@@ -1615,8 +1559,6 @@ static HEDLEY_NEVER_INLINE nuitka_bool __BINARY_OPERATION_LSHIFT_NBOOL_OBJECT_IN
     binaryfunc slot2 = NULL;
 
     if (!(type1 == &PyInt_Type)) {
-        // Different types, need to consider second value slot.
-
         slot2 = PyInt_Type.tp_as_number->nb_lshift;
 
         if (slot1 == slot2) {
@@ -1729,7 +1671,7 @@ exit_binary_result_object:
     }
 
     {
-        nuitka_bool r = CHECK_IF_TRUE(obj_result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+        nuitka_bool r = CHECK_IF_TRUE_NBOOL(obj_result);
         Py_DECREF(obj_result);
         return r;
     }
@@ -1747,9 +1689,6 @@ static nuitka_bool _BINARY_OPERATION_LSHIFT_NBOOL_OBJECT_INT(PyObject *operand1,
     if (type1 == &PyInt_Type) {
         nuitka_bool result;
 
-        // return _BINARY_OPERATION_LSHIFT_NBOOL_INT_INT(operand1, operand2);
-
-        // Not every code path will make use of all possible results.
 #if defined(_MSC_VER)
 #pragma warning(push)
 #pragma warning(disable : 4101)
@@ -1776,14 +1715,12 @@ static nuitka_bool _BINARY_OPERATION_LSHIFT_NBOOL_OBJECT_INT(PyObject *operand1,
             SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_ValueError, "negative shift count");
             goto exit_result_exception;
         }
-        /* Short cut for zero shift or shifting zero. */
         if (a == 0 || b == 0) {
             goto exit_result_ok_left;
         } else if (b >= LONG_BIT) {
             PyObject *operand1_long = Nuitka_PyLong_FromLong(a);
             PyObject *operand2_long = Nuitka_PyLong_FromLong(b);
 
-            // TODO: Change this to using CLONG once we specialize that too.
             PyObject *r = _BINARY_OPERATION_LSHIFT_OBJECT_LONG_LONG(operand1_long, operand2_long);
 
             Py_DECREF(operand1_long);
@@ -1798,7 +1735,6 @@ static nuitka_bool _BINARY_OPERATION_LSHIFT_NBOOL_OBJECT_INT(PyObject *operand1,
                 PyObject *operand1_long = Nuitka_PyLong_FromLong(a);
                 PyObject *operand2_long = Nuitka_PyLong_FromLong(b);
 
-                // TODO: Change this to using CLONG once we specialize that too.
                 PyObject *r = _BINARY_OPERATION_LSHIFT_OBJECT_LONG_LONG(operand1_long, operand2_long);
 
                 Py_DECREF(operand1_long);
@@ -1824,7 +1760,7 @@ static nuitka_bool _BINARY_OPERATION_LSHIFT_NBOOL_OBJECT_INT(PyObject *operand1,
         if (unlikely(obj_result == NULL)) {
             goto exit_result_exception;
         }
-        result = CHECK_IF_TRUE(obj_result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+        result = CHECK_IF_TRUE_NBOOL(obj_result);
         Py_DECREF(obj_result);
         goto exit_result_ok;
 
@@ -1844,7 +1780,6 @@ nuitka_bool BINARY_OPERATION_LSHIFT_NBOOL_OBJECT_INT(PyObject *operand1, PyObjec
 #endif
 
 #if PYTHON_VERSION < 0x300
-/* Code referring to "INT" corresponds to Python2 'int' and "OBJECT" to any Python object. */
 static HEDLEY_NEVER_INLINE nuitka_bool __BINARY_OPERATION_LSHIFT_NBOOL_INT_OBJECT(PyObject *operand1,
                                                                                   PyObject *operand2) {
     PyTypeObject *type2 = Py_TYPE(operand2);
@@ -1863,8 +1798,6 @@ static HEDLEY_NEVER_INLINE nuitka_bool __BINARY_OPERATION_LSHIFT_NBOOL_INT_OBJEC
     binaryfunc slot2 = NULL;
 
     if (!(&PyInt_Type == type2)) {
-        // Different types, need to consider second value slot.
-
         slot2 = (type2->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type2)) ? type2->tp_as_number->nb_lshift : NULL;
 
         if (slot1 == slot2) {
@@ -1991,7 +1924,7 @@ exit_binary_result_object:
     }
 
     {
-        nuitka_bool r = CHECK_IF_TRUE(obj_result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+        nuitka_bool r = CHECK_IF_TRUE_NBOOL(obj_result);
         Py_DECREF(obj_result);
         return r;
     }
@@ -2009,9 +1942,6 @@ static nuitka_bool _BINARY_OPERATION_LSHIFT_NBOOL_INT_OBJECT(PyObject *operand1,
     if (&PyInt_Type == type2) {
         nuitka_bool result;
 
-        // return _BINARY_OPERATION_LSHIFT_NBOOL_INT_INT(operand1, operand2);
-
-        // Not every code path will make use of all possible results.
 #if defined(_MSC_VER)
 #pragma warning(push)
 #pragma warning(disable : 4101)
@@ -2038,14 +1968,12 @@ static nuitka_bool _BINARY_OPERATION_LSHIFT_NBOOL_INT_OBJECT(PyObject *operand1,
             SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_ValueError, "negative shift count");
             goto exit_result_exception;
         }
-        /* Short cut for zero shift or shifting zero. */
         if (a == 0 || b == 0) {
             goto exit_result_ok_left;
         } else if (b >= LONG_BIT) {
             PyObject *operand1_long = Nuitka_PyLong_FromLong(a);
             PyObject *operand2_long = Nuitka_PyLong_FromLong(b);
 
-            // TODO: Change this to using CLONG once we specialize that too.
             PyObject *r = _BINARY_OPERATION_LSHIFT_OBJECT_LONG_LONG(operand1_long, operand2_long);
 
             Py_DECREF(operand1_long);
@@ -2060,7 +1988,6 @@ static nuitka_bool _BINARY_OPERATION_LSHIFT_NBOOL_INT_OBJECT(PyObject *operand1,
                 PyObject *operand1_long = Nuitka_PyLong_FromLong(a);
                 PyObject *operand2_long = Nuitka_PyLong_FromLong(b);
 
-                // TODO: Change this to using CLONG once we specialize that too.
                 PyObject *r = _BINARY_OPERATION_LSHIFT_OBJECT_LONG_LONG(operand1_long, operand2_long);
 
                 Py_DECREF(operand1_long);
@@ -2086,7 +2013,7 @@ static nuitka_bool _BINARY_OPERATION_LSHIFT_NBOOL_INT_OBJECT(PyObject *operand1,
         if (unlikely(obj_result == NULL)) {
             goto exit_result_exception;
         }
-        result = CHECK_IF_TRUE(obj_result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+        result = CHECK_IF_TRUE_NBOOL(obj_result);
         Py_DECREF(obj_result);
         goto exit_result_ok;
 
@@ -2106,7 +2033,6 @@ nuitka_bool BINARY_OPERATION_LSHIFT_NBOOL_INT_OBJECT(PyObject *operand1, PyObjec
 #endif
 
 #if PYTHON_VERSION < 0x300
-/* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "INT" to Python2 'int'. */
 static PyObject *_BINARY_OPERATION_LSHIFT_OBJECT_LONG_INT(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyLong_CheckExact(operand1));
@@ -2124,7 +2050,6 @@ static PyObject *_BINARY_OPERATION_LSHIFT_OBJECT_LONG_INT(PyObject *operand1, Py
 #endif
 
     binaryfunc slot1 = PyLong_Type.tp_as_number->nb_lshift;
-    // Slot2 ignored on purpose, type1 takes precedence.
 
     if (slot1 != NULL) {
         PyObject *x = slot1(operand1, operand2);
@@ -2136,8 +2061,6 @@ static PyObject *_BINARY_OPERATION_LSHIFT_OBJECT_LONG_INT(PyObject *operand1, Py
 
         Py_DECREF_IMMORTAL(x);
     }
-
-    // Statically recognized that coercion is not possible with these types
 
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for <<: 'long' and 'int'");
     goto exit_binary_exception;
@@ -2155,7 +2078,6 @@ PyObject *BINARY_OPERATION_LSHIFT_OBJECT_LONG_INT(PyObject *operand1, PyObject *
 #endif
 
 #if PYTHON_VERSION < 0x300
-/* Code referring to "INT" corresponds to Python2 'int' and "LONG" to Python2 'long', Python3 'int'. */
 static PyObject *_BINARY_OPERATION_LSHIFT_OBJECT_INT_LONG(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyInt_CheckExact(operand1));
@@ -2172,12 +2094,9 @@ static PyObject *_BINARY_OPERATION_LSHIFT_OBJECT_INT_LONG(PyObject *operand1, Py
 #pragma warning(pop)
 #endif
 
-    // Slot1 ignored on purpose, type2 takes precedence.
     binaryfunc slot2 = NULL;
 
     if (!(0)) {
-        // Different types, need to consider second value slot.
-
         slot2 = PyLong_Type.tp_as_number->nb_lshift;
     }
 
@@ -2191,8 +2110,6 @@ static PyObject *_BINARY_OPERATION_LSHIFT_OBJECT_INT_LONG(PyObject *operand1, Py
 
         Py_DECREF_IMMORTAL(x);
     }
-
-    // Statically recognized that coercion is not possible with these types
 
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for <<: 'int' and 'long'");
     goto exit_binary_exception;
@@ -2210,7 +2127,6 @@ PyObject *BINARY_OPERATION_LSHIFT_OBJECT_INT_LONG(PyObject *operand1, PyObject *
 #endif
 
 #if PYTHON_VERSION < 0x300
-/* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "INT" to Python2 'int'. */
 static nuitka_bool _BINARY_OPERATION_LSHIFT_NBOOL_LONG_INT(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyLong_CheckExact(operand1));
@@ -2228,7 +2144,6 @@ static nuitka_bool _BINARY_OPERATION_LSHIFT_NBOOL_LONG_INT(PyObject *operand1, P
 #endif
 
     binaryfunc slot1 = PyLong_Type.tp_as_number->nb_lshift;
-    // Slot2 ignored on purpose, type1 takes precedence.
 
     if (slot1 != NULL) {
         PyObject *x = slot1(operand1, operand2);
@@ -2241,8 +2156,6 @@ static nuitka_bool _BINARY_OPERATION_LSHIFT_NBOOL_LONG_INT(PyObject *operand1, P
         Py_DECREF_IMMORTAL(x);
     }
 
-    // Statically recognized that coercion is not possible with these types
-
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for <<: 'long' and 'int'");
     goto exit_binary_exception;
 
@@ -2252,7 +2165,7 @@ exit_binary_result_object:
     }
 
     {
-        nuitka_bool r = CHECK_IF_TRUE(obj_result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+        nuitka_bool r = CHECK_IF_TRUE_NBOOL(obj_result);
         Py_DECREF(obj_result);
         return r;
     }
@@ -2267,7 +2180,6 @@ nuitka_bool BINARY_OPERATION_LSHIFT_NBOOL_LONG_INT(PyObject *operand1, PyObject 
 #endif
 
 #if PYTHON_VERSION < 0x300
-/* Code referring to "INT" corresponds to Python2 'int' and "LONG" to Python2 'long', Python3 'int'. */
 static nuitka_bool _BINARY_OPERATION_LSHIFT_NBOOL_INT_LONG(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyInt_CheckExact(operand1));
@@ -2284,12 +2196,9 @@ static nuitka_bool _BINARY_OPERATION_LSHIFT_NBOOL_INT_LONG(PyObject *operand1, P
 #pragma warning(pop)
 #endif
 
-    // Slot1 ignored on purpose, type2 takes precedence.
     binaryfunc slot2 = NULL;
 
     if (!(0)) {
-        // Different types, need to consider second value slot.
-
         slot2 = PyLong_Type.tp_as_number->nb_lshift;
     }
 
@@ -2304,8 +2213,6 @@ static nuitka_bool _BINARY_OPERATION_LSHIFT_NBOOL_INT_LONG(PyObject *operand1, P
         Py_DECREF_IMMORTAL(x);
     }
 
-    // Statically recognized that coercion is not possible with these types
-
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for <<: 'int' and 'long'");
     goto exit_binary_exception;
 
@@ -2315,7 +2222,7 @@ exit_binary_result_object:
     }
 
     {
-        nuitka_bool r = CHECK_IF_TRUE(obj_result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+        nuitka_bool r = CHECK_IF_TRUE_NBOOL(obj_result);
         Py_DECREF(obj_result);
         return r;
     }
@@ -2329,7 +2236,6 @@ nuitka_bool BINARY_OPERATION_LSHIFT_NBOOL_INT_LONG(PyObject *operand1, PyObject 
 }
 #endif
 
-/* Code referring to "OBJECT" corresponds to any Python object and "OBJECT" to any Python object. */
 static PyObject *_BINARY_OPERATION_LSHIFT_OBJECT_OBJECT_OBJECT(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     CHECK_OBJECT(operand2);
@@ -2338,7 +2244,6 @@ static PyObject *_BINARY_OPERATION_LSHIFT_OBJECT_OBJECT_OBJECT(PyObject *operand
     if (PyInt_CheckExact(operand1) && PyInt_CheckExact(operand2)) {
         PyObject *result;
 
-        // Not every code path will make use of all possible results.
 #if defined(_MSC_VER)
 #pragma warning(push)
 #pragma warning(disable : 4101)
@@ -2365,14 +2270,12 @@ static PyObject *_BINARY_OPERATION_LSHIFT_OBJECT_OBJECT_OBJECT(PyObject *operand
             SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_ValueError, "negative shift count");
             goto exit_result_exception;
         }
-        /* Short cut for zero shift or shifting zero. */
         if (a == 0 || b == 0) {
             goto exit_result_ok_left;
         } else if (b >= LONG_BIT) {
             PyObject *operand1_long = Nuitka_PyLong_FromLong(a);
             PyObject *operand2_long = Nuitka_PyLong_FromLong(b);
 
-            // TODO: Change this to using CLONG once we specialize that too.
             PyObject *r = _BINARY_OPERATION_LSHIFT_OBJECT_LONG_LONG(operand1_long, operand2_long);
 
             Py_DECREF(operand1_long);
@@ -2387,7 +2290,6 @@ static PyObject *_BINARY_OPERATION_LSHIFT_OBJECT_OBJECT_OBJECT(PyObject *operand
                 PyObject *operand1_long = Nuitka_PyLong_FromLong(a);
                 PyObject *operand2_long = Nuitka_PyLong_FromLong(b);
 
-                // TODO: Change this to using CLONG once we specialize that too.
                 PyObject *r = _BINARY_OPERATION_LSHIFT_OBJECT_LONG_LONG(operand1_long, operand2_long);
 
                 Py_DECREF(operand1_long);
@@ -2443,8 +2345,6 @@ static PyObject *_BINARY_OPERATION_LSHIFT_OBJECT_OBJECT_OBJECT(PyObject *operand
     binaryfunc slot2 = NULL;
 
     if (!(type1 == type2)) {
-        // Different types, need to consider second value slot.
-
         slot2 = (type2->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type2)) ? type2->tp_as_number->nb_lshift : NULL;
 
         if (slot1 == slot2) {
@@ -2577,7 +2477,6 @@ PyObject *BINARY_OPERATION_LSHIFT_OBJECT_OBJECT_OBJECT(PyObject *operand1, PyObj
     return _BINARY_OPERATION_LSHIFT_OBJECT_OBJECT_OBJECT(operand1, operand2);
 }
 
-/* Code referring to "OBJECT" corresponds to any Python object and "OBJECT" to any Python object. */
 static nuitka_bool _BINARY_OPERATION_LSHIFT_NBOOL_OBJECT_OBJECT(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     CHECK_OBJECT(operand2);
@@ -2586,7 +2485,6 @@ static nuitka_bool _BINARY_OPERATION_LSHIFT_NBOOL_OBJECT_OBJECT(PyObject *operan
     if (PyInt_CheckExact(operand1) && PyInt_CheckExact(operand2)) {
         nuitka_bool result;
 
-        // Not every code path will make use of all possible results.
 #if defined(_MSC_VER)
 #pragma warning(push)
 #pragma warning(disable : 4101)
@@ -2613,14 +2511,12 @@ static nuitka_bool _BINARY_OPERATION_LSHIFT_NBOOL_OBJECT_OBJECT(PyObject *operan
             SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_ValueError, "negative shift count");
             goto exit_result_exception;
         }
-        /* Short cut for zero shift or shifting zero. */
         if (a == 0 || b == 0) {
             goto exit_result_ok_left;
         } else if (b >= LONG_BIT) {
             PyObject *operand1_long = Nuitka_PyLong_FromLong(a);
             PyObject *operand2_long = Nuitka_PyLong_FromLong(b);
 
-            // TODO: Change this to using CLONG once we specialize that too.
             PyObject *r = _BINARY_OPERATION_LSHIFT_OBJECT_LONG_LONG(operand1_long, operand2_long);
 
             Py_DECREF(operand1_long);
@@ -2635,7 +2531,6 @@ static nuitka_bool _BINARY_OPERATION_LSHIFT_NBOOL_OBJECT_OBJECT(PyObject *operan
                 PyObject *operand1_long = Nuitka_PyLong_FromLong(a);
                 PyObject *operand2_long = Nuitka_PyLong_FromLong(b);
 
-                // TODO: Change this to using CLONG once we specialize that too.
                 PyObject *r = _BINARY_OPERATION_LSHIFT_OBJECT_LONG_LONG(operand1_long, operand2_long);
 
                 Py_DECREF(operand1_long);
@@ -2661,7 +2556,7 @@ static nuitka_bool _BINARY_OPERATION_LSHIFT_NBOOL_OBJECT_OBJECT(PyObject *operan
         if (unlikely(obj_result == NULL)) {
             goto exit_result_exception;
         }
-        result = CHECK_IF_TRUE(obj_result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+        result = CHECK_IF_TRUE_NBOOL(obj_result);
         Py_DECREF(obj_result);
         goto exit_result_ok;
 
@@ -2691,8 +2586,6 @@ static nuitka_bool _BINARY_OPERATION_LSHIFT_NBOOL_OBJECT_OBJECT(PyObject *operan
     binaryfunc slot2 = NULL;
 
     if (!(type1 == type2)) {
-        // Different types, need to consider second value slot.
-
         slot2 = (type2->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type2)) ? type2->tp_as_number->nb_lshift : NULL;
 
         if (slot1 == slot2) {
@@ -2820,7 +2713,7 @@ exit_binary_result_object:
     }
 
     {
-        nuitka_bool r = CHECK_IF_TRUE(obj_result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+        nuitka_bool r = CHECK_IF_TRUE_NBOOL(obj_result);
         Py_DECREF(obj_result);
         return r;
     }

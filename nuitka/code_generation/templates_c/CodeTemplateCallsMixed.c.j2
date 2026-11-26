@@ -10,6 +10,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS{{args_count}}_KW_SPLIT(PyThreadState *tstate, 
 {% else %}
 PyObject *CALL_FUNCTION_WITH_POS_ARGS{{args_count}}_KW_SPLIT(PyThreadState *tstate, PyObject *called, PyObject *pos_args, PyObject *const *kw_values, PyObject *kw_names) {
     assert(PyTuple_CheckExact(pos_args));
+    assert(PyTuple_GET_SIZE(pos_args) == {{args_count}});
     PyObject *const *args = &PyTuple_GET_ITEM(pos_args, 0);
 {% endif %}
     {{ CHECK_OBJECTS(args, args_count) }}
@@ -17,11 +18,17 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS{{args_count}}_KW_SPLIT(PyThreadState *tsta
     assert(PyTuple_CheckExact(kw_names));
     CHECK_OBJECT(called);
 
+{% if args_count != 0 or not has_dict_values %}
     Py_ssize_t kwargs_count = PyTuple_GET_SIZE(kw_names);
+{% endif %}
 
     {# The dict values might be joined and separately, check them too. #}
 {% if has_dict_values %}
+{% if args_count != 0 %}
+    CHECK_OBJECTS(kw_values, kwargs_count);
+{% else %}
     CHECK_OBJECTS(kw_values, PyTuple_GET_SIZE(kw_names));
+{% endif %}
 {% else %}
     CHECK_OBJECTS(&args[{{args_count}}], kwargs_count);
 {% endif %}
@@ -57,12 +64,13 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS{{args_count}}_KW_SPLIT(PyThreadState *tsta
 {% elif not has_dict_values %}
             PyObject *result = func(called, args, {{args_count}}, kw_names);
 {% else %}
-            NUITKA_DYNAMIC_ARRAY_DECL(vectorcall_args, PyObject *, {{args_count}} + kwargs_count);
+            NUITKA_DYNAMIC_ARRAY_DECL(vectorcall_args, PyObject *, 1 + {{args_count}} + kwargs_count);
+            vectorcall_args[0] = NULL;
 
-            memcpy(vectorcall_args, args, {{args_count}}*sizeof(PyObject *));
-            memcpy(&vectorcall_args[{{args_count}}], kw_values, kwargs_count*sizeof(PyObject *));
+            memcpy(&vectorcall_args[1], args, {{args_count}} * sizeof(PyObject *));
+            memcpy(&vectorcall_args[1 + {{args_count}}], kw_values, kwargs_count * sizeof(PyObject *));
 
-            PyObject *result = func(called, vectorcall_args, {{args_count}}, kw_names);
+            PyObject *result = func(called, &vectorcall_args[1], {{args_count}} | PY_VECTORCALL_ARGUMENTS_OFFSET, kw_names);
 {% endif %}
 
             CHECK_OBJECT_X(result);
@@ -71,12 +79,6 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS{{args_count}}_KW_SPLIT(PyThreadState *tsta
         }
 #endif
     }
-
-#if 0
-    PRINT_STRING("FALLBACK");
-    PRINT_ITEM(called);
-    PRINT_NEW_LINE();
-#endif
 
     ternaryfunc call_slot = Py_TYPE(called)->tp_call;
 
@@ -96,21 +98,19 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS{{args_count}}_KW_SPLIT(PyThreadState *tsta
     PyObject *pos_args = MAKE_TUPLE(tstate, args, {{args_count}});
 {% endif %}
 
-    PyObject *named_args = _PyDict_NewPresized(kwargs_count);
-
-    for (Py_ssize_t i = 0; i < kwargs_count; i++) {
-        PyObject *key = PyTuple_GET_ITEM(kw_names, i);
-
 {% if not has_dict_values %}
-        PyObject *value = args[{{args_count}}+i];
+    PyObject *named_args = MAKE_DICT_FROM_KWARGS(tstate, kw_names, &args[{{args_count}}]);
 {% else %}
-        PyObject *value = kw_values[i];
+    PyObject *named_args = MAKE_DICT_FROM_KWARGS(tstate, kw_names, kw_values);
 {% endif %}
 
-        CHECK_OBJECT(key);
-        CHECK_OBJECT(value);
+    if (unlikely(named_args == NULL)) {
+{% if args_count != 0 and not has_tuple_arg %}
+        Py_DECREF(pos_args);
+{% endif %}
+        Py_LeaveRecursiveCall();
 
-        DICT_SET_ITEM(named_args, key, value);
+        return NULL;
     }
 
     PyObject *result = (*call_slot)(called, pos_args, named_args);

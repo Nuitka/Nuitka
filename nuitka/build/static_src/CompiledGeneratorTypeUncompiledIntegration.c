@@ -2,21 +2,21 @@
 
 /** Uncompiled generator integration
  *
- * This is for use in compiled generator, coroutine, async types. The file in
- * included for compiled generator, and in part exports functions as necessary.
+ * This is for use in compiled generator, coroutine, async types. This file is
+ * included for compiled generators, and in part exports functions as necessary.
  *
  */
 
 // This file is included from another C file, help IDEs to still parse it on
 // its own.
 #ifdef __IDE_ONLY__
+#include "nuitka/compiled_types_common.h"
 #include "nuitka/prelude.h"
 #endif
 
-// spell-checker: ignore f_valuestack,f_stacktop,PYGEN,_Py_CODEUNIT,OPARG
-// spell-checker: ignore localsplus,stacktop,f_funcobj,genexit
-// spell-checker: ignore deopt,subscr,isinstance,getitem,noargs,aiter,anext
-// spell-checker: ignore classderef,getattribute,precall,nondescriptor,pyfunc
+// spell-checker: ignore OPARG,PYGEN,_Py_CODEUNIT,aiter,anext,classderef,deopt,f_funcobj
+// spell-checker: ignore f_stacktop,f_valuestack,genexit,getattribute,getitem,isinstance
+// spell-checker: ignore localsplus,noargs,nondescriptor,precall,pyfunc,stacktop,subscr
 
 #if PYTHON_VERSION >= 0x300
 static PyObject *Nuitka_CallGeneratorThrowMethod(PyObject *throw_method,
@@ -310,6 +310,46 @@ static void Nuitka_PyErr_ChainStackItem(PyThreadState *tstate) {
 }
 #endif
 
+#if PYTHON_VERSION >= 0x350 && PYTHON_VERSION < 0x3c0
+NUITKA_MAY_BE_UNUSED static void Nuitka_PyGen_HandleRaisedStopIteration(PyThreadState *tstate, PyGenObject *gen) {
+    PyObject *error = GET_ERROR_OCCURRED(tstate);
+
+    if (error != NULL) {
+        if (EXCEPTION_MATCH_BOOL_SINGLE(tstate, error, PyExc_StopIteration)) {
+#if PYTHON_VERSION < 0x370
+            const int check_stop_iter_error_flags = CO_FUTURE_GENERATOR_STOP | CO_COROUTINE |
+#if PYTHON_VERSION >= 0x360
+                                                    CO_ASYNC_GENERATOR |
+#endif
+                                                    CO_ITERABLE_COROUTINE;
+
+            if (unlikely(gen->gi_code != NULL &&
+                         ((PyCodeObject *)gen->gi_code)->co_flags & check_stop_iter_error_flags))
+#endif
+            {
+                char const *msg = "generator raised StopIteration";
+
+                if (PyCoro_CheckExact(gen)) {
+                    msg = "coroutine raised StopIteration";
+                }
+#if PYTHON_VERSION >= 0x360
+                else if (PyAsyncGen_CheckExact(gen)) {
+                    msg = "async generator raised StopIteration";
+                }
+#endif
+
+                RAISE_RUNTIME_ERROR_RAISED_STOP_ITERATION(tstate, msg);
+            }
+        }
+#if PYTHON_VERSION >= 0x360
+        else if (PyAsyncGen_CheckExact(gen) && EXCEPTION_MATCH_BOOL_SINGLE(tstate, error, PyExc_StopAsyncIteration)) {
+            RAISE_RUNTIME_ERROR_RAISED_STOP_ITERATION(tstate, "async generator raised StopAsyncIteration");
+        }
+#endif
+    }
+}
+#endif
+
 // This is for CPython iterator objects, the respective code is not exported as
 // API, so we need to redo it. This is an re-implementation that closely follows
 // what it does. It's unrelated to compiled generators, and used from coroutines
@@ -361,7 +401,6 @@ static PyObject *Nuitka_PyGen_Send(PyThreadState *tstate, PyGenObject *gen, PyOb
 #else
     if (gen->gi_frame_state >= FRAME_COMPLETED) {
 #endif
-        // Set exception if called from send()
         if (arg != NULL) {
             SET_CURRENT_EXCEPTION_STOP_ITERATION_EMPTY(tstate);
         }
@@ -378,14 +417,12 @@ static PyObject *Nuitka_PyGen_Send(PyThreadState *tstate, PyGenObject *gen, PyOb
             return NULL;
         }
     } else {
-        // Put arg on top of the value stack
         PyObject *tmp = arg ? arg : Py_None;
 
         Py_INCREF(tmp);
         *(f->f_stacktop++) = tmp;
     }
 #else
-    // CPython assertions, check them
     assert(_PyFrame_IsRunnable(f));
     assert(f->f_lasti >= 0 || ((unsigned char *)PyBytes_AS_STRING(f->f_code->co_code))[0] == 129);
 
@@ -448,8 +485,6 @@ static PyObject *Nuitka_PyGen_Send(PyThreadState *tstate, PyGenObject *gen, PyOb
 
     if (result == NULL || f->f_stacktop == NULL) {
 #if PYTHON_VERSION < 0x370
-        // Generator is finished, remove exception from frame before releasing
-        // it.
         PyObject *type = f->f_exc_type;
         PyObject *value = f->f_exc_value;
         PyObject *traceback = f->f_exc_traceback;
@@ -463,7 +498,6 @@ static PyObject *Nuitka_PyGen_Send(PyThreadState *tstate, PyGenObject *gen, PyOb
         Nuitka_PyGen_exc_state_clear(&gen->gi_exc_state);
 #endif
 
-        // Now release frame.
 #if PYTHON_VERSION >= 0x300
         gen->gi_frame->f_gen = NULL;
 #endif
@@ -482,18 +516,9 @@ static PyObject *Nuitka_PyGen_Send(PyThreadState *tstate, PyGenObject *gen, PyOb
             result = NULL;
         }
     } else {
-        if (PyErr_ExceptionMatches(PyExc_StopIteration)) {
-            const char *msg = "generator raised StopIteration";
-            if (PyCoro_CheckExact(gen)) {
-                msg = "coroutine raised StopIteration";
-            } else if (PyAsyncGen_CheckExact(gen)) {
-                msg = "async generator raised StopIteration";
-            }
-            _PyErr_FormatFromCause(PyExc_RuntimeError, "%s", msg);
-        } else if (PyAsyncGen_CheckExact(gen) && PyErr_ExceptionMatches(PyExc_StopAsyncIteration)) {
-            const char *msg = "async generator raised StopAsyncIteration";
-            _PyErr_FormatFromCause(PyExc_RuntimeError, "%s", msg);
-        }
+#if PYTHON_VERSION < 0x3c0
+        Nuitka_PyGen_HandleRaisedStopIteration(tstate, gen);
+#endif
 
         result = NULL;
     }
@@ -541,7 +566,264 @@ static int Nuitka_PyGen_gen_close_iter(PyThreadState *tstate, PyObject *yf);
 
 // Private opcode mapping, that we need too
 const uint8_t Nuitka_PyOpcode_Deopt[256] = {
-#if PYTHON_VERSION >= 0x3f0
+#if PYTHON_VERSION >= 0x400
+    [117] = 117,
+    [118] = 118,
+    [119] = 119,
+    [120] = 120,
+    [121] = 121,
+    [122] = 122,
+    [123] = 123,
+    [124] = 124,
+    [125] = 125,
+    [126] = 126,
+    [127] = 127,
+    [219] = 219,
+    [220] = 220,
+    [221] = 221,
+    [222] = 222,
+    [223] = 223,
+    [224] = 224,
+    [225] = 225,
+    [226] = 226,
+    [227] = 227,
+    [228] = 228,
+    [229] = 229,
+    [230] = 230,
+    [231] = 231,
+    [232] = 232,
+    [BINARY_OP] = BINARY_OP,
+    [BINARY_OP_ADD_FLOAT] = BINARY_OP,
+    [BINARY_OP_ADD_INT] = BINARY_OP,
+    [BINARY_OP_ADD_UNICODE] = BINARY_OP,
+    [BINARY_OP_EXTEND] = BINARY_OP,
+    [BINARY_OP_INPLACE_ADD_UNICODE] = BINARY_OP,
+    [BINARY_OP_MULTIPLY_FLOAT] = BINARY_OP,
+    [BINARY_OP_MULTIPLY_INT] = BINARY_OP,
+    [BINARY_OP_SUBSCR_DICT] = BINARY_OP,
+    [BINARY_OP_SUBSCR_GETITEM] = BINARY_OP,
+    [BINARY_OP_SUBSCR_LIST_INT] = BINARY_OP,
+    [BINARY_OP_SUBSCR_LIST_SLICE] = BINARY_OP,
+    [BINARY_OP_SUBSCR_STR_INT] = BINARY_OP,
+    [BINARY_OP_SUBSCR_TUPLE_INT] = BINARY_OP,
+    [BINARY_OP_SUBSCR_USTR_INT] = BINARY_OP,
+    [BINARY_OP_SUBTRACT_FLOAT] = BINARY_OP,
+    [BINARY_OP_SUBTRACT_INT] = BINARY_OP,
+    [BINARY_SLICE] = BINARY_SLICE,
+    [BUILD_INTERPOLATION] = BUILD_INTERPOLATION,
+    [BUILD_LIST] = BUILD_LIST,
+    [BUILD_MAP] = BUILD_MAP,
+    [BUILD_SET] = BUILD_SET,
+    [BUILD_SLICE] = BUILD_SLICE,
+    [BUILD_STRING] = BUILD_STRING,
+    [BUILD_TEMPLATE] = BUILD_TEMPLATE,
+    [BUILD_TUPLE] = BUILD_TUPLE,
+    [CACHE] = CACHE,
+    [CALL] = CALL,
+    [CALL_ALLOC_AND_ENTER_INIT] = CALL,
+    [CALL_BOUND_METHOD_EXACT_ARGS] = CALL,
+    [CALL_BOUND_METHOD_GENERAL] = CALL,
+    [CALL_BUILTIN_CLASS] = CALL,
+    [CALL_BUILTIN_FAST] = CALL,
+    [CALL_BUILTIN_FAST_WITH_KEYWORDS] = CALL,
+    [CALL_BUILTIN_O] = CALL,
+    [CALL_EX_NON_PY_GENERAL] = CALL_FUNCTION_EX,
+    [CALL_EX_PY] = CALL_FUNCTION_EX,
+    [CALL_FUNCTION_EX] = CALL_FUNCTION_EX,
+    [CALL_INTRINSIC_1] = CALL_INTRINSIC_1,
+    [CALL_INTRINSIC_2] = CALL_INTRINSIC_2,
+    [CALL_ISINSTANCE] = CALL,
+    [CALL_KW] = CALL_KW,
+    [CALL_KW_BOUND_METHOD] = CALL_KW,
+    [CALL_KW_NON_PY] = CALL_KW,
+    [CALL_KW_PY] = CALL_KW,
+    [CALL_LEN] = CALL,
+    [CALL_LIST_APPEND] = CALL,
+    [CALL_METHOD_DESCRIPTOR_FAST] = CALL,
+    [CALL_METHOD_DESCRIPTOR_FAST_WITH_KEYWORDS] = CALL,
+    [CALL_METHOD_DESCRIPTOR_NOARGS] = CALL,
+    [CALL_METHOD_DESCRIPTOR_O] = CALL,
+    [CALL_NON_PY_GENERAL] = CALL,
+    [CALL_PY_EXACT_ARGS] = CALL,
+    [CALL_PY_GENERAL] = CALL,
+    [CALL_STR_1] = CALL,
+    [CALL_TUPLE_1] = CALL,
+    [CALL_TYPE_1] = CALL,
+    [CHECK_EG_MATCH] = CHECK_EG_MATCH,
+    [CHECK_EXC_MATCH] = CHECK_EXC_MATCH,
+    [CLEANUP_THROW] = CLEANUP_THROW,
+    [COMPARE_OP] = COMPARE_OP,
+    [COMPARE_OP_FLOAT] = COMPARE_OP,
+    [COMPARE_OP_INT] = COMPARE_OP,
+    [COMPARE_OP_STR] = COMPARE_OP,
+    [CONTAINS_OP] = CONTAINS_OP,
+    [CONTAINS_OP_DICT] = CONTAINS_OP,
+    [CONTAINS_OP_SET] = CONTAINS_OP,
+    [CONVERT_VALUE] = CONVERT_VALUE,
+    [COPY] = COPY,
+    [COPY_FREE_VARS] = COPY_FREE_VARS,
+    [DELETE_DEREF] = DELETE_DEREF,
+    [DELETE_FAST] = DELETE_FAST,
+    [DELETE_SUBSCR] = DELETE_SUBSCR,
+    [DICT_MERGE] = DICT_MERGE,
+    [DICT_UPDATE] = DICT_UPDATE,
+    [END_ASYNC_FOR] = END_ASYNC_FOR,
+    [END_FOR] = END_FOR,
+    [END_SEND] = END_SEND,
+    [ENTER_EXECUTOR] = ENTER_EXECUTOR,
+    [EXIT_INIT_CHECK] = EXIT_INIT_CHECK,
+    [EXTENDED_ARG] = EXTENDED_ARG,
+    [FORMAT_SIMPLE] = FORMAT_SIMPLE,
+    [FORMAT_WITH_SPEC] = FORMAT_WITH_SPEC,
+    [FOR_ITER] = FOR_ITER,
+    [FOR_ITER_GEN] = FOR_ITER,
+    [FOR_ITER_LIST] = FOR_ITER,
+    [FOR_ITER_RANGE] = FOR_ITER,
+    [FOR_ITER_TUPLE] = FOR_ITER,
+    [FOR_ITER_VIRTUAL] = FOR_ITER,
+    [GET_AITER] = GET_AITER,
+    [GET_ANEXT] = GET_ANEXT,
+    [GET_AWAITABLE] = GET_AWAITABLE,
+    [GET_ITER] = GET_ITER,
+    [GET_ITER_SELF] = GET_ITER,
+    [GET_ITER_VIRTUAL] = GET_ITER,
+    [GET_LEN] = GET_LEN,
+    [IMPORT_FROM] = IMPORT_FROM,
+    [IMPORT_NAME] = IMPORT_NAME,
+    [INSTRUMENTED_CALL] = INSTRUMENTED_CALL,
+    [INSTRUMENTED_CALL_FUNCTION_EX] = INSTRUMENTED_CALL_FUNCTION_EX,
+    [INSTRUMENTED_CALL_KW] = INSTRUMENTED_CALL_KW,
+    [INSTRUMENTED_END_ASYNC_FOR] = INSTRUMENTED_END_ASYNC_FOR,
+    [INSTRUMENTED_END_FOR] = INSTRUMENTED_END_FOR,
+    [INSTRUMENTED_END_SEND] = INSTRUMENTED_END_SEND,
+    [INSTRUMENTED_FOR_ITER] = INSTRUMENTED_FOR_ITER,
+    [INSTRUMENTED_INSTRUCTION] = INSTRUMENTED_INSTRUCTION,
+    [INSTRUMENTED_JUMP_BACKWARD] = INSTRUMENTED_JUMP_BACKWARD,
+    [INSTRUMENTED_JUMP_FORWARD] = INSTRUMENTED_JUMP_FORWARD,
+    [INSTRUMENTED_LINE] = INSTRUMENTED_LINE,
+    [INSTRUMENTED_LOAD_SUPER_ATTR] = INSTRUMENTED_LOAD_SUPER_ATTR,
+    [INSTRUMENTED_NOT_TAKEN] = INSTRUMENTED_NOT_TAKEN,
+    [INSTRUMENTED_POP_ITER] = INSTRUMENTED_POP_ITER,
+    [INSTRUMENTED_POP_JUMP_IF_FALSE] = INSTRUMENTED_POP_JUMP_IF_FALSE,
+    [INSTRUMENTED_POP_JUMP_IF_NONE] = INSTRUMENTED_POP_JUMP_IF_NONE,
+    [INSTRUMENTED_POP_JUMP_IF_NOT_NONE] = INSTRUMENTED_POP_JUMP_IF_NOT_NONE,
+    [INSTRUMENTED_POP_JUMP_IF_TRUE] = INSTRUMENTED_POP_JUMP_IF_TRUE,
+    [INSTRUMENTED_RESUME] = INSTRUMENTED_RESUME,
+    [INSTRUMENTED_RETURN_VALUE] = INSTRUMENTED_RETURN_VALUE,
+    [INSTRUMENTED_YIELD_VALUE] = INSTRUMENTED_YIELD_VALUE,
+    [INTERPRETER_EXIT] = INTERPRETER_EXIT,
+    [IS_OP] = IS_OP,
+    [JUMP_BACKWARD] = JUMP_BACKWARD,
+    [JUMP_BACKWARD_JIT] = JUMP_BACKWARD,
+    [JUMP_BACKWARD_NO_INTERRUPT] = JUMP_BACKWARD_NO_INTERRUPT,
+    [JUMP_BACKWARD_NO_JIT] = JUMP_BACKWARD,
+    [JUMP_FORWARD] = JUMP_FORWARD,
+    [LIST_APPEND] = LIST_APPEND,
+    [LIST_EXTEND] = LIST_EXTEND,
+    [LOAD_ATTR] = LOAD_ATTR,
+    [LOAD_ATTR_CLASS] = LOAD_ATTR,
+    [LOAD_ATTR_CLASS_WITH_METACLASS_CHECK] = LOAD_ATTR,
+    [LOAD_ATTR_GETATTRIBUTE_OVERRIDDEN] = LOAD_ATTR,
+    [LOAD_ATTR_INSTANCE_VALUE] = LOAD_ATTR,
+    [LOAD_ATTR_METHOD_LAZY_DICT] = LOAD_ATTR,
+    [LOAD_ATTR_METHOD_NO_DICT] = LOAD_ATTR,
+    [LOAD_ATTR_METHOD_WITH_VALUES] = LOAD_ATTR,
+    [LOAD_ATTR_MODULE] = LOAD_ATTR,
+    [LOAD_ATTR_NONDESCRIPTOR_NO_DICT] = LOAD_ATTR,
+    [LOAD_ATTR_NONDESCRIPTOR_WITH_VALUES] = LOAD_ATTR,
+    [LOAD_ATTR_PROPERTY] = LOAD_ATTR,
+    [LOAD_ATTR_SLOT] = LOAD_ATTR,
+    [LOAD_ATTR_WITH_HINT] = LOAD_ATTR,
+    [LOAD_BUILD_CLASS] = LOAD_BUILD_CLASS,
+    [LOAD_COMMON_CONSTANT] = LOAD_COMMON_CONSTANT,
+    [LOAD_CONST] = LOAD_CONST,
+    [LOAD_DEREF] = LOAD_DEREF,
+    [LOAD_FAST] = LOAD_FAST,
+    [LOAD_FAST_AND_CLEAR] = LOAD_FAST_AND_CLEAR,
+    [LOAD_FAST_BORROW] = LOAD_FAST_BORROW,
+    [LOAD_FAST_BORROW_LOAD_FAST_BORROW] = LOAD_FAST_BORROW_LOAD_FAST_BORROW,
+    [LOAD_FAST_CHECK] = LOAD_FAST_CHECK,
+    [LOAD_FAST_LOAD_FAST] = LOAD_FAST_LOAD_FAST,
+    [LOAD_FROM_DICT_OR_DEREF] = LOAD_FROM_DICT_OR_DEREF,
+    [LOAD_FROM_DICT_OR_GLOBALS] = LOAD_FROM_DICT_OR_GLOBALS,
+    [LOAD_GLOBAL] = LOAD_GLOBAL,
+    [LOAD_GLOBAL_BUILTIN] = LOAD_GLOBAL,
+    [LOAD_GLOBAL_MODULE] = LOAD_GLOBAL,
+    [LOAD_LOCALS] = LOAD_LOCALS,
+    [LOAD_NAME] = LOAD_NAME,
+    [LOAD_SMALL_INT] = LOAD_SMALL_INT,
+    [LOAD_SPECIAL] = LOAD_SPECIAL,
+    [LOAD_SUPER_ATTR] = LOAD_SUPER_ATTR,
+    [LOAD_SUPER_ATTR_ATTR] = LOAD_SUPER_ATTR,
+    [LOAD_SUPER_ATTR_METHOD] = LOAD_SUPER_ATTR,
+    [MAKE_CELL] = MAKE_CELL,
+    [MAKE_FUNCTION] = MAKE_FUNCTION,
+    [MAP_ADD] = MAP_ADD,
+    [MATCH_CLASS] = MATCH_CLASS,
+    [MATCH_KEYS] = MATCH_KEYS,
+    [MATCH_MAPPING] = MATCH_MAPPING,
+    [MATCH_SEQUENCE] = MATCH_SEQUENCE,
+    [NOP] = NOP,
+    [NOT_TAKEN] = NOT_TAKEN,
+    [POP_EXCEPT] = POP_EXCEPT,
+    [POP_ITER] = POP_ITER,
+    [POP_JUMP_IF_FALSE] = POP_JUMP_IF_FALSE,
+    [POP_JUMP_IF_NONE] = POP_JUMP_IF_NONE,
+    [POP_JUMP_IF_NOT_NONE] = POP_JUMP_IF_NOT_NONE,
+    [POP_JUMP_IF_TRUE] = POP_JUMP_IF_TRUE,
+    [POP_TOP] = POP_TOP,
+    [PUSH_EXC_INFO] = PUSH_EXC_INFO,
+    [PUSH_NULL] = PUSH_NULL,
+    [RAISE_VARARGS] = RAISE_VARARGS,
+    [RERAISE] = RERAISE,
+    [RESERVED] = RESERVED,
+    [RESUME] = RESUME,
+    [RESUME_CHECK] = RESUME,
+    [RESUME_CHECK_JIT] = RESUME,
+    [RETURN_GENERATOR] = RETURN_GENERATOR,
+    [RETURN_VALUE] = RETURN_VALUE,
+    [SEND] = SEND,
+    [SEND_ASYNC_GEN] = SEND,
+    [SEND_GEN] = SEND,
+    [SEND_VIRTUAL] = SEND,
+    [SETUP_ANNOTATIONS] = SETUP_ANNOTATIONS,
+    [SET_ADD] = SET_ADD,
+    [SET_FUNCTION_ATTRIBUTE] = SET_FUNCTION_ATTRIBUTE,
+    [SET_UPDATE] = SET_UPDATE,
+    [STORE_ATTR] = STORE_ATTR,
+    [STORE_ATTR_INSTANCE_VALUE] = STORE_ATTR,
+    [STORE_ATTR_SLOT] = STORE_ATTR,
+    [STORE_ATTR_WITH_HINT] = STORE_ATTR,
+    [STORE_DEREF] = STORE_DEREF,
+    [STORE_FAST] = STORE_FAST,
+    [STORE_FAST_LOAD_FAST] = STORE_FAST_LOAD_FAST,
+    [STORE_FAST_STORE_FAST] = STORE_FAST_STORE_FAST,
+    [STORE_GLOBAL] = STORE_GLOBAL,
+    [STORE_NAME] = STORE_NAME,
+    [STORE_SLICE] = STORE_SLICE,
+    [STORE_SUBSCR] = STORE_SUBSCR,
+    [STORE_SUBSCR_DICT] = STORE_SUBSCR,
+    [STORE_SUBSCR_LIST_INT] = STORE_SUBSCR,
+    [SWAP] = SWAP,
+    [TO_BOOL] = TO_BOOL,
+    [TO_BOOL_ALWAYS_TRUE] = TO_BOOL,
+    [TO_BOOL_BOOL] = TO_BOOL,
+    [TO_BOOL_INT] = TO_BOOL,
+    [TO_BOOL_LIST] = TO_BOOL,
+    [TO_BOOL_NONE] = TO_BOOL,
+    [TO_BOOL_STR] = TO_BOOL,
+    [TRACE_RECORD] = TRACE_RECORD,
+    [UNARY_INVERT] = UNARY_INVERT,
+    [UNARY_NEGATIVE] = UNARY_NEGATIVE,
+    [UNARY_NOT] = UNARY_NOT,
+    [UNPACK_EX] = UNPACK_EX,
+    [UNPACK_SEQUENCE] = UNPACK_SEQUENCE,
+    [UNPACK_SEQUENCE_LIST] = UNPACK_SEQUENCE,
+    [UNPACK_SEQUENCE_TUPLE] = UNPACK_SEQUENCE,
+    [UNPACK_SEQUENCE_TWO_TUPLE] = UNPACK_SEQUENCE,
+    [WITH_EXCEPT_START] = WITH_EXCEPT_START,
+    [YIELD_VALUE] = YIELD_VALUE,
+#elif PYTHON_VERSION >= 0x3f0
     [120] = 120,
     [121] = 121,
     [122] = 122,
@@ -1904,7 +2186,6 @@ static PySendResult Nuitka_PyGen_gen_send_ex2(PyThreadState *tstate, PyGenObject
     assert(gen->gi_frame_state < FRAME_EXECUTING);
 #endif
 
-    // Put arg on the frame's stack
     result = arg ? arg : Py_None;
 #if PYTHON_VERSION >= 0x3e0
     _PyFrame_StackPush(frame, PyStackRef_FromPyObjectNew(result));
@@ -1968,22 +2249,12 @@ static PySendResult Nuitka_PyGen_gen_send_ex2(PyThreadState *tstate, PyGenObject
         }
     } else {
 #if PYTHON_VERSION < 0x3c0
-        if (PyErr_ExceptionMatches(PyExc_StopIteration)) {
-            const char *msg = "generator raised StopIteration";
-            if (PyCoro_CheckExact(gen)) {
-                msg = "coroutine raised StopIteration";
-            } else if (PyAsyncGen_CheckExact(gen)) {
-                msg = "async generator raised StopIteration";
-            }
-            _PyErr_FormatFromCause(PyExc_RuntimeError, "%s", msg);
-        } else if (PyAsyncGen_CheckExact(gen) && PyErr_ExceptionMatches(PyExc_StopAsyncIteration)) {
-            const char *msg = "async generator raised StopAsyncIteration";
-            _PyErr_FormatFromCause(PyExc_RuntimeError, "%s", msg);
-        }
+        Nuitka_PyGen_HandleRaisedStopIteration(tstate, gen);
 #else
-        assert(!PyErr_ExceptionMatches(PyExc_StopIteration));
-        assert(!PyAsyncGen_CheckExact(gen) || !PyErr_ExceptionMatches(PyExc_StopAsyncIteration));
-
+        assert(!HAS_ERROR_OCCURRED(tstate) ||
+               !EXCEPTION_MATCH_BOOL_SINGLE(tstate, GET_ERROR_OCCURRED(tstate), PyExc_StopIteration));
+        assert(!HAS_ERROR_OCCURRED(tstate) || !PyAsyncGen_CheckExact(gen) ||
+               !EXCEPTION_MATCH_BOOL_SINGLE(tstate, GET_ERROR_OCCURRED(tstate), PyExc_StopAsyncIteration));
 #endif
     }
 
@@ -2023,9 +2294,8 @@ static PyObject *Nuitka_PyGen_gen_send_ex(PyThreadState *tstate, PyGenObject *ge
 // This function is called when throwing to an uncompiled generator. Coroutines and generators
 // do this in their yielding from.
 // Note:
-//   Exception arguments are passed for ownership and must be released before returning. The
-//   value of exception_type will not be NULL, but the actual exception will not necessarily
-//   be normalized.
+//   Exception state is passed for ownership and must be released before returning; it is
+//   non-empty, but not necessarily normalized.
 static PyObject *Nuitka_UncompiledGenerator_throw(PyThreadState *tstate, PyGenObject *gen, int close_on_genexit,
                                                   struct Nuitka_ExceptionPreservationItem *exception_state) {
 #if _DEBUG_GENERATOR
@@ -2081,22 +2351,18 @@ static PyObject *Nuitka_UncompiledGenerator_throw(PyThreadState *tstate, PyGenOb
             CURRENT_TSTATE_INTERPRETER_FRAME(tstate) = prev;
             frame->previous = NULL;
         } else {
-#if 0
-            // TODO: Add slow mode traces.
-            PRINT_ITEM(yf);
-            PRINT_NEW_LINE();
-#endif
+            NUITKA_PRINT_SLOW_PATH_OBJECT("uncompiled generator yield_from throw", yf);
 
             PyObject *meth = LOOKUP_ATTRIBUTE(tstate, yf, const_str_plain_throw);
 
             if (unlikely(meth == NULL)) {
                 Py_DECREF(yf);
 
-                goto failed_throw;
-            }
+                if (!CHECK_AND_CLEAR_ATTRIBUTE_ERROR_OCCURRED(tstate)) {
+                    goto failed_throw;
+                }
 
-            if (meth == NULL) {
-                Py_DECREF(yf);
+                // Handing exception ownership to this code.
                 goto throw_here;
             }
 
@@ -2265,13 +2531,11 @@ static PyObject *Nuitka_PyGen_gen_send_ex(PyThreadState *tstate, PyGenObject *ge
             return NULL;
         }
     } else {
-        // Put arg on the frame's stack
         result = arg ? arg : Py_None;
         Py_INCREF(result);
         *(f->f_stacktop++) = result;
     }
 #else
-    // CPython assertions, check them
     assert(_PyFrame_IsRunnable(f));
     assert(f->f_lasti >= 0 || ((unsigned char *)PyBytes_AS_STRING(f->f_code->co_code))[0] == GEN_START);
 
@@ -2325,41 +2589,8 @@ static PyObject *Nuitka_PyGen_gen_send_ex(PyThreadState *tstate, PyGenObject *ge
         Py_CLEAR(result);
     }
 #if PYTHON_VERSION >= 0x350
-    else if (result == NULL && PyErr_ExceptionMatches(PyExc_StopIteration)) {
-#if PYTHON_VERSION < 0x370
-        const int check_stop_iter_error_flags = CO_FUTURE_GENERATOR_STOP | CO_COROUTINE |
-#if PYTHON_VERSION >= 0x360
-                                                CO_ASYNC_GENERATOR |
-#endif
-                                                CO_ITERABLE_COROUTINE;
-
-        if (unlikely(gen->gi_code != NULL && ((PyCodeObject *)gen->gi_code)->co_flags & check_stop_iter_error_flags))
-#endif
-        {
-            char const *msg = "generator raised StopIteration";
-
-            if (PyCoro_CheckExact(gen)) {
-                msg = "coroutine raised StopIteration";
-            }
-#if PYTHON_VERSION >= 0x360
-            else if (PyAsyncGen_CheckExact(gen)) {
-                msg = "async generator raised StopIteration";
-            }
-#endif
-
-#if PYTHON_VERSION >= 0x360
-            _PyErr_FormatFromCause(
-#else
-            PyErr_Format(
-#endif
-                PyExc_RuntimeError, "%s", msg);
-        }
-    }
-#endif
-#if PYTHON_VERSION >= 0x360
-    else if (result == NULL && PyAsyncGen_CheckExact(gen) && PyErr_ExceptionMatches(PyExc_StopAsyncIteration)) {
-        char const *msg = "async generator raised StopAsyncIteration";
-        _PyErr_FormatFromCause(PyExc_RuntimeError, "%s", msg);
+    else if (result == NULL) {
+        Nuitka_PyGen_HandleRaisedStopIteration(tstate, gen);
     }
 #endif
 
@@ -2401,20 +2632,7 @@ static PyObject *Nuitka_PyGen_gen_send_ex(PyThreadState *tstate, PyGenObject *ge
         // TODO: Add Py_CLEAR_IMMORTAL maybe
         Py_CLEAR(result);
     } else {
-        if (PyErr_ExceptionMatches(PyExc_StopIteration)) {
-            const char *msg = "generator raised StopIteration";
-            if (PyCoro_CheckExact(gen)) {
-                msg = "coroutine raised StopIteration";
-            } else if (PyAsyncGen_CheckExact(gen)) {
-                msg = "async generator raised StopIteration";
-            }
-            _PyErr_FormatFromCause(PyExc_RuntimeError, "%s", msg);
-        } else if (PyAsyncGen_CheckExact(gen) && PyErr_ExceptionMatches(PyExc_StopAsyncIteration)) {
-            const char *msg = "async generator raised StopAsyncIteration";
-
-            // TODO: Have our own variant of this.
-            _PyErr_FormatFromCause(PyExc_RuntimeError, "%s", msg);
-        }
+        Nuitka_PyGen_HandleRaisedStopIteration(tstate, gen);
     }
 
     Nuitka_PyGen_exc_state_clear(&gen->gi_exc_state);
@@ -2430,9 +2648,8 @@ static PyObject *Nuitka_PyGen_gen_send_ex(PyThreadState *tstate, PyGenObject *ge
 // This function is called when throwing to an uncompiled generator. Coroutines and generators
 // do this in their yielding from.
 // Note:
-//   Exception arguments are passed for ownership and must be released before returning. The
-//   value of exception_type will not be NULL, but the actual exception will not necessarily
-//   be normalized.
+//   Exception state is passed for ownership and must be released before returning; it is
+//   non-empty, but not necessarily normalized.
 static PyObject *Nuitka_UncompiledGenerator_throw(PyThreadState *tstate, PyGenObject *gen, int close_on_genexit,
                                                   struct Nuitka_ExceptionPreservationItem *exception_state) {
 #if _DEBUG_GENERATOR
@@ -2499,17 +2716,13 @@ static PyObject *Nuitka_UncompiledGenerator_throw(PyThreadState *tstate, PyGenOb
             gen->gi_frame->f_state = state;
 #endif
         } else {
-#if 0
-            // TODO: Add slow mode traces.
-            PRINT_ITEM(yf);
-            PRINT_NEW_LINE();
-#endif
+            NUITKA_PRINT_SLOW_PATH_OBJECT("uncompiled generator yield_from throw", yf);
 
             // TODO: Use faster code here too.
             PyObject *meth = LOOKUP_ATTRIBUTE(tstate, yf, const_str_plain_throw);
 
             if (meth == NULL) {
-                if (!PyErr_ExceptionMatches(PyExc_AttributeError)) {
+                if (!CHECK_AND_CLEAR_ATTRIBUTE_ERROR_OCCURRED(tstate)) {
                     Py_DECREF(yf);
 
                     // Releasing exception, we are done with it.
@@ -2518,7 +2731,6 @@ static PyObject *Nuitka_UncompiledGenerator_throw(PyThreadState *tstate, PyGenOb
                     return NULL;
                 }
 
-                CLEAR_ERROR_OCCURRED(tstate);
                 Py_DECREF(yf);
 
                 // Handing exception ownership to this code.
@@ -2600,7 +2812,6 @@ static int Nuitka_PyGen_gen_close_iter(PyThreadState *tstate, PyObject *yf) {
         || PyCoro_CheckExact(yf)
 #endif
     ) {
-        assert(false);
         retval = Nuitka_PyGen_gen_close(tstate, (PyGenObject *)yf, NULL);
 
         if (retval == NULL) {
@@ -2610,11 +2821,10 @@ static int Nuitka_PyGen_gen_close_iter(PyThreadState *tstate, PyObject *yf) {
         PyObject *meth = LOOKUP_ATTRIBUTE(tstate, yf, const_str_plain_close);
 
         if (meth == NULL) {
-            if (!PyErr_ExceptionMatches(PyExc_AttributeError)) {
-                PyErr_WriteUnraisable(yf);
+            if (unlikely(!CHECK_AND_CLEAR_ATTRIBUTE_ERROR_OCCURRED(tstate))) {
+                Nuitka_WriteUnraisable(yf);
+                CLEAR_ERROR_OCCURRED(tstate);
             }
-
-            CLEAR_ERROR_OCCURRED(tstate);
         } else {
             retval = CALL_FUNCTION_NO_ARGS(tstate, meth);
 
@@ -2681,9 +2891,7 @@ static PyObject *Nuitka_PyGen_gen_close(PyThreadState *tstate, PyGenObject *gen,
         return NULL;
     }
 
-    if (PyErr_ExceptionMatches(PyExc_StopIteration) || PyErr_ExceptionMatches(PyExc_GeneratorExit)) {
-        CLEAR_ERROR_OCCURRED(tstate);
-
+    if (DROP_ERROR_OCCURRED_GENERATOR_EXIT_OR_STOP_ITERATION(tstate)) {
         Py_INCREF_IMMORTAL(Py_None);
         return Py_None;
     }

@@ -10,7 +10,9 @@ that need special case, e.g. the registration of the loader class.
 
 import re
 
-from nuitka.__past__ import PermissionError  # pylint: disable=redefined-builtin
+from nuitka.__past__ import (  # pylint: disable=redefined-builtin
+    PermissionError,
+)
 from nuitka.plugins.PluginBase import NuitkaPluginBase
 from nuitka.PythonVersions import python_version
 from nuitka.utils.Utils import withNoDeprecationWarning, withNoWarning
@@ -25,7 +27,7 @@ class NuitkaPluginResources(NuitkaPluginBase):
         with withNoWarning():
             try:
                 import pkg_resources
-            except (ImportError, RuntimeError, PermissionError):
+            except (ImportError, RuntimeError, PermissionError, SyntaxError):
                 self.pkg_resources = None
             else:
                 self.pkg_resources = pkg_resources

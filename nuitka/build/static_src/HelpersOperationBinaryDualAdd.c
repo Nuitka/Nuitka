@@ -10,8 +10,6 @@
 
 /* C helpers for type specialized "+" (ADD) operations */
 
-/* Code referring to "NILONG" corresponds to Nuitka int/long/C long value and "NILONG" to Nuitka int/long/C long value.
- */
 bool BINARY_OPERATION_ADD_NILONG_NILONG_NILONG(nuitka_ilong *result, nuitka_ilong *operand1, nuitka_ilong *operand2) {
     CHECK_NILONG_OBJECT(operand1);
     CHECK_NILONG_OBJECT(operand2);
@@ -20,7 +18,6 @@ bool BINARY_OPERATION_ADD_NILONG_NILONG_NILONG(nuitka_ilong *result, nuitka_ilon
     bool right_c_usable = IS_NILONG_C_VALUE_VALID(operand2);
 
     if (left_c_usable && right_c_usable) {
-        // Not every code path will make use of all possible results.
 #if defined(_MSC_VER)
 #pragma warning(push)
 #pragma warning(disable : 4101)
@@ -92,8 +89,6 @@ bool BINARY_OPERATION_ADD_NILONG_NILONG_NILONG(nuitka_ilong *result, nuitka_ilon
     }
 }
 
-/* Code referring to "NILONG" corresponds to Nuitka int/long/C long value and "DIGIT" to C platform digit value for long
- * Python objects. */
 bool BINARY_OPERATION_ADD_NILONG_NILONG_DIGIT(nuitka_ilong *result, nuitka_ilong *operand1, long operand2) {
     CHECK_NILONG_OBJECT(operand1);
     assert(Py_ABS(operand2) < (1 << PyLong_SHIFT));
@@ -102,7 +97,6 @@ bool BINARY_OPERATION_ADD_NILONG_NILONG_DIGIT(nuitka_ilong *result, nuitka_ilong
     bool right_c_usable = true;
 
     if (left_c_usable && right_c_usable) {
-        // Not every code path will make use of all possible results.
 #if defined(_MSC_VER)
 #pragma warning(push)
 #pragma warning(disable : 4101)

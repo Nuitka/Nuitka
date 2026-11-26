@@ -59,7 +59,9 @@ else:
 
 
 if str is bytes:
-    from cStringIO import StringIO  # Python2 code, pylint: disable=import-error
+    from cStringIO import (  # Python2 code, pylint: disable=import-error
+        StringIO,
+    )
 else:
     from io import StringIO
 
@@ -121,6 +123,11 @@ try:
     frozendict = frozendict  # pylint: disable=I0021,redefined-builtin
 except NameError:
     frozendict = None
+
+try:
+    sentinel = sentinel  # pylint: disable=I0021,redefined-builtin
+except NameError:
+    sentinel = None
 
 
 if str is bytes:
@@ -256,6 +263,7 @@ assert subprocess
 assert GenericAlias or intern
 assert UnionType or intern
 assert frozendict or intern
+assert sentinel or intern
 assert FileNotFoundError
 assert imp
 

@@ -1,13 +1,7 @@
 #     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-"""Slice nodes.
-
-Slices are important when working with lists. Tracking them can allow to
-achieve more compact code, or predict results at compile time.
-
-There will be a method "computeExpressionSlice" to aid predicting them.
-"""
+"""Slice nodes."""
 
 from nuitka.Constants import isMutable
 from nuitka.specs import BuiltinParameterSpecs
@@ -46,8 +40,6 @@ class StatementAssignmentSlice(StatementAssignmentSliceBase):
     def computeStatement(self, trace_collection):
         source = trace_collection.onExpression(self.subnode_source)
 
-        # No assignment will occur, if the assignment source raises, so strip it
-        # away.
         if source.willRaiseAnyException():
             result = makeStatementExpressionOnlyReplacementNode(
                 expression=source, node=self
@@ -208,8 +200,6 @@ def makeExpressionBuiltinSlice(start, stop, step, source_ref):
         and (stop is None or stop.isCompileTimeConstant())
         and (step is None or step.isCompileTimeConstant())
     ):
-        # Avoid going slices for what is effectively constant.
-
         start_value = None if start is None else start.getCompileTimeConstant()
         stop_value = None if stop is None else stop.getCompileTimeConstant()
         step_value = None if step is None else step.getCompileTimeConstant()
@@ -244,7 +234,6 @@ def makeExpressionBuiltinSlice(start, stop, step, source_ref):
 class ExpressionBuiltinSliceMixin(
     ExpressionSliceShapeExactMixin, SideEffectsFromChildrenMixin
 ):
-    # Mixins are required to define empty slots
     __slots__ = ()
 
     builtin_spec = BuiltinParameterSpecs.builtin_slice_spec
@@ -253,7 +242,6 @@ class ExpressionBuiltinSliceMixin(
     def isExpressionBuiltinCall():
         return True
 
-    # We use SideEffectsFromChildrenMixin for the other things.
     def mayHaveSideEffects(self):
         return self.mayRaiseException(BaseException)
 
@@ -279,10 +267,7 @@ class ExpressionBuiltinSlice3(
         ExpressionBase.__init__(self, source_ref)
 
     def computeExpression(self, trace_collection):
-        if (
-            self.subnode_step.isExpressionConstantNoneRef()
-            or self.subnode_step.getIndexValue() == 1
-        ):
+        if self.subnode_step.isExpressionConstantNoneRef():
             return trace_collection.computedExpressionResult(
                 wrapExpressionWithSideEffects(
                     old_node=self,

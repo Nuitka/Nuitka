@@ -38,7 +38,7 @@ if branch_name == "factory":
 
 assert (
     os.system(
-        "rsync -rvlpt --exclude=deb_dist dist/ root@ssh.nuitka.net:/var/www/releases/"
+        "rsync -rvlpt --exclude=deb_dist --chmod=D755,F644 dist/ deploy@ssh.nuitka.net:/var/www/releases/"
     )
     == 0
 )

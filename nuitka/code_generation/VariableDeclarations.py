@@ -1,10 +1,7 @@
 #     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-"""Variable declarations
-Holds the information necessary to make C code declarations related to a variable.
-
-"""
+"""Hold C declaration and storage details for variables."""
 
 from contextlib import contextmanager
 
@@ -92,8 +89,8 @@ class VariableDeclaration(object):
         return "%s->%s = %s;" % (self.heap_name, self.code_name, self.init_value)
 
     def getCType(self):
-        # TODO: This ought to become unnecessary function
-        # In the mean time, many cases: pylint: disable=too-many-return-statements
+        # TODO: Store CType objects directly on VariableDeclaration.
+        # pylint: disable=too-many-return-statements
 
         c_type = self.c_type
 
@@ -177,8 +174,7 @@ class YieldTempsDeclaration(object):
 
 
 class VariableStorage(object):
-    # The storage for variable declarations, with a couple of attributes for
-    # exception variables, pylint: disable=too-many-instance-attributes
+    # pylint: disable=too-many-instance-attributes
     __slots__ = (
         "heap_name",
         "struct_name",
@@ -210,13 +206,6 @@ class VariableStorage(object):
 
     @contextmanager
     def withLocalStorage(self):
-        """Local storage for only just during context usage.
-
-        This is for automatic removal of that scope. These are supposed
-        to be nestable eventually.
-
-        """
-
         self.variable_declarations_locals.append([])
 
         yield
@@ -245,7 +234,9 @@ class VariableStorage(object):
 
     def addFrameCacheDeclaration(self, frame_identifier):
         return self.addVariableDeclarationFunction(
-            "static struct Nuitka_FrameObject *", "cache_%s" % frame_identifier, "NULL"
+            "static struct Nuitka_FrameCacheHandle",
+            "cache_%s" % frame_identifier,
+            "{NULL, 0}",
         )
 
     def makeCStructLevelDeclarations(self):

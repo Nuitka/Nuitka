@@ -14,8 +14,9 @@ import sys
 import time
 from contextlib import contextmanager
 
-from nuitka.__past__ import WindowsError  # pylint: disable=I0021,redefined-builtin
-from nuitka.PythonVersions import getSystemPrefixPath
+from nuitka.__past__ import (  # pylint: disable=I0021,redefined-builtin
+    WindowsError,
+)
 
 
 def getOS():
@@ -30,7 +31,9 @@ def getOS():
 
         # OS400 (IBM i) is effectively AIX when using the native
         # QOpenSys Python port running in PASE.
-        if result == "OS400" and getSystemPrefixPath().startswith("/QOpenSys/pkgs"):
+        if result == "OS400" and getattr(sys, "base_prefix", sys.prefix).startswith(
+            "/QOpenSys/pkgs"
+        ):
             result = "AIX"
 
         return result
@@ -284,6 +287,11 @@ def isMacOS():
     return getOS() == "Darwin"
 
 
+def isCaseInsensitiveOS():
+    """Check if the OS uses case insensitive file names by default."""
+    return isMacOS() or isWin32OrPosixWindows()
+
+
 def isAIX():
     """The AIX platform."""
     return getOS() == "AIX"
@@ -456,7 +464,7 @@ def hasStandaloneSupportedOS():
 
 def getUserName():
     """Return the user name."""
-    # spell-checker: ignore getpwuid,getuid,getlogin
+    # spell-checker: ignore getlogin,getpwuid,getuid
     if isWin32Windows():
         return os.getlogin()
     else:
@@ -476,7 +484,9 @@ def withWarningRemoved(category):
         # are not to care about.
         if "pkg_resources" in sys.modules and category is DeprecationWarning:
             try:
-                from pkg_resources import PkgResourcesDeprecationWarning  # type: ignore
+                from pkg_resources import (  # type: ignore
+                    PkgResourcesDeprecationWarning,
+                )
             except ImportError:
                 pass
             else:
@@ -494,12 +504,6 @@ def withNoDeprecationWarning():
 
 
 @contextmanager
-def withNoSyntaxWarning():
-    with withWarningRemoved(SyntaxWarning):
-        yield
-
-
-@contextmanager
 def withNoWarning():
     with withWarningRemoved(Warning):
         yield
@@ -507,7 +511,7 @@ def withNoWarning():
 
 @contextmanager
 def withNoExceptions():
-    """Only let RuntimeError and the like escape."""
+    """Suppress 'Exception' subclasses, letting only 'BaseException' exits escape."""
     try:
         yield
     except Exception:  # pylint: disable=broad-exception-caught
@@ -544,26 +548,39 @@ def decoratorRetries(
                 try:
                     result = func(*args, **kwargs)
                 except exception_type as e:
+                    if attempt < attempts:
+                        retry_info = (
+                            "\nRetrying after a delay of %d seconds." % sleep_time
+                        )
+                    else:
+                        retry_info = ""
+
                     if not isinstance(e, OSError):
                         logger.warning("""\
 Failed to %s in attempt %d due to %s.
-%s
-Retrying after a second of delay.""" % (purpose, attempt, str(e), recommendation))
+%s%s""" % (purpose, attempt, str(e), recommendation, retry_info))
 
                     else:
                         if isinstance(e, OSError) and e.errno in (110, 13):
                             logger.warning("""\
 Failed to %s in attempt %d.
-%s
-Retrying after a second of delay.""" % (purpose, attempt, recommendation))
+%s%s""" % (purpose, attempt, recommendation, retry_info))
                         else:
-                            logger.warning("""\
+                            logger.warning(
+                                """\
 Failed to %s in attempt %d with error code %d.
-%s
-Retrying after a second of delay.""" % (purpose, attempt, e.errno, recommendation))
+%s%s"""
+                                % (
+                                    purpose,
+                                    attempt,
+                                    e.errno,
+                                    recommendation,
+                                    retry_info,
+                                )
+                            )
 
-                    time.sleep(sleep_time)
-                    continue
+                    if attempt < attempts:
+                        time.sleep(sleep_time)
 
                 else:
                     if attempt != 1:

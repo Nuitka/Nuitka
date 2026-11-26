@@ -10,8 +10,6 @@ from .HardImportNodesGenerated import (
 
 
 class ExpressionCtypesCdllSince38Call(ExpressionCtypesCdllSince38CallBase):
-    """Function reference ctypes.CDLL"""
-
     kind = "EXPRESSION_CTYPES_CDLL_SINCE38_CALL"
 
     def replaceWithCompileTimeValue(self, trace_collection):
@@ -22,8 +20,6 @@ class ExpressionCtypesCdllSince38Call(ExpressionCtypesCdllSince38CallBase):
 
 
 class ExpressionCtypesCdllBefore38Call(ExpressionCtypesCdllBefore38CallBase):
-    """Function reference ctypes.CDLL"""
-
     kind = "EXPRESSION_CTYPES_CDLL_BEFORE38_CALL"
 
     def replaceWithCompileTimeValue(self, trace_collection):

@@ -4,19 +4,14 @@
 #ifndef __NUITKA_DEFINES_H__
 #define __NUITKA_DEFINES_H__
 
-/* A way to not give warnings about things that are declared, but might not
- * be used like in-line helper functions in headers or static per module
- * variables from headers.
- */
 #if defined(__GNUC__) || defined(__clang__)
 #define NUITKA_MAY_BE_UNUSED __attribute__((__unused__))
 #else
 #define NUITKA_MAY_BE_UNUSED
 #endif
 
-/* A way to make a struct type alias any other type, disabling strict-aliasing
- * optimizations for accesses through it.
- */
+#define NUITKA_UNREFERENCED_PARAMETER(parameter) ((void)(parameter))
+
 #if defined(__GNUC__) || defined(__clang__)
 #define NUITKA_MAY_ALIAS __attribute__((__may_alias__))
 #else
@@ -25,28 +20,30 @@
 
 #include "hedley.h"
 
-/* Use annotations for branch prediction. They still make sense as the L1
- * cache space is saved.
- */
-
 #define likely(x) HEDLEY_LIKELY(x)
 #define unlikely(x) HEDLEY_UNLIKELY(x)
 
 #define STATIC_ASSERT(expr, msg) HEDLEY_STATIC_ASSERT(expr, msg)
 
-/* A way to indicate that a specific function won't return, so the C compiler
- * can create better code.
- */
-
 #define NUITKA_NO_RETURN HEDLEY_NO_RETURN
 
-/* This is used to indicate code control flows we know cannot happen. */
 #ifndef __NUITKA_NO_ASSERT__
 #define NUITKA_CANNOT_GET_HERE(NAME)                                                                                   \
     fprintf(stderr, "%s : %s\n", __FUNCTION__, #NAME);                                                                 \
     abort();
 #else
 #define NUITKA_CANNOT_GET_HERE(NAME) abort();
+#endif
+
+#ifndef __NUITKA_NO_ASSERT__
+#define NUITKA_ONCE(message)                                                                                           \
+    static bool _nuitka_once = false;                                                                                  \
+    if (unlikely(_nuitka_once)) {                                                                                      \
+        NUITKA_CANNOT_GET_HERE(message);                                                                               \
+    }                                                                                                                  \
+    _nuitka_once = true
+#else
+#define NUITKA_ONCE(message)
 #endif
 
 #define NUITKA_ERROR_EXIT(NAME)                                                                                        \

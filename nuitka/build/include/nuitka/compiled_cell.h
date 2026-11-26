@@ -4,9 +4,7 @@
 #ifndef __NUITKA_COMPILED_CELL_H__
 #define __NUITKA_COMPILED_CELL_H__
 
-/* This is a clone of the normal PyCell structure. We should keep it binary
- * compatible, just in case somebody crazy insists on it.
- */
+// Binary-compatible with PyCellObject.
 
 /* This file is included from another C file, help IDEs to still parse it on its own. */
 #ifdef __IDE_ONLY__
@@ -15,25 +13,20 @@
 
 extern PyTypeObject Nuitka_Cell_Type;
 
-static inline bool Nuitka_Cell_Check(PyObject *object) { return Py_TYPE(object) == &Nuitka_Cell_Type; }
-static inline bool Nuitka_CellOrPyCell_Check(PyObject *object) {
-    return Nuitka_Cell_Check(object) || PyCell_Check(object);
-}
+static inline bool Nuitka_Cell_Check(PyObject *obj) { return Py_TYPE(obj) == &Nuitka_Cell_Type; }
+static inline bool Nuitka_CellOrPyCell_Check(PyObject *obj) { return Nuitka_Cell_Check(obj) || PyCell_Check(obj); }
 
 struct Nuitka_CellObject {
-    /* Python object folklore: */
     PyObject_HEAD
 
-        /* Content of the cell or NULL when empty */
         PyObject *ob_ref;
 };
 
-// Create cell with out value, and with or without reference given.
+// New0 borrows value (increfs it); New1 steals a reference to value.
 extern struct Nuitka_CellObject *Nuitka_Cell_NewEmpty(void);
 extern struct Nuitka_CellObject *Nuitka_Cell_New0(PyObject *value);
 extern struct Nuitka_CellObject *Nuitka_Cell_New1(PyObject *value);
 
-// Check stuff while accessing a compile cell in debug mode.
 #ifdef __NUITKA_NO_ASSERT__
 #define Nuitka_Cell_GET(cell) (((struct Nuitka_CellObject *)(cell))->ob_ref)
 #else

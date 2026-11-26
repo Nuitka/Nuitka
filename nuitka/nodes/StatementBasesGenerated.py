@@ -3,16 +3,17 @@
 
 # We are not avoiding these in generated code at all
 # pylint: disable=I0021,line-too-long,too-many-instance-attributes,too-many-lines
-# pylint: disable=I0021,too-many-arguments,too-many-return-statements,too-many-statements
+# pylint: disable=too-many-arguments,too-many-return-statements,too-many-statements
+# pylint: disable=literal-comparison
 
 
 """Children having statement bases
 
 WARNING, this code is GENERATED. Modify the template ChildrenHavingMixin.py.j2 instead!
 
-spell-checker: ignore __prepare__ append args autograph buffering capitalize casefold
-spell-checker: ignore center chars clear closefd copy count decode default delete dist
-spell-checker: ignore distribution_name encode encoding end endswith errors exit_code
+spell-checker: ignore __prepare__ anchor append args autograph buffering capitalize
+spell-checker: ignore casefold center chars clear closefd copy count decode default delete
+spell-checker: ignore dist distribution_name encode encoding end endswith errors exit_code
 spell-checker: ignore expandtabs experimental_attributes experimental_autograph_options
 spell-checker: ignore experimental_compile experimental_follow_type_hints
 spell-checker: ignore experimental_implements experimental_relax_shapes extend file
@@ -47,9 +48,6 @@ class _StatementNoChildHavingLocalsScopeMixin(StatementBase):
     # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
     __slots__ = ()
 
-    # This is generated for use in
-    #   StatementSetLocalsDictionary
-
     def __init__(self, locals_scope, source_ref):
         self.locals_scope = locals_scope
 
@@ -61,27 +59,15 @@ class _StatementNoChildHavingLocalsScopeMixin(StatementBase):
         }
 
     def getVisitableNodes(self):
-        """The visitable nodes, with tuple values flattened."""
-
         return ()
 
     def getVisitableNodesNamed(self):
-        """Named children dictionary.
-
-        For use in cloning nodes, debugging and XML output.
-        """
-
         return ()
 
     def replaceChild(self, old_node, new_node):
         raise AssertionError("Didn't find child", old_node, "in", self)
 
     def getCloneArgs(self):
-        """Get clones of all children to pass for a new node.
-
-        Needs to make clones of child nodes too.
-        """
-
         values = {}
 
         values.update(self.getDetails())
@@ -99,16 +85,14 @@ class _StatementNoChildHavingLocalsScopeMixin(StatementBase):
 
         self.undoVariableTracing()
 
-    # For overload only
     @staticmethod
     def undoVariableTracing():
         pass
 
     def collectVariableAccesses(self, emit_variable):
-        """Collect variable reads and writes of child nodes."""
+        pass
 
 
-# Assign the names that are easier to import with a stable name.
 StatementSetLocalsDictionaryBase = _StatementNoChildHavingLocalsScopeMixin
 
 
@@ -117,9 +101,6 @@ class _StatementChildrenHavingConditionYesBranchOptionalStatementsOrNoneNoBranch
 ):
     # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
     __slots__ = ()
-
-    # This is generated for use in
-    #   StatementConditional
 
     def __init__(self, condition, yes_branch, no_branch, source_ref):
         condition.parent = self
@@ -155,8 +136,6 @@ class _StatementChildrenHavingConditionYesBranchOptionalStatementsOrNoneNoBranch
         self.subnode_yes_branch = value
 
     def getVisitableNodes(self):
-        """The visitable nodes, with tuple values flattened."""
-
         result = [
             self.subnode_condition,
         ]
@@ -167,11 +146,6 @@ class _StatementChildrenHavingConditionYesBranchOptionalStatementsOrNoneNoBranch
         return result
 
     def getVisitableNodesNamed(self):
-        """Named children dictionary.
-
-        For use in cloning nodes, debugging and XML output.
-        """
-
         return (
             ("condition", self.subnode_condition),
             ("yes_branch", self.subnode_yes_branch),
@@ -210,11 +184,6 @@ class _StatementChildrenHavingConditionYesBranchOptionalStatementsOrNoneNoBranch
         raise AssertionError("Didn't find child", old_node, "in", self)
 
     def getCloneArgs(self):
-        """Get clones of all children to pass for a new node.
-
-        Needs to make clones of child nodes too.
-        """
-
         values = {
             "condition": self.subnode_condition.makeClone(),
             "yes_branch": (
@@ -251,14 +220,11 @@ class _StatementChildrenHavingConditionYesBranchOptionalStatementsOrNoneNoBranch
 
         self.undoVariableTracing()
 
-    # For overload only
     @staticmethod
     def undoVariableTracing():
         pass
 
     def collectVariableAccesses(self, emit_variable):
-        """Collect variable reads and writes of child nodes."""
-
         self.subnode_condition.collectVariableAccesses(emit_variable)
         subnode_yes_branch = self.subnode_yes_branch
 
@@ -270,16 +236,12 @@ class _StatementChildrenHavingConditionYesBranchOptionalStatementsOrNoneNoBranch
             self.subnode_no_branch.collectVariableAccesses(emit_variable)
 
 
-# Assign the names that are easier to import with a stable name.
 StatementConditionalBase = _StatementChildrenHavingConditionYesBranchOptionalStatementsOrNoneNoBranchOptionalStatementsOrNoneMixin
 
 
 class _StatementChildHavingDestOptionalOperationMixin(StatementBase):
     # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
     __slots__ = ()
-
-    # This is generated for use in
-    #   StatementPrintNewline
 
     def __init__(self, dest, source_ref):
         if dest is not None:
@@ -290,19 +252,12 @@ class _StatementChildHavingDestOptionalOperationMixin(StatementBase):
         StatementBase.__init__(self, source_ref)
 
     def getVisitableNodes(self):
-        """The visitable nodes, with tuple values flattened."""
-
         if self.subnode_dest is None:
             return ()
 
         return (self.subnode_dest,)
 
     def getVisitableNodesNamed(self):
-        """Named children dictionary.
-
-        For use in cloning nodes, debugging and XML output.
-        """
-
         return (("dest", self.subnode_dest),)
 
     def replaceChild(self, old_node, new_node):
@@ -318,11 +273,6 @@ class _StatementChildHavingDestOptionalOperationMixin(StatementBase):
         raise AssertionError("Didn't find child", old_node, "in", self)
 
     def getCloneArgs(self):
-        """Get clones of all children to pass for a new node.
-
-        Needs to make clones of child nodes too.
-        """
-
         values = {
             "dest": (
                 self.subnode_dest.makeClone() if self.subnode_dest is not None else None
@@ -346,7 +296,6 @@ class _StatementChildHavingDestOptionalOperationMixin(StatementBase):
 
         self.undoVariableTracing()
 
-    # For overload only
     @staticmethod
     def undoVariableTracing():
         pass
@@ -363,27 +312,21 @@ class _StatementChildHavingDestOptionalOperationMixin(StatementBase):
 
     @abstractmethod
     def computeStatementOperation(self, trace_collection):
-        """Must be overloaded for non-final node."""
+        pass
 
     def collectVariableAccesses(self, emit_variable):
-        """Collect variable reads and writes of child nodes."""
-
         subnode_dest = self.subnode_dest
 
         if subnode_dest is not None:
             self.subnode_dest.collectVariableAccesses(emit_variable)
 
 
-# Assign the names that are easier to import with a stable name.
 StatementPrintNewlineBase = _StatementChildHavingDestOptionalOperationMixin
 
 
 class _StatementChildrenHavingDestOptionalValueOperationMixin(StatementBase):
     # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
     __slots__ = ()
-
-    # This is generated for use in
-    #   StatementPrintValue
 
     def __init__(self, dest, value, source_ref):
         if dest is not None:
@@ -403,8 +346,6 @@ class _StatementChildrenHavingDestOptionalValueOperationMixin(StatementBase):
         self.subnode_value = value
 
     def getVisitableNodes(self):
-        """The visitable nodes, with tuple values flattened."""
-
         if self.subnode_dest is None:
             return (self.subnode_value,)
 
@@ -414,11 +355,6 @@ class _StatementChildrenHavingDestOptionalValueOperationMixin(StatementBase):
         )
 
     def getVisitableNodesNamed(self):
-        """Named children dictionary.
-
-        For use in cloning nodes, debugging and XML output.
-        """
-
         return (
             ("dest", self.subnode_dest),
             ("value", self.subnode_value),
@@ -445,11 +381,6 @@ class _StatementChildrenHavingDestOptionalValueOperationMixin(StatementBase):
         raise AssertionError("Didn't find child", old_node, "in", self)
 
     def getCloneArgs(self):
-        """Get clones of all children to pass for a new node.
-
-        Needs to make clones of child nodes too.
-        """
-
         values = {
             "dest": (
                 self.subnode_dest.makeClone() if self.subnode_dest is not None else None
@@ -476,7 +407,6 @@ class _StatementChildrenHavingDestOptionalValueOperationMixin(StatementBase):
 
         self.undoVariableTracing()
 
-    # For overload only
     @staticmethod
     def undoVariableTracing():
         pass
@@ -493,11 +423,9 @@ class _StatementChildrenHavingDestOptionalValueOperationMixin(StatementBase):
 
     @abstractmethod
     def computeStatementOperation(self, trace_collection):
-        """Must be overloaded for non-final node."""
+        pass
 
     def collectVariableAccesses(self, emit_variable):
-        """Collect variable reads and writes of child nodes."""
-
         subnode_dest = self.subnode_dest
 
         if subnode_dest is not None:
@@ -505,16 +433,12 @@ class _StatementChildrenHavingDestOptionalValueOperationMixin(StatementBase):
         self.subnode_value.collectVariableAccesses(emit_variable)
 
 
-# Assign the names that are easier to import with a stable name.
 StatementPrintValueBase = _StatementChildrenHavingDestOptionalValueOperationMixin
 
 
 class _StatementChildrenHavingDictArgKeyOperationMixin(StatementBase):
     # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
     __slots__ = ()
-
-    # This is generated for use in
-    #   StatementDictOperationRemove
 
     def __init__(self, dict_arg, key, source_ref):
         dict_arg.parent = self
@@ -528,19 +452,12 @@ class _StatementChildrenHavingDictArgKeyOperationMixin(StatementBase):
         StatementBase.__init__(self, source_ref)
 
     def getVisitableNodes(self):
-        """The visitable nodes, with tuple values flattened."""
-
         return (
             self.subnode_dict_arg,
             self.subnode_key,
         )
 
     def getVisitableNodesNamed(self):
-        """Named children dictionary.
-
-        For use in cloning nodes, debugging and XML output.
-        """
-
         return (
             ("dict_arg", self.subnode_dict_arg),
             ("key", self.subnode_key),
@@ -566,11 +483,6 @@ class _StatementChildrenHavingDictArgKeyOperationMixin(StatementBase):
         raise AssertionError("Didn't find child", old_node, "in", self)
 
     def getCloneArgs(self):
-        """Get clones of all children to pass for a new node.
-
-        Needs to make clones of child nodes too.
-        """
-
         values = {
             "dict_arg": self.subnode_dict_arg.makeClone(),
             "key": self.subnode_key.makeClone(),
@@ -594,7 +506,6 @@ class _StatementChildrenHavingDictArgKeyOperationMixin(StatementBase):
 
         self.undoVariableTracing()
 
-    # For overload only
     @staticmethod
     def undoVariableTracing():
         pass
@@ -611,25 +522,19 @@ class _StatementChildrenHavingDictArgKeyOperationMixin(StatementBase):
 
     @abstractmethod
     def computeStatementOperation(self, trace_collection):
-        """Must be overloaded for non-final node."""
+        pass
 
     def collectVariableAccesses(self, emit_variable):
-        """Collect variable reads and writes of child nodes."""
-
         self.subnode_dict_arg.collectVariableAccesses(emit_variable)
         self.subnode_key.collectVariableAccesses(emit_variable)
 
 
-# Assign the names that are easier to import with a stable name.
 StatementDictOperationRemoveBase = _StatementChildrenHavingDictArgKeyOperationMixin
 
 
 class _StatementChildrenHavingDictArgValueOperationMixin(StatementBase):
     # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
     __slots__ = ()
-
-    # This is generated for use in
-    #   StatementDictOperationUpdate
 
     def __init__(self, dict_arg, value, source_ref):
         dict_arg.parent = self
@@ -643,19 +548,12 @@ class _StatementChildrenHavingDictArgValueOperationMixin(StatementBase):
         StatementBase.__init__(self, source_ref)
 
     def getVisitableNodes(self):
-        """The visitable nodes, with tuple values flattened."""
-
         return (
             self.subnode_dict_arg,
             self.subnode_value,
         )
 
     def getVisitableNodesNamed(self):
-        """Named children dictionary.
-
-        For use in cloning nodes, debugging and XML output.
-        """
-
         return (
             ("dict_arg", self.subnode_dict_arg),
             ("value", self.subnode_value),
@@ -681,11 +579,6 @@ class _StatementChildrenHavingDictArgValueOperationMixin(StatementBase):
         raise AssertionError("Didn't find child", old_node, "in", self)
 
     def getCloneArgs(self):
-        """Get clones of all children to pass for a new node.
-
-        Needs to make clones of child nodes too.
-        """
-
         values = {
             "dict_arg": self.subnode_dict_arg.makeClone(),
             "value": self.subnode_value.makeClone(),
@@ -709,7 +602,6 @@ class _StatementChildrenHavingDictArgValueOperationMixin(StatementBase):
 
         self.undoVariableTracing()
 
-    # For overload only
     @staticmethod
     def undoVariableTracing():
         pass
@@ -726,16 +618,13 @@ class _StatementChildrenHavingDictArgValueOperationMixin(StatementBase):
 
     @abstractmethod
     def computeStatementOperation(self, trace_collection):
-        """Must be overloaded for non-final node."""
+        pass
 
     def collectVariableAccesses(self, emit_variable):
-        """Collect variable reads and writes of child nodes."""
-
         self.subnode_dict_arg.collectVariableAccesses(emit_variable)
         self.subnode_value.collectVariableAccesses(emit_variable)
 
 
-# Assign the names that are easier to import with a stable name.
 StatementDictOperationUpdateBase = _StatementChildrenHavingDictArgValueOperationMixin
 
 
@@ -744,9 +633,6 @@ class _StatementChildrenHavingExceptionTypeExceptionValueOptionalExceptionTraceO
 ):
     # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
     __slots__ = ()
-
-    # This is generated for use in
-    #   StatementRaiseException
 
     def __init__(
         self,
@@ -781,11 +667,9 @@ class _StatementChildrenHavingExceptionTypeExceptionValueOptionalExceptionTraceO
 
     @abstractmethod
     def postInitNode(self):
-        """For overload"""
+        pass
 
     def getVisitableNodes(self):
-        """The visitable nodes, with tuple values flattened."""
-
         result = [
             self.subnode_exception_type,
         ]
@@ -798,11 +682,6 @@ class _StatementChildrenHavingExceptionTypeExceptionValueOptionalExceptionTraceO
         return result
 
     def getVisitableNodesNamed(self):
-        """Named children dictionary.
-
-        For use in cloning nodes, debugging and XML output.
-        """
-
         return (
             ("exception_type", self.subnode_exception_type),
             ("exception_value", self.subnode_exception_value),
@@ -849,11 +728,6 @@ class _StatementChildrenHavingExceptionTypeExceptionValueOptionalExceptionTraceO
         raise AssertionError("Didn't find child", old_node, "in", self)
 
     def getCloneArgs(self):
-        """Get clones of all children to pass for a new node.
-
-        Needs to make clones of child nodes too.
-        """
-
         values = {
             "exception_type": self.subnode_exception_type.makeClone(),
             "exception_value": (
@@ -898,7 +772,6 @@ class _StatementChildrenHavingExceptionTypeExceptionValueOptionalExceptionTraceO
 
         self.undoVariableTracing()
 
-    # For overload only
     @staticmethod
     def undoVariableTracing():
         pass
@@ -915,11 +788,9 @@ class _StatementChildrenHavingExceptionTypeExceptionValueOptionalExceptionTraceO
 
     @abstractmethod
     def computeStatementOperation(self, trace_collection):
-        """Must be overloaded for non-final node."""
+        pass
 
     def collectVariableAccesses(self, emit_variable):
-        """Collect variable reads and writes of child nodes."""
-
         self.subnode_exception_type.collectVariableAccesses(emit_variable)
         subnode_exception_value = self.subnode_exception_value
 
@@ -935,16 +806,12 @@ class _StatementChildrenHavingExceptionTypeExceptionValueOptionalExceptionTraceO
             self.subnode_exception_cause.collectVariableAccesses(emit_variable)
 
 
-# Assign the names that are easier to import with a stable name.
 StatementRaiseExceptionBase = _StatementChildrenHavingExceptionTypeExceptionValueOptionalExceptionTraceOptionalExceptionCauseOptionalOperationPostInitMixin
 
 
 class _StatementChildHavingExpressionOperationAttributeNameMixin(StatementBase):
     # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
     __slots__ = ()
-
-    # This is generated for use in
-    #   StatementDelAttribute
 
     def __init__(self, expression, attribute_name, source_ref):
         expression.parent = self
@@ -961,16 +828,9 @@ class _StatementChildHavingExpressionOperationAttributeNameMixin(StatementBase):
         }
 
     def getVisitableNodes(self):
-        """The visitable nodes, with tuple values flattened."""
-
         return (self.subnode_expression,)
 
     def getVisitableNodesNamed(self):
-        """Named children dictionary.
-
-        For use in cloning nodes, debugging and XML output.
-        """
-
         return (("expression", self.subnode_expression),)
 
     def replaceChild(self, old_node, new_node):
@@ -985,11 +845,6 @@ class _StatementChildHavingExpressionOperationAttributeNameMixin(StatementBase):
         raise AssertionError("Didn't find child", old_node, "in", self)
 
     def getCloneArgs(self):
-        """Get clones of all children to pass for a new node.
-
-        Needs to make clones of child nodes too.
-        """
-
         values = {
             "expression": self.subnode_expression.makeClone(),
         }
@@ -1010,7 +865,6 @@ class _StatementChildHavingExpressionOperationAttributeNameMixin(StatementBase):
 
         self.undoVariableTracing()
 
-    # For overload only
     @staticmethod
     def undoVariableTracing():
         pass
@@ -1027,26 +881,18 @@ class _StatementChildHavingExpressionOperationAttributeNameMixin(StatementBase):
 
     @abstractmethod
     def computeStatementOperation(self, trace_collection):
-        """Must be overloaded for non-final node."""
+        pass
 
     def collectVariableAccesses(self, emit_variable):
-        """Collect variable reads and writes of child nodes."""
-
         self.subnode_expression.collectVariableAccesses(emit_variable)
 
 
-# Assign the names that are easier to import with a stable name.
 StatementDelAttributeBase = _StatementChildHavingExpressionOperationAttributeNameMixin
 
 
 class _StatementChildHavingExpressionMixin(StatementBase):
     # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
     __slots__ = ()
-
-    # This is generated for use in
-    #   StatementExpressionOnly
-    #   StatementGeneratorReturn
-    #   StatementReturn
 
     def __init__(self, expression, source_ref):
         expression.parent = self
@@ -1056,16 +902,9 @@ class _StatementChildHavingExpressionMixin(StatementBase):
         StatementBase.__init__(self, source_ref)
 
     def getVisitableNodes(self):
-        """The visitable nodes, with tuple values flattened."""
-
         return (self.subnode_expression,)
 
     def getVisitableNodesNamed(self):
-        """Named children dictionary.
-
-        For use in cloning nodes, debugging and XML output.
-        """
-
         return (("expression", self.subnode_expression),)
 
     def replaceChild(self, old_node, new_node):
@@ -1080,11 +919,6 @@ class _StatementChildHavingExpressionMixin(StatementBase):
         raise AssertionError("Didn't find child", old_node, "in", self)
 
     def getCloneArgs(self):
-        """Get clones of all children to pass for a new node.
-
-        Needs to make clones of child nodes too.
-        """
-
         values = {
             "expression": self.subnode_expression.makeClone(),
         }
@@ -1105,18 +939,14 @@ class _StatementChildHavingExpressionMixin(StatementBase):
 
         self.undoVariableTracing()
 
-    # For overload only
     @staticmethod
     def undoVariableTracing():
         pass
 
     def collectVariableAccesses(self, emit_variable):
-        """Collect variable reads and writes of child nodes."""
-
         self.subnode_expression.collectVariableAccesses(emit_variable)
 
 
-# Assign the names that are easier to import with a stable name.
 StatementExpressionOnlyBase = _StatementChildHavingExpressionMixin
 StatementGeneratorReturnBase = _StatementChildHavingExpressionMixin
 StatementReturnBase = _StatementChildHavingExpressionMixin
@@ -1125,9 +955,6 @@ StatementReturnBase = _StatementChildHavingExpressionMixin
 class _StatementChildrenHavingExpressionLowerOptionalUpperOptionalMixin(StatementBase):
     # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
     __slots__ = ()
-
-    # This is generated for use in
-    #   StatementDelSlice
 
     def __init__(self, expression, lower, upper, source_ref):
         expression.parent = self
@@ -1147,8 +974,6 @@ class _StatementChildrenHavingExpressionLowerOptionalUpperOptionalMixin(Statemen
         StatementBase.__init__(self, source_ref)
 
     def getVisitableNodes(self):
-        """The visitable nodes, with tuple values flattened."""
-
         result = [
             self.subnode_expression,
         ]
@@ -1159,11 +984,6 @@ class _StatementChildrenHavingExpressionLowerOptionalUpperOptionalMixin(Statemen
         return result
 
     def getVisitableNodesNamed(self):
-        """Named children dictionary.
-
-        For use in cloning nodes, debugging and XML output.
-        """
-
         return (
             ("expression", self.subnode_expression),
             ("lower", self.subnode_lower),
@@ -1200,11 +1020,6 @@ class _StatementChildrenHavingExpressionLowerOptionalUpperOptionalMixin(Statemen
         raise AssertionError("Didn't find child", old_node, "in", self)
 
     def getCloneArgs(self):
-        """Get clones of all children to pass for a new node.
-
-        Needs to make clones of child nodes too.
-        """
-
         values = {
             "expression": self.subnode_expression.makeClone(),
             "lower": (
@@ -1241,14 +1056,11 @@ class _StatementChildrenHavingExpressionLowerOptionalUpperOptionalMixin(Statemen
 
         self.undoVariableTracing()
 
-    # For overload only
     @staticmethod
     def undoVariableTracing():
         pass
 
     def collectVariableAccesses(self, emit_variable):
-        """Collect variable reads and writes of child nodes."""
-
         self.subnode_expression.collectVariableAccesses(emit_variable)
         subnode_lower = self.subnode_lower
 
@@ -1260,120 +1072,14 @@ class _StatementChildrenHavingExpressionLowerOptionalUpperOptionalMixin(Statemen
             self.subnode_upper.collectVariableAccesses(emit_variable)
 
 
-# Assign the names that are easier to import with a stable name.
 StatementDelSliceBase = (
     _StatementChildrenHavingExpressionLowerOptionalUpperOptionalMixin
-)
-
-
-class _StatementChildHavingIteratedLengthOperationCountMixin(StatementBase):
-    # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
-    __slots__ = ()
-
-    # This is generated for use in
-    #   StatementSpecialUnpackCheckFromIterated
-
-    def __init__(self, iterated_length, count, source_ref):
-        iterated_length.parent = self
-
-        self.subnode_iterated_length = iterated_length
-
-        self.count = count
-
-        StatementBase.__init__(self, source_ref)
-
-    def getDetails(self):
-        return {
-            "count": self.count,
-        }
-
-    def getVisitableNodes(self):
-        """The visitable nodes, with tuple values flattened."""
-
-        return (self.subnode_iterated_length,)
-
-    def getVisitableNodesNamed(self):
-        """Named children dictionary.
-
-        For use in cloning nodes, debugging and XML output.
-        """
-
-        return (("iterated_length", self.subnode_iterated_length),)
-
-    def replaceChild(self, old_node, new_node):
-        value = self.subnode_iterated_length
-        if old_node is value:
-            new_node.parent = self
-
-            self.subnode_iterated_length = new_node
-
-            return
-
-        raise AssertionError("Didn't find child", old_node, "in", self)
-
-    def getCloneArgs(self):
-        """Get clones of all children to pass for a new node.
-
-        Needs to make clones of child nodes too.
-        """
-
-        values = {
-            "iterated_length": self.subnode_iterated_length.makeClone(),
-        }
-
-        values.update(self.getDetails())
-
-        return values
-
-    def finalize(self):
-        del self.parent
-
-        self.subnode_iterated_length.finalize()
-        del self.subnode_iterated_length
-
-    def undoVariableTracingRaw(self, trace_collection):
-        for child in reversed(self.getVisitableNodes()):
-            child.undoVariableTracingRaw(trace_collection)
-
-        self.undoVariableTracing()
-
-    # For overload only
-    @staticmethod
-    def undoVariableTracing():
-        pass
-
-    def computeStatement(self, trace_collection):
-        result, change_tags, change_desc = self.computeStatementSubExpressions(
-            trace_collection=trace_collection
-        )
-
-        if result is not self:
-            return result, change_tags, change_desc
-
-        return self.computeStatementOperation(trace_collection)
-
-    @abstractmethod
-    def computeStatementOperation(self, trace_collection):
-        """Must be overloaded for non-final node."""
-
-    def collectVariableAccesses(self, emit_variable):
-        """Collect variable reads and writes of child nodes."""
-
-        self.subnode_iterated_length.collectVariableAccesses(emit_variable)
-
-
-# Assign the names that are easier to import with a stable name.
-StatementSpecialUnpackCheckFromIteratedBase = (
-    _StatementChildHavingIteratedLengthOperationCountMixin
 )
 
 
 class _StatementChildHavingIteratedValueOperationCountMixin(StatementBase):
     # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
     __slots__ = ()
-
-    # This is generated for use in
-    #   StatementSpecialUnpackCheckFromIteratedValue
 
     def __init__(self, iterated_value, count, source_ref):
         iterated_value.parent = self
@@ -1390,16 +1096,9 @@ class _StatementChildHavingIteratedValueOperationCountMixin(StatementBase):
         }
 
     def getVisitableNodes(self):
-        """The visitable nodes, with tuple values flattened."""
-
         return (self.subnode_iterated_value,)
 
     def getVisitableNodesNamed(self):
-        """Named children dictionary.
-
-        For use in cloning nodes, debugging and XML output.
-        """
-
         return (("iterated_value", self.subnode_iterated_value),)
 
     def replaceChild(self, old_node, new_node):
@@ -1414,11 +1113,6 @@ class _StatementChildHavingIteratedValueOperationCountMixin(StatementBase):
         raise AssertionError("Didn't find child", old_node, "in", self)
 
     def getCloneArgs(self):
-        """Get clones of all children to pass for a new node.
-
-        Needs to make clones of child nodes too.
-        """
-
         values = {
             "iterated_value": self.subnode_iterated_value.makeClone(),
         }
@@ -1439,7 +1133,6 @@ class _StatementChildHavingIteratedValueOperationCountMixin(StatementBase):
 
         self.undoVariableTracing()
 
-    # For overload only
     @staticmethod
     def undoVariableTracing():
         pass
@@ -1456,16 +1149,13 @@ class _StatementChildHavingIteratedValueOperationCountMixin(StatementBase):
 
     @abstractmethod
     def computeStatementOperation(self, trace_collection):
-        """Must be overloaded for non-final node."""
+        pass
 
     def collectVariableAccesses(self, emit_variable):
-        """Collect variable reads and writes of child nodes."""
-
         self.subnode_iterated_value.collectVariableAccesses(emit_variable)
 
 
-# Assign the names that are easier to import with a stable name.
-StatementSpecialUnpackCheckFromIteratedValueBase = (
+StatementSpecialUnpackCheckFromIteratedBase = (
     _StatementChildHavingIteratedValueOperationCountMixin
 )
 
@@ -1473,9 +1163,6 @@ StatementSpecialUnpackCheckFromIteratedValueBase = (
 class _StatementChildHavingIteratorOperationCountMixin(StatementBase):
     # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
     __slots__ = ()
-
-    # This is generated for use in
-    #   StatementSpecialUnpackCheck
 
     def __init__(self, iterator, count, source_ref):
         iterator.parent = self
@@ -1492,16 +1179,9 @@ class _StatementChildHavingIteratorOperationCountMixin(StatementBase):
         }
 
     def getVisitableNodes(self):
-        """The visitable nodes, with tuple values flattened."""
-
         return (self.subnode_iterator,)
 
     def getVisitableNodesNamed(self):
-        """Named children dictionary.
-
-        For use in cloning nodes, debugging and XML output.
-        """
-
         return (("iterator", self.subnode_iterator),)
 
     def replaceChild(self, old_node, new_node):
@@ -1516,11 +1196,6 @@ class _StatementChildHavingIteratorOperationCountMixin(StatementBase):
         raise AssertionError("Didn't find child", old_node, "in", self)
 
     def getCloneArgs(self):
-        """Get clones of all children to pass for a new node.
-
-        Needs to make clones of child nodes too.
-        """
-
         values = {
             "iterator": self.subnode_iterator.makeClone(),
         }
@@ -1541,7 +1216,6 @@ class _StatementChildHavingIteratorOperationCountMixin(StatementBase):
 
         self.undoVariableTracing()
 
-    # For overload only
     @staticmethod
     def undoVariableTracing():
         pass
@@ -1558,24 +1232,18 @@ class _StatementChildHavingIteratorOperationCountMixin(StatementBase):
 
     @abstractmethod
     def computeStatementOperation(self, trace_collection):
-        """Must be overloaded for non-final node."""
+        pass
 
     def collectVariableAccesses(self, emit_variable):
-        """Collect variable reads and writes of child nodes."""
-
         self.subnode_iterator.collectVariableAccesses(emit_variable)
 
 
-# Assign the names that are easier to import with a stable name.
 StatementSpecialUnpackCheckBase = _StatementChildHavingIteratorOperationCountMixin
 
 
 class _StatementChildrenHavingListArgValueOperationMixin(StatementBase):
     # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
     __slots__ = ()
-
-    # This is generated for use in
-    #   StatementListOperationAppend
 
     def __init__(self, list_arg, value, source_ref):
         list_arg.parent = self
@@ -1589,19 +1257,12 @@ class _StatementChildrenHavingListArgValueOperationMixin(StatementBase):
         StatementBase.__init__(self, source_ref)
 
     def getVisitableNodes(self):
-        """The visitable nodes, with tuple values flattened."""
-
         return (
             self.subnode_list_arg,
             self.subnode_value,
         )
 
     def getVisitableNodesNamed(self):
-        """Named children dictionary.
-
-        For use in cloning nodes, debugging and XML output.
-        """
-
         return (
             ("list_arg", self.subnode_list_arg),
             ("value", self.subnode_value),
@@ -1627,11 +1288,6 @@ class _StatementChildrenHavingListArgValueOperationMixin(StatementBase):
         raise AssertionError("Didn't find child", old_node, "in", self)
 
     def getCloneArgs(self):
-        """Get clones of all children to pass for a new node.
-
-        Needs to make clones of child nodes too.
-        """
-
         values = {
             "list_arg": self.subnode_list_arg.makeClone(),
             "value": self.subnode_value.makeClone(),
@@ -1655,7 +1311,6 @@ class _StatementChildrenHavingListArgValueOperationMixin(StatementBase):
 
         self.undoVariableTracing()
 
-    # For overload only
     @staticmethod
     def undoVariableTracing():
         pass
@@ -1672,25 +1327,19 @@ class _StatementChildrenHavingListArgValueOperationMixin(StatementBase):
 
     @abstractmethod
     def computeStatementOperation(self, trace_collection):
-        """Must be overloaded for non-final node."""
+        pass
 
     def collectVariableAccesses(self, emit_variable):
-        """Collect variable reads and writes of child nodes."""
-
         self.subnode_list_arg.collectVariableAccesses(emit_variable)
         self.subnode_value.collectVariableAccesses(emit_variable)
 
 
-# Assign the names that are easier to import with a stable name.
 StatementListOperationAppendBase = _StatementChildrenHavingListArgValueOperationMixin
 
 
 class _StatementChildHavingLocalsArgOperationPostInitLocalsScopeMixin(StatementBase):
     # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
     __slots__ = ()
-
-    # This is generated for use in
-    #   StatementLocalsDictSync
 
     def __init__(self, locals_arg, locals_scope, source_ref):
         locals_arg.parent = self
@@ -1705,7 +1354,7 @@ class _StatementChildHavingLocalsArgOperationPostInitLocalsScopeMixin(StatementB
 
     @abstractmethod
     def postInitNode(self):
-        """For overload"""
+        pass
 
     def getDetails(self):
         return {
@@ -1713,16 +1362,9 @@ class _StatementChildHavingLocalsArgOperationPostInitLocalsScopeMixin(StatementB
         }
 
     def getVisitableNodes(self):
-        """The visitable nodes, with tuple values flattened."""
-
         return (self.subnode_locals_arg,)
 
     def getVisitableNodesNamed(self):
-        """Named children dictionary.
-
-        For use in cloning nodes, debugging and XML output.
-        """
-
         return (("locals_arg", self.subnode_locals_arg),)
 
     def replaceChild(self, old_node, new_node):
@@ -1737,11 +1379,6 @@ class _StatementChildHavingLocalsArgOperationPostInitLocalsScopeMixin(StatementB
         raise AssertionError("Didn't find child", old_node, "in", self)
 
     def getCloneArgs(self):
-        """Get clones of all children to pass for a new node.
-
-        Needs to make clones of child nodes too.
-        """
-
         values = {
             "locals_arg": self.subnode_locals_arg.makeClone(),
         }
@@ -1764,7 +1401,6 @@ class _StatementChildHavingLocalsArgOperationPostInitLocalsScopeMixin(StatementB
 
         self.undoVariableTracing()
 
-    # For overload only
     @staticmethod
     def undoVariableTracing():
         pass
@@ -1781,15 +1417,12 @@ class _StatementChildHavingLocalsArgOperationPostInitLocalsScopeMixin(StatementB
 
     @abstractmethod
     def computeStatementOperation(self, trace_collection):
-        """Must be overloaded for non-final node."""
+        pass
 
     def collectVariableAccesses(self, emit_variable):
-        """Collect variable reads and writes of child nodes."""
-
         self.subnode_locals_arg.collectVariableAccesses(emit_variable)
 
 
-# Assign the names that are easier to import with a stable name.
 StatementLocalsDictSyncBase = (
     _StatementChildHavingLocalsArgOperationPostInitLocalsScopeMixin
 )
@@ -1798,9 +1431,6 @@ StatementLocalsDictSyncBase = (
 class _StatementChildHavingLoopBodyOptionalStatementsOrNonePostInitMixin(StatementBase):
     # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
     __slots__ = ()
-
-    # This is generated for use in
-    #   StatementLoop
 
     def __init__(self, loop_body, source_ref):
         loop_body = checkStatementsSequenceOrNone(loop_body)
@@ -1815,7 +1445,7 @@ class _StatementChildHavingLoopBodyOptionalStatementsOrNonePostInitMixin(Stateme
 
     @abstractmethod
     def postInitNode(self):
-        """For overload"""
+        pass
 
     def setChildLoopBody(self, value):
         value = checkStatementsSequenceOrNone(value)
@@ -1825,19 +1455,12 @@ class _StatementChildHavingLoopBodyOptionalStatementsOrNonePostInitMixin(Stateme
         self.subnode_loop_body = value
 
     def getVisitableNodes(self):
-        """The visitable nodes, with tuple values flattened."""
-
         if self.subnode_loop_body is None:
             return ()
 
         return (self.subnode_loop_body,)
 
     def getVisitableNodesNamed(self):
-        """Named children dictionary.
-
-        For use in cloning nodes, debugging and XML output.
-        """
-
         return (("loop_body", self.subnode_loop_body),)
 
     def replaceChild(self, old_node, new_node):
@@ -1854,11 +1477,6 @@ class _StatementChildHavingLoopBodyOptionalStatementsOrNonePostInitMixin(Stateme
         raise AssertionError("Didn't find child", old_node, "in", self)
 
     def getCloneArgs(self):
-        """Get clones of all children to pass for a new node.
-
-        Needs to make clones of child nodes too.
-        """
-
         values = {
             "loop_body": (
                 self.subnode_loop_body.makeClone()
@@ -1884,30 +1502,23 @@ class _StatementChildHavingLoopBodyOptionalStatementsOrNonePostInitMixin(Stateme
 
         self.undoVariableTracing()
 
-    # For overload only
     @staticmethod
     def undoVariableTracing():
         pass
 
     def collectVariableAccesses(self, emit_variable):
-        """Collect variable reads and writes of child nodes."""
-
         subnode_loop_body = self.subnode_loop_body
 
         if subnode_loop_body is not None:
             self.subnode_loop_body.collectVariableAccesses(emit_variable)
 
 
-# Assign the names that are easier to import with a stable name.
 StatementLoopBase = _StatementChildHavingLoopBodyOptionalStatementsOrNonePostInitMixin
 
 
 class _StatementChildHavingModuleOperationPostInitTargetScopeMixin(StatementBase):
     # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
     __slots__ = ()
-
-    # This is generated for use in
-    #   StatementImportStar
 
     def __init__(self, module, target_scope, source_ref):
         module.parent = self
@@ -1922,7 +1533,7 @@ class _StatementChildHavingModuleOperationPostInitTargetScopeMixin(StatementBase
 
     @abstractmethod
     def postInitNode(self):
-        """For overload"""
+        pass
 
     def getDetails(self):
         return {
@@ -1930,16 +1541,9 @@ class _StatementChildHavingModuleOperationPostInitTargetScopeMixin(StatementBase
         }
 
     def getVisitableNodes(self):
-        """The visitable nodes, with tuple values flattened."""
-
         return (self.subnode_module,)
 
     def getVisitableNodesNamed(self):
-        """Named children dictionary.
-
-        For use in cloning nodes, debugging and XML output.
-        """
-
         return (("module", self.subnode_module),)
 
     def replaceChild(self, old_node, new_node):
@@ -1954,11 +1558,6 @@ class _StatementChildHavingModuleOperationPostInitTargetScopeMixin(StatementBase
         raise AssertionError("Didn't find child", old_node, "in", self)
 
     def getCloneArgs(self):
-        """Get clones of all children to pass for a new node.
-
-        Needs to make clones of child nodes too.
-        """
-
         values = {
             "module": self.subnode_module.makeClone(),
         }
@@ -1981,7 +1580,6 @@ class _StatementChildHavingModuleOperationPostInitTargetScopeMixin(StatementBase
 
         self.undoVariableTracing()
 
-    # For overload only
     @staticmethod
     def undoVariableTracing():
         pass
@@ -1998,24 +1596,18 @@ class _StatementChildHavingModuleOperationPostInitTargetScopeMixin(StatementBase
 
     @abstractmethod
     def computeStatementOperation(self, trace_collection):
-        """Must be overloaded for non-final node."""
+        pass
 
     def collectVariableAccesses(self, emit_variable):
-        """Collect variable reads and writes of child nodes."""
-
         self.subnode_module.collectVariableAccesses(emit_variable)
 
 
-# Assign the names that are easier to import with a stable name.
 StatementImportStarBase = _StatementChildHavingModuleOperationPostInitTargetScopeMixin
 
 
 class _StatementChildHavingNewLocalsOperationLocalsScopeMixin(StatementBase):
     # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
     __slots__ = ()
-
-    # This is generated for use in
-    #   StatementSetLocals
 
     def __init__(self, new_locals, locals_scope, source_ref):
         new_locals.parent = self
@@ -2032,16 +1624,9 @@ class _StatementChildHavingNewLocalsOperationLocalsScopeMixin(StatementBase):
         }
 
     def getVisitableNodes(self):
-        """The visitable nodes, with tuple values flattened."""
-
         return (self.subnode_new_locals,)
 
     def getVisitableNodesNamed(self):
-        """Named children dictionary.
-
-        For use in cloning nodes, debugging and XML output.
-        """
-
         return (("new_locals", self.subnode_new_locals),)
 
     def replaceChild(self, old_node, new_node):
@@ -2056,11 +1641,6 @@ class _StatementChildHavingNewLocalsOperationLocalsScopeMixin(StatementBase):
         raise AssertionError("Didn't find child", old_node, "in", self)
 
     def getCloneArgs(self):
-        """Get clones of all children to pass for a new node.
-
-        Needs to make clones of child nodes too.
-        """
-
         values = {
             "new_locals": self.subnode_new_locals.makeClone(),
         }
@@ -2083,7 +1663,6 @@ class _StatementChildHavingNewLocalsOperationLocalsScopeMixin(StatementBase):
 
         self.undoVariableTracing()
 
-    # For overload only
     @staticmethod
     def undoVariableTracing():
         pass
@@ -2100,24 +1679,18 @@ class _StatementChildHavingNewLocalsOperationLocalsScopeMixin(StatementBase):
 
     @abstractmethod
     def computeStatementOperation(self, trace_collection):
-        """Must be overloaded for non-final node."""
+        pass
 
     def collectVariableAccesses(self, emit_variable):
-        """Collect variable reads and writes of child nodes."""
-
         self.subnode_new_locals.collectVariableAccesses(emit_variable)
 
 
-# Assign the names that are easier to import with a stable name.
 StatementSetLocalsBase = _StatementChildHavingNewLocalsOperationLocalsScopeMixin
 
 
 class _StatementChildrenHavingSetArgValueOperationMixin(StatementBase):
     # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
     __slots__ = ()
-
-    # This is generated for use in
-    #   StatementSetOperationAdd
 
     def __init__(self, set_arg, value, source_ref):
         set_arg.parent = self
@@ -2131,19 +1704,12 @@ class _StatementChildrenHavingSetArgValueOperationMixin(StatementBase):
         StatementBase.__init__(self, source_ref)
 
     def getVisitableNodes(self):
-        """The visitable nodes, with tuple values flattened."""
-
         return (
             self.subnode_set_arg,
             self.subnode_value,
         )
 
     def getVisitableNodesNamed(self):
-        """Named children dictionary.
-
-        For use in cloning nodes, debugging and XML output.
-        """
-
         return (
             ("set_arg", self.subnode_set_arg),
             ("value", self.subnode_value),
@@ -2169,11 +1735,6 @@ class _StatementChildrenHavingSetArgValueOperationMixin(StatementBase):
         raise AssertionError("Didn't find child", old_node, "in", self)
 
     def getCloneArgs(self):
-        """Get clones of all children to pass for a new node.
-
-        Needs to make clones of child nodes too.
-        """
-
         values = {
             "set_arg": self.subnode_set_arg.makeClone(),
             "value": self.subnode_value.makeClone(),
@@ -2197,7 +1758,6 @@ class _StatementChildrenHavingSetArgValueOperationMixin(StatementBase):
 
         self.undoVariableTracing()
 
-    # For overload only
     @staticmethod
     def undoVariableTracing():
         pass
@@ -2214,33 +1774,19 @@ class _StatementChildrenHavingSetArgValueOperationMixin(StatementBase):
 
     @abstractmethod
     def computeStatementOperation(self, trace_collection):
-        """Must be overloaded for non-final node."""
+        pass
 
     def collectVariableAccesses(self, emit_variable):
-        """Collect variable reads and writes of child nodes."""
-
         self.subnode_set_arg.collectVariableAccesses(emit_variable)
         self.subnode_value.collectVariableAccesses(emit_variable)
 
 
-# Assign the names that are easier to import with a stable name.
 StatementSetOperationAddBase = _StatementChildrenHavingSetArgValueOperationMixin
 
 
 class _StatementChildHavingSourcePostInitVariableVariableVersionMixin(StatementBase):
     # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
     __slots__ = ()
-
-    # This is generated for use in
-    #   StatementAssignmentVariableConstantImmutable
-    #   StatementAssignmentVariableConstantImmutableTrusted
-    #   StatementAssignmentVariableConstantMutable
-    #   StatementAssignmentVariableConstantMutableTrusted
-    #   StatementAssignmentVariableFromTempVariable
-    #   StatementAssignmentVariableFromVariable
-    #   StatementAssignmentVariableGeneric
-    #   StatementAssignmentVariableHardValue
-    #   StatementAssignmentVariableIterator
 
     def __init__(self, source, variable, variable_version, source_ref):
         source.parent = self
@@ -2256,7 +1802,7 @@ class _StatementChildHavingSourcePostInitVariableVariableVersionMixin(StatementB
 
     @abstractmethod
     def postInitNode(self):
-        """For overload"""
+        pass
 
     def getDetails(self):
         return {
@@ -2270,16 +1816,9 @@ class _StatementChildHavingSourcePostInitVariableVariableVersionMixin(StatementB
         self.subnode_source = value
 
     def getVisitableNodes(self):
-        """The visitable nodes, with tuple values flattened."""
-
         return (self.subnode_source,)
 
     def getVisitableNodesNamed(self):
-        """Named children dictionary.
-
-        For use in cloning nodes, debugging and XML output.
-        """
-
         return (("source", self.subnode_source),)
 
     def replaceChild(self, old_node, new_node):
@@ -2294,11 +1833,6 @@ class _StatementChildHavingSourcePostInitVariableVariableVersionMixin(StatementB
         raise AssertionError("Didn't find child", old_node, "in", self)
 
     def getCloneArgs(self):
-        """Get clones of all children to pass for a new node.
-
-        Needs to make clones of child nodes too.
-        """
-
         values = {
             "source": self.subnode_source.makeClone(),
         }
@@ -2321,18 +1855,14 @@ class _StatementChildHavingSourcePostInitVariableVariableVersionMixin(StatementB
 
         self.undoVariableTracing()
 
-    # For overload only
     @staticmethod
     def undoVariableTracing():
         pass
 
     def collectVariableAccesses(self, emit_variable):
-        """Collect variable reads and writes of child nodes."""
-
         self.subnode_source.collectVariableAccesses(emit_variable)
 
 
-# Assign the names that are easier to import with a stable name.
 StatementAssignmentVariableConstantImmutableBase = (
     _StatementChildHavingSourcePostInitVariableVariableVersionMixin
 )
@@ -2368,9 +1898,6 @@ class _StatementChildHavingSourceOperationPostInitLocalsScopeVariableNameMixin(
     # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
     __slots__ = ()
 
-    # This is generated for use in
-    #   StatementLocalsDictOperationSet
-
     def __init__(self, source, locals_scope, variable_name, source_ref):
         source.parent = self
 
@@ -2385,7 +1912,7 @@ class _StatementChildHavingSourceOperationPostInitLocalsScopeVariableNameMixin(
 
     @abstractmethod
     def postInitNode(self):
-        """For overload"""
+        pass
 
     def getDetails(self):
         return {
@@ -2394,16 +1921,9 @@ class _StatementChildHavingSourceOperationPostInitLocalsScopeVariableNameMixin(
         }
 
     def getVisitableNodes(self):
-        """The visitable nodes, with tuple values flattened."""
-
         return (self.subnode_source,)
 
     def getVisitableNodesNamed(self):
-        """Named children dictionary.
-
-        For use in cloning nodes, debugging and XML output.
-        """
-
         return (("source", self.subnode_source),)
 
     def replaceChild(self, old_node, new_node):
@@ -2418,11 +1938,6 @@ class _StatementChildHavingSourceOperationPostInitLocalsScopeVariableNameMixin(
         raise AssertionError("Didn't find child", old_node, "in", self)
 
     def getCloneArgs(self):
-        """Get clones of all children to pass for a new node.
-
-        Needs to make clones of child nodes too.
-        """
-
         values = {
             "source": self.subnode_source.makeClone(),
         }
@@ -2445,7 +1960,6 @@ class _StatementChildHavingSourceOperationPostInitLocalsScopeVariableNameMixin(
 
         self.undoVariableTracing()
 
-    # For overload only
     @staticmethod
     def undoVariableTracing():
         pass
@@ -2462,15 +1976,12 @@ class _StatementChildHavingSourceOperationPostInitLocalsScopeVariableNameMixin(
 
     @abstractmethod
     def computeStatementOperation(self, trace_collection):
-        """Must be overloaded for non-final node."""
+        pass
 
     def collectVariableAccesses(self, emit_variable):
-        """Collect variable reads and writes of child nodes."""
-
         self.subnode_source.collectVariableAccesses(emit_variable)
 
 
-# Assign the names that are easier to import with a stable name.
 StatementLocalsDictOperationSetBase = (
     _StatementChildHavingSourceOperationPostInitLocalsScopeVariableNameMixin
 )
@@ -2479,9 +1990,6 @@ StatementLocalsDictOperationSetBase = (
 class _StatementChildHavingSourcePostInitProviderVariableNameMixin(StatementBase):
     # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
     __slots__ = ()
-
-    # This is generated for use in
-    #   StatementAssignmentVariableName
 
     def __init__(self, source, provider, variable_name, source_ref):
         source.parent = self
@@ -2497,7 +2005,7 @@ class _StatementChildHavingSourcePostInitProviderVariableNameMixin(StatementBase
 
     @abstractmethod
     def postInitNode(self):
-        """For overload"""
+        pass
 
     def getDetails(self):
         return {
@@ -2506,16 +2014,9 @@ class _StatementChildHavingSourcePostInitProviderVariableNameMixin(StatementBase
         }
 
     def getVisitableNodes(self):
-        """The visitable nodes, with tuple values flattened."""
-
         return (self.subnode_source,)
 
     def getVisitableNodesNamed(self):
-        """Named children dictionary.
-
-        For use in cloning nodes, debugging and XML output.
-        """
-
         return (("source", self.subnode_source),)
 
     def replaceChild(self, old_node, new_node):
@@ -2530,11 +2031,6 @@ class _StatementChildHavingSourcePostInitProviderVariableNameMixin(StatementBase
         raise AssertionError("Didn't find child", old_node, "in", self)
 
     def getCloneArgs(self):
-        """Get clones of all children to pass for a new node.
-
-        Needs to make clones of child nodes too.
-        """
-
         values = {
             "source": self.subnode_source.makeClone(),
         }
@@ -2555,18 +2051,14 @@ class _StatementChildHavingSourcePostInitProviderVariableNameMixin(StatementBase
 
         self.undoVariableTracing()
 
-    # For overload only
     @staticmethod
     def undoVariableTracing():
         pass
 
     def collectVariableAccesses(self, emit_variable):
-        """Collect variable reads and writes of child nodes."""
-
         self.subnode_source.collectVariableAccesses(emit_variable)
 
 
-# Assign the names that are easier to import with a stable name.
 StatementAssignmentVariableNameBase = (
     _StatementChildHavingSourcePostInitProviderVariableNameMixin
 )
@@ -2577,9 +2069,6 @@ class _StatementChildrenHavingSourceExpressionOperationAttributeNameMixin(
 ):
     # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
     __slots__ = ()
-
-    # This is generated for use in
-    #   StatementAssignmentAttribute
 
     def __init__(self, source, expression, attribute_name, source_ref):
         source.parent = self
@@ -2600,19 +2089,12 @@ class _StatementChildrenHavingSourceExpressionOperationAttributeNameMixin(
         }
 
     def getVisitableNodes(self):
-        """The visitable nodes, with tuple values flattened."""
-
         return (
             self.subnode_source,
             self.subnode_expression,
         )
 
     def getVisitableNodesNamed(self):
-        """Named children dictionary.
-
-        For use in cloning nodes, debugging and XML output.
-        """
-
         return (
             ("source", self.subnode_source),
             ("expression", self.subnode_expression),
@@ -2638,11 +2120,6 @@ class _StatementChildrenHavingSourceExpressionOperationAttributeNameMixin(
         raise AssertionError("Didn't find child", old_node, "in", self)
 
     def getCloneArgs(self):
-        """Get clones of all children to pass for a new node.
-
-        Needs to make clones of child nodes too.
-        """
-
         values = {
             "source": self.subnode_source.makeClone(),
             "expression": self.subnode_expression.makeClone(),
@@ -2666,7 +2143,6 @@ class _StatementChildrenHavingSourceExpressionOperationAttributeNameMixin(
 
         self.undoVariableTracing()
 
-    # For overload only
     @staticmethod
     def undoVariableTracing():
         pass
@@ -2683,16 +2159,13 @@ class _StatementChildrenHavingSourceExpressionOperationAttributeNameMixin(
 
     @abstractmethod
     def computeStatementOperation(self, trace_collection):
-        """Must be overloaded for non-final node."""
+        pass
 
     def collectVariableAccesses(self, emit_variable):
-        """Collect variable reads and writes of child nodes."""
-
         self.subnode_source.collectVariableAccesses(emit_variable)
         self.subnode_expression.collectVariableAccesses(emit_variable)
 
 
-# Assign the names that are easier to import with a stable name.
 StatementAssignmentAttributeBase = (
     _StatementChildrenHavingSourceExpressionOperationAttributeNameMixin
 )
@@ -2703,9 +2176,6 @@ class _StatementChildrenHavingSourceExpressionLowerOptionalUpperOptionalMixin(
 ):
     # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
     __slots__ = ()
-
-    # This is generated for use in
-    #   StatementAssignmentSlice
 
     def __init__(self, source, expression, lower, upper, source_ref):
         source.parent = self
@@ -2729,8 +2199,6 @@ class _StatementChildrenHavingSourceExpressionLowerOptionalUpperOptionalMixin(
         StatementBase.__init__(self, source_ref)
 
     def getVisitableNodes(self):
-        """The visitable nodes, with tuple values flattened."""
-
         result = [
             self.subnode_source,
             self.subnode_expression,
@@ -2742,11 +2210,6 @@ class _StatementChildrenHavingSourceExpressionLowerOptionalUpperOptionalMixin(
         return result
 
     def getVisitableNodesNamed(self):
-        """Named children dictionary.
-
-        For use in cloning nodes, debugging and XML output.
-        """
-
         return (
             ("source", self.subnode_source),
             ("expression", self.subnode_expression),
@@ -2792,11 +2255,6 @@ class _StatementChildrenHavingSourceExpressionLowerOptionalUpperOptionalMixin(
         raise AssertionError("Didn't find child", old_node, "in", self)
 
     def getCloneArgs(self):
-        """Get clones of all children to pass for a new node.
-
-        Needs to make clones of child nodes too.
-        """
-
         values = {
             "source": self.subnode_source.makeClone(),
             "expression": self.subnode_expression.makeClone(),
@@ -2836,14 +2294,11 @@ class _StatementChildrenHavingSourceExpressionLowerOptionalUpperOptionalMixin(
 
         self.undoVariableTracing()
 
-    # For overload only
     @staticmethod
     def undoVariableTracing():
         pass
 
     def collectVariableAccesses(self, emit_variable):
-        """Collect variable reads and writes of child nodes."""
-
         self.subnode_source.collectVariableAccesses(emit_variable)
         self.subnode_expression.collectVariableAccesses(emit_variable)
         subnode_lower = self.subnode_lower
@@ -2856,7 +2311,6 @@ class _StatementChildrenHavingSourceExpressionLowerOptionalUpperOptionalMixin(
             self.subnode_upper.collectVariableAccesses(emit_variable)
 
 
-# Assign the names that are easier to import with a stable name.
 StatementAssignmentSliceBase = (
     _StatementChildrenHavingSourceExpressionLowerOptionalUpperOptionalMixin
 )
@@ -2865,9 +2319,6 @@ StatementAssignmentSliceBase = (
 class _StatementChildrenHavingSourceSubscribedSubscriptOperationMixin(StatementBase):
     # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
     __slots__ = ()
-
-    # This is generated for use in
-    #   StatementAssignmentSubscript
 
     def __init__(self, source, subscribed, subscript, source_ref):
         source.parent = self
@@ -2885,8 +2336,6 @@ class _StatementChildrenHavingSourceSubscribedSubscriptOperationMixin(StatementB
         StatementBase.__init__(self, source_ref)
 
     def getVisitableNodes(self):
-        """The visitable nodes, with tuple values flattened."""
-
         return (
             self.subnode_source,
             self.subnode_subscribed,
@@ -2894,11 +2343,6 @@ class _StatementChildrenHavingSourceSubscribedSubscriptOperationMixin(StatementB
         )
 
     def getVisitableNodesNamed(self):
-        """Named children dictionary.
-
-        For use in cloning nodes, debugging and XML output.
-        """
-
         return (
             ("source", self.subnode_source),
             ("subscribed", self.subnode_subscribed),
@@ -2933,11 +2377,6 @@ class _StatementChildrenHavingSourceSubscribedSubscriptOperationMixin(StatementB
         raise AssertionError("Didn't find child", old_node, "in", self)
 
     def getCloneArgs(self):
-        """Get clones of all children to pass for a new node.
-
-        Needs to make clones of child nodes too.
-        """
-
         values = {
             "source": self.subnode_source.makeClone(),
             "subscribed": self.subnode_subscribed.makeClone(),
@@ -2964,7 +2403,6 @@ class _StatementChildrenHavingSourceSubscribedSubscriptOperationMixin(StatementB
 
         self.undoVariableTracing()
 
-    # For overload only
     @staticmethod
     def undoVariableTracing():
         pass
@@ -2981,18 +2419,18 @@ class _StatementChildrenHavingSourceSubscribedSubscriptOperationMixin(StatementB
 
     @abstractmethod
     def computeStatementOperation(self, trace_collection):
-        """Must be overloaded for non-final node."""
+        pass
 
     def collectVariableAccesses(self, emit_variable):
-        """Collect variable reads and writes of child nodes."""
-
         self.subnode_source.collectVariableAccesses(emit_variable)
         self.subnode_subscribed.collectVariableAccesses(emit_variable)
         self.subnode_subscript.collectVariableAccesses(emit_variable)
 
 
-# Assign the names that are easier to import with a stable name.
 StatementAssignmentSubscriptBase = (
+    _StatementChildrenHavingSourceSubscribedSubscriptOperationMixin
+)
+StatementAssignmentSysModulesSubscriptBase = (
     _StatementChildrenHavingSourceSubscribedSubscriptOperationMixin
 )
 
@@ -3002,9 +2440,6 @@ class _StatementChildrenHavingSourceCodeGlobalsArgAutoNoneLocalsArgAutoNoneOpera
 ):
     # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
     __slots__ = ()
-
-    # This is generated for use in
-    #   StatementExec
 
     def __init__(self, source_code, globals_arg, locals_arg, source_ref):
         source_code.parent = self
@@ -3026,8 +2461,6 @@ class _StatementChildrenHavingSourceCodeGlobalsArgAutoNoneLocalsArgAutoNoneOpera
         StatementBase.__init__(self, source_ref)
 
     def getVisitableNodes(self):
-        """The visitable nodes, with tuple values flattened."""
-
         result = [
             self.subnode_source_code,
         ]
@@ -3038,11 +2471,6 @@ class _StatementChildrenHavingSourceCodeGlobalsArgAutoNoneLocalsArgAutoNoneOpera
         return result
 
     def getVisitableNodesNamed(self):
-        """Named children dictionary.
-
-        For use in cloning nodes, debugging and XML output.
-        """
-
         return (
             ("source_code", self.subnode_source_code),
             ("globals_arg", self.subnode_globals_arg),
@@ -3081,11 +2509,6 @@ class _StatementChildrenHavingSourceCodeGlobalsArgAutoNoneLocalsArgAutoNoneOpera
         raise AssertionError("Didn't find child", old_node, "in", self)
 
     def getCloneArgs(self):
-        """Get clones of all children to pass for a new node.
-
-        Needs to make clones of child nodes too.
-        """
-
         values = {
             "source_code": self.subnode_source_code.makeClone(),
             "globals_arg": (
@@ -3122,7 +2545,6 @@ class _StatementChildrenHavingSourceCodeGlobalsArgAutoNoneLocalsArgAutoNoneOpera
 
         self.undoVariableTracing()
 
-    # For overload only
     @staticmethod
     def undoVariableTracing():
         pass
@@ -3139,11 +2561,9 @@ class _StatementChildrenHavingSourceCodeGlobalsArgAutoNoneLocalsArgAutoNoneOpera
 
     @abstractmethod
     def computeStatementOperation(self, trace_collection):
-        """Must be overloaded for non-final node."""
+        pass
 
     def collectVariableAccesses(self, emit_variable):
-        """Collect variable reads and writes of child nodes."""
-
         self.subnode_source_code.collectVariableAccesses(emit_variable)
         subnode_globals_arg = self.subnode_globals_arg
 
@@ -3155,7 +2575,6 @@ class _StatementChildrenHavingSourceCodeGlobalsArgAutoNoneLocalsArgAutoNoneOpera
             self.subnode_locals_arg.collectVariableAccesses(emit_variable)
 
 
-# Assign the names that are easier to import with a stable name.
 StatementExecBase = (
     _StatementChildrenHavingSourceCodeGlobalsArgAutoNoneLocalsArgAutoNoneOperationMixin
 )
@@ -3164,15 +2583,6 @@ StatementExecBase = (
 class _StatementChildHavingStatementsTupleMixin(StatementBase):
     # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
     __slots__ = ()
-
-    # This is generated for use in
-    #   StatementsFrameAsyncgen
-    #   StatementsFrameClass
-    #   StatementsFrameCoroutine
-    #   StatementsFrameFunction
-    #   StatementsFrameGenerator
-    #   StatementsFrameModule
-    #   StatementsSequence
 
     def __init__(self, statements, source_ref):
         assert type(statements) is tuple
@@ -3193,16 +2603,9 @@ class _StatementChildHavingStatementsTupleMixin(StatementBase):
         self.subnode_statements = value
 
     def getVisitableNodes(self):
-        """The visitable nodes, with tuple values flattened."""
-
         return self.subnode_statements
 
     def getVisitableNodesNamed(self):
-        """Named children dictionary.
-
-        For use in cloning nodes, debugging and XML output.
-        """
-
         return (("statements", self.subnode_statements),)
 
     def replaceChild(self, old_node, new_node):
@@ -3224,11 +2627,6 @@ class _StatementChildHavingStatementsTupleMixin(StatementBase):
         raise AssertionError("Didn't find child", old_node, "in", self)
 
     def getCloneArgs(self):
-        """Get clones of all children to pass for a new node.
-
-        Needs to make clones of child nodes too.
-        """
-
         values = {
             "statements": tuple(v.makeClone() for v in self.subnode_statements),
         }
@@ -3250,19 +2648,15 @@ class _StatementChildHavingStatementsTupleMixin(StatementBase):
 
         self.undoVariableTracing()
 
-    # For overload only
     @staticmethod
     def undoVariableTracing():
         pass
 
     def collectVariableAccesses(self, emit_variable):
-        """Collect variable reads and writes of child nodes."""
-
         for element in self.subnode_statements:
             element.collectVariableAccesses(emit_variable)
 
 
-# Assign the names that are easier to import with a stable name.
 StatementsFrameAsyncgenBase = _StatementChildHavingStatementsTupleMixin
 StatementsFrameClassBase = _StatementChildHavingStatementsTupleMixin
 StatementsFrameCoroutineBase = _StatementChildHavingStatementsTupleMixin
@@ -3276,9 +2670,6 @@ class _StatementChildrenHavingSubscribedSubscriptOperationMixin(StatementBase):
     # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
     __slots__ = ()
 
-    # This is generated for use in
-    #   StatementDelSubscript
-
     def __init__(self, subscribed, subscript, source_ref):
         subscribed.parent = self
 
@@ -3291,19 +2682,12 @@ class _StatementChildrenHavingSubscribedSubscriptOperationMixin(StatementBase):
         StatementBase.__init__(self, source_ref)
 
     def getVisitableNodes(self):
-        """The visitable nodes, with tuple values flattened."""
-
         return (
             self.subnode_subscribed,
             self.subnode_subscript,
         )
 
     def getVisitableNodesNamed(self):
-        """Named children dictionary.
-
-        For use in cloning nodes, debugging and XML output.
-        """
-
         return (
             ("subscribed", self.subnode_subscribed),
             ("subscript", self.subnode_subscript),
@@ -3329,11 +2713,6 @@ class _StatementChildrenHavingSubscribedSubscriptOperationMixin(StatementBase):
         raise AssertionError("Didn't find child", old_node, "in", self)
 
     def getCloneArgs(self):
-        """Get clones of all children to pass for a new node.
-
-        Needs to make clones of child nodes too.
-        """
-
         values = {
             "subscribed": self.subnode_subscribed.makeClone(),
             "subscript": self.subnode_subscript.makeClone(),
@@ -3357,7 +2736,6 @@ class _StatementChildrenHavingSubscribedSubscriptOperationMixin(StatementBase):
 
         self.undoVariableTracing()
 
-    # For overload only
     @staticmethod
     def undoVariableTracing():
         pass
@@ -3374,17 +2752,17 @@ class _StatementChildrenHavingSubscribedSubscriptOperationMixin(StatementBase):
 
     @abstractmethod
     def computeStatementOperation(self, trace_collection):
-        """Must be overloaded for non-final node."""
+        pass
 
     def collectVariableAccesses(self, emit_variable):
-        """Collect variable reads and writes of child nodes."""
-
         self.subnode_subscribed.collectVariableAccesses(emit_variable)
         self.subnode_subscript.collectVariableAccesses(emit_variable)
 
 
-# Assign the names that are easier to import with a stable name.
 StatementDelSubscriptBase = _StatementChildrenHavingSubscribedSubscriptOperationMixin
+StatementDelSysModulesSubscriptBase = (
+    _StatementChildrenHavingSubscribedSubscriptOperationMixin
+)
 
 
 class _StatementChildrenHavingTriedStatementsExceptHandlerOptionalStatementsOrNoneBreakHandlerOptionalStatementsOrNoneContinueHandlerOptionalStatementsOrNoneReturnHandlerOptionalStatementsOrNonePostInitMixin(
@@ -3392,9 +2770,6 @@ class _StatementChildrenHavingTriedStatementsExceptHandlerOptionalStatementsOrNo
 ):
     # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
     __slots__ = ()
-
-    # This is generated for use in
-    #   StatementTry
 
     def __init__(
         self,
@@ -3440,7 +2815,7 @@ class _StatementChildrenHavingTriedStatementsExceptHandlerOptionalStatementsOrNo
 
     @abstractmethod
     def postInitNode(self):
-        """For overload"""
+        pass
 
     def setChildBreakHandler(self, value):
         value = checkStatementsSequenceOrNone(value)
@@ -3477,8 +2852,6 @@ class _StatementChildrenHavingTriedStatementsExceptHandlerOptionalStatementsOrNo
         self.subnode_tried = value
 
     def getVisitableNodes(self):
-        """The visitable nodes, with tuple values flattened."""
-
         result = [
             self.subnode_tried,
         ]
@@ -3493,11 +2866,6 @@ class _StatementChildrenHavingTriedStatementsExceptHandlerOptionalStatementsOrNo
         return result
 
     def getVisitableNodesNamed(self):
-        """Named children dictionary.
-
-        For use in cloning nodes, debugging and XML output.
-        """
-
         return (
             ("tried", self.subnode_tried),
             ("except_handler", self.subnode_except_handler),
@@ -3559,11 +2927,6 @@ class _StatementChildrenHavingTriedStatementsExceptHandlerOptionalStatementsOrNo
         raise AssertionError("Didn't find child", old_node, "in", self)
 
     def getCloneArgs(self):
-        """Get clones of all children to pass for a new node.
-
-        Needs to make clones of child nodes too.
-        """
-
         values = {
             "tried": self.subnode_tried.makeClone(),
             "except_handler": (
@@ -3616,14 +2979,11 @@ class _StatementChildrenHavingTriedStatementsExceptHandlerOptionalStatementsOrNo
 
         self.undoVariableTracing()
 
-    # For overload only
     @staticmethod
     def undoVariableTracing():
         pass
 
     def collectVariableAccesses(self, emit_variable):
-        """Collect variable reads and writes of child nodes."""
-
         self.subnode_tried.collectVariableAccesses(emit_variable)
         subnode_except_handler = self.subnode_except_handler
 
@@ -3643,16 +3003,12 @@ class _StatementChildrenHavingTriedStatementsExceptHandlerOptionalStatementsOrNo
             self.subnode_return_handler.collectVariableAccesses(emit_variable)
 
 
-# Assign the names that are easier to import with a stable name.
 StatementTryBase = _StatementChildrenHavingTriedStatementsExceptHandlerOptionalStatementsOrNoneBreakHandlerOptionalStatementsOrNoneContinueHandlerOptionalStatementsOrNoneReturnHandlerOptionalStatementsOrNonePostInitMixin
 
 
 class _StatementChildHavingValueOperationMixin(StatementBase):
     # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
     __slots__ = ()
-
-    # This is generated for use in
-    #   StatementPublishExceptionValue
 
     def __init__(self, value, source_ref):
         value.parent = self
@@ -3662,16 +3018,9 @@ class _StatementChildHavingValueOperationMixin(StatementBase):
         StatementBase.__init__(self, source_ref)
 
     def getVisitableNodes(self):
-        """The visitable nodes, with tuple values flattened."""
-
         return (self.subnode_value,)
 
     def getVisitableNodesNamed(self):
-        """Named children dictionary.
-
-        For use in cloning nodes, debugging and XML output.
-        """
-
         return (("value", self.subnode_value),)
 
     def replaceChild(self, old_node, new_node):
@@ -3686,11 +3035,6 @@ class _StatementChildHavingValueOperationMixin(StatementBase):
         raise AssertionError("Didn't find child", old_node, "in", self)
 
     def getCloneArgs(self):
-        """Get clones of all children to pass for a new node.
-
-        Needs to make clones of child nodes too.
-        """
-
         values = {
             "value": self.subnode_value.makeClone(),
         }
@@ -3711,7 +3055,6 @@ class _StatementChildHavingValueOperationMixin(StatementBase):
 
         self.undoVariableTracing()
 
-    # For overload only
     @staticmethod
     def undoVariableTracing():
         pass
@@ -3728,25 +3071,18 @@ class _StatementChildHavingValueOperationMixin(StatementBase):
 
     @abstractmethod
     def computeStatementOperation(self, trace_collection):
-        """Must be overloaded for non-final node."""
+        pass
 
     def collectVariableAccesses(self, emit_variable):
-        """Collect variable reads and writes of child nodes."""
-
         self.subnode_value.collectVariableAccesses(emit_variable)
 
 
-# Assign the names that are easier to import with a stable name.
 StatementPublishExceptionValueBase = _StatementChildHavingValueOperationMixin
 
 
 class _StatementChildrenHavingValueDictArgKeyOperationMixin(StatementBase):
     # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
     __slots__ = ()
-
-    # This is generated for use in
-    #   StatementDictOperationSet
-    #   StatementDictOperationSetKeyValue
 
     def __init__(self, value, dict_arg, key, source_ref):
         value.parent = self
@@ -3764,8 +3100,6 @@ class _StatementChildrenHavingValueDictArgKeyOperationMixin(StatementBase):
         StatementBase.__init__(self, source_ref)
 
     def getVisitableNodes(self):
-        """The visitable nodes, with tuple values flattened."""
-
         return (
             self.subnode_value,
             self.subnode_dict_arg,
@@ -3773,11 +3107,6 @@ class _StatementChildrenHavingValueDictArgKeyOperationMixin(StatementBase):
         )
 
     def getVisitableNodesNamed(self):
-        """Named children dictionary.
-
-        For use in cloning nodes, debugging and XML output.
-        """
-
         return (
             ("value", self.subnode_value),
             ("dict_arg", self.subnode_dict_arg),
@@ -3812,11 +3141,6 @@ class _StatementChildrenHavingValueDictArgKeyOperationMixin(StatementBase):
         raise AssertionError("Didn't find child", old_node, "in", self)
 
     def getCloneArgs(self):
-        """Get clones of all children to pass for a new node.
-
-        Needs to make clones of child nodes too.
-        """
-
         values = {
             "value": self.subnode_value.makeClone(),
             "dict_arg": self.subnode_dict_arg.makeClone(),
@@ -3843,7 +3167,6 @@ class _StatementChildrenHavingValueDictArgKeyOperationMixin(StatementBase):
 
         self.undoVariableTracing()
 
-    # For overload only
     @staticmethod
     def undoVariableTracing():
         pass
@@ -3860,17 +3183,14 @@ class _StatementChildrenHavingValueDictArgKeyOperationMixin(StatementBase):
 
     @abstractmethod
     def computeStatementOperation(self, trace_collection):
-        """Must be overloaded for non-final node."""
+        pass
 
     def collectVariableAccesses(self, emit_variable):
-        """Collect variable reads and writes of child nodes."""
-
         self.subnode_value.collectVariableAccesses(emit_variable)
         self.subnode_dict_arg.collectVariableAccesses(emit_variable)
         self.subnode_key.collectVariableAccesses(emit_variable)
 
 
-# Assign the names that are easier to import with a stable name.
 StatementDictOperationSetBase = _StatementChildrenHavingValueDictArgKeyOperationMixin
 StatementDictOperationSetKeyValueBase = (
     _StatementChildrenHavingValueDictArgKeyOperationMixin

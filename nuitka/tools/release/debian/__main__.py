@@ -10,6 +10,8 @@ from nuitka.options.CommandLineOptionsTools import makeOptionsParser
 from nuitka.tools.release.DebianPackage import (
     checkChangeLog,
     cleanupTarfileForDebian,
+    copySourceForDebianBuild,
+    fixupPermissionsInplace,
     runPy2dsc,
     shallNotIncludeInlineCopy,
 )
@@ -17,6 +19,7 @@ from nuitka.tools.release.Release import (
     checkBranchName,
     cleanupSourceDistributionState,
     getBranchCategory,
+    syncTime,
 )
 from nuitka.Tracing import my_print, tools_logger
 from nuitka.utils.Execution import check_call, withEnvironmentVarOverridden
@@ -69,17 +72,6 @@ Where the package source resides. Default %default.""",
     return options, codename
 
 
-def fixupPermissionsInplace(
-    dest_path,
-    file_perm,
-    dir_perm,
-    ignore_filenames=(),
-):
-    for filename in getFileList(dest_path, ignore_filenames=ignore_filenames):
-        os.chmod(filename, file_perm)
-        os.chmod(os.path.dirname(filename), dir_perm)
-
-
 def fixupPermissionsCopy(source_path, dest_path, ignore_filenames=()):
     copyTree(source_path=source_path, dest_path=dest_path)
 
@@ -96,6 +88,10 @@ def main():
 
     # Make sure error messages are in English.
     os.environ["LC_ALL"] = "C"
+
+    # The WSL clock can be skewed, which breaks builds and package repository
+    # signatures, so update it before starting.
+    syncTime()
 
     options, codename = parseArgs()
 
@@ -118,18 +114,9 @@ def main():
     shutil.rmtree("dist", ignore_errors=True)
     shutil.rmtree("build", ignore_errors=True)
 
-    tools_logger.info(
-        "Copying src to temporary location before modifying it.", style="blue"
-    )
-    copyTree(options.src, "/var/tmp/src")
-    os.chdir("/var/tmp/src")
+    copySourceForDebianBuild(source_path=options.src)
 
     cleanupSourceDistributionState()
-
-    fixupPermissionsInplace(
-        "debian", int("644", 8), int("755", 8), ignore_filenames=("rules",)
-    )
-    fixupPermissionsInplace("nuitka", int("644", 8), int("755", 8))
 
     # Build the source distribution as per our setup, however that's not going
     # to be good enough for Debian packages. We may want to avoid inline copies
@@ -224,7 +211,7 @@ sudo /usr/sbin/pbuilder --update --basetgz %s""" % (basetgz_filename)
     (dsc_filename,) = resolveShellPatternToFilenames("dist/deb_dist/*.dsc")
 
     # Execute the package build in the pbuilder with tests.
-    # spell-checker: ignore hookdir,debemail,buildresult
+    # spell-checker: ignore buildresult,debemail,hookdir
     command = (
         "sudo",
         "/usr/sbin/pbuilder",
@@ -269,7 +256,7 @@ SignWith: D96ADCA1377F1CEB6B5103F11BFC33752912B99C
 """ % {"codename": codename},
     )
 
-    # spell-checker: ignore reprepro includedeb
+    # spell-checker: ignore includedeb reprepro
     command = ["reprepro", "includedeb", codename]
     command.extend(resolveShellPatternToFilenames("../*.deb"))
 
@@ -280,21 +267,11 @@ SignWith: D96ADCA1377F1CEB6B5103F11BFC33752912B99C
 
     my_print("Uploading ...", style="blue")
 
-    # Create repo folder unless already done. This is needed for the first
-    # build only. It also prevents us from talking to foreign servers, by
-    # letting ssh check all it wants.
+    # Update the repository on the web site. The deploy account is restricted
+    # to rsync, and --mkpath creates the first-build repository directory.
     assert (
         os.system(
-            "ssh root@ssh.nuitka.net mkdir -p /var/www/deb/%s/%s/"
-            % (category, codename)
-        )
-        == 0
-    )
-
-    # Update the repository on the web site.
-    assert (
-        os.system(
-            "rsync -avz --delete dists pool --chown www-data root@ssh.nuitka.net:/var/www/deb/%s/%s/"
+            "rsync -avz --delete --mkpath --chmod=D755,F644 dists pool deploy@ssh.nuitka.net:/var/www/deb/%s/%s/"
             % (category, codename)
         )
         == 0

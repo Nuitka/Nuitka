@@ -23,7 +23,7 @@ credits.
 
 Nuitka is **the** Python compiler. It is written in Python. It is a
 seamless replacement or extension to the Python interpreter and compiles
-**every** construct that Python 2 (2.6, 2.7) and Python 3 (3.4 - 3.14)
+**every** construct that Python 2 (2.6, 2.7) and Python 3 (3.4 - 3.15)
 have, when itself run with that Python version.
 
 It then executes uncompiled code and compiled code together in an
@@ -108,7 +108,7 @@ Currently, this means, you need to use one of these compilers:
 Python
 ======
 
-**Python 2** (2.6, 2.7) and **Python 3** (3.4 - 3.14) are supported. If
+**Python 2** (2.6, 2.7) and **Python 3** (3.4 - 3.15) are supported. If
 at any moment, there is a stable Python release that is not in this
 list, rest assured it is being worked on and will be added.
 
@@ -1147,12 +1147,24 @@ login, and keeping it secure, as it's something you put your source code
 on.
 
 To aid that, Nuitka commercial has container based builds, that you can
-use. This uses dedicated optimized Python builds, targets CentOS 7 and
-supports even newest Pythons and very old OSes that way using recent C
-compiler chains all turn key solution. The effort needs to be
-compensated to support Nuitka development for Linux, there you need to
-purchase it https://nuitka.net/doc/commercial.html but even a sponsor
-license will be cheaper than doing it yourself.
+use. This uses dedicated optimized Python builds and targets CentOS 7
+and 8, with the CentOS 7 based container in the Nuitka Commercial
+package giving even better portability of the result. It supports even
+newest Pythons and very old OSes using recent C compiler chains. See the
+`container build feature
+<https://nuitka.net/doc/commercial/portable-linux-support.html>`__ for
+details, or purchase it at `Nuitka Commercial
+<https://nuitka.net/doc/commercial.html>`__.
+
+Nuitka itself can also compile inside a container with
+``--container=CentOS8`` (CentOS Stream 8-based), and plugins can provide
+additional containers. The Python version running Nuitka is built inside
+the container by default; use ``--container-python-version`` to select
+another version or ``--container-python-version=container`` to use the
+container's own Python. Use ``--container-requirements`` to install
+project requirements before compiling, and ``--container-wheels-dir`` to
+install wheel files from a host directory, mounted at
+``/Nuitka-wheels``. See ``--help`` for the container options.
 
 Program crashes system (fork bombs)
 ===================================
@@ -1765,7 +1777,7 @@ supported, unless you want to target Windows 7.
 +------------------+-------------+-----------+
 | Visual C version | Redist Year | CPython   |
 +==================+=============+===========+
-| 14.3             | 2022        | 3.11-3.14 |
+| 14.3             | 2022        | 3.11-3.15 |
 +------------------+-------------+-----------+
 | 14.2             | 2019        | 3.5-3.10  |
 +------------------+-------------+-----------+

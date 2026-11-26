@@ -15,8 +15,12 @@ And releasing of values, as this is what the error case commonly does.
 """
 
 from nuitka.PythonVersions import python_version
+from nuitka.States import states
 
-from .DeferredReleaseCodes import getDeferredReleaseErrorCode
+from .DeferredReleaseCodes import (
+    emitDeferredRelease,
+    getDeferredReleaseErrorCode,
+)
 from .LineNumberCodes import getErrorLineNumberUpdateCode
 from .templates.CodeTemplatesExceptions import (
     template_error_catch_exception,
@@ -30,7 +34,6 @@ def getErrorExitReleaseCode(context):
     temp_release = []
 
     for tmp_name in context.getCleanupTempNames():
-        # Drop the owning reference.
         temp_release.append("Py_DECREF(%s);" % tmp_name)
 
         # The shared function exception exit releases the return value as
@@ -39,8 +42,6 @@ def getErrorExitReleaseCode(context):
             temp_release.append("%s = NULL;" % tmp_name)
 
         if context.isDeferredReleaseName(tmp_name):
-            # Release the deferred reference only when nothing else
-            # references the value.
             deferred_code = getDeferredReleaseErrorCode(
                 context=context,
                 tmp_name=tmp_name,
@@ -76,32 +77,41 @@ def getErrorExitBoolCode(
 ):
     """Emit error exit code based on a condition.
 
-    Args:
-        condition: C boolean expression checking for error.
-        emit: Function to emit code.
-        context: Code generation context.
-        release_names: Tuple/list of variable names to release, None entries are allowed.
-        release_name: Single variable name to release.
-        fetched_exception: Whether exception is already fetched.
-        needs_check: Whether validation of condition is needed.
-
-    Notes:
-        `release_name` and `release_names` are mutually exclusive.
-        Use `release_name` for a single variable, `release_names` for multiple.
+    'release_name' and 'release_names' are mutually exclusive; 'release_names'
+    allows 'None' entries.
     """
     assert not condition.endswith(";")
 
+    deferred_release_names = []
+
     if release_names:
-        getReleaseCodes(release_names, emit, context)
+        normal_release_names = []
+
+        for tmp_name in release_names:
+            if context.isDeferredReleaseName(tmp_name):
+                deferred_release_names.append(tmp_name)
+            else:
+                normal_release_names.append(tmp_name)
+
+        getReleaseCodes(normal_release_names, emit, context)
         assert not release_name
 
     if release_name is not None:
         assert type(release_name) is not tuple
-        getReleaseCode(release_name, emit, context)
+
+        if context.isDeferredReleaseName(release_name):
+            deferred_release_names.append(release_name)
+        else:
+            getReleaseCode(release_name, emit, context)
+
         assert not release_names
 
     if not needs_check:
         getAssertionCode("!(%s)" % condition, emit)
+
+        # The deferred values are released on the non-error path.
+        getReleaseCodes(deferred_release_names, emit, context)
+
         return
 
     (
@@ -132,18 +142,10 @@ def getErrorExitBoolCode(
             }
         )
 
+    getReleaseCodes(deferred_release_names, emit, context)
+
 
 def getErrorExitRaiseCode(condition, set_exception, emit, context):
-    """Emit error exit code raising an exception when a condition is met.
-
-    Args:
-        condition: C boolean expression that indicates the error case.
-        set_exception: Code that sets the exception, multiple statements may
-            be joined with newlines.
-        emit: Function to emit code.
-        context: Code generation context.
-    """
-
     emit(
         template_error_format_string_exception
         % {
@@ -157,17 +159,6 @@ def getErrorExitRaiseCode(condition, set_exception, emit, context):
 
 
 def getRaiseExceptionStateCode(exception_type_name, exception_message, context):
-    """Get C code that sets the exception state to a new exception.
-
-    Args:
-        exception_type_name: Name of the exception type, e.g. "RuntimeError".
-        exception_message: Message to use for the exception.
-        context: Code generation context.
-
-    Returns:
-        Code that sets the exception state.
-    """
-
     (
         exception_state_name,
         _exception_lineno,
@@ -188,20 +179,9 @@ def getErrorExitCode(
     fetched_exception=False,
     needs_check=True,
 ):
-    """Emit error exit code by checking a variable.
+    """Emit error exit code by checking 'check_name'.
 
-    Args:
-        check_name: Variable to check for error condition.
-        emit: Function to emit code.
-        context: Code generation context.
-        release_names: Tuple/list of variable names to release.
-        release_name: Single variable name to release.
-        fetched_exception: Whether exception is already fetched.
-        needs_check: Whether validation of condition is needed.
-
-    Notes:
-        `release_name` and `release_names` are mutually exclusive.
-        Use `release_name` for a single variable, `release_names` for multiple.
+    'release_name' and 'release_names' are mutually exclusive.
     """
     getErrorExitBoolCode(
         condition=check_name.getCType().getExceptionCheckCondition(check_name),
@@ -214,39 +194,22 @@ def getErrorExitCode(
     )
 
 
-def _getExceptionChainingCode(context):
-    (
-        exception_state_name,
-        _exception_lineno,
-    ) = context.getExceptionVariableDescriptions()
-
-    (
-        keeper_exception_state_name,
-        _keeper_lineno,
-    ) = context.getExceptionKeeperVariables()
-
-    if keeper_exception_state_name is not None:
-        yield "ADD_EXCEPTION_CONTEXT(tstate, &%s);" % keeper_exception_state_name
-    else:
-        if python_version < 0x3C0:
-            yield "NORMALIZE_EXCEPTION_STATE(tstate, &%s);" % exception_state_name
-
-        yield "CHAIN_EXCEPTION(tstate, %s.exception_value);" % exception_state_name
-
-
 def getTakeReferenceCode(value_name, emit):
     value_name.getCType().getTakeReferenceCode(value_name=value_name, emit=emit)
 
 
 def getReleaseCode(release_name, emit, context):
+    context.unregisterBorrowedValue(release_name)
+
     if context.needsCleanup(release_name):
-        # Note: Deferred release values additionally keep a pinned reference
-        # that is released at the end of the statement.
         release_name.getCType().getReleaseCode(
             value_name=release_name, needs_check=False, emit=emit
         )
 
         context.removeCleanupTempName(release_name)
+
+        if context.isDeferredReleaseName(release_name):
+            emitDeferredRelease(emit=emit, context=context, tmp_name=release_name)
 
 
 def getReleaseCodes(release_names, emit, context):
@@ -271,21 +234,11 @@ def _getFrameVariableErrorCode(
     frame_identifier,
     context,
 ):
-    """Get the exception setting for a variable with a frame, or None.
+    """Get the exception setting for a variable with a frame, or 'None'.
 
     The variable name is resolved from the frame's code object, using the
     local variable index or the closure variable index, depending on where
     the variable is found, so no string constant is needed.
-
-    Args:
-        variable: Variable that is accessed.
-        exception_state_name: Name of the exception state variable.
-        keeper_exception_state_code: Code for the keeper exception state, or "NULL".
-        frame_identifier: Variable declaration of the frame object, or None.
-        context: Code generation context.
-
-    Returns:
-        Code that sets the exception, or None if unavailable.
     """
     owner = variable.getOwner()
 
@@ -321,9 +274,31 @@ def _getFrameVariableErrorCode(
     return None
 
 
-def getLocalVariableReferenceErrorCode(variable, condition, emit, context):
-    variable_name = variable.getName()
+def _getSimpleVariableErrorCode(variable, exception_state_name, context):
+    variable_owner = variable.getOwner()
 
+    if variable_owner.isExpressionOutlineFunctionBase():
+        variable_entry_point = variable_owner.getEntryPoint()
+    else:
+        variable_entry_point = variable_owner
+
+    if variable_entry_point is context.getOwner().getEntryPoint():
+        return (
+            """\
+SET_EXCEPTION_PRESERVATION_STATE_FROM_TYPE0_STR(
+    tstate, &%s, PyExc_UnboundLocalError, "local variable referenced before assignment");"""
+            % exception_state_name
+        )
+
+    return (
+        """\
+SET_EXCEPTION_PRESERVATION_STATE_FROM_TYPE0_STR(
+    tstate, &%s, PyExc_NameError, "free variable referenced before assignment in enclosing scope");"""
+        % exception_state_name
+    )
+
+
+def getLocalVariableReferenceErrorCode(variable, condition, emit, context):
     (
         exception_state_name,
         _exception_lineno,
@@ -341,33 +316,55 @@ def getLocalVariableReferenceErrorCode(variable, condition, emit, context):
 
     frame_identifier = context.getFrameHandle()
 
-    frame_error_code = _getFrameVariableErrorCode(
-        variable=variable,
-        exception_state_name=exception_state_name,
-        keeper_exception_state_code=keeper_exception_state_code,
-        frame_identifier=frame_identifier,
-        context=context,
-    )
+    if states.is_full_compat:
+        frame_error_code = _getFrameVariableErrorCode(
+            variable=variable,
+            exception_state_name=exception_state_name,
+            keeper_exception_state_code=keeper_exception_state_code,
+            frame_identifier=frame_identifier,
+            context=context,
+        )
 
-    if frame_error_code is not None:
-        set_exception = [frame_error_code]
+        # Without a frame or frame variables, only frame-less outline code,
+        # e.g. comprehensions, remains, and it still needs a proper error
+        # message.
+        if frame_error_code is None:
+            variable_owner = variable.getOwner()
+
+            if variable_owner.isExpressionOutlineFunctionBase():
+                variable_entry_point = variable_owner.getEntryPoint()
+            else:
+                variable_entry_point = variable_owner
+
+            # This is the known frame-less outline situation: the variable
+            # belongs to the outline that is currently being generated, and
+            # the parent entry point frame is the one in use.
+            if (
+                frame_identifier is not None
+                and context.getOwner() is variable_owner
+                and variable_owner.isExpressionOutlineFunctionBase()
+                and variable_entry_point is context.getOwner().getEntryPoint()
+            ):
+                frame_error_code = (
+                    "Nuitka_FormatUnboundLocalError(tstate, &%s, %s, %s);"
+                    % (
+                        exception_state_name,
+                        keeper_exception_state_code,
+                        context.getConstantCode(constant=variable.getName()),
+                    )
+                )
+            else:
+                assert frame_error_code is not None, variable
     else:
-        # Without a frame or frame variables, only the spurious local variable
-        # checks that should not exist can occur. Closures always have a frame.
-        set_exception = [
-            "FORMAT_UNBOUND_LOCAL_ERROR(tstate, &%s, %s);"
-            % (
-                exception_state_name,
-                context.getConstantCode(variable_name),
-            ),
-        ]
-
-        if python_version >= 0x300:
-            set_exception.extend(_getExceptionChainingCode(context))
+        frame_error_code = _getSimpleVariableErrorCode(
+            variable=variable,
+            exception_state_name=exception_state_name,
+            context=context,
+        )
 
     getErrorExitRaiseCode(
         condition=condition,
-        set_exception="\n".join(set_exception),
+        set_exception=frame_error_code,
         emit=emit,
         context=context,
     )

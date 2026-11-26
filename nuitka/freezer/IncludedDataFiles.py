@@ -18,6 +18,7 @@ from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.importing.Importing import locateModule
 from nuitka.options.BuildPackageCommon import getProjectExpectedDataFiles
 from nuitka.options.Options import (
+    getCompilationMode,
     getOutputPath,
     getShallIncludeDataDirs,
     getShallIncludeDataFiles,
@@ -45,6 +46,8 @@ from nuitka.utils.FileOperations import (
     getFilenameExtension,
     getFileSize,
     getNormalizedPath,
+    hasFilenameSuffix,
+    isCaseInsensitiveFileSystem,
     isFilenameBelowPath,
     isLegalPath,
     isLink,
@@ -57,6 +60,8 @@ from nuitka.utils.FileOperations import (
 )
 from nuitka.utils.Importing import getExtensionModuleSuffixes
 from nuitka.utils.Utils import counted, isMacOS, isWin32Windows
+
+from .MacOSFrameworkBundles import getMacOSFrameworkVersionDir
 
 data_file_tags = []
 
@@ -160,20 +165,18 @@ class IncludedDataFile(object):
 
         tags_set.update(decodeDataFileTags(tags))
 
-        # Copy, unless specified otherwise.
-        if not any(tag.startswith("embed-") for tag in tags_set):
-            tags_set.add("copy")
+        # Copy, unless a plugin embedding it says otherwise.
+        tags_set.add("copy")
 
         self.kind = kind
         self.source_path = source_path
         self.dest_path = getNormalizedPath(dest_path)
 
-        is_legal, illegal_reason = isLegalPath(self.dest_path)
-        if not is_legal:
-            general.sysexit(
-                "Error, cannot add data file with '%s' path, as '%s'"
-                % (dest_path, illegal_reason)
-            )
+        isLegalPath(self.dest_path).sysexitUnlessPositive(
+            logger=general,
+            message="Error, cannot add data file with '%(path)s' path, as '%(reason)s'",
+            template_args={"path": dest_path},
+        )
 
         self.reason = reason
         self.data = data
@@ -361,7 +364,7 @@ def isIgnoredDataFilename(filename):
     if os.path.normcase(os.path.basename(filename)) in normalized_ignored_filenames:
         return True
 
-    if os.path.normcase(filename).endswith(default_ignored_suffixes):
+    if hasFilenameSuffix(filename, default_ignored_suffixes):
         return True
 
     if _re_versioned_shared_library_suffix.search(os.path.normcase(filename)):
@@ -464,29 +467,6 @@ def _registerIncludedFrameworkDirectory(logger, source_path, dest_path):
         )
 
 
-def _getFrameworkVersionDir(source_path):
-    versions_dir = os.path.join(source_path, "Versions")
-
-    if not os.path.isdir(versions_dir):
-        return None
-
-    framework_name = os.path.basename(source_path)
-    if framework_name.endswith(".framework"):
-        framework_name = framework_name[: -len(".framework")]
-
-    for _entry_path, entry_name in listDir(versions_dir):
-        if entry_name == "Current":
-            continue
-
-        if not os.path.isdir(_entry_path):
-            continue
-
-        if os.path.exists(os.path.join(_entry_path, framework_name)):
-            return entry_name
-
-    return None
-
-
 def makeIncludedFrameworkDirectory(logger, source_path, dest_path, reason, tags):
     assert isMacOS(), source_path
     assert os.path.isdir(source_path), source_path
@@ -502,7 +482,7 @@ def makeIncludedFrameworkDirectory(logger, source_path, dest_path, reason, tags)
         dest_path=dest_path,
     )
 
-    version_dir_name = _getFrameworkVersionDir(source_path)
+    version_dir_name = getMacOSFrameworkVersionDir(framework_path=source_path)
 
     if version_dir_name is not None:
         # Some frameworks (like Qt 5.15 shipped with PySide2) place
@@ -747,6 +727,47 @@ def getIncludedDataFiles():
         list: List of IncludedDataFile objects.
     """
     return _included_data_files
+
+
+def getIncludedDataFile(dest_path):
+    """Get an included data file by destination path.
+
+    Args:
+        dest_path: The destination path to look for.
+
+    Returns:
+        IncludedDataFile or None: The matching data file.
+    """
+    dest_path = os.path.normpath(dest_path)
+
+    for included_data_file in _included_data_files:
+        if included_data_file.dest_path == dest_path:
+            return included_data_file
+
+    return None
+
+
+def getIncludedDataFilesBelow(path):
+    """Get included data files below a destination directory.
+
+    Args:
+        path: The destination directory to look below.
+
+    Returns:
+        list: List of IncludedDataFile objects below the path.
+    """
+    path = os.path.normpath(path)
+
+    if path:
+        prefix = path + os.path.sep
+    else:
+        prefix = ""
+
+    return [
+        included_data_file
+        for included_data_file in _included_data_files
+        if not prefix or included_data_file.dest_path.startswith(prefix)
+    ]
 
 
 def getIncludedFrameworkDistPathFromSourcePath(source_path):
@@ -1061,15 +1082,7 @@ def _reportDataFiles():
             tracer.info("Included %d data files due to %s." % (count, reason))
         else:
             for kind, dest_path in _data_file_traces[key]:
-                if kind == "data_blob":
-                    tracer.info(
-                        "Included data file '%s' due to %s."
-                        % (
-                            dest_path,
-                            reason,
-                        )
-                    )
-                elif kind in ("data_file", "data_file_generated"):
+                if kind in ("data_blob", "data_file", "data_file_generated"):
                     tracer.info(
                         "Included data file '%s' due to %s."
                         % (
@@ -1084,36 +1097,76 @@ def _reportDataFiles():
     _data_file_traces.clear()
 
 
-def _checkPathConflict(dest_path, standalone_entry_points):
+def _decidePathsConflict(path1, path2, case_insensitive):
+    """Decide if two paths conflict.
+
+    Args:
+        path1: First path to compare.
+        path2: Second path to compare.
+        case_insensitive: Whether the paths are on a case insensitive file
+        system.
+
+    Returns:
+        tuple: (decision, reason) where decision is a boolean, and reason is a
+        string explaining the decision if the paths conflict, and None
+        otherwise.
+    """
+    if path1 == path2:
+        return True, "the paths are identical"
+
+    if case_insensitive and path1.lower() == path2.lower():
+        return (
+            True,
+            "the paths differ only in case on a case insensitive file system",
+        )
+
+    return False, None
+
+
+def _checkPathConflict(dest_path, standalone_entry_points, case_insensitive):
     """Check for conflicts with standalone entry points.
 
     Args:
         dest_path: The destination path to check.
         standalone_entry_points: List of standalone entry points.
+        case_insensitive: Whether the paths are on a case insensitive file
+        system.
     """
     assert getNormalizedPath(dest_path) == dest_path
 
     while dest_path:
         for standalone_entry_point in standalone_entry_points:
-            if dest_path == standalone_entry_point.dest_path:
-                options_logger.sysexit(
+            decision, reason = _decidePathsConflict(
+                dest_path,
+                standalone_entry_point.dest_path,
+                case_insensitive=case_insensitive,
+            )
+
+            if decision:
+                return options_logger.sysexit(
                     """\
-Error, data file to be placed in distribution as '%s' conflicts with %s '%s'."""
+Error, data file to be placed in distribution as '%s' conflicts with %s '%s' because %s."""
                     % (
                         dest_path,
                         standalone_entry_point.kind,
                         standalone_entry_point.dest_path,
+                        reason,
                     )
                 )
         dest_path = os.path.dirname(dest_path)
 
 
-def _handleDataFile(included_datafile, standalone_entry_points):
+def _handleDataFile(
+    included_datafile, standalone_entry_points, case_insensitive, dist_dir
+):
     """Handle a single data file, writing or copying it.
 
     Args:
         included_datafile: The IncludedDataFile object.
         standalone_entry_points: List of standalone entry points to check conflicts against.
+        case_insensitive: Whether the paths are on a case insensitive file
+        system.
+        dist_dir: Distribution directory to copy to.
 
     Returns:
         tuple: (external, dest_path) where external is bool.
@@ -1121,11 +1174,12 @@ def _handleDataFile(included_datafile, standalone_entry_points):
     tracer = included_datafile.tracer
 
     if not isinstance(included_datafile, IncludedDataFile):
-        tracer.sysexit("Error, can only accept 'IncludedData*' objects from ")
+        return tracer.sysexit("Error, can only accept 'IncludedData*' objects from ")
 
     if not isStandaloneMode():
-        tracer.sysexit(
-            "Error, package data files are only included in standalone or onefile mode."
+        return tracer.sysexit(
+            "Error, package data files are only included in standalone or onefile mode, not '%s' mode."
+            % getCompilationMode()
         )
 
     key = tracer, included_datafile.reason
@@ -1134,13 +1188,15 @@ def _handleDataFile(included_datafile, standalone_entry_points):
 
     _data_file_traces[key].append((included_datafile.kind, included_datafile.dest_path))
 
-    dist_dir = getStandaloneDirectoryPath(bundle=True, real=False)
-
     if "external" in included_datafile.tags:
         dest_path = getOutputPath(included_datafile.dest_path)
         external = True
     else:
-        _checkPathConflict(included_datafile.dest_path, standalone_entry_points)
+        _checkPathConflict(
+            included_datafile.dest_path,
+            standalone_entry_points,
+            case_insensitive=case_insensitive,
+        )
         dest_path = os.path.join(dist_dir, included_datafile.dest_path)
         external = False
 
@@ -1169,7 +1225,7 @@ def _handleDataFile(included_datafile, standalone_entry_points):
     return external, dest_path
 
 
-def copyDataFiles(standalone_entry_points):
+def copyDataFiles(standalone_entry_points, dist_dir):
     """Copy the data files needed for standalone distribution.
 
     Notes:
@@ -1179,12 +1235,15 @@ def copyDataFiles(standalone_entry_points):
 
     Args:
         standalone_entry_points: List of standalone entry points available.
+        dist_dir: Distribution directory to copy to.
 
     Returns:
         list: List of paths to the copied data files.
     """
 
     data_file_paths = []
+
+    case_insensitive = isCaseInsensitiveFileSystem(dist_dir)
 
     # Copy symlinks last, so their targets are present in the distribution, and
     # the symlinks can be preserved, rather than being dereferenced.
@@ -1209,6 +1268,8 @@ plugins '--embed-*' options. Not done for '%s'.""" % included_datafile.dest_path
             external, data_file_path = _handleDataFile(
                 included_datafile=included_datafile,
                 standalone_entry_points=standalone_entry_points,
+                case_insensitive=case_insensitive,
+                dist_dir=dist_dir,
             )
 
             if not external:

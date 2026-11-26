@@ -3,7 +3,7 @@
 
 """Shapes for Python built-in types."""
 
-from nuitka.__past__ import frozendict, long, unicode, xrange
+from nuitka.__past__ import frozendict, long, sentinel, unicode, xrange
 from nuitka.code_generation.c_types.CTypeNuitkaBooleans import (
     CTypeNuitkaBoolEnum,
 )
@@ -11,8 +11,14 @@ from nuitka.code_generation.c_types.CTypeNuitkaInts import (
     CTypeNuitkaIntOrLongStruct,
 )
 from nuitka.code_generation.Reports import onMissingOperation
-from nuitka.Constants import the_empty_frozendict, the_empty_unicode
-from nuitka.options.Options import isExperimental
+from nuitka.Constants import (
+    EllipsisType,
+    NoneType,
+    the_empty_frozendict,
+    the_empty_sentinel,
+    the_empty_unicode,
+)
+from nuitka.options.Experimental import isExperimental
 from nuitka.PythonVersions import python_version
 
 from .ControlFlowDescriptions import (
@@ -32,12 +38,15 @@ from .ControlFlowDescriptions import (
     ControlFlowDescriptionMulUnsupported,
     ControlFlowDescriptionNoEscape,
     ControlFlowDescriptionOldDivUnsupported,
+    ControlFlowDescriptionOverflowNoEscape,
     ControlFlowDescriptionPowUnsupported,
     ControlFlowDescriptionRshiftUnsupported,
     ControlFlowDescriptionSubUnsupported,
     ControlFlowDescriptionTrueDivUnsupported,
     ControlFlowDescriptionValueErrorNoEscape,
     ControlFlowDescriptionZeroDivisionNoEscape,
+    ControlFlowDescriptionZeroDivisionOverflowNoEscape,
+    ControlFlowDescriptionZeroDivisionOverflowValueErrorNoEscape,
 )
 from .ShapeMixins import (
     ShapeContainerImmutableMixin,
@@ -239,8 +248,8 @@ olddiv_shapes_dict = olddiv_shapes_none
 mod_shapes_dict = mod_shapes_none
 divmod_shapes_dict = divmod_shapes_none
 pow_shapes_dict = pow_shapes_none
-bitor_shapes_dict = dict(bitor_shapes_none)
-ibitor_shapes_dict = dict(bitor_shapes_none)
+bitor_shapes_dict = {}
+ibitor_shapes_dict = {}
 bitand_shapes_dict = bitand_shapes_none
 bitxor_shapes_dict = bitxor_shapes_none
 lshift_shapes_dict = lshift_shapes_none
@@ -440,6 +449,14 @@ class ShapeTypeBool(ShapeNotContainerMixin, ShapeNumberMixin, ShapeBase):
     def getCType():
         return CTypeNuitkaBoolEnum
 
+    @staticmethod
+    def hasShapeSlotIndex():
+        return True
+
+    @staticmethod
+    def hasShapeSlotIndexCode():
+        return False
+
     add_shapes = add_shapes_bool
     sub_shapes = sub_shapes_bool
     mult_shapes = mult_shapes_bool
@@ -497,13 +514,22 @@ class ShapeTypeInt(ShapeNotContainerMixin, ShapeNumberMixin, ShapeBase):
     def getTypeName():
         return "int"
 
-    if isExperimental("optimize-dual-int"):
-
-        @staticmethod
-        def getCType():
+    @staticmethod
+    def getCType():
+        if isExperimental("optimize-dual-int"):
             return CTypeNuitkaIntOrLongStruct
 
+        return ShapeBase.getCType()
+
     helper_code = "INT" if python_version < 0x300 else "LONG"
+
+    @staticmethod
+    def hasShapeSlotIndex():
+        return True
+
+    @staticmethod
+    def hasShapeSlotIndexCode():
+        return False
 
     add_shapes = add_shapes_int
     sub_shapes = sub_shapes_int
@@ -568,6 +594,14 @@ if python_version < 0x300:
         def getTypeName():
             return "long"
 
+        @staticmethod
+        def hasShapeSlotIndex():
+            return True
+
+        @staticmethod
+        def hasShapeSlotIndexCode():
+            return False
+
         helper_code = "LONG" if python_version < 0x300 else "INVALID"
 
         add_shapes = add_shapes_long
@@ -622,16 +656,25 @@ if python_version < 0x300:
     class ShapeTypeIntOrLong(ShapeNotContainerMixin, ShapeNumberMixin, ShapeBase):
         __slots__ = ()
 
-        if isExperimental("optimize-dual-int"):
-
-            @staticmethod
-            def getCType():
+        @staticmethod
+        def getCType():
+            if isExperimental("optimize-dual-int"):
                 return CTypeNuitkaIntOrLongStruct
+
+            return ShapeBase.getCType()
 
         @staticmethod
         def emitAlternatives(emit):
             emit(tshape_int)
             emit(tshape_long)
+
+        @staticmethod
+        def hasShapeSlotIndex():
+            return True
+
+        @staticmethod
+        def hasShapeSlotIndexCode():
+            return False
 
         add_shapes = add_shapes_intorlong
         sub_shapes = sub_shapes_intorlong
@@ -1148,6 +1191,31 @@ class ShapeTypeFrozendict(ShapeContainerMixin, ShapeNotNumberMixin, ShapeBase):
 tshape_frozendict = ShapeTypeFrozendict()
 
 
+class ShapeTypeSentinel(ShapeNotContainerMixin, ShapeNotNumberMixin, ShapeBase):
+    __slots__ = ()
+
+    typical_value = the_empty_sentinel
+
+    @staticmethod
+    def getTypeName():
+        return "sentinel"
+
+    @staticmethod
+    def hasShapeSlotHash():
+        return True
+
+    @staticmethod
+    def hasShapeIndexLookup():
+        return False
+
+    @staticmethod
+    def isKnownToHaveAttribute(attribute_name):
+        return hasattr(the_empty_sentinel, attribute_name)
+
+
+tshape_sentinel = ShapeTypeSentinel()
+
+
 class ShapeTypeStr(ShapeNotContainerMixin, ShapeNotNumberMixin, ShapeBase):
     __slots__ = ()
 
@@ -1163,6 +1231,10 @@ class ShapeTypeStr(ShapeNotContainerMixin, ShapeNotNumberMixin, ShapeBase):
     @staticmethod
     def hasShapeSlotIter():
         return True
+
+    @staticmethod
+    def hasShapeSlotIterCode():
+        return False
 
     @staticmethod
     def hasShapeSlotLen():
@@ -1290,6 +1362,10 @@ if python_version < 0x300:
             return True
 
         @staticmethod
+        def hasShapeSlotIterCode():
+            return False
+
+        @staticmethod
         def hasShapeSlotLen():
             return True
 
@@ -1404,6 +1480,10 @@ if python_version < 0x300:
             return True
 
         @staticmethod
+        def hasShapeSlotIterCode():
+            return False
+
+        @staticmethod
         def hasShapeSlotLen():
             return True
 
@@ -1439,10 +1519,15 @@ if python_version < 0x300:
         def hasShapeTrustedAttributes():
             return True
 
-        # TODO: There seem to be missing a few here.
         add_shapes = add_shapes_strorunicode
         sub_shapes = sub_shapes_strorunicode
         mult_shapes = mult_shapes_strorunicode
+        floordiv_shapes = floordiv_shapes_strorunicode
+        truediv_shapes = truediv_shapes_strorunicode
+        olddiv_shapes = olddiv_shapes_strorunicode
+        mod_shapes = mod_shapes_strorunicode
+        divmod_shapes = divmod_shapes_strorunicode
+        pow_shapes = pow_shapes_strorunicode
         bitor_shapes = bitor_shapes_strorunicode
         bitand_shapes = bitand_shapes_strorunicode
         bitxor_shapes = bitxor_shapes_strorunicode
@@ -1484,6 +1569,10 @@ if python_version >= 0x300:
         @staticmethod
         def hasShapeSlotIter():
             return True
+
+        @staticmethod
+        def hasShapeSlotIterCode():
+            return False
 
         @staticmethod
         def hasShapeSlotLen():
@@ -1596,6 +1685,19 @@ class ShapeTypeBytearray(ShapeContainerMutableMixin, ShapeNotNumberMixin, ShapeB
 
     @staticmethod
     def hasShapeIndexLookup():
+        return True
+
+    # Not a number, but has these.
+    @staticmethod
+    def hasShapeSlotInt():
+        return True
+
+    @staticmethod
+    def hasShapeSlotLong():
+        return True
+
+    @staticmethod
+    def hasShapeSlotFloat():
         return True
 
     add_shapes = add_shapes_bytearray
@@ -1775,9 +1877,18 @@ class ShapeTypeXrangeIterator(ShapeIteratorMixin, ShapeNotNumberMixin, ShapeBase
 
 tshape_xrange_iterator = ShapeTypeXrangeIterator()
 
+if python_version < 0x300:
+    comparison_lt_type_result = (
+        tshape_unknown,
+        ControlFlowDescriptionNoEscape,
+    )
+else:
+    # Python3 types are unorderable, unless a metaclass makes them so.
+    comparison_lt_type_result = operation_result_unknown
+
 
 class ShapeTypeTypeBase(ShapeNotNumberMixin, ShapeBase):
-    # Base classes can be abstract, pylint: disable=abstract-method
+    # pylint: disable=abstract-method
 
     __slots__ = ()
 
@@ -1791,12 +1902,16 @@ class ShapeTypeTypeBase(ShapeNotNumberMixin, ShapeBase):
     def hasShapeSlotHash():
         return True
 
+    @staticmethod
+    def hasShapeSlotHashCode():
+        return False
+
     def getComparisonLtShape(self, right_shape):
         if right_shape is tshape_unknown:
             return operation_result_unknown
 
         if right_shape is tshape_type:
-            return tshape_unknown, ControlFlowDescriptionNoEscape
+            return comparison_lt_type_result
 
         return _getComparisonLtShapeGeneric(self, right_shape)
 
@@ -1884,6 +1999,10 @@ class ShapeTypeFile(ShapeNotContainerMixin, ShapeNotNumberMixin, ShapeBase):
     @staticmethod
     def hasShapeSlotIter():
         return True
+
+    @staticmethod
+    def hasShapeSlotIterCode():
+        return False
 
     @staticmethod
     def hasShapeSlotNext():
@@ -2026,6 +2145,21 @@ operation_result_zerodiv_float = (
     tshape_float,
     ControlFlowDescriptionZeroDivisionNoEscape,
 )
+# Powers with these may also overflow, and Python3 gives "complex" for negative
+# numbers raised to a fractional power, where Python2 raises "ValueError".
+operation_result_power_float_or_complex = (
+    (tshape_float, ControlFlowDescriptionZeroDivisionOverflowValueErrorNoEscape)
+    if python_version < 0x300
+    else (tshape_unknown, ControlFlowDescriptionZeroDivisionOverflowNoEscape)
+)
+operation_result_power_complex = (
+    tshape_complex,
+    ControlFlowDescriptionZeroDivisionOverflowNoEscape,
+)
+operation_result_power_complex_overflow = (
+    tshape_complex,
+    ControlFlowDescriptionOverflowNoEscape,
+)
 operation_result_zerodiv_complex = (
     tshape_complex,
     ControlFlowDescriptionZeroDivisionNoEscape,
@@ -2047,6 +2181,10 @@ operation_result_valueerror_long = (
 operation_result_str_formaterror = (tshape_str, ControlFlowDescriptionFormatError)
 operation_result_unicode_formaterror = (
     tshape_unicode,
+    ControlFlowDescriptionFormatError,
+)
+operation_result_strorunicode_formaterror = (
+    tshape_str_or_unicode,
     ControlFlowDescriptionFormatError,
 )
 operation_result_bytes_formaterror = (tshape_bytes, ControlFlowDescriptionFormatError)
@@ -2102,11 +2240,19 @@ _rejectEverything(mod_shapes_none, operation_result_unsupported_mod)
 _rejectEverything(divmod_shapes_none, operation_result_unsupported_divmod)
 _rejectEverything(pow_shapes_none, operation_result_unsupported_pow)
 _rejectEverything(bitor_shapes_none, operation_result_unsupported_bitor)
+bitor_shapes_dict.update(bitor_shapes_none)
+ibitor_shapes_dict.update(bitor_shapes_none)
 _rejectEverything(bitand_shapes_none, operation_result_unsupported_bitand)
 _rejectEverything(bitxor_shapes_none, operation_result_unsupported_bitxor)
 _rejectEverything(lshift_shapes_none, operation_result_unsupported_lshift)
 _rejectEverything(rshift_shapes_none, operation_result_unsupported_rshift)
-_rejectEverything(matmult_shapes_none, operation_result_unsupported_rshift)
+_rejectEverything(matmult_shapes_none, operation_result_unsupported_matmult)
+
+# Other shapes share "bitor_shapes_none", but only "None | type" creates a
+# "types.UnionType" value.
+if python_version >= 0x3A0:
+    ShapeTypeNoneType.bitor_shapes = dict(bitor_shapes_none)
+    ShapeTypeNoneType.bitor_shapes[tshape_type] = operation_result_unknown
 
 
 def cloneWithUnsupportedChange(op_shapes, operation_result_unsupported):
@@ -2423,7 +2569,7 @@ bitand_shapes_bool.update(
     cloneWithUnsupportedChange(bitor_shapes_bool, operation_result_unsupported_bitand)
 )
 bitxor_shapes_bool.update(
-    cloneWithUnsupportedChange(bitor_shapes_bool, operation_result_unsupported_bitand)
+    cloneWithUnsupportedChange(bitor_shapes_bool, operation_result_unsupported_bitxor)
 )
 
 lshift_shapes_bool.update(
@@ -2677,8 +2823,8 @@ pow_shapes_int.update(
         tshape_long: operation_result_unknown,  # TODO: operation_result_longorfloat,
         tshape_int_or_long: operation_result_unknown,  # TODO: operation_result_intorlongorfloat,
         tshape_bool: operation_result_int_noescape,
-        tshape_float: operation_result_float_noescape,
-        tshape_complex: operation_result_complex_noescape,
+        tshape_float: operation_result_power_float_or_complex,
+        tshape_complex: operation_result_power_complex,
         # Unsupported:
         tshape_str: operation_result_unsupported_pow,
         tshape_bytes: operation_result_unsupported_pow,
@@ -2730,7 +2876,7 @@ bitand_shapes_int.update(
     cloneWithUnsupportedChange(bitor_shapes_int, operation_result_unsupported_bitand)
 )
 bitxor_shapes_int.update(
-    cloneWithUnsupportedChange(bitor_shapes_int, operation_result_unsupported_bitand)
+    cloneWithUnsupportedChange(bitor_shapes_int, operation_result_unsupported_bitxor)
 )
 
 lshift_shapes_int.update(
@@ -2983,8 +3129,8 @@ pow_shapes_long.update(
         tshape_long: operation_result_unknown,  # TODO: operation_result_longorfloat,
         tshape_int_or_long: operation_result_unknown,  # TODO: operation_result_intorlongorfloat,
         tshape_bool: operation_result_long_noescape,
-        tshape_float: operation_result_float_noescape,
-        tshape_complex: operation_result_complex_noescape,
+        tshape_float: operation_result_power_float_or_complex,
+        tshape_complex: operation_result_power_complex,
         # Unsupported:
         tshape_str: operation_result_unsupported_pow,
         tshape_bytes: operation_result_unsupported_pow,
@@ -3036,7 +3182,7 @@ bitand_shapes_long.update(
     cloneWithUnsupportedChange(bitor_shapes_long, operation_result_unsupported_bitand)
 )
 bitxor_shapes_long.update(
-    cloneWithUnsupportedChange(bitor_shapes_long, operation_result_unsupported_bitand)
+    cloneWithUnsupportedChange(bitor_shapes_long, operation_result_unsupported_bitxor)
 )
 
 lshift_shapes_long.update(
@@ -3281,7 +3427,7 @@ pow_shapes_float.update(
         tshape_long: operation_result_zerodiv_float,
         tshape_int_or_long: operation_result_zerodiv_float,
         tshape_bool: operation_result_float_noescape,
-        tshape_float: operation_result_zerodiv_float,
+        tshape_float: operation_result_power_float_or_complex,
         tshape_complex: operation_result_zerodiv_complex,
         # Unsupported:
         tshape_str: operation_result_unsupported_pow,
@@ -3486,7 +3632,7 @@ pow_shapes_complex.update(
         tshape_int: operation_result_zerodiv_complex,
         tshape_long: operation_result_zerodiv_complex,
         tshape_int_or_long: operation_result_zerodiv_complex,
-        tshape_bool: operation_result_complex_noescape,
+        tshape_bool: operation_result_power_complex_overflow,
         tshape_float: operation_result_zerodiv_complex,
         tshape_complex: operation_result_zerodiv_complex,
         # Unsupported:
@@ -3616,7 +3762,7 @@ iadd_shapes_list.update(
         tshape_bool: operation_result_unsupported_add,
         tshape_float: operation_result_unsupported_add,
         tshape_complex: operation_result_unsupported_add,
-        # Sequence concat mixing is not allowed
+        # List in-place add extends from any iterable.
         tshape_str: operation_result_list_noescape,
         tshape_bytes: operation_result_list_noescape,
         tshape_bytearray: operation_result_list_noescape,
@@ -3703,7 +3849,7 @@ add_shapes_set.update(
         tshape_str_derived: operation_result_unknown,
         tshape_unicode_derived: operation_result_unknown,
         tshape_bytes_derived: operation_result_unknown,
-        # Sets to do not multiply
+        # Unsupported:
         tshape_int: operation_result_unsupported_add,
         tshape_long: operation_result_unsupported_add,
         tshape_int_or_long: operation_result_unsupported_add,
@@ -3749,7 +3895,7 @@ add_shapes_frozenset.update(
         tshape_str_derived: operation_result_unknown,
         tshape_unicode_derived: operation_result_unknown,
         tshape_bytes_derived: operation_result_unknown,
-        # Sets to do not multiply
+        # Unsupported:
         tshape_int: operation_result_unsupported_add,
         tshape_long: operation_result_unsupported_add,
         tshape_int_or_long: operation_result_unsupported_add,
@@ -3799,7 +3945,7 @@ add_shapes_dict.update(
         tshape_str_derived: operation_result_unknown,
         tshape_unicode_derived: operation_result_unknown,
         tshape_bytes_derived: operation_result_unknown,
-        # Sets to do not multiply
+        # Unsupported:
         tshape_int: operation_result_unsupported_add,
         tshape_long: operation_result_unsupported_add,
         tshape_int_or_long: operation_result_unsupported_add,
@@ -3938,7 +4084,7 @@ add_shapes_bytes.update(
         # Sequence repeat is not allowed
         tshape_str: operation_result_unsupported_add,
         tshape_bytes: operation_result_bytes_noescape,
-        tshape_bytearray: operation_result_bytearray_noescape,
+        tshape_bytearray: operation_result_bytes_noescape,
         tshape_unicode: operation_result_unsupported_add,
         tshape_tuple: operation_result_unsupported_add,
         tshape_list: operation_result_unsupported_add,
@@ -3990,7 +4136,7 @@ else:
 
 mod_shapes_bytes.update(
     {
-        # Standard, TODO: should be string, but may escape with exception.
+        # Standard, TODO: should be bytes, but may escape with exception.
         tshape_unknown: operation_result_unknown,
         tshape_long_derived: operation_result_unknown,
         tshape_int_or_long_derived: operation_result_unknown,
@@ -4097,7 +4243,7 @@ mod_shapes_bytearray.update(
         tshape_str_derived: operation_result_unknown,
         tshape_unicode_derived: operation_result_unknown,
         tshape_bytes_derived: operation_result_unknown,
-        # bytes formatting with all kinds of values
+        # bytearray formatting with all kinds of values
         tshape_int: operation_result_350_bytearray_mod_noescape,
         tshape_bool: operation_result_350_bytearray_mod_noescape,
         tshape_float: operation_result_350_bytearray_mod_noescape,
@@ -4107,7 +4253,7 @@ mod_shapes_bytearray.update(
         tshape_tuple: operation_result_350_bytearray_mod_noescape,
         tshape_list: operation_result_350_bytearray_mod_noescape,
         tshape_set: operation_result_350_bytearray_mod_noescape,
-        tshape_frozenset: operation_result_350_bytes_mod_noescape,
+        tshape_frozenset: operation_result_350_bytearray_mod_noescape,
         tshape_dict: operation_result_350_bytearray_mod_noescape,
         tshape_type: operation_result_350_bytearray_mod_noescape,
         tshape_none: operation_result_350_bytearray_mod_noescape,
@@ -4189,7 +4335,7 @@ mod_shapes_unicode.update(
         tshape_str_derived: operation_result_unknown,
         tshape_unicode_derived: operation_result_unknown,
         tshape_bytes_derived: operation_result_unknown,
-        # str formatting with all kinds of values
+        # unicode formatting with all kinds of values
         tshape_int: operation_result_unicode_formaterror,
         tshape_long: operation_result_unicode_formaterror,
         tshape_int_or_long: operation_result_unicode_formaterror,
@@ -4223,17 +4369,14 @@ def mergeStrOrUnicode(op_shapes_str, op_shapes_unicode):
 
             r[key] = value
         elif value[0] is tshape_str and value2[0] is tshape_unicode:
-            # Actually as intended, pylint: disable=bad-chained-comparison
-            assert (
-                value[1]
-                is value2[1]
-                in (
-                    operation_result_strorunicode_noescape[1],
-                    ControlFlowDescriptionFormatError,
-                )
-            ), (value, value2)
+            assert value[1] is value2[1], (value, value2)
 
-            r[key] = operation_result_strorunicode_noescape
+            if value[1] is operation_result_strorunicode_noescape[1]:
+                r[key] = operation_result_strorunicode_noescape
+            elif value[1] is ControlFlowDescriptionFormatError:
+                r[key] = operation_result_strorunicode_formaterror
+            else:
+                assert False, value
         elif key == tshape_bytearray:
             # They differ here on Python2
             r[key] = operation_result_unknown
@@ -4302,7 +4445,7 @@ tshape_exception_class = ShapeTypeBuiltinExceptionClass()
 
 
 _shapes_by_type = {
-    type(None): tshape_none,
+    NoneType: tshape_none,
     bool: tshape_bool,
     int: tshape_int,
     float: tshape_float,
@@ -4315,7 +4458,7 @@ _shapes_by_type = {
     frozenset: tshape_frozenset,
     dict: tshape_dict,
     slice: tshape_slice,
-    type(Ellipsis): tshape_ellipsis,
+    EllipsisType: tshape_ellipsis,
     type: tshape_type,
 }
 
@@ -4329,17 +4472,11 @@ _shapes_by_type[xrange] = tshape_xrange
 
 if python_version >= 0x3F0:
     _shapes_by_type[frozendict] = tshape_frozendict
+    _shapes_by_type[sentinel] = tshape_sentinel
 
 
 def getTypeShapeFromValue(value):
-    """Get the type shape of a value.
-
-    Args:
-        value: The value to get the type shape for.
-
-    Returns:
-        Type shape of the value, or None if there is no shape for it.
-    """
+    """Return the type shape of 'value', or 'None' if untracked."""
 
     return _shapes_by_type.get(type(value))
 

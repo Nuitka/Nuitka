@@ -1,20 +1,14 @@
 #     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-"""Finalize the markups
+"""Finalize markups on the node tree ahead of code generation.
 
-Set flags on functions and classes to indicate if a locals dict is really
-needed.
-
-Set a flag on loops if they really need to catch Continue and Break exceptions
-or if it can be more simple code.
-
-Set a flag on re-raises of exceptions if they can be simple throws or if they
-are in another context.
-
+Marks module value setters, function creation/direct-call/cross-module flags,
+in-place assignment suspects, and frame/yield exception preservation.
 """
 
 from nuitka import Tracing
+from nuitka.ModuleRegistry import getModuleByName
 from nuitka.PythonVersions import python_version
 from nuitka.tree.Operations import VisitorNoopMixin
 
@@ -34,8 +28,15 @@ class FinalizeMarkups(VisitorNoopMixin):
             raise
 
     def _onEnterNode(self, node):
-        # This has many different things it deals with, so there need to be a
-        # lot of branches and statements, pylint: disable=too-many-branches
+        # pylint: disable=too-many-branches
+
+        module_name = node.needsModuleValueSetter()
+
+        if module_name is not None:
+            module = getModuleByName(module_name)
+
+            if module is not None:
+                module.markModuleValueSetterNeeded()
 
         if node.isExpressionFunctionCreation() and (
             not node.getParent().isExpressionFunctionCall()
@@ -69,11 +70,7 @@ class FinalizeMarkups(VisitorNoopMixin):
                 ):
                     node.markAsInplaceSuspect()
                 elif left_arg.isExpressionLocalsVariableRefOrFallback():
-                    # TODO: This might be bad.
                     assign_source.removeMarkAsInplaceSuspect()
-
-            if target_var.isModuleVariable():
-                pass
 
         if python_version < 0x300 and node.isStatementPublishException():
             node.getParentStatementsFrame().markAsFrameExceptionPreserving()

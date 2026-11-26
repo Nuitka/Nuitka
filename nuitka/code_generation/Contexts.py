@@ -21,14 +21,11 @@ from nuitka.utils.SlotMetaClasses import getMetaClassBase
 from .SpecialConstantData import BlobData
 from .VariableDeclarations import VariableDeclaration, VariableStorage
 
-# Many methods won't use self, but it's the interface. pylint: disable=no-self-use
+# pylint: disable=no-self-use
 
 
 class TempMixin(object):
-    # Lots of details, everything gets to store bits here, to indicate
-    # code generation states, and there are many, pylint: disable=too-many-instance-attributes
-
-    # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
+    # pylint: disable=assigning-non-slot,too-many-instance-attributes
     __slots__ = ()
 
     def __init__(self):
@@ -36,12 +33,10 @@ class TempMixin(object):
 
         self.labels = {}
 
-        # For exception and loop handling
         self.exception_escape = None
         self.loop_continue = None
         self.loop_break = None
 
-        # For branches
         self.true_target = None
         self.false_target = None
 
@@ -52,15 +47,19 @@ class TempMixin(object):
 
         self.cleanup_names = []
 
+        # Names of values we currently hold as borrowed references, mapped to
+        # the variable they were read from, in nested scopes.
+        self.borrowed_value_scopes = [{}]
+
         # Names of values whose release is deferred to the end of the
         # enclosing code scope, mapped to opaque release details.
         self.deferred_release_names = []
 
     def _formatTempName(self, base_name, number):
         if number is None:
-            return "tmp_{name}".format(name=base_name)
+            return "tmp_%s" % base_name
         else:
-            return "tmp_{name}_{number:d}".format(name=base_name, number=number)
+            return "tmp_%s_%d" % (base_name, number)
 
     def allocateTempNumber(self, base_name):
         number = self.tmp_names.get(base_name, 0)
@@ -72,10 +71,7 @@ class TempMixin(object):
         self.allocateTempNumber(base_name)
 
     def allocateTempName(self, base_name, type_name="PyObject *", unique=False):
-        # We might be hard coding too many details for special temps
-        # here, pylint: disable=too-many-branches
-
-        # TODO: This should be achieved.
+        # TODO: Enforce that base_name does not start with 'tmp_'.
         # assert not base_name.startswith("tmp_"), base_name
 
         if unique:
@@ -90,9 +86,7 @@ class TempMixin(object):
             result = self.variable_storage.getVariableDeclarationTop(formatted_name)
 
             if result is None:
-                if base_name == "outline_return_value":
-                    init_value = "NULL"
-                elif base_name == "return_value":
+                if base_name in ("outline_return_value", "return_value"):
                     init_value = "NULL"
                 elif base_name == "generator_return":
                     init_value = "false"
@@ -169,7 +163,7 @@ class TempMixin(object):
         result += 1
         self.labels[label] = result
 
-        return "{name}_{number:d}".format(name=label, number=result)
+        return "%s_%d" % (label, result)
 
     def getLabelCount(self, label):
         return self.labels.get(label, 0)
@@ -296,18 +290,112 @@ class TempMixin(object):
         assert not self.cleanup_names[-1]
         assert not self.deferred_release_names[-1]
 
+        cleanup_scope = self.cleanup_names[-1]
+
+        # The C temporaries of the scope are gone now, and so are borrowed
+        # references registered for them.
+        for scope in self.borrowed_value_scopes:
+            for tmp_name, entries in tuple(scope.items()):
+                remaining = [
+                    entry for entry in entries if entry[1] is not cleanup_scope
+                ]
+
+                if remaining:
+                    scope[tmp_name] = remaining
+                else:
+                    del scope[tmp_name]
+
         del self.cleanup_names[-1]
         del self.deferred_release_names[-1]
 
+    def pushBorrowedValueScope(self):
+        self.borrowed_value_scopes.append({})
 
-class CodeObjectsMixin(object):
-    __slots__ = ()
+    def popBorrowedValueScope(self):
+        del self.borrowed_value_scopes[-1]
 
-    def getCodeObjectHandle(self, code_object):
-        return (
-            "USE_CODE_OBJECT(tstate, %s, module_filename_obj)"
-            % self.getConstantCode(code_object)
-        )
+    def hasBorrowedValues(self):
+        return any(self.borrowed_value_scopes)
+
+    def _addBorrowedValueEntry(self, scope, variable, tmp_name, cleanup_scope):
+        entries = scope.setdefault(tmp_name, [])
+
+        for entry in entries:
+            if entry[0] is variable and entry[1] is cleanup_scope:
+                return
+
+        entries.append((variable, cleanup_scope))
+
+    def registerBorrowedValue(self, variable, tmp_name):
+        # The temporary name may be reused, e.g. by tuple creation, in which
+        # case the old registration is no longer valid.
+        self.unregisterBorrowedValue(tmp_name)
+
+        self.borrowed_value_scopes[-1][tmp_name] = [(variable, self.cleanup_names[-1])]
+
+    def unregisterBorrowedValue(self, tmp_name):
+        if tmp_name is None:
+            return
+
+        for scope in self.borrowed_value_scopes:
+            if tmp_name in scope:
+                del scope[tmp_name]
+
+    def getBorrowedValues(self, tmp_name):
+        for scope in reversed(self.borrowed_value_scopes):
+            if tmp_name in scope:
+                return list(scope[tmp_name])
+
+        return []
+
+    def addBorrowedValues(self, tmp_name, entries):
+        scope = self.borrowed_value_scopes[-1]
+
+        for variable, cleanup_scope in entries:
+            self._addBorrowedValueEntry(
+                scope=scope,
+                variable=variable,
+                tmp_name=tmp_name,
+                cleanup_scope=cleanup_scope,
+            )
+
+    def transferBorrowedValue(self, tmp_source, tmp_dest):
+        for scope in reversed(self.borrowed_value_scopes):
+            if tmp_source in scope:
+                entries = scope.pop(tmp_source)
+
+                for variable, cleanup_scope in entries:
+                    self._addBorrowedValueEntry(
+                        scope=scope,
+                        variable=variable,
+                        tmp_name=tmp_dest,
+                        cleanup_scope=cleanup_scope,
+                    )
+
+                return True
+
+        return False
+
+    def getBorrowedValuesForVariable(self, variable):
+        result = []
+        seen = set()
+
+        for scope in self.borrowed_value_scopes:
+            for tmp_name, entries in scope.items():
+                if tmp_name in seen:
+                    continue
+
+                for scope_variable, cleanup_scope in entries:
+                    if scope_variable is variable:
+                        result.append((tmp_name, cleanup_scope))
+                        seen.add(tmp_name)
+                        break
+
+        return result
+
+    def addCleanupTempNameToScope(self, tmp_name, cleanup_scope):
+        assert tmp_name not in cleanup_scope, tmp_name
+        cleanup_scope.append(tmp_name)
 
 
 class PythonContextBase(getMetaClassBase("Context", require_slots=True)):
@@ -335,9 +423,10 @@ class PythonContextBase(getMetaClassBase("Context", require_slots=True)):
     def withCurrentSourceCodeReference(self, value):
         old_source_ref = self.setCurrentSourceCodeReference(value)
 
-        yield old_source_ref
-
-        self.setCurrentSourceCodeReference(value)
+        try:
+            yield old_source_ref
+        finally:
+            self.setCurrentSourceCodeReference(old_source_ref)
 
     def getInplaceLeftName(self):
         return self.allocateTempName("inplace_orig", "PyObject *", True)
@@ -352,6 +441,13 @@ class PythonContextBase(getMetaClassBase("Context", require_slots=True)):
 
     @abstractmethod
     def getModuleCodeName(self):
+        pass
+
+    def getModuleDictCodeName(self):
+        return "moduledict_%s" % self.getModuleCodeName()
+
+    @abstractmethod
+    def getModuleUniqueCodeName(self, base_name):
         pass
 
     @abstractmethod
@@ -503,7 +599,7 @@ class PythonContextBase(getMetaClassBase("Context", require_slots=True)):
 
 
 class PythonChildContextBase(PythonContextBase):
-    # Base classes can be abstract, pylint: disable=I0021,abstract-method
+    # pylint: disable=I0021,abstract-method
 
     __slots__ = ("parent",)
 
@@ -524,6 +620,9 @@ class PythonChildContextBase(PythonContextBase):
     def getModuleCodeName(self):
         return self.parent.getModuleCodeName()
 
+    def getModuleUniqueCodeName(self, base_name):
+        return self.parent.getModuleUniqueCodeName(base_name)
+
     def getModuleName(self):
         return self.parent.getModuleName()
 
@@ -538,6 +637,12 @@ class PythonChildContextBase(PythonContextBase):
 
     def hasDeclaration(self, key):
         return self.parent.hasDeclaration(key)
+
+    def addCallHelper(self, helper):
+        self.parent.addCallHelper(helper)
+
+    def getCallHelpers(self):
+        return self.parent.getCallHelpers()
 
     def getTypeDescriptionCode(self, type_description_value):
         return self.parent.getTypeDescriptionCode(type_description_value)
@@ -554,29 +659,30 @@ class PythonChildContextBase(PythonContextBase):
     def addFunctionCreationInfo(self, creation_info):
         return self.parent.addFunctionCreationInfo(creation_info)
 
-    def setModuleVariableAccessorCaching(self, variable_name, caching):
-        self.parent.setModuleVariableAccessorCaching(variable_name, caching)
+    def registerModuleVariableAccessor(
+        self, variable_name, caching, needs_check, needs_global_name, no_global_deletion
+    ):
+        self.parent.registerModuleVariableAccessor(
+            variable_name=variable_name,
+            caching=caching,
+            needs_check=needs_check,
+            needs_global_name=needs_global_name,
+            no_global_deletion=no_global_deletion,
+        )
 
     def isModuleVariableAccessorCaching(self, variable_name):
         return self.parent.isModuleVariableAccessorCaching(variable_name)
 
 
 class FrameDeclarationsMixin(object):
-    # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
+    # pylint: disable=assigning-non-slot
     __slots__ = ()
 
     def __init__(self):
-        # Frame is active or not, default not.
         self.frame_variables_stack = [""]
-
-        # Types of variables for current frame.
         self.frame_variable_types = {}
-
         self.frames_used = 0
-
-        # Currently active frame stack inside the context.
         self.frame_stack = [None]
-
         self.locals_dict_names = None
 
     def getFrameHandle(self):
@@ -617,11 +723,9 @@ class FrameDeclarationsMixin(object):
         return self.frames_used
 
     def pushFrameVariables(self, frame_variables):
-        """Set current the frame variables."""
         self.frame_variables_stack.append(frame_variables)
 
     def popFrameVariables(self):
-        """End of frame, restore previous ones."""
         del self.frame_variables_stack[-1]
 
     def getFrameVariables(self):
@@ -656,7 +760,7 @@ class FrameDeclarationsMixin(object):
 
 
 class ReturnReleaseModeMixin(object):
-    # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
+    # pylint: disable=assigning-non-slot
     __slots__ = ()
 
     def __init__(self):
@@ -704,7 +808,7 @@ class ReturnReleaseModeMixin(object):
 
 
 class ReturnValueNameMixin(object):
-    # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
+    # pylint: disable=assigning-non-slot
     __slots__ = ()
 
     def __init__(self):
@@ -725,12 +829,10 @@ class ReturnValueNameMixin(object):
 class PythonModuleContext(
     FrameDeclarationsMixin,
     TempMixin,
-    CodeObjectsMixin,
     ReturnReleaseModeMixin,
     ReturnValueNameMixin,
     PythonContextBase,
 ):
-    # Plenty of attributes, because it's storing so many different things.
     # pylint: disable=too-many-instance-attributes
 
     __slots__ = (
@@ -744,14 +846,13 @@ class PythonModuleContext(
         "function_table_entries",
         "constant_accessor",
         "module_init_codes",
-        "module_variable_caching",
-        # FrameDeclarationsMixin
+        "module_variable_accessors",
+        "call_helpers",
         "frame_variables_stack",
         "frame_variable_types",
         "frames_used",
         "frame_stack",
         "locals_dict_names",
-        # TempMixin:
         "tmp_names",
         "labels",
         "exception_escape",
@@ -763,13 +864,12 @@ class PythonModuleContext(
         "exception_keepers",
         "preserver_variable_declaration",
         "cleanup_names",
+        "borrowed_value_scopes",
         "deferred_release_names",
-        # ReturnReleaseModeMixin
         "return_release_mode",
         "return_release_loop_break",
         "return_release_loop_continue",
         "return_exit",
-        # ReturnValueNameMixin
         "return_name",
     )
 
@@ -803,7 +903,15 @@ class PythonModuleContext(
 
         self.module_init_codes = []
 
-        self.module_variable_caching = {}
+        self.module_variable_accessors = {}
+
+        self.call_helpers = set()
+
+    def addCallHelper(self, helper):
+        self.call_helpers.add(helper)
+
+    def getCallHelpers(self):
+        return self.call_helpers
 
     def __repr__(self):
         return "<PythonModuleContext instance for module %s>" % self.name
@@ -814,17 +922,43 @@ class PythonModuleContext(
     def getEntryPoint(self):
         return self.module
 
-    def setModuleVariableAccessorCaching(self, variable_name, caching):
+    def registerModuleVariableAccessor(
+        self, variable_name, caching, needs_check, needs_global_name, no_global_deletion
+    ):
+        accessor = self.module_variable_accessors.get(variable_name)
+
+        if accessor is None:
+            accessor = {
+                "caching": False,
+                "checked": False,
+                "checked_global": False,
+                "unchecked": False,
+                "no_global_deletion": False,
+            }
+
+            self.module_variable_accessors[variable_name] = accessor
+
         if caching:
-            self.module_variable_caching[variable_name] = True
-        elif variable_name not in self.module_variable_caching:
-            self.module_variable_caching[variable_name] = False
+            accessor["caching"] = True
+
+        if no_global_deletion:
+            accessor["no_global_deletion"] = True
+
+        if needs_check:
+            if needs_global_name:
+                accessor["checked_global"] = True
+            else:
+                accessor["checked"] = True
+        else:
+            accessor["unchecked"] = True
 
     def isModuleVariableAccessorCaching(self, variable_name):
-        return self.module_variable_caching.get(variable_name, False)
+        accessor = self.module_variable_accessors.get(variable_name)
+
+        return accessor is not None and accessor["caching"]
 
     def getModuleVariableAccessors(self):
-        return self.module_variable_caching
+        return self.module_variable_accessors
 
     def isCompiledPythonModule(self):
         return True
@@ -841,6 +975,9 @@ class PythonModuleContext(
 
     def getModuleCodeName(self):
         return self.code_name
+
+    def getModuleUniqueCodeName(self, base_name):
+        return self.getUniqueCodeName(base_name)
 
     def getDataFilename(self):
         return self.data_filename
@@ -920,8 +1057,6 @@ class PythonModuleContext(
 
     def getFunctionCreationInfos(self):
         result = self.function_table_entries
-
-        # Release the memory once possible.
         del self.function_table_entries
         return result
 
@@ -940,13 +1075,11 @@ class PythonFunctionContext(
     __slots__ = (
         "function",
         "variable_storage",
-        # FrameDeclarationsMixin
         "frame_variables_stack",
         "frame_variable_types",
         "frames_used",
         "frame_stack",
         "locals_dict_names",
-        # TempMixin:
         "tmp_names",
         "labels",
         "exception_escape",
@@ -958,13 +1091,12 @@ class PythonFunctionContext(
         "exception_keepers",
         "preserver_variable_declaration",
         "cleanup_names",
+        "borrowed_value_scopes",
         "deferred_release_names",
-        # ReturnReleaseModeMixin
         "return_release_mode",
         "return_release_loop_break",
         "return_release_loop_continue",
         "return_exit",
-        # ReturnValueNameMixin
         "return_name",
     )
 
@@ -1009,11 +1141,12 @@ class PythonFunctionContext(
         return self.function
 
     def mayRecurse(self):
-        # TODO: Determine this at compile time for enhanced optimizations.
-        return True
+        # A class body can only run again, if the scope that creates it can,
+        # e.g. it is inside a function, unlike a module body.
+        if self.function.isExpressionClassBodyBase():
+            return self.parent.mayRecurse()
 
-    def getCodeObjectHandle(self, code_object):
-        return self.parent.getCodeObjectHandle(code_object)
+        return True
 
 
 class PythonFunctionDirectContext(PythonFunctionContext):
@@ -1100,12 +1233,10 @@ class PythonFunctionOutlineContext(
         "outline",
         "variable_storage",
         "exception_variables",
-        # ReturnReleaseModeMixin
         "return_release_mode",
         "return_release_loop_break",
         "return_release_loop_continue",
         "return_exit",
-        # ReturnValueNameMixin
         "return_name",
     )
 
@@ -1119,6 +1250,8 @@ class PythonFunctionOutlineContext(
 
         self.variable_storage = parent.variable_storage
         self.exception_variables = None
+
+        self.setCurrentSourceCodeReference(parent.getCurrentSourceCodeReference())
 
     def getOwner(self):
         return self.outline
@@ -1189,6 +1322,40 @@ class PythonFunctionOutlineContext(
     def popCleanupScope(self):
         self.parent.popCleanupScope()
 
+    def pushBorrowedValueScope(self):
+        return self.parent.pushBorrowedValueScope()
+
+    def popBorrowedValueScope(self):
+        return self.parent.popBorrowedValueScope()
+
+    def hasBorrowedValues(self):
+        return self.parent.hasBorrowedValues()
+
+    def registerBorrowedValue(self, variable, tmp_name):
+        return self.parent.registerBorrowedValue(variable=variable, tmp_name=tmp_name)
+
+    def unregisterBorrowedValue(self, tmp_name):
+        return self.parent.unregisterBorrowedValue(tmp_name=tmp_name)
+
+    def getBorrowedValues(self, tmp_name):
+        return self.parent.getBorrowedValues(tmp_name=tmp_name)
+
+    def addBorrowedValues(self, tmp_name, entries):
+        return self.parent.addBorrowedValues(tmp_name=tmp_name, entries=entries)
+
+    def transferBorrowedValue(self, tmp_source, tmp_dest):
+        return self.parent.transferBorrowedValue(
+            tmp_source=tmp_source, tmp_dest=tmp_dest
+        )
+
+    def getBorrowedValuesForVariable(self, variable):
+        return self.parent.getBorrowedValuesForVariable(variable=variable)
+
+    def addCleanupTempNameToScope(self, tmp_name, cleanup_scope):
+        return self.parent.addCleanupTempNameToScope(
+            tmp_name=tmp_name, cleanup_scope=cleanup_scope
+        )
+
     def getExceptionEscape(self):
         return self.parent.getExceptionEscape()
 
@@ -1250,7 +1417,6 @@ class PythonFunctionOutlineContext(
         return self.parent.isForDirectCall()
 
     def mayRecurse(self):
-        # The outline is only accessible via its parent.
         return self.parent.mayRecurse()
 
     def getLocalsDictNames(self):

@@ -1,0 +1,840 @@
+#     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+
+
+"""Running commands inside containers.
+
+This is a reusable helper for the ``nuitka --container`` option and for the
+standalone container launcher tool.
+
+spell-checker: ignore Containerfile
+"""
+
+import os
+import re
+import sys
+
+from nuitka.tools.release.Release import (
+    getBranchName,
+    getBranchRemoteIdentifier,
+)
+from nuitka.Tracing import containers_logger
+from nuitka.utils.Download import getCachedDownloadedMinGW64, getDownloadMode
+from nuitka.utils.Execution import (
+    callProcess,
+    check_output,
+    getExecutablePath,
+    quoteForShell,
+)
+from nuitka.utils.FileOperations import (
+    changeFilenameExtension,
+    copyFile,
+    copyTree,
+    getFileContents,
+    getUserInputNormalizedPath,
+    makePath,
+    putTextFileContents,
+    withTemporaryDirectory,
+)
+from nuitka.utils.Jinja2 import renderTemplateFromString
+from nuitka.utils.Utils import getArchitecture, isWin32Windows
+
+
+def isPodman(podman_path):
+    return "podman" in os.path.normcase(os.path.basename(podman_path))
+
+
+def isTermuxContainer(container_name):
+    return "termux" in container_name.lower()
+
+
+def _copyContainerReferences(container_content, repo_root, build_context_dir):
+    for match in re.finditer(
+        r"^\s*COPY\s+(?:--[a-z-]+\S+\s+)*([^\s]+)", container_content, re.MULTILINE
+    ):
+        source_path = match.group(1)
+        full_source_path = os.path.join(repo_root, source_path)
+
+        if os.path.exists(full_source_path):
+            dest_path = os.path.join(build_context_dir, source_path)
+            makePath(os.path.dirname(dest_path))
+
+            if os.path.isdir(full_source_path):
+                if not os.path.exists(dest_path):
+                    copyTree(full_source_path, dest_path)
+            else:
+                copyFile(full_source_path, dest_path)
+
+
+def getContainerPython(container_name, container_python_version):
+    container_name = container_name.lower()
+
+    if isTermuxContainer(container_name):
+        return "python"
+
+    if container_python_version is not None:
+        python_binary = (
+            "python2" if container_python_version.startswith("2.") else "python3"
+        )
+
+        return "/opt/python%s/bin/%s" % (container_python_version, python_binary)
+
+    if "centos6" in container_name or "rhel6" in container_name:
+        return "python2.6"
+
+    if "opensuse132" in container_name:
+        return "python2.7"
+
+    return "python3"
+
+
+def _makeRunCommand(command):
+    return "RUN %s\n" % command
+
+
+def _getContainerInstructions(container_content):
+    result = []
+    current = None
+
+    for line in container_content.splitlines():
+        stripped = line.strip()
+
+        if not stripped or stripped.startswith("#"):
+            continue
+
+        if current is None:
+            current = stripped
+        else:
+            current += stripped
+
+        if current.endswith("\\"):
+            current = current[:-1].rstrip() + " "
+        else:
+            result.append(current)
+            current = None
+
+    if current is not None:
+        result.append(current)
+
+    return result
+
+
+def _parseTermuxContainerFile(container_content, container_file_path):
+    base_image = None
+    env_commands = []
+    run_commands = []
+
+    for instruction_line in _getContainerInstructions(container_content):
+        instruction_parts = instruction_line.split(None, 1)
+        instruction = instruction_parts[0].upper()
+
+        if len(instruction_parts) == 2:
+            instruction_value = instruction_parts[1]
+        else:
+            instruction_value = ""
+
+        if instruction == "FROM":
+            base_image = instruction_value.split(None, 1)[0]
+        elif instruction == "ENV":
+            env_commands.append(instruction_line)
+        elif instruction == "RUN":
+            run_commands.append(instruction_value)
+        elif instruction == "SHELL":
+            pass
+        else:
+            return containers_logger.sysexit(
+                "Termux container file '%s' uses unsupported instruction '%s'."
+                % (container_file_path, instruction)
+            )
+
+    if base_image is None:
+        return containers_logger.sysexit(
+            "Termux container file '%s' has no 'FROM' instruction."
+            % container_file_path
+        )
+
+    return base_image, env_commands, run_commands
+
+
+def _makeTermuxUpdateContainerName(container_tag_name):
+    return re.sub("[^a-z0-9_.-]", "-", container_tag_name.lower()) + "-update"
+
+
+def _updateTermuxContainer(
+    podman_path,
+    container_tag_name,
+    container_file_path,
+    container_content,
+    quiet,
+):
+    base_image, env_commands, run_commands = _parseTermuxContainerFile(
+        container_content=container_content, container_file_path=container_file_path
+    )
+
+    # Termux needs its normal entrypoint to establish the runtime environment,
+    # which Podman build does not reproduce reliably for package installation.
+    temp_container_name = _makeTermuxUpdateContainerName(container_tag_name)
+
+    create_command = [
+        podman_path,
+        "create",
+        "--replace",
+        "--name",
+        temp_container_name,
+    ]
+
+    if isPodman(podman_path):
+        create_command.append("--pull=newer")
+
+        if quiet:
+            create_command.append("--quiet")
+
+    create_command += [
+        base_image,
+        "bash",
+        "-lc",
+        " && ".join(run_commands),
+    ]
+
+    container_created = False
+
+    try:
+        exit_code = callProcess(create_command, shell=False, logger=containers_logger)
+
+        if exit_code:
+            containers_logger.sysexit(
+                "Failed to create Termux update container with exit code '%d'."
+                % exit_code,
+                exit_code=exit_code,
+            )
+
+        container_created = True
+
+        exit_code = callProcess(
+            [podman_path, "start", "-a", temp_container_name],
+            shell=False,
+            logger=containers_logger,
+        )
+
+        if exit_code:
+            containers_logger.sysexit(
+                "Failed to update Termux container with exit code '%d'." % exit_code,
+                exit_code=exit_code,
+            )
+
+        commit_command = [podman_path, "commit"]
+
+        if quiet:
+            commit_command.append("--quiet")
+
+        for env_command in env_commands:
+            commit_command += ["--change", env_command]
+
+        commit_command += [temp_container_name, container_tag_name]
+
+        exit_code = callProcess(commit_command, shell=False, logger=containers_logger)
+
+        if exit_code:
+            containers_logger.sysexit(
+                "Failed to commit Termux container image with exit code '%d'."
+                % exit_code,
+                exit_code=exit_code,
+            )
+    finally:
+        if container_created:
+            callProcess([podman_path, "rm", "-f", temp_container_name], shell=False)
+
+    containers_logger.info("Updated container '%s' successfully." % container_tag_name)
+
+
+def _updateContainerByBuild(
+    podman_path,
+    container_tag_name,
+    container_content,
+    repo_root,
+    build_context_dir,
+    quiet,
+    container_python_version,
+):
+    if container_python_version is not None:
+        container_content += "\n# Build Python for Nuitka\n"
+        container_content += (
+            "COPY bin/compile-python-for-nuitka-linux.sh "
+            "/usr/local/bin/compile-python-for-nuitka-linux.sh\n"
+        )
+        container_content += (
+            "RUN chmod +x /usr/local/bin/compile-python-for-nuitka-linux.sh\n"
+        )
+        container_content += _makeRunCommand(
+            command=(
+                "/usr/local/bin/compile-python-for-nuitka-linux.sh "
+                "--version %s --prefix /opt/python%s --cleanup"
+                % (container_python_version, container_python_version)
+            ),
+        )
+    else:
+        # Update system pip for user provided requirements, but do not install
+        # any requirements by default.
+        container_content += _makeRunCommand(
+            command=(
+                "if command -v python3 >/dev/null 2>&1 && "
+                "python3 -m pip --version >/dev/null 2>&1; "
+                "then python3 -m pip install ${NUITKA_PIP_FLAGS} "
+                "--disable-pip-version-check --upgrade pip; "
+                "fi"
+            ),
+        )
+        container_content += _makeRunCommand(
+            command=(
+                "if command -v python2 >/dev/null 2>&1 && "
+                "python2 -m pip --version >/dev/null 2>&1; "
+                "then python2 -m pip install ${NUITKA_PIP_FLAGS} "
+                "--disable-pip-version-check --upgrade pip; "
+                "fi"
+            ),
+        )
+
+    _copyContainerReferences(
+        container_content=container_content,
+        repo_root=repo_root,
+        build_context_dir=build_context_dir,
+    )
+
+    # Write modified content to temporary containerfile in context
+    temp_container_file = os.path.join(build_context_dir, "Containerfile")
+    putTextFileContents(temp_container_file, container_content)
+
+    command = [
+        podman_path,
+        "build",
+        # Tolerate errors checking for image download, and use old one
+        "--tag",
+        container_tag_name,
+        "-f",
+        temp_container_file,
+        "--network=host",
+    ]
+
+    # Podman OCI builds ignore custom SHELL definitions, which Termux needs.
+    if isTermuxContainer(container_tag_name):
+        command.append("--format=docker")
+
+    if quiet:
+        command.append("--quiet")
+
+    if isPodman(podman_path):
+        # Podman only.
+        command.append("--pull=newer")
+
+    # Always append context
+    command.append(build_context_dir)
+
+    exit_code = callProcess(command)
+
+    if exit_code:
+        containers_logger.sysexit(
+            "Failed to update container with exit code '%d'. Command used was: %s"
+            % (exit_code, " ".join(command)),
+            exit_code=exit_code,
+        )
+
+    containers_logger.info("Updated container '%s' successfully." % container_tag_name)
+
+
+def updateContainer(
+    podman_path,
+    container_tag_name,
+    container_file_path,
+    quiet,
+    container_python_version,
+):
+    containers_logger.info("Updating container '%s'..." % container_tag_name)
+
+    if container_python_version is not None and not re.match(
+        r"^\d+\.\d+\.\d+$", container_python_version
+    ):
+        return containers_logger.sysexit(
+            "Error, '--container-python-version' must be a full version like '3.12.3'."
+        )
+
+    container_content = getFileContents(container_file_path)
+
+    if isTermuxContainer(container_tag_name):
+        _updateTermuxContainer(
+            podman_path=podman_path,
+            container_tag_name=container_tag_name,
+            container_file_path=container_file_path,
+            container_content=container_content,
+            quiet=quiet,
+        )
+
+        return
+
+    repo_root = os.path.normpath(
+        os.path.join(os.path.dirname(__file__), "..", "..", "..")
+    )
+
+    # Use a temporary directory for the build context.
+    with withTemporaryDirectory(containers_logger) as build_context_dir:
+        _updateContainerByBuild(
+            podman_path=podman_path,
+            container_tag_name=container_tag_name,
+            container_content=container_content,
+            repo_root=repo_root,
+            build_context_dir=build_context_dir,
+            quiet=quiet,
+            container_python_version=container_python_version,
+        )
+
+
+def getCppPath():
+    cpp_path = getExecutablePath("cpp_path")
+
+    # Windows extra ball, attempt the downloaded one.
+    if isWin32Windows() and cpp_path is None:
+        from nuitka.options.Options import assumeYesForDownloads
+
+        mingw64_gcc_path = getCachedDownloadedMinGW64(
+            target_arch=getArchitecture(),
+            download_mode=getDownloadMode(assumeYesForDownloads()),
+            experimental=False,
+        )
+
+        cpp_path = getExecutablePath("cpp", extra_dir=os.path.dirname(mingw64_gcc_path))
+
+        os.environ["CPP_PATH"] = cpp_path
+
+    if cpp_path is None:
+        containers_logger.sysexit(
+            "Error, need 'cpp' binary to execute this container file using.'"
+        )
+
+    return cpp_path
+
+
+def _makeMountDesc(podman_path, isolated, src_path, dst_path, flags):
+    src_path = getUserInputNormalizedPath(src_path)
+
+    mount_desc = "type=bind,source=%s,dst=%s" % (src_path, dst_path)
+
+    if isPodman(podman_path):
+        mount_desc += ",relabel=shared"
+
+    if flags:
+        mount_desc += ",%s" % flags
+
+    if isolated:
+        mount_desc += ",ro"
+
+    return mount_desc
+
+
+def _checkIsolated(isolated, container_tag_name):
+    if isolated:
+        containers_logger.info("Running isolated as per user choice.")
+    # Auto-isolate by container name.
+    elif "isolated" in container_tag_name.lower() and isolated is None:
+        containers_logger.info("Running isolated as per container name default.")
+        isolated = True
+    elif isolated is False:
+        containers_logger.info("Running NOT isolated as per user choice.")
+    else:
+        containers_logger.info("Running NOT isolated as per default.")
+
+    return isolated
+
+
+def _checkContainerArgument(
+    container_name, default_container_directory, plugin_container_files
+):
+    candidate_container_path = (
+        getUserInputNormalizedPath(container_name)
+        if (
+            "/" in container_name
+            or "\\" in container_name
+            or container_name.startswith("~")
+        )
+        else None
+    )
+
+    if candidate_container_path is not None and os.path.exists(
+        candidate_container_path
+    ):
+        container_file_path = candidate_container_path
+
+        if container_file_path.endswith((".in", ".j2")):
+            container_file_path_template = container_file_path
+            container_file_path = container_file_path[:-3]
+        else:
+            container_file_path_template = None
+
+        container_name = changeFilenameExtension(
+            os.path.basename(container_file_path), ""
+        )
+    elif container_name in plugin_container_files:
+        container_file_path = plugin_container_files[container_name]
+        container_file_path_template = None
+    else:
+        container_file_path = os.path.join(
+            default_container_directory, container_name + ".containerfile"
+        )
+        if os.path.isfile(container_file_path + ".j2"):
+            container_file_path_template = container_file_path + ".j2"
+        else:
+            container_file_path_template = container_file_path + ".in"
+
+    return container_name, container_file_path_template, container_file_path
+
+
+def renderContainerTemplate(
+    container_file_path_template, container_file_path, default_container_directory
+):
+    if container_file_path_template.endswith(".j2"):
+        template_str = getFileContents(container_file_path_template)
+        output = renderTemplateFromString(template_str)
+
+        if str is not bytes and type(output) is bytes:
+            output = output.decode("utf8")
+
+        putTextFileContents(container_file_path, output, encoding="utf8")
+    else:
+        # Check requirement.
+        cpp_path = getCppPath()
+        command = [
+            cpp_path,
+            "-E",
+            "-I",
+            default_container_directory,
+            container_file_path_template,
+        ]
+
+        output = check_output(command, shell=False)
+        if str is not bytes:
+            output = output.decode("utf8")
+
+        putTextFileContents(container_file_path, output, encoding="utf8")
+
+
+def _getContainerFilePath(container_name, plugin_container_files):
+    default_container_directory = os.path.join(os.path.dirname(__file__), "containers")
+
+    (
+        container_name,
+        container_file_path_template,
+        container_file_path,
+    ) = _checkContainerArgument(
+        container_name=container_name,
+        default_container_directory=default_container_directory,
+        plugin_container_files=plugin_container_files,
+    )
+
+    if container_file_path_template is not None and os.path.isfile(
+        container_file_path_template
+    ):
+        renderContainerTemplate(
+            container_file_path_template=container_file_path_template,
+            container_file_path=container_file_path,
+            default_container_directory=default_container_directory,
+        )
+
+    if not os.path.isfile(container_file_path):
+        containers_logger.sysexit(
+            "Error, no container ID '%s' found at '%s'."
+            % (container_name, container_file_path)
+        )
+
+    return container_name, container_file_path
+
+
+def _makePodmanRunCommand(
+    podman_path,
+    container_tag_name,
+    command,
+    shared_paths,
+    network,
+    isolated,
+    privileged,
+):
+    run_command = [podman_path, "run", "--rm"]
+
+    run_command.extend(
+        (
+            "--mount",
+            _makeMountDesc(
+                podman_path=podman_path,
+                isolated=isolated,
+                src_path=".",
+                dst_path="/src",
+                flags="",
+            ),
+        )
+    )
+
+    if network:
+        run_command.append("--add-host=ssh.nuitka.net:116.202.30.188")
+    else:
+        run_command.append("--network=none")
+
+    # May need to allow pbuilder to create device nodes, makes the container insecure
+    # though.
+    if privileged:
+        run_command += ["--privileged"]
+
+    for path_desc in shared_paths:
+        if path_desc.count("=") == 1:
+            src_path, dst_path = path_desc.split("=")
+            flags = ""
+        else:
+            src_path, dst_path, flags = path_desc.split("=", 2)
+
+        src_path = getUserInputNormalizedPath(src_path)
+
+        run_command.extend(
+            (
+                "--mount",
+                _makeMountDesc(
+                    podman_path=podman_path,
+                    isolated=isolated,
+                    src_path=src_path,
+                    dst_path=dst_path,
+                    flags=flags,
+                ),
+            )
+        )
+
+    # Interactive if possible only.
+    if sys.stdout.isatty():
+        run_command.append("-it")
+
+    run_command += [
+        container_tag_name,
+        "bash",
+        "-l",
+        "-c",
+        "cd /src;" + command + "; exit $?",
+    ]
+
+    return run_command
+
+
+def runContainer(
+    container_name,
+    command,
+    logged_command,
+    no_build,
+    podman_path,
+    quiet,
+    shared_paths,
+    network,
+    isolated,
+    privileged,
+    plugin_container_files,
+    container_python_version,
+):
+    """Run a command inside a container, building or updating it if necessary.
+
+    Args:
+        container_name: name of the container, or path to a container file.
+        command: command to execute inside the container.
+        logged_command: the command as shown in the output, with the values of
+          sensitive options redacted.
+        no_build: bool, do not update the container before using it.
+        podman_path: path of the podman binary to use.
+        quiet: bool, use podman quietly during the container build.
+        shared_paths: sequence of "src=dst[=flags]" paths to share with the
+          container.
+        network: bool, allow the container run to use the network.
+        isolated: None, bool, whether to provide host access to the container.
+        privileged: bool, allow the container run to create device nodes.
+        plugin_container_files: dict of container names to container file paths
+          provided by plugins.
+        container_python_version: str or None, Python version to build in the
+          container, or None to use the container's Python.
+
+    Returns:
+        None, exits with the container run exit code.
+    """
+    # Many details, pylint: disable=too-many-arguments,too-many-locals
+
+    containers_logger.info(
+        "Running in container '%s' this command: %s" % (container_name, logged_command)
+    )
+
+    container_name, container_file_path = _getContainerFilePath(
+        container_name=container_name,
+        plugin_container_files=plugin_container_files,
+    )
+
+    getBranchRemoteIdentifier()
+
+    branch_tag = getBranchRemoteIdentifier() + "-" + getBranchName()
+
+    if container_python_version is None:
+        container_tag_name = "nuitka-build-%s-%s:latest" % (
+            container_name.lower(),
+            branch_tag,
+        )
+    else:
+        container_tag_name = "nuitka-build-%s-python%s-%s:latest" % (
+            container_name.lower(),
+            container_python_version,
+            branch_tag,
+        )
+
+    isolated = _checkIsolated(isolated, container_tag_name)
+
+    if not no_build:
+        updateContainer(
+            podman_path=podman_path,
+            container_tag_name=container_tag_name,
+            container_file_path=container_file_path,
+            quiet=quiet,
+            container_python_version=container_python_version,
+        )
+
+    run_command = _makePodmanRunCommand(
+        podman_path=podman_path,
+        container_tag_name=container_tag_name,
+        command=command,
+        shared_paths=shared_paths,
+        network=network,
+        isolated=isolated,
+        privileged=privileged,
+    )
+
+    logged_run_command = _makePodmanRunCommand(
+        podman_path=podman_path,
+        container_tag_name=container_tag_name,
+        command=logged_command,
+        shared_paths=shared_paths,
+        network=network,
+        isolated=isolated,
+        privileged=privileged,
+    )
+
+    containers_logger.info(
+        "Executing command '%s'." % (logged_run_command,), keep_format=True
+    )
+
+    exit_code = callProcess(run_command, shell=False)
+
+    containers_logger.sysexit(
+        "Finished container run with exit code '%d'." % exit_code, exit_code=exit_code
+    )
+
+
+_container_option_names = (
+    "--container",
+    "--container-command",
+    "--container-requirements",
+    "--container-wheels-dir",
+    "--container-python-version",
+    "--container-no-build",
+    "--container-podman-path",
+    "--container-podman-verbose",
+    "--container-shared-path",
+    "--container-network",
+    "--container-isolated",
+    "--container-no-isolated",
+    "--container-privileged",
+)
+
+_container_option_names_with_value = (
+    "--container",
+    "--container-command",
+    "--container-requirements",
+    "--container-wheels-dir",
+    "--container-python-version",
+    "--container-podman-path",
+    "--container-shared-path",
+)
+
+
+def _filterContainerOptions(args):
+    result = []
+    skip_next = False
+    filtering = True
+
+    for arg in args:
+        if skip_next:
+            skip_next = False
+            continue
+
+        if filtering:
+            if arg == "--":
+                filtering = False
+            else:
+                matched = False
+
+                for option_name in _container_option_names:
+                    if arg == option_name:
+                        if option_name in _container_option_names_with_value:
+                            skip_next = True
+
+                        matched = True
+                        break
+
+                    if arg.startswith(option_name + "="):
+                        matched = True
+                        break
+
+                if matched:
+                    continue
+
+        result.append(arg)
+
+    return result
+
+
+def makeCompileCommand(
+    container_name,
+    container_python_version,
+    args,
+    main_args,
+    execute_immediately,
+):
+    """Create the command to compile the program inside the container.
+
+    Args:
+        container_name: name of the container to use.
+        container_python_version: str or None, Python version to use inside the
+          container.
+        args: sequence of command line arguments of the Nuitka invocation.
+        main_args: sequence of arguments to pass to the compiled program.
+        execute_immediately: bool, shall the program be run immediately.
+
+    Returns:
+        str, command to execute inside the container that repeats the local
+        compilation command.
+    """
+    command = [
+        getContainerPython(container_name, container_python_version),
+        "-m",
+        "nuitka",
+    ]
+
+    if execute_immediately and "--run" not in args:
+        command.append("--run")
+
+    command += _filterContainerOptions(args)
+    command += list(main_args)
+
+    return " ".join(quoteForShell(argument) for argument in command)
+
+
+#     Part of "Nuitka", an optimizing Python compiler that is compatible and
+#     integrates with CPython, but also works on its own.
+#
+#     Licensed under the GNU Affero General Public License, Version 3 (the "License");
+#     you may not use this file except in compliance with the License.
+#     You may obtain a copy of the License at
+#
+#        https://www.gnu.org/licenses/agpl-3.0.txt
+#
+#     See also: "Nuitka Runtime Library Exception, Version 1.0" in file
+#     "LICENSE-RUNTIME.txt" for additional permissions granted under Section 7.
+#
+#     Unless required by applicable law or agreed to in writing, software
+#     distributed under the License is distributed on an "AS IS" BASIS,
+#     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#     See the License for the specific language governing permissions and
+#     limitations under the License.

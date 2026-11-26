@@ -41,6 +41,7 @@ from nuitka.ModuleRegistry import (
     addModuleInfluencingVariable,
     getModuleInclusionInfoByName,
 )
+from nuitka.options.Experimental import isExperimental
 from nuitka.options.Options import (
     getCompanyName,
     getFileVersion,
@@ -50,7 +51,6 @@ from nuitka.options.Options import (
     getProductName,
     getProductVersion,
     isDeploymentMode,
-    isExperimental,
     isOnefileMode,
     isOnefileTempDirMode,
     isStandaloneMode,
@@ -72,6 +72,7 @@ from nuitka.PythonVersions import (
     python_version_str,
 )
 from nuitka.States import states
+from nuitka.targets.Targets import getTargetSystemStaticLibPythonPath
 from nuitka.Tracing import plugins_logger
 from nuitka.utils.AppDirs import getAppdirsModule
 from nuitka.utils.Distributions import (
@@ -105,7 +106,6 @@ from nuitka.utils.ModuleNames import (
 )
 from nuitka.utils.SharedLibraries import locateDLL, locateDLLsInDirectory
 from nuitka.utils.SlotMetaClasses import getMetaClassBase
-from nuitka.utils.StaticLibraries import getSystemStaticLibPythonPath
 from nuitka.utils.Utils import (
     getArchitecture,
     isAndroidBasedLinux,
@@ -118,7 +118,7 @@ from nuitka.utils.Utils import (
 from .Hooks import (
     decideAnnotations,
     decideAssertions,
-    decideDocStrings,
+    decideDocStringsForModuleName,
     registerDecisionCompilation,
 )
 
@@ -147,8 +147,13 @@ def _getImportLibModule():
         return importlib
 
 
-def _makeEvaluationContext(logger, full_name, config_name):
-    context = TagContext(logger=logger, full_name=full_name, config_name=config_name)
+def _makeEvaluationContext(logger, full_name, config_module_name, config_name):
+    context = TagContext(
+        logger=logger,
+        full_name=full_name,
+        config_module_name=config_module_name,
+        config_name=config_name,
+    )
     context.update(control_tags)
 
     context.update(_getEvaluationContext())
@@ -201,9 +206,9 @@ def _getEvaluationContext():
             # Querying package properties
             "has_builtin_module": isBuiltinModuleName,
             # Architectures
-            "arch_x86": getArchitecture() == "x86",
-            "arch_amd64": getArchitecture() == "x86_64",
-            "arch_arm64": getArchitecture() == "arm64",
+            "arch_x86": getArchitecture() in ("x86", "i386", "i686"),
+            "arch_amd64": getArchitecture() in ("x86_64", "amd64"),
+            "arch_arm64": getArchitecture() in ("arm64", "aarch64"),
             # Frequent used modules
             "sys": sys,
             "os": os,
@@ -214,7 +219,7 @@ def _getEvaluationContext():
             "python_version_str": python_version_str,
             "python_version_full_str": python_version_full_str,
             # Technical requirements
-            "static_libpython": getSystemStaticLibPythonPath(
+            "static_libpython": getTargetSystemStaticLibPythonPath(
                 python_debug=shallUsePythonDebug()
             )
             is not None,
@@ -277,7 +282,7 @@ def _convertVersionToTuple(distribution_name, version_str):
 
 
 def _getPackageNameFromDistributionName(distribution_name):
-    # spell-checker: ignore opencv,pyobjc,objc
+    # spell-checker: ignore objc,opencv,pyobjc
 
     if distribution_name in ("opencv-python", "opencv-python-headless"):
         return "cv2"
@@ -458,8 +463,8 @@ else:
 class NuitkaPluginBase(getMetaClassBase("Plugin", require_slots=False)):
     """Nuitka base class for all plugins.
 
-    Derive your plugin from "NuitkaPluginBase" please.
-    For instructions, see https://github.com/Nuitka/Nuitka/blob/orsiris/UserPlugin-Creation.rst
+    Derive your plugin from 'NuitkaPluginBase' please.
+    For instructions, see https://github.com/Nuitka/Nuitka/blob/develop/UserPlugin-Creation.rst
 
     Plugins allow to adapt Nuitka's behavior in a number of ways as explained
     below at the individual methods.
@@ -490,6 +495,11 @@ class NuitkaPluginBase(getMetaClassBase("Plugin", require_slots=False)):
     # For working with options, user plugins must set this variable to
     # the script's path (use __file__, __module__ or __name__).
     plugin_name = None
+
+    # Plugin callbacks are called in order of this value, with higher values
+    # being called later. This is for plugins that must run after others, e.g.
+    # signing must happen after compression and other binary modifications.
+    plugin_priority = 0
 
     def onGeneratedSourceCode(self, source_dir, onefile):
         """Called after all C code has been generated.
@@ -565,6 +575,44 @@ class NuitkaPluginBase(getMetaClassBase("Plugin", require_slots=False)):
     def addPluginCommandLineOptions(cls, group):
         # Call group.add_option() here.
         pass
+
+    def getContainerNamesAvailable(self):
+        """Announce container files offered by this plugin.
+
+        Notes:
+            These names are usable with '--container=<name>' when no container
+            file of that name is found in the built-in containers directory.
+            This must not create any files, the actual container file is asked
+            for with 'getContainerFileContents' only when it is selected.
+
+        Returns:
+            Iterable of container names offered by this plugin.
+        """
+        # Virtual method, pylint: disable=no-self-use
+        return ()
+
+    def getContainerFileContents(self, container_name):
+        """Create the contents of a container file for an announced name.
+
+        Args:
+            container_name: name announced by 'getContainerNamesAvailable'.
+
+        Returns:
+            str, contents of the container file, or None if not provided.
+        """
+        # Virtual method, pylint: disable=no-self-use,unused-argument
+        return None
+
+    def onContainerSelection(self, container_name):
+        """React to a container being selected for the compilation.
+
+        Args:
+            container_name: name of the container selected with '--container'.
+
+        Notes:
+            This can be used to warn about non-commercial containers, or to
+            check for requirements of commercial container images.
+        """
 
     def isRequiredImplicitImport(self, module, full_name):
         """Indicate whether an implicitly imported module should be accepted.
@@ -656,11 +704,23 @@ class NuitkaPluginBase(getMetaClassBase("Plugin", require_slots=False)):
         return bytecode
 
     @staticmethod
-    def getUncompiledDecoratorNames():
-        """Return a tuple of decorator names that should cause the function to be uncompiled.
+    def getJITDecoratorRegistrations():
+        """Return JIT decorator handling registrations.
+
+        Notes:
+            Names are fully qualified, e.g. "numba.jit". Imported names are
+            resolved against their import statement, so "from numba import
+            jit" matches "numba.jit" as well.
+
+            Registrations are tuples of decorator name and action. The action
+            is either "bytecode", or a tuple of "callback" and a callback
+            function. The callback is called with the registered decorator
+            name, the containing module, the start and end line, a callable
+            returning the module's source lines, and its AST node.
 
         Returns:
-            tuple of strings
+            tuple of decorator name and action tuples, where action is
+            "bytecode" or a tuple of "callback" and a callback function.
         """
         return ()
 
@@ -755,31 +815,28 @@ class NuitkaPluginBase(getMetaClassBase("Plugin", require_slots=False)):
         )
 
     def onModuleDiscovered(self, module):
-        """Called with a module to be loaded.
+        """Called when a module has been discovered and added.
 
         Notes:
-            We may specify code to be prepended and/or appended to this module.
-            This code is stored in the appropriate dict.
-            For every imported module and each of these two options, only one plugin may do this.
-            We check this condition here.
+            Notification hook only. To run code before or after loading a
+            module, implement 'createPreModuleLoadCode' or
+            'createPostModuleLoadCode' instead.
 
         Args:
-            module: the module object
-        Returns:
-            None
+            module: module object
         """
         # Virtual method, pylint: disable=no-self-use,unused-argument
         return None
 
     def getPackageExtraScanPaths(self, package_name, package_dir):
-        """Provide other directories to consider submodules to live in.
+        """Provide extra directories to consider submodules to live in.
 
         Args:
-            module_name: full module name
-            package_dir: directory of the package
+            package_name: full package name
+            package_dir: candidate directory path of the package
 
         Returns:
-            Iterable list of directories, non-existent ones are ignored.
+            Iterable of directory paths; non-existent ones are ignored.
         """
 
         # Virtual method, pylint: disable=no-self-use,unused-argument
@@ -788,15 +845,20 @@ class NuitkaPluginBase(getMetaClassBase("Plugin", require_slots=False)):
     def onModuleEncounter(
         self, using_module_name, module_name, module_filename, module_kind
     ):
-        """Help decide whether to include a module.
+        """Decide whether to include an encountered module.
+
+        Notes:
+            Conflicting boolean decisions from multiple plugins abort
+            compilation with an error.
 
         Args:
-            using_module_name: module that does this (can be None if user)
+            using_module_name: importing module name, or None if user-selected
             module_name: full module name
-            module_filename: filename
-            module_kind: one of "py", "extension" (shared library)
+            module_filename: module path
+            module_kind: module kind, e.g. 'py' or 'extension'
+
         Returns:
-            True or False
+            None for no opinion (default), or tuple '(bool, reason)'.
         """
         # Virtual method, pylint: disable=no-self-use,unused-argument
         return None
@@ -878,16 +940,14 @@ class NuitkaPluginBase(getMetaClassBase("Plugin", require_slots=False)):
         return ()
 
     def onModuleCompleteSet(self, module_set):
-        """Provide extra modules to the initial root module set.
+        """Inspect the final set of included modules after recursion completes.
+
+        Notes:
+            Read-only notification for warnings, error checks, or preparing
+            later stages; the module set cannot be modified here.
 
         Args:
-            module_set - tuple of modules
-        Returns:
-            None
-        Notes:
-            You must not change anything, this is purely for warning
-            and error checking, and potentially for later stages to
-            prepare.
+            module_set: immutable tuple of included module objects
         """
 
     def onModuleCompleteSetGUI(self, module_set, plugin_binding_name):
@@ -1053,14 +1113,15 @@ Unwanted import of '%(unwanted)s' that %(problem)s '%(binding_name)s' encountere
         return ()
 
     def considerDataFiles(self, module):
-        """Yield data file names (source|func, target) for inclusion (iterator).
+        """Yield data files to include for a module.
 
         Args:
             module: module object that may need extra data files
-        Yields:
-            Data file description pairs, either (source, dest) or (func, dest)
-            where the func will be called to create the content dynamically.
 
+        Yields:
+            'IncludedDataFile' instances (created via 'makeIncludedDataFile',
+            'makeIncludedDataDirectory', 'makeIncludedGeneratedDataFile',
+            'makeIncludedPackageDataFiles', etc.), or generators yielding them.
         """
         # Virtual method, pylint: disable=no-self-use,unused-argument
         return ()
@@ -1279,31 +1340,31 @@ Unwanted import of '%(unwanted)s' that %(problem)s '%(binding_name)s' encountere
         return None
 
     def suppressUnknownImportWarning(self, importing, module_name, source_ref):
-        """Suppress import warnings for unknown modules.
+        """Decide whether to suppress an unknown-import warning.
 
         Args:
-            importing: the module object
-            module_name: name of module
-            source_ref: ???
+            importing: module object performing the import
+            module_name: full name of the unlocated module
+            source_ref: 'SourceCodeReference' of the import
+
         Returns:
-            True or False
+            bool, True to suppress the warning.
         """
         # Virtual method, pylint: disable=no-self-use,unused-argument
         return False
 
     def decideCompilation(self, module_name):
-        """Decide whether to compile a module (or just use its bytecode).
+        """Decide whether to C-compile a module or include it as bytecode.
 
         Notes:
-            The first plugin not returning None makes the decision. Thereafter,
-            no other plugins will be checked. If all plugins return None, the
-            module will be compiled.
+            All active plugins are checked; conflicting non-None decisions
+            abort compilation with an error.
 
         Args:
-            module_name: name of module
+            module_name: full module name
 
         Returns:
-            "compiled" or "bytecode" or None (no opinion, use by default)
+            'compiled', 'bytecode', or None for no opinion (default).
         """
         # Virtual method, pylint: disable=no-self-use,unused-argument
         return None
@@ -1335,6 +1396,19 @@ Unwanted import of '%(unwanted)s' that %(problem)s '%(binding_name)s' encountere
         return None
 
     def decideAssertions(self, module_name):
+        # Virtual method, pylint: disable=no-self-use,unused-argument
+        return None
+
+    def decideNeedsFrameLocalsProxy(self, module_name, code_qualname):
+        """Decide whether a function or class needs a frame locals proxy.
+
+        Args:
+            module_name: name of the module containing it
+            code_qualname: qualified name of the function or class
+
+        Returns:
+            True if a frame locals proxy is needed, None for no opinion
+        """
         # Virtual method, pylint: disable=no-self-use,unused-argument
         return None
 
@@ -1639,7 +1713,7 @@ except Exception as e:
         # Ignore Windows newlines difference.
         feedback = [line.strip() for line in feedback.splitlines()]
 
-        while feedback and not feedback[0] != "-*-" * 15:
+        while feedback and feedback[0] == "-*-" * 15:
             feedback.pop(0)
 
         if feedback.count("-" * 27) != len(keys):
@@ -1684,11 +1758,11 @@ except Exception as e:
         return False
 
     def onClassBodyParsing(self, module_name, class_name, node):
-        # Virtual method, pylint: disable=no-self-use,unused-argument
         """Provide a different class body for the class of that module.
 
         Should return a boolean, indicating if any actual change was done.
         """
+        # Virtual method, pylint: disable=no-self-use,unused-argument
         return False
 
     def getCacheContributionValues(self, module_name):
@@ -1731,7 +1805,7 @@ except Exception as e:
 
     @staticmethod
     def getReportRedactedOptions():
-        """Provide option prefixes with values that are redacted in reports."""
+        """Provide option name patterns with values redacted in reports."""
         return ()
 
     @staticmethod
@@ -1750,11 +1824,17 @@ except Exception as e:
         return '"' in expression or "'" in expression or "(" in expression
 
     def evaluateExpressionOrConstant(
-        self, full_name, expression, config_name, extra_context, single_value
+        self,
+        full_name,
+        expression,
+        config_name,
+        extra_context,
+        single_value,
+        config_module_name=None,
     ):
         if self.isValueForEvaluation(expression):
             return self.evaluateExpression(
-                config_module_name=full_name,
+                config_module_name=config_module_name,
                 module_name=full_name,
                 expression=expression,
                 config_name=config_name,
@@ -1773,12 +1853,7 @@ except Exception as e:
             ):
                 declarations = constant_config.get("declarations")
 
-                if declarations and self.evaluateCondition(
-                    full_name=full_name,
-                    condition=constant_config.get("when", "True"),
-                    allow_constants=False,
-                    allow_variables=False,
-                ):
+                if declarations:
                     for constant_name, constant_value in declarations.items():
                         constants[constant_name] = self.evaluateExpressionOrConstant(
                             full_name=full_name,
@@ -1797,12 +1872,14 @@ except Exception as e:
             variables = {}
 
             for count, variable_config in enumerate(
-                self.config.get(full_name, section="variables")
+                self.config.get(full_name, section="variables"), start=1
             ):
                 environment = variable_config.get("environment", {})
-                setup_codes = variable_config.get("setup_code", [])
+                setup_codes = variable_config.get("setup_code", ())
                 if type(setup_codes) is str:
                     setup_codes = setup_codes.splitlines()
+                else:
+                    setup_codes = list(setup_codes)
                 declarations = variable_config.get("declarations", {})
 
                 if len(declarations) < 1:
@@ -1811,63 +1888,57 @@ except Exception as e:
                         % full_name
                     )
 
-                if self.evaluateCondition(
-                    full_name=full_name,
-                    condition=variable_config.get("when", "True"),
-                    allow_constants=True,
-                    allow_variables=False,
-                ):
-                    setup_codes[0:0] = (
-                        "%s=%r" % (constant_name, constant_value)
-                        for (
-                            constant_name,
-                            constant_value,
-                        ) in self.getExpressionConstants(full_name=full_name).items()
+                setup_codes[0:0] = (
+                    "%s=%r" % (constant_name, constant_value)
+                    for (
+                        constant_name,
+                        constant_value,
+                    ) in self.getExpressionConstants(full_name=full_name).items()
+                )
+
+                env_variables = {}
+
+                for env_name, env_value in environment.items():
+                    env_variables[env_name] = self.evaluateExpressionOrConstant(
+                        full_name=full_name,
+                        expression=env_value,
+                        config_name="variables config #%d" % count,
+                        extra_context=None,
+                        single_value=True,
                     )
 
-                    env_variables = {}
+                with withEnvironmentVarsOverridden(env_variables):
+                    info = self.queryRuntimeInformationMultiple(
+                        "%s_variables_%s" % (full_name.asString(), count),
+                        setup_codes=setup_codes,
+                        values=tuple(declarations.items()),
+                    )
 
-                    for env_name, env_value in environment.items():
-                        env_variables[env_name] = self.evaluateExpressionOrConstant(
-                            full_name=full_name,
-                            expression=env_value,
-                            config_name="variables config #%d" % count,
-                            extra_context=None,
-                            single_value=True,
-                        )
+                if isExperimental("display-yaml-variables"):
+                    self.info("Evaluated %r" % info)
 
-                    with withEnvironmentVarsOverridden(env_variables):
-                        info = self.queryRuntimeInformationMultiple(
-                            "%s_variables_%s" % (full_name.asString(), count),
-                            setup_codes=setup_codes,
-                            values=tuple(declarations.items()),
-                        )
+                if info is None:
+                    return self.sysexit(
+                        "Error, failed to evaluate variables for '%s'." % full_name
+                    )
 
-                    if isExperimental("display-yaml-variables"):
-                        self.info("Evaluated %r" % info)
-
-                    if info is None:
-                        return self.sysexit(
-                            "Error, failed to evaluate variables for '%s'." % full_name
-                        )
-
-                    variables.update(info.asDict())
+                variables.update(info.asDict())
 
             _module_config_variables[full_name] = variables
 
         return _module_config_variables[full_name]
 
-    def evaluateExpression(
+    def _makeConfigEvaluationContext(
         self,
         config_module_name,
         module_name,
-        expression,
         config_name,
-        extra_context,
-        single_value,
     ):
         context = _makeEvaluationContext(
-            logger=self, full_name=config_module_name, config_name=config_name
+            logger=self,
+            full_name=module_name,
+            config_module_name=config_module_name,
+            config_name=config_name,
         )
 
         def get_variable(variable_name):
@@ -1891,16 +1962,12 @@ except Exception as e:
         def get_constant(constant_name):
             assert type(constant_name) is str, constant_name
 
-            result = self.getExpressionConstants(full_name=config_module_name)[
+            return self.getExpressionConstants(full_name=config_module_name)[
                 constant_name
             ]
 
-            # TODO: Record the constant value in report.
-
-            return result
-
-        context["get_variable"] = get_variable
         context["get_constant"] = get_constant
+        context["get_variable"] = get_variable
 
         def get_parameter(parameter_name, default):
             result = getModuleParameter(config_module_name, parameter_name)
@@ -1909,15 +1976,39 @@ except Exception as e:
                 result = default
 
             self.addModuleInfluencingParameter(
-                module_name=config_module_name,
+                module_name=module_name,
                 parameter_name=parameter_name,
                 condition_tags_used=context.used_tags,
                 result=result,
+                config_module_name=config_module_name,
             )
 
             return result
 
         context["get_parameter"] = get_parameter
+
+        return context
+
+    def evaluateExpression(
+        self,
+        config_module_name,
+        module_name,
+        expression,
+        config_name,
+        extra_context,
+        single_value,
+    ):
+        module_name = ModuleName(module_name)
+        if config_module_name is None:
+            config_module_name = module_name
+        else:
+            config_module_name = ModuleName(config_module_name)
+
+        context = self._makeConfigEvaluationContext(
+            config_module_name=config_module_name,
+            module_name=module_name,
+            config_name=config_name,
+        )
 
         if extra_context:
             context.update(extra_context)
@@ -1972,67 +2063,31 @@ Error, expression '%s' for module '%s' did not evaluate to 'tuple[str]' or 'list
             )
 
     def evaluateCondition(
-        self, full_name, condition, allow_constants=True, allow_variables=True
+        self,
+        full_name,
+        condition,
+        config_module_name=None,
     ):
         # Note: Caching makes no sense yet, this should all be very fast and
-        # cache themselves. TODO: Allow plugins to contribute their own control
-        # tag values during creation and during certain actions.
+        # cache themselves. TODO: Allow plugins to also update control tag
+        # values during later actions, not only at plugin creation.
         if condition == "True":
             return True
         if condition == "False":
             return False
 
+        full_name = ModuleName(full_name)
+        if config_module_name is None:
+            config_module_name = full_name
+        else:
+            config_module_name = ModuleName(config_module_name)
+
         # TODO: Maybe add module name to config name?
-        context = _makeEvaluationContext(
-            logger=self, full_name=full_name, config_name="'when' configuration"
+        context = self._makeConfigEvaluationContext(
+            config_module_name=config_module_name,
+            module_name=full_name,
+            config_name="'when' configuration",
         )
-
-        def get_variable(variable_name):
-            assert type(variable_name) is str, variable_name
-
-            result = self.getExpressionVariables(full_name=full_name)[variable_name]
-
-            addModuleInfluencingVariable(
-                module_name=full_name,
-                config_module_name=full_name,
-                plugin_name=self.plugin_name,
-                variable_name=variable_name,
-                control_tags=context.used_tags,
-                result=result,
-            )
-
-            return result
-
-        def get_constant(constant_name):
-            assert type(constant_name) is str, constant_name
-
-            result = self.getExpressionConstants(full_name=full_name)[constant_name]
-
-            # TODO: Record the constant value in report.
-
-            return result
-
-        if allow_constants:
-            context["get_constant"] = get_constant
-        if allow_variables:
-            context["get_variable"] = get_variable
-
-        def get_parameter(parameter_name, default):
-            result = getModuleParameter(full_name, parameter_name)
-
-            if result is None:
-                result = default
-
-            self.addModuleInfluencingParameter(
-                module_name=full_name,
-                parameter_name=parameter_name,
-                condition_tags_used=context.used_tags,
-                result=result,
-            )
-
-            return result
-
-        context["get_parameter"] = get_parameter
 
         with withNoWarning():
             # We trust the yaml files, pylint: disable=eval-used
@@ -2050,11 +2105,12 @@ Error, expression '%s' for module '%s' did not evaluate to 'tuple[str]' or 'list
         if type(result) is not bool:
             return self.sysexit(
                 "Error, condition '%s' for module '%s' did not evaluate to boolean result."
-                % (condition, full_name)
+                % (condition, config_module_name)
             )
 
         addModuleInfluencingCondition(
             module_name=full_name,
+            config_module_name=config_module_name,
             plugin_name=self.plugin_name,
             condition=condition,
             control_tags=context.used_tags,
@@ -2064,10 +2120,16 @@ Error, expression '%s' for module '%s' did not evaluate to 'tuple[str]' or 'list
         return result
 
     def addModuleInfluencingParameter(
-        self, module_name, parameter_name, condition_tags_used, result
+        self,
+        module_name,
+        parameter_name,
+        condition_tags_used,
+        result,
+        config_module_name=None,
     ):
         addModuleInfluencingParameter(
             module_name=module_name,
+            config_module_name=config_module_name or module_name,
             plugin_name=self.plugin_name,
             parameter_name=parameter_name,
             condition_tags_used=condition_tags_used,
@@ -2147,11 +2209,12 @@ class NuitkaNamespaceDetectorPluginBase(NuitkaDetectorPluginBase):
 
 
 class TagContext(dict):
-    def __init__(self, logger, full_name, config_name):
+    def __init__(self, logger, full_name, config_module_name, config_name):
         dict.__init__(self)
 
         self.logger = logger
         self.full_name = full_name
+        self.config_module_name = config_module_name
         self.config_name = config_name
 
         self.used_tags = OrderedSet()
@@ -2170,14 +2233,14 @@ class TagContext(dict):
                 return decideAssertions(self.full_name) is False
 
             if key == "no_docstrings":
-                return decideDocStrings(self.full_name) is False
+                return decideDocStringsForModuleName(self.full_name) is False
 
             if key == "no_annotations":
                 return decideAnnotations(self.full_name) is False
 
             return self.logger.sysexit(
                 "Identifier '%s' in %s of module '%s' is unknown."
-                % (key, self.config_name, self.full_name)
+                % (key, self.config_name, self.config_module_name)
             )
 
 

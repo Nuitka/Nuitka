@@ -145,9 +145,6 @@ template_read_shared_known = """\
 %(tmp_name)s = Nuitka_Cell_GET(%(identifier)s);
 """
 
-# For module variable values, need to lookup in module dictionary or in
-# built-in dictionary.
-
 # TODO: Only provide fallback for known actually possible values. Do this
 # by keeping track of things that were added by "site.py" mechanisms. Then
 # we can avoid the second call entirely for most cases.
@@ -203,12 +200,14 @@ template_read_locals_mapping_without_fallback = """\
 
 # TODO: Have DICT_REMOVE_ITEM_WITHOUT_ERROR and use that instead.
 template_del_global_unclear = """\
-%(result)s = DICT_REMOVE_ITEM((PyObject *)moduledict_%(module_identifier)s, %(var_name)s);
-if (%(result)s == false) CLEAR_ERROR_OCCURRED(tstate);
+%(result)s = DICT_REMOVE_ITEM(tstate, (PyObject *)moduledict_%(module_identifier)s, %(var_name)s);
+if (%(result)s == false) {
+    CLEAR_ERROR_OCCURRED(tstate);
+}
 """
 
 template_del_global_known = """\
-if (DICT_REMOVE_ITEM((PyObject *)moduledict_%(module_identifier)s, %(var_name)s) == false) {
+if (DICT_REMOVE_ITEM(tstate, (PyObject *)moduledict_%(module_identifier)s, %(var_name)s) == false) {
     CLEAR_ERROR_OCCURRED(tstate);
 }
 """
@@ -218,9 +217,9 @@ if (%(test_code)s) {
     PyObject *value;
 %(access_code)s
 
-    UPDATE_STRING_DICT0((PyDictObject *)%(dict_name)s, (Nuitka_StringObject *)%(var_name)s, value);
+    UPDATE_STRING_DICT0(tstate, (PyDictObject *)%(dict_name)s, (Nuitka_StringObject *)%(var_name)s, value);
 } else {
-    if (DICT_REMOVE_ITEM(%(dict_name)s, %(var_name)s) == false) {
+    if (DICT_REMOVE_ITEM(tstate, %(dict_name)s, %(var_name)s) == false) {
         CLEAR_ERROR_OCCURRED(tstate);
     }
 }
@@ -231,13 +230,11 @@ if (%(test_code)s) {
     PyObject *value;
 %(access_code)s
 
-    bool res = DICT_SET_ITEM(
+    DICT_SET_ITEM_INFALLIBLE(tstate,
         %(dict_name)s,
         %(var_name)s,
         value
     );
-
-    assert(res == true);
 }
 """
 
@@ -289,8 +286,12 @@ if (%(test_code)s) {
 }
 """
 
+# Without the GIL, another thread can concurrently mutate or resize module and
+# builtin dictionaries, so free-threaded builds cannot use unlocked static
+# caches or borrowed dictionary references and return a strong reference.
 template_module_variable_accessor_function = """\
 static PyObject *%(accessor_function_name)s(PyThreadState *tstate) {
+#if !defined(Py_GIL_DISABLED)
 #if %(caching)s
     PyObject *result;
 
@@ -361,6 +362,38 @@ static PyObject *%(accessor_function_name)s(PyThreadState *tstate) {
         result = GET_STRING_DICT_VALUE(dict_builtin, (Nuitka_StringObject *)%(var_name)s);
     }
 
+    return result;
+#else
+    PyObject *result = GET_STRING_DICT_VALUE1(tstate, moduledict_%(module_identifier)s, (Nuitka_StringObject *)%(var_name)s);
+
+    if (unlikely(result == NULL)) {
+        result = GET_STRING_DICT_VALUE1(tstate, dict_builtin, (Nuitka_StringObject *)%(var_name)s);
+    }
+
+    return result;
+#endif
+}
+"""
+
+template_module_variable_accessor_checked_function = """\
+static PyObject *%(accessor_function_name)s(
+    PyThreadState *tstate,
+    struct Nuitka_ExceptionPreservationItem *exception_state) {
+    PyObject *result = %(core_accessor_function_name)s(tstate);
+
+    if (unlikely(result == NULL)) {
+        %(raise_name_error_helper)s(tstate, exception_state, %(var_name)s);
+    }
+
+    return result;
+}
+"""
+
+template_module_variable_accessor_infallible_function = """\
+static PyObject *%(accessor_function_name)s(PyThreadState *tstate) {
+    PyObject *result = %(core_accessor_function_name)s(tstate);
+
+%(infallible_check)s
     return result;
 }
 """

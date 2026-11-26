@@ -14,6 +14,7 @@ to "print for_debug" without much hassle (braces).
 
 from __future__ import print_function
 
+import errno
 import inspect
 import os
 import struct
@@ -65,14 +66,29 @@ def printError(message):
     my_print(message, file=sys.stderr)
 
 
-def flushStandardOutputs():
-    if hasattr(sys.stdout, "flush_buffer"):
-        sys.stdout.flush_buffer()
-    sys.stdout.flush()
+def _isIgnoredOutputError(exception):
+    # Broken pipes, e.g. when piping into 'head', are not a reason to abort.
+    if isinstance(exception, BrokenPipeError):
+        return True
 
-    if hasattr(sys.stderr, "flush_buffer"):
-        sys.stderr.flush_buffer()
-    sys.stderr.flush()
+    # Windows can reject a flush of special handles, e.g. a detached
+    # console or a handle already invalidated by the launcher.
+    return exception.errno == errno.EINVAL
+
+
+def _flushStream(stream):
+    try:
+        if hasattr(stream, "flush_buffer"):
+            stream.flush_buffer()
+        stream.flush()
+    except OSError as e:
+        if not _isIgnoredOutputError(e):
+            raise
+
+
+def flushStandardOutputs():
+    _flushStream(sys.stdout)
+    _flushStream(sys.stderr)
 
 
 def getEnableStyleCode(style):
@@ -132,22 +148,21 @@ def hasTerminalLinkSupport():
 
     terminal_name = os.getenv("TERM_PROGRAM")
 
-    if terminal_name is not None:
-        if terminal_name == "vscode":
-            return True
+    if terminal_name is not None and terminal_name == "vscode":
+        return True
 
     # Windows terminal, in some cases, but not on Windows 11 unfortunately there
     # is no difference between CMD with its own terminal and CMD in Windows
     # Terminal, not even parent processes.
-    if isWin32Windows():
-        if "WT_SESSION" in os.environ or "WT_PROFILE_ID" in os.environ:
-            return True
+    if isWin32Windows() and (
+        "WT_SESSION" in os.environ or "WT_PROFILE_ID" in os.environ
+    ):
+        return True
 
     # Powershell, should be used in new terminals only. Also hard to detect,
     # although here we could search parent process names to determine it.
-    if isWin32Windows():
-        if "PSModulePath" in os.environ:
-            return True
+    if isWin32Windows() and "PSModulePath" in os.environ:
+        return True
 
     return False
 
@@ -278,8 +293,9 @@ def _my_print(is_atty, args, kwargs):
 
         # Flush the output.
         file_output.flush()
-    except BrokenPipeError:
-        pass
+    except OSError as e:
+        if not _isIgnoredOutputError(e):
+            raise
 
 
 def _my_print2(is_atty, args, kwargs):
@@ -647,9 +663,11 @@ scons_details_logger = OurLogger("Nuitka-Scons")
 postprocessing_logger = OurLogger("Nuitka-Postprocessing")
 installer_logger = OurLogger("Nuitka-Installer")
 options_logger = OurLogger("Nuitka-Options")
+cross_compilation_logger = OurLogger("Nuitka-CrossCompilation")
 unusual_logger = OurLogger("Nuitka-Unusual")
 data_composer_logger = OurLogger("Nuitka-DataComposer")
 onefile_logger = OurLogger("Nuitka-Onefile")
+containers_logger = OurLogger("Nuitka-Containers", base_style="blue")
 tools_logger = OurLogger("Nuitka-Tools")
 wheel_logger = OurLogger("Nuitka-Wheel", base_style="blue")
 cache_logger = OurLogger("Nuitka-Cache")
@@ -722,17 +740,27 @@ class LineBufferedStreamRedirector(object):
 
             if progress and self.original_stream.isatty():
                 with progress.withExternalWritingPause():
-                    self.original_stream.write(to_print)
-                    self.original_stream.flush()
+                    self._writeAndFlush(to_print)
             else:
-                self.original_stream.write(to_print)
-                self.original_stream.flush()
+                self._writeAndFlush(to_print)
+
+    def _writeAndFlush(self, message):
+        try:
+            self.original_stream.write(message)
+            self.original_stream.flush()
+        except OSError as e:
+            if not _isIgnoredOutputError(e):
+                raise
 
     def flush(self):
         # We don't flush the buffer, as that would cause partial lines to be
         # printed, which then get overwritten by the progress bar. We wait
         # for the newline to print it.
-        self.original_stream.flush()
+        try:
+            self.original_stream.flush()
+        except OSError as e:
+            if not _isIgnoredOutputError(e):
+                raise
 
     def flush_buffer(self):
         if self.buffer:

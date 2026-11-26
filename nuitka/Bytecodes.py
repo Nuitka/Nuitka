@@ -5,13 +5,8 @@
 
 import ast
 
-from nuitka.options.Options import (
-    hasPythonFlagNoAsserts,
-    hasPythonFlagNoDocStrings,
-)
 from nuitka.PythonVersions import python_version
 from nuitka.tree.TreeHelpers import getKind
-from nuitka.utils.Utils import withNoSyntaxWarning
 
 doc_having = tuple(
     getattr(ast, candidate)
@@ -24,49 +19,80 @@ def _removeDocFromBody(node):
     if node.body and getKind(node.body[0]) == "Expr":
         if getKind(node.body[0].value) == "Str":  # python3.7 or earlier
             node.body[0].value.s = ""
-        elif getKind(node.body[0].value) == "Constant":  # python3.8
+        elif (
+            getKind(node.body[0].value) == "Constant"
+            and type(node.body[0].value.value) is str
+        ):  # python3.8+
             node.body[0].value.value = ""
 
 
-def compileSourceToBytecode(source_code, filename):
-    """Compile given source code into bytecode."""
+def _removeLineNumbersFromTree(tree):
+    for node in ast.walk(tree):
+        if hasattr(node, "lineno"):
+            node.lineno = 1
 
-    with withNoSyntaxWarning():
-        # Prepare compile call with AST tree.
-        tree = ast.parse(source_code, filename)
+        if hasattr(node, "end_lineno"):
+            node.end_lineno = 1
 
-    # Do we need to remove doc strings.
-    remove_doc_strings_from_tree = hasPythonFlagNoDocStrings()
+        if hasattr(node, "col_offset"):
+            node.col_offset = 0
+
+        if hasattr(node, "end_col_offset"):
+            node.end_col_offset = 0
+
+
+def removeDocStringsFromTree(tree):
+    """Remove module, class, and function docstrings from a parsed tree."""
+
+    _removeDocFromBody(tree)
+
+    for node in ast.walk(tree):
+        if isinstance(node, doc_having):
+            _removeDocFromBody(node)
+
+
+def compileSourceToBytecode(
+    source_code, filename, remove_doc_strings, remove_asserts, remove_line_numbers
+):
+    """Compile given source code into bytecode.
+
+    Args:
+        source_code: Source code to compile.
+        filename: Filename to use for the compilation.
+        remove_doc_strings: Whether to remove docstrings from the source tree.
+        remove_asserts: Whether to remove assertions from the compiled code.
+        remove_line_numbers: Whether to normalize source line numbers to 1.
+    """
+
+    # Prepare compile call with AST tree.
+    tree = ast.parse(source_code, filename)
+
+    if remove_line_numbers:
+        _removeLineNumbersFromTree(tree)
 
     # For Python2, we need to do this manually.
-    remove_asserts_from_tree = hasPythonFlagNoAsserts() and str is bytes
+    remove_asserts_from_tree = remove_asserts and str is bytes
 
-    if remove_doc_strings_from_tree or remove_asserts_from_tree:
-        # Module level docstring.
-        if remove_doc_strings_from_tree:
-            _removeDocFromBody(tree)
+    if remove_doc_strings:
+        removeDocStringsFromTree(tree)
 
+    if remove_asserts_from_tree:
         for node in ast.walk(tree):
-            if remove_asserts_from_tree:
-                node_type = type(node)
+            node_type = type(node)
 
-                if node_type is ast.Name:
-                    if node.id == "__debug__":
-                        node.id = "False"
+            if node_type is ast.Name:
+                if node.id == "__debug__":
+                    node.id = "False"
 
-                elif node_type is ast.Assert:
-                    # Cannot really remove the assertion node easily, lets just replace it with
-                    # "assert 1" and remove the assert msg. Probably not worth more effort for
-                    # Python2 at this time.
-                    node.test = ast.Num()
-                    node.test.n = 1
-                    node.test.lineno = node.lineno
-                    node.test.col_offset = node.col_offset
-                    node.msg = None
-
-            # Check if it's a docstring having node type.
-            if remove_doc_strings_from_tree and isinstance(node, doc_having):
-                _removeDocFromBody(node)
+            elif node_type is ast.Assert:
+                # Cannot really remove the assertion node easily, lets just replace it with
+                # "assert 1" and remove the assert msg. Probably not worth more effort for
+                # Python2 at this time.
+                node.test = ast.Num()
+                node.test.n = 1
+                node.test.lineno = node.lineno
+                node.test.col_offset = node.col_offset
+                node.msg = None
 
     if str is bytes:
         bytecode = compile(
@@ -77,9 +103,7 @@ def compileSourceToBytecode(source_code, filename):
         )
     else:
         # Let the handling of __debug__ happen within compile built-in.
-        optimize = 0
-        if hasPythonFlagNoAsserts():
-            optimize = 1
+        optimize = 1 if remove_asserts else 0
 
         bytecode = compile(
             tree, filename=filename, mode="exec", dont_inherit=True, optimize=optimize

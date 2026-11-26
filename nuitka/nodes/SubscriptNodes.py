@@ -1,14 +1,7 @@
 #     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-"""Subscript node.
-
-Subscripts are important when working with lists and dictionaries. Tracking
-them can allow to achieve more compact code, or predict results at compile time.
-
-There is be a method "computeExpressionSubscript" to aid predicting them in the
-other nodes.
-"""
+"""Subscript nodes."""
 
 from nuitka.PythonVersions import python_version
 
@@ -108,11 +101,9 @@ def makeExpressionIndexLookup(expression, index_value, source_ref):
 
 
 def hasSubscript(value, subscript):
-    """Check if a value has a subscript."""
-
     try:
         value[subscript]
-    except Exception:  # Catch all the things, pylint: disable=broad-except
+    except Exception:  # pylint: disable=broad-except
         return False
     else:
         return True
@@ -138,8 +129,7 @@ class ExpressionMatchSubscriptCheck(
         ExpressionBase.__init__(self, source_ref)
 
     def computeExpression(self, trace_collection):
-        # We do at least for compile time constants optimization here, but more
-        # could be done, were we to consider shapes.
+        # TODO: Consider shapes in addition to compile time constants.
         source = self.subnode_expression
         subscript = self.subnode_subscript
 
@@ -156,7 +146,6 @@ class ExpressionMatchSubscriptCheck(
                 description="Subscript match check has been pre-computed.",
             )
 
-            # If source has side effects, they must be evaluated.
             result = wrapExpressionWithNodeSideEffects(new_node=result, old_node=source)
 
             return result, tags, change_desc
@@ -183,6 +172,9 @@ class ExpressionSubscriptLookupForUnpack(ExpressionSubscriptLookup):
 
         self.expected = expected
 
+    def getDetails(self):
+        return {"expected": self.expected}
+
     def computeExpression(self, trace_collection):
         result = self.subnode_expression.computeExpressionSubscript(
             lookup_node=self,
@@ -192,39 +184,53 @@ class ExpressionSubscriptLookupForUnpack(ExpressionSubscriptLookup):
 
         result_node = result[0]
 
-        # Rewrite exceptions to correct message.
+        if result_node.isExpressionSideEffects():
+            raise_node = result_node.subnode_expression
+        else:
+            raise_node = result_node
+
         if (
-            result_node.isExpressionRaiseException()
-            and result_node.subnode_exception_type.isExpressionBuiltinMakeException()
-            and result_node.subnode_exception_type.getExceptionName() == "IndexError"
+            raise_node.isExpressionRaiseException()
+            and raise_node.subnode_exception_type.isExpressionBuiltinMakeException()
+            and raise_node.subnode_exception_type.getExceptionName() == "IndexError"
         ):
-            if python_version >= 0x360:
-                return (
-                    makeRaiseExceptionExpressionFromTemplate(
-                        exception_type="ValueError",
-                        template="not enough values to unpack (expected %d, got %d)",
-                        template_args=(
-                            makeConstantRefNode(
-                                constant=self.expected, source_ref=self.source_ref
-                            ),
-                            self.subnode_subscript,
+            if python_version >= 0x350:
+                new_raise = makeRaiseExceptionExpressionFromTemplate(
+                    exception_type="ValueError",
+                    template="not enough values to unpack (expected %d, got %d)",
+                    template_args=(
+                        makeConstantRefNode(
+                            constant=self.expected, source_ref=self.source_ref
                         ),
-                        source_ref=self.source_ref,
+                        self.subnode_subscript,
                     ),
-                    "new_raise",
-                    "Raising for unpack too short iterator.",
+                    source_ref=self.source_ref,
+                )
+            elif self.subnode_subscript.getIntegerValue() == 1:
+                new_raise = makeRaiseExceptionExpressionFromTemplate(
+                    exception_type="ValueError",
+                    template="need more than %d value to unpack",
+                    template_args=self.subnode_subscript,
+                    source_ref=self.source_ref,
                 )
             else:
-                return (
-                    makeRaiseExceptionExpressionFromTemplate(
-                        exception_type="ValueError",
-                        template="need more than %d value to unpack",
-                        template_args=self.subnode_subscript,
-                        source_ref=self.source_ref,
-                    ),
-                    "new_raise",
-                    "Raising for unpack too short iterator.",
+                new_raise = makeRaiseExceptionExpressionFromTemplate(
+                    exception_type="ValueError",
+                    template="need more than %d values to unpack",
+                    template_args=self.subnode_subscript,
+                    source_ref=self.source_ref,
                 )
+
+            if result_node.isExpressionSideEffects():
+                new_raise = wrapExpressionWithNodeSideEffects(
+                    new_node=new_raise, old_node=result_node
+                )
+
+            return (
+                new_raise,
+                "new_raise",
+                "Raising for unpack too short iterator.",
+            )
 
         return result
 

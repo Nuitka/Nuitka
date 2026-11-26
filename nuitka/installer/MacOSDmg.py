@@ -7,10 +7,11 @@ import os
 import shutil
 
 from nuitka.freezer.IncludedDataFiles import getIncludedDataFiles
-from nuitka.freezer.MacOSApp import getMacOSIconPaths
+from nuitka.freezer.MacOSApp import getMacOSBundleIconPath, getMacOSIconPaths
 from nuitka.options.Options import (
     getMacOSInstallerOutputFilename,
     getOutputPath,
+    shallCreateAppBundle,
     shallCreateDmgFile,
 )
 from nuitka.OutputDirectories import (
@@ -28,8 +29,8 @@ from nuitka.utils.FileOperations import (
     changeFilenameExtension,
     copyFile,
     deleteFile,
-    makePath,
     removeDirectory,
+    resetDirectory,
 )
 from nuitka.utils.Signing import addMacOSCodeSignature
 
@@ -88,7 +89,14 @@ def createMacOSDmg():
     """
     create_dmg_path = getCreateDmgPath()
 
-    app_bundle_path = getStandaloneDirectoryPath(bundle=False, real=True)
+    is_app_bundle = shallCreateAppBundle()
+
+    if is_app_bundle:
+        app_bundle_path = changeFilenameExtension(
+            getStandaloneDirectoryPath(bundle=False, real=True), ".app"
+        )
+    else:
+        app_bundle_path = getStandaloneDirectoryPath(bundle=False, real=True)
 
     external_files = [
         included_datafile
@@ -96,14 +104,24 @@ def createMacOSDmg():
         if included_datafile.isExternal()
     ]
 
-    if external_files:
+    # create-dmg copies the contents of the source folder to the volume root,
+    # so an app bundle has to be staged to remain a bundle in the DMG.
+    needs_staging = is_app_bundle or bool(external_files)
+
+    if needs_staging:
         staging_dir = app_bundle_path + ".dmg-stage"
-        makePath(staging_dir)
+        resetDirectory(
+            path=staging_dir,
+            logger=installer_logger,
+            ignore_errors=True,
+            extra_recommendation=None,
+        )
 
         # spell-checker: ignore copytree
         shutil.copytree(
             app_bundle_path,
             os.path.join(staging_dir, os.path.basename(app_bundle_path)),
+            symlinks=is_app_bundle,
         )
 
         for included_datafile in external_files:
@@ -116,12 +134,16 @@ def createMacOSDmg():
     else:
         source_dir = app_bundle_path
 
-    icon_paths = getMacOSIconPaths()
+    icon_path = getMacOSBundleIconPath()
+
+    if icon_path is None:
+        icon_paths = getMacOSIconPaths()
+        icon_path = icon_paths[0] if icon_paths else None
 
     dmg_path = computeMacOSInstallerOutputFilename()
     deleteFile(dmg_path, must_exist=False)
 
-    # spell-checker: ignore volname,volicon
+    # spell-checker: ignore volicon,volname
     command = [
         create_dmg_path,
         "--volname",
@@ -143,12 +165,12 @@ def createMacOSDmg():
         "--app-drop-link",
         "600",
         "185",
-        dmg_path,
-        source_dir,
     ]
 
-    if icon_paths:
-        command.extend(["--volicon", icon_paths[0]])
+    if icon_path is not None:
+        command.extend(["--volicon", icon_path])
+
+    command.extend([dmg_path, source_dir])
 
     installer_logger.info("Creating DMG file '%s'..." % dmg_path)
 
@@ -161,7 +183,7 @@ def createMacOSDmg():
 
     addMacOSCodeSignature(filenames=[dmg_path], entitlements_filename=None)
 
-    if external_files:
+    if needs_staging:
         removeDirectory(
             path=staging_dir,
             logger=installer_logger,

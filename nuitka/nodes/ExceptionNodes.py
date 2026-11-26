@@ -15,6 +15,7 @@ from .ExpressionBasesGenerated import (
     ExpressionBuiltinMakeExceptionAttributeErrorBase,
     ExpressionBuiltinMakeExceptionBase,
     ExpressionBuiltinMakeExceptionImportErrorBase,
+    ExpressionBuiltinMakeExceptionNameErrorBase,
 )
 from .NodeBases import SideEffectsFromChildrenMixin, StatementBase
 from .StatementBasesGenerated import (
@@ -24,7 +25,6 @@ from .StatementBasesGenerated import (
 
 
 class StatementRaiseExceptionMixin(object):
-    # Mixins are required to also specify slots
     __slots__ = ()
 
     @staticmethod
@@ -86,8 +86,6 @@ class StatementRaiseException(
                     )
 
                 else:
-                    # Really expecting a "TypeError" to be raised and not say
-                    # an "AssertionError".
                     assert False, exception_type_value
 
                 return
@@ -146,11 +144,10 @@ class StatementPublishExceptionValue(StatementPublishExceptionValueBase):
 
 
 class ExpressionRaiseException(ChildHavingExceptionTypeMixin, ExpressionBase):
-    """This node type is only produced via optimization.
+    """Expression that raises an exception.
 
-    CPython only knows exception raising as a statement, but often the raising
-    of exceptions can be predicted to occur as part of an expression, which it
-    replaces then.
+    CPython only knows exception raising as a statement, whereas Nuitka uses
+    this node to represent exceptions predicted inside expressions.
     """
 
     kind = "EXPRESSION_RAISE_EXCEPTION"
@@ -207,7 +204,6 @@ class ExpressionBuiltinMakeException(ExpressionBuiltinMakeExceptionBase):
     def isExpressionBuiltinCall():
         return True
 
-    # There is nothing to compute for it as a value.
     auto_compute_handling = "final,no_raise"
 
     def __init__(self, exception_name, args, for_raise, source_ref):
@@ -240,8 +236,6 @@ class ExpressionBuiltinMakeException(ExpressionBuiltinMakeExceptionBase):
 class ExpressionBuiltinMakeExceptionImportError(
     SideEffectsFromChildrenMixin, ExpressionBuiltinMakeExceptionImportErrorBase
 ):
-    """Python3 ImportError dedicated node with extra arguments."""
-
     kind = "EXPRESSION_BUILTIN_MAKE_EXCEPTION_IMPORT_ERROR"
 
     named_children = ("args|tuple", "name|optional", "path|optional")
@@ -254,7 +248,6 @@ class ExpressionBuiltinMakeExceptionImportError(
     def isExpressionBuiltinCall():
         return True
 
-    # There is nothing to compute for it as a value.
     auto_compute_handling = "final,no_raise"
 
     python_version_spec = ">= 0x300"
@@ -293,8 +286,6 @@ class ExpressionBuiltinMakeExceptionModuleNotFoundError(
 class ExpressionBuiltinMakeExceptionAttributeError(
     SideEffectsFromChildrenMixin, ExpressionBuiltinMakeExceptionAttributeErrorBase
 ):
-    """Python3 ImportError dedicated node with extra arguments."""
-
     kind = "EXPRESSION_BUILTIN_MAKE_EXCEPTION_ATTRIBUTE_ERROR"
 
     named_children = ("args|tuple", "name|optional", "obj|optional")
@@ -307,7 +298,6 @@ class ExpressionBuiltinMakeExceptionAttributeError(
     def isExpressionBuiltinCall():
         return True
 
-    # There is nothing to compute for it as a value.
     auto_compute_handling = "final,no_raise"
 
     python_version_spec = ">= 0x3a0"
@@ -331,9 +321,45 @@ class ExpressionBuiltinMakeExceptionAttributeError(
         return False
 
 
-class ExpressionCaughtMixin(ExpressionNoSideEffectsMixin):
-    """Common things for all caught exception references."""
+class ExpressionBuiltinMakeExceptionNameError(
+    SideEffectsFromChildrenMixin, ExpressionBuiltinMakeExceptionNameErrorBase
+):
+    kind = "EXPRESSION_BUILTIN_MAKE_EXCEPTION_NAME_ERROR"
 
+    named_children = ("args|tuple", "name|optional")
+
+    node_attributes = ("for_raise",)
+
+    __slots__ = ()
+
+    @staticmethod
+    def isExpressionBuiltinCall():
+        return True
+
+    auto_compute_handling = "final,no_raise"
+
+    python_version_spec = ">= 0x3a0"
+
+    @staticmethod
+    def getExceptionName():
+        return "NameError"
+
+    def computeExpression(self, trace_collection):
+        return self, None, None
+
+    def mayRaiseException(self, exception_type):
+        for arg in self.subnode_args:
+            if arg.mayRaiseException(exception_type):
+                return True
+
+        return False
+
+    @staticmethod
+    def mayRaiseExceptionOperation():
+        return False
+
+
+class ExpressionCaughtMixin(ExpressionNoSideEffectsMixin):
     __slots__ = ()
 
     def finalize(self):
@@ -435,8 +461,14 @@ def makeBuiltinMakeExceptionNode(
             for_raise=for_raise,
             source_ref=source_ref,
         )
+    elif exception_name == "NameError" and python_version >= 0x3A0:
+        return ExpressionBuiltinMakeExceptionNameError(
+            args=args,
+            name=name,
+            for_raise=for_raise,
+            source_ref=source_ref,
+        )
     else:
-        # We expect to only get the star arguments for these.
         assert name is None
         assert path is None
 

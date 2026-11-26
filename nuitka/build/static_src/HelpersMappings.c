@@ -1,9 +1,5 @@
 //     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
-/* This helpers is used to work with mapping interfaces.
-
-*/
-
 // This file is included from another C file, help IDEs to still parse it on
 // its own.
 #ifdef __IDE_ONLY__
@@ -16,9 +12,7 @@ Py_ssize_t Nuitka_PyMapping_Size(PyObject *mapping) {
     PyMappingMethods *tp_as_mapping = Py_TYPE(mapping)->tp_as_mapping;
 
     if (tp_as_mapping != NULL && tp_as_mapping->mp_length) {
-        Py_ssize_t result = tp_as_mapping->mp_length(mapping);
-        assert(result >= 0);
-        return result;
+        return tp_as_mapping->mp_length(mapping);
     }
 
     if (Py_TYPE(mapping)->tp_as_sequence && Py_TYPE(mapping)->tp_as_sequence->sq_length) {

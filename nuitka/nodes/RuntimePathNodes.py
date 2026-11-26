@@ -1,21 +1,29 @@
-#!/usr/bin/env python
 #     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-"""Launcher for doc/code sync release tool."""
+"""Node for paths relative to the runtime program directory."""
 
-import os
-import sys
+from .ExpressionBasesGenerated import ExpressionRuntimePathBase
+from .ExpressionShapeMixins import ExpressionStrOrUnicodeExactMixin
 
-# Unchanged, running from checkout, use the parent directory, the nuitka
-# package ought be there.
-sys.path.insert(0, os.path.normpath(os.path.join(os.path.dirname(__file__), "..")))
 
-# isort:start
+class ExpressionRuntimePath(
+    ExpressionStrOrUnicodeExactMixin, ExpressionRuntimePathBase
+):
+    """Path relative to the directory of the running program.
 
-from nuitka.tools.release.sync_doc.__main__ import main
+    Notes:
+        An empty relative path denotes the program directory itself.
+    """
 
-main()
+    kind = "EXPRESSION_RUNTIME_PATH"
+
+    auto_compute_handling = "final,no_raise"
+    node_attributes = ("relative_path",)
+
+    def getRelativePath(self):
+        return self.relative_path
+
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.

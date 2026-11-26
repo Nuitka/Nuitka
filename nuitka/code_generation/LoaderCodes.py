@@ -24,10 +24,12 @@ from nuitka.importing.Recursion import getExcludedModuleNames
 from nuitka.ModuleRegistry import getDoneModules, getUncompiledTechnicalModules
 from nuitka.options.Options import (
     getFileReferenceMode,
+    getMainModuleName,
     hasNonDeploymentIndicator,
     isShowInclusion,
     isStandaloneMode,
     shallMakeModule,
+    shallUseDirectConstantBlobs,
 )
 from nuitka.plugins.Hooks import onMetaPathLoaderEntryTemplate
 from nuitka.PythonVersions import python_version
@@ -38,6 +40,7 @@ from nuitka.utils.CStrings import (
     encodePythonUnicodeToC,
 )
 from nuitka.utils.ModuleNames import (
+    ModuleName,
     makeTriggerModuleName,
     post_module_load_trigger_name,
     pre_module_load_trigger_name,
@@ -53,32 +56,18 @@ from .templates.CodeTemplatesLoader import (
     template_metapath_loader_module_state,
 )
 from .templates.CodeTemplatesModules import (
-    template_module_importer,
+    template_module_compiled_importer,
     template_module_loader_entry,
+    template_module_set_value,
 )
 
 
 def getModuleEntryIdentifier(module_name):
-    """Get the C identifier for the loader entry of a module name.
-
-    Args:
-        module_name: ModuleName of the module.
-
-    Returns:
-        C identifier of the entry, without the 'entry_' prefix.
-    """
+    """Return the C identifier for 'module_name' without the 'entry_' prefix."""
     return encodePythonIdentifierToC(module_name)
 
 
 def getModuleEntryCodeName(module_name):
-    """Get the C symbol name of the loader entry of a module name.
-
-    Args:
-        module_name: ModuleName of the module.
-
-    Returns:
-        C symbol name of the loader entry.
-    """
     return "entry_" + getModuleEntryIdentifier(module_name)
 
 
@@ -159,6 +148,9 @@ def _getModuleEntryCommonArgs(module):
     if module.isMainModule():
         flags.append("NUITKA_MAIN_MODULE_FLAG")
 
+    if module.isInternalModule():
+        flags.append("NUITKA_INTERNAL_MODULE_FLAG")
+
     pre_load_entry, post_load_entry, parent_entry = _getModuleEntryRefs(module_name)
 
     return {
@@ -174,6 +166,20 @@ def _getModuleEntryCommonArgs(module):
     }
 
 
+def _getModuleSetValueArgs(module, module_identifier):
+    if module.isModuleValueSetterNeeded():
+        return {
+            "module_set_value_code": template_module_set_value
+            % {"module_identifier": module_identifier},
+            "module_set_value_ref": "module_set_value_%s" % module_identifier,
+        }
+
+    return {
+        "module_set_value_code": "",
+        "module_set_value_ref": "NULL",
+    }
+
+
 def getModuleLoaderEntryCode(module):
     module_identifier = module.getCodeName()
 
@@ -185,8 +191,16 @@ def getModuleLoaderEntryCode(module):
     template_args["entry_name"] = getModuleEntryCodeName(module.getFullName())
     template_args["module_identifier"] = module_identifier
     template_args["module_loader_entry_body"] = ""
-    template_args["module_importer_wrapper"] = template_module_importer % {
-        "module_identifier": module_identifier
+    module_set_value_args = _getModuleSetValueArgs(
+        module=module, module_identifier=module_identifier
+    )
+    template_args["module_set_value_ref"] = module_set_value_args[
+        "module_set_value_ref"
+    ]
+    template_args["module_importer_wrapper"] = template_module_compiled_importer % {
+        "module_identifier": module_identifier,
+        "module_set_value_code": module_set_value_args["module_set_value_code"],
+        "is_top": 1 if module.isTopModule() else 0,
     }
     template_args["template"] = template_module_loader_entry
 
@@ -212,8 +226,15 @@ def getModuleMetaPathLoaderEntryCode(module, bytecode_accessor, entry_name):
     # modules, their code name is derived from the full name only.
     module_identifier = getModuleEntryIdentifier(module.getFullName())
     template_args["module_identifier"] = module_identifier
+    module_set_value_args = _getModuleSetValueArgs(
+        module=module, module_identifier=module_identifier
+    )
+    template_args["module_set_value_ref"] = module_set_value_args[
+        "module_set_value_ref"
+    ]
     template_args["module_state_decls"] = template_metapath_loader_module_state % {
-        "module_identifier": module_identifier
+        "module_identifier": module_identifier,
+        "module_set_value_code": module_set_value_args["module_set_value_code"],
     }
 
     if module.isUncompiledPythonModule():
@@ -251,10 +272,11 @@ def getModuleMetaPathLoaderEntryCode(module, bytecode_accessor, entry_name):
 
 
 def getMetaPathLoaderBodyCode(bytecode_accessor):
-    # Somewhat detail rich, pylint: disable=too-many-locals
+    # pylint: disable=too-many-locals
     metapath_loader_inittab = []
     metapath_loader_decls = []
     metapath_loader_refs = []
+    entry_name_by_module_name = {}
 
     # We need the entry names up front, so that pre/post load and parent entries
     # can reference each other by name rather than relying on name based lookups
@@ -262,7 +284,9 @@ def getMetaPathLoaderBodyCode(bytecode_accessor):
     ordered_modules = _getLoaderModuleOrder()
 
     for module in ordered_modules:
-        entry_name = getModuleEntryCodeName(module.getFullName())
+        module_name = module.getFullName()
+        entry_name = getModuleEntryCodeName(module_name)
+        entry_name_by_module_name[module_name] = entry_name
 
         # Bytecode and extension entries need external linkage, as compiled
         # modules may reference them.
@@ -285,9 +309,62 @@ def getMetaPathLoaderBodyCode(bytecode_accessor):
         # imports. Direct imports reach their entry symbol without the table.
         metapath_loader_refs.append("    &%s," % entry_name)
 
+    # Modules executed directly by the startup code get an entry pointer, so
+    # they do not have to be found by name. Missing optional modules are NULL,
+    # which standalone rejects, while accelerated mode falls back to a name
+    # based import.
+    startup_modules = (
+        ("Nuitka_MainModuleEntry", getMainModuleName()),
+        (
+            "Nuitka_ParentsMainModuleEntry",
+            ModuleName.makeModuleNameInPackage("__parents_main__", None),
+        ),
+        (
+            "Nuitka_ForkserverModuleEntry",
+            ModuleName.makeModuleNameInPackage("forkserver", "multiprocessing"),
+        ),
+        (
+            "Nuitka_ResourceTrackerModuleEntry",
+            ModuleName.makeModuleNameInPackage("resource_tracker", "multiprocessing"),
+        ),
+        (
+            "Nuitka_SemaphoreTrackerModuleEntry",
+            ModuleName.makeModuleNameInPackage("semaphore_tracker", "multiprocessing"),
+        ),
+        (
+            "Nuitka_JoblibPopenLokyWin32ModuleEntry",
+            ModuleName.makeModuleNameInPackage(
+                "popen_loky_win32", "joblib.externals.loky.backend"
+            ),
+        ),
+        (
+            "Nuitka_JoblibPopenLokyPosixModuleEntry",
+            ModuleName.makeModuleNameInPackage(
+                "popen_loky_posix", "joblib.externals.loky.backend"
+            ),
+        ),
+        (
+            "Nuitka_JoblibResourceTrackerModuleEntry",
+            ModuleName.makeModuleNameInPackage(
+                "resource_tracker", "joblib.externals.loky.backend"
+            ),
+        ),
+        (
+            "Nuitka_AnyioToProcessModuleEntry",
+            ModuleName.makeModuleNameInPackage("to_process", "anyio"),
+        ),
+    )
+
+    for entry_pointer_name, module_name in startup_modules:
+        entry_name = entry_name_by_module_name.get(module_name)
+
+        metapath_loader_inittab.append(
+            "struct Nuitka_MetaPathBasedLoaderEntry const *const %s = %s;"
+            % (entry_pointer_name, "NULL" if entry_name is None else "&" + entry_name)
+        )
+
     frozen_defs = []
 
-    # Only the non-technical ones need to be there.
     for uncompiled_module in getUncompiledTechnicalModules():
         module_name = uncompiled_module.getFullName()
         code_data = uncompiled_module.getByteCode()
@@ -333,10 +410,7 @@ def getMetaPathLoaderBodyCode(bytecode_accessor):
             get_name_func = _getGetNameFuncCode()
             reason_c_string = encodePythonStringToC(reason.encode("utf8"))
 
-            # Check for "excluded by user" or similar reason if necessary,
-            # but for now we include all rejected modules that have a reason.
-            # We might want to filter this better, e.g. only if it starts with "Module ... instructed by user"
-            # For now, let's include all explicit 'False' decisions where we have a module name.
+            # TODO: Consider filtering excluded module entries by exclusion reason.
             metapath_loader_inittab.append(
                 template_metapath_loader_excluded_module_entry
                 % {
@@ -356,6 +430,7 @@ def getMetaPathLoaderBodyCode(bytecode_accessor):
         "metapath_loader_refs": indented(metapath_loader_refs),
         "entry_count": len(metapath_loader_refs),
         "bytecode_count": bytecode_accessor.getConstantsCount(),
+        "use_direct_constant_blobs": 1 if shallUseDirectConstantBlobs() else 0,
         "frozen_modules": indented(frozen_defs),
     }
 

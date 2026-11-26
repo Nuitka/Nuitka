@@ -7,6 +7,7 @@
 #ifdef __IDE_ONLY__
 #include "nuitka/prelude.h"
 
+// Includes below require definitions from the prelude.
 #include "nuitka/helper/long_helpers.h"
 #endif
 
@@ -14,7 +15,6 @@
 /* C helpers for type specialized "*" (MULT) operations */
 
 #if PYTHON_VERSION < 0x300
-/* Code referring to "INT" corresponds to Python2 'int' and "INT" to Python2 'int'. */
 static PyObject *_BINARY_OPERATION_MULT_OBJECT_INT_INT(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyInt_CheckExact(operand1));
@@ -23,7 +23,6 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_INT_INT(PyObject *operand1, PyObj
 
     PyObject *result;
 
-    // Not every code path will make use of all possible results.
 #if defined(_MSC_VER)
 #pragma warning(push)
 #pragma warning(disable : 4101)
@@ -97,7 +96,6 @@ PyObject *BINARY_OPERATION_MULT_OBJECT_INT_INT(PyObject *operand1, PyObject *ope
 #endif
 
 #if PYTHON_VERSION < 0x300
-/* Code referring to "OBJECT" corresponds to any Python object and "INT" to Python2 'int'. */
 static HEDLEY_NEVER_INLINE PyObject *__BINARY_OPERATION_MULT_OBJECT_OBJECT_INT(PyObject *operand1, PyObject *operand2) {
     PyTypeObject *type1 = Py_TYPE(operand1);
 
@@ -116,8 +114,6 @@ static HEDLEY_NEVER_INLINE PyObject *__BINARY_OPERATION_MULT_OBJECT_OBJECT_INT(P
     binaryfunc slot2 = NULL;
 
     if (!(type1 == &PyInt_Type)) {
-        // Different types, need to consider second value slot.
-
         slot2 = PyInt_Type.tp_as_number->nb_multiply;
 
         if (slot1 == slot2) {
@@ -222,7 +218,6 @@ static HEDLEY_NEVER_INLINE PyObject *__BINARY_OPERATION_MULT_OBJECT_OBJECT_INT(P
 #endif
 
     {
-        // Special case for "+" and "*", also works as sequence concat/repeat.
         ssizeargfunc sq_slot = type1->tp_as_sequence != NULL ? type1->tp_as_sequence->sq_repeat : NULL;
 
         if (sq_slot != NULL) {
@@ -232,7 +227,6 @@ static HEDLEY_NEVER_INLINE PyObject *__BINARY_OPERATION_MULT_OBJECT_OBJECT_INT(P
             goto exit_binary_result_object;
         }
     }
-    // No sequence repeat slot sq_repeat available for this type.
 
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *: '%s' and 'int'", type1->tp_name);
     goto exit_binary_exception;
@@ -253,9 +247,6 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_OBJECT_INT(PyObject *operand1, Py
     if (type1 == &PyInt_Type) {
         PyObject *result;
 
-        // return _BINARY_OPERATION_MULT_OBJECT_INT_INT(operand1, operand2);
-
-        // Not every code path will make use of all possible results.
 #if defined(_MSC_VER)
 #pragma warning(push)
 #pragma warning(disable : 4101)
@@ -332,7 +323,6 @@ PyObject *BINARY_OPERATION_MULT_OBJECT_OBJECT_INT(PyObject *operand1, PyObject *
 #endif
 
 #if PYTHON_VERSION < 0x300
-/* Code referring to "INT" corresponds to Python2 'int' and "OBJECT" to any Python object. */
 static HEDLEY_NEVER_INLINE PyObject *__BINARY_OPERATION_MULT_OBJECT_INT_OBJECT(PyObject *operand1, PyObject *operand2) {
     PyTypeObject *type2 = Py_TYPE(operand2);
 
@@ -350,8 +340,6 @@ static HEDLEY_NEVER_INLINE PyObject *__BINARY_OPERATION_MULT_OBJECT_INT_OBJECT(P
     binaryfunc slot2 = NULL;
 
     if (!(&PyInt_Type == type2)) {
-        // Different types, need to consider second value slot.
-
         slot2 = (type2->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type2)) ? type2->tp_as_number->nb_multiply : NULL;
 
         if (slot1 == slot2) {
@@ -470,9 +458,7 @@ static HEDLEY_NEVER_INLINE PyObject *__BINARY_OPERATION_MULT_OBJECT_INT_OBJECT(P
 #endif
 
     {
-        // No sequence repeat slot sq_repeat available for this type.
     }
-    // Special case for "*", also work with sequence repeat from right argument.
     {
         ssizeargfunc sq_slot = type2->tp_as_sequence != NULL ? type2->tp_as_sequence->sq_repeat : NULL;
 
@@ -503,9 +489,6 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_INT_OBJECT(PyObject *operand1, Py
     if (&PyInt_Type == type2) {
         PyObject *result;
 
-        // return _BINARY_OPERATION_MULT_OBJECT_INT_INT(operand1, operand2);
-
-        // Not every code path will make use of all possible results.
 #if defined(_MSC_VER)
 #pragma warning(push)
 #pragma warning(disable : 4101)
@@ -582,7 +565,6 @@ PyObject *BINARY_OPERATION_MULT_OBJECT_INT_OBJECT(PyObject *operand1, PyObject *
 #endif
 
 #if PYTHON_VERSION < 0x300
-/* Code referring to "INT" corresponds to Python2 'int' and "INT" to Python2 'int'. */
 static nuitka_bool _BINARY_OPERATION_MULT_NBOOL_INT_INT(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyInt_CheckExact(operand1));
@@ -591,7 +573,6 @@ static nuitka_bool _BINARY_OPERATION_MULT_NBOOL_INT_INT(PyObject *operand1, PyOb
 
     nuitka_bool result;
 
-    // Not every code path will make use of all possible results.
 #if defined(_MSC_VER)
 #pragma warning(push)
 #pragma warning(disable : 4101)
@@ -649,7 +630,7 @@ exit_result_object:
     if (unlikely(obj_result == NULL)) {
         goto exit_result_exception;
     }
-    result = CHECK_IF_TRUE(obj_result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+    result = CHECK_IF_TRUE_NBOOL(obj_result);
     Py_DECREF(obj_result);
     goto exit_result_ok;
 
@@ -666,7 +647,6 @@ nuitka_bool BINARY_OPERATION_MULT_NBOOL_INT_INT(PyObject *operand1, PyObject *op
 #endif
 
 #if PYTHON_VERSION < 0x300
-/* Code referring to "OBJECT" corresponds to any Python object and "INT" to Python2 'int'. */
 static HEDLEY_NEVER_INLINE nuitka_bool __BINARY_OPERATION_MULT_NBOOL_OBJECT_INT(PyObject *operand1,
                                                                                 PyObject *operand2) {
     PyTypeObject *type1 = Py_TYPE(operand1);
@@ -686,8 +666,6 @@ static HEDLEY_NEVER_INLINE nuitka_bool __BINARY_OPERATION_MULT_NBOOL_OBJECT_INT(
     binaryfunc slot2 = NULL;
 
     if (!(type1 == &PyInt_Type)) {
-        // Different types, need to consider second value slot.
-
         slot2 = PyInt_Type.tp_as_number->nb_multiply;
 
         if (slot1 == slot2) {
@@ -792,7 +770,6 @@ static HEDLEY_NEVER_INLINE nuitka_bool __BINARY_OPERATION_MULT_NBOOL_OBJECT_INT(
 #endif
 
     {
-        // Special case for "+" and "*", also works as sequence concat/repeat.
         ssizeargfunc sq_slot = type1->tp_as_sequence != NULL ? type1->tp_as_sequence->sq_repeat : NULL;
 
         if (sq_slot != NULL) {
@@ -802,7 +779,6 @@ static HEDLEY_NEVER_INLINE nuitka_bool __BINARY_OPERATION_MULT_NBOOL_OBJECT_INT(
             goto exit_binary_result_object;
         }
     }
-    // No sequence repeat slot sq_repeat available for this type.
 
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *: '%s' and 'int'", type1->tp_name);
     goto exit_binary_exception;
@@ -813,7 +789,7 @@ exit_binary_result_object:
     }
 
     {
-        nuitka_bool r = CHECK_IF_TRUE(obj_result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+        nuitka_bool r = CHECK_IF_TRUE_NBOOL(obj_result);
         Py_DECREF(obj_result);
         return r;
     }
@@ -831,9 +807,6 @@ static nuitka_bool _BINARY_OPERATION_MULT_NBOOL_OBJECT_INT(PyObject *operand1, P
     if (type1 == &PyInt_Type) {
         nuitka_bool result;
 
-        // return _BINARY_OPERATION_MULT_NBOOL_INT_INT(operand1, operand2);
-
-        // Not every code path will make use of all possible results.
 #if defined(_MSC_VER)
 #pragma warning(push)
 #pragma warning(disable : 4101)
@@ -891,7 +864,7 @@ static nuitka_bool _BINARY_OPERATION_MULT_NBOOL_OBJECT_INT(PyObject *operand1, P
         if (unlikely(obj_result == NULL)) {
             goto exit_result_exception;
         }
-        result = CHECK_IF_TRUE(obj_result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+        result = CHECK_IF_TRUE_NBOOL(obj_result);
         Py_DECREF(obj_result);
         goto exit_result_ok;
 
@@ -911,7 +884,6 @@ nuitka_bool BINARY_OPERATION_MULT_NBOOL_OBJECT_INT(PyObject *operand1, PyObject 
 #endif
 
 #if PYTHON_VERSION < 0x300
-/* Code referring to "INT" corresponds to Python2 'int' and "OBJECT" to any Python object. */
 static HEDLEY_NEVER_INLINE nuitka_bool __BINARY_OPERATION_MULT_NBOOL_INT_OBJECT(PyObject *operand1,
                                                                                 PyObject *operand2) {
     PyTypeObject *type2 = Py_TYPE(operand2);
@@ -930,8 +902,6 @@ static HEDLEY_NEVER_INLINE nuitka_bool __BINARY_OPERATION_MULT_NBOOL_INT_OBJECT(
     binaryfunc slot2 = NULL;
 
     if (!(&PyInt_Type == type2)) {
-        // Different types, need to consider second value slot.
-
         slot2 = (type2->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type2)) ? type2->tp_as_number->nb_multiply : NULL;
 
         if (slot1 == slot2) {
@@ -1050,9 +1020,7 @@ static HEDLEY_NEVER_INLINE nuitka_bool __BINARY_OPERATION_MULT_NBOOL_INT_OBJECT(
 #endif
 
     {
-        // No sequence repeat slot sq_repeat available for this type.
     }
-    // Special case for "*", also work with sequence repeat from right argument.
     {
         ssizeargfunc sq_slot = type2->tp_as_sequence != NULL ? type2->tp_as_sequence->sq_repeat : NULL;
 
@@ -1073,7 +1041,7 @@ exit_binary_result_object:
     }
 
     {
-        nuitka_bool r = CHECK_IF_TRUE(obj_result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+        nuitka_bool r = CHECK_IF_TRUE_NBOOL(obj_result);
         Py_DECREF(obj_result);
         return r;
     }
@@ -1091,9 +1059,6 @@ static nuitka_bool _BINARY_OPERATION_MULT_NBOOL_INT_OBJECT(PyObject *operand1, P
     if (&PyInt_Type == type2) {
         nuitka_bool result;
 
-        // return _BINARY_OPERATION_MULT_NBOOL_INT_INT(operand1, operand2);
-
-        // Not every code path will make use of all possible results.
 #if defined(_MSC_VER)
 #pragma warning(push)
 #pragma warning(disable : 4101)
@@ -1151,7 +1116,7 @@ static nuitka_bool _BINARY_OPERATION_MULT_NBOOL_INT_OBJECT(PyObject *operand1, P
         if (unlikely(obj_result == NULL)) {
             goto exit_result_exception;
         }
-        result = CHECK_IF_TRUE(obj_result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+        result = CHECK_IF_TRUE_NBOOL(obj_result);
         Py_DECREF(obj_result);
         goto exit_result_ok;
 
@@ -1170,7 +1135,6 @@ nuitka_bool BINARY_OPERATION_MULT_NBOOL_INT_OBJECT(PyObject *operand1, PyObject 
 }
 #endif
 
-/* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "LONG" to Python2 'long', Python3 'int'. */
 static PyObject *_BINARY_OPERATION_MULT_OBJECT_LONG_LONG(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyLong_CheckExact(operand1));
@@ -1179,7 +1143,6 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_LONG_LONG(PyObject *operand1, PyO
 
     PyObject *result;
 
-    // Not every code path will make use of all possible results.
 #if defined(_MSC_VER)
 #pragma warning(push)
 #pragma warning(disable : 4101)
@@ -1214,7 +1177,6 @@ PyObject *BINARY_OPERATION_MULT_OBJECT_LONG_LONG(PyObject *operand1, PyObject *o
     return _BINARY_OPERATION_MULT_OBJECT_LONG_LONG(operand1, operand2);
 }
 
-/* Code referring to "OBJECT" corresponds to any Python object and "LONG" to Python2 'long', Python3 'int'. */
 static HEDLEY_NEVER_INLINE PyObject *__BINARY_OPERATION_MULT_OBJECT_OBJECT_LONG(PyObject *operand1,
                                                                                 PyObject *operand2) {
     PyTypeObject *type1 = Py_TYPE(operand1);
@@ -1234,8 +1196,6 @@ static HEDLEY_NEVER_INLINE PyObject *__BINARY_OPERATION_MULT_OBJECT_OBJECT_LONG(
     binaryfunc slot2 = NULL;
 
     if (!(type1 == &PyLong_Type)) {
-        // Different types, need to consider second value slot.
-
         slot2 = PyLong_Type.tp_as_number->nb_multiply;
 
         if (slot1 == slot2) {
@@ -1340,7 +1300,6 @@ static HEDLEY_NEVER_INLINE PyObject *__BINARY_OPERATION_MULT_OBJECT_OBJECT_LONG(
 #endif
 
     {
-        // Special case for "+" and "*", also works as sequence concat/repeat.
         ssizeargfunc sq_slot = type1->tp_as_sequence != NULL ? type1->tp_as_sequence->sq_repeat : NULL;
 
         if (sq_slot != NULL) {
@@ -1350,7 +1309,6 @@ static HEDLEY_NEVER_INLINE PyObject *__BINARY_OPERATION_MULT_OBJECT_OBJECT_LONG(
             goto exit_binary_result_object;
         }
     }
-    // No sequence repeat slot sq_repeat available for this type.
 
 #if PYTHON_VERSION < 0x300
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *: '%s' and 'long'", type1->tp_name);
@@ -1375,9 +1333,6 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_OBJECT_LONG(PyObject *operand1, P
     if (type1 == &PyLong_Type) {
         PyObject *result;
 
-        // return _BINARY_OPERATION_MULT_OBJECT_LONG_LONG(operand1, operand2);
-
-        // Not every code path will make use of all possible results.
 #if defined(_MSC_VER)
 #pragma warning(push)
 #pragma warning(disable : 4101)
@@ -1415,7 +1370,6 @@ PyObject *BINARY_OPERATION_MULT_OBJECT_OBJECT_LONG(PyObject *operand1, PyObject 
     return _BINARY_OPERATION_MULT_OBJECT_OBJECT_LONG(operand1, operand2);
 }
 
-/* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "OBJECT" to any Python object. */
 static HEDLEY_NEVER_INLINE PyObject *__BINARY_OPERATION_MULT_OBJECT_LONG_OBJECT(PyObject *operand1,
                                                                                 PyObject *operand2) {
     PyTypeObject *type2 = Py_TYPE(operand2);
@@ -1434,8 +1388,6 @@ static HEDLEY_NEVER_INLINE PyObject *__BINARY_OPERATION_MULT_OBJECT_LONG_OBJECT(
     binaryfunc slot2 = NULL;
 
     if (!(&PyLong_Type == type2)) {
-        // Different types, need to consider second value slot.
-
         slot2 = (type2->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type2)) ? type2->tp_as_number->nb_multiply : NULL;
 
         if (slot1 == slot2) {
@@ -1554,9 +1506,7 @@ static HEDLEY_NEVER_INLINE PyObject *__BINARY_OPERATION_MULT_OBJECT_LONG_OBJECT(
 #endif
 
     {
-        // No sequence repeat slot sq_repeat available for this type.
     }
-    // Special case for "*", also work with sequence repeat from right argument.
     {
         ssizeargfunc sq_slot = type2->tp_as_sequence != NULL ? type2->tp_as_sequence->sq_repeat : NULL;
 
@@ -1591,9 +1541,6 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_LONG_OBJECT(PyObject *operand1, P
     if (&PyLong_Type == type2) {
         PyObject *result;
 
-        // return _BINARY_OPERATION_MULT_OBJECT_LONG_LONG(operand1, operand2);
-
-        // Not every code path will make use of all possible results.
 #if defined(_MSC_VER)
 #pragma warning(push)
 #pragma warning(disable : 4101)
@@ -1631,7 +1578,6 @@ PyObject *BINARY_OPERATION_MULT_OBJECT_LONG_OBJECT(PyObject *operand1, PyObject 
     return _BINARY_OPERATION_MULT_OBJECT_LONG_OBJECT(operand1, operand2);
 }
 
-/* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "LONG" to Python2 'long', Python3 'int'. */
 static nuitka_bool _BINARY_OPERATION_MULT_NBOOL_LONG_LONG(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyLong_CheckExact(operand1));
@@ -1640,7 +1586,6 @@ static nuitka_bool _BINARY_OPERATION_MULT_NBOOL_LONG_LONG(PyObject *operand1, Py
 
     nuitka_bool result;
 
-    // Not every code path will make use of all possible results.
 #if defined(_MSC_VER)
 #pragma warning(push)
 #pragma warning(disable : 4101)
@@ -1661,7 +1606,7 @@ exit_result_object:
     if (unlikely(obj_result == NULL)) {
         goto exit_result_exception;
     }
-    result = CHECK_IF_TRUE(obj_result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+    result = CHECK_IF_TRUE_NBOOL(obj_result);
     Py_DECREF(obj_result);
     goto exit_result_ok;
 
@@ -1676,7 +1621,6 @@ nuitka_bool BINARY_OPERATION_MULT_NBOOL_LONG_LONG(PyObject *operand1, PyObject *
     return _BINARY_OPERATION_MULT_NBOOL_LONG_LONG(operand1, operand2);
 }
 
-/* Code referring to "OBJECT" corresponds to any Python object and "LONG" to Python2 'long', Python3 'int'. */
 static HEDLEY_NEVER_INLINE nuitka_bool __BINARY_OPERATION_MULT_NBOOL_OBJECT_LONG(PyObject *operand1,
                                                                                  PyObject *operand2) {
     PyTypeObject *type1 = Py_TYPE(operand1);
@@ -1696,8 +1640,6 @@ static HEDLEY_NEVER_INLINE nuitka_bool __BINARY_OPERATION_MULT_NBOOL_OBJECT_LONG
     binaryfunc slot2 = NULL;
 
     if (!(type1 == &PyLong_Type)) {
-        // Different types, need to consider second value slot.
-
         slot2 = PyLong_Type.tp_as_number->nb_multiply;
 
         if (slot1 == slot2) {
@@ -1802,7 +1744,6 @@ static HEDLEY_NEVER_INLINE nuitka_bool __BINARY_OPERATION_MULT_NBOOL_OBJECT_LONG
 #endif
 
     {
-        // Special case for "+" and "*", also works as sequence concat/repeat.
         ssizeargfunc sq_slot = type1->tp_as_sequence != NULL ? type1->tp_as_sequence->sq_repeat : NULL;
 
         if (sq_slot != NULL) {
@@ -1812,7 +1753,6 @@ static HEDLEY_NEVER_INLINE nuitka_bool __BINARY_OPERATION_MULT_NBOOL_OBJECT_LONG
             goto exit_binary_result_object;
         }
     }
-    // No sequence repeat slot sq_repeat available for this type.
 
 #if PYTHON_VERSION < 0x300
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *: '%s' and 'long'", type1->tp_name);
@@ -1827,7 +1767,7 @@ exit_binary_result_object:
     }
 
     {
-        nuitka_bool r = CHECK_IF_TRUE(obj_result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+        nuitka_bool r = CHECK_IF_TRUE_NBOOL(obj_result);
         Py_DECREF(obj_result);
         return r;
     }
@@ -1845,9 +1785,6 @@ static nuitka_bool _BINARY_OPERATION_MULT_NBOOL_OBJECT_LONG(PyObject *operand1, 
     if (type1 == &PyLong_Type) {
         nuitka_bool result;
 
-        // return _BINARY_OPERATION_MULT_NBOOL_LONG_LONG(operand1, operand2);
-
-        // Not every code path will make use of all possible results.
 #if defined(_MSC_VER)
 #pragma warning(push)
 #pragma warning(disable : 4101)
@@ -1868,7 +1805,7 @@ static nuitka_bool _BINARY_OPERATION_MULT_NBOOL_OBJECT_LONG(PyObject *operand1, 
         if (unlikely(obj_result == NULL)) {
             goto exit_result_exception;
         }
-        result = CHECK_IF_TRUE(obj_result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+        result = CHECK_IF_TRUE_NBOOL(obj_result);
         Py_DECREF(obj_result);
         goto exit_result_ok;
 
@@ -1886,7 +1823,6 @@ nuitka_bool BINARY_OPERATION_MULT_NBOOL_OBJECT_LONG(PyObject *operand1, PyObject
     return _BINARY_OPERATION_MULT_NBOOL_OBJECT_LONG(operand1, operand2);
 }
 
-/* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "OBJECT" to any Python object. */
 static HEDLEY_NEVER_INLINE nuitka_bool __BINARY_OPERATION_MULT_NBOOL_LONG_OBJECT(PyObject *operand1,
                                                                                  PyObject *operand2) {
     PyTypeObject *type2 = Py_TYPE(operand2);
@@ -1905,8 +1841,6 @@ static HEDLEY_NEVER_INLINE nuitka_bool __BINARY_OPERATION_MULT_NBOOL_LONG_OBJECT
     binaryfunc slot2 = NULL;
 
     if (!(&PyLong_Type == type2)) {
-        // Different types, need to consider second value slot.
-
         slot2 = (type2->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type2)) ? type2->tp_as_number->nb_multiply : NULL;
 
         if (slot1 == slot2) {
@@ -2025,9 +1959,7 @@ static HEDLEY_NEVER_INLINE nuitka_bool __BINARY_OPERATION_MULT_NBOOL_LONG_OBJECT
 #endif
 
     {
-        // No sequence repeat slot sq_repeat available for this type.
     }
-    // Special case for "*", also work with sequence repeat from right argument.
     {
         ssizeargfunc sq_slot = type2->tp_as_sequence != NULL ? type2->tp_as_sequence->sq_repeat : NULL;
 
@@ -2052,7 +1984,7 @@ exit_binary_result_object:
     }
 
     {
-        nuitka_bool r = CHECK_IF_TRUE(obj_result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+        nuitka_bool r = CHECK_IF_TRUE_NBOOL(obj_result);
         Py_DECREF(obj_result);
         return r;
     }
@@ -2070,9 +2002,6 @@ static nuitka_bool _BINARY_OPERATION_MULT_NBOOL_LONG_OBJECT(PyObject *operand1, 
     if (&PyLong_Type == type2) {
         nuitka_bool result;
 
-        // return _BINARY_OPERATION_MULT_NBOOL_LONG_LONG(operand1, operand2);
-
-        // Not every code path will make use of all possible results.
 #if defined(_MSC_VER)
 #pragma warning(push)
 #pragma warning(disable : 4101)
@@ -2093,7 +2022,7 @@ static nuitka_bool _BINARY_OPERATION_MULT_NBOOL_LONG_OBJECT(PyObject *operand1, 
         if (unlikely(obj_result == NULL)) {
             goto exit_result_exception;
         }
-        result = CHECK_IF_TRUE(obj_result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+        result = CHECK_IF_TRUE_NBOOL(obj_result);
         Py_DECREF(obj_result);
         goto exit_result_ok;
 
@@ -2111,7 +2040,6 @@ nuitka_bool BINARY_OPERATION_MULT_NBOOL_LONG_OBJECT(PyObject *operand1, PyObject
     return _BINARY_OPERATION_MULT_NBOOL_LONG_OBJECT(operand1, operand2);
 }
 
-/* Code referring to "FLOAT" corresponds to Python 'float' and "FLOAT" to Python 'float'. */
 static PyObject *_BINARY_OPERATION_MULT_OBJECT_FLOAT_FLOAT(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyFloat_CheckExact(operand1));
@@ -2124,7 +2052,6 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_FLOAT_FLOAT(PyObject *operand1, P
 #pragma warning(push)
 #pragma warning(disable : 4101)
 #endif
-    // Not every code path will make use of all possible results.
     NUITKA_MAY_BE_UNUSED PyObject *obj_result;
     NUITKA_MAY_BE_UNUSED long clong_result;
     NUITKA_MAY_BE_UNUSED double cfloat_result;
@@ -2157,7 +2084,6 @@ PyObject *BINARY_OPERATION_MULT_OBJECT_FLOAT_FLOAT(PyObject *operand1, PyObject 
     return _BINARY_OPERATION_MULT_OBJECT_FLOAT_FLOAT(operand1, operand2);
 }
 
-/* Code referring to "OBJECT" corresponds to any Python object and "FLOAT" to Python 'float'. */
 static HEDLEY_NEVER_INLINE PyObject *__BINARY_OPERATION_MULT_OBJECT_OBJECT_FLOAT(PyObject *operand1,
                                                                                  PyObject *operand2) {
     PyTypeObject *type1 = Py_TYPE(operand1);
@@ -2177,8 +2103,6 @@ static HEDLEY_NEVER_INLINE PyObject *__BINARY_OPERATION_MULT_OBJECT_OBJECT_FLOAT
     binaryfunc slot2 = NULL;
 
     if (!(type1 == &PyFloat_Type)) {
-        // Different types, need to consider second value slot.
-
         slot2 = PyFloat_Type.tp_as_number->nb_multiply;
 
         if (slot1 == slot2) {
@@ -2283,7 +2207,6 @@ static HEDLEY_NEVER_INLINE PyObject *__BINARY_OPERATION_MULT_OBJECT_OBJECT_FLOAT
 #endif
 
     {
-        // Special case for "+" and "*", also works as sequence concat/repeat.
         ssizeargfunc sq_slot = type1->tp_as_sequence != NULL ? type1->tp_as_sequence->sq_repeat : NULL;
 
         if (sq_slot != NULL) {
@@ -2293,7 +2216,6 @@ static HEDLEY_NEVER_INLINE PyObject *__BINARY_OPERATION_MULT_OBJECT_OBJECT_FLOAT
             goto exit_binary_result_object;
         }
     }
-    // No sequence repeat slot sq_repeat available for this type.
 
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *: '%s' and 'float'", type1->tp_name);
     goto exit_binary_exception;
@@ -2314,13 +2236,10 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_OBJECT_FLOAT(PyObject *operand1, 
     if (type1 == &PyFloat_Type) {
         PyObject *result;
 
-        // return _BINARY_OPERATION_MULT_OBJECT_FLOAT_FLOAT(operand1, operand2);
-
 #if defined(_MSC_VER)
 #pragma warning(push)
 #pragma warning(disable : 4101)
 #endif
-        // Not every code path will make use of all possible results.
         NUITKA_MAY_BE_UNUSED PyObject *obj_result;
         NUITKA_MAY_BE_UNUSED long clong_result;
         NUITKA_MAY_BE_UNUSED double cfloat_result;
@@ -2356,7 +2275,6 @@ PyObject *BINARY_OPERATION_MULT_OBJECT_OBJECT_FLOAT(PyObject *operand1, PyObject
     return _BINARY_OPERATION_MULT_OBJECT_OBJECT_FLOAT(operand1, operand2);
 }
 
-/* Code referring to "FLOAT" corresponds to Python 'float' and "OBJECT" to any Python object. */
 static HEDLEY_NEVER_INLINE PyObject *__BINARY_OPERATION_MULT_OBJECT_FLOAT_OBJECT(PyObject *operand1,
                                                                                  PyObject *operand2) {
     PyTypeObject *type2 = Py_TYPE(operand2);
@@ -2375,8 +2293,6 @@ static HEDLEY_NEVER_INLINE PyObject *__BINARY_OPERATION_MULT_OBJECT_FLOAT_OBJECT
     binaryfunc slot2 = NULL;
 
     if (!(&PyFloat_Type == type2)) {
-        // Different types, need to consider second value slot.
-
         slot2 = (type2->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type2)) ? type2->tp_as_number->nb_multiply : NULL;
 
         if (slot1 == slot2) {
@@ -2495,9 +2411,7 @@ static HEDLEY_NEVER_INLINE PyObject *__BINARY_OPERATION_MULT_OBJECT_FLOAT_OBJECT
 #endif
 
     {
-        // No sequence repeat slot sq_repeat available for this type.
     }
-    // Special case for "*", also work with sequence repeat from right argument.
     {
         ssizeargfunc sq_slot = type2->tp_as_sequence != NULL ? type2->tp_as_sequence->sq_repeat : NULL;
 
@@ -2528,13 +2442,10 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_FLOAT_OBJECT(PyObject *operand1, 
     if (&PyFloat_Type == type2) {
         PyObject *result;
 
-        // return _BINARY_OPERATION_MULT_OBJECT_FLOAT_FLOAT(operand1, operand2);
-
 #if defined(_MSC_VER)
 #pragma warning(push)
 #pragma warning(disable : 4101)
 #endif
-        // Not every code path will make use of all possible results.
         NUITKA_MAY_BE_UNUSED PyObject *obj_result;
         NUITKA_MAY_BE_UNUSED long clong_result;
         NUITKA_MAY_BE_UNUSED double cfloat_result;
@@ -2570,7 +2481,6 @@ PyObject *BINARY_OPERATION_MULT_OBJECT_FLOAT_OBJECT(PyObject *operand1, PyObject
     return _BINARY_OPERATION_MULT_OBJECT_FLOAT_OBJECT(operand1, operand2);
 }
 
-/* Code referring to "FLOAT" corresponds to Python 'float' and "FLOAT" to Python 'float'. */
 static nuitka_bool _BINARY_OPERATION_MULT_NBOOL_FLOAT_FLOAT(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyFloat_CheckExact(operand1));
@@ -2583,7 +2493,6 @@ static nuitka_bool _BINARY_OPERATION_MULT_NBOOL_FLOAT_FLOAT(PyObject *operand1, 
 #pragma warning(push)
 #pragma warning(disable : 4101)
 #endif
-    // Not every code path will make use of all possible results.
     NUITKA_MAY_BE_UNUSED PyObject *obj_result;
     NUITKA_MAY_BE_UNUSED long clong_result;
     NUITKA_MAY_BE_UNUSED double cfloat_result;
@@ -2616,7 +2525,6 @@ nuitka_bool BINARY_OPERATION_MULT_NBOOL_FLOAT_FLOAT(PyObject *operand1, PyObject
     return _BINARY_OPERATION_MULT_NBOOL_FLOAT_FLOAT(operand1, operand2);
 }
 
-/* Code referring to "OBJECT" corresponds to any Python object and "FLOAT" to Python 'float'. */
 static HEDLEY_NEVER_INLINE nuitka_bool __BINARY_OPERATION_MULT_NBOOL_OBJECT_FLOAT(PyObject *operand1,
                                                                                   PyObject *operand2) {
     PyTypeObject *type1 = Py_TYPE(operand1);
@@ -2636,8 +2544,6 @@ static HEDLEY_NEVER_INLINE nuitka_bool __BINARY_OPERATION_MULT_NBOOL_OBJECT_FLOA
     binaryfunc slot2 = NULL;
 
     if (!(type1 == &PyFloat_Type)) {
-        // Different types, need to consider second value slot.
-
         slot2 = PyFloat_Type.tp_as_number->nb_multiply;
 
         if (slot1 == slot2) {
@@ -2742,7 +2648,6 @@ static HEDLEY_NEVER_INLINE nuitka_bool __BINARY_OPERATION_MULT_NBOOL_OBJECT_FLOA
 #endif
 
     {
-        // Special case for "+" and "*", also works as sequence concat/repeat.
         ssizeargfunc sq_slot = type1->tp_as_sequence != NULL ? type1->tp_as_sequence->sq_repeat : NULL;
 
         if (sq_slot != NULL) {
@@ -2752,7 +2657,6 @@ static HEDLEY_NEVER_INLINE nuitka_bool __BINARY_OPERATION_MULT_NBOOL_OBJECT_FLOA
             goto exit_binary_result_object;
         }
     }
-    // No sequence repeat slot sq_repeat available for this type.
 
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *: '%s' and 'float'", type1->tp_name);
     goto exit_binary_exception;
@@ -2763,7 +2667,7 @@ exit_binary_result_object:
     }
 
     {
-        nuitka_bool r = CHECK_IF_TRUE(obj_result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+        nuitka_bool r = CHECK_IF_TRUE_NBOOL(obj_result);
         Py_DECREF(obj_result);
         return r;
     }
@@ -2781,13 +2685,10 @@ static nuitka_bool _BINARY_OPERATION_MULT_NBOOL_OBJECT_FLOAT(PyObject *operand1,
     if (type1 == &PyFloat_Type) {
         nuitka_bool result;
 
-        // return _BINARY_OPERATION_MULT_NBOOL_FLOAT_FLOAT(operand1, operand2);
-
 #if defined(_MSC_VER)
 #pragma warning(push)
 #pragma warning(disable : 4101)
 #endif
-        // Not every code path will make use of all possible results.
         NUITKA_MAY_BE_UNUSED PyObject *obj_result;
         NUITKA_MAY_BE_UNUSED long clong_result;
         NUITKA_MAY_BE_UNUSED double cfloat_result;
@@ -2823,7 +2724,6 @@ nuitka_bool BINARY_OPERATION_MULT_NBOOL_OBJECT_FLOAT(PyObject *operand1, PyObjec
     return _BINARY_OPERATION_MULT_NBOOL_OBJECT_FLOAT(operand1, operand2);
 }
 
-/* Code referring to "FLOAT" corresponds to Python 'float' and "OBJECT" to any Python object. */
 static HEDLEY_NEVER_INLINE nuitka_bool __BINARY_OPERATION_MULT_NBOOL_FLOAT_OBJECT(PyObject *operand1,
                                                                                   PyObject *operand2) {
     PyTypeObject *type2 = Py_TYPE(operand2);
@@ -2842,8 +2742,6 @@ static HEDLEY_NEVER_INLINE nuitka_bool __BINARY_OPERATION_MULT_NBOOL_FLOAT_OBJEC
     binaryfunc slot2 = NULL;
 
     if (!(&PyFloat_Type == type2)) {
-        // Different types, need to consider second value slot.
-
         slot2 = (type2->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type2)) ? type2->tp_as_number->nb_multiply : NULL;
 
         if (slot1 == slot2) {
@@ -2962,9 +2860,7 @@ static HEDLEY_NEVER_INLINE nuitka_bool __BINARY_OPERATION_MULT_NBOOL_FLOAT_OBJEC
 #endif
 
     {
-        // No sequence repeat slot sq_repeat available for this type.
     }
-    // Special case for "*", also work with sequence repeat from right argument.
     {
         ssizeargfunc sq_slot = type2->tp_as_sequence != NULL ? type2->tp_as_sequence->sq_repeat : NULL;
 
@@ -2985,7 +2881,7 @@ exit_binary_result_object:
     }
 
     {
-        nuitka_bool r = CHECK_IF_TRUE(obj_result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+        nuitka_bool r = CHECK_IF_TRUE_NBOOL(obj_result);
         Py_DECREF(obj_result);
         return r;
     }
@@ -3003,13 +2899,10 @@ static nuitka_bool _BINARY_OPERATION_MULT_NBOOL_FLOAT_OBJECT(PyObject *operand1,
     if (&PyFloat_Type == type2) {
         nuitka_bool result;
 
-        // return _BINARY_OPERATION_MULT_NBOOL_FLOAT_FLOAT(operand1, operand2);
-
 #if defined(_MSC_VER)
 #pragma warning(push)
 #pragma warning(disable : 4101)
 #endif
-        // Not every code path will make use of all possible results.
         NUITKA_MAY_BE_UNUSED PyObject *obj_result;
         NUITKA_MAY_BE_UNUSED long clong_result;
         NUITKA_MAY_BE_UNUSED double cfloat_result;
@@ -3045,7 +2938,6 @@ nuitka_bool BINARY_OPERATION_MULT_NBOOL_FLOAT_OBJECT(PyObject *operand1, PyObjec
     return _BINARY_OPERATION_MULT_NBOOL_FLOAT_OBJECT(operand1, operand2);
 }
 
-/* Code referring to "FLOAT" corresponds to Python 'float' and "LONG" to Python2 'long', Python3 'int'. */
 static PyObject *_BINARY_OPERATION_MULT_OBJECT_FLOAT_LONG(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyFloat_CheckExact(operand1));
@@ -3063,7 +2955,6 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_FLOAT_LONG(PyObject *operand1, Py
 #endif
 
     binaryfunc slot1 = PyFloat_Type.tp_as_number->nb_multiply;
-    // Slot2 ignored on purpose, type1 takes precedence.
 
     if (slot1 != NULL) {
         PyObject *x = slot1(operand1, operand2);
@@ -3076,12 +2967,8 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_FLOAT_LONG(PyObject *operand1, Py
         Py_DECREF_IMMORTAL(x);
     }
 
-    // Statically recognized that coercion is not possible with these types
-
     {
-        // No sequence repeat slot sq_repeat available for this type.
     }
-    // No sequence repeat slot sq_repeat available for this type.
 
 #if PYTHON_VERSION < 0x300
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *: 'float' and 'long'");
@@ -3101,7 +2988,6 @@ PyObject *BINARY_OPERATION_MULT_OBJECT_FLOAT_LONG(PyObject *operand1, PyObject *
     return _BINARY_OPERATION_MULT_OBJECT_FLOAT_LONG(operand1, operand2);
 }
 
-/* Code referring to "FLOAT" corresponds to Python 'float' and "LONG" to Python2 'long', Python3 'int'. */
 static nuitka_bool _BINARY_OPERATION_MULT_NBOOL_FLOAT_LONG(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyFloat_CheckExact(operand1));
@@ -3119,7 +3005,6 @@ static nuitka_bool _BINARY_OPERATION_MULT_NBOOL_FLOAT_LONG(PyObject *operand1, P
 #endif
 
     binaryfunc slot1 = PyFloat_Type.tp_as_number->nb_multiply;
-    // Slot2 ignored on purpose, type1 takes precedence.
 
     if (slot1 != NULL) {
         PyObject *x = slot1(operand1, operand2);
@@ -3132,12 +3017,8 @@ static nuitka_bool _BINARY_OPERATION_MULT_NBOOL_FLOAT_LONG(PyObject *operand1, P
         Py_DECREF_IMMORTAL(x);
     }
 
-    // Statically recognized that coercion is not possible with these types
-
     {
-        // No sequence repeat slot sq_repeat available for this type.
     }
-    // No sequence repeat slot sq_repeat available for this type.
 
 #if PYTHON_VERSION < 0x300
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *: 'float' and 'long'");
@@ -3152,7 +3033,7 @@ exit_binary_result_object:
     }
 
     {
-        nuitka_bool r = CHECK_IF_TRUE(obj_result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+        nuitka_bool r = CHECK_IF_TRUE_NBOOL(obj_result);
         Py_DECREF(obj_result);
         return r;
     }
@@ -3166,7 +3047,6 @@ nuitka_bool BINARY_OPERATION_MULT_NBOOL_FLOAT_LONG(PyObject *operand1, PyObject 
 }
 
 #if PYTHON_VERSION < 0x300
-/* Code referring to "FLOAT" corresponds to Python 'float' and "INT" to Python2 'int'. */
 static PyObject *_BINARY_OPERATION_MULT_OBJECT_FLOAT_INT(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyFloat_CheckExact(operand1));
@@ -3184,7 +3064,6 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_FLOAT_INT(PyObject *operand1, PyO
 #endif
 
     binaryfunc slot1 = PyFloat_Type.tp_as_number->nb_multiply;
-    // Slot2 ignored on purpose, type1 takes precedence.
 
     if (slot1 != NULL) {
         PyObject *x = slot1(operand1, operand2);
@@ -3197,12 +3076,8 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_FLOAT_INT(PyObject *operand1, PyO
         Py_DECREF_IMMORTAL(x);
     }
 
-    // Statically recognized that coercion is not possible with these types
-
     {
-        // No sequence repeat slot sq_repeat available for this type.
     }
-    // No sequence repeat slot sq_repeat available for this type.
 
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *: 'float' and 'int'");
     goto exit_binary_exception;
@@ -3220,7 +3095,6 @@ PyObject *BINARY_OPERATION_MULT_OBJECT_FLOAT_INT(PyObject *operand1, PyObject *o
 #endif
 
 #if PYTHON_VERSION < 0x300
-/* Code referring to "FLOAT" corresponds to Python 'float' and "INT" to Python2 'int'. */
 static nuitka_bool _BINARY_OPERATION_MULT_NBOOL_FLOAT_INT(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyFloat_CheckExact(operand1));
@@ -3238,7 +3112,6 @@ static nuitka_bool _BINARY_OPERATION_MULT_NBOOL_FLOAT_INT(PyObject *operand1, Py
 #endif
 
     binaryfunc slot1 = PyFloat_Type.tp_as_number->nb_multiply;
-    // Slot2 ignored on purpose, type1 takes precedence.
 
     if (slot1 != NULL) {
         PyObject *x = slot1(operand1, operand2);
@@ -3251,12 +3124,8 @@ static nuitka_bool _BINARY_OPERATION_MULT_NBOOL_FLOAT_INT(PyObject *operand1, Py
         Py_DECREF_IMMORTAL(x);
     }
 
-    // Statically recognized that coercion is not possible with these types
-
     {
-        // No sequence repeat slot sq_repeat available for this type.
     }
-    // No sequence repeat slot sq_repeat available for this type.
 
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *: 'float' and 'int'");
     goto exit_binary_exception;
@@ -3267,7 +3136,7 @@ exit_binary_result_object:
     }
 
     {
-        nuitka_bool r = CHECK_IF_TRUE(obj_result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+        nuitka_bool r = CHECK_IF_TRUE_NBOOL(obj_result);
         Py_DECREF(obj_result);
         return r;
     }
@@ -3282,7 +3151,6 @@ nuitka_bool BINARY_OPERATION_MULT_NBOOL_FLOAT_INT(PyObject *operand1, PyObject *
 #endif
 
 #if PYTHON_VERSION < 0x300
-/* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "INT" to Python2 'int'. */
 static PyObject *_BINARY_OPERATION_MULT_OBJECT_LONG_INT(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyLong_CheckExact(operand1));
@@ -3300,7 +3168,6 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_LONG_INT(PyObject *operand1, PyOb
 #endif
 
     binaryfunc slot1 = PyLong_Type.tp_as_number->nb_multiply;
-    // Slot2 ignored on purpose, type1 takes precedence.
 
     if (slot1 != NULL) {
         PyObject *x = slot1(operand1, operand2);
@@ -3313,12 +3180,8 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_LONG_INT(PyObject *operand1, PyOb
         Py_DECREF_IMMORTAL(x);
     }
 
-    // Statically recognized that coercion is not possible with these types
-
     {
-        // No sequence repeat slot sq_repeat available for this type.
     }
-    // No sequence repeat slot sq_repeat available for this type.
 
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *: 'long' and 'int'");
     goto exit_binary_exception;
@@ -3336,7 +3199,6 @@ PyObject *BINARY_OPERATION_MULT_OBJECT_LONG_INT(PyObject *operand1, PyObject *op
 #endif
 
 #if PYTHON_VERSION < 0x300
-/* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "INT" to Python2 'int'. */
 static nuitka_bool _BINARY_OPERATION_MULT_NBOOL_LONG_INT(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyLong_CheckExact(operand1));
@@ -3354,7 +3216,6 @@ static nuitka_bool _BINARY_OPERATION_MULT_NBOOL_LONG_INT(PyObject *operand1, PyO
 #endif
 
     binaryfunc slot1 = PyLong_Type.tp_as_number->nb_multiply;
-    // Slot2 ignored on purpose, type1 takes precedence.
 
     if (slot1 != NULL) {
         PyObject *x = slot1(operand1, operand2);
@@ -3367,12 +3228,8 @@ static nuitka_bool _BINARY_OPERATION_MULT_NBOOL_LONG_INT(PyObject *operand1, PyO
         Py_DECREF_IMMORTAL(x);
     }
 
-    // Statically recognized that coercion is not possible with these types
-
     {
-        // No sequence repeat slot sq_repeat available for this type.
     }
-    // No sequence repeat slot sq_repeat available for this type.
 
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *: 'long' and 'int'");
     goto exit_binary_exception;
@@ -3383,7 +3240,7 @@ exit_binary_result_object:
     }
 
     {
-        nuitka_bool r = CHECK_IF_TRUE(obj_result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+        nuitka_bool r = CHECK_IF_TRUE_NBOOL(obj_result);
         Py_DECREF(obj_result);
         return r;
     }
@@ -3398,14 +3255,12 @@ nuitka_bool BINARY_OPERATION_MULT_NBOOL_LONG_INT(PyObject *operand1, PyObject *o
 #endif
 
 #if PYTHON_VERSION < 0x300
-/* Code referring to "INT" corresponds to Python2 'int' and "CLONG" to C platform long value. */
 static PyObject *_BINARY_OPERATION_MULT_OBJECT_INT_CLONG(PyObject *operand1, long operand2) {
     CHECK_OBJECT(operand1);
     assert(PyInt_CheckExact(operand1));
 
     PyObject *result;
 
-    // Not every code path will make use of all possible results.
 #if defined(_MSC_VER)
 #pragma warning(push)
 #pragma warning(disable : 4101)
@@ -3479,14 +3334,12 @@ PyObject *BINARY_OPERATION_MULT_OBJECT_INT_CLONG(PyObject *operand1, long operan
 #endif
 
 #if PYTHON_VERSION < 0x300
-/* Code referring to "INT" corresponds to Python2 'int' and "CLONG" to C platform long value. */
 static nuitka_bool _BINARY_OPERATION_MULT_NBOOL_INT_CLONG(PyObject *operand1, long operand2) {
     CHECK_OBJECT(operand1);
     assert(PyInt_CheckExact(operand1));
 
     nuitka_bool result;
 
-    // Not every code path will make use of all possible results.
 #if defined(_MSC_VER)
 #pragma warning(push)
 #pragma warning(disable : 4101)
@@ -3544,7 +3397,7 @@ exit_result_object:
     if (unlikely(obj_result == NULL)) {
         goto exit_result_exception;
     }
-    result = CHECK_IF_TRUE(obj_result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+    result = CHECK_IF_TRUE_NBOOL(obj_result);
     Py_DECREF(obj_result);
     goto exit_result_ok;
 
@@ -3560,7 +3413,6 @@ nuitka_bool BINARY_OPERATION_MULT_NBOOL_INT_CLONG(PyObject *operand1, long opera
 }
 #endif
 
-/* Code referring to "FLOAT" corresponds to Python 'float' and "CFLOAT" to C platform float value. */
 static PyObject *_BINARY_OPERATION_MULT_OBJECT_FLOAT_CFLOAT(PyObject *operand1, double operand2) {
     CHECK_OBJECT(operand1);
     assert(PyFloat_CheckExact(operand1));
@@ -3571,7 +3423,6 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_FLOAT_CFLOAT(PyObject *operand1, 
 #pragma warning(push)
 #pragma warning(disable : 4101)
 #endif
-    // Not every code path will make use of all possible results.
     NUITKA_MAY_BE_UNUSED PyObject *obj_result;
     NUITKA_MAY_BE_UNUSED long clong_result;
     NUITKA_MAY_BE_UNUSED double cfloat_result;
@@ -3602,7 +3453,6 @@ PyObject *BINARY_OPERATION_MULT_OBJECT_FLOAT_CFLOAT(PyObject *operand1, double o
     return _BINARY_OPERATION_MULT_OBJECT_FLOAT_CFLOAT(operand1, operand2);
 }
 
-/* Code referring to "FLOAT" corresponds to Python 'float' and "CFLOAT" to C platform float value. */
 static nuitka_bool _BINARY_OPERATION_MULT_NBOOL_FLOAT_CFLOAT(PyObject *operand1, double operand2) {
     CHECK_OBJECT(operand1);
     assert(PyFloat_CheckExact(operand1));
@@ -3613,7 +3463,6 @@ static nuitka_bool _BINARY_OPERATION_MULT_NBOOL_FLOAT_CFLOAT(PyObject *operand1,
 #pragma warning(push)
 #pragma warning(disable : 4101)
 #endif
-    // Not every code path will make use of all possible results.
     NUITKA_MAY_BE_UNUSED PyObject *obj_result;
     NUITKA_MAY_BE_UNUSED long clong_result;
     NUITKA_MAY_BE_UNUSED double cfloat_result;
@@ -3644,7 +3493,6 @@ nuitka_bool BINARY_OPERATION_MULT_NBOOL_FLOAT_CFLOAT(PyObject *operand1, double 
     return _BINARY_OPERATION_MULT_NBOOL_FLOAT_CFLOAT(operand1, operand2);
 }
 
-/* Code referring to "CFLOAT" corresponds to C platform float value and "FLOAT" to Python 'float'. */
 static PyObject *_BINARY_OPERATION_MULT_OBJECT_CFLOAT_FLOAT(double operand1, PyObject *operand2) {
 
     CHECK_OBJECT(operand2);
@@ -3656,7 +3504,6 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_CFLOAT_FLOAT(double operand1, PyO
 #pragma warning(push)
 #pragma warning(disable : 4101)
 #endif
-    // Not every code path will make use of all possible results.
     NUITKA_MAY_BE_UNUSED PyObject *obj_result;
     NUITKA_MAY_BE_UNUSED long clong_result;
     NUITKA_MAY_BE_UNUSED double cfloat_result;
@@ -3687,7 +3534,6 @@ PyObject *BINARY_OPERATION_MULT_OBJECT_CFLOAT_FLOAT(double operand1, PyObject *o
     return _BINARY_OPERATION_MULT_OBJECT_CFLOAT_FLOAT(operand1, operand2);
 }
 
-/* Code referring to "CFLOAT" corresponds to C platform float value and "CFLOAT" to C platform float value. */
 static PyObject *_BINARY_OPERATION_MULT_OBJECT_CFLOAT_CFLOAT(double operand1, double operand2) {
 
     PyObject *result;
@@ -3696,7 +3542,6 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_CFLOAT_CFLOAT(double operand1, do
 #pragma warning(push)
 #pragma warning(disable : 4101)
 #endif
-    // Not every code path will make use of all possible results.
     NUITKA_MAY_BE_UNUSED PyObject *obj_result;
     NUITKA_MAY_BE_UNUSED long clong_result;
     NUITKA_MAY_BE_UNUSED double cfloat_result;
@@ -3724,7 +3569,6 @@ PyObject *BINARY_OPERATION_MULT_OBJECT_CFLOAT_CFLOAT(double operand1, double ope
     return _BINARY_OPERATION_MULT_OBJECT_CFLOAT_CFLOAT(operand1, operand2);
 }
 
-/* Code referring to "FLOAT" corresponds to Python 'float' and "FLOAT" to Python 'float'. */
 static double _BINARY_OPERATION_MULT_CFLOAT_FLOAT_FLOAT(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyFloat_CheckExact(operand1));
@@ -3737,7 +3581,6 @@ static double _BINARY_OPERATION_MULT_CFLOAT_FLOAT_FLOAT(PyObject *operand1, PyOb
 #pragma warning(push)
 #pragma warning(disable : 4101)
 #endif
-    // Not every code path will make use of all possible results.
     NUITKA_MAY_BE_UNUSED PyObject *obj_result;
     NUITKA_MAY_BE_UNUSED long clong_result;
     NUITKA_MAY_BE_UNUSED double cfloat_result;
@@ -3775,7 +3618,6 @@ double BINARY_OPERATION_MULT_CFLOAT_FLOAT_FLOAT(PyObject *operand1, PyObject *op
     return _BINARY_OPERATION_MULT_CFLOAT_FLOAT_FLOAT(operand1, operand2);
 }
 
-/* Code referring to "FLOAT" corresponds to Python 'float' and "CFLOAT" to C platform float value. */
 static double _BINARY_OPERATION_MULT_CFLOAT_FLOAT_CFLOAT(PyObject *operand1, double operand2) {
     CHECK_OBJECT(operand1);
     assert(PyFloat_CheckExact(operand1));
@@ -3786,7 +3628,6 @@ static double _BINARY_OPERATION_MULT_CFLOAT_FLOAT_CFLOAT(PyObject *operand1, dou
 #pragma warning(push)
 #pragma warning(disable : 4101)
 #endif
-    // Not every code path will make use of all possible results.
     NUITKA_MAY_BE_UNUSED PyObject *obj_result;
     NUITKA_MAY_BE_UNUSED long clong_result;
     NUITKA_MAY_BE_UNUSED double cfloat_result;
@@ -3822,7 +3663,6 @@ double BINARY_OPERATION_MULT_CFLOAT_FLOAT_CFLOAT(PyObject *operand1, double oper
     return _BINARY_OPERATION_MULT_CFLOAT_FLOAT_CFLOAT(operand1, operand2);
 }
 
-/* Code referring to "CFLOAT" corresponds to C platform float value and "FLOAT" to Python 'float'. */
 static double _BINARY_OPERATION_MULT_CFLOAT_CFLOAT_FLOAT(double operand1, PyObject *operand2) {
 
     CHECK_OBJECT(operand2);
@@ -3834,7 +3674,6 @@ static double _BINARY_OPERATION_MULT_CFLOAT_CFLOAT_FLOAT(double operand1, PyObje
 #pragma warning(push)
 #pragma warning(disable : 4101)
 #endif
-    // Not every code path will make use of all possible results.
     NUITKA_MAY_BE_UNUSED PyObject *obj_result;
     NUITKA_MAY_BE_UNUSED long clong_result;
     NUITKA_MAY_BE_UNUSED double cfloat_result;
@@ -3870,7 +3709,6 @@ double BINARY_OPERATION_MULT_CFLOAT_CFLOAT_FLOAT(double operand1, PyObject *oper
     return _BINARY_OPERATION_MULT_CFLOAT_CFLOAT_FLOAT(operand1, operand2);
 }
 
-/* Code referring to "CFLOAT" corresponds to C platform float value and "CFLOAT" to C platform float value. */
 static double _BINARY_OPERATION_MULT_CFLOAT_CFLOAT_CFLOAT(double operand1, double operand2) {
 
     double result;
@@ -3879,7 +3717,6 @@ static double _BINARY_OPERATION_MULT_CFLOAT_CFLOAT_CFLOAT(double operand1, doubl
 #pragma warning(push)
 #pragma warning(disable : 4101)
 #endif
-    // Not every code path will make use of all possible results.
     NUITKA_MAY_BE_UNUSED PyObject *obj_result;
     NUITKA_MAY_BE_UNUSED long clong_result;
     NUITKA_MAY_BE_UNUSED double cfloat_result;
@@ -3913,7 +3750,6 @@ double BINARY_OPERATION_MULT_CFLOAT_CFLOAT_CFLOAT(double operand1, double operan
 }
 
 #if PYTHON_VERSION < 0x300
-/* Code referring to "STR" corresponds to Python2 'str' and "INT" to Python2 'int'. */
 static PyObject *_BINARY_OPERATION_MULT_OBJECT_STR_INT(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyString_CheckExact(operand1));
@@ -3929,10 +3765,6 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_STR_INT(PyObject *operand1, PyObj
 #if defined(_MSC_VER)
 #pragma warning(pop)
 #endif
-
-    // Slot2 ignored on purpose, type1 takes precedence.
-
-    // Statically recognized that coercion is not possible with these types
 
     if (unlikely(!1)) {
         SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("can't multiply sequence by non-int of type '%s'", operand2);
@@ -3970,7 +3802,6 @@ PyObject *BINARY_OPERATION_MULT_OBJECT_STR_INT(PyObject *operand1, PyObject *ope
 #endif
 
 #if PYTHON_VERSION < 0x300
-/* Code referring to "INT" corresponds to Python2 'int' and "STR" to Python2 'str'. */
 static PyObject *_BINARY_OPERATION_MULT_OBJECT_INT_STR(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyInt_CheckExact(operand1));
@@ -3987,12 +3818,7 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_INT_STR(PyObject *operand1, PyObj
 #pragma warning(pop)
 #endif
 
-    // Slot1 ignored on purpose, type2 takes precedence.
-
-    // Statically recognized that coercion is not possible with these types
-
     {
-        // No sequence repeat slot sq_repeat available for this type.
     }
     if (unlikely(!1)) {
         SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("can't multiply sequence by non-int of type '%s'", operand1);
@@ -4030,7 +3856,6 @@ PyObject *BINARY_OPERATION_MULT_OBJECT_INT_STR(PyObject *operand1, PyObject *ope
 #endif
 
 #if PYTHON_VERSION < 0x300
-/* Code referring to "UNICODE" corresponds to Python2 'unicode', Python3 'str' and "INT" to Python2 'int'. */
 static PyObject *_BINARY_OPERATION_MULT_OBJECT_UNICODE_INT(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyUnicode_CheckExact(operand1));
@@ -4046,10 +3871,6 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_UNICODE_INT(PyObject *operand1, P
 #if defined(_MSC_VER)
 #pragma warning(pop)
 #endif
-
-    // Slot2 ignored on purpose, type1 takes precedence.
-
-    // Statically recognized that coercion is not possible with these types
 
     if (unlikely(!1)) {
         SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("can't multiply sequence by non-int of type '%s'", operand2);
@@ -4087,7 +3908,6 @@ PyObject *BINARY_OPERATION_MULT_OBJECT_UNICODE_INT(PyObject *operand1, PyObject 
 #endif
 
 #if PYTHON_VERSION < 0x300
-/* Code referring to "INT" corresponds to Python2 'int' and "UNICODE" to Python2 'unicode', Python3 'str'. */
 static PyObject *_BINARY_OPERATION_MULT_OBJECT_INT_UNICODE(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyInt_CheckExact(operand1));
@@ -4104,12 +3924,7 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_INT_UNICODE(PyObject *operand1, P
 #pragma warning(pop)
 #endif
 
-    // Slot1 ignored on purpose, type2 takes precedence.
-
-    // Statically recognized that coercion is not possible with these types
-
     {
-        // No sequence repeat slot sq_repeat available for this type.
     }
     if (unlikely(!1)) {
         SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("can't multiply sequence by non-int of type '%s'", operand1);
@@ -4147,7 +3962,6 @@ PyObject *BINARY_OPERATION_MULT_OBJECT_INT_UNICODE(PyObject *operand1, PyObject 
 #endif
 
 #if PYTHON_VERSION < 0x300
-/* Code referring to "TUPLE" corresponds to Python 'tuple' and "INT" to Python2 'int'. */
 static PyObject *_BINARY_OPERATION_MULT_OBJECT_TUPLE_INT(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyTuple_CheckExact(operand1));
@@ -4163,10 +3977,6 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_TUPLE_INT(PyObject *operand1, PyO
 #if defined(_MSC_VER)
 #pragma warning(pop)
 #endif
-
-    // Slot2 ignored on purpose, type1 takes precedence.
-
-    // Statically recognized that coercion is not possible with these types
 
     if (unlikely(!1)) {
         SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("can't multiply sequence by non-int of type '%s'", operand2);
@@ -4204,7 +4014,6 @@ PyObject *BINARY_OPERATION_MULT_OBJECT_TUPLE_INT(PyObject *operand1, PyObject *o
 #endif
 
 #if PYTHON_VERSION < 0x300
-/* Code referring to "INT" corresponds to Python2 'int' and "TUPLE" to Python 'tuple'. */
 static PyObject *_BINARY_OPERATION_MULT_OBJECT_INT_TUPLE(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyInt_CheckExact(operand1));
@@ -4221,12 +4030,7 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_INT_TUPLE(PyObject *operand1, PyO
 #pragma warning(pop)
 #endif
 
-    // Slot1 ignored on purpose, type2 takes precedence.
-
-    // Statically recognized that coercion is not possible with these types
-
     {
-        // No sequence repeat slot sq_repeat available for this type.
     }
     if (unlikely(!1)) {
         SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("can't multiply sequence by non-int of type '%s'", operand1);
@@ -4264,7 +4068,6 @@ PyObject *BINARY_OPERATION_MULT_OBJECT_INT_TUPLE(PyObject *operand1, PyObject *o
 #endif
 
 #if PYTHON_VERSION < 0x300
-/* Code referring to "LIST" corresponds to Python 'list' and "INT" to Python2 'int'. */
 static PyObject *_BINARY_OPERATION_MULT_OBJECT_LIST_INT(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyList_CheckExact(operand1));
@@ -4280,10 +4083,6 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_LIST_INT(PyObject *operand1, PyOb
 #if defined(_MSC_VER)
 #pragma warning(pop)
 #endif
-
-    // Slot2 ignored on purpose, type1 takes precedence.
-
-    // Statically recognized that coercion is not possible with these types
 
     if (unlikely(!1)) {
         SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("can't multiply sequence by non-int of type '%s'", operand2);
@@ -4321,7 +4120,6 @@ PyObject *BINARY_OPERATION_MULT_OBJECT_LIST_INT(PyObject *operand1, PyObject *op
 #endif
 
 #if PYTHON_VERSION < 0x300
-/* Code referring to "INT" corresponds to Python2 'int' and "LIST" to Python 'list'. */
 static PyObject *_BINARY_OPERATION_MULT_OBJECT_INT_LIST(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyInt_CheckExact(operand1));
@@ -4338,12 +4136,7 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_INT_LIST(PyObject *operand1, PyOb
 #pragma warning(pop)
 #endif
 
-    // Slot1 ignored on purpose, type2 takes precedence.
-
-    // Statically recognized that coercion is not possible with these types
-
     {
-        // No sequence repeat slot sq_repeat available for this type.
     }
     if (unlikely(!1)) {
         SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("can't multiply sequence by non-int of type '%s'", operand1);
@@ -4380,8 +4173,6 @@ PyObject *BINARY_OPERATION_MULT_OBJECT_INT_LIST(PyObject *operand1, PyObject *op
 }
 #endif
 
-/* Code referring to "UNICODE" corresponds to Python2 'unicode', Python3 'str' and "LONG" to Python2 'long', Python3
- * 'int'. */
 static PyObject *_BINARY_OPERATION_MULT_OBJECT_UNICODE_LONG(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyUnicode_CheckExact(operand1));
@@ -4398,10 +4189,6 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_UNICODE_LONG(PyObject *operand1, 
 #pragma warning(pop)
 #endif
 
-    // Slot2 ignored on purpose, type1 takes precedence.
-
-    // Statically recognized that coercion is not possible with these types
-
     if (unlikely(!1)) {
         SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("can't multiply sequence by non-int of type '%s'", operand2);
 
@@ -4414,7 +4201,6 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_UNICODE_LONG(PyObject *operand1, 
         {
             Py_ssize_t count = CONVERT_LONG_TO_REPEAT_FACTOR(index_value);
 
-            /* Above conversion indicates an error as -1 */
             if (unlikely(count == -1)) {
 #if PYTHON_VERSION < 0x300
                 PyErr_Format(PyExc_OverflowError, "cannot fit 'long' into an index-sized integer");
@@ -4446,8 +4232,6 @@ PyObject *BINARY_OPERATION_MULT_OBJECT_UNICODE_LONG(PyObject *operand1, PyObject
     return _BINARY_OPERATION_MULT_OBJECT_UNICODE_LONG(operand1, operand2);
 }
 
-/* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "UNICODE" to Python2 'unicode', Python3
- * 'str'. */
 static PyObject *_BINARY_OPERATION_MULT_OBJECT_LONG_UNICODE(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyLong_CheckExact(operand1));
@@ -4464,12 +4248,7 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_LONG_UNICODE(PyObject *operand1, 
 #pragma warning(pop)
 #endif
 
-    // Slot1 ignored on purpose, type2 takes precedence.
-
-    // Statically recognized that coercion is not possible with these types
-
     {
-        // No sequence repeat slot sq_repeat available for this type.
     }
     if (unlikely(!1)) {
         SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("can't multiply sequence by non-int of type '%s'", operand1);
@@ -4483,7 +4262,6 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_LONG_UNICODE(PyObject *operand1, 
         {
             Py_ssize_t count = CONVERT_LONG_TO_REPEAT_FACTOR(index_value);
 
-            /* Above conversion indicates an error as -1 */
             if (unlikely(count == -1)) {
 #if PYTHON_VERSION < 0x300
                 PyErr_Format(PyExc_OverflowError, "cannot fit 'long' into an index-sized integer");
@@ -4516,7 +4294,6 @@ PyObject *BINARY_OPERATION_MULT_OBJECT_LONG_UNICODE(PyObject *operand1, PyObject
 }
 
 #if PYTHON_VERSION >= 0x300
-/* Code referring to "BYTES" corresponds to Python3 'bytes' and "LONG" to Python2 'long', Python3 'int'. */
 static PyObject *_BINARY_OPERATION_MULT_OBJECT_BYTES_LONG(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyBytes_CheckExact(operand1));
@@ -4533,10 +4310,6 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_BYTES_LONG(PyObject *operand1, Py
 #pragma warning(pop)
 #endif
 
-    // Slot2 ignored on purpose, type1 takes precedence.
-
-    // Statically recognized that coercion is not possible with these types
-
     if (unlikely(!1)) {
         SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("can't multiply sequence by non-int of type '%s'", operand2);
 
@@ -4549,7 +4322,6 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_BYTES_LONG(PyObject *operand1, Py
         {
             Py_ssize_t count = CONVERT_LONG_TO_REPEAT_FACTOR(index_value);
 
-            /* Above conversion indicates an error as -1 */
             if (unlikely(count == -1)) {
                 PyErr_Format(PyExc_OverflowError, "cannot fit 'int' into an index-sized integer");
                 goto exit_binary_exception;
@@ -4579,7 +4351,6 @@ PyObject *BINARY_OPERATION_MULT_OBJECT_BYTES_LONG(PyObject *operand1, PyObject *
 #endif
 
 #if PYTHON_VERSION >= 0x300
-/* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "BYTES" to Python3 'bytes'. */
 static PyObject *_BINARY_OPERATION_MULT_OBJECT_LONG_BYTES(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyLong_CheckExact(operand1));
@@ -4596,12 +4367,7 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_LONG_BYTES(PyObject *operand1, Py
 #pragma warning(pop)
 #endif
 
-    // Slot1 ignored on purpose, type2 takes precedence.
-
-    // Statically recognized that coercion is not possible with these types
-
     {
-        // No sequence repeat slot sq_repeat available for this type.
     }
     if (unlikely(!1)) {
         SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("can't multiply sequence by non-int of type '%s'", operand1);
@@ -4615,7 +4381,6 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_LONG_BYTES(PyObject *operand1, Py
         {
             Py_ssize_t count = CONVERT_LONG_TO_REPEAT_FACTOR(index_value);
 
-            /* Above conversion indicates an error as -1 */
             if (unlikely(count == -1)) {
                 PyErr_Format(PyExc_OverflowError, "cannot fit 'int' into an index-sized integer");
                 goto exit_binary_exception;
@@ -4644,7 +4409,6 @@ PyObject *BINARY_OPERATION_MULT_OBJECT_LONG_BYTES(PyObject *operand1, PyObject *
 }
 #endif
 
-/* Code referring to "TUPLE" corresponds to Python 'tuple' and "LONG" to Python2 'long', Python3 'int'. */
 static PyObject *_BINARY_OPERATION_MULT_OBJECT_TUPLE_LONG(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyTuple_CheckExact(operand1));
@@ -4661,10 +4425,6 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_TUPLE_LONG(PyObject *operand1, Py
 #pragma warning(pop)
 #endif
 
-    // Slot2 ignored on purpose, type1 takes precedence.
-
-    // Statically recognized that coercion is not possible with these types
-
     if (unlikely(!1)) {
         SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("can't multiply sequence by non-int of type '%s'", operand2);
 
@@ -4677,7 +4437,6 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_TUPLE_LONG(PyObject *operand1, Py
         {
             Py_ssize_t count = CONVERT_LONG_TO_REPEAT_FACTOR(index_value);
 
-            /* Above conversion indicates an error as -1 */
             if (unlikely(count == -1)) {
 #if PYTHON_VERSION < 0x300
                 PyErr_Format(PyExc_OverflowError, "cannot fit 'long' into an index-sized integer");
@@ -4709,7 +4468,6 @@ PyObject *BINARY_OPERATION_MULT_OBJECT_TUPLE_LONG(PyObject *operand1, PyObject *
     return _BINARY_OPERATION_MULT_OBJECT_TUPLE_LONG(operand1, operand2);
 }
 
-/* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "TUPLE" to Python 'tuple'. */
 static PyObject *_BINARY_OPERATION_MULT_OBJECT_LONG_TUPLE(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyLong_CheckExact(operand1));
@@ -4726,12 +4484,7 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_LONG_TUPLE(PyObject *operand1, Py
 #pragma warning(pop)
 #endif
 
-    // Slot1 ignored on purpose, type2 takes precedence.
-
-    // Statically recognized that coercion is not possible with these types
-
     {
-        // No sequence repeat slot sq_repeat available for this type.
     }
     if (unlikely(!1)) {
         SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("can't multiply sequence by non-int of type '%s'", operand1);
@@ -4745,7 +4498,6 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_LONG_TUPLE(PyObject *operand1, Py
         {
             Py_ssize_t count = CONVERT_LONG_TO_REPEAT_FACTOR(index_value);
 
-            /* Above conversion indicates an error as -1 */
             if (unlikely(count == -1)) {
 #if PYTHON_VERSION < 0x300
                 PyErr_Format(PyExc_OverflowError, "cannot fit 'long' into an index-sized integer");
@@ -4777,7 +4529,6 @@ PyObject *BINARY_OPERATION_MULT_OBJECT_LONG_TUPLE(PyObject *operand1, PyObject *
     return _BINARY_OPERATION_MULT_OBJECT_LONG_TUPLE(operand1, operand2);
 }
 
-/* Code referring to "LIST" corresponds to Python 'list' and "LONG" to Python2 'long', Python3 'int'. */
 static PyObject *_BINARY_OPERATION_MULT_OBJECT_LIST_LONG(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyList_CheckExact(operand1));
@@ -4794,10 +4545,6 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_LIST_LONG(PyObject *operand1, PyO
 #pragma warning(pop)
 #endif
 
-    // Slot2 ignored on purpose, type1 takes precedence.
-
-    // Statically recognized that coercion is not possible with these types
-
     if (unlikely(!1)) {
         SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("can't multiply sequence by non-int of type '%s'", operand2);
 
@@ -4810,7 +4557,6 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_LIST_LONG(PyObject *operand1, PyO
         {
             Py_ssize_t count = CONVERT_LONG_TO_REPEAT_FACTOR(index_value);
 
-            /* Above conversion indicates an error as -1 */
             if (unlikely(count == -1)) {
 #if PYTHON_VERSION < 0x300
                 PyErr_Format(PyExc_OverflowError, "cannot fit 'long' into an index-sized integer");
@@ -4842,7 +4588,6 @@ PyObject *BINARY_OPERATION_MULT_OBJECT_LIST_LONG(PyObject *operand1, PyObject *o
     return _BINARY_OPERATION_MULT_OBJECT_LIST_LONG(operand1, operand2);
 }
 
-/* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "LIST" to Python 'list'. */
 static PyObject *_BINARY_OPERATION_MULT_OBJECT_LONG_LIST(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyLong_CheckExact(operand1));
@@ -4859,12 +4604,7 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_LONG_LIST(PyObject *operand1, PyO
 #pragma warning(pop)
 #endif
 
-    // Slot1 ignored on purpose, type2 takes precedence.
-
-    // Statically recognized that coercion is not possible with these types
-
     {
-        // No sequence repeat slot sq_repeat available for this type.
     }
     if (unlikely(!1)) {
         SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("can't multiply sequence by non-int of type '%s'", operand1);
@@ -4878,7 +4618,6 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_LONG_LIST(PyObject *operand1, PyO
         {
             Py_ssize_t count = CONVERT_LONG_TO_REPEAT_FACTOR(index_value);
 
-            /* Above conversion indicates an error as -1 */
             if (unlikely(count == -1)) {
 #if PYTHON_VERSION < 0x300
                 PyErr_Format(PyExc_OverflowError, "cannot fit 'long' into an index-sized integer");
@@ -4911,7 +4650,6 @@ PyObject *BINARY_OPERATION_MULT_OBJECT_LONG_LIST(PyObject *operand1, PyObject *o
 }
 
 #if PYTHON_VERSION < 0x300
-/* Code referring to "OBJECT" corresponds to any Python object and "STR" to Python2 'str'. */
 static PyObject *_BINARY_OPERATION_MULT_OBJECT_OBJECT_STR(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     CHECK_OBJECT(operand2);
@@ -4984,7 +4722,6 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_OBJECT_STR(PyObject *operand1, Py
 #endif
 
     {
-        // Special case for "+" and "*", also works as sequence concat/repeat.
         ssizeargfunc sq_slot = type1->tp_as_sequence != NULL ? type1->tp_as_sequence->sq_repeat : NULL;
 
         if (sq_slot != NULL) {
@@ -5012,7 +4749,6 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_OBJECT_STR(PyObject *operand1, Py
 
             Py_DECREF(index_value);
 
-            /* Above conversion indicates an error as -1 */
             if (unlikely(count == -1)) {
                 PyErr_Format(PyExc_OverflowError, "cannot fit '%s' into an index-sized integer", type1->tp_name);
                 goto exit_binary_exception;
@@ -5042,7 +4778,6 @@ PyObject *BINARY_OPERATION_MULT_OBJECT_OBJECT_STR(PyObject *operand1, PyObject *
 #endif
 
 #if PYTHON_VERSION < 0x300
-/* Code referring to "STR" corresponds to Python2 'str' and "OBJECT" to any Python object. */
 static PyObject *_BINARY_OPERATION_MULT_OBJECT_STR_OBJECT(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyString_CheckExact(operand1));
@@ -5063,8 +4798,6 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_STR_OBJECT(PyObject *operand1, Py
     binaryfunc slot2 = NULL;
 
     if (!(&PyString_Type == type2)) {
-        // Different types, need to consider second value slot.
-
         slot2 = (type2->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type2)) ? type2->tp_as_number->nb_multiply : NULL;
     }
 
@@ -5137,7 +4870,6 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_STR_OBJECT(PyObject *operand1, Py
 
             Py_DECREF(index_value);
 
-            /* Above conversion indicates an error as -1 */
             if (unlikely(count == -1)) {
                 PyErr_Format(PyExc_OverflowError, "cannot fit '%s' into an index-sized integer", type2->tp_name);
                 goto exit_binary_exception;
@@ -5166,7 +4898,6 @@ PyObject *BINARY_OPERATION_MULT_OBJECT_STR_OBJECT(PyObject *operand1, PyObject *
 }
 #endif
 
-/* Code referring to "OBJECT" corresponds to any Python object and "UNICODE" to Python2 'unicode', Python3 'str'. */
 static PyObject *_BINARY_OPERATION_MULT_OBJECT_OBJECT_UNICODE(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     CHECK_OBJECT(operand2);
@@ -5239,7 +4970,6 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_OBJECT_UNICODE(PyObject *operand1
 #endif
 
     {
-        // Special case for "+" and "*", also works as sequence concat/repeat.
         ssizeargfunc sq_slot = type1->tp_as_sequence != NULL ? type1->tp_as_sequence->sq_repeat : NULL;
 
         if (sq_slot != NULL) {
@@ -5267,7 +4997,6 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_OBJECT_UNICODE(PyObject *operand1
 
             Py_DECREF(index_value);
 
-            /* Above conversion indicates an error as -1 */
             if (unlikely(count == -1)) {
                 PyErr_Format(PyExc_OverflowError, "cannot fit '%s' into an index-sized integer", type1->tp_name);
                 goto exit_binary_exception;
@@ -5295,7 +5024,6 @@ PyObject *BINARY_OPERATION_MULT_OBJECT_OBJECT_UNICODE(PyObject *operand1, PyObje
     return _BINARY_OPERATION_MULT_OBJECT_OBJECT_UNICODE(operand1, operand2);
 }
 
-/* Code referring to "UNICODE" corresponds to Python2 'unicode', Python3 'str' and "OBJECT" to any Python object. */
 static PyObject *_BINARY_OPERATION_MULT_OBJECT_UNICODE_OBJECT(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyUnicode_CheckExact(operand1));
@@ -5316,8 +5044,6 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_UNICODE_OBJECT(PyObject *operand1
     binaryfunc slot2 = NULL;
 
     if (!(&PyUnicode_Type == type2)) {
-        // Different types, need to consider second value slot.
-
         slot2 = (type2->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type2)) ? type2->tp_as_number->nb_multiply : NULL;
     }
 
@@ -5390,7 +5116,6 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_UNICODE_OBJECT(PyObject *operand1
 
             Py_DECREF(index_value);
 
-            /* Above conversion indicates an error as -1 */
             if (unlikely(count == -1)) {
                 PyErr_Format(PyExc_OverflowError, "cannot fit '%s' into an index-sized integer", type2->tp_name);
                 goto exit_binary_exception;
@@ -5419,7 +5144,6 @@ PyObject *BINARY_OPERATION_MULT_OBJECT_UNICODE_OBJECT(PyObject *operand1, PyObje
 }
 
 #if PYTHON_VERSION >= 0x300
-/* Code referring to "OBJECT" corresponds to any Python object and "BYTES" to Python3 'bytes'. */
 static PyObject *_BINARY_OPERATION_MULT_OBJECT_OBJECT_BYTES(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     CHECK_OBJECT(operand2);
@@ -5492,7 +5216,6 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_OBJECT_BYTES(PyObject *operand1, 
 #endif
 
     {
-        // Special case for "+" and "*", also works as sequence concat/repeat.
         ssizeargfunc sq_slot = type1->tp_as_sequence != NULL ? type1->tp_as_sequence->sq_repeat : NULL;
 
         if (sq_slot != NULL) {
@@ -5520,7 +5243,6 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_OBJECT_BYTES(PyObject *operand1, 
 
             Py_DECREF(index_value);
 
-            /* Above conversion indicates an error as -1 */
             if (unlikely(count == -1)) {
                 PyErr_Format(PyExc_OverflowError, "cannot fit '%s' into an index-sized integer", type1->tp_name);
                 goto exit_binary_exception;
@@ -5550,7 +5272,6 @@ PyObject *BINARY_OPERATION_MULT_OBJECT_OBJECT_BYTES(PyObject *operand1, PyObject
 #endif
 
 #if PYTHON_VERSION >= 0x300
-/* Code referring to "BYTES" corresponds to Python3 'bytes' and "OBJECT" to any Python object. */
 static PyObject *_BINARY_OPERATION_MULT_OBJECT_BYTES_OBJECT(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyBytes_CheckExact(operand1));
@@ -5571,8 +5292,6 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_BYTES_OBJECT(PyObject *operand1, 
     binaryfunc slot2 = NULL;
 
     if (!(&PyBytes_Type == type2)) {
-        // Different types, need to consider second value slot.
-
         slot2 = (type2->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type2)) ? type2->tp_as_number->nb_multiply : NULL;
     }
 
@@ -5645,7 +5364,6 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_BYTES_OBJECT(PyObject *operand1, 
 
             Py_DECREF(index_value);
 
-            /* Above conversion indicates an error as -1 */
             if (unlikely(count == -1)) {
                 PyErr_Format(PyExc_OverflowError, "cannot fit '%s' into an index-sized integer", type2->tp_name);
                 goto exit_binary_exception;
@@ -5674,7 +5392,6 @@ PyObject *BINARY_OPERATION_MULT_OBJECT_BYTES_OBJECT(PyObject *operand1, PyObject
 }
 #endif
 
-/* Code referring to "OBJECT" corresponds to any Python object and "TUPLE" to Python 'tuple'. */
 static PyObject *_BINARY_OPERATION_MULT_OBJECT_OBJECT_TUPLE(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     CHECK_OBJECT(operand2);
@@ -5747,7 +5464,6 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_OBJECT_TUPLE(PyObject *operand1, 
 #endif
 
     {
-        // Special case for "+" and "*", also works as sequence concat/repeat.
         ssizeargfunc sq_slot = type1->tp_as_sequence != NULL ? type1->tp_as_sequence->sq_repeat : NULL;
 
         if (sq_slot != NULL) {
@@ -5775,7 +5491,6 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_OBJECT_TUPLE(PyObject *operand1, 
 
             Py_DECREF(index_value);
 
-            /* Above conversion indicates an error as -1 */
             if (unlikely(count == -1)) {
                 PyErr_Format(PyExc_OverflowError, "cannot fit '%s' into an index-sized integer", type1->tp_name);
                 goto exit_binary_exception;
@@ -5803,7 +5518,6 @@ PyObject *BINARY_OPERATION_MULT_OBJECT_OBJECT_TUPLE(PyObject *operand1, PyObject
     return _BINARY_OPERATION_MULT_OBJECT_OBJECT_TUPLE(operand1, operand2);
 }
 
-/* Code referring to "TUPLE" corresponds to Python 'tuple' and "OBJECT" to any Python object. */
 static PyObject *_BINARY_OPERATION_MULT_OBJECT_TUPLE_OBJECT(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyTuple_CheckExact(operand1));
@@ -5824,8 +5538,6 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_TUPLE_OBJECT(PyObject *operand1, 
     binaryfunc slot2 = NULL;
 
     if (!(&PyTuple_Type == type2)) {
-        // Different types, need to consider second value slot.
-
         slot2 = (type2->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type2)) ? type2->tp_as_number->nb_multiply : NULL;
     }
 
@@ -5898,7 +5610,6 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_TUPLE_OBJECT(PyObject *operand1, 
 
             Py_DECREF(index_value);
 
-            /* Above conversion indicates an error as -1 */
             if (unlikely(count == -1)) {
                 PyErr_Format(PyExc_OverflowError, "cannot fit '%s' into an index-sized integer", type2->tp_name);
                 goto exit_binary_exception;
@@ -5926,7 +5637,6 @@ PyObject *BINARY_OPERATION_MULT_OBJECT_TUPLE_OBJECT(PyObject *operand1, PyObject
     return _BINARY_OPERATION_MULT_OBJECT_TUPLE_OBJECT(operand1, operand2);
 }
 
-/* Code referring to "OBJECT" corresponds to any Python object and "LIST" to Python 'list'. */
 static PyObject *_BINARY_OPERATION_MULT_OBJECT_OBJECT_LIST(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     CHECK_OBJECT(operand2);
@@ -5999,7 +5709,6 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_OBJECT_LIST(PyObject *operand1, P
 #endif
 
     {
-        // Special case for "+" and "*", also works as sequence concat/repeat.
         ssizeargfunc sq_slot = type1->tp_as_sequence != NULL ? type1->tp_as_sequence->sq_repeat : NULL;
 
         if (sq_slot != NULL) {
@@ -6027,7 +5736,6 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_OBJECT_LIST(PyObject *operand1, P
 
             Py_DECREF(index_value);
 
-            /* Above conversion indicates an error as -1 */
             if (unlikely(count == -1)) {
                 PyErr_Format(PyExc_OverflowError, "cannot fit '%s' into an index-sized integer", type1->tp_name);
                 goto exit_binary_exception;
@@ -6055,7 +5763,6 @@ PyObject *BINARY_OPERATION_MULT_OBJECT_OBJECT_LIST(PyObject *operand1, PyObject 
     return _BINARY_OPERATION_MULT_OBJECT_OBJECT_LIST(operand1, operand2);
 }
 
-/* Code referring to "LIST" corresponds to Python 'list' and "OBJECT" to any Python object. */
 static PyObject *_BINARY_OPERATION_MULT_OBJECT_LIST_OBJECT(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyList_CheckExact(operand1));
@@ -6076,8 +5783,6 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_LIST_OBJECT(PyObject *operand1, P
     binaryfunc slot2 = NULL;
 
     if (!(&PyList_Type == type2)) {
-        // Different types, need to consider second value slot.
-
         slot2 = (type2->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type2)) ? type2->tp_as_number->nb_multiply : NULL;
     }
 
@@ -6150,7 +5855,6 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_LIST_OBJECT(PyObject *operand1, P
 
             Py_DECREF(index_value);
 
-            /* Above conversion indicates an error as -1 */
             if (unlikely(count == -1)) {
                 PyErr_Format(PyExc_OverflowError, "cannot fit '%s' into an index-sized integer", type2->tp_name);
                 goto exit_binary_exception;
@@ -6178,7 +5882,6 @@ PyObject *BINARY_OPERATION_MULT_OBJECT_LIST_OBJECT(PyObject *operand1, PyObject 
     return _BINARY_OPERATION_MULT_OBJECT_LIST_OBJECT(operand1, operand2);
 }
 
-/* Code referring to "OBJECT" corresponds to any Python object and "OBJECT" to any Python object. */
 static PyObject *_BINARY_OPERATION_MULT_OBJECT_OBJECT_OBJECT(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     CHECK_OBJECT(operand2);
@@ -6187,7 +5890,6 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_OBJECT_OBJECT(PyObject *operand1,
     if (PyInt_CheckExact(operand1) && PyInt_CheckExact(operand2)) {
         PyObject *result;
 
-        // Not every code path will make use of all possible results.
 #if defined(_MSC_VER)
 #pragma warning(push)
 #pragma warning(disable : 4101)
@@ -6274,8 +5976,6 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_OBJECT_OBJECT(PyObject *operand1,
     binaryfunc slot2 = NULL;
 
     if (!(type1 == type2)) {
-        // Different types, need to consider second value slot.
-
         slot2 = (type2->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type2)) ? type2->tp_as_number->nb_multiply : NULL;
 
         if (slot1 == slot2) {
@@ -6395,7 +6095,6 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_OBJECT_OBJECT(PyObject *operand1,
 #endif
 
     {
-        // Special case for "+" and "*", also works as sequence concat/repeat.
         ssizeargfunc sq_slot = type1->tp_as_sequence != NULL ? type1->tp_as_sequence->sq_repeat : NULL;
 
         if (sq_slot != NULL) {
@@ -6405,7 +6104,6 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_OBJECT_OBJECT(PyObject *operand1,
             goto exit_binary_result_object;
         }
     }
-    // Special case for "*", also work with sequence repeat from right argument.
     {
         ssizeargfunc sq_slot = type2->tp_as_sequence != NULL ? type2->tp_as_sequence->sq_repeat : NULL;
 
@@ -6431,7 +6129,6 @@ PyObject *BINARY_OPERATION_MULT_OBJECT_OBJECT_OBJECT(PyObject *operand1, PyObjec
     return _BINARY_OPERATION_MULT_OBJECT_OBJECT_OBJECT(operand1, operand2);
 }
 
-/* Code referring to "OBJECT" corresponds to any Python object and "OBJECT" to any Python object. */
 static nuitka_bool _BINARY_OPERATION_MULT_NBOOL_OBJECT_OBJECT(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     CHECK_OBJECT(operand2);
@@ -6440,7 +6137,6 @@ static nuitka_bool _BINARY_OPERATION_MULT_NBOOL_OBJECT_OBJECT(PyObject *operand1
     if (PyInt_CheckExact(operand1) && PyInt_CheckExact(operand2)) {
         nuitka_bool result;
 
-        // Not every code path will make use of all possible results.
 #if defined(_MSC_VER)
 #pragma warning(push)
 #pragma warning(disable : 4101)
@@ -6498,7 +6194,7 @@ static nuitka_bool _BINARY_OPERATION_MULT_NBOOL_OBJECT_OBJECT(PyObject *operand1
         if (unlikely(obj_result == NULL)) {
             goto exit_result_exception;
         }
-        result = CHECK_IF_TRUE(obj_result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+        result = CHECK_IF_TRUE_NBOOL(obj_result);
         Py_DECREF(obj_result);
         goto exit_result_ok;
 
@@ -6528,8 +6224,6 @@ static nuitka_bool _BINARY_OPERATION_MULT_NBOOL_OBJECT_OBJECT(PyObject *operand1
     binaryfunc slot2 = NULL;
 
     if (!(type1 == type2)) {
-        // Different types, need to consider second value slot.
-
         slot2 = (type2->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type2)) ? type2->tp_as_number->nb_multiply : NULL;
 
         if (slot1 == slot2) {
@@ -6649,7 +6343,6 @@ static nuitka_bool _BINARY_OPERATION_MULT_NBOOL_OBJECT_OBJECT(PyObject *operand1
 #endif
 
     {
-        // Special case for "+" and "*", also works as sequence concat/repeat.
         ssizeargfunc sq_slot = type1->tp_as_sequence != NULL ? type1->tp_as_sequence->sq_repeat : NULL;
 
         if (sq_slot != NULL) {
@@ -6659,7 +6352,6 @@ static nuitka_bool _BINARY_OPERATION_MULT_NBOOL_OBJECT_OBJECT(PyObject *operand1
             goto exit_binary_result_object;
         }
     }
-    // Special case for "*", also work with sequence repeat from right argument.
     {
         ssizeargfunc sq_slot = type2->tp_as_sequence != NULL ? type2->tp_as_sequence->sq_repeat : NULL;
 
@@ -6680,7 +6372,7 @@ exit_binary_result_object:
     }
 
     {
-        nuitka_bool r = CHECK_IF_TRUE(obj_result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+        nuitka_bool r = CHECK_IF_TRUE_NBOOL(obj_result);
         Py_DECREF(obj_result);
         return r;
     }

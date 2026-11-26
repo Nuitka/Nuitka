@@ -7,25 +7,25 @@ from nuitka.__past__ import long
 from nuitka.options.Options import isDeploymentMode, shallMakeModule
 from nuitka.plugins.Hooks import getExtraConstantDefaultPopulation
 from nuitka.PythonVersions import python_version
-from nuitka.utils.Utils import isWin32Windows
+from nuitka.targets.Targets import isWin32Target
 
 # spell-checker: ignore fromlist
 
 
 def getConstantDefaultPopulation():
-    """These are values for non-trivial constants.
+    """Return values for non-trivial constants.
 
-    Constants that have a direct name, e.g. Py_True are trivial, these are for things that must
-    be constructed through code.
+    Constants that have a direct name (e.g. 'Py_True') are trivial; these are
+    for things that must be constructed through code.
     """
 
-    # Lots of cases, pylint: disable=too-many-branches,too-many-statements
+    # pylint: disable=too-many-branches,too-many-statements
 
     # Note: Can't work with set here, because we need to put in some values that
     # cannot be hashed.
 
     result = [
-        # Basic values that the helper code uses all the times.
+        # Basic values that the helper code uses all the time.
         (),
         {},
         0,
@@ -55,8 +55,7 @@ def getConstantDefaultPopulation():
         "__abstractmethods__",
         "__closure__",
         "__instancecheck__",
-        # TODO: For PyObject_IsSubClass one day
-        # "__subclasscheck__",
+        "__subclasscheck__",
         "__dict__",
         "__doc__",
         "__file__",
@@ -68,6 +67,8 @@ def getConstantDefaultPopulation():
         "__init__",
         "__cmp__",
         "__iter__",
+        "__getitem__",
+        "__length_hint__",
         "__loader__",
         # Nuitka specific
         "__compiled__",
@@ -79,6 +80,8 @@ def getConstantDefaultPopulation():
         "inspect",
         # Names of built-ins used in helper code.
         "compile",
+        "eval",
+        "exec",
         "range",
         "open",
         "super",
@@ -90,13 +93,18 @@ def getConstantDefaultPopulation():
         "classmethod",
         "keys",
         "get",
+        "pop",
+        "join",
         "print",
         # Arguments of __import__ built-in used in helper code.
         "name",
         "globals",
         "locals",
+        "vars",
+        "dir",
         "fromlist",
         "level",
+        "closure",
         # Meta path based loader.
         "read",
         "rb",
@@ -104,6 +112,8 @@ def getConstantDefaultPopulation():
         "w",
         "b",
         "lower",
+        "loader",
+        "reload",
         # File handling
         "/",
         "\\",
@@ -129,18 +139,19 @@ def getConstantDefaultPopulation():
         result += ("getattr",)
 
     if python_version >= 0x300:
-        # For Python3 modules
         result += ("__cached__",)
 
     if python_version >= 0x300:
         # For Python3 print
         result += ("end", "file")
 
-        # For Python3 "bytes" built-in.
         result.append("bytes")
 
         # Module lock handling of direct imports.
         result += ("acquire", "release")
+
+    # For the pkgutil.iter_modules replacement helper.
+    result += ("ModuleInfo", "get_importer", "iter_importer_modules")
 
     # For meta path based loader, iter_modules and Python3 "__name__" to
     # "__package__" parsing
@@ -152,9 +163,7 @@ def getConstantDefaultPopulation():
         result.append("_")
 
     if python_version >= 0x300:
-        # Modules have that attribute starting with Python3
         result.append("__loader__")
-        # Also very unavoidable with Python3
         result.append("__annotations__")
 
         # YIELD_FROM uses this
@@ -173,14 +182,9 @@ def getConstantDefaultPopulation():
         # For setting Python2 "sys" attributes for current exception
         result += ("exc_type", "exc_value", "exc_traceback")
 
-        # Abstract base classes need to call the method
-        result.append("join")
-
-    # The xrange built-in is Python2 only.
     if python_version < 0x300:
         result.append("xrange")
 
-    # Executables only
     if not shallMakeModule():
         # The "site" module is referenced in inspect patching.
         result.append("site")
@@ -223,7 +227,6 @@ def getConstantDefaultPopulation():
         result.append("register")
 
     if python_version >= 0x370:
-        # New class method
         result.append("__class_getitem__")
 
     if python_version >= 0x370:
@@ -256,7 +259,7 @@ def getConstantDefaultPopulation():
         # For exception complaint using __qualname__.
         result.append("__qualname__")
 
-    if isWin32Windows():
+    if isWin32Target():
         result.append("fileno")
 
     if not isDeploymentMode():

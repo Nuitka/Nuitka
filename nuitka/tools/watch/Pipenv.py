@@ -6,8 +6,11 @@
 import os
 import subprocess
 
-from nuitka.utils.Execution import check_call
-from nuitka.utils.FileOperations import changeTextFileContents
+from nuitka.utils.Execution import check_call, check_output
+from nuitka.utils.FileOperations import (
+    changeTextFileContents,
+    getFileContentByLine,
+)
 
 from .Common import getPlatformRequirements
 
@@ -102,9 +105,65 @@ python_version = "%(python_version)s"
     return pipenv_filename
 
 
+def getVirtualenvPythonVersion(installed_python):
+    """Return the Python version of an existing "pipenv" virtualenv.
+
+    Args:
+        installed_python: InstalledPython object.
+
+    Returns:
+        str or None: Version like "3.11.4", or None if there is no
+        virtualenv, or its version cannot be determined.
+    """
+    try:
+        output = check_output(
+            [installed_python.getPythonExe(), "-m", "pipenv", "--venv"]
+        )
+    except subprocess.CalledProcessError:
+        # No virtualenv created yet, nothing to check.
+        return None
+
+    venv_path = output.decode("utf8").strip().splitlines()[-1]
+
+    pyvenv_config = os.path.join(venv_path, "pyvenv.cfg")
+
+    if not os.path.exists(pyvenv_config):
+        return None
+
+    version_info = None
+
+    for line in getFileContentByLine(pyvenv_config):
+        if line.startswith("version_info = "):
+            version_info = line.split("=", 1)[1].strip()
+            break
+
+    if version_info is None:
+        return None
+
+    # e.g. "3.11.4.final.0" becomes "3.11.4".
+    return ".".join(version_info.split(".")[:3])
+
+
 def updatePipenvLockFile(
     logger, installed_python, pipenv_filename_full, no_pipenv_update
 ):
+    # Check if the virtualenv might have been created with a different Python
+    # than the one selected for this run.
+    virtualenv_python_version = getVirtualenvPythonVersion(
+        installed_python=installed_python
+    )
+
+    if virtualenv_python_version is not None:
+        python_version = installed_python.getPythonFullVersion()
+
+        if virtualenv_python_version != python_version:
+            logger.info(
+                "  ... virtualenv uses Python %s, but Python %s is selected, recreating it."
+                % (virtualenv_python_version, python_version)
+            )
+
+            deletePipenvEnvironment(logger=logger, installed_python=installed_python)
+
     if os.path.exists("Pipfile.lock"):
         if no_pipenv_update:
             logger.info(

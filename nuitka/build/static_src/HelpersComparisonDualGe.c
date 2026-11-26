@@ -7,6 +7,7 @@
 #ifdef __IDE_ONLY__
 #include "nuitka/prelude.h"
 
+// Includes below require definitions from the prelude.
 #include "HelpersComparisonEq.c"
 #include "HelpersComparisonGe.c"
 #include "HelpersComparisonGt.c"
@@ -24,7 +25,6 @@ static bool COMPARE_LT_CBOOL_CLONG_CLONG(long operand1, long operand2);
 #endif
 /* C helpers for type specialized ">=" (GE) comparisons */
 
-/* Code referring to "NILONG" corresponds to Nuitka int/long/C long value and "CLONG" to C platform long value. */
 PyObject *RICH_COMPARE_GE_OBJECT_NILONG_CLONG(nuitka_ilong *operand1, long operand2) {
     CHECK_NILONG_OBJECT(operand1);
 
@@ -34,7 +34,6 @@ PyObject *RICH_COMPARE_GE_OBJECT_NILONG_CLONG(nuitka_ilong *operand1, long opera
     if (left_c_usable && right_c_usable) {
         bool r = COMPARE_LT_CBOOL_CLONG_CLONG(operand1->c_value, operand2);
 
-        // Convert to target type.
         PyObject *result = BOOL_FROM(!r);
         Py_INCREF_IMMORTAL(result);
         return result;
@@ -47,7 +46,6 @@ PyObject *RICH_COMPARE_GE_OBJECT_NILONG_CLONG(nuitka_ilong *operand1, long opera
     }
 }
 
-/* Code referring to "NILONG" corresponds to Nuitka int/long/C long value and "CLONG" to C platform long value. */
 bool RICH_COMPARE_GE_CBOOL_NILONG_CLONG(nuitka_ilong *operand1, long operand2) {
     CHECK_NILONG_OBJECT(operand1);
 
@@ -57,7 +55,6 @@ bool RICH_COMPARE_GE_CBOOL_NILONG_CLONG(nuitka_ilong *operand1, long operand2) {
     if (left_c_usable && right_c_usable) {
         bool r = COMPARE_LT_CBOOL_CLONG_CLONG(operand1->c_value, operand2);
 
-        // Convert to target type.
         bool result = !r;
 
         return result;
@@ -70,8 +67,6 @@ bool RICH_COMPARE_GE_CBOOL_NILONG_CLONG(nuitka_ilong *operand1, long operand2) {
     }
 }
 
-/* Code referring to "NILONG" corresponds to Nuitka int/long/C long value and "DIGIT" to C platform digit value for long
- * Python objects. */
 PyObject *RICH_COMPARE_GE_OBJECT_NILONG_DIGIT(nuitka_ilong *operand1, long operand2) {
     CHECK_NILONG_OBJECT(operand1);
     assert(Py_ABS(operand2) < (1 << PyLong_SHIFT));
@@ -82,7 +77,6 @@ PyObject *RICH_COMPARE_GE_OBJECT_NILONG_DIGIT(nuitka_ilong *operand1, long opera
     if (left_c_usable && right_c_usable) {
         bool r = COMPARE_LT_CBOOL_CLONG_CLONG(operand1->c_value, operand2);
 
-        // Convert to target type.
         PyObject *result = BOOL_FROM(!r);
         Py_INCREF_IMMORTAL(result);
         return result;
@@ -95,8 +89,6 @@ PyObject *RICH_COMPARE_GE_OBJECT_NILONG_DIGIT(nuitka_ilong *operand1, long opera
     }
 }
 
-/* Code referring to "NILONG" corresponds to Nuitka int/long/C long value and "DIGIT" to C platform digit value for long
- * Python objects. */
 bool RICH_COMPARE_GE_CBOOL_NILONG_DIGIT(nuitka_ilong *operand1, long operand2) {
     CHECK_NILONG_OBJECT(operand1);
     assert(Py_ABS(operand2) < (1 << PyLong_SHIFT));
@@ -107,7 +99,6 @@ bool RICH_COMPARE_GE_CBOOL_NILONG_DIGIT(nuitka_ilong *operand1, long operand2) {
     if (left_c_usable && right_c_usable) {
         bool r = COMPARE_LT_CBOOL_CLONG_CLONG(operand1->c_value, operand2);
 
-        // Convert to target type.
         bool result = !r;
 
         return result;

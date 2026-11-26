@@ -3,16 +3,17 @@
 
 # We are not avoiding these in generated code at all
 # pylint: disable=I0021,line-too-long,too-many-instance-attributes,too-many-lines
-# pylint: disable=I0021,too-many-arguments,too-many-return-statements,too-many-statements
+# pylint: disable=too-many-arguments,too-many-return-statements,too-many-statements
+# pylint: disable=literal-comparison
 
 
 """Hard import nodes
 
-WARNING, this code is GENERATED. Modify the template HardImportReferenceNode.py.j2 instead!
+WARNING, this code is GENERATED. Modify the templates HardImportReferenceNode.py.j2, HardImportCallNode.py.j2 instead!
 
-spell-checker: ignore __prepare__ append args autograph buffering capitalize casefold
-spell-checker: ignore center chars clear closefd copy count decode default delete dist
-spell-checker: ignore distribution_name encode encoding end endswith errors exit_code
+spell-checker: ignore __prepare__ anchor append args autograph buffering capitalize
+spell-checker: ignore casefold center chars clear closefd copy count decode default delete
+spell-checker: ignore dist distribution_name encode encoding end endswith errors exit_code
 spell-checker: ignore expandtabs experimental_attributes experimental_autograph_options
 spell-checker: ignore experimental_compile experimental_follow_type_hints
 spell-checker: ignore experimental_implements experimental_relax_shapes extend file
@@ -58,10 +59,15 @@ from nuitka.specs.HardImportSpecs import (
     importlib_metadata_metadata_spec,
     importlib_metadata_version_spec,
     importlib_resources_backport_files_spec,
+    importlib_resources_backport_open_binary_spec,
+    importlib_resources_backport_open_text_spec,
     importlib_resources_backport_read_binary_spec,
     importlib_resources_backport_read_text_spec,
     importlib_resources_files_since_312_spec,
+    importlib_resources_files_since_315_spec,
     importlib_resources_files_spec,
+    importlib_resources_open_binary_spec,
+    importlib_resources_open_text_spec,
     importlib_resources_read_binary_spec,
     importlib_resources_read_text_before_313_spec,
     importlib_resources_read_text_since_313_spec,
@@ -74,6 +80,7 @@ from nuitka.specs.HardImportSpecs import (
     os_path_isabs_spec,
     os_path_isdir_spec,
     os_path_isfile_spec,
+    os_path_join_spec,
     os_path_normpath_spec,
     os_stat_spec,
     os_uname_spec,
@@ -83,12 +90,14 @@ from nuitka.specs.HardImportSpecs import (
     pkg_resources_resource_stream_spec,
     pkg_resources_resource_string_spec,
     pkgutil_get_data_spec,
+    pkgutil_iter_modules_spec,
     sys_exit_spec,
     tensorflow_function_spec,
 )
 
 from .BuiltinRefNodes import ExpressionBuiltinRef
 from .ChildrenHavingMixins import (
+    ChildHavingAnchorOptionalMixin,
     ChildHavingDistMixin,
     ChildHavingDistributionNameMixin,
     ChildHavingExitCodeOptionalMixin,
@@ -96,13 +105,14 @@ from .ChildrenHavingMixins import (
     ChildHavingObjectMixin,
     ChildHavingObjectsTupleMixin,
     ChildHavingPackageMixin,
-    ChildHavingPackageOptionalMixin,
     ChildHavingParamsTupleMixin,
     ChildHavingPathMixin,
     ChildHavingPathOptionalMixin,
+    ChildHavingPathsTupleMixin,
     ChildHavingPMixin,
     ChildHavingRequirementsTupleMixin,
     ChildHavingSMixin,
+    ChildrenHavingAnchorOptionalPackageOptionalMixin,
     ChildrenHavingFileModeOptionalBufferingOptionalEncodingOptionalErrorsOptionalNewlineOptionalClosefdOptionalOpenerOptionalMixin,
     ChildrenHavingFuncOptionalInputSignatureOptionalAutographOptionalJitCompileOptionalReduceRetracingOptionalExperimentalImplementsOptionalExperimentalAutographOptionsOptionalExperimentalAttributesOptionalExperimentalRelaxShapesOptionalExperimentalCompileOptionalExperimentalFollowTypeHintsOptionalMixin,
     ChildrenHavingGroupNameOptionalMixin,
@@ -119,6 +129,7 @@ from .ChildrenHavingMixins import (
     ChildrenHavingPackageResourceMixin,
     ChildrenHavingPathOptionalDirFdOptionalFollowSymlinksOptionalMixin,
     ChildrenHavingPathOptionalDirFdOptionalMixin,
+    ChildrenHavingPathOptionalPrefixOptionalMixin,
 )
 from .ExpressionBases import ExpressionBase
 from .ExpressionShapeMixins import (
@@ -132,7 +143,7 @@ from .ImportHardNodes import ExpressionImportModuleNameHardExistsSpecificBase
 
 
 class ExpressionBuiltinsMemoryviewRef(ExpressionBuiltinRef):
-    """Function reference builtins.memoryview"""
+    """Function reference 'builtins.memoryview'."""
 
     kind = "EXPRESSION_BUILTINS_MEMORYVIEW_REF"
 
@@ -148,8 +159,6 @@ class ExpressionBuiltinsMemoryviewRef(ExpressionBuiltinRef):
         return {}
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
-        # Anything may happen on call trace before this. On next pass, if
-        # replaced, we might be better but not now.
         trace_collection.onExceptionRaiseExit(BaseException)
 
         from .BuiltinTypeNodes import ExpressionBuiltinsMemoryviewCall
@@ -171,10 +180,7 @@ addBuiltinRefNode("memoryview", ExpressionBuiltinsMemoryviewRef)
 
 
 class ExpressionBuiltinsMemoryviewCallBase(ChildHavingObjectMixin, ExpressionBase):
-    """Base class for BuiltinsMemoryviewCall
-
-    Generated boiler plate code from 'HardImportCallNode.py.j2' template.
-    """
+    """Base class for 'builtins.memoryview' call node."""
 
     named_children = ("object",)
 
@@ -220,7 +226,7 @@ class ExpressionBuiltinsMemoryviewCallBase(ChildHavingObjectMixin, ExpressionBas
 
 
 class ExpressionBuiltinsOpenRef(ExpressionBuiltinRef):
-    """Function reference builtins.open"""
+    """Function reference 'builtins.open'."""
 
     kind = "EXPRESSION_BUILTINS_OPEN_REF"
 
@@ -236,8 +242,6 @@ class ExpressionBuiltinsOpenRef(ExpressionBuiltinRef):
         return {}
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
-        # Anything may happen on call trace before this. On next pass, if
-        # replaced, we might be better but not now.
         trace_collection.onExceptionRaiseExit(BaseException)
 
         if python_version >= 0x300:
@@ -278,10 +282,7 @@ class ExpressionBuiltinsOpenSince3CallBase(
     ChildrenHavingFileModeOptionalBufferingOptionalEncodingOptionalErrorsOptionalNewlineOptionalClosefdOptionalOpenerOptionalMixin,
     ExpressionBase,
 ):
-    """Base class for BuiltinsOpenSince3Call
-
-    Generated boiler plate code from 'HardImportCallNode.py.j2' template.
-    """
+    """Base class for 'builtins.open' call node."""
 
     python_version_spec = ">= 0x300"
 
@@ -367,10 +368,7 @@ class ExpressionBuiltinsOpenSince3CallBase(
 class ExpressionBuiltinsOpenBefore3CallBase(
     ChildrenHavingNameOptionalModeOptionalBufferingOptionalMixin, ExpressionBase
 ):
-    """Base class for BuiltinsOpenBefore3Call
-
-    Generated boiler plate code from 'HardImportCallNode.py.j2' template.
-    """
+    """Base class for 'builtins.open' call node."""
 
     python_version_spec = "< 0x300"
 
@@ -428,7 +426,7 @@ class ExpressionBuiltinsOpenBefore3CallBase(
 
 
 class ExpressionBuiltinsPrintRef(ExpressionBuiltinRef):
-    """Function reference builtins.print"""
+    """Function reference 'builtins.print'."""
 
     kind = "EXPRESSION_BUILTINS_PRINT_REF"
 
@@ -444,8 +442,6 @@ class ExpressionBuiltinsPrintRef(ExpressionBuiltinRef):
         return {}
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
-        # Anything may happen on call trace before this. On next pass, if
-        # replaced, we might be better but not now.
         trace_collection.onExceptionRaiseExit(BaseException)
 
         if python_version >= 0x300:
@@ -485,10 +481,7 @@ addBuiltinRefNode("print", ExpressionBuiltinsPrintRef)
 class ExpressionBuiltinsPrintSince3Call1Base(
     ChildHavingObjectsTupleMixin, ExpressionBase
 ):
-    """Base class for BuiltinsPrintSince3Call
-
-    Generated boiler plate code from 'HardImportCallNode.py.j2' template.
-    """
+    """Base class for 'builtins.print' call node."""
 
     python_version_spec = ">= 0x300"
 
@@ -539,10 +532,7 @@ class ExpressionBuiltinsPrintSince3CallBase(
     ChildrenHavingObjectsTupleSepOptionalEndOptionalFileOptionalFlushOptionalMixin,
     ExpressionBase,
 ):
-    """Base class for BuiltinsPrintSince3Call
-
-    Generated boiler plate code from 'HardImportCallNode.py.j2' template.
-    """
+    """Base class for 'builtins.print' call node."""
 
     python_version_spec = ">= 0x300"
 
@@ -602,10 +592,7 @@ class ExpressionBuiltinsPrintSince3CallBase(
 class ExpressionBuiltinsPrintBefore3CallBase(
     ChildrenHavingObjectsTupleSepOptionalEndOptionalFileOptionalMixin, ExpressionBase
 ):
-    """Base class for BuiltinsPrintBefore3Call
-
-    Generated boiler plate code from 'HardImportCallNode.py.j2' template.
-    """
+    """Base class for 'builtins.print' call node."""
 
     python_version_spec = "< 0x300"
 
@@ -661,7 +648,7 @@ class ExpressionBuiltinsPrintBefore3CallBase(
 
 
 class ExpressionBuiltinsReversedRef(ExpressionBuiltinRef):
-    """Function reference builtins.reversed"""
+    """Function reference 'builtins.reversed'."""
 
     kind = "EXPRESSION_BUILTINS_REVERSED_REF"
 
@@ -677,8 +664,6 @@ class ExpressionBuiltinsReversedRef(ExpressionBuiltinRef):
         return {}
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
-        # Anything may happen on call trace before this. On next pass, if
-        # replaced, we might be better but not now.
         trace_collection.onExceptionRaiseExit(BaseException)
 
         from .BuiltinIteratorNodes import ExpressionBuiltinsReversedCall
@@ -700,10 +685,7 @@ addBuiltinRefNode("reversed", ExpressionBuiltinsReversedRef)
 
 
 class ExpressionBuiltinsReversedCallBase(ChildHavingObjectMixin, ExpressionBase):
-    """Base class for BuiltinsReversedCall
-
-    Generated boiler plate code from 'HardImportCallNode.py.j2' template.
-    """
+    """Base class for 'builtins.reversed' call node."""
 
     named_children = ("object",)
 
@@ -749,7 +731,7 @@ class ExpressionBuiltinsReversedCallBase(ChildHavingObjectMixin, ExpressionBase)
 
 
 class ExpressionBuiltinsSortedRef(ExpressionBuiltinRef):
-    """Function reference builtins.sorted"""
+    """Function reference 'builtins.sorted'."""
 
     kind = "EXPRESSION_BUILTINS_SORTED_REF"
 
@@ -765,8 +747,6 @@ class ExpressionBuiltinsSortedRef(ExpressionBuiltinRef):
         return {}
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
-        # Anything may happen on call trace before this. On next pass, if
-        # replaced, we might be better but not now.
         trace_collection.onExceptionRaiseExit(BaseException)
 
         if python_version >= 0x300:
@@ -810,10 +790,7 @@ addBuiltinRefNode("sorted", ExpressionBuiltinsSortedRef)
 class ExpressionBuiltinsSortedSince3Call1Base(
     ChildHavingIterableOptionalMixin, ExpressionBase
 ):
-    """Base class for BuiltinsSortedSince3Call
-
-    Generated boiler plate code from 'HardImportCallNode.py.j2' template.
-    """
+    """Base class for 'builtins.sorted' call node."""
 
     python_version_spec = ">= 0x300"
 
@@ -863,10 +840,7 @@ class ExpressionBuiltinsSortedSince3Call1Base(
 class ExpressionBuiltinsSortedSince3CallBase(
     ChildrenHavingIterableOptionalKeyOptionalReverseOptionalMixin, ExpressionBase
 ):
-    """Base class for BuiltinsSortedSince3Call
-
-    Generated boiler plate code from 'HardImportCallNode.py.j2' template.
-    """
+    """Base class for 'builtins.sorted' call node."""
 
     python_version_spec = ">= 0x300"
 
@@ -922,10 +896,7 @@ class ExpressionBuiltinsSortedSince3CallBase(
 class ExpressionBuiltinsSortedBefore3CallBase(
     ChildrenHavingIterableCmpOptionalKeyOptionalReverseOptionalMixin, ExpressionBase
 ):
-    """Base class for BuiltinsSortedBefore3Call
-
-    Generated boiler plate code from 'HardImportCallNode.py.j2' template.
-    """
+    """Base class for 'builtins.sorted' call node."""
 
     python_version_spec = "< 0x300"
 
@@ -986,7 +957,7 @@ class ExpressionBuiltinsSortedBefore3CallBase(
 
 
 class ExpressionCtypesCdllRef(ExpressionImportModuleNameHardExistsSpecificBase):
-    """Function reference ctypes.CDLL"""
+    """Function reference 'ctypes.CDLL'."""
 
     kind = "EXPRESSION_CTYPES_CDLL_REF"
 
@@ -1000,8 +971,6 @@ class ExpressionCtypesCdllRef(ExpressionImportModuleNameHardExistsSpecificBase):
         )
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
-        # Anything may happen on call trace before this. On next pass, if
-        # replaced, we might be better but not now.
         trace_collection.onExceptionRaiseExit(BaseException)
 
         if python_version >= 0x380:
@@ -1042,10 +1011,7 @@ class ExpressionCtypesCdllSince38CallBase(
     ChildrenHavingNameModeOptionalHandleOptionalUseErrnoOptionalUseLastErrorOptionalWinmodeOptionalMixin,
     ExpressionBase,
 ):
-    """Base class for CtypesCdllSince38Call
-
-    Generated boiler plate code from 'HardImportCallNode.py.j2' template.
-    """
+    """Base class for 'ctypes.CDLL' call node."""
 
     python_version_spec = ">= 0x380"
 
@@ -1113,10 +1079,7 @@ class ExpressionCtypesCdllBefore38CallBase(
     ChildrenHavingNameModeOptionalHandleOptionalUseErrnoOptionalUseLastErrorOptionalMixin,
     ExpressionBase,
 ):
-    """Base class for CtypesCdllBefore38Call
-
-    Generated boiler plate code from 'HardImportCallNode.py.j2' template.
-    """
+    """Base class for 'ctypes.CDLL' call node."""
 
     python_version_spec = "< 0x380"
 
@@ -1178,7 +1141,7 @@ class ExpressionCtypesCdllBefore38CallBase(
 class ExpressionImportlibMetadataBackportDistributionRef(
     ExpressionImportModuleNameHardExistsSpecificBase
 ):
-    """Function reference importlib_metadata.distribution"""
+    """Function reference 'importlib_metadata.distribution'."""
 
     kind = "EXPRESSION_IMPORTLIB_METADATA_BACKPORT_DISTRIBUTION_REF"
 
@@ -1192,8 +1155,6 @@ class ExpressionImportlibMetadataBackportDistributionRef(
         )
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
-        # Anything may happen on call trace before this. On next pass, if
-        # replaced, we might be better but not now.
         trace_collection.onExceptionRaiseExit(BaseException)
 
         from .PackageMetadataNodes import (
@@ -1222,10 +1183,7 @@ addHardImportNodeClass(
 class ExpressionImportlibMetadataBackportDistributionCallBase(
     ChildHavingDistributionNameMixin, ExpressionBase
 ):
-    """Base class for ImportlibMetadataBackportDistributionCall
-
-    Generated boiler plate code from 'HardImportCallNode.py.j2' template.
-    """
+    """Base class for 'importlib_metadata.distribution' call node."""
 
     named_children = ("distribution_name",)
 
@@ -1273,7 +1231,7 @@ class ExpressionImportlibMetadataBackportDistributionCallBase(
 class ExpressionImportlibMetadataBackportEntryPointsRef(
     ExpressionImportModuleNameHardExistsSpecificBase
 ):
-    """Function reference importlib_metadata.entry_points"""
+    """Function reference 'importlib_metadata.entry_points'."""
 
     kind = "EXPRESSION_IMPORTLIB_METADATA_BACKPORT_ENTRY_POINTS_REF"
 
@@ -1287,8 +1245,6 @@ class ExpressionImportlibMetadataBackportEntryPointsRef(
         )
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
-        # Anything may happen on call trace before this. On next pass, if
-        # replaced, we might be better but not now.
         trace_collection.onExceptionRaiseExit(BaseException)
 
         from .PackageMetadataNodes import (
@@ -1317,10 +1273,7 @@ addHardImportNodeClass(
 class ExpressionImportlibMetadataBackportEntryPointsCallBase(
     ChildHavingParamsTupleMixin, ExpressionBase
 ):
-    """Base class for ImportlibMetadataBackportEntryPointsCall
-
-    Generated boiler plate code from 'HardImportCallNode.py.j2' template.
-    """
+    """Base class for 'importlib_metadata.entry_points' call node."""
 
     named_children = ("params|tuple",)
 
@@ -1368,7 +1321,7 @@ class ExpressionImportlibMetadataBackportEntryPointsCallBase(
 class ExpressionImportlibMetadataBackportMetadataRef(
     ExpressionImportModuleNameHardExistsSpecificBase
 ):
-    """Function reference importlib_metadata.metadata"""
+    """Function reference 'importlib_metadata.metadata'."""
 
     kind = "EXPRESSION_IMPORTLIB_METADATA_BACKPORT_METADATA_REF"
 
@@ -1382,8 +1335,6 @@ class ExpressionImportlibMetadataBackportMetadataRef(
         )
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
-        # Anything may happen on call trace before this. On next pass, if
-        # replaced, we might be better but not now.
         trace_collection.onExceptionRaiseExit(BaseException)
 
         from .PackageMetadataNodes import (
@@ -1412,10 +1363,7 @@ addHardImportNodeClass(
 class ExpressionImportlibMetadataBackportMetadataCallBase(
     ChildHavingDistributionNameMixin, ExpressionBase
 ):
-    """Base class for ImportlibMetadataBackportMetadataCall
-
-    Generated boiler plate code from 'HardImportCallNode.py.j2' template.
-    """
+    """Base class for 'importlib_metadata.metadata' call node."""
 
     named_children = ("distribution_name",)
 
@@ -1463,7 +1411,7 @@ class ExpressionImportlibMetadataBackportMetadataCallBase(
 class ExpressionImportlibMetadataBackportVersionRef(
     ExpressionImportModuleNameHardExistsSpecificBase
 ):
-    """Function reference importlib_metadata.version"""
+    """Function reference 'importlib_metadata.version'."""
 
     kind = "EXPRESSION_IMPORTLIB_METADATA_BACKPORT_VERSION_REF"
 
@@ -1477,8 +1425,6 @@ class ExpressionImportlibMetadataBackportVersionRef(
         )
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
-        # Anything may happen on call trace before this. On next pass, if
-        # replaced, we might be better but not now.
         trace_collection.onExceptionRaiseExit(BaseException)
 
         from .PackageMetadataNodes import (
@@ -1507,10 +1453,7 @@ addHardImportNodeClass(
 class ExpressionImportlibMetadataBackportVersionCallBase(
     ChildHavingDistributionNameMixin, ExpressionBase
 ):
-    """Base class for ImportlibMetadataBackportVersionCall
-
-    Generated boiler plate code from 'HardImportCallNode.py.j2' template.
-    """
+    """Base class for 'importlib_metadata.version' call node."""
 
     named_children = ("distribution_name",)
 
@@ -1558,7 +1501,7 @@ class ExpressionImportlibMetadataBackportVersionCallBase(
 class ExpressionImportlibMetadataDistributionRef(
     ExpressionImportModuleNameHardExistsSpecificBase
 ):
-    """Function reference importlib.metadata.distribution"""
+    """Function reference 'importlib.metadata.distribution'."""
 
     kind = "EXPRESSION_IMPORTLIB_METADATA_DISTRIBUTION_REF"
 
@@ -1572,8 +1515,6 @@ class ExpressionImportlibMetadataDistributionRef(
         )
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
-        # Anything may happen on call trace before this. On next pass, if
-        # replaced, we might be better but not now.
         trace_collection.onExceptionRaiseExit(BaseException)
 
         from .PackageMetadataNodes import (
@@ -1601,10 +1542,7 @@ addHardImportNodeClass(
 class ExpressionImportlibMetadataDistributionCallBase(
     ChildHavingDistributionNameMixin, ExpressionBase
 ):
-    """Base class for ImportlibMetadataDistributionCall
-
-    Generated boiler plate code from 'HardImportCallNode.py.j2' template.
-    """
+    """Base class for 'importlib.metadata.distribution' call node."""
 
     named_children = ("distribution_name",)
 
@@ -1651,7 +1589,7 @@ class ExpressionImportlibMetadataDistributionCallBase(
 class ExpressionImportlibMetadataEntryPointsRef(
     ExpressionImportModuleNameHardExistsSpecificBase
 ):
-    """Function reference importlib.metadata.entry_points"""
+    """Function reference 'importlib.metadata.entry_points'."""
 
     kind = "EXPRESSION_IMPORTLIB_METADATA_ENTRY_POINTS_REF"
 
@@ -1665,8 +1603,6 @@ class ExpressionImportlibMetadataEntryPointsRef(
         )
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
-        # Anything may happen on call trace before this. On next pass, if
-        # replaced, we might be better but not now.
         trace_collection.onExceptionRaiseExit(BaseException)
 
         if python_version >= 0x3A0:
@@ -1713,10 +1649,7 @@ addHardImportNodeClass(
 class ExpressionImportlibMetadataEntryPointsSince310CallBase(
     ChildHavingParamsTupleMixin, ExpressionBase
 ):
-    """Base class for ImportlibMetadataEntryPointsSince310Call
-
-    Generated boiler plate code from 'HardImportCallNode.py.j2' template.
-    """
+    """Base class for 'importlib.metadata.entry_points' call node."""
 
     python_version_spec = ">= 0x3a0"
 
@@ -1765,10 +1698,7 @@ class ExpressionImportlibMetadataEntryPointsSince310CallBase(
 class ExpressionImportlibMetadataEntryPointsBefore310CallBase(
     ExpressionDictShapeExactMixin, ExpressionBase
 ):
-    """Base class for ImportlibMetadataEntryPointsBefore310Call
-
-    Generated boiler plate code from 'HardImportCallNode.py.j2' template.
-    """
+    """Base class for 'importlib.metadata.entry_points' call node."""
 
     python_version_spec = "< 0x3a0"
 
@@ -1808,7 +1738,7 @@ class ExpressionImportlibMetadataEntryPointsBefore310CallBase(
 class ExpressionImportlibMetadataMetadataRef(
     ExpressionImportModuleNameHardExistsSpecificBase
 ):
-    """Function reference importlib.metadata.metadata"""
+    """Function reference 'importlib.metadata.metadata'."""
 
     kind = "EXPRESSION_IMPORTLIB_METADATA_METADATA_REF"
 
@@ -1822,8 +1752,6 @@ class ExpressionImportlibMetadataMetadataRef(
         )
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
-        # Anything may happen on call trace before this. On next pass, if
-        # replaced, we might be better but not now.
         trace_collection.onExceptionRaiseExit(BaseException)
 
         from .PackageMetadataNodes import (
@@ -1851,10 +1779,7 @@ addHardImportNodeClass(
 class ExpressionImportlibMetadataMetadataCallBase(
     ChildHavingDistributionNameMixin, ExpressionBase
 ):
-    """Base class for ImportlibMetadataMetadataCall
-
-    Generated boiler plate code from 'HardImportCallNode.py.j2' template.
-    """
+    """Base class for 'importlib.metadata.metadata' call node."""
 
     named_children = ("distribution_name",)
 
@@ -1901,7 +1826,7 @@ class ExpressionImportlibMetadataMetadataCallBase(
 class ExpressionImportlibMetadataVersionRef(
     ExpressionImportModuleNameHardExistsSpecificBase
 ):
-    """Function reference importlib.metadata.version"""
+    """Function reference 'importlib.metadata.version'."""
 
     kind = "EXPRESSION_IMPORTLIB_METADATA_VERSION_REF"
 
@@ -1915,8 +1840,6 @@ class ExpressionImportlibMetadataVersionRef(
         )
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
-        # Anything may happen on call trace before this. On next pass, if
-        # replaced, we might be better but not now.
         trace_collection.onExceptionRaiseExit(BaseException)
 
         from .PackageMetadataNodes import (
@@ -1944,10 +1867,7 @@ addHardImportNodeClass(
 class ExpressionImportlibMetadataVersionCallBase(
     ChildHavingDistributionNameMixin, ExpressionBase
 ):
-    """Base class for ImportlibMetadataVersionCall
-
-    Generated boiler plate code from 'HardImportCallNode.py.j2' template.
-    """
+    """Base class for 'importlib.metadata.version' call node."""
 
     named_children = ("distribution_name",)
 
@@ -1994,7 +1914,7 @@ class ExpressionImportlibMetadataVersionCallBase(
 class ExpressionImportlibResourcesBackportFilesRef(
     ExpressionImportModuleNameHardExistsSpecificBase
 ):
-    """Function reference importlib_resources.files"""
+    """Function reference 'importlib_resources.files'."""
 
     kind = "EXPRESSION_IMPORTLIB_RESOURCES_BACKPORT_FILES_REF"
 
@@ -2008,8 +1928,6 @@ class ExpressionImportlibResourcesBackportFilesRef(
         )
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
-        # Anything may happen on call trace before this. On next pass, if
-        # replaced, we might be better but not now.
         trace_collection.onExceptionRaiseExit(BaseException)
 
         from .PackageResourceNodes import (
@@ -2038,10 +1956,7 @@ addHardImportNodeClass(
 class ExpressionImportlibResourcesBackportFilesCallBase(
     ChildHavingPackageMixin, ExpressionBase
 ):
-    """Base class for ImportlibResourcesBackportFilesCall
-
-    Generated boiler plate code from 'HardImportCallNode.py.j2' template.
-    """
+    """Base class for 'importlib_resources.files' call node."""
 
     named_children = ("package",)
 
@@ -2086,10 +2001,210 @@ class ExpressionImportlibResourcesBackportFilesCallBase(
         return True
 
 
+class ExpressionImportlibResourcesBackportOpenBinaryRef(
+    ExpressionImportModuleNameHardExistsSpecificBase
+):
+    """Function reference 'importlib_resources.open_binary'."""
+
+    kind = "EXPRESSION_IMPORTLIB_RESOURCES_BACKPORT_OPEN_BINARY_REF"
+
+    def __init__(self, source_ref):
+        ExpressionImportModuleNameHardExistsSpecificBase.__init__(
+            self,
+            module_name="importlib_resources",
+            import_name="open_binary",
+            module_guaranteed=not shallMakeModule(),
+            source_ref=source_ref,
+        )
+
+    def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        from .PackageResourceNodes import (
+            ExpressionImportlibResourcesBackportOpenBinaryCall,
+        )
+
+        result = extractBuiltinArgs(
+            node=call_node,
+            builtin_class=ExpressionImportlibResourcesBackportOpenBinaryCall,
+            builtin_spec=importlib_resources_backport_open_binary_spec,
+        )
+
+        return (
+            result,
+            "new_expression",
+            "Call to 'importlib_resources.open_binary' recognized.",
+        )
+
+
+addHardImportNodeClass(
+    ExpressionImportlibResourcesBackportOpenBinaryRef,
+    importlib_resources_backport_open_binary_spec,
+)
+
+
+class ExpressionImportlibResourcesBackportOpenBinaryCallBase(
+    ChildrenHavingPackageResourceMixin, ExpressionBase
+):
+    """Base class for 'importlib_resources.open_binary' call node."""
+
+    named_children = (
+        "package",
+        "resource",
+    )
+
+    __slots__ = ("attempted",)
+
+    spec = importlib_resources_backport_open_binary_spec
+
+    def __init__(self, package, resource, source_ref):
+
+        ChildrenHavingPackageResourceMixin.__init__(
+            self,
+            package=package,
+            resource=resource,
+        )
+
+        ExpressionBase.__init__(self, source_ref)
+
+        # In module mode, we expect a changing environment, cannot optimize this
+        self.attempted = shallMakeModule()
+
+    def computeExpression(self, trace_collection):
+        if (
+            self.attempted
+            or not importlib_resources_backport_open_binary_spec.isCompileTimeComputable(
+                (
+                    self.subnode_package,
+                    self.subnode_resource,
+                )
+            )
+        ):
+            trace_collection.onExceptionRaiseExit(BaseException)
+
+            return self, None, None
+
+        try:
+            return self.replaceWithCompileTimeValue(trace_collection)
+        finally:
+            self.attempted = True
+
+    @abstractmethod
+    def replaceWithCompileTimeValue(self, trace_collection):
+        pass
+
+    @staticmethod
+    def mayRaiseExceptionOperation():
+        return True
+
+
+class ExpressionImportlibResourcesBackportOpenTextRef(
+    ExpressionImportModuleNameHardExistsSpecificBase
+):
+    """Function reference 'importlib_resources.open_text'."""
+
+    kind = "EXPRESSION_IMPORTLIB_RESOURCES_BACKPORT_OPEN_TEXT_REF"
+
+    def __init__(self, source_ref):
+        ExpressionImportModuleNameHardExistsSpecificBase.__init__(
+            self,
+            module_name="importlib_resources",
+            import_name="open_text",
+            module_guaranteed=not shallMakeModule(),
+            source_ref=source_ref,
+        )
+
+    def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        from .PackageResourceNodes import (
+            makeExpressionImportlibResourcesBackportOpenTextCall,
+        )
+
+        result = extractBuiltinArgs(
+            node=call_node,
+            builtin_class=makeExpressionImportlibResourcesBackportOpenTextCall,
+            builtin_spec=importlib_resources_backport_open_text_spec,
+        )
+
+        return (
+            result,
+            "new_expression",
+            "Call to 'importlib_resources.open_text' recognized.",
+        )
+
+
+addHardImportNodeClass(
+    ExpressionImportlibResourcesBackportOpenTextRef,
+    importlib_resources_backport_open_text_spec,
+)
+
+
+class ExpressionImportlibResourcesBackportOpenTextCallBase(
+    ChildrenHavingPackageResourceEncodingOptionalErrorsOptionalMixin, ExpressionBase
+):
+    """Base class for 'importlib_resources.open_text' call node."""
+
+    named_children = (
+        "package",
+        "resource",
+        "encoding|optional",
+        "errors|optional",
+    )
+
+    __slots__ = ("attempted",)
+
+    spec = importlib_resources_backport_open_text_spec
+
+    def __init__(self, package, resource, encoding, errors, source_ref):
+
+        ChildrenHavingPackageResourceEncodingOptionalErrorsOptionalMixin.__init__(
+            self,
+            package=package,
+            resource=resource,
+            encoding=encoding,
+            errors=errors,
+        )
+
+        ExpressionBase.__init__(self, source_ref)
+
+        # In module mode, we expect a changing environment, cannot optimize this
+        self.attempted = shallMakeModule()
+
+    def computeExpression(self, trace_collection):
+        if (
+            self.attempted
+            or not importlib_resources_backport_open_text_spec.isCompileTimeComputable(
+                (
+                    self.subnode_package,
+                    self.subnode_resource,
+                    self.subnode_encoding,
+                    self.subnode_errors,
+                )
+            )
+        ):
+            trace_collection.onExceptionRaiseExit(BaseException)
+
+            return self, None, None
+
+        try:
+            return self.replaceWithCompileTimeValue(trace_collection)
+        finally:
+            self.attempted = True
+
+    @abstractmethod
+    def replaceWithCompileTimeValue(self, trace_collection):
+        pass
+
+    @staticmethod
+    def mayRaiseExceptionOperation():
+        return True
+
+
 class ExpressionImportlibResourcesBackportReadBinaryRef(
     ExpressionImportModuleNameHardExistsSpecificBase
 ):
-    """Function reference importlib_resources.read_binary"""
+    """Function reference 'importlib_resources.read_binary'."""
 
     kind = "EXPRESSION_IMPORTLIB_RESOURCES_BACKPORT_READ_BINARY_REF"
 
@@ -2103,8 +2218,6 @@ class ExpressionImportlibResourcesBackportReadBinaryRef(
         )
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
-        # Anything may happen on call trace before this. On next pass, if
-        # replaced, we might be better but not now.
         trace_collection.onExceptionRaiseExit(BaseException)
 
         from .PackageResourceNodes import (
@@ -2133,10 +2246,7 @@ addHardImportNodeClass(
 class ExpressionImportlibResourcesBackportReadBinaryCallBase(
     ExpressionBytesShapeExactMixin, ChildrenHavingPackageResourceMixin, ExpressionBase
 ):
-    """Base class for ImportlibResourcesBackportReadBinaryCall
-
-    Generated boiler plate code from 'HardImportCallNode.py.j2' template.
-    """
+    """Base class for 'importlib_resources.read_binary' call node."""
 
     named_children = (
         "package",
@@ -2191,7 +2301,7 @@ class ExpressionImportlibResourcesBackportReadBinaryCallBase(
 class ExpressionImportlibResourcesBackportReadTextRef(
     ExpressionImportModuleNameHardExistsSpecificBase
 ):
-    """Function reference importlib_resources.read_text"""
+    """Function reference 'importlib_resources.read_text'."""
 
     kind = "EXPRESSION_IMPORTLIB_RESOURCES_BACKPORT_READ_TEXT_REF"
 
@@ -2205,8 +2315,6 @@ class ExpressionImportlibResourcesBackportReadTextRef(
         )
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
-        # Anything may happen on call trace before this. On next pass, if
-        # replaced, we might be better but not now.
         trace_collection.onExceptionRaiseExit(BaseException)
 
         from .PackageResourceNodes import (
@@ -2237,10 +2345,7 @@ class ExpressionImportlibResourcesBackportReadTextCallBase(
     ChildrenHavingPackageResourceEncodingOptionalErrorsOptionalMixin,
     ExpressionBase,
 ):
-    """Base class for ImportlibResourcesBackportReadTextCall
-
-    Generated boiler plate code from 'HardImportCallNode.py.j2' template.
-    """
+    """Base class for 'importlib_resources.read_text' call node."""
 
     named_children = (
         "package",
@@ -2301,7 +2406,7 @@ class ExpressionImportlibResourcesBackportReadTextCallBase(
 class ExpressionImportlibResourcesFilesRef(
     ExpressionImportModuleNameHardExistsSpecificBase
 ):
-    """Function reference importlib.resources.files"""
+    """Function reference 'importlib.resources.files'."""
 
     kind = "EXPRESSION_IMPORTLIB_RESOURCES_FILES_REF"
 
@@ -2315,11 +2420,26 @@ class ExpressionImportlibResourcesFilesRef(
         )
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
-        # Anything may happen on call trace before this. On next pass, if
-        # replaced, we might be better but not now.
         trace_collection.onExceptionRaiseExit(BaseException)
 
-        if python_version >= 0x3C0:
+        if python_version >= 0x3F0:
+            from .PackageResourceNodes import (
+                ExpressionImportlibResourcesFilesSince315Call,
+            )
+
+            result = extractBuiltinArgs(
+                node=call_node,
+                builtin_class=ExpressionImportlibResourcesFilesSince315Call,
+                builtin_spec=importlib_resources_files_since_315_spec,
+            )
+
+            return (
+                result,
+                "new_expression",
+                "Call to 'importlib.resources.files' recognized.",
+            )
+
+        if 0x3C0 <= python_version < 0x3F0:
             from .PackageResourceNodes import (
                 makeExpressionImportlibResourcesFilesSince312Call,
             )
@@ -2352,30 +2472,80 @@ class ExpressionImportlibResourcesFilesRef(
 
 
 addHardImportNodeClass(
-    ExpressionImportlibResourcesFilesRef, importlib_resources_files_since_312_spec
+    ExpressionImportlibResourcesFilesRef, importlib_resources_files_since_315_spec
 )
 
 
-class ExpressionImportlibResourcesFilesSince312CallBase(
-    ChildHavingPackageOptionalMixin, ExpressionBase
+class ExpressionImportlibResourcesFilesSince315CallBase(
+    ChildHavingAnchorOptionalMixin, ExpressionBase
 ):
-    """Base class for ImportlibResourcesFilesSince312Call
+    """Base class for 'importlib.resources.files' call node."""
 
-    Generated boiler plate code from 'HardImportCallNode.py.j2' template.
-    """
+    python_version_spec = ">= 0x3f0"
 
-    python_version_spec = ">= 0x3c0"
+    named_children = ("anchor|optional",)
 
-    named_children = ("package|optional",)
+    __slots__ = ("attempted",)
+
+    spec = importlib_resources_files_since_315_spec
+
+    def __init__(self, anchor, source_ref):
+
+        ChildHavingAnchorOptionalMixin.__init__(
+            self,
+            anchor=anchor,
+        )
+
+        ExpressionBase.__init__(self, source_ref)
+
+        self.attempted = False
+
+    def computeExpression(self, trace_collection):
+        if (
+            self.attempted
+            or not importlib_resources_files_since_315_spec.isCompileTimeComputable(
+                (self.subnode_anchor,)
+            )
+        ):
+            trace_collection.onExceptionRaiseExit(BaseException)
+
+            return self, None, None
+
+        try:
+            return self.replaceWithCompileTimeValue(trace_collection)
+        finally:
+            self.attempted = True
+
+    @abstractmethod
+    def replaceWithCompileTimeValue(self, trace_collection):
+        pass
+
+    @staticmethod
+    def mayRaiseExceptionOperation():
+        return True
+
+
+class ExpressionImportlibResourcesFilesSince312CallBase(
+    ChildrenHavingAnchorOptionalPackageOptionalMixin, ExpressionBase
+):
+    """Base class for 'importlib.resources.files' call node."""
+
+    python_version_spec = ">= 0x3c0, < 0x3f0"
+
+    named_children = (
+        "anchor|optional",
+        "package|optional",
+    )
 
     __slots__ = ("attempted",)
 
     spec = importlib_resources_files_since_312_spec
 
-    def __init__(self, package, source_ref):
+    def __init__(self, anchor, package, source_ref):
 
-        ChildHavingPackageOptionalMixin.__init__(
+        ChildrenHavingAnchorOptionalPackageOptionalMixin.__init__(
             self,
+            anchor=anchor,
             package=package,
         )
 
@@ -2387,7 +2557,10 @@ class ExpressionImportlibResourcesFilesSince312CallBase(
         if (
             self.attempted
             or not importlib_resources_files_since_312_spec.isCompileTimeComputable(
-                (self.subnode_package,)
+                (
+                    self.subnode_anchor,
+                    self.subnode_package,
+                )
             )
         ):
             trace_collection.onExceptionRaiseExit(BaseException)
@@ -2411,10 +2584,7 @@ class ExpressionImportlibResourcesFilesSince312CallBase(
 class ExpressionImportlibResourcesFilesCallBase(
     ChildHavingPackageMixin, ExpressionBase
 ):
-    """Base class for ImportlibResourcesFilesCall
-
-    Generated boiler plate code from 'HardImportCallNode.py.j2' template.
-    """
+    """Base class for 'importlib.resources.files' call node."""
 
     named_children = ("package",)
 
@@ -2458,10 +2628,206 @@ class ExpressionImportlibResourcesFilesCallBase(
         return True
 
 
+class ExpressionImportlibResourcesOpenBinaryRef(
+    ExpressionImportModuleNameHardExistsSpecificBase
+):
+    """Function reference 'importlib.resources.open_binary'."""
+
+    kind = "EXPRESSION_IMPORTLIB_RESOURCES_OPEN_BINARY_REF"
+
+    def __init__(self, source_ref):
+        ExpressionImportModuleNameHardExistsSpecificBase.__init__(
+            self,
+            module_name="importlib.resources",
+            import_name="open_binary",
+            module_guaranteed=True,
+            source_ref=source_ref,
+        )
+
+    def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        from .PackageResourceNodes import (
+            ExpressionImportlibResourcesOpenBinaryCall,
+        )
+
+        result = extractBuiltinArgs(
+            node=call_node,
+            builtin_class=ExpressionImportlibResourcesOpenBinaryCall,
+            builtin_spec=importlib_resources_open_binary_spec,
+        )
+
+        return (
+            result,
+            "new_expression",
+            "Call to 'importlib.resources.open_binary' recognized.",
+        )
+
+
+addHardImportNodeClass(
+    ExpressionImportlibResourcesOpenBinaryRef, importlib_resources_open_binary_spec
+)
+
+
+class ExpressionImportlibResourcesOpenBinaryCallBase(
+    ChildrenHavingPackageResourceMixin, ExpressionBase
+):
+    """Base class for 'importlib.resources.open_binary' call node."""
+
+    named_children = (
+        "package",
+        "resource",
+    )
+
+    __slots__ = ("attempted",)
+
+    spec = importlib_resources_open_binary_spec
+
+    def __init__(self, package, resource, source_ref):
+
+        ChildrenHavingPackageResourceMixin.__init__(
+            self,
+            package=package,
+            resource=resource,
+        )
+
+        ExpressionBase.__init__(self, source_ref)
+
+        self.attempted = False
+
+    def computeExpression(self, trace_collection):
+        if (
+            self.attempted
+            or not importlib_resources_open_binary_spec.isCompileTimeComputable(
+                (
+                    self.subnode_package,
+                    self.subnode_resource,
+                )
+            )
+        ):
+            trace_collection.onExceptionRaiseExit(BaseException)
+
+            return self, None, None
+
+        try:
+            return self.replaceWithCompileTimeValue(trace_collection)
+        finally:
+            self.attempted = True
+
+    @abstractmethod
+    def replaceWithCompileTimeValue(self, trace_collection):
+        pass
+
+    @staticmethod
+    def mayRaiseExceptionOperation():
+        return True
+
+
+class ExpressionImportlibResourcesOpenTextRef(
+    ExpressionImportModuleNameHardExistsSpecificBase
+):
+    """Function reference 'importlib.resources.open_text'."""
+
+    kind = "EXPRESSION_IMPORTLIB_RESOURCES_OPEN_TEXT_REF"
+
+    def __init__(self, source_ref):
+        ExpressionImportModuleNameHardExistsSpecificBase.__init__(
+            self,
+            module_name="importlib.resources",
+            import_name="open_text",
+            module_guaranteed=True,
+            source_ref=source_ref,
+        )
+
+    def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        from .PackageResourceNodes import (
+            makeExpressionImportlibResourcesOpenTextCall,
+        )
+
+        result = extractBuiltinArgs(
+            node=call_node,
+            builtin_class=makeExpressionImportlibResourcesOpenTextCall,
+            builtin_spec=importlib_resources_open_text_spec,
+        )
+
+        return (
+            result,
+            "new_expression",
+            "Call to 'importlib.resources.open_text' recognized.",
+        )
+
+
+addHardImportNodeClass(
+    ExpressionImportlibResourcesOpenTextRef, importlib_resources_open_text_spec
+)
+
+
+class ExpressionImportlibResourcesOpenTextCallBase(
+    ChildrenHavingPackageResourceEncodingOptionalErrorsOptionalMixin, ExpressionBase
+):
+    """Base class for 'importlib.resources.open_text' call node."""
+
+    named_children = (
+        "package",
+        "resource",
+        "encoding|optional",
+        "errors|optional",
+    )
+
+    __slots__ = ("attempted",)
+
+    spec = importlib_resources_open_text_spec
+
+    def __init__(self, package, resource, encoding, errors, source_ref):
+
+        ChildrenHavingPackageResourceEncodingOptionalErrorsOptionalMixin.__init__(
+            self,
+            package=package,
+            resource=resource,
+            encoding=encoding,
+            errors=errors,
+        )
+
+        ExpressionBase.__init__(self, source_ref)
+
+        self.attempted = False
+
+    def computeExpression(self, trace_collection):
+        if (
+            self.attempted
+            or not importlib_resources_open_text_spec.isCompileTimeComputable(
+                (
+                    self.subnode_package,
+                    self.subnode_resource,
+                    self.subnode_encoding,
+                    self.subnode_errors,
+                )
+            )
+        ):
+            trace_collection.onExceptionRaiseExit(BaseException)
+
+            return self, None, None
+
+        try:
+            return self.replaceWithCompileTimeValue(trace_collection)
+        finally:
+            self.attempted = True
+
+    @abstractmethod
+    def replaceWithCompileTimeValue(self, trace_collection):
+        pass
+
+    @staticmethod
+    def mayRaiseExceptionOperation():
+        return True
+
+
 class ExpressionImportlibResourcesReadBinaryRef(
     ExpressionImportModuleNameHardExistsSpecificBase
 ):
-    """Function reference importlib.resources.read_binary"""
+    """Function reference 'importlib.resources.read_binary'."""
 
     kind = "EXPRESSION_IMPORTLIB_RESOURCES_READ_BINARY_REF"
 
@@ -2475,8 +2841,6 @@ class ExpressionImportlibResourcesReadBinaryRef(
         )
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
-        # Anything may happen on call trace before this. On next pass, if
-        # replaced, we might be better but not now.
         trace_collection.onExceptionRaiseExit(BaseException)
 
         from .PackageResourceNodes import (
@@ -2504,10 +2868,7 @@ addHardImportNodeClass(
 class ExpressionImportlibResourcesReadBinaryCallBase(
     ExpressionBytesShapeExactMixin, ChildrenHavingPackageResourceMixin, ExpressionBase
 ):
-    """Base class for ImportlibResourcesReadBinaryCall
-
-    Generated boiler plate code from 'HardImportCallNode.py.j2' template.
-    """
+    """Base class for 'importlib.resources.read_binary' call node."""
 
     named_children = (
         "package",
@@ -2561,7 +2922,7 @@ class ExpressionImportlibResourcesReadBinaryCallBase(
 class ExpressionImportlibResourcesReadTextRef(
     ExpressionImportModuleNameHardExistsSpecificBase
 ):
-    """Function reference importlib.resources.read_text"""
+    """Function reference 'importlib.resources.read_text'."""
 
     kind = "EXPRESSION_IMPORTLIB_RESOURCES_READ_TEXT_REF"
 
@@ -2575,8 +2936,6 @@ class ExpressionImportlibResourcesReadTextRef(
         )
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
-        # Anything may happen on call trace before this. On next pass, if
-        # replaced, we might be better but not now.
         trace_collection.onExceptionRaiseExit(BaseException)
 
         if python_version >= 0x3D0:
@@ -2625,10 +2984,7 @@ class ExpressionImportlibResourcesReadTextSince313CallBase(
     ChildrenHavingPackageOptionalResourcesTupleEncodingOptionalErrorsOptionalMixin,
     ExpressionBase,
 ):
-    """Base class for ImportlibResourcesReadTextSince313Call
-
-    Generated boiler plate code from 'HardImportCallNode.py.j2' template.
-    """
+    """Base class for 'importlib.resources.read_text' call node."""
 
     python_version_spec = ">= 0x3d0"
 
@@ -2687,10 +3043,7 @@ class ExpressionImportlibResourcesReadTextBefore313CallBase(
     ChildrenHavingPackageResourceEncodingOptionalErrorsOptionalMixin,
     ExpressionBase,
 ):
-    """Base class for ImportlibResourcesReadTextBefore313Call
-
-    Generated boiler plate code from 'HardImportCallNode.py.j2' template.
-    """
+    """Base class for 'importlib.resources.read_text' call node."""
 
     python_version_spec = "< 0x3d0"
 
@@ -2750,7 +3103,7 @@ class ExpressionImportlibResourcesReadTextBefore313CallBase(
 
 
 class ExpressionOsListdirRef(ExpressionImportModuleNameHardExistsSpecificBase):
-    """Function reference os.listdir"""
+    """Function reference 'os.listdir'."""
 
     kind = "EXPRESSION_OS_LISTDIR_REF"
 
@@ -2764,8 +3117,6 @@ class ExpressionOsListdirRef(ExpressionImportModuleNameHardExistsSpecificBase):
         )
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
-        # Anything may happen on call trace before this. On next pass, if
-        # replaced, we might be better but not now.
         trace_collection.onExceptionRaiseExit(BaseException)
 
         from .OsSysNodes import ExpressionOsListdirCall
@@ -2787,10 +3138,7 @@ addHardImportNodeClass(ExpressionOsListdirRef, os_listdir_spec)
 
 
 class ExpressionOsListdirCallBase(ChildHavingPathOptionalMixin, ExpressionBase):
-    """Base class for OsListdirCall
-
-    Generated boiler plate code from 'HardImportCallNode.py.j2' template.
-    """
+    """Base class for 'os.listdir' call node."""
 
     named_children = ("path|optional",)
 
@@ -2832,7 +3180,7 @@ class ExpressionOsListdirCallBase(ChildHavingPathOptionalMixin, ExpressionBase):
 
 
 class ExpressionOsLstatRef(ExpressionImportModuleNameHardExistsSpecificBase):
-    """Function reference os.lstat"""
+    """Function reference 'os.lstat'."""
 
     kind = "EXPRESSION_OS_LSTAT_REF"
 
@@ -2846,8 +3194,6 @@ class ExpressionOsLstatRef(ExpressionImportModuleNameHardExistsSpecificBase):
         )
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
-        # Anything may happen on call trace before this. On next pass, if
-        # replaced, we might be better but not now.
         trace_collection.onExceptionRaiseExit(BaseException)
 
         from .OsSysNodes import ExpressionOsLstatCall
@@ -2871,10 +3217,7 @@ addHardImportNodeClass(ExpressionOsLstatRef, os_lstat_spec)
 class ExpressionOsLstatCallBase(
     ChildrenHavingPathOptionalDirFdOptionalMixin, ExpressionBase
 ):
-    """Base class for OsLstatCall
-
-    Generated boiler plate code from 'HardImportCallNode.py.j2' template.
-    """
+    """Base class for 'os.lstat' call node."""
 
     named_children = (
         "path|optional",
@@ -2920,7 +3263,7 @@ class ExpressionOsLstatCallBase(
 
 
 class ExpressionOsPathAbspathRef(ExpressionImportModuleNameHardExistsSpecificBase):
-    """Function reference os.path.abspath"""
+    """Function reference 'os.path.abspath'."""
 
     kind = "EXPRESSION_OS_PATH_ABSPATH_REF"
 
@@ -2934,8 +3277,6 @@ class ExpressionOsPathAbspathRef(ExpressionImportModuleNameHardExistsSpecificBas
         )
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
-        # Anything may happen on call trace before this. On next pass, if
-        # replaced, we might be better but not now.
         trace_collection.onExceptionRaiseExit(BaseException)
 
         from .OsSysNodes import ExpressionOsPathAbspathCall
@@ -2957,10 +3298,7 @@ addHardImportNodeClass(ExpressionOsPathAbspathRef, os_path_abspath_spec)
 
 
 class ExpressionOsPathAbspathCallBase(ChildHavingPathMixin, ExpressionBase):
-    """Base class for OsPathAbspathCall
-
-    Generated boiler plate code from 'HardImportCallNode.py.j2' template.
-    """
+    """Base class for 'os.path.abspath' call node."""
 
     named_children = ("path",)
 
@@ -3002,7 +3340,7 @@ class ExpressionOsPathAbspathCallBase(ChildHavingPathMixin, ExpressionBase):
 
 
 class ExpressionOsPathBasenameRef(ExpressionImportModuleNameHardExistsSpecificBase):
-    """Function reference os.path.basename"""
+    """Function reference 'os.path.basename'."""
 
     kind = "EXPRESSION_OS_PATH_BASENAME_REF"
 
@@ -3016,8 +3354,6 @@ class ExpressionOsPathBasenameRef(ExpressionImportModuleNameHardExistsSpecificBa
         )
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
-        # Anything may happen on call trace before this. On next pass, if
-        # replaced, we might be better but not now.
         trace_collection.onExceptionRaiseExit(BaseException)
 
         from .OsSysNodes import ExpressionOsPathBasenameCall
@@ -3039,10 +3375,7 @@ addHardImportNodeClass(ExpressionOsPathBasenameRef, os_path_basename_spec)
 
 
 class ExpressionOsPathBasenameCallBase(ChildHavingPMixin, ExpressionBase):
-    """Base class for OsPathBasenameCall
-
-    Generated boiler plate code from 'HardImportCallNode.py.j2' template.
-    """
+    """Base class for 'os.path.basename' call node."""
 
     named_children = ("p",)
 
@@ -3084,7 +3417,7 @@ class ExpressionOsPathBasenameCallBase(ChildHavingPMixin, ExpressionBase):
 
 
 class ExpressionOsPathDirnameRef(ExpressionImportModuleNameHardExistsSpecificBase):
-    """Function reference os.path.dirname"""
+    """Function reference 'os.path.dirname'."""
 
     kind = "EXPRESSION_OS_PATH_DIRNAME_REF"
 
@@ -3098,8 +3431,6 @@ class ExpressionOsPathDirnameRef(ExpressionImportModuleNameHardExistsSpecificBas
         )
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
-        # Anything may happen on call trace before this. On next pass, if
-        # replaced, we might be better but not now.
         trace_collection.onExceptionRaiseExit(BaseException)
 
         from .OsSysNodes import ExpressionOsPathDirnameCall
@@ -3121,10 +3452,7 @@ addHardImportNodeClass(ExpressionOsPathDirnameRef, os_path_dirname_spec)
 
 
 class ExpressionOsPathDirnameCallBase(ChildHavingPMixin, ExpressionBase):
-    """Base class for OsPathDirnameCall
-
-    Generated boiler plate code from 'HardImportCallNode.py.j2' template.
-    """
+    """Base class for 'os.path.dirname' call node."""
 
     named_children = ("p",)
 
@@ -3166,7 +3494,7 @@ class ExpressionOsPathDirnameCallBase(ChildHavingPMixin, ExpressionBase):
 
 
 class ExpressionOsPathExistsRef(ExpressionImportModuleNameHardExistsSpecificBase):
-    """Function reference os.path.exists"""
+    """Function reference 'os.path.exists'."""
 
     kind = "EXPRESSION_OS_PATH_EXISTS_REF"
 
@@ -3180,8 +3508,6 @@ class ExpressionOsPathExistsRef(ExpressionImportModuleNameHardExistsSpecificBase
         )
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
-        # Anything may happen on call trace before this. On next pass, if
-        # replaced, we might be better but not now.
         trace_collection.onExceptionRaiseExit(BaseException)
 
         from .OsSysNodes import ExpressionOsPathExistsCall
@@ -3203,10 +3529,7 @@ addHardImportNodeClass(ExpressionOsPathExistsRef, os_path_exists_spec)
 
 
 class ExpressionOsPathExistsCallBase(ChildHavingPathMixin, ExpressionBase):
-    """Base class for OsPathExistsCall
-
-    Generated boiler plate code from 'HardImportCallNode.py.j2' template.
-    """
+    """Base class for 'os.path.exists' call node."""
 
     named_children = ("path",)
 
@@ -3248,7 +3571,7 @@ class ExpressionOsPathExistsCallBase(ChildHavingPathMixin, ExpressionBase):
 
 
 class ExpressionOsPathIsabsRef(ExpressionImportModuleNameHardExistsSpecificBase):
-    """Function reference os.path.isabs"""
+    """Function reference 'os.path.isabs'."""
 
     kind = "EXPRESSION_OS_PATH_ISABS_REF"
 
@@ -3262,8 +3585,6 @@ class ExpressionOsPathIsabsRef(ExpressionImportModuleNameHardExistsSpecificBase)
         )
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
-        # Anything may happen on call trace before this. On next pass, if
-        # replaced, we might be better but not now.
         trace_collection.onExceptionRaiseExit(BaseException)
 
         from .OsSysNodes import ExpressionOsPathIsabsCall
@@ -3287,10 +3608,7 @@ addHardImportNodeClass(ExpressionOsPathIsabsRef, os_path_isabs_spec)
 class ExpressionOsPathIsabsCallBase(
     ExpressionBoolShapeExactMixin, ChildHavingSMixin, ExpressionBase
 ):
-    """Base class for OsPathIsabsCall
-
-    Generated boiler plate code from 'HardImportCallNode.py.j2' template.
-    """
+    """Base class for 'os.path.isabs' call node."""
 
     named_children = ("s",)
 
@@ -3332,7 +3650,7 @@ class ExpressionOsPathIsabsCallBase(
 
 
 class ExpressionOsPathIsdirRef(ExpressionImportModuleNameHardExistsSpecificBase):
-    """Function reference os.path.isdir"""
+    """Function reference 'os.path.isdir'."""
 
     kind = "EXPRESSION_OS_PATH_ISDIR_REF"
 
@@ -3346,8 +3664,6 @@ class ExpressionOsPathIsdirRef(ExpressionImportModuleNameHardExistsSpecificBase)
         )
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
-        # Anything may happen on call trace before this. On next pass, if
-        # replaced, we might be better but not now.
         trace_collection.onExceptionRaiseExit(BaseException)
 
         from .OsSysNodes import ExpressionOsPathIsdirCall
@@ -3369,10 +3685,7 @@ addHardImportNodeClass(ExpressionOsPathIsdirRef, os_path_isdir_spec)
 
 
 class ExpressionOsPathIsdirCallBase(ChildHavingSMixin, ExpressionBase):
-    """Base class for OsPathIsdirCall
-
-    Generated boiler plate code from 'HardImportCallNode.py.j2' template.
-    """
+    """Base class for 'os.path.isdir' call node."""
 
     named_children = ("s",)
 
@@ -3414,7 +3727,7 @@ class ExpressionOsPathIsdirCallBase(ChildHavingSMixin, ExpressionBase):
 
 
 class ExpressionOsPathIsfileRef(ExpressionImportModuleNameHardExistsSpecificBase):
-    """Function reference os.path.isfile"""
+    """Function reference 'os.path.isfile'."""
 
     kind = "EXPRESSION_OS_PATH_ISFILE_REF"
 
@@ -3428,8 +3741,6 @@ class ExpressionOsPathIsfileRef(ExpressionImportModuleNameHardExistsSpecificBase
         )
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
-        # Anything may happen on call trace before this. On next pass, if
-        # replaced, we might be better but not now.
         trace_collection.onExceptionRaiseExit(BaseException)
 
         from .OsSysNodes import ExpressionOsPathIsfileCall
@@ -3451,10 +3762,7 @@ addHardImportNodeClass(ExpressionOsPathIsfileRef, os_path_isfile_spec)
 
 
 class ExpressionOsPathIsfileCallBase(ChildHavingPathMixin, ExpressionBase):
-    """Base class for OsPathIsfileCall
-
-    Generated boiler plate code from 'HardImportCallNode.py.j2' template.
-    """
+    """Base class for 'os.path.isfile' call node."""
 
     named_children = ("path",)
 
@@ -3495,8 +3803,85 @@ class ExpressionOsPathIsfileCallBase(ChildHavingPathMixin, ExpressionBase):
         return True
 
 
+class ExpressionOsPathJoinRef(ExpressionImportModuleNameHardExistsSpecificBase):
+    """Function reference 'os.path.join'."""
+
+    kind = "EXPRESSION_OS_PATH_JOIN_REF"
+
+    def __init__(self, source_ref):
+        ExpressionImportModuleNameHardExistsSpecificBase.__init__(
+            self,
+            module_name=os.path.__name__,
+            import_name="join",
+            module_guaranteed=True,
+            source_ref=source_ref,
+        )
+
+    def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        from .OsSysNodes import ExpressionOsPathJoinCall
+
+        result = extractBuiltinArgs(
+            node=call_node,
+            builtin_class=ExpressionOsPathJoinCall,
+            builtin_spec=os_path_join_spec,
+        )
+
+        return (
+            result,
+            "new_expression",
+            "Call to 'os.path.join' recognized.",
+        )
+
+
+addHardImportNodeClass(ExpressionOsPathJoinRef, os_path_join_spec)
+
+
+class ExpressionOsPathJoinCallBase(ChildHavingPathsTupleMixin, ExpressionBase):
+    """Base class for 'os.path.join' call node."""
+
+    named_children = ("paths|tuple",)
+
+    __slots__ = ("attempted",)
+
+    spec = os_path_join_spec
+
+    def __init__(self, paths, source_ref):
+
+        ChildHavingPathsTupleMixin.__init__(
+            self,
+            paths=paths,
+        )
+
+        ExpressionBase.__init__(self, source_ref)
+
+        self.attempted = False
+
+    def computeExpression(self, trace_collection):
+        if self.attempted or not os_path_join_spec.isCompileTimeComputable(
+            () + self.subnode_paths
+        ):
+            trace_collection.onExceptionRaiseExit(BaseException)
+
+            return self, None, None
+
+        try:
+            return self.replaceWithCompileTimeValue(trace_collection)
+        finally:
+            self.attempted = True
+
+    @abstractmethod
+    def replaceWithCompileTimeValue(self, trace_collection):
+        pass
+
+    @staticmethod
+    def mayRaiseExceptionOperation():
+        return True
+
+
 class ExpressionOsPathNormpathRef(ExpressionImportModuleNameHardExistsSpecificBase):
-    """Function reference os.path.normpath"""
+    """Function reference 'os.path.normpath'."""
 
     kind = "EXPRESSION_OS_PATH_NORMPATH_REF"
 
@@ -3510,8 +3895,6 @@ class ExpressionOsPathNormpathRef(ExpressionImportModuleNameHardExistsSpecificBa
         )
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
-        # Anything may happen on call trace before this. On next pass, if
-        # replaced, we might be better but not now.
         trace_collection.onExceptionRaiseExit(BaseException)
 
         from .OsSysNodes import ExpressionOsPathNormpathCall
@@ -3533,10 +3916,7 @@ addHardImportNodeClass(ExpressionOsPathNormpathRef, os_path_normpath_spec)
 
 
 class ExpressionOsPathNormpathCallBase(ChildHavingPathMixin, ExpressionBase):
-    """Base class for OsPathNormpathCall
-
-    Generated boiler plate code from 'HardImportCallNode.py.j2' template.
-    """
+    """Base class for 'os.path.normpath' call node."""
 
     named_children = ("path",)
 
@@ -3578,7 +3958,7 @@ class ExpressionOsPathNormpathCallBase(ChildHavingPathMixin, ExpressionBase):
 
 
 class ExpressionOsStatRef(ExpressionImportModuleNameHardExistsSpecificBase):
-    """Function reference os.stat"""
+    """Function reference 'os.stat'."""
 
     kind = "EXPRESSION_OS_STAT_REF"
 
@@ -3592,8 +3972,6 @@ class ExpressionOsStatRef(ExpressionImportModuleNameHardExistsSpecificBase):
         )
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
-        # Anything may happen on call trace before this. On next pass, if
-        # replaced, we might be better but not now.
         trace_collection.onExceptionRaiseExit(BaseException)
 
         from .OsSysNodes import ExpressionOsStatCall
@@ -3617,10 +3995,7 @@ addHardImportNodeClass(ExpressionOsStatRef, os_stat_spec)
 class ExpressionOsStatCallBase(
     ChildrenHavingPathOptionalDirFdOptionalFollowSymlinksOptionalMixin, ExpressionBase
 ):
-    """Base class for OsStatCall
-
-    Generated boiler plate code from 'HardImportCallNode.py.j2' template.
-    """
+    """Base class for 'os.stat' call node."""
 
     named_children = (
         "path|optional",
@@ -3668,7 +4043,7 @@ class ExpressionOsStatCallBase(
 
 
 class ExpressionOsUnameRef(ExpressionImportModuleNameHardExistsSpecificBase):
-    """Function reference os.uname"""
+    """Function reference 'os.uname'."""
 
     kind = "EXPRESSION_OS_UNAME_REF"
 
@@ -3682,8 +4057,6 @@ class ExpressionOsUnameRef(ExpressionImportModuleNameHardExistsSpecificBase):
         )
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
-        # Anything may happen on call trace before this. On next pass, if
-        # replaced, we might be better but not now.
         trace_collection.onExceptionRaiseExit(BaseException)
 
         from .OsSysNodes import ExpressionOsUnameCall
@@ -3705,10 +4078,7 @@ addHardImportNodeClass(ExpressionOsUnameRef, os_uname_spec)
 
 
 class ExpressionOsUnameCallBase(ExpressionBase):
-    """Base class for OsUnameCall
-
-    Generated boiler plate code from 'HardImportCallNode.py.j2' template.
-    """
+    """Base class for 'os.uname' call node."""
 
     __slots__ = ("attempted",)
 
@@ -3746,7 +4116,7 @@ class ExpressionOsUnameCallBase(ExpressionBase):
 class ExpressionPkgResourcesGetDistributionRef(
     ExpressionImportModuleNameHardExistsSpecificBase
 ):
-    """Function reference pkg_resources.get_distribution"""
+    """Function reference 'pkg_resources.get_distribution'."""
 
     kind = "EXPRESSION_PKG_RESOURCES_GET_DISTRIBUTION_REF"
 
@@ -3760,8 +4130,6 @@ class ExpressionPkgResourcesGetDistributionRef(
         )
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
-        # Anything may happen on call trace before this. On next pass, if
-        # replaced, we might be better but not now.
         trace_collection.onExceptionRaiseExit(BaseException)
 
         from .PackageMetadataNodes import (
@@ -3789,10 +4157,7 @@ addHardImportNodeClass(
 class ExpressionPkgResourcesGetDistributionCallBase(
     ChildHavingDistMixin, ExpressionBase
 ):
-    """Base class for PkgResourcesGetDistributionCall
-
-    Generated boiler plate code from 'HardImportCallNode.py.j2' template.
-    """
+    """Base class for 'pkg_resources.get_distribution' call node."""
 
     named_children = ("dist",)
 
@@ -3840,7 +4205,7 @@ class ExpressionPkgResourcesGetDistributionCallBase(
 class ExpressionPkgResourcesIterEntryPointsRef(
     ExpressionImportModuleNameHardExistsSpecificBase
 ):
-    """Function reference pkg_resources.iter_entry_points"""
+    """Function reference 'pkg_resources.iter_entry_points'."""
 
     kind = "EXPRESSION_PKG_RESOURCES_ITER_ENTRY_POINTS_REF"
 
@@ -3854,8 +4219,6 @@ class ExpressionPkgResourcesIterEntryPointsRef(
         )
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
-        # Anything may happen on call trace before this. On next pass, if
-        # replaced, we might be better but not now.
         trace_collection.onExceptionRaiseExit(BaseException)
 
         from .PackageMetadataNodes import (
@@ -3883,10 +4246,7 @@ addHardImportNodeClass(
 class ExpressionPkgResourcesIterEntryPointsCallBase(
     ChildrenHavingGroupNameOptionalMixin, ExpressionBase
 ):
-    """Base class for PkgResourcesIterEntryPointsCall
-
-    Generated boiler plate code from 'HardImportCallNode.py.j2' template.
-    """
+    """Base class for 'pkg_resources.iter_entry_points' call node."""
 
     named_children = (
         "group",
@@ -3941,7 +4301,7 @@ class ExpressionPkgResourcesIterEntryPointsCallBase(
 class ExpressionPkgResourcesRequireRef(
     ExpressionImportModuleNameHardExistsSpecificBase
 ):
-    """Function reference pkg_resources.require"""
+    """Function reference 'pkg_resources.require'."""
 
     kind = "EXPRESSION_PKG_RESOURCES_REQUIRE_REF"
 
@@ -3955,8 +4315,6 @@ class ExpressionPkgResourcesRequireRef(
         )
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
-        # Anything may happen on call trace before this. On next pass, if
-        # replaced, we might be better but not now.
         trace_collection.onExceptionRaiseExit(BaseException)
 
         from .PackageMetadataNodes import ExpressionPkgResourcesRequireCall
@@ -3980,10 +4338,7 @@ addHardImportNodeClass(ExpressionPkgResourcesRequireRef, pkg_resources_require_s
 class ExpressionPkgResourcesRequireCallBase(
     ChildHavingRequirementsTupleMixin, ExpressionBase
 ):
-    """Base class for PkgResourcesRequireCall
-
-    Generated boiler plate code from 'HardImportCallNode.py.j2' template.
-    """
+    """Base class for 'pkg_resources.require' call node."""
 
     named_children = ("requirements|tuple",)
 
@@ -4028,7 +4383,7 @@ class ExpressionPkgResourcesRequireCallBase(
 class ExpressionPkgResourcesResourceStreamRef(
     ExpressionImportModuleNameHardExistsSpecificBase
 ):
-    """Function reference pkg_resources.resource_stream"""
+    """Function reference 'pkg_resources.resource_stream'."""
 
     kind = "EXPRESSION_PKG_RESOURCES_RESOURCE_STREAM_REF"
 
@@ -4042,8 +4397,6 @@ class ExpressionPkgResourcesResourceStreamRef(
         )
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
-        # Anything may happen on call trace before this. On next pass, if
-        # replaced, we might be better but not now.
         trace_collection.onExceptionRaiseExit(BaseException)
 
         from .PackageResourceNodes import (
@@ -4071,10 +4424,7 @@ addHardImportNodeClass(
 class ExpressionPkgResourcesResourceStreamCallBase(
     ChildrenHavingPackageOrRequirementResourceNameMixin, ExpressionBase
 ):
-    """Base class for PkgResourcesResourceStreamCall
-
-    Generated boiler plate code from 'HardImportCallNode.py.j2' template.
-    """
+    """Base class for 'pkg_resources.resource_stream' call node."""
 
     named_children = (
         "package_or_requirement",
@@ -4129,7 +4479,7 @@ class ExpressionPkgResourcesResourceStreamCallBase(
 class ExpressionPkgResourcesResourceStringRef(
     ExpressionImportModuleNameHardExistsSpecificBase
 ):
-    """Function reference pkg_resources.resource_string"""
+    """Function reference 'pkg_resources.resource_string'."""
 
     kind = "EXPRESSION_PKG_RESOURCES_RESOURCE_STRING_REF"
 
@@ -4143,8 +4493,6 @@ class ExpressionPkgResourcesResourceStringRef(
         )
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
-        # Anything may happen on call trace before this. On next pass, if
-        # replaced, we might be better but not now.
         trace_collection.onExceptionRaiseExit(BaseException)
 
         from .PackageResourceNodes import (
@@ -4172,10 +4520,7 @@ addHardImportNodeClass(
 class ExpressionPkgResourcesResourceStringCallBase(
     ChildrenHavingPackageOrRequirementResourceNameMixin, ExpressionBase
 ):
-    """Base class for PkgResourcesResourceStringCall
-
-    Generated boiler plate code from 'HardImportCallNode.py.j2' template.
-    """
+    """Base class for 'pkg_resources.resource_string' call node."""
 
     named_children = (
         "package_or_requirement",
@@ -4228,7 +4573,7 @@ class ExpressionPkgResourcesResourceStringCallBase(
 
 
 class ExpressionPkgutilGetDataRef(ExpressionImportModuleNameHardExistsSpecificBase):
-    """Function reference pkgutil.get_data"""
+    """Function reference 'pkgutil.get_data'."""
 
     kind = "EXPRESSION_PKGUTIL_GET_DATA_REF"
 
@@ -4242,8 +4587,6 @@ class ExpressionPkgutilGetDataRef(ExpressionImportModuleNameHardExistsSpecificBa
         )
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
-        # Anything may happen on call trace before this. On next pass, if
-        # replaced, we might be better but not now.
         trace_collection.onExceptionRaiseExit(BaseException)
 
         from .PackageResourceNodes import ExpressionPkgutilGetDataCall
@@ -4267,10 +4610,7 @@ addHardImportNodeClass(ExpressionPkgutilGetDataRef, pkgutil_get_data_spec)
 class ExpressionPkgutilGetDataCallBase(
     ChildrenHavingPackageResourceMixin, ExpressionBase
 ):
-    """Base class for PkgutilGetDataCall
-
-    Generated boiler plate code from 'HardImportCallNode.py.j2' template.
-    """
+    """Base class for 'pkgutil.get_data' call node."""
 
     named_children = (
         "package",
@@ -4318,8 +4658,94 @@ class ExpressionPkgutilGetDataCallBase(
         return True
 
 
+class ExpressionPkgutilIterModulesRef(ExpressionImportModuleNameHardExistsSpecificBase):
+    """Function reference 'pkgutil.iter_modules'."""
+
+    kind = "EXPRESSION_PKGUTIL_ITER_MODULES_REF"
+
+    def __init__(self, source_ref):
+        ExpressionImportModuleNameHardExistsSpecificBase.__init__(
+            self,
+            module_name="pkgutil",
+            import_name="iter_modules",
+            module_guaranteed=True,
+            source_ref=source_ref,
+        )
+
+    def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        from .PackageResourceNodes import ExpressionPkgutilIterModulesCall
+
+        result = extractBuiltinArgs(
+            node=call_node,
+            builtin_class=ExpressionPkgutilIterModulesCall,
+            builtin_spec=pkgutil_iter_modules_spec,
+        )
+
+        return (
+            result,
+            "new_expression",
+            "Call to 'pkgutil.iter_modules' recognized.",
+        )
+
+
+addHardImportNodeClass(ExpressionPkgutilIterModulesRef, pkgutil_iter_modules_spec)
+
+
+class ExpressionPkgutilIterModulesCallBase(
+    ChildrenHavingPathOptionalPrefixOptionalMixin, ExpressionBase
+):
+    """Base class for 'pkgutil.iter_modules' call node."""
+
+    named_children = (
+        "path|optional",
+        "prefix|optional",
+    )
+
+    __slots__ = ("attempted",)
+
+    spec = pkgutil_iter_modules_spec
+
+    def __init__(self, path, prefix, source_ref):
+
+        ChildrenHavingPathOptionalPrefixOptionalMixin.__init__(
+            self,
+            path=path,
+            prefix=prefix,
+        )
+
+        ExpressionBase.__init__(self, source_ref)
+
+        self.attempted = False
+
+    def computeExpression(self, trace_collection):
+        if self.attempted or not pkgutil_iter_modules_spec.isCompileTimeComputable(
+            (
+                self.subnode_path,
+                self.subnode_prefix,
+            )
+        ):
+            trace_collection.onExceptionRaiseExit(BaseException)
+
+            return self, None, None
+
+        try:
+            return self.replaceWithCompileTimeValue(trace_collection)
+        finally:
+            self.attempted = True
+
+    @abstractmethod
+    def replaceWithCompileTimeValue(self, trace_collection):
+        pass
+
+    @staticmethod
+    def mayRaiseExceptionOperation():
+        return True
+
+
 class ExpressionSysExitRef(ExpressionImportModuleNameHardExistsSpecificBase):
-    """Function reference sys.exit"""
+    """Function reference 'sys.exit'."""
 
     kind = "EXPRESSION_SYS_EXIT_REF"
 
@@ -4333,8 +4759,6 @@ class ExpressionSysExitRef(ExpressionImportModuleNameHardExistsSpecificBase):
         )
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
-        # Anything may happen on call trace before this. On next pass, if
-        # replaced, we might be better but not now.
         trace_collection.onExceptionRaiseExit(BaseException)
 
         from .OsSysNodes import makeExpressionSysExitCall
@@ -4356,10 +4780,7 @@ addHardImportNodeClass(ExpressionSysExitRef, sys_exit_spec)
 
 
 class ExpressionSysExitCallBase(ChildHavingExitCodeOptionalMixin, ExpressionBase):
-    """Base class for SysExitCall
-
-    Generated boiler plate code from 'HardImportCallNode.py.j2' template.
-    """
+    """Base class for 'sys.exit' call node."""
 
     named_children = ("exit_code|optional",)
 
@@ -4402,7 +4823,7 @@ class ExpressionSysExitCallBase(ChildHavingExitCodeOptionalMixin, ExpressionBase
 
 
 class ExpressionTensorflowFunctionRef(ExpressionImportModuleNameHardExistsSpecificBase):
-    """Function reference tensorflow.function"""
+    """Function reference 'tensorflow.function'."""
 
     kind = "EXPRESSION_TENSORFLOW_FUNCTION_REF"
 
@@ -4416,8 +4837,6 @@ class ExpressionTensorflowFunctionRef(ExpressionImportModuleNameHardExistsSpecif
         )
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
-        # Anything may happen on call trace before this. On next pass, if
-        # replaced, we might be better but not now.
         trace_collection.onExceptionRaiseExit(BaseException)
 
         from .TensorflowNodes import ExpressionTensorflowFunctionCall
@@ -4442,10 +4861,7 @@ class ExpressionTensorflowFunctionCallBase(
     ChildrenHavingFuncOptionalInputSignatureOptionalAutographOptionalJitCompileOptionalReduceRetracingOptionalExperimentalImplementsOptionalExperimentalAutographOptionsOptionalExperimentalAttributesOptionalExperimentalRelaxShapesOptionalExperimentalCompileOptionalExperimentalFollowTypeHintsOptionalMixin,
     ExpressionBase,
 ):
-    """Base class for TensorflowFunctionCall
-
-    Generated boiler plate code from 'HardImportCallNode.py.j2' template.
-    """
+    """Base class for 'tensorflow.function' call node."""
 
     named_children = (
         "func|optional",

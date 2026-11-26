@@ -77,7 +77,7 @@ from .NodeMetaClasses import NodeCheckMetaClass
 
 
 def getBytesOperationClasses():
-    """Return all bytes operation nodes, for use by code generation."""
+    """Return all bytes operation node classes."""
     return (
         cls
         for kind, cls in NodeCheckMetaClass.kinds.items()
@@ -85,25 +85,23 @@ def getBytesOperationClasses():
     )
 
 
-class ExpressionBytesOperationJoin(ExpressionBytesOperationJoinBase):
-    """This operation represents b.join(iterable)."""
+# TODO: Specialize 'mayRaiseExceptionOperation' on 'bytes' operation nodes using
+# argument shapes and value constraints.
 
+
+class ExpressionBytesOperationJoin(ExpressionBytesOperationJoinBase):
     kind = "EXPRESSION_BYTES_OPERATION_JOIN"
 
     @staticmethod
     def mayRaiseExceptionOperation():
-        # TODO: Only if the arguments have wrong shapes, code generation needs to use this too.
         return True
 
 
 class ExpressionBytesOperationPartition(ExpressionBytesOperationPartitionBase):
-    """This operation represents b.partition(sep)."""
-
     kind = "EXPRESSION_BYTES_OPERATION_PARTITION"
 
     @staticmethod
     def mayRaiseExceptionOperation():
-        # TODO: Only if the arguments have wrong shapes, code generation needs to use this too.
         return True
 
     @staticmethod
@@ -112,13 +110,10 @@ class ExpressionBytesOperationPartition(ExpressionBytesOperationPartitionBase):
 
 
 class ExpressionBytesOperationRpartition(ExpressionBytesOperationRpartitionBase):
-    """This operation represents b.rpartition(sep)."""
-
     kind = "EXPRESSION_BYTES_OPERATION_RPARTITION"
 
     @staticmethod
     def mayRaiseExceptionOperation():
-        # TODO: Only if the arguments have wrong shapes, code generation needs to use this too.
         return True
 
     @staticmethod
@@ -143,12 +138,11 @@ class ExpressionBytesOperationStrip2(ExpressionBytesOperationStrip2Base):
 
     @staticmethod
     def mayRaiseExceptionOperation():
-        # TODO: Only if the arguments have wrong shapes, code generation needs to use this too.
         return True
 
 
 class ExpressionBytesOperationLstrip1(ExpressionBytesOperationLstrip1Base):
-    """This operation represents b.lstrip(chars)."""
+    """This operation represents b.lstrip()."""
 
     kind = "EXPRESSION_BYTES_OPERATION_LSTRIP1"
 
@@ -164,7 +158,6 @@ class ExpressionBytesOperationLstrip2(ExpressionBytesOperationLstrip2Base):
 
     @staticmethod
     def mayRaiseExceptionOperation():
-        # TODO: Only if the arguments have wrong shapes, code generation needs to use this too.
         return True
 
 
@@ -185,7 +178,6 @@ class ExpressionBytesOperationRstrip2(ExpressionBytesOperationRstrip2Base):
 
     @staticmethod
     def mayRaiseExceptionOperation():
-        # TODO: Only if the arguments have wrong shapes, code generation needs to use this too.
         return True
 
 
@@ -196,7 +188,6 @@ class ExpressionBytesOperationFind2(ExpressionBytesOperationFind2Base):
 
     @staticmethod
     def mayRaiseExceptionOperation():
-        # TODO: Only if the arguments have wrong shapes, code generation needs to use this too.
         return True
 
 
@@ -207,7 +198,6 @@ class ExpressionBytesOperationFind3(ExpressionBytesOperationFind3Base):
 
     @staticmethod
     def mayRaiseExceptionOperation():
-        # TODO: Only if the arguments have wrong shapes, code generation needs to use this too.
         return True
 
 
@@ -218,7 +208,6 @@ class ExpressionBytesOperationFind4(ExpressionBytesOperationFind4Base):
 
     @staticmethod
     def mayRaiseExceptionOperation():
-        # TODO: Only if the arguments have wrong shapes, code generation needs to use this too.
         return True
 
 
@@ -229,7 +218,6 @@ class ExpressionBytesOperationRfind2(ExpressionBytesOperationRfind2Base):
 
     @staticmethod
     def mayRaiseExceptionOperation():
-        # TODO: Only if the arguments have wrong shapes, code generation needs to use this too.
         return True
 
 
@@ -240,7 +228,6 @@ class ExpressionBytesOperationRfind3(ExpressionBytesOperationRfind3Base):
 
     @staticmethod
     def mayRaiseExceptionOperation():
-        # TODO: Only if the arguments have wrong shapes, code generation needs to use this too.
         return True
 
 
@@ -251,7 +238,6 @@ class ExpressionBytesOperationRfind4(ExpressionBytesOperationRfind4Base):
 
     @staticmethod
     def mayRaiseExceptionOperation():
-        # TODO: Only if the arguments have wrong shapes, code generation needs to use this too.
         return True
 
 
@@ -262,7 +248,6 @@ class ExpressionBytesOperationIndex2(ExpressionBytesOperationIndex2Base):
 
     @staticmethod
     def mayRaiseExceptionOperation():
-        # TODO: Only if the arguments have wrong shapes, code generation needs to use this too.
         return True
 
 
@@ -273,7 +258,6 @@ class ExpressionBytesOperationIndex3(ExpressionBytesOperationIndex3Base):
 
     @staticmethod
     def mayRaiseExceptionOperation():
-        # TODO: Only if the arguments have wrong shapes, code generation needs to use this too.
         return True
 
 
@@ -284,7 +268,6 @@ class ExpressionBytesOperationIndex4(ExpressionBytesOperationIndex4Base):
 
     @staticmethod
     def mayRaiseExceptionOperation():
-        # TODO: Only if the arguments have wrong shapes, code generation needs to use this too.
         return True
 
 
@@ -295,7 +278,6 @@ class ExpressionBytesOperationRindex2(ExpressionBytesOperationRindex2Base):
 
     @staticmethod
     def mayRaiseExceptionOperation():
-        # TODO: Only if the arguments have wrong shapes, code generation needs to use this too.
         return True
 
 
@@ -306,7 +288,6 @@ class ExpressionBytesOperationRindex3(ExpressionBytesOperationRindex3Base):
 
     @staticmethod
     def mayRaiseExceptionOperation():
-        # TODO: Only if the arguments have wrong shapes, code generation needs to use this too.
         return True
 
 
@@ -317,13 +298,10 @@ class ExpressionBytesOperationRindex4(ExpressionBytesOperationRindex4Base):
 
     @staticmethod
     def mayRaiseExceptionOperation():
-        # TODO: Only if the arguments have wrong shapes, code generation needs to use this too.
         return True
 
 
 class ExpressionBytesOperationCapitalize(ExpressionBytesOperationCapitalizeBase):
-    """This operation represents b.capitalize()."""
-
     kind = "EXPRESSION_BYTES_OPERATION_CAPITALIZE"
 
     @staticmethod
@@ -332,8 +310,6 @@ class ExpressionBytesOperationCapitalize(ExpressionBytesOperationCapitalizeBase)
 
 
 class ExpressionBytesOperationUpper(ExpressionBytesOperationUpperBase):
-    """This operation represents b.upper()."""
-
     kind = "EXPRESSION_BYTES_OPERATION_UPPER"
 
     @staticmethod
@@ -342,8 +318,6 @@ class ExpressionBytesOperationUpper(ExpressionBytesOperationUpperBase):
 
 
 class ExpressionBytesOperationLower(ExpressionBytesOperationLowerBase):
-    """This operation represents b.lower()."""
-
     kind = "EXPRESSION_BYTES_OPERATION_LOWER"
 
     @staticmethod
@@ -352,8 +326,6 @@ class ExpressionBytesOperationLower(ExpressionBytesOperationLowerBase):
 
 
 class ExpressionBytesOperationSwapcase(ExpressionBytesOperationSwapcaseBase):
-    """This operation represents b.swapcase()."""
-
     kind = "EXPRESSION_BYTES_OPERATION_SWAPCASE"
 
     @staticmethod
@@ -362,8 +334,6 @@ class ExpressionBytesOperationSwapcase(ExpressionBytesOperationSwapcaseBase):
 
 
 class ExpressionBytesOperationTitle(ExpressionBytesOperationTitleBase):
-    """This operation represents b.title()."""
-
     kind = "EXPRESSION_BYTES_OPERATION_TITLE"
 
     @staticmethod
@@ -372,8 +342,6 @@ class ExpressionBytesOperationTitle(ExpressionBytesOperationTitleBase):
 
 
 class ExpressionBytesOperationIsalnum(ExpressionBytesOperationIsalnumBase):
-    """This operation represents b.isalnum()."""
-
     kind = "EXPRESSION_BYTES_OPERATION_ISALNUM"
 
     @staticmethod
@@ -382,8 +350,6 @@ class ExpressionBytesOperationIsalnum(ExpressionBytesOperationIsalnumBase):
 
 
 class ExpressionBytesOperationIsalpha(ExpressionBytesOperationIsalphaBase):
-    """This operation represents b.isalpha()."""
-
     kind = "EXPRESSION_BYTES_OPERATION_ISALPHA"
 
     @staticmethod
@@ -392,8 +358,6 @@ class ExpressionBytesOperationIsalpha(ExpressionBytesOperationIsalphaBase):
 
 
 class ExpressionBytesOperationIsdigit(ExpressionBytesOperationIsdigitBase):
-    """This operation represents b.isdigit()."""
-
     kind = "EXPRESSION_BYTES_OPERATION_ISDIGIT"
 
     @staticmethod
@@ -402,8 +366,6 @@ class ExpressionBytesOperationIsdigit(ExpressionBytesOperationIsdigitBase):
 
 
 class ExpressionBytesOperationIslower(ExpressionBytesOperationIslowerBase):
-    """This operation represents b.islower()."""
-
     kind = "EXPRESSION_BYTES_OPERATION_ISLOWER"
 
     @staticmethod
@@ -412,8 +374,6 @@ class ExpressionBytesOperationIslower(ExpressionBytesOperationIslowerBase):
 
 
 class ExpressionBytesOperationIsupper(ExpressionBytesOperationIsupperBase):
-    """This operation represents b.isupper()."""
-
     kind = "EXPRESSION_BYTES_OPERATION_ISUPPER"
 
     @staticmethod
@@ -422,8 +382,6 @@ class ExpressionBytesOperationIsupper(ExpressionBytesOperationIsupperBase):
 
 
 class ExpressionBytesOperationIsspace(ExpressionBytesOperationIsspaceBase):
-    """This operation represents b.isspace()."""
-
     kind = "EXPRESSION_BYTES_OPERATION_ISSPACE"
 
     @staticmethod
@@ -432,8 +390,6 @@ class ExpressionBytesOperationIsspace(ExpressionBytesOperationIsspaceBase):
 
 
 class ExpressionBytesOperationIstitle(ExpressionBytesOperationIstitleBase):
-    """This operation represents b.istitle()."""
-
     kind = "EXPRESSION_BYTES_OPERATION_ISTITLE"
 
     @staticmethod
@@ -458,7 +414,6 @@ class ExpressionBytesOperationSplit2(ExpressionBytesOperationSplit2Base):
 
     @staticmethod
     def mayRaiseExceptionOperation():
-        # TODO: Only if the arguments have wrong shapes, code generation needs to use this too.
         return True
 
 
@@ -481,7 +436,6 @@ class ExpressionBytesOperationSplit3(ExpressionBytesOperationSplit3Base):
 
     @staticmethod
     def mayRaiseExceptionOperation():
-        # TODO: Only if the arguments have wrong shapes, code generation needs to use this too.
         return True
 
 
@@ -504,7 +458,6 @@ class ExpressionBytesOperationRsplit2(ExpressionBytesOperationRsplit2Base):
 
     @staticmethod
     def mayRaiseExceptionOperation():
-        # TODO: Only if the arguments have wrong shapes, code generation needs to use this too.
         return True
 
 
@@ -527,7 +480,6 @@ class ExpressionBytesOperationRsplit3(ExpressionBytesOperationRsplit3Base):
 
     @staticmethod
     def mayRaiseExceptionOperation():
-        # TODO: Only if the arguments have wrong shapes, code generation needs to use this too.
         return True
 
 
@@ -536,7 +488,6 @@ class ExpressionBytesOperationEndswith2(ExpressionBytesOperationEndswith2Base):
 
     @staticmethod
     def mayRaiseExceptionOperation():
-        # TODO: Only if the arguments have wrong shapes, code generation needs to use this too.
         return True
 
 
@@ -545,7 +496,6 @@ class ExpressionBytesOperationEndswith3(ExpressionBytesOperationEndswith3Base):
 
     @staticmethod
     def mayRaiseExceptionOperation():
-        # TODO: Only if the arguments have wrong shapes, code generation needs to use this too.
         return True
 
 
@@ -554,7 +504,6 @@ class ExpressionBytesOperationEndswith4(ExpressionBytesOperationEndswith4Base):
 
     @staticmethod
     def mayRaiseExceptionOperation():
-        # TODO: Only if the arguments have wrong shapes, code generation needs to use this too.
         return True
 
 
@@ -563,7 +512,6 @@ class ExpressionBytesOperationStartswith2(ExpressionBytesOperationStartswith2Bas
 
     @staticmethod
     def mayRaiseExceptionOperation():
-        # TODO: Only if the arguments have wrong shapes, code generation needs to use this too.
         return True
 
 
@@ -572,7 +520,6 @@ class ExpressionBytesOperationStartswith3(ExpressionBytesOperationStartswith3Bas
 
     @staticmethod
     def mayRaiseExceptionOperation():
-        # TODO: Only if the arguments have wrong shapes, code generation needs to use this too.
         return True
 
 
@@ -581,7 +528,6 @@ class ExpressionBytesOperationStartswith4(ExpressionBytesOperationStartswith4Bas
 
     @staticmethod
     def mayRaiseExceptionOperation():
-        # TODO: Only if the arguments have wrong shapes, code generation needs to use this too.
         return True
 
 
@@ -590,7 +536,6 @@ class ExpressionBytesOperationReplace3(ExpressionBytesOperationReplace3Base):
 
     @staticmethod
     def mayRaiseExceptionOperation():
-        # TODO: Only if the arguments have wrong shapes, code generation needs to use this too.
         return True
 
 
@@ -599,7 +544,6 @@ class ExpressionBytesOperationReplace4(ExpressionBytesOperationReplace4Base):
 
     @staticmethod
     def mayRaiseExceptionOperation():
-        # TODO: Only if the arguments have wrong shapes, code generation needs to use this too.
         return True
 
 
@@ -661,7 +605,6 @@ class ExpressionBytesOperationCount2(ExpressionBytesOperationCount2Base):
 
     @staticmethod
     def mayRaiseExceptionOperation():
-        # TODO: Only if the arguments have wrong shapes, code generation needs to use this too.
         return True
 
 
@@ -670,7 +613,6 @@ class ExpressionBytesOperationCount3(ExpressionBytesOperationCount3Base):
 
     @staticmethod
     def mayRaiseExceptionOperation():
-        # TODO: Only if the arguments have wrong shapes, code generation needs to use this too.
         return True
 
 
@@ -679,7 +621,6 @@ class ExpressionBytesOperationCount4(ExpressionBytesOperationCount4Base):
 
     @staticmethod
     def mayRaiseExceptionOperation():
-        # TODO: Only if the arguments have wrong shapes, code generation needs to use this too.
         return True
 
 
@@ -698,7 +639,6 @@ class ExpressionBytesOperationExpandtabs2(ExpressionBytesOperationExpandtabs2Bas
 
     @staticmethod
     def mayRaiseExceptionOperation():
-        # TODO: Only if the arguments have wrong shapes, code generation needs to use this too.
         return True
 
 
@@ -709,7 +649,6 @@ class ExpressionBytesOperationTranslate2(ExpressionBytesOperationTranslate2Base)
 
     @staticmethod
     def mayRaiseExceptionOperation():
-        # TODO: Only if the arguments have wrong shapes, code generation needs to use this too.
         return True
 
 
@@ -720,18 +659,14 @@ class ExpressionBytesOperationTranslate3(ExpressionBytesOperationTranslate3Base)
 
     @staticmethod
     def mayRaiseExceptionOperation():
-        # TODO: Only if the arguments have wrong shapes, code generation needs to use this too.
         return True
 
 
 class ExpressionBytesOperationZfill(ExpressionBytesOperationZfillBase):
-    """This operation represents b.zfill(width)."""
-
     kind = "EXPRESSION_BYTES_OPERATION_ZFILL"
 
     @staticmethod
     def mayRaiseExceptionOperation():
-        # TODO: Only if the arguments have wrong shapes, code generation needs to use this too.
         return True
 
 
@@ -740,7 +675,6 @@ class ExpressionBytesOperationCenter2(ExpressionBytesOperationCenter2Base):
 
     @staticmethod
     def mayRaiseExceptionOperation():
-        # TODO: Only if the arguments have wrong shapes, code generation needs to use this too.
         return True
 
 
@@ -749,7 +683,6 @@ class ExpressionBytesOperationCenter3(ExpressionBytesOperationCenter3Base):
 
     @staticmethod
     def mayRaiseExceptionOperation():
-        # TODO: Only if the arguments have wrong shapes, code generation needs to use this too.
         return True
 
 
@@ -758,7 +691,6 @@ class ExpressionBytesOperationLjust2(ExpressionBytesOperationLjust2Base):
 
     @staticmethod
     def mayRaiseExceptionOperation():
-        # TODO: Only if the arguments have wrong shapes, code generation needs to use this too.
         return True
 
 
@@ -767,7 +699,6 @@ class ExpressionBytesOperationLjust3(ExpressionBytesOperationLjust3Base):
 
     @staticmethod
     def mayRaiseExceptionOperation():
-        # TODO: Only if the arguments have wrong shapes, code generation needs to use this too.
         return True
 
 
@@ -776,7 +707,6 @@ class ExpressionBytesOperationRjust2(ExpressionBytesOperationRjust2Base):
 
     @staticmethod
     def mayRaiseExceptionOperation():
-        # TODO: Only if the arguments have wrong shapes, code generation needs to use this too.
         return True
 
 
@@ -785,7 +715,6 @@ class ExpressionBytesOperationRjust3(ExpressionBytesOperationRjust3Base):
 
     @staticmethod
     def mayRaiseExceptionOperation():
-        # TODO: Only if the arguments have wrong shapes, code generation needs to use this too.
         return True
 
 
@@ -796,7 +725,6 @@ class ExpressionBytesOperationSplitlines1(ExpressionBytesOperationSplitlines1Bas
 
     @staticmethod
     def mayRaiseExceptionOperation():
-        # We do not count MemoryError
         return False
 
 
@@ -807,7 +735,6 @@ class ExpressionBytesOperationSplitlines2(ExpressionBytesOperationSplitlines2Bas
 
     @staticmethod
     def mayRaiseExceptionOperation():
-        # TODO: Only if the arguments have wrong shapes, code generation needs to use this too.
         return True
 
 

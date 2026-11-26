@@ -7,6 +7,8 @@
 #
 # pylint: disable=redefined-outer-name,used-before-assignment
 
+from typing import ParamSpec, TypeAliasType, TypeVar, TypeVarTuple
+
 
 def someGenericFunction[T]():
     print("hello", T)
@@ -179,6 +181,165 @@ def classTypeAliasInFunction():
 
 
 classTypeAliasInFunction()
+
+
+def typeAliasInFunction():
+    def outer[A]():
+        type TA1[B] = dict[A, B]
+        return TA1
+
+    alias = outer()
+
+    print(
+        "Type alias in function:",
+        alias.__parameters__,
+        alias.__value__,
+        outer.__type_params__,
+    )
+
+
+typeAliasInFunction()
+
+print("Type alias in class with forward references")
+
+
+class TypeAliasForwardReferences:
+    type TA1 = dict[Later, int]
+    type TA2[ValueT] = tuple[ValueT, Later]
+
+    class Later:
+        pass
+
+
+print(TypeAliasForwardReferences.TA1.__value__)
+print(TypeAliasForwardReferences.TA2.__value__)
+
+
+def typeAliasInClassInFunction():
+    class Local:
+        type TA1 = list[Later]
+
+        class Later:
+            pass
+
+    print("Type alias in class in function:", Local.TA1.__value__)
+
+
+typeAliasInClassInFunction()
+
+print("Type alias in class using class namespace")
+
+
+class TypeAliasClassNamespace:
+    type TA1 = dict[Shadowed]
+
+    Shadowed = str
+
+
+print(TypeAliasClassNamespace.TA1.__value__)
+
+
+class TypeAliasDeletedClassAttribute:
+    type TA1 = dict[Deleted]
+
+    Deleted = str
+
+
+del TypeAliasDeletedClassAttribute.Deleted
+Deleted = bytes
+print(TypeAliasDeletedClassAttribute.TA1.__value__)
+
+print("Type variable bound using class namespace")
+
+
+class TypeVarBoundForwardReference:
+    def someGenericMethod[ValueT: Later]():
+        pass
+
+    class Later:
+        pass
+
+
+print(TypeVarBoundForwardReference.someGenericMethod.__type_params__[0].__bound__)
+
+print("Type variable constraints")
+
+
+def usingConstraints[T: (str, int), Deferred: (sideEffect(),)]():
+    print("T.__constraints__", T.__constraints__)
+    print("T.__bound__", T.__bound__)
+    print("Deferred.__constraints__", Deferred.__constraints__)
+
+
+print("Function with constraints")
+usingConstraints()
+
+print("Class with constraints")
+
+
+class UsingConstraints[T: (str, int), Deferred: (sideEffect(),)]:
+    print("T.__constraints__", T.__constraints__)
+    print("T.__bound__", T.__bound__)
+    print("Deferred.__constraints__", Deferred.__constraints__)
+
+
+print("Type variable constraints using class namespace")
+
+
+class TypeVarConstraintsForwardReference:
+    def someGenericMethod[ValueT: (Later,)]():
+        pass
+
+    class Later:
+        pass
+
+
+print(
+    TypeVarConstraintsForwardReference.someGenericMethod.__type_params__[
+        0
+    ].__constraints__
+)
+
+print("Type variable constraints are lazily evaluated")
+
+
+class TypeVarConstraintsLazyEvaluation[T: Undefined, U: (Undefined,)]:
+    pass
+
+
+for type_param in TypeVarConstraintsLazyEvaluation.__type_params__:
+    for attribute_name in ("__bound__", "__constraints__"):
+        try:
+            print(attribute_name, getattr(type_param, attribute_name))
+        except NameError as e:
+            print(attribute_name, type(e).__name__, e)
+
+Undefined = "defined"
+
+print("Type variable constraints after definition")
+for type_param in TypeVarConstraintsLazyEvaluation.__type_params__:
+    print(type_param.__bound__, type_param.__constraints__)
+
+print("Module attribution of typing objects")
+
+print("TypeVar:", TypeVar("T").__module__)
+print("ParamSpec:", ParamSpec("P").__module__)
+print("TypeVarTuple:", TypeVarTuple("Ts").__module__)
+print("TypeAliasType:", TypeAliasType("Alias", int).__module__)
+
+
+def makeTypeAliasType():
+    return TypeAliasType("FunctionAlias", int)
+
+
+print("Function alias:", makeTypeAliasType().__module__)
+
+
+class TypeAliasTypeContainer:
+    Alias = TypeAliasType("ClassAlias", int)
+
+
+print("Class alias:", TypeAliasTypeContainer.Alias.__module__)
 
 #     Python tests originally created or extracted from other peoples work. The
 #     parts were too small to be protected.

@@ -1,12 +1,7 @@
 #     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-"""Nodes that build and operate on dictionaries.
-
-The "pair" is a sub-structure of the dictionary, representing a key/value pair
-that is the child of the dictionary creation.
-
-"""
+"""Nodes that build and operate on dictionaries."""
 
 from nuitka import Constants
 from nuitka.PythonVersions import python_version
@@ -69,6 +64,7 @@ from .StatementBasesGenerated import (
     StatementDictOperationSetKeyValueBase,
     StatementDictOperationUpdateBase,
 )
+from .TypeNodes import ExpressionBuiltinType1
 
 
 def makeExpressionMakeDict(pairs, source_ref):
@@ -82,8 +78,6 @@ def makeExpressionMakeDict(pairs, source_ref):
 
 
 def makeExpressionMakeDictOrConstant(pairs, user_provided, source_ref):
-    # Create dictionary node or constant value if possible.
-
     for pair in pairs:
         if (
             not pair.isCompileTimeConstant()
@@ -140,8 +134,6 @@ class ExpressionMakeDictMixin(object):
 
     @staticmethod
     def canPredictIterationValues():
-        # Dictionaries are assumed to be fully predictable
-
         # TODO: For some things, that may not be true, when key collisions
         # happen for example. We will have to check that then.
         return True
@@ -160,7 +152,7 @@ class ExpressionMakeDictMixin(object):
 
     # TODO: Make this happen from auto-compute, children only side effects
     def computeExpressionDrop(self, statement, trace_collection):
-        # Virtual method overload, pylint: disable=unused-argument
+        # pylint: disable=unused-argument
         expressions = []
 
         for pair in self.subnode_pairs:
@@ -180,7 +172,7 @@ Removed sequence creation for unused sequence.""",
     # TODO: Missing computeExpressionIter1 here. For now it would require us to
     # add lots of temporary variables for keys, which then becomes the tuple,
     # but for as long as we don't have efficient forward propagation of these,
-    # we won't do that. Otherwise we loose execution order of values with them
+    # we won't do that. Otherwise we lose execution order of values with them
     # remaining as side effects. We could limit ourselves to cases where
     # isMappingWithConstantStringKeys is true, or keys had no side effects, but
     # that feels wasted effort as we are going to have full propagation.
@@ -192,6 +184,85 @@ Removed sequence creation for unused sequence.""",
     def onContentEscapes(self, trace_collection):
         for pair in self.subnode_pairs:
             pair.onContentEscapes(trace_collection)
+
+
+def _makeUnhashableKeyRaise(pairs, pair):
+    key = pair.subnode_key
+    unhashable_type_node = key.extractUnhashableNodeType()
+
+    if unhashable_type_node is None:
+        return None
+
+    unhashable_type_name = unhashable_type_node.getCompileTimeConstant().__name__
+
+    key_type_name = key.getTypeShape().getTypeName()
+    if key_type_name is None and key.isCompileTimeConstant():
+        key_type_name = key.getCompileTimeConstant().__class__.__name__
+
+    need_runtime_key_type = python_version >= 0x3E0 and key_type_name is None
+
+    if (
+        need_runtime_key_type
+        and key.mayHaveSideEffects()
+        and pair.subnode_value.mayHaveSideEffects()
+    ):
+        return None
+
+    side_effects = []
+
+    for pair2 in pairs:
+        if pair2 is pair:
+            if need_runtime_key_type:
+                side_effects.extend(pair2.subnode_value.extractSideEffects())
+            elif python_version < 0x350:
+                side_effects.extend(pair2.subnode_value.extractSideEffects())
+                side_effects.extend(key.extractSideEffects())
+            else:
+                side_effects.extend(key.extractSideEffects())
+                side_effects.extend(pair2.subnode_value.extractSideEffects())
+            break
+
+        side_effects.extend(pair2.extractSideEffects())
+
+    if need_runtime_key_type:
+        result = makeRaiseExceptionExpressionFromTemplate(
+            exception_type="TypeError",
+            template="cannot use '%s' as a dict key (unhashable type: '%s')",
+            template_args=(
+                makeExpressionAttributeLookup(
+                    expression=ExpressionBuiltinType1(
+                        value=key, source_ref=key.source_ref
+                    ),
+                    attribute_name="__name__",
+                    source_ref=key.source_ref,
+                ),
+                makeConstantReplacementNode(
+                    constant=unhashable_type_name,
+                    node=key,
+                    user_provided=False,
+                ),
+            ),
+            source_ref=key.source_ref,
+        )
+    elif python_version >= 0x3E0:
+        result = makeRaiseExceptionReplacementExpression(
+            expression=key,
+            exception_type="TypeError",
+            exception_value="cannot use '%s' as a dict key (unhashable type: '%s')"
+            % (key_type_name, unhashable_type_name),
+        )
+    else:
+        result = makeRaiseExceptionReplacementExpression(
+            expression=key,
+            exception_type="TypeError",
+            exception_value="unhashable type: '%s'" % unhashable_type_name,
+        )
+
+    return wrapExpressionWithSideEffects(
+        side_effects=side_effects,
+        old_node=key,
+        new_node=result,
+    )
 
 
 class ExpressionMakeDict(
@@ -218,71 +289,26 @@ class ExpressionMakeDict(
     def computeExpression(self, trace_collection):
         pairs = self.subnode_pairs
 
-        # The values become part of the dictionary, through which they can be
-        # accessed and changed, so they escape here.
         self.onContentEscapes(trace_collection)
 
         is_constant = True
 
         for pair in pairs:
             if pair.isKeyKnownToBeHashable() is False:
-                # The ones with constant keys are hashable.
-                key = pair.subnode_key
+                result = _makeUnhashableKeyRaise(pairs=pairs, pair=pair)
 
-                side_effects = []
-
-                for pair2 in pairs:
-                    if pair2 is pair:
-                        side_effects.extend(pair2.subnode_value.extractSideEffects())
-                        break
-
-                    side_effects.extend(pair2.extractSideEffects())
-
-                if python_version >= 0x3E0:
-                    result = makeRaiseExceptionExpressionFromTemplate(
-                        exception_type="TypeError",
-                        template="cannot use '%s' as a dict key (unhashable type: '%s')",
-                        template_args=(
-                            makeExpressionAttributeLookup(
-                                expression=key.getTypeValue(),
-                                attribute_name="__name__",
-                                source_ref=key.source_ref,
-                            ),
-                            makeExpressionAttributeLookup(
-                                expression=key.extractUnhashableNodeType(),
-                                attribute_name="__name__",
-                                source_ref=key.source_ref,
-                            ),
-                        ),
-                        source_ref=key.source_ref,
-                    )
-                else:
-                    result = makeRaiseExceptionExpressionFromTemplate(
-                        exception_type="TypeError",
-                        template="unhashable type: '%s'",
-                        template_args=makeExpressionAttributeLookup(
-                            expression=key.extractUnhashableNodeType(),
-                            attribute_name="__name__",
-                            source_ref=key.source_ref,
-                        ),
-                        source_ref=key.source_ref,
+                if result is not None:
+                    return (
+                        result,
+                        "new_raise",
+                        "Dictionary key is known to not be hashable.",
                     )
 
-                result = wrapExpressionWithSideEffects(
-                    side_effects=side_effects,
-                    old_node=key,
-                    new_node=result,
-                )
+                is_constant = False
+                continue
 
-                return (
-                    result,
-                    "new_raise",
-                    "Dictionary key is known to not be hashable.",
-                )
-
-            if is_constant:
-                if not pair.isCompileTimeConstant():
-                    is_constant = False
+            if is_constant and not pair.isCompileTimeConstant():
+                is_constant = False
 
         if not is_constant:
             return self, None, None
@@ -305,7 +331,6 @@ Created dictionary found to be constant.""",
 
     @staticmethod
     def getTruthValue():
-        # Cannot be empty
         return True
 
 
@@ -316,13 +341,11 @@ class StatementDictOperationSetMixin(object):
         key = self.subnode_key
 
         if not key.isKnownToBeHashable():
-            # Any exception may be raised.
             trace_collection.onExceptionRaiseExit(BaseException)
 
         # TODO: Until we have proper dictionary tracing, do this.
         trace_collection.removeKnowledge(self.subnode_dict_arg)
 
-        # This lets the value added to the dictionary escape.
         self.subnode_value.onContentEscapes(trace_collection)
 
         return self, None, None
@@ -372,10 +395,7 @@ class StatementDictOperationRemove(StatementDictOperationRemoveBase):
     auto_compute_handling = "operation"
 
     def computeStatementOperation(self, trace_collection):
-        # Any exception may be raised, we don't know if the key is present.
         trace_collection.onExceptionRaiseExit(BaseException)
-
-        # TODO: Until we have proper dictionary tracing, do this.
         trace_collection.removeKnowledge(self.subnode_dict_arg)
 
         return self, None, None
@@ -394,7 +414,7 @@ class StatementDictOperationRemove(StatementDictOperationRemoveBase):
 
 
 class ExpressionDictOperationPop2(ExpressionDictOperationPop2Base):
-    """This operation represents d.pop(key), i.e. default None."""
+    """This operation represents d.pop(key)."""
 
     kind = "EXPRESSION_DICT_OPERATION_POP2"
 
@@ -428,32 +448,20 @@ class ExpressionDictOperationPop2(ExpressionDictOperationPop2Base):
                 )
 
         # TODO: Check if dict_arg has key.
-
-        # TODO: Until we have proper dictionary tracing, do this.
         trace_collection.removeKnowledge(dict_arg)
 
         # TODO: Until we can know KeyError won't happen, but then we should change into
         # something else.
         trace_collection.onExceptionRaiseExit(BaseException)
 
-        # TODO: Check for "None" default and demote to ExpressionDictOperationSetdefault3 in
-        # that case.
         return self, None, None
 
-    # TODO: These turn this into dictionary item removals, as value is unused.
-    # def computeExpressionDrop(self, statement, trace_collection):
+    # TODO: Turn into dictionary item removal when the result is unused.
 
     # TODO: Might raise KeyError depending on dictionary.
     @staticmethod
     def mayRaiseException(exception_type):
         return True
-
-        # if self.known_hashable_key is None:
-        #     return True
-        # else:
-        #     return self.subnode_dict_arg.mayRaiseException(
-        #         exception_type
-        #     ) or self.subnode_key.mayRaiseException(exception_type)
 
 
 class ExpressionDictOperationPop3(ExpressionDictOperationPop3Base):
@@ -492,22 +500,15 @@ class ExpressionDictOperationPop3(ExpressionDictOperationPop3Base):
                 )
 
         # TODO: Check if dict_arg has key
-
-        # TODO: Until we have proper dictionary tracing, do this.
         trace_collection.removeKnowledge(dict_arg)
 
-        # TODO: Check for "None" default and demote to ExpressionDictOperationSetdefault3 in
-        # that case.
         if self.known_hashable_key is None:
             trace_collection.onExceptionRaiseExit(BaseException)
 
         return self, None, None
 
-    # TODO: These turn this into dictionary item removals, as value is unused.
-    # def computeExpressionDrop(self, statement, trace_collection):
-
     def mayRaiseException(self, exception_type):
-        if self.known_hashable_key is None:
+        if self.known_hashable_key is not True:
             return True
         else:
             return (
@@ -526,8 +527,6 @@ class ExpressionDictOperationPopitem(ExpressionDictOperationPopitemBase):
         dict_arg = self.subnode_dict_arg
 
         # TODO: Check if dict_arg is not empty.
-
-        # TODO: Until we have proper dictionary tracing, do this.
         trace_collection.removeKnowledge(dict_arg)
 
         # TODO: Until we can know KeyError won't happen, but then we should change into
@@ -535,9 +534,6 @@ class ExpressionDictOperationPopitem(ExpressionDictOperationPopitemBase):
         trace_collection.onExceptionRaiseExit(BaseException)
 
         return self, None, None
-
-    # TODO: These turn this into dictionary item removal, as value is unused.
-    # def computeExpressionDrop(self, statement, trace_collection):
 
     # TODO: Might raise KeyError depending on dictionary.
     @staticmethod
@@ -582,12 +578,8 @@ class ExpressionDictOperationSetdefault2(ExpressionDictOperationSetdefault2Base)
         # TODO: Check if dict_arg has key, and eliminate this node entirely
         # if that's the case with hashing of the key as a remaining side effect
         # though.
-
-        # TODO: Until we have proper dictionary tracing, do this.
         trace_collection.removeKnowledge(dict_arg)
 
-        # TODO: Check for "None" default and demote to ExpressionDictOperationSetdefault3 in
-        # that case.
         if self.known_hashable_key is None:
             trace_collection.onExceptionRaiseExit(BaseException)
 
@@ -641,14 +633,10 @@ class ExpressionDictOperationSetdefault3(ExpressionDictOperationSetdefault3Base)
         # TODO: Check if dict_arg has key, and eliminate this node entirely
         # if that's the case with hashing of the key as a remaining side effect
         # though.
-
-        # TODO: Until we have proper dictionary tracing, do this.
         trace_collection.removeKnowledge(dict_arg)
-
-        # This lets the default value added to the dictionary escape.
         self.subnode_default.onContentEscapes(trace_collection)
 
-        # TODO: Check for "None" default and demote to ExpressionDictOperationSetdefault3 in
+        # TODO: Check for "None" default and demote to ExpressionDictOperationSetdefault2 in
         # that case.
         if self.known_hashable_key is None:
             trace_collection.onExceptionRaiseExit(BaseException)
@@ -689,14 +677,13 @@ class ExpressionDictOperationItem(
         if dict_arg.isCompileTimeConstant() and key.isCompileTimeConstant():
             return trace_collection.getCompileTimeComputationResult(
                 node=self,
-                computation=lambda: self.getCompileTimeConstant()[
-                    dict_arg.getCompileTimeConstant()[key.getCompileTimeConstant()]
+                computation=lambda: dict_arg.getCompileTimeConstant()[
+                    key.getCompileTimeConstant()
                 ],
                 user_provided=dict_arg.user_provided,
                 description="Dictionary item lookup with constant key.",
             )
 
-        # TODO: Only if the key is not hashable.
         trace_collection.onExceptionRaiseExit(BaseException)
 
         return self, None, None
@@ -706,8 +693,6 @@ class ExpressionDictOperationGet2(ExpressionDictOperationGet2Base):
     """This operation represents d.get(key) with no exception for missing key but None default."""
 
     kind = "EXPRESSION_DICT_OPERATION_GET2"
-
-    named_children = ("dict_arg", "key")
 
     __slots__ = ("known_hashable_key",)
 
@@ -760,7 +745,7 @@ class ExpressionDictOperationGet2(ExpressionDictOperationGet2Base):
         return self, None, None
 
     def mayRaiseException(self, exception_type):
-        if self.known_hashable_key is None:
+        if self.known_hashable_key is not True:
             return True
         else:
             return self.subnode_dict_arg.mayRaiseException(
@@ -768,7 +753,7 @@ class ExpressionDictOperationGet2(ExpressionDictOperationGet2Base):
             ) or self.subnode_key.mayRaiseException(exception_type)
 
     def mayHaveSideEffects(self):
-        if self.known_hashable_key is None:
+        if self.known_hashable_key is not True:
             return True
         else:
             return (
@@ -777,7 +762,7 @@ class ExpressionDictOperationGet2(ExpressionDictOperationGet2Base):
             )
 
     def extractSideEffects(self):
-        if self.known_hashable_key is None:
+        if self.known_hashable_key is not True:
             return (self,)
         else:
             return (
@@ -790,8 +775,6 @@ class ExpressionDictOperationGet3(ExpressionDictOperationGet3Base):
     """This operation represents d.get(key, default) with no exception for missing key but default value."""
 
     kind = "EXPRESSION_DICT_OPERATION_GET3"
-
-    named_children = ("dict_arg", "key", "default")
 
     __slots__ = ("known_hashable_key",)
 
@@ -825,7 +808,6 @@ class ExpressionDictOperationGet3(ExpressionDictOperationGet3Base):
             key_value = key.getCompileTimeConstant()
 
             if key_value in dict_value:
-                # Side effects of args must be retained, but it's not used.
                 result = wrapExpressionWithSideEffects(
                     new_node=makeConstantReplacementNode(
                         constant=dict_value[key_value],
@@ -842,7 +824,6 @@ class ExpressionDictOperationGet3(ExpressionDictOperationGet3Base):
 
                 description = "Compile time computed 'dict.get' on constant argument to not use default."
             else:
-                # Side effects of dict and key must be retained, but it's not used.
                 result = wrapExpressionWithSideEffects(
                     new_node=self.subnode_default,
                     old_node=self,
@@ -859,7 +840,7 @@ class ExpressionDictOperationGet3(ExpressionDictOperationGet3Base):
         return self, None, None
 
     def mayRaiseException(self, exception_type):
-        if self.known_hashable_key is None:
+        if self.known_hashable_key is not True:
             return True
         else:
             return (
@@ -869,7 +850,7 @@ class ExpressionDictOperationGet3(ExpressionDictOperationGet3Base):
             )
 
     def mayHaveSideEffects(self):
-        if self.known_hashable_key is None:
+        if self.known_hashable_key is not True:
             return True
         else:
             return (
@@ -879,13 +860,13 @@ class ExpressionDictOperationGet3(ExpressionDictOperationGet3Base):
             )
 
     def extractSideEffects(self):
-        if self.known_hashable_key is None:
+        if self.known_hashable_key is not True:
             return (self,)
         else:
             return (
                 self.subnode_dict_arg.extractSideEffects()
                 + self.subnode_key.extractSideEffects()
-                + self.subnode_defaults.extractSideEffects()
+                + self.subnode_default.extractSideEffects()
             )
 
 
@@ -923,9 +904,8 @@ class ExpressionDictOperationClear(ExpressionDictOperationClearBase):
     kind = "EXPRESSION_DICT_OPERATION_CLEAR"
 
     def computeExpression(self, trace_collection):
-        # Once we do dictionary tracing, we should tell it, we know its new value
-        # perfectly, and that we have no use for previous value.
-        # trace_collection.onDictionaryReplaceValueWithKnownValue(self.subnode_dict_arg, {})
+        trace_collection.removeKnowledge(self.subnode_dict_arg)
+        trace_collection.onControlFlowEscape(self)
 
         return self, None, None
 
@@ -973,7 +953,7 @@ class ExpressionDictOperationViewkeys(
 
     @staticmethod
     def getTypeShape():
-        # TODO: Actually iterator that yields key values
+        # TODO: Add a dictionary keys view shape; this is a reusable view, not an iterator.
         return tshape_iterator
 
     def mayRaiseException(self, exception_type):
@@ -1039,7 +1019,7 @@ class ExpressionDictOperationViewvalues(
 
     @staticmethod
     def getTypeShape():
-        # TODO: Actually iterator that yields key values
+        # TODO: Add a dictionary values view shape; this is a reusable view, not an iterator.
         return tshape_iterator
 
     def mayRaiseException(self, exception_type):
@@ -1125,7 +1105,7 @@ class ExpressionDictOperationViewitems(
 
     @staticmethod
     def getTypeShape():
-        # TODO: Actually iterator that yields key values
+        # TODO: Add a dictionary items view shape; this is a reusable view, not an iterator.
         return tshape_iterator
 
     def mayRaiseException(self, exception_type):
@@ -1150,7 +1130,6 @@ class ExpressionDictOperationUpdate2(ExpressionDictOperationUpdate2Base):
         )
 
     def computeExpression(self, trace_collection):
-        # TODO: Until we have proper dictionary tracing, do this.
         trace_collection.removeKnowledge(self.subnode_dict_arg)
         # TODO: Using it might change it, unfortunately
         trace_collection.removeKnowledge(self.subnode_iterable)
@@ -1169,8 +1148,8 @@ class ExpressionDictOperationUpdate2(ExpressionDictOperationUpdate2Base):
 
 
 def makeExpressionDictOperationUpdate3(dict_arg, iterable, pairs, source_ref):
-    # Artefact of star argument parsing iterable, where it is also optional
-    # revolved on the outside here
+    # Artifact of star argument parsing iterable, where it is also optional,
+    # resolved on the outside here.
     if type(iterable) is tuple:
         if not iterable:
             iterable = None
@@ -1198,7 +1177,6 @@ class ExpressionDictOperationUpdate3(ExpressionDictOperationUpdate3Base):
         )
 
     def computeExpression(self, trace_collection):
-        # TODO: Until we have proper dictionary tracing, do this.
         trace_collection.removeKnowledge(self.subnode_dict_arg)
         # TODO: Using it might change it, unfortunately
         # TODO: When iterable is empty, this should be specialized further to
@@ -1207,8 +1185,6 @@ class ExpressionDictOperationUpdate3(ExpressionDictOperationUpdate3Base):
 
         for pair in self.subnode_pairs:
             trace_collection.removeKnowledge(pair)
-
-            # This lets the values added to the dictionary escape.
             pair.onContentEscapes(trace_collection)
 
         # TODO: Until we can know iteration error won't happen, but then we should change into
@@ -1227,7 +1203,7 @@ class ExpressionDictOperationUpdate3(ExpressionDictOperationUpdate3Base):
 class ExpressionDictOperationUpdatePairs(
     ChildrenExpressionDictOperationUpdatePairsMixin, ExpressionBase
 ):
-    """This operation represents d.update(iterable, **pairs)."""
+    """This operation represents d.update(**pairs)."""
 
     kind = "EXPRESSION_DICT_OPERATION_UPDATE_PAIRS"
 
@@ -1243,36 +1219,28 @@ class ExpressionDictOperationUpdatePairs(
         ExpressionBase.__init__(self, source_ref)
 
     def computeExpression(self, trace_collection):
-        # TODO: Until we have proper dictionary tracing, do this.
         trace_collection.removeKnowledge(self.subnode_dict_arg)
-        # TODO: Using it might change it, unfortunately
-        # TODO: When iterable is empty, this should be specialized further.
 
         for pair in self.subnode_pairs:
             trace_collection.removeKnowledge(pair)
-
-            # This lets the values added to the dictionary escape.
             pair.onContentEscapes(trace_collection)
 
-        # TODO: Until we can know KeyError won't happen, but then we should change into
-        # something else.
         trace_collection.onExceptionRaiseExit(BaseException)
 
         # TODO: Check empty, and remove itself if that's the case.
         return self, None, None
 
-    # TODO: Might raise non-iterable depending on value shape, or not hashable from content.
     @staticmethod
     def mayRaiseException(exception_type):
         return True
 
 
 class StatementDictOperationUpdate(StatementDictOperationUpdateBase):
-    """Update dict value.
+    """Update dict value for '**' mapping unpacking.
 
-    This is mainly used for re-formulations, where a dictionary
-    update will be performed on what is known not to be a
-    general mapping.
+    Used by dictionary display and dictionary comprehension unpacking,
+    updating an exact 'dict' from an arbitrary mapping and raising
+    'TypeError' on non-mappings.
     """
 
     kind = "STATEMENT_DICT_OPERATION_UPDATE"
@@ -1281,7 +1249,6 @@ class StatementDictOperationUpdate(StatementDictOperationUpdateBase):
     auto_compute_handling = "operation"
 
     def computeStatementOperation(self, trace_collection):
-        # TODO: Until we have proper dictionary tracing, do this.
         trace_collection.removeKnowledge(self.subnode_dict_arg)
         # TODO: Using it might change it, unfortunately
         trace_collection.removeKnowledge(self.subnode_value)
@@ -1318,7 +1285,7 @@ def makeUnhashableExceptionReplacementExpression(node, key, side_effects, operat
 
 
 class ExpressionDictOperationInNotInUncertainMixin(object):
-    # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
+    # pylint: disable=assigning-non-slot
     __slots__ = ()
 
     def computeExpression(self, trace_collection):
@@ -1374,7 +1341,6 @@ class ExpressionDictOperationInNotInUncertainMixin(object):
         if self.known_hashable_key is not True:
             return (self,)
         else:
-            # No side effects at all but from the children.
             result = []
 
             # The order of evaluation is different for "in" and "has_key", so we go
@@ -1423,11 +1389,9 @@ class ExpressionDictOperationHaskey(
 ):
     kind = "EXPRESSION_DICT_OPERATION_HASKEY"
 
-    # Different order of arguments.
-    named_children = ("dict_arg", "key")
-
     __slots__ = ("known_hashable_key",)
 
+    # Different order of arguments.
     def __init__(self, key, dict_arg, source_ref):
         ExpressionDictOperationHaskeyBase.__init__(
             self, key=key, dict_arg=dict_arg, source_ref=source_ref
@@ -1444,8 +1408,6 @@ class ExpressionDictOperationFromkeys2(ExpressionDictOperationFromkeys2Base):
             trace_collection.onExceptionRaiseExit(BaseException)
 
         if self.subnode_iterable.isCompileTimeConstant():
-            # TODO: Could be assert against it being None with a compile time constant,
-            # we will usually be able to tell?
             iteration_length = self.subnode_iterable.getIterationLength()
 
             if iteration_length is not None and iteration_length < 256:
@@ -1484,8 +1446,6 @@ class ExpressionDictOperationFromkeys3(ExpressionDictOperationFromkeys3Base):
             self.subnode_iterable.isCompileTimeConstant()
             and self.subnode_value.isCompileTimeConstant()
         ):
-            # TODO: Could be assert against it being None with a compile time constant,
-            # we will usually be able to tell?
             iteration_length = self.subnode_iterable.getIterationLength()
 
             if iteration_length is not None and iteration_length < 256:
@@ -1525,8 +1485,6 @@ class ExpressionDictOperationFromkeysRef(ExpressionNoSideEffectsMixin, Expressio
         return self, None, None
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
-        # Anything may happen. On next pass, if replaced, we might be better
-        # but not now.
         trace_collection.onExceptionRaiseExit(BaseException)
 
         def wrapExpressionDictOperationFromkeys(iterable, value, source_ref):

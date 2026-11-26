@@ -22,7 +22,7 @@ from .ConstantCodes import addDistributionMetadataValue
 from .DictCodes import getDictionaryCreationCode
 from .ErrorCodes import getErrorExitCode
 from .ImportCodes import getImportModuleNameHardCode
-from .PythonAPICodes import generateCAPIObjectCode
+from .PythonAPICodes import generateCAPIObjectCode, makeArgDescFromExpression
 from .TupleCodes import getTupleCreationCode
 
 
@@ -56,6 +56,42 @@ def generatePkglibGetDataCallCode(to_name, expression, emit, context):
         )
 
 
+def generatePkgutilIterModulesCallCode(to_name, expression, emit, context):
+    path_name, prefix_name = generateChildExpressionsCode(
+        expression=expression, emit=emit, context=context
+    )
+
+    release_names = []
+
+    if path_name is None:
+        path_name = "Py_None"
+    else:
+        release_names.append(path_name)
+
+    if prefix_name is None:
+        prefix_name = context.getConstantCode(constant="")
+    else:
+        release_names.append(prefix_name)
+
+    with withObjectCodeTemporaryAssignment(
+        to_name, "iter_modules_value", expression, emit, context
+    ) as result_name:
+        emit(
+            "%s = NUITKA_PKGUTIL_ITER_MODULES(tstate, %s, %s);"
+            % (result_name, path_name, prefix_name)
+        )
+
+        getErrorExitCode(
+            check_name=result_name,
+            release_names=release_names,
+            needs_check=True,
+            emit=emit,
+            context=context,
+        )
+
+        context.addCleanupTempName(result_name)
+
+
 def generatePkgResourcesDistributionValueCode(to_name, expression, emit, context):
     with withObjectCodeTemporaryAssignment(
         to_name, "distribution_value", expression, emit, context
@@ -79,9 +115,6 @@ def generatePkgResourcesDistributionValueCode(to_name, expression, emit, context
             for kw_name in kw_names
         ]
 
-        # Standalone mode has a different location, it is the directory the
-        # program runs from, while otherwise the compile time location is
-        # used.
         if "location" not in kw_names:
             kw_names += ("location",)
 
@@ -669,6 +702,11 @@ def generatePkgResourcesResourceStringCallCode(to_name, expression, emit, contex
         )
 
 
+def _getImportlibResourcesModuleName(expression):
+    """Return 'importlib.resources' or 'importlib_resources' from the call spec."""
+    return expression.spec.name.rsplit(".", 1)[0]
+
+
 def generateImportlibResourcesReadBinaryCallCode(to_name, expression, emit, context):
     package_name, resource_name = generateChildExpressionsCode(
         expression=expression, emit=emit, context=context
@@ -683,7 +721,7 @@ def generateImportlibResourcesReadBinaryCallCode(to_name, expression, emit, cont
 
         getImportModuleNameHardCode(
             to_name=read_binary_function,
-            module_name="importlib.resources",
+            module_name=_getImportlibResourcesModuleName(expression),
             import_name="read_binary",
             needs_check=False,
             emit=emit,
@@ -700,6 +738,62 @@ def generateImportlibResourcesReadBinaryCallCode(to_name, expression, emit, cont
         )
 
 
+def generateImportlibResourcesOpenBinaryCallCode(to_name, expression, emit, context):
+    package_name, resource_name = generateChildExpressionsCode(
+        expression=expression, emit=emit, context=context
+    )
+
+    with withObjectCodeTemporaryAssignment(
+        to_name, "open_binary_value", expression, emit, context
+    ) as result_name:
+        open_binary_function = context.allocateTempName(
+            "open_binary_function", unique=True
+        )
+
+        getImportModuleNameHardCode(
+            to_name=open_binary_function,
+            module_name=_getImportlibResourcesModuleName(expression),
+            import_name="open_binary",
+            needs_check=False,
+            emit=emit,
+            context=context,
+        )
+
+        getCallCodePosArgsQuick(
+            to_name=result_name,
+            called_name=open_binary_function,
+            expression=expression,
+            arg_names=(package_name, resource_name),
+            emit=emit,
+            context=context,
+        )
+
+
+def generateImportlibResourcesOpenTextCallCode(to_name, expression, emit, context):
+    with withObjectCodeTemporaryAssignment(
+        to_name, "open_text_value", expression, emit, context
+    ) as result_name:
+        open_text_function = context.allocateTempName("open_text_function", unique=True)
+
+        getImportModuleNameHardCode(
+            to_name=open_text_function,
+            module_name=_getImportlibResourcesModuleName(expression),
+            import_name="open_text",
+            needs_check=False,
+            emit=emit,
+            context=context,
+        )
+
+        getBuiltinCallViaSpecCode(
+            spec=expression.spec,
+            to_name=result_name,
+            called_name=open_text_function,
+            expression=expression,
+            emit=emit,
+            context=context,
+        )
+
+
 def generateImportlibResourcesReadTextCallCode(to_name, expression, emit, context):
     with withObjectCodeTemporaryAssignment(
         to_name, "read_text_value", expression, emit, context
@@ -708,7 +802,7 @@ def generateImportlibResourcesReadTextCallCode(to_name, expression, emit, contex
 
         getImportModuleNameHardCode(
             to_name=read_text_function,
-            module_name="importlib.resources",
+            module_name=_getImportlibResourcesModuleName(expression),
             import_name="read_text",
             needs_check=False,
             emit=emit,
@@ -885,6 +979,20 @@ def generateOsPathDirnameCallCode(to_name, expression, emit, context):
         capi="OS_PATH_DIRNAME",
         tstate=True,
         arg_desc=(("path_arg", expression.subnode_p),),
+        may_raise=expression.mayRaiseException(BaseException),
+        conversion_check=decideConversionCheckNeeded(to_name, expression),
+        source_ref=expression.getCompatibleSourceReference(),
+        emit=emit,
+        context=context,
+    )
+
+
+def generateOsPathJoinCallCode(to_name, expression, emit, context):
+    generateCAPIObjectCode(
+        to_name=to_name,
+        capi="OS_PATH_JOIN",
+        tstate=True,
+        arg_desc=makeArgDescFromExpression(expression),
         may_raise=expression.mayRaiseException(BaseException),
         conversion_check=decideConversionCheckNeeded(to_name, expression),
         source_ref=expression.getCompatibleSourceReference(),

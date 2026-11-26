@@ -8,6 +8,7 @@ bin, etc.
 """
 
 from nuitka.Builtins import builtin_anon_codes
+from nuitka.PythonVersions import isPythonWithGil
 
 from .CodeHelpers import (
     decideConversionCheckNeeded,
@@ -42,14 +43,22 @@ def generateBuiltinRefCode(to_name, expression, emit, context):
     with withObjectCodeTemporaryAssignment(
         to_name, "builtin_value", expression, emit, context
     ) as value_name:
-        emit(
-            "%s = LOOKUP_BUILTIN(%s);"
-            % (value_name, context.getConstantCode(constant=builtin_name))
-        )
+        if isPythonWithGil():
+            emit(
+                "%s = LOOKUP_BUILTIN(%s);"
+                % (value_name, context.getConstantCode(constant=builtin_name))
+            )
 
-        getAssertionCode(check="%s != NULL" % value_name, emit=emit)
+            getAssertionCode(check="%s != NULL" % value_name, emit=emit)
+        else:
+            emit(
+                "%s = LOOKUP_BUILTIN1(tstate, %s);"
+                % (value_name, context.getConstantCode(constant=builtin_name))
+            )
 
-        # Gives no reference
+            getAssertionCode(check="%s != NULL" % value_name, emit=emit)
+
+            context.addCleanupTempName(value_name)
 
 
 def generateBuiltinAnonymousRefCode(to_name, expression, emit, context):
@@ -97,6 +106,37 @@ def generateBuiltinType3Code(to_name, expression, emit, context):
         getErrorExitCode(
             check_name=value_name,
             release_names=(type_name, bases_name, dict_name),
+            emit=emit,
+            context=context,
+        )
+
+        context.addCleanupTempName(value_name)
+
+
+def generateBuiltinSentinelCallCode(to_name, expression, emit, context):
+    name_name, repr_name = generateChildExpressionsCode(
+        expression=expression, emit=emit, context=context
+    )
+
+    module_dict_name = context.getModuleDictCodeName()
+
+    with withObjectCodeTemporaryAssignment(
+        to_name, "sentinel_value", expression, emit, context
+    ) as value_name:
+        emit(
+            "%s = BUILTIN_SENTINEL(tstate, %s, %s, %s);"
+            % (
+                value_name,
+                name_name,
+                "NULL" if repr_name is None else repr_name,
+                module_dict_name,
+            )
+        )
+
+        getErrorExitCode(
+            check_name=value_name,
+            release_names=(name_name, repr_name),
+            needs_check=expression.mayRaiseExceptionOperation(),
             emit=emit,
             context=context,
         )

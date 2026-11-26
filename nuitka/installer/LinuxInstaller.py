@@ -1,7 +1,7 @@
 #     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-"""Linux installer creation for standalone and onefile deployments.
+"""Linux installer creation for standalone deployments.
 
 This module collects the options, validates payload, invokes the AppImage
 backend, and fires the ``onInstallerOutput`` hook.
@@ -32,7 +32,7 @@ from .backends.AppImageBackend import createAppImage
 
 
 def computeLinuxInstallerOutputFilename():
-    """Return the absolute output path for the Linux installer.
+    """Return the output path for the Linux installer.
 
     Returns *None* if installer creation was not requested.
     """
@@ -41,15 +41,15 @@ def computeLinuxInstallerOutputFilename():
 
     output_filename = getLinuxInstallerOutputFilename()
 
-    if output_filename is None:
-        if isOnefileMode():
-            base = getResultFullpath(onefile=True, real=True)
-        else:
-            base = getStandaloneDirectoryPath(bundle=True, real=True)
+    if output_filename is not None:
+        return getOutputPath(path=output_filename)
 
-        output_filename = changeFilenameExtension(base, ".AppImage")
+    if isOnefileMode():
+        base = getResultFullpath(onefile=True, real=True)
+    else:
+        base = getStandaloneDirectoryPath(bundle=True, real=True)
 
-    return getOutputPath(path=output_filename)
+    return changeFilenameExtension(base, ".AppImage")
 
 
 # pylint: disable=inconsistent-return-statements
@@ -100,12 +100,14 @@ def createLinuxInstaller(installer_tool_path):
         if included_datafile.isExternal()
     ]
 
+    output_filename = computeLinuxInstallerOutputFilename()
+
     artifact_filename = createAppImage(
         product_name=getProductName(),
         product_version=getProductVersion(),
         company_name=getCompanyName(),
         file_description=getFileDescription(),
-        output_filename=getLinuxInstallerOutputFilename(),
+        output_filename=output_filename,
         payload_dir=payload_dir,
         payload_filename=payload_filename,
         main_binary_name=main_binary_name,

@@ -6,8 +6,6 @@
 Next variants and unpacking with related checks.
 """
 
-from nuitka.nodes.BuiltinLenNodes import ExpressionBuiltinLen
-from nuitka.nodes.ConstantRefNodes import makeConstantRefNode
 from nuitka.PythonVersions import python_version
 
 from .CodeHelpers import (
@@ -16,7 +14,6 @@ from .CodeHelpers import (
     generateExpressionCode,
     withObjectCodeTemporaryAssignment,
 )
-from .ComparisonCodes import getRichComparisonCode
 from .ErrorCodes import (
     getErrorExitBoolCode,
     getErrorExitCode,
@@ -27,6 +24,13 @@ from .LineNumberCodes import getErrorLineNumberUpdateCode
 from .PythonAPICodes import generateCAPIObjectCode
 from .templates.CodeTemplatesIterators import template_loop_break_next
 from .TupleCodes import getTupleCreationCode
+
+
+def _emitIteratorNextCode(expression, to_name, value, emit):
+    if expression.getTypeShape().isShapeIterator():
+        emit("%s = ITERATOR_NEXT_ITERATOR(%s);" % (to_name, value))
+    else:
+        emit("%s = ITERATOR_NEXT(%s);" % (to_name, value))
 
 
 def generateBuiltinNext1Code(to_name, expression, emit, context):
@@ -42,11 +46,15 @@ def generateBuiltinNext1Code(to_name, expression, emit, context):
     with withObjectCodeTemporaryAssignment(
         to_name, "next_value", expression, emit, context
     ) as result_name:
-        # TODO: Make use of "ITERATOR_NEXT_ITERATOR" in case of known type shape
-        # iterator.
+        _emitIteratorNextCode(
+            expression=expression.subnode_value,
+            to_name=result_name,
+            value=value_name,
+            emit=emit,
+        )
+
         emit(
             """\
-%(to_name)s = ITERATOR_NEXT(%(iterator_name)s);
 if (%(to_name)s == NULL) {
     FETCH_ERROR_OCCURRED_STATE(tstate, &%(exception_state_name)s);
 
@@ -57,7 +65,6 @@ if (%(to_name)s == NULL) {
 """
             % {
                 "to_name": result_name,
-                "iterator_name": value_name,
                 "exception_state_name": exception_state_name,
             }
         )
@@ -88,6 +95,7 @@ def generateBuiltinEnumerate1Code(to_name, expression, emit, context):
             release_name=sequence_name,
             emit=emit,
             context=context,
+            needs_check=expression.mayRaiseException(BaseException),
         )
 
         context.addCleanupTempName(result_name)
@@ -111,31 +119,43 @@ def generateBuiltinEnumerate2Code(to_name, expression, emit, context):
             release_names=(sequence_name, start_name),
             emit=emit,
             context=context,
+            needs_check=expression.mayRaiseException(BaseException),
         )
 
         context.addCleanupTempName(result_name)
 
 
 def generateBuiltinZipCode(to_name, expression, emit, context):
-    values_name = context.allocateTempName("zip_iterables")
-
-    getTupleCreationCode(
-        to_name=values_name,
-        elements=expression.subnode_values,
-        emit=emit,
-        context=context,
+    (iterable_names,) = generateChildExpressionsCode(
+        expression=expression, emit=emit, context=context
     )
 
     with withObjectCodeTemporaryAssignment(
         to_name, "zip_value", expression, emit, context
     ) as result_name:
-        emit("%s = BUILTIN_ZIP(tstate, %s);" % (result_name, values_name))
+        if iterable_names:
+            emit(
+                """\
+{
+    PyObject *zip_iterables[] = {%s};
+    %s = BUILTIN_ZIP(tstate, zip_iterables, %d);
+}
+"""
+                % (
+                    ", ".join(str(name) for name in iterable_names),
+                    result_name,
+                    len(iterable_names),
+                )
+            )
+        else:
+            emit("%s = BUILTIN_ZIP(tstate, NULL, 0);" % result_name)
 
         getErrorExitCode(
             check_name=result_name,
-            release_name=values_name,
+            release_names=iterable_names,
             emit=emit,
             context=context,
+            needs_check=expression.mayRaiseException(BaseException),
         )
 
         context.addCleanupTempName(result_name)
@@ -173,16 +193,19 @@ def generateBuiltinZip310Code(to_name, expression, emit, context):
             release_names=(values_name, strict_name),
             emit=emit,
             context=context,
+            needs_check=expression.mayRaiseException(BaseException),
         )
 
         context.addCleanupTempName(result_name)
 
 
 def getBuiltinLoopBreakNextCode(expression, to_name, value, emit, context):
-    if expression.getTypeShape().isShapeIterator():
-        emit("%s = %s;" % (to_name, "ITERATOR_NEXT_ITERATOR(%s)" % value))
-    else:
-        emit("%s = %s;" % (to_name, "ITERATOR_NEXT(%s)" % value))
+    _emitIteratorNextCode(
+        expression=expression,
+        to_name=to_name,
+        value=value,
+        emit=emit,
+    )
 
     getReleaseCode(release_name=value, emit=emit, context=context)
 
@@ -311,129 +334,51 @@ def generateUnpackCheckCode(statement, emit, context):
 
 
 def generateUnpackCheckFromIteratedCode(statement, emit, context):
-    res_name = context.getBoolResName()
-
-    # TODO: Have a way to pass a C integer value to getRichComparisonCode
-    # without creating a temporary constant ref node.
-    getRichComparisonCode(
-        to_name=res_name,
-        comparator="Gt",
-        left=statement.subnode_iterated_length,
-        right=makeConstantRefNode(
-            constant=statement.count,
-            source_ref=statement.source_ref,
-            user_provided=True,
-        ),
-        needs_check=False,
-        source_ref=statement.source_ref,
-        emit=emit,
-        context=context,
-    )
-
-    (
-        exception_state_name,
-        _exception_lineno,
-    ) = context.getExceptionVariableDescriptions()
-
-    if python_version < 0x300:
-        emit(
-            """
-if (%(res_name)s) {
-    SET_UNPACK_TOO_MANY_VALUES_ERROR(tstate, &%(exception_state_name)s);
-}
-"""
-            % {
-                "res_name": res_name,
-                "exception_state_name": exception_state_name,
-            }
-        )
-    else:
-        emit(
-            """
-if (%(res_name)s) {
-    SET_UNPACK_TOO_MANY_VALUES_ERROR(tstate, &%(exception_state_name)s, %(count)d);
-}
-"""
-            % {
-                "res_name": res_name,
-                "exception_state_name": exception_state_name,
-                "count": statement.count,
-            }
-        )
-
-    getErrorExitBoolCode(
-        condition="%s != false" % res_name,
-        fetched_exception=True,
-        emit=emit,
-        context=context,
-    )
-
-
-def generateUnpackCheckFromIteratedValueCode(statement, emit, context):
-    res_name = context.getBoolResName()
-
-    iterated_value = statement.subnode_iterated_value
-
     iterated_value_name = context.allocateTempName("iterated_value")
 
     generateExpressionCode(
         to_name=iterated_value_name,
-        expression=iterated_value,
+        expression=statement.subnode_iterated_value,
         emit=emit,
         context=context,
     )
 
-    # TODO: Have a way to pass a C integer value to getRichComparisonCode
-    # without creating a temporary constant ref node.
-    getRichComparisonCode(
-        to_name=res_name,
-        comparator="Gt",
-        left=ExpressionBuiltinLen(
-            iterated_value.makeClone(),
-            source_ref=statement.source_ref,
-        ),
-        right=makeConstantRefNode(
-            constant=statement.count,
-            source_ref=statement.source_ref,
-            user_provided=True,
-        ),
-        needs_check=False,
-        source_ref=statement.source_ref,
-        emit=emit,
-        context=context,
-    )
+    with context.withCurrentSourceCodeReference(statement.getSourceReference()):
+        (
+            exception_state_name,
+            _exception_lineno,
+        ) = context.getExceptionVariableDescriptions()
 
-    (
-        exception_state_name,
-        _exception_lineno,
-    ) = context.getExceptionVariableDescriptions()
+        res_name = context.getBoolResName()
 
-    emit(
-        """
-if (%(res_name)s) {
-    SET_UNPACK_TOO_MANY_VALUES_ERROR(tstate, &%(exception_state_name)s, %(count)d, %(iterated_value_name)s);
-}
-"""
-        % {
-            "res_name": res_name,
-            "exception_state_name": exception_state_name,
-            "count": statement.count,
-            "iterated_value_name": iterated_value_name,
-        }
-    )
+        emit(
+            "%s = UNPACK_ITERATED_CHECK(tstate, &%s, %s, %d);"
+            % (
+                res_name,
+                exception_state_name,
+                iterated_value_name,
+                statement.getCount(),
+            )
+        )
 
-    getErrorExitBoolCode(
-        condition="%s != false" % res_name,
-        fetched_exception=True,
-        emit=emit,
-        context=context,
-    )
+        getErrorExitBoolCode(
+            condition="%s == false" % res_name,
+            release_name=iterated_value_name,
+            fetched_exception=True,
+            emit=emit,
+            context=context,
+        )
 
 
 def generateBuiltinNext2Code(to_name, expression, emit, context):
+    if expression.subnode_iterator.getTypeShape().isShapeIterator():
+        capi = "BUILTIN_NEXT2_ITERATOR"
+    else:
+        capi = "BUILTIN_NEXT2"
+
     generateCAPIObjectCode(
         to_name=to_name,
-        capi="BUILTIN_NEXT2",
+        capi=capi,
         tstate=True,
         arg_desc=(
             ("next_arg", expression.subnode_iterator),
@@ -444,6 +389,23 @@ def generateBuiltinNext2Code(to_name, expression, emit, context):
         source_ref=expression.getCompatibleSourceReference(),
         emit=emit,
         context=context,
+    )
+
+
+def generateIsIterableCode(to_name, expression, emit, context):
+    (value_name,) = generateChildExpressionsCode(
+        expression=expression, emit=emit, context=context
+    )
+    context.setCurrentSourceCodeReference(expression.getCompatibleSourceReference())
+
+    res_name = context.getBoolResName()
+
+    emit("%s = IS_ITERABLE(%s);" % (res_name, value_name))
+
+    getReleaseCode(release_name=value_name, emit=emit, context=context)
+
+    to_name.getCType().emitAssignmentCodeFromBoolCondition(
+        to_name=to_name, condition=res_name, emit=emit
     )
 
 

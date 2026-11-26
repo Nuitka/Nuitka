@@ -5,6 +5,7 @@ from __future__ import print_function
 
 import inspect
 import pprint
+import sys
 
 
 def displayDir(l):
@@ -219,6 +220,20 @@ class DictUpdating:
 print("Changed values", DictUpdating.b, DictUpdating.test_4)
 
 
+def makeConditionalClass(condition):
+    if condition:
+
+        class ConditionalClass:
+            a = 1
+            class_locals = locals()
+
+        return ConditionalClass
+
+
+conditional_class = makeConditionalClass(True)
+print("Class in conditional with locals:", conditional_class.a)
+
+
 def functionThatOffersClosureToPassThroughClass(x):
     class Foo:
         global x
@@ -272,6 +287,595 @@ class ClassWithModuleVariableCollisionMain:
 print(
     ClassWithModuleVariableCollisionMain, ClassWithModuleVariableCollisionMain().value
 )
+
+# See #4166.
+print("Class body reads a function local assigned later:")
+
+shared_name = 30
+
+
+def classBodyThenLocalAssignment(use_class):
+    if use_class:
+
+        class C:
+            shared_name = 5
+            derived_name = shared_name * 2
+
+        return C
+
+    shared_name = 5
+
+    return {"shared_name": shared_name, "derived_name": shared_name * 2}
+
+
+print(classBodyThenLocalAssignment(False))
+print("module shared_name:", shared_name)
+
+
+def classBodyReadsLaterLocal():
+    class C:
+        x = 1
+        y = x
+
+    x = 2
+
+    return C.y, x
+
+
+print(classBodyReadsLaterLocal())
+
+
+def recursiveFunctionUsesLocal():
+    def recurse(n):
+        if n < 0:
+
+            class C:
+                x = 1
+                y = x
+
+        x = n
+
+        if n:
+            recurse(n - 1)
+
+        return x
+
+    return recurse(2)
+
+
+print("recursion result:", recursiveFunctionUsesLocal())
+
+later_local = 100
+
+
+def classBodyReadsUnboundLocal():
+    class C:
+        y = later_local
+
+    later_local = 2
+
+    return C.y
+
+
+try:
+    print(classBodyReadsUnboundLocal())
+except NameError:
+    print("NameError expected")
+
+print("module later_local:", later_local)
+
+shadowed_name = 100
+
+
+def classBodyBindsAndReadsName():
+    class C:
+        y = shadowed_name
+        shadowed_name = 2
+
+    shadowed_name = 3
+
+    return C.y, C.shadowed_name, shadowed_name
+
+
+print(classBodyBindsAndReadsName())
+print("module shadowed_name:", shadowed_name)
+
+iterable_name = (100,)
+
+
+def classBodyComprehensionIterable():
+    class C:
+        values = [i for i in iterable_name]
+
+    iterable_name = (2, 3)
+
+    return C.values
+
+
+try:
+    print(classBodyComprehensionIterable())
+except NameError:
+    print("NameError expected")
+
+print("module iterable_name:", iterable_name)
+
+
+def forTargetBindsLocal():
+    class C:
+        x = 1
+        y = x
+
+    for x in (2,):
+        pass
+
+    return C.y, x
+
+
+print(forTargetBindsLocal())
+
+exception_target = "module value"
+
+
+def exceptTargetBindsLocal():
+    class C:
+        exception_target = 1
+        y = exception_target
+
+    try:
+        1 / 0
+    except ZeroDivisionError as exception_target:
+        pass
+
+    return C.y
+
+
+print(exceptTargetBindsLocal())
+print("module exception_target:", exception_target)
+
+
+class MethodWithClassBody:
+    def method(self):
+        class C:
+            x = 1
+            y = x
+
+        x = 3
+
+        return C.y, x
+
+
+print(MethodWithClassBody().method())
+
+
+def classBodyInGenerator():
+    class C:
+        x = 1
+        y = x
+
+    x = 4
+
+    yield C.y, x
+
+
+print(list(classBodyInGenerator()))
+
+print("Instances with managed dictionaries:")
+
+
+class ManagedDictClass:
+    class_attribute = "class"
+
+    def method(self, value):
+        return "method", value
+
+    @property
+    def prop(self):
+        return "prop"
+
+
+managed = ManagedDictClass()
+managed.alpha = 1
+managed.beta = 2
+
+print("attribute:", managed.alpha, managed.beta)
+print("dict:", sorted(managed.__dict__))
+print("class:", managed.__class__.__name__)
+print("hasattr:", hasattr(managed, "alpha"), hasattr(managed, "missing"))
+print("getattr:", getattr(managed, "missing", "default"))
+
+managed.method = lambda value: ("instance-method", value)
+print("method:", managed.method(3))
+del managed.method
+print("method class:", managed.method(4))
+
+managed.__dict__["prop"] = "shadowed"
+print("property:", managed.prop)
+
+try:
+    managed.missing
+except AttributeError as e:
+    if sys.version_info >= (3, 10):
+        print("error context:", e.name, e.obj is managed)
+    else:
+        print("error context: missing")
+
+
+print("Instances with managed dictionaries converted to a real dict:")
+
+
+class ManyAttributes:
+    def method(self, value):
+        return "many-method", value
+
+
+many = ManyAttributes()
+
+for i in range(50):
+    setattr(many, "attr%d" % i, i)
+
+many.direct = 99
+
+print("attribute:", many.attr0, many.attr49, many.direct)
+print("hasattr:", hasattr(many, "attr25"), hasattr(many, "missing"))
+print("class:", many.__class__.__name__)
+print("dict:", len(many.__dict__))
+
+many.method = lambda value: ("many-instance-method", value)
+print("method:", many.method(5))
+del many.method
+print("method class:", many.method(6))
+
+del many.attr0
+print("deleted:", hasattr(many, "attr0"))
+
+
+print("Slots only and slots with dictionary:")
+
+
+class SlotsOnly:
+    __slots__ = ("slot",)
+
+
+slots_only = SlotsOnly()
+slots_only.slot = 1
+print("slots only:", slots_only.slot, hasattr(slots_only, "missing"))
+
+try:
+    slots_only.missing = 2
+except AttributeError:
+    print("slots only set: AttributeError")
+
+
+class SlotsWithDict:
+    __slots__ = ("slot", "__dict__")
+
+
+slots_with_dict = SlotsWithDict()
+slots_with_dict.slot = 1
+slots_with_dict.extra = 2
+print(
+    "slots dict:",
+    slots_with_dict.slot,
+    slots_with_dict.extra,
+    sorted(slots_with_dict.__dict__),
+)
+
+
+class ClassBodyDeletion:
+    __iop__ = "iop"
+    __iadd__ = __iop__
+    del __iop__
+
+    def method(self):
+        return 1
+
+
+print(
+    "Class body deletion:",
+    ClassBodyDeletion.__iadd__,
+    "__iop__" in ClassBodyDeletion.__dict__,
+    ClassBodyDeletion().method(),
+)
+
+
+print("Attribute assignment KeyError handling:")
+
+
+class BadAttrKey(str):
+    def __hash__(self):
+        return hash("x")
+
+    def __eq__(self, other):
+        raise KeyError("boom")
+
+
+class NonDataDescr(object):
+    def __get__(self, instance, owner=None):
+        return 42
+
+
+class CustomDataDescr(object):
+    def __get__(self, instance, owner=None):
+        return 1
+
+    def __set__(self, instance, value):
+        raise KeyError("from_descr_set")
+
+
+class DescriptorKeyErrorHolder(object):
+    @property
+    def prop(self):
+        return 1
+
+    @prop.setter
+    def prop(self, value):
+        raise KeyError("from_property_setter")
+
+    data_descr = CustomDataDescr()
+
+
+class ManagedKeyErrorObj(object):
+    x = NonDataDescr()
+
+
+class DictSubclassKeyErrorObj(dict):
+    x = NonDataDescr()
+
+
+def reportAttributeException(label, func, target):
+    try:
+        func()
+    except Exception as e:
+        print(
+            label,
+            type(e).__name__,
+            e.args,
+            getattr(e, "name", None),
+            getattr(e, "obj", None) is target,
+        )
+    else:
+        print(label, "no exception")
+
+
+descr_holder = DescriptorKeyErrorHolder()
+
+
+def assignProperty():
+    descr_holder.prop = 2
+
+
+def assignDataDescriptor():
+    descr_holder.data_descr = 2
+
+
+reportAttributeException(
+    "property setattr:", lambda: setattr(descr_holder, "prop", 2), descr_holder
+)
+reportAttributeException("property direct:", assignProperty, descr_holder)
+reportAttributeException("data descr direct:", assignDataDescriptor, descr_holder)
+
+managed_key_error_obj = ManagedKeyErrorObj()
+managed_key_error_obj.__dict__[BadAttrKey("x")] = 1
+
+
+def assignManagedDict():
+    managed_key_error_obj.x = 2
+
+
+reportAttributeException("managed dict set:", assignManagedDict, managed_key_error_obj)
+
+dict_subclass_key_error_obj = DictSubclassKeyErrorObj()
+dict_subclass_key_error_obj.__dict__[BadAttrKey("x")] = 1
+
+
+def assignGenericDict():
+    dict_subclass_key_error_obj.x = 2
+
+
+reportAttributeException(
+    "generic dict set:", assignGenericDict, dict_subclass_key_error_obj
+)
+
+
+print("Custom __getattribute__ returning callable data descriptor:")
+
+
+class CallableDataDescr(object):
+    def __init__(self, name):
+        self.name = name
+
+    def __get__(self, instance, owner=None):
+        return lambda *args: ("unexpected_descr_get", self.name, args)
+
+    def __set__(self, instance, value):
+        pass
+
+    def __call__(self, *args):
+        return ("direct_call", self.name, args)
+
+
+class CustomGetattributeDataDescrHolder(object):
+    def __getattribute__(self, name):
+        return CallableDataDescr(name)
+
+
+def callCustomGetattributeMethods(obj):
+    return (
+        obj.m0(),
+        obj.m1(1),
+        obj.m2(1, 2),
+        obj.m11(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11),
+    )
+
+
+print(callCustomGetattributeMethods(CustomGetattributeDataDescrHolder()))
+
+
+print("3-arg type() metaclass and globals __name__ handling:")
+
+
+class MetaRaisingModuleGetattr(type):
+    def __getattribute__(cls, name):
+        if name == "__module__":
+            raise RuntimeError("unexpected __module__ lookup")
+        return type.__getattribute__(cls, name)
+
+
+class MetaReturningNonType(type):
+    def __new__(mcs, name, bases, namespace):
+        if bases:
+            return "not-a-type:" + name
+        return type.__new__(mcs, name, bases, namespace)
+
+
+BaseRaisingModuleGetattr = MetaRaisingModuleGetattr(
+    "BaseRaisingModuleGetattr", (object,), {}
+)
+BaseReturningNonType = MetaReturningNonType("BaseReturningNonType", (object,), {})
+
+
+def reportType3(label, fn):
+    try:
+        res = fn()
+    except Exception as e:
+        print(label, "raised", type(e).__name__, e.args)
+    else:
+        if isinstance(res, type):
+            print(
+                label,
+                "type",
+                res.__name__,
+                "__module__" in res.__dict__,
+                res.__dict__.get("__module__"),
+            )
+        else:
+            print(label, "non-type", repr(res))
+
+
+reportType3(
+    "metaclass raising on __module__ getattr:",
+    lambda: type("DynamicRaisingModule", (BaseRaisingModuleGetattr,), {}),
+)
+reportType3(
+    "metaclass returning non-type:",
+    lambda: type("DynamicNonType", (BaseReturningNonType,), {}),
+)
+
+
+def makeDynamicClass(name, namespace):
+    return type(name, (), namespace)
+
+
+orig_module_name = globals().get("__name__")
+try:
+    reportType3("normal module-level:", lambda: type("DynNormal", (), {}))
+    reportType3("normal function-level:", lambda: makeDynamicClass("DynNormalFn", {}))
+
+    globals()["__name__"] = "renamed_test_module"
+    reportType3("renamed module-level:", lambda: type("DynRenamed", (), {}))
+    reportType3("renamed function-level:", lambda: makeDynamicClass("DynRenamedFn", {}))
+
+    del globals()["__name__"]
+    cls_no_name = type("DynNoName", (), {})
+    print(
+        "deleted __name__ module-level:",
+        hasattr(cls_no_name, "__module__"),
+        "__module__" in cls_no_name.__dict__,
+    )
+    cls_no_name_fn = makeDynamicClass("DynNoNameFn", {})
+    print(
+        "deleted __name__ function-level:",
+        hasattr(cls_no_name_fn, "__module__"),
+        "__module__" in cls_no_name_fn.__dict__,
+    )
+    reportType3(
+        "deleted __name__ explicit __module__:",
+        lambda: makeDynamicClass("DynExplicit", {"__module__": "explicit_mod"}),
+    )
+finally:
+    if orig_module_name is not None:
+        globals()["__name__"] = orig_module_name
+
+
+def testUncertainLocalsDictCalls(shadow, xs, ys):
+    log = []
+
+    def custom_eval(src, *args, **kwargs):
+        log.append(("custom_eval", src, args, kwargs))
+        return "custom:" + str(src)
+
+    def gen(items):
+        for item in items:
+            log.append(("gen", item))
+            yield item
+
+    def boom():
+        log.append("boom")
+        raise ValueError("arg boom")
+
+    class C:
+        a = 10
+        if shadow:
+            eval = custom_eval
+
+        r_locals = locals()
+        r_eval_const = eval("a + 5")
+        # Python 2 assigns list comprehension variables in the class scope, and
+        # nested generator expressions cannot see class scopes.
+        if sys.version_info >= (3,):
+            r_eval_comp = eval(
+                "+".join(
+                    str(x) for x in [v for v in gen(xs) if any(v == w for w in ys)]
+                )
+            )
+        else:
+            r_eval_comp = eval(
+                "+".join(str(x) for x in [v for v in gen(xs) if v in ys])
+            )
+        r_eval_two_args = eval("b + 1", {"b": (lambda z: z * 2)(20)})
+
+        r_loop = []
+        for idx in range(2):
+            r_loop.append(eval("a + " + str(idx)))
+
+        try:
+            r_err = eval("a + 1", boom())
+        except ValueError as e:
+            r_err = str(e)
+
+        if not shadow:
+            if xs == [-999]:
+                eval = custom_eval
+            r_order = eval((locals().__setitem__("eval", custom_eval), "a + 7")[1])
+            r_after = eval("a + 8")
+        else:
+            r_order = eval((locals().pop("eval"), "a + 2")[1])
+            r_after = eval("a + 3")
+
+    class C2:
+        a = 10
+        if shadow:
+            locals = lambda: {"custom_locals": True}
+        r_locals = locals()
+
+    print(
+        "Uncertain locals dict call shadow=%s:" % shadow,
+        "a" in C.r_locals,
+        "a" in C2.r_locals,
+        "custom_locals" in C2.r_locals,
+        C.r_eval_const,
+        C.r_eval_comp,
+        C.r_eval_two_args,
+        C.r_loop,
+        C.r_err,
+        C.r_order,
+        C.r_after,
+        log,
+    )
+
+
+testUncertainLocalsDictCalls(False, [1, 2, 3], [2, 3, 4])
+testUncertainLocalsDictCalls(True, [1, 2, 3], [2, 3, 4])
 
 #     Python tests originally created or extracted from other peoples work. The
 #     parts were too small to be protected.

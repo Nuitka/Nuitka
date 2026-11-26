@@ -126,11 +126,7 @@ def checkBranchName():
 def getBranchCategory(branch_name):
     """There are 3 categories of releases. Map branch name on them."""
 
-    if (
-        branch_name.startswith("release")
-        or branch_name == "main"
-        or branch_name.startswith("hotfix/")
-    ):
+    if branch_name.startswith(("release", "hotfix/")) or branch_name == "main":
         category = "stable"
     elif branch_name == "factory":
         category = "factory"

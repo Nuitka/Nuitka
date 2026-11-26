@@ -1,31 +1,23 @@
 #     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-"""Module/Package attribute nodes
+"""Module and package attribute nodes ('__name__', '__package__', '__file__', '__spec__', '__loader__', '__compiled__')."""
 
-The represent special values of the modules. The "__name__", "__package__",
-"__file__", and "__spec__" values can all be highly dynamic and version
-dependent
+import os
 
-These nodes are intended to allow for as much compile time optimization as
-possible, despite this difficulty. In some modes these node become constants
-quickly, in others they will present boundaries for optimization.
-
-"""
-
-from nuitka.options.Options import getFileReferenceMode, getModuleNameMode
+from nuitka.options.Options import (
+    getFileReferenceMode,
+    getModuleForceNamespace,
+    getModuleNameMode,
+)
 
 from .ConstantRefNodes import makeConstantRefNode
 from .ExpressionBases import ExpressionBase
+from .RuntimePathNodes import ExpressionRuntimePath
 
 
 class ExpressionModuleAttributeBase(ExpressionBase):
-    """Expression base class for module attributes.
-
-    This
-    """
-
-    # Base classes can be abstract, pylint: disable=abstract-method
+    # pylint: disable=abstract-method
 
     __slots__ = ("variable",)
 
@@ -44,19 +36,18 @@ class ExpressionModuleAttributeBase(ExpressionBase):
     def getVariable(self):
         return self.variable
 
+    def setVariable(self, variable):
+        assert variable.isModuleVariable(), variable
+
+        self.variable = variable
+
     @staticmethod
     def mayRaiseException(exception_type):
-        # These attributes can be expected to be present.
-
         return False
 
 
 class ExpressionModuleAttributeDunderCompiledRef(ExpressionModuleAttributeBase):
-    """Expression that represents accesses to __compiled__ of module.
-
-    The ``__compiled__`` attribute is filled by Nuitka and is available
-    without going through normal module variable lookups.
-    """
+    """Module '__compiled__' attribute filled by Nuitka without module dict lookup."""
 
     kind = "EXPRESSION_MODULE_ATTRIBUTE_DUNDER_COMPILED_REF"
 
@@ -65,87 +56,66 @@ class ExpressionModuleAttributeDunderCompiledRef(ExpressionModuleAttributeBase):
 
 
 class ExpressionModuleAttributeFileRef(ExpressionModuleAttributeBase):
-    """Expression that represents accesses to __file__ of module.
-
-    The __file__ is a static or dynamic value depending on the
-    file reference mode. If it requests runtime, i.e. looks at
-    where it is loaded from, then there is not a lot to be said
-    about its value, otherwise it becomes a constant value
-    quickly.
-    """
-
     kind = "EXPRESSION_MODULE_ATTRIBUTE_FILE_REF"
 
     def computeExpressionRaw(self, trace_collection):
-        # There is not a whole lot to do here, the path will change at run
-        # time, but options may disable that and make it predictable.
-        if getFileReferenceMode() != "runtime":
+        run_time_filename = self.variable.getModule().getRunTimeFilename()
+
+        if getFileReferenceMode() != "runtime" or os.path.isabs(run_time_filename):
             result = makeConstantRefNode(
-                constant=self.variable.getModule().getRunTimeFilename(),
+                constant=run_time_filename,
                 source_ref=self.source_ref,
             )
 
             return result, "new_expression", "Using original '__file__' value."
 
-        return self, None, None
+        return (
+            ExpressionRuntimePath(
+                relative_path=run_time_filename,
+                source_ref=self.source_ref,
+            ),
+            "new_expression",
+            "Using runtime relative '__file__' value.",
+        )
 
 
 class ExpressionModuleAttributeNameRef(ExpressionModuleAttributeBase):
-    """Expression that represents accesses to __name__ of module.
-
-    For binaries this can be relatively well known, but modules
-    living in a package, go by what loads them to ultimately
-    determine their name.
-    """
-
     kind = "EXPRESSION_MODULE_ATTRIBUTE_NAME_REF"
 
     def computeExpressionRaw(self, trace_collection):
-        # For binaries, we can know it definite, but not for modules.
-
-        if getModuleNameMode() != "runtime":
-            result = makeConstantRefNode(
-                constant=self.variable.getModule().getRuntimeNameValue(),
-                source_ref=self.source_ref,
-            )
-
-            return result, "new_expression", "Using constant '__name__' value."
-
         return self, None, None
+
+
+def makeExpressionModuleAttributeNameRef(variable, source_ref):
+    """Create a constant or runtime node for a module '__name__' reference."""
+    if getModuleNameMode() != "runtime" or getModuleForceNamespace() is not None:
+        return makeConstantRefNode(
+            constant=variable.getModule().getRuntimeNameValue(),
+            source_ref=source_ref,
+        )
+
+    return ExpressionModuleAttributeNameRef(variable=variable, source_ref=source_ref)
 
 
 class ExpressionModuleAttributePackageRef(ExpressionModuleAttributeBase):
-    """Expression that represents accesses to __package__ of module.
-
-    For binaries this can be relatively well known, but modules
-    living in a package, go by what loads them to ultimately
-    determine their parent package.
-    """
-
     kind = "EXPRESSION_MODULE_ATTRIBUTE_PACKAGE_REF"
 
     def computeExpressionRaw(self, trace_collection):
-        # For binaries, we can know it definite, but not for modules.
-
-        if getModuleNameMode() != "runtime":
-            provider = self.variable.getModule()
-            value = provider.getRuntimePackageValue()
-
-            result = makeConstantRefNode(constant=value, source_ref=self.source_ref)
-
-            return result, "new_expression", "Using constant '__package__' value."
-
         return self, None, None
 
 
+def makeExpressionModuleAttributePackageRef(variable, source_ref):
+    """Create a constant or runtime node for a module '__package__' reference."""
+    if getModuleNameMode() != "runtime" or getModuleForceNamespace() is not None:
+        return makeConstantRefNode(
+            constant=variable.getModule().getRuntimePackageValue(),
+            source_ref=source_ref,
+        )
+
+    return ExpressionModuleAttributePackageRef(variable=variable, source_ref=source_ref)
+
+
 class ExpressionModuleAttributeLoaderRef(ExpressionModuleAttributeBase):
-    """Expression that represents accesses to __loader__ of module.
-
-    The loader of Nuitka is going to load the module, and there
-    is not a whole lot to be said about it here, it is assumed
-    to be largely ignored in user code.
-    """
-
     kind = "EXPRESSION_MODULE_ATTRIBUTE_LOADER_REF"
 
     def computeExpressionRaw(self, trace_collection):
@@ -153,14 +123,7 @@ class ExpressionModuleAttributeLoaderRef(ExpressionModuleAttributeBase):
 
 
 class ExpressionModuleAttributeSpecRef(ExpressionModuleAttributeBase):
-    """Expression that represents accesses to __spec__ of module.
-
-    The __spec__ is used by the loader mechanism and sometimes
-    by code checking e.g. if something is a package. It exists
-    only for modern Python. For the main program module, it's
-    always None (it is also not really loaded in the same way
-    as other code).
-    """
+    """Module '__spec__' reference; always 'None' for a non-package '__main__' module."""
 
     kind = "EXPRESSION_MODULE_ATTRIBUTE_SPEC_REF"
 

@@ -73,25 +73,6 @@ class StatementReleaseVariableBase(StatementBase):
                 self.variable
             )
 
-            if self.variable_trace.isIteratorPropagationTrace():
-                # The iterator variable was replaced with direct access to the
-                # iterated value, retarget the release to the temp variable
-                # holding it.
-                result = makeStatementReleaseVariable(
-                    variable=self.variable_trace.getIteratedTempVariable(),
-                    source_ref=self.source_ref,
-                )
-
-                return trace_collection.computedStatementResult(
-                    result,
-                    "new_statements",
-                    "Retargeted release of iterator '%s' to iterated value '%s'."
-                    % (
-                        self.variable.getName(),
-                        self.variable_trace.getIteratedTempVariable().getName(),
-                    ),
-                )
-
             must_not_have_value = self.variable_trace.mustNotHaveValue()
         else:
             must_not_have_value = True
@@ -103,12 +84,13 @@ class StatementReleaseVariableBase(StatementBase):
                 "Uninitialized %s is not released." % (self.variable.getDescription()),
             )
 
+        self.variable_trace.onReleaseUsage(self)
+
         escape_desc = self.variable_trace.getReleaseEscape()
 
         assert escape_desc is not None, self.variable_trace
 
         if escape_desc.isControlFlowEscape():
-            # Any code could be run, note that.
             trace_collection.onControlFlowEscape(self)
 
         return self, None, None
@@ -122,13 +104,30 @@ class StatementReleaseVariableBase(StatementBase):
 class StatementReleaseVariableTemp(StatementReleaseVariableBase):
     kind = "STATEMENT_RELEASE_VARIABLE_TEMP"
 
+    def setVariable(self, variable):
+        assert variable.isTempVariable(), variable
+
+        StatementReleaseVariableBase.setVariable(self, variable)
+
 
 class StatementReleaseVariableLocal(StatementReleaseVariableBase):
     kind = "STATEMENT_RELEASE_VARIABLE_LOCAL"
 
+    def setVariable(self, variable):
+        assert (
+            not variable.isTempVariable() and not variable.isParameterVariable()
+        ), variable
+
+        StatementReleaseVariableBase.setVariable(self, variable)
+
 
 class StatementReleaseVariableParameter(StatementReleaseVariableLocal):
     kind = "STATEMENT_RELEASE_VARIABLE_PARAMETER"
+
+    def setVariable(self, variable):
+        assert variable.isParameterVariable(), variable
+
+        StatementReleaseVariableBase.setVariable(self, variable)
 
     def computeStatement(self, trace_collection):
         if self.variable.getOwner().isAutoReleaseVariable(self.variable):

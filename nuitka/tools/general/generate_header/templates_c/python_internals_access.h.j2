@@ -13,9 +13,11 @@
 
 #undef _PyRuntime
 
-// spell-checker: ignore PYRUNTIME,offsetof,GNUC,ceval,stoptheworld,Qsbr,Reftracer
+#include "nuitka/helper/strings.h"
 
-#if _NUITKA_MODULE_MODE && PYTHON_VERSION >= 0x3e0 && PYTHON_VERSION < 0x3f0 && !defined(Py_GIL_DISABLED)
+// spell-checker: ignore GNUC,PYRUNTIME,Qsbr,Reftracer,ceval,offsetof,stoptheworld
+
+#if _NUITKA_MODULE_MODE && PYTHON_VERSION >= 0x3e0 && PYTHON_VERSION < 0x3f0
 static inline struct _Py_interp_cached_objects *Nuitka_PyInterpreterState_GetCachedObjects(PyInterpreterState *interp) {
     return (struct _Py_interp_cached_objects *)Nuitka_PyInterpreterState_AdjustPostQsbrPointer(&interp->cached_objects);
 }
@@ -50,9 +52,7 @@ static inline bool Nuitka_RuntimeHasPerfTrampoline(void) {
     PyObject *arg = PyTuple_GET_ITEM(args, 0);
     assert(PyUnicode_CheckExact(arg));
 
-    const char *msg = PyUnicode_AsUTF8(arg);
-    assert(msg != NULL);
-    if (strcmp(msg, "perf trampoline not available") == 0) {
+    if (Nuitka_Unicode_CompareWithASCIIString(arg, "perf trampoline not available") == 0) {
         has_perf = false;
     }
 

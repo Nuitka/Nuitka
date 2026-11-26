@@ -16,6 +16,7 @@ from .ErrorCodes import (
     getErrorExitBoolCode,
     getErrorExitCode,
     getNameReferenceErrorCode,
+    getReleaseCode,
 )
 from .Indentation import indented
 from .PythonAPICodes import getReferenceExportCode
@@ -81,46 +82,39 @@ Py_DECREF(%(locals_dict)s);
 def assignDictOrMappingItem(
     target_name, key_name, value_name, is_dict_shape, may_raise, emit, context
 ):
-    """Set a key and value in a mapping.
+    """Set 'key_name' to 'value_name' in 'target_name' and consume 'value_name'.
 
-    Notes:
-        For exact dictionary shapes, the faster dictionary API is used, while
-        for mappings "SET_SUBSCRIPT" is used, and error checking is done when
-        setting is known to possibly raise.
-
-    Args:
-        target_name: Code name of the mapping to set in.
-        key_name: Code name of the key to set.
-        value_name: Code name of the value to set, the caller has to own a
-            reference for it.
-        is_dict_shape: Whether the mapping is known to be an exact dictionary.
-        may_raise: Whether setting the item may raise, e.g. for custom
-            mappings, and then error checking is done.
-        emit: Function to emit code to.
-        context: Code generation context.
+    Uses the exact-dict API when 'is_dict_shape' is true and 'SET_SUBSCRIPT'
+    otherwise; the caller must own a reference to 'value_name'.
     """
-    if is_dict_shape:
-        res_name = context.getBoolResName()
-
+    if is_dict_shape and not may_raise:
         emit(
-            "%s = DICT_SET_ITEM(%s, %s, %s);"
-            % (res_name, target_name, key_name, value_name)
+            "DICT_SET_ITEM_INFALLIBLE(tstate, %s, %s, %s);"
+            % (target_name, key_name, value_name)
         )
+
+        getReleaseCode(value_name, emit=emit, context=context)
     else:
         res_name = context.getBoolResName()
 
-        emit(
-            "%s = SET_SUBSCRIPT(tstate, %s, %s, %s);"
-            % (res_name, target_name, key_name, value_name)
-        )
+        if is_dict_shape:
+            emit(
+                "%s = DICT_SET_ITEM(tstate, %s, %s, %s);"
+                % (res_name, target_name, key_name, value_name)
+            )
+        else:
+            emit(
+                "%s = SET_SUBSCRIPT(tstate, %s, %s, %s);"
+                % (res_name, target_name, key_name, value_name)
+            )
 
-    getErrorExitBoolCode(
-        condition="%s == false" % res_name,
-        release_name=value_name,
-        needs_check=may_raise,
-        emit=emit,
-        context=context,
-    )
+        getErrorExitBoolCode(
+            condition="%s == false" % res_name,
+            release_name=value_name,
+            needs_check=may_raise,
+            emit=emit,
+            context=context,
+        )
 
 
 def generateLocalsDictSetCode(statement, emit, context):
@@ -152,45 +146,42 @@ def generateLocalsDictSetCode(statement, emit, context):
 def generateLocalsDictDelCode(statement, emit, context):
     locals_scope = statement.getLocalsDictScope()
 
-    dict_arg_name = locals_scope.getCodeName()
+    dict_arg_name = context.addLocalsDictName(locals_scope.getCodeName())
 
     is_dict = locals_scope.hasShapeDictionaryExact()
+    variable_name = statement.getVariableName()
+    key_code = context.getConstantCode(variable_name)
 
     context.setCurrentSourceCodeReference(statement.getSourceReference())
 
     if is_dict:
-        res_name = context.getBoolResName()
+        del_expr = "DICT_REMOVE_ITEM(tstate, %s, %s)" % (dict_arg_name, key_code)
+    else:
+        del_expr = "DEL_SUBSCRIPT(%s, %s)" % (dict_arg_name, key_code)
 
-        emit(
-            "%s = DICT_REMOVE_ITEM(%s, %s);"
-            % (
-                res_name,
-                dict_arg_name,
-                context.getConstantCode(statement.getVariableName()),
-            )
-        )
-
-        getErrorExitBoolCode(
-            condition="%s == false" % res_name,
-            needs_check=statement.mayRaiseException(BaseException),
-            emit=emit,
-            context=context,
-        )
+    if statement.isTolerant() or not statement.mayRaiseException(BaseException):
+        emit("""\
+if (%s == false) {
+    CLEAR_ERROR_OCCURRED(tstate);
+}""" % del_expr)
     else:
         res_name = context.getBoolResName()
 
         emit(
-            "%s = DEL_SUBSCRIPT(%s, %s);"
-            % (
-                res_name,
-                dict_arg_name,
-                context.getConstantCode(statement.getVariableName()),
-            )
+            """\
+%(res_name)s = %(del_expr)s;
+if (%(res_name)s == false) {
+    CLEAR_ERROR_OCCURRED(tstate);
+}"""
+            % {
+                "res_name": res_name,
+                "del_expr": del_expr,
+            }
         )
 
-        getErrorExitBoolCode(
+        getNameReferenceErrorCode(
+            variable_name=variable_name,
             condition="%s == false" % res_name,
-            needs_check=statement.mayRaiseException(BaseException),
             emit=emit,
             context=context,
         )
@@ -265,6 +256,60 @@ def generateLocalsDictVariableRefOrFallbackCode(to_name, expression, emit, conte
                 context.addCleanupTempName(value_name)
 
 
+def generateClassMappingVariableRefOrFallbackCode(to_name, expression, emit, context):
+    variable_name = expression.getVariableName()
+
+    mapping_name = context.allocateTempName("class_mapping_value")
+    generateExpressionCode(
+        to_name=mapping_name,
+        expression=expression.subnode_mapping,
+        emit=emit,
+        context=context,
+    )
+
+    fallback_emit = SourceCodeCollector()
+
+    with withObjectCodeTemporaryAssignment(
+        to_name, "class_mapping_lookup_value", expression, emit, context
+    ) as value_name:
+        generateExpressionCode(
+            to_name=value_name,
+            expression=expression.subnode_fallback,
+            emit=fallback_emit,
+            context=context,
+        )
+
+        needs_ref = context.needsCleanup(value_name)
+
+        if needs_ref:
+            template = template_read_locals_mapping_with_fallback_ref
+        else:
+            template = template_read_locals_mapping_with_fallback_no_ref
+
+        (
+            exception_state_name,
+            _exception_lineno,
+        ) = context.getExceptionVariableDescriptions()
+
+        emit(
+            template
+            % {
+                "to_name": value_name,
+                "locals_dict": mapping_name,
+                "fallback": indented(fallback_emit),
+                "var_name": context.getConstantCode(constant=variable_name),
+                "exception_state_name": exception_state_name,
+                "exception_exit": context.getExceptionEscape(),
+            }
+        )
+
+        # If the fallback took no reference, then make it do it anyway.
+        if not needs_ref:
+            context.addCleanupTempName(value_name)
+
+    getReleaseCode(mapping_name, emit, context)
+
+
 def generateLocalsDictVariableRefCode(to_name, expression, emit, context):
     variable_name = expression.getVariableName()
     locals_scope = expression.getLocalsDictScope()
@@ -311,44 +356,32 @@ def generateLocalsDictVariableCheckCode(to_name, expression, emit, context):
 
     locals_declaration = context.addLocalsDictName(locals_scope.getCodeName())
 
-    is_dict = locals_scope.hasShapeDictionaryExact()
+    tmp_name = context.getIntResName()
 
-    if is_dict:
-        to_name.getCType().emitAssignmentCodeFromBoolCondition(
-            to_name=to_name,
-            condition="DICT_HAS_ITEM(tstate, %(locals_dict)s, %(var_name)s) == 1"
-            % {
-                "locals_dict": locals_declaration,
-                "var_name": context.getConstantCode(constant=variable_name),
-            },
-            emit=emit,
+    emit(
+        "%s = %s(tstate, %s, %s);"
+        % (
+            tmp_name,
+            (
+                "DICT_HAS_ITEM"
+                if locals_scope.hasShapeDictionaryExact()
+                else "MAPPING_HAS_ITEM"
+            ),
+            locals_declaration,
+            context.getConstantCode(constant=variable_name),
         )
-    else:
-        tmp_name = context.getIntResName()
+    )
 
-        template = """\
-%(tmp_name)s = MAPPING_HAS_ITEM(tstate, %(locals_dict)s, %(var_name)s);
-"""
+    getErrorExitBoolCode(
+        condition="%s == -1" % tmp_name,
+        needs_check=expression.mayRaiseException(BaseException),
+        emit=emit,
+        context=context,
+    )
 
-        emit(
-            template
-            % {
-                "locals_dict": locals_declaration,
-                "var_name": context.getConstantCode(constant=variable_name),
-                "tmp_name": tmp_name,
-            }
-        )
-
-        getErrorExitBoolCode(
-            condition="%s == -1" % tmp_name,
-            needs_check=expression.mayRaiseException(BaseException),
-            emit=emit,
-            context=context,
-        )
-
-        to_name.getCType().emitAssignmentCodeFromBoolCondition(
-            to_name=to_name, condition="%s == 1" % tmp_name, emit=emit
-        )
+    to_name.getCType().emitAssignmentCodeFromBoolCondition(
+        to_name=to_name, condition="%s == 1" % tmp_name, emit=emit
+    )
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and

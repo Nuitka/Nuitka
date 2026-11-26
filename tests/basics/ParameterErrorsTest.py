@@ -1,6 +1,15 @@
 #     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
+"""Tests to cover parameter error messages."""
+
+import abc
+import functools
+import os
+import sys
+import warnings
+
+
 def functionNoParameters():
     pass
 
@@ -277,6 +286,205 @@ try:
     functionwithTwoArgsOneDefaulted(b=12)
 except TypeError as e:
     print(repr(e))
+
+
+print("Call built-in methods with keyword arguments:")
+
+
+def checkBuiltinMethodCall(description, func):
+    try:
+        result = func()
+    except (AttributeError, TypeError) as e:
+        print("%s: %s: %s" % (description, type(e).__name__, e))
+    else:
+        print("%s -> %r" % (description, result))
+
+
+def checkBuiltinMethodRejected(description, func):
+    # Only the exception type, method names in messages are not exact.
+    try:
+        func()
+    except TypeError:
+        print("%s: TypeError" % description)
+
+
+def checkBuiltinMethodOutcome(description, func):
+    # Only the exception type, method names in messages are not exact.
+    try:
+        result = func()
+    except TypeError:
+        print("%s: TypeError" % description)
+    else:
+        print("%s -> %r" % (description, result))
+
+
+def checkBuiltinMethodOutcomeIgnoringWarnings(description, func):
+    # Deprecation warnings for older argument names are not relevant here.
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        checkBuiltinMethodOutcome(description, func)
+
+
+checkBuiltinMethodCall("dict.get key=", lambda: {"a": 1}.get(key="a"))
+checkBuiltinMethodCall("dict.get default=", lambda: {"a": 1}.get("z", default=3))
+checkBuiltinMethodCall("dict.pop key=", lambda: {"a": 1}.pop(key="a"))
+checkBuiltinMethodCall("dict.pop default=", lambda: {"a": 1}.pop("z", default=3))
+checkBuiltinMethodCall("dict.setdefault key=", lambda: {"a": 1}.setdefault(key="b"))
+checkBuiltinMethodCall("dict.fromkeys iterable=", lambda: dict.fromkeys(iterable="ab"))
+checkBuiltinMethodCall("dict.fromkeys positional", lambda: dict.fromkeys("ab", 1))
+checkBuiltinMethodCall("dict.has_key key=", lambda: {"a": 1}.has_key(key="a"))
+checkBuiltinMethodCall("dict.has_key positional", lambda: {"a": 1}.has_key("a"))
+
+checkBuiltinMethodCall("str.replace count=", lambda: "aaa".replace("a", "x", count=1))
+checkBuiltinMethodRejected("str.replace old=", lambda: "aaa".replace(old="a", new="x"))
+checkBuiltinMethodCall("str.replace positional", lambda: "aaa".replace("a", "x", 2))
+
+checkBuiltinMethodCall(
+    "bytes.replace count=", lambda: b"aaa".replace(b"a", b"x", count=1)
+)
+checkBuiltinMethodRejected(
+    "bytes.replace old=", lambda: b"aaa".replace(old=b"a", new=b"x")
+)
+checkBuiltinMethodCall(
+    "bytes.replace positional", lambda: b"aaa".replace(b"a", b"x", 2)
+)
+
+checkBuiltinMethodCall(
+    "bytes.translate delete=", lambda: b"abc".translate(None, delete=b"a")
+)
+checkBuiltinMethodRejected(
+    "bytes.translate table=", lambda: b"abc".translate(table=None)
+)
+
+checkBuiltinMethodOutcome("bytes.translate positional", lambda: b"abc".translate(None))
+checkBuiltinMethodOutcome(
+    "bytes.translate positional delete", lambda: b"abc".translate(None, b"b")
+)
+
+# The argument name of "os.path.isdir" depends on platform and Python version.
+checkBuiltinMethodOutcome(
+    "os.path.isdir path=", lambda: os.path.isdir(path=sys.argv[0])
+)
+checkBuiltinMethodOutcome("os.path.isdir s=", lambda: os.path.isdir(s=sys.argv[0]))
+
+if sys.version_info >= (3, 9):
+    import importlib.resources
+
+    checkBuiltinMethodOutcome(
+        "resources.files anchor=",
+        lambda: type(importlib.resources.files(anchor="json")),
+    )
+    checkBuiltinMethodRejected(
+        "resources.files anchor+package",
+        lambda: importlib.resources.files(anchor="json", package="json"),
+    )
+    checkBuiltinMethodOutcomeIgnoringWarnings(
+        "resources.files package=",
+        lambda: type(importlib.resources.files(package="json")),
+    )
+
+
+print("Call functions with non-string keyword keys:")
+
+for label, call_fn in (
+    ("0-arg non-str kw", lambda: functionNoParameters(**{1: 2})),
+    ("1-arg non-str kw", lambda: functionOneParameter(**{1: 2})),
+    (
+        "0-arg vectorcall non-str kw",
+        lambda: eval("lambda fn: fn(**{1: 2})")(functionNoParameters),
+    ),
+    (
+        "method vectorcall kw",
+        lambda: eval("lambda m: m(z=1)")(obj.methodNoParameters),
+    ),
+):
+    try:
+        call_fn()
+    except TypeError as e:
+        print(label, repr(e))
+
+if sys.version_info >= (3, 7):
+    for label, call_fn in (
+        (
+            "0-arg str+non-str kw",
+            lambda: functionNoParameters(**{"a": 1, 2: 3}),
+        ),
+        (
+            "1-arg unexpected+non-str kw",
+            lambda: functionOneParameter(**{"z": 1, 2: 3}),
+        ),
+    ):
+        try:
+            call_fn()
+        except TypeError as e:
+            print(label, repr(e))
+
+print("Call functions with duplicate str-subclass keyword keys:")
+
+
+class EvilStr(str):
+    def __hash__(self):
+        return str.__hash__(self) ^ 1
+
+
+def functionWithStarKw(a, b=0, **kw):
+    return a, b, kw
+
+
+def makePartialDuplicateKw(fn):
+    p = functools.partial(fn, a=1)
+    p.keywords[EvilStr("a")] = 2
+    return p
+
+
+evil_kw = {"a": 1, EvilStr("a"): 2}
+
+for label, call_fn in (
+    ("star dict dup", lambda: functionWithDefaults(1, 2, **{"c": 3, EvilStr("c"): 4})),
+    (
+        "split kw dup",
+        lambda: functionWithDefaults(1, 2, d=5, **{"c": 3, EvilStr("c"): 4}),
+    ),
+    ("star kw dict dup", lambda: functionWithStarKw(**evil_kw)),
+    ("star kw split dup", lambda: functionWithStarKw(b=5, **evil_kw)),
+    ("partial vectorcall dup", makePartialDuplicateKw(functionOneParameter)),
+    ("partial vectorcall star kw dup", makePartialDuplicateKw(functionWithStarKw)),
+):
+    try:
+        call_fn()
+    except TypeError as e:
+        print(label, repr(e))
+
+print(
+    "Duplicate str-subclass keys in **kw:",
+    len(functionWithStarKw(1, **{"z": 2, EvilStr("z"): 3})[2]),
+)
+
+print("Instantiate abstract classes:")
+
+AbstractOne = abc.ABCMeta(
+    "AbstractOne",
+    (object,),
+    {"m1": abc.abstractmethod(lambda self: None)},
+)
+AbstractTwo = abc.ABCMeta(
+    "AbstractTwo",
+    (object,),
+    {
+        "m2": abc.abstractmethod(lambda self: None),
+        "m1": abc.abstractmethod(lambda self: None),
+    },
+)
+
+for cls in (AbstractOne, AbstractTwo):
+    try:
+        cls()
+    except TypeError as e:
+        print(repr(e))
+    try:
+        eval("lambda c: c()")(cls)
+    except TypeError as e:
+        print(repr(e))
 
 #     Python tests originally created or extracted from other peoples work. The
 #     parts were too small to be protected.

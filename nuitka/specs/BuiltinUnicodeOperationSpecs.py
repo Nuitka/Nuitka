@@ -1,7 +1,7 @@
 #     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-"""Unicode operation specs, Python2 only."""
+"""Unicode operation specs."""
 
 from .BuiltinParameterSpecs import (
     BuiltinMethodParameterSpecBase,
@@ -72,14 +72,20 @@ unicode_format_spec = UnicodeMethodSpec(
 )
 
 unicode_capitalize_spec = UnicodeMethodSpecNoKeywords("capitalize", arg_names=())
+unicode_casefold_spec = UnicodeMethodSpecNoKeywords("casefold", arg_names=())
 unicode_upper_spec = UnicodeMethodSpecNoKeywords("upper", arg_names=())
 unicode_lower_spec = UnicodeMethodSpecNoKeywords("lower", arg_names=())
 unicode_swapcase_spec = UnicodeMethodSpecNoKeywords("swapcase", arg_names=())
 unicode_title_spec = UnicodeMethodSpecNoKeywords("title", arg_names=())
 unicode_isalnum_spec = UnicodeMethodSpecNoKeywords("isalnum", arg_names=())
 unicode_isalpha_spec = UnicodeMethodSpecNoKeywords("isalpha", arg_names=())
+unicode_isascii_spec = UnicodeMethodSpecNoKeywords("isascii", arg_names=())
+unicode_isdecimal_spec = UnicodeMethodSpecNoKeywords("isdecimal", arg_names=())
 unicode_isdigit_spec = UnicodeMethodSpecNoKeywords("isdigit", arg_names=())
+unicode_isidentifier_spec = UnicodeMethodSpecNoKeywords("isidentifier", arg_names=())
 unicode_islower_spec = UnicodeMethodSpecNoKeywords("islower", arg_names=())
+unicode_isnumeric_spec = UnicodeMethodSpecNoKeywords("isnumeric", arg_names=())
+unicode_isprintable_spec = UnicodeMethodSpecNoKeywords("isprintable", arg_names=())
 unicode_isupper_spec = UnicodeMethodSpecNoKeywords("isupper", arg_names=())
 unicode_isspace_spec = UnicodeMethodSpecNoKeywords("isspace", arg_names=())
 unicode_istitle_spec = UnicodeMethodSpecNoKeywords("istitle", arg_names=())
@@ -102,9 +108,14 @@ unicode_rjust_spec = UnicodeMethodSpecNoKeywords(
     "rjust", arg_names=("width", "fillchar"), default_count=1
 )
 unicode_zfill_spec = UnicodeMethodSpecNoKeywords("zfill", arg_names=("width",))
-unicode_translate_spec = UnicodeMethodSpecNoKeywords("translate", arg_names=("table",))
+unicode_translate_before_3_spec = UnicodeMethodSpecNoKeywords(
+    "translate", arg_names=("table", "delete"), default_count=1
+)
+unicode_translate_since_3_spec = UnicodeMethodSpecNoKeywords(
+    "translate", arg_names=("table",)
+)
 unicode_splitlines_spec = UnicodeMethodSpecNoKeywords(
-    "splitlines", arg_names=("keepends"), default_count=1
+    "splitlines", arg_names=("keepends",), default_count=1
 )
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and

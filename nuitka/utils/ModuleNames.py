@@ -53,14 +53,103 @@ ShellPatternMatchResult = makeNamedtupleClass(
 )
 
 
-class ModuleName(str):
+class QualifiedName(str):
+    """Dotted Python names with pattern matching."""
+
+    def asString(self):
+        """Get a simply str value.
+
+        Notes:
+            This should only be used to create constant values for code
+            generation, there is no other reason to lower the type of
+            these values otherwise.
+        """
+
+        return str(self)
+
+    def isBelowNamespace(self, parent_name):
+        assert (
+            isinstance(parent_name, QualifiedName) or type(parent_name) is str
+        ), parent_name
+
+        # Avoid startswith on these.
+        return str(self).startswith(parent_name + ".")
+
+    def matchesToShellPattern(self, pattern):
+        """Match a name to a pattern.
+
+        Args:
+            pattern:
+                Complies with fnmatch.fnmatch description
+                or also is below the namespace. So "*.tests" will match also
+                "something.tests.MyTest", thereby allowing to match whole
+                namespaces with one pattern only.
+
+        Returns:
+            ShellPatternMatchResult where is_match is a boolean and reason
+            explains why the pattern matched and how.
+        """
+
+        if self == pattern:
+            return ShellPatternMatchResult(
+                is_match=True,
+                reason="is exact match of '%s'" % pattern,
+            )
+        elif self.isBelowNamespace(pattern):
+            return ShellPatternMatchResult(
+                is_match=True,
+                reason="is namespace content of '%s'" % pattern,
+            )
+        elif fnmatch.fnmatch(self.asString(), pattern):
+            return ShellPatternMatchResult(
+                is_match=True,
+                reason="matches pattern '%s'" % pattern,
+            )
+        elif fnmatch.fnmatch(self.asString(), pattern + ".*"):
+            return ShellPatternMatchResult(
+                is_match=True,
+                reason="is namespace content of match to pattern '%s'" % pattern,
+            )
+        else:
+            return ShellPatternMatchResult(
+                is_match=False,
+                reason=None,
+            )
+
+    def matchesToShellPatterns(self, patterns):
+        """Match a name to a list of patterns.
+
+        Args:
+            patterns:
+                List of patterns that comply with fnmatch.fnmatch description
+                or also is below the namespace. So "*.tests" will match also
+                "something.tests.MyTest", thereby allowing to match whole
+                namespaces with one pattern only.
+
+        Returns:
+            ShellPatternMatchResult where is_match is a boolean and reason
+            explains which pattern matched and how.
+        """
+
+        for pattern in patterns:
+            match_result = self.matchesToShellPattern(pattern)
+
+            if match_result.is_match:
+                return match_result
+
+        # No match result
+        return ShellPatternMatchResult(
+            is_match=False,
+            reason=None,
+        )
+
+
+class ModuleName(QualifiedName):
     def __init__(self, value):
         assert checkModuleName(value), value
 
         # TODO: Disallow some conversion, e.g. from module, function, etc.
         # objects, and white list what types we accept.
-
-        str.__init__(value)
 
     @staticmethod
     def makeModuleNameInPackage(module_name, package_name):
@@ -87,17 +176,6 @@ class ModuleName(str):
 
     def __repr__(self):
         return "<ModuleName '%s'>" % str(self)
-
-    def asString(self):
-        """Get a simply str value.
-
-        Notes:
-            This should only be used to create constant values for code
-            generation, there is no other reason to lower the type of
-            these values otherwise.
-        """
-
-        return str(self)
 
     def asBytes(self):
         """Get the bytes representation of the module name.
@@ -234,12 +312,6 @@ class ModuleName(str):
 
         return False
 
-    def isBelowNamespace(self, package_name):
-        assert type(package_name) in (str, ModuleName), package_name
-
-        # Avoid startswith on these.
-        return str(self).startswith(package_name + ".")
-
     def getChildNamed(self, *args):
         """Get a child package with these names added."""
         return ModuleName(".".join([self] + list(args)))
@@ -265,72 +337,6 @@ class ModuleName(str):
 
         submodule_name_str = str(self)[len(str(package_name)) + 1 :]
         return ModuleName(submodule_name_str)
-
-    def matchesToShellPattern(self, pattern):
-        """Match a module name to a patterns
-
-        Args:
-            pattern:
-                Complies with fnmatch.fnmatch description
-                or also is below the package. So "*.tests" will matches to also
-                "something.tests.MyTest", thereby allowing to match whole
-                packages with one pattern only.
-        Returns:
-            ShellPatternMatchResult where is_match is a boolean and reason
-            explains why the pattern matched and how.
-        """
-
-        if self == pattern:
-            return ShellPatternMatchResult(
-                is_match=True,
-                reason="is exact match of '%s'" % pattern,
-            )
-        elif self.isBelowNamespace(pattern):
-            return ShellPatternMatchResult(
-                is_match=True,
-                reason="is package content of '%s'" % pattern,
-            )
-        elif fnmatch.fnmatch(self.asString(), pattern):
-            return ShellPatternMatchResult(
-                is_match=True,
-                reason="matches pattern '%s'" % pattern,
-            )
-        elif fnmatch.fnmatch(self.asString(), pattern + ".*"):
-            return ShellPatternMatchResult(
-                is_match=True,
-                reason="is package content of match to pattern '%s'" % pattern,
-            )
-        else:
-            return ShellPatternMatchResult(
-                is_match=False,
-                reason=None,
-            )
-
-    def matchesToShellPatterns(self, patterns):
-        """Match a module name to a list of patterns
-
-        Args:
-            patterns:
-                List of patterns that comply with fnmatch.fnmatch description
-                or also is below the package. So "*.tests" will matches to also
-                "something.tests.MyTest", thereby allowing to match whole
-                packages with one pattern only.
-        Returns:
-            ShellPatternMatchResult where is_match is a boolean and reason
-            explains which pattern matched and how.
-        """
-
-        for pattern in patterns:
-            match_result = self.matchesToShellPattern(pattern)
-
-            if match_result.is_match:
-                return match_result
-
-        # No match result
-        return ShellPatternMatchResult(
-            is_match=False,
-            reason=None,
-        )
 
     def isFakeModuleName(self):
         return str(self).endswith(trigger_names)

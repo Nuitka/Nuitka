@@ -7,7 +7,13 @@ Format SyntaxError/IndentationError exception for output, as well as
 raise it for the given source code reference.
 """
 
-from nuitka.PythonVersions import python_version
+import ast
+
+from nuitka.PythonVersions import (
+    getErrorMessageDebugAssignment,
+    getErrorMessageDebugDeletion,
+    python_version,
+)
 
 
 def formatOutput(e):
@@ -80,31 +86,105 @@ def formatOutput(e):
         )
 
 
-def raiseSyntaxError(reason, source_ref, display_file=True, display_line=True):
-    col_offset = source_ref.getColumnNumber()
+def checkDebugNameAssignment(name, source_ref):
+    """Raise a SyntaxError if the given name is '__debug__'."""
 
+    if name == "__debug__":
+        raiseSyntaxError(getErrorMessageDebugAssignment(), source_ref)
+
+
+def checkDebugNameTarget(node, source_ref):
+    """Raise a SyntaxError if the given assignment target is '__debug__'."""
+
+    if type(node) is str:
+        checkDebugNameAssignment(name=node, source_ref=source_ref)
+        return
+
+    if node.__class__ is ast.Name:
+        name = node.id
+    elif node.__class__ is ast.Attribute:
+        if python_version < 0x270:
+            return
+
+        name = node.attr
+    else:
+        return
+
+    if node.ctx.__class__ is ast.Store:
+        checkDebugNameAssignment(name=name, source_ref=source_ref)
+    elif node.ctx.__class__ is ast.Del and name == "__debug__":
+        deletion_reason = getErrorMessageDebugDeletion()
+
+        if deletion_reason is not None:
+            raiseSyntaxError(deletion_reason, source_ref)
+
+
+def checkExceptStarHandlerBody(body, source_ref, check_return):
+    """Raise a SyntaxError for 'return', 'break', and 'continue' in an 'except*'.
+
+    These statements must not escape an 'except*' block, but are allowed
+    within a nested loop body for the latter two, and within nested
+    function and class scopes for all of them. The 'return' check is
+    disabled outside of function scopes, where it is not the error that
+    CPython reports.
+    """
+
+    def raiseEscape(node):
+        raiseSyntaxError(
+            "'break', 'continue' and 'return' cannot appear in an except* block",
+            source_ref.atLineNumber(node.lineno).atColumnNumber(node.col_offset),
+        )
+
+    def checkNode(node, in_loop):
+        node_class = node.__class__
+
+        # These have their own scope, escaping them is not escaping the
+        # "except*" block.
+        if node_class in (
+            ast.FunctionDef,
+            ast.AsyncFunctionDef,
+            ast.Lambda,
+            ast.ClassDef,
+        ):
+            return
+
+        if node_class is ast.Return:
+            if check_return:
+                raiseEscape(node)
+        elif node_class in (ast.Break, ast.Continue):
+            if not in_loop:
+                raiseEscape(node)
+        elif node_class in (ast.For, ast.AsyncFor, ast.While):
+            if node_class is ast.While:
+                checkNode(node.test, in_loop)
+            else:
+                # The loop target and iterable are not part of the loop body,
+                # but cannot contain these statements either.
+                checkNode(node.target, in_loop)
+                checkNode(node.iter, in_loop)
+
+            for child in node.body:
+                checkNode(child, True)
+
+            # A "break" or "continue" in the "else" block refers to an outer
+            # loop, or is invalid otherwise.
+            for child in node.orelse:
+                checkNode(child, in_loop)
+        else:
+            for child in ast.iter_child_nodes(node):
+                checkNode(child, in_loop)
+
+    for child in body:
+        checkNode(child, False)
+
+
+def raiseSyntaxError(reason, source_ref, display_file=True, display_line=True):
     def readSource():
-        # Cyclic dependency.
         from .SourceHandling import readSourceLine
 
         return readSourceLine(source_ref)
 
-    # Special case being asked to display.
-    if display_file and display_line:
-        source_line = readSource()
-
-        raise SyntaxError(
-            reason,
-            (
-                source_ref.getFilename(),
-                source_ref.getLineNumber(),
-                col_offset,
-                source_line,
-            ),
-        )
-
-    # Special case given source reference.
-    if source_ref is not None:
+    if source_ref is not None and display_file:
         if display_line:
             source_line = readSource()
         else:
@@ -115,12 +195,12 @@ def raiseSyntaxError(reason, source_ref, display_file=True, display_line=True):
             (
                 source_ref.getFilename(),
                 source_ref.getLineNumber(),
-                col_offset,
+                source_ref.getColumnNumber(),
                 source_line,
             ),
         )
-
-    exc = SyntaxError(reason, (None, None, None, None))
+    else:
+        exc = SyntaxError(reason, (None, None, None, None))
 
     exc.generated_by_nuitka = True
 

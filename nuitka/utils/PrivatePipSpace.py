@@ -10,22 +10,28 @@ import sys
 
 from nuitka.__past__ import total_ordering
 from nuitka.containers.OrderedDicts import OrderedDict
+from nuitka.PythonPrefixes import getSystemPrefixExecutable
 from nuitka.PythonVersions import (
     getSitePackageCandidateNames,
-    getSystemPrefixPath,
+    python_version,
     python_version_str,
 )
 
-from .Download import getDownloadCacheDir, shouldDownload
+from .Download import (
+    DOWNLOAD_MODE_ASK,
+    DOWNLOAD_MODE_YES,
+    getDownloadCacheDir,
+    getDownloadMode,
+    shouldDownload,
+)
 from .Execution import (
     NuitkaCalledProcessError,
     check_output,
+    getEnvironmentWithPathAdded,
     getExecutablePath,
     getNullOutput,
-    withEnvironmentPathAdded,
 )
 from .FileOperations import (
-    areSamePaths,
     deleteFile,
     getFileContentByLine,
     getNormalizedPathJoin,
@@ -36,47 +42,6 @@ from .FileOperations import (
 from .Hashing import HashCRC32
 from .Importing import withTemporarySysPathExtension
 from .Utils import getArchitecture, getOS, isMacOS, isWin32Windows
-
-
-def getSystemPrefixExecutable():
-    """Return the sys.executable of the system prefix, i.e. breaking out of virtualenv.
-
-    See getSystemPrefixPath() for details.
-
-    Returns:
-        str - path to system executable
-    """
-    # Yes, we want and need it here, pylint: disable=protected-access
-    if hasattr(sys, "_base_executable"):
-        return sys._base_executable
-
-    sys_prefix = getSystemPrefixPath()
-    if sys_prefix == sys.prefix:
-        return sys.executable
-
-    if areSamePaths(sys_prefix, sys.prefix):
-        return sys.executable
-
-    # The "sys.executable" is a good guess for the name, but we might have to
-    # look for "python" effectively.
-    candidate_names = (
-        os.path.basename(sys.executable),
-        "python.exe" if os.name == "nt" else "python",
-        "python%s" % python_version_str,
-    )
-
-    for candidate_name in candidate_names:
-        if os.name == "nt":
-            candidate = os.path.join(sys_prefix, candidate_name)
-        else:
-            candidate = os.path.join(sys_prefix, "bin", candidate_name)
-
-        if os.path.exists(candidate):
-            return candidate
-
-    # Fallback to sys.executable, which is not correct if we are in a virtualenv
-    # but the best we can do if we didn't find the system prefix one.
-    return sys.executable
 
 
 def _getCandidateBinPaths(site_packages):
@@ -97,26 +62,26 @@ def _getCandidateBinPaths(site_packages):
     else:
         site_packages_folders = (site_packages,)
 
+    preferred_bin_paths = []
+
     for site_packages_folder in site_packages_folders:
         if isWin32Windows():
-            candidate_bin_paths.insert(
-                0,
+            preferred_bin_paths.append(
                 os.path.join(
                     os.path.dirname(os.path.dirname(site_packages_folder)), "Scripts"
-                ),
+                )
             )
         else:
-            candidate_bin_paths.insert(
-                0,
+            preferred_bin_paths.append(
                 os.path.join(
                     os.path.dirname(
                         os.path.dirname(os.path.dirname(site_packages_folder))
                     ),
                     "bin",
-                ),
+                )
             )
 
-    return candidate_bin_paths
+    return preferred_bin_paths + candidate_bin_paths
 
 
 def _normalizePrivatePipPackageName(package_name):
@@ -150,6 +115,9 @@ def _removePrivatePipInstalledPath(logger, path):
 
 def _cleanupPrivatePipModuleState(logger, site_packages_folder, module_name):
     """Remove stale module files for a package refresh."""
+    if module_name is None:
+        return False
+
     removed = False
 
     if site_packages_folder is not None and os.path.isdir(site_packages_folder):
@@ -171,14 +139,15 @@ def _cleanupPrivatePipModuleState(logger, site_packages_folder, module_name):
             module_basename = os.path.basename(module_path)
 
             for filename in os.listdir(pycache_dir):
-                if filename.startswith(module_basename + ".") and filename.endswith(
-                    ".pyc"
-                ):
-                    if _removePrivatePipInstalledPath(
+                if (
+                    filename.startswith(module_basename + ".")
+                    and filename.endswith(".pyc")
+                    and _removePrivatePipInstalledPath(
                         logger=logger,
                         path=os.path.join(pycache_dir, filename),
-                    ):
-                        removed = True
+                    )
+                ):
+                    removed = True
 
     return removed
 
@@ -191,14 +160,15 @@ def _cleanupPrivatePipMetadataState(logger, site_packages_folder, package_name):
         dist_info_prefix = _normalizePrivatePipPackageName(package_name) + "-"
 
         for filename in os.listdir(site_packages_folder):
-            if filename.startswith(dist_info_prefix) and filename.endswith(
-                (".dist-info", ".egg-info")
-            ):
-                if _removePrivatePipInstalledPath(
+            if (
+                filename.startswith(dist_info_prefix)
+                and filename.endswith((".dist-info", ".egg-info"))
+                and _removePrivatePipInstalledPath(
                     logger=logger,
                     path=os.path.join(site_packages_folder, filename),
-                ):
-                    removed = True
+                )
+            ):
+                removed = True
 
     return removed
 
@@ -293,23 +263,22 @@ def _checkPrivatePipBinaryPath(
 ):
     """Check if a binary path is version compatible and usable."""
 
-    with withPrivatePipSitePackagesPathAdded():
-        if version is None:
-            ok = True
-            message = None
-        else:
-            ok, message = _checkRequiredVersion(
-                logger=logger,
-                tool=binary_name,
-                tool_call=[binary_path],
-                dependencies=dependencies,
-            )
+    if version is None:
+        ok = True
+        message = None
+    else:
+        ok, message = _checkRequiredVersion(
+            logger=logger,
+            tool=binary_name,
+            tool_call=[binary_path],
+            dependencies=dependencies,
+        )
 
-        if ok and check_binary is not None:
-            ok, message = check_binary(
-                logger=logger,
-                binary_path=binary_path,
-            )
+    if ok and check_binary is not None:
+        ok, message = check_binary(
+            logger=logger,
+            binary_path=binary_path,
+        )
 
     if report_rejection and not ok and message is not None and logger is not None:
         logger.info(
@@ -341,6 +310,8 @@ def _getPrivatePipBinaryPath(
     """
     # Complex code, pylint: disable=too-many-locals
 
+    download_mode = getDownloadMode(assume_yes_for_downloads)
+
     version = getRequiredVersion(logger, package_name)
     report_rejection = reject_message is not None
 
@@ -364,12 +335,12 @@ def _getPrivatePipBinaryPath(
         )
 
         if ok:
-            return binary_path, None, assume_yes_for_downloads
+            return binary_path, None, download_mode
 
         force_package_update = True
 
     if reject_message is None:
-        return None, None, assume_yes_for_downloads
+        return None, None, download_mode
 
     if force_package_update:
         cleaned_private_pip = _cleanupPrivatePipPackageState(
@@ -398,25 +369,25 @@ def _getPrivatePipBinaryPath(
 
     # Download, avoiding to use the result, which is the site-packages
     # folder
-    site_packages_folder, assume_yes_for_downloads = tryDownloadPackageName(
+    site_packages_folder, download_mode = tryDownloadPackageName(
         logger=logger,
         package_name=package_name,
         module_name=module_name,
         package_version=version,
         force_update=force_package_update,
-        assume_yes_for_downloads=assume_yes_for_downloads,
+        download_mode=download_mode,
         reject_message=reject_message,
     )
 
     if site_packages_folder:
         for dep_package_name, dep_module_name, dep_reject_message in dependencies:
-            _, assume_yes_for_downloads = tryDownloadPackageName(
+            _, download_mode = tryDownloadPackageName(
                 logger=logger,
                 package_name=dep_package_name,
                 module_name=dep_module_name,
                 package_version=getRequiredVersion(logger, dep_package_name),
                 force_update=force_package_update,
-                assume_yes_for_downloads=assume_yes_for_downloads,
+                download_mode=download_mode,
                 reject_message=dep_reject_message,
             )
 
@@ -445,9 +416,9 @@ def _getPrivatePipBinaryPath(
                 if not ok:
                     continue
 
-                return possible, site_packages_folder, assume_yes_for_downloads
+                return possible, site_packages_folder, download_mode
 
-    return None, site_packages_folder, assume_yes_for_downloads
+    return None, site_packages_folder, download_mode
 
 
 def getPrivatePipBaseFolder():
@@ -462,6 +433,46 @@ def getPrivatePipBaseFolder():
 _private_pip_site_packages_dirs = None
 
 
+def _getPreferredPrivatePipSitePackagesDir():
+    """Get the site-packages folder that pip installs into for this Python.
+
+    Notes:
+        The private pip space can contain the layouts of different Python
+        distributions with the same version, e.g. the system Python using
+        'dist-packages' and a standalone Python using 'site-packages'. The
+        layout of the Python that runs pip has to be preferred, because mixing
+        the layouts on the 'PYTHONPATH' can cause incompatible package files to
+        be loaded, e.g. compiled extensions from a different package version.
+    """
+    try:
+        # Python 2.6 does not provide it, and the layouts that need to be
+        # distinguished are all much newer.
+        import sysconfig
+    except ImportError:
+        return None
+
+    # Pip is called with "--root" and "--prefix .", so the paths have to be
+    # calculated relative to the download folder.
+    paths = sysconfig.get_paths(
+        vars={
+            "base": ".",
+            "platbase": ".",
+            "installed_base": ".",
+            "installed_platbase": ".",
+        }
+    )
+
+    for key in ("purelib", "platlib"):
+        relative_path = paths.get(key)
+
+        if relative_path:
+            return os.path.normpath(
+                os.path.join(getPrivatePipBaseFolder(), relative_path)
+            )
+
+    return None
+
+
 def _getPrivatePipSitePackagesDirs():
     """Get the site-packages directories of the private pip space.
 
@@ -470,7 +481,7 @@ def _getPrivatePipSitePackagesDirs():
         been used by different Python installations, which install into
         different locations, or when an older Nuitka version used a different
         pip layout. All of them are considered, to be robust against stale
-        layouts.
+        layouts, but the one of the current Python is used first.
     """
     # We use the global statement to cache the result across calls.
     # pylint: disable=global-statement
@@ -490,6 +501,14 @@ def _getPrivatePipSitePackagesDirs():
                     # folders themselves are of interest.
                     dirnames.remove(candidate)
 
+        preferred_site_packages_dir = _getPreferredPrivatePipSitePackagesDir()
+
+        if preferred_site_packages_dir is not None:
+            site_packages_dirs.sort(
+                key=lambda site_packages_dir: os.path.normpath(site_packages_dir)
+                != preferred_site_packages_dir
+            )
+
         _private_pip_site_packages_dirs = site_packages_dirs
 
     return _private_pip_site_packages_dirs
@@ -504,11 +523,52 @@ def _invalidatePrivatePipSitePackagesDirs():
     _private_pip_site_packages_dirs = None
 
 
-def withPrivatePipSitePackagesPathAdded():
-    """Context manager to add private pip site-packages to PYTHONPATH."""
+def _getPrivatePipSitePackagesDirForBinary(binary_path):
+    """Get the site-packages folder that a private pip binary belongs to.
+
+    Notes:
+        The binary can come from any of the layouts in the private pip space,
+        not necessarily the one that pip of the current Python uses, e.g. when
+        a tool was downloaded by a different Python distribution before.
+    """
+    binary_dir = os.path.normpath(os.path.dirname(binary_path))
+
+    for site_packages_folder in _getPrivatePipSitePackagesDirs():
+        if isWin32Windows():
+            scripts_dir = os.path.join(
+                os.path.dirname(os.path.dirname(site_packages_folder)), "Scripts"
+            )
+        else:
+            scripts_dir = os.path.join(
+                os.path.dirname(os.path.dirname(os.path.dirname(site_packages_folder))),
+                "bin",
+            )
+
+        if os.path.normpath(scripts_dir) == binary_dir:
+            return site_packages_folder
+
+    return None
+
+
+def getPrivatePipSitePackagesEnvironment(binary_path):
+    """Get environment with private pip site-packages added to PYTHONPATH.
+
+    Args:
+        binary_path: path to the binary that is going to be executed, used to
+            prefer the site-packages folder it was installed into.
+    """
     site_packages_dirs = _getPrivatePipSitePackagesDirs()
 
-    return withEnvironmentPathAdded("PYTHONPATH", *site_packages_dirs, prefix=True)
+    preferred_site_packages_dir = _getPrivatePipSitePackagesDirForBinary(binary_path)
+
+    if preferred_site_packages_dir is not None:
+        site_packages_dirs = [preferred_site_packages_dir] + [
+            site_packages_dir
+            for site_packages_dir in site_packages_dirs
+            if site_packages_dir != preferred_site_packages_dir
+        ]
+
+    return getEnvironmentWithPathAdded("PYTHONPATH", *site_packages_dirs, prefix=True)
 
 
 def _isPackageInstalled(site_packages_folder, package_name, package_version):
@@ -540,13 +600,29 @@ def _isPackageInstalled(site_packages_folder, package_name, package_version):
         for filename in os.listdir(site_packages_folder):
             if (
                 filename.startswith(normalized_name + "-")
-                and (filename.endswith(".dist-info") or filename.endswith(".egg-info"))
+                and filename.endswith((".dist-info", ".egg-info"))
                 and filename != os.path.basename(dist_info_path)
                 and filename != os.path.basename(egg_info_path)
             ):
                 return False
 
     return True
+
+
+def _isPackageMetadataPresent(site_packages_folder, package_name):
+    """Check if a package has metadata in the given site-packages folder."""
+    normalized_name = _normalizePrivatePipPackageName(package_name) + "-"
+
+    try:
+        filenames = os.listdir(site_packages_folder)
+    except OSError:
+        return False
+
+    return any(
+        filename.startswith(normalized_name)
+        and filename.endswith((".dist-info", ".egg-info"))
+        for filename in filenames
+    )
 
 
 def _findPrivatePipSitePackagesDir(
@@ -560,16 +636,26 @@ def _findPrivatePipSitePackagesDir(
         Folders where the requested version of the package is installed are
         preferred, but a folder with a different version is used as fallback,
         so that packages in stale layouts can be found and refreshed.
+
+        Packages that only install binaries, e.g. 'patchelf', have no module,
+        and are found by their metadata instead.
     """
     fallback = None
 
     for site_packages_folder in _getPrivatePipSitePackagesDirs():
-        module_path = getNormalizedPathJoin(
-            site_packages_folder, module_name.replace(".", os.path.sep)
-        )
+        if module_name is None:
+            if not _isPackageMetadataPresent(
+                site_packages_folder=site_packages_folder,
+                package_name=package_name,
+            ):
+                continue
+        else:
+            module_path = getNormalizedPathJoin(
+                site_packages_folder, module_name.replace(".", os.path.sep)
+            )
 
-        if not os.path.exists(module_path):
-            continue
+            if not os.path.exists(module_path):
+                continue
 
         if _isPackageInstalled(
             site_packages_folder=site_packages_folder,
@@ -590,10 +676,18 @@ def tryDownloadPackageName(
     module_name,
     package_version,
     force_update,
-    assume_yes_for_downloads,
+    download_mode,
     reject_message,
 ):
-    """Try to download a package from the private pip space."""
+    """Try to download a package from the private pip space.
+
+    Args:
+        download_mode: One of DOWNLOAD_MODE_NO, DOWNLOAD_MODE_ASK,
+            DOWNLOAD_MODE_YES, deciding if and how downloads are made.
+
+    Returns:
+        tuple: Site packages folder or None, and the updated download mode.
+    """
     download_folder = getPrivatePipBaseFolder()
 
     site_packages_folder = _findPrivatePipSitePackagesDir(
@@ -602,29 +696,32 @@ def tryDownloadPackageName(
         package_version=package_version,
     )
 
-    if site_packages_folder is not None and not force_update:
-        # If version is specified, check if it looks installed.
-        if _isPackageInstalled(
+    # If version is specified, check if it looks installed.
+    if (
+        site_packages_folder is not None
+        and not force_update
+        and _isPackageInstalled(
             site_packages_folder=site_packages_folder,
             package_name=package_name,
             package_version=package_version,
-        ):
-            return (
-                site_packages_folder,
-                assume_yes_for_downloads,
-            )
+        )
+    ):
+        return (
+            site_packages_folder,
+            download_mode,
+        )
 
     if not _checkPackageConstraint(logger, package_name):
-        return None, assume_yes_for_downloads
+        return None, download_mode
 
     if shouldDownload(
         message="Nuitka depends on '%s' to compile code, it is recommended."
         % package_name,
         reject_message=reject_message,
-        assume_yes_for_downloads=assume_yes_for_downloads,
-        download_ok=True,
+        download_mode=download_mode,
     ):
-        assume_yes_for_downloads = True
+        if download_mode == DOWNLOAD_MODE_ASK:
+            download_mode = DOWNLOAD_MODE_YES
 
         if site_packages_folder is not None:
             _cleanupPrivatePipMetadataState(
@@ -665,7 +762,7 @@ def tryDownloadPackageName(
             )
 
         if exit_code != 0:
-            return None, assume_yes_for_downloads
+            return None, download_mode
 
         # The package may have been installed into a different site-packages
         # folder than it was previously found in, e.g. when the private pip
@@ -692,10 +789,10 @@ def tryDownloadPackageName(
     if site_packages_folder is not None:
         return (
             site_packages_folder,
-            assume_yes_for_downloads,
+            download_mode,
         )
 
-    return None, assume_yes_for_downloads
+    return None, download_mode
 
 
 def _evaluateConstraint(logger, constraint, package_name):
@@ -734,6 +831,65 @@ def _checkPackageConstraint(logger, package_name):
     return False
 
 
+def _getInstalledPackageVersion(package_name):
+    """Get the version of an installed package, if it can be determined.
+
+    Notes:
+        This uses the standard library 'importlib.metadata' when available,
+        and falls back to 'pkg_resources' for older Python versions.
+
+    Args:
+        package_name: name of the package to check
+
+    Returns:
+        str or None: installed version, or None if it cannot be determined
+    """
+    try:
+        # Available from Python 3.8 onwards.
+        from importlib.metadata import PackageNotFoundError
+        from importlib.metadata import version as get_version
+    except ImportError:
+        try:
+            from pkg_resources import (
+                DistributionNotFound as PackageNotFoundError,
+            )
+            from pkg_resources import get_distribution
+        except ImportError:
+            return None
+
+        try:
+            return get_distribution(package_name).version
+        except PackageNotFoundError:
+            return None
+
+    try:
+        return get_version(package_name)
+    except PackageNotFoundError:
+        return None
+
+
+def arePackagesInstalledGlobally(package_versions):
+    """Check if packages are installed globally in the required versions.
+
+    Args:
+        package_versions: Iterable of (package_name, package_version) tuples,
+            with None as version to accept any version.
+
+    Returns:
+        bool: True if all packages are installed in matching versions
+    """
+    for package_name, package_version in package_versions:
+        installed_version = _getInstalledPackageVersion(package_name)
+
+        if installed_version is None:
+            return False
+
+        if package_version is not None and installed_version != package_version:
+            return False
+
+    return True
+
+
 def getPrivatePackage(
     logger,
     package_name,
@@ -755,49 +911,54 @@ def getPrivatePackage(
     Returns:
         module: the imported module or None if not found
     """
-    try:
-        module = __import__(module_name, fromlist=["*"])
+    installed_version = _getInstalledPackageVersion(package_name)
 
-        if submodule_names:
-            for submodule_name in submodule_names:
-                __import__(module_name + "." + submodule_name)
+    if package_version is None or installed_version == package_version:
+        try:
+            module = __import__(module_name, fromlist=["*"])
 
-        return module
-    except ImportError:
-        site_packages_folder, _assume_yes_for_downloads = tryDownloadPackageName(
-            logger=logger,
-            package_name=package_name,
-            module_name=module_name.split(".")[0],
-            package_version=package_version,
-            force_update=False,
-            assume_yes_for_downloads=assume_yes_for_downloads,
-            reject_message=reject_message,
-        )
-
-        if site_packages_folder:
-            with withTemporarySysPathExtension([site_packages_folder]):
-                module = __import__(module_name, fromlist=["*"])
-
-                if submodule_names:
-                    for submodule_name in submodule_names:
-                        __import__(module_name + "." + submodule_name)
+            if submodule_names:
+                for submodule_name in submodule_names:
+                    __import__(module_name + "." + submodule_name)
 
             return module
+        except Exception:  # Catch all the things, pylint: disable=broad-except
+            pass
 
-        return None
+    site_packages_folder, _download_mode = tryDownloadPackageName(
+        logger=logger,
+        package_name=package_name,
+        module_name=module_name.split(".")[0],
+        package_version=package_version,
+        force_update=False,
+        download_mode=getDownloadMode(assume_yes_for_downloads),
+        reject_message=reject_message,
+    )
+
+    if site_packages_folder:
+        with withTemporarySysPathExtension([site_packages_folder], prepend=True):
+            module = __import__(module_name, fromlist=["*"])
+
+            if submodule_names:
+                for submodule_name in submodule_names:
+                    __import__(module_name + "." + submodule_name)
+
+        return module
+
+    return None
 
 
-def getZigBinaryPath(logger, assume_yes_for_downloads, reject_message):
+def getZigBinaryPath(logger, download_mode, reject_message):
     """Get the path of the Zig binary from the private pip space."""
     # spell-checker: ignore ziglang
 
-    site_packages_folder, _assume_yes_for_downloads = tryDownloadPackageName(
+    site_packages_folder, _download_mode = tryDownloadPackageName(
         logger=logger,
         package_name="ziglang",
         module_name="ziglang",
         package_version="0.16.0" if isMacOS() else None,
         force_update=False,
-        assume_yes_for_downloads=assume_yes_for_downloads,
+        download_mode=download_mode,
         reject_message=reject_message,
     )
 
@@ -816,69 +977,144 @@ def getZigBinaryPath(logger, assume_yes_for_downloads, reject_message):
     return None
 
 
+def getPatchElfBinaryPath(
+    logger, check_binary, assume_yes_for_downloads, reject_message
+):
+    """Get a 'patchelf' binary, downloading one if the system version is unsuitable.
+
+    Args:
+        check_binary: Callable taking 'logger' and 'binary_path', returning a
+            tuple of bool and reason for rejection.
+        reject_message: Error message to use if the download is not permitted.
+
+    Returns:
+        Path of the binary, or None if no suitable binary could be obtained.
+    """
+    binary_path = getExecutablePath("patchelf")
+
+    if binary_path is not None:
+        ok, _message = check_binary(logger=logger, binary_path=binary_path)
+
+        if ok:
+            return binary_path
+
+    # The PyPI package version uses a fourth component, while the binary
+    # reports e.g. 0.19.3. Release 0.18.0 is known to be broken, and newer
+    # releases require Python 3.7, so older Python uses 0.17.2.1.
+    package_version = "0.19.3.0" if python_version >= 0x370 else "0.17.2.1"
+
+    site_packages_folder, _download_mode = tryDownloadPackageName(
+        logger=logger,
+        package_name="patchelf",
+        module_name=None,
+        package_version=package_version,
+        force_update=False,
+        download_mode=getDownloadMode(assume_yes_for_downloads),
+        reject_message=reject_message,
+    )
+
+    if site_packages_folder:
+        for candidate in _getCandidateBinPaths(site_packages=site_packages_folder):
+            possible = os.path.join(candidate, "patchelf")
+
+            if os.path.exists(possible):
+                ok, _message = check_binary(logger=logger, binary_path=possible)
+
+                if ok:
+                    return possible
+
+    return None
+
+
 def getClangFormatBinaryPath(logger, assume_yes_for_downloads, reject_message):
     """Get the path of the clang-format binary from the private pip space."""
-    binary_path, _site_packages_folder, _assume_yes_for_downloads = (
-        _getPrivatePipBinaryPath(
-            logger=logger,
-            binary_name="clang-format",
-            package_name="clang-format",
-            module_name="clang_format",
-            dependencies=(),
-            check_binary=None,
-            assume_yes_for_downloads=assume_yes_for_downloads,
-            reject_message=reject_message,
-        )
+    binary_path, _site_packages_folder, _download_mode = _getPrivatePipBinaryPath(
+        logger=logger,
+        binary_name="clang-format",
+        package_name="clang-format",
+        module_name="clang_format",
+        dependencies=(),
+        check_binary=None,
+        assume_yes_for_downloads=assume_yes_for_downloads,
+        reject_message=reject_message,
+    )
+    return binary_path
+
+
+def getClangdBinaryPath(logger, assume_yes_for_downloads):
+    """Get the path of the clangd binary from the private pip space."""
+    # The clangd wheel requires Python 3.9 or newer.
+    if sys.version_info < (3, 9):
+        return None
+
+    binary_path, _site_packages_folder, _download_mode = _getPrivatePipBinaryPath(
+        logger=logger,
+        binary_name="clangd",
+        package_name="clangd",
+        module_name="clangd",
+        dependencies=(),
+        check_binary=None,
+        assume_yes_for_downloads=assume_yes_for_downloads,
+        reject_message="Checking C source code needs to use 'clangd'.",
     )
     return binary_path
 
 
 def getCodespellBinaryPath(logger, assume_yes_for_downloads):
-    binary_path, _site_packages_folder, _assume_yes_for_downloads = (
-        _getPrivatePipBinaryPath(
-            logger=logger,
-            binary_name="codespell",
-            package_name="codespell",
-            module_name="codespell_lib",
-            dependencies=(),
-            check_binary=None,
-            assume_yes_for_downloads=assume_yes_for_downloads,
-            reject_message="Spell checking needs to use 'codespell'.",
-        )
+    binary_path, _site_packages_folder, _download_mode = _getPrivatePipBinaryPath(
+        logger=logger,
+        binary_name="codespell",
+        package_name="codespell",
+        module_name="codespell_lib",
+        dependencies=(),
+        check_binary=None,
+        assume_yes_for_downloads=assume_yes_for_downloads,
+        reject_message="Spell checking needs to use 'codespell'.",
     )
     return binary_path
 
 
 def getBlackBinaryPath(logger, assume_yes_for_downloads):
     """Get the path of the black binary from the private pip space."""
-    binary_path, _site_packages_folder, _assume_yes_for_downloads = (
-        _getPrivatePipBinaryPath(
-            logger=logger,
-            binary_name="black",
-            package_name="black",
-            module_name="black",
-            dependencies=(),
-            check_binary=None,
-            assume_yes_for_downloads=assume_yes_for_downloads,
-            reject_message="Python formatting needs to use 'black'.",
-        )
+    binary_path, _site_packages_folder, _download_mode = _getPrivatePipBinaryPath(
+        logger=logger,
+        binary_name="black",
+        package_name="black",
+        module_name="black",
+        dependencies=(),
+        check_binary=None,
+        assume_yes_for_downloads=assume_yes_for_downloads,
+        reject_message="Python formatting needs to use 'black'.",
     )
     return binary_path
 
 
 def getIsortBinaryPath(logger, assume_yes_for_downloads):
     """Get the path of the isort binary from the private pip space."""
-    binary_path, _site_packages_folder, _assume_yes_for_downloads = (
-        _getPrivatePipBinaryPath(
-            logger=logger,
-            binary_name="isort",
-            package_name="isort",
-            module_name="isort",
-            dependencies=(),
-            check_binary=None,
-            assume_yes_for_downloads=assume_yes_for_downloads,
-            reject_message="Python formatting needs to use 'isort'.",
-        )
+    binary_path, _site_packages_folder, _download_mode = _getPrivatePipBinaryPath(
+        logger=logger,
+        binary_name="isort",
+        package_name="isort",
+        module_name="isort",
+        dependencies=(),
+        check_binary=None,
+        assume_yes_for_downloads=assume_yes_for_downloads,
+        reject_message="Python formatting needs to use 'isort'.",
+    )
+    return binary_path
+
+
+def getRuffBinaryPath(logger, assume_yes_for_downloads):
+    """Get the path of the ruff binary from the private pip space."""
+    binary_path, _site_packages_folder, _download_mode = _getPrivatePipBinaryPath(
+        logger=logger,
+        binary_name="ruff",
+        package_name="ruff",
+        module_name="ruff",
+        dependencies=(),
+        check_binary=None,
+        assume_yes_for_downloads=assume_yes_for_downloads,
+        reject_message="Source code checking needs to use 'ruff'.",
     )
     return binary_path
 
@@ -895,7 +1131,10 @@ def _checkMdformatUsability(logger, binary_path):
     with withTemporaryFilename(suffix=".md") as temp_filename:
         try:
             putBinaryFileContents(temp_filename, b"# smoke\n")
-            check_output([binary_path, "--check", temp_filename])
+            check_output(
+                [binary_path, "--check", temp_filename],
+                env=getPrivatePipSitePackagesEnvironment(binary_path=binary_path),
+            )
         except NuitkaCalledProcessError as e:
             stderr = e.stderr
 
@@ -937,17 +1176,15 @@ def getMdformatBinaryPath(logger, assume_yes_for_downloads):
         ),
     )
 
-    mdformat_path, _site_packages_folder, _assume_yes_for_downloads = (
-        _getPrivatePipBinaryPath(
-            logger=logger,
-            binary_name="mdformat",
-            package_name="mdformat",
-            module_name="mdformat",
-            dependencies=dependencies,
-            check_binary=_checkMdformatUsability,
-            assume_yes_for_downloads=assume_yes_for_downloads,
-            reject_message="Markdown formatting needs to use 'mdformat'.",
-        )
+    mdformat_path, _site_packages_folder, _download_mode = _getPrivatePipBinaryPath(
+        logger=logger,
+        binary_name="mdformat",
+        package_name="mdformat",
+        module_name="mdformat",
+        dependencies=dependencies,
+        check_binary=_checkMdformatUsability,
+        assume_yes_for_downloads=assume_yes_for_downloads,
+        reject_message="Markdown formatting needs to use 'mdformat'.",
     )
 
     return mdformat_path
@@ -955,17 +1192,15 @@ def getMdformatBinaryPath(logger, assume_yes_for_downloads):
 
 def getRstfmtBinaryPath(logger, assume_yes_for_downloads):
     """Get the path of the rstfmt binary from the private pip space."""
-    binary_path, _site_packages_folder, _assume_yes_for_downloads = (
-        _getPrivatePipBinaryPath(
-            logger=logger,
-            binary_name="rstfmt",
-            package_name="rstfmt",
-            module_name="rstfmt",
-            dependencies=(),
-            check_binary=None,
-            assume_yes_for_downloads=assume_yes_for_downloads,
-            reject_message="ReStructuredText formatting needs to use 'rstfmt'.",
-        )
+    binary_path, _site_packages_folder, _download_mode = _getPrivatePipBinaryPath(
+        logger=logger,
+        binary_name="rstfmt",
+        package_name="rstfmt",
+        module_name="rstfmt",
+        dependencies=(),
+        check_binary=None,
+        assume_yes_for_downloads=assume_yes_for_downloads,
+        reject_message="ReStructuredText formatting needs to use 'rstfmt'.",
     )
     return binary_path
 
@@ -1103,7 +1338,10 @@ def _checkRequiredVersion(logger, tool, tool_call, dependencies):
         return _check_required_version_cache[tool_call]
 
     try:
-        version_output = check_output(tool_call)
+        version_output = check_output(
+            tool_call,
+            env=getPrivatePipSitePackagesEnvironment(binary_path=tool_call[0]),
+        )
     except NuitkaCalledProcessError as e:
         result = False, "failed to execute: %s" % e.stderr
         _check_required_version_cache[tool_call] = result
@@ -1143,14 +1381,18 @@ def _checkRequiredVersion(logger, tool, tool_call, dependencies):
         line = line.strip()
 
         if line.startswith(
-            ("black, ", "python -m black,", "__main__.py, ", "mdformat ")
+            (
+                "black, ",
+                "python -m black,",
+                "__main__.py, ",
+                "mdformat ",
+                "ruff ",
+                "VERSION ",
+            )
         ):
             if "(" in line:
                 line = line[: line.rfind("(")].strip()
 
-            actual_version = line.split()[-1]
-            break
-        if line.startswith("VERSION "):
             actual_version = line.split()[-1]
             break
         # spell-checker: ignore rstfmt
@@ -1158,6 +1400,9 @@ def _checkRequiredVersion(logger, tool, tool_call, dependencies):
             actual_version = line.split()[-1]
             break
         if "clang-format version " in line:
+            actual_version = line.split()[2]
+            break
+        if "clangd version " in line:
             actual_version = line.split()[2]
             break
 

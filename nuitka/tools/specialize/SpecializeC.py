@@ -44,6 +44,7 @@ from nuitka.HardImportRegistry import (
     hard_modules,
     hard_modules_non_stdlib,
     hard_modules_version,
+    setupHardImportsForTarget,
 )
 from nuitka.nodes.shapes.BuiltinTypeShapes import (
     tshape_bool,
@@ -53,9 +54,11 @@ from nuitka.nodes.shapes.BuiltinTypeShapes import (
     tshape_int,
     tshape_list,
     tshape_none,
+    tshape_sentinel,
     tshape_str,
     tshape_tuple,
 )
+from nuitka.targets.TargetNative import TargetNative
 from nuitka.Tracing import tools_logger
 from nuitka.utils.FileOperations import (
     getFileList,
@@ -69,6 +72,7 @@ from .Common import (
     formatArgs,
     getLicenseGeneratedCode,
     getMethodVariations,
+    getSpecVariation,
     parseOptions,
     python2_dict_methods,
     python2_list_methods,
@@ -101,6 +105,12 @@ from .CTypeDescriptions import (
     tuple_desc,
     unicode_desc,
 )
+
+# Minimum Python versions for methods that are not available in all supported
+# Python versions.
+python3_method_version_requirements = {
+    "isascii": "PYTHON_VERSION >= 0x370",
+}
 
 
 def getDoExtensionUsingTemplateC(template_name):
@@ -382,16 +392,6 @@ def makeHelperOperations(
 
         python_requirement = _parseRequirements(op_code, target, left, right, emit)
 
-        emit(
-            '/* Code referring to "%s" corresponds to %s and "%s" to %s. */'
-            % (
-                left.getHelperCodeName(),
-                left.type_desc,
-                right.getHelperCodeName(),
-                right.type_desc,
-            )
-        )
-
         if operator == "+":
             sq_slot = "sq_concat"
         elif operator == "*":
@@ -488,16 +488,6 @@ def makeHelperComparisons(
 
         python_requirement = _parseRequirements(op_code, target, left, right, emit)
 
-        emit(
-            '/* Code referring to "%s" corresponds to %s and "%s" to %s. */'
-            % (
-                left.getHelperCodeName(),
-                left.type_desc,
-                right.getHelperCodeName(),
-                right.type_desc,
-            )
-        )
-
         if not python_requirement:
             is_py3_only = False
             is_py2_only = False
@@ -539,9 +529,13 @@ def makeHelperComparisons(
 
 
 def emitGenerationWarning(emit, template_name):
+    if isinstance(template_name, tuple):
+        template_desc = "templates %s" % ", ".join(template_name)
+    else:
+        template_desc = "template %s" % template_name
+
     emit(
-        "/* WARNING, this code is GENERATED. Modify the template %s instead! */"
-        % template_name
+        "/* WARNING, this code is GENERATED. Modify the %s instead! */" % template_desc
     )
 
     emit("#pragma once")
@@ -556,6 +550,9 @@ def emitIDE(emit, extra_includes=()):
     emit('#include "nuitka/prelude.h"')
     if extra_includes:
         emit("")
+        # The comment keeps clang-format from sorting these includes before the
+        # prelude, which they depend on.
+        emit("// Includes below require definitions from the prelude.")
         for include in extra_includes:
             emit('#include "%s"' % include)
     emit("#endif")
@@ -898,6 +895,8 @@ def makeHelpersBinaryDualOperation(operand, op_code):
 
 
 def makeHelpersImportHard():
+    setupHardImportsForTarget(TargetNative())
+
     filename_c = getNormalizedPath("nuitka/build/static_src/HelpersImportHard.c")
     filename_h = getNormalizedPath("nuitka/build/include/nuitka/helper/import_hard.h")
 
@@ -939,8 +938,6 @@ def makeHelpersImportHard():
 
 
 def makeHelperImportModuleHard(template, module_name, emit_h, emit_c, emit):
-    emit('/* C helper for hard import of module "%s" import. */' % module_name)
-
     python_min_max_os_version = hard_modules_version.get(module_name)
 
     if python_min_max_os_version is not None:
@@ -1005,20 +1002,26 @@ def makeHelperCalls():
                 emit_h(*args)
                 emit_c(*args)
 
-            template = getTemplateC(
-                "nuitka.code_generation", "CodeTemplateCallsPositional.c.j2"
+            emitGenerationWarning(
+                emit,
+                (
+                    "CodeTemplateCallsPositional.c.j2",
+                    "CodeTemplateCallsMixed.c.j2",
+                    "CodeTemplateCallsPositionalMethodDescr.c.j2",
+                    "CodeTemplateCallsMethodPositional.c.j2",
+                ),
             )
-
-            emitGenerationWarning(emit, template.name)
 
             emitHeaderGuard(emit_h, filename_h)
 
             emitIDE(emit)
 
             emit_c("""\
+#ifndef __IDE_ONLY__
 // We are switching some warnings off for this code, as they are triggered
-// by the generated code constructs in a way that is not useful.
-// spell-checker: ignore Wparentheses GNUC
+// by the generated code constructs in a way that is not useful. For IDE
+// parses this is skipped, as they report the pop without the push.
+// spell-checker: ignore GNUC Wparentheses
 #if defined(__clang__)
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wparentheses-equality"
@@ -1028,8 +1031,10 @@ def makeHelperCalls():
 #endif
 #pragma GCC diagnostic ignored "-Wparentheses"
 #endif
+#endif
 """)
 
+            emit("/* Generated from CodeTemplateCallsPositional.c.j2 */")
             for args_count in range(max_quick_call + 1):
                 code = getQuickCallCode(args_count=args_count, has_tuple_arg=False)
 
@@ -1042,9 +1047,7 @@ def makeHelperCalls():
                     emit_c(code)
                     emit_h(getTemplateCodeDeclaredFunction(code))
 
-            template = getTemplateC(
-                "nuitka.code_generation", "CodeTemplateCallsMixed.c.j2"
-            )
+            emit("/* Generated from CodeTemplateCallsMixed.c.j2 */")
 
             # Only keywords, but not positional arguments, via split args.
             code = getQuickMixedCallCode(
@@ -1059,7 +1062,6 @@ def makeHelperCalls():
             for args_count in range(1, max_quick_call + 1):
                 for has_tuple_arg in (False, True):
                     for has_dict_values in (False, True):
-                        # We do not do that.
                         if not has_dict_values and has_tuple_arg:
                             continue
 
@@ -1072,12 +1074,14 @@ def makeHelperCalls():
                         emit_c(code)
                         emit_h(getTemplateCodeDeclaredFunction(code))
 
+            emit("/* Generated from CodeTemplateCallsPositionalMethodDescr.c.j2 */")
             for args_count in range(1, 5):
                 code = getQuickMethodDescriptorCallCode(args_count=args_count)
 
                 emit_c(code)
                 emit_h(getTemplateCodeDeclaredFunction(code))
 
+            emit("/* Generated from CodeTemplateCallsMethodPositional.c.j2 */")
             for args_count in range(max_quick_call + 1):
                 code = getQuickMethodCallCode(args_count=args_count)
 
@@ -1085,11 +1089,13 @@ def makeHelperCalls():
                 emit_h(getTemplateCodeDeclaredFunction(code))
 
             emit_c("""\
+#ifndef __IDE_ONLY__
 #if defined(__clang__)
 #pragma clang diagnostic pop
 #elif defined(__GNUC__) && (__GNUC__ > 4 || (__GNUC__ == 4 && __GNUC_MINOR__ >= 2))
 #if __GNUC__ > 4 || (__GNUC__ == 4 && __GNUC_MINOR__ >= 6)
 #pragma GCC diagnostic pop
+#endif
 #endif
 #endif
 """)
@@ -1121,30 +1127,31 @@ def makeHelperLists():
                 emit_h(*args)
                 emit_c(*args)
 
-            template = getTemplateC(
+            template_small = getTemplateC(
                 "nuitka.code_generation", "CodeTemplateMakeListSmall.c.j2"
             )
+            template_hinted = getTemplateC(
+                "nuitka.code_generation", "CodeTemplateMakeListHinted.c.j2"
+            )
 
-            emitGenerationWarning(emit, template.name)
+            emitGenerationWarning(emit, (template_small.name, template_hinted.name))
 
             emitHeaderGuard(emit_h, filename_h)
 
             emitIDE(emit)
 
+            emit("/* Generated from %s */" % template_small.name)
             for args_count in range(1, make_list_constant_direct_threshold):
-                code = template.render(args_count=args_count)
+                code = template_small.render(args_count=args_count)
 
                 emit_c(code)
                 emit_h(getTemplateCodeDeclaredFunction(code))
 
-            template = getTemplateC(
-                "nuitka.code_generation", "CodeTemplateMakeListHinted.c.j2"
-            )
-
+            emit("/* Generated from %s */" % template_hinted.name)
             for args_count in range(
                 make_list_constant_direct_threshold, make_list_constant_hinted_threshold
             ):
-                code = template.render(args_count=args_count)
+                code = template_hinted.render(args_count=args_count)
 
                 emit_c(code)
                 emit_h(getTemplateCodeDeclaredFunction(code))
@@ -1172,9 +1179,13 @@ def _makeHelperBuiltinTypeAttributes(
                 emit_h("#if PYTHON_VERSION < 0x300")
             needs_endif = True
         elif method_name not in python2_methods and method_name in python3_methods:
-            emit_c("#if PYTHON_VERSION >= 0x300")
+            method_requirement = python3_method_version_requirements.get(
+                method_name, "PYTHON_VERSION >= 0x300"
+            )
+
+            emit_c("#if %s" % method_requirement)
             if is_public:
-                emit_h("#if PYTHON_VERSION >= 0x300")
+                emit_h("#if %s" % method_requirement)
             needs_endif = True
         else:
             needs_endif = False
@@ -1212,7 +1223,11 @@ def _makeHelperBuiltinTypeAttributes(
             and method_name in python3_methods
             and python2_methods
         ):
-            emit_c("#if PYTHON_VERSION >= 0x300")
+            method_requirement = python3_method_version_requirements.get(
+                method_name, "PYTHON_VERSION >= 0x300"
+            )
+
+            emit_c("#if %s" % method_requirement)
             needs_endif = True
         else:
             needs_endif = False
@@ -1314,14 +1329,20 @@ generate_builtin_type_operations = [
             "index",
             "rindex",
             "capitalize",
+            "casefold",
             "upper",
             "lower",
             "swapcase",
             "title",
             "isalnum",
             "isalpha",
+            "isascii",
+            "isdecimal",
             "isdigit",
+            "isidentifier",
             "islower",
+            "isnumeric",
+            "isprintable",
             "isupper",
             "isspace",
             "istitle",
@@ -1387,6 +1408,29 @@ generate_builtin_type_operations = [
 ]
 
 
+def makeDictSetHelperCodes():
+    filename_c = getNormalizedPath(
+        "nuitka/build/static_src/HelpersDictionariesSetGenerated.c"
+    )
+
+    with withFileOpenedAndAutoFormattedWithClaim(
+        filename_c, claim=getLicenseGeneratedCode()
+    ) as output_c:
+
+        def emit(*args):
+            writeLine(output_c, *args)
+
+        template = getDoExtensionUsingTemplateC("HelperDictionarySet.c.j2")
+
+        emitGenerationWarning(emit, template.name)
+
+        emitIDE(emit, ["nuitka/helper/dict_internals.h"])
+
+        code = template.render()
+
+        emit(code)
+
+
 def makeDictCopyHelperCodes():
     filename_c = getNormalizedPath(
         "nuitka/build/static_src/HelpersDictionariesGenerated.c"
@@ -1431,14 +1475,55 @@ def _getCheckForShape(shape):
         return "PyDict_CheckExact"
     elif shape is tshape_frozendict:
         return "PyFrozenDict_CheckExact"
+    elif shape is tshape_sentinel:
+        return "PySentinel_CheckExact"
     elif shape is tshape_bytes:
         return "PyBytes_CheckExact"
     else:
         assert False, shape
 
 
+def _getArgCountConditions(spec_versions):
+    """Get the Python conditions for each argument count of a method."""
+    result = {}
+
+    for spec_version in spec_versions:
+        (
+            _spec_arg_names,
+            _spec_arg_tests,
+            _spec_arg_name_mapping,
+            spec_arg_counts,
+            _spec_result_shape,
+        ) = getSpecVariation(spec_version.spec)
+
+        for arg_count in spec_arg_counts:
+            if arg_count not in result:
+                result[arg_count] = set()
+
+            result[arg_count].add(spec_version.python_condition)
+
+    return result
+
+
+def _getHelperCondition(conditions, type_python_requirement):
+    """Get the C condition for a helper, if it is version specific."""
+    if None in conditions or len(conditions) > 1:
+        return None
+
+    helper_condition = next(iter(conditions))
+
+    assert helper_condition.count("<") <= 1, helper_condition
+
+    helper_condition = helper_condition.replace("python_version", "PYTHON_VERSION")
+
+    if helper_condition == type_python_requirement:
+        return None
+
+    return helper_condition
+
+
 def makeHelperBuiltinTypeMethods():
-    # Many details, pylint: disable=too-many-locals
+    # Many details, pylint: disable=too-many-locals,too-many-statements
     filename_c = getNormalizedPath(
         "nuitka/build/static_src/HelpersBuiltinTypeMethods.c"
     )
@@ -1514,21 +1599,40 @@ def makeHelperBuiltinTypeMethods():
                     emit("#if %s" % type_desc.python_requirement)
 
                 for method_name in sorted(method_names):
-                    (
-                        present,
-                        arg_names,
-                        _arg_tests,
-                        arg_name_mapping,
-                        arg_counts,
-                        result_shape,
-                    ) = getMethodVariations(
+                    method_requirement = None
+
+                    if type_desc is unicode_desc:
+                        if method_name in python3_method_version_requirements:
+                            method_requirement = python3_method_version_requirements[
+                                method_name
+                            ]
+                        elif (
+                            method_name in python3_str_methods
+                            and method_name not in python2_unicode_methods
+                        ):
+                            method_requirement = "PYTHON_VERSION >= 0x300"
+
+                    if method_requirement:
+                        emit_c("#if %s" % method_requirement)
+                        emit_h("#if %s" % method_requirement)
+
+                    method_variations = getMethodVariations(
                         spec_module=spec_module,
                         shape_name=shape_name,
                         method_name=method_name,
                         must_exist=True,
                     )
 
-                    assert present, method_name
+                    assert method_variations.present, method_name
+
+                    arg_names = method_variations.arg_names
+                    arg_name_mapping = method_variations.arg_name_mapping
+                    arg_counts = method_variations.arg_counts
+                    result_shape = method_variations.result_shape
+
+                    arg_count_conditions = _getArgCountConditions(
+                        method_variations.spec_versions
+                    )
 
                     def formatArgumentDeclaration(arg_types, arg_names, starting):
                         return formatArgs(
@@ -1555,6 +1659,15 @@ def makeHelperBuiltinTypeMethods():
                             for arg_name in arg_names[:arg_count]
                         ]
 
+                        helper_condition = _getHelperCondition(
+                            conditions=arg_count_conditions[arg_count],
+                            type_python_requirement=type_desc.python_requirement,
+                        )
+
+                        if helper_condition:
+                            emit_c("#if %s" % helper_condition)
+                            emit_h("#if %s" % helper_condition)
+
                         code = template.render(
                             object_desc=object_desc,
                             builtin_type=type_desc,
@@ -1578,10 +1691,56 @@ def makeHelperBuiltinTypeMethods():
 
                         emit_c(code)
                         emit_h(getTemplateCodeDeclaredFunction(code))
+
+                        if helper_condition:
+                            emit_c("#endif")
+                            emit_h("#endif")
+
+                    if method_requirement:
+                        emit_c("#endif")
+                        emit_h("#endif")
                 if type_desc.python_requirement:
                     emit("#endif")
 
             emit_h("#endif")
+
+
+def makeAttributeLookupHelperCodes():
+    filename_c = getNormalizedPath(
+        "nuitka/build/static_src/HelpersAttributesGenerated.c"
+    )
+
+    template = getDoExtensionUsingTemplateC("HelperAttributeLookup.c.j2")
+
+    with withFileOpenedAndAutoFormattedWithClaim(
+        filename_c, claim=getLicenseGeneratedCode()
+    ) as output_c:
+
+        def emit(*args):
+            writeLine(output_c, *args)
+
+        emitGenerationWarning(emit, template.name)
+
+        emitIDE(emit)
+
+        for helper_name, result_type, result_kind, slot_name in (
+            ("LOOKUP_ATTRIBUTE", "PyObject *", "object", None),
+            ("LOOKUP_ATTRIBUTE_DICT_SLOT", "PyObject *", "object", "__dict__"),
+            ("LOOKUP_ATTRIBUTE_CLASS_SLOT", "PyObject *", "object", "__class__"),
+            ("HAS_ATTR_BOOL", "bool", "bool", None),
+            ("HAS_ATTR_BOOL2", "int", "int", None),
+        ):
+            emit(
+                template.render(
+                    helper_name=helper_name,
+                    result_type=result_type,
+                    result_kind=result_kind,
+                    slot_name=slot_name,
+                    attr_name=(
+                        "const_str_plain_%s" % slot_name if slot_name else "attr_name"
+                    ),
+                )
+            )
 
 
 def _getOffsetAssertionCode(key):
@@ -1731,6 +1890,9 @@ def main():
     traceSpecialization("Make dict copy helper codes...")
     makeDictCopyHelperCodes()
 
+    traceSpecialization("Make dict set helper codes...")
+    makeDictSetHelperCodes()
+
     # Cover many things once first, then cover all for quicker turnaround during development.
     traceSpecialization("Make some operation helpers for early coverage...")
     makeHelpersBinaryOperation("+", "ADD")
@@ -1792,6 +1954,9 @@ def main():
     makeHelpersComparisonDualOperation(">=", "GE")
     makeHelpersComparisonDualOperation(">", "GT")
     makeHelpersComparisonDualOperation("<", "LT")
+
+    traceSpecialization("Make attribute lookup helpers...")
+    makeAttributeLookupHelperCodes()
 
     updateCompiledOffsetsHeader()
 

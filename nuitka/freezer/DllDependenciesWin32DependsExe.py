@@ -14,9 +14,10 @@ import re
 from nuitka.__past__ import WindowsError
 from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.Errors import UnsupportedDependencyWalkerCall
-from nuitka.options.Options import assumeYesForDownloads, isExperimental
+from nuitka.options.Experimental import isExperimental
+from nuitka.options.Options import assumeYesForDownloads
 from nuitka.Tracing import inclusion_logger
-from nuitka.utils.Download import getCachedDownload
+from nuitka.utils.Download import getCachedDownload, getDownloadMode
 from nuitka.utils.Execution import executeProcess, withEnvironmentVarOverridden
 from nuitka.utils.FileOperations import (
     deleteFile,
@@ -64,8 +65,7 @@ def getDependsExePath():
 Nuitka will make use of Dependency Walker (https://dependencywalker.com) tool
 to analyze the dependencies of Python extension modules.""",
         reject="Nuitka does not work in '--mode=standalone' or '--mode=onefile' on Windows without dependency walker.",
-        assume_yes_for_downloads=assumeYesForDownloads(),
-        download_ok=True,
+        download_mode=getDownloadMode(assumeYesForDownloads()),
     )
 
 
@@ -268,10 +268,6 @@ SxS
 """ % {"scan_dirs": "\n".join("UserDir %s" % dirname for dirname in scan_dirs)},
         )
 
-    # Starting the process while locked, so file handles are not duplicated.
-    # TODO: At least exit code should be checked, output goes to a filename,
-    # but errors might be interesting potentially.
-
     with withEnvironmentVarOverridden("PATH", ""):
         # TODO: At least exit code should be checked, output goes to a filename,
         # but errors might be interesting potentially.
@@ -295,8 +291,6 @@ SxS
             % binary_filename
         )
 
-    # Opening the result under lock, so it is not getting locked by new
-    # processes.
     result = parseDependsExeOutput(output_filename)
 
     if isExperimental("keep-dependency-walker-files"):

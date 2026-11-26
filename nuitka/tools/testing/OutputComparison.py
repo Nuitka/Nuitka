@@ -15,6 +15,8 @@ import sys
 
 from nuitka.Tracing import canUseColor, my_print, wrapWithStyles
 from nuitka.utils.Diffs import getUnifiedDiff
+from nuitka.utils.FileOperations import getWindowsLongPathName
+from nuitka.utils.Utils import isWin32Windows
 
 # spell-checker:disable
 ran_tests_re = re.compile(r"^(Ran \d+ tests? in )\-?\d+\.\d+s$")
@@ -31,12 +33,15 @@ non_ascii_error_rt = re.compile(r"(SyntaxError: Non-ASCII character.*? on line) 
 python_win_lib_re = re.compile(r"[a-zA-Z]:\\\\?[Pp]ython(.*?\\\\?)[Ll]ib")
 local_port_re = re.compile(r"(127\.0\.0\.1):\d{2,5}")
 
-traceback_re = re.compile(r'(F|f)ile "(.*?)", line (\d+)')
-importerror_re = re.compile(
-    r"""(ImportError(?:\("|: )cannot import name '\w+' from '.*?' )\((.*?)\)"""
+traceback_re = re.compile(r'(F|f)ile "(.*?)", line (\?|\d+)')
+import_name_error_re = re.compile(
+    r"""(cannot import name '\w+' from '.*?' )\((.*?)\)"""
 )
+warning_message_filename_re = re.compile(r"(filename : ')([A-Za-z]:\\.*?)(')")
+warning_message_truncation_re = re.compile(r"\[\d+ chars\]")
 tempfile_posix_re = re.compile(r"/tmp/tmp[a-z0-9_]*")
 tempfile_win_re = re.compile(r"([Tt]emp)[\\/]+[^'\\/]*")
+test_tmp_re = re.compile(r"(%40|@)test_\d+_tmp")
 
 logging_info_re = re.compile(r"^Nuitka(-\w+)?:([-\w]+:)? ")
 logging_warning_re = re.compile(r"^Nuitka.*?:WARNING")
@@ -64,24 +69,55 @@ timing_re = re.compile(r"in [0-9]+.[0-9][0-9](s| seconds)")
 took_ms_re = re.compile(r"took \d+ ms")
 
 did_you_mean_re = re.compile(r"\. Did you mean:? '.*?'\?")
+site_initialization_re = re.compile(
+    r"\. Site initialization is disabled, .*?environment\?"
+)
 # spell-checker:enable
+
+
+def _getNormalizedFilename(path):
+    path = os.path.realpath(os.path.abspath(path))
+
+    if isWin32Windows():
+        # Before Python 3.8, 'os.path.realpath' on Windows does not expand 8.3
+        # short file names.
+        try:
+            long_path = getWindowsLongPathName(path)
+        except OSError:
+            pass
+        else:
+            if type(path) is bytes:
+                long_path = long_path.encode("utf8")
+
+            path = long_path
+
+    return path
 
 
 def traceback_re_callback(match):
     # spell-checker: disable-next-line
     return r'%sile "%s", line %s' % (
         match.group(1),
-        os.path.realpath(os.path.abspath(match.group(2))),
+        _getNormalizedFilename(match.group(2)),
         match.group(3),
     )
 
 
-def import_re_callback(match):
-    #    print (match.groups(), os.path.abspath(match.group(2)))
-
+def import_name_error_re_callback(match):
     return r"%s( >> %s)" % (
         match.group(1),
-        os.path.realpath(os.path.abspath(match.group(2))),
+        _getNormalizedFilename(match.group(2)),
+    )
+
+
+def warning_message_filename_re_callback(match):
+    # 'WarningMessage' reprs escape backslashes in the filename.
+    path = match.group(2).replace("\\\\", "\\")
+
+    return "%s%s%s" % (
+        match.group(1),
+        _getNormalizedFilename(path).replace("\\", "\\\\"),
+        match.group(3),
     )
 
 
@@ -186,9 +222,13 @@ def makeDiffable(output, ignore_warnings, syntax_errors):
 
         # TODO: Maybe we need Nuitka-Prompt as a logger used there?
         if (
-            line.startswith("Nuitka depends on '")
-            or line.startswith("Nuitka will make use of ccache")
-            or line.startswith("Fully automatic, cached.")
+            line.startswith(
+                (
+                    "Nuitka depends on '",
+                    "Nuitka will make use of ccache",
+                    "Fully automatic, cached.",
+                )
+            )
             or "Is it OK to download" in line
         ):
             continue
@@ -247,7 +287,17 @@ def makeDiffable(output, ignore_warnings, syntax_errors):
 
         line = traceback_re.sub(traceback_re_callback, line)
 
-        line = importerror_re.sub(import_re_callback, line)
+        line = import_name_error_re.sub(import_name_error_re_callback, line)
+
+        if "WarningMessage" in line:
+            line = warning_message_filename_re.sub(
+                warning_message_filename_re_callback, line
+            )
+
+            # The truncation count of "unittest" reprs varies with the length
+            # of the file paths they contain, e.g. short paths that Nuitka
+            # binaries report on Windows.
+            line = warning_message_truncation_re.sub("[xxxxx chars]", line)
 
         # spell-checker: disable-next-line
         line = tempfile_posix_re.sub(r"/tmp/tmpxxxxxxx", line)
@@ -255,7 +305,15 @@ def makeDiffable(output, ignore_warnings, syntax_errors):
         # Temp files on Windows have random names in error messages too.
         line = tempfile_win_re.sub(r"\1\\xxxxx", line)
 
+        # Test support temp names contain the process ID.
+        line = test_tmp_re.sub(r"\1test_xxxxx_tmp", line)
+
         line = did_you_mean_re.sub("", line)
+
+        # CPython 3.15 adds a hint to import errors when site initialization is
+        # disabled. Nuitka's subinterpreters inherit that state from Nuitka's
+        # own startup, where site import is delayed, so it is not meaningful.
+        line = site_initialization_re.sub("", line)
 
         # This is a bug potentially, occurs only for CPython when re-directed,
         # we are going to ignore the issue as Nuitka is fine.
@@ -391,7 +449,7 @@ exceeded while calling a Python object' in \
 
 def colorizeDiff(lines):
     for line in lines:
-        if line.startswith("+++") or line.startswith("---"):
+        if line.startswith(("+++", "---")):
             yield wrapWithStyles(line, ("yellow", "bold"))
         elif line.startswith("+"):
             yield wrapWithStyles(line, ("green",))

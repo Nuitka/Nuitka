@@ -12,36 +12,30 @@
 // behavior.
 
 extern bool PRINT_NEW_LINE(void);
-extern bool PRINT_ITEM(PyObject *object);
-extern bool PRINT_ITEM_LINE(PyObject *object);
+extern bool PRINT_ITEM(PyObject *obj);
+extern bool PRINT_ITEM_LINE(PyObject *obj);
 extern bool PRINT_STRING(char const *str);
 extern bool PRINT_STRING_W(wchar_t const *str);
 extern bool PRINT_FORMAT(char const *fmt, ...);
-extern bool PRINT_ITEM_TO(PyObject *file, PyObject *object);
+extern bool PRINT_ITEM_TO(PyObject *file, PyObject *obj);
 extern bool PRINT_NEW_LINE_TO(PyObject *file);
 
 extern PyObject *GET_STDOUT(void);
 extern PyObject *GET_STDERR(void);
 
-// For flushing stdout and stderr.
 extern void FLUSH_STDOUT(void);
 extern void FLUSH_STDERR(void);
 
-// -----------------------------------------------------------------------
-// Helper functions to debug the run time operation of the compiled binary
-// manually or in debug modes.
+// Debug helpers for inspecting runtime state manually or under _DEBUG_* modes.
 
-// Print the reference count of the object.
-extern void PRINT_REFCOUNT(PyObject *object);
+extern void PRINT_REFCOUNT(PyObject *obj);
 
-// Print the full traceback stack.
 // TODO: Could be ported, the "printf" stuff would need to be split. On Python3
 // the normal C print output gets lost.
 #if PYTHON_VERSION < 0x300
 extern void PRINT_TRACEBACK(PyTracebackObject *traceback);
 #endif
 
-// Print the exception state, including NULL values.
 extern void _PRINT_EXCEPTION3(PyObject *exception_type, PyObject *exception_value, PyTracebackObject *exception_tb);
 extern void _PRINT_EXCEPTION1(PyObject *exception_value);
 
@@ -56,20 +50,18 @@ extern void _PRINT_EXCEPTION1(PyObject *exception_value);
 #define PRINT_EXCEPTION_STATE(exception_state) _PRINT_EXCEPTION1((exception_state)->exception_value)
 #endif
 
-// Print the current exception state, including NULL values.
+// Print the active (unhandled) thread exception state, including NULL values.
 extern void PRINT_CURRENT_EXCEPTION(void);
 
-// Print the current exception state, including NULL values.
+// Print the published (handled) thread exception state, including NULL values.
 extern void PRINT_PUBLISHED_EXCEPTION(void);
 
-// Print the representation of the object, or "<NULL>" if it's not set.
-extern bool PRINT_REPR(PyObject *object);
+// Print repr(obj), or "<NULL>" when obj is NULL.
+extern bool PRINT_REPR(PyObject *obj);
 
-// Print the word <NULL>, as an alternative to pointers.
 extern bool PRINT_NULL(void);
 
-// Print the type of an object.
-extern bool PRINT_TYPE(PyObject *object);
+extern bool PRINT_TYPE(PyObject *obj);
 
 #endif
 

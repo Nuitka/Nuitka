@@ -1,16 +1,7 @@
 #     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-"""These are just helpers to create nodes, often to replace existing nodes
-
-These are for use in optimizations and computations, and therefore cover
-mostly exceptions and constants.
-
-Often cyclic dependencies kicks in, which is why this module is mostly only
-imported locally. Note: It's intended to be reversed, this module will make
-the local imports instead, as these local imports look ugly everywhere else,
-making it more difficult to use.
-"""
+"""Helpers for creating nodes, often to replace existing nodes during optimization."""
 
 from nuitka.__past__ import GenericAlias, UnionType
 from nuitka.Builtins import builtin_names
@@ -166,9 +157,13 @@ def makeRaiseExceptionExpressionFromTemplate(
     from .OperatorNodes import makeBinaryOperationNode
 
     if type(template_args) is tuple:
+        assert template.replace("%%", "").count("%") == len(template_args), template
+
         template_args = makeExpressionMakeTupleOrConstant(
             elements=template_args, user_provided=False, source_ref=source_ref
         )
+    else:
+        assert template.replace("%%", "").count("%") == 1, template
 
     return ExpressionRaiseException(
         exception_type=makeBuiltinMakeExceptionNode(
@@ -197,44 +192,62 @@ def makeRaiseTypeErrorExceptionReplacementFromTemplateAndValue(
 
     type_name = shape.getTypeName()
 
-    if type_name is not None:
+    arg_count = template.count("%s")
+    assert template.count("%") == arg_count, template
+
+    if arg_count == 0:
+        assert states.is_full_compat and python_version < 0x300, template
+
         result = makeRaiseExceptionReplacementExpressionFromInstance(
             expression=original_node,
-            exception=TypeError(template % type_name if "%" in template else template),
+            exception=TypeError(template),
         )
 
         result = wrapExpressionWithNodeSideEffects(new_node=result, old_node=value_node)
     else:
-        from .AttributeNodes import makeExpressionAttributeLookup
-        from .TypeNodes import ExpressionBuiltinType1
+        assert arg_count == 1, template
 
-        source_ref = original_node.getSourceReference()
+        if type_name is not None:
+            result = makeRaiseExceptionReplacementExpressionFromInstance(
+                expression=original_node,
+                exception=TypeError(template % type_name),
+            )
 
-        result = makeRaiseExceptionExpressionFromTemplate(
-            exception_type="TypeError",
-            template=template,
-            template_args=makeExpressionAttributeLookup(
-                expression=ExpressionBuiltinType1(
-                    value=value_node.makeClone(), source_ref=source_ref
+            result = wrapExpressionWithNodeSideEffects(
+                new_node=result, old_node=value_node
+            )
+        else:
+            from .AttributeNodes import makeExpressionAttributeLookup
+            from .TypeNodes import ExpressionBuiltinType1
+
+            source_ref = original_node.getSourceReference()
+
+            result = makeRaiseExceptionExpressionFromTemplate(
+                exception_type="TypeError",
+                template=template,
+                template_args=makeExpressionAttributeLookup(
+                    expression=ExpressionBuiltinType1(
+                        value=value_node, source_ref=source_ref
+                    ),
+                    attribute_name="__name__",
+                    source_ref=source_ref,
                 ),
-                attribute_name="__name__",
                 source_ref=source_ref,
-            ),
-            source_ref=source_ref,
-        )
-
-        type_name = shape.__name__
+            )
 
     return (
         result,
         "new_raise",
         "Raising for use of '%s' on %s '%s'."
-        % (operation, "type" if type_name is not None else "shape", type_name),
+        % (
+            operation,
+            "type" if type_name is not None else "shape",
+            type_name if type_name is not None else shape.__name__,
+        ),
     )
 
 
 def makeCompileTimeConstantReplacementNode(value, node, user_provided):
-    # This needs to match code in isCompileTimeConstantValue
     if isConstant(value):
         return makeConstantReplacementNode(
             constant=value, node=node, user_provided=user_provided
@@ -243,12 +256,11 @@ def makeCompileTimeConstantReplacementNode(value, node, user_provided):
         if value.__name__ in builtin_names:
             from .BuiltinRefNodes import makeExpressionBuiltinRef
 
-            # Need not provide locals_scope, not used for these kinds of built-in refs that
-            # refer to types.
             return makeExpressionBuiltinRef(
                 builtin_name=value.__name__,
                 locals_scope=None,
                 source_ref=node.getSourceReference(),
+                module_name=None,
             )
         else:
             return node
@@ -271,12 +283,8 @@ def makeCompileTimeConstantReplacementNode(value, node, user_provided):
 
 
 def getComputationResult(node, computation, description, user_provided):
-    """With a computation function, execute it and return constant result or
-    exception node.
-
-    """
-
-    # Try and turn raised exceptions into static raises. pylint: disable=broad-except
+    """Execute 'computation' and return a constant or static raise replacement tuple."""
+    # pylint: disable=broad-except
     try:
         result = computation()
     except Exception as e:
@@ -313,7 +321,7 @@ def makeStatementExpressionOnlyReplacementNode(expression, node):
 
 
 def mergeStatements(statements):
-    """Helper function that merges nested statement sequences."""
+    """Flatten nested statement sequences without unwrapping frame sequences."""
     merged_statements = []
 
     for statement in statements:
@@ -328,7 +336,7 @@ def mergeStatements(statements):
 
 
 def mergeStatementsWithNone(statements):
-    """Helper function that merges nested statement sequences filtering out None statements."""
+    """Flatten nested statement sequences, dropping 'None' entries without unwrapping frames."""
     merged_statements = []
 
     for statement in statements:
@@ -370,6 +378,10 @@ def wrapExpressionWithSideEffects(side_effects, old_node, new_node):
             raise
 
         if side_effects:
+            if new_node.isExpressionSideEffects():
+                side_effects += new_node.subnode_side_effects
+                new_node = new_node.subnode_expression
+
             new_node = ExpressionSideEffects(
                 expression=new_node,
                 side_effects=side_effects,
@@ -457,6 +469,15 @@ def makeExpressionBuiltinLocals(locals_scope, source_ref):
 
         if locals_scope.isClassScope():
             return ExpressionBuiltinLocalsRef(
+                locals_scope=locals_scope, source_ref=source_ref
+            )
+        elif python_version >= 0x3D0:
+            assert locals_scope.isFunctionScope(), locals_scope
+
+            # Python 3.13 made "locals()" return a fresh snapshot in optimized
+            # scopes rather than a dictionary that is updated and reused, see
+            # PEP 667.
+            return ExpressionBuiltinLocalsCopy(
                 locals_scope=locals_scope, source_ref=source_ref
             )
         elif python_version >= 0x300 or locals_scope.isUnoptimizedFunctionScope():

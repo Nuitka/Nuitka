@@ -2,16 +2,11 @@
 #     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-"""
-The Offset scons file. If you have Scons or platform knowledge, please be
-especially invited and contribute improvements.
+"""SCons file for building the CPython internal struct offset extractor.
 
-This file is used to build an executable that outputs data about offsets, it is
-needed to make up for differences in offsets of structures for the Python
-headers between MSVC and MinGW64, that can only be accounted for with a
-structure that is generated and achieves same layout for MinGW64 despite the
-internals being different. As of Python3.13, internal only structures do not
-enforce layouts of all structures anymore.
+Builds an executable that outputs CPython internal structure offsets so MinGW64
+can match MSVC layouts on Python 3.13+, where internal headers no longer enforce
+identical struct layouts across compilers.
 """
 
 # Make nuitka package importable from calling installation
@@ -23,44 +18,35 @@ import types
 sys.modules["nuitka"] = types.ModuleType("nuitka")
 sys.modules["nuitka"].__path__ = [os.environ["NUITKA_PACKAGE_DIR"]]
 
-# We are in the build.build package really.
 import nuitka.build  # pylint: disable=unused-import
 
 __package__ = "nuitka.build"  # pylint: disable=redefined-builtin
 
 # isort:start
 
-from nuitka.Tracing import scons_details_logger, scons_logger
-from nuitka.utils.FileOperations import (
-    getExternalUsePath,
-    getNormalizedPathJoin,
-)
+from nuitka.Tracing import scons_logger
+from nuitka.utils.FileOperations import getExternalUsePath
 
 from .SconsCompilerSettings import (
     createNuitkaSconsEnvironment,
     reportCCompiler,
     setupCCompiler,
 )
-from .SconsProgress import setSconsProgressBarTotal
+from .SconsControl import executeSconsBuild
 from .SconsPythonBuild import (
     addPythonHaclLib,
     addWin32PythonLib,
     applyPythonBuildSettings,
 )
-from .SconsSpawn import enableSpawnMonitoring
+from .SconsSourceIndex import getSourceFilenamesFromIndex
 from .SconsUtils import (
-    changeKeyboardInterruptToErrorExit,
     getArgumentList,
     getArgumentRequired,
     makeResultPathFileSystemEncodable,
-    scanSourceDir,
-    writeSconsReport,
 )
 
-# spell-checker: ignore cppdefines,cpppath,libpath
+# spell-checker: ignore cppdefines,cpppath
 
-# Set up the basic stuff.
-# Set up the basic stuff.
 env = createNuitkaSconsEnvironment()
 env.low_memory = False
 env.debug_mode = False
@@ -69,22 +55,13 @@ env.unstripped_mode = False
 env.console_mode = "force"
 env.resource_mode = "absent"
 
-# The directory used for building.
-
-# The name of executable that we are supposed to produce.
 result_exe = getArgumentRequired("result_exe")
 
-# Python version to target.
 python_version_str = getArgumentRequired("python_version")
 python_version = tuple(int(d) for d in python_version_str.split("."))
 
-# Python debug mode: reference count checking, assertions in CPython core.
-
-
-# Report the C compiler used.
 reportCCompiler(env, "Backend", scons_logger.info)
 
-# Set up C compiler settings.
 setupCCompiler(
     env=env,
     pgo_mode="no",
@@ -92,22 +69,12 @@ setupCCompiler(
     onefile_compile=False,
 )
 
-
-# Home of Python to be compiled against, used to find tools like clcache and
-# ccache, no linking against Python is needed here.
 python_prefix = getArgumentRequired("python_prefix")
-
 python_prefix_external = getExternalUsePath(python_prefix)
 
-
-# Preprocessor defines and link libraries from plugins
-cpp_defines = getArgumentList("cpp_defines", "")
-cpp_include_dirs = getArgumentList("cpp_include_dirs", "")
-link_dirs = getArgumentList("link_dirs", "")
-link_libraries = getArgumentList("link_libraries", "")
 link_module_libs = getArgumentList("link_module_libs", "")
 
-if not env.msvc_mode:
+if env.target_os != "WASI" and not env.msvc_mode:
     env.Append(LIBS=["m"])
 
 if env.python_debug:
@@ -140,8 +107,6 @@ if env.gcc_mode and env.static_libpython:
 elif os.name == "nt":
     addWin32PythonLib(env)
 
-# The static include files reside in Nuitka installation, which may be where
-# the "nuitka.build" package lives.
 nuitka_include = os.path.join(env.nuitka_src, "include")
 
 if not os.path.exists(os.path.join(nuitka_include, "nuitka", "prelude.h")):
@@ -150,8 +115,6 @@ if not os.path.exists(os.path.join(nuitka_include, "nuitka", "prelude.h")):
         % nuitka_include
     )
 
-# We have include files in the build directory and the static include directory
-# that is located inside Nuitka installation.
 env.Append(
     CPPPATH=[
         env.source_dir,
@@ -161,58 +124,19 @@ env.Append(
     ]
 )
 
-
-# TODO: Make this more easily reusable across scons files by fixed names as
-# arguments to a general scan.
-def discoverSourceFiles():
-    result = []
-
-    result.extend(
-        scanSourceDir(
-            env=env,
-            dirname=getNormalizedPathJoin(env.source_dir, "static_src"),
-            plugins=False,
-        )
-    )
-
-    return result
-
-
-source_filenames = discoverSourceFiles()
-
-# Remove the target file to avoid cases where it falsely doesn't get rebuild and
-# then lingers from previous builds, and also workaround for MinGW64 not
-# supporting unicode result paths for "-o" basename.
+source_filenames = getSourceFilenamesFromIndex(env=env, source_dir=env.source_dir)
 result_exe = makeResultPathFileSystemEncodable(env=env, result_exe=result_exe)
 
 target = env.Program(result_exe, source_filenames)
 
 
-# Plugin contributed C defines should be used too.
-env.Append(CPPDEFINES=cpp_defines)
-# Plugin contributed C include directories should be used too.
-env.Append(CPPPATH=cpp_include_dirs)
-# Plugin contributed link dirs should be used too.
-env.Append(LIBPATH=link_dirs)
-# Plugin contributed link libraries should be used too.
-env.Append(LIBS=link_libraries)
-
-# Work around windows bugs and use watchdogs to track progress of compilation.
-enableSpawnMonitoring(
+executeSconsBuild(
     env=env,
+    target=target,
     source_filenames=source_filenames,
+    progressbar_name=env.progressbar_name,
+    stable_include_paths=False,
 )
-
-# Before we go, also lets turn KeyboardInterrupt into a mere error exit as the
-# scons traceback is not going to be very interesting to us.
-changeKeyboardInterruptToErrorExit()
-
-writeSconsReport(env=env, target=target)
-
-setSconsProgressBarTotal(name=env.progressbar_name, total=len(source_filenames))
-
-scons_details_logger.info("Launching Scons target: %s" % target)
-env.Default(target)
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.

@@ -1,15 +1,7 @@
 #     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-"""Internal module
-
-This is a container for helper functions that are shared across modules. It
-may not exist, and is treated specially in code generation. This avoids to
-own these functions to a random module.
-
-TODO: Clarify by renaming that the top module is now used, and these are
-merely helpers to do it.
-"""
+"""Shared internal helper functions attached to the root top module."""
 
 from nuitka.ModuleRegistry import getRootTopModule
 from nuitka.nodes.FunctionNodes import (
@@ -21,16 +13,8 @@ from nuitka.SourceCodeReferences import makeSourceReferenceFromFilename
 internal_source_ref = makeSourceReferenceFromFilename("internal").atInternal()
 
 
-def once_decorator(func):
-    """Cache result of a function call without arguments.
-
-    Used for all internal function accesses to become a singleton.
-
-    Note: This doesn't much specific anymore, but we are not having
-    this often enough to warrant reuse or generalization.
-
-    """
-
+def onceDecorator(func):
+    """Cache result of a function call without arguments."""
     func.cached_value = None
 
     def replacement():
@@ -43,8 +27,6 @@ def once_decorator(func):
 
 
 def getInternalModule():
-    """Get the singleton internal module."""
-
     return getRootTopModule()
 
 

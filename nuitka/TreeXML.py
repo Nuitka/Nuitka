@@ -22,10 +22,8 @@ def _indent(elem, level=0, more_sibs=False):
             elem.text = i + "  "
             if level:
                 elem.text += "  "
-        count = 0
-        for kid in elem:
+        for count, kid in enumerate(elem):
             _indent(kid, level + 1, count < num_kids - 1)
-            count += 1
         if not elem.tail or not elem.tail.strip():
             elem.tail = i
             if more_sibs:

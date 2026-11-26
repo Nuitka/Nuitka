@@ -1,13 +1,7 @@
 //     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
-/** For calling built-ins, calls it and uses keyword dictionary if necessary.
- *
- * This helper simplifies calling built-ins with optional arguments that can
- * be given as keyword arguments. We basically re-construct the minimal call
- * using keywords here. This obviously is for inefficient calls to the original
- * built-in and should be avoided.
- *
- **/
+// Reconstruct minimal positional + keyword argument calls for built-ins with
+// optional keyword-passable parameters.
 
 // This file is included from another C file, help IDEs to still parse it on
 // its own.
@@ -41,8 +35,8 @@ PyObject *CALL_BUILTIN_KW_ARGS(PyThreadState *tstate, PyObject *callable, PyObje
                 kw_dict = MAKE_DICT_EMPTY(tstate);
             }
 
-            NUITKA_MAY_BE_UNUSED int res = PyDict_SetItemString(kw_dict, arg_names[i], args[i]);
-            assert(res == 0);
+            NUITKA_MAY_BE_UNUSED bool res = DICT_SET_ITEM_STRING(tstate, kw_dict, arg_names[i], args[i]);
+            assert(res != false);
         }
 
         i++;
@@ -56,10 +50,6 @@ PyObject *CALL_BUILTIN_KW_ARGS(PyThreadState *tstate, PyObject *callable, PyObje
 
     return result;
 }
-
-/** The "compile" built-in.
- *
- */
 
 NUITKA_DEFINE_BUILTIN(compile)
 
@@ -96,7 +86,7 @@ PyObject *COMPILE_CODE(PyThreadState *tstate, PyObject *source_code, PyObject *f
 #endif
     };
 
-    PyObject *kw_args = MAKE_DICT_X_CSTR(kw_keys, kw_values, sizeof(kw_values) / sizeof(PyObject *));
+    PyObject *kw_args = MAKE_DICT_CSTR_X(tstate, kw_keys, kw_values, sizeof(kw_values) / sizeof(PyObject *));
 
     NUITKA_ASSIGN_BUILTIN(compile);
 
@@ -108,9 +98,41 @@ PyObject *COMPILE_CODE(PyThreadState *tstate, PyObject *source_code, PyObject *f
     return result;
 }
 
-/**
- * Helper used to deal with exec statement
- */
+#if PYTHON_VERSION < 0x300
+PyObject *COMPILE_CODE_EXEC(PyThreadState *tstate, PyObject *source_code, PyObject *file_name, PyObject *mode,
+                            PyObject *flags, PyObject *dont_inherit)
+#else
+PyObject *COMPILE_CODE_EXEC(PyThreadState *tstate, PyObject *source_code, PyObject *file_name, PyObject *mode,
+                            PyObject *flags, PyObject *dont_inherit, PyObject *optimize)
+#endif
+{
+#if defined(Py_GIL_DISABLED) && PYTHON_VERSION < 0x3e0
+    // The "compile" built-in suppresses constant immortalization for explicit
+    // compile calls. Cancel that here, because "exec" and "eval" in CPython do
+    // not suppress it. An active user suppression remains in effect, since it
+    // makes the value negative both before and after the built-in call.
+    PyInterpreterState *interp = _PyInterpreterState_GET();
+    _Py_atomic_add_int(&interp->gc.immortalize, 2);
+#elif defined(Py_GIL_DISABLED) && PYTHON_VERSION >= 0x3e0
+    // Same as above, but Python3.14 uses a thread state counter for this.
+    _PyThreadStateImpl *tstate_impl = (_PyThreadStateImpl *)tstate;
+    tstate_impl->suppress_co_const_immortalization -= 1;
+#endif
+
+#if PYTHON_VERSION < 0x300
+    PyObject *result = COMPILE_CODE(tstate, source_code, file_name, mode, flags, dont_inherit);
+#else
+    PyObject *result = COMPILE_CODE(tstate, source_code, file_name, mode, flags, dont_inherit, optimize);
+#endif
+
+#if defined(Py_GIL_DISABLED) && PYTHON_VERSION < 0x3e0
+    _Py_atomic_add_int(&interp->gc.immortalize, -2);
+#elif defined(Py_GIL_DISABLED) && PYTHON_VERSION >= 0x3e0
+    tstate_impl->suppress_co_const_immortalization += 1;
+#endif
+
+    return result;
+}
 
 #if PYTHON_VERSION < 0x300
 
@@ -141,10 +163,7 @@ bool EXEC_FILE_ARG_HANDLING(PyThreadState *tstate, PyObject **prog, PyObject **n
 }
 #endif
 
-/**
- *  The "eval" implementation, used for "exec" too.
- */
-
+// Shared by both "eval" and "exec".
 PyObject *EVAL_CODE(PyThreadState *tstate, PyObject *code, PyObject *globals, PyObject *locals, PyObject *closure) {
     CHECK_OBJECT(code);
     CHECK_OBJECT(globals);
@@ -155,7 +174,6 @@ PyObject *EVAL_CODE(PyThreadState *tstate, PyObject *code, PyObject *globals, Py
         return NULL;
     }
 
-    // TODO: Our re-formulation prevents this externally, doesn't it.
     if (locals == Py_None) {
         locals = globals;
     }
@@ -171,13 +189,12 @@ PyObject *EVAL_CODE(PyThreadState *tstate, PyObject *code, PyObject *globals, Py
     if (PyDict_Check(globals)) {
         const int res = DICT_HAS_ITEM(tstate, globals, const_str_plain___builtins__);
 
+        if (unlikely(res == -1)) {
+            return NULL;
+        }
+
         if (res == 0) {
-            if (PyDict_SetItem(globals, const_str_plain___builtins__, (PyObject *)builtin_module) != 0) {
-                // Not really allowed to happen, so far this was seen only with
-                // C compilers getting the value of "res" wrong.
-                assert(false);
-                return NULL;
-            }
+            DICT_SET_ITEM_INFALLIBLE(tstate, globals, const_str_plain___builtins__, (PyObject *)builtin_module);
         }
     }
 
@@ -201,13 +218,6 @@ PyObject *EVAL_CODE(PyThreadState *tstate, PyObject *code, PyObject *globals, Py
 
     return result;
 }
-
-/** The "open" built-in.
- *
- * Different for Python2 and Python3, the later has more arguments and
- * both accept keyword arguments.
- *
- **/
 
 NUITKA_DEFINE_BUILTIN(open);
 
@@ -279,10 +289,6 @@ PyObject *BUILTIN_INPUT(PyThreadState *tstate, PyObject *prompt) {
     }
 }
 
-/** The "staticmethod" built-in.
- *
- **/
-
 NUITKA_DEFINE_BUILTIN(staticmethod)
 
 PyObject *BUILTIN_STATICMETHOD(PyThreadState *tstate, PyObject *value) {
@@ -290,10 +296,6 @@ PyObject *BUILTIN_STATICMETHOD(PyThreadState *tstate, PyObject *value) {
 
     return CALL_FUNCTION_WITH_SINGLE_ARG(tstate, NUITKA_ACCESS_BUILTIN(staticmethod), value);
 }
-
-/** The "classmethod" built-in.
- *
- **/
 
 NUITKA_DEFINE_BUILTIN(classmethod)
 
@@ -305,17 +307,10 @@ PyObject *BUILTIN_CLASSMETHOD(PyThreadState *tstate, PyObject *value) {
 
 #if PYTHON_VERSION >= 0x300
 
-/** The "bytes" built-in.
- *
- * Only for Python3. There is not BYTES_BUILTIN1 yet, this only delegates to
- * the actual built-in which is wasteful. TODO: Have dedicated implementation
- * for this.
- *
- **/
-
 NUITKA_DEFINE_BUILTIN(bytes);
 
 PyObject *BUILTIN_BYTES1(PyThreadState *tstate, PyObject *value) {
+    // TODO: Have a dedicated implementation instead of delegating to the built-in.
     NUITKA_ASSIGN_BUILTIN(bytes);
 
     return CALL_FUNCTION_WITH_SINGLE_ARG(tstate, NUITKA_ACCESS_BUILTIN(bytes), value);
@@ -332,12 +327,7 @@ PyObject *BUILTIN_BYTES3(PyThreadState *tstate, PyObject *value, PyObject *encod
 }
 #endif
 
-/** The "bin" built-in.
- *
- **/
-
 PyObject *BUILTIN_BIN(PyObject *value) {
-    // Note: I don't really know why "oct" and "hex" don't use this as well.
     PyObject *result = PyNumber_ToBase(value, 2);
 
     if (unlikely(result == NULL)) {
@@ -346,10 +336,6 @@ PyObject *BUILTIN_BIN(PyObject *value) {
 
     return result;
 }
-
-/** The "oct" built-in.
- *
- **/
 
 PyObject *BUILTIN_OCT(PyThreadState *tstate, PyObject *value) {
 #if PYTHON_VERSION >= 0x300
@@ -388,10 +374,6 @@ PyObject *BUILTIN_OCT(PyThreadState *tstate, PyObject *value) {
 #endif
 }
 
-/** The "hex" built-in.
- *
- **/
-
 PyObject *BUILTIN_HEX(PyThreadState *tstate, PyObject *value) {
 #if PYTHON_VERSION >= 0x300
     PyObject *result = PyNumber_ToBase(value, 16);
@@ -428,10 +410,6 @@ PyObject *BUILTIN_HEX(PyThreadState *tstate, PyObject *value) {
     return result;
 #endif
 }
-
-/** The "hash" built-in.
- *
- **/
 
 static void SET_HASH_NOT_IMPLEMENTED_ERROR(PyThreadState *tstate, PyObject *value) {
     // TODO: Use our own formatting code.
@@ -522,14 +500,6 @@ Py_hash_t HASH_VALUE_WITHOUT_ERROR(PyThreadState *tstate, PyObject *value) {
     return -1;
 }
 
-/** The "bytearray" built-in.
- *
- * These should be more in-lined maybe, as a lot of checks are not necessary
- * and the error checking for the 3 arguments variant may even not be enough,
- * as it could be keyword arguments.
- *
- **/
-
 PyObject *BUILTIN_BYTEARRAY1(PyObject *value) {
     PyObject *result = PyByteArray_FromObject(value);
 
@@ -542,27 +512,19 @@ PyObject *BUILTIN_BYTEARRAY1(PyObject *value) {
 
 NUITKA_DEFINE_BUILTIN(bytearray)
 
-PyObject *BUILTIN_BYTEARRAY3(PyThreadState *tstate, PyObject *string, PyObject *encoding, PyObject *errors) {
+PyObject *BUILTIN_BYTEARRAY3(PyThreadState *tstate, PyObject *string_arg, PyObject *encoding, PyObject *errors) {
     NUITKA_ASSIGN_BUILTIN(bytearray);
 
-    PyObject *args[] = {string, encoding, errors};
+    PyObject *args[] = {string_arg, encoding, errors};
     char const *arg_names[] = {"source", "encoding", "errors"};
 
     return CALL_BUILTIN_KW_ARGS(tstate, NUITKA_ACCESS_BUILTIN(bytearray), args, arg_names, 3, 0);
 }
 
-/** The "iter" built-in.
- *
- * This comes in two flavors, with one or two arguments. The second one
- * creates a "calliterobject" that is private to CPython. We define it here
- * for ourselves. The one argument version is in headers for in-lining of
- * the code. spell-checker: ignore calliterobject
- *
- **/
-
-// From CPython:
+// Two-argument "iter(callable, sentinel)" allocates CPython's private
+// "calliterobject"; single-argument "iter" is inlined in headers.
+// spell-checker: ignore calliterobject
 typedef struct {
-    /* Python object folklore: */
     PyObject_HEAD
 
         PyObject *it_callable;
@@ -576,7 +538,6 @@ PyObject *BUILTIN_ITER2(PyObject *callable, PyObject *sentinel) {
         return NULL;
     }
 
-    // Note: References were taken at call site already.
     result->it_callable = callable;
     Py_INCREF(callable);
     result->it_sentinel = sentinel;
@@ -587,10 +548,6 @@ PyObject *BUILTIN_ITER2(PyObject *callable, PyObject *sentinel) {
     return (PyObject *)result;
 }
 
-/** The "reversed" built-in.
- *
- **/
-
 NUITKA_DEFINE_BUILTIN(reversed);
 
 PyObject *BUILTIN_REVERSED(PyThreadState *tstate, PyObject *value) {
@@ -599,10 +556,6 @@ PyObject *BUILTIN_REVERSED(PyThreadState *tstate, PyObject *value) {
 
     return CALL_FUNCTION_WITH_SINGLE_ARG(tstate, NUITKA_ACCESS_BUILTIN(reversed), value);
 }
-
-/** The "sorted" built-in.
- *
- **/
 
 NUITKA_DEFINE_BUILTIN(sorted);
 
@@ -630,10 +583,6 @@ PyObject *BUILTIN_SORTED1(PyThreadState *tstate, PyObject *iterable) {
 }
 #endif
 
-/** The "memoryview" built-in.
- *
- **/
-
 NUITKA_DEFINE_BUILTIN(memoryview);
 
 PyObject *BUILTIN_MEMORYVIEW(PyThreadState *tstate, PyObject *value) {
@@ -641,10 +590,6 @@ PyObject *BUILTIN_MEMORYVIEW(PyThreadState *tstate, PyObject *value) {
 
     return CALL_FUNCTION_WITH_SINGLE_ARG(tstate, NUITKA_ACCESS_BUILTIN(memoryview), value);
 }
-
-/** The "print" built-in.
- *
- **/
 
 NUITKA_DEFINE_BUILTIN(print);
 
@@ -661,12 +606,14 @@ PyObject *BUILTIN_PRINT(PyThreadState *tstate, PyObject **values, int count, PyO
         PyObject *kw_values[] = {sep, end, file, flush};
         char const *kw_keys[] = {"sep", "end", "file", "flush"};
 
-        kw_dict = MAKE_DICT_X_CSTR(kw_keys, kw_values, 4);
+        kw_dict = MAKE_DICT_CSTR_X(tstate, kw_keys, kw_values, 4);
 
         assert(kw_dict != NULL);
     }
 
-    PyObject *result = CALL_FUNCTION(tstate, LOOKUP_BUILTIN(const_str_plain_print), args_tuple, kw_dict);
+    PyObject *print_func = LOOKUP_BUILTIN1(tstate, const_str_plain_print);
+    PyObject *result = CALL_FUNCTION(tstate, print_func, args_tuple, kw_dict);
+    Py_DECREF(print_func);
     Py_DECREF(args_tuple);
     Py_XDECREF(kw_dict);
 
@@ -685,25 +632,20 @@ PyObject *BUILTIN_PRINT(PyThreadState *tstate, PyObject **values, int count, PyO
         PyObject *kw_values[] = {sep, end, file};
         char const *kw_keys[] = {"sep", "end", "file"};
 
-        kw_dict = MAKE_DICT_X_CSTR(kw_keys, kw_values, 3);
+        kw_dict = MAKE_DICT_CSTR_X(tstate, kw_keys, kw_values, 3);
 
         assert(kw_dict != NULL);
     }
 
-    PyObject *result = CALL_FUNCTION(tstate, LOOKUP_BUILTIN(const_str_plain_print), args_tuple, kw_dict);
+    PyObject *print_func = LOOKUP_BUILTIN1(tstate, const_str_plain_print);
+    PyObject *result = CALL_FUNCTION(tstate, print_func, args_tuple, kw_dict);
+    Py_DECREF(print_func);
     Py_DECREF(args_tuple);
     Py_XDECREF(kw_dict);
 
     return result;
 }
 #endif
-
-/** The "type" built-in.
- *
- * This comes in two flavors, one being the detection of a values type,
- * and 3 argument variant creates a new type.
- *
- **/
 
 PyObject *BUILTIN_TYPE1(PyObject *arg) {
     CHECK_OBJECT(arg);
@@ -741,57 +683,184 @@ PyObject *BUILTIN_TYPE3(PyThreadState *tstate, PyObject *module_name, PyObject *
 
     Py_DECREF(pos_args);
 
-    if (HAS_ATTR_BOOL(tstate, result, const_str_plain___module__) == false) {
-        bool b_res = SET_ATTRIBUTE(tstate, result, const_str_plain___module__, module_name);
+    bool has_frame_globals = _Nuitka_GetThreadStateFrameGlobals(tstate) != NULL;
 
-        if (b_res == false) {
+    // When a frame is active, PyType_Type.tp_new already resolved "__module__"
+    // from its globals (including intentionally leaving it unset when "__name__"
+    // is absent). Only fall back to the compile-time module name if there were
+    // no active frame globals and the metaclass returned a type object.
+    if (unlikely(has_frame_globals == false) && likely(Nuitka_Type_IsSubtype(type, &PyType_Type))) {
+#if PYTHON_VERSION < 0x300
+        int has_module = HAS_ATTR_BOOL(tstate, result, const_str_plain___module__) ? 1 : 0;
+#else
+        int has_module = HAS_ATTR_BOOL2(tstate, result, const_str_plain___module__);
+
+        if (unlikely(has_module == -1)) {
             Py_DECREF(result);
             return NULL;
+        }
+#endif
+
+        if (has_module == 0) {
+            bool b_res = SET_ATTRIBUTE(tstate, result, const_str_plain___module__, module_name);
+
+            if (b_res == false) {
+                Py_DECREF(result);
+                return NULL;
+            }
         }
     }
 
     return result;
 }
 
-/** The "super" built-in.
- *
- *
- **/
+#if PYTHON_VERSION >= 0x3f0
+// CPython determines the module from the current frame's function object.
+// Compiled frames do not have one, so the caller passes the module dictionary
+// instead and the helper fills in the correct module name.
+PyObject *BUILTIN_SENTINEL(PyThreadState *tstate, PyObject *name, PyObject *repr, PyDictObject *module_dict) {
+    CHECK_OBJECT(name);
+    CHECK_OBJECT(module_dict);
+
+    PyObject *args[] = {name, repr};
+    char const *arg_names[] = {"name", "repr"};
+
+    PyObject *result = CALL_BUILTIN_KW_ARGS(tstate, (PyObject *)&PySentinel_Type, args, arg_names, 2, 1);
+
+    if (unlikely(result == NULL)) {
+        return NULL;
+    }
+
+    if (unlikely(!PySentinel_CheckExact(result))) {
+        // A patched constructor returned something unexpected. Do not touch
+        // attributes on an object we do not understand.
+        return result;
+    }
+
+    // Compiled frames always make CPython's sentinel constructor use None for
+    // the module, so replace it with the module dictionary's name.
+    PyObject *dict_module_name = DICT_GET_ITEM0(tstate, (PyObject *)module_dict, const_str_plain___name__);
+
+    if (unlikely(dict_module_name == NULL)) {
+        CLEAR_ERROR_OCCURRED(tstate);
+
+        return result;
+    }
+
+    if (unlikely(SET_ATTRIBUTE(tstate, result, const_str_plain___module__, dict_module_name) == false)) {
+        CLEAR_ERROR_OCCURRED(tstate);
+    }
+
+    return result;
+}
+#endif
 
 NUITKA_DEFINE_BUILTIN(super);
 
-PyObject *BUILTIN_SUPER2(PyThreadState *tstate, PyDictObject *module_dict, PyObject *type, PyObject *object) {
-    CHECK_OBJECT(type);
-    CHECK_OBJECT_X(object);
+#if defined(Py_GIL_DISABLED) && defined(_NUITKA_FULL_COMPAT)
+static PyObject *Nuitka_GetSuperValue1(PyThreadState *tstate, PyDictObject *module_dict) {
+    // Only full compat mode observes a dynamically shadowed 'super'. Static
+    // shadowing is already handled by variable resolution, and regular code
+    // does not patch it at runtime.
+    PyObject *super_value = GET_STRING_DICT_VALUE1(tstate, module_dict, (Nuitka_StringObject *)const_str_plain_super);
 
+    if (super_value != NULL) {
+        return super_value;
+    }
+
+    NUITKA_ASSIGN_BUILTIN(super);
+
+    PyObject *result = NUITKA_ACCESS_BUILTIN(super);
+    Py_INCREF(result);
+    return result;
+}
+#else
+static PyObject *Nuitka_GetSuperValue(PyThreadState *tstate, PyDictObject *module_dict) {
+#ifdef _NUITKA_FULL_COMPAT
+    // Only full compat mode observes a dynamically shadowed 'super'. Static
+    // shadowing is already handled by variable resolution, and regular code
+    // does not patch it at runtime.
     PyObject *super_value = GET_STRING_DICT_VALUE(module_dict, (Nuitka_StringObject *)const_str_plain_super);
 
-    if (super_value == NULL) {
-        NUITKA_ASSIGN_BUILTIN(super);
-
-        super_value = NUITKA_ACCESS_BUILTIN(super);
+    if (super_value != NULL) {
+        return super_value;
     }
+#else
+    (void)module_dict;
+#endif
 
-    if (object != NULL) {
-        PyObject *args[] = {type, object};
+    NUITKA_ASSIGN_BUILTIN(super);
 
-        return CALL_FUNCTION_WITH_ARGS2(tstate, super_value, args);
+    return NUITKA_ACCESS_BUILTIN(super);
+}
+#endif
+
+PyObject *BUILTIN_SUPER2(PyThreadState *tstate, PyDictObject *module_dict, PyObject *type, PyObject *obj) {
+    CHECK_OBJECT(type);
+    CHECK_OBJECT_X(obj);
+
+#if defined(Py_GIL_DISABLED) && defined(_NUITKA_FULL_COMPAT)
+    PyObject *super_value = Nuitka_GetSuperValue1(tstate, module_dict);
+#else
+    PyObject *super_value = Nuitka_GetSuperValue(tstate, module_dict);
+#endif
+    PyObject *result;
+
+    if (obj != NULL) {
+        PyObject *args[] = {type, obj};
+
+        result = CALL_FUNCTION_WITH_ARGS2(tstate, super_value, args);
     } else {
-        return CALL_FUNCTION_WITH_SINGLE_ARG(tstate, super_value, type);
-    }
-}
-
-PyObject *BUILTIN_SUPER0(PyThreadState *tstate, PyDictObject *module_dict, PyObject *type, PyObject *object) {
-    if (object == Py_None) {
-        object = NULL;
+        result = CALL_FUNCTION_WITH_SINGLE_ARG(tstate, super_value, type);
     }
 
-    return BUILTIN_SUPER2(tstate, module_dict, type, object);
+#if defined(Py_GIL_DISABLED) && defined(_NUITKA_FULL_COMPAT)
+    Py_DECREF(super_value);
+#endif
+    return result;
 }
 
-/** The "callable" built-in.
- *
- **/
+PyObject *BUILTIN_SUPER0(PyThreadState *tstate, PyDictObject *module_dict, PyObject *type, PyObject *obj) {
+    CHECK_OBJECT(type);
+    CHECK_OBJECT_X(obj);
+
+    if (obj == Py_None) {
+        obj = NULL;
+    }
+
+#if defined(Py_GIL_DISABLED) && defined(_NUITKA_FULL_COMPAT)
+    PyObject *super_value = Nuitka_GetSuperValue1(tstate, module_dict);
+#else
+    PyObject *super_value = Nuitka_GetSuperValue(tstate, module_dict);
+#endif
+    PyObject *result;
+
+#ifdef _NUITKA_FULL_COMPAT
+    // CPython only supplies the implicit arguments to the actual 'super'
+    // built-in. If the name was shadowed dynamically, it is called without
+    // arguments instead.
+    if (super_value != (PyObject *)&PySuper_Type) {
+        result = CALL_FUNCTION_NO_ARGS(tstate, super_value);
+#if defined(Py_GIL_DISABLED) && defined(_NUITKA_FULL_COMPAT)
+        Py_DECREF(super_value);
+#endif
+        return result;
+    }
+#endif
+
+    if (obj != NULL) {
+        PyObject *args[] = {type, obj};
+
+        result = CALL_FUNCTION_WITH_ARGS2(tstate, super_value, args);
+    } else {
+        result = CALL_FUNCTION_WITH_SINGLE_ARG(tstate, super_value, type);
+    }
+
+#if defined(Py_GIL_DISABLED) && defined(_NUITKA_FULL_COMPAT)
+    Py_DECREF(super_value);
+#endif
+    return result;
+}
 
 PyObject *BUILTIN_CALLABLE(PyObject *value) {
     int res = Nuitka_PyCheckCallable(value);
@@ -800,14 +869,9 @@ PyObject *BUILTIN_CALLABLE(PyObject *value) {
     return result;
 }
 
-/* The "getattr" built-in with default value.
- *
- * We might want to split it off for a variant without default value.
- *
- **/
-
-PyObject *BUILTIN_GETATTR(PyThreadState *tstate, PyObject *object, PyObject *attribute, PyObject *default_value) {
-    CHECK_OBJECT(object);
+// TODO: Split off a dedicated helper variant without default_value.
+PyObject *BUILTIN_GETATTR(PyThreadState *tstate, PyObject *obj, PyObject *attribute, PyObject *default_value) {
+    CHECK_OBJECT(obj);
     CHECK_OBJECT(attribute);
     CHECK_OBJECT_X(default_value);
 
@@ -826,14 +890,20 @@ PyObject *BUILTIN_GETATTR(PyThreadState *tstate, PyObject *object, PyObject *att
     }
 #else
     if (!PyUnicode_Check(attribute)) {
+#if PYTHON_VERSION >= 0x3b0
+        SET_CURRENT_EXCEPTION_TYPE0_FORMAT1(PyExc_TypeError, "attribute name must be string, not '%s'",
+                                            Py_TYPE(attribute)->tp_name);
+#else
         SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_TypeError, "getattr(): attribute name must be string");
+#endif
+
         return NULL;
     }
 #endif
 
     // TODO: Once we can easily generate a variant that avoids the creation of
     // the exception as best as it can, we can switch to our own code helper.
-    PyObject *result = PyObject_GetAttr(object, attribute);
+    PyObject *result = PyObject_GetAttr(obj, attribute);
 
     if (result == NULL) {
         if (default_value != NULL) {
@@ -854,12 +924,19 @@ PyObject *BUILTIN_GETATTR(PyThreadState *tstate, PyObject *object, PyObject *att
     }
 }
 
-/** The "setattr" built-in.
- *
- **/
+PyObject *BUILTIN_SETATTR(PyObject *obj, PyObject *attribute, PyObject *value) {
+    int res = PyObject_SetAttr(obj, attribute, value);
 
-PyObject *BUILTIN_SETATTR(PyObject *object, PyObject *attribute, PyObject *value) {
-    int res = PyObject_SetAttr(object, attribute, value);
+    if (unlikely(res < 0)) {
+        return NULL;
+    }
+
+    // No reference returned.
+    return Py_None;
+}
+
+PyObject *BUILTIN_DELATTR(PyObject *obj, PyObject *attribute) {
+    int res = PyObject_DelAttr(obj, attribute);
 
     if (unlikely(res < 0)) {
         return NULL;
@@ -873,7 +950,7 @@ PyObject *BUILTIN_INT2(PyThreadState *tstate, PyObject *value, PyObject *base) {
 #if PYTHON_VERSION < 0x300
     long base_int = PyInt_AsLong(base);
 #else
-    Py_ssize_t base_int = PyNumber_AsSsize_t(base, NULL);
+    Py_ssize_t base_int = Nuitka_Number_AsSsize_t(base, NULL);
 #endif
 
     if (unlikely(base_int == -1)) {
@@ -936,7 +1013,7 @@ PyObject *BUILTIN_INT2(PyThreadState *tstate, PyObject *value, PyObject *base) {
     if (PyUnicode_Check(value)) {
         return PyLong_FromUnicodeObject(value, (int)base_int);
     } else if (PyBytes_Check(value) || PyByteArray_Check(value)) {
-        // Check for "NUL" as PyLong_FromString has no length parameter,
+        // Check for "NUL" as PyLong_FromString has no length parameter.
         Py_ssize_t size = Py_SIZE(value);
         char const *value_str;
 
@@ -967,7 +1044,6 @@ PyObject *BUILTIN_INT2(PyThreadState *tstate, PyObject *value, PyObject *base) {
 }
 
 #if PYTHON_VERSION < 0x300
-// Note: Python3 uses TO_INT2 function.
 PyObject *BUILTIN_LONG2(PyThreadState *tstate, PyObject *value, PyObject *base) {
     long base_int = PyInt_AsLong(base);
 
@@ -999,13 +1075,9 @@ PyObject *BUILTIN_LONG2(PyThreadState *tstate, PyObject *value, PyObject *base) 
 PyObject *BUILTIN_PRINT1(PyThreadState *tstate, PyObject **values, int count) {
     CHECK_OBJECTS(values, count);
 
-    // TODO: We need a CALL_FUNCTION_WITH_POS_ARGS variant that does not create
-    // a tuple, but instead uses the values directly.
-    PyObject *args_tuple = MAKE_TUPLE_VAR(tstate, values, count);
-
-    PyObject *result = CALL_FUNCTION_WITH_POS_ARGS(tstate, LOOKUP_BUILTIN(const_str_plain_print), args_tuple);
-    Py_DECREF(args_tuple);
-
+    PyObject *print_func = LOOKUP_BUILTIN1(tstate, const_str_plain_print);
+    PyObject *result = CALL_FUNCTION_WITH_ARGS(tstate, print_func, values, count);
+    Py_DECREF(print_func);
     return result;
 }
 

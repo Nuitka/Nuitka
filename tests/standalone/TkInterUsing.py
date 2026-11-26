@@ -3,7 +3,7 @@
 
 """TkInter standalone test, trying to make sure it loads."""
 
-# nuitka-skip-unless-expression: __import__("Tkinter" if sys.version_info[0] < 3 else "tkinter")
+# nuitka-skip-unless-expression: __import__("Tkinter" if sys.version_info[0] < 3 else "tkinter").TkVersion
 
 # nuitka-project: --mode=standalone
 # nuitka-project: --enable-plugin=tk-inter

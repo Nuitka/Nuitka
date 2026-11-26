@@ -16,24 +16,20 @@ from nuitka.PythonVersions import python_version
 from nuitka.Tracing import printError
 
 from .Emission import withSubCollector
+from .ErrorCodes import getTakeReferenceCode
 from .LabelCodes import getGotoCode, getLabelCode, getStatementTrace
 
 _expression_dispatch_dict = {}
-
-_ignore_list_overrides = set(("EXPRESSION_STR_OPERATION_FORMAT",))
 
 
 def getExpressionDispatchDict():
     return _expression_dispatch_dict
 
 
-def addExpressionDispatchDict(dispatch_dict):
+def addExpressionDispatchDict(dispatch_dict, update=False):
     for key, value in dispatch_dict.items():
-        if key in _expression_dispatch_dict:
-            if key not in _ignore_list_overrides:
-                assert False, key
-
-            continue
+        if key in _expression_dispatch_dict and not update:
+            assert False, key
 
         _expression_dispatch_dict[key] = value
 
@@ -63,8 +59,6 @@ def generateExpressionCode(to_name, expression, emit, context, allow_none=False)
 
 
 def _generateExpressionCode(to_name, expression, emit, context, allow_none=False):
-    # This is a dispatching function for every expression.
-
     if expression is None and allow_none:
         return None
 
@@ -107,6 +101,158 @@ def generateExpressionsCode(names, expressions, emit, context):
     return result
 
 
+def isObjectReferenceValue(value_name):
+    """Check if a value itself holds an object reference, including dual types."""
+
+    return value_name.getCType().holdsObjectReference()
+
+
+def takeReferenceForValue(value_name, emit, context, cleanup_scope):
+    """Make a generated value own a reference, so later writes cannot free it."""
+
+    context.unregisterBorrowedValue(value_name)
+
+    if isObjectReferenceValue(value_name) and value_name not in cleanup_scope:
+        getTakeReferenceCode(value_name, emit)
+        context.addCleanupTempNameToScope(
+            tmp_name=value_name, cleanup_scope=cleanup_scope
+        )
+
+
+def promoteBorrowedValuesForVariable(variable, emit, context):
+    """Protect currently held borrowed references before a write to the variable."""
+
+    for value_name, cleanup_scope in context.getBorrowedValuesForVariable(
+        variable=variable
+    ):
+        takeReferenceForValue(
+            value_name=value_name,
+            emit=emit,
+            context=context,
+            cleanup_scope=cleanup_scope,
+        )
+
+
+def _mayExpressionWriteVariable(expression, variable, may_be_released):
+    """Check if an expression can rebind a variable a value borrows from.
+
+    Module variables and variables with writers outside of the current scope
+    can have their value released by arbitrary code, so any expression
+    executing Python code may do so. For other variables only direct writes in
+    the expression matter.
+    """
+
+    if may_be_released:
+        return expression.mayHaveSideEffects()
+
+    return doesExpressionWriteVariable(expression, variable)
+
+
+def promoteBorrowedValue(value_name, later_expressions, emit, context):
+    """Protect a generated value against writes from later expressions."""
+
+    entry_point = context.getEntryPoint()
+
+    for variable, cleanup_scope in context.getBorrowedValues(value_name):
+        # TODO: Module variables should be able to tell if they have writes in
+        # the program, so that ones without writes need no protection here.
+        may_be_released = (
+            variable.isModuleVariable()
+            or variable.hasWritersOutsideOf(entry_point) is not False
+        )
+
+        for later_expression in later_expressions:
+            if _mayExpressionWriteVariable(
+                expression=later_expression,
+                variable=variable,
+                may_be_released=may_be_released,
+            ):
+                takeReferenceForValue(
+                    value_name=value_name,
+                    emit=emit,
+                    context=context,
+                    cleanup_scope=cleanup_scope,
+                )
+
+                return
+
+
+def doesExpressionWriteVariable(expression, variable):
+    """Check if an expression contains an assignment to the given variable."""
+
+    nodes = [expression]
+    while nodes:
+        node = nodes.pop()
+
+        if node.isStatementAssignmentVariable() and node.variable is variable:
+            return True
+
+        if node.isExpressionMakeAsyncgenObject():
+            function_body = node.subnode_asyncgen_ref.getFunctionBody()
+        elif node.isExpressionMakeCoroutineObject():
+            function_body = node.subnode_coroutine_ref.getFunctionBody()
+        elif node.isExpressionMakeGeneratorObject():
+            function_body = node.subnode_generator_ref.getFunctionBody()
+        else:
+            function_body = None
+
+        if function_body is not None and doesExpressionWriteVariable(
+            expression=function_body, variable=variable
+        ):
+            return True
+
+        nodes.extend(node.getVisitableNodes())
+
+    return False
+
+
+def promoteBorrowedValuesForExpressionWrites(expression, emit, context):
+    """Protect borrowed references before conditionally executed writes.
+
+    A write in a conditional expression only takes its reference on the path
+    where it executes, while the release is emitted after the branches.
+    """
+
+    if not context.hasBorrowedValues():
+        return
+
+    promoted_variables = set()
+
+    nodes = [expression]
+    while nodes:
+        node = nodes.pop()
+
+        if node.isStatementAssignmentVariable():
+            variable = node.variable
+
+            if variable not in promoted_variables:
+                promoted_variables.add(variable)
+
+                for value_name, cleanup_scope in context.getBorrowedValuesForVariable(
+                    variable=variable
+                ):
+                    takeReferenceForValue(
+                        value_name=value_name,
+                        emit=emit,
+                        context=context,
+                        cleanup_scope=cleanup_scope,
+                    )
+
+        nodes.extend(node.getVisitableNodes())
+
+
+@contextmanager
+def withBorrowedValueScope(context):
+    """Scope for borrowed references held while generating an expression."""
+
+    context.pushBorrowedValueScope()
+
+    try:
+        yield
+    finally:
+        context.popBorrowedValueScope()
+
+
 def generateChildExpressionsCode(expression, emit, context):
     value_names = []
 
@@ -128,7 +274,6 @@ def generateChildExpressionsCode(expression, emit, context):
 
             value_names.append(tuple(child_names))
         elif child_value is not None:
-            # Allocate anyway, so names are aligned.
             value_name = context.allocateTempName(child_name + "_value")
 
             generateExpressionCode(
@@ -137,7 +282,7 @@ def generateChildExpressionsCode(expression, emit, context):
 
             value_names.append(value_name)
         else:
-            # Allocate anyway, so names are aligned.
+            # Skip counter anyway, so temporary names remain aligned.
             context.skipTempName(child_name + "_value")
 
             value_names.append(None)
@@ -151,7 +296,6 @@ def generateChildExpressionCode(expression, emit, context, child_name=None):
     if child_name is None:
         child_name = expression.getChildName()
 
-    # Allocate anyway, so names are aligned.
     value_name = context.allocateTempName(
         child_name + "_value",
     )
@@ -171,22 +315,22 @@ def getStatementDispatchDict():
 
 
 def setStatementDispatchDict(dispatch_dict, update=False):
-    # Please call us only once or explicitly for update.
     assert not _statement_dispatch_dict or update
     _statement_dispatch_dict.update(dispatch_dict)
 
 
 def generateStatementCode(statement, emit, context):
     try:
-        _statement_dispatch_dict[statement.kind](
-            statement=statement, emit=emit, context=context
-        )
+        with withBorrowedValueScope(context):
+            with context.withCurrentSourceCodeReference(statement.getSourceReference()):
+                _statement_dispatch_dict[statement.kind](
+                    statement=statement, emit=emit, context=context
+                )
 
-        # Complain if any temporary was not dealt with yet.
-        assert not context.getCleanupTempNames(), (
-            statement.asXmlText(),
-            context.getCleanupTempNames(),
-        )
+                assert not context.getCleanupTempNames(), (
+                    statement.asXmlText(),
+                    context.getCleanupTempNames(),
+                )
     except Exception:
         printError(
             "Problem with %r at %s"
@@ -212,7 +356,6 @@ def _generateStatementSequenceCode(statement_sequence, emit, context):
 
             emit(getStatementTrace(source_repr, statement_repr))
 
-        # Might contain frame statement sequences as children.
         if statement.isStatementsFrame():
             from .FrameCodes import generateStatementsFrameCode
 
@@ -427,12 +570,10 @@ def withCleanupFinally(name, release_name, needs_exception, emit, context):
     context.addCleanupTempName(release_name)
 
     if needs_exception:
-        no_exception_exit = context.allocateLabel("%s_no_exception" % name)
-        getGotoCode(no_exception_exit, emit)
-
         context.setExceptionEscape(old_exception_target)
 
         emit("// Exception handling pass through code for %s:" % name)
+        emit("if (0) {")
         getLabelCode(exception_target, emit)
 
         from .ErrorCodes import getErrorExitReleaseCode
@@ -441,8 +582,7 @@ def withCleanupFinally(name, release_name, needs_exception, emit, context):
 
         getGotoCode(old_exception_target, emit)
 
-        emit("// Finished with no exception for %s:" % name)
-        getLabelCode(no_exception_exit, emit)
+        emit("}")
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and

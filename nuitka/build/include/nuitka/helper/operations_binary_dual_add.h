@@ -9,19 +9,16 @@
 #ifdef __IDE_ONLY__
 #include "nuitka/prelude.h"
 
+// Includes below require definitions from the prelude.
 #include "nuitka/helper/boolean.h"
 #include "nuitka/helper/ints.h"
 #endif
 
 /* C helpers for type specialized "+" (ADD) operations */
 
-/* Code referring to "NILONG" corresponds to Nuitka int/long/C long value and "NILONG" to Nuitka int/long/C long value.
- */
 extern bool BINARY_OPERATION_ADD_NILONG_NILONG_NILONG(nuitka_ilong *result, nuitka_ilong *operand1,
                                                       nuitka_ilong *operand2);
 
-/* Code referring to "NILONG" corresponds to Nuitka int/long/C long value and "DIGIT" to C platform digit value for long
- * Python objects. */
 extern bool BINARY_OPERATION_ADD_NILONG_NILONG_DIGIT(nuitka_ilong *result, nuitka_ilong *operand1, long operand2);
 
 #endif

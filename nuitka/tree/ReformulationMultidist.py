@@ -31,22 +31,27 @@ def createMultidistMainSourceCode():
         for count, main_basename in enumerate(main_basenames, start=1)
     ]
 
+    normalized_basenames = [
+        os.path.normcase(main_basename) for main_basename in main_basenames
+    ]
+
     from nuitka.utils.Jinja2 import renderTemplateFromString
 
     source_code = renderTemplateFromString(
         r"""
 import sys, re, os
-main_basename = re.sub(r'(.pyw?|\.exe|\.bin)?$', '', os.path.normcase(os.path.basename(__compiled__.original_argv0)))
+main_basename = re.sub(r'(\.pyw?|\.exe|\.bin)?$', '', os.path.normcase(os.path.basename(__compiled__.original_argv0)))
 {% for main_module_name, main_basename in zip(main_module_names, main_basenames) %}
-if main_basename == "{{main_basename}}":
-    __import__("{{main_module_name.asString()}}")
+if main_basename == {{ repr(main_basename) }}:
+    __import__({{ repr(main_module_name.asString()) }})
     sys.exit(0)
 {% endfor %}
 
 sys.exit("Error, failed to detect what to do for filename derived name '%s'." % main_basename)
 """,
         main_module_names=main_module_names,
-        main_basenames=main_basenames,
+        main_basenames=normalized_basenames,
+        repr=repr,
         zip=zip,
     )
 

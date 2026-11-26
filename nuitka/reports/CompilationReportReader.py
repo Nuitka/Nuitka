@@ -40,7 +40,8 @@ def extractModulesUsedByModule(compilation_report, module_name):
 
 def _getResolvedCompilationPath(path, prefixes):
     for prefix_name, prefix_path in prefixes:
-        path = path.replace(prefix_name, prefix_path)
+        if path.startswith(prefix_name):
+            return prefix_path + path[len(prefix_name) :]
 
     return path
 
@@ -57,6 +58,23 @@ def getCompilationOutputMode(compilation_report):
 
 def getCompilationPythonFlavor(compilation_report):
     return compilation_report.find("python").attrib["python_flavor"]
+
+
+def getCompilationPythonVersion(compilation_report):
+    """Return the Python version a compilation report was made with.
+
+    Args:
+        compilation_report: The parsed compilation report.
+
+    Returns:
+        str or None: Version like "3.11.2", or None if not recorded.
+    """
+    python_element = compilation_report.find("python")
+
+    if python_element is None:
+        return None
+
+    return python_element.get("python_version")
 
 
 def getEmbeddedDataFilenames(compilation_report):

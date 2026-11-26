@@ -1,11 +1,7 @@
 #     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-"""Code generation for sets.
-
-Right now only the creation, and set add code is done here. But more should be
-added later on.
-"""
+"""Code generation for set creation and operations."""
 
 from nuitka.PythonVersions import needsSetLiteralReverseInsertion
 
@@ -14,6 +10,8 @@ from .CodeHelpers import (
     decideConversionCheckNeeded,
     generateChildExpressionsCode,
     generateExpressionCode,
+    withBorrowedValueScope,
+    withCleanupFinally,
     withObjectCodeTemporaryAssignment,
 )
 from .ErrorCodes import getAssertionCode, getErrorExitBoolCode
@@ -21,44 +19,80 @@ from .PythonAPICodes import generateCAPIObjectCode
 
 
 def generateSetCreationCode(to_name, expression, emit, context):
+    with withBorrowedValueScope(context):
+        _generateSetCreationCode(
+            to_name=to_name, expression=expression, emit=emit, context=context
+        )
+
+
+def _generateSetCreationCode(to_name, expression, emit, context):
     element_name = context.allocateTempName("set_element")
 
     elements = expression.subnode_elements
 
-    # Supposed to optimize empty set to constant value.
     assert elements, expression
 
     with withObjectCodeTemporaryAssignment(
         to_name, "set_result", expression, emit, context
     ) as result_name:
-        for count, element in enumerate(elements):
-            generateExpressionCode(
-                to_name=element_name, expression=element, emit=emit, context=context
-            )
+        generateExpressionCode(
+            to_name=element_name, expression=elements[0], emit=emit, context=context
+        )
 
-            if count == 0:
-                emit("%s = PySet_New(NULL);" % (result_name,))
-                getAssertionCode(result_name, emit)
+        first_element_needs_release = context.needsCleanup(element_name)
+        if first_element_needs_release:
+            context.removeCleanupTempName(element_name)
 
-                context.addCleanupTempName(to_name)
+        emit("%s = PySet_New(NULL);" % (result_name,))
+        getAssertionCode(result_name, emit)
 
-            res_name = context.getIntResName()
+        needs_exception_exit = any(
+            element.mayRaiseException(BaseException) for element in elements[1:]
+        ) or any(not element.isKnownToBeHashable() for element in elements)
 
-            emit("%s = PySet_Add(%s, %s);" % (res_name, to_name, element_name))
+        with withCleanupFinally(
+            "set_build", result_name, needs_exception_exit, emit, context
+        ) as guarded_emit:
+            emit = guarded_emit
 
-            getErrorExitBoolCode(
-                condition="%s != 0" % res_name,
-                needs_check=not element.isKnownToBeHashable(),
-                emit=emit,
-                context=context,
-            )
+            if first_element_needs_release:
+                context.addCleanupTempName(element_name)
 
-            if context.needsCleanup(element_name):
-                emit("Py_DECREF(%s);" % element_name)
-                context.removeCleanupTempName(element_name)
+            for count, element in enumerate(elements):
+                if count > 0:
+                    generateExpressionCode(
+                        to_name=element_name,
+                        expression=element,
+                        emit=emit,
+                        context=context,
+                    )
+
+                res_name = context.getIntResName()
+
+                emit("%s = PySet_Add(%s, %s);" % (res_name, result_name, element_name))
+
+                getErrorExitBoolCode(
+                    condition="%s != 0" % res_name,
+                    needs_check=not element.isKnownToBeHashable(),
+                    emit=emit,
+                    context=context,
+                )
+
+                if context.needsCleanup(element_name):
+                    emit("Py_DECREF(%s);" % element_name)
+                    context.removeCleanupTempName(element_name)
+
+                context.unregisterBorrowedValue(element_name)
 
 
 def generateSetLiteralCreationCode(to_name, expression, emit, context):
+    with withBorrowedValueScope(context):
+        _generateSetLiteralCreationCode(
+            to_name=to_name, expression=expression, emit=emit, context=context
+        )
+
+
+def _generateSetLiteralCreationCode(to_name, expression, emit, context):
     if not needsSetLiteralReverseInsertion():
         return generateSetCreationCode(to_name, expression, emit, context)
 
@@ -66,38 +100,51 @@ def generateSetLiteralCreationCode(to_name, expression, emit, context):
         to_name, "set_result", expression, emit, context
     ) as result_name:
         emit("%s = PySet_New(NULL);" % (result_name,))
-
-        context.addCleanupTempName(result_name)
+        getAssertionCode(result_name, emit)
 
         elements = expression.subnode_elements
 
-        element_names = []
+        needs_exception_exit = any(
+            element.mayRaiseException(BaseException) for element in elements
+        ) or any(not element.isKnownToBeHashable() for element in elements)
 
-        for count, element in enumerate(elements, 1):
-            element_name = context.allocateTempName("set_element_%d" % count)
-            element_names.append(element_name)
+        with withCleanupFinally(
+            "set_literal_build", result_name, needs_exception_exit, emit, context
+        ) as guarded_emit:
+            emit = guarded_emit
 
-            generateExpressionCode(
-                to_name=element_name, expression=element, emit=emit, context=context
-            )
+            element_names = []
 
-        for count, element in enumerate(elements):
-            element_name = element_names[len(elements) - count - 1]
+            for count, element in enumerate(elements, 1):
+                element_name = context.allocateTempName("set_element_%d" % count)
+                element_names.append(element_name)
 
-            if element.isKnownToBeHashable():
-                emit("PySet_Add(%s, %s);" % (result_name, element_name))
-            else:
-                res_name = context.getIntResName()
-
-                emit("%s = PySet_Add(%s, %s);" % (res_name, result_name, element_name))
-
-                getErrorExitBoolCode(
-                    condition="%s != 0" % res_name, emit=emit, context=context
+                generateExpressionCode(
+                    to_name=element_name, expression=element, emit=emit, context=context
                 )
 
-            if context.needsCleanup(element_name):
-                emit("Py_DECREF(%s);" % element_name)
-                context.removeCleanupTempName(element_name)
+            for count, element in enumerate(elements):
+                element_name = element_names[len(elements) - count - 1]
+
+                if element.isKnownToBeHashable():
+                    emit("PySet_Add(%s, %s);" % (result_name, element_name))
+                else:
+                    res_name = context.getIntResName()
+
+                    emit(
+                        "%s = PySet_Add(%s, %s);"
+                        % (res_name, result_name, element_name)
+                    )
+
+                    getErrorExitBoolCode(
+                        condition="%s != 0" % res_name, emit=emit, context=context
+                    )
+
+                if context.needsCleanup(element_name):
+                    emit("Py_DECREF(%s);" % element_name)
+                    context.removeCleanupTempName(element_name)
+
+                context.unregisterBorrowedValue(element_name)
 
 
 def generateSetOperationAddCode(statement, emit, context):

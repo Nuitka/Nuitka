@@ -13,196 +13,149 @@
 /* C helpers for type in-place "%" (MOD) operations */
 
 #if PYTHON_VERSION < 0x300
-/* Code referring to "INT" corresponds to Python2 'int' and "INT" to Python2 'int'. */
 extern bool INPLACE_OPERATION_MOD_INT_INT(PyObject **operand1, PyObject *operand2);
 #endif
 
 #if PYTHON_VERSION < 0x300
-/* Code referring to "OBJECT" corresponds to any Python object and "INT" to Python2 'int'. */
 extern bool INPLACE_OPERATION_MOD_OBJECT_INT(PyObject **operand1, PyObject *operand2);
 #endif
 
 #if PYTHON_VERSION < 0x300
-/* Code referring to "INT" corresponds to Python2 'int' and "OBJECT" to any Python object. */
 extern bool INPLACE_OPERATION_MOD_INT_OBJECT(PyObject **operand1, PyObject *operand2);
 #endif
 
-/* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "LONG" to Python2 'long', Python3 'int'. */
 extern bool INPLACE_OPERATION_MOD_LONG_LONG(PyObject **operand1, PyObject *operand2);
 
-/* Code referring to "OBJECT" corresponds to any Python object and "LONG" to Python2 'long', Python3 'int'. */
 extern bool INPLACE_OPERATION_MOD_OBJECT_LONG(PyObject **operand1, PyObject *operand2);
 
-/* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "OBJECT" to any Python object. */
 extern bool INPLACE_OPERATION_MOD_LONG_OBJECT(PyObject **operand1, PyObject *operand2);
 
-/* Code referring to "FLOAT" corresponds to Python 'float' and "FLOAT" to Python 'float'. */
 extern bool INPLACE_OPERATION_MOD_FLOAT_FLOAT(PyObject **operand1, PyObject *operand2);
 
-/* Code referring to "OBJECT" corresponds to any Python object and "FLOAT" to Python 'float'. */
 extern bool INPLACE_OPERATION_MOD_OBJECT_FLOAT(PyObject **operand1, PyObject *operand2);
 
-/* Code referring to "FLOAT" corresponds to Python 'float' and "OBJECT" to any Python object. */
 extern bool INPLACE_OPERATION_MOD_FLOAT_OBJECT(PyObject **operand1, PyObject *operand2);
 
-/* Code referring to "FLOAT" corresponds to Python 'float' and "LONG" to Python2 'long', Python3 'int'. */
 extern bool INPLACE_OPERATION_MOD_FLOAT_LONG(PyObject **operand1, PyObject *operand2);
 
-/* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "FLOAT" to Python 'float'. */
 extern bool INPLACE_OPERATION_MOD_LONG_FLOAT(PyObject **operand1, PyObject *operand2);
 
 #if PYTHON_VERSION < 0x300
-/* Code referring to "FLOAT" corresponds to Python 'float' and "INT" to Python2 'int'. */
 extern bool INPLACE_OPERATION_MOD_FLOAT_INT(PyObject **operand1, PyObject *operand2);
 #endif
 
 #if PYTHON_VERSION < 0x300
-/* Code referring to "INT" corresponds to Python2 'int' and "FLOAT" to Python 'float'. */
 extern bool INPLACE_OPERATION_MOD_INT_FLOAT(PyObject **operand1, PyObject *operand2);
 #endif
 
 #if PYTHON_VERSION < 0x300
-/* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "INT" to Python2 'int'. */
 extern bool INPLACE_OPERATION_MOD_LONG_INT(PyObject **operand1, PyObject *operand2);
 #endif
 
 #if PYTHON_VERSION < 0x300
-/* Code referring to "INT" corresponds to Python2 'int' and "LONG" to Python2 'long', Python3 'int'. */
 extern bool INPLACE_OPERATION_MOD_INT_LONG(PyObject **operand1, PyObject *operand2);
 #endif
 
 #if PYTHON_VERSION < 0x300
-/* Code referring to "INT" corresponds to Python2 'int' and "CLONG" to C platform long value. */
 extern bool INPLACE_OPERATION_MOD_INT_CLONG(PyObject **operand1, long operand2);
 #endif
 
-/* Code referring to "FLOAT" corresponds to Python 'float' and "CFLOAT" to C platform float value. */
 extern bool INPLACE_OPERATION_MOD_FLOAT_CFLOAT(PyObject **operand1, double operand2);
 
 #if PYTHON_VERSION < 0x300
-/* Code referring to "STR" corresponds to Python2 'str' and "INT" to Python2 'int'. */
 extern bool INPLACE_OPERATION_MOD_STR_INT(PyObject **operand1, PyObject *operand2);
 #endif
 
 #if PYTHON_VERSION < 0x300
-/* Code referring to "STR" corresponds to Python2 'str' and "LONG" to Python2 'long', Python3 'int'. */
 extern bool INPLACE_OPERATION_MOD_STR_LONG(PyObject **operand1, PyObject *operand2);
 #endif
 
 #if PYTHON_VERSION < 0x300
-/* Code referring to "STR" corresponds to Python2 'str' and "FLOAT" to Python 'float'. */
 extern bool INPLACE_OPERATION_MOD_STR_FLOAT(PyObject **operand1, PyObject *operand2);
 #endif
 
 #if PYTHON_VERSION < 0x300
-/* Code referring to "STR" corresponds to Python2 'str' and "STR" to Python2 'str'. */
 extern bool INPLACE_OPERATION_MOD_STR_STR(PyObject **operand1, PyObject *operand2);
 #endif
 
 #if PYTHON_VERSION < 0x300
-/* Code referring to "STR" corresponds to Python2 'str' and "UNICODE" to Python2 'unicode', Python3 'str'. */
 extern bool INPLACE_OPERATION_MOD_STR_UNICODE(PyObject **operand1, PyObject *operand2);
 #endif
 
 #if PYTHON_VERSION < 0x300
-/* Code referring to "STR" corresponds to Python2 'str' and "TUPLE" to Python 'tuple'. */
 extern bool INPLACE_OPERATION_MOD_STR_TUPLE(PyObject **operand1, PyObject *operand2);
 #endif
 
 #if PYTHON_VERSION < 0x300
-/* Code referring to "STR" corresponds to Python2 'str' and "LIST" to Python 'list'. */
 extern bool INPLACE_OPERATION_MOD_STR_LIST(PyObject **operand1, PyObject *operand2);
 #endif
 
 #if PYTHON_VERSION < 0x300
-/* Code referring to "STR" corresponds to Python2 'str' and "DICT" to Python 'dict'. */
 extern bool INPLACE_OPERATION_MOD_STR_DICT(PyObject **operand1, PyObject *operand2);
 #endif
 
 #if PYTHON_VERSION < 0x300
-/* Code referring to "STR" corresponds to Python2 'str' and "OBJECT" to any Python object. */
 extern bool INPLACE_OPERATION_MOD_STR_OBJECT(PyObject **operand1, PyObject *operand2);
 #endif
 
 #if PYTHON_VERSION < 0x300
-/* Code referring to "UNICODE" corresponds to Python2 'unicode', Python3 'str' and "INT" to Python2 'int'. */
 extern bool INPLACE_OPERATION_MOD_UNICODE_INT(PyObject **operand1, PyObject *operand2);
 #endif
 
-/* Code referring to "UNICODE" corresponds to Python2 'unicode', Python3 'str' and "LONG" to Python2 'long', Python3
- * 'int'. */
 extern bool INPLACE_OPERATION_MOD_UNICODE_LONG(PyObject **operand1, PyObject *operand2);
 
-/* Code referring to "UNICODE" corresponds to Python2 'unicode', Python3 'str' and "FLOAT" to Python 'float'. */
 extern bool INPLACE_OPERATION_MOD_UNICODE_FLOAT(PyObject **operand1, PyObject *operand2);
 
 #if PYTHON_VERSION < 0x300
-/* Code referring to "UNICODE" corresponds to Python2 'unicode', Python3 'str' and "STR" to Python2 'str'. */
 extern bool INPLACE_OPERATION_MOD_UNICODE_STR(PyObject **operand1, PyObject *operand2);
 #endif
 
 #if PYTHON_VERSION >= 0x300
-/* Code referring to "UNICODE" corresponds to Python2 'unicode', Python3 'str' and "BYTES" to Python3 'bytes'. */
 extern bool INPLACE_OPERATION_MOD_UNICODE_BYTES(PyObject **operand1, PyObject *operand2);
 #endif
 
-/* Code referring to "UNICODE" corresponds to Python2 'unicode', Python3 'str' and "UNICODE" to Python2 'unicode',
- * Python3 'str'. */
 extern bool INPLACE_OPERATION_MOD_UNICODE_UNICODE(PyObject **operand1, PyObject *operand2);
 
-/* Code referring to "UNICODE" corresponds to Python2 'unicode', Python3 'str' and "TUPLE" to Python 'tuple'. */
 extern bool INPLACE_OPERATION_MOD_UNICODE_TUPLE(PyObject **operand1, PyObject *operand2);
 
-/* Code referring to "UNICODE" corresponds to Python2 'unicode', Python3 'str' and "LIST" to Python 'list'. */
 extern bool INPLACE_OPERATION_MOD_UNICODE_LIST(PyObject **operand1, PyObject *operand2);
 
-/* Code referring to "UNICODE" corresponds to Python2 'unicode', Python3 'str' and "DICT" to Python 'dict'. */
 extern bool INPLACE_OPERATION_MOD_UNICODE_DICT(PyObject **operand1, PyObject *operand2);
 
-/* Code referring to "UNICODE" corresponds to Python2 'unicode', Python3 'str' and "OBJECT" to any Python object. */
 extern bool INPLACE_OPERATION_MOD_UNICODE_OBJECT(PyObject **operand1, PyObject *operand2);
 
 #if PYTHON_VERSION >= 0x300
-/* Code referring to "BYTES" corresponds to Python3 'bytes' and "LONG" to Python2 'long', Python3 'int'. */
 extern bool INPLACE_OPERATION_MOD_BYTES_LONG(PyObject **operand1, PyObject *operand2);
 #endif
 
 #if PYTHON_VERSION >= 0x300
-/* Code referring to "BYTES" corresponds to Python3 'bytes' and "FLOAT" to Python 'float'. */
 extern bool INPLACE_OPERATION_MOD_BYTES_FLOAT(PyObject **operand1, PyObject *operand2);
 #endif
 
 #if PYTHON_VERSION >= 0x300
-/* Code referring to "BYTES" corresponds to Python3 'bytes' and "BYTES" to Python3 'bytes'. */
 extern bool INPLACE_OPERATION_MOD_BYTES_BYTES(PyObject **operand1, PyObject *operand2);
 #endif
 
 #if PYTHON_VERSION >= 0x300
-/* Code referring to "BYTES" corresponds to Python3 'bytes' and "UNICODE" to Python2 'unicode', Python3 'str'. */
 extern bool INPLACE_OPERATION_MOD_BYTES_UNICODE(PyObject **operand1, PyObject *operand2);
 #endif
 
 #if PYTHON_VERSION >= 0x300
-/* Code referring to "BYTES" corresponds to Python3 'bytes' and "TUPLE" to Python 'tuple'. */
 extern bool INPLACE_OPERATION_MOD_BYTES_TUPLE(PyObject **operand1, PyObject *operand2);
 #endif
 
 #if PYTHON_VERSION >= 0x300
-/* Code referring to "BYTES" corresponds to Python3 'bytes' and "LIST" to Python 'list'. */
 extern bool INPLACE_OPERATION_MOD_BYTES_LIST(PyObject **operand1, PyObject *operand2);
 #endif
 
 #if PYTHON_VERSION >= 0x300
-/* Code referring to "BYTES" corresponds to Python3 'bytes' and "DICT" to Python 'dict'. */
 extern bool INPLACE_OPERATION_MOD_BYTES_DICT(PyObject **operand1, PyObject *operand2);
 #endif
 
 #if PYTHON_VERSION >= 0x300
-/* Code referring to "BYTES" corresponds to Python3 'bytes' and "OBJECT" to any Python object. */
 extern bool INPLACE_OPERATION_MOD_BYTES_OBJECT(PyObject **operand1, PyObject *operand2);
 #endif
 
-/* Code referring to "OBJECT" corresponds to any Python object and "OBJECT" to any Python object. */
 extern bool INPLACE_OPERATION_MOD_OBJECT_OBJECT(PyObject **operand1, PyObject *operand2);
 
 #endif

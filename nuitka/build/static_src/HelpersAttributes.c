@@ -44,12 +44,9 @@ static PyObject *LOOKUP_INSTANCE(PyThreadState *tstate, PyObject *source, PyObje
 
     PyInstanceObject *source_instance = (PyInstanceObject *)source;
 
-    // The special cases have their own variant on the code generation level
-    // as we are called with constants only.
     assert(attr_name != const_str_plain___dict__);
     assert(attr_name != const_str_plain___class__);
 
-    // Try the instance dict first.
     PyObject *result = GET_STRING_DICT_VALUE((PyDictObject *)source_instance->in_dict, (PyStringObject *)attr_name);
 
     if (result) {
@@ -57,7 +54,6 @@ static PyObject *LOOKUP_INSTANCE(PyThreadState *tstate, PyObject *source, PyObje
         return result;
     }
 
-    // Next see if a class has it
     result = FIND_ATTRIBUTE_IN_CLASS(source_instance->in_class, attr_name);
 
     if (result != NULL) {
@@ -79,7 +75,6 @@ static PyObject *LOOKUP_INSTANCE(PyThreadState *tstate, PyObject *source, PyObje
         }
     }
 
-    // Finally allow a __getattr__ to handle it or else it's an error.
     if (unlikely(source_instance->in_class->cl_getattr == NULL)) {
         PyErr_Format(PyExc_AttributeError, "%s instance has no attribute '%s'",
                      PyString_AS_STRING(source_instance->in_class->cl_name), PyString_AS_STRING(attr_name));
@@ -92,398 +87,136 @@ static PyObject *LOOKUP_INSTANCE(PyThreadState *tstate, PyObject *source, PyObje
 }
 #endif
 
-PyObject *LOOKUP_ATTRIBUTE(PyThreadState *tstate, PyObject *source, PyObject *attr_name) {
-    /* Note: There are 2 specializations of this function, that need to be
-     * updated in line with this: LOOKUP_ATTRIBUTE_[DICT|CLASS]_SLOT
-     */
+#include "HelpersAttributesGenerated.c"
 
-#if _NUITKA_EXPERIMENTAL_DISABLE_ATTR_OPT
-    return PyObject_GetAttr(source, attr_name);
+#if PYTHON_VERSION >= 0x3a0
+void SET_ATTRIBUTE_ERROR_CONTEXT(PyThreadState *tstate, PyObject *source, PyObject *attr_name) {
+    assert(HAS_ERROR_OCCURRED(tstate));
+
+#if PYTHON_VERSION < 0x3c0
+    if (!EXCEPTION_MATCH_BOOL_SINGLE(tstate, tstate->curexc_type, PyExc_AttributeError)) {
+        return;
+    }
+
+    PyObject *exception_type;
+    PyObject *exception_value;
+    PyTracebackObject *exception_tb;
+
+    FETCH_ERROR_OCCURRED(tstate, &exception_type, &exception_value, &exception_tb);
+    NORMALIZE_EXCEPTION(tstate, &exception_type, &exception_value, &exception_tb);
+    RESTORE_ERROR_OCCURRED(tstate, exception_type, exception_value, exception_tb);
 #else
-    CHECK_OBJECT(source);
-    CHECK_OBJECT(attr_name);
+    PyObject *exception_value = tstate->current_exception;
+#endif
+
+    if (likely(EXCEPTION_MATCH_BOOL_SINGLE(tstate, exception_value, PyExc_AttributeError))) {
+        PyAttributeErrorObject *attribute_error = (PyAttributeErrorObject *)exception_value;
+
+        if (attribute_error->name == NULL && attribute_error->obj == NULL) {
+            Py_INCREF(attr_name);
+            attribute_error->name = attr_name;
+            Py_INCREF(source);
+            attribute_error->obj = source;
+        }
+    }
+}
+#endif
+
+#if PYTHON_VERSION >= 0x3b0
+static PyDictValues *Nuitka_GetManagedDictValues(PyObject *source, PyObject **dict) {
+    *dict = NULL;
+
+#if PYTHON_VERSION < 0x3c0
+    PyDictValues *values = *_PyObject_ValuesPointer(source);
+
+    if (values == NULL) {
+        *dict = *_PyObject_ManagedDictPointer(source);
+    }
+
+    return values;
+#elif PYTHON_VERSION < 0x3d0
+    PyDictOrValues dorv = *_PyObject_DictOrValuesPointer(source);
+
+    if (_PyDictOrValues_IsValues(dorv)) {
+        return _PyDictOrValues_GetValues(dorv);
+    }
+
+    *dict = _PyDictOrValues_GetDict(dorv);
+
+    return NULL;
+#else
+    PyObject *managed_dict = (PyObject *)_PyObject_GetManagedDict(source);
+
+    if (managed_dict != NULL) {
+        *dict = managed_dict;
+
+        return NULL;
+    }
 
     PyTypeObject *type = Py_TYPE(source);
 
-    if (hasTypeGenericGetAttr(type)) {
-        // Unfortunately this is required, although of cause rarely necessary.
-        if (unlikely(type->tp_dict == NULL)) {
-            if (unlikely(PyType_Ready(type) < 0)) {
-                return NULL;
-            }
-        }
-
-        PyObject *descr = Nuitka_TypeLookup(type, attr_name);
-        descrgetfunc func = NULL;
-
-        if (descr != NULL) {
-            Py_INCREF(descr);
-
-            if (NuitkaType_HasFeatureClass(Py_TYPE(descr))) {
-                func = Py_TYPE(descr)->tp_descr_get;
-
-                if (func != NULL && Nuitka_Descr_IsData(descr)) {
-                    PyObject *result = func(descr, source, (PyObject *)type);
-                    Py_DECREF(descr);
-
-                    return result;
-                }
-            }
-        }
-
-        PyObject *dict = NULL;
-
-// TODO: This is what Python 3.11 requires us to add.
-#if PYTHON_VERSION >= 0x3b0 && 0
-        if ((type->tp_flags & Py_TPFLAGS_MANAGED_DICT) && *_PyObject_ValuesPointer(source)) {
-            PyObject **dict_pointer;
-
-            PyDictValues **values_ptr = _PyObject_ValuesPointer(source);
-
-            // TODO: Seems we would benefit by knowing this on the outside.
-            if (PyUnicode_CheckExact(attr_name)) {
-                assert(*_PyObject_DictPointer(source) == NULL);
-                PyObject *result = _PyObject_GetInstanceAttribute(source, *values_ptr, attr_name);
-                if (result != NULL) {
-                    return result;
-                }
-            } else {
-                dict_pointer = _PyObject_DictPointer(source);
-                assert(dict_pointer != NULL && *dict_pointer == NULL);
-
-                *dict_pointer = dict = _PyObject_MakeDictFromInstanceAttributes(source, *values_ptr);
-                if (unlikely(dict == NULL)) {
-                    return NULL;
-                }
-                *values_ptr = NULL;
-            }
-        }
-#endif
-
-        if (dict == NULL) {
-            Py_ssize_t dict_offset = type->tp_dictoffset;
-
-            if (dict_offset != 0) {
-
-                // Negative dictionary offsets have special meaning.
-                if (dict_offset < 0) {
-                    Py_ssize_t tsize;
-                    size_t size;
-
-                    tsize = ((PyVarObject *)source)->ob_size;
-                    if (tsize < 0) {
-                        tsize = -tsize;
-                    }
-                    size = _PyObject_VAR_SIZE(type, tsize);
-
-                    dict_offset += (long)size;
-                }
-
-                PyObject **dict_pointer = (PyObject **)((char *)source + dict_offset);
-                dict = *dict_pointer;
-            }
-        }
-
-        if (dict != NULL) {
-            CHECK_OBJECT(dict);
-
-            // TODO: If this is an exact dict, we don't have to hold a reference, is it?
-            Py_INCREF(dict);
-
-            PyObject *result = DICT_GET_ITEM1(tstate, dict, attr_name);
-
-            Py_DECREF(dict);
-
-            if (result != NULL) {
-                Py_XDECREF(descr);
-
-                CHECK_OBJECT(result);
-                return result;
-            }
-        }
-
-        if (func != NULL) {
-            PyObject *result = func(descr, source, (PyObject *)type);
-            Py_DECREF(descr);
-
-            CHECK_OBJECT_X(result);
-            return result;
-        }
-
-        if (descr != NULL) {
-            CHECK_OBJECT(descr);
-            return descr;
-        }
-
-#if PYTHON_VERSION < 0x300
-        PyErr_Format(PyExc_AttributeError, "'%s' object has no attribute '%s'", type->tp_name,
-                     PyString_AS_STRING(attr_name));
-#else
-        PyErr_Format(PyExc_AttributeError, "'%s' object has no attribute '%U'", type->tp_name, attr_name);
-#endif
-        return NULL;
+    if (Nuitka_PyType_HasInlineValues(type) && _PyObject_InlineValues(source)->valid) {
+        return _PyObject_InlineValues(source);
     }
-#if PYTHON_VERSION < 0x300
-    else if (type->tp_getattro == PyInstance_Type.tp_getattro && Nuitka_String_CheckExact(attr_name)) {
-        PyObject *result = LOOKUP_INSTANCE(tstate, source, attr_name);
-        return result;
-    }
-#endif
-    else if (type->tp_getattro != NULL) {
-        PyObject *result = (*type->tp_getattro)(source, attr_name);
 
-        if (unlikely(result == NULL)) {
-            return NULL;
-        }
-
-        CHECK_OBJECT(result);
-        return result;
-    } else if (type->tp_getattr != NULL) {
-        PyObject *result = (*type->tp_getattr)(source, (char *)Nuitka_String_AsString_Unchecked(attr_name));
-        return result;
-    } else {
-        PyErr_Format(PyExc_AttributeError, "'%s' object has no attribute '%s'", type->tp_name,
-                     Nuitka_String_AsString_Unchecked(attr_name));
-
-        return NULL;
-    }
+    return NULL;
 #endif
 }
 
-PyObject *LOOKUP_ATTRIBUTE_DICT_SLOT(PyThreadState *tstate, PyObject *source) {
-    CHECK_OBJECT(source);
+int Nuitka_LookupManagedDictAttribute(PyTypeObject *type, PyObject *source, PyObject *attr_name, PyObject **dict,
+                                      PyObject **result) {
+    assert(type->tp_flags & Py_TPFLAGS_MANAGED_DICT);
 
-#if _NUITKA_EXPERIMENTAL_DISABLE_ATTR_OPT
-    return PyObject_GetAttr(source, const_str_plain___dict__);
-#else
-    PyTypeObject *type = Py_TYPE(source);
+    PyDictValues *values = Nuitka_GetManagedDictValues(source, dict);
 
-    if (hasTypeGenericGetAttr(type)) {
-        if (unlikely(type->tp_dict == NULL)) {
-            if (unlikely(PyType_Ready(type) < 0)) {
-                return NULL;
-            }
-        }
-
-        PyObject *descr = Nuitka_TypeLookup(type, const_str_plain___dict__);
-        descrgetfunc func = NULL;
-
-        if (descr != NULL) {
-            Py_INCREF(descr);
-
-            if (NuitkaType_HasFeatureClass(Py_TYPE(descr))) {
-                func = Py_TYPE(descr)->tp_descr_get;
-
-                if (func != NULL && Nuitka_Descr_IsData(descr)) {
-                    PyObject *result = func(descr, source, (PyObject *)type);
-                    Py_DECREF(descr);
-
-                    return result;
-                }
-            }
-        }
-
-        Py_ssize_t dict_offset = type->tp_dictoffset;
-        PyObject *dict = NULL;
-
-        if (dict_offset != 0) {
-            // Negative dictionary offsets have special meaning.
-            if (dict_offset < 0) {
-                Py_ssize_t tsize;
-                size_t size;
-
-                tsize = ((PyVarObject *)source)->ob_size;
-                if (tsize < 0)
-                    tsize = -tsize;
-                size = _PyObject_VAR_SIZE(type, tsize);
-
-                dict_offset += (long)size;
-            }
-
-            PyObject **dict_pointer = (PyObject **)((char *)source + dict_offset);
-            dict = *dict_pointer;
-        }
-
-        if (dict != NULL) {
-            CHECK_OBJECT(dict);
-
-            Py_INCREF(dict);
-
-            PyObject *result = DICT_GET_ITEM1(tstate, dict, const_str_plain___dict__);
-
-            if (result != NULL) {
-                Py_XDECREF(descr);
-                Py_DECREF(dict);
-
-                CHECK_OBJECT(result);
-                return result;
-            }
-
-            Py_DECREF(dict);
-        }
-
-        if (func != NULL) {
-            PyObject *result = func(descr, source, (PyObject *)type);
-            Py_DECREF(descr);
-
-            CHECK_OBJECT_X(result);
-            return result;
-        }
-
-        if (descr != NULL) {
-            CHECK_OBJECT(descr);
-            return descr;
-        }
-
-        PyErr_Format(PyExc_AttributeError, "'%s' object has no attribute '__dict__'", type->tp_name);
-        return NULL;
+    if (values == NULL) {
+        return 0;
     }
-#if PYTHON_VERSION < 0x300
-    else if (type->tp_getattro == PyInstance_Type.tp_getattro) {
-        PyInstanceObject *source_instance = (PyInstanceObject *)source;
-        PyObject *result = source_instance->in_dict;
 
-        Py_INCREF(result);
-        return result;
-    }
-#endif
-    else if (type->tp_getattro != NULL) {
-        PyObject *result = (*type->tp_getattro)(source, const_str_plain___dict__);
+    if (likely(Nuitka_String_CheckExact(attr_name))) {
+        PyDictKeysObject *keys = ((PyHeapTypeObject *)type)->ht_cached_keys;
+        assert(keys != NULL);
 
-        if (unlikely(result == NULL)) {
-            return NULL;
+        Py_hash_t hash = Nuitka_Py_unicode_get_hash(attr_name);
+        if (hash == -1) {
+            hash = PyUnicode_Type.tp_hash(attr_name);
         }
 
-        CHECK_OBJECT(result);
-        return result;
-    } else if (type->tp_getattr != NULL) {
-        PyObject *result = (*type->tp_getattr)(source, (char *)"__dict__");
-        return result;
-    } else {
-        PyErr_Format(PyExc_AttributeError, "'%s' object has no attribute '__dict__'", type->tp_name);
+        Py_ssize_t ix = Nuitka_Py_unicodekeys_lookup_unicode(keys, attr_name, hash);
 
-        return NULL;
+        if (ix == DKIX_EMPTY) {
+            return 0;
+        }
+        assert(ix >= 0);
+
+        PyObject *value = values->values[ix];
+
+        if (value == NULL) {
+            return 0;
+        }
+
+        CHECK_OBJECT(value);
+        Py_INCREF(value);
+        *result = value;
+        return 1;
     }
-#endif
+
+    // CPython creates the instance dictionary for lookups with non-exact
+    // strings, do the same, the object keeps a reference to it.
+    // TODO: Replace "PyObject_GenericGetDict" with our own implementation
+    // matching CPython 3.11 to 3.15. Non-string attribute names are rare, so
+    // this is a cold path.
+    PyObject *new_dict = PyObject_GenericGetDict(source, NULL);
+
+    if (unlikely(new_dict == NULL)) {
+        return -1;
+    }
+
+    Py_DECREF(new_dict);
+    *dict = new_dict;
+    return 0;
 }
-
-PyObject *LOOKUP_ATTRIBUTE_CLASS_SLOT(PyThreadState *tstate, PyObject *source) {
-    CHECK_OBJECT(source);
-
-#if _NUITKA_EXPERIMENTAL_DISABLE_ATTR_OPT
-    return PyObject_GetAttr(source, const_str_plain___class__);
-#else
-    PyTypeObject *type = Py_TYPE(source);
-
-    if (hasTypeGenericGetAttr(type)) {
-        if (unlikely(type->tp_dict == NULL)) {
-            if (unlikely(PyType_Ready(type) < 0)) {
-                return NULL;
-            }
-        }
-
-        PyObject *descr = Nuitka_TypeLookup(type, const_str_plain___class__);
-        descrgetfunc func = NULL;
-
-        if (descr != NULL) {
-            Py_INCREF(descr);
-
-            if (NuitkaType_HasFeatureClass(Py_TYPE(descr))) {
-                func = Py_TYPE(descr)->tp_descr_get;
-
-                if (func != NULL && Nuitka_Descr_IsData(descr)) {
-                    PyObject *result = func(descr, source, (PyObject *)type);
-                    Py_DECREF(descr);
-
-                    return result;
-                }
-            }
-        }
-
-        Py_ssize_t dict_offset = type->tp_dictoffset;
-        PyObject *dict = NULL;
-
-        if (dict_offset != 0) {
-            // Negative dictionary offsets have special meaning.
-            if (dict_offset < 0) {
-                Py_ssize_t tsize;
-                size_t size;
-
-                tsize = ((PyVarObject *)source)->ob_size;
-                if (tsize < 0) {
-                    tsize = -tsize;
-                }
-                size = _PyObject_VAR_SIZE(type, tsize);
-
-                dict_offset += (long)size;
-            }
-
-            PyObject **dict_pointer = (PyObject **)((char *)source + dict_offset);
-            dict = *dict_pointer;
-        }
-
-        if (dict != NULL) {
-            CHECK_OBJECT(dict);
-
-            Py_INCREF(dict);
-
-            PyObject *result = DICT_GET_ITEM1(tstate, dict, const_str_plain___class__);
-
-            if (result != NULL) {
-                Py_XDECREF(descr);
-                Py_DECREF(dict);
-
-                CHECK_OBJECT(result);
-                return result;
-            }
-
-            Py_DECREF(dict);
-        }
-
-        if (func != NULL) {
-            PyObject *result = func(descr, source, (PyObject *)type);
-            Py_DECREF(descr);
-
-            CHECK_OBJECT_X(result);
-            return result;
-        }
-
-        if (descr != NULL) {
-            CHECK_OBJECT(descr);
-            return descr;
-        }
-
-        PyErr_Format(PyExc_AttributeError, "'%s' object has no attribute '__class__'", type->tp_name);
-        return NULL;
-    }
-#if PYTHON_VERSION < 0x300
-    else if (type->tp_getattro == PyInstance_Type.tp_getattro) {
-        PyInstanceObject *source_instance = (PyInstanceObject *)source;
-        PyObject *result = (PyObject *)source_instance->in_class;
-
-        Py_INCREF(result);
-        return result;
-    }
 #endif
-    else if (type->tp_getattro != NULL) {
-        PyObject *result = (*type->tp_getattro)(source, const_str_plain___class__);
-
-        if (unlikely(result == NULL)) {
-            return NULL;
-        }
-
-        CHECK_OBJECT(result);
-        return result;
-    } else if (type->tp_getattr != NULL) {
-        PyObject *result = (*type->tp_getattr)(source, (char *)"__class__");
-        return result;
-    } else {
-        PyErr_Format(PyExc_AttributeError, "'%s' object has no attribute '__class__'", type->tp_name);
-
-        return NULL;
-    }
-#endif
-}
 
 int BUILTIN_HASATTR_BOOL(PyThreadState *tstate, PyObject *source, PyObject *attr_name) {
     CHECK_OBJECT(source);
@@ -505,7 +238,12 @@ int BUILTIN_HASATTR_BOOL(PyThreadState *tstate, PyObject *source, PyObject *attr
     }
 #else
     if (unlikely(!PyUnicode_Check(attr_name))) {
+#if PYTHON_VERSION >= 0x3b0
+        SET_CURRENT_EXCEPTION_TYPE0_FORMAT1(PyExc_TypeError, "attribute name must be string, not '%s'",
+                                            Py_TYPE(attr_name)->tp_name);
+#else
         SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_TypeError, "hasattr(): attribute name must be string");
+#endif
 
         return -1;
     }
@@ -517,353 +255,19 @@ int BUILTIN_HASATTR_BOOL(PyThreadState *tstate, PyObject *source, PyObject *attr
     PyObject *value = PyObject_GetAttr(source, attr_name);
 
     if (value == NULL) {
+#if PYTHON_VERSION < 0x300
+        CLEAR_ERROR_OCCURRED(tstate);
+#else
         if (CHECK_AND_CLEAR_ATTRIBUTE_ERROR_OCCURRED(tstate) == false) {
             return -1;
         }
+#endif
         return 0;
     }
 
     Py_DECREF(value);
 
     return 1;
-}
-
-bool HAS_ATTR_BOOL(PyThreadState *tstate, PyObject *source, PyObject *attr_name) {
-    CHECK_OBJECT(source);
-    CHECK_OBJECT(attr_name);
-
-#if _NUITKA_EXPERIMENTAL_DISABLE_ATTR_OPT
-    return PyObject_HasAttr(source, attr_name);
-#else
-    PyTypeObject *type = Py_TYPE(source);
-
-    if (hasTypeGenericGetAttr(type)) {
-        // Unfortunately this is required, although of cause rarely necessary.
-        if (unlikely(type->tp_dict == NULL)) {
-            if (unlikely(PyType_Ready(type) < 0)) {
-                CLEAR_ERROR_OCCURRED(tstate);
-
-                return false;
-            }
-        }
-
-        PyObject *descr = Nuitka_TypeLookup(type, attr_name);
-        descrgetfunc func = NULL;
-
-        if (descr != NULL) {
-            Py_INCREF(descr);
-
-            if (NuitkaType_HasFeatureClass(Py_TYPE(descr))) {
-                func = Py_TYPE(descr)->tp_descr_get;
-
-                if (func != NULL && Nuitka_Descr_IsData(descr)) {
-                    PyObject *result = func(descr, source, (PyObject *)type);
-                    Py_DECREF(descr);
-
-                    if (result) {
-                        CHECK_OBJECT(result);
-
-                        Py_DECREF(result);
-                        return true;
-                    }
-
-                    DROP_ERROR_OCCURRED(tstate);
-                    return false;
-                }
-            }
-        }
-
-        Py_ssize_t dict_offset = type->tp_dictoffset;
-        PyObject *dict = NULL;
-
-        if (dict_offset != 0) {
-            // Negative dictionary offsets have special meaning.
-            if (dict_offset < 0) {
-                Py_ssize_t tsize;
-                size_t size;
-
-                tsize = ((PyVarObject *)source)->ob_size;
-                if (tsize < 0) {
-                    tsize = -tsize;
-                }
-                size = _PyObject_VAR_SIZE(type, tsize);
-
-                dict_offset += (long)size;
-            }
-
-            PyObject **dict_pointer = (PyObject **)((char *)source + dict_offset);
-            dict = *dict_pointer;
-        }
-
-        if (dict != NULL) {
-            CHECK_OBJECT(dict);
-
-            // TODO: If this is an exact dict, we don't have to hold a reference, is it?
-            Py_INCREF(dict);
-
-            PyObject *result = DICT_GET_ITEM1(tstate, dict, attr_name);
-            DROP_ERROR_OCCURRED(tstate);
-
-            Py_DECREF(dict);
-
-            if (result != NULL) {
-                Py_XDECREF(descr);
-
-                CHECK_OBJECT(result);
-
-                Py_DECREF(result);
-                return true;
-            }
-        }
-
-        if (func != NULL) {
-            PyObject *result = func(descr, source, (PyObject *)type);
-            Py_DECREF(descr);
-
-            if (result != NULL) {
-                CHECK_OBJECT(result);
-
-                Py_DECREF(result);
-                return true;
-            }
-
-            if (CHECK_AND_CLEAR_ATTRIBUTE_ERROR_OCCURRED(tstate) == false) {
-                return false;
-            }
-            return true;
-        }
-
-        if (descr != NULL) {
-            CHECK_OBJECT(descr);
-
-            Py_DECREF(descr);
-            return true;
-        }
-
-        return false;
-    }
-#if PYTHON_VERSION < 0x300
-    else if (type->tp_getattro == PyInstance_Type.tp_getattro && Nuitka_String_CheckExact(attr_name)) {
-        PyObject *result = LOOKUP_INSTANCE(tstate, source, attr_name);
-
-        if (result == NULL) {
-            CLEAR_ERROR_OCCURRED(tstate);
-
-            return false;
-        }
-
-        CHECK_OBJECT(result);
-
-        Py_DECREF(result);
-        return true;
-    }
-#endif
-    else if (type->tp_getattro != NULL) {
-        PyObject *result = (*type->tp_getattro)(source, attr_name);
-
-        if (result == NULL) {
-            DROP_ERROR_OCCURRED(tstate);
-
-            return false;
-        }
-
-        CHECK_OBJECT(result);
-        Py_DECREF(result);
-        return true;
-    } else if (type->tp_getattr != NULL) {
-        PyObject *result = (*type->tp_getattr)(source, (char *)Nuitka_String_AsString_Unchecked(attr_name));
-
-        if (result == NULL) {
-            CLEAR_ERROR_OCCURRED(tstate);
-
-            return false;
-        }
-
-        CHECK_OBJECT(result);
-        Py_DECREF(result);
-        return true;
-    } else {
-        return false;
-    }
-#endif
-}
-
-int HAS_ATTR_BOOL2(PyThreadState *tstate, PyObject *source, PyObject *attr_name) {
-    CHECK_OBJECT(source);
-    CHECK_OBJECT(attr_name);
-
-#if _NUITKA_EXPERIMENTAL_DISABLE_ATTR_OPT
-    PyObject *result = PyObject_GetAttr(source, attr_name);
-
-    if (CHECK_AND_CLEAR_ATTRIBUTE_ERROR_OCCURRED(tstate) == false) {
-        return -1;
-    }
-
-    if (result == NULL) {
-        return 0;
-    }
-
-    int result_bool = CHECK_IF_TRUE(result);
-    Py_DECREF(result);
-
-    return result_bool;
-#else
-    PyTypeObject *type = Py_TYPE(source);
-
-    if (hasTypeGenericGetAttr(type)) {
-        // Unfortunately this is required, although of cause rarely necessary.
-        if (unlikely(type->tp_dict == NULL)) {
-            if (unlikely(PyType_Ready(type) < 0)) {
-                return -1;
-            }
-        }
-
-        PyObject *descr = Nuitka_TypeLookup(type, attr_name);
-        descrgetfunc func = NULL;
-
-        if (descr != NULL) {
-            // Hold a refcount, Nuitka_TypeLookup does not give any.
-            Py_INCREF(descr);
-
-            if (NuitkaType_HasFeatureClass(Py_TYPE(descr))) {
-                func = Py_TYPE(descr)->tp_descr_get;
-
-                if (func != NULL && Nuitka_Descr_IsData(descr)) {
-                    PyObject *result = func(descr, source, (PyObject *)type);
-                    Py_DECREF(descr);
-
-                    if (result) {
-                        CHECK_OBJECT(result);
-
-                        Py_DECREF(result);
-                        return 1;
-                    }
-
-                    DROP_ERROR_OCCURRED(tstate);
-                    return 0;
-                }
-            }
-        }
-
-        Py_ssize_t dict_offset = type->tp_dictoffset;
-        PyObject *dict = NULL;
-
-        if (dict_offset != 0) {
-            // Negative dictionary offsets have special meaning.
-            if (dict_offset < 0) {
-                Py_ssize_t tsize;
-                size_t size;
-
-                tsize = ((PyVarObject *)source)->ob_size;
-                if (tsize < 0) {
-                    tsize = -tsize;
-                }
-                size = _PyObject_VAR_SIZE(type, tsize);
-
-                dict_offset += (long)size;
-            }
-
-            PyObject **dict_pointer = (PyObject **)((char *)source + dict_offset);
-            dict = *dict_pointer;
-        }
-
-        if (dict != NULL) {
-            CHECK_OBJECT(dict);
-
-            // TODO: If this is an exact dict, we don't have to hold a reference, is it?
-            Py_INCREF(dict);
-
-            PyObject *result = DICT_GET_ITEM1(tstate, dict, attr_name);
-
-            if (CHECK_AND_CLEAR_ATTRIBUTE_ERROR_OCCURRED(tstate) == false) {
-                return -1;
-            }
-
-            Py_DECREF(dict);
-
-            if (result != NULL) {
-                Py_XDECREF(descr);
-
-                CHECK_OBJECT(result);
-
-                Py_DECREF(result);
-                return 1;
-            }
-        }
-
-        if (func != NULL) {
-            PyObject *result = func(descr, source, (PyObject *)type);
-            Py_DECREF(descr);
-
-            if (result != NULL) {
-                CHECK_OBJECT(result);
-
-                Py_DECREF(result);
-                return 1;
-            }
-
-            if (CHECK_AND_CLEAR_ATTRIBUTE_ERROR_OCCURRED(tstate) == false) {
-                return -1;
-            }
-            return 0;
-        }
-
-        if (descr != NULL) {
-            CHECK_OBJECT(descr);
-
-            Py_DECREF(descr);
-            return 1;
-        }
-
-        return 0;
-    }
-#if PYTHON_VERSION < 0x300
-    else if (type->tp_getattro == PyInstance_Type.tp_getattro && Nuitka_String_CheckExact(attr_name)) {
-        PyObject *result = LOOKUP_INSTANCE(tstate, source, attr_name);
-
-        if (result == NULL) {
-            return -1;
-        }
-
-        CHECK_OBJECT(result);
-
-        Py_DECREF(result);
-        return true;
-    }
-#endif
-    else if (type->tp_getattro != NULL) {
-        PyObject *result = (*type->tp_getattro)(source, attr_name);
-
-        if (result == NULL) {
-            if (CHECK_AND_CLEAR_ATTRIBUTE_ERROR_OCCURRED(tstate) == false) {
-                return -1;
-            }
-
-            return 0;
-        }
-
-        CHECK_OBJECT(result);
-        Py_DECREF(result);
-        return true;
-    } else if (type->tp_getattr != NULL) {
-        PyObject *result = (*type->tp_getattr)(source, (char *)Nuitka_String_AsString_Unchecked(attr_name));
-
-        if (result == NULL) {
-            if (CHECK_AND_CLEAR_ATTRIBUTE_ERROR_OCCURRED(tstate) == false) {
-                return -1;
-            }
-
-            return 0;
-        }
-
-        CHECK_OBJECT(result);
-        Py_DECREF(result);
-
-        return 1;
-    } else {
-        return 0;
-    }
-#endif
 }
 
 #if PYTHON_VERSION < 0x300
@@ -879,9 +283,6 @@ static bool SET_INSTANCE(PyThreadState *tstate, PyObject *target, PyObject *attr
 
     PyInstanceObject *target_instance = (PyInstanceObject *)target;
 
-    // The special cases should get their own SET_ATTRIBUTE_xxxx_SLOT variants
-    // on the code generation level as SET_ATTRIBUTE is called with constants
-    // only.
     assert(attr_name != const_str_plain___dict__);
     assert(attr_name != const_str_plain___class__);
 
@@ -897,9 +298,9 @@ static bool SET_INSTANCE(PyThreadState *tstate, PyObject *target, PyObject *attr
 
         return true;
     } else {
-        int status = PyDict_SetItem(target_instance->in_dict, attr_name, value);
+        bool status = DICT_SET_ITEM(tstate, (PyObject *)target_instance->in_dict, attr_name, value);
 
-        if (unlikely(status != 0)) {
+        if (unlikely(status == false)) {
             return false;
         }
 
@@ -913,9 +314,54 @@ static bool SET_INSTANCE(PyThreadState *tstate, PyObject *target, PyObject *attr
 // Classes in Python3 might share keys.
 #define CACHED_KEYS(type) (((PyHeapTypeObject *)type)->ht_cached_keys)
 
+#if PYTHON_VERSION >= 0x3b0
+static int Nuitka_StoreManagedDictAttribute(PyTypeObject *type, PyObject *target, PyObject *attr_name,
+                                            PyObject *value) {
+#if PYTHON_VERSION < 0x3c0
+    PyDictValues *values = *_PyObject_ValuesPointer(target);
+
+    if (values != NULL) {
+        return _PyObject_StoreInstanceAttribute(target, values, attr_name, value);
+    }
+
+    return _PyObjectDict_SetItem(type, _PyObject_ManagedDictPointer(target), attr_name, value);
+#elif PYTHON_VERSION < 0x3d0
+    PyDictOrValues *dorv_pointer = _PyObject_DictOrValuesPointer(target);
+
+    if (_PyDictOrValues_IsValues(*dorv_pointer)) {
+        return _PyObject_StoreInstanceAttribute(target, _PyDictOrValues_GetValues(*dorv_pointer), attr_name, value);
+    }
+
+    return _PyObjectDict_SetItem(type, &dorv_pointer->dict, attr_name, value);
+#else
+    if (Nuitka_PyType_HasInlineValues(type)) {
+        return _PyObject_StoreInstanceAttribute(target, attr_name, value);
+    }
+
+    return _PyObjectDict_SetItem(type, target, (PyObject **)&_PyObject_ManagedDictPointer(target)->dict, attr_name,
+                                 value);
+#endif
+}
+#endif
+
+static void setAttributeKeyErrorConverted(PyThreadState *tstate, PyTypeObject *type, PyObject *target,
+                                          PyObject *attr_name) {
+#if PYTHON_VERSION < 0x3b0
+    (void)type;
+    (void)target;
+    SET_CURRENT_EXCEPTION_TYPE0_VALUE0(tstate, PyExc_AttributeError, attr_name);
+#else
+    PyErr_Format(PyExc_AttributeError, "'%s' object has no attribute '%U'", type->tp_name, attr_name);
+#if PYTHON_VERSION >= 0x3d0
+    SET_ATTRIBUTE_ERROR_CONTEXT(tstate, target, attr_name);
+#else
+    (void)target;
+#endif
+#endif
+}
+
 static bool SET_ATTRIBUTE_GENERIC(PyThreadState *tstate, PyTypeObject *type, PyObject *target, PyObject *attr_name,
                                   PyObject *value) {
-    // Unfortunately this is required, although of cause rarely necessary.
     if (unlikely(type->tp_dict == NULL)) {
         if (unlikely(PyType_Ready(type) < 0)) {
             return false;
@@ -939,11 +385,33 @@ static bool SET_ATTRIBUTE_GENERIC(PyThreadState *tstate, PyTypeObject *type, PyO
         }
     }
 
+#if PYTHON_VERSION >= 0x3b0
+    if (type->tp_flags & Py_TPFLAGS_MANAGED_DICT) {
+        int res = Nuitka_StoreManagedDictAttribute(type, target, attr_name, value);
+
+        Py_XDECREF(descr);
+
+        // CPython's _PyObject_GenericSetAttrWithDict converts KeyError to
+        // AttributeError unconditionally, not only for deletion.
+        if (res < 0 && CHECK_AND_CLEAR_KEY_ERROR_OCCURRED(tstate)) {
+            setAttributeKeyErrorConverted(tstate, type, target, attr_name);
+            return false;
+        }
+
+        return res >= 0;
+    } else if (type->tp_dictoffset == 0) {
+        // Without an instance dictionary this is an error, and the messages
+        // vary by version, so let CPython produce them.
+        Py_XDECREF(descr);
+
+        return PyObject_GenericSetAttr_resolved(target, attr_name, value) == 0;
+    }
+#endif
+
     Py_ssize_t dict_offset = type->tp_dictoffset;
     PyObject *dict = NULL;
 
     if (dict_offset != 0) {
-        // Negative dictionary offsets have special meaning.
         if (dict_offset < 0) {
             Py_ssize_t tsize;
             size_t size;
@@ -966,9 +434,10 @@ static bool SET_ATTRIBUTE_GENERIC(PyThreadState *tstate, PyTypeObject *type, PyO
 #else
             int res = _PyObjectDict_SetItem(type, dict_pointer, attr_name, value);
 #endif
-            // TODO: Not possible for set, is it?
-            if (res < 0 && PyErr_ExceptionMatches(PyExc_KeyError)) {
-                SET_CURRENT_EXCEPTION_TYPE0_VALUE0(tstate, PyExc_AttributeError, attr_name);
+            Py_XDECREF(descr);
+
+            if (res < 0 && CHECK_AND_CLEAR_KEY_ERROR_OCCURRED(tstate)) {
+                setAttributeKeyErrorConverted(tstate, type, target, attr_name);
                 return false;
             }
 
@@ -988,23 +457,41 @@ static bool SET_ATTRIBUTE_GENERIC(PyThreadState *tstate, PyTypeObject *type, PyO
     if (dict != NULL) {
         CHECK_OBJECT(dict);
 
-        // TODO: If this is an exact dict, we don't have to hold a reference, is it?
+        // Hold a reference across DICT_SET_ITEM in case replacing an old value
+        // triggers a destructor that reassigns or clears the instance __dict__.
         Py_INCREF(dict);
 
-        int res = PyDict_SetItem(dict, attr_name, value);
+        bool res = DICT_SET_ITEM(tstate, dict, attr_name, value);
 
         Py_DECREF(dict);
         Py_XDECREF(descr);
 
-        return res == 0;
+        if (unlikely(res == false) && CHECK_AND_CLEAR_KEY_ERROR_OCCURRED(tstate)) {
+            setAttributeKeyErrorConverted(tstate, type, target, attr_name);
+            return false;
+        }
+
+        return res;
     }
 
+    if (descr == NULL) {
 #if PYTHON_VERSION < 0x300
-    PyErr_Format(PyExc_AttributeError, "'%s' object has no attribute '%s'", type->tp_name,
-                 PyString_AS_STRING(attr_name));
+        PyErr_Format(PyExc_AttributeError, "'%s' object has no attribute '%s'", type->tp_name,
+                     PyString_AS_STRING(attr_name));
 #else
-    PyErr_Format(PyExc_AttributeError, "'%s' object has no attribute '%U'", type->tp_name, attr_name);
+        PyErr_Format(PyExc_AttributeError, "'%s' object has no attribute '%U'", type->tp_name, attr_name);
 #endif
+    } else {
+        Py_DECREF(descr);
+
+#if PYTHON_VERSION < 0x300
+        PyErr_Format(PyExc_AttributeError, "'%s' object attribute '%s' is read-only", type->tp_name,
+                     PyString_AS_STRING(attr_name));
+#else
+        PyErr_Format(PyExc_AttributeError, "'%s' object attribute '%U' is read-only", type->tp_name, attr_name);
+#endif
+    }
+
     return false;
 }
 
@@ -1073,7 +560,7 @@ bool SET_ATTRIBUTE_DICT_SLOT(PyThreadState *tstate, PyObject *target, PyObject *
     if (likely(PyInstance_Check(target))) {
         PyInstanceObject *target_instance = (PyInstanceObject *)target;
 
-        /* Note seems this doesn't have to be an exact dictionary. */
+        // Does not need to be an exact dict; dict subclasses are accepted.
         if (unlikely(!PyDict_Check(value))) {
             SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_TypeError, "__dict__ must be set to a dictionary");
             return false;
@@ -1203,33 +690,64 @@ PyObject *LOOKUP_SPECIAL(PyThreadState *tstate, PyObject *source, PyObject *attr
     // attribute names, might save a bit of complexity to large programs not
     // having to pass constant values in what is a frequent construct.
     if (attr_name == const_str_plain___exit__) {
-        SET_CURRENT_EXCEPTION_TYPE_COMPLAINT(
+        SET_CURRENT_EXCEPTION_TYPE_COMPLAINT_QUALIFIED(
             "'%s' object does not support the context manager protocol (missed __exit__ method)", source);
     }
 #if PYTHON_VERSION >= 0x3e0
     else if (attr_name == const_str_plain___enter__) {
-        SET_CURRENT_EXCEPTION_TYPE_COMPLAINT(
+        SET_CURRENT_EXCEPTION_TYPE_COMPLAINT_QUALIFIED(
             "'%s' object does not support the context manager protocol (missed __enter__ method)", source);
     }
 #endif
     else if (attr_name == const_str_plain___aexit__) {
-        SET_CURRENT_EXCEPTION_TYPE_COMPLAINT(
+        SET_CURRENT_EXCEPTION_TYPE_COMPLAINT_QUALIFIED(
             "'%s' object does not support the asynchronous context manager protocol (missed __aexit__ method)", source);
     } else if (attr_name == const_str_plain___aenter__) {
 #if PYTHON_VERSION >= 0x3e0
-        SET_CURRENT_EXCEPTION_TYPE_COMPLAINT(
+        SET_CURRENT_EXCEPTION_TYPE_COMPLAINT_QUALIFIED(
             "'%s' object does not support the asynchronous context manager protocol (missed __aenter__ method)",
             source);
 #else
-        SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("'%s' object does not support the asynchronous context manager protocol",
-                                             source);
+        SET_CURRENT_EXCEPTION_TYPE_COMPLAINT_QUALIFIED(
+            "'%s' object does not support the asynchronous context manager protocol", source);
 #endif
     } else {
-        SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("'%s' object does not support the context manager protocol", source);
+        SET_CURRENT_EXCEPTION_TYPE_COMPLAINT_QUALIFIED("'%s' object does not support the context manager protocol",
+                                                       source);
     }
 #endif
     return NULL;
 }
+
+#if PYTHON_VERSION >= 0x270
+PyObject *LOOKUP_SPECIAL_NO_ERROR(PyObject *source, PyObject *attr_name) {
+    CHECK_OBJECT(source);
+    CHECK_OBJECT(attr_name);
+
+    PyTypeObject *type = Py_TYPE(source);
+
+    if (unlikely(type->tp_dict == NULL)) {
+        if (unlikely(PyType_Ready(type) < 0)) {
+            return NULL;
+        }
+    }
+
+    PyObject *descr = Nuitka_TypeLookup(type, attr_name);
+
+    if (descr == NULL) {
+        return NULL;
+    }
+
+    descrgetfunc func = Py_TYPE(descr)->tp_descr_get;
+
+    if (func == NULL) {
+        Py_INCREF(descr);
+        return descr;
+    }
+
+    return func(descr, source, (PyObject *)type);
+}
+#endif
 
 PyObject *LOOKUP_MODULE_VALUE(PyDictObject *module_dict, PyObject *var_name) {
     PyObject *result = GET_STRING_DICT_VALUE(module_dict, (Nuitka_StringObject *)var_name);

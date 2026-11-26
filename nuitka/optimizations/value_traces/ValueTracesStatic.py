@@ -14,8 +14,7 @@ Values can be seen as:
 * Assign (assignment was done)
 * Deleted (del was done, now unassigned, uninitialized)
 * Merge (result of diverged code paths, loop potentially)
-* LoopIncomplete (aggregation during loops, not yet fully known)
-* LoopComplete (complete knowledge of loop types)
+* Loop (aggregation of value shapes across loop iterations)
 """
 
 from abc import abstractmethod
@@ -42,7 +41,6 @@ from nuitka.nodes.shapes.StandardShapes import (
     tshape_uninitialized,
     tshape_unknown,
 )
-from nuitka.States import states
 from nuitka.Tracing import my_print
 from nuitka.utils.InstanceCounters import (
     counted_del,
@@ -54,6 +52,9 @@ from nuitka.utils.InstanceCounters import (
 class ValueTraceBase(object):
     # We are going to have many instance attributes, but should strive to minimize, as
     # there is going to be a lot of fluctuation in these objects.
+
+    # Usage counts are small integers, so identity comparisons are intentional.
+    # pylint: disable=literal-comparison
 
     __slots__ = (
         "owner",
@@ -71,11 +72,13 @@ class ValueTraceBase(object):
     def dump(self, indent="  "):
         my_print("%s%s %s:" % (indent, self.__class__.__name__, id(self)))
 
-        if type(self.previous) is tuple:
-            for trace in self.previous:
+        previous = self.getPrevious()
+
+        if type(previous) is tuple:
+            for trace in previous:
                 trace.dump(indent + "  ")
-        elif self.previous is not None:
-            self.previous.dump(indent + "  ")
+        elif previous is not None:
+            previous.dump(indent + "  ")
 
     def getOwner(self):
         return self.owner
@@ -88,6 +91,11 @@ class ValueTraceBase(object):
     def isLoopTrace():
         return False
 
+    @staticmethod
+    def isLoopDependent():
+        """Is the value decision dependent on a loop trace."""
+        return False
+
     def addUsage(self):
         self.usage_count += 1
 
@@ -98,15 +106,9 @@ class ValueTraceBase(object):
         self.usage_count += 1
         self.name_usage_count += 1
 
-        if self.name_usage_count <= 2 and self.previous is not None:
-            self.previous.addNameUsage()
-
     def removeNameUsage(self):
         self.usage_count -= 1
         self.name_usage_count -= 1
-
-        if self.name_usage_count < 2 and self.previous is not None:
-            self.previous.removeNameUsage()
 
     def addMergeUsage(self):
         self.usage_count += 1
@@ -126,18 +128,20 @@ class ValueTraceBase(object):
         return self.merge_usage_count
 
     def hasNoMergeOrNameUsage(self):
-        return (self.merge_usage_count | self.name_usage_count) == 0
+        return (self.merge_usage_count | self.name_usage_count) is 0
 
-    def getPrevious(self):
-        return self.previous
+    @staticmethod
+    def getPrevious():
+        return None
 
-    def isUnchangedResumeTrace(self, loop_entry_trace):
+    def isUnchangedResumeTrace(self, loop_entry_trace, context):
         """Is this loop resume trace the loop entry value itself.
 
         Escape and unknown traces only mean knowledge was lost, not that
         the value identity changed, so they are looked through. Rebinding
         would be an assignment or deletion trace.
         """
+        # Virtual method, pylint: disable=unused-argument
         return self is loop_entry_trace
 
     @abstractmethod
@@ -146,14 +150,10 @@ class ValueTraceBase(object):
 
     @abstractmethod
     def isWritingTrace(self):
-        """Is the trace indicating a usage of the variable."""
+        """Is the trace writing to the variable."""
 
     @staticmethod
     def isAssignTrace():
-        return False
-
-    @staticmethod
-    def isIteratorPropagationTrace():
         return False
 
     @staticmethod
@@ -204,18 +204,30 @@ class ValueTraceBase(object):
     def isMergeTrace():
         return False
 
+    @staticmethod
+    def isPlainMergeTrace():
+        return False
+
     @abstractmethod
-    def mustHaveValue(self):
+    def mustHaveValue(self, context=None):
         """Will this definitely have a value."""
 
     @abstractmethod
     def mustNotHaveValue(self):
-        """Will this definitely have a value."""
+        """Will this definitely have no value."""
 
     def getReplacementNode(self, usage):
         # Virtual method, pylint: disable=no-self-use,unused-argument
 
         return None
+
+    @staticmethod
+    def onReleaseUsage(release_node):
+        pass
+
+    @staticmethod
+    def onDelUsage(del_node):
+        pass
 
     @staticmethod
     def hasShapeListExact():
@@ -287,6 +299,11 @@ class ValueTraceBase(object):
         return None
 
     @staticmethod
+    def getAttributeNodeVeryTrustedMatching(visited):
+        # Virtual method, pylint: disable=unused-argument
+        return None
+
+    @staticmethod
     def getIterationSourceNode():
         """Node to use for iteration decisions."""
         return None
@@ -303,67 +320,28 @@ class ValueTraceBase(object):
         return True
 
 
-def _getAttributeNodeVeryTrustedMatching(trace, visited):
-    # return driven, pylint: disable=too-many-return-statements
-    if trace is None:
-        return None
+class ValueTraceSinglePreviousMixin(object):
+    """Mixin for traces that always have exactly one previous trace."""
 
-    trace_id = id(trace)
+    # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
+    __slots__ = ()
 
-    if trace_id in visited:
-        return Ellipsis
+    def getPrevious(self):
+        return self.previous
 
-    if trace.isMergeTrace() or trace.isLoopTrace():
-        # A loop trace that is not completely analyzed yet only knows the
-        # trace from before the loop, and cannot tell if loop paths change
-        # the value, so it must not be used for propagation. When the value
-        # identity is known to be stable, the entry trace is sufficient.
-        if (
-            trace.isLoopTrace()
-            and not trace.isAnalysisComplete()
-            and not trace.isValueIdentityStable()
-        ):
-            return None
+    def addNameUsage(self):
+        self.usage_count += 1
+        self.name_usage_count += 1
 
-        visited.add(trace_id)
+        if self.name_usage_count <= 2:
+            self.previous.addNameUsage()
 
-        result = Ellipsis
+    def removeNameUsage(self):
+        self.usage_count -= 1
+        self.name_usage_count -= 1
 
-        for previous in trace.previous:
-            previous = _getAttributeNodeVeryTrustedMatching(previous, visited)
-
-            if previous is Ellipsis:
-                continue
-
-            if previous is None:
-                visited.remove(trace_id)
-                return None
-
-            if result is Ellipsis:
-                result = previous
-            elif result is not previous:
-                visited.remove(trace_id)
-                return None
-
-        visited.remove(trace_id)
-
-        if result is Ellipsis:
-            return None
-
-        return result
-
-    if trace.isStartTrace():
-        return None
-
-    if trace.isUnknownTrace() or trace.isEscapeTrace():
-        visited.add(trace_id)
-
-        result = _getAttributeNodeVeryTrustedMatching(trace.previous, visited)
-        visited.remove(trace_id)
-
-        return result
-
-    return trace.getAttributeNodeVeryTrusted()
+        if self.name_usage_count < 2:
+            self.previous.removeNameUsage()
 
 
 class ValueTraceUnassignedBase(ValueTraceBase):
@@ -387,8 +365,7 @@ class ValueTraceUnassignedBase(ValueTraceBase):
         # We are unassigned, just need to know if the other one is, pylint: disable=no-self-use
         return other.isUnassignedTrace()
 
-    @staticmethod
-    def mustHaveValue():
+    def mustHaveValue(self, context=None):
         return False
 
     @staticmethod
@@ -469,7 +446,7 @@ class ValueTraceStartUninitialized(ValueTraceStartMixin, ValueTraceUnassignedBas
         return False
 
 
-class ValueTraceDeleted(ValueTraceUnassignedBase):
+class ValueTraceDeleted(ValueTraceSinglePreviousMixin, ValueTraceUnassignedBase):
     """Trace caused by a deletion."""
 
     __slots__ = (
@@ -537,8 +514,7 @@ class ValueTraceStartInit(ValueTraceStartMixin, ValueTraceBase):
     def isWritingTrace():
         return False
 
-    @staticmethod
-    def mustHaveValue():
+    def mustHaveValue(self, context=None):
         return True
 
     @staticmethod
@@ -584,32 +560,6 @@ class ValueTraceUnknownBase(ValueTraceBase):
     def getReleaseEscape():
         return ControlFlowDescriptionFullEscape
 
-    def addUsage(self):
-        self.usage_count += 1
-
-        if self.previous:
-            self.previous.addUsage()
-
-    def removeUsage(self):
-        self.usage_count -= 1
-
-        if self.previous:
-            self.previous.removeUsage()
-
-    def addMergeUsage(self):
-        self.usage_count += 1
-        self.merge_usage_count += 1
-
-        if self.previous:
-            self.previous.addMergeUsage()
-
-    def removeMergeUsage(self):
-        self.usage_count -= 1
-        self.merge_usage_count -= 1
-
-        if self.previous:
-            self.previous.removeMergeUsage()
-
     def compareValueTrace(self, other):
         # We are unknown, just need to know if the other one is, pylint: disable=no-self-use
         return other.isUnknownTrace()
@@ -633,30 +583,15 @@ class ValueTraceUnknownBase(ValueTraceBase):
     def isTraceThatNeedsEscape():
         return False
 
-    @staticmethod
-    def mustHaveValue():
+    def mustHaveValue(self, context=None):
         return False
 
     @staticmethod
     def mustNotHaveValue():
         return False
 
-    def getAttributeNode(self):
-        # TODO: Differentiate unknown with not previous node from ones with for performance and
-        # clarity.
-        if self.previous is not None:
-            return self.previous.getAttributeNodeVeryTrusted()
 
-    def getAttributeNodeTrusted(self):
-        if self.previous is not None:
-            return self.previous.getAttributeNodeVeryTrusted()
-
-    def getAttributeNodeVeryTrusted(self):
-        if self.previous is not None:
-            return self.previous.getAttributeNodeVeryTrusted()
-
-
-class ValueTraceUnknown(ValueTraceUnknownBase):
+class ValueTraceUnknown(ValueTraceSinglePreviousMixin, ValueTraceUnknownBase):
     __slots__ = ("previous",)
 
     @counted_init
@@ -668,8 +603,48 @@ class ValueTraceUnknown(ValueTraceUnknownBase):
 
         self.previous = previous
 
-    def isUnchangedResumeTrace(self, loop_entry_trace):
-        return self.previous.isUnchangedResumeTrace(loop_entry_trace)
+    def addUsage(self):
+        self.usage_count += 1
+        self.previous.addUsage()
+
+    def removeUsage(self):
+        self.usage_count -= 1
+        self.previous.removeUsage()
+
+    def addMergeUsage(self):
+        self.usage_count += 1
+        self.merge_usage_count += 1
+        self.previous.addMergeUsage()
+
+    def removeMergeUsage(self):
+        self.usage_count -= 1
+        self.merge_usage_count -= 1
+        self.previous.removeMergeUsage()
+
+    def getAttributeNode(self):
+        # TODO: Differentiate unknown with not previous node from ones with for performance and
+        # clarity.
+        return self.previous.getAttributeNodeVeryTrusted()
+
+    def getAttributeNodeTrusted(self):
+        return self.previous.getAttributeNodeVeryTrusted()
+
+    def getAttributeNodeVeryTrusted(self):
+        return self.previous.getAttributeNodeVeryTrusted()
+
+    def getAttributeNodeVeryTrustedMatching(self, visited):
+        if self in visited:
+            return Ellipsis
+
+        visited.add(self)
+
+        try:
+            return self.previous.getAttributeNodeVeryTrustedMatching(visited)
+        finally:
+            visited.remove(self)
+
+    def isUnchangedResumeTrace(self, loop_entry_trace, context):
+        return self.previous.isUnchangedResumeTrace(loop_entry_trace, context)
 
 
 class ValueTraceStartUnknown(ValueTraceStartMixin, ValueTraceUnknownBase):
@@ -729,8 +704,11 @@ class ValueTraceEscaped(ValueTraceUnknown):
     def emitShapeAlternativesForLoop(self, emit, loop_node):
         self.previous.emitShapeAlternativesForLoop(emit, loop_node)
 
-    def mustHaveValue(self):
-        return self.previous.mustHaveValue()
+    def mustHaveValue(self, context=None):
+        return self.previous.mustHaveValue(context)
+
+    def isLoopDependent(self):
+        return self.previous.isLoopDependent()
 
     def mustNotHaveValue(self):
         return self.previous.mustNotHaveValue()
@@ -781,23 +759,66 @@ class ValueTraceEscaped(ValueTraceUnknown):
         return trusted_node is not None and trusted_node.hasShapeDictionaryExact()
 
 
-class ValueTraceAssign(ValueTraceBase):
-    __slots__ = (
-        "previous",
-        "assign_node",
-    )
+class ValueTraceEscapedDefined(ValueTraceUnknown):
+    """Escaped module variable value that is still known to be assigned.
+
+    The value may have been rebound or mutated, so its type shape and attribute
+    knowledge are unknown, but the variable itself remains bound unless module
+    globals are deleted.
+    """
+
+    __slots__ = ()
+
+    def mustHaveValue(self, context=None):
+        return self.previous.mustHaveValue(context)
+
+    def isUnchangedResumeTrace(self, loop_entry_trace, context):
+        return False
+
+    def getAttributeNode(self):
+        return None
+
+    def getAttributeNodeTrusted(self):
+        return None
+
+    def getAttributeNodeVeryTrusted(self):
+        return None
+
+    def getAttributeNodeVeryTrustedMatching(self, visited):
+        return None
+
+    @staticmethod
+    def isUnknownTrace():
+        return False
+
+    @staticmethod
+    def isUnknownOrVeryTrustedTrace():
+        return False
+
+    @staticmethod
+    def isEscapeTrace():
+        return True
+
+    @staticmethod
+    def isWritingTrace():
+        return False
+
+
+class ValueTraceAssignBase(ValueTraceBase):
+    __slots__ = ("assign_node",)
 
     @counted_init
-    def __init__(self, owner, assign_node, previous):
-        # assert assign_node.isStatementAssignmentVariable(), assign_node
-
+    def __init__(self, owner, assign_node):
         self.owner = owner
         self.usage_count = 0
         self.name_usage_count = 0
         self.merge_usage_count = 0
 
-        self.previous = previous
         self.assign_node = assign_node
+
+    @staticmethod
+    def isAssignTrace():
+        return True
 
     def __repr__(self):
         return "<%s at %s of %s>" % (
@@ -805,10 +826,6 @@ class ValueTraceAssign(ValueTraceBase):
             self.assign_node.getSourceReference().getAsString(),
             self.assign_node.subnode_source,
         )
-
-    @staticmethod
-    def isAssignTrace():
-        return True
 
     @staticmethod
     def isUsingTrace():
@@ -821,8 +838,7 @@ class ValueTraceAssign(ValueTraceBase):
     def compareValueTrace(self, other):
         return other.isAssignTrace() and self.assign_node is other.assign_node
 
-    @staticmethod
-    def mustHaveValue():
+    def mustHaveValue(self, context=None):
         return True
 
     @staticmethod
@@ -889,21 +905,70 @@ class ValueTraceAssign(ValueTraceBase):
         else:
             return None
 
+    def getAttributeNodeVeryTrustedMatching(self, visited):
+        return self.getAttributeNodeVeryTrusted()
+
     def getIterationSourceNode(self):
         return self.assign_node.subnode_source
 
     def getDictInValue(self, key):
-        """Value to use for dict in decisions."""
         return self.assign_node.subnode_source.getExpressionDictInConstant(key)
 
     def inhibitsClassScopeForwardPropagation(self):
         return self.assign_node.subnode_source.mayHaveSideEffects()
 
 
+class ValueTraceAssign(ValueTraceSinglePreviousMixin, ValueTraceAssignBase):
+    __slots__ = ("previous",)
+
+    @counted_init
+    def __init__(self, owner, assign_node, previous):
+        # For performance reasons, we don't do super init, but duplicate it here.
+        # pylint: disable=super-init-not-called
+
+        self.owner = owner
+        self.usage_count = 0
+        self.name_usage_count = 0
+        self.merge_usage_count = 0
+
+        self.previous = previous
+        self.assign_node = assign_node
+
+
 class ValueTraceAssignUnescapable(ValueTraceAssign):
     @staticmethod
     def isTraceThatNeedsEscape():
         return False
+
+
+class ValueTraceAssignStartVeryTrusted(ValueTraceAssignBase):
+    """Very trusted value at the start of a trace collection."""
+
+    __slots__ = ()
+
+    @counted_init
+    def __init__(self, owner, assign_node):
+        # For performance reasons, we don't do super init, but duplicate it here.
+        # pylint: disable=super-init-not-called
+
+        self.owner = owner
+        self.usage_count = 0
+        self.name_usage_count = 0
+        self.merge_usage_count = 0
+
+        self.assign_node = assign_node
+
+    @staticmethod
+    def isTraceThatNeedsEscape():
+        return False
+
+    @staticmethod
+    def isAssignTraceVeryTrusted():
+        return True
+
+    @staticmethod
+    def isUnknownOrVeryTrustedTrace():
+        return True
 
 
 class ValueTraceAssignVeryTrusted(ValueTraceAssignUnescapable):
@@ -940,18 +1005,15 @@ class ValueTraceAssignUnescapablePropagated(ValueTraceAssignUnescapable):
         return self.replacement(usage)
 
 
-class ValueTraceAssignIteratorPropagated(ValueTraceAssign):
-    """Assignment of iterator that is replaced by direct access to the iterated value.
+class ValueTraceAssignTracked(ValueTraceAssign):
+    """Assignment trace that records accessing nodes for delayed work."""
 
-    The iterator variable itself becomes unused, only the temp variable
-    holding the iterated value remains, references to the iterator replace
-    themselves with subscripts of it.
-    """
+    # This one has many attributes, pylint: disable=too-many-instance-attributes
 
-    __slots__ = ("tmp_iterated",)
+    __slots__ = ("usages", "releases", "dels")
 
     @counted_init
-    def __init__(self, owner, assign_node, previous, tmp_iterated):
+    def __init__(self, owner, assign_node, previous):
         # For performance reasons, we don't do super init, but duplicate it here.
         # pylint: disable=super-init-not-called
 
@@ -963,28 +1025,45 @@ class ValueTraceAssignIteratorPropagated(ValueTraceAssign):
         self.previous = previous
         self.assign_node = assign_node
 
-        self.tmp_iterated = tmp_iterated
+        self.usages = []
+        self.releases = []
+        self.dels = []
 
-    @staticmethod
-    def isIteratorPropagationTrace():
-        return True
+    def getReplacementNode(self, usage):
+        if self.usages is not None:
+            self.usages.append(usage)
 
-    def getIteratedTempVariable(self):
-        return self.tmp_iterated
+        return None
+
+    def onReleaseUsage(self, release_node):
+        if self.releases is not None:
+            self.releases.append(release_node)
+
+    def onDelUsage(self, del_node):
+        if self.dels is not None:
+            self.dels.append(del_node)
+
+    def clearTrackedNodes(self):
+        self.usages = None
+        self.releases = None
+        self.dels = None
 
 
 class ValueTraceMergeBase(ValueTraceBase):
     """Merge of two or more traces or start of loops."""
 
-    # Base classes can be abstract, pylint: disable=I0021,abstract-method
+    # pylint: disable=I0021,abstract-method,literal-comparison
 
-    __slots__ = ("previous",)
+    __slots__ = ()
+
+    def getPrevious(self):
+        return self.previous
 
     def addNameUsage(self):  # pylint: disable=I0021,too-many-branches
         self.usage_count += 1
         self.name_usage_count += 1
 
-        if self.name_usage_count <= 2 and self.previous is not None:
+        if self.name_usage_count <= 2:
             for previous in self.previous:
                 previous.addNameUsage()
 
@@ -992,23 +1071,21 @@ class ValueTraceMergeBase(ValueTraceBase):
         self.usage_count -= 1
         self.name_usage_count -= 1
 
-        if self.name_usage_count < 2 and self.previous is not None:
+        if self.name_usage_count < 2:
             for previous in self.previous:
                 previous.removeNameUsage()
 
     def addUsage(self):
         self.usage_count += 1
 
-        # Only do it once.
-        if self.usage_count == 1:
+        if self.usage_count is 1:
             for trace in self.previous:
                 trace.addMergeUsage()
 
     def removeUsage(self):
         self.usage_count -= 1
 
-        # Only do it once.
-        if self.usage_count == 0:
+        if self.usage_count is 0:
             for trace in self.previous:
                 trace.removeMergeUsage()
 
@@ -1044,60 +1121,114 @@ class ValueTraceMergeBase(ValueTraceBase):
 
         return result_available, result
 
+    def getAttributeNodeVeryTrustedMatching(self, visited):
+        if self in visited:
+            return Ellipsis
+
+        visited.add(self)
+        result = Ellipsis
+
+        try:
+            for previous in self.previous:
+                previous = previous.getAttributeNodeVeryTrustedMatching(visited)
+
+                if previous is Ellipsis:
+                    continue
+
+                if previous is None:
+                    return None
+
+                if result is Ellipsis:
+                    result = previous
+                elif result is not previous:
+                    return None
+        finally:
+            visited.remove(self)
+
+        if result is Ellipsis:
+            return None
+
+        return result
+
     def getAttributeNode(self):
-        return _getAttributeNodeVeryTrustedMatching(self, set())
+        return self.getAttributeNodeVeryTrustedMatching(set())
 
     def getAttributeNodeTrusted(self):
-        return _getAttributeNodeVeryTrustedMatching(self, set())
+        return self.getAttributeNodeVeryTrustedMatching(set())
 
     def getAttributeNodeVeryTrusted(self):
-        return _getAttributeNodeVeryTrustedMatching(self, set())
+        return self.getAttributeNodeVeryTrustedMatching(set())
 
 
-class ValueTraceMerge(ValueTraceMergeBase):
-    """Merge of two or more traces.
+class MustHaveValueQueryContext(object):
+    """State of a single 'mustHaveValue' query.
 
-    Happens at the end of conditional blocks. This is "phi" in
-    SSA theory. Also used for merging multiple "return", "break" or
-    "continue" exits.
+    Merges that involve loop traces cannot cache their answer on the trace
+    itself, because loop traces only become final when the loop analysis
+    completes. Within a single query though, the trace graph does not change,
+    so answers can be cached to avoid exponential revisits of shared merge
+    traces.
+
+    While a loop trace assumes itself to have a value, results are only valid
+    under that assumption, and therefore get their own cache scope, which is
+    discarded when the assumption no longer applies.
     """
 
+    __slots__ = ("cache", "cache_stack")
+
+    def __init__(self):
+        self.cache = {}
+        self.cache_stack = []
+
+    def pushScope(self):
+        self.cache_stack.append(self.cache)
+        self.cache = {}
+
+    def popScope(self):
+        self.cache = self.cache_stack.pop()
+
+
+class UnchangedResumeTraceQueryContext(object):
+    """State of a single 'isUnchangedResumeTrace' query.
+
+    Merge traces form a shared graph, and without caching answers, visiting
+    all paths through it can take exponential time. Within a single query,
+    the trace graph does not change, so answers can be cached to avoid
+    revisiting shared merge traces.
+    """
+
+    __slots__ = ("cache",)
+
+    def __init__(self):
+        self.cache = {}
+
+
+# States of the "must have value" decision of a merge trace. The values are
+# interned small integers, so identity comparisons are intentional.
+#
+#   0 - unknown
+#   1 - not loop dependent
+#   2 - loop dependent
+#   3 - must have value
+#   4 - must not have value
+#
+# pylint: disable=literal-comparison
+
+
+class ValueTraceMergeMethodsMixin(object):
+    """Mixin with merge trace decision methods."""
+
+    # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
     __slots__ = ()
 
-    @counted_init
-    def __init__(self, traces):
-        shorted = []
-
-        for trace in traces:
-            if type(trace) is ValueTraceMerge:
-                for trace2 in trace.previous:
-                    if trace2 not in shorted:
-                        shorted.append(trace2)
-            else:
-                if trace not in shorted:
-                    shorted.append(trace)
-
-        if _is_debug:
-            assert len(shorted) > 1, traces
-
-        traces = tuple(shorted)
-
-        self.owner = traces[0].owner
-        self.previous = traces
-
-        self.usage_count = 0
-        self.name_usage_count = 0
-        self.merge_usage_count = 0
-
     def __repr__(self):
-        return "<ValueTraceMerge of {previous}>".format(previous=self.previous)
+        return "<%s of %s>" % (self.__class__.__name__, self.previous)
 
-    def emitShapeAlternativesForLoop(self, emit, loop_node):
-        # TODO: Need to consider loop_node by asking for emission from
-        # all self.previous.
-        # TODO: Also make the method abstract in ValueTraceBase, to avoid
-        # accidental missing overloads.
-        self.getTypeShape().emitAlternatives(emit)
+    def extendPreviousTraces(self, result, seen):
+        for previous in self.previous:
+            if previous not in seen:
+                seen.add(previous)
+                result.append(previous)
 
     def getTypeShape(self):
         type_shape_found = None
@@ -1137,6 +1268,10 @@ class ValueTraceMerge(ValueTraceMergeBase):
     def isMergeTrace():
         return True
 
+    @staticmethod
+    def isPlainMergeTrace():
+        return True
+
     def isUsingTrace(self):
         # Checking definite is enough, the merges, we shall see them as well.
         return self.usage_count
@@ -1146,7 +1281,7 @@ class ValueTraceMerge(ValueTraceMergeBase):
         return False
 
     def compareValueTrace(self, other):
-        if not other.isMergeTrace():
+        if type(other) is not type(self):
             return False
 
         if len(self.previous) != len(other.previous):
@@ -1158,18 +1293,73 @@ class ValueTraceMerge(ValueTraceMergeBase):
 
         return True
 
-    def isUnchangedResumeTrace(self, loop_entry_trace):
-        return all(
-            previous.isUnchangedResumeTrace(loop_entry_trace)
-            for previous in self.previous
-        )
+    def isUnchangedResumeTrace(self, loop_entry_trace, context):
+        cached = context.cache.get(self)
 
-    def mustHaveValue(self):
+        if cached is not None:
+            return cached
+
+        result = True
+
         for previous in self.previous:
-            if not previous.isInitTrace() and not previous.isAssignTrace():
-                return False
+            if not previous.isUnchangedResumeTrace(loop_entry_trace, context):
+                result = False
+                break
 
-        return True
+        context.cache[self] = result
+
+        return result
+
+    def isLoopDependent(self):
+        state = self.must_have_value_state
+
+        if state is 0:  # unknown
+            state = 1  # not loop dependent
+
+            for previous in self.previous:
+                if previous.isLoopDependent():
+                    state = 2  # loop dependent
+                    break
+
+            self.must_have_value_state = state
+
+        return state is 2  # loop dependent
+
+    def mustHaveValue(self, context=None):
+        state = self.must_have_value_state
+
+        if state is 3:  # must have value
+            return True
+
+        if state is 4:  # must not have value
+            return False
+
+        loop_dependent = self.isLoopDependent()
+
+        if loop_dependent:
+            if context is None:
+                context = MustHaveValueQueryContext()
+            else:
+                cached = context.cache.get(self)
+
+                if cached is not None:
+                    return cached
+
+        result = True
+
+        for previous in self.previous:
+            if not previous.mustHaveValue(context):
+                result = False
+                break
+
+        if not loop_dependent:
+            self.must_have_value_state = (
+                3 if result else 4  # must have value / must not have value
+            )
+        else:
+            context.cache[self] = result
+
+        return result
 
     def mustNotHaveValue(self):
         for previous in self.previous:
@@ -1179,39 +1369,63 @@ class ValueTraceMerge(ValueTraceMergeBase):
         return True
 
     def hasShapeListExact(self):
-        return all(previous.hasShapeListExact() for previous in self.previous)
+        for previous in self.previous:
+            if not previous.hasShapeListExact():
+                return False
+
+        return True
 
     def hasShapeDictionaryExact(self):
-        return all(previous.hasShapeDictionaryExact() for previous in self.previous)
+        for previous in self.previous:
+            if not previous.hasShapeDictionaryExact():
+                return False
+
+        return True
 
     def getTruthValue(self):
-        any_false = False
-        any_true = False
+        previous_iter = iter(self.previous)
+        result = next(previous_iter).getTruthValue()
 
-        for previous in self.previous:
-            truth_value = previous.getTruthValue()
+        if result is None:
+            return None
 
-            # One unknown kills it.
-            if truth_value is None:
+        for previous in previous_iter:
+            if previous.getTruthValue() is not result:
                 return None
-            elif truth_value is True:
-                # True and false values resembled unknown.
-                if any_false:
-                    return None
-                any_true = True
-            else:
-                # True and false values resembled unknown.
-                if any_true:
-                    return None
-                any_false = True
 
-        # Now all agreed and were not unknown, so we can conclude all false or all true.
-        return any_true
+        return result
 
-    def getComparisonValue(self):
+    @staticmethod
+    def getComparisonValue():
         # TODO: Support multiple values as candidates, e.g. both 1, 3 could be compared to 2, for
         # now we are delaying that.
         return False, None
+
+
+class ValueTraceMerge(ValueTraceMergeMethodsMixin, ValueTraceMergeBase):
+    """Merge of two or more traces.
+
+    Happens at the end of conditional blocks. This is "phi" in
+    SSA theory. Also used for merging multiple "return", "break" or
+    "continue" exits.
+    """
+
+    __slots__ = ("previous", "must_have_value_state")
+
+    @counted_init
+    def __init__(self, traces):
+        traces = tuple(traces)
+
+        self.owner = traces[0].owner
+        self.previous = traces
+
+        self.usage_count = 0
+        self.name_usage_count = 0
+        self.merge_usage_count = 0
+        self.must_have_value_state = 0  # unknown
+
+
+# pylint: enable=literal-comparison
 
 
 class ValueTraceLoop(ValueTraceMergeBase):
@@ -1225,6 +1439,7 @@ class ValueTraceLoop(ValueTraceMergeBase):
     # This one has many attributes, pylint: disable=too-many-instance-attributes
     __slots__ = (
         "loop_node",
+        "previous",
         "type_shapes",
         "type_shape",
         "shapes_incomplete",
@@ -1280,6 +1495,10 @@ class ValueTraceLoop(ValueTraceMergeBase):
         return True
 
     @staticmethod
+    def isLoopDependent():
+        return True
+
+    @staticmethod
     def isUsingTrace():
         return True
 
@@ -1318,6 +1537,12 @@ class ValueTraceLoop(ValueTraceMergeBase):
     def isValueIdentityStable(self):
         return self.value_identity_stable
 
+    def getAttributeNodeVeryTrustedMatching(self, visited):
+        if not self.isAnalysisComplete() and not self.isValueIdentityStable():
+            return None
+
+        return ValueTraceMergeBase.getAttributeNodeVeryTrustedMatching(self, visited)
+
     def markLoopTraceComplete(self):
         self.analysis_complete = True
 
@@ -1339,12 +1564,12 @@ class ValueTraceLoop(ValueTraceMergeBase):
         # TODO: May consider the shapes for better result
         return ControlFlowDescriptionFullEscape
 
-    def mustHaveValue(self):
+    def mustHaveValue(self, context=None):
         # A stable value identity means the loop paths do not rebind the
         # variable, so the value from before the loop is what is seen on
         # every iteration, and only that entry trace needs to answer.
         if self.value_identity_stable:
-            return self.previous[0].mustHaveValue()
+            return self.previous[0].mustHaveValue(context)
 
         # Without complete loop analysis, the loop may still delete or assign
         # the variable. The answer from the previous pass is used then, so
@@ -1356,15 +1581,31 @@ class ValueTraceLoop(ValueTraceMergeBase):
         if self.recursion:
             return True
 
+        if context is None:
+            context = MustHaveValueQueryContext()
+        else:
+            cached = context.cache.get(self)
+
+            if cached is not None:
+                return cached
+
         self.recursion = True
+        context.pushScope()
 
-        for previous in self.previous:
-            if not previous.mustHaveValue():
-                self.recursion = False
-                return False
+        try:
+            for previous in self.previous:
+                if not previous.mustHaveValue(context):
+                    result = False
+                    break
+            else:
+                result = True
+        finally:
+            context.popScope()
+            self.recursion = False
 
-        self.recursion = False
-        return True
+        context.cache[self] = result
+
+        return result
 
     @staticmethod
     def mustNotHaveValue():
@@ -1413,17 +1654,6 @@ _str_plus_unicode_shape = frozenset((tshape_unicode, tshape_str))
 _only_bytes_shape = frozenset((tshape_bytes,))
 _only_type_shape = frozenset((tshape_type,))
 _only_bool_shape = frozenset((tshape_bool,))
-
-
-_is_debug = None
-
-
-def setupValueTraceFromOptions():
-    # singleton, pylint: disable=global-statement
-
-    global _is_debug
-    _is_debug = states.is_debug
-
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.

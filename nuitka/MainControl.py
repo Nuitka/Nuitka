@@ -10,6 +10,7 @@ a distribution folder.
 
 """
 
+import gc
 import os
 import sys
 
@@ -19,6 +20,7 @@ from nuitka.build.SconsInterface import (
     applyPreprocessorSymbols,
     provideStaticSourceFilesBackend,
 )
+from nuitka.build.SconsSourceIndex import createSourceFilesIndex
 from nuitka.build.SconsUtils import (
     getSconsCompilerUsed,
     getSconsReportValue,
@@ -48,9 +50,11 @@ from nuitka.freezer.IncludedEntryPoints import (
     addIncludedEntryPoints,
     addMainEntryPoint,
     getStandaloneEntryPoints,
+    restoreStandaloneEntryPoints,
 )
 from nuitka.freezer.LinuxApp import createLinuxAppFiles
 from nuitka.freezer.MacOSApp import addIncludedDataFilesFromMacOSAppOptions
+from nuitka.HardImportRegistry import setupHardImportsForTarget
 from nuitka.importing.Importing import (
     getRecompileDecisionReason,
     setupImportingFromOptions,
@@ -62,7 +66,7 @@ from nuitka.importing.Recursion import (
     scanPluginPath,
 )
 from nuitka.installer.Installer import createInstallerDispatch
-from nuitka.optimizations.ValueTraces import setupValueTraceFromOptions
+from nuitka.options.Experimental import isExperimental
 from nuitka.options.Options import (
     assumeYesForDownloads,
     getDebuggerName,
@@ -76,6 +80,7 @@ from nuitka.options.Options import (
     getMustIncludePackages,
     getOutputDir,
     getPgoArgs,
+    getPgoExecutable,
     getPositionalArgs,
     getPythonPgoInput,
     getShallFollowExtra,
@@ -92,12 +97,12 @@ from nuitka.options.Options import (
     hasPythonFlagNoDocStrings,
     hasPythonFlagNoRandomization,
     hasPythonFlagNoSite,
+    hasPythonFlagNoUnraisable,
     hasPythonFlagNoWarnings,
     hasPythonFlagTraceImports,
     hasPythonFlagUnbuffered,
     isCompileTimeProfile,
     isCPgoMode,
-    isExperimental,
     isLowMemory,
     isMultidistMode,
     isOnefileMode,
@@ -137,11 +142,7 @@ from nuitka.plugins.Hooks import (
 )
 from nuitka.plugins.PluginsUsage import printPluginUsageStats
 from nuitka.PostProcessing import executePostProcessing
-from nuitka.Progress import (
-    closeProgressBar,
-    reportProgressBar,
-    setupProgressBar,
-)
+from nuitka.Progress import reportProgressBar, withProgressBar
 from nuitka.PythonFlavors import (
     getPythonFlavorName,
     isApplePython,
@@ -153,14 +154,23 @@ from nuitka.PythonFlavors import (
     isPythonBuildStandalonePython,
 )
 from nuitka.PythonVersions import (
+    freezeGc,
     getModuleLinkerLibs,
     getPythonABI,
     getSupportedPythonVersions,
     isPythonWithGil,
     python_version,
     python_version_str,
+    unfreezeGc,
 )
 from nuitka.Serialization import ConstantAccessor
+from nuitka.targets.Targets import (
+    getTargetPythonSconsOptions,
+    getTargetSpecification,
+    getTargetSystemStaticLibPythonPath,
+    isWasiTarget,
+    isWin32Target,
+)
 from nuitka.Tracing import (
     code_generation_logger,
     doNotBreakSpaces,
@@ -173,7 +183,9 @@ from nuitka.tree.ReformulationMultidist import createMultidistMainSourceCode
 from nuitka.utils.Distributions import getDistribution, getDistributionName
 from nuitka.utils.Execution import (
     executeCompiledBinary,
+    getEnvironmentPathAdded,
     withEnvironmentVarOverridden,
+    withEnvironmentVarsOverridden,
     wrapCommandForDebuggerForExec,
 )
 from nuitka.utils.FileOperations import (
@@ -183,6 +195,8 @@ from nuitka.utils.FileOperations import (
     getNormalizedPathJoin,
     getReportPath,
     isFilesystemEncodable,
+    makeFilesystemEncodable,
+    makePath,
     openTextFile,
     removeDirectory,
 )
@@ -190,9 +204,13 @@ from nuitka.utils.Importing import hasPackageDirFilename
 from nuitka.utils.InstanceCounters import printInstanceCounterStats
 from nuitka.utils.MemoryUsage import reportMemoryUsage, showMemoryTrace
 from nuitka.utils.ReExecute import callExecProcess, reExecuteNuitka
-from nuitka.utils.StaticLibraries import getSystemStaticLibPythonPath
 from nuitka.utils.Timing import withProfiling
-from nuitka.utils.Utils import getArchitecture, isMacOS, isWin32Windows
+from nuitka.utils.Utils import (
+    getArchitecture,
+    isMacOS,
+    isWin32OrPosixWindows,
+    isWin32Windows,
+)
 from nuitka.Version import getCommercialVersion, getNuitkaVersion
 from nuitka.VersionCheck import checkNuitkaUpdate
 
@@ -412,9 +430,9 @@ def pickSourceFilenames(source_dir, modules):
         being duplicate copies, e.g. a package named the same as the main
         binary.
 
-        Conflicts are resolved by appending @<number> with a count in the
-        list of sorted modules. We try to be reproducible here, so we get
-        still good caching for external tools.
+        Conflicts, overly long names, and unencodable names fall back to a
+        deterministic 'module.hashed_...' filename so external compiler caches
+        stay reproducible.
     """
 
     collision_filenames = set()
@@ -550,55 +568,44 @@ def makeSourceDirectory():
         modules=compiled_modules,
     )
 
-    setupProgressBar(
+    with withProgressBar(
         stage="C Source Generation",
         unit="module",
         total=len(compiled_modules),
-    )
+    ):
+        # Generate code for compiled modules, this can be slow, so do it
+        # separately with a progress bar.
+        for current_module in compiled_modules:
+            module_name = current_module.getFullName()
+            c_filename = module_filenames[current_module]
 
-    # Generate code for compiled modules, this can be slow, so do it separately
-    # with a progress bar.
-    for current_module in compiled_modules:
-        module_name = current_module.getFullName()
-        c_filename = module_filenames[current_module]
+            reportProgressBar(
+                item=module_name,
+            )
 
-        reportProgressBar(
-            item=module_name,
-        )
+            source_code = generateModuleCode(
+                module=current_module,
+                data_filename=changeFilenameExtension(
+                    os.path.basename(c_filename), ".const"
+                ),
+            )
 
-        source_code = generateModuleCode(
-            module=current_module,
-            data_filename=changeFilenameExtension(
-                os.path.basename(c_filename), ".const"
-            ),
-        )
-
-        writeSourceCode(
-            filename=c_filename,
-            source_code=source_code,
-            logger=code_generation_logger,
-            assume_yes_for_downloads=assumeYesForDownloads(),
-        )
-
-    closeProgressBar()
+            writeSourceCode(
+                filename=c_filename,
+                source_code=source_code,
+                logger=code_generation_logger,
+                assume_yes_for_downloads=assumeYesForDownloads(),
+            )
 
     (
-        helper_decl_code,
-        helper_impl_code,
+        helper_impl_codes,
         constants_header_code,
         constants_body_code,
     ) = generateHelpersCode()
 
     writeSourceCode(
-        filename=getNormalizedPathJoin(source_dir, "__helpers.h"),
-        source_code=helper_decl_code,
-        logger=code_generation_logger,
-        assume_yes_for_downloads=assumeYesForDownloads(),
-    )
-
-    writeSourceCode(
         filename=getNormalizedPathJoin(source_dir, "__helpers.c"),
-        source_code=helper_impl_code,
+        source_code=helper_impl_codes,
         logger=code_generation_logger,
         assume_yes_for_downloads=assumeYesForDownloads(),
     )
@@ -620,20 +627,18 @@ def makeSourceDirectory():
     return module_filenames
 
 
-def _getPgoCommand():
-    return [getExternalUsePath(OutputDirectories.getPgoRunExecutable())] + getPgoArgs()
+def _getPgoCommand(pgo_executable):
+    return [getExternalUsePath(pgo_executable)] + getPgoArgs()
 
 
-def _runPgoBinary():
-    pgo_executable = OutputDirectories.getPgoRunExecutable()
-
+def _runPgoBinary(pgo_executable):
     if not os.path.isfile(pgo_executable):
         return general.sysexit(
             "Error, failed to produce PGO binary '%s'" % pgo_executable
         )
 
     return executeCompiledBinary(
-        args=_getPgoCommand(),
+        args=_getPgoCommand(pgo_executable),
         shell=False,
         logger=pgo_logger,
     )
@@ -644,17 +649,16 @@ def _deleteMsvcPGOFiles(pgo_mode):
         OutputDirectories.getSourceDirectoryPath(onefile=False, create=False)
     ) in ("MSVC", "ClangCL")
 
-    msvc_pgc_filename = OutputDirectories.getResultBasePath(onefile=False) + "!1.pgc"
+    msvc_pgc_filename = OutputDirectories.getMsvcPgoPgcFilename()
     deleteFile(msvc_pgc_filename, must_exist=False)
 
     if pgo_mode == "use":
-        msvc_pgd_filename = OutputDirectories.getResultBasePath(onefile=False) + ".pgd"
-        deleteFile(msvc_pgd_filename, must_exist=False)
+        deleteFile(OutputDirectories.getMsvcPgoPgdFilename(), must_exist=False)
 
     return msvc_pgc_filename
 
 
-def _runCPgoBinary():
+def _runCPgoBinary(pgo_executable):
     # Note: For exit codes, we do not insist on anything yet, maybe we could point it out
     # or ask people to make scripts that buffer these kinds of errors, and take an error
     # instead as a serious failure.
@@ -668,20 +672,28 @@ def _runCPgoBinary():
     ) in ("MSVC", "ClangCL"):
         msvc_pgc_filename = _deleteMsvcPGOFiles(pgo_mode="generate")
 
-        with withEnvironmentVarOverridden(
-            "PATH",
-            getSconsReportValue(
-                source_dir=OutputDirectories.getSourceDirectoryPath(
-                    onefile=False, create=False
+        with withEnvironmentVarsOverridden(
+            {
+                "PATH": getSconsReportValue(
+                    source_dir=OutputDirectories.getSourceDirectoryPath(
+                        onefile=False, create=False
+                    ),
+                    key="PATH",
                 ),
-                key="PATH",
-            ),
+                # MSVC writes the ".pgc" files next to the profiled binary by
+                # default, but the build directory is where they belong.
+                "VCPROFILE_PATH": getExternalUsePath(
+                    OutputDirectories.getSourceDirectoryPath(
+                        onefile=False, create=False
+                    )
+                ),
+            }
         ):
-            exit_code_pgo = _runPgoBinary()
+            exit_code_pgo = _runPgoBinary(pgo_executable)
 
         pgo_data_collected = os.path.exists(msvc_pgc_filename)
     else:
-        exit_code_pgo = _runPgoBinary()
+        exit_code_pgo = _runPgoBinary(pgo_executable)
 
         # gcc file suffix, spell-checker: ignore gcda
         gcc_constants_pgo_filename = getNormalizedPathJoin(
@@ -704,21 +716,15 @@ did the created binary run at all?""")
     pgo_logger.info("Successfully collected C level PGO information.", style="blue")
 
 
-def _runPythonPgoBinary():
-    # Note: For exit codes, we do not insist on anything yet, maybe we could point it out
-    # or ask people to make scripts that buffer these kinds of errors, and take an error
-    # instead as a serious failure.
-
+def _runPythonPgoBinary(pgo_executable):
     pgo_filename = OutputDirectories.getPgoRunInputFilename()
-
-    pgo_executable = OutputDirectories.getPgoRunExecutable()
 
     if not os.path.isfile(pgo_executable):
         return general.sysexit(
             "Error, failed to produce PGO binary '%s'" % pgo_executable
         )
 
-    pgo_command = _getPgoCommand()
+    pgo_command = _getPgoCommand(pgo_executable)
 
     with withEnvironmentVarOverridden("NUITKA_PGO_OUTPUT", pgo_filename):
         exit_code = executeCompiledBinary(
@@ -751,6 +757,11 @@ def runSconsBackend():
     # have checks for them, leading to many branches and statements,
     # pylint: disable=too-many-branches,too-many-statements
     scons_options, env_values = getCommonSconsOptions()
+
+    target_python_scons_options = getTargetPythonSconsOptions()
+
+    if target_python_scons_options is not None:
+        scons_options.update(sorted(target_python_scons_options.items()))
 
     source_dir = OutputDirectories.getSourceDirectoryPath(
         onefile=False,
@@ -793,7 +804,7 @@ def runSconsBackend():
             scons_options["main_module_name"] = main_module_name
 
     if shallUseStaticLibPython():
-        scons_options["static_libpython"] = getSystemStaticLibPythonPath(
+        scons_options["static_libpython"] = getTargetSystemStaticLibPythonPath(
             python_debug=shallUsePythonDebug()
         )
 
@@ -829,6 +840,9 @@ def runSconsBackend():
 
     if hasPythonFlagNoWarnings():
         scons_options["no_python_warnings"] = asBoolStr(True)
+
+    if hasPythonFlagNoUnraisable():
+        scons_options["no_unraisable"] = asBoolStr(True)
 
     if hasPythonFlagNoAsserts():
         scons_options["python_sysflag_optimize"] = str(
@@ -882,11 +896,7 @@ def runSconsBackend():
     if hasPythonFlagUnbuffered():
         scons_options["python_sysflag_unbuffered"] = asBoolStr(True)
 
-    # The Python PGO input build is compiled as accelerated mode and has to
-    # load the standard library from "sys.path" during its profiling run, so
-    # the isolation effect cannot be applied to it. The actual build after the
-    # re-execution will apply it normally.
-    if hasPythonFlagIsolated() and not shallCreatePythonPgoInput():
+    if hasPythonFlagIsolated():
         scons_options["python_sysflag_isolated"] = asBoolStr(True)
 
     abiflags = getPythonABI(python_debug=shallUsePythonDebug())
@@ -899,6 +909,11 @@ def runSconsBackend():
 
     # Allow plugins to build definitions.
     env_values.update(getBuildDefinitions())
+
+    if isCPgoMode():
+        # Keep MSVC profile data in the build directory, rather than in the
+        # distribution, which is reset between the two compilation passes.
+        scons_options["pgo_pgd_filename"] = OutputDirectories.getMsvcPgoPgdFilename()
 
     if shallCreatePythonPgoInput():
         scons_options["pgo_mode"] = "python"
@@ -918,35 +933,72 @@ def runSconsBackend():
 
         # Need to make it usable before executing it.
         executePostProcessing(scons_options["result_exe"])
-        _runPythonPgoBinary()
+
+        # A standalone profiling run needs the full distribution, or else
+        # programs requiring their data files or DLLs cannot run. The
+        # re-execution after the run will reset and recreate the distribution.
+        if (
+            isStandaloneMode()
+            and not shallOnlyExecCCompilerCall()
+            and getPgoExecutable() is None
+        ):
+            _prepareStandaloneDistribution(
+                scons_options=scons_options,
+                dist_dir=OutputDirectories.getStandaloneDirectoryPath(
+                    bundle=True, real=False
+                ),
+                for_c_pgo=False,
+            )
+
+        _runPythonPgoBinary(OutputDirectories.getPgoRunExecutable())
 
         return True, scons_options
 
-        # Need to restart compilation from scratch here.
     if isCPgoMode():
-        # For C level PGO, we have a 2 pass system. TODO: Make it more global for onefile
-        # and standalone mode proper support, which might need data files to be
-        # there, which currently are not yet there, so it won't run.
-        if isCPgoMode():
-            scons_options["pgo_mode"] = "generate"
+        # For C level PGO, we have a 2 pass system.
+        scons_options["pgo_mode"] = "generate"
 
-            applyPreprocessorSymbols(scons_options, onefile=False)
+        applyPreprocessorSymbols(scons_options, onefile=False)
 
-            result = runScons(
+        result = runScons(
+            scons_options=scons_options,
+            env_values=env_values,
+            scons_filename="Backend.scons",
+            source_dir=source_dir,
+            source_dir_external=source_dir_external,
+        )
+
+        if not result:
+            return result, scons_options
+
+        # Need to make it usable before executing it.
+        executePostProcessing(scons_options["result_exe"])
+
+        # The standalone profiling run needs the full distribution, or
+        # else programs requiring their data files or DLLs cannot run.
+        entry_points_before = None
+
+        if (
+            isStandaloneMode()
+            and not shallOnlyExecCCompilerCall()
+            and getPgoExecutable() is None
+        ):
+            entry_points_before = getStandaloneEntryPoints()
+
+            _prepareStandaloneDistribution(
                 scons_options=scons_options,
-                env_values=env_values,
-                scons_filename="Backend.scons",
-                source_dir=source_dir,
-                source_dir_external=source_dir_external,
+                dist_dir=OutputDirectories.getStandaloneDirectoryPath(
+                    bundle=True, real=False
+                ),
+                for_c_pgo=True,
             )
 
-            if not result:
-                return result, scons_options
+        _runCPgoBinary(OutputDirectories.getPgoRunExecutable())
 
-            # Need to make it usable before executing it.
-            executePostProcessing(scons_options["result_exe"])
-            _runCPgoBinary()
-            scons_options["pgo_mode"] = "use"
+        if entry_points_before is not None:
+            _resetStandaloneDistributionForCPgo(entry_points_before)
+
+        scons_options["pgo_mode"] = "use"
 
     applyPreprocessorSymbols(scons_options, onefile=False)
 
@@ -975,10 +1027,7 @@ def runSconsBackend():
 
 def callExecPython(args, add_path, uac):
     if add_path:
-        if "PYTHONPATH" in os.environ:
-            os.environ["PYTHONPATH"] += ":" + getOutputDir()
-        else:
-            os.environ["PYTHONPATH"] = getOutputDir()
+        os.environ["PYTHONPATH"] = getEnvironmentPathAdded("PYTHONPATH", getOutputDir())
 
     # Add the main arguments, previous separated.
     args += getPositionalArgs()[1:] + getMainArgs()
@@ -991,6 +1040,27 @@ def callExecPython(args, add_path, uac):
 
 
 def _executeMain(binary_filename):
+    if isWasiTarget() or (isWin32Target() and not isWin32OrPosixWindows()):
+        return callExecPython(
+            args=getTargetSpecification().getTargetExecCommand(binary_filename),
+            add_path=False,
+            uac=False,
+        )
+
+    if (
+        isWin32Windows()
+        and not isStandaloneMode()
+        and not shallCreateScriptFileForExecution()
+    ):
+        # No launcher script is created, but extension modules still have to
+        # be found through the exact sys.path of the running Python.
+        os.environ["NUITKA_PYTHONPATH"] = os.pathsep.join(
+            makeFilesystemEncodable(path) for path in sys.path
+        )
+
+    if isWin32Windows() and not os.path.dirname(binary_filename):
+        binary_filename = ".\\" + binary_filename
+
     # Wrap in debugger, unless the CMD file contains that call already.
     if shallRunInDebugger() and not shallCreateScriptFileForExecution():
         args = wrapCommandForDebuggerForExec(
@@ -1000,7 +1070,7 @@ def _executeMain(binary_filename):
     else:
         args = (binary_filename, binary_filename)
 
-    callExecPython(
+    return callExecPython(
         args=args,
         add_path=False,
         uac=isWin32Windows() and shallAskForWindowsAdminRights(),
@@ -1071,6 +1141,10 @@ def compileTree():
             ),
         )
 
+        # The module trees remain needed until the end of code generation, but
+        # are not mutated during it, so keep the collector from traversing them.
+        freezeGc()
+
         # Now build the target language code for the whole tree.
         with withProfiling(
             name="code-generation",
@@ -1103,7 +1177,7 @@ def compileTree():
             onefile=False, create=False
         )
 
-        if not os.path.isfile(os.path.join(source_dir, "__helpers.h")):
+        if not os.path.isfile(os.path.join(source_dir, "__helpers.c")):
             return general.sysexit("Error, no previous build directory exists.")
 
     reportMemoryUsage(
@@ -1130,6 +1204,8 @@ def compileTree():
     writeExtraCodeFiles(onefile=False)
 
     provideStaticSourceFilesBackend(source_dir=source_dir)
+
+    createSourceFilesIndex(source_dir=source_dir)
 
     onGeneratedSourceCode(source_dir, onefile=False)
 
@@ -1180,32 +1256,95 @@ def _considerPgoInput():
 
 def _detectEarlyDLLs():
     assert isStandaloneMode()
+
+    target_spec = getTargetSpecification()
     modules = ModuleRegistry.getDoneModules()
 
     for module in modules:
-        if module.isPythonExtensionModule():
+        if target_spec.hasTargetSupportForDLLs() and module.isPythonExtensionModule():
             addExtensionModuleEntryPoint(module)
 
         addIncludedEntryPoints(considerExtraDlls(module))
 
-    detectUsedDLLs(
-        standalone_entry_points=getStandaloneEntryPoints(),
-        source_dir=OutputDirectories.getSourceDirectoryPath(
-            onefile=False, create=False
-        ),
-    )
+    if target_spec.hasTargetSupportForDLLs():
+        detectUsedDLLs(
+            standalone_entry_points=getStandaloneEntryPoints(),
+            source_dir=OutputDirectories.getSourceDirectoryPath(
+                onefile=False, create=False
+            ),
+        )
 
 
 def _detectLateDLLs(scons_options):
     assert isStandaloneMode()
-    binary_filename = scons_options["result_exe"]
 
-    detectUsedDLLs(
-        standalone_entry_points=(addMainEntryPoint(binary_filename),),
-        source_dir=OutputDirectories.getSourceDirectoryPath(
-            onefile=False, create=False
-        ),
+    binary_filename = scons_options["result_exe"]
+    main_entry_point = addMainEntryPoint(binary_filename)
+
+    if getTargetSpecification().hasTargetSupportForDLLs():
+        detectUsedDLLs(
+            standalone_entry_points=(main_entry_point,),
+            source_dir=OutputDirectories.getSourceDirectoryPath(
+                onefile=False, create=False
+            ),
+        )
+
+
+def _prepareStandaloneDistribution(scons_options, dist_dir, for_c_pgo):
+    """Copy DLLs and data files into a standalone distribution.
+
+    Args:
+        scons_options: Scons options of the built program.
+        dist_dir: Distribution directory to prepare.
+        for_c_pgo: Whether this is the distribution for the C level PGO
+            profiling run, which is discarded later, and therefore must not
+            register the main binary PDB file for inclusion.
+
+    Returns:
+        list: Paths of the copied data files.
+    """
+    assert isStandaloneMode()
+
+    _detectLateDLLs(scons_options)
+
+    main_standalone_entry_point, copy_standalone_entry_points = copyDllsUsed(
+        dist_dir=dist_dir,
+        standalone_entry_points=getStandaloneEntryPoints(),
+        for_c_pgo=for_c_pgo,
     )
+
+    data_file_paths = copyDataFiles(
+        standalone_entry_points=getStandaloneEntryPoints(),
+        dist_dir=dist_dir,
+    )
+
+    if isMacOS():
+        signDistributionMacOS(
+            dist_dir=dist_dir,
+            data_file_paths=data_file_paths,
+            main_standalone_entry_point=main_standalone_entry_point,
+            copy_standalone_entry_points=copy_standalone_entry_points,
+        )
+
+    return data_file_paths
+
+
+def _resetStandaloneDistributionForCPgo(entry_points_before):
+    """Reset the distribution after the C level PGO profiling run.
+
+    Notes:
+        The second compilation pass has to build into a clean distribution,
+        so that the DLL selection is done again for the final binary.
+
+    Args:
+        entry_points_before: Entry points before the profiling distribution
+            was prepared.
+    """
+    OutputDirectories.initStandaloneDirectory(logger=general)
+
+    makePath(OutputDirectories.getStandaloneDirectoryPath(bundle=True, real=False))
+
+    restoreStandaloneEntryPoints(entry_points_before)
 
 
 def _main():
@@ -1256,11 +1395,11 @@ def _main():
     # options, etc.
     setupImportingFromOptions()
 
-    # Initialize value tracing if requested.
-    setupValueTraceFromOptions()
-
     # Let the plugins know we are starting compilation and they should make their checks.
     onCompilationStartChecks()
+
+    # Hard imports are target-specific, so prune the registry once before tracing.
+    setupHardImportsForTarget(getTargetSpecification())
 
     addIncludedDataFilesFromFlavor()
     addIncludedDataFilesFromFileOptions()
@@ -1316,29 +1455,18 @@ def _main():
     executePostProcessing(scons_options["result_exe"])
 
     if isStandaloneMode():
-        _detectLateDLLs(scons_options)
-
         dist_dir = OutputDirectories.getStandaloneDirectoryPath(bundle=True, real=False)
 
         if not shallOnlyExecCCompilerCall():
-            main_standalone_entry_point, copy_standalone_entry_points = copyDllsUsed(
+            _prepareStandaloneDistribution(
+                scons_options=scons_options,
                 dist_dir=dist_dir,
-                standalone_entry_points=getStandaloneEntryPoints(),
+                for_c_pgo=False,
             )
-
-            data_file_paths = copyDataFiles(
-                standalone_entry_points=getStandaloneEntryPoints()
-            )
-
-            if isMacOS():
-                signDistributionMacOS(
-                    dist_dir=dist_dir,
-                    data_file_paths=data_file_paths,
-                    main_standalone_entry_point=main_standalone_entry_point,
-                    copy_standalone_entry_points=copy_standalone_entry_points,
-                )
 
             dist_dir = OutputDirectories.renameStandaloneDirectory(dist_dir)
+        else:
+            _detectLateDLLs(scons_options)
 
         onStandaloneDistributionFinished(
             dist_dir=dist_dir,
@@ -1450,6 +1578,12 @@ exist, out e.g. '--output-dir=output' to sure is importable.""" % base_path,
 
 
 def main():
+    # Large builds keep tens of thousands of module trees alive, and the
+    # default thresholds cause full collections of all of them repeatedly.
+    # Higher young-generation limits let per-module working objects die before
+    # they reach the oldest generation and trigger such a collection.
+    gc.set_threshold(50000, 20, 10)
+
     try:
         _main()
     except BaseException:
@@ -1467,6 +1601,10 @@ Report writing was prevented by exception %r, use option \
                 raise
 
         raise
+    finally:
+        # CPython 3.11 debug builds assert if struct sequence types are still
+        # referenced during finalization, which frozen cycles otherwise cause.
+        unfreezeGc()
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and

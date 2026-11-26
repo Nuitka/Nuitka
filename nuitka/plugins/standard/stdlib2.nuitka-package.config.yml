@@ -41,11 +41,11 @@
       change_function:
         'test': "'(lambda: None)'"
 
-- module-name: 'modulefinder' # checksum: 820d21fd
+- module-name: 'multiprocessing.forking' # checksum: 96475306
   anti-bloat:
-    - description: 'remove module ability to run as a binary'
-      change_function:
-        'test': "'(lambda: None)'"
+    - description: "workaround for 'sys.frozen' not being set"
+      replacements_plain:
+        "getattr(sys, 'frozen', False)": 'True'
 
 - module-name: 'rexec' # checksum: 820d21fd
   anti-bloat:
@@ -59,17 +59,10 @@
       change_function:
         'test': "'(lambda: None)'"
 
-- module-name: 'Tkinter' # checksum: 6eaa6fb1
+- module-name: 'Tkinter' # checksum: 22b782f6
   options:
-    checks:
-      - macos_bundle: 'recommend'
-        when: 'plugin("tk-inter")'
-
-- module-name: 'xml.sax.xmlreader' # checksum: 167cb032
-  anti-bloat:
-    - description: 'remove module ability to run as a binary'
-      change_function:
-        '_test': "'(lambda: None)'"
+    - macos_bundle: 'recommend'
+      when: 'plugin("tk-inter")'
 
 - module-name: 'xmllib' # checksum: 820d21fd
   anti-bloat:

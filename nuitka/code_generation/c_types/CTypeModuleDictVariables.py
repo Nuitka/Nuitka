@@ -1,13 +1,7 @@
 #     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-"""Pseudo CType for module variables, object values contained in a dictionary.
-
-These are to integrate module variables with what is normally local
-stuff. Going from an to "PyObject *" is mostly its trick, then put
-into the dict.
-
-"""
+"""Pseudo CType for module variables stored in the module dictionary."""
 
 from nuitka.code_generation.templates.CodeTemplatesVariables import (
     template_del_global_known,
@@ -20,6 +14,12 @@ from .CTypeBases import CTypeBase
 
 class CTypeModuleDictVariable(CTypeBase):
     @classmethod
+    def holdsObjectReference(cls):
+        # Pseudo type for module dictionary slots. Reads materialize the value
+        # into a PyObject * temporary, this type itself holds no value storage.
+        return False
+
+    @classmethod
     def emitVariableAssignCode(
         cls, value_name, needs_release, tmp_name, ref_count, inplace, emit, context
     ):
@@ -29,7 +29,14 @@ class CTypeModuleDictVariable(CTypeBase):
             emit(
                 """\
 if (%(orig_name)s != %(tmp_name)s) {
-    UPDATE_STRING_DICT_INPLACE(moduledict_%(module_identifier)s, (Nuitka_StringObject *)%(variable_name_str)s, %(tmp_name)s);
+    UPDATE_STRING_DICT_INPLACE(
+        tstate,
+        moduledict_%(module_identifier)s,
+        (Nuitka_StringObject *)%(variable_name_str)s,
+        %(tmp_name)s
+    );
+} else {
+    Py_DECREF(%(tmp_name)s);
 }"""
                 % {
                     "orig_name": orig_name,
@@ -43,7 +50,7 @@ if (%(orig_name)s != %(tmp_name)s) {
 
         else:
             emit(
-                "UPDATE_STRING_DICT%s(moduledict_%s, (Nuitka_StringObject *)%s, %s);"
+                "UPDATE_STRING_DICT%s(tstate, moduledict_%s, (Nuitka_StringObject *)%s, %s);"
                 % (
                     ref_count,
                     context.getModuleCodeName(),

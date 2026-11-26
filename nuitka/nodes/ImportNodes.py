@@ -1,16 +1,7 @@
 #     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-"""Nodes related to importing modules or names.
-
-Normally imports are mostly relatively static, but Nuitka also attempts to
-cover the uses of "__import__" built-in and other import techniques, that
-allow dynamic values.
-
-If other optimizations make it possible to predict these, the compiler can go
-deeper that what it normally could. The import expression node can lead to
-modules being added. After optimization it will be asked about used modules.
-"""
+"""Nodes related to importing modules or names."""
 
 import sys
 
@@ -18,11 +9,12 @@ from nuitka.__past__ import long, unicode, xrange
 from nuitka.code_generation.Reports import onMissingTrust
 from nuitka.HardImportRegistry import (
     addModuleSingleAttributeNodeFactory,
+    getHardModuleConstant,
+    getHardModuleTrust,
     hard_modules_aliases,
     hard_modules_limited,
     hard_modules_non_stdlib,
     hard_modules_stdlib,
-    hard_modules_trust,
     isHardModule,
     isHardModuleWithoutSideEffect,
     trust_constant,
@@ -88,7 +80,7 @@ from .StatementBasesGenerated import StatementImportStarBase
 def makeExpressionImportModuleNameHard(
     module_name, import_name, module_guaranteed, source_ref
 ):
-    if hard_modules_trust[module_name].get(import_name) is None:
+    if getHardModuleTrust(module_name, import_name) is trust_undefined:
         return ExpressionImportModuleNameHardMaybeExists(
             module_name=module_name,
             import_name=import_name,
@@ -161,7 +153,7 @@ def _getFromlistModuleNames(extra_module_usages, module_name, module):
 
 
 class ExpressionImportAllowanceMixin(object):
-    # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
+    # pylint: disable=assigning-non-slot
     __slots__ = ()
 
     def __init__(self, using_module_name):
@@ -169,9 +161,7 @@ class ExpressionImportAllowanceMixin(object):
 
         if self.finding == "not-found":
             self.allowed = False
-        elif self.finding == "built-in":
-            self.allowed = True
-        elif self.module_name in hard_modules_stdlib:
+        elif self.finding == "built-in" or self.module_name in hard_modules_stdlib:
             self.allowed = True
         else:
             self.allowed, _reason = decideRecursion(
@@ -188,16 +178,16 @@ class ExpressionImportAllowanceMixin(object):
 
 
 class ExpressionImportModuleFixed(ExpressionBase):
-    """Hard coded import names, that we know to exist."
+    """Compile-time resolved import of a known module name.
 
-    These created as result of builtin imports and "importlib.import_module" calls
-    that were compile time resolved, and for known module names.
+    Created from built-in imports and 'importlib.import_module' calls whose
+    target module was resolved at compile time.
 
     TODO: Ask the module body if it raises exceptions, so we can return
-    False for modules that are known to never fail importing.
+    'False' for modules that are known to never fail importing.
     """
 
-    # Many details to store for import information, pylint: disable=too-many-instance-attributes
+    # pylint: disable=too-many-instance-attributes
     kind = "EXPRESSION_IMPORT_MODULE_FIXED"
 
     @staticmethod
@@ -302,10 +292,8 @@ class ExpressionImportModuleFixed(ExpressionBase):
         if self.mayRaiseException(BaseException):
             trace_collection.onExceptionRaiseExit(BaseException)
 
-        # Trace the module usage attempt.
         trace_collection.onModuleUsageAttempts(self.getModuleUsageAttempts())
 
-        # Nothing to do about it.
         return self, None, None
 
     def computeExpressionImportName(self, import_node, import_name, trace_collection):
@@ -320,11 +308,7 @@ class ExpressionImportModuleFixed(ExpressionBase):
 
 
 class ExpressionImportModuleBuiltin(ExpressionBase):
-    """Hard coded import names, that we know to exist."
-
-    These created as result of builtin imports and "importlib.import_module" calls
-    that were compile time resolved, and for known module names.
-    """
+    """Compile-time resolved import of a built-in module."""
 
     kind = "EXPRESSION_IMPORT_MODULE_BUILTIN"
 
@@ -344,7 +328,6 @@ class ExpressionImportModuleBuiltin(ExpressionBase):
 
         self.builtin_module = __import__(module_name.asString())
 
-        # If not found, we import the package at least
         _module_name, _module_filename, _module_kind, _finding = locateModule(
             module_name=self.module_name,
             parent_package=None,
@@ -400,10 +383,8 @@ class ExpressionImportModuleBuiltin(ExpressionBase):
         if self.mayRaiseException(BaseException):
             trace_collection.onExceptionRaiseExit(BaseException)
 
-        # Trace the module usage attempt.
         trace_collection.onModuleUsageAttempts(self.getModuleUsageAttempts())
 
-        # Nothing to do about it.
         return self, None, None
 
     def computeExpressionImportName(self, import_node, import_name, trace_collection):
@@ -420,11 +401,7 @@ class ExpressionImportModuleBuiltin(ExpressionBase):
 class ExpressionImportModuleHard(
     ExpressionImportAllowanceMixin, ExpressionImportHardBase
 ):
-    """Hard coded import names, e.g. of "__future__"
-
-    These are directly created for some Python mechanics, but also due to
-    compile time optimization for imports of statically known modules.
-    """
+    """Hard-coded module import (e.g. '__future__'), created directly or via optimization."""
 
     kind = "EXPRESSION_IMPORT_MODULE_HARD"
 
@@ -555,7 +532,6 @@ class ExpressionImportModuleHard(
         if self.mayRaiseException(BaseException):
             trace_collection.onExceptionRaiseExit(BaseException)
 
-        # Trace the module usage attempt.
         trace_collection.onModuleUsageAttempts(self.getModuleUsageAttempts())
 
         return self, None, None
@@ -607,7 +583,6 @@ class ExpressionImportModuleHard(
     def _computeExpressionAttribute(
         self, lookup_node, attribute_name, trace_collection, is_import
     ):
-        # Return driven handling of many cases
         # pylint: disable=too-many-branches,too-many-return-statements
 
         if self.allowed:
@@ -632,12 +607,17 @@ class ExpressionImportModuleHard(
                     % (self.value_name, attribute_name),
                 )
 
-            if self.value_name in hard_modules_trust:
-                trust = hard_modules_trust[self.value_name].get(
-                    attribute_name, trust_undefined
+            trust = getHardModuleTrust(self.value_name, attribute_name)
+            constant_value = None
+
+            if trust is trust_constant:
+                constant_available, constant_value = getHardModuleConstant(
+                    module_name=self.value_name,
+                    attribute_name=attribute_name,
                 )
-            else:
-                trust = trust_undefined
+
+                if not constant_available:
+                    trust = trust_undefined
 
             if trust is trust_importable:
                 # TODO: Change this is a hard module import itself, currently these are not all trusted
@@ -710,13 +690,10 @@ class ExpressionImportModuleHard(
                         self.value_name,
                         attribute_name,
                     )
-                elif trust is trust_constant and self.module is not None:
-                    # Make sure it's actually there, and not becoming the getattr default by accident.
-                    assert hasattr(self.module, attribute_name), self
-
+                elif trust is trust_constant:
                     return (
                         makeConstantReplacementNode(
-                            constant=getattr(self.module, attribute_name),
+                            constant=constant_value,
                             node=lookup_node,
                             user_provided=True,
                         ),
@@ -776,6 +753,10 @@ importlib_import_module_spec = BuiltinParameterSpec(
     "importlib.import_module", ("name", "package"), default_count=1
 )
 
+importlib_reload_spec = BuiltinParameterSpec(
+    "importlib.reload", ("module",), default_count=0
+)
+
 
 class ExpressionImportlibImportModuleRef(
     ExpressionImportModuleNameHardExistsSpecificBase
@@ -796,8 +777,6 @@ class ExpressionImportlibImportModuleRef(
         return {}
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
-        # Anything may happen. On next pass, if replaced, we might be better
-        # but not now.
         trace_collection.onExceptionRaiseExit(BaseException)
 
         result = extractBuiltinArgs(
@@ -809,16 +788,68 @@ class ExpressionImportlibImportModuleRef(
         return result, "new_expression", "Call of 'importlib.import_module' recognized."
 
 
+class ExpressionImportlibReloadRef(ExpressionImportModuleNameHardExistsSpecificBase):
+    kind = "EXPRESSION_IMPORTLIB_RELOAD_REF"
+
+    def __init__(self, source_ref):
+        ExpressionImportModuleNameHardExistsSpecificBase.__init__(
+            self,
+            module_name="importlib",
+            import_name="reload",
+            module_guaranteed=True,
+            source_ref=source_ref,
+        )
+
+    @staticmethod
+    def getDetails():
+        return {}
+
+    def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        result = extractBuiltinArgs(
+            node=call_node,
+            builtin_class=ExpressionImportlibReloadCall,
+            builtin_spec=importlib_reload_spec,
+        )
+
+        return result, "new_expression", "Call of 'importlib.reload' recognized."
+
+
+class ExpressionImportlibReloadCall(ChildHavingModuleMixin, ExpressionBase):
+    kind = "EXPRESSION_IMPORTLIB_RELOAD_CALL"
+
+    named_children = ("module",)
+
+    def __init__(self, module, source_ref):
+        ChildHavingModuleMixin.__init__(self, module=module)
+
+        ExpressionBase.__init__(self, source_ref)
+
+    @staticmethod
+    def mayHaveSideEffects():
+        return True
+
+    @staticmethod
+    def mayRaiseException(exception_type):
+        return True
+
+    def computeExpression(self, trace_collection):
+        trace_collection.onControlFlowEscape(self)
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        return self, None, None
+
+
 def _getImportNameAsStr(value):
     if value is None:
         result = None
     else:
         result = value.getCompileTimeConstant()
 
-    if type(result) in (str, unicode):
+    if str is not unicode and type(result) is unicode:
         # TODO: This is not handling decoding errors all that well.
-        if str is not unicode and type(result) is unicode:
-            result = str(result)
+        result = str(result)
 
     return result
 
@@ -826,8 +857,6 @@ def _getImportNameAsStr(value):
 class ExpressionImportlibImportModuleCall(
     ChildrenExpressionImportlibImportModuleCallMixin, ExpressionBase
 ):
-    """Call to "importlib.import_module" """
-
     kind = "EXPRESSION_IMPORTLIB_IMPORT_MODULE_CALL"
 
     named_children = "name", "package|optional"
@@ -843,15 +872,10 @@ class ExpressionImportlibImportModuleCall(
 
     @staticmethod
     def _resolveImportLibArgs(module_name, package_name):
-        # Relative imports need to be resolved by package name.
         if module_name.startswith("."):
             if not package_name:
+                # TODO: Static exception should be created and warned about, Python2/Python3 differ.
                 return None
-
-                # TODO: Static exception should be created and warned about, Python2/Python3 differ
-                # raise TypeError("relative imports require the 'package' argument")
-                # msg = ("the 'package' argument is required to perform a relative import for {!r}")
-                # raise TypeError(msg.format(name))
 
             level = 0
             for character in module_name:
@@ -865,9 +889,8 @@ class ExpressionImportlibImportModuleCall(
                 try:
                     dot = package_name.rindex(".", 0, dot)
                 except ValueError:
-                    return None
                     # TODO: Static exception should be created and warned about.
-                    # raise ValueError("attempted relative import beyond top-level package")
+                    return None
 
             package_name = package_name[:dot]
             if module_name == "":
@@ -895,8 +918,6 @@ class ExpressionImportlibImportModuleCall(
                 )
 
                 if resolved_module_name is not None:
-                    # Importing may raise an exception obviously, unless we know it will
-                    # not.
                     trace_collection.onExceptionRaiseExit(BaseException)
 
                     result = makeExpressionImportModuleFixed(
@@ -914,13 +935,8 @@ class ExpressionImportlibImportModuleCall(
                         % resolved_module_name,
                     )
 
-        # TODO: This is special for this node, need to support for for call base of hard imports
-
-        # Any code could be run, note that.
+        # TODO: This is special for this node, need to support for call base of hard imports.
         trace_collection.onControlFlowEscape(self)
-
-        # Importing may raise an exception obviously, unless we know it will
-        # not.
         trace_collection.onExceptionRaiseExit(BaseException)
 
         # TODO: May return a module or module variable reference of some sort in
@@ -931,6 +947,8 @@ class ExpressionImportlibImportModuleCall(
 addModuleSingleAttributeNodeFactory(
     "importlib", "import_module", ExpressionImportlibImportModuleRef
 )
+
+addModuleSingleAttributeNodeFactory("importlib", "reload", ExpressionImportlibReloadRef)
 
 if python_version >= 0x300:
     # In Python3 "io.open" is the same function as "open", therefore we handle
@@ -999,8 +1017,7 @@ class ExpressionBuiltinImport(ChildrenExpressionBuiltinImportMixin, ExpressionBa
 
         self.follow_attempted = False
 
-        # The modules actually referenced in that import if it can be detected. Name
-        # imports are considered too.
+        # Includes submodule imports from 'fromlist'.
         self.used_modules = []
 
         self.finding = None
@@ -1025,9 +1042,7 @@ class ExpressionBuiltinImport(ChildrenExpressionBuiltinImportMixin, ExpressionBa
             return level_value
 
     def _attemptFollow(self, module_name):
-        # Complex stuff, pylint: disable=too-many-branches
-
-        # Without the level value, we don't know what it is.
+        # pylint: disable=too-many-branches
         level_value = self._getLevelValue()
         if level_value is None:
             return
@@ -1111,7 +1126,7 @@ class ExpressionBuiltinImport(ChildrenExpressionBuiltinImportMixin, ExpressionBa
                     ) = locateModule(
                         module_name=ModuleName(import_item),
                         parent_package=module_name,
-                        level=1,  # Relative import
+                        level=1,
                     )
 
                     self.used_modules = list(self.used_modules)
@@ -1185,24 +1200,18 @@ class ExpressionBuiltinImport(ChildrenExpressionBuiltinImportMixin, ExpressionBa
         )
 
     def computeExpression(self, trace_collection):
-        # Attempt to recurse if not already done, many cases to consider and its
-        # return driven, pylint: disable=too-many-branches,too-many-return-statements
+        # pylint: disable=too-many-branches,too-many-return-statements
         if self.follow_attempted:
             if self.finding == "not-found":
-                # Importing and not finding, may raise an exception obviously.
                 trace_collection.onExceptionRaiseExit(BaseException)
             else:
                 # If we know it exists, only RuntimeError shall occur.
                 trace_collection.onExceptionRaiseExit(RuntimeError)
 
-            # Trace the module usage attempts.
             trace_collection.onModuleUsageAttempts(self.used_modules)
 
-            # We stay here.
             return self, None, None
 
-        # Importing may raise an exception obviously, unless we know it will
-        # not.
         if self.finding != "built-in":
             trace_collection.onExceptionRaiseExit(BaseException)
 
@@ -1214,7 +1223,6 @@ class ExpressionBuiltinImport(ChildrenExpressionBuiltinImportMixin, ExpressionBa
             module_filename = self._attemptFollow(module_name=imported_module_name)
             self.follow_attempted = True
 
-            # Trace the module usage attempts.
             for module_usage_attempt in self.used_modules:
                 trace_collection.onModuleUsageAttempt(module_usage_attempt)
 
@@ -1310,11 +1318,9 @@ class ExpressionBuiltinImport(ChildrenExpressionBuiltinImportMixin, ExpressionBa
                             % (
                                 self.source_ref.getAsString(),
                                 imported_module_name.asString(),
-                                self.module_filename,
+                                module_filename,
                             )
                         )
-
-                # Built-in module imports can be specialized right away.
 
                 if self.finding == "built-in":
                     result = makeExpressionImportModuleBuiltin(
@@ -1360,8 +1366,6 @@ class ExpressionBuiltinImport(ChildrenExpressionBuiltinImportMixin, ExpressionBa
                         )
             else:
                 # TODO: This doesn't preserve side effects.
-
-                # Non-strings is going to raise an error.
                 (
                     new_node,
                     change_tags,
@@ -1374,13 +1378,11 @@ class ExpressionBuiltinImport(ChildrenExpressionBuiltinImportMixin, ExpressionBa
                     description="Replaced '__import__' call with non-string module name argument.",
                 )
 
-                # Must fail, must not go on when it doesn't.
                 assert change_tags == "new_raise", module_name
 
                 return new_node, change_tags, message
 
-        # Trace the module usage attempts, doing it twice will not harm, this
-        # becomes a set.
+        # Doing this twice does no harm, as usage attempts are stored in a set.
         for module_usage_attempt in self.used_modules:
             trace_collection.onModuleUsageAttempt(module_usage_attempt)
 
@@ -1409,23 +1411,21 @@ class StatementImportStar(StatementImportStarBase):
     def getTargetDictScope(self):
         return self.target_scope
 
+    def setTargetDictScope(self, target_scope):
+        self.target_scope = target_scope
+
     def computeStatementOperation(self, trace_collection):
         trace_collection.onLocalsDictEscaped(self.target_scope)
-
-        # Need to invalidate everything, and everything could be assigned to
-        # something else now.
         trace_collection.removeAllKnowledge()
 
-        # We could always encounter that __all__ is a strange beast and causes
-        # the exception.
+        # Iterating '__all__' may raise arbitrary exceptions.
         trace_collection.onExceptionRaiseExit(BaseException)
 
         return self, None, None
 
     @staticmethod
     def mayRaiseException(exception_type):
-        # Not done. TODO: Later we can try and check for "__all__" if it
-        # really can be that way.
+        # TODO: Check '__all__' if it can really raise.
         return True
 
     @staticmethod
@@ -1448,9 +1448,7 @@ class ExpressionImportName(ChildHavingModuleMixin, ExpressionBase):
         self.import_name = import_name
         self.level = level
 
-        # Not allowed.
         assert level is not None
-
         assert module is not None
 
     def getImportName(self):

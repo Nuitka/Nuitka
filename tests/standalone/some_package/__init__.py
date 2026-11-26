@@ -3,6 +3,12 @@
 
 VALUE = "package"
 
+
+def getFileFromLocalVariable():
+    filename = __file__
+    return filename
+
+
 #     Python test originally created or extracted from other peoples work. The
 #     parts from me are licensed as below. It is at least Free Software where
 #     it's copied from other people. In these cases, that will normally be

@@ -30,10 +30,8 @@ class ExpressionStringConcatenation(
         ExpressionBase.__init__(self, source_ref)
 
     def computeExpression(self, trace_collection):
-        # TODO: Could remove itself if only one argument or merge arguments
-        # of mergeable types.
-
-        # The optimization and checks require a few cases, pylint: disable=too-many-branches
+        # TODO: Could also merge arguments of mergeable types.
+        # pylint: disable=too-many-branches
         streaks = []
 
         start = None
@@ -59,7 +57,6 @@ class ExpressionStringConcatenation(
 
                 start = None
 
-        # Catch final one too.
         if start is not None:
             if start != len(values) - 1:
                 streaks.append((start, len(values)))

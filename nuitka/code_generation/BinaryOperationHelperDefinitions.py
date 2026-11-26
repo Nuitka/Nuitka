@@ -18,8 +18,6 @@ from nuitka.containers.OrderedSets import OrderedSet, buildOrderedSet
 
 
 def parseTypesFromHelper(helper_name):
-    """Function to parse helper names."""
-
     if helper_name.startswith("INPLACE_"):
         target_code = None
         left_code = helper_name.split("_")[3]
@@ -65,7 +63,6 @@ def _makeTypeSemiOps(op_code, type_name, result_types):
 
 def _makeTypeOps(op_code, type_name, result_types):
     if result_types is None:
-        # Inplace has no result type.
         yield "INPLACE_OPERATION_%s_%s_%s" % (op_code, type_name, type_name)
         yield "INPLACE_OPERATION_%s_OBJECT_%s" % (op_code, type_name)
         yield "INPLACE_OPERATION_%s_%s_OBJECT" % (op_code, type_name)
@@ -198,7 +195,6 @@ def _makeNumberOps(op_code, result_types):
         _makeTypeOps(op_code=op_code, type_name="INT", result_types=result_types),
         _makeTypeOps(op_code=op_code, type_name="LONG", result_types=result_types),
         _makeTypeOps(op_code=op_code, type_name="FLOAT", result_types=result_types),
-        # These are friends naturally, they all add with another.
         _makeFriendOps(
             op_code=op_code,
             friend_type_names=("INT", "LONG", "FLOAT"),
@@ -252,13 +248,11 @@ def _makeAddOps(in_place):
         _makeTypeOps(
             "ADD", "LIST", result_types=None if in_place else standard_result_types
         ),
-        # These are friends too.
         _makeFriendOps(
             "ADD",
             friend_type_names=("STR", "UNICODE"),
             result_types=None if in_place else standard_result_types,
         ),
-        # Default implementation.
         _makeDefaultOps(
             "ADD", result_types=None if in_place else standard_result_types
         ),
@@ -270,10 +264,10 @@ standard_result_types = ("OBJECT", "NBOOL")
 specialized_add_helpers_set = _makeAddOps(in_place=False)
 
 nonspecialized_add_helpers_set = buildOrderedSet(
-    _makeTypeOpsNbool("ADD", "STR"),  # Not really likely to be used.
-    _makeTypeOpsNbool("ADD", "UNICODE"),  # Not really likely to be used.
-    _makeTypeOpsNbool("ADD", "BYTES"),  # Not really likely to be used.
-    _makeTypeOpsNbool("ADD", "TUPLE"),  # Not really likely to be used.
+    _makeTypeOpsNbool("ADD", "STR"),
+    _makeTypeOpsNbool("ADD", "UNICODE"),
+    _makeTypeOpsNbool("ADD", "BYTES"),
+    _makeTypeOpsNbool("ADD", "TUPLE"),
 )
 
 
@@ -353,7 +347,6 @@ def _makeMultOps(in_place):
         _makeTypeSemiOps(
             "MULT", "LIST", result_types=None if in_place else ("OBJECT",)
         ),
-        # These are friends naturally, they all mul with another
         _makeDefaultOps(
             "MULT", result_types=None if in_place else standard_result_types
         ),
@@ -361,7 +354,6 @@ def _makeMultOps(in_place):
 
 
 specialized_mult_helpers_set = _makeMultOps(in_place=False)
-# Using booleans, because multiplication might be used to test for zero result.
 
 nonspecialized_mult_helpers_set = None
 
@@ -428,13 +420,11 @@ def _makeModOps(in_place):
 
     return buildOrderedSet(
         _makeNumberOps("MOD", result_types=None if in_place else standard_result_types),
-        # These are friends naturally, they mod with another
         _makeFriendOps(
             "MOD",
             friend_type_names=("INT", "LONG", "FLOAT"),
             result_types=None if in_place else standard_result_types,
         ),
-        # String interpolation:
         _makeFormatOps(str_type_name="STR"),
         _makeFormatOps(str_type_name="UNICODE"),
         _makeFormatOps(str_type_name="BYTES"),
@@ -450,7 +440,6 @@ nonspecialized_mod_helpers_set = buildOrderedSet(
     (
         "BINARY_OPERATION_MOD_OBJECT_TUPLE_OBJECT",
         "BINARY_OPERATION_MOD_OBJECT_LIST_OBJECT",
-        # String formatting with STR:
         "BINARY_OPERATION_MOD_NBOOL_STR_INT",
         "BINARY_OPERATION_MOD_NBOOL_STR_LONG",
         "BINARY_OPERATION_MOD_NBOOL_STR_FLOAT",
@@ -460,7 +449,6 @@ nonspecialized_mod_helpers_set = buildOrderedSet(
         "BINARY_OPERATION_MOD_NBOOL_STR_LIST",
         "BINARY_OPERATION_MOD_NBOOL_STR_DICT",
         "BINARY_OPERATION_MOD_NBOOL_STR_OBJECT",
-        # String formatting with UNICODE:
         "BINARY_OPERATION_MOD_NBOOL_UNICODE_INT",
         "BINARY_OPERATION_MOD_NBOOL_UNICODE_LONG",
         "BINARY_OPERATION_MOD_NBOOL_UNICODE_FLOAT",
@@ -568,12 +556,9 @@ specialized_pow_helpers_set = buildOrderedSet(
         "POW", friend_type_names=("INT", "LONG", "FLOAT"), result_types=("OBJECT",)
     ),
     _makeDefaultOps("POW", result_types=standard_result_types),
-    (
-        # Float is used by other types for ** operations.
-        # TODO: Enable these later.
-        #        "BINARY_OPERATION_POW_OBJECT_LONG_FLOAT",
-        #        "BINARY_OPERATION_POW_NBOOL_LONG_FLOAT",
-    ),
+    # TODO: Enable BINARY_OPERATION_POW_OBJECT_LONG_FLOAT and
+    # BINARY_OPERATION_POW_NBOOL_LONG_FLOAT later.
+    (),
 )
 nonspecialized_pow_helpers_set = buildOrderedSet(
     _makeTypeOps("POW", "STR", result_types=standard_result_types),
@@ -622,7 +607,7 @@ nonspecialized_iadd_helpers_set = buildOrderedSet(
         "INPLACE_OPERATION_ADD_LIST_BYTES",
         "INPLACE_OPERATION_ADD_LIST_BYTEARRAY",
         "INPLACE_OPERATION_ADD_LIST_UNICODE",
-        "INPLACE_OPERATION_ADD_LIST_SET",  # semi useful only
+        "INPLACE_OPERATION_ADD_LIST_SET",
         "INPLACE_OPERATION_ADD_LIST_FROZENSET",
         "INPLACE_OPERATION_ADD_LIST_DICT",
     ),

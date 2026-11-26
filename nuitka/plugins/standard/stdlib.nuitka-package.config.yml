@@ -1,0 +1,395 @@
+# yamllint disable rule:line-length
+# yamllint disable rule:indentation
+# yamllint disable rule:comments-indentation
+# yamllint disable rule:comments
+# too many spelling things, spell-checker: disable
+---
+- module-name: '_ctypes' # checksum: 65b980ed
+  implicit-imports:
+    - depends:
+        - 'ctypes._layout'
+      when: 'not has_builtin_module("_ctypes")'
+
+- module-name: '_curses_panel' # checksum: c9b072ec
+  implicit-imports:
+    - depends:
+        - 'curses'
+
+- module-name: '_elementtree' # checksum: 109ba176
+  implicit-imports:
+    - depends:
+        - 'xml.etree.ElementPath'
+        - 'pyexpat'
+
+- module-name: '_osx_support' # checksum: e893ad4b
+  anti-bloat:
+    - no-auto-follow:
+        'distutils': 'ignore'
+
+- module-name: '_ssl' # checksum: 84c2a8c5
+  implicit-imports:
+    - depends:
+        - 'socket'
+
+- module-name: 'ast' # checksum: 6a44b57d
+  anti-bloat:
+    - description: 'remove module ability to run as a binary'
+      change_function:
+        'main': "'(lambda: None)'"
+
+- module-name: 'base64' # checksum: dedabd
+  anti-bloat:
+    - description: 'remove module ability to run as a binary'
+      change_function:
+        'main': "'(lambda: None)'"
+        'test': "'(lambda: None)'"
+
+- module-name: 'binhex' # checksum: 167cb032
+  anti-bloat:
+    - description: 'remove module ability to run as a binary'
+      change_function:
+        '_test': "'(lambda: None)'"
+
+- module-name: 'bisect' # checksum: 8255002d
+  anti-bloat:
+    - description: 'avoid _bisect module usage'
+      no-auto-follow:
+        '_bisect': 'may slow down by using fallback implementation'
+      when: 'not has_builtin_module("_bisect")'
+
+- module-name: 'calendar' # checksum: 6a44b57d
+  anti-bloat:
+    - description: 'remove module ability to run as a binary'
+      change_function:
+        'main': "'(lambda: None)'"
+
+- module-name: 'copy' # checksum: 167cb032
+  anti-bloat:
+    - description: 'remove module ability to run as a binary'
+      change_function:
+        '_test': "'(lambda: None)'"
+
+- module-name: 'crypt' # checksum: 7d2653dc
+  anti-bloat:
+    - description: 'avoid _crypt module usage'
+      replacements_plain:
+        '_crypt module was not built as part of CPython': '_crypt module was not included, used --include-module=_crypt'
+      when: 'not has_builtin_module("_crypt")'
+
+- module-name: 'ctypes.util' # checksum: 820d21fd
+  anti-bloat:
+    - description: 'remove module ability to run as a binary'
+      change_function:
+        'test': "'(lambda: None)'"
+
+- module-name: 'datetime' # checksum: e5cb7fa3
+  anti-bloat:
+    - description: 'avoid _datetime module usage'
+      no-auto-follow:
+        '_datetime': 'may slow down by using fallback implementation'
+      when: 'not has_builtin_module("_datetime")'
+
+- module-name: 'difflib' # checksum: 167cb032
+  anti-bloat:
+    - description: 'remove module ability to run as a binary'
+      change_function:
+        '_test': "'(lambda: None)'"
+
+- module-name: 'dis' # checksum: 167cb032
+  anti-bloat:
+    - description: 'remove module ability to run as a binary'
+      change_function:
+        '_test': "'(lambda: None)'"
+
+- module-name: 'doctest' # checksum: 167cb032
+  anti-bloat:
+    - description: 'remove module ability to run as a binary'
+      change_function:
+        '_test': "'(lambda: None)'"
+
+- module-name: 'email.utils' # checksum: 58ebf00f
+  anti-bloat:
+    - description: 'avoid socket module usage'
+      replacements_plain:
+        'import socket': ''
+        'socket.': '__import__("socket").'
+      no-auto-follow:
+        'socket': "can break calls of 'email.utils.make_msgid()'"
+      when: 'not has_builtin_module("_socket")'
+
+- module-name: 'ensurepip' # checksum: fe3524b2
+  anti-bloat:
+    - description: 'remove module ability to run as a binary'
+      change_function:
+        '_main': "'(lambda: None)'"
+
+- module-name: 'ensurepip._uninstall' # checksum: fe3524b2
+  anti-bloat:
+    - description: 'remove module ability to run as a binary'
+      change_function:
+        '_main': "'(lambda: None)'"
+
+- module-name: 'formatter' # checksum: 820d21fd
+  anti-bloat:
+    - description: 'remove module ability to run as a binary'
+      change_function:
+        'test': "'(lambda: None)'"
+
+- module-name: 'ftplib' # checksum: 820d21fd
+  anti-bloat:
+    - description: 'remove module ability to run as a binary'
+      change_function:
+        'test': "'(lambda: None)'"
+
+- module-name: 'gzip' # checksum: 5428c614
+  anti-bloat:
+    - description: 'remove module ability to run as a binary'
+      change_function:
+        '_test': "'(lambda: None)'"
+        'main': "'(lambda: None)'"
+
+- module-name: 'heapq' # checksum: 406ad100
+  anti-bloat:
+    - description: 'avoid _heapq module usage'
+      no-auto-follow:
+        '_datetime': 'may slow down by using fallback implementation'
+      when: 'not has_builtin_module("_heapq")'
+
+- module-name: 'imghdr' # checksum: 820d21fd
+  anti-bloat:
+    - description: 'remove module ability to run as a binary'
+      change_function:
+        'test': "'(lambda: None)'"
+
+- module-name: 'inspect' # checksum: fe3524b2
+  anti-bloat:
+    - description: 'remove module ability to run as a binary'
+      change_function:
+        '_main': "'(lambda: None)'"
+
+- module-name: 'keyword' # checksum: 6a44b57d
+  anti-bloat:
+    - description: 'remove module ability to run as a binary'
+      change_function:
+        'main': "'(lambda: None)'"
+
+- module-name: 'lib2to3.pgen2' # checksum: 34ec8d8f
+  data-files:
+    - patterns:
+        - '../*.pickle'
+      when: 'not debian_python'
+
+- module-name: 'lib2to3.pgen2.literals' # checksum: 820d21fd
+  anti-bloat:
+    - description: 'remove module ability to run as a binary'
+      change_function:
+        'test': "'(lambda: None)'"
+
+- module-name: 'lib2to3.refactor' # checksum: e884a866
+  implicit-imports:
+    - depends:
+        - 'lib2to3.fixes.*'
+
+- module-name: 'locale' # checksum: 167cb032
+  anti-bloat:
+    - description: 'remove module ability to run as a binary'
+      change_function:
+        '_test': "'(lambda: None)'"
+
+- module-name: 'mailbox' # checksum: 2dd8f89e
+  anti-bloat:
+    - description: 'avoid fcntl module usage'
+      no-auto-follow:
+        'fcntl': 'may not lock mailbox files properly using fallback implementation'
+      when: 'not has_builtin_module("fcntl")'
+
+- module-name: 'mailcap' # checksum: 820d21fd
+  anti-bloat:
+    - description: 'remove module ability to run as a binary'
+      change_function:
+        'test': "'(lambda: None)'"
+
+- module-name: 'mimetypes' # checksum: fe3524b2
+  anti-bloat:
+    - description: 'remove module ability to run as a binary'
+      change_function:
+        '_main': "'(lambda: None)'"
+
+- module-name: 'modulefinder' # checksum: 820d21fd
+  anti-bloat:
+    - description: 'remove module ability to run as a binary'
+      change_function:
+        'test': "'(lambda: None)'"
+
+- module-name: 'multiprocessing' # checksum: 96475306
+  anti-bloat:
+    - description: "workaround for 'sys.frozen' not being set"
+      replacements_plain:
+        "getattr(sys, 'frozen', False)": 'True'
+
+- module-name: 'opcode' # checksum: bef1771d
+  implicit-imports:
+    # Overcome default non-inclusion of this module, required now
+    - depends:
+        - '_opcode'
+      when: 'python313_or_higher'
+
+- module-name: 'pdb' # checksum: 447bd07e
+  anti-bloat:
+    - description: 'remove module ability to run as a binary'
+      change_function:
+        'test': "'(lambda: None)'"
+        'help': "'(lambda: None)'"
+
+- module-name: 'pickle' # checksum: c6f04aa7
+  anti-bloat:
+    - description: 'remove module ability to run as a binary'
+      change_function:
+        '_test': "'(lambda: None)'"
+    - description: 'better error message for pickles using missing modules'
+      append_plain: |
+        import functools
+        def _nuitka_pickle_wrap_load(func):
+            @functools.wraps(func)
+            def wrapped(*args, **kwargs):
+                try:
+                    return func(*args, **kwargs)
+                except ImportError as e:
+                    module_name = getattr(e, "name", None) or "<unknown>"
+
+                    raise RuntimeError(
+                        """Nuitka: Failed to load pickle data, it requires the module '%s' that is not included in the compiled program. Use '--include-module=%s' during compilation, or add 'import %s' to the program."""
+                        % (module_name, module_name, module_name)
+                    )
+            wrapped.__module__ = __name__
+            return wrapped
+
+        load = _nuitka_pickle_wrap_load(load)
+        loads = _nuitka_pickle_wrap_load(loads)
+      when: 'python3_or_higher and not deployment'
+
+- module-name: 'pickletools' # checksum: 167cb032
+  anti-bloat:
+    - description: 'remove module ability to run as a binary'
+      change_function:
+        '_test': "'(lambda: None)'"
+
+- module-name: 'platform' # checksum: 2852471a
+  anti-bloat:
+    - description: 'avoid using plistlib dependency on non-macOS'
+      replacements_plain:
+        'import plistlib': 'return None'
+      when: 'not macos'
+
+- module-name: 'pyclbr' # checksum: fe3524b2
+  anti-bloat:
+    - description: 'remove module ability to run as a binary'
+      change_function:
+        '_main': "'(lambda: None)'"
+
+- module-name: 'pydoc' # checksum: eede0068
+  anti-bloat:
+    - description: 'remove module ability to display GUI with tkinter and topics data'
+      replacements:
+        'import pydoc_data.topics': "'raise ImportError'"
+      change_function:
+        'gui': 'un-callable'
+        'cli': 'un-callable'
+        'browse': 'un-callable'
+    - description: 'remove module docs data used by the doc locator'
+      replacements:
+        'from pydoc_data import module_docs': "'raise ImportError'"
+      when: 'python313_or_higher'
+
+- module-name: 'quopri' # checksum: 6a44b57d
+  anti-bloat:
+    - description: 'remove module ability to run as a binary'
+      change_function:
+        'main': "'(lambda: None)'"
+
+- module-name: 'random' # checksum: 167cb032
+  anti-bloat:
+    - description: 'remove module ability to run as a binary'
+      change_function:
+        '_test': "'(lambda: None)'"
+
+- module-name: 'site' # checksum: cf73d34
+  data-files:
+    - patterns:
+        - 'orig-prefix.txt'
+
+- module-name: 'sndhdr' # checksum: 820d21fd
+  anti-bloat:
+    - description: 'remove module ability to run as a binary'
+      change_function:
+        'test': "'(lambda: None)'"
+
+- module-name: 'sysconfig' # checksum: f2059e78
+  anti-bloat:
+    - replacements:
+        'osname, host, release, version, machine = os.uname()': "'osname, host, release, version, machine = os.uname(); osname = %r' % os.uname()[0]"
+      when: 'not win32'
+
+- module-name: 'tabnanny' # checksum: 6a44b57d
+  anti-bloat:
+    - description: 'remove module ability to run as a binary'
+      change_function:
+        'main': "'(lambda: None)'"
+
+- module-name: 'tarfile' # checksum: 6a44b57d
+  anti-bloat:
+    - description: 'remove module ability to run as a binary'
+      change_function:
+        'main': "'(lambda: None)'"
+
+- module-name: 'telnetlib' # checksum: 820d21fd
+  anti-bloat:
+    - description: 'remove module ability to run as a binary'
+      change_function:
+        'test': "'(lambda: None)'"
+
+- module-name: 'threading' # checksum: 167cb032
+  anti-bloat:
+    - description: 'remove module ability to run as a binary'
+      change_function:
+        '_test': "'(lambda: None)'"
+
+- module-name: 'tokenize' # checksum: 6a44b57d
+  anti-bloat:
+    - description: 'remove module ability to run as a binary'
+      change_function:
+        'main': "'(lambda: None)'"
+
+- module-name: 'trace' # checksum: 6a44b57d
+  anti-bloat:
+    - description: 'remove module ability to run as a binary'
+      change_function:
+        'main': "'(lambda: None)'"
+
+- module-name: 'uu' # checksum: 820d21fd
+  anti-bloat:
+    - description: 'remove module ability to run as a binary'
+      change_function:
+        'test': "'(lambda: None)'"
+
+- module-name: 'wsgiref.simple_server' # checksum: 24359f69
+  implicit-imports:
+    - depends:
+        - 'http.server'
+
+- module-name: 'xml.sax' # checksum: 82b0a965
+  implicit-imports:
+    - depends:
+        - 'xml.sax.expatreader'
+
+- module-name: 'xml.sax.xmlreader' # checksum: 167cb032
+  anti-bloat:
+    - description: 'remove module ability to run as a binary'
+      change_function:
+        '_test': "'(lambda: None)'"
+
+- module-name: 'zipfile' # checksum: 6a44b57d
+  anti-bloat:
+    - description: 'remove module ability to run as a binary'
+      change_function:
+        'main': "'(lambda: None)'"

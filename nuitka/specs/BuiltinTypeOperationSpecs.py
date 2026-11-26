@@ -7,8 +7,6 @@ from .BuiltinParameterSpecs import BuiltinMethodParameterSpecBase
 
 
 class TypeMethodSpec(BuiltinMethodParameterSpecBase):
-    """Method spec of exactly the `type` built-in value/type."""
-
     __slots__ = ()
 
     method_prefix = "type"

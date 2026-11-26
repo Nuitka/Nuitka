@@ -17,6 +17,7 @@ from nuitka.utils.AppDirs import getCacheDir
 from nuitka.utils.Execution import check_call, check_output
 from nuitka.utils.FileOperations import (
     getFileContents,
+    getNormalizedPath,
     putBinaryFileContents,
     putTextFileContents,
 )
@@ -24,37 +25,36 @@ from nuitka.utils.Hashing import Hash
 from nuitka.utils.PrivatePipSpace import (
     getBlackBinaryPath,
     getIsortBinaryPath,
+    getPrivatePipSitePackagesEnvironment,
     getRequiredVersion,
-    withPrivatePipSitePackagesPathAdded,
 )
 
 from .FileFormatting import _dash_characters, cleanupWindowsNewlines
 
 BLACK_SKIP_LIST = [
-    "tests/basics/ClassesTest_2.py",
-    "tests/basics/ExecEvalTest_2.py",
-    "tests/basics/HelloWorldTest_2.py",
-    "tests/basics/OverflowFunctionsTest_2.py",
-    "tests/basics/PrintingTest_2.py",
     "tests/benchmarks/binary-trees.py",
     "tests/benchmarks/comparisons/GeneratorFunctionVsGeneratorExpression.py",
-    "tests/benchmarks/constructs/InplaceOperationLongAdd_27.py",
-    "tests/benchmarks/constructs/InplaceOperationUnicodeAdd_27.py",
-    "tests/benchmarks/constructs/RichComparisonConditionStrings.py",
     "tests/programs/syntax_errors/IndentationErroring.py",
-    "tests/syntax/ClosureDel_2.py",
-    "tests/syntax/ExecWithNesting_2.py",
-    "tests/syntax/EncodingProblemTest.py",
-    "tests/syntax/IndentationError.py",
-    "tests/syntax/StarImportExtra.py",
-    "tests/syntax/SyntaxError.py",
     "tests/type_inference/Test1.py",
     "tests/type_inference/Test2.py",
     "tests/type_inference/Test3.py",
     "tests/type_inference/Test4.py",
     "tests/benchmarks/pystone.py",
 ]
-BLACK_SKIP_LIST = tuple(os.path.normpath(path) for path in BLACK_SKIP_LIST)
+BLACK_SKIP_LIST = tuple(getNormalizedPath(path) for path in BLACK_SKIP_LIST)
+
+
+def _shouldSkipBlack(effective_filename):
+    """Check if black should not format a file.
+
+    Notes:
+        Python 2 test variants use '_2.py' or '_27.py' suffixes and may contain
+        syntax black cannot parse.
+    """
+    if os.path.basename(effective_filename).endswith(("_2.py", "_27.py")):
+        return True
+
+    return getNormalizedPath(effective_filename) in BLACK_SKIP_LIST
 
 
 def _getAutoformatCacheFilename(logger, tool_name, args, contents):
@@ -103,7 +103,9 @@ def _cleanupPyLintComments(logger, filename, effective_filename):
             )
         )
 
-    new_code = re_sub(r"(pylint\: disable=)\s*(.*)", replacer, new_code, flags=re.M)
+    new_code = re_sub(
+        r"(pylint\: disable=)\s*(.*)", replacer, new_code, flags=re.MULTILINE
+    )
 
     if new_code != old_code:
         putTextFileContents(filename, new_code, encoding="utf8")
@@ -127,19 +129,18 @@ def _cleanupDashesInComments(filename):
     ):
         tok_type, tok_string, (start_row, start_col), (_end_row, end_col), _line = t
 
-        if tok_type == tokenize.COMMENT:
-            if any(dash_character in tok_string for dash_character in _dash_characters):
-                line_idx = start_row - 1
-                line = source_lines[line_idx]
+        if tok_type == tokenize.COMMENT and any(
+            dash_character in tok_string for dash_character in _dash_characters
+        ):
+            line_idx = start_row - 1
+            line = source_lines[line_idx]
 
-                new_tok_string = tok_string
-                for dash_character in _dash_characters:
-                    new_tok_string = new_tok_string.replace(dash_character, "-")
+            new_tok_string = tok_string
+            for dash_character in _dash_characters:
+                new_tok_string = new_tok_string.replace(dash_character, "-")
 
-                source_lines[line_idx] = (
-                    line[:start_col] + new_tok_string + line[end_col:]
-                )
-                changed = True
+            source_lines[line_idx] = line[:start_col] + new_tok_string + line[end_col:]
+            changed = True
 
     if changed:
         new_code = "\n".join(source_lines)
@@ -275,8 +276,10 @@ def _cleanupImportSortOrder(
 
             return
 
-    with withPrivatePipSitePackagesPathAdded():
-        isort_output = check_output(isort_call + isort_args + [filename])
+    isort_output = check_output(
+        isort_call + isort_args + [filename],
+        env=getPrivatePipSitePackagesEnvironment(binary_path=isort_path),
+    )
 
     if isort_output == b"" and contents != "":
         if logger is not None:
@@ -406,7 +409,7 @@ def formatPython(
 
     _cleanupDashesInComments(filename=filename)
 
-    if effective_filename not in BLACK_SKIP_LIST:
+    if not _shouldSkipBlack(effective_filename):
         black_path = getBlackBinaryPath(
             logger=logger, assume_yes_for_downloads=assume_yes_for_downloads
         )
@@ -434,8 +437,10 @@ def formatPython(
 
         if not black_cache_hit:
             try:
-                with withPrivatePipSitePackagesPathAdded():
-                    check_call(black_call)
+                check_call(
+                    black_call,
+                    env=getPrivatePipSitePackagesEnvironment(binary_path=black_path),
+                )
 
                 new_contents = getFileContents(filename, mode="rb")
                 putBinaryFileContents(cache_filename, new_contents)

@@ -189,8 +189,9 @@ fi
 cd ..
 
 echo "--- Installing ensurepip and requirements ---"
-$PYTHON_BINARY -m ensurepip
-$PYTHON_BINARY -m pip install -r /dev/stdin <<EOF
+$PYTHON_BINARY -m ensurepip --upgrade
+$PYTHON_BINARY -m pip install --disable-pip-version-check --upgrade pip
+$PYTHON_BINARY -m pip install --disable-pip-version-check -r /dev/stdin <<EOF
 # Onefile compression
 zstandard >= 0.15; python_version >= '3.5' and python_version < '3.14'
 

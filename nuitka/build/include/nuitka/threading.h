@@ -49,7 +49,6 @@ NUITKA_MAY_BE_UNUSED static inline bool CONSIDER_THREADING(PyThreadState *tstate
     struct _ceval_runtime_state *ceval2 = ceval;
 #endif
 #endif
-    // Pending signals or calls to do
     if (HAS_WORK_TO_DO(ceval, ceval2)) {
         int res = Py_MakePendingCalls();
 
@@ -59,13 +58,10 @@ NUITKA_MAY_BE_UNUSED static inline bool CONSIDER_THREADING(PyThreadState *tstate
     }
 
 #if PYTHON_VERSION >= 0x3d0
-    /* GIL drop request */
     if (_Py_eval_breaker_bit_is_set(tstate, _PY_GIL_DROP_REQUEST_BIT)) {
 #else
-    /* GIL drop request */
     if (ceval2->gil_drop_request._value) {
 #endif
-        /* Give another thread a chance */
         PyEval_SaveThread();
         PyEval_AcquireThread(tstate);
     }
@@ -83,6 +79,10 @@ NUITKA_MAY_BE_UNUSED static inline bool CONSIDER_THREADING(PyThreadState *tstate
 }
 #else
 NUITKA_MAY_BE_UNUSED static inline bool CONSIDER_THREADING(PyThreadState *tstate) {
+    if (_Py_HandlePending(tstate) < 0) {
+        return false;
+    }
+
     if (unlikely(tstate->async_exc != NULL)) {
         PyObject *async_exc = tstate->async_exc;
         tstate->async_exc = NULL;
@@ -100,7 +100,6 @@ NUITKA_MAY_BE_UNUSED static inline bool CONSIDER_THREADING(PyThreadState *tstate
 #else
 
 NUITKA_MAY_BE_UNUSED static inline bool CONSIDER_THREADING(PyThreadState *tstate) {
-    // Decrease ticker
     if (--_Py_Ticker < 0) {
         _Py_Ticker = _Py_CheckInterval;
 

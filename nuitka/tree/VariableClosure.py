@@ -12,6 +12,7 @@ complete.
 
 from nuitka.nodes.FunctionNodes import MaybeLocalVariableUsage
 from nuitka.nodes.LocalsDictNodes import (
+    ExpressionClassMappingVariableRefOrFallback,
     ExpressionLocalsVariableRef,
     ExpressionLocalsVariableRefOrFallback,
     StatementLocalsDictOperationDel,
@@ -26,6 +27,7 @@ from nuitka.nodes.VariableAssignNodes import makeStatementAssignmentVariable
 from nuitka.nodes.VariableDelNodes import makeStatementDelVariable
 from nuitka.nodes.VariableRefNodes import (
     ExpressionTempVariableRef,
+    ExpressionVariableRef,
     makeExpressionVariableRef,
 )
 from nuitka.plugins.Hooks import getVariableConstantValue
@@ -39,6 +41,37 @@ from .Operations import VisitorNoopMixin, visitTree
 from .ReformulationFunctionStatements import addFunctionVariableReleases
 from .ReformulationTryFinallyStatements import makeTryFinallyReleaseStatement
 from .SyntaxErrors import raiseSyntaxError
+
+
+def _getClassBodyForDeferredScope(provider):
+    """Return the enclosing class body if provider is an annotation scope in it.
+
+    Annotation scopes (type aliases, type variables, and deferred annotations)
+    resolve names in the class namespace first, unlike normal nested functions.
+    """
+    current = provider
+    seen_annotation_scope = False
+
+    while not current.isCompiledPythonModule():
+        if current.isExpressionClassBodyBase():
+            return current if seen_annotation_scope else None
+
+        if current.isExpressionFunctionBody():
+            if (
+                current.hasFlag("type_alias")
+                or current.hasFlag("typevar")
+                or current.hasFlag("annotate")
+            ):
+                seen_annotation_scope = True
+            else:
+                # A normal function is a boundary, class variables are not
+                # visible in it.
+                return None
+
+        current = current.getParentVariableProvider()
+
+    return None
+
 
 # Note: We do the variable scope assignment, as an extra step from tree
 # building, because tree building creates the tree without any consideration of
@@ -63,8 +96,6 @@ class VariableClosureLookupVisitorPhase1(VisitorNoopMixin):
 
     @staticmethod
     def _handleNonLocal(node):
-        # Take closure variables for non-local declarations.
-
         for (
             non_local_names,
             user_provided,
@@ -134,6 +165,54 @@ class VariableClosureLookupVisitorPhase1(VisitorNoopMixin):
         return provider.isExpressionClassBodyBase() and (
             not provider.hasProvidedVariable(variable_name)
             or provider.getProvidedVariable(variable_name).getOwner() is provider
+        )
+
+    @staticmethod
+    def _addModuleVariableToClosureChain(provider, variable):
+        """Add a module variable to the closure chain up to the module.
+
+        Needed when a module variable is used as a fallback in a class body,
+        because each enclosing variable provider's trace collection must know it.
+        """
+        while not provider.isCompiledPythonModule():
+            provider.addClosureVariable(variable)
+            provider = provider.getParentVariableProvider()
+
+    @classmethod
+    def _makeClassBodyVariableRef(cls, node, provider):
+        variable_name = node.getVariableName()
+
+        if not node.needsFallback():
+            return ExpressionLocalsVariableRef(
+                locals_scope=provider.getLocalsScope(),
+                variable_name=variable_name,
+                source_ref=node.source_ref,
+            )
+
+        # Names bound in the class body use LOAD_NAME with a fallback to the
+        # module, not to a closure variable.
+        if provider.getLocalsScope().hasBoundVariableName(
+            variable_name
+        ) and not provider.hasProvidedVariable(variable_name):
+            variable = provider.getParentModule().getVariableForReference(
+                variable_name=variable_name
+            )
+
+            cls._addModuleVariableToClosureChain(provider=provider, variable=variable)
+        else:
+            variable = provider.getVariableForReference(variable_name=variable_name)
+
+        variable.addVariableUser(provider)
+
+        return ExpressionLocalsVariableRefOrFallback(
+            locals_scope=provider.getLocalsScope(),
+            variable_name=variable_name,
+            fallback=makeExpressionVariableRef(
+                variable=variable,
+                locals_scope=provider.getLocalsScope(),
+                source_ref=node.source_ref,
+            ),
+            source_ref=node.source_ref,
         )
 
     def onLeaveNode(self, node):
@@ -255,7 +334,6 @@ class VariableClosureLookupVisitorPhase1(VisitorNoopMixin):
             parent.replaceChild(node, new_node)
 
     def onEnterNode(self, node):
-        # Mighty complex code with lots of branches, but we aim to get rid of it.
         # pylint: disable=too-many-branches
 
         if node.isExpressionVariableNameRef():
@@ -282,29 +360,7 @@ class VariableClosureLookupVisitorPhase1(VisitorNoopMixin):
             provider = node.provider
 
             if provider.isExpressionClassBodyBase():
-                if node.needsFallback():
-                    variable = provider.getVariableForReference(
-                        variable_name=node.getVariableName()
-                    )
-
-                    new_node = ExpressionLocalsVariableRefOrFallback(
-                        locals_scope=provider.getLocalsScope(),
-                        variable_name=node.getVariableName(),
-                        fallback=makeExpressionVariableRef(
-                            variable=variable,
-                            locals_scope=provider.getLocalsScope(),
-                            source_ref=node.source_ref,
-                        ),
-                        source_ref=node.source_ref,
-                    )
-
-                    variable.addVariableUser(provider)
-                else:
-                    new_node = ExpressionLocalsVariableRef(
-                        locals_scope=provider.getLocalsScope(),
-                        variable_name=node.getVariableName(),
-                        source_ref=node.source_ref,
-                    )
+                new_node = self._makeClassBodyVariableRef(node=node, provider=provider)
 
                 parent = node.parent
                 node.finalize()
@@ -317,21 +373,17 @@ class VariableClosureLookupVisitorPhase1(VisitorNoopMixin):
             if python_version >= 0x300:
                 self._handleNonLocal(node)
                 self._handleQualnameSetup(node)
-        elif node.isExpressionCoroutineObjectBody():
-            self._handleNonLocal(node)
-            self._handleQualnameSetup(node)
-        elif node.isExpressionAsyncgenObjectBody():
-            self._handleNonLocal(node)
-            self._handleQualnameSetup(node)
-        elif node.isExpressionClassMappingBody():
+        elif (
+            node.isExpressionCoroutineObjectBody()
+            or node.isExpressionAsyncgenObjectBody()
+            or node.isExpressionClassMappingBody()
+        ):
             self._handleNonLocal(node)
             self._handleQualnameSetup(node)
         elif node.isExpressionFunctionBody():
             if python_version >= 0x300:
                 self._handleNonLocal(node)
                 self._handleQualnameSetup(node)
-        # Check if continue and break are properly in loops. If not, raise a
-        # syntax error.
         elif node.isStatementLoopBreak() or node.isStatementLoopContinue():
             current = node
 
@@ -363,9 +415,6 @@ class VariableClosureLookupVisitorPhase2(VisitorNoopMixin):
 
     @staticmethod
     def _attachVariable(node, provider):
-        # print("Late reference", node.getVariableName(), "for",
-        # provider.getCodeName(), "caused at", node, "of", node.getParent())
-
         variable_name = node.getVariableName()
 
         variable = provider.getVariableForReference(variable_name=variable_name)
@@ -428,11 +477,47 @@ class VariableClosureLookupVisitorPhase2(VisitorNoopMixin):
                     source_ref=node.source_ref,
                 )
             else:
-                new_node = makeExpressionVariableRef(
-                    variable=variable,
-                    locals_scope=provider.getLocalsScope(),
-                    source_ref=node.source_ref,
+                class_body = (
+                    _getClassBodyForDeferredScope(provider)
+                    if variable.isModuleVariable()
+                    else None
                 )
+
+                if (
+                    class_body is not None
+                    and class_body.deferred_class_dict is not None
+                ):
+                    class_dict_variable = class_body.deferred_class_dict
+
+                    new_node = ExpressionClassMappingVariableRefOrFallback(
+                        mapping=ExpressionVariableRef(
+                            variable=class_dict_variable, source_ref=node.source_ref
+                        ),
+                        fallback=makeExpressionVariableRef(
+                            variable=variable,
+                            locals_scope=provider.getLocalsScope(),
+                            source_ref=node.source_ref,
+                        ),
+                        variable_name=node.getVariableName(),
+                        source_ref=node.source_ref,
+                    )
+
+                    # The class namespace needs to be a closure variable of
+                    # all deferred scopes in between.
+                    current = provider
+
+                    while current is not class_body:
+                        if current.isExpressionFunctionBody():
+                            current.addClosureVariable(class_dict_variable)
+                            class_dict_variable.addVariableUser(current)
+
+                        current = current.getParentVariableProvider()
+                else:
+                    new_node = makeExpressionVariableRef(
+                        variable=variable,
+                        locals_scope=provider.getLocalsScope(),
+                        source_ref=node.source_ref,
+                    )
 
                 variable.addVariableUser(provider)
 
@@ -490,9 +575,8 @@ can not delete variable '%s' referenced in nested scope""" % (variable.getName()
 
             return
 
-        # Resolve generic assignments that are artifacts of delayed resolutions
-        # esp. of variable name lookups. Need to keep this in like with what
-        # makeStatementAssignmentVariable checks for.
+        # Re-specialize generic variable assignments whose source was an
+        # unresolved variable name reference during tree building.
         if node.isStatementAssignmentVariableGeneric():
             source = node.subnode_source
 

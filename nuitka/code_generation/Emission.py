@@ -11,8 +11,6 @@ use of these will occur.
 
 import contextlib
 
-from .DeferredReleaseCodes import emitDeferredReleases
-
 
 class SourceCodeCollector(list):
     __slots__ = ()
@@ -30,10 +28,7 @@ def withSubCollector(emit, context):
     with context.variable_storage.withLocalStorage():
         sub_emit = SourceCodeCollector()
 
-        # To use the collector and put code in it and C declarations on the context.
         yield sub_emit
-
-        emitDeferredReleases(emit=sub_emit, context=context)
 
         local_declarations = context.variable_storage.makeCLocalDeclarations()
 

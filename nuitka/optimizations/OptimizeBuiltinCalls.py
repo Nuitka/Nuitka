@@ -7,9 +7,10 @@ For built-in name references, we check if it's one of the supported built-in
 types, and then specialize for the ones, where it makes sense.
 """
 
-from nuitka.__past__ import unicode, xrange
+from nuitka.__past__ import long, unicode, xrange
 from nuitka.Errors import NuitkaAssumptionError
 from nuitka.nodes.AttributeNodes import (
+    ExpressionBuiltinDelattr,
     ExpressionBuiltinGetattr,
     ExpressionBuiltinHasattr,
     ExpressionBuiltinSetattr,
@@ -60,7 +61,7 @@ from nuitka.nodes.BuiltinNextNodes import (
     ExpressionBuiltinNext1,
     ExpressionBuiltinNext2,
 )
-from nuitka.nodes.BuiltinOpenNodes import ExpressionBuiltinsOpenBefore3Call
+from nuitka.nodes.BuiltinOpenNodes import makeExpressionBuiltinsOpenCall
 from nuitka.nodes.BuiltinRangeNodes import (
     ExpressionBuiltinRange1,
     ExpressionBuiltinRange2,
@@ -73,6 +74,7 @@ from nuitka.nodes.BuiltinRefNodes import (
     ExpressionBuiltinAnonymousRef,
     makeExpressionBuiltinTypeRef,
 )
+from nuitka.nodes.BuiltinSentinelNodes import ExpressionBuiltinSentinelCall
 from nuitka.nodes.BuiltinSumNodes import (
     ExpressionBuiltinSum1,
     ExpressionBuiltinSum2,
@@ -137,10 +139,7 @@ from nuitka.nodes.TypeNodes import (
     ExpressionBuiltinSuper2,
     ExpressionBuiltinType1,
 )
-from nuitka.nodes.VariableAssignNodes import (
-    makeStatementAssignmentVariable,
-    makeStatementDelVariable,
-)
+from nuitka.nodes.VariableAssignNodes import makeStatementAssignmentVariable
 from nuitka.nodes.VariableRefNodes import (
     ExpressionTempVariableRef,
     ExpressionVariableRef,
@@ -268,8 +267,6 @@ def iter_extractor(node):
 
 
 def next_extractor(node):
-    # Split up next with and without defaults, they are not going to behave
-    # really very similar.
     def selectNextBuiltinClass(iterator, default, source_ref):
         if default is None:
             return ExpressionBuiltinNext1(value=iterator, source_ref=source_ref)
@@ -326,7 +323,6 @@ def zip_extractor(node):
 
 
 def sum_extractor(node):
-    # Split up sum with and without start value, one is much easier.
     def selectSumBuiltinClass(sequence, start, source_ref):
         if start is None:
             return ExpressionBuiltinSum1(sequence=sequence, source_ref=source_ref)
@@ -356,11 +352,9 @@ def sum_extractor(node):
 
 
 def dict_extractor(node):
-    # The "dict" built-in is a bit strange in that it accepts a position
-    # parameter, or not, but won't have a default value.
+    # The "dict" built-in accepts an optional positional argument without a default value.
     def wrapExpressionBuiltinDictCreation(positional_args, dict_star_arg, source_ref):
         if positional_args:
-            # Only one allowed, the spec converted too many into an exception.
             (pos_arg,) = positional_args
         else:
             pos_arg = None
@@ -379,12 +373,10 @@ def dict_extractor(node):
 
 
 def frozendict_extractor(node):
-    # The "frozendict" built-in behaves like "dict" for its arguments.
     def wrapExpressionBuiltinFrozendictCreation(
         positional_args, dict_star_arg, source_ref
     ):
         if positional_args:
-            # Only one allowed, the spec converted too many into an exception.
             (pos_arg,) = positional_args
         else:
             pos_arg = None
@@ -399,6 +391,21 @@ def frozendict_extractor(node):
         node=node,
         builtin_class=wrapExpressionBuiltinFrozendictCreation,
         builtin_spec=BuiltinParameterSpecs.builtin_frozendict_spec,
+    )
+
+
+def sentinel_extractor(node):
+    def createSentinelCall(name, source_ref, **kwargs):
+        return ExpressionBuiltinSentinelCall(
+            name=name,
+            repr_value=kwargs["repr"],
+            source_ref=source_ref,
+        )
+
+    return BuiltinParameterSpecs.extractBuiltinArgs(
+        node=node,
+        builtin_class=createSentinelCall,
+        builtin_spec=BuiltinParameterSpecs.builtin_sentinel_spec,
     )
 
 
@@ -473,7 +480,7 @@ if python_version >= 0x300:
         return BuiltinParameterSpecs.extractBuiltinArgs(
             node=node,
             builtin_class=ExpressionBuiltinAscii,
-            builtin_spec=BuiltinParameterSpecs.builtin_repr_spec,
+            builtin_spec=BuiltinParameterSpecs.builtin_ascii_spec,
         )
 
 
@@ -492,7 +499,7 @@ def range_extractor(node):
         # pylint: disable=unused-argument
         try:
             range()
-        except Exception as e:  # We want to broad here, pylint: disable=broad-except
+        except Exception as e:  # pylint: disable=broad-except
             return makeRaiseExceptionReplacementExpressionFromInstance(
                 expression=node, exception=e
             )
@@ -522,7 +529,7 @@ def xrange_extractor(node):
         # pylint: disable=unused-argument
         try:
             xrange()
-        except Exception as e:  # We want to broad here, pylint: disable=broad-except
+        except Exception as e:  # pylint: disable=broad-except
             return makeRaiseExceptionReplacementExpressionFromInstance(
                 expression=node, exception=e
             )
@@ -651,9 +658,7 @@ def float_extractor(node):
     def makeFloat0(source_ref):
         # pylint: disable=unused-argument
 
-        return makeConstantReplacementNode(
-            constant=float(), node=node, user_provided=False
-        )
+        return makeConstantReplacementNode(constant=0.0, node=node, user_provided=False)
 
     return BuiltinParameterSpecs.extractBuiltinArgs(
         node=node,
@@ -667,9 +672,7 @@ def complex_extractor(node):
     def makeComplex0(source_ref):
         # pylint: disable=unused-argument
 
-        return makeConstantReplacementNode(
-            constant=complex(), node=node, user_provided=False
-        )
+        return makeConstantReplacementNode(constant=0j, node=node, user_provided=False)
 
     def selectComplexBuiltin(real, imag, source_ref):
         if imag is None:
@@ -691,9 +694,7 @@ def str_extractor(node):
     def makeStr0(source_ref):
         # pylint: disable=unused-argument
 
-        return makeConstantReplacementNode(
-            constant=str(), node=node, user_provided=False
-        )
+        return makeConstantReplacementNode(constant="", node=node, user_provided=False)
 
     builtin_class = ExpressionBuiltinStrP2 if str is bytes else ExpressionBuiltinStrP3
 
@@ -733,7 +734,7 @@ else:
             # pylint: disable=unused-argument
 
             return makeConstantReplacementNode(
-                constant=bytes(), node=node, user_provided=False
+                constant=b"", node=node, user_provided=False
             )
 
         def selectBytesBuiltin(string, encoding, errors, source_ref):
@@ -760,7 +761,7 @@ def bool_extractor(node):
         # pylint: disable=unused-argument
 
         return makeConstantReplacementNode(
-            constant=bool(), node=node, user_provided=False
+            constant=False, node=node, user_provided=False
         )
 
     return BuiltinParameterSpecs.extractBuiltinArgs(
@@ -775,9 +776,7 @@ def int_extractor(node):
     def makeInt0(source_ref):
         # pylint: disable=unused-argument
 
-        return makeConstantReplacementNode(
-            constant=int(), node=node, user_provided=False
-        )
+        return makeConstantReplacementNode(constant=0, node=node, user_provided=False)
 
     def selectIntBuiltin(value, base, source_ref):
         if base is None:
@@ -804,10 +803,10 @@ if python_version < 0x300:
             # pylint: disable=unused-argument
 
             return makeConstantReplacementNode(
-                constant=int(), node=node, user_provided=False
+                constant=long(), node=node, user_provided=False
             )
 
-        def selectIntBuiltin(value, base, source_ref):
+        def selectLongBuiltin(value, base, source_ref):
             if base is None:
                 return ExpressionBuiltinLong1(value=value, source_ref=source_ref)
             else:
@@ -817,8 +816,8 @@ if python_version < 0x300:
 
         return BuiltinParameterSpecs.extractBuiltinArgs(
             node=node,
-            builtin_class=selectIntBuiltin,
-            builtin_spec=BuiltinParameterSpecs.builtin_int_spec,
+            builtin_class=selectLongBuiltin,
+            builtin_spec=BuiltinParameterSpecs.builtin_long_spec,
             empty_special_class=makeLong0,
         )
 
@@ -860,13 +859,16 @@ if python_version < 0x300:
                 source_ref=node.source_ref,
             )
 
-            globals_ref, locals_ref, tried, final = wrapEvalGlobalsAndLocals(
-                provider=outline_body,
-                locals_scope=node.getParentVariableProvider().getLocalsScope(),
-                globals_node=globals_arg,
-                locals_node=locals_arg,
-                temp_scope=outline_body.getOutlineTempScope(),
-                source_ref=source_ref,
+            filename_variable, globals_ref, locals_ref, tried, final = (
+                wrapEvalGlobalsAndLocals(
+                    provider=outline_body,
+                    locals_scope=node.getParentVariableProvider().getLocalsScope(),
+                    source_node=filename,
+                    globals_node=globals_arg,
+                    locals_node=locals_arg,
+                    temp_scope=outline_body.getOutlineTempScope(),
+                    source_ref=source_ref,
+                )
             )
 
             tried = makeStatementsSequence(
@@ -877,12 +879,20 @@ if python_version < 0x300:
                             in_class_body=node.getParentVariableProvider().isExpressionClassBodyBase(),
                             source_code=makeCallNode(
                                 makeExpressionAttributeLookup(
-                                    expression=ExpressionBuiltinsOpenBefore3Call(
-                                        name=filename,
+                                    expression=makeExpressionBuiltinsOpenCall(
+                                        filename=ExpressionTempVariableRef(
+                                            variable=filename_variable,
+                                            source_ref=source_ref,
+                                        ),
                                         mode=makeConstantRefNode(
                                             constant="rU", source_ref=source_ref
                                         ),
                                         buffering=None,
+                                        encoding=None,
+                                        errors=None,
+                                        newline=None,
+                                        closefd=None,
+                                        opener=None,
                                         source_ref=source_ref,
                                     ),
                                     attribute_name="read",
@@ -931,13 +941,16 @@ def eval_extractor(node):
             source_ref=source_ref,
         )
 
-        globals_ref, locals_ref, tried, final = wrapEvalGlobalsAndLocals(
-            provider=outline_body,
-            locals_scope=provider.getLocalsScope(),
-            globals_node=globals_arg,
-            locals_node=locals_arg,
-            temp_scope=outline_body.getOutlineTempScope(),
-            source_ref=source_ref,
+        source_variable, globals_ref, locals_ref, tried, final = (
+            wrapEvalGlobalsAndLocals(
+                provider=outline_body,
+                locals_scope=provider.getLocalsScope(),
+                source_node=source,
+                globals_node=globals_arg,
+                locals_node=locals_arg,
+                temp_scope=outline_body.getOutlineTempScope(),
+                source_ref=source_ref,
+            )
         )
 
         # The wrapping should not relocate to the "source_ref".
@@ -948,19 +961,6 @@ def eval_extractor(node):
         assert (
             locals_arg is None
             or locals_ref.getSourceReference() == locals_arg.getSourceReference()
-        )
-
-        source_variable = outline_body.allocateTempVariable(
-            temp_scope=None, name="source", temp_type="object"
-        )
-
-        final.setChildStatements(
-            final.subnode_statements
-            + (
-                makeStatementDelVariable(
-                    variable=source_variable, tolerant=True, source_ref=source_ref
-                ),
-            )
         )
 
         strip_choice = makeConstantRefNode(constant=(" \t",), source_ref=source_ref)
@@ -998,7 +998,7 @@ def eval_extractor(node):
                     attribute_name="strip",
                     source_ref=source_ref,
                 ),
-                args=strip_choice,  # This is a tuple
+                args=strip_choice,
                 kw=None,
                 source_ref=source_ref,
             ),
@@ -1017,9 +1017,6 @@ def eval_extractor(node):
             )
 
         statements = (
-            makeStatementAssignmentVariable(
-                variable=source_variable, source=source, source_ref=source_ref
-            ),
             makeStatementConditional(
                 condition=ExpressionOperationNot(
                     operand=ExpressionBuiltinIsinstance(
@@ -1094,13 +1091,16 @@ if python_version >= 0x300:
                 provider=provider, name="exec_call", source_ref=source_ref
             )
 
-            globals_ref, locals_ref, tried, final = wrapEvalGlobalsAndLocals(
-                provider=outline_body,
-                locals_scope=provider.getLocalsScope(),
-                globals_node=globals_arg,
-                locals_node=locals_arg,
-                temp_scope=outline_body.getOutlineTempScope(),
-                source_ref=source_ref,
+            source_variable, globals_ref, locals_ref, tried, final = (
+                wrapEvalGlobalsAndLocals(
+                    provider=outline_body,
+                    locals_scope=provider.getLocalsScope(),
+                    source_node=source,
+                    globals_node=globals_arg,
+                    locals_node=locals_arg,
+                    temp_scope=outline_body.getOutlineTempScope(),
+                    source_ref=source_ref,
+                )
             )
 
             tried = makeStatementsSequence(
@@ -1108,7 +1108,9 @@ if python_version >= 0x300:
                     tried,
                     makeStatementReturn(
                         expression=ExpressionBuiltinExec(
-                            source_code=source,
+                            source_code=ExpressionTempVariableRef(
+                                variable=source_variable, source_ref=source_ref
+                            ),
                             globals_arg=globals_ref,
                             locals_arg=locals_ref,
                             closure=closure,
@@ -1152,10 +1154,10 @@ if python_version >= 0x300:
 
 def compile_extractor(node):
     def wrapExpressionBuiltinCompileCreation(
-        source_code, filename, mode, flags, dont_inherit, optimize=None, source_ref=None
+        source, filename, mode, flags, dont_inherit, optimize=None, source_ref=None
     ):
         return ExpressionBuiltinCompile(
-            source_code=source_code,
+            source=source,
             filename=filename,
             mode=mode,
             flags=flags,
@@ -1173,7 +1175,7 @@ def compile_extractor(node):
 
 def super_extractor(node):
     def wrapSuperBuiltin(type_arg, object_arg, source_ref):
-        # Many cases due to complex defaulting behavior, pylint: disable=too-many-return-statements
+        # pylint: disable=too-many-branches,too-many-return-statements
 
         if type_arg is None and python_version >= 0x300:
             if provider.isCompiledPythonModule():
@@ -1185,7 +1187,18 @@ def super_extractor(node):
 
             class_variable = provider.getVariableForReference(variable_name="__class__")
 
-            provider.trace_collection.getVariableCurrentTrace(class_variable).addUsage()
+            class_trace = provider.trace_collection.getVariableCurrentTrace(
+                class_variable
+            )
+
+            if class_trace.mustNotHaveValue():
+                return makeRaiseExceptionReplacementExpression(
+                    expression=node,
+                    exception_type="RuntimeError",
+                    exception_value="super(): empty __class__ cell",
+                )
+
+            class_trace.addUsage()
 
             type_arg = ExpressionVariableRef(
                 # Ought to be already closure taken due to "super" flag in
@@ -1232,9 +1245,18 @@ def super_extractor(node):
                         variable_name=par1_name
                     )
 
-                    provider.trace_collection.getVariableCurrentTrace(
+                    object_trace = provider.trace_collection.getVariableCurrentTrace(
                         object_variable
-                    ).addUsage()
+                    )
+
+                    if object_trace.mustNotHaveValue():
+                        return makeRaiseExceptionReplacementExpression(
+                            expression=node,
+                            exception_type="RuntimeError",
+                            exception_value="super(): arg[0] deleted",
+                        )
+
+                    object_trace.addUsage()
 
                     object_arg = ExpressionVariableRef(
                         variable=object_variable, source_ref=source_ref
@@ -1282,7 +1304,7 @@ def super_extractor(node):
 
 
 def hasattr_extractor(node):
-    # We need to have to builtin arguments, pylint: disable=redefined-builtin
+    # pylint: disable=redefined-builtin
     def makeExpressionBuiltinHasattr(object, name, source_ref):
         return ExpressionBuiltinHasattr(
             expression=object, name=name, source_ref=source_ref
@@ -1296,7 +1318,7 @@ def hasattr_extractor(node):
 
 
 def getattr_extractor(node):
-    # We need to have to builtin arguments, pylint: disable=redefined-builtin
+    # pylint: disable=redefined-builtin
     def makeExpressionBuiltinGetattr(object, name, default, source_ref):
         return ExpressionBuiltinGetattr(
             expression=object, name=name, default=default, source_ref=source_ref
@@ -1310,7 +1332,7 @@ def getattr_extractor(node):
 
 
 def setattr_extractor(node):
-    # We need to have to builtin arguments, pylint: disable=redefined-builtin
+    # pylint: disable=redefined-builtin
     def makeExpressionBuiltinSetattr(object, name, value, source_ref):
         return ExpressionBuiltinSetattr(
             expression=object, name=name, value=value, source_ref=source_ref
@@ -1320,6 +1342,20 @@ def setattr_extractor(node):
         node=node,
         builtin_class=makeExpressionBuiltinSetattr,
         builtin_spec=BuiltinParameterSpecs.builtin_setattr_spec,
+    )
+
+
+def delattr_extractor(node):
+    # pylint: disable=redefined-builtin
+    def makeExpressionBuiltinDelattr(object, name, source_ref):
+        return ExpressionBuiltinDelattr(
+            expression=object, name=name, source_ref=source_ref
+        )
+
+    return BuiltinParameterSpecs.extractBuiltinArgs(
+        node=node,
+        builtin_class=makeExpressionBuiltinDelattr,
+        builtin_spec=BuiltinParameterSpecs.builtin_delattr_spec,
     )
 
 
@@ -1335,7 +1371,7 @@ def issubclass_extractor(node):
     return BuiltinParameterSpecs.extractBuiltinArgs(
         node=node,
         builtin_class=ExpressionBuiltinIssubclass,
-        builtin_spec=BuiltinParameterSpecs.builtin_isinstance_spec,
+        builtin_spec=BuiltinParameterSpecs.builtin_issubclass_spec,
     )
 
 
@@ -1490,6 +1526,7 @@ _dispatch_dict = {
     "hasattr": hasattr_extractor,
     "getattr": getattr_extractor,
     "setattr": setattr_extractor,
+    "delattr": delattr_extractor,
     "isinstance": isinstance_extractor,
     "issubclass": issubclass_extractor,
     "bytearray": bytearray_extractor,
@@ -1506,7 +1543,6 @@ _dispatch_dict = {
 
 
 if python_version < 0x300:
-    # These are not in Python3
     _dispatch_dict["long"] = long_extractor
     _dispatch_dict["unicode"] = unicode_extractor
     _dispatch_dict["execfile"] = execfile_extractor
@@ -1514,7 +1550,6 @@ if python_version < 0x300:
 
     _dispatch_dict["range"] = range_extractor
 else:
-    # This one is not in Python2
     _dispatch_dict["bytes"] = bytes_extractor
     _dispatch_dict["ascii"] = (
         ascii_extractor  # pylint: disable=possibly-used-before-assignment
@@ -1528,6 +1563,7 @@ else:
 
 if python_version >= 0x3F0:
     _dispatch_dict["frozendict"] = frozendict_extractor
+    _dispatch_dict["sentinel"] = sentinel_extractor
 
 
 def check():
@@ -1539,26 +1575,8 @@ def check():
 
 check()
 
-_builtin_ignore_list = (
-    # Not supporting 'print', because it could be replaced, and is not
-    # worth the effort yet.
-    # "print",
-    # TODO: This could, and should be supported, as we could e.g. lower
-    # types easily for it.
-    # "sorted",
-    # TODO: This would be most precious due to the type hint it gives
-    # "enumerate",
-    # TODO: Also worthwhile for known values.
-    # "reversed",
-    # TODO: Not sure what this really is about.
-    # "memoryview",
-)
-
 
 def _describeNewNode(new_node):
-    """Describe the change for better understanding."""
-
-    # Don't mention side effects, that's not what we care about.
     if new_node.isExpressionSideEffects():
         new_node = new_node.subnode_expression
 
@@ -1593,8 +1611,6 @@ def _describeNewNode(new_node):
 
 
 def computeBuiltinCall(builtin_name, call_node, trace_collection):
-    # There is some dispatching for how to output various types of changes,
-    # with lots of cases.
     if builtin_name in _dispatch_dict:
         extractor_function = _dispatch_dict[builtin_name]
 
@@ -1620,12 +1636,7 @@ def computeBuiltinCall(builtin_name, call_node, trace_collection):
 
         return new_node, tags, message
     else:
-        # TODO: Achieve coverage of all built-ins in at least the ignore list.
-        # if False and builtin_name not in _builtin_ignore_list:
-        #     optimization_logger.warning(
-        #         "Not handling built-in %r, consider support." % builtin_name
-        #     )
-
+        # TODO: Support remaining built-ins such as 'sorted', 'reversed', and 'memoryview'.
         return call_node, None, None
 
 

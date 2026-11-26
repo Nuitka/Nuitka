@@ -199,6 +199,8 @@ print(
 print("More constant dictionaries", {"two": 2, "one": 1}, {}, dict())
 g = {"two": 2, "one": 1}
 print("Variable dictionary", dict(g))
+g.clear()
+print("Variable dictionary after clear statement", g)
 print(
     "Found during optimization",
     dict(dict({"le": 2, "la": 1}), fu=3),
@@ -230,6 +232,33 @@ print(
 
 print("Strs from constants", str("3.3"), str(object=9.1), str())
 print("Found during optimization", str(float("3.3")), str(object=float(12.0)))
+
+
+def makeBuiltinArgument(value):
+    return value
+
+
+try:
+    text_type = unicode
+except NameError:
+    text_type = str
+
+print(
+    "Text without object",
+    repr(text_type(encoding=makeBuiltinArgument("utf-8"))),
+    repr(text_type(errors=makeBuiltinArgument("strict"))),
+    repr(
+        text_type(
+            encoding=makeBuiltinArgument("utf-8"),
+            errors=makeBuiltinArgument("strict"),
+        )
+    ),
+)
+
+try:
+    text_type(encoding=makeBuiltinArgument(3))
+except TypeError:
+    print("Text without object type check: TypeError")
 
 print("Bools from constants", bool("3.3"), bool(0), bool())
 print("Found during optimization", bool(float("3.3")), bool(range(0)))
@@ -704,10 +733,37 @@ print(all([None, 4, None]))
 print(all([]))
 print(all([0] * 20000))
 print(all([0] * 255))
+
+
+def _rangeSideEffect():
+    print("range bound side effect")
+    return True
+
+
 print("all with compile time ranges:")
+print(all(range(0)))
+print(all(range(-5)))
+print(all(range(0 if _rangeSideEffect() else 0)))
+print(all(range(-5 if _rangeSideEffect() else -5)))
+print(all(range(5 if _rangeSideEffect() else 5)))
 print(all(range(1, 10000)))
 print(all(range(10000)))
+print(all(range(0, 10000)))
+print(all(range(-5, 1000)))
+print(all(range(-1000, 0)))
+print(all(range(-1000, 1)))
+print(all(range(1000, 0)))
 print(all(range(2, 999, 4)))
+print(all(range(0, 1000, 2)))
+print(all(range(-1000, 1000, 2)))
+print(all(range(-999, 1000, 2)))
+print(all(range(1000, -1000, -2)))
+print(all(range(999, -1000, -2)))
+print(all(range(1000, 0, -2)))
+print(all(range(1000, -1, -2)))
+print(all(range(-1000, 1000, -2)))
+print(all(range(1000, -1000, 2)))
+print(all(range(2**64, 2**64 + 300)))
 print("all with compile time strings and bytes:")
 print(all("Nuitka rocks!"))
 print(all("string"))
@@ -747,15 +803,55 @@ print(any([]))
 print(any([0] * 20000))
 print(any([0] * 255))
 print("any with compile time ranges:")
+print(any(range(0)))
+print(any(range(-5)))
+print(any(range(1 if _rangeSideEffect() else 1)))
 print(any(range(1, 10000)))
 print(any(range(10000)))
+print(any(range(0, 1000)))
+print(any(range(1000, 0)))
 print(any(range(2, 999, 4)))
+print(any(range(0, -1000, -2)))
+print(any(range(2**64, 2**64 + 300)))
 print("any with compile time strings and bytes:")
 print(any("Nuitka rocks!"))
 print(any("string"))
 print(any("unicode"))
 print(any(b"bytes"))
 print(any(b"bytes\0"))
+
+
+class RaisingBool(object):
+    def __bool__(self):
+        raise ValueError("bool failed")
+
+    __nonzero__ = __bool__
+
+
+def raisingGenerator(first_value):
+    yield first_value
+    raise RuntimeError("next failed")
+
+
+print("all/any with raising __bool__ and __next__:")
+for label, func in (
+    ("all list", lambda: all([RaisingBool()])),
+    ("any list", lambda: any([RaisingBool()])),
+    ("all tuple", lambda: all((RaisingBool(),))),
+    ("any tuple", lambda: any((RaisingBool(),))),
+    ("all list before False", lambda: all([RaisingBool(), False])),
+    ("any list before True", lambda: any([RaisingBool(), True])),
+    ("all list after False", lambda: all([False, RaisingBool()])),
+    ("any list after True", lambda: any([True, RaisingBool()])),
+    ("all gen", lambda: all(raisingGenerator(True))),
+    ("any gen", lambda: any(raisingGenerator(False))),
+    ("all iter(gen)", lambda: all(iter(raisingGenerator(True)))),
+    ("any iter(gen)", lambda: any(iter(raisingGenerator(False)))),
+):
+    try:
+        print(label, func())
+    except Exception as e:
+        print(label, "raised", repr(e))
 
 print("Tests for zip():")
 print(zip("abc", "cdd"))
@@ -766,6 +862,8 @@ try:
 except TypeError as e:
     print("Occurred", repr(e))
 print(zip())
+print("Zip with nested zip:")
+print(list(zip([1, 2], zip([3, 4], [5, 6]))))
 x = [(u, v) for (u, v) in zip(range(8), reversed(range(8)))]
 print(x)
 for v in zip([1, 2, 3], "String"):
@@ -893,6 +991,238 @@ def listIndexMissingInRange(value, start, stop):
 
 print("list.index of missing value:", listIndexMissing(7))
 print("list.index of value outside of range:", listIndexMissingInRange(9, 0, 1))
+
+
+class BadIndex(object):
+    def __index__(self):
+        raise ValueError("bad index")
+
+    def __int__(self):
+        raise ValueError("bad int")
+
+
+def listMethodCheck(description, func, *args):
+    try:
+        result = func(*args)
+    except Exception as e:
+        result = "%s: %s" % (type(e).__name__, e)
+    print(description, "->", result)
+
+
+def listInsertFloatConstant():
+    a = [1, 2]
+    a.insert(1.5, "x")
+    return a
+
+
+def listInsertVariable(index):
+    a = [1, 2]
+    a.insert(index, "x")
+    return a
+
+
+def listIndexStart(values, start):
+    a = list(values)
+    return a.index(2, start)
+
+
+def listIndexStartStop(values, start, stop):
+    a = list(values)
+    return a.index(2, start, stop)
+
+
+def listInsertBadIndex():
+    a = [1, 2]
+    a.insert(BadIndex(), "x")
+    return a
+
+
+def listIndexBadStart(values):
+    a = list(values)
+    return a.index(2, BadIndex())
+
+
+def listIndexBadStopValue(values):
+    a = list(values)
+    return a.index(2, 0, BadIndex())
+
+
+def listIndexBadStop(values, start, stop):
+    a = list(values)
+    for _i in range(3):
+        try:
+            a.index(2, start, stop)
+        except TypeError:
+            pass
+    return sys.getrefcount(start) > 0
+
+
+# Values not known at compile time.
+list_method_big = int(str(len(sys.argv)) + "0" * 20)
+
+listMethodCheck("insert(1.5) constant", listInsertFloatConstant)
+listMethodCheck("insert(None)", listInsertVariable, None)
+listMethodCheck("insert(1.5)", listInsertVariable, 1.5)
+listMethodCheck("insert(-big)", listInsertVariable, -list_method_big)
+listMethodCheck("index(2, big)", listIndexStart, [1, 2], list_method_big)
+listMethodCheck("index(2, -big)", listIndexStart, [1, 2], -list_method_big)
+listMethodCheck(
+    "index(2, -big, big)", listIndexStartStop, [1, 2], -list_method_big, list_method_big
+)
+listMethodCheck("index(2, 0, None)", listIndexStartStop, [1, 2], 0, None)
+listMethodCheck("insert bad __index__", listInsertBadIndex)
+listMethodCheck("index bad __index__ start", listIndexBadStart, [1, 2])
+listMethodCheck("index bad __index__ stop", listIndexBadStopValue, [1, 2])
+listMethodCheck("index bad stop", listIndexBadStop, [1, 2], list_method_big, None)
+
+
+class RaisingEq(object):
+    def __eq__(self, other):
+        raise ValueError("bad eq")
+
+
+class MutatingEq(object):
+    def __init__(self, seen):
+        self.seen = seen
+
+    def __eq__(self, other):
+        other.append(2)
+        self.seen.append("compared")
+        return True
+
+
+def listCountRaisingEq(elem, target):
+    a = [elem]
+    state = "before"
+    try:
+        state = "during"
+        return a.count(target)
+    except ValueError as e:
+        return (state, str(e))
+
+
+def listCountRaisingEqDropped(elem, target):
+    a = [elem]
+    try:
+        a.count(target)
+    except ValueError as e:
+        return str(e)
+    return "did not raise"
+
+
+def listCountEscapeAndSideEffects():
+    seen = []
+    target = [1]
+    a = [MutatingEq(seen)]
+    a.count(target)
+    return (len(target), seen, [1, 2, 1, 3].count(1), [].count(RaisingEq()))
+
+
+listMethodCheck("count raising __eq__", listCountRaisingEq, RaisingEq(), 0)
+listMethodCheck(
+    "count raising __eq__ dropped", listCountRaisingEqDropped, RaisingEq(), 0
+)
+listMethodCheck("count escape and side effects", listCountEscapeAndSideEffects)
+
+
+class Index(object):
+    def __index__(self):
+        return 65
+
+
+def chrCheck(value):
+    try:
+        result = repr(chr(value))
+    except Exception as e:
+        result = "%s: %s" % (type(e).__name__, e)
+    print(repr(value)[:24], "->", result)
+
+
+# Values not known at compile time.
+chr_base = len(sys.argv)
+
+for chr_value in (
+    65 * chr_base,
+    0x10FFFF * chr_base,
+    0x110000 * chr_base,
+    -chr_base,
+    2**31 * chr_base,
+    2**63 * chr_base,
+    -(2**63) * chr_base,
+    1.5 * chr_base,
+    None,
+    Index(),
+    BadIndex(),
+    True,
+):
+    chrCheck(chr_value)
+
+
+print("Attribute built-in type errors:")
+
+
+def attributeTypeErrorCheck(name, callable):
+    try:
+        callable()
+    except TypeError as e:
+        print(name, "->", e)
+
+
+attributeTypeErrorCheck("hasattr constant", lambda: hasattr(object(), 1))
+attributeTypeErrorCheck("getattr constant", lambda: getattr(object(), 1))
+attributeTypeErrorCheck("setattr constant", lambda: setattr(object(), 1, 2))
+attributeTypeErrorCheck("delattr constant", lambda: delattr(object(), 1))
+
+# Values not known at compile time.
+attribute_error_name = int(str(len(sys.argv)))
+
+
+def attributeTypeErrorGet(getter, name):
+    try:
+        getter(object(), name)
+    except TypeError as e:
+        return e
+
+
+def attributeTypeErrorSet(name):
+    try:
+        setattr(object(), name, 2)
+    except TypeError as e:
+        return e
+
+
+print("hasattr variable ->", attributeTypeErrorGet(hasattr, attribute_error_name))
+print("getattr variable ->", attributeTypeErrorGet(getattr, attribute_error_name))
+print("setattr variable ->", attributeTypeErrorSet(attribute_error_name))
+print("delattr variable ->", attributeTypeErrorGet(delattr, attribute_error_name))
+
+
+print("Mapping __len__ error handling:")
+
+
+class RaisingMappingLen(dict):
+    def __len__(self):
+        raise RuntimeError("mapping len error")
+
+
+class NegativeMappingLen(dict):
+    def __len__(self):
+        return -1
+
+
+def reportMappingLen(label, fn):
+    try:
+        res = fn()
+    except Exception as e:
+        print(label, "raised", type(e).__name__, str(e))
+    else:
+        print(label, "returned", res)
+
+
+reportMappingLen("len(RaisingMappingLen()):", lambda: len(RaisingMappingLen()))
+reportMappingLen("len(NegativeMappingLen()):", lambda: len(NegativeMappingLen()))
+reportMappingLen("list(RaisingMappingLen()):", lambda: list(RaisingMappingLen()))
+reportMappingLen("list(NegativeMappingLen()):", lambda: list(NegativeMappingLen()))
 
 #     Python tests originally created or extracted from other peoples work. The
 #     parts were too small to be protected.

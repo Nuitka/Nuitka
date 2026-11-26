@@ -13,7 +13,7 @@ from .CodeHelpers import (
 from .Emission import SourceCodeCollector
 from .ErrorCodes import getErrorExitBoolCode
 from .Indentation import indented
-from .PythonAPICodes import generateCAPIObjectCode
+from .PythonAPICodes import generateCAPIObjectCode, getReferenceExportCode
 from .templates.CodeTemplatesVariables import (
     template_set_locals_dict_value,
     template_set_locals_mapping_value,
@@ -38,17 +38,33 @@ def generateBuiltinLocalsRefCode(to_name, expression, emit, context):
         emit("%s = %s;" % (value_name, locals_declaration))
 
 
+def generateClassDictRefCode(to_name, expression, emit, context):
+    locals_declaration = context.addLocalsDictName(
+        expression.getLocalsScope().getCodeName()
+    )
+
+    with withObjectCodeTemporaryAssignment(
+        to_name, "class_dict_ref_value", expression, emit, context
+    ) as value_name:
+        emit("%s = %s;" % (value_name, locals_declaration))
+        getReferenceExportCode(value_name, emit, context)
+
+        context.addCleanupTempName(value_name)
+
+
 def generateBuiltinLocalsCode(to_name, expression, emit, context):
     variable_traces = expression.getVariableTraces()
     updated = expression.isExpressionBuiltinLocalsUpdated()
     locals_scope = expression.getLocalsScope()
 
-    # Locals is sorted of course.
     def _sorted(variables):
-        variable_order = tuple(locals_scope.getProvidedVariables())
+        variable_order = dict(
+            (variable, count)
+            for count, variable in enumerate(locals_scope.getProvidedVariables())
+        )
 
         return sorted(
-            variables, key=lambda variable_desc: variable_order.index(variable_desc[0])
+            variables, key=lambda variable_desc: variable_order[variable_desc[0]]
         )
 
     with withObjectCodeTemporaryAssignment(
@@ -57,12 +73,13 @@ def generateBuiltinLocalsCode(to_name, expression, emit, context):
         if updated:
             locals_declaration = context.addLocalsDictName(locals_scope.getCodeName())
             is_dict = locals_scope.hasShapeDictionaryExact()
-            # For Python3 it may really not be a dictionary.
 
             # TODO: Creation is not needed for classes.
             emit(
                 """\
-if (%(locals_dict)s == NULL) %(locals_dict)s = MAKE_DICT_EMPTY(tstate);
+if (%(locals_dict)s == NULL) {
+    %(locals_dict)s = MAKE_DICT_EMPTY(tstate);
+}
 %(to_name)s = %(locals_dict)s;
 Py_INCREF(%(to_name)s);"""
                 % {
@@ -74,7 +91,7 @@ Py_INCREF(%(to_name)s);"""
 
             initial = False
         else:
-            emit("%s = MAKE_DICT_EMPTY(tstate);" % (to_name,))
+            emit("%s = MAKE_DICT_EMPTY(tstate);" % (value_name,))
 
             context.addCleanupTempName(value_name)
 
@@ -98,8 +115,11 @@ def generateBuiltinGlobalsCode(to_name, expression, emit, context):
         to_name, "globals_value", expression, emit, context
     ) as value_name:
         emit(
-            "%(to_name)s = (PyObject *)moduledict_%(module_identifier)s;"
-            % {"to_name": value_name, "module_identifier": context.getModuleCodeName()}
+            "%(to_name)s = %(module_dict)s;"
+            % {
+                "to_name": value_name,
+                "module_dict": "(PyObject *)%s" % context.getModuleDictCodeName(),
+            }
         )
 
 
@@ -166,7 +186,7 @@ def _getVariableDictUpdateCode(
                 "mapping_name": target_name,
                 "var_name": context.getConstantCode(constant=variable.getName()),
                 "test_code": test_code,
-                "access_code": access_code,
+                "access_code": indented(access_code),
                 "tmp_name": res_name,
             }
         )

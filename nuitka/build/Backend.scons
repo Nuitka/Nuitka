@@ -2,13 +2,7 @@
 #     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-"""
-The Nuitka scons file. If you have Scons or platform knowledge, please be
-especially invited and contribute improvements.
-
-This file is used to build an executable or shared library. Nuitka needs no
-build process for itself, although it can be compiled using the same method.
-"""
+"""Backend SCons file for building executables, shared libraries, and extension modules."""
 
 # Make nuitka package importable from calling installation
 
@@ -19,29 +13,28 @@ import types
 sys.modules["nuitka"] = types.ModuleType("nuitka")
 sys.modules["nuitka"].__path__ = [os.environ["NUITKA_PACKAGE_DIR"]]
 
-# We are in the build.build package really.
 import nuitka.build  # pylint: disable=unused-import
 
 __package__ = "nuitka.build"  # pylint: disable=redefined-builtin
 
 # isort:start
 
-from nuitka.Tracing import scons_details_logger, scons_logger
+from nuitka.Tracing import scons_logger
 from nuitka.utils.FileOperations import (
     changeFilenameExtension,
+    getExternalUsePath,
     getFilenameExtension,
     getNormalizedPath,
     getNormalizedPathJoin,
+    putTextFileContents,
 )
 from nuitka.utils.Json import loadJsonFromFilename
 from nuitka.utils.Utils import (
     isAIX,
-    isBSD,
     isDebianBasedLinux,
     isFedoraBasedLinux,
-    isFreeBSD,
-    isLinux,
     isMacOS,
+    isWin32OrPosixWindows,
 )
 
 from .SconsCompilerSettings import (
@@ -49,16 +42,14 @@ from .SconsCompilerSettings import (
     reportCCompiler,
     setupCCompiler,
 )
-from .SconsHacks import makeLinkerUseResponseFile
-from .SconsProgress import setSconsProgressBarTotal
+from .SconsControl import executeSconsBuild
 from .SconsPythonBuild import (
     addPythonHaclLib,
     addWin32PythonLib,
     applyPythonBuildSettings,
 )
-from .SconsSpawn import enableSpawnMonitoring
+from .SconsSourceIndex import getSourceFilenamesFromIndex
 from .SconsUtils import (
-    changeKeyboardInterruptToErrorExit,
     createDefinitionsFile,
     getArgumentBool,
     getArgumentDefaulted,
@@ -66,95 +57,47 @@ from .SconsUtils import (
     getArgumentList,
     getArgumentRequired,
     makeResultPathFileSystemEncodable,
-    scanSourceDir,
-    writeSconsReport,
 )
 
-# spell-checker: ignore cflags,cppdefines,cpppath,
-# spell-checker: ignore linkflags,libpath,libflags
+# spell-checker: ignore cflags,cppdefines,cpppath,libflags,libpath,linkflags
 
-# Set up the basic stuff.
 env = createNuitkaSconsEnvironment()
 
-
-# The name of executable that we are supposed to produce.
 result_exe = getArgumentRequired("result_exe")
-
-# Name of the main program (in executable mode, typically __main__ but can be in a package too.)
 main_module_name = getArgumentDefaulted("main_module_name", "__main__")
-
-
-# Full compatibility, even where it's stupid, i.e. do not provide information,
-# even if available, in order to assert maximum compatibility. Intended to
-# control level of compatibility to absurd.
 full_compat_mode = getArgumentBool("full_compat", False)
-
-# Profiling mode: Outputs vmprof based information from program run.
 profile_mode = getArgumentBool("profile_mode", False)
-
-# sys.flags values to pass along
 no_python_warnings = getArgumentBool("no_python_warnings", False)
+no_unraisable = getArgumentBool("no_unraisable", False)
 
-# python_sysflag_py3k_warning
 python_sysflag_py3k_warning = getArgumentBool("python_sysflag_py3k_warning", False)
-# python_sysflag_division_warning
 python_sysflag_division_warning = getArgumentBool(
     "python_sysflag_division_warning", False
 )
-# python_sysflag_division_warning
 python_sysflag_bytes_warning = getArgumentBool("python_sysflag_bytes_warning", False)
-# python_sysflag_no_site
 python_sysflag_no_site = getArgumentBool("python_sysflag_no_site", False)
-# python_sysflag_verbose
 python_sysflag_verbose = getArgumentBool("python_sysflag_verbose", False)
-# python_sysflag_unicode
 python_sysflag_unicode = getArgumentBool("python_sysflag_unicode", False)
-# python_sysflag_utf8
 python_sysflag_utf8 = getArgumentBool("python_sysflag_utf8", False)
-# python_sysflag_optimize
 python_sysflag_optimize = getArgumentInt("python_sysflag_optimize", 0)
-# python_flag_no_asserts
 python_flag_no_asserts = getArgumentBool("python_flag_no_asserts", False)
-# python_flag_no_docstrings
 python_flag_no_docstrings = getArgumentBool("python_flag_no_docstrings", False)
-# python_flag_no_annotations
 python_flag_no_annotations = getArgumentBool("python_flag_no_annotations", False)
-# python_sysflag_no_randomization
 python_sysflag_no_randomization = getArgumentBool(
     "python_sysflag_no_randomization", False
 )
-
-# python_sysflag_unbuffered (--python-flag=-U)
 python_sysflag_unbuffered = getArgumentBool("python_sysflag_unbuffered", False)
-
-# python_sysflag_dontwritebytecode (--python-flag=-B)
 python_sysflag_dontwritebytecode = getArgumentBool(
     "python_sysflag_dontwritebytecode", False
 )
-
-# python_sysflag_safe_path (--python-flag=-P)
 python_sysflag_safe_path = getArgumentBool("python_sysflag_safe_path", False)
-
-# python_sysflag_isolated
 python_sysflag_isolated = getArgumentBool("python_sysflag_isolated", False)
 
-# file reference mode
 file_reference_mode = getArgumentRequired("file_reference_mode")
-
-# Preprocessor defines from plugins
-cpp_defines = getArgumentList("cpp_defines", "")
-cpp_include_dirs = getArgumentList("cpp_include_dirs", "")
-link_dirs = getArgumentList("link_dirs", "")
-link_libraries = getArgumentList("link_libraries", "")
-
-# From statically compiled modules of the Python
 link_module_libs = getArgumentList("link_module_libs", "")
 
-
-# Report the C compiler used.
 reportCCompiler(env, "Backend", scons_logger.info)
 
-# Set up C compiler settings.
 setupCCompiler(
     env=env,
     pgo_mode=env.pgo_mode,
@@ -162,9 +105,11 @@ setupCCompiler(
     onefile_compile=False,
 )
 
-
 if full_compat_mode:
     env.Append(CPPDEFINES=["_NUITKA_FULL_COMPAT"])
+
+if no_unraisable:
+    env.Append(CPPDEFINES=["PYTHON_NO_UNRAISABLE"])
 
 if profile_mode:
     env.Append(CPPDEFINES=["_NUITKA_PROFILE"])
@@ -174,17 +119,13 @@ if env.trace_mode:
 
 applyPythonBuildSettings(env)
 
-adapted_python_header_files_dir = env.get("adapted_python_header_files_dir")
-if adapted_python_header_files_dir:
-    env.Prepend(CPPPATH=[adapted_python_header_files_dir])
-
 # TODO: This ought to be decided outside of scons and per flavor maybe.
-if env.static_libpython and ((not os.name == "nt" and not isMacOS()) or env.monolithpy):
+if env.static_libpython and ((os.name != "nt" and not isMacOS()) or env.monolithpy):
     env.Append(CPPDEFINES=["_NUITKA_USE_UNEXPOSED_API"])
 
 link_module_libs = addPythonHaclLib(env, link_module_libs=link_module_libs)
 
-if os.name == "nt":
+if env.target_os == "Windows" and not env.msys2_posix_python:
     if env.monolithpy:
         link_data = loadJsonFromFilename(
             os.path.join(env.python_prefix_external, "link.json")
@@ -204,18 +145,14 @@ if os.name == "nt":
     elif env.gcc_mode and env.static_libpython:
         env.Append(LIBS=[env.File(env.static_libpython)])
     else:
-        # All Python flavors on Windows have this.
         addWin32PythonLib(env)
 elif env.exe_mode or env.dll_mode:
-    # Add the python library path to the library path
     if env.self_compiled_python_uninstalled:
         python_lib_path = env.python_prefix_external
     else:
         python_lib_path = os.path.join(env.python_prefix_external, "lib")
 
     env.Append(LIBPATH=[python_lib_path])
-
-    # Any module libs that are for self-compiled Python to be static.
     env.Append(_LIBFLAGS=["-l" + lib_desc for lib_desc in link_module_libs])
 
     if env.monolithpy:
@@ -246,8 +183,18 @@ elif env.exe_mode or env.dll_mode:
     elif env.static_libpython:
         env.Append(LIBS=[env.File(env.static_libpython)])
 
+        # WASI Python keeps these as separate archives that must follow libpython.
+        if env.target_os == "WASI":
+            for wasi_lib_name in ("libmpdec.a", "libexpat.a"):
+                wasi_lib_path = getNormalizedPathJoin(
+                    env.python_prefix_external, "lib", wasi_lib_name
+                )
+
+                if os.path.exists(wasi_lib_path):
+                    env.Append(LIBS=[env.File(wasi_lib_path)])
+
         # The linker won't succeed in searching for those for system Python of Debian
-        # compiled Pythons. Help that. spell-checker: ignore rdynamic,Xlinker,pthread
+        # compiled Pythons. Help that. spell-checker: ignore Xlinker,pthread,rdynamic
         if env.python_prefix_external == "/usr" and isDebianBasedLinux():
             env.Append(LIBS=["z", "m", "util", "pthread"])
 
@@ -270,7 +217,7 @@ elif env.exe_mode or env.dll_mode:
         else:
             env.Append(LIBS=["python" + env.python_abi_version])
 
-    if env.python_prefix_external != "/usr" and isLinux():
+    if env.python_prefix_external != "/usr" and env.target_os == "Linux":
         env.Append(LIBS=["dl", "pthread", "util", "rt", "m"])
 
         if env.gcc_mode:
@@ -279,35 +226,35 @@ elif env.exe_mode or env.dll_mode:
             else:
                 env.Append(LINKFLAGS=["-export-dynamic"])
 
-    if env.onefile_mode and (isLinux() or isBSD()):
+    if env.onefile_mode and (env.target_os == "Linux" or "BSD" in env.target_os):
         env.Append(LIBS=["pthread"])
 
     # For NetBSD the rpath is required, on FreeBSD it's warned as unused, macOS
     # and AIX don't have it, but some Python flavors like Standalone Python
     # won't find it unless provided like this, so lets try to add this by
     # default and remove OSes that give errors one by one.
-    if not isFreeBSD() and not isMacOS() and not isAIX():
+    if (
+        env.rpath_using_platform
+        and env.binary_format == "elf"
+        and env.target_os != "FreeBSD"
+    ):
         env.Append(LINKFLAGS=["-Wl,-rpath=" + python_lib_path])
 
 if isMacOS():
     if env.module_mode or env.dll_mode:
-        # Dynamic lookup needed for extension modules.
+        # Allow unresolved symbols to be resolved at dynamic load time.
         env.Append(LINKFLAGS=["-undefined", "dynamic_lookup"])
     if not env.module_mode:
         # For macOS we need to make sure install_name_tool can do its work
         # spell-checker: ignore headerpad
         env.Append(LINKFLAGS=["-headerpad_max_install_names"])
 
-if env.android_termux_python or isAIX():
+if env.module_mode and (env.android_termux_python or isAIX()):
     # For Android Termux Python and AIX we need modules to link against the
     # shared library of Python, different from all other ones.
     # spell-checker: ignore lpython
+    env.Append(_LIBFLAGS=["-lpython%s" % env.python_version_str])
 
-    if env.module_mode:
-        env.Append(_LIBFLAGS=["-lpython%s" % env.python_version_str])
-
-# The static include files reside in Nuitka installation, which may be where
-# the "nuitka.build" package lives.
 nuitka_include = os.path.join(env.nuitka_src, "include")
 
 if not os.path.exists(os.path.join(nuitka_include, "nuitka", "prelude.h")):
@@ -316,8 +263,6 @@ if not os.path.exists(os.path.join(nuitka_include, "nuitka", "prelude.h")):
         % nuitka_include
     )
 
-# We have include files in the build directory and the static include directory
-# that is located inside Nuitka installation.
 env.Append(
     CPPPATH=[
         env.source_dir,
@@ -327,12 +272,12 @@ env.Append(
     ]
 )
 
-# Set load libpython from binary directory default
 if (
     env.gcc_mode
+    and env.rpath_using_platform
     and not isMacOS()
     and not isAIX()
-    and not os.name == "nt"
+    and os.name != "nt"
     and (env.exe_mode or env.dll_mode)
 ):
     # TODO: It would appear that this should be merged with above code that does
@@ -349,40 +294,61 @@ if (
     # option name is not very revealing, but basically without this, the
     # rpath in the binary will be ignored by the loader.
     # spell-checker: ignore dtags
-    if isLinux():
+    if env.target_os == "Linux":
         env.Append(LINKFLAGS=["-Wl,--disable-new-dtags"])
 
 
-def discoverSourceFiles():
-    result = []
+source_filenames = getSourceFilenamesFromIndex(env=env, source_dir=env.source_dir)
 
-    # Scan for Nuitka created source files, and add them too.
-    result.extend(scanSourceDir(env=env, dirname=env.source_dir, plugins=False))
-    result.extend(
-        scanSourceDir(
-            env=env,
-            dirname=getNormalizedPathJoin(env.source_dir, "plugins"),
-            plugins=True,
+
+def _addLinkerMapOutput():
+    if "generate-debug-symbols" not in env.experimental_flags:
+        return
+
+    map_filename = changeFilenameExtension(result_exe, ".map")
+
+    if env.msvc_mode or env.clangcl_mode:
+        env.Append(LINKFLAGS=["/MAP:%s" % map_filename])
+    elif env.mingw_mode or ((env.gcc_mode or env.clang_mode) and not isMacOS()):
+        env.Append(LINKFLAGS=["-Wl,-Map,%s" % map_filename])
+    else:
+        scons_logger.warning(
+            "Linker map generation is not supported for this toolchain."
         )
-    )
-
-    result.extend(
-        scanSourceDir(
-            env=env,
-            dirname=getNormalizedPathJoin(env.source_dir, "static_src"),
-            plugins=False,
-        )
-    )
-
-    return result
 
 
-source_filenames = discoverSourceFiles()
-
-# Remove the target file to avoid cases where it falsely doesn't get rebuild and
-# then lingers from previous builds, and also workaround for MinGW64 not
-# supporting unicode result paths for "-o" basename.
 result_exe = makeResultPathFileSystemEncodable(env=env, result_exe=result_exe)
+
+# On Windows onefile DLL mode, we try to avoid the overhead of entry point
+# name, but Zig's linker rejects .def files as input, so Zig builds keep
+# the named export and the bootstrap looks 'run_code' up by name instead.
+if env.onefile_dll_mode and isWin32OrPosixWindows() and not env.zig_mode:
+    # Export 'run_code' by ordinal only. The ordinal must match
+    # '_NUITKA_ONEFILE_DLL_RUN_CODE_ORDINAL_INT' used by the bootstrap.
+    run_code_exports_filename = getNormalizedPathJoin(
+        env.source_dir, "run_code_exports.def"
+    )
+
+    putTextFileContents(
+        run_code_exports_filename,
+        """\
+EXPORTS
+    run_code @1 NONAME
+""",
+        encoding="ascii",
+    )
+
+    run_code_exports_filename = getExternalUsePath(run_code_exports_filename)
+
+    if env.msvc_mode:
+        env.Append(LINKFLAGS=["/DEF:%s" % run_code_exports_filename])
+    else:
+        env.Append(LINKFLAGS=["-Wl,--exclude-all-symbols"])
+
+        # Add the exports file after the object files, where GNU ld can
+        # resolve the exported symbol.
+        env.Append(_LIBFLAGS=[run_code_exports_filename])
+
 
 if env.module_mode:
     # For Python modules, the standard shared library extension is not what gets
@@ -419,6 +385,8 @@ elif env.dll_mode:
         no_import_lib=env.no_import_lib,
     )
 else:
+    _addLinkerMapOutput()
+
     # For scons internal use, we use Python native paths as MSYS2 does wrong things otherwise.
     target = env.Program(os.path.normpath(result_exe), source_filenames)
 
@@ -452,10 +420,6 @@ def createBuildDefinitionsFile():
     env.build_definitions["SYSFLAG_UTF8"] = 1 if python_sysflag_utf8 else 0
 
     env.build_definitions["SYSFLAG_OPTIMIZE"] = python_sysflag_optimize
-
-    env.build_definitions["SYSFLAG_DONTWRITEBYTECODE"] = (
-        1 if python_sysflag_dontwritebytecode else 0
-    )
 
     env.build_definitions["_NUITKA_NO_ASSERTS"] = 1 if python_flag_no_asserts else 0
 
@@ -515,45 +479,19 @@ if file_reference_mode == "original":
 
 createBuildDefinitionsFile()
 
-# The meta path based loader might want to respect that, so it does verbose traces in module
-# mode, mostly for debugging purposes only.
 if env.module_mode and python_sysflag_verbose:
     env.Append(CPPDEFINES=["_NUITKA_SYSFLAG_VERBOSE=1"])
 
-# Hack to make Scons use a response file for gcc linking, to avoid line length
-# limits, which can make linking fail with many modules otherwise. Most needed
-# on Windows, but useful on other platforms too.
-if env.gcc_mode:
-    makeLinkerUseResponseFile(
-        env=env,
-        source_filenames=source_filenames,
-    )
+if python_sysflag_no_site:
+    env.Append(CPPDEFINES=["_NUITKA_SYSFLAG_NO_SITE=1"])
 
-# Plugin contributed C defines should be used too.
-env.Append(CPPDEFINES=cpp_defines)
-# Plugin contributed C include directories should be used too.
-env.Prepend(CPPPATH=cpp_include_dirs)
-# Plugin contributed link dirs should be used too.
-env.Append(LIBPATH=link_dirs)
-# Plugin contributed link libraries should be used too.
-env.Append(LIBS=link_libraries)
-
-# Work around windows bugs and use watchdogs to track progress of compilation.
-enableSpawnMonitoring(
+executeSconsBuild(
     env=env,
+    target=target,
     source_filenames=source_filenames,
+    progressbar_name=env.progressbar_name,
+    stable_include_paths=True,
 )
-
-# Before we go, also lets turn KeyboardInterrupt into a mere error exit as the
-# scons traceback is not going to be very interesting to us.
-changeKeyboardInterruptToErrorExit()
-
-writeSconsReport(env=env, target=target)
-
-setSconsProgressBarTotal(name=env.progressbar_name, total=len(source_filenames))
-
-scons_details_logger.info("Launching Scons target: %s" % target)
-env.Default(target)
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.

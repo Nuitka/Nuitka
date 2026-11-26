@@ -7,10 +7,8 @@
 #include "stdint.h"
 #endif
 
-// Comment in to disable outside zlib usage for code size, very slow though,
-// since it doesn't use assembly to use CPU crc32 instructions.
-// #define _NUITKA_USE_OWN_CRC32
-
+// Define _NUITKA_USE_OWN_CRC32 to avoid external zlib for smaller code size,
+// at the cost of speed since it does not use CPU crc32 instructions.
 #ifdef _NUITKA_USE_OWN_CRC32
 uint32_t _initCRC32(void) { return 0xFFFFFFFF; }
 
@@ -31,8 +29,17 @@ uint32_t _updateCRC32(uint32_t crc, unsigned char const *message, uint32_t size)
 uint32_t _finalizeCRC32(uint32_t crc) { return ~crc; }
 
 // No Python runtime is available yet, need to do this in C.
-uint32_t calcCRC32(unsigned char const *message, uint32_t size) {
-    return _finalizeCRC32(_updateCRC32(_initCRC32(), message, size));
+uint32_t calcCRC32With64BitSize(unsigned char const *message, uint64_t size) {
+    uint32_t crc = _initCRC32();
+
+    while (size > 0) {
+        uint32_t chunk_size = size > 0xFFFFFFFFU ? 0xFFFFFFFFU : (uint32_t)size;
+        crc = _updateCRC32(crc, message, chunk_size);
+        message += chunk_size;
+        size -= chunk_size;
+    }
+
+    return _finalizeCRC32(crc);
 }
 #else
 
@@ -50,8 +57,21 @@ uint32_t calcCRC32(unsigned char const *message, uint32_t size) {
 #undef get_crc_table
 #endif
 
-uint32_t calcCRC32(unsigned char const *message, uint32_t size) { return crc32(0, message, size) & 0xFFFFFFFF; }
+uint32_t calcCRC32With64BitSize(unsigned char const *message, uint64_t size) {
+    uLong crc = 0;
+
+    while (size > 0) {
+        uInt chunk_size = size > 0xFFFFFFFFU ? (uInt)0xFFFFFFFFU : (uInt)size;
+        crc = crc32(crc, message, chunk_size);
+        message += chunk_size;
+        size -= chunk_size;
+    }
+
+    return crc & 0xFFFFFFFF;
+}
 #endif
+
+uint32_t calcCRC32(unsigned char const *message, uint32_t size) { return calcCRC32With64BitSize(message, size); }
 
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.

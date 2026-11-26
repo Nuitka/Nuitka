@@ -55,6 +55,38 @@ list_dict_args_function(2, z=3)
 list_dict_args_function(2, 3)
 list_dict_args_function(a=2, b=3, c=4)
 
+
+class HiddenIterArgumentList(object):
+    def __iter__(self):
+        return iter("iter")
+
+    def __getattribute__(self, attribute_name):
+        if attribute_name == "__iter__":
+            raise AttributeError(attribute_name)
+
+        return object.__getattribute__(self, attribute_name)
+
+
+class HiddenGetitemArgumentList(object):
+    def __getitem__(self, index):
+        if index >= 2:
+            raise IndexError
+
+        return index
+
+    def __getattribute__(self, attribute_name):
+        if attribute_name == "__getitem__":
+            raise AttributeError(attribute_name)
+
+        return object.__getattribute__(self, attribute_name)
+
+
+print("Star arguments that are iterable through type slots:")
+list_args_function(*HiddenIterArgumentList())
+plain_list_args_function(0, *HiddenIterArgumentList())
+list_args_function(*HiddenGetitemArgumentList())
+plain_list_args_function(0, *HiddenGetitemArgumentList())
+
 #     Python tests originally created or extracted from other peoples work. The
 #     parts were too small to be protected.
 #

@@ -10,14 +10,83 @@ import sys
 from nuitka.containers.OrderedDicts import OrderedDict
 from nuitka.importing.FakeModules import makeFakeModuleDescription
 from nuitka.options.Options import (
+    getCompilationMode,
     getMainEntryPointFilenames,
-    shallMakeDll,
+    isStandaloneMode,
+    shallMakeExe,
     shallMakeModule,
 )
 from nuitka.plugins.PluginBase import NuitkaPluginBase
-from nuitka.utils.Execution import executeProcess
+from nuitka.PythonPrefixes import getSystemPrefixPath
+from nuitka.utils.Execution import executeProcess, getEnvironmentPathAdded
+from nuitka.utils.FileOperations import (
+    getFileContents,
+    getNormalizedAbsolutePath,
+    getNormalizedPathJoin,
+    getUserInputNormalizedPath,
+    putTextFileContents,
+    relpath,
+    resolveShellPatternToFilenames,
+    withTemporaryDirectory,
+)
 from nuitka.utils.Json import loadJsonFromContents
 from nuitka.utils.ModuleNames import ModuleName
+
+
+def _getPythonIncludeDirectories(logger):
+    """Return the include directories of the running interpreter.
+
+    Args:
+        logger: Logger to report errors with.
+
+    Notes:
+        These are the directories needed for C compilation against the running
+        interpreter, i.e. where 'Python.h' and the 'pyconfig.h' that describes
+        it are found. On Debian and Ubuntu, the latter is a wrapper that
+        includes a file from a multiarch directory outside the main include
+        directory, which is returned as well.
+
+    Returns:
+        Tuple of absolute directory paths, the main include directory first,
+        followed by the multiarch variant when it exists.
+    """
+    try:
+        import sysconfig
+    except ImportError:
+        # Python 2.6 does not provide it, and the layouts that need more than
+        # the main include directory are all much newer.
+        return logger.sysexit("Error, cannot detect Python include directories.")
+
+    result = []
+
+    paths = sysconfig.get_paths()
+
+    for key in ("include", "platinclude"):
+        include_dir = paths.get(key)
+
+        if include_dir is not None and os.path.isdir(include_dir):
+            include_dir = getNormalizedAbsolutePath(include_dir)
+
+            if include_dir not in result:
+                result.append(include_dir)
+
+    multiarch = sysconfig.get_config_var("MULTIARCH")
+
+    if multiarch:
+        for include_dir in tuple(result):
+            multiarch_dir = getNormalizedPathJoin(
+                os.path.dirname(include_dir),
+                multiarch,
+                os.path.basename(include_dir),
+            )
+
+            if os.path.isdir(multiarch_dir) and multiarch_dir not in result:
+                result.append(multiarch_dir)
+
+    if not result:
+        return logger.sysexit("Error, cannot detect Python include directories.")
+
+    return tuple(result)
 
 
 def _decodeCommandOutput(value):
@@ -45,10 +114,88 @@ def _formatDictLiteralCode(value):
     return "\n".join(result)
 
 
+_source_inclusion_decorator_names = (
+    "triton.jit",
+    "triton.autotune",
+    "triton.constexpr_function",
+    "triton.heuristics",
+    "triton.experimental.gluon.jit",
+    "cutlass.cute.jit",
+    "cutlass.cute.kernel",
+    "cutlass.cute.experimental.jit",
+    "cutlass.cute.experimental.kernel",
+    "cuda.tile.function",
+    "cuda.tile.kernel",
+    "cuda.tile._execution.function",
+    "cuda.tile._execution.kernel",
+)
+
+
 _probe_result_prefix = "NUITKA_SOURCE_INCLUSION_JSON:"
+
+_probe_records_environment = "NUITKA_SOURCE_INCLUSION_RECORDS"
+
+_probe_records_directory_prefix = "nuitka-source-inclusion-"
+
+
+def _getSiteCustomizeCode():
+    """Return the code of the 'sitecustomize' module used by probe executions.
+
+    Notes:
+        The probe execution itself and all child processes that are spawned
+        while it runs import this module automatically, since its directory
+        is prepended to 'PYTHONPATH'. It records source files the way the
+        runtime support module serves them, but writes them to per-process
+        files immediately, so records survive child processes being killed.
+    """
+    return r"""
+import json
+import linecache
+import os
+
+_record_directory = os.environ.get("NUITKA_SOURCE_INCLUSION_RECORDS")
+
+if _record_directory:
+    _recorded_modules = {}
+    _original_getlines = linecache.getlines
+
+    def _recording_getlines(filename, module_globals=None):
+        lines = _original_getlines(filename, module_globals)
+
+        if lines and module_globals is not None:
+            module_name = module_globals.get("__name__")
+            module_filename = module_globals.get("__file__")
+
+            if (
+                module_name is not None
+                and module_filename is not None
+                and module_name not in _recorded_modules
+                and os.path.normcase(os.path.abspath(module_filename))
+                == os.path.normcase(os.path.abspath(filename))
+            ):
+                _recorded_modules[module_name] = True
+
+                record_filename = os.path.join(
+                    _record_directory, "records-%d.jsonl" % os.getpid()
+                )
+
+                record_file = open(record_filename, "a")
+                try:
+                    record_file.write(json.dumps([module_name, lines]))
+                    record_file.write("\n")
+                finally:
+                    record_file.close()
+
+        return lines
+
+    linecache.getlines = _recording_getlines
+"""
 
 
 class NuitkaPluginSourceInclusion(NuitkaPluginBase):
+    # Many configuration and collected data attributes,
+    # pylint: disable=too-many-instance-attributes
+
     plugin_name = "source-inclusion"
     plugin_desc = (
         "Record source files from probe execution and serve them via 'linecache'."
@@ -61,6 +208,7 @@ class NuitkaPluginSourceInclusion(NuitkaPluginBase):
             "--source-inclusion-args",
             action="append",
             dest="source_inclusion_arg_sets",
+            metavar="ARGS",
             default=[],
             help="""\
 Run the program being compiled during compilation with this shell-style
@@ -71,6 +219,7 @@ additional probe run, e.g. '--source-inclusion-args="subcommand --help"'.""",
             "--source-inclusion-timeout",
             action="store",
             dest="source_inclusion_timeout",
+            metavar="SECONDS",
             type="int",
             default=None,
             help="""\
@@ -85,10 +234,18 @@ run that hangs is seen rather than silently cut short.""",
             help="""\
 Display the recorded source inclusion modules from the probe run.""",
         )
-
-    @classmethod
-    def isRelevant(cls):
-        return not (shallMakeModule() or shallMakeDll())
+        group.add_option(
+            "--source-inclusion-main",
+            action="store",
+            dest="source_inclusion_main",
+            metavar="PATH",
+            default=None,
+            help="""\
+Filename of a program to execute during compilation for recording source \
+files, instead of the program being compiled. Use this in module mode, where \
+there is no main program, to exercise the compiled module, e.g. a script that \
+imports the package and runs typical operations.""",
+        )
 
     def _normalizeSourceInclusionArgSets(self, source_inclusion_arg_sets):
         result = []
@@ -112,6 +269,7 @@ Display the recorded source inclusion modules from the probe run.""",
         source_inclusion_arg_sets,
         source_inclusion_timeout,
         show_source_inclusion_trace,
+        source_inclusion_main,
     ):
         if source_inclusion_timeout is not None and source_inclusion_timeout <= 0:
             self.sysexit(
@@ -124,19 +282,39 @@ Display the recorded source inclusion modules from the probe run.""",
 
         self.source_inclusion_timeout = source_inclusion_timeout
         self.show_source_inclusion_trace = show_source_inclusion_trace
+        self.source_inclusion_main = source_inclusion_main
 
         self.main_filename = None
         self.source_data = OrderedDict()
+        self.build_time_source_data = OrderedDict()
+        self.python_headers_included = False
 
     def onCompilationStartChecks(self):
-        main_filenames = getMainEntryPointFilenames()
+        if self.source_inclusion_main is not None:
+            self.main_filename = getUserInputNormalizedPath(self.source_inclusion_main)
 
-        if len(main_filenames) != 1:
-            return self.sysexit(
-                "Error, '--enable-plugin=source-inclusion' does not support multiple main programs yet."
-            )
+            if not os.path.isfile(self.main_filename):
+                return self.sysexit(
+                    "Error, '--source-inclusion-main' must be an existing filename, '%s' is not."
+                    % self.main_filename
+                )
+        else:
+            main_filenames = getMainEntryPointFilenames()
 
-        self.main_filename = main_filenames[0]
+            if len(main_filenames) != 1:
+                if not shallMakeExe():
+                    return self.sysexit(
+                        """\
+Error, in '%s' mode, '--enable-plugin=source-inclusion' requires \
+'--source-inclusion-main=<filename>' of a program that exercises the compiled module."""
+                        % getCompilationMode()
+                    )
+
+                return self.sysexit(
+                    "Error, '--enable-plugin=source-inclusion' does not support multiple main programs yet."
+                )
+
+            self.main_filename = main_filenames[0]
 
         source_data = self._runProbeExecutions(main_filename=self.main_filename)
 
@@ -161,6 +339,73 @@ Display the recorded source inclusion modules from the probe run.""",
 No source file lookups were recorded. Adjust \
 '--source-inclusion-args' values if source inspection still fails at run \
 time.""")
+
+    def getJITDecoratorRegistrations(self):
+        for decorator_name in _source_inclusion_decorator_names:
+            yield decorator_name, ("callback", self._registerJITSource)
+
+    def _registerJITSource(
+        self, decorator_name, module, start_line, end_line, get_lines, node
+    ):
+        """Register the source of a decorated function for source inspection.
+
+        Args:
+            decorator_name: The registered decorator name.
+            module: The module containing the decorated function.
+            start_line: First source line of the decorated function.
+            end_line: Last source line of the decorated function.
+            get_lines: Callable returning the decorated function's source lines.
+            node: AST node of the decorated function.
+        """
+        # The callback interface provides these for plugins that need them.
+        # pylint: disable=unused-argument
+
+        assert module.isCompiledPythonModule()
+
+        module_name = module.getRuntimeNameValue()
+
+        if module_name in self.source_data:
+            return
+
+        module_segments = self.build_time_source_data.setdefault(
+            module_name, OrderedDict()
+        )
+        module_segments[start_line] = get_lines()[start_line - 1 : end_line]
+
+    def considerDataFiles(self, module):
+        """Provide the Python header files for in-place C compilation.
+
+        Notes:
+            The triton backends build C extensions in place at run time, the
+            driver helpers like "cuda_utils" and the per-signature launchers,
+            and need "Python.h" and "pyconfig.h" of the running interpreter to
+            do so. This is true for every backend, including third party ones
+            found through entry points, so the "triton.backends" package is
+            used as the trigger.
+
+        Args:
+            module: The module considered.
+
+        Yields:
+            IncludedDataFile objects for the header directories.
+        """
+        if (
+            module.getFullName() == "triton.backends"
+            and isStandaloneMode()
+            and not self.python_headers_included
+        ):
+            self.python_headers_included = True
+
+            for include_dir in _getPythonIncludeDirectories(logger=self):
+                include_relpath = relpath(include_dir, getSystemPrefixPath())
+
+                yield self.makeIncludedDataDirectory(
+                    source_path=include_dir,
+                    dest_path=include_relpath,
+                    reason="Python header files for in-place C compilation",
+                    tags="config",
+                    raw=True,
+                )
 
     def _runProbeExecutions(self, main_filename):
         merged_source_data = {}
@@ -190,25 +435,45 @@ time.""")
     def _runProbeExecution(self, main_filename, probe_args):
         probe_code = self._getProbeCode()
 
-        command = [sys.executable, "-c", probe_code, main_filename]
-        command += list(probe_args)
+        with withTemporaryDirectory(
+            logger=self,
+            prefix=_probe_records_directory_prefix,
+            ignore_errors=True,
+        ) as record_dir:
+            putTextFileContents(
+                filename=os.path.join(record_dir, "sitecustomize.py"),
+                contents=_getSiteCustomizeCode(),
+            )
 
-        env = dict(os.environ)
-        env["PYTHONIOENCODING"] = "utf8"
+            command = [sys.executable, "-c", probe_code, main_filename]
+            command += list(probe_args)
 
-        process_result = executeProcess(
-            command=command,
-            env=env,
-            stdin=False,
-            timeout=self.source_inclusion_timeout,
-        )
+            env = dict(os.environ)
+            env["PYTHONIOENCODING"] = "utf8"
+            env[_probe_records_environment] = record_dir
+            env["PYTHONPATH"] = getEnvironmentPathAdded(
+                "PYTHONPATH", record_dir, prefix=True
+            )
 
-        stdout = _decodeCommandOutput(process_result.stdout).strip()
-        stderr = _decodeCommandOutput(process_result.stderr).strip()
+            process_result = executeProcess(
+                command=command,
+                env=env,
+                stdin=False,
+                timeout=self.source_inclusion_timeout,
+            )
 
-        probe_result, probe_error = self._decodeProbeResult(
-            main_filename=main_filename, stdout=stdout
-        )
+            stdout = _decodeCommandOutput(process_result.stdout).strip()
+            stderr = _decodeCommandOutput(process_result.stderr).strip()
+
+            probe_result = self._decodeProbeResult(
+                main_filename=main_filename, stdout=stdout
+            )
+
+            source_data = self._getRecordedSourceData(
+                main_filename=main_filename, record_dir=record_dir
+            )
+
+        probe_error = probe_result.get("error")
 
         if process_result.exit_code != 0 or probe_error is not None:
             return self.sysexit(
@@ -222,7 +487,45 @@ time.""")
                 )
             )
 
-        return probe_result
+        return source_data
+
+    def _getRecordedSourceData(self, main_filename, record_dir):
+        source_data = OrderedDict()
+
+        for record_filename in resolveShellPatternToFilenames(
+            os.path.join(record_dir, "records-*.jsonl")
+        ):
+            for record_line in getFileContents(
+                record_filename, mode="r", encoding="utf8"
+            ).splitlines():
+                if not record_line:
+                    continue
+
+                if str is not bytes:
+                    record_line = record_line.encode("utf8")
+
+                record = loadJsonFromContents(record_line)
+
+                if type(record) not in (list, tuple) or len(record) != 2:
+                    return self.sysexit(
+                        "Error, probe execution for '%s' recorded invalid data in '%s'."
+                        % (main_filename, record_filename)
+                    )
+
+                module_name, lines = record
+
+                previous_lines = source_data.get(module_name)
+
+                if previous_lines is not None:
+                    if previous_lines != lines:
+                        return self.sysexit(
+                            "Error, probe execution for '%s' recorded conflicting source code for module '%s'."
+                            % (main_filename, module_name)
+                        )
+                else:
+                    source_data[module_name] = lines
+
+        return source_data
 
     def _decodeProbeResult(self, main_filename, stdout):
         stdout_lines = [line for line in stdout.splitlines() if line.strip()]
@@ -254,20 +557,7 @@ time.""")
                 % (main_filename, probe_result_text)
             )
 
-        source_data = probe_result.get("sources", {})
-
-        if type(source_data) is not dict:
-            return self.sysexit(
-                "Error, probe execution for '%s' returned invalid source data."
-                % main_filename
-            )
-
-        ordered_source_data = OrderedDict()
-
-        for key in sorted(source_data):
-            ordered_source_data[key] = source_data[key]
-
-        return ordered_source_data, probe_result.get("error")
+        return probe_result
 
     @staticmethod
     def _getProbeCode():
@@ -277,7 +567,6 @@ from __future__ import print_function
 
 import io
 import json
-import linecache
 import os
 import runpy
 import sys
@@ -286,36 +575,6 @@ import sys
 def _main():
     main_filename = os.path.abspath(sys.argv[1])
     probe_args = sys.argv[2:]
-
-    source_data = {}
-
-    original_getlines = linecache.getlines
-
-    def _recording_getlines(filename, module_globals=None):
-        lines = original_getlines(filename, module_globals)
-
-        if lines and module_globals is not None:
-            module_name = module_globals.get("__name__")
-            module_filename = module_globals.get("__file__")
-
-            if (
-                module_name is not None
-                and module_filename is not None
-                and os.path.normcase(os.path.abspath(module_filename))
-                == os.path.normcase(os.path.abspath(filename))
-            ):
-                previous_lines = source_data.get(module_name)
-
-                if previous_lines is not None and previous_lines != lines:
-                    raise AssertionError(
-                        "Conflicting source recorded for module '%s'." % module_name
-                    )
-
-                source_data[module_name] = lines
-
-        return lines
-
-    linecache.getlines = _recording_getlines
 
     null_output = io.open(os.devnull, "w", encoding="utf8", errors="ignore")
     old_stdout = sys.stdout
@@ -350,19 +609,32 @@ def _main():
 
     print(
         "NUITKA_SOURCE_INCLUSION_JSON:%s"
-        % json.dumps(
-            {"sources": source_data, "error": probe_error}, sort_keys=True
-        )
+        % json.dumps({"error": probe_error}, sort_keys=True)
     )
 
     if probe_error is not None:
         sys.exit(1)
 
 _main()
-""".strip()
+"""
+
+    def _isSourceInclusionTrigger(self, module, pre_load):
+        if not (self.source_data or self.build_time_source_data):
+            return False
+
+        if pre_load:
+            # In module mode there is no compiled "linecache" to hook, the
+            # hook has to be in place before the compiled module body runs.
+            return shallMakeModule() and module.isTopModule()
+
+        return not shallMakeModule() and module.getFullName() == "linecache"
+
+    @staticmethod
+    def _isSupportModuleTrigger(module):
+        return module.isCompiledPythonModule() and module.isTopModule()
 
     def createFakeModuleDependency(self, module):
-        if module.getFullName() == "linecache" and self.source_data:
+        if self._isSupportModuleTrigger(module):
             return (
                 makeFakeModuleDescription(
                     module_name=ModuleName("_nuitka_source_inclusion"),
@@ -372,16 +644,52 @@ _main()
                 ),
             )
 
-    def createPostModuleLoadCode(self, module):
-        if module.getFullName() == "linecache" and self.source_data:
-            return (
-                """\
+        return None
+
+    @staticmethod
+    def _getInstallCode():
+        return """\
 import linecache
 import _nuitka_source_inclusion
 _nuitka_source_inclusion.install(linecache)
-""",
+"""
+
+    @staticmethod
+    def _getSourceRegistrationCode(module_name, source_segments):
+        return """\
+_nuitka_source_inclusion.add_source_segments(%r, %s)
+""" % (module_name, _formatDictLiteralCode(source_segments))
+
+    def createPreModuleLoadCode(self, module):
+        if module.isCompiledPythonModule():
+            module_name = module.getRuntimeNameValue()
+            source_segments = self.build_time_source_data.get(module_name)
+
+            if source_segments is not None:
+                return (
+                    self._getInstallCode()
+                    + self._getSourceRegistrationCode(
+                        module_name=module_name, source_segments=source_segments
+                    ),
+                    "Install and register source inclusion for kernel module.",
+                )
+
+        if self._isSourceInclusionTrigger(module, pre_load=True):
+            return (
+                self._getInstallCode(),
                 "Install recorded source inclusion into 'linecache'.",
             )
+
+        return None
+
+    def createPostModuleLoadCode(self, module):
+        if self._isSourceInclusionTrigger(module, pre_load=False):
+            return (
+                self._getInstallCode(),
+                "Install recorded source inclusion into 'linecache'.",
+            )
+
+        return None
 
     def _getSupportModuleCode(self):
         source_data_code = _formatDictLiteralCode(self.source_data)
@@ -390,6 +698,10 @@ _nuitka_source_inclusion.install(linecache)
 import linecache
 
 _source_inclusion_data = %s
+
+
+def add_source_segments(module_name, source_segments):
+    _source_inclusion_data[module_name] = source_segments
 
 
 def install(linecache_module):
@@ -403,9 +715,23 @@ def install(linecache_module):
             module_name = module_globals.get("__name__")
 
             if module_name is not None:
-                lines = _source_inclusion_data.get(module_name)
+                source_data = _source_inclusion_data.get(module_name)
 
-                if lines is not None:
+                if source_data is not None:
+                    if type(source_data) is dict:
+                        line_count = max(
+                            start_line + len(segment) - 1
+                            for start_line, segment in source_data.items()
+                        )
+                        lines = [""] * line_count
+
+                        for start_line, segment in source_data.items():
+                            lines[start_line - 1 : start_line - 1 + len(segment)] = (
+                                segment
+                            )
+                    else:
+                        lines = source_data
+
                     linecache_module.cache[filename] = (None, None, lines, filename)
 
                     return lines
@@ -418,7 +744,10 @@ def install(linecache_module):
 """ % source_data_code
 
     def getReportData(self, make_report_path):
-        yield "recorded_source_modules", _joinSortedKeys(self.source_data)
+        source_data = OrderedDict(self.source_data)
+        source_data.update(self.build_time_source_data)
+
+        yield "recorded_source_modules", _joinSortedKeys(source_data)
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and

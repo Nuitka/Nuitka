@@ -10,7 +10,7 @@ import sys
 
 from nuitka.format.FileFormatting import cleanupWindowsNewlines
 from nuitka.options.CommandLineOptionsTools import makeOptionsParser
-from nuitka.tools.Basics import goHome
+from nuitka.tools.quality.Git import addGitArguments, getGitPaths
 from nuitka.tools.quality.ScanSources import scanTargets
 from nuitka.Tracing import my_print, tools_logger
 from nuitka.utils.Execution import callProcessChunked, check_output
@@ -18,11 +18,11 @@ from nuitka.utils.FileOperations import (
     areSamePaths,
     getFileContents,
     putTextFileContents,
-    resolveShellPatternToFilenames,
+    resolveShellPatternsToFilenames,
 )
 from nuitka.utils.PrivatePipSpace import (
     getCodespellBinaryPath,
-    withPrivatePipSitePackagesPathAdded,
+    getPrivatePipSitePackagesEnvironment,
 )
 
 replacements = [
@@ -30,6 +30,12 @@ replacements = [
     ("developer manual", "Developer Manual"),
     ("user manual", "User Manual"),
 ]
+
+
+def _isIgnoredFile(filename):
+    path_parts = os.path.normpath(filename).split(os.path.sep)
+
+    return "inline_copy" in path_parts
 
 
 def _isSpellcheckerIgnoringFile(filename):
@@ -77,10 +83,12 @@ def _checkIgnoreWords(contents):
 
 
 def runCodespell(codespell_binary, filenames, verbose, write):
+    env = getPrivatePipSitePackagesEnvironment(binary_path=codespell_binary)
+
     if verbose:
         my_print("Consider", " ".join(filenames))
 
-    codespell_version = check_output([codespell_binary, "--version"])
+    codespell_version = check_output([codespell_binary, "--version"], env=env)
 
     if str is not bytes:
         codespell_version = codespell_version.decode("utf8").strip()
@@ -101,7 +109,7 @@ def runCodespell(codespell_binary, filenames, verbose, write):
         command.append("-w")
 
     result = callProcessChunked(
-        command, filenames, logger=tools_logger if verbose else None
+        command, filenames, logger=tools_logger if verbose else None, env=env
     )
 
     # Check for unnecessary ignores, but only if the file is cleanly passing
@@ -166,6 +174,8 @@ def main():
 Allow download and execution of tools if needed. Default is %default.""",
     )
 
+    addGitArguments(parser)
+
     options, positional_args = parser.parse_args()
 
     codespell_binary = getCodespellBinaryPath(
@@ -176,26 +186,25 @@ Allow download and execution of tools if needed. Default is %default.""",
     if codespell_binary is None:
         return tools_logger.sysexit("Error, cannot find 'codespell' binary.")
 
-    if not positional_args:
-        positional_args = [
+    positional_args = getGitPaths(
+        options=options,
+        positional_args=positional_args,
+        default_positional_args=(
             "bin",
             "nuitka",
             "rpm",
             "misc",
             "tests/*/run_all.py",
             "*.rst",
-        ]
-        goHome()
-
-    my_print("Working on:", positional_args)
-
-    positional_args = sum(
-        (
-            resolveShellPatternToFilenames(positional_arg)
-            for positional_arg in positional_args
         ),
-        [],
     )
+
+    if not positional_args:
+        sys.exit("No files found.")
+
+    my_print("Working on:", ", ".join(positional_args))
+
+    positional_args = resolveShellPatternsToFilenames(positional_args)
 
     filenames = list(
         scanTargets(
@@ -206,18 +215,21 @@ Allow download and execution of tools if needed. Default is %default.""",
     )
 
     filenames = [
-        filename for filename in filenames if not _isSpellcheckerIgnoringFile(filename)
+        filename
+        for filename in filenames
+        if not _isIgnoredFile(filename)
+        if not _isSpellcheckerIgnoringFile(filename)
     ]
     if not filenames:
-        sys.exit("No files found.")
+        tools_logger.info("No matching files found that require codespell.")
+        return 0
 
-    with withPrivatePipSitePackagesPathAdded():
-        result = runCodespell(
-            codespell_binary=codespell_binary,
-            filenames=filenames,
-            verbose=options.verbose,
-            write=options.write,
-        )
+    result = runCodespell(
+        codespell_binary=codespell_binary,
+        filenames=filenames,
+        verbose=options.verbose,
+        write=options.write,
+    )
 
     if result:
         my_print("OK.")

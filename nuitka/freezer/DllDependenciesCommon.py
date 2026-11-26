@@ -5,7 +5,9 @@
 
 import os
 
-from nuitka.__past__ import PermissionError  # pylint: disable=redefined-builtin
+from nuitka.__past__ import (  # pylint: disable=redefined-builtin
+    PermissionError,
+)
 from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.importing.Importing import locateModule
 from nuitka.plugins.Hooks import getModuleSpecificDllPaths
@@ -22,7 +24,7 @@ _ld_library_cache = {}
 _missing_msvc_redist_dlls = OrderedSet()
 
 # Names of MSVC redistributable DLLs to pick up
-# spell-checker: ignore concrt,msvcp,vcruntime,vcamp,vccorlib,codecvt,vcomp
+# spell-checker: ignore codecvt,concrt,msvcp,vcamp,vccorlib,vcomp,vcruntime
 _msvc_redist_dll_names = set(
     (
         "concrt140.dll",

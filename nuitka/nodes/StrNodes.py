@@ -5,6 +5,7 @@
 
 from .BuiltinOperationNodeBasesGenerated import (
     ExpressionStrOperationCapitalizeBase,
+    ExpressionStrOperationCasefoldBase,
     ExpressionStrOperationCenter2Base,
     ExpressionStrOperationCenter3Base,
     ExpressionStrOperationCount2Base,
@@ -30,8 +31,13 @@ from .BuiltinOperationNodeBasesGenerated import (
     ExpressionStrOperationIndex4Base,
     ExpressionStrOperationIsalnumBase,
     ExpressionStrOperationIsalphaBase,
+    ExpressionStrOperationIsasciiBase,
+    ExpressionStrOperationIsdecimalBase,
     ExpressionStrOperationIsdigitBase,
+    ExpressionStrOperationIsidentifierBase,
     ExpressionStrOperationIslowerBase,
+    ExpressionStrOperationIsnumericBase,
+    ExpressionStrOperationIsprintableBase,
     ExpressionStrOperationIsspaceBase,
     ExpressionStrOperationIstitleBase,
     ExpressionStrOperationIsupperBase,
@@ -70,7 +76,8 @@ from .BuiltinOperationNodeBasesGenerated import (
     ExpressionStrOperationStrip2Base,
     ExpressionStrOperationSwapcaseBase,
     ExpressionStrOperationTitleBase,
-    ExpressionStrOperationTranslateBase,
+    ExpressionStrOperationTranslate2Base,
+    ExpressionStrOperationTranslate3Base,
     ExpressionStrOperationUpperBase,
     ExpressionStrOperationZfillBase,
 )
@@ -84,7 +91,6 @@ from .NodeMetaClasses import NodeCheckMetaClass
 
 
 def getStrOperationClasses():
-    """Return all str operation nodes, for use by code generation."""
     return (
         cls
         for kind, cls in NodeCheckMetaClass.kinds.items()
@@ -93,8 +99,6 @@ def getStrOperationClasses():
 
 
 class ExpressionStrOperationJoin(ExpressionStrOperationJoinBase):
-    """This operation represents s.join(iterable)."""
-
     kind = "EXPRESSION_STR_OPERATION_JOIN"
 
     @staticmethod
@@ -104,8 +108,6 @@ class ExpressionStrOperationJoin(ExpressionStrOperationJoinBase):
 
 
 class ExpressionStrOperationPartition(ExpressionStrOperationPartitionBase):
-    """This operation represents s.partition(sep)."""
-
     kind = "EXPRESSION_STR_OPERATION_PARTITION"
 
     @staticmethod
@@ -119,8 +121,6 @@ class ExpressionStrOperationPartition(ExpressionStrOperationPartitionBase):
 
 
 class ExpressionStrOperationRpartition(ExpressionStrOperationRpartitionBase):
-    """This operation represents s.rpartition(sep)."""
-
     kind = "EXPRESSION_STR_OPERATION_RPARTITION"
 
     @staticmethod
@@ -134,8 +134,6 @@ class ExpressionStrOperationRpartition(ExpressionStrOperationRpartitionBase):
 
 
 class ExpressionStrOperationStrip1(ExpressionStrOperationStrip1Base):
-    """This operation represents s.strip()."""
-
     kind = "EXPRESSION_STR_OPERATION_STRIP1"
 
     @staticmethod
@@ -144,8 +142,6 @@ class ExpressionStrOperationStrip1(ExpressionStrOperationStrip1Base):
 
 
 class ExpressionStrOperationStrip2(ExpressionStrOperationStrip2Base):
-    """This operation represents s.strip(chars)."""
-
     kind = "EXPRESSION_STR_OPERATION_STRIP2"
 
     @staticmethod
@@ -155,8 +151,6 @@ class ExpressionStrOperationStrip2(ExpressionStrOperationStrip2Base):
 
 
 class ExpressionStrOperationLstrip1(ExpressionStrOperationLstrip1Base):
-    """This operation represents s.lstrip(chars)."""
-
     kind = "EXPRESSION_STR_OPERATION_LSTRIP1"
 
     @staticmethod
@@ -165,8 +159,6 @@ class ExpressionStrOperationLstrip1(ExpressionStrOperationLstrip1Base):
 
 
 class ExpressionStrOperationLstrip2(ExpressionStrOperationLstrip2Base):
-    """This operation represents s.lstrip(chars)."""
-
     kind = "EXPRESSION_STR_OPERATION_LSTRIP2"
 
     @staticmethod
@@ -176,8 +168,6 @@ class ExpressionStrOperationLstrip2(ExpressionStrOperationLstrip2Base):
 
 
 class ExpressionStrOperationRstrip1(ExpressionStrOperationRstrip1Base):
-    """This operation represents s.rstrip()."""
-
     kind = "EXPRESSION_STR_OPERATION_RSTRIP1"
 
     @staticmethod
@@ -186,8 +176,6 @@ class ExpressionStrOperationRstrip1(ExpressionStrOperationRstrip1Base):
 
 
 class ExpressionStrOperationRstrip2(ExpressionStrOperationRstrip2Base):
-    """This operation represents s.rstrip(chars)."""
-
     kind = "EXPRESSION_STR_OPERATION_RSTRIP2"
 
     @staticmethod
@@ -197,8 +185,6 @@ class ExpressionStrOperationRstrip2(ExpressionStrOperationRstrip2Base):
 
 
 class ExpressionStrOperationFind2(ExpressionStrOperationFind2Base):
-    """This operation represents s.find(sub)."""
-
     kind = "EXPRESSION_STR_OPERATION_FIND2"
 
     @staticmethod
@@ -208,8 +194,6 @@ class ExpressionStrOperationFind2(ExpressionStrOperationFind2Base):
 
 
 class ExpressionStrOperationFind3(ExpressionStrOperationFind3Base):
-    """This operation represents s.find(sub, start)."""
-
     kind = "EXPRESSION_STR_OPERATION_FIND3"
 
     @staticmethod
@@ -219,8 +203,6 @@ class ExpressionStrOperationFind3(ExpressionStrOperationFind3Base):
 
 
 class ExpressionStrOperationFind4(ExpressionStrOperationFind4Base):
-    """This operation represents s.find(sub, start, end)."""
-
     kind = "EXPRESSION_STR_OPERATION_FIND4"
 
     @staticmethod
@@ -230,8 +212,6 @@ class ExpressionStrOperationFind4(ExpressionStrOperationFind4Base):
 
 
 class ExpressionStrOperationRfind2(ExpressionStrOperationRfind2Base):
-    """This operation represents s.rfind(sub)."""
-
     kind = "EXPRESSION_STR_OPERATION_RFIND2"
 
     @staticmethod
@@ -241,8 +221,6 @@ class ExpressionStrOperationRfind2(ExpressionStrOperationRfind2Base):
 
 
 class ExpressionStrOperationRfind3(ExpressionStrOperationRfind3Base):
-    """This operation represents s.rfind(sub, start)."""
-
     kind = "EXPRESSION_STR_OPERATION_RFIND3"
 
     @staticmethod
@@ -252,8 +230,6 @@ class ExpressionStrOperationRfind3(ExpressionStrOperationRfind3Base):
 
 
 class ExpressionStrOperationRfind4(ExpressionStrOperationRfind4Base):
-    """This operation represents s.rfind(sub, start, end)."""
-
     kind = "EXPRESSION_STR_OPERATION_RFIND4"
 
     @staticmethod
@@ -263,8 +239,6 @@ class ExpressionStrOperationRfind4(ExpressionStrOperationRfind4Base):
 
 
 class ExpressionStrOperationIndex2(ExpressionStrOperationIndex2Base):
-    """This operation represents s.index(sub)."""
-
     kind = "EXPRESSION_STR_OPERATION_INDEX2"
 
     @staticmethod
@@ -274,8 +248,6 @@ class ExpressionStrOperationIndex2(ExpressionStrOperationIndex2Base):
 
 
 class ExpressionStrOperationIndex3(ExpressionStrOperationIndex3Base):
-    """This operation represents s.index(sub, start)."""
-
     kind = "EXPRESSION_STR_OPERATION_INDEX3"
 
     @staticmethod
@@ -285,8 +257,6 @@ class ExpressionStrOperationIndex3(ExpressionStrOperationIndex3Base):
 
 
 class ExpressionStrOperationIndex4(ExpressionStrOperationIndex4Base):
-    """This operation represents s.index(sub, start, end)."""
-
     kind = "EXPRESSION_STR_OPERATION_INDEX4"
 
     @staticmethod
@@ -296,8 +266,6 @@ class ExpressionStrOperationIndex4(ExpressionStrOperationIndex4Base):
 
 
 class ExpressionStrOperationRindex2(ExpressionStrOperationRindex2Base):
-    """This operation represents s.rindex(sub)."""
-
     kind = "EXPRESSION_STR_OPERATION_RINDEX2"
 
     @staticmethod
@@ -307,8 +275,6 @@ class ExpressionStrOperationRindex2(ExpressionStrOperationRindex2Base):
 
 
 class ExpressionStrOperationRindex3(ExpressionStrOperationRindex3Base):
-    """This operation represents s.rindex(sub, start)."""
-
     kind = "EXPRESSION_STR_OPERATION_RINDEX3"
 
     @staticmethod
@@ -318,8 +284,6 @@ class ExpressionStrOperationRindex3(ExpressionStrOperationRindex3Base):
 
 
 class ExpressionStrOperationRindex4(ExpressionStrOperationRindex4Base):
-    """This operation represents s.rindex(sub, start, end)."""
-
     kind = "EXPRESSION_STR_OPERATION_RINDEX4"
 
     @staticmethod
@@ -329,8 +293,6 @@ class ExpressionStrOperationRindex4(ExpressionStrOperationRindex4Base):
 
 
 class ExpressionStrOperationCapitalize(ExpressionStrOperationCapitalizeBase):
-    """This operation represents s.capitalize()."""
-
     kind = "EXPRESSION_STR_OPERATION_CAPITALIZE"
 
     @staticmethod
@@ -338,9 +300,15 @@ class ExpressionStrOperationCapitalize(ExpressionStrOperationCapitalizeBase):
         return False
 
 
-class ExpressionStrOperationUpper(ExpressionStrOperationUpperBase):
-    """This operation represents s.upper()."""
+class ExpressionStrOperationCasefold(ExpressionStrOperationCasefoldBase):
+    kind = "EXPRESSION_STR_OPERATION_CASEFOLD"
 
+    @staticmethod
+    def mayRaiseExceptionOperation():
+        return False
+
+
+class ExpressionStrOperationUpper(ExpressionStrOperationUpperBase):
     kind = "EXPRESSION_STR_OPERATION_UPPER"
 
     @staticmethod
@@ -349,8 +317,6 @@ class ExpressionStrOperationUpper(ExpressionStrOperationUpperBase):
 
 
 class ExpressionStrOperationLower(ExpressionStrOperationLowerBase):
-    """This operation represents s.lower()."""
-
     kind = "EXPRESSION_STR_OPERATION_LOWER"
 
     @staticmethod
@@ -359,8 +325,6 @@ class ExpressionStrOperationLower(ExpressionStrOperationLowerBase):
 
 
 class ExpressionStrOperationSwapcase(ExpressionStrOperationSwapcaseBase):
-    """This operation represents s.swapcase()."""
-
     kind = "EXPRESSION_STR_OPERATION_SWAPCASE"
 
     @staticmethod
@@ -369,8 +333,6 @@ class ExpressionStrOperationSwapcase(ExpressionStrOperationSwapcaseBase):
 
 
 class ExpressionStrOperationTitle(ExpressionStrOperationTitleBase):
-    """This operation represents s.title()."""
-
     kind = "EXPRESSION_STR_OPERATION_TITLE"
 
     @staticmethod
@@ -379,8 +341,6 @@ class ExpressionStrOperationTitle(ExpressionStrOperationTitleBase):
 
 
 class ExpressionStrOperationIsalnum(ExpressionStrOperationIsalnumBase):
-    """This operation represents s.isalnum()."""
-
     kind = "EXPRESSION_STR_OPERATION_ISALNUM"
 
     @staticmethod
@@ -389,8 +349,6 @@ class ExpressionStrOperationIsalnum(ExpressionStrOperationIsalnumBase):
 
 
 class ExpressionStrOperationIsalpha(ExpressionStrOperationIsalphaBase):
-    """This operation represents s.isalpha()."""
-
     kind = "EXPRESSION_STR_OPERATION_ISALPHA"
 
     @staticmethod
@@ -398,9 +356,15 @@ class ExpressionStrOperationIsalpha(ExpressionStrOperationIsalphaBase):
         return False
 
 
-class ExpressionStrOperationIsdigit(ExpressionStrOperationIsdigitBase):
-    """This operation represents s.isdigit()."""
+class ExpressionStrOperationIsascii(ExpressionStrOperationIsasciiBase):
+    kind = "EXPRESSION_STR_OPERATION_ISASCII"
 
+    @staticmethod
+    def mayRaiseExceptionOperation():
+        return False
+
+
+class ExpressionStrOperationIsdigit(ExpressionStrOperationIsdigitBase):
     kind = "EXPRESSION_STR_OPERATION_ISDIGIT"
 
     @staticmethod
@@ -408,9 +372,23 @@ class ExpressionStrOperationIsdigit(ExpressionStrOperationIsdigitBase):
         return False
 
 
-class ExpressionStrOperationIslower(ExpressionStrOperationIslowerBase):
-    """This operation represents s.islower()."""
+class ExpressionStrOperationIsdecimal(ExpressionStrOperationIsdecimalBase):
+    kind = "EXPRESSION_STR_OPERATION_ISDECIMAL"
 
+    @staticmethod
+    def mayRaiseExceptionOperation():
+        return False
+
+
+class ExpressionStrOperationIsidentifier(ExpressionStrOperationIsidentifierBase):
+    kind = "EXPRESSION_STR_OPERATION_ISIDENTIFIER"
+
+    @staticmethod
+    def mayRaiseExceptionOperation():
+        return False
+
+
+class ExpressionStrOperationIslower(ExpressionStrOperationIslowerBase):
     kind = "EXPRESSION_STR_OPERATION_ISLOWER"
 
     @staticmethod
@@ -418,9 +396,23 @@ class ExpressionStrOperationIslower(ExpressionStrOperationIslowerBase):
         return False
 
 
-class ExpressionStrOperationIsupper(ExpressionStrOperationIsupperBase):
-    """This operation represents s.isupper()."""
+class ExpressionStrOperationIsnumeric(ExpressionStrOperationIsnumericBase):
+    kind = "EXPRESSION_STR_OPERATION_ISNUMERIC"
 
+    @staticmethod
+    def mayRaiseExceptionOperation():
+        return False
+
+
+class ExpressionStrOperationIsprintable(ExpressionStrOperationIsprintableBase):
+    kind = "EXPRESSION_STR_OPERATION_ISPRINTABLE"
+
+    @staticmethod
+    def mayRaiseExceptionOperation():
+        return False
+
+
+class ExpressionStrOperationIsupper(ExpressionStrOperationIsupperBase):
     kind = "EXPRESSION_STR_OPERATION_ISUPPER"
 
     @staticmethod
@@ -429,8 +421,6 @@ class ExpressionStrOperationIsupper(ExpressionStrOperationIsupperBase):
 
 
 class ExpressionStrOperationIsspace(ExpressionStrOperationIsspaceBase):
-    """This operation represents s.isspace()."""
-
     kind = "EXPRESSION_STR_OPERATION_ISSPACE"
 
     @staticmethod
@@ -439,8 +429,6 @@ class ExpressionStrOperationIsspace(ExpressionStrOperationIsspaceBase):
 
 
 class ExpressionStrOperationIstitle(ExpressionStrOperationIstitleBase):
-    """This operation represents s.istitle()."""
-
     kind = "EXPRESSION_STR_OPERATION_ISTITLE"
 
     @staticmethod
@@ -449,8 +437,6 @@ class ExpressionStrOperationIstitle(ExpressionStrOperationIstitleBase):
 
 
 class ExpressionStrOperationSplit1(ExpressionStrOperationSplit1Base):
-    """This operation represents s.split()."""
-
     kind = "EXPRESSION_STR_OPERATION_SPLIT1"
 
     @staticmethod
@@ -459,8 +445,6 @@ class ExpressionStrOperationSplit1(ExpressionStrOperationSplit1Base):
 
 
 class ExpressionStrOperationSplit2(ExpressionStrOperationSplit2Base):
-    """This operation represents s.split(sep)."""
-
     kind = "EXPRESSION_STR_OPERATION_SPLIT2"
 
     @staticmethod
@@ -482,8 +466,6 @@ def makeExpressionStrOperationSplit3(str_arg, sep, maxsplit, source_ref):
 
 
 class ExpressionStrOperationSplit3(ExpressionStrOperationSplit3Base):
-    """This operation represents s.split(sep, maxsplit)."""
-
     kind = "EXPRESSION_STR_OPERATION_SPLIT3"
 
     @staticmethod
@@ -495,8 +477,6 @@ class ExpressionStrOperationSplit3(ExpressionStrOperationSplit3Base):
 # TODO: This one could be eliminated in favor of simple ExpressionStrOperationSplit1
 # since without an argument, there is no difference.
 class ExpressionStrOperationRsplit1(ExpressionStrOperationRsplit1Base):
-    """This operation represents s.rsplit()."""
-
     kind = "EXPRESSION_STR_OPERATION_RSPLIT1"
 
     @staticmethod
@@ -505,8 +485,6 @@ class ExpressionStrOperationRsplit1(ExpressionStrOperationRsplit1Base):
 
 
 class ExpressionStrOperationRsplit2(ExpressionStrOperationRsplit2Base):
-    """This operation represents s.rsplit(sep)."""
-
     kind = "EXPRESSION_STR_OPERATION_RSPLIT2"
 
     @staticmethod
@@ -528,8 +506,6 @@ def makeExpressionStrOperationRsplit3(str_arg, sep, maxsplit, source_ref):
 
 
 class ExpressionStrOperationRsplit3(ExpressionStrOperationRsplit3Base):
-    """This operation represents s.rsplit(sep, maxsplit)."""
-
     kind = "EXPRESSION_STR_OPERATION_RSPLIT3"
 
     @staticmethod
@@ -733,13 +709,8 @@ class ExpressionStrOperationCount4(ExpressionStrOperationCount4Base):
 
 
 class ExpressionStrOperationFormat(ExpressionStrOperationFormatBase):
-    """This operation represents s.format() with only positional args."""
-
-    named_children = ("str_arg", "args|tuple", "pairs|tuple")
-
     kind = "EXPRESSION_STR_OPERATION_FORMAT"
 
-    # We do format manually because it its special optimization chances even for fully non-constants.
     def computeExpression(self, trace_collection):
         str_arg = self.subnode_str_arg
         args = self.subnode_args
@@ -785,8 +756,6 @@ class ExpressionStrOperationFormat(ExpressionStrOperationFormatBase):
 
 
 class ExpressionStrOperationExpandtabs1(ExpressionStrOperationExpandtabs1Base):
-    """This operation represents s.expandtabs()."""
-
     kind = "EXPRESSION_STR_OPERATION_EXPANDTABS1"
 
     @staticmethod
@@ -803,10 +772,17 @@ class ExpressionStrOperationExpandtabs2(ExpressionStrOperationExpandtabs2Base):
         return True
 
 
-class ExpressionStrOperationTranslate(ExpressionStrOperationTranslateBase):
-    """This operation represents s.translate(table)."""
+class ExpressionStrOperationTranslate2(ExpressionStrOperationTranslate2Base):
+    kind = "EXPRESSION_STR_OPERATION_TRANSLATE2"
 
-    kind = "EXPRESSION_STR_OPERATION_TRANSLATE"
+    @staticmethod
+    def mayRaiseExceptionOperation():
+        # TODO: Only if the arguments have wrong shapes, code generation needs to use this too.
+        return True
+
+
+class ExpressionStrOperationTranslate3(ExpressionStrOperationTranslate3Base):
+    kind = "EXPRESSION_STR_OPERATION_TRANSLATE3"
 
     @staticmethod
     def mayRaiseExceptionOperation():
@@ -815,8 +791,6 @@ class ExpressionStrOperationTranslate(ExpressionStrOperationTranslateBase):
 
 
 class ExpressionStrOperationZfill(ExpressionStrOperationZfillBase):
-    """This operation represents s.zfill(width)."""
-
     kind = "EXPRESSION_STR_OPERATION_ZFILL"
 
     @staticmethod
@@ -880,8 +854,6 @@ class ExpressionStrOperationRjust3(ExpressionStrOperationRjust3Base):
 
 
 class ExpressionStrOperationSplitlines1(ExpressionStrOperationSplitlines1Base):
-    """This operation represents s.splitlines()."""
-
     kind = "EXPRESSION_STR_OPERATION_SPLITLINES1"
 
     @staticmethod
@@ -891,11 +863,6 @@ class ExpressionStrOperationSplitlines1(ExpressionStrOperationSplitlines1Base):
 
 
 class ExpressionStrOperationSplitlines2(ExpressionStrOperationSplitlines2Base):
-    """This operation represents s.splitlines(keepends).
-
-    spell-checker: ignore keepends
-    """
-
     kind = "EXPRESSION_STR_OPERATION_SPLITLINES2"
 
     @staticmethod

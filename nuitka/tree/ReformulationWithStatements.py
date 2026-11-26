@@ -1,12 +1,7 @@
 #     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-"""Reformulation of with statements.
-
-Consult the Developer Manual for information. TODO: Add ability to sync
-source code comments with Developer Manual sections.
-
-"""
+"""Reformulation of with statements."""
 
 from nuitka.nodes.AttributeLookupNodes import ExpressionAttributeLookupSpecial
 from nuitka.nodes.AttributeNodes import makeExpressionAttributeLookup
@@ -54,7 +49,7 @@ from .TreeHelpers import (
 
 
 def _buildWithNode(provider, context_expr, assign_target, body, sync, source_ref):
-    # Many details, pylint: disable=too-many-branches,too-many-locals
+    # pylint: disable=too-many-branches,too-many-locals
     with_source = buildNode(provider, context_expr, source_ref)
 
     if python_version < 0x380 and states.is_full_compat:
@@ -72,7 +67,6 @@ def _buildWithNode(provider, context_expr, assign_target, body, sync, source_ref
         temp_scope=temp_scope, name="enter", temp_type="object"
     )
 
-    # Indicator variable, will end up with C bool type, and need not be released.
     tmp_indicator_variable = provider.allocateTempVariable(
         temp_scope=temp_scope, name="indicator", temp_type="bool"
     )
@@ -116,8 +110,9 @@ def _buildWithNode(provider, context_expr, assign_target, body, sync, source_ref
     else:
         attribute_lookup_maker = ExpressionAttributeLookupSpecial
 
-    enter_value = ExpressionCallEmpty(
-        called=attribute_lookup_maker(
+    enter_lookup_assignment = makeStatementAssignmentVariable(
+        variable=tmp_enter_variable,
+        source=attribute_lookup_maker(
             expression=ExpressionTempVariableRef(
                 variable=tmp_source_variable, source_ref=source_ref
             ),
@@ -150,7 +145,6 @@ def _buildWithNode(provider, context_expr, assign_target, body, sync, source_ref
         source_ref=with_exit_source_ref,
     )
 
-    # For "async with", await the entered value and exit value must be awaited.
     if not sync:
         exit_value_exception = ExpressionYieldFromAwaitable(
             expression=ExpressionAsyncWaitExit(
@@ -165,27 +159,34 @@ def _buildWithNode(provider, context_expr, assign_target, body, sync, source_ref
             source_ref=source_ref,
         )
 
-    # First assign the with context to a temporary variable.
     statements = [
         makeStatementAssignmentVariable(
             variable=tmp_source_variable, source=with_source, source_ref=source_ref
         )
     ]
 
-    # Before 3.9, __aenter__ is immediately awaited, after we first do __aexit__ lookup.
+    enter_call_value = ExpressionCallEmpty(
+        called=ExpressionTempVariableRef(
+            variable=tmp_enter_variable, source_ref=source_ref
+        ),
+        source_ref=source_ref,
+    )
+
+    # Before 3.9, "__aenter__" is immediately awaited, with "__aexit__" looked up
+    # first.
     if not sync and python_version < 0x390:
-        enter_value = ExpressionYieldFromAwaitable(
+        enter_call_value = ExpressionYieldFromAwaitable(
             expression=ExpressionAsyncWaitEnter(
-                expression=enter_value, source_ref=source_ref
+                expression=enter_call_value, source_ref=source_ref
             ),
             source_ref=source_ref,
         )
 
-    attribute_enter_assignment = makeStatementAssignmentVariable(
-        variable=tmp_enter_variable, source=enter_value, source_ref=source_ref
+    enter_call_assignment = makeStatementAssignmentVariable(
+        variable=tmp_enter_variable, source=enter_call_value, source_ref=source_ref
     )
 
-    attribute_exit_assignment = makeStatementAssignmentVariable(
+    exit_lookup_assignment = makeStatementAssignmentVariable(
         variable=tmp_exit_variable,
         source=attribute_lookup_maker(
             expression=ExpressionTempVariableRef(
@@ -197,12 +198,18 @@ def _buildWithNode(provider, context_expr, assign_target, body, sync, source_ref
         source_ref=source_ref,
     )
 
-    # Next, assign "__enter__" and "__exit__" attributes to temporary variables, and
-    # depending on Python versions switch the order of these lookups and the order of
-    # awaiting enter.
-    # Normal "with" statements are enter, exit ordered after 3.6, and "async with"
-    # are since 3.9, and since 3.9 the enter is not awaited, until an exit is present.
-    if python_version >= 0x390 and not sync:
+    # CPython looks up both special methods before calling "__enter__", but the
+    # order of the lookups changed over versions: 3.6 for "with", 3.9 for
+    # "async with", and 3.14 both returned to "__exit__" first.
+    if (sync and 0x360 <= python_version < 0x3E0) or (
+        not sync and 0x390 <= python_version < 0x3E0
+    ):
+        attribute_assignments = (enter_lookup_assignment, exit_lookup_assignment)
+    else:
+        attribute_assignments = (exit_lookup_assignment, enter_lookup_assignment)
+
+    # Since 3.9, "__aenter__" is not awaited until "__aexit__" was looked up.
+    if not sync and python_version >= 0x390:
         enter_await_statement = makeStatementAssignmentVariable(
             variable=tmp_enter_variable,
             source=ExpressionYieldFromAwaitable(
@@ -217,26 +224,11 @@ def _buildWithNode(provider, context_expr, assign_target, body, sync, source_ref
             source_ref=source_ref,
         )
 
-        # It's weird, but 3.14 looks up "__aexit__" before "__aenter__".
-        if python_version >= 0x3E0:
-            attribute_assignments = (
-                attribute_exit_assignment,
-                attribute_enter_assignment,
-                enter_await_statement,
-            )
-        else:
-            attribute_assignments = (
-                attribute_enter_assignment,
-                attribute_exit_assignment,
-                enter_await_statement,
-            )
-    # It's weird, but 3.14 looks up __exit__ before __enter__
-    elif 0x360 <= python_version < 0x3E0 and sync:
-        attribute_assignments = (attribute_enter_assignment, attribute_exit_assignment)
+        statements.extend(
+            attribute_assignments + (enter_call_assignment, enter_await_statement)
+        )
     else:
-        attribute_assignments = (attribute_exit_assignment, attribute_enter_assignment)
-
-    statements.extend(attribute_assignments)
+        statements.extend(attribute_assignments + (enter_call_assignment,))
 
     statements.append(
         makeStatementAssignmentVariable(
@@ -255,8 +247,6 @@ def _buildWithNode(provider, context_expr, assign_target, body, sync, source_ref
                 exception_name="BaseException",
                 handler_body=StatementsSequence(
                     statements=(
-                        # Prevents final block from calling __exit__ as
-                        # well.
                         makeStatementAssignmentVariable(
                             variable=tmp_indicator_variable,
                             source=makeConstantRefNode(
@@ -309,21 +299,15 @@ def _buildWithNode(provider, context_expr, assign_target, body, sync, source_ref
 
 
 def buildWithNode(provider, node, source_ref):
-    # "with" statements are re-formulated as described in the developer
-    # manual. Catches exceptions, and provides them to "__exit__", while making
-    # the "__enter__" value available under a given name.
-
-    # Before Python3, multiple context managers are not visible in the parse
-    # tree, now we need to handle it ourselves.
+    # Python 3.3+ stores multiple context managers in "node.items", while
+    # earlier versions desugar them into nested "With" AST nodes.
     if hasattr(node, "items"):
         context_exprs = [item.context_expr for item in node.items]
         assign_targets = [item.optional_vars for item in node.items]
     else:
-        # Make it a list for before Python3
         context_exprs = [node.context_expr]
         assign_targets = [node.optional_vars]
 
-    # The body for the first context manager is the other things.
     body = buildStatementsNode(provider, node.body, source_ref)
 
     assert context_exprs and len(context_exprs) == len(assign_targets)
@@ -345,16 +329,9 @@ def buildWithNode(provider, node, source_ref):
 
 
 def buildAsyncWithNode(provider, node, source_ref):
-    # "with" statements are re-formulated as described in the developer
-    # manual. Catches exceptions, and provides them to "__exit__", while making
-    # the "__enter__" value available under a given name.
-
-    # Before Python3, multiple context managers are not visible in the parse
-    # tree, now we need to handle it ourselves.
     context_exprs = [item.context_expr for item in node.items]
     assign_targets = [item.optional_vars for item in node.items]
 
-    # The body for the first context manager is the other things.
     body = buildStatementsNode(provider, node.body, source_ref)
 
     assert context_exprs and len(context_exprs) == len(assign_targets)

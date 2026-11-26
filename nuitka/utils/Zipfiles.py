@@ -9,6 +9,13 @@ import zipfile
 
 from nuitka.PythonVersions import python_version
 
+from .FileOperations import doesFileStartWithBytes, withMadeWritableFileMode
+
+if python_version < 0x300:
+    _BadZipFile = zipfile.BadZipfile
+else:
+    _BadZipFile = zipfile.BadZipFile
+
 
 @contextlib.contextmanager
 def getZipFile(zip_path, error_exit, logger):
@@ -24,7 +31,7 @@ def getZipFile(zip_path, error_exit, logger):
     """
     try:
         zip_file = zipfile.ZipFile(zip_path, "r")
-    except zipfile.BadZipFile:
+    except _BadZipFile:
         if error_exit:
             logger.sysexit("Bad zip file '%s'." % zip_path)
 
@@ -34,6 +41,35 @@ def getZipFile(zip_path, error_exit, logger):
         yield zip_file
     finally:
         zip_file.close()
+
+
+def extractZipFile(zip_path, target_dir, get_target_filename, error_exit, logger):
+    """Extract selected files from a zip file.
+
+    Args:
+        zip_path: Path to the zip file.
+        target_dir: Directory to extract the files into.
+        get_target_filename: Callable taking a member name and returning the
+            relative target filename, or 'None' to skip the member.
+        error_exit: If True, BadZipFile triggers logger.sysexit, else raise.
+        logger: Logger with sysexit method.
+    """
+    with getZipFile(
+        zip_path=zip_path, error_exit=error_exit, logger=logger
+    ) as zip_file:
+        for zip_info in zip_file.infolist():
+            target_filename = get_target_filename(zip_info.filename)
+
+            if target_filename is None:
+                continue
+
+            original_filename = zip_info.filename
+            zip_info.filename = target_filename
+
+            try:
+                zip_file.extract(zip_info, target_dir)
+            finally:
+                zip_info.filename = original_filename
 
 
 def doesZipFileMatch(zip_path, decide_filename, error_exit, logger):
@@ -56,8 +92,47 @@ def doesZipFileMatch(zip_path, decide_filename, error_exit, logger):
             zip_path=zip_path, error_exit=error_exit, logger=logger
         ) as zip_file:
             return any(decide_filename(filename) for filename in zip_file.namelist())
-    except zipfile.BadZipFile:
+    except _BadZipFile:
         return False
+
+
+def hasZipFileOverlay(filename):
+    """Check if a non-zip binary file has a zip archive appended as an overlay."""
+    if not os.path.isfile(filename) or doesFileStartWithBytes(filename, b"PK"):
+        return False
+
+    return zipfile.is_zipfile(filename)
+
+
+@contextlib.contextmanager
+def withPreservedZipFileOverlay(filename):
+    """Temporarily detach an EOF zip overlay while modifying a binary file."""
+    if not hasZipFileOverlay(filename):
+        yield
+        return
+
+    with zipfile.ZipFile(filename, "r") as zip_file:
+        overlay_start = min(
+            [zip_file.start_dir]
+            + [zip_info.header_offset for zip_info in zip_file.infolist()]
+        )
+
+    if overlay_start <= 0:
+        yield
+        return
+
+    with withMadeWritableFileMode(filename):
+        with open(filename, "r+b") as binary_file:
+            binary_file.seek(overlay_start)
+            overlay_bytes = binary_file.read()
+            binary_file.truncate(overlay_start)
+
+    try:
+        yield
+    finally:
+        with withMadeWritableFileMode(filename):
+            with open(filename, "ab") as binary_file:
+                binary_file.write(overlay_bytes)
 
 
 def createZipFile(file_obj):

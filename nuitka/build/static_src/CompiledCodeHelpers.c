@@ -444,7 +444,7 @@ static PyObject *MAKE_XRANGE(PyThreadState *tstate, PyObject *start, PyObject *s
 }
 #endif
 
-/* Built-in xrange (Python2) or xrange (Python3) with one argument. */
+// Built-in xrange (Python2) or range (Python3) with one argument.
 PyObject *BUILTIN_XRANGE1(PyThreadState *tstate, PyObject *high) {
 #if PYTHON_VERSION < 0x300
     if (unlikely(PyFloat_Check(high))) {
@@ -489,7 +489,7 @@ PyObject *BUILTIN_XRANGE1(PyThreadState *tstate, PyObject *high) {
 #endif
 }
 
-/* Built-in xrange (Python2) or xrange (Python3) with two arguments. */
+// Built-in xrange (Python2) or range (Python3) with two arguments.
 PyObject *BUILTIN_XRANGE2(PyThreadState *tstate, PyObject *low, PyObject *high) {
 #if PYTHON_VERSION < 0x300
     if (unlikely(PyFloat_Check(low))) {
@@ -522,7 +522,7 @@ PyObject *BUILTIN_XRANGE2(PyThreadState *tstate, PyObject *low, PyObject *high) 
 #endif
 }
 
-/* Built-in xrange (Python2) or xrange (Python3) with three arguments. */
+// Built-in xrange (Python2) or range (Python3) with three arguments.
 PyObject *BUILTIN_XRANGE3(PyThreadState *tstate, PyObject *low, PyObject *high, PyObject *step) {
 #if PYTHON_VERSION < 0x300
     if (unlikely(PyFloat_Check(low))) {
@@ -588,7 +588,7 @@ PyObject *BUILTIN_ALL(PyThreadState *tstate, PyObject *value) {
 
         if (unlikely((item == NULL)))
             break;
-        int cmp = PyObject_IsTrue(item);
+        int cmp = CHECK_IF_TRUE(item);
         Py_DECREF(item);
         if (unlikely(cmp < 0)) {
             Py_DECREF(it);
@@ -639,7 +639,7 @@ PyObject *BUILTIN_ANY(PyThreadState *tstate, PyObject *value) {
 
         if (unlikely((item == NULL)))
             break;
-        int cmp = PyObject_IsTrue(item);
+        int cmp = CHECK_IF_TRUE(item);
         Py_DECREF(item);
         if (unlikely(cmp < 0)) {
             Py_DECREF(it);
@@ -727,8 +727,8 @@ bool PRINT_NEW_LINE_TO(PyObject *file) {
     if (likely(file == NULL)) {
         result = CALL_FUNCTION_NO_ARGS(tstate, NUITKA_ACCESS_BUILTIN(print));
     } else {
-        PyObject *kw_pairs[2] = {const_str_plain_file, GET_STDOUT()};
-        PyObject *kw_args = MAKE_DICT(kw_pairs, 1);
+        PyObject *kw_pairs[2] = {const_str_plain_file, file};
+        PyObject *kw_args = MAKE_DICT_UNICODE(tstate, kw_pairs, 1);
 
         // TODO: This should use something that does not build a dictionary at all, and not
         // uses a tuple.
@@ -745,7 +745,7 @@ bool PRINT_NEW_LINE_TO(PyObject *file) {
 #endif
 }
 
-bool PRINT_ITEM_TO(PyObject *file, PyObject *object) {
+bool PRINT_ITEM_TO(PyObject *file, PyObject *obj) {
     PyThreadState *tstate = PyThreadState_GET();
 
 // The print built-in function cannot replace "softspace" behavior of CPython
@@ -761,7 +761,7 @@ bool PRINT_ITEM_TO(PyObject *file, PyObject *object) {
     }
 
     CHECK_OBJECT(file);
-    CHECK_OBJECT(object);
+    CHECK_OBJECT(obj);
 
     // need to hold a reference to the file or else "__getattr__" code may
     // release "file" in the mean time.
@@ -775,27 +775,27 @@ bool PRINT_ITEM_TO(PyObject *file, PyObject *object) {
         }
     }
 
-    if (unlikely(PyFile_WriteObject(object, file, Py_PRINT_RAW) == -1)) {
+    if (unlikely(PyFile_WriteObject(obj, file, Py_PRINT_RAW) == -1)) {
         Py_DECREF(file);
         return false;
     }
 
-    if (PyString_Check(object)) {
+    if (PyString_Check(obj)) {
         char *buffer;
         Py_ssize_t length;
 
 #ifndef __NUITKA_NO_ASSERT__
         int status =
 #endif
-            PyString_AsStringAndSize(object, &buffer, &length);
+            PyString_AsStringAndSize(obj, &buffer, &length);
         assert(status != -1);
 
         if (length == 0 || !isspace(Py_CHARMASK(buffer[length - 1])) || buffer[length - 1] == ' ') {
             PyFile_SoftSpace(file, 1);
         }
-    } else if (PyUnicode_Check(object)) {
-        Py_UNICODE *buffer = PyUnicode_AS_UNICODE(object);
-        Py_ssize_t length = PyUnicode_GET_SIZE(object);
+    } else if (PyUnicode_Check(obj)) {
+        Py_UNICODE *buffer = PyUnicode_AS_UNICODE(obj);
+        Py_ssize_t length = PyUnicode_GET_SIZE(obj);
 
         if (length == 0 || !Py_UNICODE_ISSPACE(buffer[length - 1]) || buffer[length - 1] == ' ') {
             PyFile_SoftSpace(file, 1);
@@ -817,15 +817,15 @@ bool PRINT_ITEM_TO(PyObject *file, PyObject *object) {
 
     // TODO: Have a helper that creates a dictionary for PyObject **
     PyObject *print_kw = MAKE_DICT_EMPTY(tstate);
-    DICT_SET_ITEM(print_kw, const_str_plain_end, const_str_empty);
+    DICT_SET_ITEM_INFALLIBLE(tstate, print_kw, const_str_plain_end, const_str_empty);
 
     if (file == NULL) {
-        DICT_SET_ITEM(print_kw, const_str_plain_file, GET_STDOUT());
+        DICT_SET_ITEM_INFALLIBLE(tstate, print_kw, const_str_plain_file, GET_STDOUT());
     } else {
-        DICT_SET_ITEM(print_kw, const_str_plain_file, file);
+        DICT_SET_ITEM_INFALLIBLE(tstate, print_kw, const_str_plain_file, file);
     }
 
-    PyObject *print_args = MAKE_TUPLE1(tstate, object);
+    PyObject *print_args = MAKE_TUPLE1(tstate, obj);
 
     PyObject *result = CALL_FUNCTION(tstate, NUITKA_ACCESS_BUILTIN(print), print_args, print_kw);
 
@@ -840,16 +840,16 @@ bool PRINT_ITEM_TO(PyObject *file, PyObject *object) {
 #endif
 }
 
-void PRINT_REFCOUNT(PyObject *object) {
-    if (object) {
+void PRINT_REFCOUNT(PyObject *obj) {
+    if (obj) {
 #if PYTHON_VERSION >= 0x3c0
-        if (_Py_IsImmortal(object)) {
+        if (_Py_IsImmortal(obj)) {
             PRINT_STRING(" refcnt IMMORTAL");
             return;
         }
 #endif
         char buffer[1024];
-        snprintf(buffer, sizeof(buffer) - 1, " refcnt %" PY_FORMAT_SIZE_T "d ", Py_REFCNT(object));
+        snprintf(buffer, sizeof(buffer) - 1, " refcnt %" PY_FORMAT_SIZE_T "d ", Py_REFCNT(obj));
 
         PRINT_STRING(buffer);
     } else {
@@ -892,7 +892,7 @@ bool PRINT_FORMAT(char const *fmt, ...) {
     return PRINT_STRING(buffer);
 }
 
-bool PRINT_REPR(PyObject *object) {
+bool PRINT_REPR(PyObject *obj) {
     PyThreadState *tstate = PyThreadState_GET();
 
     struct Nuitka_ExceptionPreservationItem saved_exception_state;
@@ -901,12 +901,12 @@ bool PRINT_REPR(PyObject *object) {
 
     bool res;
 
-    if (object != NULL) {
-        CHECK_OBJECT(object);
+    if (obj != NULL) {
+        CHECK_OBJECT(obj);
 
         // Cannot have error set for this function, it asserts against that
         // in debug builds.
-        PyObject *repr = PyObject_Repr(object);
+        PyObject *repr = PyObject_Repr(obj);
 
         res = PRINT_ITEM(repr);
         Py_DECREF(repr);
@@ -921,7 +921,7 @@ bool PRINT_REPR(PyObject *object) {
 
 bool PRINT_NULL(void) { return PRINT_STRING("<NULL>"); }
 
-bool PRINT_TYPE(PyObject *object) { return PRINT_ITEM((PyObject *)Py_TYPE(object)); }
+bool PRINT_TYPE(PyObject *obj) { return PRINT_ITEM((PyObject *)Py_TYPE(obj)); }
 
 void _PRINT_EXCEPTION3(PyObject *exception_type, PyObject *exception_value, PyTracebackObject *exception_tb) {
     PRINT_REPR(exception_type);
@@ -1066,15 +1066,15 @@ void FLUSH_STDERR(void) {
 
 bool PRINT_NEW_LINE(void) { return PRINT_NEW_LINE_TO(NULL); }
 
-bool PRINT_ITEM(PyObject *object) {
-    if (object == NULL) {
+bool PRINT_ITEM(PyObject *obj) {
+    if (obj == NULL) {
         return PRINT_NULL();
     } else {
-        return PRINT_ITEM_TO(NULL, object);
+        return PRINT_ITEM_TO(NULL, obj);
     }
 }
 
-bool PRINT_ITEM_LINE(PyObject *object) { return PRINT_ITEM(object) && PRINT_NEW_LINE(); }
+bool PRINT_ITEM_LINE(PyObject *obj) { return PRINT_ITEM(obj) && PRINT_NEW_LINE(); }
 
 #if PYTHON_VERSION < 0x300
 
@@ -1141,7 +1141,7 @@ static bool set_bases(PyClassObject *class_object, PyObject *value) {
 }
 
 static bool set_name(PyClassObject *class_object, PyObject *value) {
-    if (value == NULL || !PyDict_Check(value)) {
+    if (value == NULL || !PyString_Check(value)) {
         PyThreadState *tstate = PyThreadState_GET();
 
         SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_TypeError, "__name__ must be a string object");
@@ -1159,7 +1159,10 @@ static bool set_name(PyClassObject *class_object, PyObject *value) {
     return true;
 }
 
-static int nuitka_class_setattr(PyClassObject *class_object, PyObject *attr_name, PyObject *value) {
+static int nuitka_class_setattr(PyObject *self, PyObject *attr_name, PyObject *value) {
+    PyThreadState *tstate = PyThreadState_GET();
+
+    PyClassObject *class_object = (PyClassObject *)self;
     char const *sattr_name = PyString_AsString(attr_name);
 
     if (sattr_name[0] == '_' && sattr_name[1] == '_') {
@@ -1195,20 +1198,23 @@ static int nuitka_class_setattr(PyClassObject *class_object, PyObject *attr_name
     }
 
     if (value == NULL) {
-        int status = DICT_REMOVE_ITEM(class_object->cl_dict, attr_name);
+        if (DICT_REMOVE_ITEM(tstate, class_object->cl_dict, attr_name) == false) {
+            if (CHECK_AND_CLEAR_KEY_ERROR_OCCURRED(tstate)) {
+                PyErr_Format(PyExc_AttributeError, "class %s has no attribute '%s'",
+                             PyString_AS_STRING(class_object->cl_name), sattr_name);
+            }
 
-        if (status < 0) {
-            PyErr_Format(PyExc_AttributeError, "class %s has no attribute '%s'",
-                         PyString_AS_STRING(class_object->cl_name), sattr_name);
+            return -1;
         }
 
-        return status;
+        return 0;
     } else {
-        return DICT_SET_ITEM(class_object->cl_dict, attr_name, value) ? 0 : -1;
+        return DICT_SET_ITEM(tstate, class_object->cl_dict, attr_name, value) ? 0 : -1;
     }
 }
 
-static PyObject *nuitka_class_getattr(PyClassObject *class_object, PyObject *attr_name) {
+static PyObject *nuitka_class_getattr(PyObject *self, PyObject *attr_name) {
+    PyClassObject *class_object = (PyClassObject *)self;
     char const *sattr_name = PyString_AsString(attr_name);
 
     if (sattr_name[0] == '_' && sattr_name[1] == '_') {
@@ -1255,8 +1261,8 @@ void enhancePythonTypes(void) {
 #if PYTHON_VERSION < 0x300
     // Our own variant won't call PyEval_GetRestricted, saving quite some cycles
     // not doing that.
-    PyClass_Type.tp_setattro = (setattrofunc)nuitka_class_setattr;
-    PyClass_Type.tp_getattro = (getattrofunc)nuitka_class_getattr;
+    PyClass_Type.tp_setattro = nuitka_class_setattr;
+    PyClass_Type.tp_getattro = nuitka_class_getattr;
 #endif
 }
 
@@ -1308,16 +1314,13 @@ PyObject *BUILTIN_ENUMERATE2(PyThreadState *tstate, PyObject *sequence, PyObject
 NUITKA_DEFINE_BUILTIN(zip);
 #endif
 
-// TODO: Accept PyObject ** with a count to avoid the intermediate tuple object.
-PyObject *BUILTIN_ZIP(PyThreadState *tstate, PyObject *iterables) {
-    CHECK_OBJECT(iterables);
-
+PyObject *BUILTIN_ZIP(PyThreadState *tstate, PyObject *const *iterables, Py_ssize_t count) {
 #if PYTHON_VERSION >= 0x300
-    return CALL_FUNCTION_WITH_POS_ARGS(tstate, (PyObject *)&PyZip_Type, iterables);
+    return CALL_FUNCTION_WITH_ARGS(tstate, (PyObject *)&PyZip_Type, iterables, count);
 #else
     NUITKA_ASSIGN_BUILTIN(zip);
 
-    return CALL_FUNCTION_WITH_POS_ARGS(tstate, NUITKA_ACCESS_BUILTIN(zip), iterables);
+    return CALL_FUNCTION_WITH_ARGS(tstate, NUITKA_ACCESS_BUILTIN(zip), iterables, count);
 #endif
 }
 
@@ -1329,7 +1332,7 @@ PyObject *BUILTIN_ZIP310(PyThreadState *tstate, PyObject *iterables, PyObject *s
     PyObject *kw_values[] = {strict};
     char const *kw_keys[] = {"strict"};
 
-    PyObject *kw_args = MAKE_DICT_X_CSTR(kw_keys, kw_values, 1);
+    PyObject *kw_args = MAKE_DICT_CSTR_X(tstate, kw_keys, kw_values, 1);
 
     PyObject *result = CALL_FUNCTION(tstate, (PyObject *)&PyZip_Type, iterables, kw_args);
     Py_XDECREF(kw_args);
@@ -1400,19 +1403,35 @@ static PyObject *QUICK_ITERATOR_NEXT(PyThreadState *tstate, struct Nuitka_QuickI
             *finished = true;
             return NULL;
         }
-    case ITERATOR_LIST:
-        if (qiter->iterator_data.list_data.list_index < PyList_GET_SIZE(qiter->iterator_data.list_data.list)) {
-            result = PyList_GET_ITEM(qiter->iterator_data.list_data.list, qiter->iterator_data.list_data.list_index);
-            qiter->iterator_data.list_data.list_index += 1;
+    case ITERATOR_LIST: {
+        PyListObject *list = qiter->iterator_data.list_data.list;
+        Py_ssize_t list_index = qiter->iterator_data.list_data.list_index;
 
-            *finished = false;
+#ifdef Py_GIL_DISABLED
+        Py_BEGIN_CRITICAL_SECTION(list);
+#endif
+
+        if (list_index < PyList_GET_SIZE(list)) {
+            result = PyList_GET_ITEM(list, list_index);
+            qiter->iterator_data.list_data.list_index = list_index + 1;
 
             Py_INCREF(result);
-            return result;
         } else {
-            *finished = true;
-            return NULL;
+            result = NULL;
         }
+
+#ifdef Py_GIL_DISABLED
+        Py_END_CRITICAL_SECTION();
+#endif
+
+        if (result != NULL) {
+            *finished = false;
+            return result;
+        }
+
+        *finished = true;
+        return NULL;
+    }
     }
 
     assert(false);
@@ -1445,7 +1464,6 @@ PyObject *BUILTIN_SUM1(PyThreadState *tstate, PyObject *sequence) {
 
         CHECK_OBJECT(item);
 
-// For Python2 int objects:
 #if PYTHON_VERSION < 0x300
         if (PyInt_CheckExact(item)) {
             long b = PyInt_AS_LONG(item);
@@ -1460,7 +1478,6 @@ PyObject *BUILTIN_SUM1(PyThreadState *tstate, PyObject *sequence) {
         }
 #endif
 
-// For Python2 long, Python3 int objects
 #if PYTHON_VERSION >= 0x270
         if (PyLong_CheckExact(item)) {
             int overflow;
@@ -1661,8 +1678,10 @@ static PyTypeObject Nuitka_BuiltinModule_Type = {
     sizeof(PyModuleObject),                           // tp_size
 };
 
-int Nuitka_BuiltinModule_SetAttr(PyModuleObject *module, PyObject *name, PyObject *value) {
-    CHECK_OBJECT(module);
+int Nuitka_BuiltinModule_SetAttr(PyObject *self, PyObject *name, PyObject *value) {
+    PyModuleObject *module = (PyModuleObject *)self;
+
+    CHECK_OBJECT(self);
     CHECK_OBJECT(name);
 
     // This is used for "del" as well.
@@ -1672,24 +1691,24 @@ int Nuitka_BuiltinModule_SetAttr(PyModuleObject *module, PyObject *name, PyObjec
     // many value to check maybe need create a dict first.
     bool found = false;
 
-    int res = PyObject_RichCompareBool(name, const_str_plain_open, Py_EQ);
+    nuitka_bool res = RICH_COMPARE_EQ_NBOOL_OBJECT_OBJECT(name, const_str_plain_open);
 
-    if (unlikely(res == -1)) {
+    if (unlikely(res == NUITKA_BOOL_EXCEPTION)) {
         return -1;
     }
-    if (res == 1) {
+    if (res == NUITKA_BOOL_TRUE) {
         NUITKA_UPDATE_BUILTIN(open, value);
         found = true;
     }
 
     if (found == false) {
-        res = PyObject_RichCompareBool(name, const_str_plain___import__, Py_EQ);
+        res = RICH_COMPARE_EQ_NBOOL_OBJECT_OBJECT(name, const_str_plain___import__);
 
-        if (unlikely(res == -1)) {
+        if (unlikely(res == NUITKA_BOOL_EXCEPTION)) {
             return -1;
         }
 
-        if (res == 1) {
+        if (res == NUITKA_BOOL_TRUE) {
             NUITKA_UPDATE_BUILTIN(__import__, value);
             found = true;
         }
@@ -1697,13 +1716,13 @@ int Nuitka_BuiltinModule_SetAttr(PyModuleObject *module, PyObject *name, PyObjec
 
 #if PYTHON_VERSION >= 0x300
     if (found == false) {
-        res = PyObject_RichCompareBool(name, const_str_plain_print, Py_EQ);
+        res = RICH_COMPARE_EQ_NBOOL_OBJECT_OBJECT(name, const_str_plain_print);
 
-        if (unlikely(res == -1)) {
+        if (unlikely(res == NUITKA_BOOL_EXCEPTION)) {
             return -1;
         }
 
-        if (res == 1) {
+        if (res == NUITKA_BOOL_TRUE) {
             NUITKA_UPDATE_BUILTIN(print, value);
             found = true;
         }
@@ -1711,13 +1730,13 @@ int Nuitka_BuiltinModule_SetAttr(PyModuleObject *module, PyObject *name, PyObjec
 #endif
 
     if (found == false) {
-        res = PyObject_RichCompareBool(name, const_str_plain_super, Py_EQ);
+        res = RICH_COMPARE_EQ_NBOOL_OBJECT_OBJECT(name, const_str_plain_super);
 
-        if (unlikely(res == -1)) {
+        if (unlikely(res == NUITKA_BOOL_EXCEPTION)) {
             return -1;
         }
 
-        if (res == 1) {
+        if (res == NUITKA_BOOL_TRUE) {
             NUITKA_UPDATE_BUILTIN(super, value);
             found = true;
         }
@@ -1748,43 +1767,72 @@ PyObject *JOIN_PATH2(PyObject *dirname, PyObject *filename) {
     CHECK_OBJECT(dirname);
     CHECK_OBJECT(filename);
 
-    // Avoid string APIs, so str, unicode doesn't matter for input.
-    PyObject *result = dirname;
+#if PYTHON_VERSION < 0x300
+    PyThreadState *tstate = PyThreadState_GET();
 
-    if (dirname != const_str_empty) {
-        result = PyNumber_InPlaceAdd(result, getPathSeparatorStringObject());
-        CHECK_OBJECT(result);
+    if (dirname == const_str_empty) {
+        Py_INCREF(filename);
+
+        return filename;
     }
 
-    result = PyNumber_InPlaceAdd(result, filename);
+    PyObject *result = STR_CONCAT(tstate, dirname, getPathSeparatorStringObject());
+
     CHECK_OBJECT(result);
 
+    {
+        PyObject *old = result;
+        result = STR_CONCAT(tstate, old, filename);
+        Py_DECREF(old);
+    }
+
+    CHECK_OBJECT(result);
     return result;
+#else
+    PyThreadState *tstate = PyThreadState_GET();
+
+    if (dirname == const_str_empty) {
+        Py_INCREF(filename);
+
+        return filename;
+    }
+
+    PyObject *result = UNICODE_CONCAT(tstate, dirname, getPathSeparatorStringObject());
+
+    CHECK_OBJECT(result);
+
+    {
+        PyObject *old = result;
+        result = UNICODE_CONCAT(tstate, old, filename);
+        Py_DECREF(old);
+    }
+
+    CHECK_OBJECT(result);
+    return result;
+#endif
 }
 
 #if _NUITKA_EXE_MODE || _NUITKA_DLL_MODE
 
 wchar_t const *getBinaryDirectoryWideChars(bool resolve_symlinks) {
-    static wchar_t binary_directory[MAXPATHLEN + 1];
-    static bool init_done = false;
+    static wchar_t binary_directory[MAXPATHLEN + 1] = {0};
+    static wchar_t binary_directory_resolved[MAXPATHLEN + 1] = {0};
 
-    if (init_done == false) {
-        binary_directory[0] = 0;
+    wchar_t *buffer = resolve_symlinks ? binary_directory_resolved : binary_directory;
 
+    if (buffer[0] == 0) {
 #if defined(_WIN32)
-        copyStringSafeW(binary_directory, getBinaryFilenameWideChars(resolve_symlinks),
+        copyStringSafeW(buffer, getBinaryFilenameWideChars(resolve_symlinks),
                         sizeof(binary_directory) / sizeof(wchar_t));
 
-        stripFilenameW(binary_directory);
-        makeShortFilename(binary_directory, sizeof(binary_directory) / sizeof(wchar_t));
+        stripFilenameW(buffer);
+        makeShortFilename(buffer, sizeof(binary_directory) / sizeof(wchar_t));
 #else
-        appendStringSafeW(binary_directory, getBinaryDirectoryHostEncoded(true),
+        appendStringSafeW(buffer, getBinaryDirectoryHostEncoded(resolve_symlinks),
                           sizeof(binary_directory) / sizeof(wchar_t));
 #endif
-
-        init_done = true;
     }
-    return (wchar_t const *)binary_directory;
+    return (wchar_t const *)buffer;
 }
 
 #if defined(_WIN32)
@@ -1792,33 +1840,33 @@ char const *getBinaryDirectoryHostEncoded(bool resolve_symlinks) {
     static char *binary_directory = NULL;
     static char *binary_directory_resolved = NULL;
 
-    char *binary_directory_target;
+    char **binary_directory_target;
 
     if (resolve_symlinks) {
-        binary_directory_target = binary_directory_resolved;
+        binary_directory_target = &binary_directory_resolved;
     } else {
-        binary_directory_target = binary_directory;
+        binary_directory_target = &binary_directory;
     }
 
-    if (binary_directory_target != NULL) {
-        return binary_directory_target;
+    if (*binary_directory_target != NULL) {
+        return *binary_directory_target;
     }
     wchar_t const *w = getBinaryDirectoryWideChars(resolve_symlinks);
 
     DWORD bufsize = WideCharToMultiByte(CP_ACP, 0, w, -1, NULL, 0, NULL, NULL);
     assert(bufsize != 0);
 
-    binary_directory_target = (char *)malloc(bufsize + 1);
-    assert(binary_directory_target);
+    *binary_directory_target = (char *)malloc(bufsize + 1);
+    assert(*binary_directory_target);
 
-    DWORD res2 = WideCharToMultiByte(CP_ACP, 0, w, -1, binary_directory_target, bufsize, NULL, NULL);
+    DWORD res2 = WideCharToMultiByte(CP_ACP, 0, w, -1, *binary_directory_target, bufsize, NULL, NULL);
     assert(res2 != 0);
 
     if (unlikely(res2 > bufsize)) {
         abort();
     }
 
-    return (char const *)binary_directory_target;
+    return (char const *)*binary_directory_target;
 }
 
 #else
@@ -1841,10 +1889,7 @@ char const *getBinaryDirectoryHostEncoded(bool resolve_symlinks) {
         return binary_directory_target;
     }
 
-    // Get the filename first.
     copyStringSafe(binary_directory_target, getBinaryFilenameHostEncoded(resolve_symlinks), buffer_size);
-
-    // We want the directory name, the above gives the full executable name.
     copyStringSafe(binary_directory_target, dirname(binary_directory_target), buffer_size);
 
     return binary_directory_target;
@@ -1889,7 +1934,6 @@ PyObject *getBinaryFilenameObject(bool resolve_symlinks) {
         abort();
     }
 
-    // Make sure it's usable for caching.
     Py_INCREF(*binary_object_target);
 
     return *binary_object_target;
@@ -1932,7 +1976,6 @@ PyObject *getBinaryDirectoryObject(bool resolve_symlinks) {
         abort();
     }
 
-    // Make sure it's usable for caching.
     Py_INCREF(*binary_object_target);
 
     return *binary_object_target;
@@ -2042,7 +2085,6 @@ PyObject *getContainingDirectoryObject(bool resolve_symlinks) {
 }
 
 #if _NUITKA_STANDALONE_MODE
-// Helper function to create path.
 PyObject *getStandaloneSysExecutablePath(PyObject *basename) {
 #if _NUITKA_EXE_MODE
     PyObject *dir_name = getBinaryDirectoryObject(false);
@@ -2056,8 +2098,13 @@ PyObject *getStandaloneSysExecutablePath(PyObject *basename) {
 #endif
 
 static void _initDeepCopy(PyThreadState *tstate);
+static void initConstantsCaches(PyThreadState *tstate);
 
 void _initBuiltinModule(PyThreadState *tstate) {
+    // Initialize the empty dict constant and constant caches before the first
+    // Nuitka dictionary helper use, e.g. by deep copy dispatch setup.
+    initConstantsCaches(tstate);
+
     NUITKA_PRINT_TRACE("main(): Calling _initBuiltinTypeMethods().");
     _initBuiltinTypeMethods();
 
@@ -2091,20 +2138,21 @@ void _initBuiltinModule(PyThreadState *tstate) {
 #else
         PyObject *nuitka_binary_dir = getDllDirectoryObject();
 #endif
-        NUITKA_MAY_BE_UNUSED int res =
-            PyDict_SetItemString((PyObject *)dict_builtin, "__nuitka_binary_dir", nuitka_binary_dir);
-        assert(res == 0);
+        NUITKA_MAY_BE_UNUSED bool res =
+            DICT_SET_ITEM_STRING(tstate, (PyObject *)dict_builtin, "__nuitka_binary_dir", nuitka_binary_dir);
+        assert(res != false);
 
 #if _NUITKA_EXE_MODE || _NUITKA_ONEFILE_DLL_MODE
 #if _NUITKA_ONEFILE_DLL_MODE
         // In onefile DLL mode, the outer EXE is the one to use for child
         // process spawning, not the loaded DLL.
-        res = PyDict_SetItemString((PyObject *)dict_builtin, "__nuitka_binary_exe",
+        res = DICT_SET_ITEM_STRING(tstate, (PyObject *)dict_builtin, "__nuitka_binary_exe",
                                    Nuitka_String_FromFilename(getBinaryPath()));
 #else
-        res = PyDict_SetItemString((PyObject *)dict_builtin, "__nuitka_binary_exe", getBinaryFilenameObject(true));
+        res = DICT_SET_ITEM_STRING(tstate, (PyObject *)dict_builtin, "__nuitka_binary_exe",
+                                   getBinaryFilenameObject(true));
 #endif
-        assert(res == 0);
+        assert(res != false);
 #endif
     }
 #endif
@@ -2163,7 +2211,7 @@ NUITKA_DEFINE_BUILTIN(long)
 NUITKA_DEFINE_BUILTIN(range);
 #endif
 
-void _initBuiltinOriginalValues(void) {
+void _initBuiltinOriginalValues(PyThreadState *tstate) {
     NUITKA_ASSIGN_BUILTIN(type);
     NUITKA_ASSIGN_BUILTIN(len);
     NUITKA_ASSIGN_BUILTIN(range);
@@ -2194,7 +2242,7 @@ void _initSlotIterNext(void) {
 
     // Note: Not using MAKE_DICT_EMPTY on purpose, this is called early on.
     PyObject *kw_args = PyDict_New();
-    PyDict_SetItem(kw_args, const_str_plain___iter__, Py_True);
+    DICT_SET_ITEM_INFALLIBLE(tstate, kw_args, const_str_plain___iter__, Py_True);
 
     PyObject *c =
         PyObject_CallFunctionObjArgs((PyObject *)&PyType_Type, const_str_plain___iter__, pos_args, kw_args, NULL);

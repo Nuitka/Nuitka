@@ -1,17 +1,7 @@
 #     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-"""Function attribute nodes
-
-The represent special values of the modules. The "__qualname__" value node
-is intended and to be resolved later. And the function output for error
-messages, is also dynamic.
-
-These nodes are intended to allow for as much compile time optimization as
-possible, despite this difficulty. In some modes these node become constants
-quickly, in others they will present boundaries for optimization.
-
-"""
+"""Function attribute nodes for dynamic '__qualname__' and callable error strings."""
 
 from .ChildrenHavingMixins import ChildHavingValueMixin
 from .ExpressionBases import CompileTimeConstantExpressionBase, ExpressionBase
@@ -20,12 +10,12 @@ from .NodeMakingHelpers import makeConstantReplacementNode
 
 
 class ExpressionFunctionQualnameRef(CompileTimeConstantExpressionBase):
-    """Node for value __qualname__ of function or class.
+    """Node for value '__qualname__' of function or class.
 
     Notes:
-        This is for Python 3.4 and higher only, where classes calculate the __qualname__
-        value at runtime, then it's determined dynamically, while 3.3 set it more
-        statically, and Python2 didn't have this feature at all.
+        This is for Python 3.4 and higher only, where classes calculate the
+        '__qualname__' value at runtime, while 3.3 set it more statically, and
+        Python 2 didn't have this feature at all.
     """
 
     kind = "EXPRESSION_FUNCTION_QUALNAME_REF"
@@ -40,6 +30,12 @@ class ExpressionFunctionQualnameRef(CompileTimeConstantExpressionBase):
     def finalize(self):
         del self.parent
         del self.function_body
+
+    def getDetails(self):
+        return {"function_body": self.function_body}
+
+    def getDetailsForDisplay(self):
+        return {"function_body": self.function_body.getCodeName()}
 
     def computeExpressionRaw(self, trace_collection):
         result = makeConstantReplacementNode(
@@ -62,11 +58,11 @@ class ExpressionFunctionQualnameRef(CompileTimeConstantExpressionBase):
 class ExpressionFunctionErrorStr(
     SideEffectsFromChildrenMixin, ChildHavingValueMixin, ExpressionBase
 ):
-    """Node for value "_PyObject_FunctionStr" C-API of function or callable in general.
+    """Node for C-API '_PyObject_FunctionStr' value of a callable.
 
     Notes:
         This is for Python 3.9 and higher only, where functions have their module
-        added to the "__qualname__" value at runtime.
+        added to the '__qualname__' value at runtime.
     """
 
     kind = "EXPRESSION_FUNCTION_ERROR_STR"

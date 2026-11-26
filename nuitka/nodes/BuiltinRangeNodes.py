@@ -1,15 +1,7 @@
 #     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-"""Node the calls to the 'range' built-in.
-
-This is a rather complex beast as it has many cases, is difficult to know if
-it's sizable enough to compute, and there are complex cases, where the bad
-result of it can be predicted still, and these are interesting for warnings.
-
-"""
-
-import math
+"""Nodes for calls to the 'range' and 'xrange' built-ins."""
 
 from nuitka.PythonVersions import python_version
 from nuitka.specs import BuiltinParameterSpecs
@@ -31,9 +23,6 @@ from .shapes.BuiltinTypeShapes import tshape_xrange
 
 
 class ExpressionBuiltinRangeMixin(ExpressionListShapeExactMixin):
-    """Mixin class for range nodes with 1/2/3 arguments."""
-
-    # Mixins are required to define empty slots
     __slots__ = ()
 
     builtin_spec = BuiltinParameterSpecs.builtin_range_spec
@@ -77,7 +66,6 @@ class ExpressionBuiltinRangeMixin(ExpressionListShapeExactMixin):
 
         step = self.subnode_step
 
-        # A step of 0 will raise.
         if step is not None and step.getIntegerValue() == 0:
             return True
 
@@ -171,7 +159,7 @@ class ExpressionBuiltinRange1(
         if length is None:
             return None
 
-        if element_index > length:
+        if element_index >= length:
             return None
 
         # TODO: Make sure to cast element_index to what CPython will give, for
@@ -193,7 +181,6 @@ class ExpressionBuiltinRange2(
 
     named_children = ("low", "high")
 
-    # For the mixing to work generically
     subnode_step = None
 
     def __init__(self, low, high, source_ref):
@@ -321,7 +308,6 @@ class ExpressionBuiltinRange3(
         if step is None:
             return None
 
-        # Give up on this, will raise ValueError.
         if step == 0:
             return None
 
@@ -329,14 +315,11 @@ class ExpressionBuiltinRange3(
             if step < 0:
                 estimate = 0
             else:
-                estimate = math.ceil(float(high - low) / step)
+                estimate = (high - low - 1) // step + 1
+        elif low > high and step < 0:
+            estimate = (low - high - 1) // (-step) + 1
         else:
-            if step > 0:
-                estimate = 0
-            else:
-                estimate = math.ceil(float(high - low) / step)
-
-        estimate = round(estimate)
+            estimate = 0
 
         assert estimate >= 0
 
@@ -358,7 +341,6 @@ class ExpressionBuiltinRange3(
         if step is None:
             return None
 
-        # Give up on this, will raise ValueError.
         if step == 0:
             return None
 
@@ -377,9 +359,12 @@ class ExpressionBuiltinRange3(
 
         step = self.subnode_step.getIntegerValue()
 
+        if step is None or step == 0:
+            return None
+
         result = low + step * element_index
 
-        if result >= high:
+        if (result >= high) if step > 0 else (result <= high):
             return None
         else:
             return makeConstantReplacementNode(
@@ -391,9 +376,6 @@ class ExpressionBuiltinRange3(
 
 
 class ExpressionBuiltinXrangeMixin(object):
-    """Mixin class for xrange nodes with 1/2/3 arguments."""
-
-    # Mixins are required to define empty slots
     __slots__ = ()
 
     builtin_spec = BuiltinParameterSpecs.builtin_xrange_spec
@@ -438,7 +420,6 @@ class ExpressionBuiltinXrangeMixin(object):
 
         step = self.subnode_step
 
-        # A step of 0 will raise.
         if step is not None and step.getIntegerValue() == 0:
             return True
 
@@ -462,9 +443,7 @@ class ExpressionBuiltinXrangeMixin(object):
         )
 
     def computeExpressionIter1(self, iter_node, trace_collection):
-        # No exception will be raised on xrange iteration, but there is nothing to
-        # lower for, virtual method: pylint: disable=no-self-use
-
+        # pylint: disable=no-self-use
         return iter_node, None, None
 
 
@@ -505,7 +484,7 @@ class ExpressionBuiltinXrange1(
         if length is None:
             return None
 
-        if element_index > length:
+        if element_index >= length:
             return None
 
         # TODO: Make sure to cast element_index to what CPython will give, for
@@ -627,7 +606,6 @@ class ExpressionBuiltinXrange3(
         if step is None:
             return None
 
-        # Give up on this, will raise ValueError.
         if step == 0:
             return None
 
@@ -635,14 +613,11 @@ class ExpressionBuiltinXrange3(
             if step < 0:
                 estimate = 0
             else:
-                estimate = math.ceil(float(high - low) / step)
+                estimate = (high - low - 1) // step + 1
+        elif low > high and step < 0:
+            estimate = (low - high - 1) // (-step) + 1
         else:
-            if step > 0:
-                estimate = 0
-            else:
-                estimate = math.ceil(float(high - low) / step)
-
-        estimate = round(estimate)
+            estimate = 0
 
         assert estimate >= 0
 
@@ -661,9 +636,12 @@ class ExpressionBuiltinXrange3(
 
         step = self.subnode_step.getIntegerValue()
 
+        if step is None or step == 0:
+            return None
+
         result = low + step * element_index
 
-        if result >= high:
+        if (result >= high) if step > 0 else (result <= high):
             return None
         else:
             return makeConstantReplacementNode(

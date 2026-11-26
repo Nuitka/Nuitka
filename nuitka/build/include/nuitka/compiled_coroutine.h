@@ -4,11 +4,6 @@
 #ifndef __NUITKA_COMPILED_COROUTINE_H__
 #define __NUITKA_COMPILED_COROUTINE_H__
 
-// Compiled coroutine type.
-
-// Another cornerstone of the integration into CPython. Try to behave as well as
-// normal coroutine objects do or even better.
-
 #if PYTHON_VERSION >= 0x350
 
 /* This file is included from another C file, help IDEs to still parse it on its own. */
@@ -18,9 +13,9 @@
 
 #ifdef __cplusplus
 enum Await_Kind {
-    await_normal, // user provided "await"
-    await_enter,  // async with statement "__enter__"
-    await_exit    // async with statement "__enter__"
+    await_normal, // user "await"
+    await_enter,  // "async with" __aenter__
+    await_exit    // "async with" __aexit__
 };
 #else
 typedef int Await_Kind;
@@ -29,10 +24,7 @@ static const int await_enter = 1;
 static const int await_exit = 2;
 #endif
 
-// The Nuitka_CoroutineObject is the storage associated with a compiled
-// coroutine object instance of which there can be many for each code.
 struct Nuitka_CoroutineObject {
-    /* Python object folklore: */
     PyObject_VAR_HEAD
 
         PyObject *m_name;
@@ -43,52 +35,50 @@ struct Nuitka_CoroutineObject {
     PyObject *m_qualname;
     PyObject *m_yield_from;
 
-    // Weak references are supported for coroutine objects in CPython.
+#if 0x300 <= PYTHON_VERSION && PYTHON_VERSION < 0x370
+    bool m_yield_from_exception_preserving;
+#endif
+
     PyObject *m_weakrefs;
 
     int m_running;
-
-    // When a coroutine is awaiting, this flag is set.
     int m_awaiting;
 
     void *m_code;
 
-    // The parent frame of the coroutine, if created.
     struct Nuitka_FrameObject *m_frame;
 
     PyCodeObject *m_code_object;
 
-    // While yielding, this was the frame currently active, restore when
-    // resuming.
+    // Active caller frame saved across yields and restored when resuming.
     Nuitka_ThreadStateFrameType *m_resume_frame;
 
-    // Was it ever used, is it still running, or already finished.
     Generator_Status m_status;
+
+#if PYTHON_VERSION == 0x3c0
+    // CPython 3.12.0 fails to clear the frame of a coroutine that is closed
+    // before it started, and therefore reports it as created, and we mimic
+    // that for compatibility.
+    int m_closed_before_start;
+#endif
 
 #if PYTHON_VERSION >= 0x370
     struct Nuitka_ExceptionStackItem m_exc_state;
-
-    // The cr_origin attribute.
     PyObject *m_origin;
 #endif
 
     // The label index to resume after yield.
     int m_yield_return_index;
 
-    // Returned value if yielded value is NULL, is
-    // NULL if not a return
+    // Return value when coroutine finishes (yielded value is NULL); NULL while yielding.
     PyObject *m_returned;
 
-    // A kind of uuid for the coroutine object, used in comparisons.
+    // Unique per-instance identifier used in comparisons.
     long m_counter;
 
-    /* The heap of coroutine objects at run time. */
     void *m_heap_storage;
 
-    /* Closure variables given, if any, we reference cells here. The last
-     * part is dynamically allocated, the array size differs per coroutine
-     * and includes the heap storage.
-     */
+    // Trailing flexible array allocated with space for m_closure_given cells plus heap storage.
     Py_ssize_t m_closure_given;
     struct Nuitka_CellObject *m_closure[1];
 };
@@ -101,10 +91,9 @@ extern PyObject *Nuitka_Coroutine_New(PyThreadState *tstate, coroutine_code code
                                       PyObject *qualname, PyCodeObject *code_object, struct Nuitka_CellObject **closure,
                                       Py_ssize_t closure_given, Py_ssize_t heap_storage_size);
 
-static inline bool Nuitka_Coroutine_Check(PyObject *object) { return Py_TYPE(object) == &Nuitka_Coroutine_Type; }
+static inline bool Nuitka_Coroutine_Check(PyObject *obj) { return Py_TYPE(obj) == &Nuitka_Coroutine_Type; }
 
 struct Nuitka_CoroutineWrapperObject {
-    /* Python object folklore: */
     PyObject_HEAD
 
         struct Nuitka_CoroutineObject *m_coroutine;
@@ -112,8 +101,8 @@ struct Nuitka_CoroutineWrapperObject {
 
 extern PyTypeObject Nuitka_CoroutineWrapper_Type;
 
-static inline bool Nuitka_CoroutineWrapper_Check(PyObject *object) {
-    return Py_TYPE(object) == &Nuitka_CoroutineWrapper_Type;
+static inline bool Nuitka_CoroutineWrapper_Check(PyObject *obj) {
+    return Py_TYPE(obj) == &Nuitka_CoroutineWrapper_Type;
 }
 
 static inline void SAVE_COROUTINE_EXCEPTION(PyThreadState *tstate, struct Nuitka_CoroutineObject *coroutine) {
@@ -121,10 +110,11 @@ static inline void SAVE_COROUTINE_EXCEPTION(PyThreadState *tstate, struct Nuitka
      * the exception preserved to the frame is restored, while the current one
      * is put as there.
      *
-     * Python3.7: The exception is preserved in the coroutine object itself
-     * which has a new "m_exc_state" structure just for that.
+     * Python3.7: The exception is preserved in the coroutine object itself,
+     * which is made the current exception state while the coroutine runs.
      */
 
+#if PYTHON_VERSION < 0x370
 #if PYTHON_VERSION < 0x3b0
     PyObject *saved_exception_type = EXC_TYPE(tstate);
 #endif
@@ -133,32 +123,18 @@ static inline void SAVE_COROUTINE_EXCEPTION(PyThreadState *tstate, struct Nuitka
     PyTracebackObject *saved_exception_traceback = EXC_TRACEBACK(tstate);
 #endif
 
-#if PYTHON_VERSION < 0x370
     EXC_TYPE(tstate) = tstate->frame->f_exc_type;
     EXC_VALUE(tstate) = tstate->frame->f_exc_value;
     SET_EXC_TRACEBACK(tstate, tstate->frame->f_exc_traceback);
-#else
-#if PYTHON_VERSION < 0x3b0
-    EXC_TYPE(tstate) = coroutine->m_exc_state.exception_type;
-#endif
-    EXC_VALUE(tstate) = coroutine->m_exc_state.exception_value;
-#if PYTHON_VERSION < 0x3b0
-    SET_EXC_TRACEBACK(tstate, coroutine->m_exc_state.exception_tb);
-#endif
-#endif
 
-#if PYTHON_VERSION < 0x370
     tstate->frame->f_exc_type = saved_exception_type;
     tstate->frame->f_exc_value = saved_exception_value;
     tstate->frame->f_exc_traceback = (PyObject *)saved_exception_traceback;
 #else
-#if PYTHON_VERSION < 0x3b0
-    coroutine->m_exc_state.exception_type = saved_exception_type;
-#endif
-    coroutine->m_exc_state.exception_value = saved_exception_value;
-#if PYTHON_VERSION < 0x3b0
-    coroutine->m_exc_state.exception_tb = (PyTracebackObject *)saved_exception_traceback;
-#endif
+    assert(coroutine->m_exc_state.previous_item == NULL);
+
+    coroutine->m_exc_state.previous_item = tstate->exc_info;
+    tstate->exc_info = (_PyErr_StackItem *)&coroutine->m_exc_state;
 #endif
 }
 
@@ -166,6 +142,7 @@ static inline void RESTORE_COROUTINE_EXCEPTION(PyThreadState *tstate, struct Nui
     // When returning from yield, the exception of the frame is preserved, and
     // the one that enters should be there.
 
+#if PYTHON_VERSION < 0x370
 #if PYTHON_VERSION < 0x3b0
     PyObject *saved_exception_type = EXC_TYPE(tstate);
 #endif
@@ -174,7 +151,6 @@ static inline void RESTORE_COROUTINE_EXCEPTION(PyThreadState *tstate, struct Nui
     PyTracebackObject *saved_exception_traceback = EXC_TRACEBACK(tstate);
 #endif
 
-#if PYTHON_VERSION < 0x370
     EXC_TYPE(tstate) = tstate->frame->f_exc_type;
     EXC_VALUE(tstate) = tstate->frame->f_exc_value;
     SET_EXC_TRACEBACK(tstate, tstate->frame->f_exc_traceback);
@@ -183,35 +159,70 @@ static inline void RESTORE_COROUTINE_EXCEPTION(PyThreadState *tstate, struct Nui
     tstate->frame->f_exc_value = saved_exception_value;
     tstate->frame->f_exc_traceback = (PyObject *)saved_exception_traceback;
 #else
-#if PYTHON_VERSION < 0x3b0
-    EXC_TYPE(tstate) = coroutine->m_exc_state.exception_type;
-#endif
-    EXC_VALUE(tstate) = coroutine->m_exc_state.exception_value;
-#if PYTHON_VERSION < 0x3b0
-    SET_EXC_TRACEBACK(tstate, coroutine->m_exc_state.exception_tb);
-#endif
+    assert(coroutine->m_exc_state.previous_item != NULL);
 
-#if PYTHON_VERSION < 0x3b0
-    coroutine->m_exc_state.exception_type = saved_exception_type;
-#endif
-    coroutine->m_exc_state.exception_value = saved_exception_value;
-#if PYTHON_VERSION < 0x3b0
-    coroutine->m_exc_state.exception_tb = (PyTracebackObject *)saved_exception_traceback;
-#endif
+    tstate->exc_info = coroutine->m_exc_state.previous_item;
+    coroutine->m_exc_state.previous_item = NULL;
 #endif
 }
 
-// Create the object to await for async for "iter".
+#if 0x300 <= PYTHON_VERSION && PYTHON_VERSION < 0x370
+static inline void SAVE_COROUTINE_EXCEPTION_FROM_THREAD(PyThreadState *tstate,
+                                                        struct Nuitka_CoroutineObject *coroutine) {
+    PyObject *old_type = EXC_TYPE_F(coroutine);
+    PyObject *old_value = EXC_VALUE_F(coroutine);
+    PyObject *old_tb = EXC_TRACEBACK_F(coroutine);
+
+    EXC_TYPE_F(coroutine) = EXC_TYPE(tstate);
+    Py_XINCREF(EXC_TYPE_F(coroutine));
+    EXC_VALUE_F(coroutine) = EXC_VALUE(tstate);
+    Py_XINCREF(EXC_VALUE_F(coroutine));
+    ASSIGN_EXC_TRACEBACK_F(coroutine, EXC_TRACEBACK(tstate));
+    Py_XINCREF(EXC_TRACEBACK_F(coroutine));
+
+    Py_XDECREF(old_type);
+    Py_XDECREF(old_value);
+    Py_XDECREF(old_tb);
+}
+
+static inline void RESUME_COROUTINE_EXCEPTION(PyThreadState *tstate, struct Nuitka_CoroutineObject *coroutine,
+                                              bool throw_flag) {
+    if (throw_flag || EXC_TYPE_F(coroutine) == NULL || EXC_TYPE_F(coroutine) == Py_None) {
+        SAVE_COROUTINE_EXCEPTION_FROM_THREAD(tstate, coroutine);
+    } else {
+        SAVE_COROUTINE_EXCEPTION(tstate, coroutine);
+    }
+}
+
+static inline void RESTORE_AND_CLEAR_COROUTINE_EXCEPTION(PyThreadState *tstate,
+                                                         struct Nuitka_CoroutineObject *coroutine) {
+    assert(coroutine->m_frame != NULL);
+
+    struct Nuitka_ExceptionStackItem exc_state;
+
+    exc_state.exception_type = EXC_TYPE_F(coroutine);
+    exc_state.exception_value = EXC_VALUE_F(coroutine);
+    exc_state.exception_tb = (PyTracebackObject *)EXC_TRACEBACK_F(coroutine);
+
+    SET_CURRENT_EXCEPTION(tstate, &exc_state);
+
+    EXC_TYPE_F(coroutine) = NULL;
+    EXC_VALUE_F(coroutine) = NULL;
+    EXC_TRACEBACK_F(coroutine) = NULL;
+}
+#endif
+
 extern PyObject *ASYNC_MAKE_ITERATOR(PyThreadState *tstate, PyObject *value);
 
-// Create the object to await for async for "next".
 extern PyObject *ASYNC_ITERATOR_NEXT(PyThreadState *tstate, PyObject *value);
 
-// Create the object for plain "await".
 extern PyObject *ASYNC_AWAIT(PyThreadState *tstate, PyObject *awaitable, Await_Kind await_kind);
 
 NUITKA_MAY_BE_UNUSED static void STORE_COROUTINE_EXCEPTION(PyThreadState *tstate,
                                                            struct Nuitka_CoroutineObject *coroutine) {
+#if 0x300 <= PYTHON_VERSION && PYTHON_VERSION < 0x370
+    SAVE_COROUTINE_EXCEPTION_FROM_THREAD(tstate, coroutine);
+#else
 #if PYTHON_VERSION < 0x3b0
     EXC_TYPE_F(coroutine) = EXC_TYPE(tstate);
     if (EXC_TYPE_F(coroutine) == Py_None) {
@@ -225,8 +236,8 @@ NUITKA_MAY_BE_UNUSED static void STORE_COROUTINE_EXCEPTION(PyThreadState *tstate
     ASSIGN_EXC_TRACEBACK_F(coroutine, EXC_TRACEBACK(tstate));
     Py_XINCREF(EXC_TRACEBACK_F(coroutine));
 #endif
+#endif
 }
-
 NUITKA_MAY_BE_UNUSED static void DROP_COROUTINE_EXCEPTION(struct Nuitka_CoroutineObject *coroutine) {
 #if PYTHON_VERSION < 0x3b0
     Py_CLEAR(EXC_TYPE_F(coroutine));
@@ -235,9 +246,11 @@ NUITKA_MAY_BE_UNUSED static void DROP_COROUTINE_EXCEPTION(struct Nuitka_Coroutin
 #if PYTHON_VERSION < 0x3b0
     Py_CLEAR(EXC_TRACEBACK_F(coroutine));
 #endif
+#if PYTHON_VERSION >= 0x370
+    coroutine->m_exc_state.previous_item = NULL;
+#endif
 }
 
-// For reference count debugging.
 #if _DEBUG_REFCOUNTS
 extern int count_active_Nuitka_Coroutine_Type;
 extern int count_allocated_Nuitka_Coroutine_Type;

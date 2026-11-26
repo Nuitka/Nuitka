@@ -215,6 +215,11 @@ package_data = {
     "nuitka.reports": ["*.j2"],
     "nuitka.installer.backends": ["*.nsi"],
     "nuitka.plugins.standard": ["*/*.c", "*/*.py"],
+    "nuitka.tools.podman": [
+        "containers/*.containerfile",
+        "containers/*.containerfile.in",
+        "containers/*.containerfile.j2",
+    ],
     "nuitka.utils": ["requirements-private.txt"],
     "nuitka.format": ["biome.json"],
     "nuitka.package_config": ["nuitka-package-config-schema.json"],
@@ -317,7 +322,7 @@ def get_script_args(dist, executable=os.path.normpath(sys.executable), wininst=F
     """Yield write_script() argument tuples for a distribution's entrypoints"""
     header = easy_install.get_script_header("", executable, wininst)
     for group in "console_scripts", "gui_scripts":
-        for name, _ep in dist.get_entry_map(group).items():
+        for name in dist.get_entry_map(group):
             script_text = runner_script_template
             if sys.platform == "win32" or wininst:
                 # On Windows/wininst, add a .py extension and an .exe launcher
@@ -452,6 +457,7 @@ setup(
         # Nuitka standalone mode aims at distribution
         "Topic :: System :: Software Distribution",
         # Python3 supported versions.
+        "Programming Language :: Python :: 3.15",
         "Programming Language :: Python :: 3.14",
         "Programming Language :: Python :: 3.13",
         "Programming Language :: Python :: 3.12",

@@ -7,12 +7,12 @@
 #ifdef __IDE_ONLY__
 #include "nuitka/prelude.h"
 
+// Includes below require definitions from the prelude.
 #include "nuitka/helper/long_helpers.h"
 #endif
 
 /* C helpers for type specialized "^" (BITXOR) operations */
 
-/* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "LONG" to Python2 'long', Python3 'int'. */
 static PyObject *_BINARY_OPERATION_BITXOR_OBJECT_LONG_LONG(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyLong_CheckExact(operand1));
@@ -21,7 +21,6 @@ static PyObject *_BINARY_OPERATION_BITXOR_OBJECT_LONG_LONG(PyObject *operand1, P
 
     PyObject *result;
 
-    // Not every code path will make use of all possible results.
 #if defined(_MSC_VER)
 #pragma warning(push)
 #pragma warning(disable : 4101)
@@ -56,7 +55,6 @@ PyObject *BINARY_OPERATION_BITXOR_OBJECT_LONG_LONG(PyObject *operand1, PyObject 
     return _BINARY_OPERATION_BITXOR_OBJECT_LONG_LONG(operand1, operand2);
 }
 
-/* Code referring to "OBJECT" corresponds to any Python object and "LONG" to Python2 'long', Python3 'int'. */
 static HEDLEY_NEVER_INLINE PyObject *__BINARY_OPERATION_BITXOR_OBJECT_OBJECT_LONG(PyObject *operand1,
                                                                                   PyObject *operand2) {
     PyTypeObject *type1 = Py_TYPE(operand1);
@@ -76,8 +74,6 @@ static HEDLEY_NEVER_INLINE PyObject *__BINARY_OPERATION_BITXOR_OBJECT_OBJECT_LON
     binaryfunc slot2 = NULL;
 
     if (!(type1 == &PyLong_Type)) {
-        // Different types, need to consider second value slot.
-
         slot2 = PyLong_Type.tp_as_number->nb_xor;
 
         if (slot1 == slot2) {
@@ -204,9 +200,6 @@ static PyObject *_BINARY_OPERATION_BITXOR_OBJECT_OBJECT_LONG(PyObject *operand1,
     if (type1 == &PyLong_Type) {
         PyObject *result;
 
-        // return _BINARY_OPERATION_BITXOR_OBJECT_LONG_LONG(operand1, operand2);
-
-        // Not every code path will make use of all possible results.
 #if defined(_MSC_VER)
 #pragma warning(push)
 #pragma warning(disable : 4101)
@@ -244,7 +237,6 @@ PyObject *BINARY_OPERATION_BITXOR_OBJECT_OBJECT_LONG(PyObject *operand1, PyObjec
     return _BINARY_OPERATION_BITXOR_OBJECT_OBJECT_LONG(operand1, operand2);
 }
 
-/* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "OBJECT" to any Python object. */
 static HEDLEY_NEVER_INLINE PyObject *__BINARY_OPERATION_BITXOR_OBJECT_LONG_OBJECT(PyObject *operand1,
                                                                                   PyObject *operand2) {
     PyTypeObject *type2 = Py_TYPE(operand2);
@@ -263,8 +255,6 @@ static HEDLEY_NEVER_INLINE PyObject *__BINARY_OPERATION_BITXOR_OBJECT_LONG_OBJEC
     binaryfunc slot2 = NULL;
 
     if (!(&PyLong_Type == type2)) {
-        // Different types, need to consider second value slot.
-
         slot2 = (type2->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type2)) ? type2->tp_as_number->nb_xor : NULL;
 
         if (slot1 == slot2) {
@@ -405,9 +395,6 @@ static PyObject *_BINARY_OPERATION_BITXOR_OBJECT_LONG_OBJECT(PyObject *operand1,
     if (&PyLong_Type == type2) {
         PyObject *result;
 
-        // return _BINARY_OPERATION_BITXOR_OBJECT_LONG_LONG(operand1, operand2);
-
-        // Not every code path will make use of all possible results.
 #if defined(_MSC_VER)
 #pragma warning(push)
 #pragma warning(disable : 4101)
@@ -445,7 +432,6 @@ PyObject *BINARY_OPERATION_BITXOR_OBJECT_LONG_OBJECT(PyObject *operand1, PyObjec
     return _BINARY_OPERATION_BITXOR_OBJECT_LONG_OBJECT(operand1, operand2);
 }
 
-/* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "LONG" to Python2 'long', Python3 'int'. */
 static nuitka_bool _BINARY_OPERATION_BITXOR_NBOOL_LONG_LONG(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyLong_CheckExact(operand1));
@@ -454,7 +440,6 @@ static nuitka_bool _BINARY_OPERATION_BITXOR_NBOOL_LONG_LONG(PyObject *operand1, 
 
     nuitka_bool result;
 
-    // Not every code path will make use of all possible results.
 #if defined(_MSC_VER)
 #pragma warning(push)
 #pragma warning(disable : 4101)
@@ -475,7 +460,7 @@ exit_result_object:
     if (unlikely(obj_result == NULL)) {
         goto exit_result_exception;
     }
-    result = CHECK_IF_TRUE(obj_result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+    result = CHECK_IF_TRUE_NBOOL(obj_result);
     Py_DECREF(obj_result);
     goto exit_result_ok;
 
@@ -490,7 +475,6 @@ nuitka_bool BINARY_OPERATION_BITXOR_NBOOL_LONG_LONG(PyObject *operand1, PyObject
     return _BINARY_OPERATION_BITXOR_NBOOL_LONG_LONG(operand1, operand2);
 }
 
-/* Code referring to "OBJECT" corresponds to any Python object and "LONG" to Python2 'long', Python3 'int'. */
 static HEDLEY_NEVER_INLINE nuitka_bool __BINARY_OPERATION_BITXOR_NBOOL_OBJECT_LONG(PyObject *operand1,
                                                                                    PyObject *operand2) {
     PyTypeObject *type1 = Py_TYPE(operand1);
@@ -510,8 +494,6 @@ static HEDLEY_NEVER_INLINE nuitka_bool __BINARY_OPERATION_BITXOR_NBOOL_OBJECT_LO
     binaryfunc slot2 = NULL;
 
     if (!(type1 == &PyLong_Type)) {
-        // Different types, need to consider second value slot.
-
         slot2 = PyLong_Type.tp_as_number->nb_xor;
 
         if (slot1 == slot2) {
@@ -628,7 +610,7 @@ exit_binary_result_object:
     }
 
     {
-        nuitka_bool r = CHECK_IF_TRUE(obj_result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+        nuitka_bool r = CHECK_IF_TRUE_NBOOL(obj_result);
         Py_DECREF(obj_result);
         return r;
     }
@@ -646,9 +628,6 @@ static nuitka_bool _BINARY_OPERATION_BITXOR_NBOOL_OBJECT_LONG(PyObject *operand1
     if (type1 == &PyLong_Type) {
         nuitka_bool result;
 
-        // return _BINARY_OPERATION_BITXOR_NBOOL_LONG_LONG(operand1, operand2);
-
-        // Not every code path will make use of all possible results.
 #if defined(_MSC_VER)
 #pragma warning(push)
 #pragma warning(disable : 4101)
@@ -669,7 +648,7 @@ static nuitka_bool _BINARY_OPERATION_BITXOR_NBOOL_OBJECT_LONG(PyObject *operand1
         if (unlikely(obj_result == NULL)) {
             goto exit_result_exception;
         }
-        result = CHECK_IF_TRUE(obj_result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+        result = CHECK_IF_TRUE_NBOOL(obj_result);
         Py_DECREF(obj_result);
         goto exit_result_ok;
 
@@ -687,7 +666,6 @@ nuitka_bool BINARY_OPERATION_BITXOR_NBOOL_OBJECT_LONG(PyObject *operand1, PyObje
     return _BINARY_OPERATION_BITXOR_NBOOL_OBJECT_LONG(operand1, operand2);
 }
 
-/* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "OBJECT" to any Python object. */
 static HEDLEY_NEVER_INLINE nuitka_bool __BINARY_OPERATION_BITXOR_NBOOL_LONG_OBJECT(PyObject *operand1,
                                                                                    PyObject *operand2) {
     PyTypeObject *type2 = Py_TYPE(operand2);
@@ -706,8 +684,6 @@ static HEDLEY_NEVER_INLINE nuitka_bool __BINARY_OPERATION_BITXOR_NBOOL_LONG_OBJE
     binaryfunc slot2 = NULL;
 
     if (!(&PyLong_Type == type2)) {
-        // Different types, need to consider second value slot.
-
         slot2 = (type2->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type2)) ? type2->tp_as_number->nb_xor : NULL;
 
         if (slot1 == slot2) {
@@ -838,7 +814,7 @@ exit_binary_result_object:
     }
 
     {
-        nuitka_bool r = CHECK_IF_TRUE(obj_result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+        nuitka_bool r = CHECK_IF_TRUE_NBOOL(obj_result);
         Py_DECREF(obj_result);
         return r;
     }
@@ -856,9 +832,6 @@ static nuitka_bool _BINARY_OPERATION_BITXOR_NBOOL_LONG_OBJECT(PyObject *operand1
     if (&PyLong_Type == type2) {
         nuitka_bool result;
 
-        // return _BINARY_OPERATION_BITXOR_NBOOL_LONG_LONG(operand1, operand2);
-
-        // Not every code path will make use of all possible results.
 #if defined(_MSC_VER)
 #pragma warning(push)
 #pragma warning(disable : 4101)
@@ -879,7 +852,7 @@ static nuitka_bool _BINARY_OPERATION_BITXOR_NBOOL_LONG_OBJECT(PyObject *operand1
         if (unlikely(obj_result == NULL)) {
             goto exit_result_exception;
         }
-        result = CHECK_IF_TRUE(obj_result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+        result = CHECK_IF_TRUE_NBOOL(obj_result);
         Py_DECREF(obj_result);
         goto exit_result_ok;
 
@@ -898,7 +871,6 @@ nuitka_bool BINARY_OPERATION_BITXOR_NBOOL_LONG_OBJECT(PyObject *operand1, PyObje
 }
 
 #if PYTHON_VERSION < 0x300
-/* Code referring to "INT" corresponds to Python2 'int' and "INT" to Python2 'int'. */
 static PyObject *_BINARY_OPERATION_BITXOR_OBJECT_INT_INT(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyInt_CheckExact(operand1));
@@ -907,7 +879,6 @@ static PyObject *_BINARY_OPERATION_BITXOR_OBJECT_INT_INT(PyObject *operand1, PyO
 
     PyObject *result;
 
-    // Not every code path will make use of all possible results.
 #if defined(_MSC_VER)
 #pragma warning(push)
 #pragma warning(disable : 4101)
@@ -947,7 +918,6 @@ PyObject *BINARY_OPERATION_BITXOR_OBJECT_INT_INT(PyObject *operand1, PyObject *o
 #endif
 
 #if PYTHON_VERSION < 0x300
-/* Code referring to "OBJECT" corresponds to any Python object and "INT" to Python2 'int'. */
 static HEDLEY_NEVER_INLINE PyObject *__BINARY_OPERATION_BITXOR_OBJECT_OBJECT_INT(PyObject *operand1,
                                                                                  PyObject *operand2) {
     PyTypeObject *type1 = Py_TYPE(operand1);
@@ -967,8 +937,6 @@ static HEDLEY_NEVER_INLINE PyObject *__BINARY_OPERATION_BITXOR_OBJECT_OBJECT_INT
     binaryfunc slot2 = NULL;
 
     if (!(type1 == &PyInt_Type)) {
-        // Different types, need to consider second value slot.
-
         slot2 = PyInt_Type.tp_as_number->nb_xor;
 
         if (slot1 == slot2) {
@@ -1091,9 +1059,6 @@ static PyObject *_BINARY_OPERATION_BITXOR_OBJECT_OBJECT_INT(PyObject *operand1, 
     if (type1 == &PyInt_Type) {
         PyObject *result;
 
-        // return _BINARY_OPERATION_BITXOR_OBJECT_INT_INT(operand1, operand2);
-
-        // Not every code path will make use of all possible results.
 #if defined(_MSC_VER)
 #pragma warning(push)
 #pragma warning(disable : 4101)
@@ -1136,7 +1101,6 @@ PyObject *BINARY_OPERATION_BITXOR_OBJECT_OBJECT_INT(PyObject *operand1, PyObject
 #endif
 
 #if PYTHON_VERSION < 0x300
-/* Code referring to "INT" corresponds to Python2 'int' and "OBJECT" to any Python object. */
 static HEDLEY_NEVER_INLINE PyObject *__BINARY_OPERATION_BITXOR_OBJECT_INT_OBJECT(PyObject *operand1,
                                                                                  PyObject *operand2) {
     PyTypeObject *type2 = Py_TYPE(operand2);
@@ -1155,8 +1119,6 @@ static HEDLEY_NEVER_INLINE PyObject *__BINARY_OPERATION_BITXOR_OBJECT_INT_OBJECT
     binaryfunc slot2 = NULL;
 
     if (!(&PyInt_Type == type2)) {
-        // Different types, need to consider second value slot.
-
         slot2 = (type2->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type2)) ? type2->tp_as_number->nb_xor : NULL;
 
         if (slot1 == slot2) {
@@ -1293,9 +1255,6 @@ static PyObject *_BINARY_OPERATION_BITXOR_OBJECT_INT_OBJECT(PyObject *operand1, 
     if (&PyInt_Type == type2) {
         PyObject *result;
 
-        // return _BINARY_OPERATION_BITXOR_OBJECT_INT_INT(operand1, operand2);
-
-        // Not every code path will make use of all possible results.
 #if defined(_MSC_VER)
 #pragma warning(push)
 #pragma warning(disable : 4101)
@@ -1338,7 +1297,6 @@ PyObject *BINARY_OPERATION_BITXOR_OBJECT_INT_OBJECT(PyObject *operand1, PyObject
 #endif
 
 #if PYTHON_VERSION < 0x300
-/* Code referring to "INT" corresponds to Python2 'int' and "INT" to Python2 'int'. */
 static nuitka_bool _BINARY_OPERATION_BITXOR_NBOOL_INT_INT(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyInt_CheckExact(operand1));
@@ -1347,7 +1305,6 @@ static nuitka_bool _BINARY_OPERATION_BITXOR_NBOOL_INT_INT(PyObject *operand1, Py
 
     nuitka_bool result;
 
-    // Not every code path will make use of all possible results.
 #if defined(_MSC_VER)
 #pragma warning(push)
 #pragma warning(disable : 4101)
@@ -1387,7 +1344,6 @@ nuitka_bool BINARY_OPERATION_BITXOR_NBOOL_INT_INT(PyObject *operand1, PyObject *
 #endif
 
 #if PYTHON_VERSION < 0x300
-/* Code referring to "OBJECT" corresponds to any Python object and "INT" to Python2 'int'. */
 static HEDLEY_NEVER_INLINE nuitka_bool __BINARY_OPERATION_BITXOR_NBOOL_OBJECT_INT(PyObject *operand1,
                                                                                   PyObject *operand2) {
     PyTypeObject *type1 = Py_TYPE(operand1);
@@ -1407,8 +1363,6 @@ static HEDLEY_NEVER_INLINE nuitka_bool __BINARY_OPERATION_BITXOR_NBOOL_OBJECT_IN
     binaryfunc slot2 = NULL;
 
     if (!(type1 == &PyInt_Type)) {
-        // Different types, need to consider second value slot.
-
         slot2 = PyInt_Type.tp_as_number->nb_xor;
 
         if (slot1 == slot2) {
@@ -1521,7 +1475,7 @@ exit_binary_result_object:
     }
 
     {
-        nuitka_bool r = CHECK_IF_TRUE(obj_result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+        nuitka_bool r = CHECK_IF_TRUE_NBOOL(obj_result);
         Py_DECREF(obj_result);
         return r;
     }
@@ -1539,9 +1493,6 @@ static nuitka_bool _BINARY_OPERATION_BITXOR_NBOOL_OBJECT_INT(PyObject *operand1,
     if (type1 == &PyInt_Type) {
         nuitka_bool result;
 
-        // return _BINARY_OPERATION_BITXOR_NBOOL_INT_INT(operand1, operand2);
-
-        // Not every code path will make use of all possible results.
 #if defined(_MSC_VER)
 #pragma warning(push)
 #pragma warning(disable : 4101)
@@ -1584,7 +1535,6 @@ nuitka_bool BINARY_OPERATION_BITXOR_NBOOL_OBJECT_INT(PyObject *operand1, PyObjec
 #endif
 
 #if PYTHON_VERSION < 0x300
-/* Code referring to "INT" corresponds to Python2 'int' and "OBJECT" to any Python object. */
 static HEDLEY_NEVER_INLINE nuitka_bool __BINARY_OPERATION_BITXOR_NBOOL_INT_OBJECT(PyObject *operand1,
                                                                                   PyObject *operand2) {
     PyTypeObject *type2 = Py_TYPE(operand2);
@@ -1603,8 +1553,6 @@ static HEDLEY_NEVER_INLINE nuitka_bool __BINARY_OPERATION_BITXOR_NBOOL_INT_OBJEC
     binaryfunc slot2 = NULL;
 
     if (!(&PyInt_Type == type2)) {
-        // Different types, need to consider second value slot.
-
         slot2 = (type2->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type2)) ? type2->tp_as_number->nb_xor : NULL;
 
         if (slot1 == slot2) {
@@ -1731,7 +1679,7 @@ exit_binary_result_object:
     }
 
     {
-        nuitka_bool r = CHECK_IF_TRUE(obj_result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+        nuitka_bool r = CHECK_IF_TRUE_NBOOL(obj_result);
         Py_DECREF(obj_result);
         return r;
     }
@@ -1749,9 +1697,6 @@ static nuitka_bool _BINARY_OPERATION_BITXOR_NBOOL_INT_OBJECT(PyObject *operand1,
     if (&PyInt_Type == type2) {
         nuitka_bool result;
 
-        // return _BINARY_OPERATION_BITXOR_NBOOL_INT_INT(operand1, operand2);
-
-        // Not every code path will make use of all possible results.
 #if defined(_MSC_VER)
 #pragma warning(push)
 #pragma warning(disable : 4101)
@@ -1794,14 +1739,12 @@ nuitka_bool BINARY_OPERATION_BITXOR_NBOOL_INT_OBJECT(PyObject *operand1, PyObjec
 #endif
 
 #if PYTHON_VERSION < 0x300
-/* Code referring to "INT" corresponds to Python2 'int' and "CLONG" to C platform long value. */
 static PyObject *_BINARY_OPERATION_BITXOR_OBJECT_INT_CLONG(PyObject *operand1, long operand2) {
     CHECK_OBJECT(operand1);
     assert(PyInt_CheckExact(operand1));
 
     PyObject *result;
 
-    // Not every code path will make use of all possible results.
 #if defined(_MSC_VER)
 #pragma warning(push)
 #pragma warning(disable : 4101)
@@ -1839,14 +1782,12 @@ PyObject *BINARY_OPERATION_BITXOR_OBJECT_INT_CLONG(PyObject *operand1, long oper
 #endif
 
 #if PYTHON_VERSION < 0x300
-/* Code referring to "INT" corresponds to Python2 'int' and "CLONG" to C platform long value. */
 static nuitka_bool _BINARY_OPERATION_BITXOR_NBOOL_INT_CLONG(PyObject *operand1, long operand2) {
     CHECK_OBJECT(operand1);
     assert(PyInt_CheckExact(operand1));
 
     nuitka_bool result;
 
-    // Not every code path will make use of all possible results.
 #if defined(_MSC_VER)
 #pragma warning(push)
 #pragma warning(disable : 4101)
@@ -1884,7 +1825,6 @@ nuitka_bool BINARY_OPERATION_BITXOR_NBOOL_INT_CLONG(PyObject *operand1, long ope
 #endif
 
 #if PYTHON_VERSION < 0x300
-/* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "INT" to Python2 'int'. */
 static PyObject *_BINARY_OPERATION_BITXOR_OBJECT_LONG_INT(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyLong_CheckExact(operand1));
@@ -1902,7 +1842,6 @@ static PyObject *_BINARY_OPERATION_BITXOR_OBJECT_LONG_INT(PyObject *operand1, Py
 #endif
 
     binaryfunc slot1 = PyLong_Type.tp_as_number->nb_xor;
-    // Slot2 ignored on purpose, type1 takes precedence.
 
     if (slot1 != NULL) {
         PyObject *x = slot1(operand1, operand2);
@@ -1914,8 +1853,6 @@ static PyObject *_BINARY_OPERATION_BITXOR_OBJECT_LONG_INT(PyObject *operand1, Py
 
         Py_DECREF_IMMORTAL(x);
     }
-
-    // Statically recognized that coercion is not possible with these types
 
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for ^: 'long' and 'int'");
     goto exit_binary_exception;
@@ -1933,7 +1870,6 @@ PyObject *BINARY_OPERATION_BITXOR_OBJECT_LONG_INT(PyObject *operand1, PyObject *
 #endif
 
 #if PYTHON_VERSION < 0x300
-/* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "INT" to Python2 'int'. */
 static nuitka_bool _BINARY_OPERATION_BITXOR_NBOOL_LONG_INT(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyLong_CheckExact(operand1));
@@ -1951,7 +1887,6 @@ static nuitka_bool _BINARY_OPERATION_BITXOR_NBOOL_LONG_INT(PyObject *operand1, P
 #endif
 
     binaryfunc slot1 = PyLong_Type.tp_as_number->nb_xor;
-    // Slot2 ignored on purpose, type1 takes precedence.
 
     if (slot1 != NULL) {
         PyObject *x = slot1(operand1, operand2);
@@ -1964,8 +1899,6 @@ static nuitka_bool _BINARY_OPERATION_BITXOR_NBOOL_LONG_INT(PyObject *operand1, P
         Py_DECREF_IMMORTAL(x);
     }
 
-    // Statically recognized that coercion is not possible with these types
-
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for ^: 'long' and 'int'");
     goto exit_binary_exception;
 
@@ -1975,7 +1908,7 @@ exit_binary_result_object:
     }
 
     {
-        nuitka_bool r = CHECK_IF_TRUE(obj_result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+        nuitka_bool r = CHECK_IF_TRUE_NBOOL(obj_result);
         Py_DECREF(obj_result);
         return r;
     }
@@ -1989,7 +1922,6 @@ nuitka_bool BINARY_OPERATION_BITXOR_NBOOL_LONG_INT(PyObject *operand1, PyObject 
 }
 #endif
 
-/* Code referring to "SET" corresponds to Python 'set' and "SET" to Python 'set'. */
 static PyObject *_BINARY_OPERATION_BITXOR_OBJECT_SET_SET(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PySet_CheckExact(operand1));
@@ -1998,7 +1930,6 @@ static PyObject *_BINARY_OPERATION_BITXOR_OBJECT_SET_SET(PyObject *operand1, PyO
 
     PyObject *result;
 
-    // Not every code path will make use of all possible results.
     NUITKA_MAY_BE_UNUSED PyObject *obj_result;
 
     PyObject *x = PySet_Type.tp_as_number->nb_xor(operand1, operand2);
@@ -2026,7 +1957,6 @@ PyObject *BINARY_OPERATION_BITXOR_OBJECT_SET_SET(PyObject *operand1, PyObject *o
     return _BINARY_OPERATION_BITXOR_OBJECT_SET_SET(operand1, operand2);
 }
 
-/* Code referring to "OBJECT" corresponds to any Python object and "SET" to Python 'set'. */
 static HEDLEY_NEVER_INLINE PyObject *__BINARY_OPERATION_BITXOR_OBJECT_OBJECT_SET(PyObject *operand1,
                                                                                  PyObject *operand2) {
     PyTypeObject *type1 = Py_TYPE(operand1);
@@ -2046,8 +1976,6 @@ static HEDLEY_NEVER_INLINE PyObject *__BINARY_OPERATION_BITXOR_OBJECT_OBJECT_SET
     binaryfunc slot2 = NULL;
 
     if (!(type1 == &PySet_Type)) {
-        // Different types, need to consider second value slot.
-
         slot2 = PySet_Type.tp_as_number->nb_xor;
 
         if (slot1 == slot2) {
@@ -2136,9 +2064,6 @@ static PyObject *_BINARY_OPERATION_BITXOR_OBJECT_OBJECT_SET(PyObject *operand1, 
     if (type1 == &PySet_Type) {
         PyObject *result;
 
-        // return _BINARY_OPERATION_BITXOR_OBJECT_SET_SET(operand1, operand2);
-
-        // Not every code path will make use of all possible results.
         NUITKA_MAY_BE_UNUSED PyObject *obj_result;
 
         PyObject *x = PySet_Type.tp_as_number->nb_xor(operand1, operand2);
@@ -2169,7 +2094,6 @@ PyObject *BINARY_OPERATION_BITXOR_OBJECT_OBJECT_SET(PyObject *operand1, PyObject
     return _BINARY_OPERATION_BITXOR_OBJECT_OBJECT_SET(operand1, operand2);
 }
 
-/* Code referring to "SET" corresponds to Python 'set' and "OBJECT" to any Python object. */
 static HEDLEY_NEVER_INLINE PyObject *__BINARY_OPERATION_BITXOR_OBJECT_SET_OBJECT(PyObject *operand1,
                                                                                  PyObject *operand2) {
     PyTypeObject *type2 = Py_TYPE(operand2);
@@ -2188,8 +2112,6 @@ static HEDLEY_NEVER_INLINE PyObject *__BINARY_OPERATION_BITXOR_OBJECT_SET_OBJECT
     binaryfunc slot2 = NULL;
 
     if (!(&PySet_Type == type2)) {
-        // Different types, need to consider second value slot.
-
         slot2 = (type2->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type2)) ? type2->tp_as_number->nb_xor : NULL;
 
         if (slot1 == slot2) {
@@ -2292,9 +2214,6 @@ static PyObject *_BINARY_OPERATION_BITXOR_OBJECT_SET_OBJECT(PyObject *operand1, 
     if (&PySet_Type == type2) {
         PyObject *result;
 
-        // return _BINARY_OPERATION_BITXOR_OBJECT_SET_SET(operand1, operand2);
-
-        // Not every code path will make use of all possible results.
         NUITKA_MAY_BE_UNUSED PyObject *obj_result;
 
         PyObject *x = PySet_Type.tp_as_number->nb_xor(operand1, operand2);
@@ -2325,7 +2244,6 @@ PyObject *BINARY_OPERATION_BITXOR_OBJECT_SET_OBJECT(PyObject *operand1, PyObject
     return _BINARY_OPERATION_BITXOR_OBJECT_SET_OBJECT(operand1, operand2);
 }
 
-/* Code referring to "OBJECT" corresponds to any Python object and "OBJECT" to any Python object. */
 static PyObject *_BINARY_OPERATION_BITXOR_OBJECT_OBJECT_OBJECT(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     CHECK_OBJECT(operand2);
@@ -2334,7 +2252,6 @@ static PyObject *_BINARY_OPERATION_BITXOR_OBJECT_OBJECT_OBJECT(PyObject *operand
     if (PyInt_CheckExact(operand1) && PyInt_CheckExact(operand2)) {
         PyObject *result;
 
-        // Not every code path will make use of all possible results.
 #if defined(_MSC_VER)
 #pragma warning(push)
 #pragma warning(disable : 4101)
@@ -2387,8 +2304,6 @@ static PyObject *_BINARY_OPERATION_BITXOR_OBJECT_OBJECT_OBJECT(PyObject *operand
     binaryfunc slot2 = NULL;
 
     if (!(type1 == type2)) {
-        // Different types, need to consider second value slot.
-
         slot2 = (type2->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type2)) ? type2->tp_as_number->nb_xor : NULL;
 
         if (slot1 == slot2) {
@@ -2521,7 +2436,6 @@ PyObject *BINARY_OPERATION_BITXOR_OBJECT_OBJECT_OBJECT(PyObject *operand1, PyObj
     return _BINARY_OPERATION_BITXOR_OBJECT_OBJECT_OBJECT(operand1, operand2);
 }
 
-/* Code referring to "OBJECT" corresponds to any Python object and "OBJECT" to any Python object. */
 static nuitka_bool _BINARY_OPERATION_BITXOR_NBOOL_OBJECT_OBJECT(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     CHECK_OBJECT(operand2);
@@ -2530,7 +2444,6 @@ static nuitka_bool _BINARY_OPERATION_BITXOR_NBOOL_OBJECT_OBJECT(PyObject *operan
     if (PyInt_CheckExact(operand1) && PyInt_CheckExact(operand2)) {
         nuitka_bool result;
 
-        // Not every code path will make use of all possible results.
 #if defined(_MSC_VER)
 #pragma warning(push)
 #pragma warning(disable : 4101)
@@ -2583,8 +2496,6 @@ static nuitka_bool _BINARY_OPERATION_BITXOR_NBOOL_OBJECT_OBJECT(PyObject *operan
     binaryfunc slot2 = NULL;
 
     if (!(type1 == type2)) {
-        // Different types, need to consider second value slot.
-
         slot2 = (type2->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type2)) ? type2->tp_as_number->nb_xor : NULL;
 
         if (slot1 == slot2) {
@@ -2712,7 +2623,7 @@ exit_binary_result_object:
     }
 
     {
-        nuitka_bool r = CHECK_IF_TRUE(obj_result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+        nuitka_bool r = CHECK_IF_TRUE_NBOOL(obj_result);
         Py_DECREF(obj_result);
         return r;
     }

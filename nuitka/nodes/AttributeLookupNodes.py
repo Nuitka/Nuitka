@@ -12,10 +12,7 @@ from .ExpressionBasesGenerated import ExpressionAttributeLookupBase
 
 
 class ExpressionAttributeLookup(ExpressionAttributeLookupBase):
-    """Looking up an attribute of an object.
-
-    Typically code like: source.attribute_name
-    """
+    """Looking up an attribute of an object ('expression.attribute_name')."""
 
     kind = "EXPRESSION_ATTRIBUTE_LOOKUP"
 
@@ -47,11 +44,11 @@ class ExpressionAttributeLookup(ExpressionAttributeLookupBase):
 
 
 class ExpressionAttributeLookupSpecial(ExpressionAttributeLookup):
-    """Special lookup up an attribute of an object.
+    """Special lookup of an attribute of an object.
 
-    Typically from code like this: with source: pass
+    Typically from code like this: with expression: pass
 
-    These directly go to slots, and are performed for with statements
+    These directly go to slots, and are performed for 'with' statements
     of Python2.7 or higher.
     """
 
@@ -66,10 +63,7 @@ class ExpressionAttributeLookupSpecial(ExpressionAttributeLookup):
 
 
 class ExpressionAttributeLookupFixedBase(ChildHavingExpressionMixin, ExpressionBase):
-    """Looking up an attribute of an object.
-
-    Typically code like: source.attribute_name
-    """
+    """Base class for fixed-name attribute lookups ('expression.attribute_name')."""
 
     attribute_name = None
 

@@ -9,15 +9,15 @@ This ensures Nuitka modules only consume dynamically safe abstractions.
 import os
 import re
 
+from nuitka.options.Experimental import isExperimental
 from nuitka.options.Options import (
-    isExperimental,
     isMingw64,
     shallMakeModule,
     shallUsePythonDebug,
 )
 from nuitka.PythonFlavors import isSelfCompiledPythonUninstalled
+from nuitka.PythonPrefixes import getTargetPythonIncludePath
 from nuitka.PythonVersions import (
-    getTargetPythonIncludePath,
     isPythonWithGil,
     python_version,
     python_version_str,
@@ -30,6 +30,7 @@ from nuitka.utils.FileOperations import (
     getFileContents,
     getFileList,
     getNormalizedPathJoin,
+    getPathWithForwardSlashes,
     makeContainingPath,
     makePath,
     putTextFileContents,
@@ -44,7 +45,7 @@ adapted_headers_patch_filename = "adapted_headers.patch"
 
 def getOffsetsJsonRequiredKeys(for_python_version_str):
     """Returns list of names we need to know the offset of."""
-    # spell-checker: ignore stoptheworld,gilstate,ceval
+    # spell-checker: ignore ceval,gilstate,stoptheworld
 
     for_python_version_tuple = tuple(int(d) for d in for_python_version_str.split("."))
     keys = []
@@ -202,9 +203,7 @@ def _applyExpectedAdaptedPythonHeaderReplacements(adapted, filename):
 
 
 def adaptPythonHeaderFile(content, filename):
-    """Strip dangerous inline functions from a CPython header."""
-    # A simple brace-matching state machine to rip out `static inline` blocks
-    # that touch `_PyRuntime(State)`.
+    """Strip inline functions referencing '_PyRuntime' internals from a CPython header."""
 
     lines = content.splitlines(True)
     out_lines = []
@@ -216,7 +215,6 @@ def adaptPythonHeaderFile(content, filename):
 
     for line in lines:
         if not in_inline_function:
-            # Detect start of static inline function
             if line.strip().startswith("static inline ") or line.strip().startswith(
                 "Py_LOCAL_INLINE("
             ):
@@ -225,7 +223,6 @@ def adaptPythonHeaderFile(content, filename):
                 current_block = [line]
                 is_dangerous = False
 
-                # Check for braces on the same line
                 brace_depth += line.count("{")
                 brace_depth -= line.count("}")
                 continue
@@ -236,7 +233,6 @@ def adaptPythonHeaderFile(content, filename):
             brace_depth += line.count("{")
             brace_depth -= line.count("}")
 
-            # Simple heuristic detection within the block
             if any(
                 t in line
                 for t in (
@@ -244,12 +240,12 @@ def adaptPythonHeaderFile(content, filename):
                     "_PyLong_SMALL_INTS",
                     "_Py_tracemalloc_config",
                     "_Py_SINGLETON",
+                    "_Py_LATIN1_CHR",
                 )
             ):
                 is_dangerous = True
 
             if brace_depth == 0 and any("{" in b for b in current_block):
-                # End of function
                 in_inline_function = False
 
                 full_decl = " ".join(current_block)
@@ -260,7 +256,6 @@ def adaptPythonHeaderFile(content, filename):
                     is_dangerous = True
 
                 if is_dangerous:
-                    # Strip it entirely, replace with an error poison string
                     out_lines.append(
                         "/* Nuitka: Stripped dangerous inline function */\n"
                     )
@@ -272,7 +267,7 @@ def adaptPythonHeaderFile(content, filename):
                     out_lines.extend(current_block)
 
     adapted = "".join(out_lines)
-    # Poison any remaining direct property accesses to _PyRuntime by evaluating to an undefined function
+    # Poison remaining direct '_PyRuntime' macro accesses so accidental uses fail at link time.
     adapted = re.sub(
         r"(?<![a-zA-Z0-9_])_PyRuntime\.",
         "(*((_PyRuntimeState*)Nuitka_Error_DoNotUseFunction())).",
@@ -294,14 +289,14 @@ def adaptPythonHeaderFile(content, filename):
 
 
 def ensurePythonInternalsOffsets(cache_dir):
-    """Ensure dynamic offsets are available, generating them to cache if missing."""
+    """Ensure CPython internal struct offsets JSON exists, generating it if missing."""
 
     if not isWin32Windows() or (python_version < 0x3D0 and not shallMakeModule()):
         return None
 
     keys = getOffsetsJsonRequiredKeys(python_version_str)
     if not keys:
-        return None  # No offsets needed
+        return None
 
     python_version_id = "%s-%s-%s-%s%s" % (
         python_version_str,
@@ -327,7 +322,7 @@ def ensurePythonInternalsOffsets(cache_dir):
         return None
 
     if not isOffsetsJsonOutdated(cached_json_path, python_version_str):
-        return None  # Cache already contains mapping
+        return None
 
     general.info(
         "Internal structure mapping for Python %s is missing. Extracting offsets dynamically via zig..."
@@ -346,14 +341,14 @@ def ensurePythonInternalsOffsets(cache_dir):
 
 
 def _getPythonInternalHeadersAndHash(internal_include_dir):
-    # Hash the original header contents and mode-dependent adaptation settings.
     hash_obj = Hash()
     header_filenames = []
 
     hash_obj.updateFromValues(
-        "adapted-python-headers-v2",
+        "adapted-python-headers-v3",
         getNuitkaVersion(),
         "module" if shallMakeModule() else "non-module",
+        "gil" if isPythonWithGil() else "no-gil",
     )
 
     for header_filename in sorted(
@@ -366,7 +361,6 @@ def _getPythonInternalHeadersAndHash(internal_include_dir):
 
 
 def _shallCreateAdaptedPythonHeaderFiles():
-    # Python before 3.13 is not affected.
     if python_version < 0x3D0:
         return False
 
@@ -418,7 +412,6 @@ def createAdaptedPythonHeaderFiles(source_dir):
 
     cache_base_dir = getCacheDir("adapted_headers", create=True)
 
-    # 1. Ensure Offsets Extracted
     ensurePythonInternalsOffsets(cache_dir=cache_base_dir)
 
     source_patch_filename = getNormalizedPathJoin(
@@ -430,7 +423,6 @@ def createAdaptedPythonHeaderFiles(source_dir):
         target_cache_dir, adapted_headers_patch_filename
     )
 
-    # 2. Check if headers already stripped
     if os.path.exists(adapt_cache_file):
         copyFile(
             source_path=adapt_cache_file,
@@ -439,7 +431,6 @@ def createAdaptedPythonHeaderFiles(source_dir):
 
         return target_cache_dir
 
-    # 3. Adapt and Copy Headers
     makePath(getNormalizedPathJoin(target_cache_dir, "internal"))
 
     adapt_lines = []
@@ -452,17 +443,20 @@ def createAdaptedPythonHeaderFiles(source_dir):
         item = os.path.basename(header_filename)
         if item.startswith("pycore_"):
             content = getFileContents(header_filename, mode="r", encoding="utf-8")
-            adapted = adaptPythonHeaderFile(content, rel_path.replace(os.path.sep, "/"))
+            adapted = adaptPythonHeaderFile(
+                content, getPathWithForwardSlashes(rel_path)
+            )
             putTextFileContents(d, adapted, encoding="utf-8")
 
             if content != adapted:
-                # Add unified diff to our patch aggregator
                 adapt_lines.extend(
                     getUnifiedDiff(
                         old_lines=content.splitlines(True),
                         new_lines=adapted.splitlines(True),
-                        old_filename="a/internal/" + rel_path.replace(os.path.sep, "/"),
-                        new_filename="b/internal/" + rel_path.replace(os.path.sep, "/"),
+                        old_filename="a/internal/"
+                        + getPathWithForwardSlashes(rel_path),
+                        new_filename="b/internal/"
+                        + getPathWithForwardSlashes(rel_path),
                     )
                 )
                 if adapt_lines and not adapt_lines[-1].endswith("\n"):

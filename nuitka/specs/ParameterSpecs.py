@@ -1,19 +1,7 @@
 #     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-"""This module maintains the parameter specification classes.
-
-These are used for function, lambdas, generators. They are also a factory
-for the respective variable objects. One of the difficulty of Python and
-its parameter parsing is that they are allowed to be nested like this:
-
-(a,b), c
-
-Much like in assignments, which are very similar to parameters, except
-that parameters may also be assigned from a dictionary, they are no less
-flexible.
-
-"""
+"""Parameter specifications and call argument matching."""
 
 from nuitka.PythonVersions import python_version
 from nuitka.utils.InstanceCounters import (
@@ -35,8 +23,7 @@ class TooManyArguments(Exception):
 
 
 class ParameterSpec(object):
-    # These got many attributes, in part duplicating name and instance of
-    # variables, pylint: disable=too-many-instance-attributes
+    # pylint: disable=too-many-instance-attributes
 
     __slots__ = (
         "name",
@@ -69,19 +56,17 @@ class ParameterSpec(object):
         ps_is_list_star_arg_single=False,
         type_shape=None,
     ):
-        if type(ps_normal_args) is str:
-            if ps_normal_args == "":
-                ps_normal_args = ()
-            else:
-                ps_normal_args = ps_normal_args.split(",")
+        assert type(ps_normal_args) in (tuple, list), ps_normal_args
+        assert type(ps_pos_only_args) in (tuple, list), ps_pos_only_args
+        assert type(ps_kw_only_args) in (tuple, list), ps_kw_only_args
 
-        if type(ps_kw_only_args) is str:
-            if ps_kw_only_args == "":
-                ps_kw_only_args = ()
-            else:
-                ps_kw_only_args = ps_kw_only_args.split(",")
-
-        assert None not in ps_normal_args
+        assert all(type(arg_name) is str for arg_name in ps_normal_args), ps_normal_args
+        assert all(
+            type(arg_name) is str for arg_name in ps_pos_only_args
+        ), ps_pos_only_args
+        assert all(
+            type(arg_name) is str for arg_name in ps_kw_only_args
+        ), ps_kw_only_args
 
         self.owner = None
 
@@ -127,6 +112,7 @@ class ParameterSpec(object):
             ps_list_star_arg=self.list_star_arg,
             ps_dict_star_arg=self.dict_star_arg,
             ps_default_count=self.default_count,
+            ps_is_list_star_arg_single=self.is_list_star_arg_single,
             type_shape=self.type_shape,
         )
 
@@ -134,7 +120,7 @@ class ParameterSpec(object):
         return {
             "ps_name": self.name,
             "ps_normal_args": ",".join(self.normal_args),
-            "ps_pos_only_args": self.pos_only_args,
+            "ps_pos_only_args": ",".join(self.pos_only_args),
             "ps_kw_only_args": ",".join(self.kw_only_args),
             "ps_list_star_arg": (
                 self.list_star_arg if self.list_star_arg is not None else ""
@@ -146,10 +132,21 @@ class ParameterSpec(object):
             "type_shape": self.type_shape,
         }
 
+    @classmethod
+    def fromDetails(cls, **details):
+        for key in ("ps_normal_args", "ps_pos_only_args", "ps_kw_only_args"):
+            value = details[key]
+            if type(value) is str:
+                details[key] = tuple(value.split(",")) if value else ()
+
+        if "ps_default_count" in details:
+            details["ps_default_count"] = int(details["ps_default_count"])
+
+        return cls(**details)
+
     def checkParametersValid(self):
         arg_names = self.getParameterNames()
 
-        # Check for duplicate arguments, could happen.
         for arg_name in arg_names:
             if arg_names.count(arg_name) != 1:
                 if python_version >= 0x3F0:
@@ -287,11 +284,15 @@ class ParameterSpec(object):
         return self.kw_only_variables
 
     def allowsKeywords(self):
-        # Abstract method, pylint: disable=no-self-use
+        # pylint: disable=no-self-use
         return True
 
     def getKeywordRefusalText(self):
         return "%s() takes no keyword arguments" % self.name
+
+    def getKeywordAliases(self):
+        # pylint: disable=no-self-use
+        return None
 
     def getArgumentNames(self):
         return self.pos_only_args + self.normal_args
@@ -299,11 +300,11 @@ class ParameterSpec(object):
     def getArgumentCount(self):
         return len(self.normal_args) + len(self.pos_only_args)
 
-    def getKwOnlyParameterNames(self):
-        return self.kw_only_args
-
     def getKwOnlyParameterCount(self):
         return len(self.kw_only_args)
+
+    def getKwOnlyParameterNames(self):
+        return self.kw_only_args
 
     def getPosOnlyParameterCount(self):
         return len(self.pos_only_args)
@@ -327,33 +328,13 @@ def matchCall(
     example_arguments,
     improved=False,
 ):
-    """Match a call arguments to a signature.
+    """Match call arguments to a signature (loosely based on inspect.getcallargs)."""
 
-    Args:
-        func_name - Name of the function being matched, used to construct exception texts.
-        args - normal argument names
-        kw_only_args -  keyword only argument names (Python3)
-        star_list_arg - name of star list argument if any
-        star_dict_arg - name of star dict argument if any
-        num_defaults - amount of arguments that have default values
-        num_pos_only - amount of arguments that must be given by position
-        positional - tuple of argument values given for simulated call
-        pairs - tuple of pairs arg argument name and argument values
-        improved - (bool) should we give better errors than CPython or not.
-    Returns:
-        Dictionary of argument name to value mappings
-    Notes:
-        Based loosely on "inspect.getcallargs" with corrections.
-    """
-
-    # This is of incredible code complexity, but there really is no other way to
-    # express this with less statements, branches, or variables.
     # pylint: disable=too-many-arguments,too-many-branches,too-many-locals,too-many-statements
 
     assert type(positional) is tuple, positional
     assert type(pairs) in (tuple, list), pairs
 
-    # Make a copy, we are going to modify it.
     pairs = list(pairs)
     supplied_pairs = tuple(pairs)
 
@@ -363,11 +344,8 @@ def matchCall(
 
     def assign(arg, value):
         if type(arg) is str:
-            # Normal case:
             result[arg] = value
         else:
-            # Tuple argument case:
-
             assigned_tuple_params.append(arg)
             value = iter(value.getIterationValues())
 
@@ -382,10 +360,8 @@ def matchCall(
                         )
                     )
 
-                # Recurse into tuple argument values, could be more tuples.
                 assign(sub_arg, sub_value)
 
-            # Check that not too many values we provided.
             try:
                 next(value)
             except StopIteration:
@@ -422,9 +398,7 @@ def matchCall(
         else:
             assign(star_list_arg, ())
     elif 0 < num_args < num_total:
-        # Special case for no default values.
         if num_defaults == 0:
-            # Special cases text for one argument.
             if num_args == 1:
                 raise TooManyArguments(
                     TypeError(
@@ -500,7 +474,7 @@ def matchCall(
 
             pairs = new_pairs
 
-    # Fill in any missing values with the None to indicate "default".
+    # None indicates that the default value applies.
     if num_defaults > 0:
         for arg in (args + kw_only_args)[-num_defaults:]:
             if not isAssigned(arg):
@@ -514,7 +488,24 @@ def matchCall(
     if unassigned:
         num_required = num_args - max(0, num_defaults - len(kw_only_args))
 
-        # Special case required arguments.
+        num_required_pos_only = min(num_pos_only, num_required)
+        if (
+            num_pos < num_required_pos_only
+            and (simulator is None or improved)
+            and any(pair[0] in pos_only_names for pair in supplied_pairs)
+        ):
+            raise TooManyArguments(
+                TypeError(
+                    "%s() takes at least %d positional argument%s (%d given)"
+                    % (
+                        func_name,
+                        num_required_pos_only,
+                        "s" if num_required_pos_only > 1 else "",
+                        num_pos,
+                    )
+                )
+            )
+
         if num_required > 0 or improved:
             if num_defaults == 0 and num_args != 1:
                 raise TooManyArguments(
@@ -528,8 +519,6 @@ def matchCall(
                 if example_arguments is None:
                     example_arguments = [1] * len(args)
 
-                # TODO: May have to become a lot better, but for now it works
-                # for the test suites it seems.
                 simulator_args = example_arguments[: len(positional)]
 
                 # Replay keyword arguments given, so that errors that depend

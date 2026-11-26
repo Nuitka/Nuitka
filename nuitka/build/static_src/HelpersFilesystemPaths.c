@@ -19,7 +19,9 @@
 #endif
 
 #if !defined(_WIN32)
+#if !defined(__wasi__)
 #include <dlfcn.h>
+#endif
 #include <errno.h>
 #include <fcntl.h>
 #include <libgen.h>
@@ -58,7 +60,6 @@ void normalizePath(filename_char_t *filename) {
     filename_char_t *w = filename;
 
     while (*w != 0) {
-        // Eliminate duplicate slashes.
         if (*w == FILENAME_SEP_CHAR) {
             while (*(w + 1) == FILENAME_SEP_CHAR) {
                 filename_char_t *f = w;
@@ -134,7 +135,6 @@ filename_char_t *stripBaseFilename(filename_char_t const *filename) {
 #if defined(_WIN32)
 static void makeShortFilename(wchar_t *filename, size_t buffer_size) {
 #ifndef _NUITKA_EXPERIMENTAL_AVOID_SHORT_PATH
-    // Query length of result first.
     DWORD length = GetShortPathNameW(filename, NULL, 0);
     if (length == 0) {
         return;
@@ -252,20 +252,16 @@ filename_char_t *_getBinaryPath2(void) {
     }
 
     if (success == true) {
-        // fprintf(stderr, "Did resolve binary path %s from PATH %s.\n", comm, binary_filename);
-
         // TODO: Once it's fully capable, we ought to use this for all methods
         // for consistency.
         normalizePath(binary_filename);
-        // fprintf(stderr, "Did normalize binary path %s from PATH %s.\n", comm, binary_filename);
     } else {
         fprintf(stderr, "Error, cannot resolve binary path %s from PATH or current directory.\n", comm);
         abort();
     }
 #elif defined(__FreeBSD__)
-    /* Not all of FreeBSD has /proc file system, so use the appropriate
-     * "sysctl" instead.
-     */
+    // Not all of FreeBSD has /proc file system, so use the appropriate
+    // "sysctl" instead.
     int mib[4];
     mib[0] = CTL_KERN;
     mib[1] = KERN_PROC;
@@ -281,10 +277,7 @@ filename_char_t *_getBinaryPath2(void) {
     const char *wasi_filename = "program.wasm";
     copyStringSafe(binary_filename, wasi_filename, buffer_size);
 #else
-    /* The remaining platforms, mostly Linux or compatible. */
-
-    /* The "readlink" call does not terminate result, so fill zeros there, then
-     * it is a proper C string right away. */
+    // "readlink" does not NUL-terminate its output, so zero-fill first.
     memset(binary_filename, 0, buffer_size);
     ssize_t res = readlink("/proc/self/exe", binary_filename, buffer_size - 1);
 
@@ -316,8 +309,6 @@ filename_char_t const *getBinaryPath(void) {
 }
 
 bool readFileChunk(FILE_HANDLE file_handle, void *buffer, size_t size) {
-    // printf("Reading %d\n", size);
-
 #if defined(_WIN32)
     DWORD read_size;
     BOOL bool_res = ReadFile(file_handle, buffer, (DWORD)size, &read_size, NULL);
@@ -373,12 +364,13 @@ bool closeFile(FILE_HANDLE target_file) {
 
 int64_t getFileSize(FILE_HANDLE file_handle) {
 #if defined(_WIN32)
-    // TODO: File size is truncated here, but maybe an OK thing.
-    DWORD file_size = GetFileSize(file_handle, NULL);
+    LARGE_INTEGER file_size;
 
-    if (file_size == INVALID_FILE_SIZE) {
+    if (unlikely(GetFileSizeEx(file_handle, &file_size) == 0)) {
         return -1;
     }
+
+    return (int64_t)file_size.QuadPart;
 #else
     int res = fseek(file_handle, 0, SEEK_END);
 
@@ -393,9 +385,9 @@ int64_t getFileSize(FILE_HANDLE file_handle) {
     if (unlikely(res != 0)) {
         return -1;
     }
-#endif
 
     return (int64_t)file_size;
+#endif
 }
 
 #if defined(__MSYS__) || defined(__HAIKU__) || defined(__OpenBSD__) || defined(__FreeBSD__) || defined(_AIX) ||        \
@@ -526,6 +518,9 @@ bool copyFile(filename_char_t const *source, filename_char_t const *dest, int mo
 
     return result;
 #else
+    // No mode to copy on Windows.
+    NUITKA_UNREFERENCED_PARAMETER(mode);
+
     return CopyFileW(source, dest, 0) != 0;
 #endif
 }
@@ -587,9 +582,19 @@ static struct MapFileToMemoryInfo mapFileToMemory(filename_char_t const *filenam
     if (result.file_size == -1) {
         result.error = true;
         result.error_code = GetLastError();
-        result.erroring_function = "GetFileSize";
+        result.erroring_function = "GetFileSizeEx";
 
         CloseHandle(result.file_handle);
+
+        return result;
+    }
+
+    if (result.file_size == 0) {
+        // CreateFileMappingW fails for empty files with ERROR_FILE_INVALID.
+        result.data = NULL;
+        result.handle_mapping = NULL;
+        result.error = false;
+        result.error_code = 0;
 
         return result;
     }
@@ -628,8 +633,11 @@ static struct MapFileToMemoryInfo mapFileToMemory(filename_char_t const *filenam
 static void unmapFileFromMemory(struct MapFileToMemoryInfo *mapped_file) {
     assert(!mapped_file->error);
 
-    UnmapViewOfFile(mapped_file->data);
-    CloseHandle(mapped_file->handle_mapping);
+    if (mapped_file->file_size != 0) {
+        UnmapViewOfFile(mapped_file->data);
+        CloseHandle(mapped_file->handle_mapping);
+    }
+
     CloseHandle(mapped_file->file_handle);
 }
 #else
@@ -678,6 +686,14 @@ static struct MapFileToMemoryInfo mapFileToMemory(filename_char_t const *filenam
         return result;
     }
 
+    if (result.file_size == 0) {
+        // mmap fails for empty files with EINVAL.
+        result.data = NULL;
+        result.error = false;
+
+        return result;
+    }
+
     result.data = (unsigned char const *)mmap(NULL, result.file_size, PROT_READ, MAP_PRIVATE, result.file_handle, 0);
 
     if (unlikely(result.data == MAP_FAILED)) {
@@ -697,7 +713,10 @@ static struct MapFileToMemoryInfo mapFileToMemory(filename_char_t const *filenam
 static void unmapFileFromMemory(struct MapFileToMemoryInfo *mapped_file) {
     assert(!mapped_file->error);
 
-    munmap((void *)mapped_file->data, mapped_file->file_size);
+    if (mapped_file->file_size != 0) {
+        munmap((void *)mapped_file->data, mapped_file->file_size);
+    }
+
     close(mapped_file->file_handle);
 }
 #endif
@@ -708,7 +727,7 @@ uint32_t getFileCRC32(filename_char_t const *filename) {
     if (mapped_file.error) {
         return 0;
     }
-    uint32_t result = calcCRC32(mapped_file.data, (long)mapped_file.file_size);
+    uint32_t result = calcCRC32With64BitSize(mapped_file.data, (uint64_t)mapped_file.file_size);
 
     // Lets reserve "0" value for error indication.
     if (result == 0) {
@@ -726,11 +745,17 @@ static DWORD Nuitka_GetFinalPathNameByHandleW(HANDLE hFile, LPWSTR FilePath, DWO
     typedef DWORD(WINAPI * pfnGetFinalPathNameByHandleW)(HANDLE hFile, LPWSTR FilePath, DWORD cchFilePath,
                                                          DWORD dwFlags);
 
-    pfnGetFinalPathNameByHandleW fnGetFinalPathNameByHandleW =
-        (pfnGetFinalPathNameByHandleW)GetProcAddress(GetModuleHandleA("Kernel32.dll"), "GetFinalPathNameByHandleW");
+    // Avoid a cast between incompatible function types, which newer compilers
+    // warn about.
+    union {
+        FARPROC as_proc;
+        pfnGetFinalPathNameByHandleW as_function;
+    } function;
 
-    if (fnGetFinalPathNameByHandleW != NULL) {
-        return fnGetFinalPathNameByHandleW(hFile, FilePath, cchFilePath, dwFlags);
+    function.as_proc = GetProcAddress(GetModuleHandleA("Kernel32.dll"), "GetFinalPathNameByHandleW");
+
+    if (function.as_function != NULL) {
+        return function.as_function(hFile, FilePath, cchFilePath, dwFlags);
     } else {
         // There are no symlinks before Windows Vista.
         return 0;
@@ -739,9 +764,6 @@ static DWORD Nuitka_GetFinalPathNameByHandleW(HANDLE hFile, LPWSTR FilePath, DWO
 
 static void resolveFileSymbolicLink(wchar_t *resolved_filename, wchar_t const *filename, DWORD resolved_filename_size,
                                     bool resolve_symlinks) {
-    // Resolve any symbolic links in the filename.
-    // Copies the resolved path over the top of the parameter.
-
     if (resolve_symlinks) {
         // Open the file in the most non-exclusive way possible
         HANDLE file_handle = CreateFileW(filename, 0, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, NULL,
@@ -819,7 +841,7 @@ wchar_t const *getBinaryFilenameWideChars(bool resolve_symlinks) {
     static wchar_t binary_filename[MAXPATHLEN + 1] = {0};
     static wchar_t binary_filename_resolved[MAXPATHLEN + 1] = {0};
 
-    wchar_t *buffer = resolve_symlinks ? binary_filename : binary_filename_resolved;
+    wchar_t *buffer = resolve_symlinks ? binary_filename_resolved : binary_filename;
     STATIC_ASSERT(sizeof(binary_filename) == sizeof(binary_filename_resolved), "Arrays must have same size");
 
     if (buffer[0] == 0) {
@@ -833,9 +855,8 @@ wchar_t const *getBinaryFilenameWideChars(bool resolve_symlinks) {
             assert(res != 0);
         }
 
-        // Resolve any symlinks we were invoked via
         resolveFileSymbolicLink(buffer, buffer, sizeof(binary_filename) / sizeof(wchar_t), resolve_symlinks);
-        makeShortDirFilename(binary_filename, sizeof(binary_filename) / sizeof(wchar_t));
+        makeShortDirFilename(buffer, sizeof(binary_filename) / sizeof(wchar_t));
     }
 
     return buffer;
@@ -849,33 +870,33 @@ char const *getBinaryFilenameHostEncoded(bool resolve_symlinks) {
     static char *binary_filename = NULL;
     static char *binary_filename_resolved = NULL;
 
-    char *binary_filename_target;
+    char **binary_filename_target;
 
     if (resolve_symlinks) {
-        binary_filename_target = binary_filename_resolved;
+        binary_filename_target = &binary_filename_resolved;
     } else {
-        binary_filename_target = binary_filename;
+        binary_filename_target = &binary_filename;
     }
 
-    if (binary_filename_target != NULL) {
-        return binary_filename_target;
+    if (*binary_filename_target != NULL) {
+        return *binary_filename_target;
     }
     wchar_t const *w = getBinaryFilenameWideChars(resolve_symlinks);
 
     DWORD bufsize = WideCharToMultiByte(CP_ACP, 0, w, -1, NULL, 0, NULL, NULL);
     assert(bufsize != 0);
 
-    binary_filename_target = (char *)malloc(bufsize + 1);
-    assert(binary_filename_target);
+    *binary_filename_target = (char *)malloc(bufsize + 1);
+    assert(*binary_filename_target);
 
-    DWORD res2 = WideCharToMultiByte(CP_ACP, 0, w, -1, binary_filename_target, bufsize, NULL, NULL);
+    DWORD res2 = WideCharToMultiByte(CP_ACP, 0, w, -1, *binary_filename_target, bufsize, NULL, NULL);
     assert(res2 != 0);
 
     if (unlikely(res2 > bufsize)) {
         abort();
     }
 
-    return (char const *)binary_filename_target;
+    return (char const *)*binary_filename_target;
 }
 
 #else
@@ -905,19 +926,17 @@ char const *getBinaryFilenameHostEncoded(bool resolve_symlinks) {
 #endif
 
 static void generateXorShift32RandomBytes(unsigned int state, unsigned char *buffer, size_t length) {
-    /* Xorshift breaks if the state is exactly 0.
-       While astronomically unlikely here, it's safe to enforce a non-zero start. */
+    // Xorshift breaks if the state is exactly 0.
     if (state == 0) {
         state = 1;
     }
 
-    /* Fill the buffer using a local, inline Xorshift32 PRNG */
     for (size_t i = 0; i < length; i++) {
         state ^= state << 13;
         state ^= state >> 17;
         state ^= state << 5;
 
-        /* The lower bits of Xorshift are high quality, so direct casting is safe */
+        // The lower bits of Xorshift are high quality, so direct casting is safe.
         buffer[i] = (unsigned char)state;
     }
 }
@@ -1338,6 +1357,8 @@ bool expandTemplatePath(char *target, char const *source, size_t buffer_size) {
                         return false;
                     }
 
+                    length -= 1;
+
                     if (target[length] == '/') {
                         break;
                     }
@@ -1472,7 +1493,7 @@ bool expandTemplatePath(char *target, char const *source, size_t buffer_size) {
 
                     struct timeval current_time;
                     gettimeofday(&current_time, NULL);
-                    snprintf(time_buffer, sizeof(time_buffer), "%ld_%ld", current_time.tv_sec,
+                    snprintf(time_buffer, sizeof(time_buffer), "%lld_%ld", (long long)current_time.tv_sec,
                              (long)current_time.tv_usec);
 
 #if _NUITKA_ONEFILE_MODE

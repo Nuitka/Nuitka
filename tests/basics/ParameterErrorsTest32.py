@@ -1,6 +1,9 @@
 #     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
+"""Tests to cover parameter error messages for Python3 syntax."""
+
+
 def kwfunc(a, *, k):
     pass
 

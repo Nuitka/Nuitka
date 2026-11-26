@@ -1,20 +1,8 @@
 #     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-"""Reformulation of dictionary creations.
+"""Reformulation of dictionary creations."""
 
-Dictionary creations might be directly translated to constants, or they might
-become nodes that build dictionaries.
-
-For Python3.5, unpacking can happen while creating dictionaries, these are
-being re-formulated to an internal function.
-
-Consult the Developer Manual for information. TODO: Add ability to sync
-source code comments with Developer Manual sections.
-
-"""
-
-from nuitka.nodes.AttributeNodes import makeExpressionAttributeLookup
 from nuitka.nodes.BuiltinIteratorNodes import ExpressionBuiltinIter1
 from nuitka.nodes.BuiltinNextNodes import ExpressionBuiltinNext1
 from nuitka.nodes.ConstantRefNodes import makeConstantRefNode
@@ -23,10 +11,6 @@ from nuitka.nodes.DictionaryNodes import (
     StatementDictOperationUpdate,
     makeExpressionMakeDict,
     makeExpressionMakeDictOrConstant,
-)
-from nuitka.nodes.ExceptionNodes import (
-    ExpressionBuiltinMakeException,
-    StatementRaiseException,
 )
 from nuitka.nodes.FunctionNodes import (
     ExpressionFunctionRef,
@@ -39,9 +23,7 @@ from nuitka.nodes.KeyValuePairNodes import (
     makeExpressionPairs,
 )
 from nuitka.nodes.LoopNodes import StatementLoop, StatementLoopBreak
-from nuitka.nodes.OperatorNodes import makeBinaryOperationNode
 from nuitka.nodes.ReturnNodes import StatementReturn
-from nuitka.nodes.TypeNodes import ExpressionBuiltinType1
 from nuitka.nodes.VariableAssignNodes import makeStatementAssignmentVariable
 from nuitka.nodes.VariableRefNodes import (
     ExpressionTempVariableRef,
@@ -53,7 +35,7 @@ from nuitka.specs.ParameterSpecs import ParameterSpec
 from .InternalModule import (
     internal_source_ref,
     makeInternalHelperFunctionBody,
-    once_decorator,
+    onceDecorator,
 )
 from .ReformulationTryExceptStatements import makeTryExceptSingleHandlerNode
 from .ReformulationTryFinallyStatements import makeTryFinallyReleaseStatement
@@ -86,7 +68,7 @@ def buildDictionaryNode(provider, node, source_ref):
     )
 
 
-@once_decorator
+@onceDecorator
 def _getDictUnpackingHelper():
     helper_name = "_unpack_dict"
 
@@ -131,55 +113,12 @@ def _getDictUnpackingHelper():
             handler_body=StatementLoopBreak(source_ref=internal_source_ref),
             source_ref=internal_source_ref,
         ),
-        makeTryExceptSingleHandlerNode(
-            tried=StatementDictOperationUpdate(
-                dict_arg=ExpressionTempVariableRef(
-                    variable=tmp_result_variable, source_ref=internal_source_ref
-                ),
-                value=ExpressionTempVariableRef(
-                    variable=tmp_item_variable, source_ref=internal_source_ref
-                ),
-                source_ref=internal_source_ref,
+        StatementDictOperationUpdate(
+            dict_arg=ExpressionTempVariableRef(
+                variable=tmp_result_variable, source_ref=internal_source_ref
             ),
-            exception_name="AttributeError",
-            handler_body=StatementRaiseException(
-                exception_type=ExpressionBuiltinMakeException(
-                    exception_name="TypeError",
-                    args=(
-                        makeBinaryOperationNode(
-                            operator="Mod",
-                            left=makeConstantRefNode(
-                                constant="""\
-'%s' object is not a mapping""",
-                                source_ref=internal_source_ref,
-                                user_provided=True,
-                            ),
-                            right=makeExpressionMakeTuple(
-                                elements=(
-                                    makeExpressionAttributeLookup(
-                                        expression=ExpressionBuiltinType1(
-                                            value=ExpressionTempVariableRef(
-                                                variable=tmp_item_variable,
-                                                source_ref=internal_source_ref,
-                                            ),
-                                            source_ref=internal_source_ref,
-                                        ),
-                                        attribute_name="__name__",
-                                        source_ref=internal_source_ref,
-                                    ),
-                                ),
-                                source_ref=internal_source_ref,
-                            ),
-                            source_ref=internal_source_ref,
-                        ),
-                    ),
-                    for_raise=False,
-                    source_ref=internal_source_ref,
-                ),
-                exception_value=None,
-                exception_trace=None,
-                exception_cause=None,
-                source_ref=internal_source_ref,
+            value=ExpressionTempVariableRef(
+                variable=tmp_item_variable, source_ref=internal_source_ref
             ),
             source_ref=internal_source_ref,
         ),

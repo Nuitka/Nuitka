@@ -1,10 +1,7 @@
 #     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-"""Bytes operation specs.
-
-Python3 only, Python2 has no bytes, but only str
-"""
+"""Bytes operation specs."""
 
 from nuitka.nodes.shapes.BuiltinTypeShapes import (
     tshape_bool,
@@ -14,6 +11,7 @@ from nuitka.nodes.shapes.BuiltinTypeShapes import (
     tshape_str,
     tshape_tuple,
 )
+from nuitka.PythonVersions import python_version
 
 from .BuiltinParameterSpecs import (
     BuiltinMethodParameterSpecBase,
@@ -88,12 +86,21 @@ bytes_endswith_spec = BytesMethodSpecNoKeywords(
     type_shape=tshape_bool,
 )
 
-bytes_replace_spec = BytesMethodSpecNoKeywords(
-    "replace",
-    arg_names=("old", "new", "count"),
-    default_count=1,
-    type_shape=tshape_bytes,
-)
+if python_version < 0x3F0:
+    bytes_replace_spec = BytesMethodSpecNoKeywords(
+        "replace",
+        arg_names=("old", "new", "count"),
+        default_count=1,
+        type_shape=tshape_bytes,
+    )
+else:
+    bytes_replace_spec = BytesMethodSpec(
+        "replace",
+        pos_only_args=("old", "new"),
+        arg_names=("count",),
+        default_count=1,
+        type_shape=tshape_bytes,
+    )
 
 bytes_count_spec = BytesMethodSpecNoKeywords(
     "count", arg_names=("sub", "start", "end"), default_count=2, type_shape=tshape_int
@@ -136,11 +143,6 @@ bytes_istitle_spec = BytesMethodSpecNoKeywords(
     "istitle", arg_names=(), type_shape=tshape_bool
 )
 
-# Python2 only, Python3 this is in bytes
-bytes_decode_spec = BytesMethodSpec(
-    "decode", arg_names=("encoding", "errors"), default_count=2, type_shape=tshape_str
-)
-
 bytes_expandtabs_spec = BytesMethodSpec(
     "expandtabs", arg_names=("tabsize",), default_count=1, type_shape=tshape_bytes
 )
@@ -157,11 +159,23 @@ bytes_rjust_spec = BytesMethodSpecNoKeywords(
 bytes_zfill_spec = BytesMethodSpecNoKeywords(
     "zfill", arg_names=("width",), type_shape=tshape_bytes
 )
-bytes_translate_spec = BytesMethodSpecNoKeywords(
-    "translate", arg_names=("table", "delete"), default_count=1, type_shape=tshape_bytes
-)
+if python_version < 0x360:
+    bytes_translate_spec = BytesMethodSpecNoKeywords(
+        "translate",
+        arg_names=("table", "delete"),
+        default_count=1,
+        type_shape=tshape_bytes,
+    )
+else:
+    bytes_translate_spec = BytesMethodSpec(
+        "translate",
+        pos_only_args=("table",),
+        arg_names=("delete",),
+        default_count=1,
+        type_shape=tshape_bytes,
+    )
 bytes_splitlines_spec = BytesMethodSpec(
-    "splitlines", arg_names=("keepends"), default_count=1, type_shape=tshape_list
+    "splitlines", arg_names=("keepends",), default_count=1, type_shape=tshape_list
 )
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and

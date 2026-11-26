@@ -1,16 +1,10 @@
 #     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-"""Reformulation of Python3.10 match statements.
-
-Consult the Developer Manual for information. TODO: Add ability to sync
-source code comments with Developer Manual sections.
-
-"""
+"""Reformulation of Python3.10 match statements."""
 
 import ast
 
-from nuitka.nodes.AttributeNodes import ExpressionAttributeCheck
 from nuitka.nodes.BuiltinDictNodes import ExpressionBuiltinDict
 from nuitka.nodes.BuiltinLenNodes import ExpressionBuiltinLen
 from nuitka.nodes.BuiltinTypeNodes import ExpressionBuiltinList
@@ -50,7 +44,7 @@ from nuitka.nodes.VariableReleaseNodes import makeStatementReleaseVariable
 
 from .ReformulationBooleanExpressions import makeAndNode, makeOrNode
 from .ReformulationTryFinallyStatements import makeTryFinallyReleaseStatement
-from .SyntaxErrors import raiseSyntaxError
+from .SyntaxErrors import checkDebugNameAssignment, raiseSyntaxError
 from .TreeHelpers import (
     buildNode,
     buildStatementsNode,
@@ -91,18 +85,13 @@ def _buildMatchAs(provider, pattern, make_against, source_ref):
     variable_name = pattern.name
 
     if variable_name is None:
-        # case _:
-
-        # Assigns to nothing and should be last one in a match
-        # statement, anything after that will be syntax error. TODO: This
-        # ought to only happen once, Python raises it, we do not yet:
-        # SyntaxError: name capture 'var' makes remaining patterns
-        # unreachable
         assignments = None
         conditions = None
     else:
         assert "." not in variable_name, variable_name
         assert "!" not in variable_name, variable_name
+
+        checkDebugNameAssignment(name=variable_name, source_ref=source_ref)
 
         if pattern.pattern is not None:
             conditions, assignments = _buildMatch(
@@ -144,7 +133,7 @@ def _buildMatchValue(provider, make_against, pattern, source_ref):
 
 
 def _buildMatchSequence(provider, pattern, make_against, source_ref):
-    # Many cases due to recursion, pylint: disable=too-many-locals
+    # pylint: disable=too-many-locals
 
     conditions = [
         ExpressionMatchTypeCheckSequence(
@@ -167,9 +156,6 @@ def _buildMatchSequence(provider, pattern, make_against, source_ref):
         seq_pattern.__class__ is not ast.MatchStar for seq_pattern in pattern.patterns
     )
 
-    # Could special case ">=1" or "==0" with truth checks potentially, but that
-    # is for generic optimization to recognize, we don't know much about the
-    # matched value at this point yet.
     if min_length > 0 or exact:
         conditions.append(
             makeComparisonExpression(
@@ -211,7 +197,8 @@ def _buildMatchSequence(provider, pattern, make_against, source_ref):
                 assert "." not in variable_name, variable_name
                 assert "!" not in variable_name, variable_name
 
-                # Last one
+                checkDebugNameAssignment(name=variable_name, source_ref=source_ref)
+
                 if star_pos == len(pattern.patterns) - 1:
                     slice_value = slice(star_pos, None)
                 else:
@@ -238,7 +225,7 @@ def _buildMatchSequence(provider, pattern, make_against, source_ref):
             item_conditions, item_assignments = _buildMatch(
                 provider=provider,
                 pattern=seq_pattern,
-                # It's called before return, pylint: disable=cell-var-from-loop
+                # pylint: disable=cell-var-from-loop
                 make_against=lambda: ExpressionSubscriptLookup(
                     expression=make_against(),
                     subscript=makeOffsetNode(count),
@@ -322,9 +309,8 @@ def _buildMatchMapping(provider, pattern, make_against, source_ref):
     key = kwd_pattern = None
 
     for count, (key, kwd_pattern) in enumerate(zip(pattern.keys, pattern.patterns)):
-        # CPython checks for duplicate keys at match time, when at least one of
-        # the keys is not a compile time constant. Duplicates of only constant
-        # keys are rejected by CPython as syntax errors, which we don't do yet.
+        # CPython checks for duplicate keys at match time when at least one of
+        # the keys is not a compile-time constant.
         duplicate_conditions = [
             makeComparisonExpression(
                 left=buildNode(
@@ -373,7 +359,7 @@ def _buildMatchMapping(provider, pattern, make_against, source_ref):
             )
         )
 
-        # It's called before return, pylint: disable=cell-var-from-loop
+        # pylint: disable=cell-var-from-loop
         item_conditions, item_assignments = _buildMatch(
             provider=provider,
             make_against=lambda: ExpressionSubscriptLookup(
@@ -393,6 +379,8 @@ def _buildMatchMapping(provider, pattern, make_against, source_ref):
 
     if pattern.rest:
         assert type(pattern.rest) is str, pattern.rest
+
+        checkDebugNameAssignment(name=pattern.rest, source_ref=source_ref)
 
         assignments.append(
             StatementAssignmentVariableName(
@@ -424,8 +412,7 @@ def _buildMatchMapping(provider, pattern, make_against, source_ref):
 
 
 def _buildMatchClass(provider, pattern, make_against, source_ref):
-    # Slightly complicated, due to using an outline body and there is also
-    # keyword and positional arguments to deal with, pylint: disable=too-many-locals
+    # pylint: disable=too-many-locals
 
     cls_node = buildNode(provider, pattern.cls, source_ref)
 
@@ -433,6 +420,9 @@ def _buildMatchClass(provider, pattern, make_against, source_ref):
         source_ref,
         ast.dump(pattern),
     )
+
+    for kwd_attr in pattern.kwd_attrs:
+        checkDebugNameAssignment(name=kwd_attr, source_ref=source_ref)
 
     if len(pattern.kwd_attrs) + len(pattern.patterns) == 0:
         conditions = [
@@ -457,7 +447,7 @@ def _buildMatchClass(provider, pattern, make_against, source_ref):
     )
 
     for count, pos_pattern in enumerate(pattern.patterns):
-        # It's called before return, pylint: disable=cell-var-from-loop
+        # pylint: disable=cell-var-from-loop
         item_conditions, item_assignments = _buildMatch(
             provider=provider,
             make_against=lambda: ExpressionSubscriptLookup(
@@ -474,10 +464,8 @@ def _buildMatchClass(provider, pattern, make_against, source_ref):
         class_conditions_list.append(item_conditions)
         class_assignments_list.append(item_assignments)
 
-    for count, (key, kwd_pattern) in enumerate(
-        zip(pattern.kwd_attrs, pattern.kwd_patterns)
-    ):
-        # It's called before return, pylint: disable=cell-var-from-loop
+    for count, kwd_pattern in enumerate(pattern.kwd_patterns):
+        # pylint: disable=cell-var-from-loop
         item_conditions, item_assignments = _buildMatch(
             provider=provider,
             make_against=lambda: ExpressionSubscriptLookup(
@@ -492,19 +480,6 @@ def _buildMatchClass(provider, pattern, make_against, source_ref):
             pattern=kwd_pattern,
             source_ref=source_ref,
         )
-
-        item_conditions = list(item_conditions or ())
-
-        item_conditions.insert(
-            0,
-            ExpressionAttributeCheck(
-                expression=make_against(),
-                attribute_name=key,
-                source_ref=source_ref,
-            ),
-        )
-
-        item_conditions = tuple(item_conditions)
 
         class_conditions_list.append(item_conditions)
         class_assignments_list.append(item_assignments)
@@ -604,7 +579,7 @@ def _buildMatchClass(provider, pattern, make_against, source_ref):
 
 
 def _buildMatchOr(provider, pattern, make_against, source_ref):
-    # Slightly complicated, due to using an outline body, pylint: disable=too-many-locals
+    # pylint: disable=too-many-locals
 
     or_condition_list = []
     or_assignments_list = []
@@ -626,7 +601,6 @@ def _buildMatchOr(provider, pattern, make_against, source_ref):
                 makeConstantRefNode(constant=True, source_ref=source_ref)
             )
 
-        # TODO: Inconsistency somewhere, can return empty.
         or_assignments_list.append(or_assignments or None)
 
     if all(or_assignments is None for or_assignments in or_assignments_list):
@@ -755,24 +729,21 @@ def _buildCase(provider, case, tmp_subject, source_ref):
 
 
 def buildMatchNode(provider, node, source_ref):
-    """Python3.10 or higher, match statements."""
-
     subject_node = buildNode(provider, node.subject, source_ref)
 
     temp_scope = provider.allocateTempScope("match_statement")
 
-    # The value matched against, must be released in the end.
     tmp_subject = provider.allocateTempVariable(
         temp_scope, "subject", temp_type="object"
     )
-
-    # Indicator variable, will end up with C bool type, and need not be released.
     tmp_indicator_variable = provider.allocateTempVariable(
         temp_scope=temp_scope, name="indicator", temp_type="bool"
     )
 
     cases = []
 
+    # TODO: CPython rejects unguarded irrefutable top-level cases ("_" or name
+    # capture) followed by further cases with SyntaxError.
     for case in node.cases:
         cases.append(
             _buildCase(
@@ -788,8 +759,6 @@ def buildMatchNode(provider, node, source_ref):
     for case in cases:
         conditions, assignments, guard, branch_code = case
 
-        # Set indicator variable at end of branch code, unless it's last branch
-        # where there would be no usage of it.
         if case is not cases[-1]:
             branch_code = makeStatementsSequenceWithNone(
                 statements=(

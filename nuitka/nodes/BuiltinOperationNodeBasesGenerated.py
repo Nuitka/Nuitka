@@ -3,16 +3,17 @@
 
 # We are not avoiding these in generated code at all
 # pylint: disable=I0021,line-too-long,too-many-instance-attributes,too-many-lines
-# pylint: disable=I0021,too-many-arguments,too-many-return-statements,too-many-statements
+# pylint: disable=too-many-arguments,too-many-return-statements,too-many-statements
+# pylint: disable=literal-comparison
 
 
-"""Specialized attribute nodes
+"""Specialized built-in operation base nodes
 
 WARNING, this code is GENERATED. Modify the template BuiltinOperationNodeBases.py.j2 instead!
 
-spell-checker: ignore __prepare__ append args autograph buffering capitalize casefold
-spell-checker: ignore center chars clear closefd copy count decode default delete dist
-spell-checker: ignore distribution_name encode encoding end endswith errors exit_code
+spell-checker: ignore __prepare__ anchor append args autograph buffering capitalize
+spell-checker: ignore casefold center chars clear closefd copy count decode default delete
+spell-checker: ignore dist distribution_name encode encoding end endswith errors exit_code
 spell-checker: ignore expandtabs experimental_attributes experimental_autograph_options
 spell-checker: ignore experimental_compile experimental_follow_type_hints
 spell-checker: ignore experimental_implements experimental_relax_shapes extend file
@@ -85,6 +86,7 @@ from .ChildrenHavingMixins import (
     ChildrenHavingStrArgSuffixMixin,
     ChildrenHavingStrArgSuffixStartEndMixin,
     ChildrenHavingStrArgSuffixStartMixin,
+    ChildrenHavingStrArgTableDeleteMixin,
     ChildrenHavingStrArgTableMixin,
     ChildrenHavingStrArgTabsizeMixin,
     ChildrenHavingStrArgWidthFillcharMixin,
@@ -106,6 +108,8 @@ from .ExpressionShapeMixins import (
 class ExpressionStrOperationCapitalizeBase(
     ExpressionStrShapeExactMixin, ChildHavingStrArgMixin, ExpressionBase
 ):
+    """Base class for 'str.capitalize' operation node."""
+
     named_children = ("str_arg",)
 
     def __init__(self, str_arg, source_ref):
@@ -146,6 +150,8 @@ class ExpressionStrOperationCapitalizeBase(
 class ExpressionBytesOperationCapitalizeBase(
     ExpressionBytesShapeExactMixin, ChildHavingBytesArgMixin, ExpressionBase
 ):
+    """Base class for 'bytes.capitalize' operation node."""
+
     named_children = ("bytes_arg",)
 
     def __init__(self, bytes_arg, source_ref):
@@ -183,7 +189,11 @@ class ExpressionBytesOperationCapitalizeBase(
         """Does the operation part raise an exception possibly."""
 
 
-class ExpressionStrOperationCasefoldBase(ChildHavingStrArgMixin, ExpressionBase):
+class ExpressionStrOperationCasefoldBase(
+    ExpressionStrShapeExactMixin, ChildHavingStrArgMixin, ExpressionBase
+):
+    """Base class for 'str.casefold' operation node."""
+
     named_children = ("str_arg",)
 
     def __init__(self, str_arg, source_ref):
@@ -224,6 +234,8 @@ class ExpressionStrOperationCasefoldBase(ChildHavingStrArgMixin, ExpressionBase)
 class ExpressionStrOperationCenter3Base(
     ExpressionStrShapeExactMixin, ChildrenHavingStrArgWidthFillcharMixin, ExpressionBase
 ):
+    """Base class for 'str.center' operation node."""
+
     named_children = (
         "str_arg",
         "width",
@@ -278,6 +290,8 @@ class ExpressionStrOperationCenter3Base(
 class ExpressionStrOperationCenter2Base(
     ExpressionStrShapeExactMixin, ChildrenHavingStrArgWidthMixin, ExpressionBase
 ):
+    """Base class for 'str.center' operation node."""
+
     named_children = (
         "str_arg",
         "width",
@@ -329,6 +343,8 @@ class ExpressionBytesOperationCenter3Base(
     ChildrenHavingBytesArgWidthFillcharMixin,
     ExpressionBase,
 ):
+    """Base class for 'bytes.center' operation node."""
+
     named_children = (
         "bytes_arg",
         "width",
@@ -383,6 +399,8 @@ class ExpressionBytesOperationCenter3Base(
 class ExpressionBytesOperationCenter2Base(
     ExpressionBytesShapeExactMixin, ChildrenHavingBytesArgWidthMixin, ExpressionBase
 ):
+    """Base class for 'bytes.center' operation node."""
+
     named_children = (
         "bytes_arg",
         "width",
@@ -432,6 +450,8 @@ class ExpressionBytesOperationCenter2Base(
 class ExpressionDictOperationClearBase(
     ExpressionNoneShapeExactMixin, ChildHavingDictArgMixin, ExpressionBase
 ):
+    """Base class for 'dict.clear' operation node."""
+
     named_children = ("dict_arg",)
 
     def __init__(self, dict_arg, source_ref):
@@ -446,6 +466,8 @@ class ExpressionDictOperationClearBase(
 class ExpressionDictOperationCopyBase(
     ExpressionDictShapeExactMixin, ChildHavingDictArgMixin, ExpressionBase
 ):
+    """Base class for 'dict.copy' operation node."""
+
     named_children = ("dict_arg",)
 
     def __init__(self, dict_arg, source_ref):
@@ -460,6 +482,8 @@ class ExpressionDictOperationCopyBase(
 class ExpressionStrOperationCount4Base(
     ExpressionIntShapeExactMixin, ChildrenHavingStrArgSubStartEndMixin, ExpressionBase
 ):
+    """Base class for 'str.count' operation node."""
+
     named_children = (
         "str_arg",
         "sub",
@@ -519,6 +543,8 @@ class ExpressionStrOperationCount4Base(
 class ExpressionStrOperationCount3Base(
     ExpressionIntShapeExactMixin, ChildrenHavingStrArgSubStartMixin, ExpressionBase
 ):
+    """Base class for 'str.count' operation node."""
+
     named_children = (
         "str_arg",
         "sub",
@@ -573,6 +599,8 @@ class ExpressionStrOperationCount3Base(
 class ExpressionStrOperationCount2Base(
     ExpressionIntShapeExactMixin, ChildrenHavingStrArgSubMixin, ExpressionBase
 ):
+    """Base class for 'str.count' operation node."""
+
     named_children = (
         "str_arg",
         "sub",
@@ -622,6 +650,8 @@ class ExpressionStrOperationCount2Base(
 class ExpressionBytesOperationCount4Base(
     ExpressionIntShapeExactMixin, ChildrenHavingBytesArgSubStartEndMixin, ExpressionBase
 ):
+    """Base class for 'bytes.count' operation node."""
+
     named_children = (
         "bytes_arg",
         "sub",
@@ -681,6 +711,8 @@ class ExpressionBytesOperationCount4Base(
 class ExpressionBytesOperationCount3Base(
     ExpressionIntShapeExactMixin, ChildrenHavingBytesArgSubStartMixin, ExpressionBase
 ):
+    """Base class for 'bytes.count' operation node."""
+
     named_children = (
         "bytes_arg",
         "sub",
@@ -735,6 +767,8 @@ class ExpressionBytesOperationCount3Base(
 class ExpressionBytesOperationCount2Base(
     ExpressionIntShapeExactMixin, ChildrenHavingBytesArgSubMixin, ExpressionBase
 ):
+    """Base class for 'bytes.count' operation node."""
+
     named_children = (
         "bytes_arg",
         "sub",
@@ -784,6 +818,8 @@ class ExpressionBytesOperationCount2Base(
 class ExpressionStrOperationDecode3Base(
     ChildrenHavingStrArgEncodingErrorsMixin, ExpressionBase
 ):
+    """Base class for 'str.decode' operation node."""
+
     named_children = (
         "str_arg",
         "encoding",
@@ -838,6 +874,8 @@ class ExpressionStrOperationDecode3Base(
 class ExpressionStrOperationDecode2Base(
     ChildrenHavingStrArgEncodingMixin, ExpressionBase
 ):
+    """Base class for 'str.decode' operation node."""
+
     named_children = (
         "str_arg",
         "encoding",
@@ -885,6 +923,8 @@ class ExpressionStrOperationDecode2Base(
 
 
 class ExpressionStrOperationDecode1Base(ChildHavingStrArgMixin, ExpressionBase):
+    """Base class for 'str.decode' operation node."""
+
     named_children = ("str_arg",)
 
     def __init__(self, str_arg, source_ref):
@@ -927,6 +967,8 @@ class ExpressionBytesOperationDecode3Base(
     ChildrenHavingBytesArgEncodingErrorsMixin,
     ExpressionBase,
 ):
+    """Base class for 'bytes.decode' operation node."""
+
     named_children = (
         "bytes_arg",
         "encoding",
@@ -981,6 +1023,8 @@ class ExpressionBytesOperationDecode3Base(
 class ExpressionBytesOperationDecode2Base(
     ExpressionStrShapeExactMixin, ChildrenHavingBytesArgEncodingMixin, ExpressionBase
 ):
+    """Base class for 'bytes.decode' operation node."""
+
     named_children = (
         "bytes_arg",
         "encoding",
@@ -1030,6 +1074,8 @@ class ExpressionBytesOperationDecode2Base(
 class ExpressionBytesOperationDecode1Base(
     ExpressionStrShapeExactMixin, ChildHavingBytesArgMixin, ExpressionBase
 ):
+    """Base class for 'bytes.decode' operation node."""
+
     named_children = ("bytes_arg",)
 
     def __init__(self, bytes_arg, source_ref):
@@ -1070,6 +1116,8 @@ class ExpressionBytesOperationDecode1Base(
 class ExpressionStrOperationEncode3Base(
     ChildrenHavingStrArgEncodingErrorsMixin, ExpressionBase
 ):
+    """Base class for 'str.encode' operation node."""
+
     named_children = (
         "str_arg",
         "encoding",
@@ -1124,6 +1172,8 @@ class ExpressionStrOperationEncode3Base(
 class ExpressionStrOperationEncode2Base(
     ChildrenHavingStrArgEncodingMixin, ExpressionBase
 ):
+    """Base class for 'str.encode' operation node."""
+
     named_children = (
         "str_arg",
         "encoding",
@@ -1171,6 +1221,8 @@ class ExpressionStrOperationEncode2Base(
 
 
 class ExpressionStrOperationEncode1Base(ChildHavingStrArgMixin, ExpressionBase):
+    """Base class for 'str.encode' operation node."""
+
     named_children = ("str_arg",)
 
     def __init__(self, str_arg, source_ref):
@@ -1213,6 +1265,8 @@ class ExpressionStrOperationEndswith4Base(
     ChildrenHavingStrArgSuffixStartEndMixin,
     ExpressionBase,
 ):
+    """Base class for 'str.endswith' operation node."""
+
     named_children = (
         "str_arg",
         "suffix",
@@ -1272,6 +1326,8 @@ class ExpressionStrOperationEndswith4Base(
 class ExpressionStrOperationEndswith3Base(
     ExpressionBoolShapeExactMixin, ChildrenHavingStrArgSuffixStartMixin, ExpressionBase
 ):
+    """Base class for 'str.endswith' operation node."""
+
     named_children = (
         "str_arg",
         "suffix",
@@ -1326,6 +1382,8 @@ class ExpressionStrOperationEndswith3Base(
 class ExpressionStrOperationEndswith2Base(
     ExpressionBoolShapeExactMixin, ChildrenHavingStrArgSuffixMixin, ExpressionBase
 ):
+    """Base class for 'str.endswith' operation node."""
+
     named_children = (
         "str_arg",
         "suffix",
@@ -1377,6 +1435,8 @@ class ExpressionBytesOperationEndswith4Base(
     ChildrenHavingBytesArgSuffixStartEndMixin,
     ExpressionBase,
 ):
+    """Base class for 'bytes.endswith' operation node."""
+
     named_children = (
         "bytes_arg",
         "suffix",
@@ -1438,6 +1498,8 @@ class ExpressionBytesOperationEndswith3Base(
     ChildrenHavingBytesArgSuffixStartMixin,
     ExpressionBase,
 ):
+    """Base class for 'bytes.endswith' operation node."""
+
     named_children = (
         "bytes_arg",
         "suffix",
@@ -1492,6 +1554,8 @@ class ExpressionBytesOperationEndswith3Base(
 class ExpressionBytesOperationEndswith2Base(
     ExpressionBoolShapeExactMixin, ChildrenHavingBytesArgSuffixMixin, ExpressionBase
 ):
+    """Base class for 'bytes.endswith' operation node."""
+
     named_children = (
         "bytes_arg",
         "suffix",
@@ -1541,6 +1605,8 @@ class ExpressionBytesOperationEndswith2Base(
 class ExpressionStrOperationExpandtabs2Base(
     ExpressionStrShapeExactMixin, ChildrenHavingStrArgTabsizeMixin, ExpressionBase
 ):
+    """Base class for 'str.expandtabs' operation node."""
+
     named_children = (
         "str_arg",
         "tabsize",
@@ -1590,6 +1656,8 @@ class ExpressionStrOperationExpandtabs2Base(
 class ExpressionStrOperationExpandtabs1Base(
     ExpressionStrShapeExactMixin, ChildHavingStrArgMixin, ExpressionBase
 ):
+    """Base class for 'str.expandtabs' operation node."""
+
     named_children = ("str_arg",)
 
     def __init__(self, str_arg, source_ref):
@@ -1630,6 +1698,8 @@ class ExpressionStrOperationExpandtabs1Base(
 class ExpressionBytesOperationExpandtabs2Base(
     ExpressionBytesShapeExactMixin, ChildrenHavingBytesArgTabsizeMixin, ExpressionBase
 ):
+    """Base class for 'bytes.expandtabs' operation node."""
+
     named_children = (
         "bytes_arg",
         "tabsize",
@@ -1679,6 +1749,8 @@ class ExpressionBytesOperationExpandtabs2Base(
 class ExpressionBytesOperationExpandtabs1Base(
     ExpressionBytesShapeExactMixin, ChildHavingBytesArgMixin, ExpressionBase
 ):
+    """Base class for 'bytes.expandtabs' operation node."""
+
     named_children = ("bytes_arg",)
 
     def __init__(self, bytes_arg, source_ref):
@@ -1719,6 +1791,8 @@ class ExpressionBytesOperationExpandtabs1Base(
 class ExpressionStrOperationFind4Base(
     ExpressionIntShapeExactMixin, ChildrenHavingStrArgSubStartEndMixin, ExpressionBase
 ):
+    """Base class for 'str.find' operation node."""
+
     named_children = (
         "str_arg",
         "sub",
@@ -1778,6 +1852,8 @@ class ExpressionStrOperationFind4Base(
 class ExpressionStrOperationFind3Base(
     ExpressionIntShapeExactMixin, ChildrenHavingStrArgSubStartMixin, ExpressionBase
 ):
+    """Base class for 'str.find' operation node."""
+
     named_children = (
         "str_arg",
         "sub",
@@ -1832,6 +1908,8 @@ class ExpressionStrOperationFind3Base(
 class ExpressionStrOperationFind2Base(
     ExpressionIntShapeExactMixin, ChildrenHavingStrArgSubMixin, ExpressionBase
 ):
+    """Base class for 'str.find' operation node."""
+
     named_children = (
         "str_arg",
         "sub",
@@ -1881,6 +1959,8 @@ class ExpressionStrOperationFind2Base(
 class ExpressionBytesOperationFind4Base(
     ExpressionIntShapeExactMixin, ChildrenHavingBytesArgSubStartEndMixin, ExpressionBase
 ):
+    """Base class for 'bytes.find' operation node."""
+
     named_children = (
         "bytes_arg",
         "sub",
@@ -1940,6 +2020,8 @@ class ExpressionBytesOperationFind4Base(
 class ExpressionBytesOperationFind3Base(
     ExpressionIntShapeExactMixin, ChildrenHavingBytesArgSubStartMixin, ExpressionBase
 ):
+    """Base class for 'bytes.find' operation node."""
+
     named_children = (
         "bytes_arg",
         "sub",
@@ -1994,6 +2076,8 @@ class ExpressionBytesOperationFind3Base(
 class ExpressionBytesOperationFind2Base(
     ExpressionIntShapeExactMixin, ChildrenHavingBytesArgSubMixin, ExpressionBase
 ):
+    """Base class for 'bytes.find' operation node."""
+
     named_children = (
         "bytes_arg",
         "sub",
@@ -2045,6 +2129,8 @@ class ExpressionStrOperationFormatBase(
     ChildrenHavingStrArgArgsTuplePairsTupleMixin,
     ExpressionBase,
 ):
+    """Base class for 'str.format' operation node."""
+
     named_children = (
         "str_arg",
         "args|tuple",
@@ -2097,6 +2183,8 @@ class ExpressionStrOperationFormatBase(
 
 
 class ExpressionStrOperationFormatmapBase(ChildHavingStrArgMixin, ExpressionBase):
+    """Base class for 'str.format_map' operation node."""
+
     named_children = ("str_arg",)
 
     def __init__(self, str_arg, source_ref):
@@ -2137,6 +2225,8 @@ class ExpressionStrOperationFormatmapBase(ChildHavingStrArgMixin, ExpressionBase
 class ExpressionDictOperationFromkeys3Base(
     ExpressionDictShapeExactMixin, ChildrenHavingIterableValueMixin, ExpressionBase
 ):
+    """Base class for 'dict.fromkeys' operation node."""
+
     named_children = (
         "iterable",
         "value",
@@ -2155,6 +2245,8 @@ class ExpressionDictOperationFromkeys3Base(
 class ExpressionDictOperationFromkeys2Base(
     ExpressionDictShapeExactMixin, ChildHavingIterableMixin, ExpressionBase
 ):
+    """Base class for 'dict.fromkeys' operation node."""
+
     named_children = ("iterable",)
 
     def __init__(self, iterable, source_ref):
@@ -2169,6 +2261,8 @@ class ExpressionDictOperationFromkeys2Base(
 class ExpressionDictOperationGet3Base(
     ChildrenHavingDictArgKeyDefaultMixin, ExpressionBase
 ):
+    """Base class for 'dict.get' operation node."""
+
     named_children = (
         "dict_arg",
         "key",
@@ -2187,6 +2281,8 @@ class ExpressionDictOperationGet3Base(
 
 
 class ExpressionDictOperationGet2Base(ChildrenHavingDictArgKeyMixin, ExpressionBase):
+    """Base class for 'dict.get' operation node."""
+
     named_children = (
         "dict_arg",
         "key",
@@ -2205,6 +2301,8 @@ class ExpressionDictOperationGet2Base(ChildrenHavingDictArgKeyMixin, ExpressionB
 class ExpressionDictOperationHaskeyBase(
     ExpressionBoolShapeExactMixin, ChildrenHavingDictArgKeyMixin, ExpressionBase
 ):
+    """Base class for 'dict.has_key' operation node."""
+
     named_children = (
         "dict_arg",
         "key",
@@ -2223,6 +2321,8 @@ class ExpressionDictOperationHaskeyBase(
 class ExpressionStrOperationIndex4Base(
     ExpressionIntShapeExactMixin, ChildrenHavingStrArgSubStartEndMixin, ExpressionBase
 ):
+    """Base class for 'str.index' operation node."""
+
     named_children = (
         "str_arg",
         "sub",
@@ -2282,6 +2382,8 @@ class ExpressionStrOperationIndex4Base(
 class ExpressionStrOperationIndex3Base(
     ExpressionIntShapeExactMixin, ChildrenHavingStrArgSubStartMixin, ExpressionBase
 ):
+    """Base class for 'str.index' operation node."""
+
     named_children = (
         "str_arg",
         "sub",
@@ -2336,6 +2438,8 @@ class ExpressionStrOperationIndex3Base(
 class ExpressionStrOperationIndex2Base(
     ExpressionIntShapeExactMixin, ChildrenHavingStrArgSubMixin, ExpressionBase
 ):
+    """Base class for 'str.index' operation node."""
+
     named_children = (
         "str_arg",
         "sub",
@@ -2385,6 +2489,8 @@ class ExpressionStrOperationIndex2Base(
 class ExpressionBytesOperationIndex4Base(
     ExpressionIntShapeExactMixin, ChildrenHavingBytesArgSubStartEndMixin, ExpressionBase
 ):
+    """Base class for 'bytes.index' operation node."""
+
     named_children = (
         "bytes_arg",
         "sub",
@@ -2444,6 +2550,8 @@ class ExpressionBytesOperationIndex4Base(
 class ExpressionBytesOperationIndex3Base(
     ExpressionIntShapeExactMixin, ChildrenHavingBytesArgSubStartMixin, ExpressionBase
 ):
+    """Base class for 'bytes.index' operation node."""
+
     named_children = (
         "bytes_arg",
         "sub",
@@ -2498,6 +2606,8 @@ class ExpressionBytesOperationIndex3Base(
 class ExpressionBytesOperationIndex2Base(
     ExpressionIntShapeExactMixin, ChildrenHavingBytesArgSubMixin, ExpressionBase
 ):
+    """Base class for 'bytes.index' operation node."""
+
     named_children = (
         "bytes_arg",
         "sub",
@@ -2547,6 +2657,8 @@ class ExpressionBytesOperationIndex2Base(
 class ExpressionStrOperationIsalnumBase(
     ExpressionBoolShapeExactMixin, ChildHavingStrArgMixin, ExpressionBase
 ):
+    """Base class for 'str.isalnum' operation node."""
+
     named_children = ("str_arg",)
 
     def __init__(self, str_arg, source_ref):
@@ -2587,6 +2699,8 @@ class ExpressionStrOperationIsalnumBase(
 class ExpressionBytesOperationIsalnumBase(
     ExpressionBoolShapeExactMixin, ChildHavingBytesArgMixin, ExpressionBase
 ):
+    """Base class for 'bytes.isalnum' operation node."""
+
     named_children = ("bytes_arg",)
 
     def __init__(self, bytes_arg, source_ref):
@@ -2627,6 +2741,8 @@ class ExpressionBytesOperationIsalnumBase(
 class ExpressionStrOperationIsalphaBase(
     ExpressionBoolShapeExactMixin, ChildHavingStrArgMixin, ExpressionBase
 ):
+    """Base class for 'str.isalpha' operation node."""
+
     named_children = ("str_arg",)
 
     def __init__(self, str_arg, source_ref):
@@ -2667,6 +2783,8 @@ class ExpressionStrOperationIsalphaBase(
 class ExpressionBytesOperationIsalphaBase(
     ExpressionBoolShapeExactMixin, ChildHavingBytesArgMixin, ExpressionBase
 ):
+    """Base class for 'bytes.isalpha' operation node."""
+
     named_children = ("bytes_arg",)
 
     def __init__(self, bytes_arg, source_ref):
@@ -2704,7 +2822,11 @@ class ExpressionBytesOperationIsalphaBase(
         """Does the operation part raise an exception possibly."""
 
 
-class ExpressionStrOperationIsasciiBase(ChildHavingStrArgMixin, ExpressionBase):
+class ExpressionStrOperationIsasciiBase(
+    ExpressionBoolShapeExactMixin, ChildHavingStrArgMixin, ExpressionBase
+):
+    """Base class for 'str.isascii' operation node."""
+
     named_children = ("str_arg",)
 
     def __init__(self, str_arg, source_ref):
@@ -2742,7 +2864,11 @@ class ExpressionStrOperationIsasciiBase(ChildHavingStrArgMixin, ExpressionBase):
         """Does the operation part raise an exception possibly."""
 
 
-class ExpressionStrOperationIsdecimalBase(ChildHavingStrArgMixin, ExpressionBase):
+class ExpressionStrOperationIsdecimalBase(
+    ExpressionBoolShapeExactMixin, ChildHavingStrArgMixin, ExpressionBase
+):
+    """Base class for 'str.isdecimal' operation node."""
+
     named_children = ("str_arg",)
 
     def __init__(self, str_arg, source_ref):
@@ -2783,6 +2909,8 @@ class ExpressionStrOperationIsdecimalBase(ChildHavingStrArgMixin, ExpressionBase
 class ExpressionStrOperationIsdigitBase(
     ExpressionBoolShapeExactMixin, ChildHavingStrArgMixin, ExpressionBase
 ):
+    """Base class for 'str.isdigit' operation node."""
+
     named_children = ("str_arg",)
 
     def __init__(self, str_arg, source_ref):
@@ -2823,6 +2951,8 @@ class ExpressionStrOperationIsdigitBase(
 class ExpressionBytesOperationIsdigitBase(
     ExpressionBoolShapeExactMixin, ChildHavingBytesArgMixin, ExpressionBase
 ):
+    """Base class for 'bytes.isdigit' operation node."""
+
     named_children = ("bytes_arg",)
 
     def __init__(self, bytes_arg, source_ref):
@@ -2860,7 +2990,11 @@ class ExpressionBytesOperationIsdigitBase(
         """Does the operation part raise an exception possibly."""
 
 
-class ExpressionStrOperationIsidentifierBase(ChildHavingStrArgMixin, ExpressionBase):
+class ExpressionStrOperationIsidentifierBase(
+    ExpressionBoolShapeExactMixin, ChildHavingStrArgMixin, ExpressionBase
+):
+    """Base class for 'str.isidentifier' operation node."""
+
     named_children = ("str_arg",)
 
     def __init__(self, str_arg, source_ref):
@@ -2901,6 +3035,8 @@ class ExpressionStrOperationIsidentifierBase(ChildHavingStrArgMixin, ExpressionB
 class ExpressionStrOperationIslowerBase(
     ExpressionBoolShapeExactMixin, ChildHavingStrArgMixin, ExpressionBase
 ):
+    """Base class for 'str.islower' operation node."""
+
     named_children = ("str_arg",)
 
     def __init__(self, str_arg, source_ref):
@@ -2941,6 +3077,8 @@ class ExpressionStrOperationIslowerBase(
 class ExpressionBytesOperationIslowerBase(
     ExpressionBoolShapeExactMixin, ChildHavingBytesArgMixin, ExpressionBase
 ):
+    """Base class for 'bytes.islower' operation node."""
+
     named_children = ("bytes_arg",)
 
     def __init__(self, bytes_arg, source_ref):
@@ -2978,7 +3116,11 @@ class ExpressionBytesOperationIslowerBase(
         """Does the operation part raise an exception possibly."""
 
 
-class ExpressionStrOperationIsnumericBase(ChildHavingStrArgMixin, ExpressionBase):
+class ExpressionStrOperationIsnumericBase(
+    ExpressionBoolShapeExactMixin, ChildHavingStrArgMixin, ExpressionBase
+):
+    """Base class for 'str.isnumeric' operation node."""
+
     named_children = ("str_arg",)
 
     def __init__(self, str_arg, source_ref):
@@ -3016,7 +3158,11 @@ class ExpressionStrOperationIsnumericBase(ChildHavingStrArgMixin, ExpressionBase
         """Does the operation part raise an exception possibly."""
 
 
-class ExpressionStrOperationIsprintableBase(ChildHavingStrArgMixin, ExpressionBase):
+class ExpressionStrOperationIsprintableBase(
+    ExpressionBoolShapeExactMixin, ChildHavingStrArgMixin, ExpressionBase
+):
+    """Base class for 'str.isprintable' operation node."""
+
     named_children = ("str_arg",)
 
     def __init__(self, str_arg, source_ref):
@@ -3057,6 +3203,8 @@ class ExpressionStrOperationIsprintableBase(ChildHavingStrArgMixin, ExpressionBa
 class ExpressionStrOperationIsspaceBase(
     ExpressionBoolShapeExactMixin, ChildHavingStrArgMixin, ExpressionBase
 ):
+    """Base class for 'str.isspace' operation node."""
+
     named_children = ("str_arg",)
 
     def __init__(self, str_arg, source_ref):
@@ -3097,6 +3245,8 @@ class ExpressionStrOperationIsspaceBase(
 class ExpressionBytesOperationIsspaceBase(
     ExpressionBoolShapeExactMixin, ChildHavingBytesArgMixin, ExpressionBase
 ):
+    """Base class for 'bytes.isspace' operation node."""
+
     named_children = ("bytes_arg",)
 
     def __init__(self, bytes_arg, source_ref):
@@ -3137,6 +3287,8 @@ class ExpressionBytesOperationIsspaceBase(
 class ExpressionStrOperationIstitleBase(
     ExpressionBoolShapeExactMixin, ChildHavingStrArgMixin, ExpressionBase
 ):
+    """Base class for 'str.istitle' operation node."""
+
     named_children = ("str_arg",)
 
     def __init__(self, str_arg, source_ref):
@@ -3177,6 +3329,8 @@ class ExpressionStrOperationIstitleBase(
 class ExpressionBytesOperationIstitleBase(
     ExpressionBoolShapeExactMixin, ChildHavingBytesArgMixin, ExpressionBase
 ):
+    """Base class for 'bytes.istitle' operation node."""
+
     named_children = ("bytes_arg",)
 
     def __init__(self, bytes_arg, source_ref):
@@ -3217,6 +3371,8 @@ class ExpressionBytesOperationIstitleBase(
 class ExpressionStrOperationIsupperBase(
     ExpressionBoolShapeExactMixin, ChildHavingStrArgMixin, ExpressionBase
 ):
+    """Base class for 'str.isupper' operation node."""
+
     named_children = ("str_arg",)
 
     def __init__(self, str_arg, source_ref):
@@ -3257,6 +3413,8 @@ class ExpressionStrOperationIsupperBase(
 class ExpressionBytesOperationIsupperBase(
     ExpressionBoolShapeExactMixin, ChildHavingBytesArgMixin, ExpressionBase
 ):
+    """Base class for 'bytes.isupper' operation node."""
+
     named_children = ("bytes_arg",)
 
     def __init__(self, bytes_arg, source_ref):
@@ -3297,6 +3455,8 @@ class ExpressionBytesOperationIsupperBase(
 class ExpressionDictOperationItemsBase(
     ExpressionListShapeExactMixin, ChildHavingDictArgMixin, ExpressionBase
 ):
+    """Base class for 'dict.items' operation node."""
+
     named_children = ("dict_arg",)
 
     def __init__(self, dict_arg, source_ref):
@@ -3309,6 +3469,8 @@ class ExpressionDictOperationItemsBase(
 
 
 class ExpressionDictOperationIteritemsBase(ChildHavingDictArgMixin, ExpressionBase):
+    """Base class for 'dict.iteritems' operation node."""
+
     named_children = ("dict_arg",)
 
     def __init__(self, dict_arg, source_ref):
@@ -3321,6 +3483,8 @@ class ExpressionDictOperationIteritemsBase(ChildHavingDictArgMixin, ExpressionBa
 
 
 class ExpressionDictOperationIterkeysBase(ChildHavingDictArgMixin, ExpressionBase):
+    """Base class for 'dict.iterkeys' operation node."""
+
     named_children = ("dict_arg",)
 
     def __init__(self, dict_arg, source_ref):
@@ -3333,6 +3497,8 @@ class ExpressionDictOperationIterkeysBase(ChildHavingDictArgMixin, ExpressionBas
 
 
 class ExpressionDictOperationItervaluesBase(ChildHavingDictArgMixin, ExpressionBase):
+    """Base class for 'dict.itervalues' operation node."""
+
     named_children = ("dict_arg",)
 
     def __init__(self, dict_arg, source_ref):
@@ -3347,6 +3513,8 @@ class ExpressionDictOperationItervaluesBase(ChildHavingDictArgMixin, ExpressionB
 class ExpressionStrOperationJoinBase(
     ExpressionStrShapeExactMixin, ChildrenHavingStrArgIterableMixin, ExpressionBase
 ):
+    """Base class for 'str.join' operation node."""
+
     named_children = (
         "str_arg",
         "iterable",
@@ -3396,6 +3564,8 @@ class ExpressionStrOperationJoinBase(
 class ExpressionBytesOperationJoinBase(
     ExpressionBytesShapeExactMixin, ChildrenHavingBytesArgIterableMixin, ExpressionBase
 ):
+    """Base class for 'bytes.join' operation node."""
+
     named_children = (
         "bytes_arg",
         "iterable",
@@ -3445,6 +3615,8 @@ class ExpressionBytesOperationJoinBase(
 class ExpressionDictOperationKeysBase(
     ExpressionListShapeExactMixin, ChildHavingDictArgMixin, ExpressionBase
 ):
+    """Base class for 'dict.keys' operation node."""
+
     named_children = ("dict_arg",)
 
     def __init__(self, dict_arg, source_ref):
@@ -3459,6 +3631,8 @@ class ExpressionDictOperationKeysBase(
 class ExpressionStrOperationLjust3Base(
     ExpressionStrShapeExactMixin, ChildrenHavingStrArgWidthFillcharMixin, ExpressionBase
 ):
+    """Base class for 'str.ljust' operation node."""
+
     named_children = (
         "str_arg",
         "width",
@@ -3513,6 +3687,8 @@ class ExpressionStrOperationLjust3Base(
 class ExpressionStrOperationLjust2Base(
     ExpressionStrShapeExactMixin, ChildrenHavingStrArgWidthMixin, ExpressionBase
 ):
+    """Base class for 'str.ljust' operation node."""
+
     named_children = (
         "str_arg",
         "width",
@@ -3564,6 +3740,8 @@ class ExpressionBytesOperationLjust3Base(
     ChildrenHavingBytesArgWidthFillcharMixin,
     ExpressionBase,
 ):
+    """Base class for 'bytes.ljust' operation node."""
+
     named_children = (
         "bytes_arg",
         "width",
@@ -3618,6 +3796,8 @@ class ExpressionBytesOperationLjust3Base(
 class ExpressionBytesOperationLjust2Base(
     ExpressionBytesShapeExactMixin, ChildrenHavingBytesArgWidthMixin, ExpressionBase
 ):
+    """Base class for 'bytes.ljust' operation node."""
+
     named_children = (
         "bytes_arg",
         "width",
@@ -3667,6 +3847,8 @@ class ExpressionBytesOperationLjust2Base(
 class ExpressionStrOperationLowerBase(
     ExpressionStrShapeExactMixin, ChildHavingStrArgMixin, ExpressionBase
 ):
+    """Base class for 'str.lower' operation node."""
+
     named_children = ("str_arg",)
 
     def __init__(self, str_arg, source_ref):
@@ -3707,6 +3889,8 @@ class ExpressionStrOperationLowerBase(
 class ExpressionBytesOperationLowerBase(
     ExpressionBytesShapeExactMixin, ChildHavingBytesArgMixin, ExpressionBase
 ):
+    """Base class for 'bytes.lower' operation node."""
+
     named_children = ("bytes_arg",)
 
     def __init__(self, bytes_arg, source_ref):
@@ -3747,6 +3931,8 @@ class ExpressionBytesOperationLowerBase(
 class ExpressionStrOperationLstrip2Base(
     ExpressionStrShapeExactMixin, ChildrenHavingStrArgCharsMixin, ExpressionBase
 ):
+    """Base class for 'str.lstrip' operation node."""
+
     named_children = (
         "str_arg",
         "chars",
@@ -3796,6 +3982,8 @@ class ExpressionStrOperationLstrip2Base(
 class ExpressionStrOperationLstrip1Base(
     ExpressionStrShapeExactMixin, ChildHavingStrArgMixin, ExpressionBase
 ):
+    """Base class for 'str.lstrip' operation node."""
+
     named_children = ("str_arg",)
 
     def __init__(self, str_arg, source_ref):
@@ -3836,6 +4024,8 @@ class ExpressionStrOperationLstrip1Base(
 class ExpressionBytesOperationLstrip2Base(
     ExpressionBytesShapeExactMixin, ChildrenHavingBytesArgCharsMixin, ExpressionBase
 ):
+    """Base class for 'bytes.lstrip' operation node."""
+
     named_children = (
         "bytes_arg",
         "chars",
@@ -3885,6 +4075,8 @@ class ExpressionBytesOperationLstrip2Base(
 class ExpressionBytesOperationLstrip1Base(
     ExpressionBytesShapeExactMixin, ChildHavingBytesArgMixin, ExpressionBase
 ):
+    """Base class for 'bytes.lstrip' operation node."""
+
     named_children = ("bytes_arg",)
 
     def __init__(self, bytes_arg, source_ref):
@@ -3923,6 +4115,8 @@ class ExpressionBytesOperationLstrip1Base(
 
 
 class ExpressionStrOperationMaketransBase(ChildHavingStrArgMixin, ExpressionBase):
+    """Base class for 'str.maketrans' operation node."""
+
     named_children = ("str_arg",)
 
     def __init__(self, str_arg, source_ref):
@@ -3963,6 +4157,8 @@ class ExpressionStrOperationMaketransBase(ChildHavingStrArgMixin, ExpressionBase
 class ExpressionStrOperationPartitionBase(
     ExpressionTupleShapeExactMixin, ChildrenHavingStrArgSepMixin, ExpressionBase
 ):
+    """Base class for 'str.partition' operation node."""
+
     named_children = (
         "str_arg",
         "sep",
@@ -4012,6 +4208,8 @@ class ExpressionStrOperationPartitionBase(
 class ExpressionBytesOperationPartitionBase(
     ExpressionTupleShapeExactMixin, ChildrenHavingBytesArgSepMixin, ExpressionBase
 ):
+    """Base class for 'bytes.partition' operation node."""
+
     named_children = (
         "bytes_arg",
         "sep",
@@ -4061,6 +4259,8 @@ class ExpressionBytesOperationPartitionBase(
 class ExpressionDictOperationPop3Base(
     ChildrenHavingDictArgKeyDefaultMixin, ExpressionBase
 ):
+    """Base class for 'dict.pop' operation node."""
+
     named_children = (
         "dict_arg",
         "key",
@@ -4079,6 +4279,8 @@ class ExpressionDictOperationPop3Base(
 
 
 class ExpressionDictOperationPop2Base(ChildrenHavingDictArgKeyMixin, ExpressionBase):
+    """Base class for 'dict.pop' operation node."""
+
     named_children = (
         "dict_arg",
         "key",
@@ -4097,6 +4299,8 @@ class ExpressionDictOperationPop2Base(ChildrenHavingDictArgKeyMixin, ExpressionB
 class ExpressionDictOperationPopitemBase(
     ExpressionTupleShapeExactMixin, ChildHavingDictArgMixin, ExpressionBase
 ):
+    """Base class for 'dict.popitem' operation node."""
+
     named_children = ("dict_arg",)
 
     def __init__(self, dict_arg, source_ref):
@@ -4111,6 +4315,8 @@ class ExpressionDictOperationPopitemBase(
 class ExpressionStrOperationReplace4Base(
     ExpressionStrShapeExactMixin, ChildrenHavingStrArgOldNewCountMixin, ExpressionBase
 ):
+    """Base class for 'str.replace' operation node."""
+
     named_children = (
         "str_arg",
         "old",
@@ -4170,6 +4376,8 @@ class ExpressionStrOperationReplace4Base(
 class ExpressionStrOperationReplace3Base(
     ExpressionStrShapeExactMixin, ChildrenHavingStrArgOldNewMixin, ExpressionBase
 ):
+    """Base class for 'str.replace' operation node."""
+
     named_children = (
         "str_arg",
         "old",
@@ -4226,6 +4434,8 @@ class ExpressionBytesOperationReplace4Base(
     ChildrenHavingBytesArgOldNewCountMixin,
     ExpressionBase,
 ):
+    """Base class for 'bytes.replace' operation node."""
+
     named_children = (
         "bytes_arg",
         "old",
@@ -4285,6 +4495,8 @@ class ExpressionBytesOperationReplace4Base(
 class ExpressionBytesOperationReplace3Base(
     ExpressionBytesShapeExactMixin, ChildrenHavingBytesArgOldNewMixin, ExpressionBase
 ):
+    """Base class for 'bytes.replace' operation node."""
+
     named_children = (
         "bytes_arg",
         "old",
@@ -4339,6 +4551,8 @@ class ExpressionBytesOperationReplace3Base(
 class ExpressionStrOperationRfind4Base(
     ExpressionIntShapeExactMixin, ChildrenHavingStrArgSubStartEndMixin, ExpressionBase
 ):
+    """Base class for 'str.rfind' operation node."""
+
     named_children = (
         "str_arg",
         "sub",
@@ -4398,6 +4612,8 @@ class ExpressionStrOperationRfind4Base(
 class ExpressionStrOperationRfind3Base(
     ExpressionIntShapeExactMixin, ChildrenHavingStrArgSubStartMixin, ExpressionBase
 ):
+    """Base class for 'str.rfind' operation node."""
+
     named_children = (
         "str_arg",
         "sub",
@@ -4452,6 +4668,8 @@ class ExpressionStrOperationRfind3Base(
 class ExpressionStrOperationRfind2Base(
     ExpressionIntShapeExactMixin, ChildrenHavingStrArgSubMixin, ExpressionBase
 ):
+    """Base class for 'str.rfind' operation node."""
+
     named_children = (
         "str_arg",
         "sub",
@@ -4501,6 +4719,8 @@ class ExpressionStrOperationRfind2Base(
 class ExpressionBytesOperationRfind4Base(
     ExpressionIntShapeExactMixin, ChildrenHavingBytesArgSubStartEndMixin, ExpressionBase
 ):
+    """Base class for 'bytes.rfind' operation node."""
+
     named_children = (
         "bytes_arg",
         "sub",
@@ -4560,6 +4780,8 @@ class ExpressionBytesOperationRfind4Base(
 class ExpressionBytesOperationRfind3Base(
     ExpressionIntShapeExactMixin, ChildrenHavingBytesArgSubStartMixin, ExpressionBase
 ):
+    """Base class for 'bytes.rfind' operation node."""
+
     named_children = (
         "bytes_arg",
         "sub",
@@ -4614,6 +4836,8 @@ class ExpressionBytesOperationRfind3Base(
 class ExpressionBytesOperationRfind2Base(
     ExpressionIntShapeExactMixin, ChildrenHavingBytesArgSubMixin, ExpressionBase
 ):
+    """Base class for 'bytes.rfind' operation node."""
+
     named_children = (
         "bytes_arg",
         "sub",
@@ -4663,6 +4887,8 @@ class ExpressionBytesOperationRfind2Base(
 class ExpressionStrOperationRindex4Base(
     ExpressionIntShapeExactMixin, ChildrenHavingStrArgSubStartEndMixin, ExpressionBase
 ):
+    """Base class for 'str.rindex' operation node."""
+
     named_children = (
         "str_arg",
         "sub",
@@ -4722,6 +4948,8 @@ class ExpressionStrOperationRindex4Base(
 class ExpressionStrOperationRindex3Base(
     ExpressionIntShapeExactMixin, ChildrenHavingStrArgSubStartMixin, ExpressionBase
 ):
+    """Base class for 'str.rindex' operation node."""
+
     named_children = (
         "str_arg",
         "sub",
@@ -4776,6 +5004,8 @@ class ExpressionStrOperationRindex3Base(
 class ExpressionStrOperationRindex2Base(
     ExpressionIntShapeExactMixin, ChildrenHavingStrArgSubMixin, ExpressionBase
 ):
+    """Base class for 'str.rindex' operation node."""
+
     named_children = (
         "str_arg",
         "sub",
@@ -4825,6 +5055,8 @@ class ExpressionStrOperationRindex2Base(
 class ExpressionBytesOperationRindex4Base(
     ExpressionIntShapeExactMixin, ChildrenHavingBytesArgSubStartEndMixin, ExpressionBase
 ):
+    """Base class for 'bytes.rindex' operation node."""
+
     named_children = (
         "bytes_arg",
         "sub",
@@ -4884,6 +5116,8 @@ class ExpressionBytesOperationRindex4Base(
 class ExpressionBytesOperationRindex3Base(
     ExpressionIntShapeExactMixin, ChildrenHavingBytesArgSubStartMixin, ExpressionBase
 ):
+    """Base class for 'bytes.rindex' operation node."""
+
     named_children = (
         "bytes_arg",
         "sub",
@@ -4938,6 +5172,8 @@ class ExpressionBytesOperationRindex3Base(
 class ExpressionBytesOperationRindex2Base(
     ExpressionIntShapeExactMixin, ChildrenHavingBytesArgSubMixin, ExpressionBase
 ):
+    """Base class for 'bytes.rindex' operation node."""
+
     named_children = (
         "bytes_arg",
         "sub",
@@ -4987,6 +5223,8 @@ class ExpressionBytesOperationRindex2Base(
 class ExpressionStrOperationRjust3Base(
     ExpressionStrShapeExactMixin, ChildrenHavingStrArgWidthFillcharMixin, ExpressionBase
 ):
+    """Base class for 'str.rjust' operation node."""
+
     named_children = (
         "str_arg",
         "width",
@@ -5041,6 +5279,8 @@ class ExpressionStrOperationRjust3Base(
 class ExpressionStrOperationRjust2Base(
     ExpressionStrShapeExactMixin, ChildrenHavingStrArgWidthMixin, ExpressionBase
 ):
+    """Base class for 'str.rjust' operation node."""
+
     named_children = (
         "str_arg",
         "width",
@@ -5092,6 +5332,8 @@ class ExpressionBytesOperationRjust3Base(
     ChildrenHavingBytesArgWidthFillcharMixin,
     ExpressionBase,
 ):
+    """Base class for 'bytes.rjust' operation node."""
+
     named_children = (
         "bytes_arg",
         "width",
@@ -5146,6 +5388,8 @@ class ExpressionBytesOperationRjust3Base(
 class ExpressionBytesOperationRjust2Base(
     ExpressionBytesShapeExactMixin, ChildrenHavingBytesArgWidthMixin, ExpressionBase
 ):
+    """Base class for 'bytes.rjust' operation node."""
+
     named_children = (
         "bytes_arg",
         "width",
@@ -5195,6 +5439,8 @@ class ExpressionBytesOperationRjust2Base(
 class ExpressionStrOperationRpartitionBase(
     ExpressionTupleShapeExactMixin, ChildrenHavingStrArgSepMixin, ExpressionBase
 ):
+    """Base class for 'str.rpartition' operation node."""
+
     named_children = (
         "str_arg",
         "sep",
@@ -5244,6 +5490,8 @@ class ExpressionStrOperationRpartitionBase(
 class ExpressionBytesOperationRpartitionBase(
     ExpressionTupleShapeExactMixin, ChildrenHavingBytesArgSepMixin, ExpressionBase
 ):
+    """Base class for 'bytes.rpartition' operation node."""
+
     named_children = (
         "bytes_arg",
         "sep",
@@ -5293,6 +5541,8 @@ class ExpressionBytesOperationRpartitionBase(
 class ExpressionStrOperationRsplit3Base(
     ExpressionListShapeExactMixin, ChildrenHavingStrArgSepMaxsplitMixin, ExpressionBase
 ):
+    """Base class for 'str.rsplit' operation node."""
+
     named_children = (
         "str_arg",
         "sep",
@@ -5347,6 +5597,8 @@ class ExpressionStrOperationRsplit3Base(
 class ExpressionStrOperationRsplit2Base(
     ExpressionListShapeExactMixin, ChildrenHavingStrArgSepMixin, ExpressionBase
 ):
+    """Base class for 'str.rsplit' operation node."""
+
     named_children = (
         "str_arg",
         "sep",
@@ -5396,6 +5648,8 @@ class ExpressionStrOperationRsplit2Base(
 class ExpressionStrOperationRsplit1Base(
     ExpressionListShapeExactMixin, ChildHavingStrArgMixin, ExpressionBase
 ):
+    """Base class for 'str.rsplit' operation node."""
+
     named_children = ("str_arg",)
 
     def __init__(self, str_arg, source_ref):
@@ -5438,6 +5692,8 @@ class ExpressionBytesOperationRsplit3Base(
     ChildrenHavingBytesArgSepMaxsplitMixin,
     ExpressionBase,
 ):
+    """Base class for 'bytes.rsplit' operation node."""
+
     named_children = (
         "bytes_arg",
         "sep",
@@ -5492,6 +5748,8 @@ class ExpressionBytesOperationRsplit3Base(
 class ExpressionBytesOperationRsplit2Base(
     ExpressionListShapeExactMixin, ChildrenHavingBytesArgSepMixin, ExpressionBase
 ):
+    """Base class for 'bytes.rsplit' operation node."""
+
     named_children = (
         "bytes_arg",
         "sep",
@@ -5541,6 +5799,8 @@ class ExpressionBytesOperationRsplit2Base(
 class ExpressionBytesOperationRsplit1Base(
     ExpressionListShapeExactMixin, ChildHavingBytesArgMixin, ExpressionBase
 ):
+    """Base class for 'bytes.rsplit' operation node."""
+
     named_children = ("bytes_arg",)
 
     def __init__(self, bytes_arg, source_ref):
@@ -5581,6 +5841,8 @@ class ExpressionBytesOperationRsplit1Base(
 class ExpressionStrOperationRstrip2Base(
     ExpressionStrShapeExactMixin, ChildrenHavingStrArgCharsMixin, ExpressionBase
 ):
+    """Base class for 'str.rstrip' operation node."""
+
     named_children = (
         "str_arg",
         "chars",
@@ -5630,6 +5892,8 @@ class ExpressionStrOperationRstrip2Base(
 class ExpressionStrOperationRstrip1Base(
     ExpressionStrShapeExactMixin, ChildHavingStrArgMixin, ExpressionBase
 ):
+    """Base class for 'str.rstrip' operation node."""
+
     named_children = ("str_arg",)
 
     def __init__(self, str_arg, source_ref):
@@ -5670,6 +5934,8 @@ class ExpressionStrOperationRstrip1Base(
 class ExpressionBytesOperationRstrip2Base(
     ExpressionBytesShapeExactMixin, ChildrenHavingBytesArgCharsMixin, ExpressionBase
 ):
+    """Base class for 'bytes.rstrip' operation node."""
+
     named_children = (
         "bytes_arg",
         "chars",
@@ -5719,6 +5985,8 @@ class ExpressionBytesOperationRstrip2Base(
 class ExpressionBytesOperationRstrip1Base(
     ExpressionBytesShapeExactMixin, ChildHavingBytesArgMixin, ExpressionBase
 ):
+    """Base class for 'bytes.rstrip' operation node."""
+
     named_children = ("bytes_arg",)
 
     def __init__(self, bytes_arg, source_ref):
@@ -5759,6 +6027,8 @@ class ExpressionBytesOperationRstrip1Base(
 class ExpressionDictOperationSetdefault3Base(
     ChildrenHavingDictArgKeyDefaultMixin, ExpressionBase
 ):
+    """Base class for 'dict.setdefault' operation node."""
+
     named_children = (
         "dict_arg",
         "key",
@@ -5779,6 +6049,8 @@ class ExpressionDictOperationSetdefault3Base(
 class ExpressionDictOperationSetdefault2Base(
     ChildrenHavingDictArgKeyMixin, ExpressionBase
 ):
+    """Base class for 'dict.setdefault' operation node."""
+
     named_children = (
         "dict_arg",
         "key",
@@ -5797,6 +6069,8 @@ class ExpressionDictOperationSetdefault2Base(
 class ExpressionStrOperationSplit3Base(
     ExpressionListShapeExactMixin, ChildrenHavingStrArgSepMaxsplitMixin, ExpressionBase
 ):
+    """Base class for 'str.split' operation node."""
+
     named_children = (
         "str_arg",
         "sep",
@@ -5851,6 +6125,8 @@ class ExpressionStrOperationSplit3Base(
 class ExpressionStrOperationSplit2Base(
     ExpressionListShapeExactMixin, ChildrenHavingStrArgSepMixin, ExpressionBase
 ):
+    """Base class for 'str.split' operation node."""
+
     named_children = (
         "str_arg",
         "sep",
@@ -5900,6 +6176,8 @@ class ExpressionStrOperationSplit2Base(
 class ExpressionStrOperationSplit1Base(
     ExpressionListShapeExactMixin, ChildHavingStrArgMixin, ExpressionBase
 ):
+    """Base class for 'str.split' operation node."""
+
     named_children = ("str_arg",)
 
     def __init__(self, str_arg, source_ref):
@@ -5942,6 +6220,8 @@ class ExpressionBytesOperationSplit3Base(
     ChildrenHavingBytesArgSepMaxsplitMixin,
     ExpressionBase,
 ):
+    """Base class for 'bytes.split' operation node."""
+
     named_children = (
         "bytes_arg",
         "sep",
@@ -5996,6 +6276,8 @@ class ExpressionBytesOperationSplit3Base(
 class ExpressionBytesOperationSplit2Base(
     ExpressionListShapeExactMixin, ChildrenHavingBytesArgSepMixin, ExpressionBase
 ):
+    """Base class for 'bytes.split' operation node."""
+
     named_children = (
         "bytes_arg",
         "sep",
@@ -6045,6 +6327,8 @@ class ExpressionBytesOperationSplit2Base(
 class ExpressionBytesOperationSplit1Base(
     ExpressionListShapeExactMixin, ChildHavingBytesArgMixin, ExpressionBase
 ):
+    """Base class for 'bytes.split' operation node."""
+
     named_children = ("bytes_arg",)
 
     def __init__(self, bytes_arg, source_ref):
@@ -6085,6 +6369,8 @@ class ExpressionBytesOperationSplit1Base(
 class ExpressionStrOperationSplitlines2Base(
     ExpressionListShapeExactMixin, ChildrenHavingStrArgKeependsMixin, ExpressionBase
 ):
+    """Base class for 'str.splitlines' operation node."""
+
     named_children = (
         "str_arg",
         "keepends",
@@ -6134,6 +6420,8 @@ class ExpressionStrOperationSplitlines2Base(
 class ExpressionStrOperationSplitlines1Base(
     ExpressionListShapeExactMixin, ChildHavingStrArgMixin, ExpressionBase
 ):
+    """Base class for 'str.splitlines' operation node."""
+
     named_children = ("str_arg",)
 
     def __init__(self, str_arg, source_ref):
@@ -6174,6 +6462,8 @@ class ExpressionStrOperationSplitlines1Base(
 class ExpressionBytesOperationSplitlines2Base(
     ExpressionListShapeExactMixin, ChildrenHavingBytesArgKeependsMixin, ExpressionBase
 ):
+    """Base class for 'bytes.splitlines' operation node."""
+
     named_children = (
         "bytes_arg",
         "keepends",
@@ -6223,6 +6513,8 @@ class ExpressionBytesOperationSplitlines2Base(
 class ExpressionBytesOperationSplitlines1Base(
     ExpressionListShapeExactMixin, ChildHavingBytesArgMixin, ExpressionBase
 ):
+    """Base class for 'bytes.splitlines' operation node."""
+
     named_children = ("bytes_arg",)
 
     def __init__(self, bytes_arg, source_ref):
@@ -6265,6 +6557,8 @@ class ExpressionStrOperationStartswith4Base(
     ChildrenHavingStrArgPrefixStartEndMixin,
     ExpressionBase,
 ):
+    """Base class for 'str.startswith' operation node."""
+
     named_children = (
         "str_arg",
         "prefix",
@@ -6324,6 +6618,8 @@ class ExpressionStrOperationStartswith4Base(
 class ExpressionStrOperationStartswith3Base(
     ExpressionBoolShapeExactMixin, ChildrenHavingStrArgPrefixStartMixin, ExpressionBase
 ):
+    """Base class for 'str.startswith' operation node."""
+
     named_children = (
         "str_arg",
         "prefix",
@@ -6378,6 +6674,8 @@ class ExpressionStrOperationStartswith3Base(
 class ExpressionStrOperationStartswith2Base(
     ExpressionBoolShapeExactMixin, ChildrenHavingStrArgPrefixMixin, ExpressionBase
 ):
+    """Base class for 'str.startswith' operation node."""
+
     named_children = (
         "str_arg",
         "prefix",
@@ -6429,6 +6727,8 @@ class ExpressionBytesOperationStartswith4Base(
     ChildrenHavingBytesArgPrefixStartEndMixin,
     ExpressionBase,
 ):
+    """Base class for 'bytes.startswith' operation node."""
+
     named_children = (
         "bytes_arg",
         "prefix",
@@ -6490,6 +6790,8 @@ class ExpressionBytesOperationStartswith3Base(
     ChildrenHavingBytesArgPrefixStartMixin,
     ExpressionBase,
 ):
+    """Base class for 'bytes.startswith' operation node."""
+
     named_children = (
         "bytes_arg",
         "prefix",
@@ -6544,6 +6846,8 @@ class ExpressionBytesOperationStartswith3Base(
 class ExpressionBytesOperationStartswith2Base(
     ExpressionBoolShapeExactMixin, ChildrenHavingBytesArgPrefixMixin, ExpressionBase
 ):
+    """Base class for 'bytes.startswith' operation node."""
+
     named_children = (
         "bytes_arg",
         "prefix",
@@ -6593,6 +6897,8 @@ class ExpressionBytesOperationStartswith2Base(
 class ExpressionStrOperationStrip2Base(
     ExpressionStrShapeExactMixin, ChildrenHavingStrArgCharsMixin, ExpressionBase
 ):
+    """Base class for 'str.strip' operation node."""
+
     named_children = (
         "str_arg",
         "chars",
@@ -6642,6 +6948,8 @@ class ExpressionStrOperationStrip2Base(
 class ExpressionStrOperationStrip1Base(
     ExpressionStrShapeExactMixin, ChildHavingStrArgMixin, ExpressionBase
 ):
+    """Base class for 'str.strip' operation node."""
+
     named_children = ("str_arg",)
 
     def __init__(self, str_arg, source_ref):
@@ -6682,6 +6990,8 @@ class ExpressionStrOperationStrip1Base(
 class ExpressionBytesOperationStrip2Base(
     ExpressionBytesShapeExactMixin, ChildrenHavingBytesArgCharsMixin, ExpressionBase
 ):
+    """Base class for 'bytes.strip' operation node."""
+
     named_children = (
         "bytes_arg",
         "chars",
@@ -6731,6 +7041,8 @@ class ExpressionBytesOperationStrip2Base(
 class ExpressionBytesOperationStrip1Base(
     ExpressionBytesShapeExactMixin, ChildHavingBytesArgMixin, ExpressionBase
 ):
+    """Base class for 'bytes.strip' operation node."""
+
     named_children = ("bytes_arg",)
 
     def __init__(self, bytes_arg, source_ref):
@@ -6771,6 +7083,8 @@ class ExpressionBytesOperationStrip1Base(
 class ExpressionStrOperationSwapcaseBase(
     ExpressionStrShapeExactMixin, ChildHavingStrArgMixin, ExpressionBase
 ):
+    """Base class for 'str.swapcase' operation node."""
+
     named_children = ("str_arg",)
 
     def __init__(self, str_arg, source_ref):
@@ -6811,6 +7125,8 @@ class ExpressionStrOperationSwapcaseBase(
 class ExpressionBytesOperationSwapcaseBase(
     ExpressionBytesShapeExactMixin, ChildHavingBytesArgMixin, ExpressionBase
 ):
+    """Base class for 'bytes.swapcase' operation node."""
+
     named_children = ("bytes_arg",)
 
     def __init__(self, bytes_arg, source_ref):
@@ -6851,6 +7167,8 @@ class ExpressionBytesOperationSwapcaseBase(
 class ExpressionStrOperationTitleBase(
     ExpressionStrShapeExactMixin, ChildHavingStrArgMixin, ExpressionBase
 ):
+    """Base class for 'str.title' operation node."""
+
     named_children = ("str_arg",)
 
     def __init__(self, str_arg, source_ref):
@@ -6891,6 +7209,8 @@ class ExpressionStrOperationTitleBase(
 class ExpressionBytesOperationTitleBase(
     ExpressionBytesShapeExactMixin, ChildHavingBytesArgMixin, ExpressionBase
 ):
+    """Base class for 'bytes.title' operation node."""
+
     named_children = ("bytes_arg",)
 
     def __init__(self, bytes_arg, source_ref):
@@ -6928,9 +7248,67 @@ class ExpressionBytesOperationTitleBase(
         """Does the operation part raise an exception possibly."""
 
 
-class ExpressionStrOperationTranslateBase(
+class ExpressionStrOperationTranslate3Base(
+    ExpressionStrShapeExactMixin, ChildrenHavingStrArgTableDeleteMixin, ExpressionBase
+):
+    """Base class for 'str.translate' operation node."""
+
+    named_children = (
+        "str_arg",
+        "table",
+        "delete",
+    )
+
+    def __init__(self, str_arg, table, delete, source_ref):
+        ChildrenHavingStrArgTableDeleteMixin.__init__(
+            self,
+            str_arg=str_arg,
+            table=table,
+            delete=delete,
+        )
+
+        ExpressionBase.__init__(self, source_ref)
+
+    def computeExpression(self, trace_collection):
+        if (
+            self.subnode_str_arg.isCompileTimeConstant()
+            and self.subnode_table.isCompileTimeConstant()
+            and self.subnode_delete.isCompileTimeConstant()
+        ):
+            return trace_collection.getCompileTimeComputationResult(
+                node=self,
+                computation=lambda: str.translate(
+                    self.subnode_str_arg.getCompileTimeConstant(),
+                    self.subnode_table.getCompileTimeConstant(),
+                    self.subnode_delete.getCompileTimeConstant(),
+                ),
+                description="Built-in 'str.translate' with constant values.",
+                user_provided=self.subnode_str_arg.user_provided,
+            )
+
+        if self.mayRaiseExceptionOperation():
+            trace_collection.onExceptionRaiseExit(BaseException)
+
+        return self, None, None
+
+    def mayRaiseException(self, exception_type):
+        return (
+            self.subnode_str_arg.mayRaiseException(exception_type)
+            or self.subnode_table.mayRaiseException(exception_type)
+            or self.subnode_delete.mayRaiseException(exception_type)
+            or self.mayRaiseExceptionOperation()
+        )
+
+    @abstractmethod
+    def mayRaiseExceptionOperation(self):
+        """Does the operation part raise an exception possibly."""
+
+
+class ExpressionStrOperationTranslate2Base(
     ExpressionStrShapeExactMixin, ChildrenHavingStrArgTableMixin, ExpressionBase
 ):
+    """Base class for 'str.translate' operation node."""
+
     named_children = (
         "str_arg",
         "table",
@@ -6982,6 +7360,8 @@ class ExpressionBytesOperationTranslate3Base(
     ChildrenHavingBytesArgTableDeleteMixin,
     ExpressionBase,
 ):
+    """Base class for 'bytes.translate' operation node."""
+
     named_children = (
         "bytes_arg",
         "table",
@@ -7036,6 +7416,8 @@ class ExpressionBytesOperationTranslate3Base(
 class ExpressionBytesOperationTranslate2Base(
     ExpressionBytesShapeExactMixin, ChildrenHavingBytesArgTableMixin, ExpressionBase
 ):
+    """Base class for 'bytes.translate' operation node."""
+
     named_children = (
         "bytes_arg",
         "table",
@@ -7087,6 +7469,8 @@ class ExpressionDictOperationUpdate3Base(
     ChildrenHavingDictArgIterablePairsTupleMixin,
     ExpressionBase,
 ):
+    """Base class for 'dict.update' operation node."""
+
     named_children = (
         "dict_arg",
         "iterable",
@@ -7107,6 +7491,8 @@ class ExpressionDictOperationUpdate3Base(
 class ExpressionDictOperationUpdate2Base(
     ExpressionNoneShapeExactMixin, ChildrenHavingDictArgIterableMixin, ExpressionBase
 ):
+    """Base class for 'dict.update' operation node."""
+
     named_children = (
         "dict_arg",
         "iterable",
@@ -7125,6 +7511,8 @@ class ExpressionDictOperationUpdate2Base(
 class ExpressionStrOperationUpperBase(
     ExpressionStrShapeExactMixin, ChildHavingStrArgMixin, ExpressionBase
 ):
+    """Base class for 'str.upper' operation node."""
+
     named_children = ("str_arg",)
 
     def __init__(self, str_arg, source_ref):
@@ -7165,6 +7553,8 @@ class ExpressionStrOperationUpperBase(
 class ExpressionBytesOperationUpperBase(
     ExpressionBytesShapeExactMixin, ChildHavingBytesArgMixin, ExpressionBase
 ):
+    """Base class for 'bytes.upper' operation node."""
+
     named_children = ("bytes_arg",)
 
     def __init__(self, bytes_arg, source_ref):
@@ -7205,6 +7595,8 @@ class ExpressionBytesOperationUpperBase(
 class ExpressionDictOperationValuesBase(
     ExpressionListShapeExactMixin, ChildHavingDictArgMixin, ExpressionBase
 ):
+    """Base class for 'dict.values' operation node."""
+
     named_children = ("dict_arg",)
 
     def __init__(self, dict_arg, source_ref):
@@ -7217,6 +7609,8 @@ class ExpressionDictOperationValuesBase(
 
 
 class ExpressionDictOperationViewitemsBase(ChildHavingDictArgMixin, ExpressionBase):
+    """Base class for 'dict.viewitems' operation node."""
+
     named_children = ("dict_arg",)
 
     def __init__(self, dict_arg, source_ref):
@@ -7229,6 +7623,8 @@ class ExpressionDictOperationViewitemsBase(ChildHavingDictArgMixin, ExpressionBa
 
 
 class ExpressionDictOperationViewkeysBase(ChildHavingDictArgMixin, ExpressionBase):
+    """Base class for 'dict.viewkeys' operation node."""
+
     named_children = ("dict_arg",)
 
     def __init__(self, dict_arg, source_ref):
@@ -7241,6 +7637,8 @@ class ExpressionDictOperationViewkeysBase(ChildHavingDictArgMixin, ExpressionBas
 
 
 class ExpressionDictOperationViewvaluesBase(ChildHavingDictArgMixin, ExpressionBase):
+    """Base class for 'dict.viewvalues' operation node."""
+
     named_children = ("dict_arg",)
 
     def __init__(self, dict_arg, source_ref):
@@ -7255,6 +7653,8 @@ class ExpressionDictOperationViewvaluesBase(ChildHavingDictArgMixin, ExpressionB
 class ExpressionStrOperationZfillBase(
     ExpressionStrShapeExactMixin, ChildrenHavingStrArgWidthMixin, ExpressionBase
 ):
+    """Base class for 'str.zfill' operation node."""
+
     named_children = (
         "str_arg",
         "width",
@@ -7304,6 +7704,8 @@ class ExpressionStrOperationZfillBase(
 class ExpressionBytesOperationZfillBase(
     ExpressionBytesShapeExactMixin, ChildrenHavingBytesArgWidthMixin, ExpressionBase
 ):
+    """Base class for 'bytes.zfill' operation node."""
+
     named_children = (
         "bytes_arg",
         "width",

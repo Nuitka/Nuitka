@@ -63,6 +63,7 @@ class NuitkaPluginDillWorkarounds(NuitkaPluginBase):
             "--include-pickle-support-module",
             action="append",
             dest="pickle_supported_modules",
+            metavar="MODULE",
             choices=("all",) + cls.pickle_package_names,
             default=[],
             help="""\
@@ -89,11 +90,28 @@ Extending "%s" for compiled types to be pickle-able as well.""" % candidate,
                 """\
 import sys
 nuitka_info = globals().get("__uncompiled__", globals().get("__compiled__"))
-sys.modules[nuitka_info.main]._create_compiled_function = \
-    sys.modules[__name__.replace("-postLoad", "-preLoad")]._create_compiled_function
-sys.modules[nuitka_info.main]._create_compiled_function.__module__ = \
-    nuitka_info.main
-""",
+for pickle_module_name in (%(pickle_module_names)s,):
+    pickle_module = sys.modules.get(pickle_module_name)
+    if pickle_module is None:
+        continue
+    create_compiled_function = getattr(
+        pickle_module, "_create_compiled_function", None
+    )
+    if create_compiled_function is None:
+        continue
+    sys.modules[nuitka_info.main]._create_compiled_function = \
+        create_compiled_function
+    create_compiled_function.__module__ = nuitka_info.main
+    break
+"""
+                % {
+                    "pickle_module_names": ", ".join(
+                        repr(pickle_module_name)
+                        for pickle_module_name in reversed(
+                            self.pickle_selected_packages
+                        )
+                    )
+                },
                 """
 Extending for compiled types to be pickle-able as well.""",
             )

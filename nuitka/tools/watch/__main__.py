@@ -9,6 +9,7 @@ of Nuitka changes on PyPI packages.
 
 import os
 import subprocess
+import sys
 
 from nuitka.containers.OrderedDicts import OrderedDict
 from nuitka.options.CommandLineOptionsTools import makeOptionsParser
@@ -16,6 +17,7 @@ from nuitka.PythonFlavors import isAnacondaPython, isMSYS2MingwPython
 from nuitka.PythonVersions import getTestExecutionPythonVersions
 from nuitka.reports.CompilationReportReader import (
     getCompilationOutputBinary,
+    getCompilationPythonVersion,
     parseCompilationReport,
 )
 from nuitka.tools.testing.Common import extractNuitkaVersionFromFilePath
@@ -23,6 +25,7 @@ from nuitka.Tracing import OurLogger
 from nuitka.TreeXML import convertFileToXML
 from nuitka.utils.Execution import (
     check_call,
+    check_output,
     executeProcess,
     withEnvironmentVarsOverridden,
 )
@@ -30,7 +33,10 @@ from nuitka.utils.FileOperations import (
     deleteFile,
     getFileContents,
     getFileContentsHash,
+    getNormalizedAbsolutePath,
     getNormalizedPath,
+    getUserInputNormalizedAbsolutePath,
+    getUserInputNormalizedPath,
     listDir,
     makePath,
     putTextFileContents,
@@ -38,6 +44,7 @@ from nuitka.utils.FileOperations import (
     removeDirectory,
     withDirectoryChange,
 )
+from nuitka.utils.Hashing import getStringHash
 from nuitka.utils.InstalledPythons import findPythons
 from nuitka.utils.Utils import isLinux, isMacOS, isWin32Windows
 from nuitka.utils.Yaml import parseYaml
@@ -57,6 +64,24 @@ from .Pipenv import (
 )
 
 watch_logger = OurLogger("", base_style="blue")
+
+
+def _getNuitkaFlavor(binary_filename):
+    version_output = check_output(
+        [sys.executable, binary_filename, "--update-check=never", "--version"],
+        logger=watch_logger,
+    )
+
+    for line in version_output.splitlines():
+        if line.startswith(b"Commercial: "):
+            if line == b"Commercial: None":
+                return "standard"
+
+            return "commercial"
+
+    return watch_logger.sysexit(
+        "Error, no commercial version information in output of '%s'." % binary_filename
+    )
 
 
 def _compareNuitkaVersions(version_a, version_b, consider_rc):
@@ -80,7 +105,7 @@ def scanCases(path):
 
 
 def selectPythons(python_version_req, anaconda, msys2_mingw64):
-    for _python_version_str, installed_python_for_version in installed_pythons.items():
+    for installed_python_for_version in installed_pythons.values():
         for installed_python in installed_python_for_version:
             if anaconda and not installed_python.isAnacondaPython():
                 continue
@@ -148,6 +173,44 @@ def selectOS(os_values):
     return None
 
 
+def _runCompiledCase(report_filename):
+    compilation_report = parseCompilationReport(report_filename)
+
+    binary_filename = getCompilationOutputBinary(
+        compilation_report=compilation_report,
+        prefixes=(("${cwd}", os.getcwd()),),
+    )
+
+    env = {
+        "NUITKA_LAUNCH_TOKEN": "1",
+        "NUITKA_TEST_INTERACTIVE": "0",
+    }
+
+    with withEnvironmentVarsOverridden(env):
+        process_result = executeProcess(
+            [binary_filename],
+            timeout=5 * 60,
+        )
+
+    with open("compiled-stdout.txt", "wb") as output:
+        output.write(process_result.stdout)
+    with open("compiled-stderr.txt", "wb") as output:
+        output.write(process_result.stderr)
+
+    if process_result.exit_code == 0:
+        deleteFile("compiled-exit.txt", must_exist=False)
+    else:
+        putTextFileContents(
+            filename="compiled-exit.txt",
+            contents=str(process_result.exit_code),
+        )
+
+        watch_logger.sysexit(
+            "Error, failed to execute %s with code %d."
+            % (binary_filename, process_result.exit_code)
+        )
+
+
 def _compileCase(case_data, case_dir, installed_python, lock_filename, jobs):
     preferred_package_type = installed_python.getPreferredPackageType()
 
@@ -185,58 +248,41 @@ def _compileCase(case_data, case_dir, installed_python, lock_filename, jobs):
 
     report_filename = "compilation-report.xml"
 
+    report_user_options = [
+        "--report-user-provided=pipenv_hash=%s" % getFileContentsHash(lock_filename),
+        "--report-user-provided=case_hash=%s"
+        % getFileContentsHash(os.path.join(case_dir, case_data["filename"])),
+    ]
+
+    if case_data.get("version") is not None:
+        report_user_options.append(
+            "--report-user-provided=case_version=%s" % case_data["version"]
+        )
+
+    if nuitka_extra_options:
+        report_user_options.append(
+            "--report-user-provided=nuitka_extra_options=%s"
+            % _getNuitkaExtraOptionsHash(nuitka_extra_options)
+        )
+
     check_call(
         run_command
         + [
             nuitka_binary,
             relpath(os.path.join(case_dir, case_data["filename"])),
             "--assume-yes-for-downloads",
+            "--remove-output",
+            "--update-check=never",
             "--report=%s" % report_filename,
             "--report-diffable",
-            "--report-user-provided=pipenv_hash=%s"
-            % getFileContentsHash(lock_filename),
         ]
+        + report_user_options
         + extra_options,
         logger=watch_logger,
     )
 
     if case_data["interactive"] == "no":
-        compilation_report = parseCompilationReport(report_filename)
-
-        binary_filename = getCompilationOutputBinary(
-            compilation_report=compilation_report,
-            prefixes=(("${cwd}", os.getcwd()),),
-        )
-
-        env = {
-            "NUITKA_LAUNCH_TOKEN": "1",
-            "NUITKA_TEST_INTERACTIVE": "0",
-        }
-
-        with withEnvironmentVarsOverridden(env):
-            process_result = executeProcess(
-                [binary_filename],
-                timeout=5 * 60,
-            )
-
-        with open("compiled-stdout.txt", "wb") as output:
-            output.write(process_result.stdout)
-        with open("compiled-stderr.txt", "wb") as output:
-            output.write(process_result.stderr)
-
-        if process_result.exit_code == 0:
-            deleteFile("compiled-exit.txt", must_exist=False)
-        else:
-            putTextFileContents(
-                filename="compiled-exit.txt",
-                contents=str(process_result.exit_code),
-            )
-
-        if process_result.exit_code != 0:
-            return watch_logger.sysexit(
-                "Error, failed to execute %s with code %d."
-                % (binary_filename, process_result.exit_code)
-            )
+        _runCompiledCase(report_filename)
 
 
 def _updateCaseLock(
@@ -280,7 +326,6 @@ def _updateCaseLock(
                 case_data=case_data,
             )
 
-            # Update or create lockfile of pipenv.
             lock_filename = updatePacmanLockFile(logger=watch_logger)
         elif preferred_package_type == "conda":
             updateCondaEnvironmentFile(
@@ -288,7 +333,6 @@ def _updateCaseLock(
                 case_data=case_data,
             )
 
-            # Update or create lockfile of pipenv.
             lock_filename = updateCondaEnvironmentLockFile(
                 logger=watch_logger,
                 installed_python=installed_python,
@@ -302,13 +346,145 @@ def _updateCaseLock(
     return lock_filename
 
 
-def _getPipenvHashFromReport(report_root):
+def _getReportUserDataValue(report_root, key):
     user_data = report_root.find("user-data")
     if user_data is not None:
-        pipenv_hash = user_data.find("pipenv_hash")
-        if pipenv_hash is not None:
-            return pipenv_hash.text
+        value = user_data.find(key)
+        if value is not None:
+            return value.text
     return None
+
+
+def _getNuitkaExtraOptionsHash(nuitka_extra_options):
+    if not nuitka_extra_options:
+        return None
+
+    return getStringHash(nuitka_extra_options)
+
+
+def _getReportCommandLineOptions(report_root):
+    command_line = report_root.find("command_line")
+    if command_line is None:
+        return set()
+
+    return set(
+        option.attrib["value"]
+        for option in command_line.findall("option")
+        if "value" in option.attrib
+    )
+
+
+def _hasChangedNuitkaExtraOptions(old_report_root, nuitka_extra_options):
+    current_hash = _getNuitkaExtraOptionsHash(nuitka_extra_options)
+    old_hash = _getReportUserDataValue(old_report_root, "nuitka_extra_options")
+
+    if old_hash is not None:
+        return old_hash != current_hash
+
+    # Older reports predate the user data entry; use the recorded command
+    # line to tell whether the options were already active.
+    if not nuitka_extra_options:
+        return False
+
+    old_options = _getReportCommandLineOptions(old_report_root)
+
+    return any(option not in old_options for option in nuitka_extra_options.split())
+
+
+def _isCompilationNeeded(
+    case_data,
+    case_dir,
+    lock_filename,
+    old_report_root,
+    nuitka_update_mode,
+    installed_python,
+):
+    if old_report_root is None:
+        return True
+
+    existing_hash = getFileContentsHash(lock_filename)
+    old_report_root_hash = _getReportUserDataValue(old_report_root, "pipenv_hash")
+
+    case_filename = os.path.join(case_dir, case_data["filename"])
+    existing_case_hash = getFileContentsHash(case_filename)
+    old_case_hash = _getReportUserDataValue(old_report_root, "case_hash")
+
+    existing_case_version = case_data.get("version")
+    old_case_version = _getReportUserDataValue(old_report_root, "case_version")
+
+    old_nuitka_version = old_report_root.attrib["nuitka_version"]
+
+    if nuitka_update_mode == "force":
+        need_compile = True
+    elif nuitka_update_mode != "newer":
+        need_compile = False
+    elif _compareNuitkaVersions(old_nuitka_version, nuitka_version, consider_rc=True):
+        need_compile = True
+    elif existing_hash != old_report_root_hash:
+        watch_logger.info(
+            "Recompilation with identical Nuitka for '%s' due to changed pipfile."
+            % lock_filename
+        )
+
+        need_compile = True
+    elif existing_case_hash != old_case_hash:
+        watch_logger.info(
+            "Recompilation with identical Nuitka for '%s' due to changed case program."
+            % case_filename
+        )
+
+        need_compile = True
+    elif (
+        existing_case_version is not None
+        and str(existing_case_version) != old_case_version
+    ):
+        watch_logger.info(
+            "Recompilation with identical Nuitka for '%s' due to changed case version."
+            % case_filename
+        )
+
+        need_compile = True
+    elif old_nuitka_version != nuitka_version:
+        watch_logger.info(
+            "Skipping compilation of old Nuitka %s result with Nuitka %s for '%s'."
+            % (old_nuitka_version, nuitka_version, lock_filename)
+        )
+
+        need_compile = False
+    elif _hasChangedNuitkaExtraOptions(
+        old_report_root=old_report_root,
+        nuitka_extra_options=os.getenv("NUITKA_EXTRA_OPTIONS"),
+    ):
+        watch_logger.info(
+            "Recompilation with identical Nuitka for '%s' due to changed Nuitka extra options."
+            % lock_filename
+        )
+
+        need_compile = True
+    elif getCompilationPythonVersion(old_report_root) not in (
+        None,
+        installed_python.getPythonFullVersion(),
+    ):
+        watch_logger.info(
+            "Recompilation with identical Nuitka for '%s' due to changed Python (%s -> %s)."
+            % (
+                lock_filename,
+                getCompilationPythonVersion(old_report_root),
+                installed_python.getPythonFullVersion(),
+            )
+        )
+
+        need_compile = True
+    elif old_report_root.attrib["completion"] != "yes":
+        need_compile = True
+    else:
+        watch_logger.info(
+            "Skipping compilation with identical Nuitka for '%s'." % lock_filename
+        )
+
+        need_compile = False
+
+    return need_compile
 
 
 def _updateCase(
@@ -321,9 +497,6 @@ def _updateCase(
     result_path,
     jobs,
 ):
-    # Many details and cases due to package method being handled here.
-    # pylint: disable=too-many-branches,too-many-locals
-
     # We trust the case yaml files, pylint: disable=eval-used
     wait_for_req = case_data.get("wait_for", "False")
     if eval(
@@ -384,52 +557,14 @@ def _updateCase(
     with withDirectoryChange(result_path):
         old_report_root = convertFileToXML("compilation-report.xml")
 
-        if old_report_root is not None:
-            existing_hash = getFileContentsHash(lock_filename)
-            old_report_root_hash = _getPipenvHashFromReport(old_report_root)
-
-            old_nuitka_version = old_report_root.attrib["nuitka_version"]
-
-            if nuitka_update_mode == "force":
-                need_compile = True
-            elif nuitka_update_mode == "newer":
-                if _compareNuitkaVersions(
-                    old_nuitka_version, nuitka_version, consider_rc=True
-                ):
-                    need_compile = True
-                else:
-                    if existing_hash != old_report_root_hash:
-                        watch_logger.info(
-                            "Recompilation with identical Nuitka for '%s' due to changed pipfile."
-                            % lock_filename
-                        )
-
-                        need_compile = True
-                    elif old_nuitka_version == nuitka_version:
-                        if old_report_root.attrib["completion"] != "yes":
-                            need_compile = True
-                        else:
-                            watch_logger.info(
-                                "Skipping compilation with identical Nuitka for '%s'."
-                                % lock_filename
-                            )
-
-                            need_compile = False
-                    else:
-                        watch_logger.info(
-                            "Skipping compilation of old Nuitka %s result with Nuitka %s for '%s'."
-                            % (
-                                old_nuitka_version,
-                                nuitka_version,
-                                lock_filename,
-                            )
-                        )
-
-                        need_compile = False
-            else:
-                need_compile = False
-        else:
-            need_compile = True
+        need_compile = _isCompilationNeeded(
+            case_data=case_data,
+            case_dir=case_dir,
+            lock_filename=lock_filename,
+            old_report_root=old_report_root,
+            nuitka_update_mode=nuitka_update_mode,
+            installed_python=installed_python,
+        )
 
         if not need_compile:
             if os.path.exists("compiled-exit.txt"):
@@ -491,9 +626,10 @@ def updateCase(
         watch_logger.info("Consider with Python %s." % installed_python)
 
         result_path = getNormalizedPath(
-            "result/%(case_name)s/%(python_version)s-%(os_name)s"
+            "result/%(nuitka_flavor)s/%(case_name)s/%(python_version)s-%(os_name)s"
             % {
                 "case_name": case_name,
+                "nuitka_flavor": nuitka_flavor,
                 "os_name": os_name,
                 "python_version": installed_python.getPythonVersion(),
             }
@@ -531,9 +667,17 @@ installed_pythons = OrderedDict()
 
 nuitka_binary = None
 nuitka_version = None
+nuitka_flavor = None
 
 
 def main():
+    # Avoid localized output of compilers and tools for reproducible reports,
+    # and avoid pipenv warning about a missing 'LANG' environment variable.
+    # spell-checker: ignore VSLANG
+    os.environ["LC_ALL"] = "C"
+    os.environ["LANG"] = "C"
+    os.environ["VSLANG"] = "1033"
+
     global nuitka_binary  # shared for all run, pylint: disable=global-statement
     nuitka_binary = os.path.normpath(
         os.path.join(os.path.dirname(__file__), "..", "..", "..", "bin", "nuitka")
@@ -611,7 +755,7 @@ to reserve cores.""",
     assert len(positional_args) <= 1, positional_args
 
     if positional_args:
-        base_dir = positional_args[0]
+        base_dir = getUserInputNormalizedPath(positional_args[0])
 
         if not os.path.isdir(base_dir):
             watch_logger.sysexit("Error, '%s' is not a directory" % base_dir)
@@ -627,7 +771,7 @@ to reserve cores.""",
             module_specs=(None if isAnacondaPython() else "pipenv"),
         )
 
-    nuitka_binary = os.path.abspath(os.path.expanduser(options.nuitka_binary))
+    nuitka_binary = getUserInputNormalizedAbsolutePath(options.nuitka_binary)
     assert os.path.exists(nuitka_binary)
 
     global nuitka_version  # singleton, pylint: disable=global-statement
@@ -635,9 +779,14 @@ to reserve cores.""",
         os.path.join(os.path.dirname(nuitka_binary), "..", "nuitka", "Version.py")
     )
 
-    watch_logger.info("Working with Nuitka %s." % nuitka_version)
+    global nuitka_flavor  # singleton, pylint: disable=global-statement
+    nuitka_flavor = _getNuitkaFlavor(nuitka_binary)
 
-    base_dir = os.path.abspath(base_dir)
+    watch_logger.info(
+        "Working with Nuitka %s (%s flavor)." % (nuitka_version, nuitka_flavor)
+    )
+
+    base_dir = getNormalizedAbsolutePath(base_dir)
 
     if options.nuitka_pr_mode is not None:
         pr_category, pr_description = options.nuitka_pr_mode.split(",")

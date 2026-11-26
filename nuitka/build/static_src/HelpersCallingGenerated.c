@@ -1,6 +1,7 @@
 //     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
-/* WARNING, this code is GENERATED. Modify the template CodeTemplateCallsPositional.c.j2 instead! */
+/* WARNING, this code is GENERATED. Modify the templates CodeTemplateCallsPositional.c.j2, CodeTemplateCallsMixed.c.j2,
+ * CodeTemplateCallsPositionalMethodDescr.c.j2, CodeTemplateCallsMethodPositional.c.j2 instead! */
 #pragma once
 
 /* This file is included from another C file, help IDEs to still parse it on its own. */
@@ -8,9 +9,11 @@
 #include "nuitka/prelude.h"
 #endif
 
+#ifndef __IDE_ONLY__
 // We are switching some warnings off for this code, as they are triggered
-// by the generated code constructs in a way that is not useful.
-// spell-checker: ignore Wparentheses GNUC
+// by the generated code constructs in a way that is not useful. For IDE
+// parses this is skipped, as they report the pop without the push.
+// spell-checker: ignore GNUC Wparentheses
 #if defined(__clang__)
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wparentheses-equality"
@@ -20,7 +23,9 @@
 #endif
 #pragma GCC diagnostic ignored "-Wparentheses"
 #endif
+#endif
 
+/* Generated from CodeTemplateCallsPositional.c.j2 */
 PyObject *CALL_FUNCTION_NO_ARGS(PyThreadState *tstate, PyObject *called) {
     CHECK_OBJECT(called);
 
@@ -104,7 +109,7 @@ PyObject *CALL_FUNCTION_NO_ARGS(PyThreadState *tstate, PyObject *called) {
         }
 #if !defined(_NUITKA_EXPERIMENTAL_DISABLE_CFUNCTION_CALL_OPT)
     } else if (PyCFunction_CheckExact(called)) {
-#if PYTHON_VERSION >= 0x380
+#if PYTHON_VERSION >= 0x380 && !defined(_NUITKA_EXPERIMENTAL_DISABLE_VECTORCALL_USAGE)
 #ifdef _NUITKA_FULL_COMPAT
         if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
             return NULL;
@@ -122,15 +127,16 @@ PyObject *CALL_FUNCTION_NO_ARGS(PyThreadState *tstate, PyObject *called) {
 
             CHECK_OBJECT_X(result);
         } else {
-            PyCFunction method = PyCFunction_GET_FUNCTION(called);
+            Nuitka_PyCFunctionUnion method;
+            method.as_function = PyCFunction_GET_FUNCTION(called);
             PyObject *self = PyCFunction_GET_SELF(called);
 
             PyObject *pos_args = const_tuple_empty;
 
             if (flags & METH_KEYWORDS) {
-                result = (*(PyCFunctionWithKeywords)(void (*)(void))method)(self, pos_args, NULL);
+                result = (*method.as_function_kw)(self, pos_args, NULL);
             } else {
-                result = (*method)(self, pos_args);
+                result = (*method.as_function)(self, pos_args);
             }
         }
 
@@ -141,12 +147,9 @@ PyObject *CALL_FUNCTION_NO_ARGS(PyThreadState *tstate, PyObject *called) {
 
         return Nuitka_CheckFunctionResult(tstate, called, result);
 #else
-        // Try to be fast about wrapping the arguments.
         int flags = PyCFunction_GET_FLAGS(called) & ~(METH_CLASS | METH_STATIC | METH_COEXIST);
 
         if (likely(flags & METH_NOARGS)) {
-            // Recursion guard is not strictly necessary, as we already have
-            // one on our way to here.
 #ifdef _NUITKA_FULL_COMPAT
             if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
                 return NULL;
@@ -167,15 +170,21 @@ PyObject *CALL_FUNCTION_NO_ARGS(PyThreadState *tstate, PyObject *called) {
             SET_CURRENT_EXCEPTION_TYPE0_FORMAT1(PyExc_TypeError, "%s() takes exactly one argument (0 given)",
                                                 ((PyCFunctionObject *)called)->m_ml->ml_name);
             return NULL;
+#if PYTHON_VERSION < 0x360
         } else if (flags & METH_VARARGS) {
-            // Recursion guard is not strictly necessary, as we already have
-            // one on our way to here.
+#elif PYTHON_VERSION < 0x370
+        } else if (flags == METH_VARARGS || flags == (METH_VARARGS | METH_KEYWORDS) || flags == METH_FASTCALL) {
+#else
+        } else if (flags == METH_VARARGS || flags == (METH_VARARGS | METH_KEYWORDS) || flags == METH_FASTCALL ||
+                   flags == (METH_FASTCALL | METH_KEYWORDS)) {
+#endif
 #ifdef _NUITKA_FULL_COMPAT
             if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
                 return NULL;
             }
 #endif
-            PyCFunction method = PyCFunction_GET_FUNCTION(called);
+            Nuitka_PyCFunctionUnion method;
+            method.as_function = PyCFunction_GET_FUNCTION(called);
             PyObject *self = PyCFunction_GET_SELF(called);
 
             PyObject *result;
@@ -183,25 +192,28 @@ PyObject *CALL_FUNCTION_NO_ARGS(PyThreadState *tstate, PyObject *called) {
 #if PYTHON_VERSION < 0x360
             PyObject *pos_args = const_tuple_empty;
             if (flags & METH_KEYWORDS) {
-                result = (*(PyCFunctionWithKeywords)method)(self, pos_args, NULL);
+                result = (*method.as_function_kw)(self, pos_args, NULL);
             } else {
-                result = (*method)(self, pos_args);
+                result = (*method.as_function)(self, pos_args);
             }
 
 #else
             if (flags == (METH_VARARGS | METH_KEYWORDS)) {
                 PyObject *pos_args = const_tuple_empty;
-                result = (*(PyCFunctionWithKeywords)method)(self, pos_args, NULL);
+                result = (*method.as_function_kw)(self, pos_args, NULL);
             } else if (flags == METH_FASTCALL) {
 #if PYTHON_VERSION < 0x370
-                result = (*(_PyCFunctionFast)method)(self, NULL, 0, NULL);
+                result = (*method.as_function_fast)(self, NULL, 0, NULL);
 #else
-                PyObject *pos_args = const_tuple_empty;
-                result = (*(_PyCFunctionFast)method)(self, &pos_args, 0);
+                result = (*method.as_function_fast)(self, NULL, 0);
+#endif
+#if PYTHON_VERSION >= 0x370
+            } else if (flags == (METH_FASTCALL | METH_KEYWORDS)) {
+                result = (*method.as_function_fast_kw)(self, NULL, 0, NULL);
 #endif
             } else {
                 PyObject *pos_args = const_tuple_empty;
-                result = (*method)(self, pos_args);
+                result = (*method.as_function)(self, pos_args);
             }
 #endif
 
@@ -217,11 +229,7 @@ PyObject *CALL_FUNCTION_NO_ARGS(PyThreadState *tstate, PyObject *called) {
 #endif
 #if PYTHON_VERSION < 0x380 && !defined(_NUITKA_EXPERIMENTAL_DISABLE_UNCOMPILED_FUNCTION_CALL_OPT)
     } else if (PyFunction_Check(called)) {
-#if PYTHON_VERSION < 0x3b0
         PyObject *result = callPythonFunctionNoArgs(called);
-#else
-        PyObject *result = _PyFunction_Vectorcall(called, NULL, 0, NULL);
-#endif
         CHECK_OBJECT_X(result);
 
         return result;
@@ -271,15 +279,12 @@ PyObject *CALL_FUNCTION_NO_ARGS(PyThreadState *tstate, PyObject *called) {
                     return obj;
                 }
 
-                // Work on produced type.
                 type = Py_TYPE(obj);
 
                 if (NuitkaType_HasFeatureClass(type) && type->tp_init != NULL) {
                     if (type->tp_init == default_tp_init_wrapper) {
 
                         PyObject *init_method = Nuitka_TypeLookup(type, const_str_plain___init__);
-
-                        // Not really allowed, since we wouldn't have the default wrapper set.
                         assert(init_method != NULL);
 
                         bool is_compiled_function = false;
@@ -297,6 +302,8 @@ PyObject *CALL_FUNCTION_NO_ARGS(PyThreadState *tstate, PyObject *called) {
                         }
 
                         if (unlikely(init_method == NULL)) {
+                            Py_DECREF(obj);
+
                             if (!HAS_ERROR_OCCURRED(tstate)) {
                                 SET_CURRENT_EXCEPTION_TYPE0_VALUE0(tstate, PyExc_AttributeError,
                                                                    const_str_plain___init__);
@@ -307,11 +314,15 @@ PyObject *CALL_FUNCTION_NO_ARGS(PyThreadState *tstate, PyObject *called) {
 
                         PyObject *result;
                         if (is_compiled_function) {
+                            if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
+                                Py_DECREF(obj);
+                                return NULL;
+                            }
                             result = Nuitka_CallMethodFunctionNoArgs(
                                 tstate, (struct Nuitka_FunctionObject const *)init_method, obj);
+                            Py_LeaveRecursiveCall();
                         } else {
                             result = CALL_FUNCTION_NO_ARGS(tstate, init_method);
-
                             if (init_method_needs_release) {
                                 Py_DECREF(init_method);
                             }
@@ -322,14 +333,15 @@ PyObject *CALL_FUNCTION_NO_ARGS(PyThreadState *tstate, PyObject *called) {
                             return NULL;
                         }
 
-                        Py_DECREF(result);
-
                         if (unlikely(result != Py_None)) {
                             Py_DECREF(obj);
 
                             SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("__init__() should return None, not '%s'", result);
+                            Py_DECREF(result);
                             return NULL;
                         }
+
+                        Py_DECREF(result);
                     } else {
 
                         if (unlikely(type->tp_init(obj, pos_args, NULL) < 0)) {
@@ -372,6 +384,7 @@ PyObject *CALL_FUNCTION_NO_ARGS(PyThreadState *tstate, PyObject *called) {
             PyObject *descr_method = descr_get(init_method, obj, called);
 
             if (unlikely(descr_method == NULL)) {
+                Py_DECREF(obj);
                 return NULL;
             }
 
@@ -380,21 +393,30 @@ PyObject *CALL_FUNCTION_NO_ARGS(PyThreadState *tstate, PyObject *called) {
 
         PyObject *result;
         if (is_compiled_function) {
+            if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
+                Py_DECREF(obj);
+                return NULL;
+            }
             result = Nuitka_CallMethodFunctionNoArgs(tstate, (struct Nuitka_FunctionObject const *)init_method, obj);
+            Py_LeaveRecursiveCall();
         } else {
             result = CALL_FUNCTION_NO_ARGS(tstate, init_method);
             Py_DECREF(init_method);
         }
         if (unlikely(result == NULL)) {
+            Py_DECREF(obj);
+            return NULL;
+        }
+
+        if (unlikely(result != Py_None)) {
+            Py_DECREF(obj);
+
+            SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("__init__() should return None, not '%s'", result);
+            Py_DECREF(result);
             return NULL;
         }
 
         Py_DECREF(result);
-
-        if (unlikely(result != Py_None)) {
-            SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("__init__() should return None, not '%s'", result);
-            return NULL;
-        }
 
         CHECK_OBJECT_X(obj);
 
@@ -414,13 +436,6 @@ PyObject *CALL_FUNCTION_NO_ARGS(PyThreadState *tstate, PyObject *called) {
 #endif
     }
 
-#if 0
-    PRINT_NEW_LINE();
-    PRINT_STRING("FALLBACK");
-    PRINT_ITEM(called);
-    PRINT_NEW_LINE();
-#endif
-
     PyObject *result = CALL_FUNCTION(tstate, called, const_tuple_empty, NULL);
 
     CHECK_OBJECT_X(result);
@@ -428,7 +443,7 @@ PyObject *CALL_FUNCTION_NO_ARGS(PyThreadState *tstate, PyObject *called) {
     return result;
 }
 PyObject *CALL_FUNCTION_WITH_SINGLE_ARG(PyThreadState *tstate, PyObject *called, PyObject *arg) {
-    PyObject *const *args = &arg; // For easier code compatibility.
+    PyObject *const *args = &arg;
     CHECK_OBJECT(called);
     CHECK_OBJECTS(args, 1);
 
@@ -485,7 +500,13 @@ PyObject *CALL_FUNCTION_WITH_SINGLE_ARG(PyThreadState *tstate, PyObject *called,
                 return NULL;
             }
 
+            if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
+                return NULL;
+            }
+
             PyObject *result = Nuitka_CallFunctionPosArgs(tstate, method->m_function, args, 1);
+
+            Py_LeaveRecursiveCall();
 
             CHECK_OBJECT_X(result);
 
@@ -536,7 +557,7 @@ PyObject *CALL_FUNCTION_WITH_SINGLE_ARG(PyThreadState *tstate, PyObject *called,
         }
 #if !defined(_NUITKA_EXPERIMENTAL_DISABLE_CFUNCTION_CALL_OPT)
     } else if (PyCFunction_CheckExact(called)) {
-#if PYTHON_VERSION >= 0x380
+#if PYTHON_VERSION >= 0x380 && !defined(_NUITKA_EXPERIMENTAL_DISABLE_VECTORCALL_USAGE)
 #ifdef _NUITKA_FULL_COMPAT
         if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
             return NULL;
@@ -554,15 +575,16 @@ PyObject *CALL_FUNCTION_WITH_SINGLE_ARG(PyThreadState *tstate, PyObject *called,
 
             CHECK_OBJECT_X(result);
         } else {
-            PyCFunction method = PyCFunction_GET_FUNCTION(called);
+            Nuitka_PyCFunctionUnion method;
+            method.as_function = PyCFunction_GET_FUNCTION(called);
             PyObject *self = PyCFunction_GET_SELF(called);
 
             PyObject *pos_args = MAKE_TUPLE(tstate, args, 1);
 
             if (flags & METH_KEYWORDS) {
-                result = (*(PyCFunctionWithKeywords)(void (*)(void))method)(self, pos_args, NULL);
+                result = (*method.as_function_kw)(self, pos_args, NULL);
             } else {
-                result = (*method)(self, pos_args);
+                result = (*method.as_function)(self, pos_args);
             }
 
             Py_DECREF(pos_args);
@@ -575,7 +597,6 @@ PyObject *CALL_FUNCTION_WITH_SINGLE_ARG(PyThreadState *tstate, PyObject *called,
 
         return Nuitka_CheckFunctionResult(tstate, called, result);
 #else
-        // Try to be fast about wrapping the arguments.
         int flags = PyCFunction_GET_FLAGS(called) & ~(METH_CLASS | METH_STATIC | METH_COEXIST);
 
         if (unlikely(flags & METH_NOARGS)) {
@@ -583,8 +604,6 @@ PyObject *CALL_FUNCTION_WITH_SINGLE_ARG(PyThreadState *tstate, PyObject *called,
                                                 ((PyCFunctionObject *)called)->m_ml->ml_name);
             return NULL;
         } else if ((flags & METH_O)) {
-            // Recursion guard is not strictly necessary, as we already have
-            // one on our way to here.
 #ifdef _NUITKA_FULL_COMPAT
             if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
                 return NULL;
@@ -602,15 +621,21 @@ PyObject *CALL_FUNCTION_WITH_SINGLE_ARG(PyThreadState *tstate, PyObject *called,
             CHECK_OBJECT_X(result);
 
             return Nuitka_CheckFunctionResult(tstate, called, result);
+#if PYTHON_VERSION < 0x360
         } else if (flags & METH_VARARGS) {
-            // Recursion guard is not strictly necessary, as we already have
-            // one on our way to here.
+#elif PYTHON_VERSION < 0x370
+        } else if (flags == METH_VARARGS || flags == (METH_VARARGS | METH_KEYWORDS) || flags == METH_FASTCALL) {
+#else
+        } else if (flags == METH_VARARGS || flags == (METH_VARARGS | METH_KEYWORDS) || flags == METH_FASTCALL ||
+                   flags == (METH_FASTCALL | METH_KEYWORDS)) {
+#endif
 #ifdef _NUITKA_FULL_COMPAT
             if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
                 return NULL;
             }
 #endif
-            PyCFunction method = PyCFunction_GET_FUNCTION(called);
+            Nuitka_PyCFunctionUnion method;
+            method.as_function = PyCFunction_GET_FUNCTION(called);
             PyObject *self = PyCFunction_GET_SELF(called);
 
             PyObject *result;
@@ -618,28 +643,30 @@ PyObject *CALL_FUNCTION_WITH_SINGLE_ARG(PyThreadState *tstate, PyObject *called,
 #if PYTHON_VERSION < 0x360
             PyObject *pos_args = MAKE_TUPLE(tstate, args, 1);
             if (flags & METH_KEYWORDS) {
-                result = (*(PyCFunctionWithKeywords)method)(self, pos_args, NULL);
+                result = (*method.as_function_kw)(self, pos_args, NULL);
             } else {
-                result = (*method)(self, pos_args);
+                result = (*method.as_function)(self, pos_args);
             }
 
             Py_DECREF(pos_args);
 #else
             if (flags == (METH_VARARGS | METH_KEYWORDS)) {
                 PyObject *pos_args = MAKE_TUPLE(tstate, args, 1);
-                result = (*(PyCFunctionWithKeywords)method)(self, pos_args, NULL);
+                result = (*method.as_function_kw)(self, pos_args, NULL);
                 Py_DECREF(pos_args);
             } else if (flags == METH_FASTCALL) {
 #if PYTHON_VERSION < 0x370
-                result = (*(_PyCFunctionFast)method)(self, (PyObject **)args, 1, NULL);
+                result = (*method.as_function_fast)(self, (PyObject **)args, 1, NULL);
 #else
-                PyObject *pos_args = MAKE_TUPLE(tstate, args, 1);
-                result = (*(_PyCFunctionFast)method)(self, &pos_args, 1);
-                Py_DECREF(pos_args);
+                result = (*method.as_function_fast)(self, args, 1);
+#endif
+#if PYTHON_VERSION >= 0x370
+            } else if (flags == (METH_FASTCALL | METH_KEYWORDS)) {
+                result = (*method.as_function_fast_kw)(self, args, 1, NULL);
 #endif
             } else {
                 PyObject *pos_args = MAKE_TUPLE(tstate, args, 1);
-                result = (*method)(self, pos_args);
+                result = (*method.as_function)(self, pos_args);
                 Py_DECREF(pos_args);
             }
 #endif
@@ -656,11 +683,7 @@ PyObject *CALL_FUNCTION_WITH_SINGLE_ARG(PyThreadState *tstate, PyObject *called,
 #endif
 #if PYTHON_VERSION < 0x380 && !defined(_NUITKA_EXPERIMENTAL_DISABLE_UNCOMPILED_FUNCTION_CALL_OPT)
     } else if (PyFunction_Check(called)) {
-#if PYTHON_VERSION < 0x3b0
         PyObject *result = callPythonFunction(called, args, 1);
-#else
-        PyObject *result = _PyFunction_Vectorcall(called, args, 1, NULL);
-#endif
         CHECK_OBJECT_X(result);
 
         return result;
@@ -718,7 +741,6 @@ PyObject *CALL_FUNCTION_WITH_SINGLE_ARG(PyThreadState *tstate, PyObject *called,
                     return obj;
                 }
 
-                // Work on produced type.
                 type = Py_TYPE(obj);
 
                 if (NuitkaType_HasFeatureClass(type) && type->tp_init != NULL) {
@@ -727,8 +749,6 @@ PyObject *CALL_FUNCTION_WITH_SINGLE_ARG(PyThreadState *tstate, PyObject *called,
                         pos_args = NULL;
 
                         PyObject *init_method = Nuitka_TypeLookup(type, const_str_plain___init__);
-
-                        // Not really allowed, since we wouldn't have the default wrapper set.
                         assert(init_method != NULL);
 
                         bool is_compiled_function = false;
@@ -746,6 +766,8 @@ PyObject *CALL_FUNCTION_WITH_SINGLE_ARG(PyThreadState *tstate, PyObject *called,
                         }
 
                         if (unlikely(init_method == NULL)) {
+                            Py_DECREF(obj);
+
                             if (!HAS_ERROR_OCCURRED(tstate)) {
                                 SET_CURRENT_EXCEPTION_TYPE0_VALUE0(tstate, PyExc_AttributeError,
                                                                    const_str_plain___init__);
@@ -756,11 +778,15 @@ PyObject *CALL_FUNCTION_WITH_SINGLE_ARG(PyThreadState *tstate, PyObject *called,
 
                         PyObject *result;
                         if (is_compiled_function) {
+                            if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
+                                Py_DECREF(obj);
+                                return NULL;
+                            }
                             result = Nuitka_CallMethodFunctionPosArgs(
                                 tstate, (struct Nuitka_FunctionObject const *)init_method, obj, args, 1);
+                            Py_LeaveRecursiveCall();
                         } else {
                             result = CALL_FUNCTION_WITH_SINGLE_ARG(tstate, init_method, args[0]);
-
                             if (init_method_needs_release) {
                                 Py_DECREF(init_method);
                             }
@@ -771,14 +797,15 @@ PyObject *CALL_FUNCTION_WITH_SINGLE_ARG(PyThreadState *tstate, PyObject *called,
                             return NULL;
                         }
 
-                        Py_DECREF(result);
-
                         if (unlikely(result != Py_None)) {
                             Py_DECREF(obj);
 
                             SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("__init__() should return None, not '%s'", result);
+                            Py_DECREF(result);
                             return NULL;
                         }
+
+                        Py_DECREF(result);
                     } else {
                         if (pos_args == NULL) {
                             pos_args = MAKE_TUPLE(tstate, args, 1);
@@ -830,6 +857,7 @@ PyObject *CALL_FUNCTION_WITH_SINGLE_ARG(PyThreadState *tstate, PyObject *called,
             PyObject *descr_method = descr_get(init_method, obj, called);
 
             if (unlikely(descr_method == NULL)) {
+                Py_DECREF(obj);
                 return NULL;
             }
 
@@ -838,22 +866,31 @@ PyObject *CALL_FUNCTION_WITH_SINGLE_ARG(PyThreadState *tstate, PyObject *called,
 
         PyObject *result;
         if (is_compiled_function) {
+            if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
+                Py_DECREF(obj);
+                return NULL;
+            }
             result = Nuitka_CallMethodFunctionPosArgs(tstate, (struct Nuitka_FunctionObject const *)init_method, obj,
                                                       args, 1);
+            Py_LeaveRecursiveCall();
         } else {
             result = CALL_FUNCTION_WITH_SINGLE_ARG(tstate, init_method, args[0]);
             Py_DECREF(init_method);
         }
         if (unlikely(result == NULL)) {
+            Py_DECREF(obj);
+            return NULL;
+        }
+
+        if (unlikely(result != Py_None)) {
+            Py_DECREF(obj);
+
+            SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("__init__() should return None, not '%s'", result);
+            Py_DECREF(result);
             return NULL;
         }
 
         Py_DECREF(result);
-
-        if (unlikely(result != Py_None)) {
-            SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("__init__() should return None, not '%s'", result);
-            return NULL;
-        }
 
         CHECK_OBJECT_X(obj);
 
@@ -872,13 +909,6 @@ PyObject *CALL_FUNCTION_WITH_SINGLE_ARG(PyThreadState *tstate, PyObject *called,
         }
 #endif
     }
-
-#if 0
-    PRINT_NEW_LINE();
-    PRINT_STRING("FALLBACK");
-    PRINT_ITEM(called);
-    PRINT_NEW_LINE();
-#endif
 
     PyObject *pos_args = MAKE_TUPLE(tstate, args, 1);
 
@@ -950,7 +980,13 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS1(PyThreadState *tstate, PyObject *called, 
                 return NULL;
             }
 
+            if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
+                return NULL;
+            }
+
             PyObject *result = Nuitka_CallFunctionPosArgs(tstate, method->m_function, args, 1);
+
+            Py_LeaveRecursiveCall();
 
             CHECK_OBJECT_X(result);
 
@@ -1001,7 +1037,7 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS1(PyThreadState *tstate, PyObject *called, 
         }
 #if !defined(_NUITKA_EXPERIMENTAL_DISABLE_CFUNCTION_CALL_OPT)
     } else if (PyCFunction_CheckExact(called)) {
-#if PYTHON_VERSION >= 0x380
+#if PYTHON_VERSION >= 0x380 && !defined(_NUITKA_EXPERIMENTAL_DISABLE_VECTORCALL_USAGE)
 #ifdef _NUITKA_FULL_COMPAT
         if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
             return NULL;
@@ -1019,13 +1055,14 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS1(PyThreadState *tstate, PyObject *called, 
 
             CHECK_OBJECT_X(result);
         } else {
-            PyCFunction method = PyCFunction_GET_FUNCTION(called);
+            Nuitka_PyCFunctionUnion method;
+            method.as_function = PyCFunction_GET_FUNCTION(called);
             PyObject *self = PyCFunction_GET_SELF(called);
 
             if (flags & METH_KEYWORDS) {
-                result = (*(PyCFunctionWithKeywords)(void (*)(void))method)(self, pos_args, NULL);
+                result = (*method.as_function_kw)(self, pos_args, NULL);
             } else {
-                result = (*method)(self, pos_args);
+                result = (*method.as_function)(self, pos_args);
             }
         }
 
@@ -1036,7 +1073,6 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS1(PyThreadState *tstate, PyObject *called, 
 
         return Nuitka_CheckFunctionResult(tstate, called, result);
 #else
-        // Try to be fast about wrapping the arguments.
         int flags = PyCFunction_GET_FLAGS(called) & ~(METH_CLASS | METH_STATIC | METH_COEXIST);
 
         if (unlikely(flags & METH_NOARGS)) {
@@ -1044,8 +1080,6 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS1(PyThreadState *tstate, PyObject *called, 
                                                 ((PyCFunctionObject *)called)->m_ml->ml_name);
             return NULL;
         } else if ((flags & METH_O)) {
-            // Recursion guard is not strictly necessary, as we already have
-            // one on our way to here.
 #ifdef _NUITKA_FULL_COMPAT
             if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
                 return NULL;
@@ -1063,37 +1097,47 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS1(PyThreadState *tstate, PyObject *called, 
             CHECK_OBJECT_X(result);
 
             return Nuitka_CheckFunctionResult(tstate, called, result);
+#if PYTHON_VERSION < 0x360
         } else if (flags & METH_VARARGS) {
-            // Recursion guard is not strictly necessary, as we already have
-            // one on our way to here.
+#elif PYTHON_VERSION < 0x370
+        } else if (flags == METH_VARARGS || flags == (METH_VARARGS | METH_KEYWORDS) || flags == METH_FASTCALL) {
+#else
+        } else if (flags == METH_VARARGS || flags == (METH_VARARGS | METH_KEYWORDS) || flags == METH_FASTCALL ||
+                   flags == (METH_FASTCALL | METH_KEYWORDS)) {
+#endif
 #ifdef _NUITKA_FULL_COMPAT
             if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
                 return NULL;
             }
 #endif
-            PyCFunction method = PyCFunction_GET_FUNCTION(called);
+            Nuitka_PyCFunctionUnion method;
+            method.as_function = PyCFunction_GET_FUNCTION(called);
             PyObject *self = PyCFunction_GET_SELF(called);
 
             PyObject *result;
 
 #if PYTHON_VERSION < 0x360
             if (flags & METH_KEYWORDS) {
-                result = (*(PyCFunctionWithKeywords)method)(self, pos_args, NULL);
+                result = (*method.as_function_kw)(self, pos_args, NULL);
             } else {
-                result = (*method)(self, pos_args);
+                result = (*method.as_function)(self, pos_args);
             }
 
 #else
             if (flags == (METH_VARARGS | METH_KEYWORDS)) {
-                result = (*(PyCFunctionWithKeywords)method)(self, pos_args, NULL);
+                result = (*method.as_function_kw)(self, pos_args, NULL);
             } else if (flags == METH_FASTCALL) {
 #if PYTHON_VERSION < 0x370
-                result = (*(_PyCFunctionFast)method)(self, (PyObject **)args, 1, NULL);
+                result = (*method.as_function_fast)(self, (PyObject **)args, 1, NULL);
 #else
-                result = (*(_PyCFunctionFast)method)(self, &pos_args, 1);
+                result = (*method.as_function_fast)(self, args, 1);
+#endif
+#if PYTHON_VERSION >= 0x370
+            } else if (flags == (METH_FASTCALL | METH_KEYWORDS)) {
+                result = (*method.as_function_fast_kw)(self, args, 1, NULL);
 #endif
             } else {
-                result = (*method)(self, pos_args);
+                result = (*method.as_function)(self, pos_args);
             }
 #endif
 
@@ -1109,11 +1153,7 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS1(PyThreadState *tstate, PyObject *called, 
 #endif
 #if PYTHON_VERSION < 0x380 && !defined(_NUITKA_EXPERIMENTAL_DISABLE_UNCOMPILED_FUNCTION_CALL_OPT)
     } else if (PyFunction_Check(called)) {
-#if PYTHON_VERSION < 0x3b0
         PyObject *result = callPythonFunction(called, args, 1);
-#else
-        PyObject *result = _PyFunction_Vectorcall(called, args, 1, NULL);
-#endif
         CHECK_OBJECT_X(result);
 
         return result;
@@ -1168,15 +1208,12 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS1(PyThreadState *tstate, PyObject *called, 
                     return obj;
                 }
 
-                // Work on produced type.
                 type = Py_TYPE(obj);
 
                 if (NuitkaType_HasFeatureClass(type) && type->tp_init != NULL) {
                     if (type->tp_init == default_tp_init_wrapper) {
 
                         PyObject *init_method = Nuitka_TypeLookup(type, const_str_plain___init__);
-
-                        // Not really allowed, since we wouldn't have the default wrapper set.
                         assert(init_method != NULL);
 
                         bool is_compiled_function = false;
@@ -1194,6 +1231,8 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS1(PyThreadState *tstate, PyObject *called, 
                         }
 
                         if (unlikely(init_method == NULL)) {
+                            Py_DECREF(obj);
+
                             if (!HAS_ERROR_OCCURRED(tstate)) {
                                 SET_CURRENT_EXCEPTION_TYPE0_VALUE0(tstate, PyExc_AttributeError,
                                                                    const_str_plain___init__);
@@ -1204,11 +1243,15 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS1(PyThreadState *tstate, PyObject *called, 
 
                         PyObject *result;
                         if (is_compiled_function) {
+                            if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
+                                Py_DECREF(obj);
+                                return NULL;
+                            }
                             result = Nuitka_CallMethodFunctionPosArgs(
                                 tstate, (struct Nuitka_FunctionObject const *)init_method, obj, args, 1);
+                            Py_LeaveRecursiveCall();
                         } else {
                             result = CALL_FUNCTION_WITH_SINGLE_ARG(tstate, init_method, args[0]);
-
                             if (init_method_needs_release) {
                                 Py_DECREF(init_method);
                             }
@@ -1219,14 +1262,15 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS1(PyThreadState *tstate, PyObject *called, 
                             return NULL;
                         }
 
-                        Py_DECREF(result);
-
                         if (unlikely(result != Py_None)) {
                             Py_DECREF(obj);
 
                             SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("__init__() should return None, not '%s'", result);
+                            Py_DECREF(result);
                             return NULL;
                         }
+
+                        Py_DECREF(result);
                     } else {
 
                         if (unlikely(type->tp_init(obj, pos_args, NULL) < 0)) {
@@ -1272,6 +1316,7 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS1(PyThreadState *tstate, PyObject *called, 
             PyObject *descr_method = descr_get(init_method, obj, called);
 
             if (unlikely(descr_method == NULL)) {
+                Py_DECREF(obj);
                 return NULL;
             }
 
@@ -1280,22 +1325,31 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS1(PyThreadState *tstate, PyObject *called, 
 
         PyObject *result;
         if (is_compiled_function) {
+            if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
+                Py_DECREF(obj);
+                return NULL;
+            }
             result = Nuitka_CallMethodFunctionPosArgs(tstate, (struct Nuitka_FunctionObject const *)init_method, obj,
                                                       args, 1);
+            Py_LeaveRecursiveCall();
         } else {
             result = CALL_FUNCTION_WITH_SINGLE_ARG(tstate, init_method, args[0]);
             Py_DECREF(init_method);
         }
         if (unlikely(result == NULL)) {
+            Py_DECREF(obj);
+            return NULL;
+        }
+
+        if (unlikely(result != Py_None)) {
+            Py_DECREF(obj);
+
+            SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("__init__() should return None, not '%s'", result);
+            Py_DECREF(result);
             return NULL;
         }
 
         Py_DECREF(result);
-
-        if (unlikely(result != Py_None)) {
-            SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("__init__() should return None, not '%s'", result);
-            return NULL;
-        }
 
         CHECK_OBJECT_X(obj);
 
@@ -1314,13 +1368,6 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS1(PyThreadState *tstate, PyObject *called, 
         }
 #endif
     }
-
-#if 0
-    PRINT_NEW_LINE();
-    PRINT_STRING("FALLBACK");
-    PRINT_ITEM(called);
-    PRINT_NEW_LINE();
-#endif
 
     PyObject *result = CALL_FUNCTION(tstate, called, pos_args, NULL);
 
@@ -1387,7 +1434,13 @@ PyObject *CALL_FUNCTION_WITH_ARGS2(PyThreadState *tstate, PyObject *called, PyOb
                 return NULL;
             }
 
+            if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
+                return NULL;
+            }
+
             PyObject *result = Nuitka_CallFunctionPosArgs(tstate, method->m_function, args, 2);
+
+            Py_LeaveRecursiveCall();
 
             CHECK_OBJECT_X(result);
 
@@ -1440,7 +1493,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS2(PyThreadState *tstate, PyObject *called, PyOb
         }
 #if !defined(_NUITKA_EXPERIMENTAL_DISABLE_CFUNCTION_CALL_OPT)
     } else if (PyCFunction_CheckExact(called)) {
-#if PYTHON_VERSION >= 0x380
+#if PYTHON_VERSION >= 0x380 && !defined(_NUITKA_EXPERIMENTAL_DISABLE_VECTORCALL_USAGE)
 #ifdef _NUITKA_FULL_COMPAT
         if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
             return NULL;
@@ -1458,15 +1511,16 @@ PyObject *CALL_FUNCTION_WITH_ARGS2(PyThreadState *tstate, PyObject *called, PyOb
 
             CHECK_OBJECT_X(result);
         } else {
-            PyCFunction method = PyCFunction_GET_FUNCTION(called);
+            Nuitka_PyCFunctionUnion method;
+            method.as_function = PyCFunction_GET_FUNCTION(called);
             PyObject *self = PyCFunction_GET_SELF(called);
 
             PyObject *pos_args = MAKE_TUPLE(tstate, args, 2);
 
             if (flags & METH_KEYWORDS) {
-                result = (*(PyCFunctionWithKeywords)(void (*)(void))method)(self, pos_args, NULL);
+                result = (*method.as_function_kw)(self, pos_args, NULL);
             } else {
-                result = (*method)(self, pos_args);
+                result = (*method.as_function)(self, pos_args);
             }
 
             Py_DECREF(pos_args);
@@ -1479,7 +1533,6 @@ PyObject *CALL_FUNCTION_WITH_ARGS2(PyThreadState *tstate, PyObject *called, PyOb
 
         return Nuitka_CheckFunctionResult(tstate, called, result);
 #else
-        // Try to be fast about wrapping the arguments.
         int flags = PyCFunction_GET_FLAGS(called) & ~(METH_CLASS | METH_STATIC | METH_COEXIST);
 
         if (unlikely(flags & METH_NOARGS)) {
@@ -1490,15 +1543,21 @@ PyObject *CALL_FUNCTION_WITH_ARGS2(PyThreadState *tstate, PyObject *called, PyOb
             SET_CURRENT_EXCEPTION_TYPE0_FORMAT1(PyExc_TypeError, "%s() takes exactly one argument (2 given)",
                                                 ((PyCFunctionObject *)called)->m_ml->ml_name);
             return NULL;
+#if PYTHON_VERSION < 0x360
         } else if (flags & METH_VARARGS) {
-            // Recursion guard is not strictly necessary, as we already have
-            // one on our way to here.
+#elif PYTHON_VERSION < 0x370
+        } else if (flags == METH_VARARGS || flags == (METH_VARARGS | METH_KEYWORDS) || flags == METH_FASTCALL) {
+#else
+        } else if (flags == METH_VARARGS || flags == (METH_VARARGS | METH_KEYWORDS) || flags == METH_FASTCALL ||
+                   flags == (METH_FASTCALL | METH_KEYWORDS)) {
+#endif
 #ifdef _NUITKA_FULL_COMPAT
             if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
                 return NULL;
             }
 #endif
-            PyCFunction method = PyCFunction_GET_FUNCTION(called);
+            Nuitka_PyCFunctionUnion method;
+            method.as_function = PyCFunction_GET_FUNCTION(called);
             PyObject *self = PyCFunction_GET_SELF(called);
 
             PyObject *result;
@@ -1506,28 +1565,30 @@ PyObject *CALL_FUNCTION_WITH_ARGS2(PyThreadState *tstate, PyObject *called, PyOb
 #if PYTHON_VERSION < 0x360
             PyObject *pos_args = MAKE_TUPLE(tstate, args, 2);
             if (flags & METH_KEYWORDS) {
-                result = (*(PyCFunctionWithKeywords)method)(self, pos_args, NULL);
+                result = (*method.as_function_kw)(self, pos_args, NULL);
             } else {
-                result = (*method)(self, pos_args);
+                result = (*method.as_function)(self, pos_args);
             }
 
             Py_DECREF(pos_args);
 #else
             if (flags == (METH_VARARGS | METH_KEYWORDS)) {
                 PyObject *pos_args = MAKE_TUPLE(tstate, args, 2);
-                result = (*(PyCFunctionWithKeywords)method)(self, pos_args, NULL);
+                result = (*method.as_function_kw)(self, pos_args, NULL);
                 Py_DECREF(pos_args);
             } else if (flags == METH_FASTCALL) {
 #if PYTHON_VERSION < 0x370
-                result = (*(_PyCFunctionFast)method)(self, (PyObject **)args, 2, NULL);
+                result = (*method.as_function_fast)(self, (PyObject **)args, 2, NULL);
 #else
-                PyObject *pos_args = MAKE_TUPLE(tstate, args, 2);
-                result = (*(_PyCFunctionFast)method)(self, &pos_args, 2);
-                Py_DECREF(pos_args);
+                result = (*method.as_function_fast)(self, args, 2);
+#endif
+#if PYTHON_VERSION >= 0x370
+            } else if (flags == (METH_FASTCALL | METH_KEYWORDS)) {
+                result = (*method.as_function_fast_kw)(self, args, 2, NULL);
 #endif
             } else {
                 PyObject *pos_args = MAKE_TUPLE(tstate, args, 2);
-                result = (*method)(self, pos_args);
+                result = (*method.as_function)(self, pos_args);
                 Py_DECREF(pos_args);
             }
 #endif
@@ -1544,11 +1605,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS2(PyThreadState *tstate, PyObject *called, PyOb
 #endif
 #if PYTHON_VERSION < 0x380 && !defined(_NUITKA_EXPERIMENTAL_DISABLE_UNCOMPILED_FUNCTION_CALL_OPT)
     } else if (PyFunction_Check(called)) {
-#if PYTHON_VERSION < 0x3b0
         PyObject *result = callPythonFunction(called, args, 2);
-#else
-        PyObject *result = _PyFunction_Vectorcall(called, args, 2, NULL);
-#endif
         CHECK_OBJECT_X(result);
 
         return result;
@@ -1600,7 +1657,6 @@ PyObject *CALL_FUNCTION_WITH_ARGS2(PyThreadState *tstate, PyObject *called, PyOb
                     return obj;
                 }
 
-                // Work on produced type.
                 type = Py_TYPE(obj);
 
                 if (NuitkaType_HasFeatureClass(type) && type->tp_init != NULL) {
@@ -1609,8 +1665,6 @@ PyObject *CALL_FUNCTION_WITH_ARGS2(PyThreadState *tstate, PyObject *called, PyOb
                         pos_args = NULL;
 
                         PyObject *init_method = Nuitka_TypeLookup(type, const_str_plain___init__);
-
-                        // Not really allowed, since we wouldn't have the default wrapper set.
                         assert(init_method != NULL);
 
                         bool is_compiled_function = false;
@@ -1628,6 +1682,8 @@ PyObject *CALL_FUNCTION_WITH_ARGS2(PyThreadState *tstate, PyObject *called, PyOb
                         }
 
                         if (unlikely(init_method == NULL)) {
+                            Py_DECREF(obj);
+
                             if (!HAS_ERROR_OCCURRED(tstate)) {
                                 SET_CURRENT_EXCEPTION_TYPE0_VALUE0(tstate, PyExc_AttributeError,
                                                                    const_str_plain___init__);
@@ -1638,8 +1694,13 @@ PyObject *CALL_FUNCTION_WITH_ARGS2(PyThreadState *tstate, PyObject *called, PyOb
 
                         PyObject *result;
                         if (is_compiled_function) {
+                            if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
+                                Py_DECREF(obj);
+                                return NULL;
+                            }
                             result = Nuitka_CallMethodFunctionPosArgs(
                                 tstate, (struct Nuitka_FunctionObject const *)init_method, obj, args, 2);
+                            Py_LeaveRecursiveCall();
                         } else {
                             result = CALL_FUNCTION_WITH_ARGS2(tstate, init_method, args);
                             if (init_method_needs_release) {
@@ -1652,14 +1713,15 @@ PyObject *CALL_FUNCTION_WITH_ARGS2(PyThreadState *tstate, PyObject *called, PyOb
                             return NULL;
                         }
 
-                        Py_DECREF(result);
-
                         if (unlikely(result != Py_None)) {
                             Py_DECREF(obj);
 
                             SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("__init__() should return None, not '%s'", result);
+                            Py_DECREF(result);
                             return NULL;
                         }
+
+                        Py_DECREF(result);
                     } else {
                         if (pos_args == NULL) {
                             pos_args = MAKE_TUPLE(tstate, args, 2);
@@ -1711,6 +1773,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS2(PyThreadState *tstate, PyObject *called, PyOb
             PyObject *descr_method = descr_get(init_method, obj, called);
 
             if (unlikely(descr_method == NULL)) {
+                Py_DECREF(obj);
                 return NULL;
             }
 
@@ -1719,22 +1782,31 @@ PyObject *CALL_FUNCTION_WITH_ARGS2(PyThreadState *tstate, PyObject *called, PyOb
 
         PyObject *result;
         if (is_compiled_function) {
+            if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
+                Py_DECREF(obj);
+                return NULL;
+            }
             result = Nuitka_CallMethodFunctionPosArgs(tstate, (struct Nuitka_FunctionObject const *)init_method, obj,
                                                       args, 2);
+            Py_LeaveRecursiveCall();
         } else {
             result = CALL_FUNCTION_WITH_ARGS2(tstate, init_method, args);
             Py_DECREF(init_method);
         }
         if (unlikely(result == NULL)) {
+            Py_DECREF(obj);
+            return NULL;
+        }
+
+        if (unlikely(result != Py_None)) {
+            Py_DECREF(obj);
+
+            SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("__init__() should return None, not '%s'", result);
+            Py_DECREF(result);
             return NULL;
         }
 
         Py_DECREF(result);
-
-        if (unlikely(result != Py_None)) {
-            SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("__init__() should return None, not '%s'", result);
-            return NULL;
-        }
 
         CHECK_OBJECT_X(obj);
 
@@ -1753,13 +1825,6 @@ PyObject *CALL_FUNCTION_WITH_ARGS2(PyThreadState *tstate, PyObject *called, PyOb
         }
 #endif
     }
-
-#if 0
-    PRINT_NEW_LINE();
-    PRINT_STRING("FALLBACK");
-    PRINT_ITEM(called);
-    PRINT_NEW_LINE();
-#endif
 
     PyObject *pos_args = MAKE_TUPLE(tstate, args, 2);
 
@@ -1833,7 +1898,13 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS2(PyThreadState *tstate, PyObject *called, 
                 return NULL;
             }
 
+            if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
+                return NULL;
+            }
+
             PyObject *result = Nuitka_CallFunctionPosArgs(tstate, method->m_function, args, 2);
+
+            Py_LeaveRecursiveCall();
 
             CHECK_OBJECT_X(result);
 
@@ -1886,7 +1957,7 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS2(PyThreadState *tstate, PyObject *called, 
         }
 #if !defined(_NUITKA_EXPERIMENTAL_DISABLE_CFUNCTION_CALL_OPT)
     } else if (PyCFunction_CheckExact(called)) {
-#if PYTHON_VERSION >= 0x380
+#if PYTHON_VERSION >= 0x380 && !defined(_NUITKA_EXPERIMENTAL_DISABLE_VECTORCALL_USAGE)
 #ifdef _NUITKA_FULL_COMPAT
         if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
             return NULL;
@@ -1904,13 +1975,14 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS2(PyThreadState *tstate, PyObject *called, 
 
             CHECK_OBJECT_X(result);
         } else {
-            PyCFunction method = PyCFunction_GET_FUNCTION(called);
+            Nuitka_PyCFunctionUnion method;
+            method.as_function = PyCFunction_GET_FUNCTION(called);
             PyObject *self = PyCFunction_GET_SELF(called);
 
             if (flags & METH_KEYWORDS) {
-                result = (*(PyCFunctionWithKeywords)(void (*)(void))method)(self, pos_args, NULL);
+                result = (*method.as_function_kw)(self, pos_args, NULL);
             } else {
-                result = (*method)(self, pos_args);
+                result = (*method.as_function)(self, pos_args);
             }
         }
 
@@ -1921,7 +1993,6 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS2(PyThreadState *tstate, PyObject *called, 
 
         return Nuitka_CheckFunctionResult(tstate, called, result);
 #else
-        // Try to be fast about wrapping the arguments.
         int flags = PyCFunction_GET_FLAGS(called) & ~(METH_CLASS | METH_STATIC | METH_COEXIST);
 
         if (unlikely(flags & METH_NOARGS)) {
@@ -1932,37 +2003,47 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS2(PyThreadState *tstate, PyObject *called, 
             SET_CURRENT_EXCEPTION_TYPE0_FORMAT1(PyExc_TypeError, "%s() takes exactly one argument (2 given)",
                                                 ((PyCFunctionObject *)called)->m_ml->ml_name);
             return NULL;
+#if PYTHON_VERSION < 0x360
         } else if (flags & METH_VARARGS) {
-            // Recursion guard is not strictly necessary, as we already have
-            // one on our way to here.
+#elif PYTHON_VERSION < 0x370
+        } else if (flags == METH_VARARGS || flags == (METH_VARARGS | METH_KEYWORDS) || flags == METH_FASTCALL) {
+#else
+        } else if (flags == METH_VARARGS || flags == (METH_VARARGS | METH_KEYWORDS) || flags == METH_FASTCALL ||
+                   flags == (METH_FASTCALL | METH_KEYWORDS)) {
+#endif
 #ifdef _NUITKA_FULL_COMPAT
             if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
                 return NULL;
             }
 #endif
-            PyCFunction method = PyCFunction_GET_FUNCTION(called);
+            Nuitka_PyCFunctionUnion method;
+            method.as_function = PyCFunction_GET_FUNCTION(called);
             PyObject *self = PyCFunction_GET_SELF(called);
 
             PyObject *result;
 
 #if PYTHON_VERSION < 0x360
             if (flags & METH_KEYWORDS) {
-                result = (*(PyCFunctionWithKeywords)method)(self, pos_args, NULL);
+                result = (*method.as_function_kw)(self, pos_args, NULL);
             } else {
-                result = (*method)(self, pos_args);
+                result = (*method.as_function)(self, pos_args);
             }
 
 #else
             if (flags == (METH_VARARGS | METH_KEYWORDS)) {
-                result = (*(PyCFunctionWithKeywords)method)(self, pos_args, NULL);
+                result = (*method.as_function_kw)(self, pos_args, NULL);
             } else if (flags == METH_FASTCALL) {
 #if PYTHON_VERSION < 0x370
-                result = (*(_PyCFunctionFast)method)(self, (PyObject **)args, 2, NULL);
+                result = (*method.as_function_fast)(self, (PyObject **)args, 2, NULL);
 #else
-                result = (*(_PyCFunctionFast)method)(self, &pos_args, 2);
+                result = (*method.as_function_fast)(self, args, 2);
+#endif
+#if PYTHON_VERSION >= 0x370
+            } else if (flags == (METH_FASTCALL | METH_KEYWORDS)) {
+                result = (*method.as_function_fast_kw)(self, args, 2, NULL);
 #endif
             } else {
-                result = (*method)(self, pos_args);
+                result = (*method.as_function)(self, pos_args);
             }
 #endif
 
@@ -1978,11 +2059,7 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS2(PyThreadState *tstate, PyObject *called, 
 #endif
 #if PYTHON_VERSION < 0x380 && !defined(_NUITKA_EXPERIMENTAL_DISABLE_UNCOMPILED_FUNCTION_CALL_OPT)
     } else if (PyFunction_Check(called)) {
-#if PYTHON_VERSION < 0x3b0
         PyObject *result = callPythonFunction(called, args, 2);
-#else
-        PyObject *result = _PyFunction_Vectorcall(called, args, 2, NULL);
-#endif
         CHECK_OBJECT_X(result);
 
         return result;
@@ -2031,15 +2108,12 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS2(PyThreadState *tstate, PyObject *called, 
                     return obj;
                 }
 
-                // Work on produced type.
                 type = Py_TYPE(obj);
 
                 if (NuitkaType_HasFeatureClass(type) && type->tp_init != NULL) {
                     if (type->tp_init == default_tp_init_wrapper) {
 
                         PyObject *init_method = Nuitka_TypeLookup(type, const_str_plain___init__);
-
-                        // Not really allowed, since we wouldn't have the default wrapper set.
                         assert(init_method != NULL);
 
                         bool is_compiled_function = false;
@@ -2057,6 +2131,8 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS2(PyThreadState *tstate, PyObject *called, 
                         }
 
                         if (unlikely(init_method == NULL)) {
+                            Py_DECREF(obj);
+
                             if (!HAS_ERROR_OCCURRED(tstate)) {
                                 SET_CURRENT_EXCEPTION_TYPE0_VALUE0(tstate, PyExc_AttributeError,
                                                                    const_str_plain___init__);
@@ -2067,8 +2143,13 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS2(PyThreadState *tstate, PyObject *called, 
 
                         PyObject *result;
                         if (is_compiled_function) {
+                            if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
+                                Py_DECREF(obj);
+                                return NULL;
+                            }
                             result = Nuitka_CallMethodFunctionPosArgs(
                                 tstate, (struct Nuitka_FunctionObject const *)init_method, obj, args, 2);
+                            Py_LeaveRecursiveCall();
                         } else {
                             result = CALL_FUNCTION_WITH_POS_ARGS2(tstate, init_method, pos_args);
                             if (init_method_needs_release) {
@@ -2081,14 +2162,15 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS2(PyThreadState *tstate, PyObject *called, 
                             return NULL;
                         }
 
-                        Py_DECREF(result);
-
                         if (unlikely(result != Py_None)) {
                             Py_DECREF(obj);
 
                             SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("__init__() should return None, not '%s'", result);
+                            Py_DECREF(result);
                             return NULL;
                         }
+
+                        Py_DECREF(result);
                     } else {
 
                         if (unlikely(type->tp_init(obj, pos_args, NULL) < 0)) {
@@ -2134,6 +2216,7 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS2(PyThreadState *tstate, PyObject *called, 
             PyObject *descr_method = descr_get(init_method, obj, called);
 
             if (unlikely(descr_method == NULL)) {
+                Py_DECREF(obj);
                 return NULL;
             }
 
@@ -2142,22 +2225,31 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS2(PyThreadState *tstate, PyObject *called, 
 
         PyObject *result;
         if (is_compiled_function) {
+            if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
+                Py_DECREF(obj);
+                return NULL;
+            }
             result = Nuitka_CallMethodFunctionPosArgs(tstate, (struct Nuitka_FunctionObject const *)init_method, obj,
                                                       args, 2);
+            Py_LeaveRecursiveCall();
         } else {
             result = CALL_FUNCTION_WITH_POS_ARGS2(tstate, init_method, pos_args);
             Py_DECREF(init_method);
         }
         if (unlikely(result == NULL)) {
+            Py_DECREF(obj);
+            return NULL;
+        }
+
+        if (unlikely(result != Py_None)) {
+            Py_DECREF(obj);
+
+            SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("__init__() should return None, not '%s'", result);
+            Py_DECREF(result);
             return NULL;
         }
 
         Py_DECREF(result);
-
-        if (unlikely(result != Py_None)) {
-            SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("__init__() should return None, not '%s'", result);
-            return NULL;
-        }
 
         CHECK_OBJECT_X(obj);
 
@@ -2176,13 +2268,6 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS2(PyThreadState *tstate, PyObject *called, 
         }
 #endif
     }
-
-#if 0
-    PRINT_NEW_LINE();
-    PRINT_STRING("FALLBACK");
-    PRINT_ITEM(called);
-    PRINT_NEW_LINE();
-#endif
 
     PyObject *result = CALL_FUNCTION(tstate, called, pos_args, NULL);
 
@@ -2249,7 +2334,13 @@ PyObject *CALL_FUNCTION_WITH_ARGS3(PyThreadState *tstate, PyObject *called, PyOb
                 return NULL;
             }
 
+            if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
+                return NULL;
+            }
+
             PyObject *result = Nuitka_CallFunctionPosArgs(tstate, method->m_function, args, 3);
+
+            Py_LeaveRecursiveCall();
 
             CHECK_OBJECT_X(result);
 
@@ -2302,7 +2393,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS3(PyThreadState *tstate, PyObject *called, PyOb
         }
 #if !defined(_NUITKA_EXPERIMENTAL_DISABLE_CFUNCTION_CALL_OPT)
     } else if (PyCFunction_CheckExact(called)) {
-#if PYTHON_VERSION >= 0x380
+#if PYTHON_VERSION >= 0x380 && !defined(_NUITKA_EXPERIMENTAL_DISABLE_VECTORCALL_USAGE)
 #ifdef _NUITKA_FULL_COMPAT
         if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
             return NULL;
@@ -2320,15 +2411,16 @@ PyObject *CALL_FUNCTION_WITH_ARGS3(PyThreadState *tstate, PyObject *called, PyOb
 
             CHECK_OBJECT_X(result);
         } else {
-            PyCFunction method = PyCFunction_GET_FUNCTION(called);
+            Nuitka_PyCFunctionUnion method;
+            method.as_function = PyCFunction_GET_FUNCTION(called);
             PyObject *self = PyCFunction_GET_SELF(called);
 
             PyObject *pos_args = MAKE_TUPLE(tstate, args, 3);
 
             if (flags & METH_KEYWORDS) {
-                result = (*(PyCFunctionWithKeywords)(void (*)(void))method)(self, pos_args, NULL);
+                result = (*method.as_function_kw)(self, pos_args, NULL);
             } else {
-                result = (*method)(self, pos_args);
+                result = (*method.as_function)(self, pos_args);
             }
 
             Py_DECREF(pos_args);
@@ -2341,7 +2433,6 @@ PyObject *CALL_FUNCTION_WITH_ARGS3(PyThreadState *tstate, PyObject *called, PyOb
 
         return Nuitka_CheckFunctionResult(tstate, called, result);
 #else
-        // Try to be fast about wrapping the arguments.
         int flags = PyCFunction_GET_FLAGS(called) & ~(METH_CLASS | METH_STATIC | METH_COEXIST);
 
         if (unlikely(flags & METH_NOARGS)) {
@@ -2352,15 +2443,21 @@ PyObject *CALL_FUNCTION_WITH_ARGS3(PyThreadState *tstate, PyObject *called, PyOb
             SET_CURRENT_EXCEPTION_TYPE0_FORMAT1(PyExc_TypeError, "%s() takes exactly one argument (3 given)",
                                                 ((PyCFunctionObject *)called)->m_ml->ml_name);
             return NULL;
+#if PYTHON_VERSION < 0x360
         } else if (flags & METH_VARARGS) {
-            // Recursion guard is not strictly necessary, as we already have
-            // one on our way to here.
+#elif PYTHON_VERSION < 0x370
+        } else if (flags == METH_VARARGS || flags == (METH_VARARGS | METH_KEYWORDS) || flags == METH_FASTCALL) {
+#else
+        } else if (flags == METH_VARARGS || flags == (METH_VARARGS | METH_KEYWORDS) || flags == METH_FASTCALL ||
+                   flags == (METH_FASTCALL | METH_KEYWORDS)) {
+#endif
 #ifdef _NUITKA_FULL_COMPAT
             if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
                 return NULL;
             }
 #endif
-            PyCFunction method = PyCFunction_GET_FUNCTION(called);
+            Nuitka_PyCFunctionUnion method;
+            method.as_function = PyCFunction_GET_FUNCTION(called);
             PyObject *self = PyCFunction_GET_SELF(called);
 
             PyObject *result;
@@ -2368,28 +2465,30 @@ PyObject *CALL_FUNCTION_WITH_ARGS3(PyThreadState *tstate, PyObject *called, PyOb
 #if PYTHON_VERSION < 0x360
             PyObject *pos_args = MAKE_TUPLE(tstate, args, 3);
             if (flags & METH_KEYWORDS) {
-                result = (*(PyCFunctionWithKeywords)method)(self, pos_args, NULL);
+                result = (*method.as_function_kw)(self, pos_args, NULL);
             } else {
-                result = (*method)(self, pos_args);
+                result = (*method.as_function)(self, pos_args);
             }
 
             Py_DECREF(pos_args);
 #else
             if (flags == (METH_VARARGS | METH_KEYWORDS)) {
                 PyObject *pos_args = MAKE_TUPLE(tstate, args, 3);
-                result = (*(PyCFunctionWithKeywords)method)(self, pos_args, NULL);
+                result = (*method.as_function_kw)(self, pos_args, NULL);
                 Py_DECREF(pos_args);
             } else if (flags == METH_FASTCALL) {
 #if PYTHON_VERSION < 0x370
-                result = (*(_PyCFunctionFast)method)(self, (PyObject **)args, 3, NULL);
+                result = (*method.as_function_fast)(self, (PyObject **)args, 3, NULL);
 #else
-                PyObject *pos_args = MAKE_TUPLE(tstate, args, 3);
-                result = (*(_PyCFunctionFast)method)(self, &pos_args, 3);
-                Py_DECREF(pos_args);
+                result = (*method.as_function_fast)(self, args, 3);
+#endif
+#if PYTHON_VERSION >= 0x370
+            } else if (flags == (METH_FASTCALL | METH_KEYWORDS)) {
+                result = (*method.as_function_fast_kw)(self, args, 3, NULL);
 #endif
             } else {
                 PyObject *pos_args = MAKE_TUPLE(tstate, args, 3);
-                result = (*method)(self, pos_args);
+                result = (*method.as_function)(self, pos_args);
                 Py_DECREF(pos_args);
             }
 #endif
@@ -2406,11 +2505,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS3(PyThreadState *tstate, PyObject *called, PyOb
 #endif
 #if PYTHON_VERSION < 0x380 && !defined(_NUITKA_EXPERIMENTAL_DISABLE_UNCOMPILED_FUNCTION_CALL_OPT)
     } else if (PyFunction_Check(called)) {
-#if PYTHON_VERSION < 0x3b0
         PyObject *result = callPythonFunction(called, args, 3);
-#else
-        PyObject *result = _PyFunction_Vectorcall(called, args, 3, NULL);
-#endif
         CHECK_OBJECT_X(result);
 
         return result;
@@ -2462,7 +2557,6 @@ PyObject *CALL_FUNCTION_WITH_ARGS3(PyThreadState *tstate, PyObject *called, PyOb
                     return obj;
                 }
 
-                // Work on produced type.
                 type = Py_TYPE(obj);
 
                 if (NuitkaType_HasFeatureClass(type) && type->tp_init != NULL) {
@@ -2471,8 +2565,6 @@ PyObject *CALL_FUNCTION_WITH_ARGS3(PyThreadState *tstate, PyObject *called, PyOb
                         pos_args = NULL;
 
                         PyObject *init_method = Nuitka_TypeLookup(type, const_str_plain___init__);
-
-                        // Not really allowed, since we wouldn't have the default wrapper set.
                         assert(init_method != NULL);
 
                         bool is_compiled_function = false;
@@ -2490,6 +2582,8 @@ PyObject *CALL_FUNCTION_WITH_ARGS3(PyThreadState *tstate, PyObject *called, PyOb
                         }
 
                         if (unlikely(init_method == NULL)) {
+                            Py_DECREF(obj);
+
                             if (!HAS_ERROR_OCCURRED(tstate)) {
                                 SET_CURRENT_EXCEPTION_TYPE0_VALUE0(tstate, PyExc_AttributeError,
                                                                    const_str_plain___init__);
@@ -2500,8 +2594,13 @@ PyObject *CALL_FUNCTION_WITH_ARGS3(PyThreadState *tstate, PyObject *called, PyOb
 
                         PyObject *result;
                         if (is_compiled_function) {
+                            if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
+                                Py_DECREF(obj);
+                                return NULL;
+                            }
                             result = Nuitka_CallMethodFunctionPosArgs(
                                 tstate, (struct Nuitka_FunctionObject const *)init_method, obj, args, 3);
+                            Py_LeaveRecursiveCall();
                         } else {
                             result = CALL_FUNCTION_WITH_ARGS3(tstate, init_method, args);
                             if (init_method_needs_release) {
@@ -2514,14 +2613,15 @@ PyObject *CALL_FUNCTION_WITH_ARGS3(PyThreadState *tstate, PyObject *called, PyOb
                             return NULL;
                         }
 
-                        Py_DECREF(result);
-
                         if (unlikely(result != Py_None)) {
                             Py_DECREF(obj);
 
                             SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("__init__() should return None, not '%s'", result);
+                            Py_DECREF(result);
                             return NULL;
                         }
+
+                        Py_DECREF(result);
                     } else {
                         if (pos_args == NULL) {
                             pos_args = MAKE_TUPLE(tstate, args, 3);
@@ -2573,6 +2673,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS3(PyThreadState *tstate, PyObject *called, PyOb
             PyObject *descr_method = descr_get(init_method, obj, called);
 
             if (unlikely(descr_method == NULL)) {
+                Py_DECREF(obj);
                 return NULL;
             }
 
@@ -2581,22 +2682,31 @@ PyObject *CALL_FUNCTION_WITH_ARGS3(PyThreadState *tstate, PyObject *called, PyOb
 
         PyObject *result;
         if (is_compiled_function) {
+            if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
+                Py_DECREF(obj);
+                return NULL;
+            }
             result = Nuitka_CallMethodFunctionPosArgs(tstate, (struct Nuitka_FunctionObject const *)init_method, obj,
                                                       args, 3);
+            Py_LeaveRecursiveCall();
         } else {
             result = CALL_FUNCTION_WITH_ARGS3(tstate, init_method, args);
             Py_DECREF(init_method);
         }
         if (unlikely(result == NULL)) {
+            Py_DECREF(obj);
+            return NULL;
+        }
+
+        if (unlikely(result != Py_None)) {
+            Py_DECREF(obj);
+
+            SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("__init__() should return None, not '%s'", result);
+            Py_DECREF(result);
             return NULL;
         }
 
         Py_DECREF(result);
-
-        if (unlikely(result != Py_None)) {
-            SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("__init__() should return None, not '%s'", result);
-            return NULL;
-        }
 
         CHECK_OBJECT_X(obj);
 
@@ -2615,13 +2725,6 @@ PyObject *CALL_FUNCTION_WITH_ARGS3(PyThreadState *tstate, PyObject *called, PyOb
         }
 #endif
     }
-
-#if 0
-    PRINT_NEW_LINE();
-    PRINT_STRING("FALLBACK");
-    PRINT_ITEM(called);
-    PRINT_NEW_LINE();
-#endif
 
     PyObject *pos_args = MAKE_TUPLE(tstate, args, 3);
 
@@ -2695,7 +2798,13 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS3(PyThreadState *tstate, PyObject *called, 
                 return NULL;
             }
 
+            if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
+                return NULL;
+            }
+
             PyObject *result = Nuitka_CallFunctionPosArgs(tstate, method->m_function, args, 3);
+
+            Py_LeaveRecursiveCall();
 
             CHECK_OBJECT_X(result);
 
@@ -2748,7 +2857,7 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS3(PyThreadState *tstate, PyObject *called, 
         }
 #if !defined(_NUITKA_EXPERIMENTAL_DISABLE_CFUNCTION_CALL_OPT)
     } else if (PyCFunction_CheckExact(called)) {
-#if PYTHON_VERSION >= 0x380
+#if PYTHON_VERSION >= 0x380 && !defined(_NUITKA_EXPERIMENTAL_DISABLE_VECTORCALL_USAGE)
 #ifdef _NUITKA_FULL_COMPAT
         if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
             return NULL;
@@ -2766,13 +2875,14 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS3(PyThreadState *tstate, PyObject *called, 
 
             CHECK_OBJECT_X(result);
         } else {
-            PyCFunction method = PyCFunction_GET_FUNCTION(called);
+            Nuitka_PyCFunctionUnion method;
+            method.as_function = PyCFunction_GET_FUNCTION(called);
             PyObject *self = PyCFunction_GET_SELF(called);
 
             if (flags & METH_KEYWORDS) {
-                result = (*(PyCFunctionWithKeywords)(void (*)(void))method)(self, pos_args, NULL);
+                result = (*method.as_function_kw)(self, pos_args, NULL);
             } else {
-                result = (*method)(self, pos_args);
+                result = (*method.as_function)(self, pos_args);
             }
         }
 
@@ -2783,7 +2893,6 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS3(PyThreadState *tstate, PyObject *called, 
 
         return Nuitka_CheckFunctionResult(tstate, called, result);
 #else
-        // Try to be fast about wrapping the arguments.
         int flags = PyCFunction_GET_FLAGS(called) & ~(METH_CLASS | METH_STATIC | METH_COEXIST);
 
         if (unlikely(flags & METH_NOARGS)) {
@@ -2794,37 +2903,47 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS3(PyThreadState *tstate, PyObject *called, 
             SET_CURRENT_EXCEPTION_TYPE0_FORMAT1(PyExc_TypeError, "%s() takes exactly one argument (3 given)",
                                                 ((PyCFunctionObject *)called)->m_ml->ml_name);
             return NULL;
+#if PYTHON_VERSION < 0x360
         } else if (flags & METH_VARARGS) {
-            // Recursion guard is not strictly necessary, as we already have
-            // one on our way to here.
+#elif PYTHON_VERSION < 0x370
+        } else if (flags == METH_VARARGS || flags == (METH_VARARGS | METH_KEYWORDS) || flags == METH_FASTCALL) {
+#else
+        } else if (flags == METH_VARARGS || flags == (METH_VARARGS | METH_KEYWORDS) || flags == METH_FASTCALL ||
+                   flags == (METH_FASTCALL | METH_KEYWORDS)) {
+#endif
 #ifdef _NUITKA_FULL_COMPAT
             if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
                 return NULL;
             }
 #endif
-            PyCFunction method = PyCFunction_GET_FUNCTION(called);
+            Nuitka_PyCFunctionUnion method;
+            method.as_function = PyCFunction_GET_FUNCTION(called);
             PyObject *self = PyCFunction_GET_SELF(called);
 
             PyObject *result;
 
 #if PYTHON_VERSION < 0x360
             if (flags & METH_KEYWORDS) {
-                result = (*(PyCFunctionWithKeywords)method)(self, pos_args, NULL);
+                result = (*method.as_function_kw)(self, pos_args, NULL);
             } else {
-                result = (*method)(self, pos_args);
+                result = (*method.as_function)(self, pos_args);
             }
 
 #else
             if (flags == (METH_VARARGS | METH_KEYWORDS)) {
-                result = (*(PyCFunctionWithKeywords)method)(self, pos_args, NULL);
+                result = (*method.as_function_kw)(self, pos_args, NULL);
             } else if (flags == METH_FASTCALL) {
 #if PYTHON_VERSION < 0x370
-                result = (*(_PyCFunctionFast)method)(self, (PyObject **)args, 3, NULL);
+                result = (*method.as_function_fast)(self, (PyObject **)args, 3, NULL);
 #else
-                result = (*(_PyCFunctionFast)method)(self, &pos_args, 3);
+                result = (*method.as_function_fast)(self, args, 3);
+#endif
+#if PYTHON_VERSION >= 0x370
+            } else if (flags == (METH_FASTCALL | METH_KEYWORDS)) {
+                result = (*method.as_function_fast_kw)(self, args, 3, NULL);
 #endif
             } else {
-                result = (*method)(self, pos_args);
+                result = (*method.as_function)(self, pos_args);
             }
 #endif
 
@@ -2840,11 +2959,7 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS3(PyThreadState *tstate, PyObject *called, 
 #endif
 #if PYTHON_VERSION < 0x380 && !defined(_NUITKA_EXPERIMENTAL_DISABLE_UNCOMPILED_FUNCTION_CALL_OPT)
     } else if (PyFunction_Check(called)) {
-#if PYTHON_VERSION < 0x3b0
         PyObject *result = callPythonFunction(called, args, 3);
-#else
-        PyObject *result = _PyFunction_Vectorcall(called, args, 3, NULL);
-#endif
         CHECK_OBJECT_X(result);
 
         return result;
@@ -2893,15 +3008,12 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS3(PyThreadState *tstate, PyObject *called, 
                     return obj;
                 }
 
-                // Work on produced type.
                 type = Py_TYPE(obj);
 
                 if (NuitkaType_HasFeatureClass(type) && type->tp_init != NULL) {
                     if (type->tp_init == default_tp_init_wrapper) {
 
                         PyObject *init_method = Nuitka_TypeLookup(type, const_str_plain___init__);
-
-                        // Not really allowed, since we wouldn't have the default wrapper set.
                         assert(init_method != NULL);
 
                         bool is_compiled_function = false;
@@ -2919,6 +3031,8 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS3(PyThreadState *tstate, PyObject *called, 
                         }
 
                         if (unlikely(init_method == NULL)) {
+                            Py_DECREF(obj);
+
                             if (!HAS_ERROR_OCCURRED(tstate)) {
                                 SET_CURRENT_EXCEPTION_TYPE0_VALUE0(tstate, PyExc_AttributeError,
                                                                    const_str_plain___init__);
@@ -2929,8 +3043,13 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS3(PyThreadState *tstate, PyObject *called, 
 
                         PyObject *result;
                         if (is_compiled_function) {
+                            if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
+                                Py_DECREF(obj);
+                                return NULL;
+                            }
                             result = Nuitka_CallMethodFunctionPosArgs(
                                 tstate, (struct Nuitka_FunctionObject const *)init_method, obj, args, 3);
+                            Py_LeaveRecursiveCall();
                         } else {
                             result = CALL_FUNCTION_WITH_POS_ARGS3(tstate, init_method, pos_args);
                             if (init_method_needs_release) {
@@ -2943,14 +3062,15 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS3(PyThreadState *tstate, PyObject *called, 
                             return NULL;
                         }
 
-                        Py_DECREF(result);
-
                         if (unlikely(result != Py_None)) {
                             Py_DECREF(obj);
 
                             SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("__init__() should return None, not '%s'", result);
+                            Py_DECREF(result);
                             return NULL;
                         }
+
+                        Py_DECREF(result);
                     } else {
 
                         if (unlikely(type->tp_init(obj, pos_args, NULL) < 0)) {
@@ -2996,6 +3116,7 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS3(PyThreadState *tstate, PyObject *called, 
             PyObject *descr_method = descr_get(init_method, obj, called);
 
             if (unlikely(descr_method == NULL)) {
+                Py_DECREF(obj);
                 return NULL;
             }
 
@@ -3004,22 +3125,31 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS3(PyThreadState *tstate, PyObject *called, 
 
         PyObject *result;
         if (is_compiled_function) {
+            if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
+                Py_DECREF(obj);
+                return NULL;
+            }
             result = Nuitka_CallMethodFunctionPosArgs(tstate, (struct Nuitka_FunctionObject const *)init_method, obj,
                                                       args, 3);
+            Py_LeaveRecursiveCall();
         } else {
             result = CALL_FUNCTION_WITH_POS_ARGS3(tstate, init_method, pos_args);
             Py_DECREF(init_method);
         }
         if (unlikely(result == NULL)) {
+            Py_DECREF(obj);
+            return NULL;
+        }
+
+        if (unlikely(result != Py_None)) {
+            Py_DECREF(obj);
+
+            SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("__init__() should return None, not '%s'", result);
+            Py_DECREF(result);
             return NULL;
         }
 
         Py_DECREF(result);
-
-        if (unlikely(result != Py_None)) {
-            SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("__init__() should return None, not '%s'", result);
-            return NULL;
-        }
 
         CHECK_OBJECT_X(obj);
 
@@ -3038,13 +3168,6 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS3(PyThreadState *tstate, PyObject *called, 
         }
 #endif
     }
-
-#if 0
-    PRINT_NEW_LINE();
-    PRINT_STRING("FALLBACK");
-    PRINT_ITEM(called);
-    PRINT_NEW_LINE();
-#endif
 
     PyObject *result = CALL_FUNCTION(tstate, called, pos_args, NULL);
 
@@ -3111,7 +3234,13 @@ PyObject *CALL_FUNCTION_WITH_ARGS4(PyThreadState *tstate, PyObject *called, PyOb
                 return NULL;
             }
 
+            if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
+                return NULL;
+            }
+
             PyObject *result = Nuitka_CallFunctionPosArgs(tstate, method->m_function, args, 4);
+
+            Py_LeaveRecursiveCall();
 
             CHECK_OBJECT_X(result);
 
@@ -3164,7 +3293,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS4(PyThreadState *tstate, PyObject *called, PyOb
         }
 #if !defined(_NUITKA_EXPERIMENTAL_DISABLE_CFUNCTION_CALL_OPT)
     } else if (PyCFunction_CheckExact(called)) {
-#if PYTHON_VERSION >= 0x380
+#if PYTHON_VERSION >= 0x380 && !defined(_NUITKA_EXPERIMENTAL_DISABLE_VECTORCALL_USAGE)
 #ifdef _NUITKA_FULL_COMPAT
         if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
             return NULL;
@@ -3182,15 +3311,16 @@ PyObject *CALL_FUNCTION_WITH_ARGS4(PyThreadState *tstate, PyObject *called, PyOb
 
             CHECK_OBJECT_X(result);
         } else {
-            PyCFunction method = PyCFunction_GET_FUNCTION(called);
+            Nuitka_PyCFunctionUnion method;
+            method.as_function = PyCFunction_GET_FUNCTION(called);
             PyObject *self = PyCFunction_GET_SELF(called);
 
             PyObject *pos_args = MAKE_TUPLE(tstate, args, 4);
 
             if (flags & METH_KEYWORDS) {
-                result = (*(PyCFunctionWithKeywords)(void (*)(void))method)(self, pos_args, NULL);
+                result = (*method.as_function_kw)(self, pos_args, NULL);
             } else {
-                result = (*method)(self, pos_args);
+                result = (*method.as_function)(self, pos_args);
             }
 
             Py_DECREF(pos_args);
@@ -3203,7 +3333,6 @@ PyObject *CALL_FUNCTION_WITH_ARGS4(PyThreadState *tstate, PyObject *called, PyOb
 
         return Nuitka_CheckFunctionResult(tstate, called, result);
 #else
-        // Try to be fast about wrapping the arguments.
         int flags = PyCFunction_GET_FLAGS(called) & ~(METH_CLASS | METH_STATIC | METH_COEXIST);
 
         if (unlikely(flags & METH_NOARGS)) {
@@ -3214,15 +3343,21 @@ PyObject *CALL_FUNCTION_WITH_ARGS4(PyThreadState *tstate, PyObject *called, PyOb
             SET_CURRENT_EXCEPTION_TYPE0_FORMAT1(PyExc_TypeError, "%s() takes exactly one argument (4 given)",
                                                 ((PyCFunctionObject *)called)->m_ml->ml_name);
             return NULL;
+#if PYTHON_VERSION < 0x360
         } else if (flags & METH_VARARGS) {
-            // Recursion guard is not strictly necessary, as we already have
-            // one on our way to here.
+#elif PYTHON_VERSION < 0x370
+        } else if (flags == METH_VARARGS || flags == (METH_VARARGS | METH_KEYWORDS) || flags == METH_FASTCALL) {
+#else
+        } else if (flags == METH_VARARGS || flags == (METH_VARARGS | METH_KEYWORDS) || flags == METH_FASTCALL ||
+                   flags == (METH_FASTCALL | METH_KEYWORDS)) {
+#endif
 #ifdef _NUITKA_FULL_COMPAT
             if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
                 return NULL;
             }
 #endif
-            PyCFunction method = PyCFunction_GET_FUNCTION(called);
+            Nuitka_PyCFunctionUnion method;
+            method.as_function = PyCFunction_GET_FUNCTION(called);
             PyObject *self = PyCFunction_GET_SELF(called);
 
             PyObject *result;
@@ -3230,28 +3365,30 @@ PyObject *CALL_FUNCTION_WITH_ARGS4(PyThreadState *tstate, PyObject *called, PyOb
 #if PYTHON_VERSION < 0x360
             PyObject *pos_args = MAKE_TUPLE(tstate, args, 4);
             if (flags & METH_KEYWORDS) {
-                result = (*(PyCFunctionWithKeywords)method)(self, pos_args, NULL);
+                result = (*method.as_function_kw)(self, pos_args, NULL);
             } else {
-                result = (*method)(self, pos_args);
+                result = (*method.as_function)(self, pos_args);
             }
 
             Py_DECREF(pos_args);
 #else
             if (flags == (METH_VARARGS | METH_KEYWORDS)) {
                 PyObject *pos_args = MAKE_TUPLE(tstate, args, 4);
-                result = (*(PyCFunctionWithKeywords)method)(self, pos_args, NULL);
+                result = (*method.as_function_kw)(self, pos_args, NULL);
                 Py_DECREF(pos_args);
             } else if (flags == METH_FASTCALL) {
 #if PYTHON_VERSION < 0x370
-                result = (*(_PyCFunctionFast)method)(self, (PyObject **)args, 4, NULL);
+                result = (*method.as_function_fast)(self, (PyObject **)args, 4, NULL);
 #else
-                PyObject *pos_args = MAKE_TUPLE(tstate, args, 4);
-                result = (*(_PyCFunctionFast)method)(self, &pos_args, 4);
-                Py_DECREF(pos_args);
+                result = (*method.as_function_fast)(self, args, 4);
+#endif
+#if PYTHON_VERSION >= 0x370
+            } else if (flags == (METH_FASTCALL | METH_KEYWORDS)) {
+                result = (*method.as_function_fast_kw)(self, args, 4, NULL);
 #endif
             } else {
                 PyObject *pos_args = MAKE_TUPLE(tstate, args, 4);
-                result = (*method)(self, pos_args);
+                result = (*method.as_function)(self, pos_args);
                 Py_DECREF(pos_args);
             }
 #endif
@@ -3268,11 +3405,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS4(PyThreadState *tstate, PyObject *called, PyOb
 #endif
 #if PYTHON_VERSION < 0x380 && !defined(_NUITKA_EXPERIMENTAL_DISABLE_UNCOMPILED_FUNCTION_CALL_OPT)
     } else if (PyFunction_Check(called)) {
-#if PYTHON_VERSION < 0x3b0
         PyObject *result = callPythonFunction(called, args, 4);
-#else
-        PyObject *result = _PyFunction_Vectorcall(called, args, 4, NULL);
-#endif
         CHECK_OBJECT_X(result);
 
         return result;
@@ -3324,7 +3457,6 @@ PyObject *CALL_FUNCTION_WITH_ARGS4(PyThreadState *tstate, PyObject *called, PyOb
                     return obj;
                 }
 
-                // Work on produced type.
                 type = Py_TYPE(obj);
 
                 if (NuitkaType_HasFeatureClass(type) && type->tp_init != NULL) {
@@ -3333,8 +3465,6 @@ PyObject *CALL_FUNCTION_WITH_ARGS4(PyThreadState *tstate, PyObject *called, PyOb
                         pos_args = NULL;
 
                         PyObject *init_method = Nuitka_TypeLookup(type, const_str_plain___init__);
-
-                        // Not really allowed, since we wouldn't have the default wrapper set.
                         assert(init_method != NULL);
 
                         bool is_compiled_function = false;
@@ -3352,6 +3482,8 @@ PyObject *CALL_FUNCTION_WITH_ARGS4(PyThreadState *tstate, PyObject *called, PyOb
                         }
 
                         if (unlikely(init_method == NULL)) {
+                            Py_DECREF(obj);
+
                             if (!HAS_ERROR_OCCURRED(tstate)) {
                                 SET_CURRENT_EXCEPTION_TYPE0_VALUE0(tstate, PyExc_AttributeError,
                                                                    const_str_plain___init__);
@@ -3362,8 +3494,13 @@ PyObject *CALL_FUNCTION_WITH_ARGS4(PyThreadState *tstate, PyObject *called, PyOb
 
                         PyObject *result;
                         if (is_compiled_function) {
+                            if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
+                                Py_DECREF(obj);
+                                return NULL;
+                            }
                             result = Nuitka_CallMethodFunctionPosArgs(
                                 tstate, (struct Nuitka_FunctionObject const *)init_method, obj, args, 4);
+                            Py_LeaveRecursiveCall();
                         } else {
                             result = CALL_FUNCTION_WITH_ARGS4(tstate, init_method, args);
                             if (init_method_needs_release) {
@@ -3376,14 +3513,15 @@ PyObject *CALL_FUNCTION_WITH_ARGS4(PyThreadState *tstate, PyObject *called, PyOb
                             return NULL;
                         }
 
-                        Py_DECREF(result);
-
                         if (unlikely(result != Py_None)) {
                             Py_DECREF(obj);
 
                             SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("__init__() should return None, not '%s'", result);
+                            Py_DECREF(result);
                             return NULL;
                         }
+
+                        Py_DECREF(result);
                     } else {
                         if (pos_args == NULL) {
                             pos_args = MAKE_TUPLE(tstate, args, 4);
@@ -3435,6 +3573,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS4(PyThreadState *tstate, PyObject *called, PyOb
             PyObject *descr_method = descr_get(init_method, obj, called);
 
             if (unlikely(descr_method == NULL)) {
+                Py_DECREF(obj);
                 return NULL;
             }
 
@@ -3443,22 +3582,31 @@ PyObject *CALL_FUNCTION_WITH_ARGS4(PyThreadState *tstate, PyObject *called, PyOb
 
         PyObject *result;
         if (is_compiled_function) {
+            if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
+                Py_DECREF(obj);
+                return NULL;
+            }
             result = Nuitka_CallMethodFunctionPosArgs(tstate, (struct Nuitka_FunctionObject const *)init_method, obj,
                                                       args, 4);
+            Py_LeaveRecursiveCall();
         } else {
             result = CALL_FUNCTION_WITH_ARGS4(tstate, init_method, args);
             Py_DECREF(init_method);
         }
         if (unlikely(result == NULL)) {
+            Py_DECREF(obj);
+            return NULL;
+        }
+
+        if (unlikely(result != Py_None)) {
+            Py_DECREF(obj);
+
+            SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("__init__() should return None, not '%s'", result);
+            Py_DECREF(result);
             return NULL;
         }
 
         Py_DECREF(result);
-
-        if (unlikely(result != Py_None)) {
-            SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("__init__() should return None, not '%s'", result);
-            return NULL;
-        }
 
         CHECK_OBJECT_X(obj);
 
@@ -3477,13 +3625,6 @@ PyObject *CALL_FUNCTION_WITH_ARGS4(PyThreadState *tstate, PyObject *called, PyOb
         }
 #endif
     }
-
-#if 0
-    PRINT_NEW_LINE();
-    PRINT_STRING("FALLBACK");
-    PRINT_ITEM(called);
-    PRINT_NEW_LINE();
-#endif
 
     PyObject *pos_args = MAKE_TUPLE(tstate, args, 4);
 
@@ -3557,7 +3698,13 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS4(PyThreadState *tstate, PyObject *called, 
                 return NULL;
             }
 
+            if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
+                return NULL;
+            }
+
             PyObject *result = Nuitka_CallFunctionPosArgs(tstate, method->m_function, args, 4);
+
+            Py_LeaveRecursiveCall();
 
             CHECK_OBJECT_X(result);
 
@@ -3610,7 +3757,7 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS4(PyThreadState *tstate, PyObject *called, 
         }
 #if !defined(_NUITKA_EXPERIMENTAL_DISABLE_CFUNCTION_CALL_OPT)
     } else if (PyCFunction_CheckExact(called)) {
-#if PYTHON_VERSION >= 0x380
+#if PYTHON_VERSION >= 0x380 && !defined(_NUITKA_EXPERIMENTAL_DISABLE_VECTORCALL_USAGE)
 #ifdef _NUITKA_FULL_COMPAT
         if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
             return NULL;
@@ -3628,13 +3775,14 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS4(PyThreadState *tstate, PyObject *called, 
 
             CHECK_OBJECT_X(result);
         } else {
-            PyCFunction method = PyCFunction_GET_FUNCTION(called);
+            Nuitka_PyCFunctionUnion method;
+            method.as_function = PyCFunction_GET_FUNCTION(called);
             PyObject *self = PyCFunction_GET_SELF(called);
 
             if (flags & METH_KEYWORDS) {
-                result = (*(PyCFunctionWithKeywords)(void (*)(void))method)(self, pos_args, NULL);
+                result = (*method.as_function_kw)(self, pos_args, NULL);
             } else {
-                result = (*method)(self, pos_args);
+                result = (*method.as_function)(self, pos_args);
             }
         }
 
@@ -3645,7 +3793,6 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS4(PyThreadState *tstate, PyObject *called, 
 
         return Nuitka_CheckFunctionResult(tstate, called, result);
 #else
-        // Try to be fast about wrapping the arguments.
         int flags = PyCFunction_GET_FLAGS(called) & ~(METH_CLASS | METH_STATIC | METH_COEXIST);
 
         if (unlikely(flags & METH_NOARGS)) {
@@ -3656,37 +3803,47 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS4(PyThreadState *tstate, PyObject *called, 
             SET_CURRENT_EXCEPTION_TYPE0_FORMAT1(PyExc_TypeError, "%s() takes exactly one argument (4 given)",
                                                 ((PyCFunctionObject *)called)->m_ml->ml_name);
             return NULL;
+#if PYTHON_VERSION < 0x360
         } else if (flags & METH_VARARGS) {
-            // Recursion guard is not strictly necessary, as we already have
-            // one on our way to here.
+#elif PYTHON_VERSION < 0x370
+        } else if (flags == METH_VARARGS || flags == (METH_VARARGS | METH_KEYWORDS) || flags == METH_FASTCALL) {
+#else
+        } else if (flags == METH_VARARGS || flags == (METH_VARARGS | METH_KEYWORDS) || flags == METH_FASTCALL ||
+                   flags == (METH_FASTCALL | METH_KEYWORDS)) {
+#endif
 #ifdef _NUITKA_FULL_COMPAT
             if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
                 return NULL;
             }
 #endif
-            PyCFunction method = PyCFunction_GET_FUNCTION(called);
+            Nuitka_PyCFunctionUnion method;
+            method.as_function = PyCFunction_GET_FUNCTION(called);
             PyObject *self = PyCFunction_GET_SELF(called);
 
             PyObject *result;
 
 #if PYTHON_VERSION < 0x360
             if (flags & METH_KEYWORDS) {
-                result = (*(PyCFunctionWithKeywords)method)(self, pos_args, NULL);
+                result = (*method.as_function_kw)(self, pos_args, NULL);
             } else {
-                result = (*method)(self, pos_args);
+                result = (*method.as_function)(self, pos_args);
             }
 
 #else
             if (flags == (METH_VARARGS | METH_KEYWORDS)) {
-                result = (*(PyCFunctionWithKeywords)method)(self, pos_args, NULL);
+                result = (*method.as_function_kw)(self, pos_args, NULL);
             } else if (flags == METH_FASTCALL) {
 #if PYTHON_VERSION < 0x370
-                result = (*(_PyCFunctionFast)method)(self, (PyObject **)args, 4, NULL);
+                result = (*method.as_function_fast)(self, (PyObject **)args, 4, NULL);
 #else
-                result = (*(_PyCFunctionFast)method)(self, &pos_args, 4);
+                result = (*method.as_function_fast)(self, args, 4);
+#endif
+#if PYTHON_VERSION >= 0x370
+            } else if (flags == (METH_FASTCALL | METH_KEYWORDS)) {
+                result = (*method.as_function_fast_kw)(self, args, 4, NULL);
 #endif
             } else {
-                result = (*method)(self, pos_args);
+                result = (*method.as_function)(self, pos_args);
             }
 #endif
 
@@ -3702,11 +3859,7 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS4(PyThreadState *tstate, PyObject *called, 
 #endif
 #if PYTHON_VERSION < 0x380 && !defined(_NUITKA_EXPERIMENTAL_DISABLE_UNCOMPILED_FUNCTION_CALL_OPT)
     } else if (PyFunction_Check(called)) {
-#if PYTHON_VERSION < 0x3b0
         PyObject *result = callPythonFunction(called, args, 4);
-#else
-        PyObject *result = _PyFunction_Vectorcall(called, args, 4, NULL);
-#endif
         CHECK_OBJECT_X(result);
 
         return result;
@@ -3755,15 +3908,12 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS4(PyThreadState *tstate, PyObject *called, 
                     return obj;
                 }
 
-                // Work on produced type.
                 type = Py_TYPE(obj);
 
                 if (NuitkaType_HasFeatureClass(type) && type->tp_init != NULL) {
                     if (type->tp_init == default_tp_init_wrapper) {
 
                         PyObject *init_method = Nuitka_TypeLookup(type, const_str_plain___init__);
-
-                        // Not really allowed, since we wouldn't have the default wrapper set.
                         assert(init_method != NULL);
 
                         bool is_compiled_function = false;
@@ -3781,6 +3931,8 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS4(PyThreadState *tstate, PyObject *called, 
                         }
 
                         if (unlikely(init_method == NULL)) {
+                            Py_DECREF(obj);
+
                             if (!HAS_ERROR_OCCURRED(tstate)) {
                                 SET_CURRENT_EXCEPTION_TYPE0_VALUE0(tstate, PyExc_AttributeError,
                                                                    const_str_plain___init__);
@@ -3791,8 +3943,13 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS4(PyThreadState *tstate, PyObject *called, 
 
                         PyObject *result;
                         if (is_compiled_function) {
+                            if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
+                                Py_DECREF(obj);
+                                return NULL;
+                            }
                             result = Nuitka_CallMethodFunctionPosArgs(
                                 tstate, (struct Nuitka_FunctionObject const *)init_method, obj, args, 4);
+                            Py_LeaveRecursiveCall();
                         } else {
                             result = CALL_FUNCTION_WITH_POS_ARGS4(tstate, init_method, pos_args);
                             if (init_method_needs_release) {
@@ -3805,14 +3962,15 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS4(PyThreadState *tstate, PyObject *called, 
                             return NULL;
                         }
 
-                        Py_DECREF(result);
-
                         if (unlikely(result != Py_None)) {
                             Py_DECREF(obj);
 
                             SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("__init__() should return None, not '%s'", result);
+                            Py_DECREF(result);
                             return NULL;
                         }
+
+                        Py_DECREF(result);
                     } else {
 
                         if (unlikely(type->tp_init(obj, pos_args, NULL) < 0)) {
@@ -3858,6 +4016,7 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS4(PyThreadState *tstate, PyObject *called, 
             PyObject *descr_method = descr_get(init_method, obj, called);
 
             if (unlikely(descr_method == NULL)) {
+                Py_DECREF(obj);
                 return NULL;
             }
 
@@ -3866,22 +4025,31 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS4(PyThreadState *tstate, PyObject *called, 
 
         PyObject *result;
         if (is_compiled_function) {
+            if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
+                Py_DECREF(obj);
+                return NULL;
+            }
             result = Nuitka_CallMethodFunctionPosArgs(tstate, (struct Nuitka_FunctionObject const *)init_method, obj,
                                                       args, 4);
+            Py_LeaveRecursiveCall();
         } else {
             result = CALL_FUNCTION_WITH_POS_ARGS4(tstate, init_method, pos_args);
             Py_DECREF(init_method);
         }
         if (unlikely(result == NULL)) {
+            Py_DECREF(obj);
+            return NULL;
+        }
+
+        if (unlikely(result != Py_None)) {
+            Py_DECREF(obj);
+
+            SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("__init__() should return None, not '%s'", result);
+            Py_DECREF(result);
             return NULL;
         }
 
         Py_DECREF(result);
-
-        if (unlikely(result != Py_None)) {
-            SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("__init__() should return None, not '%s'", result);
-            return NULL;
-        }
 
         CHECK_OBJECT_X(obj);
 
@@ -3900,13 +4068,6 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS4(PyThreadState *tstate, PyObject *called, 
         }
 #endif
     }
-
-#if 0
-    PRINT_NEW_LINE();
-    PRINT_STRING("FALLBACK");
-    PRINT_ITEM(called);
-    PRINT_NEW_LINE();
-#endif
 
     PyObject *result = CALL_FUNCTION(tstate, called, pos_args, NULL);
 
@@ -3973,7 +4134,13 @@ PyObject *CALL_FUNCTION_WITH_ARGS5(PyThreadState *tstate, PyObject *called, PyOb
                 return NULL;
             }
 
+            if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
+                return NULL;
+            }
+
             PyObject *result = Nuitka_CallFunctionPosArgs(tstate, method->m_function, args, 5);
+
+            Py_LeaveRecursiveCall();
 
             CHECK_OBJECT_X(result);
 
@@ -4026,7 +4193,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS5(PyThreadState *tstate, PyObject *called, PyOb
         }
 #if !defined(_NUITKA_EXPERIMENTAL_DISABLE_CFUNCTION_CALL_OPT)
     } else if (PyCFunction_CheckExact(called)) {
-#if PYTHON_VERSION >= 0x380
+#if PYTHON_VERSION >= 0x380 && !defined(_NUITKA_EXPERIMENTAL_DISABLE_VECTORCALL_USAGE)
 #ifdef _NUITKA_FULL_COMPAT
         if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
             return NULL;
@@ -4044,15 +4211,16 @@ PyObject *CALL_FUNCTION_WITH_ARGS5(PyThreadState *tstate, PyObject *called, PyOb
 
             CHECK_OBJECT_X(result);
         } else {
-            PyCFunction method = PyCFunction_GET_FUNCTION(called);
+            Nuitka_PyCFunctionUnion method;
+            method.as_function = PyCFunction_GET_FUNCTION(called);
             PyObject *self = PyCFunction_GET_SELF(called);
 
             PyObject *pos_args = MAKE_TUPLE(tstate, args, 5);
 
             if (flags & METH_KEYWORDS) {
-                result = (*(PyCFunctionWithKeywords)(void (*)(void))method)(self, pos_args, NULL);
+                result = (*method.as_function_kw)(self, pos_args, NULL);
             } else {
-                result = (*method)(self, pos_args);
+                result = (*method.as_function)(self, pos_args);
             }
 
             Py_DECREF(pos_args);
@@ -4065,7 +4233,6 @@ PyObject *CALL_FUNCTION_WITH_ARGS5(PyThreadState *tstate, PyObject *called, PyOb
 
         return Nuitka_CheckFunctionResult(tstate, called, result);
 #else
-        // Try to be fast about wrapping the arguments.
         int flags = PyCFunction_GET_FLAGS(called) & ~(METH_CLASS | METH_STATIC | METH_COEXIST);
 
         if (unlikely(flags & METH_NOARGS)) {
@@ -4076,15 +4243,21 @@ PyObject *CALL_FUNCTION_WITH_ARGS5(PyThreadState *tstate, PyObject *called, PyOb
             SET_CURRENT_EXCEPTION_TYPE0_FORMAT1(PyExc_TypeError, "%s() takes exactly one argument (5 given)",
                                                 ((PyCFunctionObject *)called)->m_ml->ml_name);
             return NULL;
+#if PYTHON_VERSION < 0x360
         } else if (flags & METH_VARARGS) {
-            // Recursion guard is not strictly necessary, as we already have
-            // one on our way to here.
+#elif PYTHON_VERSION < 0x370
+        } else if (flags == METH_VARARGS || flags == (METH_VARARGS | METH_KEYWORDS) || flags == METH_FASTCALL) {
+#else
+        } else if (flags == METH_VARARGS || flags == (METH_VARARGS | METH_KEYWORDS) || flags == METH_FASTCALL ||
+                   flags == (METH_FASTCALL | METH_KEYWORDS)) {
+#endif
 #ifdef _NUITKA_FULL_COMPAT
             if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
                 return NULL;
             }
 #endif
-            PyCFunction method = PyCFunction_GET_FUNCTION(called);
+            Nuitka_PyCFunctionUnion method;
+            method.as_function = PyCFunction_GET_FUNCTION(called);
             PyObject *self = PyCFunction_GET_SELF(called);
 
             PyObject *result;
@@ -4092,28 +4265,30 @@ PyObject *CALL_FUNCTION_WITH_ARGS5(PyThreadState *tstate, PyObject *called, PyOb
 #if PYTHON_VERSION < 0x360
             PyObject *pos_args = MAKE_TUPLE(tstate, args, 5);
             if (flags & METH_KEYWORDS) {
-                result = (*(PyCFunctionWithKeywords)method)(self, pos_args, NULL);
+                result = (*method.as_function_kw)(self, pos_args, NULL);
             } else {
-                result = (*method)(self, pos_args);
+                result = (*method.as_function)(self, pos_args);
             }
 
             Py_DECREF(pos_args);
 #else
             if (flags == (METH_VARARGS | METH_KEYWORDS)) {
                 PyObject *pos_args = MAKE_TUPLE(tstate, args, 5);
-                result = (*(PyCFunctionWithKeywords)method)(self, pos_args, NULL);
+                result = (*method.as_function_kw)(self, pos_args, NULL);
                 Py_DECREF(pos_args);
             } else if (flags == METH_FASTCALL) {
 #if PYTHON_VERSION < 0x370
-                result = (*(_PyCFunctionFast)method)(self, (PyObject **)args, 5, NULL);
+                result = (*method.as_function_fast)(self, (PyObject **)args, 5, NULL);
 #else
-                PyObject *pos_args = MAKE_TUPLE(tstate, args, 5);
-                result = (*(_PyCFunctionFast)method)(self, &pos_args, 5);
-                Py_DECREF(pos_args);
+                result = (*method.as_function_fast)(self, args, 5);
+#endif
+#if PYTHON_VERSION >= 0x370
+            } else if (flags == (METH_FASTCALL | METH_KEYWORDS)) {
+                result = (*method.as_function_fast_kw)(self, args, 5, NULL);
 #endif
             } else {
                 PyObject *pos_args = MAKE_TUPLE(tstate, args, 5);
-                result = (*method)(self, pos_args);
+                result = (*method.as_function)(self, pos_args);
                 Py_DECREF(pos_args);
             }
 #endif
@@ -4130,11 +4305,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS5(PyThreadState *tstate, PyObject *called, PyOb
 #endif
 #if PYTHON_VERSION < 0x380 && !defined(_NUITKA_EXPERIMENTAL_DISABLE_UNCOMPILED_FUNCTION_CALL_OPT)
     } else if (PyFunction_Check(called)) {
-#if PYTHON_VERSION < 0x3b0
         PyObject *result = callPythonFunction(called, args, 5);
-#else
-        PyObject *result = _PyFunction_Vectorcall(called, args, 5, NULL);
-#endif
         CHECK_OBJECT_X(result);
 
         return result;
@@ -4186,7 +4357,6 @@ PyObject *CALL_FUNCTION_WITH_ARGS5(PyThreadState *tstate, PyObject *called, PyOb
                     return obj;
                 }
 
-                // Work on produced type.
                 type = Py_TYPE(obj);
 
                 if (NuitkaType_HasFeatureClass(type) && type->tp_init != NULL) {
@@ -4195,8 +4365,6 @@ PyObject *CALL_FUNCTION_WITH_ARGS5(PyThreadState *tstate, PyObject *called, PyOb
                         pos_args = NULL;
 
                         PyObject *init_method = Nuitka_TypeLookup(type, const_str_plain___init__);
-
-                        // Not really allowed, since we wouldn't have the default wrapper set.
                         assert(init_method != NULL);
 
                         bool is_compiled_function = false;
@@ -4214,6 +4382,8 @@ PyObject *CALL_FUNCTION_WITH_ARGS5(PyThreadState *tstate, PyObject *called, PyOb
                         }
 
                         if (unlikely(init_method == NULL)) {
+                            Py_DECREF(obj);
+
                             if (!HAS_ERROR_OCCURRED(tstate)) {
                                 SET_CURRENT_EXCEPTION_TYPE0_VALUE0(tstate, PyExc_AttributeError,
                                                                    const_str_plain___init__);
@@ -4224,8 +4394,13 @@ PyObject *CALL_FUNCTION_WITH_ARGS5(PyThreadState *tstate, PyObject *called, PyOb
 
                         PyObject *result;
                         if (is_compiled_function) {
+                            if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
+                                Py_DECREF(obj);
+                                return NULL;
+                            }
                             result = Nuitka_CallMethodFunctionPosArgs(
                                 tstate, (struct Nuitka_FunctionObject const *)init_method, obj, args, 5);
+                            Py_LeaveRecursiveCall();
                         } else {
                             result = CALL_FUNCTION_WITH_ARGS5(tstate, init_method, args);
                             if (init_method_needs_release) {
@@ -4238,14 +4413,15 @@ PyObject *CALL_FUNCTION_WITH_ARGS5(PyThreadState *tstate, PyObject *called, PyOb
                             return NULL;
                         }
 
-                        Py_DECREF(result);
-
                         if (unlikely(result != Py_None)) {
                             Py_DECREF(obj);
 
                             SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("__init__() should return None, not '%s'", result);
+                            Py_DECREF(result);
                             return NULL;
                         }
+
+                        Py_DECREF(result);
                     } else {
                         if (pos_args == NULL) {
                             pos_args = MAKE_TUPLE(tstate, args, 5);
@@ -4297,6 +4473,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS5(PyThreadState *tstate, PyObject *called, PyOb
             PyObject *descr_method = descr_get(init_method, obj, called);
 
             if (unlikely(descr_method == NULL)) {
+                Py_DECREF(obj);
                 return NULL;
             }
 
@@ -4305,22 +4482,31 @@ PyObject *CALL_FUNCTION_WITH_ARGS5(PyThreadState *tstate, PyObject *called, PyOb
 
         PyObject *result;
         if (is_compiled_function) {
+            if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
+                Py_DECREF(obj);
+                return NULL;
+            }
             result = Nuitka_CallMethodFunctionPosArgs(tstate, (struct Nuitka_FunctionObject const *)init_method, obj,
                                                       args, 5);
+            Py_LeaveRecursiveCall();
         } else {
             result = CALL_FUNCTION_WITH_ARGS5(tstate, init_method, args);
             Py_DECREF(init_method);
         }
         if (unlikely(result == NULL)) {
+            Py_DECREF(obj);
+            return NULL;
+        }
+
+        if (unlikely(result != Py_None)) {
+            Py_DECREF(obj);
+
+            SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("__init__() should return None, not '%s'", result);
+            Py_DECREF(result);
             return NULL;
         }
 
         Py_DECREF(result);
-
-        if (unlikely(result != Py_None)) {
-            SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("__init__() should return None, not '%s'", result);
-            return NULL;
-        }
 
         CHECK_OBJECT_X(obj);
 
@@ -4339,13 +4525,6 @@ PyObject *CALL_FUNCTION_WITH_ARGS5(PyThreadState *tstate, PyObject *called, PyOb
         }
 #endif
     }
-
-#if 0
-    PRINT_NEW_LINE();
-    PRINT_STRING("FALLBACK");
-    PRINT_ITEM(called);
-    PRINT_NEW_LINE();
-#endif
 
     PyObject *pos_args = MAKE_TUPLE(tstate, args, 5);
 
@@ -4419,7 +4598,13 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS5(PyThreadState *tstate, PyObject *called, 
                 return NULL;
             }
 
+            if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
+                return NULL;
+            }
+
             PyObject *result = Nuitka_CallFunctionPosArgs(tstate, method->m_function, args, 5);
+
+            Py_LeaveRecursiveCall();
 
             CHECK_OBJECT_X(result);
 
@@ -4472,7 +4657,7 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS5(PyThreadState *tstate, PyObject *called, 
         }
 #if !defined(_NUITKA_EXPERIMENTAL_DISABLE_CFUNCTION_CALL_OPT)
     } else if (PyCFunction_CheckExact(called)) {
-#if PYTHON_VERSION >= 0x380
+#if PYTHON_VERSION >= 0x380 && !defined(_NUITKA_EXPERIMENTAL_DISABLE_VECTORCALL_USAGE)
 #ifdef _NUITKA_FULL_COMPAT
         if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
             return NULL;
@@ -4490,13 +4675,14 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS5(PyThreadState *tstate, PyObject *called, 
 
             CHECK_OBJECT_X(result);
         } else {
-            PyCFunction method = PyCFunction_GET_FUNCTION(called);
+            Nuitka_PyCFunctionUnion method;
+            method.as_function = PyCFunction_GET_FUNCTION(called);
             PyObject *self = PyCFunction_GET_SELF(called);
 
             if (flags & METH_KEYWORDS) {
-                result = (*(PyCFunctionWithKeywords)(void (*)(void))method)(self, pos_args, NULL);
+                result = (*method.as_function_kw)(self, pos_args, NULL);
             } else {
-                result = (*method)(self, pos_args);
+                result = (*method.as_function)(self, pos_args);
             }
         }
 
@@ -4507,7 +4693,6 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS5(PyThreadState *tstate, PyObject *called, 
 
         return Nuitka_CheckFunctionResult(tstate, called, result);
 #else
-        // Try to be fast about wrapping the arguments.
         int flags = PyCFunction_GET_FLAGS(called) & ~(METH_CLASS | METH_STATIC | METH_COEXIST);
 
         if (unlikely(flags & METH_NOARGS)) {
@@ -4518,37 +4703,47 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS5(PyThreadState *tstate, PyObject *called, 
             SET_CURRENT_EXCEPTION_TYPE0_FORMAT1(PyExc_TypeError, "%s() takes exactly one argument (5 given)",
                                                 ((PyCFunctionObject *)called)->m_ml->ml_name);
             return NULL;
+#if PYTHON_VERSION < 0x360
         } else if (flags & METH_VARARGS) {
-            // Recursion guard is not strictly necessary, as we already have
-            // one on our way to here.
+#elif PYTHON_VERSION < 0x370
+        } else if (flags == METH_VARARGS || flags == (METH_VARARGS | METH_KEYWORDS) || flags == METH_FASTCALL) {
+#else
+        } else if (flags == METH_VARARGS || flags == (METH_VARARGS | METH_KEYWORDS) || flags == METH_FASTCALL ||
+                   flags == (METH_FASTCALL | METH_KEYWORDS)) {
+#endif
 #ifdef _NUITKA_FULL_COMPAT
             if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
                 return NULL;
             }
 #endif
-            PyCFunction method = PyCFunction_GET_FUNCTION(called);
+            Nuitka_PyCFunctionUnion method;
+            method.as_function = PyCFunction_GET_FUNCTION(called);
             PyObject *self = PyCFunction_GET_SELF(called);
 
             PyObject *result;
 
 #if PYTHON_VERSION < 0x360
             if (flags & METH_KEYWORDS) {
-                result = (*(PyCFunctionWithKeywords)method)(self, pos_args, NULL);
+                result = (*method.as_function_kw)(self, pos_args, NULL);
             } else {
-                result = (*method)(self, pos_args);
+                result = (*method.as_function)(self, pos_args);
             }
 
 #else
             if (flags == (METH_VARARGS | METH_KEYWORDS)) {
-                result = (*(PyCFunctionWithKeywords)method)(self, pos_args, NULL);
+                result = (*method.as_function_kw)(self, pos_args, NULL);
             } else if (flags == METH_FASTCALL) {
 #if PYTHON_VERSION < 0x370
-                result = (*(_PyCFunctionFast)method)(self, (PyObject **)args, 5, NULL);
+                result = (*method.as_function_fast)(self, (PyObject **)args, 5, NULL);
 #else
-                result = (*(_PyCFunctionFast)method)(self, &pos_args, 5);
+                result = (*method.as_function_fast)(self, args, 5);
+#endif
+#if PYTHON_VERSION >= 0x370
+            } else if (flags == (METH_FASTCALL | METH_KEYWORDS)) {
+                result = (*method.as_function_fast_kw)(self, args, 5, NULL);
 #endif
             } else {
-                result = (*method)(self, pos_args);
+                result = (*method.as_function)(self, pos_args);
             }
 #endif
 
@@ -4564,11 +4759,7 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS5(PyThreadState *tstate, PyObject *called, 
 #endif
 #if PYTHON_VERSION < 0x380 && !defined(_NUITKA_EXPERIMENTAL_DISABLE_UNCOMPILED_FUNCTION_CALL_OPT)
     } else if (PyFunction_Check(called)) {
-#if PYTHON_VERSION < 0x3b0
         PyObject *result = callPythonFunction(called, args, 5);
-#else
-        PyObject *result = _PyFunction_Vectorcall(called, args, 5, NULL);
-#endif
         CHECK_OBJECT_X(result);
 
         return result;
@@ -4617,15 +4808,12 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS5(PyThreadState *tstate, PyObject *called, 
                     return obj;
                 }
 
-                // Work on produced type.
                 type = Py_TYPE(obj);
 
                 if (NuitkaType_HasFeatureClass(type) && type->tp_init != NULL) {
                     if (type->tp_init == default_tp_init_wrapper) {
 
                         PyObject *init_method = Nuitka_TypeLookup(type, const_str_plain___init__);
-
-                        // Not really allowed, since we wouldn't have the default wrapper set.
                         assert(init_method != NULL);
 
                         bool is_compiled_function = false;
@@ -4643,6 +4831,8 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS5(PyThreadState *tstate, PyObject *called, 
                         }
 
                         if (unlikely(init_method == NULL)) {
+                            Py_DECREF(obj);
+
                             if (!HAS_ERROR_OCCURRED(tstate)) {
                                 SET_CURRENT_EXCEPTION_TYPE0_VALUE0(tstate, PyExc_AttributeError,
                                                                    const_str_plain___init__);
@@ -4653,8 +4843,13 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS5(PyThreadState *tstate, PyObject *called, 
 
                         PyObject *result;
                         if (is_compiled_function) {
+                            if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
+                                Py_DECREF(obj);
+                                return NULL;
+                            }
                             result = Nuitka_CallMethodFunctionPosArgs(
                                 tstate, (struct Nuitka_FunctionObject const *)init_method, obj, args, 5);
+                            Py_LeaveRecursiveCall();
                         } else {
                             result = CALL_FUNCTION_WITH_POS_ARGS5(tstate, init_method, pos_args);
                             if (init_method_needs_release) {
@@ -4667,14 +4862,15 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS5(PyThreadState *tstate, PyObject *called, 
                             return NULL;
                         }
 
-                        Py_DECREF(result);
-
                         if (unlikely(result != Py_None)) {
                             Py_DECREF(obj);
 
                             SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("__init__() should return None, not '%s'", result);
+                            Py_DECREF(result);
                             return NULL;
                         }
+
+                        Py_DECREF(result);
                     } else {
 
                         if (unlikely(type->tp_init(obj, pos_args, NULL) < 0)) {
@@ -4720,6 +4916,7 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS5(PyThreadState *tstate, PyObject *called, 
             PyObject *descr_method = descr_get(init_method, obj, called);
 
             if (unlikely(descr_method == NULL)) {
+                Py_DECREF(obj);
                 return NULL;
             }
 
@@ -4728,22 +4925,31 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS5(PyThreadState *tstate, PyObject *called, 
 
         PyObject *result;
         if (is_compiled_function) {
+            if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
+                Py_DECREF(obj);
+                return NULL;
+            }
             result = Nuitka_CallMethodFunctionPosArgs(tstate, (struct Nuitka_FunctionObject const *)init_method, obj,
                                                       args, 5);
+            Py_LeaveRecursiveCall();
         } else {
             result = CALL_FUNCTION_WITH_POS_ARGS5(tstate, init_method, pos_args);
             Py_DECREF(init_method);
         }
         if (unlikely(result == NULL)) {
+            Py_DECREF(obj);
+            return NULL;
+        }
+
+        if (unlikely(result != Py_None)) {
+            Py_DECREF(obj);
+
+            SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("__init__() should return None, not '%s'", result);
+            Py_DECREF(result);
             return NULL;
         }
 
         Py_DECREF(result);
-
-        if (unlikely(result != Py_None)) {
-            SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("__init__() should return None, not '%s'", result);
-            return NULL;
-        }
 
         CHECK_OBJECT_X(obj);
 
@@ -4762,13 +4968,6 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS5(PyThreadState *tstate, PyObject *called, 
         }
 #endif
     }
-
-#if 0
-    PRINT_NEW_LINE();
-    PRINT_STRING("FALLBACK");
-    PRINT_ITEM(called);
-    PRINT_NEW_LINE();
-#endif
 
     PyObject *result = CALL_FUNCTION(tstate, called, pos_args, NULL);
 
@@ -4835,7 +5034,13 @@ PyObject *CALL_FUNCTION_WITH_ARGS6(PyThreadState *tstate, PyObject *called, PyOb
                 return NULL;
             }
 
+            if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
+                return NULL;
+            }
+
             PyObject *result = Nuitka_CallFunctionPosArgs(tstate, method->m_function, args, 6);
+
+            Py_LeaveRecursiveCall();
 
             CHECK_OBJECT_X(result);
 
@@ -4888,7 +5093,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS6(PyThreadState *tstate, PyObject *called, PyOb
         }
 #if !defined(_NUITKA_EXPERIMENTAL_DISABLE_CFUNCTION_CALL_OPT)
     } else if (PyCFunction_CheckExact(called)) {
-#if PYTHON_VERSION >= 0x380
+#if PYTHON_VERSION >= 0x380 && !defined(_NUITKA_EXPERIMENTAL_DISABLE_VECTORCALL_USAGE)
 #ifdef _NUITKA_FULL_COMPAT
         if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
             return NULL;
@@ -4906,15 +5111,16 @@ PyObject *CALL_FUNCTION_WITH_ARGS6(PyThreadState *tstate, PyObject *called, PyOb
 
             CHECK_OBJECT_X(result);
         } else {
-            PyCFunction method = PyCFunction_GET_FUNCTION(called);
+            Nuitka_PyCFunctionUnion method;
+            method.as_function = PyCFunction_GET_FUNCTION(called);
             PyObject *self = PyCFunction_GET_SELF(called);
 
             PyObject *pos_args = MAKE_TUPLE(tstate, args, 6);
 
             if (flags & METH_KEYWORDS) {
-                result = (*(PyCFunctionWithKeywords)(void (*)(void))method)(self, pos_args, NULL);
+                result = (*method.as_function_kw)(self, pos_args, NULL);
             } else {
-                result = (*method)(self, pos_args);
+                result = (*method.as_function)(self, pos_args);
             }
 
             Py_DECREF(pos_args);
@@ -4927,7 +5133,6 @@ PyObject *CALL_FUNCTION_WITH_ARGS6(PyThreadState *tstate, PyObject *called, PyOb
 
         return Nuitka_CheckFunctionResult(tstate, called, result);
 #else
-        // Try to be fast about wrapping the arguments.
         int flags = PyCFunction_GET_FLAGS(called) & ~(METH_CLASS | METH_STATIC | METH_COEXIST);
 
         if (unlikely(flags & METH_NOARGS)) {
@@ -4938,15 +5143,21 @@ PyObject *CALL_FUNCTION_WITH_ARGS6(PyThreadState *tstate, PyObject *called, PyOb
             SET_CURRENT_EXCEPTION_TYPE0_FORMAT1(PyExc_TypeError, "%s() takes exactly one argument (6 given)",
                                                 ((PyCFunctionObject *)called)->m_ml->ml_name);
             return NULL;
+#if PYTHON_VERSION < 0x360
         } else if (flags & METH_VARARGS) {
-            // Recursion guard is not strictly necessary, as we already have
-            // one on our way to here.
+#elif PYTHON_VERSION < 0x370
+        } else if (flags == METH_VARARGS || flags == (METH_VARARGS | METH_KEYWORDS) || flags == METH_FASTCALL) {
+#else
+        } else if (flags == METH_VARARGS || flags == (METH_VARARGS | METH_KEYWORDS) || flags == METH_FASTCALL ||
+                   flags == (METH_FASTCALL | METH_KEYWORDS)) {
+#endif
 #ifdef _NUITKA_FULL_COMPAT
             if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
                 return NULL;
             }
 #endif
-            PyCFunction method = PyCFunction_GET_FUNCTION(called);
+            Nuitka_PyCFunctionUnion method;
+            method.as_function = PyCFunction_GET_FUNCTION(called);
             PyObject *self = PyCFunction_GET_SELF(called);
 
             PyObject *result;
@@ -4954,28 +5165,30 @@ PyObject *CALL_FUNCTION_WITH_ARGS6(PyThreadState *tstate, PyObject *called, PyOb
 #if PYTHON_VERSION < 0x360
             PyObject *pos_args = MAKE_TUPLE(tstate, args, 6);
             if (flags & METH_KEYWORDS) {
-                result = (*(PyCFunctionWithKeywords)method)(self, pos_args, NULL);
+                result = (*method.as_function_kw)(self, pos_args, NULL);
             } else {
-                result = (*method)(self, pos_args);
+                result = (*method.as_function)(self, pos_args);
             }
 
             Py_DECREF(pos_args);
 #else
             if (flags == (METH_VARARGS | METH_KEYWORDS)) {
                 PyObject *pos_args = MAKE_TUPLE(tstate, args, 6);
-                result = (*(PyCFunctionWithKeywords)method)(self, pos_args, NULL);
+                result = (*method.as_function_kw)(self, pos_args, NULL);
                 Py_DECREF(pos_args);
             } else if (flags == METH_FASTCALL) {
 #if PYTHON_VERSION < 0x370
-                result = (*(_PyCFunctionFast)method)(self, (PyObject **)args, 6, NULL);
+                result = (*method.as_function_fast)(self, (PyObject **)args, 6, NULL);
 #else
-                PyObject *pos_args = MAKE_TUPLE(tstate, args, 6);
-                result = (*(_PyCFunctionFast)method)(self, &pos_args, 6);
-                Py_DECREF(pos_args);
+                result = (*method.as_function_fast)(self, args, 6);
+#endif
+#if PYTHON_VERSION >= 0x370
+            } else if (flags == (METH_FASTCALL | METH_KEYWORDS)) {
+                result = (*method.as_function_fast_kw)(self, args, 6, NULL);
 #endif
             } else {
                 PyObject *pos_args = MAKE_TUPLE(tstate, args, 6);
-                result = (*method)(self, pos_args);
+                result = (*method.as_function)(self, pos_args);
                 Py_DECREF(pos_args);
             }
 #endif
@@ -4992,11 +5205,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS6(PyThreadState *tstate, PyObject *called, PyOb
 #endif
 #if PYTHON_VERSION < 0x380 && !defined(_NUITKA_EXPERIMENTAL_DISABLE_UNCOMPILED_FUNCTION_CALL_OPT)
     } else if (PyFunction_Check(called)) {
-#if PYTHON_VERSION < 0x3b0
         PyObject *result = callPythonFunction(called, args, 6);
-#else
-        PyObject *result = _PyFunction_Vectorcall(called, args, 6, NULL);
-#endif
         CHECK_OBJECT_X(result);
 
         return result;
@@ -5048,7 +5257,6 @@ PyObject *CALL_FUNCTION_WITH_ARGS6(PyThreadState *tstate, PyObject *called, PyOb
                     return obj;
                 }
 
-                // Work on produced type.
                 type = Py_TYPE(obj);
 
                 if (NuitkaType_HasFeatureClass(type) && type->tp_init != NULL) {
@@ -5057,8 +5265,6 @@ PyObject *CALL_FUNCTION_WITH_ARGS6(PyThreadState *tstate, PyObject *called, PyOb
                         pos_args = NULL;
 
                         PyObject *init_method = Nuitka_TypeLookup(type, const_str_plain___init__);
-
-                        // Not really allowed, since we wouldn't have the default wrapper set.
                         assert(init_method != NULL);
 
                         bool is_compiled_function = false;
@@ -5076,6 +5282,8 @@ PyObject *CALL_FUNCTION_WITH_ARGS6(PyThreadState *tstate, PyObject *called, PyOb
                         }
 
                         if (unlikely(init_method == NULL)) {
+                            Py_DECREF(obj);
+
                             if (!HAS_ERROR_OCCURRED(tstate)) {
                                 SET_CURRENT_EXCEPTION_TYPE0_VALUE0(tstate, PyExc_AttributeError,
                                                                    const_str_plain___init__);
@@ -5086,8 +5294,13 @@ PyObject *CALL_FUNCTION_WITH_ARGS6(PyThreadState *tstate, PyObject *called, PyOb
 
                         PyObject *result;
                         if (is_compiled_function) {
+                            if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
+                                Py_DECREF(obj);
+                                return NULL;
+                            }
                             result = Nuitka_CallMethodFunctionPosArgs(
                                 tstate, (struct Nuitka_FunctionObject const *)init_method, obj, args, 6);
+                            Py_LeaveRecursiveCall();
                         } else {
                             result = CALL_FUNCTION_WITH_ARGS6(tstate, init_method, args);
                             if (init_method_needs_release) {
@@ -5100,14 +5313,15 @@ PyObject *CALL_FUNCTION_WITH_ARGS6(PyThreadState *tstate, PyObject *called, PyOb
                             return NULL;
                         }
 
-                        Py_DECREF(result);
-
                         if (unlikely(result != Py_None)) {
                             Py_DECREF(obj);
 
                             SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("__init__() should return None, not '%s'", result);
+                            Py_DECREF(result);
                             return NULL;
                         }
+
+                        Py_DECREF(result);
                     } else {
                         if (pos_args == NULL) {
                             pos_args = MAKE_TUPLE(tstate, args, 6);
@@ -5159,6 +5373,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS6(PyThreadState *tstate, PyObject *called, PyOb
             PyObject *descr_method = descr_get(init_method, obj, called);
 
             if (unlikely(descr_method == NULL)) {
+                Py_DECREF(obj);
                 return NULL;
             }
 
@@ -5167,22 +5382,31 @@ PyObject *CALL_FUNCTION_WITH_ARGS6(PyThreadState *tstate, PyObject *called, PyOb
 
         PyObject *result;
         if (is_compiled_function) {
+            if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
+                Py_DECREF(obj);
+                return NULL;
+            }
             result = Nuitka_CallMethodFunctionPosArgs(tstate, (struct Nuitka_FunctionObject const *)init_method, obj,
                                                       args, 6);
+            Py_LeaveRecursiveCall();
         } else {
             result = CALL_FUNCTION_WITH_ARGS6(tstate, init_method, args);
             Py_DECREF(init_method);
         }
         if (unlikely(result == NULL)) {
+            Py_DECREF(obj);
+            return NULL;
+        }
+
+        if (unlikely(result != Py_None)) {
+            Py_DECREF(obj);
+
+            SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("__init__() should return None, not '%s'", result);
+            Py_DECREF(result);
             return NULL;
         }
 
         Py_DECREF(result);
-
-        if (unlikely(result != Py_None)) {
-            SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("__init__() should return None, not '%s'", result);
-            return NULL;
-        }
 
         CHECK_OBJECT_X(obj);
 
@@ -5201,13 +5425,6 @@ PyObject *CALL_FUNCTION_WITH_ARGS6(PyThreadState *tstate, PyObject *called, PyOb
         }
 #endif
     }
-
-#if 0
-    PRINT_NEW_LINE();
-    PRINT_STRING("FALLBACK");
-    PRINT_ITEM(called);
-    PRINT_NEW_LINE();
-#endif
 
     PyObject *pos_args = MAKE_TUPLE(tstate, args, 6);
 
@@ -5281,7 +5498,13 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS6(PyThreadState *tstate, PyObject *called, 
                 return NULL;
             }
 
+            if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
+                return NULL;
+            }
+
             PyObject *result = Nuitka_CallFunctionPosArgs(tstate, method->m_function, args, 6);
+
+            Py_LeaveRecursiveCall();
 
             CHECK_OBJECT_X(result);
 
@@ -5334,7 +5557,7 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS6(PyThreadState *tstate, PyObject *called, 
         }
 #if !defined(_NUITKA_EXPERIMENTAL_DISABLE_CFUNCTION_CALL_OPT)
     } else if (PyCFunction_CheckExact(called)) {
-#if PYTHON_VERSION >= 0x380
+#if PYTHON_VERSION >= 0x380 && !defined(_NUITKA_EXPERIMENTAL_DISABLE_VECTORCALL_USAGE)
 #ifdef _NUITKA_FULL_COMPAT
         if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
             return NULL;
@@ -5352,13 +5575,14 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS6(PyThreadState *tstate, PyObject *called, 
 
             CHECK_OBJECT_X(result);
         } else {
-            PyCFunction method = PyCFunction_GET_FUNCTION(called);
+            Nuitka_PyCFunctionUnion method;
+            method.as_function = PyCFunction_GET_FUNCTION(called);
             PyObject *self = PyCFunction_GET_SELF(called);
 
             if (flags & METH_KEYWORDS) {
-                result = (*(PyCFunctionWithKeywords)(void (*)(void))method)(self, pos_args, NULL);
+                result = (*method.as_function_kw)(self, pos_args, NULL);
             } else {
-                result = (*method)(self, pos_args);
+                result = (*method.as_function)(self, pos_args);
             }
         }
 
@@ -5369,7 +5593,6 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS6(PyThreadState *tstate, PyObject *called, 
 
         return Nuitka_CheckFunctionResult(tstate, called, result);
 #else
-        // Try to be fast about wrapping the arguments.
         int flags = PyCFunction_GET_FLAGS(called) & ~(METH_CLASS | METH_STATIC | METH_COEXIST);
 
         if (unlikely(flags & METH_NOARGS)) {
@@ -5380,37 +5603,47 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS6(PyThreadState *tstate, PyObject *called, 
             SET_CURRENT_EXCEPTION_TYPE0_FORMAT1(PyExc_TypeError, "%s() takes exactly one argument (6 given)",
                                                 ((PyCFunctionObject *)called)->m_ml->ml_name);
             return NULL;
+#if PYTHON_VERSION < 0x360
         } else if (flags & METH_VARARGS) {
-            // Recursion guard is not strictly necessary, as we already have
-            // one on our way to here.
+#elif PYTHON_VERSION < 0x370
+        } else if (flags == METH_VARARGS || flags == (METH_VARARGS | METH_KEYWORDS) || flags == METH_FASTCALL) {
+#else
+        } else if (flags == METH_VARARGS || flags == (METH_VARARGS | METH_KEYWORDS) || flags == METH_FASTCALL ||
+                   flags == (METH_FASTCALL | METH_KEYWORDS)) {
+#endif
 #ifdef _NUITKA_FULL_COMPAT
             if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
                 return NULL;
             }
 #endif
-            PyCFunction method = PyCFunction_GET_FUNCTION(called);
+            Nuitka_PyCFunctionUnion method;
+            method.as_function = PyCFunction_GET_FUNCTION(called);
             PyObject *self = PyCFunction_GET_SELF(called);
 
             PyObject *result;
 
 #if PYTHON_VERSION < 0x360
             if (flags & METH_KEYWORDS) {
-                result = (*(PyCFunctionWithKeywords)method)(self, pos_args, NULL);
+                result = (*method.as_function_kw)(self, pos_args, NULL);
             } else {
-                result = (*method)(self, pos_args);
+                result = (*method.as_function)(self, pos_args);
             }
 
 #else
             if (flags == (METH_VARARGS | METH_KEYWORDS)) {
-                result = (*(PyCFunctionWithKeywords)method)(self, pos_args, NULL);
+                result = (*method.as_function_kw)(self, pos_args, NULL);
             } else if (flags == METH_FASTCALL) {
 #if PYTHON_VERSION < 0x370
-                result = (*(_PyCFunctionFast)method)(self, (PyObject **)args, 6, NULL);
+                result = (*method.as_function_fast)(self, (PyObject **)args, 6, NULL);
 #else
-                result = (*(_PyCFunctionFast)method)(self, &pos_args, 6);
+                result = (*method.as_function_fast)(self, args, 6);
+#endif
+#if PYTHON_VERSION >= 0x370
+            } else if (flags == (METH_FASTCALL | METH_KEYWORDS)) {
+                result = (*method.as_function_fast_kw)(self, args, 6, NULL);
 #endif
             } else {
-                result = (*method)(self, pos_args);
+                result = (*method.as_function)(self, pos_args);
             }
 #endif
 
@@ -5426,11 +5659,7 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS6(PyThreadState *tstate, PyObject *called, 
 #endif
 #if PYTHON_VERSION < 0x380 && !defined(_NUITKA_EXPERIMENTAL_DISABLE_UNCOMPILED_FUNCTION_CALL_OPT)
     } else if (PyFunction_Check(called)) {
-#if PYTHON_VERSION < 0x3b0
         PyObject *result = callPythonFunction(called, args, 6);
-#else
-        PyObject *result = _PyFunction_Vectorcall(called, args, 6, NULL);
-#endif
         CHECK_OBJECT_X(result);
 
         return result;
@@ -5479,15 +5708,12 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS6(PyThreadState *tstate, PyObject *called, 
                     return obj;
                 }
 
-                // Work on produced type.
                 type = Py_TYPE(obj);
 
                 if (NuitkaType_HasFeatureClass(type) && type->tp_init != NULL) {
                     if (type->tp_init == default_tp_init_wrapper) {
 
                         PyObject *init_method = Nuitka_TypeLookup(type, const_str_plain___init__);
-
-                        // Not really allowed, since we wouldn't have the default wrapper set.
                         assert(init_method != NULL);
 
                         bool is_compiled_function = false;
@@ -5505,6 +5731,8 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS6(PyThreadState *tstate, PyObject *called, 
                         }
 
                         if (unlikely(init_method == NULL)) {
+                            Py_DECREF(obj);
+
                             if (!HAS_ERROR_OCCURRED(tstate)) {
                                 SET_CURRENT_EXCEPTION_TYPE0_VALUE0(tstate, PyExc_AttributeError,
                                                                    const_str_plain___init__);
@@ -5515,8 +5743,13 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS6(PyThreadState *tstate, PyObject *called, 
 
                         PyObject *result;
                         if (is_compiled_function) {
+                            if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
+                                Py_DECREF(obj);
+                                return NULL;
+                            }
                             result = Nuitka_CallMethodFunctionPosArgs(
                                 tstate, (struct Nuitka_FunctionObject const *)init_method, obj, args, 6);
+                            Py_LeaveRecursiveCall();
                         } else {
                             result = CALL_FUNCTION_WITH_POS_ARGS6(tstate, init_method, pos_args);
                             if (init_method_needs_release) {
@@ -5529,14 +5762,15 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS6(PyThreadState *tstate, PyObject *called, 
                             return NULL;
                         }
 
-                        Py_DECREF(result);
-
                         if (unlikely(result != Py_None)) {
                             Py_DECREF(obj);
 
                             SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("__init__() should return None, not '%s'", result);
+                            Py_DECREF(result);
                             return NULL;
                         }
+
+                        Py_DECREF(result);
                     } else {
 
                         if (unlikely(type->tp_init(obj, pos_args, NULL) < 0)) {
@@ -5582,6 +5816,7 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS6(PyThreadState *tstate, PyObject *called, 
             PyObject *descr_method = descr_get(init_method, obj, called);
 
             if (unlikely(descr_method == NULL)) {
+                Py_DECREF(obj);
                 return NULL;
             }
 
@@ -5590,22 +5825,31 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS6(PyThreadState *tstate, PyObject *called, 
 
         PyObject *result;
         if (is_compiled_function) {
+            if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
+                Py_DECREF(obj);
+                return NULL;
+            }
             result = Nuitka_CallMethodFunctionPosArgs(tstate, (struct Nuitka_FunctionObject const *)init_method, obj,
                                                       args, 6);
+            Py_LeaveRecursiveCall();
         } else {
             result = CALL_FUNCTION_WITH_POS_ARGS6(tstate, init_method, pos_args);
             Py_DECREF(init_method);
         }
         if (unlikely(result == NULL)) {
+            Py_DECREF(obj);
+            return NULL;
+        }
+
+        if (unlikely(result != Py_None)) {
+            Py_DECREF(obj);
+
+            SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("__init__() should return None, not '%s'", result);
+            Py_DECREF(result);
             return NULL;
         }
 
         Py_DECREF(result);
-
-        if (unlikely(result != Py_None)) {
-            SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("__init__() should return None, not '%s'", result);
-            return NULL;
-        }
 
         CHECK_OBJECT_X(obj);
 
@@ -5624,13 +5868,6 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS6(PyThreadState *tstate, PyObject *called, 
         }
 #endif
     }
-
-#if 0
-    PRINT_NEW_LINE();
-    PRINT_STRING("FALLBACK");
-    PRINT_ITEM(called);
-    PRINT_NEW_LINE();
-#endif
 
     PyObject *result = CALL_FUNCTION(tstate, called, pos_args, NULL);
 
@@ -5697,7 +5934,13 @@ PyObject *CALL_FUNCTION_WITH_ARGS7(PyThreadState *tstate, PyObject *called, PyOb
                 return NULL;
             }
 
+            if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
+                return NULL;
+            }
+
             PyObject *result = Nuitka_CallFunctionPosArgs(tstate, method->m_function, args, 7);
+
+            Py_LeaveRecursiveCall();
 
             CHECK_OBJECT_X(result);
 
@@ -5750,7 +5993,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS7(PyThreadState *tstate, PyObject *called, PyOb
         }
 #if !defined(_NUITKA_EXPERIMENTAL_DISABLE_CFUNCTION_CALL_OPT)
     } else if (PyCFunction_CheckExact(called)) {
-#if PYTHON_VERSION >= 0x380
+#if PYTHON_VERSION >= 0x380 && !defined(_NUITKA_EXPERIMENTAL_DISABLE_VECTORCALL_USAGE)
 #ifdef _NUITKA_FULL_COMPAT
         if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
             return NULL;
@@ -5768,15 +6011,16 @@ PyObject *CALL_FUNCTION_WITH_ARGS7(PyThreadState *tstate, PyObject *called, PyOb
 
             CHECK_OBJECT_X(result);
         } else {
-            PyCFunction method = PyCFunction_GET_FUNCTION(called);
+            Nuitka_PyCFunctionUnion method;
+            method.as_function = PyCFunction_GET_FUNCTION(called);
             PyObject *self = PyCFunction_GET_SELF(called);
 
             PyObject *pos_args = MAKE_TUPLE(tstate, args, 7);
 
             if (flags & METH_KEYWORDS) {
-                result = (*(PyCFunctionWithKeywords)(void (*)(void))method)(self, pos_args, NULL);
+                result = (*method.as_function_kw)(self, pos_args, NULL);
             } else {
-                result = (*method)(self, pos_args);
+                result = (*method.as_function)(self, pos_args);
             }
 
             Py_DECREF(pos_args);
@@ -5789,7 +6033,6 @@ PyObject *CALL_FUNCTION_WITH_ARGS7(PyThreadState *tstate, PyObject *called, PyOb
 
         return Nuitka_CheckFunctionResult(tstate, called, result);
 #else
-        // Try to be fast about wrapping the arguments.
         int flags = PyCFunction_GET_FLAGS(called) & ~(METH_CLASS | METH_STATIC | METH_COEXIST);
 
         if (unlikely(flags & METH_NOARGS)) {
@@ -5800,15 +6043,21 @@ PyObject *CALL_FUNCTION_WITH_ARGS7(PyThreadState *tstate, PyObject *called, PyOb
             SET_CURRENT_EXCEPTION_TYPE0_FORMAT1(PyExc_TypeError, "%s() takes exactly one argument (7 given)",
                                                 ((PyCFunctionObject *)called)->m_ml->ml_name);
             return NULL;
+#if PYTHON_VERSION < 0x360
         } else if (flags & METH_VARARGS) {
-            // Recursion guard is not strictly necessary, as we already have
-            // one on our way to here.
+#elif PYTHON_VERSION < 0x370
+        } else if (flags == METH_VARARGS || flags == (METH_VARARGS | METH_KEYWORDS) || flags == METH_FASTCALL) {
+#else
+        } else if (flags == METH_VARARGS || flags == (METH_VARARGS | METH_KEYWORDS) || flags == METH_FASTCALL ||
+                   flags == (METH_FASTCALL | METH_KEYWORDS)) {
+#endif
 #ifdef _NUITKA_FULL_COMPAT
             if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
                 return NULL;
             }
 #endif
-            PyCFunction method = PyCFunction_GET_FUNCTION(called);
+            Nuitka_PyCFunctionUnion method;
+            method.as_function = PyCFunction_GET_FUNCTION(called);
             PyObject *self = PyCFunction_GET_SELF(called);
 
             PyObject *result;
@@ -5816,28 +6065,30 @@ PyObject *CALL_FUNCTION_WITH_ARGS7(PyThreadState *tstate, PyObject *called, PyOb
 #if PYTHON_VERSION < 0x360
             PyObject *pos_args = MAKE_TUPLE(tstate, args, 7);
             if (flags & METH_KEYWORDS) {
-                result = (*(PyCFunctionWithKeywords)method)(self, pos_args, NULL);
+                result = (*method.as_function_kw)(self, pos_args, NULL);
             } else {
-                result = (*method)(self, pos_args);
+                result = (*method.as_function)(self, pos_args);
             }
 
             Py_DECREF(pos_args);
 #else
             if (flags == (METH_VARARGS | METH_KEYWORDS)) {
                 PyObject *pos_args = MAKE_TUPLE(tstate, args, 7);
-                result = (*(PyCFunctionWithKeywords)method)(self, pos_args, NULL);
+                result = (*method.as_function_kw)(self, pos_args, NULL);
                 Py_DECREF(pos_args);
             } else if (flags == METH_FASTCALL) {
 #if PYTHON_VERSION < 0x370
-                result = (*(_PyCFunctionFast)method)(self, (PyObject **)args, 7, NULL);
+                result = (*method.as_function_fast)(self, (PyObject **)args, 7, NULL);
 #else
-                PyObject *pos_args = MAKE_TUPLE(tstate, args, 7);
-                result = (*(_PyCFunctionFast)method)(self, &pos_args, 7);
-                Py_DECREF(pos_args);
+                result = (*method.as_function_fast)(self, args, 7);
+#endif
+#if PYTHON_VERSION >= 0x370
+            } else if (flags == (METH_FASTCALL | METH_KEYWORDS)) {
+                result = (*method.as_function_fast_kw)(self, args, 7, NULL);
 #endif
             } else {
                 PyObject *pos_args = MAKE_TUPLE(tstate, args, 7);
-                result = (*method)(self, pos_args);
+                result = (*method.as_function)(self, pos_args);
                 Py_DECREF(pos_args);
             }
 #endif
@@ -5854,11 +6105,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS7(PyThreadState *tstate, PyObject *called, PyOb
 #endif
 #if PYTHON_VERSION < 0x380 && !defined(_NUITKA_EXPERIMENTAL_DISABLE_UNCOMPILED_FUNCTION_CALL_OPT)
     } else if (PyFunction_Check(called)) {
-#if PYTHON_VERSION < 0x3b0
         PyObject *result = callPythonFunction(called, args, 7);
-#else
-        PyObject *result = _PyFunction_Vectorcall(called, args, 7, NULL);
-#endif
         CHECK_OBJECT_X(result);
 
         return result;
@@ -5910,7 +6157,6 @@ PyObject *CALL_FUNCTION_WITH_ARGS7(PyThreadState *tstate, PyObject *called, PyOb
                     return obj;
                 }
 
-                // Work on produced type.
                 type = Py_TYPE(obj);
 
                 if (NuitkaType_HasFeatureClass(type) && type->tp_init != NULL) {
@@ -5919,8 +6165,6 @@ PyObject *CALL_FUNCTION_WITH_ARGS7(PyThreadState *tstate, PyObject *called, PyOb
                         pos_args = NULL;
 
                         PyObject *init_method = Nuitka_TypeLookup(type, const_str_plain___init__);
-
-                        // Not really allowed, since we wouldn't have the default wrapper set.
                         assert(init_method != NULL);
 
                         bool is_compiled_function = false;
@@ -5938,6 +6182,8 @@ PyObject *CALL_FUNCTION_WITH_ARGS7(PyThreadState *tstate, PyObject *called, PyOb
                         }
 
                         if (unlikely(init_method == NULL)) {
+                            Py_DECREF(obj);
+
                             if (!HAS_ERROR_OCCURRED(tstate)) {
                                 SET_CURRENT_EXCEPTION_TYPE0_VALUE0(tstate, PyExc_AttributeError,
                                                                    const_str_plain___init__);
@@ -5948,8 +6194,13 @@ PyObject *CALL_FUNCTION_WITH_ARGS7(PyThreadState *tstate, PyObject *called, PyOb
 
                         PyObject *result;
                         if (is_compiled_function) {
+                            if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
+                                Py_DECREF(obj);
+                                return NULL;
+                            }
                             result = Nuitka_CallMethodFunctionPosArgs(
                                 tstate, (struct Nuitka_FunctionObject const *)init_method, obj, args, 7);
+                            Py_LeaveRecursiveCall();
                         } else {
                             result = CALL_FUNCTION_WITH_ARGS7(tstate, init_method, args);
                             if (init_method_needs_release) {
@@ -5962,14 +6213,15 @@ PyObject *CALL_FUNCTION_WITH_ARGS7(PyThreadState *tstate, PyObject *called, PyOb
                             return NULL;
                         }
 
-                        Py_DECREF(result);
-
                         if (unlikely(result != Py_None)) {
                             Py_DECREF(obj);
 
                             SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("__init__() should return None, not '%s'", result);
+                            Py_DECREF(result);
                             return NULL;
                         }
+
+                        Py_DECREF(result);
                     } else {
                         if (pos_args == NULL) {
                             pos_args = MAKE_TUPLE(tstate, args, 7);
@@ -6021,6 +6273,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS7(PyThreadState *tstate, PyObject *called, PyOb
             PyObject *descr_method = descr_get(init_method, obj, called);
 
             if (unlikely(descr_method == NULL)) {
+                Py_DECREF(obj);
                 return NULL;
             }
 
@@ -6029,22 +6282,31 @@ PyObject *CALL_FUNCTION_WITH_ARGS7(PyThreadState *tstate, PyObject *called, PyOb
 
         PyObject *result;
         if (is_compiled_function) {
+            if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
+                Py_DECREF(obj);
+                return NULL;
+            }
             result = Nuitka_CallMethodFunctionPosArgs(tstate, (struct Nuitka_FunctionObject const *)init_method, obj,
                                                       args, 7);
+            Py_LeaveRecursiveCall();
         } else {
             result = CALL_FUNCTION_WITH_ARGS7(tstate, init_method, args);
             Py_DECREF(init_method);
         }
         if (unlikely(result == NULL)) {
+            Py_DECREF(obj);
+            return NULL;
+        }
+
+        if (unlikely(result != Py_None)) {
+            Py_DECREF(obj);
+
+            SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("__init__() should return None, not '%s'", result);
+            Py_DECREF(result);
             return NULL;
         }
 
         Py_DECREF(result);
-
-        if (unlikely(result != Py_None)) {
-            SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("__init__() should return None, not '%s'", result);
-            return NULL;
-        }
 
         CHECK_OBJECT_X(obj);
 
@@ -6063,13 +6325,6 @@ PyObject *CALL_FUNCTION_WITH_ARGS7(PyThreadState *tstate, PyObject *called, PyOb
         }
 #endif
     }
-
-#if 0
-    PRINT_NEW_LINE();
-    PRINT_STRING("FALLBACK");
-    PRINT_ITEM(called);
-    PRINT_NEW_LINE();
-#endif
 
     PyObject *pos_args = MAKE_TUPLE(tstate, args, 7);
 
@@ -6143,7 +6398,13 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS7(PyThreadState *tstate, PyObject *called, 
                 return NULL;
             }
 
+            if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
+                return NULL;
+            }
+
             PyObject *result = Nuitka_CallFunctionPosArgs(tstate, method->m_function, args, 7);
+
+            Py_LeaveRecursiveCall();
 
             CHECK_OBJECT_X(result);
 
@@ -6196,7 +6457,7 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS7(PyThreadState *tstate, PyObject *called, 
         }
 #if !defined(_NUITKA_EXPERIMENTAL_DISABLE_CFUNCTION_CALL_OPT)
     } else if (PyCFunction_CheckExact(called)) {
-#if PYTHON_VERSION >= 0x380
+#if PYTHON_VERSION >= 0x380 && !defined(_NUITKA_EXPERIMENTAL_DISABLE_VECTORCALL_USAGE)
 #ifdef _NUITKA_FULL_COMPAT
         if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
             return NULL;
@@ -6214,13 +6475,14 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS7(PyThreadState *tstate, PyObject *called, 
 
             CHECK_OBJECT_X(result);
         } else {
-            PyCFunction method = PyCFunction_GET_FUNCTION(called);
+            Nuitka_PyCFunctionUnion method;
+            method.as_function = PyCFunction_GET_FUNCTION(called);
             PyObject *self = PyCFunction_GET_SELF(called);
 
             if (flags & METH_KEYWORDS) {
-                result = (*(PyCFunctionWithKeywords)(void (*)(void))method)(self, pos_args, NULL);
+                result = (*method.as_function_kw)(self, pos_args, NULL);
             } else {
-                result = (*method)(self, pos_args);
+                result = (*method.as_function)(self, pos_args);
             }
         }
 
@@ -6231,7 +6493,6 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS7(PyThreadState *tstate, PyObject *called, 
 
         return Nuitka_CheckFunctionResult(tstate, called, result);
 #else
-        // Try to be fast about wrapping the arguments.
         int flags = PyCFunction_GET_FLAGS(called) & ~(METH_CLASS | METH_STATIC | METH_COEXIST);
 
         if (unlikely(flags & METH_NOARGS)) {
@@ -6242,37 +6503,47 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS7(PyThreadState *tstate, PyObject *called, 
             SET_CURRENT_EXCEPTION_TYPE0_FORMAT1(PyExc_TypeError, "%s() takes exactly one argument (7 given)",
                                                 ((PyCFunctionObject *)called)->m_ml->ml_name);
             return NULL;
+#if PYTHON_VERSION < 0x360
         } else if (flags & METH_VARARGS) {
-            // Recursion guard is not strictly necessary, as we already have
-            // one on our way to here.
+#elif PYTHON_VERSION < 0x370
+        } else if (flags == METH_VARARGS || flags == (METH_VARARGS | METH_KEYWORDS) || flags == METH_FASTCALL) {
+#else
+        } else if (flags == METH_VARARGS || flags == (METH_VARARGS | METH_KEYWORDS) || flags == METH_FASTCALL ||
+                   flags == (METH_FASTCALL | METH_KEYWORDS)) {
+#endif
 #ifdef _NUITKA_FULL_COMPAT
             if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
                 return NULL;
             }
 #endif
-            PyCFunction method = PyCFunction_GET_FUNCTION(called);
+            Nuitka_PyCFunctionUnion method;
+            method.as_function = PyCFunction_GET_FUNCTION(called);
             PyObject *self = PyCFunction_GET_SELF(called);
 
             PyObject *result;
 
 #if PYTHON_VERSION < 0x360
             if (flags & METH_KEYWORDS) {
-                result = (*(PyCFunctionWithKeywords)method)(self, pos_args, NULL);
+                result = (*method.as_function_kw)(self, pos_args, NULL);
             } else {
-                result = (*method)(self, pos_args);
+                result = (*method.as_function)(self, pos_args);
             }
 
 #else
             if (flags == (METH_VARARGS | METH_KEYWORDS)) {
-                result = (*(PyCFunctionWithKeywords)method)(self, pos_args, NULL);
+                result = (*method.as_function_kw)(self, pos_args, NULL);
             } else if (flags == METH_FASTCALL) {
 #if PYTHON_VERSION < 0x370
-                result = (*(_PyCFunctionFast)method)(self, (PyObject **)args, 7, NULL);
+                result = (*method.as_function_fast)(self, (PyObject **)args, 7, NULL);
 #else
-                result = (*(_PyCFunctionFast)method)(self, &pos_args, 7);
+                result = (*method.as_function_fast)(self, args, 7);
+#endif
+#if PYTHON_VERSION >= 0x370
+            } else if (flags == (METH_FASTCALL | METH_KEYWORDS)) {
+                result = (*method.as_function_fast_kw)(self, args, 7, NULL);
 #endif
             } else {
-                result = (*method)(self, pos_args);
+                result = (*method.as_function)(self, pos_args);
             }
 #endif
 
@@ -6288,11 +6559,7 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS7(PyThreadState *tstate, PyObject *called, 
 #endif
 #if PYTHON_VERSION < 0x380 && !defined(_NUITKA_EXPERIMENTAL_DISABLE_UNCOMPILED_FUNCTION_CALL_OPT)
     } else if (PyFunction_Check(called)) {
-#if PYTHON_VERSION < 0x3b0
         PyObject *result = callPythonFunction(called, args, 7);
-#else
-        PyObject *result = _PyFunction_Vectorcall(called, args, 7, NULL);
-#endif
         CHECK_OBJECT_X(result);
 
         return result;
@@ -6341,15 +6608,12 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS7(PyThreadState *tstate, PyObject *called, 
                     return obj;
                 }
 
-                // Work on produced type.
                 type = Py_TYPE(obj);
 
                 if (NuitkaType_HasFeatureClass(type) && type->tp_init != NULL) {
                     if (type->tp_init == default_tp_init_wrapper) {
 
                         PyObject *init_method = Nuitka_TypeLookup(type, const_str_plain___init__);
-
-                        // Not really allowed, since we wouldn't have the default wrapper set.
                         assert(init_method != NULL);
 
                         bool is_compiled_function = false;
@@ -6367,6 +6631,8 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS7(PyThreadState *tstate, PyObject *called, 
                         }
 
                         if (unlikely(init_method == NULL)) {
+                            Py_DECREF(obj);
+
                             if (!HAS_ERROR_OCCURRED(tstate)) {
                                 SET_CURRENT_EXCEPTION_TYPE0_VALUE0(tstate, PyExc_AttributeError,
                                                                    const_str_plain___init__);
@@ -6377,8 +6643,13 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS7(PyThreadState *tstate, PyObject *called, 
 
                         PyObject *result;
                         if (is_compiled_function) {
+                            if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
+                                Py_DECREF(obj);
+                                return NULL;
+                            }
                             result = Nuitka_CallMethodFunctionPosArgs(
                                 tstate, (struct Nuitka_FunctionObject const *)init_method, obj, args, 7);
+                            Py_LeaveRecursiveCall();
                         } else {
                             result = CALL_FUNCTION_WITH_POS_ARGS7(tstate, init_method, pos_args);
                             if (init_method_needs_release) {
@@ -6391,14 +6662,15 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS7(PyThreadState *tstate, PyObject *called, 
                             return NULL;
                         }
 
-                        Py_DECREF(result);
-
                         if (unlikely(result != Py_None)) {
                             Py_DECREF(obj);
 
                             SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("__init__() should return None, not '%s'", result);
+                            Py_DECREF(result);
                             return NULL;
                         }
+
+                        Py_DECREF(result);
                     } else {
 
                         if (unlikely(type->tp_init(obj, pos_args, NULL) < 0)) {
@@ -6444,6 +6716,7 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS7(PyThreadState *tstate, PyObject *called, 
             PyObject *descr_method = descr_get(init_method, obj, called);
 
             if (unlikely(descr_method == NULL)) {
+                Py_DECREF(obj);
                 return NULL;
             }
 
@@ -6452,22 +6725,31 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS7(PyThreadState *tstate, PyObject *called, 
 
         PyObject *result;
         if (is_compiled_function) {
+            if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
+                Py_DECREF(obj);
+                return NULL;
+            }
             result = Nuitka_CallMethodFunctionPosArgs(tstate, (struct Nuitka_FunctionObject const *)init_method, obj,
                                                       args, 7);
+            Py_LeaveRecursiveCall();
         } else {
             result = CALL_FUNCTION_WITH_POS_ARGS7(tstate, init_method, pos_args);
             Py_DECREF(init_method);
         }
         if (unlikely(result == NULL)) {
+            Py_DECREF(obj);
+            return NULL;
+        }
+
+        if (unlikely(result != Py_None)) {
+            Py_DECREF(obj);
+
+            SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("__init__() should return None, not '%s'", result);
+            Py_DECREF(result);
             return NULL;
         }
 
         Py_DECREF(result);
-
-        if (unlikely(result != Py_None)) {
-            SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("__init__() should return None, not '%s'", result);
-            return NULL;
-        }
 
         CHECK_OBJECT_X(obj);
 
@@ -6486,13 +6768,6 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS7(PyThreadState *tstate, PyObject *called, 
         }
 #endif
     }
-
-#if 0
-    PRINT_NEW_LINE();
-    PRINT_STRING("FALLBACK");
-    PRINT_ITEM(called);
-    PRINT_NEW_LINE();
-#endif
 
     PyObject *result = CALL_FUNCTION(tstate, called, pos_args, NULL);
 
@@ -6559,7 +6834,13 @@ PyObject *CALL_FUNCTION_WITH_ARGS8(PyThreadState *tstate, PyObject *called, PyOb
                 return NULL;
             }
 
+            if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
+                return NULL;
+            }
+
             PyObject *result = Nuitka_CallFunctionPosArgs(tstate, method->m_function, args, 8);
+
+            Py_LeaveRecursiveCall();
 
             CHECK_OBJECT_X(result);
 
@@ -6612,7 +6893,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS8(PyThreadState *tstate, PyObject *called, PyOb
         }
 #if !defined(_NUITKA_EXPERIMENTAL_DISABLE_CFUNCTION_CALL_OPT)
     } else if (PyCFunction_CheckExact(called)) {
-#if PYTHON_VERSION >= 0x380
+#if PYTHON_VERSION >= 0x380 && !defined(_NUITKA_EXPERIMENTAL_DISABLE_VECTORCALL_USAGE)
 #ifdef _NUITKA_FULL_COMPAT
         if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
             return NULL;
@@ -6630,15 +6911,16 @@ PyObject *CALL_FUNCTION_WITH_ARGS8(PyThreadState *tstate, PyObject *called, PyOb
 
             CHECK_OBJECT_X(result);
         } else {
-            PyCFunction method = PyCFunction_GET_FUNCTION(called);
+            Nuitka_PyCFunctionUnion method;
+            method.as_function = PyCFunction_GET_FUNCTION(called);
             PyObject *self = PyCFunction_GET_SELF(called);
 
             PyObject *pos_args = MAKE_TUPLE(tstate, args, 8);
 
             if (flags & METH_KEYWORDS) {
-                result = (*(PyCFunctionWithKeywords)(void (*)(void))method)(self, pos_args, NULL);
+                result = (*method.as_function_kw)(self, pos_args, NULL);
             } else {
-                result = (*method)(self, pos_args);
+                result = (*method.as_function)(self, pos_args);
             }
 
             Py_DECREF(pos_args);
@@ -6651,7 +6933,6 @@ PyObject *CALL_FUNCTION_WITH_ARGS8(PyThreadState *tstate, PyObject *called, PyOb
 
         return Nuitka_CheckFunctionResult(tstate, called, result);
 #else
-        // Try to be fast about wrapping the arguments.
         int flags = PyCFunction_GET_FLAGS(called) & ~(METH_CLASS | METH_STATIC | METH_COEXIST);
 
         if (unlikely(flags & METH_NOARGS)) {
@@ -6662,15 +6943,21 @@ PyObject *CALL_FUNCTION_WITH_ARGS8(PyThreadState *tstate, PyObject *called, PyOb
             SET_CURRENT_EXCEPTION_TYPE0_FORMAT1(PyExc_TypeError, "%s() takes exactly one argument (8 given)",
                                                 ((PyCFunctionObject *)called)->m_ml->ml_name);
             return NULL;
+#if PYTHON_VERSION < 0x360
         } else if (flags & METH_VARARGS) {
-            // Recursion guard is not strictly necessary, as we already have
-            // one on our way to here.
+#elif PYTHON_VERSION < 0x370
+        } else if (flags == METH_VARARGS || flags == (METH_VARARGS | METH_KEYWORDS) || flags == METH_FASTCALL) {
+#else
+        } else if (flags == METH_VARARGS || flags == (METH_VARARGS | METH_KEYWORDS) || flags == METH_FASTCALL ||
+                   flags == (METH_FASTCALL | METH_KEYWORDS)) {
+#endif
 #ifdef _NUITKA_FULL_COMPAT
             if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
                 return NULL;
             }
 #endif
-            PyCFunction method = PyCFunction_GET_FUNCTION(called);
+            Nuitka_PyCFunctionUnion method;
+            method.as_function = PyCFunction_GET_FUNCTION(called);
             PyObject *self = PyCFunction_GET_SELF(called);
 
             PyObject *result;
@@ -6678,28 +6965,30 @@ PyObject *CALL_FUNCTION_WITH_ARGS8(PyThreadState *tstate, PyObject *called, PyOb
 #if PYTHON_VERSION < 0x360
             PyObject *pos_args = MAKE_TUPLE(tstate, args, 8);
             if (flags & METH_KEYWORDS) {
-                result = (*(PyCFunctionWithKeywords)method)(self, pos_args, NULL);
+                result = (*method.as_function_kw)(self, pos_args, NULL);
             } else {
-                result = (*method)(self, pos_args);
+                result = (*method.as_function)(self, pos_args);
             }
 
             Py_DECREF(pos_args);
 #else
             if (flags == (METH_VARARGS | METH_KEYWORDS)) {
                 PyObject *pos_args = MAKE_TUPLE(tstate, args, 8);
-                result = (*(PyCFunctionWithKeywords)method)(self, pos_args, NULL);
+                result = (*method.as_function_kw)(self, pos_args, NULL);
                 Py_DECREF(pos_args);
             } else if (flags == METH_FASTCALL) {
 #if PYTHON_VERSION < 0x370
-                result = (*(_PyCFunctionFast)method)(self, (PyObject **)args, 8, NULL);
+                result = (*method.as_function_fast)(self, (PyObject **)args, 8, NULL);
 #else
-                PyObject *pos_args = MAKE_TUPLE(tstate, args, 8);
-                result = (*(_PyCFunctionFast)method)(self, &pos_args, 8);
-                Py_DECREF(pos_args);
+                result = (*method.as_function_fast)(self, args, 8);
+#endif
+#if PYTHON_VERSION >= 0x370
+            } else if (flags == (METH_FASTCALL | METH_KEYWORDS)) {
+                result = (*method.as_function_fast_kw)(self, args, 8, NULL);
 #endif
             } else {
                 PyObject *pos_args = MAKE_TUPLE(tstate, args, 8);
-                result = (*method)(self, pos_args);
+                result = (*method.as_function)(self, pos_args);
                 Py_DECREF(pos_args);
             }
 #endif
@@ -6716,11 +7005,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS8(PyThreadState *tstate, PyObject *called, PyOb
 #endif
 #if PYTHON_VERSION < 0x380 && !defined(_NUITKA_EXPERIMENTAL_DISABLE_UNCOMPILED_FUNCTION_CALL_OPT)
     } else if (PyFunction_Check(called)) {
-#if PYTHON_VERSION < 0x3b0
         PyObject *result = callPythonFunction(called, args, 8);
-#else
-        PyObject *result = _PyFunction_Vectorcall(called, args, 8, NULL);
-#endif
         CHECK_OBJECT_X(result);
 
         return result;
@@ -6772,7 +7057,6 @@ PyObject *CALL_FUNCTION_WITH_ARGS8(PyThreadState *tstate, PyObject *called, PyOb
                     return obj;
                 }
 
-                // Work on produced type.
                 type = Py_TYPE(obj);
 
                 if (NuitkaType_HasFeatureClass(type) && type->tp_init != NULL) {
@@ -6781,8 +7065,6 @@ PyObject *CALL_FUNCTION_WITH_ARGS8(PyThreadState *tstate, PyObject *called, PyOb
                         pos_args = NULL;
 
                         PyObject *init_method = Nuitka_TypeLookup(type, const_str_plain___init__);
-
-                        // Not really allowed, since we wouldn't have the default wrapper set.
                         assert(init_method != NULL);
 
                         bool is_compiled_function = false;
@@ -6800,6 +7082,8 @@ PyObject *CALL_FUNCTION_WITH_ARGS8(PyThreadState *tstate, PyObject *called, PyOb
                         }
 
                         if (unlikely(init_method == NULL)) {
+                            Py_DECREF(obj);
+
                             if (!HAS_ERROR_OCCURRED(tstate)) {
                                 SET_CURRENT_EXCEPTION_TYPE0_VALUE0(tstate, PyExc_AttributeError,
                                                                    const_str_plain___init__);
@@ -6810,8 +7094,13 @@ PyObject *CALL_FUNCTION_WITH_ARGS8(PyThreadState *tstate, PyObject *called, PyOb
 
                         PyObject *result;
                         if (is_compiled_function) {
+                            if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
+                                Py_DECREF(obj);
+                                return NULL;
+                            }
                             result = Nuitka_CallMethodFunctionPosArgs(
                                 tstate, (struct Nuitka_FunctionObject const *)init_method, obj, args, 8);
+                            Py_LeaveRecursiveCall();
                         } else {
                             result = CALL_FUNCTION_WITH_ARGS8(tstate, init_method, args);
                             if (init_method_needs_release) {
@@ -6824,14 +7113,15 @@ PyObject *CALL_FUNCTION_WITH_ARGS8(PyThreadState *tstate, PyObject *called, PyOb
                             return NULL;
                         }
 
-                        Py_DECREF(result);
-
                         if (unlikely(result != Py_None)) {
                             Py_DECREF(obj);
 
                             SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("__init__() should return None, not '%s'", result);
+                            Py_DECREF(result);
                             return NULL;
                         }
+
+                        Py_DECREF(result);
                     } else {
                         if (pos_args == NULL) {
                             pos_args = MAKE_TUPLE(tstate, args, 8);
@@ -6883,6 +7173,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS8(PyThreadState *tstate, PyObject *called, PyOb
             PyObject *descr_method = descr_get(init_method, obj, called);
 
             if (unlikely(descr_method == NULL)) {
+                Py_DECREF(obj);
                 return NULL;
             }
 
@@ -6891,22 +7182,31 @@ PyObject *CALL_FUNCTION_WITH_ARGS8(PyThreadState *tstate, PyObject *called, PyOb
 
         PyObject *result;
         if (is_compiled_function) {
+            if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
+                Py_DECREF(obj);
+                return NULL;
+            }
             result = Nuitka_CallMethodFunctionPosArgs(tstate, (struct Nuitka_FunctionObject const *)init_method, obj,
                                                       args, 8);
+            Py_LeaveRecursiveCall();
         } else {
             result = CALL_FUNCTION_WITH_ARGS8(tstate, init_method, args);
             Py_DECREF(init_method);
         }
         if (unlikely(result == NULL)) {
+            Py_DECREF(obj);
+            return NULL;
+        }
+
+        if (unlikely(result != Py_None)) {
+            Py_DECREF(obj);
+
+            SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("__init__() should return None, not '%s'", result);
+            Py_DECREF(result);
             return NULL;
         }
 
         Py_DECREF(result);
-
-        if (unlikely(result != Py_None)) {
-            SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("__init__() should return None, not '%s'", result);
-            return NULL;
-        }
 
         CHECK_OBJECT_X(obj);
 
@@ -6925,13 +7225,6 @@ PyObject *CALL_FUNCTION_WITH_ARGS8(PyThreadState *tstate, PyObject *called, PyOb
         }
 #endif
     }
-
-#if 0
-    PRINT_NEW_LINE();
-    PRINT_STRING("FALLBACK");
-    PRINT_ITEM(called);
-    PRINT_NEW_LINE();
-#endif
 
     PyObject *pos_args = MAKE_TUPLE(tstate, args, 8);
 
@@ -7005,7 +7298,13 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS8(PyThreadState *tstate, PyObject *called, 
                 return NULL;
             }
 
+            if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
+                return NULL;
+            }
+
             PyObject *result = Nuitka_CallFunctionPosArgs(tstate, method->m_function, args, 8);
+
+            Py_LeaveRecursiveCall();
 
             CHECK_OBJECT_X(result);
 
@@ -7058,7 +7357,7 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS8(PyThreadState *tstate, PyObject *called, 
         }
 #if !defined(_NUITKA_EXPERIMENTAL_DISABLE_CFUNCTION_CALL_OPT)
     } else if (PyCFunction_CheckExact(called)) {
-#if PYTHON_VERSION >= 0x380
+#if PYTHON_VERSION >= 0x380 && !defined(_NUITKA_EXPERIMENTAL_DISABLE_VECTORCALL_USAGE)
 #ifdef _NUITKA_FULL_COMPAT
         if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
             return NULL;
@@ -7076,13 +7375,14 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS8(PyThreadState *tstate, PyObject *called, 
 
             CHECK_OBJECT_X(result);
         } else {
-            PyCFunction method = PyCFunction_GET_FUNCTION(called);
+            Nuitka_PyCFunctionUnion method;
+            method.as_function = PyCFunction_GET_FUNCTION(called);
             PyObject *self = PyCFunction_GET_SELF(called);
 
             if (flags & METH_KEYWORDS) {
-                result = (*(PyCFunctionWithKeywords)(void (*)(void))method)(self, pos_args, NULL);
+                result = (*method.as_function_kw)(self, pos_args, NULL);
             } else {
-                result = (*method)(self, pos_args);
+                result = (*method.as_function)(self, pos_args);
             }
         }
 
@@ -7093,7 +7393,6 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS8(PyThreadState *tstate, PyObject *called, 
 
         return Nuitka_CheckFunctionResult(tstate, called, result);
 #else
-        // Try to be fast about wrapping the arguments.
         int flags = PyCFunction_GET_FLAGS(called) & ~(METH_CLASS | METH_STATIC | METH_COEXIST);
 
         if (unlikely(flags & METH_NOARGS)) {
@@ -7104,37 +7403,47 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS8(PyThreadState *tstate, PyObject *called, 
             SET_CURRENT_EXCEPTION_TYPE0_FORMAT1(PyExc_TypeError, "%s() takes exactly one argument (8 given)",
                                                 ((PyCFunctionObject *)called)->m_ml->ml_name);
             return NULL;
+#if PYTHON_VERSION < 0x360
         } else if (flags & METH_VARARGS) {
-            // Recursion guard is not strictly necessary, as we already have
-            // one on our way to here.
+#elif PYTHON_VERSION < 0x370
+        } else if (flags == METH_VARARGS || flags == (METH_VARARGS | METH_KEYWORDS) || flags == METH_FASTCALL) {
+#else
+        } else if (flags == METH_VARARGS || flags == (METH_VARARGS | METH_KEYWORDS) || flags == METH_FASTCALL ||
+                   flags == (METH_FASTCALL | METH_KEYWORDS)) {
+#endif
 #ifdef _NUITKA_FULL_COMPAT
             if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
                 return NULL;
             }
 #endif
-            PyCFunction method = PyCFunction_GET_FUNCTION(called);
+            Nuitka_PyCFunctionUnion method;
+            method.as_function = PyCFunction_GET_FUNCTION(called);
             PyObject *self = PyCFunction_GET_SELF(called);
 
             PyObject *result;
 
 #if PYTHON_VERSION < 0x360
             if (flags & METH_KEYWORDS) {
-                result = (*(PyCFunctionWithKeywords)method)(self, pos_args, NULL);
+                result = (*method.as_function_kw)(self, pos_args, NULL);
             } else {
-                result = (*method)(self, pos_args);
+                result = (*method.as_function)(self, pos_args);
             }
 
 #else
             if (flags == (METH_VARARGS | METH_KEYWORDS)) {
-                result = (*(PyCFunctionWithKeywords)method)(self, pos_args, NULL);
+                result = (*method.as_function_kw)(self, pos_args, NULL);
             } else if (flags == METH_FASTCALL) {
 #if PYTHON_VERSION < 0x370
-                result = (*(_PyCFunctionFast)method)(self, (PyObject **)args, 8, NULL);
+                result = (*method.as_function_fast)(self, (PyObject **)args, 8, NULL);
 #else
-                result = (*(_PyCFunctionFast)method)(self, &pos_args, 8);
+                result = (*method.as_function_fast)(self, args, 8);
+#endif
+#if PYTHON_VERSION >= 0x370
+            } else if (flags == (METH_FASTCALL | METH_KEYWORDS)) {
+                result = (*method.as_function_fast_kw)(self, args, 8, NULL);
 #endif
             } else {
-                result = (*method)(self, pos_args);
+                result = (*method.as_function)(self, pos_args);
             }
 #endif
 
@@ -7150,11 +7459,7 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS8(PyThreadState *tstate, PyObject *called, 
 #endif
 #if PYTHON_VERSION < 0x380 && !defined(_NUITKA_EXPERIMENTAL_DISABLE_UNCOMPILED_FUNCTION_CALL_OPT)
     } else if (PyFunction_Check(called)) {
-#if PYTHON_VERSION < 0x3b0
         PyObject *result = callPythonFunction(called, args, 8);
-#else
-        PyObject *result = _PyFunction_Vectorcall(called, args, 8, NULL);
-#endif
         CHECK_OBJECT_X(result);
 
         return result;
@@ -7203,15 +7508,12 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS8(PyThreadState *tstate, PyObject *called, 
                     return obj;
                 }
 
-                // Work on produced type.
                 type = Py_TYPE(obj);
 
                 if (NuitkaType_HasFeatureClass(type) && type->tp_init != NULL) {
                     if (type->tp_init == default_tp_init_wrapper) {
 
                         PyObject *init_method = Nuitka_TypeLookup(type, const_str_plain___init__);
-
-                        // Not really allowed, since we wouldn't have the default wrapper set.
                         assert(init_method != NULL);
 
                         bool is_compiled_function = false;
@@ -7229,6 +7531,8 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS8(PyThreadState *tstate, PyObject *called, 
                         }
 
                         if (unlikely(init_method == NULL)) {
+                            Py_DECREF(obj);
+
                             if (!HAS_ERROR_OCCURRED(tstate)) {
                                 SET_CURRENT_EXCEPTION_TYPE0_VALUE0(tstate, PyExc_AttributeError,
                                                                    const_str_plain___init__);
@@ -7239,8 +7543,13 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS8(PyThreadState *tstate, PyObject *called, 
 
                         PyObject *result;
                         if (is_compiled_function) {
+                            if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
+                                Py_DECREF(obj);
+                                return NULL;
+                            }
                             result = Nuitka_CallMethodFunctionPosArgs(
                                 tstate, (struct Nuitka_FunctionObject const *)init_method, obj, args, 8);
+                            Py_LeaveRecursiveCall();
                         } else {
                             result = CALL_FUNCTION_WITH_POS_ARGS8(tstate, init_method, pos_args);
                             if (init_method_needs_release) {
@@ -7253,14 +7562,15 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS8(PyThreadState *tstate, PyObject *called, 
                             return NULL;
                         }
 
-                        Py_DECREF(result);
-
                         if (unlikely(result != Py_None)) {
                             Py_DECREF(obj);
 
                             SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("__init__() should return None, not '%s'", result);
+                            Py_DECREF(result);
                             return NULL;
                         }
+
+                        Py_DECREF(result);
                     } else {
 
                         if (unlikely(type->tp_init(obj, pos_args, NULL) < 0)) {
@@ -7306,6 +7616,7 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS8(PyThreadState *tstate, PyObject *called, 
             PyObject *descr_method = descr_get(init_method, obj, called);
 
             if (unlikely(descr_method == NULL)) {
+                Py_DECREF(obj);
                 return NULL;
             }
 
@@ -7314,22 +7625,31 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS8(PyThreadState *tstate, PyObject *called, 
 
         PyObject *result;
         if (is_compiled_function) {
+            if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
+                Py_DECREF(obj);
+                return NULL;
+            }
             result = Nuitka_CallMethodFunctionPosArgs(tstate, (struct Nuitka_FunctionObject const *)init_method, obj,
                                                       args, 8);
+            Py_LeaveRecursiveCall();
         } else {
             result = CALL_FUNCTION_WITH_POS_ARGS8(tstate, init_method, pos_args);
             Py_DECREF(init_method);
         }
         if (unlikely(result == NULL)) {
+            Py_DECREF(obj);
+            return NULL;
+        }
+
+        if (unlikely(result != Py_None)) {
+            Py_DECREF(obj);
+
+            SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("__init__() should return None, not '%s'", result);
+            Py_DECREF(result);
             return NULL;
         }
 
         Py_DECREF(result);
-
-        if (unlikely(result != Py_None)) {
-            SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("__init__() should return None, not '%s'", result);
-            return NULL;
-        }
 
         CHECK_OBJECT_X(obj);
 
@@ -7348,13 +7668,6 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS8(PyThreadState *tstate, PyObject *called, 
         }
 #endif
     }
-
-#if 0
-    PRINT_NEW_LINE();
-    PRINT_STRING("FALLBACK");
-    PRINT_ITEM(called);
-    PRINT_NEW_LINE();
-#endif
 
     PyObject *result = CALL_FUNCTION(tstate, called, pos_args, NULL);
 
@@ -7421,7 +7734,13 @@ PyObject *CALL_FUNCTION_WITH_ARGS9(PyThreadState *tstate, PyObject *called, PyOb
                 return NULL;
             }
 
+            if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
+                return NULL;
+            }
+
             PyObject *result = Nuitka_CallFunctionPosArgs(tstate, method->m_function, args, 9);
+
+            Py_LeaveRecursiveCall();
 
             CHECK_OBJECT_X(result);
 
@@ -7474,7 +7793,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS9(PyThreadState *tstate, PyObject *called, PyOb
         }
 #if !defined(_NUITKA_EXPERIMENTAL_DISABLE_CFUNCTION_CALL_OPT)
     } else if (PyCFunction_CheckExact(called)) {
-#if PYTHON_VERSION >= 0x380
+#if PYTHON_VERSION >= 0x380 && !defined(_NUITKA_EXPERIMENTAL_DISABLE_VECTORCALL_USAGE)
 #ifdef _NUITKA_FULL_COMPAT
         if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
             return NULL;
@@ -7492,15 +7811,16 @@ PyObject *CALL_FUNCTION_WITH_ARGS9(PyThreadState *tstate, PyObject *called, PyOb
 
             CHECK_OBJECT_X(result);
         } else {
-            PyCFunction method = PyCFunction_GET_FUNCTION(called);
+            Nuitka_PyCFunctionUnion method;
+            method.as_function = PyCFunction_GET_FUNCTION(called);
             PyObject *self = PyCFunction_GET_SELF(called);
 
             PyObject *pos_args = MAKE_TUPLE(tstate, args, 9);
 
             if (flags & METH_KEYWORDS) {
-                result = (*(PyCFunctionWithKeywords)(void (*)(void))method)(self, pos_args, NULL);
+                result = (*method.as_function_kw)(self, pos_args, NULL);
             } else {
-                result = (*method)(self, pos_args);
+                result = (*method.as_function)(self, pos_args);
             }
 
             Py_DECREF(pos_args);
@@ -7513,7 +7833,6 @@ PyObject *CALL_FUNCTION_WITH_ARGS9(PyThreadState *tstate, PyObject *called, PyOb
 
         return Nuitka_CheckFunctionResult(tstate, called, result);
 #else
-        // Try to be fast about wrapping the arguments.
         int flags = PyCFunction_GET_FLAGS(called) & ~(METH_CLASS | METH_STATIC | METH_COEXIST);
 
         if (unlikely(flags & METH_NOARGS)) {
@@ -7524,15 +7843,21 @@ PyObject *CALL_FUNCTION_WITH_ARGS9(PyThreadState *tstate, PyObject *called, PyOb
             SET_CURRENT_EXCEPTION_TYPE0_FORMAT1(PyExc_TypeError, "%s() takes exactly one argument (9 given)",
                                                 ((PyCFunctionObject *)called)->m_ml->ml_name);
             return NULL;
+#if PYTHON_VERSION < 0x360
         } else if (flags & METH_VARARGS) {
-            // Recursion guard is not strictly necessary, as we already have
-            // one on our way to here.
+#elif PYTHON_VERSION < 0x370
+        } else if (flags == METH_VARARGS || flags == (METH_VARARGS | METH_KEYWORDS) || flags == METH_FASTCALL) {
+#else
+        } else if (flags == METH_VARARGS || flags == (METH_VARARGS | METH_KEYWORDS) || flags == METH_FASTCALL ||
+                   flags == (METH_FASTCALL | METH_KEYWORDS)) {
+#endif
 #ifdef _NUITKA_FULL_COMPAT
             if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
                 return NULL;
             }
 #endif
-            PyCFunction method = PyCFunction_GET_FUNCTION(called);
+            Nuitka_PyCFunctionUnion method;
+            method.as_function = PyCFunction_GET_FUNCTION(called);
             PyObject *self = PyCFunction_GET_SELF(called);
 
             PyObject *result;
@@ -7540,28 +7865,30 @@ PyObject *CALL_FUNCTION_WITH_ARGS9(PyThreadState *tstate, PyObject *called, PyOb
 #if PYTHON_VERSION < 0x360
             PyObject *pos_args = MAKE_TUPLE(tstate, args, 9);
             if (flags & METH_KEYWORDS) {
-                result = (*(PyCFunctionWithKeywords)method)(self, pos_args, NULL);
+                result = (*method.as_function_kw)(self, pos_args, NULL);
             } else {
-                result = (*method)(self, pos_args);
+                result = (*method.as_function)(self, pos_args);
             }
 
             Py_DECREF(pos_args);
 #else
             if (flags == (METH_VARARGS | METH_KEYWORDS)) {
                 PyObject *pos_args = MAKE_TUPLE(tstate, args, 9);
-                result = (*(PyCFunctionWithKeywords)method)(self, pos_args, NULL);
+                result = (*method.as_function_kw)(self, pos_args, NULL);
                 Py_DECREF(pos_args);
             } else if (flags == METH_FASTCALL) {
 #if PYTHON_VERSION < 0x370
-                result = (*(_PyCFunctionFast)method)(self, (PyObject **)args, 9, NULL);
+                result = (*method.as_function_fast)(self, (PyObject **)args, 9, NULL);
 #else
-                PyObject *pos_args = MAKE_TUPLE(tstate, args, 9);
-                result = (*(_PyCFunctionFast)method)(self, &pos_args, 9);
-                Py_DECREF(pos_args);
+                result = (*method.as_function_fast)(self, args, 9);
+#endif
+#if PYTHON_VERSION >= 0x370
+            } else if (flags == (METH_FASTCALL | METH_KEYWORDS)) {
+                result = (*method.as_function_fast_kw)(self, args, 9, NULL);
 #endif
             } else {
                 PyObject *pos_args = MAKE_TUPLE(tstate, args, 9);
-                result = (*method)(self, pos_args);
+                result = (*method.as_function)(self, pos_args);
                 Py_DECREF(pos_args);
             }
 #endif
@@ -7578,11 +7905,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS9(PyThreadState *tstate, PyObject *called, PyOb
 #endif
 #if PYTHON_VERSION < 0x380 && !defined(_NUITKA_EXPERIMENTAL_DISABLE_UNCOMPILED_FUNCTION_CALL_OPT)
     } else if (PyFunction_Check(called)) {
-#if PYTHON_VERSION < 0x3b0
         PyObject *result = callPythonFunction(called, args, 9);
-#else
-        PyObject *result = _PyFunction_Vectorcall(called, args, 9, NULL);
-#endif
         CHECK_OBJECT_X(result);
 
         return result;
@@ -7634,7 +7957,6 @@ PyObject *CALL_FUNCTION_WITH_ARGS9(PyThreadState *tstate, PyObject *called, PyOb
                     return obj;
                 }
 
-                // Work on produced type.
                 type = Py_TYPE(obj);
 
                 if (NuitkaType_HasFeatureClass(type) && type->tp_init != NULL) {
@@ -7643,8 +7965,6 @@ PyObject *CALL_FUNCTION_WITH_ARGS9(PyThreadState *tstate, PyObject *called, PyOb
                         pos_args = NULL;
 
                         PyObject *init_method = Nuitka_TypeLookup(type, const_str_plain___init__);
-
-                        // Not really allowed, since we wouldn't have the default wrapper set.
                         assert(init_method != NULL);
 
                         bool is_compiled_function = false;
@@ -7662,6 +7982,8 @@ PyObject *CALL_FUNCTION_WITH_ARGS9(PyThreadState *tstate, PyObject *called, PyOb
                         }
 
                         if (unlikely(init_method == NULL)) {
+                            Py_DECREF(obj);
+
                             if (!HAS_ERROR_OCCURRED(tstate)) {
                                 SET_CURRENT_EXCEPTION_TYPE0_VALUE0(tstate, PyExc_AttributeError,
                                                                    const_str_plain___init__);
@@ -7672,8 +7994,13 @@ PyObject *CALL_FUNCTION_WITH_ARGS9(PyThreadState *tstate, PyObject *called, PyOb
 
                         PyObject *result;
                         if (is_compiled_function) {
+                            if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
+                                Py_DECREF(obj);
+                                return NULL;
+                            }
                             result = Nuitka_CallMethodFunctionPosArgs(
                                 tstate, (struct Nuitka_FunctionObject const *)init_method, obj, args, 9);
+                            Py_LeaveRecursiveCall();
                         } else {
                             result = CALL_FUNCTION_WITH_ARGS9(tstate, init_method, args);
                             if (init_method_needs_release) {
@@ -7686,14 +8013,15 @@ PyObject *CALL_FUNCTION_WITH_ARGS9(PyThreadState *tstate, PyObject *called, PyOb
                             return NULL;
                         }
 
-                        Py_DECREF(result);
-
                         if (unlikely(result != Py_None)) {
                             Py_DECREF(obj);
 
                             SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("__init__() should return None, not '%s'", result);
+                            Py_DECREF(result);
                             return NULL;
                         }
+
+                        Py_DECREF(result);
                     } else {
                         if (pos_args == NULL) {
                             pos_args = MAKE_TUPLE(tstate, args, 9);
@@ -7745,6 +8073,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS9(PyThreadState *tstate, PyObject *called, PyOb
             PyObject *descr_method = descr_get(init_method, obj, called);
 
             if (unlikely(descr_method == NULL)) {
+                Py_DECREF(obj);
                 return NULL;
             }
 
@@ -7753,22 +8082,31 @@ PyObject *CALL_FUNCTION_WITH_ARGS9(PyThreadState *tstate, PyObject *called, PyOb
 
         PyObject *result;
         if (is_compiled_function) {
+            if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
+                Py_DECREF(obj);
+                return NULL;
+            }
             result = Nuitka_CallMethodFunctionPosArgs(tstate, (struct Nuitka_FunctionObject const *)init_method, obj,
                                                       args, 9);
+            Py_LeaveRecursiveCall();
         } else {
             result = CALL_FUNCTION_WITH_ARGS9(tstate, init_method, args);
             Py_DECREF(init_method);
         }
         if (unlikely(result == NULL)) {
+            Py_DECREF(obj);
+            return NULL;
+        }
+
+        if (unlikely(result != Py_None)) {
+            Py_DECREF(obj);
+
+            SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("__init__() should return None, not '%s'", result);
+            Py_DECREF(result);
             return NULL;
         }
 
         Py_DECREF(result);
-
-        if (unlikely(result != Py_None)) {
-            SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("__init__() should return None, not '%s'", result);
-            return NULL;
-        }
 
         CHECK_OBJECT_X(obj);
 
@@ -7787,13 +8125,6 @@ PyObject *CALL_FUNCTION_WITH_ARGS9(PyThreadState *tstate, PyObject *called, PyOb
         }
 #endif
     }
-
-#if 0
-    PRINT_NEW_LINE();
-    PRINT_STRING("FALLBACK");
-    PRINT_ITEM(called);
-    PRINT_NEW_LINE();
-#endif
 
     PyObject *pos_args = MAKE_TUPLE(tstate, args, 9);
 
@@ -7867,7 +8198,13 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS9(PyThreadState *tstate, PyObject *called, 
                 return NULL;
             }
 
+            if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
+                return NULL;
+            }
+
             PyObject *result = Nuitka_CallFunctionPosArgs(tstate, method->m_function, args, 9);
+
+            Py_LeaveRecursiveCall();
 
             CHECK_OBJECT_X(result);
 
@@ -7920,7 +8257,7 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS9(PyThreadState *tstate, PyObject *called, 
         }
 #if !defined(_NUITKA_EXPERIMENTAL_DISABLE_CFUNCTION_CALL_OPT)
     } else if (PyCFunction_CheckExact(called)) {
-#if PYTHON_VERSION >= 0x380
+#if PYTHON_VERSION >= 0x380 && !defined(_NUITKA_EXPERIMENTAL_DISABLE_VECTORCALL_USAGE)
 #ifdef _NUITKA_FULL_COMPAT
         if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
             return NULL;
@@ -7938,13 +8275,14 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS9(PyThreadState *tstate, PyObject *called, 
 
             CHECK_OBJECT_X(result);
         } else {
-            PyCFunction method = PyCFunction_GET_FUNCTION(called);
+            Nuitka_PyCFunctionUnion method;
+            method.as_function = PyCFunction_GET_FUNCTION(called);
             PyObject *self = PyCFunction_GET_SELF(called);
 
             if (flags & METH_KEYWORDS) {
-                result = (*(PyCFunctionWithKeywords)(void (*)(void))method)(self, pos_args, NULL);
+                result = (*method.as_function_kw)(self, pos_args, NULL);
             } else {
-                result = (*method)(self, pos_args);
+                result = (*method.as_function)(self, pos_args);
             }
         }
 
@@ -7955,7 +8293,6 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS9(PyThreadState *tstate, PyObject *called, 
 
         return Nuitka_CheckFunctionResult(tstate, called, result);
 #else
-        // Try to be fast about wrapping the arguments.
         int flags = PyCFunction_GET_FLAGS(called) & ~(METH_CLASS | METH_STATIC | METH_COEXIST);
 
         if (unlikely(flags & METH_NOARGS)) {
@@ -7966,37 +8303,47 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS9(PyThreadState *tstate, PyObject *called, 
             SET_CURRENT_EXCEPTION_TYPE0_FORMAT1(PyExc_TypeError, "%s() takes exactly one argument (9 given)",
                                                 ((PyCFunctionObject *)called)->m_ml->ml_name);
             return NULL;
+#if PYTHON_VERSION < 0x360
         } else if (flags & METH_VARARGS) {
-            // Recursion guard is not strictly necessary, as we already have
-            // one on our way to here.
+#elif PYTHON_VERSION < 0x370
+        } else if (flags == METH_VARARGS || flags == (METH_VARARGS | METH_KEYWORDS) || flags == METH_FASTCALL) {
+#else
+        } else if (flags == METH_VARARGS || flags == (METH_VARARGS | METH_KEYWORDS) || flags == METH_FASTCALL ||
+                   flags == (METH_FASTCALL | METH_KEYWORDS)) {
+#endif
 #ifdef _NUITKA_FULL_COMPAT
             if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
                 return NULL;
             }
 #endif
-            PyCFunction method = PyCFunction_GET_FUNCTION(called);
+            Nuitka_PyCFunctionUnion method;
+            method.as_function = PyCFunction_GET_FUNCTION(called);
             PyObject *self = PyCFunction_GET_SELF(called);
 
             PyObject *result;
 
 #if PYTHON_VERSION < 0x360
             if (flags & METH_KEYWORDS) {
-                result = (*(PyCFunctionWithKeywords)method)(self, pos_args, NULL);
+                result = (*method.as_function_kw)(self, pos_args, NULL);
             } else {
-                result = (*method)(self, pos_args);
+                result = (*method.as_function)(self, pos_args);
             }
 
 #else
             if (flags == (METH_VARARGS | METH_KEYWORDS)) {
-                result = (*(PyCFunctionWithKeywords)method)(self, pos_args, NULL);
+                result = (*method.as_function_kw)(self, pos_args, NULL);
             } else if (flags == METH_FASTCALL) {
 #if PYTHON_VERSION < 0x370
-                result = (*(_PyCFunctionFast)method)(self, (PyObject **)args, 9, NULL);
+                result = (*method.as_function_fast)(self, (PyObject **)args, 9, NULL);
 #else
-                result = (*(_PyCFunctionFast)method)(self, &pos_args, 9);
+                result = (*method.as_function_fast)(self, args, 9);
+#endif
+#if PYTHON_VERSION >= 0x370
+            } else if (flags == (METH_FASTCALL | METH_KEYWORDS)) {
+                result = (*method.as_function_fast_kw)(self, args, 9, NULL);
 #endif
             } else {
-                result = (*method)(self, pos_args);
+                result = (*method.as_function)(self, pos_args);
             }
 #endif
 
@@ -8012,11 +8359,7 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS9(PyThreadState *tstate, PyObject *called, 
 #endif
 #if PYTHON_VERSION < 0x380 && !defined(_NUITKA_EXPERIMENTAL_DISABLE_UNCOMPILED_FUNCTION_CALL_OPT)
     } else if (PyFunction_Check(called)) {
-#if PYTHON_VERSION < 0x3b0
         PyObject *result = callPythonFunction(called, args, 9);
-#else
-        PyObject *result = _PyFunction_Vectorcall(called, args, 9, NULL);
-#endif
         CHECK_OBJECT_X(result);
 
         return result;
@@ -8065,15 +8408,12 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS9(PyThreadState *tstate, PyObject *called, 
                     return obj;
                 }
 
-                // Work on produced type.
                 type = Py_TYPE(obj);
 
                 if (NuitkaType_HasFeatureClass(type) && type->tp_init != NULL) {
                     if (type->tp_init == default_tp_init_wrapper) {
 
                         PyObject *init_method = Nuitka_TypeLookup(type, const_str_plain___init__);
-
-                        // Not really allowed, since we wouldn't have the default wrapper set.
                         assert(init_method != NULL);
 
                         bool is_compiled_function = false;
@@ -8091,6 +8431,8 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS9(PyThreadState *tstate, PyObject *called, 
                         }
 
                         if (unlikely(init_method == NULL)) {
+                            Py_DECREF(obj);
+
                             if (!HAS_ERROR_OCCURRED(tstate)) {
                                 SET_CURRENT_EXCEPTION_TYPE0_VALUE0(tstate, PyExc_AttributeError,
                                                                    const_str_plain___init__);
@@ -8101,8 +8443,13 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS9(PyThreadState *tstate, PyObject *called, 
 
                         PyObject *result;
                         if (is_compiled_function) {
+                            if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
+                                Py_DECREF(obj);
+                                return NULL;
+                            }
                             result = Nuitka_CallMethodFunctionPosArgs(
                                 tstate, (struct Nuitka_FunctionObject const *)init_method, obj, args, 9);
+                            Py_LeaveRecursiveCall();
                         } else {
                             result = CALL_FUNCTION_WITH_POS_ARGS9(tstate, init_method, pos_args);
                             if (init_method_needs_release) {
@@ -8115,14 +8462,15 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS9(PyThreadState *tstate, PyObject *called, 
                             return NULL;
                         }
 
-                        Py_DECREF(result);
-
                         if (unlikely(result != Py_None)) {
                             Py_DECREF(obj);
 
                             SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("__init__() should return None, not '%s'", result);
+                            Py_DECREF(result);
                             return NULL;
                         }
+
+                        Py_DECREF(result);
                     } else {
 
                         if (unlikely(type->tp_init(obj, pos_args, NULL) < 0)) {
@@ -8168,6 +8516,7 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS9(PyThreadState *tstate, PyObject *called, 
             PyObject *descr_method = descr_get(init_method, obj, called);
 
             if (unlikely(descr_method == NULL)) {
+                Py_DECREF(obj);
                 return NULL;
             }
 
@@ -8176,22 +8525,31 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS9(PyThreadState *tstate, PyObject *called, 
 
         PyObject *result;
         if (is_compiled_function) {
+            if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
+                Py_DECREF(obj);
+                return NULL;
+            }
             result = Nuitka_CallMethodFunctionPosArgs(tstate, (struct Nuitka_FunctionObject const *)init_method, obj,
                                                       args, 9);
+            Py_LeaveRecursiveCall();
         } else {
             result = CALL_FUNCTION_WITH_POS_ARGS9(tstate, init_method, pos_args);
             Py_DECREF(init_method);
         }
         if (unlikely(result == NULL)) {
+            Py_DECREF(obj);
+            return NULL;
+        }
+
+        if (unlikely(result != Py_None)) {
+            Py_DECREF(obj);
+
+            SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("__init__() should return None, not '%s'", result);
+            Py_DECREF(result);
             return NULL;
         }
 
         Py_DECREF(result);
-
-        if (unlikely(result != Py_None)) {
-            SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("__init__() should return None, not '%s'", result);
-            return NULL;
-        }
 
         CHECK_OBJECT_X(obj);
 
@@ -8210,13 +8568,6 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS9(PyThreadState *tstate, PyObject *called, 
         }
 #endif
     }
-
-#if 0
-    PRINT_NEW_LINE();
-    PRINT_STRING("FALLBACK");
-    PRINT_ITEM(called);
-    PRINT_NEW_LINE();
-#endif
 
     PyObject *result = CALL_FUNCTION(tstate, called, pos_args, NULL);
 
@@ -8283,7 +8634,13 @@ PyObject *CALL_FUNCTION_WITH_ARGS10(PyThreadState *tstate, PyObject *called, PyO
                 return NULL;
             }
 
+            if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
+                return NULL;
+            }
+
             PyObject *result = Nuitka_CallFunctionPosArgs(tstate, method->m_function, args, 10);
+
+            Py_LeaveRecursiveCall();
 
             CHECK_OBJECT_X(result);
 
@@ -8336,7 +8693,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS10(PyThreadState *tstate, PyObject *called, PyO
         }
 #if !defined(_NUITKA_EXPERIMENTAL_DISABLE_CFUNCTION_CALL_OPT)
     } else if (PyCFunction_CheckExact(called)) {
-#if PYTHON_VERSION >= 0x380
+#if PYTHON_VERSION >= 0x380 && !defined(_NUITKA_EXPERIMENTAL_DISABLE_VECTORCALL_USAGE)
 #ifdef _NUITKA_FULL_COMPAT
         if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
             return NULL;
@@ -8354,15 +8711,16 @@ PyObject *CALL_FUNCTION_WITH_ARGS10(PyThreadState *tstate, PyObject *called, PyO
 
             CHECK_OBJECT_X(result);
         } else {
-            PyCFunction method = PyCFunction_GET_FUNCTION(called);
+            Nuitka_PyCFunctionUnion method;
+            method.as_function = PyCFunction_GET_FUNCTION(called);
             PyObject *self = PyCFunction_GET_SELF(called);
 
             PyObject *pos_args = MAKE_TUPLE(tstate, args, 10);
 
             if (flags & METH_KEYWORDS) {
-                result = (*(PyCFunctionWithKeywords)(void (*)(void))method)(self, pos_args, NULL);
+                result = (*method.as_function_kw)(self, pos_args, NULL);
             } else {
-                result = (*method)(self, pos_args);
+                result = (*method.as_function)(self, pos_args);
             }
 
             Py_DECREF(pos_args);
@@ -8375,7 +8733,6 @@ PyObject *CALL_FUNCTION_WITH_ARGS10(PyThreadState *tstate, PyObject *called, PyO
 
         return Nuitka_CheckFunctionResult(tstate, called, result);
 #else
-        // Try to be fast about wrapping the arguments.
         int flags = PyCFunction_GET_FLAGS(called) & ~(METH_CLASS | METH_STATIC | METH_COEXIST);
 
         if (unlikely(flags & METH_NOARGS)) {
@@ -8386,15 +8743,21 @@ PyObject *CALL_FUNCTION_WITH_ARGS10(PyThreadState *tstate, PyObject *called, PyO
             SET_CURRENT_EXCEPTION_TYPE0_FORMAT1(PyExc_TypeError, "%s() takes exactly one argument (10 given)",
                                                 ((PyCFunctionObject *)called)->m_ml->ml_name);
             return NULL;
+#if PYTHON_VERSION < 0x360
         } else if (flags & METH_VARARGS) {
-            // Recursion guard is not strictly necessary, as we already have
-            // one on our way to here.
+#elif PYTHON_VERSION < 0x370
+        } else if (flags == METH_VARARGS || flags == (METH_VARARGS | METH_KEYWORDS) || flags == METH_FASTCALL) {
+#else
+        } else if (flags == METH_VARARGS || flags == (METH_VARARGS | METH_KEYWORDS) || flags == METH_FASTCALL ||
+                   flags == (METH_FASTCALL | METH_KEYWORDS)) {
+#endif
 #ifdef _NUITKA_FULL_COMPAT
             if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
                 return NULL;
             }
 #endif
-            PyCFunction method = PyCFunction_GET_FUNCTION(called);
+            Nuitka_PyCFunctionUnion method;
+            method.as_function = PyCFunction_GET_FUNCTION(called);
             PyObject *self = PyCFunction_GET_SELF(called);
 
             PyObject *result;
@@ -8402,28 +8765,30 @@ PyObject *CALL_FUNCTION_WITH_ARGS10(PyThreadState *tstate, PyObject *called, PyO
 #if PYTHON_VERSION < 0x360
             PyObject *pos_args = MAKE_TUPLE(tstate, args, 10);
             if (flags & METH_KEYWORDS) {
-                result = (*(PyCFunctionWithKeywords)method)(self, pos_args, NULL);
+                result = (*method.as_function_kw)(self, pos_args, NULL);
             } else {
-                result = (*method)(self, pos_args);
+                result = (*method.as_function)(self, pos_args);
             }
 
             Py_DECREF(pos_args);
 #else
             if (flags == (METH_VARARGS | METH_KEYWORDS)) {
                 PyObject *pos_args = MAKE_TUPLE(tstate, args, 10);
-                result = (*(PyCFunctionWithKeywords)method)(self, pos_args, NULL);
+                result = (*method.as_function_kw)(self, pos_args, NULL);
                 Py_DECREF(pos_args);
             } else if (flags == METH_FASTCALL) {
 #if PYTHON_VERSION < 0x370
-                result = (*(_PyCFunctionFast)method)(self, (PyObject **)args, 10, NULL);
+                result = (*method.as_function_fast)(self, (PyObject **)args, 10, NULL);
 #else
-                PyObject *pos_args = MAKE_TUPLE(tstate, args, 10);
-                result = (*(_PyCFunctionFast)method)(self, &pos_args, 10);
-                Py_DECREF(pos_args);
+                result = (*method.as_function_fast)(self, args, 10);
+#endif
+#if PYTHON_VERSION >= 0x370
+            } else if (flags == (METH_FASTCALL | METH_KEYWORDS)) {
+                result = (*method.as_function_fast_kw)(self, args, 10, NULL);
 #endif
             } else {
                 PyObject *pos_args = MAKE_TUPLE(tstate, args, 10);
-                result = (*method)(self, pos_args);
+                result = (*method.as_function)(self, pos_args);
                 Py_DECREF(pos_args);
             }
 #endif
@@ -8440,11 +8805,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS10(PyThreadState *tstate, PyObject *called, PyO
 #endif
 #if PYTHON_VERSION < 0x380 && !defined(_NUITKA_EXPERIMENTAL_DISABLE_UNCOMPILED_FUNCTION_CALL_OPT)
     } else if (PyFunction_Check(called)) {
-#if PYTHON_VERSION < 0x3b0
         PyObject *result = callPythonFunction(called, args, 10);
-#else
-        PyObject *result = _PyFunction_Vectorcall(called, args, 10, NULL);
-#endif
         CHECK_OBJECT_X(result);
 
         return result;
@@ -8496,7 +8857,6 @@ PyObject *CALL_FUNCTION_WITH_ARGS10(PyThreadState *tstate, PyObject *called, PyO
                     return obj;
                 }
 
-                // Work on produced type.
                 type = Py_TYPE(obj);
 
                 if (NuitkaType_HasFeatureClass(type) && type->tp_init != NULL) {
@@ -8505,8 +8865,6 @@ PyObject *CALL_FUNCTION_WITH_ARGS10(PyThreadState *tstate, PyObject *called, PyO
                         pos_args = NULL;
 
                         PyObject *init_method = Nuitka_TypeLookup(type, const_str_plain___init__);
-
-                        // Not really allowed, since we wouldn't have the default wrapper set.
                         assert(init_method != NULL);
 
                         bool is_compiled_function = false;
@@ -8524,6 +8882,8 @@ PyObject *CALL_FUNCTION_WITH_ARGS10(PyThreadState *tstate, PyObject *called, PyO
                         }
 
                         if (unlikely(init_method == NULL)) {
+                            Py_DECREF(obj);
+
                             if (!HAS_ERROR_OCCURRED(tstate)) {
                                 SET_CURRENT_EXCEPTION_TYPE0_VALUE0(tstate, PyExc_AttributeError,
                                                                    const_str_plain___init__);
@@ -8534,8 +8894,13 @@ PyObject *CALL_FUNCTION_WITH_ARGS10(PyThreadState *tstate, PyObject *called, PyO
 
                         PyObject *result;
                         if (is_compiled_function) {
+                            if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
+                                Py_DECREF(obj);
+                                return NULL;
+                            }
                             result = Nuitka_CallMethodFunctionPosArgs(
                                 tstate, (struct Nuitka_FunctionObject const *)init_method, obj, args, 10);
+                            Py_LeaveRecursiveCall();
                         } else {
                             result = CALL_FUNCTION_WITH_ARGS10(tstate, init_method, args);
                             if (init_method_needs_release) {
@@ -8548,14 +8913,15 @@ PyObject *CALL_FUNCTION_WITH_ARGS10(PyThreadState *tstate, PyObject *called, PyO
                             return NULL;
                         }
 
-                        Py_DECREF(result);
-
                         if (unlikely(result != Py_None)) {
                             Py_DECREF(obj);
 
                             SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("__init__() should return None, not '%s'", result);
+                            Py_DECREF(result);
                             return NULL;
                         }
+
+                        Py_DECREF(result);
                     } else {
                         if (pos_args == NULL) {
                             pos_args = MAKE_TUPLE(tstate, args, 10);
@@ -8607,6 +8973,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS10(PyThreadState *tstate, PyObject *called, PyO
             PyObject *descr_method = descr_get(init_method, obj, called);
 
             if (unlikely(descr_method == NULL)) {
+                Py_DECREF(obj);
                 return NULL;
             }
 
@@ -8615,22 +8982,31 @@ PyObject *CALL_FUNCTION_WITH_ARGS10(PyThreadState *tstate, PyObject *called, PyO
 
         PyObject *result;
         if (is_compiled_function) {
+            if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
+                Py_DECREF(obj);
+                return NULL;
+            }
             result = Nuitka_CallMethodFunctionPosArgs(tstate, (struct Nuitka_FunctionObject const *)init_method, obj,
                                                       args, 10);
+            Py_LeaveRecursiveCall();
         } else {
             result = CALL_FUNCTION_WITH_ARGS10(tstate, init_method, args);
             Py_DECREF(init_method);
         }
         if (unlikely(result == NULL)) {
+            Py_DECREF(obj);
+            return NULL;
+        }
+
+        if (unlikely(result != Py_None)) {
+            Py_DECREF(obj);
+
+            SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("__init__() should return None, not '%s'", result);
+            Py_DECREF(result);
             return NULL;
         }
 
         Py_DECREF(result);
-
-        if (unlikely(result != Py_None)) {
-            SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("__init__() should return None, not '%s'", result);
-            return NULL;
-        }
 
         CHECK_OBJECT_X(obj);
 
@@ -8649,13 +9025,6 @@ PyObject *CALL_FUNCTION_WITH_ARGS10(PyThreadState *tstate, PyObject *called, PyO
         }
 #endif
     }
-
-#if 0
-    PRINT_NEW_LINE();
-    PRINT_STRING("FALLBACK");
-    PRINT_ITEM(called);
-    PRINT_NEW_LINE();
-#endif
 
     PyObject *pos_args = MAKE_TUPLE(tstate, args, 10);
 
@@ -8729,7 +9098,13 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS10(PyThreadState *tstate, PyObject *called,
                 return NULL;
             }
 
+            if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
+                return NULL;
+            }
+
             PyObject *result = Nuitka_CallFunctionPosArgs(tstate, method->m_function, args, 10);
+
+            Py_LeaveRecursiveCall();
 
             CHECK_OBJECT_X(result);
 
@@ -8782,7 +9157,7 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS10(PyThreadState *tstate, PyObject *called,
         }
 #if !defined(_NUITKA_EXPERIMENTAL_DISABLE_CFUNCTION_CALL_OPT)
     } else if (PyCFunction_CheckExact(called)) {
-#if PYTHON_VERSION >= 0x380
+#if PYTHON_VERSION >= 0x380 && !defined(_NUITKA_EXPERIMENTAL_DISABLE_VECTORCALL_USAGE)
 #ifdef _NUITKA_FULL_COMPAT
         if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
             return NULL;
@@ -8800,13 +9175,14 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS10(PyThreadState *tstate, PyObject *called,
 
             CHECK_OBJECT_X(result);
         } else {
-            PyCFunction method = PyCFunction_GET_FUNCTION(called);
+            Nuitka_PyCFunctionUnion method;
+            method.as_function = PyCFunction_GET_FUNCTION(called);
             PyObject *self = PyCFunction_GET_SELF(called);
 
             if (flags & METH_KEYWORDS) {
-                result = (*(PyCFunctionWithKeywords)(void (*)(void))method)(self, pos_args, NULL);
+                result = (*method.as_function_kw)(self, pos_args, NULL);
             } else {
-                result = (*method)(self, pos_args);
+                result = (*method.as_function)(self, pos_args);
             }
         }
 
@@ -8817,7 +9193,6 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS10(PyThreadState *tstate, PyObject *called,
 
         return Nuitka_CheckFunctionResult(tstate, called, result);
 #else
-        // Try to be fast about wrapping the arguments.
         int flags = PyCFunction_GET_FLAGS(called) & ~(METH_CLASS | METH_STATIC | METH_COEXIST);
 
         if (unlikely(flags & METH_NOARGS)) {
@@ -8828,37 +9203,47 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS10(PyThreadState *tstate, PyObject *called,
             SET_CURRENT_EXCEPTION_TYPE0_FORMAT1(PyExc_TypeError, "%s() takes exactly one argument (10 given)",
                                                 ((PyCFunctionObject *)called)->m_ml->ml_name);
             return NULL;
+#if PYTHON_VERSION < 0x360
         } else if (flags & METH_VARARGS) {
-            // Recursion guard is not strictly necessary, as we already have
-            // one on our way to here.
+#elif PYTHON_VERSION < 0x370
+        } else if (flags == METH_VARARGS || flags == (METH_VARARGS | METH_KEYWORDS) || flags == METH_FASTCALL) {
+#else
+        } else if (flags == METH_VARARGS || flags == (METH_VARARGS | METH_KEYWORDS) || flags == METH_FASTCALL ||
+                   flags == (METH_FASTCALL | METH_KEYWORDS)) {
+#endif
 #ifdef _NUITKA_FULL_COMPAT
             if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
                 return NULL;
             }
 #endif
-            PyCFunction method = PyCFunction_GET_FUNCTION(called);
+            Nuitka_PyCFunctionUnion method;
+            method.as_function = PyCFunction_GET_FUNCTION(called);
             PyObject *self = PyCFunction_GET_SELF(called);
 
             PyObject *result;
 
 #if PYTHON_VERSION < 0x360
             if (flags & METH_KEYWORDS) {
-                result = (*(PyCFunctionWithKeywords)method)(self, pos_args, NULL);
+                result = (*method.as_function_kw)(self, pos_args, NULL);
             } else {
-                result = (*method)(self, pos_args);
+                result = (*method.as_function)(self, pos_args);
             }
 
 #else
             if (flags == (METH_VARARGS | METH_KEYWORDS)) {
-                result = (*(PyCFunctionWithKeywords)method)(self, pos_args, NULL);
+                result = (*method.as_function_kw)(self, pos_args, NULL);
             } else if (flags == METH_FASTCALL) {
 #if PYTHON_VERSION < 0x370
-                result = (*(_PyCFunctionFast)method)(self, (PyObject **)args, 10, NULL);
+                result = (*method.as_function_fast)(self, (PyObject **)args, 10, NULL);
 #else
-                result = (*(_PyCFunctionFast)method)(self, &pos_args, 10);
+                result = (*method.as_function_fast)(self, args, 10);
+#endif
+#if PYTHON_VERSION >= 0x370
+            } else if (flags == (METH_FASTCALL | METH_KEYWORDS)) {
+                result = (*method.as_function_fast_kw)(self, args, 10, NULL);
 #endif
             } else {
-                result = (*method)(self, pos_args);
+                result = (*method.as_function)(self, pos_args);
             }
 #endif
 
@@ -8874,11 +9259,7 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS10(PyThreadState *tstate, PyObject *called,
 #endif
 #if PYTHON_VERSION < 0x380 && !defined(_NUITKA_EXPERIMENTAL_DISABLE_UNCOMPILED_FUNCTION_CALL_OPT)
     } else if (PyFunction_Check(called)) {
-#if PYTHON_VERSION < 0x3b0
         PyObject *result = callPythonFunction(called, args, 10);
-#else
-        PyObject *result = _PyFunction_Vectorcall(called, args, 10, NULL);
-#endif
         CHECK_OBJECT_X(result);
 
         return result;
@@ -8927,15 +9308,12 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS10(PyThreadState *tstate, PyObject *called,
                     return obj;
                 }
 
-                // Work on produced type.
                 type = Py_TYPE(obj);
 
                 if (NuitkaType_HasFeatureClass(type) && type->tp_init != NULL) {
                     if (type->tp_init == default_tp_init_wrapper) {
 
                         PyObject *init_method = Nuitka_TypeLookup(type, const_str_plain___init__);
-
-                        // Not really allowed, since we wouldn't have the default wrapper set.
                         assert(init_method != NULL);
 
                         bool is_compiled_function = false;
@@ -8953,6 +9331,8 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS10(PyThreadState *tstate, PyObject *called,
                         }
 
                         if (unlikely(init_method == NULL)) {
+                            Py_DECREF(obj);
+
                             if (!HAS_ERROR_OCCURRED(tstate)) {
                                 SET_CURRENT_EXCEPTION_TYPE0_VALUE0(tstate, PyExc_AttributeError,
                                                                    const_str_plain___init__);
@@ -8963,8 +9343,13 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS10(PyThreadState *tstate, PyObject *called,
 
                         PyObject *result;
                         if (is_compiled_function) {
+                            if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
+                                Py_DECREF(obj);
+                                return NULL;
+                            }
                             result = Nuitka_CallMethodFunctionPosArgs(
                                 tstate, (struct Nuitka_FunctionObject const *)init_method, obj, args, 10);
+                            Py_LeaveRecursiveCall();
                         } else {
                             result = CALL_FUNCTION_WITH_POS_ARGS10(tstate, init_method, pos_args);
                             if (init_method_needs_release) {
@@ -8977,14 +9362,15 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS10(PyThreadState *tstate, PyObject *called,
                             return NULL;
                         }
 
-                        Py_DECREF(result);
-
                         if (unlikely(result != Py_None)) {
                             Py_DECREF(obj);
 
                             SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("__init__() should return None, not '%s'", result);
+                            Py_DECREF(result);
                             return NULL;
                         }
+
+                        Py_DECREF(result);
                     } else {
 
                         if (unlikely(type->tp_init(obj, pos_args, NULL) < 0)) {
@@ -9030,6 +9416,7 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS10(PyThreadState *tstate, PyObject *called,
             PyObject *descr_method = descr_get(init_method, obj, called);
 
             if (unlikely(descr_method == NULL)) {
+                Py_DECREF(obj);
                 return NULL;
             }
 
@@ -9038,22 +9425,31 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS10(PyThreadState *tstate, PyObject *called,
 
         PyObject *result;
         if (is_compiled_function) {
+            if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
+                Py_DECREF(obj);
+                return NULL;
+            }
             result = Nuitka_CallMethodFunctionPosArgs(tstate, (struct Nuitka_FunctionObject const *)init_method, obj,
                                                       args, 10);
+            Py_LeaveRecursiveCall();
         } else {
             result = CALL_FUNCTION_WITH_POS_ARGS10(tstate, init_method, pos_args);
             Py_DECREF(init_method);
         }
         if (unlikely(result == NULL)) {
+            Py_DECREF(obj);
+            return NULL;
+        }
+
+        if (unlikely(result != Py_None)) {
+            Py_DECREF(obj);
+
+            SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("__init__() should return None, not '%s'", result);
+            Py_DECREF(result);
             return NULL;
         }
 
         Py_DECREF(result);
-
-        if (unlikely(result != Py_None)) {
-            SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("__init__() should return None, not '%s'", result);
-            return NULL;
-        }
 
         CHECK_OBJECT_X(obj);
 
@@ -9073,27 +9469,19 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS10(PyThreadState *tstate, PyObject *called,
 #endif
     }
 
-#if 0
-    PRINT_NEW_LINE();
-    PRINT_STRING("FALLBACK");
-    PRINT_ITEM(called);
-    PRINT_NEW_LINE();
-#endif
-
     PyObject *result = CALL_FUNCTION(tstate, called, pos_args, NULL);
 
     CHECK_OBJECT_X(result);
 
     return result;
 }
+/* Generated from CodeTemplateCallsMixed.c.j2 */
 PyObject *CALL_FUNCTION_WITH_NO_ARGS_KW_SPLIT(PyThreadState *tstate, PyObject *called, PyObject *const *kw_values,
                                               PyObject *kw_names) {
 
     CHECK_OBJECT(kw_names);
     assert(PyTuple_CheckExact(kw_names));
     CHECK_OBJECT(called);
-
-    Py_ssize_t kwargs_count = PyTuple_GET_SIZE(kw_names);
 
     CHECK_OBJECTS(kw_values, PyTuple_GET_SIZE(kw_names));
 
@@ -9125,12 +9513,6 @@ PyObject *CALL_FUNCTION_WITH_NO_ARGS_KW_SPLIT(PyThreadState *tstate, PyObject *c
 #endif
     }
 
-#if 0
-    PRINT_STRING("FALLBACK");
-    PRINT_ITEM(called);
-    PRINT_NEW_LINE();
-#endif
-
     ternaryfunc call_slot = Py_TYPE(called)->tp_call;
 
     if (unlikely(call_slot == NULL)) {
@@ -9145,17 +9527,12 @@ PyObject *CALL_FUNCTION_WITH_NO_ARGS_KW_SPLIT(PyThreadState *tstate, PyObject *c
 
     PyObject *pos_args = const_tuple_empty;
 
-    PyObject *named_args = _PyDict_NewPresized(kwargs_count);
+    PyObject *named_args = MAKE_DICT_FROM_KWARGS(tstate, kw_names, kw_values);
 
-    for (Py_ssize_t i = 0; i < kwargs_count; i++) {
-        PyObject *key = PyTuple_GET_ITEM(kw_names, i);
+    if (unlikely(named_args == NULL)) {
+        Py_LeaveRecursiveCall();
 
-        PyObject *value = kw_values[i];
-
-        CHECK_OBJECT(key);
-        CHECK_OBJECT(value);
-
-        DICT_SET_ITEM(named_args, key, value);
+        return NULL;
     }
 
     PyObject *result = (*call_slot)(called, pos_args, named_args);
@@ -9208,12 +9585,6 @@ PyObject *CALL_FUNCTION_WITH_ARGS1_VECTORCALL(PyThreadState *tstate, PyObject *c
 #endif
     }
 
-#if 0
-    PRINT_STRING("FALLBACK");
-    PRINT_ITEM(called);
-    PRINT_NEW_LINE();
-#endif
-
     ternaryfunc call_slot = Py_TYPE(called)->tp_call;
 
     if (unlikely(call_slot == NULL)) {
@@ -9228,17 +9599,13 @@ PyObject *CALL_FUNCTION_WITH_ARGS1_VECTORCALL(PyThreadState *tstate, PyObject *c
 
     PyObject *pos_args = MAKE_TUPLE(tstate, args, 1);
 
-    PyObject *named_args = _PyDict_NewPresized(kwargs_count);
+    PyObject *named_args = MAKE_DICT_FROM_KWARGS(tstate, kw_names, &args[1]);
 
-    for (Py_ssize_t i = 0; i < kwargs_count; i++) {
-        PyObject *key = PyTuple_GET_ITEM(kw_names, i);
+    if (unlikely(named_args == NULL)) {
+        Py_DECREF(pos_args);
+        Py_LeaveRecursiveCall();
 
-        PyObject *value = args[1 + i];
-
-        CHECK_OBJECT(key);
-        CHECK_OBJECT(value);
-
-        DICT_SET_ITEM(named_args, key, value);
+        return NULL;
     }
 
     PyObject *result = (*call_slot)(called, pos_args, named_args);
@@ -9261,7 +9628,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS1_KW_SPLIT(PyThreadState *tstate, PyObject *cal
 
     Py_ssize_t kwargs_count = PyTuple_GET_SIZE(kw_names);
 
-    CHECK_OBJECTS(kw_values, PyTuple_GET_SIZE(kw_names));
+    CHECK_OBJECTS(kw_values, kwargs_count);
 
     if (Nuitka_Function_Check(called)) {
         if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
@@ -9282,12 +9649,13 @@ PyObject *CALL_FUNCTION_WITH_ARGS1_KW_SPLIT(PyThreadState *tstate, PyObject *cal
         vectorcallfunc func = *((vectorcallfunc *)(((char *)called) + Py_TYPE(called)->tp_vectorcall_offset));
 
         if (likely(func != NULL)) {
-            NUITKA_DYNAMIC_ARRAY_DECL(vectorcall_args, PyObject *, 1 + kwargs_count);
+            NUITKA_DYNAMIC_ARRAY_DECL(vectorcall_args, PyObject *, 1 + 1 + kwargs_count);
+            vectorcall_args[0] = NULL;
 
-            memcpy(vectorcall_args, args, 1 * sizeof(PyObject *));
-            memcpy(&vectorcall_args[1], kw_values, kwargs_count * sizeof(PyObject *));
+            memcpy(&vectorcall_args[1], args, 1 * sizeof(PyObject *));
+            memcpy(&vectorcall_args[1 + 1], kw_values, kwargs_count * sizeof(PyObject *));
 
-            PyObject *result = func(called, vectorcall_args, 1, kw_names);
+            PyObject *result = func(called, &vectorcall_args[1], 1 | PY_VECTORCALL_ARGUMENTS_OFFSET, kw_names);
 
             CHECK_OBJECT_X(result);
 
@@ -9295,12 +9663,6 @@ PyObject *CALL_FUNCTION_WITH_ARGS1_KW_SPLIT(PyThreadState *tstate, PyObject *cal
         }
 #endif
     }
-
-#if 0
-    PRINT_STRING("FALLBACK");
-    PRINT_ITEM(called);
-    PRINT_NEW_LINE();
-#endif
 
     ternaryfunc call_slot = Py_TYPE(called)->tp_call;
 
@@ -9316,17 +9678,13 @@ PyObject *CALL_FUNCTION_WITH_ARGS1_KW_SPLIT(PyThreadState *tstate, PyObject *cal
 
     PyObject *pos_args = MAKE_TUPLE(tstate, args, 1);
 
-    PyObject *named_args = _PyDict_NewPresized(kwargs_count);
+    PyObject *named_args = MAKE_DICT_FROM_KWARGS(tstate, kw_names, kw_values);
 
-    for (Py_ssize_t i = 0; i < kwargs_count; i++) {
-        PyObject *key = PyTuple_GET_ITEM(kw_names, i);
+    if (unlikely(named_args == NULL)) {
+        Py_DECREF(pos_args);
+        Py_LeaveRecursiveCall();
 
-        PyObject *value = kw_values[i];
-
-        CHECK_OBJECT(key);
-        CHECK_OBJECT(value);
-
-        DICT_SET_ITEM(named_args, key, value);
+        return NULL;
     }
 
     PyObject *result = (*call_slot)(called, pos_args, named_args);
@@ -9343,6 +9701,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS1_KW_SPLIT(PyThreadState *tstate, PyObject *cal
 PyObject *CALL_FUNCTION_WITH_POS_ARGS1_KW_SPLIT(PyThreadState *tstate, PyObject *called, PyObject *pos_args,
                                                 PyObject *const *kw_values, PyObject *kw_names) {
     assert(PyTuple_CheckExact(pos_args));
+    assert(PyTuple_GET_SIZE(pos_args) == 1);
     PyObject *const *args = &PyTuple_GET_ITEM(pos_args, 0);
     CHECK_OBJECTS(args, 1);
     CHECK_OBJECT(kw_names);
@@ -9351,7 +9710,7 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS1_KW_SPLIT(PyThreadState *tstate, PyObject 
 
     Py_ssize_t kwargs_count = PyTuple_GET_SIZE(kw_names);
 
-    CHECK_OBJECTS(kw_values, PyTuple_GET_SIZE(kw_names));
+    CHECK_OBJECTS(kw_values, kwargs_count);
 
     if (Nuitka_Function_Check(called)) {
         if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
@@ -9372,12 +9731,13 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS1_KW_SPLIT(PyThreadState *tstate, PyObject 
         vectorcallfunc func = *((vectorcallfunc *)(((char *)called) + Py_TYPE(called)->tp_vectorcall_offset));
 
         if (likely(func != NULL)) {
-            NUITKA_DYNAMIC_ARRAY_DECL(vectorcall_args, PyObject *, 1 + kwargs_count);
+            NUITKA_DYNAMIC_ARRAY_DECL(vectorcall_args, PyObject *, 1 + 1 + kwargs_count);
+            vectorcall_args[0] = NULL;
 
-            memcpy(vectorcall_args, args, 1 * sizeof(PyObject *));
-            memcpy(&vectorcall_args[1], kw_values, kwargs_count * sizeof(PyObject *));
+            memcpy(&vectorcall_args[1], args, 1 * sizeof(PyObject *));
+            memcpy(&vectorcall_args[1 + 1], kw_values, kwargs_count * sizeof(PyObject *));
 
-            PyObject *result = func(called, vectorcall_args, 1, kw_names);
+            PyObject *result = func(called, &vectorcall_args[1], 1 | PY_VECTORCALL_ARGUMENTS_OFFSET, kw_names);
 
             CHECK_OBJECT_X(result);
 
@@ -9385,12 +9745,6 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS1_KW_SPLIT(PyThreadState *tstate, PyObject 
         }
 #endif
     }
-
-#if 0
-    PRINT_STRING("FALLBACK");
-    PRINT_ITEM(called);
-    PRINT_NEW_LINE();
-#endif
 
     ternaryfunc call_slot = Py_TYPE(called)->tp_call;
 
@@ -9404,17 +9758,12 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS1_KW_SPLIT(PyThreadState *tstate, PyObject 
         return NULL;
     }
 
-    PyObject *named_args = _PyDict_NewPresized(kwargs_count);
+    PyObject *named_args = MAKE_DICT_FROM_KWARGS(tstate, kw_names, kw_values);
 
-    for (Py_ssize_t i = 0; i < kwargs_count; i++) {
-        PyObject *key = PyTuple_GET_ITEM(kw_names, i);
+    if (unlikely(named_args == NULL)) {
+        Py_LeaveRecursiveCall();
 
-        PyObject *value = kw_values[i];
-
-        CHECK_OBJECT(key);
-        CHECK_OBJECT(value);
-
-        DICT_SET_ITEM(named_args, key, value);
+        return NULL;
     }
 
     PyObject *result = (*call_slot)(called, pos_args, named_args);
@@ -9467,12 +9816,6 @@ PyObject *CALL_FUNCTION_WITH_ARGS2_VECTORCALL(PyThreadState *tstate, PyObject *c
 #endif
     }
 
-#if 0
-    PRINT_STRING("FALLBACK");
-    PRINT_ITEM(called);
-    PRINT_NEW_LINE();
-#endif
-
     ternaryfunc call_slot = Py_TYPE(called)->tp_call;
 
     if (unlikely(call_slot == NULL)) {
@@ -9487,17 +9830,13 @@ PyObject *CALL_FUNCTION_WITH_ARGS2_VECTORCALL(PyThreadState *tstate, PyObject *c
 
     PyObject *pos_args = MAKE_TUPLE(tstate, args, 2);
 
-    PyObject *named_args = _PyDict_NewPresized(kwargs_count);
+    PyObject *named_args = MAKE_DICT_FROM_KWARGS(tstate, kw_names, &args[2]);
 
-    for (Py_ssize_t i = 0; i < kwargs_count; i++) {
-        PyObject *key = PyTuple_GET_ITEM(kw_names, i);
+    if (unlikely(named_args == NULL)) {
+        Py_DECREF(pos_args);
+        Py_LeaveRecursiveCall();
 
-        PyObject *value = args[2 + i];
-
-        CHECK_OBJECT(key);
-        CHECK_OBJECT(value);
-
-        DICT_SET_ITEM(named_args, key, value);
+        return NULL;
     }
 
     PyObject *result = (*call_slot)(called, pos_args, named_args);
@@ -9520,7 +9859,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS2_KW_SPLIT(PyThreadState *tstate, PyObject *cal
 
     Py_ssize_t kwargs_count = PyTuple_GET_SIZE(kw_names);
 
-    CHECK_OBJECTS(kw_values, PyTuple_GET_SIZE(kw_names));
+    CHECK_OBJECTS(kw_values, kwargs_count);
 
     if (Nuitka_Function_Check(called)) {
         if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
@@ -9541,12 +9880,13 @@ PyObject *CALL_FUNCTION_WITH_ARGS2_KW_SPLIT(PyThreadState *tstate, PyObject *cal
         vectorcallfunc func = *((vectorcallfunc *)(((char *)called) + Py_TYPE(called)->tp_vectorcall_offset));
 
         if (likely(func != NULL)) {
-            NUITKA_DYNAMIC_ARRAY_DECL(vectorcall_args, PyObject *, 2 + kwargs_count);
+            NUITKA_DYNAMIC_ARRAY_DECL(vectorcall_args, PyObject *, 1 + 2 + kwargs_count);
+            vectorcall_args[0] = NULL;
 
-            memcpy(vectorcall_args, args, 2 * sizeof(PyObject *));
-            memcpy(&vectorcall_args[2], kw_values, kwargs_count * sizeof(PyObject *));
+            memcpy(&vectorcall_args[1], args, 2 * sizeof(PyObject *));
+            memcpy(&vectorcall_args[1 + 2], kw_values, kwargs_count * sizeof(PyObject *));
 
-            PyObject *result = func(called, vectorcall_args, 2, kw_names);
+            PyObject *result = func(called, &vectorcall_args[1], 2 | PY_VECTORCALL_ARGUMENTS_OFFSET, kw_names);
 
             CHECK_OBJECT_X(result);
 
@@ -9554,12 +9894,6 @@ PyObject *CALL_FUNCTION_WITH_ARGS2_KW_SPLIT(PyThreadState *tstate, PyObject *cal
         }
 #endif
     }
-
-#if 0
-    PRINT_STRING("FALLBACK");
-    PRINT_ITEM(called);
-    PRINT_NEW_LINE();
-#endif
 
     ternaryfunc call_slot = Py_TYPE(called)->tp_call;
 
@@ -9575,17 +9909,13 @@ PyObject *CALL_FUNCTION_WITH_ARGS2_KW_SPLIT(PyThreadState *tstate, PyObject *cal
 
     PyObject *pos_args = MAKE_TUPLE(tstate, args, 2);
 
-    PyObject *named_args = _PyDict_NewPresized(kwargs_count);
+    PyObject *named_args = MAKE_DICT_FROM_KWARGS(tstate, kw_names, kw_values);
 
-    for (Py_ssize_t i = 0; i < kwargs_count; i++) {
-        PyObject *key = PyTuple_GET_ITEM(kw_names, i);
+    if (unlikely(named_args == NULL)) {
+        Py_DECREF(pos_args);
+        Py_LeaveRecursiveCall();
 
-        PyObject *value = kw_values[i];
-
-        CHECK_OBJECT(key);
-        CHECK_OBJECT(value);
-
-        DICT_SET_ITEM(named_args, key, value);
+        return NULL;
     }
 
     PyObject *result = (*call_slot)(called, pos_args, named_args);
@@ -9602,6 +9932,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS2_KW_SPLIT(PyThreadState *tstate, PyObject *cal
 PyObject *CALL_FUNCTION_WITH_POS_ARGS2_KW_SPLIT(PyThreadState *tstate, PyObject *called, PyObject *pos_args,
                                                 PyObject *const *kw_values, PyObject *kw_names) {
     assert(PyTuple_CheckExact(pos_args));
+    assert(PyTuple_GET_SIZE(pos_args) == 2);
     PyObject *const *args = &PyTuple_GET_ITEM(pos_args, 0);
     CHECK_OBJECTS(args, 2);
     CHECK_OBJECT(kw_names);
@@ -9610,7 +9941,7 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS2_KW_SPLIT(PyThreadState *tstate, PyObject 
 
     Py_ssize_t kwargs_count = PyTuple_GET_SIZE(kw_names);
 
-    CHECK_OBJECTS(kw_values, PyTuple_GET_SIZE(kw_names));
+    CHECK_OBJECTS(kw_values, kwargs_count);
 
     if (Nuitka_Function_Check(called)) {
         if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
@@ -9631,12 +9962,13 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS2_KW_SPLIT(PyThreadState *tstate, PyObject 
         vectorcallfunc func = *((vectorcallfunc *)(((char *)called) + Py_TYPE(called)->tp_vectorcall_offset));
 
         if (likely(func != NULL)) {
-            NUITKA_DYNAMIC_ARRAY_DECL(vectorcall_args, PyObject *, 2 + kwargs_count);
+            NUITKA_DYNAMIC_ARRAY_DECL(vectorcall_args, PyObject *, 1 + 2 + kwargs_count);
+            vectorcall_args[0] = NULL;
 
-            memcpy(vectorcall_args, args, 2 * sizeof(PyObject *));
-            memcpy(&vectorcall_args[2], kw_values, kwargs_count * sizeof(PyObject *));
+            memcpy(&vectorcall_args[1], args, 2 * sizeof(PyObject *));
+            memcpy(&vectorcall_args[1 + 2], kw_values, kwargs_count * sizeof(PyObject *));
 
-            PyObject *result = func(called, vectorcall_args, 2, kw_names);
+            PyObject *result = func(called, &vectorcall_args[1], 2 | PY_VECTORCALL_ARGUMENTS_OFFSET, kw_names);
 
             CHECK_OBJECT_X(result);
 
@@ -9644,12 +9976,6 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS2_KW_SPLIT(PyThreadState *tstate, PyObject 
         }
 #endif
     }
-
-#if 0
-    PRINT_STRING("FALLBACK");
-    PRINT_ITEM(called);
-    PRINT_NEW_LINE();
-#endif
 
     ternaryfunc call_slot = Py_TYPE(called)->tp_call;
 
@@ -9663,17 +9989,12 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS2_KW_SPLIT(PyThreadState *tstate, PyObject 
         return NULL;
     }
 
-    PyObject *named_args = _PyDict_NewPresized(kwargs_count);
+    PyObject *named_args = MAKE_DICT_FROM_KWARGS(tstate, kw_names, kw_values);
 
-    for (Py_ssize_t i = 0; i < kwargs_count; i++) {
-        PyObject *key = PyTuple_GET_ITEM(kw_names, i);
+    if (unlikely(named_args == NULL)) {
+        Py_LeaveRecursiveCall();
 
-        PyObject *value = kw_values[i];
-
-        CHECK_OBJECT(key);
-        CHECK_OBJECT(value);
-
-        DICT_SET_ITEM(named_args, key, value);
+        return NULL;
     }
 
     PyObject *result = (*call_slot)(called, pos_args, named_args);
@@ -9726,12 +10047,6 @@ PyObject *CALL_FUNCTION_WITH_ARGS3_VECTORCALL(PyThreadState *tstate, PyObject *c
 #endif
     }
 
-#if 0
-    PRINT_STRING("FALLBACK");
-    PRINT_ITEM(called);
-    PRINT_NEW_LINE();
-#endif
-
     ternaryfunc call_slot = Py_TYPE(called)->tp_call;
 
     if (unlikely(call_slot == NULL)) {
@@ -9746,17 +10061,13 @@ PyObject *CALL_FUNCTION_WITH_ARGS3_VECTORCALL(PyThreadState *tstate, PyObject *c
 
     PyObject *pos_args = MAKE_TUPLE(tstate, args, 3);
 
-    PyObject *named_args = _PyDict_NewPresized(kwargs_count);
+    PyObject *named_args = MAKE_DICT_FROM_KWARGS(tstate, kw_names, &args[3]);
 
-    for (Py_ssize_t i = 0; i < kwargs_count; i++) {
-        PyObject *key = PyTuple_GET_ITEM(kw_names, i);
+    if (unlikely(named_args == NULL)) {
+        Py_DECREF(pos_args);
+        Py_LeaveRecursiveCall();
 
-        PyObject *value = args[3 + i];
-
-        CHECK_OBJECT(key);
-        CHECK_OBJECT(value);
-
-        DICT_SET_ITEM(named_args, key, value);
+        return NULL;
     }
 
     PyObject *result = (*call_slot)(called, pos_args, named_args);
@@ -9779,7 +10090,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS3_KW_SPLIT(PyThreadState *tstate, PyObject *cal
 
     Py_ssize_t kwargs_count = PyTuple_GET_SIZE(kw_names);
 
-    CHECK_OBJECTS(kw_values, PyTuple_GET_SIZE(kw_names));
+    CHECK_OBJECTS(kw_values, kwargs_count);
 
     if (Nuitka_Function_Check(called)) {
         if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
@@ -9800,12 +10111,13 @@ PyObject *CALL_FUNCTION_WITH_ARGS3_KW_SPLIT(PyThreadState *tstate, PyObject *cal
         vectorcallfunc func = *((vectorcallfunc *)(((char *)called) + Py_TYPE(called)->tp_vectorcall_offset));
 
         if (likely(func != NULL)) {
-            NUITKA_DYNAMIC_ARRAY_DECL(vectorcall_args, PyObject *, 3 + kwargs_count);
+            NUITKA_DYNAMIC_ARRAY_DECL(vectorcall_args, PyObject *, 1 + 3 + kwargs_count);
+            vectorcall_args[0] = NULL;
 
-            memcpy(vectorcall_args, args, 3 * sizeof(PyObject *));
-            memcpy(&vectorcall_args[3], kw_values, kwargs_count * sizeof(PyObject *));
+            memcpy(&vectorcall_args[1], args, 3 * sizeof(PyObject *));
+            memcpy(&vectorcall_args[1 + 3], kw_values, kwargs_count * sizeof(PyObject *));
 
-            PyObject *result = func(called, vectorcall_args, 3, kw_names);
+            PyObject *result = func(called, &vectorcall_args[1], 3 | PY_VECTORCALL_ARGUMENTS_OFFSET, kw_names);
 
             CHECK_OBJECT_X(result);
 
@@ -9813,12 +10125,6 @@ PyObject *CALL_FUNCTION_WITH_ARGS3_KW_SPLIT(PyThreadState *tstate, PyObject *cal
         }
 #endif
     }
-
-#if 0
-    PRINT_STRING("FALLBACK");
-    PRINT_ITEM(called);
-    PRINT_NEW_LINE();
-#endif
 
     ternaryfunc call_slot = Py_TYPE(called)->tp_call;
 
@@ -9834,17 +10140,13 @@ PyObject *CALL_FUNCTION_WITH_ARGS3_KW_SPLIT(PyThreadState *tstate, PyObject *cal
 
     PyObject *pos_args = MAKE_TUPLE(tstate, args, 3);
 
-    PyObject *named_args = _PyDict_NewPresized(kwargs_count);
+    PyObject *named_args = MAKE_DICT_FROM_KWARGS(tstate, kw_names, kw_values);
 
-    for (Py_ssize_t i = 0; i < kwargs_count; i++) {
-        PyObject *key = PyTuple_GET_ITEM(kw_names, i);
+    if (unlikely(named_args == NULL)) {
+        Py_DECREF(pos_args);
+        Py_LeaveRecursiveCall();
 
-        PyObject *value = kw_values[i];
-
-        CHECK_OBJECT(key);
-        CHECK_OBJECT(value);
-
-        DICT_SET_ITEM(named_args, key, value);
+        return NULL;
     }
 
     PyObject *result = (*call_slot)(called, pos_args, named_args);
@@ -9861,6 +10163,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS3_KW_SPLIT(PyThreadState *tstate, PyObject *cal
 PyObject *CALL_FUNCTION_WITH_POS_ARGS3_KW_SPLIT(PyThreadState *tstate, PyObject *called, PyObject *pos_args,
                                                 PyObject *const *kw_values, PyObject *kw_names) {
     assert(PyTuple_CheckExact(pos_args));
+    assert(PyTuple_GET_SIZE(pos_args) == 3);
     PyObject *const *args = &PyTuple_GET_ITEM(pos_args, 0);
     CHECK_OBJECTS(args, 3);
     CHECK_OBJECT(kw_names);
@@ -9869,7 +10172,7 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS3_KW_SPLIT(PyThreadState *tstate, PyObject 
 
     Py_ssize_t kwargs_count = PyTuple_GET_SIZE(kw_names);
 
-    CHECK_OBJECTS(kw_values, PyTuple_GET_SIZE(kw_names));
+    CHECK_OBJECTS(kw_values, kwargs_count);
 
     if (Nuitka_Function_Check(called)) {
         if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
@@ -9890,12 +10193,13 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS3_KW_SPLIT(PyThreadState *tstate, PyObject 
         vectorcallfunc func = *((vectorcallfunc *)(((char *)called) + Py_TYPE(called)->tp_vectorcall_offset));
 
         if (likely(func != NULL)) {
-            NUITKA_DYNAMIC_ARRAY_DECL(vectorcall_args, PyObject *, 3 + kwargs_count);
+            NUITKA_DYNAMIC_ARRAY_DECL(vectorcall_args, PyObject *, 1 + 3 + kwargs_count);
+            vectorcall_args[0] = NULL;
 
-            memcpy(vectorcall_args, args, 3 * sizeof(PyObject *));
-            memcpy(&vectorcall_args[3], kw_values, kwargs_count * sizeof(PyObject *));
+            memcpy(&vectorcall_args[1], args, 3 * sizeof(PyObject *));
+            memcpy(&vectorcall_args[1 + 3], kw_values, kwargs_count * sizeof(PyObject *));
 
-            PyObject *result = func(called, vectorcall_args, 3, kw_names);
+            PyObject *result = func(called, &vectorcall_args[1], 3 | PY_VECTORCALL_ARGUMENTS_OFFSET, kw_names);
 
             CHECK_OBJECT_X(result);
 
@@ -9903,12 +10207,6 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS3_KW_SPLIT(PyThreadState *tstate, PyObject 
         }
 #endif
     }
-
-#if 0
-    PRINT_STRING("FALLBACK");
-    PRINT_ITEM(called);
-    PRINT_NEW_LINE();
-#endif
 
     ternaryfunc call_slot = Py_TYPE(called)->tp_call;
 
@@ -9922,17 +10220,12 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS3_KW_SPLIT(PyThreadState *tstate, PyObject 
         return NULL;
     }
 
-    PyObject *named_args = _PyDict_NewPresized(kwargs_count);
+    PyObject *named_args = MAKE_DICT_FROM_KWARGS(tstate, kw_names, kw_values);
 
-    for (Py_ssize_t i = 0; i < kwargs_count; i++) {
-        PyObject *key = PyTuple_GET_ITEM(kw_names, i);
+    if (unlikely(named_args == NULL)) {
+        Py_LeaveRecursiveCall();
 
-        PyObject *value = kw_values[i];
-
-        CHECK_OBJECT(key);
-        CHECK_OBJECT(value);
-
-        DICT_SET_ITEM(named_args, key, value);
+        return NULL;
     }
 
     PyObject *result = (*call_slot)(called, pos_args, named_args);
@@ -9985,12 +10278,6 @@ PyObject *CALL_FUNCTION_WITH_ARGS4_VECTORCALL(PyThreadState *tstate, PyObject *c
 #endif
     }
 
-#if 0
-    PRINT_STRING("FALLBACK");
-    PRINT_ITEM(called);
-    PRINT_NEW_LINE();
-#endif
-
     ternaryfunc call_slot = Py_TYPE(called)->tp_call;
 
     if (unlikely(call_slot == NULL)) {
@@ -10005,17 +10292,13 @@ PyObject *CALL_FUNCTION_WITH_ARGS4_VECTORCALL(PyThreadState *tstate, PyObject *c
 
     PyObject *pos_args = MAKE_TUPLE(tstate, args, 4);
 
-    PyObject *named_args = _PyDict_NewPresized(kwargs_count);
+    PyObject *named_args = MAKE_DICT_FROM_KWARGS(tstate, kw_names, &args[4]);
 
-    for (Py_ssize_t i = 0; i < kwargs_count; i++) {
-        PyObject *key = PyTuple_GET_ITEM(kw_names, i);
+    if (unlikely(named_args == NULL)) {
+        Py_DECREF(pos_args);
+        Py_LeaveRecursiveCall();
 
-        PyObject *value = args[4 + i];
-
-        CHECK_OBJECT(key);
-        CHECK_OBJECT(value);
-
-        DICT_SET_ITEM(named_args, key, value);
+        return NULL;
     }
 
     PyObject *result = (*call_slot)(called, pos_args, named_args);
@@ -10038,7 +10321,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS4_KW_SPLIT(PyThreadState *tstate, PyObject *cal
 
     Py_ssize_t kwargs_count = PyTuple_GET_SIZE(kw_names);
 
-    CHECK_OBJECTS(kw_values, PyTuple_GET_SIZE(kw_names));
+    CHECK_OBJECTS(kw_values, kwargs_count);
 
     if (Nuitka_Function_Check(called)) {
         if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
@@ -10059,12 +10342,13 @@ PyObject *CALL_FUNCTION_WITH_ARGS4_KW_SPLIT(PyThreadState *tstate, PyObject *cal
         vectorcallfunc func = *((vectorcallfunc *)(((char *)called) + Py_TYPE(called)->tp_vectorcall_offset));
 
         if (likely(func != NULL)) {
-            NUITKA_DYNAMIC_ARRAY_DECL(vectorcall_args, PyObject *, 4 + kwargs_count);
+            NUITKA_DYNAMIC_ARRAY_DECL(vectorcall_args, PyObject *, 1 + 4 + kwargs_count);
+            vectorcall_args[0] = NULL;
 
-            memcpy(vectorcall_args, args, 4 * sizeof(PyObject *));
-            memcpy(&vectorcall_args[4], kw_values, kwargs_count * sizeof(PyObject *));
+            memcpy(&vectorcall_args[1], args, 4 * sizeof(PyObject *));
+            memcpy(&vectorcall_args[1 + 4], kw_values, kwargs_count * sizeof(PyObject *));
 
-            PyObject *result = func(called, vectorcall_args, 4, kw_names);
+            PyObject *result = func(called, &vectorcall_args[1], 4 | PY_VECTORCALL_ARGUMENTS_OFFSET, kw_names);
 
             CHECK_OBJECT_X(result);
 
@@ -10072,12 +10356,6 @@ PyObject *CALL_FUNCTION_WITH_ARGS4_KW_SPLIT(PyThreadState *tstate, PyObject *cal
         }
 #endif
     }
-
-#if 0
-    PRINT_STRING("FALLBACK");
-    PRINT_ITEM(called);
-    PRINT_NEW_LINE();
-#endif
 
     ternaryfunc call_slot = Py_TYPE(called)->tp_call;
 
@@ -10093,17 +10371,13 @@ PyObject *CALL_FUNCTION_WITH_ARGS4_KW_SPLIT(PyThreadState *tstate, PyObject *cal
 
     PyObject *pos_args = MAKE_TUPLE(tstate, args, 4);
 
-    PyObject *named_args = _PyDict_NewPresized(kwargs_count);
+    PyObject *named_args = MAKE_DICT_FROM_KWARGS(tstate, kw_names, kw_values);
 
-    for (Py_ssize_t i = 0; i < kwargs_count; i++) {
-        PyObject *key = PyTuple_GET_ITEM(kw_names, i);
+    if (unlikely(named_args == NULL)) {
+        Py_DECREF(pos_args);
+        Py_LeaveRecursiveCall();
 
-        PyObject *value = kw_values[i];
-
-        CHECK_OBJECT(key);
-        CHECK_OBJECT(value);
-
-        DICT_SET_ITEM(named_args, key, value);
+        return NULL;
     }
 
     PyObject *result = (*call_slot)(called, pos_args, named_args);
@@ -10120,6 +10394,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS4_KW_SPLIT(PyThreadState *tstate, PyObject *cal
 PyObject *CALL_FUNCTION_WITH_POS_ARGS4_KW_SPLIT(PyThreadState *tstate, PyObject *called, PyObject *pos_args,
                                                 PyObject *const *kw_values, PyObject *kw_names) {
     assert(PyTuple_CheckExact(pos_args));
+    assert(PyTuple_GET_SIZE(pos_args) == 4);
     PyObject *const *args = &PyTuple_GET_ITEM(pos_args, 0);
     CHECK_OBJECTS(args, 4);
     CHECK_OBJECT(kw_names);
@@ -10128,7 +10403,7 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS4_KW_SPLIT(PyThreadState *tstate, PyObject 
 
     Py_ssize_t kwargs_count = PyTuple_GET_SIZE(kw_names);
 
-    CHECK_OBJECTS(kw_values, PyTuple_GET_SIZE(kw_names));
+    CHECK_OBJECTS(kw_values, kwargs_count);
 
     if (Nuitka_Function_Check(called)) {
         if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
@@ -10149,12 +10424,13 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS4_KW_SPLIT(PyThreadState *tstate, PyObject 
         vectorcallfunc func = *((vectorcallfunc *)(((char *)called) + Py_TYPE(called)->tp_vectorcall_offset));
 
         if (likely(func != NULL)) {
-            NUITKA_DYNAMIC_ARRAY_DECL(vectorcall_args, PyObject *, 4 + kwargs_count);
+            NUITKA_DYNAMIC_ARRAY_DECL(vectorcall_args, PyObject *, 1 + 4 + kwargs_count);
+            vectorcall_args[0] = NULL;
 
-            memcpy(vectorcall_args, args, 4 * sizeof(PyObject *));
-            memcpy(&vectorcall_args[4], kw_values, kwargs_count * sizeof(PyObject *));
+            memcpy(&vectorcall_args[1], args, 4 * sizeof(PyObject *));
+            memcpy(&vectorcall_args[1 + 4], kw_values, kwargs_count * sizeof(PyObject *));
 
-            PyObject *result = func(called, vectorcall_args, 4, kw_names);
+            PyObject *result = func(called, &vectorcall_args[1], 4 | PY_VECTORCALL_ARGUMENTS_OFFSET, kw_names);
 
             CHECK_OBJECT_X(result);
 
@@ -10162,12 +10438,6 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS4_KW_SPLIT(PyThreadState *tstate, PyObject 
         }
 #endif
     }
-
-#if 0
-    PRINT_STRING("FALLBACK");
-    PRINT_ITEM(called);
-    PRINT_NEW_LINE();
-#endif
 
     ternaryfunc call_slot = Py_TYPE(called)->tp_call;
 
@@ -10181,17 +10451,12 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS4_KW_SPLIT(PyThreadState *tstate, PyObject 
         return NULL;
     }
 
-    PyObject *named_args = _PyDict_NewPresized(kwargs_count);
+    PyObject *named_args = MAKE_DICT_FROM_KWARGS(tstate, kw_names, kw_values);
 
-    for (Py_ssize_t i = 0; i < kwargs_count; i++) {
-        PyObject *key = PyTuple_GET_ITEM(kw_names, i);
+    if (unlikely(named_args == NULL)) {
+        Py_LeaveRecursiveCall();
 
-        PyObject *value = kw_values[i];
-
-        CHECK_OBJECT(key);
-        CHECK_OBJECT(value);
-
-        DICT_SET_ITEM(named_args, key, value);
+        return NULL;
     }
 
     PyObject *result = (*call_slot)(called, pos_args, named_args);
@@ -10244,12 +10509,6 @@ PyObject *CALL_FUNCTION_WITH_ARGS5_VECTORCALL(PyThreadState *tstate, PyObject *c
 #endif
     }
 
-#if 0
-    PRINT_STRING("FALLBACK");
-    PRINT_ITEM(called);
-    PRINT_NEW_LINE();
-#endif
-
     ternaryfunc call_slot = Py_TYPE(called)->tp_call;
 
     if (unlikely(call_slot == NULL)) {
@@ -10264,17 +10523,13 @@ PyObject *CALL_FUNCTION_WITH_ARGS5_VECTORCALL(PyThreadState *tstate, PyObject *c
 
     PyObject *pos_args = MAKE_TUPLE(tstate, args, 5);
 
-    PyObject *named_args = _PyDict_NewPresized(kwargs_count);
+    PyObject *named_args = MAKE_DICT_FROM_KWARGS(tstate, kw_names, &args[5]);
 
-    for (Py_ssize_t i = 0; i < kwargs_count; i++) {
-        PyObject *key = PyTuple_GET_ITEM(kw_names, i);
+    if (unlikely(named_args == NULL)) {
+        Py_DECREF(pos_args);
+        Py_LeaveRecursiveCall();
 
-        PyObject *value = args[5 + i];
-
-        CHECK_OBJECT(key);
-        CHECK_OBJECT(value);
-
-        DICT_SET_ITEM(named_args, key, value);
+        return NULL;
     }
 
     PyObject *result = (*call_slot)(called, pos_args, named_args);
@@ -10297,7 +10552,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS5_KW_SPLIT(PyThreadState *tstate, PyObject *cal
 
     Py_ssize_t kwargs_count = PyTuple_GET_SIZE(kw_names);
 
-    CHECK_OBJECTS(kw_values, PyTuple_GET_SIZE(kw_names));
+    CHECK_OBJECTS(kw_values, kwargs_count);
 
     if (Nuitka_Function_Check(called)) {
         if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
@@ -10318,12 +10573,13 @@ PyObject *CALL_FUNCTION_WITH_ARGS5_KW_SPLIT(PyThreadState *tstate, PyObject *cal
         vectorcallfunc func = *((vectorcallfunc *)(((char *)called) + Py_TYPE(called)->tp_vectorcall_offset));
 
         if (likely(func != NULL)) {
-            NUITKA_DYNAMIC_ARRAY_DECL(vectorcall_args, PyObject *, 5 + kwargs_count);
+            NUITKA_DYNAMIC_ARRAY_DECL(vectorcall_args, PyObject *, 1 + 5 + kwargs_count);
+            vectorcall_args[0] = NULL;
 
-            memcpy(vectorcall_args, args, 5 * sizeof(PyObject *));
-            memcpy(&vectorcall_args[5], kw_values, kwargs_count * sizeof(PyObject *));
+            memcpy(&vectorcall_args[1], args, 5 * sizeof(PyObject *));
+            memcpy(&vectorcall_args[1 + 5], kw_values, kwargs_count * sizeof(PyObject *));
 
-            PyObject *result = func(called, vectorcall_args, 5, kw_names);
+            PyObject *result = func(called, &vectorcall_args[1], 5 | PY_VECTORCALL_ARGUMENTS_OFFSET, kw_names);
 
             CHECK_OBJECT_X(result);
 
@@ -10331,12 +10587,6 @@ PyObject *CALL_FUNCTION_WITH_ARGS5_KW_SPLIT(PyThreadState *tstate, PyObject *cal
         }
 #endif
     }
-
-#if 0
-    PRINT_STRING("FALLBACK");
-    PRINT_ITEM(called);
-    PRINT_NEW_LINE();
-#endif
 
     ternaryfunc call_slot = Py_TYPE(called)->tp_call;
 
@@ -10352,17 +10602,13 @@ PyObject *CALL_FUNCTION_WITH_ARGS5_KW_SPLIT(PyThreadState *tstate, PyObject *cal
 
     PyObject *pos_args = MAKE_TUPLE(tstate, args, 5);
 
-    PyObject *named_args = _PyDict_NewPresized(kwargs_count);
+    PyObject *named_args = MAKE_DICT_FROM_KWARGS(tstate, kw_names, kw_values);
 
-    for (Py_ssize_t i = 0; i < kwargs_count; i++) {
-        PyObject *key = PyTuple_GET_ITEM(kw_names, i);
+    if (unlikely(named_args == NULL)) {
+        Py_DECREF(pos_args);
+        Py_LeaveRecursiveCall();
 
-        PyObject *value = kw_values[i];
-
-        CHECK_OBJECT(key);
-        CHECK_OBJECT(value);
-
-        DICT_SET_ITEM(named_args, key, value);
+        return NULL;
     }
 
     PyObject *result = (*call_slot)(called, pos_args, named_args);
@@ -10379,6 +10625,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS5_KW_SPLIT(PyThreadState *tstate, PyObject *cal
 PyObject *CALL_FUNCTION_WITH_POS_ARGS5_KW_SPLIT(PyThreadState *tstate, PyObject *called, PyObject *pos_args,
                                                 PyObject *const *kw_values, PyObject *kw_names) {
     assert(PyTuple_CheckExact(pos_args));
+    assert(PyTuple_GET_SIZE(pos_args) == 5);
     PyObject *const *args = &PyTuple_GET_ITEM(pos_args, 0);
     CHECK_OBJECTS(args, 5);
     CHECK_OBJECT(kw_names);
@@ -10387,7 +10634,7 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS5_KW_SPLIT(PyThreadState *tstate, PyObject 
 
     Py_ssize_t kwargs_count = PyTuple_GET_SIZE(kw_names);
 
-    CHECK_OBJECTS(kw_values, PyTuple_GET_SIZE(kw_names));
+    CHECK_OBJECTS(kw_values, kwargs_count);
 
     if (Nuitka_Function_Check(called)) {
         if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
@@ -10408,12 +10655,13 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS5_KW_SPLIT(PyThreadState *tstate, PyObject 
         vectorcallfunc func = *((vectorcallfunc *)(((char *)called) + Py_TYPE(called)->tp_vectorcall_offset));
 
         if (likely(func != NULL)) {
-            NUITKA_DYNAMIC_ARRAY_DECL(vectorcall_args, PyObject *, 5 + kwargs_count);
+            NUITKA_DYNAMIC_ARRAY_DECL(vectorcall_args, PyObject *, 1 + 5 + kwargs_count);
+            vectorcall_args[0] = NULL;
 
-            memcpy(vectorcall_args, args, 5 * sizeof(PyObject *));
-            memcpy(&vectorcall_args[5], kw_values, kwargs_count * sizeof(PyObject *));
+            memcpy(&vectorcall_args[1], args, 5 * sizeof(PyObject *));
+            memcpy(&vectorcall_args[1 + 5], kw_values, kwargs_count * sizeof(PyObject *));
 
-            PyObject *result = func(called, vectorcall_args, 5, kw_names);
+            PyObject *result = func(called, &vectorcall_args[1], 5 | PY_VECTORCALL_ARGUMENTS_OFFSET, kw_names);
 
             CHECK_OBJECT_X(result);
 
@@ -10421,12 +10669,6 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS5_KW_SPLIT(PyThreadState *tstate, PyObject 
         }
 #endif
     }
-
-#if 0
-    PRINT_STRING("FALLBACK");
-    PRINT_ITEM(called);
-    PRINT_NEW_LINE();
-#endif
 
     ternaryfunc call_slot = Py_TYPE(called)->tp_call;
 
@@ -10440,17 +10682,12 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS5_KW_SPLIT(PyThreadState *tstate, PyObject 
         return NULL;
     }
 
-    PyObject *named_args = _PyDict_NewPresized(kwargs_count);
+    PyObject *named_args = MAKE_DICT_FROM_KWARGS(tstate, kw_names, kw_values);
 
-    for (Py_ssize_t i = 0; i < kwargs_count; i++) {
-        PyObject *key = PyTuple_GET_ITEM(kw_names, i);
+    if (unlikely(named_args == NULL)) {
+        Py_LeaveRecursiveCall();
 
-        PyObject *value = kw_values[i];
-
-        CHECK_OBJECT(key);
-        CHECK_OBJECT(value);
-
-        DICT_SET_ITEM(named_args, key, value);
+        return NULL;
     }
 
     PyObject *result = (*call_slot)(called, pos_args, named_args);
@@ -10503,12 +10740,6 @@ PyObject *CALL_FUNCTION_WITH_ARGS6_VECTORCALL(PyThreadState *tstate, PyObject *c
 #endif
     }
 
-#if 0
-    PRINT_STRING("FALLBACK");
-    PRINT_ITEM(called);
-    PRINT_NEW_LINE();
-#endif
-
     ternaryfunc call_slot = Py_TYPE(called)->tp_call;
 
     if (unlikely(call_slot == NULL)) {
@@ -10523,17 +10754,13 @@ PyObject *CALL_FUNCTION_WITH_ARGS6_VECTORCALL(PyThreadState *tstate, PyObject *c
 
     PyObject *pos_args = MAKE_TUPLE(tstate, args, 6);
 
-    PyObject *named_args = _PyDict_NewPresized(kwargs_count);
+    PyObject *named_args = MAKE_DICT_FROM_KWARGS(tstate, kw_names, &args[6]);
 
-    for (Py_ssize_t i = 0; i < kwargs_count; i++) {
-        PyObject *key = PyTuple_GET_ITEM(kw_names, i);
+    if (unlikely(named_args == NULL)) {
+        Py_DECREF(pos_args);
+        Py_LeaveRecursiveCall();
 
-        PyObject *value = args[6 + i];
-
-        CHECK_OBJECT(key);
-        CHECK_OBJECT(value);
-
-        DICT_SET_ITEM(named_args, key, value);
+        return NULL;
     }
 
     PyObject *result = (*call_slot)(called, pos_args, named_args);
@@ -10556,7 +10783,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS6_KW_SPLIT(PyThreadState *tstate, PyObject *cal
 
     Py_ssize_t kwargs_count = PyTuple_GET_SIZE(kw_names);
 
-    CHECK_OBJECTS(kw_values, PyTuple_GET_SIZE(kw_names));
+    CHECK_OBJECTS(kw_values, kwargs_count);
 
     if (Nuitka_Function_Check(called)) {
         if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
@@ -10577,12 +10804,13 @@ PyObject *CALL_FUNCTION_WITH_ARGS6_KW_SPLIT(PyThreadState *tstate, PyObject *cal
         vectorcallfunc func = *((vectorcallfunc *)(((char *)called) + Py_TYPE(called)->tp_vectorcall_offset));
 
         if (likely(func != NULL)) {
-            NUITKA_DYNAMIC_ARRAY_DECL(vectorcall_args, PyObject *, 6 + kwargs_count);
+            NUITKA_DYNAMIC_ARRAY_DECL(vectorcall_args, PyObject *, 1 + 6 + kwargs_count);
+            vectorcall_args[0] = NULL;
 
-            memcpy(vectorcall_args, args, 6 * sizeof(PyObject *));
-            memcpy(&vectorcall_args[6], kw_values, kwargs_count * sizeof(PyObject *));
+            memcpy(&vectorcall_args[1], args, 6 * sizeof(PyObject *));
+            memcpy(&vectorcall_args[1 + 6], kw_values, kwargs_count * sizeof(PyObject *));
 
-            PyObject *result = func(called, vectorcall_args, 6, kw_names);
+            PyObject *result = func(called, &vectorcall_args[1], 6 | PY_VECTORCALL_ARGUMENTS_OFFSET, kw_names);
 
             CHECK_OBJECT_X(result);
 
@@ -10590,12 +10818,6 @@ PyObject *CALL_FUNCTION_WITH_ARGS6_KW_SPLIT(PyThreadState *tstate, PyObject *cal
         }
 #endif
     }
-
-#if 0
-    PRINT_STRING("FALLBACK");
-    PRINT_ITEM(called);
-    PRINT_NEW_LINE();
-#endif
 
     ternaryfunc call_slot = Py_TYPE(called)->tp_call;
 
@@ -10611,17 +10833,13 @@ PyObject *CALL_FUNCTION_WITH_ARGS6_KW_SPLIT(PyThreadState *tstate, PyObject *cal
 
     PyObject *pos_args = MAKE_TUPLE(tstate, args, 6);
 
-    PyObject *named_args = _PyDict_NewPresized(kwargs_count);
+    PyObject *named_args = MAKE_DICT_FROM_KWARGS(tstate, kw_names, kw_values);
 
-    for (Py_ssize_t i = 0; i < kwargs_count; i++) {
-        PyObject *key = PyTuple_GET_ITEM(kw_names, i);
+    if (unlikely(named_args == NULL)) {
+        Py_DECREF(pos_args);
+        Py_LeaveRecursiveCall();
 
-        PyObject *value = kw_values[i];
-
-        CHECK_OBJECT(key);
-        CHECK_OBJECT(value);
-
-        DICT_SET_ITEM(named_args, key, value);
+        return NULL;
     }
 
     PyObject *result = (*call_slot)(called, pos_args, named_args);
@@ -10638,6 +10856,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS6_KW_SPLIT(PyThreadState *tstate, PyObject *cal
 PyObject *CALL_FUNCTION_WITH_POS_ARGS6_KW_SPLIT(PyThreadState *tstate, PyObject *called, PyObject *pos_args,
                                                 PyObject *const *kw_values, PyObject *kw_names) {
     assert(PyTuple_CheckExact(pos_args));
+    assert(PyTuple_GET_SIZE(pos_args) == 6);
     PyObject *const *args = &PyTuple_GET_ITEM(pos_args, 0);
     CHECK_OBJECTS(args, 6);
     CHECK_OBJECT(kw_names);
@@ -10646,7 +10865,7 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS6_KW_SPLIT(PyThreadState *tstate, PyObject 
 
     Py_ssize_t kwargs_count = PyTuple_GET_SIZE(kw_names);
 
-    CHECK_OBJECTS(kw_values, PyTuple_GET_SIZE(kw_names));
+    CHECK_OBJECTS(kw_values, kwargs_count);
 
     if (Nuitka_Function_Check(called)) {
         if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
@@ -10667,12 +10886,13 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS6_KW_SPLIT(PyThreadState *tstate, PyObject 
         vectorcallfunc func = *((vectorcallfunc *)(((char *)called) + Py_TYPE(called)->tp_vectorcall_offset));
 
         if (likely(func != NULL)) {
-            NUITKA_DYNAMIC_ARRAY_DECL(vectorcall_args, PyObject *, 6 + kwargs_count);
+            NUITKA_DYNAMIC_ARRAY_DECL(vectorcall_args, PyObject *, 1 + 6 + kwargs_count);
+            vectorcall_args[0] = NULL;
 
-            memcpy(vectorcall_args, args, 6 * sizeof(PyObject *));
-            memcpy(&vectorcall_args[6], kw_values, kwargs_count * sizeof(PyObject *));
+            memcpy(&vectorcall_args[1], args, 6 * sizeof(PyObject *));
+            memcpy(&vectorcall_args[1 + 6], kw_values, kwargs_count * sizeof(PyObject *));
 
-            PyObject *result = func(called, vectorcall_args, 6, kw_names);
+            PyObject *result = func(called, &vectorcall_args[1], 6 | PY_VECTORCALL_ARGUMENTS_OFFSET, kw_names);
 
             CHECK_OBJECT_X(result);
 
@@ -10680,12 +10900,6 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS6_KW_SPLIT(PyThreadState *tstate, PyObject 
         }
 #endif
     }
-
-#if 0
-    PRINT_STRING("FALLBACK");
-    PRINT_ITEM(called);
-    PRINT_NEW_LINE();
-#endif
 
     ternaryfunc call_slot = Py_TYPE(called)->tp_call;
 
@@ -10699,17 +10913,12 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS6_KW_SPLIT(PyThreadState *tstate, PyObject 
         return NULL;
     }
 
-    PyObject *named_args = _PyDict_NewPresized(kwargs_count);
+    PyObject *named_args = MAKE_DICT_FROM_KWARGS(tstate, kw_names, kw_values);
 
-    for (Py_ssize_t i = 0; i < kwargs_count; i++) {
-        PyObject *key = PyTuple_GET_ITEM(kw_names, i);
+    if (unlikely(named_args == NULL)) {
+        Py_LeaveRecursiveCall();
 
-        PyObject *value = kw_values[i];
-
-        CHECK_OBJECT(key);
-        CHECK_OBJECT(value);
-
-        DICT_SET_ITEM(named_args, key, value);
+        return NULL;
     }
 
     PyObject *result = (*call_slot)(called, pos_args, named_args);
@@ -10762,12 +10971,6 @@ PyObject *CALL_FUNCTION_WITH_ARGS7_VECTORCALL(PyThreadState *tstate, PyObject *c
 #endif
     }
 
-#if 0
-    PRINT_STRING("FALLBACK");
-    PRINT_ITEM(called);
-    PRINT_NEW_LINE();
-#endif
-
     ternaryfunc call_slot = Py_TYPE(called)->tp_call;
 
     if (unlikely(call_slot == NULL)) {
@@ -10782,17 +10985,13 @@ PyObject *CALL_FUNCTION_WITH_ARGS7_VECTORCALL(PyThreadState *tstate, PyObject *c
 
     PyObject *pos_args = MAKE_TUPLE(tstate, args, 7);
 
-    PyObject *named_args = _PyDict_NewPresized(kwargs_count);
+    PyObject *named_args = MAKE_DICT_FROM_KWARGS(tstate, kw_names, &args[7]);
 
-    for (Py_ssize_t i = 0; i < kwargs_count; i++) {
-        PyObject *key = PyTuple_GET_ITEM(kw_names, i);
+    if (unlikely(named_args == NULL)) {
+        Py_DECREF(pos_args);
+        Py_LeaveRecursiveCall();
 
-        PyObject *value = args[7 + i];
-
-        CHECK_OBJECT(key);
-        CHECK_OBJECT(value);
-
-        DICT_SET_ITEM(named_args, key, value);
+        return NULL;
     }
 
     PyObject *result = (*call_slot)(called, pos_args, named_args);
@@ -10815,7 +11014,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS7_KW_SPLIT(PyThreadState *tstate, PyObject *cal
 
     Py_ssize_t kwargs_count = PyTuple_GET_SIZE(kw_names);
 
-    CHECK_OBJECTS(kw_values, PyTuple_GET_SIZE(kw_names));
+    CHECK_OBJECTS(kw_values, kwargs_count);
 
     if (Nuitka_Function_Check(called)) {
         if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
@@ -10836,12 +11035,13 @@ PyObject *CALL_FUNCTION_WITH_ARGS7_KW_SPLIT(PyThreadState *tstate, PyObject *cal
         vectorcallfunc func = *((vectorcallfunc *)(((char *)called) + Py_TYPE(called)->tp_vectorcall_offset));
 
         if (likely(func != NULL)) {
-            NUITKA_DYNAMIC_ARRAY_DECL(vectorcall_args, PyObject *, 7 + kwargs_count);
+            NUITKA_DYNAMIC_ARRAY_DECL(vectorcall_args, PyObject *, 1 + 7 + kwargs_count);
+            vectorcall_args[0] = NULL;
 
-            memcpy(vectorcall_args, args, 7 * sizeof(PyObject *));
-            memcpy(&vectorcall_args[7], kw_values, kwargs_count * sizeof(PyObject *));
+            memcpy(&vectorcall_args[1], args, 7 * sizeof(PyObject *));
+            memcpy(&vectorcall_args[1 + 7], kw_values, kwargs_count * sizeof(PyObject *));
 
-            PyObject *result = func(called, vectorcall_args, 7, kw_names);
+            PyObject *result = func(called, &vectorcall_args[1], 7 | PY_VECTORCALL_ARGUMENTS_OFFSET, kw_names);
 
             CHECK_OBJECT_X(result);
 
@@ -10849,12 +11049,6 @@ PyObject *CALL_FUNCTION_WITH_ARGS7_KW_SPLIT(PyThreadState *tstate, PyObject *cal
         }
 #endif
     }
-
-#if 0
-    PRINT_STRING("FALLBACK");
-    PRINT_ITEM(called);
-    PRINT_NEW_LINE();
-#endif
 
     ternaryfunc call_slot = Py_TYPE(called)->tp_call;
 
@@ -10870,17 +11064,13 @@ PyObject *CALL_FUNCTION_WITH_ARGS7_KW_SPLIT(PyThreadState *tstate, PyObject *cal
 
     PyObject *pos_args = MAKE_TUPLE(tstate, args, 7);
 
-    PyObject *named_args = _PyDict_NewPresized(kwargs_count);
+    PyObject *named_args = MAKE_DICT_FROM_KWARGS(tstate, kw_names, kw_values);
 
-    for (Py_ssize_t i = 0; i < kwargs_count; i++) {
-        PyObject *key = PyTuple_GET_ITEM(kw_names, i);
+    if (unlikely(named_args == NULL)) {
+        Py_DECREF(pos_args);
+        Py_LeaveRecursiveCall();
 
-        PyObject *value = kw_values[i];
-
-        CHECK_OBJECT(key);
-        CHECK_OBJECT(value);
-
-        DICT_SET_ITEM(named_args, key, value);
+        return NULL;
     }
 
     PyObject *result = (*call_slot)(called, pos_args, named_args);
@@ -10897,6 +11087,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS7_KW_SPLIT(PyThreadState *tstate, PyObject *cal
 PyObject *CALL_FUNCTION_WITH_POS_ARGS7_KW_SPLIT(PyThreadState *tstate, PyObject *called, PyObject *pos_args,
                                                 PyObject *const *kw_values, PyObject *kw_names) {
     assert(PyTuple_CheckExact(pos_args));
+    assert(PyTuple_GET_SIZE(pos_args) == 7);
     PyObject *const *args = &PyTuple_GET_ITEM(pos_args, 0);
     CHECK_OBJECTS(args, 7);
     CHECK_OBJECT(kw_names);
@@ -10905,7 +11096,7 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS7_KW_SPLIT(PyThreadState *tstate, PyObject 
 
     Py_ssize_t kwargs_count = PyTuple_GET_SIZE(kw_names);
 
-    CHECK_OBJECTS(kw_values, PyTuple_GET_SIZE(kw_names));
+    CHECK_OBJECTS(kw_values, kwargs_count);
 
     if (Nuitka_Function_Check(called)) {
         if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
@@ -10926,12 +11117,13 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS7_KW_SPLIT(PyThreadState *tstate, PyObject 
         vectorcallfunc func = *((vectorcallfunc *)(((char *)called) + Py_TYPE(called)->tp_vectorcall_offset));
 
         if (likely(func != NULL)) {
-            NUITKA_DYNAMIC_ARRAY_DECL(vectorcall_args, PyObject *, 7 + kwargs_count);
+            NUITKA_DYNAMIC_ARRAY_DECL(vectorcall_args, PyObject *, 1 + 7 + kwargs_count);
+            vectorcall_args[0] = NULL;
 
-            memcpy(vectorcall_args, args, 7 * sizeof(PyObject *));
-            memcpy(&vectorcall_args[7], kw_values, kwargs_count * sizeof(PyObject *));
+            memcpy(&vectorcall_args[1], args, 7 * sizeof(PyObject *));
+            memcpy(&vectorcall_args[1 + 7], kw_values, kwargs_count * sizeof(PyObject *));
 
-            PyObject *result = func(called, vectorcall_args, 7, kw_names);
+            PyObject *result = func(called, &vectorcall_args[1], 7 | PY_VECTORCALL_ARGUMENTS_OFFSET, kw_names);
 
             CHECK_OBJECT_X(result);
 
@@ -10939,12 +11131,6 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS7_KW_SPLIT(PyThreadState *tstate, PyObject 
         }
 #endif
     }
-
-#if 0
-    PRINT_STRING("FALLBACK");
-    PRINT_ITEM(called);
-    PRINT_NEW_LINE();
-#endif
 
     ternaryfunc call_slot = Py_TYPE(called)->tp_call;
 
@@ -10958,17 +11144,12 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS7_KW_SPLIT(PyThreadState *tstate, PyObject 
         return NULL;
     }
 
-    PyObject *named_args = _PyDict_NewPresized(kwargs_count);
+    PyObject *named_args = MAKE_DICT_FROM_KWARGS(tstate, kw_names, kw_values);
 
-    for (Py_ssize_t i = 0; i < kwargs_count; i++) {
-        PyObject *key = PyTuple_GET_ITEM(kw_names, i);
+    if (unlikely(named_args == NULL)) {
+        Py_LeaveRecursiveCall();
 
-        PyObject *value = kw_values[i];
-
-        CHECK_OBJECT(key);
-        CHECK_OBJECT(value);
-
-        DICT_SET_ITEM(named_args, key, value);
+        return NULL;
     }
 
     PyObject *result = (*call_slot)(called, pos_args, named_args);
@@ -11021,12 +11202,6 @@ PyObject *CALL_FUNCTION_WITH_ARGS8_VECTORCALL(PyThreadState *tstate, PyObject *c
 #endif
     }
 
-#if 0
-    PRINT_STRING("FALLBACK");
-    PRINT_ITEM(called);
-    PRINT_NEW_LINE();
-#endif
-
     ternaryfunc call_slot = Py_TYPE(called)->tp_call;
 
     if (unlikely(call_slot == NULL)) {
@@ -11041,17 +11216,13 @@ PyObject *CALL_FUNCTION_WITH_ARGS8_VECTORCALL(PyThreadState *tstate, PyObject *c
 
     PyObject *pos_args = MAKE_TUPLE(tstate, args, 8);
 
-    PyObject *named_args = _PyDict_NewPresized(kwargs_count);
+    PyObject *named_args = MAKE_DICT_FROM_KWARGS(tstate, kw_names, &args[8]);
 
-    for (Py_ssize_t i = 0; i < kwargs_count; i++) {
-        PyObject *key = PyTuple_GET_ITEM(kw_names, i);
+    if (unlikely(named_args == NULL)) {
+        Py_DECREF(pos_args);
+        Py_LeaveRecursiveCall();
 
-        PyObject *value = args[8 + i];
-
-        CHECK_OBJECT(key);
-        CHECK_OBJECT(value);
-
-        DICT_SET_ITEM(named_args, key, value);
+        return NULL;
     }
 
     PyObject *result = (*call_slot)(called, pos_args, named_args);
@@ -11074,7 +11245,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS8_KW_SPLIT(PyThreadState *tstate, PyObject *cal
 
     Py_ssize_t kwargs_count = PyTuple_GET_SIZE(kw_names);
 
-    CHECK_OBJECTS(kw_values, PyTuple_GET_SIZE(kw_names));
+    CHECK_OBJECTS(kw_values, kwargs_count);
 
     if (Nuitka_Function_Check(called)) {
         if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
@@ -11095,12 +11266,13 @@ PyObject *CALL_FUNCTION_WITH_ARGS8_KW_SPLIT(PyThreadState *tstate, PyObject *cal
         vectorcallfunc func = *((vectorcallfunc *)(((char *)called) + Py_TYPE(called)->tp_vectorcall_offset));
 
         if (likely(func != NULL)) {
-            NUITKA_DYNAMIC_ARRAY_DECL(vectorcall_args, PyObject *, 8 + kwargs_count);
+            NUITKA_DYNAMIC_ARRAY_DECL(vectorcall_args, PyObject *, 1 + 8 + kwargs_count);
+            vectorcall_args[0] = NULL;
 
-            memcpy(vectorcall_args, args, 8 * sizeof(PyObject *));
-            memcpy(&vectorcall_args[8], kw_values, kwargs_count * sizeof(PyObject *));
+            memcpy(&vectorcall_args[1], args, 8 * sizeof(PyObject *));
+            memcpy(&vectorcall_args[1 + 8], kw_values, kwargs_count * sizeof(PyObject *));
 
-            PyObject *result = func(called, vectorcall_args, 8, kw_names);
+            PyObject *result = func(called, &vectorcall_args[1], 8 | PY_VECTORCALL_ARGUMENTS_OFFSET, kw_names);
 
             CHECK_OBJECT_X(result);
 
@@ -11108,12 +11280,6 @@ PyObject *CALL_FUNCTION_WITH_ARGS8_KW_SPLIT(PyThreadState *tstate, PyObject *cal
         }
 #endif
     }
-
-#if 0
-    PRINT_STRING("FALLBACK");
-    PRINT_ITEM(called);
-    PRINT_NEW_LINE();
-#endif
 
     ternaryfunc call_slot = Py_TYPE(called)->tp_call;
 
@@ -11129,17 +11295,13 @@ PyObject *CALL_FUNCTION_WITH_ARGS8_KW_SPLIT(PyThreadState *tstate, PyObject *cal
 
     PyObject *pos_args = MAKE_TUPLE(tstate, args, 8);
 
-    PyObject *named_args = _PyDict_NewPresized(kwargs_count);
+    PyObject *named_args = MAKE_DICT_FROM_KWARGS(tstate, kw_names, kw_values);
 
-    for (Py_ssize_t i = 0; i < kwargs_count; i++) {
-        PyObject *key = PyTuple_GET_ITEM(kw_names, i);
+    if (unlikely(named_args == NULL)) {
+        Py_DECREF(pos_args);
+        Py_LeaveRecursiveCall();
 
-        PyObject *value = kw_values[i];
-
-        CHECK_OBJECT(key);
-        CHECK_OBJECT(value);
-
-        DICT_SET_ITEM(named_args, key, value);
+        return NULL;
     }
 
     PyObject *result = (*call_slot)(called, pos_args, named_args);
@@ -11156,6 +11318,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS8_KW_SPLIT(PyThreadState *tstate, PyObject *cal
 PyObject *CALL_FUNCTION_WITH_POS_ARGS8_KW_SPLIT(PyThreadState *tstate, PyObject *called, PyObject *pos_args,
                                                 PyObject *const *kw_values, PyObject *kw_names) {
     assert(PyTuple_CheckExact(pos_args));
+    assert(PyTuple_GET_SIZE(pos_args) == 8);
     PyObject *const *args = &PyTuple_GET_ITEM(pos_args, 0);
     CHECK_OBJECTS(args, 8);
     CHECK_OBJECT(kw_names);
@@ -11164,7 +11327,7 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS8_KW_SPLIT(PyThreadState *tstate, PyObject 
 
     Py_ssize_t kwargs_count = PyTuple_GET_SIZE(kw_names);
 
-    CHECK_OBJECTS(kw_values, PyTuple_GET_SIZE(kw_names));
+    CHECK_OBJECTS(kw_values, kwargs_count);
 
     if (Nuitka_Function_Check(called)) {
         if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
@@ -11185,12 +11348,13 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS8_KW_SPLIT(PyThreadState *tstate, PyObject 
         vectorcallfunc func = *((vectorcallfunc *)(((char *)called) + Py_TYPE(called)->tp_vectorcall_offset));
 
         if (likely(func != NULL)) {
-            NUITKA_DYNAMIC_ARRAY_DECL(vectorcall_args, PyObject *, 8 + kwargs_count);
+            NUITKA_DYNAMIC_ARRAY_DECL(vectorcall_args, PyObject *, 1 + 8 + kwargs_count);
+            vectorcall_args[0] = NULL;
 
-            memcpy(vectorcall_args, args, 8 * sizeof(PyObject *));
-            memcpy(&vectorcall_args[8], kw_values, kwargs_count * sizeof(PyObject *));
+            memcpy(&vectorcall_args[1], args, 8 * sizeof(PyObject *));
+            memcpy(&vectorcall_args[1 + 8], kw_values, kwargs_count * sizeof(PyObject *));
 
-            PyObject *result = func(called, vectorcall_args, 8, kw_names);
+            PyObject *result = func(called, &vectorcall_args[1], 8 | PY_VECTORCALL_ARGUMENTS_OFFSET, kw_names);
 
             CHECK_OBJECT_X(result);
 
@@ -11198,12 +11362,6 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS8_KW_SPLIT(PyThreadState *tstate, PyObject 
         }
 #endif
     }
-
-#if 0
-    PRINT_STRING("FALLBACK");
-    PRINT_ITEM(called);
-    PRINT_NEW_LINE();
-#endif
 
     ternaryfunc call_slot = Py_TYPE(called)->tp_call;
 
@@ -11217,17 +11375,12 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS8_KW_SPLIT(PyThreadState *tstate, PyObject 
         return NULL;
     }
 
-    PyObject *named_args = _PyDict_NewPresized(kwargs_count);
+    PyObject *named_args = MAKE_DICT_FROM_KWARGS(tstate, kw_names, kw_values);
 
-    for (Py_ssize_t i = 0; i < kwargs_count; i++) {
-        PyObject *key = PyTuple_GET_ITEM(kw_names, i);
+    if (unlikely(named_args == NULL)) {
+        Py_LeaveRecursiveCall();
 
-        PyObject *value = kw_values[i];
-
-        CHECK_OBJECT(key);
-        CHECK_OBJECT(value);
-
-        DICT_SET_ITEM(named_args, key, value);
+        return NULL;
     }
 
     PyObject *result = (*call_slot)(called, pos_args, named_args);
@@ -11280,12 +11433,6 @@ PyObject *CALL_FUNCTION_WITH_ARGS9_VECTORCALL(PyThreadState *tstate, PyObject *c
 #endif
     }
 
-#if 0
-    PRINT_STRING("FALLBACK");
-    PRINT_ITEM(called);
-    PRINT_NEW_LINE();
-#endif
-
     ternaryfunc call_slot = Py_TYPE(called)->tp_call;
 
     if (unlikely(call_slot == NULL)) {
@@ -11300,17 +11447,13 @@ PyObject *CALL_FUNCTION_WITH_ARGS9_VECTORCALL(PyThreadState *tstate, PyObject *c
 
     PyObject *pos_args = MAKE_TUPLE(tstate, args, 9);
 
-    PyObject *named_args = _PyDict_NewPresized(kwargs_count);
+    PyObject *named_args = MAKE_DICT_FROM_KWARGS(tstate, kw_names, &args[9]);
 
-    for (Py_ssize_t i = 0; i < kwargs_count; i++) {
-        PyObject *key = PyTuple_GET_ITEM(kw_names, i);
+    if (unlikely(named_args == NULL)) {
+        Py_DECREF(pos_args);
+        Py_LeaveRecursiveCall();
 
-        PyObject *value = args[9 + i];
-
-        CHECK_OBJECT(key);
-        CHECK_OBJECT(value);
-
-        DICT_SET_ITEM(named_args, key, value);
+        return NULL;
     }
 
     PyObject *result = (*call_slot)(called, pos_args, named_args);
@@ -11333,7 +11476,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS9_KW_SPLIT(PyThreadState *tstate, PyObject *cal
 
     Py_ssize_t kwargs_count = PyTuple_GET_SIZE(kw_names);
 
-    CHECK_OBJECTS(kw_values, PyTuple_GET_SIZE(kw_names));
+    CHECK_OBJECTS(kw_values, kwargs_count);
 
     if (Nuitka_Function_Check(called)) {
         if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
@@ -11354,12 +11497,13 @@ PyObject *CALL_FUNCTION_WITH_ARGS9_KW_SPLIT(PyThreadState *tstate, PyObject *cal
         vectorcallfunc func = *((vectorcallfunc *)(((char *)called) + Py_TYPE(called)->tp_vectorcall_offset));
 
         if (likely(func != NULL)) {
-            NUITKA_DYNAMIC_ARRAY_DECL(vectorcall_args, PyObject *, 9 + kwargs_count);
+            NUITKA_DYNAMIC_ARRAY_DECL(vectorcall_args, PyObject *, 1 + 9 + kwargs_count);
+            vectorcall_args[0] = NULL;
 
-            memcpy(vectorcall_args, args, 9 * sizeof(PyObject *));
-            memcpy(&vectorcall_args[9], kw_values, kwargs_count * sizeof(PyObject *));
+            memcpy(&vectorcall_args[1], args, 9 * sizeof(PyObject *));
+            memcpy(&vectorcall_args[1 + 9], kw_values, kwargs_count * sizeof(PyObject *));
 
-            PyObject *result = func(called, vectorcall_args, 9, kw_names);
+            PyObject *result = func(called, &vectorcall_args[1], 9 | PY_VECTORCALL_ARGUMENTS_OFFSET, kw_names);
 
             CHECK_OBJECT_X(result);
 
@@ -11367,12 +11511,6 @@ PyObject *CALL_FUNCTION_WITH_ARGS9_KW_SPLIT(PyThreadState *tstate, PyObject *cal
         }
 #endif
     }
-
-#if 0
-    PRINT_STRING("FALLBACK");
-    PRINT_ITEM(called);
-    PRINT_NEW_LINE();
-#endif
 
     ternaryfunc call_slot = Py_TYPE(called)->tp_call;
 
@@ -11388,17 +11526,13 @@ PyObject *CALL_FUNCTION_WITH_ARGS9_KW_SPLIT(PyThreadState *tstate, PyObject *cal
 
     PyObject *pos_args = MAKE_TUPLE(tstate, args, 9);
 
-    PyObject *named_args = _PyDict_NewPresized(kwargs_count);
+    PyObject *named_args = MAKE_DICT_FROM_KWARGS(tstate, kw_names, kw_values);
 
-    for (Py_ssize_t i = 0; i < kwargs_count; i++) {
-        PyObject *key = PyTuple_GET_ITEM(kw_names, i);
+    if (unlikely(named_args == NULL)) {
+        Py_DECREF(pos_args);
+        Py_LeaveRecursiveCall();
 
-        PyObject *value = kw_values[i];
-
-        CHECK_OBJECT(key);
-        CHECK_OBJECT(value);
-
-        DICT_SET_ITEM(named_args, key, value);
+        return NULL;
     }
 
     PyObject *result = (*call_slot)(called, pos_args, named_args);
@@ -11415,6 +11549,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS9_KW_SPLIT(PyThreadState *tstate, PyObject *cal
 PyObject *CALL_FUNCTION_WITH_POS_ARGS9_KW_SPLIT(PyThreadState *tstate, PyObject *called, PyObject *pos_args,
                                                 PyObject *const *kw_values, PyObject *kw_names) {
     assert(PyTuple_CheckExact(pos_args));
+    assert(PyTuple_GET_SIZE(pos_args) == 9);
     PyObject *const *args = &PyTuple_GET_ITEM(pos_args, 0);
     CHECK_OBJECTS(args, 9);
     CHECK_OBJECT(kw_names);
@@ -11423,7 +11558,7 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS9_KW_SPLIT(PyThreadState *tstate, PyObject 
 
     Py_ssize_t kwargs_count = PyTuple_GET_SIZE(kw_names);
 
-    CHECK_OBJECTS(kw_values, PyTuple_GET_SIZE(kw_names));
+    CHECK_OBJECTS(kw_values, kwargs_count);
 
     if (Nuitka_Function_Check(called)) {
         if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
@@ -11444,12 +11579,13 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS9_KW_SPLIT(PyThreadState *tstate, PyObject 
         vectorcallfunc func = *((vectorcallfunc *)(((char *)called) + Py_TYPE(called)->tp_vectorcall_offset));
 
         if (likely(func != NULL)) {
-            NUITKA_DYNAMIC_ARRAY_DECL(vectorcall_args, PyObject *, 9 + kwargs_count);
+            NUITKA_DYNAMIC_ARRAY_DECL(vectorcall_args, PyObject *, 1 + 9 + kwargs_count);
+            vectorcall_args[0] = NULL;
 
-            memcpy(vectorcall_args, args, 9 * sizeof(PyObject *));
-            memcpy(&vectorcall_args[9], kw_values, kwargs_count * sizeof(PyObject *));
+            memcpy(&vectorcall_args[1], args, 9 * sizeof(PyObject *));
+            memcpy(&vectorcall_args[1 + 9], kw_values, kwargs_count * sizeof(PyObject *));
 
-            PyObject *result = func(called, vectorcall_args, 9, kw_names);
+            PyObject *result = func(called, &vectorcall_args[1], 9 | PY_VECTORCALL_ARGUMENTS_OFFSET, kw_names);
 
             CHECK_OBJECT_X(result);
 
@@ -11457,12 +11593,6 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS9_KW_SPLIT(PyThreadState *tstate, PyObject 
         }
 #endif
     }
-
-#if 0
-    PRINT_STRING("FALLBACK");
-    PRINT_ITEM(called);
-    PRINT_NEW_LINE();
-#endif
 
     ternaryfunc call_slot = Py_TYPE(called)->tp_call;
 
@@ -11476,17 +11606,12 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS9_KW_SPLIT(PyThreadState *tstate, PyObject 
         return NULL;
     }
 
-    PyObject *named_args = _PyDict_NewPresized(kwargs_count);
+    PyObject *named_args = MAKE_DICT_FROM_KWARGS(tstate, kw_names, kw_values);
 
-    for (Py_ssize_t i = 0; i < kwargs_count; i++) {
-        PyObject *key = PyTuple_GET_ITEM(kw_names, i);
+    if (unlikely(named_args == NULL)) {
+        Py_LeaveRecursiveCall();
 
-        PyObject *value = kw_values[i];
-
-        CHECK_OBJECT(key);
-        CHECK_OBJECT(value);
-
-        DICT_SET_ITEM(named_args, key, value);
+        return NULL;
     }
 
     PyObject *result = (*call_slot)(called, pos_args, named_args);
@@ -11539,12 +11664,6 @@ PyObject *CALL_FUNCTION_WITH_ARGS10_VECTORCALL(PyThreadState *tstate, PyObject *
 #endif
     }
 
-#if 0
-    PRINT_STRING("FALLBACK");
-    PRINT_ITEM(called);
-    PRINT_NEW_LINE();
-#endif
-
     ternaryfunc call_slot = Py_TYPE(called)->tp_call;
 
     if (unlikely(call_slot == NULL)) {
@@ -11559,17 +11678,13 @@ PyObject *CALL_FUNCTION_WITH_ARGS10_VECTORCALL(PyThreadState *tstate, PyObject *
 
     PyObject *pos_args = MAKE_TUPLE(tstate, args, 10);
 
-    PyObject *named_args = _PyDict_NewPresized(kwargs_count);
+    PyObject *named_args = MAKE_DICT_FROM_KWARGS(tstate, kw_names, &args[10]);
 
-    for (Py_ssize_t i = 0; i < kwargs_count; i++) {
-        PyObject *key = PyTuple_GET_ITEM(kw_names, i);
+    if (unlikely(named_args == NULL)) {
+        Py_DECREF(pos_args);
+        Py_LeaveRecursiveCall();
 
-        PyObject *value = args[10 + i];
-
-        CHECK_OBJECT(key);
-        CHECK_OBJECT(value);
-
-        DICT_SET_ITEM(named_args, key, value);
+        return NULL;
     }
 
     PyObject *result = (*call_slot)(called, pos_args, named_args);
@@ -11592,7 +11707,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS10_KW_SPLIT(PyThreadState *tstate, PyObject *ca
 
     Py_ssize_t kwargs_count = PyTuple_GET_SIZE(kw_names);
 
-    CHECK_OBJECTS(kw_values, PyTuple_GET_SIZE(kw_names));
+    CHECK_OBJECTS(kw_values, kwargs_count);
 
     if (Nuitka_Function_Check(called)) {
         if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
@@ -11613,12 +11728,13 @@ PyObject *CALL_FUNCTION_WITH_ARGS10_KW_SPLIT(PyThreadState *tstate, PyObject *ca
         vectorcallfunc func = *((vectorcallfunc *)(((char *)called) + Py_TYPE(called)->tp_vectorcall_offset));
 
         if (likely(func != NULL)) {
-            NUITKA_DYNAMIC_ARRAY_DECL(vectorcall_args, PyObject *, 10 + kwargs_count);
+            NUITKA_DYNAMIC_ARRAY_DECL(vectorcall_args, PyObject *, 1 + 10 + kwargs_count);
+            vectorcall_args[0] = NULL;
 
-            memcpy(vectorcall_args, args, 10 * sizeof(PyObject *));
-            memcpy(&vectorcall_args[10], kw_values, kwargs_count * sizeof(PyObject *));
+            memcpy(&vectorcall_args[1], args, 10 * sizeof(PyObject *));
+            memcpy(&vectorcall_args[1 + 10], kw_values, kwargs_count * sizeof(PyObject *));
 
-            PyObject *result = func(called, vectorcall_args, 10, kw_names);
+            PyObject *result = func(called, &vectorcall_args[1], 10 | PY_VECTORCALL_ARGUMENTS_OFFSET, kw_names);
 
             CHECK_OBJECT_X(result);
 
@@ -11626,12 +11742,6 @@ PyObject *CALL_FUNCTION_WITH_ARGS10_KW_SPLIT(PyThreadState *tstate, PyObject *ca
         }
 #endif
     }
-
-#if 0
-    PRINT_STRING("FALLBACK");
-    PRINT_ITEM(called);
-    PRINT_NEW_LINE();
-#endif
 
     ternaryfunc call_slot = Py_TYPE(called)->tp_call;
 
@@ -11647,17 +11757,13 @@ PyObject *CALL_FUNCTION_WITH_ARGS10_KW_SPLIT(PyThreadState *tstate, PyObject *ca
 
     PyObject *pos_args = MAKE_TUPLE(tstate, args, 10);
 
-    PyObject *named_args = _PyDict_NewPresized(kwargs_count);
+    PyObject *named_args = MAKE_DICT_FROM_KWARGS(tstate, kw_names, kw_values);
 
-    for (Py_ssize_t i = 0; i < kwargs_count; i++) {
-        PyObject *key = PyTuple_GET_ITEM(kw_names, i);
+    if (unlikely(named_args == NULL)) {
+        Py_DECREF(pos_args);
+        Py_LeaveRecursiveCall();
 
-        PyObject *value = kw_values[i];
-
-        CHECK_OBJECT(key);
-        CHECK_OBJECT(value);
-
-        DICT_SET_ITEM(named_args, key, value);
+        return NULL;
     }
 
     PyObject *result = (*call_slot)(called, pos_args, named_args);
@@ -11674,6 +11780,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS10_KW_SPLIT(PyThreadState *tstate, PyObject *ca
 PyObject *CALL_FUNCTION_WITH_POS_ARGS10_KW_SPLIT(PyThreadState *tstate, PyObject *called, PyObject *pos_args,
                                                  PyObject *const *kw_values, PyObject *kw_names) {
     assert(PyTuple_CheckExact(pos_args));
+    assert(PyTuple_GET_SIZE(pos_args) == 10);
     PyObject *const *args = &PyTuple_GET_ITEM(pos_args, 0);
     CHECK_OBJECTS(args, 10);
     CHECK_OBJECT(kw_names);
@@ -11682,7 +11789,7 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS10_KW_SPLIT(PyThreadState *tstate, PyObject
 
     Py_ssize_t kwargs_count = PyTuple_GET_SIZE(kw_names);
 
-    CHECK_OBJECTS(kw_values, PyTuple_GET_SIZE(kw_names));
+    CHECK_OBJECTS(kw_values, kwargs_count);
 
     if (Nuitka_Function_Check(called)) {
         if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
@@ -11703,12 +11810,13 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS10_KW_SPLIT(PyThreadState *tstate, PyObject
         vectorcallfunc func = *((vectorcallfunc *)(((char *)called) + Py_TYPE(called)->tp_vectorcall_offset));
 
         if (likely(func != NULL)) {
-            NUITKA_DYNAMIC_ARRAY_DECL(vectorcall_args, PyObject *, 10 + kwargs_count);
+            NUITKA_DYNAMIC_ARRAY_DECL(vectorcall_args, PyObject *, 1 + 10 + kwargs_count);
+            vectorcall_args[0] = NULL;
 
-            memcpy(vectorcall_args, args, 10 * sizeof(PyObject *));
-            memcpy(&vectorcall_args[10], kw_values, kwargs_count * sizeof(PyObject *));
+            memcpy(&vectorcall_args[1], args, 10 * sizeof(PyObject *));
+            memcpy(&vectorcall_args[1 + 10], kw_values, kwargs_count * sizeof(PyObject *));
 
-            PyObject *result = func(called, vectorcall_args, 10, kw_names);
+            PyObject *result = func(called, &vectorcall_args[1], 10 | PY_VECTORCALL_ARGUMENTS_OFFSET, kw_names);
 
             CHECK_OBJECT_X(result);
 
@@ -11716,12 +11824,6 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS10_KW_SPLIT(PyThreadState *tstate, PyObject
         }
 #endif
     }
-
-#if 0
-    PRINT_STRING("FALLBACK");
-    PRINT_ITEM(called);
-    PRINT_NEW_LINE();
-#endif
 
     ternaryfunc call_slot = Py_TYPE(called)->tp_call;
 
@@ -11735,17 +11837,12 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS10_KW_SPLIT(PyThreadState *tstate, PyObject
         return NULL;
     }
 
-    PyObject *named_args = _PyDict_NewPresized(kwargs_count);
+    PyObject *named_args = MAKE_DICT_FROM_KWARGS(tstate, kw_names, kw_values);
 
-    for (Py_ssize_t i = 0; i < kwargs_count; i++) {
-        PyObject *key = PyTuple_GET_ITEM(kw_names, i);
+    if (unlikely(named_args == NULL)) {
+        Py_LeaveRecursiveCall();
 
-        PyObject *value = kw_values[i];
-
-        CHECK_OBJECT(key);
-        CHECK_OBJECT(value);
-
-        DICT_SET_ITEM(named_args, key, value);
+        return NULL;
     }
 
     PyObject *result = (*call_slot)(called, pos_args, named_args);
@@ -11758,8 +11855,9 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS10_KW_SPLIT(PyThreadState *tstate, PyObject
 
     return Nuitka_CheckFunctionResult(tstate, called, result);
 }
+/* Generated from CodeTemplateCallsPositionalMethodDescr.c.j2 */
 PyObject *CALL_METHODDESCR_WITH_SINGLE_ARG(PyThreadState *tstate, PyObject *called, PyObject *arg) {
-    PyObject *const *args = &arg; // For easier code compatibility.
+    PyObject *const *args = &arg;
     CHECK_OBJECT(called);
     CHECK_OBJECTS(args, 1);
 
@@ -11778,7 +11876,6 @@ PyObject *CALL_METHODDESCR_WITH_SINGLE_ARG(PyThreadState *tstate, PyObject *call
     PyMethodDescrObject *called_descr = (PyMethodDescrObject *)called;
     PyMethodDef *method_def = called_descr->d_method;
 
-    // Try to be fast about wrapping the arguments.
     int flags = method_def->ml_flags & ~(METH_CLASS | METH_STATIC | METH_COEXIST);
 
     if (likely(flags & METH_NOARGS)) {
@@ -11792,33 +11889,45 @@ PyObject *CALL_METHODDESCR_WITH_SINGLE_ARG(PyThreadState *tstate, PyObject *call
 #else
         return result;
 #endif
-    } else if ((flags & METH_O)) {
-        SET_CURRENT_EXCEPTION_TYPE0_FORMAT1(PyExc_TypeError, "%s() takes exactly one argument (1 given)",
+    } else if (unlikely(flags & METH_O)) {
+        SET_CURRENT_EXCEPTION_TYPE0_FORMAT1(PyExc_TypeError, "%s() takes exactly one argument (0 given)",
                                             method_def->ml_name);
         return NULL;
+#if PYTHON_VERSION < 0x360
     } else if (flags & METH_VARARGS) {
-        PyCFunction method = method_def->ml_meth;
+#elif PYTHON_VERSION < 0x370
+    } else if (flags == METH_VARARGS || flags == (METH_VARARGS | METH_KEYWORDS) || flags == METH_FASTCALL) {
+#else
+    } else if (flags == METH_VARARGS || flags == (METH_VARARGS | METH_KEYWORDS) || flags == METH_FASTCALL ||
+               flags == (METH_FASTCALL | METH_KEYWORDS)) {
+#endif
+        Nuitka_PyCFunctionUnion method;
+        method.as_function = method_def->ml_meth;
         PyObject *self = args[0];
 
         PyObject *result;
 
 #if PYTHON_VERSION < 0x360
         if (flags & METH_KEYWORDS) {
-            result = (*(PyCFunctionWithKeywords)method)(self, const_tuple_empty, NULL);
+            result = (*method.as_function_kw)(self, const_tuple_empty, NULL);
         } else {
-            result = (*method)(self, const_tuple_empty);
+            result = (*method.as_function)(self, const_tuple_empty);
         }
 #else
         if (flags == (METH_VARARGS | METH_KEYWORDS)) {
-            result = (*(PyCFunctionWithKeywords)method)(self, const_tuple_empty, NULL);
+            result = (*method.as_function_kw)(self, const_tuple_empty, NULL);
         } else if (flags == METH_FASTCALL) {
 #if PYTHON_VERSION < 0x370
-            result = (*(_PyCFunctionFast)method)(self, (PyObject **)args + 1, 0, NULL);
+            result = (*method.as_function_fast)(self, NULL, 0, NULL);
 #else
-            result = (*(_PyCFunctionFast)method)(self, &const_tuple_empty, 1);
+            result = (*method.as_function_fast)(self, NULL, 0);
+#endif
+#if PYTHON_VERSION >= 0x370
+        } else if (flags == (METH_FASTCALL | METH_KEYWORDS)) {
+            result = (*method.as_function_fast_kw)(self, NULL, 0, NULL);
 #endif
         } else {
-            result = (*method)(self, const_tuple_empty);
+            result = (*method.as_function)(self, const_tuple_empty);
         }
 #endif
 #ifndef __NUITKA_NO_ASSERT__
@@ -11827,13 +11936,6 @@ PyObject *CALL_METHODDESCR_WITH_SINGLE_ARG(PyThreadState *tstate, PyObject *call
         return result;
 #endif
     }
-
-#if 0
-    PRINT_NEW_LINE();
-    PRINT_STRING("FALLBACK");
-    PRINT_ITEM(called);
-    PRINT_NEW_LINE();
-#endif
 
     PyObject *pos_args = MAKE_TUPLE(tstate, args, 1);
 
@@ -11863,21 +11965,12 @@ PyObject *CALL_METHODDESCR_WITH_ARGS2(PyThreadState *tstate, PyObject *called, P
     PyMethodDescrObject *called_descr = (PyMethodDescrObject *)called;
     PyMethodDef *method_def = called_descr->d_method;
 
-    // Try to be fast about wrapping the arguments.
     int flags = method_def->ml_flags & ~(METH_CLASS | METH_STATIC | METH_COEXIST);
 
     if (unlikely(flags & METH_NOARGS)) {
-        PyCFunction method = method_def->ml_meth;
-        PyObject *self = args[0];
-
-        PyObject *result = (*method)(self, NULL);
-
-#ifndef __NUITKA_NO_ASSERT__
-        return Nuitka_CheckFunctionResult(tstate, called, result);
-#else
-        return result;
-#endif
-    } else if (unlikely(flags & METH_O)) {
+        SET_CURRENT_EXCEPTION_TYPE0_FORMAT1(PyExc_TypeError, "%s() takes no arguments (1 given)", method_def->ml_name);
+        return NULL;
+    } else if ((flags & METH_O)) {
         PyCFunction method = method_def->ml_meth;
         PyObject *self = args[0];
 
@@ -11888,8 +11981,16 @@ PyObject *CALL_METHODDESCR_WITH_ARGS2(PyThreadState *tstate, PyObject *called, P
 #else
         return result;
 #endif
+#if PYTHON_VERSION < 0x360
     } else if (flags & METH_VARARGS) {
-        PyCFunction method = method_def->ml_meth;
+#elif PYTHON_VERSION < 0x370
+    } else if (flags == METH_VARARGS || flags == (METH_VARARGS | METH_KEYWORDS) || flags == METH_FASTCALL) {
+#else
+    } else if (flags == METH_VARARGS || flags == (METH_VARARGS | METH_KEYWORDS) || flags == METH_FASTCALL ||
+               flags == (METH_FASTCALL | METH_KEYWORDS)) {
+#endif
+        Nuitka_PyCFunctionUnion method;
+        method.as_function = method_def->ml_meth;
         PyObject *self = args[0];
 
         PyObject *result;
@@ -11898,28 +11999,30 @@ PyObject *CALL_METHODDESCR_WITH_ARGS2(PyThreadState *tstate, PyObject *called, P
         PyObject *pos_args = MAKE_TUPLE(tstate, args + 1, 1);
 
         if (flags & METH_KEYWORDS) {
-            result = (*(PyCFunctionWithKeywords)method)(self, pos_args, NULL);
+            result = (*method.as_function_kw)(self, pos_args, NULL);
         } else {
-            result = (*method)(self, pos_args);
+            result = (*method.as_function)(self, pos_args);
         }
 
         Py_DECREF(pos_args);
 #else
         if (flags == (METH_VARARGS | METH_KEYWORDS)) {
             PyObject *pos_args = MAKE_TUPLE(tstate, args + 1, 1);
-            result = (*(PyCFunctionWithKeywords)method)(self, pos_args, NULL);
+            result = (*method.as_function_kw)(self, pos_args, NULL);
             Py_DECREF(pos_args);
         } else if (flags == METH_FASTCALL) {
 #if PYTHON_VERSION < 0x370
-            result = (*(_PyCFunctionFast)method)(self, (PyObject **)args + 1, 1, NULL);
+            result = (*method.as_function_fast)(self, (PyObject **)args + 1, 1, NULL);
 #else
-            PyObject *pos_args = MAKE_TUPLE(tstate, args + 1, 1);
-            result = (*(_PyCFunctionFast)method)(self, &pos_args, 2);
-            Py_DECREF(pos_args);
+            result = (*method.as_function_fast)(self, args + 1, 1);
+#endif
+#if PYTHON_VERSION >= 0x370
+        } else if (flags == (METH_FASTCALL | METH_KEYWORDS)) {
+            result = (*method.as_function_fast_kw)(self, args + 1, 1, NULL);
 #endif
         } else {
             PyObject *pos_args = MAKE_TUPLE(tstate, args + 1, 1);
-            result = (*method)(self, pos_args);
+            result = (*method.as_function)(self, pos_args);
             Py_DECREF(pos_args);
         }
 #endif
@@ -11929,13 +12032,6 @@ PyObject *CALL_METHODDESCR_WITH_ARGS2(PyThreadState *tstate, PyObject *called, P
         return result;
 #endif
     }
-
-#if 0
-    PRINT_NEW_LINE();
-    PRINT_STRING("FALLBACK");
-    PRINT_ITEM(called);
-    PRINT_NEW_LINE();
-#endif
 
     PyObject *pos_args = MAKE_TUPLE(tstate, args, 2);
 
@@ -11965,26 +12061,25 @@ PyObject *CALL_METHODDESCR_WITH_ARGS3(PyThreadState *tstate, PyObject *called, P
     PyMethodDescrObject *called_descr = (PyMethodDescrObject *)called;
     PyMethodDef *method_def = called_descr->d_method;
 
-    // Try to be fast about wrapping the arguments.
     int flags = method_def->ml_flags & ~(METH_CLASS | METH_STATIC | METH_COEXIST);
 
     if (unlikely(flags & METH_NOARGS)) {
-        PyCFunction method = method_def->ml_meth;
-        PyObject *self = args[0];
-
-        PyObject *result = (*method)(self, NULL);
-
-#ifndef __NUITKA_NO_ASSERT__
-        return Nuitka_CheckFunctionResult(tstate, called, result);
-#else
-        return result;
-#endif
+        SET_CURRENT_EXCEPTION_TYPE0_FORMAT1(PyExc_TypeError, "%s() takes no arguments (2 given)", method_def->ml_name);
+        return NULL;
     } else if (unlikely(flags & METH_O)) {
-        SET_CURRENT_EXCEPTION_TYPE0_FORMAT1(PyExc_TypeError, "%s() takes exactly one argument (3 given)",
+        SET_CURRENT_EXCEPTION_TYPE0_FORMAT1(PyExc_TypeError, "%s() takes exactly one argument (2 given)",
                                             method_def->ml_name);
         return NULL;
+#if PYTHON_VERSION < 0x360
     } else if (flags & METH_VARARGS) {
-        PyCFunction method = method_def->ml_meth;
+#elif PYTHON_VERSION < 0x370
+    } else if (flags == METH_VARARGS || flags == (METH_VARARGS | METH_KEYWORDS) || flags == METH_FASTCALL) {
+#else
+    } else if (flags == METH_VARARGS || flags == (METH_VARARGS | METH_KEYWORDS) || flags == METH_FASTCALL ||
+               flags == (METH_FASTCALL | METH_KEYWORDS)) {
+#endif
+        Nuitka_PyCFunctionUnion method;
+        method.as_function = method_def->ml_meth;
         PyObject *self = args[0];
 
         PyObject *result;
@@ -11993,28 +12088,30 @@ PyObject *CALL_METHODDESCR_WITH_ARGS3(PyThreadState *tstate, PyObject *called, P
         PyObject *pos_args = MAKE_TUPLE(tstate, args + 1, 2);
 
         if (flags & METH_KEYWORDS) {
-            result = (*(PyCFunctionWithKeywords)method)(self, pos_args, NULL);
+            result = (*method.as_function_kw)(self, pos_args, NULL);
         } else {
-            result = (*method)(self, pos_args);
+            result = (*method.as_function)(self, pos_args);
         }
 
         Py_DECREF(pos_args);
 #else
         if (flags == (METH_VARARGS | METH_KEYWORDS)) {
             PyObject *pos_args = MAKE_TUPLE(tstate, args + 1, 2);
-            result = (*(PyCFunctionWithKeywords)method)(self, pos_args, NULL);
+            result = (*method.as_function_kw)(self, pos_args, NULL);
             Py_DECREF(pos_args);
         } else if (flags == METH_FASTCALL) {
 #if PYTHON_VERSION < 0x370
-            result = (*(_PyCFunctionFast)method)(self, (PyObject **)args + 1, 2, NULL);
+            result = (*method.as_function_fast)(self, (PyObject **)args + 1, 2, NULL);
 #else
-            PyObject *pos_args = MAKE_TUPLE(tstate, args + 1, 2);
-            result = (*(_PyCFunctionFast)method)(self, &pos_args, 3);
-            Py_DECREF(pos_args);
+            result = (*method.as_function_fast)(self, args + 1, 2);
+#endif
+#if PYTHON_VERSION >= 0x370
+        } else if (flags == (METH_FASTCALL | METH_KEYWORDS)) {
+            result = (*method.as_function_fast_kw)(self, args + 1, 2, NULL);
 #endif
         } else {
             PyObject *pos_args = MAKE_TUPLE(tstate, args + 1, 2);
-            result = (*method)(self, pos_args);
+            result = (*method.as_function)(self, pos_args);
             Py_DECREF(pos_args);
         }
 #endif
@@ -12024,13 +12121,6 @@ PyObject *CALL_METHODDESCR_WITH_ARGS3(PyThreadState *tstate, PyObject *called, P
         return result;
 #endif
     }
-
-#if 0
-    PRINT_NEW_LINE();
-    PRINT_STRING("FALLBACK");
-    PRINT_ITEM(called);
-    PRINT_NEW_LINE();
-#endif
 
     PyObject *pos_args = MAKE_TUPLE(tstate, args, 3);
 
@@ -12060,26 +12150,25 @@ PyObject *CALL_METHODDESCR_WITH_ARGS4(PyThreadState *tstate, PyObject *called, P
     PyMethodDescrObject *called_descr = (PyMethodDescrObject *)called;
     PyMethodDef *method_def = called_descr->d_method;
 
-    // Try to be fast about wrapping the arguments.
     int flags = method_def->ml_flags & ~(METH_CLASS | METH_STATIC | METH_COEXIST);
 
     if (unlikely(flags & METH_NOARGS)) {
-        PyCFunction method = method_def->ml_meth;
-        PyObject *self = args[0];
-
-        PyObject *result = (*method)(self, NULL);
-
-#ifndef __NUITKA_NO_ASSERT__
-        return Nuitka_CheckFunctionResult(tstate, called, result);
-#else
-        return result;
-#endif
+        SET_CURRENT_EXCEPTION_TYPE0_FORMAT1(PyExc_TypeError, "%s() takes no arguments (3 given)", method_def->ml_name);
+        return NULL;
     } else if (unlikely(flags & METH_O)) {
-        SET_CURRENT_EXCEPTION_TYPE0_FORMAT1(PyExc_TypeError, "%s() takes exactly one argument (4 given)",
+        SET_CURRENT_EXCEPTION_TYPE0_FORMAT1(PyExc_TypeError, "%s() takes exactly one argument (3 given)",
                                             method_def->ml_name);
         return NULL;
+#if PYTHON_VERSION < 0x360
     } else if (flags & METH_VARARGS) {
-        PyCFunction method = method_def->ml_meth;
+#elif PYTHON_VERSION < 0x370
+    } else if (flags == METH_VARARGS || flags == (METH_VARARGS | METH_KEYWORDS) || flags == METH_FASTCALL) {
+#else
+    } else if (flags == METH_VARARGS || flags == (METH_VARARGS | METH_KEYWORDS) || flags == METH_FASTCALL ||
+               flags == (METH_FASTCALL | METH_KEYWORDS)) {
+#endif
+        Nuitka_PyCFunctionUnion method;
+        method.as_function = method_def->ml_meth;
         PyObject *self = args[0];
 
         PyObject *result;
@@ -12088,28 +12177,30 @@ PyObject *CALL_METHODDESCR_WITH_ARGS4(PyThreadState *tstate, PyObject *called, P
         PyObject *pos_args = MAKE_TUPLE(tstate, args + 1, 3);
 
         if (flags & METH_KEYWORDS) {
-            result = (*(PyCFunctionWithKeywords)method)(self, pos_args, NULL);
+            result = (*method.as_function_kw)(self, pos_args, NULL);
         } else {
-            result = (*method)(self, pos_args);
+            result = (*method.as_function)(self, pos_args);
         }
 
         Py_DECREF(pos_args);
 #else
         if (flags == (METH_VARARGS | METH_KEYWORDS)) {
             PyObject *pos_args = MAKE_TUPLE(tstate, args + 1, 3);
-            result = (*(PyCFunctionWithKeywords)method)(self, pos_args, NULL);
+            result = (*method.as_function_kw)(self, pos_args, NULL);
             Py_DECREF(pos_args);
         } else if (flags == METH_FASTCALL) {
 #if PYTHON_VERSION < 0x370
-            result = (*(_PyCFunctionFast)method)(self, (PyObject **)args + 1, 3, NULL);
+            result = (*method.as_function_fast)(self, (PyObject **)args + 1, 3, NULL);
 #else
-            PyObject *pos_args = MAKE_TUPLE(tstate, args + 1, 3);
-            result = (*(_PyCFunctionFast)method)(self, &pos_args, 4);
-            Py_DECREF(pos_args);
+            result = (*method.as_function_fast)(self, args + 1, 3);
+#endif
+#if PYTHON_VERSION >= 0x370
+        } else if (flags == (METH_FASTCALL | METH_KEYWORDS)) {
+            result = (*method.as_function_fast_kw)(self, args + 1, 3, NULL);
 #endif
         } else {
             PyObject *pos_args = MAKE_TUPLE(tstate, args + 1, 3);
-            result = (*method)(self, pos_args);
+            result = (*method.as_function)(self, pos_args);
             Py_DECREF(pos_args);
         }
 #endif
@@ -12120,13 +12211,6 @@ PyObject *CALL_METHODDESCR_WITH_ARGS4(PyThreadState *tstate, PyObject *called, P
 #endif
     }
 
-#if 0
-    PRINT_NEW_LINE();
-    PRINT_STRING("FALLBACK");
-    PRINT_ITEM(called);
-    PRINT_NEW_LINE();
-#endif
-
     PyObject *pos_args = MAKE_TUPLE(tstate, args, 4);
 
     PyObject *result = CALL_FUNCTION(tstate, called, pos_args, NULL);
@@ -12136,6 +12220,7 @@ PyObject *CALL_METHODDESCR_WITH_ARGS4(PyThreadState *tstate, PyObject *called, P
     return result;
 #endif
 }
+/* Generated from CodeTemplateCallsMethodPositional.c.j2 */
 PyObject *CALL_METHOD_NO_ARGS(PyThreadState *tstate, PyObject *source, PyObject *attr_name) {
     CHECK_OBJECT(source);
     CHECK_OBJECT(attr_name);
@@ -12143,7 +12228,6 @@ PyObject *CALL_METHOD_NO_ARGS(PyThreadState *tstate, PyObject *source, PyObject 
     PyTypeObject *type = Py_TYPE(source);
 
     if (hasTypeGenericGetAttr(type)) {
-        // Unfortunately this is required, although of cause rarely necessary.
         if (unlikely(type->tp_dict == NULL)) {
             if (unlikely(PyType_Ready(type) < 0)) {
                 return NULL;
@@ -12163,6 +12247,10 @@ PyObject *CALL_METHOD_NO_ARGS(PyThreadState *tstate, PyObject *source, PyObject 
                     PyObject *called_object = func(descr, source, (PyObject *)type);
                     Py_DECREF(descr);
 
+                    if (unlikely(called_object == NULL)) {
+                        return NULL;
+                    }
+
                     PyObject *result = CALL_FUNCTION_NO_ARGS(tstate, called_object);
                     Py_DECREF(called_object);
                     return result;
@@ -12173,8 +12261,28 @@ PyObject *CALL_METHOD_NO_ARGS(PyThreadState *tstate, PyObject *source, PyObject 
         Py_ssize_t dictoffset = type->tp_dictoffset;
         PyObject *dict = NULL;
 
+#if PYTHON_VERSION >= 0x3b0
+        if (type->tp_flags & Py_TPFLAGS_MANAGED_DICT) {
+            PyObject *called_object = NULL;
+            int found = Nuitka_LookupManagedDictAttribute(type, source, attr_name, &dict, &called_object);
+
+            if (found != 0) {
+                Py_XDECREF(descr);
+
+                if (unlikely(found < 0)) {
+                    return NULL;
+                }
+
+                PyObject *result = CALL_FUNCTION_NO_ARGS(tstate, called_object);
+                Py_DECREF(called_object);
+                return result;
+            }
+
+            dictoffset = 0;
+        }
+#endif
+
         if (dictoffset != 0) {
-            // Negative dictionary offsets have special meaning.
             if (dictoffset < 0) {
                 Py_ssize_t tsize;
                 size_t size;
@@ -12209,20 +12317,40 @@ PyObject *CALL_METHOD_NO_ARGS(PyThreadState *tstate, PyObject *source, PyObject 
             }
 
             Py_DECREF(dict);
+
+#if PYTHON_VERSION < 0x300
+            DROP_ERROR_OCCURRED(tstate);
+#else
+            if (unlikely(HAS_ERROR_OCCURRED(tstate))) {
+                Py_XDECREF(descr);
+                return NULL;
+            }
+#endif
         }
 
         if (func != NULL) {
             if (func == Nuitka_Function_Type.tp_descr_get) {
+                if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
+                    Py_DECREF(descr);
+                    return NULL;
+                }
+
                 PyObject *result =
                     Nuitka_CallMethodFunctionNoArgs(tstate, (struct Nuitka_FunctionObject const *)descr, source);
+                Py_LeaveRecursiveCall();
+
                 Py_DECREF(descr);
 
                 return result;
             } else {
                 PyObject *called_object = func(descr, source, (PyObject *)type);
-                CHECK_OBJECT(called_object);
-
                 Py_DECREF(descr);
+
+                if (unlikely(called_object == NULL)) {
+                    return NULL;
+                }
+
+                CHECK_OBJECT(called_object);
 
                 PyObject *result = CALL_FUNCTION_NO_ARGS(tstate, called_object);
                 Py_DECREF(called_object);
@@ -12244,38 +12372,40 @@ PyObject *CALL_METHOD_NO_ARGS(PyThreadState *tstate, PyObject *source, PyObject 
 #else
         PyErr_Format(PyExc_AttributeError, "'%s' object has no attribute '%U'", type->tp_name, attr_name);
 #endif
+#if PYTHON_VERSION >= 0x3a0
+        SET_ATTRIBUTE_ERROR_CONTEXT(tstate, source, attr_name);
+#endif
         return NULL;
     }
 #if PYTHON_VERSION < 0x300
     else if (type == &PyInstance_Type) {
         PyInstanceObject *source_instance = (PyInstanceObject *)source;
 
-        // The special cases have their own variant on the code generation level
-        // as we are called with constants only.
         assert(attr_name != const_str_plain___dict__);
         assert(attr_name != const_str_plain___class__);
 
-        // Try the instance dict first.
         PyObject *called_object =
             GET_STRING_DICT_VALUE((PyDictObject *)source_instance->in_dict, (PyStringObject *)attr_name);
 
-        // Note: The "called_object" was found without taking a reference,
-        // so we need not release it in this branch.
         if (called_object != NULL) {
             return CALL_FUNCTION_NO_ARGS(tstate, called_object);
         }
 
-        // Then check the class dictionaries.
         called_object = FIND_ATTRIBUTE_IN_CLASS(source_instance->in_class, attr_name);
 
-        // Note: The "called_object" was found without taking a reference,
-        // so we need not release it in this branch.
         if (called_object != NULL) {
             descrgetfunc descr_get = Py_TYPE(called_object)->tp_descr_get;
 
             if (descr_get == Nuitka_Function_Type.tp_descr_get) {
-                return Nuitka_CallMethodFunctionNoArgs(tstate, (struct Nuitka_FunctionObject const *)called_object,
-                                                       source);
+                if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
+                    return NULL;
+                }
+
+                PyObject *result = Nuitka_CallMethodFunctionNoArgs(
+                    tstate, (struct Nuitka_FunctionObject const *)called_object, source);
+                Py_LeaveRecursiveCall();
+
+                return result;
             } else if (descr_get != NULL) {
                 PyObject *method = descr_get(called_object, source, (PyObject *)source_instance->in_class);
 
@@ -12297,9 +12427,6 @@ PyObject *CALL_METHOD_NO_ARGS(PyThreadState *tstate, PyObject *source, PyObject 
 
             return NULL;
         } else {
-            // Finally allow the "__getattr__" override to provide it or else
-            // it's an error.
-
             PyObject *args2[] = {source, attr_name};
 
             called_object = CALL_FUNCTION_WITH_ARGS2(tstate, source_instance->in_class->cl_getattr, args2);
@@ -12315,32 +12442,14 @@ PyObject *CALL_METHOD_NO_ARGS(PyThreadState *tstate, PyObject *source, PyObject 
     }
 #endif
     else if (type->tp_getattro != NULL) {
-        PyObject *descr = (*type->tp_getattro)(source, attr_name);
+        PyObject *called_object = (*type->tp_getattro)(source, attr_name);
 
-        if (unlikely(descr == NULL)) {
+        if (unlikely(called_object == NULL)) {
             return NULL;
         }
 
-        descrgetfunc func = NULL;
-        if (NuitkaType_HasFeatureClass(Py_TYPE(descr))) {
-            func = Py_TYPE(descr)->tp_descr_get;
-
-            if (func != NULL && Nuitka_Descr_IsData(descr)) {
-                PyObject *called_object = func(descr, source, (PyObject *)type);
-                Py_DECREF(descr);
-
-                if (unlikely(called_object == NULL)) {
-                    return NULL;
-                }
-
-                PyObject *result = CALL_FUNCTION_NO_ARGS(tstate, called_object);
-                Py_DECREF(called_object);
-                return result;
-            }
-        }
-
-        PyObject *result = CALL_FUNCTION_NO_ARGS(tstate, descr);
-        Py_DECREF(descr);
+        PyObject *result = CALL_FUNCTION_NO_ARGS(tstate, called_object);
+        Py_DECREF(called_object);
         return result;
     } else if (type->tp_getattr != NULL) {
         PyObject *called_object = (*type->tp_getattr)(source, (char *)Nuitka_String_AsString_Unchecked(attr_name));
@@ -12360,7 +12469,7 @@ PyObject *CALL_METHOD_NO_ARGS(PyThreadState *tstate, PyObject *source, PyObject 
     }
 }
 PyObject *CALL_METHOD_WITH_SINGLE_ARG(PyThreadState *tstate, PyObject *source, PyObject *attr_name, PyObject *arg) {
-    PyObject *const *args = &arg; // For easier code compatibility.
+    PyObject *const *args = &arg;
     CHECK_OBJECT(source);
     CHECK_OBJECT(attr_name);
 
@@ -12369,7 +12478,6 @@ PyObject *CALL_METHOD_WITH_SINGLE_ARG(PyThreadState *tstate, PyObject *source, P
     PyTypeObject *type = Py_TYPE(source);
 
     if (hasTypeGenericGetAttr(type)) {
-        // Unfortunately this is required, although of cause rarely necessary.
         if (unlikely(type->tp_dict == NULL)) {
             if (unlikely(PyType_Ready(type) < 0)) {
                 return NULL;
@@ -12389,6 +12497,10 @@ PyObject *CALL_METHOD_WITH_SINGLE_ARG(PyThreadState *tstate, PyObject *source, P
                     PyObject *called_object = func(descr, source, (PyObject *)type);
                     Py_DECREF(descr);
 
+                    if (unlikely(called_object == NULL)) {
+                        return NULL;
+                    }
+
                     PyObject *result = CALL_FUNCTION_WITH_SINGLE_ARG(tstate, called_object, args[0]);
                     Py_DECREF(called_object);
                     return result;
@@ -12399,8 +12511,28 @@ PyObject *CALL_METHOD_WITH_SINGLE_ARG(PyThreadState *tstate, PyObject *source, P
         Py_ssize_t dictoffset = type->tp_dictoffset;
         PyObject *dict = NULL;
 
+#if PYTHON_VERSION >= 0x3b0
+        if (type->tp_flags & Py_TPFLAGS_MANAGED_DICT) {
+            PyObject *called_object = NULL;
+            int found = Nuitka_LookupManagedDictAttribute(type, source, attr_name, &dict, &called_object);
+
+            if (found != 0) {
+                Py_XDECREF(descr);
+
+                if (unlikely(found < 0)) {
+                    return NULL;
+                }
+
+                PyObject *result = CALL_FUNCTION_WITH_SINGLE_ARG(tstate, called_object, args[0]);
+                Py_DECREF(called_object);
+                return result;
+            }
+
+            dictoffset = 0;
+        }
+#endif
+
         if (dictoffset != 0) {
-            // Negative dictionary offsets have special meaning.
             if (dictoffset < 0) {
                 Py_ssize_t tsize;
                 size_t size;
@@ -12435,20 +12567,40 @@ PyObject *CALL_METHOD_WITH_SINGLE_ARG(PyThreadState *tstate, PyObject *source, P
             }
 
             Py_DECREF(dict);
+
+#if PYTHON_VERSION < 0x300
+            DROP_ERROR_OCCURRED(tstate);
+#else
+            if (unlikely(HAS_ERROR_OCCURRED(tstate))) {
+                Py_XDECREF(descr);
+                return NULL;
+            }
+#endif
         }
 
         if (func != NULL) {
             if (func == Nuitka_Function_Type.tp_descr_get) {
+                if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
+                    Py_DECREF(descr);
+                    return NULL;
+                }
+
                 PyObject *result = Nuitka_CallMethodFunctionPosArgs(tstate, (struct Nuitka_FunctionObject const *)descr,
                                                                     source, args, 1);
+                Py_LeaveRecursiveCall();
+
                 Py_DECREF(descr);
 
                 return result;
             } else {
                 PyObject *called_object = func(descr, source, (PyObject *)type);
-                CHECK_OBJECT(called_object);
-
                 Py_DECREF(descr);
+
+                if (unlikely(called_object == NULL)) {
+                    return NULL;
+                }
+
+                CHECK_OBJECT(called_object);
 
                 PyObject *result = CALL_FUNCTION_WITH_SINGLE_ARG(tstate, called_object, args[0]);
                 Py_DECREF(called_object);
@@ -12470,38 +12622,40 @@ PyObject *CALL_METHOD_WITH_SINGLE_ARG(PyThreadState *tstate, PyObject *source, P
 #else
         PyErr_Format(PyExc_AttributeError, "'%s' object has no attribute '%U'", type->tp_name, attr_name);
 #endif
+#if PYTHON_VERSION >= 0x3a0
+        SET_ATTRIBUTE_ERROR_CONTEXT(tstate, source, attr_name);
+#endif
         return NULL;
     }
 #if PYTHON_VERSION < 0x300
     else if (type == &PyInstance_Type) {
         PyInstanceObject *source_instance = (PyInstanceObject *)source;
 
-        // The special cases have their own variant on the code generation level
-        // as we are called with constants only.
         assert(attr_name != const_str_plain___dict__);
         assert(attr_name != const_str_plain___class__);
 
-        // Try the instance dict first.
         PyObject *called_object =
             GET_STRING_DICT_VALUE((PyDictObject *)source_instance->in_dict, (PyStringObject *)attr_name);
 
-        // Note: The "called_object" was found without taking a reference,
-        // so we need not release it in this branch.
         if (called_object != NULL) {
             return CALL_FUNCTION_WITH_SINGLE_ARG(tstate, called_object, args[0]);
         }
 
-        // Then check the class dictionaries.
         called_object = FIND_ATTRIBUTE_IN_CLASS(source_instance->in_class, attr_name);
 
-        // Note: The "called_object" was found without taking a reference,
-        // so we need not release it in this branch.
         if (called_object != NULL) {
             descrgetfunc descr_get = Py_TYPE(called_object)->tp_descr_get;
 
             if (descr_get == Nuitka_Function_Type.tp_descr_get) {
-                return Nuitka_CallMethodFunctionPosArgs(tstate, (struct Nuitka_FunctionObject const *)called_object,
-                                                        source, args, 1);
+                if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
+                    return NULL;
+                }
+
+                PyObject *result = Nuitka_CallMethodFunctionPosArgs(
+                    tstate, (struct Nuitka_FunctionObject const *)called_object, source, args, 1);
+                Py_LeaveRecursiveCall();
+
+                return result;
             } else if (descr_get != NULL) {
                 PyObject *method = descr_get(called_object, source, (PyObject *)source_instance->in_class);
 
@@ -12523,9 +12677,6 @@ PyObject *CALL_METHOD_WITH_SINGLE_ARG(PyThreadState *tstate, PyObject *source, P
 
             return NULL;
         } else {
-            // Finally allow the "__getattr__" override to provide it or else
-            // it's an error.
-
             PyObject *args2[] = {source, attr_name};
 
             called_object = CALL_FUNCTION_WITH_ARGS2(tstate, source_instance->in_class->cl_getattr, args2);
@@ -12541,32 +12692,14 @@ PyObject *CALL_METHOD_WITH_SINGLE_ARG(PyThreadState *tstate, PyObject *source, P
     }
 #endif
     else if (type->tp_getattro != NULL) {
-        PyObject *descr = (*type->tp_getattro)(source, attr_name);
+        PyObject *called_object = (*type->tp_getattro)(source, attr_name);
 
-        if (unlikely(descr == NULL)) {
+        if (unlikely(called_object == NULL)) {
             return NULL;
         }
 
-        descrgetfunc func = NULL;
-        if (NuitkaType_HasFeatureClass(Py_TYPE(descr))) {
-            func = Py_TYPE(descr)->tp_descr_get;
-
-            if (func != NULL && Nuitka_Descr_IsData(descr)) {
-                PyObject *called_object = func(descr, source, (PyObject *)type);
-                Py_DECREF(descr);
-
-                if (unlikely(called_object == NULL)) {
-                    return NULL;
-                }
-
-                PyObject *result = CALL_FUNCTION_WITH_SINGLE_ARG(tstate, called_object, args[0]);
-                Py_DECREF(called_object);
-                return result;
-            }
-        }
-
-        PyObject *result = CALL_FUNCTION_WITH_SINGLE_ARG(tstate, descr, args[0]);
-        Py_DECREF(descr);
+        PyObject *result = CALL_FUNCTION_WITH_SINGLE_ARG(tstate, called_object, args[0]);
+        Py_DECREF(called_object);
         return result;
     } else if (type->tp_getattr != NULL) {
         PyObject *called_object = (*type->tp_getattr)(source, (char *)Nuitka_String_AsString_Unchecked(attr_name));
@@ -12594,7 +12727,6 @@ PyObject *CALL_METHOD_WITH_ARGS2(PyThreadState *tstate, PyObject *source, PyObje
     PyTypeObject *type = Py_TYPE(source);
 
     if (hasTypeGenericGetAttr(type)) {
-        // Unfortunately this is required, although of cause rarely necessary.
         if (unlikely(type->tp_dict == NULL)) {
             if (unlikely(PyType_Ready(type) < 0)) {
                 return NULL;
@@ -12614,6 +12746,10 @@ PyObject *CALL_METHOD_WITH_ARGS2(PyThreadState *tstate, PyObject *source, PyObje
                     PyObject *called_object = func(descr, source, (PyObject *)type);
                     Py_DECREF(descr);
 
+                    if (unlikely(called_object == NULL)) {
+                        return NULL;
+                    }
+
                     PyObject *result = CALL_FUNCTION_WITH_ARGS2(tstate, called_object, args);
                     Py_DECREF(called_object);
                     return result;
@@ -12624,8 +12760,28 @@ PyObject *CALL_METHOD_WITH_ARGS2(PyThreadState *tstate, PyObject *source, PyObje
         Py_ssize_t dictoffset = type->tp_dictoffset;
         PyObject *dict = NULL;
 
+#if PYTHON_VERSION >= 0x3b0
+        if (type->tp_flags & Py_TPFLAGS_MANAGED_DICT) {
+            PyObject *called_object = NULL;
+            int found = Nuitka_LookupManagedDictAttribute(type, source, attr_name, &dict, &called_object);
+
+            if (found != 0) {
+                Py_XDECREF(descr);
+
+                if (unlikely(found < 0)) {
+                    return NULL;
+                }
+
+                PyObject *result = CALL_FUNCTION_WITH_ARGS2(tstate, called_object, args);
+                Py_DECREF(called_object);
+                return result;
+            }
+
+            dictoffset = 0;
+        }
+#endif
+
         if (dictoffset != 0) {
-            // Negative dictionary offsets have special meaning.
             if (dictoffset < 0) {
                 Py_ssize_t tsize;
                 size_t size;
@@ -12660,20 +12816,40 @@ PyObject *CALL_METHOD_WITH_ARGS2(PyThreadState *tstate, PyObject *source, PyObje
             }
 
             Py_DECREF(dict);
+
+#if PYTHON_VERSION < 0x300
+            DROP_ERROR_OCCURRED(tstate);
+#else
+            if (unlikely(HAS_ERROR_OCCURRED(tstate))) {
+                Py_XDECREF(descr);
+                return NULL;
+            }
+#endif
         }
 
         if (func != NULL) {
             if (func == Nuitka_Function_Type.tp_descr_get) {
+                if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
+                    Py_DECREF(descr);
+                    return NULL;
+                }
+
                 PyObject *result = Nuitka_CallMethodFunctionPosArgs(tstate, (struct Nuitka_FunctionObject const *)descr,
                                                                     source, args, 2);
+                Py_LeaveRecursiveCall();
+
                 Py_DECREF(descr);
 
                 return result;
             } else {
                 PyObject *called_object = func(descr, source, (PyObject *)type);
-                CHECK_OBJECT(called_object);
-
                 Py_DECREF(descr);
+
+                if (unlikely(called_object == NULL)) {
+                    return NULL;
+                }
+
+                CHECK_OBJECT(called_object);
 
                 PyObject *result = CALL_FUNCTION_WITH_ARGS2(tstate, called_object, args);
                 Py_DECREF(called_object);
@@ -12695,38 +12871,40 @@ PyObject *CALL_METHOD_WITH_ARGS2(PyThreadState *tstate, PyObject *source, PyObje
 #else
         PyErr_Format(PyExc_AttributeError, "'%s' object has no attribute '%U'", type->tp_name, attr_name);
 #endif
+#if PYTHON_VERSION >= 0x3a0
+        SET_ATTRIBUTE_ERROR_CONTEXT(tstate, source, attr_name);
+#endif
         return NULL;
     }
 #if PYTHON_VERSION < 0x300
     else if (type == &PyInstance_Type) {
         PyInstanceObject *source_instance = (PyInstanceObject *)source;
 
-        // The special cases have their own variant on the code generation level
-        // as we are called with constants only.
         assert(attr_name != const_str_plain___dict__);
         assert(attr_name != const_str_plain___class__);
 
-        // Try the instance dict first.
         PyObject *called_object =
             GET_STRING_DICT_VALUE((PyDictObject *)source_instance->in_dict, (PyStringObject *)attr_name);
 
-        // Note: The "called_object" was found without taking a reference,
-        // so we need not release it in this branch.
         if (called_object != NULL) {
             return CALL_FUNCTION_WITH_ARGS2(tstate, called_object, args);
         }
 
-        // Then check the class dictionaries.
         called_object = FIND_ATTRIBUTE_IN_CLASS(source_instance->in_class, attr_name);
 
-        // Note: The "called_object" was found without taking a reference,
-        // so we need not release it in this branch.
         if (called_object != NULL) {
             descrgetfunc descr_get = Py_TYPE(called_object)->tp_descr_get;
 
             if (descr_get == Nuitka_Function_Type.tp_descr_get) {
-                return Nuitka_CallMethodFunctionPosArgs(tstate, (struct Nuitka_FunctionObject const *)called_object,
-                                                        source, args, 2);
+                if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
+                    return NULL;
+                }
+
+                PyObject *result = Nuitka_CallMethodFunctionPosArgs(
+                    tstate, (struct Nuitka_FunctionObject const *)called_object, source, args, 2);
+                Py_LeaveRecursiveCall();
+
+                return result;
             } else if (descr_get != NULL) {
                 PyObject *method = descr_get(called_object, source, (PyObject *)source_instance->in_class);
 
@@ -12748,9 +12926,6 @@ PyObject *CALL_METHOD_WITH_ARGS2(PyThreadState *tstate, PyObject *source, PyObje
 
             return NULL;
         } else {
-            // Finally allow the "__getattr__" override to provide it or else
-            // it's an error.
-
             PyObject *args2[] = {source, attr_name};
 
             called_object = CALL_FUNCTION_WITH_ARGS2(tstate, source_instance->in_class->cl_getattr, args2);
@@ -12766,32 +12941,14 @@ PyObject *CALL_METHOD_WITH_ARGS2(PyThreadState *tstate, PyObject *source, PyObje
     }
 #endif
     else if (type->tp_getattro != NULL) {
-        PyObject *descr = (*type->tp_getattro)(source, attr_name);
+        PyObject *called_object = (*type->tp_getattro)(source, attr_name);
 
-        if (unlikely(descr == NULL)) {
+        if (unlikely(called_object == NULL)) {
             return NULL;
         }
 
-        descrgetfunc func = NULL;
-        if (NuitkaType_HasFeatureClass(Py_TYPE(descr))) {
-            func = Py_TYPE(descr)->tp_descr_get;
-
-            if (func != NULL && Nuitka_Descr_IsData(descr)) {
-                PyObject *called_object = func(descr, source, (PyObject *)type);
-                Py_DECREF(descr);
-
-                if (unlikely(called_object == NULL)) {
-                    return NULL;
-                }
-
-                PyObject *result = CALL_FUNCTION_WITH_ARGS2(tstate, called_object, args);
-                Py_DECREF(called_object);
-                return result;
-            }
-        }
-
-        PyObject *result = CALL_FUNCTION_WITH_ARGS2(tstate, descr, args);
-        Py_DECREF(descr);
+        PyObject *result = CALL_FUNCTION_WITH_ARGS2(tstate, called_object, args);
+        Py_DECREF(called_object);
         return result;
     } else if (type->tp_getattr != NULL) {
         PyObject *called_object = (*type->tp_getattr)(source, (char *)Nuitka_String_AsString_Unchecked(attr_name));
@@ -12819,7 +12976,6 @@ PyObject *CALL_METHOD_WITH_ARGS3(PyThreadState *tstate, PyObject *source, PyObje
     PyTypeObject *type = Py_TYPE(source);
 
     if (hasTypeGenericGetAttr(type)) {
-        // Unfortunately this is required, although of cause rarely necessary.
         if (unlikely(type->tp_dict == NULL)) {
             if (unlikely(PyType_Ready(type) < 0)) {
                 return NULL;
@@ -12839,6 +12995,10 @@ PyObject *CALL_METHOD_WITH_ARGS3(PyThreadState *tstate, PyObject *source, PyObje
                     PyObject *called_object = func(descr, source, (PyObject *)type);
                     Py_DECREF(descr);
 
+                    if (unlikely(called_object == NULL)) {
+                        return NULL;
+                    }
+
                     PyObject *result = CALL_FUNCTION_WITH_ARGS3(tstate, called_object, args);
                     Py_DECREF(called_object);
                     return result;
@@ -12849,8 +13009,28 @@ PyObject *CALL_METHOD_WITH_ARGS3(PyThreadState *tstate, PyObject *source, PyObje
         Py_ssize_t dictoffset = type->tp_dictoffset;
         PyObject *dict = NULL;
 
+#if PYTHON_VERSION >= 0x3b0
+        if (type->tp_flags & Py_TPFLAGS_MANAGED_DICT) {
+            PyObject *called_object = NULL;
+            int found = Nuitka_LookupManagedDictAttribute(type, source, attr_name, &dict, &called_object);
+
+            if (found != 0) {
+                Py_XDECREF(descr);
+
+                if (unlikely(found < 0)) {
+                    return NULL;
+                }
+
+                PyObject *result = CALL_FUNCTION_WITH_ARGS3(tstate, called_object, args);
+                Py_DECREF(called_object);
+                return result;
+            }
+
+            dictoffset = 0;
+        }
+#endif
+
         if (dictoffset != 0) {
-            // Negative dictionary offsets have special meaning.
             if (dictoffset < 0) {
                 Py_ssize_t tsize;
                 size_t size;
@@ -12885,20 +13065,40 @@ PyObject *CALL_METHOD_WITH_ARGS3(PyThreadState *tstate, PyObject *source, PyObje
             }
 
             Py_DECREF(dict);
+
+#if PYTHON_VERSION < 0x300
+            DROP_ERROR_OCCURRED(tstate);
+#else
+            if (unlikely(HAS_ERROR_OCCURRED(tstate))) {
+                Py_XDECREF(descr);
+                return NULL;
+            }
+#endif
         }
 
         if (func != NULL) {
             if (func == Nuitka_Function_Type.tp_descr_get) {
+                if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
+                    Py_DECREF(descr);
+                    return NULL;
+                }
+
                 PyObject *result = Nuitka_CallMethodFunctionPosArgs(tstate, (struct Nuitka_FunctionObject const *)descr,
                                                                     source, args, 3);
+                Py_LeaveRecursiveCall();
+
                 Py_DECREF(descr);
 
                 return result;
             } else {
                 PyObject *called_object = func(descr, source, (PyObject *)type);
-                CHECK_OBJECT(called_object);
-
                 Py_DECREF(descr);
+
+                if (unlikely(called_object == NULL)) {
+                    return NULL;
+                }
+
+                CHECK_OBJECT(called_object);
 
                 PyObject *result = CALL_FUNCTION_WITH_ARGS3(tstate, called_object, args);
                 Py_DECREF(called_object);
@@ -12920,38 +13120,40 @@ PyObject *CALL_METHOD_WITH_ARGS3(PyThreadState *tstate, PyObject *source, PyObje
 #else
         PyErr_Format(PyExc_AttributeError, "'%s' object has no attribute '%U'", type->tp_name, attr_name);
 #endif
+#if PYTHON_VERSION >= 0x3a0
+        SET_ATTRIBUTE_ERROR_CONTEXT(tstate, source, attr_name);
+#endif
         return NULL;
     }
 #if PYTHON_VERSION < 0x300
     else if (type == &PyInstance_Type) {
         PyInstanceObject *source_instance = (PyInstanceObject *)source;
 
-        // The special cases have their own variant on the code generation level
-        // as we are called with constants only.
         assert(attr_name != const_str_plain___dict__);
         assert(attr_name != const_str_plain___class__);
 
-        // Try the instance dict first.
         PyObject *called_object =
             GET_STRING_DICT_VALUE((PyDictObject *)source_instance->in_dict, (PyStringObject *)attr_name);
 
-        // Note: The "called_object" was found without taking a reference,
-        // so we need not release it in this branch.
         if (called_object != NULL) {
             return CALL_FUNCTION_WITH_ARGS3(tstate, called_object, args);
         }
 
-        // Then check the class dictionaries.
         called_object = FIND_ATTRIBUTE_IN_CLASS(source_instance->in_class, attr_name);
 
-        // Note: The "called_object" was found without taking a reference,
-        // so we need not release it in this branch.
         if (called_object != NULL) {
             descrgetfunc descr_get = Py_TYPE(called_object)->tp_descr_get;
 
             if (descr_get == Nuitka_Function_Type.tp_descr_get) {
-                return Nuitka_CallMethodFunctionPosArgs(tstate, (struct Nuitka_FunctionObject const *)called_object,
-                                                        source, args, 3);
+                if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
+                    return NULL;
+                }
+
+                PyObject *result = Nuitka_CallMethodFunctionPosArgs(
+                    tstate, (struct Nuitka_FunctionObject const *)called_object, source, args, 3);
+                Py_LeaveRecursiveCall();
+
+                return result;
             } else if (descr_get != NULL) {
                 PyObject *method = descr_get(called_object, source, (PyObject *)source_instance->in_class);
 
@@ -12973,9 +13175,6 @@ PyObject *CALL_METHOD_WITH_ARGS3(PyThreadState *tstate, PyObject *source, PyObje
 
             return NULL;
         } else {
-            // Finally allow the "__getattr__" override to provide it or else
-            // it's an error.
-
             PyObject *args2[] = {source, attr_name};
 
             called_object = CALL_FUNCTION_WITH_ARGS2(tstate, source_instance->in_class->cl_getattr, args2);
@@ -12991,32 +13190,14 @@ PyObject *CALL_METHOD_WITH_ARGS3(PyThreadState *tstate, PyObject *source, PyObje
     }
 #endif
     else if (type->tp_getattro != NULL) {
-        PyObject *descr = (*type->tp_getattro)(source, attr_name);
+        PyObject *called_object = (*type->tp_getattro)(source, attr_name);
 
-        if (unlikely(descr == NULL)) {
+        if (unlikely(called_object == NULL)) {
             return NULL;
         }
 
-        descrgetfunc func = NULL;
-        if (NuitkaType_HasFeatureClass(Py_TYPE(descr))) {
-            func = Py_TYPE(descr)->tp_descr_get;
-
-            if (func != NULL && Nuitka_Descr_IsData(descr)) {
-                PyObject *called_object = func(descr, source, (PyObject *)type);
-                Py_DECREF(descr);
-
-                if (unlikely(called_object == NULL)) {
-                    return NULL;
-                }
-
-                PyObject *result = CALL_FUNCTION_WITH_ARGS3(tstate, called_object, args);
-                Py_DECREF(called_object);
-                return result;
-            }
-        }
-
-        PyObject *result = CALL_FUNCTION_WITH_ARGS3(tstate, descr, args);
-        Py_DECREF(descr);
+        PyObject *result = CALL_FUNCTION_WITH_ARGS3(tstate, called_object, args);
+        Py_DECREF(called_object);
         return result;
     } else if (type->tp_getattr != NULL) {
         PyObject *called_object = (*type->tp_getattr)(source, (char *)Nuitka_String_AsString_Unchecked(attr_name));
@@ -13044,7 +13225,6 @@ PyObject *CALL_METHOD_WITH_ARGS4(PyThreadState *tstate, PyObject *source, PyObje
     PyTypeObject *type = Py_TYPE(source);
 
     if (hasTypeGenericGetAttr(type)) {
-        // Unfortunately this is required, although of cause rarely necessary.
         if (unlikely(type->tp_dict == NULL)) {
             if (unlikely(PyType_Ready(type) < 0)) {
                 return NULL;
@@ -13064,6 +13244,10 @@ PyObject *CALL_METHOD_WITH_ARGS4(PyThreadState *tstate, PyObject *source, PyObje
                     PyObject *called_object = func(descr, source, (PyObject *)type);
                     Py_DECREF(descr);
 
+                    if (unlikely(called_object == NULL)) {
+                        return NULL;
+                    }
+
                     PyObject *result = CALL_FUNCTION_WITH_ARGS4(tstate, called_object, args);
                     Py_DECREF(called_object);
                     return result;
@@ -13074,8 +13258,28 @@ PyObject *CALL_METHOD_WITH_ARGS4(PyThreadState *tstate, PyObject *source, PyObje
         Py_ssize_t dictoffset = type->tp_dictoffset;
         PyObject *dict = NULL;
 
+#if PYTHON_VERSION >= 0x3b0
+        if (type->tp_flags & Py_TPFLAGS_MANAGED_DICT) {
+            PyObject *called_object = NULL;
+            int found = Nuitka_LookupManagedDictAttribute(type, source, attr_name, &dict, &called_object);
+
+            if (found != 0) {
+                Py_XDECREF(descr);
+
+                if (unlikely(found < 0)) {
+                    return NULL;
+                }
+
+                PyObject *result = CALL_FUNCTION_WITH_ARGS4(tstate, called_object, args);
+                Py_DECREF(called_object);
+                return result;
+            }
+
+            dictoffset = 0;
+        }
+#endif
+
         if (dictoffset != 0) {
-            // Negative dictionary offsets have special meaning.
             if (dictoffset < 0) {
                 Py_ssize_t tsize;
                 size_t size;
@@ -13110,20 +13314,40 @@ PyObject *CALL_METHOD_WITH_ARGS4(PyThreadState *tstate, PyObject *source, PyObje
             }
 
             Py_DECREF(dict);
+
+#if PYTHON_VERSION < 0x300
+            DROP_ERROR_OCCURRED(tstate);
+#else
+            if (unlikely(HAS_ERROR_OCCURRED(tstate))) {
+                Py_XDECREF(descr);
+                return NULL;
+            }
+#endif
         }
 
         if (func != NULL) {
             if (func == Nuitka_Function_Type.tp_descr_get) {
+                if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
+                    Py_DECREF(descr);
+                    return NULL;
+                }
+
                 PyObject *result = Nuitka_CallMethodFunctionPosArgs(tstate, (struct Nuitka_FunctionObject const *)descr,
                                                                     source, args, 4);
+                Py_LeaveRecursiveCall();
+
                 Py_DECREF(descr);
 
                 return result;
             } else {
                 PyObject *called_object = func(descr, source, (PyObject *)type);
-                CHECK_OBJECT(called_object);
-
                 Py_DECREF(descr);
+
+                if (unlikely(called_object == NULL)) {
+                    return NULL;
+                }
+
+                CHECK_OBJECT(called_object);
 
                 PyObject *result = CALL_FUNCTION_WITH_ARGS4(tstate, called_object, args);
                 Py_DECREF(called_object);
@@ -13145,38 +13369,40 @@ PyObject *CALL_METHOD_WITH_ARGS4(PyThreadState *tstate, PyObject *source, PyObje
 #else
         PyErr_Format(PyExc_AttributeError, "'%s' object has no attribute '%U'", type->tp_name, attr_name);
 #endif
+#if PYTHON_VERSION >= 0x3a0
+        SET_ATTRIBUTE_ERROR_CONTEXT(tstate, source, attr_name);
+#endif
         return NULL;
     }
 #if PYTHON_VERSION < 0x300
     else if (type == &PyInstance_Type) {
         PyInstanceObject *source_instance = (PyInstanceObject *)source;
 
-        // The special cases have their own variant on the code generation level
-        // as we are called with constants only.
         assert(attr_name != const_str_plain___dict__);
         assert(attr_name != const_str_plain___class__);
 
-        // Try the instance dict first.
         PyObject *called_object =
             GET_STRING_DICT_VALUE((PyDictObject *)source_instance->in_dict, (PyStringObject *)attr_name);
 
-        // Note: The "called_object" was found without taking a reference,
-        // so we need not release it in this branch.
         if (called_object != NULL) {
             return CALL_FUNCTION_WITH_ARGS4(tstate, called_object, args);
         }
 
-        // Then check the class dictionaries.
         called_object = FIND_ATTRIBUTE_IN_CLASS(source_instance->in_class, attr_name);
 
-        // Note: The "called_object" was found without taking a reference,
-        // so we need not release it in this branch.
         if (called_object != NULL) {
             descrgetfunc descr_get = Py_TYPE(called_object)->tp_descr_get;
 
             if (descr_get == Nuitka_Function_Type.tp_descr_get) {
-                return Nuitka_CallMethodFunctionPosArgs(tstate, (struct Nuitka_FunctionObject const *)called_object,
-                                                        source, args, 4);
+                if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
+                    return NULL;
+                }
+
+                PyObject *result = Nuitka_CallMethodFunctionPosArgs(
+                    tstate, (struct Nuitka_FunctionObject const *)called_object, source, args, 4);
+                Py_LeaveRecursiveCall();
+
+                return result;
             } else if (descr_get != NULL) {
                 PyObject *method = descr_get(called_object, source, (PyObject *)source_instance->in_class);
 
@@ -13198,9 +13424,6 @@ PyObject *CALL_METHOD_WITH_ARGS4(PyThreadState *tstate, PyObject *source, PyObje
 
             return NULL;
         } else {
-            // Finally allow the "__getattr__" override to provide it or else
-            // it's an error.
-
             PyObject *args2[] = {source, attr_name};
 
             called_object = CALL_FUNCTION_WITH_ARGS2(tstate, source_instance->in_class->cl_getattr, args2);
@@ -13216,32 +13439,14 @@ PyObject *CALL_METHOD_WITH_ARGS4(PyThreadState *tstate, PyObject *source, PyObje
     }
 #endif
     else if (type->tp_getattro != NULL) {
-        PyObject *descr = (*type->tp_getattro)(source, attr_name);
+        PyObject *called_object = (*type->tp_getattro)(source, attr_name);
 
-        if (unlikely(descr == NULL)) {
+        if (unlikely(called_object == NULL)) {
             return NULL;
         }
 
-        descrgetfunc func = NULL;
-        if (NuitkaType_HasFeatureClass(Py_TYPE(descr))) {
-            func = Py_TYPE(descr)->tp_descr_get;
-
-            if (func != NULL && Nuitka_Descr_IsData(descr)) {
-                PyObject *called_object = func(descr, source, (PyObject *)type);
-                Py_DECREF(descr);
-
-                if (unlikely(called_object == NULL)) {
-                    return NULL;
-                }
-
-                PyObject *result = CALL_FUNCTION_WITH_ARGS4(tstate, called_object, args);
-                Py_DECREF(called_object);
-                return result;
-            }
-        }
-
-        PyObject *result = CALL_FUNCTION_WITH_ARGS4(tstate, descr, args);
-        Py_DECREF(descr);
+        PyObject *result = CALL_FUNCTION_WITH_ARGS4(tstate, called_object, args);
+        Py_DECREF(called_object);
         return result;
     } else if (type->tp_getattr != NULL) {
         PyObject *called_object = (*type->tp_getattr)(source, (char *)Nuitka_String_AsString_Unchecked(attr_name));
@@ -13269,7 +13474,6 @@ PyObject *CALL_METHOD_WITH_ARGS5(PyThreadState *tstate, PyObject *source, PyObje
     PyTypeObject *type = Py_TYPE(source);
 
     if (hasTypeGenericGetAttr(type)) {
-        // Unfortunately this is required, although of cause rarely necessary.
         if (unlikely(type->tp_dict == NULL)) {
             if (unlikely(PyType_Ready(type) < 0)) {
                 return NULL;
@@ -13289,6 +13493,10 @@ PyObject *CALL_METHOD_WITH_ARGS5(PyThreadState *tstate, PyObject *source, PyObje
                     PyObject *called_object = func(descr, source, (PyObject *)type);
                     Py_DECREF(descr);
 
+                    if (unlikely(called_object == NULL)) {
+                        return NULL;
+                    }
+
                     PyObject *result = CALL_FUNCTION_WITH_ARGS5(tstate, called_object, args);
                     Py_DECREF(called_object);
                     return result;
@@ -13299,8 +13507,28 @@ PyObject *CALL_METHOD_WITH_ARGS5(PyThreadState *tstate, PyObject *source, PyObje
         Py_ssize_t dictoffset = type->tp_dictoffset;
         PyObject *dict = NULL;
 
+#if PYTHON_VERSION >= 0x3b0
+        if (type->tp_flags & Py_TPFLAGS_MANAGED_DICT) {
+            PyObject *called_object = NULL;
+            int found = Nuitka_LookupManagedDictAttribute(type, source, attr_name, &dict, &called_object);
+
+            if (found != 0) {
+                Py_XDECREF(descr);
+
+                if (unlikely(found < 0)) {
+                    return NULL;
+                }
+
+                PyObject *result = CALL_FUNCTION_WITH_ARGS5(tstate, called_object, args);
+                Py_DECREF(called_object);
+                return result;
+            }
+
+            dictoffset = 0;
+        }
+#endif
+
         if (dictoffset != 0) {
-            // Negative dictionary offsets have special meaning.
             if (dictoffset < 0) {
                 Py_ssize_t tsize;
                 size_t size;
@@ -13335,20 +13563,40 @@ PyObject *CALL_METHOD_WITH_ARGS5(PyThreadState *tstate, PyObject *source, PyObje
             }
 
             Py_DECREF(dict);
+
+#if PYTHON_VERSION < 0x300
+            DROP_ERROR_OCCURRED(tstate);
+#else
+            if (unlikely(HAS_ERROR_OCCURRED(tstate))) {
+                Py_XDECREF(descr);
+                return NULL;
+            }
+#endif
         }
 
         if (func != NULL) {
             if (func == Nuitka_Function_Type.tp_descr_get) {
+                if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
+                    Py_DECREF(descr);
+                    return NULL;
+                }
+
                 PyObject *result = Nuitka_CallMethodFunctionPosArgs(tstate, (struct Nuitka_FunctionObject const *)descr,
                                                                     source, args, 5);
+                Py_LeaveRecursiveCall();
+
                 Py_DECREF(descr);
 
                 return result;
             } else {
                 PyObject *called_object = func(descr, source, (PyObject *)type);
-                CHECK_OBJECT(called_object);
-
                 Py_DECREF(descr);
+
+                if (unlikely(called_object == NULL)) {
+                    return NULL;
+                }
+
+                CHECK_OBJECT(called_object);
 
                 PyObject *result = CALL_FUNCTION_WITH_ARGS5(tstate, called_object, args);
                 Py_DECREF(called_object);
@@ -13370,38 +13618,40 @@ PyObject *CALL_METHOD_WITH_ARGS5(PyThreadState *tstate, PyObject *source, PyObje
 #else
         PyErr_Format(PyExc_AttributeError, "'%s' object has no attribute '%U'", type->tp_name, attr_name);
 #endif
+#if PYTHON_VERSION >= 0x3a0
+        SET_ATTRIBUTE_ERROR_CONTEXT(tstate, source, attr_name);
+#endif
         return NULL;
     }
 #if PYTHON_VERSION < 0x300
     else if (type == &PyInstance_Type) {
         PyInstanceObject *source_instance = (PyInstanceObject *)source;
 
-        // The special cases have their own variant on the code generation level
-        // as we are called with constants only.
         assert(attr_name != const_str_plain___dict__);
         assert(attr_name != const_str_plain___class__);
 
-        // Try the instance dict first.
         PyObject *called_object =
             GET_STRING_DICT_VALUE((PyDictObject *)source_instance->in_dict, (PyStringObject *)attr_name);
 
-        // Note: The "called_object" was found without taking a reference,
-        // so we need not release it in this branch.
         if (called_object != NULL) {
             return CALL_FUNCTION_WITH_ARGS5(tstate, called_object, args);
         }
 
-        // Then check the class dictionaries.
         called_object = FIND_ATTRIBUTE_IN_CLASS(source_instance->in_class, attr_name);
 
-        // Note: The "called_object" was found without taking a reference,
-        // so we need not release it in this branch.
         if (called_object != NULL) {
             descrgetfunc descr_get = Py_TYPE(called_object)->tp_descr_get;
 
             if (descr_get == Nuitka_Function_Type.tp_descr_get) {
-                return Nuitka_CallMethodFunctionPosArgs(tstate, (struct Nuitka_FunctionObject const *)called_object,
-                                                        source, args, 5);
+                if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
+                    return NULL;
+                }
+
+                PyObject *result = Nuitka_CallMethodFunctionPosArgs(
+                    tstate, (struct Nuitka_FunctionObject const *)called_object, source, args, 5);
+                Py_LeaveRecursiveCall();
+
+                return result;
             } else if (descr_get != NULL) {
                 PyObject *method = descr_get(called_object, source, (PyObject *)source_instance->in_class);
 
@@ -13423,9 +13673,6 @@ PyObject *CALL_METHOD_WITH_ARGS5(PyThreadState *tstate, PyObject *source, PyObje
 
             return NULL;
         } else {
-            // Finally allow the "__getattr__" override to provide it or else
-            // it's an error.
-
             PyObject *args2[] = {source, attr_name};
 
             called_object = CALL_FUNCTION_WITH_ARGS2(tstate, source_instance->in_class->cl_getattr, args2);
@@ -13441,32 +13688,14 @@ PyObject *CALL_METHOD_WITH_ARGS5(PyThreadState *tstate, PyObject *source, PyObje
     }
 #endif
     else if (type->tp_getattro != NULL) {
-        PyObject *descr = (*type->tp_getattro)(source, attr_name);
+        PyObject *called_object = (*type->tp_getattro)(source, attr_name);
 
-        if (unlikely(descr == NULL)) {
+        if (unlikely(called_object == NULL)) {
             return NULL;
         }
 
-        descrgetfunc func = NULL;
-        if (NuitkaType_HasFeatureClass(Py_TYPE(descr))) {
-            func = Py_TYPE(descr)->tp_descr_get;
-
-            if (func != NULL && Nuitka_Descr_IsData(descr)) {
-                PyObject *called_object = func(descr, source, (PyObject *)type);
-                Py_DECREF(descr);
-
-                if (unlikely(called_object == NULL)) {
-                    return NULL;
-                }
-
-                PyObject *result = CALL_FUNCTION_WITH_ARGS5(tstate, called_object, args);
-                Py_DECREF(called_object);
-                return result;
-            }
-        }
-
-        PyObject *result = CALL_FUNCTION_WITH_ARGS5(tstate, descr, args);
-        Py_DECREF(descr);
+        PyObject *result = CALL_FUNCTION_WITH_ARGS5(tstate, called_object, args);
+        Py_DECREF(called_object);
         return result;
     } else if (type->tp_getattr != NULL) {
         PyObject *called_object = (*type->tp_getattr)(source, (char *)Nuitka_String_AsString_Unchecked(attr_name));
@@ -13494,7 +13723,6 @@ PyObject *CALL_METHOD_WITH_ARGS6(PyThreadState *tstate, PyObject *source, PyObje
     PyTypeObject *type = Py_TYPE(source);
 
     if (hasTypeGenericGetAttr(type)) {
-        // Unfortunately this is required, although of cause rarely necessary.
         if (unlikely(type->tp_dict == NULL)) {
             if (unlikely(PyType_Ready(type) < 0)) {
                 return NULL;
@@ -13514,6 +13742,10 @@ PyObject *CALL_METHOD_WITH_ARGS6(PyThreadState *tstate, PyObject *source, PyObje
                     PyObject *called_object = func(descr, source, (PyObject *)type);
                     Py_DECREF(descr);
 
+                    if (unlikely(called_object == NULL)) {
+                        return NULL;
+                    }
+
                     PyObject *result = CALL_FUNCTION_WITH_ARGS6(tstate, called_object, args);
                     Py_DECREF(called_object);
                     return result;
@@ -13524,8 +13756,28 @@ PyObject *CALL_METHOD_WITH_ARGS6(PyThreadState *tstate, PyObject *source, PyObje
         Py_ssize_t dictoffset = type->tp_dictoffset;
         PyObject *dict = NULL;
 
+#if PYTHON_VERSION >= 0x3b0
+        if (type->tp_flags & Py_TPFLAGS_MANAGED_DICT) {
+            PyObject *called_object = NULL;
+            int found = Nuitka_LookupManagedDictAttribute(type, source, attr_name, &dict, &called_object);
+
+            if (found != 0) {
+                Py_XDECREF(descr);
+
+                if (unlikely(found < 0)) {
+                    return NULL;
+                }
+
+                PyObject *result = CALL_FUNCTION_WITH_ARGS6(tstate, called_object, args);
+                Py_DECREF(called_object);
+                return result;
+            }
+
+            dictoffset = 0;
+        }
+#endif
+
         if (dictoffset != 0) {
-            // Negative dictionary offsets have special meaning.
             if (dictoffset < 0) {
                 Py_ssize_t tsize;
                 size_t size;
@@ -13560,20 +13812,40 @@ PyObject *CALL_METHOD_WITH_ARGS6(PyThreadState *tstate, PyObject *source, PyObje
             }
 
             Py_DECREF(dict);
+
+#if PYTHON_VERSION < 0x300
+            DROP_ERROR_OCCURRED(tstate);
+#else
+            if (unlikely(HAS_ERROR_OCCURRED(tstate))) {
+                Py_XDECREF(descr);
+                return NULL;
+            }
+#endif
         }
 
         if (func != NULL) {
             if (func == Nuitka_Function_Type.tp_descr_get) {
+                if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
+                    Py_DECREF(descr);
+                    return NULL;
+                }
+
                 PyObject *result = Nuitka_CallMethodFunctionPosArgs(tstate, (struct Nuitka_FunctionObject const *)descr,
                                                                     source, args, 6);
+                Py_LeaveRecursiveCall();
+
                 Py_DECREF(descr);
 
                 return result;
             } else {
                 PyObject *called_object = func(descr, source, (PyObject *)type);
-                CHECK_OBJECT(called_object);
-
                 Py_DECREF(descr);
+
+                if (unlikely(called_object == NULL)) {
+                    return NULL;
+                }
+
+                CHECK_OBJECT(called_object);
 
                 PyObject *result = CALL_FUNCTION_WITH_ARGS6(tstate, called_object, args);
                 Py_DECREF(called_object);
@@ -13595,38 +13867,40 @@ PyObject *CALL_METHOD_WITH_ARGS6(PyThreadState *tstate, PyObject *source, PyObje
 #else
         PyErr_Format(PyExc_AttributeError, "'%s' object has no attribute '%U'", type->tp_name, attr_name);
 #endif
+#if PYTHON_VERSION >= 0x3a0
+        SET_ATTRIBUTE_ERROR_CONTEXT(tstate, source, attr_name);
+#endif
         return NULL;
     }
 #if PYTHON_VERSION < 0x300
     else if (type == &PyInstance_Type) {
         PyInstanceObject *source_instance = (PyInstanceObject *)source;
 
-        // The special cases have their own variant on the code generation level
-        // as we are called with constants only.
         assert(attr_name != const_str_plain___dict__);
         assert(attr_name != const_str_plain___class__);
 
-        // Try the instance dict first.
         PyObject *called_object =
             GET_STRING_DICT_VALUE((PyDictObject *)source_instance->in_dict, (PyStringObject *)attr_name);
 
-        // Note: The "called_object" was found without taking a reference,
-        // so we need not release it in this branch.
         if (called_object != NULL) {
             return CALL_FUNCTION_WITH_ARGS6(tstate, called_object, args);
         }
 
-        // Then check the class dictionaries.
         called_object = FIND_ATTRIBUTE_IN_CLASS(source_instance->in_class, attr_name);
 
-        // Note: The "called_object" was found without taking a reference,
-        // so we need not release it in this branch.
         if (called_object != NULL) {
             descrgetfunc descr_get = Py_TYPE(called_object)->tp_descr_get;
 
             if (descr_get == Nuitka_Function_Type.tp_descr_get) {
-                return Nuitka_CallMethodFunctionPosArgs(tstate, (struct Nuitka_FunctionObject const *)called_object,
-                                                        source, args, 6);
+                if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
+                    return NULL;
+                }
+
+                PyObject *result = Nuitka_CallMethodFunctionPosArgs(
+                    tstate, (struct Nuitka_FunctionObject const *)called_object, source, args, 6);
+                Py_LeaveRecursiveCall();
+
+                return result;
             } else if (descr_get != NULL) {
                 PyObject *method = descr_get(called_object, source, (PyObject *)source_instance->in_class);
 
@@ -13648,9 +13922,6 @@ PyObject *CALL_METHOD_WITH_ARGS6(PyThreadState *tstate, PyObject *source, PyObje
 
             return NULL;
         } else {
-            // Finally allow the "__getattr__" override to provide it or else
-            // it's an error.
-
             PyObject *args2[] = {source, attr_name};
 
             called_object = CALL_FUNCTION_WITH_ARGS2(tstate, source_instance->in_class->cl_getattr, args2);
@@ -13666,32 +13937,14 @@ PyObject *CALL_METHOD_WITH_ARGS6(PyThreadState *tstate, PyObject *source, PyObje
     }
 #endif
     else if (type->tp_getattro != NULL) {
-        PyObject *descr = (*type->tp_getattro)(source, attr_name);
+        PyObject *called_object = (*type->tp_getattro)(source, attr_name);
 
-        if (unlikely(descr == NULL)) {
+        if (unlikely(called_object == NULL)) {
             return NULL;
         }
 
-        descrgetfunc func = NULL;
-        if (NuitkaType_HasFeatureClass(Py_TYPE(descr))) {
-            func = Py_TYPE(descr)->tp_descr_get;
-
-            if (func != NULL && Nuitka_Descr_IsData(descr)) {
-                PyObject *called_object = func(descr, source, (PyObject *)type);
-                Py_DECREF(descr);
-
-                if (unlikely(called_object == NULL)) {
-                    return NULL;
-                }
-
-                PyObject *result = CALL_FUNCTION_WITH_ARGS6(tstate, called_object, args);
-                Py_DECREF(called_object);
-                return result;
-            }
-        }
-
-        PyObject *result = CALL_FUNCTION_WITH_ARGS6(tstate, descr, args);
-        Py_DECREF(descr);
+        PyObject *result = CALL_FUNCTION_WITH_ARGS6(tstate, called_object, args);
+        Py_DECREF(called_object);
         return result;
     } else if (type->tp_getattr != NULL) {
         PyObject *called_object = (*type->tp_getattr)(source, (char *)Nuitka_String_AsString_Unchecked(attr_name));
@@ -13719,7 +13972,6 @@ PyObject *CALL_METHOD_WITH_ARGS7(PyThreadState *tstate, PyObject *source, PyObje
     PyTypeObject *type = Py_TYPE(source);
 
     if (hasTypeGenericGetAttr(type)) {
-        // Unfortunately this is required, although of cause rarely necessary.
         if (unlikely(type->tp_dict == NULL)) {
             if (unlikely(PyType_Ready(type) < 0)) {
                 return NULL;
@@ -13739,6 +13991,10 @@ PyObject *CALL_METHOD_WITH_ARGS7(PyThreadState *tstate, PyObject *source, PyObje
                     PyObject *called_object = func(descr, source, (PyObject *)type);
                     Py_DECREF(descr);
 
+                    if (unlikely(called_object == NULL)) {
+                        return NULL;
+                    }
+
                     PyObject *result = CALL_FUNCTION_WITH_ARGS7(tstate, called_object, args);
                     Py_DECREF(called_object);
                     return result;
@@ -13749,8 +14005,28 @@ PyObject *CALL_METHOD_WITH_ARGS7(PyThreadState *tstate, PyObject *source, PyObje
         Py_ssize_t dictoffset = type->tp_dictoffset;
         PyObject *dict = NULL;
 
+#if PYTHON_VERSION >= 0x3b0
+        if (type->tp_flags & Py_TPFLAGS_MANAGED_DICT) {
+            PyObject *called_object = NULL;
+            int found = Nuitka_LookupManagedDictAttribute(type, source, attr_name, &dict, &called_object);
+
+            if (found != 0) {
+                Py_XDECREF(descr);
+
+                if (unlikely(found < 0)) {
+                    return NULL;
+                }
+
+                PyObject *result = CALL_FUNCTION_WITH_ARGS7(tstate, called_object, args);
+                Py_DECREF(called_object);
+                return result;
+            }
+
+            dictoffset = 0;
+        }
+#endif
+
         if (dictoffset != 0) {
-            // Negative dictionary offsets have special meaning.
             if (dictoffset < 0) {
                 Py_ssize_t tsize;
                 size_t size;
@@ -13785,20 +14061,40 @@ PyObject *CALL_METHOD_WITH_ARGS7(PyThreadState *tstate, PyObject *source, PyObje
             }
 
             Py_DECREF(dict);
+
+#if PYTHON_VERSION < 0x300
+            DROP_ERROR_OCCURRED(tstate);
+#else
+            if (unlikely(HAS_ERROR_OCCURRED(tstate))) {
+                Py_XDECREF(descr);
+                return NULL;
+            }
+#endif
         }
 
         if (func != NULL) {
             if (func == Nuitka_Function_Type.tp_descr_get) {
+                if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
+                    Py_DECREF(descr);
+                    return NULL;
+                }
+
                 PyObject *result = Nuitka_CallMethodFunctionPosArgs(tstate, (struct Nuitka_FunctionObject const *)descr,
                                                                     source, args, 7);
+                Py_LeaveRecursiveCall();
+
                 Py_DECREF(descr);
 
                 return result;
             } else {
                 PyObject *called_object = func(descr, source, (PyObject *)type);
-                CHECK_OBJECT(called_object);
-
                 Py_DECREF(descr);
+
+                if (unlikely(called_object == NULL)) {
+                    return NULL;
+                }
+
+                CHECK_OBJECT(called_object);
 
                 PyObject *result = CALL_FUNCTION_WITH_ARGS7(tstate, called_object, args);
                 Py_DECREF(called_object);
@@ -13820,38 +14116,40 @@ PyObject *CALL_METHOD_WITH_ARGS7(PyThreadState *tstate, PyObject *source, PyObje
 #else
         PyErr_Format(PyExc_AttributeError, "'%s' object has no attribute '%U'", type->tp_name, attr_name);
 #endif
+#if PYTHON_VERSION >= 0x3a0
+        SET_ATTRIBUTE_ERROR_CONTEXT(tstate, source, attr_name);
+#endif
         return NULL;
     }
 #if PYTHON_VERSION < 0x300
     else if (type == &PyInstance_Type) {
         PyInstanceObject *source_instance = (PyInstanceObject *)source;
 
-        // The special cases have their own variant on the code generation level
-        // as we are called with constants only.
         assert(attr_name != const_str_plain___dict__);
         assert(attr_name != const_str_plain___class__);
 
-        // Try the instance dict first.
         PyObject *called_object =
             GET_STRING_DICT_VALUE((PyDictObject *)source_instance->in_dict, (PyStringObject *)attr_name);
 
-        // Note: The "called_object" was found without taking a reference,
-        // so we need not release it in this branch.
         if (called_object != NULL) {
             return CALL_FUNCTION_WITH_ARGS7(tstate, called_object, args);
         }
 
-        // Then check the class dictionaries.
         called_object = FIND_ATTRIBUTE_IN_CLASS(source_instance->in_class, attr_name);
 
-        // Note: The "called_object" was found without taking a reference,
-        // so we need not release it in this branch.
         if (called_object != NULL) {
             descrgetfunc descr_get = Py_TYPE(called_object)->tp_descr_get;
 
             if (descr_get == Nuitka_Function_Type.tp_descr_get) {
-                return Nuitka_CallMethodFunctionPosArgs(tstate, (struct Nuitka_FunctionObject const *)called_object,
-                                                        source, args, 7);
+                if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
+                    return NULL;
+                }
+
+                PyObject *result = Nuitka_CallMethodFunctionPosArgs(
+                    tstate, (struct Nuitka_FunctionObject const *)called_object, source, args, 7);
+                Py_LeaveRecursiveCall();
+
+                return result;
             } else if (descr_get != NULL) {
                 PyObject *method = descr_get(called_object, source, (PyObject *)source_instance->in_class);
 
@@ -13873,9 +14171,6 @@ PyObject *CALL_METHOD_WITH_ARGS7(PyThreadState *tstate, PyObject *source, PyObje
 
             return NULL;
         } else {
-            // Finally allow the "__getattr__" override to provide it or else
-            // it's an error.
-
             PyObject *args2[] = {source, attr_name};
 
             called_object = CALL_FUNCTION_WITH_ARGS2(tstate, source_instance->in_class->cl_getattr, args2);
@@ -13891,32 +14186,14 @@ PyObject *CALL_METHOD_WITH_ARGS7(PyThreadState *tstate, PyObject *source, PyObje
     }
 #endif
     else if (type->tp_getattro != NULL) {
-        PyObject *descr = (*type->tp_getattro)(source, attr_name);
+        PyObject *called_object = (*type->tp_getattro)(source, attr_name);
 
-        if (unlikely(descr == NULL)) {
+        if (unlikely(called_object == NULL)) {
             return NULL;
         }
 
-        descrgetfunc func = NULL;
-        if (NuitkaType_HasFeatureClass(Py_TYPE(descr))) {
-            func = Py_TYPE(descr)->tp_descr_get;
-
-            if (func != NULL && Nuitka_Descr_IsData(descr)) {
-                PyObject *called_object = func(descr, source, (PyObject *)type);
-                Py_DECREF(descr);
-
-                if (unlikely(called_object == NULL)) {
-                    return NULL;
-                }
-
-                PyObject *result = CALL_FUNCTION_WITH_ARGS7(tstate, called_object, args);
-                Py_DECREF(called_object);
-                return result;
-            }
-        }
-
-        PyObject *result = CALL_FUNCTION_WITH_ARGS7(tstate, descr, args);
-        Py_DECREF(descr);
+        PyObject *result = CALL_FUNCTION_WITH_ARGS7(tstate, called_object, args);
+        Py_DECREF(called_object);
         return result;
     } else if (type->tp_getattr != NULL) {
         PyObject *called_object = (*type->tp_getattr)(source, (char *)Nuitka_String_AsString_Unchecked(attr_name));
@@ -13944,7 +14221,6 @@ PyObject *CALL_METHOD_WITH_ARGS8(PyThreadState *tstate, PyObject *source, PyObje
     PyTypeObject *type = Py_TYPE(source);
 
     if (hasTypeGenericGetAttr(type)) {
-        // Unfortunately this is required, although of cause rarely necessary.
         if (unlikely(type->tp_dict == NULL)) {
             if (unlikely(PyType_Ready(type) < 0)) {
                 return NULL;
@@ -13964,6 +14240,10 @@ PyObject *CALL_METHOD_WITH_ARGS8(PyThreadState *tstate, PyObject *source, PyObje
                     PyObject *called_object = func(descr, source, (PyObject *)type);
                     Py_DECREF(descr);
 
+                    if (unlikely(called_object == NULL)) {
+                        return NULL;
+                    }
+
                     PyObject *result = CALL_FUNCTION_WITH_ARGS8(tstate, called_object, args);
                     Py_DECREF(called_object);
                     return result;
@@ -13974,8 +14254,28 @@ PyObject *CALL_METHOD_WITH_ARGS8(PyThreadState *tstate, PyObject *source, PyObje
         Py_ssize_t dictoffset = type->tp_dictoffset;
         PyObject *dict = NULL;
 
+#if PYTHON_VERSION >= 0x3b0
+        if (type->tp_flags & Py_TPFLAGS_MANAGED_DICT) {
+            PyObject *called_object = NULL;
+            int found = Nuitka_LookupManagedDictAttribute(type, source, attr_name, &dict, &called_object);
+
+            if (found != 0) {
+                Py_XDECREF(descr);
+
+                if (unlikely(found < 0)) {
+                    return NULL;
+                }
+
+                PyObject *result = CALL_FUNCTION_WITH_ARGS8(tstate, called_object, args);
+                Py_DECREF(called_object);
+                return result;
+            }
+
+            dictoffset = 0;
+        }
+#endif
+
         if (dictoffset != 0) {
-            // Negative dictionary offsets have special meaning.
             if (dictoffset < 0) {
                 Py_ssize_t tsize;
                 size_t size;
@@ -14010,20 +14310,40 @@ PyObject *CALL_METHOD_WITH_ARGS8(PyThreadState *tstate, PyObject *source, PyObje
             }
 
             Py_DECREF(dict);
+
+#if PYTHON_VERSION < 0x300
+            DROP_ERROR_OCCURRED(tstate);
+#else
+            if (unlikely(HAS_ERROR_OCCURRED(tstate))) {
+                Py_XDECREF(descr);
+                return NULL;
+            }
+#endif
         }
 
         if (func != NULL) {
             if (func == Nuitka_Function_Type.tp_descr_get) {
+                if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
+                    Py_DECREF(descr);
+                    return NULL;
+                }
+
                 PyObject *result = Nuitka_CallMethodFunctionPosArgs(tstate, (struct Nuitka_FunctionObject const *)descr,
                                                                     source, args, 8);
+                Py_LeaveRecursiveCall();
+
                 Py_DECREF(descr);
 
                 return result;
             } else {
                 PyObject *called_object = func(descr, source, (PyObject *)type);
-                CHECK_OBJECT(called_object);
-
                 Py_DECREF(descr);
+
+                if (unlikely(called_object == NULL)) {
+                    return NULL;
+                }
+
+                CHECK_OBJECT(called_object);
 
                 PyObject *result = CALL_FUNCTION_WITH_ARGS8(tstate, called_object, args);
                 Py_DECREF(called_object);
@@ -14045,38 +14365,40 @@ PyObject *CALL_METHOD_WITH_ARGS8(PyThreadState *tstate, PyObject *source, PyObje
 #else
         PyErr_Format(PyExc_AttributeError, "'%s' object has no attribute '%U'", type->tp_name, attr_name);
 #endif
+#if PYTHON_VERSION >= 0x3a0
+        SET_ATTRIBUTE_ERROR_CONTEXT(tstate, source, attr_name);
+#endif
         return NULL;
     }
 #if PYTHON_VERSION < 0x300
     else if (type == &PyInstance_Type) {
         PyInstanceObject *source_instance = (PyInstanceObject *)source;
 
-        // The special cases have their own variant on the code generation level
-        // as we are called with constants only.
         assert(attr_name != const_str_plain___dict__);
         assert(attr_name != const_str_plain___class__);
 
-        // Try the instance dict first.
         PyObject *called_object =
             GET_STRING_DICT_VALUE((PyDictObject *)source_instance->in_dict, (PyStringObject *)attr_name);
 
-        // Note: The "called_object" was found without taking a reference,
-        // so we need not release it in this branch.
         if (called_object != NULL) {
             return CALL_FUNCTION_WITH_ARGS8(tstate, called_object, args);
         }
 
-        // Then check the class dictionaries.
         called_object = FIND_ATTRIBUTE_IN_CLASS(source_instance->in_class, attr_name);
 
-        // Note: The "called_object" was found without taking a reference,
-        // so we need not release it in this branch.
         if (called_object != NULL) {
             descrgetfunc descr_get = Py_TYPE(called_object)->tp_descr_get;
 
             if (descr_get == Nuitka_Function_Type.tp_descr_get) {
-                return Nuitka_CallMethodFunctionPosArgs(tstate, (struct Nuitka_FunctionObject const *)called_object,
-                                                        source, args, 8);
+                if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
+                    return NULL;
+                }
+
+                PyObject *result = Nuitka_CallMethodFunctionPosArgs(
+                    tstate, (struct Nuitka_FunctionObject const *)called_object, source, args, 8);
+                Py_LeaveRecursiveCall();
+
+                return result;
             } else if (descr_get != NULL) {
                 PyObject *method = descr_get(called_object, source, (PyObject *)source_instance->in_class);
 
@@ -14098,9 +14420,6 @@ PyObject *CALL_METHOD_WITH_ARGS8(PyThreadState *tstate, PyObject *source, PyObje
 
             return NULL;
         } else {
-            // Finally allow the "__getattr__" override to provide it or else
-            // it's an error.
-
             PyObject *args2[] = {source, attr_name};
 
             called_object = CALL_FUNCTION_WITH_ARGS2(tstate, source_instance->in_class->cl_getattr, args2);
@@ -14116,32 +14435,14 @@ PyObject *CALL_METHOD_WITH_ARGS8(PyThreadState *tstate, PyObject *source, PyObje
     }
 #endif
     else if (type->tp_getattro != NULL) {
-        PyObject *descr = (*type->tp_getattro)(source, attr_name);
+        PyObject *called_object = (*type->tp_getattro)(source, attr_name);
 
-        if (unlikely(descr == NULL)) {
+        if (unlikely(called_object == NULL)) {
             return NULL;
         }
 
-        descrgetfunc func = NULL;
-        if (NuitkaType_HasFeatureClass(Py_TYPE(descr))) {
-            func = Py_TYPE(descr)->tp_descr_get;
-
-            if (func != NULL && Nuitka_Descr_IsData(descr)) {
-                PyObject *called_object = func(descr, source, (PyObject *)type);
-                Py_DECREF(descr);
-
-                if (unlikely(called_object == NULL)) {
-                    return NULL;
-                }
-
-                PyObject *result = CALL_FUNCTION_WITH_ARGS8(tstate, called_object, args);
-                Py_DECREF(called_object);
-                return result;
-            }
-        }
-
-        PyObject *result = CALL_FUNCTION_WITH_ARGS8(tstate, descr, args);
-        Py_DECREF(descr);
+        PyObject *result = CALL_FUNCTION_WITH_ARGS8(tstate, called_object, args);
+        Py_DECREF(called_object);
         return result;
     } else if (type->tp_getattr != NULL) {
         PyObject *called_object = (*type->tp_getattr)(source, (char *)Nuitka_String_AsString_Unchecked(attr_name));
@@ -14169,7 +14470,6 @@ PyObject *CALL_METHOD_WITH_ARGS9(PyThreadState *tstate, PyObject *source, PyObje
     PyTypeObject *type = Py_TYPE(source);
 
     if (hasTypeGenericGetAttr(type)) {
-        // Unfortunately this is required, although of cause rarely necessary.
         if (unlikely(type->tp_dict == NULL)) {
             if (unlikely(PyType_Ready(type) < 0)) {
                 return NULL;
@@ -14189,6 +14489,10 @@ PyObject *CALL_METHOD_WITH_ARGS9(PyThreadState *tstate, PyObject *source, PyObje
                     PyObject *called_object = func(descr, source, (PyObject *)type);
                     Py_DECREF(descr);
 
+                    if (unlikely(called_object == NULL)) {
+                        return NULL;
+                    }
+
                     PyObject *result = CALL_FUNCTION_WITH_ARGS9(tstate, called_object, args);
                     Py_DECREF(called_object);
                     return result;
@@ -14199,8 +14503,28 @@ PyObject *CALL_METHOD_WITH_ARGS9(PyThreadState *tstate, PyObject *source, PyObje
         Py_ssize_t dictoffset = type->tp_dictoffset;
         PyObject *dict = NULL;
 
+#if PYTHON_VERSION >= 0x3b0
+        if (type->tp_flags & Py_TPFLAGS_MANAGED_DICT) {
+            PyObject *called_object = NULL;
+            int found = Nuitka_LookupManagedDictAttribute(type, source, attr_name, &dict, &called_object);
+
+            if (found != 0) {
+                Py_XDECREF(descr);
+
+                if (unlikely(found < 0)) {
+                    return NULL;
+                }
+
+                PyObject *result = CALL_FUNCTION_WITH_ARGS9(tstate, called_object, args);
+                Py_DECREF(called_object);
+                return result;
+            }
+
+            dictoffset = 0;
+        }
+#endif
+
         if (dictoffset != 0) {
-            // Negative dictionary offsets have special meaning.
             if (dictoffset < 0) {
                 Py_ssize_t tsize;
                 size_t size;
@@ -14235,20 +14559,40 @@ PyObject *CALL_METHOD_WITH_ARGS9(PyThreadState *tstate, PyObject *source, PyObje
             }
 
             Py_DECREF(dict);
+
+#if PYTHON_VERSION < 0x300
+            DROP_ERROR_OCCURRED(tstate);
+#else
+            if (unlikely(HAS_ERROR_OCCURRED(tstate))) {
+                Py_XDECREF(descr);
+                return NULL;
+            }
+#endif
         }
 
         if (func != NULL) {
             if (func == Nuitka_Function_Type.tp_descr_get) {
+                if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
+                    Py_DECREF(descr);
+                    return NULL;
+                }
+
                 PyObject *result = Nuitka_CallMethodFunctionPosArgs(tstate, (struct Nuitka_FunctionObject const *)descr,
                                                                     source, args, 9);
+                Py_LeaveRecursiveCall();
+
                 Py_DECREF(descr);
 
                 return result;
             } else {
                 PyObject *called_object = func(descr, source, (PyObject *)type);
-                CHECK_OBJECT(called_object);
-
                 Py_DECREF(descr);
+
+                if (unlikely(called_object == NULL)) {
+                    return NULL;
+                }
+
+                CHECK_OBJECT(called_object);
 
                 PyObject *result = CALL_FUNCTION_WITH_ARGS9(tstate, called_object, args);
                 Py_DECREF(called_object);
@@ -14270,38 +14614,40 @@ PyObject *CALL_METHOD_WITH_ARGS9(PyThreadState *tstate, PyObject *source, PyObje
 #else
         PyErr_Format(PyExc_AttributeError, "'%s' object has no attribute '%U'", type->tp_name, attr_name);
 #endif
+#if PYTHON_VERSION >= 0x3a0
+        SET_ATTRIBUTE_ERROR_CONTEXT(tstate, source, attr_name);
+#endif
         return NULL;
     }
 #if PYTHON_VERSION < 0x300
     else if (type == &PyInstance_Type) {
         PyInstanceObject *source_instance = (PyInstanceObject *)source;
 
-        // The special cases have their own variant on the code generation level
-        // as we are called with constants only.
         assert(attr_name != const_str_plain___dict__);
         assert(attr_name != const_str_plain___class__);
 
-        // Try the instance dict first.
         PyObject *called_object =
             GET_STRING_DICT_VALUE((PyDictObject *)source_instance->in_dict, (PyStringObject *)attr_name);
 
-        // Note: The "called_object" was found without taking a reference,
-        // so we need not release it in this branch.
         if (called_object != NULL) {
             return CALL_FUNCTION_WITH_ARGS9(tstate, called_object, args);
         }
 
-        // Then check the class dictionaries.
         called_object = FIND_ATTRIBUTE_IN_CLASS(source_instance->in_class, attr_name);
 
-        // Note: The "called_object" was found without taking a reference,
-        // so we need not release it in this branch.
         if (called_object != NULL) {
             descrgetfunc descr_get = Py_TYPE(called_object)->tp_descr_get;
 
             if (descr_get == Nuitka_Function_Type.tp_descr_get) {
-                return Nuitka_CallMethodFunctionPosArgs(tstate, (struct Nuitka_FunctionObject const *)called_object,
-                                                        source, args, 9);
+                if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
+                    return NULL;
+                }
+
+                PyObject *result = Nuitka_CallMethodFunctionPosArgs(
+                    tstate, (struct Nuitka_FunctionObject const *)called_object, source, args, 9);
+                Py_LeaveRecursiveCall();
+
+                return result;
             } else if (descr_get != NULL) {
                 PyObject *method = descr_get(called_object, source, (PyObject *)source_instance->in_class);
 
@@ -14323,9 +14669,6 @@ PyObject *CALL_METHOD_WITH_ARGS9(PyThreadState *tstate, PyObject *source, PyObje
 
             return NULL;
         } else {
-            // Finally allow the "__getattr__" override to provide it or else
-            // it's an error.
-
             PyObject *args2[] = {source, attr_name};
 
             called_object = CALL_FUNCTION_WITH_ARGS2(tstate, source_instance->in_class->cl_getattr, args2);
@@ -14341,32 +14684,14 @@ PyObject *CALL_METHOD_WITH_ARGS9(PyThreadState *tstate, PyObject *source, PyObje
     }
 #endif
     else if (type->tp_getattro != NULL) {
-        PyObject *descr = (*type->tp_getattro)(source, attr_name);
+        PyObject *called_object = (*type->tp_getattro)(source, attr_name);
 
-        if (unlikely(descr == NULL)) {
+        if (unlikely(called_object == NULL)) {
             return NULL;
         }
 
-        descrgetfunc func = NULL;
-        if (NuitkaType_HasFeatureClass(Py_TYPE(descr))) {
-            func = Py_TYPE(descr)->tp_descr_get;
-
-            if (func != NULL && Nuitka_Descr_IsData(descr)) {
-                PyObject *called_object = func(descr, source, (PyObject *)type);
-                Py_DECREF(descr);
-
-                if (unlikely(called_object == NULL)) {
-                    return NULL;
-                }
-
-                PyObject *result = CALL_FUNCTION_WITH_ARGS9(tstate, called_object, args);
-                Py_DECREF(called_object);
-                return result;
-            }
-        }
-
-        PyObject *result = CALL_FUNCTION_WITH_ARGS9(tstate, descr, args);
-        Py_DECREF(descr);
+        PyObject *result = CALL_FUNCTION_WITH_ARGS9(tstate, called_object, args);
+        Py_DECREF(called_object);
         return result;
     } else if (type->tp_getattr != NULL) {
         PyObject *called_object = (*type->tp_getattr)(source, (char *)Nuitka_String_AsString_Unchecked(attr_name));
@@ -14394,7 +14719,6 @@ PyObject *CALL_METHOD_WITH_ARGS10(PyThreadState *tstate, PyObject *source, PyObj
     PyTypeObject *type = Py_TYPE(source);
 
     if (hasTypeGenericGetAttr(type)) {
-        // Unfortunately this is required, although of cause rarely necessary.
         if (unlikely(type->tp_dict == NULL)) {
             if (unlikely(PyType_Ready(type) < 0)) {
                 return NULL;
@@ -14414,6 +14738,10 @@ PyObject *CALL_METHOD_WITH_ARGS10(PyThreadState *tstate, PyObject *source, PyObj
                     PyObject *called_object = func(descr, source, (PyObject *)type);
                     Py_DECREF(descr);
 
+                    if (unlikely(called_object == NULL)) {
+                        return NULL;
+                    }
+
                     PyObject *result = CALL_FUNCTION_WITH_ARGS10(tstate, called_object, args);
                     Py_DECREF(called_object);
                     return result;
@@ -14424,8 +14752,28 @@ PyObject *CALL_METHOD_WITH_ARGS10(PyThreadState *tstate, PyObject *source, PyObj
         Py_ssize_t dictoffset = type->tp_dictoffset;
         PyObject *dict = NULL;
 
+#if PYTHON_VERSION >= 0x3b0
+        if (type->tp_flags & Py_TPFLAGS_MANAGED_DICT) {
+            PyObject *called_object = NULL;
+            int found = Nuitka_LookupManagedDictAttribute(type, source, attr_name, &dict, &called_object);
+
+            if (found != 0) {
+                Py_XDECREF(descr);
+
+                if (unlikely(found < 0)) {
+                    return NULL;
+                }
+
+                PyObject *result = CALL_FUNCTION_WITH_ARGS10(tstate, called_object, args);
+                Py_DECREF(called_object);
+                return result;
+            }
+
+            dictoffset = 0;
+        }
+#endif
+
         if (dictoffset != 0) {
-            // Negative dictionary offsets have special meaning.
             if (dictoffset < 0) {
                 Py_ssize_t tsize;
                 size_t size;
@@ -14460,20 +14808,40 @@ PyObject *CALL_METHOD_WITH_ARGS10(PyThreadState *tstate, PyObject *source, PyObj
             }
 
             Py_DECREF(dict);
+
+#if PYTHON_VERSION < 0x300
+            DROP_ERROR_OCCURRED(tstate);
+#else
+            if (unlikely(HAS_ERROR_OCCURRED(tstate))) {
+                Py_XDECREF(descr);
+                return NULL;
+            }
+#endif
         }
 
         if (func != NULL) {
             if (func == Nuitka_Function_Type.tp_descr_get) {
+                if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
+                    Py_DECREF(descr);
+                    return NULL;
+                }
+
                 PyObject *result = Nuitka_CallMethodFunctionPosArgs(tstate, (struct Nuitka_FunctionObject const *)descr,
                                                                     source, args, 10);
+                Py_LeaveRecursiveCall();
+
                 Py_DECREF(descr);
 
                 return result;
             } else {
                 PyObject *called_object = func(descr, source, (PyObject *)type);
-                CHECK_OBJECT(called_object);
-
                 Py_DECREF(descr);
+
+                if (unlikely(called_object == NULL)) {
+                    return NULL;
+                }
+
+                CHECK_OBJECT(called_object);
 
                 PyObject *result = CALL_FUNCTION_WITH_ARGS10(tstate, called_object, args);
                 Py_DECREF(called_object);
@@ -14495,38 +14863,40 @@ PyObject *CALL_METHOD_WITH_ARGS10(PyThreadState *tstate, PyObject *source, PyObj
 #else
         PyErr_Format(PyExc_AttributeError, "'%s' object has no attribute '%U'", type->tp_name, attr_name);
 #endif
+#if PYTHON_VERSION >= 0x3a0
+        SET_ATTRIBUTE_ERROR_CONTEXT(tstate, source, attr_name);
+#endif
         return NULL;
     }
 #if PYTHON_VERSION < 0x300
     else if (type == &PyInstance_Type) {
         PyInstanceObject *source_instance = (PyInstanceObject *)source;
 
-        // The special cases have their own variant on the code generation level
-        // as we are called with constants only.
         assert(attr_name != const_str_plain___dict__);
         assert(attr_name != const_str_plain___class__);
 
-        // Try the instance dict first.
         PyObject *called_object =
             GET_STRING_DICT_VALUE((PyDictObject *)source_instance->in_dict, (PyStringObject *)attr_name);
 
-        // Note: The "called_object" was found without taking a reference,
-        // so we need not release it in this branch.
         if (called_object != NULL) {
             return CALL_FUNCTION_WITH_ARGS10(tstate, called_object, args);
         }
 
-        // Then check the class dictionaries.
         called_object = FIND_ATTRIBUTE_IN_CLASS(source_instance->in_class, attr_name);
 
-        // Note: The "called_object" was found without taking a reference,
-        // so we need not release it in this branch.
         if (called_object != NULL) {
             descrgetfunc descr_get = Py_TYPE(called_object)->tp_descr_get;
 
             if (descr_get == Nuitka_Function_Type.tp_descr_get) {
-                return Nuitka_CallMethodFunctionPosArgs(tstate, (struct Nuitka_FunctionObject const *)called_object,
-                                                        source, args, 10);
+                if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
+                    return NULL;
+                }
+
+                PyObject *result = Nuitka_CallMethodFunctionPosArgs(
+                    tstate, (struct Nuitka_FunctionObject const *)called_object, source, args, 10);
+                Py_LeaveRecursiveCall();
+
+                return result;
             } else if (descr_get != NULL) {
                 PyObject *method = descr_get(called_object, source, (PyObject *)source_instance->in_class);
 
@@ -14548,9 +14918,6 @@ PyObject *CALL_METHOD_WITH_ARGS10(PyThreadState *tstate, PyObject *source, PyObj
 
             return NULL;
         } else {
-            // Finally allow the "__getattr__" override to provide it or else
-            // it's an error.
-
             PyObject *args2[] = {source, attr_name};
 
             called_object = CALL_FUNCTION_WITH_ARGS2(tstate, source_instance->in_class->cl_getattr, args2);
@@ -14566,32 +14933,14 @@ PyObject *CALL_METHOD_WITH_ARGS10(PyThreadState *tstate, PyObject *source, PyObj
     }
 #endif
     else if (type->tp_getattro != NULL) {
-        PyObject *descr = (*type->tp_getattro)(source, attr_name);
+        PyObject *called_object = (*type->tp_getattro)(source, attr_name);
 
-        if (unlikely(descr == NULL)) {
+        if (unlikely(called_object == NULL)) {
             return NULL;
         }
 
-        descrgetfunc func = NULL;
-        if (NuitkaType_HasFeatureClass(Py_TYPE(descr))) {
-            func = Py_TYPE(descr)->tp_descr_get;
-
-            if (func != NULL && Nuitka_Descr_IsData(descr)) {
-                PyObject *called_object = func(descr, source, (PyObject *)type);
-                Py_DECREF(descr);
-
-                if (unlikely(called_object == NULL)) {
-                    return NULL;
-                }
-
-                PyObject *result = CALL_FUNCTION_WITH_ARGS10(tstate, called_object, args);
-                Py_DECREF(called_object);
-                return result;
-            }
-        }
-
-        PyObject *result = CALL_FUNCTION_WITH_ARGS10(tstate, descr, args);
-        Py_DECREF(descr);
+        PyObject *result = CALL_FUNCTION_WITH_ARGS10(tstate, called_object, args);
+        Py_DECREF(called_object);
         return result;
     } else if (type->tp_getattr != NULL) {
         PyObject *called_object = (*type->tp_getattr)(source, (char *)Nuitka_String_AsString_Unchecked(attr_name));
@@ -14610,11 +14959,13 @@ PyObject *CALL_METHOD_WITH_ARGS10(PyThreadState *tstate, PyObject *source, PyObj
         return NULL;
     }
 }
+#ifndef __IDE_ONLY__
 #if defined(__clang__)
 #pragma clang diagnostic pop
 #elif defined(__GNUC__) && (__GNUC__ > 4 || (__GNUC__ == 4 && __GNUC_MINOR__ >= 2))
 #if __GNUC__ > 4 || (__GNUC__ == 4 && __GNUC_MINOR__ >= 6)
 #pragma GCC diagnostic pop
+#endif
 #endif
 #endif
 

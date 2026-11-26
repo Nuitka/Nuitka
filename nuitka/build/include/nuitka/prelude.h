@@ -41,6 +41,12 @@
 
 #include "nuitka/cpython_api_compat.h"
 
+#include <stdint.h>
+
+#ifdef Py_GIL_DISABLED
+#include <pyatomic.h>
+#endif
+
 // Python 3.11 headers give these warnings
 #if defined(_MSC_VER)
 #pragma warning(push)
@@ -48,7 +54,6 @@
 #pragma warning(disable : 4244)
 #endif
 
-/* Include the relevant Python C-API header files. */
 #include <frameobject.h>
 #include <marshal.h>
 #include <methodobject.h>
@@ -73,48 +78,8 @@
 #define Py_SET_REFCNT(ob, refcnt) Py_REFCNT(ob) = refcnt
 #endif
 
-#if _NUITKA_MODULE_MODE
-NUITKA_MAY_BE_UNUSED static inline int Nuitka_GetRuntimeVersion(void) {
-    static int runtime_version = 0;
-
-    if (runtime_version == 0) {
-        const char *ver = Py_GetVersion();
-
-        while (*ver && *ver != '.') {
-            ver++;
-        }
-
-        if (*ver) {
-            ver++;
-        }
-
-        while (*ver && *ver != '.') {
-            ver++;
-        }
-
-        if (*ver) {
-            ver++;
-        }
-
-        int micro = 0;
-
-        while (*ver >= '0' && *ver <= '9') {
-            micro = micro * 10 + (*ver - '0');
-            ver++;
-        }
-
-        if (micro >= 16) {
-            micro = 15;
-        }
-
-        runtime_version = PY_MAJOR_VERSION * 256 + PY_MINOR_VERSION * 16 + micro;
-    }
-
-    return runtime_version;
-}
-#else
-#define Nuitka_GetRuntimeVersion() PYTHON_VERSION
-#endif
+// Nuitka_GetRuntimeVersion is provided by "nuitka/gc_runtime.h", which is included after the
+// internal CPython headers below.
 
 #if _NUITKA_MODULE_MODE && PYTHON_VERSION >= 0x3e0 && PYTHON_VERSION < 0x3f0 && !defined(Py_GIL_DISABLED)
 // 'pycore_tuple.h' expands '_PyObject_GC_TRACK()' in inline helpers, so the
@@ -140,7 +105,23 @@ NUITKA_MAY_BE_UNUSED static inline void Nuitka_GC_UnTrack(void *raw_op);
 #ifndef Py_BUILD_CORE
 #define Py_BUILD_CORE
 #endif
-#if PYTHON_VERSION >= 0x3f0
+#if PYTHON_VERSION >= 0x3c0 && defined(_NUITKA_USE_UNEXPOSED_API) && defined(WITH_THREAD)
+#ifndef _Py_thread_local
+#ifdef thread_local
+#define _Py_thread_local thread_local
+#elif defined(__STDC_VERSION__) && __STDC_VERSION__ >= 201112L && !defined(__STDC_NO_THREADS__)
+#define _Py_thread_local _Thread_local
+#elif defined(_MSC_VER)
+#define _Py_thread_local __declspec(thread)
+#elif defined(__GNUC__)
+#define _Py_thread_local __thread
+#endif
+#endif
+#if defined(_Py_thread_local) && !defined(HAVE_THREAD_LOCAL)
+#define HAVE_THREAD_LOCAL 1
+#endif
+#endif
+#if PYTHON_VERSION >= 0x3f0 && !defined(_NUITKA_USE_UNEXPOSED_API)
 #define Py_BUILD_CORE_MODULE
 #endif
 #undef _PyGC_FINALIZED
@@ -236,6 +217,7 @@ NUITKA_MAY_BE_UNUSED static inline managed_static_type_state *Nuitka_PyStaticTyp
 #endif
 
 #if PYTHON_VERSION >= 0x3d0
+#include <internal/pycore_call.h>
 #include <internal/pycore_critical_section.h>
 #include <internal/pycore_freelist.h>
 #include <internal/pycore_intrinsics.h>
@@ -258,89 +240,54 @@ NUITKA_MAY_BE_UNUSED static inline managed_static_type_state *Nuitka_PyStaticTyp
 #include <internal/pycore_unicodeobject.h>
 #endif
 
+#if defined(Py_GIL_DISABLED) && PYTHON_VERSION >= 0x3d0 && PYTHON_VERSION < 0x3e0
+#include "internal/pycore_object_alloc.h"
+#endif
+
 #ifndef __IDE_ONLY__
 // IDEs keep the define, so they can still parse private headers included later.
 #undef Py_BUILD_CORE
+#undef Py_BUILD_CORE_MODULE
 #endif
 
 #endif
 
-#if PYTHON_VERSION >= 0x3e0 && PYTHON_VERSION < 0x3f0
-// CPython 3.14.5 grew "_gc_runtime_state" in GIL builds, shifting all later
-// interpreter fields by three pointer widths.
-static inline int Nuitka_PyInterpreterState_PostGcPointerDelta(void) {
-#if _NUITKA_MODULE_MODE && !defined(Py_GIL_DISABLED)
-    static int post_gc_pointer_delta = 99;
-
-    if (post_gc_pointer_delta == 99) {
-        int runtime_pointer_shift = 0;
-        int compile_time_pointer_shift = 0;
-        int runtime_version = Nuitka_GetRuntimeVersion();
-
-        if (runtime_version >= 0x3e5) {
-            runtime_pointer_shift += 3;
-        }
-
-#if PYTHON_VERSION >= 0x3e5
-        compile_time_pointer_shift += 3;
-#endif
-        post_gc_pointer_delta = runtime_pointer_shift - compile_time_pointer_shift;
-    }
-
-    return post_gc_pointer_delta;
-#else
-    return 0;
-#endif
-}
-
-static inline void *Nuitka_PyInterpreterState_AdjustPostGcPointer(void *field_ptr) {
-    return (char *)field_ptr + Nuitka_PyInterpreterState_PostGcPointerDelta() * sizeof(void *);
-}
-
-// CPython 3.14 changed the interpreter layout twice before fields after
-// "_qsbr_shared": 3.14.4 added "_qsbr_shared.array_raw" (+1 pointer) and
-// 3.14.5 grew "_gc_runtime_state" in GIL builds (+3 pointers).
-static inline int Nuitka_PyInterpreterState_PostQsbrPointerDelta(void) {
-#if _NUITKA_MODULE_MODE && !defined(Py_GIL_DISABLED)
-    static int post_qsbr_pointer_delta = 99;
-
-    if (post_qsbr_pointer_delta == 99) {
-        int post_gc_pointer_delta = Nuitka_PyInterpreterState_PostGcPointerDelta();
-        int runtime_version = Nuitka_GetRuntimeVersion();
-        int qsbr_pointer_delta = 0;
-
-        if (runtime_version >= 0x3e4) {
-            qsbr_pointer_delta += 1;
-        }
-
-#if PYTHON_VERSION >= 0x3e4
-        qsbr_pointer_delta -= 1;
-#endif
-        post_qsbr_pointer_delta = post_gc_pointer_delta + qsbr_pointer_delta;
-    }
-
-    return post_qsbr_pointer_delta;
-#else
-    return 0;
-#endif
-}
-
-static inline void *Nuitka_PyInterpreterState_AdjustPostQsbrPointer(void *field_ptr) {
-    return (char *)field_ptr + Nuitka_PyInterpreterState_PostQsbrPointerDelta() * sizeof(void *);
-}
-#endif
+#include "nuitka/gc_runtime.h"
 
 #ifdef _NUITKA_ADAPTED_PYTHON_HEADERS
 /* Cross-compiler offset access and runtime abstraction layer */
 #include "nuitka/python_internals_access.h"
 #else
 #if PYTHON_VERSION >= 0x3c0
+#define _Nuitka_PyRuntime_PTR (&_PyRuntime)
 #define Nuitka_PyRuntime__imports (&_PyRuntime.imports)
 #define Nuitka_PyRuntime__static_objects (&_PyRuntime.static_objects)
 #endif
 #endif
 
 #if PYTHON_VERSION >= 0x3c0
+// Avoid a C-API DLL call for thread state lookup on Python 3.12+, spell-checker: ignore ceval,tss
+NUITKA_MAY_BE_UNUSED static inline PyThreadState *Nuitka_PyThreadState_GET(void) {
+#if defined(_NUITKA_USE_UNEXPOSED_API) && defined(HAVE_THREAD_LOCAL)
+    return _Py_tss_tstate;
+#elif !defined(Py_GIL_DISABLED) && !defined(_NUITKA_EXPERIMENTAL_SUBINTERPRETERS)
+    struct _gil_runtime_state *gil = _Nuitka_PyRuntime_PTR->interpreters.main->ceval.gil;
+#if PYTHON_VERSION < 0x3d0
+    PyThreadState *tstate = (PyThreadState *)_Py_atomic_load_relaxed(&gil->last_holder);
+#else
+    PyThreadState *tstate = gil->last_holder;
+#endif
+    return tstate;
+#else
+    return _PyThreadState_GetCurrent();
+#endif
+}
+
+#undef PyThreadState_GET
+#define PyThreadState_GET() Nuitka_PyThreadState_GET()
+#undef _PyThreadState_GET
+#define _PyThreadState_GET() Nuitka_PyThreadState_GET()
+
 static inline size_t Nuitka_static_builtin_index_get(PyTypeObject *self) { return (size_t)self->tp_subclasses - 1; }
 
 static inline struct types_state *Nuitka_PyInterpreterState_GetTypesState(PyInterpreterState *interp) {
@@ -368,6 +315,23 @@ Nuitka_PyInterpreterState_GetMemFreeQueue(PyInterpreterState *interp) {
     return &interp->mem_free_queue;
 #endif
 }
+
+// Python 3.13 uses the global stop-the-world state for delayed memory frees,
+// while Python 3.14 and 3.15 use the per-interpreter state.
+NUITKA_MAY_BE_UNUSED static inline struct _stoptheworld_state *Nuitka_GetStopTheWorld(void) {
+#if PYTHON_VERSION >= 0x3e0
+#if PYTHON_VERSION < 0x3f0
+    return (struct _stoptheworld_state *)Nuitka_PyInterpreterState_AdjustPostGcPointer(
+        &_PyInterpreterState_GET()->stoptheworld);
+#else
+    return &_PyInterpreterState_GET()->stoptheworld;
+#endif
+#elif defined(_NUITKA_ADAPTED_PYTHON_HEADERS)
+    return NUITKA_PYRUNTIME_DYNAMIC(_Nuitka_PyRuntime_PTR, stoptheworld, struct _stoptheworld_state);
+#else
+    return &_PyRuntime.stoptheworld;
+#endif
+}
 #endif
 
 static inline managed_static_type_state *Nuitka_static_builtin_state_get(PyInterpreterState *interp,
@@ -392,7 +356,6 @@ NUITKA_MAY_BE_UNUSED static inline managed_static_type_state *Nuitka_PyStaticTyp
 #pragma warning(pop)
 #endif
 
-/* Include the C header files most often used. */
 #include <stdio.h>
 
 #if defined(_MSC_VER)
@@ -424,23 +387,66 @@ NUITKA_MAY_BE_UNUSED static inline managed_static_type_state *Nuitka_PyStaticTyp
 
 #include "nuitka/string_functions.h"
 
-// Wrap the type lookup for debug mode, to identify errors, and potentially
-// to make our own enhancement later on. For now only verify it is not being
-// called with an error set, which 3.9 asserts against in core code.
-#ifdef __NUITKA_NO_ASSERT__
-#define Nuitka_TypeLookup(x, y) _PyType_Lookup(x, y)
-#else
-NUITKA_MAY_BE_UNUSED static PyObject *Nuitka_TypeLookup(PyTypeObject *type, PyObject *name) {
-    return _PyType_Lookup(type, name);
-}
-
+#if PYTHON_VERSION >= 0x3b0 && PYTHON_VERSION < 0x400 && !defined(Py_GIL_DISABLED)
+#define NUITKA_TYPE_LOOKUP_CACHE
 #endif
 
-/* With the idea to reduce the amount of exported symbols in the DLLs, make it
- * clear that the module "init" function should of course be exported, but not
- * for executable, where we call it ourselves from the main code.
- */
+#ifdef NUITKA_TYPE_LOOKUP_CACHE
+// CPython 3.11 to 3.15 keep their per-interpreter type lookup cache in
+// "tstate->interp". Reading a hit directly avoids a call into the Python DLL
+// on Windows. The layout and hash are CPython internals, so this is gated by
+// version, and free-threaded builds keep using the API that takes the type
+// lock. CPython 3.16 moved this to a per-type cache, so it keeps using the API
+// too.
+NUITKA_MAY_BE_UNUSED static inline PyObject *Nuitka_TypeLookupFast(PyTypeObject *type, PyObject *name) {
+    PyThreadState *tstate = _PyThreadState_GET();
+    unsigned int version = type->tp_version_tag;
 
+    // A version of 0 means that the type has no valid version tag, in which
+    // case the cache has no matching entry. It would also match unused entries,
+    // which have version 0 and a name of None.
+    if (likely(version != 0)) {
+        unsigned int h = (version ^ (unsigned int)(((Py_ssize_t)name) >> 3)) & ((1 << MCACHE_SIZE_EXP) - 1);
+#if PYTHON_VERSION >= 0x3c0
+        struct type_cache_entry *entry = &tstate->interp->types.type_cache.hashtable[h];
+#else
+        struct type_cache_entry *entry = &tstate->interp->type_cache.hashtable[h];
+#endif
+
+        if (entry->version == version && entry->name == name) {
+            // The cache stores misses with a NULL value, and that is a hit
+            // too, not a reason to call "_PyType_Lookup" again.
+            return entry->value;
+        }
+    }
+
+    return _PyType_Lookup(type, name);
+}
+#endif
+
+#ifdef __NUITKA_NO_ASSERT__
+#ifdef NUITKA_TYPE_LOOKUP_CACHE
+#define Nuitka_TypeLookup(x, y) Nuitka_TypeLookupFast(x, y)
+#else
+#define Nuitka_TypeLookup(x, y) _PyType_Lookup(x, y)
+#endif
+#else
+NUITKA_MAY_BE_UNUSED static PyObject *Nuitka_TypeLookup(PyTypeObject *type, PyObject *name) {
+#ifdef NUITKA_TYPE_LOOKUP_CACHE
+    PyObject *fast_result = Nuitka_TypeLookupFast(type, name);
+    PyObject *result = _PyType_Lookup(type, name);
+
+    assert(fast_result == result);
+
+    return result;
+#else
+    return _PyType_Lookup(type, name);
+#endif
+}
+#endif
+
+// Return type of compiled module entry functions, like "PyMODINIT_FUNC" without
+// symbol export attributes.
 #if PYTHON_VERSION < 0x300
 #define NUITKA_MODULE_ENTRY_FUNCTION void
 #else
@@ -457,28 +463,8 @@ typedef long Py_hash_t;
 #define NUITKA_CROSS_MODULE
 #define NUITKA_LOCAL_MODULE static
 
-#if PYTHON_VERSION >= 0x3e0
-// TODO: Does this code have to be in the header really?
-static inline void Nuitka_Py_ScheduleGC(PyThreadState *tstate) {
-    if (!_Py_eval_breaker_bit_is_set(tstate, _PY_GC_SCHEDULED_BIT)) {
-        _Py_set_eval_breaker_bit(tstate, _PY_GC_SCHEDULED_BIT);
-    }
-}
-
-static inline bool Nuitka_GC_UsesGeneration0List(void) {
-#if _NUITKA_MODULE_MODE && PYTHON_VERSION < 0x3f0 && !defined(Py_GIL_DISABLED)
-    static int uses_generation0_list = -1;
-
-    if (uses_generation0_list == -1) {
-        uses_generation0_list = Nuitka_GetRuntimeVersion() >= 0x3e5;
-    }
-
-    return uses_generation0_list != 0;
-#else
-    return PYTHON_VERSION >= 0x3e5;
-#endif
-}
-#endif
+// Nuitka_Py_ScheduleGC and Nuitka_GC_UsesGeneration0List are provided by
+// "nuitka/gc_runtime.h".
 
 #if _NUITKA_EXPERIMENTAL_FAST_THREAD_GET && PYTHON_VERSION >= 0x300 && PYTHON_VERSION < 0x370
 // We are careful, access without locking under the assumption that we hold
@@ -557,6 +543,11 @@ static inline PyObject *_Py_XNewRef(PyObject *obj) {
 #endif
 
 #include "nuitka/allocator.h"
+
+// Forward declaration for the canonical dictionary insertion helper, used by
+// exception handling before the full dictionary helpers are available.
+extern bool DICT_SET_ITEM(PyThreadState *tstate, PyObject *dict, PyObject *key, PyObject *value);
+
 #include "nuitka/exceptions.h"
 
 // The digit types
@@ -573,8 +564,30 @@ typedef signed int sdigit;
 // triggering compiler warnings about mismatched function types. To preserve
 // type safety, we assert that the passed function actually matches
 // PyCFunctionWithKeywords using a ternary operator conditional that forces the
-// compiler to check the input type.
+// compiler to check the input type. The strict clang warning is suppressed
+// only around the expansion, as the type pun is intentional and required.
+#if HEDLEY_HAS_WARNING("-Wcast-function-type-strict")
+#define CAST_METHOD_KW(func)                                                                                           \
+    _Pragma("clang diagnostic push") _Pragma("clang diagnostic ignored \"-Wcast-function-type-strict\"")(PyCFunction)( \
+        void (*)(void))(1 ? (func) : (PyCFunctionWithKeywords)(func))_Pragma("clang diagnostic pop")
+#else
 #define CAST_METHOD_KW(func) (PyCFunction)(void (*)(void))(1 ? (func) : (PyCFunctionWithKeywords)(func))
+#endif
+
+// For calling method functions of a method table with their actual signature
+// without casting between function pointer types, which newer compilers warn
+// about. The union does the type pun without a cast, which is well defined for
+// function pointers.
+typedef union Nuitka_PyCFunctionUnion {
+    PyCFunction as_function;
+    PyCFunctionWithKeywords as_function_kw;
+#if PYTHON_VERSION >= 0x360
+    _PyCFunctionFast as_function_fast;
+#endif
+#if PYTHON_VERSION >= 0x370
+    _PyCFunctionFastWithKeywords as_function_fast_kw;
+#endif
+} Nuitka_PyCFunctionUnion;
 
 // A long value that represents a signed digit on the helper interface.
 typedef long nuitka_digit;
@@ -645,7 +658,11 @@ extern void INIT_C_BACKTRACES(void);
 extern void DUMP_C_BACKTRACE(void);
 
 // For signal handlers, we can do this.
+#if defined(__APPLE__)
+#include <sys/ucontext.h>
+#else
 #include <ucontext.h>
+#endif
 extern void DUMP_C_BACKTRACE_FROM_CONTEXT(void *ucontext);
 #endif
 

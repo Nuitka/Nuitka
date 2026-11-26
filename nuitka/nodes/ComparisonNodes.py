@@ -66,7 +66,6 @@ class ExpressionComparisonBase(ChildrenHavingLeftRightMixin, ExpressionBase):
         )
 
     def makeInverseComparison(self):
-        # Making this accessing for tree building phase as well.
         return makeComparisonExpression(
             left=self.subnode_left,
             right=self.subnode_right,
@@ -140,8 +139,8 @@ class ExpressionComparisonRichBase(ExpressionComparisonBase):
         else:
             raise NuitkaAssumptionError(
                 "Unexpected no-exception doing comparison simulation",
-                self.operator,
-                self.simulator,
+                self.comparator,
+                self.getSimulator(),
                 self.subnode_left.getTypeShape(),
                 self.subnode_right.getTypeShape(),
                 repr(left),
@@ -202,14 +201,9 @@ class ExpressionComparisonRichBase(ExpressionComparisonBase):
                     ),
                 )
 
-            # The value of these nodes escaped and could change its contents.
-
-            # TODO: Comparisons don't do much, but add this.
-            # if self.escape_desc.isValueEscaping():
-            #    trace_collection.onValueEscapeRichComparison(left, right, self.comparator)
+            # TODO: Notify 'trace_collection' when rich comparison escapes operand values.
 
         if self.escape_desc.isControlFlowEscape():
-            # Any code could be run, note that.
             trace_collection.onControlFlowEscape(self)
 
         return self, None, None
@@ -505,9 +499,7 @@ class ExpressionComparisonExceptionMatchBase(
                 )
 
         if self.mayRaiseExceptionComparison():
-            # Any code could be run, note that.
             trace_collection.onControlFlowEscape(self)
-
             trace_collection.onExceptionRaiseExit(BaseException)
 
         return self, None, None

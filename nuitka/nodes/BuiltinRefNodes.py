@@ -1,14 +1,7 @@
 #     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-"""Tree nodes for built-in references.
-
-There is 2 major types of built-in references. One is the values from
-built-ins, the other is built-in exceptions. They work differently and
-mean different things, but they have similar origin, that is, access
-to variables only ever read.
-
-"""
+"""Tree nodes for built-in value and exception references."""
 
 from nuitka.Builtins import (
     builtin_anon_names,
@@ -17,7 +10,7 @@ from nuitka.Builtins import (
     builtin_names,
     builtin_type_names,
 )
-from nuitka.options.Options import hasPythonFlagNoAsserts
+from nuitka.plugins.Hooks import decideAssertions
 from nuitka.specs import BuiltinParameterSpecs
 
 from .ConstantRefNodes import makeConstantRefNode
@@ -32,7 +25,7 @@ from .shapes.BuiltinTypeShapes import tshape_exception_class
 
 
 class ExpressionBuiltinRefBase(CompileTimeConstantExpressionBase):
-    # Base classes can be abstract, pylint: disable=abstract-method
+    # pylint: disable=abstract-method
 
     __slots__ = ("builtin_name",)
 
@@ -81,6 +74,9 @@ class ExpressionBuiltinPatchableTypeRef(ExpressionNoSideEffectsMixin, Expression
     def finalize(self):
         del self.parent
 
+    def getDetails(self):
+        return {"builtin_name": self.builtin_name}
+
     def computeExpressionRaw(self, trace_collection):
         if self.parent.isExpressionCall():
             result = makeExpressionBuiltinTypeRef(
@@ -107,7 +103,7 @@ class ExpressionBuiltinPatchableTypeRef(ExpressionNoSideEffectsMixin, Expression
 quick_names = {"None": None, "True": True, "False": False}
 
 
-def makeExpressionBuiltinRef(builtin_name, locals_scope, source_ref):
+def makeExpressionBuiltinRef(builtin_name, locals_scope, source_ref, module_name):
     assert builtin_name in builtin_names, builtin_name
 
     if builtin_name in quick_names:
@@ -116,8 +112,10 @@ def makeExpressionBuiltinRef(builtin_name, locals_scope, source_ref):
         )
 
     if builtin_name == "__debug__":
+        assert module_name is not None, builtin_name
+
         return makeConstantRefNode(
-            constant=not hasPythonFlagNoAsserts(), source_ref=source_ref
+            constant=decideAssertions(module_name), source_ref=source_ref
         )
 
     node = getBuiltinRefNode(builtin_name)
@@ -143,7 +141,6 @@ class ExpressionBuiltinRef(ExpressionBuiltinRefBase):
 
     __slots__ = ()
 
-    # For overload
     locals_scope = None
 
     @staticmethod
@@ -177,7 +174,6 @@ class ExpressionBuiltinRef(ExpressionBuiltinRefBase):
         )
 
         if self.builtin_name in ("dir", "eval", "exec", "execfile", "locals", "vars"):
-            # Just inform the collection that all has escaped.
             trace_collection.onLocalsUsage(locals_scope=self.getLocalsScope())
 
         return new_node, tags, message
@@ -199,8 +195,6 @@ class ExpressionBuiltinRef(ExpressionBuiltinRefBase):
 
 
 class ExpressionBuiltinWithContextRef(ExpressionBuiltinRef):
-    """Same as ExpressionBuiltinRef, but with a context it refers to."""
-
     kind = "EXPRESSION_BUILTIN_WITH_CONTEXT_REF"
 
     __slots__ = ("locals_scope",)
@@ -211,6 +205,11 @@ class ExpressionBuiltinWithContextRef(ExpressionBuiltinRef):
         )
 
         self.locals_scope = locals_scope
+
+    def finalize(self):
+        ExpressionBuiltinRef.finalize(self)
+
+        del self.locals_scope
 
     def getDetails(self):
         return {"builtin_name": self.builtin_name, "locals_scope": self.locals_scope}
@@ -267,7 +266,6 @@ class ExpressionBuiltinExceptionRef(ExpressionBuiltinRefBase):
         return builtin_exception_values[self.builtin_name]
 
     def computeExpressionRaw(self, trace_collection):
-        # Not much that can be done here.
         return self, None, None
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):

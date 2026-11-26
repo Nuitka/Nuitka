@@ -1,35 +1,25 @@
 #     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-"""Attribute nodes
+"""Attribute assignment, deletion, check, and built-in access nodes.
 
-Knowing attributes of an object is very important, esp. when it comes to 'self'
-and objects and classes.
-
-There will be a methods "computeExpression*Attribute" to aid predicting them,
-with many variants for setting, deleting, and accessing. Also there is some
-complication in the form of special lookups, that won't go through the normal
-path, but just check slots.
-
-Due to ``getattr`` and ``setattr`` built-ins, there is also a different in the
-computations for objects and for compile time known strings. This reflects what
-CPython also does with "tp_getattr" and "tp_getattro".
-
-These nodes are therefore mostly delegating the work to expressions they
-work on, and let them decide and do the heavy lifting of optimization
-and annotation is happening in the nodes that implement these compute slots.
+Attribute operations delegate prediction and optimization to
+'computeExpression*Attribute' slots on the target expression, mirroring
+CPython's 'tp_getattr'/'tp_getattro' split between compile-time known
+attribute names and dynamic 'getattr'/'setattr'/'delattr'/'hasattr' calls.
 """
 
-from nuitka.__past__ import unicode
+from nuitka.PythonVersions import python_version
 
 from .AttributeLookupNodes import ExpressionAttributeLookup
-from .ChildrenHavingMixins import (
-    ChildHavingExpressionMixin,
-    ChildrenExpressionBuiltinGetattrMixin,
-    ChildrenExpressionBuiltinSetattrMixin,
-)
+from .ChildrenHavingMixins import ChildHavingExpressionMixin
 from .ExpressionBases import ExpressionBase
-from .ExpressionBasesGenerated import ExpressionBuiltinHasattrBase
+from .ExpressionBasesGenerated import (
+    ExpressionBuiltinDelattrBase,
+    ExpressionBuiltinGetattrBase,
+    ExpressionBuiltinHasattrBase,
+    ExpressionBuiltinSetattrBase,
+)
 from .ExpressionShapeMixins import (
     ExpressionBoolShapeExactMixin,
     ExpressionNoneShapeExactMixin,
@@ -38,6 +28,7 @@ from .NodeMakingHelpers import (
     makeCompileTimeConstantReplacementNode,
     makeRaiseExceptionReplacementExpression,
     wrapExpressionWithNodeSideEffects,
+    wrapExpressionWithSideEffects,
 )
 from .StatementBasesGenerated import (
     StatementAssignmentAttributeBase,
@@ -48,12 +39,11 @@ from .StatementBasesGenerated import (
 class StatementAssignmentAttribute(StatementAssignmentAttributeBase):
     """Assignment to an attribute.
 
-    Typically from code like: source.attribute_name = expression
+    Typically from code like: expression.attribute_name = source
 
-    Both source and expression may be complex expressions, the source
-    is evaluated first. Assigning to an attribute has its on slot on
-    the source, which gets to decide if it knows it will work or not,
-    and what value it will be.
+    Both source and expression may be complex expressions; source is
+    evaluated first. Attribute assignment dispatches to a slot on
+    expression ('computeExpressionSetAttribute').
     """
 
     kind = "STATEMENT_ASSIGNMENT_ATTRIBUTE"
@@ -81,11 +71,10 @@ class StatementAssignmentAttribute(StatementAssignmentAttributeBase):
 class StatementDelAttribute(StatementDelAttributeBase):
     """Deletion of an attribute.
 
-    Typically from code like: del source.attribute_name
+    Typically from code like: del expression.attribute_name
 
-    The source may be complex expression. Deleting an attribute has its on
-    slot on the source, which gets to decide if it knows it will work or
-    not, and what value it will be.
+    Attribute deletion dispatches to a slot on expression
+    ('computeExpressionDelAttribute').
     """
 
     kind = "STATEMENT_DEL_ATTRIBUTE"
@@ -123,10 +112,10 @@ def makeExpressionAttributeLookup(expression, attribute_name, source_ref):
         )
 
 
-class ExpressionBuiltinGetattr(ChildrenExpressionBuiltinGetattrMixin, ExpressionBase):
-    """Built-in "getattr".
+class ExpressionBuiltinGetattr(ExpressionBuiltinGetattrBase):
+    """Built-in 'getattr'.
 
-    Typical code like this: getattr(object_arg, name, default)
+    Typical code like this: getattr(expression, name, default)
 
     The default is optional, but computed before the lookup is done.
     """
@@ -139,61 +128,83 @@ class ExpressionBuiltinGetattr(ChildrenExpressionBuiltinGetattrMixin, Expression
     def isExpressionBuiltinCall():
         return True
 
-    def __init__(self, expression, name, default, source_ref):
-        ChildrenExpressionBuiltinGetattrMixin.__init__(
-            self, expression=expression, name=name, default=default
-        )
+    auto_compute_handling = "wait_constant:name,raise"
 
-        ExpressionBase.__init__(self, source_ref)
+    def computeExpressionConstantName(self, trace_collection):
+        if not self.subnode_name.isExpressionConstantStrOrUnicodeRef():
+            attribute_name_type = self.subnode_name.getCompileTimeConstantType()
 
-    def computeExpression(self, trace_collection):
-        trace_collection.onExceptionRaiseExit(BaseException)
+            # CPython 3.11 added the type to the 'getattr' error message.
+            if python_version >= 0x3B0:
+                exception_value = (
+                    "attribute name must be string, not '%s'"
+                    % attribute_name_type.__name__
+                )
+            else:
+                exception_value = "getattr(): attribute name must be string"
+
+            side_effects = [self.subnode_expression]
+
+            if self.subnode_default is not None:
+                side_effects.append(self.subnode_default)
+
+            result = wrapExpressionWithSideEffects(
+                side_effects=tuple(side_effects),
+                old_node=self,
+                new_node=makeRaiseExceptionReplacementExpression(
+                    expression=self,
+                    exception_type="TypeError",
+                    exception_value=exception_value,
+                ),
+            )
+
+            return (
+                result,
+                "new_raise",
+                "Call to 'getattr' with non-str type '%s' attribute name."
+                % attribute_name_type.__name__,
+            )
 
         default = self.subnode_default
 
         if default is None or not default.mayHaveSideEffects():
-            attribute = self.subnode_name
+            attribute_name = self.subnode_name.getCompileTimeConstant()
 
-            attribute_name = attribute.getStringValue()
+            if str is bytes and self.subnode_name.isExpressionConstantUnicodeRef():
+                try:
+                    attribute_name = attribute_name.encode("ascii")
+                except UnicodeEncodeError:
+                    return self, None, None
 
-            if attribute_name is not None:
-                source = self.subnode_expression
-                if source.isKnownToHaveAttribute(attribute_name):
-                    # If source has side effects, they must be evaluated, before
-                    # the lookup, meaning, a temporary variable should be assigned.
-                    # For now, we give up in this case.
+            source = self.subnode_expression
+            if source.isKnownToHaveAttribute(attribute_name):
+                side_effects = source.extractSideEffects()
 
-                    side_effects = source.extractSideEffects()
+                if not side_effects:
+                    result = makeExpressionAttributeLookup(
+                        expression=source,
+                        attribute_name=attribute_name,
+                        source_ref=self.source_ref,
+                    )
 
-                    if not side_effects:
-                        result = makeExpressionAttributeLookup(
-                            expression=source,
-                            attribute_name=attribute_name,
-                            source_ref=self.source_ref,
-                        )
-
-                        result = wrapExpressionWithNodeSideEffects(
-                            new_node=result, old_node=attribute
-                        )
-
-                        return (
-                            result,
-                            "new_expression",
-                            """Replaced call to built-in 'getattr' with constant \
+                    return (
+                        result,
+                        "new_expression",
+                        """Replaced call to built-in 'getattr' with constant \
 attribute '%s' to mere attribute lookup""" % attribute_name,
-                        )
+                    )
+
+        return self, None, None
+
+    def computeExpression(self, trace_collection):
+        trace_collection.onExceptionRaiseExit(BaseException)
 
         return self, None, None
 
 
 class ExpressionBuiltinSetattr(
-    ExpressionNoneShapeExactMixin, ChildrenExpressionBuiltinSetattrMixin, ExpressionBase
+    ExpressionNoneShapeExactMixin, ExpressionBuiltinSetattrBase
 ):
-    """Built-in "setattr".
-
-    Typical code like this: setattr(source, attribute, value)
-    """
-
     kind = "EXPRESSION_BUILTIN_SETATTR"
 
     named_children = ("expression", "name", "value")
@@ -202,32 +213,132 @@ class ExpressionBuiltinSetattr(
     def isExpressionBuiltinCall():
         return True
 
-    def __init__(self, expression, name, value, source_ref):
-        ChildrenExpressionBuiltinSetattrMixin.__init__(
-            self,
-            expression=expression,
-            name=name,
-            value=value,
-        )
+    auto_compute_handling = "wait_constant:name,raise"
 
-        ExpressionBase.__init__(self, source_ref)
+    def computeExpressionConstantName(self, trace_collection):
+        if not self.subnode_name.isExpressionConstantStrOrUnicodeRef():
+            attribute_name_type = self.subnode_name.getCompileTimeConstantType()
 
-    # TODO: Enable this.
-    # auto_compute_handling="wait_constant:attribute,raise"
+            result = wrapExpressionWithSideEffects(
+                side_effects=(self.subnode_expression, self.subnode_value),
+                old_node=self,
+                new_node=makeRaiseExceptionReplacementExpression(
+                    expression=self,
+                    exception_type="TypeError",
+                    exception_value="attribute name must be string, not '%s'"
+                    % attribute_name_type.__name__,
+                ),
+            )
 
-    def computeExpressionConstantAttribute(self, trace_collection):
-        return ExpressionAttributeLookup(
-            expression=self.subnode_expression,
-            attribute_name=self.subnode_attribute.getCompileTimeConstant(),
-            source_ref=self.source_ref,
-        )
+            return (
+                result,
+                "new_raise",
+                "Call to 'setattr' with non-str type '%s' attribute name."
+                % attribute_name_type.__name__,
+            )
+
+        return self, None, None
 
     def computeExpression(self, trace_collection):
         trace_collection.onExceptionRaiseExit(BaseException)
 
-        # TODO: Might be possible to predict or downgrade to mere attribute set
-        # in case of a compile time string attribute value.
         return self, None, None
+
+    def computeExpressionDrop(self, statement, trace_collection):
+        if self.subnode_name.isExpressionConstantStrOrUnicodeRef():
+            attribute_name = self.subnode_name.getCompileTimeConstant()
+
+            if str is bytes and self.subnode_name.isExpressionConstantUnicodeRef():
+                try:
+                    attribute_name = attribute_name.encode("ascii")
+                except UnicodeEncodeError:
+                    return statement, None, None
+
+            result = StatementAssignmentAttribute(
+                expression=self.subnode_expression,
+                attribute_name=attribute_name,
+                source=self.subnode_value,
+                source_ref=self.source_ref,
+            )
+
+            del self.parent
+
+            return (
+                result,
+                "new_statements",
+                "Reduced 'setattr' with constant attribute name to attribute assignment.",
+            )
+
+        return statement, None, None
+
+
+class ExpressionBuiltinDelattr(
+    ExpressionNoneShapeExactMixin, ExpressionBuiltinDelattrBase
+):
+    kind = "EXPRESSION_BUILTIN_DELATTR"
+
+    named_children = ("expression", "name")
+
+    @staticmethod
+    def isExpressionBuiltinCall():
+        return True
+
+    auto_compute_handling = "wait_constant:name,raise"
+
+    def computeExpressionConstantName(self, trace_collection):
+        if not self.subnode_name.isExpressionConstantStrOrUnicodeRef():
+            attribute_name_type = self.subnode_name.getCompileTimeConstantType()
+
+            result = wrapExpressionWithSideEffects(
+                side_effects=(self.subnode_expression,),
+                old_node=self,
+                new_node=makeRaiseExceptionReplacementExpression(
+                    expression=self,
+                    exception_type="TypeError",
+                    exception_value="attribute name must be string, not '%s'"
+                    % attribute_name_type.__name__,
+                ),
+            )
+
+            return (
+                result,
+                "new_raise",
+                "Call to 'delattr' with non-str type '%s' attribute name."
+                % attribute_name_type.__name__,
+            )
+
+        return self, None, None
+
+    def computeExpression(self, trace_collection):
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        return self, None, None
+
+    def computeExpressionDrop(self, statement, trace_collection):
+        if self.subnode_name.isExpressionConstantStrOrUnicodeRef():
+            attribute_name = self.subnode_name.getCompileTimeConstant()
+
+            if str is bytes and self.subnode_name.isExpressionConstantUnicodeRef():
+                try:
+                    attribute_name = attribute_name.encode("ascii")
+                except UnicodeEncodeError:
+                    return statement, None, None
+
+            result = StatementDelAttribute(
+                expression=self.subnode_expression,
+                attribute_name=attribute_name,
+                source_ref=self.source_ref,
+            )
+
+            del self.parent
+
+            return (
+                result,
+                "new_statements",
+                "Reduced 'delattr' with constant attribute name to attribute deletion.",
+            )
+
+        return statement, None, None
 
 
 class ExpressionBuiltinHasattr(ExpressionBuiltinHasattrBase):
@@ -242,63 +353,47 @@ class ExpressionBuiltinHasattr(ExpressionBuiltinHasattrBase):
     auto_compute_handling = "wait_constant:name,raise"
 
     def computeExpression(self, trace_collection):
-        # We do at least for compile time constants optimization here, but more
-        # could be done, were we to know shapes.
-        source = self.subnode_expression
-
-        if source.isCompileTimeConstant():
-            attribute = self.subnode_name
-
-            attribute_name = attribute.getStringValue()
-
-            # TODO: Something needs to be done if it has no string value.
-            if attribute_name is not None:
-                # If source or attribute have side effects, they must be
-                # evaluated, before the lookup.
-                (
-                    result,
-                    tags,
-                    change_desc,
-                ) = trace_collection.getCompileTimeComputationResult(
-                    node=self,
-                    computation=lambda: hasattr(
-                        source.getCompileTimeConstant(), attribute_name
-                    ),
-                    description="Call to 'hasattr' pre-computed.",
-                )
-
-                result = wrapExpressionWithNodeSideEffects(
-                    new_node=result, old_node=attribute
-                )
-                result = wrapExpressionWithNodeSideEffects(
-                    new_node=result, old_node=source
-                )
-
-                return result, tags, change_desc
-
         trace_collection.onExceptionRaiseExit(BaseException)
 
         return self, None, None
 
     def computeExpressionConstantName(self, trace_collection):
-        attribute_name = self.subnode_name.getCompileTimeConstant()
+        if not self.subnode_name.isExpressionConstantStrOrUnicodeRef():
+            attribute_name_type = self.subnode_name.getCompileTimeConstantType()
 
-        if type(attribute_name) not in (str, unicode):
-            result = makeRaiseExceptionReplacementExpression(
-                expression=self,
-                exception_type="TypeError",
-                exception_value="attribute name must be string",
+            # CPython 3.11 added the type to the 'hasattr' error message.
+            if python_version >= 0x3B0:
+                exception_value = (
+                    "attribute name must be string, not '%s'"
+                    % attribute_name_type.__name__
+                )
+            else:
+                exception_value = "hasattr(): attribute name must be string"
+
+            result = wrapExpressionWithSideEffects(
+                side_effects=(self.subnode_expression,),
+                old_node=self,
+                new_node=makeRaiseExceptionReplacementExpression(
+                    expression=self,
+                    exception_type="TypeError",
+                    exception_value=exception_value,
+                ),
             )
 
             return (
                 result,
                 "new_raise",
-                "Call to hasattr with non-str type %s attribute name"
-                % type(attribute_name),
+                "Call to hasattr with non-str type '%s' attribute name."
+                % attribute_name_type.__name__,
             )
 
-        if str is not unicode:
-            attribute_name = attribute_name.encode()
+        attribute_name = self.subnode_name.getCompileTimeConstant()
+
+        if str is bytes and self.subnode_name.isExpressionConstantUnicodeRef():
+            try:
+                attribute_name = attribute_name.encode("ascii")
+            except UnicodeEncodeError:
+                return self, None, None
 
         result = ExpressionAttributeCheck(
             expression=self.subnode_expression,
@@ -335,15 +430,12 @@ class ExpressionAttributeCheck(
     def computeExpression(self, trace_collection):
         source = self.subnode_expression
 
-        # For things that know their attributes, we can statically optimize this
-        # into true or false, preserving side effects of course.
         has_attribute = source.isKnownToHaveAttribute(self.attribute_name)
         if has_attribute is not None:
             result = makeCompileTimeConstantReplacementNode(
                 value=has_attribute, node=self, user_provided=False
             )
 
-            # If source has side effects, they must be evaluated.
             result = wrapExpressionWithNodeSideEffects(new_node=result, old_node=source)
 
             return (
@@ -352,7 +444,6 @@ class ExpressionAttributeCheck(
                 "Attribute check has been pre-computed to '%s'." % has_attribute,
             )
 
-        # Attribute check does not raise is implemented by getting an attribute.
         if self.mayRaiseExceptionOperation():
             trace_collection.onExceptionRaiseExit(BaseException)
 
@@ -364,6 +455,7 @@ class ExpressionAttributeCheck(
             or self.mayRaiseExceptionOperation()
         )
 
+    # Python2 'hasattr' swallows all exceptions, while Python3 only catches 'AttributeError'.
     if str is bytes:
 
         @staticmethod

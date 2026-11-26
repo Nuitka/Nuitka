@@ -14,7 +14,8 @@ import os
 from nuitka.__past__ import iter_modules, unicode
 from nuitka.importing.Importing import locateModule
 from nuitka.importing.Recursion import decideRecursion
-from nuitka.options.Options import isExperimental, isStandaloneMode
+from nuitka.options.Experimental import isExperimental
+from nuitka.options.Options import isStandaloneMode
 from nuitka.plugins.YamlPluginBase import NuitkaYamlPluginBase
 from nuitka.utils.Distributions import (
     getDistributionFiles,
@@ -147,7 +148,7 @@ class NuitkaPluginImplicitImports(NuitkaYamlPluginBase):
 
         # Checking for config, but also allowing fall through.
         for entry in self.config.get(full_name, section="implicit-imports"):
-            if self.evaluateCondition(
+            if entry.get("depends") and self.evaluateCondition(
                 full_name=full_name, condition=entry.get("when", "True")
             ):
                 for dependency in self._handleImplicitImportsConfig(
@@ -188,9 +189,6 @@ According to 'implicit-imports' configuration."""
 
             elif full_name == crypto_module_name + ".Cipher.ARC2":
                 yield crypto_module_name + ".Cipher._raw_arc2"
-
-            elif full_name == crypto_module_name + ".Cipher.DES3":
-                yield crypto_module_name + ".Cipher._raw_des3"
 
             elif full_name == crypto_module_name + ".Cipher._mode_ocb":
                 yield crypto_module_name + ".Cipher._raw_ocb"
@@ -261,7 +259,7 @@ According to 'implicit-imports' configuration."""
                 yield crypto_module_name + ".Protocol._scrypt"
 
             elif full_name == crypto_module_name + ".Cipher._mode_gcm":
-                # spell-checker: ignore ghash,clmul
+                # spell-checker: ignore clmul,ghash
                 yield crypto_module_name + ".Hash._ghash_clmul"
                 yield crypto_module_name + ".Hash._ghash_portable"
                 yield crypto_module_name + ".Util._galois"
@@ -389,8 +387,11 @@ According to 'implicit-imports' configuration."""
                         break
 
     def _getPackageExtraScanPaths(self, package_dir, config):
-        for config_package_dir in config.get("package-dirs", ()):
-            yield os.path.normpath(os.path.join(package_dir, "..", config_package_dir))
+        if os.path.isdir(package_dir):
+            for config_package_dir in config.get("package-dirs", ()):
+                yield os.path.normpath(
+                    os.path.join(package_dir, "..", config_package_dir)
+                )
 
         for config_package_name in config.get("package-paths", ()):
             module_filename = self.locateModule(config_package_name)
@@ -403,7 +404,10 @@ According to 'implicit-imports' configuration."""
 
     def getPackageExtraScanPaths(self, package_name, package_dir):
         for entry in self.config.get(package_name, section="import-hacks"):
-            if self.evaluateCondition(
+            if (
+                (os.path.isdir(package_dir) and entry.get("package-dirs"))
+                or entry.get("package-paths")
+            ) and self.evaluateCondition(
                 full_name=package_name, condition=entry.get("when", "True")
             ):
                 for item in self._getPackageExtraScanPaths(
@@ -411,27 +415,28 @@ According to 'implicit-imports' configuration."""
                 ):
                     yield item
 
-    def _getModuleSysPathAdditions(self, module_name, config):
-        module_filename = self.locateModule(module_name)
+    def getModuleSysPathAdditions(self, module_name):
+        module_filename = None
 
-        if os.path.isfile(module_filename):
-            module_filename = os.path.dirname(module_filename)
+        for config_item in self.getYamlConfigItemSet(
+            module_name=module_name,
+            section="import-hacks",
+            item_name="global-sys-path",
+            decide_relevant=None,
+            recursive=False,
+        ):
+            if module_filename is None:
+                module_filename = self.locateModule(module_name)
 
-        for relative_path in config.get("global-sys-path", ()):
-            candidate = os.path.abspath(os.path.join(module_filename, relative_path))
+                if os.path.isfile(module_filename):
+                    module_filename = os.path.dirname(module_filename)
+
+            candidate = os.path.abspath(
+                os.path.join(module_filename, config_item.value)
+            )
 
             if os.path.isdir(candidate):
                 yield candidate
-
-    def getModuleSysPathAdditions(self, module_name):
-        for entry in self.config.get(module_name, section="import-hacks"):
-            if self.evaluateCondition(
-                full_name=module_name, condition=entry.get("when", "True")
-            ):
-                for item in self._getModuleSysPathAdditions(
-                    module_name=module_name, config=entry
-                ):
-                    yield item
 
     def onModuleSourceCode(self, module_name, source_filename, source_code):
         # TODO: Move the ones that would be possible to yaml config, or a
@@ -660,13 +665,92 @@ tuple(
                 sub_module_name, _sub_attribute_name = attribute_desc.split(":")
 
                 if sub_module_name not in vllm_submodule_attrs:
-                    vllm_submodule_attrs[attribute_name] = []
-                vllm_submodule_attrs[attribute_name].append(sub_module_name)
+                    vllm_submodule_attrs[sub_module_name] = []
+                vllm_submodule_attrs[sub_module_name].append(attribute_name)
 
             self._addLazyLoader(
                 module_name=module_name,
                 submodules=(),
                 submodule_attrs=vllm_submodule_attrs,
+            )
+
+        # Filelock has its own lazy loading, spell-checker: ignore filelock
+        if module_name == "filelock" and "_LAZY_ATTRIBUTES" in source_code:
+            filelock_lazy_loader_info = self.queryRuntimeInformationSingle(
+                setup_codes="import filelock",
+                value="filelock._LAZY_ATTRIBUTES",
+                info_name="filelock_lazy_loader",
+            )
+
+            filelock_submodule_attrs = {}
+
+            for attribute_name, sub_module_name in filelock_lazy_loader_info.items():
+                # The "asyncio" attribute is the module itself, and
+                # "AsyncFileLock" resolves to a class named after the lock
+                # implementation, so neither can use the attribute factory.
+                if attribute_name in ("asyncio", "AsyncFileLock"):
+                    continue
+
+                filelock_submodule_attrs.setdefault(sub_module_name, []).append(
+                    attribute_name
+                )
+
+            self._addLazyLoader(
+                module_name=module_name,
+                submodules=(),
+                submodule_attrs=filelock_submodule_attrs,
+            )
+
+        if module_name == "filelock._soft" and "_EXPORTS" in source_code:
+            filelock_soft_lazy_loader_info = self.queryRuntimeInformationSingle(
+                setup_codes="import filelock._soft",
+                value="dict(filelock._soft._EXPORTS)",
+                info_name="filelock_soft_lazy_loader",
+            )
+
+            filelock_soft_submodule_attrs = {}
+
+            for (
+                attribute_name,
+                sub_module_name,
+            ) in filelock_soft_lazy_loader_info.items():
+                filelock_soft_submodule_attrs.setdefault(sub_module_name, []).append(
+                    attribute_name
+                )
+
+            self._addLazyLoader(
+                module_name=module_name,
+                submodules=(),
+                submodule_attrs=filelock_soft_submodule_attrs,
+            )
+
+        if (
+            module_name == "filelock._soft._read_write"
+            and "def __getattr__(" in source_code
+        ):
+            filelock_read_write_lazy_loader_info = self.queryRuntimeInformationSingle(
+                setup_codes="import filelock._soft._read_write",
+                value="tuple(name for name in filelock._soft._read_write.__all__ if name.startswith('Async'))",
+                info_name="filelock_soft_read_write_lazy_loader",
+            )
+
+            self._addLazyLoader(
+                module_name=module_name,
+                submodules=(),
+                submodule_attrs={"._async": filelock_read_write_lazy_loader_info},
+            )
+
+        if module_name == "filelock._sqlite" and "def __getattr__(" in source_code:
+            filelock_sqlite_lazy_loader_info = self.queryRuntimeInformationSingle(
+                setup_codes="import filelock._sqlite",
+                value="tuple(name for name in filelock._sqlite.__all__ if name.startswith('Async'))",
+                info_name="filelock_sqlite_lazy_loader",
+            )
+
+            self._addLazyLoader(
+                module_name=module_name,
+                submodules=(),
+                submodule_attrs={"._async": filelock_sqlite_lazy_loader_info},
             )
 
         return source_code
@@ -753,89 +837,88 @@ tuple(
     def createPreModuleLoadCode(self, module):
         full_name = module.getFullName()
 
-        for entry in self.config.get(full_name, section="implicit-imports"):
-            if "pre-import-code" in entry:
-                if self.evaluateCondition(
-                    full_name=full_name, condition=entry.get("when", "True")
-                ):
-                    code = "\n".join(entry.get("pre-import-code"))
+        for config_item in self.getYamlConfigItem(
+            module_name=full_name,
+            section="implicit-imports",
+            item_name="pre-import-code",
+            decide_relevant=bool,
+            recursive=False,
+        ):
+            code = "\n".join(config_item.value)
 
-                    # TODO: Add a description to the Yaml file.
-                    yield code, """\
+            # TODO: Add a description to the Yaml file.
+            yield code, """\
 According to Yaml 'pre-import-code' configuration."""
 
-        for entry in self.config.get(full_name, section="import-hacks"):
-            if "force-environment-variables" in entry:
-                if self.evaluateCondition(
-                    full_name=full_name, condition=entry.get("when", "True")
-                ):
-                    for (
-                        environment_variable_name,
-                        environment_variable_value,
-                    ) in entry.get("force-environment-variables").items():
-                        code = """\
+        for config_item in self.getYamlConfigItemItems(
+            module_name=full_name,
+            section="import-hacks",
+            item_name="force-environment-variables",
+            decide_relevant=None,
+            recursive=False,
+        ):
+            code = """\
 import os
 os.environ['%(environment_variable_name)s'] = "%(environment_variable_value)s"
 """ % {
-                            "environment_variable_name": environment_variable_name,
-                            "environment_variable_value": environment_variable_value,
-                        }
-                        yield code, """\
+                "environment_variable_name": config_item.key,
+                "environment_variable_value": config_item.value,
+            }
+            yield code, """\
 According to Yaml 'force-environment-variables' configuration."""
 
-        for entry in self.config.get(full_name, section="import-hacks"):
-            if "overridden-environment-variables" in entry:
-                if self.evaluateCondition(
-                    full_name=full_name, condition=entry.get("when", "True")
-                ):
-                    for (
-                        environment_variable_name,
-                        environment_variable_value,
-                    ) in entry.get("overridden-environment-variables").items():
-                        code = """\
+        for config_item in self.getYamlConfigItemItems(
+            module_name=full_name,
+            section="import-hacks",
+            item_name="overridden-environment-variables",
+            decide_relevant=None,
+            recursive=False,
+        ):
+            code = """\
 import os
 if os.getenv("%(environment_variable_name)s") is not None:
     os.environ["%(environment_variable_name)s" + "_OLD"] = os.getenv("%(environment_variable_name)s")
 os.environ['%(environment_variable_name)s'] = "%(environment_variable_value)s"
 """ % {
-                            "environment_variable_name": environment_variable_name,
-                            "environment_variable_value": environment_variable_value,
-                        }
-                        yield code, """\
+                "environment_variable_name": config_item.key,
+                "environment_variable_value": config_item.value,
+            }
+            yield code, """\
 According to Yaml 'overridden-environment-variables' configuration."""
 
     def createPostModuleLoadCode(self, module):
         full_name = module.getFullName()
 
-        for entry in self.config.get(full_name, section="implicit-imports"):
-            if "post-import-code" in entry:
-                if self.evaluateCondition(
-                    full_name=full_name, condition=entry.get("when", "True")
-                ):
-                    code = "\n".join(entry.get("post-import-code"))
+        for config_item in self.getYamlConfigItem(
+            module_name=full_name,
+            section="implicit-imports",
+            item_name="post-import-code",
+            decide_relevant=bool,
+            recursive=False,
+        ):
+            code = "\n".join(config_item.value)
 
-                    # TODO: Add a description to the Yaml file.
-                    yield code, """\
+            # TODO: Add a description to the Yaml file.
+            yield code, """\
 According to Yaml 'post-import-code' configuration."""
 
-        for entry in self.config.get(full_name, section="import-hacks"):
-            if "overridden-environment-variables" in entry:
-                if self.evaluateCondition(
-                    full_name=full_name, condition=entry.get("when", "True")
-                ):
-                    for environment_variable_name in entry.get(
-                        "overridden-environment-variables"
-                    ):
-                        code = """\
+        for config_item in self.getYamlConfigItemItems(
+            module_name=full_name,
+            section="import-hacks",
+            item_name="overridden-environment-variables",
+            decide_relevant=None,
+            recursive=False,
+        ):
+            code = """\
 import os
 if os.getenv("%(environment_variable_name)s" + "_OLD") is None:
     del os.environ["%(environment_variable_name)s"]
 else:
     os.environ["%(environment_variable_name)s"] = os.environ["%(environment_variable_name)s" + "_OLD"]
     del os.environ["%(environment_variable_name)s" + "_OLD"]
-""" % {"environment_variable_name": environment_variable_name}
+""" % {"environment_variable_name": config_item.key}
 
-                        yield code, """\
+            yield code, """\
 According to Yaml 'overridden-environment-variables' configuration."""
 
     unworthy_namespaces = (

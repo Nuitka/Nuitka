@@ -122,71 +122,35 @@ def getPreprocessorSymbols(onefile):
 
 
 def getExtraIncludeDirectories():
-    """Let plugins extra directories to use for C includes in compilation.
-
-    Notes:
-        The plugins can each contribute, but are hopefully not colliding,
-        order will be plugin order.
-
-    Returns:
-        tuple of paths to include as well.
-    """
+    """Return tuple of extra C include directories from active plugins."""
     return Plugins.getExtraIncludeDirectories()
 
 
 def getExtraLinkDirectories():
-    """Let plugins extra directories to use for C linker in compilation.
-
-    Notes:
-        The plugins can each contribute, but are hopefully not colliding,
-        order will be plugin order.
-
-    Returns:
-        tuple of paths to include as well.
-    """
+    """Return tuple of extra linker search directories from active plugins."""
     return Plugins.getExtraLinkDirectories()
 
 
 def getExtraLinkLibraries():
-    """Let plugins extra libraries to use for C linker in compilation.
-
-    Notes:
-        The plugins can each contribute, but are hopefully not colliding,
-        order will be plugin order.
-
-    Returns:
-        tuple of library names to link against.
-    """
+    """Return tuple of extra libraries to link against from active plugins."""
     return Plugins.getExtraLinkLibraries()
 
 
 def decideCompilation(module_name):
-    """Let plugins decide whether to C compile a module or include as bytecode.
-
-    Notes:
-        The decision is made by the first plugin not returning None.
-
-    Returns:
-        "compiled" (default) or "bytecode".
-    """
+    """Return plugin compilation mode decision ('compiled', 'bytecode', or None)."""
 
     return Plugins.decideCompilation(module_name=module_name)
 
 
 def registerDecisionCompilation(plugin_name, module_name, decision):
-    """Let plugins register a decision whether to C compile a module or include as bytecode."""
+    """Register a static compilation mode decision for a plugin."""
     return Plugins.registerDecisionCompilation(
         plugin_name=plugin_name, module_name=module_name, decision=decision
     )
 
 
 def decideRecompileExtensionModules(module_name):
-    """Let plugins decide whether to re-compile an extension module from source code.
-
-    Notes:
-        The decision is made by the first plugin "never", otherwise a matching
-        "yes" config wins, "no" is allowed to be overridden by command line options.
-    """
+    """Return '(bool or None, reason)' decision on recompiling an extension module from source."""
     return Plugins.decideRecompileExtensionModules(module_name=module_name)
 
 
@@ -198,8 +162,18 @@ def decideAssertions(module_name):
     return Plugins.decideAssertions(module_name=module_name)
 
 
-def decideDocStrings(module_name):
-    return Plugins.decideDocStrings(module_name=module_name)
+def decideNeedsFrameLocalsProxy(module_name, code_qualname):
+    return Plugins.decideNeedsFrameLocalsProxy(
+        module_name=module_name, code_qualname=code_qualname
+    )
+
+
+def decideDocStrings(module):
+    return Plugins.decideDocStrings(module=module)
+
+
+def decideDocStringsForModuleName(module_name):
+    return Plugins.decideDocStringsForModuleName(module_name=module_name)
 
 
 def onClassBodyParsing(provider, class_name, node):
@@ -273,39 +247,21 @@ def getModuleSysPathAdditions(module_name):
 
 
 def considerImplicitImports(module):
-    """Let plugins add implicit imports for a module.
-
-    Args:
-        module: module object
-    Returns:
-        iterable of module names
-    """
+    """Add plugin-provided implicit imports and trigger/fake dependencies for 'module'."""
     return Plugins.considerImplicitImports(module=module)
 
 
 def createVirtualModule(module_name):
-    """Let plugins provide a virtual module for a not found module name.
+    """Let plugins provide a virtual module for a missing module name.
 
-    Args:
-        module_name: full module name that was not found.
     Returns:
-        FakeModuleDescription or None
+        tuple of '(FakeModuleDescription, plugin)', or None.
     """
     return Plugins.createVirtualModule(module_name=module_name)
 
 
 def suppressUnknownImportWarning(importing, source_ref, module_name):
-    """Let plugins decide whether to suppress import warnings for an unknown module.
-
-    Notes:
-        If all plugins return False or None, the return will be False, else True.
-    Args:
-        importing: the module which is importing "module_name"
-        source_ref: pointer to file source code or bytecode
-        module_name: the module to be imported
-    returns:
-        True or False (default)
-    """
+    """Return True if any active plugin suppresses the unknown-import warning."""
     return Plugins.suppressUnknownImportWarning(
         importing=importing, source_ref=source_ref, module_name=module_name
     )
@@ -398,13 +354,13 @@ def getPackageExtraScanPaths(package_name, package_dir):
     )
 
 
-def getUncompiledDecoratorNames():
-    """Return a tuple of decorator names that should cause the function to be uncompiled.
+def getJITDecoratorRegistrations():
+    """Return JIT decorator handling registrations.
 
     Returns:
-        tuple of strings
+        dict of decorator name to tuple of (mode, callback, plugin) tuples
     """
-    return Plugins.getUncompiledDecoratorNames()
+    return Plugins.getJITDecoratorRegistrations()
 
 
 def redactCommandLineArg(arg):

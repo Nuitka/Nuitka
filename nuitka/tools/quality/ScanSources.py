@@ -7,7 +7,7 @@ import os
 
 from nuitka.utils.Shebang import getShebangFromFile
 
-_default_ignore_list = ("inline_copy", "tblib", "__pycache__")
+_default_ignore_list = ("inline_copy", "tblib", "__pycache__", "scratch")
 
 
 def _isIgnoredDirectoryName(dirname):

@@ -13,15 +13,22 @@ from SCons.Script import (  # type: ignore # pylint: disable=I0021,import-error
 )
 
 from nuitka.Tracing import scons_details_logger, scons_logger
-from nuitka.utils.Download import getCachedDownloadedMinGW64
+from nuitka.utils.Download import (
+    DOWNLOAD_MODE_ASK,
+    DOWNLOAD_MODE_NO,
+    getCachedDownloadedMinGW64,
+)
 from nuitka.utils.Execution import check_call
 from nuitka.utils.FileOperations import (
+    getFileContentsHash,
     getFileSize,
     getNormalizedPathJoin,
+    getPathWithForwardSlashes,
     getReportPath,
     listDir,
     openTextFile,
     putTextFileContents,
+    relpath,
 )
 from nuitka.utils.InlineCopies import getInlineCopyFolderIfExists
 from nuitka.utils.PrivatePipSpace import getZigBinaryPath
@@ -31,13 +38,13 @@ from nuitka.utils.Utils import (
     isFedoraBasedLinux,
     isLinux,
     isMacOS,
-    isPosixWindows,
     isWin32Windows,
 )
 
 from .AIXObjGenerator import generateAIXXcoffObject
 from .DataComposerInterface import getConstantBlobSymbolName
 from .SconsCaching import enableCcache, enableClcache
+from .SconsControl import setupScons
 from .SconsHacks import getEnhancedToolDetect, myDetectVersion
 from .SconsProgress import enableSconsProgressBar
 from .SconsUtils import (
@@ -54,6 +61,7 @@ from .SconsUtils import (
     getLinkerArch,
     getMsvcVersion,
     getMsvcVersionString,
+    getQuotedCompilerPath,
     initScons,
     isClangName,
     isGccName,
@@ -61,23 +69,21 @@ from .SconsUtils import (
     linkSystemLibrary,
     raiseNoCompilerFoundErrorExit,
     setEnvironmentVariable,
-    setupScons,
+    splitCompilerCommand,
 )
 from .WindowsObjGenerator import generateWindowsCoffObject
 
-# spell-checker: ignore LIBPATH,CPPDEFINES,CPPPATH,CXXVERSION,CCFLAGS,LINKFLAGS,CXXFLAGS
-# spell-checker: ignore -flto,-fpartial-inlining,-freorder-functions,-defsym,-fprofile
-# spell-checker: ignore -fwrapv,-Wunused,-ftrack,-fvisibility,-municode
-# spell-checker: ignore -feliminate,noexecstack,implib,bexpall,blibpath
-# spell-checker: ignore LTCG,GENPROFILE,USEPROFILE,CGTHREADS,CCVERSION
+# spell-checker: ignore -Wunused,-defsym,-feliminate,-flto,-fpartial-inlining,-fprofile
+# spell-checker: ignore -freorder-functions,-ftrack,-fvisibility,-fwrapv,-municode,CCFLAGS
+# spell-checker: ignore CCVERSION,CGTHREADS,CPPDEFINES,CPPPATH,CXXFLAGS,CXXVERSION
+# spell-checker: ignore GENPROFILE,LIBPATH,LINKFLAGS,LTCG,USEPROFILE,bexpall,blibpath
+# spell-checker: ignore implib,noexecstack
 
 
 def _detectWindowsSDK(env):
-    # Caching
     if hasattr(env, "windows_sdk_version"):
         return env.windows_sdk_version
 
-    # Check if there is a Windows SDK installed.
     if "WindowsSDKVersion" not in env:
         if "WindowsSDKVersion" in os.environ:
             windows_sdk_version = os.environ["WindowsSDKVersion"].rstrip("\\")
@@ -105,17 +111,9 @@ _windows_sdk_c11_mode_min_version = (10, 0, 19041, 0)
 
 
 def _enableC11Settings(env):
-    """Decide if C11 mode can be used and enable the C compile flags for it.
+    """Configure C11 compiler flags and set 'env.c11_mode'."""
 
-    Args:
-        env - scons environment with compiler information
-
-    Returns:
-        bool - c11_mode flag
-    """
-
-    # Lots of cases to deal with
-
+    # ruff: disable[SIM114]
     if "force-c11-mode" in env.experimental_flags:
         c11_mode = True
     elif "force-cpp-mode" in env.experimental_flags:
@@ -134,6 +132,7 @@ def _enableC11Settings(env):
         c11_mode = True
     else:
         c11_mode = False
+    # ruff: enable[SIM114]
 
     if c11_mode:
         if env.gcc_mode or env.zig_mode:
@@ -142,7 +141,7 @@ def _enableC11Settings(env):
             env.Append(CFLAGS=["/std:c11"])
 
     if env.msvc_mode and c11_mode:
-        # Windows SDK shows this even in non-debug mode in C11 mode.
+        # Windows SDK headers emit C5105 and C4391 under '/std:c11'.
         env.Append(CCFLAGS=["/wd5105", "/wd4391"])
 
     if not c11_mode:
@@ -158,7 +157,7 @@ def _enableLtoSettings(
     lto_mode,
     pgo_mode,
 ):
-    # This is driven by branches on purpose and pylint: disable=too-many-branches,too-many-statements
+    # pylint: disable=too-many-branches,too-many-statements
 
     orig_lto_mode = lto_mode
 
@@ -168,6 +167,9 @@ def _enableLtoSettings(
     elif lto_mode == "yes":
         lto_mode = True
         reason = "enabled"
+    elif env.target_os == "WASI" and env.clang_mode:
+        lto_mode = True
+        reason = "known to be supported (WASI clang)"
     elif pgo_mode in ("use", "generate"):
         lto_mode = True
         reason = "PGO implies LTO"
@@ -277,7 +279,6 @@ slower without it.
             if env.mingw_mode and "MAKE" not in os.environ:
                 setEnvironmentVariable(env, "MAKE", "mingw32-make.exe")
 
-    # Tell compiler to use link time optimization for MSVC
     if env.msvc_mode and lto_mode:
         if not env.clangcl_mode:
             env.Append(CCFLAGS=["/GL"])
@@ -297,7 +298,6 @@ slower without it.
     env.orig_lto_mode = orig_lto_mode
     env.pgo_mode = pgo_mode
 
-    # PGO configuration
     _enablePgoSettings(env)
 
 
@@ -310,18 +310,21 @@ def checkWindowsCompilerFound(
     mingw_mode,
     clang_mode,
     msvc_version,
-    download_ok,
-    assume_yes_for_downloads,
+    download_mode,
 ):
-    """Remove compiler of wrong arch or too old gcc and replace with downloaded winlibs gcc."""
-    # Many cases to deal with, pylint: disable=too-many-branches,too-many-statements
+    """Reject unusable Windows compilers and fall back to downloaded winlibs gcc or Zig."""
+    # pylint: disable=too-many-branches,too-many-statements
 
     if os.name != "nt" or isZigName(env["CC"]):
         return env
 
-    # On Windows, in case MSVC was not found and not previously forced, use the
-    # winlibs MinGW64 or zig as a download, and use it as a fallback.
-    compiler_path = getExecutablePath(env["CC"], env=env)
+    compiler_command_parts = splitCompilerCommand(env["CC"])
+
+    compiler_path = (
+        getExecutablePath(compiler_command_parts[0], env=env)
+        if compiler_command_parts
+        else None
+    )
 
     scons_details_logger.info(
         "Checking usability of binary '%s' from environment '%s'."
@@ -343,8 +346,7 @@ def checkWindowsCompilerFound(
     if compiler_path is not None:
         the_cc_name = os.path.basename(compiler_path)
 
-        # The MSVC can only be used with an Windows SDK installed, and for 3.11 we need it
-        # to be a least a minimum version.
+        # MSVC requires a Windows SDK, and Python 3.11+ requires a C11-capable SDK version.
         if (
             not isGccName(the_cc_name)
             and not isClangName(the_cc_name)
@@ -357,7 +359,6 @@ def checkWindowsCompilerFound(
                 )
             )
         ):
-            # This will trigger using it to use our own gcc in branch below.
             compiler_path = None
             env["CC"] = None
 
@@ -365,7 +366,6 @@ def checkWindowsCompilerFound(
         the_cc_name = os.path.basename(compiler_path)
 
         if clang_mode and not isClangName(the_cc_name):
-            # This will trigger using it to use our own clang in branch below.
             compiler_path = None
             env["CC"] = None
 
@@ -392,7 +392,6 @@ C compiler ('%s' -> '%s') arches, that compiler is ignored!"""
                 )
             )
 
-            # This will trigger using it to use our own gcc in branch below.
             compiler_path = None
             env["CC"] = None
 
@@ -401,25 +400,20 @@ C compiler ('%s' -> '%s') arches, that compiler is ignored!"""
             scons_logger.info(
                 "MSVC version resolved to %s." % getMsvcVersionString(env)
             )
-        # Requested a specific MSVC version, check if that worked.
         elif msvc_version != getMsvcVersionString(env):
             scons_logger.info(
                 "Failed to find requested MSVC version ('%s' != '%s')."
                 % (msvc_version, getMsvcVersionString(env))
             )
 
-            # This will trigger error exit in branch below.
             compiler_path = None
             env["CC"] = None
 
-    # For Python3.11+ we need to check Windows SDK version.
     if compiler_path is not None:
         the_cc_name = os.path.basename(compiler_path)
 
-        # The MSVC can only be used with an Windows SDK installed, and for 3.11 we need it
-        # to be a least a minimum version.
         if (
-            # This is actually OK to use like this, pylint: disable=bad-chained-comparison
+            # pylint: disable=bad-chained-comparison
             not isGccName(the_cc_name)
             and None is not env.python_version >= (3, 11)
             and getMsvcVersion(env) < _python311_min_msvc_version
@@ -434,26 +428,23 @@ For Python version %s MSVC %s or later is required, not %s which is too old."""
                 )
             )
 
-            # This will trigger error exit in branch below.
             compiler_path = None
             env["CC"] = None
 
     if compiler_path is not None:
         the_cc_name = os.path.basename(compiler_path)
 
-        if isGccName(the_cc_name):
-            if "force-accept-windows-gcc" not in env.experimental_flags:
-                scons_logger.info(
-                    "Non downloaded winlibs-gcc '%s' is being ignored, Nuitka is very dependent on the precise one."
-                    % (compiler_path,)
-                )
+        if (
+            isGccName(the_cc_name)
+            and "force-accept-windows-gcc" not in env.experimental_flags
+        ):
+            scons_logger.info(
+                "Non downloaded winlibs-gcc '%s' is being ignored, Nuitka is very dependent on the precise one."
+                % (compiler_path,)
+            )
 
-                # This also will trigger using it to use our own gcc in branch below.
-                compiler_path = None
-                env["CC"] = None
-
-    # This will download "gcc.exe" (or "zig.exe") when all others have been
-    # rejected and MSVC is not enforced.
+            compiler_path = None
+            env["CC"] = None
 
     if compiler_path is None and msvc_version is None:
         if env.python_version < (3, 13) or "force-mingw64" in env.experimental_flags:
@@ -463,18 +454,15 @@ For Python version %s MSVC %s or later is required, not %s which is too old."""
 
             compiler_path = getCachedDownloadedMinGW64(
                 target_arch=target_arch,
-                assume_yes_for_downloads=assume_yes_for_downloads,
-                download_ok=download_ok,
+                download_mode=download_mode,
                 experimental="winlibs-new" in env.experimental_flags,
             )
         elif target_arch != "x86" and not mingw_mode:
             scons_details_logger.info("No usable C compiler, attempt fallback to zig.")
 
-            # This will download "zig.exe" when all others have been rejected
-            # and MSVC is not enforced.
             compiler_path = getZigBinaryPath(
                 logger=scons_logger,
-                assume_yes_for_downloads=env.assume_yes_for_downloads,
+                download_mode=download_mode,
                 reject_message=None,
             )
 
@@ -497,15 +485,28 @@ For Python version %s MSVC %s or later is required, not %s which is too old."""
                 ),
                 target_arch=target_arch,
                 consider_environ_variables=False,
-                assume_yes_for_downloads=env.assume_yes_for_downloads,
+                download_mode=download_mode,
                 experimental_flags=env.experimental_flags,
                 source_dir=env.source_dir,
             )
 
             if clang_mode:
-                env["CC"] = os.path.join(os.path.dirname(compiler_path), "clang.exe")
-        else:
+                env["CC"] = getQuotedCompilerPath(
+                    os.path.join(os.path.dirname(compiler_path), "clang.exe")
+                )
+        elif download_mode != DOWNLOAD_MODE_NO:
             raiseNoCompilerFoundErrorExit()
+        else:
+            # For the version output, downloads are not attempted, and a
+            # missing compiler is reported instead of being an error.
+            env.no_usable_compiler = True
+
+    elif compiler_path is None:
+        # A requested MSVC version was not found, and no fallback is attempted.
+        if download_mode != DOWNLOAD_MODE_NO:
+            raiseNoCompilerFoundErrorExit()
+
+        env.no_usable_compiler = True
 
     return env
 
@@ -527,11 +528,13 @@ def createEnvironmentAndCheckCompiler(
     clangcl_mode,
     target_arch,
     consider_environ_variables,
-    assume_yes_for_downloads,
-    download_ok,
+    download_mode,
+    compiler_version_mode,
     experimental_flags,
     source_dir,
 ):
+    # pylint: disable=too-many-branches,too-many-return-statements,too-many-statements
+
     anaconda_python = getArgumentBool("anaconda_python", False)
 
     if isLinux() and anaconda_python:
@@ -546,7 +549,7 @@ def createEnvironmentAndCheckCompiler(
         zig_exe_path=None,
         target_arch=target_arch,
         consider_environ_variables=consider_environ_variables,
-        assume_yes_for_downloads=assume_yes_for_downloads,
+        download_mode=download_mode,
         experimental_flags=experimental_flags,
         source_dir=source_dir,
     )
@@ -557,14 +560,27 @@ def createEnvironmentAndCheckCompiler(
         mingw_mode=mingw_mode,
         clang_mode=clang_mode,
         msvc_version=msvc_version,
-        download_ok=download_ok,
-        assume_yes_for_downloads=assume_yes_for_downloads,
+        download_mode=download_mode,
     )
 
-    env.the_compiler = env["CC"] or env["CXX"]
+    if env.no_usable_compiler:
+        if not compiler_version_mode:
+            raiseNoCompilerFoundErrorExit()
+
+        return env
+
+    if env.get("CC") is None and env.get("CXX") is None:
+        if compiler_version_mode:
+            env.no_usable_compiler = True
+            return env
+
+        raiseNoCompilerFoundErrorExit()
+
+    compiler_command_parts = splitCompilerCommand(env["CC"] or env["CXX"])
+
+    env.the_compiler = compiler_command_parts[0] if compiler_command_parts else ""
     env.the_cc_name = os.path.normcase(os.path.basename(env.the_compiler))
 
-    # Requested or user provided, detect if it's clang even from environment
     if isClangName(env.the_cc_name):
         clang_mode = True
         env["CCVERSION"] = None
@@ -573,18 +589,15 @@ def createEnvironmentAndCheckCompiler(
     # be compatible.
     env.zig_mode = isZigName(env.the_cc_name)
     env.gcc_mode = (
-        isGccName(env.the_cc_name)
-        or clang_mode
-        or (env.zig_mode and not os.name == "nt")
+        isGccName(env.the_cc_name) or clang_mode or (env.zig_mode and os.name != "nt")
     )
+
     env.clang_mode = clang_mode
 
-    # Only use MSVC if not already clear, we are using MinGW.
     env.msvc_mode = os.name == "nt" and not env.gcc_mode and not env.zig_mode
     env.mingw_mode = os.name == "nt" and env.gcc_mode and not env.zig_mode
     env.clangcl_mode = clangcl_mode
 
-    # For Python3.13, we need to enforce it for now to use MSVC
     if (
         os.name == "nt"
         and not env.msvc_mode
@@ -605,12 +618,14 @@ as described in the documentation.""",
             env=env,
         )
 
-    # Detect versions, ensuring they are always set to a tuple, so comparisons
-    # do not fail with TypeError.
     if env.zig_mode:
         env.zig_version = myDetectVersion(env, env.the_compiler)
 
         if env.zig_version is None:
+            if compiler_version_mode:
+                env.no_usable_compiler = True
+                return env
+
             scons_logger.sysexit(
                 "Error, failed to detect Zig version of backend compiler '%s'."
                 % env.the_compiler
@@ -622,6 +637,10 @@ as described in the documentation.""",
         env.clang_version = myDetectVersion(env, env.the_compiler)
 
         if env.clang_version is None:
+            if compiler_version_mode:
+                env.no_usable_compiler = True
+                return env
+
             scons_logger.sysexit(
                 "Error, failed to detect Clang version of backend compiler '%s'."
                 % env.the_compiler
@@ -633,6 +652,10 @@ as described in the documentation.""",
         env.gcc_version = myDetectVersion(env, env.the_compiler)
 
         if env.gcc_version is None:
+            if compiler_version_mode:
+                env.no_usable_compiler = True
+                return env
+
             scons_logger.sysexit(
                 "Error, failed to detect GCC version of backend compiler '%s'."
                 % env.the_compiler
@@ -656,7 +679,13 @@ _supported_resource_modes = (
     "xcoff_obj",
     "mac_section",
     "code",
+    "overlay",
 )
+
+# The Windows PE file format limits the image size to 2 GB, and attaching
+# the onefile payload to the executable file instead of embedding it as a
+# constant blob must happen safely below that.
+_windows_image_size_limit = 1900 * 1024 * 1024
 
 
 def _checkBlobResourceMode(env, resource_mode):
@@ -673,10 +702,17 @@ def _checkBlobResourceMode(env, resource_mode):
             env=env,
         )
 
+    if env.binary_format == "wasm" and resource_mode in ("linker", "incbin"):
+        return scons_logger.sysexit(
+            "Resource mode '%s' is not supported for WASI." % resource_mode,
+            env=env,
+        )
+
     mode_platform_names = {
         "mac_section": (isMacOS(), "macOS"),
-        "coff_obj": (isWin32Windows(), "Windows"),
+        "coff_obj": (env.target_os == "Windows", "Windows"),
         "xcoff_obj": (isAIX(), "AIX"),
+        "overlay": (env.target_os == "Windows", "Windows"),
     }
 
     if resource_mode in mode_platform_names:
@@ -690,14 +726,23 @@ def _checkBlobResourceMode(env, resource_mode):
             )
 
 
-def _decideBlobResourceMode(env, blob_count):
-    # This is a complicated decision with a lot of cases, as there are many
-    # compiler, mode, OS and their versions related decisions.
-    # pylint: disable=too-many-branches
+def _decideBlobResourceMode(env):
+    # pylint: disable=too-many-branches,too-many-statements
 
-    if "NUITKA_RESOURCE_MODE" in os.environ:
-        resource_mode = os.environ["NUITKA_RESOURCE_MODE"]
+    resource_mode = env.requested_resource_mode
+
+    if resource_mode is not None:
         reason = "user provided"
+    elif (
+        env.onefile_compile
+        and isWin32Windows()
+        and env.total_blob_size >= _windows_image_size_limit
+    ):
+        resource_mode = "overlay"
+        reason = "onefile payload attached to the executable"
+    elif env.binary_format == "wasm":
+        resource_mode = "code"
+        reason = "default for WASI"
     elif env.zig_mode:
         resource_mode = "c23_embed"
         reason = "default for zig"
@@ -708,7 +753,7 @@ def _decideBlobResourceMode(env, blob_count):
         else:
             resource_mode = "coff_obj"
             reason = "default for Windows for non-ClangCL"
-    elif isPosixWindows():
+    elif env.msys2_posix_python:
         resource_mode = "linker"
         reason = "default MSYS2 Posix"
     elif isMacOS():
@@ -716,7 +761,7 @@ def _decideBlobResourceMode(env, blob_count):
             resource_mode = "c23_embed"
             reason = "default for macOS with clang 19 or later"
         else:
-            if blob_count > 1:
+            if env.blob_count > 1:
                 resource_mode = "code"
                 reason = "default for macOS with multiple blobs"
             else:
@@ -740,7 +785,6 @@ def _decideBlobResourceMode(env, blob_count):
 
         reason = "default for lto gcc with '--lto' and bugs for incbin"
     else:
-        # All is done already, this is for most platforms.
         resource_mode = "incbin"
         reason = "default"
 
@@ -777,7 +821,6 @@ def _addConstantBlobFileCoffObj(env, blob_filename):
         writeable=_isWriteableConstantsBlob(blob_filename),
     )
 
-    # Link the generated object file
     env.Append(LINKFLAGS=[obj_filename])
 
     return "_NUITKA_CONSTANTS_FROM_COFF_OBJ"
@@ -794,7 +837,6 @@ def _addConstantBlobFileXcoffObj(env, blob_filename):
         writeable=_isWriteableConstantsBlob(blob_filename),
     )
 
-    # Link the generated object file
     env.Append(LINKFLAGS=[obj_filename])
 
     return "_NUITKA_CONSTANTS_FROM_XCOFF_OBJ"
@@ -803,6 +845,7 @@ def _addConstantBlobFileXcoffObj(env, blob_filename):
 def _addConstantBlobFileIncbin(env, blob_filename):
 
     symbol_name = _getSymbolName(blob_filename)
+    blob_checksum = getFileContentsHash(blob_filename)
     blob_basename = os.path.basename(blob_filename)
     assert blob_basename.endswith(".bin"), blob_basename
     constants_generated_filename = os.path.join(
@@ -837,6 +880,12 @@ def _addConstantBlobFileIncbin(env, blob_filename):
 
 INCBIN(%(symbol_name)s, "%(blob_filename)s");
 
+// Checksum of the embedded blob, so external C caching tools notice changes
+// on the embedded blob data. It is not part of the created binary.
+typedef char %(symbol_name)s_blob_checksum_check[
+    sizeof("%(blob_checksum)s") > 0 ? 1 : -1
+];
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -848,28 +897,22 @@ unsigned CONST_CONSTANT char *get%(symbol_name)sData(void) {
 #endif
 """
         % {
-            "blob_filename": blob_filename,
+            "blob_filename": getPathWithForwardSlashes(blob_filename),
+            "blob_checksum": blob_checksum,
             "symbol_name": symbol_name,
             "writeable_data_section": writeable_data_section,
             "read_only_data_section_define": read_only_data_section_define,
         },
     )
 
+    env.generated_source_filenames.append(
+        os.path.basename(constants_generated_filename)
+    )
+
     return "_NUITKA_CONSTANTS_FROM_INCBIN"
 
 
 def _makeLargeDataBlobObject(env, blob_filename, obj_filename):
-    """Create a relocatable object with blob data in the large data section.
-
-    Args:
-        env: The Scons environment.
-        blob_filename: The blob .bin file to convert.
-        obj_filename: The relocatable object file to create.
-
-    Returns:
-        None
-    """
-
     objcopy_path = getExecutablePath("objcopy", env=env)
 
     if objcopy_path is None:
@@ -883,7 +926,7 @@ def _makeLargeDataBlobObject(env, blob_filename, obj_filename):
 
     output_format = getLinkerArch(
         target_arch=env.target_arch,
-        mingw_mode=env.mingw_mode or isPosixWindows(),
+        mingw_mode=env.mingw_mode or env.msys2_posix_python,
     )
 
     if output_format is None:
@@ -915,15 +958,19 @@ def _makeLargeDataBlobObject(env, blob_filename, obj_filename):
 
 def _addConstantBlobFileLinker(env, blob_filename):
 
-    # For MinGW the symbol name to be used is more low level.
+    # For 32-bit MinGW the symbol name has a leading underscore.
     constant_bin_link_name = _getSymbolName(blob_filename) + "_data"
-    if env.mingw_mode:
+    if env.mingw_mode and env.target_arch == "x86":
         constant_bin_link_name = "_" + constant_bin_link_name
 
     # At least some gcc versions need this path to contain a path element,
     # but it's normalized when it gets to here.
     if env.source_dir == ".":
         blob_filename = "./%s" % blob_filename
+
+    # The blob stem itself is safe now, but the linker derives its symbols
+    # from the whole path including path separators and the file extension.
+    blob_symbol_name = re.sub("[^a-zA-Z0-9_]", "_", blob_filename)
 
     if env.large_data_model:
         # Directly linking the blob would put it into the '.data' section
@@ -950,7 +997,7 @@ def _addConstantBlobFileLinker(env, blob_filename):
                 "-Wl,%s"
                 % getLinkerArch(
                     target_arch=env.target_arch,
-                    mingw_mode=env.mingw_mode or isPosixWindows(),
+                    mingw_mode=env.mingw_mode or env.msys2_posix_python,
                 ),
             ]
         )
@@ -959,10 +1006,7 @@ def _addConstantBlobFileLinker(env, blob_filename):
         LINKFLAGS=[
             "-Wl,-defsym",
             "-Wl,%s=_binary_%s_start"
-            % (
-                constant_bin_link_name.replace("$", "$$"),
-                "".join(re.sub("[^a-zA-Z0-9_]", "_", c) for c in blob_filename),
-            ),
+            % (constant_bin_link_name.replace("$", "$$"), blob_symbol_name),
         ]
     )
 
@@ -971,6 +1015,10 @@ def _addConstantBlobFileLinker(env, blob_filename):
 
 def _addConstantBlobFileCode(env, blob_filename):
 
+    symbol_name = _getSymbolName(blob_filename)
+    blob_checksum = (
+        getFileContentsHash(blob_filename) if env.resource_mode == "c23_embed" else None
+    )
     blob_basename = os.path.basename(blob_filename)
     assert blob_basename.endswith(".bin"), blob_basename
     constants_generated_filename = getNormalizedPathJoin(
@@ -987,13 +1035,6 @@ def _addConstantBlobFileCode(env, blob_filename):
 // Constant data for the program.
 """)
 
-            if env.clang_mode or env.clangcl_mode:
-                output.write("""
-#if defined(__clang__)
-#pragma clang diagnostic ignored "-Wc23-extensions"
-#endif
-""")
-
             output.write("""
 #ifdef __cplusplus
 extern "C"
@@ -1003,9 +1044,27 @@ const
 #endif
 unsigned char %s_data[] =
 {
-""" % _getSymbolName(blob_filename))
+""" % symbol_name)
 
-            if env.resource_mode == "code":
+            if env.resource_mode == "c23_embed":
+                # The '#embed' directive is a C23 extension, and only Clang 19
+                # and later support it, older versions do not know the warning
+                # group either.
+                if env.clang_mode or env.clangcl_mode:
+                    output.write("""
+#if defined(__clang__) && __clang_major__ >= 19
+#pragma clang diagnostic ignored "-Wc23-extensions"
+#endif
+""")
+
+                # The '#embed' directive is resolved relative to the file
+                # containing it, and not the current working directory, so
+                # the blob must be referenced relative to the generated file.
+                output.write(
+                    '#embed "%s"\n'
+                    % getPathWithForwardSlashes(relpath(blob_filename, env.source_dir))
+                )
+            else:
                 with open(blob_filename, "rb") as f:
                     content = f.read()
                 for count, stream_byte in enumerate(content):
@@ -1019,13 +1078,20 @@ unsigned char %s_data[] =
                         stream_byte = ord(stream_byte)
 
                     output.write(" 0x%02x," % stream_byte)
-            else:
-                output.write('#embed "%s"\n' % blob_filename)
 
             output.write("""\
 \n};
 
 """)
+
+            if blob_checksum is not None:
+                output.write("""\
+// Checksum of the embedded blob, so external caches notice changes.
+typedef char %s_blob_checksum_check[
+    sizeof("%s") > 0 ? 1 : -1
+];
+
+""" % (symbol_name, blob_checksum))
 
             output.write(
                 """\
@@ -1047,7 +1113,7 @@ unsigned char *get%(symbol_name)sData(void) {
 #endif
 """
                 % {
-                    "symbol_name": _getSymbolName(blob_filename),
+                    "symbol_name": symbol_name,
                 }
             )
 
@@ -1055,6 +1121,10 @@ unsigned char *get%(symbol_name)sData(void) {
                 output.write("}")
 
     writeConstantsDataSource()
+
+    env.generated_source_filenames.append(
+        os.path.basename(constants_generated_filename)
+    )
 
     return "_NUITKA_CONSTANTS_FROM_CODE"
 
@@ -1078,6 +1148,14 @@ def _addConstantBlobFileMacSection(env, blob_filename):
     return "_NUITKA_CONSTANTS_FROM_MACOS_SECTION"
 
 
+def _addConstantBlobFileOverlay(env, blob_filename):
+    # The payload is attached to the executable file instead of being
+    # embedded as a constant blob, which the bootstrap binary reads from
+    # its own executing file.
+    # pylint: disable=unused-argument
+    return "_NUITKA_ONEFILE_PAYLOAD_OVERLAY_BOOL"
+
+
 _constant_blob_mode_functions = {
     "coff_obj": _addConstantBlobFileCoffObj,
     "xcoff_obj": _addConstantBlobFileXcoffObj,
@@ -1086,18 +1164,12 @@ _constant_blob_mode_functions = {
     "linker": _addConstantBlobFileLinker,
     "code": _addConstantBlobFileCode,
     "c23_embed": _addConstantBlobFileCode,
+    "overlay": _addConstantBlobFileOverlay,
 }
 
 
 def _addConstantBlobFile(env, blob_filename):
     assert blob_filename.endswith(".bin"), blob_filename
-
-    if env.resource_mode == "absent":
-        env.resource_mode, reason = _decideBlobResourceMode(env, blob_count=1)
-
-        scons_details_logger.info(
-            "Using resource mode: '%s' (%s)." % (env.resource_mode, reason)
-        )
 
     if env.resource_mode in _constant_blob_mode_functions:
         return _constant_blob_mode_functions[env.resource_mode](env, blob_filename)
@@ -1113,21 +1185,15 @@ def _addConstantBlobFiles(env, source_dir):
 
     Notes:
         On x86_64 Linux, blobs may exceed the 2GB range of the small code
-        model, causing "relocation truncated to fit: R_X86_64_PC32" linker
+        model, causing 'relocation truncated to fit: R_X86_64_PC32' linker
         errors. Use the medium code model and large data sections then, as
         linker scripts place them after all other data.
-
-    Args:
-        env: The Scons environment.
-        source_dir: The source directory containing the blobs/ subdirectory.
-
-    Returns:
-        int: Total size of all blob .bin files in bytes.
     """
     env.resource_mode = "absent"
     env.large_data_model = False
+    env.total_blob_size = 0
+    env.blob_count = 0
 
-    total_blob_size = 0
     blobs_dir = os.path.join(source_dir, "blobs")
     if os.path.exists(blobs_dir):
         blob_filenames = []
@@ -1135,12 +1201,13 @@ def _addConstantBlobFiles(env, source_dir):
         for filename_full, filename in listDir(blobs_dir):
             if filename.endswith(".bin"):
                 blob_filenames.append(filename_full)
-                total_blob_size += getFileSize(filename_full)
+                env.total_blob_size += getFileSize(filename_full)
 
         blob_filenames = sorted(blob_filenames)
+        env.blob_count = len(blob_filenames)
 
         if (
-            total_blob_size >= 1600 * 1024 * 1024
+            env.total_blob_size >= 1600 * 1024 * 1024
             and env.target_arch == "x86_64"
             and isLinux()
             and (env.gcc_mode or env.clang_mode or env.zig_mode)
@@ -1148,19 +1215,21 @@ def _addConstantBlobFiles(env, source_dir):
             env.large_data_model = True
 
         if env.resource_mode == "absent" and blob_filenames:
-            env.resource_mode, reason = _decideBlobResourceMode(
-                env, blob_count=len(blob_filenames)
-            )
+            env.resource_mode, reason = _decideBlobResourceMode(env)
+
+            if env.resource_mode == "overlay":
+                # TODO: Support attaching multiple payloads in the future,
+                # then this restriction can be lifted.
+                assert env.blob_count == 1, blob_filenames
 
             scons_details_logger.info(
                 "Using resource mode: '%s' (%s)." % (env.resource_mode, reason)
             )
 
         if env.large_data_model:
-            scons_details_logger.info(
-                "Total data blob size is %.2f GB, using medium code model and "
-                "large data sections." % (total_blob_size / (1024.0 * 1024.0 * 1024.0))
-            )
+            scons_details_logger.info("""\
+Total data blob size is %.2f GB, using medium code model and large data \
+sections.""" % (env.total_blob_size / (1024.0 * 1024.0 * 1024.0)))
             env.Append(CCFLAGS=["-mcmodel=medium"])
 
         blob_define = None
@@ -1180,11 +1249,8 @@ def _addConstantBlobFiles(env, source_dir):
         if blob_define is not None:
             env.Append(CPPDEFINES=[blob_define])
 
-    return total_blob_size
-
 
 def _enableMacOSTargetSettings(env):
-    """Set up environment for macOS target settings."""
     assert isMacOS()
 
     setEnvironmentVariable(env, "MACOSX_DEPLOYMENT_TARGET", env.macos_min_version)
@@ -1199,7 +1265,6 @@ def _enableMacOSTargetSettings(env):
 
 
 def _enableAIXTargetSettings(env):
-    """Set up environment for AIX target settings."""
     assert isAIX()
 
     if env.target_arch in ("64", "32"):
@@ -1207,9 +1272,63 @@ def _enableAIXTargetSettings(env):
         env.Append(LINKFLAGS=["-m%s" % env.target_arch])
 
 
+def _enableWasiTargetSettings(env):
+    assert env.target_os == "WASI"
+
+    if env.zig_mode:
+        env.Append(CCFLAGS=["-target", "wasm32-wasi"])
+        env.Append(LINKFLAGS=["-target", "wasm32-wasi", "-mexec-model=command"])
+    elif env.clang_mode:
+        assert env.wasi_sdk_path is not None
+
+        wasi_sysroot = getNormalizedPathJoin(env.wasi_sdk_path, "share", "wasi-sysroot")
+        env.Append(CCFLAGS=["--target=wasm32-wasi", "--sysroot=%s" % wasi_sysroot])
+        env.Append(
+            LINKFLAGS=[
+                "--target=wasm32-wasi",
+                "--sysroot=%s" % wasi_sysroot,
+                "-mexec-model=command",
+            ]
+        )
+    else:
+        assert False
+
+    # HACL's lowstar endianness header redefines macros provided by endian.h.
+    env.Append(CCFLAGS=["-Wno-macro-redefined"])
+
+    env.Append(
+        CPPDEFINES=[
+            "_WASI_EMULATED_MMAN",
+            "_WASI_EMULATED_GETPID",
+            "_WASI_EMULATED_SIGNAL",
+            "_WASI_EMULATED_PROCESS_CLOCKS",
+            "_NUITKA_NO_DEPLOYMENT_SEGFAULT",
+        ]
+    )
+    env.Append(
+        LIBS=[
+            "wasi-emulated-mman",
+            "wasi-emulated-getpid",
+            "wasi-emulated-signal",
+            "wasi-emulated-process-clocks",
+            "dl",
+        ]
+    )
+
+
 def _enableWin32TargetSettings(env):
-    """Set up environment for Windows target settings."""
-    assert isWin32Windows()
+    assert env.target_os == "Windows"
+
+    if env.zig_mode:
+        target_triple = {
+            "x86": "x86-windows-gnu",
+            "x86_64": "x86_64-windows-gnu",
+            "arm64": "aarch64-windows-gnu",
+        }[env.target_arch]
+
+        env.Append(CCFLAGS=["-target", target_triple])
+        env.Append(LINKFLAGS=["-target", target_triple])
+
     # The MinGW64 and ClangCL do not default for API level properly, so
     # help it. For zig, it is hard coded.
     if not env.zig_mode:
@@ -1219,14 +1338,14 @@ def _enableWin32TargetSettings(env):
 def _enableWindowsStackSize(env, target_arch):
     # Stack size 4MB or 8MB, we might need more than the default 1MB.
     if target_arch == "x86_64":
-        stack_size = 1024 * 1204 * 8
+        stack_size = 1024 * 1024 * 8
     else:
-        stack_size = 1024 * 1204 * 4
+        stack_size = 1024 * 1024 * 4
 
     if env.msvc_mode:
         env.Append(LINKFLAGS=["/STACK:%d" % stack_size])
 
-    if env.mingw_mode:
+    if env.mingw_mode or (env.zig_mode and env.target_os == "Windows"):
         env.Append(LINKFLAGS=["-Wl,--stack,%d" % stack_size])
 
 
@@ -1255,7 +1374,7 @@ def _addArchCompilerPrefixes(env):
 
     Notes:
         On ARM64 macOS, an x86_64 process may not be able to run the C
-        compiler of newer Xcode "CommandLineTools", which only exists as
+        compiler of newer Xcode 'CommandLineTools', which only exists as
         ARM64 binary, so the 'arch -arm64' prefix is added to 'CC' and
         'CXX'.
     """
@@ -1276,79 +1395,35 @@ def _addArchCompilerPrefixes(env):
 
 
 def createNuitkaSconsEnvironment(needs_source_dir=True):
-    # This is handling the common setup of the Scons environment for Nuitka
-    # and has many steps, pylint: disable=too-many-locals,too-many-statements
+    # pylint: disable=too-many-branches,too-many-locals,too-many-statements
 
-    # Set up the basic stuff.
     initScons(ARGUMENTS)
 
-    # Helper used for many things.
     job_count = GetOption("num_jobs")
 
     if needs_source_dir:
-        # The directory containing the C files generated by Nuitka to be built using
-        # scons. They are referred to as sources from here on.
         source_dir = getArgumentRequired("source_dir")
     else:
         source_dir = os.devnull
 
-    # The directory containing Nuitka provided C files to be built and where it
-    # should be used.
     nuitka_src = getArgumentRequired("nuitka_src")
-
-    # Debug mode: Less optimizations, debug information in the resulting binary.
     debug_mode = getArgumentBool("debug_mode", False)
-
-    # Debugger mode: Debug information in the resulting binary and intention to run
-    # in debugger.
     debugger_mode = getArgumentBool("debugger_mode", False)
-
-    # Experimental indications. Do things that are not yet safe to do.
     experimental_flags = getArgumentList("experimental", "")
-
-    # Deployment mode
     deployment_mode = getArgumentBool("deployment", False)
-
-    # Experimental indications. Do things that are not yet safe to do.
     no_deployment = getArgumentList("no_deployment", "")
-
-    # Debug mode indications. Do check things with fine granularity.
     debug_modes = getArgumentList("debug_modes", "")
-
-    # Development mode indications. Things meant for developing Nuitka itself.
     devel_modes = getArgumentList("devel_modes", "")
-
-    # Tracing mode. Output program progress.
     trace_mode = getArgumentBool("trace_mode", False)
-
-    # LTO mode: Use link time optimizations of C compiler if available and known
-    # good with the compiler in question.
     lto_mode = getArgumentDefaulted("lto_mode", "auto")
-
-    # Reproducible mode
     reproducible_mode = getArgumentBool("reproducible_mode", False)
-
-    # PGO mode: Use profile guided optimization of C compiler if available.
     pgo_mode = getArgumentDefaulted("pgo_mode", "no")
-
-    # Console mode specified
+    pgo_pgd_filename = getArgumentDefaulted("pgo_pgd_filename", None)
     console_mode = getArgumentDefaulted("console_mode", "attach")
-
-    # Windows might be running a Python whose DLL we have to use.
     uninstalled_python = getArgumentBool("uninstalled_python", False)
-
-    # Unstripped mode: Do not remove debug symbols.
     unstripped_mode = getArgumentBool("unstripped_mode", False)
-
-    # Target arch, uses for compiler choice and quick linking of constants binary
-    # data.
     target_arch = getArgumentRequired("target_arch")
-
-    # MinGW compiler mode, optional and interesting to Windows only.
     mingw_mode = getArgumentBool("mingw_mode", False)
-
-    # Clang compiler mode, forced on macOS, FreeBSD (excluding PowerPC), and OpenBSD,
-    # optional on Linux.
     clang_mode = getArgumentBool("clang_mode", False)
 
     # Clang on Windows with no requirement to use MinGW64 or using MSYS2 MinGW flavor,
@@ -1358,7 +1433,6 @@ def createNuitkaSconsEnvironment(needs_source_dir=True):
         clang_mode = False
         clangcl_mode = True
 
-    # Show scons mode, output information about Scons operation
     show_scons_mode = getArgumentBool("show_scons", False)
     scons_details_logger.is_quiet = not show_scons_mode
 
@@ -1367,31 +1441,26 @@ def createNuitkaSconsEnvironment(needs_source_dir=True):
 
         setQuiet()
 
-    # Forced MSVC version (windows-only)
     msvc_version = getArgumentDefaulted("msvc_version", None)
+    compiler_version_mode = getArgumentBool("compiler_version_mode", False)
+    download_mode = getArgumentDefaulted("download_mode", DOWNLOAD_MODE_ASK)
 
-    # Allow automatic downloads for ccache, etc.
-    assume_yes_for_downloads = getArgumentBool("assume_yes_for_downloads", False)
+    if compiler_version_mode:
+        download_mode = DOWNLOAD_MODE_NO
 
-    # Low memory mode, compile using less memory if possible.
+    # The version output was requested with "--zig", but no zig binary was
+    # found. Do not fall back to another compiler in that case.
+    zig_unavailable = getArgumentBool("zig_unavailable", False)
+
     low_memory = getArgumentBool("low_memory", False)
-
-    # Minimum version required on macOS.
     macos_min_version = getArgumentDefaulted("macos_min_version", "")
-
-    # Target arch for macOS.
     macos_target_arch = getArgumentDefaulted("macos_target_arch", "")
 
     # Target arch for C compiler (ISA baseline, not cross-compilation).
     c_target_arch = getArgumentDefaulted("c_target_arch", None)
 
-    # gcc compiler cf_protection option
     cf_protection = getArgumentDefaulted("cf_protection", "auto")
-
-    # Amount of frozen modules.
     frozen_modules = getArgumentInt("frozen_modules", 0)
-
-    # Windows runtime DLL inclusion.
     onefile_windows_static_runtime = getArgumentBool(
         "onefile_windows_static_runtime", False
     )
@@ -1401,13 +1470,8 @@ def createNuitkaSconsEnvironment(needs_source_dir=True):
 
     disable_ccache = getArgumentBool("disable_ccache", False)
 
-    # Patch the compiler detection.
     Environment.Detect = getEnhancedToolDetect()
 
-    # Create Scons environment, the main control tool. Don't include "mingw" on
-    # Windows immediately, we will default to MSVC if available.
-    # On Windows, in case MSVC was not found and not previously forced, use the
-    # winlibs MinGW64 as a download, and use it as a fallback.
     env = createEnvironmentAndCheckCompiler(
         mingw_mode=mingw_mode,
         msvc_version=msvc_version,
@@ -1415,11 +1479,19 @@ def createNuitkaSconsEnvironment(needs_source_dir=True):
         clangcl_mode=clangcl_mode,
         target_arch=target_arch,
         consider_environ_variables=True,
-        assume_yes_for_downloads=assume_yes_for_downloads,
-        download_ok=True,
+        download_mode=download_mode,
+        compiler_version_mode=compiler_version_mode,
         experimental_flags=experimental_flags,
         source_dir=source_dir,
     )
+
+    if zig_unavailable:
+        env.no_usable_compiler = True
+
+    if env.no_usable_compiler:
+        # The version output reports the absence of a compiler rather than
+        # failing, and there is nothing further to configure.
+        return env
 
     if disable_ccache:
         _disableCcacheInEnvironment(env=env)
@@ -1449,6 +1521,8 @@ def createNuitkaSconsEnvironment(needs_source_dir=True):
     env.unstripped_mode = unstripped_mode
     env.console_mode = console_mode
     env.source_dir = source_dir
+    # Sources generated only during Scons setup, e.g. constants blob data.
+    env.generated_source_filenames = []
     env.deployment_mode = deployment_mode
     env.nuitka_src = nuitka_src
     env.low_memory = low_memory
@@ -1462,6 +1536,7 @@ def createNuitkaSconsEnvironment(needs_source_dir=True):
     env.lto_mode = lto_mode
     env.reproducible_mode = reproducible_mode
     env.pgo_mode = pgo_mode
+    env.pgo_pgd_filename = pgo_pgd_filename
     env.job_count = job_count
     env.frozen_modules = frozen_modules
     env.uninstalled_python = uninstalled_python
@@ -1470,6 +1545,10 @@ def createNuitkaSconsEnvironment(needs_source_dir=True):
     env.disable_ccache = disable_ccache
 
     if env.the_compiler is None or getExecutablePath(env.the_compiler, env=env) is None:
+        if compiler_version_mode:
+            env.no_usable_compiler = True
+            return env
+
         raiseNoCompilerFoundErrorExit()
 
     scons_details_logger.info("Told to run compilation on %d CPUs." % env.job_count)
@@ -1485,7 +1564,6 @@ def createNuitkaSconsEnvironment(needs_source_dir=True):
         else:
             scons_logger.info("Scons: Compiler used '%s'." % compiler_path)
 
-    # Set build directory and scons general settings.
     if needs_source_dir:
         setupScons(env, source_dir)
 
@@ -1506,8 +1584,7 @@ def createNuitkaSconsEnvironment(needs_source_dir=True):
 
 
 def setupCCompiler(env, pgo_mode, exe_target, onefile_compile):
-    # This is driven by many branches on purpose and has a lot of things
-    # to deal with for LTO checks and flags, pylint: disable=too-many-branches,too-many-statements
+    # pylint: disable=too-many-branches,too-many-statements
 
     env.exe_target = exe_target
     env.onefile_compile = onefile_compile
@@ -1515,7 +1592,6 @@ def setupCCompiler(env, pgo_mode, exe_target, onefile_compile):
     if exe_target:
         _enableWindowsStackSize(env=env, target_arch=env.target_arch)
 
-    # Enable LTO for compiler.
     _enableLtoSettings(
         env=env,
         lto_mode=env.lto_mode,
@@ -1525,21 +1601,18 @@ def setupCCompiler(env, pgo_mode, exe_target, onefile_compile):
     _enableC11Settings(env)
     _enableOutputSettings(env)
 
-    # Some things are supposed to be only for use with zig, so we inject a
-    # define that allows us to test for it.
     if env.zig_mode:
         env.Append(CPPDEFINES=["__ZIG__"])
 
-    if env.gcc_mode or env.clang_mode or env.zig_mode:
-        # Zig defaults to native CPU features (SSE4.1, AVX2, etc.) which
-        # may not be available on older or more generic machines.
-        if env.c_target_arch is None and env.zig_mode and not isMacOS():
-            if env.target_arch == "x86_64":
-                env.c_target_arch = "x86_64"
-            elif env.target_arch == "arm64":
-                env.c_target_arch = "armv8-a"
-            elif env.target_arch == "x86":
-                env.c_target_arch = "i586"
+    # Zig defaults to native CPU features (SSE4.1, AVX2, etc.) which
+    # may not be available on older or more generic machines.
+    if env.zig_mode and env.c_target_arch is None and not isMacOS():
+        if env.target_arch == "x86_64":
+            env.c_target_arch = "x86_64"
+        elif env.target_arch == "arm64":
+            env.c_target_arch = "armv8-a"
+        elif env.target_arch == "x86":
+            env.c_target_arch = "i586"
 
     if env.c_target_arch is not None:
         if env.msvc_mode or env.clangcl_mode:
@@ -1553,7 +1626,6 @@ def setupCCompiler(env, pgo_mode, exe_target, onefile_compile):
         if env.gcc_mode:
             setEnvironmentVariable(env, "SOURCE_DATE_EPOCH", "0")
 
-        # Ask the MSVC linker to be reproducible.
         if env.clangcl_mode or env.msvc_mode:
             env.Append(LINKFLAGS=["/Brepro"])  # spell-checker: ignore Brepro
 
@@ -1586,11 +1658,9 @@ def setupCCompiler(env, pgo_mode, exe_target, onefile_compile):
             # compilation more memory hungry, but also faster.
             env.Append(CCFLAGS="-pipe")
 
-        # gcc compiler cf_protection option
         if env.cf_protection != "auto":
             env.Append(CCFLAGS=["-fcf-protection=%s" % env.cf_protection])
 
-    # Support for clang.
     if env.clang_mode or env.clangcl_mode:
         env.Append(CCFLAGS=["-Wno-deprecated-declarations"])
 
@@ -1610,15 +1680,21 @@ def setupCCompiler(env, pgo_mode, exe_target, onefile_compile):
     )
 
     if env.warn_error_mode:
-        # Allow gcc/clang/MSVC to point out all kinds of inconsistency to us by
-        # raising an error.
         if env.gcc_mode or env.zig_mode:
             env.Append(
                 CCFLAGS=[
                     "-Wall",
                     "-Werror",  # spell-checker: ignore Werror
+                    "-Wshadow",
                 ]
             )
+
+            if (
+                isZigName(env.the_cc_name)
+                or (isClangName(env.the_cc_name) and env.clang_version >= (16,))
+                or (isGccName(env.the_cc_name) and env.gcc_version >= (8,))
+            ):
+                env.Append(CCFLAGS=["-Wcast-function-type"])
 
             if (
                 isZigName(env.the_cc_name)
@@ -1628,17 +1704,16 @@ def setupCCompiler(env, pgo_mode, exe_target, onefile_compile):
                 env.Append(CCFLAGS=["-Wunused-but-set-variable"])
 
         if env.msvc_mode:
-            env.Append(CCFLAGS=["/WX"])
-    else:
-        if env.gcc_mode or env.zig_mode:
-            if (
-                isZigName(env.the_cc_name)
-                or (isClangName(env.the_cc_name) and env.clang_version >= (13,))
-                or (isGccName(env.the_cc_name) and env.gcc_version >= (4, 6))
-            ):
-                env.Append(CCFLAGS=["-Wno-unused-but-set-variable"])
+            # Disable warnings about constant conditions and deprecated
+            # declarations, these are often intentional.
+            env.Append(CCFLAGS=["/W4", "/wd4127", "/wd4996", "/WX"])
+    elif (
+        env.zig_mode
+        or (env.clang_mode and env.clang_version >= (13,))
+        or (env.gcc_mode and isGccName(env.the_cc_name) and env.gcc_version >= (4, 6))
+    ):
+        env.Append(CCFLAGS=["-Wno-unused-but-set-variable"])
 
-    # Support for macOS standalone to run on older OS versions.
     if isMacOS():
         _enableMacOSTargetSettings(env)
 
@@ -1652,11 +1727,13 @@ def setupCCompiler(env, pgo_mode, exe_target, onefile_compile):
         if env.standalone_mode:
             env.Append(LINKFLAGS=["-Wl,-blibpath:/usr/lib:/lib"])
 
-    if isWin32Windows():
+    if env.target_os == "Windows":
         _enableWin32TargetSettings(env)
 
-    # Unicode entry points for programs.
-    if env.mingw_mode or (env.zig_mode and isWin32Windows()):
+    if env.target_os == "WASI":
+        _enableWasiTargetSettings(env)
+
+    if env.target_os == "Windows" and (env.mingw_mode or env.zig_mode):
         env.Append(LINKFLAGS=["-municode"])
 
     # Older g++ complains about aliasing with Py_True and Py_False, but we don't
@@ -1668,7 +1745,7 @@ def setupCCompiler(env, pgo_mode, exe_target, onefile_compile):
     ):
         env.Append(CCFLAGS=["-fno-strict-aliasing"])
 
-    # For gcc 4.6 or higher, there this new interesting function.
+    # Allow GCC to inline hot fast-path prefixes while keeping cold error branches outlined.
     if (
         (env.gcc_mode or env.zig_mode)
         and not env.clang_mode
@@ -1685,7 +1762,6 @@ def setupCCompiler(env, pgo_mode, exe_target, onefile_compile):
     ):
         env.Append(CCFLAGS=["-ftrack-macro-expansion=0"])
 
-    # We don't care about deprecations.
     if (env.gcc_mode or env.zig_mode) and not env.clang_mode:
         env.Append(CCFLAGS=["-Wno-deprecated-declarations"])
 
@@ -1698,8 +1774,8 @@ def setupCCompiler(env, pgo_mode, exe_target, onefile_compile):
         if env.gcc_mode and env.gcc_version >= (4, 4):
             env.Append(CCFLAGS=["-fno-var-tracking-assignments"])
 
-    # For large files, these can issue warnings about disabling
-    # itself, while we do not need it really.
+    # On large generated C files, GCC drops column tracking and emits notes
+    # about '-Wmisleading-indentation' disabling itself.
     if (
         (env.gcc_mode or env.zig_mode)
         and not env.clang_mode
@@ -1712,6 +1788,19 @@ def setupCCompiler(env, pgo_mode, exe_target, onefile_compile):
     if (env.gcc_mode or env.zig_mode) and not env.clang_mode:
         env.Append(CCFLAGS=["-Wno-psabi"])  # spell-checker: ignore psabi
 
+    # GCC bug 105585 makes "-Wstringop-overflow" warn about the NULL branch it
+    # creates for atomic operations, which free-threaded CPython uses for
+    # reference counts.
+    if (
+        not env.gil_mode
+        and not env.warn_error_mode
+        and env.gcc_mode
+        and not env.clang_mode
+        and isGccName(env.the_cc_name)
+        and env.gcc_version >= (7,)
+    ):
+        env.Append(CCFLAGS=["-Wno-stringop-overflow"])
+
     # Prevent using LTO when told not to use it, causes errors with some
     # static link libraries.
     if (
@@ -1723,7 +1812,6 @@ def setupCCompiler(env, pgo_mode, exe_target, onefile_compile):
         env.Append(CCFLAGS=["-fno-lto"])
         env.Append(LINKFLAGS=["-fno-lto"])
 
-    # Set optimization level for gcc and clang in LTO mode
     if (env.gcc_mode or env.zig_mode) and env.lto_mode:
         if env.debug_mode:
             env.Append(LINKFLAGS=["-Og"])
@@ -1741,8 +1829,6 @@ def setupCCompiler(env, pgo_mode, exe_target, onefile_compile):
                 ]
             )
 
-    # When debugging, optimize less than when optimizing, when not remove
-    # assertions.
     if env.debug_mode:
         if env.clang_mode or (
             (env.gcc_mode or env.zig_mode)
@@ -1777,18 +1863,18 @@ def setupCCompiler(env, pgo_mode, exe_target, onefile_compile):
 
     _enableDebugSystemSettings(env)
 
-    if (env.gcc_mode or env.zig_mode) and not env.noelf_mode:
+    if (env.gcc_mode or env.zig_mode) and env.binary_format == "elf":
         env.Append(LINKFLAGS=["-z", "noexecstack"])
 
-    # For MinGW64 we need to tell the subsystem to target as well as to
-    # automatically import everything used.
-    if env.mingw_mode:
-        if not env.clang_mode:
-            env.Append(LINKFLAGS=["-Wl,--enable-auto-import"])
+    # MinGW64 requires auto-import for data symbols imported from DLLs without
+    # '__declspec(dllimport)'.
+    if env.mingw_mode and not env.clang_mode:
+        env.Append(LINKFLAGS=["-Wl,--enable-auto-import"])
 
-    # Even if console is forced, for Win32 it means to specify Windows
-    # subsystem, we can still attach or create.
-    if env.console_mode in ("attach", "disable") and os.name == "nt":
+    # Both "attach" and "disable" use the GUI subsystem so Windows does not
+    # allocate a new console upfront; "attach" attaches to a parent console at
+    # startup.
+    if env.console_mode in ("attach", "disable") and env.target_os == "Windows":
         if env.mingw_mode or env.zig_mode:
             env.Append(LINKFLAGS=["-Wl,--subsystem,windows"])
             env.Append(CPPDEFINES=["_NUITKA_WINMAIN_ENTRY_POINT"])
@@ -1796,15 +1882,15 @@ def setupCCompiler(env, pgo_mode, exe_target, onefile_compile):
             env.Append(LINKFLAGS=["/SUBSYSTEM:windows"])
             env.Append(CPPDEFINES=["_NUITKA_WINMAIN_ENTRY_POINT"])
 
-    if env.console_mode == "attach" and os.name == "nt":
+    if env.console_mode == "attach" and env.target_os == "Windows":
         env.Append(CPPDEFINES=["_NUITKA_ATTACH_CONSOLE_WINDOW"])
         env.Append(LIBS=["User32"])
 
-    if env.console_mode == "disable" and os.name == "nt":
+    if env.console_mode == "disable" and env.target_os == "Windows":
         env.Append(CPPDEFINES=["_NUITKA_DISABLE_CONSOLE_WINDOW"])
         env.Append(LIBS=["User32"])
 
-    if env.console_mode == "hide" and os.name == "nt":
+    if env.console_mode == "hide" and env.target_os == "Windows":
         env.Append(CPPDEFINES=["_NUITKA_HIDE_CONSOLE_WINDOW"])
         env.Append(LIBS=["User32"])
 
@@ -1812,9 +1898,19 @@ def setupCCompiler(env, pgo_mode, exe_target, onefile_compile):
     if env.mingw_mode and not env.clang_mode:
         env.Append(LINKFLAGS=["-static-libgcc"])
 
-    # MinGW64 for 64 bits needs this due to CPython bugs.
-    if env.mingw_mode and env.target_arch == "x86_64" and env.python_version < (3, 12):
-        env.Append(CPPDEFINES=["MS_WIN64"])
+    # MinGW64 and Zig for 64 bits need MSVC ABI compatibility for older
+    # CPython versions.
+    if (
+        (env.mingw_mode or env.zig_mode)
+        and isWin32Windows()
+        and env.target_arch == "x86_64"
+    ):
+        if env.python_version < (3, 8):
+            # Match the 64-bit 'long double' used by MSVC in the GC header.
+            env.Append(CCFLAGS=["-mlong-double-64"])
+
+        if env.python_version < (3, 12):
+            env.Append(CPPDEFINES=["MS_WIN64"])
 
     if env.msvc_mode:
         # For shell API usage to lookup app folders we need this.
@@ -1857,20 +1953,18 @@ def setupCCompiler(env, pgo_mode, exe_target, onefile_compile):
             ],
         )
 
-    # Avoid them as appearing to be different files.
+    # Strip build-directory prefixes from debug info and '__FILE__' so outputs
+    # and ccache stay build-path independent.
     if (
         env.gcc_mode
         and env.source_dir != "."
         and not getArgumentBool("full_names", False)
     ):
         if env.zig_mode:
-            # Zig cc supports it
             file_prefix_map_supported = True
         elif env.clang_mode:
-            # Clang 10+ supports --file-prefix-map
             file_prefix_map_supported = env.clang_version >= (10,)
         else:
-            # GCC supports it starting from 8.0
             file_prefix_map_supported = env.gcc_version >= (8,)
 
         if file_prefix_map_supported:
@@ -1888,17 +1982,15 @@ def setupCCompiler(env, pgo_mode, exe_target, onefile_compile):
             )
 
     if env.msvc_mode:
-        # With Clang on Windows, there is also an linker to use.
         env.Append(
             CCFLAGS=[
-                "/EHsc",  # No C++ exception handling code.
+                "/EHsc",  # Synchronous C++ exception model (assumes extern "C" does not throw).
                 "/J",  # default char type is unsigned.
                 "/Gd",  # Use C calling convention by default.
-                "/bigobj",  # Product object files with larger internal limits, spell-checker: ignore bigobj
+                "/bigobj",  # Produce object files with larger internal limits, spell-checker: ignore bigobj
             ]
         )
 
-        # No incremental linking.
         env.Append(LINKFLAGS=["/INCREMENTAL:NO"])
 
         # Remember MSVC installation directory to find redist DLLs, spell-checker: ignore VCINSTALLDIR
@@ -1913,6 +2005,7 @@ def setupCCompiler(env, pgo_mode, exe_target, onefile_compile):
     importEnvironmentVariableSettings(env)
 
     _enableAddressSanitizerSettings(env)
+    _enableThreadSanitizerSettings(env)
 
     # Add constant blob files. Must be after all compiler settings are
     # established so the resource mode decision is correct.
@@ -1920,6 +2013,27 @@ def setupCCompiler(env, pgo_mode, exe_target, onefile_compile):
         env=env,
         source_dir=env.source_dir,
     )
+
+
+def _enableMsvcPgoGenerateSettings(env):
+    env.Append(CCFLAGS=["/GL"])
+
+    if env.pgo_pgd_filename is not None:
+        env.Append(LINKFLAGS=["/GENPROFILE:EXACT,PGD=%s" % env.pgo_pgd_filename])
+    else:
+        env.Append(LINKFLAGS=["/GENPROFILE:EXACT"])
+
+    if not env.clangcl_mode:
+        env.Append(LINKFLAGS=["/LTCG"])
+
+
+def _enableMsvcPgoUseSettings(env):
+    env.Append(CCFLAGS=["/GL"])
+
+    if env.pgo_pgd_filename is not None:
+        env.Append(LINKFLAGS=["/USEPROFILE:PGD=%s" % env.pgo_pgd_filename])
+    else:
+        env.Append(LINKFLAGS=["/USEPROFILE"])
 
 
 def _enablePgoSettings(env):
@@ -1936,10 +2050,7 @@ def _enablePgoSettings(env):
             env.Append(CCFLAGS=["-fprofile-generate"])
             env.Append(LINKFLAGS=["-fprofile-generate"])
         elif env.msvc_mode:
-            env.Append(CCFLAGS=["/GL"])
-            env.Append(LINKFLAGS=["/GENPROFILE:EXACT"])
-            if not env.clangcl_mode:
-                env.Append(LINKFLAGS=["/LTCG"])
+            _enableMsvcPgoGenerateSettings(env)
 
         else:
             scons_logger.sysexit(
@@ -1954,12 +2065,7 @@ def _enablePgoSettings(env):
             env.Append(CCFLAGS=["-fprofile-use"])
             env.Append(LINKFLAGS=["-fprofile-use"])
         elif env.msvc_mode:
-            env.Append(CCFLAGS=["/GL"])
-            env.Append(
-                LINKFLAGS=[
-                    "/USEPROFILE",
-                ]
-            )
+            _enableMsvcPgoUseSettings(env)
         else:
             scons_logger.sysexit(
                 "Error, PGO not supported for '%s' compiler." % env.the_cc_name
@@ -1980,7 +2086,7 @@ def _enableDebugSystemSettings(env):
         elif env.msvc_mode:
             env.Append(CCFLAGS=["/Z7"])
 
-            # Higher MSVC versions need this for parallel compilation
+            # Serialize concurrent PDB writes across parallel 'cl.exe' processes.
             if env.job_count > 1 and getMsvcVersion(env) >= (11,):
                 env.Append(CCFLAGS=["/FS"])
 
@@ -1997,9 +2103,6 @@ def _enableDebugSystemSettings(env):
 
 
 def _enableAddressSanitizerSettings(env):
-    # AddressSanitizer is requested via "--debug-asan" and uses the compiler
-    # driver to add the runtime library, with MSVC being different from
-    # GCC/Clang.
     if "debug_address_sanitizer" in env.debug_modes_flags:
         if env.zig_mode:
             return scons_logger.sysexit("""\
@@ -2015,10 +2118,24 @@ variable on Linux, or "DYLD_INSERT_LIBRARIES" on macOS.""")
 
         if env.msvc_mode or env.clangcl_mode:
             env.Append(CCFLAGS=["/fsanitize=address"])
+            # MSVC's linker does not infer AddressSanitizer import libraries
+            # automatically from '/fsanitize=address'.
             env.Append(LINKFLAGS=["/INFERASANLIBS"])
         else:
             env.Append(CCFLAGS=["-fsanitize=address"])
             env.Append(LINKFLAGS=["-fsanitize=address"])
+
+
+def _enableThreadSanitizerSettings(env):
+    if "debug_thread_sanitizer" in env.debug_modes_flags:
+        if env.zig_mode:
+            return scons_logger.sysexit("""\
+Error, ThreadSanitizer with the Zig compiler is not supported, as its \
+"compiler-rt" does not include the sanitizer runtime library, use gcc or \
+clang instead.""")
+
+        env.Append(CCFLAGS=["-fsanitize=thread"])
+        env.Append(LINKFLAGS=["-fsanitize=thread"])
 
 
 def switchFromGccToGpp(env):
@@ -2043,10 +2160,6 @@ Error, failed to detect gcc version of backend compiler '%s'.
 Error, compiler %s is apparently a C++ compiler, specify a C compiler instead.
 """ % env.the_cc_name)
 
-    # Enforce the minimum version, selecting a potentially existing g++-4.5
-    # binary if it's not high enough. This is esp. useful under Debian which
-    # allows all compiler to exist next to each other and where g++ might not be
-    # good enough, but g++-4.5 would be.
     if env.gcc_version < (4, 4):
         scons_logger.sysexit("""\
 The gcc compiler %s (version %s) doesn't have the sufficient \
@@ -2065,7 +2178,6 @@ version (>= 5.3).""" % (env.the_compiler, env.gcc_version))
                 mnemonic="too-old-gcc",
             )
 
-            # Switch to g++ from gcc then if possible, when C11 mode is false.
             the_gpp_compiler_name = os.path.basename(env.the_compiler).replace(
                 "gcc", "g++"
             )
@@ -2086,8 +2198,7 @@ version (>= 5.3).""" % (env.the_compiler, env.gcc_version))
                 env.the_compiler = the_gpp_compiler_path
                 env.the_cc_name = env.the_cc_name.replace("gcc", "g++")
 
-                env["CC"] = env.the_compiler
-                env["CXX"] = env.the_compiler
+                env["CC"] = env["CXX"] = getQuotedCompilerPath(env.the_compiler)
             else:
                 scons_logger.sysexit("""\
 Error, your gcc is too old for C11 support, and no g++ ('%s') to
@@ -2142,7 +2253,7 @@ def reportCCompiler(env, context, output_func):
 
 def importEnvironmentVariableSettings(env):
     """Import typical environment variables that compilation should use."""
-    # spell-checker: ignore cppflags,cflags,ccflags,cxxflags,ldflags
+    # spell-checker: ignore ccflags,cflags,cppflags,cxxflags,ldflags
 
     env.cpp_flags = os.getenv("CPPFLAGS")
     if env.cpp_flags:

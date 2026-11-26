@@ -29,6 +29,12 @@ class ExpressionMatchArgs(
         self.positional_count = max_allowed
         self.keywords = tuple(keywords)
 
+    def getDetails(self):
+        return {
+            "max_allowed": self.positional_count,
+            "keywords": self.keywords,
+        }
+
     def computeExpression(self, trace_collection):
         # TODO: May know that match args doesn't raise from the shape of
         # the matches expression, most don't.

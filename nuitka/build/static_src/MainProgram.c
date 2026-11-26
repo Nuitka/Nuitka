@@ -8,7 +8,7 @@
  * For multiprocessing, joblib, loky there is things here that will
  * allow them to fork properly with their intended entry points.
  *
- * spell-checker: ignore joblib loky anyio platlibdir
+ * spell-checker: ignore anyio joblib loky platlibdir
  *
  */
 
@@ -21,6 +21,7 @@
 #endif
 
 #include "nuitka/prelude.h"
+#include "nuitka/unfreezing.h"
 
 #if !defined(_WIN32)
 #include <signal.h>
@@ -80,15 +81,18 @@
 #endif
 
 // No longer in header files, but still usable.
-#if PYTHON_VERSION >= 0x3d0
-PyAPI_FUNC(void) PySys_AddWarnOption(const wchar_t *s);
-#endif
 #if PYTHON_VERSION >= 0x3f0
-PyAPI_FUNC(void) PySys_ResetWarnOptions(void);
 PyAPI_FUNC(wchar_t *) Py_GetPath(void);
 #endif
+#if PYTHON_VERSION >= 0x400
+PyAPI_FUNC(void) Py_SetProgramName(const wchar_t *);
+PyAPI_FUNC(void) PySys_SetArgv(int, wchar_t **);
+PyAPI_DATA(int) Py_UTF8Mode;
+PyAPI_DATA(const char *) Py_FileSystemDefaultEncoding;
+PyAPI_DATA(int) Py_HasFileSystemDefaultEncoding;
+#endif
 
-#if NO_PYTHON_WARNINGS
+#if NO_PYTHON_WARNINGS || (PYTHON_NO_UNRAISABLE && PYTHON_VERSION >= 0x380)
 #include "HelpersWarnings.c"
 #endif
 
@@ -103,12 +107,17 @@ PyAPI_FUNC(wchar_t *) Py_GetPath(void);
 typedef HRESULT(WINAPI *pfnSetCurrentProcessExplicitAppUserModelID)(PCWSTR AppID);
 
 static void setCurrentProcessExplicitAppUserModelID(wchar_t const *app_user_model_id) {
-    pfnSetCurrentProcessExplicitAppUserModelID fnSetCurrentProcessExplicitAppUserModelID =
-        (pfnSetCurrentProcessExplicitAppUserModelID)GetProcAddress(GetModuleHandleA("Shell32.dll"),
-                                                                   "SetCurrentProcessExplicitAppUserModelID");
+    // Avoid a cast between incompatible function types, which newer compilers
+    // warn about.
+    union {
+        FARPROC as_proc;
+        pfnSetCurrentProcessExplicitAppUserModelID as_function;
+    } function;
 
-    if (fnSetCurrentProcessExplicitAppUserModelID != NULL) {
-        fnSetCurrentProcessExplicitAppUserModelID(app_user_model_id);
+    function.as_proc = GetProcAddress(GetModuleHandleA("Shell32.dll"), "SetCurrentProcessExplicitAppUserModelID");
+
+    if (function.as_function != NULL) {
+        function.as_function(app_user_model_id);
     }
 }
 #endif
@@ -173,6 +182,18 @@ static void prepareFrozenModules(void) {
 
 static environment_char_t const *old_env_path;
 static environment_char_t const *old_env_pythonhome;
+#if PYTHON_VERSION >= 0x360
+static environment_char_t const *old_env_pythonmalloc;
+#endif
+#if PYTHON_VERSION >= 0x300
+static environment_char_t const *old_env_pythontracemalloc;
+#endif
+#if PYTHON_VERSION >= 0x370
+static environment_char_t const *old_env_pythondevmode;
+#endif
+#if defined(Py_GIL_DISABLED)
+static environment_char_t const *old_env_pythongil;
+#endif
 
 static void prepareStandaloneEnvironment(void) {
     /* Setup environment variables to tell CPython that we would like it to use
@@ -188,6 +209,29 @@ static void prepareStandaloneEnvironment(void) {
     setEnvironmentVariable("PYTHONHOME", getBinaryDirectoryWideChars(true));
 #else
     setEnvironmentVariable("PYTHONHOME", getBinaryDirectoryHostEncoded(true));
+#endif
+
+    // Ignore allocator and interpreter mode settings from the environment, the
+    // standalone binary should use its build time defaults.
+#if PYTHON_VERSION >= 0x360
+    old_env_pythonmalloc = getEnvironmentVariable("PYTHONMALLOC");
+    unsetEnvironmentVariable("PYTHONMALLOC");
+#endif
+
+#if PYTHON_VERSION >= 0x300
+    old_env_pythontracemalloc = getEnvironmentVariable("PYTHONTRACEMALLOC");
+    unsetEnvironmentVariable("PYTHONTRACEMALLOC");
+#endif
+
+#if PYTHON_VERSION >= 0x370
+    old_env_pythondevmode = getEnvironmentVariable("PYTHONDEVMODE");
+    unsetEnvironmentVariable("PYTHONDEVMODE");
+#endif
+
+#if defined(Py_GIL_DISABLED)
+    // Free-threaded builds only, added in Python 3.13.
+    old_env_pythongil = getEnvironmentVariable("PYTHON_GIL");
+    unsetEnvironmentVariable("PYTHON_GIL");
 #endif
 
 #if defined(_WIN32)
@@ -218,14 +262,12 @@ static void prepareStandaloneEnvironment(void) {
 }
 
 static void restoreStandaloneEnvironment(void) {
-    /* Make sure to use the optimal value for standalone mode only. */
+    // Make sure to use the optimal value for standalone mode only.
 #if PYTHON_VERSION < 0x300
     PySys_SetPath((char *)getBinaryDirectoryHostEncoded(true));
-    // NUITKA_PRINTF_TRACE("Final PySys_GetPath is 's'.\n", PySys_GetPath());
 #elif PYTHON_VERSION < 0x370
     PySys_SetPath(getBinaryDirectoryWideChars(true));
     Py_SetPath(getBinaryDirectoryWideChars(true));
-    // NUITKA_PRINTF_TRACE("Final Py_GetPath is '%ls'.\n", Py_GetPath());
 #endif
 
 #ifdef _NUITKA_EXPERIMENTAL_DUMP_PY_PATH_CONFIG
@@ -250,7 +292,7 @@ static void restoreStandaloneEnvironment(void) {
 #endif
 
 extern void _initCompiledCellType();
-extern void _initCompiledGeneratorType();
+extern void _initCompiledGeneratorType(PyThreadState *tstate);
 extern void _initCompiledFunctionType();
 extern void _initCompiledMethodType();
 extern void _initCompiledFrameType();
@@ -260,7 +302,6 @@ extern void _initCompiledFrameType();
 // Types of command line arguments are different between Python2/3.
 #if PYTHON_VERSION >= 0x300 && _NUITKA_NATIVE_WCHAR_ARGV == 0
 static wchar_t **convertCommandLineParameters(int argc, char **argv) {
-    // Originally taken from CPython3: There seems to be no sane way to use
     static wchar_t **argv_copy;
     argv_copy = (wchar_t **)malloc(sizeof(wchar_t *) * argc);
 
@@ -434,8 +475,9 @@ static int HANDLE_PROGRAM_EXIT(PyThreadState *tstate) {
             PyTracebackObject *tb = (PyTracebackObject *)tstate->curexc_traceback;
             PyFrameObject *frame = tb->tb_frame;
 
-            if (0 == strcmp(PyUnicode_AsUTF8(Nuitka_Frame_GetCodeObject(frame)->co_filename),
-                            "<frozen importlib._bootstrap>")) {
+            PyObject *filename = Nuitka_Frame_GetCodeObject(frame)->co_filename;
+
+            if (Nuitka_Unicode_CompareWithASCIIString(filename, "<frozen importlib._bootstrap>") == 0) {
                 tstate->curexc_traceback = (PyObject *)tb->tb_next;
                 // Process is exiting, not releasing the old head frame
                 // here is acceptable.
@@ -455,44 +497,45 @@ static int HANDLE_PROGRAM_EXIT(PyThreadState *tstate) {
 #else
         PyObject *exception_value = tstate->current_exception;
 #endif
-        PyTypeObject *exception_type = Py_TYPE(exception_value);
-        char const *exception_name = exception_type->tp_name;
 
-        assert(HAS_ERROR_OCCURRED(tstate));
+        if (exception_value != NULL) {
+            PyTypeObject *exception_type = Py_TYPE(exception_value);
+            char const *exception_name = exception_type->tp_name;
 
-        if (unlikely(strcmp(exception_name, "DistributionNotFound") == 0)
+            if (unlikely(strcmp(exception_name, "DistributionNotFound") == 0)
 #if SYSFLAG_NO_SITE == 1 && !defined(_NUITKA_NO_DEPLOYMENT_SITE_BUILTINS)
-            || strcmp(exception_name, "NameError") == 0
+                || strcmp(exception_name, "NameError") == 0
 #endif
-        ) {
-            struct Nuitka_ExceptionPreservationItem saved_exception;
-            FETCH_ERROR_OCCURRED_STATE(tstate, &saved_exception);
+            ) {
+                struct Nuitka_ExceptionPreservationItem saved_exception;
+                FETCH_ERROR_OCCURRED_STATE(tstate, &saved_exception);
 
-            if (unlikely(strcmp(exception_name, "DistributionNotFound") == 0)) {
-                PyObject *exception_arg = PyUnicode_FromFormat("\
+                if (unlikely(strcmp(exception_name, "DistributionNotFound") == 0)) {
+                    PyObject *exception_arg = PyUnicode_FromFormat("\
 Nuitka: Distribution metadata not found, use --include-distribution-metadata to avoid '%R' \
 and for 3rd party packages doing it, please raise a Nuitka issue so we can make this be \
 included by default",
-                                                               saved_exception.exception_value);
+                                                                   saved_exception.exception_value);
 
-                CHECK_OBJECT(exception_arg);
-
-                raiseReplacementRuntimeError(tstate, &saved_exception, exception_arg);
-#if SYSFLAG_NO_SITE == 1 && !defined(_NUITKA_NO_DEPLOYMENT_SITE_BUILTINS)
-            } else {
-                bool global_name_error = false;
-                char const *missing_name =
-                    getNoSiteBuiltinNameFromException(tstate, saved_exception.exception_value, &global_name_error);
-
-                if (missing_name != NULL) {
-                    PyObject *exception_arg = makeNoSiteBuiltinNameErrorMessage(missing_name, global_name_error);
                     CHECK_OBJECT(exception_arg);
 
-                    raiseReplacementNameError(tstate, &saved_exception, exception_arg);
+                    raiseReplacementRuntimeError(tstate, &saved_exception, exception_arg);
+#if SYSFLAG_NO_SITE == 1 && !defined(_NUITKA_NO_DEPLOYMENT_SITE_BUILTINS)
                 } else {
-                    RESTORE_ERROR_OCCURRED_STATE(tstate, &saved_exception);
-                }
+                    bool global_name_error = false;
+                    char const *missing_name =
+                        getNoSiteBuiltinNameFromException(tstate, saved_exception.exception_value, &global_name_error);
+
+                    if (missing_name != NULL) {
+                        PyObject *exception_arg = makeNoSiteBuiltinNameErrorMessage(missing_name, global_name_error);
+                        CHECK_OBJECT(exception_arg);
+
+                        raiseReplacementNameError(tstate, &saved_exception, exception_arg);
+                    } else {
+                        RESTORE_ERROR_OCCURRED_STATE(tstate, &saved_exception);
+                    }
 #endif
+                }
             }
         }
 #endif
@@ -516,8 +559,22 @@ included by default",
     return exit_code;
 }
 
-static PyObject *EXECUTE_MAIN_MODULE(PyThreadState *tstate, char const *module_name, bool is_package) {
-    // NUITKA_INIT_PROGRAM_LATE(module_name);
+#if _NUITKA_STANDALONE_MODE
+static PyObject *EXECUTE_MAIN_MODULE_ENTRY(PyThreadState *tstate, struct Nuitka_MetaPathBasedLoaderEntry const *entry) {
+    if (entry == NULL || entry->m_import_module == NULL) {
+        PyErr_SetString(PyExc_ImportError, "startup module is not included");
+        return NULL;
+    }
+
+    return entry->m_import_module(tstate, entry, NULL);
+}
+
+#else
+static PyObject *EXECUTE_MAIN_MODULE_BY_NAME(PyThreadState *tstate, struct Nuitka_MetaPathBasedLoaderEntry const *entry,
+                                             char const *module_name, bool is_package) {
+    if (entry != NULL && entry->m_import_module != NULL) {
+        return entry->m_import_module(tstate, entry, NULL);
+    }
 
     if (is_package) {
         char const *w = module_name;
@@ -545,6 +602,18 @@ static PyObject *EXECUTE_MAIN_MODULE(PyThreadState *tstate, char const *module_n
 
     return IMPORT_EMBEDDED_MODULE(tstate, module_name, false);
 }
+#endif
+
+static PyObject *EXECUTE_MAIN_MODULE(PyThreadState *tstate, struct Nuitka_MetaPathBasedLoaderEntry const *entry,
+                                     char const *module_name, bool is_package) {
+    // NUITKA_INIT_PROGRAM_LATE(module_name);
+
+#if _NUITKA_STANDALONE_MODE
+    return EXECUTE_MAIN_MODULE_ENTRY(tstate, entry);
+#else
+    return EXECUTE_MAIN_MODULE_BY_NAME(tstate, entry, module_name, is_package);
+#endif
+}
 
 #if _NUITKA_PLUGIN_WINDOWS_SERVICE_ENABLED
 #include "nuitka_windows_service.h"
@@ -553,7 +622,7 @@ static PyObject *EXECUTE_MAIN_MODULE(PyThreadState *tstate, char const *module_n
 void SvcStartPython(void) {
     PyThreadState *tstate = PyThreadState_GET();
 
-    EXECUTE_MAIN_MODULE(tstate, NUITKA_MAIN_MODULE_NAME, NUITKA_MAIN_IS_PACKAGE_BOOL);
+    EXECUTE_MAIN_MODULE(tstate, Nuitka_MainModuleEntry, NUITKA_MAIN_MODULE_NAME, NUITKA_MAIN_IS_PACKAGE_BOOL);
 
     NUITKA_PRINT_TIMING("SvcStartPython() Python exited.")
 
@@ -569,21 +638,18 @@ void SvcStopPython(void) { PyErr_SetInterrupt(); }
 
 #endif
 
-// This is a multiprocessing fork
 static bool is_multiprocessing_fork = false;
-// This is a multiprocessing forkserver
 static bool is_multiprocessing_forkserver = false;
 static int multiprocessing_forkserver_fd1 = -1;
 static int multiprocessing_forkserver_fd2 = -1;
 #if PYTHON_VERSION >= 0x3e0
 static int multiprocessing_forkserver_authkey_fd = -1;
+static int multiprocessing_forkserver_argv_offset = -1;
 #endif
 
-// This is a multiprocessing resource or semaphore tracker if not -1
 static int multiprocessing_resource_tracker_arg = -1;
 static char const *multiprocessing_tracker_module_name = NULL;
 
-// This is a joblib loky fork
 #ifdef _WIN32
 static bool is_joblib_popen_loky_win32 = false;
 static int loky_joblib_pipe_handle_arg = 0;
@@ -592,10 +658,8 @@ static int loky_joblib_parent_pid_arg = 0;
 static bool is_joblib_popen_loky_posix = false;
 #endif
 
-// This is a joblib resource tracker if not -1
 static int loky_resource_tracker_arg = -1;
 
-// This is a "anyio.to_process" fork
 static bool is_anyio_to_process = false;
 
 // Parse the command line parameters to decide if it's a multiprocessing usage
@@ -711,6 +775,10 @@ static void setCommandLineParameters(int argc, wchar_t **argv) {
                         multiprocessing_forkserver_authkey_fd = -1;
                     }
                 }
+
+                // The args after the command are the ones of the parent process,
+                // remove our own "-c" invocation from "sys.argv" later.
+                multiprocessing_forkserver_argv_offset = i + 2;
 
                 is_multiprocessing_forkserver = true;
                 break;
@@ -981,8 +1049,9 @@ static char **getCommandLineToArgvA(char *lpCmdline) {
                 }
                 s++;
             }
-            if (quote_count == 2)
+            if (quote_count == 2) {
                 quote_count = 0;
+            }
         } else {
             *d++ = *s++;
             slash_count = 0;
@@ -1026,7 +1095,7 @@ static void setStdFileHandleNumber(PyThreadState *tstate, DWORD std_handle_id, P
 }
 #endif
 
-static bool shallSetOutputHandleToNull(char const *name) {
+static bool shallSetStandardHandleToNull(char const *name) {
 #if NUITKA_FORCED_STDOUT_NULL_BOOL
     if (strcmp(name, "stdout") == 0) {
         return true;
@@ -1045,6 +1114,15 @@ static bool shallSetOutputHandleToNull(char const *name) {
 
 #if _NUITKA_DLL_MODE
     return false;
+#endif
+
+#if !defined(_WIN32)
+    // CPython leaves "sys.stdin" as None when file descriptor 0 is closed.
+    // Replacing that with "/dev/null" changes the behavior of child processes,
+    // which e.g. multiprocessing relies on, so keep it closed on POSIX.
+    if (strcmp(name, "stdin") == 0) {
+        return false;
+    }
 #endif
 
     PyObject *sys_std_handle = Nuitka_SysGetObject(name);
@@ -1132,8 +1210,8 @@ static void setInputOutputHandles(PyThreadState *tstate) {
 #if defined(NUITKA_FORCED_STDOUT_PATH) || defined(NUITKA_FORCED_STDERR_PATH)
     PyObject *args = MAKE_DICT_EMPTY(tstate);
 
-    DICT_SET_ITEM(args, const_str_plain_encoding, Nuitka_String_FromString("utf-8"));
-    DICT_SET_ITEM(args, const_str_plain_line_buffering, Py_True);
+    DICT_SET_ITEM1_INFALLIBLE(tstate, args, const_str_plain_encoding, Nuitka_String_FromString("utf-8"));
+    DICT_SET_ITEM_INFALLIBLE(tstate, args, const_str_plain_line_buffering, Py_True);
 
 #if defined(NUITKA_FORCED_STDOUT_PATH)
     NUITKA_PRINT_TRACE("setInputOutputHandles(): Forced stdout update.");
@@ -1224,7 +1302,7 @@ static void setInputOutputHandles(PyThreadState *tstate) {
 
         NUITKA_PRINT_TRACE("setInputOutputHandles(): Considering stdin.");
 
-        if (shallSetOutputHandleToNull("stdin")) {
+        if (shallSetStandardHandleToNull("stdin")) {
             NUITKA_PRINT_TRACE("setInputOutputHandles(): Set stdin to NULL file.");
 
             // CPython core requires stdin to be buffered due to methods usage, and it won't matter
@@ -1237,7 +1315,7 @@ static void setInputOutputHandles(PyThreadState *tstate) {
 
         NUITKA_PRINT_TRACE("setInputOutputHandles(): Considering stdout.");
 
-        if (shallSetOutputHandleToNull("stdout")) {
+        if (shallSetStandardHandleToNull("stdout")) {
             NUITKA_PRINT_TRACE("setInputOutputHandles(): Set stdout to NULL file.");
 
             PyObject *stdout_file = BUILTIN_OPEN_SIMPLE(tstate, devnull_filename, "w", false, encoding);
@@ -1248,7 +1326,7 @@ static void setInputOutputHandles(PyThreadState *tstate) {
 
         NUITKA_PRINT_TRACE("setInputOutputHandles(): Considering stderr.");
 
-        if (shallSetOutputHandleToNull("stderr")) {
+        if (shallSetStandardHandleToNull("stderr")) {
             NUITKA_PRINT_TRACE("setInputOutputHandles(): Set stderr to NULL file.");
 
             PyObject *stderr_file = BUILTIN_OPEN_SIMPLE(tstate, devnull_filename, "w", false, encoding);
@@ -1274,10 +1352,6 @@ static void setInputOutputHandles(PyThreadState *tstate) {
 }
 
 static void Nuitka_Py_Initialize(void) {
-#if PYTHON_VERSION > 0x350 && !defined(_NUITKA_EXPERIMENTAL_DISABLE_ALLOCATORS)
-    initNuitkaAllocators();
-#endif
-
     // This dead code is a good spot to put this code that is just intended to
     // for linking this API in.
 #if !defined(_WIN32) && PYTHON_VERSION >= 0x3d0
@@ -1302,6 +1376,33 @@ static void Nuitka_Py_Initialize(void) {
 
     PyConfig config;
     _PyConfig_InitCompatConfig(&config);
+
+#if PYTHON_VERSION >= 0x400
+    // Python 3.16 removed the global variables that the compatibility
+    // configuration used to read, so set these values in the configuration.
+    config.parser_debug = 0;
+    config.inspect = 0;
+    config.interactive = 0;
+    config.optimization_level = SYSFLAG_OPTIMIZE;
+    config.write_bytecode = SYSFLAG_DONTWRITEBYTECODE ? 0 : 1;
+    config.user_site_directory = SYSFLAG_NO_SITE ? 0 : 1;
+    config.use_environment = 1;
+    config.verbose = SYSFLAG_VERBOSE;
+    config.bytes_warning = SYSFLAG_BYTES_WARNING;
+    config.buffered_stdio = SYSFLAG_UNBUFFERED ? 0 : 1;
+#if SYSFLAG_NO_RANDOMIZATION == 1
+    config.use_hash_seed = 0;
+    config.hash_seed = 0;
+#endif
+
+    // This suppresses warnings from getpath.c
+    config.pathconfig_warnings = 0;
+
+    // We want to import the "site" module, but only after we finished our own
+    // setup. The "site" module import will be the first thing, the main module
+    // does.
+    config.site_import = 0;
+#endif
 
     assert(orig_argv[0]);
     status = PyConfig_SetArgv(&config, orig_argc, orig_argv);
@@ -1378,6 +1479,14 @@ static void Nuitka_Py_Initialize(void) {
 #endif
 #endif
 
+#endif
+
+    // The allocators must be captured after Python initialization, so that
+    // allocator configuration done during initialization, e.g. from the
+    // "PYTHONMALLOC" environment variable, is respected. This must happen
+    // before any generated code runs, which the allocator accessors assert.
+#if PYTHON_VERSION > 0x350 && !defined(_NUITKA_EXPERIMENTAL_DISABLE_ALLOCATORS)
+    initNuitkaAllocators();
 #endif
 }
 
@@ -1534,26 +1643,22 @@ native_command_line_argument_t const *getOriginalArgv0(void) {
 #include <CoreFoundation/CoreFoundation.h>
 
 bool _setLANGSystemLocaleMacOS(void) {
-    // 1. Get preferred languages
     CFArrayRef preferred_languages = CFLocaleCopyPreferredLanguages();
     if (unlikely(!preferred_languages)) {
         return false;
     }
 
-    // 2. Pick the first one.
     CFStringRef preferred_language = (CFStringRef)CFArrayGetValueAtIndex(preferred_languages, 0);
     if (unlikely(!preferred_language)) {
         return false;
     }
 
-    // 3. Create canonical Locale Identifier
     CFStringRef canonical_locale_id =
         CFLocaleCreateCanonicalLocaleIdentifierFromString(kCFAllocatorDefault, preferred_language);
     if (unlikely(!canonical_locale_id)) {
         return false;
     }
 
-    // 3. Get C String from Canonical Identifier (Robustly)
     char locale_buffer[256];
     const char *locale_c_string = CFStringGetCStringPtr(canonical_locale_id, kCFStringEncodingUTF8);
 
@@ -1569,7 +1674,6 @@ bool _setLANGSystemLocaleMacOS(void) {
     CFRelease(canonical_locale_id);
     CFRelease(preferred_languages);
 
-    // 4. Attempt to set the locale created naively.
     if (setlocale(LC_ALL, locale_c_string) == NULL) {
         // Replace hyphens with underscores and append ".UTF-8" if that failed.
         char fallback_locale[256];
@@ -1686,7 +1790,6 @@ static int Nuitka_Main(int argc, native_command_line_argument_t **argv) {
     hideConsoleIfSpawned();
 #endif
 
-    // Installer a segfault handler that outputs a helpful message.
 #if !defined(_NUITKA_DEPLOYMENT_MODE) && !defined(_NUITKA_NO_DEPLOYMENT_SEGFAULT)
 #if defined(_WIN32)
     signal(SIGSEGV, nuitka_segfault_handler);
@@ -1702,7 +1805,6 @@ static int Nuitka_Main(int argc, native_command_line_argument_t **argv) {
 #ifdef _NUITKA_EXPERIMENTAL_DUMP_C_TRACEBACKS
     INIT_C_BACKTRACES();
 #endif
-    // Trace when the process exits.
 #if defined(_NUITKA_EXPERIMENTAL_SHOW_STARTUP_TIME)
     atexit(Nuitka_at_exit);
 #endif
@@ -1747,7 +1849,6 @@ static int Nuitka_Main(int argc, native_command_line_argument_t **argv) {
     }
 #endif
 
-    // Set up stdout/stderr according to user specification.
 #if NUITKA_STANDARD_HANDLES_EARLY == 1
 #if defined(NUITKA_FORCED_STDOUT_PATH)
 #ifdef _WIN32
@@ -1809,7 +1910,7 @@ static int Nuitka_Main(int argc, native_command_line_argument_t **argv) {
     prepareFrozenModules();
 #endif
 
-    /* Initialize CPython library environment. */
+#if PYTHON_VERSION < 0x400
     Py_DebugFlag = 0;
 #if PYTHON_VERSION < 0x300
     Py_Py3kWarningFlag = SYSFLAG_PY3K_WARNING;
@@ -1833,6 +1934,7 @@ static int Nuitka_Main(int argc, native_command_line_argument_t **argv) {
 #if PYTHON_VERSION < 0x300
     // For Python2 this is all it takes to have static hashes.
     _PyRandom_Init();
+#endif
 #endif
 #endif
 #if PYTHON_VERSION >= 0x370
@@ -1892,6 +1994,7 @@ static int Nuitka_Main(int argc, native_command_line_argument_t **argv) {
     Py_InitStaticModules();
 #endif
 
+#if PYTHON_VERSION < 0x400
     /* This suppresses warnings from getpath.c */
     Py_FrozenFlag = 1;
 
@@ -1900,8 +2003,7 @@ static int Nuitka_Main(int argc, native_command_line_argument_t **argv) {
      * does.
      */
     Py_NoSiteFlag = 1;
-
-    /* Initial command line handling only. */
+#endif
 
 #if _NUITKA_ONEFILE_MODE
     {
@@ -1940,7 +2042,6 @@ static int Nuitka_Main(int argc, native_command_line_argument_t **argv) {
 
     orig_argc = argc;
 
-    // Early command line parsing.
     NUITKA_PRINT_TRACE("main(): Calling setCommandLineParameters.");
     setCommandLineParameters(argc, argv);
 
@@ -1968,7 +2069,6 @@ static int Nuitka_Main(int argc, native_command_line_argument_t **argv) {
     }
 #endif
 
-    /* Disable CPython warnings if requested to. */
 #if NO_PYTHON_WARNINGS
     setupWarningsEarly();
 #endif
@@ -1991,7 +2091,6 @@ static int Nuitka_Main(int argc, native_command_line_argument_t **argv) {
     }
 #endif
 
-    /* Initialize the embedded CPython interpreter. */
     NUITKA_PRINT_TIMING("main(): Calling Nuitka_Py_Initialize to initialize interpreter.");
     Nuitka_Py_Initialize();
 
@@ -2040,19 +2139,21 @@ static int Nuitka_Main(int argc, native_command_line_argument_t **argv) {
     }
 #endif
 
+#if PYTHON_VERSION < 0x400
     /* Lie about it, believe it or not, there are "site" files, that check
      * against later imports, see below.
      */
     Py_NoSiteFlag = SYSFLAG_NO_SITE;
+#endif
 
-    /* Set the command line parameters for run time usage. */
     PySys_SetArgv(argc, orig_argv);
 
     // Empty or reduce "sys.path" again, the above adds program directory to it.
 #if SYSFLAG_ISOLATED
     Nuitka_SysSetObject("path", PyList_New(0));
 #elif PYTHON_VERSION >= 0x3b0 && SYSFLAG_SAFE_PATH == 1
-    PyList_SetSlice(Nuitka_SysGetObject("path"), 0, 1, PyTuple_New(0));
+    NUITKA_MAY_BE_UNUSED bool res = LIST_DEL_SLICE(Nuitka_SysGetObject("path"), 0, 1);
+    assert(res);
 #endif
 
     /* Initialize the built-in module tricks used and builtin-type methods */
@@ -2066,6 +2167,13 @@ static int Nuitka_Main(int argc, native_command_line_argument_t **argv) {
     createGlobalConstants(tstate);
     NUITKA_PRINT_TIMING("main(): Returned createGlobalConstants().");
 
+#if PYTHON_VERSION >= 0x3d0
+    // Must be done before module constants are created, since those may
+    // contain references to the original builtins.
+    NUITKA_PRINT_TRACE("main(): Calling patchBuiltinFrameFunctions().");
+    patchBuiltinFrameFunctions(tstate);
+#endif
+
     /* Complex call helpers need "__main__" constants, even if we only
      * go into "__parents__main__" module as a start point.
      */
@@ -2074,7 +2182,7 @@ static int Nuitka_Main(int argc, native_command_line_argument_t **argv) {
     NUITKA_PRINT_TIMING("main(): Returned createMainModuleConstants().");
 
     NUITKA_PRINT_TRACE("main(): Calling _initBuiltinOriginalValues().");
-    _initBuiltinOriginalValues();
+    _initBuiltinOriginalValues(tstate);
 
     /* Revert the wrong "sys.flags" value, it's used by "site" on at least
      * Debian for Python 3.3, more uses may exist.
@@ -2085,11 +2193,18 @@ static int Nuitka_Main(int argc, native_command_line_argument_t **argv) {
 #else
     PyStructSequence_SetItem(Nuitka_SysGetObject("flags"), 6, const_int_0);
 #endif
+
+#if PYTHON_VERSION >= 0x3e0 && defined(_NUITKA_EXPERIMENTAL_SUBINTERPRETERS) && defined(_NUITKA_USE_UNEXPOSED_API)
+    // We disabled site during initialization to import it later ourselves.
+    // Subinterpreters inherit the configuration, so restore it for them.
+    // This uses an internal API only available with static libpython.
+    PyConfig *interpreter_config = (PyConfig *)_PyInterpreterState_GetConfig(_PyInterpreterState_GET());
+    interpreter_config->site_import = 1;
+#endif
 #endif
 
-    /* Initialize the compiled types of Nuitka. */
     _initCompiledCellType();
-    _initCompiledGeneratorType();
+    _initCompiledGeneratorType(tstate);
     _initCompiledFunctionType();
     _initCompiledMethodType();
     _initCompiledFrameType();
@@ -2202,16 +2317,18 @@ static int Nuitka_Main(int argc, native_command_line_argument_t **argv) {
     PGO_Initialize();
 #endif
 
-    /* Enable meta path based loader. */
     setupMetaPathBasedLoader(tstate);
 
 #if PYTHON_VERSION < 0x3d0
-    /* Initialize warnings module. */
     _PyWarnings_Init();
 #endif
 
 #if NO_PYTHON_WARNINGS
     setupWarningsLate(tstate);
+#endif
+
+#if PYTHON_NO_UNRAISABLE && PYTHON_VERSION >= 0x380
+    setupUnraisableIgnoring();
 #endif
 
 #if PYTHON_VERSION >= 0x300
@@ -2234,6 +2351,18 @@ static int Nuitka_Main(int argc, native_command_line_argument_t **argv) {
     NUITKA_PRINT_TRACE("main(): Reverting to initial 'PATH' value.");
     undoEnvironmentVariable(tstate, "PATH", old_env_path);
     undoEnvironmentVariable(tstate, "PYTHONHOME", old_env_pythonhome);
+#if PYTHON_VERSION >= 0x360
+    undoEnvironmentVariable(tstate, "PYTHONMALLOC", old_env_pythonmalloc);
+#endif
+#if PYTHON_VERSION >= 0x300
+    undoEnvironmentVariable(tstate, "PYTHONTRACEMALLOC", old_env_pythontracemalloc);
+#endif
+#if PYTHON_VERSION >= 0x370
+    undoEnvironmentVariable(tstate, "PYTHONDEVMODE", old_env_pythondevmode);
+#endif
+#if defined(Py_GIL_DISABLED)
+    undoEnvironmentVariable(tstate, "PYTHON_GIL", old_env_pythongil);
+#endif
 #endif
 
 #if _NUITKA_PROFILE
@@ -2248,7 +2377,7 @@ static int Nuitka_Main(int argc, native_command_line_argument_t **argv) {
 #ifdef _NUITKA_PLUGIN_MULTIPROCESSING_ENABLED
     if (unlikely(is_multiprocessing_fork)) {
         NUITKA_PRINT_TRACE("main(): Calling __parents_main__.");
-        EXECUTE_MAIN_MODULE(tstate, "__parents_main__", false);
+        EXECUTE_MAIN_MODULE(tstate, Nuitka_ParentsMainModuleEntry, "__parents_main__", false);
 
         int exit_code = HANDLE_PROGRAM_EXIT(tstate);
 
@@ -2256,10 +2385,21 @@ static int Nuitka_Main(int argc, native_command_line_argument_t **argv) {
         Py_Exit(exit_code);
     } else if (unlikely(is_multiprocessing_forkserver)) {
         NUITKA_PRINT_TRACE("main(): Calling multiprocessing.forkserver.");
-        PyObject *forkserver_module = EXECUTE_MAIN_MODULE(tstate, "multiprocessing.forkserver", true);
+        PyObject *forkserver_module =
+            EXECUTE_MAIN_MODULE(tstate, Nuitka_ForkserverModuleEntry, "multiprocessing.forkserver", true);
 
         PyObject *main_function = PyObject_GetAttrString(forkserver_module, "main");
         CHECK_OBJECT(main_function);
+
+#if PYTHON_VERSION >= 0x3e0
+        if (multiprocessing_forkserver_argv_offset != -1) {
+            // Remove the "-c" and its command from "sys.argv", like CPython does
+            // for the forkserver, leaving the arguments of the parent process.
+            PyObject *argv_list = Nuitka_SysGetObject("argv");
+            NUITKA_MAY_BE_UNUSED bool res = LIST_DEL_SLICE(argv_list, 0, multiprocessing_forkserver_argv_offset);
+            assert(res);
+        }
+#endif
 
         PyObject *main_list = MAKE_LIST_EMPTY(tstate, 1);
         PyList_SET_ITEM(main_list, 0, Nuitka_String_FromString("__main__"));
@@ -2291,16 +2431,16 @@ static int Nuitka_Main(int argc, native_command_line_argument_t **argv) {
 #if defined(_WIN32)
     } else if (unlikely(is_joblib_popen_loky_win32)) {
         NUITKA_PRINT_TRACE("main(): Calling joblib.externals.loky.backend.popen_loky_win32.");
-        PyObject *joblib_popen_loky_win32_module =
-            EXECUTE_MAIN_MODULE(tstate, "joblib.externals.loky.backend.popen_loky_win32", true);
+        PyObject *joblib_popen_loky_win32_module = EXECUTE_MAIN_MODULE(
+            tstate, Nuitka_JoblibPopenLokyWin32ModuleEntry, "joblib.externals.loky.backend.popen_loky_win32", true);
 
         // Remove the "-c" and options part like CPython would do as well.
         PyObject *argv_list = Nuitka_SysGetObject("argv");
         Py_ssize_t size = PyList_Size(argv_list);
 
         // Negative indexes are not supported by this function.
-        NUITKA_MAY_BE_UNUSED int res = PyList_SetSlice(argv_list, 1, size - 2, const_tuple_empty);
-        assert(res == 0);
+        NUITKA_MAY_BE_UNUSED bool res = LIST_DEL_SLICE(argv_list, 1, size - 2);
+        assert(res);
 
         PyObject *main_function = PyObject_GetAttrString(joblib_popen_loky_win32_module, "main");
         CHECK_OBJECT(main_function);
@@ -2314,7 +2454,7 @@ static int Nuitka_Main(int argc, native_command_line_argument_t **argv) {
                 Nuitka_PyLong_FromLong(loky_joblib_parent_pid_arg),
             };
 
-            PyObject *kw_args = MAKE_DICT_X_CSTR(kw_keys, kw_values, sizeof(kw_values) / sizeof(PyObject *));
+            PyObject *kw_args = MAKE_DICT_CSTR_X(tstate, kw_keys, kw_values, sizeof(kw_values) / sizeof(PyObject *));
 
             CALL_FUNCTION_WITH_KW_ARGS(tstate, main_function, kw_args);
         }
@@ -2326,12 +2466,12 @@ static int Nuitka_Main(int argc, native_command_line_argument_t **argv) {
 #else
     } else if (unlikely(is_joblib_popen_loky_posix)) {
         NUITKA_PRINT_TRACE("main(): Calling joblib.externals.loky.backend.popen_loky_posix.");
-        PyObject *joblib_popen_loky_posix_module =
-            EXECUTE_MAIN_MODULE(tstate, "joblib.externals.loky.backend.popen_loky_posix", true);
+        PyObject *joblib_popen_loky_posix_module = EXECUTE_MAIN_MODULE(
+            tstate, Nuitka_JoblibPopenLokyPosixModuleEntry, "joblib.externals.loky.backend.popen_loky_posix", true);
 
         // Remove the "-m" like CPython would do as well.
-        NUITKA_MAY_BE_UNUSED int res = PyList_SetSlice(Nuitka_SysGetObject("argv"), 0, 2, const_tuple_empty);
-        assert(res == 0);
+        NUITKA_MAY_BE_UNUSED bool res = LIST_DEL_SLICE(Nuitka_SysGetObject("argv"), 0, 2);
+        assert(res);
 
         PyObject *main_function = PyObject_GetAttrString(joblib_popen_loky_posix_module, "main");
         CHECK_OBJECT(main_function);
@@ -2344,14 +2484,20 @@ static int Nuitka_Main(int argc, native_command_line_argument_t **argv) {
         Py_Exit(exit_code);
 #endif
     } else if (unlikely(multiprocessing_resource_tracker_arg != -1)) {
+        struct Nuitka_MetaPathBasedLoaderEntry const *tracker_entry = NULL;
         char const *tracker_module_name = multiprocessing_tracker_module_name;
 
         if (tracker_module_name == NULL) {
             tracker_module_name = "multiprocessing.resource_tracker";
+            tracker_entry = Nuitka_ResourceTrackerModuleEntry;
+        } else if (strcmp(tracker_module_name, "multiprocessing.semaphore_tracker") == 0) {
+            tracker_entry = Nuitka_SemaphoreTrackerModuleEntry;
+        } else {
+            tracker_entry = Nuitka_ResourceTrackerModuleEntry;
         }
 
         NUITKA_PRINTF_TRACE("main(): Launching as '%s'.\n", tracker_module_name);
-        PyObject *resource_tracker_module = EXECUTE_MAIN_MODULE(tstate, tracker_module_name, true);
+        PyObject *resource_tracker_module = EXECUTE_MAIN_MODULE(tstate, tracker_entry, tracker_module_name, true);
 
         PyObject *main_function = PyObject_GetAttrString(resource_tracker_module, "main");
         CHECK_OBJECT(main_function);
@@ -2365,8 +2511,8 @@ static int Nuitka_Main(int argc, native_command_line_argument_t **argv) {
         Py_Exit(exit_code);
     } else if (unlikely(loky_resource_tracker_arg != -1)) {
         NUITKA_PRINT_TRACE("main(): Launching as 'joblib.externals.loky.backend.resource_tracker'.");
-        PyObject *resource_tracker_module =
-            EXECUTE_MAIN_MODULE(tstate, "joblib.externals.loky.backend.resource_tracker", true);
+        PyObject *resource_tracker_module = EXECUTE_MAIN_MODULE(tstate, Nuitka_JoblibResourceTrackerModuleEntry,
+                                                                "joblib.externals.loky.backend.resource_tracker", true);
         CHECK_OBJECT(resource_tracker_module);
 
         PyObject *main_function = PyObject_GetAttrString(resource_tracker_module, "main");
@@ -2379,7 +2525,8 @@ static int Nuitka_Main(int argc, native_command_line_argument_t **argv) {
         NUITKA_PRINT_TRACE("main(): Calling 'joblib.externals.loky.backend.resource_tracker' Py_Exit.");
         Py_Exit(exit_code);
     } else if (unlikely(is_anyio_to_process)) {
-        PyObject *anyio_module = EXECUTE_MAIN_MODULE(tstate, "anyio.to_process", false);
+        PyObject *anyio_module =
+            EXECUTE_MAIN_MODULE(tstate, Nuitka_AnyioToProcessModuleEntry, "anyio.to_process", false);
 
         PyObject *main_function = PyObject_GetAttrString(anyio_module, "process_worker");
         CHECK_OBJECT(main_function);
@@ -2409,7 +2556,7 @@ static int Nuitka_Main(int argc, native_command_line_argument_t **argv) {
             }
         }
 #endif
-        PyDict_DelItemString(Nuitka_GetSysModules(), NUITKA_MAIN_MODULE_NAME);
+        DICT_REMOVE_ITEM_STRING(tstate, Nuitka_GetSysModules(tstate), NUITKA_MAIN_MODULE_NAME);
         DROP_ERROR_OCCURRED(tstate);
 
 #if _NUITKA_PLUGIN_WINDOWS_SERVICE_ENABLED
@@ -2417,9 +2564,8 @@ static int Nuitka_Main(int argc, native_command_line_argument_t **argv) {
         SvcLaunchService(_NUITKA_WINDOWS_SERVICE_NAME_WIDE_STRING, _NUITKA_WINDOWS_SERVICE_GRACE_TIME_INT,
                          _NUITKA_WINDOWS_SERVICE_CLI_BOOL == 1);
 #else
-    /* Execute the "__main__" module. */
     NUITKA_PRINT_TIMING("main(): Calling " NUITKA_MAIN_MODULE_NAME ".");
-    EXECUTE_MAIN_MODULE(tstate, NUITKA_MAIN_MODULE_NAME, NUITKA_MAIN_IS_PACKAGE_BOOL);
+    EXECUTE_MAIN_MODULE(tstate, Nuitka_MainModuleEntry, NUITKA_MAIN_MODULE_NAME, NUITKA_MAIN_IS_PACKAGE_BOOL);
     NUITKA_PRINT_TIMING("main(): Exited from " NUITKA_MAIN_MODULE_NAME ".");
 
 #endif
@@ -2451,7 +2597,6 @@ static int Nuitka_Main(int argc, native_command_line_argument_t **argv) {
     NUITKA_PRINT_TIMING("main(): Calling Py_Exit.");
     Py_Exit(exit_code);
 
-    // The "Py_Exit()" calls is not supposed to return.
     NUITKA_CANNOT_GET_HERE("Py_Exit does not return");
 }
 
@@ -2461,26 +2606,27 @@ int __stdcall wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, wchar_t *lp
     int argc = __argc;
     wchar_t **argv = __wargv;
 
-    // Call the Nuitka main code.
     return Nuitka_Main(argc, argv);
 }
 #else
 #if defined(_WIN32)
-int wmain(int argc, wchar_t **argv) {
-    // Call the Nuitka main code.
-    return Nuitka_Main(argc, argv);
-}
+int wmain(int argc, wchar_t **argv) { return Nuitka_Main(argc, argv); }
 #else
-int main(int argc, char **argv) {
-    // Call the Nuitka main code.
-    return Nuitka_Main(argc, argv);
-}
+int main(int argc, char **argv) { return Nuitka_Main(argc, argv); }
 #endif
 #endif
 
 #if _NUITKA_DLL_MODE
 
-#if defined(_WIN32)
+#if defined(_WIN32) && defined(_NUITKA_ONEFILE_DLL_MODE)
+#if defined(__ZIG__)
+#define NUITKA_DLL_FUNCTION __declspec(dllexport)
+#elif defined(__GNUC__)
+#define NUITKA_DLL_FUNCTION __attribute__((used, visibility("default")))
+#else
+#define NUITKA_DLL_FUNCTION
+#endif
+#elif defined(_WIN32)
 #define NUITKA_DLL_FUNCTION __declspec(dllexport)
 #else
 #define NUITKA_DLL_FUNCTION __attribute__((visibility("default")))
@@ -2495,7 +2641,6 @@ NUITKA_DLL_FUNCTION int run_code(int argc, native_command_line_argument_t **argv
         setDllFilename(dll_filename);
     }
 
-    // Call the Nuitka main code.
     return Nuitka_Main(argc, argv);
 }
 

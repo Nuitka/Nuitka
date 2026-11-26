@@ -51,7 +51,7 @@ from nuitka.tools.testing.RuntimeTracing import (
 )
 from nuitka.utils.FileOperations import removeDirectory
 from nuitka.utils.Timing import TimerReport
-from nuitka.utils.Utils import isBSD, isLinux, isMacOS, isWin32Windows
+from nuitka.utils.Utils import isBSD, isLinux, isMacOS
 
 
 def displayError(dirname, filename):
@@ -70,9 +70,9 @@ def displayError(dirname, filename):
 
 
 def _checkForLibcBinaries(dist_path):
-    # spell-checker: ignore libanl libcidn libcrypt libdl libm libmemusage libmvec
-    # spell-checker: ignore libnsl libnss libpcprofile libpthread libresolv librt
-    # spell-checker: ignore libthread libutil nisplus
+    # spell-checker: ignore libanl libcidn libcrypt libdl libm libmemusage libmvec libnsl
+    # spell-checker: ignore libnss libpcprofile libpthread libresolv librt libthread
+    # spell-checker: ignore libutil nisplus
     found_glibc_libs = []
     for dist_filename in os.listdir(os.path.join(dist_path)):
         if os.path.basename(dist_filename).startswith(
@@ -155,6 +155,8 @@ def main():
             # we check for that in the report generated.
             # "--mode=standalone",
             "remove_output",
+            # Keep the binary, normally "remove_output" includes that.
+            "--keep-binary",
             # Cache the CPython results for reuse, they will normally not change.
             "cpython_cache",
             # To understand what is slow.
@@ -187,18 +189,9 @@ def main():
             # For the warnings.
             extra_flags.append("ignore_warnings")
 
-        if filename.startswith("Win"):
-            if os.name != "nt":
-                reportSkip("Windows only test", ".", filename)
-                continue
-
         if filename == "TkInterUsing.py":
             if isMacOS():
                 reportSkip("Not working macOS yet", ".", filename)
-                continue
-
-            if isWin32Windows() == "Windows":
-                reportSkip("Can hang on Windows CI.", ".", filename)
                 continue
 
         if filename == "FlaskUsing.py":
@@ -239,13 +232,9 @@ def main():
             if filename != "PySide6":
                 extra_flags.append("ignore_warnings")
 
-        if filename == "PySide6WebEngineFrameworks.py" and isMacOS():
+        if filename.endswith("WebEngineFrameworks.py") and isMacOS():
             extra_flags.append("ignore_stderr")
             extra_flags.append("verify_signature")
-
-        if filename.startswith("PyQt6") and isMacOS():
-            reportSkip("not currently supported", ".", filename)
-            continue
 
         test_logger.info(
             "Consider output of standalone mode compiled program: %s" % filename

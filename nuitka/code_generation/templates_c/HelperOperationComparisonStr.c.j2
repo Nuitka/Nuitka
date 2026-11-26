@@ -7,7 +7,6 @@ static {{ target.getTypeDecl() }} COMPARE_{{op_code}}_{{target.getHelperCodeName
     PyStringObject *a = (PyStringObject *)operand1;
     PyStringObject *b = (PyStringObject *)operand2;
 
-    // Same object has fast path for all operations.
     if (operand1 == operand2) {
 {% if operator in ("==", ">=", "<=") %}
         bool r = true;
@@ -15,7 +14,6 @@ static {{ target.getTypeDecl() }} COMPARE_{{op_code}}_{{target.getHelperCodeName
         bool r = false;
 {% endif %}
 
-        // Convert to target type.
         {{ target.getTypeDecl() }} result = {{target.getToValueFromBoolExpression("r")}};
         {{ target.getTakeReferenceStatement("result", immortal=True) }}
         return result;
@@ -33,7 +31,6 @@ static {{ target.getTypeDecl() }} COMPARE_{{op_code}}_{{target.getHelperCodeName
         bool r = true;
 {% endif %}
 
-        // Convert to target type.
         {{ target.getTypeDecl() }} result = {{target.getToValueFromBoolExpression("r")}};
         {{ target.getTakeReferenceStatement("result", immortal=True) }}
         return result;
@@ -45,7 +42,6 @@ static {{ target.getTypeDecl() }} COMPARE_{{op_code}}_{{target.getHelperCodeName
             bool r = false;
 {% endif %}
 
-            // Convert to target type.
             {{ target.getTypeDecl() }} result = {{target.getToValueFromBoolExpression("r")}};
             {{ target.getTakeReferenceStatement("result", immortal=True) }}
             return result;
@@ -56,7 +52,6 @@ static {{ target.getTypeDecl() }} COMPARE_{{op_code}}_{{target.getHelperCodeName
             bool r = true;
 {% endif %}
 
-            // Convert to target type.
             {{ target.getTypeDecl() }} result = {{target.getToValueFromBoolExpression("r")}};
             {{ target.getTakeReferenceStatement("result", immortal=True) }}
             return result;
@@ -91,7 +86,6 @@ static {{ target.getTypeDecl() }} COMPARE_{{op_code}}_{{target.getHelperCodeName
     c = c >= 0;
 {% endif %}
 
-    // Convert to target type.
     {{ target.getTypeDecl() }} result = {{target.getToValueFromBoolExpression("c != 0")}};
     {{ target.getTakeReferenceStatement("result", immortal=True) }}
     return result;

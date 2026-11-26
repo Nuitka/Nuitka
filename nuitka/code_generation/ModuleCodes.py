@@ -9,19 +9,24 @@ from nuitka.__past__ import iterItems
 from nuitka.code_generation import Emission
 from nuitka.options.Options import (
     getFileReferenceMode,
+    getModuleForceNamespace,
+    hasNonDeploymentIndicator,
     shallMakeModule,
     shallUseDirectConstantBlobs,
 )
 from nuitka.plugins.Hooks import getModuleIncludes
 from nuitka.PythonVersions import python_version
+from nuitka.utils.CStrings import encodePythonStringToC
 from nuitka.Version import getNuitkaVersion, getNuitkaVersionYear
 
+from .CallCodes import getCallsDeclCode
 from .CodeHelpers import (
     decideConversionCheckNeeded,
     generateStatementSequenceCode,
     withObjectCodeTemporaryAssignment,
 )
 from .ConstantCodes import getModuleConstantsDeclAndChecks
+from .ErrorCodes import getErrorExitCode
 from .Indentation import indented
 from .LoaderCodes import getModuleLoaderEntryCode
 from .PgoCodes import getPGOProbeModuleEnterCode, getPGOProbeModuleExitCode
@@ -33,7 +38,9 @@ from .templates.CodeTemplatesModules import (
     template_module_no_exception_exit,
 )
 from .templates.CodeTemplatesVariables import (
+    template_module_variable_accessor_checked_function,
     template_module_variable_accessor_function,
+    template_module_variable_accessor_infallible_function,
 )
 from .VariableCodes import (
     getModuleVariableAccessorCodeName,
@@ -45,6 +52,16 @@ def getModuleAccessCode(context):
     return "module_%s" % context.getModuleCodeName()
 
 
+def _getModuleVariableInfallibleCheck(no_global_deletion):
+    if no_global_deletion and hasNonDeploymentIndicator("module-globals-deleted"):
+        return """\
+if (unlikely(result == NULL)) {
+    NUITKA_ERROR_EXIT("Module variable was deleted unexpectedly");
+}"""
+
+    return "CHECK_OBJECT(result);"
+
+
 def getModuleCode(
     module,
     function_decl_codes,
@@ -53,10 +70,8 @@ def getModuleCode(
     module_const_blob_symbol_name,
     context,
 ):
-    # For the module code, lots of arguments and attributes come together.
     # pylint: disable=too-many-branches,too-many-locals,too-many-statements
 
-    # Temporary variable initializations
     # TODO: Move that to a place outside of functions.
     from .FunctionCodes import (
         finalizeFunctionLocalVariables,
@@ -90,6 +105,11 @@ def getModuleCode(
 
     for _identifier, code in sorted(iterItems(context.getDeclarations())):
         function_decl_codes.append(code)
+
+    call_decl_code = getCallsDeclCode(context.getCallHelpers())
+
+    if call_decl_code:
+        function_decl_codes.append(call_decl_code)
 
     function_body_codes = "\n\n".join(function_body_codes)
     function_decl_codes = "\n\n".join(function_decl_codes)
@@ -132,11 +152,10 @@ def getModuleCode(
 
     module_init_codes = context.getModuleInitCodes()
 
-    # Create the always identical, but dynamic filename first thing.
     module_filename = module.getRunTimeFilename()
 
-    # We do not care about release of this object, as code object live
-    # forever anyway.
+    # Intentionally never released, as module code objects reference it for the
+    # process lifetime.
     if getFileReferenceMode() == "frozen" or os.path.isabs(module_filename):
         module_filename_obj_code = context.getConstantCode(constant=module_filename)
     else:
@@ -147,6 +166,15 @@ def getModuleCode(
     module_init_codes.append("module_filename_obj = %s;" % module_filename_obj_code)
 
     is_dunder_main = module.isMainModule()
+
+    module_force_namespace = getModuleForceNamespace()
+
+    if module_force_namespace is None:
+        module_force_name_code = "NULL"
+    else:
+        module_force_name_code = encodePythonStringToC(
+            module.getRuntimeNameValue().encode("utf8")
+        )
 
     dunder_main_package = context.getConstantCode(
         module.getRuntimePackageValue() if is_dunder_main else ""
@@ -176,20 +204,59 @@ def getModuleCode(
         )
 
     module_variable_accessor_codes = []
-    for module_variable_name, caching in sorted(
+
+    for module_variable_name, accessor_info in sorted(
         context.getModuleVariableAccessors().items()
     ):
+        accessor_function_name = getModuleVariableAccessorCodeName(
+            module_identifier, module_variable_name
+        )
+        var_name = context.getConstantCode(constant=module_variable_name)
+
         module_variable_accessor_codes.append(
             template_module_variable_accessor_function
             % {
-                "accessor_function_name": getModuleVariableAccessorCodeName(
-                    module_identifier, module_variable_name
-                ),
-                "var_name": context.getConstantCode(constant=module_variable_name),
+                "accessor_function_name": accessor_function_name,
+                "var_name": var_name,
                 "module_identifier": module_identifier,
-                "caching": "1" if caching else "0",
+                "caching": "1" if accessor_info["caching"] else "0",
             }
         )
+
+        if accessor_info["checked"]:
+            module_variable_accessor_codes.append(
+                template_module_variable_accessor_checked_function
+                % {
+                    "accessor_function_name": accessor_function_name + "$checked",
+                    "core_accessor_function_name": accessor_function_name,
+                    "raise_name_error_helper": "RAISE_CURRENT_EXCEPTION_NAME_ERROR",
+                    "var_name": var_name,
+                }
+            )
+
+        if accessor_info["checked_global"]:
+            module_variable_accessor_codes.append(
+                template_module_variable_accessor_checked_function
+                % {
+                    "accessor_function_name": accessor_function_name
+                    + "$checked_global",
+                    "core_accessor_function_name": accessor_function_name,
+                    "raise_name_error_helper": "RAISE_CURRENT_EXCEPTION_GLOBAL_NAME_ERROR",
+                    "var_name": var_name,
+                }
+            )
+
+        if accessor_info["unchecked"]:
+            module_variable_accessor_codes.append(
+                template_module_variable_accessor_infallible_function
+                % {
+                    "accessor_function_name": accessor_function_name + "$infallible",
+                    "core_accessor_function_name": accessor_function_name,
+                    "infallible_check": _getModuleVariableInfallibleCheck(
+                        accessor_info["no_global_deletion"]
+                    ),
+                }
+            )
 
     (
         constants_count,
@@ -200,6 +267,8 @@ def getModuleCode(
 
     return template % {
         "module_name_cstr": module_name.asCString(),
+        "has_module_force_namespace": (1 if module_force_namespace is not None else 0),
+        "module_force_name": module_force_name_code,
         "version": getNuitkaVersion(),
         "year": getNuitkaVersionYear(),
         "is_top": 1 if module.isTopModule() else 0,
@@ -239,6 +308,33 @@ def getModuleCode(
     }
 
 
+def generateRuntimePathCode(to_name, expression, emit, context):
+    relative_path = expression.getRelativePath()
+
+    with withObjectCodeTemporaryAssignment(
+        to_name, "runtime_path_value", expression, emit, context
+    ) as result_name:
+        if relative_path:
+            emit(
+                "%s = MAKE_RELATIVE_PATH(%s);"
+                % (
+                    result_name,
+                    context.getConstantCode(relative_path),
+                )
+            )
+        else:
+            emit("%s = getPythonRuntimeDirObject();" % result_name)
+
+        getErrorExitCode(
+            check_name=result_name,
+            needs_check=expression.mayRaiseException(BaseException),
+            emit=emit,
+            context=context,
+        )
+
+        context.addCleanupTempName(result_name)
+
+
 def generateModuleAttributeFileCode(to_name, expression, emit, context):
     # TODO: Special treatment justified?
     with withObjectCodeTemporaryAssignment(
@@ -255,12 +351,15 @@ def generateModuleAttributeDunderCompiledCode(to_name, expression, emit, context
 
 
 def generateModuleAttributeCode(to_name, expression, emit, context):
+    variable = expression.getVariable()
+
     getModuleVariableReferenceCode(
         to_name=to_name,
-        variable_name=expression.getVariable().getName(),
+        variable_name=variable.getName(),
         use_caching=False,
         needs_check=False,
         conversion_check=decideConversionCheckNeeded(to_name, expression),
+        no_global_deletion=variable.isModuleVariableNoGlobalDeletion(),
         emit=emit,
         context=context,
     )

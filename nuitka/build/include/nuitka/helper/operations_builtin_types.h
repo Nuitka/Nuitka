@@ -89,11 +89,15 @@ extern PyObject *STR_STRIP1(PyThreadState *tstate, PyObject *str);
 extern PyObject *STR_STRIP2(PyThreadState *tstate, PyObject *str, PyObject *chars);
 extern PyObject *STR_SWAPCASE(PyThreadState *tstate, PyObject *str);
 extern PyObject *STR_TITLE(PyThreadState *tstate, PyObject *str);
-extern PyObject *STR_TRANSLATE(PyThreadState *tstate, PyObject *str, PyObject *table);
+extern PyObject *STR_TRANSLATE2(PyThreadState *tstate, PyObject *str, PyObject *table);
+extern PyObject *STR_TRANSLATE3(PyThreadState *tstate, PyObject *str, PyObject *table, PyObject *delete_value);
 extern PyObject *STR_UPPER(PyThreadState *tstate, PyObject *str);
 extern PyObject *STR_ZFILL(PyThreadState *tstate, PyObject *str, PyObject *width);
 #endif
 extern PyObject *UNICODE_CAPITALIZE(PyThreadState *tstate, PyObject *unicode);
+#if PYTHON_VERSION >= 0x300
+extern PyObject *UNICODE_CASEFOLD(PyThreadState *tstate, PyObject *unicode);
+#endif
 extern PyObject *UNICODE_CENTER2(PyThreadState *tstate, PyObject *unicode, PyObject *width);
 extern PyObject *UNICODE_CENTER3(PyThreadState *tstate, PyObject *unicode, PyObject *width, PyObject *fillchar);
 extern PyObject *UNICODE_COUNT2(PyThreadState *tstate, PyObject *unicode, PyObject *sub);
@@ -118,8 +122,19 @@ extern PyObject *UNICODE_INDEX4(PyThreadState *tstate, PyObject *unicode, PyObje
                                 PyObject *end);
 extern PyObject *UNICODE_ISALNUM(PyThreadState *tstate, PyObject *unicode);
 extern PyObject *UNICODE_ISALPHA(PyThreadState *tstate, PyObject *unicode);
+#if PYTHON_VERSION >= 0x370
+extern PyObject *UNICODE_ISASCII(PyThreadState *tstate, PyObject *unicode);
+#endif
+extern PyObject *UNICODE_ISDECIMAL(PyThreadState *tstate, PyObject *unicode);
 extern PyObject *UNICODE_ISDIGIT(PyThreadState *tstate, PyObject *unicode);
+#if PYTHON_VERSION >= 0x300
+extern PyObject *UNICODE_ISIDENTIFIER(PyThreadState *tstate, PyObject *unicode);
+#endif
 extern PyObject *UNICODE_ISLOWER(PyThreadState *tstate, PyObject *unicode);
+extern PyObject *UNICODE_ISNUMERIC(PyThreadState *tstate, PyObject *unicode);
+#if PYTHON_VERSION >= 0x300
+extern PyObject *UNICODE_ISPRINTABLE(PyThreadState *tstate, PyObject *unicode);
+#endif
 extern PyObject *UNICODE_ISSPACE(PyThreadState *tstate, PyObject *unicode);
 extern PyObject *UNICODE_ISTITLE(PyThreadState *tstate, PyObject *unicode);
 extern PyObject *UNICODE_ISUPPER(PyThreadState *tstate, PyObject *unicode);
@@ -159,7 +174,10 @@ extern PyObject *UNICODE_STRIP1(PyThreadState *tstate, PyObject *unicode);
 extern PyObject *UNICODE_STRIP2(PyThreadState *tstate, PyObject *unicode, PyObject *chars);
 extern PyObject *UNICODE_SWAPCASE(PyThreadState *tstate, PyObject *unicode);
 extern PyObject *UNICODE_TITLE(PyThreadState *tstate, PyObject *unicode);
-extern PyObject *UNICODE_TRANSLATE(PyThreadState *tstate, PyObject *unicode, PyObject *table);
+extern PyObject *UNICODE_TRANSLATE2(PyThreadState *tstate, PyObject *unicode, PyObject *table);
+#if PYTHON_VERSION < 0x300
+extern PyObject *UNICODE_TRANSLATE3(PyThreadState *tstate, PyObject *unicode, PyObject *table, PyObject *delete_value);
+#endif
 extern PyObject *UNICODE_UPPER(PyThreadState *tstate, PyObject *unicode);
 extern PyObject *UNICODE_ZFILL(PyThreadState *tstate, PyObject *unicode, PyObject *width);
 #if PYTHON_VERSION >= 0x300

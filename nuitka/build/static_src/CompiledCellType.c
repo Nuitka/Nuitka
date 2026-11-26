@@ -24,12 +24,14 @@ int count_allocated_Nuitka_Cell_Type;
 int count_released_Nuitka_Cell_Type;
 #endif
 
-// Freelist setup
 #define MAX_CELL_FREE_LIST_COUNT 1000
 static struct Nuitka_CellObject *free_list_cells = NULL;
 static int free_list_cells_count = 0;
+NUITKA_FREELIST_DECLARE_LOCK(free_list_cells)
 
-static void Nuitka_Cell_tp_dealloc(struct Nuitka_CellObject *cell) {
+static void Nuitka_Cell_tp_dealloc(PyObject *self) {
+    struct Nuitka_CellObject *cell = (struct Nuitka_CellObject *)self;
+
 #if _DEBUG_REFCOUNTS
     count_active_Nuitka_Cell_Type -= 1;
     count_released_Nuitka_Cell_Type += 1;
@@ -77,8 +79,6 @@ static PyObject *Nuitka_Cell_tp_richcompare(PyObject *a, PyObject *b, int op) {
         return result;
     }
 
-    // Now just dereference cell value, and compare from there by contents, which can
-    // be NULL however.
     a = ((struct Nuitka_CellObject *)a)->ob_ref;
     b = ((struct Nuitka_CellObject *)b)->ob_ref;
 
@@ -132,7 +132,9 @@ static PyObject *Nuitka_Cell_tp_richcompare(PyObject *a, PyObject *b, int op) {
 }
 #endif
 
-static PyObject *Nuitka_Cell_tp_repr(struct Nuitka_CellObject *cell) {
+static PyObject *Nuitka_Cell_tp_repr(PyObject *self) {
+    struct Nuitka_CellObject *cell = (struct Nuitka_CellObject *)self;
+
     if (cell->ob_ref == NULL) {
         return Nuitka_String_FromFormat("<compiled_cell at %p: empty>", cell);
     } else {
@@ -141,13 +143,17 @@ static PyObject *Nuitka_Cell_tp_repr(struct Nuitka_CellObject *cell) {
     }
 }
 
-static int Nuitka_Cell_tp_traverse(struct Nuitka_CellObject *cell, visitproc visit, void *arg) {
+static int Nuitka_Cell_tp_traverse(PyObject *self, visitproc visit, void *arg) {
+    struct Nuitka_CellObject *cell = (struct Nuitka_CellObject *)self;
+
     Py_VISIT(cell->ob_ref);
 
     return 0;
 }
 
-static int Nuitka_Cell_tp_clear(struct Nuitka_CellObject *cell) {
+static int Nuitka_Cell_tp_clear(PyObject *self) {
+    struct Nuitka_CellObject *cell = (struct Nuitka_CellObject *)self;
+
     Py_CLEAR(cell->ob_ref);
 
     return 0;

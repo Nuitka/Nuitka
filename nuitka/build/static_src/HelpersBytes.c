@@ -1,9 +1,5 @@
 //     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
-/* This helpers is used to quickly create a bytes objects.
-
-*/
-
 // This file is included from another C file, help IDEs to still parse it on
 // its own.
 #ifdef __IDE_ONLY__
@@ -12,7 +8,7 @@
 
 #if PYTHON_VERSION >= 0x300
 
-// Custom allocation to save bytes at the end.
+// Avoid trailing struct alignment padding after ob_sval[1]; +1 reserves the NUL terminator.
 #define PyBytesObject_SIZE (offsetof(PyBytesObject, ob_sval) + 1)
 
 #if NUITKA_BYTES_HAS_FREELIST
@@ -31,6 +27,22 @@ static struct _Py_bytes_state *Nuitka_Py_get_bytes_state(void) {
 #define BYTES_CHARACTER(ch) ((PyBytesObject *)&(BYTES_CHARACTERS[ch]));
 #define BYTES_EMPTY (&Nuitka_PyRuntime__static_objects->singletons.bytes_empty)
 #endif
+
+PyObject *Nuitka_Bytes_New(Py_ssize_t size) {
+    assert(size >= 0);
+
+    PyBytesObject *op = (PyBytesObject *)NuitkaObject_Malloc(PyBytesObject_SIZE + size);
+
+    Py_SET_TYPE(op, &PyBytes_Type);
+    Py_SET_SIZE(op, size);
+
+    Nuitka_Py_NewReference((PyObject *)op);
+
+    op->ob_shash = -1;
+    op->ob_sval[size] = '\0';
+
+    return (PyObject *)op;
+}
 
 PyObject *Nuitka_Bytes_FromStringAndSize(const char *data, Py_ssize_t size) {
     assert(size >= 0);

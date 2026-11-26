@@ -7,6 +7,7 @@
 #ifdef __IDE_ONLY__
 #include "nuitka/prelude.h"
 
+// Includes below require definitions from the prelude.
 #include "HelpersComparisonEq.c"
 #include "HelpersComparisonGe.c"
 #include "HelpersComparisonGt.c"
@@ -31,13 +32,10 @@ static PyObject *COMPARE_LT_OBJECT_CLONG_CLONG(long operand1, long operand2) {
 
     bool r = a < b;
 
-    // Convert to target type.
     PyObject *result = BOOL_FROM(r);
     Py_INCREF_IMMORTAL(result);
     return result;
 }
-/* Code referring to "NILONG" corresponds to Nuitka int/long/C long value and "NILONG" to Nuitka int/long/C long value.
- */
 PyObject *RICH_COMPARE_LT_OBJECT_NILONG_NILONG(nuitka_ilong *operand1, nuitka_ilong *operand2) {
     CHECK_NILONG_OBJECT(operand1);
     CHECK_NILONG_OBJECT(operand2);
@@ -58,7 +56,6 @@ PyObject *RICH_COMPARE_LT_OBJECT_NILONG_NILONG(nuitka_ilong *operand1, nuitka_il
             r = COMPARE_LT_CBOOL_LONG_CLONG(operand1->python_value, operand2->c_value);
         }
 
-        // Convert to target type.
         PyObject *result = BOOL_FROM(r);
         Py_INCREF_IMMORTAL(result);
         return result;
@@ -72,13 +69,10 @@ static bool COMPARE_LT_CBOOL_CLONG_CLONG(long operand1, long operand2) {
 
     bool r = a < b;
 
-    // Convert to target type.
     bool result = r;
 
     return result;
 }
-/* Code referring to "NILONG" corresponds to Nuitka int/long/C long value and "NILONG" to Nuitka int/long/C long value.
- */
 bool RICH_COMPARE_LT_CBOOL_NILONG_NILONG(nuitka_ilong *operand1, nuitka_ilong *operand2) {
     CHECK_NILONG_OBJECT(operand1);
     CHECK_NILONG_OBJECT(operand2);
@@ -99,14 +93,12 @@ bool RICH_COMPARE_LT_CBOOL_NILONG_NILONG(nuitka_ilong *operand1, nuitka_ilong *o
             r = COMPARE_LT_CBOOL_LONG_CLONG(operand1->python_value, operand2->c_value);
         }
 
-        // Convert to target type.
         bool result = r;
 
         return result;
     }
 }
 
-/* Code referring to "NILONG" corresponds to Nuitka int/long/C long value and "CLONG" to C platform long value. */
 PyObject *RICH_COMPARE_LT_OBJECT_NILONG_CLONG(nuitka_ilong *operand1, long operand2) {
     CHECK_NILONG_OBJECT(operand1);
 
@@ -124,7 +116,6 @@ PyObject *RICH_COMPARE_LT_OBJECT_NILONG_CLONG(nuitka_ilong *operand1, long opera
     }
 }
 
-/* Code referring to "NILONG" corresponds to Nuitka int/long/C long value and "CLONG" to C platform long value. */
 bool RICH_COMPARE_LT_CBOOL_NILONG_CLONG(nuitka_ilong *operand1, long operand2) {
     CHECK_NILONG_OBJECT(operand1);
 
@@ -142,8 +133,6 @@ bool RICH_COMPARE_LT_CBOOL_NILONG_CLONG(nuitka_ilong *operand1, long operand2) {
     }
 }
 
-/* Code referring to "NILONG" corresponds to Nuitka int/long/C long value and "DIGIT" to C platform digit value for long
- * Python objects. */
 PyObject *RICH_COMPARE_LT_OBJECT_NILONG_DIGIT(nuitka_ilong *operand1, long operand2) {
     CHECK_NILONG_OBJECT(operand1);
     assert(Py_ABS(operand2) < (1 << PyLong_SHIFT));
@@ -162,8 +151,6 @@ PyObject *RICH_COMPARE_LT_OBJECT_NILONG_DIGIT(nuitka_ilong *operand1, long opera
     }
 }
 
-/* Code referring to "NILONG" corresponds to Nuitka int/long/C long value and "DIGIT" to C platform digit value for long
- * Python objects. */
 bool RICH_COMPARE_LT_CBOOL_NILONG_DIGIT(nuitka_ilong *operand1, long operand2) {
     CHECK_NILONG_OBJECT(operand1);
     assert(Py_ABS(operand2) < (1 << PyLong_SHIFT));

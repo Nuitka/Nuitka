@@ -10,22 +10,27 @@ know how to handle these.
 import os
 import sys
 
-from nuitka.Constants import isConstant
+from nuitka.Constants import TargetVersionInfo, isConstant
 from nuitka.nodes.BuiltinOpenNodes import makeBuiltinOpenRefNode
-from nuitka.nodes.ConstantRefNodes import ExpressionConstantSysVersionInfoRef
-from nuitka.nodes.HardImportNodes import getHardImportNodeClasses
-from nuitka.options.Options import shallMakeModule
-from nuitka.PythonVersions import (
-    getFutureModuleKeys,
-    getImportlibSubPackages,
-    python_version,
+from nuitka.nodes.ConstantRefNodes import (
+    ExpressionConstantSysVersionInfoRef,
+    makeExpressionConstantSysVersionInfoRef,
 )
+from nuitka.nodes.HardImportNodes import getHardImportNodeClasses
+from nuitka.nodes.SysModulesNodes import makeExpressionSysModulesRef
+from nuitka.options.Options import shallMakeModule
+from nuitka.PythonVersions import getFutureModuleKeys, python_version
 from nuitka.States import states
+from nuitka.targets.Targets import (
+    TargetCompileTimeEvaluationNotAvailable,
+    getTargetSpecification,
+)
 from nuitka.utils.Utils import isWin32Windows, withNoDeprecationWarning
 
 # These module are supported in code generation to be imported the hard way.
 hard_modules = set(
     (
+        "imp",
         "os",
         "ntpath",
         "posixpath",
@@ -84,6 +89,7 @@ hard_modules_non_stdlib = set(
 hard_modules = hard_modules | hard_modules_non_stdlib
 
 hard_modules_version = {
+    "imp": (None, 0x300, None),
     "cStringIO": (None, 0x300, None),
     "typing": (0x350, None, None),
     "_frozen_importlib": (0x300, None, None),
@@ -207,14 +213,8 @@ trust_may_exist = 5
 trust_not_exist = 6
 trust_node_factory = {}
 
-module_importlib_trust = dict(
-    (key, trust_importable) for key in getImportlibSubPackages()
-)
-
-if "metadata" not in module_importlib_trust:
-    module_importlib_trust["metadata"] = trust_undefined
-if "resources" not in module_importlib_trust:
-    module_importlib_trust["resources"] = trust_undefined
+# Filled from the target Python during hard-import setup.
+module_importlib_trust = {}
 
 module_sys_trust = {
     "version": trust_constant,
@@ -228,13 +228,18 @@ module_sys_trust = {
     #    "stdout": trust_exist,
     #    "stderr": trust_exist,
     "exit": trust_node,
+    "modules": trust_node,
 }
+
+trust_node_factory[("sys", "modules")] = makeExpressionSysModulesRef
 
 if python_version < 0x270:
     module_sys_trust["version_info"] = trust_constant
 else:
     module_sys_trust["version_info"] = trust_node
-    trust_node_factory[("sys", "version_info")] = ExpressionConstantSysVersionInfoRef
+    trust_node_factory[("sys", "version_info")] = (
+        makeExpressionConstantSysVersionInfoRef
+    )
 
 module_builtins_trust = {}
 if python_version >= 0x300:
@@ -305,6 +310,7 @@ module_os_path_trust = {
     "isdir": trust_node,
     "basename": trust_node,
     "dirname": trust_node,
+    "join": trust_node,
     "abspath": trust_node,
     "normpath": trust_node,
 }
@@ -313,6 +319,24 @@ module_os_path_trust = {
 module_ctypes_trust = {
     "CDLL": trust_node,
 }
+
+
+# Trust values derived from the host Python must not leak into cross targets.
+def getHardModuleTrust(module_name, attribute_name):
+    """Return the trust value for a hard module attribute.
+
+    Args:
+        module_name: ModuleName of the hard module.
+        attribute_name: str of the attribute being looked up.
+
+    Returns:
+        Trust value for the attribute, or `trust_undefined` when unknown.
+    """
+    try:
+        return hard_modules_trust[module_name][attribute_name]
+    except KeyError:
+        return trust_undefined
+
 
 # module_platform_trust = {"python_implementation": trust_function}
 
@@ -341,12 +365,13 @@ hard_modules_trust = {
         "entry_points": trust_node,
         "PackageNotFoundError": trust_exist,
     },
+    "imp": {},
     "_frozen_importlib": {},
     "_frozen_importlib_external": {},
     "pathlib": {},
     "pathlib._abc": {},
     "pathlib._local": {},
-    "pkgutil": {"get_data": trust_node},
+    "pkgutil": {"get_data": trust_node, "iter_modules": trust_node},
     "functools": {"partial": trust_exist},
     "sysconfig": {},
     "unittest": {"mock": trust_module, "main": trust_exist},
@@ -364,11 +389,15 @@ hard_modules_trust = {
     "importlib.resources": {
         "read_binary": trust_node,
         "read_text": trust_node,
+        "open_binary": trust_node,
+        "open_text": trust_node,
         "files": trust_node,
     },
     "importlib_resources": {
         "read_binary": trust_node,
         "read_text": trust_node,
+        "open_binary": trust_node,
+        "open_text": trust_node,
         "files": trust_node,
     },
     "ctypes": module_ctypes_trust,
@@ -384,6 +413,81 @@ hard_modules_trust = {
     # having ordering issues for call matching and code generation.
     # "networkx.utils.decorators": {"argmap": trust_node},
 }
+
+
+def setupHardImportsForTarget(target_spec):
+    """Prepare the hard-import registry for the selected target.
+
+    Args:
+        target_spec: TargetBase of the target to prepare hard imports for.
+    """
+    for module_name in list(hard_modules):
+        if not target_spec.isHardModuleSupported(module_name):
+            hard_modules.discard(module_name)
+            hard_modules_stdlib.discard(module_name)
+            hard_modules_non_stdlib.discard(module_name)
+            hard_modules_dynamic.discard(module_name)
+            hard_modules_trust.pop(module_name, None)
+            hard_modules_trust_with_side_effects.discard(module_name)
+            hard_modules_version.pop(module_name, None)
+
+    if python_version < 0x270:
+        module_sys_trust["version_info"] = trust_constant
+    else:
+        target_version_info = target_spec.getPythonVersionInfo()
+
+        if target_version_info is None:
+            module_sys_trust["version_info"] = trust_undefined
+        elif target_version_info is sys.version_info:
+            module_sys_trust["version_info"] = trust_node
+            trust_node_factory[("sys", "version_info")] = (
+                makeExpressionConstantSysVersionInfoRef
+            )
+        else:
+            assert type(target_version_info) is TargetVersionInfo
+
+            module_sys_trust["version_info"] = trust_node
+            trust_node_factory[("sys", "version_info")] = (
+                lambda source_ref: ExpressionConstantSysVersionInfoRef(
+                    constant=target_version_info, source_ref=source_ref
+                )
+            )
+
+    importlib_subpackages = target_spec.getModuleSubPackages("importlib")
+
+    module_importlib_trust.update(
+        (key, trust_importable) for key in importlib_subpackages
+    )
+
+    if "metadata" not in module_importlib_trust:
+        module_importlib_trust["metadata"] = trust_undefined
+    if "resources" not in module_importlib_trust:
+        module_importlib_trust["resources"] = trust_undefined
+
+
+def getHardModuleConstant(module_name, attribute_name):
+    """Return whether a constant is available and its value.
+
+    Args:
+        module_name: ModuleName of the hard module.
+        attribute_name: str of the attribute being looked up.
+
+    Returns:
+        tuple(bool, object): availability and the constant value.
+    """
+    module_name_str = module_name.asString()
+    setup_code = "import %s as _target_module" % module_name_str
+    expression = "_target_module.%s" % attribute_name
+
+    try:
+        return (
+            True,
+            getTargetSpecification().evaluateCompileTimeExpression(
+                expression, setup_code
+            ),
+        )
+    except TargetCompileTimeEvaluationNotAvailable:
+        return False, None
 
 
 def _addHardImportNodeClasses():

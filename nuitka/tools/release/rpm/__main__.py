@@ -43,11 +43,7 @@ def main():
     makePath(os.path.expanduser("~/rpmbuild/SOURCES"))
 
     # Upload stable releases to OpenSUSE Build Service:
-    if (
-        branch_name.startswith("release")
-        or branch_name.startswith("hotfix")
-        or branch_name == "main"
-    ):
+    if branch_name.startswith(("release", "hotfix")) or branch_name == "main":
         rpm_project_name = "Nuitka"
         spec_suffix = ""
     elif branch_name == "develop":
@@ -66,7 +62,7 @@ def main():
         )
         # spell-checker: ignore gztar,rpmlintrc
         assert os.system("%s ../setup.py sdist --formats=gztar" % sys.executable) == 0
-        nuitka_dist_filename = "Nuitka%s-%s.tar.gz" % (spec_suffix, nuitka_version)
+        nuitka_dist_filename = "nuitka%s-%s.tar.gz" % (spec_suffix, nuitka_version)
         renameFile(
             source_filename=os.path.join("..", "dist", nuitka_dist_filename),
             dest_filename=os.path.join("/root/rpmbuild/SOURCES", nuitka_dist_filename),

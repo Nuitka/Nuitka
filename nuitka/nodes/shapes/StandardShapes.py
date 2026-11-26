@@ -74,6 +74,14 @@ class ShapeBase(getMetaClassBase("Shape", require_slots=True)):
         return None
 
     @staticmethod
+    def hasShapeSlotIndex():
+        return None
+
+    @staticmethod
+    def hasShapeSlotIndexCode():
+        return None
+
+    @staticmethod
     def hasShapeSlotLong():
         return None
 
@@ -83,6 +91,10 @@ class ShapeBase(getMetaClassBase("Shape", require_slots=True)):
 
     @staticmethod
     def hasShapeSlotIter():
+        return None
+
+    @staticmethod
+    def hasShapeSlotIterCode():
         return None
 
     @staticmethod
@@ -99,6 +111,11 @@ class ShapeBase(getMetaClassBase("Shape", require_slots=True)):
 
     @staticmethod
     def hasShapeSlotHash():
+        return None
+
+    @staticmethod
+    def hasShapeSlotHashCode():
+        """Does hashing execute code, i.e. control flow escaped."""
         return None
 
     @staticmethod
@@ -133,7 +150,6 @@ class ShapeBase(getMetaClassBase("Shape", require_slots=True)):
     iadd_shapes = {}
 
     def getOperationInplaceAddShape(self, right_shape):
-        """Inplace add operation shape, for overload."""
         if self.iadd_shapes:
             result = self.iadd_shapes.get(right_shape)
 
@@ -406,7 +422,6 @@ class ShapeBase(getMetaClassBase("Shape", require_slots=True)):
     ibitor_shapes = {}
 
     def getOperationInplaceBitOrShape(self, right_shape):
-        """Inplace bitor operation shape, for overload."""
         if self.ibitor_shapes:
             result = self.ibitor_shapes.get(right_shape)
 
@@ -424,9 +439,6 @@ class ShapeBase(getMetaClassBase("Shape", require_slots=True)):
 
                 return operation_result_unknown
         else:
-            # By default, inplace add is the same as plain add, the
-            # only exception known right now is list, which extend
-            # from all iterables, but don't add with them.
             return self.getOperationBinaryBitOrShape(right_shape)
 
     matmult_shapes = {}
@@ -439,7 +451,7 @@ class ShapeBase(getMetaClassBase("Shape", require_slots=True)):
         else:
             right_shape_type = type(right_shape)
             if right_shape_type is ShapeLoopCompleteAlternative:
-                return right_shape.getOperationBinaryBitMatMultLShape(self)
+                return right_shape.getOperationBinaryMatMultLShape(self)
 
             if right_shape_type is ShapeLoopInitialAlternative:
                 return operation_result_unknown
@@ -476,7 +488,7 @@ class ShapeBase(getMetaClassBase("Shape", require_slots=True)):
         return self.getComparisonLtShape(right_shape)
 
     def getComparisonNeqShape(self, right_shape):
-        return self.getComparisonLtShape(right_shape)
+        return self.getComparisonEqShape(right_shape)
 
     @abstractmethod
     def getOperationUnaryReprEscape(self):
@@ -484,8 +496,7 @@ class ShapeBase(getMetaClassBase("Shape", require_slots=True)):
 
     @staticmethod
     def isKnownToHaveAttribute(attribute_name):
-        # Virtual method, pylint: disable=unused-argument
-
+        # pylint: disable=unused-argument
         return None
 
     def emitAlternatives(self, emit):
@@ -596,11 +607,9 @@ class ValueShapeUnknown(ValueShapeBase):
 
     @staticmethod
     def isConstant():
-        """Can't say if it's constant, we don't know anything."""
         return None
 
 
-# Singleton value for sharing.
 vshape_unknown = ValueShapeUnknown()
 
 
@@ -923,10 +932,20 @@ class ShapeLoopInitialAlternative(ShapeBase):
         return self.getComparisonLtShape(right_shape)
 
     def getComparisonEqShape(self, right_shape):
-        return self.getComparisonLtShape(right_shape)
+        if right_shape is tshape_unknown:
+            return operation_result_unknown
+        else:
+            return (
+                self._collectInitialShape(
+                    operation=lambda left_shape: left_shape.getComparisonEqShape(
+                        right_shape
+                    )
+                ),
+                ControlFlowDescriptionFullEscape,
+            )
 
     def getComparisonNeqShape(self, right_shape):
-        return self.getComparisonLtShape(right_shape)
+        return self.getComparisonEqShape(right_shape)
 
     @staticmethod
     def getOperationUnaryReprEscape():
@@ -937,11 +956,8 @@ class ShapeLoopCompleteAlternative(ShapeBase):
     """Merge of loop wrap around with loop start value.
 
     Happens at the start of loop blocks. This is for loop closed SSA, to
-    make it clear, that the entered value, can be one of multiple types,
+    make it clear that the entered value can be one of multiple types,
     but only those.
-
-    They will start out with just one previous, and later be updated with
-    all of the variable versions at loop continue times.
     """
 
     __slots__ = ("type_shapes",)
@@ -976,11 +992,9 @@ class ShapeLoopCompleteAlternative(ShapeBase):
 
             if single:
                 if result is None:
-                    # First entry, fine.
                     result = entry
                     escape_description = description
                 else:
-                    # Second entry, not the same, convert to set.
                     if result is not entry:
                         single = False
                         result = set((result, entry))
@@ -1183,8 +1197,6 @@ class ShapeLoopCompleteAlternative(ShapeBase):
             operation=left_shape.getOperationBinaryAddShape
         )
 
-    # Special method to be called by other shapes encountering this type on
-    # the right side.
     def getOperationBinarySubLShape(self, left_shape):
         assert left_shape is not tshape_unknown
 
@@ -1308,10 +1320,20 @@ class ShapeLoopCompleteAlternative(ShapeBase):
         return self.getComparisonLtShape(right_shape)
 
     def getComparisonEqShape(self, right_shape):
-        return self.getComparisonLtShape(right_shape)
+        if right_shape is tshape_unknown:
+            return operation_result_unknown
+
+        return self._collectShapeOperation(
+            operation=lambda left_shape: left_shape.getComparisonEqShape(right_shape)
+        )
+
+    def getComparisonEqLShape(self, left_shape):
+        assert left_shape is not tshape_unknown
+
+        return self._collectShapeOperation(operation=left_shape.getComparisonEqShape)
 
     def getComparisonNeqShape(self, right_shape):
-        return self.getComparisonLtShape(right_shape)
+        return self.getComparisonEqShape(right_shape)
 
     @staticmethod
     def getOperationUnaryReprEscape():
@@ -1348,6 +1370,12 @@ class ShapeLoopCompleteAlternative(ShapeBase):
     def hasShapeSlotIter(self):
         return self._delegatedCheck(lambda x: x.hasShapeSlotIter())
 
+    def hasShapeSlotIterCode(self):
+        return self._delegatedCheck(lambda x: x.hasShapeSlotIterCode())
+
+    def hasShapeSlotHashCode(self):
+        return self._delegatedCheck(lambda x: x.hasShapeSlotHashCode())
+
     def hasShapeSlotNext(self):
         return self._delegatedCheck(lambda x: x.hasShapeSlotNext())
 
@@ -1356,6 +1384,12 @@ class ShapeLoopCompleteAlternative(ShapeBase):
 
     def hasShapeSlotInt(self):
         return self._delegatedCheck(lambda x: x.hasShapeSlotInt())
+
+    def hasShapeSlotIndex(self):
+        return self._delegatedCheck(lambda x: x.hasShapeSlotIndex())
+
+    def hasShapeSlotIndexCode(self):
+        return self._delegatedCheck(lambda x: x.hasShapeSlotIndexCode())
 
     def hasShapeSlotLong(self):
         return self._delegatedCheck(lambda x: x.hasShapeSlotLong())

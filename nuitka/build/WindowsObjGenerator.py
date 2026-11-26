@@ -38,14 +38,10 @@ def _createCoffStringTable(symbol_bytes):
 def generateWindowsCoffObject(
     in_filename, out_filename, symbol_name, architecture, writeable
 ):
-    """Generate a valid MSVC COFF .obj file containing the given payload.
+    """Generate a valid MSVC COFF '.obj' file containing the given payload.
 
     Args:
-        in_filename (str): Path to the input binary payload.
-        out_filename (str): Path to write the resulting .obj file.
-        symbol_name (str): The C symbol name to export.
-        architecture (str): 'x86', 'x86_64', or 'arm64'.
-        writeable (bool): Use a writable '.data' section instead of '.rdata'.
+        architecture: Target architecture ('x86', 'x86_64', or 'arm64').
     """
 
     # pylint: disable=too-many-locals
@@ -74,7 +70,6 @@ def generateWindowsCoffObject(
     padding_len = (4 - (section_data_size % 4)) % 4
     padding = b"\x00" * padding_len
 
-    # Header sizes
     file_header_size = 20
     section_header_size = 40
 
@@ -127,18 +122,13 @@ def generateWindowsCoffObject(
     )
 
     # 3. Symbol Table Entry
-    # Value is 0 (offset within section)
-    # SectionNumber is 1 (1-based index to our section)
-    # Type is 0 (IMAGE_SYM_TYPE_NULL)
-    # StorageClass is 2 (IMAGE_SYM_CLASS_EXTERNAL)
-    # NumberOfAuxSymbols is 0
     symbol_table_entry = struct.pack(
         "<8sIhHBB",
         sym_name_field,
-        0,  # Value
-        1,  # SectionNumber
-        0,  # Type
-        2,  # StorageClass
+        0,  # Value (offset within section)
+        1,  # SectionNumber (1-based)
+        0,  # Type (IMAGE_SYM_TYPE_NULL)
+        2,  # StorageClass (IMAGE_SYM_CLASS_EXTERNAL)
         0,  # NumberOfAuxSymbols
     )
 

@@ -1,12 +1,7 @@
 #     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-"""Reformulation of for loop statements.
-
-Consult the Developer Manual for information. TODO: Add ability to sync
-source code comments with Developer Manual sections.
-
-"""
+"""Reformulation of for loop statements."""
 
 from nuitka.nodes.BuiltinIteratorNodes import (
     ExpressionAsyncIter,
@@ -37,17 +32,10 @@ from .TreeHelpers import (
 
 
 def _buildForLoopNode(provider, node, sync, source_ref):
-    # The for loop is re-formulated according to Developer Manual. An iterator
-    # is created, and looped until it gives StopIteration. The else block is
-    # taken if a for loop exits normally, i.e. because of iterator
-    # exhaustion. We do this by introducing an indicator variable.
-
-    # We handle async and sync both here, leading to cases, pylint: disable=too-many-locals
+    # pylint: disable=too-many-locals
 
     source = buildNode(provider, node.iter, source_ref)
 
-    # Temporary variables, we need one for the iterator, and one for the current
-    # value.
     temp_scope = provider.allocateTempScope("for_loop")
 
     tmp_iter_variable = provider.allocateTempVariable(
@@ -57,7 +45,7 @@ def _buildForLoopNode(provider, node, sync, source_ref):
         temp_scope=temp_scope, name="iter_value", temp_type="object"
     )
 
-    # ast naming, spell-checker: ignore orelse
+    # spell-checker: ignore orelse
     else_block = buildStatementsNode(
         provider=provider,
         nodes=node.orelse if node.orelse else None,
@@ -65,7 +53,6 @@ def _buildForLoopNode(provider, node, sync, source_ref):
     )
 
     if else_block is not None:
-        # Indicator variable, will end up with C bool type, and need not be released.
         tmp_break_indicator = provider.allocateTempVariable(
             temp_scope=temp_scope, name="break_indicator", temp_type="bool"
         )
@@ -160,7 +147,6 @@ def _buildForLoopNode(provider, node, sync, source_ref):
         )
 
     statements += (
-        # First create the iterator and store it.
         makeStatementAssignmentVariable(
             variable=tmp_iter_variable, source=iter_source, source_ref=source_ref
         ),

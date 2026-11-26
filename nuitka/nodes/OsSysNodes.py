@@ -1,7 +1,7 @@
 #     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-"""Nodes the represent ways to access os and sys functions."""
+"""Nodes that represent ways to access os and sys functions."""
 
 import os
 
@@ -16,13 +16,16 @@ from .HardImportNodesGenerated import (
     ExpressionOsLstatCallBase,
     ExpressionOsPathAbspathCallBase,
     ExpressionOsPathBasenameCallBase,
+    ExpressionOsPathDirnameCallBase,
     ExpressionOsPathExistsCallBase,
     ExpressionOsPathIsabsCallBase,
     ExpressionOsPathIsdirCallBase,
     ExpressionOsPathIsfileCallBase,
+    ExpressionOsPathJoinCallBase,
     ExpressionOsStatCallBase,
     ExpressionOsUnameCallBase,
 )
+from .RuntimePathNodes import ExpressionRuntimePath
 
 
 class ExpressionOsUnameCall(
@@ -117,8 +120,26 @@ class ExpressionOsPathBasenameCall(ExpressionOsPathBasenameCallBase):
         )
 
 
-class ExpressionOsPathDirnameCall(ExpressionOsPathBasenameCallBase):
+class ExpressionOsPathDirnameCall(ExpressionOsPathDirnameCallBase):
     kind = "EXPRESSION_OS_PATH_DIRNAME_CALL"
+
+    def computeExpression(self, trace_collection):
+        path = self.subnode_p
+
+        if path.isExpressionRuntimePath():
+            relative_path = path.getRelativePath()
+
+            if relative_path:
+                return (
+                    ExpressionRuntimePath(
+                        relative_path=os.path.dirname(relative_path),
+                        source_ref=self.source_ref,
+                    ),
+                    "new_expression",
+                    "Compile time resolved 'os.path.dirname' of runtime path.",
+                )
+
+        return ExpressionOsPathDirnameCallBase.computeExpression(self, trace_collection)
 
     def replaceWithCompileTimeValue(self, trace_collection):
         result = makeConstantRefNode(
@@ -133,12 +154,93 @@ class ExpressionOsPathDirnameCall(ExpressionOsPathBasenameCallBase):
         )
 
 
+class ExpressionOsPathJoinCall(ExpressionOsPathJoinCallBase):
+    kind = "EXPRESSION_OS_PATH_JOIN_CALL"
+
+    def computeExpression(self, trace_collection):
+        if len(self.subnode_paths) == 1 and (
+            self.subnode_paths[0].hasShapeStrOrUnicodeExact()
+            or self.subnode_paths[0].hasShapeBytesExact()
+        ):
+            return (
+                self.subnode_paths[0],
+                "new_expression",
+                "Eliminated single exact string argument 'os.path.join' call.",
+            )
+
+        current = None
+        current_is_runtime_path = False
+
+        for path in self.subnode_paths:
+            if path.isExpressionRuntimePath():
+                current = path
+                current_is_runtime_path = True
+            elif path.isCompileTimeConstant() and path.hasShapeStrOrUnicodeExact():
+                value = path.getCompileTimeConstant()
+
+                if current is None or (
+                    current_is_runtime_path and os.path.isabs(value)
+                ):
+                    current = value
+                    current_is_runtime_path = False
+                elif current_is_runtime_path:
+                    current = ExpressionRuntimePath(
+                        relative_path=os.path.join(current.getRelativePath(), value),
+                        source_ref=self.source_ref,
+                    )
+                else:
+                    current = os.path.join(current, value)
+            else:
+                trace_collection.onExceptionRaiseExit(BaseException)
+
+                return self, None, None
+
+        if current is None:
+            trace_collection.onExceptionRaiseExit(BaseException)
+
+            return self, None, None
+
+        if current_is_runtime_path:
+            result = ExpressionRuntimePath(
+                relative_path=current.getRelativePath(),
+                source_ref=self.source_ref,
+            )
+        else:
+            result = makeConstantRefNode(
+                constant=current,
+                source_ref=self.source_ref,
+            )
+
+        return (
+            result,
+            "new_expression",
+            "Compile time resolved 'os.path.join' of runtime path.",
+        )
+
+    def replaceWithCompileTimeValue(self, trace_collection):
+        if not self.subnode_paths:
+            trace_collection.onExceptionRaiseExit(BaseException)
+
+            return self, None, None
+
+        result = makeConstantRefNode(
+            constant=os.path.join(
+                *[path.getCompileTimeConstant() for path in self.subnode_paths]
+            ),
+            source_ref=self.source_ref,
+        )
+
+        return (
+            result,
+            "new_expression",
+            "Compile time resolved 'os.path.join' call.",
+        )
+
+
 class ExpressionOsPathAbspathCall(ExpressionOsPathAbspathCallBase):
     kind = "EXPRESSION_OS_PATH_ABSPATH_CALL"
 
     def replaceWithCompileTimeValue(self, trace_collection):
-        # Nothing we can do really
-
         trace_collection.onExceptionRaiseExit(BaseException)
 
         return self, None, None
@@ -180,8 +282,6 @@ class ExpressionOsListdirCall(ExpressionOsListdirCallBase):
     kind = "EXPRESSION_OS_LISTDIR_CALL"
 
     def replaceWithCompileTimeValue(self, trace_collection):
-        # Nothing we can do really
-
         trace_collection.onExceptionRaiseExit(BaseException)
 
         return self, None, None
@@ -191,8 +291,6 @@ class ExpressionOsStatCall(ExpressionOsStatCallBase):
     kind = "EXPRESSION_OS_STAT_CALL"
 
     def replaceWithCompileTimeValue(self, trace_collection):
-        # Nothing we can do really
-
         trace_collection.onExceptionRaiseExit(BaseException)
 
         return self, None, None
@@ -202,8 +300,6 @@ class ExpressionOsLstatCall(ExpressionOsLstatCallBase):
     kind = "EXPRESSION_OS_LSTAT_CALL"
 
     def replaceWithCompileTimeValue(self, trace_collection):
-        # Nothing we can do really
-
         trace_collection.onExceptionRaiseExit(BaseException)
 
         return self, None, None

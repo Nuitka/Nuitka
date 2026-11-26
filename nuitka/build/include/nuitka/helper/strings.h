@@ -10,6 +10,7 @@
 
 #if PYTHON_VERSION < 0x300
 extern PyObject *STR_JOIN(PyThreadState *tstate, PyObject *str, PyObject *iterable);
+extern PyObject *STR_CONCAT(PyThreadState *tstate, PyObject *left, PyObject *right);
 #endif
 
 extern PyObject *UNICODE_JOIN(PyThreadState *tstate, PyObject *str, PyObject *iterable);
@@ -18,6 +19,14 @@ extern PyObject *UNICODE_RPARTITION(PyThreadState *tstate, PyObject *str, PyObje
 
 extern PyObject *NuitkaUnicode_FromWideChar(wchar_t const *str, Py_ssize_t size);
 extern PyObject *Nuitka_Unicode_New(Py_ssize_t size, Py_UCS4 max_char);
+
+/* Our own version of "PyUnicode_CompareWithASCIIString". It compares
+   a unicode object with an ASCII C string, returning 0 for equality, and
+   non-zero otherwise. The C string must be ASCII, and no exception is raised,
+   making it suitable for error handling paths. In debug builds, non-ASCII
+   arguments are rejected by an assertion.
+*/
+extern int Nuitka_Unicode_CompareWithASCIIString(PyObject *unicode, char const *ascii);
 
 #endif
 

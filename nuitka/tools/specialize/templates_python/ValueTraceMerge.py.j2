@@ -1,0 +1,304 @@
+{#-  Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file -#}
+
+class ValueTraceMerge{{ trace_count }}(ValueTraceMergeMethodsMixin, ValueTraceMergeBase):
+    """Merge of {{ trace_count }} traces."""
+
+    __slots__ = (
+{% for trace in traces %}
+        "{{ trace }}",
+{% endfor %}
+        "must_have_value_state",
+    )
+
+    @counted_init
+    def __init__(self, {{ traces|join(", ") }}):
+        self.owner = trace1.owner
+
+{% for trace in traces %}
+        self.{{ trace }} = {{ trace }}
+{% endfor %}
+
+        self.usage_count = 0
+        self.name_usage_count = 0
+        self.merge_usage_count = 0
+        self.must_have_value_state = 0  # unknown
+
+    def getPrevious(self):
+        return (
+{% for trace in traces %}
+            self.{{ trace }},
+{% endfor %}
+        )
+
+    def __repr__(self):
+        return "<ValueTraceMerge{{ trace_count }} of ({% for _ in traces %}%s{% if not loop.last %}, {% endif %}{% endfor %})>" % (
+{% for trace in traces %}
+            repr(self.{{ trace }}),
+{% endfor %}
+        )
+
+    def extendPreviousTraces(self, result, seen):
+{% for trace in traces %}
+        if self.{{ trace }} not in seen:
+            seen.add(self.{{ trace }})
+            result.append(self.{{ trace }})
+{% endfor %}
+
+    def isLoopDependent(self):
+        state = self.must_have_value_state
+
+        if state is 0:  # unknown
+            state = 1  # not loop dependent
+
+            if self.trace1.isLoopDependent(){% for trace in traces[1:] %} or self.{{ trace }}.isLoopDependent(){% endfor %}:
+                state = 2  # loop dependent
+
+            self.must_have_value_state = state
+
+        return state is 2  # loop dependent
+
+    def mustHaveValue(self, context=None):
+        state = self.must_have_value_state
+
+        if state is 3:  # must have value
+            return True
+
+        if state is 4:  # must not have value
+            return False
+
+        loop_dependent = self.isLoopDependent()
+
+        if loop_dependent:
+            if context is None:
+                context = MustHaveValueQueryContext()
+            else:
+                cached = context.cache.get(self)
+
+                if cached is not None:
+                    return cached
+
+        result = (
+{% for trace in traces %}
+            self.{{ trace }}.mustHaveValue(context){% if not loop.last %} and{% endif %}
+
+{% endfor %}
+        )
+
+        if not loop_dependent:
+            self.must_have_value_state = 3 if result else 4
+        else:
+            context.cache[self] = result
+
+        return result
+
+    def mustNotHaveValue(self):
+        return (
+{% for trace in traces %}
+            self.{{ trace }}.mustNotHaveValue(){% if not loop.last %} and{% endif %}
+
+{% endfor %}
+        )
+
+    def getTypeShape(self):
+        type_shape_found = self.trace1.getTypeShape()
+
+        if type_shape_found is tshape_unknown:
+            return tshape_unknown
+
+{% for trace in traces[1:] %}
+        type_shape = self.{{ trace }}.getTypeShape()
+
+        if type_shape is tshape_unknown:
+            return tshape_unknown
+
+        if type_shape is not type_shape_found:
+            return tshape_unknown
+
+{% endfor %}
+        return type_shape_found
+
+    def getReleaseEscape(self):
+        release_escape_found = self.trace1.getReleaseEscape()
+
+        if release_escape_found is ControlFlowDescriptionFullEscape:
+            return ControlFlowDescriptionFullEscape
+
+{% for trace in traces[1:] %}
+        release_escape = self.{{ trace }}.getReleaseEscape()
+
+        if release_escape is ControlFlowDescriptionFullEscape:
+            return ControlFlowDescriptionFullEscape
+
+        if release_escape is not release_escape_found:
+            return ControlFlowDescriptionFullEscape
+
+{% endfor %}
+        return release_escape_found
+
+    def getAttributeNodeVeryTrustedMatching(self, visited):
+        if self in visited:
+            return Ellipsis
+
+        visited.add(self)
+        result = Ellipsis
+
+        try:
+{% for trace in traces %}
+            node = self.{{ trace }}.getAttributeNodeVeryTrustedMatching(visited)
+
+            if node is None:
+                return None
+
+            if node is not Ellipsis:
+                if result is Ellipsis:
+                    result = node
+                elif result is not node:
+                    return None
+{% endfor %}
+        finally:
+            visited.remove(self)
+
+        if result is Ellipsis:
+            return None
+
+        return result
+
+    def hasShapeListExact(self):
+        return (
+{% for trace in traces %}
+            self.{{ trace }}.hasShapeListExact(){% if not loop.last %} and{% endif %}
+
+{% endfor %}
+        )
+
+    def hasShapeDictionaryExact(self):
+        return (
+{% for trace in traces %}
+            self.{{ trace }}.hasShapeDictionaryExact(){% if not loop.last %} and{% endif %}
+
+{% endfor %}
+        )
+
+    def getTruthValue(self):
+        truth_value = self.trace1.getTruthValue()
+
+        if truth_value is None:
+            return None
+
+        result = truth_value
+
+{% for trace in traces[1:] %}
+        truth_value = self.{{ trace }}.getTruthValue()
+
+        if truth_value is not result:
+            return None
+{% endfor %}
+        return result
+
+    def getExpectedValue(self):
+        expected_available, expected_value = self.trace1.getExpectedValue()
+
+        if not expected_available:
+            return False, None
+
+        result = expected_value
+
+{% for trace in traces[1:] %}
+        expected_available, expected_value = self.{{ trace }}.getExpectedValue()
+
+        if not expected_available:
+            return False, None
+
+        if not compareConstants(result, expected_value):
+            return False, None
+
+{% endfor %}
+        return True, result
+
+    def compareValueTrace(self, other):
+        if type(other) is not ValueTraceMerge{{ trace_count }}:
+            return False
+
+        return (
+{% for trace in traces %}
+            self.{{ trace }}.compareValueTrace(other.{{ trace }}){% if not loop.last %} and{% endif %}
+
+{% endfor %}
+        )
+
+    def isUnchangedResumeTrace(self, loop_entry_trace, context):
+        cached = context.cache.get(self)
+
+        if cached is not None:
+            return cached
+
+        result = (
+{% for trace in traces %}
+            self.{{ trace }}.isUnchangedResumeTrace(loop_entry_trace, context){% if not loop.last %} and{% endif %}
+
+{% endfor %}
+        )
+
+        context.cache[self] = result
+
+        return result
+
+    def addNameUsage(self):
+        self.usage_count += 1
+        self.name_usage_count += 1
+
+        if self.name_usage_count <= 2:
+{% for trace in traces %}
+            self.{{ trace }}.addNameUsage()
+{% endfor %}
+
+    def removeNameUsage(self):
+        self.usage_count -= 1
+        self.name_usage_count -= 1
+
+        if self.name_usage_count < 2:
+{% for trace in traces %}
+            self.{{ trace }}.removeNameUsage()
+{% endfor %}
+
+    def addUsage(self):
+        self.usage_count += 1
+
+        if self.usage_count is 1:
+{% for trace in traces %}
+            self.{{ trace }}.addMergeUsage()
+{% endfor %}
+
+    def removeUsage(self):
+        self.usage_count -= 1
+
+        if self.usage_count is 0:
+{% for trace in traces %}
+            self.{{ trace }}.removeMergeUsage()
+{% endfor %}
+
+    def addMergeUsage(self):
+        self.addUsage()
+        self.merge_usage_count += 1
+
+    def removeMergeUsage(self):
+        self.removeUsage()
+        self.merge_usage_count -= 1
+
+{#-  Part of "Nuitka", an optimizing Python compiler that is compatible and           -#}
+{#-  integrates with CPython, but also works on its own.                              -#}
+{#-                                                                                   -#}
+{#-  Licensed under the GNU Affero General Public License, Version 3 (the "License"); -#}
+{#-  you may not use this file except in compliance with the License.                 -#}
+{#-  You may obtain a copy of the License at                                          -#}
+{#-                                                                                   -#}
+{#-  https://www.gnu.org/licenses/agpl-3.0.txt                                        -#}
+{#-                                                                                   -#}
+{#-  See also: "Nuitka Runtime Library Exception, Version 1.0" in file                -#}
+{#-  "LICENSE-RUNTIME.txt" for additional permissions granted under Section 7.        -#}
+{#-                                                                                   -#}
+{#-  Unless required by applicable law or agreed to in writing, software              -#}
+{#-  distributed under the License is distributed on an "AS IS" BASIS,                -#}
+{#-  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.         -#}
+{#-  See the License for the specific language governing permissions and              -#}
+{#-  limitations under the License.                                                   -#}

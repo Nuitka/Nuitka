@@ -11,6 +11,7 @@
 #include "nuitka/exceptions.h"
 #include "nuitka/helper/attributes.h"
 #include "nuitka/helper/indexes.h"
+#include "nuitka/helper/iterators.h"
 #include "nuitka/helper/sequences.h"
 #endif
 
@@ -36,6 +37,43 @@ static void formatNotSubscriptableError(PyObject *source) {
         "'%s' object is not subscriptable",
 #endif
         source);
+}
+#endif
+
+#if !defined(_NUITKA_EXPERIMENTAL_DISABLE_SUBSCRIPT_OPT) && PYTHON_VERSION >= 0x370
+static PyObject *_LOOKUP_SUBSCRIPT_TYPE(PyThreadState *tstate, PyObject *source, PyObject *subscript) {
+#if PYTHON_VERSION >= 0x390
+    if (source == (PyObject *)&PyType_Type) {
+        return Py_GenericAlias(source, subscript);
+    }
+#endif
+
+    PyObject *meth = LOOKUP_ATTRIBUTE(tstate, source, const_str_plain___class_getitem__);
+
+    if (meth == NULL) {
+        if (unlikely(!CHECK_AND_CLEAR_ATTRIBUTE_ERROR_OCCURRED(tstate))) {
+            return NULL;
+        }
+    } else {
+        // Python 3.11+: CPython treats __class_getitem__ = None as non-subscriptable.
+#if PYTHON_VERSION >= 0x3b0
+        if (meth == Py_None) {
+            Py_DECREF_IMMORTAL(meth);
+            formatNotSubscriptableTypeError(source);
+            return NULL;
+        }
+#endif
+        PyObject *result = CALL_FUNCTION_WITH_SINGLE_ARG(tstate, meth, subscript);
+        Py_DECREF(meth);
+        return result;
+    }
+
+#if PYTHON_VERSION >= 0x3b0
+    formatNotSubscriptableTypeError(source);
+#else
+    formatNotSubscriptableError(source);
+#endif
+    return NULL;
 }
 #endif
 
@@ -88,23 +126,55 @@ NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_SUBSCRIPT_CONST(PyThreadState *tsta
 
     if (tp_as_mapping && tp_as_mapping->mp_subscript) {
         if (PyList_CheckExact(source)) {
+#ifdef Py_GIL_DISABLED
+            Py_BEGIN_CRITICAL_SECTION(source);
+#endif
             Py_ssize_t list_size = PyList_GET_SIZE(source);
+            bool out_of_range = false;
 
             if (int_subscript < 0) {
-                if (-int_subscript > list_size) {
-                    SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_IndexError, "list index out of range");
+                if (int_subscript < -list_size) {
+                    out_of_range = true;
+                } else {
+                    int_subscript += list_size;
+                }
+            } else if (int_subscript >= list_size) {
+                out_of_range = true;
+            }
+
+            if (unlikely(out_of_range)) {
+                SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_IndexError, "list index out of range");
+                result = NULL;
+            } else {
+                result = ((PyListObject *)source)->ob_item[int_subscript];
+
+                Py_INCREF(result);
+            }
+
+#ifdef Py_GIL_DISABLED
+            Py_END_CRITICAL_SECTION();
+#endif
+            return result;
+        } else if (PyTuple_Check(source) && tp_as_mapping->mp_subscript == PyTuple_Type.tp_as_mapping->mp_subscript) {
+            // Tuples, and subclasses that inherit tuple's subscript, e.g. named
+            // tuples, which are indexed by constants a lot.
+            Py_ssize_t tuple_size = PyTuple_GET_SIZE(source);
+
+            if (int_subscript < 0) {
+                if (-int_subscript > tuple_size) {
+                    SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_IndexError, "tuple index out of range");
                     return NULL;
                 }
 
-                int_subscript += list_size;
+                int_subscript += tuple_size;
             } else {
-                if (int_subscript >= list_size) {
-                    SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_IndexError, "list index out of range");
+                if (int_subscript >= tuple_size) {
+                    SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_IndexError, "tuple index out of range");
                     return NULL;
                 }
             }
 
-            result = ((PyListObject *)source)->ob_item[int_subscript];
+            result = PyTuple_GET_ITEM(source, int_subscript);
 
             Py_INCREF(result);
             return result;
@@ -147,32 +217,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_SUBSCRIPT_CONST(PyThreadState *tsta
     } else {
 #if PYTHON_VERSION >= 0x370
         if (PyType_Check(source)) {
-#if PYTHON_VERSION >= 0x390
-            if (source == (PyObject *)&PyType_Type) {
-                PyObject *subscript = PyLong_FromSsize_t(int_subscript);
-                result = Py_GenericAlias(source, subscript);
-                Py_DECREF(subscript);
-
-                return result;
-            }
-#endif
-
-            PyObject *meth = LOOKUP_ATTRIBUTE(tstate, source, const_str_plain___class_getitem__);
-
-            if (meth) {
-                PyObject *subscript = PyLong_FromSsize_t(int_subscript);
-                result = CALL_FUNCTION_WITH_SINGLE_ARG(tstate, meth, subscript);
-                Py_DECREF(meth);
-                Py_DECREF(subscript);
-
-                return result;
-            }
-
-            // Different error against types for Python3.11+
-#if PYTHON_VERSION >= 0x3b0
-            formatNotSubscriptableTypeError(source);
-            return NULL;
-#endif
+            return _LOOKUP_SUBSCRIPT_TYPE(tstate, source, const_subscript);
         }
 #endif
 
@@ -186,6 +231,27 @@ NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_SUBSCRIPT_CONST(PyThreadState *tsta
 
     return result;
 #endif
+}
+
+NUITKA_MAY_BE_UNUSED static PyObject *
+LOOKUP_SUBSCRIPT_CONST_FOR_UNPACK(PyThreadState *tstate, struct Nuitka_ExceptionPreservationItem *exception_state,
+                                  PyObject *source, PyObject *const_subscript, Py_ssize_t int_subscript, int expected) {
+    PyObject *result = LOOKUP_SUBSCRIPT_CONST(tstate, source, const_subscript, int_subscript);
+
+    if (unlikely(result == NULL)) {
+        PyObject *error = GET_ERROR_OCCURRED(tstate);
+        assert(error != NULL);
+
+        if (EXCEPTION_MATCH_BOOL_SINGLE(tstate, error, PyExc_IndexError)) {
+            CLEAR_ERROR_OCCURRED(tstate);
+
+            SET_UNPACK_NOT_ENOUGH_VALUES_ERROR(tstate, exception_state, (int)int_subscript, expected);
+        } else {
+            FETCH_ERROR_OCCURRED_STATE(tstate, exception_state);
+        }
+    }
+
+    return result;
 }
 
 NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_SUBSCRIPT(PyThreadState *tstate, PyObject *source, PyObject *subscript) {
@@ -202,7 +268,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_SUBSCRIPT(PyThreadState *tstate, Py
         return tp_as_mapping->mp_subscript(source, subscript);
     } else if (HAS_SEQUENCE_ITEM_SLOT(type)) {
         if (Nuitka_Index_Check(subscript)) {
-            Py_ssize_t index = PyNumber_AsSsize_t(subscript, PyExc_IndexError);
+            Py_ssize_t index = Nuitka_Number_AsSsize_t(subscript, PyExc_IndexError);
 
             if (index == -1 && HAS_ERROR_OCCURRED(tstate)) {
                 return NULL;
@@ -222,34 +288,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_SUBSCRIPT(PyThreadState *tstate, Py
 
 #if PYTHON_VERSION >= 0x370
     if (PyType_Check(source)) {
-#if PYTHON_VERSION >= 0x390
-        if (source == (PyObject *)&PyType_Type) {
-            return Py_GenericAlias(source, subscript);
-        }
-#endif
-
-        PyObject *meth = LOOKUP_ATTRIBUTE(tstate, source, const_str_plain___class_getitem__);
-
-        // Python3.11+: CPython treats "__class_getitem__" set to a
-        // non-callable the same as not having one - the type is not
-        // subscriptable. (3.9-3.10 only give "'NoneType' not callable")
-#if PYTHON_VERSION >= 0x3b0
-        if (meth != NULL && meth != Py_None && Nuitka_PyCheckCallable(meth)) {
-#else
-        if (meth) {
-#endif
-            PyObject *result = CALL_FUNCTION_WITH_SINGLE_ARG(tstate, meth, subscript);
-            Py_DECREF(meth);
-            return result;
-        }
-
-        Py_XDECREF(meth);
-
-        // Different error against types for Python3.11+
-#if PYTHON_VERSION >= 0x3b0
-        formatNotSubscriptableTypeError(source);
-        return NULL;
-#endif
+        return _LOOKUP_SUBSCRIPT_TYPE(tstate, source, subscript);
     }
 #endif
 
@@ -274,26 +313,44 @@ NUITKA_MAY_BE_UNUSED static bool SET_SUBSCRIPT_CONST(PyThreadState *tstate, PyOb
 
     if (tp_as_mapping != NULL && tp_as_mapping->mp_ass_subscript) {
         if (PyList_CheckExact(target)) {
+            bool result;
+
+#ifdef Py_GIL_DISABLED
+            Py_BEGIN_CRITICAL_SECTION(target);
+#endif
             Py_ssize_t list_size = PyList_GET_SIZE(target);
+            bool out_of_range = false;
 
             if (int_subscript < 0) {
-                if (-int_subscript > list_size) {
-                    SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_IndexError, "list assignment index out of range");
-
-                    return false;
+                if (int_subscript < -list_size) {
+                    out_of_range = true;
+                } else {
+                    int_subscript += list_size;
                 }
-
-                int_subscript += list_size;
+            } else if (int_subscript >= list_size) {
+                out_of_range = true;
             }
 
-            PyListObject *target_list = (PyListObject *)target;
+            if (unlikely(out_of_range)) {
+                SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_IndexError, "list assignment index out of range");
 
-            PyObject *old_value = target_list->ob_item[int_subscript];
-            Py_INCREF(value);
-            target_list->ob_item[int_subscript] = value;
-            Py_DECREF(old_value);
+                result = false;
+            } else {
+                PyListObject *target_list = (PyListObject *)target;
 
-            return true;
+                PyObject *old_value = target_list->ob_item[int_subscript];
+                Py_INCREF(value);
+                FT_ATOMIC_STORE_PTR_RELEASE(target_list->ob_item[int_subscript], value);
+                Py_DECREF(old_value);
+
+                result = true;
+            }
+
+#ifdef Py_GIL_DISABLED
+            Py_END_CRITICAL_SECTION();
+#endif
+
+            return result;
         } else {
             int res = tp_as_mapping->mp_ass_subscript(target, subscript, value);
 
@@ -305,7 +362,7 @@ NUITKA_MAY_BE_UNUSED static bool SET_SUBSCRIPT_CONST(PyThreadState *tstate, PyOb
         }
     } else if (Py_TYPE(target)->tp_as_sequence) {
         if (Nuitka_Index_Check(subscript)) {
-            Py_ssize_t key_value = PyNumber_AsSsize_t(subscript, PyExc_IndexError);
+            Py_ssize_t key_value = Nuitka_Number_AsSsize_t(subscript, PyExc_IndexError);
 
             if (key_value == -1) {
                 if (HAS_ERROR_OCCURRED(tstate)) {
@@ -351,7 +408,7 @@ NUITKA_MAY_BE_UNUSED static bool SET_SUBSCRIPT(PyThreadState *tstate, PyObject *
         }
     } else if (Py_TYPE(target)->tp_as_sequence) {
         if (Nuitka_Index_Check(subscript)) {
-            Py_ssize_t key_value = PyNumber_AsSsize_t(subscript, PyExc_IndexError);
+            Py_ssize_t key_value = Nuitka_Number_AsSsize_t(subscript, PyExc_IndexError);
 
             if (key_value == -1) {
                 if (HAS_ERROR_OCCURRED(tstate)) {

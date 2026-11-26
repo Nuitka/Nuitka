@@ -1,22 +1,14 @@
 #     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-"""Code generation for standard CPython/API calls.
-
-This is generic stuff, geared at calling functions that accept Python objects
-and return Python objects. As these all work in a similar way, it makes sense
-to concentrate the best way to do to make those calls here.
-
-Also, many Nuitka helper codes turn out to be very similar to Python C/API
-and then can use the same code.
-"""
+"""Code generation for CPython C-API and Nuitka helper calls."""
 
 from .CodeHelpers import generateExpressionCode
-from .ErrorCodes import getErrorExitCode, getReleaseCode
+from .ErrorCodes import getErrorExitCode, getReleaseCode, getReleaseCodes
 
 
 def makeArgDescFromExpression(expression):
-    """Helper for providing arg_desc consistently for generateCAPIObject methods."""
+    """Build 'arg_desc' pairs for 'generateCAPIObjectCode' from node children."""
 
     if hasattr(expression, "named_children"):
         result = []
@@ -52,23 +44,16 @@ def generateCAPIObjectCodeCommon(
     context,
     none_null=False,
 ):
-    """Generate C code for calling a C-API object creation function.
+    """Generate C code for calling an object-returning C-API or helper function.
 
     Args:
-        to_name: The variable name to assign the result to.
-        capi: The C function name to call.
-        tstate: Whether to pass the thread state as the first argument.
-        arg_desc: Tuple of (arg_name, expression) for arguments.
-        may_raise: Whether the call may raise an exception.
-        conversion_check: Check to decide if a conversion is needed.
-        ref_count: The reference count of the returned object (usually 1 or 0 for borrowed return value).
-        source_ref: Source code reference.
-        emit: Function to emit generated code.
-        context: Context object for code generation.
-        none_null: If True, all arguments with None expression are passed as NULL and acceptable.
-                   If set/tuple/list, only argument names present in it are passed as NULL and acceptable.
+        arg_desc: Tuple of '(arg_name, expression_or_tuple)' pairs; a tuple of
+            expressions expands into a 'PyObject *[]' array (or '&elem' for a
+            single element) and length pair.
+        ref_count: '1' for a new reference return, '0' for a borrowed return.
+        none_null: If True, 'None' expressions pass 'NULL'; otherwise a
+            container of 'arg_name' strings allowed to pass 'NULL' when 'None'.
     """
-    # Complex code due to the need to handle tuple arguments.
     # pylint: disable=too-many-locals
 
     arg_names = []
@@ -100,7 +85,11 @@ def generateCAPIObjectCodeCommon(
 
                 sub_names.append(sub_name)
 
-            if sub_names:
+            if len(sub_names) == 1:
+                arg_names.append("&%s" % sub_names[0])
+                arg_names.append("1")
+                release_names.extend(sub_names)
+            elif sub_names:
                 arg_name = "tmp_%s_array_%d" % (
                     arg_name,
                     context.allocateTempNumber(arg_name),
@@ -157,7 +146,7 @@ def generateCAPIObjectCode(
     context,
     none_null=False,
 ):
-    """See generateCAPIObjectCodeCommon, changes ref_count to 1."""
+    """Call 'generateCAPIObjectCodeCommon' for helpers returning a new reference."""
     generateCAPIObjectCodeCommon(
         to_name=to_name,
         capi=capi,
@@ -185,7 +174,7 @@ def generateCAPIObjectCode0(
     context,
     none_null=False,
 ):
-    """See generateCAPIObjectCodeCommon, changes ref_count to 0."""
+    """Call 'generateCAPIObjectCodeCommon' for helpers returning a borrowed reference."""
     generateCAPIObjectCodeCommon(
         to_name=to_name,
         capi=capi,
@@ -252,12 +241,16 @@ def getCAPIObjectCode(
 
         emit("%s(%s);" % (capi, ", ".join(str(arg_name) for arg_name in arg_names)))
 
-        getReleaseCode(release_names, emit, context)
+        getReleaseCodes(release_names, emit, context)
 
 
 def getReferenceExportCode(base_name, emit, context):
     if not context.needsCleanup(base_name):
         emit("Py_INCREF(%s);" % base_name)
+
+        # The value now owns a reference and no longer needs protection
+        # against writes to the variable it was read from.
+        context.unregisterBorrowedValue(base_name)
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and

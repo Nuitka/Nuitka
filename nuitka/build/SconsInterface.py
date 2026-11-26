@@ -1,12 +1,7 @@
 #     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-"""Scons interface.
-
-Interaction with scons. Find the binary, and run it with a set of given
-options.
-
-"""
+"""Scons interface."""
 
 import contextlib
 import copy
@@ -17,11 +12,14 @@ import sys
 from nuitka.__past__ import unicode
 from nuitka.code_generation.FrameCodes import hasFrameLocalsProxy
 from nuitka.containers.OrderedDicts import OrderedDict
+from nuitka.options.Experimental import (
+    getExperimentalIndications,
+    isExperimental,
+)
 from nuitka.options.Options import (
     assumeYesForDownloads,
     getDebugModeIndications,
     getDevelModeIndications,
-    getExperimentalIndications,
     getFcfProtectionMode,
     getFileVersion,
     getJobLimit,
@@ -33,18 +31,19 @@ from nuitka.options.Options import (
     getProductVersion,
     getProgressBar,
     getPythonPathForScons,
+    getResourceMode,
     getTargetArch,
     getWindowsConsoleMode,
     getWindowsSplashScreen,
     getWindowsVersionInfoStrings,
     isClang,
     isDeploymentMode,
-    isExperimental,
     isMingw64,
     isOnefileMode,
     isOnefileTempDirMode,
     isReproducibleBuild,
     isShowScons,
+    isShowVersion,
     isStandaloneMode,
     isUnstripped,
     isZig,
@@ -70,10 +69,12 @@ from nuitka.PythonFlavors import (
     isMSYS2MingwPython,
     isSelfCompiledPythonUninstalled,
 )
-from nuitka.PythonVersions import (
-    getSconsSupportingVersions,
+from nuitka.PythonPrefixes import (
     getSystemPrefixPath,
     getTargetPythonIncludePath,
+)
+from nuitka.PythonVersions import (
+    getSconsSupportingVersions,
     isPythonWithGil,
     isRunningInInterpreter,
     python_version,
@@ -81,12 +82,23 @@ from nuitka.PythonVersions import (
     python_version_str,
 )
 from nuitka.reports.Reports import getCompilationReportFilename
+from nuitka.targets.Targets import (
+    getTargetSpecification,
+    isRPathUsingTarget,
+    isWasiTarget,
+    isWin32OrPosixWindowsTarget,
+)
 from nuitka.Tracing import flushStandardOutputs, general, isQuiet, scons_logger
 from nuitka.utils.AppDirs import (
     getCacheDir,
     getCacheDirEnvironmentVariableName,
 )
-from nuitka.utils.Download import getDownloadCacheDir, getDownloadCacheName
+from nuitka.utils.Download import (
+    DOWNLOAD_MODE_NO,
+    getDownloadCacheDir,
+    getDownloadCacheName,
+    getDownloadMode,
+)
 from nuitka.utils.Execution import (
     getExecutablePath,
     withEnvironmentVarsOverridden,
@@ -115,12 +127,12 @@ from nuitka.utils.Json import loadJsonFromFilename
 from nuitka.utils.PrivatePipSpace import getZigBinaryPath
 from nuitka.utils.SharedLibraries import detectBinaryMinMacOS
 from nuitka.utils.Utils import (
-    getArchitecture,
-    isElfUsingPlatform,
     isMacOS,
+    isPosixWindows,
     isWin32OrPosixWindows,
     isWin32Windows,
 )
+from nuitka.utils.WasiSDK import getWasiSDKPath
 
 from .SconsCaching import checkCachingSuccess
 from .SconsUtils import flushSconsReports, getSconsReportValue
@@ -145,7 +157,6 @@ def _provideStaticSourceFiles(source_dir, filenames):
 
 
 def provideStaticSourceFilesBackend(source_dir):
-    """Provide static source files for the backend build."""
     filenames = ["CompiledFunctionType.c"]
 
     if shallMakeExe() or shallMakeDll():
@@ -155,11 +166,10 @@ def provideStaticSourceFilesBackend(source_dir):
 
 
 def provideStaticSourceFilesOnefile(source_dir):
-    """Provide static source files for the onefile build."""
     filenames = ["OnefileBootstrap.c"]
 
     if getWindowsSplashScreen():
-        filenames.append("OnefileSplashScreen.cpp")
+        filenames.append("OnefileSplashScreen.c")
 
     _provideStaticSourceFiles(source_dir, filenames)
 
@@ -186,8 +196,6 @@ for source filenames within the safe 240 character limit. Use a shorter \
 
 
 def _getSconsInlinePath():
-    """Return path to inline copy of scons."""
-
     return getNormalizedPathJoin(getSconsDataPath(), "inline_copy")
 
 
@@ -206,25 +214,19 @@ def _getInlineSconsVersionForPythonVersion(python_version_info):
         # Non-Windows, Python 2.6, mostly older RHEL
         return "scons-2.3.2"
     elif python_version_info >= (3, 7):
-        # Python 3.7+ can use latest
         return "scons-4.10.1"
     elif os.name == "nt" and python_version_info >= (3, 5):
         # Windows supports MSVC 2022 this way
         return "scons-4.3.0"
     else:
-        # Everything else 2.7 or higher works with this.
         return "scons-3.1.2"
 
 
 def getInlineSconsVersion():
-    """Return Scons inline copy version for current Python runtime."""
-
     return _getInlineSconsVersionForPythonVersion(sys.version_info)
 
 
 def getInlineSconsLibPath():
-    """Return path to inline copy of selected Scons package."""
-
     return getNormalizedPathJoin(_getSconsInlinePath(), "lib", getInlineSconsVersion())
 
 
@@ -245,11 +247,7 @@ def _getCompiledSconsBinaryCall():
 
 
 def _getSconsBinaryCall():
-    """Return a way to execute Scons.
-
-    Using potentially in-line copy if no system Scons is available
-    or if we are on Windows, there it is mandatory.
-    """
+    """Return command list to execute Scons, preferring the inline copy over a system binary."""
 
     # Handle the case where we are running from a compiled binary,
     # and Scons is included as multidist binary.
@@ -315,9 +313,6 @@ uninstalled Anaconda Python.
 def _setupSconsEnvironment2():
     os.environ["NUITKA_PYTHON_EXE_PATH"] = sys.executable
 
-    # Remove environment variables that can only harm if we have to switch
-    # major Python versions, these cannot help Python2 to execute scons, this
-    # is a bit of noise, but helpful.
     old_pythonpath = None
     old_pythonhome = None
 
@@ -334,7 +329,6 @@ def _setupSconsEnvironment2():
         os.path.join(getSconsDataPath(), "..")
     )
 
-    # When downloading in Scons, use the external path.
     if isWin32Windows():
         download_cache_dir = getDownloadCacheDir()
         makePath(download_cache_dir)
@@ -369,13 +363,9 @@ def _setupSconsEnvironment2():
 def _setupSconsEnvironment():
     """Setup the scons execution environment.
 
-    For the target Python we provide "NUITKA_PYTHON_DLL_PATH" to see where the
-    Python DLL lives, in case it needs to be copied, and then also the
-    "NUITKA_PYTHON_EXE_PATH" to find the Python binary itself.
-
-    We also need to preserve "PYTHONPATH" and "PYTHONHOME", but remove it
-    potentially as well, so not to confuse the other Python binary used to run
-    scons.
+    Provides 'NUITKA_PYTHON_EXE_PATH' and 'NUITKA_PACKAGE_DIR', and temporarily
+    clears 'PYTHONPATH' and 'PYTHONHOME' on Python 3 so they do not confuse a
+    different Python binary running SCons.
     """
 
     # For Python2, and bad Python3 setups, avoid unicode working directory.
@@ -390,27 +380,17 @@ def _setupSconsEnvironment():
 
 
 def _buildSconsCommand(options, scons_filename):
-    """Build the scons command to run.
-
-    The options are a dictionary to be passed to scons as a command line,
-    and other scons stuff is set.
-    """
-
     scons_command = _getSconsBinaryCall()
 
     if not isShowScons():
         scons_command.append("--quiet")
 
     scons_command += [
-        # The scons file
         "-f",
         getExternalUsePath(os.path.join(getSconsDataPath(), scons_filename)),
-        # Parallel compilation.
         "--jobs",
         str(getJobLimit()),
-        # Do not warn about deprecation from Scons
         "--warn=no-deprecated",
-        # Don't load "site_scons" at all.
         "--no-site-dir",
     ]
 
@@ -424,7 +404,6 @@ def _buildSconsCommand(options, scons_filename):
         else:
             return value
 
-    # Option values to provide to scons. Find these in the caller.
     for key, value in options.items():
         if value is None:
             return scons_logger.sysexit(
@@ -435,20 +414,19 @@ def _buildSconsCommand(options, scons_filename):
 
     # Python2, make argument encoding recognizable.
     if str is bytes:
-        scons_command.append("arg_encoding=utf8")
+        scons_command.append("argument_encoding=utf8")
 
     return scons_command
 
 
 def _createSconsDebugScript(source_dir, scons_command):
-    # we wrote debug shell script only if build process called, not "--version" call.
     scons_debug_python_name = "scons-debug.py"
 
     # Reduce environment variables from unusable stuff that is also very runtime
     # dependent, spell-checker: ignore COLORTERM
     env = OrderedDict(
         (key, value)
-        for (key, value) in os.environ.items()
+        for (key, value) in sorted(os.environ.items())
         if not key.startswith(("VSCODE", "GIT", "WSL", "COLORTERM", "TERM"))
     )
 
@@ -539,12 +517,9 @@ def runScons(
     source_dir,
     source_dir_external,
 ):
-    # We are handling quite a few error cases, as this contains transfer of
-    # exceptions, workarounds for non-encodable filenames, and other error
-    # handling. pylint: disable=too-many-branches,too-many-statements
+    # pylint: disable=too-many-branches,too-many-statements
 
     with _setupSconsEnvironment():
-        env_values["_NUITKA_BUILD_DEFINITIONS_CATALOG"] = ",".join(env_values.keys())
         compile_without_build_directory = (
             source_dir is not None and shallCompileWithoutBuildDirectory()
         )
@@ -574,7 +549,7 @@ def runScons(
                     scons_options["result_exe"], only_dirname=True
                 )
 
-        env_values = OrderedDict(env_values)
+        env_values = OrderedDict(sorted(env_values.items()))
         env_values["_NUITKA_BUILD_DEFINITIONS_CATALOG"] = ",".join(env_values.keys())
 
         if "zig_exe_path" in scons_options and "CC" not in env_values:
@@ -585,8 +560,11 @@ def runScons(
         if isWin32Windows():
             env_values["VSCMD_SKIP_SENDTELEMETRY"] = "1"
 
-        # Pass quiet setting to scons via environment variable.
         env_values["NUITKA_QUIET"] = "1" if isQuiet() else "0"
+
+        # Scons is not (yet) free-threading safe, and with a free-threaded Python it
+        # gives sporadic errors during parallel builds.
+        env_values["PYTHON_GIL"] = "1"
 
         if isShowScons():
             env_values["NUITKA_SCONS_CHECK_MSVC_CACHE"] = "1"
@@ -601,7 +579,6 @@ def runScons(
         flushStandardOutputs()
 
         with withEnvironmentVarsOverridden(env_values):
-            # Create debug script to quickly re-run this step only.
             if compile_without_build_directory:
                 assert source_dir_external is not None
 
@@ -657,20 +634,30 @@ def runScons(
                     makeContainingPath(orig_result_exe)
                     renameFile(scons_created_exe, orig_result_exe)
 
+                    # When debug symbols were requested, the PDB file of the
+                    # target is also moved along, as it is otherwise left in
+                    # the build directory and lost.
+                    if isWin32Windows() and isUnstripped():
+                        scons_created_pdb = changeFilenameExtension(
+                            scons_created_exe, ".pdb"
+                        )
+
+                        if os.path.exists(scons_created_pdb):
+                            renameFile(
+                                scons_created_pdb,
+                                changeFilenameExtension(orig_result_exe, ".pdb"),
+                            )
+
             checkCachingSuccess(source_dir)
 
     return result == 0
 
 
 def asBoolStr(value):
-    """Encode booleans for transfer via command line."""
-
     return "true" if value else "false"
 
 
 def cleanSconsDirectory(source_dir):
-    """Clean scons build directory."""
-
     # spell-checker: ignore gcda
     extensions = (
         ".bin",
@@ -683,6 +670,7 @@ def cleanSconsDirectory(source_dir):
         ".o",
         ".obj",
         ".os",
+        ".pdb",
         ".rc",
         ".res",
         ".S",
@@ -723,8 +711,6 @@ def cleanSconsDirectory(source_dir):
 
 
 def getCommonSconsOptions():
-    # Scons gets transported many details, that we express as variables, and
-    # have checks for them, leading to many branches and statements.
     # pylint: disable=too-many-branches,too-many-statements
 
     scons_options = OrderedDict()
@@ -759,13 +745,19 @@ def getCommonSconsOptions():
 
     scons_options["devel_modes"] = ",".join(getDevelModeIndications())
 
+    if getResourceMode(onefile=False) is not None:
+        scons_options["resource_mode"] = getResourceMode(onefile=False)
+
     scons_options["frame_locals_proxy"] = asBoolStr(hasFrameLocalsProxy())
 
     if shallRunInDebugger():
         scons_options["full_names"] = asBoolStr(True)
 
-    if assumeYesForDownloads():
-        scons_options["assume_yes_for_downloads"] = asBoolStr(True)
+    show_version = isShowVersion()
+    download_mode = (
+        DOWNLOAD_MODE_NO if show_version else getDownloadMode(assumeYesForDownloads())
+    )
+    scons_options["download_mode"] = download_mode
 
     if getProgressBar() != "auto":
         scons_options["progress_bar"] = getProgressBar()
@@ -785,13 +777,19 @@ def getCommonSconsOptions():
         if zig_exe_path is None:
             zig_exe_path = getZigBinaryPath(
                 logger=scons_logger,
-                assume_yes_for_downloads=assumeYesForDownloads(),
-                reject_message="Nuitka with '--zig' depends on 'zig' to compile.",
+                download_mode=download_mode,
+                reject_message=(
+                    None
+                    if show_version
+                    else "Nuitka with '--zig' depends on 'zig' to compile."
+                ),
             )
 
-        scons_options["zig_exe_path"] = zig_exe_path
-
-        if scons_options["zig_exe_path"] is None:
+        if zig_exe_path is not None:
+            scons_options["zig_exe_path"] = zig_exe_path
+        elif show_version:
+            scons_options["zig_unavailable"] = asBoolStr(True)
+        else:
             return scons_logger.sysexit(
                 "Nuitka with '--zig' depends on 'zig' to compile."
             )
@@ -802,7 +800,7 @@ def getCommonSconsOptions():
     if shallDisableCCacheUsage():
         scons_options["disable_ccache"] = asBoolStr(True)
 
-    if isWin32Windows() and getWindowsConsoleMode() != "attach":
+    if isWin32OrPosixWindowsTarget() and getWindowsConsoleMode() != "attach":
         scons_options["console_mode"] = getWindowsConsoleMode()
 
     if getLtoMode() != "auto":
@@ -810,8 +808,9 @@ def getCommonSconsOptions():
 
     scons_options["reproducible_mode"] = asBoolStr(isReproducibleBuild())
 
-    if not isElfUsingPlatform():
-        scons_options["noelf_mode"] = asBoolStr(True)
+    scons_options["binary_format"] = getTargetSpecification().getBinaryFormat()
+    scons_options["target_os"] = getTargetSpecification().getTargetOS()
+    scons_options["rpath_using_platform"] = asBoolStr(isRPathUsingTarget())
 
     if isUnstripped():
         scons_options["unstripped_mode"] = asBoolStr(True)
@@ -821,6 +820,9 @@ def getCommonSconsOptions():
 
     if isMSYS2MingwPython():
         scons_options["msys2_mingw_python"] = asBoolStr(True)
+
+    if isPosixWindows():
+        scons_options["msys2_posix_python"] = asBoolStr(True)
 
     if isSelfCompiledPythonUninstalled():
         scons_options["self_compiled_python_uninstalled"] = asBoolStr(True)
@@ -849,7 +851,7 @@ def getCommonSconsOptions():
 
         scons_options["macos_target_arch"] = getMacOSTargetArch()
 
-    scons_options["target_arch"] = getArchitecture()
+    scons_options["target_arch"] = getTargetSpecification().getTargetArch()
     c_target_arch = getTargetArch()
     if c_target_arch is not None:
         scons_options["c_target_arch"] = c_target_arch
@@ -891,6 +893,11 @@ def getCommonSconsOptions():
 
     if file_version:
         env_values["NUITKA_FILE_VERSION"] = file_version
+
+    if isWasiTarget() and not isZig():
+        scons_options["wasi_sdk_path"] = getWasiSDKPath(
+            assume_yes_for_downloads=assumeYesForDownloads()
+        )
 
     if isMonolithPy() and not isWin32OrPosixWindows():
         # Override environment CC and CXX to match build compiler.

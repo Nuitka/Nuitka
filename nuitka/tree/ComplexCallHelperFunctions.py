@@ -5,12 +5,12 @@
 
 One for each type of call."""
 
-from nuitka.nodes.AttributeNodes import (
-    ExpressionAttributeCheck,
-    makeExpressionAttributeLookup,
-)
+from nuitka.nodes.AttributeNodes import makeExpressionAttributeLookup
 from nuitka.nodes.BuiltinDictNodes import ExpressionBuiltinDict
-from nuitka.nodes.BuiltinIteratorNodes import ExpressionBuiltinIter1
+from nuitka.nodes.BuiltinIteratorNodes import (
+    ExpressionBuiltinIter1,
+    ExpressionIsIterable,
+)
 from nuitka.nodes.BuiltinNextNodes import ExpressionBuiltinNext1
 from nuitka.nodes.BuiltinRefNodes import (
     ExpressionBuiltinAnonymousRef,
@@ -22,10 +22,7 @@ from nuitka.nodes.ComparisonNodes import (
     ExpressionComparisonIn,
     ExpressionComparisonIsNot,
 )
-from nuitka.nodes.ConditionalNodes import (
-    ExpressionConditionalOr,
-    makeStatementConditional,
-)
+from nuitka.nodes.ConditionalNodes import makeStatementConditional
 from nuitka.nodes.ConstantRefNodes import makeConstantRefNode
 from nuitka.nodes.ContainerMakingNodes import makeExpressionMakeTuple
 from nuitka.nodes.DictionaryNodes import (
@@ -69,7 +66,7 @@ from nuitka.specs.ParameterSpecs import ParameterSpec
 from .InternalModule import (
     internal_source_ref,
     makeInternalHelperFunctionBody,
-    once_decorator,
+    onceDecorator,
 )
 from .ReformulationTryExceptStatements import makeTryExceptSingleHandlerNode
 from .ReformulationTryFinallyStatements import makeTryFinallyReleaseStatement
@@ -107,24 +104,9 @@ def _makeNameAttributeLookup(node, attribute_name="__name__"):
     )
 
 
-@once_decorator
+@onceDecorator
 def getCallableNameDescBody():
     helper_name = "get_callable_name_desc"
-
-    # Equivalent of:
-    #
-    # Note: The "called_type" is a temporary variable.
-    #
-    # called_type = type(BuiltinFunctionType)
-    #
-    # if isinstance(called, (FunctionType, MethodType, BuiltinFunctionType)):
-    #     return called.__name__
-    # elif python_version < 0x3 and isinstance(called, ClassType):
-    #     return called_type.__name__ + " constructor"
-    # elif python_version < 0x3 and isinstance(called, InstanceType):
-    #     return called_type.__name__ + " instance"
-    # else:
-    #     return called_type.__name__ + " object"
 
     result = makeInternalHelperFunctionBody(
         name=helper_name,
@@ -306,10 +288,24 @@ def getCallableNameDescBody():
     return result
 
 
-def makeStarListArgumentErrorRaise(called_variable, star_list_variable):
-    error_template = getComplexCallSequenceErrorTemplate()
+def makeStarListArgumentErrorRaise(
+    called_variable, star_list_variable, use_generic_error
+):
+    if use_generic_error:
+        assert python_version >= 0x390
 
-    if python_version >= 0x3F0:
+        error_template = "Value after * must be an iterable, not %s"
+
+        error_arg = _makeNameAttributeLookup(
+            ExpressionBuiltinType1(
+                value=ExpressionVariableRef(
+                    variable=star_list_variable, source_ref=internal_source_ref
+                ),
+                source_ref=internal_source_ref,
+            )
+        )
+    elif python_version >= 0x3F0:
+        error_template = getComplexCallSequenceErrorTemplate()
         assert error_template.count("%s") == 1
 
         error_arg = _makeNameAttributeLookup(
@@ -321,6 +317,7 @@ def makeStarListArgumentErrorRaise(called_variable, star_list_variable):
             )
         )
     else:
+        error_template = getComplexCallSequenceErrorTemplate()
         assert error_template.count("%s") == 2
 
         error_arg = makeExpressionMakeTuple(
@@ -382,23 +379,14 @@ def makeStarListArgumentErrorRaise(called_variable, star_list_variable):
     )
 
 
-def _makeStarListArgumentToTupleStatement(called_variable, star_list_variable):
+def _makeStarListArgumentToTupleStatement(
+    called_variable, star_list_variable, use_generic_error
+):
     if python_version >= 0x350:
         non_tuple_code = makeStatementConditional(
-            condition=ExpressionConditionalOr(
-                left=ExpressionAttributeCheck(
-                    expression=ExpressionVariableRef(
-                        variable=star_list_variable, source_ref=internal_source_ref
-                    ),
-                    attribute_name="__iter__",
-                    source_ref=internal_source_ref,
-                ),
-                right=ExpressionAttributeCheck(
-                    expression=ExpressionVariableRef(
-                        variable=star_list_variable, source_ref=internal_source_ref
-                    ),
-                    attribute_name="__getitem__",
-                    source_ref=internal_source_ref,
+            condition=ExpressionIsIterable(
+                value=ExpressionVariableRef(
+                    variable=star_list_variable, source_ref=internal_source_ref
                 ),
                 source_ref=internal_source_ref,
             ),
@@ -413,7 +401,9 @@ def _makeStarListArgumentToTupleStatement(called_variable, star_list_variable):
                 source_ref=internal_source_ref,
             ),
             no_branch=makeStarListArgumentErrorRaise(
-                called_variable=called_variable, star_list_variable=star_list_variable
+                called_variable=called_variable,
+                star_list_variable=star_list_variable,
+                use_generic_error=use_generic_error,
             ),
             source_ref=internal_source_ref,
         )
@@ -431,7 +421,9 @@ def _makeStarListArgumentToTupleStatement(called_variable, star_list_variable):
             ),
             exception_name="TypeError",
             handler_body=makeStarListArgumentErrorRaise(
-                called_variable=called_variable, star_list_variable=star_list_variable
+                called_variable=called_variable,
+                star_list_variable=star_list_variable,
+                use_generic_error=use_generic_error,
             ),
             source_ref=internal_source_ref,
         )
@@ -805,7 +797,6 @@ def _makeRaiseDuplicationItem(called_variable, tmp_key_variable):
 def _makeStarDictArgumentMergeToKwStatement(
     result, called_variable, kw_variable, star_dict_variable
 ):
-    # This is plain terribly complex
     temp_scope = result.allocateTempScope("dict")
 
     tmp_iter_variable = result.allocateTempVariable(
@@ -1024,27 +1015,10 @@ def _makeStarDictArgumentMergeToKwStatement(
     )
 
 
-@once_decorator
+@onceDecorator
 def getFunctionCallHelperStarList():
     helper_name = "complex_call_helper_star_list"
-    # Equivalent of:
-    #
-    # Note: Call in here is not the same, as it can go without checks directly
-    # to PyObject_Call.
-    #
-    # if not isinstance(star_arg_list, tuple):
-    #     try:
-    #         star_arg_list = tuple(star_arg_list)
-    #     except TypeError:
-    #         raise TypeError, "%s argument after * must be a sequence, not %s" % (
-    #             get_callable_name_desc(function),
-    #             type(star_arg_list).__name__
-    #         )
-    #
-    # return called(*star_arg_list)
 
-    # Only need to check if the star argument value is a sequence and then
-    # convert to tuple.
     result = makeInternalHelperFunctionBody(
         name=helper_name,
         parameters=ParameterSpec(
@@ -1065,7 +1039,9 @@ def getFunctionCallHelperStarList():
 
     body = makeStatementsSequenceFromStatements(
         _makeStarListArgumentToTupleStatement(
-            called_variable=called_variable, star_list_variable=star_arg_list_variable
+            called_variable=called_variable,
+            star_list_variable=star_arg_list_variable,
+            use_generic_error=False,
         ),
         StatementReturn(
             expression=makeExpressionCall(
@@ -1087,28 +1063,10 @@ def getFunctionCallHelperStarList():
     return result
 
 
-@once_decorator
+@onceDecorator
 def getFunctionCallHelperKeywordsStarList():
     helper_name = "complex_call_helper_keywords_star_list"
 
-    # Equivalent of:
-    #
-    # Note: Call in here is not the same, as it can go without checks directly
-    # to PyObject_Call.
-    #
-    # if not isinstance(star_arg_list, tuple):
-    #     try:
-    #         star_arg_list = tuple(star_arg_list)
-    #     except TypeError:
-    #         raise TypeError, "%s argument after * must be a sequence, not %s" % (
-    #             get_callable_name_desc(function),
-    #             type(star_arg_list).__name__
-    #         )
-    #
-    # return called(*star_arg_list)
-
-    # Only need to check if the star argument value is a sequence and then
-    # convert to tuple.
     result = makeInternalHelperFunctionBody(
         name=helper_name,
         parameters=ParameterSpec(
@@ -1132,7 +1090,9 @@ def getFunctionCallHelperKeywordsStarList():
 
     body = makeStatementsSequenceFromStatements(
         _makeStarListArgumentToTupleStatement(
-            called_variable=called_variable, star_list_variable=star_arg_list_variable
+            called_variable=called_variable,
+            star_list_variable=star_arg_list_variable,
+            use_generic_error=False,
         ),
         StatementReturn(
             expression=makeExpressionCall(
@@ -1156,28 +1116,10 @@ def getFunctionCallHelperKeywordsStarList():
     return result
 
 
-@once_decorator
+@onceDecorator
 def getFunctionCallHelperPosStarList():
     helper_name = "complex_call_helper_pos_star_list"
 
-    # Equivalent of:
-    #
-    # Note: Call in here is not the same, as it can go without checks directly
-    # to PyObject_Call.
-    #
-    # if not isinstance(star_arg_list, tuple):
-    #     try:
-    #         star_arg_list = tuple(star_arg_list)
-    #     except TypeError:
-    #         raise TypeError, "%s argument after * must be a sequence, not %s" % (
-    #             get_callable_name_desc(function),
-    #             type(star_arg_list).__name__
-    #         )
-    #
-    # return called(*star_arg_list)
-
-    # Only need to check if the star argument value is a sequence and then
-    # convert to tuple.
     result = makeInternalHelperFunctionBody(
         name=helper_name,
         parameters=ParameterSpec(
@@ -1201,7 +1143,9 @@ def getFunctionCallHelperPosStarList():
 
     body = makeStatementsSequenceFromStatements(
         _makeStarListArgumentToTupleStatement(
-            called_variable=called_variable, star_list_variable=star_arg_list_variable
+            called_variable=called_variable,
+            star_list_variable=star_arg_list_variable,
+            use_generic_error=python_version >= 0x390,
         ),
         StatementReturn(
             expression=makeExpressionCall(
@@ -1230,27 +1174,10 @@ def getFunctionCallHelperPosStarList():
     return result
 
 
-@once_decorator
+@onceDecorator
 def getFunctionCallHelperPosKeywordsStarList():
     helper_name = "complex_call_helper_pos_keywords_star_list"
-    # Equivalent of:
-    #
-    # Note: Call in here is not the same, as it can go without checks directly
-    # to PyObject_Call.
-    #
-    # if not isinstance(star_arg_list, tuple):
-    #     try:
-    #         star_arg_list = tuple(star_arg_list)
-    #     except TypeError:
-    #         raise TypeError, "%s argument after * must be a sequence, not %s" % (
-    #             get_callable_name_desc(function),
-    #             type(star_arg_list).__name__
-    #         )
-    #
-    # return called(*star_arg_list)
 
-    # Only need to check if the star argument value is a sequence and then
-    # convert to tuple.
     result = makeInternalHelperFunctionBody(
         name=helper_name,
         parameters=ParameterSpec(
@@ -1276,7 +1203,9 @@ def getFunctionCallHelperPosKeywordsStarList():
 
     body = makeStatementsSequenceFromStatements(
         _makeStarListArgumentToTupleStatement(
-            called_variable=called_variable, star_list_variable=star_arg_list_variable
+            called_variable=called_variable,
+            star_list_variable=star_arg_list_variable,
+            use_generic_error=python_version >= 0x390,
         ),
         StatementReturn(
             expression=makeExpressionCall(
@@ -1307,40 +1236,10 @@ def getFunctionCallHelperPosKeywordsStarList():
     return result
 
 
-@once_decorator
+@onceDecorator
 def getFunctionCallHelperStarDict():
     helper_name = "complex_call_helper_star_dict"
-    # Equivalent of:
-    #
-    # Note: Call in here is not the same, as it can go without checks directly
-    # to PyObject_Call.
-    #
-    # if not isinstance(star_arg_dict, dict):
-    #     try:
-    #         tmp_keys =  star_arg_dict.keys()
-    #     except AttributeError:
-    #         raise TypeError, ""%s argument after ** must be a mapping, not %s" % (
-    #             get_callable_name_desc(function),
-    #             type(star_arg_dict).__name__
-    #         )
-    #
-    #     tmp_iter = iter(keys)
-    #     tmp_dict = {}
-    #
-    #     while 1:
-    #         try:
-    #             tmp_key = tmp_iter.next()
-    #         except StopIteration:
-    #             break
-    #
-    #         tmp_dict[tmp_key] = star_dict_arg[tmp_key]
-    #
-    #     star_arg_dict = new
-    #
-    # return called(**star_arg_dict)
 
-    # Only need to check if the star argument value is a sequence and then
-    # convert to tuple.
     result = makeInternalHelperFunctionBody(
         name=helper_name,
         parameters=ParameterSpec(
@@ -1386,41 +1285,10 @@ def getFunctionCallHelperStarDict():
     return result
 
 
-@once_decorator
+@onceDecorator
 def getFunctionCallHelperPosStarDict():
     helper_name = "complex_call_helper_pos_star_dict"
 
-    # Equivalent of:
-    #
-    # Note: Call in here is not the same, as it can go without checks directly
-    # to PyObject_Call.
-    #
-    # if not isinstance(star_arg_dict, dict):
-    #     try:
-    #         tmp_keys =  star_arg_dict.keys()
-    #     except AttributeError:
-    #         raise TypeError, ""%s argument after ** must be a mapping, not %s" % (
-    #             get_callable_name_desc(function),
-    #             type(star_arg_dict).__name__
-    #         )
-    #
-    #     tmp_iter = iter(keys)
-    #     tmp_dict = {}
-    #
-    #     while 1:
-    #         try:
-    #             tmp_key = tmp_iter.next()
-    #         except StopIteration:
-    #             break
-    #
-    #         tmp_dict[tmp_key] = star_dict_arg[tmp_key]
-    #
-    #     star_arg_dict = new
-    #
-    # return called(args, **star_arg_dict)
-
-    # Only need to check if the star argument value is a sequence and then
-    # convert to tuple.
     result = makeInternalHelperFunctionBody(
         name=helper_name,
         parameters=ParameterSpec(
@@ -1470,66 +1338,10 @@ def getFunctionCallHelperPosStarDict():
     return result
 
 
-@once_decorator
+@onceDecorator
 def getFunctionCallHelperKeywordsStarDict():
     helper_name = "complex_call_helper_keywords_star_dict"
-    # Equivalent of:
-    #
-    # Note: Call in here is not the same, as it can go without checks directly
-    # to PyObject_Call. One goal is to avoid copying "kw" unless really
-    # necessary, and to take the slow route only for non-dictionaries.
-    #
-    # if not isinstance(star_arg_dict, dict):
-    #     try:
-    #         tmp_keys =  star_arg_dict.keys()
-    #     except AttributeError:
-    #         raise TypeError, ""%s argument after ** must be a mapping, not %s" % (
-    #             get_callable_name_desc(function),
-    #             type(star_arg_dict).__name__
-    #         )
-    #
-    #     if keys:
-    #         kw = dict(kw)
-    #
-    #         tmp_iter = iter(keys)
-    #         tmp_dict = {}
-    #
-    #         while 1:
-    #             try:
-    #                 tmp_key = tmp_iter.next()
-    #             except StopIteration:
-    #                  break
-    #
-    #             if tmp_key in kw:
-    #                 raise TypeError, "%s got multiple values for keyword argument '%s'" % (
-    #                     get_callable_name_desc(function),
-    #                     tmp_key
-    #                 )
-    #
-    #             kw[tmp_key] = star_dict_arg[tmp_key)
-    #
-    # elif star_arg_dict:
-    #    tmp_iter = star_arg_dict.iteritems()
-    #
-    #    kw = dict(kw)
-    #    while 1:
-    #        try:
-    #            tmp_key, tmp_value = tmp_iter.next()
-    #        except StopIteration:
-    #            break
-    #
-    #        if tmp_key in kw:
-    #            raise TypeError, "%s got multiple values for keyword argument '%s'" % (
-    #                 get_callable_name_desc(function),
-    #                 tmp_key
-    #            )
-    #
-    #        kw[tmp_key] = tmp_value
-    #
-    # return called(**kw)
 
-    # Only need to check if the star argument value is a sequence and then
-    # convert to tuple.
     result = makeInternalHelperFunctionBody(
         name=helper_name,
         parameters=ParameterSpec(
@@ -1578,66 +1390,10 @@ def getFunctionCallHelperKeywordsStarDict():
     return result
 
 
-@once_decorator
+@onceDecorator
 def getFunctionCallHelperPosKeywordsStarDict():
     helper_name = "complex_call_helper_pos_keywords_star_dict"
-    # Equivalent of:
-    #
-    # Note: Call in here is not the same, as it can go without checks directly
-    # to PyObject_Call. One goal is to avoid copying "kw" unless really
-    # necessary, and to take the slow route only for non-dictionaries.
-    #
-    # if not isinstance(star_arg_dict, dict):
-    #     try:
-    #         tmp_keys =  star_arg_dict.keys()
-    #     except AttributeError:
-    #         raise TypeError, ""%s argument after ** must be a mapping, not %s" % (
-    #             get_callable_name_desc(function),
-    #             type(star_arg_dict).__name__
-    #         )
-    #
-    #     if keys:
-    #         kw = dict(kw)
-    #
-    #         tmp_iter = iter(keys)
-    #         tmp_dict = {}
-    #
-    #         while 1:
-    #             try:
-    #                 tmp_key = tmp_iter.next()
-    #             except StopIteration:
-    #                  break
-    #
-    #             if tmp_key in kw:
-    #                 raise TypeError, "%s got multiple values for keyword argument '%s'" % (
-    #                     get_callable_name_desc(function),
-    #                     tmp_key
-    #                 )
-    #
-    #             kw[tmp_key] = star_dict_arg[tmp_key]
-    #
-    # elif star_arg_dict:
-    #    tmp_iter = star_arg_dict.iteritems()
-    #
-    #    kw = dict(kw)
-    #    while 1:
-    #        try:
-    #            tmp_key, tmp_value = tmp_iter.next()
-    #        except StopIteration:
-    #            break
-    #
-    #        if tmp_key in kw:
-    #            raise TypeError, "%s got multiple values for keyword argument '%s'" % (
-    #                 get_callable_name_desc(function),
-    #                 tmp_key
-    #            )
-    #
-    #        kw[tmp_key] = tmp_value
-    #
-    # return called(**kw )
 
-    # Only need to check if the star argument value is a sequence and then
-    # convert to tuple.
     result = makeInternalHelperFunctionBody(
         name=helper_name,
         parameters=ParameterSpec(
@@ -1691,7 +1447,12 @@ def getFunctionCallHelperPosKeywordsStarDict():
 
 
 def getDoubleStarArgsConversion(
-    result, called_variable, kw_variable, star_arg_list_variable, star_arg_dict_variable
+    result,
+    called_variable,
+    kw_variable,
+    star_arg_list_variable,
+    star_arg_dict_variable,
+    use_generic_star_error,
 ):
     statements = []
 
@@ -1715,19 +1476,19 @@ def getDoubleStarArgsConversion(
 
     statements.append(
         _makeStarListArgumentToTupleStatement(
-            called_variable=called_variable, star_list_variable=star_arg_list_variable
+            called_variable=called_variable,
+            star_list_variable=star_arg_list_variable,
+            use_generic_error=use_generic_star_error,
         )
     )
 
     return statements
 
 
-@once_decorator
+@onceDecorator
 def getFunctionCallHelperStarListStarDict():
     helper_name = "complex_call_helper_star_list_star_dict"
 
-    # Only need to check if the star argument value is a sequence and then
-    # convert to tuple.
     result = makeInternalHelperFunctionBody(
         name=helper_name,
         parameters=ParameterSpec(
@@ -1757,6 +1518,7 @@ def getFunctionCallHelperStarListStarDict():
         star_arg_list_variable=star_arg_list_variable,
         kw_variable=None,
         star_arg_dict_variable=star_arg_dict_variable,
+        use_generic_star_error=False,
     )
 
     statements.append(
@@ -1784,12 +1546,10 @@ def getFunctionCallHelperStarListStarDict():
     return result
 
 
-@once_decorator
+@onceDecorator
 def getFunctionCallHelperPosStarListStarDict():
     helper_name = "complex_call_helper_pos_star_list_star_dict"
 
-    # Only need to check if the star argument value is a sequence and then
-    # convert to tuple.
     result = makeInternalHelperFunctionBody(
         name=helper_name,
         parameters=ParameterSpec(
@@ -1821,6 +1581,7 @@ def getFunctionCallHelperPosStarListStarDict():
         star_arg_list_variable=star_arg_list_variable,
         kw_variable=None,
         star_arg_dict_variable=star_arg_dict_variable,
+        use_generic_star_error=python_version >= 0x390,
     )
 
     if python_version >= 0x360:
@@ -1858,12 +1619,10 @@ def getFunctionCallHelperPosStarListStarDict():
     return result
 
 
-@once_decorator
+@onceDecorator
 def getFunctionCallHelperKeywordsStarListStarDict():
     helper_name = "complex_call_helper_keywords_star_list_star_dict"
 
-    # Only need to check if the star argument value is a sequence and then
-    # convert to tuple.
     result = makeInternalHelperFunctionBody(
         name=helper_name,
         parameters=ParameterSpec(
@@ -1895,6 +1654,7 @@ def getFunctionCallHelperKeywordsStarListStarDict():
         star_arg_list_variable=star_arg_list_variable,
         kw_variable=kw_variable,
         star_arg_dict_variable=star_arg_dict_variable,
+        use_generic_star_error=False,
     )
 
     statements.append(
@@ -1922,12 +1682,10 @@ def getFunctionCallHelperKeywordsStarListStarDict():
     return result
 
 
-@once_decorator
+@onceDecorator
 def getFunctionCallHelperPosKeywordsStarListStarDict():
     helper_name = "complex_call_helper_pos_keywords_star_list_star_dict"
 
-    # Only need to check if the star argument value is a sequence and then
-    # convert to tuple.
     result = makeInternalHelperFunctionBody(
         name=helper_name,
         parameters=ParameterSpec(
@@ -1963,6 +1721,7 @@ def getFunctionCallHelperPosKeywordsStarListStarDict():
         star_arg_list_variable=star_arg_list_variable,
         kw_variable=kw_variable,
         star_arg_dict_variable=star_arg_dict_variable,
+        use_generic_star_error=python_version >= 0x390,
     )
 
     if python_version >= 0x360:
@@ -2000,7 +1759,7 @@ def getFunctionCallHelperPosKeywordsStarListStarDict():
     return result
 
 
-@once_decorator
+@onceDecorator
 def getFunctionCallHelperDictionaryUnpacking():
     helper_name = "complex_call_helper_dict_unpacking_checks"
 
@@ -2040,20 +1799,6 @@ def getFunctionCallHelperDictionaryUnpacking():
 
     update_body = (
         makeStatementConditional(
-            condition=ExpressionBuiltinIsinstance(
-                instance=ExpressionTempVariableRef(
-                    variable=tmp_key_variable, source_ref=internal_source_ref
-                ),
-                classes=makeExpressionBuiltinTypeRef(
-                    builtin_name="str", source_ref=internal_source_ref
-                ),
-                source_ref=internal_source_ref,
-            ),
-            yes_branch=None,
-            no_branch=_makeRaiseNoStringItem(called_variable=called_variable),
-            source_ref=internal_source_ref,
-        ),
-        makeStatementConditional(
             condition=ExpressionComparisonIn(
                 left=ExpressionTempVariableRef(
                     variable=tmp_key_variable, source_ref=internal_source_ref
@@ -2089,6 +1834,26 @@ def getFunctionCallHelperDictionaryUnpacking():
         ),
     )
 
+    if python_version < 0x390:
+        # Before Python 3.9, non-string keys are rejected during merging,
+        # before a duplicate of them can be detected.
+        update_body = (
+            makeStatementConditional(
+                condition=ExpressionBuiltinIsinstance(
+                    instance=ExpressionTempVariableRef(
+                        variable=tmp_key_variable, source_ref=internal_source_ref
+                    ),
+                    classes=makeExpressionBuiltinTypeRef(
+                        builtin_name="str", source_ref=internal_source_ref
+                    ),
+                    source_ref=internal_source_ref,
+                ),
+                yes_branch=None,
+                no_branch=_makeRaiseNoStringItem(called_variable=called_variable),
+                source_ref=internal_source_ref,
+            ),
+        ) + update_body
+
     loop_body = (
         makeTryExceptSingleHandlerNode(
             tried=makeStatementsSequenceFromStatements(
@@ -2123,6 +1888,47 @@ def getFunctionCallHelperDictionaryUnpacking():
         ),
     )
 
+    if python_version >= 0x390:
+        # CPython only validates keyword names after all mappings have been
+        # merged, so duplicates take precedence over this error.
+        string_check_statements = (
+            makeStatementAssignmentVariable(
+                variable=tmp_iter_variable,
+                source=ExpressionBuiltinIter1(
+                    value=ExpressionTempVariableRef(
+                        variable=tmp_result_variable, source_ref=internal_source_ref
+                    ),
+                    source_ref=internal_source_ref,
+                ),
+                source_ref=internal_source_ref,
+            ),
+            _makeIteratingLoopStatement(
+                tmp_iter_variable=tmp_iter_variable,
+                tmp_item_variable=tmp_key_variable,
+                statements=(
+                    makeStatementConditional(
+                        condition=ExpressionBuiltinIsinstance(
+                            instance=ExpressionTempVariableRef(
+                                variable=tmp_key_variable,
+                                source_ref=internal_source_ref,
+                            ),
+                            classes=makeExpressionBuiltinTypeRef(
+                                builtin_name="str", source_ref=internal_source_ref
+                            ),
+                            source_ref=internal_source_ref,
+                        ),
+                        yes_branch=None,
+                        no_branch=_makeRaiseNoStringItem(
+                            called_variable=called_variable
+                        ),
+                        source_ref=internal_source_ref,
+                    ),
+                ),
+            ),
+        )
+    else:
+        string_check_statements = ()
+
     tried = makeStatementsSequenceFromStatements(
         makeStatementAssignmentVariable(
             variable=tmp_iter_variable,
@@ -2144,6 +1950,7 @@ def getFunctionCallHelperDictionaryUnpacking():
             tmp_item_variable=tmp_item_variable,
             statements=loop_body,
         ),
+        string_check_statements,
         StatementReturn(
             expression=ExpressionTempVariableRef(
                 variable=tmp_result_variable, source_ref=internal_source_ref
