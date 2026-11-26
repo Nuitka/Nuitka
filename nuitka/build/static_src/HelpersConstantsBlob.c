@@ -299,6 +299,8 @@ static Py_hash_t our_dict_hash(PyObject *dict) {
 }
 
 static PyObject *our_dict_tp_richcompare(PyObject *a, PyObject *b, int op) {
+    assert(op == Py_EQ);
+
     PyObject *result;
 
     if (Py_SIZE(a) != Py_SIZE(b)) {
@@ -353,6 +355,8 @@ static Py_hash_t our_frozendict_hash(PyObject *frozendict) {
 }
 
 static PyObject *our_frozendict_tp_richcompare(PyObject *a, PyObject *b, int op) {
+    assert(op == Py_EQ);
+
     PyObject *result;
 
     if (FROZENDICT_SIZE(a) != FROZENDICT_SIZE(b)) {
@@ -406,63 +410,44 @@ static void initConstDictEmpty(void) {
     }
 }
 
-static PyObject *makeConstantCacheDict(PyThreadState *tstate) {
-    PyObject *result = MAKE_DICT_EMPTY(tstate);
-    CHECK_OBJECT(result);
-
-    // The caches are permanent roots holding only constants, so they are not
-    // part of the garbage collected values. Python 2.6 and 3.14 or higher
-    // create dictionaries tracked already.
-#if PYTHON_VERSION >= 0x270 && PYTHON_VERSION < 0x3e0
-    assert(!_PyObject_GC_IS_TRACKED(result));
-#else
-    assert(_PyObject_GC_IS_TRACKED(result));
-    Nuitka_GC_UnTrack(result);
-#endif
-
-    return result;
-}
-
 static void initConstantsCaches(PyThreadState *tstate) {
     static bool init_done = false;
     if (init_done == true) {
         return;
     }
 
-    // The empty dict constant is a dependency of our dictionary creation
-    // helpers, and the cache dictionaries themselves use them now.
     initConstDictEmpty();
 
 #if PYTHON_VERSION < 0x300
-    int_cache = makeConstantCacheDict(tstate);
+    int_cache = MAKE_DICT_EMPTY_UNTRACKED(tstate);
 #endif
 
-    long_cache = makeConstantCacheDict(tstate);
+    long_cache = MAKE_DICT_EMPTY_UNTRACKED(tstate);
 
-    float_cache = makeConstantCacheDict(tstate);
+    float_cache = MAKE_DICT_EMPTY_UNTRACKED(tstate);
 
 #if PYTHON_VERSION >= 0x300
-    bytes_cache = makeConstantCacheDict(tstate);
+    bytes_cache = MAKE_DICT_EMPTY_UNTRACKED(tstate);
 #endif
 
 #if PYTHON_VERSION < 0x300
-    unicode_cache = makeConstantCacheDict(tstate);
+    unicode_cache = MAKE_DICT_EMPTY_UNTRACKED(tstate);
 #endif
 
-    tuple_cache = makeConstantCacheDict(tstate);
+    tuple_cache = MAKE_DICT_EMPTY_UNTRACKED(tstate);
 
-    list_cache = makeConstantCacheDict(tstate);
+    list_cache = MAKE_DICT_EMPTY_UNTRACKED(tstate);
 
-    slice_cache = makeConstantCacheDict(tstate);
+    slice_cache = MAKE_DICT_EMPTY_UNTRACKED(tstate);
 
-    dict_cache = makeConstantCacheDict(tstate);
+    dict_cache = MAKE_DICT_EMPTY_UNTRACKED(tstate);
 
-    set_cache = makeConstantCacheDict(tstate);
+    set_cache = MAKE_DICT_EMPTY_UNTRACKED(tstate);
 
-    frozenset_cache = makeConstantCacheDict(tstate);
+    frozenset_cache = MAKE_DICT_EMPTY_UNTRACKED(tstate);
 
 #if PYTHON_VERSION >= 0x3f0
-    frozendict_cache = makeConstantCacheDict(tstate);
+    frozendict_cache = MAKE_DICT_EMPTY_UNTRACKED(tstate);
 #endif
 
 #if PYTHON_VERSION < 0x3b0

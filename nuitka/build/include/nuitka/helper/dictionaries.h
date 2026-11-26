@@ -599,6 +599,9 @@ extern bool Nuitka_FrozenDictNext(PyObject *frozendict, Py_ssize_t *pos, PyObjec
     !defined(_NUITKA_EXPERIMENTAL_DISABLE_FREELIST_DICT)
 #define NUITKA_DICT_HAS_FREELIST 1
 extern PyObject *MAKE_DICT_EMPTY(PyThreadState *tstate);
+#if PYTHON_VERSION >= 0x3e0
+extern PyObject *MAKE_DICT_EMPTY_UNTRACKED(PyThreadState *tstate);
+#endif
 #else
 #define NUITKA_DICT_HAS_FREELIST 0
 static inline PyObject *MAKE_DICT_EMPTY(PyThreadState *tstate) {
@@ -606,6 +609,25 @@ static inline PyObject *MAKE_DICT_EMPTY(PyThreadState *tstate) {
 
     PyObject *result = PyDict_New();
     assert(result != NULL);
+    return result;
+}
+#endif
+
+#if PYTHON_VERSION >= 0x270 && PYTHON_VERSION < 0x3e0
+static inline PyObject *MAKE_DICT_EMPTY_UNTRACKED(PyThreadState *tstate) {
+    PyObject *result = MAKE_DICT_EMPTY(tstate);
+    assert(!_PyObject_GC_IS_TRACKED(result));
+
+    return result;
+}
+#elif !NUITKA_DICT_HAS_FREELIST
+static inline PyObject *MAKE_DICT_EMPTY_UNTRACKED(PyThreadState *tstate) {
+    PyObject *result = MAKE_DICT_EMPTY(tstate);
+
+    // Python 2.6 and 3.14 or higher create empty dictionaries tracked already.
+    assert(_PyObject_GC_IS_TRACKED(result));
+    Nuitka_GC_UnTrack(result);
+
     return result;
 }
 #endif

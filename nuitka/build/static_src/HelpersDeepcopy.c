@@ -165,25 +165,25 @@ static PyObject *_makeDeepCopyFunctionCapsule(copy_func func) { return Nuitka_Ca
 static void _initDeepCopy(PyThreadState *tstate) {
     assert(_deep_copy_dispatch == NULL);
 
-    _deep_copy_dispatch = PyDict_New();
+    _deep_copy_dispatch = MAKE_DICT_EMPTY_UNTRACKED(tstate);
     _deep_noop = Py_None;
 
     CHECK_OBJECT(_deep_noop);
 
-    DICT_SET_ITEM_INFALLIBLE(tstate, _deep_copy_dispatch, (PyObject *)&PyDict_Type,
-                             _makeDeepCopyFunctionCapsule(DEEP_COPY_DICT));
-    DICT_SET_ITEM_INFALLIBLE(tstate, _deep_copy_dispatch, (PyObject *)&PyList_Type,
-                             _makeDeepCopyFunctionCapsule(DEEP_COPY_LIST));
-    DICT_SET_ITEM_INFALLIBLE(tstate, _deep_copy_dispatch, (PyObject *)&PyTuple_Type,
-                             _makeDeepCopyFunctionCapsule(DEEP_COPY_TUPLE));
-    DICT_SET_ITEM_INFALLIBLE(tstate, _deep_copy_dispatch, (PyObject *)&PySet_Type,
-                             _makeDeepCopyFunctionCapsule(DEEP_COPY_SET));
-    DICT_SET_ITEM_INFALLIBLE(tstate, _deep_copy_dispatch, (PyObject *)&PyByteArray_Type,
-                             _makeDeepCopyFunctionCapsule(BYTEARRAY_COPY));
+    DICT_SET_ITEM_UNTRACKED1_INFALLIBLE(tstate, _deep_copy_dispatch, (PyObject *)&PyDict_Type,
+                                        _makeDeepCopyFunctionCapsule(DEEP_COPY_DICT));
+    DICT_SET_ITEM_UNTRACKED1_INFALLIBLE(tstate, _deep_copy_dispatch, (PyObject *)&PyList_Type,
+                                        _makeDeepCopyFunctionCapsule(DEEP_COPY_LIST));
+    DICT_SET_ITEM_UNTRACKED1_INFALLIBLE(tstate, _deep_copy_dispatch, (PyObject *)&PyTuple_Type,
+                                        _makeDeepCopyFunctionCapsule(DEEP_COPY_TUPLE));
+    DICT_SET_ITEM_UNTRACKED1_INFALLIBLE(tstate, _deep_copy_dispatch, (PyObject *)&PySet_Type,
+                                        _makeDeepCopyFunctionCapsule(DEEP_COPY_SET));
+    DICT_SET_ITEM_UNTRACKED1_INFALLIBLE(tstate, _deep_copy_dispatch, (PyObject *)&PyByteArray_Type,
+                                        _makeDeepCopyFunctionCapsule(BYTEARRAY_COPY));
 
 #if PYTHON_VERSION >= 0x390
-    DICT_SET_ITEM_INFALLIBLE(tstate, _deep_copy_dispatch, (PyObject *)&Py_GenericAliasType,
-                             _makeDeepCopyFunctionCapsule(DEEP_COPY_GENERICALIAS));
+    DICT_SET_ITEM_UNTRACKED1_INFALLIBLE(tstate, _deep_copy_dispatch, (PyObject *)&Py_GenericAliasType,
+                                        _makeDeepCopyFunctionCapsule(DEEP_COPY_GENERICALIAS));
 #endif
 
 #if PYTHON_VERSION >= 0x3a0
@@ -194,7 +194,7 @@ static void _initDeepCopy(PyThreadState *tstate) {
 
         Nuitka_PyUnion_Type = Py_TYPE(union_value);
 
-        DICT_SET_ITEM_INFALLIBLE(tstate, _deep_copy_dispatch, (PyObject *)Nuitka_PyUnion_Type, _deep_noop);
+        DICT_SET_ITEM_UNTRACKED_INFALLIBLE(tstate, _deep_copy_dispatch, (PyObject *)Nuitka_PyUnion_Type, _deep_noop);
 
         Py_DECREF(union_value);
         Py_DECREF(args_tuple);
@@ -203,32 +203,34 @@ static void _initDeepCopy(PyThreadState *tstate) {
 #endif
 
 #if PYTHON_VERSION < 0x300
-    DICT_SET_ITEM_INFALLIBLE(tstate, _deep_copy_dispatch, (PyObject *)&PyString_Type, _deep_noop);
-    DICT_SET_ITEM_INFALLIBLE(tstate, _deep_copy_dispatch, (PyObject *)&PyInt_Type, _deep_noop);
+    DICT_SET_ITEM_UNTRACKED_INFALLIBLE(tstate, _deep_copy_dispatch, (PyObject *)&PyString_Type, _deep_noop);
+    DICT_SET_ITEM_UNTRACKED_INFALLIBLE(tstate, _deep_copy_dispatch, (PyObject *)&PyInt_Type, _deep_noop);
 #else
-    DICT_SET_ITEM_INFALLIBLE(tstate, _deep_copy_dispatch, (PyObject *)&PyBytes_Type, _deep_noop);
+    DICT_SET_ITEM_UNTRACKED_INFALLIBLE(tstate, _deep_copy_dispatch, (PyObject *)&PyBytes_Type, _deep_noop);
 #endif
-    DICT_SET_ITEM_INFALLIBLE(tstate, _deep_copy_dispatch, (PyObject *)&PyUnicode_Type, _deep_noop);
-    DICT_SET_ITEM_INFALLIBLE(tstate, _deep_copy_dispatch, (PyObject *)&PyLong_Type, _deep_noop);
-    DICT_SET_ITEM_INFALLIBLE(tstate, _deep_copy_dispatch, (PyObject *)Py_TYPE(Py_None), _deep_noop);
-    DICT_SET_ITEM_INFALLIBLE(tstate, _deep_copy_dispatch, (PyObject *)&PyBool_Type, _deep_noop);
-    DICT_SET_ITEM_INFALLIBLE(tstate, _deep_copy_dispatch, (PyObject *)&PyFloat_Type, _deep_noop);
-    DICT_SET_ITEM_INFALLIBLE(tstate, _deep_copy_dispatch, (PyObject *)&PyRange_Type, _deep_noop);
-    DICT_SET_ITEM_INFALLIBLE(tstate, _deep_copy_dispatch, (PyObject *)&PyType_Type, _deep_noop);
-    DICT_SET_ITEM_INFALLIBLE(tstate, _deep_copy_dispatch, (PyObject *)&PySlice_Type, _deep_noop);
-    DICT_SET_ITEM_INFALLIBLE(tstate, _deep_copy_dispatch, (PyObject *)&PyComplex_Type, _deep_noop);
-    DICT_SET_ITEM_INFALLIBLE(tstate, _deep_copy_dispatch, (PyObject *)&PyCFunction_Type, _deep_noop);
-    DICT_SET_ITEM_INFALLIBLE(tstate, _deep_copy_dispatch, (PyObject *)Py_TYPE(Py_Ellipsis), _deep_noop);
-    DICT_SET_ITEM_INFALLIBLE(tstate, _deep_copy_dispatch, (PyObject *)Py_TYPE(Py_NotImplemented), _deep_noop);
+    DICT_SET_ITEM_UNTRACKED_INFALLIBLE(tstate, _deep_copy_dispatch, (PyObject *)&PyUnicode_Type, _deep_noop);
+    DICT_SET_ITEM_UNTRACKED_INFALLIBLE(tstate, _deep_copy_dispatch, (PyObject *)&PyLong_Type, _deep_noop);
+    DICT_SET_ITEM_UNTRACKED_INFALLIBLE(tstate, _deep_copy_dispatch, (PyObject *)Py_TYPE(Py_None), _deep_noop);
+    DICT_SET_ITEM_UNTRACKED_INFALLIBLE(tstate, _deep_copy_dispatch, (PyObject *)&PyBool_Type, _deep_noop);
+    DICT_SET_ITEM_UNTRACKED_INFALLIBLE(tstate, _deep_copy_dispatch, (PyObject *)&PyFloat_Type, _deep_noop);
+    DICT_SET_ITEM_UNTRACKED_INFALLIBLE(tstate, _deep_copy_dispatch, (PyObject *)&PyRange_Type, _deep_noop);
+    DICT_SET_ITEM_UNTRACKED_INFALLIBLE(tstate, _deep_copy_dispatch, (PyObject *)&PyType_Type, _deep_noop);
+    DICT_SET_ITEM_UNTRACKED_INFALLIBLE(tstate, _deep_copy_dispatch, (PyObject *)&PySlice_Type, _deep_noop);
+    DICT_SET_ITEM_UNTRACKED_INFALLIBLE(tstate, _deep_copy_dispatch, (PyObject *)&PyComplex_Type, _deep_noop);
+    DICT_SET_ITEM_UNTRACKED_INFALLIBLE(tstate, _deep_copy_dispatch, (PyObject *)&PyCFunction_Type, _deep_noop);
+    DICT_SET_ITEM_UNTRACKED_INFALLIBLE(tstate, _deep_copy_dispatch, (PyObject *)Py_TYPE(Py_Ellipsis), _deep_noop);
+    DICT_SET_ITEM_UNTRACKED_INFALLIBLE(tstate, _deep_copy_dispatch, (PyObject *)Py_TYPE(Py_NotImplemented), _deep_noop);
 
     // Sets can be changed, but not a frozenset.
-    DICT_SET_ITEM_INFALLIBLE(tstate, _deep_copy_dispatch, (PyObject *)&PyFrozenSet_Type, _deep_noop);
+    DICT_SET_ITEM_UNTRACKED_INFALLIBLE(tstate, _deep_copy_dispatch, (PyObject *)&PyFrozenSet_Type, _deep_noop);
 
 #if PYTHON_VERSION >= 0x3f0
     // A frozendict cannot be changed, but its values can be.
-    DICT_SET_ITEM_INFALLIBLE(tstate, _deep_copy_dispatch, (PyObject *)&PyFrozenDict_Type,
-                             _makeDeepCopyFunctionCapsule(DEEP_COPY_FROZENDICT));
+    DICT_SET_ITEM_UNTRACKED1_INFALLIBLE(tstate, _deep_copy_dispatch, (PyObject *)&PyFrozenDict_Type,
+                                        _makeDeepCopyFunctionCapsule(DEEP_COPY_FROZENDICT));
 #endif
+
+    assert(!_PyObject_GC_IS_TRACKED(_deep_copy_dispatch));
 }
 
 static PyObject *DEEP_COPY_ITEM(PyThreadState *tstate, PyObject *value, PyTypeObject **type, copy_func *copy_function) {
@@ -394,7 +396,7 @@ Py_hash_t DEEP_HASH(PyThreadState *tstate, PyObject *value) {
 
         // Use string to hash the long value, which relies on that to not
         // use the object address.
-        PyObject *str = PyObject_Str(value);
+        PyObject *str = BUILTIN_STR_OR_UNICODE1(value);
         CHECK_OBJECT(str);
         result ^= DEEP_HASH(tstate, str);
         Py_DECREF(str);

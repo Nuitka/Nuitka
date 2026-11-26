@@ -291,7 +291,7 @@ if (%(test_code)s) {
 # caches or borrowed dictionary references and return a strong reference.
 template_module_variable_accessor_function = """\
 static PyObject *%(accessor_function_name)s(PyThreadState *tstate) {
-#if !defined(Py_GIL_DISABLED)
+#if _NUITKA_GIL_PROTECTED
 #if %(caching)s
     PyObject *result;
 
