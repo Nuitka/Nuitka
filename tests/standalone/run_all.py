@@ -232,6 +232,10 @@ def main():
             if filename != "PySide6":
                 extra_flags.append("ignore_warnings")
 
+            # Qt platform warnings, e.g. about the pasteboard on macOS, are
+            # noise for the output comparison.
+            extra_flags.append("env:QT_LOGGING_RULES=*=false")
+
         if filename.endswith("WebEngineFrameworks.py") and isMacOS():
             extra_flags.append("ignore_stderr")
             extra_flags.append("verify_signature")

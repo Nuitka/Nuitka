@@ -982,32 +982,28 @@ system Qt plugins, which may be from another Qt version.""",
         )
 
     def createPreModuleLoadCode(self, module):
-        """Method called when a module is being imported.
-
-        Notes:
-            If full name equals to the binding we insert code to include the dist
-            folder in the 'PATH' environment variable (on Windows only).
-
-        Args:
-            module: the module object
-        Returns:
-            Code to insert and descriptive text (tuple), or (None, None).
-        """
-
-        # This is only relevant on standalone mode for Windows
         if not isStandaloneMode():
             return
 
         full_name = module.getFullName()
 
-        if full_name == self.binding_name and self.qt_debug_plugins:
-            yield (
-                """\
+        if full_name == self.binding_name:
+            if self.qt_debug_plugins:
+                yield (
+                    """\
 import os
 os.environ["QT_DEBUG_PLUGINS"] = "1"
 """,
-                "Enabling Qt plugin debugging as requested.",
-            )
+                    "Enabling Qt plugin debugging as requested.",
+                )
+            else:
+                yield (
+                    """\
+import os
+os.environ["QT_LOGGING_RULES"] = "*=false"
+""",
+                    "Disabling Qt logging for standalone mode.",
+                )
 
         if full_name == self.binding_name and isWin32Windows():
             # TODO: Check if this "PATH" manipulation is still necessary at all,
@@ -1027,7 +1023,6 @@ if not path.startswith(python_runtime_dir):
                 "Adding binary folder to runtime 'PATH' environment variable for proper Qt loading.",
             )
 
-        # We need to set these variables, to force the layout
         # spell-checker: ignore QTWEBENGINEPROCESS_PATH,QTWEBENGINE_DISABLE_SANDBOX
         # spell-checker: ignore QTWEBENGINE_RESOURCES_PATH
 

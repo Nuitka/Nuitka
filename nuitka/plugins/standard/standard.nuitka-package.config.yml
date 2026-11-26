@@ -7535,6 +7535,79 @@
         - 'enum'
         - 'logging'
 
+- module-name: 'shiboken6.Shiboken' # checksum: b89c36ba
+  implicit-imports:
+    # Shiboken's embedded "signature_bootstrap.py" probes "<dist>/shiboken6/files.dir"
+    # via "pathlib.Path" on startup for developer debugging ("SBK_EMBED=0"), even though
+    # standalone builds always load "shibokensupport" from its in-memory zip archive.
+    - pre-import-code:
+        - |
+          import os
+          import pathlib
+          _cls = type(pathlib.Path())
+          _orig_resolve = getattr(_cls, "resolve")
+          _orig_exists = getattr(_cls, "exists")
+          _cls._nuitka_shiboken_orig = (
+              "resolve" in _cls.__dict__,
+              _orig_resolve,
+              "exists" in _cls.__dict__,
+              _orig_exists,
+              os.environ.pop("SBK_EMBED", None),
+          )
+          _cls.resolve = (
+              lambda self, *args, **kwargs: self
+              if self.parent.name == "shiboken6"
+              else _orig_resolve(self, *args, **kwargs)
+          )
+          _cls.exists = (
+              lambda self, *args, **kwargs: False
+              if self.name == "files.dir"
+              else _orig_exists(self, *args, **kwargs)
+          )
+      when: 'standalone'
+    # Shiboken's "__feature__" import hook calls "inspect.getsource()" on every
+    # imported module, causing two failed disk stats per embedded module.
+    - post-import-code:
+        - |
+          import os
+          import pathlib
+          import sys
+          _cls = type(pathlib.Path())
+          _orig = getattr(_cls, "_nuitka_shiboken_orig", None)
+          if _orig is not None:
+              delattr(_cls, "_nuitka_shiboken_orig")
+              _had_resolve, _orig_resolve, _had_exists, _orig_exists, _sbk_embed = _orig
+              if _had_resolve:
+                  _cls.resolve = _orig_resolve
+              else:
+                  delattr(_cls, "resolve")
+              if _had_exists:
+                  _cls.exists = _orig_exists
+              else:
+                  delattr(_cls, "exists")
+              if _sbk_embed is not None:
+                  os.environ["SBK_EMBED"] = _sbk_embed
+
+          _feature = sys.modules.get("shibokensupport.feature") or sys.modules.get(
+              "PySide6.support.feature"
+          )
+          if _feature is not None and hasattr(_feature, "_mod_uses_pyside"):
+              _orig_mod_uses_pyside = _feature._mod_uses_pyside
+              _linecache = _feature.inspect.linecache
+
+              def _nuitka_mod_uses_pyside(module):
+                  if (
+                      type(getattr(module, "__loader__", None)).__name__
+                      == "nuitka_module_loader"
+                      and getattr(module, "__name__", None)
+                      not in getattr(_linecache, "_nuitka_source_inclusion_sources", ())
+                  ):
+                      return False
+                  return _orig_mod_uses_pyside(module)
+
+              _feature._mod_uses_pyside = _nuitka_mod_uses_pyside
+      when: 'standalone'
+
 - module-name: 'shtab' # checksum: 6c4e35a6
   anti-bloat:
     - description: 'remove setuptools_scm version detection'
