@@ -145,13 +145,6 @@ template_read_shared_known = """\
 %(tmp_name)s = Nuitka_Cell_GET(%(identifier)s);
 """
 
-# TODO: Only provide fallback for known actually possible values. Do this
-# by keeping track of things that were added by "site.py" mechanisms. Then
-# we can avoid the second call entirely for most cases.
-template_read_mvar_unclear = """\
-%(tmp_name)s = LOOKUP_MODULE_VALUE(moduledict_%(module_identifier)s, %(var_name)s);
-"""
-
 template_read_locals_dict_with_fallback = """\
 %(to_name)s = %(dict_get_item)s(tstate, %(locals_dict)s, %(var_name)s);
 

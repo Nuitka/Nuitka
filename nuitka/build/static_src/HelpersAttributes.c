@@ -749,16 +749,6 @@ PyObject *LOOKUP_SPECIAL_NO_ERROR(PyObject *source, PyObject *attr_name) {
 }
 #endif
 
-PyObject *LOOKUP_MODULE_VALUE(PyDictObject *module_dict, PyObject *var_name) {
-    PyObject *result = GET_STRING_DICT_VALUE(module_dict, (Nuitka_StringObject *)var_name);
-
-    if (unlikely(result == NULL)) {
-        result = GET_STRING_DICT_VALUE(dict_builtin, (Nuitka_StringObject *)var_name);
-    }
-
-    return result;
-}
-
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
 //

@@ -6,7 +6,6 @@
 from nuitka.code_generation.templates.CodeTemplatesVariables import (
     template_del_global_known,
     template_del_global_unclear,
-    template_read_mvar_unclear,
 )
 
 from .CTypeBases import CTypeBase
@@ -61,21 +60,6 @@ if (%(orig_name)s != %(tmp_name)s) {
 
             if ref_count:
                 context.removeCleanupTempName(tmp_name)
-
-    @classmethod
-    def emitValueAccessCode(cls, value_name, emit, context):
-        tmp_name = context.allocateTempName("mvar_value")
-
-        emit(
-            template_read_mvar_unclear
-            % {
-                "module_identifier": context.getModuleCodeName(),
-                "tmp_name": tmp_name,
-                "var_name": context.getConstantCode(constant=value_name.code_name),
-            }
-        )
-
-        return tmp_name
 
     @classmethod
     def getDeleteObjectCode(

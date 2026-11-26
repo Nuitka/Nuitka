@@ -40,8 +40,6 @@ extern PyObject *LOOKUP_SPECIAL_NO_ERROR(PyObject *source, PyObject *attr_name);
 extern PyObject *FIND_ATTRIBUTE_IN_CLASS(PyClassObject *class_object, PyObject *attr_name);
 #endif
 
-extern PyObject *LOOKUP_MODULE_VALUE(PyDictObject *module_dict, PyObject *var_name);
-
 // In case of DLL usage, this avoids looking up the symbol from it.
 extern getattrofunc PyObject_GenericGetAttr_resolved;
 
