@@ -21,7 +21,10 @@ from nuitka.Tracing import code_generation_logger
 from nuitka.utils.CStrings import encodePythonStringToC
 from nuitka.utils.Timing import TimerReport
 
-from .AnnotateFunctionCodes import isBytecodeBackedFunction
+from .AnnotateFunctionCodes import (
+    checkAnnotateFunction,
+    isBytecodeBackedFunction,
+)
 from .AsyncgenCodes import (
     generateMakeAsyncgenObjectCode,
     getAsyncgenObjectCode,
@@ -586,23 +589,14 @@ def _generateModuleCode(module, data_filename):
     function_decl_codes = []
     function_body_codes = []
 
-    for function_body in module.getUsedFunctions():
-        if function_body.needsCreation():
-            (
-                is_constant_returning,
-                _constant_return_value,
-            ) = function_body.getConstantReturnValue()
-            if is_constant_returning:
-                continue
+    function_bodies = []
 
+    for function_body in module.getUsedFunctions():
         if isBytecodeBackedFunction(function_body):
-            from .PythonSourceCodeGeneration import (
-                PythonSourceGenerationError,
-                generateFunctionSourceFromBody,
-            )
+            from .PythonSourceCodeGeneration import PythonSourceGenerationError
 
             try:
-                generateFunctionSourceFromBody(function_body)
+                checkAnnotateFunction(function_body)
             except PythonSourceGenerationError as e:
                 function_qualname = function_body.getFunctionQualname()
                 source_ref = function_body.getSourceReference()
@@ -619,6 +613,22 @@ Error, bytecode-to-compiled fallback is disallowed for annotate function '%s' at
                     )
 
                 function_body.addFlag("force_c")
+        elif function_body.needsCreation():
+            (
+                is_constant_returning,
+                _constant_return_value,
+            ) = function_body.getConstantReturnValue()
+            if is_constant_returning:
+                continue
+
+        function_bodies.append(function_body)
+
+    if any(function_body.hasFlag("force_c") for function_body in function_bodies):
+        module.clearPythonSourceOnlyFunctions()
+
+    for function_body in function_bodies:
+        if module.isPythonSourceOnlyFunction(function_body):
+            continue
 
         function_code, function_decl = generateFunctionBodyCode(
             function_body=function_body, context=context

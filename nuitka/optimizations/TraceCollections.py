@@ -317,7 +317,10 @@ class CollectionStartPointMixin(CollectionUpdateMixin):
             source_ref=owning_module.source_ref,
         )
 
-        needs_visit = owning_module.addUsedFunction(function_body)
+        needs_visit = owning_module.addUsedFunction(
+            function_body=function_body,
+            only_used_by_python_source=self.isInsidePythonSourceFunction(),
+        )
 
         if needs_visit or function_body.isExpressionFunctionPureBody():
             function_body.computeFunctionRaw(self)
@@ -408,6 +411,23 @@ class TraceCollectionBase(object):
 
     def getOwner(self):
         return self.owner
+
+    def isInsidePythonSourceFunction(self):
+        collection = self
+
+        while collection is not None:
+            owner = collection.owner
+
+            if (
+                owner is not None
+                and owner.isExpressionFunctionBody()
+                and owner.hasFlag("python_source")
+            ):
+                return True
+
+            collection = collection.parent
+
+        return False
 
     def dumpActiveTraces(self, indent=""):
         printSeparator()

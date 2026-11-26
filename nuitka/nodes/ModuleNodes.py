@@ -254,6 +254,7 @@ class CompiledPythonModule(
         "mode",
         "variables",
         "active_functions",
+        "python_source_only_functions",
         "visited_functions",
         "cross_used_functions",
         "used_modules",
@@ -302,6 +303,7 @@ class CompiledPythonModule(
         self.variables = {}
 
         self.active_functions = OrderedSet()
+        self.python_source_only_functions = set()
         self.visited_functions = set()
         self.cross_used_functions = OrderedSet()
         self.used_modules = OrderedSet()
@@ -488,6 +490,7 @@ class CompiledPythonModule(
     def startTraversal(self):
         self.used_modules = None
         self.active_functions = OrderedSet()
+        self.python_source_only_functions = set()
 
     def restartTraversal(self):
         self.visited_functions = set()
@@ -509,7 +512,7 @@ class CompiledPythonModule(
 
         return self.trace_collection.getUsedDistributions()
 
-    def addUsedFunction(self, function_body):
+    def addUsedFunction(self, function_body, only_used_by_python_source):
         assert function_body in self.subnode_functions, function_body
 
         assert (
@@ -522,10 +525,21 @@ class CompiledPythonModule(
 
         self.active_functions.add(function_body)
 
+        if only_used_by_python_source:
+            self.python_source_only_functions.add(function_body)
+        else:
+            self.python_source_only_functions.discard(function_body)
+
         result = function_body not in self.visited_functions
         self.visited_functions.add(function_body)
 
         return result
+
+    def isPythonSourceOnlyFunction(self, function_body):
+        return function_body in self.python_source_only_functions
+
+    def clearPythonSourceOnlyFunctions(self):
+        self.python_source_only_functions = set()
 
     def getUsedFunctions(self):
         return self.active_functions
