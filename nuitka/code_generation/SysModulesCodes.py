@@ -6,14 +6,19 @@
 from nuitka.ModuleRegistry import getModuleByName
 
 from .CodeHelpers import (
+    decideConversionCheckNeeded,
     generateChildExpressionCode,
-    generateChildExpressionsCode,
     generateExpressionsCode,
-    withObjectCodeTemporaryAssignment,
 )
-from .ErrorCodes import getErrorExitBoolCode, getErrorExitCode
 from .LineNumberCodes import emitLineNumberUpdateCode
 from .LoaderCodes import getModuleEntryCodeName
+from .PythonAPICodes import (
+    CArg,
+    generateCAPIObjectCode,
+    generateCAPIObjectCode0,
+    getCAPIErrorCode,
+    getCAPIObjectCode,
+)
 
 
 def _getSysModulesEntryRef(module_name, context):
@@ -49,55 +54,53 @@ def generateImportlibReloadCallCode(to_name, expression, emit, context):
 
     emitLineNumberUpdateCode(expression, emit, context)
 
-    with withObjectCodeTemporaryAssignment(
-        to_name, "reloaded_module", expression, emit, context
-    ) as value_name:
-        emit("%s = Nuitka_ReloadModule(tstate, %s);" % (value_name, module_name))
-
-        getErrorExitCode(
-            check_name=value_name,
-            release_names=(module_name,),
-            needs_check=True,
-            emit=emit,
-            context=context,
-        )
-
-        context.addCleanupTempName(value_name)
+    getCAPIObjectCode(
+        to_name=to_name,
+        capi="Nuitka_ReloadModule",
+        arg_names=("tstate", module_name),
+        may_raise=expression.mayRaiseExceptionOperation(),
+        conversion_check=decideConversionCheckNeeded(to_name, expression),
+        ref_count=1,
+        release_names=(module_name,),
+        emit=emit,
+        context=context,
+    )
 
 
 def generateSysModulesRefCode(to_name, expression, emit, context):
-    with withObjectCodeTemporaryAssignment(
-        to_name, "sys_modules_value", expression, emit, context
-    ) as value_name:
-        emit('%s = Nuitka_SysGetObject("modules");' % value_name)
+    generateCAPIObjectCode0(
+        to_name=to_name,
+        capi="Nuitka_SysGetObject",
+        tstate=False,
+        arg_desc=(CArg('"modules"'),),
+        may_raise=expression.mayRaiseExceptionOperation(),
+        conversion_check=decideConversionCheckNeeded(to_name, expression),
+        source_ref=expression.getCompatibleSourceReference(),
+        emit=emit,
+        context=context,
+    )
 
 
 def generateSysModulesLookupCode(to_name, expression, emit, context):
-    sys_modules_name, subscript_name = generateChildExpressionsCode(
-        expression=expression, emit=emit, context=context
-    )
-
     entry_ref = _getSysModulesEntryRef(
         module_name=expression.getModuleName(), context=context
     )
 
-    with withObjectCodeTemporaryAssignment(
-        to_name, "sys_modules_value", expression, emit, context
-    ) as value_name:
-        emit(
-            "%s = Nuitka_LookupSysModulesValue(tstate, %s, %s, %s);"
-            % (value_name, sys_modules_name, entry_ref, subscript_name)
-        )
-
-        getErrorExitCode(
-            check_name=value_name,
-            release_names=(sys_modules_name, subscript_name),
-            needs_check=True,
-            emit=emit,
-            context=context,
-        )
-
-        context.addCleanupTempName(value_name)
+    generateCAPIObjectCode(
+        to_name=to_name,
+        capi="Nuitka_LookupSysModulesValue",
+        tstate=True,
+        arg_desc=(
+            ("expression_value", expression.subnode_expression),
+            CArg(entry_ref),
+            ("subscript_value", expression.subnode_subscript),
+        ),
+        may_raise=expression.mayRaiseExceptionOperation(),
+        conversion_check=decideConversionCheckNeeded(to_name, expression),
+        source_ref=expression.getCompatibleSourceReference(),
+        emit=emit,
+        context=context,
+    )
 
 
 def _generateSysModulesCallCode(to_name, expression, emit, context, get_call):
@@ -105,53 +108,31 @@ def _generateSysModulesCallCode(to_name, expression, emit, context, get_call):
         module_name=expression.getModuleName(), context=context
     )
 
-    value_names = generateChildExpressionsCode(
-        expression=expression, emit=emit, context=context
+    arg_desc = (
+        ("dict_arg_value", expression.subnode_dict_arg),
+        CArg(entry_ref),
+        ("key_value", expression.subnode_key),
+        ("default_value", getattr(expression, "subnode_default", None)),
     )
 
-    dict_name = value_names[0]
-    key_name = value_names[1]
-    default_name = value_names[2] if len(value_names) > 2 else None
+    if get_call:
+        capi = "Nuitka_GetSysModulesValue"
+    else:
+        capi = "Nuitka_PopSysModulesValue"
+        arg_desc += (CArg(_getSysModulesReservedValueCode(expression.getModuleName())),)
 
-    with withObjectCodeTemporaryAssignment(
-        to_name, "sys_modules_value", expression, emit, context
-    ) as value_name:
-        if get_call:
-            emit(
-                "%s = Nuitka_GetSysModulesValue(tstate, %s, %s, %s, %s);"
-                % (
-                    value_name,
-                    dict_name,
-                    entry_ref,
-                    key_name,
-                    default_name if default_name is not None else "NULL",
-                )
-            )
-        else:
-            emit(
-                "%s = Nuitka_PopSysModulesValue(tstate, %s, %s, %s, %s, %s);"
-                % (
-                    value_name,
-                    dict_name,
-                    entry_ref,
-                    key_name,
-                    default_name if default_name is not None else "NULL",
-                    _getSysModulesReservedValueCode(expression.getModuleName()),
-                )
-            )
-
-        getErrorExitCode(
-            check_name=value_name,
-            release_names=(dict_name, key_name)
-            + ((default_name,) if default_name is not None else ()),
-            # "pop" can raise KeyError even when the key is known hashable.
-            # For "get" only an unknown hashable key can cause an exception.
-            needs_check=(not get_call) or (not expression.known_hashable_key),
-            emit=emit,
-            context=context,
-        )
-
-        context.addCleanupTempName(value_name)
+    generateCAPIObjectCode(
+        to_name=to_name,
+        capi=capi,
+        tstate=True,
+        arg_desc=arg_desc,
+        may_raise=expression.mayRaiseExceptionOperation(),
+        conversion_check=decideConversionCheckNeeded(to_name, expression),
+        none_null=True,
+        source_ref=expression.getCompatibleSourceReference(),
+        emit=emit,
+        context=context,
+    )
 
 
 def generateSysModulesGetCode(to_name, expression, emit, context):
@@ -190,22 +171,17 @@ def generateSysModulesAssignmentCode(statement, emit, context):
         module_name=statement.getModuleName(), context=context
     )
 
-    res_name = context.getBoolResName()
-
-    emit(
-        "%s = Nuitka_SetSysModulesValue(tstate, %s, %s, %s, %s, %s);"
-        % (
-            res_name,
+    getCAPIErrorCode(
+        capi="Nuitka_SetSysModulesValue",
+        arg_names=(
+            "tstate",
             sys_modules_name,
             entry_ref,
             subscript_name,
             value_name,
             _getSysModulesReservedValueCode(statement.getModuleName()),
-        )
-    )
-
-    getErrorExitBoolCode(
-        condition="%s == false" % res_name,
+        ),
+        may_raise=statement.mayRaiseExceptionOperation(),
         release_names=(value_name, sys_modules_name, subscript_name),
         emit=emit,
         context=context,
@@ -224,21 +200,16 @@ def generateSysModulesDelCode(statement, emit, context):
         module_name=statement.getModuleName(), context=context
     )
 
-    res_name = context.getBoolResName()
-
-    emit(
-        "%s = Nuitka_DelSysModulesValue(tstate, %s, %s, %s, %s);"
-        % (
-            res_name,
+    getCAPIErrorCode(
+        capi="Nuitka_DelSysModulesValue",
+        arg_names=(
+            "tstate",
             sys_modules_name,
             entry_ref,
             subscript_name,
             _getSysModulesReservedValueCode(statement.getModuleName()),
-        )
-    )
-
-    getErrorExitBoolCode(
-        condition="%s == false" % res_name,
+        ),
+        may_raise=statement.mayRaiseExceptionOperation(),
         release_names=(sys_modules_name, subscript_name),
         emit=emit,
         context=context,

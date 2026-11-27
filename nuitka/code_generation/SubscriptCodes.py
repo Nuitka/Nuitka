@@ -10,13 +10,19 @@ much faster than general subscript lookups.
 from nuitka.States import states
 
 from .CodeHelpers import (
-    generateChildExpressionCode,
+    decideConversionCheckNeeded,
     generateExpressionCode,
     generateExpressionsCode,
+    promoteBorrowedValue,
     withBorrowedValueScope,
-    withObjectCodeTemporaryAssignment,
 )
-from .ErrorCodes import getErrorExitBoolCode, getErrorExitCode, getReleaseCodes
+from .PythonAPICodes import (
+    CArg,
+    generateCAPIBoolCode,
+    generateCAPIObjectCode,
+    getCAPIErrorCode,
+    makeArgDescFromExpression,
+)
 
 
 def generateAssignmentSubscriptCode(statement, emit, context):
@@ -38,10 +44,22 @@ def _generateAssignmentSubscriptCode(statement, emit, context):
     generateExpressionCode(
         to_name=value_name, expression=value, emit=emit, context=context
     )
+    promoteBorrowedValue(
+        value_name=value_name,
+        later_expressions=(subscribed, subscript),
+        emit=emit,
+        context=context,
+    )
 
     subscribed_name = context.allocateTempName("ass_subscribed")
     generateExpressionCode(
         to_name=subscribed_name, expression=subscribed, emit=emit, context=context
+    )
+    promoteBorrowedValue(
+        value_name=subscribed_name,
+        later_expressions=(subscript,),
+        emit=emit,
+        context=context,
     )
 
     subscript_name = context.allocateTempName("ass_subscript")
@@ -103,169 +121,64 @@ def _generateDelSubscriptCode(statement, emit, context):
 
 
 def generateSubscriptLookupCode(to_name, expression, emit, context):
-    with withBorrowedValueScope(context):
-        _generateSubscriptLookupCode(
-            to_name=to_name, expression=expression, emit=emit, context=context
-        )
-
-
-def _generateSubscriptLookupCode(to_name, expression, emit, context):
-    subscribed = expression.subnode_expression
     subscript = expression.subnode_subscript
 
-    subscribed_name = generateChildExpressionCode(
-        expression=subscribed, emit=emit, context=context
+    if subscript.isExpressionIntegerSubscript():
+        capi = "LOOKUP_SUBSCRIPT_CONST"
+        arg_desc = makeArgDescFromExpression(expression) + (
+            CArg(subscript.getIndexValue()),
+        )
+    else:
+        capi = "LOOKUP_SUBSCRIPT"
+        arg_desc = makeArgDescFromExpression(expression)
+
+    generateCAPIObjectCode(
+        to_name=to_name,
+        capi=capi,
+        tstate=True,
+        arg_desc=arg_desc,
+        may_raise=expression.mayRaiseExceptionOperation(),
+        conversion_check=decideConversionCheckNeeded(to_name, expression),
+        source_ref=expression.getCompatibleSourceReference(),
+        emit=emit,
+        context=context,
     )
-
-    subscript_name = generateChildExpressionCode(
-        expression=subscript, emit=emit, context=context
-    )
-
-    integer_subscript = subscript.isExpressionIntegerSubscript()
-
-    with withObjectCodeTemporaryAssignment(
-        to_name, "subscript_result", expression, emit, context
-    ) as value_name:
-        if integer_subscript:
-            _getIntegerSubscriptLookupCode(
-                to_name=value_name,
-                subscribed_name=subscribed_name,
-                subscript_name=subscript_name,
-                subscript_value=subscript.getIndexValue(),
-                emit=emit,
-                context=context,
-            )
-        else:
-            _getSubscriptLookupCode(
-                to_name=value_name,
-                subscribed_name=subscribed_name,
-                subscript_name=subscript_name,
-                emit=emit,
-                context=context,
-            )
 
 
 def generateSubscriptLookupForUnpackCode(to_name, expression, emit, context):
-    with withBorrowedValueScope(context):
-        _generateSubscriptLookupForUnpackCode(
-            to_name=to_name, expression=expression, emit=emit, context=context
-        )
-
-
-def _generateSubscriptLookupForUnpackCode(to_name, expression, emit, context):
-    subscribed = expression.subnode_expression
     subscript = expression.subnode_subscript
-
     assert subscript.isExpressionIntegerSubscript(), subscript
 
-    subscribed_name = generateChildExpressionCode(
-        expression=subscribed, emit=emit, context=context
+    generateCAPIObjectCode(
+        to_name=to_name,
+        capi="LOOKUP_SUBSCRIPT_CONST_FOR_UNPACK",
+        tstate=True,
+        arg_desc=makeArgDescFromExpression(expression)
+        + (
+            CArg(subscript.getIndexValue()),
+            CArg(expression.expected),
+        ),
+        may_raise=expression.mayRaiseExceptionOperation(),
+        conversion_check=decideConversionCheckNeeded(to_name, expression),
+        fetched_exception=True,
+        source_ref=expression.getCompatibleSourceReference(),
+        emit=emit,
+        context=context,
     )
-
-    subscript_name = generateChildExpressionCode(
-        expression=subscript, emit=emit, context=context
-    )
-
-    subscript_value = subscript.getIndexValue()
-
-    (
-        exception_state_name,
-        _exception_lineno,
-    ) = context.getExceptionVariableDescriptions()
-
-    with withObjectCodeTemporaryAssignment(
-        to_name, "subscript_result", expression, emit, context
-    ) as value_name:
-        emit(
-            "%s = LOOKUP_SUBSCRIPT_CONST_FOR_UNPACK(tstate, &%s, %s, %s, %s, %d);"
-            % (
-                value_name,
-                exception_state_name,
-                subscribed_name,
-                subscript_name,
-                subscript_value,
-                expression.expected,
-            )
-        )
-
-        getErrorExitCode(
-            check_name=value_name,
-            release_names=(subscribed_name, subscript_name),
-            fetched_exception=True,
-            emit=emit,
-            context=context,
-        )
-
-        context.addCleanupTempName(value_name)
 
 
 def generateMatchSubscriptCheckCode(to_name, expression, emit, context):
-    with withBorrowedValueScope(context):
-        _generateMatchSubscriptCheckCode(
-            to_name=to_name, expression=expression, emit=emit, context=context
-        )
-
-
-def _generateMatchSubscriptCheckCode(to_name, expression, emit, context):
-    subscribed = expression.subnode_expression
-    subscript = expression.subnode_subscript
-
-    subscribed_name = generateChildExpressionCode(
-        expression=subscribed, emit=emit, context=context
-    )
-
-    subscript_name = generateChildExpressionCode(
-        expression=subscript, emit=emit, context=context
-    )
-
-    res_name = context.getBoolResName()
-
-    emit(
-        "%s = MATCH_MAPPING_KEY(tstate, %s, %s);"
-        % (res_name, subscribed_name, subscript_name)
-    )
-
-    getReleaseCodes((subscript_name, subscribed_name), emit, context)
-
-    to_name.getCType().emitAssignmentCodeFromBoolCondition(
+    generateCAPIBoolCode(
         to_name=to_name,
-        condition=res_name,
-        emit=emit,
-    )
-
-
-def _getIntegerSubscriptLookupCode(
-    to_name, subscribed_name, subscript_name, subscript_value, emit, context
-):
-    emit(
-        "%s = LOOKUP_SUBSCRIPT_CONST(tstate, %s, %s, %s);"
-        % (to_name, subscribed_name, subscript_name, subscript_value)
-    )
-
-    getErrorExitCode(
-        check_name=to_name,
-        release_names=(subscribed_name, subscript_name),
+        capi="MATCH_MAPPING_KEY",
+        tstate=True,
+        arg_desc=makeArgDescFromExpression(expression),
+        may_raise=expression.mayRaiseExceptionOperation(),
+        res_type="bool",
+        source_ref=expression.getCompatibleSourceReference(),
         emit=emit,
         context=context,
     )
-
-    context.addCleanupTempName(to_name)
-
-
-def _getSubscriptLookupCode(to_name, subscript_name, subscribed_name, emit, context):
-    emit(
-        "%s = LOOKUP_SUBSCRIPT(tstate, %s, %s);"
-        % (to_name, subscribed_name, subscript_name)
-    )
-
-    getErrorExitCode(
-        check_name=to_name,
-        release_names=(subscribed_name, subscript_name),
-        emit=emit,
-        context=context,
-    )
-
-    context.addCleanupTempName(to_name)
 
 
 def _getIntegerSubscriptAssignmentCode(
@@ -273,15 +186,16 @@ def _getIntegerSubscriptAssignmentCode(
 ):
     assert abs(subscript_value) < 2**31
 
-    res_name = context.allocateTempName("ass_subscript_res", "int")
-
-    emit(
-        "%s = SET_SUBSCRIPT_CONST(tstate, %s, %s, %s, %s);"
-        % (res_name, subscribed_name, subscript_name, subscript_value, value_name)
-    )
-
-    getErrorExitBoolCode(
-        condition="%s == false" % res_name,
+    getCAPIErrorCode(
+        capi="SET_SUBSCRIPT_CONST",
+        arg_names=(
+            "tstate",
+            subscribed_name,
+            subscript_name,
+            subscript_value,
+            value_name,
+        ),
+        may_raise=True,
         release_names=(subscribed_name, value_name),
         emit=emit,
         context=context,
@@ -289,15 +203,10 @@ def _getIntegerSubscriptAssignmentCode(
 
 
 def _getSubscriptAssignmentCode(target_name, subscript_name, value_name, emit, context):
-    res_name = context.getBoolResName()
-
-    emit(
-        "%s = SET_SUBSCRIPT(tstate, %s, %s, %s);"
-        % (res_name, target_name, subscript_name, value_name)
-    )
-
-    getErrorExitBoolCode(
-        condition="%s == false" % res_name,
+    getCAPIErrorCode(
+        capi="SET_SUBSCRIPT",
+        arg_names=("tstate", target_name, subscript_name, value_name),
+        may_raise=True,
         release_names=(target_name, subscript_name, value_name),
         emit=emit,
         context=context,
@@ -305,12 +214,10 @@ def _getSubscriptAssignmentCode(target_name, subscript_name, value_name, emit, c
 
 
 def _getSubscriptDelCode(target_name, subscript_name, emit, context):
-    res_name = context.getBoolResName()
-
-    emit("%s = DEL_SUBSCRIPT(%s, %s);" % (res_name, target_name, subscript_name))
-
-    getErrorExitBoolCode(
-        condition="%s == false" % res_name,
+    getCAPIErrorCode(
+        capi="DEL_SUBSCRIPT",
+        arg_names=(target_name, subscript_name),
+        may_raise=True,
         release_names=(target_name, subscript_name),
         emit=emit,
         context=context,

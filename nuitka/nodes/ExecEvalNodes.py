@@ -3,8 +3,11 @@
 
 """Nodes concerned with exec, eval, and compile built-ins."""
 
+from nuitka.PythonVersions import python_version
+
 from .ChildrenHavingMixins import (
-    ChildrenExpressionBuiltinCompileMixin,
+    ChildrenExpressionBuiltinCompileBefore3Mixin,
+    ChildrenExpressionBuiltinCompileSince3Mixin,
     ChildrenExpressionBuiltinEvalMixin,
     ChildrenExpressionBuiltinExecfileMixin,
     ChildrenExpressionBuiltinExecMixin,
@@ -36,7 +39,13 @@ class ExpressionBuiltinEval(ChildrenExpressionBuiltinEvalMixin, ExpressionBase):
         ExpressionBase.__init__(self, source_ref)
 
     def computeExpression(self, trace_collection):
+        trace_collection.onExceptionRaiseExit(BaseException)
+
         return self, None, None
+
+    @staticmethod
+    def mayRaiseExceptionOperation():
+        return True
 
 
 class ExpressionBuiltinExec(ChildrenExpressionBuiltinExecMixin, ExpressionBase):
@@ -65,6 +74,10 @@ class ExpressionBuiltinExec(ChildrenExpressionBuiltinExecMixin, ExpressionBase):
         trace_collection.onExceptionRaiseExit(BaseException)
 
         return self, None, None
+
+    @staticmethod
+    def mayRaiseExceptionOperation():
+        return True
 
     def computeExpressionDrop(self, statement, trace_collection):
         return statement, None, None
@@ -102,6 +115,10 @@ class ExpressionBuiltinExecfile(ChildrenExpressionBuiltinExecfileMixin, Expressi
         trace_collection.onExceptionRaiseExit(BaseException)
 
         return self, None, None
+
+    @staticmethod
+    def mayRaiseExceptionOperation():
+        return True
 
     def computeExpressionDrop(self, statement, trace_collection):
         # In a Python 2 class body, locals copy-back is only performed by the
@@ -184,8 +201,61 @@ class StatementLocalsDictSync(StatementLocalsDictSyncBase):
         return False
 
 
-class ExpressionBuiltinCompile(ChildrenExpressionBuiltinCompileMixin, ExpressionBase):
-    kind = "EXPRESSION_BUILTIN_COMPILE"
+class ExpressionBuiltinCompileMixin(object):
+    __slots__ = ()
+
+    @staticmethod
+    def isExpressionBuiltinCall():
+        return True
+
+    def computeExpression(self, trace_collection):
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        return self, None, None
+
+    @staticmethod
+    def mayRaiseExceptionOperation():
+        return True
+
+
+class ExpressionBuiltinCompileBefore3(
+    ExpressionBuiltinCompileMixin,
+    ChildrenExpressionBuiltinCompileBefore3Mixin,
+    ExpressionBase,
+):
+    kind = "EXPRESSION_BUILTIN_COMPILE_BEFORE3"
+
+    python_version_spec = "< 0x300"
+
+    named_children = (
+        "source",
+        "filename",
+        "mode",
+        "flags|optional",
+        "dont_inherit|optional",
+    )
+
+    def __init__(self, source, filename, mode, flags, dont_inherit, source_ref):
+        ChildrenExpressionBuiltinCompileBefore3Mixin.__init__(
+            self,
+            source=source,
+            filename=filename,
+            mode=mode,
+            flags=flags,
+            dont_inherit=dont_inherit,
+        )
+
+        ExpressionBase.__init__(self, source_ref)
+
+
+class ExpressionBuiltinCompileSince3(
+    ExpressionBuiltinCompileMixin,
+    ChildrenExpressionBuiltinCompileSince3Mixin,
+    ExpressionBase,
+):
+    kind = "EXPRESSION_BUILTIN_COMPILE_SINCE3"
+
+    python_version_spec = ">= 0x300"
 
     named_children = (
         "source",
@@ -196,14 +266,10 @@ class ExpressionBuiltinCompile(ChildrenExpressionBuiltinCompileMixin, Expression
         "optimize|optional",
     )
 
-    @staticmethod
-    def isExpressionBuiltinCall():
-        return True
-
     def __init__(
         self, source, filename, mode, flags, dont_inherit, optimize, source_ref
     ):
-        ChildrenExpressionBuiltinCompileMixin.__init__(
+        ChildrenExpressionBuiltinCompileSince3Mixin.__init__(
             self,
             source=source,
             filename=filename,
@@ -215,10 +281,31 @@ class ExpressionBuiltinCompile(ChildrenExpressionBuiltinCompileMixin, Expression
 
         ExpressionBase.__init__(self, source_ref)
 
-    def computeExpression(self, trace_collection):
-        trace_collection.onExceptionRaiseExit(BaseException)
 
-        return self, None, None
+def makeExpressionBuiltinCompile(
+    source, filename, mode, flags, dont_inherit, optimize, source_ref
+):
+    if python_version < 0x300:
+        assert optimize is None
+
+        return ExpressionBuiltinCompileBefore3(
+            source=source,
+            filename=filename,
+            mode=mode,
+            flags=flags,
+            dont_inherit=dont_inherit,
+            source_ref=source_ref,
+        )
+    else:
+        return ExpressionBuiltinCompileSince3(
+            source=source,
+            filename=filename,
+            mode=mode,
+            flags=flags,
+            dont_inherit=dont_inherit,
+            optimize=optimize,
+            source_ref=source_ref,
+        )
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and

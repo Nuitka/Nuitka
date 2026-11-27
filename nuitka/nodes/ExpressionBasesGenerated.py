@@ -748,6 +748,156 @@ ExpressionBuiltinMakeExceptionModuleNotFoundErrorBase = (
 )
 
 
+class _ChildrenHavingBoundOptionalConstraintsOptionalFinalNoRaiseNameMixin(
+    ExpressionBase
+):
+    # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
+    __slots__ = ()
+
+    def __init__(self, bound, constraints, name, source_ref):
+        if bound is not None:
+            bound.parent = self
+
+        self.subnode_bound = bound
+
+        if constraints is not None:
+            constraints.parent = self
+
+        self.subnode_constraints = constraints
+
+        self.name = name
+
+        ExpressionBase.__init__(self, source_ref)
+
+    def getDetails(self):
+        return {
+            "name": self.name,
+        }
+
+    def getVisitableNodes(self):
+        result = []
+        if self.subnode_bound is not None:
+            result.append(self.subnode_bound)
+        if self.subnode_constraints is not None:
+            result.append(self.subnode_constraints)
+        return result
+
+    def getVisitableNodesNamed(self):
+        return (
+            ("bound", self.subnode_bound),
+            ("constraints", self.subnode_constraints),
+        )
+
+    def replaceChild(self, old_node, new_node):
+        value = self.subnode_bound
+        if old_node is value:
+            if new_node is not None:
+                new_node.parent = self
+
+            self.subnode_bound = new_node
+
+            return
+
+        value = self.subnode_constraints
+        if old_node is value:
+            if new_node is not None:
+                new_node.parent = self
+
+            self.subnode_constraints = new_node
+
+            return
+
+        raise AssertionError("Didn't find child", old_node, "in", self)
+
+    def getCloneArgs(self):
+        values = {
+            "bound": (
+                self.subnode_bound.makeClone()
+                if self.subnode_bound is not None
+                else None
+            ),
+            "constraints": (
+                self.subnode_constraints.makeClone()
+                if self.subnode_constraints is not None
+                else None
+            ),
+        }
+
+        values.update(self.getDetails())
+
+        return values
+
+    def finalize(self):
+        del self.parent
+
+        if self.subnode_bound is not None:
+            self.subnode_bound.finalize()
+        del self.subnode_bound
+        if self.subnode_constraints is not None:
+            self.subnode_constraints.finalize()
+        del self.subnode_constraints
+
+    def computeExpressionRaw(self, trace_collection):
+        for count, sub_expression in enumerate(self.getVisitableNodes()):
+            expression = trace_collection.onExpression(sub_expression)
+
+            if expression.willRaiseAnyException():
+                sub_expressions = self.getVisitableNodes()
+
+                wrapped_expression = wrapExpressionWithSideEffects(
+                    side_effects=sub_expressions[:count],
+                    old_node=sub_expression,
+                    new_node=expression,
+                )
+
+                return (
+                    wrapped_expression,
+                    "new_raise",
+                    lambda: "For '%s' the child expression '%s' will raise."
+                    % (self.getChildNameNice(), expression.getChildNameNice()),
+                )
+
+        return self, None, None
+
+    @staticmethod
+    def mayRaiseExceptionOperation():
+        return False
+
+    def mayRaiseException(self, exception_type):
+        return (
+            self.subnode_bound is not None
+            and self.subnode_bound.mayRaiseException(exception_type)
+        ) or (
+            self.subnode_constraints is not None
+            and self.subnode_constraints.mayRaiseException(exception_type)
+        )
+
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
+
+        self.undoVariableTracing()
+
+    @staticmethod
+    def undoVariableTracing():
+        pass
+
+    def collectVariableAccesses(self, emit_variable):
+        subnode_bound = self.subnode_bound
+
+        if subnode_bound is not None:
+            self.subnode_bound.collectVariableAccesses(emit_variable)
+        subnode_constraints = self.subnode_constraints
+
+        if subnode_constraints is not None:
+            self.subnode_constraints.collectVariableAccesses(emit_variable)
+
+
+ExpressionTypeVariableBefore313Base = (
+    _ChildrenHavingBoundOptionalConstraintsOptionalFinalNoRaiseNameMixin
+)
+
+
 class _ChildrenHavingBoundOptionalConstraintsOptionalDefaultValueOptionalFinalNoRaiseNameMixin(
     ExpressionBase
 ):
@@ -929,7 +1079,7 @@ class _ChildrenHavingBoundOptionalConstraintsOptionalDefaultValueOptionalFinalNo
             self.subnode_default_value.collectVariableAccesses(emit_variable)
 
 
-ExpressionTypeVariableBase = _ChildrenHavingBoundOptionalConstraintsOptionalDefaultValueOptionalFinalNoRaiseNameMixin
+ExpressionTypeVariableSince313Base = _ChildrenHavingBoundOptionalConstraintsOptionalDefaultValueOptionalFinalNoRaiseNameMixin
 
 
 class _ChildrenHavingCallableArgSentinelFinalMixin(ExpressionBase):
@@ -1237,10 +1387,12 @@ class _ChildHavingDefaultValueOptionalFinalNoRaiseNameMixin(ExpressionBase):
             self.subnode_default_value.collectVariableAccesses(emit_variable)
 
 
-ExpressionParameterSpecificationBase = (
+ExpressionParameterSpecificationSince313Base = (
     _ChildHavingDefaultValueOptionalFinalNoRaiseNameMixin
 )
-ExpressionTypeVariableTupleBase = _ChildHavingDefaultValueOptionalFinalNoRaiseNameMixin
+ExpressionTypeVariableTupleSince313Base = (
+    _ChildHavingDefaultValueOptionalFinalNoRaiseNameMixin
+)
 
 
 class _ChildHavingDistributionNameFinalChildrenMixin(ExpressionBase):

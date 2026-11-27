@@ -672,6 +672,10 @@ class ExpressionLocalsVariableCheck(ExpressionBase):
         assert not self.locals_scope.isMarkedForPropagation()
         return self, None, None
 
+    @staticmethod
+    def mayRaiseExceptionOperation():
+        return True
+
 
 class StatementLocalsDictOperationSet(StatementLocalsDictOperationSetBase):
     kind = "STATEMENT_LOCALS_DICT_OPERATION_SET"

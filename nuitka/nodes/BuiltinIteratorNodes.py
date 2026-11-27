@@ -34,13 +34,55 @@ from .NodeMakingHelpers import (
     wrapExpressionWithNodeSideEffects,
     wrapExpressionWithSideEffects,
 )
-from .shapes.BuiltinTypeShapes import tshape_dict, tshape_list, tshape_tuple
+from .shapes.BuiltinTypeShapes import (
+    tshape_bytearray,
+    tshape_bytearray_iterator,
+    tshape_bytes,
+    tshape_bytes_iterator,
+    tshape_dict,
+    tshape_frozendict,
+    tshape_frozenset,
+    tshape_list,
+    tshape_list_iterator,
+    tshape_set,
+    tshape_str,
+    tshape_str_iterator,
+    tshape_str_or_unicode,
+    tshape_tuple,
+    tshape_tuple_iterator,
+    tshape_unicode,
+    tshape_unicode_iterator,
+    tshape_xrange,
+)
 from .shapes.IteratorShapes import tshape_iterator
 from .StatementBasesGenerated import (
     StatementSpecialUnpackCheckBase,
     StatementSpecialUnpackCheckFromIteratedBase,
 )
 from .VariableRefNodes import ExpressionTempVariableRef
+
+# Exact built-in iterables whose full consumption in Python 2 'zip()' cannot
+# execute user code or raise non-OOM exceptions; 'dict'/'set' iterators are
+# excluded because prior mutation makes them raise RuntimeError.
+_non_raising_zip_iterable_shapes = (
+    tshape_bytearray,
+    tshape_bytearray_iterator,
+    tshape_bytes,
+    tshape_bytes_iterator,
+    tshape_dict,
+    tshape_frozendict,
+    tshape_frozenset,
+    tshape_list,
+    tshape_list_iterator,
+    tshape_set,
+    tshape_str,
+    tshape_str_iterator,
+    tshape_str_or_unicode,
+    tshape_tuple,
+    tshape_tuple_iterator,
+    tshape_unicode,
+    tshape_unicode_iterator,
+)
 
 
 class ExpressionBuiltinIter1(ExpressionBuiltinSingleArgBase):
@@ -172,7 +214,9 @@ class ExpressionBuiltinEnumerateMixin(object):
         self.onContentEscapes(trace_collection)
 
         trace_collection.onControlFlowEscape(self)
-        trace_collection.onExceptionRaiseExit(BaseException)
+
+        if self.mayRaiseExceptionOperation():
+            trace_collection.onExceptionRaiseExit(BaseException)
 
         return self, None, None
 
@@ -187,6 +231,9 @@ class ExpressionBuiltinEnumerateMixin(object):
 
     def getIterationLength(self):
         return self.subnode_sequence.getIterationLength()
+
+    def mayRaiseExceptionOperation(self):
+        return self.subnode_sequence.mayRaiseExceptionIter(BaseException)
 
     def mayRaiseException(self, exception_type):
         sequence = self.subnode_sequence
@@ -237,6 +284,11 @@ class ExpressionBuiltinEnumerate2(
 
         ExpressionBase.__init__(self, source_ref)
 
+    def mayRaiseExceptionOperation(self):
+        return ExpressionBuiltinEnumerateMixin.mayRaiseExceptionOperation(
+            self
+        ) or self.subnode_start.mayRaiseExceptionIndex(BaseException)
+
     def mayRaiseException(self, exception_type):
         if ExpressionBuiltinEnumerateMixin.mayRaiseException(self, exception_type):
             return True
@@ -261,11 +313,32 @@ class ExpressionBuiltinZipMixin(object):
         def getTypeShape():
             return tshape_list
 
+        def mayRaiseExceptionOperation(self):
+            for value in self.subnode_values:
+                shape = value.getTypeShape()
+
+                if shape is tshape_xrange:
+                    iteration_length = value.getIterationLength()
+
+                    if iteration_length is None or iteration_length > 256:
+                        return True
+                elif shape not in _non_raising_zip_iterable_shapes:
+                    return True
+
+            return False
+
     else:
 
         @staticmethod
         def getTypeShape():
             return tshape_iterator
+
+        def mayRaiseExceptionOperation(self):
+            for value in self.subnode_values:
+                if value.mayRaiseExceptionIter(BaseException):
+                    return True
+
+            return False
 
     @staticmethod
     def mayRaiseExceptionIter(exception_type):
@@ -275,8 +348,9 @@ class ExpressionBuiltinZipMixin(object):
     def computeExpression(self, trace_collection):
         self.onContentEscapes(trace_collection)
 
-        trace_collection.onControlFlowEscape(self)
-        trace_collection.onExceptionRaiseExit(BaseException)
+        if self.mayRaiseExceptionOperation():
+            trace_collection.onControlFlowEscape(self)
+            trace_collection.onExceptionRaiseExit(BaseException)
 
         return self, None, None
 
@@ -317,11 +391,11 @@ class ExpressionBuiltinZipMixin(object):
         return min(lengths)
 
     def mayRaiseException(self, exception_type):
+        if self.mayRaiseExceptionOperation():
+            return True
+
         for value in self.subnode_values:
             if value.mayRaiseException(exception_type):
-                return True
-
-            if value.mayRaiseExceptionIter(exception_type):
                 return True
 
         return False
@@ -371,6 +445,14 @@ class ExpressionBuiltinZip310(
         )
 
         ExpressionBase.__init__(self, source_ref)
+
+    def mayRaiseExceptionOperation(self):
+        strict = self.subnode_strict
+
+        if strict is not None and strict.mayRaiseExceptionBool(BaseException):
+            return True
+
+        return ExpressionBuiltinZipMixin.mayRaiseExceptionOperation(self)
 
     def mayRaiseException(self, exception_type):
         strict = self.subnode_strict
@@ -454,6 +536,10 @@ class ExpressionIsIterable(
 
     def mayRaiseException(self, exception_type):
         return self.subnode_value.mayRaiseException(exception_type)
+
+    @staticmethod
+    def mayRaiseExceptionOperation():
+        return False
 
 
 class StatementSpecialUnpackCheckFromIterated(
@@ -548,6 +634,10 @@ Determined iteration end check to always raise.""",
 
         return self, None, None
 
+    @staticmethod
+    def mayRaiseExceptionOperation():
+        return True
+
 
 def makeStatementSpecialUnpackCheckFromIterated(
     tmp_iterated_variable, count, source_ref
@@ -580,6 +670,10 @@ class StatementSpecialUnpackCheck(StatementSpecialUnpackCheckBase):
     def getStatementNiceName():
         return "iteration check statement"
 
+    @staticmethod
+    def mayRaiseExceptionOperation():
+        return True
+
 
 class ExpressionBuiltinIter2(ExpressionBuiltinIter2Base):
     kind = "EXPRESSION_BUILTIN_ITER2"
@@ -601,6 +695,10 @@ class ExpressionBuiltinIter2(ExpressionBuiltinIter2Base):
         return tshape_iterator
 
     @staticmethod
+    def mayRaiseExceptionOperation():
+        return True
+
+    @staticmethod
     def mayRaiseExceptionIter(exception_type):
         return False
 
@@ -617,6 +715,10 @@ class ExpressionAsyncIter(ExpressionBuiltinSingleArgBase):
         return value.computeExpressionAsyncIter(
             iter_node=self, trace_collection=trace_collection
         )
+
+    @staticmethod
+    def mayRaiseExceptionOperation():
+        return True
 
     def isKnownToBeIterable(self, count):
         if count is None:

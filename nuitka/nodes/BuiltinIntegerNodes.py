@@ -60,6 +60,9 @@ class ExpressionBuiltinInt1(ChildHavingValueMixin, ExpressionBase):
             int_node=self, trace_collection=trace_collection
         )
 
+    def mayRaiseExceptionOperation(self):
+        return self.subnode_value.mayRaiseExceptionInt(BaseException)
+
     def mayRaiseException(self, exception_type):
         return self.subnode_value.mayRaiseExceptionInt(exception_type)
 
@@ -158,6 +161,9 @@ class ExpressionBuiltinLong1(ChildHavingValueMixin, ExpressionBase):
         return self.subnode_value.computeExpressionLong(
             long_node=self, trace_collection=trace_collection
         )
+
+    def mayRaiseExceptionOperation(self):
+        return self.subnode_value.mayRaiseExceptionLong(BaseException)
 
     def mayRaiseException(self, exception_type):
         return self.subnode_value.mayRaiseExceptionLong(exception_type)

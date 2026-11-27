@@ -141,6 +141,10 @@ class ExpressionListOperationExtend(
 
         return self, None, None
 
+    @staticmethod
+    def mayRaiseExceptionOperation():
+        return True
+
 
 class ExpressionListOperationExtendForUnpack(ExpressionListOperationExtend):
     kind = "EXPRESSION_LIST_OPERATION_EXTEND_FOR_UNPACK"
@@ -274,6 +278,8 @@ class ExpressionListOperationPop1(ChildHavingListArgMixin, ExpressionBase):
     kind = "EXPRESSION_LIST_OPERATION_POP1"
     named_children = ("list_arg",)
 
+    __slots__ = ("known_non_empty",)
+
     def __init__(self, list_arg, source_ref):
         ChildHavingListArgMixin.__init__(
             self,
@@ -282,20 +288,26 @@ class ExpressionListOperationPop1(ChildHavingListArgMixin, ExpressionBase):
 
         ExpressionBase.__init__(self, source_ref)
 
+        self.known_non_empty = False
+
     def computeExpression(self, trace_collection):
-        non_empty = self.subnode_list_arg.isKnownToBeIterableAtMin(1)
+        self.known_non_empty = bool(self.subnode_list_arg.isKnownToBeIterableAtMin(1))
 
         # TODO: Until we have proper list tracing.
         trace_collection.removeKnowledge(self.subnode_list_arg)
 
-        if not non_empty:
+        if not self.known_non_empty:
             trace_collection.onExceptionRaiseExit(IndexError)
 
         return self, None, None
 
-    @staticmethod
-    def mayRaiseExceptionOperation():
-        return True
+    def mayRaiseException(self, exception_type):
+        return not self.known_non_empty or self.subnode_list_arg.mayRaiseException(
+            exception_type
+        )
+
+    def mayRaiseExceptionOperation(self):
+        return not self.known_non_empty
 
 
 class ExpressionListOperationPop2(ChildrenHavingListArgIndexMixin, ExpressionBase):

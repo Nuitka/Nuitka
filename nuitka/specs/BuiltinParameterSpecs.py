@@ -425,21 +425,19 @@ builtin_eval_since_313_spec = BuiltinParameterSpecPosArgs(
     "eval", ("source",), ("globals", "locals"), default_count=2
 )
 
-# TODO: Convert the other specs with version differences, e.g. "compile",
-# "int", "sum" and "enumerate", to the "_since_"/"_before_" naming too, with
-# the version selection done in the users of the spec, and not here.
-if python_version < 0x300:
-    builtin_compile_spec = BuiltinParameterSpec(
-        "compile",
-        ("source", "filename", "mode", "flags", "dont_inherit"),
-        default_count=2,
-    )
-else:
-    builtin_compile_spec = BuiltinParameterSpec(
-        "compile",
-        ("source", "filename", "mode", "flags", "dont_inherit", "optimize"),
-        default_count=3,
-    )
+# TODO: Convert the other specs with version differences, e.g. "int", "sum"
+# and "enumerate", to the "_since_"/"_before_" naming too, with the version
+# selection done in the users of the spec, and not here.
+builtin_compile_before_3_spec = BuiltinParameterSpec(
+    "compile",
+    ("source", "filename", "mode", "flags", "dont_inherit"),
+    default_count=2,
+)
+builtin_compile_since_3_spec = BuiltinParameterSpec(
+    "compile",
+    ("source", "filename", "mode", "flags", "dont_inherit", "optimize"),
+    default_count=3,
+)
 
 builtin_exec_before_311_spec = BuiltinParameterSpecNoKeywords(
     "exec", ("source", "globals", "locals"), default_count=2

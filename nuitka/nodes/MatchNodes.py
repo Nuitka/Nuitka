@@ -43,6 +43,10 @@ class ExpressionMatchArgs(
 
         return self, None, None
 
+    @staticmethod
+    def mayRaiseExceptionOperation():
+        return True
+
     def getPositionalArgsCount(self):
         return self.positional_count
 

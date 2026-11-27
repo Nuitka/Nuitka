@@ -10,6 +10,7 @@ them with '_StringifierDict' globals for FORWARDREF resolution.
 
 import marshal
 
+from .CodeHelpers import withObjectCodeTemporaryAssignment
 from .ErrorCodes import getAssertionCode
 from .PythonSourceCodeGeneration import (
     PythonSourceGenerationError,
@@ -66,18 +67,21 @@ def generateAnnotateFunctionCreationCode(to_name, expression, emit, context):
     if closure_name:
         args.append(closure_name)
 
-    emit(
-        template_make_function
-        % {
-            "to_name": to_name,
-            "function_maker_identifier": function_maker_identifier,
-            "args": ", ".join(str(arg) for arg in args),
-            "closure_copy": "\n".join(closure_copy),
-        }
-    )
+    with withObjectCodeTemporaryAssignment(
+        to_name, "annotate_function_result", expression, emit, context
+    ) as result_name:
+        emit(
+            template_make_function
+            % {
+                "to_name": result_name,
+                "function_maker_identifier": function_maker_identifier,
+                "args": ", ".join(str(arg) for arg in args),
+                "closure_copy": "\n".join(closure_copy),
+            }
+        )
 
-    getAssertionCode(check="%s != NULL" % to_name, emit=emit)
-    context.addCleanupTempName(to_name)
+        getAssertionCode(check="%s != NULL" % result_name, emit=emit)
+        context.addCleanupTempName(result_name)
 
 
 def _getClosureSetupCode(closure_variables):

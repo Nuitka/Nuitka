@@ -3,196 +3,94 @@
 
 """Code generation for type alias statement helpers."""
 
-from nuitka.PythonVersions import python_version
-
-from .CodeHelpers import (
-    generateChildExpressionCode,
-    generateChildExpressionsCode,
-    withObjectCodeTemporaryAssignment,
+from .CodeHelpers import decideConversionCheckNeeded
+from .PythonAPICodes import (
+    ConstantArg,
+    TupleArg,
+    generateCAPIObjectCode,
+    makeArgDescFromExpression,
 )
-from .ErrorCodes import getErrorExitCode
-from .TupleCodes import getTupleCreationCode
 
 
 def generateTypeAliasCode(to_name, expression, emit, context):
-    type_params_name = context.allocateTempName("type_params_value")
-    getTupleCreationCode(
-        to_name=type_params_name,
-        elements=expression.subnode_type_params,
+    generateCAPIObjectCode(
+        to_name=to_name,
+        capi="MAKE_TYPE_ALIAS",
+        tstate=False,
+        arg_desc=(
+            ConstantArg(expression.subnode_name.getCompileTimeConstant()),
+            TupleArg("type_params_value", expression.subnode_type_params),
+            ("value_value", expression.subnode_value),
+            ConstantArg(context.getModuleName().asString()),
+        ),
+        may_raise=expression.mayRaiseExceptionOperation(),
+        conversion_check=decideConversionCheckNeeded(to_name, expression),
+        source_ref=expression.getCompatibleSourceReference(),
         emit=emit,
         context=context,
     )
 
-    compute_value_name = generateChildExpressionCode(
-        expression=expression.subnode_value, emit=emit, context=context
-    )
-
-    type_alias_name = expression.subnode_name.getCompileTimeConstant()
-
-    with withObjectCodeTemporaryAssignment(
-        to_name, "type_alias_value", expression, emit, context
-    ) as value_name:
-        emit(
-            "%s = MAKE_TYPE_ALIAS(%s, %s, %s, %s);"
-            % (
-                value_name,
-                context.getConstantCode(constant=type_alias_name),
-                type_params_name,
-                compute_value_name,
-                context.getConstantCode(constant=context.getModuleName().asString()),
-            )
-        )
-
-        getErrorExitCode(
-            check_name=value_name,
-            release_names=(type_alias_name, compute_value_name, type_params_name),
-            emit=emit,
-            context=context,
-            needs_check=expression.mayRaiseExceptionOperation(),
-        )
-
-        context.addCleanupTempName(value_name)
-
 
 def generateTypeVarCode(to_name, expression, emit, context):
-    bound_name, constraints_name, default_value_name = generateChildExpressionsCode(
-        expression=expression, emit=emit, context=context
+    generateCAPIObjectCode(
+        to_name=to_name,
+        capi="MAKE_TYPE_VAR",
+        tstate=True,
+        arg_desc=(ConstantArg(expression.name),)
+        + makeArgDescFromExpression(expression),
+        may_raise=expression.mayRaiseExceptionOperation(),
+        conversion_check=decideConversionCheckNeeded(to_name, expression),
+        none_null=True,
+        source_ref=expression.getCompatibleSourceReference(),
+        emit=emit,
+        context=context,
     )
-
-    with withObjectCodeTemporaryAssignment(
-        to_name, "type_var_value", expression, emit, context
-    ) as value_name:
-        if python_version >= 0x3D0:
-            emit(
-                "%s = MAKE_TYPE_VAR(tstate, %s, %s, %s, %s);"
-                % (
-                    value_name,
-                    context.getConstantCode(constant=expression.name),
-                    bound_name if bound_name is not None else "NULL",
-                    constraints_name if constraints_name is not None else "NULL",
-                    default_value_name if default_value_name is not None else "NULL",
-                )
-            )
-        else:
-            emit(
-                "%s = MAKE_TYPE_VAR(tstate, %s, %s, %s);"
-                % (
-                    value_name,
-                    context.getConstantCode(constant=expression.name),
-                    bound_name if bound_name is not None else "NULL",
-                    constraints_name if constraints_name is not None else "NULL",
-                )
-            )
-
-        getErrorExitCode(
-            check_name=value_name,
-            release_names=(bound_name, constraints_name, default_value_name),
-            emit=emit,
-            context=context,
-            needs_check=False,
-        )
-
-        context.addCleanupTempName(value_name)
 
 
 def generateTypeVarTupleCode(to_name, expression, emit, context):
-    (default_value_name,) = generateChildExpressionsCode(
-        expression=expression, emit=emit, context=context
+    generateCAPIObjectCode(
+        to_name=to_name,
+        capi="MAKE_TYPE_VAR_TUPLE",
+        tstate=True,
+        arg_desc=(ConstantArg(expression.name),)
+        + makeArgDescFromExpression(expression),
+        may_raise=expression.mayRaiseExceptionOperation(),
+        conversion_check=decideConversionCheckNeeded(to_name, expression),
+        none_null=True,
+        source_ref=expression.getCompatibleSourceReference(),
+        emit=emit,
+        context=context,
     )
-
-    with withObjectCodeTemporaryAssignment(
-        to_name, "type_var_tuple_value", expression, emit, context
-    ) as value_name:
-        if python_version >= 0x3D0:
-            emit(
-                "%s = MAKE_TYPE_VAR_TUPLE(tstate, %s, %s);"
-                % (
-                    value_name,
-                    context.getConstantCode(constant=expression.name),
-                    default_value_name if default_value_name is not None else "NULL",
-                )
-            )
-        else:
-            emit(
-                "%s = MAKE_TYPE_VAR_TUPLE(tstate, %s);"
-                % (
-                    value_name,
-                    context.getConstantCode(constant=expression.name),
-                )
-            )
-
-        getErrorExitCode(
-            check_name=value_name,
-            release_name=default_value_name,
-            emit=emit,
-            context=context,
-            needs_check=False,
-        )
-
-        context.addCleanupTempName(value_name)
 
 
 def generateParamSpecCode(to_name, expression, emit, context):
-    (default_value_name,) = generateChildExpressionsCode(
-        expression=expression, emit=emit, context=context
+    generateCAPIObjectCode(
+        to_name=to_name,
+        capi="MAKE_PARAM_SPEC",
+        tstate=True,
+        arg_desc=(ConstantArg(expression.name),)
+        + makeArgDescFromExpression(expression),
+        may_raise=expression.mayRaiseExceptionOperation(),
+        conversion_check=decideConversionCheckNeeded(to_name, expression),
+        none_null=True,
+        source_ref=expression.getCompatibleSourceReference(),
+        emit=emit,
+        context=context,
     )
-
-    with withObjectCodeTemporaryAssignment(
-        to_name, "param_spec_value", expression, emit, context
-    ) as value_name:
-        if python_version >= 0x3D0:
-            emit(
-                "%s = MAKE_PARAM_SPEC(tstate, %s, %s);"
-                % (
-                    value_name,
-                    context.getConstantCode(constant=expression.name),
-                    default_value_name if default_value_name is not None else "NULL",
-                )
-            )
-        else:
-            emit(
-                "%s = MAKE_PARAM_SPEC(tstate, %s);"
-                % (
-                    value_name,
-                    context.getConstantCode(constant=expression.name),
-                )
-            )
-
-        getErrorExitCode(
-            check_name=value_name,
-            release_name=default_value_name,
-            emit=emit,
-            context=context,
-            needs_check=False,
-        )
-
-        context.addCleanupTempName(value_name)
 
 
 def generateTypeGenericCode(to_name, expression, emit, context):
-    type_params_value = generateChildExpressionCode(
-        expression=expression.subnode_type_params, emit=emit, context=context
+    generateCAPIObjectCode(
+        to_name=to_name,
+        capi="MAKE_TYPE_GENERIC",
+        tstate=True,
+        arg_desc=makeArgDescFromExpression(expression),
+        may_raise=expression.mayRaiseExceptionOperation(),
+        conversion_check=decideConversionCheckNeeded(to_name, expression),
+        source_ref=expression.getCompatibleSourceReference(),
+        emit=emit,
+        context=context,
     )
-
-    with withObjectCodeTemporaryAssignment(
-        to_name, "type_params_value", expression, emit, context
-    ) as value_name:
-        emit(
-            "%s = MAKE_TYPE_GENERIC(tstate, %s);"
-            % (
-                value_name,
-                type_params_value,
-            )
-        )
-
-        getErrorExitCode(
-            check_name=value_name,
-            release_name=type_params_value,
-            emit=emit,
-            context=context,
-        )
-
-        context.addCleanupTempName(value_name)
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and

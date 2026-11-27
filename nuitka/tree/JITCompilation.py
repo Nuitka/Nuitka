@@ -14,8 +14,8 @@ from nuitka.nodes.DictionaryNodes import (
     StatementDictOperationSet,
 )
 from nuitka.nodes.ExecEvalNodes import (
-    ExpressionBuiltinCompile,
     ExpressionBuiltinExec,
+    makeExpressionBuiltinCompile,
 )
 from nuitka.nodes.GlobalsLocalsNodes import ExpressionBuiltinGlobals
 from nuitka.nodes.KeyValuePairNodes import (
@@ -332,7 +332,7 @@ def buildBytecodeOrSourceFunction(
     # compile with the module filename instead of the '<string>' of "exec".
     # The module's future flags and no inherited flags keep the parsing rules
     # of the module, e.g. no annotation evaluation with postponed annotations.
-    source = ExpressionBuiltinCompile(
+    source = makeExpressionBuiltinCompile(
         source=makeConstantRefNode(
             constant=source_code,
             source_ref=source_ref,

@@ -4,7 +4,7 @@
 """Codes for id and hash"""
 
 from .CodeHelpers import decideConversionCheckNeeded
-from .PythonAPICodes import generateCAPIObjectCode
+from .PythonAPICodes import generateCAPIObjectCode, makeArgDescFromExpression
 
 
 def generateBuiltinIdCode(to_name, expression, emit, context):
@@ -12,8 +12,8 @@ def generateBuiltinIdCode(to_name, expression, emit, context):
         to_name=to_name,
         capi="PyLong_FromVoidPtr",
         tstate=False,
-        arg_desc=(("id_arg", expression.subnode_value),),
-        may_raise=False,
+        arg_desc=makeArgDescFromExpression(expression),
+        may_raise=expression.mayRaiseExceptionOperation(),
         conversion_check=decideConversionCheckNeeded(to_name, expression),
         source_ref=expression.getCompatibleSourceReference(),
         emit=emit,
@@ -26,7 +26,7 @@ def generateBuiltinHashCode(to_name, expression, emit, context):
         to_name=to_name,
         capi="BUILTIN_HASH",
         tstate=True,
-        arg_desc=(("hash_arg", expression.subnode_value),),
+        arg_desc=makeArgDescFromExpression(expression),
         may_raise=expression.mayRaiseExceptionOperation(),
         conversion_check=decideConversionCheckNeeded(to_name, expression),
         source_ref=expression.getCompatibleSourceReference(),

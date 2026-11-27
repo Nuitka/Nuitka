@@ -14465,6 +14465,194 @@ class ChildHavingSourceMixin(object):
 ChildrenExpressionBuiltinVarsMixin = ChildHavingSourceMixin
 
 
+class ChildrenHavingSourceFilenameModeFlagsOptionalDontInheritOptionalMixin(object):
+    # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
+    __slots__ = ()
+
+    def __init__(
+        self,
+        source,
+        filename,
+        mode,
+        flags,
+        dont_inherit,
+    ):
+        source.parent = self
+
+        self.subnode_source = source
+
+        filename.parent = self
+
+        self.subnode_filename = filename
+
+        mode.parent = self
+
+        self.subnode_mode = mode
+
+        if flags is not None:
+            flags.parent = self
+
+        self.subnode_flags = flags
+
+        if dont_inherit is not None:
+            dont_inherit.parent = self
+
+        self.subnode_dont_inherit = dont_inherit
+
+    def getVisitableNodes(self):
+        result = [
+            self.subnode_source,
+            self.subnode_filename,
+            self.subnode_mode,
+        ]
+        if self.subnode_flags is not None:
+            result.append(self.subnode_flags)
+        if self.subnode_dont_inherit is not None:
+            result.append(self.subnode_dont_inherit)
+        return result
+
+    def getVisitableNodesNamed(self):
+        return (
+            ("source", self.subnode_source),
+            ("filename", self.subnode_filename),
+            ("mode", self.subnode_mode),
+            ("flags", self.subnode_flags),
+            ("dont_inherit", self.subnode_dont_inherit),
+        )
+
+    def replaceChild(self, old_node, new_node):
+        value = self.subnode_source
+        if old_node is value:
+            new_node.parent = self
+
+            self.subnode_source = new_node
+
+            return
+
+        value = self.subnode_filename
+        if old_node is value:
+            new_node.parent = self
+
+            self.subnode_filename = new_node
+
+            return
+
+        value = self.subnode_mode
+        if old_node is value:
+            new_node.parent = self
+
+            self.subnode_mode = new_node
+
+            return
+
+        value = self.subnode_flags
+        if old_node is value:
+            if new_node is not None:
+                new_node.parent = self
+
+            self.subnode_flags = new_node
+
+            return
+
+        value = self.subnode_dont_inherit
+        if old_node is value:
+            if new_node is not None:
+                new_node.parent = self
+
+            self.subnode_dont_inherit = new_node
+
+            return
+
+        raise AssertionError("Didn't find child", old_node, "in", self)
+
+    def getCloneArgs(self):
+        values = {
+            "source": self.subnode_source.makeClone(),
+            "filename": self.subnode_filename.makeClone(),
+            "mode": self.subnode_mode.makeClone(),
+            "flags": (
+                self.subnode_flags.makeClone()
+                if self.subnode_flags is not None
+                else None
+            ),
+            "dont_inherit": (
+                self.subnode_dont_inherit.makeClone()
+                if self.subnode_dont_inherit is not None
+                else None
+            ),
+        }
+
+        values.update(self.getDetails())
+
+        return values
+
+    def finalize(self):
+        del self.parent
+
+        self.subnode_source.finalize()
+        del self.subnode_source
+        self.subnode_filename.finalize()
+        del self.subnode_filename
+        self.subnode_mode.finalize()
+        del self.subnode_mode
+        if self.subnode_flags is not None:
+            self.subnode_flags.finalize()
+        del self.subnode_flags
+        if self.subnode_dont_inherit is not None:
+            self.subnode_dont_inherit.finalize()
+        del self.subnode_dont_inherit
+
+    def computeExpressionRaw(self, trace_collection):
+        for count, sub_expression in enumerate(self.getVisitableNodes()):
+            expression = trace_collection.onExpression(sub_expression)
+
+            if expression.willRaiseAnyException():
+                sub_expressions = self.getVisitableNodes()
+
+                wrapped_expression = wrapExpressionWithSideEffects(
+                    side_effects=sub_expressions[:count],
+                    old_node=sub_expression,
+                    new_node=expression,
+                )
+
+                return (
+                    wrapped_expression,
+                    "new_raise",
+                    lambda: "For '%s' the child expression '%s' will raise."
+                    % (self.getChildNameNice(), expression.getChildNameNice()),
+                )
+
+        return self.computeExpression(trace_collection)
+
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
+
+        self.undoVariableTracing()
+
+    @staticmethod
+    def undoVariableTracing():
+        pass
+
+    def collectVariableAccesses(self, emit_variable):
+        self.subnode_source.collectVariableAccesses(emit_variable)
+        self.subnode_filename.collectVariableAccesses(emit_variable)
+        self.subnode_mode.collectVariableAccesses(emit_variable)
+        subnode_flags = self.subnode_flags
+
+        if subnode_flags is not None:
+            self.subnode_flags.collectVariableAccesses(emit_variable)
+        subnode_dont_inherit = self.subnode_dont_inherit
+
+        if subnode_dont_inherit is not None:
+            self.subnode_dont_inherit.collectVariableAccesses(emit_variable)
+
+
+ChildrenExpressionBuiltinCompileBefore3Mixin = (
+    ChildrenHavingSourceFilenameModeFlagsOptionalDontInheritOptionalMixin
+)
+
+
 class ChildrenHavingSourceFilenameModeFlagsOptionalDontInheritOptionalOptimizeOptionalMixin(
     object
 ):
@@ -14680,7 +14868,7 @@ class ChildrenHavingSourceFilenameModeFlagsOptionalDontInheritOptionalOptimizeOp
             self.subnode_optimize.collectVariableAccesses(emit_variable)
 
 
-ChildrenExpressionBuiltinCompileMixin = ChildrenHavingSourceFilenameModeFlagsOptionalDontInheritOptionalOptimizeOptionalMixin
+ChildrenExpressionBuiltinCompileSince3Mixin = ChildrenHavingSourceFilenameModeFlagsOptionalDontInheritOptionalOptimizeOptionalMixin
 
 
 class ChildrenHavingSourceCodeGlobalsArgLocalsArgMixin(object):

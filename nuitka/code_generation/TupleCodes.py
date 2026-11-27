@@ -10,7 +10,7 @@ from .CodeHelpers import (
     withCleanupFinally,
     withObjectCodeTemporaryAssignment,
 )
-from .PythonAPICodes import generateCAPIObjectCode
+from .PythonAPICodes import generateCAPIObjectCode, makeArgDescFromExpression
 
 
 def _areConstants(expressions):
@@ -98,8 +98,8 @@ def generateBuiltinTupleCode(to_name, expression, emit, context):
         to_name=to_name,
         capi="PySequence_Tuple",
         tstate=False,
-        arg_desc=(("tuple_arg", expression.subnode_value),),
-        may_raise=expression.mayRaiseException(BaseException),
+        arg_desc=makeArgDescFromExpression(expression),
+        may_raise=expression.mayRaiseExceptionOperation(),
         conversion_check=decideConversionCheckNeeded(to_name, expression),
         source_ref=expression.getCompatibleSourceReference(),
         emit=emit,

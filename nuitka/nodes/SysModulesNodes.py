@@ -103,6 +103,10 @@ class ExpressionSysModulesRef(ExpressionBase):
         return False
 
     @staticmethod
+    def mayRaiseExceptionOperation():
+        return False
+
+    @staticmethod
     def getDetails():
         return {}
 
@@ -299,11 +303,6 @@ class ExpressionSysModulesPop3(
     def needsModuleValueSetter(self):
         return self.getModuleName()
 
-    @staticmethod
-    def mayRaiseException(exception_type):
-        # The entry variant can raise KeyError even when the key is hashable.
-        return True
-
 
 class StatementAssignmentSysModulesSubscript(StatementAssignmentSubscript):
     kind = "STATEMENT_ASSIGNMENT_SYS_MODULES_SUBSCRIPT"
@@ -341,6 +340,10 @@ class StatementAssignmentSysModulesSubscript(StatementAssignmentSubscript):
 
         return self, None, None
 
+    @staticmethod
+    def mayRaiseExceptionOperation():
+        return True
+
 
 class StatementDelSysModulesSubscript(StatementDelSubscript):
     kind = "STATEMENT_DEL_SYS_MODULES_SUBSCRIPT"
@@ -376,6 +379,10 @@ class StatementDelSysModulesSubscript(StatementDelSubscript):
         trace_collection.onExceptionRaiseExit(BaseException)
 
         return self, None, None
+
+    @staticmethod
+    def mayRaiseExceptionOperation():
+        return True
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and

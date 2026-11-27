@@ -29,6 +29,11 @@ class ExpressionAttributeLookup(ExpressionAttributeLookupBase):
             trace_collection=trace_collection,
         )
 
+    def mayRaiseExceptionOperation(self):
+        return self.subnode_expression.mayRaiseExceptionAttributeLookup(
+            exception_type=BaseException, attribute_name=self.attribute_name
+        )
+
     def mayRaiseException(self, exception_type):
         return self.subnode_expression.mayRaiseException(
             exception_type
@@ -61,6 +66,11 @@ class ExpressionAttributeLookupSpecial(ExpressionAttributeLookup):
             trace_collection=trace_collection,
         )
 
+    def mayRaiseExceptionOperation(self):
+        return self.subnode_expression.mayRaiseExceptionAttributeLookupSpecial(
+            exception_type=BaseException, attribute_name=self.attribute_name
+        )
+
 
 class ExpressionAttributeLookupFixedBase(ChildHavingExpressionMixin, ExpressionBase):
     """Base class for fixed-name attribute lookups ('expression.attribute_name')."""
@@ -86,6 +96,11 @@ class ExpressionAttributeLookupFixedBase(ChildHavingExpressionMixin, ExpressionB
             lookup_node=self,
             attribute_name=self.attribute_name,
             trace_collection=trace_collection,
+        )
+
+    def mayRaiseExceptionOperation(self):
+        return self.subnode_expression.mayRaiseExceptionAttributeLookup(
+            exception_type=BaseException, attribute_name=self.attribute_name
         )
 
     def mayRaiseException(self, exception_type):

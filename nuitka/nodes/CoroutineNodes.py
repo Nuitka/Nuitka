@@ -93,6 +93,10 @@ class ExpressionAsyncWait(ChildHavingExpressionMixin, ExpressionBase):
 
         return self, None, None
 
+    @staticmethod
+    def mayRaiseExceptionOperation():
+        return True
+
 
 class ExpressionAsyncWaitEnter(ExpressionAsyncWait):
     kind = "EXPRESSION_ASYNC_WAIT_ENTER"

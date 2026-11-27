@@ -3,50 +3,41 @@
 
 """Code generation for match statement helpers."""
 
-from .CodeHelpers import (
-    generateChildExpressionsCode,
-    withObjectCodeTemporaryAssignment,
+from .CodeHelpers import decideConversionCheckNeeded
+from .PythonAPICodes import (
+    CArg,
+    generateCAPIObjectCode,
+    makeArgDescFromExpression,
 )
-from .ErrorCodes import getErrorExitCode
 
 
 def generateMatchArgsCode(to_name, expression, emit, context):
-    matched_value_name, match_type_name = generateChildExpressionsCode(
-        expression=expression, emit=emit, context=context
-    )
-
     # TODO: Prefer "PyObject **" of course once we have that.
     keywords = expression.getKeywordArgs()
 
     if keywords:
-        keywords_name = context.getConstantCode(constant=keywords)
-        keywords_name = "&PyTuple_GET_ITEM(%s, 0)" % keywords_name
+        keywords_name = "&PyTuple_GET_ITEM(%s, 0)" % context.getConstantCode(
+            constant=keywords
+        )
     else:
         keywords_name = "NULL"
 
-    with withObjectCodeTemporaryAssignment(
-        to_name, "match_args_value", expression, emit, context
-    ) as value_name:
-        emit(
-            "%s = MATCH_CLASS_ARGS(tstate, %s, %s, %d, %s, %d);"
-            % (
-                value_name,
-                matched_value_name,
-                match_type_name,
-                expression.getPositionalArgsCount(),
-                keywords_name,
-                len(keywords),
-            )
-        )
-
-        getErrorExitCode(
-            check_name=value_name,
-            release_names=(matched_value_name, match_type_name),
-            emit=emit,
-            context=context,
-        )
-
-        context.addCleanupTempName(value_name)
+    generateCAPIObjectCode(
+        to_name=to_name,
+        capi="MATCH_CLASS_ARGS",
+        tstate=True,
+        arg_desc=makeArgDescFromExpression(expression)
+        + (
+            CArg(expression.getPositionalArgsCount()),
+            CArg(keywords_name),
+            CArg(len(keywords)),
+        ),
+        may_raise=expression.mayRaiseExceptionOperation(),
+        conversion_check=decideConversionCheckNeeded(to_name, expression),
+        source_ref=expression.getCompatibleSourceReference(),
+        emit=emit,
+        context=context,
+    )
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and

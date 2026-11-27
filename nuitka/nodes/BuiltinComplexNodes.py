@@ -39,6 +39,10 @@ class ExpressionBuiltinComplex1(
             complex_node=self, trace_collection=trace_collection
         )
 
+    @staticmethod
+    def mayRaiseExceptionOperation():
+        return True
+
 
 class ExpressionBuiltinComplex2(
     ExpressionSpecBasedComputationMixin,

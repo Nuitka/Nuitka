@@ -3,8 +3,7 @@
 
 """Code generation for Python 2 'print' statements."""
 
-from .CodeHelpers import generateExpressionCode
-from .ErrorCodes import getErrorExitBoolCode
+from .PythonAPICodes import generateCAPIErrorCode
 
 
 def generatePrintValueCode(statement, emit, context):
@@ -12,63 +11,42 @@ def generatePrintValueCode(statement, emit, context):
     value = statement.subnode_value
 
     if destination is not None:
-        dest_name = context.allocateTempName("print_dest", unique=True)
-
-        generateExpressionCode(
-            expression=destination, to_name=dest_name, emit=emit, context=context
-        )
+        capi = "PRINT_ITEM_TO"
+        arg_desc = (("print_dest", destination), ("print_value", value))
     else:
-        dest_name = None
+        capi = "PRINT_ITEM"
+        arg_desc = (("print_value", value),)
 
-    value_name = context.allocateTempName("print_value", unique=True)
-
-    generateExpressionCode(
-        expression=value, to_name=value_name, emit=emit, context=context
+    generateCAPIErrorCode(
+        capi=capi,
+        tstate=False,
+        arg_desc=arg_desc,
+        may_raise=statement.mayRaiseExceptionOperation(),
+        source_ref=statement.getSourceReference(),
+        emit=emit,
+        context=context,
     )
-
-    with context.withCurrentSourceCodeReference(statement.getSourceReference()):
-        res_name = context.getBoolResName()
-
-        if dest_name is not None:
-            print_code = "%s = PRINT_ITEM_TO(%s, %s);" % (
-                res_name,
-                dest_name,
-                value_name,
-            )
-        else:
-            print_code = "%s = PRINT_ITEM(%s);" % (res_name, value_name)
-
-        emit(print_code)
-
-        getErrorExitBoolCode(
-            condition="%s == false" % res_name,
-            release_names=(dest_name, value_name),
-            emit=emit,
-            context=context,
-        )
 
 
 def generatePrintNewlineCode(statement, emit, context):
     destination = statement.subnode_dest
 
     if destination is not None:
-        dest_name = context.allocateTempName("print_dest", unique=True)
-
-        generateExpressionCode(
-            expression=destination, to_name=dest_name, emit=emit, context=context
-        )
+        capi = "PRINT_NEW_LINE_TO"
+        arg_desc = (("print_dest", destination),)
     else:
-        dest_name = None
+        capi = "PRINT_NEW_LINE"
+        arg_desc = ()
 
-    with context.withCurrentSourceCodeReference(statement.getSourceReference()):
-        if dest_name is not None:
-            print_code = "PRINT_NEW_LINE_TO(%s) == false" % (dest_name,)
-        else:
-            print_code = "PRINT_NEW_LINE() == false"
-
-        getErrorExitBoolCode(
-            condition=print_code, release_name=dest_name, emit=emit, context=context
-        )
+    generateCAPIErrorCode(
+        capi=capi,
+        tstate=False,
+        arg_desc=arg_desc,
+        may_raise=statement.mayRaiseExceptionOperation(),
+        source_ref=statement.getSourceReference(),
+        emit=emit,
+        context=context,
+    )
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and

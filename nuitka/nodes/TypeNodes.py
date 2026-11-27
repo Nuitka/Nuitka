@@ -11,6 +11,7 @@ them, their relationship or check for them in re-formulations.
 from nuitka.__past__ import GenericAlias
 from nuitka.Builtins import builtin_names
 from nuitka.options.Experimental import isExperimental
+from nuitka.PythonVersions import python_version
 
 from .BuiltinRefNodes import (
     ExpressionBuiltinAnonymousRef,
@@ -27,12 +28,17 @@ from .ChildrenHavingMixins import (
     ChildrenExpressionTypeMakeGenericMixin,
     ChildrenHavingInstanceClassesMixin,
 )
-from .ExpressionBases import ExpressionBase, ExpressionBuiltinSingleArgBase
+from .ExpressionBases import (
+    ExpressionBase,
+    ExpressionBuiltinSingleArgBase,
+    ExpressionNoSideEffectsMixin,
+)
 from .ExpressionBasesGenerated import (
-    ExpressionParameterSpecificationBase,
+    ExpressionParameterSpecificationSince313Base,
     ExpressionSubtypeCheckBase,
-    ExpressionTypeVariableBase,
-    ExpressionTypeVariableTupleBase,
+    ExpressionTypeVariableBefore313Base,
+    ExpressionTypeVariableSince313Base,
+    ExpressionTypeVariableTupleSince313Base,
 )
 from .ExpressionShapeMixins import ExpressionBoolShapeExactMixin
 from .NodeBases import SideEffectsFromChildrenMixin
@@ -132,6 +138,10 @@ class ExpressionBuiltinType1(ExpressionBuiltinSingleArgBase):
 Removed type taking for unused result.""",
         )
 
+    @staticmethod
+    def mayRaiseExceptionOperation():
+        return False
+
     def mayRaiseException(self, exception_type):
         return self.subnode_value.mayRaiseException(exception_type)
 
@@ -162,6 +172,10 @@ class ExpressionBuiltinSuper1(ChildrenExpressionBuiltinSuper1Mixin, ExpressionBa
         # TODO: Quite some cases should be possible to predict.
         return self, None, None
 
+    @staticmethod
+    def mayRaiseExceptionOperation():
+        return True
+
 
 class ExpressionBuiltinSuper2(ChildrenExpressionBuiltinSuper2Mixin, ExpressionBase):
     kind = "EXPRESSION_BUILTIN_SUPER2"
@@ -186,6 +200,10 @@ class ExpressionBuiltinSuper2(ChildrenExpressionBuiltinSuper2Mixin, ExpressionBa
 
         # TODO: Quite some cases should be possible to predict.
         return self, None, None
+
+    @staticmethod
+    def mayRaiseExceptionOperation():
+        return True
 
 
 class ExpressionBuiltinSuper0(ChildrenExpressionBuiltinSuper0Mixin, ExpressionBase):
@@ -213,6 +231,10 @@ class ExpressionBuiltinSuper0(ChildrenExpressionBuiltinSuper0Mixin, ExpressionBa
 
         # TODO: Quite some cases should be possible to predict.
         return self, None, None
+
+    @staticmethod
+    def mayRaiseExceptionOperation():
+        return True
 
 
 class ExpressionBuiltinIsinstance(ChildrenHavingInstanceClassesMixin, ExpressionBase):
@@ -259,6 +281,10 @@ class ExpressionBuiltinIsinstance(ChildrenHavingInstanceClassesMixin, Expression
             ),
             description="Built-in call to 'isinstance' computed.",
         )
+
+    @staticmethod
+    def mayRaiseExceptionOperation():
+        return True
 
 
 class ExpressionBuiltinIssubclass(
@@ -308,6 +334,10 @@ class ExpressionBuiltinIssubclass(
             description="Built-in call to 'issubclass' computed.",
         )
 
+    @staticmethod
+    def mayRaiseExceptionOperation():
+        return True
+
 
 class ExpressionTypeCheck(
     ExpressionBoolShapeExactMixin,
@@ -328,6 +358,13 @@ class ExpressionTypeCheck(
         # TODO: Quite some cases should be possible to predict, but I am not aware of
         # 100% true Python equivalent at this time.
         return self, None, None
+
+    def mayRaiseException(self, exception_type):
+        return self.subnode_cls.mayRaiseException(exception_type)
+
+    @staticmethod
+    def mayRaiseExceptionOperation():
+        return False
 
 
 class ExpressionSubtypeCheck(
@@ -379,8 +416,25 @@ class ExpressionTypeAlias(ChildrenExpressionTypeAliasMixin, ExpressionBase):
         )
 
 
-class ExpressionTypeVariable(ExpressionTypeVariableBase, ExpressionBase):
-    kind = "EXPRESSION_TYPE_VARIABLE"
+class ExpressionTypeVariableBefore313(
+    ExpressionTypeVariableBefore313Base, ExpressionBase
+):
+    kind = "EXPRESSION_TYPE_VARIABLE_BEFORE313"
+
+    auto_compute_handling = "final,no_raise"
+    named_children = (
+        "bound|optional",
+        "constraints|optional",
+    )
+    node_attributes = ("name",)
+
+    python_version_spec = ">= 0x3c0, < 0x3d0"
+
+
+class ExpressionTypeVariableSince313(
+    ExpressionTypeVariableSince313Base, ExpressionBase
+):
+    kind = "EXPRESSION_TYPE_VARIABLE_SINCE313"
 
     auto_compute_handling = "final,no_raise"
     named_children = (
@@ -390,29 +444,122 @@ class ExpressionTypeVariable(ExpressionTypeVariableBase, ExpressionBase):
     )
     node_attributes = ("name",)
 
-    python_version_spec = ">= 0x3c0"
+    python_version_spec = ">= 0x3d0"
 
 
-class ExpressionTypeVariableTuple(ExpressionTypeVariableTupleBase, ExpressionBase):
-    kind = "EXPRESSION_TYPE_VARIABLE_TUPLE"
+def makeExpressionTypeVariable(name, bound, constraints, default_value, source_ref):
+    if python_version < 0x3D0:
+        assert default_value is None
 
-    auto_compute_handling = "final,no_raise"
-    named_children = ("default_value|optional",)
-    node_attributes = ("name",)
+        return ExpressionTypeVariableBefore313(
+            name=name,
+            bound=bound,
+            constraints=constraints,
+            source_ref=source_ref,
+        )
+    else:
+        return ExpressionTypeVariableSince313(
+            name=name,
+            bound=bound,
+            constraints=constraints,
+            default_value=default_value,
+            source_ref=source_ref,
+        )
 
-    python_version_spec = ">= 0x3c0"
+
+class _ExpressionTypeParamNameOnlyBase(ExpressionNoSideEffectsMixin, ExpressionBase):
+    __slots__ = ("name",)
+
+    def __init__(self, name, source_ref):
+        ExpressionBase.__init__(self, source_ref)
+
+        self.name = name
+
+    def finalize(self):
+        del self.parent
+        del self.name
+
+    def getDetails(self):
+        return {"name": self.name}
+
+    @staticmethod
+    def getVisitableNodes():
+        return ()
+
+    @staticmethod
+    def getVisitableNodesNamed():
+        return ()
+
+    def computeExpressionRaw(self, trace_collection):
+        return self, None, None
 
 
-class ExpressionParameterSpecification(
-    ExpressionParameterSpecificationBase, ExpressionBase
+class ExpressionTypeVariableTupleBefore313(_ExpressionTypeParamNameOnlyBase):
+    kind = "EXPRESSION_TYPE_VARIABLE_TUPLE_BEFORE313"
+
+    python_version_spec = ">= 0x3c0, < 0x3d0"
+
+
+class ExpressionTypeVariableTupleSince313(
+    ExpressionTypeVariableTupleSince313Base, ExpressionBase
 ):
-    kind = "EXPRESSION_PARAMETER_SPECIFICATION"
+    kind = "EXPRESSION_TYPE_VARIABLE_TUPLE_SINCE313"
 
     auto_compute_handling = "final,no_raise"
     named_children = ("default_value|optional",)
     node_attributes = ("name",)
 
-    python_version_spec = ">= 0x3c0"
+    python_version_spec = ">= 0x3d0"
+
+
+def makeExpressionTypeVariableTuple(name, default_value, source_ref):
+    if python_version < 0x3D0:
+        assert default_value is None
+
+        return ExpressionTypeVariableTupleBefore313(
+            name=name,
+            source_ref=source_ref,
+        )
+    else:
+        return ExpressionTypeVariableTupleSince313(
+            name=name,
+            default_value=default_value,
+            source_ref=source_ref,
+        )
+
+
+class ExpressionParameterSpecificationBefore313(_ExpressionTypeParamNameOnlyBase):
+    kind = "EXPRESSION_PARAMETER_SPECIFICATION_BEFORE313"
+
+    python_version_spec = ">= 0x3c0, < 0x3d0"
+
+
+class ExpressionParameterSpecificationSince313(
+    ExpressionParameterSpecificationSince313Base, ExpressionBase
+):
+    kind = "EXPRESSION_PARAMETER_SPECIFICATION_SINCE313"
+
+    auto_compute_handling = "final,no_raise"
+    named_children = ("default_value|optional",)
+    node_attributes = ("name",)
+
+    python_version_spec = ">= 0x3d0"
+
+
+def makeExpressionParameterSpecification(name, default_value, source_ref):
+    if python_version < 0x3D0:
+        assert default_value is None
+
+        return ExpressionParameterSpecificationBefore313(
+            name=name,
+            source_ref=source_ref,
+        )
+    else:
+        return ExpressionParameterSpecificationSince313(
+            name=name,
+            default_value=default_value,
+            source_ref=source_ref,
+        )
 
 
 class ExpressionTypeMakeGeneric(ChildrenExpressionTypeMakeGenericMixin, ExpressionBase):
@@ -429,6 +576,10 @@ class ExpressionTypeMakeGeneric(ChildrenExpressionTypeMakeGenericMixin, Expressi
         trace_collection.onExceptionRaiseExit(BaseException)
 
         return self, None, None
+
+    @staticmethod
+    def mayRaiseExceptionOperation():
+        return True
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and

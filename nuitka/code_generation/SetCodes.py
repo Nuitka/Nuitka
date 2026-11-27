@@ -10,12 +10,17 @@ from .CodeHelpers import (
     decideConversionCheckNeeded,
     generateChildExpressionsCode,
     generateExpressionCode,
+    promoteBorrowedValue,
     withBorrowedValueScope,
     withCleanupFinally,
     withObjectCodeTemporaryAssignment,
 )
 from .ErrorCodes import getAssertionCode, getErrorExitBoolCode
-from .PythonAPICodes import generateCAPIObjectCode
+from .PythonAPICodes import (
+    generateCAPIObjectCode,
+    getCAPIErrorCode,
+    makeArgDescFromExpression,
+)
 
 
 def generateSetCreationCode(to_name, expression, emit, context):
@@ -122,6 +127,13 @@ def _generateSetLiteralCreationCode(to_name, expression, emit, context):
                 generateExpressionCode(
                     to_name=element_name, expression=element, emit=emit, context=context
                 )
+                if count < len(elements):
+                    promoteBorrowedValue(
+                        value_name=element_name,
+                        later_expressions=elements[count:],
+                        emit=emit,
+                        context=context,
+                    )
 
             for count, element in enumerate(elements):
                 element_name = element_names[len(elements) - count - 1]
@@ -148,50 +160,35 @@ def _generateSetLiteralCreationCode(to_name, expression, emit, context):
 
 
 def generateSetOperationAddCode(statement, emit, context):
-    set_arg_name = context.allocateTempName("add_set")
-    generateExpressionCode(
-        to_name=set_arg_name,
-        expression=statement.subnode_set_arg,
-        emit=emit,
-        context=context,
+    set_arg_name, value_arg_name = generateChildExpressionsCode(
+        expression=statement, emit=emit, context=context
     )
 
-    value_arg_name = context.allocateTempName("add_value")
-    generateExpressionCode(
-        to_name=value_arg_name,
-        expression=statement.subnode_value,
-        emit=emit,
-        context=context,
-    )
-
-    context.setCurrentSourceCodeReference(statement.getSourceReference())
-
-    res_name = context.getIntResName()
-
-    emit("assert(PySet_Check(%s));" % set_arg_name)
-    emit("%s = PySet_Add(%s, %s);" % (res_name, set_arg_name, value_arg_name))
-
-    getErrorExitBoolCode(
-        condition="%s == -1" % res_name,
-        release_names=(set_arg_name, value_arg_name),
-        emit=emit,
-        context=context,
-    )
+    with context.withCurrentSourceCodeReference(statement.getSourceReference()):
+        emit("assert(PySet_Check(%s));" % set_arg_name)
+        getCAPIErrorCode(
+            capi="PySet_Add",
+            arg_names=(set_arg_name, value_arg_name),
+            may_raise=statement.mayRaiseExceptionOperation(),
+            release_names=(set_arg_name, value_arg_name),
+            res_type="int_neg1",
+            emit=emit,
+            context=context,
+        )
 
 
 def generateSetOperationUpdateCode(to_name, expression, emit, context):
-    res_name = context.getIntResName()
-
     set_arg_name, value_arg_name = generateChildExpressionsCode(
         expression=expression, emit=emit, context=context
     )
 
     emit("assert(PySet_Check(%s));" % set_arg_name)
-    emit("%s = _PySet_Update(%s, %s);" % (res_name, set_arg_name, value_arg_name))
-
-    getErrorExitBoolCode(
-        condition="%s == -1" % res_name,
+    getCAPIErrorCode(
+        capi="_PySet_Update",
+        arg_names=(set_arg_name, value_arg_name),
+        may_raise=expression.mayRaiseExceptionOperation(),
         release_names=(set_arg_name, value_arg_name),
+        res_type="int_neg1",
         emit=emit,
         context=context,
     )
@@ -204,8 +201,8 @@ def generateBuiltinSetCode(to_name, expression, emit, context):
         to_name=to_name,
         capi="PySet_New",
         tstate=False,
-        arg_desc=(("set_arg", expression.subnode_value),),
-        may_raise=expression.mayRaiseException(BaseException),
+        arg_desc=makeArgDescFromExpression(expression),
+        may_raise=expression.mayRaiseExceptionOperation(),
         conversion_check=decideConversionCheckNeeded(to_name, expression),
         source_ref=expression.getCompatibleSourceReference(),
         emit=emit,
@@ -218,8 +215,8 @@ def generateBuiltinFrozensetCode(to_name, expression, emit, context):
         to_name=to_name,
         capi="PyFrozenSet_New",
         tstate=False,
-        arg_desc=(("frozenset_arg", expression.subnode_value),),
-        may_raise=expression.mayRaiseException(BaseException),
+        arg_desc=makeArgDescFromExpression(expression),
+        may_raise=expression.mayRaiseExceptionOperation(),
         conversion_check=decideConversionCheckNeeded(to_name, expression),
         source_ref=expression.getCompatibleSourceReference(),
         emit=emit,

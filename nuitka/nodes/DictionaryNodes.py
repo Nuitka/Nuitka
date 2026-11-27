@@ -400,6 +400,11 @@ class StatementDictOperationRemove(StatementDictOperationRemoveBase):
 
         return self, None, None
 
+    @staticmethod
+    def mayRaiseExceptionOperation():
+        # TODO: Could check dict for knowledge about keys.
+        return True
+
     def mayRaiseException(self, exception_type):
         key = self.subnode_key
 
@@ -460,6 +465,10 @@ class ExpressionDictOperationPop2(ExpressionDictOperationPop2Base):
 
     # TODO: Might raise KeyError depending on dictionary.
     @staticmethod
+    def mayRaiseExceptionOperation():
+        return True
+
+    @staticmethod
     def mayRaiseException(exception_type):
         return True
 
@@ -507,6 +516,9 @@ class ExpressionDictOperationPop3(ExpressionDictOperationPop3Base):
 
         return self, None, None
 
+    def mayRaiseExceptionOperation(self):
+        return self.known_hashable_key is not True
+
     def mayRaiseException(self, exception_type):
         if self.known_hashable_key is not True:
             return True
@@ -536,6 +548,10 @@ class ExpressionDictOperationPopitem(ExpressionDictOperationPopitemBase):
         return self, None, None
 
     # TODO: Might raise KeyError depending on dictionary.
+    @staticmethod
+    def mayRaiseExceptionOperation():
+        return True
+
     @staticmethod
     def mayRaiseException(exception_type):
         return True
@@ -584,6 +600,9 @@ class ExpressionDictOperationSetdefault2(ExpressionDictOperationSetdefault2Base)
             trace_collection.onExceptionRaiseExit(BaseException)
 
         return self, None, None
+
+    def mayRaiseExceptionOperation(self):
+        return self.known_hashable_key is not True
 
     def mayRaiseException(self, exception_type):
         if self.known_hashable_key is not True:
@@ -643,6 +662,9 @@ class ExpressionDictOperationSetdefault3(ExpressionDictOperationSetdefault3Base)
 
         return self, None, None
 
+    def mayRaiseExceptionOperation(self):
+        return self.known_hashable_key is not True
+
     def mayRaiseException(self, exception_type):
         if self.known_hashable_key is not True:
             return True
@@ -687,6 +709,10 @@ class ExpressionDictOperationItem(
         trace_collection.onExceptionRaiseExit(BaseException)
 
         return self, None, None
+
+    @staticmethod
+    def mayRaiseExceptionOperation():
+        return True
 
 
 class ExpressionDictOperationGet2(ExpressionDictOperationGet2Base):
@@ -743,6 +769,9 @@ class ExpressionDictOperationGet2(ExpressionDictOperationGet2Base):
             trace_collection.onExceptionRaiseExit(BaseException)
 
         return self, None, None
+
+    def mayRaiseExceptionOperation(self):
+        return self.known_hashable_key is not True
 
     def mayRaiseException(self, exception_type):
         if self.known_hashable_key is not True:
@@ -839,6 +868,9 @@ class ExpressionDictOperationGet3(ExpressionDictOperationGet3Base):
 
         return self, None, None
 
+    def mayRaiseExceptionOperation(self):
+        return self.known_hashable_key is not True
+
     def mayRaiseException(self, exception_type):
         if self.known_hashable_key is not True:
             return True
@@ -892,9 +924,11 @@ class ExpressionDictOperationCopy(
                 "Compile time computed 'dict.copy' on constant argument.",
             )
 
-        trace_collection.onExceptionRaiseExit(BaseException)
-
         return self, None, None
+
+    @staticmethod
+    def mayRaiseExceptionOperation():
+        return False
 
     def mayRaiseException(self, exception_type):
         return self.subnode_dict_arg.mayRaiseException(exception_type)
@@ -908,6 +942,10 @@ class ExpressionDictOperationClear(ExpressionDictOperationClearBase):
         trace_collection.onControlFlowEscape(self)
 
         return self, None, None
+
+    @staticmethod
+    def mayRaiseExceptionOperation():
+        return False
 
     def mayRaiseException(self, exception_type):
         return self.subnode_dict_arg.mayRaiseException(exception_type)
@@ -937,6 +975,10 @@ class ExpressionDictOperationKeys(
 
         return self, None, None
 
+    @staticmethod
+    def mayRaiseExceptionOperation():
+        return False
+
     def mayRaiseException(self, exception_type):
         return self.subnode_dict_arg.mayRaiseException(exception_type)
 
@@ -947,14 +989,16 @@ class ExpressionDictOperationViewkeys(
     kind = "EXPRESSION_DICT_OPERATION_VIEWKEYS"
 
     def computeExpression(self, trace_collection):
-        trace_collection.onExceptionRaiseExit(BaseException)
-
         return self, None, None
 
     @staticmethod
     def getTypeShape():
         # TODO: Add a dictionary keys view shape; this is a reusable view, not an iterator.
         return tshape_iterator
+
+    @staticmethod
+    def mayRaiseExceptionOperation():
+        return False
 
     def mayRaiseException(self, exception_type):
         return self.subnode_dict_arg.mayRaiseException(exception_type)
@@ -966,14 +1010,16 @@ class ExpressionDictOperationIterkeys(
     kind = "EXPRESSION_DICT_OPERATION_ITERKEYS"
 
     def computeExpression(self, trace_collection):
-        trace_collection.onExceptionRaiseExit(BaseException)
-
         return self, None, None
 
     @staticmethod
     def getTypeShape():
         # TODO: Actually iterator yield keys
         return tshape_iterator
+
+    @staticmethod
+    def mayRaiseExceptionOperation():
+        return False
 
     def mayRaiseException(self, exception_type):
         return self.subnode_dict_arg.mayRaiseException(exception_type)
@@ -1003,6 +1049,10 @@ class ExpressionDictOperationValues(
 
         return self, None, None
 
+    @staticmethod
+    def mayRaiseExceptionOperation():
+        return False
+
     def mayRaiseException(self, exception_type):
         return self.subnode_dict_arg.mayRaiseException(exception_type)
 
@@ -1013,14 +1063,16 @@ class ExpressionDictOperationViewvalues(
     kind = "EXPRESSION_DICT_OPERATION_VIEWVALUES"
 
     def computeExpression(self, trace_collection):
-        trace_collection.onExceptionRaiseExit(BaseException)
-
         return self, None, None
 
     @staticmethod
     def getTypeShape():
         # TODO: Add a dictionary values view shape; this is a reusable view, not an iterator.
         return tshape_iterator
+
+    @staticmethod
+    def mayRaiseExceptionOperation():
+        return False
 
     def mayRaiseException(self, exception_type):
         return self.subnode_dict_arg.mayRaiseException(exception_type)
@@ -1032,14 +1084,16 @@ class ExpressionDictOperationItervalues(
     kind = "EXPRESSION_DICT_OPERATION_ITERVALUES"
 
     def computeExpression(self, trace_collection):
-        trace_collection.onExceptionRaiseExit(BaseException)
-
         return self, None, None
 
     @staticmethod
     def getTypeShape():
         # TODO: Actually the iterator yield values.
         return tshape_iterator
+
+    @staticmethod
+    def mayRaiseExceptionOperation():
+        return False
 
     def mayRaiseException(self, exception_type):
         return self.subnode_dict_arg.mayRaiseException(exception_type)
@@ -1069,6 +1123,10 @@ class ExpressionDictOperationItems(
 
         return self, None, None
 
+    @staticmethod
+    def mayRaiseExceptionOperation():
+        return False
+
     def mayRaiseException(self, exception_type):
         return self.subnode_dict_arg.mayRaiseException(exception_type)
 
@@ -1079,8 +1137,6 @@ class ExpressionDictOperationIteritems(
     kind = "EXPRESSION_DICT_OPERATION_ITERITEMS"
 
     def computeExpression(self, trace_collection):
-        trace_collection.onExceptionRaiseExit(BaseException)
-
         return self, None, None
 
     @staticmethod
@@ -1088,6 +1144,10 @@ class ExpressionDictOperationIteritems(
         # TODO: Actually iterator that yields 2 element tuples, add shapes
         # for that too.
         return tshape_iterator
+
+    @staticmethod
+    def mayRaiseExceptionOperation():
+        return False
 
     def mayRaiseException(self, exception_type):
         return self.subnode_dict_arg.mayRaiseException(exception_type)
@@ -1099,14 +1159,16 @@ class ExpressionDictOperationViewitems(
     kind = "EXPRESSION_DICT_OPERATION_VIEWITEMS"
 
     def computeExpression(self, trace_collection):
-        trace_collection.onExceptionRaiseExit(BaseException)
-
         return self, None, None
 
     @staticmethod
     def getTypeShape():
         # TODO: Add a dictionary items view shape; this is a reusable view, not an iterator.
         return tshape_iterator
+
+    @staticmethod
+    def mayRaiseExceptionOperation():
+        return False
 
     def mayRaiseException(self, exception_type):
         return self.subnode_dict_arg.mayRaiseException(exception_type)
@@ -1144,6 +1206,10 @@ class ExpressionDictOperationUpdate2(ExpressionDictOperationUpdate2Base):
     # TODO: Might raise non-iterable depending on value shape, or not hashable from content.
     @staticmethod
     def mayRaiseException(exception_type):
+        return True
+
+    @staticmethod
+    def mayRaiseExceptionOperation():
         return True
 
 
@@ -1197,6 +1263,10 @@ class ExpressionDictOperationUpdate3(ExpressionDictOperationUpdate3Base):
     # TODO: Might raise non-iterable depending on value shape, or not hashable from content.
     @staticmethod
     def mayRaiseException(exception_type):
+        return True
+
+    @staticmethod
+    def mayRaiseExceptionOperation():
         return True
 
 
@@ -1259,6 +1329,10 @@ class StatementDictOperationUpdate(StatementDictOperationUpdateBase):
 
         # TODO: Check empty, and remove itself if that's the case.
         return self, None, None
+
+    @staticmethod
+    def mayRaiseExceptionOperation():
+        return True
 
 
 def makeUnhashableExceptionReplacementExpression(node, key, side_effects, operation):
@@ -1333,6 +1407,9 @@ class ExpressionDictOperationInNotInUncertainMixin(object):
             or self.subnode_dict_arg.mayRaiseException(exception_type)
             or self.known_hashable_key is not True
         )
+
+    def mayRaiseExceptionOperation(self):
+        return self.known_hashable_key is not True
 
     def mayHaveSideEffects(self):
         return self.mayRaiseException(BaseException)

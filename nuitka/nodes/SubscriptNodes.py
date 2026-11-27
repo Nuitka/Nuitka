@@ -79,6 +79,10 @@ class ExpressionSubscriptLookup(ChildrenHavingExpressionSubscriptMixin, Expressi
         )
 
     @staticmethod
+    def mayRaiseExceptionOperation():
+        return True
+
+    @staticmethod
     def isKnownToBeIterable(count):
         return None
 
@@ -157,6 +161,10 @@ class ExpressionMatchSubscriptCheck(
 
     def mayRaiseException(self, exception_type):
         return self.subnode_subscript.mayRaiseException(exception_type)
+
+    @staticmethod
+    def mayRaiseExceptionOperation():
+        return False
 
 
 class ExpressionSubscriptLookupForUnpack(ExpressionSubscriptLookup):

@@ -7,38 +7,36 @@ from nuitka.PythonVersions import python_version
 
 from .AttributeCodes import getAttributeLookupCode
 from .CodeHelpers import (
+    decideConversionCheckNeeded,
     generateChildExpressionsCode,
     generateExpressionCode,
     withObjectCodeTemporaryAssignment,
 )
-from .ErrorCodes import getErrorExitCode, getReleaseCode
 from .LocalsDictCodes import assignDictOrMappingItem
 from .PgoCodes import checkPGOValueShape
+from .PythonAPICodes import (
+    CArg,
+    generateCAPIObjectCode,
+    getCAPIObjectCode,
+    makeArgDescFromExpression,
+)
 from .VariableCodes import getLocalVariableDeclaration
 
 
 def generateSelectMetaclassCode(to_name, expression, emit, context):
-    metaclass_name, bases_name = generateChildExpressionsCode(
-        expression=expression, emit=emit, context=context
-    )
-
     assert python_version >= 0x300
 
-    arg_names = [metaclass_name, bases_name]
-
-    with withObjectCodeTemporaryAssignment(
-        to_name, "metaclass_result", expression, emit, context
-    ) as value_name:
-        emit(
-            "%s = SELECT_METACLASS(tstate, %s);"
-            % (value_name, ", ".join(str(arg_name) for arg_name in arg_names))
-        )
-
-        getErrorExitCode(
-            check_name=value_name, release_names=arg_names, emit=emit, context=context
-        )
-
-        context.addCleanupTempName(value_name)
+    generateCAPIObjectCode(
+        to_name=to_name,
+        capi="SELECT_METACLASS",
+        tstate=True,
+        arg_desc=makeArgDescFromExpression(expression),
+        may_raise=expression.mayRaiseExceptionOperation(),
+        conversion_check=decideConversionCheckNeeded(to_name, expression),
+        source_ref=expression.getCompatibleSourceReference(),
+        emit=emit,
+        context=context,
+    )
 
 
 def generateClassDictFromClassCode(to_name, expression, emit, context):
@@ -60,59 +58,40 @@ Py_INCREF(%(to_name)s);""" % {"to_name": value_name, "class_name": class_name})
 
 
 def generateBuiltinSuper1Code(to_name, expression, emit, context):
-    (type_name,) = generateChildExpressionsCode(
-        expression=expression, emit=emit, context=context
+    generateCAPIObjectCode(
+        to_name=to_name,
+        capi="BUILTIN_SUPER2",
+        tstate=True,
+        arg_desc=(CArg(context.getModuleDictCodeName()),)
+        + makeArgDescFromExpression(expression)
+        + (CArg("NULL"),),
+        may_raise=expression.mayRaiseExceptionOperation(),
+        conversion_check=decideConversionCheckNeeded(to_name, expression),
+        none_null=True,
+        source_ref=expression.getCompatibleSourceReference(),
+        emit=emit,
+        context=context,
     )
-
-    with withObjectCodeTemporaryAssignment(
-        to_name, "super_value", expression, emit, context
-    ) as value_name:
-        emit(
-            "%s = BUILTIN_SUPER2(tstate, moduledict_%s, %s, NULL);"
-            % (
-                value_name,
-                context.getModuleCodeName(),
-                type_name if type_name is not None else "NULL",
-            )
-        )
-
-        getErrorExitCode(
-            check_name=value_name,
-            release_name=type_name,
-            emit=emit,
-            context=context,
-        )
-
-        context.addCleanupTempName(value_name)
 
 
 def generateBuiltinSuperCode(to_name, expression, emit, context):
-    type_name, object_name = generateChildExpressionsCode(
-        expression=expression, emit=emit, context=context
+    generateCAPIObjectCode(
+        to_name=to_name,
+        capi=(
+            "BUILTIN_SUPER2"
+            if expression.isExpressionBuiltinSuper2()
+            else "BUILTIN_SUPER0"
+        ),
+        tstate=True,
+        arg_desc=(CArg(context.getModuleDictCodeName()),)
+        + makeArgDescFromExpression(expression),
+        may_raise=expression.mayRaiseExceptionOperation(),
+        conversion_check=decideConversionCheckNeeded(to_name, expression),
+        none_null=True,
+        source_ref=expression.getCompatibleSourceReference(),
+        emit=emit,
+        context=context,
     )
-
-    with withObjectCodeTemporaryAssignment(
-        to_name, "super_value", expression, emit, context
-    ) as value_name:
-        emit(
-            "%s = BUILTIN_SUPER%d(tstate, moduledict_%s, %s, %s);"
-            % (
-                value_name,
-                2 if expression.isExpressionBuiltinSuper2() else 0,
-                context.getModuleCodeName(),
-                type_name if type_name is not None else "NULL",
-                object_name if object_name is not None else "NULL",
-            )
-        )
-
-        getErrorExitCode(
-            check_name=value_name,
-            release_names=(type_name, object_name),
-            emit=emit,
-            context=context,
-        )
-
-        context.addCleanupTempName(value_name)
 
 
 def generateTypeOperationPrepareCode(to_name, expression, emit, context):
@@ -131,29 +110,22 @@ def generateTypeOperationPrepareCode(to_name, expression, emit, context):
         context=context,
     )
 
-    with withObjectCodeTemporaryAssignment(
-        to_name, "prepare_value", expression, emit, context
-    ) as value_name:
-        emit(
-            "%s = CALL_FUNCTION(tstate, %s, %s, %s);"
-            % (
-                value_name,
-                prepare_func_name,
-                "const_tuple_empty" if args_name is None else args_name,
-                "NULL" if kwargs_name is None else kwargs_name,
-            )
-        )
-
-        getReleaseCode(release_name=prepare_func_name, emit=emit, context=context)
-
-        getErrorExitCode(
-            check_name=value_name,
-            release_names=(type_name, args_name, kwargs_name),
-            emit=emit,
-            context=context,
-        )
-
-        context.addCleanupTempName(value_name)
+    getCAPIObjectCode(
+        to_name=to_name,
+        capi="CALL_FUNCTION",
+        arg_names=(
+            "tstate",
+            prepare_func_name,
+            "const_tuple_empty" if args_name is None else args_name,
+            "NULL" if kwargs_name is None else kwargs_name,
+        ),
+        may_raise=expression.mayRaiseExceptionOperation(),
+        conversion_check=decideConversionCheckNeeded(to_name, expression),
+        ref_count=1,
+        release_names=(prepare_func_name, type_name, args_name, kwargs_name),
+        emit=emit,
+        context=context,
+    )
 
 
 def generateCallMetaclassCode(to_name, expression, emit, context):
@@ -191,31 +163,29 @@ def generateCallMetaclassCode(to_name, expression, emit, context):
     )
     context.addCleanupTempName(args_name)
 
-    with withObjectCodeTemporaryAssignment(
-        to_name, "metaclass_result", expression, emit, context
-    ) as value_name:
-        emit(
-            "%s = CALL_FUNCTION(tstate, %s, %s, %s);"
-            % (
-                value_name,
-                metaclass_name,
-                args_name,
-                "NULL" if class_decl_dict_name is None else class_decl_dict_name,
-            )
-        )
-
-        release_names = [metaclass_name, name_name, bases_name, dict_name, args_name]
-        if class_decl_dict_name is not None:
-            release_names.append(class_decl_dict_name)
-
-        getErrorExitCode(
-            check_name=value_name,
-            release_names=release_names,
-            emit=emit,
-            context=context,
-        )
-
-        context.addCleanupTempName(value_name)
+    getCAPIObjectCode(
+        to_name=to_name,
+        capi="CALL_FUNCTION",
+        arg_names=(
+            "tstate",
+            metaclass_name,
+            args_name,
+            "NULL" if class_decl_dict_name is None else class_decl_dict_name,
+        ),
+        may_raise=expression.mayRaiseExceptionOperation(),
+        conversion_check=decideConversionCheckNeeded(to_name, expression),
+        ref_count=1,
+        release_names=(
+            metaclass_name,
+            name_name,
+            bases_name,
+            dict_name,
+            args_name,
+            class_decl_dict_name,
+        ),
+        emit=emit,
+        context=context,
+    )
 
 
 def _shallUseClassPrepareResultOnce(expression, context):

@@ -28,10 +28,10 @@ from nuitka.utils.Distributions import (
 )
 from nuitka.Version import getNuitkaVersionTuple
 
-from .CodeHelpers import withObjectCodeTemporaryAssignment
-from .ErrorCodes import getAssertionCode, getReleaseCode
+from .CodeHelpers import decideConversionCheckNeeded
 from .GlobalConstants import getConstantDefaultPopulation
 from .Namify import namifyConstant
+from .PythonAPICodes import getCAPIObjectCode
 from .SpecialConstantData import hasSpecialDetails
 from .templates.CodeTemplatesConstants import template_constants_reading
 from .templates.CodeTemplatesModules import template_header_guard
@@ -70,17 +70,17 @@ def generateConstantGenericAliasCode(to_name, expression, emit, context):
         context=context,
     )
 
-    with withObjectCodeTemporaryAssignment(
-        to_name, "builtin_value", expression, emit, context
-    ) as value_name:
-        emit("%s = Py_GenericAlias(%s, %s);" % (value_name, origin_name, args_name))
-
-        getAssertionCode(check="%s != NULL" % value_name, emit=emit)
-
-        getReleaseCode(origin_name, emit, context)
-        getReleaseCode(args_name, emit, context)
-
-        context.addCleanupTempName(value_name)
+    getCAPIObjectCode(
+        to_name=to_name,
+        capi="Py_GenericAlias",
+        arg_names=(origin_name, args_name),
+        may_raise=expression.mayRaiseExceptionOperation(),
+        conversion_check=decideConversionCheckNeeded(to_name, expression),
+        ref_count=1,
+        release_names=(origin_name, args_name),
+        emit=emit,
+        context=context,
+    )
 
 
 def getTypeDescriptionDefinitionCodes(type_description_values):

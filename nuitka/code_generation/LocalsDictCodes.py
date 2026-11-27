@@ -13,13 +13,18 @@ from .CodeHelpers import (
 )
 from .Emission import SourceCodeCollector
 from .ErrorCodes import (
-    getErrorExitBoolCode,
     getErrorExitCode,
     getNameReferenceErrorCode,
     getReleaseCode,
 )
 from .Indentation import indented
-from .PythonAPICodes import getReferenceExportCode
+from .PythonAPICodes import (
+    CArg,
+    ConstantArg,
+    generateCAPIBoolCode,
+    getCAPIErrorCode,
+    getReferenceExportCode,
+)
 from .templates.CodeTemplatesVariables import (
     template_read_locals_dict_with_fallback,
     template_read_locals_dict_without_fallback,
@@ -95,23 +100,11 @@ def assignDictOrMappingItem(
 
         getReleaseCode(value_name, emit=emit, context=context)
     else:
-        res_name = context.getBoolResName()
-
-        if is_dict_shape:
-            emit(
-                "%s = DICT_SET_ITEM(tstate, %s, %s, %s);"
-                % (res_name, target_name, key_name, value_name)
-            )
-        else:
-            emit(
-                "%s = SET_SUBSCRIPT(tstate, %s, %s, %s);"
-                % (res_name, target_name, key_name, value_name)
-            )
-
-        getErrorExitBoolCode(
-            condition="%s == false" % res_name,
-            release_name=value_name,
-            needs_check=may_raise,
+        getCAPIErrorCode(
+            capi="DICT_SET_ITEM" if is_dict_shape else "SET_SUBSCRIPT",
+            arg_names=("tstate", target_name, key_name, value_name),
+            may_raise=may_raise,
+            release_names=(value_name,),
             emit=emit,
             context=context,
         )
@@ -137,7 +130,7 @@ def generateLocalsDictSetCode(statement, emit, context):
         key_name=context.getConstantCode(statement.getVariableName()),
         value_name=value_arg_name,
         is_dict_shape=locals_scope.hasShapeDictionaryExact(),
-        may_raise=statement.mayRaiseException(BaseException),
+        may_raise=statement.mayRaiseExceptionOperation(),
         emit=emit,
         context=context,
     )
@@ -356,31 +349,19 @@ def generateLocalsDictVariableCheckCode(to_name, expression, emit, context):
 
     locals_declaration = context.addLocalsDictName(locals_scope.getCodeName())
 
-    tmp_name = context.getIntResName()
-
-    emit(
-        "%s = %s(tstate, %s, %s);"
-        % (
-            tmp_name,
-            (
-                "DICT_HAS_ITEM"
-                if locals_scope.hasShapeDictionaryExact()
-                else "MAPPING_HAS_ITEM"
-            ),
-            locals_declaration,
-            context.getConstantCode(constant=variable_name),
-        )
-    )
-
-    getErrorExitBoolCode(
-        condition="%s == -1" % tmp_name,
-        needs_check=expression.mayRaiseException(BaseException),
+    generateCAPIBoolCode(
+        to_name=to_name,
+        capi=(
+            "DICT_HAS_ITEM"
+            if locals_scope.hasShapeDictionaryExact()
+            else "MAPPING_HAS_ITEM"
+        ),
+        tstate=True,
+        arg_desc=(CArg(locals_declaration), ConstantArg(variable_name)),
+        may_raise=expression.mayRaiseExceptionOperation(),
+        source_ref=expression.getCompatibleSourceReference(),
         emit=emit,
         context=context,
-    )
-
-    to_name.getCType().emitAssignmentCodeFromBoolCondition(
-        to_name=to_name, condition="%s == 1" % tmp_name, emit=emit
     )
 
 

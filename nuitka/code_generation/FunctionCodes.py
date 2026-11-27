@@ -32,7 +32,11 @@ from .ErrorCodes import (
 from .Indentation import indented
 from .LabelCodes import getGotoCode, getLabelCode
 from .ModuleCodes import getModuleAccessCode
-from .PythonAPICodes import generateCAPIObjectCode, getReferenceExportCode
+from .PythonAPICodes import (
+    generateCAPIObjectCode,
+    getReferenceExportCode,
+    makeArgDescFromExpression,
+)
 from .PythonSourceCodeGeneration import (
     PythonSourceGenerationError,
     getFunctionEntryPointIdentifier,
@@ -334,21 +338,26 @@ Error, bytecode-to-compiled fallback was not decided for annotate function '%s' 
 
         context.addDeclaration(function_identifier, function_decl)
 
-    getFunctionCreationCode(
-        to_name=to_name,
-        function_identifier=function_body.getCodeName(),
-        defaults_name=defaults_name,
-        kw_defaults_name=kw_defaults_name,
-        annotations_name=annotations_name,
-        closure_variables=expression.getClosureVariableVersions(),
-        type_params_name=type_params_name,
-        emit=emit,
-        context=context,
-    )
+    with withObjectCodeTemporaryAssignment(
+        to_name, "function_result", expression, emit, context
+    ) as result_name:
+        getFunctionCreationCode(
+            to_name=result_name,
+            function_identifier=function_body.getCodeName(),
+            defaults_name=defaults_name,
+            kw_defaults_name=kw_defaults_name,
+            annotations_name=annotations_name,
+            closure_variables=expression.getClosureVariableVersions(),
+            type_params_name=type_params_name,
+            emit=emit,
+            context=context,
+        )
 
-    getReleaseCodes(
-        release_names=(annotations_name, type_params_name), emit=emit, context=context
-    )
+        getReleaseCodes(
+            release_names=(annotations_name, type_params_name),
+            emit=emit,
+            context=context,
+        )
 
 
 def getFunctionCreationCode(
@@ -1005,8 +1014,8 @@ def generateFunctionErrorStrCode(to_name, expression, emit, context):
         # TODO: Inline _PyObject_FunctionStr.
         capi="_PyObject_FunctionStr",
         tstate=False,
-        arg_desc=(("func_arg", expression.subnode_value),),
-        may_raise=False,
+        arg_desc=makeArgDescFromExpression(expression),
+        may_raise=expression.mayRaiseExceptionOperation(),
         conversion_check=decideConversionCheckNeeded(to_name, expression),
         source_ref=expression.getCompatibleSourceReference(),
         emit=emit,

@@ -189,6 +189,10 @@ class ExpressionSliceLookup(
         )
 
     @staticmethod
+    def mayRaiseExceptionOperation():
+        return True
+
+    @staticmethod
     def isKnownToBeIterable(count):
         # TODO: Should ask SliceRegistry
         return None

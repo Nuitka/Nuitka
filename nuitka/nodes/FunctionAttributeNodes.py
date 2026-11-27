@@ -74,6 +74,10 @@ class ExpressionFunctionErrorStr(
 
         ExpressionBase.__init__(self, source_ref)
 
+    @staticmethod
+    def mayRaiseExceptionOperation():
+        return False
+
     def mayRaiseException(self, exception_type):
         return self.subnode_value.mayRaiseException(exception_type)
 

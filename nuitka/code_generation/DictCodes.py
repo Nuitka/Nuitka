@@ -15,6 +15,7 @@ from .CodeHelpers import (
     generateChildExpressionCode,
     generateChildExpressionsCode,
     generateExpressionCode,
+    promoteBorrowedValue,
     withBorrowedValueScope,
     withCleanupFinally,
     withObjectCodeTemporaryAssignment,
@@ -26,8 +27,12 @@ from .ErrorCodes import (
     getReleaseCodes,
 )
 from .PythonAPICodes import (
+    generateCAPIErrorCode,
     generateCAPIObjectCode,
     generateCAPIObjectCode0,
+    getCAPIBoolCode,
+    getCAPIErrorCode,
+    getCAPIObjectCode,
     makeArgDescFromExpression,
 )
 
@@ -69,19 +74,21 @@ def _generateBuiltinDictValueCode(to_name, expression, emit, context):
         dict_name = None
 
     if seq_name is not None:
-        emit(
-            "%s = TO_DICT(tstate, %s, %s);"
-            % (to_name, seq_name, "NULL" if dict_name is None else dict_name)
-        )
-
-        getErrorExitCode(
-            check_name=to_name,
+        getCAPIObjectCode(
+            to_name=to_name,
+            capi="TO_DICT",
+            arg_names=(
+                "tstate",
+                seq_name,
+                "NULL" if dict_name is None else dict_name,
+            ),
+            may_raise=expression.mayRaiseExceptionOperation(),
+            conversion_check=False,
+            ref_count=1,
             release_names=(seq_name, dict_name),
             emit=emit,
             context=context,
         )
-
-        context.addCleanupTempName(to_name)
 
 
 def generateBuiltinDictCode(to_name, expression, emit, context):
@@ -94,25 +101,23 @@ def generateBuiltinDictCode(to_name, expression, emit, context):
 
 
 def generateBuiltinFrozendictCode(to_name, expression, emit, context):
-    with withObjectCodeTemporaryAssignment(
-        to_name, "frozendict_value", expression, emit, context
-    ) as value_name:
-        dict_name = context.allocateTempName("frozendict_dict")
+    dict_name = context.allocateTempName("frozendict_dict")
 
-        _generateBuiltinDictValueCode(
-            to_name=dict_name, expression=expression, emit=emit, context=context
-        )
+    _generateBuiltinDictValueCode(
+        to_name=dict_name, expression=expression, emit=emit, context=context
+    )
 
-        emit("%s = PyFrozenDict_New(%s);" % (value_name, dict_name))
-
-        getErrorExitCode(
-            check_name=value_name,
-            release_names=(dict_name,),
-            emit=emit,
-            context=context,
-        )
-
-        context.addCleanupTempName(value_name)
+    getCAPIObjectCode(
+        to_name=to_name,
+        capi="PyFrozenDict_New",
+        arg_names=(dict_name,),
+        may_raise=expression.mayRaiseExceptionOperation(),
+        conversion_check=decideConversionCheckNeeded(to_name, expression),
+        ref_count=1,
+        release_names=(dict_name,),
+        emit=emit,
+        context=context,
+    )
 
 
 def generateDictionaryCreationCode(to_name, expression, emit, context):
@@ -193,9 +198,21 @@ def _getDictionaryCreationCode(to_name, pairs, emit, context):
         # strictly in order, but for each pair, the value first.
         if python_version < 0x350:
             generateValueCode(dict_value_name, pair)
+            promoteBorrowedValue(
+                value_name=dict_value_name,
+                later_expressions=(pair.getKeyNode(),),
+                emit=emit,
+                context=context,
+            )
             generateKeyCode(dict_key_name, pair)
         else:
             generateKeyCode(dict_key_name, pair)
+            promoteBorrowedValue(
+                value_name=dict_key_name,
+                later_expressions=(pair.getValueNode(),),
+                emit=emit,
+                context=context,
+            )
             generateValueCode(dict_value_name, pair)
 
         key_needs_release = context.needsCleanup(dict_key_name)
@@ -276,6 +293,12 @@ def generateDictOperationUpdateCode(statement, emit, context):
         emit=emit,
         context=context,
     )
+    promoteBorrowedValue(
+        value_name=value_arg_name,
+        later_expressions=(statement.subnode_dict_arg,),
+        emit=emit,
+        context=context,
+    )
 
     dict_arg_name = context.allocateTempName("dictupdate_dict", unique=True)
     generateExpressionCode(
@@ -286,45 +309,30 @@ def generateDictOperationUpdateCode(statement, emit, context):
     )
 
     with context.withCurrentSourceCodeReference(statement.getSourceReference()):
-        res_name = context.getIntResName()
-
         emit("assert(PyDict_Check(%s));" % dict_arg_name)
-        emit(
-            "%s = DICT_UNPACK_FROM(tstate, %s, %s);"
-            % (res_name, dict_arg_name, value_arg_name)
-        )
-
-        getErrorExitBoolCode(
-            condition="%s != 0" % res_name,
+        getCAPIErrorCode(
+            capi="DICT_UNPACK_FROM",
+            arg_names=("tstate", dict_arg_name, value_arg_name),
+            may_raise=statement.mayRaiseExceptionOperation(),
             release_names=(dict_arg_name, value_arg_name),
-            needs_check=statement.mayRaiseException(BaseException),
+            res_type="int_nonzero",
             emit=emit,
             context=context,
         )
 
 
 def generateDictOperationItemCode(to_name, expression, emit, context):
-    dict_name, key_name = generateChildExpressionsCode(
-        expression=expression, emit=emit, context=context
+    generateCAPIObjectCode(
+        to_name=to_name,
+        capi="DICT_GET_ITEM_WITH_ERROR",
+        tstate=True,
+        arg_desc=makeArgDescFromExpression(expression),
+        may_raise=expression.mayRaiseExceptionOperation(),
+        conversion_check=decideConversionCheckNeeded(to_name, expression),
+        source_ref=expression.getCompatibleSourceReference(),
+        emit=emit,
+        context=context,
     )
-
-    with withObjectCodeTemporaryAssignment(
-        to_name, "dict_value", expression, emit, context
-    ) as value_name:
-        emit(
-            "%s = DICT_GET_ITEM_WITH_ERROR(tstate, %s, %s);"
-            % (value_name, dict_name, key_name)
-        )
-
-        getErrorExitCode(
-            check_name=value_name,
-            release_names=(dict_name, key_name),
-            needs_check=expression.mayRaiseException(BaseException),
-            emit=emit,
-            context=context,
-        )
-
-        context.addCleanupTempName(value_name)
 
 
 def generateDictOperationGet2Code(to_name, expression, emit, context):
@@ -419,7 +427,7 @@ def generateDictOperationSetdefault2Code(to_name, expression, emit, context):
         capi="DICT_SETDEFAULT2",
         tstate=True,
         arg_desc=makeArgDescFromExpression(expression),
-        may_raise=not expression.known_hashable_key,
+        may_raise=expression.mayRaiseExceptionOperation(),
         conversion_check=decideConversionCheckNeeded(to_name, expression),
         source_ref=expression.getCompatibleSourceReference(),
         emit=emit,
@@ -433,7 +441,7 @@ def generateDictOperationSetdefault3Code(to_name, expression, emit, context):
         capi="DICT_SETDEFAULT3",
         tstate=True,
         arg_desc=makeArgDescFromExpression(expression),
-        may_raise=not expression.known_hashable_key,
+        may_raise=expression.mayRaiseExceptionOperation(),
         conversion_check=decideConversionCheckNeeded(to_name, expression),
         source_ref=expression.getCompatibleSourceReference(),
         emit=emit,
@@ -447,7 +455,7 @@ def generateDictOperationPop2Code(to_name, expression, emit, context):
         capi="DICT_POP2",
         tstate=True,
         arg_desc=makeArgDescFromExpression(expression),
-        may_raise=expression.mayRaiseException(BaseException),
+        may_raise=expression.mayRaiseExceptionOperation(),
         conversion_check=decideConversionCheckNeeded(to_name, expression),
         source_ref=expression.getCompatibleSourceReference(),
         emit=emit,
@@ -461,7 +469,7 @@ def generateDictOperationPop3Code(to_name, expression, emit, context):
         capi="DICT_POP3",
         tstate=True,
         arg_desc=makeArgDescFromExpression(expression),
-        may_raise=not expression.known_hashable_key,
+        may_raise=expression.mayRaiseExceptionOperation(),
         conversion_check=decideConversionCheckNeeded(to_name, expression),
         source_ref=expression.getCompatibleSourceReference(),
         emit=emit,
@@ -475,7 +483,7 @@ def generateDictOperationPopitemCode(to_name, expression, emit, context):
         capi="DICT_POPITEM",
         tstate=True,
         arg_desc=makeArgDescFromExpression(expression),
-        may_raise=expression.mayRaiseException(BaseException),
+        may_raise=expression.mayRaiseExceptionOperation(),
         conversion_check=decideConversionCheckNeeded(to_name, expression),
         source_ref=expression.getCompatibleSourceReference(),
         emit=emit,
@@ -535,7 +543,7 @@ if (%(res_name)s == 1) {
     getErrorExitBoolCode(
         condition="%s != 0" % res_name,
         release_names=release_names,
-        needs_check=expression.mayRaiseException(BaseException),
+        needs_check=expression.mayRaiseExceptionOperation(),
         emit=emit,
         context=context,
     )
@@ -636,8 +644,8 @@ def generateDictOperationCopyCode(to_name, expression, emit, context):
         to_name=to_name,
         capi="DICT_COPY",
         tstate=True,
-        arg_desc=(("dict_arg", expression.subnode_dict_arg),),
-        may_raise=False,
+        arg_desc=makeArgDescFromExpression(expression),
+        may_raise=expression.mayRaiseExceptionOperation(),
         conversion_check=decideConversionCheckNeeded(to_name, expression),
         source_ref=expression.getCompatibleSourceReference(),
         emit=emit,
@@ -650,8 +658,8 @@ def generateDictOperationClearCode(to_name, expression, emit, context):
         to_name=None,
         capi="DICT_CLEAR",
         tstate=False,
-        arg_desc=(("dict_arg", expression.subnode_dict_arg),),
-        may_raise=False,
+        arg_desc=makeArgDescFromExpression(expression),
+        may_raise=expression.mayRaiseExceptionOperation(),
         conversion_check=decideConversionCheckNeeded(to_name, expression),
         source_ref=expression.getCompatibleSourceReference(),
         emit=emit,
@@ -666,8 +674,8 @@ def generateDictOperationItemsCode(to_name, expression, emit, context):
         to_name=to_name,
         capi="DICT_ITEMS",
         tstate=False,
-        arg_desc=(("dict_arg", expression.subnode_dict_arg),),
-        may_raise=False,
+        arg_desc=makeArgDescFromExpression(expression),
+        may_raise=expression.mayRaiseExceptionOperation(),
         conversion_check=decideConversionCheckNeeded(to_name, expression),
         source_ref=expression.getCompatibleSourceReference(),
         emit=emit,
@@ -680,8 +688,8 @@ def generateDictOperationIteritemsCode(to_name, expression, emit, context):
         to_name=to_name,
         capi="DICT_ITERITEMS",
         tstate=True,
-        arg_desc=(("dict_arg", expression.subnode_dict_arg),),
-        may_raise=expression.mayRaiseException(BaseException),
+        arg_desc=makeArgDescFromExpression(expression),
+        may_raise=expression.mayRaiseExceptionOperation(),
         conversion_check=decideConversionCheckNeeded(to_name, expression),
         source_ref=expression.getCompatibleSourceReference(),
         emit=emit,
@@ -694,8 +702,8 @@ def generateDictOperationViewitemsCode(to_name, expression, emit, context):
         to_name=to_name,
         capi="DICT_VIEWITEMS",
         tstate=False,
-        arg_desc=(("dict_arg", expression.subnode_dict_arg),),
-        may_raise=False,
+        arg_desc=makeArgDescFromExpression(expression),
+        may_raise=expression.mayRaiseExceptionOperation(),
         conversion_check=decideConversionCheckNeeded(to_name, expression),
         source_ref=expression.getCompatibleSourceReference(),
         emit=emit,
@@ -708,8 +716,8 @@ def generateDictOperationKeysCode(to_name, expression, emit, context):
         to_name=to_name,
         capi="DICT_KEYS",
         tstate=False,
-        arg_desc=(("dict_arg", expression.subnode_dict_arg),),
-        may_raise=False,
+        arg_desc=makeArgDescFromExpression(expression),
+        may_raise=expression.mayRaiseExceptionOperation(),
         conversion_check=decideConversionCheckNeeded(to_name, expression),
         source_ref=expression.getCompatibleSourceReference(),
         emit=emit,
@@ -722,8 +730,8 @@ def generateDictOperationIterkeysCode(to_name, expression, emit, context):
         to_name=to_name,
         capi="DICT_ITERKEYS",
         tstate=True,
-        arg_desc=(("dict_arg", expression.subnode_dict_arg),),
-        may_raise=False,
+        arg_desc=makeArgDescFromExpression(expression),
+        may_raise=expression.mayRaiseExceptionOperation(),
         conversion_check=decideConversionCheckNeeded(to_name, expression),
         source_ref=expression.getCompatibleSourceReference(),
         emit=emit,
@@ -736,8 +744,8 @@ def generateDictOperationViewkeysCode(to_name, expression, emit, context):
         to_name=to_name,
         capi="DICT_VIEWKEYS",
         tstate=False,
-        arg_desc=(("dict_arg", expression.subnode_dict_arg),),
-        may_raise=False,
+        arg_desc=makeArgDescFromExpression(expression),
+        may_raise=expression.mayRaiseExceptionOperation(),
         conversion_check=decideConversionCheckNeeded(to_name, expression),
         source_ref=expression.getCompatibleSourceReference(),
         emit=emit,
@@ -750,8 +758,8 @@ def generateDictOperationValuesCode(to_name, expression, emit, context):
         to_name=to_name,
         capi="DICT_VALUES",
         tstate=False,
-        arg_desc=(("dict_arg", expression.subnode_dict_arg),),
-        may_raise=False,
+        arg_desc=makeArgDescFromExpression(expression),
+        may_raise=expression.mayRaiseExceptionOperation(),
         conversion_check=decideConversionCheckNeeded(to_name, expression),
         source_ref=expression.getCompatibleSourceReference(),
         emit=emit,
@@ -809,8 +817,8 @@ def generateDictOperationItervaluesCode(to_name, expression, emit, context):
         to_name=to_name,
         capi="DICT_ITERVALUES",
         tstate=True,
-        arg_desc=(("dict_arg", expression.subnode_dict_arg),),
-        may_raise=False,
+        arg_desc=makeArgDescFromExpression(expression),
+        may_raise=expression.mayRaiseExceptionOperation(),
         conversion_check=decideConversionCheckNeeded(to_name, expression),
         source_ref=expression.getCompatibleSourceReference(),
         emit=emit,
@@ -823,8 +831,8 @@ def generateDictOperationViewvaluesCode(to_name, expression, emit, context):
         to_name=to_name,
         capi="DICT_VIEWVALUES",
         tstate=False,
-        arg_desc=(("dict_arg", expression.subnode_dict_arg),),
-        may_raise=False,
+        arg_desc=makeArgDescFromExpression(expression),
+        may_raise=expression.mayRaiseExceptionOperation(),
         conversion_check=decideConversionCheckNeeded(to_name, expression),
         source_ref=expression.getCompatibleSourceReference(),
         emit=emit,
@@ -833,39 +841,24 @@ def generateDictOperationViewvaluesCode(to_name, expression, emit, context):
 
 
 def generateDictOperationInCode(to_name, expression, emit, context):
-    inverted = expression.isExpressionDictOperationNotIn()
-
-    dict_name, key_name = generateChildExpressionsCode(
-        expression=expression, emit=emit, context=context
-    )
-
-    # Reverse child order.
     if expression.isExpressionDictOperationHaskey():
-        dict_name, key_name = key_name, dict_name
-
-    res_name = context.getIntResName()
-
-    emit(
-        "%s = DICT_HAS_ITEM(tstate, %s, %s);"
-        % (
-            res_name,
-            key_name,
-            dict_name,
+        dict_name, key_name = generateChildExpressionsCode(
+            expression=expression, emit=emit, context=context
         )
-    )
+    else:
+        key_name, dict_name = generateChildExpressionsCode(
+            expression=expression, emit=emit, context=context
+        )
 
-    getErrorExitBoolCode(
-        condition="%s == -1" % res_name,
+    getCAPIBoolCode(
+        to_name=to_name,
+        capi="DICT_HAS_ITEM",
+        arg_names=("tstate", dict_name, key_name),
+        may_raise=expression.mayRaiseExceptionOperation(),
+        inverted=expression.isExpressionDictOperationNotIn(),
         release_names=(dict_name, key_name),
-        needs_check=expression.known_hashable_key is not True,
         emit=emit,
         context=context,
-    )
-
-    to_name.getCType().emitAssignmentCodeFromBoolCondition(
-        to_name=to_name,
-        condition="%s %s 0" % (res_name, "==" if inverted else "!="),
-        emit=emit,
     )
 
 
@@ -877,11 +870,23 @@ def generateDictOperationSetCode(statement, emit, context):
         emit=emit,
         context=context,
     )
+    promoteBorrowedValue(
+        value_name=value_arg_name,
+        later_expressions=(statement.subnode_dict_arg, statement.subnode_key),
+        emit=emit,
+        context=context,
+    )
 
     dict_arg_name = context.allocateTempName("dictset_dict", unique=True)
     generateExpressionCode(
         to_name=dict_arg_name,
         expression=statement.subnode_dict_arg,
+        emit=emit,
+        context=context,
+    )
+    promoteBorrowedValue(
+        value_name=dict_arg_name,
+        later_expressions=(statement.subnode_key,),
         emit=emit,
         context=context,
     )
@@ -905,18 +910,13 @@ DICT_SET_ITEM_INFALLIBLE(tstate, %s, %s, %s);
             (value_arg_name, dict_arg_name, key_arg_name), emit=emit, context=context
         )
     else:
-        res_name = context.getBoolResName()
-
-        emit("""\
-assert(PyDict_CheckExact(%s));
-%s = DICT_SET_ITEM(tstate, %s, %s, %s);
-""" % (dict_arg_name, res_name, dict_arg_name, key_arg_name, value_arg_name))
-
-        getErrorExitBoolCode(
-            condition="%s == false" % res_name,
+        emit("assert(PyDict_CheckExact(%s));" % dict_arg_name)
+        getCAPIErrorCode(
+            capi="DICT_SET_ITEM",
+            arg_names=("tstate", dict_arg_name, key_arg_name, value_arg_name),
+            may_raise=True,
             release_names=(value_arg_name, dict_arg_name, key_arg_name),
             emit=emit,
-            needs_check=True,
             context=context,
         )
 
@@ -929,11 +929,23 @@ def generateDictOperationSetCodeKeyValue(statement, emit, context):
         emit=emit,
         context=context,
     )
+    promoteBorrowedValue(
+        value_name=key_arg_name,
+        later_expressions=(statement.subnode_value, statement.subnode_dict_arg),
+        emit=emit,
+        context=context,
+    )
 
     value_arg_name = context.allocateTempName("dictset38_value")
     generateExpressionCode(
         to_name=value_arg_name,
         expression=statement.subnode_value,
+        emit=emit,
+        context=context,
+    )
+    promoteBorrowedValue(
+        value_name=value_arg_name,
+        later_expressions=(statement.subnode_dict_arg,),
         emit=emit,
         context=context,
     )
@@ -958,58 +970,31 @@ DICT_SET_ITEM_INFALLIBLE(tstate, %s, %s, %s);
             (value_arg_name, dict_arg_name, key_arg_name), emit=emit, context=context
         )
     else:
-        res_name = context.getBoolResName()
-
-        emit("""\
-assert(PyDict_CheckExact(%s));
-%s = DICT_SET_ITEM(tstate, %s, %s, %s);
-""" % (dict_arg_name, res_name, dict_arg_name, key_arg_name, value_arg_name))
-
-        getErrorExitBoolCode(
-            condition="%s == false" % res_name,
+        emit("assert(PyDict_CheckExact(%s));" % dict_arg_name)
+        getCAPIErrorCode(
+            capi="DICT_SET_ITEM",
+            arg_names=("tstate", dict_arg_name, key_arg_name, value_arg_name),
+            may_raise=True,
             release_names=(value_arg_name, dict_arg_name, key_arg_name),
             emit=emit,
-            needs_check=True,
             context=context,
         )
 
 
 def generateDictOperationRemoveCode(statement, emit, context):
-    dict_arg_name = context.allocateTempName("dictdel_dict", unique=True)
-    generateExpressionCode(
-        to_name=dict_arg_name,
-        expression=statement.subnode_dict_arg,
+    generateCAPIErrorCode(
+        capi="DICT_REMOVE_ITEM",
+        tstate=True,
+        arg_desc=makeArgDescFromExpression(statement),
+        may_raise=statement.mayRaiseExceptionOperation(),
+        source_ref=(
+            statement.subnode_key.getSourceReference()
+            if states.is_full_compat
+            else statement.getSourceReference()
+        ),
         emit=emit,
         context=context,
     )
-
-    key_arg_name = context.allocateTempName("dictdel_key", unique=True)
-    generateExpressionCode(
-        to_name=key_arg_name,
-        expression=statement.subnode_key,
-        emit=emit,
-        context=context,
-    )
-
-    with context.withCurrentSourceCodeReference(
-        statement.subnode_key.getSourceReference()
-        if states.is_full_compat
-        else statement.getSourceReference()
-    ):
-        res_name = context.getBoolResName()
-
-        emit(
-            "%s = DICT_REMOVE_ITEM(tstate, %s, %s);"
-            % (res_name, dict_arg_name, key_arg_name)
-        )
-
-        getErrorExitBoolCode(
-            condition="%s == false" % res_name,
-            release_names=(dict_arg_name, key_arg_name),
-            needs_check=statement.mayRaiseException(BaseException),
-            emit=emit,
-            context=context,
-        )
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and

@@ -412,7 +412,13 @@ class ExpressionExceptionGroupMatch(
         ExpressionBase.__init__(self, source_ref)
 
     def computeExpression(self, trace_collection):
+        trace_collection.onExceptionRaiseExit(BaseException)
+
         return self, None, None
+
+    @staticmethod
+    def mayRaiseExceptionOperation():
+        return True
 
 
 class ExpressionExceptionGroupPrepareReraise(
@@ -429,7 +435,13 @@ class ExpressionExceptionGroupPrepareReraise(
         ExpressionBase.__init__(self, source_ref)
 
     def computeExpression(self, trace_collection):
+        trace_collection.onExceptionRaiseExit(BaseException)
+
         return self, None, None
+
+    @staticmethod
+    def mayRaiseExceptionOperation():
+        return True
 
 
 def makeBuiltinMakeExceptionNode(

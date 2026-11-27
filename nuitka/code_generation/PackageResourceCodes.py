@@ -20,9 +20,13 @@ from .CodeHelpers import (
 )
 from .ConstantCodes import addDistributionMetadataValue
 from .DictCodes import getDictionaryCreationCode
-from .ErrorCodes import getErrorExitCode
 from .ImportCodes import getImportModuleNameHardCode
-from .PythonAPICodes import generateCAPIObjectCode, makeArgDescFromExpression
+from .PythonAPICodes import (
+    ConstantArg,
+    OptionalArg,
+    generateCAPIObjectCode,
+    makeArgDescFromExpression,
+)
 from .TupleCodes import getTupleCreationCode
 
 
@@ -57,39 +61,20 @@ def generatePkglibGetDataCallCode(to_name, expression, emit, context):
 
 
 def generatePkgutilIterModulesCallCode(to_name, expression, emit, context):
-    path_name, prefix_name = generateChildExpressionsCode(
-        expression=expression, emit=emit, context=context
+    generateCAPIObjectCode(
+        to_name=to_name,
+        capi="NUITKA_PKGUTIL_ITER_MODULES",
+        tstate=True,
+        arg_desc=(
+            OptionalArg("path_value", expression.subnode_path, "Py_None"),
+            OptionalArg("prefix_value", expression.subnode_prefix, ConstantArg("")),
+        ),
+        may_raise=expression.mayRaiseExceptionOperation(),
+        conversion_check=decideConversionCheckNeeded(to_name, expression),
+        source_ref=expression.getCompatibleSourceReference(),
+        emit=emit,
+        context=context,
     )
-
-    release_names = []
-
-    if path_name is None:
-        path_name = "Py_None"
-    else:
-        release_names.append(path_name)
-
-    if prefix_name is None:
-        prefix_name = context.getConstantCode(constant="")
-    else:
-        release_names.append(prefix_name)
-
-    with withObjectCodeTemporaryAssignment(
-        to_name, "iter_modules_value", expression, emit, context
-    ) as result_name:
-        emit(
-            "%s = NUITKA_PKGUTIL_ITER_MODULES(tstate, %s, %s);"
-            % (result_name, path_name, prefix_name)
-        )
-
-        getErrorExitCode(
-            check_name=result_name,
-            release_names=release_names,
-            needs_check=True,
-            emit=emit,
-            context=context,
-        )
-
-        context.addCleanupTempName(result_name)
 
 
 def generatePkgResourcesDistributionValueCode(to_name, expression, emit, context):
@@ -206,20 +191,17 @@ def generateImportlibMetadataDistributionValueCode(to_name, expression, emit, co
         reason="static analysis",
     )
 
-    with withObjectCodeTemporaryAssignment(
-        to_name, "distribution_value", expression, emit, context
-    ) as value_name:
-        emit(
-            """%(to_name)s = Nuitka_Distribution_New(tstate, %(name)s);"""
-            % {
-                "to_name": value_name,
-                "name": context.getConstantCode(original_name),
-            }
-        )
-
-        getErrorExitCode(check_name=value_name, emit=emit, context=context)
-
-        context.addCleanupTempName(value_name)
+    generateCAPIObjectCode(
+        to_name=to_name,
+        capi="Nuitka_Distribution_New",
+        tstate=True,
+        arg_desc=(ConstantArg(original_name),),
+        may_raise=expression.mayRaiseExceptionOperation(),
+        conversion_check=decideConversionCheckNeeded(to_name, expression),
+        source_ref=expression.getCompatibleSourceReference(),
+        emit=emit,
+        context=context,
+    )
 
 
 def generatePkgResourcesEntryPointValueCode(to_name, expression, emit, context):
@@ -922,8 +904,8 @@ def generateOsFspathCallCode(to_name, expression, emit, context):
         to_name=to_name,
         capi="OS_FSPATH",
         tstate=True,
-        arg_desc=(("path_arg", expression.subnode_path),),
-        may_raise=expression.mayRaiseException(BaseException),
+        arg_desc=makeArgDescFromExpression(expression),
+        may_raise=expression.mayRaiseExceptionOperation(),
         conversion_check=decideConversionCheckNeeded(to_name, expression),
         source_ref=expression.getCompatibleSourceReference(),
         emit=emit,
@@ -936,8 +918,8 @@ def generateOsPathExistsCallCode(to_name, expression, emit, context):
         to_name=to_name,
         capi="OS_PATH_FILE_EXISTS",
         tstate=True,
-        arg_desc=(("exists_arg", expression.subnode_path),),
-        may_raise=expression.mayRaiseException(BaseException),
+        arg_desc=makeArgDescFromExpression(expression),
+        may_raise=expression.mayRaiseExceptionOperation(),
         conversion_check=decideConversionCheckNeeded(to_name, expression),
         source_ref=expression.getCompatibleSourceReference(),
         emit=emit,
@@ -950,8 +932,8 @@ def generateOsPathIsfileCallCode(to_name, expression, emit, context):
         to_name=to_name,
         capi="OS_PATH_FILE_ISFILE",
         tstate=True,
-        arg_desc=(("isfile_arg", expression.subnode_path),),
-        may_raise=expression.mayRaiseException(BaseException),
+        arg_desc=makeArgDescFromExpression(expression),
+        may_raise=expression.mayRaiseExceptionOperation(),
         conversion_check=decideConversionCheckNeeded(to_name, expression),
         source_ref=expression.getCompatibleSourceReference(),
         emit=emit,
@@ -964,8 +946,8 @@ def generateOsPathIsdirCallCode(to_name, expression, emit, context):
         to_name=to_name,
         capi="OS_PATH_FILE_ISDIR",
         tstate=True,
-        arg_desc=(("isdir_arg", expression.subnode_s),),
-        may_raise=expression.mayRaiseException(BaseException),
+        arg_desc=makeArgDescFromExpression(expression),
+        may_raise=expression.mayRaiseExceptionOperation(),
         conversion_check=decideConversionCheckNeeded(to_name, expression),
         source_ref=expression.getCompatibleSourceReference(),
         emit=emit,
@@ -978,8 +960,8 @@ def generateOsPathBasenameCallCode(to_name, expression, emit, context):
         to_name=to_name,
         capi="OS_PATH_BASENAME",
         tstate=True,
-        arg_desc=(("path_arg", expression.subnode_p),),
-        may_raise=expression.mayRaiseException(BaseException),
+        arg_desc=makeArgDescFromExpression(expression),
+        may_raise=expression.mayRaiseExceptionOperation(),
         conversion_check=decideConversionCheckNeeded(to_name, expression),
         source_ref=expression.getCompatibleSourceReference(),
         emit=emit,
@@ -992,8 +974,8 @@ def generateOsPathDirnameCallCode(to_name, expression, emit, context):
         to_name=to_name,
         capi="OS_PATH_DIRNAME",
         tstate=True,
-        arg_desc=(("path_arg", expression.subnode_p),),
-        may_raise=expression.mayRaiseException(BaseException),
+        arg_desc=makeArgDescFromExpression(expression),
+        may_raise=expression.mayRaiseExceptionOperation(),
         conversion_check=decideConversionCheckNeeded(to_name, expression),
         source_ref=expression.getCompatibleSourceReference(),
         emit=emit,
@@ -1007,7 +989,7 @@ def generateOsPathJoinCallCode(to_name, expression, emit, context):
         capi="OS_PATH_JOIN",
         tstate=True,
         arg_desc=makeArgDescFromExpression(expression),
-        may_raise=expression.mayRaiseException(BaseException),
+        may_raise=expression.mayRaiseExceptionOperation(),
         conversion_check=decideConversionCheckNeeded(to_name, expression),
         source_ref=expression.getCompatibleSourceReference(),
         emit=emit,
@@ -1020,8 +1002,8 @@ def generateOsPathNormpathCallCode(to_name, expression, emit, context):
         to_name=to_name,
         capi="OS_PATH_NORMPATH",
         tstate=True,
-        arg_desc=(("path_arg", expression.subnode_path),),
-        may_raise=expression.mayRaiseException(BaseException),
+        arg_desc=makeArgDescFromExpression(expression),
+        may_raise=expression.mayRaiseExceptionOperation(),
         conversion_check=decideConversionCheckNeeded(to_name, expression),
         source_ref=expression.getCompatibleSourceReference(),
         emit=emit,
@@ -1034,8 +1016,8 @@ def generateOsPathAbspathCallCode(to_name, expression, emit, context):
         to_name=to_name,
         capi="OS_PATH_ABSPATH",
         tstate=True,
-        arg_desc=(("path_arg", expression.subnode_path),),
-        may_raise=expression.mayRaiseException(BaseException),
+        arg_desc=makeArgDescFromExpression(expression),
+        may_raise=expression.mayRaiseExceptionOperation(),
         conversion_check=decideConversionCheckNeeded(to_name, expression),
         source_ref=expression.getCompatibleSourceReference(),
         emit=emit,
@@ -1048,8 +1030,8 @@ def generateOsPathIsabsCallCode(to_name, expression, emit, context):
         to_name=to_name,
         capi="OS_PATH_ISABS",
         tstate=True,
-        arg_desc=(("path_arg", expression.subnode_s),),
-        may_raise=expression.mayRaiseException(BaseException),
+        arg_desc=makeArgDescFromExpression(expression),
+        may_raise=expression.mayRaiseExceptionOperation(),
         conversion_check=decideConversionCheckNeeded(to_name, expression),
         source_ref=expression.getCompatibleSourceReference(),
         emit=emit,
@@ -1062,8 +1044,8 @@ def generateOsListdirCallCode(to_name, expression, emit, context):
         to_name=to_name,
         capi="OS_LISTDIR",
         tstate=True,
-        arg_desc=(("path_arg", expression.subnode_path),),
-        may_raise=expression.mayRaiseException(BaseException),
+        arg_desc=makeArgDescFromExpression(expression),
+        may_raise=expression.mayRaiseExceptionOperation(),
         conversion_check=decideConversionCheckNeeded(to_name, expression),
         source_ref=expression.getCompatibleSourceReference(),
         none_null=True,
@@ -1077,12 +1059,8 @@ def generateOsStatCallCode(to_name, expression, emit, context):
         to_name=to_name,
         capi="OS_STAT",
         tstate=True,
-        arg_desc=(
-            ("path_arg", expression.subnode_path),
-            ("dir_fd_arg", expression.subnode_dir_fd),
-            ("follow_symlinks_arg", expression.subnode_follow_symlinks),
-        ),
-        may_raise=expression.mayRaiseException(BaseException),
+        arg_desc=makeArgDescFromExpression(expression),
+        may_raise=expression.mayRaiseExceptionOperation(),
         conversion_check=decideConversionCheckNeeded(to_name, expression),
         source_ref=expression.getCompatibleSourceReference(),
         none_null=True,
@@ -1096,11 +1074,8 @@ def generateOsLstatCallCode(to_name, expression, emit, context):
         to_name=to_name,
         capi="OS_LSTAT",
         tstate=True,
-        arg_desc=(
-            ("path_arg", expression.subnode_path),
-            ("dir_fd_arg", expression.subnode_dir_fd),
-        ),
-        may_raise=expression.mayRaiseException(BaseException),
+        arg_desc=makeArgDescFromExpression(expression),
+        may_raise=expression.mayRaiseExceptionOperation(),
         conversion_check=decideConversionCheckNeeded(to_name, expression),
         source_ref=expression.getCompatibleSourceReference(),
         none_null=True,

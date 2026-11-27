@@ -4,13 +4,13 @@
 """Code to generate and interact with compiled coroutine objects."""
 
 from .CodeHelpers import (
+    decideConversionCheckNeeded,
     generateChildExpressionsCode,
     generateStatementSequenceCode,
     withObjectCodeTemporaryAssignment,
 )
 from .CodeObjectCodes import getCodeObjectAccessCode
 from .Emission import SourceCodeCollector
-from .ErrorCodes import getErrorExitCode
 from .FunctionCodes import (
     finalizeFunctionExceptionLocalVariables,
     finalizeFunctionLocalVariables,
@@ -21,6 +21,11 @@ from .FunctionCodes import (
 from .Indentation import indented
 from .LineNumberCodes import emitLineNumberUpdateCode
 from .ModuleCodes import getModuleAccessCode
+from .PythonAPICodes import (
+    generateCAPIObjectCode,
+    getCAPIObjectCode,
+    makeArgDescFromExpression,
+)
 from .templates.CodeTemplatesCoroutines import (
     template_coroutine_exception_exit,
     template_coroutine_no_exception_exit,
@@ -174,19 +179,22 @@ def generateMakeCoroutineObjectCode(to_name, expression, emit, context):
     if closure_name:
         args.append(closure_name)
 
-    emit(
-        template_make_coroutine
-        % {
-            "to_name": to_name,
-            "coroutine_maker_identifier": _getCoroutineMakerIdentifier(
-                coroutine_object_body.getCodeName()
-            ),
-            "args": ", ".join(str(arg) for arg in args),
-            "closure_copy": indented(closure_copy),
-        }
-    )
+    with withObjectCodeTemporaryAssignment(
+        to_name, "coroutine_result", expression, emit, context
+    ) as result_name:
+        emit(
+            template_make_coroutine
+            % {
+                "to_name": result_name,
+                "coroutine_maker_identifier": _getCoroutineMakerIdentifier(
+                    coroutine_object_body.getCodeName()
+                ),
+                "args": ", ".join(str(arg) for arg in args),
+                "closure_copy": indented(closure_copy),
+            }
+        )
 
-    context.addCleanupTempName(to_name)
+        context.addCleanupTempName(result_name)
 
 
 def generateAsyncWaitCode(to_name, expression, emit, context):
@@ -203,47 +211,45 @@ def generateAsyncWaitCode(to_name, expression, emit, context):
     else:
         wait_kind = "await_normal"
 
-    emit("%s = ASYNC_AWAIT(tstate, %s, %s);" % (to_name, value_name, wait_kind))
-
-    getErrorExitCode(
-        check_name=to_name, release_name=value_name, emit=emit, context=context
+    getCAPIObjectCode(
+        to_name=to_name,
+        capi="ASYNC_AWAIT",
+        arg_names=("tstate", value_name, wait_kind),
+        may_raise=expression.mayRaiseExceptionOperation(),
+        conversion_check=decideConversionCheckNeeded(to_name, expression),
+        ref_count=1,
+        release_names=(value_name,),
+        emit=emit,
+        context=context,
     )
-
-    context.addCleanupTempName(to_name)
 
 
 def generateAsyncIterCode(to_name, expression, emit, context):
-    (value_name,) = generateChildExpressionsCode(
-        expression=expression, emit=emit, context=context
+    generateCAPIObjectCode(
+        to_name=to_name,
+        capi="ASYNC_MAKE_ITERATOR",
+        tstate=True,
+        arg_desc=makeArgDescFromExpression(expression),
+        may_raise=expression.mayRaiseExceptionOperation(),
+        conversion_check=decideConversionCheckNeeded(to_name, expression),
+        source_ref=expression.getCompatibleSourceReference(),
+        emit=emit,
+        context=context,
     )
-
-    with withObjectCodeTemporaryAssignment(
-        to_name, "aiter_result", expression, emit, context
-    ) as result_name:
-        emit("%s = ASYNC_MAKE_ITERATOR(tstate, %s);" % (result_name, value_name))
-
-        getErrorExitCode(
-            check_name=result_name, release_name=value_name, emit=emit, context=context
-        )
-
-        context.addCleanupTempName(result_name)
 
 
 def generateAsyncNextCode(to_name, expression, emit, context):
-    (value_name,) = generateChildExpressionsCode(
-        expression=expression, emit=emit, context=context
+    generateCAPIObjectCode(
+        to_name=to_name,
+        capi="ASYNC_ITERATOR_NEXT",
+        tstate=True,
+        arg_desc=makeArgDescFromExpression(expression),
+        may_raise=expression.mayRaiseExceptionOperation(),
+        conversion_check=decideConversionCheckNeeded(to_name, expression),
+        source_ref=expression.getCompatibleSourceReference(),
+        emit=emit,
+        context=context,
     )
-
-    with withObjectCodeTemporaryAssignment(
-        to_name, "anext_result", expression, emit, context
-    ) as result_name:
-        emit("%s = ASYNC_ITERATOR_NEXT(tstate, %s);" % (result_name, value_name))
-
-        getErrorExitCode(
-            check_name=result_name, release_name=value_name, emit=emit, context=context
-        )
-
-        context.addCleanupTempName(result_name)
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and

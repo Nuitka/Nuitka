@@ -91,13 +91,18 @@ class ExpressionBuiltinAll(
 
         return self, None, None
 
+    def mayRaiseExceptionOperation(self):
+        return (
+            self.subnode_value.getTypeShape() not in _non_raising_truth_iterable_shapes
+        )
+
     def mayRaiseException(self, exception_type):
         value = self.subnode_value
 
         if value.mayRaiseException(exception_type):
             return True
 
-        return value.getTypeShape() not in _non_raising_truth_iterable_shapes
+        return self.mayRaiseExceptionOperation()
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and

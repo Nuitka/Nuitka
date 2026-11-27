@@ -414,6 +414,10 @@ class ExpressionSelectMetaclass(ChildrenHavingMetaclassBasesMixin, ExpressionBas
 
         return self, None, None
 
+    @staticmethod
+    def mayRaiseExceptionOperation():
+        return True
+
     def mayRaiseException(self, exception_type):
         return not self.subnode_bases.isExpressionConstantTupleEmptyRef()
 
@@ -468,6 +472,10 @@ class ExpressionBuiltinType3(ChildrenExpressionBuiltinType3Mixin, ExpressionBase
         # still present if exception raising is ever narrowed here.
         return True
 
+    @staticmethod
+    def mayRaiseExceptionOperation():
+        return True
+
     def computeExpression(self, trace_collection):
         # TODO: Specialize to a dedicated class creation node with compile-time
         # metaclass selection via _calculateMetaClass() when bases and dict
@@ -495,6 +503,10 @@ class ExpressionCallMetaclass(ExpressionCallMetaclassBase):
         trace_collection.onExceptionRaiseExit(BaseException)
 
         return self, None, None
+
+    @staticmethod
+    def mayRaiseExceptionOperation():
+        return True
 
     def mayRaiseException(self, exception_type):
         return True

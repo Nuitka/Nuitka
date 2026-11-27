@@ -26,10 +26,10 @@ from .CodeHelpers import (
     withObjectCodeTemporaryAssignment,
 )
 from .ConstantCodes import getModuleConstantsDeclAndChecks
-from .ErrorCodes import getErrorExitCode
 from .Indentation import indented
 from .LoaderCodes import getModuleLoaderEntryCode
 from .PgoCodes import getPGOProbeModuleEnterCode, getPGOProbeModuleExitCode
+from .PythonAPICodes import ConstantArg, generateCAPIObjectCode
 from .templates.CodeTemplatesModules import (
     template_global_copyright,
     template_module_body_template,
@@ -311,28 +311,24 @@ def getModuleCode(
 def generateRuntimePathCode(to_name, expression, emit, context):
     relative_path = expression.getRelativePath()
 
-    with withObjectCodeTemporaryAssignment(
-        to_name, "runtime_path_value", expression, emit, context
-    ) as result_name:
-        if relative_path:
-            emit(
-                "%s = MAKE_RELATIVE_PATH(%s);"
-                % (
-                    result_name,
-                    context.getConstantCode(relative_path),
-                )
-            )
-        else:
-            emit("%s = getPythonRuntimeDirObject();" % result_name)
+    if relative_path:
+        capi = "MAKE_RELATIVE_PATH"
+        arg_desc = (ConstantArg(relative_path),)
+    else:
+        capi = "getPythonRuntimeDirObject"
+        arg_desc = ()
 
-        getErrorExitCode(
-            check_name=result_name,
-            needs_check=expression.mayRaiseException(BaseException),
-            emit=emit,
-            context=context,
-        )
-
-        context.addCleanupTempName(result_name)
+    generateCAPIObjectCode(
+        to_name=to_name,
+        capi=capi,
+        tstate=False,
+        arg_desc=arg_desc,
+        may_raise=expression.mayRaiseExceptionOperation(),
+        conversion_check=decideConversionCheckNeeded(to_name, expression),
+        source_ref=expression.getCompatibleSourceReference(),
+        emit=emit,
+        context=context,
+    )
 
 
 def generateModuleAttributeFileCode(to_name, expression, emit, context):

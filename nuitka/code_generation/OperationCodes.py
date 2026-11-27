@@ -16,12 +16,11 @@ from .c_types.CTypeNuitkaVoids import CTypeNuitkaVoidEnum
 from .c_types.CTypePyObjectPointers import CTypePyObjectPtr
 from .c_types.CTypeVoids import CTypeVoid
 from .CodeHelpers import (
+    decideConversionCheckNeeded,
     doesExpressionWriteVariable,
-    generateChildExpressionsCode,
     generateExpressionCode,
     promoteBorrowedValue,
     withBorrowedValueScope,
-    withObjectCodeTemporaryAssignment,
 )
 from .CodeHelperSelection import selectCodeHelper
 from .ErrorCodes import (
@@ -31,6 +30,11 @@ from .ErrorCodes import (
     getTakeReferenceCode,
 )
 from .ExpressionCTypeSelectionHelpers import decideExpressionCTypes
+from .PythonAPICodes import (
+    CArg,
+    generateCAPIObjectCodeCommon,
+    makeArgDescFromExpression,
+)
 
 
 def generateOperationBinaryCode(to_name, expression, emit, context):
@@ -49,39 +53,51 @@ def generateOperationBinaryCode(to_name, expression, emit, context):
 
 
 def generateOperationNotCode(to_name, expression, emit, context):
-    # TODO: We badly need to support target boolean C type here, or else an object is created from the argument.
-    (arg_name,) = generateChildExpressionsCode(
-        expression=expression, emit=emit, context=context
-    )
+    operand = expression.subnode_operand
 
-    res_name = context.getIntResName()
+    if operand.mayRaiseExceptionBool(BaseException):
+        truth_c_type = "nuitka_bool"
+    else:
+        truth_c_type = "bool"
 
-    emit("%s = CHECK_IF_TRUE(%s);" % (res_name, arg_name))
+    if to_name.c_type in ("nuitka_bool", truth_c_type):
+        generateExpressionCode(
+            to_name=to_name, expression=operand, emit=emit, context=context
+        )
 
-    getErrorExitBoolCode(
-        condition="%s == -1" % res_name,
-        release_name=arg_name,
-        needs_check=expression.subnode_operand.mayRaiseExceptionBool(BaseException),
-        emit=emit,
-        context=context,
-    )
+        to_name.getCType().emitAssignInplaceNegatedValueCode(
+            to_name=to_name, needs_check=False, emit=emit, context=context
+        )
+    else:
+        operand_name = context.allocateTempName("operand_value", truth_c_type)
 
-    to_name.getCType().emitAssignmentCodeFromBoolCondition(
-        to_name=to_name, condition="%s == 0" % res_name, emit=emit
-    )
+        generateExpressionCode(
+            to_name=operand_name, expression=operand, emit=emit, context=context
+        )
+
+        to_name.getCType().emitAssignmentCodeFromBoolCondition(
+            to_name=to_name,
+            condition=(
+                "%s == NUITKA_BOOL_FALSE" % operand_name
+                if truth_c_type == "nuitka_bool"
+                else "!%s" % operand_name
+            ),
+            emit=emit,
+        )
 
 
 def generateOperationUnaryCode(to_name, expression, emit, context):
-    (arg_name,) = generateChildExpressionsCode(
-        expression=expression, emit=emit, context=context
-    )
+    impl_helper, ref_count = unary_operator_codes[expression.getOperator()]
 
-    _getUnaryOperationCode(
+    generateCAPIObjectCodeCommon(
         to_name=to_name,
-        expression=expression,
-        operator=expression.getOperator(),
-        arg_name=arg_name,
-        needs_check=expression.mayRaiseExceptionOperation(),
+        capi="UNARY_OPERATION",
+        tstate=False,
+        arg_desc=(CArg(impl_helper),) + makeArgDescFromExpression(expression),
+        may_raise=expression.mayRaiseExceptionOperation(),
+        conversion_check=decideConversionCheckNeeded(to_name, expression),
+        ref_count=ref_count,
+        source_ref=expression.getCompatibleSourceReference(),
         emit=emit,
         context=context,
     )
@@ -372,39 +388,6 @@ unary_operator_codes = {
     "Repr": ("PyObject_Repr", 1),
     "Not": ("UNARY_NOT", 0),
 }
-
-
-def _getUnaryOperationCode(
-    to_name, expression, operator, arg_name, needs_check, emit, context
-):
-    impl_helper, ref_count = unary_operator_codes[operator]
-
-    helper = "UNARY_OPERATION"
-    prefix_args = (impl_helper,)
-
-    with withObjectCodeTemporaryAssignment(
-        to_name, "op_%s_res" % operator.lower(), expression, emit, context
-    ) as value_name:
-        emit(
-            "%s = %s(%s);"
-            % (
-                value_name,
-                helper,
-                ", ".join(str(arg_name) for arg_name in prefix_args + (arg_name,)),
-            )
-        )
-
-        getErrorExitCode(
-            check_name=value_name,
-            release_name=arg_name,
-            needs_check=needs_check,
-            emit=emit,
-            context=context,
-        )
-
-        if ref_count:
-            context.addCleanupTempName(value_name)
-
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.

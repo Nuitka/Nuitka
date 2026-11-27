@@ -116,6 +116,9 @@ class ExpressionBuiltinDict(
 
             return self, None, None
 
+    def mayRaiseExceptionOperation(self):
+        return self.subnode_pos_arg is not None
+
     def mayRaiseException(self, exception_type):
         pos_arg = self.subnode_pos_arg
 
@@ -194,6 +197,10 @@ class ExpressionBuiltinFrozendict(
             ),
             description="Replace 'frozendict' call with constant arguments.",
         )
+
+    @staticmethod
+    def mayRaiseExceptionOperation():
+        return True
 
     def mayRaiseException(self, exception_type):
         pos_arg = self.subnode_pos_arg

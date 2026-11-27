@@ -201,6 +201,10 @@ attribute '%s' to mere attribute lookup""" % attribute_name,
 
         return self, None, None
 
+    @staticmethod
+    def mayRaiseExceptionOperation():
+        return True
+
 
 class ExpressionBuiltinSetattr(
     ExpressionNoneShapeExactMixin, ExpressionBuiltinSetattrBase
@@ -243,6 +247,10 @@ class ExpressionBuiltinSetattr(
         trace_collection.onExceptionRaiseExit(BaseException)
 
         return self, None, None
+
+    @staticmethod
+    def mayRaiseExceptionOperation():
+        return True
 
     def computeExpressionDrop(self, statement, trace_collection):
         if self.subnode_name.isExpressionConstantStrOrUnicodeRef():
@@ -314,6 +322,10 @@ class ExpressionBuiltinDelattr(
 
         return self, None, None
 
+    @staticmethod
+    def mayRaiseExceptionOperation():
+        return True
+
     def computeExpressionDrop(self, statement, trace_collection):
         if self.subnode_name.isExpressionConstantStrOrUnicodeRef():
             attribute_name = self.subnode_name.getCompileTimeConstant()
@@ -356,6 +368,10 @@ class ExpressionBuiltinHasattr(ExpressionBuiltinHasattrBase):
         trace_collection.onExceptionRaiseExit(BaseException)
 
         return self, None, None
+
+    @staticmethod
+    def mayRaiseExceptionOperation():
+        return True
 
     def computeExpressionConstantName(self, trace_collection):
         if not self.subnode_name.isExpressionConstantStrOrUnicodeRef():

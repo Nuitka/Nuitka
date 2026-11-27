@@ -3,7 +3,10 @@
 
 """Code to generate and interact with compiled asyncgen objects."""
 
-from .CodeHelpers import generateStatementSequenceCode
+from .CodeHelpers import (
+    generateStatementSequenceCode,
+    withObjectCodeTemporaryAssignment,
+)
 from .CodeObjectCodes import getCodeObjectAccessCode
 from .Emission import SourceCodeCollector
 from .FunctionCodes import (
@@ -165,19 +168,22 @@ def generateMakeAsyncgenObjectCode(to_name, expression, emit, context):
     if closure_name:
         args.append(closure_name)
 
-    emit(
-        template_make_asyncgen
-        % {
-            "to_name": to_name,
-            "asyncgen_maker_identifier": _getAsyncgenMakerIdentifier(
-                asyncgen_object_body.getCodeName()
-            ),
-            "args": ", ".join(str(arg) for arg in args),
-            "closure_copy": indented(closure_copy),
-        }
-    )
+    with withObjectCodeTemporaryAssignment(
+        to_name, "asyncgen_result", expression, emit, context
+    ) as result_name:
+        emit(
+            template_make_asyncgen
+            % {
+                "to_name": result_name,
+                "asyncgen_maker_identifier": _getAsyncgenMakerIdentifier(
+                    asyncgen_object_body.getCodeName()
+                ),
+                "args": ", ".join(str(arg) for arg in args),
+                "closure_copy": indented(closure_copy),
+            }
+        )
 
-    context.addCleanupTempName(to_name)
+        context.addCleanupTempName(result_name)
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and

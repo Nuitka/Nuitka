@@ -71,6 +71,10 @@ class ExpressionBuiltinRangeMixin(ExpressionListShapeExactMixin):
 
         return False
 
+    @staticmethod
+    def mayRaiseExceptionOperation():
+        return True
+
     def computeBuiltinSpec(self, trace_collection, given_values):
         assert self.builtin_spec is not None, self
 
@@ -424,6 +428,10 @@ class ExpressionBuiltinXrangeMixin(object):
             return True
 
         return False
+
+    @staticmethod
+    def mayRaiseExceptionOperation():
+        return True
 
     def computeBuiltinSpec(self, trace_collection, given_values):
         assert self.builtin_spec is not None, self

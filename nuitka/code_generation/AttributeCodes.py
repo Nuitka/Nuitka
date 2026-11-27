@@ -7,14 +7,16 @@ from nuitka.States import states
 
 from .CodeHelpers import (
     decideConversionCheckNeeded,
-    generateChildExpressionsCode,
     generateExpressionCode,
-    withObjectCodeTemporaryAssignment,
+    promoteBorrowedValue,
 )
-from .ErrorCodes import getErrorExitBoolCode, getErrorExitCode, getReleaseCode
 from .PythonAPICodes import (
+    ConstantArg,
+    generateCAPIBoolCode,
     generateCAPIObjectCode,
     generateCAPIObjectCode0,
+    getCAPIErrorCode,
+    getCAPIObjectCode,
     makeArgDescFromExpression,
 )
 
@@ -27,6 +29,12 @@ def generateAssignmentAttributeCode(statement, emit, context):
     value_name = context.allocateTempName("ass_attr_value")
     generateExpressionCode(
         to_name=value_name, expression=value, emit=emit, context=context
+    )
+    promoteBorrowedValue(
+        value_name=value_name,
+        later_expressions=(lookup_source,),
+        emit=emit,
+        context=context,
     )
 
     target_name = context.allocateTempName("ass_attr_target")
@@ -92,62 +100,61 @@ def getAttributeLookupCode(
     to_name, source_name, attribute_name, needs_check, emit, context
 ):
     if attribute_name == "__dict__":
-        emit("%s = LOOKUP_ATTRIBUTE_DICT_SLOT(tstate, %s);" % (to_name, source_name))
+        capi = "LOOKUP_ATTRIBUTE_DICT_SLOT"
+        arg_names = ("tstate", source_name)
     elif attribute_name == "__class__":
-        emit("%s = LOOKUP_ATTRIBUTE_CLASS_SLOT(tstate, %s);" % (to_name, source_name))
+        capi = "LOOKUP_ATTRIBUTE_CLASS_SLOT"
+        arg_names = ("tstate", source_name)
     else:
-        emit(
-            "%s = LOOKUP_ATTRIBUTE(tstate, %s, %s);"
-            % (to_name, source_name, context.getConstantCode(attribute_name))
-        )
+        capi = "LOOKUP_ATTRIBUTE"
+        arg_names = ("tstate", source_name, context.getConstantCode(attribute_name))
 
-    getErrorExitCode(
-        check_name=to_name,
-        release_name=source_name,
-        needs_check=needs_check,
+    getCAPIObjectCode(
+        to_name=to_name,
+        capi=capi,
+        arg_names=arg_names,
+        may_raise=needs_check,
+        conversion_check=False,
+        ref_count=1,
+        release_names=(source_name,),
         emit=emit,
         context=context,
     )
-
-    context.addCleanupTempName(to_name)
 
 
 def generateAttributeLookupCode(to_name, expression, emit, context):
-    (source_name,) = generateChildExpressionsCode(
-        expression=expression,
+    attribute_name = expression.getAttributeName()
+
+    if attribute_name == "__dict__":
+        capi = "LOOKUP_ATTRIBUTE_DICT_SLOT"
+        arg_desc = makeArgDescFromExpression(expression)
+    elif attribute_name == "__class__":
+        capi = "LOOKUP_ATTRIBUTE_CLASS_SLOT"
+        arg_desc = makeArgDescFromExpression(expression)
+    else:
+        capi = "LOOKUP_ATTRIBUTE"
+        arg_desc = makeArgDescFromExpression(expression) + (
+            ConstantArg(attribute_name),
+        )
+
+    generateCAPIObjectCode(
+        to_name=to_name,
+        capi=capi,
+        tstate=True,
+        arg_desc=arg_desc,
+        may_raise=expression.mayRaiseExceptionOperation(),
+        conversion_check=decideConversionCheckNeeded(to_name, expression),
+        source_ref=expression.getSourceReference(),
         emit=emit,
         context=context,
     )
 
-    attribute_name = expression.getAttributeName()
-
-    with withObjectCodeTemporaryAssignment(
-        to_name, "attribute_value", expression, emit, context
-    ) as value_name:
-        with context.withCurrentSourceCodeReference(expression.getSourceReference()):
-
-            getAttributeLookupCode(
-                to_name=value_name,
-                source_name=source_name,
-                attribute_name=attribute_name,
-                needs_check=expression.subnode_expression.mayRaiseExceptionAttributeLookup(
-                    exception_type=BaseException, attribute_name=attribute_name
-                ),
-                emit=emit,
-                context=context,
-            )
-
 
 def getAttributeAssignmentCode(target_name, attribute_name, value_name, emit, context):
-    res_name = context.getBoolResName()
-
-    emit(
-        "%s = SET_ATTRIBUTE(tstate, %s, %s, %s);"
-        % (res_name, target_name, attribute_name, value_name)
-    )
-
-    getErrorExitBoolCode(
-        condition="%s == false" % res_name,
+    getCAPIErrorCode(
+        capi="SET_ATTRIBUTE",
+        arg_names=("tstate", target_name, attribute_name, value_name),
+        may_raise=True,
         release_names=(value_name, target_name, attribute_name),
         emit=emit,
         context=context,
@@ -155,15 +162,10 @@ def getAttributeAssignmentCode(target_name, attribute_name, value_name, emit, co
 
 
 def getAttributeAssignmentDictSlotCode(target_name, value_name, emit, context):
-    res_name = context.getBoolResName()
-
-    emit(
-        "%s = SET_ATTRIBUTE_DICT_SLOT(tstate, %s, %s);"
-        % (res_name, target_name, value_name)
-    )
-
-    getErrorExitBoolCode(
-        condition="%s == false" % res_name,
+    getCAPIErrorCode(
+        capi="SET_ATTRIBUTE_DICT_SLOT",
+        arg_names=("tstate", target_name, value_name),
+        may_raise=True,
         release_names=(value_name, target_name),
         emit=emit,
         context=context,
@@ -171,16 +173,10 @@ def getAttributeAssignmentDictSlotCode(target_name, value_name, emit, context):
 
 
 def getAttributeAssignmentClassSlotCode(target_name, value_name, emit, context):
-
-    res_name = context.getBoolResName()
-
-    emit(
-        "%s = SET_ATTRIBUTE_CLASS_SLOT(tstate, %s, %s);"
-        % (res_name, target_name, value_name)
-    )
-
-    getErrorExitBoolCode(
-        condition="%s == false" % res_name,
+    getCAPIErrorCode(
+        capi="SET_ATTRIBUTE_CLASS_SLOT",
+        arg_names=("tstate", target_name, value_name),
+        may_raise=True,
         release_names=(value_name, target_name),
         emit=emit,
         context=context,
@@ -188,32 +184,27 @@ def getAttributeAssignmentClassSlotCode(target_name, value_name, emit, context):
 
 
 def getAttributeDelCode(target_name, attribute_name, emit, context):
-    res_name = context.getIntResName()
-
-    emit("%s = PyObject_DelAttr(%s, %s);" % (res_name, target_name, attribute_name))
-
-    getErrorExitBoolCode(
-        condition="%s == -1" % res_name,
+    getCAPIErrorCode(
+        capi="PyObject_DelAttr",
+        arg_names=(target_name, attribute_name),
+        may_raise=True,
         release_names=(target_name, attribute_name),
+        res_type="int_neg1",
         emit=emit,
         context=context,
     )
 
 
 def generateAttributeLookupSpecialCode(to_name, expression, emit, context):
-    (source_name,) = generateChildExpressionsCode(
-        expression=expression, emit=emit, context=context
-    )
-
-    attribute_name = expression.getAttributeName()
-
-    getAttributeLookupSpecialCode(
+    generateCAPIObjectCode(
         to_name=to_name,
-        source_name=source_name,
-        attr_name=context.getConstantCode(constant=attribute_name),
-        needs_check=expression.subnode_expression.mayRaiseExceptionAttributeLookupSpecial(
-            exception_type=BaseException, attribute_name=attribute_name
-        ),
+        capi="LOOKUP_SPECIAL",
+        tstate=True,
+        arg_desc=makeArgDescFromExpression(expression)
+        + (ConstantArg(expression.getAttributeName()),),
+        may_raise=expression.mayRaiseExceptionOperation(),
+        conversion_check=decideConversionCheckNeeded(to_name, expression),
+        source_ref=expression.getCompatibleSourceReference(),
         emit=emit,
         context=context,
     )
@@ -222,88 +213,47 @@ def generateAttributeLookupSpecialCode(to_name, expression, emit, context):
 def getAttributeLookupSpecialCode(
     to_name, source_name, attr_name, needs_check, emit, context
 ):
-    emit("%s = LOOKUP_SPECIAL(tstate, %s, %s);" % (to_name, source_name, attr_name))
-
-    getErrorExitCode(
-        check_name=to_name,
+    getCAPIObjectCode(
+        to_name=to_name,
+        capi="LOOKUP_SPECIAL",
+        arg_names=("tstate", source_name, attr_name),
+        may_raise=needs_check,
+        conversion_check=False,
+        ref_count=1,
         release_names=(source_name, attr_name),
         emit=emit,
-        needs_check=needs_check,
         context=context,
     )
-
-    context.addCleanupTempName(to_name)
 
 
 def generateBuiltinHasattrCode(to_name, expression, emit, context):
-    source_name, attr_name = generateChildExpressionsCode(
-        expression=expression, emit=emit, context=context
-    )
-
-    res_name = context.getIntResName()
-
-    emit(
-        "%s = BUILTIN_HASATTR_BOOL(tstate, %s, %s);"
-        % (res_name, source_name, attr_name)
-    )
-
-    getErrorExitBoolCode(
-        condition="%s == -1" % res_name,
-        release_names=(source_name, attr_name),
-        needs_check=expression.mayRaiseException(BaseException),
+    generateCAPIBoolCode(
+        to_name=to_name,
+        capi="BUILTIN_HASATTR_BOOL",
+        tstate=True,
+        arg_desc=makeArgDescFromExpression(expression),
+        may_raise=expression.mayRaiseExceptionOperation(),
+        source_ref=expression.getCompatibleSourceReference(),
         emit=emit,
         context=context,
-    )
-
-    to_name.getCType().emitAssignmentCodeFromBoolCondition(
-        to_name=to_name, condition="%s != 0" % res_name, emit=emit
     )
 
 
 def generateAttributeCheckCode(to_name, expression, emit, context):
-    (source_name,) = generateChildExpressionsCode(
-        expression=expression, emit=emit, context=context
+    may_raise = expression.mayRaiseExceptionOperation()
+
+    generateCAPIBoolCode(
+        to_name=to_name,
+        capi="HAS_ATTR_BOOL2" if may_raise else "HAS_ATTR_BOOL",
+        tstate=True,
+        arg_desc=makeArgDescFromExpression(expression)
+        + (ConstantArg(expression.getAttributeName()),),
+        may_raise=may_raise,
+        res_type="tristate" if may_raise else "bool",
+        source_ref=expression.getCompatibleSourceReference(),
+        emit=emit,
+        context=context,
     )
-
-    if expression.mayRaiseExceptionOperation():
-        res_name = context.getIntResName()
-
-        emit(
-            "%s = HAS_ATTR_BOOL2(tstate, %s, %s);"
-            % (
-                res_name,
-                source_name,
-                context.getConstantCode(constant=expression.getAttributeName()),
-            )
-        )
-
-        getErrorExitBoolCode(
-            condition="%s == -1" % res_name,
-            release_name=source_name,
-            emit=emit,
-            context=context,
-        )
-
-        to_name.getCType().emitAssignmentCodeFromBoolCondition(
-            to_name=to_name, condition="%s != 0" % res_name, emit=emit
-        )
-    else:
-        res_name = context.getBoolResName()
-
-        emit(
-            "%s = HAS_ATTR_BOOL(tstate, %s, %s);"
-            % (
-                res_name,
-                source_name,
-                context.getConstantCode(constant=expression.getAttributeName()),
-            )
-        )
-
-        getReleaseCode(release_name=source_name, emit=emit, context=context)
-
-        to_name.getCType().emitAssignmentCodeFromBoolCondition(
-            to_name=to_name, condition=res_name, emit=emit
-        )
 
 
 def generateBuiltinGetattrCode(to_name, expression, emit, context):
@@ -312,7 +262,7 @@ def generateBuiltinGetattrCode(to_name, expression, emit, context):
         capi="BUILTIN_GETATTR",
         tstate=True,
         arg_desc=makeArgDescFromExpression(expression),
-        may_raise=expression.mayRaiseException(BaseException),
+        may_raise=expression.mayRaiseExceptionOperation(),
         conversion_check=decideConversionCheckNeeded(to_name, expression),
         source_ref=expression.getCompatibleSourceReference(),
         none_null=True,
@@ -327,7 +277,7 @@ def generateBuiltinSetattrCode(to_name, expression, emit, context):
         capi="BUILTIN_SETATTR",
         tstate=False,
         arg_desc=makeArgDescFromExpression(expression),
-        may_raise=expression.mayRaiseException(BaseException),
+        may_raise=expression.mayRaiseExceptionOperation(),
         conversion_check=decideConversionCheckNeeded(to_name, expression),
         source_ref=expression.getCompatibleSourceReference(),
         emit=emit,
@@ -341,7 +291,7 @@ def generateBuiltinDelattrCode(to_name, expression, emit, context):
         capi="BUILTIN_DELATTR",
         tstate=False,
         arg_desc=makeArgDescFromExpression(expression),
-        may_raise=expression.mayRaiseException(BaseException),
+        may_raise=expression.mayRaiseExceptionOperation(),
         conversion_check=decideConversionCheckNeeded(to_name, expression),
         source_ref=expression.getCompatibleSourceReference(),
         emit=emit,

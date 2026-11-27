@@ -341,9 +341,15 @@ class ExpressionImportlibMetadataDistributionValueRef(
 
     @staticmethod
     def mayRaiseException(exception_type):
-        return False
+        return True
+
+    @staticmethod
+    def mayRaiseExceptionOperation():
+        return True
 
     def computeExpressionRaw(self, trace_collection):
+        trace_collection.onExceptionRaiseExit(BaseException)
+
         return self, None, None
 
 

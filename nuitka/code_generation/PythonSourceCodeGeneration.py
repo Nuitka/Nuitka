@@ -2435,17 +2435,18 @@ def _generateBuiltinMakeExceptionSource(expression):
 
 def _generateBuiltinCompileSource(expression):
     callable_source = _getBuiltinCallableSource(expression, "compile")
-    return _formatOptionalArgumentsCall(
-        callable_source,
-        (
-            ("source", expression.subnode_source),
-            ("filename", expression.subnode_filename),
-            ("mode", expression.subnode_mode),
-            ("flags", expression.subnode_flags),
-            ("dont_inherit", expression.subnode_dont_inherit),
-            ("optimize", expression.subnode_optimize),
-        ),
-    )
+    arg_specs = [
+        ("source", expression.subnode_source),
+        ("filename", expression.subnode_filename),
+        ("mode", expression.subnode_mode),
+        ("flags", expression.subnode_flags),
+        ("dont_inherit", expression.subnode_dont_inherit),
+    ]
+
+    if expression.isExpressionBuiltinCompileSince3():
+        arg_specs.append(("optimize", expression.subnode_optimize))
+
+    return _formatOptionalArgumentsCall(callable_source, tuple(arg_specs))
 
 
 def _generateBuiltinEvalExecSource(expression):
@@ -3144,7 +3145,8 @@ _expression_source_dispatch = {
     "EXPRESSION_BUILTIN_BYTES3": _generateBuiltinBytes3Source,
     "EXPRESSION_BUILTIN_CHR": _makeSingleArgBuiltinSourceHandler("chr"),
     "EXPRESSION_BUILTIN_CLASSMETHOD": _makeSingleArgBuiltinSourceHandler("classmethod"),
-    "EXPRESSION_BUILTIN_COMPILE": _generateBuiltinCompileSource,
+    "EXPRESSION_BUILTIN_COMPILE_BEFORE3": _generateBuiltinCompileSource,
+    "EXPRESSION_BUILTIN_COMPILE_SINCE3": _generateBuiltinCompileSource,
     "EXPRESSION_BUILTIN_COMPLEX1": _makeSingleArgBuiltinSourceHandler("complex"),
     "EXPRESSION_BUILTIN_COMPLEX2": _generateBuiltinComplex2Source,
     "EXPRESSION_BUILTIN_DELATTR": _generateBuiltinDelattrSource,

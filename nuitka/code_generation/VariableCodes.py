@@ -24,16 +24,15 @@ from .CodeHelpers import (
     generateExpressionCode,
     isObjectReferenceValue,
     promoteBorrowedValuesForVariable,
-    withObjectCodeTemporaryAssignment2,
 )
 from .DeferredReleaseCodes import checkDeferredReleaseUse
 from .ErrorCodes import (
     getAssertionCode,
-    getErrorExitCode,
     getLocalVariableReferenceErrorCode,
     getNameReferenceErrorCode,
 )
 from .LineNumberCodes import emitLineNumberUpdateCode
+from .PythonAPICodes import getCAPIObjectCode
 from .VariableDeclarations import VariableDeclaration
 
 
@@ -133,41 +132,27 @@ def getModuleVariableReferenceCode(
         no_global_deletion=no_global_deletion,
     )
 
-    with withObjectCodeTemporaryAssignment2(
-        to_name, "mvar_value", conversion_check, emit, context
-    ) as value_name:
-        accessor_function_name = getModuleVariableAccessorCodeName(
-            context.getModuleCodeName(), variable_name
-        )
+    accessor_function_name = getModuleVariableAccessorCodeName(
+        context.getModuleCodeName(), variable_name
+    )
 
-        if needs_check:
-            (
-                exception_state_name,
-                _exception_lineno,
-            ) = context.getExceptionVariableDescriptions()
+    if needs_check:
+        accessor_function_name += "$checked_global" if needs_global_name else "$checked"
+    else:
+        accessor_function_name += "$infallible"
 
-            accessor_function_name += (
-                "$checked_global" if needs_global_name else "$checked"
-            )
-
-            emit(
-                "%s = %s(tstate, &%s);"
-                % (value_name, accessor_function_name, exception_state_name)
-            )
-
-            getErrorExitCode(
-                check_name=value_name,
-                emit=emit,
-                context=context,
-                fetched_exception=True,
-            )
-        else:
-            accessor_function_name += "$infallible"
-
-            emit("%s = %s(tstate);" % (value_name, accessor_function_name))
-
-        if not hasGuaranteedRuntimeGil():
-            context.addCleanupTempName(value_name)
+    getCAPIObjectCode(
+        to_name=to_name,
+        capi=accessor_function_name,
+        arg_names=("tstate",),
+        may_raise=needs_check,
+        conversion_check=conversion_check,
+        ref_count=0 if hasGuaranteedRuntimeGil() else 1,
+        release_names=(),
+        fetched_exception=True,
+        emit=emit,
+        context=context,
+    )
 
 
 def getNonModuleVariableReferenceCode(
@@ -573,6 +558,8 @@ def generateVariableReleaseCode(statement, emit, context):
     value_name = getLocalVariableDeclaration(context, variable, variable_trace)
 
     c_type = value_name.getCType()
+
+    promoteBorrowedValuesForVariable(variable=variable, emit=emit, context=context)
 
     if not needs_check:
         c_type.emitReleaseAssertionCode(value_name=value_name, emit=emit)

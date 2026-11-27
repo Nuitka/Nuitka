@@ -502,9 +502,11 @@ class ExpressionBase(NodeBase):
         return iter_node, None, None
 
     def computeExpressionOperationNot(self, not_node, trace_collection):
-        # pylint: disable=no-self-use
-        trace_collection.onControlFlowEscape(not_node)
-        trace_collection.onExceptionRaiseExit(BaseException)
+        if self.mayHaveSideEffectsBool():
+            trace_collection.onControlFlowEscape(not_node)
+
+        if self.mayRaiseExceptionBool(BaseException):
+            trace_collection.onExceptionRaiseExit(BaseException)
 
         return not_node, None, None
 
@@ -792,6 +794,10 @@ class ExpressionNoSideEffectsMixin(object):
         # pylint: disable=unused-argument
         return False
 
+    @staticmethod
+    def mayRaiseExceptionOperation():
+        return False
+
 
 class CompileTimeConstantExpressionBase(ExpressionNoSideEffectsMixin, ExpressionBase):
     __slots__ = ("computed_attributes",)
@@ -1039,6 +1045,10 @@ class ExpressionSpecBasedComputationMixin(object):
 
     builtin_spec = None
 
+    @staticmethod
+    def mayRaiseExceptionOperation():
+        return True
+
     def computeBuiltinSpec(self, trace_collection, given_values):
         assert self.builtin_spec is not None, self
 
@@ -1060,6 +1070,10 @@ class ExpressionSpecBasedComputationNoRaiseMixin(object):
     __slots__ = ()
 
     builtin_spec = None
+
+    @staticmethod
+    def mayRaiseExceptionOperation():
+        return False
 
     def computeBuiltinSpec(self, trace_collection, given_values):
         assert self.builtin_spec is not None, self

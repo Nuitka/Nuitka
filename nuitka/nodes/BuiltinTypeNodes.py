@@ -142,6 +142,9 @@ class ExpressionBuiltinFloat(ChildHavingValueMixin, ExpressionBase):
             float_node=self, trace_collection=trace_collection
         )
 
+    def mayRaiseExceptionOperation(self):
+        return self.subnode_value.mayRaiseExceptionFloat(BaseException)
+
     def mayRaiseException(self, exception_type):
         return self.subnode_value.mayRaiseExceptionFloat(exception_type)
 
@@ -177,12 +180,21 @@ class ExpressionBuiltinBool(ExpressionBoolShapeExactMixin, ExpressionBuiltinType
                 "Eliminated boolean conversion of boolean value.",
             )
 
-        return ExpressionBuiltinTypeBase.computeExpression(self, trace_collection)
+        if value.mayHaveSideEffectsBool():
+            trace_collection.onControlFlowEscape(self)
+
+        if value.mayRaiseExceptionBool(BaseException):
+            trace_collection.onExceptionRaiseExit(BaseException)
+
+        return self, None, None
 
     def mayRaiseException(self, exception_type):
         return self.subnode_value.mayRaiseException(
             exception_type
         ) or self.subnode_value.mayRaiseExceptionBool(exception_type)
+
+    def mayRaiseExceptionOperation(self):
+        return self.subnode_value.mayRaiseExceptionBool(BaseException)
 
 
 class ExpressionBuiltinUnicodeBase(
@@ -308,6 +320,9 @@ class ExpressionBuiltinBytes1(ChildHavingValueMixin, ExpressionBase):
             bytes_node=self, trace_collection=trace_collection
         )
 
+    def mayRaiseExceptionOperation(self):
+        return self.subnode_value.mayRaiseExceptionBytes(BaseException)
+
     def mayRaiseException(self, exception_type):
         return self.subnode_value.mayRaiseExceptionBytes(exception_type)
 
@@ -356,6 +371,10 @@ class ExpressionBuiltinBytearray3(
         trace_collection.onExceptionRaiseExit(BaseException)
 
         return self, None, None
+
+    @staticmethod
+    def mayRaiseExceptionOperation():
+        return True
 
 
 class ExpressionConstantGenericAlias(CompileTimeConstantExpressionBase):
@@ -444,7 +463,13 @@ class ExpressionTypeOperationPrepare(
                 "Predicted result 'type.__prepare__' as empty dict.",
             )
 
+        trace_collection.onExceptionRaiseExit(BaseException)
+
         return self, None, None
+
+    @staticmethod
+    def mayRaiseExceptionOperation():
+        return True
 
 
 class ExpressionBuiltinsMemoryviewCall(ExpressionBuiltinsMemoryviewCallBase):

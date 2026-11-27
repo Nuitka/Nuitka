@@ -94,6 +94,10 @@ class ExpressionBuiltinNext2(ChildrenHavingIteratorDefaultMixin, ExpressionBase)
 
         return self, None, None
 
+    @staticmethod
+    def mayRaiseExceptionOperation():
+        return True
+
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.

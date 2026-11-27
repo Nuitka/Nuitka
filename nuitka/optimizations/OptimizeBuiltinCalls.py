@@ -103,7 +103,8 @@ from nuitka.nodes.ConditionalNodes import (
 from nuitka.nodes.ConstantRefNodes import makeConstantRefNode
 from nuitka.nodes.ContainerMakingNodes import makeExpressionMakeTupleOrConstant
 from nuitka.nodes.ExecEvalNodes import (
-    ExpressionBuiltinCompile,
+    ExpressionBuiltinCompileBefore3,
+    ExpressionBuiltinCompileSince3,
     ExpressionBuiltinEval,
     ExpressionBuiltinExec,
     ExpressionBuiltinExecfile,
@@ -1153,24 +1154,18 @@ if python_version >= 0x300:
 
 
 def compile_extractor(node):
-    def wrapExpressionBuiltinCompileCreation(
-        source, filename, mode, flags, dont_inherit, optimize=None, source_ref=None
-    ):
-        return ExpressionBuiltinCompile(
-            source=source,
-            filename=filename,
-            mode=mode,
-            flags=flags,
-            dont_inherit=dont_inherit,
-            optimize=optimize,
-            source_ref=source_ref,
+    if python_version < 0x300:
+        return BuiltinParameterSpecs.extractBuiltinArgs(
+            node=node,
+            builtin_class=ExpressionBuiltinCompileBefore3,
+            builtin_spec=BuiltinParameterSpecs.builtin_compile_before_3_spec,
         )
-
-    return BuiltinParameterSpecs.extractBuiltinArgs(
-        node=node,
-        builtin_class=wrapExpressionBuiltinCompileCreation,
-        builtin_spec=BuiltinParameterSpecs.builtin_compile_spec,
-    )
+    else:
+        return BuiltinParameterSpecs.extractBuiltinArgs(
+            node=node,
+            builtin_class=ExpressionBuiltinCompileSince3,
+            builtin_spec=BuiltinParameterSpecs.builtin_compile_since_3_spec,
+        )
 
 
 def super_extractor(node):

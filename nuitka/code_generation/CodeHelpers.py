@@ -85,6 +85,12 @@ def _generateExpressionCode(to_name, expression, emit, context, allow_none=False
 def generateExpressionsCode(names, expressions, emit, context):
     assert len(names) == len(expressions)
 
+    non_none_expressions = [
+        expression for expression in expressions if expression is not None
+    ]
+    expr_index = 0
+    total_expressions = len(non_none_expressions)
+
     result = []
     for name, expression in zip(names, expressions):
         if expression is not None:
@@ -93,6 +99,15 @@ def generateExpressionsCode(names, expressions, emit, context):
             generateExpressionCode(
                 to_name=to_name, expression=expression, emit=emit, context=context
             )
+
+            expr_index += 1
+            if expr_index < total_expressions:
+                promoteBorrowedValue(
+                    value_name=to_name,
+                    later_expressions=non_none_expressions[expr_index:],
+                    emit=emit,
+                    context=context,
+                )
         else:
             to_name = None
 
@@ -177,14 +192,22 @@ def promoteBorrowedValue(value_name, later_expressions, emit, context):
                 return
 
 
+def _isVariableWriteStatement(node):
+    return (
+        node.isStatementAssignmentVariable()
+        or node.isStatementDelVariable()
+        or node.isStatementReleaseVariable()
+    )
+
+
 def doesExpressionWriteVariable(expression, variable):
-    """Check if an expression contains an assignment to the given variable."""
+    """Check if an expression contains a write, delete, or release of 'variable'."""
 
     nodes = [expression]
     while nodes:
         node = nodes.pop()
 
-        if node.isStatementAssignmentVariable() and node.variable is variable:
+        if _isVariableWriteStatement(node) and node.variable is variable:
             return True
 
         if node.isExpressionMakeAsyncgenObject():
@@ -222,7 +245,7 @@ def promoteBorrowedValuesForExpressionWrites(expression, emit, context):
     while nodes:
         node = nodes.pop()
 
-        if node.isStatementAssignmentVariable():
+        if _isVariableWriteStatement(node):
             variable = node.variable
 
             if variable not in promoted_variables:
@@ -254,9 +277,21 @@ def withBorrowedValueScope(context):
 
 
 def generateChildExpressionsCode(expression, emit, context):
+    named_children = tuple(expression.getVisitableNodesNamed())
+
+    all_expressions = []
+    for _child_name, child_value in named_children:
+        if type(child_value) is tuple:
+            all_expressions.extend(child_value)
+        elif child_value is not None:
+            all_expressions.append(child_value)
+
+    expr_index = 0
+    total_expressions = len(all_expressions)
+
     value_names = []
 
-    for child_name, child_value in expression.getVisitableNodesNamed():
+    for child_name, child_value in named_children:
         if type(child_value) is tuple:
             child_names = []
 
@@ -270,6 +305,15 @@ def generateChildExpressionsCode(expression, emit, context):
                     context=context,
                 )
 
+                expr_index += 1
+                if expr_index < total_expressions:
+                    promoteBorrowedValue(
+                        value_name=value_name,
+                        later_expressions=all_expressions[expr_index:],
+                        emit=emit,
+                        context=context,
+                    )
+
                 child_names.append(value_name)
 
             value_names.append(tuple(child_names))
@@ -279,6 +323,15 @@ def generateChildExpressionsCode(expression, emit, context):
             generateExpressionCode(
                 to_name=value_name, expression=child_value, emit=emit, context=context
             )
+
+            expr_index += 1
+            if expr_index < total_expressions:
+                promoteBorrowedValue(
+                    value_name=value_name,
+                    later_expressions=all_expressions[expr_index:],
+                    emit=emit,
+                    context=context,
+                )
 
             value_names.append(value_name)
         else:
@@ -389,37 +442,14 @@ def decideConversionCheckNeeded(to_name, expression):
     return conversion_check
 
 
-# TODO: Get rid of the duplication of code with
-# "withObjectCodeTemporaryAssignment" by setting on one of them.
-
-
-@contextmanager
-def withObjectCodeTemporaryAssignment2(
-    to_name, value_name, needs_conversion_check, emit, context
-):
-    """Converting to the target type, provide temporary object value name only if necessary."""
-
-    if to_name.c_type == "PyObject *":
-        value_name = to_name
-    else:
-        value_name = context.allocateTempName(value_name)
-
-    yield value_name
-
-    if to_name is not value_name:
-        # This is also tasked to release value_name.
-        to_name.getCType().emitAssignConversionCode(
-            to_name=to_name,
-            value_name=value_name,
-            needs_check=needs_conversion_check,
-            emit=emit,
-            context=context,
-        )
-
-
 @contextmanager
 def withObjectCodeTemporaryAssignment(to_name, value_name, expression, emit, context):
-    """Converting to the target type, provide temporary object value name only if necessary."""
+    """Provide a 'PyObject *' temp for 'to_name' and convert on exit.
+
+    Args:
+        expression: Expression node or a bool indicating whether truth-value
+            conversion may raise.
+    """
 
     if to_name.c_type == "PyObject *":
         value_name = to_name
@@ -429,17 +459,18 @@ def withObjectCodeTemporaryAssignment(to_name, value_name, expression, emit, con
     yield value_name
 
     if to_name is not value_name:
+        if type(expression) is bool:
+            needs_check = expression
+        else:
+            needs_check = decideConversionCheckNeeded(to_name, expression)
+
         to_name.getCType().emitAssignConversionCode(
             to_name=to_name,
             value_name=value_name,
-            needs_check=decideConversionCheckNeeded(to_name, expression),
+            needs_check=needs_check,
             emit=emit,
             context=context,
         )
-
-        from .ErrorCodes import getReleaseCode
-
-        getReleaseCode(value_name, emit, context)
 
 
 def assignConstantNoneResult(to_name, emit, context):

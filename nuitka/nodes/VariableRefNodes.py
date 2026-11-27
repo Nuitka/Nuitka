@@ -797,6 +797,18 @@ class ExpressionTempVariableRef(
 
         return True, (next_node, None, None)
 
+    def mayRaiseExceptionBool(self, exception_type):
+        return (
+            self.variable_trace is None
+            or not self.variable_trace.getTypeShape().hasShapeSlotBool()
+        )
+
+    def mayHaveSideEffectsBool(self):
+        return (
+            self.variable_trace is None
+            or not self.variable_trace.getTypeShape().hasShapeSlotBool()
+        )
+
     def mayRaiseExceptionImportName(self, exception_type, import_name):
         if self.variable_trace is not None and self.variable_trace.isAssignTrace():
             return self.variable_trace.getAssignNode().subnode_source.mayRaiseExceptionImportName(

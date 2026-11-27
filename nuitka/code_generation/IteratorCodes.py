@@ -11,19 +11,23 @@ from nuitka.PythonVersions import python_version
 from .CodeHelpers import (
     decideConversionCheckNeeded,
     generateChildExpressionsCode,
-    generateExpressionCode,
     withObjectCodeTemporaryAssignment,
 )
 from .ErrorCodes import (
-    getErrorExitBoolCode,
     getErrorExitCode,
     getErrorExitReleaseCode,
     getReleaseCode,
 )
 from .LineNumberCodes import getErrorLineNumberUpdateCode
-from .PythonAPICodes import generateCAPIObjectCode
+from .PythonAPICodes import (
+    CArg,
+    TupleArg,
+    generateCAPIBoolCode,
+    generateCAPIErrorCode,
+    generateCAPIObjectCode,
+    makeArgDescFromExpression,
+)
 from .templates.CodeTemplatesIterators import template_loop_break_next
-from .TupleCodes import getTupleCreationCode
 
 
 def _emitIteratorNextCode(expression, to_name, value, emit):
@@ -81,122 +85,62 @@ if (%(to_name)s == NULL) {
 
 
 def generateBuiltinEnumerate1Code(to_name, expression, emit, context):
-    (sequence_name,) = generateChildExpressionsCode(
-        expression=expression, emit=emit, context=context
+    generateCAPIObjectCode(
+        to_name=to_name,
+        capi="BUILTIN_ENUMERATE1",
+        tstate=True,
+        arg_desc=makeArgDescFromExpression(expression),
+        may_raise=expression.mayRaiseExceptionOperation(),
+        conversion_check=decideConversionCheckNeeded(to_name, expression),
+        source_ref=expression.getCompatibleSourceReference(),
+        emit=emit,
+        context=context,
     )
-
-    with withObjectCodeTemporaryAssignment(
-        to_name, "enumerate_value", expression, emit, context
-    ) as result_name:
-        emit("%s = BUILTIN_ENUMERATE1(tstate, %s);" % (result_name, sequence_name))
-
-        getErrorExitCode(
-            check_name=result_name,
-            release_name=sequence_name,
-            emit=emit,
-            context=context,
-            needs_check=expression.mayRaiseException(BaseException),
-        )
-
-        context.addCleanupTempName(result_name)
 
 
 def generateBuiltinEnumerate2Code(to_name, expression, emit, context):
-    sequence_name, start_name = generateChildExpressionsCode(
-        expression=expression, emit=emit, context=context
+    generateCAPIObjectCode(
+        to_name=to_name,
+        capi="BUILTIN_ENUMERATE2",
+        tstate=True,
+        arg_desc=makeArgDescFromExpression(expression),
+        may_raise=expression.mayRaiseExceptionOperation(),
+        conversion_check=decideConversionCheckNeeded(to_name, expression),
+        source_ref=expression.getCompatibleSourceReference(),
+        emit=emit,
+        context=context,
     )
-
-    with withObjectCodeTemporaryAssignment(
-        to_name, "enumerate_value", expression, emit, context
-    ) as result_name:
-        emit(
-            "%s = BUILTIN_ENUMERATE2(tstate, %s, %s);"
-            % (result_name, sequence_name, start_name)
-        )
-
-        getErrorExitCode(
-            check_name=result_name,
-            release_names=(sequence_name, start_name),
-            emit=emit,
-            context=context,
-            needs_check=expression.mayRaiseException(BaseException),
-        )
-
-        context.addCleanupTempName(result_name)
 
 
 def generateBuiltinZipCode(to_name, expression, emit, context):
-    (iterable_names,) = generateChildExpressionsCode(
-        expression=expression, emit=emit, context=context
+    generateCAPIObjectCode(
+        to_name=to_name,
+        capi="BUILTIN_ZIP",
+        tstate=True,
+        arg_desc=makeArgDescFromExpression(expression),
+        may_raise=expression.mayRaiseExceptionOperation(),
+        conversion_check=decideConversionCheckNeeded(to_name, expression),
+        source_ref=expression.getCompatibleSourceReference(),
+        emit=emit,
+        context=context,
     )
-
-    with withObjectCodeTemporaryAssignment(
-        to_name, "zip_value", expression, emit, context
-    ) as result_name:
-        if iterable_names:
-            emit(
-                """\
-{
-    PyObject *zip_iterables[] = {%s};
-    %s = BUILTIN_ZIP(tstate, zip_iterables, %d);
-}
-"""
-                % (
-                    ", ".join(str(name) for name in iterable_names),
-                    result_name,
-                    len(iterable_names),
-                )
-            )
-        else:
-            emit("%s = BUILTIN_ZIP(tstate, NULL, 0);" % result_name)
-
-        getErrorExitCode(
-            check_name=result_name,
-            release_names=iterable_names,
-            emit=emit,
-            context=context,
-            needs_check=expression.mayRaiseException(BaseException),
-        )
-
-        context.addCleanupTempName(result_name)
 
 
 def generateBuiltinZip310Code(to_name, expression, emit, context):
-    values_name = context.allocateTempName("zip_iterables")
-
-    getTupleCreationCode(
-        to_name=values_name,
-        elements=expression.subnode_values,
+    generateCAPIObjectCode(
+        to_name=to_name,
+        capi="BUILTIN_ZIP310",
+        tstate=True,
+        arg_desc=(
+            TupleArg("zip_iterables", expression.subnode_values),
+            ("zip_strict", expression.subnode_strict),
+        ),
+        may_raise=expression.mayRaiseExceptionOperation(),
+        conversion_check=decideConversionCheckNeeded(to_name, expression),
+        source_ref=expression.getCompatibleSourceReference(),
         emit=emit,
         context=context,
     )
-
-    strict_name = context.allocateTempName("zip_strict")
-
-    generateExpressionCode(
-        to_name=strict_name,
-        expression=expression.subnode_strict,
-        emit=emit,
-        context=context,
-    )
-
-    with withObjectCodeTemporaryAssignment(
-        to_name, "zip_value", expression, emit, context
-    ) as result_name:
-        emit(
-            "%s = BUILTIN_ZIP310(tstate, %s, %s);"
-            % (result_name, values_name, strict_name)
-        )
-
-        getErrorExitCode(
-            check_name=result_name,
-            release_names=(values_name, strict_name),
-            emit=emit,
-            context=context,
-            needs_check=expression.mayRaiseException(BaseException),
-        )
-
-        context.addCleanupTempName(result_name)
 
 
 def getBuiltinLoopBreakNextCode(expression, to_name, value, emit, context):
@@ -238,137 +182,64 @@ def getBuiltinLoopBreakNextCode(expression, to_name, value, emit, context):
 
 
 def generateSpecialUnpackCode(to_name, expression, emit, context):
-    value_name = context.allocateTempName("unpack")
+    may_raise = expression.mayRaiseExceptionOperation()
 
-    generateExpressionCode(
-        to_name=value_name,
-        expression=expression.subnode_value,
+    if not may_raise:
+        capi = "UNPACK_NEXT_INFALLIBLE"
+        tstate = False
+        arg_desc = makeArgDescFromExpression(expression)
+    elif python_version < 0x350:
+        capi = "UNPACK_NEXT"
+        tstate = True
+        arg_desc = makeArgDescFromExpression(expression) + (
+            CArg(expression.getCount() - 1),
+        )
+    else:
+        capi = "UNPACK_NEXT_STARRED" if expression.getStarred() else "UNPACK_NEXT"
+        tstate = True
+        arg_desc = makeArgDescFromExpression(expression) + (
+            CArg(expression.getCount() - 1),
+            CArg(expression.getExpected()),
+        )
+
+    generateCAPIObjectCode(
+        to_name=to_name,
+        capi=capi,
+        tstate=tstate,
+        arg_desc=arg_desc,
+        may_raise=may_raise,
+        conversion_check=decideConversionCheckNeeded(to_name, expression),
+        fetched_exception=True,
+        source_ref=expression.getCompatibleSourceReference(),
         emit=emit,
         context=context,
     )
-
-    with withObjectCodeTemporaryAssignment(
-        to_name, "unpack_value", expression, emit, context
-    ) as result_name:
-        needs_check = expression.mayRaiseExceptionOperation()
-
-        if not needs_check:
-            emit("%s = UNPACK_NEXT_INFALLIBLE(%s);" % (result_name, value_name))
-        elif python_version < 0x350:
-            (
-                exception_state_name,
-                _exception_lineno,
-            ) = context.getExceptionVariableDescriptions()
-
-            emit(
-                "%s = UNPACK_NEXT(tstate, &%s, %s, %s);"
-                % (
-                    result_name,
-                    exception_state_name,
-                    value_name,
-                    expression.getCount() - 1,
-                )
-            )
-        else:
-            starred = expression.getStarred()
-            expected = expression.getExpected()
-
-            (
-                exception_state_name,
-                _exception_lineno,
-            ) = context.getExceptionVariableDescriptions()
-
-            emit(
-                "%s = UNPACK_NEXT%s(tstate, &%s, %s, %s, %s);"
-                % (
-                    result_name,
-                    "_STARRED" if starred else "",
-                    exception_state_name,
-                    value_name,
-                    expression.getCount() - 1,
-                    expected,
-                )
-            )
-
-        getErrorExitCode(
-            check_name=result_name,
-            release_name=value_name,
-            needs_check=needs_check,
-            fetched_exception=True,
-            emit=emit,
-            context=context,
-        )
-
-        context.addCleanupTempName(result_name)
 
 
 def generateUnpackCheckCode(statement, emit, context):
-    iterator_name = context.allocateTempName("iterator_name")
-
-    generateExpressionCode(
-        to_name=iterator_name,
-        expression=statement.subnode_iterator,
+    generateCAPIErrorCode(
+        capi="UNPACK_ITERATOR_CHECK",
+        tstate=True,
+        arg_desc=makeArgDescFromExpression(statement) + (CArg(statement.getCount()),),
+        may_raise=statement.mayRaiseExceptionOperation(),
+        fetched_exception=True,
+        source_ref=statement.getSourceReference(),
         emit=emit,
         context=context,
     )
-
-    with context.withCurrentSourceCodeReference(statement.getSourceReference()):
-        (
-            exception_state_name,
-            _exception_lineno,
-        ) = context.getExceptionVariableDescriptions()
-
-        res_name = context.getBoolResName()
-
-        emit(
-            "%s = UNPACK_ITERATOR_CHECK(tstate, &%s, %s, %d);"
-            % (res_name, exception_state_name, iterator_name, statement.getCount())
-        )
-
-        getErrorExitBoolCode(
-            condition="%s == false" % res_name,
-            release_name=iterator_name,
-            fetched_exception=True,
-            emit=emit,
-            context=context,
-        )
 
 
 def generateUnpackCheckFromIteratedCode(statement, emit, context):
-    iterated_value_name = context.allocateTempName("iterated_value")
-
-    generateExpressionCode(
-        to_name=iterated_value_name,
-        expression=statement.subnode_iterated_value,
+    generateCAPIErrorCode(
+        capi="UNPACK_ITERATED_CHECK",
+        tstate=True,
+        arg_desc=makeArgDescFromExpression(statement) + (CArg(statement.getCount()),),
+        may_raise=statement.mayRaiseExceptionOperation(),
+        fetched_exception=True,
+        source_ref=statement.getSourceReference(),
         emit=emit,
         context=context,
     )
-
-    with context.withCurrentSourceCodeReference(statement.getSourceReference()):
-        (
-            exception_state_name,
-            _exception_lineno,
-        ) = context.getExceptionVariableDescriptions()
-
-        res_name = context.getBoolResName()
-
-        emit(
-            "%s = UNPACK_ITERATED_CHECK(tstate, &%s, %s, %d);"
-            % (
-                res_name,
-                exception_state_name,
-                iterated_value_name,
-                statement.getCount(),
-            )
-        )
-
-        getErrorExitBoolCode(
-            condition="%s == false" % res_name,
-            release_name=iterated_value_name,
-            fetched_exception=True,
-            emit=emit,
-            context=context,
-        )
 
 
 def generateBuiltinNext2Code(to_name, expression, emit, context):
@@ -381,11 +252,8 @@ def generateBuiltinNext2Code(to_name, expression, emit, context):
         to_name=to_name,
         capi=capi,
         tstate=True,
-        arg_desc=(
-            ("next_arg", expression.subnode_iterator),
-            ("next_default", expression.subnode_default),
-        ),
-        may_raise=expression.mayRaiseException(BaseException),
+        arg_desc=makeArgDescFromExpression(expression),
+        may_raise=expression.mayRaiseExceptionOperation(),
         conversion_check=decideConversionCheckNeeded(to_name, expression),
         source_ref=expression.getCompatibleSourceReference(),
         emit=emit,
@@ -394,19 +262,16 @@ def generateBuiltinNext2Code(to_name, expression, emit, context):
 
 
 def generateIsIterableCode(to_name, expression, emit, context):
-    (value_name,) = generateChildExpressionsCode(
-        expression=expression, emit=emit, context=context
-    )
-    context.setCurrentSourceCodeReference(expression.getCompatibleSourceReference())
-
-    res_name = context.getBoolResName()
-
-    emit("%s = IS_ITERABLE(%s);" % (res_name, value_name))
-
-    getReleaseCode(release_name=value_name, emit=emit, context=context)
-
-    to_name.getCType().emitAssignmentCodeFromBoolCondition(
-        to_name=to_name, condition=res_name, emit=emit
+    generateCAPIBoolCode(
+        to_name=to_name,
+        capi="IS_ITERABLE",
+        tstate=False,
+        arg_desc=makeArgDescFromExpression(expression),
+        may_raise=expression.mayRaiseExceptionOperation(),
+        res_type="bool",
+        source_ref=expression.getCompatibleSourceReference(),
+        emit=emit,
+        context=context,
     )
 
 
@@ -417,7 +282,7 @@ def generateBuiltinIter1Code(to_name, expression, emit, context):
         to_name=to_name,
         capi="MAKE_ITERATOR" if may_raise else "MAKE_ITERATOR_INFALLIBLE",
         tstate=may_raise,
-        arg_desc=(("iter_arg", expression.subnode_value),),
+        arg_desc=makeArgDescFromExpression(expression),
         may_raise=may_raise,
         conversion_check=decideConversionCheckNeeded(to_name, expression),
         source_ref=expression.getCompatibleSourceReference(),
@@ -433,7 +298,7 @@ def generateBuiltinIterForUnpackCode(to_name, expression, emit, context):
         to_name=to_name,
         capi="MAKE_UNPACK_ITERATOR" if may_raise else "MAKE_ITERATOR_INFALLIBLE",
         tstate=False,
-        arg_desc=(("iter_arg", expression.subnode_value),),
+        arg_desc=makeArgDescFromExpression(expression),
         may_raise=may_raise,
         conversion_check=decideConversionCheckNeeded(to_name, expression),
         source_ref=expression.getCompatibleSourceReference(),
@@ -447,11 +312,8 @@ def generateBuiltinIter2Code(to_name, expression, emit, context):
         to_name=to_name,
         capi="BUILTIN_ITER2",
         tstate=False,
-        arg_desc=(
-            ("iter_callable", expression.subnode_callable_arg),
-            ("iter_sentinel", expression.subnode_sentinel),
-        ),
-        may_raise=expression.mayRaiseException(BaseException),
+        arg_desc=makeArgDescFromExpression(expression),
+        may_raise=expression.mayRaiseExceptionOperation(),
         conversion_check=decideConversionCheckNeeded(to_name, expression),
         source_ref=expression.getCompatibleSourceReference(),
         emit=emit,
@@ -464,8 +326,8 @@ def generateBuiltinLenCode(to_name, expression, emit, context):
         to_name=to_name,
         capi="BUILTIN_LEN",
         tstate=True,
-        arg_desc=(("len_arg", expression.subnode_value),),
-        may_raise=expression.mayRaiseException(BaseException),
+        arg_desc=makeArgDescFromExpression(expression),
+        may_raise=expression.mayRaiseExceptionOperation(),
         conversion_check=decideConversionCheckNeeded(to_name, expression),
         source_ref=expression.getCompatibleSourceReference(),
         emit=emit,
@@ -478,8 +340,8 @@ def generateBuiltinAnyCode(to_name, expression, emit, context):
         to_name=to_name,
         capi="BUILTIN_ANY",
         tstate=True,
-        arg_desc=(("any_arg", expression.subnode_value),),
-        may_raise=expression.mayRaiseException(BaseException),
+        arg_desc=makeArgDescFromExpression(expression),
+        may_raise=expression.mayRaiseExceptionOperation(),
         conversion_check=decideConversionCheckNeeded(to_name, expression),
         source_ref=expression.getCompatibleSourceReference(),
         emit=emit,
@@ -492,8 +354,8 @@ def generateBuiltinAllCode(to_name, expression, emit, context):
         to_name=to_name,
         capi="BUILTIN_ALL",
         tstate=True,
-        arg_desc=(("all_arg", expression.subnode_value),),
-        may_raise=expression.mayRaiseException(BaseException),
+        arg_desc=makeArgDescFromExpression(expression),
+        may_raise=expression.mayRaiseExceptionOperation(),
         conversion_check=decideConversionCheckNeeded(to_name, expression),
         source_ref=expression.getCompatibleSourceReference(),
         emit=emit,

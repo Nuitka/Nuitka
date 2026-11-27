@@ -15,6 +15,7 @@ from nuitka.PythonVersions import python_version
 from nuitka.utils.ModuleNames import ModuleName
 
 from .CodeHelpers import (
+    decideConversionCheckNeeded,
     generateChildExpressionsCode,
     generateExpressionCode,
     withObjectCodeTemporaryAssignment,
@@ -23,6 +24,7 @@ from .ErrorCodes import getErrorExitBoolCode, getErrorExitCode
 from .LineNumberCodes import emitLineNumberUpdateCode
 from .LoaderCodes import getModuleEntryCodeName
 from .ModuleCodes import getModuleAccessCode
+from .PythonAPICodes import CArg, generateCAPIObjectCode0
 
 
 def generateBuiltinImportCode(to_name, expression, emit, context):
@@ -46,7 +48,7 @@ def generateBuiltinImportCode(to_name, expression, emit, context):
             locals_name=locals_name,
             import_list_name=import_list_name,
             level_name=level_name,
-            needs_check=expression.mayRaiseException(BaseException),
+            needs_check=expression.mayRaiseExceptionOperation(),
             emit=emit,
             context=context,
         )
@@ -316,7 +318,7 @@ if (%(res_name)s == 0) {
 
 
 def generateImportModuleFixedCode(to_name, expression, emit, context):
-    needs_check = expression.mayRaiseException(BaseException)
+    needs_check = expression.mayRaiseExceptionOperation()
 
     if needs_check:
         emitLineNumberUpdateCode(expression, emit, context)
@@ -425,7 +427,7 @@ def generateImportModuleHardCode(to_name, expression, emit, context):
     imported_module_name = expression.getModuleName()
     module_value_name = expression.getValueName()
 
-    needs_check = expression.mayRaiseException(BaseException)
+    needs_check = expression.mayRaiseExceptionOperation()
 
     if needs_check:
         emitLineNumberUpdateCode(expression, emit, context)
@@ -543,13 +545,16 @@ def generateImportModuleHardCode(to_name, expression, emit, context):
 
 
 def generateConstantSysVersionInfoCode(to_name, expression, emit, context):
-    with withObjectCodeTemporaryAssignment(
-        to_name, "imported_value", expression, emit, context
-    ) as value_name:
-        emit("""%s = Nuitka_SysGetObject("%s");""" % (value_name, "version_info"))
-
-    getErrorExitCode(
-        check_name=value_name, needs_check=False, emit=emit, context=context
+    generateCAPIObjectCode0(
+        to_name=to_name,
+        capi="Nuitka_SysGetObject",
+        tstate=False,
+        arg_desc=(CArg('"version_info"'),),
+        may_raise=expression.mayRaiseExceptionOperation(),
+        conversion_check=decideConversionCheckNeeded(to_name, expression),
+        source_ref=expression.getCompatibleSourceReference(),
+        emit=emit,
+        context=context,
     )
 
 
@@ -671,14 +676,14 @@ def generateImportModuleNameHardCode(to_name, expression, emit, context):
             to_name=value_name,
             module_name=expression.getModuleName(),
             import_name=expression.getImportName(),
-            needs_check=expression.mayRaiseException(BaseException),
+            needs_check=expression.mayRaiseExceptionOperation(),
             emit=emit,
             context=context,
         )
 
 
 def generateImportlibImportCallCode(to_name, expression, emit, context):
-    needs_check = expression.mayRaiseException(BaseException)
+    needs_check = expression.mayRaiseExceptionOperation()
 
     with withObjectCodeTemporaryAssignment(
         to_name, "imported_module", expression, emit, context
@@ -855,7 +860,7 @@ if (PyModule_Check(%(from_arg_name)s)) {
         getErrorExitCode(
             check_name=value_name,
             release_name=from_arg_name,
-            needs_check=expression.mayRaiseException(BaseException),
+            needs_check=expression.mayRaiseExceptionOperation(),
             emit=emit,
             context=context,
         )

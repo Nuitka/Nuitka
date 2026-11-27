@@ -26,6 +26,10 @@ class ExpressionTemplateString(ExpressionTemplateStringBase):
     def computeExpression(self, trace_collection):
         return self, None, None
 
+    @staticmethod
+    def mayRaiseExceptionOperation():
+        return False
+
 
 class ExpressionTemplateInterpolation(ExpressionTemplateInterpolationBase):
     kind = "EXPRESSION_TEMPLATE_INTERPOLATION"
@@ -48,6 +52,10 @@ class ExpressionTemplateInterpolation(ExpressionTemplateInterpolationBase):
 
     def computeExpression(self, trace_collection):
         return self, None, None
+
+    @staticmethod
+    def mayRaiseExceptionOperation():
+        return False
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and

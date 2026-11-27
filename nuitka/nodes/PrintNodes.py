@@ -72,6 +72,10 @@ Side effects printed item promoted to statements.""",
         # Output may always fail due to external reasons.
         return True
 
+    @staticmethod
+    def mayRaiseExceptionOperation():
+        return True
+
 
 class StatementPrintNewline(StatementPrintNewlineBase):
     kind = "STATEMENT_PRINT_NEWLINE"
@@ -88,6 +92,10 @@ class StatementPrintNewline(StatementPrintNewlineBase):
     @staticmethod
     def mayRaiseException(exception_type):
         # Output may always fail due to external reasons.
+        return True
+
+    @staticmethod
+    def mayRaiseExceptionOperation():
         return True
 
 

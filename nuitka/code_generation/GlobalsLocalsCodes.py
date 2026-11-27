@@ -13,7 +13,11 @@ from .CodeHelpers import (
 from .Emission import SourceCodeCollector
 from .ErrorCodes import getErrorExitBoolCode
 from .Indentation import indented
-from .PythonAPICodes import generateCAPIObjectCode, getReferenceExportCode
+from .PythonAPICodes import (
+    generateCAPIObjectCode,
+    getReferenceExportCode,
+    makeArgDescFromExpression,
+)
 from .templates.CodeTemplatesVariables import (
     template_set_locals_dict_value,
     template_set_locals_mapping_value,
@@ -201,8 +205,8 @@ def generateBuiltinDir1Code(to_name, expression, emit, context):
         to_name=to_name,
         capi="PyObject_Dir",
         tstate=False,
-        arg_desc=(("dir_arg", expression.subnode_value),),
-        may_raise=expression.mayRaiseException(BaseException),
+        arg_desc=makeArgDescFromExpression(expression),
+        may_raise=expression.mayRaiseExceptionOperation(),
         conversion_check=decideConversionCheckNeeded(to_name, expression),
         source_ref=expression.getCompatibleSourceReference(),
         emit=emit,
@@ -215,8 +219,8 @@ def generateBuiltinVarsCode(to_name, expression, emit, context):
         to_name=to_name,
         capi="LOOKUP_VARS",
         tstate=True,
-        arg_desc=(("vars_arg", expression.subnode_source),),
-        may_raise=expression.mayRaiseException(BaseException),
+        arg_desc=makeArgDescFromExpression(expression),
+        may_raise=expression.mayRaiseExceptionOperation(),
         conversion_check=decideConversionCheckNeeded(to_name, expression),
         source_ref=expression.getCompatibleSourceReference(),
         emit=emit,

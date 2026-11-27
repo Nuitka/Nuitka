@@ -86,7 +86,9 @@ class ExpressionComparisonBase(ChildrenHavingLeftRightMixin, ExpressionBase):
                 % (self.comparator, result.comparator),
             )
 
-        return not_node, None, None
+        return ExpressionBase.computeExpressionOperationNot(
+            self, not_node=not_node, trace_collection=trace_collection
+        )
 
 
 class ExpressionComparisonRichBase(ExpressionComparisonBase):
@@ -534,6 +536,9 @@ class ExpressionComparisonExceptionMatchBase(
 
             return True
 
+    def mayRaiseExceptionOperation(self):
+        return self.mayRaiseExceptionComparison()
+
 
 class ExpressionComparisonExceptionMatch(ExpressionComparisonExceptionMatchBase):
     kind = "EXPRESSION_COMPARISON_EXCEPTION_MATCH"
@@ -585,6 +590,9 @@ class ExpressionComparisonInNotInBase(
             return True
 
         return right.mayRaiseExceptionIn(exception_type, left)
+
+    def mayRaiseExceptionOperation(self):
+        return self.subnode_right.mayRaiseExceptionIn(BaseException, self.subnode_left)
 
     def getSimulator(self):
         return other_comparison_functions[self.comparator]

@@ -7,11 +7,17 @@ from nuitka.PythonVersions import python_version
 from nuitka.States import states
 
 from .CodeHelpers import (
+    decideConversionCheckNeeded,
     generateExpressionCode,
     withObjectCodeTemporaryAssignment,
 )
-from .ErrorCodes import getErrorExitBoolCode, getErrorExitCode, getReleaseCode
-from .PythonAPICodes import getReferenceExportCode
+from .ErrorCodes import getErrorExitBoolCode, getReleaseCode
+from .PythonAPICodes import (
+    generateCAPIObjectCode,
+    getCAPIObjectCode,
+    getReferenceExportCode,
+    makeArgDescFromExpression,
+)
 from .VariableCodes import getVariableAssignmentCode
 
 
@@ -64,82 +70,18 @@ def _getStoreLocalsCode(locals_name, variable_traces, is_dict, emit, context):
 
 
 def generateBuiltinCompileCode(to_name, expression, emit, context):
-    source_name = context.allocateTempName("compile_source")
-    filename_name = context.allocateTempName("compile_filename")
-    mode_name = context.allocateTempName("compile_mode")
-
-    generateExpressionCode(
-        to_name=source_name,
-        expression=expression.subnode_source,
+    generateCAPIObjectCode(
+        to_name=to_name,
+        capi="COMPILE_CODE",
+        tstate=True,
+        arg_desc=makeArgDescFromExpression(expression),
+        may_raise=expression.mayRaiseExceptionOperation(),
+        conversion_check=decideConversionCheckNeeded(to_name, expression),
+        none_null=True,
+        source_ref=expression.getCompatibleSourceReference(),
         emit=emit,
         context=context,
     )
-    generateExpressionCode(
-        to_name=filename_name,
-        expression=expression.subnode_filename,
-        emit=emit,
-        context=context,
-    )
-    generateExpressionCode(
-        to_name=mode_name,
-        expression=expression.subnode_mode,
-        emit=emit,
-        context=context,
-    )
-
-    if expression.subnode_flags is not None:
-        flags_name = context.allocateTempName("compile_flags")
-
-        generateExpressionCode(
-            to_name=flags_name,
-            expression=expression.subnode_flags,
-            emit=emit,
-            context=context,
-        )
-    else:
-        flags_name = "NULL"
-
-    if expression.subnode_dont_inherit is not None:
-        dont_inherit_name = context.allocateTempName("compile_dont_inherit")
-
-        generateExpressionCode(
-            to_name=dont_inherit_name,
-            expression=expression.subnode_dont_inherit,
-            emit=emit,
-            context=context,
-        )
-    else:
-        dont_inherit_name = "NULL"
-
-    if expression.subnode_optimize is not None:
-        optimize_name = context.allocateTempName("compile_optimize")
-
-        generateExpressionCode(
-            to_name=optimize_name,
-            expression=expression.subnode_optimize,
-            emit=emit,
-            context=context,
-        )
-    else:
-        optimize_name = "NULL"
-
-    context.setCurrentSourceCodeReference(expression.getCompatibleSourceReference())
-
-    with withObjectCodeTemporaryAssignment(
-        to_name, "compile_result", expression, emit, context
-    ) as value_name:
-        _getBuiltinCompileCode(
-            to_name=value_name,
-            source_name=source_name,
-            filename_name=filename_name,
-            mode_name=mode_name,
-            flags_name=flags_name,
-            dont_inherit_name=dont_inherit_name,
-            optimize_name=optimize_name,
-            for_exec=False,
-            emit=emit,
-            context=context,
-        )
 
 
 def _getBuiltinCompileCode(
@@ -155,9 +97,17 @@ def _getBuiltinCompileCode(
     context,
 ):
     if python_version < 0x300:
-        args = (source_name, filename_name, mode_name, flags_name, dont_inherit_name)
+        args = (
+            "tstate",
+            source_name,
+            filename_name,
+            mode_name,
+            flags_name,
+            dont_inherit_name,
+        )
     else:
         args = (
+            "tstate",
             source_name,
             filename_name,
             mode_name,
@@ -166,17 +116,13 @@ def _getBuiltinCompileCode(
             optimize_name,
         )
 
-    emit(
-        "%s = %s(tstate, %s);"
-        % (
-            to_name,
-            "COMPILE_CODE_EXEC" if for_exec else "COMPILE_CODE",
-            ", ".join(str(arg) for arg in args),
-        )
-    )
-
-    getErrorExitCode(
-        check_name=to_name,
+    getCAPIObjectCode(
+        to_name=to_name,
+        capi="COMPILE_CODE_EXEC" if for_exec else "COMPILE_CODE",
+        arg_names=args,
+        may_raise=True,
+        conversion_check=False,
+        ref_count=1,
         release_names=(
             source_name,
             filename_name,
@@ -188,8 +134,6 @@ def _getBuiltinCompileCode(
         emit=emit,
         context=context,
     )
-
-    context.addCleanupTempName(to_name)
 
 
 def getBuiltinEvalCode(
@@ -219,19 +163,23 @@ def getBuiltinEvalCode(
         context=context,
     )
 
-    emit(
-        "%s = EVAL_CODE(tstate, %s, %s, %s, %s);"
-        % (to_name, compiled_name, globals_name, locals_name, closure_name or "NULL")
-    )
-
-    getErrorExitCode(
-        check_name=to_name,
+    getCAPIObjectCode(
+        to_name=to_name,
+        capi="EVAL_CODE",
+        arg_names=(
+            "tstate",
+            compiled_name,
+            globals_name,
+            locals_name,
+            closure_name or "NULL",
+        ),
+        may_raise=True,
+        conversion_check=False,
+        ref_count=1,
         release_names=(compiled_name, globals_name, locals_name, closure_name),
         emit=emit,
         context=context,
     )
-
-    context.addCleanupTempName(to_name)
 
 
 def generateExecCode(statement, emit, context):
@@ -311,13 +259,13 @@ def generateExecCode(statement, emit, context):
 
         to_name = context.allocateTempName("exec_result")
 
-        emit(
-            "%s = EVAL_CODE(tstate, %s, %s, %s, NULL);"
-            % (to_name, compiled_name, globals_name, locals_name)
-        )
-
-        getErrorExitCode(
-            check_name=to_name,
+        getCAPIObjectCode(
+            to_name=to_name,
+            capi="EVAL_CODE",
+            arg_names=("tstate", compiled_name, globals_name, locals_name, "NULL"),
+            may_raise=True,
+            conversion_check=False,
+            ref_count=1,
             release_names=(
                 compiled_name,
                 globals_name,
@@ -329,7 +277,6 @@ def generateExecCode(statement, emit, context):
             context=context,
         )
 
-        context.addCleanupTempName(to_name)
         getReleaseCode(release_name=to_name, emit=emit, context=context)
 
 

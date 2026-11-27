@@ -56,10 +56,10 @@ from nuitka.nodes.SubscriptNodes import (
     StatementDelSubscript,
 )
 from nuitka.nodes.TypeNodes import (
-    ExpressionParameterSpecification,
     ExpressionTypeAlias,
-    ExpressionTypeVariable,
-    ExpressionTypeVariableTuple,
+    makeExpressionParameterSpecification,
+    makeExpressionTypeVariable,
+    makeExpressionTypeVariableTuple,
 )
 from nuitka.nodes.VariableAssignNodes import makeStatementAssignmentVariable
 from nuitka.nodes.VariableDelNodes import makeStatementDelVariable
@@ -1409,7 +1409,7 @@ def buildTypeVarNode(provider, node, source_ref):
         source_ref=source_ref,
     )
 
-    return ExpressionTypeVariable(
+    return makeExpressionTypeVariable(
         name=node.name,
         bound=evaluate_bound,
         constraints=evaluate_constraints,
@@ -1426,7 +1426,7 @@ def buildTypeVarTupleNode(provider, node, source_ref):
         allow_starred=True,
     )
 
-    return ExpressionTypeVariableTuple(
+    return makeExpressionTypeVariableTuple(
         name=node.name,
         default_value=evaluate_default,
         source_ref=source_ref,
@@ -1440,7 +1440,7 @@ def buildTypeParamSpec(provider, node, source_ref):
         source_ref=source_ref,
     )
 
-    return ExpressionParameterSpecification(
+    return makeExpressionParameterSpecification(
         name=node.name,
         default_value=evaluate_default,
         source_ref=source_ref,

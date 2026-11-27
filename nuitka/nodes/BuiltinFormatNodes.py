@@ -61,6 +61,10 @@ Removed useless 'format' on '%s' value.""" % value.getTypeShape().getTypeName(),
 
         return self, None, None
 
+    @staticmethod
+    def mayRaiseExceptionOperation():
+        return True
+
 
 class ExpressionBuiltinAscii(
     ExpressionStrShapeExactMixin, ExpressionBuiltinSingleArgBase
@@ -104,6 +108,10 @@ class ExpressionBuiltinId(
 
     def computeExpression(self, trace_collection):
         return self, None, None
+
+    @staticmethod
+    def mayRaiseExceptionOperation():
+        return False
 
     def mayRaiseException(self, exception_type):
         return self.subnode_value.mayRaiseException(exception_type)

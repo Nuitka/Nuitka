@@ -5,7 +5,10 @@
 
 from nuitka.PythonVersions import python_version
 
-from .CodeHelpers import generateStatementSequenceCode
+from .CodeHelpers import (
+    generateStatementSequenceCode,
+    withObjectCodeTemporaryAssignment,
+)
 from .CodeObjectCodes import getCodeObjectAccessCode
 from .Emission import SourceCodeCollector
 from .FunctionCodes import (
@@ -174,40 +177,46 @@ def generateMakeGeneratorObjectCode(to_name, expression, emit, context):
     if closure_name:
         args.append(closure_name)
 
-    if generator_object_body.subnode_body is None:
-        emit(
-            template_make_empty_generator
-            % {
-                "closure_copy": indented(closure_copy),
-                "to_name": to_name,
-                "generator_module": getModuleAccessCode(context),
-                "generator_name_obj": context.getConstantCode(
-                    constant=generator_object_body.getFunctionName()
-                ),
-                "generator_qualname_obj": getFunctionQualnameObj(
-                    generator_object_body, context
-                ),
-                "code_identifier": getCodeObjectAccessCode(
-                    code_object=generator_object_body.getCodeObject(), context=context
-                ),
-                "closure_name": closure_name if closure_name is not None else "NULL",
-                "closure_count": len(closure_variables),
-            }
-        )
-    else:
-        emit(
-            template_make_generator
-            % {
-                "generator_maker_identifier": _getGeneratorMakerIdentifier(
-                    generator_object_body.getCodeName()
-                ),
-                "to_name": to_name,
-                "args": ", ".join(str(arg) for arg in args),
-                "closure_copy": indented(closure_copy),
-            }
-        )
+    with withObjectCodeTemporaryAssignment(
+        to_name, "generator_result", expression, emit, context
+    ) as result_name:
+        if generator_object_body.subnode_body is None:
+            emit(
+                template_make_empty_generator
+                % {
+                    "closure_copy": indented(closure_copy),
+                    "to_name": result_name,
+                    "generator_module": getModuleAccessCode(context),
+                    "generator_name_obj": context.getConstantCode(
+                        constant=generator_object_body.getFunctionName()
+                    ),
+                    "generator_qualname_obj": getFunctionQualnameObj(
+                        generator_object_body, context
+                    ),
+                    "code_identifier": getCodeObjectAccessCode(
+                        code_object=generator_object_body.getCodeObject(),
+                        context=context,
+                    ),
+                    "closure_name": (
+                        closure_name if closure_name is not None else "NULL"
+                    ),
+                    "closure_count": len(closure_variables),
+                }
+            )
+        else:
+            emit(
+                template_make_generator
+                % {
+                    "generator_maker_identifier": _getGeneratorMakerIdentifier(
+                        generator_object_body.getCodeName()
+                    ),
+                    "to_name": result_name,
+                    "args": ", ".join(str(arg) for arg in args),
+                    "closure_copy": indented(closure_copy),
+                }
+            )
 
-    context.addCleanupTempName(to_name)
+        context.addCleanupTempName(result_name)
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and

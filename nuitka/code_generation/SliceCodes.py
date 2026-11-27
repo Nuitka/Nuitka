@@ -7,18 +7,22 @@ from nuitka.PythonVersions import python_version
 from nuitka.States import states
 
 from .CodeHelpers import (
-    generateChildExpressionsCode,
+    decideConversionCheckNeeded,
     generateExpressionCode,
     generateExpressionsCode,
-    withBorrowedValueScope,
-    withObjectCodeTemporaryAssignment,
 )
-from .ErrorCodes import getErrorExitBoolCode, getErrorExitCode
 from .IndexCodes import (
     getIndexCode,
     getIndexValueCode,
     getMaxIndexCode,
     getMinIndexCode,
+)
+from .PythonAPICodes import (
+    OptionalArg,
+    generateCAPIObjectCode,
+    getCAPIErrorCode,
+    getCAPIObjectCode,
+    makeArgDescFromExpression,
 )
 
 
@@ -85,40 +89,33 @@ def generateSliceLookupCode(to_name, expression, emit, context):
             context=context,
         )
 
-        with withObjectCodeTemporaryAssignment(
-            to_name, "slice_result", expression, emit, context
-        ) as result_name:
-            _getSliceLookupIndexesCode(
-                to_name=result_name,
-                source_name=source_name,
-                lower_name=lower_name,
-                upper_name=upper_name,
-                emit=emit,
-                context=context,
-            )
-    else:
-        source_name, lower_name, upper_name = generateExpressionsCode(
-            names=("slice_source", "slice_lower", "slice_upper"),
-            expressions=(
-                expression.subnode_expression,
-                expression.subnode_lower,
-                expression.subnode_upper,
-            ),
+        getCAPIObjectCode(
+            to_name=to_name,
+            capi="LOOKUP_INDEX_SLICE",
+            arg_names=(source_name, lower_name, upper_name),
+            may_raise=expression.mayRaiseExceptionOperation(),
+            conversion_check=decideConversionCheckNeeded(to_name, expression),
+            ref_count=1,
+            release_names=(source_name,),
             emit=emit,
             context=context,
         )
-
-        with withObjectCodeTemporaryAssignment(
-            to_name, "slice_result", expression, emit, context
-        ) as result_name:
-            _getSliceLookupCode(
-                to_name=result_name,
-                source_name=source_name,
-                lower_name=lower_name,
-                upper_name=upper_name,
-                emit=emit,
-                context=context,
-            )
+    else:
+        generateCAPIObjectCode(
+            to_name=to_name,
+            capi="LOOKUP_SLICE",
+            tstate=True,
+            arg_desc=(
+                ("slice_source", expression.subnode_expression),
+                OptionalArg("slice_lower", expression.subnode_lower, "Py_None"),
+                OptionalArg("slice_upper", expression.subnode_upper, "Py_None"),
+            ),
+            may_raise=expression.mayRaiseExceptionOperation(),
+            conversion_check=decideConversionCheckNeeded(to_name, expression),
+            source_ref=expression.getCompatibleSourceReference(),
+            emit=emit,
+            context=context,
+        )
 
 
 def generateAssignmentSliceCode(statement, emit, context):
@@ -235,139 +232,54 @@ def generateDelSliceCode(statement, emit, context):
 
 
 def generateBuiltinSlice3Code(to_name, expression, emit, context):
-    with withBorrowedValueScope(context):
-        lower_name, upper_name, step_name = generateChildExpressionsCode(
-            expression=expression, emit=emit, context=context
-        )
-
-        with withObjectCodeTemporaryAssignment(
-            to_name, "slice_obj_value", expression, emit, context
-        ) as result_name:
-            emit(
-                "%s = MAKE_SLICE_OBJECT3(tstate, %s, %s, %s);"
-                % (
-                    result_name,
-                    lower_name,
-                    upper_name,
-                    step_name,
-                )
-            )
-
-            getErrorExitCode(
-                check_name=result_name,
-                release_names=(lower_name, upper_name, step_name),
-                needs_check=False,
-                emit=emit,
-                context=context,
-            )
-
-            context.addCleanupTempName(result_name)
-
-
-def generateBuiltinSlice2Code(to_name, expression, emit, context):
-    with withBorrowedValueScope(context):
-        lower_name, upper_name = generateChildExpressionsCode(
-            expression=expression, emit=emit, context=context
-        )
-
-        with withObjectCodeTemporaryAssignment(
-            to_name, "slice_obj_value", expression, emit, context
-        ) as result_name:
-            emit(
-                "%s = MAKE_SLICE_OBJECT2(tstate, %s, %s);"
-                % (
-                    result_name,
-                    lower_name,
-                    upper_name,
-                )
-            )
-
-            getErrorExitCode(
-                check_name=result_name,
-                release_names=(lower_name, upper_name),
-                needs_check=False,
-                emit=emit,
-                context=context,
-            )
-
-            context.addCleanupTempName(result_name)
-
-
-def generateBuiltinSlice1Code(to_name, expression, emit, context):
-    (upper_name,) = generateChildExpressionsCode(
-        expression=expression, emit=emit, context=context
-    )
-
-    with withObjectCodeTemporaryAssignment(
-        to_name, "slice_obj_value", expression, emit, context
-    ) as result_name:
-        emit(
-            "%s = MAKE_SLICE_OBJECT1(tstate, %s);"
-            % (
-                result_name,
-                upper_name,
-            )
-        )
-
-        getErrorExitCode(
-            check_name=result_name,
-            release_name=upper_name,
-            needs_check=False,
-            emit=emit,
-            context=context,
-        )
-
-        context.addCleanupTempName(result_name)
-
-
-def _getSliceLookupCode(to_name, source_name, lower_name, upper_name, emit, context):
-    emit(
-        "%s = LOOKUP_SLICE(tstate, %s, %s, %s);"
-        % (
-            to_name,
-            source_name,
-            lower_name if lower_name is not None else "Py_None",
-            upper_name if upper_name is not None else "Py_None",
-        )
-    )
-
-    getErrorExitCode(
-        check_name=to_name,
-        release_names=(source_name, lower_name, upper_name),
+    generateCAPIObjectCode(
+        to_name=to_name,
+        capi="MAKE_SLICE_OBJECT3",
+        tstate=True,
+        arg_desc=makeArgDescFromExpression(expression),
+        may_raise=expression.mayRaiseExceptionOperation(),
+        conversion_check=decideConversionCheckNeeded(to_name, expression),
+        source_ref=expression.getCompatibleSourceReference(),
         emit=emit,
         context=context,
     )
 
-    context.addCleanupTempName(to_name)
 
-
-def _getSliceLookupIndexesCode(
-    to_name, lower_name, upper_name, source_name, emit, context
-):
-    emit(
-        "%s = LOOKUP_INDEX_SLICE(%s, %s, %s);"
-        % (to_name, source_name, lower_name, upper_name)
+def generateBuiltinSlice2Code(to_name, expression, emit, context):
+    generateCAPIObjectCode(
+        to_name=to_name,
+        capi="MAKE_SLICE_OBJECT2",
+        tstate=True,
+        arg_desc=makeArgDescFromExpression(expression),
+        may_raise=expression.mayRaiseExceptionOperation(),
+        conversion_check=decideConversionCheckNeeded(to_name, expression),
+        source_ref=expression.getCompatibleSourceReference(),
+        emit=emit,
+        context=context,
     )
 
-    getErrorExitCode(
-        check_name=to_name, release_name=source_name, emit=emit, context=context
-    )
 
-    context.addCleanupTempName(to_name)
+def generateBuiltinSlice1Code(to_name, expression, emit, context):
+    generateCAPIObjectCode(
+        to_name=to_name,
+        capi="MAKE_SLICE_OBJECT1",
+        tstate=True,
+        arg_desc=makeArgDescFromExpression(expression),
+        may_raise=expression.mayRaiseExceptionOperation(),
+        conversion_check=decideConversionCheckNeeded(to_name, expression),
+        source_ref=expression.getCompatibleSourceReference(),
+        emit=emit,
+        context=context,
+    )
 
 
 def _getSliceAssignmentIndexesCode(
     target_name, lower_name, upper_name, value_name, emit, context
 ):
-    res_name = context.getBoolResName()
-
-    emit(
-        "%s = SET_INDEX_SLICE(%s, %s, %s, %s);"
-        % (res_name, target_name, lower_name, upper_name, value_name)
-    )
-
-    getErrorExitBoolCode(
-        condition="%s == false" % res_name,
+    getCAPIErrorCode(
+        capi="SET_INDEX_SLICE",
+        arg_names=(target_name, lower_name, upper_name, value_name),
+        may_raise=True,
         release_names=(value_name, target_name),
         emit=emit,
         context=context,
@@ -377,21 +289,16 @@ def _getSliceAssignmentIndexesCode(
 def _getSliceAssignmentCode(
     target_name, lower_name, upper_name, value_name, emit, context
 ):
-    res_name = context.getBoolResName()
-
-    emit(
-        "%s = SET_SLICE(tstate, %s, %s, %s, %s);"
-        % (
-            res_name,
+    getCAPIErrorCode(
+        capi="SET_SLICE",
+        arg_names=(
+            "tstate",
             target_name,
             lower_name if lower_name is not None else "Py_None",
             upper_name if upper_name is not None else "Py_None",
             value_name,
-        )
-    )
-
-    getErrorExitBoolCode(
-        condition="%s == false" % res_name,
+        ),
+        may_raise=True,
         release_names=(target_name, lower_name, upper_name, value_name),
         emit=emit,
         context=context,
@@ -399,36 +306,26 @@ def _getSliceAssignmentCode(
 
 
 def _getSliceDelIndexesCode(target_name, lower_name, upper_name, emit, context):
-    res_name = context.getBoolResName()
-
-    emit(
-        "%s = DEL_INDEX_SLICE(%s, %s, %s);"
-        % (res_name, target_name, lower_name, upper_name)
-    )
-
-    getErrorExitBoolCode(
-        condition="%s == false" % res_name,
-        release_name=target_name,
+    getCAPIErrorCode(
+        capi="DEL_INDEX_SLICE",
+        arg_names=(target_name, lower_name, upper_name),
+        may_raise=True,
+        release_names=(target_name,),
         emit=emit,
         context=context,
     )
 
 
 def _getSliceDelCode(target_name, lower_name, upper_name, emit, context):
-    res_name = context.getBoolResName()
-
-    emit(
-        "%s = DEL_SLICE(tstate, %s, %s, %s);"
-        % (
-            res_name,
+    getCAPIErrorCode(
+        capi="DEL_SLICE",
+        arg_names=(
+            "tstate",
             target_name,
             lower_name if lower_name is not None else "Py_None",
             upper_name if upper_name is not None else "Py_None",
-        )
-    )
-
-    getErrorExitBoolCode(
-        condition="%s == false" % res_name,
+        ),
+        may_raise=True,
         release_names=(target_name, lower_name, upper_name),
         emit=emit,
         context=context,

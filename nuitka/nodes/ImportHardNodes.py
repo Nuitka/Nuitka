@@ -117,6 +117,10 @@ class ExpressionImportModuleNameHardMaybeExists(ExpressionImportModuleNameHardBa
     def mayRaiseException(exception_type):
         return True
 
+    @staticmethod
+    def mayRaiseExceptionOperation():
+        return True
+
 
 class ExpressionImportModuleNameHardExists(ExpressionImportModuleNameHardBase):
     """Hard-coded attribute import (e.g. 'sys.stdout') known to exist."""
@@ -135,6 +139,9 @@ class ExpressionImportModuleNameHardExists(ExpressionImportModuleNameHardBase):
         return not self.module_guaranteed
 
     def mayRaiseException(self, exception_type):
+        return not self.module_guaranteed
+
+    def mayRaiseExceptionOperation(self):
         return not self.module_guaranteed
 
     def computeExpressionCallViaVariable(

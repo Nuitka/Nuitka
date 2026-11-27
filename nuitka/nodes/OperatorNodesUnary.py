@@ -89,6 +89,11 @@ class ExpressionOperationUnaryRepr(  # TODO: Not exact
 
         return result
 
+    def mayRaiseExceptionOperation(self):
+        return (
+            self.escape_desc is None or self.escape_desc.getExceptionExit() is not None
+        )
+
     def mayRaiseException(self, exception_type):
         # TODO: Match getExceptionExit() more precisely against exception type given
         return (
@@ -277,6 +282,9 @@ class ExpressionOperationNot(
         return self.subnode_operand.mayRaiseException(
             exception_type
         ) or self.subnode_operand.mayRaiseExceptionBool(exception_type)
+
+    def mayRaiseExceptionOperation(self):
+        return self.subnode_operand.mayRaiseExceptionBool(BaseException)
 
     def getTruthValue(self):
         result = self.subnode_operand.getTruthValue()

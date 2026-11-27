@@ -9,19 +9,17 @@ from .CodeHelpers import (
     generateChildExpressionCode,
     generateChildExpressionsCode,
     generateExpressionCode,
+    promoteBorrowedValue,
     withBorrowedValueScope,
     withCleanupFinally,
     withObjectCodeTemporaryAssignment,
 )
-from .ErrorCodes import (
-    getErrorExitBoolCode,
-    getErrorExitCode,
-    getReleaseCode,
-    getReleaseCodes,
-)
+from .ErrorCodes import getReleaseCodes
 from .PythonAPICodes import (
+    generateCAPIErrorCode,
     generateCAPIObjectCode,
     generateCAPIObjectCode0,
+    getCAPIErrorCode,
     makeArgDescFromExpression,
 )
 
@@ -80,39 +78,25 @@ def _generateListCreationCode(to_name, expression, emit, context):
 
 
 def generateListOperationAppendCode(statement, emit, context):
-    list_arg_name = context.allocateTempName("append_list")
-    generateExpressionCode(
-        to_name=list_arg_name,
-        expression=statement.subnode_list_arg,
-        emit=emit,
-        context=context,
+    list_arg_name, value_arg_name = generateChildExpressionsCode(
+        expression=statement, emit=emit, context=context
     )
 
-    value_arg_name = context.allocateTempName("append_value")
-    generateExpressionCode(
-        to_name=value_arg_name,
-        expression=statement.subnode_value,
-        emit=emit,
-        context=context,
-    )
+    with context.withCurrentSourceCodeReference(statement.getSourceReference()):
+        if context.needsCleanup(value_arg_name):
+            capi = "LIST_APPEND1"
+            context.removeCleanupTempName(value_arg_name)
+        else:
+            capi = "LIST_APPEND0"
 
-    context.setCurrentSourceCodeReference(statement.getSourceReference())
-
-    res_name = context.getBoolResName()
-
-    if context.needsCleanup(value_arg_name):
-        emit("%s = LIST_APPEND1(%s, %s);" % (res_name, list_arg_name, value_arg_name))
-        context.removeCleanupTempName(value_arg_name)
-    else:
-        emit("%s = LIST_APPEND0(%s, %s);" % (res_name, list_arg_name, value_arg_name))
-
-    # TODO: Only really MemoryError, which we often ignore.
-    getErrorExitBoolCode(
-        condition="%s == false" % res_name,
-        release_names=(list_arg_name, value_arg_name),
-        emit=emit,
-        context=context,
-    )
+        getCAPIErrorCode(
+            capi=capi,
+            arg_names=(list_arg_name, value_arg_name),
+            may_raise=statement.mayRaiseExceptionOperation(),
+            release_names=(list_arg_name, value_arg_name),
+            emit=emit,
+            context=context,
+        )
 
 
 def generateListOperationAppendCode2(to_name, expression, emit, context):
@@ -120,51 +104,36 @@ def generateListOperationAppendCode2(to_name, expression, emit, context):
         expression=expression, emit=emit, context=context
     )
 
-    context.setCurrentSourceCodeReference(expression.getSourceReference())
+    with context.withCurrentSourceCodeReference(expression.getSourceReference()):
+        if context.needsCleanup(value_arg_name):
+            capi = "LIST_APPEND1"
+            context.removeCleanupTempName(value_arg_name)
+        else:
+            capi = "LIST_APPEND0"
 
-    res_name = context.getBoolResName()
-
-    if context.needsCleanup(value_arg_name):
-        emit("%s = LIST_APPEND1(%s, %s);" % (res_name, list_arg_name, value_arg_name))
-        context.removeCleanupTempName(value_arg_name)
-    else:
-        emit("%s = LIST_APPEND0(%s, %s);" % (res_name, list_arg_name, value_arg_name))
-
-    # TODO: Only really MemoryError, which we often ignore.
-    getErrorExitBoolCode(
-        condition="%s == false" % res_name,
-        release_names=(list_arg_name, value_arg_name),
-        needs_check=False,
-        emit=emit,
-        context=context,
-    )
+        getCAPIErrorCode(
+            capi=capi,
+            arg_names=(list_arg_name, value_arg_name),
+            may_raise=expression.mayRaiseExceptionOperation(),
+            release_names=(list_arg_name, value_arg_name),
+            emit=emit,
+            context=context,
+        )
 
     assignConstantNoneResult(to_name, emit, context)
 
 
 def generateListOperationExtendCode(to_name, expression, emit, context):
-    list_arg_name, value_arg_name = generateChildExpressionsCode(
-        expression=expression, emit=emit, context=context
-    )
-
-    # These give different error messages.
-    is_unpack = expression.isExpressionListOperationExtendForUnpack()
-
-    res_name = context.getBoolResName()
-
-    emit(
-        "%s = %s(tstate, %s, %s);"
-        % (
-            res_name,
-            "LIST_EXTEND_FOR_UNPACK" if is_unpack else "LIST_EXTEND_FROM_ITERABLE",
-            list_arg_name,
-            value_arg_name,
-        )
-    )
-
-    getErrorExitBoolCode(
-        condition="%s == false" % res_name,
-        release_names=(list_arg_name, value_arg_name),
+    generateCAPIErrorCode(
+        capi=(
+            "LIST_EXTEND_FOR_UNPACK"
+            if expression.isExpressionListOperationExtendForUnpack()
+            else "LIST_EXTEND_FROM_ITERABLE"
+        ),
+        tstate=True,
+        arg_desc=makeArgDescFromExpression(expression),
+        may_raise=expression.mayRaiseExceptionOperation(),
+        source_ref=expression.getCompatibleSourceReference(),
         emit=emit,
         context=context,
     )
@@ -173,134 +142,91 @@ def generateListOperationExtendCode(to_name, expression, emit, context):
 
 
 def generateListOperationClearCode(to_name, expression, emit, context):
-    (list_arg_name,) = generateChildExpressionsCode(
-        expression=expression, emit=emit, context=context
+    generateCAPIObjectCode0(
+        to_name=None,
+        capi="LIST_CLEAR",
+        tstate=False,
+        arg_desc=makeArgDescFromExpression(expression),
+        may_raise=expression.mayRaiseExceptionOperation(),
+        conversion_check=decideConversionCheckNeeded(to_name, expression),
+        source_ref=expression.getCompatibleSourceReference(),
+        emit=emit,
+        context=context,
     )
-
-    emit("LIST_CLEAR(%s);" % list_arg_name)
-
-    getReleaseCode(release_name=list_arg_name, emit=emit, context=context)
 
     assignConstantNoneResult(to_name, emit, context)
 
 
 def generateListOperationCopyCode(to_name, expression, emit, context):
-    (list_arg_name,) = generateChildExpressionsCode(
-        expression=expression, emit=emit, context=context
+    generateCAPIObjectCode(
+        to_name=to_name,
+        capi="LIST_COPY",
+        tstate=True,
+        arg_desc=makeArgDescFromExpression(expression),
+        may_raise=expression.mayRaiseExceptionOperation(),
+        conversion_check=decideConversionCheckNeeded(to_name, expression),
+        source_ref=expression.getCompatibleSourceReference(),
+        emit=emit,
+        context=context,
     )
-
-    with withObjectCodeTemporaryAssignment(
-        to_name, "list_copy_result", expression, emit, context
-    ) as result_name:
-        emit("%s = LIST_COPY(tstate, %s);" % (result_name, list_arg_name))
-
-        getErrorExitCode(
-            check_name=result_name,
-            release_name=list_arg_name,
-            emit=emit,
-            needs_check=False,
-            context=context,
-        )
-
-        context.addCleanupTempName(result_name)
 
 
 def generateListOperationReverseCode(to_name, expression, emit, context):
-    (list_arg_name,) = generateChildExpressionsCode(
-        expression=expression, emit=emit, context=context
+    generateCAPIObjectCode0(
+        to_name=None,
+        capi="LIST_REVERSE",
+        tstate=False,
+        arg_desc=makeArgDescFromExpression(expression),
+        may_raise=expression.mayRaiseExceptionOperation(),
+        conversion_check=decideConversionCheckNeeded(to_name, expression),
+        source_ref=expression.getCompatibleSourceReference(),
+        emit=emit,
+        context=context,
     )
-
-    emit("LIST_REVERSE(%s);" % list_arg_name)
-
-    getReleaseCode(release_name=list_arg_name, emit=emit, context=context)
 
     assignConstantNoneResult(to_name, emit, context)
 
 
 def generateListOperationIndex2Code(to_name, expression, emit, context):
-    list_arg_name, value_arg_name = generateChildExpressionsCode(
-        expression=expression, emit=emit, context=context
+    generateCAPIObjectCode(
+        to_name=to_name,
+        capi="LIST_INDEX2",
+        tstate=True,
+        arg_desc=makeArgDescFromExpression(expression),
+        may_raise=expression.mayRaiseExceptionOperation(),
+        conversion_check=decideConversionCheckNeeded(to_name, expression),
+        source_ref=expression.getCompatibleSourceReference(),
+        emit=emit,
+        context=context,
     )
-
-    with withObjectCodeTemporaryAssignment(
-        to_name, "list_index_result", expression, emit, context
-    ) as result_name:
-        emit(
-            "%s = LIST_INDEX2(tstate, %s, %s);"
-            % (result_name, list_arg_name, value_arg_name)
-        )
-
-        getErrorExitCode(
-            check_name=result_name,
-            release_names=(list_arg_name, value_arg_name),
-            needs_check=expression.mayRaiseExceptionOperation(),
-            emit=emit,
-            context=context,
-        )
-
-        context.addCleanupTempName(result_name)
 
 
 def generateListOperationIndex3Code(to_name, expression, emit, context):
-    list_arg_name, value_arg_name, start_arg_name = generateChildExpressionsCode(
-        expression=expression, emit=emit, context=context
+    generateCAPIObjectCode(
+        to_name=to_name,
+        capi="LIST_INDEX3",
+        tstate=True,
+        arg_desc=makeArgDescFromExpression(expression),
+        may_raise=expression.mayRaiseExceptionOperation(),
+        conversion_check=decideConversionCheckNeeded(to_name, expression),
+        source_ref=expression.getCompatibleSourceReference(),
+        emit=emit,
+        context=context,
     )
-
-    with withObjectCodeTemporaryAssignment(
-        to_name, "list_index_result", expression, emit, context
-    ) as result_name:
-        emit(
-            "%s = LIST_INDEX3(tstate, %s, %s, %s);"
-            % (result_name, list_arg_name, value_arg_name, start_arg_name)
-        )
-
-        getErrorExitCode(
-            check_name=result_name,
-            release_names=(list_arg_name, value_arg_name, start_arg_name),
-            needs_check=expression.mayRaiseExceptionOperation(),
-            emit=emit,
-            context=context,
-        )
-
-        context.addCleanupTempName(result_name)
 
 
 def generateListOperationIndex4Code(to_name, expression, emit, context):
-    (
-        list_arg_name,
-        value_arg_name,
-        start_arg_name,
-        stop_arg_name,
-    ) = generateChildExpressionsCode(expression=expression, emit=emit, context=context)
-
-    with withObjectCodeTemporaryAssignment(
-        to_name, "list_index_result", expression, emit, context
-    ) as result_name:
-        emit(
-            "%s = LIST_INDEX4(tstate, %s, %s, %s, %s);"
-            % (
-                result_name,
-                list_arg_name,
-                value_arg_name,
-                start_arg_name,
-                stop_arg_name,
-            )
-        )
-
-        getErrorExitCode(
-            check_name=result_name,
-            release_names=(
-                list_arg_name,
-                value_arg_name,
-                start_arg_name,
-                stop_arg_name,
-            ),
-            needs_check=expression.mayRaiseExceptionOperation(),
-            emit=emit,
-            context=context,
-        )
-
-        context.addCleanupTempName(result_name)
+    generateCAPIObjectCode(
+        to_name=to_name,
+        capi="LIST_INDEX4",
+        tstate=True,
+        arg_desc=makeArgDescFromExpression(expression),
+        may_raise=expression.mayRaiseExceptionOperation(),
+        conversion_check=decideConversionCheckNeeded(to_name, expression),
+        source_ref=expression.getCompatibleSourceReference(),
+        emit=emit,
+        context=context,
+    )
 
 
 def generateListOperationInsertCode(to_name, expression, emit, context):
@@ -309,6 +235,12 @@ def generateListOperationInsertCode(to_name, expression, emit, context):
     if is_integer_index:
         list_arg_name = generateChildExpressionCode(
             expression=expression.subnode_list_arg, emit=emit, context=context
+        )
+        promoteBorrowedValue(
+            value_name=list_arg_name,
+            later_expressions=(expression.subnode_item,),
+            emit=emit,
+            context=context,
         )
 
         item_arg_name = generateChildExpressionCode(
@@ -340,26 +272,15 @@ def generateListOperationInsertCode(to_name, expression, emit, context):
             context=context,
         )
     else:
-        res_name = context.getBoolResName()
-
-        emit(
-            "%s = LIST_INSERT(tstate, %s, %s, %s);"
-            % (
-                res_name,
-                list_arg_name,
-                index_arg_name,
-                item_arg_name,
-            )
-        )
-
-        getErrorExitBoolCode(
-            condition="%s == false" % res_name,
+        getCAPIErrorCode(
+            capi="LIST_INSERT",
+            arg_names=("tstate", list_arg_name, index_arg_name, item_arg_name),
+            may_raise=expression.mayRaiseExceptionOperation(),
             release_names=(
                 list_arg_name,
                 index_arg_name,
                 item_arg_name,
             ),
-            needs_check=expression.mayRaiseExceptionOperation(),
             emit=emit,
             context=context,
         )
@@ -368,24 +289,17 @@ def generateListOperationInsertCode(to_name, expression, emit, context):
 
 
 def generateListOperationCountCode(to_name, expression, emit, context):
-    list_arg_name, value_arg_name = generateChildExpressionsCode(
-        expression=expression, emit=emit, context=context
+    generateCAPIObjectCode(
+        to_name=to_name,
+        capi="LIST_COUNT",
+        tstate=False,
+        arg_desc=makeArgDescFromExpression(expression),
+        may_raise=expression.mayRaiseExceptionOperation(),
+        conversion_check=decideConversionCheckNeeded(to_name, expression),
+        source_ref=expression.getCompatibleSourceReference(),
+        emit=emit,
+        context=context,
     )
-
-    with withObjectCodeTemporaryAssignment(
-        to_name, "list_count_result", expression, emit, context
-    ) as result_name:
-        emit("%s = LIST_COUNT(%s, %s);" % (result_name, list_arg_name, value_arg_name))
-
-        getErrorExitCode(
-            check_name=result_name,
-            release_names=(list_arg_name, value_arg_name),
-            emit=emit,
-            needs_check=expression.mayRaiseExceptionOperation(),
-            context=context,
-        )
-
-        context.addCleanupTempName(result_name)
 
 
 def generateListOperationPop1Code(to_name, expression, emit, context):
@@ -417,18 +331,12 @@ def generateListOperationPop2Code(to_name, expression, emit, context):
 
 
 def generateListOperationRemoveCode(to_name, expression, emit, context):
-    list_arg_name, value_arg_name = generateChildExpressionsCode(
-        expression=expression, emit=emit, context=context
-    )
-
-    res_name = context.getBoolResName()
-
-    emit("%s = LIST_REMOVE(%s, %s);" % (res_name, list_arg_name, value_arg_name))
-
-    getErrorExitBoolCode(
-        condition="%s == false" % res_name,
-        release_names=(list_arg_name, value_arg_name),
-        needs_check=expression.mayRaiseExceptionOperation(),
+    generateCAPIErrorCode(
+        capi="LIST_REMOVE",
+        tstate=False,
+        arg_desc=makeArgDescFromExpression(expression),
+        may_raise=expression.mayRaiseExceptionOperation(),
+        source_ref=expression.getCompatibleSourceReference(),
         emit=emit,
         context=context,
     )
@@ -484,8 +392,8 @@ def generateBuiltinListCode(to_name, expression, emit, context):
         to_name=to_name,
         capi="MAKE_LIST",
         tstate=True,
-        arg_desc=(("list_arg", expression.subnode_value),),
-        may_raise=expression.mayRaiseException(BaseException),
+        arg_desc=makeArgDescFromExpression(expression),
+        may_raise=expression.mayRaiseExceptionOperation(),
         conversion_check=decideConversionCheckNeeded(to_name, expression),
         source_ref=expression.getCompatibleSourceReference(),
         emit=emit,

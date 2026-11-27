@@ -21,6 +21,10 @@ class ExpressionBuiltinSumMixin(object):
     def isExpressionBuiltinCall():
         return True
 
+    @staticmethod
+    def mayRaiseExceptionOperation():
+        return True
+
     def computeBuiltinSpec(self, trace_collection, given_values):
         assert self.builtin_spec is not None, self
 

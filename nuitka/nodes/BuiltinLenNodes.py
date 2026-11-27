@@ -29,6 +29,10 @@ class ExpressionBuiltinLen(
             len_node=self, trace_collection=trace_collection
         )
 
+    @staticmethod
+    def mayRaiseExceptionOperation():
+        return True
+
     def mayRaiseException(self, exception_type):
         value = self.subnode_value
 

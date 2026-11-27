@@ -194,6 +194,10 @@ class ExpressionImportModuleFixed(ExpressionBase):
     def mayRaiseException(exception_type):
         return True
 
+    @staticmethod
+    def mayRaiseExceptionOperation():
+        return True
+
     __slots__ = (
         "module_name",
         "value_name",
@@ -376,6 +380,9 @@ class ExpressionImportModuleBuiltin(ExpressionBase):
     def mayRaiseException(self, exception_type):
         return isNonRaisingBuiltinModule(self.module_name) is not False
 
+    def mayRaiseExceptionOperation(self):
+        return isNonRaisingBuiltinModule(self.module_name) is not False
+
     def getModuleUsageAttempts(self):
         return self.module_usages
 
@@ -520,6 +527,9 @@ class ExpressionImportModuleHard(
         return bool(self.fromlist_module_names)
 
     def mayRaiseException(self, exception_type):
+        return not self.allowed or self.mayHaveSideEffects()
+
+    def mayRaiseExceptionOperation(self):
         return not self.allowed or self.mayHaveSideEffects()
 
     def getTypeShape(self):
@@ -831,6 +841,10 @@ class ExpressionImportlibReloadCall(ChildHavingModuleMixin, ExpressionBase):
         return True
 
     @staticmethod
+    def mayRaiseExceptionOperation():
+        return True
+
+    @staticmethod
     def mayRaiseException(exception_type):
         return True
 
@@ -942,6 +956,10 @@ class ExpressionImportlibImportModuleCall(
         # TODO: May return a module or module variable reference of some sort in
         # the future with embedded modules.
         return self, None, None
+
+    @staticmethod
+    def mayRaiseExceptionOperation():
+        return True
 
 
 addModuleSingleAttributeNodeFactory(
@@ -1395,6 +1413,9 @@ class ExpressionBuiltinImport(ChildrenExpressionBuiltinImportMixin, ExpressionBa
     def mayRaiseException(self, exception_type):
         return self.finding != "built-in"
 
+    def mayRaiseExceptionOperation(self):
+        return self.finding != "built-in"
+
 
 class StatementImportStar(StatementImportStarBase):
     kind = "STATEMENT_IMPORT_STAR"
@@ -1470,6 +1491,11 @@ class ExpressionImportName(ChildHavingModuleMixin, ExpressionBase):
     def mayRaiseException(self, exception_type):
         return self.subnode_module.mayRaiseExceptionImportName(
             exception_type=exception_type, import_name=self.import_name
+        )
+
+    def mayRaiseExceptionOperation(self):
+        return self.subnode_module.mayRaiseExceptionImportName(
+            exception_type=BaseException, import_name=self.import_name
         )
 
 

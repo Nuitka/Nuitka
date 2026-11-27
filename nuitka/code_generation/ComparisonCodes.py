@@ -25,6 +25,7 @@ from .c_types.CTypePyObjectPointers import CTypePyObjectPtr
 from .CodeHelpers import (
     generateChildExpressionsCode,
     generateExpressionCode,
+    promoteBorrowedValue,
     withBorrowedValueScope,
 )
 from .CodeHelperSelection import selectCodeHelper
@@ -34,13 +35,13 @@ from .ComparisonHelperDefinitions import (
     rich_comparison_codes,
     rich_comparison_subset_codes,
 )
-from .ErrorCodes import (
-    getErrorExitBoolCode,
-    getErrorExitCode,
-    getReleaseCode,
-    getReleaseCodes,
-)
+from .ErrorCodes import getErrorExitCode, getReleaseCode, getReleaseCodes
 from .ExpressionCTypeSelectionHelpers import decideExpressionCTypes
+from .PythonAPICodes import (
+    generateCAPIBoolCode,
+    getCAPIBoolCode,
+    makeArgDescFromExpression,
+)
 
 
 def _handleArgumentSwapAndInversion(
@@ -170,6 +171,12 @@ def getRichComparisonCode(
     generateExpressionCode(
         to_name=left_name, expression=left, emit=emit, context=context
     )
+    promoteBorrowedValue(
+        value_name=left_name,
+        later_expressions=(right,),
+        emit=emit,
+        context=context,
+    )
     generateExpressionCode(
         to_name=right_name, expression=right, emit=emit, context=context
     )
@@ -279,15 +286,17 @@ def _generateComparisonExpressionCode(to_name, expression, emit, context):
     generateExpressionCode(
         to_name=left_name, expression=left, emit=emit, context=context
     )
+    promoteBorrowedValue(
+        value_name=left_name,
+        later_expressions=(right,),
+        emit=emit,
+        context=context,
+    )
     generateExpressionCode(
         to_name=right_name, expression=right, emit=emit, context=context
     )
 
     if comparator in ("In", "NotIn"):
-        needs_check = right.mayRaiseExceptionIn(BaseException, expression.subnode_left)
-
-        res_name = context.getIntResName()
-
         right_shape = right.getTypeShape()
 
         if right_shape in (tshape_set, tshape_frozenset):
@@ -295,28 +304,16 @@ def _generateComparisonExpressionCode(to_name, expression, emit, context):
         else:
             c_api = "PySequence_Contains"
 
-        emit(
-            "%s = %s(%s, %s);"
-            % (
-                res_name,
-                c_api,
-                right_name,
-                left_name,
-            )  # sequence goes first in the API.
-        )
-
-        getErrorExitBoolCode(
-            condition="%s == -1" % res_name,
+        # Sequence/set argument goes first in CPython's containment C-API.
+        getCAPIBoolCode(
+            to_name=to_name,
+            capi=c_api,
+            arg_names=(right_name, left_name),
+            may_raise=expression.mayRaiseExceptionOperation(),
+            inverted=comparator == "NotIn",
             release_names=(left_name, right_name),
-            needs_check=needs_check,
             emit=emit,
             context=context,
-        )
-
-        to_name.getCType().emitAssignmentCodeFromBoolCondition(
-            to_name=to_name,
-            condition="%s == %d" % (res_name, 1 if comparator == "In" else 0),
-            emit=emit,
         )
     elif comparator == "Is":
         to_name.getCType().emitAssignmentCodeFromBoolCondition(
@@ -335,28 +332,15 @@ def _generateComparisonExpressionCode(to_name, expression, emit, context):
             release_names=(left_name, right_name), emit=emit, context=context
         )
     elif comparator in ("exception_match", "exception_mismatch"):
-        needs_check = expression.mayRaiseExceptionComparison()
-
-        res_name = context.getIntResName()
-
-        emit(
-            "%s = EXCEPTION_MATCH_BOOL(tstate, %s, %s);"
-            % (res_name, left_name, right_name)
-        )
-
-        getErrorExitBoolCode(
-            condition="%s == -1" % res_name,
+        getCAPIBoolCode(
+            to_name=to_name,
+            capi="EXCEPTION_MATCH_BOOL",
+            arg_names=("tstate", left_name, right_name),
+            may_raise=expression.mayRaiseExceptionOperation(),
+            inverted=comparator == "exception_mismatch",
             release_names=(left_name, right_name),
-            needs_check=needs_check,
             emit=emit,
             context=context,
-        )
-
-        to_name.getCType().emitAssignmentCodeFromBoolCondition(
-            to_name=to_name,
-            condition="%s %s 0"
-            % (res_name, "!=" if comparator == "exception_match" else "=="),
-            emit=emit,
         )
     else:
         assert False, comparator
@@ -377,104 +361,42 @@ def generateRichComparisonExpressionCode(to_name, expression, emit, context):
 
 
 def generateBuiltinIsinstanceCode(to_name, expression, emit, context):
-    inst_name = context.allocateTempName("isinstance_inst")
-    cls_name = context.allocateTempName("isinstance_cls")
-
-    generateExpressionCode(
-        to_name=inst_name,
-        expression=expression.subnode_instance,
+    generateCAPIBoolCode(
+        to_name=to_name,
+        capi="Nuitka_Object_IsInstance",
+        tstate=True,
+        arg_desc=makeArgDescFromExpression(expression),
+        may_raise=expression.mayRaiseExceptionOperation(),
+        source_ref=expression.getCompatibleSourceReference(),
         emit=emit,
         context=context,
-    )
-    generateExpressionCode(
-        to_name=cls_name,
-        expression=expression.subnode_classes,
-        emit=emit,
-        context=context,
-    )
-
-    context.setCurrentSourceCodeReference(expression.getCompatibleSourceReference())
-
-    res_name = context.getIntResName()
-
-    emit(
-        "%s = Nuitka_Object_IsInstance(tstate, %s, %s);"
-        % (res_name, inst_name, cls_name)
-    )
-
-    getErrorExitBoolCode(
-        condition="%s == -1" % res_name,
-        release_names=(inst_name, cls_name),
-        emit=emit,
-        context=context,
-    )
-
-    to_name.getCType().emitAssignmentCodeFromBoolCondition(
-        to_name=to_name, condition="%s != 0" % res_name, emit=emit
     )
 
 
 def generateBuiltinIssubclassCode(to_name, expression, emit, context):
-    cls_name = context.allocateTempName("issubclass_cls")
-    classes_name = context.allocateTempName("issubclass_classes")
-
-    generateExpressionCode(
-        to_name=cls_name,
-        expression=expression.subnode_cls,
+    generateCAPIBoolCode(
+        to_name=to_name,
+        capi="Nuitka_Object_IsSubclass",
+        tstate=True,
+        arg_desc=makeArgDescFromExpression(expression),
+        may_raise=expression.mayRaiseExceptionOperation(),
+        source_ref=expression.getCompatibleSourceReference(),
         emit=emit,
         context=context,
-    )
-    generateExpressionCode(
-        to_name=classes_name,
-        expression=expression.subnode_classes,
-        emit=emit,
-        context=context,
-    )
-
-    context.setCurrentSourceCodeReference(expression.getCompatibleSourceReference())
-
-    res_name = context.getIntResName()
-
-    emit(
-        "%s = Nuitka_Object_IsSubclass(tstate, %s, %s);"
-        % (res_name, cls_name, classes_name)
-    )
-
-    getErrorExitBoolCode(
-        condition="%s == -1" % res_name,
-        release_names=(cls_name, classes_name),
-        emit=emit,
-        context=context,
-    )
-
-    to_name.getCType().emitAssignmentCodeFromBoolCondition(
-        to_name=to_name, condition="%s != 0" % res_name, emit=emit
     )
 
 
 def generateTypeCheckCode(to_name, expression, emit, context):
-    cls_name = context.allocateTempName("type_check_cls")
-
-    generateExpressionCode(
-        to_name=cls_name,
-        expression=expression.subnode_cls,
+    generateCAPIBoolCode(
+        to_name=to_name,
+        capi="PyType_Check",
+        tstate=False,
+        arg_desc=makeArgDescFromExpression(expression),
+        may_raise=expression.mayRaiseExceptionOperation(),
+        res_type="int",
+        source_ref=expression.getCompatibleSourceReference(),
         emit=emit,
         context=context,
-    )
-    context.setCurrentSourceCodeReference(expression.getCompatibleSourceReference())
-
-    res_name = context.getIntResName()
-
-    emit("%s = PyType_Check(%s);" % (res_name, cls_name))
-
-    getReleaseCode(
-        release_name=cls_name,
-        emit=emit,
-        context=context,
-    )
-
-    to_name.getCType().emitAssignmentCodeFromBoolCondition(
-        to_name=to_name, condition="%s != 0" % res_name, emit=emit
     )
 
 
@@ -484,24 +406,23 @@ def generateSubtypeCheckCode(to_name, expression, emit, context):
         emit=emit,
         context=context,
     )
-    context.setCurrentSourceCodeReference(expression.getCompatibleSourceReference())
 
-    res_name = context.getBoolResName()
-
-    emit(
-        "%s = Nuitka_Type_IsSubtype((PyTypeObject *)%s, (PyTypeObject *)%s);"
-        % (res_name, left_name, right_name)
-    )
-
-    getReleaseCodes(
-        release_names=(left_name, right_name),
-        emit=emit,
-        context=context,
-    )
-
-    to_name.getCType().emitAssignmentCodeFromBoolCondition(
-        to_name=to_name, condition=res_name, emit=emit
-    )
+    with context.withCurrentSourceCodeReference(
+        expression.getCompatibleSourceReference()
+    ):
+        getCAPIBoolCode(
+            to_name=to_name,
+            capi="Nuitka_Type_IsSubtype",
+            arg_names=(
+                "(PyTypeObject *)%s" % left_name,
+                "(PyTypeObject *)%s" % right_name,
+            ),
+            may_raise=expression.mayRaiseExceptionOperation(),
+            res_type="bool",
+            release_names=(left_name, right_name),
+            emit=emit,
+            context=context,
+        )
 
 
 def generateMatchTypeCheckMappingCode(to_name, expression, emit, context):

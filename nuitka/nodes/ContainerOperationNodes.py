@@ -29,6 +29,10 @@ class StatementListOperationAppend(StatementListOperationAppendBase):
             exception_type
         ) or self.subnode_value.mayRaiseException(exception_type)
 
+    @staticmethod
+    def mayRaiseExceptionOperation():
+        return False
+
 
 class StatementSetOperationAdd(StatementSetOperationAddBase):
     kind = "STATEMENT_SET_OPERATION_ADD"
@@ -41,12 +45,20 @@ class StatementSetOperationAdd(StatementSetOperationAddBase):
         trace_collection.removeKnowledge(self.subnode_set_arg)
         self.subnode_value.onContentEscapes(trace_collection)
 
+        if self.mayRaiseExceptionOperation():
+            trace_collection.onExceptionRaiseExit(BaseException)
+
         return self, None, None
 
     def mayRaiseException(self, exception_type):
-        return self.subnode_set_arg.mayRaiseException(
-            exception_type
-        ) or self.subnode_value.mayRaiseException(exception_type)
+        return (
+            self.mayRaiseExceptionOperation()
+            or self.subnode_set_arg.mayRaiseException(exception_type)
+            or self.subnode_value.mayRaiseException(exception_type)
+        )
+
+    def mayRaiseExceptionOperation(self):
+        return not self.subnode_value.isKnownToBeHashable()
 
 
 class ExpressionSetOperationUpdate(
@@ -68,8 +80,13 @@ class ExpressionSetOperationUpdate(
     def computeExpression(self, trace_collection):
         trace_collection.removeKnowledge(self.subnode_set_arg)
         self.subnode_value.onContentEscapes(trace_collection)
+        trace_collection.onExceptionRaiseExit(BaseException)
 
         return self, None, None
+
+    @staticmethod
+    def mayRaiseExceptionOperation():
+        return True
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
