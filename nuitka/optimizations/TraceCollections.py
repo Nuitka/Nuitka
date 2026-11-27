@@ -99,12 +99,9 @@ class CollectionUpdateMixin(object):
         for variable in locals_scope.variables.values():
             self.markActiveVariableAsEscaped(variable)
 
-        # TODO: Limit escaping to variables belonging to "locals_scope".
-        for variable in self.variable_actives:
-            if variable.isTempVariable() or variable.isModuleVariable():
-                continue
-
-            self.markActiveVariableAsEscaped(variable)
+        for variable in locals_scope.getLocalsRelevantVariables():
+            if variable.isLocalVariable() and variable in self.variable_actives:
+                self.markActiveVariableAsEscaped(variable)
 
     def getVariableTracesAll(self):
         return self.variable_traces
@@ -705,10 +702,8 @@ class TraceCollectionBase(object):
 
         result = []
 
-        scope_locals_variables = locals_scope.getLocalsRelevantVariables()
-
-        for variable in self.variable_actives:
-            if variable.isLocalVariable() and variable in scope_locals_variables:
+        for variable in locals_scope.getLocalsRelevantVariables():
+            if variable.isLocalVariable() and variable in self.variable_actives:
                 variable_trace = self.getVariableCurrentTrace(variable)
 
                 variable_trace.addNameUsage()
