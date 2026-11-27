@@ -218,7 +218,8 @@ filename_char_t *_getBinaryPath2(void) {
         if (isExecutableFile(binary_filename)) {
             success = true;
         } else {
-            char *path_environment_value = strdup(getenv("PATH"));
+            char const *raw_path_value = getenv("PATH");
+            char *path_environment_value = raw_path_value != NULL ? strdup(raw_path_value) : NULL;
 
             if (path_environment_value != NULL) {
                 char *sp;
