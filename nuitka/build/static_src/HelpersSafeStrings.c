@@ -271,6 +271,7 @@ void printOSErrorMessage(char const *message, error_code_t error_code) {
     }
     err_buffer[res] = L'\0';
 
+    // Called right before program exit, so 'err_buffer' needs no release.
     fprintf(stderr, "%s ([Error " ERROR_CODE_FORMAT_STR "] %ls)\n", message, error_code, err_buffer);
 #else
     fprintf(stderr, "%s: %s\n", message, strerror(error_code));
