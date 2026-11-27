@@ -405,6 +405,7 @@
               }
             },
             "no-auto-follow": {
+              "description": "Suppress auto-follow for the named modules. The special value 'allow' overrides a rule with lower precedence: user configuration over standard configuration, then the most specific target namespace, then the most specific using-module namespace.",
               "type": "object",
               "propertyNames": {
                 "$ref": "#/definitions/module-name"

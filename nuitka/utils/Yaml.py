@@ -543,6 +543,8 @@ class PackageConfigYaml(object):
         "data",
         "logger",
         "checked_sections",
+        "entry_priorities",
+        "include_priorities",
     )
 
     def __init__(
@@ -550,6 +552,8 @@ class PackageConfigYaml(object):
     ):
         self.logger = logger
         self.name = name
+        self.entry_priorities = {}
+        self.include_priorities = {}
 
         assert type(file_data) is bytes
         data = parseYaml(
@@ -651,7 +655,9 @@ Error, '<main>' configuration section '%s' cannot be applied to non-list section
 
             for main_entry in section_config:
                 if type(main_entry) in (dict, OrderedDict):
+                    source_entry = main_entry
                     main_entry = OrderedDict(main_entry)
+                    self._copyEntryPriority(source_entry, main_entry, 0)
 
                 destination_config.append(main_entry)
 
@@ -663,24 +669,39 @@ Error, '<main>' configuration section '%s' cannot be applied to non-list section
                 "Error, 'include-config' references unknown module '%s'." % module_name
             )
 
-        include_config = module_config.pop("include-config", None)
+        include_config = module_config.get("include-config")
 
         if not include_config:
+            module_config.pop("include-config", None)
             return
 
         if type(include_config) in (str, unicode):
+            include_priorities = (
+                self._getIncludePriority(module_name, include_config),
+            )
             include_config = (include_config,)
+        else:
+            include_priorities = tuple(
+                self._getIncludePriority(module_name, include)
+                for include in include_config
+            )
 
-        for include in include_config:
+        module_config.pop("include-config")
+
+        for include, include_priority in zip(include_config, include_priorities):
             self._resolveModuleInclude(
                 module_name=module_name,
                 module_config=module_config,
                 include=include,
+                include_priority=include_priority,
                 resolution_chain=resolution_chain,
             )
 
+    def _getIncludePriority(self, module_name, include):
+        return self.include_priorities.get((module_name, repr(include)), 0)
+
     def _resolveModuleInclude(
-        self, module_name, module_config, include, resolution_chain
+        self, module_name, module_config, include, include_priority, resolution_chain
     ):
         from_path, to_section, key_map, include_when = _parseIncludeConfigEntry(
             logger=self.logger, module_name=module_name, include=include
@@ -708,6 +729,7 @@ Error, '<main>' configuration section '%s' cannot be applied to non-list section
             module_name=module_name,
             destination_config=destination_config,
             target_section_config=target_section_config,
+            include_priority=include_priority,
             key_map=key_map,
             include_when=include_when,
         )
@@ -790,12 +812,15 @@ Error, 'include-config' of module '%s' cannot include into non-list section '%s'
         module_name,
         destination_config,
         target_section_config,
+        include_priority,
         key_map,
         include_when,
     ):
         for target_entry in target_section_config:
             if type(target_entry) in (dict, OrderedDict):
+                source_entry = target_entry
                 target_entry = OrderedDict(target_entry)
+                self._copyEntryPriority(source_entry, target_entry, include_priority)
 
                 self._mapIncludedEntry(
                     target_entry=target_entry,
@@ -901,7 +926,7 @@ Error, duplicate config for module name '%s' section '%s' with mismatching type 
             % (module_name, section, self.name)
         )
 
-    def update(self, other):
+    def update(self, other, source_priority):
         # Merging of configurations is done for all sections, so that an entry
         # can be extended by another configuration file, e.g. the standard one
         # by a user file, rather than requiring the sections to be disjoint.
@@ -912,6 +937,12 @@ Error, duplicate config for module name '%s' section '%s' with mismatching type 
 
                 for section, new_entries in value.items():
                     self.checked_sections.discard((key, section))
+                    self._markEntryPriorities(
+                        module_name=key,
+                        section=section,
+                        entries=new_entries,
+                        source_priority=source_priority,
+                    )
                     self._mergeConfigSection(
                         module_name=key,
                         existing=existing,
@@ -921,6 +952,14 @@ Error, duplicate config for module name '%s' section '%s' with mismatching type 
 
                 general.info("Merged configuration for '%s'." % key)
             else:
+                for section, section_entries in value.items():
+                    self._markEntryPriorities(
+                        module_name=key,
+                        section=section,
+                        entries=section_entries,
+                        source_priority=source_priority,
+                    )
+
                 self.data[key] = OrderedDict(
                     (
                         section,
@@ -932,6 +971,39 @@ Error, duplicate config for module name '%s' section '%s' with mismatching type 
                     )
                     for section, section_entries in value.items()
                 )
+
+    def _markEntryPriorities(self, module_name, section, entries, source_priority):
+        if not source_priority or section in ("variables", "constants"):
+            return
+
+        if section == "include-config":
+            if type(entries) in (str, unicode):
+                entries = (entries,)
+            elif type(entries) is not list:
+                return
+
+            for entry in entries:
+                self.include_priorities[(module_name, repr(entry))] = source_priority
+
+            return
+
+        if type(entries) is not list:
+            return
+
+        for entry in entries:
+            if type(entry) in (dict, OrderedDict):
+                self.entry_priorities[id(entry)] = source_priority
+
+    def _copyEntryPriority(self, source_entry, target_entry, include_priority):
+        priority = max(self.getEntryPriority(source_entry), include_priority)
+
+        if priority:
+            self.entry_priorities[id(target_entry)] = priority
+        else:
+            self.entry_priorities.pop(id(target_entry), None)
+
+    def getEntryPriority(self, entry):
+        return self.entry_priorities.get(id(entry), 0)
 
     @classmethod
     def getYamlPackageConfiguration(
@@ -960,7 +1032,8 @@ Error, duplicate config for module name '%s' section '%s' with mismatching type 
                     filename="stdlib.nuitka-package.config.yml",
                     assume_yes_for_downloads=assume_yes_for_downloads,
                     check_checksums=check_checksums,
-                )
+                ),
+                source_priority=_config_priority_standard,
             )
 
             if python_version < 0x300:
@@ -971,7 +1044,8 @@ Error, duplicate config for module name '%s' section '%s' with mismatching type 
                         filename="stdlib2.nuitka-package.config.yml",
                         assume_yes_for_downloads=assume_yes_for_downloads,
                         check_checksums=check_checksums,
-                    )
+                    ),
+                    source_priority=_config_priority_standard,
                 )
             else:
                 _package_config.update(
@@ -981,7 +1055,8 @@ Error, duplicate config for module name '%s' section '%s' with mismatching type 
                         filename="stdlib3.nuitka-package.config.yml",
                         assume_yes_for_downloads=assume_yes_for_downloads,
                         check_checksums=check_checksums,
-                    )
+                    ),
+                    source_priority=_config_priority_standard,
                 )
 
             try:
@@ -992,7 +1067,8 @@ Error, duplicate config for module name '%s' section '%s' with mismatching type 
                         filename="commercial.nuitka-package.config.yml",
                         assume_yes_for_downloads=assume_yes_for_downloads,
                         check_checksums=check_checksums,
-                    )
+                    ),
+                    source_priority=_config_priority_standard,
                 )
             except IOError:
                 # No commercial configuration found.
@@ -1000,7 +1076,9 @@ Error, duplicate config for module name '%s' section '%s' with mismatching type 
 
             # User or plugin provided filenames, but we want PRs though, and will nag
             # about it somewhat.
-            for user_yaml_filename in getUserProvidedYamlFiles():
+            for user_priority, user_yaml_filename in enumerate(
+                getUserProvidedYamlFiles(), _config_priority_user
+            ):
                 _package_config.update(
                     PackageConfigYaml(
                         logger=logger,
@@ -1008,7 +1086,8 @@ Error, duplicate config for module name '%s' section '%s' with mismatching type 
                         file_data=getFileContents(user_yaml_filename, mode="rb"),
                         assume_yes_for_downloads=assume_yes_for_downloads,
                         check_checksums=check_checksums,
-                    )
+                    ),
+                    source_priority=user_priority,
                 )
 
             # Resolve 'include-config' references only now, since they may refer to
@@ -1128,6 +1207,9 @@ def parsePackageYaml(
 
 
 _package_config = None
+
+_config_priority_standard = 0
+_config_priority_user = 1
 
 
 def getYamlPackageConfiguration(logger, assume_yes_for_downloads, check_checksums):

@@ -16,12 +16,12 @@ from .PluginBase import NuitkaPluginBase
 
 YamlConfigItem = makeNamedtupleClass(
     "YamlConfigItem",
-    ("config_module_name", "value"),
+    ("config_module_name", "value", "priority"),
 )
 
 YamlConfigKeyValue = makeNamedtupleClass(
     "YamlConfigKeyValue",
-    ("config_module_name", "key", "value"),
+    ("config_module_name", "key", "value", "priority"),
 )
 
 
@@ -67,6 +67,7 @@ class NuitkaYamlPluginBase(NuitkaPluginBase):
                     yield YamlConfigItem(
                         config_module_name=config_module_name,
                         value=config_item,
+                        priority=self.config.getEntryPriority(module_config),
                     )
 
             if not recursive:
@@ -105,6 +106,7 @@ class NuitkaYamlPluginBase(NuitkaPluginBase):
                         config_module_name=item_config.config_module_name,
                         key=key,
                         value=value,
+                        priority=item_config.priority,
                     )
 
     def getYamlConfigItemSet(
@@ -136,6 +138,7 @@ class NuitkaYamlPluginBase(NuitkaPluginBase):
                     yield YamlConfigItem(
                         config_module_name=item_config.config_module_name,
                         value=value,
+                        priority=item_config.priority,
                     )
 
 

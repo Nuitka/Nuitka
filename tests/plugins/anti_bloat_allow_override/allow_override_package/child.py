@@ -1,7 +1,13 @@
 #     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
+from .narrow import VALUE as NARROW_BROAD
 from .target import VALUE
+
+try:
+    from .narrow.specific import VALUE as NARROW_SPECIFIC
+except ImportError:
+    NARROW_SPECIFIC = None
 
 #     Python test originally created or extracted from other peoples work. The
 #     parts from me are licensed as below. It is at least Free Software where

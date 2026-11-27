@@ -9,6 +9,24 @@
 import allow_override_package.child
 
 print(allow_override_package.child.VALUE)
+print(allow_override_package.child.NARROW_BROAD)
+
+if allow_override_package.child.NARROW_SPECIFIC is None:
+    print("narrow suppression works")
+else:
+    print("narrow value %s" % allow_override_package.child.NARROW_SPECIFIC)
+
+try:
+    import allow_override_package.sibling
+except ImportError:
+    print("suppression works")
+else:
+    print("suppression failed")
+
+# nuitka-test-compiled-only:stdout: suppression works
+# nuitka-test-uncompiled-only:stdout: suppression failed
+# nuitka-test-compiled-only:stdout: narrow suppression works
+# nuitka-test-uncompiled-only:stdout: narrow value 126
 
 #     Python test originally created or extracted from other peoples work. The
 #     parts from me are licensed as below. It is at least Free Software where

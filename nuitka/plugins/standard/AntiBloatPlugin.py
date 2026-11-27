@@ -1025,7 +1025,12 @@ slow down compilation."""
         """Decide about YAML 'no-auto-follow' for an import.
 
         Notes:
-            An 'allow' value overrides a rule from a less specific config.
+            User configuration overrides standard configuration. The most specific target namespace
+            wins, then the most specific using module namespace, otherwise the first matching entry
+            wins. An 'allow' value only overrides decisions with lower precedence.
+
+        Returns:
+            None if the import is allowed, otherwise a tuple with 'False' and a reason.
         """
 
         def decideRelevant(key, value):
@@ -1036,6 +1041,9 @@ slow down compilation."""
 
             return module_name.hasNamespace(key) and not is_own_submodule
 
+        best_config_item = None
+        best_rank = None
+
         for config_item in self.getYamlConfigItemItems(
             module_name=using_module_name,
             section="anti-bloat",
@@ -1045,18 +1053,26 @@ slow down compilation."""
         ):
             assert module_name.hasNamespace(config_item.key), config_item.key
 
-            if config_item.value == "allow":
-                return None
-
-            self.no_auto_follows[config_item.key] = config_item.value
-
-            return (
-                False,
-                "according to yaml 'no-auto-follow' configuration of '%s' for '%s'"
-                % (config_item.config_module_name, config_item.key),
+            rank = (
+                config_item.priority,
+                len(config_item.key),
+                len(config_item.config_module_name),
             )
 
-        return None
+            if best_rank is None or rank > best_rank:
+                best_rank = rank
+                best_config_item = config_item
+
+        if best_config_item is None or best_config_item.value == "allow":
+            return None
+
+        self.no_auto_follows[best_config_item.key] = best_config_item.value
+
+        return (
+            False,
+            "according to yaml 'no-auto-follow' configuration of '%s' for '%s'"
+            % (best_config_item.config_module_name, best_config_item.key),
+        )
 
     def onModuleEncounter(
         self, using_module_name, module_name, module_filename, module_kind

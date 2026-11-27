@@ -1,0 +1,11 @@
+# yamllint disable rule:line-length
+# yamllint disable rule:indentation
+# yamllint disable rule:comments-indentation
+# yamllint disable rule:comments
+# too many spelling things, spell-checker: disable
+---
+- module-name: 'joblib' # checksum: bb026820
+  anti-bloat:
+    - description: 'base user rule that the override must replace'
+      no-auto-follow:
+        'tornado': 'ignore'

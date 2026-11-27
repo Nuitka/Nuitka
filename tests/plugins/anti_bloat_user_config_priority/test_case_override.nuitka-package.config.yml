@@ -1,0 +1,11 @@
+# yamllint disable rule:line-length
+# yamllint disable rule:indentation
+# yamllint disable rule:comments-indentation
+# yamllint disable rule:comments
+# too many spelling things, spell-checker: disable
+---
+- module-name: 'joblib' # checksum: 982da12d
+  anti-bloat:
+    - description: 'later user configuration must override the earlier user rule'
+      no-auto-follow:
+        'tornado': 'allow'

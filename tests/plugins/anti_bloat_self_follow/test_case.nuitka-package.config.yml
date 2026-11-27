@@ -4,6 +4,12 @@
 # yamllint disable rule:comments
 # too many spelling things, spell-checker: disable
 ---
+- module-name: 'outside_package' # checksum: d2a0e034
+  anti-bloat:
+    - description: 'test that a no-auto-follow rule still suppresses outside importers'
+      no-auto-follow:
+        'self_follow_package.suppressed': 'ignore'
+
 - module-name: 'self_follow_package' # checksum: ce598461
   anti-bloat:
     - description: 'test that a no-auto-follow rule does not suppress the target own submodules'

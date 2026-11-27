@@ -10,6 +10,16 @@ import self_follow_package.sub
 
 print(self_follow_package.sub.VALUE)
 
+try:
+    import outside_package.suppressed_user
+except ImportError:
+    print("suppression works")
+else:
+    print("suppression failed")
+
+# nuitka-test-compiled-only:stdout: suppression works
+# nuitka-test-uncompiled-only:stdout: suppression failed
+
 #     Python test originally created or extracted from other peoples work. The
 #     parts from me are licensed as below. It is at least Free Software where
 #     it's copied from other people. In these cases, that will normally be
