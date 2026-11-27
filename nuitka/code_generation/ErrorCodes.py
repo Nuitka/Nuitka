@@ -82,37 +82,30 @@ def getErrorExitBoolCode(
     """
     assert not condition.endswith(";")
 
+    if release_names:
+        assert not release_name
+    elif release_name is not None:
+        assert type(release_name) is not tuple
+        release_names = (release_name,)
+
+    normal_release_names = []
     deferred_release_names = []
 
-    if release_names:
-        normal_release_names = []
-
-        for tmp_name in release_names:
-            if context.isDeferredReleaseName(tmp_name):
-                deferred_release_names.append(tmp_name)
-            else:
-                normal_release_names.append(tmp_name)
-
-        getReleaseCodes(normal_release_names, emit, context)
-        assert not release_name
-
-    if release_name is not None:
-        assert type(release_name) is not tuple
-
-        if context.isDeferredReleaseName(release_name):
-            deferred_release_names.append(release_name)
+    for tmp_name in release_names:
+        if context.isDeferredReleaseName(tmp_name):
+            deferred_release_names.append(tmp_name)
         else:
-            getReleaseCode(release_name, emit, context)
-
-        assert not release_names
+            normal_release_names.append(tmp_name)
 
     if not needs_check:
         getAssertionCode("!(%s)" % condition, emit)
 
-        # The deferred values are released on the non-error path.
+        getReleaseCodes(normal_release_names, emit, context)
         getReleaseCodes(deferred_release_names, emit, context)
 
         return
+
+    getReleaseCodes(normal_release_names, emit, context)
 
     (
         exception_state_name,
