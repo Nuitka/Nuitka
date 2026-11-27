@@ -36,6 +36,7 @@ from nuitka.PythonVersions import python_version
 from nuitka.utils.Distributions import getDistributionFromModuleName
 from nuitka.utils.FileOperations import (
     getDllBasename,
+    getFileContentByLine,
     getFileList,
     getNormalizedPath,
     getNormalizedPathJoin,
@@ -102,6 +103,10 @@ class NuitkaPluginQtBindingsPluginBase(NuitkaPluginBase):
         self.web_engine_done_data = False
 
         self.plugin_families = None
+
+        self.qml_data_files = None
+        self.qml_dll_files = None
+        self.qml_resources_embedded = False
 
     def onCompilationStartChecks(self):
         # Make sure, distribution location for this uses shortest name approach,
@@ -223,9 +228,12 @@ created standalone, so you can debug what plugin loading issues
 there might be.""",
         )
 
-    def _getQmlTargetDir(self):
+    def getQmlTargetDir(self):
         """Where does the Qt bindings package expect the QML files."""
         return getNormalizedPathJoin(self.binding_name, "qml")
+
+    def setQmlResourcesEmbedded(self):
+        self.qml_resources_embedded = True
 
     def _getQtLibraryTargetPath(self):
         """Where do the Qt bindings packages expect the Qt libraries."""
@@ -553,43 +561,55 @@ import %(binding_name)s.QtCore
     def hasPluginFamily(self, family):
         return family in self.getAvailablePluginFamilies()
 
-    def _getQmlDirectory(self):
+    def findQmlDirectory(self):
         for plugin_dir in self.getQtPluginDirs():
             qml_plugin_dir = getNormalizedPathJoin(plugin_dir, "..", "qml")
 
             if os.path.exists(qml_plugin_dir):
                 return qml_plugin_dir
 
-        self.sysexit("Error, no such Qt plugin family: qml")
+        return None
 
-    def _getQmlFileList(self, dlls):
-        qml_plugin_dir = self._getQmlDirectory()
+    def _getQmlDirectory(self):
+        qml_plugin_dir = self.findQmlDirectory()
 
-        # List all file types of the QML plugin folder that are data files and
-        # not DLLs, spell-checker: ignore metainfo,qmlc,qmldir,qmltypes
+        if qml_plugin_dir is None:
+            self.sysexit("Error, no such Qt plugin family: qml")
+
+        return qml_plugin_dir
+
+    def _scanQmlDirectory(self, qml_plugin_dir, dlls):
+        # spell-checker: ignore qmlc,qmldir
         datafile_suffixes = (
             ".qml",
             ".qmlc",
-            ".qmltypes",
             ".js",
             ".jsc",
             ".json",
             ".png",
             ".ttf",
-            ".metainfo",
             ".mesh",
             ".frag",
             "qmldir",
             ".webp",
-            ".md",
         )
 
-        # File types that are build artifacts, not DLLs and not data files,
-        # spell-checker: ignore prl
-        non_dll_artifact_suffixes = (".a", ".la", ".prl", ".obj", ".o", ".cpp")
+        # Build artifacts and Qt Creator / Design Studio metadata unused at
+        # runtime, spell-checker: ignore metainfo,prl,qmltypes
+        non_runtime_suffixes = (
+            ".qmltypes",
+            ".metainfo",
+            ".md",
+            ".a",
+            ".la",
+            ".prl",
+            ".obj",
+            ".o",
+            ".cpp",
+        )
 
         if dlls:
-            ignore_suffixes = datafile_suffixes + non_dll_artifact_suffixes
+            ignore_suffixes = datafile_suffixes + non_runtime_suffixes
             only_suffixes = ()
         else:
             ignore_suffixes = ()
@@ -598,7 +618,12 @@ import %(binding_name)s.QtCore
         try:
             return getFileList(
                 qml_plugin_dir,
-                ignore_dirs=("objects-RelWithDebInfo", "objects-Debug"),
+                ignore_dirs=(
+                    "objects-RelWithDebInfo",
+                    "objects-Debug",
+                    # Qt Creator / Design Studio assets, unused at runtime.
+                    "designer",
+                ),
                 ignore_suffixes=ignore_suffixes,
                 only_suffixes=only_suffixes,
             )
@@ -610,6 +635,164 @@ indicates a corrupt '%s' installation with wrong file permissions. \
 Try reinstalling the package, or fix the permissions on the directory."""
                 % (qml_plugin_dir, self.binding_name)
             )
+
+    @staticmethod
+    def parseQmlDirFile(qmldir_filename):
+        has_module = False
+        prefer_path = None
+        plugin_names = []
+        has_custom_plugin_path = False
+
+        for line in getFileContentByLine(
+            qmldir_filename, encoding="utf-8-sig", errors="replace"
+        ):
+            stripped = line.strip()
+            if not stripped or stripped.startswith("#"):
+                continue
+
+            parts = stripped.split()
+            keyword = parts[0]
+
+            if keyword == "module" and len(parts) >= 2:
+                has_module = True
+            elif keyword == "prefer" and len(parts) >= 2:
+                prefer_path = parts[1].rstrip("/")
+            elif keyword == "plugin" and len(parts) >= 2:
+                plugin_names.append(parts[1])
+                if len(parts) >= 3:
+                    has_custom_plugin_path = True
+            elif keyword == "optional" and len(parts) >= 3 and parts[1] == "plugin":
+                plugin_names.append(parts[2])
+                if len(parts) >= 4:
+                    has_custom_plugin_path = True
+
+        return has_module, prefer_path, tuple(plugin_names), has_custom_plugin_path
+
+    @staticmethod
+    def _isEmbeddedInQmlPlugin(
+        file_dir, qml_root_dir, qmldir_by_dir, embedded_prefer_by_dir
+    ):
+        # Qt 6.2+ QML modules with 'prefer :/' and a compiled plugin DLL load
+        # their QML/JS/asset files from the plugin's embedded Qt resources
+        # rather than from disk; only 'qmldir' and the plugin DLL are read.
+        cur_dir = file_dir
+        required_prefer = None
+
+        while cur_dir != qml_root_dir:
+            if cur_dir in embedded_prefer_by_dir:
+                return (
+                    required_prefer is None
+                    or embedded_prefer_by_dir[cur_dir] == required_prefer
+                )
+
+            if cur_dir in qmldir_by_dir:
+                has_module, prefer_path, plugin_names, _has_custom_path = qmldir_by_dir[
+                    cur_dir
+                ]
+
+                if has_module or plugin_names:
+                    return False
+
+                if prefer_path is None or not prefer_path.startswith((":/", "qrc:/")):
+                    return False
+
+                if required_prefer is not None and required_prefer != prefer_path:
+                    return False
+
+                required_prefer = prefer_path
+
+            parent_dir = os.path.dirname(cur_dir)
+            if parent_dir == cur_dir:
+                break
+            cur_dir = parent_dir
+
+        return False
+
+    def _getQmlDllStemsByDir(self, qml_plugin_dir):
+        dll_stems_by_dir = {}
+
+        for dll_filename in self._scanQmlDirectory(
+            qml_plugin_dir=qml_plugin_dir, dlls=True
+        ):
+            dll_basename = getDllBasename(os.path.basename(dll_filename))
+            if dll_basename is None:
+                continue
+
+            dll_dir = os.path.normcase(os.path.dirname(dll_filename))
+            stem = dll_basename.lower()
+            stems = dll_stems_by_dir.setdefault(dll_dir, set())
+            stems.add(stem)
+            if stem.startswith("lib"):
+                stems.add(stem[3:])
+
+        return dll_stems_by_dir
+
+    def _filterEmbeddedQmlDataFiles(self, qml_plugin_dir, data_file_list):
+        dll_stems_by_dir = self._getQmlDllStemsByDir(qml_plugin_dir=qml_plugin_dir)
+
+        qmldir_by_dir = {}
+        embedded_prefer_by_dir = {}
+
+        for filename in data_file_list:
+            if os.path.normcase(os.path.basename(filename)) != "qmldir":
+                continue
+
+            module_dir = os.path.normcase(os.path.dirname(filename))
+            parsed = self.parseQmlDirFile(filename)
+            qmldir_by_dir[module_dir] = parsed
+
+            _has_module, prefer_path, plugin_names, has_custom_plugin_path = parsed
+
+            if (
+                prefer_path is not None
+                and prefer_path.startswith((":/", "qrc:/"))
+                and plugin_names
+                and not has_custom_plugin_path
+                and all(
+                    plugin_name.lower() in dll_stems_by_dir.get(module_dir, ())
+                    for plugin_name in plugin_names
+                )
+            ):
+                embedded_prefer_by_dir[module_dir] = prefer_path
+
+        if not embedded_prefer_by_dir:
+            return data_file_list
+
+        qml_root_dir = os.path.normcase(getNormalizedPath(qml_plugin_dir))
+
+        return [
+            filename
+            for filename in data_file_list
+            if os.path.normcase(os.path.basename(filename)) == "qmldir"
+            or not self._isEmbeddedInQmlPlugin(
+                file_dir=os.path.normcase(os.path.dirname(filename)),
+                qml_root_dir=qml_root_dir,
+                qmldir_by_dir=qmldir_by_dir,
+                embedded_prefer_by_dir=embedded_prefer_by_dir,
+            )
+        ]
+
+    def getQmlFileList(self, dlls):
+        if dlls:
+            if self.qml_dll_files is None:
+                qml_plugin_dir = self._getQmlDirectory()
+                self.qml_dll_files = self._scanQmlDirectory(
+                    qml_plugin_dir=qml_plugin_dir, dlls=True
+                )
+
+            return self.qml_dll_files
+        else:
+            if self.qml_data_files is None:
+                qml_plugin_dir = self._getQmlDirectory()
+                file_list = self._scanQmlDirectory(
+                    qml_plugin_dir=qml_plugin_dir, dlls=False
+                )
+                self.qml_data_files = self._filterEmbeddedQmlDataFiles(
+                    qml_plugin_dir=qml_plugin_dir,
+                    data_file_list=file_list,
+                )
+
+            return self.qml_data_files
 
     def _findQtPluginDLLs(self):
         for qt_plugins_dir in self.getQtPluginDirs():
@@ -1226,23 +1409,24 @@ Prefix = .
         if full_name == self.binding_name and (
             "qml" in self.getQtPluginsSelected() or "all" in self.getQtPluginsSelected()
         ):
-            qml_plugin_dir = self._getQmlDirectory()
-            qml_target_dir = self._getQmlTargetDir()
+            if not self.qml_resources_embedded:
+                qml_plugin_dir = self._getQmlDirectory()
+                qml_target_dir = self.getQmlTargetDir()
 
-            self.info("Including Qt plugins 'qml' below '%s'." % qml_target_dir)
+                self.info("Including Qt plugins 'qml' below '%s'." % qml_target_dir)
 
-            for filename in self._getQmlFileList(dlls=False):
-                filename_relative = os.path.relpath(filename, qml_plugin_dir)
+                for filename in self.getQmlFileList(dlls=False):
+                    filename_relative = os.path.relpath(filename, qml_plugin_dir)
 
-                yield self.makeIncludedDataFile(
-                    source_path=filename,
-                    dest_path=getNormalizedPathJoin(
-                        qml_target_dir,
-                        filename_relative,
-                    ),
-                    reason="Qt QML datafile",
-                    tags="qml",
-                )
+                    yield self.makeIncludedDataFile(
+                        source_path=filename,
+                        dest_path=getNormalizedPathJoin(
+                            qml_target_dir,
+                            filename_relative,
+                        ),
+                        reason="Qt QML datafile",
+                        tags="qml",
+                    )
         elif self.isQtWebEngineModule(full_name):
             yield self._handleWebEngineDataFiles()
 
@@ -1346,17 +1530,24 @@ Prefix = .
                 or "all" in self.getQtPluginsSelected()
             ):
                 qml_plugin_dir = self._getQmlDirectory()
-                qml_target_dir = self._getQmlTargetDir()
+                qml_target_dir = self.getQmlTargetDir()
 
-                for filename in self._getQmlFileList(dlls=True):
-                    filename_relative = os.path.relpath(filename, qml_plugin_dir)
+                for filename in self.getQmlFileList(dlls=True):
+                    if self.qml_resources_embedded:
+                        dest_path = getNormalizedPathJoin(
+                            qml_target_dir,
+                            os.path.basename(filename),
+                        )
+                    else:
+                        filename_relative = os.path.relpath(filename, qml_plugin_dir)
+                        dest_path = getNormalizedPathJoin(
+                            qml_target_dir,
+                            filename_relative,
+                        )
 
                     yield self.makeDllEntryPoint(
                         source_path=filename,
-                        dest_path=getNormalizedPathJoin(
-                            qml_target_dir,
-                            filename_relative,
-                        ),
+                        dest_path=dest_path,
                         module_name=full_name,
                         package_name=full_name,
                         reason="Qt QML plugin DLL",
