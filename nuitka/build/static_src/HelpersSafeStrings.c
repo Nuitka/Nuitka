@@ -45,7 +45,7 @@ void copyStringSafe(char *buffer, char const *source, size_t buffer_size) {
 }
 
 void copyStringSafeN(char *buffer, char const *source, size_t n, size_t buffer_size) {
-    if (n >= buffer_size - 1) {
+    if (n >= buffer_size) {
         abort();
     }
     strncpy(buffer, source, n);
