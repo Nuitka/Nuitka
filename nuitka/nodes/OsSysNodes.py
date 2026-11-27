@@ -12,6 +12,7 @@ from .ExceptionNodes import (
 )
 from .ExpressionBases import ExpressionNoSideEffectsMixin
 from .HardImportNodesGenerated import (
+    ExpressionOsFspathCallBase,
     ExpressionOsListdirCallBase,
     ExpressionOsLstatCallBase,
     ExpressionOsPathAbspathCallBase,
@@ -70,6 +71,27 @@ class ExpressionOsUnameCall(
         trace_collection.onExceptionRaiseExit(BaseException)
 
         return lookup_node, None, None
+
+    def replaceWithCompileTimeValue(self, trace_collection):
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        return self, None, None
+
+
+class ExpressionOsFspathCall(ExpressionOsFspathCallBase):
+    kind = "EXPRESSION_OS_FSPATH_CALL"
+
+    def computeExpression(self, trace_collection):
+        path = self.subnode_path
+
+        if path.hasShapeStrOrUnicodeExact() or path.hasShapeBytesExact():
+            return (
+                path,
+                "new_expression",
+                "Eliminated 'os.fspath' call with str or bytes argument.",
+            )
+
+        return ExpressionOsFspathCallBase.computeExpression(self, trace_collection)
 
     def replaceWithCompileTimeValue(self, trace_collection):
         trace_collection.onExceptionRaiseExit(BaseException)

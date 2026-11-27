@@ -3595,6 +3595,7 @@ _expression_source_dispatch = {
     "EXPRESSION_IMPORTLIB_METADATA_ENTRY_POINTS_VALUE_REF": _generateImportlibMetadataEntryPointsValueRefSource,
     "EXPRESSION_IMPORTLIB_METADATA_BACKPORT_ENTRY_POINTS_VALUE_REF": _generateImportlibMetadataEntryPointsValueRefSource,
     "EXPRESSION_OS_UNAME_CALL": _generateHardImportSpecCallSource,
+    "EXPRESSION_OS_FSPATH_CALL": _generateHardImportSpecCallSource,
     "EXPRESSION_OS_PATH_EXISTS_CALL": _generateHardImportSpecCallSource,
     "EXPRESSION_OS_PATH_ISFILE_CALL": _generateHardImportSpecCallSource,
     "EXPRESSION_OS_PATH_ISDIR_CALL": _generateHardImportSpecCallSource,

@@ -917,6 +917,20 @@ def generateOsUnameCallCode(to_name, expression, emit, context):
         )
 
 
+def generateOsFspathCallCode(to_name, expression, emit, context):
+    generateCAPIObjectCode(
+        to_name=to_name,
+        capi="OS_FSPATH",
+        tstate=True,
+        arg_desc=(("path_arg", expression.subnode_path),),
+        may_raise=expression.mayRaiseException(BaseException),
+        conversion_check=decideConversionCheckNeeded(to_name, expression),
+        source_ref=expression.getCompatibleSourceReference(),
+        emit=emit,
+        context=context,
+    )
+
+
 def generateOsPathExistsCallCode(to_name, expression, emit, context):
     generateCAPIObjectCode(
         to_name=to_name,

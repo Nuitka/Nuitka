@@ -212,6 +212,10 @@ extern PyObject *OS_LSTAT(PyThreadState *tstate, PyObject *path, PyObject *dir_f
 #define const_platform_sep const_str_slash
 #endif
 
+#if PYTHON_VERSION >= 0x360
+extern PyObject *OS_FSPATH(PyThreadState *tstate, PyObject *path);
+#endif
+
 extern PyObject *OS_PATH_BASENAME(PyThreadState *tstate, PyObject *filename);
 extern PyObject *OS_PATH_DIRNAME(PyThreadState *tstate, PyObject *filename);
 extern PyObject *OS_PATH_JOIN(PyThreadState *tstate, PyObject *const *paths, Py_ssize_t count);

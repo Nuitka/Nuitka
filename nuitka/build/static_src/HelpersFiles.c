@@ -263,6 +263,47 @@ extern PyObject *OS_LSTAT(PyThreadState *tstate, PyObject *path, PyObject *dir_f
     return result;
 }
 
+#if PYTHON_VERSION >= 0x360
+PyObject *OS_FSPATH(PyThreadState *tstate, PyObject *path) {
+    CHECK_OBJECT(path);
+
+    if (PyUnicode_Check(path) || PyBytes_Check(path)) {
+        return Py_NewRef(path);
+    }
+
+    PyObject *func = LOOKUP_SPECIAL_NO_ERROR(path, const_str_plain___fspath__);
+    if (func == NULL) {
+        DROP_ERROR_OCCURRED(tstate);
+        SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("expected str, bytes or os.PathLike object, not %s", path);
+        return NULL;
+    }
+#if PYTHON_VERSION >= 0x3d0
+    // Python 3.13+ treats "__fspath__ = None" as disabling the os.PathLike protocol.
+    if (func == Py_None) {
+        Py_DECREF_IMMORTAL(func);
+        SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("expected str, bytes or os.PathLike object, not %s", path);
+        return NULL;
+    }
+#endif
+
+    PyObject *path_repr = CALL_FUNCTION_NO_ARGS(tstate, func);
+    Py_DECREF(func);
+
+    if (unlikely(path_repr == NULL)) {
+        return NULL;
+    }
+
+    if (unlikely(!PyUnicode_Check(path_repr) && !PyBytes_Check(path_repr))) {
+        SET_CURRENT_EXCEPTION_TYPE0_FORMAT2(PyExc_TypeError, "expected %s.__fspath__() to return str or bytes, not %s",
+                                            Py_TYPE(path)->tp_name, Py_TYPE(path_repr)->tp_name);
+        Py_DECREF(path_repr);
+        return NULL;
+    }
+
+    return path_repr;
+}
+#endif
+
 PyObject *OS_PATH_BASENAME(PyThreadState *tstate, PyObject *filename) {
     CHECK_OBJECT(filename);
 

@@ -12956,6 +12956,7 @@ class ChildHavingPathMixin(object):
         self.subnode_path.collectVariableAccesses(emit_variable)
 
 
+ChildrenExpressionOsFspathCallMixin = ChildHavingPathMixin
 ChildrenExpressionOsPathAbspathCallMixin = ChildHavingPathMixin
 ChildrenExpressionOsPathExistsCallMixin = ChildHavingPathMixin
 ChildrenExpressionOsPathIsfileCallMixin = ChildHavingPathMixin

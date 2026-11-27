@@ -220,6 +220,7 @@ def getConstantDefaultPopulation():
 
     if python_version >= 0x360:
         result.append("__classcell__")
+        result.append("__fspath__")
 
     # Resource reader files interface, including for backport
     if python_version >= 0x390:

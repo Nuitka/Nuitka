@@ -71,6 +71,7 @@ from nuitka.specs.HardImportSpecs import (
     importlib_resources_read_binary_spec,
     importlib_resources_read_text_before_313_spec,
     importlib_resources_read_text_since_313_spec,
+    os_fspath_spec,
     os_listdir_spec,
     os_lstat_spec,
     os_path_abspath_spec,
@@ -3083,6 +3084,83 @@ class ExpressionImportlibResourcesReadTextBefore313CallBase(
                     self.subnode_errors,
                 )
             )
+        ):
+            trace_collection.onExceptionRaiseExit(BaseException)
+
+            return self, None, None
+
+        try:
+            return self.replaceWithCompileTimeValue(trace_collection)
+        finally:
+            self.attempted = True
+
+    @abstractmethod
+    def replaceWithCompileTimeValue(self, trace_collection):
+        pass
+
+    @staticmethod
+    def mayRaiseExceptionOperation():
+        return True
+
+
+class ExpressionOsFspathRef(ExpressionImportModuleNameHardExistsSpecificBase):
+    """Function reference 'os.fspath'."""
+
+    kind = "EXPRESSION_OS_FSPATH_REF"
+
+    def __init__(self, source_ref):
+        ExpressionImportModuleNameHardExistsSpecificBase.__init__(
+            self,
+            module_name="os",
+            import_name="fspath",
+            module_guaranteed=True,
+            source_ref=source_ref,
+        )
+
+    def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        from .OsSysNodes import ExpressionOsFspathCall
+
+        result = extractBuiltinArgs(
+            node=call_node,
+            builtin_class=ExpressionOsFspathCall,
+            builtin_spec=os_fspath_spec,
+        )
+
+        return (
+            result,
+            "new_expression",
+            "Call to 'os.fspath' recognized.",
+        )
+
+
+addHardImportNodeClass(ExpressionOsFspathRef, os_fspath_spec)
+
+
+class ExpressionOsFspathCallBase(ChildHavingPathMixin, ExpressionBase):
+    """Base class for 'os.fspath' call node."""
+
+    named_children = ("path",)
+
+    __slots__ = ("attempted",)
+
+    spec = os_fspath_spec
+
+    def __init__(self, path, source_ref):
+
+        ChildHavingPathMixin.__init__(
+            self,
+            path=path,
+        )
+
+        ExpressionBase.__init__(self, source_ref)
+
+        self.attempted = False
+
+    def computeExpression(self, trace_collection):
+        if self.attempted or not os_fspath_spec.isCompileTimeComputable(
+            (self.subnode_path,)
         ):
             trace_collection.onExceptionRaiseExit(BaseException)
 

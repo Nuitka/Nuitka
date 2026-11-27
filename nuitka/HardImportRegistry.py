@@ -304,6 +304,9 @@ module_os_trust = {
     "linesep": trust_constant,
 }
 
+if python_version >= 0x360:
+    module_os_trust["fspath"] = trust_node
+
 module_os_path_trust = {
     "exists": trust_node,
     "isfile": trust_node,

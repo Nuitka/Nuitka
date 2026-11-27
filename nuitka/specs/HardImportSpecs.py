@@ -173,6 +173,8 @@ os_uname_spec = BuiltinParameterSpec(
     default_count=0,
 )
 
+os_fspath_spec = BuiltinParameterSpec("os.fspath", ("path",), default_count=0)
+
 os_path_exists_spec = BuiltinParameterSpec("os.path.exists", ("path",), default_count=0)
 os_path_isfile_spec = BuiltinParameterSpec("os.path.isfile", ("path",), default_count=0)
 

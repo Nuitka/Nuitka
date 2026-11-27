@@ -164,6 +164,7 @@ extern PyObject **global_constants;
 #define const_str_plain_loader global_constants[0]
 #define const_str_plain_reload global_constants[0]
 #define const_str_plain___classcell__ global_constants[0]
+#define const_str_plain___fspath__ global_constants[0]
 #define const_str_plain_as_file global_constants[0]
 #define const_str_plain_register global_constants[0]
 #define const_str_plain___class_getitem__ global_constants[0]
