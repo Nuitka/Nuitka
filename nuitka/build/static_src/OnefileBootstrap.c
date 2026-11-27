@@ -937,10 +937,15 @@ static bool createDirectory(filename_char_t const *path) {
         bool_res = true;
     }
 #else
-    if (access(path, F_OK) != -1) {
+    if (mkdir(path, 0700) == 0) {
         bool_res = true;
+    } else if (errno == EEXIST) {
+        struct stat stat_buffer;
+
+        bool_res = lstat(path, &stat_buffer) == 0 && S_ISDIR(stat_buffer.st_mode) && stat_buffer.st_uid == geteuid() &&
+                   (stat_buffer.st_mode & 0777) == 0700;
     } else {
-        bool_res = mkdir(path, 0700) == 0;
+        bool_res = false;
     }
 #endif
 
@@ -969,7 +974,10 @@ static bool createContainingDirectory(filename_char_t const *path) {
                 return true;
             }
 
-            createContainingDirectory(dir_path);
+            if (createContainingDirectory(dir_path) == false) {
+                return false;
+            }
+
             return createDirectory(dir_path);
         }
 
@@ -1766,7 +1774,9 @@ int main(int argc, char **argv) {
                 memcpy(link_target_path, link_target, entry.link_target_length);
                 link_target_path[entry.link_target_length] = 0;
 
-                createContainingDirectory(target_path);
+                if (createContainingDirectory(target_path) == false) {
+                    fatalErrorTempFileCreate(target_path);
+                }
 
 #if _NUITKA_ONEFILE_TEMP_BOOL == 0
                 makeProcessTemporaryFilename(target_path_tmp, target_path,
@@ -1812,7 +1822,9 @@ int main(int argc, char **argv) {
             FILE_HANDLE target_file = FILE_HANDLE_NULL;
 
             if (needs_write) {
-                createContainingDirectory(target_path);
+                if (createContainingDirectory(target_path) == false) {
+                    fatalErrorTempFileCreate(target_path);
+                }
 
 #if _NUITKA_ONEFILE_TEMP_BOOL == 0
                 makeProcessTemporaryFilename(target_path_tmp, target_path,
