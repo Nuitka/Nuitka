@@ -1019,6 +1019,7 @@ static void generateXorShift32RandomBytes(unsigned int state, unsigned char *buf
 // Note: Keep this separate line, must be included before other Windows headers.
 #include <windows.h>
 
+#include <ntsecapi.h>
 #include <shlobj.h>
 #include <shlwapi.h>
 
@@ -1030,7 +1031,7 @@ static void generateXorShift32RandomBytes(unsigned int state, unsigned char *buf
 #define CSIDL_PROFILE 40
 #endif
 
-// spell-checker: ignore csidl
+// spell-checker: ignore csidl,ntsecapi
 
 static bool appendStringCSIDLPathW(wchar_t *target, int csidl_id, size_t buffer_size) {
     wchar_t path_buffer[MAX_PATH];
@@ -1045,6 +1046,12 @@ static bool appendStringCSIDLPathW(wchar_t *target, int csidl_id, size_t buffer_
 }
 
 static void getSecureRandomBytes(unsigned char *buffer, size_t length) {
+    assert((size_t)(ULONG)length == length);
+
+    if (RtlGenRandom(buffer, (ULONG)length)) {
+        return;
+    }
+
     LARGE_INTEGER li;
     QueryPerformanceCounter(&li);
 

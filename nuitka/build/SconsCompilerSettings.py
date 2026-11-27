@@ -1898,8 +1898,9 @@ def setupCCompiler(env, pgo_mode, exe_target, onefile_compile):
             env.Append(CPPDEFINES=["MS_WIN64"])
 
     if env.msvc_mode:
-        # For shell API usage to lookup app folders we need this.
-        env.Append(LIBS=["Shell32"])
+        # MSVC only links kernel32 by default, unlike MinGW64 and Zig.
+        # spell-checker: ignore Advapi32
+        env.Append(LIBS=["Shell32", "Advapi32"])
 
         # Make sure to find MSVC "link" in the right spot and to not use the
         # "link" of e.g. Git.
