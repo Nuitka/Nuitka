@@ -540,8 +540,9 @@ static bool readPayloadEntry(struct OnefilePayloadEntry *entry, char const **nam
 }
 
 #if defined(_NUITKA_DEBUG)
-// Reject names that could escape the payload directory. The payload is
-// produced by the packer, but the attached data may be corrupted.
+// Debug-only check that Nuitka's own packer does not emit escaping entry names.
+// The attached payload is trusted (executing the binary already runs arbitrary
+// code), so release builds skip this check and symlink targets are not validated.
 static bool isSafePayloadName(filename_char_t const *name, size_t name_length) {
     if (name_length == 0) {
         return false;
