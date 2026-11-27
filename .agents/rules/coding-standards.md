@@ -73,6 +73,25 @@ description: Python and C coding standards, naming conventions, docstring, and c
     the case is a well-defined exception (e.g., an optional flag that is very unlikely to be used).
     This ensures clarity and prevents hidden behavior.
 
+  - **Return `sysexit(...)` calls:** Outside `__init__` and generator functions, always write
+    `return logger.sysexit(...)` / `return self.sysexit(...)` so control flow is explicit.
+
+  - **Absent optional values & conditions:** Prefer `None` over empty sentinels (`0`, `b""`) for
+    absent optional values in Python. Merge nested `if` statements into a single condition when
+    practical, putting the cheapest or most common check first.
+
+  - **Filesystem & execution helpers:** Prefer `nuitka.utils.FileOperations` and
+    `nuitka.utils.Execution` helpers (`getUserInputNormalizedPath`, `getNormalizedPathJoin` with
+    `".."` rather than `os.path.dirname`, `getFilenameRealPath`, `getFileContents`, `NullInput`) and
+    avoid bare `os.path.normpath` (MSYS2 path-separator hazard).
+
+  - **Code generation templates:** Do not add new `renderTemplateFromString` calls; use plain `%`
+    format strings instead. Do not manually indent triple-quoted C codegen strings solely for
+    unformatted C readability (`clang-format` formats generated C when inspected).
+
+  - **Git staging hygiene:** Never run `git add` or `git reset` to alter the git index unless
+    explicitly asked; the user may be selectively staging reviewed hunks.
+
 ## C Coding Standards
 
 - **Standard:** Code must adhere to C11 (or C++03 where applicable).
@@ -82,6 +101,9 @@ description: Python and C coding standards, naming conventions, docstring, and c
     later.
     - **Incorrect:** `if (condition) return;`
     - **Correct:** `if (condition) { return; }`
+- **Preprocessor & Format Strings:**
+  - Do not write trailing `#endif // ...` comments, do not use `#undef`, and do not put precision or
+    length limits in C format strings.
 - **Generated Helpers (`templates_c` / `templates_python`):**
   - Many specialized C and Python helpers are generated from Jinja2 templates (`*.c.j2`, `*.py.j2`).
     Edit the `.j2` template and regenerate with `./bin/generate-specialized-c-code` or
@@ -128,17 +150,10 @@ description: Python and C coding standards, naming conventions, docstring, and c
   work-in-progress code (`#if ... && 0`, `#if 0` draft implementations, or commented-out `assert`
   checks) that document an unfinished feature, optimization, or invariant check. Only write new
   `TODO` comments when specific, current, and actionable.
-- **Preserve Plugin Replacement-Hook Comments:** Never delete, reword, or reformat comments in C
-  runtime files (`nuitka/build/static_src/*.c`) or code templates
-  (`nuitka/code_generation/templates/*.py`) that serve as string-replacement hooks for commercial
-  plugins (`injectCodeAtMarker` in `nuitka/tools/commercial/SourceModification.py` or
-  `.replace(...)` in `nuitka/plugins/commercial/`). These include both `// NUITKA_...` markers
-  (e.g., `// NUITKA_INIT_PROGRAM_EARLY(argc, argv);`,
-  `// NUITKA_MODULE_SET_VALUE_RESERVED(%(module_identifier)s, reserved);`) and prose stage markers
-  in `OnefileBootstrap.c` (`// The onefile bootstrap is setup now.`,
-  `// We are done with the unpacking now.`, `// The onefile program is finished now and can exit.`).
-  Before removing comments in C runtime or template files, search `nuitka/plugins/` and
-  `nuitka/tools/` for literal matches.
+- **Preserve Plugin Replacement-Hook Comments:** Never delete, reword, or reformat `// NUITKA_...`
+  markers or stage marker comments in C runtime files (`nuitka/build/static_src/*.c`) or code
+  templates (`nuitka/code_generation/templates/*.py`) without first searching `nuitka/plugins/` and
+  `nuitka/tools/` for literal string-replacement matches.
 - **Templates (`*.c.j2`, `*.py.j2`, `CodeTemplates*.py`):** Use Jinja `{# ... #}` comments for
   template rationale, disabled ideas, and `TODO`s instead of target-language comments (`//`,
   `/* */`, `#`) that get stamped out across generated files (except intentional replacement-hook

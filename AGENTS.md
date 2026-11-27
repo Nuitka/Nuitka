@@ -12,6 +12,9 @@ rule file):
   strict syntax and stdlib constraints.
 - [`.agents/rules/coding-standards.md`](./.agents/rules/coding-standards.md): Python and C style,
   naming, optional docstrings, strict "why-only" comment rules, and codegen templates.
+- [`.agents/rules/compiler-invariants.md`](./.agents/rules/compiler-invariants.md):
+  OOM/`MemoryError` modeling, `mayRaiseExceptionOperation()` alignment, borrowed-value protection,
+  and concrete type checks.
 - [`.agents/rules/verification.md`](./.agents/rules/verification.md): fast inner-loop checks, final
   auto-format/pylint/codespell gate, verification matrix, and Windows execution.
 
