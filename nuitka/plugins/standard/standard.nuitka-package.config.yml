@@ -1298,19 +1298,12 @@
       no-auto-follow:
         'distributed': 'ignore'
 
-- module-name: 'dask.dataframe' # checksum: 74790f5d
+- module-name: 'dask.dataframe' # checksum: 285671ed
   anti-bloat:
     - description: 'remove pytest testing framework'
       replacements_plain:
         'from dask.dataframe._testing import test_dataframe': 'test_dataframe = None'
       when: 'not use_pytest'
-
-  implicit-imports:
-    - depends:
-        - 'pyarrow._substrait'
-        - 'pyarrow._parquet_encryption'
-        - 'pyarrow.substrait'
-        - 'pyarrow.parquet.encryption'
 
 - module-name: 'dask.dataframe._compat' # checksum: 33e9840c
   anti-bloat:
@@ -1344,20 +1337,21 @@
     - dirs:
         - 'templates'
 
-- module-name: 'dask_ml' # checksum: 131d6683
+- module-name: 'dask_ml' # checksum: 8d0623da
   anti-bloat:
     - description: 'avoid eager model selection import'
       replacements_plain:
         'from dask_ml.model_selection import _normalize': ''
-      when: 'version("dask_ml") >= (2021, 11, 30)'
+      when: 'None is not version("dask-ml") >= (2021, 11, 30)'
 
-- module-name: 'dask_ml._compat' # checksum: 907a3712
+- module-name: 'dask_ml._compat' # checksum: 16d46ea4
   anti-bloat:
     - description: 'avoid importing distributed only for its version'
       replacements_plain:
-        'import distributed': 'from importlib.metadata import version as _dist_version'
+        ? "import distributed\n"
+        : "from importlib.metadata import version as _dist_version\n"
         'DISTRIBUTED_VERSION = packaging.version.parse(distributed.__version__)': 'DISTRIBUTED_VERSION = packaging.version.parse(_dist_version("distributed"))'
-      when: 'version("dask_ml") >= (2021, 11, 30) and python38_or_higher'
+      when: 'None is not version("dask-ml") >= (2021, 11, 30) and python38_or_higher'
 
 - module-name: 'datasets' # checksum: 99c04e2c
   options:
@@ -2031,7 +2025,7 @@
     - patterns:
         - 'VERSION'
 
-- module-name: 'fsspec.transaction' # checksum: e5fe5de1
+- module-name: 'fsspec.transaction' # checksum: d5c1ae4d
   anti-bloat:
     - description: 'remove optional dask usage'
       replacements_plain:
@@ -2053,11 +2047,11 @@
                     raise RuntimeError(
                         "Nuitka: fsspec DaskTransaction requires distributed; "
                         "use --include-module=distributed."
-                    ) from None
+                    )
                 return _nuitka_dask_transaction_init(self, *args, **kwargs)
 
             DaskTransaction.__init__ = _nuitka_dask_transaction_init_wrapper
-      when: 'not deployment'
+      when: 'use_dask and not deployment and has_module("distributed")'
 
 - module-name: 'future.standard_library' # checksum: 27611f9
   anti-bloat:
@@ -2702,7 +2696,7 @@
     - depends:
         - 'jinxed.terminfo.*'
 
-- module-name: 'joblib._dask' # checksum: 46c3d817
+- module-name: 'joblib._dask' # checksum: 14631491
   anti-bloat:
     - description: 'remove optional dask usage'
       replacements_plain:
@@ -2728,7 +2722,7 @@
                 return _nuitka_dask_backend_init(self, *args, **kwargs)
 
             DaskDistributedBackend.__init__ = _nuitka_dask_backend_init_wrapper
-      when: 'not deployment'
+      when: 'use_dask and not deployment and has_module("distributed")'
 
 - module-name: 'joblib._memmapping_reducer' # checksum: 685c89b4
   anti-bloat:
@@ -5380,6 +5374,22 @@
       no-auto-follow:
         'setuptools_scm': 'ignore'
       when: 'not use_setuptools'
+
+- module-name: 'pyarrow._dataset' # checksum: 2fac90b6
+  implicit-imports:
+    - depends:
+        - 'pyarrow.substrait'
+
+- module-name: 'pyarrow._dataset_parquet' # checksum: be680da4
+  implicit-imports:
+    - depends:
+        - 'pyarrow._parquet'
+
+- module-name: 'pyarrow._dataset_parquet_encryption' # checksum: cbda8368
+  implicit-imports:
+    - depends:
+        - 'pyarrow._dataset_parquet'
+        - 'pyarrow._parquet_encryption'
 
 - module-name: 'pyarrow.dataset' # checksum: a16a7618
   implicit-imports:
